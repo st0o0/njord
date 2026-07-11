@@ -23,6 +23,11 @@ context: |
   spec at `/v02/_doc.json`; limits 20,000 requests/month + 60/min;
   windSpeed/windGust in m/s; no feels-like temperature (compute Steadman
   ourselves); `model=ALL` response shape undocumented; no warnings endpoint.
+  Forecast endpoint `/forecast/{lat}/{lon}/advanced/{timeSteps}` + `?model=<id>`
+  (timeSteps coverage: 1h→24h, 3h→120h, 6h→240h); `model` is a free-string
+  param, documented example ids: ICON-D2, ECMWF, GFS, UKMO, HRRR, DWD-MOSMIX,
+  MULTIMOD, SWISS1X1 ("Super HD" has no documented id; SWISS1X1 is the likely
+  candidate — verify via probe request).
   API key comes from env var `Njord__ApiKey` — never in the repo, never in
   test fixtures.
 
