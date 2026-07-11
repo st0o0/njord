@@ -3,6 +3,16 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
+  <ItemGroup Label="Service">
+    <PackageVersion Include="Akka.Hosting" Version="1.5.70" />
+    <PackageVersion Include="Akka.Streams" Version="1.5.70" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.9" />
+  </ItemGroup>
+  <ItemGroup Label="Transitive pins (security)">
+    <!-- NU1902: Akka.Hosting pulls OpenTelemetry.Api 1.10.0 with known advisories -->
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.16.0" />
+  </ItemGroup>
   <ItemGroup Label="Testing">
     <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.7.0" />

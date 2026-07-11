@@ -8,4 +8,15 @@
         <InternalsVisibleTo Include="Njord.Tests" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Akka.Hosting" />
+      <PackageReference Include="Akka.Streams" />
+      <PackageReference Include="Microsoft.Extensions.Hosting" />
+      <PackageReference Include="Microsoft.Extensions.Http" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
 </Project>

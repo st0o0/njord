@@ -1,0 +1,56 @@
+{
+  "lat": 47.05,
+  "lon": 8.31,
+  "alt": 436.0,
+  "resolution": "point",
+  "timeZone": "Europe/Zurich",
+  "systemOfUnits": "metric",
+  "run": "2026-07-11T12:00:00+00:00",
+  "data": [
+    {
+      "dateTime": "2026-07-11T15:00:00+00:00",
+      "isDay": true,
+      "temp": 21.3,
+      "precCurrent": 0.0,
+      "windSpeed": 2.5,
+      "windGust": 5.7,
+      "dewpoint": 12.4,
+      "humidityRelative": 56,
+      "cloudCoverage": 12,
+      "pressureMsl": 1018.2,
+      "sunHours": 2.5,
+      "globalRadiation": 350,
+      "weatherSymbol": "d_1"
+    },
+    {
+      "dateTime": "2026-07-11T18:00:00+00:00",
+      "isDay": true,
+      "temp": 19.8,
+      "precCurrent": 0.4,
+      "windSpeed": 3.1,
+      "windGust": 7.2,
+      "dewpoint": 12.9,
+      "humidityRelative": 63,
+      "cloudCoverage": 55,
+      "pressureMsl": 1017.6,
+      "sunHours": 1.0,
+      "globalRadiation": 120,
+      "weatherSymbol": "d_2"
+    },
+    {
+      "dateTime": "2026-07-14T12:00:00+00:00",
+      "isDay": true,
+      "temp": 24.1,
+      "precCurrent": null,
+      "windSpeed": 1.9,
+      "windGust": 4.0,
+      "dewpoint": null,
+      "humidityRelative": 48,
+      "cloudCoverage": 8,
+      "pressureMsl": 1021.0,
+      "sunHours": 3.0,
+      "globalRadiation": 610,
+      "weatherSymbol": "d_1"
+    }
+  ]
+}
