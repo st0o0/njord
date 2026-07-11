@@ -1,0 +1,38 @@
+schema: spec-driven
+
+# Injected verbatim into the AI when it generates change artifacts.
+context: |
+  njord — Kachelmann weather API → MQTT bridge for Home Assistant.
+  .NET service (Docker container) on Akka.NET + Akka.Streams: polls the
+  Kachelmannwetter API for multiple weather models, computes a consensus
+  forecast, publishes Home Assistant entities via MQTT Discovery
+  (Mosquitto broker on the HA host).
+
+  Build & test: all commands run from `src/` (where global.json lives).
+  Tests are xUnit v3 on Microsoft.Testing.Platform — use `dotnet run`, NOT `dotnet test`.
+    - All tests: dotnet run --project Njord.Tests/Njord.Tests.csproj
+    - Single class: append `-- -class "<FullyQualifiedName>"`
+
+  Structure: solution `src/Njord.slnx`; service code in `src/Njord/`, unit
+  tests in `src/Njord.Tests/`. Central package management with transitive
+  pinning (`src/Directory.Packages.props`) — never put versions in a csproj;
+  add packages via `dotnet add package`.
+
+  Verified Kachelmann API facts (2026-07-11): base URL
+  `https://api.kachelmannwetter.com/v02`, auth header `X-API-Key`, OpenAPI
+  spec at `/v02/_doc.json`; limits 20,000 requests/month + 60/min;
+  windSpeed/windGust in m/s; no feels-like temperature (compute Steadman
+  ourselves); `model=ALL` response shape undocumented; no warnings endpoint.
+  API key comes from env var `Njord__ApiKey` — never in the repo, never in
+  test fixtures.
+
+  Git: commit conventionally, but NEVER `git push` — the user pushes.
+
+rules:
+  proposal:
+    - "Include an API-budget impact estimate (requests/month against the 20k limit) for any change that adds or alters polling."
+    - "Always include a 'Non-goals' section."
+  tasks:
+    - "Reference concrete file paths under `src/Njord/...` and `src/Njord.Tests/...`."
+    - "Every implementation chunk includes unit tests: `Spec` suffix, sealed class, `[Fact(Timeout = 5000)]`, BDD-style method names."
+    - "Add a Validation section running the exact `dotnet run --project ...` commands (not `dotnet test`) for the touched suites."
