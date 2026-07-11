@@ -4,7 +4,6 @@ namespace Njord.Ingest;
 
 public enum FetchFailureReason
 {
-    AuthFailed,
     RateLimited,
     ModelUnavailable,
     MalformedPayload,
@@ -18,7 +17,6 @@ public abstract record FetchOutcome
 
     public sealed record Success(ModelForecast Forecast) : FetchOutcome;
 
-    /// <summary><paramref name="Detail"/> must never contain the API key.</summary>
     public sealed record Failure(
         CycleId Cycle,
         string Location,

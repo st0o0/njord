@@ -20,14 +20,13 @@ public static class PollPipeline
     /// </summary>
     public static Source<CycleResult, NotUsed> Create(
         NjordOptions options,
-        IKachelmannClient client,
+        IOpenMeteoClient client,
         TimeProvider timeProvider,
         IMaterializer materializer,
         TimeSpan? aggregationWindow = null,
         RestartSettings? restartSettings = null)
     {
-        var budget = PlanBudgets.Resolve(options.Plan, options.BudgetOverride)
-            ?? throw new InvalidOperationException($"Plan '{options.Plan}' resolves to no budget; startup validation should have caught this.");
+        var budget = options.EffectiveBudget;
 
         var targets = options.Locations
             .SelectMany(location => options.Models.Select(model => (Location: location, Model: new WeatherModel(model))))
@@ -52,7 +51,7 @@ public static class PollPipeline
         CycleId cycle,
         IReadOnlyList<(LocationOptions Location, WeatherModel Model)> targets,
         RequestBudget budget,
-        IKachelmannClient client,
+        IOpenMeteoClient client,
         TimeSpan window,
         IMaterializer materializer)
     {

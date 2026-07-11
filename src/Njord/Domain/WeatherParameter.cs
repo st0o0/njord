@@ -4,6 +4,7 @@ namespace Njord.Domain;
 public enum WeatherParameter
 {
     Temperature,
+    ApparentTemperature,
     Precipitation,
     WindSpeed,
     WindGust,
@@ -17,7 +18,7 @@ public static class WeatherParameterExtensions
 {
     public static string Unit(this WeatherParameter parameter) => parameter switch
     {
-        WeatherParameter.Temperature or WeatherParameter.Dewpoint => "°C",
+        WeatherParameter.Temperature or WeatherParameter.ApparentTemperature or WeatherParameter.Dewpoint => "°C",
         WeatherParameter.Precipitation => "mm",
         WeatherParameter.WindSpeed or WeatherParameter.WindGust => "m/s",
         WeatherParameter.RelativeHumidity or WeatherParameter.CloudCover => "%",

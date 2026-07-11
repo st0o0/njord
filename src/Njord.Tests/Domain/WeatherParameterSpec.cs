@@ -20,8 +20,14 @@ public sealed class WeatherParameterSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void The_v1_parameter_set_is_exactly_eight_wide()
+    public void Apparent_temperature_is_measured_in_celsius()
     {
-        Assert.Equal(8, Enum.GetValues<WeatherParameter>().Length);
+        Assert.Equal("°C", WeatherParameter.ApparentTemperature.Unit());
+    }
+
+    [Fact(Timeout = 5000)]
+    public void The_v1_parameter_set_is_exactly_nine_wide()
+    {
+        Assert.Equal(9, Enum.GetValues<WeatherParameter>().Length);
     }
 }

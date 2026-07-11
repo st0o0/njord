@@ -14,19 +14,19 @@ public sealed class PipelineGuardianActorSpec
             cycle,
             Received:
             [
-                new ModelForecast(new WeatherModel("ICON-D2"), "home", cycle, cycle.Timestamp,
+                new ModelForecast(new WeatherModel("icon_d2"), "home", cycle, cycle.Timestamp,
                     new ForecastSeries([new ForecastPoint(cycle.Timestamp.AddHours(3), Temperature: 20.0)])),
             ],
             Failed:
             [
-                new FetchOutcome.Failure(cycle, "home", new WeatherModel("ECMWF"), FetchFailureReason.RateLimited, "HTTP 429"),
+                new FetchOutcome.Failure(cycle, "home", new WeatherModel("ecmwf_ifs025"), FetchFailureReason.RateLimited, "HTTP 429"),
             ],
-            Unanswered: [new FetchTarget("home", new WeatherModel("SWISS1X1"))]);
+            Unanswered: [new FetchTarget("home", new WeatherModel("meteoswiss_icon_ch1"))]);
 
         var summary = PipelineGuardianActor.FormatSummary(result);
 
-        Assert.Contains("home/ICON-D2 ok", summary);
-        Assert.Contains("home/ECMWF failed (RateLimited)", summary);
-        Assert.Contains("home/SWISS1X1 unanswered", summary);
+        Assert.Contains("home/icon_d2 ok", summary);
+        Assert.Contains("home/ecmwf_ifs025 failed (RateLimited)", summary);
+        Assert.Contains("home/meteoswiss_icon_ch1 unanswered", summary);
     }
 }

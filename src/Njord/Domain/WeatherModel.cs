@@ -1,6 +1,6 @@
 namespace Njord.Domain;
 
-/// <summary>A Kachelmann model id. Free-form by design — the API accepts arbitrary strings.</summary>
+/// <summary>An Open-Meteo model id (e.g. "icon_d2"). Free-form by design — the API accepts arbitrary strings.</summary>
 public sealed record WeatherModel
 {
     public string Id { get; }

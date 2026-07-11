@@ -20,8 +20,6 @@ public sealed class PollPipelineSpec : IDisposable
 
     private static NjordOptions Options(int locations, params string[] models) => new()
     {
-        ApiKey = "test-key",
-        Plan = NjordPlan.Hobby,
         PollInterval = TimeSpan.FromMilliseconds(200),
         Locations = [.. Enumerable.Range(1, locations).Select(i => new LocationOptions
         {
@@ -34,7 +32,7 @@ public sealed class PollPipelineSpec : IDisposable
 
     private async Task<IReadOnlyList<CycleResult>> CollectAsync(
         NjordOptions options,
-        FakeKachelmannClient client,
+        FakeOpenMeteoClient client,
         int count,
         TimeSpan? window = null,
         RestartSettings? restartSettings = null)
@@ -50,7 +48,7 @@ public sealed class PollPipelineSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Each_cycle_fans_out_over_every_location_model_pair()
     {
-        var client = new FakeKachelmannClient();
+        var client = new FakeOpenMeteoClient();
         var result = (await CollectAsync(Options(2, "A", "B", "C", "D"), client, count: 1)).Single();
 
         Assert.Equal(8, result.Received.Count);
@@ -63,7 +61,7 @@ public sealed class PollPipelineSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task A_hanging_model_does_not_block_the_cycle_result()
     {
-        var client = new FakeKachelmannClient { HangingModels = { "SLOW" } };
+        var client = new FakeOpenMeteoClient { HangingModels = { "SLOW" } };
 
         var result = (await CollectAsync(Options(1, "A", "B", "SLOW"), client, count: 1, window: TimeSpan.FromMilliseconds(500))).Single();
 
@@ -75,7 +73,7 @@ public sealed class PollPipelineSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Failed_fetch_outcomes_are_reported_not_fatal()
     {
-        var client = new FakeKachelmannClient { FailingModels = { "BROKEN" } };
+        var client = new FakeOpenMeteoClient { FailingModels = { "BROKEN" } };
 
         var result = (await CollectAsync(Options(1, "A", "BROKEN"), client, count: 1)).Single();
 
@@ -88,7 +86,7 @@ public sealed class PollPipelineSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task A_thrown_exception_restarts_the_pipeline_instead_of_killing_it()
     {
-        var client = new FakeKachelmannClient { ThrowOnFirstCall = true };
+        var client = new FakeOpenMeteoClient { ThrowOnFirstCall = true };
         var restart = RestartSettings.Create(
             TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(400), 0.2);
 
@@ -101,7 +99,7 @@ public sealed class PollPipelineSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Consecutive_cycles_produce_one_result_each()
     {
-        var client = new FakeKachelmannClient();
+        var client = new FakeOpenMeteoClient();
 
         var results = await CollectAsync(Options(1, "A"), client, count: 2);
 
@@ -109,7 +107,7 @@ public sealed class PollPipelineSpec : IDisposable
         Assert.NotEqual(results[0].Cycle, results[1].Cycle);
     }
 
-    private sealed class FakeKachelmannClient : IKachelmannClient
+    private sealed class FakeOpenMeteoClient : IOpenMeteoClient
     {
         public ConcurrentQueue<(CycleId Cycle, string Location, string Model)> RequestLog { get; } = [];
         public HashSet<string> HangingModels { get; } = [];

@@ -13,6 +13,6 @@ public sealed class WeatherModelSpec
     [Fact(Timeout = 5000)]
     public void Ids_are_trimmed_and_compared_by_value()
     {
-        Assert.Equal(new WeatherModel("ICON-D2"), new WeatherModel(" ICON-D2 "));
+        Assert.Equal(new WeatherModel("icon_d2"), new WeatherModel(" icon_d2 "));
     }
 }

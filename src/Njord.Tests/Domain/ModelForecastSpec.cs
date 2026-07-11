@@ -11,9 +11,9 @@ public sealed class ModelForecastSpec
         var retrievedAt = cycle.Timestamp.AddSeconds(4);
         var series = new ForecastSeries([new ForecastPoint(cycle.Timestamp.AddHours(3), Temperature: 20.0)]);
 
-        var forecast = new ModelForecast(new WeatherModel("ECMWF"), "home", cycle, retrievedAt, series);
+        var forecast = new ModelForecast(new WeatherModel("ecmwf_ifs025"), "home", cycle, retrievedAt, series);
 
-        Assert.Equal("ECMWF", forecast.Model.Id);
+        Assert.Equal("ecmwf_ifs025", forecast.Model.Id);
         Assert.Equal("home", forecast.Location);
         Assert.Equal(cycle, forecast.Cycle);
         Assert.Equal(retrievedAt, forecast.RetrievedAt);

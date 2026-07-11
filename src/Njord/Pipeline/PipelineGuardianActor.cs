@@ -16,13 +16,13 @@ namespace Njord.Pipeline;
 public sealed class PipelineGuardianActor : ReceiveActor
 {
     private readonly NjordOptions _options;
-    private readonly IKachelmannClient _client;
+    private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<PipelineGuardianActor> _logger;
 
     public PipelineGuardianActor(
         IOptions<NjordOptions> options,
-        IKachelmannClient client,
+        IOpenMeteoClient client,
         TimeProvider timeProvider,
         ILogger<PipelineGuardianActor> logger)
     {

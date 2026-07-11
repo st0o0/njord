@@ -35,11 +35,11 @@ public sealed class ForecastSeriesSpec
     {
         var point = new ForecastPoint(
             T0,
-            Temperature: 1, Precipitation: 2, WindSpeed: 3, WindGust: 4,
-            Dewpoint: 5, RelativeHumidity: 6, CloudCover: 7, PressureMsl: 8);
+            Temperature: 1, ApparentTemperature: 2, Precipitation: 3, WindSpeed: 4,
+            WindGust: 5, Dewpoint: 6, RelativeHumidity: 7, CloudCover: 8, PressureMsl: 9);
 
         var values = Enum.GetValues<WeatherParameter>().Select(p => point.Get(p)).ToList();
 
-        Assert.Equal([1, 2, 3, 4, 5, 6, 7, 8], values.Select(v => v!.Value));
+        Assert.Equal([1, 2, 3, 4, 5, 6, 7, 8, 9], values.Select(v => v!.Value));
     }
 }

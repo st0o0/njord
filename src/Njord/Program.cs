@@ -13,7 +13,7 @@ builder.Services
     .Bind(builder.Configuration.GetSection(NjordOptions.SectionName))
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<NjordOptions>, NjordOptionsValidator>();
-builder.Services.AddKachelmannIngest();
+builder.Services.AddOpenMeteoIngest();
 
 builder.Services.AddAkka("njord", (akka, _) =>
 {

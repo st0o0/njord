@@ -6,10 +6,13 @@ public sealed class NjordOptionsValidatorSpec
 {
     private static NjordOptions ValidOptions() => new()
     {
-        ApiKey = "test-key",
-        Plan = NjordPlan.Hobby,
-        Locations = [new LocationOptions { Name = "home", Latitude = 47.0, Longitude = 8.0 }],
-        Models = ["ICON-D2", "ECMWF", "GFS", "SWISS1X1"],
+        Locations = [new LocationOptions { Name = "home", Latitude = 47.05, Longitude = 8.31 }],
+        Models =
+        [
+            "icon_d2", "icon_eu", "icon_global", "ecmwf_ifs025",
+            "gfs_seamless", "ukmo_global_deterministic_10km",
+            "meteoswiss_icon_ch1", "meteoswiss_icon_ch2",
+        ],
     };
 
     private static readonly NjordOptionsValidator Validator = new();
@@ -23,10 +26,11 @@ public sealed class NjordOptionsValidatorSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void Six_locations_on_hobby_defaults_exceed_the_budget_guard()
+    public void A_projection_above_the_override_budget_guard_is_rejected()
     {
         var options = ValidOptions();
-        options.Locations = [.. Enumerable.Range(1, 6).Select(i => new LocationOptions
+        options.BudgetOverride = new RequestBudget(10_000, 600);
+        options.Locations = [.. Enumerable.Range(1, 2).Select(i => new LocationOptions
         {
             Name = $"loc-{i}",
             Latitude = 47.0,
@@ -36,8 +40,8 @@ public sealed class NjordOptionsValidatorSpec
         var result = Validator.Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains("17280", result.FailureMessage);
-        Assert.Contains("16000", result.FailureMessage);
+        Assert.Contains("11520", result.FailureMessage);
+        Assert.Contains("8000", result.FailureMessage);
     }
 
     [Fact(Timeout = 5000)]
@@ -53,35 +57,10 @@ public sealed class NjordOptionsValidatorSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void Missing_api_key_is_rejected()
-    {
-        var options = ValidOptions();
-        options.ApiKey = "";
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Failed);
-        Assert.Contains("Njord__ApiKey", result.FailureMessage);
-    }
-
-    [Fact(Timeout = 5000)]
-    public void Custom_plan_without_override_is_rejected()
-    {
-        var options = ValidOptions();
-        options.Plan = NjordPlan.Custom;
-        options.BudgetOverride = null;
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Failed);
-        Assert.Contains("BudgetOverride", result.FailureMessage);
-    }
-
-    [Fact(Timeout = 5000)]
     public void Blank_model_entries_are_rejected()
     {
         var options = ValidOptions();
-        options.Models = ["ICON-D2", "  "];
+        options.Models = ["icon_d2", "  "];
 
         var result = Validator.Validate(null, options);
 
@@ -92,18 +71,5 @@ public sealed class NjordOptionsValidatorSpec
     public void Poll_interval_defaults_to_sixty_minutes()
     {
         Assert.Equal(TimeSpan.FromMinutes(60), new NjordOptions().PollInterval);
-    }
-
-    [Fact(Timeout = 5000)]
-    public void Failure_messages_never_contain_the_api_key()
-    {
-        var options = ValidOptions();
-        options.ApiKey = "super-secret-key";
-        options.Models = [];
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Failed);
-        Assert.DoesNotContain("super-secret-key", result.FailureMessage);
     }
 }
