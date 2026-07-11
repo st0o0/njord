@@ -1,0 +1,67 @@
+name: ci
+
+# Validation runs on pull requests only. A PR is tested on its merge-result
+# commit, so re-running the same checks on the post-merge push to main would be
+# pure duplication — release.yml owns main. Enable branch protection ("require
+# a pull request before merging") so every change to main is validated here.
+#
+# No paths filter: these jobs are required checks, and a filtered-out workflow
+# never reports, leaving the PR stuck on "Expected — waiting". The jobs are
+# cheap enough to always run.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+# One in-flight run per PR; pushing new commits cancels the superseded run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Named to match the branch-protection required checks: unit, lint, build.
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: src/global.json
+      # xUnit v3 on Microsoft.Testing.Platform — `dotnet run`, not `dotnet test`.
+      - name: Run tests
+        working-directory: src
+        run: dotnet run --project Njord.Tests/Njord.Tests.csproj
+
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          config: .hadolint.yaml
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          load: true
+          tags: njord:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test
+        run: |
+          out="$(docker run --rm njord:ci)"
+          test "$out" = "njord"
+          echo "smoke ok: $out"

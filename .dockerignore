@@ -1,0 +1,11 @@
+.git
+.github
+.claude
+.config
+openspec
+docs
+*.md
+.hadolint.yaml
+**/bin
+**/obj
+**/TestResults
