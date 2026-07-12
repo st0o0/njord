@@ -1,10 +1,4 @@
-# poll-pipeline Specification
-
-## Purpose
-
-Polling pipeline that receives individual fetch targets from producers via MergeHub (connected by SinkRef), throttles to the request budget, fans out successful outcomes via BroadcastHub to egress and feedback consumers, and logs per-outcome structured summaries.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Targets arrive via MergeHub from producers connected by SinkRef
 The pipeline SHALL receive `WeightedTarget` elements via a `MergeHub.Source<WeightedTarget>` that producers connect to through a `SinkRef<WeightedTarget>` obtained from the PipelineActor. Each `WeightedTarget` SHALL carry a `CycleId` assigned by the producing actor. There is no tick source -- all poll timing is owned by the SchedulerActor.

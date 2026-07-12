@@ -1,10 +1,4 @@
-# pipeline-commands Specification
-
-## Purpose
-
-Typed command protocol for the poll pipeline. Defines the sealed command hierarchy that drives refresh operations. Commands are sent to the SchedulerActor, which resolves them to weighted fetch targets and offers them into the pipeline's Source.Queue.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Each expanded target carries a pre-calculated API weight
 The expand logic SHALL assign each `WeightedTarget` an integer weight computed as `ceil(hourlyVariableCount / 10) x ceil(forecastDays / 14)` based on the current configuration. Each `WeightedTarget` SHALL also carry a `CycleId` assigned at creation time by the SchedulerActor. All targets produced by a single timer fire or manual refresh SHALL share the same `CycleId`.
@@ -29,13 +23,8 @@ The expand logic SHALL assign each `WeightedTarget` an integer weight computed a
 - **WHEN** a `RefreshLocation("lucerne")` is received with 8 models configured
 - **THEN** all 8 `WeightedTarget` elements carry the same `CycleId` timestamp
 
-### Requirement: Commands with invalid references are silently dropped
-The SchedulerActor SHALL discard commands that reference a location or model not present in the current configuration. No error SHALL be raised; a structured log at Warning level SHALL be emitted.
+## REMOVED Requirements
 
-#### Scenario: Unknown location is dropped
-- **WHEN** a `RefreshLocation("atlantis")` command is received and "atlantis" is not configured
-- **THEN** zero targets are offered and a warning is logged
-
-#### Scenario: Unknown model for valid location is dropped
-- **WHEN** a `RefreshModel("lucerne", "nonexistent_model")` is received
-- **THEN** zero targets are offered and a warning is logged
+### Requirement: Typed command protocol with exhaustive variants
+**Reason**: The ExpandStage that mapped commands to targets has been removed. The SchedulerActor now directly creates `WeightedTarget` elements in its command handlers — the command-to-target expansion logic is internal to the actor, not a separate stage.
+**Migration**: No external consumers of ExpandStage exist. The SchedulerActor's `OnScheduledPoll`, `OnRefreshModel`, and `OnRefreshLocation` handlers create targets directly.
