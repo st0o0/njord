@@ -49,23 +49,30 @@ public sealed class MqttEgressIntegrationSpec
         };
         using var system = ActorSystem.Create("egress-integration");
         await using var publisher = new MqttNetPublisher(mqttOptions, NullLogger<MqttNetPublisher>.Instance);
+        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
         var actor = system.ActorOf(Props.Create(() => new MqttConnectionActor(
             Microsoft.Extensions.Options.Options.Create(options),
             publisher,
             NullLogger<MqttConnectionActor>.Instance,
-            MqttEgressTuning.Default)));
+            MqttEgressTuning.Default,
+            parameters)));
 
         var tick = new DateTimeOffset(2026, 7, 12, 12, 30, 0, TimeSpan.Zero);
+        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var series = new ForecastSeries(Enumerable.Range(0, 90)
             .Select(i => new ForecastPoint(
-                new DateTimeOffset(2026, 7, 12, 13, 0, 0, TimeSpan.Zero).AddHours(i), Temperature: 20.0 + i)));
+                new DateTimeOffset(2026, 7, 12, 13, 0, 0, TimeSpan.Zero).AddHours(i),
+                new Dictionary<ParameterDef, double?> { [temp] = 20.0 + i })));
         actor.Tell(new PublishTelemetry(
-            [new ModelForecast(new WeatherModel("icon_d2"), "home", new CycleId(tick), tick, series)]));
+            [new ModelForecast(new WeatherModel("icon_d2"), "home", new CycleId(tick), tick, series, DailyForecastSeries.Empty)]));
 
-        // Discovery: retained device configs with the full 54-component grid.
+        // Discovery: retained device configs with the component grid.
+        var expectedHourlyComponents = parameters.Hourly.Count * options.Horizons.Count;
+        var expectedDailyComponents = parameters.Daily.Count * options.ForecastDays;
+        var expectedTotal = expectedHourlyComponents + expectedDailyComponents;
         var retained = await CollectRetainedAsync(mqttOptions, ["homeassistant/device/+/config", "njord/#"], ct);
         var config = JsonNode.Parse(retained["homeassistant/device/njord_home_icon_d2/config"])!;
-        Assert.Equal(54, config["cmps"]!.AsObject().Count);
+        Assert.Equal(expectedTotal, config["cmps"]!.AsObject().Count);
         Assert.True(retained.ContainsKey("homeassistant/device/njord_home_gfs_seamless/config"));
 
         // Availability + telemetry: retained online and a retained state satisfying the templates.

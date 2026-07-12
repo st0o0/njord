@@ -7,22 +7,17 @@ using Njord.Domain;
 
 namespace Njord.Ingest;
 
-public sealed class OpenMeteoClient(HttpClient httpClient, TimeProvider timeProvider) : IOpenMeteoClient
+public sealed class OpenMeteoClient(
+    HttpClient httpClient,
+    TimeProvider timeProvider,
+    ResolvedParameterSet parameters) : IOpenMeteoClient
 {
-    // Exactly 9 hourly variables and 4 forecast days: at or below the free
-    // tier's weighting thresholds (10 variables / 2 weeks), so every fetch
-    // counts as 1.0 API calls.
-    private const string HourlyVariables =
-        "temperature_2m,apparent_temperature,precipitation,wind_speed_10m,wind_gusts_10m," +
-        "dew_point_2m,relative_humidity_2m,cloud_cover,pressure_msl";
+    private readonly string _hourlyVariables = string.Join(",", parameters.Hourly.Select(p => p.ApiName));
+    private readonly string _dailyVariables = string.Join(",", parameters.Daily.Select(p => p.ApiName));
 
     public async Task<FetchOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken cancellationToken)
     {
-        var uri = string.Create(
-            CultureInfo.InvariantCulture,
-            $"v1/forecast?latitude={location.Latitude}&longitude={location.Longitude}" +
-            $"&models={Uri.EscapeDataString(model.Id)}&hourly={HourlyVariables}" +
-            $"&wind_speed_unit=ms&timeformat=unixtime&forecast_days=4");
+        var uri = BuildUri(location, model);
 
         try
         {
@@ -33,22 +28,29 @@ public sealed class OpenMeteoClient(HttpClient httpClient, TimeProvider timeProv
                 return response.StatusCode switch
                 {
                     HttpStatusCode.TooManyRequests => Failure(FetchFailureReason.RateLimited, "HTTP 429 from the forecast endpoint"),
-                    // 400 covers both unknown model ids and models outside their
-                    // geographic coverage (verified) — either way this (location,
-                    // model) pair yields nothing this cycle.
                     HttpStatusCode.BadRequest => Failure(FetchFailureReason.ModelUnavailable, await ReadErrorReasonAsync(response, cancellationToken)),
                     _ => Failure(FetchFailureReason.Transport, $"HTTP {(int)response.StatusCode} from the forecast endpoint"),
                 };
             }
 
             var dto = await response.Content.ReadFromJsonAsync(OpenMeteoJsonContext.Default.OpenMeteoForecastResponse, cancellationToken);
-            if (dto?.Hourly is null || dto.Hourly.Time.Count == 0)
+            if (dto?.Hourly is null or { ValueKind: JsonValueKind.Undefined })
                 return Failure(FetchFailureReason.MalformedPayload, "Response contained no hourly data");
 
             if (UnitMismatch(dto.HourlyUnits) is { } mismatch)
                 return Failure(FetchFailureReason.MalformedPayload, mismatch);
 
-            return Map(dto.Hourly);
+            var hourlyResult = MapHourly(dto.Hourly.Value);
+            if (hourlyResult is null)
+                return Failure(FetchFailureReason.MalformedPayload, "Response carried hourly timestamps but no values");
+
+            var daily = dto.Daily is { ValueKind: not JsonValueKind.Undefined }
+                ? MapDaily(dto.Daily.Value)
+                : DailyForecastSeries.Empty;
+
+            return new FetchOutcome.Success(new ModelForecast(
+                model, location.Name, cycle, timeProvider.GetUtcNow(),
+                hourlyResult, daily));
         }
         catch (HttpRequestException ex)
         {
@@ -65,61 +67,159 @@ public sealed class OpenMeteoClient(HttpClient httpClient, TimeProvider timeProv
 
         FetchOutcome.Failure Failure(FetchFailureReason reason, string detail)
             => new(cycle, location.Name, model, reason, detail);
+    }
 
-        FetchOutcome Map(OpenMeteoHourly hourly)
+    private string BuildUri(LocationOptions location, WeatherModel model)
+    {
+        var uri = string.Create(
+            CultureInfo.InvariantCulture,
+            $"v1/forecast?latitude={location.Latitude}&longitude={location.Longitude}" +
+            $"&models={Uri.EscapeDataString(model.Id)}&hourly={_hourlyVariables}" +
+            $"&wind_speed_unit=ms&timeformat=unixtime&forecast_days=4");
+
+        if (_dailyVariables.Length > 0)
+            uri += $"&daily={_dailyVariables}";
+
+        return uri;
+    }
+
+    private ForecastSeries? MapHourly(JsonElement hourly)
+    {
+        if (!hourly.TryGetProperty("time", out var timeElement))
+            return null;
+
+        var times = new List<long>();
+        foreach (var t in timeElement.EnumerateArray())
+            times.Add(t.GetInt64());
+
+        if (times.Count == 0)
+            return null;
+
+        var paramArrays = new Dictionary<ParameterDef, List<double?>>();
+        foreach (var param in parameters.Hourly)
         {
-            var points = new List<ForecastPoint>(hourly.Time.Count);
-            for (var i = 0; i < hourly.Time.Count; i++)
+            var values = new List<double?>(times.Count);
+            if (hourly.TryGetProperty(param.ApiName, out var arr))
             {
-                points.Add(new ForecastPoint(
-                    DateTimeOffset.FromUnixTimeSeconds(hourly.Time[i]),
-                    Temperature: Value(hourly.Temperature2m, i),
-                    ApparentTemperature: Value(hourly.ApparentTemperature, i),
-                    Precipitation: Value(hourly.Precipitation, i),
-                    WindSpeed: Value(hourly.WindSpeed10m, i),
-                    WindGust: Value(hourly.WindGusts10m, i),
-                    Dewpoint: Value(hourly.DewPoint2m, i),
-                    RelativeHumidity: Value(hourly.RelativeHumidity2m, i),
-                    CloudCover: Value(hourly.CloudCover, i),
-                    PressureMsl: Value(hourly.PressureMsl, i)));
+                foreach (var v in arr.EnumerateArray())
+                    values.Add(v.ValueKind == JsonValueKind.Null ? null : v.GetDouble());
+            }
+            else
+            {
+                for (var i = 0; i < times.Count; i++)
+                    values.Add(null);
             }
 
-            // Values beyond the model's forecast horizon arrive as an all-null
-            // tail; points inside the horizon survive with individual gaps.
-            var lastValued = points.FindLastIndex(HasAnyValue);
-            if (lastValued < 0)
-                return Failure(FetchFailureReason.MalformedPayload, "Response carried hourly timestamps but no values");
-
-            return new FetchOutcome.Success(new ModelForecast(
-                model, location.Name, cycle, timeProvider.GetUtcNow(),
-                new ForecastSeries(points.Take(lastValued + 1))));
+            paramArrays[param] = values;
         }
+
+        var points = new List<ForecastPoint>(times.Count);
+        for (var i = 0; i < times.Count; i++)
+        {
+            var dict = new Dictionary<ParameterDef, double?>(parameters.Hourly.Count);
+            foreach (var param in parameters.Hourly)
+                dict[param] = paramArrays[param][i];
+
+            points.Add(new ForecastPoint(DateTimeOffset.FromUnixTimeSeconds(times[i]), dict));
+        }
+
+        var lastValued = points.FindLastIndex(p => p.HasAnyValue);
+        if (lastValued < 0)
+            return null;
+
+        return new ForecastSeries(points.Take(lastValued + 1));
     }
 
-    private static bool HasAnyValue(ForecastPoint point)
-        => Enum.GetValues<WeatherParameter>().Any(parameter => point.Get(parameter) is not null);
-
-    private static string? UnitMismatch(OpenMeteoHourlyUnits? units)
+    private DailyForecastSeries MapDaily(JsonElement daily)
     {
-        if (units is null)
+        if (!daily.TryGetProperty("time", out var timeElement))
+            return DailyForecastSeries.Empty;
+
+        var dates = new List<DateOnly>();
+        foreach (var t in timeElement.EnumerateArray())
+        {
+            var dateStr = t.GetString();
+            if (dateStr is not null && DateOnly.TryParse(dateStr, CultureInfo.InvariantCulture, out var date))
+                dates.Add(date);
+        }
+
+        if (dates.Count == 0)
+            return DailyForecastSeries.Empty;
+
+        var paramArrays = new Dictionary<ParameterDef, List<object?>>();
+        foreach (var param in parameters.Daily)
+        {
+            var values = new List<object?>(dates.Count);
+            if (daily.TryGetProperty(param.ApiName, out var arr))
+            {
+                foreach (var v in arr.EnumerateArray())
+                {
+                    values.Add(v.ValueKind switch
+                    {
+                        JsonValueKind.Null => null,
+                        JsonValueKind.Number => v.GetDouble(),
+                        JsonValueKind.String => v.GetString(),
+                        _ => null,
+                    });
+                }
+            }
+            else
+            {
+                for (var i = 0; i < dates.Count; i++)
+                    values.Add(null);
+            }
+
+            paramArrays[param] = values;
+        }
+
+        var points = new List<DailyForecastPoint>(dates.Count);
+        for (var i = 0; i < dates.Count; i++)
+        {
+            var dict = new Dictionary<ParameterDef, object?>(parameters.Daily.Count);
+            foreach (var param in parameters.Daily)
+            {
+                if (i < paramArrays[param].Count)
+                    dict[param] = paramArrays[param][i];
+                else
+                    dict[param] = null;
+            }
+
+            points.Add(new DailyForecastPoint(dates[i], dict));
+        }
+
+        return new DailyForecastSeries(points);
+    }
+
+    private string? UnitMismatch(JsonElement? units)
+    {
+        if (units is null or { ValueKind: JsonValueKind.Undefined })
             return "Response carried no hourly_units";
 
-        (string Field, string? Actual, string Expected)[] checks =
-        [
-            ("time", units.Time, "unixtime"),
-            ("temperature_2m", units.Temperature2m, "°C"),
-            ("apparent_temperature", units.ApparentTemperature, "°C"),
-            ("wind_speed_10m", units.WindSpeed10m, "m/s"),
-            ("wind_gusts_10m", units.WindGusts10m, "m/s"),
-        ];
-        var mismatch = checks.FirstOrDefault(c => c.Actual is not null && c.Actual != c.Expected);
-        return mismatch.Field is null
-            ? null
-            : $"Unexpected unit '{mismatch.Actual}' for {mismatch.Field} (expected '{mismatch.Expected}')";
+        var unitsObj = units.Value;
+
+        if (TryGetString(unitsObj, "time") is { } timeUnit && timeUnit != "unixtime")
+            return $"Unexpected unit '{timeUnit}' for time (expected 'unixtime')";
+
+        foreach (var param in parameters.Hourly)
+        {
+            var expected = param.ApiName switch
+            {
+                _ when param.Unit == "°C" && param.DeviceClass == "temperature" => "°C",
+                _ when param.Unit == "m/s" && param.DeviceClass == "wind_speed" => "m/s",
+                _ when param.Unit == "hPa" && param.DeviceClass == "atmospheric_pressure" => "hPa",
+                _ => null,
+            };
+
+            if (expected is null) continue;
+            if (TryGetString(unitsObj, param.ApiName) is { } actual && actual != expected)
+                return $"Unexpected unit '{actual}' for {param.ApiName} (expected '{expected}')";
+        }
+
+        return null;
     }
 
-    private static double? Value(IReadOnlyList<double?>? series, int index)
-        => series is not null && index < series.Count ? series[index] : null;
+    private static string? TryGetString(JsonElement obj, string property)
+        => obj.TryGetProperty(property, out var el) && el.ValueKind == JsonValueKind.String ? el.GetString() : null;
 
     private static async Task<string> ReadErrorReasonAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {

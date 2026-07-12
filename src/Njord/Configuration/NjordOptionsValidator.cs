@@ -1,17 +1,12 @@
 using Microsoft.Extensions.Options;
+using Njord.Domain;
 
 namespace Njord.Configuration;
 
 public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
 {
-    // Startup guard: refuse configurations projected to burn more than this
-    // share of the monthly budget, leaving headroom for restarts and probes.
-    // The Open-Meteo limits are soft, but a free service deserves politeness.
     private const double MonthlyBudgetGuardFactor = 0.8;
-
-    // forecast_days=4 → hourly grid up to +96 h (see openmeteo-client spec).
     private const int FetchWindowHours = 96;
-
     private static readonly TimeSpan Month = TimeSpan.FromDays(30);
 
     public ValidateOptionsResult Validate(string? name, NjordOptions options)
@@ -39,19 +34,32 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
         if (string.IsNullOrWhiteSpace(options.Mqtt.Host))
             failures.Add("The MQTT broker host is missing — set Njord:Mqtt:Host.");
 
-        if (options.Locations.Count > 0 && options.Models.Count > 0 && options.PollInterval > TimeSpan.Zero)
+        ResolvedParameterSet? resolved = null;
+        try
+        {
+            resolved = ParameterRegistry.Resolve(
+                options.Parameters.Groups,
+                options.Parameters.Extra,
+                options.Parameters.Exclude);
+        }
+        catch (ParameterResolutionException ex)
+        {
+            failures.AddRange(ex.Errors);
+        }
+
+        if (resolved is not null && options.Locations.Count > 0 && options.Models.Count > 0 && options.PollInterval > TimeSpan.Zero)
         {
             var budget = options.EffectiveBudget;
             var cyclesPerMonth = Month.TotalMinutes / options.PollInterval.TotalMinutes;
-            var projected = (int)Math.Round(options.Locations.Count * options.Models.Count * cyclesPerMonth);
+            var projected = (int)Math.Round(options.Locations.Count * options.Models.Count * cyclesPerMonth * resolved.ApiCallWeight);
             var guard = (int)Math.Round(budget.RequestsPerMonth * MonthlyBudgetGuardFactor);
             if (projected > guard)
             {
                 failures.Add(
-                    $"Projected API usage of {projected} requests/month ({options.Locations.Count} locations x " +
-                    $"{options.Models.Count} models every {options.PollInterval.TotalMinutes:0} min) exceeds the " +
+                    $"Projected API usage of {projected} effective requests/month ({options.Locations.Count} locations x " +
+                    $"{options.Models.Count} models every {options.PollInterval.TotalMinutes:0} min, weight {resolved.ApiCallWeight}) exceeds the " +
                     $"guard of {guard} (80% of the {budget.RequestsPerMonth}/month budget). " +
-                    "Reduce locations/models or increase PollInterval.");
+                    "Reduce locations/models, increase PollInterval, or exclude parameters.");
             }
         }
 

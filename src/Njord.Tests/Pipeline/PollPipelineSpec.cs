@@ -143,7 +143,8 @@ public sealed class PollPipelineSpec : IDisposable
                 location.Name,
                 cycle,
                 cycle.Timestamp,
-                new ForecastSeries([new ForecastPoint(validAt, Temperature: 20.0)])));
+                new ForecastSeries([new ForecastPoint(validAt, new Dictionary<ParameterDef, double?> { [ParameterRegistry.GetByApiName("temperature_2m")!] = 20.0 })]),
+                DailyForecastSeries.Empty));
         }
     }
 }

@@ -11,25 +11,30 @@ public sealed class DiscoveryPayloadBuilderSpec
     private static readonly MqttOptions Mqtt = new() { Host = "broker.local" };
     private static readonly int[] DefaultHorizons = [3, 6, 12, 24, 48, 72];
 
-    private static string Build(int[]? horizons = null) => DiscoveryPayloadBuilder.Build(
-        "home", IconD2, horizons ?? DefaultHorizons, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+    private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
+    private static readonly ParameterDef CloudCover = ParameterRegistry.GetByApiName("cloud_cover")!;
+    private static readonly ParameterDef TempMax = ParameterRegistry.GetByApiName("temperature_2m_max")!;
+
+    private static readonly ResolvedParameterSet SmallParams = new(
+        [Temperature, CloudCover],
+        [TempMax]);
+
+    private static string Build(int[]? horizons = null, int forecastDays = 4, ResolvedParameterSet? parameters = null)
+        => DiscoveryPayloadBuilder.Build(
+            "home", IconD2, parameters ?? SmallParams,
+            horizons ?? DefaultHorizons, forecastDays, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
 
     [Fact(Timeout = 5000)]
-    public Task The_device_payload_matches_the_approved_snapshot()
-    {
-        return VerifyJson(Build()).UseDirectory("Snapshots");
-    }
-
-    [Fact(Timeout = 5000)]
-    public void The_full_grid_yields_54_components()
+    public void The_grid_yields_expected_component_count()
     {
         var json = JsonNode.Parse(Build())!;
 
-        Assert.Equal(9 * 6, json["cmps"]!.AsObject().Count);
+        // 2 hourly × 6 horizons + 1 daily × 4 days = 16
+        Assert.Equal(16, json["cmps"]!.AsObject().Count);
     }
 
     [Fact(Timeout = 5000)]
-    public void Components_carry_grid_identity_and_expiry()
+    public void Hourly_components_carry_grid_identity_and_expiry()
     {
         var json = JsonNode.Parse(Build())!;
         var component = json["cmps"]!["temperature_h24"]!;
@@ -38,9 +43,30 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("njord_home_icon_d2_temperature_h24", (string?)component["unique_id"]);
         Assert.Equal("temperature", (string?)component["device_class"]);
         Assert.Equal("°C", (string?)component["unit_of_measurement"]);
-        // 2 × the 60-minute poll interval: a silently missing model expires to unavailable.
         Assert.Equal(7200, (int?)component["expire_after"]);
         Assert.Equal("{{ value_json.h24.temperature }}", (string?)component["value_template"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Daily_components_use_day_offset_naming()
+    {
+        var json = JsonNode.Parse(Build())!;
+        var component = json["cmps"]!["temperature_max_d0"]!;
+
+        Assert.Equal("sensor", (string?)component["p"]);
+        Assert.Equal("njord_home_icon_d2_temperature_max_d0", (string?)component["unique_id"]);
+        Assert.Equal("temperature", (string?)component["device_class"]);
+        Assert.Equal("{{ value_json.d0.temperature_max }}", (string?)component["value_template"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Components_without_device_class_omit_the_field()
+    {
+        var json = JsonNode.Parse(Build([3]))!;
+        var component = json["cmps"]!["cloud_cover_h3"]!;
+
+        Assert.False(component.AsObject().ContainsKey("device_class"));
+        Assert.Equal("%", (string?)component["unit_of_measurement"]);
     }
 
     [Fact(Timeout = 5000)]

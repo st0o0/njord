@@ -25,7 +25,8 @@ public sealed class PipelineGuardianActorSpec : IDisposable
             Received:
             [
                 new ModelForecast(new WeatherModel("icon_d2"), "home", cycle, cycle.Timestamp,
-                    new ForecastSeries([new ForecastPoint(cycle.Timestamp.AddHours(3), Temperature: 20.0)])),
+                    new ForecastSeries([new ForecastPoint(cycle.Timestamp.AddHours(3), new Dictionary<ParameterDef, double?> { [ParameterRegistry.GetByApiName("temperature_2m")!] = 20.0 })]),
+                    DailyForecastSeries.Empty),
             ],
             Failed:
             [
@@ -89,6 +90,7 @@ public sealed class PipelineGuardianActorSpec : IDisposable
                 location.Name,
                 cycle,
                 cycle.Timestamp,
-                new ForecastSeries([new ForecastPoint(cycle.Timestamp.AddHours(3), Temperature: 20.0)]))));
+                new ForecastSeries([new ForecastPoint(cycle.Timestamp.AddHours(3), new Dictionary<ParameterDef, double?> { [ParameterRegistry.GetByApiName("temperature_2m")!] = 20.0 })]),
+                DailyForecastSeries.Empty)));
     }
 }

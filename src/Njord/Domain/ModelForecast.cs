@@ -5,4 +5,5 @@ public sealed record ModelForecast(
     string Location,
     CycleId Cycle,
     DateTimeOffset RetrievedAt,
-    ForecastSeries Series);
+    ForecastSeries Hourly,
+    DailyForecastSeries Daily);

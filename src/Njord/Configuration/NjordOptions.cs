@@ -20,5 +20,11 @@ public sealed class NjordOptions
     /// <summary>Forecast horizons in hours; the HA entity grid derives from these × models × parameters.</summary>
     public IList<int> Horizons { get; set; } = [3, 6, 12, 24, 48, 72];
 
+    /// <summary>Number of forecast days requested from Open-Meteo (determines daily day-offsets and hourly grid).</summary>
+    public int ForecastDays { get; set; } = 4;
+
+    /// <summary>Parameter group and variable selection.</summary>
+    public ParameterOptions Parameters { get; set; } = new();
+
     public MqttOptions Mqtt { get; set; } = new();
 }

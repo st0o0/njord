@@ -21,12 +21,15 @@ public sealed class MqttConnectionActorSpec : IDisposable
         Mqtt = new MqttOptions { Host = "broker.local" },
     };
 
+    private static readonly ResolvedParameterSet TestParameters = ParameterRegistry.Resolve(["Weather"], [], []);
+
     private IActorRef CreateActor(NjordOptions options, FakePublisher publisher)
         => _system.ActorOf(Props.Create(() => new MqttConnectionActor(
             Microsoft.Extensions.Options.Options.Create(options),
             publisher,
             NullLogger<MqttConnectionActor>.Instance,
-            new MqttEgressTuning(TimeSpan.FromMilliseconds(50)))));
+            new MqttEgressTuning(TimeSpan.FromMilliseconds(50)),
+            TestParameters)));
 
     private static async Task WaitUntilAsync(Func<bool> condition, string because)
     {
@@ -90,7 +93,8 @@ public sealed class MqttConnectionActorSpec : IDisposable
         var forecasts = new[] { "icon_d2", "gfs_seamless" }
             .Select(id => new ModelForecast(
                 new WeatherModel(id), "home", cycle, cycle.Timestamp,
-                new ForecastSeries([new ForecastPoint(cycle.Timestamp.AddHours(3), Temperature: 21.0)])))
+                new ForecastSeries([new ForecastPoint(cycle.Timestamp.AddHours(3), new Dictionary<ParameterDef, double?> { [ParameterRegistry.GetByApiName("temperature_2m")!] = 21.0 })]),
+                DailyForecastSeries.Empty))
             .ToList();
         actor.Tell(new PublishTelemetry(forecasts));
 

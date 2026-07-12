@@ -3,32 +3,56 @@ using Njord.Domain;
 
 namespace Njord.Egress;
 
-/// <summary>Builds the retained per-device state JSON: one object per horizon, keyed "h&lt;hours&gt;".</summary>
 public static class StatePayloadBuilder
 {
-    public static string Build(ModelForecast forecast, IReadOnlyList<int> horizons)
+    public static string Build(
+        ModelForecast forecast,
+        ResolvedParameterSet parameters,
+        IReadOnlyList<int> horizons,
+        int forecastDays)
     {
-        var pointsByValidAt = forecast.Series.Points.ToDictionary(p => p.ValidAt);
         var root = new JsonObject();
 
+        var pointsByValidAt = forecast.Hourly.Points.ToDictionary(p => p.ValidAt);
         foreach (var hours in horizons)
         {
             var anchor = Anchor(forecast.Cycle.Timestamp, hours);
             pointsByValidAt.TryGetValue(anchor, out var point);
 
             var entry = new JsonObject { ["valid_at"] = anchor.ToString("O") };
-            foreach (var parameter in Enum.GetValues<WeatherParameter>())
+            foreach (var parameter in parameters.Hourly)
             {
-                entry[parameter.JsonKey()] = point?.Get(parameter);
+                entry[parameter.JsonKey] = point?.Get(parameter);
             }
 
             root[$"h{hours}"] = entry;
         }
 
+        var dailyByDate = forecast.Daily.Points.ToDictionary(p => p.Date);
+        var today = DateOnly.FromDateTime(forecast.Cycle.Timestamp.UtcDateTime);
+        for (var d = 0; d < forecastDays; d++)
+        {
+            var date = today.AddDays(d);
+            dailyByDate.TryGetValue(date, out var dailyPoint);
+
+            var entry = new JsonObject { ["date"] = date.ToString("O") };
+            foreach (var parameter in parameters.Daily)
+            {
+                var value = dailyPoint?.Get(parameter);
+                entry[parameter.JsonKey] = value switch
+                {
+                    double num => JsonValue.Create(num),
+                    string str => JsonValue.Create(str),
+                    _ => null,
+                };
+            }
+
+            root[$"d{d}"] = entry;
+        }
+
         return root.ToJsonString();
     }
 
-    /// <summary>Next full grid hour at or after tick + horizon — a horizon sensor never points into the past.</summary>
     public static DateTimeOffset Anchor(DateTimeOffset tick, int horizonHours)
     {
         var target = tick.AddHours(horizonHours);

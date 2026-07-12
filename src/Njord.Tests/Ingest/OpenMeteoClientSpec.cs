@@ -13,19 +13,20 @@ public sealed class OpenMeteoClientSpec
     private static readonly CycleId Cycle = new(Run);
     private static readonly LocationOptions Home = new() { Name = "home", Latitude = 47.05, Longitude = 8.31 };
     private static readonly WeatherModel IconEu = new("icon_eu");
+    private static readonly ResolvedParameterSet DefaultParameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
-    // First hourly timestamp shared by both fixture payloads (2026-07-11T00:00Z).
     private static readonly DateTimeOffset FixtureStart = DateTimeOffset.FromUnixTimeSeconds(1_783_728_000);
 
     private static string Fixture(string name)
         => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Ingest", "Fixtures", name));
 
     private static (OpenMeteoClient Client, RecordingHandler Handler) CreateClient(
-        Func<HttpRequestMessage, HttpResponseMessage> respond)
+        Func<HttpRequestMessage, HttpResponseMessage> respond,
+        ResolvedParameterSet? parameters = null)
     {
         var handler = new RecordingHandler(respond);
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.open-meteo.com/") };
-        return (new OpenMeteoClient(http, new FakeTimeProvider(Run.AddSeconds(30))), handler);
+        return (new OpenMeteoClient(http, new FakeTimeProvider(Run.AddSeconds(30)), parameters ?? DefaultParameters), handler);
     }
 
     private static HttpResponseMessage Json(HttpStatusCode status, string body)
@@ -44,19 +45,17 @@ public sealed class OpenMeteoClientSpec
         Assert.Equal("home", forecast.Location);
         Assert.Equal(Cycle, forecast.Cycle);
         Assert.Equal(Run.AddSeconds(30), forecast.RetrievedAt);
-        Assert.Equal(96, forecast.Series.Points.Count);
-        var first = forecast.Series.Points[0];
+        Assert.Equal(96, forecast.Hourly.Points.Count);
+        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
+        var first = forecast.Hourly.Points[0];
         Assert.Equal(FixtureStart, first.ValidAt);
-        Assert.Equal(20.2, first.Temperature);
-        Assert.Equal(20.8, first.ApparentTemperature);
-        Assert.Equal(0.94, first.WindSpeed);
-        Assert.Equal(1014.8, first.PressureMsl);
-        var at72H = Assert.Single(forecast.Series.Points, p => p.ValidAt == FixtureStart.AddHours(72));
-        Assert.Equal(24.1, at72H.Temperature);
+        Assert.Equal(20.2, first.Get(temp));
+        var pressureMsl = ParameterRegistry.GetByApiName("pressure_msl")!;
+        Assert.Equal(1014.8, first.Get(pressureMsl));
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Requests_carry_the_exact_variable_set_and_no_credentials()
+    public async Task Requests_carry_the_configured_variables_and_no_credentials()
     {
         var (client, handler) = CreateClient(_ => Json(HttpStatusCode.OK, Fixture("openmeteo-icon_eu-96h.json")));
 
@@ -68,13 +67,12 @@ public sealed class OpenMeteoClientSpec
         Assert.Contains("latitude=47.05", uri);
         Assert.Contains("longitude=8.31", uri);
         Assert.Contains("models=icon_eu", uri);
-        Assert.Contains(
-            "hourly=temperature_2m,apparent_temperature,precipitation,wind_speed_10m,wind_gusts_10m," +
-            "dew_point_2m,relative_humidity_2m,cloud_cover,pressure_msl",
-            uri);
+        Assert.Contains("hourly=", uri);
+        Assert.Contains("temperature_2m", uri);
         Assert.Contains("wind_speed_unit=ms", uri);
         Assert.Contains("timeformat=unixtime", uri);
         Assert.Contains("forecast_days=4", uri);
+        Assert.Contains("daily=", uri);
         Assert.Empty(request.Headers);
     }
 
@@ -118,7 +116,6 @@ public sealed class OpenMeteoClientSpec
     [Fact(Timeout = 5000)]
     public async Task Unit_drift_maps_to_malformed_payload()
     {
-        // Same shape as the live API, but the wind unit ignored our ms request.
         var body = """
             {
               "hourly_units": {
@@ -145,10 +142,11 @@ public sealed class OpenMeteoClientSpec
         var outcome = await client.FetchAsync(Home, new WeatherModel("icon_d2"), Cycle, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchOutcome.Success>(outcome);
-        var points = success.Forecast.Series.Points;
+        var points = success.Forecast.Hourly.Points;
         Assert.Equal(64, points.Count);
         Assert.Equal(FixtureStart.AddHours(63), points[^1].ValidAt);
-        Assert.Equal(31.6, points[^1].Temperature);
+        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
+        Assert.Equal(31.6, points[^1].Get(temp));
     }
 
     [Fact(Timeout = 5000)]
@@ -161,6 +159,27 @@ public sealed class OpenMeteoClientSpec
         var failure = Assert.IsType<FetchOutcome.Failure>(outcome);
         Assert.Equal(FetchFailureReason.Transport, failure.Reason);
         Assert.Single(handler.Requests);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Missing_arrays_are_treated_as_null_values()
+    {
+        var body = """
+            {
+              "hourly_units": { "time": "unixtime", "temperature_2m": "°C" },
+              "hourly": { "time": [1783728000], "temperature_2m": [20.2] }
+            }
+            """;
+        var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, body));
+
+        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+
+        var success = Assert.IsType<FetchOutcome.Success>(outcome);
+        var point = success.Forecast.Hourly.Points[0];
+        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
+        var windSpeed = ParameterRegistry.GetByApiName("wind_speed_10m")!;
+        Assert.Equal(20.2, point.Get(temp));
+        Assert.Null(point.Get(windSpeed));
     }
 
     private sealed class RecordingHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler

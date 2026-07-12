@@ -6,6 +6,8 @@ namespace Njord.Tests.Egress;
 public sealed class TopicSchemeSpec
 {
     private static readonly WeatherModel IconD2 = new("icon_d2");
+    private static readonly ParameterDef ApparentTemp = ParameterRegistry.GetByApiName("apparent_temperature")!;
+    private static readonly ParameterDef TempMax = ParameterRegistry.GetByApiName("temperature_2m_max")!;
 
     [Fact(Timeout = 5000)]
     public void Device_ids_combine_prefix_location_and_model()
@@ -40,22 +42,18 @@ public sealed class TopicSchemeSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void Unique_ids_identify_the_full_grid_coordinate()
+    public void Hourly_unique_id_identifies_the_full_grid_coordinate()
     {
         Assert.Equal(
             "njord_home_icon_d2_apparent_temperature_h24",
-            TopicScheme.UniqueId("home", IconD2, WeatherParameter.ApparentTemperature, 24));
+            TopicScheme.HourlyUniqueId("home", IconD2, ApparentTemp, 24));
     }
 
     [Fact(Timeout = 5000)]
-    public void Every_parameter_has_a_snake_case_json_key()
+    public void Daily_unique_id_uses_day_offset()
     {
-        var keys = Enum.GetValues<WeatherParameter>().Select(p => p.JsonKey()).ToList();
-
         Assert.Equal(
-        [
-            "temperature", "apparent_temperature", "precipitation", "wind_speed",
-            "wind_gust", "dewpoint", "relative_humidity", "cloud_cover", "pressure_msl",
-        ], keys);
+            "njord_home_icon_d2_temperature_max_d1",
+            TopicScheme.DailyUniqueId("home", IconD2, TempMax, 1));
     }
 }

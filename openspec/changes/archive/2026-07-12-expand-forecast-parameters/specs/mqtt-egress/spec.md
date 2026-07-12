@@ -1,26 +1,4 @@
-# mqtt-egress Specification
-
-## Purpose
-
-MQTT egress to Home Assistant: an actor-owned broker connection lifecycle with a Last Will availability topic, device-based MQTT Discovery for the static config-derived entity grid, one retained telemetry state per device per poll cycle, and declarative mapping of missing values to `unavailable` so entities never disappear or go stale.
-
-## Requirements
-
-### Requirement: The connection actor owns the broker lifecycle
-An actor SHALL own the MQTT connection: connect at startup, reconnect with
-exponential backoff, register a Last Will that publishes `offline` (retained)
-to the service availability topic, and publish `online` (retained) after every
-successful (re)connect. Egress failures MUST NOT crash the host process or
-the poll pipeline.
-
-#### Scenario: Last Will announces service death
-- **WHEN** njord's connection dies without a clean disconnect
-- **THEN** the broker publishes retained `offline` on the service
-  availability topic
-
-#### Scenario: Reconnect restores availability
-- **WHEN** the broker becomes reachable again after an outage
-- **THEN** the actor reconnects with backoff and publishes retained `online`
+## MODIFIED Requirements
 
 ### Requirement: Device-based discovery for a static entity grid
 For every configured (location, model) pair the system SHALL publish one retained device-based discovery payload (`<prefix>/device/njord_<location>_<model>/config`) containing the device block, an origin block, shared state and availability options, and one sensor component per configured (parameter, horizon) pair for hourly parameters plus one sensor component per configured (parameter, day-offset) pair for daily parameters, each with a stable `unique_id`. Hourly unique_ids follow `njord_{location}_{model}_{param}_h{horizon}`. Daily unique_ids follow `njord_{location}_{model}_{param}_d{offset}`. The grid is derived from configuration only — never from fetched data. Discovery SHALL be published at startup and re-published when Home Assistant announces `online` on `homeassistant/status`.
@@ -48,9 +26,7 @@ For every cycle the system SHALL publish one retained state JSON per (location, 
 - **WHEN** a daily parameter `sunrise` has value `"05:31"` for d0
 - **THEN** the state JSON `d0` object contains `"sunrise": "05:31"` as a string value
 
-#### Scenario: Failed models keep their last retained state
-- **WHEN** a model's fetch fails in a cycle
-- **THEN** no state is published for that device in that cycle
+## ADDED Requirements
 
 ### Requirement: Discovery component metadata adapts to registry
 Each sensor component in the discovery payload SHALL derive its `unit_of_measurement`, `device_class`, and `name` from the parameter registry entry. Parameters with `device_class: null` SHALL omit the `device_class` field. Parameters with value type `TimeString` SHALL use `device_class: "timestamp"` when appropriate or omit it.
@@ -62,19 +38,3 @@ Each sensor component in the discovery payload SHALL derive its `unit_of_measure
 #### Scenario: Parameter without device class
 - **WHEN** `weather_code` (no device_class) is in the active set
 - **THEN** its discovery component carries `"unit_of_measurement": "wmo code"` and no `device_class` field
-
-### Requirement: Missing values surface as unavailable, never as stale data
-Every component SHALL become unavailable when (a) the service availability
-topic reads `offline`, or (b) its value is absent in the state JSON (e.g.
-beyond the model's horizon), or (c) no state update arrived within twice the
-poll interval (`expire_after`). Entities MUST NOT disappear from HA because a
-value is missing.
-
-#### Scenario: Beyond-horizon component is unavailable
-- **WHEN** `meteoswiss_icon_ch1` provides no +72 h values
-- **THEN** its `+72 h` components are unavailable while its near-horizon
-  components stay available
-
-#### Scenario: Silent model expires
-- **WHEN** a device receives no state update for two poll intervals
-- **THEN** its components become unavailable without any explicit publish

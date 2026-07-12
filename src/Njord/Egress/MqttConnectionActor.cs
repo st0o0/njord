@@ -41,17 +41,23 @@ public sealed class MqttConnectionActor : ReceiveActor
 
     private sealed record Inbound(string Topic, string Payload);
 
+    private readonly ResolvedParameterSet _parameters;
+    private readonly int _forecastDays;
+
     public MqttConnectionActor(
         IOptions<NjordOptions> options,
         IMqttPublisher publisher,
         ILogger<MqttConnectionActor> logger,
-        MqttEgressTuning tuning)
+        MqttEgressTuning tuning,
+        ResolvedParameterSet parameters)
     {
         _options = options.Value;
         _publisher = publisher;
         _logger = logger;
         _tuning = tuning;
+        _parameters = parameters;
         _horizons = [.. _options.Horizons];
+        _forecastDays = _options.ForecastDays;
         _availabilityTopic = TopicScheme.AvailabilityTopic(_options.Mqtt.BaseTopic);
         _haStatusTopic = $"{_options.Mqtt.DiscoveryPrefix}/status";
         _deviceConfigFilter = $"{_options.Mqtt.DiscoveryPrefix}/device/+/config";
@@ -161,7 +167,7 @@ public sealed class MqttConnectionActor : ReceiveActor
         foreach (var forecast in message.Forecasts)
         {
             var topic = TopicScheme.StateTopic(_options.Mqtt.BaseTopic, forecast.Location, forecast.Model);
-            var payload = StatePayloadBuilder.Build(forecast, _horizons);
+            var payload = StatePayloadBuilder.Build(forecast, _parameters, _horizons, _forecastDays);
             await GuardedAsync(
                 () => _publisher.PublishAsync(topic, payload, retain: true, CancellationToken.None),
                 $"state publish for {topic}");
@@ -178,7 +184,8 @@ public sealed class MqttConnectionActor : ReceiveActor
                 var topic = TopicScheme.ConfigTopic(
                     _options.Mqtt.DiscoveryPrefix, TopicScheme.DeviceId(location.Name, model));
                 var payload = DiscoveryPayloadBuilder.Build(
-                    location.Name, model, _horizons, _options.Mqtt, _options.PollInterval, Version);
+                    location.Name, model, _parameters, _horizons, _forecastDays,
+                    _options.Mqtt, _options.PollInterval, Version);
                 await _publisher.PublishAsync(topic, payload, retain: true, CancellationToken.None);
             }
         }

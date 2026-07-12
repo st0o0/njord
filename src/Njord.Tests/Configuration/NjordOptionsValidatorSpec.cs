@@ -41,8 +41,8 @@ public sealed class NjordOptionsValidatorSpec
         var result = Validator.Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains("11520", result.FailureMessage);
         Assert.Contains("8000", result.FailureMessage);
+        Assert.Contains("weight", result.FailureMessage);
     }
 
     [Fact(Timeout = 5000)]

@@ -3,7 +3,6 @@ using Njord.Domain;
 
 namespace Njord.Egress;
 
-/// <summary>All MQTT topic and identifier construction lives here — one place, one shape.</summary>
 public static class TopicScheme
 {
     public static string DeviceId(string location, WeatherModel model)
@@ -18,10 +17,12 @@ public static class TopicScheme
     public static string AvailabilityTopic(string baseTopic)
         => $"{baseTopic}/status";
 
-    public static string UniqueId(string location, WeatherModel model, WeatherParameter parameter, int horizonHours)
-        => $"{DeviceId(location, model)}_{parameter.JsonKey()}_h{horizonHours}";
+    public static string HourlyUniqueId(string location, WeatherModel model, ParameterDef parameter, int horizonHours)
+        => $"{DeviceId(location, model)}_{parameter.JsonKey}_h{horizonHours}";
 
-    /// <summary>Lowercases and maps everything outside [a-z0-9] to '_' — topic- and entity-id-safe.</summary>
+    public static string DailyUniqueId(string location, WeatherModel model, ParameterDef parameter, int dayOffset)
+        => $"{DeviceId(location, model)}_{parameter.JsonKey}_d{dayOffset}";
+
     public static string Slug(string value)
     {
         var builder = new StringBuilder(value.Length);
