@@ -30,7 +30,5 @@ public sealed class NjordOptions
 
     public TimeSpan DiscoveryInterval { get; set; } = TimeSpan.FromMinutes(20);
 
-    public TimeSpan RetryBackoffMax { get; set; } = TimeSpan.FromMinutes(15);
-
     public string PersistencePath { get; set; } = "data/njord-journal.db";
 }

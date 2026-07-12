@@ -94,7 +94,10 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         mergeHubSource
             .Throttle(budgetPerMinute, TimeSpan.FromMinutes(1), budgetPerMinute,
                 element => element.Weight, ThrottleMode.Shaping)
-            .Via(FetchStage.Create(_client, _timeProvider))
+            .SelectAsyncUnordered(8, async target =>
+                await _client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None))
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
+                _ => Akka.Streams.Supervision.Directive.Resume))
             .Collect(outcome => outcome is FetchOutcome.Success s ? s : null!)
             .Where(s => s is not null)
             .RunWith(broadcastHubSink, mat);

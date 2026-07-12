@@ -26,6 +26,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
     private readonly MqttEgressTuning _tuning;
     private readonly ResolvedParameterSet _parameters;
     private readonly ActorRegistry _registry;
+    private readonly TimeProvider _timeProvider;
     private readonly IReadOnlyList<int> _horizons;
     private readonly string _availabilityTopic;
     private readonly string _haStatusTopic;
@@ -54,7 +55,8 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         ILogger<MqttEgressActor> logger,
         MqttEgressTuning tuning,
         ResolvedParameterSet parameters,
-        ActorRegistry registry)
+        ActorRegistry registry,
+        TimeProvider timeProvider)
     {
         _options = options.Value;
         _connection = connection;
@@ -63,6 +65,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         _tuning = tuning;
         _parameters = parameters;
         _registry = registry;
+        _timeProvider = timeProvider;
         _horizons = [.. _options.Horizons];
         _availabilityTopic = TopicScheme.AvailabilityTopic(_options.Mqtt.BaseTopic);
         _haStatusTopic = $"{_options.Mqtt.DiscoveryPrefix}/status";
@@ -173,13 +176,14 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         var horizons = _horizons;
         var forecastDays = _options.ForecastDays;
         var parameters = _parameters;
+        var timeProvider = _timeProvider;
         var lastPublished = new Dictionary<(string, string, string), string>();
 
         sourceRef.Source
             .SelectMany(success =>
             {
                 var forecast = success.Forecast;
-                var perHorizon = StatePayloadBuilder.BuildPerHorizon(forecast, parameters, horizons, forecastDays);
+                var perHorizon = StatePayloadBuilder.BuildPerHorizon(forecast, parameters, horizons, forecastDays, timeProvider.GetUtcNow());
                 var messages = new List<MqttMessage>();
 
                 foreach (var (horizon, payload) in perHorizon)

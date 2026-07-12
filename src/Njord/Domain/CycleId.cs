@@ -3,7 +3,5 @@ namespace Njord.Domain;
 /// <summary>Identifies one poll cycle; derived from the tick timestamp.</summary>
 public readonly record struct CycleId(DateTimeOffset Timestamp)
 {
-    public static CycleId From(TimeProvider time) => new(time.GetUtcNow());
-
     public override string ToString() => Timestamp.ToString("O");
 }

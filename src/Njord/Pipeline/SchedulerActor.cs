@@ -116,7 +116,8 @@ public sealed class SchedulerActor : ReceivePersistentActor
             l.Name.Equals(poll.Location, StringComparison.OrdinalIgnoreCase));
         if (location is null) return;
 
-        var target = new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight);
+        var cycle = new CycleId(_timeProvider.GetUtcNow());
+        var target = new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle);
         _queue.OfferAsync(target);
         _logger.LogDebug("Offered poll target {Location}/{Model}", poll.Location, poll.ModelId);
     }
@@ -169,7 +170,8 @@ public sealed class SchedulerActor : ReceivePersistentActor
             return;
         }
 
-        var target = new WeightedTarget(location, cmd.Model, _weight);
+        var cycle = new CycleId(_timeProvider.GetUtcNow());
+        var target = new WeightedTarget(location, cmd.Model, _weight, cycle);
         _queue.OfferAsync(target);
     }
 
@@ -185,9 +187,10 @@ public sealed class SchedulerActor : ReceivePersistentActor
             return;
         }
 
+        var cycle = new CycleId(_timeProvider.GetUtcNow());
         foreach (var modelId in _options.Models)
         {
-            var target = new WeightedTarget(location, new WeatherModel(modelId), _weight);
+            var target = new WeightedTarget(location, new WeatherModel(modelId), _weight, cycle);
             _queue.OfferAsync(target);
         }
     }
