@@ -62,7 +62,8 @@ public sealed class MqttEgressIntegrationSpec
             NullLogger<MqttEgressActor>.Instance,
             MqttEgressTuning.Default,
             parameters,
-            registry)));
+            registry,
+            TimeProvider.System)));
 
         // Simulate a state publish via the transport (as the pipeline would through StreamRef)
         var tick = new DateTimeOffset(2026, 7, 12, 12, 30, 0, TimeSpan.Zero);
@@ -71,8 +72,8 @@ public sealed class MqttEgressIntegrationSpec
             .Select(i => new ForecastPoint(
                 new DateTimeOffset(2026, 7, 12, 13, 0, 0, TimeSpan.Zero).AddHours(i),
                 new Dictionary<ParameterDef, double?> { [temp] = 20.0 + i })));
-        var forecast = new ModelForecast(new WeatherModel("icon_d2"), "home", new CycleId(tick), tick, series, DailyForecastSeries.Empty);
-        var perHorizon = StatePayloadBuilder.BuildPerHorizon(forecast, parameters, options.Horizons.ToList(), options.ForecastDays);
+        var forecast = new ModelForecast(new WeatherModel("icon_d2"), "home", new CycleId(tick), series, DailyForecastSeries.Empty);
+        var perHorizon = StatePayloadBuilder.BuildPerHorizon(forecast, parameters, options.Horizons.ToList(), options.ForecastDays, tick);
         foreach (var (horizon, json) in perHorizon)
         {
             var horizonTopic = TopicScheme.HorizonTopic(options.Mqtt.BaseTopic, forecast.Location, forecast.Model, horizon);

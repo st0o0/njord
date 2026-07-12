@@ -229,7 +229,8 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
             var location = _options.Locations.FirstOrDefault(l =>
                 l.Name.Equals(poll.Location, StringComparison.OrdinalIgnoreCase));
             if (location is null) return;
-            _queue.OfferAsync(new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight));
+            var cycle = new CycleId(_timeProvider.GetUtcNow());
+            _queue.OfferAsync(new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle));
         }
 
         private void OnHashResult(HashResult result)
@@ -263,7 +264,8 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
                 l.Name.Equals(cmd.Location, StringComparison.OrdinalIgnoreCase));
             if (location is null) return;
             if (!_options.Models.Contains(cmd.Model.Id, StringComparer.OrdinalIgnoreCase)) return;
-            _queue.OfferAsync(new WeightedTarget(location, cmd.Model, _weight));
+            var cycle = new CycleId(_timeProvider.GetUtcNow());
+            _queue.OfferAsync(new WeightedTarget(location, cmd.Model, _weight, cycle));
         }
 
         private void OnRefreshLocation(PipelineCommand.RefreshLocation cmd)
@@ -272,8 +274,9 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
             var location = _options.Locations.FirstOrDefault(l =>
                 l.Name.Equals(cmd.Location, StringComparison.OrdinalIgnoreCase));
             if (location is null) return;
+            var cycle = new CycleId(_timeProvider.GetUtcNow());
             foreach (var modelId in _options.Models)
-                _queue.OfferAsync(new WeightedTarget(location, new WeatherModel(modelId), _weight));
+                _queue.OfferAsync(new WeightedTarget(location, new WeatherModel(modelId), _weight, cycle));
         }
 
         private void ScheduleNext(string location, string modelId)

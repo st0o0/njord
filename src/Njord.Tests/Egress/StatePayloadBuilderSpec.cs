@@ -21,7 +21,6 @@ public sealed class StatePayloadBuilderSpec
             IconD2,
             "home",
             new CycleId(tick),
-            tick,
             new ForecastSeries(Enumerable.Range(0, pointCount)
                 .Select(i => new ForecastPoint(firstPoint.AddHours(i), new Dictionary<ParameterDef, double?>
                 {
@@ -40,7 +39,7 @@ public sealed class StatePayloadBuilderSpec
     public void Returns_one_entry_per_configured_horizon()
     {
         var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
-        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 100), SmallParams, [3, 6, 24], 4);
+        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 100), SmallParams, [3, 6, 24], 4, tick);
 
         Assert.Equal(7, result.Count);
         Assert.True(result.ContainsKey("h3"));
@@ -56,7 +55,7 @@ public sealed class StatePayloadBuilderSpec
     public void Hourly_payload_is_flat_json_with_parameter_values()
     {
         var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
-        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 100), SmallParams, [3], 1);
+        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 100), SmallParams, [3], 1, tick);
         var h3 = JsonNode.Parse(result["h3"])!;
 
         Assert.Equal(3.0, (double?)h3["temperature"]);
@@ -68,7 +67,7 @@ public sealed class StatePayloadBuilderSpec
     public void Daily_payload_is_flat_json_with_parameter_values()
     {
         var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
-        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 10), SmallParams, [3], 1);
+        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 10), SmallParams, [3], 1, tick);
         var d0 = JsonNode.Parse(result["d0"])!;
 
         Assert.Equal(28.5, (double?)d0["temperature_max"]);
@@ -79,7 +78,7 @@ public sealed class StatePayloadBuilderSpec
     public void Horizons_beyond_series_yield_null_values()
     {
         var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
-        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 10), SmallParams, [72], 1);
+        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 10), SmallParams, [72], 1, tick);
         var h72 = JsonNode.Parse(result["h72"])!;
 
         Assert.True(h72.AsObject().ContainsKey("temperature"));
@@ -91,7 +90,7 @@ public sealed class StatePayloadBuilderSpec
     {
         var tick = new DateTimeOffset(2026, 7, 12, 19, 31, 0, TimeSpan.Zero);
         var firstPoint = new DateTimeOffset(2026, 7, 12, 20, 0, 0, TimeSpan.Zero);
-        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, firstPoint, 100), SmallParams, [3], 1);
+        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, firstPoint, 100), SmallParams, [3], 1, tick);
         var h3 = JsonNode.Parse(result["h3"])!;
 
         Assert.Equal(3.0, (double?)h3["temperature"]);

@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text;
-using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain;
 using Njord.Ingest;
@@ -26,7 +25,7 @@ public sealed class OpenMeteoClientSpec
     {
         var handler = new RecordingHandler(respond);
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.open-meteo.com/") };
-        return (new OpenMeteoClient(http, new FakeTimeProvider(Run.AddSeconds(30)), parameters ?? DefaultParameters), handler);
+        return (new OpenMeteoClient(http, parameters ?? DefaultParameters), handler);
     }
 
     private static HttpResponseMessage Json(HttpStatusCode status, string body)
@@ -44,7 +43,6 @@ public sealed class OpenMeteoClientSpec
         Assert.Equal(IconEu, forecast.Model);
         Assert.Equal("home", forecast.Location);
         Assert.Equal(Cycle, forecast.Cycle);
-        Assert.Equal(Run.AddSeconds(30), forecast.RetrievedAt);
         Assert.Equal(96, forecast.Hourly.Points.Count);
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var first = forecast.Hourly.Points[0];
@@ -98,7 +96,6 @@ public sealed class OpenMeteoClientSpec
 
         var failure = Assert.IsType<FetchOutcome.Failure>(outcome);
         Assert.Equal(FetchFailureReason.ModelUnavailable, failure.Reason);
-        Assert.Equal(IconEu, failure.Model);
         Assert.Contains("No data is available for this location", failure.Detail);
     }
 

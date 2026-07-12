@@ -36,22 +36,24 @@ public sealed class PollPipelineSpec : IDisposable
         var client = new FakeOpenMeteoClient();
         var options = Options(1, "A", "B");
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        var cycle = new CycleId(DateTimeOffset.UtcNow);
 
         var locA = options.Locations[0];
         var targets = new[]
         {
-            new WeightedTarget(locA, new WeatherModel("A"), 1),
-            new WeightedTarget(locA, new WeatherModel("B"), 1),
+            new WeightedTarget(locA, new WeatherModel("A"), 1, cycle),
+            new WeightedTarget(locA, new WeatherModel("B"), 1, cycle),
         };
 
         var results = await Source.From(targets)
-            .Via(FetchStage.Create(client, TimeProvider.System))
+            .SelectAsyncUnordered(8, async target =>
+                await client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None))
             .Collect(outcome => outcome is FetchOutcome.Success s ? s : null!)
             .Where(s => s is not null)
             .SelectMany(success =>
             {
                 var forecast = success.Forecast;
-                var perHorizon = StatePayloadBuilder.BuildPerHorizon(forecast, parameters, [.. options.Horizons], options.ForecastDays);
+                var perHorizon = StatePayloadBuilder.BuildPerHorizon(forecast, parameters, [.. options.Horizons], options.ForecastDays, cycle.Timestamp);
                 return perHorizon.Select(kvp =>
                     new MqttMessage(TopicScheme.HorizonTopic(options.Mqtt.BaseTopic, forecast.Location, forecast.Model, kvp.Key), kvp.Value, true));
             })
@@ -69,22 +71,24 @@ public sealed class PollPipelineSpec : IDisposable
         var client = new FakeOpenMeteoClient { FailingModels = { "BROKEN" } };
         var options = Options(1, "A", "BROKEN");
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        var cycle = new CycleId(DateTimeOffset.UtcNow);
 
         var loc = options.Locations[0];
         var targets = new[]
         {
-            new WeightedTarget(loc, new WeatherModel("A"), 1),
-            new WeightedTarget(loc, new WeatherModel("BROKEN"), 1),
+            new WeightedTarget(loc, new WeatherModel("A"), 1, cycle),
+            new WeightedTarget(loc, new WeatherModel("BROKEN"), 1, cycle),
         };
 
         var results = await Source.From(targets)
-            .Via(FetchStage.Create(client, TimeProvider.System))
+            .SelectAsyncUnordered(8, async target =>
+                await client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None))
             .Collect(outcome => outcome is FetchOutcome.Success s ? s : null!)
             .Where(s => s is not null)
             .SelectMany(success =>
             {
                 var forecast = success.Forecast;
-                var perHorizon = StatePayloadBuilder.BuildPerHorizon(forecast, parameters, [.. options.Horizons], options.ForecastDays);
+                var perHorizon = StatePayloadBuilder.BuildPerHorizon(forecast, parameters, [.. options.Horizons], options.ForecastDays, cycle.Timestamp);
                 return perHorizon.Select(kvp =>
                     new MqttMessage(TopicScheme.HorizonTopic(options.Mqtt.BaseTopic, forecast.Location, forecast.Model, kvp.Key), kvp.Value, true));
             })
@@ -103,10 +107,10 @@ public sealed class PollPipelineSpec : IDisposable
         {
             if (FailingModels.Contains(model.Id))
                 return Task.FromResult<FetchOutcome>(
-                    new FetchOutcome.Failure(cycle, location.Name, model, FetchFailureReason.Transport, "simulated"));
+                    new FetchOutcome.Failure(FetchFailureReason.Transport, "simulated"));
 
             return Task.FromResult<FetchOutcome>(new FetchOutcome.Success(new ModelForecast(
-                model, location.Name, cycle, cycle.Timestamp,
+                model, location.Name, cycle,
                 new ForecastSeries([new ForecastPoint(cycle.Timestamp.AddHours(3),
                     new Dictionary<ParameterDef, double?> { [ParameterRegistry.GetByApiName("temperature_2m")!] = 20.0 })]),
                 DailyForecastSeries.Empty)));

@@ -9,7 +9,6 @@ namespace Njord.Ingest;
 
 public sealed class OpenMeteoClient(
     HttpClient httpClient,
-    TimeProvider timeProvider,
     ResolvedParameterSet parameters) : IOpenMeteoClient
 {
     private readonly string _hourlyVariables = string.Join(",", parameters.Hourly.Select(p => p.ApiName));
@@ -27,46 +26,43 @@ public sealed class OpenMeteoClient(
             {
                 return response.StatusCode switch
                 {
-                    HttpStatusCode.TooManyRequests => Failure(FetchFailureReason.RateLimited, "HTTP 429 from the forecast endpoint"),
-                    HttpStatusCode.BadRequest => Failure(FetchFailureReason.ModelUnavailable, await ReadErrorReasonAsync(response, cancellationToken)),
-                    _ => Failure(FetchFailureReason.Transport, $"HTTP {(int)response.StatusCode} from the forecast endpoint"),
+                    HttpStatusCode.TooManyRequests => new FetchOutcome.Failure(FetchFailureReason.RateLimited, "HTTP 429 from the forecast endpoint"),
+                    HttpStatusCode.BadRequest => new FetchOutcome.Failure(FetchFailureReason.ModelUnavailable, await ReadErrorReasonAsync(response, cancellationToken)),
+                    _ => new FetchOutcome.Failure(FetchFailureReason.Transport, $"HTTP {(int)response.StatusCode} from the forecast endpoint"),
                 };
             }
 
             var dto = await response.Content.ReadFromJsonAsync(OpenMeteoJsonContext.Default.OpenMeteoForecastResponse, cancellationToken);
             if (dto?.Hourly is null || dto.Hourly.Time.Count == 0)
-                return Failure(FetchFailureReason.MalformedPayload, "Response contained no hourly data");
+                return new FetchOutcome.Failure(FetchFailureReason.MalformedPayload, "Response contained no hourly data");
 
             if (UnitMismatch(dto.HourlyUnits) is { } mismatch)
-                return Failure(FetchFailureReason.MalformedPayload, mismatch);
+                return new FetchOutcome.Failure(FetchFailureReason.MalformedPayload, mismatch);
 
             var hourlyResult = MapHourly(dto.Hourly);
             if (hourlyResult is null)
-                return Failure(FetchFailureReason.MalformedPayload, "Response carried hourly timestamps but no values");
+                return new FetchOutcome.Failure(FetchFailureReason.MalformedPayload, "Response carried hourly timestamps but no values");
 
             var daily = dto.Daily is { Time.Count: > 0 }
                 ? MapDaily(dto.Daily)
                 : DailyForecastSeries.Empty;
 
             return new FetchOutcome.Success(new ModelForecast(
-                model, location.Name, cycle, timeProvider.GetUtcNow(),
+                model, location.Name, cycle,
                 hourlyResult, daily));
         }
         catch (HttpRequestException ex)
         {
-            return Failure(FetchFailureReason.Transport, ex.Message);
+            return new FetchOutcome.Failure(FetchFailureReason.Transport, ex.Message);
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            return Failure(FetchFailureReason.Transport, "Request timed out");
+            return new FetchOutcome.Failure(FetchFailureReason.Transport, "Request timed out");
         }
         catch (JsonException)
         {
-            return Failure(FetchFailureReason.MalformedPayload, "Response JSON did not match the expected schema");
+            return new FetchOutcome.Failure(FetchFailureReason.MalformedPayload, "Response JSON did not match the expected schema");
         }
-
-        FetchOutcome.Failure Failure(FetchFailureReason reason, string detail)
-            => new(cycle, location.Name, model, reason, detail);
     }
 
     private string BuildUri(LocationOptions location, WeatherModel model)

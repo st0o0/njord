@@ -9,14 +9,15 @@ public static class StatePayloadBuilder
         ModelForecast forecast,
         ResolvedParameterSet parameters,
         IReadOnlyList<int> horizons,
-        int forecastDays)
+        int forecastDays,
+        DateTimeOffset anchorTime)
     {
         var result = new Dictionary<string, string>(horizons.Count + forecastDays);
 
         var pointsByValidAt = forecast.Hourly.Points.ToDictionary(p => p.ValidAt);
         foreach (var hours in horizons)
         {
-            var anchor = Anchor(forecast.Cycle.Timestamp, hours);
+            var anchor = Anchor(anchorTime, hours);
             pointsByValidAt.TryGetValue(anchor, out var point);
 
             var entry = new JsonObject();
@@ -29,7 +30,7 @@ public static class StatePayloadBuilder
         }
 
         var dailyByDate = forecast.Daily.Points.ToDictionary(p => p.Date);
-        var today = DateOnly.FromDateTime(forecast.Cycle.Timestamp.UtcDateTime);
+        var today = DateOnly.FromDateTime(anchorTime.UtcDateTime);
         for (var d = 0; d < forecastDays; d++)
         {
             var date = today.AddDays(d);

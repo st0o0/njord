@@ -18,9 +18,6 @@ public abstract record FetchOutcome
     public sealed record Success(ModelForecast Forecast) : FetchOutcome;
 
     public sealed record Failure(
-        CycleId Cycle,
-        string Location,
-        WeatherModel Model,
         FetchFailureReason Reason,
         string Detail) : FetchOutcome;
 }
