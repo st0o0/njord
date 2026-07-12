@@ -26,6 +26,9 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
         if (options.PollInterval <= TimeSpan.Zero)
             failures.Add("PollInterval must be positive.");
 
+        if (options.DiscoveryInterval <= TimeSpan.Zero)
+            failures.Add("DiscoveryInterval must be positive.");
+
         if (options.Horizons.Count == 0)
             failures.Add("At least one forecast horizon (hours) is required.");
         else if (options.Horizons.Any(h => h <= 0 || h > FetchWindowHours))

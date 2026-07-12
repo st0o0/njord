@@ -1,4 +1,5 @@
 using Akka.Hosting;
+using Akka.Persistence.Sqlite;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain;
@@ -21,19 +22,45 @@ builder.Services.AddSingleton(sp =>
         options.Parameters.Extra,
         options.Parameters.Exclude);
 });
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddOpenMeteoIngest();
 builder.Services.AddMqttEgress();
 builder.Services.AddHealthChecks();
 
-builder.Services.AddAkka("njord", (akka, _) =>
+builder.Services.AddAkka("njord", (akka, sp) =>
 {
-    akka.WithActors((system, registry, resolver) =>
-    {
-        registry.Register<MqttConnectionActor>(
-            system.ActorOf(resolver.Props<MqttConnectionActor>(), "mqtt-egress"));
-        registry.Register<PipelineGuardianActor>(
-            system.ActorOf(resolver.Props<PipelineGuardianActor>(), "poll-pipeline"));
-    });
+    var njordOptions = sp.GetRequiredService<IOptions<NjordOptions>>().Value;
+    var persistencePath = njordOptions.PersistencePath;
+
+    akka
+        .AddHocon(SqlitePersistence.DefaultConfiguration(), HoconAddMode.Prepend)
+        .AddHocon($$"""
+            akka.persistence {
+                journal {
+                    plugin = "akka.persistence.journal.sqlite"
+                    sqlite {
+                        connection-string = "Data Source={{persistencePath}}"
+                        auto-initialize = true
+                    }
+                }
+                snapshot-store {
+                    plugin = "akka.persistence.snapshot-store.sqlite"
+                    sqlite {
+                        connection-string = "Data Source={{persistencePath}}"
+                        auto-initialize = true
+                    }
+                }
+            }
+            """, HoconAddMode.Prepend)
+        .WithActors((system, registry, resolver) =>
+        {
+            registry.Register<MqttEgressActor>(
+                system.ActorOf(resolver.Props<MqttEgressActor>(), "mqtt-egress"));
+            registry.Register<PipelineActor>(
+                system.ActorOf(resolver.Props<PipelineActor>(), "pipeline"));
+            registry.Register<SchedulerActor>(
+                system.ActorOf(resolver.Props<SchedulerActor>(), "scheduler"));
+        });
 });
 
 var app = builder.Build();

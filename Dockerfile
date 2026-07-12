@@ -16,6 +16,8 @@ LABEL org.opencontainers.image.title="njord" \
       org.opencontainers.image.source="https://github.com/st0o0/njord" \
       org.opencontainers.image.documentation="https://github.com/st0o0/njord#readme"
 WORKDIR /app
+RUN mkdir -p /app/data
+VOLUME /app/data
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 COPY --from=build /app .
