@@ -1,13 +1,7 @@
-# stream-composition Specification
-
-## Purpose
-
-Defines the structural requirements for the Akka.Streams pipeline graph: single materialization, MergeHub entry point with SinkRef-based producer access, weighted throttle, BroadcastHub fan-out for egress and feedback consumers, independently testable stages, stream supervision, graceful shutdown, and observability.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: The pipeline is a single materialized graph
-The pipeline SHALL be materialized exactly once by the `PipelineActor` using `Context.Materializer()` (actor-bound lifecycle). The PipelineActor SHALL materialize the pipeline graph independently -- it SHALL NOT wait for the EgressActor or SchedulerActor before materializing. The BroadcastHub buffers until consumers connect. No stage within the graph SHALL materialize a sub-stream via `RunWith` or equivalent, except for the BroadcastHub consumer graphs and the SinkRef/SourceRef materializations which are part of the actor's setup. The graph SHALL remain materialized for the lifetime of the actor incarnation. No `IHostedService` or manual `KillSwitch` SHALL be used.
+The pipeline SHALL be materialized exactly once by the `PipelineActor` using `Context.Materializer()` (actor-bound lifecycle). The PipelineActor SHALL materialize the pipeline graph independently — it SHALL NOT wait for the EgressActor or SchedulerActor before materializing. The BroadcastHub buffers until consumers connect. No stage within the graph SHALL materialize a sub-stream via `RunWith` or equivalent, except for the BroadcastHub consumer graphs and the SinkRef/SourceRef materializations which are part of the actor's setup. The graph SHALL remain materialized for the lifetime of the actor incarnation. No `IHostedService` or manual `KillSwitch` SHALL be used.
 
 #### Scenario: No per-cycle materialization
 - **WHEN** 10 targets are processed
@@ -19,7 +13,7 @@ The pipeline SHALL be materialized exactly once by the `PipelineActor` using `Co
 
 #### Scenario: Pipeline materializes without waiting for consumers
 - **WHEN** the PipelineActor starts
-- **THEN** the pipeline graph (MergeHub -> flow -> BroadcastHub) is materialized immediately, without waiting for EgressActor or SchedulerActor readiness
+- **THEN** the pipeline graph (MergeHub → flow → BroadcastHub) is materialized immediately, without waiting for EgressActor or SchedulerActor readiness
 
 ### Requirement: MergeHub accepts targets from producers via SinkRef
 The pipeline entry point SHALL be a `MergeHub.Source<WeightedTarget>` that producers connect to via a `SinkRef<WeightedTarget>` obtained from the PipelineActor. The PipelineActor SHALL vend the SinkRef on request. Producers SHALL NOT receive a raw queue handle.
@@ -107,3 +101,9 @@ The pipeline SHALL emit one structured log entry per fetch outcome (success or f
 #### Scenario: Each fetch logs its outcome
 - **WHEN** a fetch for (lucerne, icon_d2) completes in 1200ms
 - **THEN** a structured log entry is emitted with location="lucerne", model="icon_d2", duration=1200ms, status="success"
+
+## REMOVED Requirements
+
+### Requirement: Source.Queue accepts targets from the SchedulerActor
+**Reason:** Replaced by MergeHub entry point with SinkRef-based producer access.
+**Migration:** SchedulerActor connects via SinkRef instead of receiving a raw queue handle.

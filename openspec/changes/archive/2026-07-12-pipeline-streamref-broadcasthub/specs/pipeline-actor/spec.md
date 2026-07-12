@@ -1,13 +1,7 @@
-# pipeline-actor Specification
-
-## Purpose
-
-Defines the PipelineActor that owns the pipeline stream graph lifecycle: actor-bound materialization with independent startup (no egress dependency), SinkRef vending for producers (SchedulerActor) via MergeHub, SourceRef vending for consumers (EgressActor) via BroadcastHub, local feedback consumer for hash computation, and egress watch for lifecycle coordination.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: The pipeline graph is materialized by an actor
-A `PipelineActor` SHALL materialize the full pipeline graph using `Context.Materializer()`. The pipeline graph SHALL be materialized independently -- the actor SHALL NOT wait for the EgressActor before materializing. The stream lifecycle SHALL be bound to the actor -- when the actor stops, the graph terminates. No `IHostedService` or manual `KillSwitch` SHALL be used for pipeline lifecycle.
+A `PipelineActor` SHALL materialize the full pipeline graph using `Context.Materializer()`. The pipeline graph SHALL be materialized independently — the actor SHALL NOT wait for the EgressActor before materializing. The stream lifecycle SHALL be bound to the actor — when the actor stops, the graph terminates. No `IHostedService` or manual `KillSwitch` SHALL be used for pipeline lifecycle.
 
 #### Scenario: Actor stop terminates the pipeline
 - **WHEN** the PipelineActor is stopped
@@ -48,8 +42,18 @@ The PipelineActor SHALL materialize a BroadcastHub consumer that computes a `For
 - **THEN** the feedback consumer graph also terminates
 
 ### Requirement: The pipeline actor watches the egress actor for lifecycle coordination
-The PipelineActor SHALL watch the EgressActor. If the EgressActor terminates (`Terminated` message), no pipeline rematerialization is needed -- the BroadcastHub continues operating. The EgressActor is responsible for re-requesting a SourceRef on restart.
+The PipelineActor SHALL watch the EgressActor. If the EgressActor terminates (`Terminated` message), no pipeline rematerialization is needed — the BroadcastHub continues operating. The EgressActor is responsible for re-requesting a SourceRef on restart.
 
 #### Scenario: Egress restart does not affect pipeline
 - **WHEN** the EgressActor restarts and the PipelineActor receives `Terminated`
 - **THEN** the pipeline graph continues running; the EgressActor re-requests a SourceRef when ready
+
+## REMOVED Requirements
+
+### Requirement: The pipeline actor obtains the egress SinkRef before materializing
+**Reason:** The pipeline no longer pushes to egress via SinkRef. Instead, egress pulls from the pipeline via SourceRef from the BroadcastHub. The pipeline materializes independently.
+**Migration:** Remove `RequestEgressSink`/`EgressSinkResponse` handshake. PipelineActor no longer stashes while waiting for egress. EgressActor sends `RequestPipelineSource` instead.
+
+### Requirement: The pipeline maps FetchOutcome to MqttMessage at its terminal stage
+**Reason:** The FetchOutcome-to-MqttMessage mapping moves to the EgressActor's consumer graph. The pipeline's terminal stage is now the BroadcastHub, which broadcasts raw `FetchOutcome.Success` elements.
+**Migration:** `StatePayloadBuilder` usage and delta-publish logic move to the EgressActor's SourceRef consumer.

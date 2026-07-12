@@ -6,6 +6,17 @@ Adaptive per-model poll scheduling: a persistent actor that learns each weather 
 
 ## Requirements
 
+### Requirement: The SchedulerActor obtains a SinkRef from the PipelineActor
+The SchedulerActor SHALL request a `SinkRef<WeightedTarget>` from the PipelineActor during startup via `RequestPipelineSink`. The actor SHALL stash all timer messages until the SinkRef is received. Only after obtaining the SinkRef SHALL the actor materialize a local `Source.Queue<WeightedTarget>` connected to the SinkRef and start scheduling timers.
+
+#### Scenario: Scheduler waits for pipeline readiness
+- **WHEN** the SchedulerActor starts and the PipelineActor has not yet responded
+- **THEN** the actor stashes timer messages and does not schedule any polls
+
+#### Scenario: SinkRef received triggers local queue materialization and scheduling
+- **WHEN** the PipelineActor responds with a `PipelineSinkResponse` containing a `SinkRef<WeightedTarget>`
+- **THEN** the SchedulerActor materializes a local `Source.Queue<WeightedTarget>` connected to `sinkRef.Sink`, schedules `ScheduleOnce` for every (location, model) pair, and unstashes pending messages
+
 ### Requirement: The SchedulerActor manages per-model poll timing
 A `SchedulerActor` (ReceivePersistentActor) SHALL maintain a `ModelPollState` per configured (location, model) pair. Each state SHALL track: `lastHash` (int?), `lastChangeUtc` (DateTimeOffset?), `prevChangeUtc` (DateTimeOffset?), `nextPollUtc` (DateTimeOffset), `missCount` (int), and `phase` (Discovery or Steady). The actor SHALL use `ScheduleTellOnce` to fire polls at each model's individually calculated time.
 
@@ -13,20 +24,9 @@ A `SchedulerActor` (ReceivePersistentActor) SHALL maintain a `ModelPollState` pe
 - **WHEN** 1 location and 8 models are configured
 - **THEN** the SchedulerActor maintains 8 independent `ModelPollState` entries, each with its own `ScheduleOnce` timer
 
-#### Scenario: Timer fires push a target into the pipeline
+#### Scenario: Timer fires offer a target into the local queue
 - **WHEN** a `ScheduleOnce` timer fires for (lucerne, icon_d2)
-- **THEN** the actor offers a `WeightedTarget(lucerne, icon_d2)` into the Source.Queue obtained from the PipelineActor
-
-### Requirement: The SchedulerActor obtains a StreamRef from the PipelineActor
-The SchedulerActor SHALL request a StreamRef (Source.Queue handle) from the PipelineActor during startup. The actor SHALL stash all timer messages until the StreamRef is received. Only after obtaining the StreamRef SHALL timers be scheduled.
-
-#### Scenario: Scheduler waits for pipeline readiness
-- **WHEN** the SchedulerActor starts and the PipelineActor has not yet responded
-- **THEN** the actor stashes timer messages and does not schedule any polls
-
-#### Scenario: StreamRef received triggers initial scheduling
-- **WHEN** the PipelineActor responds with a StreamRef
-- **THEN** the SchedulerActor schedules `ScheduleOnce` for every (location, model) pair and unstashes pending messages
+- **THEN** the actor offers a `WeightedTarget(lucerne, icon_d2)` into its own local `Source.Queue`, which drains through the SinkRef into the PipelineActor's MergeHub
 
 ### Requirement: Discovery phase polls at a fixed interval until the cycle is learned
 When no cycle is known for a (location, model) pair (phase = Discovery), the SchedulerActor SHALL poll every 20 minutes via `ScheduleOnce`. After two consecutive data changes are detected (two different `lastChangeUtc` values), the actor SHALL compute `cycle = lastChangeUtc - prevChangeUtc` and transition to Steady phase.
@@ -74,15 +74,15 @@ The SchedulerActor SHALL handle `HashResult(LocationModelKey, int Hash)` message
 - **THEN** `missCount` is incremented, next retry is scheduled, and `Ack` is returned
 
 ### Requirement: Manual refresh commands bypass the schedule
-The SchedulerActor SHALL accept `RefreshModel(location, model)` and `RefreshLocation(location)` commands. These SHALL immediately offer the corresponding `WeightedTarget`(s) into the Source.Queue without affecting the scheduled timers. The schedule SHALL NOT be reset by a manual refresh.
+The SchedulerActor SHALL accept `RefreshModel(location, model)` and `RefreshLocation(location)` commands. These SHALL immediately offer the corresponding `WeightedTarget`(s) into the local `Source.Queue` without affecting the scheduled timers. The schedule SHALL NOT be reset by a manual refresh.
 
 #### Scenario: RefreshModel bypasses schedule
 - **WHEN** a `RefreshModel("lucerne", "icon_d2")` is received and the next scheduled poll is in 2 hours
-- **THEN** a target is offered immediately and the 2-hour timer remains active
+- **THEN** a target is offered into the local queue immediately and the 2-hour timer remains active
 
 #### Scenario: RefreshLocation fans out to all models
 - **WHEN** a `RefreshLocation("lucerne")` is received with 8 models configured
-- **THEN** 8 targets are offered immediately into the queue
+- **THEN** 8 targets are offered into the local queue
 
 ### Requirement: State is persisted and recovered via Akka.Persistence
 The SchedulerActor SHALL persist `DataChanged` events to a SQLite journal via Akka.Persistence. On recovery, the actor SHALL rebuild all `ModelPollState` entries from the event stream. If a recovered `nextPollUtc` is in the past, the actor SHALL poll immediately. If a cycle is known from recovery, the actor SHALL enter Steady phase directly without re-discovery.

@@ -1,10 +1,4 @@
-# delta-publishing Specification
-
-## Purpose
-
-Delta publishing for the MQTT egress: the EgressActor's consumer graph skips unchanged horizon payloads to reduce broker traffic and HA entity updates, emitting only horizons whose values have actually changed since the last publish cycle.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Only publish horizons whose values have changed
 The EgressActor's consumer graph SHALL maintain an in-memory cache of the last-published payload per (location, model, horizon). Before publishing, it SHALL compare the new payload against the cached value. If the payloads are identical (string equality), the publish SHALL be skipped. On first cycle after startup (empty cache), all horizons SHALL publish.

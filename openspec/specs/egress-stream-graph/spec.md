@@ -2,20 +2,20 @@
 
 ## Purpose
 
-Defines the Akka.Streams graph owned by the egress actor: a MergeHub that converges messages from multiple sources (pipeline StreamRef, discovery queue, availability queue, tombstone queue) into a single Publish Sink with bounded buffering and DropHead overflow.
+Defines the Akka.Streams graph owned by the egress actor: a MergeHub that converges messages from multiple sources (egress consumer graph processing FetchOutcome.Success from the pipeline's BroadcastHub via SourceRef, discovery queue, availability queue, tombstone queue) into a single Publish Sink with bounded buffering and DropHead overflow.
 
 ## Requirements
 
 ### Requirement: All MQTT publishes flow through a single MergeHub
-The egress actor SHALL materialize a `MergeHub<MqttMessage>` that accepts messages from multiple sources: the pipeline (via StreamRef), and internal actor sources (discovery, availability, tombstone via Source.Queue). All messages SHALL converge into a single Publish Sink that calls the broker transport.
+The egress actor SHALL materialize a `MergeHub<MqttMessage>` that accepts messages from multiple sources: the egress consumer graph (processing `FetchOutcome.Success` elements from the pipeline's BroadcastHub via SourceRef), and internal actor sources (discovery, availability, tombstone via Source.Queue). All messages SHALL converge into a single Publish Sink that calls the broker transport.
 
 #### Scenario: State and discovery messages share the same publish path
-- **WHEN** the pipeline emits a state MqttMessage and the actor emits a discovery MqttMessage concurrently
+- **WHEN** the egress consumer emits a state MqttMessage and the actor emits a discovery MqttMessage concurrently
 - **THEN** both are published to the broker through the same Publish Sink
 
 #### Scenario: Multiple sources can attach to the MergeHub
 - **WHEN** the egress graph is materialized
-- **THEN** at least four sources are connected: pipeline (StreamRef), discovery queue, availability queue, and tombstone queue
+- **THEN** at least four sources are connected: egress consumer (from BroadcastHub SourceRef), discovery queue, availability queue, and tombstone queue
 
 ### Requirement: MqttMessage is the unified publish protocol
 All messages destined for the broker SHALL be expressed as `MqttMessage(string Topic, string Payload, bool Retain)`. The Publish Sink SHALL be content-agnostic — it does not interpret topic or payload semantics.
@@ -24,16 +24,31 @@ All messages destined for the broker SHALL be expressed as `MqttMessage(string T
 - **WHEN** an `MqttMessage("njord/home/icon_d2/state", "{...}", true)` enters the hub
 - **THEN** the sink publishes to topic `njord/home/icon_d2/state` with the given payload and retain=true
 
-### Requirement: The egress actor exposes a SinkRef for external producers
-The egress actor SHALL materialize a `SinkRef<MqttMessage>` connected to the MergeHub and SHALL provide it to requestors via a typed Ask response. The SinkRef SHALL remain valid for the lifetime of the egress actor's current incarnation.
+### Requirement: The egress actor pulls from the pipeline's BroadcastHub via SourceRef
+The egress actor SHALL request a `SourceRef<FetchOutcome.Success>` from the PipelineActor via `RequestPipelineSource`. Upon receipt, the actor SHALL materialize a consumer graph: `SourceRef.Source -> Select(BuildPerHorizon) -> Select(DeltaFilter) -> SelectMany(-> MqttMessage) -> MergeHub.Sink`. The egress actor SHALL stash messages until the SourceRef is received.
 
-#### Scenario: Pipeline actor obtains a SinkRef
-- **WHEN** an actor sends a `RequestEgressSink` message to the egress actor
-- **THEN** the egress actor responds with a `SinkRef<MqttMessage>` that feeds into the MergeHub
+#### Scenario: Egress obtains a SourceRef
+- **WHEN** the egress actor sends `RequestPipelineSource` to the PipelineActor
+- **THEN** the PipelineActor responds with a `PipelineSourceResponse` containing a `SourceRef<FetchOutcome.Success>`
 
-#### Scenario: SinkRef invalidates on egress restart
-- **WHEN** the egress actor restarts
-- **THEN** the previous SinkRef completes and a new one is materialized for subsequent requests
+#### Scenario: Consumer graph maps fetch outcomes to MqttMessages
+- **WHEN** a `FetchOutcome.Success` for (lucerne, icon_d2) arrives via the SourceRef with 3 changed horizons
+- **THEN** the consumer graph emits 3 `MqttMessage`(s) into the egress MergeHub
+
+#### Scenario: SourceRef invalidation triggers re-request
+- **WHEN** the PipelineActor restarts and the SourceRef becomes invalid
+- **THEN** the egress actor detects the failure, re-sends `RequestPipelineSource`, and materializes a new consumer graph
+
+### Requirement: The egress actor exposes a SinkRef for internal use only
+The egress actor SHALL materialize a `SinkRef<MqttMessage>` connected to the MergeHub for internal use by its consumer graph. The egress actor SHALL NOT vend SinkRefs to external actors -- external data enters via the BroadcastHub SourceRef consumer, not via direct SinkRef push.
+
+#### Scenario: No external SinkRef is vended
+- **WHEN** an external actor requests a SinkRef from the egress actor
+- **THEN** no SinkRef is provided; the external actor should use the pipeline's BroadcastHub instead
+
+#### Scenario: Internal consumer graph feeds into MergeHub
+- **WHEN** the egress consumer graph processes a `FetchOutcome.Success`
+- **THEN** the resulting `MqttMessage`(s) flow into the MergeHub through the internal consumer connection
 
 ### Requirement: The Publish Sink buffers during disconnect with DropHead overflow
 The Publish Sink SHALL use a bounded buffer (configurable, default 64 messages). When the broker is unreachable and the buffer is full, the oldest messages SHALL be dropped (DropHead strategy). On reconnect, buffered messages SHALL drain in order.

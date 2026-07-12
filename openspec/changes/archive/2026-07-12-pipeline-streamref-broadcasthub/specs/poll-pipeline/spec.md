@@ -1,13 +1,7 @@
-# poll-pipeline Specification
-
-## Purpose
-
-Polling pipeline that receives individual fetch targets from producers via MergeHub (connected by SinkRef), throttles to the request budget, fans out successful outcomes via BroadcastHub to egress and feedback consumers, and logs per-outcome structured summaries.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Targets arrive via MergeHub from producers connected by SinkRef
-The pipeline SHALL receive `WeightedTarget` elements via a `MergeHub.Source<WeightedTarget>` that producers connect to through a `SinkRef<WeightedTarget>` obtained from the PipelineActor. There is no tick source -- all poll timing is owned by the SchedulerActor.
+The pipeline SHALL receive `WeightedTarget` elements via a `MergeHub.Source<WeightedTarget>` that producers connect to through a `SinkRef<WeightedTarget>` obtained from the PipelineActor. There is no tick source — all poll timing is owned by the SchedulerActor.
 
 #### Scenario: Targets arrive from the SchedulerActor via SinkRef
 - **WHEN** the SchedulerActor's timer fires for (lucerne, icon_d2)
@@ -25,7 +19,7 @@ The pipeline SHALL throttle outbound fetch requests using a weighted throttle se
 - **THEN** all 24 pass through the throttle without delay (well within budget)
 
 ### Requirement: Fetch outcomes fan out via BroadcastHub to egress and feedback consumers
-The pipeline SHALL broadcast each successful `FetchOutcome` via a `BroadcastHub`. The EgressActor SHALL consume the BroadcastHub via a `SourceRef` and map outcomes to `MqttMessage`(s) for MQTT publish. The PipelineActor SHALL materialize a local feedback consumer that computes a data hash and sends it to the SchedulerActor via Ask. Egress unavailability (broker down) MUST NOT fail or stall the fetch pipeline -- the BroadcastHub decouples the two paths.
+The pipeline SHALL broadcast each successful `FetchOutcome` via a `BroadcastHub`. The EgressActor SHALL consume the BroadcastHub via a `SourceRef` and map outcomes to `MqttMessage`(s) for MQTT publish. The PipelineActor SHALL materialize a local feedback consumer that computes a data hash and sends it to the SchedulerActor via Ask. Egress unavailability (broker down) MUST NOT fail or stall the fetch pipeline — the BroadcastHub decouples the two paths.
 
 #### Scenario: Egress receives outcome via BroadcastHub SourceRef
 - **WHEN** a fetch for (lucerne, icon_d2) succeeds
@@ -42,3 +36,13 @@ The pipeline SHALL broadcast each successful `FetchOutcome` via a `BroadcastHub`
 #### Scenario: Broker outage does not stall fetching
 - **WHEN** the MQTT broker is unreachable
 - **THEN** the pipeline continues fetching; the egress consumer handles the failure independently
+
+## REMOVED Requirements
+
+### Requirement: Targets arrive via Source.Queue from the SchedulerActor
+**Reason:** Replaced by MergeHub with SinkRef-based producer access.
+**Migration:** SchedulerActor connects its local Source.Queue to the PipelineActor's SinkRef.
+
+### Requirement: Fetch outcomes feed the MQTT egress directly
+**Reason:** The pipeline no longer pushes to egress directly. Outcomes are broadcast via BroadcastHub; the EgressActor pulls via SourceRef.
+**Migration:** `StatePayloadBuilder` and delta logic move to EgressActor's consumer graph.
