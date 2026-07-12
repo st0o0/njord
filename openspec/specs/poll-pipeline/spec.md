@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Scheduled polling pipeline that fans out forecast fetches over configured locations and models each cycle, throttles to the request budget, aggregates outcomes with a bounded window, survives failures via restart-with-backoff, and logs per-cycle summaries.
+Scheduled polling pipeline that fans out forecast fetches over configured locations and models each cycle, throttles to the request budget, aggregates outcomes with a bounded window, survives failures via restart-with-backoff, hands cycle results to the MQTT egress, and logs per-cycle summaries.
 
 ## Requirements
 
@@ -55,11 +55,18 @@ jitter) without terminating the service.
 - **THEN** the pipeline restarts after the backoff delay and the host process
   keeps running
 
-### Requirement: v1 sink logs cycle summaries
-Until consensus and MQTT egress exist, the pipeline SHALL terminate in a sink
-that logs one summary per cycle: cycle id, per-model success/failure, and
-counts of received vs. missing forecasts.
+### Requirement: Cycle results feed the MQTT egress
+The pipeline SHALL hand every cycle result to the MQTT egress for telemetry
+publishing and SHALL log one summary line per cycle (cycle id, per-model
+success/failure, received vs. missing counts). Egress unavailability (broker
+down, actor restarting) MUST NOT fail or stall the poll pipeline.
 
-#### Scenario: Summary per cycle
+#### Scenario: Cycle result reaches egress and log
 - **WHEN** a cycle result is emitted
-- **THEN** exactly one summary log entry for that cycle id is written
+- **THEN** it is delivered to the egress exactly once and exactly one
+  summary log entry for that cycle id is written
+
+#### Scenario: Broker outage does not stall polling
+- **WHEN** the MQTT broker is unreachable during a cycle
+- **THEN** the poll pipeline continues its cadence and later cycles are
+  published once the connection returns
