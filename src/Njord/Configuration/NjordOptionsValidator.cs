@@ -9,6 +9,9 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
     // The Open-Meteo limits are soft, but a free service deserves politeness.
     private const double MonthlyBudgetGuardFactor = 0.8;
 
+    // forecast_days=4 → hourly grid up to +96 h (see openmeteo-client spec).
+    private const int FetchWindowHours = 96;
+
     private static readonly TimeSpan Month = TimeSpan.FromDays(30);
 
     public ValidateOptionsResult Validate(string? name, NjordOptions options)
@@ -27,6 +30,14 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
 
         if (options.PollInterval <= TimeSpan.Zero)
             failures.Add("PollInterval must be positive.");
+
+        if (options.Horizons.Count == 0)
+            failures.Add("At least one forecast horizon (hours) is required.");
+        else if (options.Horizons.Any(h => h <= 0 || h > FetchWindowHours))
+            failures.Add($"Horizons must be between 1 and {FetchWindowHours} hours (the fetched forecast window).");
+
+        if (string.IsNullOrWhiteSpace(options.Mqtt.Host))
+            failures.Add("The MQTT broker host is missing — set Njord:Mqtt:Host.");
 
         if (options.Locations.Count > 0 && options.Models.Count > 0 && options.PollInterval > TimeSpan.Zero)
         {

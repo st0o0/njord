@@ -16,4 +16,9 @@ public sealed class NjordOptions
 
     /// <summary>Open-Meteo model ids (free-form strings, e.g. "icon_d2").</summary>
     public IList<string> Models { get; set; } = [];
+
+    /// <summary>Forecast horizons in hours; the HA entity grid derives from these × models × parameters.</summary>
+    public IList<int> Horizons { get; set; } = [3, 6, 12, 24, 48, 72];
+
+    public MqttOptions Mqtt { get; set; } = new();
 }

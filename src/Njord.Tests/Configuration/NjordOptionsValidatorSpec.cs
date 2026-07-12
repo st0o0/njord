@@ -13,6 +13,7 @@ public sealed class NjordOptionsValidatorSpec
             "gfs_seamless", "ukmo_global_deterministic_10km",
             "meteoswiss_icon_ch1", "meteoswiss_icon_ch2",
         ],
+        Mqtt = new MqttOptions { Host = "broker.local" },
     };
 
     private static readonly NjordOptionsValidator Validator = new();
@@ -71,5 +72,66 @@ public sealed class NjordOptionsValidatorSpec
     public void Poll_interval_defaults_to_sixty_minutes()
     {
         Assert.Equal(TimeSpan.FromMinutes(60), new NjordOptions().PollInterval);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Missing_mqtt_host_is_rejected()
+    {
+        var options = ValidOptions();
+        options.Mqtt.Host = "";
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Mqtt", result.FailureMessage);
+        Assert.Contains("Host", result.FailureMessage);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Empty_horizons_are_rejected()
+    {
+        var options = ValidOptions();
+        options.Horizons = [];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("horizon", result.FailureMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Non_positive_horizons_are_rejected()
+    {
+        var options = ValidOptions();
+        options.Horizons = [3, 0];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Horizons_beyond_the_fetch_window_are_rejected()
+    {
+        var options = ValidOptions();
+        options.Horizons = [3, 120];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("96", result.FailureMessage);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Failure_messages_never_contain_the_mqtt_password()
+    {
+        var options = ValidOptions();
+        options.Mqtt.Password = "super-secret-broker-pass";
+        options.Models = [];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.DoesNotContain("super-secret-broker-pass", result.FailureMessage);
     }
 }

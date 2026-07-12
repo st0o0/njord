@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
+using Njord.Egress;
 using Njord.Ingest;
 using Njord.Pipeline;
 
@@ -14,12 +15,17 @@ builder.Services
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<NjordOptions>, NjordOptionsValidator>();
 builder.Services.AddOpenMeteoIngest();
+builder.Services.AddMqttEgress();
 
 builder.Services.AddAkka("njord", (akka, _) =>
 {
     akka.WithActors((system, registry, resolver) =>
+    {
+        registry.Register<MqttConnectionActor>(
+            system.ActorOf(resolver.Props<MqttConnectionActor>(), "mqtt-egress"));
         registry.Register<PipelineGuardianActor>(
-            system.ActorOf(resolver.Props<PipelineGuardianActor>(), "poll-pipeline")));
+            system.ActorOf(resolver.Props<PipelineGuardianActor>(), "poll-pipeline"));
+    });
 });
 
 await builder.Build().RunAsync();

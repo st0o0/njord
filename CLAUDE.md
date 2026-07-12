@@ -40,9 +40,22 @@ Home Assistant entities via MQTT Discovery (Mosquitto broker on the HA host).
   limits (300k/month, 10k/day) — and politeness toward a free service.
 - Feels-like comes from the API (`apparent_temperature` per model) — no own
   Steadman computation.
-- HA device cut: per location, one consensus device + one device per weather model.
-- Forecast series: horizon sensors (e.g. +3 h/+6 h/+12 h/+24 h) plus the full
-  series as a JSON attribute.
+- **Consensus is deferred (pivot 2026-07-12):** per-model data goes to HA 1:1
+  first; consensus may later happen in HA (helpers) or return as a njord
+  change (it would join the topic scheme as pseudo-model `consensus`).
+- HA device cut: per location, one device per weather model, **enabled by
+  default** (they are the product while no consensus device exists).
+- Entity grid per model device: one sensor per (parameter, horizon) — horizons
+  configurable, default +3/+6/+12/+24/+48/+72 h → 54 sensors/device, 432 per
+  location at the 8-model default. No JSON series attribute, no `state_class`
+  (forecasts are not measurements). Recommend a `recorder:` exclude for
+  `sensor.njord_*` in HA docs/snippets.
+- MQTT egress: device-based discovery (one retained config per device,
+  `homeassistant/device/<id>/config`, verified 2026-07-12), one retained
+  state JSON per device per cycle, availability via LWT on `njord/status` +
+  per-component `availability_template` + `expire_after` (2× poll interval).
+  MQTTnet sits behind the `IMqttPublisher` seam; the connection actor owns
+  lifecycle, HA birth handling, and tombstoning of stale retained configs.
 
 ## Build & test
 

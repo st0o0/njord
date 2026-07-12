@@ -1,0 +1,1093 @@
+﻿{
+  dev: {
+    ids: [
+      njord_home_icon_d2
+    ],
+    name: njord home icon_d2,
+    mf: njord,
+    mdl: icon_d2,
+    sw: 1.2.3-test
+  },
+  o: {
+    name: njord,
+    sw: 1.2.3-test
+  },
+  state_topic: njord/home/icon_d2/state,
+  qos: 1,
+  cmps: {
+    temperature_h3: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_temperature_h3,
+      name: temperature +3h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h3.temperature }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h3.temperature is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    temperature_h6: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_temperature_h6,
+      name: temperature +6h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h6.temperature }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h6.temperature is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    temperature_h12: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_temperature_h12,
+      name: temperature +12h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h12.temperature }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h12.temperature is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    temperature_h24: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_temperature_h24,
+      name: temperature +24h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h24.temperature }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h24.temperature is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    temperature_h48: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_temperature_h48,
+      name: temperature +48h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h48.temperature }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h48.temperature is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    temperature_h72: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_temperature_h72,
+      name: temperature +72h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h72.temperature }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h72.temperature is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    apparent_temperature_h3: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_apparent_temperature_h3,
+      name: apparent_temperature +3h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h3.apparent_temperature }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h3.apparent_temperature is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    apparent_temperature_h6: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_apparent_temperature_h6,
+      name: apparent_temperature +6h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h6.apparent_temperature }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h6.apparent_temperature is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    apparent_temperature_h12: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_apparent_temperature_h12,
+      name: apparent_temperature +12h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h12.apparent_temperature }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h12.apparent_temperature is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    apparent_temperature_h24: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_apparent_temperature_h24,
+      name: apparent_temperature +24h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h24.apparent_temperature }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h24.apparent_temperature is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    apparent_temperature_h48: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_apparent_temperature_h48,
+      name: apparent_temperature +48h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h48.apparent_temperature }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h48.apparent_temperature is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    apparent_temperature_h72: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_apparent_temperature_h72,
+      name: apparent_temperature +72h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h72.apparent_temperature }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h72.apparent_temperature is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    precipitation_h3: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_precipitation_h3,
+      name: precipitation +3h,
+      unit_of_measurement: mm,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h3.precipitation }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h3.precipitation is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: precipitation
+    },
+    precipitation_h6: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_precipitation_h6,
+      name: precipitation +6h,
+      unit_of_measurement: mm,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h6.precipitation }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h6.precipitation is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: precipitation
+    },
+    precipitation_h12: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_precipitation_h12,
+      name: precipitation +12h,
+      unit_of_measurement: mm,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h12.precipitation }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h12.precipitation is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: precipitation
+    },
+    precipitation_h24: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_precipitation_h24,
+      name: precipitation +24h,
+      unit_of_measurement: mm,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h24.precipitation }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h24.precipitation is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: precipitation
+    },
+    precipitation_h48: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_precipitation_h48,
+      name: precipitation +48h,
+      unit_of_measurement: mm,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h48.precipitation }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h48.precipitation is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: precipitation
+    },
+    precipitation_h72: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_precipitation_h72,
+      name: precipitation +72h,
+      unit_of_measurement: mm,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h72.precipitation }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h72.precipitation is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: precipitation
+    },
+    wind_speed_h3: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_wind_speed_h3,
+      name: wind_speed +3h,
+      unit_of_measurement: m/s,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h3.wind_speed }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h3.wind_speed is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: wind_speed
+    },
+    wind_speed_h6: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_wind_speed_h6,
+      name: wind_speed +6h,
+      unit_of_measurement: m/s,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h6.wind_speed }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h6.wind_speed is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: wind_speed
+    },
+    wind_speed_h12: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_wind_speed_h12,
+      name: wind_speed +12h,
+      unit_of_measurement: m/s,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h12.wind_speed }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h12.wind_speed is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: wind_speed
+    },
+    wind_speed_h24: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_wind_speed_h24,
+      name: wind_speed +24h,
+      unit_of_measurement: m/s,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h24.wind_speed }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h24.wind_speed is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: wind_speed
+    },
+    wind_speed_h48: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_wind_speed_h48,
+      name: wind_speed +48h,
+      unit_of_measurement: m/s,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h48.wind_speed }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h48.wind_speed is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: wind_speed
+    },
+    wind_speed_h72: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_wind_speed_h72,
+      name: wind_speed +72h,
+      unit_of_measurement: m/s,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h72.wind_speed }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h72.wind_speed is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: wind_speed
+    },
+    wind_gust_h3: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_wind_gust_h3,
+      name: wind_gust +3h,
+      unit_of_measurement: m/s,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h3.wind_gust }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h3.wind_gust is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: wind_speed
+    },
+    wind_gust_h6: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_wind_gust_h6,
+      name: wind_gust +6h,
+      unit_of_measurement: m/s,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h6.wind_gust }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h6.wind_gust is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: wind_speed
+    },
+    wind_gust_h12: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_wind_gust_h12,
+      name: wind_gust +12h,
+      unit_of_measurement: m/s,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h12.wind_gust }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h12.wind_gust is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: wind_speed
+    },
+    wind_gust_h24: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_wind_gust_h24,
+      name: wind_gust +24h,
+      unit_of_measurement: m/s,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h24.wind_gust }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h24.wind_gust is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: wind_speed
+    },
+    wind_gust_h48: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_wind_gust_h48,
+      name: wind_gust +48h,
+      unit_of_measurement: m/s,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h48.wind_gust }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h48.wind_gust is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: wind_speed
+    },
+    wind_gust_h72: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_wind_gust_h72,
+      name: wind_gust +72h,
+      unit_of_measurement: m/s,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h72.wind_gust }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h72.wind_gust is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: wind_speed
+    },
+    dewpoint_h3: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_dewpoint_h3,
+      name: dewpoint +3h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h3.dewpoint }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h3.dewpoint is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    dewpoint_h6: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_dewpoint_h6,
+      name: dewpoint +6h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h6.dewpoint }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h6.dewpoint is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    dewpoint_h12: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_dewpoint_h12,
+      name: dewpoint +12h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h12.dewpoint }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h12.dewpoint is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    dewpoint_h24: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_dewpoint_h24,
+      name: dewpoint +24h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h24.dewpoint }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h24.dewpoint is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    dewpoint_h48: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_dewpoint_h48,
+      name: dewpoint +48h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h48.dewpoint }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h48.dewpoint is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    dewpoint_h72: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_dewpoint_h72,
+      name: dewpoint +72h,
+      unit_of_measurement: °C,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h72.dewpoint }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h72.dewpoint is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: temperature
+    },
+    relative_humidity_h3: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_relative_humidity_h3,
+      name: relative_humidity +3h,
+      unit_of_measurement: %,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h3.relative_humidity }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h3.relative_humidity is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: humidity
+    },
+    relative_humidity_h6: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_relative_humidity_h6,
+      name: relative_humidity +6h,
+      unit_of_measurement: %,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h6.relative_humidity }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h6.relative_humidity is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: humidity
+    },
+    relative_humidity_h12: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_relative_humidity_h12,
+      name: relative_humidity +12h,
+      unit_of_measurement: %,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h12.relative_humidity }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h12.relative_humidity is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: humidity
+    },
+    relative_humidity_h24: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_relative_humidity_h24,
+      name: relative_humidity +24h,
+      unit_of_measurement: %,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h24.relative_humidity }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h24.relative_humidity is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: humidity
+    },
+    relative_humidity_h48: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_relative_humidity_h48,
+      name: relative_humidity +48h,
+      unit_of_measurement: %,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h48.relative_humidity }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h48.relative_humidity is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: humidity
+    },
+    relative_humidity_h72: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_relative_humidity_h72,
+      name: relative_humidity +72h,
+      unit_of_measurement: %,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h72.relative_humidity }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h72.relative_humidity is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: humidity
+    },
+    cloud_cover_h3: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_cloud_cover_h3,
+      name: cloud_cover +3h,
+      unit_of_measurement: %,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h3.cloud_cover }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h3.cloud_cover is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all
+    },
+    cloud_cover_h6: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_cloud_cover_h6,
+      name: cloud_cover +6h,
+      unit_of_measurement: %,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h6.cloud_cover }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h6.cloud_cover is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all
+    },
+    cloud_cover_h12: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_cloud_cover_h12,
+      name: cloud_cover +12h,
+      unit_of_measurement: %,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h12.cloud_cover }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h12.cloud_cover is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all
+    },
+    cloud_cover_h24: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_cloud_cover_h24,
+      name: cloud_cover +24h,
+      unit_of_measurement: %,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h24.cloud_cover }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h24.cloud_cover is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all
+    },
+    cloud_cover_h48: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_cloud_cover_h48,
+      name: cloud_cover +48h,
+      unit_of_measurement: %,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h48.cloud_cover }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h48.cloud_cover is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all
+    },
+    cloud_cover_h72: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_cloud_cover_h72,
+      name: cloud_cover +72h,
+      unit_of_measurement: %,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h72.cloud_cover }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h72.cloud_cover is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all
+    },
+    pressure_msl_h3: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_pressure_msl_h3,
+      name: pressure_msl +3h,
+      unit_of_measurement: hPa,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h3.pressure_msl }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h3.pressure_msl is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: atmospheric_pressure
+    },
+    pressure_msl_h6: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_pressure_msl_h6,
+      name: pressure_msl +6h,
+      unit_of_measurement: hPa,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h6.pressure_msl }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h6.pressure_msl is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: atmospheric_pressure
+    },
+    pressure_msl_h12: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_pressure_msl_h12,
+      name: pressure_msl +12h,
+      unit_of_measurement: hPa,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h12.pressure_msl }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h12.pressure_msl is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: atmospheric_pressure
+    },
+    pressure_msl_h24: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_pressure_msl_h24,
+      name: pressure_msl +24h,
+      unit_of_measurement: hPa,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h24.pressure_msl }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h24.pressure_msl is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: atmospheric_pressure
+    },
+    pressure_msl_h48: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_pressure_msl_h48,
+      name: pressure_msl +48h,
+      unit_of_measurement: hPa,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h48.pressure_msl }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h48.pressure_msl is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: atmospheric_pressure
+    },
+    pressure_msl_h72: {
+      p: sensor,
+      unique_id: njord_home_icon_d2_pressure_msl_h72,
+      name: pressure_msl +72h,
+      unit_of_measurement: hPa,
+      suggested_display_precision: 1,
+      expire_after: 7200,
+      value_template: {{ value_json.h72.pressure_msl }},
+      availability: [
+        {
+          topic: njord/status
+        },
+        {
+          topic: njord/home/icon_d2/state,
+          value_template: {% if value_json.h72.pressure_msl is not none %}online{% else %}offline{% endif %}
+        }
+      ],
+      availability_mode: all,
+      device_class: atmospheric_pressure
+    }
+  }
+}

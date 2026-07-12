@@ -178,3 +178,6 @@ coverage-results/
 results/
 .worktrees/
 .claude/settings.local.json
+
+# Verify snapshot testing — only .verified files are committed
+*.received.*

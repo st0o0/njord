@@ -22,4 +22,21 @@ public sealed class NjordOptionsSpec
 
         Assert.Equal(overrideBudget, options.EffectiveBudget);
     }
+
+    [Fact(Timeout = 5000)]
+    public void Mqtt_defaults_are_broker_friendly()
+    {
+        var options = new NjordOptions();
+
+        Assert.Equal(string.Empty, options.Mqtt.Host);
+        Assert.Equal(1883, options.Mqtt.Port);
+        Assert.Equal("homeassistant", options.Mqtt.DiscoveryPrefix);
+        Assert.Equal("njord", options.Mqtt.BaseTopic);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Horizons_default_to_the_six_step_ladder()
+    {
+        Assert.Equal([3, 6, 12, 24, 48, 72], new NjordOptions().Horizons);
+    }
 }
