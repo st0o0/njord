@@ -7,7 +7,7 @@ HTTP client for the Open-Meteo forecast API: fetches hourly and daily forecasts 
 ## Requirements
 
 ### Requirement: Forecast fetch per location and model
-The client SHALL fetch `GET https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&models={id}` requesting the hourly variables from the active parameter set (resolved from configuration) and, when daily parameters are active, the daily variables. The request SHALL always include `wind_speed_unit=ms`, `timeformat=unixtime`, and `forecast_days=4`. No authentication header or API key SHALL be sent. One successful call SHALL yield one `ModelForecast` with hourly points covering at least +72 h and daily points spanning `forecast_days`.
+The client SHALL fetch `GET https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&models={id}` requesting the hourly variables from the active parameter set (resolved from configuration) and, when daily parameters are active, the daily variables. The request SHALL always include `wind_speed_unit=ms`, `timeformat=unixtime`, and `forecast_days=4`. No authentication header or API key SHALL be sent. One successful call SHALL yield one `ModelForecast` with hourly points covering at least +72 h and daily points spanning `forecast_days`. The `FetchAsync` method SHALL NOT accept a `CycleId` parameter — the `CycleId` SHALL be provided via the `WeightedTarget` that carries the fetch context.
 
 #### Scenario: Successful fetch maps hourly and daily to domain
 - **WHEN** the API returns a valid single-model payload for `icon_eu` with the configured hourly and daily variables
@@ -22,25 +22,19 @@ The client SHALL fetch `GET https://api.open-meteo.com/v1/forecast?latitude={lat
 - **THEN** the effective API call weight is `ceil(25/10) = 3`
 
 ### Requirement: Expected failures are typed outcomes, not exceptions
-The client SHALL return a typed outcome for every call: `Success(ModelForecast)`
-or `Failure` with reason `RateLimited`, `ModelUnavailable`,
-`MalformedPayload`, or `Transport`. Expected failure modes MUST NOT surface as
-thrown exceptions to the caller.
+The client SHALL return a typed outcome for every call: `Success(ModelForecast)` or `Failure` with reason `RateLimited`, `ModelUnavailable`, `MalformedPayload`, or `Transport`. Expected failure modes MUST NOT surface as thrown exceptions to the caller. `FetchOutcome.Failure` SHALL carry only `Reason` and `Detail` — no `CycleId`, `Location`, or `Model` fields.
 
 #### Scenario: Rate limit exceeded
 - **WHEN** the API responds 429
-- **THEN** the client returns `Failure(RateLimited)`
+- **THEN** the client returns `Failure(RateLimited, detail)`
 
 #### Scenario: Model out of coverage or unknown
-- **WHEN** the API responds 400 with `{"error":true,"reason":…}` (unknown
-  model id, or the model does not cover the requested location)
-- **THEN** the client returns `Failure(ModelUnavailable)` carrying the model
-  id and the API reason
+- **WHEN** the API responds 400 with `{"error":true,"reason":…}` (unknown model id, or the model does not cover the requested location)
+- **THEN** the client returns `Failure(ModelUnavailable, detail)` carrying the API reason in the detail string
 
 #### Scenario: Malformed payload
-- **WHEN** the API responds 200 with JSON that does not match the expected
-  single-model flat-arrays schema
-- **THEN** the client returns `Failure(MalformedPayload)`
+- **WHEN** the API responds 200 with JSON that does not match the expected single-model flat-arrays schema
+- **THEN** the client returns `Failure(MalformedPayload, detail)`
 
 ### Requirement: Response units are verified
 The client SHALL verify that the returned `hourly_units` report the expected units for every active parameter that has a verifiable unit expectation. Temperature parameters SHALL be `°C`, wind parameters SHALL be `m/s`, pressure parameters SHALL be `hPa`, time SHALL be `unixtime`. The verification set SHALL be derived from the parameter registry's unit metadata. A mismatch SHALL return `Failure(MalformedPayload)`.
