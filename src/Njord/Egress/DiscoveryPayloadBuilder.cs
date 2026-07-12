@@ -17,7 +17,6 @@ public static class DiscoveryPayloadBuilder
         string version)
     {
         var deviceId = TopicScheme.DeviceId(location, model);
-        var stateTopic = TopicScheme.StateTopic(mqtt.BaseTopic, location, model);
         var availabilityTopic = TopicScheme.AvailabilityTopic(mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * pollInterval.TotalSeconds);
 
@@ -27,13 +26,14 @@ public static class DiscoveryPayloadBuilder
         {
             foreach (var hours in horizons)
             {
+                var horizonTopic = TopicScheme.HorizonTopic(mqtt.BaseTopic, location, model, $"h{hours}");
                 var component = BuildComponent(
                     TopicScheme.HourlyUniqueId(location, model, parameter, hours),
                     $"{parameter.JsonKey} +{hours}h",
                     parameter,
-                    $"{{{{ value_json.h{hours}.{parameter.JsonKey} }}}}",
-                    stateTopic,
-                    $"{{% if value_json.h{hours}.{parameter.JsonKey} is not none %}}online{{% else %}}offline{{% endif %}}",
+                    $"{{{{ value_json.{parameter.JsonKey} }}}}",
+                    horizonTopic,
+                    $"{{% if value_json.{parameter.JsonKey} is not none %}}online{{% else %}}offline{{% endif %}}",
                     availabilityTopic,
                     expireAfterSeconds);
 
@@ -45,13 +45,14 @@ public static class DiscoveryPayloadBuilder
         {
             for (var d = 0; d < forecastDays; d++)
             {
+                var horizonTopic = TopicScheme.HorizonTopic(mqtt.BaseTopic, location, model, $"d{d}");
                 var component = BuildComponent(
                     TopicScheme.DailyUniqueId(location, model, parameter, d),
                     $"{parameter.JsonKey} d{d}",
                     parameter,
-                    $"{{{{ value_json.d{d}.{parameter.JsonKey} }}}}",
-                    stateTopic,
-                    $"{{% if value_json.d{d}.{parameter.JsonKey} is not none %}}online{{% else %}}offline{{% endif %}}",
+                    $"{{{{ value_json.{parameter.JsonKey} }}}}",
+                    horizonTopic,
+                    $"{{% if value_json.{parameter.JsonKey} is not none %}}online{{% else %}}offline{{% endif %}}",
                     availabilityTopic,
                     expireAfterSeconds);
 
@@ -74,7 +75,6 @@ public static class DiscoveryPayloadBuilder
                 ["name"] = "njord",
                 ["sw"] = version,
             },
-            ["state_topic"] = stateTopic,
             ["qos"] = 1,
             ["cmps"] = components,
         };

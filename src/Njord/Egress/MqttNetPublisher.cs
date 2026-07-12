@@ -6,7 +6,8 @@ using Njord.Configuration;
 namespace Njord.Egress;
 
 /// <summary>MQTTnet-backed publisher. Registers the Last Will as part of connecting.</summary>
-public sealed class MqttNetPublisher(MqttOptions options, ILogger<MqttNetPublisher> logger) : IMqttPublisher
+public sealed class MqttNetPublisher(MqttOptions options, ILogger<MqttNetPublisher> logger)
+    : IMqttConnection, IMqttTransport
 {
     private readonly IMqttClient _client = new MqttClientFactory().CreateMqttClient();
     private bool _handlersAttached;
@@ -42,7 +43,7 @@ public sealed class MqttNetPublisher(MqttOptions options, ILogger<MqttNetPublish
         await _client.ConnectAsync(builder.Build(), cancellationToken);
     }
 
-    public Task PublishAsync(string topic, string payload, bool retain, CancellationToken cancellationToken)
+    public Task SendAsync(string topic, string payload, bool retain, CancellationToken cancellationToken)
         => _client.PublishAsync(
             new MqttApplicationMessageBuilder()
                 .WithTopic(topic)

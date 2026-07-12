@@ -11,10 +11,12 @@ public static class EgressServiceCollectionExtensions
     public static IServiceCollection AddMqttEgress(this IServiceCollection services)
     {
         services.TryAddSingleton(MqttEgressTuning.Default);
-        services.TryAddSingleton<IMqttPublisher>(static provider =>
+        services.TryAddSingleton(static provider =>
             new MqttNetPublisher(
                 provider.GetRequiredService<IOptions<NjordOptions>>().Value.Mqtt,
                 provider.GetRequiredService<ILogger<MqttNetPublisher>>()));
+        services.TryAddSingleton<IMqttConnection>(static provider => provider.GetRequiredService<MqttNetPublisher>());
+        services.TryAddSingleton<IMqttTransport>(static provider => provider.GetRequiredService<MqttNetPublisher>());
         return services;
     }
 }

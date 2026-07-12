@@ -11,8 +11,9 @@ public static class TopicScheme
     public static string ConfigTopic(string discoveryPrefix, string deviceId)
         => $"{discoveryPrefix}/device/{deviceId}/config";
 
-    public static string StateTopic(string baseTopic, string location, WeatherModel model)
-        => $"{baseTopic}/{Slug(location)}/{model.Id}/state";
+    public static string HorizonTopic(string baseTopic, string location, WeatherModel model, string horizon)
+        => $"{baseTopic}/{Slug(location)}/{model.Id}/{horizon}";
+
 
     public static string AvailabilityTopic(string baseTopic)
         => $"{baseTopic}/status";

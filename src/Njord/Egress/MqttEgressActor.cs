@@ -1,5 +1,8 @@
 using System.Reflection;
+using Akka;
 using Akka.Actor;
+using Akka.Streams;
+using Akka.Streams.Dsl;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
@@ -7,23 +10,18 @@ using Njord.Domain;
 
 namespace Njord.Egress;
 
-/// <summary>
-/// Owns the MQTT connection lifecycle: connect/reconnect with backoff, service
-/// availability (retained online + Last Will offline), HA birth handling, and
-/// the two egress flows — discovery (lifecycle-driven) and telemetry
-/// (tick-driven). Retained njord device configs that no longer match the
-/// configuration are tombstoned on sight.
-/// </summary>
-public sealed class MqttConnectionActor : ReceiveActor
+public sealed class MqttEgressActor : ReceiveActor, IWithStash
 {
     private static readonly string Version =
-        typeof(MqttConnectionActor).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+        typeof(MqttEgressActor).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion ?? "unknown";
 
     private readonly NjordOptions _options;
-    private readonly IMqttPublisher _publisher;
-    private readonly ILogger<MqttConnectionActor> _logger;
+    private readonly IMqttConnection _connection;
+    private readonly IMqttTransport _transport;
+    private readonly ILogger<MqttEgressActor> _logger;
     private readonly MqttEgressTuning _tuning;
+    private readonly ResolvedParameterSet _parameters;
     private readonly IReadOnlyList<int> _horizons;
     private readonly string _availabilityTopic;
     private readonly string _haStatusTopic;
@@ -31,33 +29,35 @@ public sealed class MqttConnectionActor : ReceiveActor
     private readonly HashSet<string> _ownConfigTopics;
     private int _connectAttempts;
 
+    private ISourceQueueWithComplete<MqttMessage>? _discoveryQueue;
+    private ISourceQueueWithComplete<MqttMessage>? _availabilityQueue;
+    private ISourceQueueWithComplete<MqttMessage>? _tombstoneQueue;
+    private ISinkRef<MqttMessage>? _sinkRef;
+
+    public IStash Stash { get; set; } = null!;
+
     private sealed record Connected;
-
     private sealed record ConnectFailed(Exception Cause);
-
     private sealed record Disconnected;
-
     private sealed record Reconnect;
-
     private sealed record Inbound(string Topic, string Payload);
+    private sealed record SinkRefMaterialized(ISinkRef<MqttMessage> Ref);
 
-    private readonly ResolvedParameterSet _parameters;
-    private readonly int _forecastDays;
-
-    public MqttConnectionActor(
+    public MqttEgressActor(
         IOptions<NjordOptions> options,
-        IMqttPublisher publisher,
-        ILogger<MqttConnectionActor> logger,
+        IMqttConnection connection,
+        IMqttTransport transport,
+        ILogger<MqttEgressActor> logger,
         MqttEgressTuning tuning,
         ResolvedParameterSet parameters)
     {
         _options = options.Value;
-        _publisher = publisher;
+        _connection = connection;
+        _transport = transport;
         _logger = logger;
         _tuning = tuning;
         _parameters = parameters;
         _horizons = [.. _options.Horizons];
-        _forecastDays = _options.ForecastDays;
         _availabilityTopic = TopicScheme.AvailabilityTopic(_options.Mqtt.BaseTopic);
         _haStatusTopic = $"{_options.Mqtt.DiscoveryPrefix}/status";
         _deviceConfigFilter = $"{_options.Mqtt.DiscoveryPrefix}/device/+/config";
@@ -70,6 +70,24 @@ public sealed class MqttConnectionActor : ReceiveActor
                    TopicScheme.DeviceId(location.Name, new WeatherModel(modelId))),
         ];
 
+        Initializing();
+    }
+
+    private void Initializing()
+    {
+        Receive<SinkRefMaterialized>(msg =>
+        {
+            _sinkRef = msg.Ref;
+            Become(Ready);
+            Stash.UnstashAll();
+            Connect();
+        });
+        ReceiveAny(_ => Stash.Stash());
+    }
+
+    private void Ready()
+    {
+        Receive<RequestEgressSink>(_ => Sender.Tell(new EgressSinkResponse(_sinkRef!)));
         ReceiveAsync<Connected>(OnConnectedAsync);
         Receive<ConnectFailed>(msg =>
         {
@@ -83,29 +101,72 @@ public sealed class MqttConnectionActor : ReceiveActor
         });
         Receive<Reconnect>(_ => Connect());
         ReceiveAsync<Inbound>(OnInboundAsync);
-        ReceiveAsync<PublishTelemetry>(OnTelemetryAsync);
     }
 
-    protected override void PreStart() => Connect();
+    protected override void PreStart()
+    {
+        var mat = Context.Materializer();
+        MaterializeEgressGraph(mat);
+    }
 
     protected override void PostStop()
     {
-        // Clean shutdown bypasses the Last Will — announce offline ourselves.
-        try
+        _availabilityQueue?.OfferAsync(new MqttMessage(_availabilityTopic, "offline", true));
+        _discoveryQueue?.Complete();
+        _availabilityQueue?.Complete();
+        _tombstoneQueue?.Complete();
+    }
+
+    private void MaterializeEgressGraph(IMaterializer mat)
+    {
+        var (discQueue, discSource) = Source.Queue<MqttMessage>(32, OverflowStrategy.DropHead)
+            .PreMaterialize(mat);
+        var (availQueue, availSource) = Source.Queue<MqttMessage>(8, OverflowStrategy.DropHead)
+            .PreMaterialize(mat);
+        var (tombQueue, tombSource) = Source.Queue<MqttMessage>(16, OverflowStrategy.DropHead)
+            .PreMaterialize(mat);
+
+        _discoveryQueue = discQueue;
+        _availabilityQueue = availQueue;
+        _tombstoneQueue = tombQueue;
+
+        var (hubSink, hubSource) = MergeHub.Source<MqttMessage>(perProducerBufferSize: 8)
+            .PreMaterialize(mat);
+
+        // Connect internal sources to the hub
+        discSource.RunWith(hubSink, mat);
+        availSource.RunWith(hubSink, mat);
+        tombSource.RunWith(hubSink, mat);
+
+        // The publish sink
+        var self = Self;
+        hubSource
+            .SelectAsync(1, async msg =>
+            {
+                await _transport.SendAsync(msg.Topic, msg.Payload, msg.Retain, CancellationToken.None);
+                return NotUsed.Instance;
+            })
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
+                _ => Akka.Streams.Supervision.Directive.Resume))
+            .RunWith(Sink.Ignore<NotUsed>(), mat);
+
+        // Materialize SinkRef for external producers
+        var sinkRefTask = StreamRefs.SinkRef<MqttMessage>()
+            .To(hubSink)
+            .Run(mat);
+
+        sinkRefTask.ContinueWith(t =>
         {
-            _publisher.PublishAsync(_availabilityTopic, "offline", retain: true, CancellationToken.None)
-                .Wait(TimeSpan.FromSeconds(2));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Offline announcement during shutdown failed — the broker may already be gone");
-        }
+            if (t.IsCompletedSuccessfully)
+                return (object)new SinkRefMaterialized(t.Result);
+            throw t.Exception?.GetBaseException() ?? new InvalidOperationException("SinkRef materialization failed");
+        }).PipeTo(self);
     }
 
     private void Connect()
     {
         var self = Self;
-        _publisher
+        _connection
             .ConnectAsync(
                 (topic, payload) => self.Tell(new Inbound(topic, payload)),
                 () => self.Tell(new Disconnected()),
@@ -127,13 +188,18 @@ public sealed class MqttConnectionActor : ReceiveActor
     private async Task OnConnectedAsync(Connected _)
     {
         _connectAttempts = 0;
-        await GuardedAsync(async () =>
+        try
         {
-            await _publisher.PublishAsync(_availabilityTopic, "online", retain: true, CancellationToken.None);
-            await _publisher.SubscribeAsync(_haStatusTopic, CancellationToken.None);
-            await _publisher.SubscribeAsync(_deviceConfigFilter, CancellationToken.None);
-            await PublishDiscoveryAsync();
-        }, "post-connect announcement and discovery");
+            await _connection.SubscribeAsync(_haStatusTopic, CancellationToken.None);
+            await _connection.SubscribeAsync(_deviceConfigFilter, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Post-connect subscription failed");
+        }
+
+        _availabilityQueue?.OfferAsync(new MqttMessage(_availabilityTopic, "online", true));
+        PublishDiscovery();
     }
 
     private async Task OnInboundAsync(Inbound message)
@@ -143,9 +209,8 @@ public sealed class MqttConnectionActor : ReceiveActor
             if (message.Payload == "online")
             {
                 _logger.LogInformation("Home Assistant is back online — re-publishing discovery");
-                await GuardedAsync(PublishDiscoveryAsync, "re-discovery after HA birth");
+                PublishDiscovery();
             }
-
             return;
         }
 
@@ -156,25 +221,11 @@ public sealed class MqttConnectionActor : ReceiveActor
             && !_ownConfigTopics.Contains(message.Topic))
         {
             _logger.LogInformation("Tombstoning stale retained device config {Topic}", message.Topic);
-            await GuardedAsync(
-                () => _publisher.PublishAsync(message.Topic, string.Empty, retain: true, CancellationToken.None),
-                "tombstone publish");
+            _tombstoneQueue?.OfferAsync(new MqttMessage(message.Topic, string.Empty, true));
         }
     }
 
-    private async Task OnTelemetryAsync(PublishTelemetry message)
-    {
-        foreach (var forecast in message.Forecasts)
-        {
-            var topic = TopicScheme.StateTopic(_options.Mqtt.BaseTopic, forecast.Location, forecast.Model);
-            var payload = StatePayloadBuilder.Build(forecast, _parameters, _horizons, _forecastDays);
-            await GuardedAsync(
-                () => _publisher.PublishAsync(topic, payload, retain: true, CancellationToken.None),
-                $"state publish for {topic}");
-        }
-    }
-
-    private async Task PublishDiscoveryAsync()
+    private void PublishDiscovery()
     {
         foreach (var location in _options.Locations)
         {
@@ -184,24 +235,11 @@ public sealed class MqttConnectionActor : ReceiveActor
                 var topic = TopicScheme.ConfigTopic(
                     _options.Mqtt.DiscoveryPrefix, TopicScheme.DeviceId(location.Name, model));
                 var payload = DiscoveryPayloadBuilder.Build(
-                    location.Name, model, _parameters, _horizons, _forecastDays,
+                    location.Name, model, _parameters, _horizons, _options.ForecastDays,
                     _options.Mqtt, _options.PollInterval, Version);
-                await _publisher.PublishAsync(topic, payload, retain: true, CancellationToken.None);
+                _discoveryQueue?.OfferAsync(new MqttMessage(topic, payload, true));
             }
         }
     }
 
-    private async Task GuardedAsync(Func<Task> action, string what)
-    {
-        try
-        {
-            await action();
-        }
-        catch (Exception ex)
-        {
-            // The disconnect callback drives reconnection; a failed publish is
-            // logged and retried implicitly on the next cycle/birth.
-            _logger.LogWarning(ex, "MQTT egress operation failed: {What}", what);
-        }
-    }
 }

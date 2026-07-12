@@ -30,10 +30,12 @@ public sealed class TopicSchemeSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void State_topic_carries_location_and_model()
+    public void Horizon_topic_carries_location_model_and_horizon()
     {
-        Assert.Equal("njord/home/icon_d2/state", TopicScheme.StateTopic("njord", "home", IconD2));
+        Assert.Equal("njord/home/icon_d2/h3", TopicScheme.HorizonTopic("njord", "home", IconD2, "h3"));
+        Assert.Equal("njord/home/icon_d2/d0", TopicScheme.HorizonTopic("njord", "home", IconD2, "d0"));
     }
+
 
     [Fact(Timeout = 5000)]
     public void Availability_topic_sits_at_the_base()

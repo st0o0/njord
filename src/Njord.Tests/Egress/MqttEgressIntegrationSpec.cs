@@ -19,7 +19,6 @@ public sealed class MqttEgressIntegrationSpec
 {
     private const string MosquittoConf = "listener 1883\nallow_anonymous true\n";
 
-    // Container pull + broker round trips — far above the unit-test budget.
     [Fact(Timeout = 120000)]
     public async Task The_full_egress_round_trip_works_against_a_real_broker()
     {
@@ -37,7 +36,6 @@ public sealed class MqttEgressIntegrationSpec
         await container.StartAsync(ct);
         var mqttOptions = new MqttOptions { Host = "localhost", Port = container.GetMappedPublicPort(1883) };
 
-        // A stale device config from an earlier configuration, retained on the broker.
         var staleTopic = "homeassistant/device/njord_home_stale_model/config";
         await PublishRetainedAsync(mqttOptions, staleTopic, """{"dev":{}}""", ct);
 
@@ -48,23 +46,30 @@ public sealed class MqttEgressIntegrationSpec
             Mqtt = mqttOptions,
         };
         using var system = ActorSystem.Create("egress-integration");
-        await using var publisher = new MqttNetPublisher(mqttOptions, NullLogger<MqttNetPublisher>.Instance);
+        await using var mqttClient = new MqttNetPublisher(mqttOptions, NullLogger<MqttNetPublisher>.Instance);
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        var actor = system.ActorOf(Props.Create(() => new MqttConnectionActor(
+        var actor = system.ActorOf(Props.Create(() => new MqttEgressActor(
             Microsoft.Extensions.Options.Options.Create(options),
-            publisher,
-            NullLogger<MqttConnectionActor>.Instance,
+            mqttClient,
+            mqttClient,
+            NullLogger<MqttEgressActor>.Instance,
             MqttEgressTuning.Default,
             parameters)));
 
+        // Simulate a state publish via the transport (as the pipeline would through StreamRef)
         var tick = new DateTimeOffset(2026, 7, 12, 12, 30, 0, TimeSpan.Zero);
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var series = new ForecastSeries(Enumerable.Range(0, 90)
             .Select(i => new ForecastPoint(
                 new DateTimeOffset(2026, 7, 12, 13, 0, 0, TimeSpan.Zero).AddHours(i),
                 new Dictionary<ParameterDef, double?> { [temp] = 20.0 + i })));
-        actor.Tell(new PublishTelemetry(
-            [new ModelForecast(new WeatherModel("icon_d2"), "home", new CycleId(tick), tick, series, DailyForecastSeries.Empty)]));
+        var forecast = new ModelForecast(new WeatherModel("icon_d2"), "home", new CycleId(tick), tick, series, DailyForecastSeries.Empty);
+        var perHorizon = StatePayloadBuilder.BuildPerHorizon(forecast, parameters, options.Horizons.ToList(), options.ForecastDays);
+        foreach (var (horizon, json) in perHorizon)
+        {
+            var horizonTopic = TopicScheme.HorizonTopic(options.Mqtt.BaseTopic, forecast.Location, forecast.Model, horizon);
+            await mqttClient.SendAsync(horizonTopic, json, retain: true, ct);
+        }
 
         // Discovery: retained device configs with the component grid.
         var expectedHourlyComponents = parameters.Hourly.Count * options.Horizons.Count;
@@ -75,22 +80,18 @@ public sealed class MqttEgressIntegrationSpec
         Assert.Equal(expectedTotal, config["cmps"]!.AsObject().Count);
         Assert.True(retained.ContainsKey("homeassistant/device/njord_home_gfs_seamless/config"));
 
-        // Availability + telemetry: retained online and a retained state satisfying the templates.
         Assert.Equal("online", retained["njord/status"]);
-        var state = JsonNode.Parse(retained["njord/home/icon_d2/state"])!;
-        Assert.Equal(23.0, (double?)state["h3"]!["temperature"]);
+        var h3State = JsonNode.Parse(retained["njord/home/icon_d2/h3"])!;
+        Assert.Equal(23.0, (double?)h3State["temperature"]);
 
-        // Tombstone in flight: at most the live empty delete-publish is visible.
         if (retained.TryGetValue(staleTopic, out var stalePayload))
         {
             Assert.Equal(string.Empty, stalePayload);
         }
 
-        // Graceful shutdown announces offline (the Last Will covers the ungraceful path).
         await actor.GracefulStop(TimeSpan.FromSeconds(5));
         var afterStop = await CollectRetainedAsync(mqttOptions, ["njord/status", "homeassistant/device/+/config"], ct);
         Assert.Equal("offline", afterStop["njord/status"]);
-        // Authoritative tombstone check: a fresh subscriber sees no retained stale config.
         Assert.False(afterStop.ContainsKey(staleTopic), "stale retained config survived on the broker");
         Assert.True(afterStop.ContainsKey("homeassistant/device/njord_home_icon_d2/config"));
     }
@@ -107,7 +108,6 @@ public sealed class MqttEgressIntegrationSpec
         await client.DisconnectAsync(cancellationToken: ct);
     }
 
-    /// <summary>Fresh subscriber; returns every retained message seen within the settle window.</summary>
     private static async Task<IReadOnlyDictionary<string, string>> CollectRetainedAsync(
         MqttOptions options, string[] filters, CancellationToken ct)
     {
@@ -125,8 +125,6 @@ public sealed class MqttEgressIntegrationSpec
             await client.SubscribeAsync(filter, cancellationToken: ct);
         }
 
-        // Retained messages arrive immediately after SUBACK; the window also
-        // absorbs the actor's own connect/publish latency.
         await Task.Delay(TimeSpan.FromSeconds(3), ct);
         await client.DisconnectAsync(cancellationToken: ct);
         return seen;

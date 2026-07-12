@@ -44,7 +44,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("temperature", (string?)component["device_class"]);
         Assert.Equal("°C", (string?)component["unit_of_measurement"]);
         Assert.Equal(7200, (int?)component["expire_after"]);
-        Assert.Equal("{{ value_json.h24.temperature }}", (string?)component["value_template"]);
+        Assert.Equal("{{ value_json.temperature }}", (string?)component["value_template"]);
     }
 
     [Fact(Timeout = 5000)]
@@ -56,7 +56,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("sensor", (string?)component["p"]);
         Assert.Equal("njord_home_icon_d2_temperature_max_d0", (string?)component["unique_id"]);
         Assert.Equal("temperature", (string?)component["device_class"]);
-        Assert.Equal("{{ value_json.d0.temperature_max }}", (string?)component["value_template"]);
+        Assert.Equal("{{ value_json.temperature_max }}", (string?)component["value_template"]);
     }
 
     [Fact(Timeout = 5000)]
@@ -78,8 +78,8 @@ public sealed class DiscoveryPayloadBuilderSpec
 
         Assert.Equal("all", (string?)component["availability_mode"]);
         Assert.Equal("njord/status", (string?)availability[0]!["topic"]);
-        Assert.Equal("njord/home/icon_d2/state", (string?)availability[1]!["topic"]);
-        Assert.Contains("value_json.h3.cloud_cover is not none", (string?)availability[1]!["value_template"]);
+        Assert.Equal("njord/home/icon_d2/h3", (string?)availability[1]!["topic"]);
+        Assert.Contains("value_json.cloud_cover is not none", (string?)availability[1]!["value_template"]);
     }
 
     [Fact(Timeout = 5000)]

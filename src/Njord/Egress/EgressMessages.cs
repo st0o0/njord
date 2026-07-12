@@ -1,12 +1,12 @@
-using Njord.Domain;
+using Akka.Streams;
 
 namespace Njord.Egress;
 
-/// <summary>
-/// Telemetry hand-off from the pipeline to the egress: only domain forecasts
-/// cross the boundary (ingest and egress never meet).
-/// </summary>
-public sealed record PublishTelemetry(IReadOnlyList<ModelForecast> Forecasts);
+/// <summary>Request the egress actor's SinkRef for publishing MqttMessages.</summary>
+public sealed record RequestEgressSink;
+
+/// <summary>Response carrying the materialized SinkRef into the egress MergeHub.</summary>
+public sealed record EgressSinkResponse(ISinkRef<MqttMessage> SinkRef);
 
 /// <summary>Timing knobs, overridable in tests.</summary>
 public sealed record MqttEgressTuning(TimeSpan ReconnectDelay)

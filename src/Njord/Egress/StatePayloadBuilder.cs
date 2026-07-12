@@ -5,13 +5,13 @@ namespace Njord.Egress;
 
 public static class StatePayloadBuilder
 {
-    public static string Build(
+    public static Dictionary<string, string> BuildPerHorizon(
         ModelForecast forecast,
         ResolvedParameterSet parameters,
         IReadOnlyList<int> horizons,
         int forecastDays)
     {
-        var root = new JsonObject();
+        var result = new Dictionary<string, string>(horizons.Count + forecastDays);
 
         var pointsByValidAt = forecast.Hourly.Points.ToDictionary(p => p.ValidAt);
         foreach (var hours in horizons)
@@ -19,13 +19,13 @@ public static class StatePayloadBuilder
             var anchor = Anchor(forecast.Cycle.Timestamp, hours);
             pointsByValidAt.TryGetValue(anchor, out var point);
 
-            var entry = new JsonObject { ["valid_at"] = anchor.ToString("O") };
+            var entry = new JsonObject();
             foreach (var parameter in parameters.Hourly)
             {
                 entry[parameter.JsonKey] = point?.Get(parameter);
             }
 
-            root[$"h{hours}"] = entry;
+            result[$"h{hours}"] = entry.ToJsonString();
         }
 
         var dailyByDate = forecast.Daily.Points.ToDictionary(p => p.Date);
@@ -35,7 +35,7 @@ public static class StatePayloadBuilder
             var date = today.AddDays(d);
             dailyByDate.TryGetValue(date, out var dailyPoint);
 
-            var entry = new JsonObject { ["date"] = date.ToString("O") };
+            var entry = new JsonObject();
             foreach (var parameter in parameters.Daily)
             {
                 var value = dailyPoint?.Get(parameter);
@@ -47,10 +47,10 @@ public static class StatePayloadBuilder
                 };
             }
 
-            root[$"d{d}"] = entry;
+            result[$"d{d}"] = entry.ToJsonString();
         }
 
-        return root.ToJsonString();
+        return result;
     }
 
     public static DateTimeOffset Anchor(DateTimeOffset tick, int horizonHours)

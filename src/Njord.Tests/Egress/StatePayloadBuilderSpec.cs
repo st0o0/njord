@@ -37,63 +37,63 @@ public sealed class StatePayloadBuilderSpec
             ]));
 
     [Fact(Timeout = 5000)]
-    public void Horizons_anchor_to_the_next_full_grid_hour()
+    public void Returns_one_entry_per_configured_horizon()
+    {
+        var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
+        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 100), SmallParams, [3, 6, 24], 4);
+
+        Assert.Equal(7, result.Count);
+        Assert.True(result.ContainsKey("h3"));
+        Assert.True(result.ContainsKey("h6"));
+        Assert.True(result.ContainsKey("h24"));
+        Assert.True(result.ContainsKey("d0"));
+        Assert.True(result.ContainsKey("d1"));
+        Assert.True(result.ContainsKey("d2"));
+        Assert.True(result.ContainsKey("d3"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Hourly_payload_is_flat_json_with_parameter_values()
+    {
+        var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
+        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 100), SmallParams, [3], 1);
+        var h3 = JsonNode.Parse(result["h3"])!;
+
+        Assert.Equal(3.0, (double?)h3["temperature"]);
+        Assert.InRange((double)h3["wind_speed_10m"]!, 0.29, 0.31);
+        Assert.False(h3.AsObject().ContainsKey("h3"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Daily_payload_is_flat_json_with_parameter_values()
+    {
+        var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
+        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 10), SmallParams, [3], 1);
+        var d0 = JsonNode.Parse(result["d0"])!;
+
+        Assert.Equal(28.5, (double?)d0["temperature_max"]);
+        Assert.Equal("05:31", (string?)d0["sunrise"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Horizons_beyond_series_yield_null_values()
+    {
+        var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
+        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 10), SmallParams, [72], 1);
+        var h72 = JsonNode.Parse(result["h72"])!;
+
+        Assert.True(h72.AsObject().ContainsKey("temperature"));
+        Assert.Null(h72["temperature"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Anchor_bumps_to_next_full_hour_when_tick_is_mid_hour()
     {
         var tick = new DateTimeOffset(2026, 7, 12, 19, 31, 0, TimeSpan.Zero);
         var firstPoint = new DateTimeOffset(2026, 7, 12, 20, 0, 0, TimeSpan.Zero);
+        var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, firstPoint, 100), SmallParams, [3], 1);
+        var h3 = JsonNode.Parse(result["h3"])!;
 
-        var json = JsonNode.Parse(StatePayloadBuilder.Build(Forecast(tick, firstPoint, 100), SmallParams, [3, 24], 4))!;
-
-        Assert.Equal("2026-07-12T23:00:00.0000000+00:00", (string?)json["h3"]!["valid_at"]);
-        Assert.Equal(3.0, (double?)json["h3"]!["temperature"]);
-        Assert.Equal(24.0, (double?)json["h24"]!["temperature"]);
-    }
-
-    [Fact(Timeout = 5000)]
-    public void A_tick_on_the_full_hour_is_not_bumped()
-    {
-        var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
-
-        var json = JsonNode.Parse(StatePayloadBuilder.Build(Forecast(tick, tick, 100), SmallParams, [3], 4))!;
-
-        Assert.Equal("2026-07-12T15:00:00.0000000+00:00", (string?)json["h3"]!["valid_at"]);
-        Assert.Equal(3.0, (double?)json["h3"]!["temperature"]);
-    }
-
-    [Fact(Timeout = 5000)]
-    public void Horizons_beyond_the_series_yield_nulls_but_keep_the_anchor()
-    {
-        var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
-
-        var json = JsonNode.Parse(StatePayloadBuilder.Build(Forecast(tick, tick, 49), SmallParams, [24, 72], 4))!;
-
-        Assert.Equal(24.0, (double?)json["h24"]!["temperature"]);
-        Assert.Equal("2026-07-15T12:00:00.0000000+00:00", (string?)json["h72"]!["valid_at"]);
-        Assert.True(json["h72"]!.AsObject().ContainsKey("temperature"));
-        Assert.Null(json["h72"]!["temperature"]);
-    }
-
-    [Fact(Timeout = 5000)]
-    public void Every_active_hourly_parameter_key_is_present_per_horizon()
-    {
-        var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
-
-        var json = JsonNode.Parse(StatePayloadBuilder.Build(Forecast(tick, tick, 10), SmallParams, [3], 4))!;
-        var h3 = json["h3"]!.AsObject();
-
-        Assert.True(h3.ContainsKey("temperature"), "missing temperature");
-        Assert.True(h3.ContainsKey("wind_speed_10m"), "missing wind_speed_10m");
-    }
-
-    [Fact(Timeout = 5000)]
-    public void Daily_values_appear_with_day_offset_keys()
-    {
-        var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
-
-        var json = JsonNode.Parse(StatePayloadBuilder.Build(Forecast(tick, tick, 10), SmallParams, [3], 4))!;
-
-        Assert.NotNull(json["d0"]);
-        Assert.Equal(28.5, (double?)json["d0"]!["temperature_max"]);
-        Assert.Equal("05:31", (string?)json["d0"]!["sunrise"]);
+        Assert.Equal(3.0, (double?)h3["temperature"]);
     }
 }
