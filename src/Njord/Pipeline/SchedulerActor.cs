@@ -2,6 +2,7 @@ using Akka.Actor;
 using Akka.Hosting;
 using Akka.Persistence;
 using Akka.Streams;
+using Akka.Streams.Dsl;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
@@ -39,7 +40,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Recover<DataChanged>(OnRecover);
         Recover<SnapshotOffer>(_ => { });
 
-        Command<PipelineQueueResponse>(OnQueueReceived);
+        Command<PipelineSinkResponse>(OnSinkReceived);
         Command<ScheduledPoll>(OnScheduledPoll);
         Command<HashResult>(OnHashResult);
         Command<PipelineCommand.RefreshModel>(OnRefreshModel);
@@ -50,7 +51,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
     {
         var pipelineActor = _registry.Get<PipelineActor>();
         Context.Watch(pipelineActor);
-        pipelineActor.Tell(new RequestPipelineQueue());
+        pipelineActor.Tell(new RequestPipelineSink());
     }
 
     private void OnRecover(DataChanged evt)
@@ -60,10 +61,14 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
     }
 
-    private void OnQueueReceived(PipelineQueueResponse response)
+    private void OnSinkReceived(PipelineSinkResponse response)
     {
-        _queue = response.Queue;
-        _logger.LogInformation("Pipeline queue received — scheduling initial polls");
+        var mat = Context.Materializer();
+        _queue = Source.Queue<WeightedTarget>(32, OverflowStrategy.Backpressure)
+            .To(response.SinkRef.Sink)
+            .Run(mat);
+
+        _logger.LogInformation("Pipeline SinkRef received — scheduling initial polls");
         InitializeStates();
         BecomeReady();
         Stash.UnstashAll();
@@ -71,18 +76,19 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     private void BecomeReady()
     {
-        Command<PipelineQueueResponse>(_ => { });
+        Command<PipelineSinkResponse>(_ => { });
         Command<ScheduledPoll>(OnScheduledPoll);
         Command<HashResult>(OnHashResult);
         Command<PipelineCommand.RefreshModel>(OnRefreshModel);
         Command<PipelineCommand.RefreshLocation>(OnRefreshLocation);
         Command<Terminated>(_ =>
         {
-            _logger.LogWarning("PipelineActor terminated — waiting for new queue");
+            _logger.LogWarning("PipelineActor terminated — waiting for new SinkRef");
+            _queue?.Complete();
             _queue = null;
             var pipelineActor = _registry.Get<PipelineActor>();
             Context.Watch(pipelineActor);
-            pipelineActor.Tell(new RequestPipelineQueue());
+            pipelineActor.Tell(new RequestPipelineSink());
         });
     }
 

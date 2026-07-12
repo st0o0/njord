@@ -23,7 +23,6 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
     private ActorSystem _system = null!;
     private IMaterializer _mat = null!;
-    private ISourceQueueWithComplete<WeightedTarget> _queue = null!;
     private IActorRef _scheduler = null!;
     private readonly List<WeightedTarget> _offered = [];
 
@@ -38,15 +37,11 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
     {
         _system = ActorSystem.Create("scheduler-spec-" + Guid.NewGuid().ToString("N")[..8], InMemoryPersistence);
         _mat = _system.Materializer();
-        _queue = Source.Queue<WeightedTarget>(64, OverflowStrategy.Backpressure)
-            .To(Sink.ForEach<WeightedTarget>(t => _offered.Add(t)))
-            .Run(_mat);
         return ValueTask.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
     {
-        _queue.Complete();
         await _system.Terminate();
     }
 
@@ -56,8 +51,9 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
         var registry = new ActorRegistry();
 
-        var fakePropsActor = _system.ActorOf(Props.Create(() => new FakePipelineActor(_queue)));
-        registry.Register<PipelineActor>(fakePropsActor);
+        var fakePipelineActor = _system.ActorOf(
+            Props.Create(() => new FakePipelineActor(_offered, _mat)));
+        registry.Register<PipelineActor>(fakePipelineActor);
 
         var props = Props.Create(() => new TestableSchedulerActor(
             opts, _time, parameters, registry, persistenceId ?? $"scheduler-{Guid.NewGuid():N}"));
@@ -66,7 +62,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Scheduler_offers_target_after_receiving_queue()
+    public async Task Scheduler_offers_target_after_receiving_sink_ref()
     {
         _scheduler = CreateScheduler();
 
@@ -141,10 +137,23 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
 
     private sealed class FakePipelineActor : ReceiveActor
     {
-        public FakePipelineActor(ISourceQueueWithComplete<WeightedTarget> queue)
+        public FakePipelineActor(List<WeightedTarget> offered, IMaterializer mat)
         {
-            Receive<RequestPipelineQueue>(_ =>
-                Sender.Tell(new PipelineQueueResponse(queue)));
+            Receive<RequestPipelineSink>(_ =>
+            {
+                var (hubSink, hubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 8)
+                    .PreMaterialize(mat);
+
+                hubSource
+                    .RunWith(Sink.ForEach<WeightedTarget>(t => offered.Add(t)), mat);
+
+                var sinkRef = StreamRefs.SinkRef<WeightedTarget>()
+                    .To(hubSink)
+                    .Run(mat)
+                    .Result;
+
+                Sender.Tell(new PipelineSinkResponse(sinkRef));
+            });
         }
     }
 
@@ -175,7 +184,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
             Recover<SchedulerActor.DataChanged>(OnRecover);
             Recover<SnapshotOffer>(_ => { });
 
-            Command<PipelineQueueResponse>(OnQueueReceived);
+            Command<PipelineSinkResponse>(OnSinkReceived);
             Command<ScheduledPoll>(OnScheduledPoll);
             Command<HashResult>(OnHashResult);
             Command<PipelineCommand.RefreshModel>(OnRefreshModel);
@@ -185,7 +194,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         protected override void PreStart()
         {
             var pipelineActor = _registry.Get<PipelineActor>();
-            pipelineActor.Tell(new RequestPipelineQueue());
+            pipelineActor.Tell(new RequestPipelineSink());
         }
 
         private void OnRecover(SchedulerActor.DataChanged evt)
@@ -195,9 +204,13 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
             _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
         }
 
-        private void OnQueueReceived(PipelineQueueResponse response)
+        private void OnSinkReceived(PipelineSinkResponse response)
         {
-            _queue = response.Queue;
+            var mat = Context.Materializer();
+            _queue = Source.Queue<WeightedTarget>(32, OverflowStrategy.Backpressure)
+                .To(response.SinkRef.Sink)
+                .Run(mat);
+
             var now = _timeProvider.GetUtcNow();
             foreach (var location in _options.Locations)
                 foreach (var modelId in _options.Models)

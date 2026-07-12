@@ -2,12 +2,16 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json.Nodes;
 using Akka.Actor;
+using Akka.Hosting;
+using Akka.Streams;
 using DotNet.Testcontainers.Builders;
 using Microsoft.Extensions.Logging.Abstractions;
 using MQTTnet;
 using Njord.Configuration;
 using Njord.Domain;
 using Njord.Egress;
+using Njord.Ingest;
+using Njord.Pipeline;
 
 namespace Njord.Tests.Egress;
 
@@ -48,13 +52,17 @@ public sealed class MqttEgressIntegrationSpec
         using var system = ActorSystem.Create("egress-integration");
         await using var mqttClient = new MqttNetPublisher(mqttOptions, NullLogger<MqttNetPublisher>.Instance);
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        var registry = new ActorRegistry();
+        var fakePipeline = system.ActorOf(Props.Create(() => new FakePipelineSource(system.Materializer())));
+        registry.Register<PipelineActor>(fakePipeline);
         var actor = system.ActorOf(Props.Create(() => new MqttEgressActor(
             Microsoft.Extensions.Options.Options.Create(options),
             mqttClient,
             mqttClient,
             NullLogger<MqttEgressActor>.Instance,
             MqttEgressTuning.Default,
-            parameters)));
+            parameters,
+            registry)));
 
         // Simulate a state publish via the transport (as the pipeline would through StreamRef)
         var tick = new DateTimeOffset(2026, 7, 12, 12, 30, 0, TimeSpan.Zero);
@@ -128,5 +136,19 @@ public sealed class MqttEgressIntegrationSpec
         await Task.Delay(TimeSpan.FromSeconds(3), ct);
         await client.DisconnectAsync(cancellationToken: ct);
         return seen;
+    }
+
+    private sealed class FakePipelineSource : ReceiveActor
+    {
+        public FakePipelineSource(Akka.Streams.IMaterializer mat)
+        {
+            Receive<RequestPipelineSource>(_ =>
+            {
+                var sourceRef = Akka.Streams.Dsl.Source.Empty<FetchOutcome.Success>()
+                    .RunWith(Akka.Streams.Dsl.StreamRefs.SourceRef<FetchOutcome.Success>(), mat)
+                    .Result;
+                Sender.Tell(new PipelineSourceResponse(sourceRef));
+            });
+        }
     }
 }

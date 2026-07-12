@@ -28,16 +28,7 @@ public sealed record ModelPollState(
             ? now + cycle.Value + TimeSpan.FromMinutes(1)
             : now + discoveryInterval;
 
-        return this with
-        {
-            LastHash = hash,
-            PrevChangeUtc = prevChange,
-            LastChangeUtc = now,
-            MissCount = 0,
-            Phase = phase,
-            Cycle = cycle ?? Cycle,
-            NextPollUtc = nextPoll,
-        };
+        return new ModelPollState(LastHash: hash, PrevChangeUtc: prevChange, LastChangeUtc: now, MissCount: 0, Phase: phase, Cycle: cycle ?? Cycle, NextPollUtc: nextPoll);
     }
 
     public ModelPollState WithMiss(DateTimeOffset now, TimeSpan discoveryInterval)

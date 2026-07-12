@@ -1,12 +1,15 @@
 using System.Reflection;
 using Akka;
 using Akka.Actor;
+using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain;
+using Njord.Ingest;
+using Njord.Pipeline;
 
 namespace Njord.Egress;
 
@@ -22,6 +25,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
     private readonly ILogger<MqttEgressActor> _logger;
     private readonly MqttEgressTuning _tuning;
     private readonly ResolvedParameterSet _parameters;
+    private readonly ActorRegistry _registry;
     private readonly IReadOnlyList<int> _horizons;
     private readonly string _availabilityTopic;
     private readonly string _haStatusTopic;
@@ -32,7 +36,8 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
     private ISourceQueueWithComplete<MqttMessage>? _discoveryQueue;
     private ISourceQueueWithComplete<MqttMessage>? _availabilityQueue;
     private ISourceQueueWithComplete<MqttMessage>? _tombstoneQueue;
-    private ISinkRef<MqttMessage>? _sinkRef;
+    private Sink<MqttMessage, NotUsed>? _mergeHubSink;
+    private IMaterializer? _mat;
 
     public IStash Stash { get; set; } = null!;
 
@@ -41,7 +46,6 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
     private sealed record Disconnected;
     private sealed record Reconnect;
     private sealed record Inbound(string Topic, string Payload);
-    private sealed record SinkRefMaterialized(ISinkRef<MqttMessage> Ref);
 
     public MqttEgressActor(
         IOptions<NjordOptions> options,
@@ -49,7 +53,8 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         IMqttTransport transport,
         ILogger<MqttEgressActor> logger,
         MqttEgressTuning tuning,
-        ResolvedParameterSet parameters)
+        ResolvedParameterSet parameters,
+        ActorRegistry registry)
     {
         _options = options.Value;
         _connection = connection;
@@ -57,6 +62,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         _logger = logger;
         _tuning = tuning;
         _parameters = parameters;
+        _registry = registry;
         _horizons = [.. _options.Horizons];
         _availabilityTopic = TopicScheme.AvailabilityTopic(_options.Mqtt.BaseTopic);
         _haStatusTopic = $"{_options.Mqtt.DiscoveryPrefix}/status";
@@ -70,24 +76,35 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
                    TopicScheme.DeviceId(location.Name, new WeatherModel(modelId))),
         ];
 
-        Initializing();
+        WaitingForSourceRef();
     }
 
-    private void Initializing()
+    protected override void PreStart()
     {
-        Receive<SinkRefMaterialized>(msg =>
+        _mat = Context.Materializer();
+        MaterializeEgressGraph(_mat);
+
+        var pipelineActor = _registry.Get<PipelineActor>();
+        Context.Watch(pipelineActor);
+        pipelineActor.Tell(new RequestPipelineSource());
+    }
+
+    private void WaitingForSourceRef()
+    {
+        Receive<PipelineSourceResponse>(response =>
         {
-            _sinkRef = msg.Ref;
+            MaterializeConsumerGraph(response.SourceRef);
+            _logger.LogInformation("Pipeline SourceRef received — egress consumer connected");
             Become(Ready);
             Stash.UnstashAll();
             Connect();
         });
+        Receive<Terminated>(_ => RequestNewSourceRef());
         ReceiveAny(_ => Stash.Stash());
     }
 
     private void Ready()
     {
-        Receive<RequestEgressSink>(_ => Sender.Tell(new EgressSinkResponse(_sinkRef!)));
         ReceiveAsync<Connected>(OnConnectedAsync);
         Receive<ConnectFailed>(msg =>
         {
@@ -101,12 +118,11 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         });
         Receive<Reconnect>(_ => Connect());
         ReceiveAsync<Inbound>(OnInboundAsync);
-    }
-
-    protected override void PreStart()
-    {
-        var mat = Context.Materializer();
-        MaterializeEgressGraph(mat);
+        Receive<Terminated>(_ =>
+        {
+            _logger.LogWarning("PipelineActor terminated — waiting for new SourceRef");
+            RequestNewSourceRef();
+        });
     }
 
     protected override void PostStop()
@@ -133,13 +149,12 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         var (hubSink, hubSource) = MergeHub.Source<MqttMessage>(perProducerBufferSize: 8)
             .PreMaterialize(mat);
 
-        // Connect internal sources to the hub
+        _mergeHubSink = hubSink;
+
         discSource.RunWith(hubSink, mat);
         availSource.RunWith(hubSink, mat);
         tombSource.RunWith(hubSink, mat);
 
-        // The publish sink
-        var self = Self;
         hubSource
             .SelectAsync(1, async msg =>
             {
@@ -149,18 +164,47 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
             .RunWith(Sink.Ignore<NotUsed>(), mat);
+    }
 
-        // Materialize SinkRef for external producers
-        var sinkRefTask = StreamRefs.SinkRef<MqttMessage>()
-            .To(hubSink)
-            .Run(mat);
+    private void MaterializeConsumerGraph(ISourceRef<FetchOutcome.Success> sourceRef)
+    {
+        var mat = _mat!;
+        var baseTopic = _options.Mqtt.BaseTopic;
+        var horizons = _horizons;
+        var forecastDays = _options.ForecastDays;
+        var parameters = _parameters;
+        var lastPublished = new Dictionary<(string, string, string), string>();
 
-        sinkRefTask.ContinueWith(t =>
-        {
-            if (t.IsCompletedSuccessfully)
-                return (object)new SinkRefMaterialized(t.Result);
-            throw t.Exception?.GetBaseException() ?? new InvalidOperationException("SinkRef materialization failed");
-        }).PipeTo(self);
+        sourceRef.Source
+            .SelectMany(success =>
+            {
+                var forecast = success.Forecast;
+                var perHorizon = StatePayloadBuilder.BuildPerHorizon(forecast, parameters, horizons, forecastDays);
+                var messages = new List<MqttMessage>();
+
+                foreach (var (horizon, payload) in perHorizon)
+                {
+                    var key = (forecast.Location, forecast.Model.Id, horizon);
+                    if (lastPublished.TryGetValue(key, out var cached) && cached == payload)
+                        continue;
+
+                    lastPublished[key] = payload;
+                    var topic = TopicScheme.HorizonTopic(baseTopic, forecast.Location, forecast.Model, horizon);
+                    messages.Add(new MqttMessage(topic, payload, true));
+                }
+
+                return messages;
+            })
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
+                _ => Akka.Streams.Supervision.Directive.Resume))
+            .RunWith(_mergeHubSink!, mat);
+    }
+
+    private void RequestNewSourceRef()
+    {
+        var pipelineActor = _registry.Get<PipelineActor>();
+        Context.Watch(pipelineActor);
+        pipelineActor.Tell(new RequestPipelineSource());
     }
 
     private void Connect()
@@ -241,5 +285,4 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
             }
         }
     }
-
 }
