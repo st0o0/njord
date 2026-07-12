@@ -34,18 +34,18 @@ public sealed class OpenMeteoClient(
             }
 
             var dto = await response.Content.ReadFromJsonAsync(OpenMeteoJsonContext.Default.OpenMeteoForecastResponse, cancellationToken);
-            if (dto?.Hourly is null or { ValueKind: JsonValueKind.Undefined })
+            if (dto?.Hourly is null || dto.Hourly.Time.Count == 0)
                 return Failure(FetchFailureReason.MalformedPayload, "Response contained no hourly data");
 
             if (UnitMismatch(dto.HourlyUnits) is { } mismatch)
                 return Failure(FetchFailureReason.MalformedPayload, mismatch);
 
-            var hourlyResult = MapHourly(dto.Hourly.Value);
+            var hourlyResult = MapHourly(dto.Hourly);
             if (hourlyResult is null)
                 return Failure(FetchFailureReason.MalformedPayload, "Response carried hourly timestamps but no values");
 
-            var daily = dto.Daily is { ValueKind: not JsonValueKind.Undefined }
-                ? MapDaily(dto.Daily.Value)
+            var daily = dto.Daily is { Time.Count: > 0 }
+                ? MapDaily(dto.Daily)
                 : DailyForecastSeries.Empty;
 
             return new FetchOutcome.Success(new ModelForecast(
@@ -83,34 +83,16 @@ public sealed class OpenMeteoClient(
         return uri;
     }
 
-    private ForecastSeries? MapHourly(JsonElement hourly)
+    private ForecastSeries? MapHourly(OpenMeteoTimeSeries series)
     {
-        if (!hourly.TryGetProperty("time", out var timeElement))
-            return null;
+        var times = series.Time;
+        var paramArrays = new Dictionary<ParameterDef, IReadOnlyList<double?>>(parameters.Hourly.Count);
 
-        var times = new List<long>();
-        foreach (var t in timeElement.EnumerateArray())
-            times.Add(t.GetInt64());
-
-        if (times.Count == 0)
-            return null;
-
-        var paramArrays = new Dictionary<ParameterDef, List<double?>>();
         foreach (var param in parameters.Hourly)
         {
-            var values = new List<double?>(times.Count);
-            if (hourly.TryGetProperty(param.ApiName, out var arr))
-            {
-                foreach (var v in arr.EnumerateArray())
-                    values.Add(v.ValueKind == JsonValueKind.Null ? null : v.GetDouble());
-            }
-            else
-            {
-                for (var i = 0; i < times.Count; i++)
-                    values.Add(null);
-            }
-
-            paramArrays[param] = values;
+            paramArrays[param] = series.Variables.TryGetValue(param.ApiName, out var element)
+                ? ParseNumberArray(element, times.Count)
+                : NullArray(times.Count);
         }
 
         var points = new List<ForecastPoint>(times.Count);
@@ -124,102 +106,96 @@ public sealed class OpenMeteoClient(
         }
 
         var lastValued = points.FindLastIndex(p => p.HasAnyValue);
-        if (lastValued < 0)
-            return null;
-
-        return new ForecastSeries(points.Take(lastValued + 1));
+        return lastValued < 0 ? null : new ForecastSeries(points.Take(lastValued + 1));
     }
 
-    private DailyForecastSeries MapDaily(JsonElement daily)
+    private DailyForecastSeries MapDaily(OpenMeteoTimeSeries series)
     {
-        if (!daily.TryGetProperty("time", out var timeElement))
-            return DailyForecastSeries.Empty;
+        var times = series.Time;
+        var paramArrays = new Dictionary<ParameterDef, IReadOnlyList<object?>>(parameters.Daily.Count);
 
-        var dates = new List<DateOnly>();
-        foreach (var t in timeElement.EnumerateArray())
-        {
-            var dateStr = t.GetString();
-            if (dateStr is not null && DateOnly.TryParse(dateStr, CultureInfo.InvariantCulture, out var date))
-                dates.Add(date);
-        }
-
-        if (dates.Count == 0)
-            return DailyForecastSeries.Empty;
-
-        var paramArrays = new Dictionary<ParameterDef, List<object?>>();
         foreach (var param in parameters.Daily)
         {
-            var values = new List<object?>(dates.Count);
-            if (daily.TryGetProperty(param.ApiName, out var arr))
-            {
-                foreach (var v in arr.EnumerateArray())
-                {
-                    values.Add(v.ValueKind switch
-                    {
-                        JsonValueKind.Null => null,
-                        JsonValueKind.Number => v.GetDouble(),
-                        JsonValueKind.String => v.GetString(),
-                        _ => null,
-                    });
-                }
-            }
-            else
-            {
-                for (var i = 0; i < dates.Count; i++)
-                    values.Add(null);
-            }
-
-            paramArrays[param] = values;
+            paramArrays[param] = series.Variables.TryGetValue(param.ApiName, out var element)
+                ? ParseMixedArray(element, times.Count)
+                : NullObjectArray(times.Count);
         }
 
-        var points = new List<DailyForecastPoint>(dates.Count);
-        for (var i = 0; i < dates.Count; i++)
+        var points = new List<DailyForecastPoint>(times.Count);
+        for (var i = 0; i < times.Count; i++)
         {
+            var date = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(times[i]).UtcDateTime);
             var dict = new Dictionary<ParameterDef, object?>(parameters.Daily.Count);
             foreach (var param in parameters.Daily)
-            {
-                if (i < paramArrays[param].Count)
-                    dict[param] = paramArrays[param][i];
-                else
-                    dict[param] = null;
-            }
+                dict[param] = i < paramArrays[param].Count ? paramArrays[param][i] : null;
 
-            points.Add(new DailyForecastPoint(dates[i], dict));
+            points.Add(new DailyForecastPoint(date, dict));
         }
 
         return new DailyForecastSeries(points);
     }
 
-    private string? UnitMismatch(JsonElement? units)
+    private string? UnitMismatch(Dictionary<string, string>? units)
     {
-        if (units is null or { ValueKind: JsonValueKind.Undefined })
+        if (units is null || units.Count == 0)
             return "Response carried no hourly_units";
 
-        var unitsObj = units.Value;
-
-        if (TryGetString(unitsObj, "time") is { } timeUnit && timeUnit != "unixtime")
+        if (units.TryGetValue("time", out var timeUnit) && timeUnit != "unixtime")
             return $"Unexpected unit '{timeUnit}' for time (expected 'unixtime')";
 
         foreach (var param in parameters.Hourly)
         {
-            var expected = param.ApiName switch
+            var expected = param switch
             {
-                _ when param.Unit == "°C" && param.DeviceClass == "temperature" => "°C",
-                _ when param.Unit == "m/s" && param.DeviceClass == "wind_speed" => "m/s",
-                _ when param.Unit == "hPa" && param.DeviceClass == "atmospheric_pressure" => "hPa",
+                { Unit: "°C", DeviceClass: "temperature" } => "°C",
+                { Unit: "m/s", DeviceClass: "wind_speed" } => "m/s",
+                { Unit: "hPa", DeviceClass: "atmospheric_pressure" } => "hPa",
                 _ => null,
             };
 
             if (expected is null) continue;
-            if (TryGetString(unitsObj, param.ApiName) is { } actual && actual != expected)
+            if (units.TryGetValue(param.ApiName, out var actual) && actual != expected)
                 return $"Unexpected unit '{actual}' for {param.ApiName} (expected '{expected}')";
         }
 
         return null;
     }
 
-    private static string? TryGetString(JsonElement obj, string property)
-        => obj.TryGetProperty(property, out var el) && el.ValueKind == JsonValueKind.String ? el.GetString() : null;
+    private static IReadOnlyList<double?> ParseNumberArray(JsonElement element, int expectedLength)
+    {
+        var result = new List<double?>(expectedLength);
+        foreach (var item in element.EnumerateArray())
+            result.Add(item.ValueKind == JsonValueKind.Null ? null : item.GetDouble());
+        return result;
+    }
+
+    private static IReadOnlyList<object?> ParseMixedArray(JsonElement element, int expectedLength)
+    {
+        var result = new List<object?>(expectedLength);
+        foreach (var item in element.EnumerateArray())
+        {
+            result.Add(item.ValueKind switch
+            {
+                JsonValueKind.Null => null,
+                JsonValueKind.Number => item.GetDouble(),
+                JsonValueKind.String => item.GetString(),
+                _ => null,
+            });
+        }
+        return result;
+    }
+
+    private static IReadOnlyList<double?> NullArray(int count)
+    {
+        var result = new double?[count];
+        return result;
+    }
+
+    private static IReadOnlyList<object?> NullObjectArray(int count)
+    {
+        var result = new object?[count];
+        return result;
+    }
 
     private static async Task<string> ReadErrorReasonAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
