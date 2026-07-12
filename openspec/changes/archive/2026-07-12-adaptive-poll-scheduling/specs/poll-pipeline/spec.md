@@ -1,13 +1,7 @@
-# poll-pipeline Specification
+## MODIFIED Requirements
 
-## Purpose
-
-Polling pipeline that receives individual fetch targets from the SchedulerActor via Source.Queue, throttles to the request budget, publishes each outcome directly to MQTT, computes data hashes for schedule feedback, and logs per-outcome structured summaries.
-
-## Requirements
-
-### Requirement: Targets arrive via Source.Queue from the SchedulerActor
-The pipeline SHALL receive individual `WeightedTarget` elements via a `Source.Queue` fed by the SchedulerActor. There is no tick source — all poll timing is owned by the SchedulerActor.
+### Requirement: Cycles are scheduled at the configured interval
+The pipeline SHALL no longer emit `PollAll` commands on a tick. Instead, the pipeline SHALL receive individual `WeightedTarget` elements via a `Source.Queue` fed by the SchedulerActor. The tick source is removed entirely — all poll timing is owned by the SchedulerActor.
 
 #### Scenario: Targets arrive from the SchedulerActor
 - **WHEN** the SchedulerActor's timer fires for (lucerne, icon_d2)
@@ -16,13 +10,6 @@ The pipeline SHALL receive individual `WeightedTarget` elements via a `Source.Qu
 #### Scenario: No tick source exists
 - **WHEN** the pipeline is materialized
 - **THEN** no `Source.Tick` or `RestartSource.WithBackoff` is attached
-
-### Requirement: Outbound requests respect the per-minute budget
-The pipeline SHALL throttle outbound fetch requests using a weighted throttle set to 80% of the resolved per-minute budget. Each request's cost is its pre-calculated API weight.
-
-#### Scenario: Burst is shaped by weight
-- **WHEN** 24 weight-1 targets enter the throttle and the budget ceiling is 480/min
-- **THEN** all 24 pass through the throttle without delay (well within budget)
 
 ### Requirement: Fetch outcomes feed the MQTT egress directly
 The pipeline SHALL publish each successful `FetchOutcome` as device state payloads to MQTT immediately upon completion. After publishing, the pipeline SHALL compute a data hash over the forecast values and send it to the SchedulerActor via the built-in Ask flow for schedule feedback. Egress unavailability (broker down) MUST NOT fail or stall the fetch pipeline.
@@ -38,3 +25,9 @@ The pipeline SHALL publish each successful `FetchOutcome` as device state payloa
 #### Scenario: Broker outage does not stall fetching
 - **WHEN** the MQTT broker is unreachable
 - **THEN** the pipeline continues fetching; publishes are retried or dropped per the egress policy
+
+## REMOVED Requirements
+
+### Requirement: The pipeline restarts with backoff
+**Reason**: The tick source wrapped in `RestartSource.WithBackoff` is removed. Fetch-level supervision remains unchanged (stream supervision decider handles transient failures). Source-level restarts are no longer needed because there is no tick source — the SchedulerActor provides targets via the queue.
+**Migration**: Remove `RestartSource.WithBackoff` and `TickSource.cs`. Stream supervision for fetch failures continues to operate as before.
