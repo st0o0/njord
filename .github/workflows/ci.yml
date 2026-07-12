@@ -62,6 +62,18 @@ jobs:
           cache-to: type=gha,mode=max
       - name: Smoke test
         run: |
-          out="$(docker run --rm njord:ci)"
-          test "$out" = "njord"
-          echo "smoke ok: $out"
+          docker run -d --name njord-smoke \
+            -e Njord__Mqtt__Host=localhost \
+            -p 8080:8080 \
+            njord:ci
+          for i in $(seq 1 10); do
+            if curl -sf http://localhost:8080/healthz; then
+              echo ""
+              echo "smoke ok: /healthz responded Healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "smoke FAILED: /healthz did not respond within 10s"
+          docker logs njord-smoke
+          exit 1

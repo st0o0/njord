@@ -60,7 +60,7 @@ jobs:
           # The provenance attestation makes this an image index too, so GHCR
           # needs the description as an index annotation (see release.yml).
           annotations: |
-            index:org.opencontainers.image.description=Dev build of njord — unsigned amd64 image from a pull request, not a release
+            index:org.opencontainers.image.description=Dev build of njord (Open-Meteo weather API to MQTT bridge for Home Assistant) — unsigned amd64 image from a pull request, not a release
             index:org.opencontainers.image.source=https://github.com/st0o0/njord
           cache-from: type=gha
           cache-to: type=gha,mode=max
