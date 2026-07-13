@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using Njord.Configuration;
 using Njord.Domain;
@@ -26,22 +25,28 @@ public sealed class OpenMeteoClient(
             {
                 return response.StatusCode switch
                 {
-                    HttpStatusCode.TooManyRequests => new FetchOutcome.Failure(FetchFailureReason.RateLimited, "HTTP 429 from the forecast endpoint"),
-                    HttpStatusCode.BadRequest => new FetchOutcome.Failure(FetchFailureReason.ModelUnavailable, await ReadErrorReasonAsync(response, cancellationToken)),
-                    _ => new FetchOutcome.Failure(FetchFailureReason.Transport, $"HTTP {(int)response.StatusCode} from the forecast endpoint"),
+                    HttpStatusCode.TooManyRequests => new FetchOutcome.Failure(location.Name, model, FetchFailureReason.RateLimited, "HTTP 429 from the forecast endpoint"),
+                    HttpStatusCode.BadRequest => new FetchOutcome.Failure(location.Name, model, FetchFailureReason.ModelUnavailable, await ReadErrorReasonAsync(response, cancellationToken)),
+                    _ => new FetchOutcome.Failure(location.Name, model, FetchFailureReason.Transport, $"HTTP {(int)response.StatusCode} from the forecast endpoint"),
                 };
             }
 
             var dto = await response.Content.ReadFromJsonAsync(OpenMeteoJsonContext.Default.OpenMeteoForecastResponse, cancellationToken);
             if (dto?.Hourly is null || dto.Hourly.Time.Count == 0)
-                return new FetchOutcome.Failure(FetchFailureReason.MalformedPayload, "Response contained no hourly data");
+            {
+                return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, "Response contained no hourly data");
+            }
 
             if (UnitMismatch(dto.HourlyUnits) is { } mismatch)
-                return new FetchOutcome.Failure(FetchFailureReason.MalformedPayload, mismatch);
+            {
+                return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, mismatch);
+            }
 
             var hourlyResult = MapHourly(dto.Hourly);
             if (hourlyResult is null)
-                return new FetchOutcome.Failure(FetchFailureReason.MalformedPayload, "Response carried hourly timestamps but no values");
+            {
+                return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, "Response carried hourly timestamps but no values");
+            }
 
             var daily = dto.Daily is { Time.Count: > 0 }
                 ? MapDaily(dto.Daily)
@@ -53,15 +58,15 @@ public sealed class OpenMeteoClient(
         }
         catch (HttpRequestException ex)
         {
-            return new FetchOutcome.Failure(FetchFailureReason.Transport, ex.Message);
+            return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.Transport, ex.Message);
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            return new FetchOutcome.Failure(FetchFailureReason.Transport, "Request timed out");
+            return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.Transport, "Request timed out");
         }
         catch (JsonException)
         {
-            return new FetchOutcome.Failure(FetchFailureReason.MalformedPayload, "Response JSON did not match the expected schema");
+            return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, "Response JSON did not match the expected schema");
         }
     }
 
@@ -74,7 +79,9 @@ public sealed class OpenMeteoClient(
             $"&wind_speed_unit=ms&timeformat=unixtime&forecast_days=4");
 
         if (_dailyVariables.Length > 0)
+        {
             uri += $"&daily={_dailyVariables}";
+        }
 
         return uri;
     }
@@ -134,10 +141,14 @@ public sealed class OpenMeteoClient(
     private string? UnitMismatch(Dictionary<string, string>? units)
     {
         if (units is null || units.Count == 0)
+        {
             return "Response carried no hourly_units";
+        }
 
         if (units.TryGetValue("time", out var timeUnit) && timeUnit != "unixtime")
+        {
             return $"Unexpected unit '{timeUnit}' for time (expected 'unixtime')";
+        }
 
         foreach (var param in parameters.Hourly)
         {
@@ -149,9 +160,15 @@ public sealed class OpenMeteoClient(
                 _ => null,
             };
 
-            if (expected is null) continue;
+            if (expected is null)
+            {
+                continue;
+            }
+
             if (units.TryGetValue(param.ApiName, out var actual) && actual != expected)
+            {
                 return $"Unexpected unit '{actual}' for {param.ApiName} (expected '{expected}')";
+            }
         }
 
         return null;

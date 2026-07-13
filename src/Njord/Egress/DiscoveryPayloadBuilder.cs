@@ -112,7 +112,9 @@ public static class DiscoveryPayloadBuilder
         };
 
         if (parameter.DeviceClass is { } deviceClass)
+        {
             component["device_class"] = deviceClass;
+        }
 
         return component;
     }

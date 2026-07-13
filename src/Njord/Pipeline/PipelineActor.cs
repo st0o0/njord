@@ -2,7 +2,6 @@ using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain;
@@ -13,31 +12,28 @@ namespace Njord.Pipeline;
 public sealed class PipelineActor : ReceiveActor, IWithStash
 {
     private readonly NjordOptions _options;
-    private readonly ResolvedParameterSet _parameters;
     private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<PipelineActor> _logger;
     private readonly ActorRegistry _registry;
 
     private ISinkRef<WeightedTarget>? _sinkRef;
-    private ISourceRef<FetchOutcome.Success>? _sourceRef;
+    private ISourceRef<FetchOutcome>? _sourceRef;
 
     public IStash Stash { get; set; } = null!;
 
     private sealed record StreamRefsMaterialized(
         ISinkRef<WeightedTarget> SinkRef,
-        ISourceRef<FetchOutcome.Success> SourceRef);
+        ISourceRef<FetchOutcome> SourceRef);
 
     public PipelineActor(
         IOptions<NjordOptions> options,
-        ResolvedParameterSet parameters,
         IOpenMeteoClient client,
         TimeProvider timeProvider,
         ILogger<PipelineActor> logger,
         ActorRegistry registry)
     {
         _options = options.Value;
-        _parameters = parameters;
         _client = client;
         _timeProvider = timeProvider;
         _logger = logger;
@@ -69,12 +65,16 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         Receive<RequestPipelineSink>(_ =>
         {
             if (_sinkRef is not null)
+            {
                 Sender.Tell(new PipelineSinkResponse(_sinkRef));
+            }
         });
         Receive<RequestPipelineSource>(_ =>
         {
             if (_sourceRef is not null)
+            {
                 Sender.Tell(new PipelineSourceResponse(_sourceRef));
+            }
         });
     }
 
@@ -88,7 +88,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         var (mergeHubSink, mergeHubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 16)
             .PreMaterialize(mat);
 
-        var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<FetchOutcome.Success>(bufferSize: 256)
+        var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<FetchOutcome>(bufferSize: 256)
             .PreMaterialize(mat);
 
         mergeHubSource
@@ -96,20 +96,18 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                 element => element.Weight, ThrottleMode.Shaping)
             .SelectAsyncUnordered(8, async target =>
                 await _client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None))
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
-            .Collect(outcome => outcome is FetchOutcome.Success s ? s : null!)
-            .Where(s => s is not null)
-            .RunWith(broadcastHubSink, mat);
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(_ => Akka.Streams.Supervision.Directive.Resume))
+            .To(broadcastHubSink)
+            .Run(mat);
 
         broadcastHubSource
+            .Collect(outcome => outcome is FetchOutcome.Success, outcome => (FetchOutcome.Success)outcome)
             .Select(success => new HashResult(
                 success.Forecast.Location,
                 success.Forecast.Model.Id,
                 ForecastDataHash.Compute(success.Forecast, _timeProvider)))
             .Ask<Ack>(schedulerActor, TimeSpan.FromSeconds(5))
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(_ => Akka.Streams.Supervision.Directive.Resume))
             .To(Sink.Ignore<Ack>())
             .Run(mat);
 
@@ -119,7 +117,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
             .Run(mat);
 
         var sourceRefTask = broadcastHubSource
-            .RunWith(StreamRefs.SourceRef<FetchOutcome.Success>(), mat);
+            .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat);
 
         Task.WhenAll(sinkRefTask, sourceRefTask)
             .ContinueWith(_ => new StreamRefsMaterialized(sinkRefTask.Result, sourceRefTask.Result))

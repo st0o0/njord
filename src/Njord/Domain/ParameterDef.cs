@@ -11,7 +11,6 @@ public sealed record ParameterDef(
     string Unit,
     string? DeviceClass,
     string JsonKey,
-    string FriendlyName,
     ParameterGroup Group,
     ParameterGranularity Granularity,
     ParameterValueType ValueType = ParameterValueType.Numeric)

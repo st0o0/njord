@@ -3,10 +3,10 @@ using Akka.Hosting;
 using Akka.Persistence;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain;
+using Njord.Ingest;
 
 namespace Njord.Pipeline;
 
@@ -41,17 +41,20 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Recover<SnapshotOffer>(_ => { });
 
         Command<PipelineSinkResponse>(OnSinkReceived);
+        Command<PipelineSourceResponse>(OnSourceReceived);
         Command<ScheduledPoll>(OnScheduledPoll);
         Command<HashResult>(OnHashResult);
-        Command<PipelineCommand.RefreshModel>(OnRefreshModel);
-        Command<PipelineCommand.RefreshLocation>(OnRefreshLocation);
+        Command<FetchFailed>(OnFetchFailed);
     }
+
+    private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
 
     protected override void PreStart()
     {
         var pipelineActor = _registry.Get<PipelineActor>();
         Context.Watch(pipelineActor);
         pipelineActor.Tell(new RequestPipelineSink());
+        pipelineActor.Tell(new RequestPipelineSource());
     }
 
     private void OnRecover(DataChanged evt)
@@ -77,10 +80,10 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private void BecomeReady()
     {
         Command<PipelineSinkResponse>(_ => { });
+        Command<PipelineSourceResponse>(OnSourceReceived);
         Command<ScheduledPoll>(OnScheduledPoll);
         Command<HashResult>(OnHashResult);
-        Command<PipelineCommand.RefreshModel>(OnRefreshModel);
-        Command<PipelineCommand.RefreshLocation>(OnRefreshLocation);
+        Command<FetchFailed>(OnFetchFailed);
         Command<Terminated>(_ =>
         {
             _logger.LogWarning("PipelineActor terminated — waiting for new SinkRef");
@@ -89,6 +92,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             var pipelineActor = _registry.Get<PipelineActor>();
             Context.Watch(pipelineActor);
             pipelineActor.Tell(new RequestPipelineSink());
+            pipelineActor.Tell(new RequestPipelineSource());
         });
     }
 
@@ -101,20 +105,75 @@ public sealed class SchedulerActor : ReceivePersistentActor
             {
                 var key = Key(location.Name, modelId);
                 if (!_states.ContainsKey(key))
+                {
                     _states[key] = ModelPollState.Initial(now);
+                }
 
                 ScheduleNext(location.Name, modelId);
             }
         }
     }
 
+    private void OnSourceReceived(PipelineSourceResponse response)
+    {
+        var mat = Context.Materializer();
+        var self = Self;
+
+        response.SourceRef.Source
+            .Collect(outcome => outcome is FetchOutcome.Failure, outcome => (FetchOutcome.Failure)outcome)
+            .Select(f => new FetchFailed(f.Location, f.Model.Id, f.Reason))
+            .To(Sink.ActorRef<FetchFailed>(self, new Status.Success("failure-consumer-complete"), ex => new Status.Failure(ex)))
+            .Run(mat);
+
+        _logger.LogInformation("Pipeline SourceRef received — failure consumer connected");
+    }
+
+    private void OnFetchFailed(FetchFailed msg)
+    {
+        var key = Key(msg.Location, msg.ModelId);
+        var now = _timeProvider.GetUtcNow();
+        var state = _states.GetValueOrDefault(key, ModelPollState.Initial(now));
+
+        switch (msg.Reason)
+        {
+            case FetchFailureReason.Transport:
+                _states[key] = state.WithTransientFailure(now);
+                _logger.LogWarning("Fetch failed for {Location}/{Model} (transport) — miss={Miss}",
+                    msg.Location, msg.ModelId, _states[key].MissCount);
+                ScheduleNext(msg.Location, msg.ModelId);
+                break;
+
+            case FetchFailureReason.RateLimited:
+                var rateLimitState = state.WithTransientFailure(now);
+                if (rateLimitState.NextPollUtc < now + RateLimitMinDelay)
+                    rateLimitState = rateLimitState with { NextPollUtc = now + RateLimitMinDelay };
+                _states[key] = rateLimitState;
+                _logger.LogWarning("Fetch rate-limited for {Location}/{Model} — next poll at {Next}",
+                    msg.Location, msg.ModelId, rateLimitState.NextPollUtc);
+                ScheduleNext(msg.Location, msg.ModelId);
+                break;
+
+            case FetchFailureReason.ModelUnavailable:
+            case FetchFailureReason.MalformedPayload:
+                _logger.LogWarning("Fetch failed for {Location}/{Model} ({Reason}) — skipping until next regular poll",
+                    msg.Location, msg.ModelId, msg.Reason);
+                break;
+        }
+    }
+
     private void OnScheduledPoll(ScheduledPoll poll)
     {
-        if (_queue is null) return;
+        if (_queue is null)
+        {
+            return;
+        }
 
         var location = _options.Locations.FirstOrDefault(l =>
             l.Name.Equals(poll.Location, StringComparison.OrdinalIgnoreCase));
-        if (location is null) return;
+        if (location is null)
+        {
+            return;
+        }
 
         var cycle = new CycleId(_timeProvider.GetUtcNow());
         var target = new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle);
@@ -152,53 +211,13 @@ public sealed class SchedulerActor : ReceivePersistentActor
         }
     }
 
-    private void OnRefreshModel(PipelineCommand.RefreshModel cmd)
-    {
-        if (_queue is null) return;
-
-        var location = _options.Locations.FirstOrDefault(l =>
-            l.Name.Equals(cmd.Location, StringComparison.OrdinalIgnoreCase));
-        if (location is null)
-        {
-            _logger.LogWarning("Ignoring RefreshModel for unknown location {Location}", cmd.Location);
-            return;
-        }
-
-        if (!_options.Models.Contains(cmd.Model.Id, StringComparer.OrdinalIgnoreCase))
-        {
-            _logger.LogWarning("Ignoring RefreshModel for unknown model {Model}", cmd.Model.Id);
-            return;
-        }
-
-        var cycle = new CycleId(_timeProvider.GetUtcNow());
-        var target = new WeightedTarget(location, cmd.Model, _weight, cycle);
-        _queue.OfferAsync(target);
-    }
-
-    private void OnRefreshLocation(PipelineCommand.RefreshLocation cmd)
-    {
-        if (_queue is null) return;
-
-        var location = _options.Locations.FirstOrDefault(l =>
-            l.Name.Equals(cmd.Location, StringComparison.OrdinalIgnoreCase));
-        if (location is null)
-        {
-            _logger.LogWarning("Ignoring RefreshLocation for unknown location {Location}", cmd.Location);
-            return;
-        }
-
-        var cycle = new CycleId(_timeProvider.GetUtcNow());
-        foreach (var modelId in _options.Models)
-        {
-            var target = new WeightedTarget(location, new WeatherModel(modelId), _weight, cycle);
-            _queue.OfferAsync(target);
-        }
-    }
-
     private void ScheduleNext(string location, string modelId)
     {
         var key = Key(location, modelId);
-        if (!_states.TryGetValue(key, out var state)) return;
+        if (!_states.TryGetValue(key, out var state))
+        {
+            return;
+        }
 
         var now = _timeProvider.GetUtcNow();
         var delay = state.NextPollUtc <= now

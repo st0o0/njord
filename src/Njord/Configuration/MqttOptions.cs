@@ -16,6 +16,8 @@ public sealed class MqttOptions
     /// <summary>Home Assistant discovery prefix.</summary>
     public string DiscoveryPrefix { get; set; } = "homeassistant";
 
+    public bool DiscoveryEnabled { get; set; } = true;
+
     /// <summary>Root of njord's own topics (state, availability).</summary>
     public string BaseTopic { get; set; } = "njord";
 }

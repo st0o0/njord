@@ -1,5 +1,4 @@
 using Njord.Configuration;
-using Njord.Domain;
 
 namespace Njord.Tests.Configuration;
 

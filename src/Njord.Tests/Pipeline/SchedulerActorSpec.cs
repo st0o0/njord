@@ -7,6 +7,7 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain;
+using Njord.Ingest;
 using Njord.Pipeline;
 
 namespace Njord.Tests.Pipeline;
@@ -95,42 +96,53 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
     }
 
     [Fact(Timeout = 5000)]
-    public async Task RefreshModel_offers_target_immediately()
+    public async Task Transport_failure_triggers_backoff_retry()
     {
         _scheduler = CreateScheduler();
         await Task.Delay(300);
 
         var countBefore = _offered.Count;
-        _scheduler.Tell(new PipelineCommand.RefreshModel("lucerne", new WeatherModel("icon_d2")));
-        await Task.Delay(200);
+        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.Transport));
+        await Task.Delay(1500);
 
-        Assert.True(_offered.Count > countBefore);
+        Assert.True(_offered.Count > countBefore, "Transport failure should schedule a retry that offers a new target");
     }
 
     [Fact(Timeout = 5000)]
-    public async Task RefreshLocation_offers_all_models()
-    {
-        var options = Options();
-        options.Models = ["icon_d2", "ecmwf_ifs025"];
-        _scheduler = CreateScheduler(options);
-        await Task.Delay(300);
-
-        var countBefore = _offered.Count;
-        _scheduler.Tell(new PipelineCommand.RefreshLocation("lucerne"));
-        await Task.Delay(200);
-
-        Assert.True(_offered.Count >= countBefore + 2);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Unknown_location_refresh_is_ignored()
+    public async Task Rate_limited_failure_enforces_minimum_delay()
     {
         _scheduler = CreateScheduler();
         await Task.Delay(300);
 
         var countBefore = _offered.Count;
-        _scheduler.Tell(new PipelineCommand.RefreshLocation("atlantis"));
+        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.RateLimited));
         await Task.Delay(200);
+
+        Assert.Equal(countBefore, _offered.Count);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Model_unavailable_does_not_trigger_retry()
+    {
+        _scheduler = CreateScheduler();
+        await Task.Delay(300);
+
+        var countBefore = _offered.Count;
+        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.ModelUnavailable));
+        await Task.Delay(300);
+
+        Assert.Equal(countBefore, _offered.Count);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Malformed_payload_does_not_trigger_retry()
+    {
+        _scheduler = CreateScheduler();
+        await Task.Delay(300);
+
+        var countBefore = _offered.Count;
+        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.MalformedPayload));
+        await Task.Delay(300);
 
         Assert.Equal(countBefore, _offered.Count);
     }
@@ -154,12 +166,23 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
 
                 Sender.Tell(new PipelineSinkResponse(sinkRef));
             });
+
+            Receive<RequestPipelineSource>(_ =>
+            {
+                var sourceRef = Source.Empty<FetchOutcome>()
+                    .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat)
+                    .Result;
+
+                Sender.Tell(new PipelineSourceResponse(sourceRef));
+            });
         }
     }
 
     private sealed class TestableSchedulerActor : ReceivePersistentActor
     {
         public override string PersistenceId { get; }
+
+        private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
 
         private readonly NjordOptions _options;
         private readonly TimeProvider _timeProvider;
@@ -185,16 +208,17 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
             Recover<SnapshotOffer>(_ => { });
 
             Command<PipelineSinkResponse>(OnSinkReceived);
+            Command<PipelineSourceResponse>(_ => { });
             Command<ScheduledPoll>(OnScheduledPoll);
             Command<HashResult>(OnHashResult);
-            Command<PipelineCommand.RefreshModel>(OnRefreshModel);
-            Command<PipelineCommand.RefreshLocation>(OnRefreshLocation);
+            Command<FetchFailed>(OnFetchFailed);
         }
 
         protected override void PreStart()
         {
             var pipelineActor = _registry.Get<PipelineActor>();
             pipelineActor.Tell(new RequestPipelineSink());
+            pipelineActor.Tell(new RequestPipelineSource());
         }
 
         private void OnRecover(SchedulerActor.DataChanged evt)
@@ -217,7 +241,10 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
                 {
                     var key = $"{location.Name}|{modelId}";
                     if (!_states.ContainsKey(key))
+                    {
                         _states[key] = ModelPollState.Initial(now);
+                    }
+
                     ScheduleNext(location.Name, modelId);
                 }
             Stash.UnstashAll();
@@ -225,10 +252,18 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
 
         private void OnScheduledPoll(ScheduledPoll poll)
         {
-            if (_queue is null) return;
+            if (_queue is null)
+            {
+                return;
+            }
+
             var location = _options.Locations.FirstOrDefault(l =>
                 l.Name.Equals(poll.Location, StringComparison.OrdinalIgnoreCase));
-            if (location is null) return;
+            if (location is null)
+            {
+                return;
+            }
+
             var cycle = new CycleId(_timeProvider.GetUtcNow());
             _queue.OfferAsync(new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle));
         }
@@ -257,35 +292,48 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
             }
         }
 
-        private void OnRefreshModel(PipelineCommand.RefreshModel cmd)
+        private void OnFetchFailed(FetchFailed msg)
         {
-            if (_queue is null) return;
-            var location = _options.Locations.FirstOrDefault(l =>
-                l.Name.Equals(cmd.Location, StringComparison.OrdinalIgnoreCase));
-            if (location is null) return;
-            if (!_options.Models.Contains(cmd.Model.Id, StringComparer.OrdinalIgnoreCase)) return;
-            var cycle = new CycleId(_timeProvider.GetUtcNow());
-            _queue.OfferAsync(new WeightedTarget(location, cmd.Model, _weight, cycle));
-        }
+            var key = $"{msg.Location}|{msg.ModelId}";
+            var now = _timeProvider.GetUtcNow();
+            var state = _states.GetValueOrDefault(key, ModelPollState.Initial(now));
 
-        private void OnRefreshLocation(PipelineCommand.RefreshLocation cmd)
-        {
-            if (_queue is null) return;
-            var location = _options.Locations.FirstOrDefault(l =>
-                l.Name.Equals(cmd.Location, StringComparison.OrdinalIgnoreCase));
-            if (location is null) return;
-            var cycle = new CycleId(_timeProvider.GetUtcNow());
-            foreach (var modelId in _options.Models)
-                _queue.OfferAsync(new WeightedTarget(location, new WeatherModel(modelId), _weight, cycle));
+            switch (msg.Reason)
+            {
+                case FetchFailureReason.Transport:
+                    _states[key] = state.WithTransientFailure(now);
+                    ScheduleNext(msg.Location, msg.ModelId);
+                    break;
+
+                case FetchFailureReason.RateLimited:
+                    var rateLimitState = state.WithTransientFailure(now);
+                    if (rateLimitState.NextPollUtc < now + RateLimitMinDelay)
+                        rateLimitState = rateLimitState with { NextPollUtc = now + RateLimitMinDelay };
+                    _states[key] = rateLimitState;
+                    ScheduleNext(msg.Location, msg.ModelId);
+                    break;
+
+                case FetchFailureReason.ModelUnavailable:
+                case FetchFailureReason.MalformedPayload:
+                    break;
+            }
         }
 
         private void ScheduleNext(string location, string modelId)
         {
             var key = $"{location}|{modelId}";
-            if (!_states.TryGetValue(key, out var state)) return;
+            if (!_states.TryGetValue(key, out var state))
+            {
+                return;
+            }
+
             var now = _timeProvider.GetUtcNow();
             var delay = state.NextPollUtc <= now ? TimeSpan.FromMilliseconds(100) : state.NextPollUtc - now;
-            if (delay > TimeSpan.FromSeconds(30)) delay = TimeSpan.FromSeconds(30);
+            if (delay > TimeSpan.FromMilliseconds(500))
+            {
+                delay = TimeSpan.FromMilliseconds(500);
+            }
+
             Context.System.Scheduler.ScheduleTellOnce(delay, Self, new ScheduledPoll(location, modelId), Self);
         }
     }

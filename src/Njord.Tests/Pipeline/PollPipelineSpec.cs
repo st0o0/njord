@@ -106,8 +106,10 @@ public sealed class PollPipelineSpec : IDisposable
             LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken cancellationToken)
         {
             if (FailingModels.Contains(model.Id))
+            {
                 return Task.FromResult<FetchOutcome>(
-                    new FetchOutcome.Failure(FetchFailureReason.Transport, "simulated"));
+                    new FetchOutcome.Failure(location.Name, model, FetchFailureReason.Transport, "simulated"));
+            }
 
             return Task.FromResult<FetchOutcome>(new FetchOutcome.Success(new ModelForecast(
                 model, location.Name, cycle,

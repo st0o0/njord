@@ -145,8 +145,8 @@ public sealed class MqttEgressIntegrationSpec
         {
             Receive<RequestPipelineSource>(_ =>
             {
-                var sourceRef = Akka.Streams.Dsl.Source.Empty<FetchOutcome.Success>()
-                    .RunWith(Akka.Streams.Dsl.StreamRefs.SourceRef<FetchOutcome.Success>(), mat)
+                var sourceRef = Akka.Streams.Dsl.Source.Empty<FetchOutcome>()
+                    .RunWith(Akka.Streams.Dsl.StreamRefs.SourceRef<FetchOutcome>(), mat)
                     .Result;
                 Sender.Tell(new PipelineSourceResponse(sourceRef));
             });

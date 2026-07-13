@@ -11,8 +11,16 @@ public sealed class ForecastSeriesSpec
     private static ForecastPoint Point(DateTimeOffset validAt, double? temp = null, double? dew = null)
     {
         var values = new Dictionary<ParameterDef, double?>();
-        if (temp is not null) values[Temperature] = temp;
-        if (dew is not null) values[Dewpoint] = dew;
+        if (temp is not null)
+        {
+            values[Temperature] = temp;
+        }
+
+        if (dew is not null)
+        {
+            values[Dewpoint] = dew;
+        }
+
         return new ForecastPoint(validAt, values);
     }
 

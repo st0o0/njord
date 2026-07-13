@@ -13,6 +13,8 @@ public sealed record PipelineSinkResponse(ISinkRef<WeightedTarget> SinkRef);
 
 public sealed record RequestPipelineSource;
 
-public sealed record PipelineSourceResponse(ISourceRef<FetchOutcome.Success> SourceRef);
+public sealed record PipelineSourceResponse(ISourceRef<FetchOutcome> SourceRef);
 
 public sealed record ScheduledPoll(string Location, string ModelId);
+
+public sealed record FetchFailed(string Location, string ModelId, FetchFailureReason Reason);

@@ -4,7 +4,6 @@ using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain;
@@ -30,13 +29,11 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
     private readonly IReadOnlyList<int> _horizons;
     private readonly string _availabilityTopic;
     private readonly string _haStatusTopic;
-    private readonly string _deviceConfigFilter;
-    private readonly HashSet<string> _ownConfigTopics;
+    private readonly bool _discoveryEnabled;
     private int _connectAttempts;
 
     private ISourceQueueWithComplete<MqttMessage>? _discoveryQueue;
     private ISourceQueueWithComplete<MqttMessage>? _availabilityQueue;
-    private ISourceQueueWithComplete<MqttMessage>? _tombstoneQueue;
     private Sink<MqttMessage, NotUsed>? _mergeHubSink;
     private IMaterializer? _mat;
 
@@ -69,15 +66,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         _horizons = [.. _options.Horizons];
         _availabilityTopic = TopicScheme.AvailabilityTopic(_options.Mqtt.BaseTopic);
         _haStatusTopic = $"{_options.Mqtt.DiscoveryPrefix}/status";
-        _deviceConfigFilter = $"{_options.Mqtt.DiscoveryPrefix}/device/+/config";
-        _ownConfigTopics =
-        [
-            .. from location in _options.Locations
-               from modelId in _options.Models
-               select TopicScheme.ConfigTopic(
-                   _options.Mqtt.DiscoveryPrefix,
-                   TopicScheme.DeviceId(location.Name, new WeatherModel(modelId))),
-        ];
+        _discoveryEnabled = _options.Mqtt.DiscoveryEnabled;
 
         WaitingForSourceRef();
     }
@@ -120,7 +109,10 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
             ScheduleReconnect();
         });
         Receive<Reconnect>(_ => Connect());
-        ReceiveAsync<Inbound>(OnInboundAsync);
+        if (_discoveryEnabled)
+        {
+            Receive<Inbound>(OnInbound);
+        }
         Receive<Terminated>(_ =>
         {
             _logger.LogWarning("PipelineActor terminated — waiting for new SourceRef");
@@ -133,7 +125,6 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         _availabilityQueue?.OfferAsync(new MqttMessage(_availabilityTopic, "offline", true));
         _discoveryQueue?.Complete();
         _availabilityQueue?.Complete();
-        _tombstoneQueue?.Complete();
     }
 
     private void MaterializeEgressGraph(IMaterializer mat)
@@ -142,12 +133,9 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
             .PreMaterialize(mat);
         var (availQueue, availSource) = Source.Queue<MqttMessage>(8, OverflowStrategy.DropHead)
             .PreMaterialize(mat);
-        var (tombQueue, tombSource) = Source.Queue<MqttMessage>(16, OverflowStrategy.DropHead)
-            .PreMaterialize(mat);
 
         _discoveryQueue = discQueue;
         _availabilityQueue = availQueue;
-        _tombstoneQueue = tombQueue;
 
         var (hubSink, hubSource) = MergeHub.Source<MqttMessage>(perProducerBufferSize: 8)
             .PreMaterialize(mat);
@@ -156,7 +144,6 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
 
         discSource.RunWith(hubSink, mat);
         availSource.RunWith(hubSink, mat);
-        tombSource.RunWith(hubSink, mat);
 
         hubSource
             .SelectAsync(1, async msg =>
@@ -169,7 +156,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
             .RunWith(Sink.Ignore<NotUsed>(), mat);
     }
 
-    private void MaterializeConsumerGraph(ISourceRef<FetchOutcome.Success> sourceRef)
+    private void MaterializeConsumerGraph(ISourceRef<FetchOutcome> sourceRef)
     {
         var mat = _mat!;
         var baseTopic = _options.Mqtt.BaseTopic;
@@ -180,6 +167,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         var lastPublished = new Dictionary<(string, string, string), string>();
 
         sourceRef.Source
+            .Collect(outcome => outcome is FetchOutcome.Success, outcome => (FetchOutcome.Success)outcome)
             .SelectMany(success =>
             {
                 var forecast = success.Forecast;
@@ -190,7 +178,9 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
                 {
                     var key = (forecast.Location, forecast.Model.Id, horizon);
                     if (lastPublished.TryGetValue(key, out var cached) && cached == payload)
+                    {
                         continue;
+                    }
 
                     lastPublished[key] = payload;
                     var topic = TopicScheme.HorizonTopic(baseTopic, forecast.Location, forecast.Model, horizon);
@@ -236,40 +226,33 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
     private async Task OnConnectedAsync(Connected _)
     {
         _connectAttempts = 0;
-        try
+
+        if (_discoveryEnabled)
         {
-            await _connection.SubscribeAsync(_haStatusTopic, CancellationToken.None);
-            await _connection.SubscribeAsync(_deviceConfigFilter, CancellationToken.None);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Post-connect subscription failed");
+            try
+            {
+                await _connection.SubscribeAsync(_haStatusTopic, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Post-connect subscription failed");
+            }
         }
 
         _availabilityQueue?.OfferAsync(new MqttMessage(_availabilityTopic, "online", true));
-        PublishDiscovery();
+
+        if (_discoveryEnabled)
+        {
+            PublishDiscovery();
+        }
     }
 
-    private async Task OnInboundAsync(Inbound message)
+    private void OnInbound(Inbound message)
     {
-        if (message.Topic == _haStatusTopic)
+        if (message.Topic == _haStatusTopic && message.Payload == "online")
         {
-            if (message.Payload == "online")
-            {
-                _logger.LogInformation("Home Assistant is back online — re-publishing discovery");
-                PublishDiscovery();
-            }
-            return;
-        }
-
-        var njordDevicePrefix = $"{_options.Mqtt.DiscoveryPrefix}/device/njord_";
-        if (message.Topic.StartsWith(njordDevicePrefix, StringComparison.Ordinal)
-            && message.Topic.EndsWith("/config", StringComparison.Ordinal)
-            && message.Payload.Length > 0
-            && !_ownConfigTopics.Contains(message.Topic))
-        {
-            _logger.LogInformation("Tombstoning stale retained device config {Topic}", message.Topic);
-            _tombstoneQueue?.OfferAsync(new MqttMessage(message.Topic, string.Empty, true));
+            _logger.LogInformation("Home Assistant is back online — re-publishing discovery");
+            PublishDiscovery();
         }
     }
 

@@ -14,28 +14,46 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
         var failures = new List<string>();
 
         if (options.Locations.Count == 0)
+        {
             failures.Add("At least one location (Name, Latitude, Longitude) is required.");
+        }
         else if (options.Locations.Any(l => string.IsNullOrWhiteSpace(l.Name)))
+        {
             failures.Add("Every location needs a non-empty Name.");
+        }
 
         if (options.Models.Count == 0)
+        {
             failures.Add("At least one model id is required (e.g. icon_d2).");
+        }
         else if (options.Models.Any(string.IsNullOrWhiteSpace))
+        {
             failures.Add("Model ids must be non-empty strings.");
+        }
 
         if (options.PollInterval <= TimeSpan.Zero)
+        {
             failures.Add("PollInterval must be positive.");
+        }
 
         if (options.DiscoveryInterval <= TimeSpan.Zero)
+        {
             failures.Add("DiscoveryInterval must be positive.");
+        }
 
         if (options.Horizons.Count == 0)
+        {
             failures.Add("At least one forecast horizon (hours) is required.");
+        }
         else if (options.Horizons.Any(h => h <= 0 || h > FetchWindowHours))
+        {
             failures.Add($"Horizons must be between 1 and {FetchWindowHours} hours (the fetched forecast window).");
+        }
 
         if (string.IsNullOrWhiteSpace(options.Mqtt.Host))
+        {
             failures.Add("The MQTT broker host is missing — set Njord:Mqtt:Host.");
+        }
 
         ResolvedParameterSet? resolved = null;
         try

@@ -57,6 +57,16 @@ public sealed record ModelPollState(
         };
     }
 
+    public ModelPollState WithTransientFailure(DateTimeOffset now)
+    {
+        var newMissCount = MissCount + 1;
+        return this with
+        {
+            MissCount = newMissCount,
+            NextPollUtc = now + RetryBackoff(newMissCount),
+        };
+    }
+
     private static TimeSpan RetryBackoff(int missCount)
     {
         var delay = TimeSpan.FromMinutes(Math.Pow(2, missCount - 1));
