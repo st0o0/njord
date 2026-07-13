@@ -2,7 +2,7 @@
 
 ## Purpose
 
-MQTT egress to Home Assistant: an actor-owned broker connection lifecycle with a Last Will availability topic, device-based MQTT Discovery for the static config-derived entity grid, per-horizon retained telemetry state topics with flat JSON payloads, legacy topic tombstoning on startup, and declarative mapping of missing values to `unavailable` so entities never disappear or go stale.
+MQTT egress to Home Assistant: an actor-owned broker connection lifecycle with a Last Will availability topic, device-based MQTT Discovery (gated by `DiscoveryEnabled`) for the static config-derived entity grid, per-horizon retained telemetry state topics with flat JSON payloads, and declarative mapping of missing values to `unavailable` so entities never disappear or go stale.
 
 ## Requirements
 
@@ -22,14 +22,21 @@ An actor SHALL own the MQTT connection: connect at startup, reconnect with expon
 - **THEN** the egress stream graph (MergeHub + Publish Sink) terminates
 
 ### Requirement: Device-based discovery for a static entity grid
-For every configured (location, model) pair the system SHALL publish one retained device-based discovery payload (`<prefix>/device/njord_<location>_<model>/config`) containing the device block, an origin block, shared state and availability options, and one sensor component per configured (parameter, horizon) pair for hourly parameters plus one sensor component per configured (parameter, day-offset) pair for daily parameters, each with a stable `unique_id`. Hourly unique_ids follow `njord_{location}_{model}_{param}_h{horizon}`. Daily unique_ids follow `njord_{location}_{model}_{param}_d{offset}`. Each sensor component SHALL reference the horizon-specific state topic and a simplified value template. Hourly components SHALL use `state_topic: "njord/{location}/{model}/h{horizon}"` with `value_template: "{{ value_json.{json_key} }}"`. Daily components SHALL use `state_topic: "njord/{location}/{model}/d{offset}"` with `value_template: "{{ value_json.{json_key} }}"`. The grid is derived from configuration only — never from fetched data. Discovery SHALL be published at startup and re-published when Home Assistant announces `online` on `homeassistant/status`.
+For every configured (location, model) pair the system SHALL publish one retained
+device-based discovery payload when `DiscoveryEnabled` is `true` (the default).
+The payload contains the device block, origin block, shared state and availability
+options, and one sensor component per configured (parameter, horizon) pair for
+hourly parameters plus one per (parameter, day-offset) for daily parameters.
+Discovery SHALL be published at startup and re-published when Home Assistant
+announces `online` on `<prefix>/status`. When `DiscoveryEnabled` is `false`,
+no discovery payloads SHALL be published and no HA status subscription SHALL be made.
 
 #### Scenario: Grid size with Weather group and defaults
 - **WHEN** 1 location, 8 models, ~30 hourly Weather parameters, 6 hourly horizons (3/6/12/24/48/72), ~15 daily Weather parameters, and 4 day offsets (d0-d3) are configured
 - **THEN** exactly 8 retained discovery payloads are published, each carrying 180 hourly sensor components + 60 daily sensor components = 240 components
 
 #### Scenario: HA birth triggers re-discovery
-- **WHEN** `homeassistant/status` receives `online`
+- **WHEN** `homeassistant/status` receives `online` and `DiscoveryEnabled` is `true`
 - **THEN** all discovery payloads are published again with the current active parameter set
 
 #### Scenario: Discovery component references horizon topic
@@ -39,10 +46,6 @@ For every configured (location, model) pair the system SHALL publish one retaine
 #### Scenario: Discovery component for daily parameter
 - **WHEN** the discovery payload for device njord_lucerne_icon_d2 is built
 - **THEN** the sunrise d0 component carries `"state_topic": "njord/lucerne/icon_d2/d0"` and `"value_template": "{{ value_json.sunrise }}"`
-
-#### Scenario: Removed devices are tombstoned
-- **WHEN** a model is removed from the configuration and njord restarts
-- **THEN** an empty retained payload is published to that device's config topic
 
 ### Requirement: Telemetry publishes one retained state per horizon per cycle
 For every successful fetch the pipeline SHALL produce one `MqttMessage` per changed horizon for that device and deliver them to the egress via StreamRef. Each message SHALL be published retained on topic `njord/{location}/{model}/{horizon}` (e.g. `njord/lucerne/icon_d2/h3`). The payload SHALL be a flat JSON object with parameter keys and their values for that time-slice. The `/state` suffix is NOT used — the horizon segment identifies the state. Devices whose fetch failed SHALL NOT be published that cycle.
@@ -62,13 +65,6 @@ For every successful fetch the pipeline SHALL produce one `MqttMessage` per chan
 #### Scenario: Failed models produce no state message
 - **WHEN** a model's fetch fails
 - **THEN** no MqttMessage for that device enters the StreamRef
-
-### Requirement: Old state topics are tombstoned on startup
-On first broker connection, the system SHALL publish an empty retained message to `njord/{location}/{model}/state` for every configured device. This removes stale monolithic state payloads from users upgrading from the old topic scheme.
-
-#### Scenario: Legacy state topic is cleared
-- **WHEN** the egress actor connects to a broker that has retained `njord/lucerne/icon_d2/state`
-- **THEN** an empty retained publish to `njord/lucerne/icon_d2/state` clears it
 
 ### Requirement: Discovery component metadata adapts to registry
 Each sensor component in the discovery payload SHALL derive its `unit_of_measurement`, `device_class`, and `name` from the parameter registry entry. Parameters with `device_class: null` SHALL omit the `device_class` field. Parameters with value type `TimeString` SHALL use `device_class: "timestamp"` when appropriate or omit it.

@@ -7,7 +7,12 @@ Static catalog of all known Open-Meteo forecast variables with metadata (API nam
 ## Requirements
 
 ### Requirement: A static registry catalogs all known Open-Meteo forecast variables
-The system SHALL maintain a static registry of all known Open-Meteo `/v1/forecast` hourly and daily variables. Each entry SHALL carry: the API name (e.g. `temperature_2m`), the unit string, the HA device class (or null), a short JSON key for egress, a human-friendly name, a parameter group assignment, and the granularity (hourly or daily).
+The system SHALL maintain a static registry of all known Open-Meteo `/v1/forecast`
+hourly and daily variables. Each entry SHALL carry: the API name (e.g.
+`temperature_2m`), the unit string, the HA device class (or null), a short JSON
+key for egress, a parameter group assignment, and the granularity (hourly or
+daily). The `FriendlyName` field is removed -- it was never consumed by production
+code.
 
 #### Scenario: Registry contains all hourly weather variables
 - **WHEN** the registry is queried for group `Weather` and granularity `Hourly`
@@ -20,6 +25,10 @@ The system SHALL maintain a static registry of all known Open-Meteo `/v1/forecas
 #### Scenario: Registry contains soil group
 - **WHEN** the registry is queried for group `Soil`
 - **THEN** it returns entries including: `soil_temperature_0cm`, `soil_temperature_6cm`, `soil_temperature_18cm`, `soil_temperature_54cm`, `soil_moisture_0_to_1cm`, `soil_moisture_1_to_3cm`, `soil_moisture_3_to_9cm`, `soil_moisture_9_to_27cm`, `soil_moisture_27_to_81cm`, `evapotranspiration`, `et0_fao_evapotranspiration` (hourly) and `et0_fao_evapotranspiration` (daily)
+
+#### Scenario: Registry entry has no FriendlyName field
+- **WHEN** a `ParameterDef` record is inspected
+- **THEN** it has no `FriendlyName` property
 
 ### Requirement: Each registry entry carries correct HA metadata
 Every registry entry SHALL carry the correct `unit_of_measurement` and `device_class` for HA sensor discovery. Entries without a standard HA device class SHALL carry `null`. The unit SHALL match what Open-Meteo returns when the request uses `wind_speed_unit=ms` and `timeformat=unixtime`.

@@ -63,7 +63,16 @@ When a cycle is known (phase = Steady), the SchedulerActor SHALL schedule the ne
 - **THEN** the phase resets to Discovery and polling resumes at 20-minute intervals
 
 ### Requirement: Hash results from the pipeline update the schedule
-The SchedulerActor SHALL handle `HashResult(LocationModelKey, int Hash)` messages from the pipeline's Ask flow. On receipt, the actor SHALL compare the hash with `lastHash`. If changed: persist a `DataChanged` event, update `lastChangeUtc`/`prevChangeUtc`, reset `missCount`, and schedule the next poll. If unchanged: increment `missCount` and schedule retry. The actor SHALL respond with `Ack` after processing.
+The SchedulerActor SHALL handle `HashResult(Location, ModelId, Hash)` messages
+from the pipeline's Ask flow. On receipt, the actor SHALL compare the hash with
+`lastHash`. If changed: persist a `DataChanged` event, update
+`lastChangeUtc`/`prevChangeUtc`, reset `missCount`, and schedule the next poll.
+If unchanged: increment `missCount` and schedule retry. The actor SHALL respond
+with `Ack` after processing.
+
+Additionally, the SchedulerActor SHALL consume `FetchOutcome.Failure` from its
+BroadcastHub consumer and route to reason-specific retry logic (see
+failure-routing spec).
 
 #### Scenario: Changed hash triggers persist and reschedule
 - **WHEN** a `HashResult` arrives with a hash different from `lastHash`
@@ -73,16 +82,9 @@ The SchedulerActor SHALL handle `HashResult(LocationModelKey, int Hash)` message
 - **WHEN** a `HashResult` arrives with a hash equal to `lastHash`
 - **THEN** `missCount` is incremented, next retry is scheduled, and `Ack` is returned
 
-### Requirement: Manual refresh commands bypass the schedule
-The SchedulerActor SHALL accept `RefreshModel(location, model)` and `RefreshLocation(location)` commands. These SHALL immediately offer the corresponding `WeightedTarget`(s) into the local `Source.Queue` without affecting the scheduled timers. The schedule SHALL NOT be reset by a manual refresh.
-
-#### Scenario: RefreshModel bypasses schedule
-- **WHEN** a `RefreshModel("lucerne", "icon_d2")` is received and the next scheduled poll is in 2 hours
-- **THEN** a target is offered into the local queue immediately and the 2-hour timer remains active
-
-#### Scenario: RefreshLocation fans out to all models
-- **WHEN** a `RefreshLocation("lucerne")` is received with 8 models configured
-- **THEN** 8 targets are offered into the local queue
+#### Scenario: Failure from BroadcastHub triggers reason-based retry
+- **WHEN** a `FetchOutcome.Failure(Transport)` is consumed from the BroadcastHub
+- **THEN** the scheduler increments missCount and schedules a backoff retry
 
 ### Requirement: State is persisted and recovered via Akka.Persistence
 The SchedulerActor SHALL persist `DataChanged` events to a SQLite journal via Akka.Persistence. On recovery, the actor SHALL rebuild all `ModelPollState` entries from the event stream. If a recovered `nextPollUtc` is in the past, the actor SHALL poll immediately. If a cycle is known from recovery, the actor SHALL enter Steady phase directly without re-discovery.

@@ -29,13 +29,3 @@ The expand logic SHALL assign each `WeightedTarget` an integer weight computed a
 - **WHEN** a `RefreshLocation("lucerne")` is received with 8 models configured
 - **THEN** all 8 `WeightedTarget` elements carry the same `CycleId` timestamp
 
-### Requirement: Commands with invalid references are silently dropped
-The SchedulerActor SHALL discard commands that reference a location or model not present in the current configuration. No error SHALL be raised; a structured log at Warning level SHALL be emitted.
-
-#### Scenario: Unknown location is dropped
-- **WHEN** a `RefreshLocation("atlantis")` command is received and "atlantis" is not configured
-- **THEN** zero targets are offered and a warning is logged
-
-#### Scenario: Unknown model for valid location is dropped
-- **WHEN** a `RefreshModel("lucerne", "nonexistent_model")` is received
-- **THEN** zero targets are offered and a warning is logged
