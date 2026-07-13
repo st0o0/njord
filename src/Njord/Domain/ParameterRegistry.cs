@@ -78,12 +78,6 @@ public static class ParameterRegistry
 
     private static List<ParameterDef> BuildAll()
     {
-        // Shorthand helpers
-        static ParameterDef H(string api, string unit, string? dc, string json, ParameterGroup g, ParameterValueType vt = ParameterValueType.Numeric)
-            => new(api, unit, dc, json, g, ParameterGranularity.Hourly, vt);
-        static ParameterDef D(string api, string unit, string? dc, string json, ParameterGroup g, ParameterValueType vt = ParameterValueType.Numeric)
-            => new(api, unit, dc, json, g, ParameterGranularity.Daily, vt);
-
         return
         [
             // === Weather group — Hourly ===
@@ -171,6 +165,13 @@ public static class ParameterRegistry
             // === Soil group — Daily ===
             D("et0_fao_evapotranspiration", "mm", null, "et0_fao_evapotranspiration_daily", ParameterGroup.Soil),
         ];
+
+        // Shorthand helpers
+        static ParameterDef H(string api, string unit, string? dc, string json, ParameterGroup g, ParameterValueType vt = ParameterValueType.Numeric)
+            => new(api, unit, dc, json, g, ParameterGranularity.Hourly, vt);
+
+        static ParameterDef D(string api, string unit, string? dc, string json, ParameterGroup g, ParameterValueType vt = ParameterValueType.Numeric)
+            => new(api, unit, dc, json, g, ParameterGranularity.Daily, vt);
     }
 }
 

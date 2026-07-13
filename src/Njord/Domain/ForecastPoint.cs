@@ -5,7 +5,7 @@ public sealed record ForecastPoint(
     IReadOnlyDictionary<ParameterDef, double?> Values)
 {
     public double? Get(ParameterDef parameter)
-        => Values.TryGetValue(parameter, out var value) ? value : null;
+        => Values.GetValueOrDefault(parameter);
 
     public bool HasAnyValue => Values.Values.Any(v => v is not null);
 }

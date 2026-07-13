@@ -20,7 +20,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private readonly ActorRegistry _registry;
     private readonly Dictionary<string, ModelPollState> _states = new();
     private ISourceQueueWithComplete<WeightedTarget>? _queue;
-    private int _weight;
+    private readonly int _weight;
 
     public sealed record DataChanged(string Location, string ModelId, int Hash, DateTimeOffset Utc);
 
@@ -71,7 +71,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             .To(response.SinkRef.Sink)
             .Run(mat);
 
-        _logger.LogInformation("Pipeline SinkRef received — scheduling initial polls");
+        _logger.LogInformation("Pipeline SinkRef received - scheduling initial polls");
         InitializeStates();
         BecomeReady();
         Stash.UnstashAll();
@@ -86,7 +86,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Command<FetchFailed>(OnFetchFailed);
         Command<Terminated>(_ =>
         {
-            _logger.LogWarning("PipelineActor terminated — waiting for new SinkRef");
+            _logger.LogWarning("PipelineActor terminated - waiting for new SinkRef");
             _queue?.Complete();
             _queue = null;
             var pipelineActor = _registry.Get<PipelineActor>();
@@ -125,7 +125,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             .To(Sink.ActorRef<FetchFailed>(self, new Status.Success("failure-consumer-complete"), ex => new Status.Failure(ex)))
             .Run(mat);
 
-        _logger.LogInformation("Pipeline SourceRef received — failure consumer connected");
+        _logger.LogInformation("Pipeline SourceRef received - failure consumer connected");
     }
 
     private void OnFetchFailed(FetchFailed msg)
@@ -138,7 +138,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         {
             case FetchFailureReason.Transport:
                 _states[key] = state.WithTransientFailure(now);
-                _logger.LogWarning("Fetch failed for {Location}/{Model} (transport) — miss={Miss}",
+                _logger.LogWarning("Fetch failed for {Location}/{Model} (transport) - miss={Miss}",
                     msg.Location, msg.ModelId, _states[key].MissCount);
                 ScheduleNext(msg.Location, msg.ModelId);
                 break;
@@ -148,14 +148,14 @@ public sealed class SchedulerActor : ReceivePersistentActor
                 if (rateLimitState.NextPollUtc < now + RateLimitMinDelay)
                     rateLimitState = rateLimitState with { NextPollUtc = now + RateLimitMinDelay };
                 _states[key] = rateLimitState;
-                _logger.LogWarning("Fetch rate-limited for {Location}/{Model} — next poll at {Next}",
+                _logger.LogWarning("Fetch rate-limited for {Location}/{Model} - next poll at {Next}",
                     msg.Location, msg.ModelId, rateLimitState.NextPollUtc);
                 ScheduleNext(msg.Location, msg.ModelId);
                 break;
 
             case FetchFailureReason.ModelUnavailable:
             case FetchFailureReason.MalformedPayload:
-                _logger.LogWarning("Fetch failed for {Location}/{Model} ({Reason}) — skipping until next regular poll",
+                _logger.LogWarning("Fetch failed for {Location}/{Model} ({Reason}) - skipping until next regular poll",
                     msg.Location, msg.ModelId, msg.Reason);
                 break;
         }
@@ -194,7 +194,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             {
                 _states[key] = state.WithDataChange(persisted.Hash, persisted.Utc, _options.DiscoveryInterval);
                 _logger.LogInformation(
-                    "Data changed for {Location}/{Model} — phase={Phase}, cycle={Cycle}",
+                    "Data changed for {Location}/{Model} - phase={Phase}, cycle={Cycle}",
                     result.Location, result.ModelId, _states[key].Phase, _states[key].Cycle);
                 ScheduleNext(result.Location, result.ModelId);
                 Sender.Tell(new Ack());
@@ -204,7 +204,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         {
             _states[key] = state.WithMiss(now, _options.DiscoveryInterval);
             _logger.LogDebug(
-                "No data change for {Location}/{Model} — miss={Miss}, phase={Phase}",
+                "No data change for {Location}/{Model} - miss={Miss}, phase={Phase}",
                 result.Location, result.ModelId, _states[key].MissCount, _states[key].Phase);
             ScheduleNext(result.Location, result.ModelId);
             Sender.Tell(new Ack());
@@ -224,7 +224,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             ? TimeSpan.FromSeconds(1)
             : state.NextPollUtc - now;
 
-        Context.System.Scheduler.ScheduleTellOnce(
+        Context.System.Scheduler.ScheduleTellOnceCancelable(
             delay, Self, new ScheduledPoll(location, modelId), Self);
     }
 

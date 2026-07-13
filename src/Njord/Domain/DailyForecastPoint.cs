@@ -5,5 +5,5 @@ public sealed record DailyForecastPoint(
     IReadOnlyDictionary<ParameterDef, object?> Values)
 {
     public object? Get(ParameterDef parameter)
-        => Values.TryGetValue(parameter, out var value) ? value : null;
+        => Values.GetValueOrDefault(parameter);
 }
