@@ -289,4 +289,62 @@ public sealed class DiscoveryPayloadBuilderSpec
 
         Assert.Equal("°C/h", (string?)json["cmps"]!["decay_rate"]!["unit_of_measurement"]);
     }
+
+    // --- Index device ---
+
+    [Fact(Timeout = 5000)]
+    public void Index_device_id_and_model_name()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildIndices(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("njord_lucerne_indices", (string?)json["dev"]!["ids"]![0]);
+        Assert.Equal("njord lucerne indices", (string?)json["dev"]!["name"]);
+        Assert.Equal("indices", (string?)json["dev"]!["mdl"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Index_device_has_expected_component_count()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildIndices(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        // 8 scores + 2 degree days + 3 numeric (frost_hours, frost_confidence, vpd_kpa) + 1 text (vpd_category) = 14
+        Assert.Equal(14, json["cmps"]!.AsObject().Count);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Index_score_sensors_have_no_unit()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildIndices(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.False(json["cmps"]!["laundry"]!.AsObject().ContainsKey("unit_of_measurement"));
+        Assert.False(json["cmps"]!["outdoor"]!.AsObject().ContainsKey("unit_of_measurement"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Index_degree_day_sensors_have_unit()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildIndices(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("°Cd", (string?)json["cmps"]!["hdd"]!["unit_of_measurement"]);
+        Assert.Equal("°Cd", (string?)json["cmps"]!["cdd"]!["unit_of_measurement"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Index_vpd_category_is_text_sensor()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildIndices(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("sensor", (string?)json["cmps"]!["vpd_category"]!["p"]);
+        Assert.False(json["cmps"]!["vpd_category"]!.AsObject().ContainsKey("unit_of_measurement"));
+    }
 }

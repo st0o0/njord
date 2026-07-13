@@ -51,6 +51,12 @@ public static class TopicScheme
     public static string TrendTopic(string baseTopic, string location)
         => $"{baseTopic}/{Slug(location)}/trends";
 
+    public static string IndexDeviceId(string location)
+        => $"njord_{Slug(location)}_indices";
+
+    public static string IndexTopic(string baseTopic, string location)
+        => $"{baseTopic}/{Slug(location)}/indices";
+
     public static string Slug(string value)
     {
         var builder = new StringBuilder(value.Length);

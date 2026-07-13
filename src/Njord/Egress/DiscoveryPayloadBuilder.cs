@@ -196,6 +196,116 @@ public static class DiscoveryPayloadBuilder
         return payload.ToJsonString();
     }
 
+    public static string BuildIndices(
+        string location,
+        MqttOptions mqtt,
+        TimeSpan pollInterval,
+        string version)
+    {
+        var deviceId = TopicScheme.IndexDeviceId(location);
+        var availabilityTopic = TopicScheme.AvailabilityTopic(mqtt.BaseTopic);
+        var expireAfterSeconds = (int)(2 * pollInterval.TotalSeconds);
+        var indexTopic = TopicScheme.IndexTopic(mqtt.BaseTopic, location);
+
+        var components = new JsonObject();
+
+        var scoreSensors = new[]
+        {
+            "laundry", "outdoor", "running", "cycling",
+            "bbq", "irrigation", "solar", "ventilation",
+        };
+
+        foreach (var key in scoreSensors)
+        {
+            components[key] = new JsonObject
+            {
+                ["p"] = "sensor",
+                ["unique_id"] = $"{deviceId}_{key}",
+                ["name"] = key.Replace('_', ' '),
+                ["expire_after"] = expireAfterSeconds,
+                ["value_template"] = $"{{{{ value_json.{key} }}}}",
+                ["availability"] = new JsonArray(
+                    new JsonObject { ["topic"] = availabilityTopic }),
+                ["availability_mode"] = "all",
+            };
+        }
+
+        var degreeDaySensors = new (string Key, string Name)[] { ("hdd", "heating degree days"), ("cdd", "cooling degree days") };
+        foreach (var (key, name) in degreeDaySensors)
+        {
+            components[key] = new JsonObject
+            {
+                ["p"] = "sensor",
+                ["unique_id"] = $"{deviceId}_{key}",
+                ["name"] = name,
+                ["unit_of_measurement"] = "°Cd",
+                ["expire_after"] = expireAfterSeconds,
+                ["value_template"] = $"{{{{ value_json.{key} }}}}",
+                ["availability"] = new JsonArray(
+                    new JsonObject { ["topic"] = availabilityTopic }),
+                ["availability_mode"] = "all",
+            };
+        }
+
+        var numericSensors = new (string Key, string Name, string Unit)[]
+        {
+            ("frost_hours", "frost in", "h"),
+            ("frost_confidence", "frost confidence", ""),
+            ("vpd_kpa", "VPD", "kPa"),
+        };
+
+        foreach (var (key, name, unit) in numericSensors)
+        {
+            var comp = new JsonObject
+            {
+                ["p"] = "sensor",
+                ["unique_id"] = $"{deviceId}_{key}",
+                ["name"] = name,
+                ["expire_after"] = expireAfterSeconds,
+                ["value_template"] = $"{{{{ value_json.{key} }}}}",
+                ["availability"] = new JsonArray(
+                    new JsonObject { ["topic"] = availabilityTopic }),
+                ["availability_mode"] = "all",
+            };
+            if (!string.IsNullOrEmpty(unit))
+                comp["unit_of_measurement"] = unit;
+            components[key] = comp;
+        }
+
+        components["vpd_category"] = new JsonObject
+        {
+            ["p"] = "sensor",
+            ["unique_id"] = $"{deviceId}_vpd_category",
+            ["name"] = "VPD category",
+            ["expire_after"] = expireAfterSeconds,
+            ["value_template"] = "{{ value_json.vpd_category }}",
+            ["availability"] = new JsonArray(
+                new JsonObject { ["topic"] = availabilityTopic }),
+            ["availability_mode"] = "all",
+        };
+
+        var payload = new JsonObject
+        {
+            ["dev"] = new JsonObject
+            {
+                ["ids"] = new JsonArray(deviceId),
+                ["name"] = $"njord {location} indices",
+                ["mf"] = "njord",
+                ["mdl"] = "indices",
+                ["sw"] = version,
+            },
+            ["o"] = new JsonObject
+            {
+                ["name"] = "njord",
+                ["sw"] = version,
+            },
+            ["qos"] = 1,
+            ["cmps"] = components,
+        };
+
+        return payload.ToJsonString();
+    }
+
     public static string BuildTrends(
         string location,
         MqttOptions mqtt,

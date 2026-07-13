@@ -6,6 +6,7 @@ public sealed class EnrichmentOptions
     public AlertThresholdOptions Alerts { get; set; } = new();
     public DerivedOptions Derived { get; set; } = new();
     public TrendOptions Trends { get; set; } = new();
+    public IndexOptions Indices { get; set; } = new();
 }
 
 public sealed class ConsensusOptions
@@ -37,4 +38,12 @@ public sealed class DerivedOptions
 public sealed class TrendOptions
 {
     public bool Enabled { get; set; } = false;
+}
+
+public sealed class IndexOptions
+{
+    public bool Enabled { get; set; } = false;
+    public double HeatingBaseTemp { get; set; } = 18.0;
+    public double CoolingBaseTemp { get; set; } = 24.0;
+    public double IndoorTemp { get; set; } = 22.0;
 }
