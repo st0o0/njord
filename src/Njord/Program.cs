@@ -1,11 +1,10 @@
 using Njord.Configuration;
+using Servus.Core.Application.Startup;
 
-var builder = WebApplication.CreateBuilder(args);
+var runner = AppBuilder.Create(WebApplication.CreateBuilder(args), b => b.Build())
+    .WithSetup<NjordServiceSetup>()
+    .WithSetup<NjordActorSystemSetup>()
+    .WithSetup<NjordApplicationSetup>()
+    .Build();
 
-new NjordServiceSetup().SetupServices(builder.Services, builder.Configuration);
-new NjordActorSystemSetup().SetupServices(builder.Services, builder.Configuration);
-builder.Services.AddHealthChecks();
-
-var app = builder.Build();
-app.MapHealthChecks("/healthz");
-await app.RunAsync();
+await runner.RunAsync();

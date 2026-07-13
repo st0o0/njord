@@ -27,6 +27,7 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
             .AddOptions<EnrichmentOptions>()
             .Bind(configuration.GetSection($"{NjordOptions.SectionName}:Enrichment"));
         services.AddSingleton(TimeProvider.System);
+        services.AddHealthChecks();
         services.AddOpenMeteoIngest();
         services.AddMqttEgress();
     }

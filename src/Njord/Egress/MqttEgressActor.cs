@@ -6,7 +6,6 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain;
-using Njord.Enrichment;
 using Njord.Ingest;
 using Njord.Pipeline;
 using Servus.Akka;
