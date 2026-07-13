@@ -4,6 +4,7 @@ public sealed class EnrichmentOptions
 {
     public ConsensusOptions Consensus { get; set; } = new();
     public AlertThresholdOptions Alerts { get; set; } = new();
+    public DerivedOptions Derived { get; set; } = new();
 }
 
 public sealed class ConsensusOptions
@@ -25,4 +26,9 @@ public sealed class AlertThresholdOptions
     public double CapeThreshold { get; set; } = 1000.0;
     public double ThunderstormPrecipThreshold { get; set; } = 5.0;
     public double ThunderstormGustThreshold { get; set; } = 15.0;
+}
+
+public sealed class DerivedOptions
+{
+    public bool Enabled { get; set; } = true;
 }

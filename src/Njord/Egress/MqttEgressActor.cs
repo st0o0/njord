@@ -304,6 +304,15 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
                     location.Name, _options.Mqtt, _options.PollInterval, Version);
                 _discoveryQueue?.OfferAsync(new MqttMessage(alertTopic, alertPayload, true));
             }
+
+            if (_enrichmentOptions.Derived.Enabled)
+            {
+                var derivedDeviceId = TopicScheme.DerivedDeviceId(location.Name);
+                var derivedTopic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, derivedDeviceId);
+                var derivedPayload = DiscoveryPayloadBuilder.BuildDerived(
+                    location.Name, _horizons, _options.Mqtt, _options.PollInterval, Version);
+                _discoveryQueue?.OfferAsync(new MqttMessage(derivedTopic, derivedPayload, true));
+            }
         }
     }
 }

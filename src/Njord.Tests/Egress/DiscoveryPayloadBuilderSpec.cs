@@ -155,4 +155,79 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Contains("severity", (string?)frost["value_template"]);
         Assert.Equal("njord_lucerne_alerts_frost", (string?)frost["unique_id"]);
     }
+
+    // --- Derived device ---
+
+    [Fact(Timeout = 5000)]
+    public void Derived_device_id_and_model_name()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildDerived(
+            "lucerne", DefaultHorizons, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("njord_lucerne_derived", (string?)json["dev"]!["ids"]![0]);
+        Assert.Equal("njord lucerne derived", (string?)json["dev"]!["name"]);
+        Assert.Equal("derived", (string?)json["dev"]!["mdl"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Derived_device_has_expected_component_count()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildDerived(
+            "lucerne", DefaultHorizons, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        // 4 horizon params × 6 horizons + 3 scalar sensors = 27
+        Assert.Equal(27, json["cmps"]!.AsObject().Count);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Derived_beaufort_component_per_horizon()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildDerived(
+            "lucerne", [3], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+        var component = json["cmps"]!["beaufort_h3"]!;
+
+        Assert.Equal("sensor", (string?)component["p"]);
+        Assert.Equal("njord_lucerne_derived_beaufort_h3", (string?)component["unique_id"]);
+        Assert.False(component.AsObject().ContainsKey("unit_of_measurement"));
+        Assert.False(component.AsObject().ContainsKey("device_class"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Derived_wind_chill_has_temperature_device_class()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildDerived(
+            "lucerne", [3], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+        var component = json["cmps"]!["wind_chill_h3"]!;
+
+        Assert.Equal("°C", (string?)component["unit_of_measurement"]);
+        Assert.Equal("temperature", (string?)component["device_class"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Derived_scalar_inversion_is_binary_sensor()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildDerived(
+            "lucerne", [3], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+        var component = json["cmps"]!["inversion"]!;
+
+        Assert.Equal("binary_sensor", (string?)component["p"]);
+        Assert.Equal("njord_lucerne_derived_inversion", (string?)component["unique_id"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Derived_scalar_sunshine_has_percent_unit()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildDerived(
+            "lucerne", [3], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+        var component = json["cmps"]!["sunshine_pct"]!;
+
+        Assert.Equal("sensor", (string?)component["p"]);
+        Assert.Equal("%", (string?)component["unit_of_measurement"]);
+    }
 }

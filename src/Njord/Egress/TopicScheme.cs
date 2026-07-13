@@ -36,6 +36,15 @@ public static class TopicScheme
     public static string ConsensusHorizonTopic(string baseTopic, string location, string horizon)
         => $"{baseTopic}/{Slug(location)}/consensus/{horizon}";
 
+    public static string DerivedDeviceId(string location)
+        => $"njord_{Slug(location)}_derived";
+
+    public static string DerivedHorizonTopic(string baseTopic, string location, string horizon)
+        => $"{baseTopic}/{Slug(location)}/derived/{horizon}";
+
+    public static string DerivedMetaTopic(string baseTopic, string location)
+        => $"{baseTopic}/{Slug(location)}/derived/meta";
+
     public static string Slug(string value)
     {
         var builder = new StringBuilder(value.Length);

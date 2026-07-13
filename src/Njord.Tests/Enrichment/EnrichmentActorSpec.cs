@@ -79,6 +79,47 @@ public sealed class EnrichmentActorSpec : IDisposable
         Assert.NotNull(actor);
     }
 
+    [Fact(Timeout = 5000)]
+    public async Task Disabled_derived_does_not_crash()
+    {
+        var registry = new ActorRegistry();
+        var mat = _system.Materializer();
+
+        var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
+        var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
+        registry.Register<PipelineActor>(fakePipeline);
+        registry.Register<MqttEgressActor>(fakeEgress);
+
+        var enrichment = new EnrichmentOptions { Derived = new DerivedOptions { Enabled = false } };
+        var actor = CreateEnrichmentActor(registry, enrichment);
+
+        await Task.Delay(500);
+        Assert.NotNull(actor);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task All_consumers_enabled_does_not_crash()
+    {
+        var registry = new ActorRegistry();
+        var mat = _system.Materializer();
+
+        var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
+        var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
+        registry.Register<PipelineActor>(fakePipeline);
+        registry.Register<MqttEgressActor>(fakeEgress);
+
+        var enrichment = new EnrichmentOptions
+        {
+            Consensus = new ConsensusOptions { Enabled = true },
+            Alerts = new AlertThresholdOptions { Enabled = true },
+            Derived = new DerivedOptions { Enabled = true },
+        };
+        var actor = CreateEnrichmentActor(registry, enrichment);
+
+        await Task.Delay(500);
+        Assert.NotNull(actor);
+    }
+
     private sealed class FakePipelineSource : ReceiveActor
     {
         public FakePipelineSource(IMaterializer mat)
