@@ -383,4 +383,52 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("sensor", (string?)json["cmps"]!["battery_strategy"]!["p"]);
         Assert.False(json["cmps"]!["battery_strategy"]!.AsObject().ContainsKey("unit_of_measurement"));
     }
+
+    // --- History device ---
+
+    [Fact(Timeout = 5000)]
+    public void History_device_id_and_model_name()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildHistory(
+            "lucerne", ["icon_d2", "ecmwf_ifs025"], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("njord_lucerne_history", (string?)json["dev"]!["ids"]![0]);
+        Assert.Equal("njord lucerne history", (string?)json["dev"]!["name"]);
+        Assert.Equal("history", (string?)json["dev"]!["mdl"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void History_device_has_per_model_sensors()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildHistory(
+            "lucerne", ["icon_d2", "ecmwf_ifs025"], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+        var cmps = json["cmps"]!.AsObject();
+
+        Assert.True(cmps.ContainsKey("mae_7d_icon_d2"));
+        Assert.True(cmps.ContainsKey("weight_ecmwf_ifs025"));
+        Assert.True(cmps.ContainsKey("drift_icon_d2"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void History_anomaly_is_binary_sensor()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildHistory(
+            "lucerne", ["icon_d2"], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("binary_sensor", (string?)json["cmps"]!["anomaly"]!["p"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void History_weighted_temperature_has_unit()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildHistory(
+            "lucerne", ["icon_d2"], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("°C", (string?)json["cmps"]!["weighted_temperature"]!["unit_of_measurement"]);
+        Assert.Equal("temperature", (string?)json["cmps"]!["weighted_temperature"]!["device_class"]);
+    }
 }

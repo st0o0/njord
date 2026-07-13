@@ -63,6 +63,12 @@ public static class TopicScheme
     public static string EnergyTopic(string baseTopic, string location)
         => $"{baseTopic}/{Slug(location)}/energy";
 
+    public static string HistoryDeviceId(string location)
+        => $"njord_{Slug(location)}_history";
+
+    public static string HistoryTopic(string baseTopic, string location)
+        => $"{baseTopic}/{Slug(location)}/history";
+
     public static string Slug(string value)
     {
         var builder = new StringBuilder(value.Length);

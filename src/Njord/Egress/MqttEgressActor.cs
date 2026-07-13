@@ -235,7 +235,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         _connectAttempts++;
         var factor = Math.Pow(2, Math.Min(_connectAttempts - 1, 6));
         var delay = TimeSpan.FromMilliseconds(_tuning.ReconnectDelay.TotalMilliseconds * factor);
-        Context.System.Scheduler.ScheduleTellOnce(delay, Self, new Reconnect(), Self);
+        Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new Reconnect(), Self);
     }
 
     private async Task OnConnectedAsync(Connected _)
@@ -339,6 +339,15 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
                 var energyPayload = DiscoveryPayloadBuilder.BuildEnergy(
                     location.Name, _options.Mqtt, _options.PollInterval, Version);
                 _discoveryQueue?.OfferAsync(new MqttMessage(energyConfTopic, energyPayload, true));
+            }
+
+            if (_enrichmentOptions.History.Enabled)
+            {
+                var historyDeviceId = TopicScheme.HistoryDeviceId(location.Name);
+                var historyConfTopic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, historyDeviceId);
+                var historyPayload = DiscoveryPayloadBuilder.BuildHistory(
+                    location.Name, [.. _options.Models], _options.Mqtt, _options.PollInterval, Version);
+                _discoveryQueue?.OfferAsync(new MqttMessage(historyConfTopic, historyPayload, true));
             }
         }
     }

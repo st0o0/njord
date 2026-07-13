@@ -196,6 +196,113 @@ public static class DiscoveryPayloadBuilder
         return payload.ToJsonString();
     }
 
+    public static string BuildHistory(
+        string location,
+        IReadOnlyList<string> modelIds,
+        MqttOptions mqtt,
+        TimeSpan pollInterval,
+        string version)
+    {
+        var deviceId = TopicScheme.HistoryDeviceId(location);
+        var availabilityTopic = TopicScheme.AvailabilityTopic(mqtt.BaseTopic);
+        var expireAfterSeconds = (int)(2 * pollInterval.TotalSeconds);
+
+        var components = new JsonObject();
+
+        foreach (var modelId in modelIds)
+        {
+            var slug = modelId.Replace('-', '_').ToLowerInvariant();
+
+            foreach (var prefix in new[] { ("mae_7d", "MAE 7d"), ("mae_30d", "MAE 30d"), ("weight", "weight"), ("drift", "drift") })
+            {
+                var key = $"{prefix.Item1}_{slug}";
+                components[key] = new JsonObject
+                {
+                    ["p"] = "sensor",
+                    ["unique_id"] = $"{deviceId}_{key}",
+                    ["name"] = $"{prefix.Item2} {modelId}",
+                    ["expire_after"] = expireAfterSeconds,
+                    ["value_template"] = $"{{{{ value_json.{key} }}}}",
+                    ["availability"] = new JsonArray(
+                        new JsonObject { ["topic"] = availabilityTopic }),
+                    ["availability_mode"] = "all",
+                };
+            }
+        }
+
+        components["seasonal_best"] = new JsonObject
+        {
+            ["p"] = "sensor",
+            ["unique_id"] = $"{deviceId}_seasonal_best",
+            ["name"] = "seasonal best model",
+            ["expire_after"] = expireAfterSeconds,
+            ["value_template"] = "{{ value_json.seasonal_best }}",
+            ["availability"] = new JsonArray(
+                new JsonObject { ["topic"] = availabilityTopic }),
+            ["availability_mode"] = "all",
+        };
+
+        components["anomaly"] = new JsonObject
+        {
+            ["p"] = "binary_sensor",
+            ["unique_id"] = $"{deviceId}_anomaly",
+            ["name"] = "anomaly",
+            ["expire_after"] = expireAfterSeconds,
+            ["value_template"] = "{% if value_json.anomaly == true %}ON{% else %}OFF{% endif %}",
+            ["availability"] = new JsonArray(
+                new JsonObject { ["topic"] = availabilityTopic }),
+            ["availability_mode"] = "all",
+        };
+
+        components["anomaly_deviation"] = new JsonObject
+        {
+            ["p"] = "sensor",
+            ["unique_id"] = $"{deviceId}_anomaly_deviation",
+            ["name"] = "anomaly deviation",
+            ["unit_of_measurement"] = "σ",
+            ["expire_after"] = expireAfterSeconds,
+            ["value_template"] = "{{ value_json.anomaly_deviation }}",
+            ["availability"] = new JsonArray(
+                new JsonObject { ["topic"] = availabilityTopic }),
+            ["availability_mode"] = "all",
+        };
+
+        components["weighted_temperature"] = new JsonObject
+        {
+            ["p"] = "sensor",
+            ["unique_id"] = $"{deviceId}_weighted_temperature",
+            ["name"] = "weighted temperature",
+            ["unit_of_measurement"] = "°C",
+            ["device_class"] = "temperature",
+            ["expire_after"] = expireAfterSeconds,
+            ["value_template"] = "{{ value_json.weighted_temperature }}",
+            ["availability"] = new JsonArray(
+                new JsonObject { ["topic"] = availabilityTopic }),
+            ["availability_mode"] = "all",
+        };
+
+        var payload = new JsonObject
+        {
+            ["dev"] = new JsonObject
+            {
+                ["ids"] = new JsonArray(deviceId),
+                ["name"] = $"njord {location} history",
+                ["mf"] = "njord",
+                ["mdl"] = "history",
+                ["sw"] = version,
+            },
+            ["o"] = new JsonObject
+            {
+                ["name"] = "njord",
+                ["sw"] = version,
+            },
+            ["qos"] = 1,
+            ["cmps"] = components,
+        };
+
+        return payload.ToJsonString();
+    }
+
     public static string BuildEnergy(
         string location,
         MqttOptions mqtt,

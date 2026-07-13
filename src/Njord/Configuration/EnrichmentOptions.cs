@@ -8,6 +8,7 @@ public sealed class EnrichmentOptions
     public TrendOptions Trends { get; set; } = new();
     public IndexOptions Indices { get; set; } = new();
     public EnergyOptions Energy { get; set; } = new();
+    public HistoryOptions History { get; set; } = new();
 }
 
 public sealed class ConsensusOptions
@@ -39,6 +40,14 @@ public sealed class DerivedOptions
 public sealed class TrendOptions
 {
     public bool Enabled { get; set; } = false;
+}
+
+public sealed class HistoryOptions
+{
+    public bool Enabled { get; set; } = false;
+    public int RetentionDays { get; set; } = 30;
+    public int MinSampleSize { get; set; } = 48;
+    public int SnapshotInterval { get; set; } = 100;
 }
 
 public sealed class EnergyOptions
