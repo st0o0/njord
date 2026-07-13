@@ -45,6 +45,12 @@ public static class TopicScheme
     public static string DerivedMetaTopic(string baseTopic, string location)
         => $"{baseTopic}/{Slug(location)}/derived/meta";
 
+    public static string TrendDeviceId(string location)
+        => $"njord_{Slug(location)}_trends";
+
+    public static string TrendTopic(string baseTopic, string location)
+        => $"{baseTopic}/{Slug(location)}/trends";
+
     public static string Slug(string value)
     {
         var builder = new StringBuilder(value.Length);

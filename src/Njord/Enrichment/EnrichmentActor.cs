@@ -140,6 +140,11 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         {
             MaterializeDerivedConsumer(snapshotHubSource, mat);
         }
+
+        if (_enrichmentOptions.Trends.Enabled)
+        {
+            MaterializeTrendConsumer(snapshotHubSource, mat);
+        }
     }
 
     private void MaterializeConsensusConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
@@ -190,6 +195,45 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
                 foreach (var location in locations)
                 {
                     var result = AlertEvaluator.EvaluateAll(snapshot, location, alertOptions, timeProvider);
+                    foreach (var msg in result.ToMqttMessages(baseTopic))
+                    {
+                        if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
+                            continue;
+                        lastPublished[msg.Topic] = msg.Payload;
+                        messages.Add(msg);
+                    }
+                }
+                return messages;
+            })
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
+                _ => Akka.Streams.Supervision.Directive.Resume))
+            .RunWith(_mqttSinkRef!.Sink, mat);
+    }
+
+    private void MaterializeTrendConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
+    {
+        var baseTopic = _options.Mqtt.BaseTopic;
+        var parameters = _parameters;
+        var horizons = (IReadOnlyList<int>)[.. _options.Horizons];
+        var locations = _options.Locations.Select(l => l.Name).ToList();
+        var timeProvider = _timeProvider;
+        var lastPublished = new Dictionary<string, string>();
+
+        ModelSnapshot? previousSnapshot = null;
+
+        snapshotSource
+            .SelectMany(snapshot =>
+            {
+                var prev = previousSnapshot;
+                previousSnapshot = snapshot;
+
+                if (prev is null) return [];
+
+                var messages = new List<MqttMessage>();
+                foreach (var location in locations)
+                {
+                    var result = TrendResult.Compute(
+                        snapshot, prev, location, horizons, parameters, timeProvider);
                     foreach (var msg in result.ToMqttMessages(baseTopic))
                     {
                         if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)

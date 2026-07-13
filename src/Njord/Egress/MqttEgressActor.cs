@@ -313,6 +313,15 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
                     location.Name, _horizons, _options.Mqtt, _options.PollInterval, Version);
                 _discoveryQueue?.OfferAsync(new MqttMessage(derivedTopic, derivedPayload, true));
             }
+
+            if (_enrichmentOptions.Trends.Enabled)
+            {
+                var trendDeviceId = TopicScheme.TrendDeviceId(location.Name);
+                var trendTopic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, trendDeviceId);
+                var trendPayload = DiscoveryPayloadBuilder.BuildTrends(
+                    location.Name, _options.Mqtt, _options.PollInterval, Version);
+                _discoveryQueue?.OfferAsync(new MqttMessage(trendTopic, trendPayload, true));
+            }
         }
     }
 }

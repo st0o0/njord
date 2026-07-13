@@ -230,4 +230,63 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("sensor", (string?)component["p"]);
         Assert.Equal("%", (string?)component["unit_of_measurement"]);
     }
+
+    // --- Trend device ---
+
+    [Fact(Timeout = 5000)]
+    public void Trend_device_id_and_model_name()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildTrends(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("njord_lucerne_trends", (string?)json["dev"]!["ids"]![0]);
+        Assert.Equal("njord lucerne trends", (string?)json["dev"]!["name"]);
+        Assert.Equal("trends", (string?)json["dev"]!["mdl"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Trend_device_has_expected_component_count()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildTrends(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        // 6 text sensors + 6 numeric sensors = 12
+        Assert.Equal(12, json["cmps"]!.AsObject().Count);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Trend_direction_sensors_are_text()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildTrends(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+        var component = json["cmps"]!["trend_temperature_dir"]!;
+
+        Assert.Equal("sensor", (string?)component["p"]);
+        Assert.False(component.AsObject().ContainsKey("unit_of_measurement"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Trend_timing_sensors_have_hour_unit()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildTrends(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("h", (string?)json["cmps"]!["precip_starts"]!["unit_of_measurement"]);
+        Assert.Equal("h", (string?)json["cmps"]!["temp_max_in"]!["unit_of_measurement"]);
+        Assert.Equal("h", (string?)json["cmps"]!["reliable_hours"]!["unit_of_measurement"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Trend_decay_rate_has_correct_unit()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildTrends(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("°C/h", (string?)json["cmps"]!["decay_rate"]!["unit_of_measurement"]);
+    }
 }
