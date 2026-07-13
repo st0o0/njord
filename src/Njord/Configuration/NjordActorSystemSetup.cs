@@ -1,5 +1,6 @@
 using Akka.Hosting;
-using Akka.Persistence.Sqlite;
+using Akka.Persistence.Sql.Hosting;
+using LinqToDB;
 using Microsoft.Extensions.Options;
 using Njord.Egress;
 using Njord.Enrichment;
@@ -16,28 +17,23 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
     protected override void BuildSystem(AkkaConfigurationBuilder builder, IServiceProvider serviceProvider)
     {
         var njordOptions = serviceProvider.GetRequiredService<IOptions<NjordOptions>>().Value;
-        var persistencePath = njordOptions.PersistencePath;
+        var persistence = njordOptions.Persistence;
+
+        var connectionString = persistence.ConnectionString
+            ?? (persistence.Provider == PersistenceProvider.Sqlite
+                ? $"Data Source={njordOptions.PersistencePath}"
+                : throw new InvalidOperationException(
+                    "PostgreSQL persistence requires a connection string — set Njord:Persistence:ConnectionString."));
+
+        var providerName = persistence.Provider switch
+        {
+            PersistenceProvider.Sqlite => ProviderName.SQLite,
+            PersistenceProvider.PostgreSql => ProviderName.PostgreSQL,
+            _ => throw new InvalidOperationException($"Unsupported persistence provider: {persistence.Provider}"),
+        };
 
         builder
-            .AddHocon(SqlitePersistence.DefaultConfiguration(), HoconAddMode.Prepend)
-            .AddHocon($$"""
-                akka.persistence {
-                    journal {
-                        plugin = "akka.persistence.journal.sqlite"
-                        sqlite {
-                            connection-string = "Data Source={{persistencePath}}"
-                            auto-initialize = true
-                        }
-                    }
-                    snapshot-store {
-                        plugin = "akka.persistence.snapshot-store.sqlite"
-                        sqlite {
-                            connection-string = "Data Source={{persistencePath}}"
-                            auto-initialize = true
-                        }
-                    }
-                }
-                """, HoconAddMode.Prepend)
+            .WithSqlPersistence(connectionString, providerName, autoInitialize: true)
             .WithResolvableActors(r =>
             {
                 r.Register<MqttEgressActor>("mqtt-egress");

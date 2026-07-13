@@ -32,5 +32,7 @@ public sealed class NjordOptions
 
     public EnrichmentOptions Enrichment { get; set; } = new();
 
+    public PersistenceOptions Persistence { get; set; } = new();
+
     public string PersistencePath { get; set; } = "data/njord-journal.db";
 }

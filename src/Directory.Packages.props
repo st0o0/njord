@@ -7,7 +7,7 @@
     <PackageVersion Include="Akka.Hosting" Version="1.5.70" />
     <PackageVersion Include="Servus" Version="0.34.0" />
     <PackageVersion Include="Servus.Akka" Version="0.3.13" />
-    <PackageVersion Include="Akka.Persistence.Sqlite" Version="1.5.39" />
+    <PackageVersion Include="Akka.Persistence.Sql.Hosting" Version="1.5.67" />
     <PackageVersion Include="Akka.Streams" Version="1.5.70" />
     <PackageVersion Include="MQTTnet" Version="5.2.0.1603" />
     <PackageVersion Include="Testcontainers" Version="4.13.0" />
@@ -16,7 +16,7 @@
   <ItemGroup Label="Transitive pins (security)">
     <!-- NU1902: Akka.Hosting pulls OpenTelemetry.Api 1.10.0 with known advisories -->
     <PackageVersion Include="OpenTelemetry.Api" Version="1.16.0" />
-    <!-- NU1903: Akka.Persistence.Sqlite pulls SQLitePCLRaw.lib.e_sqlite3 2.1.6 with known advisories -->
+    <!-- NU1903: Akka.Persistence.Sql transitively pulls SQLitePCLRaw.lib.e_sqlite3 with known advisories -->
     <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
   </ItemGroup>
   <ItemGroup Label="Testing">

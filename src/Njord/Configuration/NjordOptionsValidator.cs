@@ -50,6 +50,12 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
             failures.Add($"Horizons must be between 1 and {FetchWindowHours} hours (the fetched forecast window).");
         }
 
+        if (options.Persistence.Provider == PersistenceProvider.PostgreSql
+            && string.IsNullOrWhiteSpace(options.Persistence.ConnectionString))
+        {
+            failures.Add("PostgreSQL persistence requires a connection string — set Njord:Persistence:ConnectionString.");
+        }
+
         if (string.IsNullOrWhiteSpace(options.Mqtt.Host))
         {
             failures.Add("The MQTT broker host is missing — set Njord:Mqtt:Host.");
