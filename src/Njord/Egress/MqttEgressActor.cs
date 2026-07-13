@@ -1,7 +1,6 @@
 using System.Reflection;
 using Akka;
 using Akka.Actor;
-using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
@@ -10,6 +9,7 @@ using Njord.Domain;
 using Njord.Enrichment;
 using Njord.Ingest;
 using Njord.Pipeline;
+using Servus.Akka;
 
 namespace Njord.Egress;
 
@@ -25,7 +25,6 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
     private readonly ILogger<MqttEgressActor> _logger;
     private readonly MqttEgressTuning _tuning;
     private readonly ResolvedParameterSet _parameters;
-    private readonly ActorRegistry _registry;
     private readonly EnrichmentOptions _enrichmentOptions;
     private readonly TimeProvider _timeProvider;
     private readonly IReadOnlyList<int> _horizons;
@@ -55,7 +54,6 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         ILogger<MqttEgressActor> logger,
         MqttEgressTuning tuning,
         ResolvedParameterSet parameters,
-        ActorRegistry registry,
         TimeProvider timeProvider)
     {
         _options = options.Value;
@@ -65,7 +63,6 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         _logger = logger;
         _tuning = tuning;
         _parameters = parameters;
-        _registry = registry;
         _timeProvider = timeProvider;
         _horizons = [.. _options.Horizons];
         _availabilityTopic = TopicScheme.AvailabilityTopic(_options.Mqtt.BaseTopic);
@@ -80,7 +77,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         _mat = Context.Materializer();
         MaterializeEgressGraph(_mat);
 
-        var pipelineActor = _registry.Get<PipelineActor>();
+        var pipelineActor = Context.GetActor<PipelineActor>();
         Context.Watch(pipelineActor);
         pipelineActor.Tell(new RequestPipelineSource());
     }
@@ -211,7 +208,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
 
     private void RequestNewSourceRef()
     {
-        var pipelineActor = _registry.Get<PipelineActor>();
+        var pipelineActor = Context.GetActor<PipelineActor>();
         Context.Watch(pipelineActor);
         pipelineActor.Tell(new RequestPipelineSource());
     }

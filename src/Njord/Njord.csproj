@@ -10,6 +10,8 @@
 
     <ItemGroup>
       <PackageReference Include="Akka.Hosting" />
+      <PackageReference Include="Servus" />
+      <PackageReference Include="Servus.Akka" />
       <PackageReference Include="Akka.Persistence.Sqlite" />
       <PackageReference Include="Akka.Streams" />
       <PackageReference Include="MQTTnet" />

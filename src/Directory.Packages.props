@@ -5,6 +5,8 @@
   </PropertyGroup>
   <ItemGroup Label="Service">
     <PackageVersion Include="Akka.Hosting" Version="1.5.70" />
+    <PackageVersion Include="Servus" Version="0.34.0" />
+    <PackageVersion Include="Servus.Akka" Version="0.3.13" />
     <PackageVersion Include="Akka.Persistence.Sqlite" Version="1.5.39" />
     <PackageVersion Include="Akka.Streams" Version="1.5.70" />
     <PackageVersion Include="MQTTnet" Version="5.2.0.1603" />

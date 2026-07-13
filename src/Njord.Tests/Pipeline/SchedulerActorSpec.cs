@@ -9,6 +9,7 @@ using Njord.Configuration;
 using Njord.Domain;
 using Njord.Ingest;
 using Njord.Pipeline;
+using Servus.Akka;
 
 namespace Njord.Tests.Pipeline;
 
@@ -50,14 +51,14 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
     {
         var opts = options ?? Options();
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        var registry = new ActorRegistry();
+        var registry = ActorRegistry.For(_system);
 
         var fakePipelineActor = _system.ActorOf(
             Props.Create(() => new FakePipelineActor(_offered, _mat)));
-        registry.Register<PipelineActor>(fakePipelineActor);
+        registry.Register<PipelineActor>(fakePipelineActor, overwrite: true);
 
         var props = Props.Create(() => new TestableSchedulerActor(
-            opts, _time, parameters, registry, persistenceId ?? $"scheduler-{Guid.NewGuid():N}"));
+            opts, _time, parameters, persistenceId ?? $"scheduler-{Guid.NewGuid():N}"));
 
         return _system.ActorOf(props);
     }
@@ -186,7 +187,6 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
 
         private readonly NjordOptions _options;
         private readonly TimeProvider _timeProvider;
-        private readonly ActorRegistry _registry;
         private readonly Dictionary<string, ModelPollState> _states = new();
         private ISourceQueueWithComplete<WeightedTarget>? _queue;
         private readonly int _weight;
@@ -195,13 +195,11 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
             NjordOptions options,
             TimeProvider timeProvider,
             ResolvedParameterSet parameters,
-            ActorRegistry registry,
             string persistenceId)
         {
             PersistenceId = persistenceId;
             _options = options;
             _timeProvider = timeProvider;
-            _registry = registry;
             _weight = WeightedTarget.ComputeWeight(parameters.HourlyCount, options.ForecastDays);
 
             Recover<SchedulerActor.DataChanged>(OnRecover);
@@ -216,7 +214,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
 
         protected override void PreStart()
         {
-            var pipelineActor = _registry.Get<PipelineActor>();
+            var pipelineActor = Context.GetActor<PipelineActor>();
             pipelineActor.Tell(new RequestPipelineSink());
             pipelineActor.Tell(new RequestPipelineSource());
         }

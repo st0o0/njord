@@ -52,7 +52,7 @@ public sealed class MqttEgressIntegrationSpec
         using var system = ActorSystem.Create("egress-integration");
         await using var mqttClient = new MqttNetPublisher(mqttOptions, NullLogger<MqttNetPublisher>.Instance);
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        var registry = new ActorRegistry();
+        var registry = ActorRegistry.For(system);
         var fakePipeline = system.ActorOf(Props.Create(() => new FakePipelineSource(system.Materializer())));
         registry.Register<PipelineActor>(fakePipeline);
         var actor = system.ActorOf(Props.Create(() => new MqttEgressActor(
@@ -63,7 +63,6 @@ public sealed class MqttEgressIntegrationSpec
             NullLogger<MqttEgressActor>.Instance,
             MqttEgressTuning.Default,
             parameters,
-            registry,
             TimeProvider.System)));
 
         // Simulate a state publish via the transport (as the pipeline would through StreamRef)

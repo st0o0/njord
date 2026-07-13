@@ -25,7 +25,6 @@ public sealed class EnrichmentActorSpec : IDisposable
     };
 
     private IActorRef CreateEnrichmentActor(
-        ActorRegistry registry,
         EnrichmentOptions? enrichment = null)
     {
         var options = DefaultOptions();
@@ -36,7 +35,6 @@ public sealed class EnrichmentActorSpec : IDisposable
             Microsoft.Extensions.Options.Options.Create(options),
             Microsoft.Extensions.Options.Options.Create(enrichment),
             parameters,
-            registry,
             TimeProvider.System,
             NullLogger<EnrichmentActor>.Instance)));
     }
@@ -44,15 +42,15 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Requests_source_ref_from_pipeline_actor_on_startup()
     {
-        var registry = new ActorRegistry();
+        var registry = ActorRegistry.For(_system);
         var mat = _system.Materializer();
 
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline);
-        registry.Register<MqttEgressActor>(fakeEgress);
+        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
 
-        var actor = CreateEnrichmentActor(registry);
+        var actor = CreateEnrichmentActor();
 
         // Give it time to initialize and transition
         await Task.Delay(500);
@@ -64,16 +62,16 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Disabled_consensus_does_not_crash()
     {
-        var registry = new ActorRegistry();
+        var registry = ActorRegistry.For(_system);
         var mat = _system.Materializer();
 
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline);
-        registry.Register<MqttEgressActor>(fakeEgress);
+        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { Consensus = new ConsensusOptions { Enabled = false } };
-        var actor = CreateEnrichmentActor(registry, enrichment);
+        var actor = CreateEnrichmentActor(enrichment);
 
         await Task.Delay(500);
         Assert.NotNull(actor);
@@ -82,16 +80,16 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Disabled_derived_does_not_crash()
     {
-        var registry = new ActorRegistry();
+        var registry = ActorRegistry.For(_system);
         var mat = _system.Materializer();
 
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline);
-        registry.Register<MqttEgressActor>(fakeEgress);
+        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { Derived = new DerivedOptions { Enabled = false } };
-        var actor = CreateEnrichmentActor(registry, enrichment);
+        var actor = CreateEnrichmentActor(enrichment);
 
         await Task.Delay(500);
         Assert.NotNull(actor);
@@ -100,13 +98,13 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task All_consumers_enabled_does_not_crash()
     {
-        var registry = new ActorRegistry();
+        var registry = ActorRegistry.For(_system);
         var mat = _system.Materializer();
 
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline);
-        registry.Register<MqttEgressActor>(fakeEgress);
+        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions
         {
@@ -114,7 +112,7 @@ public sealed class EnrichmentActorSpec : IDisposable
             Alerts = new AlertThresholdOptions { Enabled = true },
             Derived = new DerivedOptions { Enabled = true },
         };
-        var actor = CreateEnrichmentActor(registry, enrichment);
+        var actor = CreateEnrichmentActor(enrichment);
 
         await Task.Delay(500);
         Assert.NotNull(actor);
@@ -123,16 +121,16 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Disabled_trends_does_not_crash()
     {
-        var registry = new ActorRegistry();
+        var registry = ActorRegistry.For(_system);
         var mat = _system.Materializer();
 
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline);
-        registry.Register<MqttEgressActor>(fakeEgress);
+        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { Trends = new TrendOptions { Enabled = false } };
-        var actor = CreateEnrichmentActor(registry, enrichment);
+        var actor = CreateEnrichmentActor(enrichment);
 
         await Task.Delay(500);
         Assert.NotNull(actor);
@@ -141,16 +139,16 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Disabled_history_does_not_crash()
     {
-        var registry = new ActorRegistry();
+        var registry = ActorRegistry.For(_system);
         var mat = _system.Materializer();
 
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline);
-        registry.Register<MqttEgressActor>(fakeEgress);
+        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { History = new HistoryOptions { Enabled = false } };
-        var actor = CreateEnrichmentActor(registry, enrichment);
+        var actor = CreateEnrichmentActor(enrichment);
 
         await Task.Delay(500);
         Assert.NotNull(actor);
@@ -159,16 +157,16 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Disabled_energy_does_not_crash()
     {
-        var registry = new ActorRegistry();
+        var registry = ActorRegistry.For(_system);
         var mat = _system.Materializer();
 
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline);
-        registry.Register<MqttEgressActor>(fakeEgress);
+        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { Energy = new EnergyOptions { Enabled = false } };
-        var actor = CreateEnrichmentActor(registry, enrichment);
+        var actor = CreateEnrichmentActor(enrichment);
 
         await Task.Delay(500);
         Assert.NotNull(actor);
@@ -177,16 +175,16 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Disabled_indices_does_not_crash()
     {
-        var registry = new ActorRegistry();
+        var registry = ActorRegistry.For(_system);
         var mat = _system.Materializer();
 
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline);
-        registry.Register<MqttEgressActor>(fakeEgress);
+        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { Indices = new IndexOptions { Enabled = false } };
-        var actor = CreateEnrichmentActor(registry, enrichment);
+        var actor = CreateEnrichmentActor(enrichment);
 
         await Task.Delay(500);
         Assert.NotNull(actor);
@@ -195,16 +193,16 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Enabled_trends_does_not_crash()
     {
-        var registry = new ActorRegistry();
+        var registry = ActorRegistry.For(_system);
         var mat = _system.Materializer();
 
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline);
-        registry.Register<MqttEgressActor>(fakeEgress);
+        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { Trends = new TrendOptions { Enabled = true } };
-        var actor = CreateEnrichmentActor(registry, enrichment);
+        var actor = CreateEnrichmentActor(enrichment);
 
         await Task.Delay(500);
         Assert.NotNull(actor);

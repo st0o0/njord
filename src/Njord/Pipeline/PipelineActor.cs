@@ -1,11 +1,11 @@
 using Akka.Actor;
-using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain;
 using Njord.Ingest;
+using Servus.Akka;
 
 namespace Njord.Pipeline;
 
@@ -15,7 +15,6 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<PipelineActor> _logger;
-    private readonly ActorRegistry _registry;
 
     private ISinkRef<WeightedTarget>? _sinkRef;
     private ISourceRef<FetchOutcome>? _sourceRef;
@@ -30,14 +29,12 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         IOptions<NjordOptions> options,
         IOpenMeteoClient client,
         TimeProvider timeProvider,
-        ILogger<PipelineActor> logger,
-        ActorRegistry registry)
+        ILogger<PipelineActor> logger)
     {
         _options = options.Value;
         _client = client;
         _timeProvider = timeProvider;
         _logger = logger;
-        _registry = registry;
 
         Initializing();
     }
@@ -83,7 +80,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         var mat = Context.Materializer();
         var budget = _options.EffectiveBudget;
         var budgetPerMinute = (int)(budget.RequestsPerMinute * 0.8);
-        var schedulerActor = _registry.Get<SchedulerActor>();
+        var schedulerActor = Context.GetActor<SchedulerActor>();
 
         var (mergeHubSink, mergeHubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 16)
             .PreMaterialize(mat);

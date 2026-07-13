@@ -1,5 +1,4 @@
 using Akka.Actor;
-using Akka.Hosting;
 using Akka.Persistence;
 using Akka.Streams;
 using Akka.Streams.Dsl;
@@ -7,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain;
 using Njord.Ingest;
+using Servus.Akka;
 
 namespace Njord.Pipeline;
 
@@ -17,7 +17,6 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private readonly NjordOptions _options;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<SchedulerActor> _logger;
-    private readonly ActorRegistry _registry;
     private readonly Dictionary<string, ModelPollState> _states = new();
     private ISourceQueueWithComplete<WeightedTarget>? _queue;
     private readonly int _weight;
@@ -28,13 +27,11 @@ public sealed class SchedulerActor : ReceivePersistentActor
         IOptions<NjordOptions> options,
         TimeProvider timeProvider,
         ILogger<SchedulerActor> logger,
-        ResolvedParameterSet parameters,
-        ActorRegistry registry)
+        ResolvedParameterSet parameters)
     {
         _options = options.Value;
         _timeProvider = timeProvider;
         _logger = logger;
-        _registry = registry;
         _weight = WeightedTarget.ComputeWeight(parameters.HourlyCount, _options.ForecastDays);
 
         Recover<DataChanged>(OnRecover);
@@ -51,7 +48,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     protected override void PreStart()
     {
-        var pipelineActor = _registry.Get<PipelineActor>();
+        var pipelineActor = Context.GetActor<PipelineActor>();
         Context.Watch(pipelineActor);
         pipelineActor.Tell(new RequestPipelineSink());
         pipelineActor.Tell(new RequestPipelineSource());
@@ -89,7 +86,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             _logger.LogWarning("PipelineActor terminated - waiting for new SinkRef");
             _queue?.Complete();
             _queue = null;
-            var pipelineActor = _registry.Get<PipelineActor>();
+            var pipelineActor = Context.GetActor<PipelineActor>();
             Context.Watch(pipelineActor);
             pipelineActor.Tell(new RequestPipelineSink());
             pipelineActor.Tell(new RequestPipelineSource());

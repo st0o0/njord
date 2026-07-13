@@ -1,6 +1,5 @@
 using Akka;
 using Akka.Actor;
-using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
@@ -9,6 +8,7 @@ using Njord.Domain;
 using Njord.Egress;
 using Njord.Ingest;
 using Njord.Pipeline;
+using Servus.Akka;
 
 namespace Njord.Enrichment;
 
@@ -17,7 +17,6 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
     private readonly NjordOptions _options;
     private readonly EnrichmentOptions _enrichmentOptions;
     private readonly ResolvedParameterSet _parameters;
-    private readonly ActorRegistry _registry;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<EnrichmentActor> _logger;
 
@@ -31,14 +30,12 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         IOptions<NjordOptions> options,
         IOptions<EnrichmentOptions> enrichmentOptions,
         ResolvedParameterSet parameters,
-        ActorRegistry registry,
         TimeProvider timeProvider,
         ILogger<EnrichmentActor> logger)
     {
         _options = options.Value;
         _enrichmentOptions = enrichmentOptions.Value;
         _parameters = parameters;
-        _registry = registry;
         _timeProvider = timeProvider;
         _logger = logger;
 
@@ -49,11 +46,11 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
     {
         _mat = Context.Materializer();
 
-        var pipelineActor = _registry.Get<PipelineActor>();
+        var pipelineActor = Context.GetActor<PipelineActor>();
         Context.Watch(pipelineActor);
         pipelineActor.Tell(new RequestPipelineSource());
 
-        var egressActor = _registry.Get<MqttEgressActor>();
+        var egressActor = Context.GetActor<MqttEgressActor>();
         Context.Watch(egressActor);
         egressActor.Tell(new RequestMqttSink());
     }
@@ -98,11 +95,11 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         _sourceRef = null;
         _mqttSinkRef = null;
 
-        var pipelineActor = _registry.Get<PipelineActor>();
+        var pipelineActor = Context.GetActor<PipelineActor>();
         Context.Watch(pipelineActor);
         pipelineActor.Tell(new RequestPipelineSource());
 
-        var egressActor = _registry.Get<MqttEgressActor>();
+        var egressActor = Context.GetActor<MqttEgressActor>();
         Context.Watch(egressActor);
         egressActor.Tell(new RequestMqttSink());
 
@@ -237,9 +234,9 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         var historyActors = new Dictionary<string, IActorRef>();
         foreach (var location in locations)
         {
-            var actor = Context.ActorOf(
-                Props.Create(() => new ForecastHistoryActor(location, historyOptions, parameters)),
-                $"forecast-history-{Egress.TopicScheme.Slug(location)}");
+            var actor = Context.ResolveChildActor<ForecastHistoryActor>(
+                $"forecast-history-{Egress.TopicScheme.Slug(location)}",
+                location, historyOptions);
             historyActors[location] = actor;
         }
 
