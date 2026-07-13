@@ -57,6 +57,12 @@ public static class TopicScheme
     public static string IndexTopic(string baseTopic, string location)
         => $"{baseTopic}/{Slug(location)}/indices";
 
+    public static string EnergyDeviceId(string location)
+        => $"njord_{Slug(location)}_energy";
+
+    public static string EnergyTopic(string baseTopic, string location)
+        => $"{baseTopic}/{Slug(location)}/energy";
+
     public static string Slug(string value)
     {
         var builder = new StringBuilder(value.Length);

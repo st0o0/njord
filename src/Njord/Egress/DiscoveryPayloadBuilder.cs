@@ -196,6 +196,87 @@ public static class DiscoveryPayloadBuilder
         return payload.ToJsonString();
     }
 
+    public static string BuildEnergy(
+        string location,
+        MqttOptions mqtt,
+        TimeSpan pollInterval,
+        string version)
+    {
+        var deviceId = TopicScheme.EnergyDeviceId(location);
+        var availabilityTopic = TopicScheme.AvailabilityTopic(mqtt.BaseTopic);
+        var expireAfterSeconds = (int)(2 * pollInterval.TotalSeconds);
+        var energyTopic = TopicScheme.EnergyTopic(mqtt.BaseTopic, location);
+
+        var components = new JsonObject();
+
+        var numericSensors = new[]
+        {
+            "heating_demand", "cop_estimate", "shading", "night_cooling",
+        };
+
+        foreach (var key in numericSensors)
+        {
+            components[key] = new JsonObject
+            {
+                ["p"] = "sensor",
+                ["unique_id"] = $"{deviceId}_{key}",
+                ["name"] = key.Replace('_', ' '),
+                ["expire_after"] = expireAfterSeconds,
+                ["value_template"] = $"{{{{ value_json.{key} }}}}",
+                ["availability"] = new JsonArray(
+                    new JsonObject { ["topic"] = availabilityTopic }),
+                ["availability_mode"] = "all",
+            };
+        }
+
+        components["battery_strategy"] = new JsonObject
+        {
+            ["p"] = "sensor",
+            ["unique_id"] = $"{deviceId}_battery_strategy",
+            ["name"] = "battery strategy",
+            ["expire_after"] = expireAfterSeconds,
+            ["value_template"] = "{{ value_json.battery_strategy }}",
+            ["availability"] = new JsonArray(
+                new JsonObject { ["topic"] = availabilityTopic }),
+            ["availability_mode"] = "all",
+        };
+
+        components["cop_optimal"] = new JsonObject
+        {
+            ["p"] = "sensor",
+            ["unique_id"] = $"{deviceId}_cop_optimal",
+            ["name"] = "COP optimal hours",
+            ["expire_after"] = expireAfterSeconds,
+            ["value_template"] = "{{ value_json.cop_optimal | length }}",
+            ["json_attributes_topic"] = energyTopic,
+            ["json_attributes_template"] = "{{ {'hours': value_json.cop_optimal} | tojson }}",
+            ["availability"] = new JsonArray(
+                new JsonObject { ["topic"] = availabilityTopic }),
+            ["availability_mode"] = "all",
+        };
+
+        var payload = new JsonObject
+        {
+            ["dev"] = new JsonObject
+            {
+                ["ids"] = new JsonArray(deviceId),
+                ["name"] = $"njord {location} energy",
+                ["mf"] = "njord",
+                ["mdl"] = "energy",
+                ["sw"] = version,
+            },
+            ["o"] = new JsonObject
+            {
+                ["name"] = "njord",
+                ["sw"] = version,
+            },
+            ["qos"] = 1,
+            ["cmps"] = components,
+        };
+
+        return payload.ToJsonString();
+    }
+
     public static string BuildIndices(
         string location,
         MqttOptions mqtt,

@@ -347,4 +347,40 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("sensor", (string?)json["cmps"]!["vpd_category"]!["p"]);
         Assert.False(json["cmps"]!["vpd_category"]!.AsObject().ContainsKey("unit_of_measurement"));
     }
+
+    // --- Energy device ---
+
+    [Fact(Timeout = 5000)]
+    public void Energy_device_id_and_model_name()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildEnergy(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("njord_lucerne_energy", (string?)json["dev"]!["ids"]![0]);
+        Assert.Equal("njord lucerne energy", (string?)json["dev"]!["name"]);
+        Assert.Equal("energy", (string?)json["dev"]!["mdl"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Energy_device_has_expected_component_count()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildEnergy(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        // 4 numeric + 1 text (battery_strategy) + 1 cop_optimal = 6
+        Assert.Equal(6, json["cmps"]!.AsObject().Count);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Energy_battery_strategy_is_text_sensor()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildEnergy(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("sensor", (string?)json["cmps"]!["battery_strategy"]!["p"]);
+        Assert.False(json["cmps"]!["battery_strategy"]!.AsObject().ContainsKey("unit_of_measurement"));
+    }
 }

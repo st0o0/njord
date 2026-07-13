@@ -7,6 +7,7 @@ public sealed class EnrichmentOptions
     public DerivedOptions Derived { get; set; } = new();
     public TrendOptions Trends { get; set; } = new();
     public IndexOptions Indices { get; set; } = new();
+    public EnergyOptions Energy { get; set; } = new();
 }
 
 public sealed class ConsensusOptions
@@ -38,6 +39,16 @@ public sealed class DerivedOptions
 public sealed class TrendOptions
 {
     public bool Enabled { get; set; } = false;
+}
+
+public sealed class EnergyOptions
+{
+    public bool Enabled { get; set; } = false;
+    public double FlowTemp { get; set; } = 35.0;
+    public double CarnotEfficiency { get; set; } = 0.45;
+    public double HeatingBaseTemp { get; set; } = 18.0;
+    public int CopOptimalHours { get; set; } = 3;
+    public double IndoorTemp { get; set; } = 22.0;
 }
 
 public sealed class IndexOptions

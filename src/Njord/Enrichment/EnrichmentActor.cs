@@ -150,6 +150,11 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         {
             MaterializeIndexConsumer(snapshotHubSource, mat);
         }
+
+        if (_enrichmentOptions.Energy.Enabled)
+        {
+            MaterializeEnergyConsumer(snapshotHubSource, mat);
+        }
     }
 
     private void MaterializeConsensusConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
@@ -200,6 +205,38 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
                 foreach (var location in locations)
                 {
                     var result = AlertEvaluator.EvaluateAll(snapshot, location, alertOptions, timeProvider);
+                    foreach (var msg in result.ToMqttMessages(baseTopic))
+                    {
+                        if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
+                            continue;
+                        lastPublished[msg.Topic] = msg.Payload;
+                        messages.Add(msg);
+                    }
+                }
+                return messages;
+            })
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
+                _ => Akka.Streams.Supervision.Directive.Resume))
+            .RunWith(_mqttSinkRef!.Sink, mat);
+    }
+
+    private void MaterializeEnergyConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
+    {
+        var baseTopic = _options.Mqtt.BaseTopic;
+        var parameters = _parameters;
+        var locations = _options.Locations.Select(l => l.Name).ToList();
+        var timeProvider = _timeProvider;
+        var energyOptions = _enrichmentOptions.Energy;
+        var lastPublished = new Dictionary<string, string>();
+
+        snapshotSource
+            .SelectMany(snapshot =>
+            {
+                var messages = new List<MqttMessage>();
+                foreach (var location in locations)
+                {
+                    var result = EnergyResult.Compute(
+                        snapshot, location, parameters, timeProvider, energyOptions);
                     foreach (var msg in result.ToMqttMessages(baseTopic))
                     {
                         if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)

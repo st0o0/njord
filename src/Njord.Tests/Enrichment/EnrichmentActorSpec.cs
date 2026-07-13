@@ -139,6 +139,24 @@ public sealed class EnrichmentActorSpec : IDisposable
     }
 
     [Fact(Timeout = 5000)]
+    public async Task Disabled_energy_does_not_crash()
+    {
+        var registry = new ActorRegistry();
+        var mat = _system.Materializer();
+
+        var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
+        var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
+        registry.Register<PipelineActor>(fakePipeline);
+        registry.Register<MqttEgressActor>(fakeEgress);
+
+        var enrichment = new EnrichmentOptions { Energy = new EnergyOptions { Enabled = false } };
+        var actor = CreateEnrichmentActor(registry, enrichment);
+
+        await Task.Delay(500);
+        Assert.NotNull(actor);
+    }
+
+    [Fact(Timeout = 5000)]
     public async Task Disabled_indices_does_not_crash()
     {
         var registry = new ActorRegistry();
