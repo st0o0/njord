@@ -7,6 +7,7 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain;
+using Njord.Enrichment;
 using Njord.Ingest;
 using Njord.Pipeline;
 
@@ -25,6 +26,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
     private readonly MqttEgressTuning _tuning;
     private readonly ResolvedParameterSet _parameters;
     private readonly ActorRegistry _registry;
+    private readonly EnrichmentOptions _enrichmentOptions;
     private readonly TimeProvider _timeProvider;
     private readonly IReadOnlyList<int> _horizons;
     private readonly string _availabilityTopic;
@@ -47,6 +49,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
 
     public MqttEgressActor(
         IOptions<NjordOptions> options,
+        IOptions<EnrichmentOptions> enrichmentOptions,
         IMqttConnection connection,
         IMqttTransport transport,
         ILogger<MqttEgressActor> logger,
@@ -56,6 +59,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         TimeProvider timeProvider)
     {
         _options = options.Value;
+        _enrichmentOptions = enrichmentOptions.Value;
         _connection = connection;
         _transport = transport;
         _logger = logger;
@@ -113,6 +117,17 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         {
             Receive<Inbound>(OnInbound);
         }
+        Receive<RequestMqttSink>(_ =>
+        {
+            var sender = Sender;
+            StreamRefs.SinkRef<MqttMessage>()
+                .To(_mergeHubSink!)
+                .Run(_mat!)
+                .ContinueWith(t => t.IsCompletedSuccessfully
+                    ? new MqttSinkResponse(t.Result)
+                    : null)
+                .PipeTo(sender);
+        });
         Receive<Terminated>(_ =>
         {
             _logger.LogWarning("PipelineActor terminated — waiting for new SourceRef");
@@ -269,6 +284,25 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
                     location.Name, model, _parameters, _horizons, _options.ForecastDays,
                     _options.Mqtt, _options.PollInterval, Version);
                 _discoveryQueue?.OfferAsync(new MqttMessage(topic, payload, true));
+            }
+
+            if (_enrichmentOptions.Consensus.Enabled)
+            {
+                var consensusDeviceId = TopicScheme.ConsensusDeviceId(location.Name);
+                var consensusTopic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, consensusDeviceId);
+                var consensusPayload = DiscoveryPayloadBuilder.BuildConsensus(
+                    location.Name, _parameters, _horizons, _options.ForecastDays,
+                    _options.Mqtt, _options.PollInterval, Version);
+                _discoveryQueue?.OfferAsync(new MqttMessage(consensusTopic, consensusPayload, true));
+            }
+
+            if (_enrichmentOptions.Alerts.Enabled)
+            {
+                var alertDeviceId = TopicScheme.AlertDeviceId(location.Name);
+                var alertTopic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, alertDeviceId);
+                var alertPayload = DiscoveryPayloadBuilder.BuildAlerts(
+                    location.Name, _options.Mqtt, _options.PollInterval, Version);
+                _discoveryQueue?.OfferAsync(new MqttMessage(alertTopic, alertPayload, true));
             }
         }
     }

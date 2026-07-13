@@ -107,3 +107,18 @@ The pipeline SHALL emit one structured log entry per fetch outcome (success or f
 #### Scenario: Each fetch logs its outcome
 - **WHEN** a fetch for (lucerne, icon_d2) completes in 1200ms
 - **THEN** a structured log entry is emitted with location="lucerne", model="icon_d2", duration=1200ms, status="success"
+
+### Requirement: The EnrichmentActor is a BroadcastHub consumer via SourceRef
+The `EnrichmentActor` SHALL request a `SourceRef<FetchOutcome>` from the `PipelineActor` using the existing `RequestPipelineSource` / `PipelineSourceResponse` protocol. This makes the EnrichmentActor a third consumer of the pipeline's BroadcastHub, alongside the EgressActor's consumer graph and the PipelineActor's local feedback consumer. The PipelineActor SHALL NOT require any changes to support this — the existing SourceRef vending mechanism supports multiple consumers.
+
+#### Scenario: Three consumers receive the same fetch outcome
+- **WHEN** a `FetchOutcome.Success` enters the BroadcastHub
+- **THEN** the egress consumer, the feedback consumer, and the EnrichmentActor's consumer all receive it
+
+#### Scenario: EnrichmentActor connects independently
+- **WHEN** the EnrichmentActor starts and requests a SourceRef
+- **THEN** the PipelineActor vends a SourceRef without any protocol changes
+
+#### Scenario: EnrichmentActor failure does not affect other consumers
+- **WHEN** the EnrichmentActor's consumer stream fails
+- **THEN** the egress consumer and feedback consumer continue operating; the EnrichmentActor restarts and re-requests a SourceRef

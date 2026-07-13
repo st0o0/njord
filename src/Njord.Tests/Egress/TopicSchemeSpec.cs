@@ -58,4 +58,32 @@ public sealed class TopicSchemeSpec
             "njord_home_icon_d2_temperature_max_d1",
             TopicScheme.DailyUniqueId("home", IconD2, TempMax, 1));
     }
+
+    [Fact(Timeout = 5000)]
+    public void Consensus_device_id_uses_location_slug()
+    {
+        Assert.Equal("njord_lucerne_consensus", TopicScheme.ConsensusDeviceId("lucerne"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Consensus_horizon_topic_uses_consensus_segment()
+    {
+        Assert.Equal("njord/lucerne/consensus/h3",
+            TopicScheme.ConsensusHorizonTopic("njord", "lucerne", "h3"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Alert_device_id_uses_location_slug()
+    {
+        Assert.Equal("njord_lucerne_alerts", TopicScheme.AlertDeviceId("lucerne"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Alert_topic_uses_alerts_segment()
+    {
+        Assert.Equal("njord/lucerne/alerts/frost",
+            TopicScheme.AlertTopic("njord", "lucerne", "frost"));
+        Assert.Equal("njord/lucerne/alerts/heavy-rain",
+            TopicScheme.AlertTopic("njord", "lucerne", "heavy-rain"));
+    }
 }

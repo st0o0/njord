@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain;
 using Njord.Egress;
+using Njord.Enrichment;
 using Njord.Ingest;
 using Njord.Pipeline;
 
@@ -22,6 +23,9 @@ builder.Services.AddSingleton(sp =>
         options.Parameters.Extra,
         options.Parameters.Exclude);
 });
+builder.Services
+    .AddOptions<EnrichmentOptions>()
+    .Bind(builder.Configuration.GetSection($"{NjordOptions.SectionName}:Enrichment"));
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddOpenMeteoIngest();
 builder.Services.AddMqttEgress();
@@ -60,6 +64,8 @@ builder.Services.AddAkka("njord", (akka, sp) =>
                 system.ActorOf(resolver.Props<PipelineActor>(), "pipeline"));
             registry.Register<SchedulerActor>(
                 system.ActorOf(resolver.Props<SchedulerActor>(), "scheduler"));
+            registry.Register<EnrichmentActor>(
+                system.ActorOf(resolver.Props<EnrichmentActor>(), "enrichment"));
         });
 });
 

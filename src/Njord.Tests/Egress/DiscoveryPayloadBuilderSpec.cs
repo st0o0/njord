@@ -92,4 +92,67 @@ public sealed class DiscoveryPayloadBuilderSpec
             Assert.False(component!.AsObject().ContainsKey("state_class"));
         }
     }
+
+    [Fact(Timeout = 5000)]
+    public void Consensus_device_id_and_model_name()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildConsensus(
+            "lucerne", SmallParams, DefaultHorizons, 4, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("njord_lucerne_consensus", (string?)json["dev"]!["ids"]![0]);
+        Assert.Equal("njord lucerne consensus", (string?)json["dev"]!["name"]);
+        Assert.Equal("consensus", (string?)json["dev"]!["mdl"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Consensus_components_use_consensus_topic()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildConsensus(
+            "lucerne", new ResolvedParameterSet([Temperature], []),
+            [3], 4, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+        var component = json["cmps"]!["temperature_h3"]!;
+
+        Assert.Equal("njord_lucerne_consensus_temperature_h3", (string?)component["unique_id"]);
+
+        var availability = component["availability"]!.AsArray();
+        Assert.Equal("njord/lucerne/consensus/h3", (string?)availability[1]!["topic"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Consensus_only_includes_hourly_parameters()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildConsensus(
+            "lucerne", SmallParams, DefaultHorizons, 4, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        // 2 hourly × 6 horizons = 12 (no daily components)
+        Assert.Equal(12, json["cmps"]!.AsObject().Count);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Alert_device_has_9_binary_sensor_components()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildAlerts(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+
+        Assert.Equal("njord_lucerne_alerts", (string?)json["dev"]!["ids"]![0]);
+        Assert.Equal("alerts", (string?)json["dev"]!["mdl"]);
+        Assert.Equal(9, json["cmps"]!.AsObject().Count);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Alert_components_are_binary_sensors_with_value_template()
+    {
+        var payload = DiscoveryPayloadBuilder.BuildAlerts(
+            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+        var json = JsonNode.Parse(payload)!;
+        var frost = json["cmps"]!["frost"]!;
+
+        Assert.Equal("binary_sensor", (string?)frost["p"]);
+        Assert.Contains("severity", (string?)frost["value_template"]);
+        Assert.Equal("njord_lucerne_alerts_frost", (string?)frost["unique_id"]);
+    }
 }

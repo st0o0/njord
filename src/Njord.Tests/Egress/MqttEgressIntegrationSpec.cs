@@ -57,6 +57,7 @@ public sealed class MqttEgressIntegrationSpec
         registry.Register<PipelineActor>(fakePipeline);
         var actor = system.ActorOf(Props.Create(() => new MqttEgressActor(
             Microsoft.Extensions.Options.Options.Create(options),
+            Microsoft.Extensions.Options.Options.Create(new Njord.Configuration.EnrichmentOptions()),
             mqttClient,
             mqttClient,
             NullLogger<MqttEgressActor>.Instance,

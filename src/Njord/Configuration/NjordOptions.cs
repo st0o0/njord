@@ -30,5 +30,7 @@ public sealed class NjordOptions
 
     public TimeSpan DiscoveryInterval { get; set; } = TimeSpan.FromMinutes(20);
 
+    public EnrichmentOptions Enrichment { get; set; } = new();
+
     public string PersistencePath { get; set; } = "data/njord-journal.db";
 }

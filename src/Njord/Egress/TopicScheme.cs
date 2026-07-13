@@ -24,6 +24,18 @@ public static class TopicScheme
     public static string DailyUniqueId(string location, WeatherModel model, ParameterDef parameter, int dayOffset)
         => $"{DeviceId(location, model)}_{parameter.JsonKey}_d{dayOffset}";
 
+    public static string AlertDeviceId(string location)
+        => $"njord_{Slug(location)}_alerts";
+
+    public static string AlertTopic(string baseTopic, string location, string alertType)
+        => $"{baseTopic}/{Slug(location)}/alerts/{alertType}";
+
+    public static string ConsensusDeviceId(string location)
+        => $"njord_{Slug(location)}_consensus";
+
+    public static string ConsensusHorizonTopic(string baseTopic, string location, string horizon)
+        => $"{baseTopic}/{Slug(location)}/consensus/{horizon}";
+
     public static string Slug(string value)
     {
         var builder = new StringBuilder(value.Length);
