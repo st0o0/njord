@@ -4,8 +4,10 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
-using Njord.Domain;
+using Njord.Domain.Analysis;
+using Njord.Domain.Weather;
 using Njord.Egress;
+using Njord.Mqtt;
 using Njord.Ingest;
 using Njord.Pipeline;
 using Servus.Akka;
@@ -177,7 +179,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
                 {
                     var result = ConsensusResult.Compute(
                         snapshot, parameters, horizons, location, timeProvider, trimPercent);
-                    foreach (var msg in result.ToMqttMessages(baseTopic, location))
+                    foreach (var msg in StatePayloadBuilder.FromConsensus(result, baseTopic, location))
                     {
                         if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
                             continue;
@@ -207,7 +209,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
                 foreach (var location in locations)
                 {
                     var result = AlertEvaluator.EvaluateAll(snapshot, location, alertOptions, timeProvider);
-                    foreach (var msg in result.ToMqttMessages(baseTopic))
+                    foreach (var msg in StatePayloadBuilder.FromAlerts(result, baseTopic))
                     {
                         if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
                             continue;
@@ -235,7 +237,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         foreach (var location in locations)
         {
             var actor = Context.ResolveChildActor<ForecastHistoryActor>(
-                $"forecast-history-{Egress.TopicScheme.Slug(location)}",
+                $"forecast-history-{TopicScheme.Slug(location)}",
                 location, historyOptions);
             historyActors[location] = actor;
         }
@@ -252,7 +254,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
                     var response = actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(5)).Result;
                     var result = HistoryResult.Compute(
                         response.History, snapshot, location, parameters, timeProvider, historyOptions);
-                    foreach (var msg in result.ToMqttMessages(baseTopic))
+                    foreach (var msg in StatePayloadBuilder.FromHistory(result, baseTopic))
                     {
                         if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
                             continue;
@@ -284,7 +286,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
                 {
                     var result = EnergyResult.Compute(
                         snapshot, location, parameters, timeProvider, energyOptions);
-                    foreach (var msg in result.ToMqttMessages(baseTopic))
+                    foreach (var msg in StatePayloadBuilder.FromEnergy(result, baseTopic))
                     {
                         if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
                             continue;
@@ -316,7 +318,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
                 {
                     var result = IndexResult.Compute(
                         snapshot, location, parameters, timeProvider, indexOptions);
-                    foreach (var msg in result.ToMqttMessages(baseTopic))
+                    foreach (var msg in StatePayloadBuilder.FromIndices(result, baseTopic))
                     {
                         if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
                             continue;
@@ -355,7 +357,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
                 {
                     var result = TrendResult.Compute(
                         snapshot, prev, location, horizons, parameters, timeProvider);
-                    foreach (var msg in result.ToMqttMessages(baseTopic))
+                    foreach (var msg in StatePayloadBuilder.FromTrends(result, baseTopic))
                     {
                         if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
                             continue;
@@ -387,7 +389,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
                 {
                     var result = DerivedResult.Compute(
                         snapshot, location, horizons, parameters, timeProvider);
-                    foreach (var msg in result.ToMqttMessages(baseTopic))
+                    foreach (var msg in StatePayloadBuilder.FromDerived(result, baseTopic))
                     {
                         if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
                             continue;
