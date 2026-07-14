@@ -32,7 +32,7 @@ jobs:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -45,7 +45,7 @@ jobs:
           restore-keys: nuget-${{ runner.os }}-
       - name: Run tests
         working-directory: src
-        run: dotnet run --project Njord.Tests/Njord.Tests.csproj
+        run: dotnet test Njord.slnx
 
   docker:
     needs: [release-please, test]

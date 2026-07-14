@@ -20,10 +20,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Named to match the branch-protection required checks: unit, lint, build, commitlint.
-  unit:
+  # Named to match the branch-protection required checks: test, lint, build, commitlint.
+  test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -34,10 +34,11 @@ jobs:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('src/**/*.csproj', 'src/Directory.Packages.props') }}
           restore-keys: nuget-${{ runner.os }}-
-      # xUnit v3 on Microsoft.Testing.Platform — `dotnet run`, not `dotnet test`.
+      # xUnit v3 mtp-v2 supports `dotnet test` at solution level — runs unit,
+      # integration (Testcontainers), and E2E projects in one go.
       - name: Run tests
         working-directory: src
-        run: dotnet run --project Njord.Tests/Njord.Tests.csproj
+        run: dotnet test Njord.slnx
 
   lint:
     runs-on: ubuntu-latest
