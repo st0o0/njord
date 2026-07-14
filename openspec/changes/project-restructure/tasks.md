@@ -37,9 +37,9 @@
 ## 6. Mqtt test restructure
 
 - [x] 6.1 Create `src/Njord.Tests/Mqtt/` folder. Move `TopicSchemeSpec.cs`, `DiscoveryPayloadBuilderSpec.cs`, `StatePayloadBuilderSpec.cs`, `MqttEgressIntegrationSpec.cs` from `src/Njord.Tests/Egress/` to `src/Njord.Tests/Mqtt/`. Update namespaces to `Njord.Tests.Mqtt`.
-- [ ] 6.2 Write `src/Njord.Tests/Mqtt/MqttConnectionActorSpec.cs` — test connect, reconnect, LWT online/offline, SinkRef vending.
-- [ ] 6.3 Write `src/Njord.Tests/Mqtt/MqttPublisherActorSpec.cs` — test registration with EgressActor, domain result → MqttMessage transformation, delta publishing.
-- [ ] 6.4 Write `src/Njord.Tests/Mqtt/DiscoveryActorSpec.cs` — test discovery publishing on connect, re-publish on HA birth, no-op when disabled.
+- [x] 6.2 Write `src/Njord.Tests/Mqtt/MqttConnectionActorSpec.cs` — test connect, reconnect, LWT online/offline, SinkRef vending.
+- [x] 6.3 Write `src/Njord.Tests/Mqtt/MqttPublisherActorSpec.cs` — test registration with EgressActor, domain result → MqttMessage transformation, delta publishing.
+- [x] 6.4 Write `src/Njord.Tests/Mqtt/DiscoveryActorSpec.cs` — test discovery publishing on connect, re-publish on HA birth, no-op when disabled.
 - [x] 6.5 Update `MqttEgressIntegrationSpec` to use the new actor topology (MqttConnectionActor + MqttPublisherActor + DiscoveryActor).
 
 ## 7. EnrichmentActor rewire
