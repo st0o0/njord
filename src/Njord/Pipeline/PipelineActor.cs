@@ -1,3 +1,4 @@
+using Akka;
 using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
@@ -16,14 +17,13 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<PipelineActor> _logger;
 
-    private ISinkRef<WeightedTarget>? _sinkRef;
-    private ISourceRef<FetchOutcome>? _sourceRef;
+    private Sink<WeightedTarget, NotUsed>? _mergeHubSink;
+    private Source<FetchOutcome, NotUsed>? _broadcastHubSource;
+    private IMaterializer? _mat;
 
     public IStash Stash { get; set; } = null!;
 
-    private sealed record StreamRefsMaterialized(
-        ISinkRef<WeightedTarget> SinkRef,
-        ISourceRef<FetchOutcome> SourceRef);
+    private sealed record PipelineReady;
 
     public PipelineActor(
         IOptions<NjordOptions> options,
@@ -46,11 +46,9 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
 
     private void Initializing()
     {
-        Receive<StreamRefsMaterialized>(msg =>
+        Receive<PipelineReady>(_ =>
         {
-            _sinkRef = msg.SinkRef;
-            _sourceRef = msg.SourceRef;
-            _logger.LogInformation("Pipeline graph materialized — ready to accept producers and consumers");
+            _logger.LogInformation("Pipeline graph materialized - ready to accept producers and consumers");
             Become(Ready);
             Stash.UnstashAll();
         });
@@ -61,32 +59,35 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     {
         Receive<RequestPipelineSink>(_ =>
         {
-            if (_sinkRef is not null)
-            {
-                Sender.Tell(new PipelineSinkResponse(_sinkRef));
-            }
+            var sinkRef = StreamRefs.SinkRef<WeightedTarget>()
+                .To(_mergeHubSink!)
+                .Run(_mat!);
+            sinkRef.PipeTo(Sender, Self,
+                sr => new PipelineSinkResponse(sr),
+                _ => null!);
         });
         Receive<RequestPipelineSource>(_ =>
         {
-            if (_sourceRef is not null)
-            {
-                Sender.Tell(new PipelineSourceResponse(_sourceRef));
-            }
+            var sourceRef = _broadcastHubSource!
+                .RunWith(StreamRefs.SourceRef<FetchOutcome>(), _mat!);
+            sourceRef.PipeTo(Sender, Self,
+                sr => new PipelineSourceResponse(sr),
+                _ => null!);
         });
     }
 
     private void MaterializePipeline()
     {
-        var mat = Context.Materializer();
+        _mat = Context.Materializer();
         var budget = _options.EffectiveBudget;
         var budgetPerMinute = (int)(budget.RequestsPerMinute * 0.8);
         var schedulerActor = Context.GetActor<SchedulerActor>();
 
         var (mergeHubSink, mergeHubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 16)
-            .PreMaterialize(mat);
+            .PreMaterialize(_mat);
 
         var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<FetchOutcome>(bufferSize: 256)
-            .PreMaterialize(mat);
+            .PreMaterialize(_mat);
 
         mergeHubSource
             .Throttle(budgetPerMinute, TimeSpan.FromMinutes(1), budgetPerMinute,
@@ -95,7 +96,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                 await _client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None))
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(_ => Akka.Streams.Supervision.Directive.Resume))
             .To(broadcastHubSink)
-            .Run(mat);
+            .Run(_mat);
 
         broadcastHubSource
             .Collect(outcome => outcome is FetchOutcome.Success, outcome => (FetchOutcome.Success)outcome)
@@ -106,18 +107,11 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
             .Ask<Ack>(schedulerActor, TimeSpan.FromSeconds(5))
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(_ => Akka.Streams.Supervision.Directive.Resume))
             .To(Sink.Ignore<Ack>())
-            .Run(mat);
+            .Run(_mat);
 
-        var self = Self;
-        var sinkRefTask = StreamRefs.SinkRef<WeightedTarget>()
-            .To(mergeHubSink)
-            .Run(mat);
+        _mergeHubSink = mergeHubSink;
+        _broadcastHubSource = broadcastHubSource;
 
-        var sourceRefTask = broadcastHubSource
-            .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat);
-
-        Task.WhenAll(sinkRefTask, sourceRefTask)
-            .ContinueWith(_ => new StreamRefsMaterialized(sinkRefTask.Result, sourceRefTask.Result))
-            .PipeTo(self);
+        Self.Tell(new PipelineReady());
     }
 }
