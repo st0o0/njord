@@ -96,6 +96,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private void InitializeStates()
     {
         var now = _timeProvider.GetUtcNow();
+        var staggerIndex = 0;
         foreach (var location in _options.Locations)
         {
             foreach (var modelId in _options.Models)
@@ -103,10 +104,15 @@ public sealed class SchedulerActor : ReceivePersistentActor
                 var key = Key(location.Name, modelId);
                 if (!_states.ContainsKey(key))
                 {
-                    _states[key] = ModelPollState.Initial(now);
+                    var staggerDelay = TimeSpan.FromSeconds(1 + staggerIndex * 2);
+                    _states[key] = ModelPollState.Initial(now) with
+                    {
+                        NextPollUtc = now + staggerDelay,
+                    };
                 }
 
                 ScheduleNext(location.Name, modelId);
+                staggerIndex++;
             }
         }
     }

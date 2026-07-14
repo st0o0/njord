@@ -90,9 +90,9 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
             .PreMaterialize(_mat);
 
         mergeHubSource
-            .Throttle(budgetPerMinute, TimeSpan.FromMinutes(1), budgetPerMinute,
+            .Throttle(budgetPerMinute, TimeSpan.FromMinutes(1), maximumBurst: 4,
                 element => element.Weight, ThrottleMode.Shaping)
-            .SelectAsyncUnordered(8, async target =>
+            .SelectAsyncUnordered(4, async target =>
                 await _client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None))
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(_ => Akka.Streams.Supervision.Directive.Resume))
             .To(broadcastHubSink)
