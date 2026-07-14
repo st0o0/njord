@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The EnrichmentActor consumes the pipeline's BroadcastHub via SourceRef, maintains a running ModelSnapshot via Scan, fans out to consumer streams through a second BroadcastHub, and routes computed domain results to the EgressActor as `PublishStateResult` messages. Consumer streams are materialized only when enabled in configuration.
+The EnrichmentActor consumes the pipeline's BroadcastHub via SourceRef, maintains a running ModelSnapshot via Scan, fans out to consumer streams through a second BroadcastHub, and routes computed domain results to the EgressActor as `EgressEvent` variants via StreamRef. Consumer streams are materialized only when enabled in configuration.
 
 ## Requirements
 
@@ -44,18 +44,43 @@ The `EnrichmentActor` SHALL materialize a `BroadcastHub<ModelSnapshot>` from the
 - **THEN** both consumers receive the snapshot independently
 
 ### Requirement: EnrichmentActor fans out enrichment results to EgressActor
-The `EnrichmentActor` SHALL send computed enrichment results (ConsensusResult, AlertResult, DerivedResult, TrendResult, IndexResult, EnergyResult, HistoryResult) to the `EgressActor` as `PublishStateResult` messages. It SHALL NOT produce `MqttMessage` instances directly. It SHALL NOT reference `MqttMessage`, `TopicScheme`, or any type from `Njord.Mqtt`.
 
-#### Scenario: Consensus result routed through EgressActor
-- **WHEN** the consensus stream computes a `ConsensusResult`
-- **THEN** `EnrichmentActor` sends `PublishStateResult(location, result)` to `EgressActor`
+Each enrichment consumer sub-graph SHALL wrap its computed domain result in the corresponding `EgressEvent` variant and send it to the EgressActor's MergeHub via `ISinkRef<EgressEvent>`. The `EnrichmentActor` SHALL request an `ISinkRef<EgressEvent>` from the `EgressActor` (via `RequestEgressSink`) instead of requesting an `ISinkRef<MqttMessage>` from `MqttConnectionActor`. The `EnrichmentActor` SHALL NOT reference any types from `Njord.Mqtt`.
 
-#### Scenario: No direct MqttMessage production
-- **WHEN** any enrichment stream produces a result
-- **THEN** the result is a domain record from `Njord.Domain.Analysis`, not an `MqttMessage`
+#### Scenario: Consensus result produces ConsensusUpdate
+- **WHEN** the consensus sub-graph computes a `ConsensusResult` for a location
+- **THEN** it SHALL emit `EgressEvent.ConsensusUpdate(location, result)` into the EgressActor's MergeHub
+
+#### Scenario: Alert result produces AlertUpdate
+- **WHEN** the alert sub-graph evaluates alerts for a location
+- **THEN** it SHALL emit `EgressEvent.AlertUpdate(location, result)` into the EgressActor's MergeHub
+
+#### Scenario: Derived result produces DerivedUpdate
+- **WHEN** the derived sub-graph computes derived values for a location
+- **THEN** it SHALL emit `EgressEvent.DerivedUpdate(location, result)` into the EgressActor's MergeHub
+
+#### Scenario: Trend result produces TrendUpdate
+- **WHEN** the trend sub-graph computes trend analysis for a location
+- **THEN** it SHALL emit `EgressEvent.TrendUpdate(location, result)` into the EgressActor's MergeHub
+
+#### Scenario: Index result produces IndexUpdate
+- **WHEN** the index sub-graph computes activity indices for a location
+- **THEN** it SHALL emit `EgressEvent.IndexUpdate(location, result)` into the EgressActor's MergeHub
+
+#### Scenario: Energy result produces EnergyUpdate
+- **WHEN** the energy sub-graph computes energy management values for a location
+- **THEN** it SHALL emit `EgressEvent.EnergyUpdate(location, result)` into the EgressActor's MergeHub
+
+#### Scenario: History result produces HistoryUpdate
+- **WHEN** the history sub-graph computes historical analysis for a location
+- **THEN** it SHALL emit `EgressEvent.HistoryUpdate(location, result)` into the EgressActor's MergeHub
+
+#### Scenario: No MQTT dependency
+- **WHEN** the `EnrichmentActor` source file is compiled
+- **THEN** it SHALL have no `using Njord.Mqtt` directive and no reference to `MqttMessage`, `MqttSinkResponse`, `RequestMqttSink`, or any other `Njord.Mqtt` type
 
 ### Requirement: Consumer streams are materialized only when enabled
-The `EnrichmentActor` SHALL read `EnrichmentOptions` from configuration. For each consumer type (e.g. `Consensus`), if `Enabled` is `false`, the consumer stream SHALL NOT be materialized — no BroadcastHub subscriber is created. If `Enabled` is `true`, the consumer stream SHALL be materialized and connected to the BroadcastHub and MqttSinkRef.
+The `EnrichmentActor` SHALL read `EnrichmentOptions` from configuration. For each consumer type (e.g. `Consensus`), if `Enabled` is `false`, the consumer stream SHALL NOT be materialized — no BroadcastHub subscriber is created. If `Enabled` is `true`, the consumer stream SHALL be materialized and connected to the BroadcastHub and EgressActor SinkRef.
 
 #### Scenario: Disabled consumer is not materialized
 - **WHEN** `EnrichmentOptions.Consensus.Enabled` is `false`
@@ -66,15 +91,16 @@ The `EnrichmentActor` SHALL read `EnrichmentOptions` from configuration. For eac
 - **THEN** the consensus consumer stream is materialized and connected to the BroadcastHub
 
 ### Requirement: Enrichment streams sink to EgressActor instead of MergeHub
-Each enrichment consumer stream (consensus, alerts, derived, trends, indices, energy, history) SHALL end with a `Tell` to `EgressActor` carrying the domain result, instead of pushing `MqttMessage` instances into a MergeHub `SinkRef`. The `EnrichmentActor` SHALL resolve `EgressActor` via `Context.GetActor<EgressActor>()`.
 
-#### Scenario: EnrichmentActor resolves EgressActor
-- **WHEN** `EnrichmentActor` starts
-- **THEN** it resolves `EgressActor` via `Context.GetActor<EgressActor>()`
+Each enrichment consumer stream SHALL use `RunWith(egressSinkRef.Sink, mat)` to deliver `EgressEvent` instances to the EgressActor's MergeHub. The stream graphs SHALL NOT maintain their own dedup dictionaries — deduplication is the responsibility of the downstream protocol-specific consumers.
 
-#### Scenario: Stream consumer sends domain result to EgressActor
-- **WHEN** the alert stream computes an `AlertResult`
-- **THEN** `EnrichmentActor` tells `EgressActor` with `PublishStateResult(location, alertResult)`
+#### Scenario: Consumer graph terminates at EgressActor sink
+- **WHEN** an enrichment consumer sub-graph is materialized
+- **THEN** its terminal sink SHALL be the `ISinkRef<EgressEvent>` obtained from the EgressActor
+
+#### Scenario: No per-consumer dedup in enrichment
+- **WHEN** an enrichment sub-graph produces an `EgressEvent` with the same payload as a previous emission
+- **THEN** the enrichment sub-graph SHALL still emit it — dedup is downstream
 
 ### Requirement: Stream supervision resumes on consumer errors
 Each consumer stream SHALL use a supervision strategy that resumes on exceptions. A failure in one consumer's computation SHALL NOT terminate other consumer streams or the snapshot BroadcastHub.
@@ -84,7 +110,7 @@ Each consumer stream SHALL use a supervision strategy that resumes on exceptions
 - **THEN** the stream resumes and processes the next snapshot; other consumers are unaffected
 
 ### Requirement: The EnrichmentActor materializes an alert consumer stream when enabled
-The `EnrichmentActor` SHALL materialize an alert consumer stream when `EnrichmentOptions.Alerts.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, evaluate all alert types via `AlertEvaluator`, serialize results to `MqttMessage`s, apply delta publishing, and sink into the MqttSinkRef. If `Alerts.Enabled` is `false`, no alert consumer stream SHALL be materialized.
+The `EnrichmentActor` SHALL materialize an alert consumer stream when `EnrichmentOptions.Alerts.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, evaluate all alert types via `AlertEvaluator`, wrap results in the corresponding `EgressEvent` variant, and sink into the EgressActor's SinkRef. If `Alerts.Enabled` is `false`, no alert consumer stream SHALL be materialized.
 
 #### Scenario: Alert consumer alongside consensus
 - **WHEN** both `Consensus.Enabled` and `Alerts.Enabled` are `true`
@@ -99,7 +125,7 @@ The `EnrichmentActor` SHALL materialize an alert consumer stream when `Enrichmen
 - **THEN** no alert consumer stream is materialized
 
 ### Requirement: The EnrichmentActor materializes a derived consumer stream when enabled
-The `EnrichmentActor` SHALL materialize a derived consumer stream when `EnrichmentOptions.Derived.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, compute all derived values via `DerivedResult.Compute`, serialize results to `MqttMessage`s, apply delta publishing, and sink into the MqttSinkRef. If `Derived.Enabled` is `false`, no derived consumer stream SHALL be materialized.
+The `EnrichmentActor` SHALL materialize a derived consumer stream when `EnrichmentOptions.Derived.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, compute all derived values via `DerivedResult.Compute`, wrap results in the corresponding `EgressEvent` variant, and sink into the EgressActor's SinkRef. If `Derived.Enabled` is `false`, no derived consumer stream SHALL be materialized.
 
 #### Scenario: Derived consumer alongside consensus and alerts
 - **WHEN** `Consensus.Enabled`, `Alerts.Enabled`, and `Derived.Enabled` are all `true`
@@ -114,7 +140,7 @@ The `EnrichmentActor` SHALL materialize a derived consumer stream when `Enrichme
 - **THEN** no derived consumer stream is materialized
 
 ### Requirement: The EnrichmentActor materializes a trend consumer stream when enabled
-The `EnrichmentActor` SHALL materialize a trend consumer stream when `EnrichmentOptions.Trends.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, use a `Scan` operator to carry a `(ModelSnapshot? Previous, ModelSnapshot Current)` pair, compute trends via `TrendResult.Compute` when a previous snapshot exists, serialize results to `MqttMessage`s, apply delta publishing, and sink into the MqttSinkRef. If `Trends.Enabled` is `false`, no trend consumer stream SHALL be materialized. The first snapshot after materialization SHALL produce no trend output (no previous to compare against).
+The `EnrichmentActor` SHALL materialize a trend consumer stream when `EnrichmentOptions.Trends.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, use a `Scan` operator to carry a `(ModelSnapshot? Previous, ModelSnapshot Current)` pair, compute trends via `TrendResult.Compute` when a previous snapshot exists, wrap results in the corresponding `EgressEvent` variant, and sink into the EgressActor's SinkRef. If `Trends.Enabled` is `false`, no trend consumer stream SHALL be materialized. The first snapshot after materialization SHALL produce no trend output (no previous to compare against).
 
 #### Scenario: Trend consumer with scan pairing
 - **WHEN** `Trends.Enabled` is `true` and two consecutive snapshots arrive
@@ -129,7 +155,7 @@ The `EnrichmentActor` SHALL materialize a trend consumer stream when `Enrichment
 - **THEN** no trend consumer stream is materialized
 
 ### Requirement: The EnrichmentActor materializes an index consumer stream when enabled
-The `EnrichmentActor` SHALL materialize an index consumer stream when `EnrichmentOptions.Indices.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, compute all indices via `IndexResult.Compute`, serialize results to `MqttMessage`s, apply delta publishing, and sink into the MqttSinkRef. If `Indices.Enabled` is `false`, no index consumer stream SHALL be materialized.
+The `EnrichmentActor` SHALL materialize an index consumer stream when `EnrichmentOptions.Indices.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, compute all indices via `IndexResult.Compute`, wrap results in the corresponding `EgressEvent` variant, and sink into the EgressActor's SinkRef. If `Indices.Enabled` is `false`, no index consumer stream SHALL be materialized.
 
 #### Scenario: Index consumer enabled
 - **WHEN** `Indices.Enabled` is `true`
@@ -140,7 +166,7 @@ The `EnrichmentActor` SHALL materialize an index consumer stream when `Enrichmen
 - **THEN** no index consumer stream is materialized
 
 ### Requirement: The EnrichmentActor materializes an energy consumer stream when enabled
-The `EnrichmentActor` SHALL materialize an energy consumer stream when `EnrichmentOptions.Energy.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, compute all energy values via `EnergyResult.Compute`, serialize results to `MqttMessage`s, apply delta publishing, and sink into the MqttSinkRef. If `Energy.Enabled` is `false`, no energy consumer stream SHALL be materialized.
+The `EnrichmentActor` SHALL materialize an energy consumer stream when `EnrichmentOptions.Energy.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, compute all energy values via `EnergyResult.Compute`, wrap results in the corresponding `EgressEvent` variant, and sink into the EgressActor's SinkRef. If `Energy.Enabled` is `false`, no energy consumer stream SHALL be materialized.
 
 #### Scenario: Energy consumer enabled
 - **WHEN** `Energy.Enabled` is `true`
@@ -151,7 +177,7 @@ The `EnrichmentActor` SHALL materialize an energy consumer stream when `Enrichme
 - **THEN** no energy consumer stream is materialized
 
 ### Requirement: The EnrichmentActor materializes a history consumer stream when enabled
-The `EnrichmentActor` SHALL materialize a history consumer stream when `EnrichmentOptions.History.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, forward each snapshot to the `ForecastHistoryActor` for persistence, query the actor for history state, compute analysis via `HistoryAnalyzer`, serialize results to `MqttMessage`s, apply delta publishing, and sink into the MqttSinkRef. The `ForecastHistoryActor` SHALL be created per location as a child of the `EnrichmentActor`. If `History.Enabled` is `false`, no history consumer stream or history actors SHALL be materialized.
+The `EnrichmentActor` SHALL materialize a history consumer stream when `EnrichmentOptions.History.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, forward each snapshot to the `ForecastHistoryActor` for persistence, query the actor for history state, compute analysis via `HistoryAnalyzer`, wrap results in the corresponding `EgressEvent` variant, and sink into the EgressActor's SinkRef. The `ForecastHistoryActor` SHALL be created per location as a child of the `EnrichmentActor`. If `History.Enabled` is `false`, no history consumer stream or history actors SHALL be materialized.
 
 #### Scenario: History consumer enabled
 - **WHEN** `History.Enabled` is `true`

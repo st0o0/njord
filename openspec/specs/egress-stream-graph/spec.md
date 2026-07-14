@@ -2,16 +2,26 @@
 
 ## Purpose
 
-Defines the Akka.Streams graph owned by the MqttConnectionActor: a MergeHub that converges messages from multiple producers (MqttPublisherActor, DiscoveryActor, availability queue, tombstone queue) into a single Publish Sink with bounded buffering and DropHead overflow.
+Defines the Akka.Streams graph owned by the MqttConnectionActor: a MergeHub that converges messages from multiple producers (MqttEgressActor, DiscoveryActor, availability queue, tombstone queue) into a single Publish Sink with bounded buffering and DropHead overflow.
 
 ## Requirements
 
 ### Requirement: MergeHub converges messages from multiple sources into a single publish sink
-The `MqttConnectionActor` SHALL materialize a MergeHub of `MqttMessage`. The publish sink SHALL process messages with `SelectAsync(1)` through `IMqttTransport.SendAsync` with `Supervision.Directive.Resume` on errors. Multiple producers (MqttPublisherActor, DiscoveryActor, availability queue) SHALL feed the MergeHub via `SinkRef<MqttMessage>` or internal source queues. The availability source queue (online/offline) SHALL remain internal to `MqttConnectionActor`.
+The `MqttConnectionActor` SHALL materialize a MergeHub of `MqttMessage`. The publish sink SHALL process messages with `SelectAsync(1)` through `IMqttTransport.SendAsync` with `Supervision.Directive.Resume` on errors. The MergeHub SHALL receive `MqttMessage` instances from the following sources:
+- `MqttEgressActor` (handles both per-model and enrichment data via EgressEvent mapping)
+- `DiscoveryActor` (unchanged)
+- Availability Source.Queue (unchanged)
+- Tombstone Source.Queue (unchanged)
 
-#### Scenario: Messages from multiple producers are serialized through the publish sink
-- **WHEN** MqttPublisherActor and DiscoveryActor both push messages
-- **THEN** all messages flow through the single MergeHub and are published via IMqttTransport
+The `MqttConnectionActor` SHALL no longer receive messages from `MqttPublisherActor` (deleted) or directly from `EnrichmentActor` (which now routes through EgressActor → MqttEgressActor). The availability source queue (online/offline) SHALL remain internal to `MqttConnectionActor`.
+
+#### Scenario: MqttEgressActor is the sole data publisher
+- **WHEN** the MQTT egress stream graph is materialized
+- **THEN** `MqttEgressActor` SHALL be the only actor sending per-model state and enrichment data as `MqttMessage` to the MqttConnectionActor's MergeHub
+
+#### Scenario: Discovery and availability paths are unchanged
+- **WHEN** the MQTT egress stream graph is materialized
+- **THEN** `DiscoveryActor`, the availability Source.Queue, and the tombstone Source.Queue SHALL continue to feed into the MergeHub as before
 
 #### Scenario: Transport error resumes the stream
 - **WHEN** `IMqttTransport.SendAsync` throws for one message
@@ -24,16 +34,12 @@ All messages destined for the broker SHALL be expressed as `MqttMessage(string T
 - **WHEN** an `MqttMessage("njord/home/icon_d2/state", "{...}", true)` enters the hub
 - **THEN** the sink publishes to topic `njord/home/icon_d2/state` with the given payload and retain=true
 
-### Requirement: Pipeline SourceRef consumer maps FetchOutcome to state payloads
-The `MqttPublisherActor` SHALL consume `FetchOutcome` from the pipeline BroadcastHub via SourceRef. It SHALL map `FetchOutcome.Success` to per-horizon state `MqttMessage` instances using `StatePayloadBuilder`, applying delta-publishing to skip unchanged payloads. The resulting messages SHALL flow into the MergeHub via the `SinkRef<MqttMessage>` obtained from `MqttConnectionActor`.
+### Requirement: Pipeline-to-state mapping is handled by ModelStateActor
+The pipeline-to-state mapping is handled by `ModelStateActor` in `Njord.Egress`, which produces `EgressEvent.PerModelUpdate` and feeds the EgressActor's MergeHub. The MQTT-specific mapping is in `MqttEgressActor`. No stream stage in the MqttConnectionActor's graph SHALL directly consume `FetchOutcome` from the Pipeline BroadcastHub.
 
-#### Scenario: Successful fetch produces state messages
-- **WHEN** a `FetchOutcome.Success` arrives on the SourceRef
-- **THEN** `MqttPublisherActor` produces per-horizon state messages on retained topics
-
-#### Scenario: Delta publishing skips unchanged horizons
-- **WHEN** the same payload was published in the previous cycle for a given (location, model, horizon)
-- **THEN** no message is published for that horizon
+#### Scenario: No direct pipeline-to-MQTT path
+- **WHEN** the MqttConnectionActor's egress stream graph is materialized
+- **THEN** no stream stage SHALL directly consume `FetchOutcome` from the Pipeline BroadcastHub — that responsibility belongs to `ModelStateActor`
 
 ### Requirement: The Publish Sink buffers during disconnect with DropHead overflow
 The Publish Sink SHALL use a bounded buffer (configurable, default 64 messages). When the broker is unreachable and the buffer is full, the oldest messages SHALL be dropped (DropHead strategy). On reconnect, buffered messages SHALL drain in order.

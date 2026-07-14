@@ -7,7 +7,6 @@ using Njord.Configuration;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
-using Njord.Mqtt;
 using Njord.Ingest;
 using Njord.Pipeline;
 using Servus.Akka;
@@ -23,7 +22,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
     private readonly ILogger<EnrichmentActor> _logger;
 
     private ISourceRef<FetchOutcome>? _sourceRef;
-    private ISinkRef<MqttMessage>? _mqttSinkRef;
+    private ISinkRef<EgressEvent>? _egressSinkRef;
     private IMaterializer? _mat;
 
     public IStash Stash { get; set; } = null!;
@@ -52,9 +51,9 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         Context.Watch(pipelineActor);
         pipelineActor.Tell(new RequestPipelineSource());
 
-        var egressActor = Context.GetActor<MqttConnectionActor>();
+        var egressActor = Context.GetActor<EgressActor>();
         Context.Watch(egressActor);
-        egressActor.Tell(new RequestMqttSink());
+        egressActor.Tell(new RequestEgressSink());
     }
 
     private void WaitingForRefs()
@@ -65,10 +64,10 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
             _logger.LogInformation("Pipeline SourceRef received");
             TryTransitionToReady();
         });
-        Receive<MqttSinkResponse>(response =>
+        Receive<EgressSinkResponse>(response =>
         {
-            _mqttSinkRef = response.SinkRef;
-            _logger.LogInformation("MQTT SinkRef received");
+            _egressSinkRef = response.SinkRef;
+            _logger.LogInformation("Egress SinkRef received");
             TryTransitionToReady();
         });
         Receive<Terminated>(msg => HandleTerminated(msg));
@@ -77,7 +76,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
 
     private void TryTransitionToReady()
     {
-        if (_sourceRef is null || _mqttSinkRef is null) return;
+        if (_sourceRef is null || _egressSinkRef is null) return;
 
         MaterializeEnrichmentGraph();
         _logger.LogInformation("Enrichment pipeline materialized — ready");
@@ -95,15 +94,15 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         _logger.LogWarning("Watched actor {Actor} terminated — re-requesting refs", msg.ActorRef.Path.Name);
 
         _sourceRef = null;
-        _mqttSinkRef = null;
+        _egressSinkRef = null;
 
         var pipelineActor = Context.GetActor<PipelineActor>();
         Context.Watch(pipelineActor);
         pipelineActor.Tell(new RequestPipelineSource());
 
-        var egressActor = Context.GetActor<MqttConnectionActor>();
+        var egressActor = Context.GetActor<EgressActor>();
         Context.Watch(egressActor);
-        egressActor.Tell(new RequestMqttSink());
+        egressActor.Tell(new RequestEgressSink());
 
         Become(WaitingForRefs);
     }
@@ -163,81 +162,63 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
 
     private void MaterializeConsensusConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
     {
-        var baseTopic = _options.Mqtt.BaseTopic;
         var parameters = _parameters;
         var horizons = (IReadOnlyList<int>)[.. _options.Horizons];
         var locations = _options.Locations.Select(l => l.Name).ToList();
         var timeProvider = _timeProvider;
         var trimPercent = _enrichmentOptions.Consensus.TrimPercent;
-        var lastPublished = new Dictionary<string, string>();
 
         snapshotSource
             .SelectMany(snapshot =>
             {
-                var messages = new List<MqttMessage>();
+                var events = new List<EgressEvent>();
                 foreach (var location in locations)
                 {
                     var result = ConsensusResult.Compute(
                         snapshot, parameters, horizons, location, timeProvider, trimPercent);
-                    foreach (var msg in StatePayloadBuilder.FromConsensus(result, baseTopic, location))
-                    {
-                        if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
-                            continue;
-                        lastPublished[msg.Topic] = msg.Payload;
-                        messages.Add(msg);
-                    }
+                    events.Add(new EgressEvent.ConsensusUpdate(location, result));
                 }
-                return messages;
+                return events;
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_mqttSinkRef!.Sink, mat);
+            .RunWith(_egressSinkRef!.Sink, mat);
     }
 
     private void MaterializeAlertConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
     {
-        var baseTopic = _options.Mqtt.BaseTopic;
         var locations = _options.Locations.Select(l => l.Name).ToList();
         var timeProvider = _timeProvider;
         var alertOptions = _enrichmentOptions.Alerts;
-        var lastPublished = new Dictionary<string, string>();
 
         snapshotSource
             .SelectMany(snapshot =>
             {
-                var messages = new List<MqttMessage>();
+                var events = new List<EgressEvent>();
                 foreach (var location in locations)
                 {
                     var result = AlertEvaluator.EvaluateAll(snapshot, location, alertOptions, timeProvider);
-                    foreach (var msg in StatePayloadBuilder.FromAlerts(result, baseTopic))
-                    {
-                        if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
-                            continue;
-                        lastPublished[msg.Topic] = msg.Payload;
-                        messages.Add(msg);
-                    }
+                    events.Add(new EgressEvent.AlertUpdate(location, result));
                 }
-                return messages;
+                return events;
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_mqttSinkRef!.Sink, mat);
+            .RunWith(_egressSinkRef!.Sink, mat);
     }
 
     private void MaterializeHistoryConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
     {
-        var baseTopic = _options.Mqtt.BaseTopic;
         var parameters = _parameters;
         var locations = _options.Locations.Select(l => l.Name).ToList();
         var timeProvider = _timeProvider;
         var historyOptions = _enrichmentOptions.History;
-        var lastPublished = new Dictionary<string, string>();
 
         var historyActors = new Dictionary<string, IActorRef>();
         foreach (var location in locations)
         {
             var actor = Context.ResolveChildActor<ForecastHistoryActor>(
-                $"forecast-history-{TopicScheme.Slug(location)}",
+                $"forecast-history-{TopicSlug.Slug(location)}",
                 location, historyOptions);
             historyActors[location] = actor;
         }
@@ -248,99 +229,75 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
                 foreach (var (location, actor) in historyActors)
                     actor.Tell(new RecordSnapshot(snapshot));
 
-                var messages = new List<MqttMessage>();
+                var events = new List<EgressEvent>();
                 foreach (var (location, actor) in historyActors)
                 {
                     var response = actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(5)).Result;
                     var result = HistoryResult.Compute(
                         response.History, snapshot, location, parameters, timeProvider, historyOptions);
-                    foreach (var msg in StatePayloadBuilder.FromHistory(result, baseTopic))
-                    {
-                        if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
-                            continue;
-                        lastPublished[msg.Topic] = msg.Payload;
-                        messages.Add(msg);
-                    }
+                    events.Add(new EgressEvent.HistoryUpdate(location, result));
                 }
-                return messages;
+                return events;
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_mqttSinkRef!.Sink, mat);
+            .RunWith(_egressSinkRef!.Sink, mat);
     }
 
     private void MaterializeEnergyConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
     {
-        var baseTopic = _options.Mqtt.BaseTopic;
         var parameters = _parameters;
         var locations = _options.Locations.Select(l => l.Name).ToList();
         var timeProvider = _timeProvider;
         var energyOptions = _enrichmentOptions.Energy;
-        var lastPublished = new Dictionary<string, string>();
 
         snapshotSource
             .SelectMany(snapshot =>
             {
-                var messages = new List<MqttMessage>();
+                var events = new List<EgressEvent>();
                 foreach (var location in locations)
                 {
                     var result = EnergyResult.Compute(
                         snapshot, location, parameters, timeProvider, energyOptions);
-                    foreach (var msg in StatePayloadBuilder.FromEnergy(result, baseTopic))
-                    {
-                        if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
-                            continue;
-                        lastPublished[msg.Topic] = msg.Payload;
-                        messages.Add(msg);
-                    }
+                    events.Add(new EgressEvent.EnergyUpdate(location, result));
                 }
-                return messages;
+                return events;
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_mqttSinkRef!.Sink, mat);
+            .RunWith(_egressSinkRef!.Sink, mat);
     }
 
     private void MaterializeIndexConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
     {
-        var baseTopic = _options.Mqtt.BaseTopic;
         var parameters = _parameters;
         var locations = _options.Locations.Select(l => l.Name).ToList();
         var timeProvider = _timeProvider;
         var indexOptions = _enrichmentOptions.Indices;
-        var lastPublished = new Dictionary<string, string>();
 
         snapshotSource
             .SelectMany(snapshot =>
             {
-                var messages = new List<MqttMessage>();
+                var events = new List<EgressEvent>();
                 foreach (var location in locations)
                 {
                     var result = IndexResult.Compute(
                         snapshot, location, parameters, timeProvider, indexOptions);
-                    foreach (var msg in StatePayloadBuilder.FromIndices(result, baseTopic))
-                    {
-                        if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
-                            continue;
-                        lastPublished[msg.Topic] = msg.Payload;
-                        messages.Add(msg);
-                    }
+                    events.Add(new EgressEvent.IndexUpdate(location, result));
                 }
-                return messages;
+                return events;
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_mqttSinkRef!.Sink, mat);
+            .RunWith(_egressSinkRef!.Sink, mat);
     }
 
     private void MaterializeTrendConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
     {
-        var baseTopic = _options.Mqtt.BaseTopic;
         var parameters = _parameters;
         var horizons = (IReadOnlyList<int>)[.. _options.Horizons];
         var locations = _options.Locations.Select(l => l.Name).ToList();
         var timeProvider = _timeProvider;
-        var lastPublished = new Dictionary<string, string>();
 
         ModelSnapshot? previousSnapshot = null;
 
@@ -352,55 +309,41 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
 
                 if (prev is null) return [];
 
-                var messages = new List<MqttMessage>();
+                var events = new List<EgressEvent>();
                 foreach (var location in locations)
                 {
                     var result = TrendResult.Compute(
                         snapshot, prev, location, horizons, parameters, timeProvider);
-                    foreach (var msg in StatePayloadBuilder.FromTrends(result, baseTopic))
-                    {
-                        if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
-                            continue;
-                        lastPublished[msg.Topic] = msg.Payload;
-                        messages.Add(msg);
-                    }
+                    events.Add(new EgressEvent.TrendUpdate(location, result));
                 }
-                return messages;
+                return events;
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_mqttSinkRef!.Sink, mat);
+            .RunWith(_egressSinkRef!.Sink, mat);
     }
 
     private void MaterializeDerivedConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
     {
-        var baseTopic = _options.Mqtt.BaseTopic;
         var parameters = _parameters;
         var horizons = (IReadOnlyList<int>)[.. _options.Horizons];
         var locations = _options.Locations.Select(l => l.Name).ToList();
         var timeProvider = _timeProvider;
-        var lastPublished = new Dictionary<string, string>();
 
         snapshotSource
             .SelectMany(snapshot =>
             {
-                var messages = new List<MqttMessage>();
+                var events = new List<EgressEvent>();
                 foreach (var location in locations)
                 {
                     var result = DerivedResult.Compute(
                         snapshot, location, horizons, parameters, timeProvider);
-                    foreach (var msg in StatePayloadBuilder.FromDerived(result, baseTopic))
-                    {
-                        if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
-                            continue;
-                        lastPublished[msg.Topic] = msg.Payload;
-                        messages.Add(msg);
-                    }
+                    events.Add(new EgressEvent.DerivedUpdate(location, result));
                 }
-                return messages;
+                return events;
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_mqttSinkRef!.Sink, mat);
+            .RunWith(_egressSinkRef!.Sink, mat);
     }
 }

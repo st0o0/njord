@@ -40,7 +40,8 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
             {
                 r.Register<EgressActor>("egress");
                 r.Register<MqttConnectionActor>("mqtt-connection");
-                r.Register<MqttPublisherActor>("mqtt-publisher");
+                r.Register<ModelStateActor>("model-state");
+                r.Register<MqttEgressActor>("mqtt-egress");
                 r.Register<DiscoveryActor>("mqtt-discovery");
                 r.Register<PipelineActor>("pipeline");
                 r.Register<SchedulerActor>("scheduler");

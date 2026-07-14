@@ -1,5 +1,5 @@
-using System.Text;
 using Njord.Domain.Weather;
+using Njord.Egress;
 
 namespace Njord.Mqtt;
 
@@ -70,13 +70,5 @@ public static class TopicScheme
         => $"{baseTopic}/{Slug(location)}/history";
 
     public static string Slug(string value)
-    {
-        var builder = new StringBuilder(value.Length);
-        foreach (var c in value.ToLowerInvariant())
-        {
-            builder.Append(c is >= 'a' and <= 'z' or >= '0' and <= '9' ? c : '_');
-        }
-
-        return builder.ToString();
-    }
+        => TopicSlug.Slug(value);
 }

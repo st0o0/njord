@@ -1,6 +1,10 @@
+using Akka;
 using Akka.Actor;
+using Akka.Streams;
+using Akka.Streams.Dsl;
+using Njord.Domain.Analysis;
+using Njord.Domain.Weather;
 using Njord.Egress;
-using Njord.Mqtt;
 
 namespace Njord.Tests.Egress;
 
@@ -11,120 +15,87 @@ public sealed class EgressActorSpec : IDisposable
     public void Dispose() => _system.Dispose();
 
     [Fact(Timeout = 5000)]
-    public async Task Registered_publisher_receives_broadcast()
+    public async Task Vends_sink_ref_on_request()
     {
         var egress = _system.ActorOf(Props.Create<EgressActor>());
-        var probe = _system.ActorOf(Props.Create(() => new ProbeActor()));
+        await Task.Delay(200);
 
-        egress.Tell(new RegisterPublisher(probe));
-        await Task.Delay(100);
+        var response = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(), TimeSpan.FromSeconds(2));
 
-        egress.Tell(new PublishStateResult("lucerne", "test-result"));
-
-        var received = await probe.Ask<PublishStateResult>("get", TimeSpan.FromSeconds(2));
-        Assert.Equal("lucerne", received.Location);
+        Assert.NotNull(response.SinkRef);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Multiple_publishers_all_receive_broadcast()
+    public async Task Vends_source_ref_on_request()
     {
         var egress = _system.ActorOf(Props.Create<EgressActor>());
-        var probe1 = _system.ActorOf(Props.Create(() => new ProbeActor()));
-        var probe2 = _system.ActorOf(Props.Create(() => new ProbeActor()));
+        await Task.Delay(200);
 
-        egress.Tell(new RegisterPublisher(probe1));
-        egress.Tell(new RegisterPublisher(probe2));
-        await Task.Delay(100);
+        var response = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(), TimeSpan.FromSeconds(2));
 
-        egress.Tell(new PublishStateResult("home", "data"));
-
-        var r1 = await probe1.Ask<PublishStateResult>("get", TimeSpan.FromSeconds(2));
-        var r2 = await probe2.Ask<PublishStateResult>("get", TimeSpan.FromSeconds(2));
-
-        Assert.Equal("home", r1.Location);
-        Assert.Equal("home", r2.Location);
+        Assert.NotNull(response.SourceRef);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task No_publishers_drops_message_silently()
+    public async Task Events_flow_from_producer_to_consumer_through_hub()
     {
+        var mat = _system.Materializer();
         var egress = _system.ActorOf(Props.Create<EgressActor>());
-        egress.Tell(new PublishStateResult("lucerne", "data"));
-        await Task.Delay(100);
+        await Task.Delay(200);
+
+        var sinkResponse = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(), TimeSpan.FromSeconds(2));
+        var sourceResponse = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(), TimeSpan.FromSeconds(2));
+
+        var received = new List<EgressEvent>();
+        var completionSource = new TaskCompletionSource();
+        sourceResponse.SourceRef.Source
+            .Take(1)
+            .RunForeach(e => received.Add(e), mat)
+            .ContinueWith(_ => completionSource.TrySetResult());
+
+        var testEvent = new EgressEvent.AlertUpdate("lucerne", new AlertResult("lucerne", []));
+
+        Source.Single((EgressEvent)testEvent)
+            .RunWith(sinkResponse.SinkRef.Sink, mat);
+
+        await completionSource.Task.WaitAsync(TimeSpan.FromSeconds(3));
+
+        Assert.Single(received);
+        Assert.IsType<EgressEvent.AlertUpdate>(received[0]);
+        Assert.Equal("lucerne", ((EgressEvent.AlertUpdate)received[0]).Location);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Duplicate_registration_is_idempotent()
+    public void All_egress_event_variants_are_pattern_matchable()
     {
-        var egress = _system.ActorOf(Props.Create<EgressActor>());
-        var probe = _system.ActorOf(Props.Create(() => new ProbeActor()));
-
-        egress.Tell(new RegisterPublisher(probe));
-        egress.Tell(new RegisterPublisher(probe));
-        await Task.Delay(100);
-
-        egress.Tell(new PublishStateResult("lucerne", "data"));
-
-        var received = await probe.Ask<PublishStateResult>("get", TimeSpan.FromSeconds(2));
-        Assert.Equal("lucerne", received.Location);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Terminated_publisher_is_auto_unregistered()
-    {
-        var egress = _system.ActorOf(Props.Create<EgressActor>());
-        var probe = _system.ActorOf(Props.Create(() => new ProbeActor()));
-
-        egress.Tell(new RegisterPublisher(probe));
-        await Task.Delay(100);
-
-        _system.Stop(probe);
-        await Task.Delay(300);
-
-        egress.Tell(new PublishStateResult("lucerne", "data"));
-        await Task.Delay(100);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Unregister_unknown_publisher_is_noop()
-    {
-        var egress = _system.ActorOf(Props.Create<EgressActor>());
-        var probe = _system.ActorOf(Props.Create(() => new ProbeActor()));
-
-        egress.Tell(new UnregisterPublisher(probe));
-        await Task.Delay(50);
-    }
-
-    private sealed class ProbeActor : ReceiveActor
-    {
-        private readonly Queue<(IActorRef Sender, string Request)> _waiters = new();
-        private readonly Queue<PublishStateResult> _received = new();
-
-        public ProbeActor()
+        var events = new EgressEvent[]
         {
-            Receive<PublishStateResult>(msg =>
-            {
-                if (_waiters.Count > 0)
-                {
-                    var (sender, _) = _waiters.Dequeue();
-                    sender.Tell(msg);
-                }
-                else
-                {
-                    _received.Enqueue(msg);
-                }
-            });
+            new EgressEvent.PerModelUpdate("loc", new WeatherModel("icon_d2"), new Dictionary<string, string>()),
+            new EgressEvent.ConsensusUpdate("loc", new ConsensusResult([])),
+            new EgressEvent.AlertUpdate("loc", new AlertResult("loc", [])),
+            new EgressEvent.DerivedUpdate("loc", new DerivedResult("loc", new Dictionary<string, HorizonDerived>(), new ScalarDerived(null, null, null))),
+            new EgressEvent.TrendUpdate("loc", new TrendResult("loc", new Dictionary<string, ParameterTrend?>(), null, default, default, null, null)),
+            new EgressEvent.IndexUpdate("loc", new IndexResult("loc", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, null, null)),
+            new EgressEvent.EnergyUpdate("loc", new EnergyResult("loc", 0, null, [], 0, "hold", 0)),
+            new EgressEvent.HistoryUpdate("loc", new HistoryResult("loc", [], [], [], [], null, null, null)),
+        };
 
-            Receive<string>(msg =>
+        foreach (var e in events)
+        {
+            var matched = e switch
             {
-                if (msg == "get")
-                {
-                    if (_received.Count > 0)
-                        Sender.Tell(_received.Dequeue());
-                    else
-                        _waiters.Enqueue((Sender, msg));
-                }
-            });
+                EgressEvent.PerModelUpdate => "per-model",
+                EgressEvent.ConsensusUpdate => "consensus",
+                EgressEvent.AlertUpdate => "alert",
+                EgressEvent.DerivedUpdate => "derived",
+                EgressEvent.TrendUpdate => "trend",
+                EgressEvent.IndexUpdate => "index",
+                EgressEvent.EnergyUpdate => "energy",
+                EgressEvent.HistoryUpdate => "history",
+                _ => throw new InvalidOperationException("Unknown variant"),
+            };
+
+            Assert.NotNull(matched);
         }
     }
 }

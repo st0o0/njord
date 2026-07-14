@@ -1,35 +1,56 @@
+using Akka;
 using Akka.Actor;
+using Akka.Streams;
+using Akka.Streams.Dsl;
 
 namespace Njord.Egress;
 
-public sealed record RegisterPublisher(IActorRef Publisher);
-public sealed record UnregisterPublisher(IActorRef Publisher);
-public sealed record PublishStateResult(string Location, object Result);
-
 public sealed class EgressActor : ReceiveActor
 {
-    private readonly HashSet<IActorRef> _publishers = [];
+    private readonly IMaterializer _mat;
+    private Sink<EgressEvent, NotUsed>? _mergeHubSink;
+    private Source<EgressEvent, NotUsed>? _broadcastHubSource;
 
     public EgressActor()
     {
-        Receive<RegisterPublisher>(msg =>
+        _mat = Context.Materializer();
+
+        Receive<RequestEgressSink>(_ =>
         {
-            if (_publishers.Add(msg.Publisher))
-                Context.Watch(msg.Publisher);
+            if (_mergeHubSink is null) return;
+
+            var sender = Sender;
+            StreamRefs.SinkRef<EgressEvent>()
+                .To(_mergeHubSink)
+                .Run(_mat)
+                .PipeTo(sender, Self,
+                    sr => new EgressSinkResponse(sr),
+                    _ => null!);
         });
 
-        Receive<UnregisterPublisher>(msg =>
+        Receive<RequestEgressSource>(_ =>
         {
-            if (_publishers.Remove(msg.Publisher))
-                Context.Unwatch(msg.Publisher);
-        });
+            if (_broadcastHubSource is null) return;
 
-        Receive<PublishStateResult>(msg =>
-        {
-            foreach (var publisher in _publishers)
-                publisher.Tell(msg);
+            var sender = Sender;
+            _broadcastHubSource
+                .RunWith(StreamRefs.SourceRef<EgressEvent>(), _mat)
+                .PipeTo(sender, Self,
+                    sr => new EgressSourceResponse(sr),
+                    _ => null!);
         });
+    }
 
-        Receive<Terminated>(msg => _publishers.Remove(msg.ActorRef));
+    protected override void PreStart()
+    {
+        (_broadcastHubSource, var broadcastHubSink) = BroadcastHub.Sink<EgressEvent>(bufferSize: 64)
+            .PreMaterialize(_mat);
+
+        (_mergeHubSink, var mergeHubSource) = MergeHub.Source<EgressEvent>(perProducerBufferSize: 8)
+            .PreMaterialize(_mat);
+
+        mergeHubSource
+            .To(broadcastHubSink)
+            .Run(_mat);
     }
 }
