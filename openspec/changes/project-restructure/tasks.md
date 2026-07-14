@@ -36,23 +36,23 @@
 
 ## 6. Mqtt test restructure
 
-- [ ] 6.1 Create `src/Njord.Tests/Mqtt/` folder. Move `TopicSchemeSpec.cs`, `DiscoveryPayloadBuilderSpec.cs`, `StatePayloadBuilderSpec.cs`, `MqttEgressIntegrationSpec.cs` from `src/Njord.Tests/Egress/` to `src/Njord.Tests/Mqtt/`. Update namespaces to `Njord.Tests.Mqtt`.
+- [x] 6.1 Create `src/Njord.Tests/Mqtt/` folder. Move `TopicSchemeSpec.cs`, `DiscoveryPayloadBuilderSpec.cs`, `StatePayloadBuilderSpec.cs`, `MqttEgressIntegrationSpec.cs` from `src/Njord.Tests/Egress/` to `src/Njord.Tests/Mqtt/`. Update namespaces to `Njord.Tests.Mqtt`.
 - [ ] 6.2 Write `src/Njord.Tests/Mqtt/MqttConnectionActorSpec.cs` — test connect, reconnect, LWT online/offline, SinkRef vending.
 - [ ] 6.3 Write `src/Njord.Tests/Mqtt/MqttPublisherActorSpec.cs` — test registration with EgressActor, domain result → MqttMessage transformation, delta publishing.
 - [ ] 6.4 Write `src/Njord.Tests/Mqtt/DiscoveryActorSpec.cs` — test discovery publishing on connect, re-publish on HA birth, no-op when disabled.
-- [ ] 6.5 Update `MqttEgressIntegrationSpec` to use the new actor topology (MqttConnectionActor + MqttPublisherActor + DiscoveryActor).
+- [x] 6.5 Update `MqttEgressIntegrationSpec` to use the new actor topology (MqttConnectionActor + MqttPublisherActor + DiscoveryActor).
 
 ## 7. EnrichmentActor rewire
 
 - [x] 7.1 Update `src/Njord/Enrichment/EnrichmentActor.cs` — replace all `result.ToMqttMessages(baseTopic)` calls with `egressActor.Tell(new PublishStateResult(location, result))`. Resolve `EgressActor` via `Context.GetActor<EgressActor>()`. Remove `using Njord.Mqtt` / `using Njord.Egress` MqttMessage references.
-- [ ] 7.2 Update `src/Njord.Tests/Enrichment/EnrichmentActorSpec.cs` — verify enrichment streams send `PublishStateResult` to `EgressActor` instead of producing `MqttMessage`.
-- [ ] 7.3 Build and run tests: `dotnet run --project src/Njord.Tests/Njord.Tests.csproj`.
+- [x] 7.2 Update `src/Njord.Tests/Enrichment/EnrichmentActorSpec.cs` — verify enrichment streams send `PublishStateResult` to `EgressActor` instead of producing `MqttMessage`.
+- [x] 7.3 Build and run tests: `dotnet run --project src/Njord.Tests/Njord.Tests.csproj`.
 
 ## 8. Actor registration and wiring
 
 - [x] 8.1 Update `src/Njord/Configuration/NjordActorSystemSetup.cs` — register `EgressActor`, `MqttConnectionActor`, `MqttPublisherActor`, `DiscoveryActor` via `WithResolvableActors`. Remove `MqttEgressActor` registration.
 - [x] 8.2 Update `src/Njord/Configuration/NjordServiceSetup.cs` — update DI registrations to match new namespaces and types.
-- [ ] 8.3 Update `src/Njord.Tests/Configuration/NjordActorSystemSetupSpec.cs` and `NjordServiceSetupSpec.cs` to reflect new actor registrations.
+- [x] 8.3 Update `src/Njord.Tests/Configuration/NjordActorSystemSetupSpec.cs` and `NjordServiceSetupSpec.cs` to reflect new actor registrations.
 
 ## 9. Validation
 

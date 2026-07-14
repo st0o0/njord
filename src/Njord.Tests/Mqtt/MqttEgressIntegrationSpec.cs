@@ -15,7 +15,7 @@ using Njord.Mqtt.Transport;
 using Njord.Ingest;
 using Njord.Pipeline;
 
-namespace Njord.Tests.Egress;
+namespace Njord.Tests.Mqtt;
 
 /// <summary>
 /// Real-broker round trip via Testcontainers/Mosquitto. Gated behind

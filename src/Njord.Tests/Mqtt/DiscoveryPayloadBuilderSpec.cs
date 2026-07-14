@@ -4,7 +4,7 @@ using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Mqtt;
 
-namespace Njord.Tests.Egress;
+namespace Njord.Tests.Mqtt;
 
 public sealed class DiscoveryPayloadBuilderSpec
 {
