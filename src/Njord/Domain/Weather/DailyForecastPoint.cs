@@ -10,4 +10,8 @@ public sealed record DailyForecastPoint(
 
     public string? GetMeta(ParameterDef parameter)
         => MetaValues.GetValueOrDefault(parameter);
+
+    public bool HasAnyValue =>
+        NumericValues.Values.Any(v => v is not null) ||
+        MetaValues.Values.Any(v => v is not null);
 }

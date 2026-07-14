@@ -5,7 +5,6 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Egress;
 using Njord.Enrichment;
 using Njord.Telemetry;
 using Servus.Akka;
@@ -102,7 +101,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
 
         foreach (var location in _options.Locations)
         {
-            foreach (var modelId in _options.Models)
+            foreach (var modelId in location.ResolveModels(_options.Models))
             {
                 var model = new WeatherModel(modelId);
                 var topic = TopicScheme.ConfigTopic(

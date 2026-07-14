@@ -18,7 +18,8 @@ public static class HorizonProjection
         foreach (var hours in horizons)
         {
             var anchor = TimeAnchor.AtHorizon(anchorTime, hours);
-            pointsByValidAt.TryGetValue(anchor, out var point);
+            if (!pointsByValidAt.TryGetValue(anchor, out var point) || !point.HasAnyValue)
+                continue;
 
             var entry = new JsonObject();
             foreach (var parameter in parameters.Hourly)
@@ -34,7 +35,8 @@ public static class HorizonProjection
         for (var d = 0; d < forecastDays; d++)
         {
             var date = today.AddDays(d);
-            dailyByDate.TryGetValue(date, out var dailyPoint);
+            if (!dailyByDate.TryGetValue(date, out var dailyPoint) || !dailyPoint.HasAnyValue)
+                continue;
 
             var entry = new JsonObject();
             foreach (var parameter in parameters.Daily)

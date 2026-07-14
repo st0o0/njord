@@ -102,7 +102,8 @@ public sealed class EndToEndPipelineSpec : IAsyncLifetime
         await publisher.ConnectAsync((_, _) => { }, () => { }, ct);
         await publisher.SendAsync(TopicScheme.AvailabilityTopic(options.Mqtt.BaseTopic), "online", retain: true, ct);
 
-        var client = new OpenMeteoClient(_http, Parameters);
+        var client = new OpenMeteoClient(_http, Parameters,
+            Microsoft.Extensions.Options.Options.Create(new NjordOptions()));
         var cycle = new CycleId(DateTimeOffset.UtcNow);
 
         var forecasts = new List<ModelForecast>();

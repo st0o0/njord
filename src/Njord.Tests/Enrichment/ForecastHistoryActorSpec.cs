@@ -3,7 +3,6 @@ using Akka.Configuration;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Enrichment;
-using Njord.Domain.Analysis;
 using Njord.Tests.Shared;
 
 namespace Njord.Tests.Enrichment;

@@ -86,6 +86,23 @@ failure-routing spec).
 - **WHEN** a `FetchOutcome.Failure(Transport)` is consumed from the BroadcastHub
 - **THEN** the scheduler increments missCount and schedules a backoff retry
 
+### Requirement: SchedulerActor iterates resolved models per location
+The `SchedulerActor` SHALL resolve effective models per location using
+`LocationOptions.ResolveModels(globalModels)` and iterate over the
+resolved list. It SHALL NOT iterate the global `Models` list directly.
+
+#### Scenario: Location with extra models gets polled for all
+- **WHEN** global Models is `["icon_global"]` and location "berlin" has
+  Models `["icon_d2"]`
+- **THEN** the scheduler SHALL create poll states for both
+  `("berlin", "icon_global")` and `("berlin", "icon_d2")`
+
+#### Scenario: Location without extra models gets global only
+- **WHEN** global Models is `["icon_global"]` and location "amsterdam"
+  has no Models
+- **THEN** the scheduler SHALL create a poll state only for
+  `("amsterdam", "icon_global")`
+
 ### Requirement: State is persisted and recovered via Akka.Persistence
 The SchedulerActor SHALL persist `DataChanged` events to a SQLite journal via Akka.Persistence. On recovery, the actor SHALL rebuild all `ModelPollState` entries from the event stream. If a recovered `nextPollUtc` is in the past, the actor SHALL poll immediately. If a cycle is known from recovery, the actor SHALL enter Steady phase directly without re-discovery.
 

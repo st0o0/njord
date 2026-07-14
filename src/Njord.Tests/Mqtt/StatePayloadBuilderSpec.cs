@@ -3,7 +3,6 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
-using Njord.Egress;
 using Njord.Mqtt;
 
 namespace Njord.Tests.Mqtt;
@@ -43,14 +42,10 @@ public sealed class StatePayloadBuilderSpec
         var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
         var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 100), SmallParams, [3, 6, 24], 4, tick);
 
-        Assert.Equal(7, result.Count);
         Assert.True(result.ContainsKey("h3"));
         Assert.True(result.ContainsKey("h6"));
         Assert.True(result.ContainsKey("h24"));
         Assert.True(result.ContainsKey("d0"));
-        Assert.True(result.ContainsKey("d1"));
-        Assert.True(result.ContainsKey("d2"));
-        Assert.True(result.ContainsKey("d3"));
     }
 
     [Fact(Timeout = 5000)]
@@ -77,14 +72,12 @@ public sealed class StatePayloadBuilderSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void Horizons_beyond_series_yield_null_values()
+    public void Horizons_beyond_series_are_omitted()
     {
         var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
         var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 10), SmallParams, [72], 1, tick);
-        var h72 = JsonNode.Parse(result["h72"])!;
 
-        Assert.True(h72.AsObject().ContainsKey("temperature"));
-        Assert.Null(h72["temperature"]);
+        Assert.False(result.ContainsKey("h72"));
     }
 
     [Fact(Timeout = 5000)]

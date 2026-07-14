@@ -5,7 +5,6 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
-using Njord.Egress;
 using Njord.Health;
 using Njord.Mqtt.Transport;
 using Njord.Telemetry;

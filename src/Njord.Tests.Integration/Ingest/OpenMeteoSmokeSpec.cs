@@ -17,7 +17,8 @@ public sealed class OpenMeteoSmokeSpec
             "NJORD_SMOKE_TESTS not set to 1 — smoke test skipped.");
 
         using var http = new HttpClient { BaseAddress = new Uri("https://api.open-meteo.com/") };
-        var client = new OpenMeteoClient(http, DefaultParameters);
+        var client = new OpenMeteoClient(http, DefaultParameters,
+            Microsoft.Extensions.Options.Options.Create(new NjordOptions()));
 
         var outcome = await client.FetchAsync(
             new LocationOptions { Name = "smoke", Latitude = 47.05, Longitude = 8.31 },

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 
@@ -8,10 +9,12 @@ namespace Njord.Ingest;
 
 public sealed class OpenMeteoClient(
     HttpClient httpClient,
-    ResolvedParameterSet parameters) : IOpenMeteoClient
+    ResolvedParameterSet parameters,
+    IOptions<NjordOptions> options) : IOpenMeteoClient
 {
     private readonly string _hourlyVariables = string.Join(",", parameters.Hourly.Select(p => p.ApiName));
     private readonly string _dailyVariables = string.Join(",", parameters.Daily.Select(p => p.ApiName));
+    private readonly int _forecastDays = options.Value.ForecastDays;
 
     public async Task<FetchOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken cancellationToken)
     {
@@ -72,11 +75,12 @@ public sealed class OpenMeteoClient(
 
     private string BuildUri(LocationOptions location, WeatherModel model)
     {
+        var effectiveDays = ModelCoverageRegistry.EffectiveForecastDays(model.Id, _forecastDays);
         var uri = string.Create(
             CultureInfo.InvariantCulture,
             $"v1/forecast?latitude={location.Latitude}&longitude={location.Longitude}" +
             $"&models={Uri.EscapeDataString(model.Id)}&hourly={_hourlyVariables}" +
-            $"&wind_speed_unit=ms&timeformat=unixtime&forecast_days=4");
+            $"&wind_speed_unit=ms&timeformat=unixtime&forecast_days={effectiveDays}");
 
         if (_dailyVariables.Length > 0)
         {

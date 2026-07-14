@@ -104,7 +104,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         var staggerIndex = 0;
         foreach (var location in _options.Locations)
         {
-            foreach (var modelId in _options.Models)
+            foreach (var modelId in location.ResolveModels(_options.Models))
             {
                 var key = Key(location.Name, modelId);
                 if (!_states.ContainsKey(key))

@@ -3,8 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Egress;
-using Njord.Mqtt;
 using Njord.Mqtt.Transport;
 using Njord.Ingest;
 using Servus.Core.Application.Startup;

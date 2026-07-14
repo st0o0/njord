@@ -4,7 +4,6 @@ using Njord.Ingest;
 using Njord.Tests.Shared;
 using WireMock.Client;
 using WireMock.Net.Testcontainers;
-using WireMock.Types;
 
 namespace Njord.Tests.Integration.Ingest;
 
@@ -38,7 +37,8 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
     }
 
     private OpenMeteoClient CreateClient(ResolvedParameterSet? parameters = null)
-        => new(_http, parameters ?? DefaultParameters);
+        => new(_http, parameters ?? DefaultParameters,
+            Microsoft.Extensions.Options.Options.Create(new NjordOptions()));
 
     [Fact(Timeout = 60000)]
     public async Task Successful_fetch_through_real_http_connection()

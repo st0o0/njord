@@ -106,6 +106,33 @@ The system SHALL project monthly usage as `locations × models × cycles-per-mon
 - **WHEN** 3 locations, 8 models, 30-minute poll interval, and all groups (weight 5) are configured with the default budget
 - **THEN** the projection is ≈ 172,800 effective requests/month, exceeding 80% of 300k, and startup fails reporting the projection, weight 5, and the 240,000 guard
 
+### Requirement: LocationOptions supports per-location model list
+The `LocationOptions` class SHALL have an optional `Models` property
+(`IList<string>?`) that lists model IDs specific to this location. When
+set, these models SHALL be merged with the global `Models` list to produce
+the effective model set for this location.
+
+#### Scenario: Location with Models in JSON config
+- **WHEN** appsettings.json contains `{ "Name": "berlin", "Models": ["icon_d2"] }`
+- **THEN** `LocationOptions.Models` SHALL contain `["icon_d2"]`
+
+#### Scenario: Location without Models in JSON config
+- **WHEN** appsettings.json contains `{ "Name": "amsterdam" }` with no
+  Models property
+- **THEN** `LocationOptions.Models` SHALL be null
+
+### Requirement: Budget calculation accounts for per-location model counts
+The startup budget validation SHALL compute projected API usage as the
+sum of resolved model counts per location (not global
+`locations.Count x models.Count`). Each location may have a different
+number of effective models.
+
+#### Scenario: Two locations with different model counts
+- **WHEN** global Models has 3 entries, location A adds 1 model, and
+  location B adds 2 models
+- **THEN** projected requests per cycle SHALL be (3+1) + (3+2) = 9,
+  not 2 x 3 = 6
+
 ### Requirement: Minimal viable configuration is enforced
 The system SHALL require at least one location (name, latitude, longitude) and
 at least one non-empty model id, and SHALL default the poll interval to

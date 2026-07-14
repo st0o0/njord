@@ -20,9 +20,10 @@ public sealed class HorizonProjectionSpec
                 new Dictionary<ParameterDef, double?> { [temp] = 20.0 + i }))
             .ToList();
 
+        var tempMax = ParameterRegistry.GetByApiName("temperature_2m_max")!;
         var daily = new DailyForecastSeries([
-            new DailyForecastPoint(DateOnly.FromDateTime(Anchor.UtcDateTime), new Dictionary<ParameterDef, double?>(), new Dictionary<ParameterDef, string?>()),
-            new DailyForecastPoint(DateOnly.FromDateTime(Anchor.AddDays(1).UtcDateTime), new Dictionary<ParameterDef, double?>(), new Dictionary<ParameterDef, string?>()),
+            new DailyForecastPoint(DateOnly.FromDateTime(Anchor.UtcDateTime), new Dictionary<ParameterDef, double?> { [tempMax] = 28.0 }, new Dictionary<ParameterDef, string?>()),
+            new DailyForecastPoint(DateOnly.FromDateTime(Anchor.AddDays(1).UtcDateTime), new Dictionary<ParameterDef, double?> { [tempMax] = 26.0 }, new Dictionary<ParameterDef, string?>()),
         ]);
 
         return new ModelForecast(new WeatherModel("icon_eu"), "home", new CycleId(Anchor),
@@ -55,13 +56,12 @@ public sealed class HorizonProjectionSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void Missing_horizon_data_point_produces_null_values()
+    public void Missing_horizon_data_point_is_omitted()
     {
         var forecast = CreateForecast(hourlyPoints: 2);
 
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [24], ForecastDays, Anchor);
 
-        var h24 = JsonNode.Parse(result["h24"])!;
-        Assert.Null(h24["temperature"]?.GetValue<double?>());
+        Assert.False(result.ContainsKey("h24"));
     }
 }

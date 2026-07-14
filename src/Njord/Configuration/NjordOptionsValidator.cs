@@ -76,15 +76,38 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
 
         if (resolved is not null && options.Locations.Count > 0 && options.Models.Count > 0 && options.PollInterval > TimeSpan.Zero)
         {
+            var totalModelsPerCycle = 0;
+
+            foreach (var location in options.Locations)
+            {
+                var effectiveModels = location.ResolveModels(options.Models);
+                totalModelsPerCycle += effectiveModels.Count;
+
+                foreach (var modelId in effectiveModels)
+                {
+                    if (!ModelCoverageRegistry.IsPlausible(modelId, location.Latitude, location.Longitude))
+                    {
+                        var coverage = ModelCoverageRegistry.Get(modelId);
+                        failures.Add(
+                            $"Model '{modelId}' may not cover location '{location.Name}' " +
+                            $"({location.Latitude:F2}°N, {location.Longitude:F2}°E) — " +
+                            $"documented coverage: {coverage!.Region}" +
+                            (coverage.Bounds is { } b ? $" ({b.MinLat}–{b.MaxLat}°N, {b.MinLon}–{b.MaxLon}°E)" : "") +
+                            ". Remove this model from the location or global list if it does not return data.");
+                    }
+                    // Unknown models are allowed — forward compatible with new Open-Meteo models
+                }
+            }
+
             var budget = options.EffectiveBudget;
             var cyclesPerMonth = Month.TotalMinutes / options.PollInterval.TotalMinutes;
-            var projected = (int)Math.Round(options.Locations.Count * options.Models.Count * cyclesPerMonth * resolved.ApiCallWeight);
+            var projected = (int)Math.Round(totalModelsPerCycle * cyclesPerMonth * resolved.ApiCallWeight);
             var guard = (int)Math.Round(budget.RequestsPerMonth * MonthlyBudgetGuardFactor);
             if (projected > guard)
             {
                 failures.Add(
-                    $"Projected API usage of {projected} effective requests/month ({options.Locations.Count} locations x " +
-                    $"{options.Models.Count} models every {options.PollInterval.TotalMinutes:0} min, weight {resolved.ApiCallWeight}) exceeds the " +
+                    $"Projected API usage of {projected} effective requests/month ({totalModelsPerCycle} model-location pairs " +
+                    $"every {options.PollInterval.TotalMinutes:0} min, weight {resolved.ApiCallWeight}) exceeds the " +
                     $"guard of {guard} (80% of the {budget.RequestsPerMonth}/month budget). " +
                     "Reduce locations/models, increase PollInterval, or exclude parameters.");
             }
