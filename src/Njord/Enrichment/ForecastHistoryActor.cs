@@ -24,7 +24,7 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
         _timeProvider = timeProvider;
         _history = new ForecastHistory(options.RetentionDays);
 
-        Recover<ForecastRecorded>(OnRecover);
+        Recover<ForecastRecord>(OnRecover);
         Recover<SnapshotOffer>(offer =>
         {
             if (offer.Snapshot is ForecastHistory saved)
@@ -42,15 +42,12 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
         Command<SaveSnapshotFailure>(_ => { });
     }
 
-    private void OnRecover(ForecastRecorded evt)
+    private void OnRecover(ForecastRecord evt)
     {
         var cutoff = _timeProvider.GetUtcNow().AddDays(-_options.RetentionDays);
-        if (evt.Timestamp < cutoff)
-        {
-            return;
-        }
+        if (evt.Timestamp < cutoff) return;
 
-        _history.Add(new ForecastRecord(evt.Timestamp, evt.Location, evt.ModelValues, evt.ConsensusValues));
+        _history.Add(evt);
     }
 
     private void OnRecordSnapshot(RecordSnapshot msg)
@@ -95,12 +92,10 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
             }
         }
 
-        var evt = new ForecastRecorded(now, _location, modelValues, consensusValues);
+        var evt = new ForecastRecord(now, _location, modelValues, consensusValues);
         Persist(evt, persisted =>
         {
-            _history.Add(new ForecastRecord(
-                persisted.Timestamp, persisted.Location,
-                persisted.ModelValues, persisted.ConsensusValues));
+            _history.Add(persisted);
 
             _eventsSinceSnapshot++;
             if (_eventsSinceSnapshot >= _options.SnapshotInterval)

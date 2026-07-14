@@ -33,14 +33,20 @@ public static class ForecastDataHash
                 continue;
             }
 
-            foreach (var (param, value) in point.Values.OrderBy(kv => kv.Key.ApiName))
+            foreach (var (param, value) in point.NumericValues.OrderBy(kv => kv.Key.ApiName))
+            {
+                hash.Add(param.ApiName);
+                hash.Add(value.HasValue);
+                if (value.HasValue)
+                    hash.Add(value.Value);
+            }
+
+            foreach (var (param, value) in point.MetaValues.OrderBy(kv => kv.Key.ApiName))
             {
                 hash.Add(param.ApiName);
                 hash.Add(value is not null);
                 if (value is not null)
-                {
                     hash.Add(value);
-                }
             }
         }
 

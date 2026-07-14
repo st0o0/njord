@@ -128,11 +128,19 @@ public sealed class OpenMeteoClient(
         for (var i = 0; i < times.Count; i++)
         {
             var date = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(times[i]).UtcDateTime);
-            var dict = new Dictionary<ParameterDef, object?>(parameters.Daily.Count);
-            foreach (var param in parameters.Daily)
-                dict[param] = i < paramArrays[param].Count ? paramArrays[param][i] : null;
+            var numeric = new Dictionary<ParameterDef, double?>();
+            var meta = new Dictionary<ParameterDef, string?>();
 
-            points.Add(new DailyForecastPoint(date, dict));
+            foreach (var param in parameters.Daily)
+            {
+                var raw = i < paramArrays[param].Count ? paramArrays[param][i] : null;
+                if (param.ValueType == ParameterValueType.TimeString)
+                    meta[param] = raw as string;
+                else
+                    numeric[param] = raw as double?;
+            }
+
+            points.Add(new DailyForecastPoint(date, numeric, meta));
         }
 
         return new DailyForecastSeries(points);

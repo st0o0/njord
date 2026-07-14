@@ -39,13 +39,16 @@ public static class HorizonProjection
             var entry = new JsonObject();
             foreach (var parameter in parameters.Daily)
             {
-                var value = dailyPoint?.Get(parameter);
-                entry[parameter.JsonKey] = value switch
+                if (parameter.ValueType == ParameterValueType.TimeString)
                 {
-                    double num => JsonValue.Create(num),
-                    string str => JsonValue.Create(str),
-                    _ => null,
-                };
+                    var str = dailyPoint?.GetMeta(parameter);
+                    entry[parameter.JsonKey] = str is not null ? JsonValue.Create(str) : null;
+                }
+                else
+                {
+                    var num = dailyPoint?.GetNumeric(parameter);
+                    entry[parameter.JsonKey] = num.HasValue ? JsonValue.Create(num.Value) : null;
+                }
             }
 
             result[$"d{d}"] = entry.ToJsonString();

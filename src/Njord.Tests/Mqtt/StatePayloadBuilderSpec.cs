@@ -32,11 +32,9 @@ public sealed class StatePayloadBuilderSpec
                     [WindSpeed] = i * 0.1,
                 }))),
             new DailyForecastSeries([
-                new DailyForecastPoint(DateOnly.FromDateTime(tick.UtcDateTime), new Dictionary<ParameterDef, object?>
-                {
-                    [TempMax] = 28.5,
-                    [Sunrise] = "05:31",
-                }),
+                new DailyForecastPoint(DateOnly.FromDateTime(tick.UtcDateTime),
+                    new Dictionary<ParameterDef, double?> { [TempMax] = 28.5 },
+                    new Dictionary<ParameterDef, string?> { [Sunrise] = "05:31" }),
             ]));
 
     [Fact(Timeout = 5000)]

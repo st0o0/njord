@@ -21,8 +21,8 @@ public sealed class HorizonProjectionSpec
             .ToList();
 
         var daily = new DailyForecastSeries([
-            new DailyForecastPoint(DateOnly.FromDateTime(Anchor.UtcDateTime), new Dictionary<ParameterDef, object?>()),
-            new DailyForecastPoint(DateOnly.FromDateTime(Anchor.AddDays(1).UtcDateTime), new Dictionary<ParameterDef, object?>()),
+            new DailyForecastPoint(DateOnly.FromDateTime(Anchor.UtcDateTime), new Dictionary<ParameterDef, double?>(), new Dictionary<ParameterDef, string?>()),
+            new DailyForecastPoint(DateOnly.FromDateTime(Anchor.AddDays(1).UtcDateTime), new Dictionary<ParameterDef, double?>(), new Dictionary<ParameterDef, string?>()),
         ]);
 
         return new ModelForecast(new WeatherModel("icon_eu"), "home", new CycleId(Anchor),

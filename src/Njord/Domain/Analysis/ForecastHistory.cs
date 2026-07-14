@@ -35,15 +35,3 @@ public sealed class ForecastHistory
         _records.RemoveAll(r => r.Timestamp < cutoff);
     }
 }
-
-public sealed record ForecastRecorded(
-    DateTimeOffset Timestamp,
-    string Location,
-    IReadOnlyDictionary<WeatherModel, IReadOnlyDictionary<string, double?>> ModelValues,
-    IReadOnlyDictionary<string, double?> ConsensusValues);
-
-public sealed record RecordSnapshot(ModelSnapshot Snapshot);
-
-public sealed record QueryHistory;
-
-public sealed record HistoryResponse(ForecastHistory History);

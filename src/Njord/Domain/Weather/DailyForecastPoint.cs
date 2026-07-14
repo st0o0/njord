@@ -2,8 +2,12 @@ namespace Njord.Domain.Weather;
 
 public sealed record DailyForecastPoint(
     DateOnly Date,
-    IReadOnlyDictionary<ParameterDef, object?> Values)
+    IReadOnlyDictionary<ParameterDef, double?> NumericValues,
+    IReadOnlyDictionary<ParameterDef, string?> MetaValues)
 {
-    public object? Get(ParameterDef parameter)
-        => Values.GetValueOrDefault(parameter);
+    public double? GetNumeric(ParameterDef parameter)
+        => NumericValues.GetValueOrDefault(parameter);
+
+    public string? GetMeta(ParameterDef parameter)
+        => MetaValues.GetValueOrDefault(parameter);
 }
