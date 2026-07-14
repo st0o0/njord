@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup Label="Aspire">
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.4.6" />
+    <PackageVersion Include="WireMock.Net.Testcontainers" Version="2.12.0" />
   </ItemGroup>
   <ItemGroup Label="Service">
     <PackageVersion Include="Akka.Hosting" Version="1.5.70" />
