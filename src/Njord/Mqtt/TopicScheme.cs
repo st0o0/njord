@@ -1,7 +1,7 @@
 using System.Text;
-using Njord.Domain;
+using Njord.Domain.Weather;
 
-namespace Njord.Egress;
+namespace Njord.Mqtt;
 
 public static class TopicScheme
 {

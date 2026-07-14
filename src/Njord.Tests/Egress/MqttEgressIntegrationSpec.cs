@@ -8,8 +8,10 @@ using DotNet.Testcontainers.Builders;
 using Microsoft.Extensions.Logging.Abstractions;
 using MQTTnet;
 using Njord.Configuration;
-using Njord.Domain;
+using Njord.Domain.Weather;
 using Njord.Egress;
+using Njord.Mqtt;
+using Njord.Mqtt.Transport;
 using Njord.Ingest;
 using Njord.Pipeline;
 

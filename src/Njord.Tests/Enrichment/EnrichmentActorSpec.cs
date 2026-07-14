@@ -4,9 +4,11 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Configuration;
-using Njord.Domain;
+using Njord.Domain.Weather;
 using Njord.Egress;
+using Njord.Mqtt;
 using Njord.Enrichment;
+using Njord.Domain.Analysis;
 using Njord.Ingest;
 using Njord.Pipeline;
 

@@ -2,7 +2,7 @@ using MQTTnet;
 using MQTTnet.Protocol;
 using Njord.Configuration;
 
-namespace Njord.Egress;
+namespace Njord.Mqtt.Transport;
 
 /// <summary>MQTTnet-backed publisher. Registers the Last Will as part of connecting.</summary>
 public sealed class MqttNetPublisher(MqttOptions options, ILogger<MqttNetPublisher> logger)

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
+using Njord.Mqtt.Transport;
 
 namespace Njord.Egress;
 

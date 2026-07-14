@@ -5,8 +5,10 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
-using Njord.Domain;
+using Njord.Domain.Weather;
 using Njord.Ingest;
+using Njord.Mqtt;
+using Njord.Mqtt.Transport;
 using Njord.Pipeline;
 using Servus.Akka;
 

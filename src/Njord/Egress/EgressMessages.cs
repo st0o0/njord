@@ -1,4 +1,5 @@
 using Akka.Streams;
+using Njord.Mqtt;
 
 namespace Njord.Egress;
 

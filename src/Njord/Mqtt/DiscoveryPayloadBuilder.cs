@@ -1,9 +1,10 @@
 using System.Text.Json.Nodes;
 using Njord.Configuration;
-using Njord.Domain;
+using Njord.Domain.Weather;
 using Njord.Enrichment;
+using Njord.Domain.Analysis;
 
-namespace Njord.Egress;
+namespace Njord.Mqtt;
 
 public static class DiscoveryPayloadBuilder
 {

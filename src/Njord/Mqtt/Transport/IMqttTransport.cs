@@ -1,4 +1,4 @@
-namespace Njord.Egress;
+namespace Njord.Mqtt.Transport;
 
 public interface IMqttTransport
 {
