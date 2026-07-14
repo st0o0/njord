@@ -1,0 +1,96 @@
+services:
+  njord:
+    image: ghcr.io/st0o0/njord:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - njord-data:/app/data
+    environment:
+      # ── MQTT (required) ───────────────────────────────────────
+      - Njord__Mqtt__Host=192.168.1.x
+      #- Njord__Mqtt__Port=1883
+      #- Njord__Mqtt__Username=
+      #- Njord__Mqtt__Password=
+      #- Njord__Mqtt__DiscoveryPrefix=homeassistant
+      #- Njord__Mqtt__DiscoveryEnabled=true
+      #- Njord__Mqtt__BaseTopic=njord
+
+      # ── Locations ─────────────────────────────────────────────
+      - Njord__Locations__0__Name=home
+      - Njord__Locations__0__Latitude=47.05
+      - Njord__Locations__0__Longitude=8.31
+      #- Njord__Locations__1__Name=office
+      #- Njord__Locations__1__Latitude=47.38
+      #- Njord__Locations__1__Longitude=8.54
+
+      # ── Polling & Models ──────────────────────────────────────
+      #- Njord__PollInterval=01:00:00
+      #- Njord__ForecastDays=4
+      #- Njord__DiscoveryInterval=00:20:00
+      #- Njord__Models__0=icon_d2
+      #- Njord__Models__1=icon_eu
+      #- Njord__Models__2=icon_global
+      #- Njord__Models__3=ecmwf_ifs025
+      #- Njord__Models__4=gfs_seamless
+      #- Njord__Models__5=ukmo_global_deterministic_10km
+      #- Njord__Models__6=meteoswiss_icon_ch1
+      #- Njord__Models__7=meteoswiss_icon_ch2
+      #- Njord__Horizons__0=3
+      #- Njord__Horizons__1=6
+      #- Njord__Horizons__2=12
+      #- Njord__Horizons__3=24
+      #- Njord__Horizons__4=48
+      #- Njord__Horizons__5=72
+
+      # ── Parameters ────────────────────────────────────────────
+      #- Njord__Parameters__Groups__0=Weather
+      #- Njord__Parameters__Extra__0=
+      #- Njord__Parameters__Exclude__0=
+
+      # ── Persistence ───────────────────────────────────────────
+      #- Njord__Persistence__Provider=Sqlite
+      #- Njord__PersistencePath=data/njord-journal.db
+      ## For PostgreSQL:
+      #- Njord__Persistence__Provider=PostgreSql
+      #- Njord__Persistence__ConnectionString=Host=db;Database=njord;Username=njord;Password=secret
+
+      # ── Budget (self-throttle below Open-Meteo free tier) ─────
+      #- Njord__BudgetOverride__RequestsPerMonth=300000
+      #- Njord__BudgetOverride__RequestsPerMinute=600
+
+      # ── Enrichment ────────────────────────────────────────────
+      #- Njord__Enrichment__Consensus__Enabled=true
+      #- Njord__Enrichment__Consensus__Method=Median
+      #- Njord__Enrichment__Consensus__TrimPercent=0.1
+      #- Njord__Enrichment__Alerts__Enabled=true
+      #- Njord__Enrichment__Alerts__FrostThreshold=0
+      #- Njord__Enrichment__Alerts__HeatThresholds__0=30
+      #- Njord__Enrichment__Alerts__HeatThresholds__1=35
+      #- Njord__Enrichment__Alerts__HeatThresholds__2=40
+      #- Njord__Enrichment__Alerts__StormGustThreshold=16.7
+      #- Njord__Enrichment__Alerts__HeavyRainHourlyThreshold=10
+      #- Njord__Enrichment__Alerts__HeavyRainDailyThreshold=25
+      #- Njord__Enrichment__Alerts__PressureDropThreshold=5
+      #- Njord__Enrichment__Alerts__CapeThreshold=1000
+      #- Njord__Enrichment__Alerts__ThunderstormPrecipThreshold=5
+      #- Njord__Enrichment__Alerts__ThunderstormGustThreshold=15
+      #- Njord__Enrichment__Derived__Enabled=true
+      #- Njord__Enrichment__Trends__Enabled=false
+      #- Njord__Enrichment__History__Enabled=false
+      #- Njord__Enrichment__History__RetentionDays=30
+      #- Njord__Enrichment__History__MinSampleSize=48
+      #- Njord__Enrichment__History__SnapshotInterval=100
+      #- Njord__Enrichment__Energy__Enabled=false
+      #- Njord__Enrichment__Energy__FlowTemp=35
+      #- Njord__Enrichment__Energy__CarnotEfficiency=0.45
+      #- Njord__Enrichment__Energy__HeatingBaseTemp=18
+      #- Njord__Enrichment__Energy__CopOptimalHours=3
+      #- Njord__Enrichment__Energy__IndoorTemp=22
+      #- Njord__Enrichment__Indices__Enabled=false
+      #- Njord__Enrichment__Indices__HeatingBaseTemp=18
+      #- Njord__Enrichment__Indices__CoolingBaseTemp=24
+      #- Njord__Enrichment__Indices__IndoorTemp=22
+
+volumes:
+  njord-data:

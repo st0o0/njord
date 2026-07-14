@@ -3,6 +3,9 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
+  <ItemGroup Label="Aspire">
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.4.6" />
+  </ItemGroup>
   <ItemGroup Label="Service">
     <PackageVersion Include="Akka.Hosting" Version="1.5.70" />
     <PackageVersion Include="Servus" Version="0.34.0" />
