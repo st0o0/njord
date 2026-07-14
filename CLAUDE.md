@@ -63,11 +63,14 @@ All commands run from `src/` (where `global.json` lives):
 
 ```powershell
 dotnet build Njord.slnx
-dotnet run --project Njord.Tests/Njord.Tests.csproj              # all tests
-dotnet run --project Njord.Tests/Njord.Tests.csproj -- -class "<FullyQualifiedName>"
+dotnet run --project Njord.Tests/Njord.Tests.csproj                                    # unit + actor tests (no Docker)
+dotnet run --project Njord.Tests.Integration/Njord.Tests.Integration.csproj            # container tests (WireMock, Mosquitto)
+dotnet run --project Njord.Tests.Integration.E2E/Njord.Tests.Integration.E2E.csproj    # E2E pipeline test
+dotnet run --project Njord.Tests/Njord.Tests.csproj -- -class "<FullyQualifiedName>"   # single class
 ```
 
 Tests are xUnit v3 on Microsoft.Testing.Platform — `dotnet run`, **not** `dotnet test`.
+Shared test infrastructure (fixtures, fakes, helpers) lives in `Njord.Tests.Shared`.
 
 Run the service itself from `src/Njord/` (`dotnet run`) — the host's content
 root must contain `appsettings.json`. `dotnet slopwatch` runs from the repo

@@ -2,7 +2,7 @@ using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Ingest;
 
-namespace Njord.Tests.Ingest;
+namespace Njord.Tests.Integration.Ingest;
 
 public sealed class OpenMeteoSmokeSpec
 {

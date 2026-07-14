@@ -1,11 +1,12 @@
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Ingest;
+using Njord.Tests.Shared;
 using WireMock.Client;
 using WireMock.Net.Testcontainers;
 using WireMock.Types;
 
-namespace Njord.Tests.Ingest;
+namespace Njord.Tests.Integration.Ingest;
 
 public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
 {
@@ -22,9 +23,6 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
     private static readonly WeatherModel IconEu = new("icon_eu");
     private static readonly ResolvedParameterSet DefaultParameters = ParameterRegistry.Resolve(["Weather"], [], []);
     private static readonly DateTimeOffset FixtureStart = DateTimeOffset.FromUnixTimeSeconds(1_783_728_000);
-
-    private static string Fixture(string name)
-        => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Ingest", "Fixtures", name));
 
     public async ValueTask InitializeAsync()
     {
@@ -55,7 +53,7 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
             Response = new WireMock.Admin.Mappings.ResponseModel
             {
                 StatusCode = 200,
-                Body = Fixture("openmeteo-icon_eu-96h.json"),
+                Body = FixtureReader.Read("openmeteo-icon_eu-96h.json"),
                 Headers = new Dictionary<string, object> { ["Content-Type"] = "application/json" },
             },
         }, TestContext.Current.CancellationToken);
@@ -83,7 +81,7 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
             Response = new WireMock.Admin.Mappings.ResponseModel
             {
                 StatusCode = 200,
-                Body = Fixture("openmeteo-icon_eu-96h.json"),
+                Body = FixtureReader.Read("openmeteo-icon_eu-96h.json"),
                 Headers = new Dictionary<string, object> { ["Content-Type"] = "application/json" },
             },
         }, TestContext.Current.CancellationToken);
@@ -167,7 +165,7 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
             Response = new WireMock.Admin.Mappings.ResponseModel
             {
                 StatusCode = 200,
-                Body = Fixture("openmeteo-icon_d2-96h.json"),
+                Body = FixtureReader.Read("openmeteo-icon_d2-96h.json"),
                 Headers = new Dictionary<string, object> { ["Content-Type"] = "application/json" },
             },
         }, TestContext.Current.CancellationToken);

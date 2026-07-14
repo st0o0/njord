@@ -1,27 +1,24 @@
-using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json.Nodes;
 using DotNet.Testcontainers.Builders;
 using Microsoft.Extensions.Logging.Abstractions;
-using MQTTnet;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Mqtt;
 using Njord.Mqtt.Transport;
+using Njord.Tests.Shared;
 
-namespace Njord.Tests.Mqtt;
+namespace Njord.Tests.Integration.Mqtt;
 
 public sealed class MqttEgressIntegrationSpec
 {
-    private const string MosquittoConf = "listener 1883\nallow_anonymous true\n";
-
     [Fact(Timeout = 120000)]
     public async Task The_full_egress_round_trip_works_against_a_real_broker()
     {
         var ct = TestContext.Current.CancellationToken;
 
         await using var container = new ContainerBuilder("eclipse-mosquitto:2")
-            .WithResourceMapping(Encoding.UTF8.GetBytes(MosquittoConf), "/mosquitto/config/mosquitto.conf")
+            .WithResourceMapping(Encoding.UTF8.GetBytes(MosquittoHelper.MosquittoConf), "/mosquitto/config/mosquitto.conf")
             .WithPortBinding(1883, assignRandomHostPort: true)
             .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged("mosquitto version .+ running"))
             .Build();
@@ -39,10 +36,8 @@ public sealed class MqttEgressIntegrationSpec
         await mqttClient.ConnectAsync((_, _) => { }, () => { }, ct);
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
-        // Publish availability
         await mqttClient.SendAsync(TopicScheme.AvailabilityTopic(options.Mqtt.BaseTopic), "online", retain: true, ct);
 
-        // Publish state payloads for one model
         var tick = new DateTimeOffset(2026, 7, 12, 12, 30, 0, TimeSpan.Zero);
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var series = new ForecastSeries(Enumerable.Range(0, 90)
@@ -57,7 +52,6 @@ public sealed class MqttEgressIntegrationSpec
             await mqttClient.SendAsync(horizonTopic, json, retain: true, ct);
         }
 
-        // Publish discovery device configs
         foreach (var modelId in options.Models)
         {
             var model = new WeatherModel(modelId);
@@ -69,11 +63,10 @@ public sealed class MqttEgressIntegrationSpec
             await mqttClient.SendAsync(configTopic, configPayload, retain: true, ct);
         }
 
-        // Verify retained messages
         var expectedHourlyComponents = parameters.Hourly.Count * options.Horizons.Count;
         var expectedDailyComponents = parameters.Daily.Count * options.ForecastDays;
         var expectedTotal = expectedHourlyComponents + expectedDailyComponents;
-        var retained = await CollectRetainedAsync(mqttOptions, ["homeassistant/device/+/config", "njord/#"], ct);
+        var retained = await MosquittoHelper.CollectRetainedAsync(mqttOptions, ["homeassistant/device/+/config", "njord/#"], ct);
 
         var config = JsonNode.Parse(retained["homeassistant/device/njord_home_icon_d2/config"])!;
         Assert.Equal(expectedTotal, config["cmps"]!.AsObject().Count);
@@ -82,27 +75,5 @@ public sealed class MqttEgressIntegrationSpec
         Assert.Equal("online", retained["njord/status"]);
         var h3State = JsonNode.Parse(retained["njord/home/icon_d2/h3"])!;
         Assert.Equal(23.0, (double?)h3State["temperature"]);
-    }
-
-    private static async Task<IReadOnlyDictionary<string, string>> CollectRetainedAsync(
-        MqttOptions options, string[] filters, CancellationToken ct)
-    {
-        var seen = new ConcurrentDictionary<string, string>();
-        using var client = new MqttClientFactory().CreateMqttClient();
-        client.ApplicationMessageReceivedAsync += e =>
-        {
-            seen[e.ApplicationMessage.Topic] = e.ApplicationMessage.ConvertPayloadToString() ?? string.Empty;
-            return Task.CompletedTask;
-        };
-        await client.ConnectAsync(
-            new MqttClientOptionsBuilder().WithTcpServer(options.Host, options.Port).Build(), ct);
-        foreach (var filter in filters)
-        {
-            await client.SubscribeAsync(filter, cancellationToken: ct);
-        }
-
-        await Task.Delay(TimeSpan.FromSeconds(3), ct);
-        await client.DisconnectAsync(cancellationToken: ct);
-        return seen;
     }
 }

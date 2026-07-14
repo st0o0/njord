@@ -3,6 +3,7 @@ using System.Text;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Ingest;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Ingest;
 
@@ -17,7 +18,7 @@ public sealed class OpenMeteoClientSpec
     private static readonly DateTimeOffset FixtureStart = DateTimeOffset.FromUnixTimeSeconds(1_783_728_000);
 
     private static string Fixture(string name)
-        => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Ingest", "Fixtures", name));
+        => FixtureReader.Read(name);
 
     private static (OpenMeteoClient Client, RecordingHandler Handler) CreateClient(
         Func<HttpRequestMessage, HttpResponseMessage> respond,

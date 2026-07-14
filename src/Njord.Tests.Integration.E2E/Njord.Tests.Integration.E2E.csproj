@@ -6,10 +6,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
-        <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
-        <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
-        <PackageReference Include="Verify.XunitV3" />
+        <PackageReference Include="MQTTnet" />
+        <PackageReference Include="Testcontainers" />
+        <PackageReference Include="WireMock.Net.Testcontainers" />
         <PackageReference Include="xunit.v3.mtp-v2" />
     </ItemGroup>
 
