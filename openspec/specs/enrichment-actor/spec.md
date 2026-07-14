@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The EnrichmentActor consumes the pipeline's BroadcastHub via SourceRef, maintains a running ModelSnapshot via Scan, fans out to consumer streams through a second BroadcastHub, and routes computed MqttMessages to the egress actor's MergeHub via SinkRef. Consumer streams are materialized only when enabled in configuration.
+The EnrichmentActor consumes the pipeline's BroadcastHub via SourceRef, maintains a running ModelSnapshot via Scan, fans out to consumer streams through a second BroadcastHub, and routes computed domain results to the EgressActor as `PublishStateResult` messages. Consumer streams are materialized only when enabled in configuration.
 
 ## Requirements
 
@@ -43,16 +43,16 @@ The `EnrichmentActor` SHALL materialize a `BroadcastHub<ModelSnapshot>` from the
 - **WHEN** a changed `ModelSnapshot` enters the BroadcastHub and two consumers are subscribed
 - **THEN** both consumers receive the snapshot independently
 
-### Requirement: The EnrichmentActor requests an MqttSinkRef from the EgressActor
-The `EnrichmentActor` SHALL send a `RequestMqttSink` message to the `MqttEgressActor` and receive a `MqttSinkResponse` containing a `SinkRef<MqttMessage>`. All consumer stream outputs SHALL sink into this SinkRef, routing computed messages through the egress actor's existing MergeHub transport.
+### Requirement: EnrichmentActor fans out enrichment results to EgressActor
+The `EnrichmentActor` SHALL send computed enrichment results (ConsensusResult, AlertResult, DerivedResult, TrendResult, IndexResult, EnergyResult, HistoryResult) to the `EgressActor` as `PublishStateResult` messages. It SHALL NOT produce `MqttMessage` instances directly. It SHALL NOT reference `MqttMessage`, `TopicScheme`, or any type from `Njord.Mqtt`.
 
-#### Scenario: SinkRef obtained and used by consumers
-- **WHEN** the EnrichmentActor receives an `MqttSinkResponse`
-- **THEN** consumer streams materialize their sinks using the provided `SinkRef<MqttMessage>`
+#### Scenario: Consensus result routed through EgressActor
+- **WHEN** the consensus stream computes a `ConsensusResult`
+- **THEN** `EnrichmentActor` sends `PublishStateResult(location, result)` to `EgressActor`
 
-#### Scenario: EgressActor restart triggers re-request
-- **WHEN** the EnrichmentActor receives a `Terminated` message for the MqttEgressActor
-- **THEN** it re-requests the MqttSinkRef from the restarted actor
+#### Scenario: No direct MqttMessage production
+- **WHEN** any enrichment stream produces a result
+- **THEN** the result is a domain record from `Njord.Domain.Analysis`, not an `MqttMessage`
 
 ### Requirement: Consumer streams are materialized only when enabled
 The `EnrichmentActor` SHALL read `EnrichmentOptions` from configuration. For each consumer type (e.g. `Consensus`), if `Enabled` is `false`, the consumer stream SHALL NOT be materialized — no BroadcastHub subscriber is created. If `Enabled` is `true`, the consumer stream SHALL be materialized and connected to the BroadcastHub and MqttSinkRef.
@@ -65,20 +65,16 @@ The `EnrichmentActor` SHALL read `EnrichmentOptions` from configuration. For eac
 - **WHEN** `EnrichmentOptions.Consensus.Enabled` is `true`
 - **THEN** the consensus consumer stream is materialized and connected to the BroadcastHub
 
-### Requirement: Consumer streams use delta publishing
-Each consumer stream SHALL maintain a `Dictionary<string, string>` mapping topic → last published payload. A computed `MqttMessage` SHALL only be emitted to the SinkRef when the serialized payload differs from the last published value for that topic.
+### Requirement: Enrichment streams sink to EgressActor instead of MergeHub
+Each enrichment consumer stream (consensus, alerts, derived, trends, indices, energy, history) SHALL end with a `Tell` to `EgressActor` carrying the domain result, instead of pushing `MqttMessage` instances into a MergeHub `SinkRef`. The `EnrichmentActor` SHALL resolve `EgressActor` via `Context.GetActor<EgressActor>()`.
 
-#### Scenario: First publish always emits
-- **WHEN** the consensus consumer computes a result for `njord/lucerne/consensus/h3` for the first time
-- **THEN** the MqttMessage is emitted to the SinkRef
+#### Scenario: EnrichmentActor resolves EgressActor
+- **WHEN** `EnrichmentActor` starts
+- **THEN** it resolves `EgressActor` via `Context.GetActor<EgressActor>()`
 
-#### Scenario: Identical payload is suppressed
-- **WHEN** a recomputed consensus yields the same JSON payload as the last publish for that topic
-- **THEN** no MqttMessage is emitted
-
-#### Scenario: Changed payload emits
-- **WHEN** a recomputed consensus yields a different JSON payload than the last publish
-- **THEN** the new MqttMessage is emitted to the SinkRef
+#### Scenario: Stream consumer sends domain result to EgressActor
+- **WHEN** the alert stream computes an `AlertResult`
+- **THEN** `EnrichmentActor` tells `EgressActor` with `PublishStateResult(location, alertResult)`
 
 ### Requirement: Stream supervision resumes on consumer errors
 Each consumer stream SHALL use a supervision strategy that resumes on exceptions. A failure in one consumer's computation SHALL NOT terminate other consumer streams or the snapshot BroadcastHub.

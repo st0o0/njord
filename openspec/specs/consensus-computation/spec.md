@@ -106,16 +106,16 @@ Pure statistical computations over multi-model forecast data: median, trimmed me
 - **WHEN** icon_d2's forecast has no point at +72h (beyond its horizon)
 - **THEN** icon_d2 is `false` in the availability matrix for +72h
 
-### Requirement: ConsensusResult aggregates all metrics per parameter and horizon
-`ConsensusResult` SHALL be a record holding per (parameter, horizon): median, trimmed mean, spread, IQR, agreement score, outlier (model + deviation), confidence interval (lower, upper), and list of available models. It SHALL expose a `ToMqttMessages(baseTopic, location, horizons)` method that serializes each horizon as a flat JSON payload on the consensus topic, with delta publishing awareness.
+### Requirement: ConsensusResult is a pure data record without MQTT serialization
+`ConsensusResult` SHALL be a record in `Njord.Domain.Analysis` holding location, per-horizon consensus metrics (median, trimmed mean, spread, IQR, agreement, outliers, confidence interval, model availability). It SHALL NOT contain `ToMqttMessages()` or reference `MqttMessage`, `TopicScheme`, or any type from `Njord.Mqtt`. MQTT serialization of `ConsensusResult` SHALL be the responsibility of `StatePayloadBuilder` in `Njord.Mqtt`.
 
-#### Scenario: Consensus result for one horizon
-- **WHEN** a ConsensusResult is built for (temperature, +3h) from 6 models
-- **THEN** it contains median, spread, IQR, agreement, outlier model, CI bounds, and 6 available models
+#### Scenario: ConsensusResult has no MQTT dependency
+- **WHEN** `ConsensusResult` is instantiated
+- **THEN** it contains only domain data — no MQTT types are referenced
 
-#### Scenario: Serialization to MqttMessage
-- **WHEN** `ToMqttMessages` is called with baseTopic "njord" and location "lucerne"
-- **THEN** one `MqttMessage` per horizon is produced with topic `njord/lucerne/consensus/h3` and a flat JSON payload
+#### Scenario: MQTT serialization lives in StatePayloadBuilder
+- **WHEN** a `ConsensusResult` needs to be published via MQTT
+- **THEN** `StatePayloadBuilder.FromConsensus(result, baseTopic, location)` produces the `MqttMessage` instances
 
 ### Requirement: Consensus topic scheme
 The consensus pseudo-model SHALL use topic pattern `{baseTopic}/{location}/consensus/{horizon}`. The device id SHALL be `njord_{location}_consensus`. Discovery SHALL produce a device payload with the same horizons and parameters as model devices, plus additional diagnostic attributes (spread, agreement, models_used) as sensor attributes on each component.
