@@ -23,7 +23,7 @@ public sealed record HistoryResult(
         HistoryOptions options)
     {
         var now = timeProvider.GetUtcNow();
-        const string tempApiName = "temperature_2m";
+        var tempApiName = ParameterRegistry.Temperature2m.ApiName;
 
         var mae7d = HistoryAnalyzer.ModelAccuracy(history, tempApiName, 7, options.MinSampleSize);
         var mae30d = HistoryAnalyzer.ModelAccuracy(history, tempApiName, 30, options.MinSampleSize);
@@ -45,7 +45,7 @@ public sealed record HistoryResult(
 
         if (currentConsensus.Count > 0)
         {
-            var tempParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == tempApiName);
+            var tempParam = parameters.Get(ParameterRegistry.Temperature2m);
             if (tempParam is not null)
             {
                 var nearestPoint = currentConsensus[0].Hourly.Points
@@ -77,7 +77,7 @@ public sealed record HistoryResult(
         foreach (var (key, forecast) in current.Entries)
         {
             if (key.Location != location) continue;
-            var tempParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == tempApiName);
+            var tempParam = parameters.Get(ParameterRegistry.Temperature2m);
             if (tempParam is null) continue;
             var pt = forecast.Hourly.Points
                 .OrderBy(p => Math.Abs((p.ValidAt - now).TotalMinutes))

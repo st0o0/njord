@@ -28,14 +28,14 @@ public sealed record DerivedResult(
     {
         var now = timeProvider.GetUtcNow();
 
-        var windSpeed = parameters.Hourly.FirstOrDefault(p => p.ApiName == "wind_speed_10m");
-        var temperature = parameters.Hourly.FirstOrDefault(p => p.ApiName == "temperature_2m");
-        var dewPoint = parameters.Hourly.FirstOrDefault(p => p.ApiName == "dew_point_2m");
-        var weatherCode = parameters.Hourly.FirstOrDefault(p => p.ApiName == "weather_code");
-        var pressureMsl = parameters.Hourly.FirstOrDefault(p => p.ApiName == "pressure_msl");
-        var surfacePressure = parameters.Hourly.FirstOrDefault(p => p.ApiName == "surface_pressure");
-        var sunshineDuration = parameters.Hourly.FirstOrDefault(p => p.ApiName == "sunshine_duration");
-        var isDay = parameters.Hourly.FirstOrDefault(p => p.ApiName == "is_day");
+        var windSpeed = parameters.Get(ParameterRegistry.WindSpeed10m);
+        var temperature = parameters.Get(ParameterRegistry.Temperature2m);
+        var dewPoint = parameters.Get(ParameterRegistry.DewPoint2m);
+        var weatherCode = parameters.Get(ParameterRegistry.WeatherCode);
+        var pressureMsl = parameters.Get(ParameterRegistry.PressureMsl);
+        var surfacePressure = parameters.Get(ParameterRegistry.SurfacePressure);
+        var sunshineDuration = parameters.Get(ParameterRegistry.SunshineDuration);
+        var isDay = parameters.Get(ParameterRegistry.IsDay);
 
         var forecasts = snapshot.Entries
             .Where(e => e.Key.Location == location)

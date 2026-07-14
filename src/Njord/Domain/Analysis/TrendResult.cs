@@ -14,13 +14,19 @@ public sealed record TrendResult(
     (string Label, double Ratio)? Stability,
     (double DecayRate, int? ReliableHours)? Decay)
 {
-    private static readonly string[] TrendParams = ["temperature_2m", "wind_speed_10m", "precipitation", "cloud_cover"];
-    private static readonly Dictionary<string, double> Thresholds = new()
+    private static readonly ParameterDef[] TrendParamDefs =
+    [
+        ParameterRegistry.Temperature2m,
+        ParameterRegistry.WindSpeed10m,
+        ParameterRegistry.Precipitation,
+        ParameterRegistry.CloudCover,
+    ];
+    private static readonly Dictionary<ParameterDef, double> Thresholds = new()
     {
-        ["temperature_2m"] = 0.5,
-        ["wind_speed_10m"] = 0.5,
-        ["precipitation"] = 0.5,
-        ["cloud_cover"] = 5.0,
+        [ParameterRegistry.Temperature2m] = 0.5,
+        [ParameterRegistry.WindSpeed10m] = 0.5,
+        [ParameterRegistry.Precipitation] = 0.5,
+        [ParameterRegistry.CloudCover] = 5.0,
     };
 
     public static TrendResult Compute(
@@ -32,9 +38,9 @@ public sealed record TrendResult(
         TimeProvider timeProvider)
     {
         var now = timeProvider.GetUtcNow();
-        var tempParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "temperature_2m");
-        var precipParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "precipitation");
-        var weatherCodeParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "weather_code");
+        var tempParam = parameters.Get(ParameterRegistry.Temperature2m);
+        var precipParam = parameters.Get(ParameterRegistry.Precipitation);
+        var weatherCodeParam = parameters.Get(ParameterRegistry.WeatherCode);
 
         var paramTrends = new Dictionary<string, ParameterTrend?>();
         WeatherChangeResult? weatherChange = null;
@@ -42,21 +48,21 @@ public sealed record TrendResult(
 
         var referenceHorizon = horizons.Count > 0 ? horizons[0] : 3;
 
-        foreach (var apiName in TrendParams)
+        foreach (var paramDef in TrendParamDefs)
         {
-            var param = parameters.Hourly.FirstOrDefault(p => p.ApiName == apiName);
+            var param = parameters.Get(paramDef);
             if (param is null || previous is null)
             {
-                paramTrends[apiName] = null;
+                paramTrends[paramDef.ApiName] = null;
                 continue;
             }
 
             var currMedian = MedianAtHorizon(current, param, location, referenceHorizon, now);
             var prevMedian = MedianAtHorizon(previous, param, location, referenceHorizon, now);
-            var threshold = Thresholds.GetValueOrDefault(apiName, 0.5);
+            var threshold = Thresholds.GetValueOrDefault(paramDef, 0.5);
 
             var trend = TrendAnalyzer.TrendDirection(prevMedian, currMedian, threshold);
-            paramTrends[apiName] = trend is { } t ? new ParameterTrend(t.Direction, t.Delta) : null;
+            paramTrends[paramDef.ApiName] = trend is { } t ? new ParameterTrend(t.Direction, t.Delta) : null;
         }
 
         if (previous is not null && weatherCodeParam is not null)

@@ -23,13 +23,13 @@ public sealed record EnergyResult(
         var now = timeProvider.GetUtcNow();
         var cutoff = now.AddHours(24);
 
-        var tempParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "temperature_2m");
-        var windParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "wind_speed_10m");
-        var cloudParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "cloud_cover");
-        var radiationParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "shortwave_radiation");
-        var isDayParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "is_day");
-        var humidityParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "relative_humidity_2m");
-        var rainProbParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "precipitation_probability");
+        var tempParam = parameters.Get(ParameterRegistry.Temperature2m);
+        var windParam = parameters.Get(ParameterRegistry.WindSpeed10m);
+        var cloudParam = parameters.Get(ParameterRegistry.CloudCover);
+        var radiationParam = parameters.Get(ParameterRegistry.ShortwaveRadiation);
+        var isDayParam = parameters.Get(ParameterRegistry.IsDay);
+        var humidityParam = parameters.Get(ParameterRegistry.RelativeHumidity2m);
+        var rainProbParam = parameters.Get(ParameterRegistry.PrecipitationProbability);
 
         var forecasts = snapshot.Entries
             .Where(e => e.Key.Location == location)

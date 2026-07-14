@@ -53,19 +53,19 @@ public static class AlertTypeExtensions
 
 public static class AlertEvaluator
 {
-    private static readonly ParameterDef? Temperature = ParameterRegistry.GetByApiName("temperature_2m");
-    private static readonly ParameterDef? ApparentTemp = ParameterRegistry.GetByApiName("apparent_temperature");
-    private static readonly ParameterDef? WindGusts = ParameterRegistry.GetByApiName("wind_gusts_10m");
-    private static readonly ParameterDef? Precipitation = ParameterRegistry.GetByApiName("precipitation");
+    private static readonly ParameterDef Temperature = ParameterRegistry.Temperature2m;
+    private static readonly ParameterDef ApparentTemp = ParameterRegistry.ApparentTemperature;
+    private static readonly ParameterDef WindGusts = ParameterRegistry.WindGusts10m;
+    private static readonly ParameterDef Precipitation = ParameterRegistry.Precipitation;
     private static readonly ParameterDef? PrecipSum = ParameterRegistry.GetByApiName("precipitation_sum");
-    private static readonly ParameterDef? UvIndex = ParameterRegistry.GetByApiName("uv_index");
-    private static readonly ParameterDef? Dewpoint = ParameterRegistry.GetByApiName("dew_point_2m");
-    private static readonly ParameterDef? WindSpeed = ParameterRegistry.GetByApiName("wind_speed_10m");
-    private static readonly ParameterDef? Humidity = ParameterRegistry.GetByApiName("relative_humidity_2m");
-    private static readonly ParameterDef? Snowfall = ParameterRegistry.GetByApiName("snowfall");
-    private static readonly ParameterDef? FreezingLevel = ParameterRegistry.GetByApiName("freezing_level_height");
-    private static readonly ParameterDef? PressureMsl = ParameterRegistry.GetByApiName("pressure_msl");
-    private static readonly ParameterDef? Cape = ParameterRegistry.GetByApiName("cape");
+    private static readonly ParameterDef UvIndex = ParameterRegistry.UvIndex;
+    private static readonly ParameterDef Dewpoint = ParameterRegistry.DewPoint2m;
+    private static readonly ParameterDef WindSpeed = ParameterRegistry.WindSpeed10m;
+    private static readonly ParameterDef Humidity = ParameterRegistry.RelativeHumidity2m;
+    private static readonly ParameterDef Snowfall = ParameterRegistry.Snowfall;
+    private static readonly ParameterDef FreezingLevel = ParameterRegistry.FreezingLevelHeight;
+    private static readonly ParameterDef PressureMsl = ParameterRegistry.PressureMsl;
+    private static readonly ParameterDef Cape = ParameterRegistry.Cape;
 
     public static AlertResult EvaluateAll(
         ModelSnapshot snapshot, string location, AlertThresholdOptions options, TimeProvider timeProvider)

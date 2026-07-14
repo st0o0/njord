@@ -29,15 +29,15 @@ public sealed record IndexResult(
         var now = timeProvider.GetUtcNow();
         var cutoff = now.AddHours(24);
 
-        var tempParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "temperature_2m");
-        var humidityParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "relative_humidity_2m");
-        var windParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "wind_speed_10m");
-        var precipProbParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "precipitation_probability");
-        var cloudParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "cloud_cover");
-        var radiationParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "shortwave_radiation");
-        var etParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "et0_fao_evapotranspiration");
-        var sunshineDurationParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "sunshine_duration");
-        var isDayParam = parameters.Hourly.FirstOrDefault(p => p.ApiName == "is_day");
+        var tempParam = parameters.Get(ParameterRegistry.Temperature2m);
+        var humidityParam = parameters.Get(ParameterRegistry.RelativeHumidity2m);
+        var windParam = parameters.Get(ParameterRegistry.WindSpeed10m);
+        var precipProbParam = parameters.Get(ParameterRegistry.PrecipitationProbability);
+        var cloudParam = parameters.Get(ParameterRegistry.CloudCover);
+        var radiationParam = parameters.Get(ParameterRegistry.ShortwaveRadiation);
+        var etParam = parameters.Get(ParameterRegistry.Et0FaoEvapotranspiration);
+        var sunshineDurationParam = parameters.Get(ParameterRegistry.SunshineDuration);
+        var isDayParam = parameters.Get(ParameterRegistry.IsDay);
 
         var forecasts = snapshot.Entries
             .Where(e => e.Key.Location == location)

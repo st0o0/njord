@@ -14,7 +14,53 @@ public static class ParameterRegistry
         {
             ByName.TryAdd(p.ApiName, p);
         }
+
+        static ParameterDef Require(string apiName) =>
+            ByName.GetValueOrDefault(apiName)
+            ?? throw new InvalidOperationException($"Required parameter '{apiName}' not found in registry");
+
+        Temperature2m = Require("temperature_2m");
+        ApparentTemperature = Require("apparent_temperature");
+        RelativeHumidity2m = Require("relative_humidity_2m");
+        DewPoint2m = Require("dew_point_2m");
+        WindSpeed10m = Require("wind_speed_10m");
+        WindGusts10m = Require("wind_gusts_10m");
+        Precipitation = Require("precipitation");
+        PrecipitationProbability = Require("precipitation_probability");
+        CloudCover = Require("cloud_cover");
+        PressureMsl = Require("pressure_msl");
+        SurfacePressure = Require("surface_pressure");
+        ShortwaveRadiation = Require("shortwave_radiation");
+        SunshineDuration = Require("sunshine_duration");
+        UvIndex = Require("uv_index");
+        IsDay = Require("is_day");
+        Snowfall = Require("snowfall");
+        FreezingLevelHeight = Require("freezing_level_height");
+        Cape = Require("cape");
+        WeatherCode = Require("weather_code");
+        Et0FaoEvapotranspiration = Require("et0_fao_evapotranspiration");
     }
+
+    public static ParameterDef Temperature2m { get; }
+    public static ParameterDef ApparentTemperature { get; }
+    public static ParameterDef RelativeHumidity2m { get; }
+    public static ParameterDef DewPoint2m { get; }
+    public static ParameterDef WindSpeed10m { get; }
+    public static ParameterDef WindGusts10m { get; }
+    public static ParameterDef Precipitation { get; }
+    public static ParameterDef PrecipitationProbability { get; }
+    public static ParameterDef CloudCover { get; }
+    public static ParameterDef PressureMsl { get; }
+    public static ParameterDef SurfacePressure { get; }
+    public static ParameterDef ShortwaveRadiation { get; }
+    public static ParameterDef SunshineDuration { get; }
+    public static ParameterDef UvIndex { get; }
+    public static ParameterDef IsDay { get; }
+    public static ParameterDef Snowfall { get; }
+    public static ParameterDef FreezingLevelHeight { get; }
+    public static ParameterDef Cape { get; }
+    public static ParameterDef WeatherCode { get; }
+    public static ParameterDef Et0FaoEvapotranspiration { get; }
 
     public static IReadOnlyCollection<ParameterDef> All => AllList;
 
@@ -175,15 +221,32 @@ public static class ParameterRegistry
     }
 }
 
-public sealed class ResolvedParameterSet(
-    IReadOnlyList<ParameterDef> hourly,
-    IReadOnlyList<ParameterDef> daily)
+public sealed class ResolvedParameterSet
 {
-    public IReadOnlyList<ParameterDef> Hourly { get; } = hourly;
-    public IReadOnlyList<ParameterDef> Daily { get; } = daily;
+    private readonly HashSet<ParameterDef> _hourlySet;
+    private readonly HashSet<ParameterDef> _dailySet;
+
+    public ResolvedParameterSet(IReadOnlyList<ParameterDef> hourly, IReadOnlyList<ParameterDef> daily)
+    {
+        Hourly = hourly;
+        Daily = daily;
+        _hourlySet = [.. hourly];
+        _dailySet = [.. daily];
+    }
+
+    public IReadOnlyList<ParameterDef> Hourly { get; }
+    public IReadOnlyList<ParameterDef> Daily { get; }
 
     public int HourlyCount => Hourly.Count;
     public int ApiCallWeight => (int)Math.Ceiling(HourlyCount / 10.0);
+
+    public ParameterDef? Get(ParameterDef param)
+        => _hourlySet.TryGetValue(param, out var found) ? found
+         : _dailySet.TryGetValue(param, out found) ? found
+         : null;
+
+    public bool Contains(ParameterDef param)
+        => _hourlySet.Contains(param) || _dailySet.Contains(param);
 }
 
 public sealed class ParameterResolutionException(IReadOnlyList<string> errors) : Exception(string.Join("; ", errors))
