@@ -38,7 +38,10 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
             .WithSqlPersistence(connectionString, providerName, autoInitialize: true)
             .WithResolvableActors(r =>
             {
-                r.Register<MqttEgressActor>("mqtt-egress");
+                r.Register<EgressActor>("egress");
+                r.Register<MqttConnectionActor>("mqtt-connection");
+                r.Register<MqttPublisherActor>("mqtt-publisher");
+                r.Register<DiscoveryActor>("mqtt-discovery");
                 r.Register<PipelineActor>("pipeline");
                 r.Register<SchedulerActor>("scheduler");
                 r.Register<EnrichmentActor>("enrichment");

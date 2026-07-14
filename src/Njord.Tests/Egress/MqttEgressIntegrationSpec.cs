@@ -57,15 +57,12 @@ public sealed class MqttEgressIntegrationSpec
         var registry = ActorRegistry.For(system);
         var fakePipeline = system.ActorOf(Props.Create(() => new FakePipelineSource(system.Materializer())));
         registry.Register<PipelineActor>(fakePipeline);
-        var actor = system.ActorOf(Props.Create(() => new MqttEgressActor(
+        var actor = system.ActorOf(Props.Create(() => new MqttConnectionActor(
             Microsoft.Extensions.Options.Options.Create(options),
-            Microsoft.Extensions.Options.Options.Create(new Njord.Configuration.EnrichmentOptions()),
             mqttClient,
             mqttClient,
-            NullLogger<MqttEgressActor>.Instance,
-            MqttEgressTuning.Default,
-            parameters,
-            TimeProvider.System)));
+            NullLogger<MqttConnectionActor>.Instance,
+            MqttEgressTuning.Default)));
 
         // Simulate a state publish via the transport (as the pipeline would through StreamRef)
         var tick = new DateTimeOffset(2026, 7, 12, 12, 30, 0, TimeSpan.Zero);

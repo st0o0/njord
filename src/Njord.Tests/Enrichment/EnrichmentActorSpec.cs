@@ -50,7 +50,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<MqttConnectionActor>(fakeEgress, overwrite: true);
 
         var actor = CreateEnrichmentActor();
 
@@ -70,7 +70,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<MqttConnectionActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { Consensus = new ConsensusOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
@@ -88,7 +88,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<MqttConnectionActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { Derived = new DerivedOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
@@ -106,7 +106,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<MqttConnectionActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions
         {
@@ -129,7 +129,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<MqttConnectionActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { Trends = new TrendOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
@@ -147,7 +147,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<MqttConnectionActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { History = new HistoryOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
@@ -165,7 +165,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<MqttConnectionActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { Energy = new EnergyOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
@@ -183,7 +183,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<MqttConnectionActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { Indices = new IndexOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
@@ -201,7 +201,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
         var fakeEgress = _system.ActorOf(Props.Create(() => new FakeMqttSinkProvider(mat)));
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<MqttEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<MqttConnectionActor>(fakeEgress, overwrite: true);
 
         var enrichment = new EnrichmentOptions { Trends = new TrendOptions { Enabled = true } };
         var actor = CreateEnrichmentActor(enrichment);

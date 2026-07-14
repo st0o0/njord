@@ -1,8 +1,9 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Njord.Domain.Weather;
-using Njord.Egress;
-using Njord.Mqtt;
 using Njord.Ingest;
+using Njord.Mqtt;
+using Njord.Mqtt.Transport;
 using Servus.Core.Application.Startup;
 
 namespace Njord.Configuration;
@@ -30,6 +31,12 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         services.AddSingleton(TimeProvider.System);
         services.AddHealthChecks();
         services.AddOpenMeteoIngest();
-        services.AddMqttEgress();
+        services.TryAddSingleton(MqttEgressTuning.Default);
+        services.TryAddSingleton(static provider =>
+            new MqttNetPublisher(
+                provider.GetRequiredService<IOptions<NjordOptions>>().Value.Mqtt,
+                provider.GetRequiredService<ILogger<MqttNetPublisher>>()));
+        services.TryAddSingleton<IMqttConnection>(static provider => provider.GetRequiredService<MqttNetPublisher>());
+        services.TryAddSingleton<IMqttTransport>(static provider => provider.GetRequiredService<MqttNetPublisher>());
     }
 }

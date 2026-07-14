@@ -52,7 +52,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         Context.Watch(pipelineActor);
         pipelineActor.Tell(new RequestPipelineSource());
 
-        var egressActor = Context.GetActor<MqttEgressActor>();
+        var egressActor = Context.GetActor<MqttConnectionActor>();
         Context.Watch(egressActor);
         egressActor.Tell(new RequestMqttSink());
     }
@@ -101,7 +101,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         Context.Watch(pipelineActor);
         pipelineActor.Tell(new RequestPipelineSource());
 
-        var egressActor = Context.GetActor<MqttEgressActor>();
+        var egressActor = Context.GetActor<MqttConnectionActor>();
         Context.Watch(egressActor);
         egressActor.Tell(new RequestMqttSink());
 

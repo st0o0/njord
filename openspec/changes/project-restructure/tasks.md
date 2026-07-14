@@ -28,11 +28,11 @@
 
 - [x] 5.1 Create `src/Njord/Mqtt/` folder. Move `MqttMessage.cs`, `TopicScheme.cs`, `DiscoveryPayloadBuilder.cs`, `StatePayloadBuilder.cs` from `src/Njord/Egress/` to `src/Njord/Mqtt/`. Update namespace from `Njord.Egress` to `Njord.Mqtt`.
 - [x] 5.2 Create `src/Njord/Mqtt/Transport/` folder. Move `IMqttConnection.cs`, `IMqttTransport.cs`, `MqttNetPublisher.cs` from `src/Njord/Egress/` to `src/Njord/Mqtt/Transport/`. Update namespace to `Njord.Mqtt.Transport`.
-- [ ] 5.3 Create `src/Njord/Mqtt/MqttConnectionActor.cs` — extract connection lifecycle from `MqttEgressActor`: `Connect()`, `ScheduleReconnect()`, `OnConnectedAsync()`, LWT publishing, MergeHub materialization, `RequestMqttSink`/`MqttSinkResponse` protocol. Owns `IMqttConnection` and `IMqttTransport`.
-- [ ] 5.4 Create `src/Njord/Mqtt/MqttPublisherActor.cs` — registers with `EgressActor` via `RegisterPublisher` on startup. Requests `SinkRef<MqttMessage>` from `MqttConnectionActor`. On `PublishStateResult`, transforms domain results via `StatePayloadBuilder.From*()` methods and pushes `MqttMessage` instances into the MergeHub sink. Maintains delta-publishing cache. Also materializes the pipeline SourceRef consumer (FetchOutcome → per-horizon state messages).
-- [ ] 5.5 Create `src/Njord/Mqtt/DiscoveryActor.cs` — requests `SinkRef<MqttMessage>` from `MqttConnectionActor`. Subscribes to HA status topic. On connect notification and HA birth, publishes discovery config payloads for all devices. No-op when `DiscoveryEnabled` is false.
-- [ ] 5.6 Delete `src/Njord/Egress/MqttEgressActor.cs` and `src/Njord/Egress/EgressServiceCollectionExtensions.cs`. Remove any now-empty files from `src/Njord/Egress/`.
-- [ ] 5.7 Fix all `using` statements across the codebase for the `Njord.Mqtt` and `Njord.Mqtt.Transport` namespaces. Build: `dotnet build src/Njord.slnx`.
+- [x] 5.3 Create `src/Njord/Mqtt/MqttConnectionActor.cs` — extract connection lifecycle from `MqttEgressActor`: `Connect()`, `ScheduleReconnect()`, `OnConnectedAsync()`, LWT publishing, MergeHub materialization, `RequestMqttSink`/`MqttSinkResponse` protocol. Owns `IMqttConnection` and `IMqttTransport`.
+- [x] 5.4 Create `src/Njord/Mqtt/MqttPublisherActor.cs` — registers with `EgressActor` via `RegisterPublisher` on startup. Requests `SinkRef<MqttMessage>` from `MqttConnectionActor`. On `PublishStateResult`, transforms domain results via `StatePayloadBuilder.From*()` methods and pushes `MqttMessage` instances into the MergeHub sink. Maintains delta-publishing cache. Also materializes the pipeline SourceRef consumer (FetchOutcome → per-horizon state messages).
+- [x] 5.5 Create `src/Njord/Mqtt/DiscoveryActor.cs` — requests `SinkRef<MqttMessage>` from `MqttConnectionActor`. Subscribes to HA status topic. On connect notification and HA birth, publishes discovery config payloads for all devices. No-op when `DiscoveryEnabled` is false.
+- [x] 5.6 Delete `src/Njord/Egress/MqttEgressActor.cs` and `src/Njord/Egress/EgressServiceCollectionExtensions.cs`. Remove any now-empty files from `src/Njord/Egress/`.
+- [x] 5.7 Fix all `using` statements across the codebase for the `Njord.Mqtt` and `Njord.Mqtt.Transport` namespaces. Build: `dotnet build src/Njord.slnx`.
 
 ## 6. Mqtt test restructure
 
@@ -44,21 +44,21 @@
 
 ## 7. EnrichmentActor rewire
 
-- [ ] 7.1 Update `src/Njord/Enrichment/EnrichmentActor.cs` — replace all `result.ToMqttMessages(baseTopic)` calls with `egressActor.Tell(new PublishStateResult(location, result))`. Resolve `EgressActor` via `Context.GetActor<EgressActor>()`. Remove `using Njord.Mqtt` / `using Njord.Egress` MqttMessage references.
+- [x] 7.1 Update `src/Njord/Enrichment/EnrichmentActor.cs` — replace all `result.ToMqttMessages(baseTopic)` calls with `egressActor.Tell(new PublishStateResult(location, result))`. Resolve `EgressActor` via `Context.GetActor<EgressActor>()`. Remove `using Njord.Mqtt` / `using Njord.Egress` MqttMessage references.
 - [ ] 7.2 Update `src/Njord.Tests/Enrichment/EnrichmentActorSpec.cs` — verify enrichment streams send `PublishStateResult` to `EgressActor` instead of producing `MqttMessage`.
 - [ ] 7.3 Build and run tests: `dotnet run --project src/Njord.Tests/Njord.Tests.csproj`.
 
 ## 8. Actor registration and wiring
 
-- [ ] 8.1 Update `src/Njord/Configuration/NjordActorSystemSetup.cs` — register `EgressActor`, `MqttConnectionActor`, `MqttPublisherActor`, `DiscoveryActor` via `WithResolvableActors`. Remove `MqttEgressActor` registration.
-- [ ] 8.2 Update `src/Njord/Configuration/NjordServiceSetup.cs` — update DI registrations to match new namespaces and types.
+- [x] 8.1 Update `src/Njord/Configuration/NjordActorSystemSetup.cs` — register `EgressActor`, `MqttConnectionActor`, `MqttPublisherActor`, `DiscoveryActor` via `WithResolvableActors`. Remove `MqttEgressActor` registration.
+- [x] 8.2 Update `src/Njord/Configuration/NjordServiceSetup.cs` — update DI registrations to match new namespaces and types.
 - [ ] 8.3 Update `src/Njord.Tests/Configuration/NjordActorSystemSetupSpec.cs` and `NjordServiceSetupSpec.cs` to reflect new actor registrations.
 
 ## 9. Validation
 
-- [ ] 9.1 Build: `dotnet build src/Njord.slnx`
-- [ ] 9.2 Run full test suite: `dotnet run --project src/Njord.Tests/Njord.Tests.csproj`
-- [ ] 9.3 Verify no remaining references to old namespaces: grep for `Njord.Egress.MqttEgressActor`, `Njord.Egress.TopicScheme`, `Njord.Egress.MqttMessage`, `Njord.Egress.DiscoveryPayloadBuilder` — should return zero hits.
+- [x] 9.1 Build: `dotnet build src/Njord.slnx`
+- [x] 9.2 Run full test suite: `dotnet run --project src/Njord.Tests/Njord.Tests.csproj`
+- [x] 9.3 Verify no remaining references to old namespaces: grep for `Njord.Egress.MqttEgressActor`, `Njord.Egress.TopicScheme`, `Njord.Egress.MqttMessage`, `Njord.Egress.DiscoveryPayloadBuilder` — should return zero hits.
 
 ## 10. Validation commands
 
