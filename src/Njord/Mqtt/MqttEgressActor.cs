@@ -4,6 +4,7 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Egress;
+using Njord.Enrichment;
 using Servus.Akka;
 
 namespace Njord.Mqtt;
@@ -12,6 +13,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
 {
     private readonly string _baseTopic;
     private readonly ILogger<MqttEgressActor> _logger;
+    private readonly Dictionary<string, IEnrichmentFeature> _featuresByType;
 
     private ISinkRef<MqttMessage>? _mqttSinkRef;
     private ISourceRef<EgressEvent>? _egressSourceRef;
@@ -21,10 +23,12 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
 
     public MqttEgressActor(
         IOptions<NjordOptions> options,
+        IEnumerable<IEnrichmentFeature> features,
         ILogger<MqttEgressActor> logger)
     {
         _baseTopic = options.Value.Mqtt.BaseTopic;
         _logger = logger;
+        _featuresByType = features.ToDictionary(f => f.TypeName);
 
         WaitingForRefs();
     }
@@ -106,19 +110,14 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
             .RunWith(_mqttSinkRef!.Sink, mat);
     }
 
-    private static IEnumerable<MqttMessage> MapToMqttMessages(
+    private IEnumerable<MqttMessage> MapToMqttMessages(
         EgressEvent egressEvent, string baseTopic, Dictionary<string, string> lastPublished)
     {
         var messages = egressEvent switch
         {
             EgressEvent.PerModelUpdate e => MapPerModel(e, baseTopic),
-            EgressEvent.ConsensusUpdate e => StatePayloadBuilder.FromConsensus(e.Result, baseTopic, e.Location),
-            EgressEvent.AlertUpdate e => StatePayloadBuilder.FromAlerts(e.Result, baseTopic),
-            EgressEvent.DerivedUpdate e => StatePayloadBuilder.FromDerived(e.Result, baseTopic),
-            EgressEvent.TrendUpdate e => StatePayloadBuilder.FromTrends(e.Result, baseTopic),
-            EgressEvent.IndexUpdate e => StatePayloadBuilder.FromIndices(e.Result, baseTopic),
-            EgressEvent.EnergyUpdate e => StatePayloadBuilder.FromEnergy(e.Result, baseTopic),
-            EgressEvent.HistoryUpdate e => StatePayloadBuilder.FromHistory(e.Result, baseTopic),
+            EgressEvent.EnrichmentUpdate e when _featuresByType.TryGetValue(e.TypeName, out var feature)
+                => feature.ToStateMessages(e.Result, baseTopic, e.Location),
             _ => [],
         };
 

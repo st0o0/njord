@@ -45,50 +45,58 @@ The `EnrichmentActor` SHALL materialize a `BroadcastHub<ModelSnapshot>` from the
 
 ### Requirement: EnrichmentActor fans out enrichment results to EgressActor
 
-Each enrichment consumer sub-graph SHALL wrap its computed domain result in the corresponding `EgressEvent` variant and send it to the EgressActor's MergeHub via `ISinkRef<EgressEvent>`. The `EnrichmentActor` SHALL request an `ISinkRef<EgressEvent>` from the `EgressActor` (via `RequestEgressSink`) instead of requesting an `ISinkRef<MqttMessage>` from `MqttConnectionActor`. The `EnrichmentActor` SHALL NOT reference any types from `Njord.Mqtt`.
+Each enrichment consumer sub-graph SHALL produce `EgressEvent.EnrichmentUpdate`
+instances (carrying `Location`, `TypeName`, and `Result`) and send them to the
+EgressActor's MergeHub via `ISinkRef<EgressEvent>`. The `EnrichmentActor` SHALL
+NOT contain type-specific Materialize methods — all dispatch is via the feature
+registry.
 
-#### Scenario: Consensus result produces ConsensusUpdate
-- **WHEN** the consensus sub-graph computes a `ConsensusResult` for a location
-- **THEN** it SHALL emit `EgressEvent.ConsensusUpdate(location, result)` into the EgressActor's MergeHub
+#### Scenario: Enrichment produces EnrichmentUpdate
+- **WHEN** any enrichment feature computes a result for location "lucerne"
+- **THEN** it SHALL emit `EgressEvent.EnrichmentUpdate("lucerne", feature.TypeName, result)`
+  into the EgressActor's MergeHub
 
-#### Scenario: Alert result produces AlertUpdate
-- **WHEN** the alert sub-graph evaluates alerts for a location
-- **THEN** it SHALL emit `EgressEvent.AlertUpdate(location, result)` into the EgressActor's MergeHub
-
-#### Scenario: Derived result produces DerivedUpdate
-- **WHEN** the derived sub-graph computes derived values for a location
-- **THEN** it SHALL emit `EgressEvent.DerivedUpdate(location, result)` into the EgressActor's MergeHub
-
-#### Scenario: Trend result produces TrendUpdate
-- **WHEN** the trend sub-graph computes trend analysis for a location
-- **THEN** it SHALL emit `EgressEvent.TrendUpdate(location, result)` into the EgressActor's MergeHub
-
-#### Scenario: Index result produces IndexUpdate
-- **WHEN** the index sub-graph computes activity indices for a location
-- **THEN** it SHALL emit `EgressEvent.IndexUpdate(location, result)` into the EgressActor's MergeHub
-
-#### Scenario: Energy result produces EnergyUpdate
-- **WHEN** the energy sub-graph computes energy management values for a location
-- **THEN** it SHALL emit `EgressEvent.EnergyUpdate(location, result)` into the EgressActor's MergeHub
-
-#### Scenario: History result produces HistoryUpdate
-- **WHEN** the history sub-graph computes historical analysis for a location
-- **THEN** it SHALL emit `EgressEvent.HistoryUpdate(location, result)` into the EgressActor's MergeHub
+#### Scenario: No type-specific Materialize methods
+- **WHEN** the `EnrichmentActor` source file is inspected
+- **THEN** it SHALL NOT contain methods named `MaterializeConsensusConsumer`,
+  `MaterializeAlertConsumer`, `MaterializeDerivedConsumer`,
+  `MaterializeTrendConsumer`, `MaterializeIndexConsumer`,
+  `MaterializeEnergyConsumer`, or `MaterializeHistoryConsumer`
 
 #### Scenario: No MQTT dependency
 - **WHEN** the `EnrichmentActor` source file is compiled
 - **THEN** it SHALL have no `using Njord.Mqtt` directive and no reference to `MqttMessage`, `MqttSinkResponse`, `RequestMqttSink`, or any other `Njord.Mqtt` type
 
 ### Requirement: Consumer streams are materialized only when enabled
-The `EnrichmentActor` SHALL read `EnrichmentOptions` from configuration. For each consumer type (e.g. `Consensus`), if `Enabled` is `false`, the consumer stream SHALL NOT be materialized — no BroadcastHub subscriber is created. If `Enabled` is `true`, the consumer stream SHALL be materialized and connected to the BroadcastHub and EgressActor SinkRef.
+The `EnrichmentActor` SHALL iterate over all `IEnrichmentFeature` instances
+received via DI. For each feature where `Enabled` is `true`, the actor SHALL
+materialise the appropriate consumer stream based on the feature's interface
+type:
+- `IStatelessEnrichment<T>`: `SelectMany(snapshot => feature.Compute(snapshot, locations))`
+- `IStatefulEnrichment<T>`: `Scan` to pair current/previous, then `SelectMany(pair => feature.Compute(...))`
+- `IActorEnrichment`: delegate to `feature.Materialize(source, sink, mat, context)`
 
-#### Scenario: Disabled consumer is not materialized
-- **WHEN** `EnrichmentOptions.Consensus.Enabled` is `false`
-- **THEN** no consensus consumer stream is materialized; the BroadcastHub has no subscriber for consensus
+For features where `Enabled` is `false`, no consumer stream SHALL be
+materialised.
 
-#### Scenario: Enabled consumer is materialized
-- **WHEN** `EnrichmentOptions.Consensus.Enabled` is `true`
-- **THEN** the consensus consumer stream is materialized and connected to the BroadcastHub
+#### Scenario: Disabled feature is not materialized
+- **WHEN** an `IEnrichmentFeature` has `Enabled` set to `false`
+- **THEN** no consumer stream is materialised for that feature
+
+#### Scenario: Enabled stateless feature is materialized via loop
+- **WHEN** an `IStatelessEnrichment<T>` has `Enabled` set to `true`
+- **THEN** a consumer stream is materialised using
+  `SelectMany(snapshot => feature.Compute(snapshot, locations))`
+
+#### Scenario: Enabled stateful feature uses Scan pairing
+- **WHEN** an `IStatefulEnrichment<T>` has `Enabled` set to `true`
+- **THEN** a consumer stream is materialised with a `Scan` operator carrying
+  the previous snapshot and calling `feature.Compute(snapshot, previous, locations)`
+
+#### Scenario: Enabled actor feature delegates materialisation
+- **WHEN** an `IActorEnrichment` has `Enabled` set to `true`
+- **THEN** the actor calls `feature.Materialize(source, sink, mat, context)`
+  and does not wire the stream itself
 
 ### Requirement: Enrichment streams sink to EgressActor instead of MergeHub
 
@@ -177,16 +185,25 @@ The `EnrichmentActor` SHALL materialize an energy consumer stream when `Enrichme
 - **THEN** no energy consumer stream is materialized
 
 ### Requirement: The EnrichmentActor materializes a history consumer stream when enabled
-The `EnrichmentActor` SHALL materialize a history consumer stream when `EnrichmentOptions.History.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, forward each snapshot to the `ForecastHistoryActor` for persistence, query the actor for history state, compute analysis via `HistoryAnalyzer`, wrap results in the corresponding `EgressEvent` variant, and sink into the EgressActor's SinkRef. The `ForecastHistoryActor` SHALL be created per location as a child of the `EnrichmentActor`. If `History.Enabled` is `false`, no history consumer stream or history actors SHALL be materialized.
+The `EnrichmentActor` SHALL delegate history stream materialisation to the
+`IActorEnrichment.Materialize` method. The history feature SHALL create
+per-location child `ForecastHistoryActor` instances as children of the
+`EnrichmentActor`. The stream SHALL use `SelectAsync` for actor queries, not
+blocking `.Result`.
 
-#### Scenario: History consumer enabled
-- **WHEN** `History.Enabled` is `true`
-- **THEN** the history consumer stream and per-location ForecastHistoryActors are materialized
-
-#### Scenario: History consumer disabled
-- **WHEN** `History.Enabled` is `false`
-- **THEN** no history consumer stream or history actors are materialized
+#### Scenario: History uses SelectAsync
+- **WHEN** the history enrichment queries a `ForecastHistoryActor`
+- **THEN** it SHALL use `SelectAsync` with an async lambda
 
 #### Scenario: History actors are children of EnrichmentActor
 - **WHEN** the history consumer is enabled with 2 locations
 - **THEN** 2 ForecastHistoryActor children exist, one per location
+
+### Requirement: ForecastHistoryActor uses TimeProvider
+The `ForecastHistoryActor` SHALL receive `TimeProvider` via constructor
+injection and use `timeProvider.GetUtcNow()` for all time operations. It
+SHALL NOT use `DateTimeOffset.UtcNow` directly.
+
+#### Scenario: TimeProvider is injected
+- **WHEN** `ForecastHistoryActor` computes a retention cutoff
+- **THEN** it SHALL use `timeProvider.GetUtcNow()` as the reference time

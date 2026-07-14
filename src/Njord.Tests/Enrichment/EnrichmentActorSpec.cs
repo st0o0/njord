@@ -29,13 +29,15 @@ public sealed class EnrichmentActorSpec : IDisposable
     {
         var options = DefaultOptions();
         enrichment ??= new EnrichmentOptions();
+        var optionsWrapped = Microsoft.Extensions.Options.Options.Create(options);
+        var enrichmentWrapped = Microsoft.Extensions.Options.Options.Create(enrichment);
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
+        IEnumerable<IEnrichmentFeature> features = [];
+
         return _system.ActorOf(Props.Create(() => new EnrichmentActor(
-            Microsoft.Extensions.Options.Options.Create(options),
-            Microsoft.Extensions.Options.Options.Create(enrichment),
-            parameters,
-            TimeProvider.System,
+            optionsWrapped,
+            features,
             NullLogger<EnrichmentActor>.Instance)));
     }
 

@@ -8,24 +8,41 @@ Protocol-neutral egress layer: `EgressEvent` is the discriminated union carrying
 
 ### Requirement: EgressEvent is a protocol-neutral discriminated union
 
-The system SHALL define `EgressEvent` as an abstract record in `Njord.Egress` with one sealed variant per output data category. Each variant SHALL carry the domain result and location context — no protocol-specific types (no `MqttMessage`, no topic strings, no JSON payloads). The variants are:
+The system SHALL define `EgressEvent` as an abstract record in `Njord.Egress`
+with the following sealed variants:
 
-- `PerModelUpdate(string Location, WeatherModel Model, IReadOnlyDictionary<string, string> HorizonPayloads)`
-- `ConsensusUpdate(string Location, ConsensusResult Result)`
-- `AlertUpdate(string Location, AlertResult Result)`
-- `DerivedUpdate(string Location, DerivedResult Result)`
-- `TrendUpdate(string Location, TrendResult Result)`
-- `IndexUpdate(string Location, IndexResult Result)`
-- `EnergyUpdate(string Location, EnergyResult Result)`
-- `HistoryUpdate(string Location, HistoryResult Result)`
+- `PerModelUpdate(string Location, WeatherModel Model,
+  IReadOnlyDictionary<string, string> HorizonPayloads)` — unchanged.
+- `EnrichmentUpdate(string Location, string TypeName, object Result)` —
+  replaces the 7 type-specific enrichment records (`ConsensusUpdate`,
+  `AlertUpdate`, `DerivedUpdate`, `TrendUpdate`, `IndexUpdate`,
+  `EnergyUpdate`, `HistoryUpdate`).
+
+The `MqttEgressActor` SHALL dispatch `EnrichmentUpdate` events by looking up
+the `IEnrichmentFeature` whose `TypeName` matches `EnrichmentUpdate.TypeName`
+and calling `feature.ToStateMessages(result, baseTopic)`.
 
 #### Scenario: EgressEvent carries domain data only
 - **WHEN** an `EgressEvent` variant is constructed
-- **THEN** it SHALL contain only domain types from `Njord.Domain` or `Njord.Egress` — no references to `Njord.Mqtt` types
+- **THEN** it SHALL contain only domain types — no references to `Njord.Mqtt`
 
-#### Scenario: All output categories are representable
-- **WHEN** any data producer (ModelStateActor, EnrichmentActor sub-graphs) produces output
-- **THEN** the output SHALL be expressible as exactly one `EgressEvent` variant
+#### Scenario: EnrichmentUpdate replaces type-specific records
+- **WHEN** the enrichment actor produces a consensus result for location
+  "lucerne"
+- **THEN** it SHALL emit `EgressEvent.EnrichmentUpdate("lucerne", "consensus",
+  result)` — not `EgressEvent.ConsensusUpdate`
+
+#### Scenario: MqttEgressActor dispatches via feature registry
+- **WHEN** `MqttEgressActor` receives an `EnrichmentUpdate` with
+  `TypeName = "alerts"`
+- **THEN** it SHALL find the `IEnrichmentFeature` with `TypeName == "alerts"`
+  and call `feature.ToStateMessages(result, baseTopic)` to produce MQTT
+  messages
+
+#### Scenario: PerModelUpdate is unchanged
+- **WHEN** `ModelStateActor` produces a per-model update
+- **THEN** it SHALL still emit `EgressEvent.PerModelUpdate` with the same
+  structure as before
 
 ### Requirement: EgressActor materializes a MergeHub and BroadcastHub for EgressEvent
 

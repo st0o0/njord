@@ -93,7 +93,7 @@ public static class DiscoveryPayloadBuilder
         TimeSpan pollInterval,
         string version)
     {
-        var deviceId = TopicScheme.ConsensusDeviceId(location);
+        var deviceId = TopicScheme.EnrichmentDeviceId(location, "consensus");
         var availabilityTopic = TopicScheme.AvailabilityTopic(mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * pollInterval.TotalSeconds);
 
@@ -103,7 +103,7 @@ public static class DiscoveryPayloadBuilder
         {
             foreach (var hours in horizons)
             {
-                var horizonTopic = TopicScheme.ConsensusHorizonTopic(mqtt.BaseTopic, location, $"h{hours}");
+                var horizonTopic = TopicScheme.EnrichmentSubTopic(mqtt.BaseTopic, location, "consensus", $"h{hours}");
                 var uniqueId = $"{deviceId}_{parameter.JsonKey}_h{hours}";
                 var component = BuildComponent(
                     uniqueId,
@@ -147,7 +147,7 @@ public static class DiscoveryPayloadBuilder
         TimeSpan pollInterval,
         string version)
     {
-        var deviceId = TopicScheme.AlertDeviceId(location);
+        var deviceId = TopicScheme.EnrichmentDeviceId(location, "alerts");
         var availabilityTopic = TopicScheme.AvailabilityTopic(mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * pollInterval.TotalSeconds);
 
@@ -156,7 +156,7 @@ public static class DiscoveryPayloadBuilder
         foreach (var alertType in Enum.GetValues<AlertType>())
         {
             var segment = alertType.ToTopicSegment();
-            var topic = TopicScheme.AlertTopic(mqtt.BaseTopic, location, segment);
+            var topic = TopicScheme.EnrichmentSubTopic(mqtt.BaseTopic, location, "alerts", segment);
             var uniqueId = $"{deviceId}_{segment.Replace('-', '_')}";
 
             var component = new JsonObject
@@ -204,7 +204,7 @@ public static class DiscoveryPayloadBuilder
         TimeSpan pollInterval,
         string version)
     {
-        var deviceId = TopicScheme.HistoryDeviceId(location);
+        var deviceId = TopicScheme.EnrichmentDeviceId(location, "history");
         var availabilityTopic = TopicScheme.AvailabilityTopic(mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * pollInterval.TotalSeconds);
 
@@ -310,10 +310,10 @@ public static class DiscoveryPayloadBuilder
         TimeSpan pollInterval,
         string version)
     {
-        var deviceId = TopicScheme.EnergyDeviceId(location);
+        var deviceId = TopicScheme.EnrichmentDeviceId(location, "energy");
         var availabilityTopic = TopicScheme.AvailabilityTopic(mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * pollInterval.TotalSeconds);
-        var energyTopic = TopicScheme.EnergyTopic(mqtt.BaseTopic, location);
+        var energyTopic = TopicScheme.EnrichmentTopic(mqtt.BaseTopic, location, "energy");
 
         var components = new JsonObject();
 
@@ -391,10 +391,10 @@ public static class DiscoveryPayloadBuilder
         TimeSpan pollInterval,
         string version)
     {
-        var deviceId = TopicScheme.IndexDeviceId(location);
+        var deviceId = TopicScheme.EnrichmentDeviceId(location, "indices");
         var availabilityTopic = TopicScheme.AvailabilityTopic(mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * pollInterval.TotalSeconds);
-        var indexTopic = TopicScheme.IndexTopic(mqtt.BaseTopic, location);
+        var indexTopic = TopicScheme.EnrichmentTopic(mqtt.BaseTopic, location, "indices");
 
         var components = new JsonObject();
 
@@ -501,10 +501,10 @@ public static class DiscoveryPayloadBuilder
         TimeSpan pollInterval,
         string version)
     {
-        var deviceId = TopicScheme.TrendDeviceId(location);
+        var deviceId = TopicScheme.EnrichmentDeviceId(location, "trends");
         var availabilityTopic = TopicScheme.AvailabilityTopic(mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * pollInterval.TotalSeconds);
-        var trendTopic = TopicScheme.TrendTopic(mqtt.BaseTopic, location);
+        var trendTopic = TopicScheme.EnrichmentTopic(mqtt.BaseTopic, location, "trends");
 
         var components = new JsonObject();
 
@@ -588,7 +588,7 @@ public static class DiscoveryPayloadBuilder
         TimeSpan pollInterval,
         string version)
     {
-        var deviceId = TopicScheme.DerivedDeviceId(location);
+        var deviceId = TopicScheme.EnrichmentDeviceId(location, "derived");
         var availabilityTopic = TopicScheme.AvailabilityTopic(mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * pollInterval.TotalSeconds);
 
@@ -604,7 +604,7 @@ public static class DiscoveryPayloadBuilder
 
         foreach (var hours in horizons)
         {
-            var horizonTopic = TopicScheme.DerivedHorizonTopic(mqtt.BaseTopic, location, $"h{hours}");
+            var horizonTopic = TopicScheme.EnrichmentSubTopic(mqtt.BaseTopic, location, "derived", $"h{hours}");
 
             foreach (var (key, name, unit, deviceClass, platform) in horizonParams)
             {
@@ -635,7 +635,7 @@ public static class DiscoveryPayloadBuilder
             }
         }
 
-        var metaTopic = TopicScheme.DerivedMetaTopic(mqtt.BaseTopic, location);
+        var metaTopic = TopicScheme.EnrichmentSubTopic(mqtt.BaseTopic, location, "derived", "meta");
 
         var amplitudeId = $"{deviceId}_diurnal_amplitude";
         components["diurnal_amplitude"] = new JsonObject
@@ -701,7 +701,36 @@ public static class DiscoveryPayloadBuilder
         return payload.ToJsonString();
     }
 
-    private static JsonObject BuildComponent(
+    public static string BuildDeviceEnvelope(
+        string deviceId,
+        string location,
+        string typeLabel,
+        string version,
+        JsonObject components)
+    {
+        var payload = new JsonObject
+        {
+            ["dev"] = new JsonObject
+            {
+                ["ids"] = new JsonArray(deviceId),
+                ["name"] = $"njord {location} {typeLabel}",
+                ["mf"] = "njord",
+                ["mdl"] = typeLabel,
+                ["sw"] = version,
+            },
+            ["o"] = new JsonObject
+            {
+                ["name"] = "njord",
+                ["sw"] = version,
+            },
+            ["qos"] = 1,
+            ["cmps"] = components,
+        };
+
+        return payload.ToJsonString();
+    }
+
+    internal static JsonObject BuildComponent(
         string uniqueId,
         string name,
         ParameterDef parameter,

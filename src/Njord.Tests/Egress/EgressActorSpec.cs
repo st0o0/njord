@@ -49,7 +49,7 @@ public sealed class EgressActorSpec : IDisposable
             .RunForeach(e => received.Add(e), mat)
             .ContinueWith(_ => completionSource.TrySetResult());
 
-        var testEvent = new EgressEvent.AlertUpdate("lucerne", new AlertResult("lucerne", []));
+        var testEvent = new EgressEvent.EnrichmentUpdate("lucerne", "alerts", new AlertResult("lucerne", []));
 
         Source.Single((EgressEvent)testEvent)
             .RunWith(sinkResponse.SinkRef.Sink, mat);
@@ -57,8 +57,8 @@ public sealed class EgressActorSpec : IDisposable
         await completionSource.Task.WaitAsync(TimeSpan.FromSeconds(3));
 
         Assert.Single(received);
-        Assert.IsType<EgressEvent.AlertUpdate>(received[0]);
-        Assert.Equal("lucerne", ((EgressEvent.AlertUpdate)received[0]).Location);
+        Assert.IsType<EgressEvent.EnrichmentUpdate>(received[0]);
+        Assert.Equal("lucerne", ((EgressEvent.EnrichmentUpdate)received[0]).Location);
     }
 
     [Fact(Timeout = 5000)]
@@ -67,13 +67,8 @@ public sealed class EgressActorSpec : IDisposable
         var events = new EgressEvent[]
         {
             new EgressEvent.PerModelUpdate("loc", new WeatherModel("icon_d2"), new Dictionary<string, string>()),
-            new EgressEvent.ConsensusUpdate("loc", new ConsensusResult([])),
-            new EgressEvent.AlertUpdate("loc", new AlertResult("loc", [])),
-            new EgressEvent.DerivedUpdate("loc", new DerivedResult("loc", new Dictionary<string, HorizonDerived>(), new ScalarDerived(null, null, null))),
-            new EgressEvent.TrendUpdate("loc", new TrendResult("loc", new Dictionary<string, ParameterTrend?>(), null, default, default, null, null)),
-            new EgressEvent.IndexUpdate("loc", new IndexResult("loc", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, null, null)),
-            new EgressEvent.EnergyUpdate("loc", new EnergyResult("loc", 0, null, [], 0, "hold", 0)),
-            new EgressEvent.HistoryUpdate("loc", new HistoryResult("loc", [], [], [], [], null, null, null)),
+            new EgressEvent.EnrichmentUpdate("loc", "consensus", new ConsensusResult([])),
+            new EgressEvent.EnrichmentUpdate("loc", "alerts", new AlertResult("loc", [])),
         };
 
         foreach (var e in events)
@@ -81,13 +76,7 @@ public sealed class EgressActorSpec : IDisposable
             var matched = e switch
             {
                 EgressEvent.PerModelUpdate => "per-model",
-                EgressEvent.ConsensusUpdate => "consensus",
-                EgressEvent.AlertUpdate => "alert",
-                EgressEvent.DerivedUpdate => "derived",
-                EgressEvent.TrendUpdate => "trend",
-                EgressEvent.IndexUpdate => "index",
-                EgressEvent.EnergyUpdate => "energy",
-                EgressEvent.HistoryUpdate => "history",
+                EgressEvent.EnrichmentUpdate u => u.TypeName,
                 _ => throw new InvalidOperationException("Unknown variant"),
             };
 

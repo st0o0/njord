@@ -5,6 +5,7 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Configuration;
 using Njord.Domain.Weather;
+using Njord.Enrichment;
 using Njord.Mqtt;
 using Njord.Tests.Shared;
 
@@ -28,11 +29,12 @@ public sealed class DiscoveryActorSpec : IDisposable
         options ??= DefaultOptions();
         enrichment ??= new EnrichmentOptions();
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        IEnumerable<IEnrichmentFeature> features = [];
 
         return _system.ActorOf(Props.Create(() => new DiscoveryActor(
             Microsoft.Extensions.Options.Options.Create(options),
-            Microsoft.Extensions.Options.Options.Create(enrichment),
             parameters,
+            features,
             NullLogger<DiscoveryActor>.Instance)));
     }
 

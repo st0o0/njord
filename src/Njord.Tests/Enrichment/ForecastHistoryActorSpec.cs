@@ -53,7 +53,7 @@ public sealed class ForecastHistoryActorSpec : IAsyncLifetime
     public async Task Query_returns_empty_history_initially()
     {
         var actor = _system.ActorOf(Props.Create(() =>
-            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters)));
+            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, TimeProvider.System)));
 
         var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(2));
         Assert.Empty(response.History.Records);
@@ -63,7 +63,7 @@ public sealed class ForecastHistoryActorSpec : IAsyncLifetime
     public async Task Record_and_query_returns_persisted_data()
     {
         var actor = _system.ActorOf(Props.Create(() =>
-            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters)));
+            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, TimeProvider.System)));
 
         actor.Tell(new RecordSnapshot(MakeSnapshot()));
 
@@ -82,7 +82,7 @@ public sealed class ForecastHistoryActorSpec : IAsyncLifetime
     public async Task Multiple_records_accumulate()
     {
         var actor = _system.ActorOf(Props.Create(() =>
-            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters)));
+            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, TimeProvider.System)));
 
         for (var i = 0; i < 5; i++)
             actor.Tell(new RecordSnapshot(MakeSnapshot()));

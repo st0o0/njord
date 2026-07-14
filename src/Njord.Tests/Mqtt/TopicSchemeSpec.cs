@@ -63,28 +63,49 @@ public sealed class TopicSchemeSpec
     [Fact(Timeout = 5000)]
     public void Consensus_device_id_uses_location_slug()
     {
-        Assert.Equal("njord_lucerne_consensus", TopicScheme.ConsensusDeviceId("lucerne"));
+        Assert.Equal("njord_lucerne_consensus", TopicScheme.EnrichmentDeviceId("lucerne", "consensus"));
     }
 
     [Fact(Timeout = 5000)]
     public void Consensus_horizon_topic_uses_consensus_segment()
     {
         Assert.Equal("njord/lucerne/consensus/h3",
-            TopicScheme.ConsensusHorizonTopic("njord", "lucerne", "h3"));
+            TopicScheme.EnrichmentSubTopic("njord", "lucerne", "consensus", "h3"));
     }
 
     [Fact(Timeout = 5000)]
     public void Alert_device_id_uses_location_slug()
     {
-        Assert.Equal("njord_lucerne_alerts", TopicScheme.AlertDeviceId("lucerne"));
+        Assert.Equal("njord_lucerne_alerts", TopicScheme.EnrichmentDeviceId("lucerne", "alerts"));
     }
 
     [Fact(Timeout = 5000)]
     public void Alert_topic_uses_alerts_segment()
     {
         Assert.Equal("njord/lucerne/alerts/frost",
-            TopicScheme.AlertTopic("njord", "lucerne", "frost"));
+            TopicScheme.EnrichmentSubTopic("njord", "lucerne", "alerts", "frost"));
         Assert.Equal("njord/lucerne/alerts/heavy-rain",
-            TopicScheme.AlertTopic("njord", "lucerne", "heavy-rain"));
+            TopicScheme.EnrichmentSubTopic("njord", "lucerne", "alerts", "heavy-rain"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Enrichment_device_id_combines_location_and_type_name()
+    {
+        Assert.Equal("njord_lucerne_consensus", TopicScheme.EnrichmentDeviceId("lucerne", "consensus"));
+        Assert.Equal("njord_z_rich_alerts", TopicScheme.EnrichmentDeviceId("Zürich", "alerts"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Enrichment_topic_combines_base_location_and_type_name()
+    {
+        Assert.Equal("njord/lucerne/consensus", TopicScheme.EnrichmentTopic("njord", "lucerne", "consensus"));
+        Assert.Equal("njord/home/energy", TopicScheme.EnrichmentTopic("njord", "home", "energy"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Enrichment_sub_topic_adds_sub_segment()
+    {
+        Assert.Equal("njord/lucerne/consensus/h3", TopicScheme.EnrichmentSubTopic("njord", "lucerne", "consensus", "h3"));
+        Assert.Equal("njord/home/derived/meta", TopicScheme.EnrichmentSubTopic("njord", "home", "derived", "meta"));
     }
 }

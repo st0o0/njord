@@ -53,7 +53,7 @@ public static class StatePayloadBuilder
                 payload["_models_used"] = firstParam.AvailableModels.Count;
             }
 
-            var topic = TopicScheme.ConsensusHorizonTopic(baseTopic, location, horizon);
+            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, location, "consensus", horizon);
             messages.Add(new MqttMessage(topic, payload.ToJsonString(), true));
         }
 
@@ -83,7 +83,7 @@ public static class StatePayloadBuilder
                 };
             }
 
-            var topic = TopicScheme.AlertTopic(baseTopic, result.Location, alert.Type.ToTopicSegment());
+            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location, "alerts", alert.Type.ToTopicSegment());
             messages.Add(new MqttMessage(topic, payload.ToJsonString(), true));
         }
         return messages;
@@ -103,7 +103,7 @@ public static class StatePayloadBuilder
                 ["wmo_description"] = hd.WmoDescription is { } wd ? JsonValue.Create(wd) : null,
             };
 
-            var topic = TopicScheme.DerivedHorizonTopic(baseTopic, result.Location, horizon);
+            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location, "derived", horizon);
             messages.Add(new MqttMessage(topic, payload.ToJsonString(), true));
         }
 
@@ -120,7 +120,7 @@ public static class StatePayloadBuilder
                 : null,
         };
 
-        var metaTopic = TopicScheme.DerivedMetaTopic(baseTopic, result.Location);
+        var metaTopic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location, "derived", "meta");
         messages.Add(new MqttMessage(metaTopic, meta.ToJsonString(), true));
 
         return messages;
@@ -155,7 +155,7 @@ public static class StatePayloadBuilder
         payload["decay_rate"] = result.Decay is { } d ? JsonValue.Create(d.DecayRate) : null;
         payload["reliable_hours"] = result.Decay?.ReliableHours is { } rh ? JsonValue.Create(rh) : null;
 
-        var topic = TopicScheme.TrendTopic(baseTopic, result.Location);
+        var topic = TopicScheme.EnrichmentTopic(baseTopic, result.Location, "trends");
         return [new MqttMessage(topic, payload.ToJsonString(), true)];
     }
 
@@ -179,7 +179,7 @@ public static class StatePayloadBuilder
             ["vpd_kpa"] = result.Vpd?.Vpd is { } v ? JsonValue.Create(v) : null,
         };
 
-        var topic = TopicScheme.IndexTopic(baseTopic, result.Location);
+        var topic = TopicScheme.EnrichmentTopic(baseTopic, result.Location, "indices");
         return [new MqttMessage(topic, payload.ToJsonString(), true)];
     }
 
@@ -201,7 +201,7 @@ public static class StatePayloadBuilder
             ["night_cooling"] = result.NightCooling,
         };
 
-        var topic = TopicScheme.EnergyTopic(baseTopic, result.Location);
+        var topic = TopicScheme.EnrichmentTopic(baseTopic, result.Location, "energy");
         return [new MqttMessage(topic, payload.ToJsonString(), true)];
     }
 
@@ -226,7 +226,7 @@ public static class StatePayloadBuilder
         payload["anomaly_deviation"] = result.Anomaly?.DeviationSigma is { } dev ? JsonValue.Create(dev) : null;
         payload["weighted_temperature"] = result.WeightedTemperature.HasValue ? JsonValue.Create(result.WeightedTemperature.Value) : null;
 
-        var topic = TopicScheme.HistoryTopic(baseTopic, result.Location);
+        var topic = TopicScheme.EnrichmentTopic(baseTopic, result.Location, "history");
         return [new MqttMessage(topic, payload.ToJsonString(), true)];
     }
 }

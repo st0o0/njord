@@ -10,16 +10,18 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
     private readonly string _location;
     private readonly HistoryOptions _options;
     private readonly ResolvedParameterSet _parameters;
+    private readonly TimeProvider _timeProvider;
     private readonly ForecastHistory _history;
     private int _eventsSinceSnapshot;
 
     public override string PersistenceId => $"forecast-history-{_location}";
 
-    public ForecastHistoryActor(string location, HistoryOptions options, ResolvedParameterSet parameters)
+    public ForecastHistoryActor(string location, HistoryOptions options, ResolvedParameterSet parameters, TimeProvider timeProvider)
     {
         _location = location;
         _options = options;
         _parameters = parameters;
+        _timeProvider = timeProvider;
         _history = new ForecastHistory(options.RetentionDays);
 
         Recover<ForecastRecorded>(OnRecover);
@@ -28,7 +30,9 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
             if (offer.Snapshot is ForecastHistory saved)
             {
                 foreach (var record in saved.Records)
+                {
                     _history.Add(record);
+                }
             }
         });
 
@@ -40,8 +44,11 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
 
     private void OnRecover(ForecastRecorded evt)
     {
-        var cutoff = DateTimeOffset.UtcNow.AddDays(-_options.RetentionDays);
-        if (evt.Timestamp < cutoff) return;
+        var cutoff = _timeProvider.GetUtcNow().AddDays(-_options.RetentionDays);
+        if (evt.Timestamp < cutoff)
+        {
+            return;
+        }
 
         _history.Add(new ForecastRecord(evt.Timestamp, evt.Location, evt.ModelValues, evt.ConsensusValues));
     }
@@ -49,14 +56,17 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
     private void OnRecordSnapshot(RecordSnapshot msg)
     {
         var snapshot = msg.Snapshot;
-        var now = DateTimeOffset.UtcNow;
+        var now = _timeProvider.GetUtcNow();
 
         var modelValues = new Dictionary<WeatherModel, IReadOnlyDictionary<string, double?>>();
         var consensusValues = new Dictionary<string, double?>();
 
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != _location) continue;
+            if (key.Location != _location)
+            {
+                continue;
+            }
 
             var values = new Dictionary<string, double?>();
             var nearestPoint = forecast.Hourly.Points
@@ -66,7 +76,9 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
             if (nearestPoint is not null)
             {
                 foreach (var param in _parameters.Hourly)
+                {
                     values[param.ApiName] = nearestPoint.Get(param);
+                }
             }
 
             modelValues[key.Model] = values;

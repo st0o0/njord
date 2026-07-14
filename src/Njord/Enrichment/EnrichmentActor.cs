@@ -4,7 +4,6 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
-using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Ingest;
@@ -16,9 +15,7 @@ namespace Njord.Enrichment;
 public sealed class EnrichmentActor : ReceiveActor, IWithStash
 {
     private readonly NjordOptions _options;
-    private readonly EnrichmentOptions _enrichmentOptions;
-    private readonly ResolvedParameterSet _parameters;
-    private readonly TimeProvider _timeProvider;
+    private readonly IReadOnlyList<IEnrichmentFeature> _features;
     private readonly ILogger<EnrichmentActor> _logger;
 
     private ISourceRef<FetchOutcome>? _sourceRef;
@@ -29,15 +26,11 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
 
     public EnrichmentActor(
         IOptions<NjordOptions> options,
-        IOptions<EnrichmentOptions> enrichmentOptions,
-        ResolvedParameterSet parameters,
-        TimeProvider timeProvider,
+        IEnumerable<IEnrichmentFeature> features,
         ILogger<EnrichmentActor> logger)
     {
         _options = options.Value;
-        _enrichmentOptions = enrichmentOptions.Value;
-        _parameters = parameters;
-        _timeProvider = timeProvider;
+        _features = [.. features];
         _logger = logger;
 
         WaitingForRefs();
@@ -130,228 +123,63 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         egressMergeHubSource
             .RunWith(_egressSinkRef!.Sink, mat);
 
-        if (_enrichmentOptions.Consensus.Enabled)
-        {
-            MaterializeConsensusConsumer(snapshotHubSource, egressMergeHubSink, mat);
-        }
+        var locations = _options.Locations.Select(l => l.Name).ToList();
 
-        if (_enrichmentOptions.Alerts.Enabled)
+        foreach (var feature in _features)
         {
-            MaterializeAlertConsumer(snapshotHubSource, egressMergeHubSink, mat);
-        }
+            if (!feature.Enabled) continue;
 
-        if (_enrichmentOptions.Derived.Enabled)
-        {
-            MaterializeDerivedConsumer(snapshotHubSource, egressMergeHubSink, mat);
-        }
+            switch (feature)
+            {
+                case IActorEnrichment actorFeature:
+                    actorFeature.Materialize(snapshotHubSource, egressMergeHubSink, mat, Context);
+                    break;
 
-        if (_enrichmentOptions.Trends.Enabled)
-        {
-            MaterializeTrendConsumer(snapshotHubSource, egressMergeHubSink, mat);
-        }
+                case IStatefulEnrichment<Domain.Analysis.TrendResult> stateful:
+                    MaterializeStateful(stateful, snapshotHubSource, egressMergeHubSink, mat, locations);
+                    break;
 
-        if (_enrichmentOptions.Indices.Enabled)
-        {
-            MaterializeIndexConsumer(snapshotHubSource, egressMergeHubSink, mat);
-        }
-
-        if (_enrichmentOptions.Energy.Enabled)
-        {
-            MaterializeEnergyConsumer(snapshotHubSource, egressMergeHubSink, mat);
-        }
-
-        if (_enrichmentOptions.History.Enabled)
-        {
-            MaterializeHistoryConsumer(snapshotHubSource, egressMergeHubSink, mat);
+                default:
+                    MaterializeStateless(feature, snapshotHubSource, egressMergeHubSink, mat, locations);
+                    break;
+            }
         }
     }
 
-    private void MaterializeConsensusConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
+    private static void MaterializeStateless(
+        IEnrichmentFeature feature,
+        Source<ModelSnapshot, NotUsed> source,
+        Sink<EgressEvent, NotUsed> sink,
+        IMaterializer mat,
+        IReadOnlyList<string> locations)
     {
-        var parameters = _parameters;
-        var horizons = (IReadOnlyList<int>)[.. _options.Horizons];
-        var locations = _options.Locations.Select(l => l.Name).ToList();
-        var timeProvider = _timeProvider;
-        var trimPercent = _enrichmentOptions.Consensus.TrimPercent;
+        var stateless = (dynamic)feature;
 
-        snapshotSource
-            .SelectMany(snapshot =>
-            {
-                var events = new List<EgressEvent>();
-                foreach (var location in locations)
-                {
-                    var result = ConsensusResult.Compute(
-                        snapshot, parameters, horizons, location, timeProvider, trimPercent);
-                    events.Add(new EgressEvent.ConsensusUpdate(location, result));
-                }
-                return events;
-            })
+        source
+            .SelectMany(snapshot => (IEnumerable<EgressEvent>)stateless.Compute(snapshot, locations))
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(egressSink, mat);
+            .RunWith(sink, mat);
     }
 
-    private void MaterializeAlertConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
+    private static void MaterializeStateful<TResult>(
+        IStatefulEnrichment<TResult> feature,
+        Source<ModelSnapshot, NotUsed> source,
+        Sink<EgressEvent, NotUsed> sink,
+        IMaterializer mat,
+        IReadOnlyList<string> locations)
     {
-        var locations = _options.Locations.Select(l => l.Name).ToList();
-        var timeProvider = _timeProvider;
-        var alertOptions = _enrichmentOptions.Alerts;
-
-        snapshotSource
-            .SelectMany(snapshot =>
-            {
-                var events = new List<EgressEvent>();
-                foreach (var location in locations)
-                {
-                    var result = AlertEvaluator.EvaluateAll(snapshot, location, alertOptions, timeProvider);
-                    events.Add(new EgressEvent.AlertUpdate(location, result));
-                }
-                return events;
-            })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(egressSink, mat);
-    }
-
-    private void MaterializeHistoryConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
-    {
-        var parameters = _parameters;
-        var locations = _options.Locations.Select(l => l.Name).ToList();
-        var timeProvider = _timeProvider;
-        var historyOptions = _enrichmentOptions.History;
-
-        var historyActors = new Dictionary<string, IActorRef>();
-        foreach (var location in locations)
-        {
-            var actor = Context.ResolveChildActor<ForecastHistoryActor>(
-                $"forecast-history-{TopicSlug.Slug(location)}",
-                location, historyOptions);
-            historyActors[location] = actor;
-        }
-
-        snapshotSource
-            .SelectMany(snapshot =>
-            {
-                foreach (var (location, actor) in historyActors)
-                {
-                    actor.Tell(new RecordSnapshot(snapshot));
-                }
-
-                var events = new List<EgressEvent>();
-                foreach (var (location, actor) in historyActors)
-                {
-                    var response = actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(5)).Result;
-                    var result = HistoryResult.Compute(
-                        response.History, snapshot, location, parameters, timeProvider, historyOptions);
-                    events.Add(new EgressEvent.HistoryUpdate(location, result));
-                }
-                return events;
-            })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(egressSink, mat);
-    }
-
-    private void MaterializeEnergyConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
-    {
-        var parameters = _parameters;
-        var locations = _options.Locations.Select(l => l.Name).ToList();
-        var timeProvider = _timeProvider;
-        var energyOptions = _enrichmentOptions.Energy;
-
-        snapshotSource
-            .SelectMany(snapshot =>
-            {
-                var events = new List<EgressEvent>();
-                foreach (var location in locations)
-                {
-                    var result = EnergyResult.Compute(
-                        snapshot, location, parameters, timeProvider, energyOptions);
-                    events.Add(new EgressEvent.EnergyUpdate(location, result));
-                }
-                return events;
-            })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(egressSink, mat);
-    }
-
-    private void MaterializeIndexConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
-    {
-        var parameters = _parameters;
-        var locations = _options.Locations.Select(l => l.Name).ToList();
-        var timeProvider = _timeProvider;
-        var indexOptions = _enrichmentOptions.Indices;
-
-        snapshotSource
-            .SelectMany(snapshot =>
-            {
-                var events = new List<EgressEvent>();
-                foreach (var location in locations)
-                {
-                    var result = IndexResult.Compute(
-                        snapshot, location, parameters, timeProvider, indexOptions);
-                    events.Add(new EgressEvent.IndexUpdate(location, result));
-                }
-                return events;
-            })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(egressSink, mat);
-    }
-
-    private void MaterializeTrendConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
-    {
-        var parameters = _parameters;
-        var horizons = (IReadOnlyList<int>)[.. _options.Horizons];
-        var locations = _options.Locations.Select(l => l.Name).ToList();
-        var timeProvider = _timeProvider;
-
         ModelSnapshot? previousSnapshot = null;
 
-        snapshotSource
+        source
             .SelectMany(snapshot =>
             {
                 var prev = previousSnapshot;
                 previousSnapshot = snapshot;
-
-                if (prev is null) return [];
-
-                var events = new List<EgressEvent>();
-                foreach (var location in locations)
-                {
-                    var result = TrendResult.Compute(
-                        snapshot, prev, location, horizons, parameters, timeProvider);
-                    events.Add(new EgressEvent.TrendUpdate(location, result));
-                }
-                return events;
+                return feature.Compute(snapshot, prev, locations);
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(egressSink, mat);
-    }
-
-    private void MaterializeDerivedConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
-    {
-        var parameters = _parameters;
-        var horizons = (IReadOnlyList<int>)[.. _options.Horizons];
-        var locations = _options.Locations.Select(l => l.Name).ToList();
-        var timeProvider = _timeProvider;
-
-        snapshotSource
-            .SelectMany(snapshot =>
-            {
-                var events = new List<EgressEvent>();
-                foreach (var location in locations)
-                {
-                    var result = DerivedResult.Compute(
-                        snapshot, location, horizons, parameters, timeProvider);
-                    events.Add(new EgressEvent.DerivedUpdate(location, result));
-                }
-                return events;
-            })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(egressSink, mat);
+            .RunWith(sink, mat);
     }
 }

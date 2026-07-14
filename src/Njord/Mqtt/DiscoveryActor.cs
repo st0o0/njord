@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
+using Njord.Enrichment;
 using Njord.Telemetry;
 using Servus.Akka;
 
@@ -18,8 +19,8 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
             ?.InformationalVersion ?? "unknown";
 
     private readonly NjordOptions _options;
-    private readonly EnrichmentOptions _enrichmentOptions;
     private readonly ResolvedParameterSet _parameters;
+    private readonly IReadOnlyList<IEnrichmentFeature> _features;
     private readonly ILogger<DiscoveryActor> _logger;
     private readonly IReadOnlyList<int> _horizons;
     private readonly string _haStatusTopic;
@@ -32,13 +33,13 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
 
     public DiscoveryActor(
         IOptions<NjordOptions> options,
-        IOptions<EnrichmentOptions> enrichmentOptions,
         ResolvedParameterSet parameters,
+        IEnumerable<IEnrichmentFeature> features,
         ILogger<DiscoveryActor> logger)
     {
         _options = options.Value;
-        _enrichmentOptions = enrichmentOptions.Value;
         _parameters = parameters;
+        _features = [.. features];
         _logger = logger;
         _horizons = [.. _options.Horizons];
         _haStatusTopic = $"{_options.Mqtt.DiscoveryPrefix}/status";
@@ -97,6 +98,8 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
     private void PublishDiscovery()
     {
         var count = 0;
+        var ctx = new DiscoveryContext(_options.Mqtt, _options.PollInterval, Version);
+
         foreach (var location in _options.Locations)
         {
             foreach (var modelId in _options.Models)
@@ -111,74 +114,14 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
                 count++;
             }
 
-            if (_enrichmentOptions.Consensus.Enabled)
+            foreach (var feature in _features)
             {
-                var consensusDeviceId = TopicScheme.ConsensusDeviceId(location.Name);
-                var consensusTopic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, consensusDeviceId);
-                var consensusPayload = DiscoveryPayloadBuilder.BuildConsensus(
-                    location.Name, _parameters, _horizons, _options.ForecastDays,
-                    _options.Mqtt, _options.PollInterval, Version);
-                _queue?.OfferAsync(new MqttMessage(consensusTopic, consensusPayload, true));
-                count++;
-            }
+                if (!feature.Enabled) continue;
 
-            if (_enrichmentOptions.Alerts.Enabled)
-            {
-                var alertDeviceId = TopicScheme.AlertDeviceId(location.Name);
-                var alertTopic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, alertDeviceId);
-                var alertPayload = DiscoveryPayloadBuilder.BuildAlerts(
-                    location.Name, _options.Mqtt, _options.PollInterval, Version);
-                _queue?.OfferAsync(new MqttMessage(alertTopic, alertPayload, true));
-                count++;
-            }
-
-            if (_enrichmentOptions.Derived.Enabled)
-            {
-                var derivedDeviceId = TopicScheme.DerivedDeviceId(location.Name);
-                var derivedTopic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, derivedDeviceId);
-                var derivedPayload = DiscoveryPayloadBuilder.BuildDerived(
-                    location.Name, _horizons, _options.Mqtt, _options.PollInterval, Version);
-                _queue?.OfferAsync(new MqttMessage(derivedTopic, derivedPayload, true));
-                count++;
-            }
-
-            if (_enrichmentOptions.Trends.Enabled)
-            {
-                var trendDeviceId = TopicScheme.TrendDeviceId(location.Name);
-                var trendTopic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, trendDeviceId);
-                var trendPayload = DiscoveryPayloadBuilder.BuildTrends(
-                    location.Name, _options.Mqtt, _options.PollInterval, Version);
-                _queue?.OfferAsync(new MqttMessage(trendTopic, trendPayload, true));
-                count++;
-            }
-
-            if (_enrichmentOptions.Indices.Enabled)
-            {
-                var indexDeviceId = TopicScheme.IndexDeviceId(location.Name);
-                var indexTopic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, indexDeviceId);
-                var indexPayload = DiscoveryPayloadBuilder.BuildIndices(
-                    location.Name, _options.Mqtt, _options.PollInterval, Version);
-                _queue?.OfferAsync(new MqttMessage(indexTopic, indexPayload, true));
-                count++;
-            }
-
-            if (_enrichmentOptions.Energy.Enabled)
-            {
-                var energyDeviceId = TopicScheme.EnergyDeviceId(location.Name);
-                var energyConfTopic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, energyDeviceId);
-                var energyPayload = DiscoveryPayloadBuilder.BuildEnergy(
-                    location.Name, _options.Mqtt, _options.PollInterval, Version);
-                _queue?.OfferAsync(new MqttMessage(energyConfTopic, energyPayload, true));
-                count++;
-            }
-
-            if (_enrichmentOptions.History.Enabled)
-            {
-                var historyDeviceId = TopicScheme.HistoryDeviceId(location.Name);
-                var historyConfTopic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, historyDeviceId);
-                var historyPayload = DiscoveryPayloadBuilder.BuildHistory(
-                    location.Name, [.. _options.Models], _options.Mqtt, _options.PollInterval, Version);
-                _queue?.OfferAsync(new MqttMessage(historyConfTopic, historyPayload, true));
+                var deviceId = feature.DeviceId(location.Name);
+                var topic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, deviceId);
+                var payload = feature.BuildDiscoveryPayload(ctx, location.Name);
+                _queue?.OfferAsync(new MqttMessage(topic, payload, true));
                 count++;
             }
         }

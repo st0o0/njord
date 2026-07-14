@@ -14,7 +14,6 @@ public static class TopicScheme
     public static string HorizonTopic(string baseTopic, string location, WeatherModel model, string horizon)
         => $"{baseTopic}/{Slug(location)}/{model.Id}/{horizon}";
 
-
     public static string AvailabilityTopic(string baseTopic)
         => $"{baseTopic}/status";
 
@@ -24,50 +23,14 @@ public static class TopicScheme
     public static string DailyUniqueId(string location, WeatherModel model, ParameterDef parameter, int dayOffset)
         => $"{DeviceId(location, model)}_{parameter.JsonKey}_d{dayOffset}";
 
-    public static string AlertDeviceId(string location)
-        => $"njord_{Slug(location)}_alerts";
+    public static string EnrichmentDeviceId(string location, string typeName)
+        => $"njord_{Slug(location)}_{typeName}";
 
-    public static string AlertTopic(string baseTopic, string location, string alertType)
-        => $"{baseTopic}/{Slug(location)}/alerts/{alertType}";
+    public static string EnrichmentTopic(string baseTopic, string location, string typeName)
+        => $"{baseTopic}/{Slug(location)}/{typeName}";
 
-    public static string ConsensusDeviceId(string location)
-        => $"njord_{Slug(location)}_consensus";
-
-    public static string ConsensusHorizonTopic(string baseTopic, string location, string horizon)
-        => $"{baseTopic}/{Slug(location)}/consensus/{horizon}";
-
-    public static string DerivedDeviceId(string location)
-        => $"njord_{Slug(location)}_derived";
-
-    public static string DerivedHorizonTopic(string baseTopic, string location, string horizon)
-        => $"{baseTopic}/{Slug(location)}/derived/{horizon}";
-
-    public static string DerivedMetaTopic(string baseTopic, string location)
-        => $"{baseTopic}/{Slug(location)}/derived/meta";
-
-    public static string TrendDeviceId(string location)
-        => $"njord_{Slug(location)}_trends";
-
-    public static string TrendTopic(string baseTopic, string location)
-        => $"{baseTopic}/{Slug(location)}/trends";
-
-    public static string IndexDeviceId(string location)
-        => $"njord_{Slug(location)}_indices";
-
-    public static string IndexTopic(string baseTopic, string location)
-        => $"{baseTopic}/{Slug(location)}/indices";
-
-    public static string EnergyDeviceId(string location)
-        => $"njord_{Slug(location)}_energy";
-
-    public static string EnergyTopic(string baseTopic, string location)
-        => $"{baseTopic}/{Slug(location)}/energy";
-
-    public static string HistoryDeviceId(string location)
-        => $"njord_{Slug(location)}_history";
-
-    public static string HistoryTopic(string baseTopic, string location)
-        => $"{baseTopic}/{Slug(location)}/history";
+    public static string EnrichmentSubTopic(string baseTopic, string location, string typeName, string sub)
+        => $"{baseTopic}/{Slug(location)}/{typeName}/{sub}";
 
     public static string Slug(string value)
         => TopicSlug.Slug(value);
