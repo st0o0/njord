@@ -5,7 +5,6 @@ using Microsoft.Extensions.Options;
 using Njord.Egress;
 using Njord.Mqtt;
 using Njord.Enrichment;
-using Njord.Domain.Analysis;
 using Njord.Pipeline;
 using Servus.Akka;
 using Servus.Akka.Startup;
@@ -27,11 +26,13 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
                 : throw new InvalidOperationException(
                     "PostgreSQL persistence requires a connection string — set Njord:Persistence:ConnectionString."));
 
-        if (persistence.Provider == PersistenceProvider.Sqlite && persistence.ConnectionString is null)
+        if (persistence is { Provider: PersistenceProvider.Sqlite, ConnectionString: null })
         {
             var dir = Path.GetDirectoryName(njordOptions.PersistencePath);
             if (!string.IsNullOrEmpty(dir))
+            {
                 Directory.CreateDirectory(dir);
+            }
         }
 
         var providerName = persistence.Provider switch
@@ -42,6 +43,11 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
         };
 
         builder
+            .ConfigureLoggers(loggers =>
+            {
+                loggers.ClearLoggers();
+                loggers.AddLoggerFactory();
+            })
             .WithSqlPersistence(connectionString, providerName, autoInitialize: true)
             .WithResolvableActors(r =>
             {

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Akka.Actor;
 using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Configuration;
+using Njord.Health;
 using Njord.Mqtt;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
@@ -29,7 +30,8 @@ public sealed class MqttConnectionActorSpec : IDisposable
             connection,
             transport,
             NullLogger<MqttConnectionActor>.Instance,
-            tuning ?? new MqttEgressTuning(TimeSpan.FromMilliseconds(50)))));
+            tuning ?? new MqttEgressTuning(TimeSpan.FromMilliseconds(50)),
+            new NjordHealthState { ServiceStartedUtc = DateTimeOffset.UtcNow })));
     }
 
     [Fact(Timeout = 5000)]

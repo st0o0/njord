@@ -1,3 +1,4 @@
+using Njord.ServiceDefaults;
 using Servus.Core.Application.Startup;
 
 namespace Njord.Configuration;
@@ -6,6 +7,6 @@ public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplica
 {
     protected override void SetupApplication(WebApplication app)
     {
-        app.MapHealthChecks("/healthz");
+        app.MapDefaultEndpoints();
     }
 }

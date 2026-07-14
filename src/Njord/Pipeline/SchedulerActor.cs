@@ -5,7 +5,9 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
+using Njord.Health;
 using Njord.Ingest;
+using Njord.Telemetry;
 using Servus.Akka;
 
 namespace Njord.Pipeline;
@@ -18,6 +20,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private readonly NjordOptions _options;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<SchedulerActor> _logger;
+    private readonly NjordHealthState _healthState;
     private readonly Dictionary<string, ModelPollState> _states = new();
     private ISourceQueueWithComplete<WeightedTarget>? _queue;
     private readonly int _weight;
@@ -28,11 +31,13 @@ public sealed class SchedulerActor : ReceivePersistentActor
         IOptions<NjordOptions> options,
         TimeProvider timeProvider,
         ILogger<SchedulerActor> logger,
-        ResolvedParameterSet parameters)
+        ResolvedParameterSet parameters,
+        NjordHealthState healthState)
     {
         _options = options.Value;
         _timeProvider = timeProvider;
         _logger = logger;
+        _healthState = healthState;
         _weight = WeightedTarget.ComputeWeight(parameters.HourlyCount, _options.ForecastDays);
 
         Recover<DataChanged>(OnRecover);
@@ -137,6 +142,11 @@ public sealed class SchedulerActor : ReceivePersistentActor
         var now = _timeProvider.GetUtcNow();
         var state = _states.GetValueOrDefault(key, ModelPollState.Initial(now));
 
+        NjordTelemetry.FetchFailures.Add(1,
+            new KeyValuePair<string, object?>("location", msg.Location),
+            new KeyValuePair<string, object?>("model", msg.ModelId),
+            new KeyValuePair<string, object?>("reason", msg.Reason.ToString()));
+
         switch (msg.Reason)
         {
             case FetchFailureReason.Transport:
@@ -178,6 +188,9 @@ public sealed class SchedulerActor : ReceivePersistentActor
             return;
         }
 
+        NjordTelemetry.PollsTotal.Add(1,
+            new KeyValuePair<string, object?>("location", poll.Location),
+            new KeyValuePair<string, object?>("model", poll.ModelId));
         var cycle = new CycleId(_timeProvider.GetUtcNow());
         var target = new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle);
         await _queue.OfferAsync(target);
@@ -196,6 +209,10 @@ public sealed class SchedulerActor : ReceivePersistentActor
             Persist(evt, persisted =>
             {
                 _states[key] = state.WithDataChange(persisted.Hash, persisted.Utc, _options.DiscoveryInterval);
+                NjordTelemetry.DataChanges.Add(1,
+                    new KeyValuePair<string, object?>("location", result.Location),
+                    new KeyValuePair<string, object?>("model", result.ModelId));
+                _healthState.SetLastSuccessfulPoll(now);
                 _logger.LogInformation(
                     "Data changed for {Location}/{Model} - phase={Phase}, cycle={Cycle}",
                     result.Location, result.ModelId, _states[key].Phase, _states[key].Cycle);
@@ -206,6 +223,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         else
         {
             _states[key] = state.WithMiss(now, _options.DiscoveryInterval);
+            _healthState.SetLastSuccessfulPoll(now);
             _logger.LogDebug(
                 "No data change for {Location}/{Model} - miss={Miss}, phase={Phase}",
                 result.Location, result.ModelId, _states[key].MissCount, _states[key].Phase);

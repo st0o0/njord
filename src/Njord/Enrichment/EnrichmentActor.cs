@@ -233,7 +233,9 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
             .SelectMany(snapshot =>
             {
                 foreach (var (location, actor) in historyActors)
+                {
                     actor.Tell(new RecordSnapshot(snapshot));
+                }
 
                 var events = new List<EgressEvent>();
                 foreach (var (location, actor) in historyActors)

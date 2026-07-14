@@ -16,6 +16,7 @@
     <Project Path="Njord.Tests.Integration/Njord.Tests.Integration.csproj" />
     <Project Path="Njord.Tests.Integration.E2E/Njord.Tests.Integration.E2E.csproj" />
   </Folder>
+  <Project Path="Njord.ServiceDefaults/Njord.ServiceDefaults.csproj" />
   <Project Path="Njord/Njord.csproj" />
   <Project Path="Njord.AppHost/Njord.AppHost.csproj" />
 </Solution>

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Njord.Domain.Weather;
+using Njord.Health;
 using Njord.Ingest;
 using Njord.Mqtt;
 using Njord.Mqtt.Transport;
@@ -29,7 +30,13 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
             .AddOptions<EnrichmentOptions>()
             .Bind(configuration.GetSection($"{NjordOptions.SectionName}:Enrichment"));
         services.AddSingleton(TimeProvider.System);
-        services.AddHealthChecks();
+        services.AddSingleton(sp => new NjordHealthState
+        {
+            ServiceStartedUtc = sp.GetRequiredService<TimeProvider>().GetUtcNow(),
+        });
+        services.AddHealthChecks()
+            .AddCheck<MqttConnectionHealthCheck>("mqtt-connection")
+            .AddCheck<PipelineHealthCheck>("pipeline");
         services.AddOpenMeteoIngest();
         services.TryAddSingleton(MqttEgressTuning.Default);
         services.TryAddSingleton(static provider =>

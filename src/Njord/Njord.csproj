@@ -10,6 +10,7 @@
 
     <ItemGroup>
       <PackageReference Include="Akka.Hosting" />
+      <PackageReference Include="Akka.Logger.Serilog" />
       <PackageReference Include="Microsoft.Data.Sqlite" />
       <PackageReference Include="Npgsql" />
       <PackageReference Include="Servus" />
@@ -17,6 +18,10 @@
       <PackageReference Include="Akka.Persistence.Sql.Hosting" />
       <PackageReference Include="Akka.Streams" />
       <PackageReference Include="MQTTnet" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Njord.ServiceDefaults\Njord.ServiceDefaults.csproj" />
     </ItemGroup>
 
 </Project>

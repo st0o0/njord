@@ -47,7 +47,10 @@ public static class HistoryAnalyzer
         {
             var equalWeight = maeByModel.Count > 0 ? 1.0 / maeByModel.Count : 0;
             foreach (var model in maeByModel.Keys)
+            {
                 result[model] = Math.Round(equalWeight, 4);
+            }
+
             return result;
         }
 
@@ -62,7 +65,9 @@ public static class HistoryAnalyzer
         }
 
         foreach (var (model, w) in rawWeights)
+        {
             result[model] = Math.Round(w / totalWeight, 4);
+        }
 
         return result;
     }
@@ -118,7 +123,10 @@ public static class HistoryAnalyzer
         if (seasonRecords.Count < minSampleSize) return null;
 
         var seasonHistory = new ForecastHistory(365);
-        foreach (var r in seasonRecords) seasonHistory.Add(r);
+        foreach (var r in seasonRecords)
+        {
+            seasonHistory.Add(r);
+        }
 
         var maes = ModelAccuracy(seasonHistory, paramApiName, 365, minSampleSize);
         return maes

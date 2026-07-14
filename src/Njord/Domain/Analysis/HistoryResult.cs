@@ -23,7 +23,7 @@ public sealed record HistoryResult(
         HistoryOptions options)
     {
         var now = timeProvider.GetUtcNow();
-        var tempApiName = "temperature_2m";
+        const string tempApiName = "temperature_2m";
 
         var mae7d = HistoryAnalyzer.ModelAccuracy(history, tempApiName, 7, options.MinSampleSize);
         var mae30d = HistoryAnalyzer.ModelAccuracy(history, tempApiName, 30, options.MinSampleSize);
@@ -31,7 +31,9 @@ public sealed record HistoryResult(
 
         var drift = new Dictionary<WeatherModel, double?>();
         foreach (var model in mae30d.Keys)
+        {
             drift[model] = HistoryAnalyzer.ForecastDrift(history, model, tempApiName);
+        }
 
         var seasonalBest = HistoryAnalyzer.SeasonalPreference(history, tempApiName, now, options.MinSampleSize);
 

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
+using Njord.Telemetry;
 using Servus.Akka;
 
 namespace Njord.Mqtt;
@@ -95,6 +96,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
 
     private void PublishDiscovery()
     {
+        var count = 0;
         foreach (var location in _options.Locations)
         {
             foreach (var modelId in _options.Models)
@@ -106,6 +108,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
                     location.Name, model, _parameters, _horizons, _options.ForecastDays,
                     _options.Mqtt, _options.PollInterval, Version);
                 _queue?.OfferAsync(new MqttMessage(topic, payload, true));
+                count++;
             }
 
             if (_enrichmentOptions.Consensus.Enabled)
@@ -116,6 +119,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
                     location.Name, _parameters, _horizons, _options.ForecastDays,
                     _options.Mqtt, _options.PollInterval, Version);
                 _queue?.OfferAsync(new MqttMessage(consensusTopic, consensusPayload, true));
+                count++;
             }
 
             if (_enrichmentOptions.Alerts.Enabled)
@@ -125,6 +129,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
                 var alertPayload = DiscoveryPayloadBuilder.BuildAlerts(
                     location.Name, _options.Mqtt, _options.PollInterval, Version);
                 _queue?.OfferAsync(new MqttMessage(alertTopic, alertPayload, true));
+                count++;
             }
 
             if (_enrichmentOptions.Derived.Enabled)
@@ -134,6 +139,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
                 var derivedPayload = DiscoveryPayloadBuilder.BuildDerived(
                     location.Name, _horizons, _options.Mqtt, _options.PollInterval, Version);
                 _queue?.OfferAsync(new MqttMessage(derivedTopic, derivedPayload, true));
+                count++;
             }
 
             if (_enrichmentOptions.Trends.Enabled)
@@ -143,6 +149,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
                 var trendPayload = DiscoveryPayloadBuilder.BuildTrends(
                     location.Name, _options.Mqtt, _options.PollInterval, Version);
                 _queue?.OfferAsync(new MqttMessage(trendTopic, trendPayload, true));
+                count++;
             }
 
             if (_enrichmentOptions.Indices.Enabled)
@@ -152,6 +159,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
                 var indexPayload = DiscoveryPayloadBuilder.BuildIndices(
                     location.Name, _options.Mqtt, _options.PollInterval, Version);
                 _queue?.OfferAsync(new MqttMessage(indexTopic, indexPayload, true));
+                count++;
             }
 
             if (_enrichmentOptions.Energy.Enabled)
@@ -161,6 +169,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
                 var energyPayload = DiscoveryPayloadBuilder.BuildEnergy(
                     location.Name, _options.Mqtt, _options.PollInterval, Version);
                 _queue?.OfferAsync(new MqttMessage(energyConfTopic, energyPayload, true));
+                count++;
             }
 
             if (_enrichmentOptions.History.Enabled)
@@ -170,8 +179,11 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
                 var historyPayload = DiscoveryPayloadBuilder.BuildHistory(
                     location.Name, [.. _options.Models], _options.Mqtt, _options.PollInterval, Version);
                 _queue?.OfferAsync(new MqttMessage(historyConfTopic, historyPayload, true));
+                count++;
             }
         }
+
+        NjordTelemetry.DiscoveryPublishes.Add(count);
     }
 
     protected override void PostStop()

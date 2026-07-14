@@ -15,6 +15,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Njord\Njord.csproj" />
+        <ProjectReference Include="..\Njord.ServiceDefaults\Njord.ServiceDefaults.csproj" IsAspireProjectResource="false" />
     </ItemGroup>
 
 </Project>
