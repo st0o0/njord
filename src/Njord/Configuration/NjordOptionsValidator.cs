@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Options;
-using Njord.Domain;
+using Njord.Domain.Weather;
 
 namespace Njord.Configuration;
 

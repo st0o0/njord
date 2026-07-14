@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text;
 using Njord.Configuration;
-using Njord.Domain;
+using Njord.Domain.Weather;
 using Njord.Ingest;
 
 namespace Njord.Tests.Ingest;

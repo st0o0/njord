@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Njord.Configuration;
-using Njord.Domain;
+using Njord.Domain.Weather;
 
 namespace Njord.Ingest;
 

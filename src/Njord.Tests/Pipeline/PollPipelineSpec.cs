@@ -2,8 +2,9 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Configuration;
-using Njord.Domain;
+using Njord.Domain.Weather;
 using Njord.Egress;
+using Njord.Mqtt;
 using Njord.Ingest;
 using Njord.Pipeline;
 

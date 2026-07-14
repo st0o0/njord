@@ -1,4 +1,4 @@
-using Njord.Domain;
+using Njord.Domain.Weather;
 
 namespace Njord.Ingest;
 

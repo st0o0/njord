@@ -6,7 +6,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
-using Njord.Domain;
+using Njord.Domain.Weather;
 using Njord.Ingest;
 using Njord.Pipeline;
 using Servus.Akka;

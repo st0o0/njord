@@ -1,6 +1,7 @@
 using Akka.Persistence;
 using Njord.Configuration;
-using Njord.Domain;
+using Njord.Domain.Analysis;
+using Njord.Domain.Weather;
 
 namespace Njord.Enrichment;
 
