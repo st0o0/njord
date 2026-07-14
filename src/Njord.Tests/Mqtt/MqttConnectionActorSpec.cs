@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Configuration;
 using Njord.Mqtt;
 using Njord.Mqtt.Transport;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Mqtt;
 
@@ -38,7 +39,8 @@ public sealed class MqttConnectionActorSpec : IDisposable
         var connection = new FakeConnection();
         _ = CreateActor(connection, transport);
 
-        await Task.Delay(1000);
+        await AsyncAssert.WaitUntil(() =>
+            transport.Sent.Any(m => m.Topic == "njord/status" && m.Payload == "online"));
 
         Assert.Contains(transport.Sent, m => m.Topic == "njord/status" && m.Payload == "online");
     }
@@ -50,8 +52,9 @@ public sealed class MqttConnectionActorSpec : IDisposable
         var connection = new FakeConnection { FailConnectCount = 1 };
         _ = CreateActor(connection, transport);
 
-        // First connect fails, second succeeds after reconnect delay
-        await Task.Delay(1500);
+        await AsyncAssert.WaitUntil(() =>
+            connection.ConnectCallCount >= 2 &&
+            transport.Sent.Any(m => m.Topic == "njord/status" && m.Payload == "online"));
 
         Assert.True(connection.ConnectCallCount >= 2,
             $"Expected at least 2 connect attempts, got {connection.ConnectCallCount}");
@@ -65,9 +68,6 @@ public sealed class MqttConnectionActorSpec : IDisposable
         var connection = new FakeConnection();
         var actor = CreateActor(connection, transport);
 
-        // Wait for actor to fully start and materialize streams
-        await Task.Delay(500);
-
         var response = await actor.Ask<MqttSinkResponse>(new RequestMqttSink(), TimeSpan.FromSeconds(3));
         Assert.NotNull(response);
         Assert.NotNull(response.SinkRef);
@@ -80,15 +80,10 @@ public sealed class MqttConnectionActorSpec : IDisposable
         var connection = new FakeConnection();
         var actor = CreateActor(connection, transport);
 
-        await Task.Delay(500);
-        Assert.Contains(transport.Sent, m => m.Topic == "njord/status" && m.Payload == "online");
+        await AsyncAssert.WaitUntil(() =>
+            transport.Sent.Any(m => m.Topic == "njord/status" && m.Payload == "online"));
 
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
-
-        // PostStop enqueues "offline" via the availability queue. Whether it
-        // reaches the transport depends on stream shutdown timing (in production
-        // the MQTT Last Will covers this). Verify the actor stops cleanly and
-        // that no exception surfaces.
     }
 
     [Fact(Timeout = 5000)]
@@ -98,13 +93,11 @@ public sealed class MqttConnectionActorSpec : IDisposable
         var connection = new FakeConnection();
         var actor = CreateActor(connection, transport);
 
-        await Task.Delay(500);
+        await AsyncAssert.WaitUntil(() =>
+            transport.Sent.Any(m => m.Topic == "njord/status" && m.Payload == "online"));
 
         var inbox = Inbox.Create(_system);
         actor.Tell(new SubscribeInbound(inbox.Receiver));
-
-        // Allow subscription registration to process
-        await Task.Delay(100);
 
         connection.SimulateInbound("homeassistant/status", "online");
 

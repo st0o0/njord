@@ -9,6 +9,7 @@ using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Ingest;
 using Njord.Pipeline;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Egress;
 
@@ -52,7 +53,7 @@ public sealed class ModelStateActorSpec : IDisposable
 
         CreateModelStateActor();
 
-        await Task.Delay(500);
+        await AsyncAssert.WaitUntil(() => egressRequests.Count >= 1 && pipelineRequests.Count >= 1);
 
         Assert.Single(egressRequests);
         Assert.Single(pipelineRequests);

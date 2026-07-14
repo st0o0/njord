@@ -14,6 +14,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 {
     public override string PersistenceId => "scheduler";
 
+    private readonly IMaterializer _mat = Context.Materializer();
     private readonly NjordOptions _options;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<SchedulerActor> _logger;
@@ -39,7 +40,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
         Command<PipelineSinkResponse>(OnSinkReceived);
         Command<PipelineSourceResponse>(OnSourceReceived);
-        Command<ScheduledPoll>(OnScheduledPoll);
+        CommandAsync<ScheduledPoll>(OnScheduledPoll);
         Command<HashResult>(OnHashResult);
         Command<FetchFailed>(OnFetchFailed);
     }
@@ -63,22 +64,21 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     private void OnSinkReceived(PipelineSinkResponse response)
     {
-        var mat = Context.Materializer();
         _queue = Source.Queue<WeightedTarget>(32, OverflowStrategy.Backpressure)
             .To(response.SinkRef.Sink)
-            .Run(mat);
+            .Run(_mat);
 
         _logger.LogInformation("Pipeline SinkRef received - scheduling initial polls");
         InitializeStates();
-        BecomeReady();
+        Become(Ready);
         Stash.UnstashAll();
     }
 
-    private void BecomeReady()
+    private void Ready()
     {
         Command<PipelineSinkResponse>(_ => { });
         Command<PipelineSourceResponse>(OnSourceReceived);
-        Command<ScheduledPoll>(OnScheduledPoll);
+        CommandAsync<ScheduledPoll>(OnScheduledPoll);
         Command<HashResult>(OnHashResult);
         Command<FetchFailed>(OnFetchFailed);
         Command<Terminated>(_ =>
@@ -113,14 +113,14 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     private void OnSourceReceived(PipelineSourceResponse response)
     {
-        var mat = Context.Materializer();
         var self = Self;
 
         response.SourceRef.Source
             .Collect(outcome => outcome is FetchOutcome.Failure, outcome => (FetchOutcome.Failure)outcome)
             .Select(f => new FetchFailed(f.Location, f.Model.Id, f.Reason))
-            .To(Sink.ActorRef<FetchFailed>(self, new Status.Success("failure-consumer-complete"), ex => new Status.Failure(ex)))
-            .Run(mat);
+            .To(Sink.ActorRef<FetchFailed>(self, new Status.Success("failure-consumer-complete"),
+                ex => new Status.Failure(ex)))
+            .Run(_mat);
 
         _logger.LogInformation("Pipeline SourceRef received - failure consumer connected");
     }
@@ -158,7 +158,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         }
     }
 
-    private void OnScheduledPoll(ScheduledPoll poll)
+    private async Task OnScheduledPoll(ScheduledPoll poll)
     {
         if (_queue is null)
         {
@@ -174,7 +174,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
         var cycle = new CycleId(_timeProvider.GetUtcNow());
         var target = new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle);
-        _queue.OfferAsync(target);
+        await _queue.OfferAsync(target);
         _logger.LogDebug("Offered poll target {Location}/{Model}", poll.Location, poll.ModelId);
     }
 

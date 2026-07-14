@@ -10,6 +10,8 @@
 
     <ItemGroup>
       <PackageReference Include="Akka.Hosting" />
+      <PackageReference Include="Microsoft.Data.Sqlite" />
+      <PackageReference Include="Npgsql" />
       <PackageReference Include="Servus" />
       <PackageReference Include="Servus.Akka" />
       <PackageReference Include="Akka.Persistence.Sql.Hosting" />

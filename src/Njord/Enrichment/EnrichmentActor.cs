@@ -124,43 +124,49 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
             .To(snapshotHubSink)
             .Run(mat);
 
+        var (egressMergeHubSink, egressMergeHubSource) = MergeHub.Source<EgressEvent>(perProducerBufferSize: 16)
+            .PreMaterialize(mat);
+
+        egressMergeHubSource
+            .RunWith(_egressSinkRef!.Sink, mat);
+
         if (_enrichmentOptions.Consensus.Enabled)
         {
-            MaterializeConsensusConsumer(snapshotHubSource, mat);
+            MaterializeConsensusConsumer(snapshotHubSource, egressMergeHubSink, mat);
         }
 
         if (_enrichmentOptions.Alerts.Enabled)
         {
-            MaterializeAlertConsumer(snapshotHubSource, mat);
+            MaterializeAlertConsumer(snapshotHubSource, egressMergeHubSink, mat);
         }
 
         if (_enrichmentOptions.Derived.Enabled)
         {
-            MaterializeDerivedConsumer(snapshotHubSource, mat);
+            MaterializeDerivedConsumer(snapshotHubSource, egressMergeHubSink, mat);
         }
 
         if (_enrichmentOptions.Trends.Enabled)
         {
-            MaterializeTrendConsumer(snapshotHubSource, mat);
+            MaterializeTrendConsumer(snapshotHubSource, egressMergeHubSink, mat);
         }
 
         if (_enrichmentOptions.Indices.Enabled)
         {
-            MaterializeIndexConsumer(snapshotHubSource, mat);
+            MaterializeIndexConsumer(snapshotHubSource, egressMergeHubSink, mat);
         }
 
         if (_enrichmentOptions.Energy.Enabled)
         {
-            MaterializeEnergyConsumer(snapshotHubSource, mat);
+            MaterializeEnergyConsumer(snapshotHubSource, egressMergeHubSink, mat);
         }
 
         if (_enrichmentOptions.History.Enabled)
         {
-            MaterializeHistoryConsumer(snapshotHubSource, mat);
+            MaterializeHistoryConsumer(snapshotHubSource, egressMergeHubSink, mat);
         }
     }
 
-    private void MaterializeConsensusConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
+    private void MaterializeConsensusConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
     {
         var parameters = _parameters;
         var horizons = (IReadOnlyList<int>)[.. _options.Horizons];
@@ -182,10 +188,10 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_egressSinkRef!.Sink, mat);
+            .RunWith(egressSink, mat);
     }
 
-    private void MaterializeAlertConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
+    private void MaterializeAlertConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
     {
         var locations = _options.Locations.Select(l => l.Name).ToList();
         var timeProvider = _timeProvider;
@@ -204,10 +210,10 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_egressSinkRef!.Sink, mat);
+            .RunWith(egressSink, mat);
     }
 
-    private void MaterializeHistoryConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
+    private void MaterializeHistoryConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
     {
         var parameters = _parameters;
         var locations = _options.Locations.Select(l => l.Name).ToList();
@@ -241,10 +247,10 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_egressSinkRef!.Sink, mat);
+            .RunWith(egressSink, mat);
     }
 
-    private void MaterializeEnergyConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
+    private void MaterializeEnergyConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
     {
         var parameters = _parameters;
         var locations = _options.Locations.Select(l => l.Name).ToList();
@@ -265,10 +271,10 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_egressSinkRef!.Sink, mat);
+            .RunWith(egressSink, mat);
     }
 
-    private void MaterializeIndexConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
+    private void MaterializeIndexConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
     {
         var parameters = _parameters;
         var locations = _options.Locations.Select(l => l.Name).ToList();
@@ -289,10 +295,10 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_egressSinkRef!.Sink, mat);
+            .RunWith(egressSink, mat);
     }
 
-    private void MaterializeTrendConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
+    private void MaterializeTrendConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
     {
         var parameters = _parameters;
         var horizons = (IReadOnlyList<int>)[.. _options.Horizons];
@@ -320,10 +326,10 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_egressSinkRef!.Sink, mat);
+            .RunWith(egressSink, mat);
     }
 
-    private void MaterializeDerivedConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, IMaterializer mat)
+    private void MaterializeDerivedConsumer(Source<ModelSnapshot, NotUsed> snapshotSource, Sink<EgressEvent, NotUsed> egressSink, IMaterializer mat)
     {
         var parameters = _parameters;
         var horizons = (IReadOnlyList<int>)[.. _options.Horizons];
@@ -344,6 +350,6 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(_egressSinkRef!.Sink, mat);
+            .RunWith(egressSink, mat);
     }
 }

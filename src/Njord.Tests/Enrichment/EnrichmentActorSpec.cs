@@ -39,6 +39,12 @@ public sealed class EnrichmentActorSpec : IDisposable
             NullLogger<EnrichmentActor>.Instance)));
     }
 
+    private async Task AssertActorAlive(IActorRef actor)
+    {
+        var identity = await actor.Ask<ActorIdentity>(new Identify(42), TimeSpan.FromSeconds(3));
+        Assert.Equal(42, identity.MessageId);
+    }
+
     [Fact(Timeout = 5000)]
     public async Task Requests_source_ref_from_pipeline_actor_on_startup()
     {
@@ -52,9 +58,7 @@ public sealed class EnrichmentActorSpec : IDisposable
 
         var actor = CreateEnrichmentActor();
 
-        await Task.Delay(500);
-
-        Assert.NotNull(actor);
+        await AssertActorAlive(actor);
     }
 
     [Fact(Timeout = 5000)]
@@ -71,8 +75,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var enrichment = new EnrichmentOptions { Consensus = new ConsensusOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await Task.Delay(500);
-        Assert.NotNull(actor);
+        await AssertActorAlive(actor);
     }
 
     [Fact(Timeout = 5000)]
@@ -89,8 +92,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var enrichment = new EnrichmentOptions { Derived = new DerivedOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await Task.Delay(500);
-        Assert.NotNull(actor);
+        await AssertActorAlive(actor);
     }
 
     [Fact(Timeout = 5000)]
@@ -112,8 +114,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await Task.Delay(500);
-        Assert.NotNull(actor);
+        await AssertActorAlive(actor);
     }
 
     [Fact(Timeout = 5000)]
@@ -130,8 +131,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var enrichment = new EnrichmentOptions { Trends = new TrendOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await Task.Delay(500);
-        Assert.NotNull(actor);
+        await AssertActorAlive(actor);
     }
 
     [Fact(Timeout = 5000)]
@@ -148,8 +148,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var enrichment = new EnrichmentOptions { History = new HistoryOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await Task.Delay(500);
-        Assert.NotNull(actor);
+        await AssertActorAlive(actor);
     }
 
     [Fact(Timeout = 5000)]
@@ -166,8 +165,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var enrichment = new EnrichmentOptions { Energy = new EnergyOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await Task.Delay(500);
-        Assert.NotNull(actor);
+        await AssertActorAlive(actor);
     }
 
     [Fact(Timeout = 5000)]
@@ -184,8 +182,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var enrichment = new EnrichmentOptions { Indices = new IndexOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await Task.Delay(500);
-        Assert.NotNull(actor);
+        await AssertActorAlive(actor);
     }
 
     [Fact(Timeout = 5000)]
@@ -202,8 +199,7 @@ public sealed class EnrichmentActorSpec : IDisposable
         var enrichment = new EnrichmentOptions { Trends = new TrendOptions { Enabled = true } };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await Task.Delay(500);
-        Assert.NotNull(actor);
+        await AssertActorAlive(actor);
     }
 
     private sealed class FakePipelineSource : ReceiveActor

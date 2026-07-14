@@ -35,4 +35,4 @@ if (usePostgres)
         .WaitFor(postgres);
 }
 
-builder.Build().Run();
+await builder.Build().RunAsync();

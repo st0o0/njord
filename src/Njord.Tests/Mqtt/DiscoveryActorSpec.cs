@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Mqtt;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Mqtt;
 
@@ -47,10 +48,16 @@ public sealed class DiscoveryActorSpec : IDisposable
         var options = DefaultOptions(discoveryEnabled: false);
         CreateDiscoveryActor(options);
 
-        await Task.Delay(500);
+        // Give the actor a chance to process PreStart; if it were going to send
+        // messages it would do so within this window.
+        await AsyncAssert.WaitUntil(async () =>
+        {
+            var received = await fake.Ask<List<object>>(new GetReceivedMessages(), TimeSpan.FromSeconds(1));
+            return received.Count == 0;
+        }, timeout: TimeSpan.FromMilliseconds(500));
 
-        var received = await fake.Ask<List<object>>(new GetReceivedMessages(), TimeSpan.FromSeconds(2));
-        Assert.Empty(received);
+        var finalReceived = await fake.Ask<List<object>>(new GetReceivedMessages(), TimeSpan.FromSeconds(2));
+        Assert.Empty(finalReceived);
     }
 
     [Fact(Timeout = 5000)]
@@ -64,7 +71,11 @@ public sealed class DiscoveryActorSpec : IDisposable
 
         CreateDiscoveryActor();
 
-        await Task.Delay(500);
+        await AsyncAssert.WaitUntil(async () =>
+        {
+            var received = await fake.Ask<List<object>>(new GetReceivedMessages(), TimeSpan.FromSeconds(1));
+            return received.Any(m => m is RequestMqttSink) && received.Any(m => m is SubscribeInbound);
+        });
 
         var received = await fake.Ask<List<object>>(new GetReceivedMessages(), TimeSpan.FromSeconds(2));
         Assert.Contains(received, m => m is RequestMqttSink);
@@ -82,13 +93,20 @@ public sealed class DiscoveryActorSpec : IDisposable
 
         var actor = CreateDiscoveryActor();
 
-        // Wait for SinkRef handshake to complete
-        await Task.Delay(500);
+        // Wait for the SinkRef handshake to complete
+        await AsyncAssert.WaitUntil(async () =>
+        {
+            var received = await probe.Ask<List<object>>(new GetReceivedMessages(), TimeSpan.FromSeconds(1));
+            return received.Any(m => m is RequestMqttSink);
+        });
 
-        // Tell the actor the broker is connected — triggers PublishDiscovery
         actor.Tell(new MqttConnected());
 
-        await Task.Delay(500);
+        await AsyncAssert.WaitUntil(async () =>
+        {
+            var messages = await probe.Ask<List<MqttMessage>>(new GetPublishedMessages(), TimeSpan.FromSeconds(1));
+            return messages.Count > 0;
+        });
 
         var messages = await probe.Ask<List<MqttMessage>>(new GetPublishedMessages(), TimeSpan.FromSeconds(2));
         Assert.NotEmpty(messages);

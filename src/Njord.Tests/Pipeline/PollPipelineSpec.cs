@@ -50,8 +50,8 @@ public sealed class PollPipelineSpec : IDisposable
         var results = await Source.From(targets)
             .SelectAsyncUnordered(8, async target =>
                 await client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None))
-            .Collect(outcome => outcome is FetchOutcome.Success s ? s : null!)
-            .Where(s => s is not null)
+            .Where(outcome => outcome is FetchOutcome.Success)
+            .Select(outcome => (FetchOutcome.Success)outcome)
             .SelectMany(success =>
             {
                 var forecast = success.Forecast;
@@ -85,8 +85,8 @@ public sealed class PollPipelineSpec : IDisposable
         var results = await Source.From(targets)
             .SelectAsyncUnordered(8, async target =>
                 await client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None))
-            .Collect(outcome => outcome is FetchOutcome.Success s ? s : null!)
-            .Where(s => s is not null)
+            .Where(outcome => outcome is FetchOutcome.Success)
+            .Select(outcome => (FetchOutcome.Success)outcome)
             .SelectMany(success =>
             {
                 var forecast = success.Forecast;

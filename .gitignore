@@ -42,3 +42,6 @@ coverage-results/
 results/
 .worktrees/
 .claude/settings.local.json
+
+# SQLite persistence data (runtime)
+src/Njord/data/

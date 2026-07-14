@@ -91,7 +91,7 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
 
         var requests = await _admin.GetRequestsAsync();
         var request = Assert.Single(requests);
-        var url = request.Request.Url;
+        var url = request.Request!.Url!;
         Assert.Contains("latitude=47.05", url);
         Assert.Contains("longitude=8.31", url);
         Assert.Contains("models=icon_eu", url);

@@ -1,4 +1,3 @@
-using Akka;
 using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
@@ -18,7 +17,6 @@ public sealed class EgressActorSpec : IDisposable
     public async Task Vends_sink_ref_on_request()
     {
         var egress = _system.ActorOf(Props.Create<EgressActor>());
-        await Task.Delay(200);
 
         var response = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(), TimeSpan.FromSeconds(2));
 
@@ -29,7 +27,6 @@ public sealed class EgressActorSpec : IDisposable
     public async Task Vends_source_ref_on_request()
     {
         var egress = _system.ActorOf(Props.Create<EgressActor>());
-        await Task.Delay(200);
 
         var response = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(), TimeSpan.FromSeconds(2));
 
@@ -41,14 +38,13 @@ public sealed class EgressActorSpec : IDisposable
     {
         var mat = _system.Materializer();
         var egress = _system.ActorOf(Props.Create<EgressActor>());
-        await Task.Delay(200);
 
         var sinkResponse = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(), TimeSpan.FromSeconds(2));
         var sourceResponse = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(), TimeSpan.FromSeconds(2));
 
         var received = new List<EgressEvent>();
         var completionSource = new TaskCompletionSource();
-        sourceResponse.SourceRef.Source
+        _ = sourceResponse.SourceRef.Source
             .Take(1)
             .RunForeach(e => received.Add(e), mat)
             .ContinueWith(_ => completionSource.TrySetResult());

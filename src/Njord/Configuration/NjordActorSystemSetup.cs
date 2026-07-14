@@ -27,9 +27,16 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
                 : throw new InvalidOperationException(
                     "PostgreSQL persistence requires a connection string — set Njord:Persistence:ConnectionString."));
 
+        if (persistence.Provider == PersistenceProvider.Sqlite && persistence.ConnectionString is null)
+        {
+            var dir = Path.GetDirectoryName(njordOptions.PersistencePath);
+            if (!string.IsNullOrEmpty(dir))
+                Directory.CreateDirectory(dir);
+        }
+
         var providerName = persistence.Provider switch
         {
-            PersistenceProvider.Sqlite => ProviderName.SQLite,
+            PersistenceProvider.Sqlite => ProviderName.SQLiteMS,
             PersistenceProvider.PostgreSql => ProviderName.PostgreSQL,
             _ => throw new InvalidOperationException($"Unsupported persistence provider: {persistence.Provider}"),
         };

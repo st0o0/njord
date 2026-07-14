@@ -9,6 +9,7 @@ using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Ingest;
 using Njord.Pipeline;
+using Njord.Tests.Shared;
 using Servus.Akka;
 
 namespace Njord.Tests.Pipeline;
@@ -63,12 +64,15 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         return _system.ActorOf(props);
     }
 
+    private Task WaitForOffer(int minCount = 1) =>
+        AsyncAssert.WaitUntil(() => _offered.Count >= minCount);
+
     [Fact(Timeout = 5000)]
     public async Task Scheduler_offers_target_after_receiving_sink_ref()
     {
         _scheduler = CreateScheduler();
 
-        await Task.Delay(500);
+        await WaitForOffer();
 
         Assert.True(_offered.Count > 0, "Scheduler should have offered at least one target");
         Assert.Equal("lucerne", _offered[0].Location.Name);
@@ -79,7 +83,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
     public async Task Hash_change_triggers_ack_response()
     {
         _scheduler = CreateScheduler();
-        await Task.Delay(300);
+        await WaitForOffer();
 
         var result = await _scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2));
         Assert.NotNull(result);
@@ -89,7 +93,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
     public async Task Unchanged_hash_also_acks()
     {
         _scheduler = CreateScheduler();
-        await Task.Delay(300);
+        await WaitForOffer();
 
         await _scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2));
         var result = await _scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2));
@@ -100,11 +104,12 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
     public async Task Transport_failure_triggers_backoff_retry()
     {
         _scheduler = CreateScheduler();
-        await Task.Delay(300);
+        await WaitForOffer();
 
         var countBefore = _offered.Count;
         _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.Transport));
-        await Task.Delay(1500);
+
+        await AsyncAssert.WaitUntil(() => _offered.Count > countBefore);
 
         Assert.True(_offered.Count > countBefore, "Transport failure should schedule a retry that offers a new target");
     }
@@ -113,10 +118,12 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
     public async Task Rate_limited_failure_enforces_minimum_delay()
     {
         _scheduler = CreateScheduler();
-        await Task.Delay(300);
+        await WaitForOffer();
 
         var countBefore = _offered.Count;
         _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.RateLimited));
+
+        // Rate-limited should not immediately retry — verify no new offer within a short window
         await Task.Delay(200);
 
         Assert.Equal(countBefore, _offered.Count);
@@ -126,11 +133,13 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
     public async Task Model_unavailable_does_not_trigger_retry()
     {
         _scheduler = CreateScheduler();
-        await Task.Delay(300);
+        await WaitForOffer();
 
         var countBefore = _offered.Count;
         _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.ModelUnavailable));
-        await Task.Delay(300);
+
+        // Verify no retry is scheduled
+        await Task.Delay(200);
 
         Assert.Equal(countBefore, _offered.Count);
     }
@@ -139,11 +148,13 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
     public async Task Malformed_payload_does_not_trigger_retry()
     {
         _scheduler = CreateScheduler();
-        await Task.Delay(300);
+        await WaitForOffer();
 
         var countBefore = _offered.Count;
         _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.MalformedPayload));
-        await Task.Delay(300);
+
+        // Verify no retry is scheduled
+        await Task.Delay(200);
 
         Assert.Equal(countBefore, _offered.Count);
     }
@@ -332,7 +343,9 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
                 delay = TimeSpan.FromMilliseconds(500);
             }
 
+#pragma warning disable AK1004
             Context.System.Scheduler.ScheduleTellOnce(delay, Self, new ScheduledPoll(location, modelId), Self);
+#pragma warning restore AK1004
         }
     }
 }
