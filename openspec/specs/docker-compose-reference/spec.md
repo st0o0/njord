@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Capability: docker-compose-reference
+
+## Purpose
+
+Reference docker-compose example file documenting all configurable options for production deployment of njord.
+
+## Requirements
 
 ### Requirement: docker-compose.example.yml replaces docker-compose.yml
 The repository SHALL contain `docker-compose.example.yml` (renamed from `docker-compose.yml`). The original `docker-compose.yml` SHALL no longer exist.
@@ -38,7 +44,7 @@ The compose file SHALL define a named volume (`njord-data`) mapped to `/app/data
 - **THEN** a `volumes` section maps `njord-data` to `/app/data`
 
 ### Requirement: Multiple locations example
-The compose file SHALL show at least two location entries — one uncommented (default home) and one commented (example second location) — to demonstrate the array indexing pattern.
+The compose file SHALL show at least two location entries -- one uncommented (default home) and one commented (example second location) -- to demonstrate the array indexing pattern.
 
 #### Scenario: Second location is shown
 - **WHEN** the compose file is read

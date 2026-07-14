@@ -1,4 +1,10 @@
-## ADDED Requirements
+# Capability: aspire-apphost
+
+## Purpose
+
+Aspire AppHost orchestration for local development -- starts Mosquitto, MQTT Explorer, and njord with the correct wiring, supporting both SQLite (default) and PostgreSQL launch profiles.
+
+## Requirements
 
 ### Requirement: Aspire AppHost project exists
 The solution SHALL contain an Aspire AppHost project at `src/Njord.AppHost/` using `Aspire.AppHost.Sdk/13.0.0`. The project SHALL be included in `Njord.slnx` and SHALL reference the `Njord` service project.
