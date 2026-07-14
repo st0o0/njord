@@ -6,6 +6,21 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "deps"
+    groups:
+      akka:
+        patterns:
+          - "Akka*"
+      testing:
+        patterns:
+          - "xunit*"
+          - "Microsoft.Testing*"
+          - "Microsoft.AspNetCore.Mvc.Testing"
+          - "Microsoft.Extensions.TimeProvider.Testing"
+          - "Verify*"
+      servus:
+        patterns:
+          - "Servus"
+          - "Servus.*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

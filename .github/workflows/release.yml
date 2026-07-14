@@ -28,8 +28,27 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  docker:
+  test:
     needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: src/global.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('src/**/*.csproj', 'src/Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - name: Run tests
+        working-directory: src
+        run: dotnet run --project Njord.Tests/Njord.Tests.csproj
+
+  docker:
+    needs: [release-please, test]
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
     permissions:

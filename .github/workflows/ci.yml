@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Named to match the branch-protection required checks: unit, lint, build.
+  # Named to match the branch-protection required checks: unit, lint, build, commitlint.
   unit:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -29,6 +29,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: src/global.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('src/**/*.csproj', 'src/Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
       # xUnit v3 on Microsoft.Testing.Platform — `dotnet run`, not `dotnet test`.
       - name: Run tests
         working-directory: src
@@ -39,11 +44,25 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: src/global.json
       - name: hadolint
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
           config: .hadolint.yaml
+      - name: dotnet format
+        working-directory: src
+        run: dotnet format Njord.slnx whitespace --verify-no-changes
+
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@v6
 
   build:
     runs-on: ubuntu-latest
