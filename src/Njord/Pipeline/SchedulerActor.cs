@@ -168,8 +168,10 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
             case FetchFailureReason.ModelUnavailable:
             case FetchFailureReason.MalformedPayload:
-                _logger.LogWarning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - skipping until next regular poll",
+                _states[key] = state.WithTransientFailure(now);
+                _logger.LogWarning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - retry scheduled",
                     msg.Location, msg.ModelId, msg.Reason, msg.Detail);
+                ScheduleNext(msg.Location, msg.ModelId);
                 break;
         }
     }

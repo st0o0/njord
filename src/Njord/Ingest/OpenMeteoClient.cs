@@ -173,7 +173,7 @@ public sealed class OpenMeteoClient(
                 continue;
             }
 
-            if (units.TryGetValue(param.ApiName, out var actual) && actual != expected)
+            if (units.TryGetValue(param.ApiName, out var actual) && actual != expected && actual != "undefined")
             {
                 return $"Unexpected unit '{actual}' for {param.ApiName} (expected '{expected}')";
             }
