@@ -107,7 +107,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         await WaitForOffer();
 
         var countBefore = _offered.Count;
-        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.Transport));
+        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.Transport, "test"));
 
         await AsyncAssert.WaitUntil(() => _offered.Count > countBefore);
 
@@ -121,7 +121,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         await WaitForOffer();
 
         var countBefore = _offered.Count;
-        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.RateLimited));
+        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.RateLimited, "test"));
 
         // Rate-limited should not immediately retry — verify no new offer within a short window
         await Task.Delay(200);
@@ -136,7 +136,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         await WaitForOffer();
 
         var countBefore = _offered.Count;
-        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.ModelUnavailable));
+        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.ModelUnavailable, "test"));
 
         // Verify no retry is scheduled
         await Task.Delay(200);
@@ -151,7 +151,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         await WaitForOffer();
 
         var countBefore = _offered.Count;
-        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.MalformedPayload));
+        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.MalformedPayload, "test"));
 
         // Verify no retry is scheduled
         await Task.Delay(200);

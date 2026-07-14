@@ -17,4 +17,4 @@ public sealed record PipelineSourceResponse(ISourceRef<FetchOutcome> SourceRef);
 
 public sealed record ScheduledPoll(string Location, string ModelId);
 
-public sealed record FetchFailed(string Location, string ModelId, FetchFailureReason Reason);
+public sealed record FetchFailed(string Location, string ModelId, FetchFailureReason Reason, string Detail);

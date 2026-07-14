@@ -123,7 +123,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
         response.SourceRef.Source
             .Collect(outcome => outcome is FetchOutcome.Failure, outcome => (FetchOutcome.Failure)outcome)
-            .Select(f => new FetchFailed(f.Location, f.Model.Id, f.Reason))
+            .Select(f => new FetchFailed(f.Location, f.Model.Id, f.Reason, f.Detail))
             .To(Sink.ActorRef<FetchFailed>(self, new Status.Success("failure-consumer-complete"),
                 ex => new Status.Failure(ex)))
             .Run(_mat);
@@ -158,8 +158,8 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
             case FetchFailureReason.ModelUnavailable:
             case FetchFailureReason.MalformedPayload:
-                _logger.LogWarning("Fetch failed for {Location}/{Model} ({Reason}) - skipping until next regular poll",
-                    msg.Location, msg.ModelId, msg.Reason);
+                _logger.LogWarning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - skipping until next regular poll",
+                    msg.Location, msg.ModelId, msg.Reason, msg.Detail);
                 break;
         }
     }
