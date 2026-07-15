@@ -159,6 +159,85 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         Assert.Equal(countBefore, _offered.Count);
     }
 
+    [Fact(Timeout = 5000)]
+    public async Task Trigger_immediate_poll_for_all_returns_all_targets()
+    {
+        var options = Options();
+        options.Models = ["icon_d2", "gfs_seamless"];
+        _scheduler = CreateScheduler(options);
+        await WaitForOffer();
+
+        var result = await _scheduler.Ask<TriggerPollResult>(
+            new TriggerImmediatePoll("", ""), TimeSpan.FromSeconds(2));
+
+        Assert.Equal(2, result.Count);
+        Assert.Contains("lucerne/icon_d2", result.Targets);
+        Assert.Contains("lucerne/gfs_seamless", result.Targets);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Trigger_immediate_poll_for_specific_location_filters_correctly()
+    {
+        var options = Options();
+        options.Locations =
+        [
+            new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 },
+            new LocationOptions { Name = "zurich", Latitude = 47.37, Longitude = 8.54 },
+        ];
+        _scheduler = CreateScheduler(options);
+        await WaitForOffer(2);
+
+        var result = await _scheduler.Ask<TriggerPollResult>(
+            new TriggerImmediatePoll("zurich", ""), TimeSpan.FromSeconds(2));
+
+        Assert.Equal(1, result.Count);
+        Assert.Contains("zurich/icon_d2", result.Targets);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Trigger_immediate_poll_for_specific_model_filters_correctly()
+    {
+        var options = Options();
+        options.Models = ["icon_d2", "gfs_seamless"];
+        _scheduler = CreateScheduler(options);
+        await WaitForOffer();
+
+        var result = await _scheduler.Ask<TriggerPollResult>(
+            new TriggerImmediatePoll("lucerne", "gfs_seamless"), TimeSpan.FromSeconds(2));
+
+        Assert.Equal(1, result.Count);
+        Assert.Contains("lucerne/gfs_seamless", result.Targets);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Trigger_immediate_poll_for_unknown_location_returns_zero()
+    {
+        _scheduler = CreateScheduler();
+        await WaitForOffer();
+
+        var result = await _scheduler.Ask<TriggerPollResult>(
+            new TriggerImmediatePoll("nonexistent", ""), TimeSpan.FromSeconds(2));
+
+        Assert.Equal(0, result.Count);
+        Assert.Empty(result.Targets);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Trigger_immediate_poll_actually_offers_target_to_pipeline()
+    {
+        _scheduler = CreateScheduler();
+        await WaitForOffer();
+        var countBefore = _offered.Count;
+
+        await _scheduler.Ask<TriggerPollResult>(
+            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2));
+
+        await AsyncAssert.WaitUntil(() => _offered.Count > countBefore);
+        var latest = _offered[^1];
+        Assert.Equal("lucerne", latest.Location.Name);
+        Assert.Equal("icon_d2", latest.Model.Id);
+    }
+
     private sealed class FakePipelineActor : ReceiveActor
     {
         public FakePipelineActor(List<WeightedTarget> offered, IMaterializer mat)
@@ -221,6 +300,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
             Command<ScheduledPoll>(OnScheduledPoll);
             Command<HashResult>(OnHashResult);
             Command<FetchFailed>(OnFetchFailed);
+            Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
         }
 
         protected override void PreStart()
@@ -326,6 +406,31 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
                 case FetchFailureReason.MalformedPayload:
                     break;
             }
+        }
+
+        private void OnTriggerImmediatePoll(TriggerImmediatePoll msg)
+        {
+            var targets = new List<string>();
+            var locations = string.IsNullOrEmpty(msg.Location)
+                ? _options.Locations
+                : _options.Locations.Where(l => l.Name.Equals(msg.Location, StringComparison.OrdinalIgnoreCase));
+
+            foreach (var location in locations)
+            {
+                var models = string.IsNullOrEmpty(msg.Model)
+                    ? location.ResolveModels(_options.Models)
+                    : location.ResolveModels(_options.Models)
+                        .Where(m => m.Equals(msg.Model, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                foreach (var modelId in models)
+                {
+                    Self.Tell(new ScheduledPoll(location.Name, modelId));
+                    targets.Add($"{location.Name}/{modelId}");
+                }
+            }
+
+            Sender.Tell(new TriggerPollResult(targets.Count, targets));
         }
 
         private void ScheduleNext(string location, string modelId)

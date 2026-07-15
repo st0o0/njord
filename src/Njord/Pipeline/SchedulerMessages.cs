@@ -18,3 +18,7 @@ public sealed record PipelineSourceResponse(ISourceRef<FetchOutcome> SourceRef);
 public sealed record ScheduledPoll(string Location, string ModelId);
 
 public sealed record FetchFailed(string Location, string ModelId, FetchFailureReason Reason, string Detail);
+
+public sealed record TriggerImmediatePoll(string Location, string Model);
+
+public sealed record TriggerPollResult(int Count, List<string> Targets);

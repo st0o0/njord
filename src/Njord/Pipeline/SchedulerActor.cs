@@ -48,6 +48,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         CommandAsync<ScheduledPoll>(OnScheduledPoll);
         Command<HashResult>(OnHashResult);
         Command<FetchFailed>(OnFetchFailed);
+        Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
     }
 
     private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
@@ -86,6 +87,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         CommandAsync<ScheduledPoll>(OnScheduledPoll);
         Command<HashResult>(OnHashResult);
         Command<FetchFailed>(OnFetchFailed);
+        Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
         Command<Terminated>(_ =>
         {
             _logger.LogWarning("PipelineActor terminated - waiting for new SinkRef");
@@ -197,6 +199,32 @@ public sealed class SchedulerActor : ReceivePersistentActor
         var target = new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle);
         await _queue.OfferAsync(target);
         _logger.LogDebug("Offered poll target {Location}/{Model}", poll.Location, poll.ModelId);
+    }
+
+    private void OnTriggerImmediatePoll(TriggerImmediatePoll msg)
+    {
+        var targets = new List<string>();
+        var locations = string.IsNullOrEmpty(msg.Location)
+            ? _options.Locations
+            : _options.Locations.Where(l => l.Name.Equals(msg.Location, StringComparison.OrdinalIgnoreCase));
+
+        foreach (var location in locations)
+        {
+            var models = string.IsNullOrEmpty(msg.Model)
+                ? location.ResolveModels(_options.Models)
+                : location.ResolveModels(_options.Models)
+                    .Where(m => m.Equals(msg.Model, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+            foreach (var modelId in models)
+            {
+                Self.Tell(new ScheduledPoll(location.Name, modelId));
+                targets.Add($"{location.Name}/{modelId}");
+            }
+        }
+
+        _logger.LogInformation("TriggerImmediatePoll: triggered {Count} polls", targets.Count);
+        Sender.Tell(new TriggerPollResult(targets.Count, targets));
     }
 
     private void OnHashResult(HashResult result)
