@@ -1,5 +1,86 @@
 # Changelog
 
+## [0.1.1](https://github.com/st0o0/njord/compare/v0.1.0...v0.1.1) (2026-07-15)
+
+
+### Features
+
+* add building energy management consumer (M6) ([bcf6760](https://github.com/st0o0/njord/commit/bcf6760ba1463a100c0c674ace1174fcd6f36688))
+* add daily-life activity indices consumer (M5) ([cc1de60](https://github.com/st0o0/njord/commit/cc1de60a97f25e6686fcc5ca8e9c7c8533b2ab7f))
+* add derived meteorological values consumer (M3) ([8747dc4](https://github.com/st0o0/njord/commit/8747dc4ddca086f3069edff2b7edb90e0eb1e71b))
+* add documentation and configuration builder ([77b2437](https://github.com/st0o0/njord/commit/77b24378540ac5d5b5b46abafadffd48d4a14830))
+* add enrichment pipeline infrastructure and consensus (M0+M1) ([068a837](https://github.com/st0o0/njord/commit/068a8377c9e46374b9be616d20f61f8e322d2780))
+* add gRPC API with forecast/config services and snapshot actors ([574bfce](https://github.com/st0o0/njord/commit/574bfce71223d1cb3afb5a420b7cf7abedd4ad9f))
+* add historical learning consumer with Akka.Persistence (M7) ([ec3553a](https://github.com/st0o0/njord/commit/ec3553a5cb34f7d10d3786e94d13644c0b099d02))
+* add publisher-agnostic EgressActor with registration protocol ([70aea85](https://github.com/st0o0/njord/commit/70aea85dffa305396b872513317014bbbb05865a))
+* add telemetry infrastructure with Serilog, OpenTelemetry, and health checks ([aac787d](https://github.com/st0o0/njord/commit/aac787db8b7f08e968bfbc9cf4ba03ac1655a116))
+* add temporal trend analysis consumer (M4) ([b6d9a57](https://github.com/st0o0/njord/commit/b6d9a57539f9412c0d7b3d84db90c65ac74f2e90))
+* add threshold alerts with multi-model confidence (M2) ([11a55d3](https://github.com/st0o0/njord/commit/11a55d3a6089bb4a01b65df46629c56201af993f))
+* add TriggerImmediatePoll command to SchedulerActor ([c761986](https://github.com/st0o0/njord/commit/c76198663ec0dde780152ff59d27261402f5274a))
+* configurable base URL and daily TimeString unix-to-ISO conversion ([0dfe5c2](https://github.com/st0o0/njord/commit/0dfe5c25fff96f31c3553667f22fc0791dbb67b4))
+* **dev:** add Aspire 13 AppHost and docker-compose reference ([9b9ca3c](https://github.com/st0o0/njord/commit/9b9ca3c652115ea18220b536d657a81f6914b2e5))
+* **docker:** Add ServiceDefaults to build ([d25282d](https://github.com/st0o0/njord/commit/d25282d595d6eb6da80af3bd9298309f021ce3dc))
+* **enrichment:** add data enrichment pipeline ([2050ab0](https://github.com/st0o0/njord/commit/2050ab0450fb71cc8d2e852e58728a09b9a530a2))
+* Introduce LikeC4 diagrams and branding ([ad032ea](https://github.com/st0o0/njord/commit/ad032ea3b709562d6b4e04e0b461aca0478a6c3a))
+* model capability tracking and capability-driven MQTT discovery ([1613f0d](https://github.com/st0o0/njord/commit/1613f0dee91d51bf1c2109bf6a5e4620b8add64d))
+* null-stripping and model coverage capping in HorizonProjection ([2984301](https://github.com/st0o0/njord/commit/29843013996e7304c16494828d7a8b0442a3ce43))
+* per-location model config with static coverage validation ([06cf680](https://github.com/st0o0/njord/commit/06cf6802e6d4c79453501c7388b0ed0471263ea4))
+
+
+### Bug Fixes
+
+* add missing state_topic to enrichment discovery payloads ([4ed02a5](https://github.com/st0o0/njord/commit/4ed02a5be074122f2ee2295d3c6f240470084b08))
+* **docs:** set base path for GitHub Pages subpath deployment ([c91f379](https://github.com/st0o0/njord/commit/c91f379e6c00cbc6610fa238fa79e6716595fda0))
+* **pipeline:** create fresh StreamRefs per request in PipelineActor ([ba5acac](https://github.com/st0o0/njord/commit/ba5acac5c4e13ebd8799c3ff8aff81c2fcf43ffd))
+* **pipeline:** stagger initial polls and limit HTTP concurrency ([b763b77](https://github.com/st0o0/njord/commit/b763b771bcfebeb48d210128039bd3aae682cdd9))
+* **pipeline:** tolerate 'undefined' units and reschedule on all failures ([1f0a4ad](https://github.com/st0o0/njord/commit/1f0a4ad3bff690d22e975933897004ab6e803def))
+* resolve Aspire startup, SQLite persistence, and runtime bugs ([a83c6cf](https://github.com/st0o0/njord/commit/a83c6cfd85b787d30d8646e9c0e6ba2f2d7198b5))
+* **scheduler:** include failure detail in FetchFailed message and logs ([13d1818](https://github.com/st0o0/njord/commit/13d1818d99fec2ee58bf26c5a2746c51162f0389))
+
+
+### Documentation
+
+* add specs for gRPC API, config persistence, and supporting features ([9ba0666](https://github.com/st0o0/njord/commit/9ba06661f00d46093d9e50e93f6b164166585a10))
+* **openspec:** add dev-setup change artifacts ([b0f600a](https://github.com/st0o0/njord/commit/b0f600a7bd0a8c4df628cda9fc4a584280490b3b))
+* **openspec:** add egress-cleanup-and-failure-routing change artifacts ([c2cefa4](https://github.com/st0o0/njord/commit/c2cefa4b718b1d2d2831d69408b70bed41b40602))
+* **openspec:** add enrichment-pipeline change artifacts ([305fd6c](https://github.com/st0o0/njord/commit/305fd6c5fe0971d339830fd21da06640e86bc871))
+* **openspec:** add m3 derived-values change artifacts ([0dda661](https://github.com/st0o0/njord/commit/0dda661616d53e773c4271c059f60c91f13b2c0f))
+* **openspec:** add m4 trend-analysis change artifacts ([5f13365](https://github.com/st0o0/njord/commit/5f133651647eb053dacdeea8ae6b4a0cfb37f415))
+* **openspec:** add m5 activity-indices change artifacts ([f87ec15](https://github.com/st0o0/njord/commit/f87ec15e1fb37262899b759b589aa1195f4361c5))
+* **openspec:** add m6 energy-management change artifacts ([66a2a5a](https://github.com/st0o0/njord/commit/66a2a5a0743d9ed5fab604582e4029f04b19f10f))
+* **openspec:** add m7 historical-learning change artifacts ([b034e05](https://github.com/st0o0/njord/commit/b034e05d7700d0e8cd25561e573e8b007eb7160a))
+* **openspec:** add project-restructure change artifacts ([100748c](https://github.com/st0o0/njord/commit/100748c04dcd929a2039a4f122a95dc68cadb4e3))
+* **openspec:** archive repo-housekeeping and ci-optimization changes ([b25d481](https://github.com/st0o0/njord/commit/b25d48194b2d7e398891a6ae80985793fc30782b))
+* **openspec:** sync specs and archive dev-setup change ([f994b91](https://github.com/st0o0/njord/commit/f994b91387edf218a902d4dd8cb097e56546b8c4))
+* **openspec:** sync specs and archive egress-cleanup-and-failure-routing change ([2ba058c](https://github.com/st0o0/njord/commit/2ba058c5648dd4c85b334180965630241b8f06ea))
+* **openspec:** sync specs and archive m3 derived-values change ([7c7f1eb](https://github.com/st0o0/njord/commit/7c7f1eb2dcde15f339b3c6490c6f7b4c349fd589))
+* **openspec:** sync specs and archive m4 trend-analysis change ([93fe95a](https://github.com/st0o0/njord/commit/93fe95a06535a9a09c447b358288645a228a62fe))
+* **openspec:** sync specs and archive m5 activity-indices change ([9e81423](https://github.com/st0o0/njord/commit/9e8142354814205be5f1a77bae609508f5182a0a))
+* **openspec:** sync specs and archive m6 energy-management change ([81efa48](https://github.com/st0o0/njord/commit/81efa4859b9fd70412d034cbd9784edadf194c7d))
+* **openspec:** sync specs and archive m7 historical-learning change ([3f8759d](https://github.com/st0o0/njord/commit/3f8759dad6df59b64221f5f94078c26012670f85))
+* **openspec:** sync specs and archive postgresql-persistence change ([257f863](https://github.com/st0o0/njord/commit/257f863ba0be055e1fa64af015a54650f30ccc14))
+* **openspec:** sync specs and archive project-restructure change ([6ff9330](https://github.com/st0o0/njord/commit/6ff93309d4ef51bc595915a8ae1ebe50bb755604))
+* **openspec:** sync specs and archive servus-integration change ([5fda43a](https://github.com/st0o0/njord/commit/5fda43a07446cb44be1319b338f9345ad8c4b220))
+* update specs for capability-driven discovery and Aspire test infra ([d764eaa](https://github.com/st0o0/njord/commit/d764eaa73aeb1517ee929f5aefe80393a329255e))
+
+
+### Refactoring
+
+* clean domain boundaries — typed daily values, move actor messages ([bc8a788](https://github.com/st0o0/njord/commit/bc8a7880d7f4749b4543f8b9c41f2e9e75f5b09a))
+* create Njord.Mqtt namespace for MQTT-specific code ([c7cf1b1](https://github.com/st0o0/njord/commit/c7cf1b15f9a9839c35311b0f5508ff8de2d7427d))
+* **egress:** introduce protocol-neutral EgressEvent and MergeHub/BroadcastHub EgressActor ([69c18e7](https://github.com/st0o0/njord/commit/69c18e78b6c44f49ca88c276955d99ecc4086e70))
+* integrate Servus.Core and Servus.Akka for modular bootstrap ([ccd8426](https://github.com/st0o0/njord/commit/ccd8426fe0d551705b89eb092b5bc505cc4e713e))
+* introduce enrichment type system with IEnrichmentFeature hierarchy ([09e2fc1](https://github.com/st0o0/njord/commit/09e2fc1ba28cf67e85c70cc6d441b815d147e12d))
+* migrate test infrastructure from Testcontainers to Aspire ([56803f6](https://github.com/st0o0/njord/commit/56803f6cb5644a93c9adcefb744a1b143e9cd178))
+* migrate ToMqttMessages from Result records to StatePayloadBuilder ([f887f37](https://github.com/st0o0/njord/commit/f887f3782086b2b26c4b3b7a5a1746e615105d69))
+* move MQTT tests to Njord.Tests.Mqtt namespace ([45abbc1](https://github.com/st0o0/njord/commit/45abbc163a2fcf705e4b877fb2290afba7a30ad3))
+* remove dead code, add failure routing and discovery toggle ([3a2a054](https://github.com/st0o0/njord/commit/3a2a054eec7b5e87352fa34485f95382ea8fdf3d))
+* replace Akka.Persistence.Sqlite with Akka.Persistence.Sql.Hosting ([2cf2e4c](https://github.com/st0o0/njord/commit/2cf2e4cf917c04bd6bb3150559234a83b31cdc70))
+* replace string-based parameter lookups with typed registry access ([eb4c6b1](https://github.com/st0o0/njord/commit/eb4c6b17d9c7d001cdcb4a2e8b9777d4e132556d))
+* restructure Domain into Weather and Analysis subnamespaces ([bfa6663](https://github.com/st0o0/njord/commit/bfa6663bd2f9842b60fe79e962e4afa83707e7b0))
+* split MqttEgressActor into focused single-responsibility actors ([d15ccd3](https://github.com/st0o0/njord/commit/d15ccd3662c07e2f9969f547051889f31efc5bdc))
+* use Servus.Core AppBuilder/AppRunner for application bootstrap ([2a8469e](https://github.com/st0o0/njord/commit/2a8469e307c4274d88accbd8126eaea9e4957237))
+
 ## [0.1.0](https://github.com/st0o0/njord/compare/v0.1.0...v0.1.0) (2026-07-12)
 
 
