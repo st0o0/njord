@@ -42,7 +42,11 @@ public sealed record ConsensusResult(IReadOnlyList<ParameterConsensus> Parameter
                 var modelValues = new List<(WeatherModel Model, double? Value)>();
                 foreach (var (key, forecast) in snapshot.Entries)
                 {
-                    if (key.Location != location) continue;
+                    if (key.Location != location)
+                    {
+                        continue;
+                    }
+
                     var point = forecast.Hourly.Points.FirstOrDefault(p =>
                         Math.Abs((p.ValidAt - targetTime).TotalMinutes) < 30);
                     modelValues.Add((key.Model, point?.Get(parameter)));

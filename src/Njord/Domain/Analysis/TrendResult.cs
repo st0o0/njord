@@ -120,7 +120,11 @@ public sealed record TrendResult(
         var values = new List<double?>();
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
+
             var point = forecast.Hourly.Points.FirstOrDefault(p =>
                 Math.Abs((p.ValidAt - targetTime).TotalMinutes) < 30);
             values.Add(point?.Get(param));
@@ -135,7 +139,11 @@ public sealed record TrendResult(
         var values = new List<double?>();
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
+
             var point = forecast.Hourly.Points.FirstOrDefault(p =>
                 Math.Abs((p.ValidAt - targetTime).TotalMinutes) < 30);
             values.Add(point?.Get(param));
@@ -150,7 +158,11 @@ public sealed record TrendResult(
         var values = new List<double?>();
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
+
             var point = forecast.Hourly.Points.FirstOrDefault(p =>
                 Math.Abs((p.ValidAt - targetTime).TotalMinutes) < 30);
             values.Add(point?.Get(param));

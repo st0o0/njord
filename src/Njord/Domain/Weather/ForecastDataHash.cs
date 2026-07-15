@@ -38,7 +38,9 @@ public static class ForecastDataHash
                 hash.Add(param.ApiName);
                 hash.Add(value.HasValue);
                 if (value.HasValue)
+                {
                     hash.Add(value.Value);
+                }
             }
 
             foreach (var (param, value) in point.MetaValues.OrderBy(kv => kv.Key.ApiName))
@@ -46,7 +48,9 @@ public static class ForecastDataHash
                 hash.Add(param.ApiName);
                 hash.Add(value is not null);
                 if (value is not null)
+                {
                     hash.Add(value);
+                }
             }
         }
 

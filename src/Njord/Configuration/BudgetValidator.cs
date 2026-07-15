@@ -21,7 +21,9 @@ public static class BudgetValidator
 
         var warnings = new List<string>();
         if (usagePercent > 80 && usagePercent <= 100)
+        {
             warnings.Add($"Projected API usage is {usagePercent:F0}% of monthly budget");
+        }
 
         return new BudgetValidation(
             ProjectedMonthlyCalls: projectedMonthly,

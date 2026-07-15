@@ -155,7 +155,7 @@ public sealed class DiscoveryActorSpec : IDisposable
         Assert.All(messages, m => Assert.True(m.Retain));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 10000)]
     public async Task Timeout_triggers_partial_discovery()
     {
         var registry = ActorRegistry.For(_system);
@@ -181,7 +181,7 @@ public sealed class DiscoveryActorSpec : IDisposable
         {
             var messages = await probe.Ask<List<MqttMessage>>(new GetPublishedMessages(), TimeSpan.FromSeconds(1));
             return messages.Count > 0;
-        }, timeout: TimeSpan.FromSeconds(15));
+        }, timeout: TimeSpan.FromSeconds(5));
 
         var messages = await probe.Ask<List<MqttMessage>>(new GetPublishedMessages(), TimeSpan.FromSeconds(2));
         Assert.NotEmpty(messages);

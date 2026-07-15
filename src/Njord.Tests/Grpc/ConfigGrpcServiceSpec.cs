@@ -16,7 +16,9 @@ public sealed class ConfigGrpcServiceSpec : IAsyncDisposable
     {
         await _system.Terminate();
         if (Directory.Exists(_tempDir))
+        {
             Directory.Delete(_tempDir, recursive: true);
+        }
     }
 
     private sealed class MutableOptionsMonitor(NjordOptions value) : IOptionsMonitor<NjordOptions>

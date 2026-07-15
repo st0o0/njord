@@ -101,7 +101,11 @@ public static class ModelCoverageRegistry
     public static int EffectiveForecastDays(string modelId, int requestedDays)
     {
         var coverage = Get(modelId);
-        if (coverage?.MaxForecastHours is not { } maxHours) return requestedDays;
+        if (coverage?.MaxForecastHours is not { } maxHours)
+        {
+            return requestedDays;
+        }
+
         var maxDays = (int)Math.Ceiling(maxHours / 24.0);
         return Math.Min(requestedDays, maxDays);
     }
@@ -109,8 +113,16 @@ public static class ModelCoverageRegistry
     public static bool IsPlausible(string modelId, double latitude, double longitude)
     {
         var coverage = Get(modelId);
-        if (coverage is null) return true;
-        if (coverage.Tier == CoverageTier.Global) return true;
+        if (coverage is null)
+        {
+            return true;
+        }
+
+        if (coverage.Tier == CoverageTier.Global)
+        {
+            return true;
+        }
+
         return coverage.Bounds?.Contains(latitude, longitude) ?? true;
     }
 }

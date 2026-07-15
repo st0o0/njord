@@ -9,7 +9,10 @@ public static class TrendAnalyzer
     public static (string Direction, double Delta)? TrendDirection(
         double? prevMedian, double? currMedian, double threshold)
     {
-        if (prevMedian is not { } prev || currMedian is not { } curr) return null;
+        if (prevMedian is not { } prev || currMedian is not { } curr)
+        {
+            return null;
+        }
 
         var delta = curr - prev;
         var direction = delta > threshold ? "rising"
@@ -20,11 +23,17 @@ public static class TrendAnalyzer
 
     public static WeatherChangeResult? WeatherChange(int? prevCode, int? currCode)
     {
-        if (prevCode is not { } prev || currCode is not { } curr) return null;
+        if (prevCode is not { } prev || currCode is not { } curr)
+        {
+            return null;
+        }
 
         var fromCat = WmoCategory(prev);
         var toCat = WmoCategory(curr);
-        if (fromCat == toCat) return null;
+        if (fromCat == toCat)
+        {
+            return null;
+        }
 
         return new WeatherChangeResult(fromCat, toCat, $"{fromCat} → {toCat}");
     }
@@ -37,9 +46,16 @@ public static class TrendAnalyzer
 
         foreach (var point in series.Points)
         {
-            if (point.ValidAt < now || point.ValidAt > cutoff) continue;
+            if (point.ValidAt < now || point.ValidAt > cutoff)
+            {
+                continue;
+            }
+
             var val = point.Get(precipParam);
-            if (val is not { } v || v <= 0) continue;
+            if (val is not { } v || v <= 0)
+            {
+                continue;
+            }
 
             var hours = (int)Math.Round((point.ValidAt - now).TotalHours);
             first ??= hours;
@@ -59,9 +75,16 @@ public static class TrendAnalyzer
 
         foreach (var point in series.Points)
         {
-            if (point.ValidAt < now || point.ValidAt > cutoff) continue;
+            if (point.ValidAt < now || point.ValidAt > cutoff)
+            {
+                continue;
+            }
+
             var val = point.Get(tempParam);
-            if (val is not { } v) continue;
+            if (val is not { } v)
+            {
+                continue;
+            }
 
             count++;
             var hours = (int)Math.Round((point.ValidAt - now).TotalHours);
@@ -84,8 +107,15 @@ public static class TrendAnalyzer
     public static (string Label, double Ratio)? ConsensusStability(
         double? prevIqr, double? currIqr)
     {
-        if (prevIqr is not { } prev || currIqr is not { } curr) return null;
-        if (prev == 0.0) return null;
+        if (prevIqr is not { } prev || currIqr is not { } curr)
+        {
+            return null;
+        }
+
+        if (prev == 0.0)
+        {
+            return null;
+        }
 
         var ratio = Math.Round(curr / prev, 2);
         var label = ratio < 0.8 ? "converging"
@@ -102,13 +132,22 @@ public static class TrendAnalyzer
 
         foreach (var (h, s) in spreads)
         {
-            if (s is not { } val) continue;
+            if (s is not { } val)
+            {
+                continue;
+            }
+
             points.Add((h, val));
             if (reliableHours is null && val > spreadThreshold)
+            {
                 reliableHours = h;
+            }
         }
 
-        if (points.Count < 2) return null;
+        if (points.Count < 2)
+        {
+            return null;
+        }
 
         var slope = LinearRegressionSlope(points);
         return (Math.Round(slope, 4), reliableHours);

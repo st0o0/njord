@@ -66,7 +66,9 @@ public sealed record HistoryResult(
                     var median = ConsensusComputer.ComputeMedian(values);
 
                     if (median.HasValue)
+                    {
                         anomaly = HistoryAnalyzer.AnomalyDetection(history, tempApiName, median.Value, now.Hour);
+                    }
                 }
             }
         }
@@ -75,16 +77,26 @@ public sealed record HistoryResult(
         var modelValues = new List<(WeatherModel, double?)>();
         foreach (var (key, forecast) in current.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
+
             var tempParam = parameters.Get(ParameterRegistry.Temperature2m);
-            if (tempParam is null) continue;
+            if (tempParam is null)
+            {
+                continue;
+            }
+
             var pt = forecast.Hourly.Points
                 .OrderBy(p => Math.Abs((p.ValidAt - now).TotalMinutes))
                 .FirstOrDefault();
             modelValues.Add((key.Model, pt?.Get(tempParam)));
         }
         if (modelValues.Count > 0)
+        {
             weightedTemp = HistoryAnalyzer.WeightedConsensus(modelValues, weights);
+        }
 
         return new HistoryResult(location, mae7d, mae30d, weights, drift, seasonalBest, anomaly, weightedTemp);
     }

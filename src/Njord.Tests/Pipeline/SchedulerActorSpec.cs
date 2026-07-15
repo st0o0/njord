@@ -397,7 +397,10 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
                 case FetchFailureReason.RateLimited:
                     var rateLimitState = state.WithTransientFailure(now);
                     if (rateLimitState.NextPollUtc < now + RateLimitMinDelay)
+                    {
                         rateLimitState = rateLimitState with { NextPollUtc = now + RateLimitMinDelay };
+                    }
+
                     _states[key] = rateLimitState;
                     ScheduleNext(msg.Location, msg.ModelId);
                     break;

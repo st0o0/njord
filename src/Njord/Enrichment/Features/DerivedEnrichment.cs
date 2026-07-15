@@ -8,7 +8,7 @@ using Njord.Mqtt;
 
 namespace Njord.Enrichment.Features;
 
-internal sealed class DerivedEnrichment : IStatelessEnrichment<DerivedResult>
+internal sealed class DerivedEnrichment : IStatelessEnrichment
 {
     private readonly ResolvedParameterSet _parameters;
     private readonly IReadOnlyList<int> _horizons;
@@ -86,9 +86,14 @@ internal sealed class DerivedEnrichment : IStatelessEnrichment<DerivedResult>
                 };
 
                 if (unit is not null)
+                {
                     component["unit_of_measurement"] = unit;
+                }
+
                 if (deviceClass is not null)
+                {
                     component["device_class"] = deviceClass;
+                }
 
                 components[$"{key}_h{hours}"] = component;
             }

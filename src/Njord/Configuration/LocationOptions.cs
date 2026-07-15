@@ -10,19 +10,27 @@ public sealed class LocationOptions
     public IReadOnlyList<string> ResolveModels(IList<string> globalModels)
     {
         if (Models is null or { Count: 0 })
+        {
             return [.. globalModels];
+        }
 
         var merged = new List<string>(globalModels.Count + Models.Count);
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var m in globalModels)
         {
-            if (seen.Add(m)) merged.Add(m);
+            if (seen.Add(m))
+            {
+                merged.Add(m);
+            }
         }
 
         foreach (var m in Models)
         {
-            if (seen.Add(m)) merged.Add(m);
+            if (seen.Add(m))
+            {
+                merged.Add(m);
+            }
         }
 
         return merged;

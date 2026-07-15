@@ -69,7 +69,10 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
 
     private void TryTransitionToReady()
     {
-        if (_sourceRef is null || _egressSinkRef is null) return;
+        if (_sourceRef is null || _egressSinkRef is null)
+        {
+            return;
+        }
 
         MaterializeEnrichmentGraph();
         _logger.LogInformation("Enrichment pipeline materialized — ready");
@@ -127,7 +130,10 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
 
         foreach (var feature in _features)
         {
-            if (!feature.Enabled) continue;
+            if (!feature.Enabled)
+            {
+                continue;
+            }
 
             switch (feature)
             {
@@ -135,35 +141,33 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
                     actorFeature.Materialize(snapshotHubSource, egressMergeHubSink, mat, Context);
                     break;
 
-                case IStatefulEnrichment<Domain.Analysis.TrendResult> stateful:
+                case IStatefulEnrichment stateful:
                     MaterializeStateful(stateful, snapshotHubSource, egressMergeHubSink, mat, locations);
                     break;
 
-                default:
-                    MaterializeStateless(feature, snapshotHubSource, egressMergeHubSink, mat, locations);
+                case IStatelessEnrichment stateless:
+                    MaterializeStateless(stateless, snapshotHubSource, egressMergeHubSink, mat, locations);
                     break;
             }
         }
     }
 
     private static void MaterializeStateless(
-        IEnrichmentFeature feature,
+        IStatelessEnrichment feature,
         Source<ModelSnapshot, NotUsed> source,
         Sink<EgressEvent, NotUsed> sink,
         IMaterializer mat,
         IReadOnlyList<string> locations)
     {
-        var stateless = (dynamic)feature;
-
         source
-            .SelectMany(snapshot => (IEnumerable<EgressEvent>)stateless.Compute(snapshot, locations))
+            .SelectMany(snapshot => feature.Compute(snapshot, locations))
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
             .RunWith(sink, mat);
     }
 
-    private static void MaterializeStateful<TResult>(
-        IStatefulEnrichment<TResult> feature,
+    private static void MaterializeStateful(
+        IStatefulEnrichment feature,
         Source<ModelSnapshot, NotUsed> source,
         Sink<EgressEvent, NotUsed> sink,
         IMaterializer mat,

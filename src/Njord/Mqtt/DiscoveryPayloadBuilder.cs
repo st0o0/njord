@@ -27,7 +27,9 @@ public static class DiscoveryPayloadBuilder
         foreach (var parameter in parameters.Hourly)
         {
             if (!supportedParameters.Contains(parameter))
+            {
                 continue;
+            }
 
             foreach (var hours in applicableHorizons)
             {
@@ -49,7 +51,9 @@ public static class DiscoveryPayloadBuilder
         foreach (var parameter in parameters.Daily)
         {
             if (!supportedParameters.Contains(parameter))
+            {
                 continue;
+            }
 
             foreach (var d in applicableDayOffsets)
             {
@@ -182,26 +186,7 @@ public static class DiscoveryPayloadBuilder
             components[segment.Replace('-', '_')] = component;
         }
 
-        var payload = new JsonObject
-        {
-            ["dev"] = new JsonObject
-            {
-                ["ids"] = new JsonArray(deviceId),
-                ["name"] = $"njord {location} alerts",
-                ["mf"] = "njord",
-                ["mdl"] = "alerts",
-                ["sw"] = version,
-            },
-            ["o"] = new JsonObject
-            {
-                ["name"] = "njord",
-                ["sw"] = version,
-            },
-            ["qos"] = 1,
-            ["cmps"] = components,
-        };
-
-        return payload.ToJsonString();
+        return BuildDeviceEnvelope(deviceId, location, "alerts", version, components);
     }
 
     public static string BuildHistory(
@@ -214,6 +199,7 @@ public static class DiscoveryPayloadBuilder
         var deviceId = TopicScheme.EnrichmentDeviceId(location, "history");
         var availabilityTopic = TopicScheme.AvailabilityTopic(mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * pollInterval.TotalSeconds);
+        var historyTopic = TopicScheme.EnrichmentTopic(mqtt.BaseTopic, location, "history");
 
         var components = new JsonObject();
 
@@ -221,16 +207,17 @@ public static class DiscoveryPayloadBuilder
         {
             var slug = modelId.Replace('-', '_').ToLowerInvariant();
 
-            foreach (var prefix in new[] { ("mae_7d", "MAE 7d"), ("mae_30d", "MAE 30d"), ("weight", "weight"), ("drift", "drift") })
+            foreach (var (key, label) in new[] { ("mae_7d", "MAE 7d"), ("mae_30d", "MAE 30d"), ("weight", "weight"), ("drift", "drift") })
             {
-                var key = $"{prefix.Item1}_{slug}";
-                components[key] = new JsonObject
+                var compKey = $"{key}_{slug}";
+                components[compKey] = new JsonObject
                 {
                     ["p"] = "sensor",
-                    ["unique_id"] = $"{deviceId}_{key}",
-                    ["name"] = $"{prefix.Item2} {modelId}",
+                    ["unique_id"] = $"{deviceId}_{compKey}",
+                    ["name"] = $"{label} {modelId}",
+                    ["state_topic"] = historyTopic,
                     ["expire_after"] = expireAfterSeconds,
-                    ["value_template"] = $"{{{{ value_json.{key} }}}}",
+                    ["value_template"] = $"{{{{ value_json.{compKey} }}}}",
                     ["availability"] = new JsonArray(
                         new JsonObject { ["topic"] = availabilityTopic }),
                     ["availability_mode"] = "all",
@@ -243,6 +230,7 @@ public static class DiscoveryPayloadBuilder
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_seasonal_best",
             ["name"] = "seasonal best model",
+            ["state_topic"] = historyTopic,
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{{ value_json.seasonal_best }}",
             ["availability"] = new JsonArray(
@@ -255,6 +243,7 @@ public static class DiscoveryPayloadBuilder
             ["p"] = "binary_sensor",
             ["unique_id"] = $"{deviceId}_anomaly",
             ["name"] = "anomaly",
+            ["state_topic"] = historyTopic,
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{% if value_json.anomaly == true %}ON{% else %}OFF{% endif %}",
             ["availability"] = new JsonArray(
@@ -267,6 +256,7 @@ public static class DiscoveryPayloadBuilder
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_anomaly_deviation",
             ["name"] = "anomaly deviation",
+            ["state_topic"] = historyTopic,
             ["unit_of_measurement"] = "σ",
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{{ value_json.anomaly_deviation }}",
@@ -280,6 +270,7 @@ public static class DiscoveryPayloadBuilder
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_weighted_temperature",
             ["name"] = "weighted temperature",
+            ["state_topic"] = historyTopic,
             ["unit_of_measurement"] = "°C",
             ["device_class"] = "temperature",
             ["expire_after"] = expireAfterSeconds,
@@ -289,26 +280,7 @@ public static class DiscoveryPayloadBuilder
             ["availability_mode"] = "all",
         };
 
-        var payload = new JsonObject
-        {
-            ["dev"] = new JsonObject
-            {
-                ["ids"] = new JsonArray(deviceId),
-                ["name"] = $"njord {location} history",
-                ["mf"] = "njord",
-                ["mdl"] = "history",
-                ["sw"] = version,
-            },
-            ["o"] = new JsonObject
-            {
-                ["name"] = "njord",
-                ["sw"] = version,
-            },
-            ["qos"] = 1,
-            ["cmps"] = components,
-        };
-
-        return payload.ToJsonString();
+        return BuildDeviceEnvelope(deviceId, location, "history", version, components);
     }
 
     public static string BuildEnergy(
@@ -336,6 +308,7 @@ public static class DiscoveryPayloadBuilder
                 ["p"] = "sensor",
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = key.Replace('_', ' '),
+                ["state_topic"] = energyTopic,
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",
                 ["availability"] = new JsonArray(
@@ -349,6 +322,7 @@ public static class DiscoveryPayloadBuilder
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_battery_strategy",
             ["name"] = "battery strategy",
+            ["state_topic"] = energyTopic,
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{{ value_json.battery_strategy }}",
             ["availability"] = new JsonArray(
@@ -361,6 +335,7 @@ public static class DiscoveryPayloadBuilder
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_cop_optimal",
             ["name"] = "COP optimal hours",
+            ["state_topic"] = energyTopic,
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{{ value_json.cop_optimal | length }}",
             ["json_attributes_topic"] = energyTopic,
@@ -370,26 +345,7 @@ public static class DiscoveryPayloadBuilder
             ["availability_mode"] = "all",
         };
 
-        var payload = new JsonObject
-        {
-            ["dev"] = new JsonObject
-            {
-                ["ids"] = new JsonArray(deviceId),
-                ["name"] = $"njord {location} energy",
-                ["mf"] = "njord",
-                ["mdl"] = "energy",
-                ["sw"] = version,
-            },
-            ["o"] = new JsonObject
-            {
-                ["name"] = "njord",
-                ["sw"] = version,
-            },
-            ["qos"] = 1,
-            ["cmps"] = components,
-        };
-
-        return payload.ToJsonString();
+        return BuildDeviceEnvelope(deviceId, location, "energy", version, components);
     }
 
     public static string BuildIndices(
@@ -418,6 +374,7 @@ public static class DiscoveryPayloadBuilder
                 ["p"] = "sensor",
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = key.Replace('_', ' '),
+                ["state_topic"] = indexTopic,
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",
                 ["availability"] = new JsonArray(
@@ -434,6 +391,7 @@ public static class DiscoveryPayloadBuilder
                 ["p"] = "sensor",
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = name,
+                ["state_topic"] = indexTopic,
                 ["unit_of_measurement"] = "°Cd",
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",
@@ -457,6 +415,7 @@ public static class DiscoveryPayloadBuilder
                 ["p"] = "sensor",
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = name,
+                ["state_topic"] = indexTopic,
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",
                 ["availability"] = new JsonArray(
@@ -464,7 +423,10 @@ public static class DiscoveryPayloadBuilder
                 ["availability_mode"] = "all",
             };
             if (!string.IsNullOrEmpty(unit))
+            {
                 comp["unit_of_measurement"] = unit;
+            }
+
             components[key] = comp;
         }
 
@@ -473,6 +435,7 @@ public static class DiscoveryPayloadBuilder
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_vpd_category",
             ["name"] = "VPD category",
+            ["state_topic"] = indexTopic,
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{{ value_json.vpd_category }}",
             ["availability"] = new JsonArray(
@@ -480,26 +443,7 @@ public static class DiscoveryPayloadBuilder
             ["availability_mode"] = "all",
         };
 
-        var payload = new JsonObject
-        {
-            ["dev"] = new JsonObject
-            {
-                ["ids"] = new JsonArray(deviceId),
-                ["name"] = $"njord {location} indices",
-                ["mf"] = "njord",
-                ["mdl"] = "indices",
-                ["sw"] = version,
-            },
-            ["o"] = new JsonObject
-            {
-                ["name"] = "njord",
-                ["sw"] = version,
-            },
-            ["qos"] = 1,
-            ["cmps"] = components,
-        };
-
-        return payload.ToJsonString();
+        return BuildDeviceEnvelope(deviceId, location, "indices", version, components);
     }
 
     public static string BuildTrends(
@@ -532,6 +476,7 @@ public static class DiscoveryPayloadBuilder
                 ["p"] = "sensor",
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = name,
+                ["state_topic"] = trendTopic,
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",
                 ["availability"] = new JsonArray(
@@ -557,6 +502,7 @@ public static class DiscoveryPayloadBuilder
                 ["p"] = "sensor",
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = name,
+                ["state_topic"] = trendTopic,
                 ["unit_of_measurement"] = unit,
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",
@@ -566,26 +512,7 @@ public static class DiscoveryPayloadBuilder
             };
         }
 
-        var payload = new JsonObject
-        {
-            ["dev"] = new JsonObject
-            {
-                ["ids"] = new JsonArray(deviceId),
-                ["name"] = $"njord {location} trends",
-                ["mf"] = "njord",
-                ["mdl"] = "trends",
-                ["sw"] = version,
-            },
-            ["o"] = new JsonObject
-            {
-                ["name"] = "njord",
-                ["sw"] = version,
-            },
-            ["qos"] = 1,
-            ["cmps"] = components,
-        };
-
-        return payload.ToJsonString();
+        return BuildDeviceEnvelope(deviceId, location, "trends", version, components);
     }
 
     public static string BuildDerived(
@@ -621,6 +548,7 @@ public static class DiscoveryPayloadBuilder
                     ["p"] = platform,
                     ["unique_id"] = uniqueId,
                     ["name"] = $"{name} +{hours}h",
+                    ["state_topic"] = horizonTopic,
                     ["expire_after"] = expireAfterSeconds,
                     ["value_template"] = $"{{{{ value_json.{key} }}}}",
                     ["availability"] = new JsonArray(
@@ -634,9 +562,14 @@ public static class DiscoveryPayloadBuilder
                 };
 
                 if (unit is not null)
+                {
                     component["unit_of_measurement"] = unit;
+                }
+
                 if (deviceClass is not null)
+                {
                     component["device_class"] = deviceClass;
+                }
 
                 components[$"{key}_h{hours}"] = component;
             }
@@ -650,6 +583,7 @@ public static class DiscoveryPayloadBuilder
             ["p"] = "sensor",
             ["unique_id"] = amplitudeId,
             ["name"] = "diurnal amplitude",
+            ["state_topic"] = metaTopic,
             ["unit_of_measurement"] = "°C",
             ["device_class"] = "temperature",
             ["expire_after"] = expireAfterSeconds,
@@ -665,6 +599,7 @@ public static class DiscoveryPayloadBuilder
             ["p"] = "sensor",
             ["unique_id"] = sunshineId,
             ["name"] = "sunshine",
+            ["state_topic"] = metaTopic,
             ["unit_of_measurement"] = "%",
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{{ value_json.sunshine_pct }}",
@@ -679,6 +614,7 @@ public static class DiscoveryPayloadBuilder
             ["p"] = "binary_sensor",
             ["unique_id"] = inversionId,
             ["name"] = "inversion",
+            ["state_topic"] = metaTopic,
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{% if value_json.inversion == true %}ON{% else %}OFF{% endif %}",
             ["availability"] = new JsonArray(
@@ -686,26 +622,7 @@ public static class DiscoveryPayloadBuilder
             ["availability_mode"] = "all",
         };
 
-        var payload = new JsonObject
-        {
-            ["dev"] = new JsonObject
-            {
-                ["ids"] = new JsonArray(deviceId),
-                ["name"] = $"njord {location} derived",
-                ["mf"] = "njord",
-                ["mdl"] = "derived",
-                ["sw"] = version,
-            },
-            ["o"] = new JsonObject
-            {
-                ["name"] = "njord",
-                ["sw"] = version,
-            },
-            ["qos"] = 1,
-            ["cmps"] = components,
-        };
-
-        return payload.ToJsonString();
+        return BuildDeviceEnvelope(deviceId, location, "derived", version, components);
     }
 
     public static string BuildDeviceEnvelope(

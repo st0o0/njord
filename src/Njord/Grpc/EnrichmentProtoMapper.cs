@@ -67,7 +67,11 @@ public static class EnrichmentProtoMapper
 
         foreach (var (param, trend) in result.ParameterTrends)
         {
-            if (trend is null) continue;
+            if (trend is null)
+            {
+                continue;
+            }
+
             update.ParameterTrends.Add(new ProtoParameterTrend
             {
                 Parameter = param,
@@ -77,19 +81,29 @@ public static class EnrichmentProtoMapper
         }
 
         if (result.WeatherChange is { } wc)
+        {
             update.WeatherChangeDescription = wc.Description;
+        }
 
         if (result.PrecipTiming.StartsInHours is { } precipStart)
+        {
             update.PrecipStartsInHours = precipStart;
+        }
 
         if (result.PrecipTiming.EndsInHours is { } precipEnd)
+        {
             update.PrecipEndsInHours = precipEnd;
+        }
 
         if (result.ExtremaTiming.MaxInHours is { } maxH)
+        {
             update.TempMaxInHours = maxH;
+        }
 
         if (result.ExtremaTiming.MinInHours is { } minH)
+        {
             update.TempMinInHours = minH;
+        }
 
         if (result.Stability is { } stability)
         {
@@ -101,7 +115,9 @@ public static class EnrichmentProtoMapper
         {
             update.DecayRate = decay.DecayRate;
             if (decay.ReliableHours is { } rh)
+            {
                 update.ReliableHours = rh;
+            }
         }
 
         return update;
@@ -118,7 +134,9 @@ public static class EnrichmentProtoMapper
         };
 
         if (result.CopEstimate is { } cop)
+        {
             update.CopEstimate = cop;
+        }
 
         foreach (var (hoursFromNow, copValue) in result.CopOptimal)
         {
@@ -141,24 +159,44 @@ public static class EnrichmentProtoMapper
             var proto = new ProtoHorizonDerived { Horizon = horizonKey };
 
             if (derived.Beaufort is { } b)
+            {
                 proto.Beaufort = b;
+            }
+
             if (derived.WindChill is { } wc)
+            {
                 proto.WindChill = wc;
+            }
+
             if (derived.DewPointComfort is { } dpc)
+            {
                 proto.DewpointComfort = dpc;
+            }
+
             if (derived.WmoDescription is { } wmo)
+            {
                 proto.WmoDescription = wmo;
+            }
 
             update.ByHorizon.Add(proto);
         }
 
         var scalars = new ProtoScalarDerived();
         if (result.Scalars.DiurnalAmplitude is { } da)
+        {
             scalars.DiurnalAmplitude = da;
+        }
+
         if (result.Scalars.SunshinePct is { } sp)
+        {
             scalars.SunshinePct = sp;
+        }
+
         if (result.Scalars.Inversion is { } inv)
+        {
             scalars.Inversion = inv;
+        }
+
         update.Scalars = scalars;
 
         return update;
@@ -178,17 +216,27 @@ public static class EnrichmentProtoMapper
             };
 
             if (result.Mae7d.TryGetValue(model, out var mae7) && mae7.HasValue)
+            {
                 metrics.Mae7D = mae7.Value;
+            }
+
             if (result.Mae30d.TryGetValue(model, out var mae30) && mae30.HasValue)
+            {
                 metrics.Mae30D = mae30.Value;
+            }
+
             if (result.Drift.TryGetValue(model, out var drift) && drift.HasValue)
+            {
                 metrics.Drift = drift.Value;
+            }
 
             update.Models.Add(metrics);
         }
 
         if (result.SeasonalBest is { } best)
+        {
             update.SeasonalBest = best.Id;
+        }
 
         if (result.Anomaly is { } anomaly)
         {
@@ -197,7 +245,9 @@ public static class EnrichmentProtoMapper
         }
 
         if (result.WeightedTemperature is { } wt)
+        {
             update.WeightedTemperature = wt;
+        }
 
         return update;
     }
@@ -223,15 +273,29 @@ public static class EnrichmentProtoMapper
                 };
 
                 if (horizon.Median is { } med)
+                {
                     protoHorizon.Median = med;
+                }
+
                 if (horizon.TrimmedMean is { } tm)
+                {
                     protoHorizon.TrimmedMean = tm;
+                }
+
                 if (horizon.Spread is { } s)
+                {
                     protoHorizon.Spread = s;
+                }
+
                 if (horizon.Iqr is { } iqr)
+                {
                     protoHorizon.Iqr = iqr;
+                }
+
                 if (horizon.Agreement is { } ag)
+                {
                     protoHorizon.Agreement = ag;
+                }
 
                 proto.ByHorizon.Add(protoHorizon);
             }

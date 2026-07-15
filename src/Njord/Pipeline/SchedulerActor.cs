@@ -155,7 +155,10 @@ public sealed class SchedulerActor : ReceivePersistentActor
             case FetchFailureReason.RateLimited:
                 var rateLimitState = state.WithTransientFailure(now);
                 if (rateLimitState.NextPollUtc < now + RateLimitMinDelay)
+                {
                     rateLimitState = rateLimitState with { NextPollUtc = now + RateLimitMinDelay };
+                }
+
                 _states[key] = rateLimitState;
                 _logger.LogWarning("Fetch rate-limited for {Location}/{Model} - next poll at {Next}",
                     msg.Location, msg.ModelId, rateLimitState.NextPollUtc);

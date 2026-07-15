@@ -117,7 +117,10 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
 
     private void OnCapabilityTimeout()
     {
-        if (_initialDiscoveryPublished) return;
+        if (_initialDiscoveryPublished)
+        {
+            return;
+        }
 
         _logger.LogWarning(
             "Capability timeout — publishing discovery for {Count}/{Expected} models",
@@ -157,7 +160,6 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
 
     private void PublishDiscovery()
     {
-        var count = 0;
         var ctx = new DiscoveryContext(_options.Mqtt, _options.PollInterval, Version);
 
         foreach (var location in _options.Locations)
@@ -166,21 +168,24 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
             {
                 var key = (location.Name, modelId);
                 if (!_capabilities.TryGetValue(key, out var cap))
+                {
                     continue;
+                }
 
                 PublishDiscoveryForModel(cap);
-                count++;
             }
 
             foreach (var feature in _features)
             {
-                if (!feature.Enabled) continue;
+                if (!feature.Enabled)
+                {
+                    continue;
+                }
 
                 var deviceId = feature.DeviceId(location.Name);
                 var topic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, deviceId);
                 var payload = feature.BuildDiscoveryPayload(ctx, location.Name);
                 _queue?.OfferAsync(new MqttMessage(topic, payload, true));
-                count++;
             }
         }
 

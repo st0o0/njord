@@ -3,7 +3,7 @@ using Njord.Egress;
 
 namespace Njord.Enrichment;
 
-public interface IStatefulEnrichment<TResult> : IEnrichmentFeature
+public interface IStatefulEnrichment : IEnrichmentFeature
 {
     IEnumerable<EgressEvent> Compute(ModelSnapshot snapshot, ModelSnapshot? previous, IReadOnlyList<string> locations);
 }

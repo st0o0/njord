@@ -1,3 +1,4 @@
+using Akka.Event;
 using Akka.Persistence;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
@@ -39,13 +40,17 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
         Command<RecordSnapshot>(OnRecordSnapshot);
         Command<QueryHistory>(_ => Sender.Tell(new HistoryResponse(_history), Self));
         Command<SaveSnapshotSuccess>(_ => { });
-        Command<SaveSnapshotFailure>(_ => { });
+        Command<SaveSnapshotFailure>(fail =>
+        Context.GetLogger().Warning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
     }
 
     private void OnRecover(ForecastRecord evt)
     {
         var cutoff = _timeProvider.GetUtcNow().AddDays(-_options.RetentionDays);
-        if (evt.Timestamp < cutoff) return;
+        if (evt.Timestamp < cutoff)
+        {
+            return;
+        }
 
         _history.Add(evt);
     }

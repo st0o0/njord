@@ -23,8 +23,15 @@ public static class EnergyForecaster
 
     public static double? CopEstimate(double? outdoorTemp, double flowTemp = 35, double carnotEfficiency = 0.45)
     {
-        if (outdoorTemp is not { } t) return null;
-        if (t >= flowTemp) return null;
+        if (outdoorTemp is not { } t)
+        {
+            return null;
+        }
+
+        if (t >= flowTemp)
+        {
+            return null;
+        }
 
         var tHotK = flowTemp + KelvinOffset;
         var tColdK = t + KelvinOffset;
@@ -40,10 +47,17 @@ public static class EnergyForecaster
 
         foreach (var point in series.Points)
         {
-            if (point.ValidAt < now || point.ValidAt > cutoff) continue;
+            if (point.ValidAt < now || point.ValidAt > cutoff)
+            {
+                continue;
+            }
+
             var temp = point.Get(tempParam);
             var cop = CopEstimate(temp, flowTemp, carnotEfficiency);
-            if (cop is not { } c) continue;
+            if (cop is not { } c)
+            {
+                continue;
+            }
 
             var hours = (int)Math.Round((point.ValidAt - now).TotalHours);
             candidates.Add((hours, c));
@@ -66,8 +80,16 @@ public static class EnergyForecaster
     public static string BatteryStrategy(int solarYield, double? isDay)
     {
         var isDayTime = isDay is 1.0;
-        if (solarYield > 60 && isDayTime) return "charge";
-        if (!isDayTime || solarYield < 20) return "discharge";
+        if (solarYield > 60 && isDayTime)
+        {
+            return "charge";
+        }
+
+        if (!isDayTime || solarYield < 20)
+        {
+            return "discharge";
+        }
+
         return "hold";
     }
 
@@ -80,10 +102,16 @@ public static class EnergyForecaster
 
         foreach (var point in series.Points)
         {
-            if (point.ValidAt < now || point.ValidAt > searchEnd) continue;
+            if (point.ValidAt < now || point.ValidAt > searchEnd)
+            {
+                continue;
+            }
 
             var hour = point.ValidAt.Hour;
-            if (hour is >= 6 and < 22) continue;
+            if (hour is >= 6 and < 22)
+            {
+                continue;
+            }
 
             var temp = point.Get(tempParam);
             var humidity = point.Get(humidityParam);
@@ -91,7 +119,10 @@ public static class EnergyForecaster
             var rainProb = point.Get(rainProbParam);
 
             var score = IndexScorer.Ventilation(temp, indoorTemp, humidity, wind, rainProb);
-            if (score > bestScore) bestScore = score;
+            if (score > bestScore)
+            {
+                bestScore = score;
+            }
         }
 
         return bestScore;

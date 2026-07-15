@@ -46,8 +46,10 @@ public sealed class ForecastGrpcService(
             new Grpc.GetForecast(request.Location, request.Model), AskTimeout);
 
         if (result.Forecast is null)
+        {
             throw new RpcException(new GrpcStatus(StatusCode.NotFound,
                 $"No forecast data available yet for '{request.Location}/{request.Model}'"));
+        }
 
         return MapForecastResponse(result.Forecast);
     }
@@ -91,7 +93,10 @@ public sealed class ForecastGrpcService(
         {
             var evt = EnrichmentProtoMapper.MapToEvent(
                 request.Location, typeName, resultObj, DateTimeOffset.UtcNow);
-            if (evt is null) continue;
+            if (evt is null)
+            {
+                continue;
+            }
 
             switch (evt.PayloadCase)
             {
@@ -128,7 +133,10 @@ public sealed class ForecastGrpcService(
                 var evt = EnrichmentProtoMapper.MapToEvent(
                     update.Location, update.TypeName, update.Result, DateTimeOffset.UtcNow);
                 if (evt is not null)
+                {
                     await responseStream.WriteAsync(evt);
+                }
+
                 return evt;
             })
             .RunWith(Sink.Ignore<EnrichmentEvent?>(), mat)
@@ -146,8 +154,10 @@ public sealed class ForecastGrpcService(
     {
         var models = location.ResolveModels(_options.Models);
         if (!models.Contains(modelId, StringComparer.OrdinalIgnoreCase))
+        {
             throw new RpcException(new GrpcStatus(StatusCode.NotFound,
                 $"Model '{modelId}' not configured for '{location.Name}'"));
+        }
     }
 
     private static GetForecastResponse MapForecastResponse(ModelForecast forecast)
@@ -189,13 +199,25 @@ public sealed class ForecastGrpcService(
             SetOptional(point, ParameterRegistry.WindSpeed10m, v => hourly.WindSpeed = v);
             SetOptional(point, ParameterRegistry.WindGusts10m, v => hourly.WindGusts = v);
             var windDir = point.Get(ParameterRegistry.GetByApiName("wind_direction_10m")!);
-            if (windDir.HasValue) hourly.WindBearing = windDir.Value;
+            if (windDir.HasValue)
+            {
+                hourly.WindBearing = windDir.Value;
+            }
+
             SetOptional(point, ParameterRegistry.CloudCover, v => hourly.CloudCover = v);
             var weatherCode = point.Get(ParameterRegistry.WeatherCode);
-            if (weatherCode.HasValue) hourly.WeatherCode = (int)weatherCode.Value;
+            if (weatherCode.HasValue)
+            {
+                hourly.WeatherCode = (int)weatherCode.Value;
+            }
+
             SetOptional(point, ParameterRegistry.IsDay, v => hourly.IsDay = v > 0);
             var rain = point.Get(ParameterRegistry.GetByApiName("rain")!);
-            if (rain.HasValue) hourly.Rain = rain.Value;
+            if (rain.HasValue)
+            {
+                hourly.Rain = rain.Value;
+            }
+
             SetOptional(point, ParameterRegistry.PressureMsl, v => hourly.PressureMsl = v);
             hourlyTarget.Add(hourly);
         }
@@ -204,19 +226,43 @@ public sealed class ForecastGrpcService(
         {
             var daily = new DailyForecast { Date = point.Date.ToString("O") };
             var tempMax = point.GetNumeric(ParameterRegistry.GetByApiName("temperature_2m_max")!);
-            if (tempMax.HasValue) daily.TemperatureMax = tempMax.Value;
+            if (tempMax.HasValue)
+            {
+                daily.TemperatureMax = tempMax.Value;
+            }
+
             var tempMin = point.GetNumeric(ParameterRegistry.GetByApiName("temperature_2m_min")!);
-            if (tempMin.HasValue) daily.TemperatureMin = tempMin.Value;
+            if (tempMin.HasValue)
+            {
+                daily.TemperatureMin = tempMin.Value;
+            }
+
             var precipSum = point.GetNumeric(ParameterRegistry.GetByApiName("precipitation_sum")!);
-            if (precipSum.HasValue) daily.PrecipitationSum = precipSum.Value;
+            if (precipSum.HasValue)
+            {
+                daily.PrecipitationSum = precipSum.Value;
+            }
+
             var windMax = point.GetNumeric(ParameterRegistry.GetByApiName("wind_speed_10m_max")!);
-            if (windMax.HasValue) daily.WindSpeedMax = windMax.Value;
+            if (windMax.HasValue)
+            {
+                daily.WindSpeedMax = windMax.Value;
+            }
+
             var gustMax = point.GetNumeric(ParameterRegistry.GetByApiName("wind_gusts_10m_max")!);
-            if (gustMax.HasValue) daily.WindGustsMax = gustMax.Value;
+            if (gustMax.HasValue)
+            {
+                daily.WindGustsMax = gustMax.Value;
+            }
+
             daily.Sunrise = point.GetMeta(ParameterRegistry.GetByApiName("sunrise")!) ?? "";
             daily.Sunset = point.GetMeta(ParameterRegistry.GetByApiName("sunset")!) ?? "";
             var wc = point.GetNumeric(ParameterRegistry.GetByApiName("weather_code")!);
-            if (wc.HasValue) daily.WeatherCode = (int)wc.Value;
+            if (wc.HasValue)
+            {
+                daily.WeatherCode = (int)wc.Value;
+            }
+
             dailyTarget.Add(daily);
         }
     }
@@ -224,6 +270,9 @@ public sealed class ForecastGrpcService(
     private static void SetOptional(ForecastPoint point, ParameterDef param, Action<double> setter)
     {
         var value = point.Get(param);
-        if (value.HasValue) setter(value.Value);
+        if (value.HasValue)
+        {
+            setter(value.Value);
+        }
     }
 }

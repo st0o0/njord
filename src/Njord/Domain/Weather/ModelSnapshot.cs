@@ -37,7 +37,9 @@ public sealed record ModelSnapshot
         foreach (var (key, _) in Entries)
         {
             if (key.Location == location)
+            {
                 models.Add(key.Model);
+            }
         }
         return models;
     }

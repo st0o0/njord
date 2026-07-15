@@ -23,21 +23,30 @@ public static class HorizonProjection
         foreach (var hours in horizons)
         {
             if (maxForecastHours.HasValue && hours > maxForecastHours.Value)
+            {
                 continue;
+            }
+
             var anchor = TimeAnchor.AtHorizon(anchorTime, hours);
             if (!pointsByValidAt.TryGetValue(anchor, out var point) || !point.HasAnyValue)
+            {
                 continue;
+            }
 
             var entry = new JsonObject();
             foreach (var parameter in parameters.Hourly)
             {
                 var value = point?.Get(parameter);
                 if (value.HasValue)
+                {
                     entry[parameter.JsonKey] = value.Value;
+                }
             }
 
             if (entry.Count > 0)
+            {
                 result[$"h{hours}"] = entry.ToJsonString();
+            }
         }
 
         var dailyByDate = forecast.Daily.Points.ToDictionary(p => p.Date);
@@ -46,7 +55,9 @@ public static class HorizonProjection
         {
             var date = today.AddDays(d);
             if (!dailyByDate.TryGetValue(date, out var dailyPoint) || !dailyPoint.HasAnyValue)
+            {
                 continue;
+            }
 
             var entry = new JsonObject();
             foreach (var parameter in parameters.Daily)
@@ -55,18 +66,24 @@ public static class HorizonProjection
                 {
                     var str = dailyPoint?.GetMeta(parameter);
                     if (str is not null)
+                    {
                         entry[parameter.JsonKey] = JsonValue.Create(str);
+                    }
                 }
                 else
                 {
                     var num = dailyPoint?.GetNumeric(parameter);
                     if (num.HasValue)
+                    {
                         entry[parameter.JsonKey] = JsonValue.Create(num.Value);
+                    }
                 }
             }
 
             if (entry.Count > 0)
+            {
                 result[$"d{d}"] = entry.ToJsonString();
+            }
         }
 
         return result;

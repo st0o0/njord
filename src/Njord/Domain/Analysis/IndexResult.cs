@@ -53,7 +53,9 @@ public sealed record IndexResult(
 
         double? sunshinePct = null;
         if (sunshineDurationParam is not null && isDayParam is not null && forecasts.Count > 0)
+        {
             sunshinePct = DerivedComputer.SunshinePercent(forecasts[0].Hourly, sunshineDurationParam, isDayParam, now);
+        }
 
         var laundry = IndexScorer.LaundryDrying(meanTemp, meanHumidity, meanWind, meanRainProb, sunshinePct);
         var outdoor = IndexScorer.OutdoorScore(meanTemp, meanRainProb, meanWind, meanCloud);
@@ -81,7 +83,10 @@ public sealed record IndexResult(
         List<ModelForecast> forecasts, ParameterDef? param,
         DateTimeOffset now, DateTimeOffset cutoff)
     {
-        if (param is null || forecasts.Count == 0) return null;
+        if (param is null || forecasts.Count == 0)
+        {
+            return null;
+        }
 
         double sum = 0;
         var count = 0;
@@ -90,9 +95,17 @@ public sealed record IndexResult(
         {
             foreach (var point in forecast.Hourly.Points)
             {
-                if (point.ValidAt < now || point.ValidAt > cutoff) continue;
+                if (point.ValidAt < now || point.ValidAt > cutoff)
+                {
+                    continue;
+                }
+
                 var val = point.Get(param);
-                if (val is not { } v) continue;
+                if (val is not { } v)
+                {
+                    continue;
+                }
+
                 sum += v;
                 count++;
             }

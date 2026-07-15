@@ -72,13 +72,16 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
             _logger.LogInformation("MQTT SinkRef received");
             TryTransitionToReady();
         });
-        Receive<Terminated>(msg => HandleTerminated(msg));
+        Receive<Terminated>(HandleTerminated);
         ReceiveAny(_ => Stash.Stash());
     }
 
     private void TryTransitionToReady()
     {
-        if (_egressSourceRef is null || _mqttSinkRef is null) return;
+        if (_egressSourceRef is null || _mqttSinkRef is null)
+        {
+            return;
+        }
 
         MaterializeGraph();
         _logger.LogInformation("MQTT egress pipeline materialized — ready");
@@ -88,7 +91,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
 
     private void Ready()
     {
-        Receive<Terminated>(msg => HandleTerminated(msg));
+        Receive<Terminated>(HandleTerminated);
     }
 
     private void HandleTerminated(Terminated msg)
@@ -136,7 +139,10 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         foreach (var msg in messages)
         {
             if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
+            {
                 continue;
+            }
+
             lastPublished[msg.Topic] = msg.Payload;
             yield return msg;
         }

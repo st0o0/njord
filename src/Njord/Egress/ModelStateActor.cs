@@ -16,7 +16,6 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
     private readonly IReadOnlyList<int> _horizons;
     private readonly int _forecastDays;
     private readonly ResolvedParameterSet _parameters;
-    private readonly TimeProvider _timeProvider;
     private readonly ILogger<ModelStateActor> _logger;
 
     private ISinkRef<EgressEvent>? _egressSinkRef;
@@ -29,14 +28,12 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
     public ModelStateActor(
         IOptions<NjordOptions> options,
         ResolvedParameterSet parameters,
-        TimeProvider timeProvider,
         ILogger<ModelStateActor> logger)
     {
         var opts = options.Value;
         _horizons = [.. opts.Horizons];
         _forecastDays = opts.ForecastDays;
         _parameters = parameters;
-        _timeProvider = timeProvider;
         _logger = logger;
 
         WaitingForRefs();
@@ -76,7 +73,10 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
 
     private void TryTransitionToReady()
     {
-        if (_egressSinkRef is null || _sourceRef is null) return;
+        if (_egressSinkRef is null || _sourceRef is null)
+        {
+            return;
+        }
 
         MaterializeGraph();
         _logger.LogInformation("ModelState pipeline materialized — ready");
@@ -156,7 +156,9 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
             foreach (var param in parameters.Hourly)
             {
                 if (point.Get(param) is not null)
+                {
                     supported.Add(param);
+                }
             }
         }
 
@@ -167,12 +169,16 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
                 if (param.ValueType == ParameterValueType.TimeString)
                 {
                     if (point.GetMeta(param) is not null)
+                    {
                         supported.Add(param);
+                    }
                 }
                 else
                 {
                     if (point.GetNumeric(param) is not null)
+                    {
                         supported.Add(param);
+                    }
                 }
             }
         }

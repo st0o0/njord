@@ -8,7 +8,7 @@ using Njord.Mqtt;
 
 namespace Njord.Enrichment.Features;
 
-internal sealed class ConsensusEnrichment : IStatelessEnrichment<ConsensusResult>
+internal sealed class ConsensusEnrichment : IStatelessEnrichment
 {
     private readonly ResolvedParameterSet _parameters;
     private readonly IReadOnlyList<int> _horizons;

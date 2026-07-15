@@ -73,7 +73,10 @@ public sealed record EnergyResult(
         List<ModelForecast> forecasts, ParameterDef? param,
         DateTimeOffset now, DateTimeOffset cutoff)
     {
-        if (param is null || forecasts.Count == 0) return null;
+        if (param is null || forecasts.Count == 0)
+        {
+            return null;
+        }
 
         double sum = 0;
         var count = 0;
@@ -81,9 +84,17 @@ public sealed record EnergyResult(
         {
             foreach (var point in forecast.Hourly.Points)
             {
-                if (point.ValidAt < now || point.ValidAt > cutoff) continue;
+                if (point.ValidAt < now || point.ValidAt > cutoff)
+                {
+                    continue;
+                }
+
                 var val = point.Get(param);
-                if (val is not { } v) continue;
+                if (val is not { } v)
+                {
+                    continue;
+                }
+
                 sum += v;
                 count++;
             }

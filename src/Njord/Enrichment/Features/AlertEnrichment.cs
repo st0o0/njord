@@ -8,7 +8,7 @@ using Njord.Mqtt;
 
 namespace Njord.Enrichment.Features;
 
-internal sealed class AlertEnrichment : IStatelessEnrichment<AlertResult>
+internal sealed class AlertEnrichment : IStatelessEnrichment
 {
     private readonly AlertThresholdOptions _alertOptions;
     private readonly TimeProvider _timeProvider;

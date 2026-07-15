@@ -7,7 +7,10 @@ public static class ConsensusComputer
     public static double? ComputeMedian(IReadOnlyList<double?> values)
     {
         var sorted = NonNull(values);
-        if (sorted.Count == 0) return null;
+        if (sorted.Count == 0)
+        {
+            return null;
+        }
 
         var mid = sorted.Count / 2;
         return sorted.Count % 2 == 0
@@ -18,8 +21,15 @@ public static class ConsensusComputer
     public static double? ComputeTrimmedMean(IReadOnlyList<double?> values, double trimPercent)
     {
         var sorted = NonNull(values);
-        if (sorted.Count == 0) return null;
-        if (sorted.Count < 3) return sorted.Average();
+        if (sorted.Count == 0)
+        {
+            return null;
+        }
+
+        if (sorted.Count < 3)
+        {
+            return sorted.Average();
+        }
 
         var trimCount = (int)Math.Floor(sorted.Count * trimPercent);
         var remaining = sorted.Skip(trimCount).Take(sorted.Count - 2 * trimCount).ToList();
@@ -35,7 +45,10 @@ public static class ConsensusComputer
     public static double? ComputeIqr(IReadOnlyList<double?> values)
     {
         var sorted = NonNull(values);
-        if (sorted.Count < 4) return null;
+        if (sorted.Count < 4)
+        {
+            return null;
+        }
 
         var q1 = Percentile(sorted, 25);
         var q3 = Percentile(sorted, 75);
@@ -45,7 +58,10 @@ public static class ConsensusComputer
     public static double? ComputeAgreement(IReadOnlyList<double?> values, double reference, double tolerance)
     {
         var nonNull = values.Where(v => v.HasValue).Select(v => v!.Value).ToList();
-        if (nonNull.Count == 0) return null;
+        if (nonNull.Count == 0)
+        {
+            return null;
+        }
 
         var within = nonNull.Count(v => Math.Abs(v - reference) <= tolerance);
         return (double)within / nonNull.Count;
@@ -59,7 +75,11 @@ public static class ConsensusComputer
 
         foreach (var (model, value) in models)
         {
-            if (value is not { } v) continue;
+            if (value is not { } v)
+            {
+                continue;
+            }
+
             var deviation = Math.Abs(v - reference);
             if (deviation > worstDeviation)
             {
@@ -75,7 +95,10 @@ public static class ConsensusComputer
         IReadOnlyList<double?> values, double lowerPct, double upperPct)
     {
         var sorted = NonNull(values);
-        if (sorted.Count < 2) return null;
+        if (sorted.Count < 2)
+        {
+            return null;
+        }
 
         return (Percentile(sorted, lowerPct), Percentile(sorted, upperPct));
     }
@@ -86,7 +109,10 @@ public static class ConsensusComputer
         var result = new Dictionary<WeatherModel, bool>();
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
 
             var hasData = forecast.Hourly.Points.Any(p =>
                 Math.Abs((p.ValidAt - targetTime).TotalMinutes) < 30 && p.HasAnyValue);
@@ -100,7 +126,10 @@ public static class ConsensusComputer
         var list = new List<double>(values.Count);
         foreach (var v in values)
         {
-            if (v.HasValue) list.Add(v.Value);
+            if (v.HasValue)
+            {
+                list.Add(v.Value);
+            }
         }
         list.Sort();
         return list;
@@ -112,7 +141,11 @@ public static class ConsensusComputer
         var rank = percentile / 100.0 * (n - 1);
         var lower = (int)Math.Floor(rank);
         var upper = (int)Math.Ceiling(rank);
-        if (lower == upper) return sorted[lower];
+        if (lower == upper)
+        {
+            return sorted[lower];
+        }
+
         var fraction = rank - lower;
         return sorted[lower] + fraction * (sorted[upper] - sorted[lower]);
     }

@@ -106,8 +106,7 @@ public sealed class EnrichmentFeatureContractSpec
         foreach (var name in stateless)
         {
             var feature = features.Single(f => f.TypeName == name);
-            Assert.True(feature.GetType().GetInterfaces()
-                .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IStatelessEnrichment<>)));
+            Assert.IsAssignableFrom<IStatelessEnrichment>(feature);
         }
     }
 
@@ -117,8 +116,7 @@ public sealed class EnrichmentFeatureContractSpec
         var features = CreateAllFeatures();
         var trend = features.Single(f => f.TypeName == "trends");
 
-        Assert.True(trend.GetType().GetInterfaces()
-            .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IStatefulEnrichment<>)));
+        Assert.IsAssignableFrom<IStatefulEnrichment>(trend);
     }
 
     [Fact(Timeout = 5000)]

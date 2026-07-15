@@ -81,31 +81,45 @@ public static class ParameterRegistry
         foreach (var g in groups)
         {
             if (Enum.TryParse<ParameterGroup>(g, ignoreCase: true, out var pg))
+            {
                 parsedGroups.Add(pg);
+            }
             else
+            {
                 errors.Add($"Unknown parameter group: '{g}'. Valid groups: {string.Join(", ", Enum.GetNames<ParameterGroup>())}");
+            }
         }
 
         var extraParams = new List<ParameterDef>();
         foreach (var name in extra)
         {
             if (GetByApiName(name) is { } p)
+            {
                 extraParams.Add(p);
+            }
             else
+            {
                 errors.Add($"Unknown parameter in Extra: '{name}'");
+            }
         }
 
         var excludeSet = new HashSet<string>(StringComparer.Ordinal);
         foreach (var name in exclude)
         {
             if (GetByApiName(name) is not null)
+            {
                 excludeSet.Add(name);
+            }
             else
+            {
                 errors.Add($"Unknown parameter in Exclude: '{name}'");
+            }
         }
 
         if (errors.Count > 0)
+        {
             throw new ParameterResolutionException(errors);
+        }
 
         var resolved = parsedGroups
             .SelectMany(g => AllList.Where(p => p.Group == g))
@@ -115,7 +129,9 @@ public static class ParameterRegistry
             .ToList();
 
         if (resolved.Count == 0)
+        {
             throw new ParameterResolutionException(["The resolved parameter set is empty. Enable at least one group or add parameters via Extra."]);
+        }
 
         return new ResolvedParameterSet(
             resolved.Where(p => p.Granularity == ParameterGranularity.Hourly).ToList(),

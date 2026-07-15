@@ -139,14 +139,18 @@ public sealed class OpenMeteoClient(
             {
                 var raw = i < paramArrays[param].Count ? paramArrays[param][i] : null;
                 if (param.ValueType == ParameterValueType.TimeString)
+                {
                     meta[param] = raw switch
                     {
                         string s => s,
                         double d => DateTimeOffset.FromUnixTimeSeconds((long)d).ToString("O"),
                         _ => null,
                     };
+                }
                 else
+                {
                     numeric[param] = raw as double?;
+                }
             }
 
             points.Add(new DailyForecastPoint(date, numeric, meta));

@@ -8,7 +8,7 @@ using Njord.Mqtt;
 
 namespace Njord.Enrichment.Features;
 
-internal sealed class TrendEnrichment : IStatefulEnrichment<TrendResult>
+internal sealed class TrendEnrichment : IStatefulEnrichment
 {
     private readonly ResolvedParameterSet _parameters;
     private readonly IReadOnlyList<int> _horizons;
@@ -36,7 +36,10 @@ internal sealed class TrendEnrichment : IStatefulEnrichment<TrendResult>
     public IEnumerable<EgressEvent> Compute(
         ModelSnapshot snapshot, ModelSnapshot? previous, IReadOnlyList<string> locations)
     {
-        if (previous is null) yield break;
+        if (previous is null)
+        {
+            yield break;
+        }
 
         foreach (var location in locations)
         {

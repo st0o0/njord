@@ -8,7 +8,7 @@ using Njord.Mqtt;
 
 namespace Njord.Enrichment.Features;
 
-internal sealed class IndexEnrichment : IStatelessEnrichment<IndexResult>
+internal sealed class IndexEnrichment : IStatelessEnrichment
 {
     private readonly ResolvedParameterSet _parameters;
     private readonly TimeProvider _timeProvider;
@@ -107,7 +107,10 @@ internal sealed class IndexEnrichment : IStatelessEnrichment<IndexResult>
                 ["availability_mode"] = "all",
             };
             if (!string.IsNullOrEmpty(unit))
+            {
                 comp["unit_of_measurement"] = unit;
+            }
+
             components[key] = comp;
         }
 

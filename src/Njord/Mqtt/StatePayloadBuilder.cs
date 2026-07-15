@@ -15,9 +15,6 @@ public static class StatePayloadBuilder
         DateTimeOffset anchorTime)
         => HorizonProjection.BuildPerHorizon(forecast, parameters, horizons, forecastDays, anchorTime);
 
-    public static DateTimeOffset Anchor(DateTimeOffset tick, int horizonHours)
-        => TimeAnchor.AtHorizon(tick, horizonHours);
-
     public static IReadOnlyList<MqttMessage> FromConsensus(ConsensusResult result, string baseTopic, string location)
     {
         var messages = new List<MqttMessage>();

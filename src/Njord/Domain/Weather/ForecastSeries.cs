@@ -19,8 +19,16 @@ public sealed class ForecastSeries
         var count = 0;
         foreach (var point in Points)
         {
-            if (point.ValidAt < from || point.ValidAt > to) continue;
-            if (point.Get(param) is not { } v) continue;
+            if (point.ValidAt < from || point.ValidAt > to)
+            {
+                continue;
+            }
+
+            if (point.Get(param) is not { } v)
+            {
+                continue;
+            }
+
             sum += v;
             count++;
         }
@@ -31,8 +39,15 @@ public sealed class ForecastSeries
     {
         foreach (var point in Points)
         {
-            if (point.ValidAt < from || point.ValidAt > to) continue;
-            if (point.Get(param) is { } v) yield return v;
+            if (point.ValidAt < from || point.ValidAt > to)
+            {
+                continue;
+            }
+
+            if (point.Get(param) is { } v)
+            {
+                yield return v;
+            }
         }
     }
 }

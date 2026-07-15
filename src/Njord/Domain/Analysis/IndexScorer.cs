@@ -26,21 +26,33 @@ public static class IndexScorer
 
     private static double TempComfort(double? temp)
     {
-        if (temp is not { } t) return 50;
+        if (temp is not { } t)
+        {
+            return 50;
+        }
+
         var diff = Math.Abs(t - 22);
         return Math.Clamp(100 - diff * diff * 0.3, 0, 100);
     }
 
     private static double RunTempScore(double? temp)
     {
-        if (temp is not { } t) return 50;
+        if (temp is not { } t)
+        {
+            return 50;
+        }
+
         if (t >= 5 && t <= 20)
         {
             var mid = 12.5;
             var diff = Math.Abs(t - mid);
             return Math.Clamp(100 - diff * diff * 0.5, 0, 100);
         }
-        if (t < 5) return Math.Clamp(100 - (5 - t) * 15, 0, 100);
+        if (t < 5)
+        {
+            return Math.Clamp(100 - (5 - t) * 15, 0, 100);
+        }
+
         return Math.Clamp(100 - (t - 20) * 5, 0, 100);
     }
 
@@ -49,9 +61,21 @@ public static class IndexScorer
 
     private static double BbqWindScore(double? wind)
     {
-        if (wind is not { } w) return 50;
-        if (w >= 1 && w <= 3) return 100;
-        if (w < 1) return 70;
+        if (wind is not { } w)
+        {
+            return 50;
+        }
+
+        if (w >= 1 && w <= 3)
+        {
+            return 100;
+        }
+
+        if (w < 1)
+        {
+            return 70;
+        }
+
         return Math.Clamp(100 - (w - 3) * 12, 0, 100);
     }
 
@@ -110,9 +134,14 @@ public static class IndexScorer
         var humScore = humidity is { } h ? Math.Clamp((70 - h) / 30 * 100, 0, 100) : 50;
         double windScore;
         if (wind is { } w)
+        {
             windScore = w >= 2 && w <= 5 ? 100 : w < 2 ? w / 2 * 100 : Math.Clamp(100 - (w - 5) * 15, 0, 100);
+        }
         else
+        {
             windScore = 50;
+        }
+
         var rainSc = RainScore(rainProb);
         return Clamp(0.3 * tempDelta + 0.25 * humScore + 0.25 * windScore + 0.2 * rainSc);
     }
@@ -129,20 +158,36 @@ public static class IndexScorer
             var hasFrost = false;
             foreach (var point in series.Points)
             {
-                if (point.ValidAt < now || point.ValidAt > cutoff) continue;
+                if (point.ValidAt < now || point.ValidAt > cutoff)
+                {
+                    continue;
+                }
+
                 var val = point.Get(tempParam);
-                if (val is not { } v || v > 0) continue;
+                if (val is not { } v || v > 0)
+                {
+                    continue;
+                }
 
                 hasFrost = true;
                 var hours = (int)Math.Round((point.ValidAt - now).TotalHours);
                 if (firstFrostHours is null || hours < firstFrostHours)
+                {
                     firstFrostHours = hours;
+                }
+
                 break;
             }
-            if (hasFrost) modelsWithFrost++;
+            if (hasFrost)
+            {
+                modelsWithFrost++;
+            }
         }
 
-        if (firstFrostHours is null) return null;
+        if (firstFrostHours is null)
+        {
+            return null;
+        }
 
         var confidence = modelSeries.Count > 0 ? (double)modelsWithFrost / modelSeries.Count : 0;
         return (firstFrostHours.Value, Math.Round(confidence, 2));
@@ -150,7 +195,10 @@ public static class IndexScorer
 
     public static (string Category, double Vpd)? VpdCategory(double? temp, double? humidity)
     {
-        if (temp is not { } t || humidity is not { } rh) return null;
+        if (temp is not { } t || humidity is not { } rh)
+        {
+            return null;
+        }
 
         var svp = 0.6108 * Math.Exp(17.27 * t / (t + 237.3));
         var vpd = svp * (1 - rh / 100);

@@ -24,9 +24,20 @@ public static class HistoryAnalyzer
 
             foreach (var record in records)
             {
-                if (!record.ModelValues.TryGetValue(model, out var modelVals)) continue;
-                if (!modelVals.TryGetValue(paramApiName, out var forecast) || forecast is null) continue;
-                if (!record.ConsensusValues.TryGetValue(paramApiName, out var observed) || observed is null) continue;
+                if (!record.ModelValues.TryGetValue(model, out var modelVals))
+                {
+                    continue;
+                }
+
+                if (!modelVals.TryGetValue(paramApiName, out var forecast) || forecast is null)
+                {
+                    continue;
+                }
+
+                if (!record.ConsensusValues.TryGetValue(paramApiName, out var observed) || observed is null)
+                {
+                    continue;
+                }
 
                 errors.Add(Math.Abs(forecast.Value - observed.Value));
             }
@@ -81,8 +92,16 @@ public static class HistoryAnalyzer
 
         foreach (var (model, value) in modelValues)
         {
-            if (value is not { } v) continue;
-            if (!weights.TryGetValue(model, out var w)) continue;
+            if (value is not { } v)
+            {
+                continue;
+            }
+
+            if (!weights.TryGetValue(model, out var w))
+            {
+                continue;
+            }
+
             weightedSum += w * v;
             weightSum += w;
         }
@@ -101,11 +120,18 @@ public static class HistoryAnalyzer
         var values = new List<double>();
         foreach (var record in modelRecords)
         {
-            if (!record.ModelValues[model].TryGetValue(paramApiName, out var val) || val is null) continue;
+            if (!record.ModelValues[model].TryGetValue(paramApiName, out var val) || val is null)
+            {
+                continue;
+            }
+
             values.Add(val.Value);
         }
 
-        if (values.Count < 2) return null;
+        if (values.Count < 2)
+        {
+            return null;
+        }
 
         var mean = values.Average();
         var variance = values.Sum(v => (v - mean) * (v - mean)) / values.Count;
@@ -120,7 +146,10 @@ public static class HistoryAnalyzer
             .Where(r => GetSeason(r.Timestamp.Month) == season)
             .ToList();
 
-        if (seasonRecords.Count < minSampleSize) return null;
+        if (seasonRecords.Count < minSampleSize)
+        {
+            return null;
+        }
 
         var seasonHistory = new ForecastHistory(365);
         foreach (var r in seasonRecords)
@@ -144,13 +173,19 @@ public static class HistoryAnalyzer
             .Select(r => r.ConsensusValues[paramApiName]!.Value)
             .ToList();
 
-        if (hourRecords.Count < minRecords) return null;
+        if (hourRecords.Count < minRecords)
+        {
+            return null;
+        }
 
         var mean = hourRecords.Average();
         var variance = hourRecords.Sum(v => (v - mean) * (v - mean)) / hourRecords.Count;
         var stdDev = Math.Sqrt(variance);
 
-        if (stdDev < 0.001) return (false, 0);
+        if (stdDev < 0.001)
+        {
+            return (false, 0);
+        }
 
         var deviation = Math.Round(Math.Abs(currentValue - mean) / stdDev, 2);
         return (deviation > 2.0, deviation);

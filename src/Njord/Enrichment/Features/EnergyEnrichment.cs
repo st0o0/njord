@@ -8,7 +8,7 @@ using Njord.Mqtt;
 
 namespace Njord.Enrichment.Features;
 
-internal sealed class EnergyEnrichment : IStatelessEnrichment<EnergyResult>
+internal sealed class EnergyEnrichment : IStatelessEnrichment
 {
     private readonly ResolvedParameterSet _parameters;
     private readonly TimeProvider _timeProvider;

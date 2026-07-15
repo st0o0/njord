@@ -71,7 +71,10 @@ public sealed record DerivedResult(
     private static double? MedianAt(
         List<ModelForecast> forecasts, ParameterDef? param, DateTimeOffset targetTime)
     {
-        if (param is null) return null;
+        if (param is null)
+        {
+            return null;
+        }
 
         var values = new List<double?>();
         foreach (var forecast in forecasts)
@@ -86,7 +89,10 @@ public sealed record DerivedResult(
     private static double? ComputeScalarAmplitude(
         List<ModelForecast> forecasts, ParameterDef? tempParam, DateTimeOffset now)
     {
-        if (tempParam is null) return null;
+        if (tempParam is null)
+        {
+            return null;
+        }
 
         var amplitudes = new List<double?>();
         foreach (var forecast in forecasts)
@@ -99,7 +105,10 @@ public sealed record DerivedResult(
     private static double? ComputeScalarSunshine(
         List<ModelForecast> forecasts, ParameterDef? sunshineDuration, ParameterDef? isDay, DateTimeOffset now)
     {
-        if (sunshineDuration is null || isDay is null) return null;
+        if (sunshineDuration is null || isDay is null)
+        {
+            return null;
+        }
 
         var values = new List<double?>();
         foreach (var forecast in forecasts)
@@ -114,7 +123,9 @@ public sealed record DerivedResult(
         ParameterDef? temperature, ParameterDef? dewPoint, DateTimeOffset now)
     {
         if (pressureMsl is null || surfacePressure is null || temperature is null || dewPoint is null)
+        {
             return null;
+        }
 
         var targetTime = now;
         var trueCount = 0;
@@ -123,18 +134,31 @@ public sealed record DerivedResult(
         {
             var point = forecast.Hourly.Points.FirstOrDefault(p =>
                 Math.Abs((p.ValidAt - targetTime).TotalMinutes) < 30);
-            if (point is null) continue;
+            if (point is null)
+            {
+                continue;
+            }
 
             var result = DerivedComputer.InversionDetected(
                 point.Get(pressureMsl), point.Get(surfacePressure),
                 point.Get(temperature), point.Get(dewPoint));
-            if (result is not { } r) continue;
+            if (result is not { } r)
+            {
+                continue;
+            }
 
             totalCount++;
-            if (r) trueCount++;
+            if (r)
+            {
+                trueCount++;
+            }
         }
 
-        if (totalCount == 0) return null;
+        if (totalCount == 0)
+        {
+            return null;
+        }
+
         return trueCount > totalCount / 2;
     }
 }

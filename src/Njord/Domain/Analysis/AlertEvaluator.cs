@@ -57,7 +57,6 @@ public static class AlertEvaluator
     private static readonly ParameterDef ApparentTemp = ParameterRegistry.ApparentTemperature;
     private static readonly ParameterDef WindGusts = ParameterRegistry.WindGusts10m;
     private static readonly ParameterDef Precipitation = ParameterRegistry.Precipitation;
-    private static readonly ParameterDef? PrecipSum = ParameterRegistry.GetByApiName("precipitation_sum");
     private static readonly ParameterDef UvIndex = ParameterRegistry.UvIndex;
     private static readonly ParameterDef Dewpoint = ParameterRegistry.DewPoint2m;
     private static readonly ParameterDef WindSpeed = ParameterRegistry.WindSpeed10m;
@@ -88,7 +87,10 @@ public static class AlertEvaluator
     public static Alert EvaluateFrost(
         ModelSnapshot snapshot, string location, double threshold, TimeProvider timeProvider)
     {
-        if (Temperature is null) return Alert.None(AlertType.Frost);
+        if (Temperature is null)
+        {
+            return Alert.None(AlertType.Frost);
+        }
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
@@ -97,23 +99,46 @@ public static class AlertEvaluator
 
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
+
             var points = PointsInWindow(forecast.Hourly, now, end);
-            if (points.Count == 0) continue;
+            if (points.Count == 0)
+            {
+                continue;
+            }
 
             var min = double.MaxValue;
             foreach (var p in points)
             {
                 var v = p.Get(Temperature);
-                if (v is not { } val) continue;
-                if (val < min) min = val;
+                if (v is not { } val)
+                {
+                    continue;
+                }
+
+                if (val < min)
+                {
+                    min = val;
+                }
+
                 if (val <= threshold && (earliestFrost is null || p.ValidAt < earliestFrost))
+                {
                     earliestFrost = p.ValidAt;
+                }
             }
-            if (min < double.MaxValue) minima.Add(min);
+            if (min < double.MaxValue)
+            {
+                minima.Add(min);
+            }
         }
 
-        if (minima.Count == 0) return Alert.None(AlertType.Frost);
+        if (minima.Count == 0)
+        {
+            return Alert.None(AlertType.Frost);
+        }
 
         var agreeing = minima.Count(m => m <= threshold);
         var confidence = (double)agreeing / minima.Count;
@@ -134,7 +159,10 @@ public static class AlertEvaluator
     public static Alert EvaluateHeat(
         ModelSnapshot snapshot, string location, double[] thresholds, TimeProvider timeProvider)
     {
-        if (ApparentTemp is null || thresholds.Length < 3) return Alert.None(AlertType.Heat);
+        if (ApparentTemp is null || thresholds.Length < 3)
+        {
+            return Alert.None(AlertType.Heat);
+        }
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
@@ -142,18 +170,31 @@ public static class AlertEvaluator
 
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
+
             var points = PointsInWindow(forecast.Hourly, now, end);
             var max = double.MinValue;
             foreach (var p in points)
             {
                 var v = p.Get(ApparentTemp);
-                if (v is { } val && val > max) max = val;
+                if (v is { } val && val > max)
+                {
+                    max = val;
+                }
             }
-            if (max > double.MinValue) maxima.Add(max);
+            if (max > double.MinValue)
+            {
+                maxima.Add(max);
+            }
         }
 
-        if (maxima.Count == 0) return Alert.None(AlertType.Heat);
+        if (maxima.Count == 0)
+        {
+            return Alert.None(AlertType.Heat);
+        }
 
         var redCount = maxima.Count(m => m >= thresholds[2]);
         var orangeCount = maxima.Count(m => m >= thresholds[1]);
@@ -178,7 +219,10 @@ public static class AlertEvaluator
     public static Alert EvaluateStorm(
         ModelSnapshot snapshot, string location, double gustThreshold, TimeProvider timeProvider)
     {
-        if (WindGusts is null) return Alert.None(AlertType.Storm);
+        if (WindGusts is null)
+        {
+            return Alert.None(AlertType.Storm);
+        }
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
@@ -186,18 +230,31 @@ public static class AlertEvaluator
 
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
+
             var points = PointsInWindow(forecast.Hourly, now, end);
             var max = double.MinValue;
             foreach (var p in points)
             {
                 var v = p.Get(WindGusts);
-                if (v is { } val && val > max) max = val;
+                if (v is { } val && val > max)
+                {
+                    max = val;
+                }
             }
-            if (max > double.MinValue) maxGusts.Add(max);
+            if (max > double.MinValue)
+            {
+                maxGusts.Add(max);
+            }
         }
 
-        if (maxGusts.Count == 0) return Alert.None(AlertType.Storm);
+        if (maxGusts.Count == 0)
+        {
+            return Alert.None(AlertType.Storm);
+        }
 
         var agreeing = maxGusts.Count(g => g >= gustThreshold);
         var confidence = (double)agreeing / maxGusts.Count;
@@ -216,7 +273,10 @@ public static class AlertEvaluator
     public static Alert EvaluateHeavyRain(
         ModelSnapshot snapshot, string location, double hourlyThreshold, double dailyThreshold, TimeProvider timeProvider)
     {
-        if (Precipitation is null) return Alert.None(AlertType.HeavyRain);
+        if (Precipitation is null)
+        {
+            return Alert.None(AlertType.HeavyRain);
+        }
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
@@ -226,9 +286,17 @@ public static class AlertEvaluator
 
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
+
             var points = PointsInWindow(forecast.Hourly, now, end);
-            if (points.Count == 0) continue;
+            if (points.Count == 0)
+            {
+                continue;
+            }
+
             modelCount++;
 
             var maxHourly = 0.0;
@@ -236,24 +304,50 @@ public static class AlertEvaluator
             foreach (var p in points)
             {
                 var v = p.Get(Precipitation) ?? 0.0;
-                if (v > maxHourly) maxHourly = v;
+                if (v > maxHourly)
+                {
+                    maxHourly = v;
+                }
+
                 dailySum += v;
             }
 
-            if (maxHourly >= hourlyThreshold) hourlyExceed++;
-            if (dailySum >= dailyThreshold) dailyExceed++;
+            if (maxHourly >= hourlyThreshold)
+            {
+                hourlyExceed++;
+            }
+
+            if (dailySum >= dailyThreshold)
+            {
+                dailyExceed++;
+            }
         }
 
-        if (modelCount == 0) return Alert.None(AlertType.HeavyRain);
+        if (modelCount == 0)
+        {
+            return Alert.None(AlertType.HeavyRain);
+        }
 
         var totalExceed = Math.Max(hourlyExceed, dailyExceed);
         var confidence = (double)totalExceed / modelCount;
 
         AlertSeverity severity;
-        if (hourlyExceed > 0 && dailyExceed > 0) severity = AlertSeverity.Red;
-        else if (dailyExceed > 0) severity = AlertSeverity.Orange;
-        else if (hourlyExceed > 0) severity = AlertSeverity.Yellow;
-        else return Alert.None(AlertType.HeavyRain);
+        if (hourlyExceed > 0 && dailyExceed > 0)
+        {
+            severity = AlertSeverity.Red;
+        }
+        else if (dailyExceed > 0)
+        {
+            severity = AlertSeverity.Orange;
+        }
+        else if (hourlyExceed > 0)
+        {
+            severity = AlertSeverity.Yellow;
+        }
+        else
+        {
+            return Alert.None(AlertType.HeavyRain);
+        }
 
         var attrs = new Dictionary<string, object?>
         {
@@ -267,7 +361,10 @@ public static class AlertEvaluator
     public static Alert EvaluateUv(
         ModelSnapshot snapshot, string location, TimeProvider timeProvider)
     {
-        if (UvIndex is null) return Alert.None(AlertType.Uv);
+        if (UvIndex is null)
+        {
+            return Alert.None(AlertType.Uv);
+        }
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
@@ -275,18 +372,31 @@ public static class AlertEvaluator
 
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
+
             var points = PointsInWindow(forecast.Hourly, now, end);
             var max = 0.0;
             foreach (var p in points)
             {
                 var v = p.Get(UvIndex);
-                if (v is { } val && val > max) max = val;
+                if (v is { } val && val > max)
+                {
+                    max = val;
+                }
             }
-            if (max > 0) maxUvs.Add(max);
+            if (max > 0)
+            {
+                maxUvs.Add(max);
+            }
         }
 
-        if (maxUvs.Count == 0) return Alert.None(AlertType.Uv);
+        if (maxUvs.Count == 0)
+        {
+            return Alert.None(AlertType.Uv);
+        }
 
         var median = Median(maxUvs);
         var (level, severity) = median switch
@@ -311,7 +421,9 @@ public static class AlertEvaluator
         ModelSnapshot snapshot, string location, TimeProvider timeProvider)
     {
         if (Temperature is null || Dewpoint is null || WindSpeed is null || Humidity is null)
+        {
             return Alert.None(AlertType.Fog);
+        }
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
@@ -320,9 +432,17 @@ public static class AlertEvaluator
 
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
+
             var points = PointsInWindow(forecast.Hourly, now, end);
-            if (points.Count == 0) continue;
+            if (points.Count == 0)
+            {
+                continue;
+            }
+
             modelCount++;
 
             var fogHours = 0;
@@ -341,7 +461,10 @@ public static class AlertEvaluator
             fogHourCounts.Add(fogHours);
         }
 
-        if (modelCount == 0) return Alert.None(AlertType.Fog);
+        if (modelCount == 0)
+        {
+            return Alert.None(AlertType.Fog);
+        }
 
         var agreeing = fogHourCounts.Count(c => c > 0);
         var confidence = (double)agreeing / modelCount;
@@ -360,7 +483,10 @@ public static class AlertEvaluator
     public static Alert EvaluateSnow(
         ModelSnapshot snapshot, string location, TimeProvider timeProvider)
     {
-        if (Snowfall is null) return Alert.None(AlertType.Snow);
+        if (Snowfall is null)
+        {
+            return Alert.None(AlertType.Snow);
+        }
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
@@ -369,21 +495,33 @@ public static class AlertEvaluator
 
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
+
             var points = PointsInWindow(forecast.Hourly, now, end);
-            if (points.Count == 0) continue;
+            if (points.Count == 0)
+            {
+                continue;
+            }
 
             var sum = 0.0;
             foreach (var p in points)
             {
                 sum += p.Get(Snowfall) ?? 0.0;
                 if (FreezingLevel is not null && p.Get(FreezingLevel) is { } fl)
+                {
                     freezingLevels.Add(fl);
+                }
             }
             sums.Add(sum);
         }
 
-        if (sums.Count == 0) return Alert.None(AlertType.Snow);
+        if (sums.Count == 0)
+        {
+            return Alert.None(AlertType.Snow);
+        }
 
         var agreeing = sums.Count(s => s > 0);
         var confidence = (double)agreeing / sums.Count;
@@ -396,7 +534,10 @@ public static class AlertEvaluator
             > 0 => AlertSeverity.Yellow,
             _ => AlertSeverity.None,
         };
-        if (agreeing == 0) severity = AlertSeverity.None;
+        if (agreeing == 0)
+        {
+            severity = AlertSeverity.None;
+        }
 
         var attrs = new Dictionary<string, object?>
         {
@@ -411,7 +552,10 @@ public static class AlertEvaluator
     public static Alert EvaluatePressureDrop(
         ModelSnapshot snapshot, string location, double dropThreshold, TimeProvider timeProvider)
     {
-        if (PressureMsl is null) return Alert.None(AlertType.PressureDrop);
+        if (PressureMsl is null)
+        {
+            return Alert.None(AlertType.PressureDrop);
+        }
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
@@ -419,9 +563,16 @@ public static class AlertEvaluator
 
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
+
             var points = PointsInWindow(forecast.Hourly, now, end);
-            if (points.Count < 4) continue;
+            if (points.Count < 4)
+            {
+                continue;
+            }
 
             var maxDrop = 0.0;
             for (var i = 3; i < points.Count; i++)
@@ -431,13 +582,19 @@ public static class AlertEvaluator
                 if (earlier is { } e && later is { } l)
                 {
                     var drop = e - l;
-                    if (drop > maxDrop) maxDrop = drop;
+                    if (drop > maxDrop)
+                    {
+                        maxDrop = drop;
+                    }
                 }
             }
             maxDrops.Add(maxDrop);
         }
 
-        if (maxDrops.Count == 0) return Alert.None(AlertType.PressureDrop);
+        if (maxDrops.Count == 0)
+        {
+            return Alert.None(AlertType.PressureDrop);
+        }
 
         var agreeing = maxDrops.Count(d => d >= dropThreshold);
         var confidence = (double)agreeing / maxDrops.Count;
@@ -459,7 +616,9 @@ public static class AlertEvaluator
         TimeProvider timeProvider)
     {
         if (Cape is null || Precipitation is null || WindGusts is null)
+        {
             return Alert.None(AlertType.Thunderstorm);
+        }
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
@@ -468,9 +627,17 @@ public static class AlertEvaluator
 
         foreach (var (key, forecast) in snapshot.Entries)
         {
-            if (key.Location != location) continue;
+            if (key.Location != location)
+            {
+                continue;
+            }
+
             var points = PointsInWindow(forecast.Hourly, now, end);
-            if (points.Count == 0) continue;
+            if (points.Count == 0)
+            {
+                continue;
+            }
+
             modelCount++;
 
             var met = false;
@@ -486,10 +653,16 @@ public static class AlertEvaluator
                     break;
                 }
             }
-            if (met) meetAll++;
+            if (met)
+            {
+                meetAll++;
+            }
         }
 
-        if (modelCount == 0) return Alert.None(AlertType.Thunderstorm);
+        if (modelCount == 0)
+        {
+            return Alert.None(AlertType.Thunderstorm);
+        }
 
         var confidence = (double)meetAll / modelCount;
         var severity = confidence switch
@@ -514,9 +687,11 @@ public static class AlertEvaluator
 
     private static double Median(List<double> values)
     {
-        if (values.Count == 0) return 0;
-        values.Sort();
-        var mid = values.Count / 2;
-        return values.Count % 2 == 0 ? (values[mid - 1] + values[mid]) / 2.0 : values[mid];
+        if (values.Count == 0)
+        {
+            return 0;
+        }
+
+        return ConsensusComputer.ComputeMedian(values.Select(v => (double?)v).ToList()) ?? 0;
     }
 }

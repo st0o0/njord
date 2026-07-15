@@ -126,7 +126,9 @@ public sealed class MqttConnectionActorSpec : IDisposable
         {
             var attempt = Interlocked.Increment(ref _connectCalls);
             if (attempt <= _failConnectCount)
+            {
                 return Task.FromException(new InvalidOperationException($"Simulated connect failure #{attempt}"));
+            }
 
             _onMessage = onMessage;
             return Task.CompletedTask;

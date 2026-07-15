@@ -61,6 +61,8 @@ public sealed class NjordAppHostFixture : IAsyncLifetime
     {
         GrpcChannel?.Dispose();
         if (_app is not null)
+        {
             await _app.DisposeAsync();
+        }
     }
 }

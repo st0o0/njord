@@ -29,7 +29,7 @@ public sealed class ModelStateActorSpec : IDisposable
         Models = ["icon_d2"],
     };
 
-    private IActorRef CreateModelStateActor(TimeProvider? timeProvider = null)
+    private IActorRef CreateModelStateActor()
     {
         var options = DefaultOptions();
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
@@ -37,7 +37,6 @@ public sealed class ModelStateActorSpec : IDisposable
         return _system.ActorOf(Props.Create(() => new ModelStateActor(
             Microsoft.Extensions.Options.Options.Create(options),
             parameters,
-            timeProvider ?? new FakeTimeProvider(Anchor),
             NullLogger<ModelStateActor>.Instance)));
     }
 

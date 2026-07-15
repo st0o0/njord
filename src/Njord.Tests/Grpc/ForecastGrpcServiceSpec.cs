@@ -32,16 +32,24 @@ public sealed class ForecastGrpcServiceSpec : IDisposable
         var registry = ActorRegistry.For(_system);
 
         if (forecastActor is not null)
+        {
             registry.Register<ForecastSnapshotActor>(forecastActor, overwrite: true);
+        }
         else
+        {
             registry.Register<ForecastSnapshotActor>(
                 _system.ActorOf(Props.Create(() => new EmptyForecastActor())), overwrite: true);
+        }
 
         if (enrichmentActor is not null)
+        {
             registry.Register<EnrichmentSnapshotActor>(enrichmentActor, overwrite: true);
+        }
         else
+        {
             registry.Register<EnrichmentSnapshotActor>(
                 _system.ActorOf(Props.Create(() => new EmptyEnrichmentActor())), overwrite: true);
+        }
 
         return new ForecastGrpcService(
             Microsoft.Extensions.Options.Options.Create(options), registry, _system);

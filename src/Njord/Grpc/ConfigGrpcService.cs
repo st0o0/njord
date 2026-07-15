@@ -121,10 +121,14 @@ public sealed class ConfigGrpcService : V1.ConfigService.ConfigServiceBase
             var options = CloneOptions(_optionsMonitor.CurrentValue);
 
             if (string.IsNullOrWhiteSpace(request.Name))
+            {
                 return Rejected("Location name is required");
+            }
 
             if (options.Locations.Any(l => l.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase)))
+            {
                 return Rejected("Location already exists");
+            }
 
             options.Locations.Add(new LocationOptions
             {
@@ -136,7 +140,9 @@ public sealed class ConfigGrpcService : V1.ConfigService.ConfigServiceBase
 
             var budget = BudgetValidator.Validate(options);
             if (!budget.WithinBudget)
+            {
                 return Rejected($"Would exceed budget: {budget.UsagePercent:F0}% of monthly limit");
+            }
 
             await _persistence.SaveAsync(options);
             return Success(options, budget);
@@ -158,10 +164,14 @@ public sealed class ConfigGrpcService : V1.ConfigService.ConfigServiceBase
                 .FirstOrDefault(l => l.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase));
 
             if (existing is null)
+            {
                 return Rejected("Location not found");
+            }
 
             if (options.Locations.Count == 1 && !request.Force)
+            {
                 return Rejected("Cannot remove the last location without force=true");
+            }
 
             options.Locations.Remove(existing);
 
@@ -186,18 +196,30 @@ public sealed class ConfigGrpcService : V1.ConfigService.ConfigServiceBase
                 .FirstOrDefault(l => l.Name.Equals(request.Name, StringComparison.OrdinalIgnoreCase));
 
             if (existing is null)
+            {
                 return Rejected("Location not found");
+            }
 
             if (request.HasLatitude)
+            {
                 existing.Latitude = request.Latitude;
+            }
+
             if (request.HasLongitude)
+            {
                 existing.Longitude = request.Longitude;
+            }
+
             if (request.Models.Count > 0)
+            {
                 existing.Models = [.. request.Models];
+            }
 
             var budget = BudgetValidator.Validate(options);
             if (!budget.WithinBudget)
+            {
                 return Rejected($"Would exceed budget: {budget.UsagePercent:F0}% of monthly limit");
+            }
 
             await _persistence.SaveAsync(options);
             return Success(options, budget);
@@ -219,22 +241,32 @@ public sealed class ConfigGrpcService : V1.ConfigService.ConfigServiceBase
             if (request.HasPollIntervalSeconds)
             {
                 if (request.PollIntervalSeconds < 60)
+                {
                     return Rejected("Poll interval must be at least 60 seconds");
+                }
+
                 options.PollInterval = TimeSpan.FromSeconds(request.PollIntervalSeconds);
             }
 
             if (request.HasForecastDays)
             {
                 if (request.ForecastDays is < 1 or > 16)
+                {
                     return Rejected("Forecast days must be between 1 and 16");
+                }
+
                 options.ForecastDays = request.ForecastDays;
             }
 
             if (request.Horizons.Count > 0)
+            {
                 options.Horizons = [.. request.Horizons];
+            }
 
             if (request.DefaultModels.Count > 0)
+            {
                 options.Models = [.. request.DefaultModels];
+            }
 
             if (request.Parameters is not null)
             {
@@ -248,7 +280,9 @@ public sealed class ConfigGrpcService : V1.ConfigService.ConfigServiceBase
 
             var budget = BudgetValidator.Validate(options);
             if (!budget.WithinBudget)
+            {
                 return Rejected($"Would exceed budget: {budget.UsagePercent:F0}% of monthly limit");
+            }
 
             await _persistence.SaveAsync(options);
             return Success(options, budget);
@@ -269,59 +303,168 @@ public sealed class ConfigGrpcService : V1.ConfigService.ConfigServiceBase
 
             if (request.Consensus is { } consensus)
             {
-                if (consensus.HasEnabled) options.Enrichment.Consensus.Enabled = consensus.Enabled;
-                if (consensus.HasMethod) options.Enrichment.Consensus.Method = consensus.Method;
-                if (consensus.HasTrimPercent) options.Enrichment.Consensus.TrimPercent = consensus.TrimPercent;
+                if (consensus.HasEnabled)
+                {
+                    options.Enrichment.Consensus.Enabled = consensus.Enabled;
+                }
+
+                if (consensus.HasMethod)
+                {
+                    options.Enrichment.Consensus.Method = consensus.Method;
+                }
+
+                if (consensus.HasTrimPercent)
+                {
+                    options.Enrichment.Consensus.TrimPercent = consensus.TrimPercent;
+                }
             }
 
             if (request.Alerts is { } alerts)
             {
-                if (alerts.HasEnabled) options.Enrichment.Alerts.Enabled = alerts.Enabled;
-                if (alerts.HasFrostThreshold) options.Enrichment.Alerts.FrostThreshold = alerts.FrostThreshold;
-                if (alerts.HeatThresholds.Count > 0) options.Enrichment.Alerts.HeatThresholds = [.. alerts.HeatThresholds];
-                if (alerts.HasStormGustThreshold) options.Enrichment.Alerts.StormGustThreshold = alerts.StormGustThreshold;
-                if (alerts.HasHeavyRainHourlyThreshold) options.Enrichment.Alerts.HeavyRainHourlyThreshold = alerts.HeavyRainHourlyThreshold;
-                if (alerts.HasHeavyRainDailyThreshold) options.Enrichment.Alerts.HeavyRainDailyThreshold = alerts.HeavyRainDailyThreshold;
-                if (alerts.HasPressureDropThreshold) options.Enrichment.Alerts.PressureDropThreshold = alerts.PressureDropThreshold;
-                if (alerts.HasCapeThreshold) options.Enrichment.Alerts.CapeThreshold = alerts.CapeThreshold;
-                if (alerts.HasThunderstormPrecipThreshold) options.Enrichment.Alerts.ThunderstormPrecipThreshold = alerts.ThunderstormPrecipThreshold;
-                if (alerts.HasThunderstormGustThreshold) options.Enrichment.Alerts.ThunderstormGustThreshold = alerts.ThunderstormGustThreshold;
+                if (alerts.HasEnabled)
+                {
+                    options.Enrichment.Alerts.Enabled = alerts.Enabled;
+                }
+
+                if (alerts.HasFrostThreshold)
+                {
+                    options.Enrichment.Alerts.FrostThreshold = alerts.FrostThreshold;
+                }
+
+                if (alerts.HeatThresholds.Count > 0)
+                {
+                    options.Enrichment.Alerts.HeatThresholds = [.. alerts.HeatThresholds];
+                }
+
+                if (alerts.HasStormGustThreshold)
+                {
+                    options.Enrichment.Alerts.StormGustThreshold = alerts.StormGustThreshold;
+                }
+
+                if (alerts.HasHeavyRainHourlyThreshold)
+                {
+                    options.Enrichment.Alerts.HeavyRainHourlyThreshold = alerts.HeavyRainHourlyThreshold;
+                }
+
+                if (alerts.HasHeavyRainDailyThreshold)
+                {
+                    options.Enrichment.Alerts.HeavyRainDailyThreshold = alerts.HeavyRainDailyThreshold;
+                }
+
+                if (alerts.HasPressureDropThreshold)
+                {
+                    options.Enrichment.Alerts.PressureDropThreshold = alerts.PressureDropThreshold;
+                }
+
+                if (alerts.HasCapeThreshold)
+                {
+                    options.Enrichment.Alerts.CapeThreshold = alerts.CapeThreshold;
+                }
+
+                if (alerts.HasThunderstormPrecipThreshold)
+                {
+                    options.Enrichment.Alerts.ThunderstormPrecipThreshold = alerts.ThunderstormPrecipThreshold;
+                }
+
+                if (alerts.HasThunderstormGustThreshold)
+                {
+                    options.Enrichment.Alerts.ThunderstormGustThreshold = alerts.ThunderstormGustThreshold;
+                }
             }
 
             if (request.Derived is { } derived)
             {
-                if (derived.HasEnabled) options.Enrichment.Derived.Enabled = derived.Enabled;
+                if (derived.HasEnabled)
+                {
+                    options.Enrichment.Derived.Enabled = derived.Enabled;
+                }
             }
 
             if (request.Trends is { } trends)
             {
-                if (trends.HasEnabled) options.Enrichment.Trends.Enabled = trends.Enabled;
+                if (trends.HasEnabled)
+                {
+                    options.Enrichment.Trends.Enabled = trends.Enabled;
+                }
             }
 
             if (request.Indices is { } indices)
             {
-                if (indices.HasEnabled) options.Enrichment.Indices.Enabled = indices.Enabled;
-                if (indices.HasHeatingBaseTemp) options.Enrichment.Indices.HeatingBaseTemp = indices.HeatingBaseTemp;
-                if (indices.HasCoolingBaseTemp) options.Enrichment.Indices.CoolingBaseTemp = indices.CoolingBaseTemp;
-                if (indices.HasIndoorTemp) options.Enrichment.Indices.IndoorTemp = indices.IndoorTemp;
+                if (indices.HasEnabled)
+                {
+                    options.Enrichment.Indices.Enabled = indices.Enabled;
+                }
+
+                if (indices.HasHeatingBaseTemp)
+                {
+                    options.Enrichment.Indices.HeatingBaseTemp = indices.HeatingBaseTemp;
+                }
+
+                if (indices.HasCoolingBaseTemp)
+                {
+                    options.Enrichment.Indices.CoolingBaseTemp = indices.CoolingBaseTemp;
+                }
+
+                if (indices.HasIndoorTemp)
+                {
+                    options.Enrichment.Indices.IndoorTemp = indices.IndoorTemp;
+                }
             }
 
             if (request.Energy is { } energy)
             {
-                if (energy.HasEnabled) options.Enrichment.Energy.Enabled = energy.Enabled;
-                if (energy.HasFlowTemp) options.Enrichment.Energy.FlowTemp = energy.FlowTemp;
-                if (energy.HasCarnotEfficiency) options.Enrichment.Energy.CarnotEfficiency = energy.CarnotEfficiency;
-                if (energy.HasHeatingBaseTemp) options.Enrichment.Energy.HeatingBaseTemp = energy.HeatingBaseTemp;
-                if (energy.HasCopOptimalHours) options.Enrichment.Energy.CopOptimalHours = energy.CopOptimalHours;
-                if (energy.HasIndoorTemp) options.Enrichment.Energy.IndoorTemp = energy.IndoorTemp;
+                if (energy.HasEnabled)
+                {
+                    options.Enrichment.Energy.Enabled = energy.Enabled;
+                }
+
+                if (energy.HasFlowTemp)
+                {
+                    options.Enrichment.Energy.FlowTemp = energy.FlowTemp;
+                }
+
+                if (energy.HasCarnotEfficiency)
+                {
+                    options.Enrichment.Energy.CarnotEfficiency = energy.CarnotEfficiency;
+                }
+
+                if (energy.HasHeatingBaseTemp)
+                {
+                    options.Enrichment.Energy.HeatingBaseTemp = energy.HeatingBaseTemp;
+                }
+
+                if (energy.HasCopOptimalHours)
+                {
+                    options.Enrichment.Energy.CopOptimalHours = energy.CopOptimalHours;
+                }
+
+                if (energy.HasIndoorTemp)
+                {
+                    options.Enrichment.Energy.IndoorTemp = energy.IndoorTemp;
+                }
             }
 
             if (request.History is { } history)
             {
-                if (history.HasEnabled) options.Enrichment.History.Enabled = history.Enabled;
-                if (history.HasRetentionDays) options.Enrichment.History.RetentionDays = history.RetentionDays;
-                if (history.HasMinSampleSize) options.Enrichment.History.MinSampleSize = history.MinSampleSize;
-                if (history.HasSnapshotInterval) options.Enrichment.History.SnapshotInterval = history.SnapshotInterval;
+                if (history.HasEnabled)
+                {
+                    options.Enrichment.History.Enabled = history.Enabled;
+                }
+
+                if (history.HasRetentionDays)
+                {
+                    options.Enrichment.History.RetentionDays = history.RetentionDays;
+                }
+
+                if (history.HasMinSampleSize)
+                {
+                    options.Enrichment.History.MinSampleSize = history.MinSampleSize;
+                }
+
+                if (history.HasSnapshotInterval)
+                {
+                    options.Enrichment.History.SnapshotInterval = history.SnapshotInterval;
+                }
             }
 
             var budget = BudgetValidator.Validate(options);

@@ -10,11 +10,15 @@ internal sealed class MqttConnectionHealthCheck(NjordHealthState state, TimeProv
         HealthCheckContext context, CancellationToken cancellationToken = default)
     {
         if (state.IsMqttConnected)
+        {
             return Task.FromResult(HealthCheckResult.Healthy("MQTT connected"));
+        }
 
         var disconnectedSince = state.MqttDisconnectedSince;
         if (disconnectedSince is null)
+        {
             return Task.FromResult(HealthCheckResult.Degraded("MQTT not yet connected"));
+        }
 
         var elapsed = timeProvider.GetUtcNow() - disconnectedSince.Value;
 
