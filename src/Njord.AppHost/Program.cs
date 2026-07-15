@@ -1,4 +1,15 @@
+using System.Net;
+using System.Net.Sockets;
 using Microsoft.Extensions.Configuration;
+
+static int FindFreePort()
+{
+    using var listener = new TcpListener(IPAddress.Loopback, 0);
+    listener.Start();
+    var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+    listener.Stop();
+    return port;
+}
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -11,17 +22,28 @@ var mosquitto = builder.AddContainer("mosquitto", "eclipse-mosquitto", "2")
 
 var mqttEndpoint = mosquitto.GetEndpoint("mqtt");
 
-builder.AddContainer("mqtt-explorer", "smeagolworms4/mqtt-explorer", "latest")
-    .WithHttpEndpoint(targetPort: 4000, name: "http")
-    .WithEnvironment("CONFIG_CONNECTIONS_0_NAME", "njord-local")
-    .WithEnvironment("CONFIG_CONNECTIONS_0_HOST", mqttEndpoint.Property(EndpointProperty.Host))
-    .WithEnvironment("CONFIG_CONNECTIONS_0_PORT", mqttEndpoint.Property(EndpointProperty.Port))
-    .WaitFor(mosquitto);
+var wireMock = builder.AddContainer("wiremock", "sheyenrath/wiremock.net-alpine", "latest")
+    .WithHttpEndpoint(targetPort: 80, name: "http");
 
+var wireMockEndpoint = wireMock.GetEndpoint("http");
+
+var grpcPort = FindFreePort();
 var njord = builder.AddProject<Projects.Njord>("njord")
+    .WithHttpEndpoint(name: "http")
+    .WithEndpoint("grpc", e =>
+    {
+        e.IsProxied = false;
+        e.Port = grpcPort;
+        e.UriScheme = "http";
+    })
+    .WithEnvironment("Njord__Grpc__Port", grpcPort.ToString())
     .WithEnvironment("Njord__Mqtt__Host", mqttEndpoint.Property(EndpointProperty.Host))
     .WithEnvironment("Njord__Mqtt__Port", mqttEndpoint.Property(EndpointProperty.Port))
-    .WaitFor(mosquitto);
+    .WithEnvironment("Njord__OpenMeteoBaseUrl", wireMockEndpoint)
+    .WithEnvironment("Njord__PollInterval", "01:00:00")
+    .WithEnvironment("Njord__PersistencePath", Path.Combine(Path.GetTempPath(), $"njord-test-{Guid.NewGuid():N}.db"))
+    .WaitFor(mosquitto)
+    .WaitFor(wireMock);
 
 if (usePostgres)
 {

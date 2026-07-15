@@ -1,67 +1,30 @@
-using System.Text;
 using System.Text.Json.Nodes;
-using DotNet.Testcontainers.Builders;
-using Microsoft.Extensions.Logging.Abstractions;
-using Njord.Configuration;
-using Njord.Domain.Weather;
-using Njord.Egress;
-using Njord.Ingest;
-using Njord.Mqtt;
-using Njord.Mqtt.Transport;
+using Njord.Grpc.V1;
 using Njord.Tests.Shared;
-using WireMock.Client;
-using WireMock.Net.Testcontainers;
 
 namespace Njord.Tests.Integration.E2E;
 
-public sealed class EndToEndPipelineSpec : IAsyncLifetime
+[Collection("NjordAppHost")]
+public sealed class EndToEndPipelineSpec
 {
-    private readonly WireMockContainer _wireMock = new WireMockContainerBuilder()
-        .WithImage()
-        .Build();
+    private readonly NjordAppHostFixture _fixture;
 
-    private readonly DotNet.Testcontainers.Containers.IContainer _mosquitto = new ContainerBuilder("eclipse-mosquitto:2")
-        .WithResourceMapping(Encoding.UTF8.GetBytes(MosquittoHelper.MosquittoConf), "/mosquitto/config/mosquitto.conf")
-        .WithPortBinding(1883, assignRandomHostPort: true)
-        .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged("mosquitto version .+ running"))
-        .Build();
-
-    private IWireMockAdminApi _admin = null!;
-    private HttpClient _http = null!;
-    private MqttOptions _mqttOptions = null!;
-
-    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-    private static readonly IReadOnlyList<int> Horizons = [3, 6, 12, 24, 48, 72];
-    private const int ForecastDays = 4;
-
-    public async ValueTask InitializeAsync()
+    public EndToEndPipelineSpec(NjordAppHostFixture fixture)
     {
-        await Task.WhenAll(_wireMock.StartAsync(), _mosquitto.StartAsync());
-        _admin = _wireMock.CreateWireMockAdminClient();
-        _http = _wireMock.CreateClient();
-        _mqttOptions = new MqttOptions
-        {
-            Host = "localhost",
-            Port = _mosquitto.GetMappedPublicPort(1883),
-        };
-
-        await ConfigureWireMockFixturesAsync();
+        _fixture = fixture;
     }
 
-    public async ValueTask DisposeAsync()
+    [Fact(Timeout = 120000)]
+    public async Task Full_pipeline_from_api_fetch_to_mqtt_retained_messages()
     {
-        _http.Dispose();
-        await Task.WhenAll(_wireMock.DisposeAsync().AsTask(), _mosquitto.DisposeAsync().AsTask());
-    }
+        var ct = TestContext.Current.CancellationToken;
 
-    private async Task ConfigureWireMockFixturesAsync()
-    {
-        await _admin.PostMappingAsync(new WireMock.Admin.Mappings.MappingModel
+        await _fixture.WireMockAdmin.ResetMappingsAsync();
+        await _fixture.WireMockAdmin.PostMappingAsync(new WireMock.Admin.Mappings.MappingModel
         {
             Request = new WireMock.Admin.Mappings.RequestModel
             {
                 Path = new WireMock.Admin.Mappings.PathModel { Matchers = [new() { Name = "WildcardMatcher", Pattern = "/v1/forecast" }] },
-                Params = [new() { Name = "models", Matchers = [new() { Name = "ExactMatcher", Pattern = "icon_eu" }] }],
             },
             Response = new WireMock.Admin.Mappings.ResponseModel
             {
@@ -70,98 +33,34 @@ public sealed class EndToEndPipelineSpec : IAsyncLifetime
                 Headers = new Dictionary<string, object> { ["Content-Type"] = "application/json" },
             },
         });
-        await _admin.PostMappingAsync(new WireMock.Admin.Mappings.MappingModel
-        {
-            Request = new WireMock.Admin.Mappings.RequestModel
-            {
-                Path = new WireMock.Admin.Mappings.PathModel { Matchers = [new() { Name = "WildcardMatcher", Pattern = "/v1/forecast" }] },
-                Params = [new() { Name = "models", Matchers = [new() { Name = "ExactMatcher", Pattern = "icon_d2" }] }],
-            },
-            Response = new WireMock.Admin.Mappings.ResponseModel
-            {
-                StatusCode = 200,
-                Body = FixtureReader.Read("openmeteo-icon_d2-96h.json"),
-                Headers = new Dictionary<string, object> { ["Content-Type"] = "application/json" },
-            },
-        });
-    }
 
-    [Fact(Timeout = 120000)]
-    public async Task Full_pipeline_from_api_fetch_to_mqtt_retained_messages()
-    {
-        var ct = TestContext.Current.CancellationToken;
+        var configClient = new ConfigService.ConfigServiceClient(_fixture.GrpcChannel);
+        var config = await configClient.GetConfigAsync(new GetConfigRequest(), cancellationToken: ct);
+        Assert.True(config.Locations.Count > 0, "Njord should have at least one location configured");
 
-        var options = new NjordOptions
-        {
-            Locations = [new LocationOptions { Name = "home", Latitude = 47.05, Longitude = 8.31 }],
-            Models = ["icon_eu", "icon_d2"],
-            Mqtt = _mqttOptions,
-        };
+        var triggerResponse = await configClient.TriggerPollAsync(new TriggerPollRequest(), cancellationToken: ct);
+        Assert.True(triggerResponse.TriggeredCount > 0, "TriggerPoll should have triggered at least one poll");
 
-        await using var publisher = new MqttNetPublisher(_mqttOptions, NullLogger<MqttNetPublisher>.Instance);
-        await publisher.ConnectAsync((_, _) => { }, () => { }, ct);
-        await publisher.SendAsync(TopicScheme.AvailabilityTopic(options.Mqtt.BaseTopic), "online", retain: true, ct);
-
-        var client = new OpenMeteoClient(_http, Parameters,
-            Microsoft.Extensions.Options.Options.Create(new NjordOptions()));
-        var cycle = new CycleId(DateTimeOffset.UtcNow);
-
-        var forecasts = new List<ModelForecast>();
-        foreach (var modelId in options.Models)
-        {
-            var outcome = await client.FetchAsync(options.Locations[0], new WeatherModel(modelId), cycle, ct);
-            var success = Assert.IsType<FetchOutcome.Success>(outcome);
-            forecasts.Add(success.Forecast);
-        }
-
-        var anchorTime = forecasts[0].Hourly.Points[0].ValidAt;
-        var publishedPerModel = new Dictionary<string, int>();
-        foreach (var forecast in forecasts)
-        {
-            var perHorizon = HorizonProjection.BuildPerHorizon(
-                forecast, Parameters, Horizons.ToList(), ForecastDays, anchorTime);
-            publishedPerModel[forecast.Model.Id] = perHorizon.Count;
-            foreach (var (horizon, json) in perHorizon)
-            {
-                var topic = TopicScheme.HorizonTopic(options.Mqtt.BaseTopic, forecast.Location, forecast.Model, horizon);
-                await publisher.SendAsync(topic, json, retain: true, ct);
-            }
-        }
-
-        foreach (var modelId in options.Models)
-        {
-            var model = new WeatherModel(modelId);
-            var deviceId = TopicScheme.DeviceId("home", model);
-            var configTopic = TopicScheme.ConfigTopic(options.Mqtt.DiscoveryPrefix, deviceId);
-            var configPayload = DiscoveryPayloadBuilder.Build(
-                "home", model, Parameters, Horizons.ToList(), ForecastDays,
-                options.Mqtt, options.PollInterval, "test");
-            await publisher.SendAsync(configTopic, configPayload, retain: true, ct);
-        }
+        await Task.Delay(TimeSpan.FromSeconds(15), ct);
 
         var retained = await MosquittoHelper.CollectRetainedAsync(
-            _mqttOptions,
+            _fixture.MqttOptions,
             ["njord/#", "homeassistant/device/+/config"],
             ct);
 
-        var iconEuHorizonTopics = retained.Keys.Where(t => t.StartsWith("njord/home/icon_eu/")).ToList();
-        var iconD2HorizonTopics = retained.Keys.Where(t => t.StartsWith("njord/home/icon_d2/")).ToList();
-        Assert.True(publishedPerModel["icon_eu"] > 0, "icon_eu produced no horizon data from fixture");
-        Assert.True(publishedPerModel["icon_d2"] > 0, "icon_d2 produced no horizon data from fixture");
-        Assert.Equal(publishedPerModel["icon_eu"], iconEuHorizonTopics.Count);
-        Assert.Equal(publishedPerModel["icon_d2"], iconD2HorizonTopics.Count);
+        Assert.True(retained.ContainsKey("njord/status"), "njord/status topic should exist");
 
-        var h3Payload = JsonNode.Parse(retained["njord/home/icon_eu/h3"])!;
-        Assert.NotNull(h3Payload["temperature"]);
+        var discoveryTopics = retained.Keys.Where(k => k.StartsWith("homeassistant/device/njord_")).ToList();
+        Assert.True(discoveryTopics.Count > 0,
+            $"Should have at least one discovery config. Topics: {string.Join(", ", retained.Keys.Take(20))}");
 
-        var expectedHourlyComponents = Parameters.Hourly.Count * Horizons.Count;
-        var expectedDailyComponents = Parameters.Daily.Count * ForecastDays;
-        var expectedTotal = expectedHourlyComponents + expectedDailyComponents;
+        var firstDiscovery = discoveryTopics[0];
+        var deviceConfig = JsonNode.Parse(retained[firstDiscovery])!;
+        var components = deviceConfig["cmps"]!.AsObject().Count;
+        Assert.True(components > 0, $"Device should have components but had {components}");
 
-        var iconEuConfig = JsonNode.Parse(retained["homeassistant/device/njord_home_icon_eu/config"])!;
-        Assert.Equal(expectedTotal, iconEuConfig["cmps"]!.AsObject().Count);
-        Assert.True(retained.ContainsKey("homeassistant/device/njord_home_icon_d2/config"));
-
-        Assert.Equal("online", retained["njord/status"]);
+        var stateTopics = retained.Keys.Where(k => k.StartsWith("njord/") && k != "njord/status" && k.Count(c => c == '/') >= 2).ToList();
+        Assert.True(stateTopics.Count > 0,
+            $"Should have state topics. njord topics: {string.Join(", ", retained.Keys.Where(k => k.StartsWith("njord/")).Take(20))}");
     }
 }

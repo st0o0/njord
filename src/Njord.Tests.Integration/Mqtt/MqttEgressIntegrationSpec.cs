@@ -1,6 +1,4 @@
-using System.Text;
 using System.Text.Json.Nodes;
-using DotNet.Testcontainers.Builders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Configuration;
 using Njord.Domain.Weather;
@@ -10,20 +8,21 @@ using Njord.Tests.Shared;
 
 namespace Njord.Tests.Integration.Mqtt;
 
+[Collection("NjordAppHost")]
 public sealed class MqttEgressIntegrationSpec
 {
+    private readonly NjordAppHostFixture _fixture;
+
+    public MqttEgressIntegrationSpec(NjordAppHostFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
     [Fact(Timeout = 120000)]
     public async Task The_full_egress_round_trip_works_against_a_real_broker()
     {
         var ct = TestContext.Current.CancellationToken;
-
-        await using var container = new ContainerBuilder("eclipse-mosquitto:2")
-            .WithResourceMapping(Encoding.UTF8.GetBytes(MosquittoHelper.MosquittoConf), "/mosquitto/config/mosquitto.conf")
-            .WithPortBinding(1883, assignRandomHostPort: true)
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged("mosquitto version .+ running"))
-            .Build();
-        await container.StartAsync(ct);
-        var mqttOptions = new MqttOptions { Host = "localhost", Port = container.GetMappedPublicPort(1883) };
+        var mqttOptions = _fixture.MqttOptions;
 
         var options = new NjordOptions
         {
@@ -32,9 +31,10 @@ public sealed class MqttEgressIntegrationSpec
             Mqtt = mqttOptions,
         };
 
+        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+
         await using var mqttClient = new MqttNetPublisher(mqttOptions, NullLogger<MqttNetPublisher>.Instance);
         await mqttClient.ConnectAsync((_, _) => { }, () => { }, ct);
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
         await mqttClient.SendAsync(TopicScheme.AvailabilityTopic(options.Mqtt.BaseTopic), "online", retain: true, ct);
 
@@ -57,9 +57,11 @@ public sealed class MqttEgressIntegrationSpec
             var model = new WeatherModel(modelId);
             var deviceId = TopicScheme.DeviceId("home", model);
             var configTopic = TopicScheme.ConfigTopic(options.Mqtt.DiscoveryPrefix, deviceId);
+            var allParams = parameters.Hourly.Concat(parameters.Daily).ToHashSet();
             var configPayload = DiscoveryPayloadBuilder.Build(
-                "home", model, parameters, options.Horizons.ToList(), options.ForecastDays,
-                options.Mqtt, options.PollInterval, "test");
+                "home", model, parameters, options.Horizons.ToList(),
+                Enumerable.Range(0, options.ForecastDays).ToList(),
+                allParams, options.Mqtt, options.PollInterval, "test");
             await mqttClient.SendAsync(configTopic, configPayload, retain: true, ct);
         }
 

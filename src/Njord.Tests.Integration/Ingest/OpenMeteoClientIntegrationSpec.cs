@@ -3,18 +3,13 @@ using Njord.Domain.Weather;
 using Njord.Ingest;
 using Njord.Tests.Shared;
 using WireMock.Client;
-using WireMock.Net.Testcontainers;
 
 namespace Njord.Tests.Integration.Ingest;
 
-public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
+[Collection("NjordAppHost")]
+public sealed class OpenMeteoClientIntegrationSpec
 {
-    private readonly WireMockContainer _container = new WireMockContainerBuilder()
-        .WithImage()
-        .Build();
-
-    private IWireMockAdminApi _admin = null!;
-    private HttpClient _http = null!;
+    private readonly NjordAppHostFixture _fixture;
 
     private static readonly DateTimeOffset Run = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
     private static readonly CycleId Cycle = new(Run);
@@ -23,27 +18,23 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
     private static readonly ResolvedParameterSet DefaultParameters = ParameterRegistry.Resolve(["Weather"], [], []);
     private static readonly DateTimeOffset FixtureStart = DateTimeOffset.FromUnixTimeSeconds(1_783_728_000);
 
-    public async ValueTask InitializeAsync()
+    public OpenMeteoClientIntegrationSpec(NjordAppHostFixture fixture)
     {
-        await _container.StartAsync();
-        _admin = _container.CreateWireMockAdminClient();
-        _http = _container.CreateClient();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        _http.Dispose();
-        await _container.DisposeAsync();
+        _fixture = fixture;
     }
 
     private OpenMeteoClient CreateClient(ResolvedParameterSet? parameters = null)
-        => new(_http, parameters ?? DefaultParameters,
+    {
+        var http = new HttpClient { BaseAddress = new Uri(_fixture.WireMockBaseUrl) };
+        return new OpenMeteoClient(http, parameters ?? DefaultParameters,
             Microsoft.Extensions.Options.Options.Create(new NjordOptions()));
+    }
 
     [Fact(Timeout = 60000)]
     public async Task Successful_fetch_through_real_http_connection()
     {
-        await _admin.PostMappingAsync(new WireMock.Admin.Mappings.MappingModel
+        await _fixture.WireMockAdmin.ResetMappingsAsync();
+        await _fixture.WireMockAdmin.PostMappingAsync(new WireMock.Admin.Mappings.MappingModel
         {
             Request = new WireMock.Admin.Mappings.RequestModel
             {
@@ -56,7 +47,7 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
                 Body = FixtureReader.Read("openmeteo-icon_eu-96h.json"),
                 Headers = new Dictionary<string, object> { ["Content-Type"] = "application/json" },
             },
-        }, TestContext.Current.CancellationToken);
+        });
 
         var client = CreateClient();
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
@@ -72,7 +63,8 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
     [Fact(Timeout = 60000)]
     public async Task Request_url_contains_correct_query_parameters()
     {
-        await _admin.PostMappingAsync(new WireMock.Admin.Mappings.MappingModel
+        await _fixture.WireMockAdmin.ResetMappingsAsync();
+        await _fixture.WireMockAdmin.PostMappingAsync(new WireMock.Admin.Mappings.MappingModel
         {
             Request = new WireMock.Admin.Mappings.RequestModel
             {
@@ -84,13 +76,15 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
                 Body = FixtureReader.Read("openmeteo-icon_eu-96h.json"),
                 Headers = new Dictionary<string, object> { ["Content-Type"] = "application/json" },
             },
-        }, TestContext.Current.CancellationToken);
+        });
+
+        await _fixture.WireMockAdmin.DeleteRequestsAsync();
 
         var client = CreateClient();
         await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        var requests = await _admin.GetRequestsAsync();
-        var request = Assert.Single(requests);
+        var requests = await _fixture.WireMockAdmin.GetRequestsAsync();
+        var request = requests.Last();
         var url = request.Request!.Url!;
         Assert.Contains("latitude=47.05", url);
         Assert.Contains("longitude=8.31", url);
@@ -104,8 +98,8 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
     [Fact(Timeout = 60000)]
     public async Task Http_429_maps_to_rate_limited_through_real_http()
     {
-        await _admin.ResetMappingsAsync();
-        await _admin.PostMappingAsync(new WireMock.Admin.Mappings.MappingModel
+        await _fixture.WireMockAdmin.ResetMappingsAsync();
+        await _fixture.WireMockAdmin.PostMappingAsync(new WireMock.Admin.Mappings.MappingModel
         {
             Request = new WireMock.Admin.Mappings.RequestModel
             {
@@ -117,7 +111,7 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
                 Body = """{"error":true,"reason":"Too many requests"}""",
                 Headers = new Dictionary<string, object> { ["Content-Type"] = "application/json" },
             },
-        }, TestContext.Current.CancellationToken);
+        });
 
         var client = CreateClient();
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
@@ -129,8 +123,8 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
     [Fact(Timeout = 60000)]
     public async Task Http_400_maps_to_model_unavailable_through_real_http()
     {
-        await _admin.ResetMappingsAsync();
-        await _admin.PostMappingAsync(new WireMock.Admin.Mappings.MappingModel
+        await _fixture.WireMockAdmin.ResetMappingsAsync();
+        await _fixture.WireMockAdmin.PostMappingAsync(new WireMock.Admin.Mappings.MappingModel
         {
             Request = new WireMock.Admin.Mappings.RequestModel
             {
@@ -142,7 +136,7 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
                 Body = """{"reason":"No data is available for this location","error":true}""",
                 Headers = new Dictionary<string, object> { ["Content-Type"] = "application/json" },
             },
-        }, TestContext.Current.CancellationToken);
+        });
 
         var client = CreateClient();
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
@@ -155,8 +149,8 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
     [Fact(Timeout = 60000)]
     public async Task Icon_d2_fixture_trims_null_tail_to_64_points()
     {
-        await _admin.ResetMappingsAsync();
-        await _admin.PostMappingAsync(new WireMock.Admin.Mappings.MappingModel
+        await _fixture.WireMockAdmin.ResetMappingsAsync();
+        await _fixture.WireMockAdmin.PostMappingAsync(new WireMock.Admin.Mappings.MappingModel
         {
             Request = new WireMock.Admin.Mappings.RequestModel
             {
@@ -168,7 +162,7 @@ public sealed class OpenMeteoClientIntegrationSpec : IAsyncLifetime
                 Body = FixtureReader.Read("openmeteo-icon_d2-96h.json"),
                 Headers = new Dictionary<string, object> { ["Content-Type"] = "application/json" },
             },
-        }, TestContext.Current.CancellationToken);
+        });
 
         var client = CreateClient();
         var outcome = await client.FetchAsync(Home, new WeatherModel("icon_d2"), Cycle, TestContext.Current.CancellationToken);

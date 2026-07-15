@@ -5,6 +5,7 @@ ARG VERSION=0.0.0-dev
 WORKDIR /src
 # Restore first so the NuGet layer caches independently of source changes
 COPY src/global.json src/Directory.Build.props src/Directory.Packages.props ./
+COPY protos/ /protos/
 COPY src/Njord/Njord.csproj Njord/
 COPY src/Njord.ServiceDefaults/Njord.ServiceDefaults.csproj Njord.ServiceDefaults/
 RUN dotnet restore Njord/Njord.csproj
@@ -19,8 +20,7 @@ LABEL org.opencontainers.image.title="njord" \
       org.opencontainers.image.source="https://github.com/st0o0/njord" \
       org.opencontainers.image.documentation="https://github.com/st0o0/njord#readme"
 WORKDIR /app
+COPY --from=build --chown=$APP_UID /app .
 VOLUME /app/data
-ENV ASPNETCORE_URLS=http://+:8080
-EXPOSE 8080
-COPY --from=build /app .
+EXPOSE 8080 8081
 ENTRYPOINT ["dotnet", "Njord.dll"]
