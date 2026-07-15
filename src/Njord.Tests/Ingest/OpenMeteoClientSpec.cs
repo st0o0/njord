@@ -22,10 +22,11 @@ public sealed class OpenMeteoClientSpec
 
     private static (OpenMeteoClient Client, RecordingHandler Handler) CreateClient(
         Func<HttpRequestMessage, HttpResponseMessage> respond,
-        ResolvedParameterSet? parameters = null)
+        ResolvedParameterSet? parameters = null,
+        string? baseUrl = null)
     {
         var handler = new RecordingHandler(respond);
-        var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.open-meteo.com/") };
+        var http = new HttpClient(handler) { BaseAddress = new Uri(baseUrl ?? "https://api.open-meteo.com/") };
         return (new OpenMeteoClient(http, parameters ?? DefaultParameters,
             Microsoft.Extensions.Options.Options.Create(new NjordOptions())), handler);
     }
@@ -161,6 +162,69 @@ public sealed class OpenMeteoClientSpec
     }
 
     [Fact(Timeout = 5000)]
+    public async Task Daily_timestring_unix_timestamps_are_converted_to_iso_8601()
+    {
+        var body = """
+            {
+              "hourly_units": { "time": "unixtime", "temperature_2m": "°C" },
+              "hourly": { "time": [1783728000], "temperature_2m": [20.2] },
+              "daily": { "time": [1783728000], "sunrise": [1783746180], "sunset": [1783799400] }
+            }
+            """;
+        var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, body));
+
+        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+
+        var success = Assert.IsType<FetchOutcome.Success>(outcome);
+        var dailyPoint = success.Forecast.Daily.Points[0];
+        var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
+        var sunriseVal = dailyPoint.GetMeta(sunrise);
+        Assert.NotNull(sunriseVal);
+        Assert.Contains("2026-07-11T", sunriseVal);
+        Assert.EndsWith("+00:00", sunriseVal);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Daily_timestring_string_values_are_passed_through()
+    {
+        var body = """
+            {
+              "hourly_units": { "time": "unixtime", "temperature_2m": "°C" },
+              "hourly": { "time": [1783728000], "temperature_2m": [20.2] },
+              "daily": { "time": [1783728000], "sunrise": ["2026-07-11T05:23"] }
+            }
+            """;
+        var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, body));
+
+        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+
+        var success = Assert.IsType<FetchOutcome.Success>(outcome);
+        var dailyPoint = success.Forecast.Daily.Points[0];
+        var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
+        Assert.Equal("2026-07-11T05:23", dailyPoint.GetMeta(sunrise));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Daily_timestring_null_values_are_preserved_as_null()
+    {
+        var body = """
+            {
+              "hourly_units": { "time": "unixtime", "temperature_2m": "°C" },
+              "hourly": { "time": [1783728000], "temperature_2m": [20.2] },
+              "daily": { "time": [1783728000], "sunrise": [null] }
+            }
+            """;
+        var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, body));
+
+        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+
+        var success = Assert.IsType<FetchOutcome.Success>(outcome);
+        var dailyPoint = success.Forecast.Daily.Points[0];
+        var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
+        Assert.Null(dailyPoint.GetMeta(sunrise));
+    }
+
+    [Fact(Timeout = 5000)]
     public async Task Missing_arrays_are_treated_as_null_values()
     {
         var body = """
@@ -179,6 +243,20 @@ public sealed class OpenMeteoClientSpec
         var windSpeed = ParameterRegistry.GetByApiName("wind_speed_10m")!;
         Assert.Equal(20.2, point.Get(temp));
         Assert.Null(point.Get(windSpeed));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Custom_base_url_is_applied_to_requests()
+    {
+        var customUrl = "http://wiremock.local:8080/";
+        var (client, handler) = CreateClient(
+            _ => Json(HttpStatusCode.OK, Fixture("openmeteo-icon_eu-96h.json")),
+            baseUrl: customUrl);
+
+        await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.StartsWith(customUrl, request.RequestUri!.ToString());
     }
 
     private sealed class RecordingHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
