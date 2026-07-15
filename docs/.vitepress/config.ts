@@ -1,12 +1,14 @@
 import { defineConfig } from 'vitepress'
+import { withLikeC4 } from '@leberkas-org/vitepress-likec4'
 
-export default defineConfig({
+export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, defineConfig({
   base: '/njord/',
   title: 'njord',
   description: 'Open-Meteo weather API → MQTT bridge for Home Assistant',
-  head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }]],
+  head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/njord/logo.svg' }]],
 
   themeConfig: {
+    logo: '/logo.svg',
     nav: [
       { text: 'Guide', link: '/getting-started' },
       { text: 'Config', link: '/configuration/' },
@@ -19,6 +21,7 @@ export default defineConfig({
         text: 'Guide',
         items: [
           { text: 'Getting Started', link: '/getting-started' },
+          { text: 'Architecture', link: '/architecture' },
           { text: 'Home Assistant', link: '/home-assistant' },
         ],
       },
@@ -56,4 +59,4 @@ export default defineConfig({
 
     search: { provider: 'local' },
   },
-})
+}))

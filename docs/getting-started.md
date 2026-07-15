@@ -98,6 +98,12 @@ mosquitto_sub -h 192.168.1.100 -u mqtt-user -P mqtt-pass -t 'homeassistant/devic
 
 After the first poll cycle (up to 60 minutes), check Settings > Devices & Services > MQTT. You should see devices named `njord home icon_eu` and `njord home ecmwf_ifs025`, each with sensors for every parameter and horizon.
 
+## How it works
+
+<likec4-view view-id="index"></likec4-view>
+
+njord polls the Open-Meteo API on a configurable interval, processes forecasts through an enrichment pipeline, and publishes everything to your MQTT broker. Home Assistant discovers the devices and sensors automatically. See the [Architecture](/architecture) page for a deeper look.
+
 ## Next steps
 
 - [Configuration overview](/configuration/) — all available options

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="currentColor" role="img" aria-label="njord">
+  <g transform="translate(24,24)">
+    <polygon points="0,-20 -2.8,-8 0,-5 2.8,-8"/>
+    <polygon points="0,-20 -2.8,-8 0,-5 2.8,-8" transform="rotate(90)"/>
+    <polygon points="0,-20 -2.8,-8 0,-5 2.8,-8" transform="rotate(180)"/>
+    <polygon points="0,-20 -2.8,-8 0,-5 2.8,-8" transform="rotate(270)"/>
+    <polygon points="0,-14 -2,-7 0,-5 2,-7" transform="rotate(45)"/>
+    <polygon points="0,-14 -2,-7 0,-5 2,-7" transform="rotate(135)"/>
+    <polygon points="0,-14 -2,-7 0,-5 2,-7" transform="rotate(225)"/>
+    <polygon points="0,-14 -2,-7 0,-5 2,-7" transform="rotate(315)"/>
+    <circle r="2.5"/>
+    <circle r="22" fill="none" stroke="currentColor" stroke-width="1"/>
+  </g>
+</svg>

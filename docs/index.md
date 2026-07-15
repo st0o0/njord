@@ -5,6 +5,9 @@ hero:
   name: njord
   text: Weather forecasts in Home Assistant
   tagline: Open-Meteo weather API → MQTT bridge for Home Assistant
+  image:
+    src: /logo.svg
+    alt: njord
   actions:
     - theme: brand
       text: Getting Started

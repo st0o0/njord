@@ -1,0 +1,117 @@
+model {
+  openMeteo = externalSystem 'Open-Meteo API' {
+    description 'Free weather forecast API — ICON, ECMWF, GFS, UKMO, and 50+ models'
+  }
+
+  njord = system 'njord' {
+    description '.NET service on Akka.NET + Akka.Streams'
+
+    ingest = container 'Ingest' {
+      #ingest
+      description 'Open-Meteo client, response parsing, DTO mapping'
+
+      openMeteoClient = component 'OpenMeteoClient' {
+        #ingest
+        description 'HTTP client — builds requests, deserializes JSON responses'
+      }
+      responseParser = component 'ResponseParser' {
+        #ingest
+        description 'Maps raw API responses to domain ModelForecast objects'
+      }
+    }
+
+    domain = container 'Domain' {
+      #domain
+      description 'Forecast model, enrichment, analysis'
+
+      forecastModel = component 'ModelForecast' {
+        #domain
+        description 'Per-model forecast data — hourly and daily series'
+      }
+      enrichment = component 'Enrichment' {
+        #domain
+        description 'Consensus, alerts, trends, derived values, indices, energy'
+      }
+    }
+
+    egress = container 'Egress' {
+      #egress
+      description 'MQTT publishing, HA discovery payloads'
+
+      discoveryBuilder = component 'DiscoveryPayloadBuilder' {
+        #egress
+        description 'Builds retained device config payloads for HA MQTT Discovery'
+      }
+      statePublisher = component 'StatePublisher' {
+        #egress
+        description 'Publishes forecast state JSON per device per horizon'
+      }
+    }
+
+    pipeline = container 'Pipeline' {
+      #pipeline
+      description 'Akka.Streams graph — tick to MQTT'
+
+      tickSource = component 'TickSource' {
+        #pipeline
+        description 'Periodic timer based on PollInterval'
+      }
+      fanOut = component 'FanOut' {
+        #pipeline
+        description 'Expands tick into per-location-model request pairs'
+      }
+      throttle = component 'Throttle' {
+        #pipeline
+        description 'Rate-limits requests to stay within API budget'
+      }
+      httpStage = component 'HTTP' {
+        #pipeline
+        description 'Executes Open-Meteo API calls via OpenMeteoClient'
+      }
+      aggregate = component 'Aggregate' {
+        #pipeline
+        description 'Groups responses by poll cycle with timeout and quorum'
+      }
+      enrichStage = component 'Enrich' {
+        #pipeline
+        description 'Runs enrichment pipeline on aggregated forecasts'
+      }
+      mqttSink = component 'MQTT Sink' {
+        #pipeline
+        description 'Publishes state and discovery payloads to broker'
+      }
+    }
+
+    persistence = dataStore 'SQLite' {
+      description 'Journal for forecast history and scheduler state'
+    }
+  }
+
+  mqttBroker = dataStore 'MQTT Broker' {
+    description 'Mosquitto — retained state and discovery topics'
+  }
+
+  homeAssistant = externalSystem 'Home Assistant' {
+    description 'Discovers njord devices and sensors via MQTT'
+  }
+
+  // System-level relationships
+  openMeteo -> njord 'forecast data'
+  njord -> mqttBroker 'state + discovery'
+  mqttBroker -> homeAssistant 'MQTT Discovery'
+
+  // Internal relationships
+  openMeteoClient -> openMeteo 'HTTP GET /v1/forecast'
+  openMeteoClient -> responseParser 'raw JSON'
+  responseParser -> forecastModel 'ModelForecast'
+  forecastModel -> enrichment 'per-cycle data'
+  enrichment -> discoveryBuilder 'enriched results'
+  enrichment -> statePublisher 'enriched results'
+  discoveryBuilder -> mqttBroker 'retained config'
+  statePublisher -> mqttBroker 'state JSON'
+
+  // Pipeline flow
+  tickSource -> fanOut 'tick'  fanOut -> throttle 'request pairs'  throttle -> httpStage 'throttled requests'  httpStage -> aggregate 'responses'  aggregate -> enrichStage 'cycle batch'  enrichStage -> mqttSink 'publish commands'
+  // Persistence
+  enrichment -> persistence 'history read/write'
+}

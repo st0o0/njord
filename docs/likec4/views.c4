@@ -1,0 +1,31 @@
+views {
+  view index {
+    title 'Open-Meteo → njord → Home Assistant'
+    include openMeteo, njord, mqttBroker, homeAssistant
+    autoLayout LeftRight
+  }
+
+  view internals {
+    title 'Three-zone architecture'
+    include
+      njord,
+      njord.ingest,
+      njord.domain,
+      njord.egress,
+      njord.persistence,
+      openMeteo,
+      mqttBroker,
+      homeAssistant
+    autoLayout LeftRight
+  }
+
+  view pipeline {
+    title 'Akka.Streams poll pipeline'
+    include
+      njord.pipeline,
+      njord.pipeline.*,
+      openMeteo,
+      mqttBroker
+    autoLayout LeftRight
+  }
+}

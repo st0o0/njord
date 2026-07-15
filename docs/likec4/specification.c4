@@ -1,0 +1,37 @@
+specification {
+  element externalSystem {
+    style {
+      color muted
+    }
+  }
+
+  element system {
+    style {
+      color blue
+    }
+  }
+
+  element container {
+    style {
+      color sky
+    }
+  }
+
+  element component {
+    style {
+      color secondary
+    }
+  }
+
+  element dataStore {
+    style {
+      shape cylinder
+      color green
+    }
+  }
+
+  tag ingest
+  tag domain
+  tag egress
+  tag pipeline
+}

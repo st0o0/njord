@@ -1,11 +1,39 @@
-# njord
+<p align="center">
+  <img src="docs/public/logo.svg" width="120" alt="njord" />
+</p>
 
-Open-Meteo weather API → MQTT bridge for Home Assistant.
+<h1 align="center">njord</h1>
 
-A .NET service (Docker container) built on Akka.NET + Akka.Streams that polls
+<p align="center">
+  Multi-model weather forecasts in Home Assistant — powered by Open-Meteo
+</p>
+
+<p align="center">
+  <a href="https://github.com/st0o0/njord/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License" /></a>
+  <img src="https://img.shields.io/badge/.NET-9.0-512bd4" alt=".NET 9" />
+  <a href="https://st0o0.github.io/njord/"><img src="https://img.shields.io/badge/docs-st0o0.github.io%2Fnjord-2563eb" alt="Docs" /></a>
+</p>
+
+---
+
+A .NET service (Docker container) built on [Akka.NET](https://getakka.net/) + Akka.Streams that polls
 the [Open-Meteo API](https://open-meteo.com/en/docs) for multiple weather models
 per location and publishes everything as Home Assistant entities via
 [MQTT Discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
+
+## Features
+
+- **50+ weather models** — ICON, ECMWF, GFS, UKMO, MeteoSwiss, and regional models from Open-Meteo
+- **Multiple locations** — configure as many locations as you need, each with its own model selection
+- **Enrichment pipeline** — consensus forecasts, weather alerts, trends, derived values, energy management, and more
+- **Auto-discovery** — devices and sensors appear in Home Assistant automatically via MQTT Discovery
+- **Single container** — runs on any Docker host with SQLite persistence by default, no external database needed
+
+## Architecture
+
+<p align="center">
+  <img src="docs/public/index.png" alt="njord architecture" />
+</p>
 
 ## Quick Start
 
@@ -15,44 +43,34 @@ services:
   njord:
     image: ghcr.io/st0o0/njord:latest
     restart: unless-stopped
-    ports:
-      - "8080:8080"
+    volumes:
+      - njord-data:/app/data
     environment:
       - Njord__Mqtt__Host=<your-mosquitto-host>
-      # - Njord__Mqtt__Username=
-      # - Njord__Mqtt__Password=
       - Njord__Locations__0__Name=home
       - Njord__Locations__0__Latitude=47.05
       - Njord__Locations__0__Longitude=8.31
+
+volumes:
+  njord-data:
 ```
 
 ```bash
 docker compose up -d
 ```
 
-## Configuration
+After the first poll cycle (up to 60 minutes), check **Settings > Devices & Services > MQTT** in Home Assistant.
 
-### Locations
+## Documentation
 
-Add multiple locations via indexed environment variables:
+Full documentation is available at **[st0o0.github.io/njord](https://st0o0.github.io/njord/)** — including:
 
-```
-Njord__Locations__0__Name=home
-Njord__Locations__0__Latitude=47.05
-Njord__Locations__0__Longitude=8.31
-Njord__Locations__1__Name=office
-Njord__Locations__1__Latitude=47.37
-Njord__Locations__1__Longitude=8.54
-```
-
-### Weather Models
-
-Default models: `icon_d2`, `icon_eu`, `icon_global`, `ecmwf_ifs025`,
-`gfs_seamless`, `ukmo_global_deterministic_10km`, `meteoswiss_icon_ch1`,
-`meteoswiss_icon_ch2`.
-
-Each model creates a device in Home Assistant with sensors per weather parameter
-and forecast horizon.
+- [Getting Started](https://st0o0.github.io/njord/getting-started) — installation and minimal setup
+- [Configuration](https://st0o0.github.io/njord/configuration/) — all available options
+- [Model Catalog](https://st0o0.github.io/njord/models) — choosing the right weather models
+- [Home Assistant](https://st0o0.github.io/njord/home-assistant) — entity naming, dashboards, automations
+- [Architecture](https://st0o0.github.io/njord/architecture) — system design and data flow
+- [Config Builder](https://st0o0.github.io/njord/builder) — interactive configuration generator
 
 ## Build & Test
 
@@ -60,26 +78,9 @@ All commands run from `src/`:
 
 ```powershell
 dotnet build Njord.slnx
-dotnet run --project Njord.Tests/Njord.Tests.csproj   # xUnit v3 via MTP — not `dotnet test`
-```
-
-## Structure
-
-```
-njord/
-├── openspec/            # OpenSpec — specs & change proposals
-├── src/
-│   ├── Njord/           # Service
-│   ├── Njord.Tests/     # Unit tests (xUnit v3, Microsoft.Testing.Platform)
-│   ├── Njord.slnx       # Solution
-│   ├── Directory.Build.props
-│   ├── Directory.Packages.props
-│   └── global.json
-├── Dockerfile
-├── docker-compose.yml
-└── README.md
+dotnet run --project Njord.Tests/Njord.Tests.csproj   # xUnit v3 via MTP
 ```
 
 ## License
 
-Private project — not licensed for redistribution.
+[MIT](LICENSE) — weather data from [Open-Meteo](https://open-meteo.com/) is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
