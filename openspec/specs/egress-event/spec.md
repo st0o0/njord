@@ -11,8 +11,7 @@ Protocol-neutral egress layer: `EgressEvent` is the discriminated union carrying
 The system SHALL define `EgressEvent` as an abstract record in `Njord.Egress`
 with the following sealed variants:
 
-- `PerModelUpdate(string Location, WeatherModel Model,
-  IReadOnlyDictionary<string, string> HorizonPayloads)` — unchanged.
+- `PerModelUpdate(string Location, WeatherModel Model, ModelForecast Forecast)` — carries the typed domain forecast, not serialized JSON.
 - `EnrichmentUpdate(string Location, string TypeName, object Result)` —
   replaces the 7 type-specific enrichment records (`ConsensusUpdate`,
   `AlertUpdate`, `DerivedUpdate`, `TrendUpdate`, `IndexUpdate`,
@@ -39,10 +38,9 @@ and calling `feature.ToStateMessages(result, baseTopic)`.
   and call `feature.ToStateMessages(result, baseTopic)` to produce MQTT
   messages
 
-#### Scenario: PerModelUpdate is unchanged
+#### Scenario: PerModelUpdate carries typed ModelForecast
 - **WHEN** `ModelStateActor` produces a per-model update
-- **THEN** it SHALL still emit `EgressEvent.PerModelUpdate` with the same
-  structure as before
+- **THEN** it SHALL emit `EgressEvent.PerModelUpdate` with the `ModelForecast` domain object, not serialized horizon payloads
 
 ### Requirement: EgressActor materializes a MergeHub and BroadcastHub for EgressEvent
 
@@ -70,16 +68,16 @@ The `EgressActor` SHALL pre-materialize the MergeHub and BroadcastHub in `PreSta
 
 ### Requirement: ModelStateActor produces PerModelUpdate events
 
-The `ModelStateActor` (renamed from `MqttPublisherActor`) SHALL reside in `Njord.Egress`, subscribe to the Pipeline BroadcastHub via `ISourceRef<FetchOutcome>`, transform `FetchOutcome.Success` into `EgressEvent.PerModelUpdate`, and send them into the EgressActor's MergeHub via `ISinkRef<EgressEvent>`. It SHALL NOT reference any types from `Njord.Mqtt`.
+The `ModelStateActor` (renamed from `MqttPublisherActor`) SHALL reside in `Njord.Egress`, subscribe to the Pipeline BroadcastHub via `ISourceRef<FetchOutcome>`, transform `FetchOutcome.Success` into `EgressEvent.PerModelUpdate`, and send them into the EgressActor's MergeHub via `ISinkRef<EgressEvent>`. It SHALL NOT reference any types from `Njord.Mqtt`. Additionally, after each successful fetch, it SHALL track which parameters the model delivered with non-null values and send a `ModelCapabilityLearned` message to the `DiscoveryActor` when the tracked set changes.
 
 #### Scenario: Successful fetch produces PerModelUpdate
 - **WHEN** `ModelStateActor` receives a `FetchOutcome.Success` from the pipeline
-- **THEN** it SHALL compute per-horizon payloads via `HorizonProjection.BuildPerHorizon` and emit an `EgressEvent.PerModelUpdate` with the location, model, and horizon data
-
-#### Scenario: Unchanged data is deduplicated
-- **WHEN** `ModelStateActor` receives a `FetchOutcome.Success` whose per-horizon payloads are identical to the previously emitted values for the same (location, model, horizon)
-- **THEN** it SHALL NOT emit an `EgressEvent.PerModelUpdate`
+- **THEN** it SHALL emit an `EgressEvent.PerModelUpdate` with the location, model, and `ModelForecast` domain object
 
 #### Scenario: Fetch failures are dropped
 - **WHEN** `ModelStateActor` receives a `FetchOutcome.Failure`
 - **THEN** it SHALL NOT emit any `EgressEvent`
+
+#### Scenario: First successful fetch sends capability message
+- **WHEN** `ModelStateActor` processes the first `FetchOutcome.Success` for a (location, model) pair
+- **THEN** it SHALL send a `ModelCapabilityLearned` message to the `DiscoveryActor` with the observed supported parameters and applicable horizons

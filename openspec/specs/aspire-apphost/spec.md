@@ -2,12 +2,12 @@
 
 ## Purpose
 
-Aspire AppHost orchestration for local development -- starts Mosquitto, MQTT Explorer, and njord with the correct wiring, supporting both SQLite (default) and PostgreSQL launch profiles.
+Aspire AppHost orchestration for test infrastructure -- starts Mosquitto, WireMock, and njord with the correct wiring for integration and E2E tests.
 
 ## Requirements
 
 ### Requirement: Aspire AppHost project exists
-The solution SHALL contain an Aspire AppHost project at `src/Njord.AppHost/` using `Aspire.AppHost.Sdk/13.0.0`. The project SHALL be included in `Njord.slnx` and SHALL reference the `Njord` service project.
+The solution SHALL contain an Aspire AppHost project at `src/Njord.AppHost/` using `Aspire.AppHost.Sdk`. The project SHALL be included in `Njord.slnx` and SHALL reference the `Njord` service project. The AppHost is used exclusively for test infrastructure.
 
 #### Scenario: AppHost builds successfully
 - **WHEN** `dotnet build` is run on the AppHost project
@@ -28,17 +28,6 @@ The AppHost SHALL start an Eclipse Mosquitto v2 container with a bind-mounted co
 - **WHEN** the Mosquitto container starts
 - **THEN** it uses a `mosquitto.conf` file with `listener 1883` and `allow_anonymous true`
 
-### Requirement: MQTT Explorer container
-The AppHost SHALL start an MQTT Explorer container (`smeagolworms4/mqtt-explorer`) with an HTTP endpoint exposed for browser access. The explorer SHALL be pre-configured to connect to the Mosquitto broker via environment variables.
-
-#### Scenario: MQTT Explorer is accessible
-- **WHEN** the AppHost is running
-- **THEN** MQTT Explorer is accessible via HTTP in a browser and shows the Mosquitto broker's topic tree
-
-#### Scenario: MQTT Explorer auto-connects to Mosquitto
-- **WHEN** MQTT Explorer starts
-- **THEN** it connects to the Mosquitto broker without manual configuration
-
 ### Requirement: njord project orchestration
 The AppHost SHALL run njord as a project reference with `Njord__Mqtt__Host` and `Njord__Mqtt__Port` injected from the Mosquitto container's endpoint. njord SHALL wait for the Mosquitto container before starting.
 
@@ -51,26 +40,23 @@ The AppHost SHALL run njord as a project reference with `Njord__Mqtt__Host` and 
 - **WHEN** the AppHost starts
 - **THEN** njord does not attempt to start before the Mosquitto container is ready
 
-### Requirement: SQLite launch profile (default)
-The AppHost SHALL provide a `sqlite` launch profile that starts njord with SQLite persistence. This SHALL be the default profile. No PostgreSQL container is started.
+### Requirement: WireMock container in AppHost
+The AppHost SHALL start a WireMock container (`wiremock/wiremock:latest`) with an HTTP endpoint exposed on port 8080. The container SHALL be named `wiremock`.
 
-#### Scenario: Default profile uses SQLite
-- **WHEN** the AppHost is launched without specifying a profile
-- **THEN** njord uses SQLite persistence at `data/njord-journal.db`
-- **AND** no PostgreSQL container is started
+#### Scenario: WireMock accepts admin API requests
+- **WHEN** the AppHost is running
+- **THEN** the WireMock container SHALL be accessible via HTTP and respond to `/__admin/mappings` requests
 
-### Requirement: PostgreSQL launch profile
-The AppHost SHALL provide a `postgres` launch profile that starts a PostgreSQL container and injects `Njord__Persistence__Provider=PostgreSql` and the connection string into njord. njord SHALL wait for the PostgreSQL container.
+### Requirement: Njord receives WireMock endpoint as OpenMeteoBaseUrl
+The AppHost SHALL inject the WireMock container's HTTP endpoint as `Njord__OpenMeteoBaseUrl` into the Njord project. Njord SHALL wait for both Mosquitto and WireMock before starting.
 
-#### Scenario: Postgres profile starts database
-- **WHEN** the AppHost is launched with the `postgres` profile
-- **THEN** a PostgreSQL container is started
-- **AND** njord receives the PostgreSQL connection string
-- **AND** njord uses PostgreSQL as its persistence provider
+#### Scenario: Njord uses WireMock as API backend
+- **WHEN** the AppHost starts Njord
+- **THEN** Njord's Open-Meteo client SHALL send requests to the WireMock container instead of `api.open-meteo.com`
 
-#### Scenario: Postgres profile does not start in sqlite mode
-- **WHEN** the AppHost is launched with the `sqlite` profile
-- **THEN** no PostgreSQL container is started
+#### Scenario: Njord waits for WireMock
+- **WHEN** the AppHost starts
+- **THEN** Njord does not attempt to start before the WireMock container is ready
 
 ### Requirement: Aspire packages use Central Package Management
 All Aspire NuGet package versions SHALL be declared in `src/Directory.Packages.props`, not in the AppHost csproj. The AppHost csproj SHALL contain only `PackageReference` entries without `Version` attributes.

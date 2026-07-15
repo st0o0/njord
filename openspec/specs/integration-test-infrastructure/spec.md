@@ -1,18 +1,18 @@
 ## Purpose
 
-Container-based integration test infrastructure: WireMock for Open-Meteo API simulation, Mosquitto for MQTT broker testing, and shared fixtures for deterministic end-to-end pipeline verification.
+Aspire-based integration test infrastructure: WireMock for Open-Meteo API simulation, Mosquitto for MQTT broker testing, and shared Aspire fixture for deterministic end-to-end pipeline verification.
 
 ## Requirements
 
 ### Requirement: WireMock container fixture for Open-Meteo simulation
-The test project SHALL provide a shared WireMock container fixture that starts a `wiremock/wiremock` Docker container and exposes a configurable base URL for `OpenMeteoClient` integration tests. The fixture SHALL serve the existing JSON fixture files (`openmeteo-icon_eu-96h.json`, `openmeteo-icon_d2-96h.json`) as canned responses for matching request paths.
+The test infrastructure SHALL provide access to a WireMock instance managed by the Aspire AppHost fixture. Tests SHALL configure WireMock responses via the `IWireMockAdminApi` client using the fixture's exposed admin URL. The fixture SHALL serve the existing JSON fixture files (`openmeteo-icon_eu-96h.json`, `openmeteo-icon_d2-96h.json`) as canned responses when configured by individual tests.
 
-#### Scenario: WireMock container starts and serves fixture responses
-- **WHEN** a test class using the WireMock fixture is instantiated
-- **THEN** a WireMock container SHALL be running on a random port with the base URL accessible via the fixture
+#### Scenario: WireMock is available via shared fixture
+- **WHEN** a test class using the Aspire fixture accesses the WireMock admin API
+- **THEN** WireMock SHALL be running and accepting mapping configurations
 
 #### Scenario: WireMock responds with fixture JSON for matching model requests
-- **WHEN** an HTTP GET request matches `/v1/forecast` with `models=icon_eu`
+- **WHEN** a test configures WireMock to respond to `/v1/forecast` with `models=icon_eu`
 - **THEN** WireMock SHALL respond with HTTP 200 and the contents of `openmeteo-icon_eu-96h.json`
 
 #### Scenario: WireMock can simulate error responses
@@ -20,7 +20,7 @@ The test project SHALL provide a shared WireMock container fixture that starts a
 - **THEN** subsequent requests to that path SHALL receive HTTP 429
 
 ### Requirement: OpenMeteoClient integration tests against WireMock
-The test project SHALL include integration tests that exercise `OpenMeteoClient` against a real WireMock HTTP server, validating request construction and response parsing over a real network connection.
+The test project SHALL include integration tests that exercise `OpenMeteoClient` against the Aspire-managed WireMock instance, validating request construction and response parsing over a real network connection. Tests SHALL use the Njord host's OpenMeteoClient implicitly (for E2E) or create their own client pointing to the fixture's WireMock URL (for component integration tests).
 
 #### Scenario: Successful fetch through real HTTP connection
 - **WHEN** `OpenMeteoClient.FetchAsync` is called with a location and model configured in WireMock
@@ -39,18 +39,18 @@ The test project SHALL include integration tests that exercise `OpenMeteoClient`
 - **THEN** the result SHALL be `FetchOutcome.Failure` with reason `ModelUnavailable`
 
 ### Requirement: Full E2E pipeline integration test
-The test project SHALL include an end-to-end test that exercises the complete data path: WireMock serves forecast JSON → pipeline fetches → domain maps → egress projects → MQTT publishes to a Mosquitto container.
+The test project SHALL include an end-to-end test that boots the full Njord host via the Aspire fixture and exercises the complete data path: WireMock serves forecast JSON -> Njord fetches via pipeline -> domain maps -> egress projects -> MQTT publishes to Mosquitto. The test SHALL trigger the poll cycle via gRPC `TriggerPoll` and assert on MQTT retained messages.
 
 #### Scenario: Single poll cycle produces correct retained MQTT messages
-- **WHEN** a minimal actor system is started with WireMock as API backend and Mosquitto as MQTT broker, and one poll cycle completes for 1 location with 2 models
+- **WHEN** WireMock fixtures are loaded, `TriggerPoll` is called via gRPC, and the test waits for MQTT retained messages
 - **THEN** the Mosquitto broker SHALL have retained messages on the correct horizon state topics with valid JSON payloads containing forecast data
 
 #### Scenario: Discovery device configs are published
-- **WHEN** the E2E test actor system starts
+- **WHEN** the E2E test triggers a poll cycle and the Njord host processes it
 - **THEN** the Mosquitto broker SHALL have retained device config messages under `homeassistant/device/njord_<location>_<model>/config` with the correct component count
 
 #### Scenario: Availability topic reflects online status
-- **WHEN** the E2E test actor system is running and connected to Mosquitto
+- **WHEN** the Njord host is running and connected to Mosquitto
 - **THEN** the `njord/status` topic SHALL contain "online"
 
 ### Requirement: Docker tests run by default
