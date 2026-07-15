@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
+  base: '/njord/',
   title: 'njord',
   description: 'Open-Meteo weather API → MQTT bridge for Home Assistant',
   head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }]],
