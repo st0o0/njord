@@ -89,6 +89,8 @@ internal sealed class HistoryEnrichment : IActorEnrichment
         var expireAfterSeconds = (int)(2 * ctx.PollInterval.TotalSeconds);
         var modelIds = _njordOptions.Models;
 
+        var historyTopic = TopicScheme.EnrichmentTopic(ctx.Mqtt.BaseTopic, location, TypeName);
+
         var components = new JsonObject();
 
         foreach (var modelId in modelIds)
@@ -103,6 +105,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
                     ["p"] = "sensor",
                     ["unique_id"] = $"{deviceId}_{key}",
                     ["name"] = $"{label} {modelId}",
+                    ["state_topic"] = historyTopic,
                     ["expire_after"] = expireAfterSeconds,
                     ["value_template"] = $"{{{{ value_json.{key} }}}}",
                     ["availability"] = new JsonArray(
@@ -117,6 +120,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_seasonal_best",
             ["name"] = "seasonal best model",
+            ["state_topic"] = historyTopic,
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{{ value_json.seasonal_best }}",
             ["availability"] = new JsonArray(
@@ -129,6 +133,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
             ["p"] = "binary_sensor",
             ["unique_id"] = $"{deviceId}_anomaly",
             ["name"] = "anomaly",
+            ["state_topic"] = historyTopic,
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{% if value_json.anomaly == true %}ON{% else %}OFF{% endif %}",
             ["availability"] = new JsonArray(
@@ -141,6 +146,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_anomaly_deviation",
             ["name"] = "anomaly deviation",
+            ["state_topic"] = historyTopic,
             ["unit_of_measurement"] = "σ",
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{{ value_json.anomaly_deviation }}",
@@ -154,6 +160,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_weighted_temperature",
             ["name"] = "weighted temperature",
+            ["state_topic"] = historyTopic,
             ["unit_of_measurement"] = "°C",
             ["device_class"] = "temperature",
             ["expire_after"] = expireAfterSeconds,

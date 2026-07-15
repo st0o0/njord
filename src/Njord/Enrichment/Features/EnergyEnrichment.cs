@@ -58,6 +58,7 @@ internal sealed class EnergyEnrichment : IStatelessEnrichment<EnergyResult>
                 ["p"] = "sensor",
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = key.Replace('_', ' '),
+                ["state_topic"] = energyTopic,
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",
                 ["availability"] = new JsonArray(
@@ -71,6 +72,7 @@ internal sealed class EnergyEnrichment : IStatelessEnrichment<EnergyResult>
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_battery_strategy",
             ["name"] = "battery strategy",
+            ["state_topic"] = energyTopic,
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{{ value_json.battery_strategy }}",
             ["availability"] = new JsonArray(
@@ -83,6 +85,7 @@ internal sealed class EnergyEnrichment : IStatelessEnrichment<EnergyResult>
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_cop_optimal",
             ["name"] = "COP optimal hours",
+            ["state_topic"] = energyTopic,
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{{ value_json.cop_optimal | length }}",
             ["json_attributes_topic"] = energyTopic,

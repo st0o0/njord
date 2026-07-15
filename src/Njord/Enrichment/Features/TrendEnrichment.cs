@@ -52,6 +52,8 @@ internal sealed class TrendEnrichment : IStatefulEnrichment<TrendResult>
         var availabilityTopic = TopicScheme.AvailabilityTopic(ctx.Mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * ctx.PollInterval.TotalSeconds);
 
+        var trendTopic = TopicScheme.EnrichmentTopic(ctx.Mqtt.BaseTopic, location, TypeName);
+
         var components = new JsonObject();
 
         var textSensors = new[]
@@ -71,6 +73,7 @@ internal sealed class TrendEnrichment : IStatefulEnrichment<TrendResult>
                 ["p"] = "sensor",
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = name,
+                ["state_topic"] = trendTopic,
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",
                 ["availability"] = new JsonArray(
@@ -96,6 +99,7 @@ internal sealed class TrendEnrichment : IStatefulEnrichment<TrendResult>
                 ["p"] = "sensor",
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = name,
+                ["state_topic"] = trendTopic,
                 ["unit_of_measurement"] = unit,
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",

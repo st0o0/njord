@@ -72,6 +72,7 @@ internal sealed class DerivedEnrichment : IStatelessEnrichment<DerivedResult>
                     ["p"] = platform,
                     ["unique_id"] = uniqueId,
                     ["name"] = $"{name} +{hours}h",
+                    ["state_topic"] = horizonTopic,
                     ["expire_after"] = expireAfterSeconds,
                     ["value_template"] = $"{{{{ value_json.{key} }}}}",
                     ["availability"] = new JsonArray(
@@ -100,6 +101,7 @@ internal sealed class DerivedEnrichment : IStatelessEnrichment<DerivedResult>
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_diurnal_amplitude",
             ["name"] = "diurnal amplitude",
+            ["state_topic"] = metaTopic,
             ["unit_of_measurement"] = "°C",
             ["device_class"] = "temperature",
             ["expire_after"] = expireAfterSeconds,
@@ -114,6 +116,7 @@ internal sealed class DerivedEnrichment : IStatelessEnrichment<DerivedResult>
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_sunshine_pct",
             ["name"] = "sunshine",
+            ["state_topic"] = metaTopic,
             ["unit_of_measurement"] = "%",
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{{ value_json.sunshine_pct }}",
@@ -127,6 +130,7 @@ internal sealed class DerivedEnrichment : IStatelessEnrichment<DerivedResult>
             ["p"] = "binary_sensor",
             ["unique_id"] = $"{deviceId}_inversion",
             ["name"] = "inversion",
+            ["state_topic"] = metaTopic,
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{% if value_json.inversion == true %}ON{% else %}OFF{% endif %}",
             ["availability"] = new JsonArray(

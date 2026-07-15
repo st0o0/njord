@@ -54,12 +54,14 @@ internal sealed class AlertEnrichment : IStatelessEnrichment<AlertResult>
 
             components[segment.Replace('-', '_')] = new JsonObject
             {
-                ["p"] = "binary_sensor",
+                ["p"] = "sensor",
                 ["unique_id"] = uniqueId,
                 ["name"] = segment,
+                ["state_topic"] = topic,
                 ["expire_after"] = expireAfterSeconds,
-                ["value_template"] = "{% if value_json.severity != 'none' %}ON{% else %}OFF{% endif %}",
+                ["value_template"] = "{{ value_json.severity }}",
                 ["json_attributes_topic"] = topic,
+                ["json_attributes_template"] = "{{ value_json | tojson }}",
                 ["availability"] = new JsonArray(
                     new JsonObject { ["topic"] = availabilityTopic }),
                 ["availability_mode"] = "all",

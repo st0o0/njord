@@ -48,6 +48,8 @@ internal sealed class IndexEnrichment : IStatelessEnrichment<IndexResult>
         var availabilityTopic = TopicScheme.AvailabilityTopic(ctx.Mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * ctx.PollInterval.TotalSeconds);
 
+        var indexTopic = TopicScheme.EnrichmentTopic(ctx.Mqtt.BaseTopic, location, TypeName);
+
         var components = new JsonObject();
 
         var scoreSensors = new[] { "laundry", "outdoor", "running", "cycling", "bbq", "irrigation", "solar", "ventilation" };
@@ -59,6 +61,7 @@ internal sealed class IndexEnrichment : IStatelessEnrichment<IndexResult>
                 ["p"] = "sensor",
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = key.Replace('_', ' '),
+                ["state_topic"] = indexTopic,
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",
                 ["availability"] = new JsonArray(
@@ -74,6 +77,7 @@ internal sealed class IndexEnrichment : IStatelessEnrichment<IndexResult>
                 ["p"] = "sensor",
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = name,
+                ["state_topic"] = indexTopic,
                 ["unit_of_measurement"] = "°Cd",
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",
@@ -95,6 +99,7 @@ internal sealed class IndexEnrichment : IStatelessEnrichment<IndexResult>
                 ["p"] = "sensor",
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = name,
+                ["state_topic"] = indexTopic,
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",
                 ["availability"] = new JsonArray(
@@ -111,6 +116,7 @@ internal sealed class IndexEnrichment : IStatelessEnrichment<IndexResult>
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_vpd_category",
             ["name"] = "VPD category",
+            ["state_topic"] = indexTopic,
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{{ value_json.vpd_category }}",
             ["availability"] = new JsonArray(
