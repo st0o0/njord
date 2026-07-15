@@ -3,6 +3,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
+using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
 using Servus.Akka;
@@ -12,6 +13,10 @@ namespace Njord.Mqtt;
 public sealed class MqttEgressActor : ReceiveActor, IWithStash
 {
     private readonly string _baseTopic;
+    private readonly ResolvedParameterSet _parameters;
+    private readonly IReadOnlyList<int> _horizons;
+    private readonly int _forecastDays;
+    private readonly TimeProvider _timeProvider;
     private readonly ILogger<MqttEgressActor> _logger;
     private readonly Dictionary<string, IEnrichmentFeature> _featuresByType;
 
@@ -23,10 +28,17 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
 
     public MqttEgressActor(
         IOptions<NjordOptions> options,
+        ResolvedParameterSet parameters,
+        TimeProvider timeProvider,
         IEnumerable<IEnrichmentFeature> features,
         ILogger<MqttEgressActor> logger)
     {
-        _baseTopic = options.Value.Mqtt.BaseTopic;
+        var opts = options.Value;
+        _baseTopic = opts.Mqtt.BaseTopic;
+        _parameters = parameters;
+        _horizons = [.. opts.Horizons];
+        _forecastDays = opts.ForecastDays;
+        _timeProvider = timeProvider;
         _logger = logger;
         _featuresByType = features.ToDictionary(f => f.TypeName);
 
@@ -130,10 +142,14 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         }
     }
 
-    private static IReadOnlyList<MqttMessage> MapPerModel(EgressEvent.PerModelUpdate e, string baseTopic)
+    private IReadOnlyList<MqttMessage> MapPerModel(EgressEvent.PerModelUpdate e, string baseTopic)
     {
-        var messages = new List<MqttMessage>(e.HorizonPayloads.Count);
-        foreach (var (horizon, payload) in e.HorizonPayloads)
+        var maxHours = ModelCoverageRegistry.Get(e.Model.Id)?.MaxForecastHours;
+        var perHorizon = HorizonProjection.BuildPerHorizon(
+            e.Forecast, _parameters, _horizons, _forecastDays, _timeProvider.GetUtcNow(), maxHours);
+
+        var messages = new List<MqttMessage>(perHorizon.Count);
+        foreach (var (horizon, payload) in perHorizon)
         {
             var topic = TopicScheme.HorizonTopic(baseTopic, e.Location, e.Model, horizon);
             messages.Add(new MqttMessage(topic, payload, true));

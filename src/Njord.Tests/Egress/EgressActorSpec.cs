@@ -66,7 +66,9 @@ public sealed class EgressActorSpec : IDisposable
     {
         var events = new EgressEvent[]
         {
-            new EgressEvent.PerModelUpdate("loc", new WeatherModel("icon_d2"), new Dictionary<string, string>()),
+            new EgressEvent.PerModelUpdate("loc", new WeatherModel("icon_d2"),
+                new ModelForecast(new WeatherModel("icon_d2"), "loc", new CycleId(DateTimeOffset.UtcNow),
+                    new ForecastSeries([]), DailyForecastSeries.Empty)),
             new EgressEvent.EnrichmentUpdate("loc", "consensus", new ConsensusResult([])),
             new EgressEvent.EnrichmentUpdate("loc", "alerts", new AlertResult("loc", [])),
         };

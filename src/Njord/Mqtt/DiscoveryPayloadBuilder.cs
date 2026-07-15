@@ -11,8 +11,9 @@ public static class DiscoveryPayloadBuilder
         string location,
         WeatherModel model,
         ResolvedParameterSet parameters,
-        IReadOnlyList<int> horizons,
-        int forecastDays,
+        IReadOnlyList<int> applicableHorizons,
+        IReadOnlyList<int> applicableDayOffsets,
+        IReadOnlySet<ParameterDef> supportedParameters,
         MqttOptions mqtt,
         TimeSpan pollInterval,
         string version)
@@ -25,7 +26,10 @@ public static class DiscoveryPayloadBuilder
 
         foreach (var parameter in parameters.Hourly)
         {
-            foreach (var hours in horizons)
+            if (!supportedParameters.Contains(parameter))
+                continue;
+
+            foreach (var hours in applicableHorizons)
             {
                 var horizonTopic = TopicScheme.HorizonTopic(mqtt.BaseTopic, location, model, $"h{hours}");
                 var component = BuildComponent(
@@ -44,7 +48,10 @@ public static class DiscoveryPayloadBuilder
 
         foreach (var parameter in parameters.Daily)
         {
-            for (var d = 0; d < forecastDays; d++)
+            if (!supportedParameters.Contains(parameter))
+                continue;
+
+            foreach (var d in applicableDayOffsets)
             {
                 var horizonTopic = TopicScheme.HorizonTopic(mqtt.BaseTopic, location, model, $"d{d}");
                 var component = BuildComponent(
@@ -163,6 +170,7 @@ public static class DiscoveryPayloadBuilder
                 ["p"] = "binary_sensor",
                 ["unique_id"] = uniqueId,
                 ["name"] = segment,
+                ["state_topic"] = topic,
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = "{% if value_json.severity != 'none' %}ON{% else %}OFF{% endif %}",
                 ["json_attributes_topic"] = topic,
@@ -744,6 +752,7 @@ public static class DiscoveryPayloadBuilder
             ["p"] = "sensor",
             ["unique_id"] = uniqueId,
             ["name"] = name,
+            ["state_topic"] = stateTopic,
             ["unit_of_measurement"] = parameter.Unit,
             ["suggested_display_precision"] = 1,
             ["expire_after"] = expireAfterSeconds,

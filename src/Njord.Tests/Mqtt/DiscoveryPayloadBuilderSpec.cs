@@ -19,10 +19,16 @@ public sealed class DiscoveryPayloadBuilderSpec
         [Temperature, CloudCover],
         [TempMax]);
 
-    private static string Build(int[]? horizons = null, int forecastDays = 4, ResolvedParameterSet? parameters = null)
-        => DiscoveryPayloadBuilder.Build(
-            "home", IconD2, parameters ?? SmallParams,
-            horizons ?? DefaultHorizons, forecastDays, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+    private static string Build(int[]? horizons = null, int[]? dayOffsets = null, ResolvedParameterSet? parameters = null, IReadOnlySet<ParameterDef>? supported = null)
+    {
+        var parms = parameters ?? SmallParams;
+        var allParams = supported ?? parms.Hourly.Concat(parms.Daily).ToHashSet();
+        return DiscoveryPayloadBuilder.Build(
+            "home", IconD2, parms,
+            horizons ?? DefaultHorizons,
+            dayOffsets ?? [0, 1, 2, 3],
+            allParams, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+    }
 
     [Fact(Timeout = 5000)]
     public void The_grid_yields_expected_component_count()
@@ -80,6 +86,36 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("njord/status", (string?)availability[0]!["topic"]);
         Assert.Equal("njord/home/icon_d2/h3", (string?)availability[1]!["topic"]);
         Assert.Contains("value_json.cloud_cover is not none", (string?)availability[1]!["value_template"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Unsupported_parameter_is_excluded_from_components()
+    {
+        var json = JsonNode.Parse(Build(supported: new HashSet<ParameterDef> { Temperature, TempMax }))!;
+        var cmps = json["cmps"]!.AsObject();
+
+        Assert.True(cmps.ContainsKey("temperature_h3"));
+        Assert.False(cmps.ContainsKey("cloud_cover_h3"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Out_of_range_horizon_is_excluded()
+    {
+        var json = JsonNode.Parse(Build(horizons: [3, 6]))!;
+        var cmps = json["cmps"]!.AsObject();
+
+        Assert.True(cmps.ContainsKey("temperature_h3"));
+        Assert.True(cmps.ContainsKey("temperature_h6"));
+        Assert.False(cmps.ContainsKey("temperature_h72"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Empty_supported_set_produces_device_with_no_components()
+    {
+        var json = JsonNode.Parse(Build(supported: new HashSet<ParameterDef>()))!;
+        var cmps = json["cmps"]!.AsObject();
+
+        Assert.Empty(cmps);
     }
 
     [Fact(Timeout = 5000)]

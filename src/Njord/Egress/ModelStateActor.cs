@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Ingest;
+using Njord.Mqtt;
 using Njord.Pipeline;
 using Servus.Akka;
 
@@ -21,6 +22,7 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
     private ISinkRef<EgressEvent>? _egressSinkRef;
     private ISourceRef<FetchOutcome>? _sourceRef;
     private IMaterializer? _mat;
+    private IActorRef? _discoveryActor;
 
     public IStash Stash { get; set; } = null!;
 
@@ -43,6 +45,7 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
     protected override void PreStart()
     {
         _mat = Context.Materializer();
+        _discoveryActor = Context.GetActor<DiscoveryActor>();
 
         var egressActor = Context.GetActor<EgressActor>();
         Context.Watch(egressActor);
@@ -110,35 +113,101 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
         var parameters = _parameters;
         var horizons = _horizons;
         var forecastDays = _forecastDays;
-        var timeProvider = _timeProvider;
-        var lastPublishedHorizon = new Dictionary<(string Location, string ModelId, string Horizon), string>();
+        var discoveryActor = _discoveryActor!;
+        var logger = _logger;
+        var knownCapabilities = new Dictionary<(string Location, string ModelId), HashSet<ParameterDef>>();
 
         _sourceRef!.Source
             .Collect(outcome => outcome is FetchOutcome.Success, outcome => (FetchOutcome.Success)outcome)
             .SelectMany(success =>
             {
                 var forecast = success.Forecast;
-                var perHorizon = HorizonProjection.BuildPerHorizon(
-                    forecast, parameters, horizons, forecastDays, timeProvider.GetUtcNow());
+                var capKey = (forecast.Location, forecast.Model.Id);
+                var maxHours = ModelCoverageRegistry.Get(forecast.Model.Id)?.MaxForecastHours;
 
-                var changed = new Dictionary<string, string>();
-                foreach (var (horizon, payload) in perHorizon)
+                var observedParams = ExtractSupportedParameters(forecast, parameters);
+
+                if (!knownCapabilities.TryGetValue(capKey, out var known))
                 {
-                    var key = (forecast.Location, forecast.Model.Id, horizon);
-                    if (lastPublishedHorizon.TryGetValue(key, out var cached) && cached == payload)
-                        continue;
-
-                    lastPublishedHorizon[key] = payload;
-                    changed[horizon] = payload;
+                    known = new HashSet<ParameterDef>(observedParams);
+                    knownCapabilities[capKey] = known;
+                    SendCapabilityLearned(discoveryActor, forecast, known, horizons, forecastDays, maxHours, logger);
+                }
+                else if (!observedParams.IsSubsetOf(known))
+                {
+                    known.UnionWith(observedParams);
+                    SendCapabilityLearned(discoveryActor, forecast, known, horizons, forecastDays, maxHours, logger);
                 }
 
-                if (changed.Count == 0)
-                    return [];
-
-                return new[] { (EgressEvent)new EgressEvent.PerModelUpdate(forecast.Location, forecast.Model, changed) };
+                return new[] { (EgressEvent)new EgressEvent.PerModelUpdate(forecast.Location, forecast.Model, forecast) };
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
             .RunWith(_egressSinkRef!.Sink, mat);
+    }
+
+    private static HashSet<ParameterDef> ExtractSupportedParameters(
+        ModelForecast forecast, ResolvedParameterSet parameters)
+    {
+        var supported = new HashSet<ParameterDef>();
+
+        foreach (var point in forecast.Hourly.Points)
+        {
+            foreach (var param in parameters.Hourly)
+            {
+                if (point.Get(param) is not null)
+                    supported.Add(param);
+            }
+        }
+
+        foreach (var point in forecast.Daily.Points)
+        {
+            foreach (var param in parameters.Daily)
+            {
+                if (param.ValueType == ParameterValueType.TimeString)
+                {
+                    if (point.GetMeta(param) is not null)
+                        supported.Add(param);
+                }
+                else
+                {
+                    if (point.GetNumeric(param) is not null)
+                        supported.Add(param);
+                }
+            }
+        }
+
+        return supported;
+    }
+
+    private static void SendCapabilityLearned(
+        IActorRef discoveryActor,
+        ModelForecast forecast,
+        HashSet<ParameterDef> supported,
+        IReadOnlyList<int> horizons,
+        int forecastDays,
+        int? maxForecastHours,
+        ILogger logger)
+    {
+        var applicableHorizons = maxForecastHours.HasValue
+            ? horizons.Where(h => h <= maxForecastHours.Value).ToList()
+            : horizons.ToList();
+
+        var maxDays = maxForecastHours.HasValue
+            ? (int)Math.Ceiling(maxForecastHours.Value / 24.0)
+            : forecastDays;
+        var applicableDayOffsets = Enumerable.Range(0, Math.Min(forecastDays, maxDays)).ToList();
+
+        var message = new ModelCapabilityLearned(
+            forecast.Location,
+            forecast.Model,
+            supported.ToHashSet(),
+            applicableHorizons,
+            applicableDayOffsets);
+
+        discoveryActor.Tell(message);
+        logger.LogInformation(
+            "Capability learned for {Location}/{Model}: {ParamCount} parameters, {HorizonCount} horizons",
+            forecast.Location, forecast.Model.Id, supported.Count, applicableHorizons.Count);
     }
 }

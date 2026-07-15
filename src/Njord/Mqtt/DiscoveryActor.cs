@@ -5,14 +5,16 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
+using Njord.Egress;
 using Njord.Enrichment;
 using Njord.Telemetry;
 using Servus.Akka;
 
 namespace Njord.Mqtt;
 
-public sealed class DiscoveryActor : ReceiveActor, IWithStash
+public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
 {
+    public ITimerScheduler Timers { get; set; } = null!;
     private static readonly string Version =
         typeof(DiscoveryActor).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion ?? "unknown";
@@ -21,12 +23,14 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
     private readonly ResolvedParameterSet _parameters;
     private readonly IReadOnlyList<IEnrichmentFeature> _features;
     private readonly ILogger<DiscoveryActor> _logger;
-    private readonly IReadOnlyList<int> _horizons;
     private readonly string _haStatusTopic;
     private readonly bool _discoveryEnabled;
+    private readonly int _expectedModelCount;
 
     private ISourceQueueWithComplete<MqttMessage>? _queue;
     private IMaterializer? _mat;
+    private readonly Dictionary<(string Location, string ModelId), ModelCapabilityLearned> _capabilities = new();
+    private bool _initialDiscoveryPublished;
 
     public IStash Stash { get; set; } = null!;
 
@@ -40,9 +44,11 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
         _parameters = parameters;
         _features = [.. features];
         _logger = logger;
-        _horizons = [.. _options.Horizons];
         _haStatusTopic = $"{_options.Mqtt.DiscoveryPrefix}/status";
         _discoveryEnabled = _options.Mqtt.DiscoveryEnabled;
+
+        _expectedModelCount = _options.Locations
+            .Sum(loc => loc.ResolveModels(_options.Models).Count);
 
         WaitingForSink();
     }
@@ -72,17 +78,73 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
 
             source.RunWith(response.SinkRef.Sink, _mat!);
 
-            _logger.LogInformation("DiscoveryActor ready — SinkRef connected");
-            Become(Ready);
+            _logger.LogInformation("DiscoveryActor ready — waiting for model capabilities");
+            ScheduleCapabilityTimeout();
+            Become(WaitingForCapabilities);
             Stash.UnstashAll();
         });
         ReceiveAny(_ => Stash.Stash());
     }
 
+    private void WaitingForCapabilities()
+    {
+        Receive<ModelCapabilityLearned>(OnCapabilityLearned);
+        Receive<CapabilityTimeout>(_ => OnCapabilityTimeout());
+        Receive<MqttConnected>(_ => { });
+        Receive<MqttInboundMessage>(OnInbound);
+    }
+
     private void Ready()
     {
-        Receive<MqttConnected>(_ => PublishDiscovery());
+        Receive<ModelCapabilityLearned>(OnCapabilityUpdate);
+        Receive<MqttConnected>(_ => { });
         Receive<MqttInboundMessage>(OnInbound);
+    }
+
+    private void OnCapabilityLearned(ModelCapabilityLearned msg)
+    {
+        _capabilities[(msg.Location, msg.Model.Id)] = msg;
+        _logger.LogInformation(
+            "Capability received for {Location}/{Model} ({Count}/{Expected})",
+            msg.Location, msg.Model.Id, _capabilities.Count, _expectedModelCount);
+
+        if (_capabilities.Count >= _expectedModelCount)
+        {
+            PublishDiscovery();
+            _initialDiscoveryPublished = true;
+            Become(Ready);
+        }
+    }
+
+    private void OnCapabilityTimeout()
+    {
+        if (_initialDiscoveryPublished) return;
+
+        _logger.LogWarning(
+            "Capability timeout — publishing discovery for {Count}/{Expected} models",
+            _capabilities.Count, _expectedModelCount);
+
+        PublishDiscovery();
+        _initialDiscoveryPublished = true;
+        Become(Ready);
+    }
+
+    private void OnCapabilityUpdate(ModelCapabilityLearned msg)
+    {
+        var key = (msg.Location, msg.Model.Id);
+        var isNew = !_capabilities.ContainsKey(key);
+        _capabilities[key] = msg;
+
+        if (isNew)
+        {
+            _logger.LogInformation("Late capability for {Location}/{Model} — publishing discovery", msg.Location, msg.Model.Id);
+        }
+        else
+        {
+            _logger.LogInformation("Capability expanded for {Location}/{Model} — re-publishing discovery", msg.Location, msg.Model.Id);
+        }
+
+        PublishDiscoveryForModel(msg);
     }
 
     private void OnInbound(MqttInboundMessage message)
@@ -103,13 +165,11 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
         {
             foreach (var modelId in location.ResolveModels(_options.Models))
             {
-                var model = new WeatherModel(modelId);
-                var topic = TopicScheme.ConfigTopic(
-                    _options.Mqtt.DiscoveryPrefix, TopicScheme.DeviceId(location.Name, model));
-                var payload = DiscoveryPayloadBuilder.Build(
-                    location.Name, model, _parameters, _horizons, _options.ForecastDays,
-                    _options.Mqtt, _options.PollInterval, Version);
-                _queue?.OfferAsync(new MqttMessage(topic, payload, true));
+                var key = (location.Name, modelId);
+                if (!_capabilities.TryGetValue(key, out var cap))
+                    continue;
+
+                PublishDiscoveryForModel(cap);
                 count++;
             }
 
@@ -128,8 +188,29 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash
         NjordTelemetry.DiscoveryPublishes.Add(count);
     }
 
+    private void PublishDiscoveryForModel(ModelCapabilityLearned cap)
+    {
+        var model = cap.Model;
+        var topic = TopicScheme.ConfigTopic(
+            _options.Mqtt.DiscoveryPrefix, TopicScheme.DeviceId(cap.Location, model));
+        var payload = DiscoveryPayloadBuilder.Build(
+            cap.Location, model, _parameters,
+            cap.ApplicableHorizons, cap.ApplicableDayOffsets,
+            cap.SupportedParameters,
+            _options.Mqtt, _options.PollInterval, Version);
+        _queue?.OfferAsync(new MqttMessage(topic, payload, true));
+    }
+
+    private void ScheduleCapabilityTimeout()
+    {
+        var timeout = _options.PollInterval + _options.PollInterval;
+        Timers.StartSingleTimer("capability-timeout", new CapabilityTimeout(), timeout);
+    }
+
     protected override void PostStop()
     {
         _queue?.Complete();
     }
+
+    private sealed record CapabilityTimeout;
 }
