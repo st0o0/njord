@@ -64,4 +64,84 @@ public sealed class HorizonProjectionSpec
 
         Assert.False(result.ContainsKey("h24"));
     }
+
+    [Fact(Timeout = 5000)]
+    public void Short_range_model_excludes_far_horizons()
+    {
+        var forecast = CreateForecast();
+
+        var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [3, 6, 12, 24, 48, 72], ForecastDays, Anchor, maxForecastHours: 48);
+
+        Assert.True(result.ContainsKey("h3"));
+        Assert.True(result.ContainsKey("h6"));
+        Assert.False(result.ContainsKey("h72"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Long_range_model_includes_all_horizons()
+    {
+        var forecast = CreateForecast();
+
+        var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, Horizons, ForecastDays, Anchor, maxForecastHours: 240);
+
+        Assert.Equal(Horizons.Count + ForecastDays, result.Count);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Unknown_model_with_null_max_includes_all_horizons()
+    {
+        var forecast = CreateForecast();
+
+        var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, Horizons, ForecastDays, Anchor, maxForecastHours: null);
+
+        Assert.Equal(Horizons.Count + ForecastDays, result.Count);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Null_parameter_keys_are_omitted_from_json()
+    {
+        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
+        var wind = ParameterRegistry.GetByApiName("wind_speed_10m")!;
+        var points = new List<ForecastPoint>
+        {
+            new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 20.0, [wind] = null }),
+        };
+        var forecast = new ModelForecast(new WeatherModel("icon_eu"), "home", new CycleId(Anchor),
+            new ForecastSeries(points), DailyForecastSeries.Empty);
+
+        var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [3], 0, Anchor);
+
+        var json = JsonNode.Parse(result["h3"])!;
+        Assert.NotNull(json["temperature"]);
+        Assert.Null(json["wind_speed"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void All_null_horizon_is_excluded_entirely()
+    {
+        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
+        var points = new List<ForecastPoint>
+        {
+            new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = null }),
+        };
+        var forecast = new ModelForecast(new WeatherModel("icon_eu"), "home", new CycleId(Anchor),
+            new ForecastSeries(points), DailyForecastSeries.Empty);
+
+        var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [3], 0, Anchor);
+
+        Assert.False(result.ContainsKey("h3"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Horizon_clamping_also_limits_daily_day_offsets()
+    {
+        var forecast = CreateForecast();
+
+        var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [3], 4, Anchor, maxForecastHours: 48);
+
+        Assert.True(result.ContainsKey("d0"));
+        Assert.True(result.ContainsKey("d1"));
+        Assert.False(result.ContainsKey("d2"));
+        Assert.False(result.ContainsKey("d3"));
+    }
 }

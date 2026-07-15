@@ -10,13 +10,20 @@ public static class HorizonProjection
         ResolvedParameterSet parameters,
         IReadOnlyList<int> horizons,
         int forecastDays,
-        DateTimeOffset anchorTime)
+        DateTimeOffset anchorTime,
+        int? maxForecastHours = null)
     {
-        var result = new Dictionary<string, string>(horizons.Count + forecastDays);
+        var effectiveDays = maxForecastHours.HasValue
+            ? Math.Min(forecastDays, (int)Math.Ceiling(maxForecastHours.Value / 24.0))
+            : forecastDays;
+
+        var result = new Dictionary<string, string>(horizons.Count + effectiveDays);
 
         var pointsByValidAt = forecast.Hourly.Points.ToDictionary(p => p.ValidAt);
         foreach (var hours in horizons)
         {
+            if (maxForecastHours.HasValue && hours > maxForecastHours.Value)
+                continue;
             var anchor = TimeAnchor.AtHorizon(anchorTime, hours);
             if (!pointsByValidAt.TryGetValue(anchor, out var point) || !point.HasAnyValue)
                 continue;
@@ -24,15 +31,18 @@ public static class HorizonProjection
             var entry = new JsonObject();
             foreach (var parameter in parameters.Hourly)
             {
-                entry[parameter.JsonKey] = point?.Get(parameter);
+                var value = point?.Get(parameter);
+                if (value.HasValue)
+                    entry[parameter.JsonKey] = value.Value;
             }
 
-            result[$"h{hours}"] = entry.ToJsonString();
+            if (entry.Count > 0)
+                result[$"h{hours}"] = entry.ToJsonString();
         }
 
         var dailyByDate = forecast.Daily.Points.ToDictionary(p => p.Date);
         var today = DateOnly.FromDateTime(anchorTime.UtcDateTime);
-        for (var d = 0; d < forecastDays; d++)
+        for (var d = 0; d < effectiveDays; d++)
         {
             var date = today.AddDays(d);
             if (!dailyByDate.TryGetValue(date, out var dailyPoint) || !dailyPoint.HasAnyValue)
@@ -44,16 +54,19 @@ public static class HorizonProjection
                 if (parameter.ValueType == ParameterValueType.TimeString)
                 {
                     var str = dailyPoint?.GetMeta(parameter);
-                    entry[parameter.JsonKey] = str is not null ? JsonValue.Create(str) : null;
+                    if (str is not null)
+                        entry[parameter.JsonKey] = JsonValue.Create(str);
                 }
                 else
                 {
                     var num = dailyPoint?.GetNumeric(parameter);
-                    entry[parameter.JsonKey] = num.HasValue ? JsonValue.Create(num.Value) : null;
+                    if (num.HasValue)
+                        entry[parameter.JsonKey] = JsonValue.Create(num.Value);
                 }
             }
 
-            result[$"d{d}"] = entry.ToJsonString();
+            if (entry.Count > 0)
+                result[$"d{d}"] = entry.ToJsonString();
         }
 
         return result;
