@@ -1,15 +1,10 @@
-using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
-using OpenTelemetry;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using Serilog;
-using Serilog.Sinks.OpenTelemetry;
 
 namespace Njord.ServiceDefaults;
 
@@ -17,10 +12,6 @@ public static class Extensions
 {
     public static WebApplicationBuilder AddNjordTelemetry(this WebApplicationBuilder builder)
     {
-        var version = typeof(Extensions).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-            ?.InformationalVersion ?? "0.0.0";
-
         builder.Services.AddSerilog(config =>
         {
             config
@@ -30,42 +21,9 @@ public static class Extensions
                 .Enrich.FromLogContext()
                 .WriteTo.Console(
                     outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
-
-            var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
-            if (!string.IsNullOrWhiteSpace(otlpEndpoint))
-            {
-                config.WriteTo.OpenTelemetry(options =>
-                {
-                    options.Endpoint = otlpEndpoint;
-                    options.Protocol = OtlpProtocol.Grpc;
-                    options.ResourceAttributes = new Dictionary<string, object>
-                    {
-                        ["service.name"] = "njord",
-                        ["service.version"] = version,
-                    };
-                });
-            }
         });
 
         builder.Logging.ClearProviders();
-
-        builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource.AddService(
-                serviceName: "njord",
-                serviceVersion: version))
-            .WithTracing(tracing => tracing
-                .AddSource("njord")
-                .AddHttpClientInstrumentation()
-                .AddAspNetCoreInstrumentation())
-            .WithMetrics(metrics => metrics
-                .AddMeter("njord"));
-
-        var otlp = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
-        if (!string.IsNullOrWhiteSpace(otlp))
-        {
-            builder.Services.AddOpenTelemetry()
-                .UseOtlpExporter();
-        }
 
         return builder;
     }

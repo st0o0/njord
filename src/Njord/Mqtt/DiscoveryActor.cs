@@ -7,7 +7,6 @@ using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
-using Njord.Telemetry;
 using Servus.Akka;
 
 namespace Njord.Mqtt;
@@ -185,7 +184,6 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
             }
         }
 
-        NjordTelemetry.DiscoveryPublishes.Add(count);
     }
 
     private void PublishDiscoveryForModel(ModelCapabilityLearned cap)

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Akka;
 using Akka.Actor;
 using Akka.Streams;
@@ -7,7 +6,6 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Ingest;
-using Njord.Telemetry;
 using Servus.Akka;
 
 namespace Njord.Pipeline;
@@ -96,22 +94,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                 element => element.Weight, ThrottleMode.Shaping)
             .SelectAsyncUnordered(4, async target =>
             {
-                using var activity = NjordTelemetry.Source.StartActivity("njord.fetch");
-                activity?.SetTag("location", target.Location.Name);
-                activity?.SetTag("model", target.Model.Id);
-                var sw = Stopwatch.StartNew();
                 var outcome = await _client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None);
-                sw.Stop();
-                var status = outcome is FetchOutcome.Success ? "success" : "failure";
-                NjordTelemetry.FetchTotal.Add(1,
-                    new KeyValuePair<string, object?>("location", target.Location.Name),
-                    new KeyValuePair<string, object?>("model", target.Model.Id),
-                    new KeyValuePair<string, object?>("status", status));
-                NjordTelemetry.FetchDuration.Record(sw.Elapsed.TotalMilliseconds,
-                    new KeyValuePair<string, object?>("location", target.Location.Name),
-                    new KeyValuePair<string, object?>("model", target.Model.Id));
-                if (outcome is FetchOutcome.Failure)
-                    activity?.SetStatus(ActivityStatusCode.Error);
                 return outcome;
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(_ => Akka.Streams.Supervision.Directive.Resume))

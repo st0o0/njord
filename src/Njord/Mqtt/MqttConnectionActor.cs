@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Akka;
 using Akka.Actor;
 using Akka.Streams;
@@ -7,7 +6,6 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Health;
 using Njord.Mqtt.Transport;
-using Njord.Telemetry;
 
 namespace Njord.Mqtt;
 
@@ -79,7 +77,6 @@ public sealed class MqttConnectionActor : ReceiveActor
         });
         Receive<Disconnected>(_ =>
         {
-            NjordTelemetry.MqttConnected.Add(-1);
             _healthState.SetMqttDisconnected(DateTimeOffset.UtcNow);
             _logger.LogWarning("MQTT connection lost — reconnecting");
             ScheduleReconnect();
@@ -129,14 +126,7 @@ public sealed class MqttConnectionActor : ReceiveActor
         hubSource
             .SelectAsync(1, async msg =>
             {
-                using var activity = NjordTelemetry.Source.StartActivity("njord.mqtt.publish");
-                var sw = Stopwatch.StartNew();
                 await _transport.SendAsync(msg.Topic, msg.Payload, msg.Retain, CancellationToken.None);
-                sw.Stop();
-                var type = msg.Topic.Contains("/config") ? "discovery" : "state";
-                NjordTelemetry.MqttPublishes.Add(1,
-                    new KeyValuePair<string, object?>("type", type));
-                NjordTelemetry.MqttPublishDuration.Record(sw.Elapsed.TotalMilliseconds);
                 return NotUsed.Instance;
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
@@ -161,7 +151,6 @@ public sealed class MqttConnectionActor : ReceiveActor
 
     private void ScheduleReconnect()
     {
-        NjordTelemetry.Reconnects.Add(1);
         _connectAttempts++;
         var factor = Math.Pow(2, Math.Min(_connectAttempts - 1, 6));
         var delay = TimeSpan.FromMilliseconds(_tuning.ReconnectDelay.TotalMilliseconds * factor);
@@ -171,7 +160,6 @@ public sealed class MqttConnectionActor : ReceiveActor
     private async Task OnConnectedAsync(Connected _)
     {
         _connectAttempts = 0;
-        NjordTelemetry.MqttConnected.Add(1);
         _healthState.SetMqttConnected(DateTimeOffset.UtcNow);
 
         try
