@@ -6,8 +6,10 @@ WORKDIR /src
 # Restore first so the NuGet layer caches independently of source changes
 COPY src/global.json src/Directory.Build.props src/Directory.Packages.props ./
 COPY src/Njord/Njord.csproj Njord/
+COPY src/Njord.ServiceDefaults/Njord.ServiceDefaults.csproj Njord.ServiceDefaults/
 RUN dotnet restore Njord/Njord.csproj
 COPY src/Njord/ Njord/
+COPY src/Njord.ServiceDefaults/ Njord.ServiceDefaults/
 RUN dotnet publish Njord/Njord.csproj -c Release -o /app --no-restore -p:Version=${VERSION} \
     && mkdir -p /app/data
 
