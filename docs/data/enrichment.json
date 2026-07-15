@@ -1,0 +1,64 @@
+[
+  {
+    "name": "Consensus",
+    "enabledByDefault": true,
+    "options": [
+      { "name": "Method", "type": "string", "default": "Median" },
+      { "name": "TrimPercent", "type": "number", "default": 0.1 }
+    ]
+  },
+  {
+    "name": "Alerts",
+    "enabledByDefault": true,
+    "options": [
+      { "name": "FrostThreshold", "type": "number", "default": 0.0 },
+      { "name": "HeatThresholds", "type": "number[]", "default": [30, 35, 40] },
+      { "name": "StormGustThreshold", "type": "number", "default": 16.7 },
+      { "name": "HeavyRainHourlyThreshold", "type": "number", "default": 10.0 },
+      { "name": "HeavyRainDailyThreshold", "type": "number", "default": 25.0 },
+      { "name": "PressureDropThreshold", "type": "number", "default": 5.0 },
+      { "name": "CapeThreshold", "type": "number", "default": 1000.0 },
+      { "name": "ThunderstormPrecipThreshold", "type": "number", "default": 5.0 },
+      { "name": "ThunderstormGustThreshold", "type": "number", "default": 15.0 }
+    ]
+  },
+  {
+    "name": "Derived",
+    "enabledByDefault": true,
+    "options": []
+  },
+  {
+    "name": "Trends",
+    "enabledByDefault": false,
+    "options": []
+  },
+  {
+    "name": "Indices",
+    "enabledByDefault": false,
+    "options": [
+      { "name": "HeatingBaseTemp", "type": "number", "default": 18.0 },
+      { "name": "CoolingBaseTemp", "type": "number", "default": 24.0 },
+      { "name": "IndoorTemp", "type": "number", "default": 22.0 }
+    ]
+  },
+  {
+    "name": "Energy",
+    "enabledByDefault": false,
+    "options": [
+      { "name": "FlowTemp", "type": "number", "default": 35.0 },
+      { "name": "CarnotEfficiency", "type": "number", "default": 0.45 },
+      { "name": "HeatingBaseTemp", "type": "number", "default": 18.0 },
+      { "name": "CopOptimalHours", "type": "number", "default": 3 },
+      { "name": "IndoorTemp", "type": "number", "default": 22.0 }
+    ]
+  },
+  {
+    "name": "History",
+    "enabledByDefault": false,
+    "options": [
+      { "name": "RetentionDays", "type": "number", "default": 30 },
+      { "name": "MinSampleSize", "type": "number", "default": 48 },
+      { "name": "SnapshotInterval", "type": "number", "default": 100 }
+    ]
+  }
+]

@@ -45,3 +45,8 @@ results/
 
 # SQLite persistence data (runtime)
 src/Njord/data/
+
+# VitePress docs
+docs/node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/

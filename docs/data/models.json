@@ -1,0 +1,366 @@
+[
+  {
+    "id": "icon_global",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 180
+  },
+  {
+    "id": "gfs_global",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 384
+  },
+  {
+    "id": "gfs_seamless",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 384
+  },
+  {
+    "id": "ecmwf_ifs025",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 240
+  },
+  {
+    "id": "ifs",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 240
+  },
+  {
+    "id": "ifs_seamless",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 240
+  },
+  {
+    "id": "aifs",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 360
+  },
+  {
+    "id": "ukmo_global_10km",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 168
+  },
+  {
+    "id": "ukmo_seamless",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 168
+  },
+  {
+    "id": "arpege_world",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 96
+  },
+  {
+    "id": "arpege_seamless",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 96
+  },
+  {
+    "id": "gem_global",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 240
+  },
+  {
+    "id": "gem_seamless",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 240
+  },
+  {
+    "id": "jma_gsm",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 264
+  },
+  {
+    "id": "jma_seamless",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 264
+  },
+  {
+    "id": "kma_gdps",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 288
+  },
+  {
+    "id": "kma_seamless",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 288
+  },
+  {
+    "id": "bom_access_global",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 240
+  },
+  {
+    "id": "cma_grapes_global",
+    "tier": "Global",
+    "region": "Global",
+    "bounds": null,
+    "maxForecastHours": 240
+  },
+  {
+    "id": "icon_eu",
+    "tier": "Europe",
+    "region": "Europe",
+    "bounds": { "minLat": 34, "maxLat": 72, "minLon": -12, "maxLon": 45 },
+    "maxForecastHours": 120
+  },
+  {
+    "id": "icon_seamless",
+    "tier": "Europe",
+    "region": "Europe",
+    "bounds": { "minLat": 34, "maxLat": 72, "minLon": -12, "maxLon": 45 },
+    "maxForecastHours": 180
+  },
+  {
+    "id": "arpege_europe",
+    "tier": "Europe",
+    "region": "Europe",
+    "bounds": { "minLat": 34, "maxLat": 72, "minLon": -12, "maxLon": 45 },
+    "maxForecastHours": 96
+  },
+  {
+    "id": "knmi_harmonie_arome_europe",
+    "tier": "Europe",
+    "region": "Central & Northern Europe",
+    "bounds": { "minLat": 34, "maxLat": 72, "minLon": -12, "maxLon": 45 },
+    "maxForecastHours": 60
+  },
+  {
+    "id": "harmonie_arome_europe",
+    "tier": "Europe",
+    "region": "Central & Northern Europe",
+    "bounds": { "minLat": 34, "maxLat": 72, "minLon": -12, "maxLon": 45 },
+    "maxForecastHours": 60
+  },
+  {
+    "id": "dmi_harmonie_arome_europe",
+    "tier": "Europe",
+    "region": "Central & Northern Europe",
+    "bounds": { "minLat": 34, "maxLat": 72, "minLon": -12, "maxLon": 45 },
+    "maxForecastHours": 60
+  },
+  {
+    "id": "harmonie_arome_europe_dmi",
+    "tier": "Europe",
+    "region": "Central & Northern Europe",
+    "bounds": { "minLat": 34, "maxLat": 72, "minLon": -12, "maxLon": 45 },
+    "maxForecastHours": 60
+  },
+  {
+    "id": "dmi_seamless",
+    "tier": "Europe",
+    "region": "Central & Northern Europe",
+    "bounds": { "minLat": 34, "maxLat": 72, "minLon": -12, "maxLon": 45 },
+    "maxForecastHours": 60
+  },
+  {
+    "id": "knmi_seamless",
+    "tier": "Europe",
+    "region": "Europe & Netherlands",
+    "bounds": { "minLat": 34, "maxLat": 72, "minLon": -12, "maxLon": 45 },
+    "maxForecastHours": 60
+  },
+  {
+    "id": "icon_d2",
+    "tier": "Regional",
+    "region": "DE, CH, AT",
+    "bounds": { "minLat": 43, "maxLat": 57, "minLon": 1, "maxLon": 18 },
+    "maxForecastHours": 48
+  },
+  {
+    "id": "knmi_harmonie_arome_netherlands",
+    "tier": "Regional",
+    "region": "NL, BE",
+    "bounds": { "minLat": 49, "maxLat": 55, "minLon": 2, "maxLon": 9 },
+    "maxForecastHours": 48
+  },
+  {
+    "id": "harmonie_arome_netherlands",
+    "tier": "Regional",
+    "region": "NL, BE",
+    "bounds": { "minLat": 49, "maxLat": 55, "minLon": 2, "maxLon": 9 },
+    "maxForecastHours": 48
+  },
+  {
+    "id": "metno_nordic",
+    "tier": "Regional",
+    "region": "NO, DK, SE, FI",
+    "bounds": { "minLat": 53, "maxLat": 73, "minLon": -1, "maxLon": 33 },
+    "maxForecastHours": 60
+  },
+  {
+    "id": "metno_nordic_seamless",
+    "tier": "Regional",
+    "region": "NO, DK, SE, FI",
+    "bounds": { "minLat": 53, "maxLat": 73, "minLon": -1, "maxLon": 33 },
+    "maxForecastHours": 60
+  },
+  {
+    "id": "arome_france",
+    "tier": "Regional",
+    "region": "France",
+    "bounds": { "minLat": 40, "maxLat": 53, "minLon": -6, "maxLon": 10 },
+    "maxForecastHours": 48
+  },
+  {
+    "id": "arome_france_hd",
+    "tier": "Regional",
+    "region": "France",
+    "bounds": { "minLat": 40, "maxLat": 53, "minLon": -6, "maxLon": 10 },
+    "maxForecastHours": 48
+  },
+  {
+    "id": "arome_seamless",
+    "tier": "Regional",
+    "region": "France",
+    "bounds": { "minLat": 40, "maxLat": 53, "minLon": -6, "maxLon": 10 },
+    "maxForecastHours": 96
+  },
+  {
+    "id": "meteoswiss_icon_ch1",
+    "tier": "Regional",
+    "region": "CH & Central Europe",
+    "bounds": { "minLat": 44, "maxLat": 50, "minLon": 4, "maxLon": 12 },
+    "maxForecastHours": 33
+  },
+  {
+    "id": "meteoswiss_icon_ch2",
+    "tier": "Regional",
+    "region": "CH & Central Europe",
+    "bounds": { "minLat": 44, "maxLat": 50, "minLon": 4, "maxLon": 12 },
+    "maxForecastHours": 45
+  },
+  {
+    "id": "meteoswiss_seamless",
+    "tier": "Regional",
+    "region": "CH & Central Europe",
+    "bounds": { "minLat": 44, "maxLat": 50, "minLon": 4, "maxLon": 12 },
+    "maxForecastHours": 45
+  },
+  {
+    "id": "geosphere_arome_austria",
+    "tier": "Regional",
+    "region": "Austria",
+    "bounds": { "minLat": 45, "maxLat": 50, "minLon": 8, "maxLon": 19 },
+    "maxForecastHours": 48
+  },
+  {
+    "id": "geosphere_seamless",
+    "tier": "Regional",
+    "region": "Austria",
+    "bounds": { "minLat": 45, "maxLat": 50, "minLon": 8, "maxLon": 19 },
+    "maxForecastHours": 48
+  },
+  {
+    "id": "arpae_2i",
+    "tier": "Regional",
+    "region": "Italy",
+    "bounds": { "minLat": 35, "maxLat": 49, "minLon": 5, "maxLon": 20 },
+    "maxForecastHours": 48
+  },
+  {
+    "id": "ukmo_uk_2km",
+    "tier": "Regional",
+    "region": "UK, Ireland",
+    "bounds": { "minLat": 48, "maxLat": 62, "minLon": -12, "maxLon": 4 },
+    "maxForecastHours": 54
+  },
+  {
+    "id": "hrrr_us_conus",
+    "tier": "Regional",
+    "region": "US, Canada",
+    "bounds": { "minLat": 23, "maxLat": 51, "minLon": -131, "maxLon": -59 },
+    "maxForecastHours": 48
+  },
+  {
+    "id": "gfs_hrrr",
+    "tier": "Regional",
+    "region": "US, Canada",
+    "bounds": { "minLat": 23, "maxLat": 51, "minLon": -131, "maxLon": -59 },
+    "maxForecastHours": 384
+  },
+  {
+    "id": "nbm_us_conus",
+    "tier": "Regional",
+    "region": "US",
+    "bounds": { "minLat": 23, "maxLat": 51, "minLon": -131, "maxLon": -59 },
+    "maxForecastHours": 192
+  },
+  {
+    "id": "nam_us_conus",
+    "tier": "Regional",
+    "region": "US, Canada",
+    "bounds": { "minLat": 23, "maxLat": 51, "minLon": -131, "maxLon": -59 },
+    "maxForecastHours": 84
+  },
+  {
+    "id": "jma_msm",
+    "tier": "Regional",
+    "region": "Japan, Korea",
+    "bounds": { "minLat": 24, "maxLat": 47, "minLon": 122, "maxLon": 151 },
+    "maxForecastHours": 78
+  },
+  {
+    "id": "kma_ldps",
+    "tier": "Regional",
+    "region": "Korea",
+    "bounds": { "minLat": 32, "maxLat": 44, "minLon": 123, "maxLon": 133 },
+    "maxForecastHours": 48
+  },
+  {
+    "id": "gem_regional",
+    "tier": "Regional",
+    "region": "North America",
+    "bounds": { "minLat": 39, "maxLat": 86, "minLon": -146, "maxLon": -49 },
+    "maxForecastHours": 84
+  },
+  {
+    "id": "gem_hrdps_continental",
+    "tier": "Regional",
+    "region": "Canada, Northern US",
+    "bounds": { "minLat": 39, "maxLat": 65, "minLon": -146, "maxLon": -49 },
+    "maxForecastHours": 48
+  },
+  {
+    "id": "gem_hrdps_west",
+    "tier": "Regional",
+    "region": "Western Canada",
+    "bounds": { "minLat": 44, "maxLat": 65, "minLon": -146, "maxLon": -110 },
+    "maxForecastHours": 48
+  }
+]

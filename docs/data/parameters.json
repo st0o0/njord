@@ -1,0 +1,102 @@
+[
+  {
+    "group": "Weather",
+    "hourlyCount": 31,
+    "dailyCount": 17,
+    "hourlyVariables": [
+      "temperature_2m",
+      "apparent_temperature",
+      "relative_humidity_2m",
+      "dew_point_2m",
+      "precipitation",
+      "rain",
+      "showers",
+      "snowfall",
+      "snow_depth",
+      "weather_code",
+      "cloud_cover",
+      "cloud_cover_low",
+      "cloud_cover_mid",
+      "cloud_cover_high",
+      "pressure_msl",
+      "surface_pressure",
+      "visibility",
+      "is_day",
+      "precipitation_probability",
+      "wind_speed_10m",
+      "wind_speed_80m",
+      "wind_speed_120m",
+      "wind_speed_180m",
+      "wind_direction_10m",
+      "wind_direction_80m",
+      "wind_direction_120m",
+      "wind_direction_180m",
+      "wind_gusts_10m",
+      "cape",
+      "freezing_level_height",
+      "vapour_pressure_deficit"
+    ],
+    "dailyVariables": [
+      "temperature_2m_max",
+      "temperature_2m_min",
+      "apparent_temperature_max",
+      "apparent_temperature_min",
+      "weather_code",
+      "precipitation_sum",
+      "rain_sum",
+      "showers_sum",
+      "snowfall_sum",
+      "precipitation_hours",
+      "precipitation_probability_max",
+      "wind_speed_10m_max",
+      "wind_gusts_10m_max",
+      "wind_direction_10m_dominant",
+      "sunrise",
+      "sunset",
+      "daylight_duration"
+    ]
+  },
+  {
+    "group": "Solar",
+    "hourlyCount": 9,
+    "dailyCount": 4,
+    "hourlyVariables": [
+      "shortwave_radiation",
+      "direct_radiation",
+      "diffuse_radiation",
+      "direct_normal_irradiance",
+      "global_tilted_irradiance",
+      "terrestrial_radiation",
+      "sunshine_duration",
+      "uv_index",
+      "uv_index_clear_sky"
+    ],
+    "dailyVariables": [
+      "shortwave_radiation_sum",
+      "sunshine_duration",
+      "uv_index_max",
+      "uv_index_clear_sky_max"
+    ]
+  },
+  {
+    "group": "Soil",
+    "hourlyCount": 11,
+    "dailyCount": 1,
+    "hourlyVariables": [
+      "soil_temperature_0cm",
+      "soil_temperature_6cm",
+      "soil_temperature_18cm",
+      "soil_temperature_54cm",
+      "soil_moisture_0_to_1cm",
+      "soil_moisture_1_to_3cm",
+      "soil_moisture_3_to_9cm",
+      "soil_moisture_9_to_27cm",
+      "soil_moisture_27_to_81cm",
+      "evapotranspiration",
+      "et0_fao_evapotranspiration"
+    ],
+    "dailyVariables": [
+      "et0_fao_evapotranspiration"
+    ]
+  }
+]
