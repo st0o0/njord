@@ -1,0 +1,266 @@
+syntax = "proto3";
+
+package njord.v1;
+
+option csharp_namespace = "Njord.Grpc.V1";
+
+service ForecastService {
+  // Unary RPCs (initial state)
+  rpc GetLocations (GetLocationsRequest) returns (GetLocationsResponse);
+  rpc GetModels (GetModelsRequest) returns (GetModelsResponse);
+  rpc GetForecast (GetForecastRequest) returns (GetForecastResponse);
+  rpc GetEnrichments (GetEnrichmentsRequest) returns (GetEnrichmentsResponse);
+
+  // Server-streaming RPCs (real-time updates)
+  rpc StreamForecasts (StreamForecastsRequest) returns (stream ForecastUpdate);
+  rpc StreamEnrichments (StreamEnrichmentsRequest) returns (stream EnrichmentEvent);
+}
+
+// === Forecast messages (existing) ===
+
+message GetLocationsRequest {}
+message GetLocationsResponse { repeated string locations = 1; }
+
+message GetModelsRequest { string location = 1; }
+message GetModelsResponse {
+  string location = 1;
+  repeated string models = 2;
+}
+
+message GetForecastRequest {
+  string location = 1;
+  string model = 2;
+}
+
+message GetForecastResponse {
+  string location = 1;
+  string model = 2;
+  int64 updated_at = 4;
+  repeated HourlyForecast hourly = 5;
+  repeated DailyForecast daily = 6;
+}
+
+message HourlyForecast {
+  int64 timestamp = 1;
+  optional double temperature = 2;
+  optional double apparent_temperature = 3;
+  optional double precipitation = 4;
+  optional double humidity = 5;
+  optional double wind_speed = 6;
+  optional double wind_bearing = 7;
+  optional double cloud_cover = 8;
+  optional int32 weather_code = 9;
+  optional bool is_day = 10;
+  optional double rain = 11;
+  optional double wind_gusts = 12;
+  optional double pressure_msl = 13;
+}
+
+message DailyForecast {
+  string date = 1;
+  optional double temperature_max = 2;
+  optional double temperature_min = 3;
+  optional double precipitation_sum = 4;
+  optional double wind_speed_max = 5;
+  optional double wind_gusts_max = 6;
+  string sunrise = 7;
+  string sunset = 8;
+  optional int32 weather_code = 9;
+}
+
+// === Streaming forecast messages ===
+
+message StreamForecastsRequest {
+  string location = 1; // empty = all locations
+}
+
+message ForecastUpdate {
+  string location = 1;
+  string model = 2;
+  int64 updated_at = 3;
+  repeated HourlyForecast hourly = 4;
+  repeated DailyForecast daily = 5;
+}
+
+// === Enrichment messages ===
+
+message GetEnrichmentsRequest { string location = 1; }
+
+message GetEnrichmentsResponse {
+  string location = 1;
+  AlertUpdate alerts = 2;
+  IndexUpdate indices = 3;
+  TrendUpdate trends = 4;
+  EnergyUpdate energy = 5;
+  DerivedUpdate derived = 6;
+  HistoryUpdate history = 7;
+  ConsensusUpdate consensus = 8;
+}
+
+message StreamEnrichmentsRequest {
+  string location = 1; // empty = all locations
+}
+
+message EnrichmentEvent {
+  string location = 1;
+  string type_name = 2;
+  int64 updated_at = 3;
+  oneof payload {
+    AlertUpdate alerts = 10;
+    IndexUpdate indices = 11;
+    TrendUpdate trends = 12;
+    EnergyUpdate energy = 13;
+    DerivedUpdate derived = 14;
+    HistoryUpdate history = 15;
+    ConsensusUpdate consensus = 16;
+  }
+}
+
+// --- Alert ---
+
+enum AlertType {
+  ALERT_TYPE_UNSPECIFIED = 0;
+  ALERT_TYPE_FROST = 1;
+  ALERT_TYPE_HEAT = 2;
+  ALERT_TYPE_STORM = 3;
+  ALERT_TYPE_HEAVY_RAIN = 4;
+  ALERT_TYPE_UV = 5;
+  ALERT_TYPE_FOG = 6;
+  ALERT_TYPE_SNOW = 7;
+  ALERT_TYPE_PRESSURE_DROP = 8;
+  ALERT_TYPE_THUNDERSTORM = 9;
+}
+
+enum AlertSeverity {
+  ALERT_SEVERITY_NONE = 0;
+  ALERT_SEVERITY_YELLOW = 1;
+  ALERT_SEVERITY_ORANGE = 2;
+  ALERT_SEVERITY_RED = 3;
+}
+
+message Alert {
+  AlertType type = 1;
+  AlertSeverity severity = 2;
+  double confidence = 3;
+}
+
+message AlertUpdate {
+  repeated Alert alerts = 1;
+}
+
+// --- Index ---
+
+message IndexUpdate {
+  int32 laundry = 1;
+  int32 outdoor = 2;
+  int32 running = 3;
+  int32 cycling = 4;
+  int32 bbq = 5;
+  int32 irrigation = 6;
+  int32 solar = 7;
+  int32 ventilation = 8;
+  double hdd = 9;
+  double cdd = 10;
+  optional int32 frost_hours = 11;
+  optional double frost_confidence = 12;
+  optional double vpd_kpa = 13;
+  optional string vpd_category = 14;
+}
+
+// --- Trend ---
+
+message ParameterTrend {
+  string parameter = 1;
+  string direction = 2;
+  double delta = 3;
+}
+
+message TrendUpdate {
+  repeated ParameterTrend parameter_trends = 1;
+  optional string weather_change_description = 2;
+  optional int32 precip_starts_in_hours = 3;
+  optional int32 precip_ends_in_hours = 4;
+  optional int32 temp_max_in_hours = 5;
+  optional int32 temp_min_in_hours = 6;
+  optional string stability_label = 7;
+  optional double stability_ratio = 8;
+  optional double decay_rate = 9;
+  optional int32 reliable_hours = 10;
+}
+
+// --- Energy ---
+
+message EnergyUpdate {
+  int32 heating_demand = 1;
+  optional double cop_estimate = 2;
+  int32 shading = 3;
+  string battery_strategy = 4;
+  int32 night_cooling = 5;
+  repeated CopOptimalHour cop_optimal = 6;
+}
+
+message CopOptimalHour {
+  int32 hours_from_now = 1;
+  double cop = 2;
+}
+
+// --- Derived ---
+
+message HorizonDerived {
+  string horizon = 1;
+  optional int32 beaufort = 2;
+  optional double wind_chill = 3;
+  optional string dewpoint_comfort = 4;
+  optional string wmo_description = 5;
+}
+
+message ScalarDerived {
+  optional double diurnal_amplitude = 1;
+  optional double sunshine_pct = 2;
+  optional bool inversion = 3;
+}
+
+message DerivedUpdate {
+  repeated HorizonDerived by_horizon = 1;
+  ScalarDerived scalars = 2;
+}
+
+// --- History ---
+
+message ModelMetrics {
+  string model = 1;
+  optional double mae_7d = 2;
+  optional double mae_30d = 3;
+  double weight = 4;
+  optional double drift = 5;
+}
+
+message HistoryUpdate {
+  repeated ModelMetrics models = 1;
+  optional string seasonal_best = 2;
+  optional bool anomaly = 3;
+  optional double anomaly_deviation = 4;
+  optional double weighted_temperature = 5;
+}
+
+// --- Consensus ---
+
+message HorizonConsensus {
+  string horizon = 1;
+  optional double median = 2;
+  optional double trimmed_mean = 3;
+  optional double spread = 4;
+  optional double iqr = 5;
+  optional double agreement = 6;
+  int32 available_models = 7;
+}
+
+message ParameterConsensus {
+  string parameter = 1;
+  string unit = 2;
+  repeated HorizonConsensus by_horizon = 3;
+}
+
+message ConsensusUpdate {
+  repeated ParameterConsensus parameters = 1;
+}

@@ -1,0 +1,238 @@
+syntax = "proto3";
+
+package njord.v1;
+
+option csharp_namespace = "Njord.Grpc.V1";
+
+service ConfigService {
+  // Read
+  rpc GetConfig (GetConfigRequest) returns (NjordConfig);
+  rpc StreamConfig (StreamConfigRequest) returns (stream NjordConfig);
+  rpc GetStatus (GetStatusRequest) returns (ServerStatus);
+
+  // Location Management
+  rpc AddLocation (AddLocationRequest) returns (ConfigResponse);
+  rpc RemoveLocation (RemoveLocationRequest) returns (ConfigResponse);
+  rpc UpdateLocation (UpdateLocationRequest) returns (ConfigResponse);
+
+  // Forecast Settings
+  rpc UpdateForecastSettings (UpdateForecastSettingsRequest) returns (ConfigResponse);
+
+  // Enrichment
+  rpc UpdateEnrichmentConfig (UpdateEnrichmentConfigRequest) returns (ConfigResponse);
+
+  // Budget
+  rpc UpdateBudget (UpdateBudgetRequest) returns (ConfigResponse);
+
+  // Operations
+  rpc TriggerPoll (TriggerPollRequest) returns (TriggerPollResponse);
+}
+
+// ═══════════════════════════════════════
+// CONFIG (read)
+// ═══════════════════════════════════════
+
+message GetConfigRequest {}
+message StreamConfigRequest {}
+
+message NjordConfig {
+  repeated LocationConfig locations = 1;
+  repeated string default_models = 2;
+  repeated int32 horizons = 3;
+  int32 forecast_days = 4;
+  int64 poll_interval_seconds = 5;
+  ParameterConfig parameters = 6;
+  DetailedEnrichmentConfig enrichment = 7;
+  BudgetProjection budget_projection = 8;
+  BudgetConfig budget_override = 9;
+}
+
+message LocationConfig {
+  string name = 1;
+  double latitude = 2;
+  double longitude = 3;
+  repeated string models = 4;
+}
+
+message ParameterConfig {
+  repeated string groups = 1;
+  repeated string extra = 2;
+  repeated string exclude = 3;
+}
+
+// ═══════════════════════════════════════
+// ENRICHMENT CONFIG (detailed)
+// ═══════════════════════════════════════
+
+message DetailedEnrichmentConfig {
+  ConsensusConfig consensus = 1;
+  AlertConfig alerts = 2;
+  DerivedConfig derived = 3;
+  TrendConfig trends = 4;
+  IndexConfig indices = 5;
+  EnergyConfig energy = 6;
+  HistoryConfig history = 7;
+}
+
+message ConsensusConfig {
+  optional bool enabled = 1;
+  optional string method = 2;
+  optional double trim_percent = 3;
+}
+
+message AlertConfig {
+  optional bool enabled = 1;
+  optional double frost_threshold = 2;
+  repeated double heat_thresholds = 3;
+  optional double storm_gust_threshold = 4;
+  optional double heavy_rain_hourly_threshold = 5;
+  optional double heavy_rain_daily_threshold = 6;
+  optional double pressure_drop_threshold = 7;
+  optional double cape_threshold = 8;
+  optional double thunderstorm_precip_threshold = 9;
+  optional double thunderstorm_gust_threshold = 10;
+}
+
+message DerivedConfig {
+  optional bool enabled = 1;
+}
+
+message TrendConfig {
+  optional bool enabled = 1;
+}
+
+message IndexConfig {
+  optional bool enabled = 1;
+  optional double heating_base_temp = 2;
+  optional double cooling_base_temp = 3;
+  optional double indoor_temp = 4;
+}
+
+message EnergyConfig {
+  optional bool enabled = 1;
+  optional double flow_temp = 2;
+  optional double carnot_efficiency = 3;
+  optional double heating_base_temp = 4;
+  optional int32 cop_optimal_hours = 5;
+  optional double indoor_temp = 6;
+}
+
+message HistoryConfig {
+  optional bool enabled = 1;
+  optional int32 retention_days = 2;
+  optional int32 min_sample_size = 3;
+  optional int32 snapshot_interval = 4;
+}
+
+// ═══════════════════════════════════════
+// MUTATION REQUESTS
+// ═══════════════════════════════════════
+
+message AddLocationRequest {
+  string name = 1;
+  double latitude = 2;
+  double longitude = 3;
+  repeated string models = 4;
+}
+
+message RemoveLocationRequest {
+  string name = 1;
+  bool force = 2;
+}
+
+message UpdateLocationRequest {
+  string name = 1;
+  repeated string models = 2;
+  optional double latitude = 3;
+  optional double longitude = 4;
+}
+
+message UpdateForecastSettingsRequest {
+  optional int64 poll_interval_seconds = 1;
+  repeated int32 horizons = 2;
+  optional int32 forecast_days = 3;
+  optional ParameterConfig parameters = 4;
+  repeated string default_models = 5;
+}
+
+message UpdateEnrichmentConfigRequest {
+  optional ConsensusConfig consensus = 1;
+  optional AlertConfig alerts = 2;
+  optional DerivedConfig derived = 3;
+  optional TrendConfig trends = 4;
+  optional IndexConfig indices = 5;
+  optional EnergyConfig energy = 6;
+  optional HistoryConfig history = 7;
+}
+
+message UpdateBudgetRequest {
+  optional int32 requests_per_month = 1;
+  optional int32 requests_per_minute = 2;
+}
+
+message BudgetConfig {
+  int32 requests_per_month = 1;
+  int32 requests_per_minute = 2;
+}
+
+// ═══════════════════════════════════════
+// MUTATION RESPONSE
+// ═══════════════════════════════════════
+
+message ConfigResponse {
+  NjordConfig config = 1;
+  BudgetProjection budget_projection = 2;
+  repeated string warnings = 3;
+  bool applied = 4;
+  string rejection_reason = 5;
+}
+
+message BudgetProjection {
+  int64 projected_monthly_calls = 1;
+  int64 monthly_limit = 2;
+  double usage_percent = 3;
+  bool within_budget = 4;
+}
+
+// ═══════════════════════════════════════
+// STATUS
+// ═══════════════════════════════════════
+
+message GetStatusRequest {}
+
+message ServerStatus {
+  string version = 1;
+  int64 uptime_seconds = 2;
+  BudgetStatus budget = 3;
+  repeated ModelStatus models = 4;
+}
+
+message BudgetStatus {
+  int64 monthly_limit = 1;
+  int64 monthly_used = 2;
+  int64 daily_limit = 3;
+  int64 daily_used = 4;
+  double usage_percent = 5;
+}
+
+message ModelStatus {
+  string location = 1;
+  string model = 2;
+  int64 last_fetch_timestamp = 3;
+  int32 consecutive_failures = 4;
+  string state = 5;
+}
+
+// ═══════════════════════════════════════
+// TRIGGER POLL
+// ═══════════════════════════════════════
+
+message TriggerPollRequest {
+  string location = 1;
+  string model = 2;
+}
+
+message TriggerPollResponse {
+  int32 triggered_count = 1;
+  repeated string targets = 2;
+}

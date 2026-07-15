@@ -1,3 +1,4 @@
+using Njord.Grpc;
 using Njord.ServiceDefaults;
 using Servus.Core.Application.Startup;
 
@@ -8,5 +9,7 @@ public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplica
     protected override void SetupApplication(WebApplication app)
     {
         app.MapDefaultEndpoints();
+        app.MapGrpcService<ForecastGrpcService>();
+        app.MapGrpcService<ConfigGrpcService>();
     }
 }

@@ -11,6 +11,7 @@
     <ItemGroup>
       <PackageReference Include="Akka.Hosting" />
       <PackageReference Include="Akka.Logger.Serilog" />
+      <PackageReference Include="Grpc.AspNetCore" />
       <PackageReference Include="Microsoft.Data.Sqlite" />
       <PackageReference Include="Npgsql" />
       <PackageReference Include="Servus" />
@@ -22,6 +23,10 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Njord.ServiceDefaults\Njord.ServiceDefaults.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Protobuf Include="..\..\protos\njord\v1\*.proto" GrpcServices="Server" ProtoRoot="..\..\protos" />
     </ItemGroup>
 
 </Project>

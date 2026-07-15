@@ -26,7 +26,11 @@ public sealed class NjordOptions
     /// <summary>Parameter group and variable selection.</summary>
     public ParameterOptions Parameters { get; set; } = new();
 
+    public string OpenMeteoBaseUrl { get; set; } = "https://api.open-meteo.com/";
+
     public MqttOptions Mqtt { get; set; } = new();
+
+    public GrpcOptions Grpc { get; set; } = new();
 
     public TimeSpan DiscoveryInterval { get; set; } = TimeSpan.FromMinutes(20);
 

@@ -3,6 +3,7 @@ using Akka.Persistence.Sql.Hosting;
 using LinqToDB;
 using Microsoft.Extensions.Options;
 using Njord.Egress;
+using Njord.Grpc;
 using Njord.Mqtt;
 using Njord.Enrichment;
 using Njord.Pipeline;
@@ -59,6 +60,9 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
                 r.Register<PipelineActor>("pipeline");
                 r.Register<SchedulerActor>("scheduler");
                 r.Register<EnrichmentActor>("enrichment");
+                r.Register<ForecastSnapshotActor>("forecast-snapshot");
+                r.Register<EnrichmentSnapshotActor>("enrichment-snapshot");
+                r.Register<GrpcSnapshotConsumerActor>("grpc-snapshot-consumer");
             });
     }
 }
