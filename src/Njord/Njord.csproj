@@ -11,6 +11,12 @@
     <ItemGroup>
       <PackageReference Include="Akka.Hosting" />
       <PackageReference Include="Akka.Logger.Serilog" />
+      <PackageReference Include="Serilog" />
+      <PackageReference Include="Serilog.Enrichers.Environment" />
+      <PackageReference Include="Serilog.Enrichers.Thread" />
+      <PackageReference Include="Serilog.Extensions.Hosting" />
+      <PackageReference Include="Serilog.Settings.Configuration" />
+      <PackageReference Include="Serilog.Sinks.Console" />
       <PackageReference Include="Grpc.AspNetCore" />
       <PackageReference Include="Microsoft.Data.Sqlite" />
       <PackageReference Include="Npgsql" />
@@ -21,11 +27,7 @@
       <PackageReference Include="MQTTnet" />
     </ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\Njord.ServiceDefaults\Njord.ServiceDefaults.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
+<ItemGroup>
       <Protobuf Include="..\..\protos\njord\v1\*.proto" GrpcServices="Server" ProtoRoot="..\..\protos" />
     </ItemGroup>
 

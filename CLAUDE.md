@@ -64,17 +64,23 @@ All commands run from `src/` (where `global.json` lives):
 ```powershell
 dotnet build Njord.slnx
 dotnet run --project Njord.Tests/Njord.Tests.csproj                                    # unit + actor tests (no Docker)
-dotnet run --project Njord.Tests.Integration/Njord.Tests.Integration.csproj            # container tests (WireMock, Mosquitto)
-dotnet run --project Njord.Tests.Integration.E2E/Njord.Tests.Integration.E2E.csproj    # E2E pipeline test
 dotnet run --project Njord.Tests/Njord.Tests.csproj -- -class "<FullyQualifiedName>"   # single class
 ```
 
 Tests are xUnit v3 on Microsoft.Testing.Platform — `dotnet run`, **not** `dotnet test`.
 Shared test infrastructure (fixtures, fakes, helpers) lives in `Njord.Tests.Shared`.
 
-Run the service itself from `src/Njord/` (`dotnet run`) — the host's content
-root must contain `appsettings.json`. `dotnet slopwatch` runs from the repo
-root (baseline in `.slopwatch/`).
+Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
+- `appsettings.json` — production logging only (no `Njord:` section).
+- `appsettings.Development.json` — dev overrides (locations, models, MQTT
+  disabled). Loaded automatically by `dotnet run` (`ASPNETCORE_ENVIRONMENT=Development`).
+- `data/njord-config.json` — optional runtime override (Docker volume mount).
+- Environment variables — Docker-compose / `docker run` (`Njord__Mqtt__Host`, etc.).
+
+MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
+`Njord__Mqtt__Enabled=true` + `Njord__Mqtt__Host=...`.
+
+`dotnet slopwatch` runs from the repo root (baseline in `.slopwatch/`).
 
 ## Open-Meteo API (verified 2026-07-11 via live probes)
 

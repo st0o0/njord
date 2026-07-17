@@ -1,9 +1,21 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Njord.Configuration;
-using Njord.ServiceDefaults;
+using Serilog;
 using Servus.Core.Application.Startup;
 
-var builder = WebApplication.CreateBuilder(args).AddNjordTelemetry();
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSerilog(config =>
+{
+    config
+        .ReadFrom.Configuration(builder.Configuration)
+        .Enrich.WithMachineName()
+        .Enrich.WithThreadId()
+        .Enrich.FromLogContext()
+        .WriteTo.Console(
+            outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
+});
+builder.Logging.ClearProviders();
 
 var njordConfig = builder.Configuration.GetSection(NjordOptions.SectionName);
 var grpcPort = njordConfig.GetValue("Grpc:Port", 8081);
