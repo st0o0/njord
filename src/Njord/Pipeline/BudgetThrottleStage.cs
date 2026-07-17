@@ -26,13 +26,20 @@ public sealed class BudgetThrottleStage<T> : GraphStage<FlowShape<T, T>>
         private readonly Action<T> _onAcquired;
         private bool _upstreamFinished;
         private bool _downstreamPulled;
+        private bool _acquiring;
 
         public Logic(BudgetThrottleStage<T> stage) : base(stage.Shape)
         {
             _stage = stage;
             _onAcquired = GetAsyncCallback<T>(OnAcquired);
 
-            SetHandler(stage.In, onPush: OnPush, onUpstreamFinish: () => _upstreamFinished = true);
+            SetHandler(stage.In, onPush: OnPush, onUpstreamFinish: () =>
+            {
+                if (!_acquiring)
+                    CompleteStage();
+                else
+                    _upstreamFinished = true;
+            });
             SetHandler(stage.Out, onPull: () =>
             {
                 _downstreamPulled = true;
@@ -45,6 +52,7 @@ public sealed class BudgetThrottleStage<T> : GraphStage<FlowShape<T, T>>
         {
             var element = Grab(_stage.In);
             _downstreamPulled = false;
+            _acquiring = true;
 
             _stage._gate.AcquireAsync(element)
                 .ContinueWith(_ => _onAcquired(element));
@@ -52,6 +60,7 @@ public sealed class BudgetThrottleStage<T> : GraphStage<FlowShape<T, T>>
 
         private void OnAcquired(T element)
         {
+            _acquiring = false;
             Push(_stage.Out, element);
 
             if (_upstreamFinished)

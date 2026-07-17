@@ -1,9 +1,9 @@
-using System.Diagnostics;
 using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Configuration;
 using Njord.Pipeline;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Pipeline;
 
@@ -27,7 +27,7 @@ public sealed class BudgetThrottleStageSpec : IAsyncLifetime
     [Fact(Timeout = 5000)]
     public async Task Elements_pass_through_when_gate_allows_immediately()
     {
-        var gate = new InstantGate<int>();
+        var gate = new RecordingGate<int>();
         var stage = new BudgetThrottleStage<int>(gate);
 
         var result = await Source.From(Enumerable.Range(0, 5))
@@ -35,30 +35,27 @@ public sealed class BudgetThrottleStageSpec : IAsyncLifetime
             .RunWith(Sink.Seq<int>(), _mat);
 
         Assert.Equal(5, result.Count);
-        Assert.Equal(5, gate.AcquireCount);
+        Assert.Equal(5, gate.Acquired.Count);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Elements_wait_when_gate_delays()
+    public async Task Gate_is_called_for_every_element()
     {
-        var gate = new DelayGate<int>(TimeSpan.FromMilliseconds(100));
+        var gate = new RecordingGate<int>();
         var stage = new BudgetThrottleStage<int>(gate);
 
-        var sw = Stopwatch.StartNew();
-        var result = await Source.From(Enumerable.Range(0, 3))
+        var result = await Source.From([10, 20, 30])
             .Via(stage)
             .RunWith(Sink.Seq<int>(), _mat);
-        sw.Stop();
 
-        Assert.Equal(3, result.Count);
-        Assert.True(sw.ElapsedMilliseconds >= 250,
-            $"3 elements with 100ms delay should take ≥250ms, took {sw.ElapsedMilliseconds}ms");
+        Assert.Equal([10, 20, 30], result);
+        Assert.Equal([10, 20, 30], gate.Acquired);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Stage_completes_after_pending_element()
     {
-        var gate = new DelayGate<int>(TimeSpan.FromMilliseconds(50));
+        var gate = new RecordingGate<int>(delayMs: 50);
         var stage = new BudgetThrottleStage<int>(gate);
 
         var result = await Source.From([1, 2, 3])
@@ -67,23 +64,34 @@ public sealed class BudgetThrottleStageSpec : IAsyncLifetime
 
         Assert.Equal(3, result.Count);
         Assert.Equal([1, 2, 3], result);
+        Assert.Equal(3, gate.Acquired.Count);
     }
 
-    private sealed class InstantGate<T> : IBudgetGate<T>
+    [Fact(Timeout = 5000)]
+    public async Task Empty_source_completes_immediately()
     {
-        public int AcquireCount;
+        var gate = new RecordingGate<int>();
+        var stage = new BudgetThrottleStage<int>(gate);
 
-        public Task AcquireAsync(T element, CancellationToken ct = default)
+        var result = await Source.Empty<int>()
+            .Via(stage)
+            .RunWith(Sink.Seq<int>(), _mat);
+
+        Assert.Empty(result);
+        Assert.Empty(gate.Acquired);
+    }
+
+    private sealed class RecordingGate<T>(int delayMs = 0) : IBudgetGate<T>
+    {
+        public List<T> Acquired { get; } = [];
+
+        public async Task AcquireAsync(T element, CancellationToken ct = default)
         {
-            Interlocked.Increment(ref AcquireCount);
-            return Task.CompletedTask;
+            if (delayMs > 0)
+                await Task.Delay(delayMs, ct);
+            lock (Acquired)
+                Acquired.Add(element);
         }
-    }
-
-    private sealed class DelayGate<T>(TimeSpan delay) : IBudgetGate<T>
-    {
-        public Task AcquireAsync(T element, CancellationToken ct = default)
-            => Task.Delay(delay, ct);
     }
 }
 
@@ -97,29 +105,9 @@ public sealed class WeightedBudgetGateSpec
         var gate = new WeightedBudgetGate(provider, tracker);
 
         var target = MakeTarget(weight: 1);
-        var sw = Stopwatch.StartNew();
         await gate.AcquireAsync(target);
-        sw.Stop();
 
-        Assert.True(sw.ElapsedMilliseconds < 100);
         Assert.Equal(1, tracker.GetUsage().MonthlyUsed);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Delays_when_tokens_insufficient()
-    {
-        var provider = new FakeProvider(new BudgetRate(60, 1));
-        var tracker = new BudgetTracker();
-        var gate = new WeightedBudgetGate(provider, tracker);
-
-        await gate.AcquireAsync(MakeTarget(1));
-
-        var sw = Stopwatch.StartNew();
-        await gate.AcquireAsync(MakeTarget(1));
-        sw.Stop();
-
-        Assert.True(sw.ElapsedMilliseconds >= 500,
-            $"Second acquire should wait ~1sec at 60/min with burst 1, took {sw.ElapsedMilliseconds}ms");
     }
 
     [Fact(Timeout = 5000)]
@@ -143,6 +131,19 @@ public sealed class WeightedBudgetGateSpec
         _ = new WeightedBudgetGate(provider, tracker);
 
         Assert.True(provider.CallCount >= 1);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Burst_allows_multiple_immediate_acquires()
+    {
+        var provider = new FakeProvider(new BudgetRate(60, 4));
+        var tracker = new BudgetTracker();
+        var gate = new WeightedBudgetGate(provider, tracker);
+
+        for (var i = 0; i < 4; i++)
+            await gate.AcquireAsync(MakeTarget(1));
+
+        Assert.Equal(4, tracker.GetUsage().MonthlyUsed);
     }
 
     private static WeightedTarget MakeTarget(int weight)

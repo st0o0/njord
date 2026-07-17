@@ -131,10 +131,12 @@ public sealed class DiscoveryActorSpec : IDisposable
         });
 
         actor.Tell(new MqttConnected());
-        await Task.Delay(200);
 
-        var messages = await probe.Ask<List<MqttMessage>>(new GetPublishedMessages(), TimeSpan.FromSeconds(1));
-        Assert.Empty(messages);
+        await AsyncAssert.StaysTrue(async () =>
+        {
+            var messages = await probe.Ask<List<MqttMessage>>(new GetPublishedMessages(), TimeSpan.FromSeconds(1));
+            return messages.Count == 0;
+        });
     }
 
     [Fact(Timeout = 5000)]

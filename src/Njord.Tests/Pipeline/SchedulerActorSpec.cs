@@ -135,10 +135,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         var countBefore = _offered.Count;
         _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.RateLimited, "test"));
 
-        // Rate-limited should not immediately retry — verify no new offer within a short window
-        await Task.Delay(200);
-
-        Assert.Equal(countBefore, _offered.Count);
+        await AsyncAssert.StaysTrue(() => _offered.Count == countBefore);
     }
 
     [Fact(Timeout = 5000)]
@@ -150,10 +147,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         var countBefore = _offered.Count;
         _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.ModelUnavailable, "test"));
 
-        // Verify no retry is scheduled
-        await Task.Delay(200);
-
-        Assert.Equal(countBefore, _offered.Count);
+        await AsyncAssert.StaysTrue(() => _offered.Count == countBefore);
     }
 
     [Fact(Timeout = 5000)]
@@ -165,10 +159,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         var countBefore = _offered.Count;
         _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.MalformedPayload, "test"));
 
-        // Verify no retry is scheduled
-        await Task.Delay(200);
-
-        Assert.Equal(countBefore, _offered.Count);
+        await AsyncAssert.StaysTrue(() => _offered.Count == countBefore);
     }
 
     [Fact(Timeout = 5000)]
