@@ -8,7 +8,6 @@ permissions:
   contents: write
   pull-requests: write
 
-# Never cancel an in-flight release (a partial GHCR publish is worse than a wait).
 concurrency:
   group: release
   cancel-in-progress: false
@@ -28,11 +27,14 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  test:
+  build:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      matrix:
+        rid: [linux-x64, linux-arm64]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -43,21 +45,39 @@ jobs:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('src/**/*.csproj', 'src/Directory.Packages.props') }}
           restore-keys: nuget-${{ runner.os }}-
+
+      - name: Publish
+        working-directory: src
+        run: dotnet publish Njord/Njord.csproj -c Release -r ${{ matrix.rid }} -o ../publish/${{ matrix.rid }} -p:Version=${{ needs.release-please.outputs.version }}
+
       - name: Run tests
+        if: matrix.rid == 'linux-x64'
         working-directory: src
         run: dotnet test Njord.slnx
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: publish-${{ matrix.rid }}
+          path: publish/${{ matrix.rid }}/
+          retention-days: 1
+
   docker:
-    needs: [release-please, test]
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    needs: [release-please, build]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      id-token: write   # keyless cosign signing via OIDC
+      id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
+      - uses: actions/download-artifact@v4
+        with:
+          name: publish-linux-x64
+          path: publish/linux-x64
+      - uses: actions/download-artifact@v4
+        with:
+          name: publish-linux-arm64
+          path: publish/linux-arm64
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -72,27 +92,59 @@ jobs:
             type=raw,value=${{ needs.release-please.outputs.version }}
             type=raw,value=${{ needs.release-please.outputs.major }}.${{ needs.release-please.outputs.minor }}
             type=raw,value=latest
-      - uses: docker/build-push-action@v7
-        id: build
+
+      - name: Build and push amd64
+        uses: docker/build-push-action@v7
+        id: build-amd64
         with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          build-args: |
-            VERSION=${{ needs.release-please.outputs.version }}
-          tags: ${{ steps.meta.outputs.tags }}
+          context: publish/linux-x64
+          platforms: linux/amd64
           labels: ${{ steps.meta.outputs.labels }}
-          # GHCR shows the package description only from the image-index
-          # annotations on multi-arch images — per-image LABELs don't surface.
-          annotations: |
-            index:org.opencontainers.image.description=Multi-model weather intelligence for Home Assistant
-            index:org.opencontainers.image.source=https://github.com/st0o0/njord
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: true   # SLSA build provenance attestation
-          sbom: true         # SBOM attestation
+          cache-from: type=gha,scope=amd64
+          cache-to: type=gha,scope=amd64,mode=max
+          provenance: true
+          sbom: true
+          outputs: type=image,name=ghcr.io/st0o0/njord,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Build and push arm64
+        uses: docker/build-push-action@v7
+        id: build-arm64
+        with:
+          context: publish/linux-arm64
+          platforms: linux/arm64
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=arm64
+          cache-to: type=gha,scope=arm64,mode=max
+          provenance: true
+          sbom: true
+          outputs: type=image,name=ghcr.io/st0o0/njord,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Create multi-arch manifest
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          AMD64_DIGEST: ${{ steps.build-amd64.outputs.digest }}
+          ARM64_DIGEST: ${{ steps.build-arm64.outputs.digest }}
+        run: |
+          TAG_ARGS=""
+          while IFS= read -r tag; do
+            [ -n "$tag" ] && TAG_ARGS="$TAG_ARGS -t $tag"
+          done <<< "$TAGS"
+
+          docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.description=Multi-model weather intelligence for Home Assistant" \
+            --annotation "index:org.opencontainers.image.source=https://github.com/st0o0/njord" \
+            $TAG_ARGS \
+            "ghcr.io/st0o0/njord@${AMD64_DIGEST}" \
+            "ghcr.io/st0o0/njord@${ARM64_DIGEST}"
+
+      - name: Get manifest digest
+        id: manifest
+        run: |
+          DIGEST=$(docker buildx imagetools inspect ghcr.io/st0o0/njord:${{ needs.release-please.outputs.version }} --format '{{.Manifest.Digest}}')
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
       - uses: sigstore/cosign-installer@v3
       - name: Sign the published image (keyless)
         env:
-          DIGEST: ${{ steps.build.outputs.digest }}
+          DIGEST: ${{ steps.manifest.outputs.digest }}
         run: cosign sign --yes "ghcr.io/st0o0/njord@${DIGEST}"
