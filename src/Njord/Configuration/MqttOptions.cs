@@ -3,7 +3,9 @@ namespace Njord.Configuration;
 /// <summary>MQTT broker settings, bound from the <c>Njord:Mqtt</c> section.</summary>
 public sealed class MqttOptions
 {
-    /// <summary>Required — startup validation fails without a broker host.</summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>Required when <see cref="Enabled"/> is true.</summary>
     public string Host { get; set; } = string.Empty;
 
     public int Port { get; set; } = 1883;

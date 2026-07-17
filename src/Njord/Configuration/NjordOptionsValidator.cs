@@ -56,7 +56,7 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
             failures.Add("PostgreSQL persistence requires a connection string — set Njord:Persistence:ConnectionString.");
         }
 
-        if (string.IsNullOrWhiteSpace(options.Mqtt.Host))
+        if (options.Mqtt.Enabled && string.IsNullOrWhiteSpace(options.Mqtt.Host))
         {
             failures.Add("The MQTT broker host is missing — set Njord:Mqtt:Host.");
         }

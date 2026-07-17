@@ -7,7 +7,10 @@ services:
     volumes:
       - njord-data:/app/data
     environment:
-      # ── MQTT (required) ───────────────────────────────────────
+      # ── MQTT (disabled by default) ─────────────────────────────
+      # Both Enabled=true and Host are required for HA integration.
+      # Omit both to run in gRPC-only mode.
+      - Njord__Mqtt__Enabled=true
       - Njord__Mqtt__Host=192.168.1.x
       #- Njord__Mqtt__Port=1883
       #- Njord__Mqtt__Username=

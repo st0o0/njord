@@ -75,9 +75,10 @@ public sealed class NjordOptionsValidatorSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void Missing_mqtt_host_is_rejected()
+    public void Missing_mqtt_host_is_rejected_when_enabled()
     {
         var options = ValidOptions();
+        options.Mqtt.Enabled = true;
         options.Mqtt.Host = "";
 
         var result = Validator.Validate(null, options);
@@ -120,6 +121,24 @@ public sealed class NjordOptionsValidatorSpec
 
         Assert.True(result.Failed);
         Assert.Contains("96", result.FailureMessage);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Missing_mqtt_host_is_accepted_when_mqtt_is_disabled()
+    {
+        var options = ValidOptions();
+        options.Mqtt.Host = "";
+        options.Mqtt.Enabled = false;
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Succeeded, result.FailureMessage);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Mqtt_is_disabled_by_default()
+    {
+        Assert.False(new MqttOptions().Enabled);
     }
 
     [Fact(Timeout = 5000)]

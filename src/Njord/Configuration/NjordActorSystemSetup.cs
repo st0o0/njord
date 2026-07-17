@@ -53,16 +53,20 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
             .WithResolvableActors(r =>
             {
                 r.Register<EgressActor>("egress");
-                r.Register<MqttConnectionActor>("mqtt-connection");
                 r.Register<ModelStateActor>("model-state");
-                r.Register<MqttEgressActor>("mqtt-egress");
-                r.Register<DiscoveryActor>("mqtt-discovery");
                 r.Register<PipelineActor>("pipeline");
                 r.Register<SchedulerActor>("scheduler");
                 r.Register<EnrichmentActor>("enrichment");
                 r.Register<ForecastSnapshotActor>("forecast-snapshot");
                 r.Register<EnrichmentSnapshotActor>("enrichment-snapshot");
                 r.Register<GrpcSnapshotConsumerActor>("grpc-snapshot-consumer");
+
+                if (njordOptions.Mqtt.Enabled)
+                {
+                    r.Register<MqttConnectionActor>("mqtt-connection");
+                    r.Register<MqttEgressActor>("mqtt-egress");
+                    r.Register<DiscoveryActor>("mqtt-discovery");
+                }
             });
     }
 }

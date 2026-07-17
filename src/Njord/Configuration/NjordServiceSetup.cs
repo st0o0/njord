@@ -37,9 +37,12 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         {
             ServiceStartedUtc = sp.GetRequiredService<TimeProvider>().GetUtcNow(),
         });
-        services.AddHealthChecks()
-            .AddCheck<MqttConnectionHealthCheck>("mqtt-connection")
+        var healthChecks = services.AddHealthChecks()
             .AddCheck<PipelineHealthCheck>("pipeline");
+
+        var mqttEnabled = configuration
+            .GetSection($"{NjordOptions.SectionName}:Mqtt")
+            .GetValue("Enabled", true);
         services.AddSingleton<IEnrichmentFeature, ConsensusEnrichment>();
         services.AddSingleton<IEnrichmentFeature, AlertEnrichment>();
         services.AddSingleton<IEnrichmentFeature, DerivedEnrichment>();
@@ -47,15 +50,20 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         services.AddSingleton<IEnrichmentFeature, IndexEnrichment>();
         services.AddSingleton<IEnrichmentFeature, EnergyEnrichment>();
         services.AddSingleton<IEnrichmentFeature, HistoryEnrichment>();
+        if (mqttEnabled)
+        {
+            healthChecks.AddCheck<MqttConnectionHealthCheck>("mqtt-connection");
+            services.TryAddSingleton(MqttEgressTuning.Default);
+            services.TryAddSingleton(static provider =>
+                new MqttNetPublisher(
+                    provider.GetRequiredService<IOptions<NjordOptions>>().Value.Mqtt,
+                    provider.GetRequiredService<ILogger<MqttNetPublisher>>()));
+            services.TryAddSingleton<IMqttConnection>(static provider => provider.GetRequiredService<MqttNetPublisher>());
+            services.TryAddSingleton<IMqttTransport>(static provider => provider.GetRequiredService<MqttNetPublisher>());
+        }
+
         services.AddGrpc();
         services.AddOpenMeteoIngest();
-        services.TryAddSingleton(MqttEgressTuning.Default);
-        services.TryAddSingleton(static provider =>
-            new MqttNetPublisher(
-                provider.GetRequiredService<IOptions<NjordOptions>>().Value.Mqtt,
-                provider.GetRequiredService<ILogger<MqttNetPublisher>>()));
-        services.TryAddSingleton<IMqttConnection>(static provider => provider.GetRequiredService<MqttNetPublisher>());
-        services.TryAddSingleton<IMqttTransport>(static provider => provider.GetRequiredService<MqttNetPublisher>());
         services.AddSingleton<ConfigPersistence>();
         services.AddSingleton<BudgetTracker>();
     }
