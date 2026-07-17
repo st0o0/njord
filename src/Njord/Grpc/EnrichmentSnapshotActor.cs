@@ -5,10 +5,13 @@ namespace Njord.Grpc;
 
 public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
 {
+    private const int SnapshotInterval = 14;
+
     public override string PersistenceId => "enrichment-snapshot";
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly Dictionary<string, object> _state = new();
+    private int _updatesSinceSnapshot;
 
     public EnrichmentSnapshotActor()
     {
@@ -25,7 +28,14 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
         {
             var key = MakeKey(cmd.Location, cmd.TypeName);
             _state[key] = cmd.Result;
-            SaveSnapshot(new EnrichmentSnapshotState { Enrichments = new Dictionary<string, object>(_state) });
+
+            _updatesSinceSnapshot++;
+            if (_updatesSinceSnapshot >= SnapshotInterval)
+            {
+                SaveSnapshot(new EnrichmentSnapshotState { Enrichments = new Dictionary<string, object>(_state) });
+                _updatesSinceSnapshot = 0;
+            }
+
             Sender.Tell(new Ack(), Self);
         });
 
@@ -49,11 +59,18 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
         Command<SaveSnapshotSuccess>(success =>
         {
             _log.Debug("Enrichment snapshot saved (seqNr {0})", success.Metadata.SequenceNr);
+            DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
         });
 
         Command<SaveSnapshotFailure>(failure =>
         {
             _log.Warning("Enrichment snapshot save failed: {0}", failure.Cause.Message);
+        });
+
+        Command<DeleteSnapshotsSuccess>(_ => { });
+        Command<DeleteSnapshotsFailure>(failure =>
+        {
+            _log.Warning("Old snapshot cleanup failed: {0}", failure.Cause.Message);
         });
     }
 

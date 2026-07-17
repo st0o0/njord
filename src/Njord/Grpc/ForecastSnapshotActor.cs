@@ -6,10 +6,13 @@ namespace Njord.Grpc;
 
 public sealed class ForecastSnapshotActor : ReceivePersistentActor
 {
+    private const int SnapshotInterval = 20;
+
     public override string PersistenceId => "forecast-snapshot";
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly Dictionary<string, ModelForecast> _state = new();
+    private int _updatesSinceSnapshot;
 
     public ForecastSnapshotActor()
     {
@@ -26,7 +29,14 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
         {
             var key = MakeKey(cmd.Location, cmd.Model.Id);
             _state[key] = cmd.Forecast;
-            SaveSnapshot(new ForecastSnapshotState { Forecasts = new Dictionary<string, ModelForecast>(_state) });
+
+            _updatesSinceSnapshot++;
+            if (_updatesSinceSnapshot >= SnapshotInterval)
+            {
+                SaveSnapshot(new ForecastSnapshotState { Forecasts = new Dictionary<string, ModelForecast>(_state) });
+                _updatesSinceSnapshot = 0;
+            }
+
             Sender.Tell(new Ack(), Self);
         });
 
@@ -48,11 +58,18 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
         Command<SaveSnapshotSuccess>(success =>
         {
             _log.Debug("Forecast snapshot saved (seqNr {0})", success.Metadata.SequenceNr);
+            DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
         });
 
         Command<SaveSnapshotFailure>(failure =>
         {
             _log.Warning("Forecast snapshot save failed: {0}", failure.Cause.Message);
+        });
+
+        Command<DeleteSnapshotsSuccess>(_ => { });
+        Command<DeleteSnapshotsFailure>(failure =>
+        {
+            _log.Warning("Old snapshot cleanup failed: {0}", failure.Cause.Message);
         });
     }
 

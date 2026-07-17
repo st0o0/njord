@@ -60,8 +60,8 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
         var snapshot = msg.Snapshot;
         var now = _timeProvider.GetUtcNow();
 
-        var modelValues = new Dictionary<WeatherModel, IReadOnlyDictionary<string, double?>>();
         var consensusValues = new Dictionary<string, double?>();
+        var modelValuesList = new List<IReadOnlyDictionary<string, double?>>();
 
         foreach (var (key, forecast) in snapshot.Entries)
         {
@@ -83,21 +83,22 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
                 }
             }
 
-            modelValues[key.Model] = values;
+            modelValuesList.Add(values);
         }
 
-        if (modelValues.Count > 0)
+        if (modelValuesList.Count > 0)
         {
             foreach (var param in _parameters.Hourly)
             {
-                var vals = modelValues.Values
+                var vals = modelValuesList
                     .Select(v => v.TryGetValue(param.ApiName, out var val) ? val : null)
                     .ToList();
                 consensusValues[param.ApiName] = ConsensusComputer.ComputeMedian(vals);
             }
         }
 
-        var evt = new ForecastRecord(now, _location, modelValues, consensusValues);
+        var emptyModelValues = new Dictionary<WeatherModel, IReadOnlyDictionary<string, double?>>();
+        var evt = new ForecastRecord(now, _location, emptyModelValues, consensusValues);
         Persist(evt, persisted =>
         {
             _history.Add(persisted);

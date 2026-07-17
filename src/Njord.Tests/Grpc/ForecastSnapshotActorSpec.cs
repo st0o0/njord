@@ -72,4 +72,30 @@ public sealed class ForecastSnapshotActorSpec : IDisposable
         var response = await actor.Ask<AllForecastsResponse>(new GetAllForecasts());
         Assert.Equal(2, response.Forecasts.Count);
     }
+
+    [Fact(Timeout = 5000)]
+    public async Task State_available_before_snapshot_threshold()
+    {
+        var actor = CreateActor();
+        var forecast = CreateForecast();
+        await actor.Ask<Ack>(new UpdateForecast("lucerne", forecast.Model, forecast));
+
+        var response = await actor.Ask<ForecastResponse>(new GetForecast("lucerne", "icon_d2"));
+        Assert.NotNull(response.Forecast);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task State_survives_after_snapshot_threshold_reached()
+    {
+        var actor = CreateActor();
+
+        for (var i = 0; i < 20; i++)
+        {
+            var model = $"model_{i}";
+            await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel(model), CreateForecast(model)));
+        }
+
+        var response = await actor.Ask<AllForecastsResponse>(new GetAllForecasts());
+        Assert.Equal(20, response.Forecasts.Count);
+    }
 }
