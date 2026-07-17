@@ -1,24 +1,16 @@
 # syntax=docker/dockerfile:1
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-ARG VERSION=0.0.0-dev
-WORKDIR /src
-# Restore first so the NuGet layer caches independently of source changes
-COPY src/global.json src/Directory.Build.props src/Directory.Packages.props ./
-COPY protos/ /protos/
-COPY src/Njord/Njord.csproj Njord/
-RUN dotnet restore Njord/Njord.csproj
-COPY src/Njord/ Njord/
-RUN dotnet publish Njord/Njord.csproj -c Release -o /app --no-restore -p:Version=${VERSION} \
-    && mkdir -p /app/data
+# CI cross-compiles via `dotnet publish -r <rid>` and passes the
+# published output as build context. No SDK needed here.
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled
 LABEL org.opencontainers.image.title="njord" \
       org.opencontainers.image.description="Multi-model weather intelligence for Home Assistant" \
       org.opencontainers.image.source="https://github.com/st0o0/njord" \
       org.opencontainers.image.documentation="https://github.com/st0o0/njord#readme"
 WORKDIR /app
-COPY --from=build --chown=$APP_UID /app .
+COPY --chown=$APP_UID . .
+RUN mkdir -p /app/data
 VOLUME /app/data
 EXPOSE 8080 8081
 ENTRYPOINT ["dotnet", "Njord.dll"]
