@@ -1,19 +1,22 @@
-using System.Collections.Frozen;
+using System.Collections.Immutable;
 
 namespace Njord.Domain.Weather;
 
 public sealed record ModelSnapshot
 {
     public static readonly ModelSnapshot Empty = new(
-        FrozenDictionary<(string Location, WeatherModel Model), ModelForecast>.Empty, false);
+        ImmutableDictionary<(string Location, WeatherModel Model), ModelForecast>.Empty, false);
 
     public IReadOnlyDictionary<(string Location, WeatherModel Model), ModelForecast> Entries { get; }
     public bool HasChanged { get; }
 
+    private readonly ImmutableDictionary<(string Location, WeatherModel Model), ModelForecast> _entries;
+
     private ModelSnapshot(
-        IReadOnlyDictionary<(string Location, WeatherModel Model), ModelForecast> entries,
+        ImmutableDictionary<(string Location, WeatherModel Model), ModelForecast> entries,
         bool hasChanged)
     {
+        _entries = entries;
         Entries = entries;
         HasChanged = hasChanged;
     }
@@ -24,11 +27,10 @@ public sealed record ModelSnapshot
 
         if (Entries.TryGetValue(key, out var existing) && existing.Cycle == forecast.Cycle)
         {
-            return new ModelSnapshot(Entries, false);
+            return new ModelSnapshot(_entries, false);
         }
 
-        var dict = new Dictionary<(string, WeatherModel), ModelForecast>(Entries) { [key] = forecast };
-        return new ModelSnapshot(dict, true);
+        return new ModelSnapshot(_entries.SetItem(key, forecast), true);
     }
 
     public IReadOnlyList<WeatherModel> ModelsFor(string location)

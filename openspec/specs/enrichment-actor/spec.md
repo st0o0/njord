@@ -37,11 +37,19 @@ The `EnrichmentActor` SHALL materialize a consumer on the pipeline's `SourceRef<
 - **THEN** `HasChanged` is `false` and the snapshot is not emitted to consumers
 
 ### Requirement: The EnrichmentActor fans out via a second BroadcastHub
-The `EnrichmentActor` SHALL materialize a `BroadcastHub<ModelSnapshot>` from the Scan output. Consumer streams SHALL each independently subscribe to this BroadcastHub. Each consumer SHALL receive every changed snapshot.
+The `EnrichmentActor` SHALL materialize a `BroadcastHub.Sink<ModelSnapshot>` with a buffer size of 8 from the Scan output to distribute rolling snapshots to enrichment features. Consumer streams SHALL each independently subscribe to this BroadcastHub. Each consumer SHALL receive every changed snapshot. The `ModelSnapshot.Update()` method SHALL use `ImmutableDictionary` with structural sharing instead of cloning a mutable `Dictionary` on every update.
 
 #### Scenario: Two consumers receive the same snapshot
 - **WHEN** a changed `ModelSnapshot` enters the BroadcastHub and two consumers are subscribed
 - **THEN** both consumers receive the snapshot independently
+
+#### Scenario: ModelSnapshot BroadcastHub buffer size is 8
+- **WHEN** the EnrichmentActor materializes its enrichment graph
+- **THEN** the ModelSnapshot BroadcastHub SHALL use a buffer size of 8
+
+#### Scenario: ModelSnapshot update uses structural sharing
+- **WHEN** `ModelSnapshot.Update()` is called with a new forecast
+- **THEN** it SHALL return a new `ModelSnapshot` using `ImmutableDictionary.SetItem` without copying the entire dictionary
 
 ### Requirement: EnrichmentActor fans out enrichment results to EgressActor
 

@@ -107,7 +107,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
     {
         var mat = _mat!;
 
-        var (snapshotHubSource, snapshotHubSink) = BroadcastHub.Sink<ModelSnapshot>(bufferSize: 64)
+        var (snapshotHubSource, snapshotHubSink) = BroadcastHub.Sink<ModelSnapshot>(bufferSize: 8)
             .PreMaterialize(mat);
 
         _sourceRef!.Source

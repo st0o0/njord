@@ -86,7 +86,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         var (mergeHubSink, mergeHubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 16)
             .PreMaterialize(_mat);
 
-        var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<FetchOutcome>(bufferSize: 256)
+        var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<FetchOutcome>(bufferSize: 16)
             .PreMaterialize(_mat);
 
         mergeHubSource

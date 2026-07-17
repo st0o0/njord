@@ -49,7 +49,7 @@ public sealed class EgressActor : ReceiveActor
 
     protected override void PreStart()
     {
-        (_broadcastHubSource, var broadcastHubSink) = BroadcastHub.Sink<EgressEvent>(bufferSize: 64)
+        (_broadcastHubSource, var broadcastHubSink) = BroadcastHub.Sink<EgressEvent>(bufferSize: 16)
             .PreMaterialize(_mat);
 
         (_mergeHubSink, var mergeHubSource) = MergeHub.Source<EgressEvent>(perProducerBufferSize: 8)
