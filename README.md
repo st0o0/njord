@@ -5,7 +5,7 @@
 <h1 align="center">njord</h1>
 
 <p align="center">
-  Multi-model weather forecasts in Home Assistant — powered by Open-Meteo
+  Multi-model weather intelligence for Home Assistant — powered by Open-Meteo
 </p>
 
 <p align="center">
@@ -18,14 +18,16 @@
 
 A .NET service (Docker container) built on [Akka.NET](https://getakka.net/) + Akka.Streams that polls
 the [Open-Meteo API](https://open-meteo.com/en/docs) for multiple weather models
-per location and publishes everything as Home Assistant entities via
+per location, enriches the data through a configurable pipeline, and publishes
+everything as Home Assistant entities via
 [MQTT Discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
 
 ## Features
 
 - **50+ weather models** — ICON, ECMWF, GFS, UKMO, MeteoSwiss, and regional models from Open-Meteo
 - **Multiple locations** — configure as many locations as you need, each with its own model selection
-- **Enrichment pipeline** — consensus forecasts, weather alerts, trends, derived values, energy management, and more
+- **Enrichment pipeline** — consensus forecasts, weather alerts, derived values (Beaufort, wind chill, comfort), trend analysis, activity indices, energy optimization, and forecast accuracy tracking
+- **Hourly and daily forecasts** — configurable horizons for hourly data, plus daily min/max, precipitation sums, sunrise/sunset
 - **Auto-discovery** — devices and sensors appear in Home Assistant automatically via MQTT Discovery
 - **Single container** — runs on any Docker host with SQLite persistence by default, no external database needed
 

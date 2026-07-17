@@ -2,19 +2,21 @@
 
 ## Project
 
-njord — Open-Meteo weather API → MQTT bridge for Home Assistant. A .NET service
+njord — Multi-model weather intelligence for Home Assistant. A .NET service
 (Docker container) on Akka.NET + Akka.Streams: polls the Open-Meteo API for
-multiple weather models per location, computes a consensus forecast, and publishes
-Home Assistant entities via MQTT Discovery (Mosquitto broker on the HA host).
+multiple weather models per location, processes forecasts through an enrichment
+pipeline (consensus, alerts, derived values, trends, indices, energy, history),
+and publishes Home Assistant entities via MQTT Discovery (Mosquitto broker on
+the HA host).
 
 ### Architecture guardrails
 
 - **Three zones that only meet in the domain model:** Ingest (Open-Meteo client,
-  DTOs, parsing) → Domain (`ModelForecast`, consensus) → Egress (HA entity
-  definitions, topic builder, discovery payloads). Ingest and Egress never
+  DTOs, parsing) → Domain (`ModelForecast`, enrichment, consensus) → Egress (HA
+  entity definitions, topic builder, discovery payloads). Ingest and Egress never
   reference each other.
 - **Streams for data flow, actors for lifecycle.** The poll pipeline is
-  Akka.Streams (tick → fan-out → throttle → HTTP → aggregate → consensus → MQTT).
+  Akka.Streams (tick → fan-out → throttle → HTTP → aggregate → enrich → MQTT).
   Actors own connection management and the HA birth-message subscription.
 - **Discovery and telemetry are separate flows.** Discovery (retained config
   payloads) is lifecycle-driven: startup, HA birth on `homeassistant/status`,
@@ -27,9 +29,8 @@ Home Assistant entities via MQTT Discovery (Mosquitto broker on the HA host).
   arrived, plus `models_used`/spread diagnostics.
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow` directly.
 
-### Decisions (2026-07-11 — migrate into `openspec/specs/` as changes land)
+### Decisions
 
-- Multiple locations from v1; topics and devices carry a location level.
 - Open-Meteo free tier (non-commercial) is the assumed plan: the request budget
   defaults to its soft limits (300k/month, 600/min) with an optional
   `BudgetOverride` for self-throttling. Startup validates projected usage
@@ -40,22 +41,19 @@ Home Assistant entities via MQTT Discovery (Mosquitto broker on the HA host).
   limits (300k/month, 10k/day) — and politeness toward a free service.
 - Feels-like comes from the API (`apparent_temperature` per model) — no own
   Steadman computation.
-- **Consensus is deferred (pivot 2026-07-12):** per-model data goes to HA 1:1
-  first; consensus may later happen in HA (helpers) or return as a njord
-  change (it would join the topic scheme as pseudo-model `consensus`).
-- HA device cut: per location, one device per weather model, **enabled by
-  default** (they are the product while no consensus device exists).
+- HA device cut: per location, one device per weather model plus one device per
+  enabled enrichment feature. Enrichment features (consensus, alerts, derived,
+  trends, indices, energy, history) are independently toggleable.
 - Entity grid per model device: one sensor per (parameter, horizon) — horizons
-  configurable, default +3/+6/+12/+24/+48/+72 h → 54 sensors/device, 432 per
-  location at the 8-model default. No JSON series attribute, no `state_class`
-  (forecasts are not measurements). Recommend a `recorder:` exclude for
-  `sensor.njord_*` in HA docs/snippets.
+  configurable, default +3/+6/+12/+24/+48/+72 h. No JSON series attribute, no
+  `state_class` (forecasts are not measurements). Recommend a `recorder:` exclude
+  for `sensor.njord_*` in HA docs/snippets.
 - MQTT egress: device-based discovery (one retained config per device,
-  `homeassistant/device/<id>/config`, verified 2026-07-12), one retained
-  state JSON per device per cycle, availability via LWT on `njord/status` +
-  per-component `availability_template` + `expire_after` (2× poll interval).
-  MQTTnet sits behind the `IMqttPublisher` seam; the connection actor owns
-  lifecycle, HA birth handling, and tombstoning of stale retained configs.
+  `homeassistant/device/<id>/config`), one retained state JSON per device per
+  cycle, availability via LWT on `njord/status` + per-component
+  `availability_template` + `expire_after` (2× poll interval). MQTTnet sits
+  behind the `IMqttPublisher` seam; the connection actor owns lifecycle, HA
+  birth handling, and tombstoning of stale retained configs.
 
 ## Build & test
 

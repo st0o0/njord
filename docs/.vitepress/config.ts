@@ -4,7 +4,7 @@ import { withLikeC4 } from '@leberkas-org/vitepress-likec4'
 export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, defineConfig({
   base: '/njord/',
   title: 'njord',
-  description: 'Open-Meteo weather API → MQTT bridge for Home Assistant',
+  description: 'Multi-model weather intelligence for Home Assistant',
   head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/njord/logo.svg' }]],
 
   themeConfig: {

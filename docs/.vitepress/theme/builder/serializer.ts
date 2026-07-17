@@ -7,6 +7,7 @@ export function exportAsJson(config: NjordConfig): string {
 
   n.PollInterval = config.pollInterval
   n.ForecastDays = config.forecastDays
+  if (config.discoveryInterval !== '00:20:00') n.DiscoveryInterval = config.discoveryInterval
   n.Horizons = config.horizons
   if (config.models.length) n.Models = config.models
   if (config.locations.length) {
@@ -57,6 +58,7 @@ export function exportAsEnvVars(config: NjordConfig): string {
   add('Njord__Mqtt__Host', config.mqtt.host || '<your-mqtt-host>')
   add('Njord__Mqtt__Port', String(config.mqtt.port))
   if (config.mqtt.username) add('Njord__Mqtt__Username', config.mqtt.username)
+  if (config.mqtt.password) add('Njord__Mqtt__Password', config.mqtt.password)
 
   for (const [feature, settings] of Object.entries(config.enrichment)) {
     for (const [key, value] of Object.entries(settings as Record<string, unknown>)) {
@@ -69,7 +71,37 @@ export function exportAsEnvVars(config: NjordConfig): string {
     add('Njord__BudgetOverride__RequestsPerMinute', String(config.budgetOverride.requestsPerMinute))
   }
 
+  if (config.persistence.provider !== 'Sqlite') {
+    add('Njord__Persistence__Provider', config.persistence.provider)
+    if (config.persistence.connectionString) add('Njord__Persistence__ConnectionString', config.persistence.connectionString)
+  }
+
+  if (config.discoveryInterval !== '00:20:00') {
+    add('Njord__DiscoveryInterval', config.discoveryInterval)
+  }
+
   return lines.join('\n')
+}
+
+export function exportAsCompose(config: NjordConfig): string {
+  const envLines = exportAsEnvVars(config)
+    .split('\n')
+    .filter(l => l.trim())
+    .map(l => `      - ${l}`)
+    .join('\n')
+
+  return `services:
+  njord:
+    image: ghcr.io/st0o0/njord:latest
+    restart: unless-stopped
+    volumes:
+      - njord-data:/app/data
+    environment:
+${envLines}
+
+volumes:
+  njord-data:
+`
 }
 
 export function importFromJson(json: string): Partial<NjordConfig> {

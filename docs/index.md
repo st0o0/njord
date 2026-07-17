@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: njord
-  text: Weather forecasts in Home Assistant
-  tagline: Open-Meteo weather API → MQTT bridge for Home Assistant
+  text: Multi-model weather intelligence for Home Assistant
+  tagline: Polls 50+ weather models, enriches forecasts with consensus, alerts, and trends, and publishes everything to Home Assistant via MQTT Discovery.
   image:
     src: /logo.svg
     alt: njord
@@ -18,9 +18,9 @@ hero:
 
 features:
   - title: Multi-model forecasts
-    details: Poll multiple weather models per location — ICON, ECMWF, GFS, UKMO, and regional models — and publish each as a dedicated Home Assistant device.
-  - title: Consensus computation
-    details: Combine forecasts across models using median or trimmed-mean aggregation, with spread and agreement metadata so you know how confident the forecast is.
+    details: Poll multiple weather models per location — ICON, ECMWF, GFS, UKMO, MeteoSwiss, and regional models — each published as a dedicated Home Assistant device with hourly and daily sensors.
+  - title: Enrichment pipeline
+    details: Consensus forecasts, weather alerts, derived values (Beaufort, wind chill, comfort), trend analysis, activity indices, energy optimization, and forecast accuracy tracking — all configurable.
   - title: Weather alerts
     details: Frost, heat, storm, heavy rain, UV, fog, snow, pressure drop, and thunderstorm alerts derived directly from model data — no third-party alert service required.
   - title: Low resource usage

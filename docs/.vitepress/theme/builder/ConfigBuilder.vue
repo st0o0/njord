@@ -1,12 +1,50 @@
 <script setup lang="ts">
 import { reactive, ref, computed, watch, onMounted } from 'vue'
-import { defaultConfig, type NjordConfig, type LocationConfig, type ModelInfo } from './types'
+import { defaultConfig, type NjordConfig, type LocationConfig, type ModelInfo, type EnrichmentFeature } from './types'
 import { computeBudget, checkCoverage } from './budget'
-import { exportAsJson, exportAsEnvVars, autoImport, encodeHash, decodeHash } from './serializer'
+import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, encodeHash, decodeHash } from './serializer'
 import modelsData from '../../../data/models.json'
+import enrichmentData from '../../../data/enrichment.json'
 
 const models = modelsData as ModelInfo[]
+const enrichmentFeatures = enrichmentData as EnrichmentFeature[]
 const config = reactive<NjordConfig>(defaultConfig())
+
+function initEnrichment(): Record<string, Record<string, unknown>> {
+  const result: Record<string, Record<string, unknown>> = {}
+  for (const f of enrichmentFeatures) {
+    if (f.enabledByDefault) {
+      result[f.name] = { Enabled: true }
+    }
+  }
+  return result
+}
+config.enrichment = initEnrichment()
+
+function isEnrichmentEnabled(name: string): boolean {
+  return !!config.enrichment[name]?.Enabled
+}
+
+function toggleEnrichment(name: string) {
+  if (isEnrichmentEnabled(name)) {
+    delete config.enrichment[name]
+  } else {
+    config.enrichment[name] = { Enabled: true }
+  }
+}
+
+function getEnrichmentOption(feature: string, option: string, defaultVal: unknown): unknown {
+  return config.enrichment[feature]?.[option] ?? defaultVal
+}
+
+function setEnrichmentOption(feature: string, option: string, value: unknown, defaultVal: unknown) {
+  if (!config.enrichment[feature]) return
+  if (value === defaultVal || value === '' || value === undefined) {
+    delete config.enrichment[feature][option]
+  } else {
+    config.enrichment[feature][option] = value
+  }
+}
 
 const HORIZON_PRESETS: Record<string, number[]> = {
   standard: [3, 6, 12, 24, 48, 72],
@@ -14,14 +52,16 @@ const HORIZON_PRESETS: Record<string, number[]> = {
 }
 
 const horizonPreset = reactive({ active: 'standard', custom: '' })
-const exportMode = reactive({ format: 'json' as 'json' | 'env' })
+const exportMode = reactive({ format: 'json' as 'json' | 'env' | 'compose' })
 const importText = reactive({ value: '', error: '' })
 const copied = reactive({ show: false })
 
 const budget = computed(() => computeBudget(config, models))
-const exportOutput = computed(() =>
-  exportMode.format === 'json' ? exportAsJson(config) : exportAsEnvVars(config)
-)
+const exportOutput = computed(() => {
+  if (exportMode.format === 'json') return exportAsJson(config)
+  if (exportMode.format === 'compose') return exportAsCompose(config)
+  return exportAsEnvVars(config)
+})
 
 const commonModels = computed(() =>
   models.filter(m => ['icon_d2', 'icon_eu', 'icon_global', 'ecmwf_ifs025', 'gfs_seamless',
@@ -234,14 +274,76 @@ onMounted(() => {
       <div class="weight-display">API call weight: <strong>{{ Math.ceil(config.parameters.groups.reduce((s, g) => s + ({ Weather: 31, Solar: 9, Soil: 11 }[g] ?? 0), 0) / 10) * Math.ceil(config.forecastDays / 14) }}</strong></div>
     </div>
 
+    <!-- Enrichment -->
+    <div class="section">
+      <h3>Enrichment</h3>
+      <div class="enrichment-grid">
+        <div v-for="f in enrichmentFeatures" :key="f.name" class="enrichment-card" :class="{ selected: isEnrichmentEnabled(f.name) }">
+          <label class="enrichment-header">
+            <input type="checkbox" :checked="isEnrichmentEnabled(f.name)" @change="toggleEnrichment(f.name)" />
+            <strong>{{ f.name }}</strong>
+            <span v-if="f.enabledByDefault" class="enrichment-badge">default on</span>
+          </label>
+          <div v-if="isEnrichmentEnabled(f.name) && f.options.length" class="enrichment-options">
+            <label v-for="opt in f.options" :key="opt.name" class="enrichment-option">
+              <span class="option-name">{{ opt.name }}</span>
+              <input
+                v-if="opt.type === 'number'"
+                type="number"
+                step="any"
+                :placeholder="String(opt.default)"
+                :value="getEnrichmentOption(f.name, opt.name, opt.default)"
+                @input="setEnrichmentOption(f.name, opt.name, ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : undefined, opt.default)"
+                class="option-input"
+              />
+              <input
+                v-else
+                type="text"
+                :placeholder="String(opt.default)"
+                :value="getEnrichmentOption(f.name, opt.name, opt.default)"
+                @input="setEnrichmentOption(f.name, opt.name, ($event.target as HTMLInputElement).value || undefined, opt.default)"
+                class="option-input"
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MQTT -->
+    <div class="section">
+      <h3>MQTT</h3>
+      <div class="general-row">
+        <label>Host <input v-model="config.mqtt.host" placeholder="192.168.1.x" /></label>
+        <label>Port <input v-model.number="config.mqtt.port" type="number" /></label>
+        <label>Username <input v-model="config.mqtt.username" placeholder="optional" /></label>
+        <label>Password <input v-model="config.mqtt.password" type="password" placeholder="optional" /></label>
+      </div>
+    </div>
+
+    <!-- Persistence -->
+    <div class="section">
+      <h3>Persistence</h3>
+      <div class="persistence-row">
+        <label class="persistence-option" :class="{ selected: config.persistence.provider === 'Sqlite' }">
+          <input type="radio" value="Sqlite" v-model="config.persistence.provider" /> SQLite <span class="enrichment-badge">default</span>
+        </label>
+        <label class="persistence-option" :class="{ selected: config.persistence.provider === 'PostgreSql' }">
+          <input type="radio" value="PostgreSql" v-model="config.persistence.provider" /> PostgreSQL
+        </label>
+      </div>
+      <div v-if="config.persistence.provider === 'PostgreSql'" class="persistence-connstr">
+        <label>Connection String <input v-model="config.persistence.connectionString" placeholder="Host=localhost;Database=njord;..." class="input-wide" /></label>
+      </div>
+    </div>
+
     <!-- General -->
     <div class="section">
       <h3>General</h3>
       <div class="general-row">
         <label>Poll Interval <input v-model="config.pollInterval" placeholder="01:00:00" /></label>
         <label>Forecast Days <input v-model.number="config.forecastDays" type="number" min="1" max="16" /></label>
-        <label>MQTT Host <input v-model="config.mqtt.host" placeholder="192.168.1.x" /></label>
-        <label>MQTT Port <input v-model.number="config.mqtt.port" type="number" /></label>
+        <label>Discovery Interval <input v-model="config.discoveryInterval" placeholder="00:20:00" /></label>
       </div>
     </div>
 
@@ -267,6 +369,7 @@ onMounted(() => {
       <div class="export-tabs">
         <button :class="{ active: exportMode.format === 'json' }" @click="exportMode.format = 'json'">appsettings.json</button>
         <button :class="{ active: exportMode.format === 'env' }" @click="exportMode.format = 'env'">Environment Variables</button>
+        <button :class="{ active: exportMode.format === 'compose' }" @click="exportMode.format = 'compose'">docker-compose.yml</button>
         <button @click="copyExport" class="btn-copy">{{ copied.show ? 'Copied!' : 'Copy' }}</button>
       </div>
       <pre class="export-output">{{ exportOutput }}</pre>
@@ -305,6 +408,16 @@ button.active { background: var(--vp-c-brand-1); color: white; border-color: var
 .model-chip.warn { border-color: var(--vp-c-warning-1); }
 .warn-icon { color: var(--vp-c-warning-1); }
 
+.enrichment-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.enrichment-card { padding: 10px; border: 1px solid var(--vp-c-divider); border-radius: 6px; }
+.enrichment-card.selected { border-color: var(--vp-c-brand-1); background: var(--vp-c-brand-soft); }
+.enrichment-header { display: flex; gap: 6px; align-items: center; cursor: pointer; font-size: 13px; }
+.enrichment-badge { font-size: 10px; color: var(--vp-c-text-3); background: var(--vp-c-bg-mute); padding: 1px 6px; border-radius: 3px; }
+.enrichment-options { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.enrichment-option { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--vp-c-text-2); }
+.option-name { min-width: 100px; }
+.option-input { width: 100px; font-size: 12px; }
+
 .preset-row { display: flex; gap: 4px; margin-bottom: 8px; }
 .custom-horizons { display: flex; gap: 8px; margin-bottom: 8px; }
 .custom-horizons input { flex: 1; }
@@ -320,6 +433,12 @@ button.active { background: var(--vp-c-brand-1); color: white; border-color: var
 .general-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--vp-c-text-2); }
 .general-row input { width: 150px; }
 
+.persistence-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.persistence-option { display: flex; gap: 6px; align-items: center; padding: 6px 12px; border: 1px solid var(--vp-c-divider); border-radius: 6px; cursor: pointer; font-size: 13px; }
+.persistence-option.selected { border-color: var(--vp-c-brand-1); background: var(--vp-c-brand-soft); }
+.persistence-connstr { margin-top: 4px; }
+.persistence-connstr label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--vp-c-text-2); }
+.input-wide { width: 100%; }
 .budget-section { }
 .budget-bar-container { height: 8px; background: var(--vp-c-divider); border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
 .budget-bar { height: 100%; background: var(--vp-c-brand-1); border-radius: 4px; transition: width 0.3s; }
