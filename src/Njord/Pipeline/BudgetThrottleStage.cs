@@ -20,30 +20,30 @@ public sealed class BudgetThrottleStage<T> : GraphStage<FlowShape<T, T>>
     protected override GraphStageLogic CreateLogic(Attributes inheritedAttributes)
         => new Logic(this);
 
-    private sealed class Logic : GraphStageLogic
+    private sealed class Logic : TimerGraphStageLogic
     {
+        private const string EmitTimerKey = "emit";
+
         private readonly BudgetThrottleStage<T> _stage;
-        private readonly Action<T> _onAcquired;
+        private T? _pending;
+        private bool _hasPending;
         private bool _upstreamFinished;
-        private bool _downstreamPulled;
-        private bool _acquiring;
 
         public Logic(BudgetThrottleStage<T> stage) : base(stage.Shape)
         {
             _stage = stage;
-            _onAcquired = GetAsyncCallback<T>(OnAcquired);
 
             SetHandler(stage.In, onPush: OnPush, onUpstreamFinish: () =>
             {
-                if (!_acquiring)
+                if (!_hasPending)
                     CompleteStage();
                 else
                     _upstreamFinished = true;
             });
+
             SetHandler(stage.Out, onPull: () =>
             {
-                _downstreamPulled = true;
-                if (!_upstreamFinished)
+                if (!_hasPending && !_upstreamFinished)
                     Pull(stage.In);
             });
         }
@@ -51,26 +51,43 @@ public sealed class BudgetThrottleStage<T> : GraphStage<FlowShape<T, T>>
         private void OnPush()
         {
             var element = Grab(_stage.In);
-            _downstreamPulled = false;
-            _acquiring = true;
 
-            _stage._gate.AcquireAsync(element)
-                .ContinueWith(_ => _onAcquired(element));
+            if (_stage._gate.TryAcquire(element))
+            {
+                Push(_stage.Out, element);
+            }
+            else
+            {
+                _pending = element;
+                _hasPending = true;
+                ScheduleOnce(EmitTimerKey, _stage._gate.EstimateDelay(element));
+            }
         }
 
-        private void OnAcquired(T element)
+        protected override void OnTimer(object timerKey)
         {
-            _acquiring = false;
-            Push(_stage.Out, element);
-
-            if (_upstreamFinished)
-            {
-                CompleteStage();
+            if (!_hasPending)
                 return;
-            }
 
-            if (_downstreamPulled)
-                Pull(_stage.In);
+            if (_stage._gate.TryAcquire(_pending!))
+            {
+                Push(_stage.Out, _pending!);
+                _pending = default;
+                _hasPending = false;
+
+                if (_upstreamFinished)
+                {
+                    CompleteStage();
+                    return;
+                }
+
+                if (IsAvailable(_stage.Out))
+                    Pull(_stage.In);
+            }
+            else
+            {
+                ScheduleOnce(EmitTimerKey, _stage._gate.EstimateDelay(_pending!));
+            }
         }
     }
 }

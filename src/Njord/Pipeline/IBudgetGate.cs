@@ -4,7 +4,8 @@ namespace Njord.Pipeline;
 
 public interface IBudgetGate<in T>
 {
-    Task AcquireAsync(T element, CancellationToken ct = default);
+    bool TryAcquire(T element);
+    TimeSpan EstimateDelay(T element);
 }
 
 public sealed class WeightedBudgetGate : IBudgetGate<WeightedTarget>
@@ -13,7 +14,6 @@ public sealed class WeightedBudgetGate : IBudgetGate<WeightedTarget>
 
     private readonly IBudgetProvider _provider;
     private readonly BudgetTracker _tracker;
-    private readonly object _lock = new();
     private double _tokens;
     private double _tokensPerSecond;
     private int _maxBurst;
@@ -30,33 +30,30 @@ public sealed class WeightedBudgetGate : IBudgetGate<WeightedTarget>
         _lastRefresh = DateTimeOffset.UtcNow;
     }
 
-    public async Task AcquireAsync(WeightedTarget element, CancellationToken ct = default)
+    public bool TryAcquire(WeightedTarget element)
     {
+        RefreshIfDue();
+        Refill();
+
         var cost = element.Weight;
+        if (_tokens < cost)
+            return false;
 
-        while (true)
-        {
-            TimeSpan delay;
-            lock (_lock)
-            {
-                RefreshIfDue();
-                Refill();
+        _tokens -= cost;
+        _tracker.RecordCall(cost);
+        return true;
+    }
 
-                if (_tokens >= cost)
-                {
-                    _tokens -= cost;
-                    _tracker.RecordCall(cost);
-                    return;
-                }
+    public TimeSpan EstimateDelay(WeightedTarget element)
+    {
+        var deficit = element.Weight - _tokens;
+        if (deficit <= 0)
+            return TimeSpan.Zero;
 
-                var deficit = cost - _tokens;
-                delay = TimeSpan.FromSeconds(deficit / _tokensPerSecond);
-                if (delay < TimeSpan.FromMilliseconds(10))
-                    delay = TimeSpan.FromMilliseconds(10);
-            }
-
-            await Task.Delay(delay, ct);
-        }
+        var delay = TimeSpan.FromSeconds(deficit / _tokensPerSecond);
+        return delay < TimeSpan.FromMilliseconds(10)
+            ? TimeSpan.FromMilliseconds(10)
+            : delay;
     }
 
     private void ApplyRate(BudgetRate rate)
