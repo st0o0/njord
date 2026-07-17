@@ -28,7 +28,9 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
 
     private ISourceQueueWithComplete<MqttMessage>? _queue;
     private IMaterializer? _mat;
-    private readonly Dictionary<(string Location, string ModelId), ModelCapabilityLearned> _capabilities = new();
+    private ISinkRef<MqttMessage>? _mqttSinkRef;
+    private ISourceRef<EgressEvent>? _egressSourceRef;
+    private readonly Dictionary<(string Location, string ModelId), EgressEvent.CapabilityLearned> _capabilities = new();
     private bool _initialDiscoveryPublished;
 
     public IStash Stash { get; set; } = null!;
@@ -49,7 +51,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
         _expectedModelCount = _options.Locations
             .Sum(loc => loc.ResolveModels(_options.Models).Count);
 
-        WaitingForSink();
+        WaitingForRefs();
     }
 
     protected override void PreStart()
@@ -65,29 +67,53 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
         var connectionActor = Context.GetActor<MqttConnectionActor>();
         connectionActor.Tell(new RequestMqttSink());
         connectionActor.Tell(new SubscribeInbound(Self));
+
+        var egressActor = Context.GetActor<EgressActor>();
+        egressActor.Tell(new RequestEgressSource());
     }
 
-    private void WaitingForSink()
+    private void WaitingForRefs()
     {
         Receive<MqttSinkResponse>(response =>
         {
-            var (queue, source) = Source.Queue<MqttMessage>(32, OverflowStrategy.DropHead)
-                .PreMaterialize(_mat!);
-            _queue = queue;
-
-            source.RunWith(response.SinkRef.Sink, _mat!);
-
-            _logger.LogInformation("DiscoveryActor ready — waiting for model capabilities");
-            ScheduleCapabilityTimeout();
-            Become(WaitingForCapabilities);
-            Stash.UnstashAll();
+            _mqttSinkRef = response.SinkRef;
+            TryTransition();
+        });
+        Receive<EgressSourceResponse>(response =>
+        {
+            _egressSourceRef = response.SourceRef;
+            TryTransition();
         });
         ReceiveAny(_ => Stash.Stash());
     }
 
+    private void TryTransition()
+    {
+        if (_mqttSinkRef is null || _egressSourceRef is null)
+        {
+            return;
+        }
+
+        var (queue, source) = Source.Queue<MqttMessage>(32, OverflowStrategy.DropHead)
+            .PreMaterialize(_mat!);
+        _queue = queue;
+        source.RunWith(_mqttSinkRef.Sink, _mat!);
+
+        var self = Self;
+        _egressSourceRef.Source
+            .Where(e => e is EgressEvent.CapabilityLearned)
+            .Select(e => new CapabilityReceived((EgressEvent.CapabilityLearned)e))
+            .RunWith(Sink.ActorRef<CapabilityReceived>(self, PoisonPill.Instance, _ => PoisonPill.Instance), _mat!);
+
+        _logger.LogInformation("DiscoveryActor ready — waiting for model capabilities");
+        ScheduleCapabilityTimeout();
+        Become(WaitingForCapabilities);
+        Stash.UnstashAll();
+    }
+
     private void WaitingForCapabilities()
     {
-        Receive<ModelCapabilityLearned>(OnCapabilityLearned);
+        Receive<CapabilityReceived>(msg => OnCapabilityLearned(msg.Event));
         Receive<CapabilityTimeout>(_ => OnCapabilityTimeout());
         Receive<MqttConnected>(_ => { });
         Receive<MqttInboundMessage>(OnInbound);
@@ -95,12 +121,12 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
 
     private void Ready()
     {
-        Receive<ModelCapabilityLearned>(OnCapabilityUpdate);
+        Receive<CapabilityReceived>(msg => OnCapabilityUpdate(msg.Event));
         Receive<MqttConnected>(_ => { });
         Receive<MqttInboundMessage>(OnInbound);
     }
 
-    private void OnCapabilityLearned(ModelCapabilityLearned msg)
+    private void OnCapabilityLearned(EgressEvent.CapabilityLearned msg)
     {
         _capabilities[(msg.Location, msg.Model.Id)] = msg;
         _logger.LogInformation(
@@ -131,7 +157,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
         Become(Ready);
     }
 
-    private void OnCapabilityUpdate(ModelCapabilityLearned msg)
+    private void OnCapabilityUpdate(EgressEvent.CapabilityLearned msg)
     {
         var key = (msg.Location, msg.Model.Id);
         var isNew = !_capabilities.ContainsKey(key);
@@ -191,7 +217,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
 
     }
 
-    private void PublishDiscoveryForModel(ModelCapabilityLearned cap)
+    private void PublishDiscoveryForModel(EgressEvent.CapabilityLearned cap)
     {
         var model = cap.Model;
         var topic = TopicScheme.ConfigTopic(
@@ -216,4 +242,5 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
     }
 
     private sealed record CapabilityTimeout;
+    private sealed record CapabilityReceived(EgressEvent.CapabilityLearned Event);
 }

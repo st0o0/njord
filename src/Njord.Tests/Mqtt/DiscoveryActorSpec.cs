@@ -43,18 +43,27 @@ public sealed class DiscoveryActorSpec : IDisposable
             NullLogger<DiscoveryActor>.Instance)));
     }
 
-    private static ModelCapabilityLearned CreateCapability(
+    private static EgressEvent.CapabilityLearned CreateCapability(
         string location = "lucerne",
         string modelId = "icon_d2",
         IReadOnlySet<ParameterDef>? supported = null)
     {
         supported ??= new HashSet<ParameterDef> { Temperature, WindSpeed };
-        return new ModelCapabilityLearned(
+        return new EgressEvent.CapabilityLearned(
             location,
             new WeatherModel(modelId),
             supported,
             [3, 6, 12, 24, 48],
             [0, 1]);
+    }
+
+    private FakeEgressHub RegisterFakeEgressHub()
+    {
+        var registry = ActorRegistry.For(_system);
+        var mat = _system.Materializer();
+        var hub = new FakeEgressHub(mat);
+        registry.Register<EgressActor>(hub.Actor(_system), overwrite: true);
+        return hub;
     }
 
     [Fact(Timeout = 5000)]
@@ -65,6 +74,7 @@ public sealed class DiscoveryActorSpec : IDisposable
 
         var fake = _system.ActorOf(Props.Create(() => new FakeMqttConnection(mat)));
         registry.Register<MqttConnectionActor>(fake, overwrite: true);
+        RegisterFakeEgressHub();
 
         var options = DefaultOptions(discoveryEnabled: false);
         CreateDiscoveryActor(options);
@@ -87,6 +97,7 @@ public sealed class DiscoveryActorSpec : IDisposable
 
         var fake = _system.ActorOf(Props.Create(() => new FakeMqttConnection(mat)));
         registry.Register<MqttConnectionActor>(fake, overwrite: true);
+        RegisterFakeEgressHub();
 
         CreateDiscoveryActor();
 
@@ -109,6 +120,7 @@ public sealed class DiscoveryActorSpec : IDisposable
 
         var probe = _system.ActorOf(Props.Create(() => new MqttMessageProbe(mat)));
         registry.Register<MqttConnectionActor>(probe, overwrite: true);
+        RegisterFakeEgressHub();
 
         var actor = CreateDiscoveryActor();
 
@@ -133,8 +145,9 @@ public sealed class DiscoveryActorSpec : IDisposable
 
         var probe = _system.ActorOf(Props.Create(() => new MqttMessageProbe(mat)));
         registry.Register<MqttConnectionActor>(probe, overwrite: true);
+        var hub = RegisterFakeEgressHub();
 
-        var actor = CreateDiscoveryActor();
+        CreateDiscoveryActor();
 
         await AsyncAssert.WaitUntil(async () =>
         {
@@ -142,7 +155,7 @@ public sealed class DiscoveryActorSpec : IDisposable
             return received.Any(m => m is RequestMqttSink);
         });
 
-        actor.Tell(CreateCapability());
+        hub.Emit(CreateCapability());
 
         await AsyncAssert.WaitUntil(async () =>
         {
@@ -163,11 +176,12 @@ public sealed class DiscoveryActorSpec : IDisposable
 
         var probe = _system.ActorOf(Props.Create(() => new MqttMessageProbe(mat)));
         registry.Register<MqttConnectionActor>(probe, overwrite: true);
+        var hub = RegisterFakeEgressHub();
 
         var options = DefaultOptions();
         options.Models = ["icon_d2", "ecmwf_ifs025"];
         options.PollInterval = TimeSpan.FromMilliseconds(500);
-        var actor = CreateDiscoveryActor(options);
+        CreateDiscoveryActor(options);
 
         await AsyncAssert.WaitUntil(async () =>
         {
@@ -175,7 +189,7 @@ public sealed class DiscoveryActorSpec : IDisposable
             return received.Any(m => m is RequestMqttSink);
         });
 
-        actor.Tell(CreateCapability(modelId: "icon_d2"));
+        hub.Emit(CreateCapability(modelId: "icon_d2"));
 
         await AsyncAssert.WaitUntil(async () =>
         {
@@ -195,6 +209,7 @@ public sealed class DiscoveryActorSpec : IDisposable
 
         var probe = _system.ActorOf(Props.Create(() => new MqttMessageProbe(mat)));
         registry.Register<MqttConnectionActor>(probe, overwrite: true);
+        var hub = RegisterFakeEgressHub();
 
         var actor = CreateDiscoveryActor();
 
@@ -204,7 +219,7 @@ public sealed class DiscoveryActorSpec : IDisposable
             return received.Any(m => m is RequestMqttSink);
         });
 
-        actor.Tell(CreateCapability());
+        hub.Emit(CreateCapability());
 
         await AsyncAssert.WaitUntil(async () =>
         {
@@ -234,10 +249,11 @@ public sealed class DiscoveryActorSpec : IDisposable
 
         var probe = _system.ActorOf(Props.Create(() => new MqttMessageProbe(mat)));
         registry.Register<MqttConnectionActor>(probe, overwrite: true);
+        var hub = RegisterFakeEgressHub();
 
         var options = DefaultOptions();
         options.Models = ["icon_d2", "ecmwf_ifs025"];
-        var actor = CreateDiscoveryActor(options);
+        CreateDiscoveryActor(options);
 
         await AsyncAssert.WaitUntil(async () =>
         {
@@ -245,8 +261,8 @@ public sealed class DiscoveryActorSpec : IDisposable
             return received.Any(m => m is RequestMqttSink);
         });
 
-        actor.Tell(CreateCapability(modelId: "icon_d2"));
-        actor.Tell(CreateCapability(modelId: "ecmwf_ifs025"));
+        hub.Emit(CreateCapability(modelId: "icon_d2"));
+        hub.Emit(CreateCapability(modelId: "ecmwf_ifs025"));
 
         await AsyncAssert.WaitUntil(async () =>
         {
@@ -262,6 +278,58 @@ public sealed class DiscoveryActorSpec : IDisposable
 
     private sealed record GetReceivedMessages;
     private sealed record GetPublishedMessages;
+
+    // -- fake egress hub that vends SourceRef and allows emitting events ----------
+
+    private sealed class FakeEgressHub
+    {
+        private readonly IMaterializer _mat;
+        private ISourceQueueWithComplete<EgressEvent>? _queue;
+        private IActorRef? _actor;
+
+        public FakeEgressHub(IMaterializer mat)
+        {
+            _mat = mat;
+        }
+
+        public IActorRef Actor(ActorSystem system)
+        {
+            _actor = system.ActorOf(Props.Create(() => new FakeEgressSourceProvider(_mat, this)));
+            return _actor;
+        }
+
+        public void Emit(EgressEvent evt) => _queue?.OfferAsync(evt);
+
+        internal void SetQueue(ISourceQueueWithComplete<EgressEvent> queue) => _queue = queue;
+    }
+
+    private sealed class FakeEgressSourceProvider : ReceiveActor
+    {
+        public FakeEgressSourceProvider(IMaterializer mat, FakeEgressHub hub)
+        {
+            Receive<RequestEgressSource>(_ =>
+            {
+                var (queue, source) = Source.Queue<EgressEvent>(32, OverflowStrategy.DropHead)
+                    .PreMaterialize(mat);
+                hub.SetQueue(queue);
+
+                var sourceRef = source
+                    .RunWith(StreamRefs.SourceRef<EgressEvent>(), mat)
+                    .Result;
+                Sender.Tell(new EgressSourceResponse(sourceRef));
+            });
+
+            Receive<RequestEgressSink>(_ =>
+            {
+                var sinkRef = StreamRefs.SinkRef<EgressEvent>()
+                    .To(Sink.Ignore<EgressEvent>().MapMaterializedValue(_ => Akka.NotUsed.Instance))
+                    .Run(mat);
+                sinkRef.PipeTo(Sender, Self,
+                    sr => new EgressSinkResponse(sr),
+                    _ => null!);
+            });
+        }
+    }
 
     // -- fake that records messages but does NOT respond with a SinkRef -----------
 

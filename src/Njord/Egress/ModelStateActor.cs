@@ -5,7 +5,6 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Ingest;
-using Njord.Mqtt;
 using Njord.Pipeline;
 using Servus.Akka;
 
@@ -21,7 +20,6 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
     private ISinkRef<EgressEvent>? _egressSinkRef;
     private ISourceRef<FetchOutcome>? _sourceRef;
     private IMaterializer? _mat;
-    private IActorRef? _discoveryActor;
 
     public IStash Stash { get; set; } = null!;
 
@@ -42,7 +40,6 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
     protected override void PreStart()
     {
         _mat = Context.Materializer();
-        _discoveryActor = Context.GetActor<DiscoveryActor>();
 
         var egressActor = Context.GetActor<EgressActor>();
         Context.Watch(egressActor);
@@ -113,7 +110,6 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
         var parameters = _parameters;
         var horizons = _horizons;
         var forecastDays = _forecastDays;
-        var discoveryActor = _discoveryActor!;
         var logger = _logger;
         var knownCapabilities = new Dictionary<(string Location, string ModelId), HashSet<ParameterDef>>();
 
@@ -126,20 +122,22 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
                 var maxHours = ModelCoverageRegistry.Get(forecast.Model.Id)?.MaxForecastHours;
 
                 var observedParams = ExtractSupportedParameters(forecast, parameters);
+                var events = new List<EgressEvent>();
 
                 if (!knownCapabilities.TryGetValue(capKey, out var known))
                 {
                     known = new HashSet<ParameterDef>(observedParams);
                     knownCapabilities[capKey] = known;
-                    SendCapabilityLearned(discoveryActor, forecast, known, horizons, forecastDays, maxHours, logger);
+                    events.Add(BuildCapabilityLearned(forecast, known, horizons, forecastDays, maxHours, logger));
                 }
                 else if (!observedParams.IsSubsetOf(known))
                 {
                     known.UnionWith(observedParams);
-                    SendCapabilityLearned(discoveryActor, forecast, known, horizons, forecastDays, maxHours, logger);
+                    events.Add(BuildCapabilityLearned(forecast, known, horizons, forecastDays, maxHours, logger));
                 }
 
-                return new[] { (EgressEvent)new EgressEvent.PerModelUpdate(forecast.Location, forecast.Model, forecast) };
+                events.Add(new EgressEvent.PerModelUpdate(forecast.Location, forecast.Model, forecast));
+                return events;
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                 _ => Akka.Streams.Supervision.Directive.Resume))
@@ -186,8 +184,7 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
         return supported;
     }
 
-    private static void SendCapabilityLearned(
-        IActorRef discoveryActor,
+    private static EgressEvent.CapabilityLearned BuildCapabilityLearned(
         ModelForecast forecast,
         HashSet<ParameterDef> supported,
         IReadOnlyList<int> horizons,
@@ -204,16 +201,15 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
             : forecastDays;
         var applicableDayOffsets = Enumerable.Range(0, Math.Min(forecastDays, maxDays)).ToList();
 
-        var message = new ModelCapabilityLearned(
+        logger.LogInformation(
+            "Capability learned for {Location}/{Model}: {ParamCount} parameters, {HorizonCount} horizons",
+            forecast.Location, forecast.Model.Id, supported.Count, applicableHorizons.Count);
+
+        return new EgressEvent.CapabilityLearned(
             forecast.Location,
             forecast.Model,
             supported.ToHashSet(),
             applicableHorizons,
             applicableDayOffsets);
-
-        discoveryActor.Tell(message);
-        logger.LogInformation(
-            "Capability learned for {Location}/{Model}: {ParamCount} parameters, {HorizonCount} horizons",
-            forecast.Location, forecast.Model.Id, supported.Count, applicableHorizons.Count);
     }
 }

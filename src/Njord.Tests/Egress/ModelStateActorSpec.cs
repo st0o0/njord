@@ -4,12 +4,10 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Ingest;
-using Njord.Mqtt;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 
@@ -53,7 +51,6 @@ public sealed class ModelStateActorSpec : IDisposable
 
         registry.Register<EgressActor>(fakeEgress, overwrite: true);
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<DiscoveryActor>(_system.ActorOf(FakeDiscoveryActor.Props()), overwrite: true);
 
         CreateModelStateActor();
 
@@ -64,30 +61,30 @@ public sealed class ModelStateActorSpec : IDisposable
     }
 
     [Fact(Timeout = 5000)]
-    public async Task First_fetch_sends_capability_learned_to_discovery_actor()
+    public async Task First_fetch_emits_capability_learned_into_egress_sink()
     {
         var registry = ActorRegistry.For(_system);
         var mat = _system.Materializer();
-        var capabilityMessages = new ConcurrentBag<ModelCapabilityLearned>();
+        var egressEvents = new ConcurrentBag<EgressEvent>();
 
-        var fakeEgress = _system.ActorOf(FakeEgressSinkProvider.Props(mat));
-        var fakeDiscovery = _system.ActorOf(FakeDiscoveryActor.Props(capabilityMessages));
+        var fakeEgress = _system.ActorOf(FakeEgressSinkProvider.Props(mat, collectEvents: egressEvents));
         var forecast = CreateForecast("icon_d2", withNullParams: false);
         var fakePipeline = _system.ActorOf(FeedingPipelineSource.Props(mat, forecast));
 
         registry.Register<EgressActor>(fakeEgress, overwrite: true);
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<DiscoveryActor>(fakeDiscovery, overwrite: true);
 
         CreateModelStateActor();
 
-        await AsyncAssert.WaitUntil(() => capabilityMessages.Count >= 1);
+        await AsyncAssert.WaitUntil(() => egressEvents.Count >= 2);
 
-        var msg = capabilityMessages.First();
-        Assert.Equal("lucerne", msg.Location);
-        Assert.Equal("icon_d2", msg.Model.Id);
-        Assert.NotEmpty(msg.SupportedParameters);
-        Assert.DoesNotContain(72, msg.ApplicableHorizons);
+        var capEvent = egressEvents.OfType<EgressEvent.CapabilityLearned>().Single();
+        Assert.Equal("lucerne", capEvent.Location);
+        Assert.Equal("icon_d2", capEvent.Model.Id);
+        Assert.NotEmpty(capEvent.SupportedParameters);
+        Assert.DoesNotContain(72, capEvent.ApplicableHorizons);
+
+        Assert.Single(egressEvents.OfType<EgressEvent.PerModelUpdate>());
     }
 
     [Fact(Timeout = 5000)]
@@ -95,24 +92,21 @@ public sealed class ModelStateActorSpec : IDisposable
     {
         var registry = ActorRegistry.For(_system);
         var mat = _system.Materializer();
-        var capabilityMessages = new ConcurrentBag<ModelCapabilityLearned>();
         var egressEvents = new ConcurrentBag<EgressEvent>();
 
         var fakeEgress = _system.ActorOf(FakeEgressSinkProvider.Props(mat, collectEvents: egressEvents));
-        var fakeDiscovery = _system.ActorOf(FakeDiscoveryActor.Props(capabilityMessages));
         var forecast1 = CreateForecast("icon_d2", withNullParams: false);
         var forecast2 = CreateForecast("icon_d2", withNullParams: false, tempOffset: 1.0);
         var fakePipeline = _system.ActorOf(FeedingPipelineSource.Props(mat, forecast1, forecast2));
 
         registry.Register<EgressActor>(fakeEgress, overwrite: true);
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<DiscoveryActor>(fakeDiscovery, overwrite: true);
 
         CreateModelStateActor();
 
-        await AsyncAssert.WaitUntil(() => egressEvents.Count >= 2);
+        await AsyncAssert.WaitUntil(() => egressEvents.OfType<EgressEvent.PerModelUpdate>().Count() >= 2);
 
-        Assert.Single(capabilityMessages);
+        Assert.Single(egressEvents.OfType<EgressEvent.CapabilityLearned>());
     }
 
     [Fact(Timeout = 5000)]
@@ -120,24 +114,23 @@ public sealed class ModelStateActorSpec : IDisposable
     {
         var registry = ActorRegistry.For(_system);
         var mat = _system.Materializer();
-        var capabilityMessages = new ConcurrentBag<ModelCapabilityLearned>();
+        var egressEvents = new ConcurrentBag<EgressEvent>();
 
-        var fakeEgress = _system.ActorOf(FakeEgressSinkProvider.Props(mat));
-        var fakeDiscovery = _system.ActorOf(FakeDiscoveryActor.Props(capabilityMessages));
+        var fakeEgress = _system.ActorOf(FakeEgressSinkProvider.Props(mat, collectEvents: egressEvents));
         var forecast1 = CreateForecast("icon_d2", withNullParams: true);
         var forecast2 = CreateForecast("icon_d2", withNullParams: false);
         var fakePipeline = _system.ActorOf(FeedingPipelineSource.Props(mat, forecast1, forecast2));
 
         registry.Register<EgressActor>(fakeEgress, overwrite: true);
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<DiscoveryActor>(fakeDiscovery, overwrite: true);
 
         CreateModelStateActor();
 
-        await AsyncAssert.WaitUntil(() => capabilityMessages.Count >= 2);
+        await AsyncAssert.WaitUntil(() => egressEvents.OfType<EgressEvent.CapabilityLearned>().Count() >= 2);
 
-        var messages = capabilityMessages.OrderBy(m => m.SupportedParameters.Count).ToList();
-        Assert.True(messages[1].SupportedParameters.Count > messages[0].SupportedParameters.Count);
+        var capEvents = egressEvents.OfType<EgressEvent.CapabilityLearned>()
+            .OrderBy(m => m.SupportedParameters.Count).ToList();
+        Assert.True(capEvents[1].SupportedParameters.Count > capEvents[0].SupportedParameters.Count);
     }
 
     [Fact(Timeout = 5000)]
@@ -145,27 +138,25 @@ public sealed class ModelStateActorSpec : IDisposable
     {
         var registry = ActorRegistry.For(_system);
         var mat = _system.Materializer();
-        var capabilityMessages = new ConcurrentBag<ModelCapabilityLearned>();
+        var egressEvents = new ConcurrentBag<EgressEvent>();
 
-        var fakeEgress = _system.ActorOf(FakeEgressSinkProvider.Props(mat));
-        var fakeDiscovery = _system.ActorOf(FakeDiscoveryActor.Props(capabilityMessages));
+        var fakeEgress = _system.ActorOf(FakeEgressSinkProvider.Props(mat, collectEvents: egressEvents));
         var forecast = CreateForecast("icon_d2", withNullParams: false);
         var fakePipeline = _system.ActorOf(FeedingPipelineSource.Props(mat, forecast));
 
         registry.Register<EgressActor>(fakeEgress, overwrite: true);
         registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<DiscoveryActor>(fakeDiscovery, overwrite: true);
 
         CreateModelStateActor();
 
-        await AsyncAssert.WaitUntil(() => capabilityMessages.Count >= 1);
+        await AsyncAssert.WaitUntil(() => egressEvents.OfType<EgressEvent.CapabilityLearned>().Any());
 
-        var msg = capabilityMessages.First();
-        Assert.Contains(3, msg.ApplicableHorizons);
-        Assert.Contains(24, msg.ApplicableHorizons);
-        Assert.Contains(48, msg.ApplicableHorizons);
-        Assert.DoesNotContain(72, msg.ApplicableHorizons);
-        Assert.Equal(2, msg.ApplicableDayOffsets.Count);
+        var cap = egressEvents.OfType<EgressEvent.CapabilityLearned>().First();
+        Assert.Contains(3, cap.ApplicableHorizons);
+        Assert.Contains(24, cap.ApplicableHorizons);
+        Assert.Contains(48, cap.ApplicableHorizons);
+        Assert.DoesNotContain(72, cap.ApplicableHorizons);
+        Assert.Equal(2, cap.ApplicableDayOffsets.Count);
     }
 
     private static ModelForecast CreateForecast(string modelId, bool withNullParams, double tempOffset = 0.0)
@@ -253,16 +244,5 @@ public sealed class ModelStateActorSpec : IDisposable
 
         public static Props Props(IMaterializer mat, params ModelForecast[] forecasts) =>
             Akka.Actor.Props.Create(() => new FeedingPipelineSource(mat, forecasts));
-    }
-
-    private sealed class FakeDiscoveryActor : ReceiveActor
-    {
-        public FakeDiscoveryActor(ConcurrentBag<ModelCapabilityLearned>? messages = null)
-        {
-            Receive<ModelCapabilityLearned>(msg => messages?.Add(msg));
-        }
-
-        public static Props Props(ConcurrentBag<ModelCapabilityLearned>? messages = null) =>
-            Akka.Actor.Props.Create(() => new FakeDiscoveryActor(messages));
     }
 }

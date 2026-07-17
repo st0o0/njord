@@ -16,6 +16,7 @@ with the following sealed variants:
   replaces the 7 type-specific enrichment records (`ConsensusUpdate`,
   `AlertUpdate`, `DerivedUpdate`, `TrendUpdate`, `IndexUpdate`,
   `EnergyUpdate`, `HistoryUpdate`).
+- `CapabilityLearned(string Location, WeatherModel Model, IReadOnlySet<ParameterDef> SupportedParameters, IReadOnlyList<int> ApplicableHorizons, IReadOnlyList<int> ApplicableDayOffsets)` — carries the full capability state for a (location, model) pair, emitted when the tracked parameter set changes.
 
 The `MqttEgressActor` SHALL dispatch `EnrichmentUpdate` events by looking up
 the `IEnrichmentFeature` whose `TypeName` matches `EnrichmentUpdate.TypeName`
@@ -42,6 +43,10 @@ and calling `feature.ToStateMessages(result, baseTopic)`.
 - **WHEN** `ModelStateActor` produces a per-model update
 - **THEN** it SHALL emit `EgressEvent.PerModelUpdate` with the `ModelForecast` domain object, not serialized horizon payloads
 
+#### Scenario: CapabilityLearned carries full state for a model
+- **WHEN** `ModelStateActor` detects a new or expanded parameter set for (lucerne, icon_d2)
+- **THEN** it SHALL emit `EgressEvent.CapabilityLearned` with the complete supported parameters, applicable horizons, and applicable day-offsets
+
 ### Requirement: EgressActor materializes a MergeHub and BroadcastHub for EgressEvent
 
 The `EgressActor` SHALL materialize an Akka.Streams graph with a `MergeHub.Source<EgressEvent>` (collecting from all producers) connected to a `BroadcastHub.Sink<EgressEvent>` (distributing to all consumers). The actor SHALL vend `ISinkRef<EgressEvent>` to producers via `RequestEgressSink` / `EgressSinkResponse` and `ISourceRef<EgressEvent>` to consumers via `RequestEgressSource` / `EgressSourceResponse`.
@@ -60,7 +65,7 @@ The `EgressActor` SHALL materialize an Akka.Streams graph with a `MergeHub.Sourc
 
 ### Requirement: EgressActor pre-materializes hub before vending refs
 
-The `EgressActor` SHALL pre-materialize the MergeHub and BroadcastHub in `PreStart` so that StreamRef requests can be served immediately without waiting for producers or consumers. The MergeHub SHALL use a per-producer buffer size of 8. The BroadcastHub SHALL use a buffer size of 64.
+The `EgressActor` SHALL pre-materialize the MergeHub and BroadcastHub in `PreStart` so that StreamRef requests can be served immediately without waiting for producers or consumers. The MergeHub SHALL use a per-producer buffer size of 8. The BroadcastHub SHALL use a buffer size of 16.
 
 #### Scenario: StreamRef available immediately after actor start
 - **WHEN** `EgressActor` starts and another actor sends `RequestEgressSink` before any producer has attached
@@ -68,7 +73,7 @@ The `EgressActor` SHALL pre-materialize the MergeHub and BroadcastHub in `PreSta
 
 ### Requirement: ModelStateActor produces PerModelUpdate events
 
-The `ModelStateActor` (renamed from `MqttPublisherActor`) SHALL reside in `Njord.Egress`, subscribe to the Pipeline BroadcastHub via `ISourceRef<FetchOutcome>`, transform `FetchOutcome.Success` into `EgressEvent.PerModelUpdate`, and send them into the EgressActor's MergeHub via `ISinkRef<EgressEvent>`. It SHALL NOT reference any types from `Njord.Mqtt`. Additionally, after each successful fetch, it SHALL track which parameters the model delivered with non-null values and send a `ModelCapabilityLearned` message to the `DiscoveryActor` when the tracked set changes.
+The `ModelStateActor` SHALL reside in `Njord.Egress`, subscribe to the Pipeline BroadcastHub via `ISourceRef<FetchOutcome>`, transform `FetchOutcome.Success` into `EgressEvent.PerModelUpdate`, and send them into the EgressActor's MergeHub via `ISinkRef<EgressEvent>`. It SHALL NOT reference any types from `Njord.Mqtt`. After each successful fetch, it SHALL track which parameters the model delivered with non-null values and emit an `EgressEvent.CapabilityLearned` into the same egress sink when the tracked set changes.
 
 #### Scenario: Successful fetch produces PerModelUpdate
 - **WHEN** `ModelStateActor` receives a `FetchOutcome.Success` from the pipeline
@@ -78,6 +83,10 @@ The `ModelStateActor` (renamed from `MqttPublisherActor`) SHALL reside in `Njord
 - **WHEN** `ModelStateActor` receives a `FetchOutcome.Failure`
 - **THEN** it SHALL NOT emit any `EgressEvent`
 
-#### Scenario: First successful fetch sends capability message
+#### Scenario: First successful fetch emits CapabilityLearned
 - **WHEN** `ModelStateActor` processes the first `FetchOutcome.Success` for a (location, model) pair
-- **THEN** it SHALL send a `ModelCapabilityLearned` message to the `DiscoveryActor` with the observed supported parameters and applicable horizons
+- **THEN** it SHALL emit an `EgressEvent.CapabilityLearned` into the egress sink with the observed supported parameters and applicable horizons
+
+#### Scenario: ModelStateActor has no Njord.Mqtt dependency
+- **WHEN** `ModelStateActor` is compiled
+- **THEN** it SHALL NOT have a `using Njord.Mqtt` directive or resolve any actor from the `Njord.Mqtt` namespace

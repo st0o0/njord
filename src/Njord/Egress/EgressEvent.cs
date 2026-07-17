@@ -10,4 +10,11 @@ public abstract record EgressEvent
         ModelForecast Forecast) : EgressEvent;
 
     public sealed record EnrichmentUpdate(string Location, string TypeName, object Result) : EgressEvent;
+
+    public sealed record CapabilityLearned(
+        string Location,
+        WeatherModel Model,
+        IReadOnlySet<ParameterDef> SupportedParameters,
+        IReadOnlyList<int> ApplicableHorizons,
+        IReadOnlyList<int> ApplicableDayOffsets) : EgressEvent;
 }
