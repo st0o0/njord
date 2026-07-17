@@ -2,11 +2,12 @@ schema: spec-driven
 
 # Injected verbatim into the AI when it generates change artifacts.
 context: |
-  njord — Kachelmann weather API → MQTT bridge for Home Assistant.
+  njord — Multi-model weather intelligence for Home Assistant.
   .NET service (Docker container) on Akka.NET + Akka.Streams: polls the
-  Kachelmannwetter API for multiple weather models, computes a consensus
-  forecast, publishes Home Assistant entities via MQTT Discovery
-  (Mosquitto broker on the HA host).
+  Open-Meteo API for multiple weather models per location, processes
+  forecasts through an enrichment pipeline (consensus, alerts, derived
+  values, trends, indices, energy, history), and publishes Home Assistant
+  entities via MQTT Discovery (Mosquitto broker on the HA host).
 
   Build & test: all commands run from `src/` (where global.json lives).
   Tests are xUnit v3 on Microsoft.Testing.Platform — use `dotnet run`, NOT `dotnet test`.
@@ -14,28 +15,20 @@ context: |
     - Single class: append `-- -class "<FullyQualifiedName>"`
 
   Structure: solution `src/Njord.slnx`; service code in `src/Njord/`, unit
-  tests in `src/Njord.Tests/`. Central package management with transitive
+  tests in `src/Njord.Tests/`, shared test infrastructure in
+  `src/Njord.Tests.Shared/`. Central package management with transitive
   pinning (`src/Directory.Packages.props`) — never put versions in a csproj;
   add packages via `dotnet add package`.
 
-  Verified Kachelmann API facts (2026-07-11): base URL
-  `https://api.kachelmannwetter.com/v02`, auth header `X-API-Key`, OpenAPI
-  spec at `/v02/_doc.json`; limits 20,000 requests/month + 60/min;
-  windSpeed/windGust in m/s; no feels-like temperature (compute Steadman
-  ourselves); `model=ALL` response shape undocumented; no warnings endpoint.
-  Forecast endpoint `/forecast/{lat}/{lon}/advanced/{timeSteps}` + `?model=<id>`
-  (timeSteps coverage: 1h→24h, 3h→120h, 6h→240h); `model` is a free-string
-  param, documented example ids: ICON-D2, ECMWF, GFS, UKMO, HRRR, DWD-MOSMIX,
-  MULTIMOD, SWISS1X1 ("Super HD" has no documented id; SWISS1X1 is the likely
-  candidate — verify via probe request).
-  API key comes from env var `Njord__ApiKey` — never in the repo, never in
-  test fixtures.
+  Open-Meteo API: endpoint `GET https://api.open-meteo.com/v1/forecast` —
+  no API key, no auth header. Free tier is non-commercial; soft limits
+  600/min, 5k/h, 10k/day, 300k/month.
 
   Git: commit conventionally, but NEVER `git push` — the user pushes.
 
 rules:
   proposal:
-    - "Include an API-budget impact estimate (requests/month against the 20k limit) for any change that adds or alters polling."
+    - "Include an API-budget impact estimate (requests/month against the 300k free-tier limit) for any change that adds or alters polling."
     - "Always include a 'Non-goals' section."
   tasks:
     - "Reference concrete file paths under `src/Njord/...` and `src/Njord.Tests/...`."

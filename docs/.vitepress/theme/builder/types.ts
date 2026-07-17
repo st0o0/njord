@@ -35,7 +35,7 @@ export interface NjordConfig {
   models: string[]
   locations: LocationConfig[]
   parameters: { groups: string[]; extra: string[]; exclude: string[] }
-  mqtt: { host: string; port: number; username: string; password: string; discoveryPrefix: string; discoveryEnabled: boolean; baseTopic: string }
+  mqtt: { enabled: boolean; host: string; port: number; username: string; password: string; discoveryPrefix: string; discoveryEnabled: boolean; baseTopic: string }
   enrichment: Record<string, Record<string, unknown>>
   budgetOverride: { requestsPerMonth: number; requestsPerMinute: number } | null
   persistence: { provider: string; connectionString: string }
@@ -51,7 +51,7 @@ export function defaultConfig(): NjordConfig {
     models: [],
     locations: [],
     parameters: { groups: ['Weather'], extra: [], exclude: [] },
-    mqtt: { host: '', port: 1883, username: '', password: '', discoveryPrefix: 'homeassistant', discoveryEnabled: true, baseTopic: 'njord' },
+    mqtt: { enabled: false, host: '', port: 1883, username: '', password: '', discoveryPrefix: 'homeassistant', discoveryEnabled: true, baseTopic: 'njord' },
     enrichment: {},
     budgetOverride: null,
     persistence: { provider: 'Sqlite', connectionString: '' },

@@ -85,7 +85,7 @@ jobs:
           # GHCR shows the package description only from the image-index
           # annotations on multi-arch images — per-image LABELs don't surface.
           annotations: |
-            index:org.opencontainers.image.description=Open-Meteo weather API to MQTT bridge for Home Assistant
+            index:org.opencontainers.image.description=Multi-model weather intelligence for Home Assistant
             index:org.opencontainers.image.source=https://github.com/st0o0/njord
           cache-from: type=gha
           cache-to: type=gha,mode=max

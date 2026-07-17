@@ -4,7 +4,7 @@ layout: home
 hero:
   name: njord
   text: Multi-model weather intelligence for Home Assistant
-  tagline: Polls 50+ weather models, enriches forecasts with consensus, alerts, and trends, and publishes everything to Home Assistant via MQTT Discovery.
+  tagline: Poll any combination of 50+ weather models per location, enrich forecasts with consensus, alerts, trends, and more, and publish everything to Home Assistant via MQTT Discovery.
   image:
     src: /logo.svg
     alt: njord

@@ -14,7 +14,7 @@ RUN dotnet publish Njord/Njord.csproj -c Release -o /app --no-restore -p:Version
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled AS runtime
 LABEL org.opencontainers.image.title="njord" \
-      org.opencontainers.image.description="Open-Meteo weather API to MQTT bridge for Home Assistant" \
+      org.opencontainers.image.description="Multi-model weather intelligence for Home Assistant" \
       org.opencontainers.image.source="https://github.com/st0o0/njord" \
       org.opencontainers.image.documentation="https://github.com/st0o0/njord#readme"
 WORKDIR /app

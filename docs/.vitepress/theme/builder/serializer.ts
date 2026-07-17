@@ -23,8 +23,13 @@ export function exportAsJson(config: NjordConfig): string {
     if (config.parameters.extra.length) (n.Parameters as Record<string, unknown>).Extra = config.parameters.extra
     if (config.parameters.exclude.length) (n.Parameters as Record<string, unknown>).Exclude = config.parameters.exclude
   }
-  n.Mqtt = { Host: config.mqtt.host || '<your-mqtt-host>', Port: config.mqtt.port }
-  if (config.mqtt.username) (n.Mqtt as Record<string, unknown>).Username = config.mqtt.username
+  const mqtt: Record<string, unknown> = { Enabled: config.mqtt.enabled }
+  if (config.mqtt.enabled) {
+    mqtt.Host = config.mqtt.host || '<your-mqtt-host>'
+    mqtt.Port = config.mqtt.port
+    if (config.mqtt.username) mqtt.Username = config.mqtt.username
+  }
+  n.Mqtt = mqtt
   if (config.mqtt.discoveryPrefix !== 'homeassistant') (n.Mqtt as Record<string, unknown>).DiscoveryPrefix = config.mqtt.discoveryPrefix
   if (config.mqtt.baseTopic !== 'njord') (n.Mqtt as Record<string, unknown>).BaseTopic = config.mqtt.baseTopic
 
@@ -55,10 +60,13 @@ export function exportAsEnvVars(config: NjordConfig): string {
 
   config.parameters.groups.forEach((g, i) => add(`Njord__Parameters__Groups__${i}`, g))
 
-  add('Njord__Mqtt__Host', config.mqtt.host || '<your-mqtt-host>')
-  add('Njord__Mqtt__Port', String(config.mqtt.port))
-  if (config.mqtt.username) add('Njord__Mqtt__Username', config.mqtt.username)
-  if (config.mqtt.password) add('Njord__Mqtt__Password', config.mqtt.password)
+  if (config.mqtt.enabled) {
+    add('Njord__Mqtt__Enabled', 'true')
+    add('Njord__Mqtt__Host', config.mqtt.host || '<your-mqtt-host>')
+    add('Njord__Mqtt__Port', String(config.mqtt.port))
+    if (config.mqtt.username) add('Njord__Mqtt__Username', config.mqtt.username)
+    if (config.mqtt.password) add('Njord__Mqtt__Password', config.mqtt.password)
+  }
 
   for (const [feature, settings] of Object.entries(config.enrichment)) {
     for (const [key, value] of Object.entries(settings as Record<string, unknown>)) {
@@ -131,6 +139,7 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   }
   if (n.Mqtt) {
     config.mqtt = {
+      enabled: n.Mqtt.Enabled ?? false,
       host: n.Mqtt.Host ?? '',
       port: n.Mqtt.Port ?? 1883,
       username: n.Mqtt.Username ?? '',
