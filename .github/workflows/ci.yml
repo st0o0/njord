@@ -83,7 +83,10 @@ jobs:
       - name: Smoke test
         run: |
           docker run -d --name njord-smoke \
-            -e Njord__Mqtt__Host=localhost \
+            -e Njord__Locations__0__Name=smoke \
+            -e Njord__Locations__0__Latitude=47.05 \
+            -e Njord__Locations__0__Longitude=8.31 \
+            -e Njord__Models__0=icon_global \
             -p 8080:8080 \
             njord:ci
           for i in $(seq 1 10); do
