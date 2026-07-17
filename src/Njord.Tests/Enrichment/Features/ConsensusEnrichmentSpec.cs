@@ -28,17 +28,27 @@ public sealed class ConsensusEnrichmentSpec
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
         return new ConsensusEnrichment(
-            Options.Create(options), Options.Create(enrichment), parameters, TimeProvider.System);
+            Options.Create(options), Options.Create(enrichment), parameters, new FakeTimeProvider(T0));
+    }
+
+    private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
     }
 
     private static ModelSnapshot MakeSnapshot()
     {
-        var points = Enumerable.Range(0, 24).Select(h =>
+        var points1 = Enumerable.Range(0, 24).Select(h =>
             new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?> { [Temperature] = 20.0 + h }))
             .ToList();
-        var forecast = new ModelForecast(new("icon_d2"), "lucerne", new CycleId(T0),
-            new ForecastSeries(points), DailyForecastSeries.Empty);
-        return ModelSnapshot.Empty.Update(forecast);
+        var points2 = Enumerable.Range(0, 24).Select(h =>
+            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?> { [Temperature] = 21.0 + h }))
+            .ToList();
+        return ModelSnapshot.Empty
+            .Update(new ModelForecast(new("icon_d2"), "lucerne", new CycleId(T0),
+                new ForecastSeries(points1), DailyForecastSeries.Empty))
+            .Update(new ModelForecast(new("gfs_seamless"), "lucerne", new CycleId(T0),
+                new ForecastSeries(points2), DailyForecastSeries.Empty));
     }
 
     [Fact(Timeout = 5000)]
@@ -57,14 +67,15 @@ public sealed class ConsensusEnrichmentSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void Compute_produces_events_for_multiple_locations()
+    public void Compute_skips_locations_without_sufficient_models()
     {
         var feature = CreateFeature();
         var snapshot = MakeSnapshot();
 
         var events = feature.Compute(snapshot, ["lucerne", "zurich"]).ToList();
 
-        Assert.Equal(2, events.Count);
+        Assert.Single(events);
+        Assert.Equal("lucerne", ((EgressEvent.EnrichmentUpdate)events[0]).Location);
     }
 
     [Fact(Timeout = 5000)]

@@ -80,6 +80,18 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
     }
 
     [Fact(Timeout = 5000)]
+    public async Task Initial_polls_are_offered_without_stagger_delay()
+    {
+        var options = Options();
+        options.Models = ["icon_d2", "gfs_seamless", "ecmwf_ifs025"];
+        _scheduler = CreateScheduler(options);
+
+        await WaitForOffer(3);
+
+        Assert.Equal(3, _offered.Count);
+    }
+
+    [Fact(Timeout = 5000)]
     public async Task Hash_change_triggers_ack_response()
     {
         _scheduler = CreateScheduler();

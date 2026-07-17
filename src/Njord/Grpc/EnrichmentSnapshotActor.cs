@@ -17,9 +17,9 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
     {
         Recover<SnapshotOffer>(offer =>
         {
-            if (offer.Snapshot is EnrichmentSnapshotState saved)
+            if (offer.Snapshot is EnrichmentSnapshotDto saved)
             {
-                foreach (var kvp in saved.Enrichments)
+                foreach (var kvp in SnapshotMapping.ToDomain(saved))
                     _state[kvp.Key] = kvp.Value;
             }
         });
@@ -32,7 +32,7 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
             _updatesSinceSnapshot++;
             if (_updatesSinceSnapshot >= SnapshotInterval)
             {
-                SaveSnapshot(new EnrichmentSnapshotState { Enrichments = new Dictionary<string, object>(_state) });
+                SaveSnapshot(SnapshotMapping.ToDto(_state));
                 _updatesSinceSnapshot = 0;
             }
 
@@ -59,7 +59,8 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
         Command<SaveSnapshotSuccess>(success =>
         {
             _log.Debug("Enrichment snapshot saved (seqNr {0})", success.Metadata.SequenceNr);
-            DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
+            if (success.Metadata.SequenceNr > 0)
+                DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
         });
 
         Command<SaveSnapshotFailure>(failure =>
@@ -75,10 +76,4 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
     }
 
     private static string MakeKey(string location, string typeName) => $"{location}|{typeName}";
-
-    [Serializable]
-    private sealed class EnrichmentSnapshotState
-    {
-        public Dictionary<string, object> Enrichments { get; set; } = new();
-    }
 }

@@ -18,9 +18,9 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
     {
         Recover<SnapshotOffer>(offer =>
         {
-            if (offer.Snapshot is ForecastSnapshotState saved)
+            if (offer.Snapshot is ForecastSnapshotDto saved)
             {
-                foreach (var kvp in saved.Forecasts)
+                foreach (var kvp in SnapshotMapping.ToDomain(saved))
                     _state[kvp.Key] = kvp.Value;
             }
         });
@@ -33,7 +33,7 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
             _updatesSinceSnapshot++;
             if (_updatesSinceSnapshot >= SnapshotInterval)
             {
-                SaveSnapshot(new ForecastSnapshotState { Forecasts = new Dictionary<string, ModelForecast>(_state) });
+                SaveSnapshot(SnapshotMapping.ToDto(_state));
                 _updatesSinceSnapshot = 0;
             }
 
@@ -58,7 +58,8 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
         Command<SaveSnapshotSuccess>(success =>
         {
             _log.Debug("Forecast snapshot saved (seqNr {0})", success.Metadata.SequenceNr);
-            DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
+            if (success.Metadata.SequenceNr > 0)
+                DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
         });
 
         Command<SaveSnapshotFailure>(failure =>
@@ -79,11 +80,5 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
     {
         var sep = key.IndexOf('|');
         return (key[..sep], key[(sep + 1)..]);
-    }
-
-    [Serializable]
-    private sealed class ForecastSnapshotState
-    {
-        public Dictionary<string, ModelForecast> Forecasts { get; set; } = new();
     }
 }

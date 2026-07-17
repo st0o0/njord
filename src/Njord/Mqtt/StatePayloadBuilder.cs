@@ -15,7 +15,8 @@ public static class StatePayloadBuilder
         DateTimeOffset anchorTime)
         => HorizonProjection.BuildPerHorizon(forecast, parameters, horizons, forecastDays, anchorTime);
 
-    public static IReadOnlyList<MqttMessage> FromConsensus(ConsensusResult result, string baseTopic, string location)
+    public static IReadOnlyList<MqttMessage> FromConsensus(
+        ConsensusResult result, string baseTopic, string location)
     {
         var messages = new List<MqttMessage>();
         var horizonPayloads = new Dictionary<string, JsonObject>();

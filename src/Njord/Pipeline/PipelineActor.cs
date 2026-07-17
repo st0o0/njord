@@ -2,8 +2,6 @@ using Akka;
 using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.Options;
-using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Ingest;
 using Servus.Akka;
@@ -12,7 +10,6 @@ namespace Njord.Pipeline;
 
 public sealed class PipelineActor : ReceiveActor, IWithStash
 {
-    private readonly NjordOptions _options;
     private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<PipelineActor> _logger;
@@ -26,12 +23,10 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     private sealed record PipelineReady;
 
     public PipelineActor(
-        IOptions<NjordOptions> options,
         IOpenMeteoClient client,
         TimeProvider timeProvider,
         ILogger<PipelineActor> logger)
     {
-        _options = options.Value;
         _client = client;
         _timeProvider = timeProvider;
         _logger = logger;
@@ -79,8 +74,6 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     private void MaterializePipeline()
     {
         _mat = Context.Materializer();
-        var budget = _options.EffectiveBudget;
-        var budgetPerMinute = (int)(budget.RequestsPerMinute * 0.8);
         var schedulerActor = Context.GetActor<SchedulerActor>();
 
         var (mergeHubSink, mergeHubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 16)
@@ -90,9 +83,8 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
             .PreMaterialize(_mat);
 
         mergeHubSource
-            .Throttle(budgetPerMinute, TimeSpan.FromMinutes(1), maximumBurst: 4,
-                element => element.Weight, ThrottleMode.Shaping)
-            .SelectAsyncUnordered(4, async target =>
+            .Throttle(2, TimeSpan.FromSeconds(1), maximumBurst: 4, ThrottleMode.Shaping)
+            .SelectAsyncUnordered(2, async target =>
             {
                 var outcome = await _client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None);
                 return outcome;
