@@ -8,6 +8,7 @@ using Njord.Health;
 using Njord.Ingest;
 using Njord.Mqtt;
 using Njord.Mqtt.Transport;
+using Njord.Pipeline;
 using Servus.Core.Application.Startup;
 
 namespace Njord.Configuration;
@@ -33,6 +34,11 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
             .AddOptions<EnrichmentOptions>()
             .Bind(configuration.GetSection($"{NjordOptions.SectionName}:Enrichment"));
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
+        services.AddSingleton<IBudgetGate<WeightedTarget>>(sp =>
+            new WeightedBudgetGate(
+                sp.GetRequiredService<IBudgetProvider>(),
+                sp.GetRequiredService<BudgetTracker>()));
         services.AddSingleton(sp => new NjordHealthState
         {
             ServiceStartedUtc = sp.GetRequiredService<TimeProvider>().GetUtcNow(),
