@@ -1,0 +1,8 @@
+# glibc CVEs in the base image (dotnet/aspnet:10.0-noble-chiseled)
+# No fix available upstream yet; chiseled image has no shell/network tools,
+# making DNS-based and iconv exploits impractical.
+CVE-2026-6238
+CVE-2026-5435
+CVE-2026-4438
+CVE-2026-4437
+CVE-2026-4046
