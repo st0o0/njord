@@ -133,7 +133,8 @@ public sealed class StatePayloadBuilderSpec
         Assert.True(messages[0].Retain);
         var payload = JsonNode.Parse(messages[0].Payload)!;
         Assert.NotNull(payload["temperature"]);
-        Assert.NotNull(payload["_models_used"]);
+        Assert.Equal(2, payload["temperature_models"]!.GetValue<int>());
+        Assert.Null(payload["_models_used"]);
     }
 
     [Fact(Timeout = 5000)]

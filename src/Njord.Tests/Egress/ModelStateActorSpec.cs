@@ -156,7 +156,7 @@ public sealed class ModelStateActorSpec : IDisposable
         Assert.Contains(24, cap.ApplicableHorizons);
         Assert.Contains(48, cap.ApplicableHorizons);
         Assert.DoesNotContain(72, cap.ApplicableHorizons);
-        Assert.Equal(2, cap.ApplicableDayOffsets.Count);
+        Assert.Equal(3, cap.ApplicableDayOffsets.Count);
     }
 
     private static ModelForecast CreateForecast(string modelId, bool withNullParams, double tempOffset = 0.0)
@@ -164,7 +164,7 @@ public sealed class ModelStateActorSpec : IDisposable
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var wind = ParameterRegistry.GetByApiName("wind_speed_10m")!;
 
-        var points = Enumerable.Range(0, 48)
+        var points = Enumerable.Range(0, 60)
             .Select(i => new ForecastPoint(
                 Anchor.AddHours(i + 1),
                 new Dictionary<ParameterDef, double?>

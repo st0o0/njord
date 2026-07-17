@@ -205,7 +205,7 @@ public sealed class OpenMeteoClientSpec
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Daily_timestring_null_values_are_preserved_as_null()
+    public async Task Daily_all_null_values_are_filtered_out()
     {
         var body = """
             {
@@ -219,9 +219,7 @@ public sealed class OpenMeteoClientSpec
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchOutcome.Success>(outcome);
-        var dailyPoint = success.Forecast.Daily.Points[0];
-        var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
-        Assert.Null(dailyPoint.GetMeta(sunrise));
+        Assert.Empty(success.Forecast.Daily.Points);
     }
 
     [Fact(Timeout = 5000)]

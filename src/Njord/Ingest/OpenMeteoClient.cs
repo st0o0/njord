@@ -153,7 +153,9 @@ public sealed class OpenMeteoClient(
                 }
             }
 
-            points.Add(new DailyForecastPoint(date, numeric, meta));
+            var point = new DailyForecastPoint(date, numeric, meta);
+            if (point.HasAnyValue)
+                points.Add(point);
         }
 
         return new DailyForecastSeries(points);

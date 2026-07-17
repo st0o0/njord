@@ -34,6 +34,7 @@ public static class StatePayloadBuilder
                 payload[pc.Parameter.JsonKey] = hc.Median.HasValue
                     ? JsonValue.Create(Math.Round(hc.Median.Value, 2))
                     : null;
+                payload[$"{pc.Parameter.JsonKey}_models"] = hc.AvailableModels.Count;
             }
         }
 
@@ -48,7 +49,6 @@ public static class StatePayloadBuilder
                 payload["_agreement"] = firstParam.Agreement.HasValue
                     ? JsonValue.Create(Math.Round(firstParam.Agreement.Value, 3))
                     : null;
-                payload["_models_used"] = firstParam.AvailableModels.Count;
             }
 
             var topic = TopicScheme.EnrichmentSubTopic(baseTopic, location, "consensus", horizon);
