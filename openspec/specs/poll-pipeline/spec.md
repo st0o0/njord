@@ -22,15 +22,15 @@ The pipeline SHALL receive `WeightedTarget` elements via a `MergeHub.Source<Weig
 - **THEN** the target carries a `CycleId` with the timestamp from when the scheduler decided to poll
 
 ### Requirement: Outbound requests respect the per-minute budget
-The pipeline SHALL throttle outbound fetch requests using a fixed politeness rate of **2 elements per second** with a maximum burst of 4, using `ThrottleMode.Shaping`. The throttle SHALL be element-count-based (not weighted). The fetch call SHALL use `SelectAsyncUnordered(2)` to limit concurrent connections to Open-Meteo to 2.
+The pipeline SHALL throttle outbound fetch requests using a `BudgetThrottleStage` that derives its rate from `IBudgetProvider.GetCurrentRate()`. The stage SHALL implement weighted token-bucket throttling based on the effective budget (default: 80% of `RequestsPerMinute`). The stage SHALL adapt to budget changes at runtime without re-materializing the graph. The fetch call SHALL use `SelectAsyncUnordered(2)` to limit concurrent connections to Open-Meteo to 2.
 
-#### Scenario: Throttle rate is 2 per second
-- **WHEN** 27 weight-1 targets enter the pipeline simultaneously at startup
-- **THEN** the throttle shapes them to 2 per second (with an initial burst of up to 4), completing all 27 in approximately 14 seconds
+#### Scenario: Throttle rate derived from budget
+- **WHEN** the effective budget is 600 req/min (free tier)
+- **THEN** the stage SHALL throttle at 480 weighted cost-units per minute (80% politeness margin)
 
-#### Scenario: Throttle is independent of budget configuration
-- **WHEN** the user sets a `BudgetOverride` of 60 req/min
-- **THEN** the pipeline throttle rate remains at 2 req/sec (the budget override affects monthly/minute accounting, not the politeness throttle)
+#### Scenario: Budget override changes throttle rate at runtime
+- **WHEN** the user sets a `BudgetOverride` of 60 req/min via gRPC
+- **THEN** the stage SHALL adapt to 48 cost-units per minute within 5 seconds
 
 #### Scenario: Maximum 2 concurrent HTTP calls
 - **WHEN** the throttle releases 2 targets within the same second

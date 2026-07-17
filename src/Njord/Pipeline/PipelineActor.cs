@@ -12,6 +12,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
 {
     private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;
+    private readonly IBudgetGate<WeightedTarget> _budgetGate;
     private readonly ILogger<PipelineActor> _logger;
 
     private Sink<WeightedTarget, NotUsed>? _mergeHubSink;
@@ -25,10 +26,12 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     public PipelineActor(
         IOpenMeteoClient client,
         TimeProvider timeProvider,
+        IBudgetGate<WeightedTarget> budgetGate,
         ILogger<PipelineActor> logger)
     {
         _client = client;
         _timeProvider = timeProvider;
+        _budgetGate = budgetGate;
         _logger = logger;
 
         Initializing();
@@ -83,7 +86,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
             .PreMaterialize(_mat);
 
         mergeHubSource
-            .Throttle(2, TimeSpan.FromSeconds(1), maximumBurst: 4, ThrottleMode.Shaping)
+            .Via(new BudgetThrottleStage<WeightedTarget>(_budgetGate))
             .SelectAsyncUnordered(2, async target =>
             {
                 var outcome = await _client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None);
