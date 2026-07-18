@@ -10,7 +10,6 @@ LABEL org.opencontainers.image.title="njord" \
       org.opencontainers.image.documentation="https://github.com/st0o0/njord#readme"
 WORKDIR /app
 COPY --chown=$APP_UID . .
-RUN mkdir -p /app/data
 VOLUME /app/data
 EXPOSE 8080 8081
 ENTRYPOINT ["dotnet", "Njord.dll"]

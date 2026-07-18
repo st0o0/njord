@@ -12,6 +12,7 @@ using Njord.Pipeline;
 
 namespace Njord.Tests.Enrichment;
 
+[Collection("EnrichmentActor")]
 public sealed class EnrichmentActorSpec : IDisposable
 {
     private readonly ActorSystem _system = ActorSystem.Create("enrichment-spec");
