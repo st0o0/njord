@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/st0o0/njord/compare/v0.1.1...v0.1.2) (2026-07-19)
+
+
+### Bug Fixes
+
+* **docker:** resolve SQLite permission error in chiseled image ([37439e6](https://github.com/st0o0/njord/commit/37439e6f6c9f79dce1c30f1203df72fb88deca29))
+
 ## [0.1.1](https://github.com/st0o0/njord/compare/v0.1.0...v0.1.1) (2026-07-19)
 
 
