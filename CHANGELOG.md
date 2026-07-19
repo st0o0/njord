@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.2](https://github.com/st0o0/njord/compare/v0.1.1...v0.1.2) (2026-07-19)
+
+
+### Features
+
+* **Budget:** Adjust max burst for budget provider ([caf2c99](https://github.com/st0o0/njord/commit/caf2c99f77681b2165f88ea27a132fd62d077fe5))
+
+
+### Bug Fixes
+
+* **docker:** resolve SQLite permission error in chiseled image ([f8df7e1](https://github.com/st0o0/njord/commit/f8df7e1865429838f0b8cb0d9fa01f76c69a7a68))
+
+
+### Dependencies
+
+* Bump Microsoft.AspNetCore.Mvc.Testing and 3 others ([22ee68f](https://github.com/st0o0/njord/commit/22ee68f7f3a8f5b45cc15bf7f10b1bd64c1cf0bb))
+
 ## [0.1.1](https://github.com/st0o0/njord/compare/v0.1.0...v0.1.1) (2026-07-19)
 
 
