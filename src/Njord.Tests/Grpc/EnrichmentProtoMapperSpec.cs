@@ -110,7 +110,7 @@ public sealed class EnrichmentProtoMapperSpec
             Location: "lucerne",
             HeatingDemand: 75,
             CopEstimate: 3.2,
-            CopOptimal: [(HoursFromNow: 2, Cop: 3.8), (HoursFromNow: 5, Cop: 4.1)],
+            CopOptimal: [new CopOptimalEntry(2, 3.8), new CopOptimalEntry(5, 4.1)],
             Shading: 60,
             BatteryStrategy: "charge",
             NightCooling: 45);

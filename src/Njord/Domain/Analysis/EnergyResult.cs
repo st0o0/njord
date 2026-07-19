@@ -1,19 +1,24 @@
+using Newtonsoft.Json;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 
 namespace Njord.Domain.Analysis;
 
+public sealed record CopOptimalEntry(
+    [property: JsonProperty("hoursFromNow")] int HoursFromNow,
+    [property: JsonProperty("cop")] double Cop);
+
 public sealed record EnergyResult(
-    string Location,
-    int HeatingDemand,
-    double? CopEstimate,
-    IReadOnlyList<(int HoursFromNow, double Cop)> CopOptimal,
-    int Shading,
-    string BatteryStrategy,
-    int NightCooling,
-    int HeatingDemandMax = 0,
-    double? CopEstimateMin = null,
-    IReadOnlyList<int>? CopOptimalConservative = null)
+    [property: JsonProperty("location")] string Location,
+    [property: JsonProperty("heatingDemand")] int HeatingDemand,
+    [property: JsonProperty("copEstimate")] double? CopEstimate,
+    [property: JsonProperty("copOptimal")] IReadOnlyList<CopOptimalEntry> CopOptimal,
+    [property: JsonProperty("shading")] int Shading,
+    [property: JsonProperty("batteryStrategy")] string BatteryStrategy,
+    [property: JsonProperty("nightCooling")] int NightCooling,
+    [property: JsonProperty("heatingDemandMax")] int HeatingDemandMax = 0,
+    [property: JsonProperty("copEstimateMin")] double? CopEstimateMin = null,
+    [property: JsonProperty("copOptimalConservative")] IReadOnlyList<int>? CopOptimalConservative = null)
 {
     public static EnergyResult Compute(
         ModelSnapshot snapshot,
@@ -47,12 +52,14 @@ public sealed record EnergyResult(
         var heatingDemand = EnergyForecaster.HeatingDemand(meanTemp, meanWind, meanCloud, options.HeatingBaseTemp);
         var copEst = EnergyForecaster.CopEstimate(meanTemp, options.FlowTemp, options.CarnotEfficiency);
 
-        IReadOnlyList<(int, double)> copOptimal = [];
+        IReadOnlyList<CopOptimalEntry> copOptimal = [];
         if (tempParam is not null && forecasts.Count > 0)
         {
             copOptimal = EnergyForecaster.CopOptimalHours(
                 forecasts[0].Hourly, tempParam, options.FlowTemp,
-                options.CarnotEfficiency, options.CopOptimalHours, now);
+                options.CarnotEfficiency, options.CopOptimalHours, now)
+                .Select(o => new CopOptimalEntry(o.HoursFromNow, o.Cop))
+                .ToList();
         }
 
         var shading = EnergyForecaster.ShadingScore(meanRadiation, meanIsDay, meanTemp);
