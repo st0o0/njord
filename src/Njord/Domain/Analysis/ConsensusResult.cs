@@ -16,8 +16,13 @@ public sealed record ParameterConsensus(
     ParameterDef Parameter,
     IReadOnlyDictionary<string, HorizonConsensus> ByHorizon);
 
-public sealed record ConsensusResult(IReadOnlyList<ParameterConsensus> Parameters)
+public sealed record ConsensusResult(
+    IReadOnlyList<ParameterConsensus> Parameters,
+    IReadOnlyList<ParameterConsensus> DailyParameters)
 {
+    public ConsensusResult(IReadOnlyList<ParameterConsensus> parameters)
+        : this(parameters, []) { }
+
     public static ConsensusResult Compute(
         ModelSnapshot snapshot,
         ResolvedParameterSet parameters,
@@ -28,9 +33,28 @@ public sealed record ConsensusResult(IReadOnlyList<ParameterConsensus> Parameter
         double agreementTolerance = 2.0)
     {
         var now = timeProvider.GetUtcNow();
+
+        var hourlyResults = ComputeHourly(snapshot, parameters.Hourly, horizons, location, now, trimPercent, agreementTolerance);
+
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        var dailyHorizons = ComputeDailyCutoff(snapshot, location);
+        var dailyResults = ComputeDaily(snapshot, parameters.Daily, dailyHorizons, location, today, trimPercent, agreementTolerance);
+
+        return new ConsensusResult(hourlyResults, dailyResults);
+    }
+
+    private static List<ParameterConsensus> ComputeHourly(
+        ModelSnapshot snapshot,
+        IReadOnlyList<ParameterDef> hourlyParams,
+        IReadOnlyList<int> horizons,
+        string location,
+        DateTimeOffset now,
+        double trimPercent,
+        double agreementTolerance)
+    {
         var paramResults = new List<ParameterConsensus>();
 
-        foreach (var parameter in parameters.Hourly)
+        foreach (var parameter in hourlyParams)
         {
             var byHorizon = new Dictionary<string, HorizonConsensus>();
 
@@ -52,32 +76,102 @@ public sealed record ConsensusResult(IReadOnlyList<ParameterConsensus> Parameter
                     modelValues.Add((key.Model, point?.Get(parameter)));
                 }
 
-                var values = modelValues.Select(mv => mv.Value).ToList();
-                var median = ConsensusComputer.ComputeMedian(values);
-                var trimmedMean = ConsensusComputer.ComputeTrimmedMean(values, trimPercent);
-                var spread = ConsensusComputer.ComputeSpread(values);
-                var iqr = ConsensusComputer.ComputeIqr(values);
-                var agreement = median.HasValue
-                    ? ConsensusComputer.ComputeAgreement(values, median.Value, agreementTolerance)
-                    : null;
-                var outlier = median.HasValue
-                    ? ConsensusComputer.IdentifyOutlier(modelValues, median.Value)
-                    : null;
-                var ci = ConsensusComputer.ComputeConfidenceInterval(values, 10, 90);
-
-                var availableModels = modelValues
-                    .Where(mv => mv.Value.HasValue)
-                    .Select(mv => mv.Model)
-                    .ToList();
-
-                byHorizon[horizonKey] = new HorizonConsensus(
-                    median, trimmedMean, spread, iqr, agreement,
-                    outlier, ci, availableModels);
+                byHorizon[horizonKey] = ComputeHorizon(modelValues, trimPercent, agreementTolerance);
             }
 
             paramResults.Add(new ParameterConsensus(parameter, byHorizon));
         }
 
-        return new ConsensusResult(paramResults);
+        return paramResults;
+    }
+
+    private static List<ParameterConsensus> ComputeDaily(
+        ModelSnapshot snapshot,
+        IReadOnlyList<ParameterDef> dailyParams,
+        int maxDays,
+        string location,
+        DateOnly today,
+        double trimPercent,
+        double agreementTolerance)
+    {
+        var paramResults = new List<ParameterConsensus>();
+
+        foreach (var parameter in dailyParams)
+        {
+            var byHorizon = new Dictionary<string, HorizonConsensus>();
+
+            for (var day = 0; day < maxDays; day++)
+            {
+                var targetDate = today.AddDays(day);
+                var horizonKey = $"d{day}";
+
+                var modelValues = new List<(WeatherModel Model, double? Value)>();
+                foreach (var (key, forecast) in snapshot.Entries)
+                {
+                    if (key.Location != location)
+                    {
+                        continue;
+                    }
+
+                    var point = forecast.Daily.Points.FirstOrDefault(p => p.Date == targetDate);
+                    modelValues.Add((key.Model, point?.GetNumeric(parameter)));
+                }
+
+                byHorizon[horizonKey] = ComputeHorizon(modelValues, trimPercent, agreementTolerance);
+            }
+
+            paramResults.Add(new ParameterConsensus(parameter, byHorizon));
+        }
+
+        return paramResults;
+    }
+
+    private static int ComputeDailyCutoff(ModelSnapshot snapshot, string location)
+    {
+        var dayCounts = new List<int>();
+
+        foreach (var (key, forecast) in snapshot.Entries)
+        {
+            if (key.Location != location)
+                continue;
+
+            var count = forecast.Daily.Points.Count;
+            if (count > 0)
+                dayCounts.Add(count);
+        }
+
+        if (dayCounts.Count < 2)
+            return 0;
+
+        dayCounts.Sort();
+        return dayCounts[^2];
+    }
+
+    private static HorizonConsensus ComputeHorizon(
+        List<(WeatherModel Model, double? Value)> modelValues,
+        double trimPercent,
+        double agreementTolerance)
+    {
+        var values = modelValues.Select(mv => mv.Value).ToList();
+        var median = ConsensusComputer.ComputeMedian(values);
+        var trimmedMean = ConsensusComputer.ComputeTrimmedMean(values, trimPercent);
+        var spread = ConsensusComputer.ComputeSpread(values);
+        var iqr = ConsensusComputer.ComputeIqr(values);
+        var agreement = median.HasValue
+            ? ConsensusComputer.ComputeAgreement(values, median.Value, agreementTolerance)
+            : null;
+        var outlier = median.HasValue
+            ? ConsensusComputer.IdentifyOutlier(modelValues, median.Value)
+            : null;
+        var ci = ConsensusComputer.ComputeConfidenceInterval(values, 10, 90);
+
+        var availableModels = modelValues
+            .Where(mv => mv.Value.HasValue)
+            .Select(mv => mv.Model)
+            .ToList();
+
+        return new HorizonConsensus(
+            median, trimmedMean, spread, iqr, agreement,
+            outlier, ci, availableModels);
     }
 }

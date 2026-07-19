@@ -15,6 +15,7 @@ public sealed class ConsensusEnrichment : IStatelessEnrichment
     private readonly double _trimPercent;
     private readonly bool _enabled;
     private readonly int _maxDiscoveryHours;
+    private readonly int _maxDiscoveryDays;
 
     public string TypeName => "consensus";
     public bool Enabled => _enabled;
@@ -30,6 +31,7 @@ public sealed class ConsensusEnrichment : IStatelessEnrichment
         _trimPercent = enrichmentOptions.Value.Consensus.TrimPercent;
         _enabled = enrichmentOptions.Value.Consensus.Enabled;
         _maxDiscoveryHours = options.Value.ForecastDays * 24;
+        _maxDiscoveryDays = options.Value.ForecastDays;
     }
 
     public string DeviceId(string location) =>
@@ -80,9 +82,17 @@ public sealed class ConsensusEnrichment : IStatelessEnrichment
 
     private static ConsensusResult FilterByModelCount(ConsensusResult result, int minModels)
     {
+        return new ConsensusResult(
+            FilterParameterList(result.Parameters, minModels),
+            FilterParameterList(result.DailyParameters, minModels));
+    }
+
+    private static List<ParameterConsensus> FilterParameterList(
+        IReadOnlyList<ParameterConsensus> parameters, int minModels)
+    {
         var filtered = new List<ParameterConsensus>();
 
-        foreach (var pc in result.Parameters)
+        foreach (var pc in parameters)
         {
             var filteredHorizons = new Dictionary<string, HorizonConsensus>();
             foreach (var (key, hc) in pc.ByHorizon)
@@ -95,7 +105,7 @@ public sealed class ConsensusEnrichment : IStatelessEnrichment
                 filtered.Add(new ParameterConsensus(pc.Parameter, filteredHorizons));
         }
 
-        return new ConsensusResult(filtered);
+        return filtered;
     }
 
     public string BuildDiscoveryPayload(DiscoveryContext ctx, string location)
@@ -125,6 +135,27 @@ public sealed class ConsensusEnrichment : IStatelessEnrichment
                     expireAfterSeconds);
 
                 components[$"{parameter.JsonKey}_h{hours}"] = component;
+            }
+        }
+
+        foreach (var parameter in _parameters.Daily)
+        {
+            for (var day = 0; day < _maxDiscoveryDays; day++)
+            {
+                var horizonTopic = TopicScheme.EnrichmentSubTopic(
+                    ctx.Mqtt.BaseTopic, location, TypeName, $"d{day}");
+                var uniqueId = $"{deviceId}_{parameter.JsonKey}_d{day}";
+                var component = DiscoveryPayloadBuilder.BuildComponent(
+                    uniqueId,
+                    $"{parameter.JsonKey} +{day}d",
+                    parameter,
+                    $"{{{{ value_json.{parameter.JsonKey} }}}}",
+                    horizonTopic,
+                    $"{{% if value_json.{parameter.JsonKey} is not none %}}online{{% else %}}offline{{% endif %}}",
+                    availabilityTopic,
+                    expireAfterSeconds);
+
+                components[$"{parameter.JsonKey}_d{day}"] = component;
             }
         }
 

@@ -286,6 +286,97 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
 
+    // --- Daily-based alerts ---
+
+    private static readonly ParameterDef DailyPrecipSum = ParameterRegistry.GetByApiName("precipitation_sum")!;
+    private static readonly ParameterDef DailyUvMax = ParameterRegistry.GetByApiName("uv_index_max")!;
+    private static readonly ParameterDef DailySnowfallSum = ParameterRegistry.GetByApiName("snowfall_sum")!;
+
+    private static ModelForecast MakeForecastWithDaily(
+        WeatherModel model,
+        (ParameterDef Param, double Value)[] hourlyValues,
+        (ParameterDef Param, double Value)[] dailyValues)
+    {
+        var today = DateOnly.FromDateTime(T0.UtcDateTime);
+        var points = new List<ForecastPoint>();
+        for (var h = 0; h < 24; h++)
+        {
+            var values = new Dictionary<ParameterDef, double?>();
+            foreach (var (param, value) in hourlyValues)
+                values[param] = value;
+            points.Add(new ForecastPoint(T0.AddHours(h), values));
+        }
+
+        var numeric = new Dictionary<ParameterDef, double?>();
+        foreach (var (param, value) in dailyValues)
+            numeric[param] = value;
+        var dailyPoint = new DailyForecastPoint(today, numeric, new Dictionary<ParameterDef, string?>());
+
+        return new ModelForecast(model, "lucerne", new CycleId(T0),
+            new ForecastSeries(points), new DailyForecastSeries([dailyPoint]));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void HeavyRain_daily_sum_from_daily_series_triggers_alert()
+    {
+        var snap = SnapshotWith(
+            MakeForecastWithDaily(new("m1"),
+                [(Precipitation, 1.0)],
+                [(DailyPrecipSum, 35.0)]),
+            MakeForecastWithDaily(new("m2"),
+                [(Precipitation, 1.0)],
+                [(DailyPrecipSum, 40.0)]));
+
+        var alert = AlertEvaluator.EvaluateHeavyRain(snap, "lucerne", 10.0, 25.0, Time);
+
+        Assert.True(alert.Severity >= AlertSeverity.Orange);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Uv_daily_max_higher_than_hourly_peak()
+    {
+        var snap = SnapshotWith(
+            MakeForecastWithDaily(new("m1"),
+                [(UvIndexParam, 5.0)],
+                [(DailyUvMax, 9.0)]),
+            MakeForecastWithDaily(new("m2"),
+                [(UvIndexParam, 4.0)],
+                [(DailyUvMax, 8.5)]));
+
+        var alert = AlertEvaluator.EvaluateUv(snap, "lucerne", Time);
+
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
+        Assert.Equal("very_high", alert.Attributes["uv_level"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Uv_daily_not_available_falls_back_to_hourly()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (UvIndexParam, 7.0)),
+            MakeForecast(new("m2"), (UvIndexParam, 6.5)));
+
+        var alert = AlertEvaluator.EvaluateUv(snap, "lucerne", Time);
+
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Snow_daily_sum_increases_severity()
+    {
+        var snap = SnapshotWith(
+            MakeForecastWithDaily(new("m1"),
+                [(Snowfall, 0.1)],
+                [(DailySnowfallSum, 8.0)]),
+            MakeForecastWithDaily(new("m2"),
+                [(Snowfall, 0.1)],
+                [(DailySnowfallSum, 7.0)]));
+
+        var alert = AlertEvaluator.EvaluateSnow(snap, "lucerne", Time);
+
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+    }
+
     // --- EvaluateAll ---
 
     [Fact(Timeout = 5000)]

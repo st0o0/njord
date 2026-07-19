@@ -19,9 +19,21 @@ public static class StatePayloadBuilder
         ConsensusResult result, string baseTopic, string location)
     {
         var messages = new List<MqttMessage>();
+
+        EmitConsensusMessages(result.Parameters, baseTopic, location, messages);
+        EmitConsensusMessages(result.DailyParameters, baseTopic, location, messages);
+
+        return messages;
+    }
+
+    private static void EmitConsensusMessages(
+        IReadOnlyList<ParameterConsensus> parameters,
+        string baseTopic, string location,
+        List<MqttMessage> messages)
+    {
         var horizonPayloads = new Dictionary<string, JsonObject>();
 
-        foreach (var pc in result.Parameters)
+        foreach (var pc in parameters)
         {
             foreach (var (horizon, hc) in pc.ByHorizon)
             {
@@ -40,7 +52,7 @@ public static class StatePayloadBuilder
 
         foreach (var (horizon, payload) in horizonPayloads)
         {
-            var firstParam = result.Parameters.FirstOrDefault()?.ByHorizon.GetValueOrDefault(horizon);
+            var firstParam = parameters.FirstOrDefault()?.ByHorizon.GetValueOrDefault(horizon);
             if (firstParam is not null)
             {
                 payload["_spread"] = firstParam.Spread.HasValue
@@ -54,8 +66,6 @@ public static class StatePayloadBuilder
             var topic = TopicScheme.EnrichmentSubTopic(baseTopic, location, "consensus", horizon);
             messages.Add(new MqttMessage(topic, payload.ToJsonString(), true));
         }
-
-        return messages;
     }
 
     public static IReadOnlyList<MqttMessage> FromAlerts(AlertResult result, string baseTopic)
@@ -177,8 +187,27 @@ public static class StatePayloadBuilder
             ["vpd_kpa"] = result.Vpd?.Vpd is { } v ? JsonValue.Create(v) : null,
         };
 
+        AddEnvelope(payload, "laundry", result.LaundryEnvelope);
+        AddEnvelope(payload, "outdoor", result.OutdoorEnvelope);
+        AddEnvelope(payload, "running", result.RunningEnvelope);
+        AddEnvelope(payload, "cycling", result.CyclingEnvelope);
+        AddEnvelope(payload, "bbq", result.BbqEnvelope);
+        AddEnvelope(payload, "irrigation", result.IrrigationEnvelope);
+        AddEnvelope(payload, "solar", result.SolarEnvelope);
+        AddEnvelope(payload, "ventilation", result.VentilationEnvelope);
+
         var topic = TopicScheme.EnrichmentTopic(baseTopic, result.Location, "indices");
         return [new MqttMessage(topic, payload.ToJsonString(), true)];
+    }
+
+    private static void AddEnvelope(JsonObject payload, string key, ScoreEnvelope? envelope)
+    {
+        if (envelope is null)
+            return;
+
+        payload[$"{key}_min"] = envelope.Min;
+        payload[$"{key}_max"] = envelope.Max;
+        payload[$"{key}_confidence"] = JsonValue.Create(envelope.Confidence);
     }
 
     public static IReadOnlyList<MqttMessage> FromEnergy(EnergyResult result, string baseTopic)
@@ -189,6 +218,13 @@ public static class StatePayloadBuilder
             copArray.Add(new JsonObject { ["hour"] = h, ["cop"] = Math.Round(c, 2) });
         }
 
+        var conservativeArray = new JsonArray();
+        if (result.CopOptimalConservative is not null)
+        {
+            foreach (var h in result.CopOptimalConservative)
+                conservativeArray.Add(h);
+        }
+
         var payload = new JsonObject
         {
             ["heating_demand"] = result.HeatingDemand,
@@ -197,6 +233,9 @@ public static class StatePayloadBuilder
             ["shading"] = result.Shading,
             ["battery_strategy"] = result.BatteryStrategy,
             ["night_cooling"] = result.NightCooling,
+            ["heating_demand_max"] = result.HeatingDemandMax,
+            ["cop_estimate_min"] = result.CopEstimateMin.HasValue ? JsonValue.Create(result.CopEstimateMin.Value) : null,
+            ["cop_optimal_conservative"] = conservativeArray,
         };
 
         var topic = TopicScheme.EnrichmentTopic(baseTopic, result.Location, "energy");

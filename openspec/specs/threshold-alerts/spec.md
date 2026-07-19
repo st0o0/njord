@@ -51,7 +51,7 @@ An `Alert` SHALL be a record carrying `AlertType` (enum), `Severity` (enum: None
 - **THEN** severity is None, confidence is 0.0
 
 ### Requirement: Heavy rain warning evaluates hourly and daily precipitation
-`AlertEvaluator.EvaluateHeavyRain` SHALL accept a `ModelSnapshot`, a location, an hourly threshold (default 10 mm), a daily threshold (default 25 mm), and a `TimeProvider`. It SHALL check both max hourly `precipitation` in the next 24 h and daily `precipitation_sum`. Confidence is the fraction of models exceeding either threshold. Severity is Yellow for hourly, Orange for daily, Red for both.
+`AlertEvaluator.EvaluateHeavyRain` SHALL accept a `ModelSnapshot`, a location, an hourly threshold (default 10 mm), a daily threshold (default 25 mm), and a `TimeProvider`. It SHALL check both max hourly `precipitation` in the next 24 h and daily `precipitation_sum` (from both hourly accumulation and `DailyForecastSeries.precipitation_sum`, taking the higher). Confidence is the fraction of models exceeding either threshold. Severity is Yellow for hourly, Orange for daily, Red for both.
 
 #### Scenario: Hourly heavy rain
 - **WHEN** 4 of 8 models show an hour with ≥ 10 mm precipitation
@@ -61,8 +61,16 @@ An `Alert` SHALL be a record carrying `AlertType` (enum), `Severity` (enum: None
 - **WHEN** 6 of 8 models show daily sum ≥ 25 mm
 - **THEN** severity is Orange, confidence is 0.75
 
+#### Scenario: Daily sum from DailyForecastSeries exceeds threshold
+- **WHEN** no single hourly precipitation exceeds hourly threshold, but models' DailyForecastSeries shows precipitation_sum > daily threshold
+- **THEN** severity is determined by the daily evaluation
+
+#### Scenario: Daily data unavailable
+- **WHEN** DailyForecastSeries is empty or precipitation_sum is not in resolved daily parameters
+- **THEN** the daily evaluation uses only hourly accumulation (existing behavior)
+
 ### Requirement: UV warning evaluates UV index at WHO levels
-`AlertEvaluator.EvaluateUv` SHALL accept a `ModelSnapshot`, a location, and a `TimeProvider`. It SHALL find the maximum `uv_index` across models for the next 24 h (consensus median). WHO levels: low (0–2), moderate (3–5), high (6–7), very_high (8–10), extreme (11+). Severity maps: low→None, moderate→Yellow, high→Orange, very_high/extreme→Red.
+`AlertEvaluator.EvaluateUv` SHALL accept a `ModelSnapshot`, a location, and a `TimeProvider`. It SHALL find the maximum `uv_index` across models for the next 24 h from both hourly series and `DailyForecastSeries.uv_index_max` (taking the higher per model). WHO levels: low (0–2), moderate (3–5), high (6–7), very_high (8–10), extreme (11+). Severity maps: low→None, moderate→Yellow, high→Orange, very_high/extreme→Red.
 
 #### Scenario: High UV
 - **WHEN** median max UV across models is 7.5
@@ -71,6 +79,14 @@ An `Alert` SHALL be a record carrying `AlertType` (enum), `Severity` (enum: None
 #### Scenario: Low UV
 - **WHEN** median max UV is 2.0
 - **THEN** severity is None, `uv_level` is "low"
+
+#### Scenario: Daily UV max higher than hourly peak
+- **WHEN** hourly UV scan finds max=7 but daily uv_index_max is 9
+- **THEN** severity is computed from the daily values (higher)
+
+#### Scenario: Daily UV not available
+- **WHEN** uv_index_max is not in resolved daily parameters
+- **THEN** UV alert uses only the hourly scan (existing behavior preserved)
 
 ### Requirement: Fog risk evaluates combined conditions
 `AlertEvaluator.EvaluateFog` SHALL accept a `ModelSnapshot`, a location, and a `TimeProvider`. For each model and each hour in the next 24 h, fog conditions are met when `temperature_2m` − `dew_point_2m` < 2 °C AND `wind_speed_10m` < 3 m/s AND `relative_humidity_2m` > 90 %. Confidence is the fraction of models predicting at least one fog hour. Attributes include `fog_hours` (median count of fog hours).
@@ -84,7 +100,7 @@ An `Alert` SHALL be a record carrying `AlertType` (enum), `Severity` (enum: None
 - **THEN** severity is None, confidence is 0.0
 
 ### Requirement: Snow warning evaluates snowfall accumulation
-`AlertEvaluator.EvaluateSnow` SHALL accept a `ModelSnapshot`, a location, and a `TimeProvider`. It SHALL sum `snowfall` over the next 24 h per model. Confidence is the fraction of models with sum > 0. Severity is Yellow for any snow, Orange for > 5 cm (median), Red for > 20 cm. Attributes include `expected_accumulation` (median sum) and `freezing_level` (median `freezing_level_height`).
+`AlertEvaluator.EvaluateSnow` SHALL accept a `ModelSnapshot`, a location, and a `TimeProvider`. It SHALL sum `snowfall` over the next 24 h per model, and additionally check `DailyForecastSeries.snowfall_sum` (taking the higher per model). Confidence is the fraction of models with sum > 0. Severity is Yellow for any snow, Orange for > 5 cm (median), Red for > 20 cm. Attributes include `expected_accumulation` (median sum) and `freezing_level` (median `freezing_level_height`).
 
 #### Scenario: Light snow
 - **WHEN** 4 of 8 models predict snowfall, median sum is 2 cm
@@ -93,6 +109,14 @@ An `Alert` SHALL be a record carrying `AlertType` (enum), `Severity` (enum: None
 #### Scenario: Heavy snow
 - **WHEN** 7 of 8 models predict > 20 cm
 - **THEN** severity is Red, confidence is 0.875
+
+#### Scenario: Daily snowfall sum increases severity
+- **WHEN** hourly accumulation is low but DailyForecastSeries.snowfall_sum is > 5 cm
+- **THEN** the daily value is used, producing higher severity
+
+#### Scenario: Daily snowfall not available
+- **WHEN** snowfall_sum is not in resolved daily parameters
+- **THEN** snow alert uses only the hourly accumulation scan
 
 ### Requirement: Pressure drop evaluates rapid pressure change
 `AlertEvaluator.EvaluatePressureDrop` SHALL accept a `ModelSnapshot`, a location, a drop threshold (default 5 hPa in 3 h), and a `TimeProvider`. For each model and each 3-hour window in the next 24 h, it SHALL compute the `pressure_msl` delta. Confidence is the fraction of models showing at least one window with a drop ≥ threshold. Attributes include `max_drop` (median of per-model max drops).

@@ -127,6 +127,26 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
             ["availability_mode"] = "all",
         };
 
+        foreach (var key in scoreSensors)
+        {
+            foreach (var suffix in new[] { "min", "max", "confidence" })
+            {
+                var envelopeKey = $"{key}_{suffix}";
+                components[envelopeKey] = new JsonObject
+                {
+                    ["p"] = "sensor",
+                    ["unique_id"] = $"{deviceId}_{envelopeKey}",
+                    ["name"] = $"{key.Replace('_', ' ')} {suffix}",
+                    ["state_topic"] = indexTopic,
+                    ["expire_after"] = expireAfterSeconds,
+                    ["value_template"] = $"{{{{ value_json.{envelopeKey} }}}}",
+                    ["availability"] = new JsonArray(
+                        new JsonObject { ["topic"] = availabilityTopic }),
+                    ["availability_mode"] = "all",
+                };
+            }
+        }
+
         return DiscoveryPayloadBuilder.BuildDeviceEnvelope(
             deviceId, location, TypeName, ctx.Version, components);
     }

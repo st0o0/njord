@@ -65,6 +65,9 @@ public static class AlertEvaluator
     private static readonly ParameterDef FreezingLevel = ParameterRegistry.FreezingLevelHeight;
     private static readonly ParameterDef PressureMsl = ParameterRegistry.PressureMsl;
     private static readonly ParameterDef Cape = ParameterRegistry.Cape;
+    private static readonly ParameterDef? DailyPrecipSum = ParameterRegistry.GetByApiName("precipitation_sum");
+    private static readonly ParameterDef? DailyUvMax = ParameterRegistry.GetByApiName("uv_index_max");
+    private static readonly ParameterDef? DailySnowfallSum = ParameterRegistry.GetByApiName("snowfall_sum");
 
     public static AlertResult EvaluateAll(
         ModelSnapshot snapshot, string location, AlertThresholdOptions options, TimeProvider timeProvider)
@@ -280,6 +283,8 @@ public static class AlertEvaluator
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        var tomorrow = today.AddDays(1);
         var hourlyExceed = 0;
         var dailyExceed = 0;
         var modelCount = 0;
@@ -310,6 +315,18 @@ public static class AlertEvaluator
                 }
 
                 dailySum += v;
+            }
+
+            if (DailyPrecipSum is not null)
+            {
+                foreach (var dp in forecast.Daily.Points)
+                {
+                    if (dp.Date != today && dp.Date != tomorrow)
+                        continue;
+                    var dv = dp.GetNumeric(DailyPrecipSum);
+                    if (dv is { } val && val > dailySum)
+                        dailySum = val;
+                }
             }
 
             if (maxHourly >= hourlyThreshold)
@@ -368,6 +385,8 @@ public static class AlertEvaluator
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        var tomorrow = today.AddDays(1);
         var maxUvs = new List<double>();
 
         foreach (var (key, forecast) in snapshot.Entries)
@@ -387,6 +406,19 @@ public static class AlertEvaluator
                     max = val;
                 }
             }
+
+            if (DailyUvMax is not null)
+            {
+                foreach (var dp in forecast.Daily.Points)
+                {
+                    if (dp.Date != today && dp.Date != tomorrow)
+                        continue;
+                    var dv = dp.GetNumeric(DailyUvMax);
+                    if (dv is { } val && val > max)
+                        max = val;
+                }
+            }
+
             if (max > 0)
             {
                 maxUvs.Add(max);
@@ -490,6 +522,8 @@ public static class AlertEvaluator
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        var tomorrow = today.AddDays(1);
         var sums = new List<double>();
         var freezingLevels = new List<double>();
 
@@ -515,6 +549,19 @@ public static class AlertEvaluator
                     freezingLevels.Add(fl);
                 }
             }
+
+            if (DailySnowfallSum is not null)
+            {
+                foreach (var dp in forecast.Daily.Points)
+                {
+                    if (dp.Date != today && dp.Date != tomorrow)
+                        continue;
+                    var dv = dp.GetNumeric(DailySnowfallSum);
+                    if (dv is { } val && val > sum)
+                        sum = val;
+                }
+            }
+
             sums.Add(sum);
         }
 
