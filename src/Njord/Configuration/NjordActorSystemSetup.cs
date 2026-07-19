@@ -23,7 +23,7 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
 
         var connectionString = persistence.ConnectionString
             ?? (persistence.Provider == PersistenceProvider.Sqlite
-                ? $"Data Source={njordOptions.PersistencePath}"
+                ? $"Data Source={Path.GetFullPath(njordOptions.PersistencePath)}"
                 : throw new InvalidOperationException(
                     "PostgreSQL persistence requires a connection string — set Njord:Persistence:ConnectionString."));
 
