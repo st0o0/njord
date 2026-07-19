@@ -192,8 +192,8 @@ public sealed class EnrichmentProtoMapperSpec
             Spread: 2.1,
             Iqr: 1.5,
             Agreement: 0.85,
-            Outlier: (Model: new WeatherModel("gfs_seamless"), Deviation: 3.2),
-            ConfidenceInterval: (Lower: 18.0, Upper: 23.0),
+            Outlier: new OutlierInfo(new WeatherModel("gfs_seamless"), 3.2),
+            ConfidenceInterval: new ConfidenceIntervalInfo(18.0, 23.0),
             AvailableModels: [new WeatherModel("icon_d2"), new WeatherModel("ecmwf_ifs025")]);
 
         var paramConsensus = new DomainParameterConsensus(

@@ -1,24 +1,33 @@
+using Newtonsoft.Json;
 using Njord.Domain.Weather;
 
 namespace Njord.Domain.Analysis;
 
+public sealed record OutlierInfo(
+    [property: JsonProperty("model")] WeatherModel Model,
+    [property: JsonProperty("deviation")] double Deviation);
+
+public sealed record ConfidenceIntervalInfo(
+    [property: JsonProperty("lower")] double Lower,
+    [property: JsonProperty("upper")] double Upper);
+
 public sealed record HorizonConsensus(
-    double? Median,
-    double? TrimmedMean,
-    double? Spread,
-    double? Iqr,
-    double? Agreement,
-    (WeatherModel Model, double Deviation)? Outlier,
-    (double Lower, double Upper)? ConfidenceInterval,
-    IReadOnlyList<WeatherModel> AvailableModels);
+    [property: JsonProperty("median")] double? Median,
+    [property: JsonProperty("trimmedMean")] double? TrimmedMean,
+    [property: JsonProperty("spread")] double? Spread,
+    [property: JsonProperty("iqr")] double? Iqr,
+    [property: JsonProperty("agreement")] double? Agreement,
+    [property: JsonProperty("outlier")] OutlierInfo? Outlier,
+    [property: JsonProperty("confidenceInterval")] ConfidenceIntervalInfo? ConfidenceInterval,
+    [property: JsonProperty("availableModels")] IReadOnlyList<WeatherModel> AvailableModels);
 
 public sealed record ParameterConsensus(
-    ParameterDef Parameter,
-    IReadOnlyDictionary<string, HorizonConsensus> ByHorizon);
+    [property: JsonProperty("parameter")] ParameterDef Parameter,
+    [property: JsonProperty("byHorizon")] IReadOnlyDictionary<string, HorizonConsensus> ByHorizon);
 
 public sealed record ConsensusResult(
-    IReadOnlyList<ParameterConsensus> Parameters,
-    IReadOnlyList<ParameterConsensus> DailyParameters)
+    [property: JsonProperty("parameters")] IReadOnlyList<ParameterConsensus> Parameters,
+    [property: JsonProperty("dailyParameters")] IReadOnlyList<ParameterConsensus> DailyParameters)
 {
     public ConsensusResult(IReadOnlyList<ParameterConsensus> parameters)
         : this(parameters, []) { }
@@ -160,10 +169,16 @@ public sealed record ConsensusResult(
         var agreement = median.HasValue
             ? ConsensusComputer.ComputeAgreement(values, median.Value, agreementTolerance)
             : null;
-        var outlier = median.HasValue
+        var outlierTuple = median.HasValue
             ? ConsensusComputer.IdentifyOutlier(modelValues, median.Value)
             : null;
-        var ci = ConsensusComputer.ComputeConfidenceInterval(values, 10, 90);
+        var outlier = outlierTuple.HasValue
+            ? new OutlierInfo(outlierTuple.Value.Model, outlierTuple.Value.Deviation)
+            : null;
+        var ciTuple = ConsensusComputer.ComputeConfidenceInterval(values, 10, 90);
+        var ci = ciTuple.HasValue
+            ? new ConfidenceIntervalInfo(ciTuple.Value.Lower, ciTuple.Value.Upper)
+            : null;
 
         var availableModels = modelValues
             .Where(mv => mv.Value.HasValue)
