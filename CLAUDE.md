@@ -117,7 +117,9 @@ MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
 - Persistence DTOs (`Njord.Persistence`): extend-only. Never remove or rename
   a `[JsonProperty]` string. New properties must be nullable or have a default.
   Increment `Version` when semantics change. Recovery code must handle all
-  versions ≥ 1.
+  versions ≥ 1. **Caveat:** `EnrichmentEntryDto` stores domain objects as nested
+  JSON without pinned wire names — renaming properties on enrichment result
+  records (`AlertResult`, `IndexResult`, etc.) breaks persisted snapshots.
 
 ## Workflow
 
