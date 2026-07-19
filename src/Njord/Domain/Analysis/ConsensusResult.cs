@@ -25,6 +25,7 @@ public sealed record ParameterConsensus(
     [property: JsonProperty("parameter")] ParameterDef Parameter,
     [property: JsonProperty("byHorizon")] IReadOnlyDictionary<string, HorizonConsensus> ByHorizon);
 
+[method: JsonConstructor]
 public sealed record ConsensusResult(
     [property: JsonProperty("parameters")] IReadOnlyList<ParameterConsensus> Parameters,
     [property: JsonProperty("dailyParameters")] IReadOnlyList<ParameterConsensus> DailyParameters)

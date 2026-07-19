@@ -169,3 +169,10 @@ Pure-function derived weather values computed from model forecast data: Beaufort
 #### Scenario: Null values serialize as JSON null
 - **WHEN** wind chill is null for a horizon (T > 10 °C)
 - **THEN** the JSON payload contains `"wind_chill": null`
+
+### Requirement: DerivedResult serialization with pinned wire names
+`DerivedResult`, `HorizonDerived`, and `ScalarDerived` records SHALL have `[property: JsonProperty("...")]` on all positional parameters producing camelCase wire names.
+
+#### Scenario: DerivedResult round-trips through JSON
+- **WHEN** a `DerivedResult` with horizon-derived values and scalar-derived values is serialized and deserialized
+- **THEN** all properties (including nested HorizonDerived and ScalarDerived fields) round-trip correctly with camelCase wire names
