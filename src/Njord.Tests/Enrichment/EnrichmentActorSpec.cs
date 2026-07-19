@@ -211,10 +211,11 @@ public sealed class EnrichmentActorSpec : IDisposable
         {
             Receive<RequestPipelineSource>(_ =>
             {
-                var sourceRef = Source.Empty<FetchOutcome>()
-                    .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat)
-                    .Result;
-                Sender.Tell(new PipelineSourceResponse(sourceRef));
+                var task = Source.Empty<FetchOutcome>()
+                    .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat);
+                task.PipeTo(Sender, Self,
+                    sr => new PipelineSourceResponse(sr),
+                    _ => null!);
             });
         }
     }
