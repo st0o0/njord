@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/st0o0/njord/compare/v0.1.0...v0.1.1) (2026-07-19)
+
+
+### Features
+
+* **proto:** Add extra parameter field to forecast ([0f8b197](https://github.com/st0o0/njord/commit/0f8b19707d74fda0c6bd771df552b94fb4c66c12))
+
 ## 0.1.0 (2026-07-18)
 
 
