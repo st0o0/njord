@@ -195,6 +195,31 @@ public sealed class WeightedBudgetGateSpec
         Assert.False(gate.TryAcquire(MakeTarget(1)));
     }
 
+    [Fact(Timeout = 5000)]
+    public void Weight_exceeding_max_burst_becomes_acquirable_after_refill()
+    {
+        var provider = new FakeProvider(new BudgetRate(480, 16));
+        var tracker = new BudgetTracker();
+        var gate = new WeightedBudgetGate(provider, tracker);
+
+        gate.TryAcquire(MakeTarget(16));
+        Assert.False(gate.TryAcquire(MakeTarget(12)));
+
+        Thread.Sleep(1600);
+        Assert.True(gate.TryAcquire(MakeTarget(12)));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Free_tier_with_heavy_weight_acquires_on_first_try()
+    {
+        var provider = new FakeProvider(new BudgetRate(480, 16));
+        var tracker = new BudgetTracker();
+        var gate = new WeightedBudgetGate(provider, tracker);
+
+        var heavyTarget = MakeTarget(weight: 12);
+        Assert.True(gate.TryAcquire(heavyTarget));
+    }
+
     private static WeightedTarget MakeTarget(int weight)
     {
         var location = new LocationOptions
