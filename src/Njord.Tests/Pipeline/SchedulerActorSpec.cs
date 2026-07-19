@@ -8,6 +8,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Ingest;
+using Njord.Persistence;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 using Servus.Akka;
@@ -295,7 +296,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
             _timeProvider = timeProvider;
             _weight = WeightedTarget.ComputeWeight(parameters.HourlyCount, options.ForecastDays);
 
-            Recover<SchedulerActor.DataChanged>(OnRecover);
+            Recover<DataChangedDto>(dto => OnRecover(SchedulerDtoMapping.ToDomain(dto)));
             Recover<SnapshotOffer>(_ => { });
 
             Command<PipelineSinkResponse>(OnSinkReceived);
@@ -369,9 +370,9 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
             if (state.LastHash != result.Hash)
             {
                 var evt = new SchedulerActor.DataChanged(result.Location, result.ModelId, result.Hash, now);
-                Persist(evt, persisted =>
+                Persist(SchedulerDtoMapping.ToDto(evt), _ =>
                 {
-                    _states[key] = state.WithDataChange(persisted.Hash, persisted.Utc, _options.DiscoveryInterval);
+                    _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
                     ScheduleNext(result.Location, result.ModelId);
                     Sender.Tell(new Ack());
                 });

@@ -3,6 +3,7 @@ using Akka.Persistence;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
+using Njord.Persistence;
 
 namespace Njord.Enrichment;
 
@@ -25,12 +26,13 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
         _timeProvider = timeProvider;
         _history = new ForecastHistory(options.RetentionDays);
 
-        Recover<ForecastRecord>(OnRecover);
+        Recover<ForecastRecordDto>(dto => OnRecover(ForecastHistoryDtoMapping.ToDomain(dto)));
         Recover<SnapshotOffer>(offer =>
         {
-            if (offer.Snapshot is ForecastHistory saved)
+            if (offer.Snapshot is ForecastHistorySnapshotDto saved)
             {
-                foreach (var record in saved.Records)
+                var restored = ForecastHistoryDtoMapping.ToDomain(saved);
+                foreach (var record in restored.Records)
                 {
                     _history.Add(record);
                 }
@@ -99,14 +101,15 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
 
         var emptyModelValues = new Dictionary<WeatherModel, IReadOnlyDictionary<string, double?>>();
         var evt = new ForecastRecord(now, _location, emptyModelValues, consensusValues);
-        Persist(evt, persisted =>
+        var dto = ForecastHistoryDtoMapping.ToDto(evt);
+        Persist(dto, _ =>
         {
-            _history.Add(persisted);
+            _history.Add(evt);
 
             _eventsSinceSnapshot++;
             if (_eventsSinceSnapshot >= _options.SnapshotInterval)
             {
-                SaveSnapshot(_history);
+                SaveSnapshot(ForecastHistoryDtoMapping.ToDto(_history));
                 _eventsSinceSnapshot = 0;
             }
         });

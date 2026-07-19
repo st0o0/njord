@@ -7,6 +7,7 @@ using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Health;
 using Njord.Ingest;
+using Njord.Persistence;
 using Servus.Akka;
 
 namespace Njord.Pipeline;
@@ -39,7 +40,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _healthState = healthState;
         _weight = WeightedTarget.ComputeWeight(parameters.HourlyCount, _options.ForecastDays);
 
-        Recover<DataChanged>(OnRecover);
+        Recover<DataChangedDto>(dto => OnRecover(SchedulerDtoMapping.ToDomain(dto)));
         Recover<SnapshotOffer>(_ => { });
 
         Command<PipelineSinkResponse>(OnSinkReceived);
@@ -224,9 +225,10 @@ public sealed class SchedulerActor : ReceivePersistentActor
         if (state.LastHash != result.Hash)
         {
             var evt = new DataChanged(result.Location, result.ModelId, result.Hash, now);
-            Persist(evt, persisted =>
+            var dto = SchedulerDtoMapping.ToDto(evt);
+            Persist(dto, _ =>
             {
-                _states[key] = state.WithDataChange(persisted.Hash, persisted.Utc, _options.DiscoveryInterval);
+                _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
                 _healthState.SetLastSuccessfulPoll(now);
                 _logger.LogInformation(
                     "Data changed for {Location}/{Model} - phase={Phase}, cycle={Cycle}",
