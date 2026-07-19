@@ -15,6 +15,8 @@ public sealed class ForecastHistory
 
     public IReadOnlyList<ForecastRecord> Records => _records;
 
+    public int RetentionDays => _retentionDays;
+
     public ForecastHistory(int retentionDays = 30) => _retentionDays = retentionDays;
 
     public void Add(ForecastRecord record)

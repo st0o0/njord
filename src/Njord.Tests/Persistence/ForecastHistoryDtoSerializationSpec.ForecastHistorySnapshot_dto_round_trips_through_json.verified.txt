@@ -1,0 +1,22 @@
+﻿{
+  "v": 1,
+  "retention": 7,
+  "records": [
+    {
+      "v": 1,
+      "ts": 639197136000000000,
+      "loc": "lucerne",
+      "models": {
+        "icon_d2": {
+          "temperature_2m": 22.5
+        },
+        "gfs_seamless": {
+          "temperature_2m": 23.1
+        }
+      },
+      "consensus": {
+        "temperature_2m": 22.8
+      }
+    }
+  ]
+}
