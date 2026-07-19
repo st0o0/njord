@@ -3,7 +3,7 @@
   "enrichments": {
     "lucerne|alerts": {
       "type": "AlertResult",
-      "json": "{\"Location\":\"lucerne\",\"Alerts\":[]}"
+      "json": "{\"location\":\"lucerne\",\"alerts\":[]}"
     },
     "lucerne|indices": {
       "type": "IndexResult",
