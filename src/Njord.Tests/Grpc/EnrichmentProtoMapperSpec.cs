@@ -81,10 +81,10 @@ public sealed class EnrichmentProtoMapperSpec
             Location: "lucerne",
             ParameterTrends: trends,
             WeatherChange: new WeatherChangeResult("Clear", "Rain", "Clear -> Rain"),
-            PrecipTiming: (StartsInHours: 3, EndsInHours: 8),
-            ExtremaTiming: (MaxInHours: 6, MinInHours: 18),
-            Stability: (Label: "stable", Ratio: 0.9),
-            Decay: (DecayRate: 0.15, ReliableHours: 24));
+            PrecipTiming: new PrecipTimingInfo(StartsInHours: 3, EndsInHours: 8),
+            ExtremaTiming: new ExtremaTimingInfo(MaxInHours: 6, MinInHours: 18),
+            Stability: new StabilityInfo(Label: "stable", Ratio: 0.9),
+            Decay: new DecayInfo(DecayRate: 0.15, ReliableHours: 24));
 
         var update = EnrichmentProtoMapper.MapTrends(result);
 

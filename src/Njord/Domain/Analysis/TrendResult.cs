@@ -1,17 +1,36 @@
+using Newtonsoft.Json;
 using Njord.Domain.Weather;
 
 namespace Njord.Domain.Analysis;
 
-public sealed record ParameterTrend(string Direction, double Delta);
+public sealed record ParameterTrend(
+    [property: JsonProperty("direction")] string Direction,
+    [property: JsonProperty("delta")] double Delta);
+
+public sealed record PrecipTimingInfo(
+    [property: JsonProperty("startsInHours")] int? StartsInHours,
+    [property: JsonProperty("endsInHours")] int? EndsInHours);
+
+public sealed record ExtremaTimingInfo(
+    [property: JsonProperty("maxInHours")] int? MaxInHours,
+    [property: JsonProperty("minInHours")] int? MinInHours);
+
+public sealed record StabilityInfo(
+    [property: JsonProperty("label")] string Label,
+    [property: JsonProperty("ratio")] double Ratio);
+
+public sealed record DecayInfo(
+    [property: JsonProperty("decayRate")] double DecayRate,
+    [property: JsonProperty("reliableHours")] int? ReliableHours);
 
 public sealed record TrendResult(
-    string Location,
-    IReadOnlyDictionary<string, ParameterTrend?> ParameterTrends,
-    WeatherChangeResult? WeatherChange,
-    (int? StartsInHours, int? EndsInHours) PrecipTiming,
-    (int? MaxInHours, int? MinInHours) ExtremaTiming,
-    (string Label, double Ratio)? Stability,
-    (double DecayRate, int? ReliableHours)? Decay)
+    [property: JsonProperty("location")] string Location,
+    [property: JsonProperty("parameterTrends")] IReadOnlyDictionary<string, ParameterTrend?> ParameterTrends,
+    [property: JsonProperty("weatherChange")] WeatherChangeResult? WeatherChange,
+    [property: JsonProperty("precipTiming")] PrecipTimingInfo PrecipTiming,
+    [property: JsonProperty("extremaTiming")] ExtremaTimingInfo ExtremaTiming,
+    [property: JsonProperty("stability")] StabilityInfo? Stability,
+    [property: JsonProperty("decay")] DecayInfo? Decay)
 {
     private static readonly ParameterDef[] TrendParamDefs =
     [
@@ -43,7 +62,7 @@ public sealed record TrendResult(
 
         var paramTrends = new Dictionary<string, ParameterTrend?>();
         WeatherChangeResult? weatherChange = null;
-        (string Label, double Ratio)? stability = null;
+        StabilityInfo? stability = null;
 
         var referenceHorizon = horizons.Count > 0 ? horizons[0] : 3;
 
@@ -73,8 +92,8 @@ public sealed record TrendResult(
                 currCode.HasValue ? (int)Math.Round(currCode.Value) : null);
         }
 
-        var precipTiming = (StartsInHours: (int?)null, EndsInHours: (int?)null);
-        var extremaTiming = (MaxInHours: (int?)null, MinInHours: (int?)null);
+        var precipTiming = new PrecipTimingInfo(null, null);
+        var extremaTiming = new ExtremaTimingInfo(null, null);
 
         var forecasts = current.Entries
             .Where(e => e.Key.Location == location)
@@ -83,22 +102,25 @@ public sealed record TrendResult(
 
         if (precipParam is not null && forecasts.Count > 0)
         {
-            precipTiming = TrendAnalyzer.PrecipitationTiming(forecasts[0].Hourly, precipParam, now);
+            var timing = TrendAnalyzer.PrecipitationTiming(forecasts[0].Hourly, precipParam, now);
+            precipTiming = new PrecipTimingInfo(timing.StartsInHours, timing.EndsInHours);
         }
 
         if (tempParam is not null && forecasts.Count > 0)
         {
-            extremaTiming = TrendAnalyzer.ExtremaTiming(forecasts[0].Hourly, tempParam, now);
+            var timing = TrendAnalyzer.ExtremaTiming(forecasts[0].Hourly, tempParam, now);
+            extremaTiming = new ExtremaTimingInfo(timing.MaxInHours, timing.MinInHours);
         }
 
         if (previous is not null && tempParam is not null)
         {
             var currIqr = ComputeIqrAtHorizon(current, tempParam, location, referenceHorizon, now);
             var prevIqr = ComputeIqrAtHorizon(previous, tempParam, location, referenceHorizon, now);
-            stability = TrendAnalyzer.ConsensusStability(prevIqr, currIqr);
+            var stabilityResult = TrendAnalyzer.ConsensusStability(prevIqr, currIqr);
+            stability = stabilityResult is { } s ? new StabilityInfo(s.Label, s.Ratio) : null;
         }
 
-        (double DecayRate, int? ReliableHours)? decay = null;
+        DecayInfo? decay = null;
         if (tempParam is not null)
         {
             var spreads = new List<(int, double?)>();
@@ -107,7 +129,8 @@ public sealed record TrendResult(
                 var spread = ComputeSpreadAtHorizon(current, tempParam, location, h, now);
                 spreads.Add((h, spread));
             }
-            decay = TrendAnalyzer.PredictabilityDecay(spreads);
+            var decayResult = TrendAnalyzer.PredictabilityDecay(spreads);
+            decay = decayResult is { } d ? new DecayInfo(d.DecayRate, d.ReliableHours) : null;
         }
 
         return new TrendResult(location, paramTrends, weatherChange, precipTiming, extremaTiming, stability, decay);

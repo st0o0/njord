@@ -1,8 +1,12 @@
+using Newtonsoft.Json;
 using Njord.Domain.Weather;
 
 namespace Njord.Domain.Analysis;
 
-public sealed record WeatherChangeResult(string FromCategory, string ToCategory, string Description);
+public sealed record WeatherChangeResult(
+    [property: JsonProperty("fromCategory")] string FromCategory,
+    [property: JsonProperty("toCategory")] string ToCategory,
+    [property: JsonProperty("description")] string Description);
 
 public static class TrendAnalyzer
 {
