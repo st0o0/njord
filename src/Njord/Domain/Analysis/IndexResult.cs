@@ -1,32 +1,44 @@
+using Newtonsoft.Json;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 
 namespace Njord.Domain.Analysis;
 
-public sealed record ScoreEnvelope(int Min, int Max, double Confidence);
+public sealed record ScoreEnvelope(
+    [property: JsonProperty("min")] int Min,
+    [property: JsonProperty("max")] int Max,
+    [property: JsonProperty("confidence")] double Confidence);
+
+public sealed record FrostProtectionInfo(
+    [property: JsonProperty("hoursUntilFrost")] int HoursUntilFrost,
+    [property: JsonProperty("confidence")] double Confidence);
+
+public sealed record VpdInfo(
+    [property: JsonProperty("category")] string Category,
+    [property: JsonProperty("vpd")] double Vpd);
 
 public sealed record IndexResult(
-    string Location,
-    int Laundry,
-    int Outdoor,
-    int Running,
-    int Cycling,
-    int Bbq,
-    int Irrigation,
-    double Hdd,
-    double Cdd,
-    int Solar,
-    int Ventilation,
-    (int HoursUntilFrost, double Confidence)? FrostProtection,
-    (string Category, double Vpd)? Vpd,
-    ScoreEnvelope? LaundryEnvelope = null,
-    ScoreEnvelope? OutdoorEnvelope = null,
-    ScoreEnvelope? RunningEnvelope = null,
-    ScoreEnvelope? CyclingEnvelope = null,
-    ScoreEnvelope? BbqEnvelope = null,
-    ScoreEnvelope? IrrigationEnvelope = null,
-    ScoreEnvelope? SolarEnvelope = null,
-    ScoreEnvelope? VentilationEnvelope = null)
+    [property: JsonProperty("location")] string Location,
+    [property: JsonProperty("laundry")] int Laundry,
+    [property: JsonProperty("outdoor")] int Outdoor,
+    [property: JsonProperty("running")] int Running,
+    [property: JsonProperty("cycling")] int Cycling,
+    [property: JsonProperty("bbq")] int Bbq,
+    [property: JsonProperty("irrigation")] int Irrigation,
+    [property: JsonProperty("hdd")] double Hdd,
+    [property: JsonProperty("cdd")] double Cdd,
+    [property: JsonProperty("solar")] int Solar,
+    [property: JsonProperty("ventilation")] int Ventilation,
+    [property: JsonProperty("frostProtection")] FrostProtectionInfo? FrostProtection,
+    [property: JsonProperty("vpd")] VpdInfo? Vpd,
+    [property: JsonProperty("laundryEnvelope")] ScoreEnvelope? LaundryEnvelope = null,
+    [property: JsonProperty("outdoorEnvelope")] ScoreEnvelope? OutdoorEnvelope = null,
+    [property: JsonProperty("runningEnvelope")] ScoreEnvelope? RunningEnvelope = null,
+    [property: JsonProperty("cyclingEnvelope")] ScoreEnvelope? CyclingEnvelope = null,
+    [property: JsonProperty("bbqEnvelope")] ScoreEnvelope? BbqEnvelope = null,
+    [property: JsonProperty("irrigationEnvelope")] ScoreEnvelope? IrrigationEnvelope = null,
+    [property: JsonProperty("solarEnvelope")] ScoreEnvelope? SolarEnvelope = null,
+    [property: JsonProperty("ventilationEnvelope")] ScoreEnvelope? VentilationEnvelope = null)
 {
     public static IndexResult Compute(
         ModelSnapshot snapshot,

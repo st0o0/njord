@@ -48,8 +48,8 @@ public sealed class EnrichmentProtoMapperSpec
             Laundry: 80, Outdoor: 70, Running: 65, Cycling: 75,
             Bbq: 90, Irrigation: 30, Hdd: 5.2, Cdd: 1.8,
             Solar: 85, Ventilation: 60,
-            FrostProtection: (HoursUntilFrost: 8, Confidence: 0.7),
-            Vpd: (Category: "optimal", Vpd: 1.2));
+            FrostProtection: new FrostProtectionInfo(HoursUntilFrost: 8, Confidence: 0.7),
+            Vpd: new VpdInfo(Category: "optimal", Vpd: 1.2));
 
         var update = EnrichmentProtoMapper.MapIndices(result);
 
