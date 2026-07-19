@@ -153,6 +153,11 @@ message Alert {
   AlertType type = 1;
   AlertSeverity severity = 2;
   double confidence = 3;
+  double trigger_value = 4;
+  double threshold = 5;
+  optional double peak_value = 6;
+  optional int32 hours_until = 7;
+  optional int32 duration_hours = 8;
 }
 
 message AlertUpdate {

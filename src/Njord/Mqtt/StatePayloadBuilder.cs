@@ -77,7 +77,16 @@ public static class StatePayloadBuilder
             {
                 ["severity"] = alert.Severity.ToString().ToLowerInvariant(),
                 ["confidence"] = alert.Confidence,
+                ["trigger_value"] = JsonValue.Create(alert.TriggerValue),
+                ["threshold"] = JsonValue.Create(alert.Threshold),
             };
+
+            if (alert.PeakValue is { } pv)
+                payload["peak_value"] = JsonValue.Create(pv);
+            if (alert.HoursUntil is { } hu)
+                payload["hours_until"] = JsonValue.Create(hu);
+            if (alert.DurationHours is { } dh)
+                payload["duration_hours"] = JsonValue.Create(dh);
 
             foreach (var (attrKey, attrValue) in alert.Attributes)
             {
