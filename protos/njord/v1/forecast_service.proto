@@ -40,6 +40,15 @@ message GetForecastResponse {
   repeated DailyForecast daily = 6;
 }
 
+message ParameterValue {
+  string name = 1;
+  oneof value {
+    double numeric = 2;
+    string text = 3;
+    bool flag = 4;
+  }
+}
+
 message HourlyForecast {
   int64 timestamp = 1;
   optional double temperature = 2;
@@ -54,6 +63,7 @@ message HourlyForecast {
   optional double rain = 11;
   optional double wind_gusts = 12;
   optional double pressure_msl = 13;
+  repeated ParameterValue extra = 14;
 }
 
 message DailyForecast {
@@ -66,6 +76,7 @@ message DailyForecast {
   string sunrise = 7;
   string sunset = 8;
   optional int32 weather_code = 9;
+  repeated ParameterValue extra = 10;
 }
 
 // === Streaming forecast messages ===

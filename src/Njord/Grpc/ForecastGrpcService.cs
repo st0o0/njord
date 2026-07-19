@@ -184,6 +184,19 @@ public sealed class ForecastGrpcService(
         return proto;
     }
 
+    private static readonly HashSet<string> HourlyFixedFields =
+    [
+        "temperature_2m", "apparent_temperature", "precipitation", "relative_humidity_2m",
+        "wind_speed_10m", "wind_gusts_10m", "wind_direction_10m", "cloud_cover",
+        "weather_code", "is_day", "rain", "pressure_msl"
+    ];
+
+    private static readonly HashSet<string> DailyFixedFields =
+    [
+        "temperature_2m_max", "temperature_2m_min", "precipitation_sum",
+        "wind_speed_10m_max", "wind_gusts_10m_max", "sunrise", "sunset", "weather_code"
+    ];
+
     private static void MapForecastPoints(
         ModelForecast forecast,
         Google.Protobuf.Collections.RepeatedField<HourlyForecast> hourlyTarget,
@@ -219,6 +232,15 @@ public sealed class ForecastGrpcService(
             }
 
             SetOptional(point, ParameterRegistry.PressureMsl, v => hourly.PressureMsl = v);
+
+            foreach (var (param, value) in point.Values)
+            {
+                if (value is null || HourlyFixedFields.Contains(param.ApiName))
+                    continue;
+
+                hourly.Extra.Add(new ParameterValue { Name = param.ApiName, Numeric = value.Value });
+            }
+
             hourlyTarget.Add(hourly);
         }
 
@@ -261,6 +283,22 @@ public sealed class ForecastGrpcService(
             if (wc.HasValue)
             {
                 daily.WeatherCode = (int)wc.Value;
+            }
+
+            foreach (var (param, value) in point.NumericValues)
+            {
+                if (value is null || DailyFixedFields.Contains(param.ApiName))
+                    continue;
+
+                daily.Extra.Add(new ParameterValue { Name = param.ApiName, Numeric = value.Value });
+            }
+
+            foreach (var (param, value) in point.MetaValues)
+            {
+                if (value is null || DailyFixedFields.Contains(param.ApiName))
+                    continue;
+
+                daily.Extra.Add(new ParameterValue { Name = param.ApiName, Text = value });
             }
 
             dailyTarget.Add(daily);
