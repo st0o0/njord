@@ -1,5 +1,70 @@
 # Changelog
 
+## [0.2.0](https://github.com/st0o0/njord/compare/v0.1.2...v0.2.0) (2026-07-20)
+
+
+### Features
+
+* Add more alert details to proto ([012d4f3](https://github.com/st0o0/njord/commit/012d4f3a5572ee6f842045098bc115f40e3f700d))
+* **Enrichment:** add multi-model coverage for daily consensus, index… ([#28](https://github.com/st0o0/njord/issues/28)) ([a37432d](https://github.com/st0o0/njord/commit/a37432d5e1974a18d7d209a14e56b0f138021cfb))
+* **Enrichment:** add multi-model coverage for daily consensus, index/energy envelopes, and daily alerts ([76eb119](https://github.com/st0o0/njord/commit/76eb1194d4fd173dead49ec38817b4a100d5c720))
+* **persistence:** add [JsonProperty] to AlertResult, DerivedResult and nested types ([96b7aec](https://github.com/st0o0/njord/commit/96b7aec35d7b52cc4ea7c185176b48e25f5c6eac))
+* **persistence:** add [JsonProperty] to ConsensusResult, replace tuples, harden domain types ([3fbaefc](https://github.com/st0o0/njord/commit/3fbaefc96e9c0efc97d1b0008af053c70c70647e))
+* **persistence:** add [JsonProperty] to EnergyResult, replace CopOptimal tuple ([a3edd95](https://github.com/st0o0/njord/commit/a3edd95f9d89506618a38c38715e544cc3f794e5))
+* **persistence:** add [JsonProperty] to IndexResult, replace tuples with named records ([eb303c0](https://github.com/st0o0/njord/commit/eb303c03ea79da43d5fa92cdf7098a18191d06a2))
+* **persistence:** add [JsonProperty] to TrendResult, replace tuples with named records ([29130bb](https://github.com/st0o0/njord/commit/29130bbf0d4d7f89ffb53df0c07206f155fc1517))
+* **persistence:** add DataChangedDto with versioned JSON mapping ([4b24d93](https://github.com/st0o0/njord/commit/4b24d932cc8d4e28e4471538eaaca1685148be4f))
+* **persistence:** add ForecastRecordDto and ForecastHistorySnapshotDto with versioned mapping ([0f5c590](https://github.com/st0o0/njord/commit/0f5c5905ae7cce2bc0f4d8ae849bbb739b76857e))
+* **persistence:** add Verify tests for enrichment result wire format, remove caveat ([bb0c695](https://github.com/st0o0/njord/commit/bb0c6959baeaa89e96486ff4bac6a1f8e55630dc))
+* **persistence:** wire SchedulerActor and ForecastHistoryActor to persist/recover DTOs ([6c7a6d3](https://github.com/st0o0/njord/commit/6c7a6d3e13c56bd34bb621cbf1051d593f7a9f0b))
+* **pipeline:** add fetch buffer, reduce hub sizes, trim journal ([db422bc](https://github.com/st0o0/njord/commit/db422bcec88eac9e95fc20a393637e06f2f48106))
+
+
+### Bug Fixes
+
+* **ci:** add dotnet publish step to dev-build workflow ([5ce7627](https://github.com/st0o0/njord/commit/5ce76279862a688df4cec24d5021c7d344d8e3ed))
+* **ci:** specify Dockerfile path for dev-build docker context ([ed36eb2](https://github.com/st0o0/njord/commit/ed36eb21c2d85985719ee2edab6ef4daa67aa924))
+* **enrichment:** restore MergeHub for mixed inline+actor feature case ([908a4e6](https://github.com/st0o0/njord/commit/908a4e6f514e47fabb02aaaf580e0b7393fc36c5))
+* **pipeline:** add Connecting state to confirm SinkRef subscription ([89170ac](https://github.com/st0o0/njord/commit/89170ac3c40286a7268309437b6dbbe020688222))
+* **pipeline:** move materializer init from field initializer to PreStart ([9539fd1](https://github.com/st0o0/njord/commit/9539fd1a9d2d97c712636b59ae362d5093e9e915))
+* **pipeline:** pre-warm SinkRef in PipelineActor for race-free handoff ([3df5b37](https://github.com/st0o0/njord/commit/3df5b37e3384a13b88009f2cd343166804a97b93))
+* **pipeline:** register SchedulerActor before PipelineActor ([0df061c](https://github.com/st0o0/njord/commit/0df061cbc6d9d8ca054b20e23f1431fcc0055d92))
+* **pipeline:** remove scheduler bottleneck for initial polls ([5fd2275](https://github.com/st0o0/njord/commit/5fd227527b8f7e433af20f241c43737e556a2b68))
+* **pipeline:** replace CommandAny stash with explicit message types ([0e785b5](https://github.com/st0o0/njord/commit/0e785b58124cff9c39b3e96a02fe3a9b81ed0f63))
+* **pipeline:** revert SinkRef pre-warming, add connection specs ([111a1f5](https://github.com/st0o0/njord/commit/111a1f5ae9a73e6bf1c9356842176a67f7670bd0))
+* **tests:** increase AsyncAssert default timeout and Fact timeouts for CI ([3a0702c](https://github.com/st0o0/njord/commit/3a0702c8fab30735e3f266ae08064a45222688b5))
+* **tests:** make scheduler tests deterministic with OfferCollector ([1466135](https://github.com/st0o0/njord/commit/1466135f4a077abb3bfc027987250ed1fbbd03cd))
+* **tests:** remove SinkRef-dependent multi-model tests ([601f0de](https://github.com/st0o0/njord/commit/601f0de6fbb9c48a64f95a8f0460dc8181f77b6d))
+* **tests:** use AlwaysAllow gate for timing test, increase timeouts ([0c238f9](https://github.com/st0o0/njord/commit/0c238f9820470389a911fd5f50e6b851130cb675))
+
+
+### Performance
+
+* **domain:** replace ImmutableDictionary with flat Dictionary copy in ModelSnapshot ([452332c](https://github.com/st0o0/njord/commit/452332c0a2f75215ea3026f05559c00cf5ee9a77))
+* **enrichment:** consolidate 7 feature graphs into 1 inline graph ([e665b9c](https://github.com/st0o0/njord/commit/e665b9cbcc89dd89189278467a016153086e377a))
+* **enrichment:** replace BroadcastHub/MergeHub with static Broadcast/Merge ([a1e8f17](https://github.com/st0o0/njord/commit/a1e8f17856267207418a069a5e8f6b5b746dd31b))
+* **pipeline:** use fire-and-forget OfferAsync in Ready state ([c62207d](https://github.com/st0o0/njord/commit/c62207de4665043b264f4222f26c7a18f6d86f6b))
+* **runtime:** switch from Server GC to Workstation GC ([2016d18](https://github.com/st0o0/njord/commit/2016d1894675c6c65ce32b7bd3e432f3e36cdff5))
+
+
+### Documentation
+
+* add extend-only persistence DTO rules to CLAUDE.md ([0e5f5b3](https://github.com/st0o0/njord/commit/0e5f5b36f33b6ffe495747582e3f1c63bcad5988))
+* document EnrichmentEntryDto inner-JSON limitation ([b233a76](https://github.com/st0o0/njord/commit/b233a76e485a63eae03f1cfc91d04d5c56de881f))
+
+
+### Refactoring
+
+* **persistence:** move snapshot DTOs to Persistence namespace, add [JsonProperty] + Version ([565c2ca](https://github.com/st0o0/njord/commit/565c2cad42f5f4b7c51a9370e6279d8157a9747e))
+* **pipeline:** scheduler waits for both refs before polling ([469edae](https://github.com/st0o0/njord/commit/469edae8dfd522ca77eec13ba43cc06f8580f964))
+* **tests:** migrate actor tests to Akka.Hosting.TestKit ([5bbc943](https://github.com/st0o0/njord/commit/5bbc943b4ca8167193fe6d0aa0a0e02c35129f23))
+* **tests:** migrate all specs from manual ActorSystem to PersistenceTestKit ([2a187d4](https://github.com/st0o0/njord/commit/2a187d478f2815815cf08eae4e04ff87f387b72c))
+
+
+### Dependencies
+
+* Bump Servus.Akka from 0.3.13 to 0.3.14 ([d305178](https://github.com/st0o0/njord/commit/d305178580c3d3453c33ea4d8856c89fe0b59c9a))
+
 ## [0.1.2](https://github.com/st0o0/njord/compare/v0.1.1...v0.1.2) (2026-07-19)
 
 
