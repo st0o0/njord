@@ -98,19 +98,9 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private void TryTransitionToConnecting()
     {
         if (_queue is null || !_sourceReceived)
-        {
-            _logger.LogDebug("TryTransition: queue={HasQueue}, source={HasSource}",
-                _queue is not null, _sourceReceived);
             return;
-        }
 
-        var pollCount = 0;
-        var now = _timeProvider.GetUtcNow();
-        foreach (var location in _options.Locations)
-            foreach (var modelId in location.ResolveModels(_options.Models))
-                pollCount++;
-
-        _logger.LogInformation("Pipeline refs received - connecting ({PollCount} polls to schedule)", pollCount);
+        _logger.LogInformation("Pipeline refs received - connecting");
         InitializeStates();
         Become(Connecting);
     }
@@ -121,13 +111,8 @@ public sealed class SchedulerActor : ReceivePersistentActor
         {
             var target = CreateTarget(poll);
             if (target is null)
-            {
-                _logger.LogWarning("CreateTarget returned null for {Location}/{Model}", poll.Location, poll.ModelId);
                 return;
-            }
 
-            _logger.LogInformation("Offering connection probe for {Location}/{Model}, queue={Queue}",
-                poll.Location, poll.ModelId, _queue?.GetType().Name ?? "null");
             _queue!.OfferAsync(target).PipeTo(Self,
                 success: _ => new ConnectionEstablished(),
                 failure: ex => new OfferFailed(poll.Location, poll.ModelId, ex));
@@ -187,8 +172,6 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private void InitializeStates()
     {
         var now = _timeProvider.GetUtcNow();
-        var tellCount = 0;
-        var scheduleCount = 0;
         foreach (var location in _options.Locations)
         {
             foreach (var modelId in location.ResolveModels(_options.Models))
@@ -199,19 +182,9 @@ public sealed class SchedulerActor : ReceivePersistentActor
                     _states[key] = ModelPollState.Initial(now);
                 }
 
-                var state = _states[key];
-                var schedNow = _timeProvider.GetUtcNow();
-                if (state.NextPollUtc <= schedNow)
-                    tellCount++;
-                else
-                    scheduleCount++;
-
                 ScheduleNext(location.Name, modelId);
             }
         }
-
-        _logger.LogInformation("InitializeStates: {TellCount} Self.Tell, {ScheduleCount} scheduled",
-            tellCount, scheduleCount);
     }
 
     private void OnSourceReceived(PipelineSourceResponse response)
