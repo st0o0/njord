@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Akka;
 using Akka.Actor;
 using Akka.Hosting;
@@ -85,6 +86,99 @@ public sealed class PipelineConnectionSpec : PersistenceTestKit
 
         var location = await fetchCalled.Task.WaitAsync(TimeSpan.FromSeconds(8));
         Assert.Equal("test", location);
+    }
+
+    [Fact(Timeout = 10000)]
+    public async Task Requests_have_no_serialization_gap_from_scheduler()
+    {
+        var fetchTimestamps = new System.Collections.Concurrent.ConcurrentBag<long>();
+        var allFetched = new TaskCompletionSource();
+        var expectedCount = 8;
+
+        var registry = ActorRegistry.For(Sys);
+
+        var options = new NjordOptions
+        {
+            Locations =
+            [
+                new LocationOptions { Name = "loc-a", Latitude = 47.0, Longitude = 8.3 },
+                new LocationOptions { Name = "loc-b", Latitude = 52.5, Longitude = 13.4 },
+            ],
+            Models = ["model_1", "model_2", "model_3", "model_4"],
+            DiscoveryInterval = TimeSpan.FromMinutes(20),
+        };
+        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        var optionsMonitor = new FakeOptionsMonitor(options);
+        IBudgetGate<WeightedTarget> gate = new WeightedBudgetGate(
+            new OptionsBudgetProvider(optionsMonitor), new BudgetTracker());
+        var client = new TimingOpenMeteoClient(fetchTimestamps, expectedCount, allFetched);
+        var time = new FakeTimeProvider(new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero));
+        var health = new NjordHealthState { ServiceStartedUtc = time.GetUtcNow() };
+
+        var schedulerPlaceholder = Sys.ActorOf(Props.Create(() => new BlackholeActor()), "sched-ph");
+        registry.Register<SchedulerActor>(schedulerPlaceholder, overwrite: true);
+
+        var pipeline = Sys.ActorOf(
+            Props.Create(() => new PipelineActor(client, time, gate, NullLogger<PipelineActor>())),
+            "timing-pipeline");
+        registry.Register<PipelineActor>(pipeline, overwrite: true);
+
+        var scheduler = Sys.ActorOf(
+            Props.Create(() => new SchedulerActor(
+                Options.Create(options), time, NullLogger<SchedulerActor>(), parameters, health)),
+            "timing-scheduler");
+        registry.Register<SchedulerActor>(scheduler, overwrite: true);
+
+        await allFetched.Task.WaitAsync(TimeSpan.FromSeconds(8));
+
+        var timestamps = fetchTimestamps.OrderBy(t => t).ToList();
+        Assert.Equal(expectedCount, timestamps.Count);
+
+        var gaps = new List<double>();
+        for (var i = 1; i < timestamps.Count; i++)
+        {
+            var gapMs = (timestamps[i] - timestamps[i - 1]) / (double)TimeSpan.TicksPerMillisecond;
+            gaps.Add(gapMs);
+        }
+
+        var maxGap = gaps.Max();
+        var avgGap = gaps.Average();
+
+        // With AlwaysAllow gate: no throttle, all requests should be near-instant
+        // With real BudgetGate: ~125ms per token at 8 tokens/sec is expected
+        // The key assertion: no >1s gaps from actor serialization (the original bug was ~1.5s)
+        Assert.True(maxGap < 1000, $"Max gap between requests was {maxGap:F0}ms — expected <1000ms (no actor serialization). Gaps: [{string.Join(", ", gaps.Select(g => $"{g:F0}ms"))}]");
+    }
+
+    private sealed class TimingOpenMeteoClient : IOpenMeteoClient
+    {
+        private readonly System.Collections.Concurrent.ConcurrentBag<long> _timestamps;
+        private readonly int _expectedCount;
+        private readonly TaskCompletionSource _allFetched;
+        private int _count;
+
+        public TimingOpenMeteoClient(
+            System.Collections.Concurrent.ConcurrentBag<long> timestamps,
+            int expectedCount,
+            TaskCompletionSource allFetched)
+        {
+            _timestamps = timestamps;
+            _expectedCount = expectedCount;
+            _allFetched = allFetched;
+        }
+
+        public Task<FetchOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken ct)
+        {
+            _timestamps.Add(Stopwatch.GetTimestamp());
+            if (Interlocked.Increment(ref _count) >= _expectedCount)
+                _allFetched.TrySetResult();
+
+            var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
+            var forecast = new ModelForecast(model, location.Name, cycle,
+                new ForecastSeries([new ForecastPoint(DateTimeOffset.UtcNow, new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
+                DailyForecastSeries.Empty);
+            return Task.FromResult<FetchOutcome>(new FetchOutcome.Success(forecast));
+        }
     }
 
     private static ILogger<T> NullLogger<T>() =>
@@ -279,6 +373,12 @@ public sealed class PipelineConnectionSpec : PersistenceTestKit
     private sealed record SinkRefResponse(ISinkRef<int> SinkRef);
     private sealed record RequestPipelineSource;
     private sealed record SourceRefResponse(ISourceRef<int> SourceRef);
+
+    private sealed class AlwaysAllowWeightedGate : IBudgetGate<WeightedTarget>
+    {
+        public bool TryAcquire(WeightedTarget element) => true;
+        public TimeSpan EstimateDelay(WeightedTarget element) => TimeSpan.Zero;
+    }
 
     private sealed class AlwaysAllowGate : IBudgetGate<int>
     {

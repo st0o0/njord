@@ -80,7 +80,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
     {
         Command<PipelineSinkResponse>(response =>
         {
-            _queue = Source.Queue<WeightedTarget>(4, OverflowStrategy.Backpressure)
+            _queue = Source.Queue<WeightedTarget>(16, OverflowStrategy.Backpressure)
                 .To(response.SinkRef.Sink)
                 .Run(_mat);
             _logger.LogInformation("Pipeline SinkRef received");
