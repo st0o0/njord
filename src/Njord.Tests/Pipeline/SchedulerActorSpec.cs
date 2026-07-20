@@ -416,17 +416,19 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
                 _queue = Source.Queue<WeightedTarget>(_queueSize, OverflowStrategy.Backpressure)
                     .To(response.SinkRef.Sink)
                     .Run(mat);
-                TryTransitionToReady();
+                TryTransitionToConnecting();
             });
             Command<PipelineSourceResponse>(_ =>
             {
                 _sourceReceived = true;
-                TryTransitionToReady();
+                TryTransitionToConnecting();
             });
             CommandAny(_ => Stash.Stash());
         }
 
-        private void TryTransitionToReady()
+        private sealed record ConnectionEstablished;
+
+        private void TryTransitionToConnecting()
         {
             if (_queue is null || !_sourceReceived)
                 return;
@@ -444,8 +446,22 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
                     ScheduleNext(location.Name, modelId);
                 }
 
-            Become(Ready);
-            Stash.UnstashAll();
+            Become(Connecting);
+        }
+
+        private void Connecting()
+        {
+            CommandAsync<ScheduledPoll>(async poll =>
+            {
+                var target = CreateTarget(poll);
+                if (target is null)
+                    return;
+
+                await _queue!.OfferAsync(target);
+                Become(Ready);
+                Stash.UnstashAll();
+            });
+            CommandAny(_ => Stash.Stash());
         }
 
         private void Ready()
@@ -460,20 +476,25 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
 
         private async Task OnScheduledPoll(ScheduledPoll poll)
         {
-            if (_queue is null)
-            {
+            var target = CreateTarget(poll);
+            if (target is null)
                 return;
-            }
+
+            await _queue!.OfferAsync(target);
+        }
+
+        private WeightedTarget? CreateTarget(ScheduledPoll poll)
+        {
+            if (_queue is null)
+                return null;
 
             var location = _options.Locations.FirstOrDefault(l =>
                 l.Name.Equals(poll.Location, StringComparison.OrdinalIgnoreCase));
             if (location is null)
-            {
-                return;
-            }
+                return null;
 
             var cycle = new CycleId(_timeProvider.GetUtcNow());
-            await _queue.OfferAsync(new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle));
+            return new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle);
         }
 
         private void OnHashResult(HashResult result)

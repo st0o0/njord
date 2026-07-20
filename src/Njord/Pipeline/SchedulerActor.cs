@@ -28,6 +28,8 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     public sealed record DataChanged(string Location, string ModelId, int Hash, DateTimeOffset Utc);
 
+    private sealed record ConnectionEstablished;
+
     private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
 
     public SchedulerActor(
@@ -72,26 +74,42 @@ public sealed class SchedulerActor : ReceivePersistentActor
                 .To(response.SinkRef.Sink)
                 .Run(_mat);
             _logger.LogInformation("Pipeline SinkRef received");
-            TryTransitionToReady();
+            TryTransitionToConnecting();
         });
         Command<PipelineSourceResponse>(response =>
         {
             OnSourceReceived(response);
-            TryTransitionToReady();
+            TryTransitionToConnecting();
         });
         Command<Terminated>(OnTerminated);
         CommandAny(_ => Stash.Stash());
     }
 
-    private void TryTransitionToReady()
+    private void TryTransitionToConnecting()
     {
         if (_queue is null || !_sourceReceived)
             return;
 
-        _logger.LogInformation("Pipeline SinkRef received - scheduling initial polls");
         InitializeStates();
-        Become(Ready);
-        Stash.UnstashAll();
+        _logger.LogInformation("Pipeline refs received - connecting");
+        Become(Connecting);
+    }
+
+    private void Connecting()
+    {
+        CommandAsync<ScheduledPoll>(async poll =>
+        {
+            var target = CreateTarget(poll);
+            if (target is null)
+                return;
+
+            await _queue!.OfferAsync(target);
+            _logger.LogInformation("Pipeline connection established - scheduling initial polls");
+            Become(Ready);
+            Stash.UnstashAll();
+        });
+        Command<Terminated>(OnTerminated);
+        CommandAny(_ => Stash.Stash());
     }
 
     private void Ready()
@@ -193,22 +211,26 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     private async Task OnScheduledPoll(ScheduledPoll poll)
     {
-        if (_queue is null)
-        {
+        var target = CreateTarget(poll);
+        if (target is null)
             return;
-        }
+
+        await _queue!.OfferAsync(target);
+        _logger.LogDebug("Offered poll target {Location}/{Model}", poll.Location, poll.ModelId);
+    }
+
+    private WeightedTarget? CreateTarget(ScheduledPoll poll)
+    {
+        if (_queue is null)
+            return null;
 
         var location = _options.Locations.FirstOrDefault(l =>
             l.Name.Equals(poll.Location, StringComparison.OrdinalIgnoreCase));
         if (location is null)
-        {
-            return;
-        }
+            return null;
 
         var cycle = new CycleId(_timeProvider.GetUtcNow());
-        var target = new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle);
-        await _queue.OfferAsync(target);
-        _logger.LogDebug("Offered poll target {Location}/{Model}", poll.Location, poll.ModelId);
+        return new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle);
     }
 
     private void OnTriggerImmediatePoll(TriggerImmediatePoll msg)
