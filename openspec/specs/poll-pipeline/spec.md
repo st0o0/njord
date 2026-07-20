@@ -22,7 +22,7 @@ The pipeline SHALL receive `WeightedTarget` elements via a `MergeHub.Source<Weig
 - **THEN** the target carries a `CycleId` with the timestamp from when the scheduler decided to poll
 
 ### Requirement: Outbound requests respect the per-minute budget
-The pipeline SHALL throttle outbound fetch requests using a `BudgetThrottleStage` that derives its rate from `IBudgetProvider.GetCurrentRate()`. The stage SHALL implement weighted token-bucket throttling based on the effective budget (default: 80% of `RequestsPerMinute`). The stage SHALL adapt to budget changes at runtime without re-materializing the graph. The fetch call SHALL use `SelectAsyncUnordered(2)` to limit concurrent connections to Open-Meteo to 2.
+The pipeline SHALL throttle outbound fetch requests using a `BudgetThrottleStage` that derives its rate from `IBudgetProvider.GetCurrentRate()`. The stage SHALL implement weighted token-bucket throttling based on the effective budget (default: 80% of `RequestsPerMinute`). The stage SHALL adapt to budget changes at runtime without re-materializing the graph. The fetch call SHALL use `SelectAsyncUnordered(2)` to limit concurrent connections to Open-Meteo to 2. Between the `SelectAsyncUnordered` output and the `BroadcastHub` sink, the pipeline SHALL include a `Buffer(32, OverflowStrategy.Backpressure)` stage to decouple HTTP fetch throughput from downstream processing speed.
 
 #### Scenario: Throttle rate derived from budget
 - **WHEN** the effective budget is 600 req/min (free tier)
@@ -40,8 +40,16 @@ The pipeline SHALL throttle outbound fetch requests using a `BudgetThrottleStage
 - **WHEN** the PipelineActor materializes the pipeline
 - **THEN** the fetch logic is a direct `SelectAsyncUnordered` call to `IOpenMeteoClient.FetchAsync`, not a separate `FetchStage.Create()` flow
 
+#### Scenario: Buffer decouples fetch from downstream processing
+- **WHEN** downstream consumers are slow to process fetch results
+- **THEN** the Buffer(32) accepts completed results without backpressuring the SelectAsync slots, allowing HTTP requests to continue at the token-bucket rate
+
+#### Scenario: Buffer applies backpressure when full
+- **WHEN** 32 fetch results are buffered and downstream has not consumed any
+- **THEN** the pipeline backpressures the fetch stage until at least one result is consumed
+
 ### Requirement: Fetch outcomes fan out via BroadcastHub to egress and feedback consumers
-The pipeline SHALL broadcast each successful `FetchOutcome` via a `BroadcastHub`. The EgressActor SHALL consume the BroadcastHub via a `SourceRef` and map outcomes to `MqttMessage`(s) for MQTT publish. The PipelineActor SHALL materialize a local feedback consumer that computes a data hash and sends it to the SchedulerActor via Ask. Egress unavailability (broker down) MUST NOT fail or stall the fetch pipeline -- the BroadcastHub decouples the two paths.
+The pipeline SHALL broadcast each `FetchOutcome` via a `BroadcastHub` with `bufferSize: 2`. The EgressActor SHALL consume the BroadcastHub via a `SourceRef` and map outcomes to `MqttMessage`(s) for MQTT publish. The PipelineActor SHALL materialize a local feedback consumer that computes a data hash and sends it to the SchedulerActor via Ask. Egress unavailability (broker down) MUST NOT fail or stall the fetch pipeline -- the BroadcastHub decouples the two paths.
 
 #### Scenario: Egress receives outcome via BroadcastHub SourceRef
 - **WHEN** a fetch for (lucerne, icon_d2) succeeds

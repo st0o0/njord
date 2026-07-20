@@ -107,7 +107,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
     {
         var mat = _mat!;
 
-        var (snapshotHubSource, snapshotHubSink) = BroadcastHub.Sink<ModelSnapshot>(bufferSize: 8)
+        var (snapshotHubSource, snapshotHubSink) = BroadcastHub.Sink<ModelSnapshot>(bufferSize: 1)
             .PreMaterialize(mat);
 
         _sourceRef!.Source
@@ -117,6 +117,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
                 _ => snap,
             })
             .Where(snap => snap.HasChanged)
+            .Buffer(8, OverflowStrategy.Backpressure)
             .To(snapshotHubSink)
             .Run(mat);
 

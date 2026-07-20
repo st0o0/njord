@@ -41,9 +41,15 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
 
         Command<RecordSnapshot>(OnRecordSnapshot);
         Command<QueryHistory>(_ => Sender.Tell(new HistoryResponse(_history), Self));
-        Command<SaveSnapshotSuccess>(_ => { });
+        Command<SaveSnapshotSuccess>(success =>
+        {
+            DeleteMessages(success.Metadata.SequenceNr);
+            DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
+        });
         Command<SaveSnapshotFailure>(fail =>
-        Context.GetLogger().Warning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
+            Context.GetLogger().Warning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
+        Command<DeleteMessagesSuccess>(_ => { });
+        Command<DeleteSnapshotSuccess>(_ => { });
     }
 
     private void OnRecover(ForecastRecord evt)
