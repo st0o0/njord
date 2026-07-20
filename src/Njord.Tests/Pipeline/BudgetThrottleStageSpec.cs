@@ -1,4 +1,4 @@
-using Akka.Actor;
+using Akka.Persistence.TestKit;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Configuration;
@@ -6,22 +6,9 @@ using Njord.Pipeline;
 
 namespace Njord.Tests.Pipeline;
 
-public sealed class BudgetThrottleStageSpec : IAsyncLifetime
+public sealed class BudgetThrottleStageSpec : PersistenceTestKit
 {
-    private ActorSystem _system = null!;
-    private IMaterializer _mat = null!;
-
-    public ValueTask InitializeAsync()
-    {
-        _system = ActorSystem.Create("throttle-spec-" + Guid.NewGuid().ToString("N")[..8]);
-        _mat = _system.Materializer();
-        return ValueTask.CompletedTask;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _system.Terminate();
-    }
+    private IMaterializer Mat => Sys.Materializer();
 
     [Fact(Timeout = 5000)]
     public async Task Elements_pass_through_when_gate_allows_immediately()
@@ -31,7 +18,7 @@ public sealed class BudgetThrottleStageSpec : IAsyncLifetime
 
         var result = await Source.From(Enumerable.Range(0, 5))
             .Via(stage)
-            .RunWith(Sink.Seq<int>(), _mat);
+            .RunWith(Sink.Seq<int>(), Mat);
 
         Assert.Equal(5, result.Count);
         Assert.Equal(5, gate.AcquireCount);
@@ -45,7 +32,7 @@ public sealed class BudgetThrottleStageSpec : IAsyncLifetime
 
         var result = await Source.From([10, 20, 30])
             .Via(stage)
-            .RunWith(Sink.Seq<int>(), _mat);
+            .RunWith(Sink.Seq<int>(), Mat);
 
         Assert.Equal([10, 20, 30], result);
         Assert.Equal([10, 20, 30], gate.Acquired);
@@ -59,7 +46,7 @@ public sealed class BudgetThrottleStageSpec : IAsyncLifetime
 
         var result = await Source.From([42])
             .Via(stage)
-            .RunWith(Sink.Seq<int>(), _mat);
+            .RunWith(Sink.Seq<int>(), Mat);
 
         Assert.Equal([42], result);
         Assert.Equal(3, gate.TryCount);
@@ -73,7 +60,7 @@ public sealed class BudgetThrottleStageSpec : IAsyncLifetime
 
         var result = await Source.Empty<int>()
             .Via(stage)
-            .RunWith(Sink.Seq<int>(), _mat);
+            .RunWith(Sink.Seq<int>(), Mat);
 
         Assert.Empty(result);
         Assert.Empty(gate.Acquired);
@@ -87,7 +74,7 @@ public sealed class BudgetThrottleStageSpec : IAsyncLifetime
 
         var result = await Source.From([1, 2, 3, 4, 5])
             .Via(stage)
-            .RunWith(Sink.Seq<int>(), _mat);
+            .RunWith(Sink.Seq<int>(), Mat);
 
         Assert.Equal([1, 2, 3, 4, 5], result);
     }

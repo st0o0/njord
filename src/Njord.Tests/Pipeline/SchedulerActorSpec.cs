@@ -1,7 +1,8 @@
+using Akka;
 using Akka.Actor;
-using Akka.Configuration;
 using Akka.Hosting;
 using Akka.Persistence;
+using Akka.Persistence.TestKit;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
@@ -15,20 +16,13 @@ using Servus.Akka;
 
 namespace Njord.Tests.Pipeline;
 
-public sealed class SchedulerActorSpec : IAsyncLifetime
+public sealed class SchedulerActorSpec : PersistenceTestKit
 {
-    private static readonly Config InMemoryPersistence = ConfigurationFactory.ParseString("""
-        akka.persistence {
-            journal.plugin = "akka.persistence.journal.inmem"
-            snapshot-store.plugin = "akka.persistence.snapshot-store.inmem"
-        }
-        """);
-
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
-    private ActorSystem _system = null!;
-    private IMaterializer _mat = null!;
     private IActorRef _scheduler = null!;
     private readonly List<WeightedTarget> _offered = [];
+
+    private IMaterializer Mat => Sys.Materializer();
 
     private NjordOptions Options() => new()
     {
@@ -37,32 +31,36 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         Models = ["icon_d2"],
     };
 
-    public ValueTask InitializeAsync()
-    {
-        _system = ActorSystem.Create("scheduler-spec-" + Guid.NewGuid().ToString("N")[..8], InMemoryPersistence);
-        _mat = _system.Materializer();
-        return ValueTask.CompletedTask;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _system.Terminate();
-    }
-
     private IActorRef CreateScheduler(NjordOptions? options = null, string? persistenceId = null, int queueSize = 32)
     {
         var opts = options ?? Options();
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        var registry = ActorRegistry.For(_system);
+        var registry = ActorRegistry.For(Sys);
 
-        var fakePipelineActor = _system.ActorOf(
-            Props.Create(() => new FakePipelineActor(_offered, _mat)));
+        var fakePipelineActor = Sys.ActorOf(
+            Props.Create(() => new FakePipelineActor(_offered, Mat)));
         registry.Register<PipelineActor>(fakePipelineActor, overwrite: true);
 
         var props = Props.Create(() => new TestableSchedulerActor(
             opts, _time, parameters, persistenceId ?? $"scheduler-{Guid.NewGuid():N}", queueSize));
 
-        return _system.ActorOf(props);
+        return Sys.ActorOf(props);
+    }
+
+    private IActorRef CreateSchedulerWithSlowConsumer(NjordOptions? options = null, int queueSize = 32, int consumerDelayMs = 50)
+    {
+        var opts = options ?? Options();
+        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        var registry = ActorRegistry.For(Sys);
+
+        var fakePipelineActor = Sys.ActorOf(
+            Props.Create(() => new SlowFakePipelineActor(_offered, Mat, consumerDelayMs)));
+        registry.Register<PipelineActor>(fakePipelineActor, overwrite: true);
+
+        var props = Props.Create(() => new TestableSchedulerActor(
+            opts, _time, parameters, $"scheduler-{Guid.NewGuid():N}", queueSize));
+
+        return Sys.ActorOf(props);
     }
 
     private Task WaitForOffer(int minCount = 1) =>
@@ -278,22 +276,6 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         Assert.Equal("icon_d2", latest.Model.Id);
     }
 
-    private IActorRef CreateSchedulerWithSlowConsumer(NjordOptions? options = null, int queueSize = 32, int consumerDelayMs = 50)
-    {
-        var opts = options ?? Options();
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        var registry = ActorRegistry.For(_system);
-
-        var fakePipelineActor = _system.ActorOf(
-            Props.Create(() => new SlowFakePipelineActor(_offered, _mat, consumerDelayMs)));
-        registry.Register<PipelineActor>(fakePipelineActor, overwrite: true);
-
-        var props = Props.Create(() => new TestableSchedulerActor(
-            opts, _time, parameters, $"scheduler-{Guid.NewGuid():N}", queueSize));
-
-        return _system.ActorOf(props);
-    }
-
     private sealed class SlowFakePipelineActor : ReceiveActor
     {
         public SlowFakePipelineActor(List<WeightedTarget> offered, IMaterializer mat, int delayMs)
@@ -427,6 +409,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         }
 
         private sealed record ConnectionEstablished;
+        private sealed record OfferFailed(string Location, string ModelId, Exception Error);
 
         private void TryTransitionToConnecting()
         {
@@ -451,15 +434,31 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
 
         private void Connecting()
         {
-            CommandAsync<ScheduledPoll>(async poll =>
+            Command<ScheduledPoll>(poll =>
             {
                 var target = CreateTarget(poll);
                 if (target is null)
                     return;
 
-                await _queue!.OfferAsync(target);
+                _queue!.OfferAsync(target).PipeTo(Self,
+                    success: _ => new ConnectionEstablished(),
+                    failure: ex => new OfferFailed(poll.Location, poll.ModelId, ex));
+                Become(WaitingForConnection);
+            });
+            CommandAny(_ => Stash.Stash());
+        }
+
+        private void WaitingForConnection()
+        {
+            Command<ConnectionEstablished>(_ =>
+            {
                 Become(Ready);
                 Stash.UnstashAll();
+            });
+            Command<OfferFailed>(msg =>
+            {
+                Self.Tell(new ScheduledPoll(msg.Location, msg.ModelId));
+                Become(Connecting);
             });
             CommandAny(_ => Stash.Stash());
         }

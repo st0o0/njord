@@ -1,5 +1,5 @@
 using Akka.Actor;
-using Akka.Configuration;
+using Akka.Persistence.TestKit;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Enrichment;
@@ -7,34 +7,13 @@ using Njord.Tests.Shared;
 
 namespace Njord.Tests.Enrichment;
 
-public sealed class ForecastHistoryActorSpec : IAsyncLifetime
+public sealed class ForecastHistoryActorSpec : PersistenceTestKit
 {
-    private static readonly Config InMemoryPersistence = ConfigurationFactory.ParseString("""
-        akka.persistence {
-            journal.plugin = "akka.persistence.journal.inmem"
-            snapshot-store.plugin = "akka.persistence.snapshot-store.inmem"
-        }
-        """);
-
     private static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
 
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(
         ["Weather"], [], []);
-
-    private ActorSystem _system = null!;
-
-    public ValueTask InitializeAsync()
-    {
-        _system = ActorSystem.Create("history-spec-" + Guid.NewGuid().ToString("N")[..8], InMemoryPersistence);
-        return ValueTask.CompletedTask;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _system.Terminate();
-        _system.Dispose();
-    }
 
     private static ModelSnapshot MakeSnapshot()
     {
@@ -51,7 +30,7 @@ public sealed class ForecastHistoryActorSpec : IAsyncLifetime
     [Fact(Timeout = 5000)]
     public async Task Query_returns_empty_history_initially()
     {
-        var actor = _system.ActorOf(Props.Create(() =>
+        var actor = Sys.ActorOf(Props.Create(() =>
             new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, TimeProvider.System)));
 
         var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(2));
@@ -61,7 +40,7 @@ public sealed class ForecastHistoryActorSpec : IAsyncLifetime
     [Fact(Timeout = 5000)]
     public async Task Record_and_query_returns_persisted_data()
     {
-        var actor = _system.ActorOf(Props.Create(() =>
+        var actor = Sys.ActorOf(Props.Create(() =>
             new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, TimeProvider.System)));
 
         actor.Tell(new RecordSnapshot(MakeSnapshot()));
@@ -80,7 +59,7 @@ public sealed class ForecastHistoryActorSpec : IAsyncLifetime
     [Fact(Timeout = 5000)]
     public async Task Multiple_records_accumulate()
     {
-        var actor = _system.ActorOf(Props.Create(() =>
+        var actor = Sys.ActorOf(Props.Create(() =>
             new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, TimeProvider.System)));
 
         for (var i = 0; i < 5; i++)
