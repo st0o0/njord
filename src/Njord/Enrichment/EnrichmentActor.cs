@@ -70,9 +70,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
     private void TryTransitionToReady()
     {
         if (_sourceRef is null || _egressSinkRef is null)
-        {
             return;
-        }
 
         MaterializeEnrichmentGraph();
         _logger.LogInformation("Enrichment pipeline materialized — ready");
@@ -112,103 +110,63 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         var statefulFeatures = _features.OfType<IStatefulEnrichment>().Where(f => f.Enabled).ToList();
         var actorFeatures = _features.OfType<IActorEnrichment>().Where(f => f.Enabled).ToList();
 
-        var hasInlineFeatures = statelessFeatures.Count > 0 || statefulFeatures.Count > 0;
-        var hasActorFeatures = actorFeatures.Count > 0;
+        var flows = new List<Flow<ModelSnapshot, EgressEvent, NotUsed>>();
 
-        if (!hasInlineFeatures && !hasActorFeatures)
+        if (statelessFeatures.Count > 0 || statefulFeatures.Count > 0)
+            flows.Add(BuildInlineFlow(locations, statelessFeatures, statefulFeatures));
+
+        foreach (var feature in actorFeatures)
+            flows.Add(feature.CreateFlow(Context));
+
+        if (flows.Count == 0)
             return;
 
-        var needsMultipleOutputGraphs = hasInlineFeatures && hasActorFeatures;
-
-        if (!needsMultipleOutputGraphs)
+        if (flows.Count == 1)
         {
-            if (hasInlineFeatures)
-            {
-                MaterializeInlineFeatures(
-                    _sourceRef!.Source, _egressSinkRef!.Sink, mat, locations,
-                    statelessFeatures, statefulFeatures);
-            }
-            else
-            {
-                var scanSource = BuildScanSource(_sourceRef!.Source);
-                foreach (var feature in actorFeatures)
-                    MaterializeActorFeature(feature, scanSource, _egressSinkRef!.Sink, mat);
-            }
+            BuildScanSource(_sourceRef!.Source)
+                .Via(flows[0])
+                .RunWith(_egressSinkRef!.Sink, mat);
             return;
         }
 
-        var (egressMergeHubSink, egressMergeHubSource) = MergeHub.Source<EgressEvent>(perProducerBufferSize: 4)
-            .PreMaterialize(mat);
+        var graph = GraphDsl.Create(_egressSinkRef!.Sink, (builder, sink) =>
+        {
+            var source = builder.Add(BuildScanSource(_sourceRef!.Source));
+            var broadcast = builder.Add(new Broadcast<ModelSnapshot>(flows.Count));
+            var merge = builder.Add(new Merge<EgressEvent>(flows.Count));
 
-        egressMergeHubSource
-            .RunWith(_egressSinkRef!.Sink, mat);
+            builder.From(source).To(broadcast);
 
-        var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<ModelSnapshot>(bufferSize: 1)
-            .PreMaterialize(mat);
+            for (var i = 0; i < flows.Count; i++)
+            {
+                builder.From(broadcast.Out(i))
+                    .Via(builder.Add(flows[i]))
+                    .To(merge.In(i));
+            }
 
-        BuildScanSource(_sourceRef!.Source)
-            .To(broadcastHubSink)
-            .Run(mat);
+            builder.From(merge).To(sink);
+            return ClosedShape.Instance;
+        });
 
-        MaterializeInlineFromSource(
-            broadcastHubSource, egressMergeHubSink, mat, locations,
-            statelessFeatures, statefulFeatures);
-
-        foreach (var feature in actorFeatures)
-            MaterializeActorFeature(feature, broadcastHubSource, egressMergeHubSink, mat);
+        RunnableGraph.FromGraph(graph).Run(mat);
     }
 
-    private void MaterializeInlineFeatures(
-        Source<FetchOutcome, NotUsed> source,
-        Sink<EgressEvent, NotUsed> sink,
-        IMaterializer mat,
+    private static Flow<ModelSnapshot, EgressEvent, NotUsed> BuildInlineFlow(
         IReadOnlyList<string> locations,
         IReadOnlyList<IStatelessEnrichment> stateless,
         IReadOnlyList<IStatefulEnrichment> stateful)
     {
         ModelSnapshot? previous = null;
 
-        BuildScanSource(source)
+        return Flow.Create<ModelSnapshot>()
             .SelectMany(snapshot =>
             {
                 var prev = previous;
                 previous = snapshot;
-                return ComputeAllWithPrevious(snapshot, prev, locations, stateless, stateful);
+                return ComputeAll(snapshot, prev, locations, stateless, stateful);
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(sink, mat);
-    }
-
-    private static void MaterializeInlineFromSource(
-        Source<ModelSnapshot, NotUsed> source,
-        Sink<EgressEvent, NotUsed> sink,
-        IMaterializer mat,
-        IReadOnlyList<string> locations,
-        IReadOnlyList<IStatelessEnrichment> stateless,
-        IReadOnlyList<IStatefulEnrichment> stateful)
-    {
-        ModelSnapshot? previous = null;
-
-        source
-            .SelectMany(snapshot =>
-            {
-                var prev = previous;
-                previous = snapshot;
-                return ComputeAllWithPrevious(snapshot, prev, locations, stateless, stateful);
-            })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(sink, mat);
-    }
-
-    private void MaterializeActorFeature(
-        IActorEnrichment feature,
-        Source<ModelSnapshot, NotUsed> source,
-        Sink<EgressEvent, NotUsed> sink,
-        IMaterializer mat)
-    {
-        feature.Materialize(source, sink, mat, Context);
+                _ => Akka.Streams.Supervision.Directive.Resume));
     }
 
     private Source<ModelSnapshot, NotUsed> BuildScanSource(Source<FetchOutcome, NotUsed> source)
@@ -222,7 +180,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
             .Where(snap => snap.HasChanged);
     }
 
-    private static IEnumerable<EgressEvent> ComputeAllWithPrevious(
+    private static IEnumerable<EgressEvent> ComputeAll(
         ModelSnapshot snapshot,
         ModelSnapshot? previous,
         IReadOnlyList<string> locations,
