@@ -147,7 +147,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
     {
         Command<PipelineSinkResponse>(_ => { });
         Command<PipelineSourceResponse>(_ => { });
-        CommandAsync<ScheduledPoll>(OnScheduledPoll);
+        Command<ScheduledPoll>(OnScheduledPoll);
         Command<HashResult>(OnHashResult);
         Command<FetchFailed>(OnFetchFailed);
         Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
@@ -240,14 +240,13 @@ public sealed class SchedulerActor : ReceivePersistentActor
         }
     }
 
-    private async Task OnScheduledPoll(ScheduledPoll poll)
+    private void OnScheduledPoll(ScheduledPoll poll)
     {
         var target = CreateTarget(poll);
         if (target is null)
             return;
 
-        await _queue!.OfferAsync(target);
-        _logger.LogDebug("Offered poll target {Location}/{Model}", poll.Location, poll.ModelId);
+        _queue!.OfferAsync(target);
     }
 
     private WeightedTarget? CreateTarget(ScheduledPoll poll)

@@ -477,19 +477,19 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
         {
             Command<PipelineSinkResponse>(_ => { });
             Command<PipelineSourceResponse>(_ => { });
-            CommandAsync<ScheduledPoll>(OnScheduledPoll);
+            Command<ScheduledPoll>(OnScheduledPoll);
             Command<HashResult>(OnHashResult);
             Command<FetchFailed>(OnFetchFailed);
             Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
         }
 
-        private async Task OnScheduledPoll(ScheduledPoll poll)
+        private void OnScheduledPoll(ScheduledPoll poll)
         {
             var target = CreateTarget(poll);
             if (target is null)
                 return;
 
-            await _queue!.OfferAsync(target);
+            _queue!.OfferAsync(target);
         }
 
         private WeightedTarget? CreateTarget(ScheduledPoll poll)
