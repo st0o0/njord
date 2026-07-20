@@ -3,9 +3,10 @@ using Akka;
 using Akka.Actor;
 using Akka.Hosting;
 using Akka.Persistence;
-using Akka.Persistence.TestKit;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
@@ -19,18 +20,22 @@ using Servus.Akka;
 
 namespace Njord.Tests.Pipeline;
 
-public sealed class PipelineConnectionSpec : PersistenceTestKit
+public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
 {
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestPersistence();
+    }
+
     [Fact(Timeout = 10000)]
     public async Task Persistent_scheduler_connects_and_offers_through_full_pipeline()
     {
         var offered = new TaskCompletionSource<int>();
-        var registry = ActorRegistry.For(Sys);
 
         var pipeline = Sys.ActorOf(
             Props.Create(() => new ProductionLikePipelineActor(offered)),
             "pipeline");
-        registry.Register<PipelineActor>(pipeline, overwrite: true);
+        ActorRegistry.Register<PipelineActor>(pipeline, overwrite: true);
 
         var scheduler = Sys.ActorOf(
             Props.Create(() => new ProductionLikeSchedulerActor($"sched-{Guid.NewGuid():N}")),
@@ -44,7 +49,6 @@ public sealed class PipelineConnectionSpec : PersistenceTestKit
     public async Task Real_scheduler_and_pipeline_actors_connect_and_poll()
     {
         var fetchCalled = new TaskCompletionSource<string>();
-        var registry = ActorRegistry.For(Sys);
 
         var options = new NjordOptions
         {
@@ -63,12 +67,12 @@ public sealed class PipelineConnectionSpec : PersistenceTestKit
         // Register SchedulerActor placeholder FIRST (PipelineActor.MaterializePipeline
         // needs GetActor<SchedulerActor> for the inline feedback consumer)
         var schedulerPlaceholder = Sys.ActorOf(Props.Create(() => new BlackholeActor()), "sched-placeholder");
-        registry.Register<SchedulerActor>(schedulerPlaceholder, overwrite: true);
+        ActorRegistry.Register<SchedulerActor>(schedulerPlaceholder, overwrite: true);
 
         var pipeline = Sys.ActorOf(
             Props.Create(() => new PipelineActor(client, time, gate, NullLogger<PipelineActor>())),
             "real-pipeline");
-        registry.Register<PipelineActor>(pipeline, overwrite: true);
+        ActorRegistry.Register<PipelineActor>(pipeline, overwrite: true);
 
         // Simulate other actors requesting SourceRefs (like ModelStateActor, EnrichmentActor)
         for (var i = 0; i < 3; i++)
@@ -82,7 +86,7 @@ public sealed class PipelineConnectionSpec : PersistenceTestKit
             Props.Create(() => new SchedulerActor(
                 Options.Create(options), time, NullLogger<SchedulerActor>(), parameters, health)),
             "real-scheduler");
-        registry.Register<SchedulerActor>(scheduler, overwrite: true);
+        ActorRegistry.Register<SchedulerActor>(scheduler, overwrite: true);
 
         var location = await fetchCalled.Task.WaitAsync(TimeSpan.FromSeconds(8));
         Assert.Equal("test", location);
@@ -94,8 +98,6 @@ public sealed class PipelineConnectionSpec : PersistenceTestKit
         var fetchTimestamps = new System.Collections.Concurrent.ConcurrentBag<long>();
         var allFetched = new TaskCompletionSource();
         var expectedCount = 8;
-
-        var registry = ActorRegistry.For(Sys);
 
         var options = new NjordOptions
         {
@@ -114,18 +116,18 @@ public sealed class PipelineConnectionSpec : PersistenceTestKit
         var health = new NjordHealthState { ServiceStartedUtc = time.GetUtcNow() };
 
         var schedulerPlaceholder = Sys.ActorOf(Props.Create(() => new BlackholeActor()), "sched-ph");
-        registry.Register<SchedulerActor>(schedulerPlaceholder, overwrite: true);
+        ActorRegistry.Register<SchedulerActor>(schedulerPlaceholder, overwrite: true);
 
         var pipeline = Sys.ActorOf(
             Props.Create(() => new PipelineActor(client, time, gate, NullLogger<PipelineActor>())),
             "timing-pipeline");
-        registry.Register<PipelineActor>(pipeline, overwrite: true);
+        ActorRegistry.Register<PipelineActor>(pipeline, overwrite: true);
 
         var scheduler = Sys.ActorOf(
             Props.Create(() => new SchedulerActor(
                 Options.Create(options), time, NullLogger<SchedulerActor>(), parameters, health)),
             "timing-scheduler");
-        registry.Register<SchedulerActor>(scheduler, overwrite: true);
+        ActorRegistry.Register<SchedulerActor>(scheduler, overwrite: true);
 
         await allFetched.Task.WaitAsync(TimeSpan.FromSeconds(8));
 

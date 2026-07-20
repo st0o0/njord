@@ -13,11 +13,19 @@ using Njord.Pipeline;
 namespace Njord.Tests.Enrichment;
 
 [Collection("EnrichmentActor")]
-public sealed class EnrichmentActorSpec : IDisposable
+public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
 {
-    private readonly ActorSystem _system = ActorSystem.Create("enrichment-spec");
-
-    public void Dispose() => _system.Dispose();
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.WithActors((system, registry) =>
+        {
+            var mat = system.Materializer();
+            var fakePipeline = system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
+            var fakeEgress = system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
+            registry.Register<PipelineActor>(fakePipeline);
+            registry.Register<EgressActor>(fakeEgress);
+        });
+    }
 
     private static NjordOptions DefaultOptions() => new()
     {
@@ -36,7 +44,7 @@ public sealed class EnrichmentActorSpec : IDisposable
 
         IEnumerable<IEnrichmentFeature> features = [];
 
-        return _system.ActorOf(Props.Create(() => new EnrichmentActor(
+        return Sys.ActorOf(Props.Create(() => new EnrichmentActor(
             optionsWrapped,
             features,
             NullLogger<EnrichmentActor>.Instance)));
@@ -51,14 +59,6 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Requests_source_ref_from_pipeline_actor_on_startup()
     {
-        var registry = ActorRegistry.For(_system);
-        var mat = _system.Materializer();
-
-        var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
-        var fakeEgress = _system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-
         var actor = CreateEnrichmentActor();
 
         await AssertActorAlive(actor);
@@ -67,14 +67,6 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Disabled_consensus_does_not_crash()
     {
-        var registry = ActorRegistry.For(_system);
-        var mat = _system.Materializer();
-
-        var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
-        var fakeEgress = _system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-
         var enrichment = new EnrichmentOptions { Consensus = new ConsensusOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
@@ -84,14 +76,6 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Disabled_derived_does_not_crash()
     {
-        var registry = ActorRegistry.For(_system);
-        var mat = _system.Materializer();
-
-        var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
-        var fakeEgress = _system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-
         var enrichment = new EnrichmentOptions { Derived = new DerivedOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
@@ -101,14 +85,6 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task All_consumers_enabled_does_not_crash()
     {
-        var registry = ActorRegistry.For(_system);
-        var mat = _system.Materializer();
-
-        var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
-        var fakeEgress = _system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-
         var enrichment = new EnrichmentOptions
         {
             Consensus = new ConsensusOptions { Enabled = true },
@@ -123,14 +99,6 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Disabled_trends_does_not_crash()
     {
-        var registry = ActorRegistry.For(_system);
-        var mat = _system.Materializer();
-
-        var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
-        var fakeEgress = _system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-
         var enrichment = new EnrichmentOptions { Trends = new TrendOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
@@ -140,14 +108,6 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Disabled_history_does_not_crash()
     {
-        var registry = ActorRegistry.For(_system);
-        var mat = _system.Materializer();
-
-        var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
-        var fakeEgress = _system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-
         var enrichment = new EnrichmentOptions { History = new HistoryOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
@@ -157,14 +117,6 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Disabled_energy_does_not_crash()
     {
-        var registry = ActorRegistry.For(_system);
-        var mat = _system.Materializer();
-
-        var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
-        var fakeEgress = _system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-
         var enrichment = new EnrichmentOptions { Energy = new EnergyOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
@@ -174,14 +126,6 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Disabled_indices_does_not_crash()
     {
-        var registry = ActorRegistry.For(_system);
-        var mat = _system.Materializer();
-
-        var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
-        var fakeEgress = _system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-
         var enrichment = new EnrichmentOptions { Indices = new IndexOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
@@ -191,14 +135,6 @@ public sealed class EnrichmentActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Enabled_trends_does_not_crash()
     {
-        var registry = ActorRegistry.For(_system);
-        var mat = _system.Materializer();
-
-        var fakePipeline = _system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
-        var fakeEgress = _system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-
         var enrichment = new EnrichmentOptions { Trends = new TrendOptions { Enabled = true } };
         var actor = CreateEnrichmentActor(enrichment);
 

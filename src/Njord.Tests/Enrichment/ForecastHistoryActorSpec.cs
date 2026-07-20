@@ -1,5 +1,7 @@
 using Akka.Actor;
-using Akka.Persistence.TestKit;
+using Akka.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Enrichment;
@@ -7,13 +9,18 @@ using Njord.Tests.Shared;
 
 namespace Njord.Tests.Enrichment;
 
-public sealed class ForecastHistoryActorSpec : PersistenceTestKit
+public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
 {
     private static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
 
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(
         ["Weather"], [], []);
+
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestPersistence();
+    }
 
     private static ModelSnapshot MakeSnapshot()
     {
@@ -45,13 +52,7 @@ public sealed class ForecastHistoryActorSpec : PersistenceTestKit
 
         actor.Tell(new RecordSnapshot(MakeSnapshot()));
 
-        await AsyncAssert.WaitUntil(async () =>
-        {
-            var r = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(1));
-            return r.History.Records.Count > 0;
-        });
-
-        var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(2));
+        var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(3));
         Assert.Single(response.History.Records);
         Assert.Equal("lucerne", response.History.Records[0].Location);
     }
@@ -65,13 +66,7 @@ public sealed class ForecastHistoryActorSpec : PersistenceTestKit
         for (var i = 0; i < 5; i++)
             actor.Tell(new RecordSnapshot(MakeSnapshot()));
 
-        await AsyncAssert.WaitUntil(async () =>
-        {
-            var r = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(1));
-            return r.History.Records.Count >= 5;
-        });
-
-        var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(2));
+        var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(3));
         Assert.Equal(5, response.History.Records.Count);
     }
 }

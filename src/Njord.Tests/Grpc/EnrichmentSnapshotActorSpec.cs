@@ -1,19 +1,22 @@
 using Akka.Actor;
+using Akka.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Njord.Domain.Analysis;
 using Njord.Grpc;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Grpc;
 
-public sealed class EnrichmentSnapshotActorSpec : IDisposable
+public sealed class EnrichmentSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
 {
-    private readonly ActorSystem _system = ActorSystem.Create("enrichment-snapshot-spec",
-        "akka.persistence.snapshot-store.plugin = \"akka.persistence.snapshot-store.inmem\"" +
-        "\nakka.persistence.journal.plugin = \"akka.persistence.journal.inmem\"");
-
-    public void Dispose() => _system.Dispose();
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestPersistence();
+    }
 
     private IActorRef CreateActor() =>
-        _system.ActorOf(Props.Create(() => new EnrichmentSnapshotActor()));
+        Sys.ActorOf(Props.Create(() => new EnrichmentSnapshotActor()));
 
     [Fact(Timeout = 5000)]
     public async Task Update_and_retrieve_an_enrichment()

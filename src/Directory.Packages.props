@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Akka.Logger.Serilog" Version="1.5.69" />
+    <PackageVersion Include="Akka.Persistence.Hosting" Version="1.5.70" />
     <PackageVersion Include="Akka.Persistence.TestKit.Xunit" Version="1.5.70" />
     <PackageVersion Include="Google.Protobuf" Version="3.34.1" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.80.0" />
@@ -32,7 +33,9 @@
     <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
   </ItemGroup>
   <ItemGroup Label="Testing">
+    <PackageVersion Include="Akka.Hosting.TestKit" Version="1.5.70" />
     <PackageVersion Include="Akka.Persistence.TestKit" Version="1.5.70" />
+    <PackageVersion Include="Akka.TestKit.Xunit" Version="1.5.70" />
     <PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.2" />
     <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.9.0" />

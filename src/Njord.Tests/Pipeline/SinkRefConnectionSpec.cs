@@ -2,18 +2,24 @@ using Akka;
 using Akka.Actor;
 using Akka.Hosting;
 using Akka.Persistence;
-using Akka.Persistence.TestKit;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 using Servus.Akka;
 
 namespace Njord.Tests.Pipeline;
 
-public sealed class SinkRefConnectionSpec : PersistenceTestKit
+public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
 {
     private IMaterializer Mat => Sys.Materializer();
+
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestPersistence();
+    }
 
     [Fact(Timeout = 5000)]
     public async Task OfferAsync_completes_through_sinkref_to_mergehub_with_broadcasthub()
@@ -318,8 +324,7 @@ public sealed class SinkRefConnectionSpec : PersistenceTestKit
         var pipeline = Sys.ActorOf(Props.Create(() =>
             new FakePipelineWithFullGraph(Mat, received)));
 
-        var registry = ActorRegistry.For(Sys);
-        registry.Register<PipelineActor>(pipeline, overwrite: true);
+        ActorRegistry.Register<PipelineActor>(pipeline, overwrite: true);
 
         var consumer = Sys.ActorOf(Props.Create(() =>
             new PersistentConsumerActor($"consumer-{Guid.NewGuid():N}")));
@@ -337,20 +342,19 @@ public sealed class SinkRefConnectionSpec : PersistenceTestKit
         var pipeline = Sys.ActorOf(Props.Create(() =>
             new FakePipelineWithFullGraph(Mat, received)));
 
-        var registry = ActorRegistry.For(Sys);
-        registry.Register<PipelineActor>(pipeline, overwrite: true);
+        ActorRegistry.Register<PipelineActor>(pipeline, overwrite: true);
 
         var first = Sys.ActorOf(Props.Create(() =>
             new PersistentConsumerActor(persistenceId)));
 
-        await AsyncAssert.WaitUntil(() => received.Task.IsCompleted);
+        await received.Task.WaitAsync(TimeSpan.FromSeconds(3));
         received = new TaskCompletionSource<int>();
 
         await first.GracefulStop(TimeSpan.FromSeconds(2));
 
         var pipeline2 = Sys.ActorOf(Props.Create(() =>
             new FakePipelineWithFullGraph(Mat, received)));
-        registry.Register<PipelineActor>(pipeline2, overwrite: true);
+        ActorRegistry.Register<PipelineActor>(pipeline2, overwrite: true);
 
         var second = Sys.ActorOf(Props.Create(() =>
             new PersistentConsumerActor(persistenceId)));

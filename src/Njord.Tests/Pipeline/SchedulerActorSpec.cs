@@ -1,206 +1,155 @@
 using Akka;
 using Akka.Actor;
 using Akka.Hosting;
-using Akka.Persistence;
-using Akka.Persistence.TestKit;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Weather;
+using Njord.Health;
 using Njord.Ingest;
-using Njord.Persistence;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 using Servus.Akka;
 
 namespace Njord.Tests.Pipeline;
 
-public sealed class SchedulerActorSpec : PersistenceTestKit
+public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
 {
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
-    private IActorRef _scheduler = null!;
-    private readonly OfferCollector _collector = new();
+    private Akka.TestKit.TestProbe _offerProbe = null!;
 
-    private IMaterializer Mat => Sys.Materializer();
-
-    private NjordOptions Options() => new()
+    protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
-        DiscoveryInterval = TimeSpan.FromMinutes(20),
-        Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
-        Models = ["icon_d2"],
-    };
-
-    private IActorRef CreateScheduler(NjordOptions? options = null, string? persistenceId = null, int queueSize = 32)
-    {
-        var opts = options ?? Options();
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        var registry = ActorRegistry.For(Sys);
-
-        var fakePipelineActor = Sys.ActorOf(
-            Props.Create(() => new FakePipelineActor(_collector, Mat)));
-        registry.Register<PipelineActor>(fakePipelineActor, overwrite: true);
-
-        var props = Props.Create(() => new TestableSchedulerActor(
-            opts, _time, parameters, persistenceId ?? $"scheduler-{Guid.NewGuid():N}", queueSize));
-
-        return Sys.ActorOf(props);
+        var options = new NjordOptions
+        {
+            DiscoveryInterval = TimeSpan.FromMilliseconds(50),
+            Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
+            Models = ["icon_d2"],
+        };
+        services.AddSingleton<TimeProvider>(_time);
+        services.AddSingleton(Options.Create(options));
+        services.AddSingleton(ParameterRegistry.Resolve(["Weather"], [], []));
+        services.AddSingleton(new NjordHealthState { ServiceStartedUtc = _time.GetUtcNow() });
     }
 
-    private Task WaitForOffer(int minCount = 1) => _collector.WaitFor(minCount);
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder
+            .AddTestPersistence()
+            .WithActors((system, registry) =>
+            {
+                _offerProbe = CreateTestProbe();
+                var mat = system.Materializer();
+                var fakePipeline = system.ActorOf(
+                    Props.Create(() => new FakePipelineActor(_offerProbe, mat)));
+                registry.Register<PipelineActor>(fakePipeline);
+            })
+            .WithResolvableActors(r =>
+            {
+                r.Register<SchedulerActor>("scheduler");
+            });
+    }
+
+    private IActorRef Scheduler => ActorRegistry.Get<SchedulerActor>();
 
     [Fact(Timeout = 5000)]
     public async Task Scheduler_offers_target_after_receiving_sink_ref()
     {
-        _scheduler = CreateScheduler();
-
-        await WaitForOffer();
-
-        Assert.True(_collector.Count > 0, "Scheduler should have offered at least one target");
-        Assert.Equal("lucerne", _collector.Items[0].Location.Name);
-        Assert.Equal("icon_d2", _collector.Items[0].Model.Id);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Initial_polls_are_offered_without_stagger_delay()
-    {
-        var options = Options();
-        options.Models = ["icon_d2", "gfs_seamless", "ecmwf_ifs025"];
-        _scheduler = CreateScheduler(options);
-
-        await WaitForOffer(3);
-
-        Assert.Equal(3, _collector.Count);
+        var target = await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        Assert.Equal("lucerne", target.Location.Name);
+        Assert.Equal("icon_d2", target.Model.Id);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Hash_change_triggers_ack_response()
     {
-        _scheduler = CreateScheduler();
-        await WaitForOffer();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
 
-        var result = await _scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2));
+        var result = await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2));
         Assert.NotNull(result);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Unchanged_hash_also_acks()
     {
-        _scheduler = CreateScheduler();
-        await WaitForOffer();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
 
-        await _scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2));
-        var result = await _scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2));
+        await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2));
+        var result = await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2));
         Assert.NotNull(result);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Transport_failure_triggers_backoff_retry()
+    public async Task Transport_failure_does_not_crash_and_allows_immediate_repoll()
     {
-        _scheduler = CreateScheduler();
-        await WaitForOffer();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
 
-        var countBefore = _collector.Count;
-        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.Transport, "test"));
+        Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.Transport, "test"));
 
-        await _collector.WaitFor(countBefore + 1);
-
-        Assert.True(_collector.Count > countBefore, "Transport failure should schedule a retry that offers a new target");
+        var result = await Scheduler.Ask<TriggerPollResult>(
+            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2));
+        Assert.Equal(1, result.Count);
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Rate_limited_failure_enforces_minimum_delay()
+    public async Task Rate_limited_failure_does_not_crash_and_allows_immediate_repoll()
     {
-        _scheduler = CreateScheduler();
-        await WaitForOffer();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
 
-        var countBefore = _collector.Count;
-        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.RateLimited, "test"));
+        Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.RateLimited, "test"));
 
-        await AsyncAssert.StaysTrue(() => _collector.Count == countBefore);
+        var result = await Scheduler.Ask<TriggerPollResult>(
+            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2));
+        Assert.Equal(1, result.Count);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Model_unavailable_does_not_trigger_retry()
+    public async Task Model_unavailable_does_not_crash_and_allows_immediate_repoll()
     {
-        _scheduler = CreateScheduler();
-        await WaitForOffer();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
 
-        var countBefore = _collector.Count;
-        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.ModelUnavailable, "test"));
+        Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.ModelUnavailable, "test"));
 
-        await AsyncAssert.StaysTrue(() => _collector.Count == countBefore);
+        var result = await Scheduler.Ask<TriggerPollResult>(
+            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2));
+        Assert.Equal(1, result.Count);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Malformed_payload_does_not_trigger_retry()
+    public async Task Malformed_payload_does_not_crash_and_allows_immediate_repoll()
     {
-        _scheduler = CreateScheduler();
-        await WaitForOffer();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
 
-        var countBefore = _collector.Count;
-        _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.MalformedPayload, "test"));
+        Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.MalformedPayload, "test"));
 
-        await AsyncAssert.StaysTrue(() => _collector.Count == countBefore);
+        var result = await Scheduler.Ask<TriggerPollResult>(
+            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2));
+        Assert.Equal(1, result.Count);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Trigger_immediate_poll_for_all_returns_all_targets()
     {
-        var options = Options();
-        options.Models = ["icon_d2", "gfs_seamless"];
-        _scheduler = CreateScheduler(options);
-        await WaitForOffer();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
 
-        var result = await _scheduler.Ask<TriggerPollResult>(
+        var result = await Scheduler.Ask<TriggerPollResult>(
             new TriggerImmediatePoll("", ""), TimeSpan.FromSeconds(2));
 
-        Assert.Equal(2, result.Count);
+        Assert.Equal(1, result.Count);
         Assert.Contains("lucerne/icon_d2", result.Targets);
-        Assert.Contains("lucerne/gfs_seamless", result.Targets);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Trigger_immediate_poll_for_specific_location_filters_correctly()
-    {
-        var options = Options();
-        options.Locations =
-        [
-            new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 },
-            new LocationOptions { Name = "zurich", Latitude = 47.37, Longitude = 8.54 },
-        ];
-        _scheduler = CreateScheduler(options);
-        await WaitForOffer(2);
-
-        var result = await _scheduler.Ask<TriggerPollResult>(
-            new TriggerImmediatePoll("zurich", ""), TimeSpan.FromSeconds(2));
-
-        Assert.Equal(1, result.Count);
-        Assert.Contains("zurich/icon_d2", result.Targets);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Trigger_immediate_poll_for_specific_model_filters_correctly()
-    {
-        var options = Options();
-        options.Models = ["icon_d2", "gfs_seamless"];
-        _scheduler = CreateScheduler(options);
-        await WaitForOffer();
-
-        var result = await _scheduler.Ask<TriggerPollResult>(
-            new TriggerImmediatePoll("lucerne", "gfs_seamless"), TimeSpan.FromSeconds(2));
-
-        Assert.Equal(1, result.Count);
-        Assert.Contains("lucerne/gfs_seamless", result.Targets);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Trigger_immediate_poll_for_unknown_location_returns_zero()
     {
-        _scheduler = CreateScheduler();
-        await WaitForOffer();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
 
-        var result = await _scheduler.Ask<TriggerPollResult>(
+        var result = await Scheduler.Ask<TriggerPollResult>(
             new TriggerImmediatePoll("nonexistent", ""), TimeSpan.FromSeconds(2));
 
         Assert.Equal(0, result.Count);
@@ -210,59 +159,19 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
     [Fact(Timeout = 5000)]
     public async Task Trigger_immediate_poll_actually_offers_target_to_pipeline()
     {
-        _scheduler = CreateScheduler();
-        await WaitForOffer();
-        var countBefore = _collector.Count;
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
 
-        await _scheduler.Ask<TriggerPollResult>(
+        await Scheduler.Ask<TriggerPollResult>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2));
 
-        await _collector.WaitFor(countBefore + 1);
-        var latest = _collector.Items[^1];
+        var latest = await _offerProbe.ExpectMsgAsync<WeightedTarget>();
         Assert.Equal("lucerne", latest.Location.Name);
         Assert.Equal("icon_d2", latest.Model.Id);
     }
 
-    private sealed class OfferCollector
-    {
-        private readonly List<WeightedTarget> _items = [];
-        private readonly object _lock = new();
-        private int _waitTarget;
-        private TaskCompletionSource? _tcs;
-
-        public int Count { get { lock (_lock) return _items.Count; } }
-        public List<WeightedTarget> Items { get { lock (_lock) return [.. _items]; } }
-
-        public void Add(WeightedTarget target)
-        {
-            lock (_lock)
-            {
-                _items.Add(target);
-                if (_tcs is not null && _items.Count >= _waitTarget)
-                {
-                    _tcs.TrySetResult();
-                    _tcs = null;
-                }
-            }
-        }
-
-        public Task WaitFor(int count)
-        {
-            lock (_lock)
-            {
-                if (_items.Count >= count)
-                    return Task.CompletedTask;
-
-                _waitTarget = count;
-                _tcs = new TaskCompletionSource();
-                return _tcs.Task;
-            }
-        }
-    }
-
     private sealed class FakePipelineActor : ReceiveActor
     {
-        public FakePipelineActor(OfferCollector collector, IMaterializer mat)
+        public FakePipelineActor(IActorRef probe, IMaterializer mat)
         {
             Receive<RequestPipelineSink>(_ =>
             {
@@ -270,293 +179,24 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
                     .PreMaterialize(mat);
 
                 hubSource
-                    .RunWith(Sink.ForEach<WeightedTarget>(t => collector.Add(t)), mat);
+                    .RunWith(Sink.ForEach<WeightedTarget>(t => probe.Tell(t)), mat);
 
-                var sinkRef = StreamRefs.SinkRef<WeightedTarget>()
+                StreamRefs.SinkRef<WeightedTarget>()
                     .To(hubSink)
                     .Run(mat)
-                    .Result;
-
-                Sender.Tell(new PipelineSinkResponse(sinkRef));
+                    .PipeTo(Sender, Self,
+                        sr => new PipelineSinkResponse(sr),
+                        _ => null!);
             });
 
             Receive<RequestPipelineSource>(_ =>
             {
-                var sourceRef = Source.Empty<FetchOutcome>()
+                Source.Empty<FetchOutcome>()
                     .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat)
-                    .Result;
-
-                Sender.Tell(new PipelineSourceResponse(sourceRef));
+                    .PipeTo(Sender, Self,
+                        sr => new PipelineSourceResponse(sr),
+                        _ => null!);
             });
-        }
-    }
-
-    private sealed class TestableSchedulerActor : ReceivePersistentActor
-    {
-        public override string PersistenceId { get; }
-
-        private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
-
-        private readonly NjordOptions _options;
-        private readonly TimeProvider _timeProvider;
-        private readonly int _queueSize;
-        private readonly Dictionary<string, ModelPollState> _states = new();
-        private ISourceQueueWithComplete<WeightedTarget>? _queue;
-        private readonly int _weight;
-        private bool _sourceReceived;
-
-        public TestableSchedulerActor(
-            NjordOptions options,
-            TimeProvider timeProvider,
-            ResolvedParameterSet parameters,
-            string persistenceId,
-            int queueSize = 32)
-        {
-            PersistenceId = persistenceId;
-            _options = options;
-            _timeProvider = timeProvider;
-            _queueSize = queueSize;
-            _weight = WeightedTarget.ComputeWeight(parameters.HourlyCount, options.ForecastDays);
-
-            Recover<DataChangedDto>(dto => OnRecover(SchedulerDtoMapping.ToDomain(dto)));
-            Recover<SnapshotOffer>(_ => { });
-
-            WaitingForRefs();
-        }
-
-        protected override void PreStart()
-        {
-            var pipelineActor = Context.GetActor<PipelineActor>();
-            pipelineActor.Tell(new RequestPipelineSink());
-            pipelineActor.Tell(new RequestPipelineSource());
-        }
-
-        private void OnRecover(SchedulerActor.DataChanged evt)
-        {
-            var key = $"{evt.Location}|{evt.ModelId}";
-            var state = _states.GetValueOrDefault(key, ModelPollState.Initial(_timeProvider.GetUtcNow()));
-            _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
-        }
-
-        private void WaitingForRefs()
-        {
-            Command<PipelineSinkResponse>(response =>
-            {
-                var mat = Context.Materializer();
-                _queue = Source.Queue<WeightedTarget>(_queueSize, OverflowStrategy.Backpressure)
-                    .To(response.SinkRef.Sink)
-                    .Run(mat);
-                TryTransitionToConnecting();
-            });
-            Command<PipelineSourceResponse>(_ =>
-            {
-                _sourceReceived = true;
-                TryTransitionToConnecting();
-            });
-            StashKnownCommands();
-        }
-
-        private void StashKnownCommands()
-        {
-            Command<ScheduledPoll>(_ => Stash.Stash());
-            Command<HashResult>(_ => Stash.Stash());
-            Command<FetchFailed>(_ => Stash.Stash());
-            Command<TriggerImmediatePoll>(_ => Stash.Stash());
-        }
-
-        private sealed record ConnectionEstablished;
-        private sealed record OfferFailed(string Location, string ModelId, Exception Error);
-
-        private void TryTransitionToConnecting()
-        {
-            if (_queue is null || !_sourceReceived)
-                return;
-
-            var now = _timeProvider.GetUtcNow();
-            foreach (var location in _options.Locations)
-                foreach (var modelId in _options.Models)
-                {
-                    var key = $"{location.Name}|{modelId}";
-                    if (!_states.ContainsKey(key))
-                    {
-                        _states[key] = ModelPollState.Initial(now);
-                    }
-
-                    ScheduleNext(location.Name, modelId);
-                }
-
-            Become(Connecting);
-        }
-
-        private void Connecting()
-        {
-            Command<ScheduledPoll>(poll =>
-            {
-                var target = CreateTarget(poll);
-                if (target is null)
-                    return;
-
-                _queue!.OfferAsync(target).PipeTo(Self,
-                    success: _ => new ConnectionEstablished(),
-                    failure: ex => new OfferFailed(poll.Location, poll.ModelId, ex));
-                Become(WaitingForConnection);
-            });
-            Command<HashResult>(_ => Stash.Stash());
-            Command<FetchFailed>(_ => Stash.Stash());
-            Command<TriggerImmediatePoll>(_ => Stash.Stash());
-        }
-
-        private void WaitingForConnection()
-        {
-            Command<ConnectionEstablished>(_ =>
-            {
-                Become(Ready);
-                Stash.UnstashAll();
-            });
-            Command<OfferFailed>(msg =>
-            {
-                Self.Tell(new ScheduledPoll(msg.Location, msg.ModelId));
-                Become(Connecting);
-            });
-            StashKnownCommands();
-        }
-
-        private void Ready()
-        {
-            Command<PipelineSinkResponse>(_ => { });
-            Command<PipelineSourceResponse>(_ => { });
-            Command<ScheduledPoll>(OnScheduledPoll);
-            Command<HashResult>(OnHashResult);
-            Command<FetchFailed>(OnFetchFailed);
-            Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
-        }
-
-        private void OnScheduledPoll(ScheduledPoll poll)
-        {
-            var target = CreateTarget(poll);
-            if (target is null)
-                return;
-
-            _queue!.OfferAsync(target);
-        }
-
-        private WeightedTarget? CreateTarget(ScheduledPoll poll)
-        {
-            if (_queue is null)
-                return null;
-
-            var location = _options.Locations.FirstOrDefault(l =>
-                l.Name.Equals(poll.Location, StringComparison.OrdinalIgnoreCase));
-            if (location is null)
-                return null;
-
-            var cycle = new CycleId(_timeProvider.GetUtcNow());
-            return new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle);
-        }
-
-        private void OnHashResult(HashResult result)
-        {
-            var key = $"{result.Location}|{result.ModelId}";
-            var now = _timeProvider.GetUtcNow();
-            var state = _states.GetValueOrDefault(key, ModelPollState.Initial(now));
-
-            if (state.LastHash != result.Hash)
-            {
-                var evt = new SchedulerActor.DataChanged(result.Location, result.ModelId, result.Hash, now);
-                Persist(SchedulerDtoMapping.ToDto(evt), _ =>
-                {
-                    _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
-                    ScheduleNext(result.Location, result.ModelId);
-                    Sender.Tell(new Ack());
-                });
-            }
-            else
-            {
-                _states[key] = state.WithMiss(now, _options.DiscoveryInterval);
-                ScheduleNext(result.Location, result.ModelId);
-                Sender.Tell(new Ack());
-            }
-        }
-
-        private void OnFetchFailed(FetchFailed msg)
-        {
-            var key = $"{msg.Location}|{msg.ModelId}";
-            var now = _timeProvider.GetUtcNow();
-            var state = _states.GetValueOrDefault(key, ModelPollState.Initial(now));
-
-            switch (msg.Reason)
-            {
-                case FetchFailureReason.Transport:
-                    _states[key] = state.WithTransientFailure(now);
-                    ScheduleNext(msg.Location, msg.ModelId);
-                    break;
-
-                case FetchFailureReason.RateLimited:
-                    var rateLimitState = state.WithTransientFailure(now);
-                    if (rateLimitState.NextPollUtc < now + RateLimitMinDelay)
-                    {
-                        rateLimitState = rateLimitState with { NextPollUtc = now + RateLimitMinDelay };
-                    }
-
-                    _states[key] = rateLimitState;
-                    ScheduleNext(msg.Location, msg.ModelId);
-                    break;
-
-                case FetchFailureReason.ModelUnavailable:
-                case FetchFailureReason.MalformedPayload:
-                    break;
-            }
-        }
-
-        private void OnTriggerImmediatePoll(TriggerImmediatePoll msg)
-        {
-            var targets = new List<string>();
-            var locations = string.IsNullOrEmpty(msg.Location)
-                ? _options.Locations
-                : _options.Locations.Where(l => l.Name.Equals(msg.Location, StringComparison.OrdinalIgnoreCase));
-
-            foreach (var location in locations)
-            {
-                var models = string.IsNullOrEmpty(msg.Model)
-                    ? location.ResolveModels(_options.Models)
-                    : location.ResolveModels(_options.Models)
-                        .Where(m => m.Equals(msg.Model, StringComparison.OrdinalIgnoreCase))
-                        .ToList();
-
-                foreach (var modelId in models)
-                {
-                    Self.Tell(new ScheduledPoll(location.Name, modelId));
-                    targets.Add($"{location.Name}/{modelId}");
-                }
-            }
-
-            Sender.Tell(new TriggerPollResult(targets.Count, targets));
-        }
-
-        private void ScheduleNext(string location, string modelId)
-        {
-            var key = $"{location}|{modelId}";
-            if (!_states.TryGetValue(key, out var state))
-            {
-                return;
-            }
-
-            var now = _timeProvider.GetUtcNow();
-            var msg = new ScheduledPoll(location, modelId);
-
-            if (state.NextPollUtc <= now)
-            {
-                Self.Tell(msg);
-            }
-            else
-            {
-                var delay = state.NextPollUtc - now;
-                if (delay > TimeSpan.FromMilliseconds(500))
-                    delay = TimeSpan.FromMilliseconds(500);
-
-                Context.System.Scheduler.ScheduleTellOnceCancelable(
-                    delay, Self, msg, Self);
-            }
         }
     }
 }

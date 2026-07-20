@@ -1,14 +1,22 @@
-using Akka.Persistence.TestKit;
+using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Njord.Configuration;
 using Njord.Pipeline;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Pipeline;
 
-public sealed class BudgetThrottleStageSpec : PersistenceTestKit
+public sealed class BudgetThrottleStageSpec : Akka.Hosting.TestKit.TestKit
 {
     private IMaterializer Mat => Sys.Materializer();
+
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestPersistence();
+    }
 
     [Fact(Timeout = 5000)]
     public async Task Elements_pass_through_when_gate_allows_immediately()

@@ -10,12 +10,11 @@ using Njord.Grpc.V1;
 
 namespace Njord.Tests.Grpc;
 
-public sealed class ForecastGrpcServiceSpec : IDisposable
+public sealed class ForecastGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 {
-    private static readonly DateTimeOffset Now = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
-    private readonly ActorSystem _system = ActorSystem.Create("grpc-service-spec");
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
-    public void Dispose() => _system.Dispose();
+    private static readonly DateTimeOffset Anchor = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
 
     private static NjordOptions DefaultOptions() => new()
     {
@@ -29,7 +28,7 @@ public sealed class ForecastGrpcServiceSpec : IDisposable
         IActorRef? enrichmentActor = null)
     {
         options ??= DefaultOptions();
-        var registry = ActorRegistry.For(_system);
+        var registry = ActorRegistry;
 
         if (forecastActor is not null)
         {
@@ -38,7 +37,7 @@ public sealed class ForecastGrpcServiceSpec : IDisposable
         else
         {
             registry.Register<ForecastSnapshotActor>(
-                _system.ActorOf(Props.Create(() => new EmptyForecastActor())), overwrite: true);
+                Sys.ActorOf(Props.Create(() => new EmptyForecastActor())), overwrite: true);
         }
 
         if (enrichmentActor is not null)
@@ -48,11 +47,11 @@ public sealed class ForecastGrpcServiceSpec : IDisposable
         else
         {
             registry.Register<EnrichmentSnapshotActor>(
-                _system.ActorOf(Props.Create(() => new EmptyEnrichmentActor())), overwrite: true);
+                Sys.ActorOf(Props.Create(() => new EmptyEnrichmentActor())), overwrite: true);
         }
 
         return new ForecastGrpcService(
-            Microsoft.Extensions.Options.Options.Create(options), registry, _system);
+            Microsoft.Extensions.Options.Options.Create(options), registry, Sys);
     }
 
     [Fact(Timeout = 5000)]
@@ -93,7 +92,7 @@ public sealed class ForecastGrpcServiceSpec : IDisposable
     public async Task GetForecast_returns_data_from_snapshot_actor()
     {
         var forecast = CreateForecast();
-        var actor = _system.ActorOf(Props.Create(() => new FakeForecastActor(forecast)));
+        var actor = Sys.ActorOf(Props.Create(() => new FakeForecastActor(forecast)));
         var service = CreateService(forecastActor: actor);
 
         var response = await service.GetForecast(
@@ -122,7 +121,7 @@ public sealed class ForecastGrpcServiceSpec : IDisposable
     public async Task GetEnrichments_returns_data_from_snapshot_actor()
     {
         var indexResult = new IndexResult("lucerne", 80, 90, 70, 85, 95, 60, 12.5, 0.5, 88, 75, null, null);
-        var actor = _system.ActorOf(Props.Create(() => new FakeEnrichmentActor(indexResult)));
+        var actor = Sys.ActorOf(Props.Create(() => new FakeEnrichmentActor(indexResult)));
         var service = CreateService(enrichmentActor: actor);
 
         var response = await service.GetEnrichments(
@@ -152,9 +151,9 @@ public sealed class ForecastGrpcServiceSpec : IDisposable
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var points = new List<ForecastPoint>
         {
-            new(Now.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 }),
+            new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 }),
         };
-        return new ModelForecast(new WeatherModel("icon_d2"), "lucerne", new CycleId(Now),
+        return new ModelForecast(new WeatherModel("icon_d2"), "lucerne", new CycleId(Anchor),
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 

@@ -7,18 +7,17 @@ using Njord.Grpc.V1;
 
 namespace Njord.Tests.Grpc;
 
-public sealed class ConfigGrpcServiceSpec : IAsyncDisposable
+public sealed class ConfigGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 {
-    private readonly string _tempDir = Path.Combine(Path.GetTempPath(), $"njord-test-{Guid.NewGuid():N}");
-    private readonly ActorSystem _system = ActorSystem.Create("config-grpc-spec-" + Guid.NewGuid().ToString("N")[..8]);
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
-    public async ValueTask DisposeAsync()
+    private readonly string _tempDir = Path.Combine(Path.GetTempPath(), $"njord-test-{Guid.NewGuid():N}");
+
+    protected override async Task AfterAllAsync()
     {
-        await _system.Terminate();
+        await base.AfterAllAsync();
         if (Directory.Exists(_tempDir))
-        {
             Directory.Delete(_tempDir, recursive: true);
-        }
     }
 
     private sealed class MutableOptionsMonitor(NjordOptions value) : IOptionsMonitor<NjordOptions>
@@ -44,7 +43,7 @@ public sealed class ConfigGrpcServiceSpec : IAsyncDisposable
         monitor ??= new MutableOptionsMonitor(options);
         var persistence = new ConfigPersistence(_tempDir);
         var tracker = new BudgetTracker();
-        var registry = ActorRegistry.For(_system);
+        var registry = ActorRegistry;
         return new ConfigGrpcService(monitor, persistence, tracker, registry);
     }
 
