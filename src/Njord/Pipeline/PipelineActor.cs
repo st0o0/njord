@@ -57,20 +57,28 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     {
         Receive<RequestPipelineSink>(_ =>
         {
-            var sinkRef = StreamRefs.SinkRef<WeightedTarget>()
+            StreamRefs.SinkRef<WeightedTarget>()
                 .To(_mergeHubSink!)
-                .Run(_mat!);
-            sinkRef.PipeTo(Sender, Self,
-                sr => new PipelineSinkResponse(sr),
-                _ => null!);
+                .Run(_mat!)
+                .PipeTo(Sender, Self,
+                    sr => new PipelineSinkResponse(sr),
+                    ex =>
+                    {
+                        _logger.LogError(ex, "Failed to create SinkRef");
+                        return null!;
+                    });
         });
         Receive<RequestPipelineSource>(_ =>
         {
-            var sourceRef = _broadcastHubSource!
-                .RunWith(StreamRefs.SourceRef<FetchOutcome>(), _mat!);
-            sourceRef.PipeTo(Sender, Self,
-                sr => new PipelineSourceResponse(sr),
-                _ => null!);
+            _broadcastHubSource!
+                .RunWith(StreamRefs.SourceRef<FetchOutcome>(), _mat!)
+                .PipeTo(Sender, Self,
+                    sr => new PipelineSourceResponse(sr),
+                    ex =>
+                    {
+                        _logger.LogError(ex, "Failed to create SourceRef");
+                        return null!;
+                    });
         });
     }
 
@@ -82,7 +90,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         var (mergeHubSink, mergeHubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 16)
             .PreMaterialize(_mat);
 
-        var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<FetchOutcome>(bufferSize: 16)
+        var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<FetchOutcome>(bufferSize: 2)
             .PreMaterialize(_mat);
 
         mergeHubSource
@@ -93,6 +101,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                 return outcome;
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(_ => Akka.Streams.Supervision.Directive.Resume))
+            .Buffer(32, OverflowStrategy.Backpressure)
             .To(broadcastHubSink)
             .Run(_mat);
 

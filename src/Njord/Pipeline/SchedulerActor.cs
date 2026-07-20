@@ -7,6 +7,7 @@ using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Health;
 using Njord.Ingest;
+using Njord.Persistence;
 using Servus.Akka;
 
 namespace Njord.Pipeline;
@@ -15,7 +16,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 {
     public override string PersistenceId => "scheduler";
 
-    private readonly IMaterializer _mat = Context.Materializer();
+    private IMaterializer _mat = null!;
     private readonly NjordOptions _options;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<SchedulerActor> _logger;
@@ -23,8 +24,14 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private readonly Dictionary<string, ModelPollState> _states = new();
     private ISourceQueueWithComplete<WeightedTarget>? _queue;
     private readonly int _weight;
+    private bool _sourceReceived;
 
     public sealed record DataChanged(string Location, string ModelId, int Hash, DateTimeOffset Utc);
+
+    private sealed record ConnectionEstablished;
+    private sealed record OfferFailed(string Location, string ModelId, Exception Error);
+
+    private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
 
     public SchedulerActor(
         IOptions<NjordOptions> options,
@@ -39,21 +46,15 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _healthState = healthState;
         _weight = WeightedTarget.ComputeWeight(parameters.HourlyCount, _options.ForecastDays);
 
-        Recover<DataChanged>(OnRecover);
+        Recover<DataChangedDto>(dto => OnRecover(SchedulerDtoMapping.ToDomain(dto)));
         Recover<SnapshotOffer>(_ => { });
 
-        Command<PipelineSinkResponse>(OnSinkReceived);
-        Command<PipelineSourceResponse>(OnSourceReceived);
-        CommandAsync<ScheduledPoll>(OnScheduledPoll);
-        Command<HashResult>(OnHashResult);
-        Command<FetchFailed>(OnFetchFailed);
-        Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
+        WaitingForRefs();
     }
-
-    private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
 
     protected override void PreStart()
     {
+        _mat = Context.Materializer();
         var pipelineActor = Context.GetActor<PipelineActor>();
         Context.Watch(pipelineActor);
         pipelineActor.Tell(new RequestPipelineSink());
@@ -67,36 +68,105 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
     }
 
-    private void OnSinkReceived(PipelineSinkResponse response)
+    private void StashKnownCommands()
     {
-        _queue = Source.Queue<WeightedTarget>(32, OverflowStrategy.Backpressure)
-            .To(response.SinkRef.Sink)
-            .Run(_mat);
+        Command<ScheduledPoll>(_ => Stash.Stash());
+        Command<HashResult>(_ => Stash.Stash());
+        Command<FetchFailed>(_ => Stash.Stash());
+        Command<TriggerImmediatePoll>(_ => Stash.Stash());
+    }
 
-        _logger.LogInformation("Pipeline SinkRef received - scheduling initial polls");
+    private void WaitingForRefs()
+    {
+        Command<PipelineSinkResponse>(response =>
+        {
+            _queue = Source.Queue<WeightedTarget>(16, OverflowStrategy.Backpressure)
+                .To(response.SinkRef.Sink)
+                .Run(_mat);
+            _logger.LogInformation("Pipeline SinkRef received");
+            TryTransitionToConnecting();
+        });
+        Command<PipelineSourceResponse>(response =>
+        {
+            OnSourceReceived(response);
+            TryTransitionToConnecting();
+        });
+        Command<Terminated>(OnTerminated);
+        StashKnownCommands();
+    }
+
+    private void TryTransitionToConnecting()
+    {
+        if (_queue is null || !_sourceReceived)
+            return;
+
+        _logger.LogInformation("Pipeline refs received - connecting");
         InitializeStates();
-        Become(Ready);
-        Stash.UnstashAll();
+        Become(Connecting);
+    }
+
+    private void Connecting()
+    {
+        Command<ScheduledPoll>(poll =>
+        {
+            var target = CreateTarget(poll);
+            if (target is null)
+                return;
+
+            _queue!.OfferAsync(target).PipeTo(Self,
+                success: _ => new ConnectionEstablished(),
+                failure: ex => new OfferFailed(poll.Location, poll.ModelId, ex));
+            Become(WaitingForConnection);
+        });
+        Command<Terminated>(OnTerminated);
+        Command<HashResult>(_ => Stash.Stash());
+        Command<FetchFailed>(_ => Stash.Stash());
+        Command<TriggerImmediatePoll>(_ => Stash.Stash());
+    }
+
+    private void WaitingForConnection()
+    {
+        Command<ConnectionEstablished>(_ =>
+        {
+            _logger.LogInformation("Pipeline connection established - scheduling initial polls");
+            Become(Ready);
+            Stash.UnstashAll();
+        });
+        Command<OfferFailed>(msg =>
+        {
+            _logger.LogWarning("Initial offer failed for {Location}/{Model}: {Error} - retrying",
+                msg.Location, msg.ModelId, msg.Error.Message);
+            Self.Tell(new ScheduledPoll(msg.Location, msg.ModelId));
+            Become(Connecting);
+        });
+        Command<Terminated>(OnTerminated);
+        StashKnownCommands();
     }
 
     private void Ready()
     {
         Command<PipelineSinkResponse>(_ => { });
-        Command<PipelineSourceResponse>(OnSourceReceived);
-        CommandAsync<ScheduledPoll>(OnScheduledPoll);
+        Command<PipelineSourceResponse>(_ => { });
+        Command<ScheduledPoll>(OnScheduledPoll);
         Command<HashResult>(OnHashResult);
         Command<FetchFailed>(OnFetchFailed);
         Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
-        Command<Terminated>(_ =>
-        {
-            _logger.LogWarning("PipelineActor terminated - waiting for new SinkRef");
-            _queue?.Complete();
-            _queue = null;
-            var pipelineActor = Context.GetActor<PipelineActor>();
-            Context.Watch(pipelineActor);
-            pipelineActor.Tell(new RequestPipelineSink());
-            pipelineActor.Tell(new RequestPipelineSource());
-        });
+        Command<Terminated>(OnTerminated);
+    }
+
+    private void OnTerminated(Terminated msg)
+    {
+        _logger.LogWarning("PipelineActor terminated - waiting for new refs");
+        _queue?.Complete();
+        _queue = null;
+        _sourceReceived = false;
+
+        var pipelineActor = Context.GetActor<PipelineActor>();
+        Context.Watch(pipelineActor);
+        pipelineActor.Tell(new RequestPipelineSink());
+        pipelineActor.Tell(new RequestPipelineSource());
+
+        Become(WaitingForRefs);
     }
 
     private void InitializeStates()
@@ -128,6 +198,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
                 ex => new Status.Failure(ex)))
             .Run(_mat);
 
+        _sourceReceived = true;
         _logger.LogInformation("Pipeline SourceRef received - failure consumer connected");
     }
 
@@ -169,24 +240,27 @@ public sealed class SchedulerActor : ReceivePersistentActor
         }
     }
 
-    private async Task OnScheduledPoll(ScheduledPoll poll)
+    private void OnScheduledPoll(ScheduledPoll poll)
+    {
+        var target = CreateTarget(poll);
+        if (target is null)
+            return;
+
+        _queue!.OfferAsync(target);
+    }
+
+    private WeightedTarget? CreateTarget(ScheduledPoll poll)
     {
         if (_queue is null)
-        {
-            return;
-        }
+            return null;
 
         var location = _options.Locations.FirstOrDefault(l =>
             l.Name.Equals(poll.Location, StringComparison.OrdinalIgnoreCase));
         if (location is null)
-        {
-            return;
-        }
+            return null;
 
         var cycle = new CycleId(_timeProvider.GetUtcNow());
-        var target = new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle);
-        await _queue.OfferAsync(target);
-        _logger.LogDebug("Offered poll target {Location}/{Model}", poll.Location, poll.ModelId);
+        return new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle);
     }
 
     private void OnTriggerImmediatePoll(TriggerImmediatePoll msg)
@@ -224,9 +298,10 @@ public sealed class SchedulerActor : ReceivePersistentActor
         if (state.LastHash != result.Hash)
         {
             var evt = new DataChanged(result.Location, result.ModelId, result.Hash, now);
-            Persist(evt, persisted =>
+            var dto = SchedulerDtoMapping.ToDto(evt);
+            Persist(dto, _ =>
             {
-                _states[key] = state.WithDataChange(persisted.Hash, persisted.Utc, _options.DiscoveryInterval);
+                _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
                 _healthState.SetLastSuccessfulPoll(now);
                 _logger.LogInformation(
                     "Data changed for {Location}/{Model} - phase={Phase}, cycle={Cycle}",
@@ -256,12 +331,17 @@ public sealed class SchedulerActor : ReceivePersistentActor
         }
 
         var now = _timeProvider.GetUtcNow();
-        var delay = state.NextPollUtc <= now
-            ? TimeSpan.FromSeconds(1)
-            : state.NextPollUtc - now;
+        var msg = new ScheduledPoll(location, modelId);
 
-        Context.System.Scheduler.ScheduleTellOnceCancelable(
-            delay, Self, new ScheduledPoll(location, modelId), Self);
+        if (state.NextPollUtc <= now)
+        {
+            Self.Tell(msg);
+        }
+        else
+        {
+            Context.System.Scheduler.ScheduleTellOnceCancelable(
+                state.NextPollUtc - now, Self, msg, Self);
+        }
     }
 
     private static string Key(string location, string modelId) => $"{location}|{modelId}";

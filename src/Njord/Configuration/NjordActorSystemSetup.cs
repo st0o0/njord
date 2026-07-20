@@ -54,8 +54,8 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
             {
                 r.Register<EgressActor>("egress");
                 r.Register<ModelStateActor>("model-state");
-                r.Register<PipelineActor>("pipeline");
                 r.Register<SchedulerActor>("scheduler");
+                r.Register<PipelineActor>("pipeline");
                 r.Register<EnrichmentActor>("enrichment");
                 r.Register<ForecastSnapshotActor>("forecast-snapshot");
                 r.Register<EnrichmentSnapshotActor>("enrichment-snapshot");

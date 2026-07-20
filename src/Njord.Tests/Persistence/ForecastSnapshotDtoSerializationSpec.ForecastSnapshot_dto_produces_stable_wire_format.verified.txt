@@ -1,0 +1,19 @@
+﻿{
+  "v": 1,
+  "forecasts": {
+    "lucerne|icon_d2": {
+      "model": "icon_d2",
+      "loc": "lucerne",
+      "cycle": 639197136000000000,
+      "hourly": [
+        {
+          "at": 639197244000000000,
+          "vals": {
+            "temperature_2m": 28.8
+          }
+        }
+      ],
+      "daily": []
+    }
+  }
+}

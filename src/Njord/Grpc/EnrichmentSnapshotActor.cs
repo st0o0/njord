@@ -1,5 +1,6 @@
 using Akka.Event;
 using Akka.Persistence;
+using Njord.Persistence;
 
 namespace Njord.Grpc;
 
@@ -19,7 +20,7 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
         {
             if (offer.Snapshot is EnrichmentSnapshotDto saved)
             {
-                foreach (var kvp in SnapshotMapping.ToDomain(saved))
+                foreach (var kvp in EnrichmentSnapshotMapping.ToDomain(saved))
                     _state[kvp.Key] = kvp.Value;
             }
         });
@@ -32,7 +33,7 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
             _updatesSinceSnapshot++;
             if (_updatesSinceSnapshot >= SnapshotInterval)
             {
-                SaveSnapshot(SnapshotMapping.ToDto(_state));
+                SaveSnapshot(EnrichmentSnapshotMapping.ToDto(_state));
                 _updatesSinceSnapshot = 0;
             }
 

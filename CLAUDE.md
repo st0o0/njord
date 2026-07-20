@@ -114,6 +114,10 @@ MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
   method names.
 - C#: records for messages/DTOs, value objects in the domain, `sealed` by
   default, nullable enabled.
+- Persistence DTOs (`Njord.Persistence`): extend-only. Never remove or rename
+  a `[JsonProperty]` string. New properties must be nullable or have a default.
+  Increment `Version` when semantics change. Recovery code must handle all
+  versions ≥ 1.
 
 ## Workflow
 

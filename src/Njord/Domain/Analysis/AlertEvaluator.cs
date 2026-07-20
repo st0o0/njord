@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 
@@ -25,10 +26,15 @@ public enum AlertSeverity
 }
 
 public sealed record Alert(
-    AlertType Type,
-    AlertSeverity Severity,
-    double Confidence,
-    IReadOnlyDictionary<string, object?> Attributes)
+    [property: JsonProperty("type")] AlertType Type,
+    [property: JsonProperty("severity")] AlertSeverity Severity,
+    [property: JsonProperty("confidence")] double Confidence,
+    [property: JsonProperty("attributes")] IReadOnlyDictionary<string, object?> Attributes,
+    [property: JsonProperty("triggerValue")] double TriggerValue = 0.0,
+    [property: JsonProperty("threshold")] double Threshold = 0.0,
+    [property: JsonProperty("peakValue")] double? PeakValue = null,
+    [property: JsonProperty("hoursUntil")] int? HoursUntil = null,
+    [property: JsonProperty("durationHours")] int? DurationHours = null)
 {
     public static Alert None(AlertType type) =>
         new(type, AlertSeverity.None, 0.0, new Dictionary<string, object?>());
@@ -65,6 +71,9 @@ public static class AlertEvaluator
     private static readonly ParameterDef FreezingLevel = ParameterRegistry.FreezingLevelHeight;
     private static readonly ParameterDef PressureMsl = ParameterRegistry.PressureMsl;
     private static readonly ParameterDef Cape = ParameterRegistry.Cape;
+    private static readonly ParameterDef? DailyPrecipSum = ParameterRegistry.GetByApiName("precipitation_sum");
+    private static readonly ParameterDef? DailyUvMax = ParameterRegistry.GetByApiName("uv_index_max");
+    private static readonly ParameterDef? DailySnowfallSum = ParameterRegistry.GetByApiName("snowfall_sum");
 
     public static AlertResult EvaluateAll(
         ModelSnapshot snapshot, string location, AlertThresholdOptions options, TimeProvider timeProvider)
@@ -151,9 +160,16 @@ public static class AlertEvaluator
             ["models_agreeing"] = agreeing,
         };
 
+        var hoursUntil = earliestFrost.HasValue
+            ? (int?)Math.Max(0, (int)(earliestFrost.Value - now).TotalHours)
+            : null;
+
         return new Alert(AlertType.Frost,
             confidence > 0 ? AlertSeverity.Yellow : AlertSeverity.None,
-            Math.Round(confidence, 3), attrs);
+            Math.Round(confidence, 3), attrs,
+            TriggerValue: Math.Round(median, 1),
+            Threshold: threshold,
+            HoursUntil: hoursUntil);
     }
 
     public static Alert EvaluateHeat(
@@ -207,13 +223,21 @@ public static class AlertEvaluator
         else if (yellowCount > 0) { severity = AlertSeverity.Yellow; confidence = (double)yellowCount / maxima.Count; }
         else { return Alert.None(AlertType.Heat); }
 
+        var medianMax = Math.Round(Median(maxima), 1);
+        var effectiveThreshold = severity == AlertSeverity.Red ? thresholds[2]
+            : severity == AlertSeverity.Orange ? thresholds[1] : thresholds[0];
+        var peakMax = Math.Round(maxima.Max(), 1);
+
         var attrs = new Dictionary<string, object?>
         {
-            ["expected_max"] = Math.Round(Median(maxima), 1),
+            ["expected_max"] = medianMax,
             ["models_agreeing"] = severity == AlertSeverity.Red ? redCount : severity == AlertSeverity.Orange ? orangeCount : yellowCount,
         };
 
-        return new Alert(AlertType.Heat, severity, Math.Round(confidence, 3), attrs);
+        return new Alert(AlertType.Heat, severity, Math.Round(confidence, 3), attrs,
+            TriggerValue: medianMax,
+            Threshold: effectiveThreshold,
+            PeakValue: peakMax != medianMax ? peakMax : null);
     }
 
     public static Alert EvaluateStorm(
@@ -259,15 +283,21 @@ public static class AlertEvaluator
         var agreeing = maxGusts.Count(g => g >= gustThreshold);
         var confidence = (double)agreeing / maxGusts.Count;
 
+        var medianGust = Math.Round(Median(maxGusts), 1);
+        var peakGust = Math.Round(maxGusts.Max(), 1);
+
         var attrs = new Dictionary<string, object?>
         {
-            ["expected_max_gust"] = Math.Round(Median(maxGusts), 1),
+            ["expected_max_gust"] = medianGust,
             ["models_agreeing"] = agreeing,
         };
 
         return new Alert(AlertType.Storm,
             agreeing > 0 ? AlertSeverity.Yellow : AlertSeverity.None,
-            Math.Round(confidence, 3), attrs);
+            Math.Round(confidence, 3), attrs,
+            TriggerValue: medianGust,
+            Threshold: gustThreshold,
+            PeakValue: peakGust != medianGust ? peakGust : null);
     }
 
     public static Alert EvaluateHeavyRain(
@@ -280,9 +310,13 @@ public static class AlertEvaluator
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        var tomorrow = today.AddDays(1);
         var hourlyExceed = 0;
         var dailyExceed = 0;
         var modelCount = 0;
+        var allMaxHourly = new List<double>();
+        var allDailySums = new List<double>();
 
         foreach (var (key, forecast) in snapshot.Entries)
         {
@@ -311,6 +345,21 @@ public static class AlertEvaluator
 
                 dailySum += v;
             }
+
+            if (DailyPrecipSum is not null)
+            {
+                foreach (var dp in forecast.Daily.Points)
+                {
+                    if (dp.Date != today && dp.Date != tomorrow)
+                        continue;
+                    var dv = dp.GetNumeric(DailyPrecipSum);
+                    if (dv is { } val && val > dailySum)
+                        dailySum = val;
+                }
+            }
+
+            allMaxHourly.Add(maxHourly);
+            allDailySums.Add(dailySum);
 
             if (maxHourly >= hourlyThreshold)
             {
@@ -349,13 +398,20 @@ public static class AlertEvaluator
             return Alert.None(AlertType.HeavyRain);
         }
 
+        var triggerValue = hourlyExceed >= dailyExceed
+            ? Math.Round(Median(allMaxHourly), 1)
+            : Math.Round(Median(allDailySums), 1);
+        var effectiveThreshold = hourlyExceed >= dailyExceed ? hourlyThreshold : dailyThreshold;
+
         var attrs = new Dictionary<string, object?>
         {
             ["hourly_exceed_models"] = hourlyExceed,
             ["daily_exceed_models"] = dailyExceed,
         };
 
-        return new Alert(AlertType.HeavyRain, severity, Math.Round(confidence, 3), attrs);
+        return new Alert(AlertType.HeavyRain, severity, Math.Round(confidence, 3), attrs,
+            TriggerValue: triggerValue,
+            Threshold: effectiveThreshold);
     }
 
     public static Alert EvaluateUv(
@@ -368,6 +424,8 @@ public static class AlertEvaluator
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        var tomorrow = today.AddDays(1);
         var maxUvs = new List<double>();
 
         foreach (var (key, forecast) in snapshot.Entries)
@@ -387,6 +445,19 @@ public static class AlertEvaluator
                     max = val;
                 }
             }
+
+            if (DailyUvMax is not null)
+            {
+                foreach (var dp in forecast.Daily.Points)
+                {
+                    if (dp.Date != today && dp.Date != tomorrow)
+                        continue;
+                    var dv = dp.GetNumeric(DailyUvMax);
+                    if (dv is { } val && val > max)
+                        max = val;
+                }
+            }
+
             if (max > 0)
             {
                 maxUvs.Add(max);
@@ -399,22 +470,28 @@ public static class AlertEvaluator
         }
 
         var median = Median(maxUvs);
-        var (level, severity) = median switch
+        var (level, severity, uvThreshold) = median switch
         {
-            >= 11 => ("extreme", AlertSeverity.Red),
-            >= 8 => ("very_high", AlertSeverity.Red),
-            >= 6 => ("high", AlertSeverity.Orange),
-            >= 3 => ("moderate", AlertSeverity.Yellow),
-            _ => ("low", AlertSeverity.None),
+            >= 11 => ("extreme", AlertSeverity.Red, 11.0),
+            >= 8 => ("very_high", AlertSeverity.Red, 8.0),
+            >= 6 => ("high", AlertSeverity.Orange, 6.0),
+            >= 3 => ("moderate", AlertSeverity.Yellow, 3.0),
+            _ => ("low", AlertSeverity.None, 0.0),
         };
+
+        var peakUv = Math.Round(maxUvs.Max(), 1);
+        var medianRounded = Math.Round(median, 1);
 
         var attrs = new Dictionary<string, object?>
         {
             ["uv_level"] = level,
-            ["uv_index"] = Math.Round(median, 1),
+            ["uv_index"] = medianRounded,
         };
 
-        return new Alert(AlertType.Uv, severity, 1.0, attrs);
+        return new Alert(AlertType.Uv, severity, 1.0, attrs,
+            TriggerValue: medianRounded,
+            Threshold: uvThreshold,
+            PeakValue: peakUv != medianRounded ? peakUv : null);
     }
 
     public static Alert EvaluateFog(
@@ -469,15 +546,20 @@ public static class AlertEvaluator
         var agreeing = fogHourCounts.Count(c => c > 0);
         var confidence = (double)agreeing / modelCount;
 
+        var medianFogHours = fogHourCounts.Count > 0 ? (int)Median(fogHourCounts.Select(c => (double)c).ToList()) : 0;
+
         var attrs = new Dictionary<string, object?>
         {
-            ["fog_hours"] = fogHourCounts.Count > 0 ? (int)Median(fogHourCounts.Select(c => (double)c).ToList()) : 0,
+            ["fog_hours"] = medianFogHours,
             ["models_agreeing"] = agreeing,
         };
 
         return new Alert(AlertType.Fog,
             agreeing > 0 ? AlertSeverity.Yellow : AlertSeverity.None,
-            Math.Round(confidence, 3), attrs);
+            Math.Round(confidence, 3), attrs,
+            TriggerValue: medianFogHours,
+            Threshold: 1,
+            DurationHours: medianFogHours > 0 ? medianFogHours : null);
     }
 
     public static Alert EvaluateSnow(
@@ -490,6 +572,8 @@ public static class AlertEvaluator
 
         var now = timeProvider.GetUtcNow();
         var end = now.AddHours(24);
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        var tomorrow = today.AddDays(1);
         var sums = new List<double>();
         var freezingLevels = new List<double>();
 
@@ -515,6 +599,19 @@ public static class AlertEvaluator
                     freezingLevels.Add(fl);
                 }
             }
+
+            if (DailySnowfallSum is not null)
+            {
+                foreach (var dp in forecast.Daily.Points)
+                {
+                    if (dp.Date != today && dp.Date != tomorrow)
+                        continue;
+                    var dv = dp.GetNumeric(DailySnowfallSum);
+                    if (dv is { } val && val > sum)
+                        sum = val;
+                }
+            }
+
             sums.Add(sum);
         }
 
@@ -527,26 +624,32 @@ public static class AlertEvaluator
         var confidence = (double)agreeing / sums.Count;
         var medianSum = Median(sums);
 
-        var severity = medianSum switch
+        var (severity, snowThreshold) = medianSum switch
         {
-            > 20 => AlertSeverity.Red,
-            > 5 => AlertSeverity.Orange,
-            > 0 => AlertSeverity.Yellow,
-            _ => AlertSeverity.None,
+            > 20 => (AlertSeverity.Red, 20.0),
+            > 5 => (AlertSeverity.Orange, 5.0),
+            > 0 => (AlertSeverity.Yellow, 0.0),
+            _ => (AlertSeverity.None, 0.0),
         };
         if (agreeing == 0)
         {
             severity = AlertSeverity.None;
         }
 
+        var roundedSum = Math.Round(medianSum, 1);
+        var peakSum = Math.Round(sums.Max(), 1);
+
         var attrs = new Dictionary<string, object?>
         {
-            ["expected_accumulation"] = Math.Round(medianSum, 1),
+            ["expected_accumulation"] = roundedSum,
             ["freezing_level"] = freezingLevels.Count > 0 ? Math.Round(Median(freezingLevels), 0) : null,
             ["models_agreeing"] = agreeing,
         };
 
-        return new Alert(AlertType.Snow, severity, Math.Round(confidence, 3), attrs);
+        return new Alert(AlertType.Snow, severity, Math.Round(confidence, 3), attrs,
+            TriggerValue: roundedSum,
+            Threshold: snowThreshold,
+            PeakValue: peakSum != roundedSum ? peakSum : null);
     }
 
     public static Alert EvaluatePressureDrop(
@@ -599,15 +702,19 @@ public static class AlertEvaluator
         var agreeing = maxDrops.Count(d => d >= dropThreshold);
         var confidence = (double)agreeing / maxDrops.Count;
 
+        var medianDrop = Math.Round(Median(maxDrops), 1);
+
         var attrs = new Dictionary<string, object?>
         {
-            ["max_drop"] = Math.Round(Median(maxDrops), 1),
+            ["max_drop"] = medianDrop,
             ["models_agreeing"] = agreeing,
         };
 
         return new Alert(AlertType.PressureDrop,
             agreeing > 0 ? AlertSeverity.Yellow : AlertSeverity.None,
-            Math.Round(confidence, 3), attrs);
+            Math.Round(confidence, 3), attrs,
+            TriggerValue: medianDrop,
+            Threshold: dropThreshold);
     }
 
     public static Alert EvaluateThunderstorm(
@@ -624,6 +731,7 @@ public static class AlertEvaluator
         var end = now.AddHours(24);
         var modelCount = 0;
         var meetAll = 0;
+        var maxCapes = new List<double>();
 
         foreach (var (key, forecast) in snapshot.Entries)
         {
@@ -641,18 +749,23 @@ public static class AlertEvaluator
             modelCount++;
 
             var met = false;
+            var maxCape = 0.0;
             foreach (var p in points)
             {
                 var c = p.Get(Cape);
                 var pr = p.Get(Precipitation);
                 var g = p.Get(WindGusts);
-                if (c is { } cv && pr is { } pv && g is { } gv
-                    && cv > capeThreshold && pv > precipThreshold && gv > gustThreshold)
+                if (c is { } cv)
                 {
-                    met = true;
-                    break;
+                    if (cv > maxCape) maxCape = cv;
+                    if (pr is { } pv && g is { } gv
+                        && cv > capeThreshold && pv > precipThreshold && gv > gustThreshold)
+                    {
+                        met = true;
+                    }
                 }
             }
+            maxCapes.Add(maxCape);
             if (met)
             {
                 meetAll++;
@@ -673,12 +786,16 @@ public static class AlertEvaluator
             _ => AlertSeverity.None,
         };
 
+        var medianCape = Math.Round(Median(maxCapes), 0);
+
         var attrs = new Dictionary<string, object?>
         {
             ["models_agreeing"] = meetAll,
         };
 
-        return new Alert(AlertType.Thunderstorm, severity, Math.Round(confidence, 3), attrs);
+        return new Alert(AlertType.Thunderstorm, severity, Math.Round(confidence, 3), attrs,
+            TriggerValue: medianCape,
+            Threshold: capeThreshold);
     }
 
     private static List<ForecastPoint> PointsInWindow(

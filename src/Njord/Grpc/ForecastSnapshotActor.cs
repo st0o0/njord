@@ -1,6 +1,7 @@
 using Akka.Event;
 using Akka.Persistence;
 using Njord.Domain.Weather;
+using Njord.Persistence;
 
 namespace Njord.Grpc;
 
@@ -20,7 +21,7 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
         {
             if (offer.Snapshot is ForecastSnapshotDto saved)
             {
-                foreach (var kvp in SnapshotMapping.ToDomain(saved))
+                foreach (var kvp in ForecastSnapshotMapping.ToDomain(saved))
                     _state[kvp.Key] = kvp.Value;
             }
         });
@@ -33,7 +34,7 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
             _updatesSinceSnapshot++;
             if (_updatesSinceSnapshot >= SnapshotInterval)
             {
-                SaveSnapshot(SnapshotMapping.ToDto(_state));
+                SaveSnapshot(ForecastSnapshotMapping.ToDto(_state));
                 _updatesSinceSnapshot = 0;
             }
 

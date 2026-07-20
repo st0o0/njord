@@ -146,7 +146,7 @@ public static class IndexScorer
         return Clamp(0.3 * tempDelta + 0.25 * humScore + 0.25 * windScore + 0.2 * rainSc);
     }
 
-    public static (int HoursUntilFrost, double Confidence)? FrostProtection(
+    public static FrostProtectionInfo? FrostProtection(
         IReadOnlyList<ForecastSeries> modelSeries, ParameterDef tempParam, DateTimeOffset now)
     {
         var cutoff = now.AddHours(48);
@@ -190,10 +190,10 @@ public static class IndexScorer
         }
 
         var confidence = modelSeries.Count > 0 ? (double)modelsWithFrost / modelSeries.Count : 0;
-        return (firstFrostHours.Value, Math.Round(confidence, 2));
+        return new FrostProtectionInfo(firstFrostHours.Value, Math.Round(confidence, 2));
     }
 
-    public static (string Category, double Vpd)? VpdCategory(double? temp, double? humidity)
+    public static VpdInfo? VpdCategory(double? temp, double? humidity)
     {
         if (temp is not { } t || humidity is not { } rh)
         {
@@ -211,6 +211,6 @@ public static class IndexScorer
             < 2.0 => "high",
             _ => "critical",
         };
-        return (category, vpd);
+        return new VpdInfo(category, vpd);
     }
 }

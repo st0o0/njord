@@ -1,16 +1,24 @@
+using Newtonsoft.Json;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 
 namespace Njord.Domain.Analysis;
 
+public sealed record CopOptimalEntry(
+    [property: JsonProperty("hoursFromNow")] int HoursFromNow,
+    [property: JsonProperty("cop")] double Cop);
+
 public sealed record EnergyResult(
-    string Location,
-    int HeatingDemand,
-    double? CopEstimate,
-    IReadOnlyList<(int HoursFromNow, double Cop)> CopOptimal,
-    int Shading,
-    string BatteryStrategy,
-    int NightCooling)
+    [property: JsonProperty("location")] string Location,
+    [property: JsonProperty("heatingDemand")] int HeatingDemand,
+    [property: JsonProperty("copEstimate")] double? CopEstimate,
+    [property: JsonProperty("copOptimal")] IReadOnlyList<CopOptimalEntry> CopOptimal,
+    [property: JsonProperty("shading")] int Shading,
+    [property: JsonProperty("batteryStrategy")] string BatteryStrategy,
+    [property: JsonProperty("nightCooling")] int NightCooling,
+    [property: JsonProperty("heatingDemandMax")] int HeatingDemandMax = 0,
+    [property: JsonProperty("copEstimateMin")] double? CopEstimateMin = null,
+    [property: JsonProperty("copOptimalConservative")] IReadOnlyList<int>? CopOptimalConservative = null)
 {
     public static EnergyResult Compute(
         ModelSnapshot snapshot,
@@ -44,12 +52,14 @@ public sealed record EnergyResult(
         var heatingDemand = EnergyForecaster.HeatingDemand(meanTemp, meanWind, meanCloud, options.HeatingBaseTemp);
         var copEst = EnergyForecaster.CopEstimate(meanTemp, options.FlowTemp, options.CarnotEfficiency);
 
-        IReadOnlyList<(int, double)> copOptimal = [];
+        IReadOnlyList<CopOptimalEntry> copOptimal = [];
         if (tempParam is not null && forecasts.Count > 0)
         {
             copOptimal = EnergyForecaster.CopOptimalHours(
                 forecasts[0].Hourly, tempParam, options.FlowTemp,
-                options.CarnotEfficiency, options.CopOptimalHours, now);
+                options.CarnotEfficiency, options.CopOptimalHours, now)
+                .Select(o => new CopOptimalEntry(o.HoursFromNow, o.Cop))
+                .ToList();
         }
 
         var shading = EnergyForecaster.ShadingScore(meanRadiation, meanIsDay, meanTemp);
@@ -66,7 +76,63 @@ public sealed record EnergyResult(
                 options.IndoorTemp, now);
         }
 
-        return new EnergyResult(location, heatingDemand, copEst, copOptimal, shading, batteryStrategy, nightCooling);
+        var (hdMax, copMin, copConservative) = ComputeEnvelope(
+            forecasts, tempParam, windParam, cloudParam, radiationParam,
+            isDayParam, heatingDemand, copEst, options, now, cutoff);
+
+        return new EnergyResult(location, heatingDemand, copEst, copOptimal, shading, batteryStrategy, nightCooling,
+            hdMax, copMin, copConservative);
+    }
+
+    private static (int HeatingDemandMax, double? CopEstimateMin, IReadOnlyList<int> CopOptimalConservative) ComputeEnvelope(
+        List<ModelForecast> forecasts,
+        ParameterDef? tempParam, ParameterDef? windParam, ParameterDef? cloudParam,
+        ParameterDef? radiationParam, ParameterDef? isDayParam,
+        int fallbackHd, double? fallbackCop,
+        EnergyOptions options, DateTimeOffset now, DateTimeOffset cutoff)
+    {
+        if (forecasts.Count < 2)
+            return (fallbackHd, fallbackCop, []);
+
+        var heatingDemands = new List<int>();
+        var copEstimates = new List<double>();
+        var copOptimalSets = new List<HashSet<int>>();
+
+        foreach (var forecast in forecasts)
+        {
+            var single = new List<ModelForecast> { forecast };
+            var t = Mean24h(single, tempParam, now, cutoff);
+            var w = Mean24h(single, windParam, now, cutoff);
+            var cl = Mean24h(single, cloudParam, now, cutoff);
+
+            heatingDemands.Add(EnergyForecaster.HeatingDemand(t, w, cl, options.HeatingBaseTemp));
+
+            var cop = EnergyForecaster.CopEstimate(t, options.FlowTemp, options.CarnotEfficiency);
+            if (cop.HasValue)
+                copEstimates.Add(cop.Value);
+
+            if (tempParam is not null)
+            {
+                var optimal = EnergyForecaster.CopOptimalHours(
+                    forecast.Hourly, tempParam, options.FlowTemp,
+                    options.CarnotEfficiency, options.CopOptimalHours, now);
+                copOptimalSets.Add(new HashSet<int>(optimal.Select(o => o.Item1)));
+            }
+        }
+
+        var hdMax = heatingDemands.Count > 0 ? heatingDemands.Max() : fallbackHd;
+        var copMin = copEstimates.Count > 0 ? copEstimates.Min() : fallbackCop;
+
+        IReadOnlyList<int> conservative = [];
+        if (copOptimalSets.Count >= 2)
+        {
+            var intersection = copOptimalSets[0];
+            for (var i = 1; i < copOptimalSets.Count; i++)
+                intersection.IntersectWith(copOptimalSets[i]);
+            conservative = intersection.OrderBy(h => h).ToList();
+        }
+
+        return (hdMax, copMin, conservative);
     }
 
     private static double? Mean24h(

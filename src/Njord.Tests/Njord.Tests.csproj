@@ -6,6 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Akka.Hosting.TestKit" />
         <PackageReference Include="Akka.Persistence.TestKit" />
         <PackageReference Include="Akka.Persistence.TestKit.Xunit" />
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />

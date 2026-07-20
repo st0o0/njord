@@ -53,4 +53,56 @@ public sealed class EnergyResultSpec
         Assert.NotEmpty(result.BatteryStrategy);
     }
 
+    [Fact(Timeout = 5000)]
+    public void Compute_with_multiple_models_produces_heating_demand_max()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, 15.0), (WindSpeed, 2.0), (CloudCover, 30.0)),
+            MakeForecast(new("m2"), (Temperature, 2.0), (WindSpeed, 10.0), (CloudCover, 90.0)));
+
+        var result = EnergyResult.Compute(snap, "lucerne", Parameters, Time, new EnergyOptions());
+
+        Assert.True(result.HeatingDemandMax >= result.HeatingDemand);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Compute_with_multiple_models_produces_cop_estimate_min()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, 15.0), (WindSpeed, 2.0), (CloudCover, 30.0)),
+            MakeForecast(new("m2"), (Temperature, -5.0), (WindSpeed, 5.0), (CloudCover, 80.0)));
+
+        var result = EnergyResult.Compute(snap, "lucerne", Parameters, Time, new EnergyOptions());
+
+        Assert.NotNull(result.CopEstimateMin);
+        Assert.True(result.CopEstimateMin <= result.CopEstimate);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Compute_single_model_envelope_equals_primary()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, 10.0), (WindSpeed, 3.0), (CloudCover, 50.0)));
+
+        var result = EnergyResult.Compute(snap, "lucerne", Parameters, Time, new EnergyOptions());
+
+        Assert.Equal(result.HeatingDemand, result.HeatingDemandMax);
+        Assert.Equal(result.CopEstimate, result.CopEstimateMin);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Compute_cop_optimal_conservative_is_intersection()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, 10.0), (WindSpeed, 2.0), (CloudCover, 30.0)),
+            MakeForecast(new("m2"), (Temperature, 8.0), (WindSpeed, 3.0), (CloudCover, 40.0)));
+
+        var result = EnergyResult.Compute(snap, "lucerne", Parameters, Time, new EnergyOptions());
+
+        Assert.NotNull(result.CopOptimalConservative);
+        foreach (var hour in result.CopOptimalConservative!)
+        {
+            Assert.Contains(result.CopOptimal, o => o.HoursFromNow == hour);
+        }
+    }
 }

@@ -1,27 +1,30 @@
 using Akka.Actor;
-using Akka.Persistence;
+using Akka.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Njord.Domain.Weather;
 using Njord.Grpc;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Grpc;
 
-public sealed class ForecastSnapshotActorSpec : IDisposable
+public sealed class ForecastSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
 {
-    private static readonly DateTimeOffset Now = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
-    private readonly ActorSystem _system = ActorSystem.Create("forecast-snapshot-spec",
-        "akka.persistence.snapshot-store.plugin = \"akka.persistence.snapshot-store.inmem\"" +
-        "\nakka.persistence.journal.plugin = \"akka.persistence.journal.inmem\"");
+    private static readonly DateTimeOffset Anchor = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
 
-    public void Dispose() => _system.Dispose();
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestPersistence();
+    }
 
     private IActorRef CreateActor() =>
-        _system.ActorOf(Props.Create(() => new ForecastSnapshotActor()));
+        Sys.ActorOf(Props.Create(() => new ForecastSnapshotActor()));
 
     private static ModelForecast CreateForecast(string model = "icon_d2")
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
-        return new ModelForecast(new WeatherModel(model), "lucerne", new CycleId(Now),
-            new ForecastSeries([new ForecastPoint(Now.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 })]),
+        return new ModelForecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
+            new ForecastSeries([new ForecastPoint(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 })]),
             DailyForecastSeries.Empty);
     }
 

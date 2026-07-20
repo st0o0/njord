@@ -1,0 +1,29 @@
+﻿{
+  "v": 1,
+  "enrichments": {
+    "lucerne|alerts": {
+      "type": "AlertResult",
+      "json": "{\"location\":\"lucerne\",\"alerts\":[{\"type\":0,\"severity\":1,\"confidence\":0.85,\"attributes\":{\"note\":\"overnight\"},\"triggerValue\":-1.5,\"threshold\":0.0,\"peakValue\":-2.3,\"hoursUntil\":6,\"durationHours\":4}]}"
+    },
+    "lucerne|indices": {
+      "type": "IndexResult",
+      "json": "{\"location\":\"lucerne\",\"laundry\":80,\"outdoor\":90,\"running\":70,\"cycling\":85,\"bbq\":95,\"irrigation\":60,\"hdd\":12.5,\"cdd\":0.5,\"solar\":88,\"ventilation\":75,\"frostProtection\":{\"hoursUntilFrost\":6,\"confidence\":0.9},\"vpd\":{\"category\":\"moderate\",\"vpd\":0.8},\"laundryEnvelope\":{\"min\":70,\"max\":90,\"confidence\":0.75},\"outdoorEnvelope\":null,\"runningEnvelope\":null,\"cyclingEnvelope\":null,\"bbqEnvelope\":null,\"irrigationEnvelope\":null,\"solarEnvelope\":null,\"ventilationEnvelope\":null}"
+    },
+    "lucerne|trends": {
+      "type": "TrendResult",
+      "json": "{\"location\":\"lucerne\",\"parameterTrends\":{\"temperature_2m\":{\"direction\":\"rising\",\"delta\":1.2}},\"weatherChange\":{\"fromCategory\":\"cloudy\",\"toCategory\":\"clear\",\"description\":\"clearing\"},\"precipTiming\":{\"startsInHours\":2,\"endsInHours\":5},\"extremaTiming\":{\"maxInHours\":4,\"minInHours\":10},\"stability\":{\"label\":\"stable\",\"ratio\":0.95},\"decay\":{\"decayRate\":0.1,\"reliableHours\":24}}"
+    },
+    "lucerne|derived": {
+      "type": "DerivedResult",
+      "json": "{\"location\":\"lucerne\",\"byHorizon\":{\"h3\":{\"beaufort\":4,\"windChill\":-1.2,\"dewPointComfort\":\"comfortable\",\"wmoDescription\":\"clear sky\"}},\"scalars\":{\"diurnalAmplitude\":8.5,\"sunshinePct\":65.0,\"inversion\":false}}"
+    },
+    "lucerne|energy": {
+      "type": "EnergyResult",
+      "json": "{\"location\":\"lucerne\",\"heatingDemand\":42,\"copEstimate\":3.2,\"copOptimal\":[{\"hoursFromNow\":3,\"cop\":3.6},{\"hoursFromNow\":7,\"cop\":3.9}],\"shading\":30,\"batteryStrategy\":\"charge\",\"nightCooling\":1,\"heatingDemandMax\":50,\"copEstimateMin\":2.8,\"copOptimalConservative\":[3,7]}"
+    },
+    "lucerne|consensus": {
+      "type": "ConsensusResult",
+      "json": "{\"parameters\":[],\"dailyParameters\":[]}"
+    }
+  }
+}

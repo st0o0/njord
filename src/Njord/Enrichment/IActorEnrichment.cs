@@ -9,9 +9,5 @@ namespace Njord.Enrichment;
 
 public interface IActorEnrichment : IEnrichmentFeature
 {
-    void Materialize(
-        Source<ModelSnapshot, NotUsed> source,
-        Sink<EgressEvent, NotUsed> sink,
-        IMaterializer mat,
-        IUntypedActorContext context);
+    Flow<ModelSnapshot, EgressEvent, NotUsed> CreateFlow(IUntypedActorContext context);
 }

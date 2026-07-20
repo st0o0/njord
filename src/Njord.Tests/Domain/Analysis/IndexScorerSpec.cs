@@ -119,7 +119,7 @@ public sealed class IndexScorerSpec
 
         var result = IndexScorer.FrostProtection([series], Temperature, T0);
         Assert.NotNull(result);
-        Assert.Equal(8, result.Value.HoursUntilFrost);
+        Assert.Equal(8, result.HoursUntilFrost);
     }
 
     [Fact(Timeout = 5000)]
@@ -142,8 +142,8 @@ public sealed class IndexScorerSpec
     {
         var result = IndexScorer.VpdCategory(25, 60);
         Assert.NotNull(result);
-        Assert.Equal("high", result.Value.Category);
-        Assert.InRange(result.Value.Vpd, 1.2, 1.4);
+        Assert.Equal("high", result.Category);
+        Assert.InRange(result.Vpd, 1.2, 1.4);
     }
 
     [Fact(Timeout = 5000)]
@@ -151,7 +151,7 @@ public sealed class IndexScorerSpec
     {
         var result = IndexScorer.VpdCategory(20, 90);
         Assert.NotNull(result);
-        Assert.Equal("low", result.Value.Category);
+        Assert.Equal("low", result.Category);
     }
 
     [Fact(Timeout = 5000)]

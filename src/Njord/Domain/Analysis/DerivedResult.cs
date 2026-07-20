@@ -1,22 +1,23 @@
+using Newtonsoft.Json;
 using Njord.Domain.Weather;
 
 namespace Njord.Domain.Analysis;
 
 public sealed record HorizonDerived(
-    int? Beaufort,
-    double? WindChill,
-    string? DewPointComfort,
-    string? WmoDescription);
+    [property: JsonProperty("beaufort")] int? Beaufort,
+    [property: JsonProperty("windChill")] double? WindChill,
+    [property: JsonProperty("dewPointComfort")] string? DewPointComfort,
+    [property: JsonProperty("wmoDescription")] string? WmoDescription);
 
 public sealed record ScalarDerived(
-    double? DiurnalAmplitude,
-    double? SunshinePct,
-    bool? Inversion);
+    [property: JsonProperty("diurnalAmplitude")] double? DiurnalAmplitude,
+    [property: JsonProperty("sunshinePct")] double? SunshinePct,
+    [property: JsonProperty("inversion")] bool? Inversion);
 
 public sealed record DerivedResult(
-    string Location,
-    IReadOnlyDictionary<string, HorizonDerived> ByHorizon,
-    ScalarDerived Scalars)
+    [property: JsonProperty("location")] string Location,
+    [property: JsonProperty("byHorizon")] IReadOnlyDictionary<string, HorizonDerived> ByHorizon,
+    [property: JsonProperty("scalars")] ScalarDerived Scalars)
 {
     public static DerivedResult Compute(
         ModelSnapshot snapshot,

@@ -48,8 +48,8 @@ public sealed class EnrichmentProtoMapperSpec
             Laundry: 80, Outdoor: 70, Running: 65, Cycling: 75,
             Bbq: 90, Irrigation: 30, Hdd: 5.2, Cdd: 1.8,
             Solar: 85, Ventilation: 60,
-            FrostProtection: (HoursUntilFrost: 8, Confidence: 0.7),
-            Vpd: (Category: "optimal", Vpd: 1.2));
+            FrostProtection: new FrostProtectionInfo(HoursUntilFrost: 8, Confidence: 0.7),
+            Vpd: new VpdInfo(Category: "optimal", Vpd: 1.2));
 
         var update = EnrichmentProtoMapper.MapIndices(result);
 
@@ -81,10 +81,10 @@ public sealed class EnrichmentProtoMapperSpec
             Location: "lucerne",
             ParameterTrends: trends,
             WeatherChange: new WeatherChangeResult("Clear", "Rain", "Clear -> Rain"),
-            PrecipTiming: (StartsInHours: 3, EndsInHours: 8),
-            ExtremaTiming: (MaxInHours: 6, MinInHours: 18),
-            Stability: (Label: "stable", Ratio: 0.9),
-            Decay: (DecayRate: 0.15, ReliableHours: 24));
+            PrecipTiming: new PrecipTimingInfo(StartsInHours: 3, EndsInHours: 8),
+            ExtremaTiming: new ExtremaTimingInfo(MaxInHours: 6, MinInHours: 18),
+            Stability: new StabilityInfo(Label: "stable", Ratio: 0.9),
+            Decay: new DecayInfo(DecayRate: 0.15, ReliableHours: 24));
 
         var update = EnrichmentProtoMapper.MapTrends(result);
 
@@ -110,7 +110,7 @@ public sealed class EnrichmentProtoMapperSpec
             Location: "lucerne",
             HeatingDemand: 75,
             CopEstimate: 3.2,
-            CopOptimal: [(HoursFromNow: 2, Cop: 3.8), (HoursFromNow: 5, Cop: 4.1)],
+            CopOptimal: [new CopOptimalEntry(2, 3.8), new CopOptimalEntry(5, 4.1)],
             Shading: 60,
             BatteryStrategy: "charge",
             NightCooling: 45);
@@ -192,8 +192,8 @@ public sealed class EnrichmentProtoMapperSpec
             Spread: 2.1,
             Iqr: 1.5,
             Agreement: 0.85,
-            Outlier: (Model: new WeatherModel("gfs_seamless"), Deviation: 3.2),
-            ConfidenceInterval: (Lower: 18.0, Upper: 23.0),
+            Outlier: new OutlierInfo(new WeatherModel("gfs_seamless"), 3.2),
+            ConfidenceInterval: new ConfidenceIntervalInfo(18.0, 23.0),
             AvailableModels: [new WeatherModel("icon_d2"), new WeatherModel("ecmwf_ifs025")]);
 
         var paramConsensus = new DomainParameterConsensus(

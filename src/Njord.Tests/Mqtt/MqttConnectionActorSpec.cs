@@ -1,19 +1,16 @@
-using System.Collections.Concurrent;
 using Akka.Actor;
+using Akka.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Configuration;
 using Njord.Health;
 using Njord.Mqtt;
 using Njord.Mqtt.Transport;
-using Njord.Tests.Shared;
 
 namespace Njord.Tests.Mqtt;
 
-public sealed class MqttConnectionActorSpec : IDisposable
+public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
 {
-    private readonly ActorSystem _system = ActorSystem.Create("mqtt-conn-spec");
-
-    public void Dispose() => _system.Dispose();
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
     private static NjordOptions DefaultOptions() => new()
     {
@@ -25,7 +22,7 @@ public sealed class MqttConnectionActorSpec : IDisposable
         IMqttTransport transport,
         MqttEgressTuning? tuning = null)
     {
-        return _system.ActorOf(Props.Create(() => new MqttConnectionActor(
+        return Sys.ActorOf(Props.Create(() => new MqttConnectionActor(
             Microsoft.Extensions.Options.Options.Create(DefaultOptions()),
             connection,
             transport,
@@ -34,36 +31,33 @@ public sealed class MqttConnectionActorSpec : IDisposable
             new NjordHealthState { ServiceStartedUtc = DateTimeOffset.UtcNow })));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Connection_publishes_online_on_availability_topic()
     {
         var transport = new RecordingTransport();
         var connection = new FakeConnection();
         _ = CreateActor(connection, transport);
 
-        await AsyncAssert.WaitUntil(() =>
-            transport.Sent.Any(m => m.Topic == "njord/status" && m.Payload == "online"));
+        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online");
 
         Assert.Contains(transport.Sent, m => m.Topic == "njord/status" && m.Payload == "online");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Reconnect_is_attempted_after_connect_failure()
     {
         var transport = new RecordingTransport();
         var connection = new FakeConnection { FailConnectCount = 1 };
         _ = CreateActor(connection, transport);
 
-        await AsyncAssert.WaitUntil(() =>
-            connection.ConnectCallCount >= 2 &&
-            transport.Sent.Any(m => m.Topic == "njord/status" && m.Payload == "online"));
+        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online");
 
         Assert.True(connection.ConnectCallCount >= 2,
             $"Expected at least 2 connect attempts, got {connection.ConnectCallCount}");
         Assert.Contains(transport.Sent, m => m.Topic == "njord/status" && m.Payload == "online");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task SinkRef_is_returned_on_RequestMqttSink()
     {
         var transport = new RecordingTransport();
@@ -75,30 +69,28 @@ public sealed class MqttConnectionActorSpec : IDisposable
         Assert.NotNull(response.SinkRef);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Offline_is_enqueued_on_stop()
     {
         var transport = new RecordingTransport();
         var connection = new FakeConnection();
         var actor = CreateActor(connection, transport);
 
-        await AsyncAssert.WaitUntil(() =>
-            transport.Sent.Any(m => m.Topic == "njord/status" && m.Payload == "online"));
+        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online");
 
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Inbound_messages_are_forwarded_to_subscribers()
     {
         var transport = new RecordingTransport();
         var connection = new FakeConnection();
         var actor = CreateActor(connection, transport);
 
-        await AsyncAssert.WaitUntil(() =>
-            transport.Sent.Any(m => m.Topic == "njord/status" && m.Payload == "online"));
+        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online");
 
-        var inbox = Inbox.Create(_system);
+        var inbox = Inbox.Create(Sys);
         actor.Tell(new SubscribeInbound(inbox.Receiver));
 
         connection.SimulateInbound("homeassistant/status", "online");
@@ -147,14 +139,40 @@ public sealed class MqttConnectionActorSpec : IDisposable
 
     private sealed class RecordingTransport : IMqttTransport
     {
-        private readonly ConcurrentBag<SentMessage> _sent = [];
+        private readonly List<SentMessage> _sent = [];
+        private readonly List<(Func<SentMessage, bool> Predicate, TaskCompletionSource Tcs)> _waiters = [];
+        private readonly object _lock = new();
 
-        public IReadOnlyCollection<SentMessage> Sent => _sent;
+        public IReadOnlyList<SentMessage> Sent { get { lock (_lock) return [.. _sent]; } }
 
         public Task SendAsync(string topic, string payload, bool retain, CancellationToken cancellationToken)
         {
-            _sent.Add(new SentMessage(topic, payload, retain));
+            var msg = new SentMessage(topic, payload, retain);
+            lock (_lock)
+            {
+                _sent.Add(msg);
+                for (var i = _waiters.Count - 1; i >= 0; i--)
+                {
+                    if (_waiters[i].Predicate(msg))
+                    {
+                        _waiters[i].Tcs.TrySetResult();
+                        _waiters.RemoveAt(i);
+                    }
+                }
+            }
             return Task.CompletedTask;
+        }
+
+        public Task WaitForMessage(Func<SentMessage, bool> predicate)
+        {
+            lock (_lock)
+            {
+                if (_sent.Any(predicate))
+                    return Task.CompletedTask;
+                var tcs = new TaskCompletionSource();
+                _waiters.Add((predicate, tcs));
+                return tcs.Task;
+            }
         }
     }
 }

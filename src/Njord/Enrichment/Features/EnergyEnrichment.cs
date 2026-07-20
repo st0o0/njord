@@ -95,6 +95,47 @@ internal sealed class EnergyEnrichment : IStatelessEnrichment
             ["availability_mode"] = "all",
         };
 
+        components["heating_demand_max"] = new JsonObject
+        {
+            ["p"] = "sensor",
+            ["unique_id"] = $"{deviceId}_heating_demand_max",
+            ["name"] = "heating demand max",
+            ["state_topic"] = energyTopic,
+            ["expire_after"] = expireAfterSeconds,
+            ["value_template"] = "{{ value_json.heating_demand_max }}",
+            ["availability"] = new JsonArray(
+                new JsonObject { ["topic"] = availabilityTopic }),
+            ["availability_mode"] = "all",
+        };
+
+        components["cop_estimate_min"] = new JsonObject
+        {
+            ["p"] = "sensor",
+            ["unique_id"] = $"{deviceId}_cop_estimate_min",
+            ["name"] = "COP estimate min",
+            ["state_topic"] = energyTopic,
+            ["expire_after"] = expireAfterSeconds,
+            ["value_template"] = "{{ value_json.cop_estimate_min }}",
+            ["availability"] = new JsonArray(
+                new JsonObject { ["topic"] = availabilityTopic }),
+            ["availability_mode"] = "all",
+        };
+
+        components["cop_optimal_conservative"] = new JsonObject
+        {
+            ["p"] = "sensor",
+            ["unique_id"] = $"{deviceId}_cop_optimal_conservative",
+            ["name"] = "COP optimal conservative",
+            ["state_topic"] = energyTopic,
+            ["expire_after"] = expireAfterSeconds,
+            ["value_template"] = "{{ value_json.cop_optimal_conservative | length }}",
+            ["json_attributes_topic"] = energyTopic,
+            ["json_attributes_template"] = "{{ {'hours': value_json.cop_optimal_conservative} | tojson }}",
+            ["availability"] = new JsonArray(
+                new JsonObject { ["topic"] = availabilityTopic }),
+            ["availability_mode"] = "all",
+        };
+
         return DiscoveryPayloadBuilder.BuildDeviceEnvelope(
             deviceId, location, TypeName, ctx.Version, components);
     }

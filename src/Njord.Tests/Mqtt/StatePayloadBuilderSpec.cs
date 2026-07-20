@@ -138,6 +138,39 @@ public sealed class StatePayloadBuilderSpec
     }
 
     [Fact(Timeout = 5000)]
+    public void FromConsensus_produces_daily_messages_for_daily_parameters()
+    {
+        var baseDate = DateOnly.FromDateTime(T0.UtcDateTime);
+        var dailyParam = ParameterRegistry.GetByApiName("temperature_2m_max")!;
+        var dailyForecasts = new[]
+        {
+            new ModelForecast(IconD2, "lucerne", new CycleId(T0), new ForecastSeries([]),
+                new DailyForecastSeries([
+                    new DailyForecastPoint(baseDate, new Dictionary<ParameterDef, double?> { [dailyParam] = 28.0 }, new Dictionary<ParameterDef, string?>()),
+                    new DailyForecastPoint(baseDate.AddDays(1), new Dictionary<ParameterDef, double?> { [dailyParam] = 30.0 }, new Dictionary<ParameterDef, string?>()),
+                ])),
+            new ModelForecast(new("ecmwf_ifs025"), "lucerne", new CycleId(T0), new ForecastSeries([]),
+                new DailyForecastSeries([
+                    new DailyForecastPoint(baseDate, new Dictionary<ParameterDef, double?> { [dailyParam] = 31.0 }, new Dictionary<ParameterDef, string?>()),
+                    new DailyForecastPoint(baseDate.AddDays(1), new Dictionary<ParameterDef, double?> { [dailyParam] = 33.0 }, new Dictionary<ParameterDef, string?>()),
+                ])),
+        };
+
+        var snap = dailyForecasts.Aggregate(ModelSnapshot.Empty, (s, f) => s.Update(f));
+        var result = ConsensusResult.Compute(snap, new ResolvedParameterSet([], [dailyParam]), [], "lucerne", Time);
+
+        var messages = StatePayloadBuilder.FromConsensus(result, "njord", "lucerne");
+
+        Assert.Equal(2, messages.Count);
+        Assert.Contains(messages, m => m.Topic == "njord/lucerne/consensus/d0");
+        Assert.Contains(messages, m => m.Topic == "njord/lucerne/consensus/d1");
+
+        var d0 = JsonNode.Parse(messages.First(m => m.Topic.Contains("/d0")).Payload)!;
+        Assert.NotNull(d0["temperature_max"]);
+        Assert.Equal(2, d0["temperature_max_models"]!.GetValue<int>());
+    }
+
+    [Fact(Timeout = 5000)]
     public void FromAlerts_produces_one_message_per_alert()
     {
         var alerts = new List<Alert>
@@ -207,6 +240,23 @@ public sealed class StatePayloadBuilderSpec
     }
 
     [Fact(Timeout = 5000)]
+    public void FromIndices_includes_envelope_fields_when_multiple_models()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(IconD2, (Temperature, 22.0), (Humidity, 50.0), (WindSpeed, 3.0), (CloudCover, 20.0)),
+            MakeForecast(new("ecmwf_ifs025"), (Temperature, 10.0), (Humidity, 90.0), (WindSpeed, 15.0), (CloudCover, 95.0)));
+        var result = IndexResult.Compute(snap, "lucerne", FullParams, Time, new IndexOptions());
+
+        var messages = StatePayloadBuilder.FromIndices(result, "njord");
+        var payload = JsonNode.Parse(messages[0].Payload)!;
+
+        Assert.NotNull(payload["outdoor_min"]);
+        Assert.NotNull(payload["outdoor_max"]);
+        Assert.NotNull(payload["outdoor_confidence"]);
+        Assert.True(payload["outdoor_min"]!.GetValue<int>() <= payload["outdoor_max"]!.GetValue<int>());
+    }
+
+    [Fact(Timeout = 5000)]
     public void FromEnergy_produces_single_energy_topic()
     {
         var snap = SnapshotWith(
@@ -218,6 +268,23 @@ public sealed class StatePayloadBuilderSpec
         Assert.Single(messages);
         Assert.Equal("njord/lucerne/energy", messages[0].Topic);
         Assert.True(messages[0].Retain);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void FromEnergy_includes_envelope_fields_when_multiple_models()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(IconD2, (Temperature, 15.0), (WindSpeed, 2.0), (CloudCover, 30.0)),
+            MakeForecast(new("ecmwf_ifs025"), (Temperature, 2.0), (WindSpeed, 10.0), (CloudCover, 90.0)));
+        var result = EnergyResult.Compute(snap, "lucerne", FullParams, Time, new EnergyOptions());
+
+        var messages = StatePayloadBuilder.FromEnergy(result, "njord");
+        var payload = JsonNode.Parse(messages[0].Payload)!;
+
+        Assert.NotNull(payload["heating_demand_max"]);
+        Assert.NotNull(payload["cop_estimate_min"]);
+        Assert.NotNull(payload["cop_optimal_conservative"]);
+        Assert.True(payload["heating_demand_max"]!.GetValue<int>() >= payload["heating_demand"]!.GetValue<int>());
     }
 
     [Fact(Timeout = 5000)]

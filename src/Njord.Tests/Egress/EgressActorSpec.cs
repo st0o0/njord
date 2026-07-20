@@ -1,4 +1,5 @@
 using Akka.Actor;
+using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Domain.Analysis;
@@ -7,16 +8,14 @@ using Njord.Egress;
 
 namespace Njord.Tests.Egress;
 
-public sealed class EgressActorSpec : IDisposable
+public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
 {
-    private readonly ActorSystem _system = ActorSystem.Create("egress-spec");
-
-    public void Dispose() => _system.Dispose();
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
     [Fact(Timeout = 5000)]
     public async Task Vends_sink_ref_on_request()
     {
-        var egress = _system.ActorOf(Props.Create<EgressActor>());
+        var egress = Sys.ActorOf(Props.Create<EgressActor>());
 
         var response = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(), TimeSpan.FromSeconds(2));
 
@@ -26,7 +25,7 @@ public sealed class EgressActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Vends_source_ref_on_request()
     {
-        var egress = _system.ActorOf(Props.Create<EgressActor>());
+        var egress = Sys.ActorOf(Props.Create<EgressActor>());
 
         var response = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(), TimeSpan.FromSeconds(2));
 
@@ -36,8 +35,8 @@ public sealed class EgressActorSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task Events_flow_from_producer_to_consumer_through_hub()
     {
-        var mat = _system.Materializer();
-        var egress = _system.ActorOf(Props.Create<EgressActor>());
+        var mat = Sys.Materializer();
+        var egress = Sys.ActorOf(Props.Create<EgressActor>());
 
         var sinkResponse = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(), TimeSpan.FromSeconds(2));
         var sourceResponse = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(), TimeSpan.FromSeconds(2));

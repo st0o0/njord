@@ -40,11 +40,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
     public string DeviceId(string location) =>
         TopicScheme.EnrichmentDeviceId(location, TypeName);
 
-    public void Materialize(
-        Source<ModelSnapshot, NotUsed> source,
-        Sink<EgressEvent, NotUsed> sink,
-        IMaterializer mat,
-        IUntypedActorContext context)
+    public Flow<ModelSnapshot, EgressEvent, NotUsed> CreateFlow(IUntypedActorContext context)
     {
         var locations = _njordOptions.Locations.Select(l => l.Name).ToList();
         var parameters = _parameters;
@@ -60,7 +56,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
             historyActors[location] = actor;
         }
 
-        source
+        return Flow.Create<ModelSnapshot>()
             .SelectAsync(1, async snapshot =>
             {
                 foreach (var (_, actor) in historyActors)
@@ -78,8 +74,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
             })
             .SelectMany(events => events)
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(sink, mat);
+                _ => Akka.Streams.Supervision.Directive.Resume));
     }
 
     public string BuildDiscoveryPayload(DiscoveryContext ctx, string location)

@@ -1,4 +1,5 @@
 using Akka.Actor;
+using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Configuration;
@@ -10,14 +11,11 @@ using Njord.Tests.Shared;
 
 namespace Njord.Tests.Pipeline;
 
-public sealed class PollPipelineSpec : IDisposable
+public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
 {
-    private readonly ActorSystem _system = ActorSystem.Create("poll-pipeline-spec");
-    private readonly IMaterializer _materializer;
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
-    public PollPipelineSpec() => _materializer = _system.Materializer();
-
-    public void Dispose() => _system.Dispose();
+    private IMaterializer Mat => Sys.Materializer();
 
     private static NjordOptions Options(int locations = 2, params string[] models) => new()
     {
@@ -58,7 +56,7 @@ public sealed class PollPipelineSpec : IDisposable
                 return perHorizon.Select(kvp =>
                     new MqttMessage(TopicScheme.HorizonTopic(options.Mqtt.BaseTopic, forecast.Location, forecast.Model, kvp.Key), kvp.Value, true));
             })
-            .RunWith(Sink.Seq<MqttMessage>(), _materializer)
+            .RunWith(Sink.Seq<MqttMessage>(), Mat)
             .WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.All(results, msg => Assert.True(msg.Retain));
@@ -92,7 +90,7 @@ public sealed class PollPipelineSpec : IDisposable
                 return perHorizon.Select(kvp =>
                     new MqttMessage(TopicScheme.HorizonTopic(options.Mqtt.BaseTopic, forecast.Location, forecast.Model, kvp.Key), kvp.Value, true));
             })
-            .RunWith(Sink.Seq<MqttMessage>(), _materializer)
+            .RunWith(Sink.Seq<MqttMessage>(), Mat)
             .WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.True(results.Count < 2 * (options.Horizons.Count + options.ForecastDays));

@@ -92,6 +92,36 @@ Energy-related forecast enrichments: heating demand scoring, heat-pump COP estim
 - **WHEN** overnight hours show temp 25 °C, humidity 80%, wind 0.5 m/s, rain 30%
 - **THEN** the score is ≤ 15
 
+### Requirement: EnergyResult includes pessimistic envelope fields
+`EnergyResult` SHALL include additional fields: `HeatingDemandMax` (int), `CopEstimateMin` (double?), and `CopOptimalConservative` (IReadOnlyList of hours). These represent the worst-case scenario across all models for use in conservative automation decisions.
+
+#### Scenario: Heating demand worst case
+- **WHEN** 4 models produce per-model heating demand values [40, 55, 45, 62]
+- **THEN** HeatingDemandMax=62 and HeatingDemand remains the median/mean-based value
+
+#### Scenario: COP minimum
+- **WHEN** 3 models produce COP estimates [3.2, 2.8, 3.5]
+- **THEN** CopEstimateMin=2.8
+
+#### Scenario: Conservative optimal hours (intersection)
+- **WHEN** model A COP optimal = [2,3,4,5], model B = [3,4,5,6], model C = [4,5]
+- **THEN** CopOptimalConservative = [4,5]
+
+#### Scenario: No models provide COP data
+- **WHEN** temperature parameter is not available
+- **THEN** CopEstimateMin is null and CopOptimalConservative is empty
+
+### Requirement: Energy computation evaluates each model independently then aggregates
+`EnergyResult.Compute` SHALL first compute a full energy result per model (HeatingDemand, CopEstimate, CopOptimal, Shading, NightCooling) using only that model's forecast data. It SHALL then: keep existing mean-based values as the primary output, derive envelope fields from the per-model results (max of HeatingDemand, min of CopEstimate, intersection of CopOptimal hours).
+
+#### Scenario: Per-model computation isolation
+- **WHEN** model A has temp=5°C mean and model B has temp=-2°C mean
+- **THEN** each model's heating demand is computed independently (model B will be higher), and HeatingDemandMax reflects model B's value
+
+#### Scenario: Single model fallback
+- **WHEN** only 1 model provides data
+- **THEN** envelope fields equal the primary values (HeatingDemandMax = HeatingDemand, CopEstimateMin = CopEstimate)
+
 ### Requirement: EnergyResult aggregates all energy values and serializes to MQTT
 `EnergyResult` SHALL be a record holding the location and all energy values. It SHALL expose a static `Compute` method taking a `ModelSnapshot`, location, parameter set, `TimeProvider`, and `EnergyOptions`. It SHALL expose `ToMqttMessages(baseTopic)` producing a single `MqttMessage` on topic `{baseTopic}/{location}/energy` with a flat JSON payload. COP-optimal hours SHALL be serialized as a JSON array under key `cop_optimal`.
 
@@ -102,3 +132,10 @@ Energy-related forecast enrichments: heating demand scoring, heat-pump COP estim
 #### Scenario: Retained message
 - **WHEN** ToMqttMessages produces a message
 - **THEN** the message has Retain = true
+
+### Requirement: EnergyResult serialization with pinned wire names
+`EnergyResult` SHALL have `[property: JsonProperty("...")]` on all positional parameters. The value tuple `(int HoursFromNow, double Cop)` in the `CopOptimal` list SHALL be replaced with a named record (`CopOptimalEntry`) carrying `[JsonProperty]` attributes.
+
+#### Scenario: EnergyResult with CopOptimal entries round-trips through JSON
+- **WHEN** an `EnergyResult` with CopOptimal entries, CopEstimate, and CopOptimalConservative is serialized and deserialized
+- **THEN** all properties round-trip correctly, CopOptimal entries use named record fields with camelCase wire names

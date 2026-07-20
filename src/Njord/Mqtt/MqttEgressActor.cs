@@ -116,7 +116,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
     {
         var mat = _mat!;
         var baseTopic = _baseTopic;
-        var lastPublished = new Dictionary<string, string>();
+        var lastPublished = new Dictionary<string, int>();
 
         _egressSourceRef!.Source
             .SelectMany(egressEvent => MapToMqttMessages(egressEvent, baseTopic, lastPublished))
@@ -126,7 +126,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
     }
 
     private IEnumerable<MqttMessage> MapToMqttMessages(
-        EgressEvent egressEvent, string baseTopic, Dictionary<string, string> lastPublished)
+        EgressEvent egressEvent, string baseTopic, Dictionary<string, int> lastPublished)
     {
         var messages = egressEvent switch
         {
@@ -138,12 +138,13 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
 
         foreach (var msg in messages)
         {
-            if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == msg.Payload)
+            var hash = msg.Payload.GetHashCode();
+            if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == hash)
             {
                 continue;
             }
 
-            lastPublished[msg.Topic] = msg.Payload;
+            lastPublished[msg.Topic] = hash;
             yield return msg;
         }
     }
