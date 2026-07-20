@@ -187,6 +187,8 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private void InitializeStates()
     {
         var now = _timeProvider.GetUtcNow();
+        var tellCount = 0;
+        var scheduleCount = 0;
         foreach (var location in _options.Locations)
         {
             foreach (var modelId in location.ResolveModels(_options.Models))
@@ -197,9 +199,19 @@ public sealed class SchedulerActor : ReceivePersistentActor
                     _states[key] = ModelPollState.Initial(now);
                 }
 
+                var state = _states[key];
+                var schedNow = _timeProvider.GetUtcNow();
+                if (state.NextPollUtc <= schedNow)
+                    tellCount++;
+                else
+                    scheduleCount++;
+
                 ScheduleNext(location.Name, modelId);
             }
         }
+
+        _logger.LogInformation("InitializeStates: {TellCount} Self.Tell, {ScheduleCount} scheduled",
+            tellCount, scheduleCount);
     }
 
     private void OnSourceReceived(PipelineSourceResponse response)
