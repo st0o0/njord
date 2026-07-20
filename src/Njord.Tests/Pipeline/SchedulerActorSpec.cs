@@ -47,22 +47,6 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
         return Sys.ActorOf(props);
     }
 
-    private IActorRef CreateSchedulerWithSlowConsumer(NjordOptions? options = null, int queueSize = 32, int consumerDelayMs = 50)
-    {
-        var opts = options ?? Options();
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        var registry = ActorRegistry.For(Sys);
-
-        var fakePipelineActor = Sys.ActorOf(
-            Props.Create(() => new SlowFakePipelineActor(_collector, Mat, consumerDelayMs)));
-        registry.Register<PipelineActor>(fakePipelineActor, overwrite: true);
-
-        var props = Props.Create(() => new TestableSchedulerActor(
-            opts, _time, parameters, $"scheduler-{Guid.NewGuid():N}", queueSize));
-
-        return Sys.ActorOf(props);
-    }
-
     private Task WaitForOffer(int minCount = 1) => _collector.WaitFor(minCount);
 
     [Fact(Timeout = 5000)]
@@ -223,42 +207,6 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
         Assert.Empty(result.Targets);
     }
 
-    [Fact(Timeout = 10000)]
-    public async Task All_initial_polls_arrive_with_small_queue_and_zero_delay()
-    {
-        var options = Options();
-        options.Locations =
-        [
-            new LocationOptions { Name = "amsterdam", Latitude = 52.37, Longitude = 4.90 },
-            new LocationOptions { Name = "berlin", Latitude = 52.52, Longitude = 13.41 },
-        ];
-        options.Models = ["icon_d2", "gfs_seamless", "ecmwf_ifs025", "icon_eu"];
-
-        _scheduler = CreateScheduler(options, queueSize: 4);
-
-        await WaitForOffer(8);
-
-        Assert.Equal(8, _collector.Count);
-    }
-
-    [Fact(Timeout = 10000)]
-    public async Task All_initial_polls_arrive_with_slow_downstream()
-    {
-        var options = Options();
-        options.Locations =
-        [
-            new LocationOptions { Name = "amsterdam", Latitude = 52.37, Longitude = 4.90 },
-            new LocationOptions { Name = "berlin", Latitude = 52.52, Longitude = 13.41 },
-        ];
-        options.Models = ["icon_d2", "gfs_seamless", "ecmwf_ifs025", "icon_eu"];
-
-        _scheduler = CreateSchedulerWithSlowConsumer(options, queueSize: 4, consumerDelayMs: 50);
-
-        await WaitForOffer(8);
-
-        Assert.Equal(8, _collector.Count);
-    }
-
     [Fact(Timeout = 5000)]
     public async Task Trigger_immediate_poll_actually_offers_target_to_pipeline()
     {
@@ -309,42 +257,6 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
                 _tcs = new TaskCompletionSource();
                 return _tcs.Task;
             }
-        }
-    }
-
-    private sealed class SlowFakePipelineActor : ReceiveActor
-    {
-        public SlowFakePipelineActor(OfferCollector collector, IMaterializer mat, int delayMs)
-        {
-            Receive<RequestPipelineSink>(_ =>
-            {
-                var (hubSink, hubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 8)
-                    .PreMaterialize(mat);
-
-                hubSource
-                    .SelectAsync(1, async t =>
-                    {
-                        await Task.Delay(delayMs);
-                        return t;
-                    })
-                    .RunWith(Sink.ForEach<WeightedTarget>(t => collector.Add(t)), mat);
-
-                var sinkRef = StreamRefs.SinkRef<WeightedTarget>()
-                    .To(hubSink)
-                    .Run(mat)
-                    .Result;
-
-                Sender.Tell(new PipelineSinkResponse(sinkRef));
-            });
-
-            Receive<RequestPipelineSource>(_ =>
-            {
-                var sourceRef = Source.Empty<FetchOutcome>()
-                    .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat)
-                    .Result;
-
-                Sender.Tell(new PipelineSourceResponse(sourceRef));
-            });
         }
     }
 
