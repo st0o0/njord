@@ -106,85 +106,126 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
     private void MaterializeEnrichmentGraph()
     {
         var mat = _mat!;
+        var locations = _options.Locations.Select(l => l.Name).ToList();
 
-        var (snapshotHubSource, snapshotHubSink) = BroadcastHub.Sink<ModelSnapshot>(bufferSize: 1)
+        var statelessFeatures = _features.OfType<IStatelessEnrichment>().Where(f => f.Enabled).ToList();
+        var statefulFeatures = _features.OfType<IStatefulEnrichment>().Where(f => f.Enabled).ToList();
+        var actorFeatures = _features.OfType<IActorEnrichment>().Where(f => f.Enabled).ToList();
+
+        var hasInlineFeatures = statelessFeatures.Count > 0 || statefulFeatures.Count > 0;
+        var hasActorFeatures = actorFeatures.Count > 0;
+
+        if (!hasInlineFeatures && !hasActorFeatures)
+            return;
+
+        if (hasInlineFeatures && !hasActorFeatures)
+        {
+            MaterializeInlineFeatures(
+                _sourceRef!.Source, _egressSinkRef!.Sink, mat, locations,
+                statelessFeatures, statefulFeatures);
+            return;
+        }
+
+        if (hasActorFeatures && !hasInlineFeatures)
+        {
+            var scanSource = BuildScanSource(_sourceRef!.Source);
+            foreach (var feature in actorFeatures)
+                MaterializeActorFeature(feature, scanSource, _egressSinkRef!.Sink, mat);
+            return;
+        }
+
+        var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<ModelSnapshot>(bufferSize: 1)
             .PreMaterialize(mat);
 
-        _sourceRef!.Source
+        BuildScanSource(_sourceRef!.Source)
+            .To(broadcastHubSink)
+            .Run(mat);
+
+        MaterializeInlineFromSource(
+            broadcastHubSource, _egressSinkRef!.Sink, mat, locations,
+            statelessFeatures, statefulFeatures);
+
+        foreach (var feature in actorFeatures)
+            MaterializeActorFeature(feature, broadcastHubSource, _egressSinkRef!.Sink, mat);
+    }
+
+    private void MaterializeInlineFeatures(
+        Source<FetchOutcome, NotUsed> source,
+        Sink<EgressEvent, NotUsed> sink,
+        IMaterializer mat,
+        IReadOnlyList<string> locations,
+        IReadOnlyList<IStatelessEnrichment> stateless,
+        IReadOnlyList<IStatefulEnrichment> stateful)
+    {
+        ModelSnapshot? previous = null;
+
+        BuildScanSource(source)
+            .SelectMany(snapshot =>
+            {
+                var prev = previous;
+                previous = snapshot;
+                return ComputeAllWithPrevious(snapshot, prev, locations, stateless, stateful);
+            })
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
+                _ => Akka.Streams.Supervision.Directive.Resume))
+            .RunWith(sink, mat);
+    }
+
+    private static void MaterializeInlineFromSource(
+        Source<ModelSnapshot, NotUsed> source,
+        Sink<EgressEvent, NotUsed> sink,
+        IMaterializer mat,
+        IReadOnlyList<string> locations,
+        IReadOnlyList<IStatelessEnrichment> stateless,
+        IReadOnlyList<IStatefulEnrichment> stateful)
+    {
+        ModelSnapshot? previous = null;
+
+        source
+            .SelectMany(snapshot =>
+            {
+                var prev = previous;
+                previous = snapshot;
+                return ComputeAllWithPrevious(snapshot, prev, locations, stateless, stateful);
+            })
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
+                _ => Akka.Streams.Supervision.Directive.Resume))
+            .RunWith(sink, mat);
+    }
+
+    private void MaterializeActorFeature(
+        IActorEnrichment feature,
+        Source<ModelSnapshot, NotUsed> source,
+        Sink<EgressEvent, NotUsed> sink,
+        IMaterializer mat)
+    {
+        feature.Materialize(source, sink, mat, Context);
+    }
+
+    private Source<ModelSnapshot, NotUsed> BuildScanSource(Source<FetchOutcome, NotUsed> source)
+    {
+        return source
             .Scan(ModelSnapshot.Empty, (snap, outcome) => outcome switch
             {
                 FetchOutcome.Success s => snap.Update(s.Forecast),
                 _ => snap,
             })
-            .Where(snap => snap.HasChanged)
-            .Buffer(8, OverflowStrategy.Backpressure)
-            .To(snapshotHubSink)
-            .Run(mat);
-
-        var (egressMergeHubSink, egressMergeHubSource) = MergeHub.Source<EgressEvent>(perProducerBufferSize: 16)
-            .PreMaterialize(mat);
-
-        egressMergeHubSource
-            .RunWith(_egressSinkRef!.Sink, mat);
-
-        var locations = _options.Locations.Select(l => l.Name).ToList();
-
-        foreach (var feature in _features)
-        {
-            if (!feature.Enabled)
-            {
-                continue;
-            }
-
-            switch (feature)
-            {
-                case IActorEnrichment actorFeature:
-                    actorFeature.Materialize(snapshotHubSource, egressMergeHubSink, mat, Context);
-                    break;
-
-                case IStatefulEnrichment stateful:
-                    MaterializeStateful(stateful, snapshotHubSource, egressMergeHubSink, mat, locations);
-                    break;
-
-                case IStatelessEnrichment stateless:
-                    MaterializeStateless(stateless, snapshotHubSource, egressMergeHubSink, mat, locations);
-                    break;
-            }
-        }
+            .Where(snap => snap.HasChanged);
     }
 
-    private static void MaterializeStateless(
-        IStatelessEnrichment feature,
-        Source<ModelSnapshot, NotUsed> source,
-        Sink<EgressEvent, NotUsed> sink,
-        IMaterializer mat,
-        IReadOnlyList<string> locations)
+    private static IEnumerable<EgressEvent> ComputeAllWithPrevious(
+        ModelSnapshot snapshot,
+        ModelSnapshot? previous,
+        IReadOnlyList<string> locations,
+        IReadOnlyList<IStatelessEnrichment> stateless,
+        IReadOnlyList<IStatefulEnrichment> stateful)
     {
-        source
-            .SelectMany(snapshot => feature.Compute(snapshot, locations))
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(sink, mat);
-    }
+        foreach (var feature in stateless)
+            foreach (var evt in feature.Compute(snapshot, locations))
+                yield return evt;
 
-    private static void MaterializeStateful(
-        IStatefulEnrichment feature,
-        Source<ModelSnapshot, NotUsed> source,
-        Sink<EgressEvent, NotUsed> sink,
-        IMaterializer mat,
-        IReadOnlyList<string> locations)
-    {
-        ModelSnapshot? previousSnapshot = null;
-
-        source
-            .SelectMany(snapshot =>
-            {
-                var prev = previousSnapshot;
-                previousSnapshot = snapshot;
-                return feature.Compute(snapshot, prev, locations);
-            })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
-            .RunWith(sink, mat);
+        foreach (var feature in stateful)
+            foreach (var evt in feature.Compute(snapshot, previous, locations))
+                yield return evt;
     }
 }
