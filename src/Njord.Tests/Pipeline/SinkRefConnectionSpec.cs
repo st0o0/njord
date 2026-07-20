@@ -1,9 +1,13 @@
 using Akka;
 using Akka.Actor;
+using Akka.Hosting;
+using Akka.Persistence;
 using Akka.Persistence.TestKit;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Pipeline;
+using Njord.Tests.Shared;
+using Servus.Akka;
 
 namespace Njord.Tests.Pipeline;
 
@@ -267,6 +271,10 @@ public sealed class SinkRefConnectionSpec : PersistenceTestKit
                         sr => new SinkRefResponse(sr),
                         _ => null!);
             });
+            Receive<RequestSourceRef>(_ =>
+            {
+                Sender.Tell(new SourceRefResponse());
+            });
         }
     }
 
@@ -301,6 +309,148 @@ public sealed class SinkRefConnectionSpec : PersistenceTestKit
             });
         }
     }
+
+    [Fact(Timeout = 5000)]
+    public async Task Persistent_actor_can_offer_after_recovery_via_sinkref()
+    {
+        var received = new TaskCompletionSource<int>();
+
+        var pipeline = Sys.ActorOf(Props.Create(() =>
+            new FakePipelineWithFullGraph(Mat, received)));
+
+        var registry = ActorRegistry.For(Sys);
+        registry.Register<PipelineActor>(pipeline, overwrite: true);
+
+        var consumer = Sys.ActorOf(Props.Create(() =>
+            new PersistentConsumerActor($"consumer-{Guid.NewGuid():N}")));
+
+        var value = await received.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.Equal(99, value);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Persistent_actor_with_recovery_events_can_offer_via_sinkref()
+    {
+        var persistenceId = $"consumer-{Guid.NewGuid():N}";
+        var received = new TaskCompletionSource<int>();
+
+        var pipeline = Sys.ActorOf(Props.Create(() =>
+            new FakePipelineWithFullGraph(Mat, received)));
+
+        var registry = ActorRegistry.For(Sys);
+        registry.Register<PipelineActor>(pipeline, overwrite: true);
+
+        var first = Sys.ActorOf(Props.Create(() =>
+            new PersistentConsumerActor(persistenceId)));
+
+        await AsyncAssert.WaitUntil(() => received.Task.IsCompleted);
+        received = new TaskCompletionSource<int>();
+
+        await first.GracefulStop(TimeSpan.FromSeconds(2));
+
+        var pipeline2 = Sys.ActorOf(Props.Create(() =>
+            new FakePipelineWithFullGraph(Mat, received)));
+        registry.Register<PipelineActor>(pipeline2, overwrite: true);
+
+        var second = Sys.ActorOf(Props.Create(() =>
+            new PersistentConsumerActor(persistenceId)));
+
+        var value = await received.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.Equal(99, value);
+    }
+
+    private sealed class PersistentConsumerActor : ReceivePersistentActor
+    {
+        public override string PersistenceId { get; }
+
+        private readonly IMaterializer _mat = Context.Materializer();
+        private ISourceQueueWithComplete<int>? _queue;
+        private bool _sourceReceived;
+
+        private sealed record ConnectionEstablished;
+        private sealed record OfferFailed(Exception Error);
+        private sealed record Evt(int Value);
+
+        public PersistentConsumerActor(string persistenceId)
+        {
+            PersistenceId = persistenceId;
+
+            Recover<Evt>(_ => { });
+            Recover<SnapshotOffer>(_ => { });
+
+            WaitingForRefs();
+        }
+
+        protected override void PreStart()
+        {
+            var pipeline = Context.GetActor<PipelineActor>();
+            pipeline.Tell(new RequestSinkRef());
+            pipeline.Tell(new RequestSourceRef());
+        }
+
+        private void WaitingForRefs()
+        {
+            Command<SinkRefResponse>(response =>
+            {
+                _queue = Source.Queue<int>(4, OverflowStrategy.Backpressure)
+                    .To(response.SinkRef.Sink)
+                    .Run(_mat);
+                TryConnect();
+            });
+            Command<SourceRefResponse>(_ =>
+            {
+                _sourceReceived = true;
+                TryConnect();
+            });
+            CommandAny(_ => Stash.Stash());
+        }
+
+        private void TryConnect()
+        {
+            if (_queue is null || !_sourceReceived)
+                return;
+
+            Self.Tell(new DoOffer());
+            Become(Connecting);
+        }
+
+        private sealed record DoOffer;
+
+        private void Connecting()
+        {
+            Command<DoOffer>(_ =>
+            {
+                _queue!.OfferAsync(99).PipeTo(Self,
+                    success: _ => new ConnectionEstablished(),
+                    failure: ex => new OfferFailed(ex));
+                Become(WaitingForConnection);
+            });
+            CommandAny(_ => Stash.Stash());
+        }
+
+        private void WaitingForConnection()
+        {
+            Command<ConnectionEstablished>(_ =>
+            {
+                Become(Ready);
+                Stash.UnstashAll();
+            });
+            Command<OfferFailed>(msg =>
+            {
+                Self.Tell(new DoOffer());
+                Become(Connecting);
+            });
+            CommandAny(_ => Stash.Stash());
+        }
+
+        private void Ready()
+        {
+            CommandAny(_ => { });
+        }
+    }
+
+    private sealed record RequestSourceRef;
+    private sealed record SourceRefResponse;
 
     private sealed class AlwaysAllowGate : IBudgetGate<int>
     {

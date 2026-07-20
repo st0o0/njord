@@ -16,7 +16,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 {
     public override string PersistenceId => "scheduler";
 
-    private readonly IMaterializer _mat = Context.Materializer();
+    private IMaterializer _mat = null!;
     private readonly NjordOptions _options;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<SchedulerActor> _logger;
@@ -29,6 +29,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
     public sealed record DataChanged(string Location, string ModelId, int Hash, DateTimeOffset Utc);
 
     private sealed record ConnectionEstablished;
+    private sealed record OfferFailed(string Location, string ModelId, Exception Error);
 
     private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
 
@@ -53,6 +54,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     protected override void PreStart()
     {
+        _mat = Context.Materializer();
         var pipelineActor = Context.GetActor<PipelineActor>();
         Context.Watch(pipelineActor);
         pipelineActor.Tell(new RequestPipelineSink());
@@ -97,16 +99,35 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     private void Connecting()
     {
-        CommandAsync<ScheduledPoll>(async poll =>
+        Command<ScheduledPoll>(poll =>
         {
             var target = CreateTarget(poll);
             if (target is null)
                 return;
 
-            await _queue!.OfferAsync(target);
+            _queue!.OfferAsync(target).PipeTo(Self,
+                success: _ => new ConnectionEstablished(),
+                failure: ex => new OfferFailed(poll.Location, poll.ModelId, ex));
+            Become(WaitingForConnection);
+        });
+        Command<Terminated>(OnTerminated);
+        CommandAny(_ => Stash.Stash());
+    }
+
+    private void WaitingForConnection()
+    {
+        Command<ConnectionEstablished>(_ =>
+        {
             _logger.LogInformation("Pipeline connection established - scheduling initial polls");
             Become(Ready);
             Stash.UnstashAll();
+        });
+        Command<OfferFailed>(msg =>
+        {
+            _logger.LogWarning("Initial offer failed for {Location}/{Model}: {Error} - retrying",
+                msg.Location, msg.ModelId, msg.Error.Message);
+            Self.Tell(new ScheduledPoll(msg.Location, msg.ModelId));
+            Become(Connecting);
         });
         Command<Terminated>(OnTerminated);
         CommandAny(_ => Stash.Stash());
