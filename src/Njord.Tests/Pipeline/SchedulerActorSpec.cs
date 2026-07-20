@@ -405,7 +405,15 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
                 _sourceReceived = true;
                 TryTransitionToConnecting();
             });
-            CommandAny(_ => Stash.Stash());
+            StashKnownCommands();
+        }
+
+        private void StashKnownCommands()
+        {
+            Command<ScheduledPoll>(_ => Stash.Stash());
+            Command<HashResult>(_ => Stash.Stash());
+            Command<FetchFailed>(_ => Stash.Stash());
+            Command<TriggerImmediatePoll>(_ => Stash.Stash());
         }
 
         private sealed record ConnectionEstablished;
@@ -445,7 +453,9 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
                     failure: ex => new OfferFailed(poll.Location, poll.ModelId, ex));
                 Become(WaitingForConnection);
             });
-            CommandAny(_ => Stash.Stash());
+            Command<HashResult>(_ => Stash.Stash());
+            Command<FetchFailed>(_ => Stash.Stash());
+            Command<TriggerImmediatePoll>(_ => Stash.Stash());
         }
 
         private void WaitingForConnection()
@@ -460,7 +470,7 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
                 Self.Tell(new ScheduledPoll(msg.Location, msg.ModelId));
                 Become(Connecting);
             });
-            CommandAny(_ => Stash.Stash());
+            StashKnownCommands();
         }
 
         private void Ready()

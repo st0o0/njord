@@ -402,7 +402,7 @@ public sealed class SinkRefConnectionSpec : PersistenceTestKit
                 _sourceReceived = true;
                 TryConnect();
             });
-            CommandAny(_ => Stash.Stash());
+            Command<DoOffer>(_ => Stash.Stash());
         }
 
         private void TryConnect()
@@ -425,7 +425,7 @@ public sealed class SinkRefConnectionSpec : PersistenceTestKit
                     failure: ex => new OfferFailed(ex));
                 Become(WaitingForConnection);
             });
-            CommandAny(_ => Stash.Stash());
+            Command<DoOffer>(_ => Stash.Stash());
         }
 
         private void WaitingForConnection()
@@ -440,7 +440,7 @@ public sealed class SinkRefConnectionSpec : PersistenceTestKit
                 Self.Tell(new DoOffer());
                 Become(Connecting);
             });
-            CommandAny(_ => Stash.Stash());
+            Command<DoOffer>(_ => Stash.Stash());
         }
 
         private void Ready()

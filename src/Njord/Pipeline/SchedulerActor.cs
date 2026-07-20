@@ -68,6 +68,14 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
     }
 
+    private void StashKnownCommands()
+    {
+        Command<ScheduledPoll>(_ => Stash.Stash());
+        Command<HashResult>(_ => Stash.Stash());
+        Command<FetchFailed>(_ => Stash.Stash());
+        Command<TriggerImmediatePoll>(_ => Stash.Stash());
+    }
+
     private void WaitingForRefs()
     {
         Command<PipelineSinkResponse>(response =>
@@ -84,7 +92,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             TryTransitionToConnecting();
         });
         Command<Terminated>(OnTerminated);
-        CommandAny(_ => Stash.Stash());
+        StashKnownCommands();
     }
 
     private void TryTransitionToConnecting()
@@ -111,7 +119,9 @@ public sealed class SchedulerActor : ReceivePersistentActor
             Become(WaitingForConnection);
         });
         Command<Terminated>(OnTerminated);
-        CommandAny(_ => Stash.Stash());
+        Command<HashResult>(_ => Stash.Stash());
+        Command<FetchFailed>(_ => Stash.Stash());
+        Command<TriggerImmediatePoll>(_ => Stash.Stash());
     }
 
     private void WaitingForConnection()
@@ -130,7 +140,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             Become(Connecting);
         });
         Command<Terminated>(OnTerminated);
-        CommandAny(_ => Stash.Stash());
+        StashKnownCommands();
     }
 
     private void Ready()
