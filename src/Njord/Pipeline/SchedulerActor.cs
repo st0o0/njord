@@ -24,8 +24,11 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private readonly Dictionary<string, ModelPollState> _states = new();
     private ISourceQueueWithComplete<WeightedTarget>? _queue;
     private readonly int _weight;
+    private bool _sourceReceived;
 
     public sealed record DataChanged(string Location, string ModelId, int Hash, DateTimeOffset Utc);
+
+    private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
 
     public SchedulerActor(
         IOptions<NjordOptions> options,
@@ -43,15 +46,8 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Recover<DataChangedDto>(dto => OnRecover(SchedulerDtoMapping.ToDomain(dto)));
         Recover<SnapshotOffer>(_ => { });
 
-        Command<PipelineSinkResponse>(OnSinkReceived);
-        Command<PipelineSourceResponse>(OnSourceReceived);
-        CommandAsync<ScheduledPoll>(OnScheduledPoll);
-        Command<HashResult>(OnHashResult);
-        Command<FetchFailed>(OnFetchFailed);
-        Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
+        WaitingForRefs();
     }
-
-    private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
 
     protected override void PreStart()
     {
@@ -68,11 +64,29 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
     }
 
-    private void OnSinkReceived(PipelineSinkResponse response)
+    private void WaitingForRefs()
     {
-        _queue = Source.Queue<WeightedTarget>(4, OverflowStrategy.Backpressure)
-            .To(response.SinkRef.Sink)
-            .Run(_mat);
+        Command<PipelineSinkResponse>(response =>
+        {
+            _queue = Source.Queue<WeightedTarget>(4, OverflowStrategy.Backpressure)
+                .To(response.SinkRef.Sink)
+                .Run(_mat);
+            _logger.LogInformation("Pipeline SinkRef received");
+            TryTransitionToReady();
+        });
+        Command<PipelineSourceResponse>(response =>
+        {
+            OnSourceReceived(response);
+            TryTransitionToReady();
+        });
+        Command<Terminated>(OnTerminated);
+        CommandAny(_ => Stash.Stash());
+    }
+
+    private void TryTransitionToReady()
+    {
+        if (_queue is null || !_sourceReceived)
+            return;
 
         _logger.LogInformation("Pipeline SinkRef received - scheduling initial polls");
         InitializeStates();
@@ -83,21 +97,27 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private void Ready()
     {
         Command<PipelineSinkResponse>(_ => { });
-        Command<PipelineSourceResponse>(OnSourceReceived);
+        Command<PipelineSourceResponse>(_ => { });
         CommandAsync<ScheduledPoll>(OnScheduledPoll);
         Command<HashResult>(OnHashResult);
         Command<FetchFailed>(OnFetchFailed);
         Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
-        Command<Terminated>(_ =>
-        {
-            _logger.LogWarning("PipelineActor terminated - waiting for new SinkRef");
-            _queue?.Complete();
-            _queue = null;
-            var pipelineActor = Context.GetActor<PipelineActor>();
-            Context.Watch(pipelineActor);
-            pipelineActor.Tell(new RequestPipelineSink());
-            pipelineActor.Tell(new RequestPipelineSource());
-        });
+        Command<Terminated>(OnTerminated);
+    }
+
+    private void OnTerminated(Terminated msg)
+    {
+        _logger.LogWarning("PipelineActor terminated - waiting for new refs");
+        _queue?.Complete();
+        _queue = null;
+        _sourceReceived = false;
+
+        var pipelineActor = Context.GetActor<PipelineActor>();
+        Context.Watch(pipelineActor);
+        pipelineActor.Tell(new RequestPipelineSink());
+        pipelineActor.Tell(new RequestPipelineSource());
+
+        Become(WaitingForRefs);
     }
 
     private void InitializeStates()
@@ -129,6 +149,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
                 ex => new Status.Failure(ex)))
             .Run(_mat);
 
+        _sourceReceived = true;
         _logger.LogInformation("Pipeline SourceRef received - failure consumer connected");
     }
 
@@ -258,12 +279,17 @@ public sealed class SchedulerActor : ReceivePersistentActor
         }
 
         var now = _timeProvider.GetUtcNow();
-        var delay = state.NextPollUtc <= now
-            ? TimeSpan.FromMilliseconds(10)
-            : state.NextPollUtc - now;
+        var msg = new ScheduledPoll(location, modelId);
 
-        Context.System.Scheduler.ScheduleTellOnceCancelable(
-            delay, Self, new ScheduledPoll(location, modelId), Self);
+        if (state.NextPollUtc <= now)
+        {
+            Self.Tell(msg);
+        }
+        else
+        {
+            Context.System.Scheduler.ScheduleTellOnceCancelable(
+                state.NextPollUtc - now, Self, msg, Self);
+        }
     }
 
     private static string Key(string location, string modelId) => $"{location}|{modelId}";

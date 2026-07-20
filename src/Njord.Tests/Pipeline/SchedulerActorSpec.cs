@@ -49,7 +49,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         await _system.Terminate();
     }
 
-    private IActorRef CreateScheduler(NjordOptions? options = null, string? persistenceId = null)
+    private IActorRef CreateScheduler(NjordOptions? options = null, string? persistenceId = null, int queueSize = 32)
     {
         var opts = options ?? Options();
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
@@ -60,7 +60,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         registry.Register<PipelineActor>(fakePipelineActor, overwrite: true);
 
         var props = Props.Create(() => new TestableSchedulerActor(
-            opts, _time, parameters, persistenceId ?? $"scheduler-{Guid.NewGuid():N}"));
+            opts, _time, parameters, persistenceId ?? $"scheduler-{Guid.NewGuid():N}", queueSize));
 
         return _system.ActorOf(props);
     }
@@ -227,6 +227,42 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
     }
 
     [Fact(Timeout = 5000)]
+    public async Task All_initial_polls_arrive_with_small_queue_and_zero_delay()
+    {
+        var options = Options();
+        options.Locations =
+        [
+            new LocationOptions { Name = "amsterdam", Latitude = 52.37, Longitude = 4.90 },
+            new LocationOptions { Name = "berlin", Latitude = 52.52, Longitude = 13.41 },
+        ];
+        options.Models = ["icon_d2", "gfs_seamless", "ecmwf_ifs025", "icon_eu"];
+
+        _scheduler = CreateScheduler(options, queueSize: 4);
+
+        await WaitForOffer(8);
+
+        Assert.Equal(8, _offered.Count);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task All_initial_polls_arrive_with_slow_downstream()
+    {
+        var options = Options();
+        options.Locations =
+        [
+            new LocationOptions { Name = "amsterdam", Latitude = 52.37, Longitude = 4.90 },
+            new LocationOptions { Name = "berlin", Latitude = 52.52, Longitude = 13.41 },
+        ];
+        options.Models = ["icon_d2", "gfs_seamless", "ecmwf_ifs025", "icon_eu"];
+
+        _scheduler = CreateSchedulerWithSlowConsumer(options, queueSize: 4, consumerDelayMs: 50);
+
+        await WaitForOffer(8);
+
+        Assert.Equal(8, _offered.Count);
+    }
+
+    [Fact(Timeout = 5000)]
     public async Task Trigger_immediate_poll_actually_offers_target_to_pipeline()
     {
         _scheduler = CreateScheduler();
@@ -240,6 +276,58 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
         var latest = _offered[^1];
         Assert.Equal("lucerne", latest.Location.Name);
         Assert.Equal("icon_d2", latest.Model.Id);
+    }
+
+    private IActorRef CreateSchedulerWithSlowConsumer(NjordOptions? options = null, int queueSize = 32, int consumerDelayMs = 50)
+    {
+        var opts = options ?? Options();
+        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        var registry = ActorRegistry.For(_system);
+
+        var fakePipelineActor = _system.ActorOf(
+            Props.Create(() => new SlowFakePipelineActor(_offered, _mat, consumerDelayMs)));
+        registry.Register<PipelineActor>(fakePipelineActor, overwrite: true);
+
+        var props = Props.Create(() => new TestableSchedulerActor(
+            opts, _time, parameters, $"scheduler-{Guid.NewGuid():N}", queueSize));
+
+        return _system.ActorOf(props);
+    }
+
+    private sealed class SlowFakePipelineActor : ReceiveActor
+    {
+        public SlowFakePipelineActor(List<WeightedTarget> offered, IMaterializer mat, int delayMs)
+        {
+            Receive<RequestPipelineSink>(_ =>
+            {
+                var (hubSink, hubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 8)
+                    .PreMaterialize(mat);
+
+                hubSource
+                    .SelectAsync(1, async t =>
+                    {
+                        await Task.Delay(delayMs);
+                        return t;
+                    })
+                    .RunWith(Sink.ForEach<WeightedTarget>(t => offered.Add(t)), mat);
+
+                var sinkRef = StreamRefs.SinkRef<WeightedTarget>()
+                    .To(hubSink)
+                    .Run(mat)
+                    .Result;
+
+                Sender.Tell(new PipelineSinkResponse(sinkRef));
+            });
+
+            Receive<RequestPipelineSource>(_ =>
+            {
+                var sourceRef = Source.Empty<FetchOutcome>()
+                    .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat)
+                    .Result;
+
+                Sender.Tell(new PipelineSourceResponse(sourceRef));
+            });
+        }
     }
 
     private sealed class FakePipelineActor : ReceiveActor
@@ -281,30 +369,29 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
 
         private readonly NjordOptions _options;
         private readonly TimeProvider _timeProvider;
+        private readonly int _queueSize;
         private readonly Dictionary<string, ModelPollState> _states = new();
         private ISourceQueueWithComplete<WeightedTarget>? _queue;
         private readonly int _weight;
+        private bool _sourceReceived;
 
         public TestableSchedulerActor(
             NjordOptions options,
             TimeProvider timeProvider,
             ResolvedParameterSet parameters,
-            string persistenceId)
+            string persistenceId,
+            int queueSize = 32)
         {
             PersistenceId = persistenceId;
             _options = options;
             _timeProvider = timeProvider;
+            _queueSize = queueSize;
             _weight = WeightedTarget.ComputeWeight(parameters.HourlyCount, options.ForecastDays);
 
             Recover<DataChangedDto>(dto => OnRecover(SchedulerDtoMapping.ToDomain(dto)));
             Recover<SnapshotOffer>(_ => { });
 
-            Command<PipelineSinkResponse>(OnSinkReceived);
-            Command<PipelineSourceResponse>(_ => { });
-            Command<ScheduledPoll>(OnScheduledPoll);
-            Command<HashResult>(OnHashResult);
-            Command<FetchFailed>(OnFetchFailed);
-            Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
+            WaitingForRefs();
         }
 
         protected override void PreStart()
@@ -321,12 +408,28 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
             _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
         }
 
-        private void OnSinkReceived(PipelineSinkResponse response)
+        private void WaitingForRefs()
         {
-            var mat = Context.Materializer();
-            _queue = Source.Queue<WeightedTarget>(32, OverflowStrategy.Backpressure)
-                .To(response.SinkRef.Sink)
-                .Run(mat);
+            Command<PipelineSinkResponse>(response =>
+            {
+                var mat = Context.Materializer();
+                _queue = Source.Queue<WeightedTarget>(_queueSize, OverflowStrategy.Backpressure)
+                    .To(response.SinkRef.Sink)
+                    .Run(mat);
+                TryTransitionToReady();
+            });
+            Command<PipelineSourceResponse>(_ =>
+            {
+                _sourceReceived = true;
+                TryTransitionToReady();
+            });
+            CommandAny(_ => Stash.Stash());
+        }
+
+        private void TryTransitionToReady()
+        {
+            if (_queue is null || !_sourceReceived)
+                return;
 
             var now = _timeProvider.GetUtcNow();
             foreach (var location in _options.Locations)
@@ -340,10 +443,22 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
 
                     ScheduleNext(location.Name, modelId);
                 }
+
+            Become(Ready);
             Stash.UnstashAll();
         }
 
-        private void OnScheduledPoll(ScheduledPoll poll)
+        private void Ready()
+        {
+            Command<PipelineSinkResponse>(_ => { });
+            Command<PipelineSourceResponse>(_ => { });
+            CommandAsync<ScheduledPoll>(OnScheduledPoll);
+            Command<HashResult>(OnHashResult);
+            Command<FetchFailed>(OnFetchFailed);
+            Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
+        }
+
+        private async Task OnScheduledPoll(ScheduledPoll poll)
         {
             if (_queue is null)
             {
@@ -358,7 +473,7 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
             }
 
             var cycle = new CycleId(_timeProvider.GetUtcNow());
-            _queue.OfferAsync(new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle));
+            await _queue.OfferAsync(new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle));
         }
 
         private void OnHashResult(HashResult result)
@@ -449,15 +564,21 @@ public sealed class SchedulerActorSpec : IAsyncLifetime
             }
 
             var now = _timeProvider.GetUtcNow();
-            var delay = state.NextPollUtc <= now ? TimeSpan.FromMilliseconds(100) : state.NextPollUtc - now;
-            if (delay > TimeSpan.FromMilliseconds(500))
-            {
-                delay = TimeSpan.FromMilliseconds(500);
-            }
+            var msg = new ScheduledPoll(location, modelId);
 
-#pragma warning disable AK1004
-            Context.System.Scheduler.ScheduleTellOnce(delay, Self, new ScheduledPoll(location, modelId), Self);
-#pragma warning restore AK1004
+            if (state.NextPollUtc <= now)
+            {
+                Self.Tell(msg);
+            }
+            else
+            {
+                var delay = state.NextPollUtc - now;
+                if (delay > TimeSpan.FromMilliseconds(500))
+                    delay = TimeSpan.FromMilliseconds(500);
+
+                Context.System.Scheduler.ScheduleTellOnceCancelable(
+                    delay, Self, msg, Self);
+            }
         }
     }
 }
