@@ -118,21 +118,30 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         if (!hasInlineFeatures && !hasActorFeatures)
             return;
 
-        if (hasInlineFeatures && !hasActorFeatures)
+        var needsMultipleOutputGraphs = hasInlineFeatures && hasActorFeatures;
+
+        if (!needsMultipleOutputGraphs)
         {
-            MaterializeInlineFeatures(
-                _sourceRef!.Source, _egressSinkRef!.Sink, mat, locations,
-                statelessFeatures, statefulFeatures);
+            if (hasInlineFeatures)
+            {
+                MaterializeInlineFeatures(
+                    _sourceRef!.Source, _egressSinkRef!.Sink, mat, locations,
+                    statelessFeatures, statefulFeatures);
+            }
+            else
+            {
+                var scanSource = BuildScanSource(_sourceRef!.Source);
+                foreach (var feature in actorFeatures)
+                    MaterializeActorFeature(feature, scanSource, _egressSinkRef!.Sink, mat);
+            }
             return;
         }
 
-        if (hasActorFeatures && !hasInlineFeatures)
-        {
-            var scanSource = BuildScanSource(_sourceRef!.Source);
-            foreach (var feature in actorFeatures)
-                MaterializeActorFeature(feature, scanSource, _egressSinkRef!.Sink, mat);
-            return;
-        }
+        var (egressMergeHubSink, egressMergeHubSource) = MergeHub.Source<EgressEvent>(perProducerBufferSize: 4)
+            .PreMaterialize(mat);
+
+        egressMergeHubSource
+            .RunWith(_egressSinkRef!.Sink, mat);
 
         var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<ModelSnapshot>(bufferSize: 1)
             .PreMaterialize(mat);
@@ -142,11 +151,11 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
             .Run(mat);
 
         MaterializeInlineFromSource(
-            broadcastHubSource, _egressSinkRef!.Sink, mat, locations,
+            broadcastHubSource, egressMergeHubSink, mat, locations,
             statelessFeatures, statefulFeatures);
 
         foreach (var feature in actorFeatures)
-            MaterializeActorFeature(feature, broadcastHubSource, _egressSinkRef!.Sink, mat);
+            MaterializeActorFeature(feature, broadcastHubSource, egressMergeHubSink, mat);
     }
 
     private void MaterializeInlineFeatures(
