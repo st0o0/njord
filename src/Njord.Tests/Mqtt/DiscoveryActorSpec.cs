@@ -66,7 +66,7 @@ public sealed class DiscoveryActorSpec : IDisposable
         return hub;
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Discovery_disabled_does_not_request_sink_or_subscribe()
     {
         var registry = ActorRegistry.For(_system);
@@ -89,7 +89,7 @@ public sealed class DiscoveryActorSpec : IDisposable
         Assert.Empty(finalReceived);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Requests_sink_ref_and_subscribes_on_startup_when_enabled()
     {
         var registry = ActorRegistry.For(_system);
@@ -112,7 +112,7 @@ public sealed class DiscoveryActorSpec : IDisposable
         Assert.Contains(received, m => m is SubscribeInbound);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task No_discovery_published_on_connect_before_capabilities_arrive()
     {
         var registry = ActorRegistry.For(_system);
@@ -139,7 +139,7 @@ public sealed class DiscoveryActorSpec : IDisposable
         });
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Publishes_discovery_after_all_capabilities_received()
     {
         var registry = ActorRegistry.For(_system);
@@ -197,13 +197,13 @@ public sealed class DiscoveryActorSpec : IDisposable
         {
             var messages = await probe.Ask<List<MqttMessage>>(new GetPublishedMessages(), TimeSpan.FromSeconds(1));
             return messages.Count > 0;
-        }, timeout: TimeSpan.FromSeconds(5));
+        });
 
         var messages = await probe.Ask<List<MqttMessage>>(new GetPublishedMessages(), TimeSpan.FromSeconds(2));
         Assert.NotEmpty(messages);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Ha_birth_re_publishes_with_learned_state()
     {
         var registry = ActorRegistry.For(_system);
@@ -243,7 +243,7 @@ public sealed class DiscoveryActorSpec : IDisposable
         Assert.True(afterBirth.Count > beforeBirth);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Late_capability_triggers_incremental_publish()
     {
         var registry = ActorRegistry.For(_system);

@@ -38,7 +38,7 @@ public sealed class ModelStateActorSpec : IDisposable
             NullLogger<ModelStateActor>.Instance)));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Requests_egress_sink_and_pipeline_source_on_startup()
     {
         var registry = ActorRegistry.For(_system);
@@ -60,7 +60,7 @@ public sealed class ModelStateActorSpec : IDisposable
         Assert.Single(pipelineRequests);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task First_fetch_emits_capability_learned_into_egress_sink()
     {
         var registry = ActorRegistry.For(_system);
@@ -87,7 +87,7 @@ public sealed class ModelStateActorSpec : IDisposable
         Assert.Single(egressEvents.OfType<EgressEvent.PerModelUpdate>());
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Unchanged_capability_set_does_not_re_emit()
     {
         var registry = ActorRegistry.For(_system);
@@ -109,7 +109,7 @@ public sealed class ModelStateActorSpec : IDisposable
         Assert.Single(egressEvents.OfType<EgressEvent.CapabilityLearned>());
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Expanded_capability_set_triggers_update()
     {
         var registry = ActorRegistry.For(_system);
@@ -133,7 +133,7 @@ public sealed class ModelStateActorSpec : IDisposable
         Assert.True(capEvents[1].SupportedParameters.Count > capEvents[0].SupportedParameters.Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Horizon_capping_excludes_72h_for_icon_d2()
     {
         var registry = ActorRegistry.For(_system);

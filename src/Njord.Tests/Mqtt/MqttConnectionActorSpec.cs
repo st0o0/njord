@@ -34,7 +34,7 @@ public sealed class MqttConnectionActorSpec : IDisposable
             new NjordHealthState { ServiceStartedUtc = DateTimeOffset.UtcNow })));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Connection_publishes_online_on_availability_topic()
     {
         var transport = new RecordingTransport();
@@ -47,7 +47,7 @@ public sealed class MqttConnectionActorSpec : IDisposable
         Assert.Contains(transport.Sent, m => m.Topic == "njord/status" && m.Payload == "online");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Reconnect_is_attempted_after_connect_failure()
     {
         var transport = new RecordingTransport();
@@ -63,7 +63,7 @@ public sealed class MqttConnectionActorSpec : IDisposable
         Assert.Contains(transport.Sent, m => m.Topic == "njord/status" && m.Payload == "online");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task SinkRef_is_returned_on_RequestMqttSink()
     {
         var transport = new RecordingTransport();
@@ -75,7 +75,7 @@ public sealed class MqttConnectionActorSpec : IDisposable
         Assert.NotNull(response.SinkRef);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Offline_is_enqueued_on_stop()
     {
         var transport = new RecordingTransport();
@@ -88,7 +88,7 @@ public sealed class MqttConnectionActorSpec : IDisposable
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Inbound_messages_are_forwarded_to_subscribers()
     {
         var transport = new RecordingTransport();

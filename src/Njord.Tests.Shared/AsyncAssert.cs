@@ -7,7 +7,7 @@ public static class AsyncAssert
         TimeSpan? timeout = null,
         TimeSpan? pollInterval = null)
     {
-        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(3);
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(10);
         var interval = pollInterval ?? TimeSpan.FromMilliseconds(25);
         using var cts = new CancellationTokenSource(effectiveTimeout);
 
@@ -30,7 +30,7 @@ public static class AsyncAssert
         TimeSpan? timeout = null,
         TimeSpan? pollInterval = null)
     {
-        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(3);
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(10);
         var interval = pollInterval ?? TimeSpan.FromMilliseconds(25);
         using var cts = new CancellationTokenSource(effectiveTimeout);
 

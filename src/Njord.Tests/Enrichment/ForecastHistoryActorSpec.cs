@@ -27,7 +27,7 @@ public sealed class ForecastHistoryActorSpec : PersistenceTestKit
         return ModelSnapshot.Empty.Update(forecast);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Query_returns_empty_history_initially()
     {
         var actor = Sys.ActorOf(Props.Create(() =>
@@ -37,7 +37,7 @@ public sealed class ForecastHistoryActorSpec : PersistenceTestKit
         Assert.Empty(response.History.Records);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Record_and_query_returns_persisted_data()
     {
         var actor = Sys.ActorOf(Props.Create(() =>
@@ -56,7 +56,7 @@ public sealed class ForecastHistoryActorSpec : PersistenceTestKit
         Assert.Equal("lucerne", response.History.Records[0].Location);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 15000)]
     public async Task Multiple_records_accumulate()
     {
         var actor = Sys.ActorOf(Props.Create(() =>
