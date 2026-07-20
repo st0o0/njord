@@ -15,15 +15,13 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     private readonly IBudgetGate<WeightedTarget> _budgetGate;
     private readonly ILogger<PipelineActor> _logger;
 
-    private Source<FetchOutcome, NotUsed>? _broadcastHubSource;
-    private ISinkRef<WeightedTarget>? _warmSinkRef;
     private Sink<WeightedTarget, NotUsed>? _mergeHubSink;
+    private Source<FetchOutcome, NotUsed>? _broadcastHubSource;
     private IMaterializer? _mat;
 
     public IStash Stash { get; set; } = null!;
 
     private sealed record PipelineReady;
-    private sealed record SinkRefWarmed(ISinkRef<WeightedTarget> SinkRef);
 
     public PipelineActor(
         IOpenMeteoClient client,
@@ -57,50 +55,31 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
 
     private void Ready()
     {
-        Receive<SinkRefWarmed>(msg =>
-        {
-            _warmSinkRef = msg.SinkRef;
-            Stash.UnstashAll();
-        });
         Receive<RequestPipelineSink>(_ =>
         {
-            if (_warmSinkRef is not null)
-            {
-                Sender.Tell(new PipelineSinkResponse(_warmSinkRef));
-                _warmSinkRef = null;
-                PreWarmSinkRef();
-            }
-            else
-            {
-                Stash.Stash();
-            }
+            StreamRefs.SinkRef<WeightedTarget>()
+                .To(_mergeHubSink!)
+                .Run(_mat!)
+                .PipeTo(Sender, Self,
+                    sr => new PipelineSinkResponse(sr),
+                    ex =>
+                    {
+                        _logger.LogError(ex, "Failed to create SinkRef");
+                        return null!;
+                    });
         });
         Receive<RequestPipelineSource>(_ =>
         {
-            var sourceRef = _broadcastHubSource!
-                .RunWith(StreamRefs.SourceRef<FetchOutcome>(), _mat!);
-            sourceRef.PipeTo(Sender, Self,
-                sr => new PipelineSourceResponse(sr),
-                ex =>
-                {
-                    _logger.LogError(ex, "Failed to create SourceRef");
-                    return null!;
-                });
+            _broadcastHubSource!
+                .RunWith(StreamRefs.SourceRef<FetchOutcome>(), _mat!)
+                .PipeTo(Sender, Self,
+                    sr => new PipelineSourceResponse(sr),
+                    ex =>
+                    {
+                        _logger.LogError(ex, "Failed to create SourceRef");
+                        return null!;
+                    });
         });
-    }
-
-    private void PreWarmSinkRef()
-    {
-        StreamRefs.SinkRef<WeightedTarget>()
-            .To(_mergeHubSink!)
-            .Run(_mat!)
-            .PipeTo(Self,
-                success: sr => new SinkRefWarmed(sr),
-                failure: ex =>
-                {
-                    _logger.LogError(ex, "Failed to pre-warm SinkRef");
-                    return null!;
-                });
     }
 
     private void MaterializePipeline()
@@ -140,7 +119,6 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         _mergeHubSink = mergeHubSink;
         _broadcastHubSource = broadcastHubSource;
 
-        PreWarmSinkRef();
         Self.Tell(new PipelineReady());
     }
 }
