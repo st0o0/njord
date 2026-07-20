@@ -20,7 +20,7 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
 {
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
     private IActorRef _scheduler = null!;
-    private readonly List<WeightedTarget> _offered = [];
+    private readonly OfferCollector _collector = new();
 
     private IMaterializer Mat => Sys.Materializer();
 
@@ -38,7 +38,7 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
         var registry = ActorRegistry.For(Sys);
 
         var fakePipelineActor = Sys.ActorOf(
-            Props.Create(() => new FakePipelineActor(_offered, Mat)));
+            Props.Create(() => new FakePipelineActor(_collector, Mat)));
         registry.Register<PipelineActor>(fakePipelineActor, overwrite: true);
 
         var props = Props.Create(() => new TestableSchedulerActor(
@@ -54,7 +54,7 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
         var registry = ActorRegistry.For(Sys);
 
         var fakePipelineActor = Sys.ActorOf(
-            Props.Create(() => new SlowFakePipelineActor(_offered, Mat, consumerDelayMs)));
+            Props.Create(() => new SlowFakePipelineActor(_collector, Mat, consumerDelayMs)));
         registry.Register<PipelineActor>(fakePipelineActor, overwrite: true);
 
         var props = Props.Create(() => new TestableSchedulerActor(
@@ -63,8 +63,7 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
         return Sys.ActorOf(props);
     }
 
-    private Task WaitForOffer(int minCount = 1) =>
-        AsyncAssert.WaitUntil(() => _offered.Count >= minCount);
+    private Task WaitForOffer(int minCount = 1) => _collector.WaitFor(minCount);
 
     [Fact(Timeout = 5000)]
     public async Task Scheduler_offers_target_after_receiving_sink_ref()
@@ -73,9 +72,9 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
 
         await WaitForOffer();
 
-        Assert.True(_offered.Count > 0, "Scheduler should have offered at least one target");
-        Assert.Equal("lucerne", _offered[0].Location.Name);
-        Assert.Equal("icon_d2", _offered[0].Model.Id);
+        Assert.True(_collector.Count > 0, "Scheduler should have offered at least one target");
+        Assert.Equal("lucerne", _collector.Items[0].Location.Name);
+        Assert.Equal("icon_d2", _collector.Items[0].Model.Id);
     }
 
     [Fact(Timeout = 5000)]
@@ -87,7 +86,7 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
 
         await WaitForOffer(3);
 
-        Assert.Equal(3, _offered.Count);
+        Assert.Equal(3, _collector.Count);
     }
 
     [Fact(Timeout = 5000)]
@@ -117,12 +116,12 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
         _scheduler = CreateScheduler();
         await WaitForOffer();
 
-        var countBefore = _offered.Count;
+        var countBefore = _collector.Count;
         _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.Transport, "test"));
 
-        await AsyncAssert.WaitUntil(() => _offered.Count > countBefore);
+        await _collector.WaitFor(countBefore + 1);
 
-        Assert.True(_offered.Count > countBefore, "Transport failure should schedule a retry that offers a new target");
+        Assert.True(_collector.Count > countBefore, "Transport failure should schedule a retry that offers a new target");
     }
 
     [Fact(Timeout = 5000)]
@@ -131,10 +130,10 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
         _scheduler = CreateScheduler();
         await WaitForOffer();
 
-        var countBefore = _offered.Count;
+        var countBefore = _collector.Count;
         _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.RateLimited, "test"));
 
-        await AsyncAssert.StaysTrue(() => _offered.Count == countBefore);
+        await AsyncAssert.StaysTrue(() => _collector.Count == countBefore);
     }
 
     [Fact(Timeout = 5000)]
@@ -143,10 +142,10 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
         _scheduler = CreateScheduler();
         await WaitForOffer();
 
-        var countBefore = _offered.Count;
+        var countBefore = _collector.Count;
         _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.ModelUnavailable, "test"));
 
-        await AsyncAssert.StaysTrue(() => _offered.Count == countBefore);
+        await AsyncAssert.StaysTrue(() => _collector.Count == countBefore);
     }
 
     [Fact(Timeout = 5000)]
@@ -155,10 +154,10 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
         _scheduler = CreateScheduler();
         await WaitForOffer();
 
-        var countBefore = _offered.Count;
+        var countBefore = _collector.Count;
         _scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.MalformedPayload, "test"));
 
-        await AsyncAssert.StaysTrue(() => _offered.Count == countBefore);
+        await AsyncAssert.StaysTrue(() => _collector.Count == countBefore);
     }
 
     [Fact(Timeout = 5000)]
@@ -239,7 +238,7 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
 
         await WaitForOffer(8);
 
-        Assert.Equal(8, _offered.Count);
+        Assert.Equal(8, _collector.Count);
     }
 
     [Fact(Timeout = 10000)]
@@ -257,7 +256,7 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
 
         await WaitForOffer(8);
 
-        Assert.Equal(8, _offered.Count);
+        Assert.Equal(8, _collector.Count);
     }
 
     [Fact(Timeout = 5000)]
@@ -265,20 +264,57 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
     {
         _scheduler = CreateScheduler();
         await WaitForOffer();
-        var countBefore = _offered.Count;
+        var countBefore = _collector.Count;
 
         await _scheduler.Ask<TriggerPollResult>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2));
 
-        await AsyncAssert.WaitUntil(() => _offered.Count > countBefore);
-        var latest = _offered[^1];
+        await _collector.WaitFor(countBefore + 1);
+        var latest = _collector.Items[^1];
         Assert.Equal("lucerne", latest.Location.Name);
         Assert.Equal("icon_d2", latest.Model.Id);
     }
 
+    private sealed class OfferCollector
+    {
+        private readonly List<WeightedTarget> _items = [];
+        private readonly object _lock = new();
+        private int _waitTarget;
+        private TaskCompletionSource? _tcs;
+
+        public int Count { get { lock (_lock) return _items.Count; } }
+        public List<WeightedTarget> Items { get { lock (_lock) return [.. _items]; } }
+
+        public void Add(WeightedTarget target)
+        {
+            lock (_lock)
+            {
+                _items.Add(target);
+                if (_tcs is not null && _items.Count >= _waitTarget)
+                {
+                    _tcs.TrySetResult();
+                    _tcs = null;
+                }
+            }
+        }
+
+        public Task WaitFor(int count)
+        {
+            lock (_lock)
+            {
+                if (_items.Count >= count)
+                    return Task.CompletedTask;
+
+                _waitTarget = count;
+                _tcs = new TaskCompletionSource();
+                return _tcs.Task;
+            }
+        }
+    }
+
     private sealed class SlowFakePipelineActor : ReceiveActor
     {
-        public SlowFakePipelineActor(List<WeightedTarget> offered, IMaterializer mat, int delayMs)
+        public SlowFakePipelineActor(OfferCollector collector, IMaterializer mat, int delayMs)
         {
             Receive<RequestPipelineSink>(_ =>
             {
@@ -291,7 +327,7 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
                         await Task.Delay(delayMs);
                         return t;
                     })
-                    .RunWith(Sink.ForEach<WeightedTarget>(t => offered.Add(t)), mat);
+                    .RunWith(Sink.ForEach<WeightedTarget>(t => collector.Add(t)), mat);
 
                 var sinkRef = StreamRefs.SinkRef<WeightedTarget>()
                     .To(hubSink)
@@ -314,7 +350,7 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
 
     private sealed class FakePipelineActor : ReceiveActor
     {
-        public FakePipelineActor(List<WeightedTarget> offered, IMaterializer mat)
+        public FakePipelineActor(OfferCollector collector, IMaterializer mat)
         {
             Receive<RequestPipelineSink>(_ =>
             {
@@ -322,7 +358,7 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
                     .PreMaterialize(mat);
 
                 hubSource
-                    .RunWith(Sink.ForEach<WeightedTarget>(t => offered.Add(t)), mat);
+                    .RunWith(Sink.ForEach<WeightedTarget>(t => collector.Add(t)), mat);
 
                 var sinkRef = StreamRefs.SinkRef<WeightedTarget>()
                     .To(hubSink)
