@@ -70,7 +70,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     private void OnSinkReceived(PipelineSinkResponse response)
     {
-        _queue = Source.Queue<WeightedTarget>(32, OverflowStrategy.Backpressure)
+        _queue = Source.Queue<WeightedTarget>(4, OverflowStrategy.Backpressure)
             .To(response.SinkRef.Sink)
             .Run(_mat);
 
@@ -259,7 +259,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
         var now = _timeProvider.GetUtcNow();
         var delay = state.NextPollUtc <= now
-            ? TimeSpan.FromSeconds(1)
+            ? TimeSpan.FromMilliseconds(10)
             : state.NextPollUtc - now;
 
         Context.System.Scheduler.ScheduleTellOnceCancelable(
