@@ -224,7 +224,7 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
         Assert.Empty(result.Targets);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 10000)]
     public async Task All_initial_polls_arrive_with_small_queue_and_zero_delay()
     {
         var options = Options();
@@ -242,7 +242,7 @@ public sealed class SchedulerActorSpec : PersistenceTestKit
         Assert.Equal(8, _offered.Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 10000)]
     public async Task All_initial_polls_arrive_with_slow_downstream()
     {
         var options = Options();

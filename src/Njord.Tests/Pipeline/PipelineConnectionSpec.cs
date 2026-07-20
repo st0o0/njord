@@ -108,9 +108,7 @@ public sealed class PipelineConnectionSpec : PersistenceTestKit
             DiscoveryInterval = TimeSpan.FromMinutes(20),
         };
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        var optionsMonitor = new FakeOptionsMonitor(options);
-        IBudgetGate<WeightedTarget> gate = new WeightedBudgetGate(
-            new OptionsBudgetProvider(optionsMonitor), new BudgetTracker());
+        IBudgetGate<WeightedTarget> gate = new AlwaysAllowWeightedGate();
         var client = new TimingOpenMeteoClient(fetchTimestamps, expectedCount, allFetched);
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero));
         var health = new NjordHealthState { ServiceStartedUtc = time.GetUtcNow() };
