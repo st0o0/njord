@@ -98,10 +98,20 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private void TryTransitionToConnecting()
     {
         if (_queue is null || !_sourceReceived)
+        {
+            _logger.LogDebug("TryTransition: queue={HasQueue}, source={HasSource}",
+                _queue is not null, _sourceReceived);
             return;
+        }
 
+        var pollCount = 0;
+        var now = _timeProvider.GetUtcNow();
+        foreach (var location in _options.Locations)
+            foreach (var modelId in location.ResolveModels(_options.Models))
+                pollCount++;
+
+        _logger.LogInformation("Pipeline refs received - connecting ({PollCount} polls to schedule)", pollCount);
         InitializeStates();
-        _logger.LogInformation("Pipeline refs received - connecting");
         Become(Connecting);
     }
 
@@ -111,8 +121,13 @@ public sealed class SchedulerActor : ReceivePersistentActor
         {
             var target = CreateTarget(poll);
             if (target is null)
+            {
+                _logger.LogWarning("CreateTarget returned null for {Location}/{Model}", poll.Location, poll.ModelId);
                 return;
+            }
 
+            _logger.LogInformation("Offering connection probe for {Location}/{Model}, queue={Queue}",
+                poll.Location, poll.ModelId, _queue?.GetType().Name ?? "null");
             _queue!.OfferAsync(target).PipeTo(Self,
                 success: _ => new ConnectionEstablished(),
                 failure: ex => new OfferFailed(poll.Location, poll.ModelId, ex));
