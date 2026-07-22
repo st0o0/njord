@@ -191,7 +191,7 @@ onMounted(() => {
     <details class="section">
       <summary>Import existing config</summary>
       <div class="import-box">
-        <textarea v-model="importText.value" placeholder="Paste appsettings.json or env vars here..." rows="4" />
+        <textarea v-model="importText.value" placeholder="Paste appsettings.json, env vars, or docker-compose environment block here..." rows="4" />
         <button @click="doImport" :disabled="!importText.value.trim()">Import</button>
         <p v-if="importText.error" class="error">{{ importText.error }}</p>
       </div>

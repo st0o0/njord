@@ -197,6 +197,21 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
       while (config.parameters.groups.length <= idx) config.parameters.groups.push('')
       config.parameters.groups[idx] = value
     }
+    else if (parts[0] === 'Enrichment' && parts.length >= 3) {
+      const feature = parts[1]
+      const setting = parts[2]
+      if (!config.enrichment[feature]) config.enrichment[feature] = {}
+      const asNum = Number(value)
+      config.enrichment[feature][setting] = value === 'true' ? true : value === 'false' ? false : !isNaN(asNum) ? asNum : value
+    }
+    else if (parts[0] === 'Mqtt' && parts[1] === 'Enabled') {
+      config.mqtt.enabled = value === 'true'
+    }
+    else if (parts[0] === 'DiscoveryInterval') config.discoveryInterval = value
+    else if (parts[0] === 'Persistence') {
+      if (parts[1] === 'Provider') config.persistence.provider = value
+      else if (parts[1] === 'ConnectionString') config.persistence.connectionString = value
+    }
   }
 
   config.models = config.models.filter(Boolean)
@@ -205,9 +220,18 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
   return config
 }
 
+export function importFromCompose(text: string): Partial<NjordConfig> {
+  const cleaned = text
+    .split('\n')
+    .map(line => line.replace(/^\s*-\s+/, ''))
+    .join('\n')
+  return importFromEnvVars(cleaned)
+}
+
 export function autoImport(text: string): Partial<NjordConfig> {
   const trimmed = text.trim()
   if (trimmed.startsWith('{')) return importFromJson(trimmed)
+  if (/^\s*-\s+\w+__/m.test(trimmed)) return importFromCompose(trimmed)
   return importFromEnvVars(trimmed)
 }
 
