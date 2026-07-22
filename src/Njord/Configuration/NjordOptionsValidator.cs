@@ -113,6 +113,28 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
             }
         }
 
+        if (options.Persistence is { Provider: PersistenceProvider.Sqlite, ConnectionString: null })
+        {
+            var dir = Path.GetDirectoryName(options.PersistencePath);
+            if (!string.IsNullOrEmpty(dir))
+            {
+                try
+                {
+                    Directory.CreateDirectory(dir);
+                    var probe = Path.Combine(dir, ".njord-write-probe");
+                    File.WriteAllBytes(probe, []);
+                    File.Delete(probe);
+                }
+                catch (Exception ex)
+                {
+                    var fullDir = Path.GetFullPath(dir);
+                    failures.Add(
+                        $"Persistence directory '{fullDir}' is not writable: {ex.Message}. " +
+                        "Ensure the volume is mounted and the container user has write access.");
+                }
+            }
+        }
+
         return failures.Count > 0
             ? ValidateOptionsResult.Fail(failures)
             : ValidateOptionsResult.Success;
