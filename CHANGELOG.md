@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/st0o0/njord/compare/v0.2.0...v0.2.1) (2026-07-22)
+
+
+### Features
+
+* **docs:** support docker-compose import in Config Builder ([0c81ebe](https://github.com/st0o0/njord/commit/0c81ebe6b23ed245284b6a245cf2d9a4afa462d0))
+* **persistence:** Validate SQLite write access ([5612ab4](https://github.com/st0o0/njord/commit/5612ab4ba7e883a97e0996a91f8a03648646a38b))
+
 ## [0.2.0](https://github.com/st0o0/njord/compare/v0.1.2...v0.2.0) (2026-07-20)
 
 
