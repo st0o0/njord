@@ -57,6 +57,15 @@ const importText = reactive({ value: '', error: '' })
 const copied = reactive({ show: false })
 
 const budget = computed(() => computeBudget(config, models))
+const memoryTip = computed(() => {
+  const locs = config.locations.length
+  const history = isEnrichmentEnabled('History')
+  const models = config.models.length + config.locations.reduce((s, l) => s + l.models.length, 0)
+  if (locs >= 3 && history) return 'With 3+ locations and History enabled, consider 384M or more.'
+  if (locs >= 2 && history) return 'With multiple locations and History, consider 256M or more.'
+  if (models > 8) return 'With many models, consider 256M.'
+  return ''
+})
 const exportOutput = computed(() => {
   if (exportMode.format === 'json') return exportAsJson(config)
   if (exportMode.format === 'compose') return exportAsCompose(config)
@@ -352,6 +361,17 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Deploy Limits -->
+    <div class="section">
+      <h3>Container Resources</h3>
+      <p class="section-hint">Limits CPU and memory for the Docker container. Prevents runaway resource usage on low-power hosts.</p>
+      <div class="general-row">
+        <label>CPU Limit <input v-model="config.deploy.limits.cpus" placeholder="e.g. 1.0" /></label>
+        <label>Memory Limit <input v-model="config.deploy.limits.memory" placeholder="e.g. 256M" /></label>
+      </div>
+      <p v-if="memoryTip" class="tip">{{ memoryTip }}</p>
+    </div>
+
     <!-- Budget -->
     <div class="section budget-section">
       <h3>Budget</h3>
@@ -460,6 +480,8 @@ button.active { background: var(--vp-c-brand-1); color: white; border-color: var
 .import-box { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .import-box button { align-self: flex-start; }
 .error { color: var(--vp-c-danger-1); font-size: 13px; margin-top: 4px; }
+.tip { color: var(--vp-c-warning-1); font-size: 12px; margin-top: 6px; }
+.section-hint { font-size: 12px; color: var(--vp-c-text-3); margin: -4px 0 8px; }
 
 details summary { cursor: pointer; color: var(--vp-c-text-2); font-size: 14px; }
 

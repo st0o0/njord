@@ -98,11 +98,17 @@ export function exportAsCompose(config: NjordConfig): string {
     .map(l => `      - ${l}`)
     .join('\n')
 
+  const hasLimits = config.deploy.limits.cpus || config.deploy.limits.memory
+  const deployBlock = hasLimits ? `    deploy:
+      resources:
+        limits:
+${config.deploy.limits.cpus ? `          cpus: "${config.deploy.limits.cpus}"\n` : ''}${config.deploy.limits.memory ? `          memory: ${config.deploy.limits.memory}\n` : ''}` : ''
+
   return `services:
   njord:
     image: ghcr.io/st0o0/njord:latest
     restart: unless-stopped
-    volumes:
+${deployBlock}    volumes:
       - njord-data:/app/data
     environment:
 ${envLines}
@@ -225,7 +231,20 @@ export function importFromCompose(text: string): Partial<NjordConfig> {
     .split('\n')
     .map(line => line.replace(/^\s*-\s+/, ''))
     .join('\n')
-  return importFromEnvVars(cleaned)
+  const config = importFromEnvVars(cleaned)
+
+  const cpusMatch = text.match(/cpus:\s*"?([0-9.]+)"?/)
+  const memMatch = text.match(/memory:\s*(\d+[MmGg]?)/)
+  if (cpusMatch || memMatch) {
+    config.deploy = {
+      limits: {
+        cpus: cpusMatch?.[1] ?? '',
+        memory: memMatch?.[1] ?? '',
+      },
+    }
+  }
+
+  return config
 }
 
 export function autoImport(text: string): Partial<NjordConfig> {

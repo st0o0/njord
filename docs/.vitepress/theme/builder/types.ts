@@ -27,6 +27,11 @@ export interface LocationConfig {
   models: string[]
 }
 
+export interface DeployLimits {
+  cpus: string
+  memory: string
+}
+
 export interface NjordConfig {
   pollInterval: string
   forecastDays: number
@@ -40,6 +45,7 @@ export interface NjordConfig {
   budgetOverride: { requestsPerMonth: number; requestsPerMinute: number } | null
   persistence: { provider: string; connectionString: string }
   persistencePath: string
+  deploy: { limits: DeployLimits }
 }
 
 export function defaultConfig(): NjordConfig {
@@ -56,5 +62,6 @@ export function defaultConfig(): NjordConfig {
     budgetOverride: null,
     persistence: { provider: 'Sqlite', connectionString: '' },
     persistencePath: 'data/njord-journal.db',
+    deploy: { limits: { cpus: '', memory: '' } },
   }
 }
