@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/st0o0/njord/compare/v0.2.1...v0.2.2) (2026-07-24)
+
+
+### Bug Fixes
+
+* config builder import ([33ae907](https://github.com/st0o0/njord/commit/33ae9075c3cfa596223910b475806573403a8b3a))
+
 ## [0.2.1](https://github.com/st0o0/njord/compare/v0.2.0...v0.2.1) (2026-07-22)
 
 
