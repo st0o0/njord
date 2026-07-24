@@ -107,7 +107,9 @@ public sealed class OpenMeteoClient(
         {
             var dict = new Dictionary<ParameterDef, double?>(parameters.Hourly.Count);
             foreach (var param in parameters.Hourly)
+            {
                 dict[param] = paramArrays[param][i];
+            }
 
             points.Add(new ForecastPoint(DateTimeOffset.FromUnixTimeSeconds(times[i]), dict));
         }
@@ -155,7 +157,9 @@ public sealed class OpenMeteoClient(
 
             var point = new DailyForecastPoint(date, numeric, meta);
             if (point.HasAnyValue)
+            {
                 points.Add(point);
+            }
         }
 
         return new DailyForecastSeries(points);
@@ -201,7 +205,10 @@ public sealed class OpenMeteoClient(
     {
         var result = new List<double?>(expectedLength);
         foreach (var item in element.EnumerateArray())
+        {
             result.Add(item.ValueKind == JsonValueKind.Null ? null : item.GetDouble());
+        }
+
         return result;
     }
 
@@ -221,16 +228,14 @@ public sealed class OpenMeteoClient(
         return result;
     }
 
-    private static IReadOnlyList<double?> NullArray(int count)
+    private static double?[] NullArray(int count)
     {
-        var result = new double?[count];
-        return result;
+        return new double?[count];
     }
 
-    private static IReadOnlyList<object?> NullObjectArray(int count)
+    private static object?[] NullObjectArray(int count)
     {
-        var result = new object?[count];
-        return result;
+        return new object?[count];
     }
 
     private static async Task<string> ReadErrorReasonAsync(HttpResponseMessage response, CancellationToken cancellationToken)

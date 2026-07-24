@@ -212,8 +212,8 @@ public sealed class SchedulerActor : ReceivePersistentActor
         {
             case FetchFailureReason.Transport:
                 _states[key] = state.WithTransientFailure(now);
-                _logger.LogWarning("Fetch failed for {Location}/{Model} (transport) - miss={Miss}",
-                    msg.Location, msg.ModelId, _states[key].MissCount);
+                _logger.LogWarning("Fetch failed for {Location}/{Model} (transport) - miss={Miss}, details={Details}",
+                    msg.Location, msg.ModelId, _states[key].MissCount, msg.Detail);
                 ScheduleNext(msg.Location, msg.ModelId);
                 break;
 
