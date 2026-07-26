@@ -199,7 +199,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             .Run(_mat);
 
         _sourceReceived = true;
-        _logger.LogInformation("Pipeline SourceRef received - failure consumer connected");
+        _logger.LogInformation("Pipeline SourceRef received");
     }
 
     private void OnFetchFailed(FetchFailed msg)
