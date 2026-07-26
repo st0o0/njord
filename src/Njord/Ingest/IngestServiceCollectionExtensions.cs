@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Sockets;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
@@ -10,11 +12,29 @@ public static class IngestServiceCollectionExtensions
     {
         services.TryAddSingleton(TimeProvider.System);
         services.AddHttpClient<IOpenMeteoClient, OpenMeteoClient>((sp, client) =>
-        {
-            var options = sp.GetRequiredService<IOptions<NjordOptions>>().Value;
-            client.BaseAddress = new Uri(options.OpenMeteoBaseUrl);
-            client.Timeout = TimeSpan.FromSeconds(30);
-        });
+            {
+                var options = sp.GetRequiredService<IOptions<NjordOptions>>().Value;
+                client.BaseAddress = new Uri(options.OpenMeteoBaseUrl);
+                client.Timeout = TimeSpan.FromSeconds(30);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                ConnectCallback = async (context, ct) =>
+                {
+                    var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    socket.NoDelay = true;
+                    try
+                    {
+                        await socket.ConnectAsync(context.DnsEndPoint, ct);
+                        return new NetworkStream(socket, ownsSocket: true);
+                    }
+                    catch
+                    {
+                        socket.Dispose();
+                        throw;
+                    }
+                }
+            });
         return services;
     }
 }
