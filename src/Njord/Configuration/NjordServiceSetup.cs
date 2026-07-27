@@ -38,7 +38,8 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         services.AddSingleton<IBudgetGate<WeightedTarget>>(sp =>
             new WeightedBudgetGate(
                 sp.GetRequiredService<IBudgetProvider>(),
-                sp.GetRequiredService<BudgetTracker>()));
+                sp.GetRequiredService<BudgetTracker>(),
+                sp.GetRequiredService<TimeProvider>()));
         services.AddSingleton(sp => new NjordHealthState
         {
             ServiceStartedUtc = sp.GetRequiredService<TimeProvider>().GetUtcNow(),

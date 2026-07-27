@@ -14,20 +14,22 @@ public sealed class WeightedBudgetGate : IBudgetGate<WeightedTarget>
 
     private readonly IBudgetProvider _provider;
     private readonly BudgetTracker _tracker;
+    private readonly TimeProvider _timeProvider;
     private double _tokens;
     private double _tokensPerSecond;
     private int _maxBurst;
     private DateTimeOffset _lastRefill;
     private DateTimeOffset _lastRefresh;
 
-    public WeightedBudgetGate(IBudgetProvider provider, BudgetTracker tracker)
+    public WeightedBudgetGate(IBudgetProvider provider, BudgetTracker tracker, TimeProvider timeProvider)
     {
         _provider = provider;
         _tracker = tracker;
+        _timeProvider = timeProvider;
         ApplyRate(provider.GetCurrentRate());
         _tokens = _maxBurst;
-        _lastRefill = DateTimeOffset.UtcNow;
-        _lastRefresh = DateTimeOffset.UtcNow;
+        _lastRefill = timeProvider.GetUtcNow();
+        _lastRefresh = timeProvider.GetUtcNow();
     }
 
     public bool TryAcquire(WeightedTarget element)
@@ -64,7 +66,7 @@ public sealed class WeightedBudgetGate : IBudgetGate<WeightedTarget>
 
     private void Refill()
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = _timeProvider.GetUtcNow();
         var elapsed = (now - _lastRefill).TotalSeconds;
         _lastRefill = now;
         _tokens = Math.Min(_tokens + elapsed * _tokensPerSecond, _maxBurst);
@@ -72,7 +74,7 @@ public sealed class WeightedBudgetGate : IBudgetGate<WeightedTarget>
 
     private void RefreshIfDue()
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = _timeProvider.GetUtcNow();
         if (now - _lastRefresh < RefreshInterval)
             return;
 

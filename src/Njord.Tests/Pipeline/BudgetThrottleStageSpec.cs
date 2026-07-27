@@ -121,8 +121,8 @@ public sealed class WeightedBudgetGateSpec
     public void Acquires_immediately_when_tokens_available()
     {
         var provider = new FakeProvider(new BudgetRate(600, 10));
-        var tracker = new BudgetTracker();
-        var gate = new WeightedBudgetGate(provider, tracker);
+        var tracker = new BudgetTracker(TimeProvider.System);
+        var gate = new WeightedBudgetGate(provider, tracker, TimeProvider.System);
 
         var target = MakeTarget(weight: 1);
         Assert.True(gate.TryAcquire(target));
@@ -133,8 +133,8 @@ public sealed class WeightedBudgetGateSpec
     public void Rejects_when_tokens_insufficient()
     {
         var provider = new FakeProvider(new BudgetRate(60, 1));
-        var tracker = new BudgetTracker();
-        var gate = new WeightedBudgetGate(provider, tracker);
+        var tracker = new BudgetTracker(TimeProvider.System);
+        var gate = new WeightedBudgetGate(provider, tracker, TimeProvider.System);
 
         Assert.True(gate.TryAcquire(MakeTarget(1)));
         Assert.False(gate.TryAcquire(MakeTarget(1)));
@@ -144,8 +144,8 @@ public sealed class WeightedBudgetGateSpec
     public void EstimateDelay_returns_positive_when_tokens_insufficient()
     {
         var provider = new FakeProvider(new BudgetRate(60, 1));
-        var tracker = new BudgetTracker();
-        var gate = new WeightedBudgetGate(provider, tracker);
+        var tracker = new BudgetTracker(TimeProvider.System);
+        var gate = new WeightedBudgetGate(provider, tracker, TimeProvider.System);
 
         gate.TryAcquire(MakeTarget(1));
         var delay = gate.EstimateDelay(MakeTarget(1));
@@ -157,8 +157,8 @@ public sealed class WeightedBudgetGateSpec
     public void Records_calls_with_correct_weight()
     {
         var provider = new FakeProvider(new BudgetRate(6000, 100));
-        var tracker = new BudgetTracker();
-        var gate = new WeightedBudgetGate(provider, tracker);
+        var tracker = new BudgetTracker(TimeProvider.System);
+        var gate = new WeightedBudgetGate(provider, tracker, TimeProvider.System);
 
         gate.TryAcquire(MakeTarget(3));
         gate.TryAcquire(MakeTarget(2));
@@ -170,8 +170,8 @@ public sealed class WeightedBudgetGateSpec
     public void Provider_is_polled_at_construction()
     {
         var provider = new FakeProvider(new BudgetRate(6000, 100));
-        var tracker = new BudgetTracker();
-        _ = new WeightedBudgetGate(provider, tracker);
+        var tracker = new BudgetTracker(TimeProvider.System);
+        _ = new WeightedBudgetGate(provider, tracker, TimeProvider.System);
 
         Assert.True(provider.CallCount >= 1);
     }
@@ -180,8 +180,8 @@ public sealed class WeightedBudgetGateSpec
     public void Burst_allows_multiple_immediate_acquires()
     {
         var provider = new FakeProvider(new BudgetRate(60, 4));
-        var tracker = new BudgetTracker();
-        var gate = new WeightedBudgetGate(provider, tracker);
+        var tracker = new BudgetTracker(TimeProvider.System);
+        var gate = new WeightedBudgetGate(provider, tracker, TimeProvider.System);
 
         for (var i = 0; i < 4; i++)
             Assert.True(gate.TryAcquire(MakeTarget(1)));
@@ -194,8 +194,8 @@ public sealed class WeightedBudgetGateSpec
     public void Weight_exceeding_max_burst_becomes_acquirable_after_refill()
     {
         var provider = new FakeProvider(new BudgetRate(480, 16));
-        var tracker = new BudgetTracker();
-        var gate = new WeightedBudgetGate(provider, tracker);
+        var tracker = new BudgetTracker(TimeProvider.System);
+        var gate = new WeightedBudgetGate(provider, tracker, TimeProvider.System);
 
         gate.TryAcquire(MakeTarget(16));
         Assert.False(gate.TryAcquire(MakeTarget(12)));
@@ -208,8 +208,8 @@ public sealed class WeightedBudgetGateSpec
     public void Free_tier_with_heavy_weight_acquires_on_first_try()
     {
         var provider = new FakeProvider(new BudgetRate(480, 16));
-        var tracker = new BudgetTracker();
-        var gate = new WeightedBudgetGate(provider, tracker);
+        var tracker = new BudgetTracker(TimeProvider.System);
+        var gate = new WeightedBudgetGate(provider, tracker, TimeProvider.System);
 
         var heavyTarget = MakeTarget(weight: 12);
         Assert.True(gate.TryAcquire(heavyTarget));

@@ -7,7 +7,7 @@ public sealed class BudgetTrackerSpec
     [Fact(Timeout = 5000)]
     public void RecordCall_increments_monthly_and_daily_usage()
     {
-        var tracker = new BudgetTracker();
+        var tracker = new BudgetTracker(TimeProvider.System);
 
         tracker.RecordCall();
         tracker.RecordCall();
@@ -20,7 +20,7 @@ public sealed class BudgetTrackerSpec
     [Fact(Timeout = 5000)]
     public void RecordCall_applies_weight()
     {
-        var tracker = new BudgetTracker();
+        var tracker = new BudgetTracker(TimeProvider.System);
 
         tracker.RecordCall(weight: 4);
 
@@ -32,7 +32,7 @@ public sealed class BudgetTrackerSpec
     [Fact(Timeout = 5000)]
     public void GetUsage_returns_zero_before_any_calls()
     {
-        var tracker = new BudgetTracker();
+        var tracker = new BudgetTracker(TimeProvider.System);
 
         var (monthly, daily) = tracker.GetUsage();
 
@@ -43,7 +43,7 @@ public sealed class BudgetTrackerSpec
     [Fact(Timeout = 5000)]
     public void Multiple_calls_accumulate()
     {
-        var tracker = new BudgetTracker();
+        var tracker = new BudgetTracker(TimeProvider.System);
 
         tracker.RecordCall(weight: 3);
         tracker.RecordCall(weight: 2);

@@ -59,7 +59,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
         var optionsMonitor = new FakeOptionsMonitor(options);
         IBudgetGate<WeightedTarget> gate = new WeightedBudgetGate(
-            new OptionsBudgetProvider(optionsMonitor), new BudgetTracker());
+            new OptionsBudgetProvider(optionsMonitor), new BudgetTracker(TimeProvider.System), TimeProvider.System);
         var client = new FakeOpenMeteoClient(fetchCalled);
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero));
         var health = new NjordHealthState { ServiceStartedUtc = time.GetUtcNow() };

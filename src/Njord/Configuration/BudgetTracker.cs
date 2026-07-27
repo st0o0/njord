@@ -1,19 +1,12 @@
 namespace Njord.Configuration;
 
-public sealed class BudgetTracker
+public sealed class BudgetTracker(TimeProvider timeProvider)
 {
     private long _monthlyUsed;
     private long _dailyUsed;
-    private int _currentMonth;
-    private int _currentDay;
+    private int _currentMonth = timeProvider.GetUtcNow().Month;
+    private int _currentDay = timeProvider.GetUtcNow().DayOfYear;
     private readonly object _lock = new();
-
-    public BudgetTracker()
-    {
-        var now = DateTime.UtcNow;
-        _currentMonth = now.Month;
-        _currentDay = now.DayOfYear;
-    }
 
     public void RecordCall(int weight = 1)
     {
@@ -36,7 +29,7 @@ public sealed class BudgetTracker
 
     private void ResetIfNeeded()
     {
-        var now = DateTime.UtcNow;
+        var now = timeProvider.GetUtcNow();
         if (now.Month != _currentMonth)
         {
             _monthlyUsed = 0;
