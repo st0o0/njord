@@ -10,7 +10,12 @@ using Njord.Pipeline;
 
 namespace Njord.Grpc;
 
-public sealed class ConfigGrpcService : V1.ConfigService.ConfigServiceBase
+public sealed class ConfigGrpcService(
+    IOptionsMonitor<NjordOptions> optionsMonitor,
+    ConfigPersistence persistence,
+    BudgetTracker budgetTracker,
+    ActorRegistry actorRegistry,
+    ILogger<ConfigGrpcService> logger) : V1.ConfigService.ConfigServiceBase
 {
     private static readonly string Version =
         typeof(ConfigGrpcService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
@@ -20,23 +25,12 @@ public sealed class ConfigGrpcService : V1.ConfigService.ConfigServiceBase
 
     private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(5);
 
-    private readonly IOptionsMonitor<NjordOptions> _optionsMonitor;
-    private readonly ConfigPersistence _persistence;
-    private readonly BudgetTracker _budgetTracker;
-    private readonly ActorRegistry _actorRegistry;
+    private readonly IOptionsMonitor<NjordOptions> _optionsMonitor = optionsMonitor;
+    private readonly ConfigPersistence _persistence = persistence;
+    private readonly BudgetTracker _budgetTracker = budgetTracker;
+    private readonly ActorRegistry _actorRegistry = actorRegistry;
+    private readonly ILogger<ConfigGrpcService> _logger = logger;
     private readonly SemaphoreSlim _mutationLock = new(1, 1);
-
-    public ConfigGrpcService(
-        IOptionsMonitor<NjordOptions> optionsMonitor,
-        ConfigPersistence persistence,
-        BudgetTracker budgetTracker,
-        ActorRegistry actorRegistry)
-    {
-        _optionsMonitor = optionsMonitor;
-        _persistence = persistence;
-        _budgetTracker = budgetTracker;
-        _actorRegistry = actorRegistry;
-    }
 
     // ═══════════════════════════════════════
     // Read RPCs
@@ -68,7 +62,7 @@ public sealed class ConfigGrpcService : V1.ConfigService.ConfigServiceBase
         await tcs.Task;
     }
 
-    public override Task<ServerStatus> GetStatus(GetStatusRequest request, ServerCallContext context)
+    public override async Task<ServerStatus> GetStatus(GetStatusRequest request, ServerCallContext context)
     {
         var uptime = DateTimeOffset.UtcNow - ProcessStart;
         var budget = _optionsMonitor.CurrentValue.EffectiveBudget;
@@ -82,16 +76,50 @@ public sealed class ConfigGrpcService : V1.ConfigService.ConfigServiceBase
             {
                 MonthlyLimit = budget.RequestsPerMonth,
                 MonthlyUsed = monthlyUsed,
-                DailyLimit = 10_000, // Open-Meteo free-tier daily soft limit
+                DailyLimit = 10_000,
                 DailyUsed = dailyUsed,
                 UsagePercent = budget.RequestsPerMonth > 0
                     ? (double)monthlyUsed / budget.RequestsPerMonth * 100
                     : 0,
             },
-            // TODO: Query SchedulerActor for per-model status once status queries are implemented
         };
 
-        return Task.FromResult(status);
+        try
+        {
+            var scheduler = _actorRegistry.Get<SchedulerActor>();
+            var snapshot = await scheduler.Ask<PollStatesSnapshot>(new GetPollStates(), AskTimeout);
+            foreach (var entry in snapshot.Entries)
+            {
+                var modelStatus = new ModelStatus
+                {
+                    Location = entry.Location,
+                    Model = entry.ModelId,
+                    Phase = entry.Phase == PollPhase.Steady ? "steady" : "discovery",
+                    NextPollUtc = entry.NextPollUtc.ToUnixTimeSeconds(),
+                    MissCount = entry.MissCount,
+                };
+                if (entry.LastChangeUtc.HasValue)
+                    modelStatus.LastChangeUtc = entry.LastChangeUtc.Value.ToUnixTimeSeconds();
+                if (entry.CycleSeconds.HasValue)
+                    modelStatus.CycleSeconds = entry.CycleSeconds.Value;
+                status.Models.Add(modelStatus);
+            }
+        }
+        catch (AskTimeoutException)
+        {
+            _logger.LogWarning("SchedulerActor did not respond within {Timeout}s — returning status without model poll states", AskTimeout.TotalSeconds);
+        }
+
+        var enrichment = _optionsMonitor.CurrentValue.Enrichment;
+        if (enrichment.Consensus.Enabled) status.ActiveEnrichments.Add("consensus");
+        if (enrichment.Alerts.Enabled) status.ActiveEnrichments.Add("alerts");
+        if (enrichment.Derived.Enabled) status.ActiveEnrichments.Add("derived");
+        if (enrichment.Trends.Enabled) status.ActiveEnrichments.Add("trends");
+        if (enrichment.Indices.Enabled) status.ActiveEnrichments.Add("indices");
+        if (enrichment.Energy.Enabled) status.ActiveEnrichments.Add("energy");
+        if (enrichment.History.Enabled) status.ActiveEnrichments.Add("history");
+
+        return status;
     }
 
     // ═══════════════════════════════════════

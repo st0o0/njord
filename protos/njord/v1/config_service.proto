@@ -205,6 +205,7 @@ message ServerStatus {
   int64 uptime_seconds = 2;
   BudgetStatus budget = 3;
   repeated ModelStatus models = 4;
+  repeated string active_enrichments = 5;
 }
 
 message BudgetStatus {
@@ -218,9 +219,11 @@ message BudgetStatus {
 message ModelStatus {
   string location = 1;
   string model = 2;
-  int64 last_fetch_timestamp = 3;
-  int32 consecutive_failures = 4;
-  string state = 5;
+  string phase = 3;
+  int64 next_poll_utc = 4;
+  optional int64 last_change_utc = 5;
+  int32 miss_count = 6;
+  optional int64 cycle_seconds = 7;
 }
 
 // ═══════════════════════════════════════

@@ -74,6 +74,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Command<HashResult>(_ => Stash.Stash());
         Command<FetchFailed>(_ => Stash.Stash());
         Command<TriggerImmediatePoll>(_ => Stash.Stash());
+        Command<GetPollStates>(_ => Stash.Stash());
     }
 
     private void WaitingForRefs()
@@ -151,6 +152,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Command<HashResult>(OnHashResult);
         Command<FetchFailed>(OnFetchFailed);
         Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
+        Command<GetPollStates>(OnGetPollStates);
         Command<Terminated>(OnTerminated);
     }
 
@@ -320,6 +322,25 @@ public sealed class SchedulerActor : ReceivePersistentActor
             ScheduleNext(result.Location, result.ModelId);
             Sender.Tell(new Ack());
         }
+    }
+
+    private void OnGetPollStates(GetPollStates _)
+    {
+        var entries = _states.Select(kvp =>
+        {
+            var parts = kvp.Key.Split('|', 2);
+            var state = kvp.Value;
+            return new PollStateEntry(
+                parts[0],
+                parts[1],
+                state.Phase,
+                state.NextPollUtc,
+                state.LastChangeUtc,
+                state.MissCount,
+                state.Cycle is not null ? (long)state.Cycle.Value.TotalSeconds : null);
+        }).ToList();
+
+        Sender.Tell(new PollStatesSnapshot(entries));
     }
 
     private void ScheduleNext(string location, string modelId)

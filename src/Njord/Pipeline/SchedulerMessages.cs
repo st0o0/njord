@@ -22,3 +22,16 @@ public sealed record FetchFailed(string Location, string ModelId, FetchFailureRe
 public sealed record TriggerImmediatePoll(string Location, string Model);
 
 public sealed record TriggerPollResult(int Count, List<string> Targets);
+
+public sealed record GetPollStates;
+
+public sealed record PollStateEntry(
+    string Location,
+    string ModelId,
+    PollPhase Phase,
+    DateTimeOffset NextPollUtc,
+    DateTimeOffset? LastChangeUtc,
+    int MissCount,
+    long? CycleSeconds);
+
+public sealed record PollStatesSnapshot(IReadOnlyList<PollStateEntry> Entries);
