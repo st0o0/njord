@@ -31,8 +31,36 @@ public sealed class ForecastGrpcService(
     public override Task<GetModelsResponse> GetModels(GetModelsRequest request, ServerCallContext context)
     {
         var location = FindLocation(request.Location);
+        var models = location.ResolveModels(_options.Models);
         var response = new GetModelsResponse { Location = location.Name };
-        response.Models.AddRange(location.ResolveModels(_options.Models));
+        response.Models.AddRange(models);
+
+        foreach (var modelId in models)
+        {
+            var coverage = ModelCoverageRegistry.Get(modelId);
+            var info = new ModelInfo { Id = modelId };
+            if (coverage is not null)
+            {
+                info.DisplayName = coverage.DisplayName ?? modelId;
+                info.Provider = coverage.Provider ?? "";
+                info.Region = coverage.Region;
+                info.CoverageTier = coverage.Tier switch
+                {
+                    Configuration.CoverageTier.Global => V1.CoverageTier.Global,
+                    Configuration.CoverageTier.Continental => V1.CoverageTier.Continental,
+                    Configuration.CoverageTier.Regional => V1.CoverageTier.Regional,
+                    _ => V1.CoverageTier.Unspecified,
+                };
+                if (coverage.MaxForecastHours.HasValue)
+                    info.MaxForecastHours = coverage.MaxForecastHours.Value;
+                if (coverage.ResolutionKm.HasValue)
+                    info.ResolutionKm = coverage.ResolutionKm.Value;
+                if (coverage.Description is not null)
+                    info.Description = coverage.Description;
+            }
+            response.ModelInfo.Add(info);
+        }
+
         return Task.FromResult(response);
     }
 

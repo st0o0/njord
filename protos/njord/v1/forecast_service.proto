@@ -25,6 +25,26 @@ message GetModelsRequest { string location = 1; }
 message GetModelsResponse {
   string location = 1;
   repeated string models = 2;
+  repeated ModelInfo model_info = 3;
+}
+
+// Static metadata describing a weather model (provider, coverage, resolution).
+message ModelInfo {
+  string id = 1;                          // Open-Meteo model id, e.g. "icon_d2"
+  string display_name = 2;               // Human-readable, e.g. "ICON-D2"
+  string provider = 3;                   // Operating agency, e.g. "DWD"
+  string region = 4;                     // Coverage description, e.g. "DE, CH, AT"
+  CoverageTier coverage_tier = 5;
+  optional int32 max_forecast_hours = 6;
+  optional double resolution_km = 7;     // Approximate grid spacing
+  optional string description = 8;       // One-line summary
+}
+
+enum CoverageTier {
+  COVERAGE_TIER_UNSPECIFIED = 0;
+  COVERAGE_TIER_GLOBAL = 1;
+  COVERAGE_TIER_CONTINENTAL = 2;
+  COVERAGE_TIER_REGIONAL = 3;
 }
 
 message GetForecastRequest {
