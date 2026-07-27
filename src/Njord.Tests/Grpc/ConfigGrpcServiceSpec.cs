@@ -44,7 +44,7 @@ public sealed class ConfigGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         var persistence = new ConfigPersistence(_tempDir);
         var tracker = new BudgetTracker();
         var registry = ActorRegistry;
-        return new ConfigGrpcService(monitor, persistence, tracker, registry, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConfigGrpcService>.Instance);
+        return new ConfigGrpcService(monitor, persistence, tracker, registry, TimeProvider.System, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConfigGrpcService>.Instance);
     }
 
     // ═══════════════════════════════════════

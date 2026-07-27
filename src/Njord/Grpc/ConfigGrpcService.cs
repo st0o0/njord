@@ -15,6 +15,7 @@ public sealed class ConfigGrpcService(
     ConfigPersistence persistence,
     BudgetTracker budgetTracker,
     ActorRegistry actorRegistry,
+    TimeProvider timeProvider,
     ILogger<ConfigGrpcService> logger) : V1.ConfigService.ConfigServiceBase
 {
     private static readonly string Version =
@@ -29,6 +30,7 @@ public sealed class ConfigGrpcService(
     private readonly ConfigPersistence _persistence = persistence;
     private readonly BudgetTracker _budgetTracker = budgetTracker;
     private readonly ActorRegistry _actorRegistry = actorRegistry;
+    private readonly TimeProvider _timeProvider = timeProvider;
     private readonly ILogger<ConfigGrpcService> _logger = logger;
     private readonly SemaphoreSlim _mutationLock = new(1, 1);
 
@@ -64,7 +66,7 @@ public sealed class ConfigGrpcService(
 
     public override async Task<ServerStatus> GetStatus(GetStatusRequest request, ServerCallContext context)
     {
-        var uptime = DateTimeOffset.UtcNow - ProcessStart;
+        var uptime = _timeProvider.GetUtcNow() - ProcessStart;
         var budget = _optionsMonitor.CurrentValue.EffectiveBudget;
         var (monthlyUsed, dailyUsed) = _budgetTracker.GetUsage();
 
@@ -76,7 +78,7 @@ public sealed class ConfigGrpcService(
             {
                 MonthlyLimit = budget.RequestsPerMonth,
                 MonthlyUsed = monthlyUsed,
-                DailyLimit = 10_000,
+                DailyLimit = RequestBudget.OpenMeteoFreeTierDailyLimit,
                 DailyUsed = dailyUsed,
                 UsagePercent = budget.RequestsPerMonth > 0
                     ? (double)monthlyUsed / budget.RequestsPerMonth * 100
