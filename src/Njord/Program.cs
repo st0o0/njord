@@ -26,12 +26,20 @@ builder.WebHost.ConfigureKestrel(options =>
     if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
     {
         options.ListenAnyIP(httpPort, o => o.Protocols = HttpProtocols.Http1);
-        options.ListenAnyIP(grpcPort, o => o.Protocols = HttpProtocols.Http2);
+        options.ListenAnyIP(grpcPort, o =>
+        {
+            o.Protocols = HttpProtocols.Http2;
+            o.KestrelServerOptions.Limits.MinResponseDataRate = null;
+        });
     }
     else
     {
         options.ConfigureEndpointDefaults(o => o.Protocols = HttpProtocols.Http1);
-        options.ListenAnyIP(grpcPort, o => o.Protocols = HttpProtocols.Http2);
+        options.ListenAnyIP(grpcPort, o =>
+        {
+            o.Protocols = HttpProtocols.Http2;
+            o.KestrelServerOptions.Limits.MinResponseDataRate = null;
+        });
     }
 });
 

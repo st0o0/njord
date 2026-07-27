@@ -28,6 +28,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     public sealed record DataChanged(string Location, string ModelId, int Hash, DateTimeOffset Utc);
 
+    private sealed record PipelineResolved(IActorRef Pipeline);
     private sealed record ConnectionEstablished;
     private sealed record OfferFailed(string Location, string ModelId, Exception Error);
 
@@ -49,16 +50,27 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Recover<DataChangedDto>(dto => OnRecover(SchedulerDtoMapping.ToDomain(dto)));
         Recover<SnapshotOffer>(_ => { });
 
-        WaitingForRefs();
+        WaitingForPipeline();
     }
 
     protected override void PreStart()
     {
         _mat = Context.Materializer();
-        var pipelineActor = Context.GetActor<PipelineActor>();
-        Context.Watch(pipelineActor);
-        pipelineActor.Tell(new RequestPipelineSink());
-        pipelineActor.Tell(new RequestPipelineSource());
+        Context.GetActorAsync<PipelineActor>()
+            .PipeTo(Self, success: r => new PipelineResolved(r));
+    }
+
+    private void WaitingForPipeline()
+    {
+        Command<PipelineResolved>(msg =>
+        {
+            Context.Watch(msg.Pipeline);
+            msg.Pipeline.Tell(new RequestPipelineSink());
+            msg.Pipeline.Tell(new RequestPipelineSource());
+            Become(WaitingForRefs);
+        });
+        Command<GetPollStates>(OnGetPollStates);
+        CommandAny(_ => Stash.Stash());
     }
 
     private void OnRecover(DataChanged evt)
@@ -164,12 +176,10 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _queue = null;
         _sourceReceived = false;
 
-        var pipelineActor = Context.GetActor<PipelineActor>();
-        Context.Watch(pipelineActor);
-        pipelineActor.Tell(new RequestPipelineSink());
-        pipelineActor.Tell(new RequestPipelineSource());
+        Context.GetActorAsync<PipelineActor>()
+            .PipeTo(Self, success: r => new PipelineResolved(r));
 
-        Become(WaitingForRefs);
+        Become(WaitingForPipeline);
     }
 
     private void InitializeStates()
