@@ -74,7 +74,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Command<HashResult>(_ => Stash.Stash());
         Command<FetchFailed>(_ => Stash.Stash());
         Command<TriggerImmediatePoll>(_ => Stash.Stash());
-        Command<GetPollStates>(_ => Stash.Stash());
+        Command<GetPollStates>(OnGetPollStates);
     }
 
     private void WaitingForRefs()
@@ -123,6 +123,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Command<HashResult>(_ => Stash.Stash());
         Command<FetchFailed>(_ => Stash.Stash());
         Command<TriggerImmediatePoll>(_ => Stash.Stash());
+        Command<GetPollStates>(OnGetPollStates);
     }
 
     private void WaitingForConnection()
