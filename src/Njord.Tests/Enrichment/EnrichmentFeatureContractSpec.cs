@@ -29,7 +29,8 @@ public sealed class EnrichmentFeatureContractSpec
             new TrendEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System),
             new IndexEnrichment(enrichmentWrapped, parameters, TimeProvider.System),
             new EnergyEnrichment(enrichmentWrapped, parameters, TimeProvider.System),
-            new HistoryEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System),
+            new HistoryEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoryEnrichment>.Instance),
         ];
     }
 

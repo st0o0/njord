@@ -305,6 +305,33 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
         }
     }
 
+    [Fact(Timeout = 15000)]
+    public async Task Re_requests_refs_after_mqtt_connection_actor_terminates()
+    {
+        var registry = ActorRegistry;
+        var mat = Sys.Materializer();
+
+        var requestProbe = CreateTestProbe();
+        var fake = Sys.ActorOf(Props.Create(() => new FakeMqttConnection(mat, requestProbe)));
+        registry.Register<MqttConnectionActor>(fake, overwrite: true);
+        RegisterFakeEgressHub();
+
+        CreateDiscoveryActor();
+
+        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink);
+
+        await fake.GracefulStop(TimeSpan.FromSeconds(2));
+
+        await Task.Delay(200);
+
+        var newFake = Sys.ActorOf(Props.Create(() => new FakeMqttConnection(mat, requestProbe)));
+        registry.Register<MqttConnectionActor>(newFake, overwrite: true);
+
+        var reRequest = await requestProbe.FishForMessageAsync(
+            msg => msg is RequestMqttSink, TimeSpan.FromSeconds(3));
+        Assert.IsType<RequestMqttSink>(reRequest);
+    }
+
     // -- fake that captures published MqttMessages via TestProbe ----
 
     private sealed class MqttMessageProbe : ReceiveActor

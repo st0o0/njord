@@ -113,7 +113,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         var flows = new List<Flow<ModelSnapshot, EgressEvent, NotUsed>>();
 
         if (statelessFeatures.Count > 0 || statefulFeatures.Count > 0)
-            flows.Add(BuildInlineFlow(locations, statelessFeatures, statefulFeatures));
+            flows.Add(BuildInlineFlow(locations, statelessFeatures, statefulFeatures, _logger));
 
         foreach (var feature in actorFeatures)
             flows.Add(feature.CreateFlow(Context));
@@ -154,7 +154,8 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
     private static Flow<ModelSnapshot, EgressEvent, NotUsed> BuildInlineFlow(
         IReadOnlyList<string> locations,
         IReadOnlyList<IStatelessEnrichment> stateless,
-        IReadOnlyList<IStatefulEnrichment> stateful)
+        IReadOnlyList<IStatefulEnrichment> stateful,
+        ILogger logger)
     {
         ModelSnapshot? previous = null;
 
@@ -165,8 +166,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
                 previous = snapshot;
                 return ComputeAll(snapshot, prev, locations, stateless, stateful);
             })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume));
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(logger)));
     }
 
     private Source<ModelSnapshot, NotUsed> BuildScanSource(Source<FetchOutcome, NotUsed> source)

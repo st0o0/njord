@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Health;
 using Njord.Mqtt.Transport;
+using Njord.Pipeline;
 
 namespace Njord.Mqtt;
 
@@ -85,14 +86,16 @@ public sealed class MqttConnectionActor : ReceiveActor
         Receive<Inbound>(OnInbound);
         Receive<RequestMqttSink>(_ =>
         {
-            var sender = Sender;
             StreamRefs.SinkRef<MqttMessage>()
                 .To(_mergeHubSink!)
                 .Run(_mat!)
-                .ContinueWith(t => t.IsCompletedSuccessfully
-                    ? new MqttSinkResponse(t.Result)
-                    : null)
-                .PipeTo(sender);
+                .PipeTo(Sender, Self,
+                    sr => new MqttSinkResponse(sr),
+                    ex =>
+                    {
+                        _logger.LogError(ex, "Failed to create MQTT SinkRef");
+                        return new Status.Failure(ex);
+                    });
         });
         Receive<SubscribeInbound>(msg =>
         {
@@ -129,8 +132,7 @@ public sealed class MqttConnectionActor : ReceiveActor
                 await _transport.SendAsync(msg.Topic, msg.Payload, msg.Retain, CancellationToken.None);
                 return NotUsed.Instance;
             })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
             .RunWith(Sink.Ignore<NotUsed>(), mat);
     }
 

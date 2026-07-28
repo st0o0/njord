@@ -2,6 +2,7 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Egress;
+using Njord.Pipeline;
 using Servus.Akka;
 
 namespace Njord.Grpc;
@@ -22,6 +23,11 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
     protected override void PreStart()
     {
         _mat = Context.Materializer();
+        RequestEgressSource();
+    }
+
+    private void RequestEgressSource()
+    {
         var egressActor = Context.GetActor<EgressActor>();
         Context.Watch(egressActor);
         egressActor.Tell(new RequestEgressSource());
@@ -36,13 +42,20 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
             Become(Ready);
             Stash.UnstashAll();
         });
-        Receive<Terminated>(_ => { });
+        Receive<Terminated>(OnTerminated);
         ReceiveAny(_ => Stash.Stash());
     }
 
     private void Ready()
     {
-        Receive<Terminated>(_ => { });
+        Receive<Terminated>(OnTerminated);
+    }
+
+    private void OnTerminated(Terminated msg)
+    {
+        _logger.LogWarning("Watched actor {Actor} terminated — re-requesting source", msg.ActorRef.Path.Name);
+        RequestEgressSource();
+        Become(WaitingForSource);
     }
 
     private void MaterializeGraph(ISourceRef<EgressEvent> sourceRef)
@@ -65,8 +78,7 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
 
                 _ => update,
             })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
             .To(Sink.Ignore<EgressEvent>())
             .Run(_mat!);
     }

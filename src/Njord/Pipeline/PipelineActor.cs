@@ -65,7 +65,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                     ex =>
                     {
                         _logger.LogError(ex, "Failed to create SinkRef");
-                        return null!;
+                        return new Status.Failure(ex);
                     });
         });
         Receive<RequestPipelineSource>(_ =>
@@ -77,7 +77,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                     ex =>
                     {
                         _logger.LogError(ex, "Failed to create SourceRef");
-                        return null!;
+                        return new Status.Failure(ex);
                     });
         });
     }
@@ -100,7 +100,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                 var outcome = await _client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None);
                 return outcome;
             })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(_ => Akka.Streams.Supervision.Directive.Resume))
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
             .Buffer(32, OverflowStrategy.Backpressure)
             .To(broadcastHubSink)
             .Run(_mat);
@@ -112,7 +112,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                 success.Forecast.Model.Id,
                 ForecastDataHash.Compute(success.Forecast, _timeProvider)))
             .Ask<Ack>(schedulerActor, TimeSpan.FromSeconds(5))
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(_ => Akka.Streams.Supervision.Directive.Resume))
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
             .To(Sink.Ignore<Ack>())
             .Run(_mat);
 

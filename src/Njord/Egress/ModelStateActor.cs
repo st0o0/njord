@@ -139,8 +139,7 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
                 events.Add(new EgressEvent.PerModelUpdate(forecast.Location, forecast.Model, forecast));
                 return events;
             })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
             .RunWith(_egressSinkRef!.Sink, mat);
     }
 
