@@ -1,4 +1,14 @@
-## ADDED Requirements
+# read-priority-mailbox
+
+## Purpose
+
+Snapshot actors (`ForecastSnapshotActor`, `EnrichmentSnapshotActor`) serve
+gRPC read queries while continuously receiving high-volume writes from the
+enrichment pipeline stream. This capability defines the fire-and-forget
+update path and the custom priority mailbox that keeps read queries
+responsive under write bursts.
+
+## Requirements
 
 ### Requirement: GrpcSnapshotConsumerActor uses Tell for snapshot updates
 The `GrpcSnapshotConsumerActor` stream graph SHALL use `Tell` (fire-and-forget) instead of `Ask<Ack>` when forwarding `EgressEvent.PerModelUpdate` and `EgressEvent.EnrichmentUpdate` to the snapshot actors. The stream SHALL NOT wait for acknowledgement from the snapshot actors.
