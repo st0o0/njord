@@ -152,6 +152,40 @@ public sealed class ConfigGrpcService(
         return response;
     }
 
+    public override async Task<GetTriggerTargetsResponse> GetTriggerTargets(
+        GetTriggerTargetsRequest request, ServerCallContext context)
+    {
+        var response = new GetTriggerTargetsResponse();
+
+        try
+        {
+            var scheduler = _actorRegistry.Get<SchedulerActor>();
+            var snapshot = await scheduler.Ask<PollStatesSnapshot>(new GetPollStates(), AskTimeout);
+            foreach (var entry in snapshot.Entries)
+            {
+                var target = new TriggerTarget
+                {
+                    Location = entry.Location,
+                    Model = entry.ModelId,
+                    Phase = entry.Phase == PollPhase.Steady ? "steady" : "discovery",
+                    NextPoll = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(entry.NextPollUtc),
+                    MissCount = entry.MissCount,
+                };
+                if (entry.LastChangeUtc.HasValue)
+                    target.LastChange = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(entry.LastChangeUtc.Value);
+                if (entry.CycleSeconds.HasValue)
+                    target.CycleSeconds = entry.CycleSeconds.Value;
+                response.Targets.Add(target);
+            }
+        }
+        catch (AskTimeoutException)
+        {
+            _logger.LogWarning("SchedulerActor did not respond within {Timeout}s — returning empty trigger targets", AskTimeout.TotalSeconds);
+        }
+
+        return response;
+    }
+
     // ═══════════════════════════════════════
     // Mutation RPCs
     // ═══════════════════════════════════════

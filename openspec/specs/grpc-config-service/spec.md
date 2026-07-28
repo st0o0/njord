@@ -42,7 +42,7 @@ its own proto file so config-only clients need not import forecast types.
 - **THEN** the server-side stream SHALL be disposed cleanly
 
 ### Requirement: ConfigService is a separate gRPC service
-`ConfigService` SHALL be defined in `protos/njord/v1/config_service.proto`. It SHALL include read RPCs (`GetConfig`, `StreamConfig`, `GetStatus`) and mutation RPCs (`AddLocation`, `RemoveLocation`, `UpdateLocation`, `UpdateForecastSettings`, `UpdateEnrichmentConfig`, `UpdateBudget`).
+`ConfigService` SHALL be defined in `protos/njord/v1/config_service.proto`. It SHALL include read RPCs (`GetConfig`, `StreamConfig`, `GetStatus`, `GetTriggerTargets`) and mutation RPCs (`AddLocation`, `RemoveLocation`, `UpdateLocation`, `UpdateForecastSettings`, `UpdateEnrichmentConfig`, `UpdateBudget`) and operations RPCs (`TriggerPoll`).
 
 #### Scenario: Proto compiles independently
 - **WHEN** `config_service.proto` is compiled
@@ -50,4 +50,4 @@ its own proto file so config-only clients need not import forecast types.
 
 #### Scenario: Proto compiles with all RPCs
 - **WHEN** `dotnet build` runs
-- **THEN** gRPC stubs SHALL be generated for all 9 ConfigService RPCs without errors
+- **THEN** gRPC stubs SHALL be generated for all 10 ConfigService RPCs without errors

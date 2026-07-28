@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package njord.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option csharp_namespace = "Njord.Grpc.V1";
 
 service ConfigService {
@@ -26,6 +28,7 @@ service ConfigService {
 
   // Operations
   rpc TriggerPoll (TriggerPollRequest) returns (TriggerPollResponse);
+  rpc GetTriggerTargets (GetTriggerTargetsRequest) returns (GetTriggerTargetsResponse);
 }
 
 // ═══════════════════════════════════════
@@ -239,4 +242,24 @@ message TriggerPollRequest {
 message TriggerPollResponse {
   int32 triggered_count = 1;
   repeated string targets = 2;
+}
+
+// ═══════════════════════════════════════
+// TRIGGER TARGETS
+// ═══════════════════════════════════════
+
+message GetTriggerTargetsRequest {}
+
+message GetTriggerTargetsResponse {
+  repeated TriggerTarget targets = 1;
+}
+
+message TriggerTarget {
+  string location = 1;
+  string model = 2;
+  string phase = 3;
+  google.protobuf.Timestamp next_poll = 4;
+  optional google.protobuf.Timestamp last_change = 5;
+  int32 miss_count = 6;
+  optional int64 cycle_seconds = 7;
 }
