@@ -19,7 +19,8 @@ public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplica
             },
         });
         app.MapGet("/alive", () => Results.Ok("Alive"));
-        app.MapGrpcService<ForecastGrpcService>();
-        app.MapGrpcService<ConfigGrpcService>();
+        app.MapGrpcService<WeatherGrpcService>();
+        app.MapGrpcService<AdminGrpcService>();
+        app.MapGrpcService<OpsGrpcService>();
     }
 }

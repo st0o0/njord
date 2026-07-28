@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package njord.v2;
+
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "Njord.Grpc.V2";
+
+service OpsService {
+  rpc GetStatus (GetStatusRequest) returns (StatusResponse);
+  rpc GetTargets (GetTargetsRequest) returns (GetTargetsResponse);
+  rpc TriggerPoll (TriggerPollRequest) returns (TriggerPollResponse);
+}
+
+// ═══════════════════════════════════════
+// Status
+// ═══════════════════════════════════════
+
+message GetStatusRequest {}
+
+message StatusResponse {
+  string version = 1;
+  int64 uptime_seconds = 2;
+  google.protobuf.Timestamp process_start = 3;
+  BudgetStatus budget = 4;
+  repeated ModelStatus models = 5;
+  repeated string active_enrichments = 6;
+}
+
+message BudgetStatus {
+  int64 monthly_limit = 1;
+  int64 monthly_used = 2;
+  int64 daily_limit = 3;
+  int64 daily_used = 4;
+  double usage_percent = 5;
+}
+
+message ModelStatus {
+  string location = 1;
+  string model = 2;
+  string phase = 3;
+  google.protobuf.Timestamp next_poll = 4;
+  optional google.protobuf.Timestamp last_change = 5;
+  int32 miss_count = 6;
+  optional int64 cycle_seconds = 7;
+}
+
+// ═══════════════════════════════════════
+// Targets
+// ═══════════════════════════════════════
+
+message GetTargetsRequest {}
+
+message GetTargetsResponse {
+  repeated TriggerTarget targets = 1;
+}
+
+message TriggerTarget {
+  string location = 1;
+  string model = 2;
+  string phase = 3;
+  google.protobuf.Timestamp next_poll = 4;
+  optional google.protobuf.Timestamp last_change = 5;
+  int32 miss_count = 6;
+  optional int64 cycle_seconds = 7;
+}
+
+// ═══════════════════════════════════════
+// Trigger
+// ═══════════════════════════════════════
+
+message TriggerPollRequest {
+  string location = 1;
+  string model = 2;
+}
+
+message TriggerPollResponse {
+  int32 triggered_count = 1;
+  repeated string targets = 2;
+}

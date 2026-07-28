@@ -29,7 +29,7 @@
     </ItemGroup>
 
 <ItemGroup>
-      <Protobuf Include="..\..\protos\njord\v1\*.proto" GrpcServices="Server" ProtoRoot="..\..\protos" />
+      <Protobuf Include="..\..\protos\njord\v2\*.proto" GrpcServices="Server" ProtoRoot="..\..\protos" />
     </ItemGroup>
 
 </Project>

@@ -1,7 +1,7 @@
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Grpc;
-using Njord.Grpc.V1;
+using Njord.Grpc.V2;
 
 using DomainAlert = Njord.Domain.Analysis.Alert;
 using DomainAlertType = Njord.Domain.Analysis.AlertType;
@@ -31,12 +31,12 @@ public sealed class EnrichmentProtoMapperSpec
 
         Assert.Equal(2, update.Alerts.Count);
 
-        Assert.Equal(Njord.Grpc.V1.AlertType.Frost, update.Alerts[0].Type);
-        Assert.Equal(Njord.Grpc.V1.AlertSeverity.Orange, update.Alerts[0].Severity);
+        Assert.Equal(Njord.Grpc.V2.AlertType.Frost, update.Alerts[0].Type);
+        Assert.Equal(Njord.Grpc.V2.AlertSeverity.Orange, update.Alerts[0].Severity);
         Assert.Equal(0.85, update.Alerts[0].Confidence);
 
-        Assert.Equal(Njord.Grpc.V1.AlertType.Storm, update.Alerts[1].Type);
-        Assert.Equal(Njord.Grpc.V1.AlertSeverity.Red, update.Alerts[1].Severity);
+        Assert.Equal(Njord.Grpc.V2.AlertType.Storm, update.Alerts[1].Type);
+        Assert.Equal(Njord.Grpc.V2.AlertSeverity.Red, update.Alerts[1].Severity);
         Assert.Equal(0.92, update.Alerts[1].Confidence);
     }
 
@@ -234,7 +234,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.NotNull(evt);
         Assert.Equal("lucerne", evt.Location);
         Assert.Equal("alerts", evt.TypeName);
-        Assert.Equal(updatedAt.ToUnixTimeSeconds(), evt.UpdatedAt);
+        Assert.Equal(updatedAt, evt.UpdatedAt.ToDateTimeOffset());
         Assert.NotNull(evt.Alerts);
         Assert.Single(evt.Alerts.Alerts);
     }

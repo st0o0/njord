@@ -1,45 +1,29 @@
 syntax = "proto3";
 
-package njord.v1;
+package njord.v2;
 
-import "google/protobuf/timestamp.proto";
+import "njord/v2/common.proto";
 
-option csharp_namespace = "Njord.Grpc.V1";
+option csharp_namespace = "Njord.Grpc.V2";
 
-service ConfigService {
-  // Read
+service AdminService {
   rpc GetConfig (GetConfigRequest) returns (NjordConfig);
   rpc StreamConfig (StreamConfigRequest) returns (stream NjordConfig);
-  rpc GetStatus (GetStatusRequest) returns (ServerStatus);
-
-  // Location Management
-  rpc AddLocation (AddLocationRequest) returns (ConfigResponse);
-  rpc RemoveLocation (RemoveLocationRequest) returns (ConfigResponse);
-  rpc UpdateLocation (UpdateLocationRequest) returns (ConfigResponse);
-
-  // Forecast Settings
-  rpc UpdateForecastSettings (UpdateForecastSettingsRequest) returns (ConfigResponse);
-
-  // Enrichment
-  rpc UpdateEnrichmentConfig (UpdateEnrichmentConfigRequest) returns (ConfigResponse);
-
-  // Budget
-  rpc UpdateBudget (UpdateBudgetRequest) returns (ConfigResponse);
-
-  // Operations
-  rpc TriggerPoll (TriggerPollRequest) returns (TriggerPollResponse);
-  rpc GetTriggerTargets (GetTriggerTargetsRequest) returns (GetTriggerTargetsResponse);
+  rpc SetLocations (SetLocationsRequest) returns (ConfigResponse);
+  rpc SetSettings (SetSettingsRequest) returns (ConfigResponse);
+  rpc SetEnrichment (SetEnrichmentRequest) returns (ConfigResponse);
+  rpc SetBudget (SetBudgetRequest) returns (ConfigResponse);
 }
 
 // ═══════════════════════════════════════
-// CONFIG (read)
+// Config (read)
 // ═══════════════════════════════════════
 
 message GetConfigRequest {}
 message StreamConfigRequest {}
 
 message NjordConfig {
-  repeated LocationConfig locations = 1;
+  repeated LocationInfo locations = 1;
   repeated string default_models = 2;
   repeated int32 horizons = 3;
   int32 forecast_days = 4;
@@ -50,13 +34,6 @@ message NjordConfig {
   BudgetConfig budget_override = 9;
 }
 
-message LocationConfig {
-  string name = 1;
-  double latitude = 2;
-  double longitude = 3;
-  repeated string models = 4;
-}
-
 message ParameterConfig {
   repeated string groups = 1;
   repeated string extra = 2;
@@ -64,7 +41,7 @@ message ParameterConfig {
 }
 
 // ═══════════════════════════════════════
-// ENRICHMENT CONFIG (detailed)
+// Enrichment Config
 // ═══════════════════════════════════════
 
 message DetailedEnrichmentConfig {
@@ -128,29 +105,21 @@ message HistoryConfig {
 }
 
 // ═══════════════════════════════════════
-// MUTATION REQUESTS
+// Mutations
 // ═══════════════════════════════════════
 
-message AddLocationRequest {
+message LocationInput {
   string name = 1;
   double latitude = 2;
   double longitude = 3;
   repeated string models = 4;
 }
 
-message RemoveLocationRequest {
-  string name = 1;
-  bool force = 2;
+message SetLocationsRequest {
+  repeated LocationInput locations = 1;
 }
 
-message UpdateLocationRequest {
-  string name = 1;
-  repeated string models = 2;
-  optional double latitude = 3;
-  optional double longitude = 4;
-}
-
-message UpdateForecastSettingsRequest {
+message SetSettingsRequest {
   optional int64 poll_interval_seconds = 1;
   repeated int32 horizons = 2;
   optional int32 forecast_days = 3;
@@ -158,7 +127,7 @@ message UpdateForecastSettingsRequest {
   repeated string default_models = 5;
 }
 
-message UpdateEnrichmentConfigRequest {
+message SetEnrichmentRequest {
   optional ConsensusConfig consensus = 1;
   optional AlertConfig alerts = 2;
   optional DerivedConfig derived = 3;
@@ -168,7 +137,7 @@ message UpdateEnrichmentConfigRequest {
   optional HistoryConfig history = 7;
 }
 
-message UpdateBudgetRequest {
+message SetBudgetRequest {
   optional int32 requests_per_month = 1;
   optional int32 requests_per_minute = 2;
 }
@@ -179,7 +148,7 @@ message BudgetConfig {
 }
 
 // ═══════════════════════════════════════
-// MUTATION RESPONSE
+// Mutation Response
 // ═══════════════════════════════════════
 
 message ConfigResponse {
@@ -195,71 +164,4 @@ message BudgetProjection {
   int64 monthly_limit = 2;
   double usage_percent = 3;
   bool within_budget = 4;
-}
-
-// ═══════════════════════════════════════
-// STATUS
-// ═══════════════════════════════════════
-
-message GetStatusRequest {}
-
-message ServerStatus {
-  string version = 1;
-  int64 uptime_seconds = 2;
-  BudgetStatus budget = 3;
-  repeated ModelStatus models = 4;
-  repeated string active_enrichments = 5;
-  int64 process_start_utc = 6;
-}
-
-message BudgetStatus {
-  int64 monthly_limit = 1;
-  int64 monthly_used = 2;
-  int64 daily_limit = 3;
-  int64 daily_used = 4;
-  double usage_percent = 5;
-}
-
-message ModelStatus {
-  string location = 1;
-  string model = 2;
-  string phase = 3;
-  int64 next_poll_utc = 4;
-  optional int64 last_change_utc = 5;
-  int32 miss_count = 6;
-  optional int64 cycle_seconds = 7;
-}
-
-// ═══════════════════════════════════════
-// TRIGGER POLL
-// ═══════════════════════════════════════
-
-message TriggerPollRequest {
-  string location = 1;
-  string model = 2;
-}
-
-message TriggerPollResponse {
-  int32 triggered_count = 1;
-  repeated string targets = 2;
-}
-
-// ═══════════════════════════════════════
-// TRIGGER TARGETS
-// ═══════════════════════════════════════
-
-message GetTriggerTargetsRequest {}
-
-message GetTriggerTargetsResponse {
-  repeated TriggerTarget targets = 1;
-}
-
-message TriggerTarget {
-  string location = 1;
-  string model = 2;
-  string phase = 3;
-  google.protobuf.Timestamp next_poll = 4;
-  optional google.protobuf.Timestamp last_change = 5;
-  int32 miss_count = 6;
-  optional int64 cycle_seconds = 7;
 }

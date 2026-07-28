@@ -1,15 +1,15 @@
 using Njord.Domain.Analysis;
-using Njord.Grpc.V1;
+using Njord.Grpc.V2;
 
 using DomainAlertType = Njord.Domain.Analysis.AlertType;
 using DomainAlertSeverity = Njord.Domain.Analysis.AlertSeverity;
-using ProtoAlertType = Njord.Grpc.V1.AlertType;
-using ProtoAlertSeverity = Njord.Grpc.V1.AlertSeverity;
-using ProtoHorizonConsensus = Njord.Grpc.V1.HorizonConsensus;
-using ProtoParameterConsensus = Njord.Grpc.V1.ParameterConsensus;
-using ProtoHorizonDerived = Njord.Grpc.V1.HorizonDerived;
-using ProtoScalarDerived = Njord.Grpc.V1.ScalarDerived;
-using ProtoParameterTrend = Njord.Grpc.V1.ParameterTrend;
+using ProtoAlertType = Njord.Grpc.V2.AlertType;
+using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
+using ProtoHorizonConsensus = Njord.Grpc.V2.HorizonConsensus;
+using ProtoParameterConsensus = Njord.Grpc.V2.ParameterConsensus;
+using ProtoHorizonDerived = Njord.Grpc.V2.HorizonDerived;
+using ProtoScalarDerived = Njord.Grpc.V2.ScalarDerived;
+using ProtoParameterTrend = Njord.Grpc.V2.ParameterTrend;
 
 namespace Njord.Grpc;
 
@@ -20,7 +20,7 @@ public static class EnrichmentProtoMapper
         var update = new AlertUpdate();
         foreach (var alert in result.Alerts)
         {
-            var protoAlert = new V1.Alert
+            var protoAlert = new V2.Alert
             {
                 Type = MapAlertType(alert.Type),
                 Severity = MapAlertSeverity(alert.Severity),
@@ -315,7 +315,7 @@ public static class EnrichmentProtoMapper
     public static EnrichmentEvent? MapToEvent(
         string location, string typeName, object result, DateTimeOffset updatedAt)
     {
-        var timestamp = updatedAt.ToUnixTimeSeconds();
+        var timestamp = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(updatedAt);
 
         return typeName switch
         {

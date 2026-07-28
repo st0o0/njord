@@ -2,63 +2,69 @@ using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
-using Njord.Grpc.V1;
+using Njord.Grpc.V2;
 using GrpcStatus = Grpc.Core.Status;
 using ActorSystem = Akka.Actor.ActorSystem;
 
 namespace Njord.Grpc;
 
-public sealed class ForecastGrpcService(
+public sealed class WeatherGrpcService(
     IOptions<NjordOptions> options,
     ActorRegistry actorRegistry,
-    ActorSystem actorSystem) : ForecastService.ForecastServiceBase
+    ActorSystem actorSystem) : V2.WeatherService.WeatherServiceBase
 {
     private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(5);
     private readonly NjordOptions _options = options.Value;
 
-    public override Task<GetLocationsResponse> GetLocations(GetLocationsRequest request, ServerCallContext context)
+    public override Task<GetCatalogResponse> GetCatalog(GetCatalogRequest request, ServerCallContext context)
     {
-        var response = new GetLocationsResponse();
-        response.Locations.AddRange(_options.Locations.Select(l => l.Name));
-        return Task.FromResult(response);
-    }
+        var response = new GetCatalogResponse();
+        var seenModels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-    public override Task<GetModelsResponse> GetModels(GetModelsRequest request, ServerCallContext context)
-    {
-        var location = FindLocation(request.Location);
-        var models = location.ResolveModels(_options.Models);
-        var response = new GetModelsResponse { Location = location.Name };
-        response.Models.AddRange(models);
-
-        foreach (var modelId in models)
+        foreach (var loc in _options.Locations)
         {
-            var coverage = ModelCoverageRegistry.Get(modelId);
-            var info = new ModelInfo { Id = modelId };
-            if (coverage is not null)
+            var models = loc.ResolveModels(_options.Models);
+            response.Locations.Add(new LocationInfo
             {
-                info.DisplayName = coverage.DisplayName ?? modelId;
-                info.Provider = coverage.Provider ?? "";
-                info.Region = coverage.Region;
-                info.CoverageTier = coverage.Tier switch
+                Name = loc.Name,
+                Latitude = loc.Latitude,
+                Longitude = loc.Longitude,
+                Models = { models },
+            });
+
+            foreach (var modelId in models)
+            {
+                if (!seenModels.Add(modelId)) continue;
+
+                var coverage = ModelCoverageRegistry.Get(modelId);
+                var info = new ModelInfo { Id = modelId };
+                if (coverage is not null)
                 {
-                    Configuration.CoverageTier.Global => V1.CoverageTier.Global,
-                    Configuration.CoverageTier.Continental => V1.CoverageTier.Continental,
-                    Configuration.CoverageTier.Regional => V1.CoverageTier.Regional,
-                    _ => V1.CoverageTier.Unspecified,
-                };
-                if (coverage.MaxForecastHours.HasValue)
-                    info.MaxForecastHours = coverage.MaxForecastHours.Value;
-                if (coverage.ResolutionKm.HasValue)
-                    info.ResolutionKm = coverage.ResolutionKm.Value;
-                if (coverage.Description is not null)
-                    info.Description = coverage.Description;
+                    info.DisplayName = coverage.DisplayName ?? modelId;
+                    info.Provider = coverage.Provider ?? "";
+                    info.Region = coverage.Region;
+                    info.CoverageTier = coverage.Tier switch
+                    {
+                        Configuration.CoverageTier.Global => V2.CoverageTier.Global,
+                        Configuration.CoverageTier.Continental => V2.CoverageTier.Continental,
+                        Configuration.CoverageTier.Regional => V2.CoverageTier.Regional,
+                        _ => V2.CoverageTier.Unspecified,
+                    };
+                    if (coverage.MaxForecastHours.HasValue)
+                        info.MaxForecastHours = coverage.MaxForecastHours.Value;
+                    if (coverage.ResolutionKm.HasValue)
+                        info.ResolutionKm = coverage.ResolutionKm.Value;
+                    if (coverage.Description is not null)
+                        info.Description = coverage.Description;
+                }
+                response.Models.Add(info);
             }
-            response.ModelInfo.Add(info);
         }
 
         return Task.FromResult(response);
@@ -80,6 +86,37 @@ public sealed class ForecastGrpcService(
         }
 
         return MapForecastResponse(result.Forecast);
+    }
+
+    public override async Task<GetEnrichmentsResponse> GetEnrichments(GetEnrichmentsRequest request, ServerCallContext context)
+    {
+        FindLocation(request.Location);
+
+        var actor = actorRegistry.Get<EnrichmentSnapshotActor>();
+        var result = await actor.Ask<AllEnrichmentsResponse>(
+            new GetAllEnrichments(request.Location), AskTimeout);
+
+        var response = new GetEnrichmentsResponse { Location = request.Location };
+
+        foreach (var (typeName, resultObj) in result.Results)
+        {
+            var evt = EnrichmentProtoMapper.MapToEvent(
+                request.Location, typeName, resultObj, DateTimeOffset.UtcNow);
+            if (evt is null) continue;
+
+            switch (evt.PayloadCase)
+            {
+                case EnrichmentEvent.PayloadOneofCase.Alerts: response.Alerts = evt.Alerts; break;
+                case EnrichmentEvent.PayloadOneofCase.Indices: response.Indices = evt.Indices; break;
+                case EnrichmentEvent.PayloadOneofCase.Trends: response.Trends = evt.Trends; break;
+                case EnrichmentEvent.PayloadOneofCase.Energy: response.Energy = evt.Energy; break;
+                case EnrichmentEvent.PayloadOneofCase.Derived: response.Derived = evt.Derived; break;
+                case EnrichmentEvent.PayloadOneofCase.History: response.History = evt.History; break;
+                case EnrichmentEvent.PayloadOneofCase.Consensus: response.Consensus = evt.Consensus; break;
+            }
+        }
+
+        return response;
     }
 
     public override async Task StreamForecasts(
@@ -105,40 +142,6 @@ public sealed class ForecastGrpcService(
             })
             .RunWith(Sink.Ignore<ForecastUpdate>(), mat)
             .WaitAsync(context.CancellationToken);
-    }
-
-    public override async Task<GetEnrichmentsResponse> GetEnrichments(GetEnrichmentsRequest request, ServerCallContext context)
-    {
-        FindLocation(request.Location);
-
-        var actor = actorRegistry.Get<EnrichmentSnapshotActor>();
-        var result = await actor.Ask<AllEnrichmentsResponse>(
-            new GetAllEnrichments(request.Location), AskTimeout);
-
-        var response = new GetEnrichmentsResponse { Location = request.Location };
-
-        foreach (var (typeName, resultObj) in result.Results)
-        {
-            var evt = EnrichmentProtoMapper.MapToEvent(
-                request.Location, typeName, resultObj, DateTimeOffset.UtcNow);
-            if (evt is null)
-            {
-                continue;
-            }
-
-            switch (evt.PayloadCase)
-            {
-                case EnrichmentEvent.PayloadOneofCase.Alerts: response.Alerts = evt.Alerts; break;
-                case EnrichmentEvent.PayloadOneofCase.Indices: response.Indices = evt.Indices; break;
-                case EnrichmentEvent.PayloadOneofCase.Trends: response.Trends = evt.Trends; break;
-                case EnrichmentEvent.PayloadOneofCase.Energy: response.Energy = evt.Energy; break;
-                case EnrichmentEvent.PayloadOneofCase.Derived: response.Derived = evt.Derived; break;
-                case EnrichmentEvent.PayloadOneofCase.History: response.History = evt.History; break;
-                case EnrichmentEvent.PayloadOneofCase.Consensus: response.Consensus = evt.Consensus; break;
-            }
-        }
-
-        return response;
     }
 
     public override async Task StreamEnrichments(
@@ -188,30 +191,6 @@ public sealed class ForecastGrpcService(
         }
     }
 
-    private static GetForecastResponse MapForecastResponse(ModelForecast forecast)
-    {
-        var response = new GetForecastResponse
-        {
-            Location = forecast.Location,
-            Model = forecast.Model.Id,
-            UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-        };
-        MapForecastPoints(forecast, response.Hourly, response.Daily);
-        return response;
-    }
-
-    private static ForecastUpdate MapForecastUpdate(EgressEvent.PerModelUpdate update)
-    {
-        var proto = new ForecastUpdate
-        {
-            Location = update.Location,
-            Model = update.Model.Id,
-            UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-        };
-        MapForecastPoints(update.Forecast, proto.Hourly, proto.Daily);
-        return proto;
-    }
-
     private static readonly HashSet<string> HourlyFixedFields =
     [
         "temperature_2m", "apparent_temperature", "precipitation", "relative_humidity_2m",
@@ -225,14 +204,38 @@ public sealed class ForecastGrpcService(
         "wind_speed_10m_max", "wind_gusts_10m_max", "sunrise", "sunset", "weather_code"
     ];
 
+    private static GetForecastResponse MapForecastResponse(ModelForecast forecast)
+    {
+        var response = new GetForecastResponse
+        {
+            Location = forecast.Location,
+            Model = forecast.Model.Id,
+            UpdatedAt = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
+        };
+        MapForecastPoints(forecast, response.Hourly, response.Daily);
+        return response;
+    }
+
+    private static ForecastUpdate MapForecastUpdate(EgressEvent.PerModelUpdate update)
+    {
+        var proto = new ForecastUpdate
+        {
+            Location = update.Location,
+            Model = update.Model.Id,
+            UpdatedAt = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
+        };
+        MapForecastPoints(update.Forecast, proto.Hourly, proto.Daily);
+        return proto;
+    }
+
     private static void MapForecastPoints(
         ModelForecast forecast,
-        Google.Protobuf.Collections.RepeatedField<HourlyForecast> hourlyTarget,
-        Google.Protobuf.Collections.RepeatedField<DailyForecast> dailyTarget)
+        Google.Protobuf.Collections.RepeatedField<V2.HourlyForecast> hourlyTarget,
+        Google.Protobuf.Collections.RepeatedField<V2.DailyForecast> dailyTarget)
     {
         foreach (var point in forecast.Hourly.Points)
         {
-            var hourly = new HourlyForecast { Timestamp = point.ValidAt.ToUnixTimeSeconds() };
+            var hourly = new V2.HourlyForecast { ValidAt = Timestamp.FromDateTimeOffset(point.ValidAt) };
             SetOptional(point, ParameterRegistry.Temperature2m, v => hourly.Temperature = v);
             SetOptional(point, ParameterRegistry.ApparentTemperature, v => hourly.ApparentTemperature = v);
             SetOptional(point, ParameterRegistry.Precipitation, v => hourly.Precipitation = v);
@@ -266,7 +269,7 @@ public sealed class ForecastGrpcService(
                 if (value is null || HourlyFixedFields.Contains(param.ApiName))
                     continue;
 
-                hourly.Extra.Add(new ParameterValue { Name = param.ApiName, Numeric = value.Value });
+                hourly.Extra.Add(new V2.ParameterValue { Name = param.ApiName, Numeric = value.Value });
             }
 
             hourlyTarget.Add(hourly);
@@ -274,51 +277,33 @@ public sealed class ForecastGrpcService(
 
         foreach (var point in forecast.Daily.Points)
         {
-            var daily = new DailyForecast { Date = point.Date.ToString("O") };
+            var daily = new V2.DailyForecast { Date = point.Date.ToString("O") };
             var tempMax = point.GetNumeric(ParameterRegistry.GetByApiName("temperature_2m_max")!);
-            if (tempMax.HasValue)
-            {
-                daily.TemperatureMax = tempMax.Value;
-            }
+            if (tempMax.HasValue) daily.TemperatureMax = tempMax.Value;
 
             var tempMin = point.GetNumeric(ParameterRegistry.GetByApiName("temperature_2m_min")!);
-            if (tempMin.HasValue)
-            {
-                daily.TemperatureMin = tempMin.Value;
-            }
+            if (tempMin.HasValue) daily.TemperatureMin = tempMin.Value;
 
             var precipSum = point.GetNumeric(ParameterRegistry.GetByApiName("precipitation_sum")!);
-            if (precipSum.HasValue)
-            {
-                daily.PrecipitationSum = precipSum.Value;
-            }
+            if (precipSum.HasValue) daily.PrecipitationSum = precipSum.Value;
 
             var windMax = point.GetNumeric(ParameterRegistry.GetByApiName("wind_speed_10m_max")!);
-            if (windMax.HasValue)
-            {
-                daily.WindSpeedMax = windMax.Value;
-            }
+            if (windMax.HasValue) daily.WindSpeedMax = windMax.Value;
 
             var gustMax = point.GetNumeric(ParameterRegistry.GetByApiName("wind_gusts_10m_max")!);
-            if (gustMax.HasValue)
-            {
-                daily.WindGustsMax = gustMax.Value;
-            }
+            if (gustMax.HasValue) daily.WindGustsMax = gustMax.Value;
 
             daily.Sunrise = point.GetMeta(ParameterRegistry.GetByApiName("sunrise")!) ?? "";
             daily.Sunset = point.GetMeta(ParameterRegistry.GetByApiName("sunset")!) ?? "";
             var wc = point.GetNumeric(ParameterRegistry.GetByApiName("weather_code")!);
-            if (wc.HasValue)
-            {
-                daily.WeatherCode = (int)wc.Value;
-            }
+            if (wc.HasValue) daily.WeatherCode = (int)wc.Value;
 
             foreach (var (param, value) in point.NumericValues)
             {
                 if (value is null || DailyFixedFields.Contains(param.ApiName))
                     continue;
 
-                daily.Extra.Add(new ParameterValue { Name = param.ApiName, Numeric = value.Value });
+                daily.Extra.Add(new V2.ParameterValue { Name = param.ApiName, Numeric = value.Value });
             }
 
             foreach (var (param, value) in point.MetaValues)
@@ -326,7 +311,7 @@ public sealed class ForecastGrpcService(
                 if (value is null || DailyFixedFields.Contains(param.ApiName))
                     continue;
 
-                daily.Extra.Add(new ParameterValue { Name = param.ApiName, Text = value });
+                daily.Extra.Add(new V2.ParameterValue { Name = param.ApiName, Text = value });
             }
 
             dailyTarget.Add(daily);

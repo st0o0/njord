@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package njord.v2;
+
+import "google/protobuf/timestamp.proto";
+import "njord/v2/common.proto";
+
+option csharp_namespace = "Njord.Grpc.V2";
+
+service WeatherService {
+  rpc GetCatalog (GetCatalogRequest) returns (GetCatalogResponse);
+  rpc GetForecast (GetForecastRequest) returns (GetForecastResponse);
+  rpc GetEnrichments (GetEnrichmentsRequest) returns (GetEnrichmentsResponse);
+  rpc StreamForecasts (StreamForecastsRequest) returns (stream ForecastUpdate);
+  rpc StreamEnrichments (StreamEnrichmentsRequest) returns (stream EnrichmentEvent);
+}
+
+// ═══════════════════════════════════════
+// Catalog
+// ═══════════════════════════════════════
+
+message GetCatalogRequest {}
+
+message GetCatalogResponse {
+  repeated LocationInfo locations = 1;
+  repeated ModelInfo models = 2;
+}
+
+// ═══════════════════════════════════════
+// Forecast
+// ═══════════════════════════════════════
+
+message GetForecastRequest {
+  string location = 1;
+  string model = 2;
+}
+
+message GetForecastResponse {
+  string location = 1;
+  string model = 2;
+  google.protobuf.Timestamp updated_at = 3;
+  repeated HourlyForecast hourly = 4;
+  repeated DailyForecast daily = 5;
+}
+
+// ═══════════════════════════════════════
+// Enrichments
+// ═══════════════════════════════════════
+
+message GetEnrichmentsRequest {
+  string location = 1;
+}
+
+message GetEnrichmentsResponse {
+  string location = 1;
+  AlertUpdate alerts = 2;
+  IndexUpdate indices = 3;
+  TrendUpdate trends = 4;
+  EnergyUpdate energy = 5;
+  DerivedUpdate derived = 6;
+  HistoryUpdate history = 7;
+  ConsensusUpdate consensus = 8;
+}
+
+// ═══════════════════════════════════════
+// Streaming
+// ═══════════════════════════════════════
+
+message StreamForecastsRequest {
+  string location = 1;
+}
+
+message ForecastUpdate {
+  string location = 1;
+  string model = 2;
+  google.protobuf.Timestamp updated_at = 3;
+  repeated HourlyForecast hourly = 4;
+  repeated DailyForecast daily = 5;
+}
+
+message StreamEnrichmentsRequest {
+  string location = 1;
+}
+
+message EnrichmentEvent {
+  string location = 1;
+  string type_name = 2;
+  google.protobuf.Timestamp updated_at = 3;
+  oneof payload {
+    AlertUpdate alerts = 10;
+    IndexUpdate indices = 11;
+    TrendUpdate trends = 12;
+    EnergyUpdate energy = 13;
+    DerivedUpdate derived = 14;
+    HistoryUpdate history = 15;
+    ConsensusUpdate consensus = 16;
+  }
+}
