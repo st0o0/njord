@@ -9,6 +9,7 @@ using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Mqtt;
+using Njord.Pipeline;
 using Servus.Akka;
 
 namespace Njord.Enrichment.Features;
@@ -19,6 +20,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
     private readonly ResolvedParameterSet _parameters;
     private readonly TimeProvider _timeProvider;
     private readonly HistoryOptions _historyOptions;
+    private readonly ILogger<HistoryEnrichment> _logger;
     private readonly bool _enabled;
 
     public string TypeName => "history";
@@ -28,12 +30,14 @@ internal sealed class HistoryEnrichment : IActorEnrichment
         IOptions<NjordOptions> options,
         IOptions<EnrichmentOptions> enrichmentOptions,
         ResolvedParameterSet parameters,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ILogger<HistoryEnrichment> logger)
     {
         _njordOptions = options.Value;
         _parameters = parameters;
         _timeProvider = timeProvider;
         _historyOptions = enrichmentOptions.Value.History;
+        _logger = logger;
         _enabled = enrichmentOptions.Value.History.Enabled;
     }
 
@@ -73,8 +77,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
                 return events;
             })
             .SelectMany(events => events)
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume));
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)));
     }
 
     public string BuildDiscoveryPayload(DiscoveryContext ctx, string location)

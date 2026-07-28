@@ -24,7 +24,8 @@ public sealed class HistoryEnrichmentSpec
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
         return new HistoryEnrichment(
-            Options.Create(options), Options.Create(enrichment), parameters, TimeProvider.System);
+            Options.Create(options), Options.Create(enrichment), parameters, TimeProvider.System,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoryEnrichment>.Instance);
     }
 
     [Fact(Timeout = 5000)]

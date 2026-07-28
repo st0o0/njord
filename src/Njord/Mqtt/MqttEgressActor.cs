@@ -6,6 +6,7 @@ using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
+using Njord.Pipeline;
 using Servus.Akka;
 
 namespace Njord.Mqtt;
@@ -120,8 +121,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
 
         _egressSourceRef!.Source
             .SelectMany(egressEvent => MapToMqttMessages(egressEvent, baseTopic, lastPublished))
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                _ => Akka.Streams.Supervision.Directive.Resume))
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
             .RunWith(_mqttSinkRef!.Sink, mat);
     }
 

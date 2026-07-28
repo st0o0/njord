@@ -25,6 +25,7 @@ public sealed class NjordServiceSetupSpec
                 ["Njord:Locations:0:Latitude"] = "47.05",
                 ["Njord:Locations:0:Longitude"] = "8.31",
                 ["Njord:Models:0"] = "icon_d2",
+                ["Njord:Mqtt:Enabled"] = "true",
                 ["Njord:Mqtt:Host"] = "localhost",
             })
             .Build();

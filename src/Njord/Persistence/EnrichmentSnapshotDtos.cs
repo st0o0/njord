@@ -24,6 +24,7 @@ public static class EnrichmentSnapshotMapping
         ["DerivedResult"] = typeof(Domain.Analysis.DerivedResult),
         ["EnergyResult"] = typeof(Domain.Analysis.EnergyResult),
         ["ConsensusResult"] = typeof(Domain.Analysis.ConsensusResult),
+        ["HistoryResult"] = typeof(Domain.Analysis.HistoryResult),
     };
 
     private static readonly JsonSerializerSettings JsonSettings = new()

@@ -63,12 +63,18 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
         }
 
         _mat = Context.Materializer();
+        RequestUpstreamRefs();
+    }
 
+    private void RequestUpstreamRefs()
+    {
         var connectionActor = Context.GetActor<MqttConnectionActor>();
+        Context.Watch(connectionActor);
         connectionActor.Tell(new RequestMqttSink());
         connectionActor.Tell(new SubscribeInbound(Self));
 
         var egressActor = Context.GetActor<EgressActor>();
+        Context.Watch(egressActor);
         egressActor.Tell(new RequestEgressSource());
     }
 
@@ -84,6 +90,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
             _egressSourceRef = response.SourceRef;
             TryTransition();
         });
+        Receive<Terminated>(OnTerminated);
         ReceiveAny(_ => Stash.Stash());
     }
 
@@ -117,6 +124,7 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
         Receive<CapabilityTimeout>(_ => OnCapabilityTimeout());
         Receive<MqttConnected>(_ => { });
         Receive<MqttInboundMessage>(OnInbound);
+        Receive<Terminated>(OnTerminated);
     }
 
     private void Ready()
@@ -124,6 +132,18 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
         Receive<CapabilityReceived>(msg => OnCapabilityUpdate(msg.Event));
         Receive<MqttConnected>(_ => { });
         Receive<MqttInboundMessage>(OnInbound);
+        Receive<Terminated>(OnTerminated);
+    }
+
+    private void OnTerminated(Terminated msg)
+    {
+        _logger.LogWarning("Watched actor {Actor} terminated — re-requesting refs", msg.ActorRef.Path.Name);
+        _mqttSinkRef = null;
+        _egressSourceRef = null;
+        _queue?.Complete();
+        _queue = null;
+        RequestUpstreamRefs();
+        Become(WaitingForRefs);
     }
 
     private void OnCapabilityLearned(EgressEvent.CapabilityLearned msg)
