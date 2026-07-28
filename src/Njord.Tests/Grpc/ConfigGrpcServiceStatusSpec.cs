@@ -20,6 +20,9 @@ public sealed class ConfigGrpcServiceStatusSpec : Akka.Hosting.TestKit.TestKit
         {
             var fakeScheduler = system.ActorOf(Props.Create(() => new FakeSchedulerActor()));
             registry.Register<SchedulerActor>(fakeScheduler);
+
+            var fakeBudgetTracker = system.ActorOf(Props.Create(() => new FakeBudgetTrackerActor()));
+            registry.Register<BudgetTrackerActor>(fakeBudgetTracker);
         });
     }
 
@@ -46,8 +49,7 @@ public sealed class ConfigGrpcServiceStatusSpec : Akka.Hosting.TestKit.TestKit
         };
         var monitor = new MutableOptionsMonitor(options);
         var persistence = new ConfigPersistence(_tempDir);
-        var tracker = new BudgetTracker(TimeProvider.System);
-        return new ConfigGrpcService(monitor, persistence, tracker, ActorRegistry, TimeProvider.System, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConfigGrpcService>.Instance);
+        return new ConfigGrpcService(monitor, persistence, ActorRegistry, TimeProvider.System, Microsoft.Extensions.Logging.Abstractions.NullLogger<ConfigGrpcService>.Instance);
     }
 
     [Fact(Timeout = 5000)]
@@ -127,6 +129,47 @@ public sealed class ConfigGrpcServiceStatusSpec : Akka.Hosting.TestKit.TestKit
         Assert.Empty(status.ActiveEnrichments);
     }
 
+    [Fact(Timeout = 5000)]
+    public async Task Get_status_returns_budget_usage_from_actor()
+    {
+        var service = CreateService();
+
+        var status = await service.GetStatus(
+            new GetStatusRequest(),
+            ForecastGrpcServiceSpec.TestServerCallContext.Create());
+
+        Assert.Equal(42, status.Budget.MonthlyUsed);
+        Assert.Equal(7, status.Budget.DailyUsed);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Get_status_returns_process_start_utc()
+    {
+        var service = CreateService();
+
+        var status = await service.GetStatus(
+            new GetStatusRequest(),
+            ForecastGrpcServiceSpec.TestServerCallContext.Create());
+
+        Assert.True(status.ProcessStartUtc > 0);
+    }
+
+    [Fact(Timeout = 15000)]
+    public async Task Get_status_returns_zero_usage_when_budget_tracker_times_out()
+    {
+        var slowTracker = Sys.ActorOf(Props.Create(() => new SlowBudgetTrackerActor()));
+        ActorRegistry.Register<BudgetTrackerActor>(slowTracker, overwrite: true);
+
+        var service = CreateService();
+
+        var status = await service.GetStatus(
+            new GetStatusRequest(),
+            ForecastGrpcServiceSpec.TestServerCallContext.Create());
+
+        Assert.Equal(0, status.Budget.MonthlyUsed);
+        Assert.Equal(0, status.Budget.DailyUsed);
+    }
+
     private sealed class FakeSchedulerActor : ReceiveActor
     {
         public FakeSchedulerActor()
@@ -141,6 +184,23 @@ public sealed class ConfigGrpcServiceStatusSpec : Akka.Hosting.TestKit.TestKit
                 };
                 Sender.Tell(new PollStatesSnapshot(entries));
             });
+        }
+    }
+
+    private sealed class FakeBudgetTrackerActor : ReceiveActor
+    {
+        public FakeBudgetTrackerActor()
+        {
+            Receive<BudgetTrackerActor.GetBudgetUsage>(_ =>
+                Sender.Tell(new BudgetTrackerActor.BudgetUsage(42, 7), Self));
+        }
+    }
+
+    private sealed class SlowBudgetTrackerActor : ReceiveActor
+    {
+        public SlowBudgetTrackerActor()
+        {
+            Receive<BudgetTrackerActor.GetBudgetUsage>(_ => { });
         }
     }
 }

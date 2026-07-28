@@ -13,7 +13,6 @@ namespace Njord.Grpc;
 public sealed class ConfigGrpcService(
     IOptionsMonitor<NjordOptions> optionsMonitor,
     ConfigPersistence persistence,
-    BudgetTracker budgetTracker,
     ActorRegistry actorRegistry,
     TimeProvider timeProvider,
     ILogger<ConfigGrpcService> logger) : V1.ConfigService.ConfigServiceBase
@@ -28,7 +27,6 @@ public sealed class ConfigGrpcService(
 
     private readonly IOptionsMonitor<NjordOptions> _optionsMonitor = optionsMonitor;
     private readonly ConfigPersistence _persistence = persistence;
-    private readonly BudgetTracker _budgetTracker = budgetTracker;
     private readonly ActorRegistry _actorRegistry = actorRegistry;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly ILogger<ConfigGrpcService> _logger = logger;
@@ -68,12 +66,27 @@ public sealed class ConfigGrpcService(
     {
         var uptime = _timeProvider.GetUtcNow() - ProcessStart;
         var budget = _optionsMonitor.CurrentValue.EffectiveBudget;
-        var (monthlyUsed, dailyUsed) = _budgetTracker.GetUsage();
+
+        long monthlyUsed = 0;
+        long dailyUsed = 0;
+        try
+        {
+            var tracker = _actorRegistry.Get<BudgetTrackerActor>();
+            var usage = await tracker.Ask<BudgetTrackerActor.BudgetUsage>(
+                new BudgetTrackerActor.GetBudgetUsage(), AskTimeout);
+            monthlyUsed = usage.MonthlyUsed;
+            dailyUsed = usage.DailyUsed;
+        }
+        catch (AskTimeoutException)
+        {
+            _logger.LogWarning("BudgetTrackerActor did not respond within {Timeout}s — returning status with zero usage", AskTimeout.TotalSeconds);
+        }
 
         var status = new ServerStatus
         {
             Version = Version,
             UptimeSeconds = (long)uptime.TotalSeconds,
+            ProcessStartUtc = ProcessStart.ToUnixTimeSeconds(),
             Budget = new BudgetStatus
             {
                 MonthlyLimit = budget.RequestsPerMonth,

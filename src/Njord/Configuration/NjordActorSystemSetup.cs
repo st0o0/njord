@@ -51,6 +51,7 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
                 r.Register<ForecastSnapshotActor>("forecast-snapshot");
                 r.Register<EnrichmentSnapshotActor>("enrichment-snapshot");
                 r.Register<GrpcSnapshotConsumerActor>("grpc-snapshot-consumer");
+                r.Register<BudgetTrackerActor>("budget-tracker");
 
                 if (njordOptions.Mqtt.Enabled)
                 {

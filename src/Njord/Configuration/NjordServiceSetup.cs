@@ -1,3 +1,4 @@
+using Akka.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Njord.Domain.Weather;
@@ -38,7 +39,7 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         services.AddSingleton<IBudgetGate<WeightedTarget>>(sp =>
             new WeightedBudgetGate(
                 sp.GetRequiredService<IBudgetProvider>(),
-                sp.GetRequiredService<BudgetTracker>(),
+                sp.GetRequiredService<ActorRegistry>().Get<BudgetTrackerActor>(),
                 sp.GetRequiredService<TimeProvider>()));
         services.AddSingleton(sp => new NjordHealthState
         {
@@ -72,6 +73,5 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         services.AddGrpc();
         services.AddOpenMeteoIngest();
         services.AddSingleton<ConfigPersistence>();
-        services.AddSingleton<BudgetTracker>();
     }
 }

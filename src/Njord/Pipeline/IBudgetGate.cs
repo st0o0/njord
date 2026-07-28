@@ -1,4 +1,4 @@
-using Njord.Configuration;
+using Akka.Actor;
 
 namespace Njord.Pipeline;
 
@@ -13,7 +13,7 @@ public sealed class WeightedBudgetGate : IBudgetGate<WeightedTarget>
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(5);
 
     private readonly IBudgetProvider _provider;
-    private readonly BudgetTracker _tracker;
+    private readonly IActorRef _trackerActor;
     private readonly TimeProvider _timeProvider;
     private double _tokens;
     private double _tokensPerSecond;
@@ -21,10 +21,10 @@ public sealed class WeightedBudgetGate : IBudgetGate<WeightedTarget>
     private DateTimeOffset _lastRefill;
     private DateTimeOffset _lastRefresh;
 
-    public WeightedBudgetGate(IBudgetProvider provider, BudgetTracker tracker, TimeProvider timeProvider)
+    public WeightedBudgetGate(IBudgetProvider provider, IActorRef trackerActor, TimeProvider timeProvider)
     {
         _provider = provider;
-        _tracker = tracker;
+        _trackerActor = trackerActor;
         _timeProvider = timeProvider;
         ApplyRate(provider.GetCurrentRate());
         _tokens = _maxBurst;
@@ -42,7 +42,7 @@ public sealed class WeightedBudgetGate : IBudgetGate<WeightedTarget>
             return false;
 
         _tokens -= cost;
-        _tracker.RecordCall(cost);
+        _trackerActor.Tell(new BudgetTrackerActor.RecordApiCall(cost));
         return true;
     }
 

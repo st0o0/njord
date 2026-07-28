@@ -33,16 +33,16 @@ An `IBudgetProvider` interface SHALL expose `GetCurrentRate()` returning a `Budg
 - **THEN** the stage SHALL push the pending element when the gate allows, then complete
 
 ### Requirement: IBudgetGate encapsulates throttling, tracking, and cost calculation
-`IBudgetGate<T>` SHALL expose a single method `AcquireAsync(T element, CancellationToken ct)`. The implementation (`WeightedBudgetGate`) SHALL internally manage the token bucket, poll `IBudgetProvider` for rate changes, extract cost from the element, and call `BudgetTracker.RecordCall(cost)` after each acquisition. The stage SHALL NOT reference `IBudgetProvider`, `BudgetTracker`, or any cost function directly.
+`IBudgetGate<T>` SHALL expose `TryAcquire(T element)` and `EstimateDelay(T element)`. The implementation (`WeightedBudgetGate`) SHALL internally manage the token bucket, poll `IBudgetProvider` for rate changes, and extract cost from the element. After each successful acquisition, `WeightedBudgetGate` SHALL send `RecordApiCall(cost)` to the `BudgetTrackerActor` via `Tell` (fire-and-forget). The gate SHALL accept an `IActorRef` for the budget tracker actor in its constructor instead of a `BudgetTracker` instance.
 
 #### Scenario: Gate acquires immediately when tokens available
 - **WHEN** the token bucket has sufficient tokens for the element's cost
-- **THEN** `AcquireAsync` SHALL return immediately and record the call
+- **THEN** `TryAcquire` SHALL return true and send `RecordApiCall` to the actor
 
-#### Scenario: Gate delays when tokens insufficient
+#### Scenario: Gate rejects when tokens insufficient
 - **WHEN** the token bucket does not have sufficient tokens
-- **THEN** `AcquireAsync` SHALL delay until tokens replenish, then return and record the call
+- **THEN** `TryAcquire` SHALL return false and SHALL NOT send `RecordApiCall`
 
 #### Scenario: Gate adapts to rate changes
 - **WHEN** the budget is changed via `IBudgetProvider`
-- **THEN** subsequent `AcquireAsync` calls SHALL use the updated rate
+- **THEN** subsequent `TryAcquire` calls SHALL use the updated rate

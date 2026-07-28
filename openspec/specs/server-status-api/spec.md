@@ -11,8 +11,10 @@ dashboards can monitor njord without scraping logs.
 ### Requirement: GetStatus returns server health and budget usage
 `ConfigService.GetStatus` SHALL return a `ServerStatus` message containing server
 version, uptime in seconds, budget usage (monthly/daily limits and used counts),
-per-model poll status from the SchedulerActor, and a list of active enrichment
-feature names.
+per-model poll status from the SchedulerActor, a list of active enrichment
+feature names, and `process_start_utc` as a Unix timestamp. Budget usage SHALL be
+sourced from the `BudgetTrackerActor` via `Ask<BudgetUsage>` with the existing
+5-second timeout.
 
 #### Scenario: Status includes version and uptime
 - **WHEN** a client calls `GetStatus`
@@ -20,7 +22,7 @@ feature names.
 
 #### Scenario: Budget usage shows monthly and daily counts
 - **WHEN** a client calls `GetStatus` after njord has fetched data
-- **THEN** the `BudgetStatus` SHALL show monthly_used, daily_used, and corresponding limits
+- **THEN** the `BudgetStatus` SHALL show monthly_used, daily_used, and corresponding limits sourced from `BudgetTrackerActor`
 
 #### Scenario: Per-model status shows poll state from SchedulerActor
 - **WHEN** a client calls `GetStatus` with active models in Discovery and Steady phases
@@ -34,6 +36,16 @@ feature names.
 - **WHEN** a client calls `GetStatus` but the SchedulerActor Ask times out
 - **THEN** the response SHALL contain version, uptime, and budget as normal with an empty `models` list
 - **AND** the call SHALL NOT fail with an error
+
+#### Scenario: BudgetTrackerActor unreachable returns zero usage
+- **WHEN** a client calls `GetStatus` but the `BudgetTrackerActor` Ask times out
+- **THEN** the response SHALL contain version, uptime, and models as normal
+- **AND** `BudgetStatus` SHALL show `monthly_used=0` and `daily_used=0`
+- **AND** the call SHALL log a warning but NOT fail
+
+#### Scenario: Status includes process start timestamp
+- **WHEN** a client calls `GetStatus`
+- **THEN** the response SHALL contain `process_start_utc` as Unix timestamp (seconds since epoch) of when the service process started
 
 ### Requirement: ServerStatus proto includes active_enrichments field
 The `ServerStatus` proto message SHALL include `repeated string active_enrichments = 5`

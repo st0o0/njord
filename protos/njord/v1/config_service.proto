@@ -206,6 +206,7 @@ message ServerStatus {
   BudgetStatus budget = 3;
   repeated ModelStatus models = 4;
   repeated string active_enrichments = 5;
+  int64 process_start_utc = 6;
 }
 
 message BudgetStatus {

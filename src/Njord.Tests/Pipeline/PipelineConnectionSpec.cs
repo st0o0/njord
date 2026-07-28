@@ -58,8 +58,9 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         };
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
         var optionsMonitor = new FakeOptionsMonitor(options);
+        var fakeTracker = Sys.ActorOf(Props.Create(() => new FakeBudgetTrackerActor()));
         IBudgetGate<WeightedTarget> gate = new WeightedBudgetGate(
-            new OptionsBudgetProvider(optionsMonitor), new BudgetTracker(TimeProvider.System), TimeProvider.System);
+            new OptionsBudgetProvider(optionsMonitor), fakeTracker, TimeProvider.System);
         var client = new FakeOpenMeteoClient(fetchCalled);
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero));
         var health = new NjordHealthState { ServiceStartedUtc = time.GetUtcNow() };
@@ -391,6 +392,16 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         public BlackholeActor()
         {
             ReceiveAny(_ => { });
+        }
+    }
+
+    private sealed class FakeBudgetTrackerActor : ReceiveActor
+    {
+        public FakeBudgetTrackerActor()
+        {
+            Receive<BudgetTrackerActor.RecordApiCall>(_ => { });
+            Receive<BudgetTrackerActor.GetBudgetUsage>(_ =>
+                Sender.Tell(new BudgetTrackerActor.BudgetUsage(0, 0), Self));
         }
     }
 }
