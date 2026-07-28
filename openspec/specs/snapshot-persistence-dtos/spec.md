@@ -24,17 +24,23 @@ The forecast persistence layer SHALL define DTO types that represent snapshot st
 ### Requirement: Enrichment snapshot DTOs use discriminated wrapper
 The enrichment persistence layer SHALL define a DTO that wraps each enrichment result with a `TypeName` string discriminator and a serialized `JsonPayload`. On save, the concrete enrichment type name and its JSON representation SHALL be stored. On recovery, `TypeName` SHALL select the deserialization target.
 
+The `EnrichmentTypes` dictionary SHALL contain entries for ALL enrichment result types: `AlertResult`, `IndexResult`, `TrendResult`, `DerivedResult`, `EnergyResult`, `ConsensusResult`, and `HistoryResult`. Missing entries cause silent data loss on snapshot recovery.
+
 #### Scenario: AlertResult round-trips through DTO
-- **WHEN** an `AlertResult` is saved as an enrichment snapshot and recovered
-- **THEN** the recovered value SHALL be an `AlertResult` with the same data
+- **WHEN** an AlertResult is stored and the actor restarts
+- **THEN** the AlertResult is recovered with identical data
 
 #### Scenario: IndexResult round-trips through DTO
-- **WHEN** an `IndexResult` is saved as an enrichment snapshot and recovered
-- **THEN** the recovered value SHALL be an `IndexResult` with the same data
+- **WHEN** an IndexResult is stored and the actor restarts
+- **THEN** the IndexResult is recovered with identical data
+
+#### Scenario: HistoryResult round-trips through DTO
+- **WHEN** a HistoryResult is stored and the actor restarts
+- **THEN** the HistoryResult is recovered with identical data
 
 #### Scenario: Unknown type name on recovery is dropped
-- **WHEN** an enrichment DTO contains a `TypeName` that does not match any known enrichment type
-- **THEN** the entry SHALL be silently dropped during recovery
+- **WHEN** a snapshot contains a TypeName not in the EnrichmentTypes dictionary
+- **THEN** that entry is silently dropped during recovery
 
 ### Requirement: DTO mapping handles missing parameters gracefully
 When recovering a `ForecastPointDto` whose `Values` dictionary contains a key not found in `ParameterRegistry`, that entry SHALL be silently dropped. The remaining parameters SHALL be mapped normally.
@@ -53,6 +59,17 @@ All enrichment result records serialized inside `EnrichmentEntryDto.JsonPayload`
 #### Scenario: Unknown fields in nested JSON are ignored on deserialization
 - **WHEN** a persisted `EnrichmentEntryDto.JsonPayload` contains JSON fields not present in the current record definition
 - **THEN** deserialization succeeds and the unknown fields are silently ignored
+
+### Requirement: Scheduler snapshot DTO preserves poll state
+The persistence layer SHALL define `SchedulerSnapshotDto` and `ModelPollStateDto` types that represent the SchedulerActor's full `_states` dictionary. `ModelPollStateDto` SHALL contain: `LastHash` (int?), `LastChangeUtcTicks` (long?), `PrevChangeUtcTicks` (long?), `NextPollUtcTicks` (long), `MissCount` (int), `CycleTicks` (long?), `Phase` (string). All `DateTimeOffset` values SHALL be stored as UTC ticks. All properties SHALL have `[JsonProperty]` attributes with stable wire names.
+
+#### Scenario: Full state dictionary round-trips through DTO
+- **WHEN** the SchedulerActor saves a snapshot with multiple model states
+- **THEN** all states are recovered with identical values after restart
+
+#### Scenario: Empty state dictionary produces valid snapshot
+- **WHEN** the SchedulerActor saves a snapshot with no model states
+- **THEN** recovery produces an empty state dictionary
 
 ### Requirement: CLAUDE.md caveat is removed
 The CLAUDE.md caveat about `EnrichmentEntryDto` inner-JSON limitation SHALL be removed once all enrichment result records are hardened.

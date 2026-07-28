@@ -13,9 +13,9 @@ When `Njord:Mqtt:Enabled` is `false`, the service SHALL NOT register MQTTnet tra
 - **WHEN** `Njord:Mqtt:Enabled` is `false`
 - **THEN** the service starts successfully without connecting to an MQTT broker, and `IMqttTransport` is not resolvable from DI
 
-#### Scenario: Default is MQTT enabled
+#### Scenario: Default is MQTT disabled
 - **WHEN** no `Njord:Mqtt:Enabled` value is configured
-- **THEN** the effective value is `true` and MQTT services and actors are registered normally
+- **THEN** the effective value is `false` and MQTT services and actors are NOT registered
 
 #### Scenario: Pipeline operates without MQTT consumer
 - **WHEN** MQTT is disabled

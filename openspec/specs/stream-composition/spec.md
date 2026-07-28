@@ -87,12 +87,20 @@ Each processing stage (throttle+fetch, filter, hash, ask) SHALL be implemented a
 - **WHEN** a test wires `TestSource<WeightedTarget> -> FetchStage(mockClient) -> TestSink`
 - **THEN** fetch behavior (parallelism, error handling) can be verified in isolation
 
-### Requirement: Stream supervision resumes on transient fetch failures
-The fetch stage SHALL use a supervision decider that resumes processing on transient failures (HTTP timeout, rate-limit 429, transport errors). A single failed fetch SHALL NOT restart or terminate the graph. Persistent failures (repeated errors for the same target) SHALL be logged but SHALL NOT stall the pipeline.
+### Requirement: Stream supervision uses a logging decider
+All stream graphs in the system SHALL use the shared `StreamSupervision.LoggingDecider` instead of a blanket `_ => Directive.Resume`. Each call site SHALL pass its own `ILogger` instance so that log entries identify the originating actor or component.
 
-#### Scenario: HTTP timeout does not kill the stream
-- **WHEN** a single fetch times out
-- **THEN** the stream continues processing subsequent targets; the timed-out target emits a `FetchOutcome.Failure`
+#### Scenario: Stream exception is logged with actor context
+- **WHEN** a stream exception occurs in any graph
+- **THEN** the exception is logged at Warning level via the actor's ILogger
+
+#### Scenario: Transient errors do not terminate the stream
+- **WHEN** an AskTimeoutException occurs in a stream graph
+- **THEN** the stream continues processing subsequent elements
+
+#### Scenario: Unexpected errors stop the stream stage
+- **WHEN** a NullReferenceException occurs in a stream graph
+- **THEN** the stream stage stops, triggering actor supervision
 
 ### Requirement: Clean shutdown via actor lifecycle
 The pipeline SHALL terminate cleanly when the PipelineActor stops. In-flight fetches SHALL complete (or timeout) before the graph finalizes. No explicit `KillSwitch` management is required — `Context.Materializer()` binds the graph to the actor.

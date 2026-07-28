@@ -26,25 +26,31 @@ A `PipelineActor` SHALL materialize the full pipeline graph using `Context.Mater
 - **THEN** the fetch call to `IOpenMeteoClient.FetchAsync` is a direct `SelectAsyncUnordered` in the graph, not a separate `FetchStage.Create()` flow
 
 ### Requirement: The pipeline actor vends a SinkRef for producers and a SourceRef for consumers
-The PipelineActor SHALL materialize a `MergeHub` as the pipeline entry point
-and a `BroadcastHub` as the pipeline output. The BroadcastHub SHALL carry
-`FetchOutcome` (not just `FetchOutcome.Success`) so that both successes and
-failures are available to all consumers. On request, it SHALL vend a
-`SinkRef<WeightedTarget>` (connected to the MergeHub) for producers, and a
-`SourceRef<FetchOutcome>` (connected to the BroadcastHub) for consumers.
-No raw `ISourceQueueWithComplete` SHALL be exposed.
+The PipelineActor SHALL materialize a `MergeHub` as the pipeline entry point and a `BroadcastHub` as the pipeline output. The BroadcastHub SHALL carry `FetchOutcome` (not just `FetchOutcome.Success`) so that both successes and failures are available to all consumers. On request, it SHALL vend a `SinkRef<WeightedTarget>` (connected to the MergeHub) for producers, and a `SourceRef<FetchOutcome>` (connected to the BroadcastHub) for consumers. No raw `ISourceQueueWithComplete` SHALL be exposed.
+
+When SinkRef or SourceRef materialization fails, the PipelineActor SHALL send `Status.Failure(ex)` to the requesting actor. The actor SHALL NOT return `null` or `null!` from a PipeTo failure handler.
 
 #### Scenario: SchedulerActor requests and receives a SinkRef
-- **WHEN** the SchedulerActor sends a `RequestPipelineSink` message after materialization
-- **THEN** the PipelineActor responds with a `PipelineSinkResponse` containing a `SinkRef<WeightedTarget>`
+- **WHEN** SchedulerActor sends RequestPipelineSink
+- **THEN** PipelineActor responds with PipelineSinkResponse containing a valid SinkRef
 
 #### Scenario: EgressActor requests and receives a SourceRef
-- **WHEN** the EgressActor sends a `RequestPipelineSource` message after materialization
-- **THEN** the PipelineActor responds with a `PipelineSourceResponse` containing a `SourceRef<FetchOutcome>`
+- **WHEN** a consumer sends RequestPipelineSource
+- **THEN** PipelineActor responds with PipelineSourceResponse containing a valid SourceRef
 
 #### Scenario: No raw queue handle is exposed
 - **WHEN** any actor requests pipeline access
-- **THEN** only typed StreamRef endpoints (SinkRef or SourceRef) are returned, never an `ISourceQueueWithComplete`
+- **THEN** only SinkRef/SourceRef handles are provided
+
+#### Scenario: SinkRef materialization failure sends Status.Failure
+- **WHEN** SinkRef materialization fails with an exception
+- **THEN** PipelineActor sends Status.Failure(ex) to the requesting actor
+- **THEN** the failure is logged at Error level
+
+#### Scenario: SourceRef materialization failure sends Status.Failure
+- **WHEN** SourceRef materialization fails with an exception
+- **THEN** PipelineActor sends Status.Failure(ex) to the requesting actor
+- **THEN** the failure is logged at Error level
 
 ### Requirement: PipelineActor materializes a BroadcastHub for FetchOutcome distribution
 The `PipelineActor` SHALL materialize a `BroadcastHub.Sink<FetchOutcome>` with a buffer size of 16 to distribute fetch results to all consumers (ModelStateActor, EnrichmentActor).
@@ -54,21 +60,25 @@ The `PipelineActor` SHALL materialize a `BroadcastHub.Sink<FetchOutcome>` with a
 - **THEN** the BroadcastHub SHALL use a buffer size of 16
 
 ### Requirement: The pipeline actor materializes the feedback consumer locally
-The PipelineActor SHALL materialize a BroadcastHub consumer that filters for
-`FetchOutcome.Success`, computes a `ForecastDataHash`, and sends the `HashResult`
-to the SchedulerActor via the built-in `Ask<Ack>` flow.
+The PipelineActor SHALL materialize a BroadcastHub consumer that filters for `FetchOutcome.Success`, computes a `ForecastDataHash`, and sends the `HashResult` to the SchedulerActor via the built-in `Ask<Ack>` flow.
+
+The feedback consumer's stream supervision SHALL use the shared `StreamSupervision.LoggingDecider` with the PipelineActor's ILogger. The fetch stage's stream supervision SHALL also use the shared decider.
 
 #### Scenario: Feedback consumer computes hash and asks scheduler
-- **WHEN** a `FetchOutcome.Success` is broadcast
-- **THEN** the feedback consumer computes a hash, sends `HashResult` to the SchedulerActor via Ask, and waits for `Ack`
+- **WHEN** a FetchOutcome.Success arrives
+- **THEN** a ForecastDataHash is computed and sent to SchedulerActor via Ask
 
 #### Scenario: Feedback consumer ignores failures
-- **WHEN** a `FetchOutcome.Failure` is broadcast
-- **THEN** the feedback consumer skips it (no hash computation, no Ask)
+- **WHEN** a FetchOutcome.Failure arrives
+- **THEN** it is filtered out before hash computation
 
 #### Scenario: Feedback consumer lifecycle is bound to PipelineActor
-- **WHEN** the PipelineActor stops
-- **THEN** the feedback consumer graph also terminates
+- **WHEN** PipelineActor stops
+- **THEN** the feedback consumer stream completes
+
+#### Scenario: Feedback consumer logs exceptions instead of silently resuming
+- **WHEN** an exception occurs in the feedback consumer stream
+- **THEN** the exception is logged at Warning level via the PipelineActor's ILogger
 
 ### Requirement: The pipeline actor watches the egress actor for lifecycle coordination
 The PipelineActor SHALL watch the EgressActor. If the EgressActor terminates (`Terminated` message), no pipeline rematerialization is needed -- the BroadcastHub continues operating. The EgressActor is responsible for re-requesting a SourceRef on restart.
