@@ -10,12 +10,17 @@ namespace Njord.Grpc;
 public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
 {
     private readonly ILogger<GrpcSnapshotConsumerActor> _logger;
+    private readonly HashSet<IActorRef> _watchedDeps = [];
     private IMaterializer? _mat;
     private ISourceRef<EgressEvent>? _pendingSourceRef;
+    private IActorRef? _lastTerminatedRef;
+    private int _retryCount;
+    private SharedKillSwitch _killSwitch = KillSwitches.Shared("stream-kill");
 
     public IStash Stash { get; set; } = null!;
 
     private sealed record EgressResolved(IActorRef Ref);
+    private sealed record RetryResolve;
     private sealed record SnapshotActorsResolved(IActorRef Forecast, IActorRef Enrichment);
 
     public GrpcSnapshotConsumerActor(ILogger<GrpcSnapshotConsumerActor> logger)
@@ -37,13 +42,27 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
 
     private void WaitingForSource()
     {
+        Receive<RetryResolve>(_ =>
+        {
+            _lastTerminatedRef = null;
+            RequestEgressSource();
+        });
         Receive<EgressResolved>(msg =>
         {
+            if (Equals(msg.Ref, _lastTerminatedRef))
+            {
+                ScheduleRetryResolve();
+                return;
+            }
+
+            _watchedDeps.Add(msg.Ref);
             Context.Watch(msg.Ref);
             msg.Ref.Tell(new RequestEgressSource());
         });
         Receive<EgressSourceResponse>(response =>
         {
+            if (_lastTerminatedRef is not null) return;
+
             _pendingSourceRef = response.SourceRef;
 
             var forecastTask = Context.GetActorAsync<ForecastSnapshotActor>();
@@ -78,8 +97,14 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
 
     private void OnTerminated(Terminated msg)
     {
+        if (!_watchedDeps.Remove(msg.ActorRef)) return;
+
         _logger.LogWarning("Watched actor {Actor} terminated — re-requesting source", msg.ActorRef.Path.Name);
+        _lastTerminatedRef = msg.ActorRef;
+        _retryCount = 0;
         _pendingSourceRef = null;
+        _killSwitch.Shutdown();
+        _killSwitch = KillSwitches.Shared("stream-kill");
         RequestEgressSource();
         Become(WaitingForSource);
     }
@@ -87,6 +112,7 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
     private void MaterializeGraph(ISourceRef<EgressEvent> sourceRef, IActorRef forecastActor, IActorRef enrichmentActor)
     {
         sourceRef.Source
+            .Via(_killSwitch.Flow<EgressEvent>())
             .SelectAsync(1, async update => update switch
             {
                 EgressEvent.PerModelUpdate pmu =>
@@ -104,5 +130,12 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
             .To(Sink.Ignore<EgressEvent>())
             .Run(_mat!);
+    }
+
+    private void ScheduleRetryResolve()
+    {
+        var delay = TimeSpan.FromSeconds(Math.Min(Math.Pow(2, _retryCount), 30));
+        _retryCount++;
+        Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryResolve(), Self);
     }
 }

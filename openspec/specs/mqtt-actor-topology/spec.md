@@ -42,18 +42,7 @@ The actor SHALL use the injected `TimeProvider` for all timestamp operations (he
 - **THEN** it publishes "offline" on the availability topic
 
 ### Requirement: MqttEgressActor maps EgressEvent to MQTT messages
-
-The `MqttEgressActor` SHALL be registered in the actor system only when `Mqtt.Enabled` is `true`. When registered, it SHALL subscribe to the EgressActor's BroadcastHub via `RequestEgressSource`, map each `EgressEvent` variant to `MqttMessage` instances using `StatePayloadBuilder` and `TopicScheme`, deduplicate by topic, and send to `MqttConnectionActor`'s MergeHub via `ISinkRef<MqttMessage>`.
-
-The `MqttEgressActor` SHALL handle all `EgressEvent` variants:
-- `PerModelUpdate` → per-horizon `MqttMessage` via `TopicScheme.HorizonTopic`
-- `ConsensusUpdate` → `StatePayloadBuilder.FromConsensus`
-- `AlertUpdate` → `StatePayloadBuilder.FromAlerts`
-- `DerivedUpdate` → `StatePayloadBuilder.FromDerived`
-- `TrendUpdate` → `StatePayloadBuilder.FromTrends`
-- `IndexUpdate` → `StatePayloadBuilder.FromIndices`
-- `EnergyUpdate` → `StatePayloadBuilder.FromEnergy`
-- `HistoryUpdate` → `StatePayloadBuilder.FromHistory`
+The `MqttEgressActor` SHALL inherit from `StreamConsumerActor`. It SHALL resolve `EgressActor` and `MqttConnectionActor` via `GetActorAsync` in its `ResolveDependencies()` override. In its `*Resolved` handlers it SHALL call `TrackDependency()` and check `IsDeadRef()`. It SHALL wire the base-provided `SharedKillSwitch.Flow<EgressEvent>()` into its stream graph in `MaterializeGraph()`. It SHALL map all `EgressEvent` variants to `MqttMessage` instances via `StatePayloadBuilder`/`TopicScheme` and deduplicate by topic hash — business logic unchanged. The HandleTerminated behavior is fully managed by the `StreamConsumerActor` base.
 
 #### Scenario: MqttEgressActor maps PerModelUpdate to MQTT messages
 - **WHEN** MQTT is enabled and `MqttEgressActor` receives an `EgressEvent.PerModelUpdate`
@@ -76,9 +65,9 @@ The `MqttEgressActor` SHALL handle all `EgressEvent` variants:
 - **THEN** the MQTT topics, JSON payloads, and retain flags SHALL be identical to those produced by the previous `MqttPublisherActor` and direct-to-MQTT enrichment streams
 
 ### Requirement: DiscoveryActor publishes HA discovery configs
-The `DiscoveryActor` SHALL be registered in the actor system only when `Mqtt.Enabled` is `true`. When registered, it SHALL request a `SinkRef<MqttMessage>` from `MqttConnectionActor` and a `SourceRef<EgressEvent>` from `EgressActor`. It SHALL materialize the egress source stream, filtering for `EgressEvent.CapabilityLearned` events and piping them to itself. It SHALL subscribe to the HA status topic. It SHALL NOT publish discovery on initial connection. Instead, it SHALL collect capability events from the egress hub. Once all expected (location, model) pairs have reported -- or a configurable timeout expires (default: 2x poll interval) -- it SHALL publish retained discovery config payloads. On HA birth ("online" on status topic), it SHALL re-publish all discovery config payloads. It SHALL be a no-op when `DiscoveryEnabled` is false.
+The `DiscoveryActor` SHALL inherit from `StreamConsumerActor`. It SHALL resolve `MqttConnectionActor` and `EgressActor` via `GetActorAsync` in its `ResolveDependencies()` override. In its `*Resolved` handlers it SHALL call `TrackDependency()` and check `IsDeadRef()`. It SHALL wire the base-provided `SharedKillSwitch.Flow<EgressEvent>()` into its egress-source stream in `MaterializeGraph()`. It SHALL use a completion-safe message (not `PoisonPill.Instance`) as the `onCompleteMessage` for `Sink.ActorRef`. It SHALL override `OnDependencyLost()` to complete its `Source.Queue`. It SHALL override `ConfigureReady()` to register handlers for `CapabilityReceived`, `MqttConnected`, and `MqttInboundMessage`. The WaitingForCapabilities phase and capability timeout logic are subclass-specific and implemented via `ConfigureReady()`. All other discovery business logic (deferred publishing, HA birth re-publish, capability learning) is unchanged.
 
-The DiscoveryActor SHALL `Context.Watch()` both the MqttConnectionActor and the EgressActor. On `Terminated`, it SHALL null its stale refs, re-request fresh refs from the restarted actors, and transition back to its WaitingForRefs state.
+The DiscoveryActor SHALL `Context.Watch()` both the MqttConnectionActor and the EgressActor via `TrackDependency()`. On `Terminated`, the `StreamConsumerActor` base SHALL shutdown the KillSwitch, call `OnDependencyLost()` (which completes the queue), and re-resolve with dead-ref detection and backoff retry.
 
 #### Scenario: DiscoveryActor subscribes to EgressActor hub
 - **WHEN** the actor starts
@@ -105,13 +94,12 @@ The DiscoveryActor SHALL `Context.Watch()` both the MqttConnectionActor and the 
 - **THEN** all discovery config payloads are re-published
 
 #### Scenario: DiscoveryActor watches upstream actors
-- **WHEN** MqttConnectionActor or EgressActor is resolved in PreStart
-- **THEN** DiscoveryActor calls Context.Watch on both
+- **WHEN** MqttConnectionActor or EgressActor is resolved
+- **THEN** DiscoveryActor calls TrackDependency on both
 
 #### Scenario: Upstream actor restart triggers ref re-request
 - **WHEN** DiscoveryActor receives Terminated for MqttConnectionActor or EgressActor
-- **THEN** it nulls its stale refs and re-requests from the restarted actors
-- **THEN** it transitions to WaitingForRefs
+- **THEN** it shuts down the KillSwitch, completes the queue, and re-requests with backoff retry
 
 #### Scenario: Late capability after timeout triggers incremental discovery
 - **WHEN** a capability event arrives after the initial timeout
@@ -122,5 +110,9 @@ The DiscoveryActor SHALL `Context.Watch()` both the MqttConnectionActor and the 
 - **THEN** no discovery payloads are published
 
 #### Scenario: Capability expansion triggers re-discovery for affected device
-- **WHEN** a model reports additional parameters after initial discovery
-- **THEN** discovery is re-published for that device
+- **WHEN** a new parameter appears for a previously seen model
+- **THEN** discovery is re-published for that model's device only
+
+#### Scenario: Stream completion uses safe message instead of PoisonPill
+- **WHEN** the egress-source stream completes or is killed via KillSwitch
+- **THEN** the `Sink.ActorRef` onCompleteMessage SHALL NOT be `PoisonPill.Instance`

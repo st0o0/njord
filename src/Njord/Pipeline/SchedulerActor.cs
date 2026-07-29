@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Health;
-using Njord.Domain.Weather;
+using Njord.Ingest;
 using Njord.Persistence;
 using Servus.Akka;
 
@@ -25,13 +25,11 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private ISourceQueueWithComplete<WeightedTarget>? _queue;
     private readonly int _weight;
     private bool _sourceReceived;
-    private int _eventsSinceSnapshot;
 
     public sealed record DataChanged(string Location, string ModelId, int Hash, DateTimeOffset Utc);
 
     private sealed record PipelineResolved(IActorRef Pipeline);
     private sealed record ConnectionEstablished;
-    private sealed record OfferSucceeded;
     private sealed record OfferFailed(string Location, string ModelId, Exception Error);
 
     private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
@@ -50,14 +48,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _weight = WeightedTarget.ComputeWeight(parameters.HourlyCount, _options.ForecastDays);
 
         Recover<DataChangedDto>(dto => OnRecover(SchedulerDtoMapping.ToDomain(dto)));
-        Recover<SnapshotOffer>(offer =>
-        {
-            if (offer.Snapshot is SchedulerSnapshotDto snapshot)
-            {
-                foreach (var (key, state) in SchedulerDtoMapping.FromSnapshot(snapshot))
-                    _states[key] = state;
-            }
-        });
+        Recover<SnapshotOffer>(_ => { });
 
         WaitingForPipeline();
     }
@@ -171,23 +162,11 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Command<PipelineSinkResponse>(_ => { });
         Command<PipelineSourceResponse>(_ => { });
         Command<ScheduledPoll>(OnScheduledPoll);
-        Command<OfferSucceeded>(_ => { });
-        Command<OfferFailed>(msg =>
-        {
-            _logger.LogWarning("Offer failed for {Location}/{Model}: {Error} - re-scheduling",
-                msg.Location, msg.ModelId, msg.Error.Message);
-            ScheduleNext(msg.Location, msg.ModelId);
-        });
         Command<HashResult>(OnHashResult);
         Command<FetchFailed>(OnFetchFailed);
         Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
         Command<GetPollStates>(OnGetPollStates);
         Command<Terminated>(OnTerminated);
-        Command<SaveSnapshotSuccess>(OnSaveSnapshotSuccess);
-        Command<SaveSnapshotFailure>(fail =>
-            _logger.LogWarning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
-        Command<DeleteMessagesSuccess>(_ => { });
-        Command<DeleteSnapshotSuccess>(_ => { });
     }
 
     private void OnTerminated(Terminated msg)
@@ -280,9 +259,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         if (target is null)
             return;
 
-        _queue!.OfferAsync(target).PipeTo(Self,
-            success: _ => new OfferSucceeded(),
-            failure: ex => new OfferFailed(poll.Location, poll.ModelId, ex));
+        _queue!.OfferAsync(target);
     }
 
     private WeightedTarget? CreateTarget(ScheduledPoll poll)
@@ -344,7 +321,6 @@ public sealed class SchedulerActor : ReceivePersistentActor
                     result.Location, result.ModelId, _states[key].Phase, _states[key].Cycle);
                 ScheduleNext(result.Location, result.ModelId);
                 Sender.Tell(new Ack());
-                CheckSnapshot();
             });
         }
         else
@@ -357,22 +333,6 @@ public sealed class SchedulerActor : ReceivePersistentActor
             ScheduleNext(result.Location, result.ModelId);
             Sender.Tell(new Ack());
         }
-    }
-
-    private void CheckSnapshot()
-    {
-        _eventsSinceSnapshot++;
-        if (_eventsSinceSnapshot >= 50)
-        {
-            SaveSnapshot(SchedulerDtoMapping.ToSnapshot(_states));
-            _eventsSinceSnapshot = 0;
-        }
-    }
-
-    private void OnSaveSnapshotSuccess(SaveSnapshotSuccess success)
-    {
-        DeleteMessages(success.Metadata.SequenceNr);
-        DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
     }
 
     private void OnGetPollStates(GetPollStates _)

@@ -7,21 +7,19 @@ The EnrichmentActor consumes the pipeline's BroadcastHub via SourceRef, maintain
 ## Requirements
 
 ### Requirement: The EnrichmentActor requests a SourceRef from the PipelineActor
-The `EnrichmentActor` SHALL send a `RequestPipelineSource` message to the `PipelineActor` on startup. Upon receiving a `PipelineSourceResponse`, it SHALL transition from `WaitingForSourceRef` to its operational state. Messages received before the SourceRef arrives SHALL be stashed.
-
-The actor SHALL resolve peer actor references (PipelineActor, EgressActor) asynchronously via `GetActorAsync` with `PipeTo` instead of synchronous `GetActor` in PreStart. This eliminates startup-order sensitivity.
+The `EnrichmentActor` SHALL inherit from `StreamConsumerActor`. It SHALL resolve `PipelineActor` and `EgressActor` via `GetActorAsync` in its `ResolveDependencies()` override. In its `*Resolved` handlers it SHALL call `TrackDependency()` and check `IsDeadRef()`. It SHALL wire the base-provided `SharedKillSwitch.Flow<FetchOutcome>()` into its stream graph in `MaterializeGraph()`. Messages received before all refs arrive SHALL be stashed by the base. The HandleTerminated behavior is fully managed by the `StreamConsumerActor` base: KillSwitch shutdown, dead-ref detection with exponential backoff retry, stale-response gating.
 
 #### Scenario: SourceRef received transitions to operational
-- **WHEN** the EnrichmentActor starts and receives a `PipelineSourceResponse`
+- **WHEN** the EnrichmentActor starts and receives both PipelineSourceResponse and EgressSinkResponse
 - **THEN** it transitions to its operational state and unstashes pending messages
 
 #### Scenario: Messages are stashed before SourceRef
-- **WHEN** the EnrichmentActor receives messages before the `PipelineSourceResponse`
+- **WHEN** the EnrichmentActor receives messages before all refs arrive
 - **THEN** the messages are stashed and replayed after the transition
 
 #### Scenario: PipelineActor restart triggers re-request
-- **WHEN** the EnrichmentActor receives a `Terminated` message for the PipelineActor
-- **THEN** it sends a new `RequestPipelineSource` to the restarted PipelineActor
+- **WHEN** the EnrichmentActor receives a `Terminated` message for a tracked dependency
+- **THEN** it shuts down the KillSwitch and re-requests with backoff retry
 
 #### Scenario: Peer actors resolved asynchronously
 - **WHEN** the EnrichmentActor starts
