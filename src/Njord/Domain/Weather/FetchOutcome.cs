@@ -1,6 +1,4 @@
-using Njord.Domain.Weather;
-
-namespace Njord.Ingest;
+namespace Njord.Domain.Weather;
 
 public enum FetchFailureReason
 {
