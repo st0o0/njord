@@ -28,7 +28,8 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
             transport,
             NullLogger<MqttConnectionActor>.Instance,
             tuning ?? new MqttEgressTuning(TimeSpan.FromMilliseconds(50)),
-            new NjordHealthState { ServiceStartedUtc = DateTimeOffset.UtcNow })));
+            new NjordHealthState { ServiceStartedUtc = DateTimeOffset.UtcNow },
+            TimeProvider.System)));
     }
 
     [Fact(Timeout = 15000)]

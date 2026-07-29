@@ -24,6 +24,9 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
 
     public IStash Stash { get; set; } = null!;
 
+    private sealed record PipelineResolved(IActorRef Ref);
+    private sealed record EgressResolved(IActorRef Ref);
+
     public EnrichmentActor(
         IOptions<NjordOptions> options,
         IEnumerable<IEnrichmentFeature> features,
@@ -39,18 +42,27 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
     protected override void PreStart()
     {
         _mat = Context.Materializer();
+        ResolveUpstream();
+    }
 
-        var pipelineActor = Context.GetActor<PipelineActor>();
-        Context.Watch(pipelineActor);
-        pipelineActor.Tell(new RequestPipelineSource());
-
-        var egressActor = Context.GetActor<EgressActor>();
-        Context.Watch(egressActor);
-        egressActor.Tell(new RequestEgressSink());
+    private void ResolveUpstream()
+    {
+        Context.GetActorAsync<PipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r));
+        Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
     }
 
     private void WaitingForRefs()
     {
+        Receive<PipelineResolved>(msg =>
+        {
+            Context.Watch(msg.Ref);
+            msg.Ref.Tell(new RequestPipelineSource());
+        });
+        Receive<EgressResolved>(msg =>
+        {
+            Context.Watch(msg.Ref);
+            msg.Ref.Tell(new RequestEgressSink());
+        });
         Receive<PipelineSourceResponse>(response =>
         {
             _sourceRef = response.SourceRef;
@@ -90,14 +102,7 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         _sourceRef = null;
         _egressSinkRef = null;
 
-        var pipelineActor = Context.GetActor<PipelineActor>();
-        Context.Watch(pipelineActor);
-        pipelineActor.Tell(new RequestPipelineSource());
-
-        var egressActor = Context.GetActor<EgressActor>();
-        Context.Watch(egressActor);
-        egressActor.Tell(new RequestEgressSink());
-
+        ResolveUpstream();
         Become(WaitingForRefs);
     }
 

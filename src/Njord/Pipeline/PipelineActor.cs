@@ -22,6 +22,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     public IStash Stash { get; set; } = null!;
 
     private sealed record PipelineReady;
+    private sealed record SchedulerResolved(IActorRef Ref);
 
     public PipelineActor(
         IOpenMeteoClient client,
@@ -39,11 +40,14 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
 
     protected override void PreStart()
     {
-        MaterializePipeline();
+        _mat = Context.Materializer();
+        Context.GetActorAsync<SchedulerActor>()
+            .PipeTo(Self, success: r => new SchedulerResolved(r));
     }
 
     private void Initializing()
     {
+        Receive<SchedulerResolved>(msg => MaterializePipeline(msg.Ref));
         Receive<PipelineReady>(_ =>
         {
             _logger.LogInformation("Pipeline graph materialized - ready to accept producers and consumers");
@@ -82,11 +86,8 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         });
     }
 
-    private void MaterializePipeline()
+    private void MaterializePipeline(IActorRef schedulerActor)
     {
-        _mat = Context.Materializer();
-        var schedulerActor = Context.GetActor<SchedulerActor>();
-
         var (mergeHubSink, mergeHubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 16)
             .PreMaterialize(_mat);
 

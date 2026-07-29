@@ -33,7 +33,8 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         return new WeatherGrpcService(
             Microsoft.Extensions.Options.Options.Create(options),
             ActorRegistry,
-            Sys);
+            Sys,
+            TimeProvider.System);
     }
 
     [Fact(Timeout = 5000)]

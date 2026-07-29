@@ -11,8 +11,12 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
 {
     private readonly ILogger<GrpcSnapshotConsumerActor> _logger;
     private IMaterializer? _mat;
+    private ISourceRef<EgressEvent>? _pendingSourceRef;
 
     public IStash Stash { get; set; } = null!;
+
+    private sealed record EgressResolved(IActorRef Ref);
+    private sealed record SnapshotActorsResolved(IActorRef Forecast, IActorRef Enrichment);
 
     public GrpcSnapshotConsumerActor(ILogger<GrpcSnapshotConsumerActor> logger)
     {
@@ -28,16 +32,37 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
 
     private void RequestEgressSource()
     {
-        var egressActor = Context.GetActor<EgressActor>();
-        Context.Watch(egressActor);
-        egressActor.Tell(new RequestEgressSource());
+        Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
     }
 
     private void WaitingForSource()
     {
+        Receive<EgressResolved>(msg =>
+        {
+            Context.Watch(msg.Ref);
+            msg.Ref.Tell(new RequestEgressSource());
+        });
         Receive<EgressSourceResponse>(response =>
         {
-            MaterializeGraph(response.SourceRef);
+            _pendingSourceRef = response.SourceRef;
+
+            var forecastTask = Context.GetActorAsync<ForecastSnapshotActor>();
+            var enrichmentTask = Context.GetActorAsync<EnrichmentSnapshotActor>();
+            Task.WhenAll(forecastTask, enrichmentTask)
+                .PipeTo(Self, success: _ => new SnapshotActorsResolved(forecastTask.Result, enrichmentTask.Result));
+
+            Become(WaitingForSnapshotActors);
+        });
+        Receive<Terminated>(OnTerminated);
+        ReceiveAny(_ => Stash.Stash());
+    }
+
+    private void WaitingForSnapshotActors()
+    {
+        Receive<SnapshotActorsResolved>(msg =>
+        {
+            MaterializeGraph(_pendingSourceRef!, msg.Forecast, msg.Enrichment);
+            _pendingSourceRef = null;
             _logger.LogInformation("gRPC snapshot consumer materialized — capturing forecasts and enrichments");
             Become(Ready);
             Stash.UnstashAll();
@@ -54,15 +79,13 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
     private void OnTerminated(Terminated msg)
     {
         _logger.LogWarning("Watched actor {Actor} terminated — re-requesting source", msg.ActorRef.Path.Name);
+        _pendingSourceRef = null;
         RequestEgressSource();
         Become(WaitingForSource);
     }
 
-    private void MaterializeGraph(ISourceRef<EgressEvent> sourceRef)
+    private void MaterializeGraph(ISourceRef<EgressEvent> sourceRef, IActorRef forecastActor, IActorRef enrichmentActor)
     {
-        var forecastActor = Context.GetActor<ForecastSnapshotActor>();
-        var enrichmentActor = Context.GetActor<EnrichmentSnapshotActor>();
-
         sourceRef.Source
             .SelectAsync(1, async update => update switch
             {
