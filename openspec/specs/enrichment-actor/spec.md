@@ -28,7 +28,7 @@ The actor SHALL resolve peer actor references (PipelineActor, EgressActor) async
 - **THEN** it resolves PipelineActor and EgressActor via GetActorAsync, not sync GetActor
 
 ### Requirement: The EnrichmentActor maintains a ModelSnapshot via Scan
-The `EnrichmentActor` SHALL materialize a consumer on the pipeline's `SourceRef<FetchOutcome>` using a `Scan` operator to accumulate a `ModelSnapshot`. Each `FetchOutcome.Success` SHALL update the snapshot with the contained `ModelForecast`. `FetchOutcome.Failure` elements SHALL not modify the snapshot. Only snapshots where `HasChanged` is `true` SHALL propagate downstream.
+The `EnrichmentActor` SHALL materialize a consumer on the pipeline's `SourceRef<FetchOutcome>` using a `Scan` operator to accumulate a `ModelSnapshot`. It SHALL import `FetchOutcome` from `Njord.Domain.Weather`, not from `Njord.Ingest`. The Enrichment zone SHALL NOT reference the Ingest namespace. Each `FetchOutcome.Success` SHALL update the snapshot with the contained `ModelForecast`. `FetchOutcome.Failure` elements SHALL not modify the snapshot. Only snapshots where `HasChanged` is `true` SHALL propagate downstream.
 
 #### Scenario: Success updates the snapshot
 - **WHEN** a `FetchOutcome.Success` for (lucerne, icon_d2) arrives
@@ -41,6 +41,10 @@ The `EnrichmentActor` SHALL materialize a consumer on the pipeline's `SourceRef<
 #### Scenario: Unchanged data is filtered
 - **WHEN** a `FetchOutcome.Success` arrives with data identical to what is already in the snapshot
 - **THEN** `HasChanged` is `false` and the snapshot is not emitted to consumers
+
+#### Scenario: No Ingest namespace import in Enrichment
+- **WHEN** the codebase is compiled
+- **THEN** no file under Njord.Enrichment contains `using Njord.Ingest`
 
 ### Requirement: The EnrichmentActor fans out via a second BroadcastHub
 The `EnrichmentActor` SHALL materialize a `BroadcastHub.Sink<ModelSnapshot>` with a buffer size of 8 from the Scan output to distribute rolling snapshots to enrichment features. Consumer streams SHALL each independently subscribe to this BroadcastHub. Each consumer SHALL receive every changed snapshot. The `ModelSnapshot.Update()` method SHALL use `ImmutableDictionary` with structural sharing instead of cloning a mutable `Dictionary` on every update.

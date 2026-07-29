@@ -34,12 +34,20 @@ All messages destined for the broker SHALL be expressed as `MqttMessage(string T
 - **WHEN** an `MqttMessage("njord/home/icon_d2/state", "{...}", true)` enters the hub
 - **THEN** the sink publishes to topic `njord/home/icon_d2/state` with the given payload and retain=true
 
-### Requirement: Pipeline-to-state mapping is handled by ModelStateActor
-The pipeline-to-state mapping is handled by `ModelStateActor` in `Njord.Egress`, which produces `EgressEvent.PerModelUpdate` and feeds the EgressActor's MergeHub. The MQTT-specific mapping is in `MqttEgressActor`. No stream stage in the MqttConnectionActor's graph SHALL directly consume `FetchOutcome` from the Pipeline BroadcastHub.
+### Requirement: ModelStateActor consumes FetchOutcome from Pipeline SourceRef
+The `ModelStateActor` SHALL consume `FetchOutcome` elements from the pipeline's `SourceRef<FetchOutcome>`. It SHALL import `FetchOutcome` from `Njord.Domain.Weather`, not from `Njord.Ingest`. The Egress zone SHALL NOT reference the Ingest namespace. The MQTT-specific mapping is in `MqttEgressActor`. No stream stage in the MqttConnectionActor's graph SHALL directly consume `FetchOutcome` from the Pipeline BroadcastHub.
 
 #### Scenario: No direct pipeline-to-MQTT path
 - **WHEN** the MqttConnectionActor's egress stream graph is materialized
 - **THEN** no stream stage SHALL directly consume `FetchOutcome` from the Pipeline BroadcastHub — that responsibility belongs to `ModelStateActor`
+
+#### Scenario: FetchOutcome.Success produces PerModelUpdate
+- **WHEN** a FetchOutcome.Success arrives via the pipeline SourceRef
+- **THEN** the ModelStateActor emits an EgressEvent.PerModelUpdate downstream
+
+#### Scenario: No Ingest namespace import in Egress
+- **WHEN** the codebase is compiled
+- **THEN** no file under Njord.Egress contains `using Njord.Ingest`
 
 ### Requirement: The Publish Sink buffers during disconnect with DropHead overflow
 The Publish Sink SHALL use a bounded buffer (configurable, default 64 messages). When the broker is unreachable and the buffer is full, the oldest messages SHALL be dropped (DropHead strategy). On reconnect, buffered messages SHALL drain in order.
