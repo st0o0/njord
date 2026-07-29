@@ -35,7 +35,7 @@ All messages destined for the broker SHALL be expressed as `MqttMessage(string T
 - **THEN** the sink publishes to topic `njord/home/icon_d2/state` with the given payload and retain=true
 
 ### Requirement: ModelStateActor consumes FetchOutcome from Pipeline SourceRef
-The `ModelStateActor` SHALL consume `FetchOutcome` elements from the pipeline's `SourceRef<FetchOutcome>`. It SHALL import `FetchOutcome` from `Njord.Domain.Weather`, not from `Njord.Ingest`. The Egress zone SHALL NOT reference the Ingest namespace. The MQTT-specific mapping is in `MqttEgressActor`. No stream stage in the MqttConnectionActor's graph SHALL directly consume `FetchOutcome` from the Pipeline BroadcastHub.
+The `ModelStateActor` SHALL inherit from `StreamConsumerActor`. It SHALL resolve `EgressActor` and `PipelineActor` via `GetActorAsync` in its `ResolveDependencies()` override. In its `*Resolved` handlers it SHALL call `TrackDependency()` and check `IsDeadRef()`. It SHALL wire the base-provided `SharedKillSwitch.Flow<FetchOutcome>()` into its stream graph in `MaterializeGraph()`. It SHALL import `FetchOutcome` from `Njord.Domain.Weather`, not from `Njord.Ingest`. The Egress zone SHALL NOT reference the Ingest namespace. The MQTT-specific mapping is in `MqttEgressActor`. No stream stage in the MqttConnectionActor's graph SHALL directly consume `FetchOutcome` from the Pipeline BroadcastHub. The HandleTerminated behavior is fully managed by the `StreamConsumerActor` base.
 
 #### Scenario: No direct pipeline-to-MQTT path
 - **WHEN** the MqttConnectionActor's egress stream graph is materialized

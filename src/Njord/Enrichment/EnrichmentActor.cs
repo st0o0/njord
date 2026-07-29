@@ -3,16 +3,16 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
-using Njord.Domain.Weather;
 using Njord.Pipeline;
 using Servus.Akka;
 
 namespace Njord.Enrichment;
 
-public sealed class EnrichmentActor : ReceiveActor, IWithStash
+public sealed class EnrichmentActor : StreamConsumerActor
 {
     private readonly NjordOptions _options;
     private readonly IReadOnlyList<IEnrichmentFeature> _features;
@@ -20,9 +20,6 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
 
     private ISourceRef<FetchOutcome>? _sourceRef;
     private ISinkRef<EgressEvent>? _egressSinkRef;
-    private IMaterializer? _mat;
-
-    public IStash Stash { get; set; } = null!;
 
     private sealed record PipelineResolved(IActorRef Ref);
     private sealed record EgressResolved(IActorRef Ref);
@@ -35,80 +32,46 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         _options = options.Value;
         _features = [.. features];
         _logger = logger;
-
-        WaitingForRefs();
     }
 
-    protected override void PreStart()
-    {
-        _mat = Context.Materializer();
-        ResolveUpstream();
-    }
-
-    private void ResolveUpstream()
+    protected override void ResolveDependencies()
     {
         Context.GetActorAsync<PipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r));
         Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
     }
 
-    private void WaitingForRefs()
+    protected override void ConfigureWaitingForRefs()
     {
         Receive<PipelineResolved>(msg =>
         {
-            Context.Watch(msg.Ref);
+            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+            TrackDependency(msg.Ref);
             msg.Ref.Tell(new RequestPipelineSource());
         });
         Receive<EgressResolved>(msg =>
         {
-            Context.Watch(msg.Ref);
+            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+            TrackDependency(msg.Ref);
             msg.Ref.Tell(new RequestEgressSink());
         });
         Receive<PipelineSourceResponse>(response =>
         {
             _sourceRef = response.SourceRef;
             _logger.LogInformation("Pipeline SourceRef received");
-            TryTransitionToReady();
+            TryTransition();
         });
         Receive<EgressSinkResponse>(response =>
         {
             _egressSinkRef = response.SinkRef;
             _logger.LogInformation("Egress SinkRef received");
-            TryTransitionToReady();
+            TryTransition();
         });
-        Receive<Terminated>(msg => HandleTerminated(msg));
-        ReceiveAny(_ => Stash.Stash());
     }
 
-    private void TryTransitionToReady()
+    protected override bool AllRefsReady() => _sourceRef is not null && _egressSinkRef is not null;
+
+    protected override void MaterializeGraph(SharedKillSwitch killSwitch)
     {
-        if (_sourceRef is null || _egressSinkRef is null)
-            return;
-
-        MaterializeEnrichmentGraph();
-        _logger.LogInformation("Enrichment pipeline materialized — ready");
-        Become(Ready);
-        Stash.UnstashAll();
-    }
-
-    private void Ready()
-    {
-        Receive<Terminated>(msg => HandleTerminated(msg));
-    }
-
-    private void HandleTerminated(Terminated msg)
-    {
-        _logger.LogWarning("Watched actor {Actor} terminated — re-requesting refs", msg.ActorRef.Path.Name);
-
-        _sourceRef = null;
-        _egressSinkRef = null;
-
-        ResolveUpstream();
-        Become(WaitingForRefs);
-    }
-
-    private void MaterializeEnrichmentGraph()
-    {
-        var mat = _mat!;
         var locations = _options.Locations.Select(l => l.Name).ToList();
 
         var statelessFeatures = _features.OfType<IStatelessEnrichment>().Where(f => f.Enabled).ToList();
@@ -129,18 +92,20 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
         if (flows.Count == 1)
         {
             BuildScanSource(_sourceRef!.Source)
+                .Via(killSwitch.Flow<ModelSnapshot>())
                 .Via(flows[0])
-                .RunWith(_egressSinkRef!.Sink, mat);
+                .RunWith(_egressSinkRef!.Sink, Mat);
             return;
         }
 
         var graph = GraphDsl.Create(_egressSinkRef!.Sink, (builder, sink) =>
         {
             var source = builder.Add(BuildScanSource(_sourceRef!.Source));
+            var kill = builder.Add(killSwitch.Flow<ModelSnapshot>());
             var broadcast = builder.Add(new Broadcast<ModelSnapshot>(flows.Count));
             var merge = builder.Add(new Merge<EgressEvent>(flows.Count));
 
-            builder.From(source).To(broadcast);
+            builder.From(source).Via(kill).To(broadcast);
 
             for (var i = 0; i < flows.Count; i++)
             {
@@ -153,7 +118,13 @@ public sealed class EnrichmentActor : ReceiveActor, IWithStash
             return ClosedShape.Instance;
         });
 
-        RunnableGraph.FromGraph(graph).Run(mat);
+        RunnableGraph.FromGraph(graph).Run(Mat);
+    }
+
+    protected override void OnDependencyLost()
+    {
+        _sourceRef = null;
+        _egressSinkRef = null;
     }
 
     private static Flow<ModelSnapshot, EgressEvent, NotUsed> BuildInlineFlow(

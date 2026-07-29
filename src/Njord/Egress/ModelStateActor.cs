@@ -2,15 +2,15 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
+using Njord.Actors;
 using Njord.Configuration;
-using Njord.Domain.Weather;
 using Njord.Domain.Weather;
 using Njord.Pipeline;
 using Servus.Akka;
 
 namespace Njord.Egress;
 
-public sealed class ModelStateActor : ReceiveActor, IWithStash
+public sealed class ModelStateActor : StreamConsumerActor
 {
     private readonly IReadOnlyList<int> _horizons;
     private readonly int _forecastDays;
@@ -19,9 +19,6 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
 
     private ISinkRef<EgressEvent>? _egressSinkRef;
     private ISourceRef<FetchOutcome>? _sourceRef;
-    private IMaterializer? _mat;
-
-    public IStash Stash { get; set; } = null!;
 
     private sealed record EgressResolved(IActorRef Ref);
     private sealed record PipelineResolved(IActorRef Ref);
@@ -36,82 +33,46 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
         _forecastDays = opts.ForecastDays;
         _parameters = parameters;
         _logger = logger;
-
-        WaitingForRefs();
     }
 
-    protected override void PreStart()
-    {
-        _mat = Context.Materializer();
-        ResolveUpstream();
-    }
-
-    private void ResolveUpstream()
+    protected override void ResolveDependencies()
     {
         Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
         Context.GetActorAsync<PipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r));
     }
 
-    private void WaitingForRefs()
+    protected override void ConfigureWaitingForRefs()
     {
         Receive<EgressResolved>(msg =>
         {
-            Context.Watch(msg.Ref);
+            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+            TrackDependency(msg.Ref);
             msg.Ref.Tell(new RequestEgressSink());
         });
         Receive<PipelineResolved>(msg =>
         {
-            Context.Watch(msg.Ref);
+            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+            TrackDependency(msg.Ref);
             msg.Ref.Tell(new RequestPipelineSource());
         });
         Receive<EgressSinkResponse>(response =>
         {
             _egressSinkRef = response.SinkRef;
             _logger.LogInformation("Egress SinkRef received");
-            TryTransitionToReady();
+            TryTransition();
         });
         Receive<PipelineSourceResponse>(response =>
         {
             _sourceRef = response.SourceRef;
             _logger.LogInformation("Pipeline SourceRef received");
-            TryTransitionToReady();
+            TryTransition();
         });
-        Receive<Terminated>(msg => HandleTerminated(msg));
-        ReceiveAny(_ => Stash.Stash());
     }
 
-    private void TryTransitionToReady()
+    protected override bool AllRefsReady() => _egressSinkRef is not null && _sourceRef is not null;
+
+    protected override void MaterializeGraph(SharedKillSwitch killSwitch)
     {
-        if (_egressSinkRef is null || _sourceRef is null)
-        {
-            return;
-        }
-
-        MaterializeGraph();
-        _logger.LogInformation("ModelState pipeline materialized — ready");
-        Become(Ready);
-        Stash.UnstashAll();
-    }
-
-    private void Ready()
-    {
-        Receive<Terminated>(msg => HandleTerminated(msg));
-    }
-
-    private void HandleTerminated(Terminated msg)
-    {
-        _logger.LogWarning("Watched actor {Actor} terminated — re-requesting refs", msg.ActorRef.Path.Name);
-
-        _egressSinkRef = null;
-        _sourceRef = null;
-
-        ResolveUpstream();
-        Become(WaitingForRefs);
-    }
-
-    private void MaterializeGraph()
-    {
-        var mat = _mat!;
         var parameters = _parameters;
         var horizons = _horizons;
         var forecastDays = _forecastDays;
@@ -119,6 +80,7 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
         var knownCapabilities = new Dictionary<(string Location, string ModelId), HashSet<ParameterDef>>();
 
         _sourceRef!.Source
+            .Via(killSwitch.Flow<FetchOutcome>())
             .Collect(outcome => outcome is FetchOutcome.Success, outcome => (FetchOutcome.Success)outcome)
             .SelectMany(success =>
             {
@@ -145,7 +107,13 @@ public sealed class ModelStateActor : ReceiveActor, IWithStash
                 return events;
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
-            .RunWith(_egressSinkRef!.Sink, mat);
+            .RunWith(_egressSinkRef!.Sink, Mat);
+    }
+
+    protected override void OnDependencyLost()
+    {
+        _egressSinkRef = null;
+        _sourceRef = null;
     }
 
     private static HashSet<ParameterDef> ExtractSupportedParameters(

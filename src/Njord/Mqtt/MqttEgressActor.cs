@@ -2,6 +2,7 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
@@ -11,7 +12,7 @@ using Servus.Akka;
 
 namespace Njord.Mqtt;
 
-public sealed class MqttEgressActor : ReceiveActor, IWithStash
+public sealed class MqttEgressActor : StreamConsumerActor
 {
     private readonly string _baseTopic;
     private readonly ResolvedParameterSet _parameters;
@@ -23,9 +24,6 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
 
     private ISinkRef<MqttMessage>? _mqttSinkRef;
     private ISourceRef<EgressEvent>? _egressSourceRef;
-    private IMaterializer? _mat;
-
-    public IStash Stash { get; set; } = null!;
 
     private sealed record EgressResolved(IActorRef Ref);
     private sealed record ConnectionResolved(IActorRef Ref);
@@ -45,89 +43,60 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         _timeProvider = timeProvider;
         _logger = logger;
         _featuresByType = features.ToDictionary(f => f.TypeName);
-
-        WaitingForRefs();
     }
 
-    protected override void PreStart()
-    {
-        _mat = Context.Materializer();
-        ResolveUpstream();
-    }
-
-    private void ResolveUpstream()
+    protected override void ResolveDependencies()
     {
         Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
         Context.GetActorAsync<MqttConnectionActor>().PipeTo(Self, success: r => new ConnectionResolved(r));
     }
 
-    private void WaitingForRefs()
+    protected override void ConfigureWaitingForRefs()
     {
         Receive<EgressResolved>(msg =>
         {
-            Context.Watch(msg.Ref);
+            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+            TrackDependency(msg.Ref);
             msg.Ref.Tell(new RequestEgressSource());
         });
         Receive<ConnectionResolved>(msg =>
         {
-            Context.Watch(msg.Ref);
+            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+            TrackDependency(msg.Ref);
             msg.Ref.Tell(new RequestMqttSink());
         });
         Receive<EgressSourceResponse>(response =>
         {
             _egressSourceRef = response.SourceRef;
             _logger.LogInformation("Egress SourceRef received");
-            TryTransitionToReady();
+            TryTransition();
         });
         Receive<MqttSinkResponse>(response =>
         {
             _mqttSinkRef = response.SinkRef;
             _logger.LogInformation("MQTT SinkRef received");
-            TryTransitionToReady();
+            TryTransition();
         });
-        Receive<Terminated>(HandleTerminated);
-        ReceiveAny(_ => Stash.Stash());
     }
 
-    private void TryTransitionToReady()
+    protected override bool AllRefsReady() => _egressSourceRef is not null && _mqttSinkRef is not null;
+
+    protected override void MaterializeGraph(SharedKillSwitch killSwitch)
     {
-        if (_egressSourceRef is null || _mqttSinkRef is null)
-        {
-            return;
-        }
-
-        MaterializeGraph();
-        _logger.LogInformation("MQTT egress pipeline materialized — ready");
-        Become(Ready);
-        Stash.UnstashAll();
-    }
-
-    private void Ready()
-    {
-        Receive<Terminated>(HandleTerminated);
-    }
-
-    private void HandleTerminated(Terminated msg)
-    {
-        _logger.LogWarning("Watched actor {Actor} terminated — re-requesting refs", msg.ActorRef.Path.Name);
-
-        _mqttSinkRef = null;
-        _egressSourceRef = null;
-
-        ResolveUpstream();
-        Become(WaitingForRefs);
-    }
-
-    private void MaterializeGraph()
-    {
-        var mat = _mat!;
         var baseTopic = _baseTopic;
         var lastPublished = new Dictionary<string, int>();
 
         _egressSourceRef!.Source
+            .Via(killSwitch.Flow<EgressEvent>())
             .SelectMany(egressEvent => MapToMqttMessages(egressEvent, baseTopic, lastPublished))
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
-            .RunWith(_mqttSinkRef!.Sink, mat);
+            .RunWith(_mqttSinkRef!.Sink, Mat);
+    }
+
+    protected override void OnDependencyLost()
+    {
+        _mqttSinkRef = null;
+        _egressSourceRef = null;
     }
 
     private IEnumerable<MqttMessage> MapToMqttMessages(

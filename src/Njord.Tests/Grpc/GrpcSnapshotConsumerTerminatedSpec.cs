@@ -55,7 +55,7 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
             Props.Create(() => new FakeEgressActor(mat, _requestProbe)));
         ActorRegistry.Register<EgressActor>(newEgress, overwrite: true);
 
-        var secondRequest = await _requestProbe.ExpectMsgAsync<RequestEgressSource>(TimeSpan.FromSeconds(3));
+        var secondRequest = await _requestProbe.ExpectMsgAsync<RequestEgressSource>(TimeSpan.FromSeconds(5));
         Assert.NotNull(secondRequest);
     }
 

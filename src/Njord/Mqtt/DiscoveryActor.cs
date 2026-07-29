@@ -3,6 +3,7 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
@@ -11,7 +12,7 @@ using Servus.Akka;
 
 namespace Njord.Mqtt;
 
-public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
+public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
 {
     public ITimerScheduler Timers { get; set; } = null!;
     private static readonly string Version =
@@ -27,16 +28,17 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
     private readonly int _expectedModelCount;
 
     private ISourceQueueWithComplete<MqttMessage>? _queue;
-    private IMaterializer? _mat;
     private ISinkRef<MqttMessage>? _mqttSinkRef;
     private ISourceRef<EgressEvent>? _egressSourceRef;
     private readonly Dictionary<(string Location, string ModelId), EgressEvent.CapabilityLearned> _capabilities = new();
     private bool _initialDiscoveryPublished;
 
-    public IStash Stash { get; set; } = null!;
-
     private sealed record ConnectionResolved(IActorRef Ref);
     private sealed record EgressResolved(IActorRef Ref);
+    private sealed record StreamCompleted
+    {
+        public static readonly StreamCompleted Instance = new();
+    }
 
     public DiscoveryActor(
         IOptions<NjordOptions> options,
@@ -53,8 +55,6 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
 
         _expectedModelCount = _options.Locations
             .Sum(loc => loc.ResolveModels(_options.Models).Count);
-
-        WaitingForRefs();
     }
 
     protected override void PreStart()
@@ -65,93 +65,88 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
             return;
         }
 
-        _mat = Context.Materializer();
-        RequestUpstreamRefs();
+        base.PreStart();
     }
 
-    private void RequestUpstreamRefs()
+    protected override void ResolveDependencies()
     {
         Context.GetActorAsync<MqttConnectionActor>().PipeTo(Self, success: r => new ConnectionResolved(r));
         Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
     }
 
-    private void WaitingForRefs()
+    protected override void ConfigureWaitingForRefs()
     {
         Receive<ConnectionResolved>(msg =>
         {
-            Context.Watch(msg.Ref);
+            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+            TrackDependency(msg.Ref);
             msg.Ref.Tell(new RequestMqttSink());
             msg.Ref.Tell(new SubscribeInbound(Self));
         });
         Receive<EgressResolved>(msg =>
         {
-            Context.Watch(msg.Ref);
+            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+            TrackDependency(msg.Ref);
             msg.Ref.Tell(new RequestEgressSource());
         });
         Receive<MqttSinkResponse>(response =>
         {
             _mqttSinkRef = response.SinkRef;
+            _logger.LogInformation("MQTT SinkRef received");
             TryTransition();
         });
         Receive<EgressSourceResponse>(response =>
         {
             _egressSourceRef = response.SourceRef;
+            _logger.LogInformation("Egress SourceRef received");
             TryTransition();
         });
-        Receive<Terminated>(OnTerminated);
-        ReceiveAny(_ => Stash.Stash());
     }
 
-    private void TryTransition()
-    {
-        if (_mqttSinkRef is null || _egressSourceRef is null)
-        {
-            return;
-        }
+    protected override bool AllRefsReady() => _mqttSinkRef is not null && _egressSourceRef is not null;
 
+    protected override void MaterializeGraph(SharedKillSwitch killSwitch)
+    {
         var (queue, source) = Source.Queue<MqttMessage>(32, OverflowStrategy.DropHead)
-            .PreMaterialize(_mat!);
+            .PreMaterialize(Mat);
         _queue = queue;
-        source.RunWith(_mqttSinkRef.Sink, _mat!);
+
+        source
+            .Via(killSwitch.Flow<MqttMessage>())
+            .RunWith(_mqttSinkRef!.Sink, Mat);
 
         var self = Self;
-        _egressSourceRef.Source
+        _egressSourceRef!.Source
+            .Via(killSwitch.Flow<EgressEvent>())
             .Where(e => e is EgressEvent.CapabilityLearned)
             .Select(e => new CapabilityReceived((EgressEvent.CapabilityLearned)e))
-            .RunWith(Sink.ActorRef<CapabilityReceived>(self, PoisonPill.Instance, _ => PoisonPill.Instance), _mat!);
-
-        _logger.LogInformation("DiscoveryActor ready — waiting for model capabilities");
-        ScheduleCapabilityTimeout();
-        Become(WaitingForCapabilities);
-        Stash.UnstashAll();
+            .RunWith(Sink.ActorRef<CapabilityReceived>(self, StreamCompleted.Instance, _ => StreamCompleted.Instance), Mat);
     }
 
-    private void WaitingForCapabilities()
+    protected override void ConfigureReady()
     {
-        Receive<CapabilityReceived>(msg => OnCapabilityLearned(msg.Event));
+        _logger.LogInformation("DiscoveryActor ready — waiting for model capabilities");
+        ScheduleCapabilityTimeout();
+
+        Receive<CapabilityReceived>(msg =>
+        {
+            if (!_initialDiscoveryPublished)
+                OnCapabilityLearned(msg.Event);
+            else
+                OnCapabilityUpdate(msg.Event);
+        });
         Receive<CapabilityTimeout>(_ => OnCapabilityTimeout());
         Receive<MqttConnected>(_ => { });
         Receive<MqttInboundMessage>(OnInbound);
-        Receive<Terminated>(OnTerminated);
+        Receive<StreamCompleted>(_ => { });
     }
 
-    private void Ready()
+    protected override void OnDependencyLost()
     {
-        Receive<CapabilityReceived>(msg => OnCapabilityUpdate(msg.Event));
-        Receive<MqttConnected>(_ => { });
-        Receive<MqttInboundMessage>(OnInbound);
-        Receive<Terminated>(OnTerminated);
-    }
-
-    private void OnTerminated(Terminated msg)
-    {
-        _logger.LogWarning("Watched actor {Actor} terminated — re-requesting refs", msg.ActorRef.Path.Name);
         _mqttSinkRef = null;
         _egressSourceRef = null;
         _queue?.Complete();
         _queue = null;
-        RequestUpstreamRefs();
-        Become(WaitingForRefs);
     }
 
     private void OnCapabilityLearned(EgressEvent.CapabilityLearned msg)
@@ -165,7 +160,6 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
         {
             PublishDiscovery();
             _initialDiscoveryPublished = true;
-            Become(Ready);
         }
     }
 
@@ -182,7 +176,6 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
 
         PublishDiscovery();
         _initialDiscoveryPublished = true;
-        Become(Ready);
     }
 
     private void OnCapabilityUpdate(EgressEvent.CapabilityLearned msg)
@@ -242,7 +235,6 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
                 _queue?.OfferAsync(new MqttMessage(topic, payload, true));
             }
         }
-
     }
 
     private void PublishDiscoveryForModel(EgressEvent.CapabilityLearned cap)
