@@ -33,7 +33,11 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         });
         services
             .AddOptions<EnrichmentOptions>()
-            .Bind(configuration.GetSection($"{NjordOptions.SectionName}:Enrichment"));
+            .Bind(configuration.GetSection($"{NjordOptions.SectionName}:Enrichment"))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<EnrichmentOptions>, ConsensusOptionsValidator>();
+        services.AddSingleton<IValidateOptions<EnrichmentOptions>, EnergyOptionsValidator>();
+        services.AddSingleton<IValidateOptions<EnrichmentOptions>, HistoryOptionsValidator>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
         services.AddSingleton<IBudgetGate<WeightedTarget>>(sp =>

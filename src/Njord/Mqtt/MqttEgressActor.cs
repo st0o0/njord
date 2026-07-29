@@ -27,6 +27,9 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
 
     public IStash Stash { get; set; } = null!;
 
+    private sealed record EgressResolved(IActorRef Ref);
+    private sealed record ConnectionResolved(IActorRef Ref);
+
     public MqttEgressActor(
         IOptions<NjordOptions> options,
         ResolvedParameterSet parameters,
@@ -49,18 +52,27 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
     protected override void PreStart()
     {
         _mat = Context.Materializer();
+        ResolveUpstream();
+    }
 
-        var egressActor = Context.GetActor<EgressActor>();
-        Context.Watch(egressActor);
-        egressActor.Tell(new RequestEgressSource());
-
-        var connectionActor = Context.GetActor<MqttConnectionActor>();
-        Context.Watch(connectionActor);
-        connectionActor.Tell(new RequestMqttSink());
+    private void ResolveUpstream()
+    {
+        Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
+        Context.GetActorAsync<MqttConnectionActor>().PipeTo(Self, success: r => new ConnectionResolved(r));
     }
 
     private void WaitingForRefs()
     {
+        Receive<EgressResolved>(msg =>
+        {
+            Context.Watch(msg.Ref);
+            msg.Ref.Tell(new RequestEgressSource());
+        });
+        Receive<ConnectionResolved>(msg =>
+        {
+            Context.Watch(msg.Ref);
+            msg.Ref.Tell(new RequestMqttSink());
+        });
         Receive<EgressSourceResponse>(response =>
         {
             _egressSourceRef = response.SourceRef;
@@ -102,14 +114,7 @@ public sealed class MqttEgressActor : ReceiveActor, IWithStash
         _mqttSinkRef = null;
         _egressSourceRef = null;
 
-        var egressActor = Context.GetActor<EgressActor>();
-        Context.Watch(egressActor);
-        egressActor.Tell(new RequestEgressSource());
-
-        var connectionActor = Context.GetActor<MqttConnectionActor>();
-        Context.Watch(connectionActor);
-        connectionActor.Tell(new RequestMqttSink());
-
+        ResolveUpstream();
         Become(WaitingForRefs);
     }
 

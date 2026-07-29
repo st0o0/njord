@@ -17,7 +17,8 @@ namespace Njord.Grpc;
 public sealed class WeatherGrpcService(
     IOptions<NjordOptions> options,
     ActorRegistry actorRegistry,
-    ActorSystem actorSystem) : V2.WeatherService.WeatherServiceBase
+    ActorSystem actorSystem,
+    TimeProvider timeProvider) : V2.WeatherService.WeatherServiceBase
 {
     private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(5);
     private readonly NjordOptions _options = options.Value;
@@ -85,7 +86,7 @@ public sealed class WeatherGrpcService(
                 $"No forecast data available yet for '{request.Location}/{request.Model}'"));
         }
 
-        return MapForecastResponse(result.Forecast);
+        return MapForecastResponse(result.Forecast, timeProvider.GetUtcNow());
     }
 
     public override async Task<GetEnrichmentsResponse> GetEnrichments(GetEnrichmentsRequest request, ServerCallContext context)
@@ -101,7 +102,7 @@ public sealed class WeatherGrpcService(
         foreach (var (typeName, resultObj) in result.Results)
         {
             var evt = EnrichmentProtoMapper.MapToEvent(
-                request.Location, typeName, resultObj, DateTimeOffset.UtcNow);
+                request.Location, typeName, resultObj, timeProvider.GetUtcNow());
             if (evt is null) continue;
 
             switch (evt.PayloadCase)
@@ -136,7 +137,7 @@ public sealed class WeatherGrpcService(
                         string.Equals(u.Location, request.Location, StringComparison.OrdinalIgnoreCase))
             .SelectAsync(1, async update =>
             {
-                var proto = MapForecastUpdate(update);
+                var proto = MapForecastUpdate(update, timeProvider.GetUtcNow());
                 await responseStream.WriteAsync(proto);
                 return proto;
             })
@@ -162,7 +163,7 @@ public sealed class WeatherGrpcService(
             .SelectAsync(1, async update =>
             {
                 var evt = EnrichmentProtoMapper.MapToEvent(
-                    update.Location, update.TypeName, update.Result, DateTimeOffset.UtcNow);
+                    update.Location, update.TypeName, update.Result, timeProvider.GetUtcNow());
                 if (evt is not null)
                 {
                     await responseStream.WriteAsync(evt);
@@ -204,25 +205,25 @@ public sealed class WeatherGrpcService(
         "wind_speed_10m_max", "wind_gusts_10m_max", "sunrise", "sunset", "weather_code"
     ];
 
-    private static GetForecastResponse MapForecastResponse(ModelForecast forecast)
+    private static GetForecastResponse MapForecastResponse(ModelForecast forecast, DateTimeOffset now)
     {
         var response = new GetForecastResponse
         {
             Location = forecast.Location,
             Model = forecast.Model.Id,
-            UpdatedAt = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
+            UpdatedAt = Timestamp.FromDateTimeOffset(now),
         };
         MapForecastPoints(forecast, response.Hourly, response.Daily);
         return response;
     }
 
-    private static ForecastUpdate MapForecastUpdate(EgressEvent.PerModelUpdate update)
+    private static ForecastUpdate MapForecastUpdate(EgressEvent.PerModelUpdate update, DateTimeOffset now)
     {
         var proto = new ForecastUpdate
         {
             Location = update.Location,
             Model = update.Model.Id,
-            UpdatedAt = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
+            UpdatedAt = Timestamp.FromDateTimeOffset(now),
         };
         MapForecastPoints(update.Forecast, proto.Hourly, proto.Daily);
         return proto;

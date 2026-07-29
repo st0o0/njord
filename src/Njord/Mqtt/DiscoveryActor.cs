@@ -35,6 +35,9 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
 
     public IStash Stash { get; set; } = null!;
 
+    private sealed record ConnectionResolved(IActorRef Ref);
+    private sealed record EgressResolved(IActorRef Ref);
+
     public DiscoveryActor(
         IOptions<NjordOptions> options,
         ResolvedParameterSet parameters,
@@ -68,18 +71,23 @@ public sealed class DiscoveryActor : ReceiveActor, IWithStash, IWithTimers
 
     private void RequestUpstreamRefs()
     {
-        var connectionActor = Context.GetActor<MqttConnectionActor>();
-        Context.Watch(connectionActor);
-        connectionActor.Tell(new RequestMqttSink());
-        connectionActor.Tell(new SubscribeInbound(Self));
-
-        var egressActor = Context.GetActor<EgressActor>();
-        Context.Watch(egressActor);
-        egressActor.Tell(new RequestEgressSource());
+        Context.GetActorAsync<MqttConnectionActor>().PipeTo(Self, success: r => new ConnectionResolved(r));
+        Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
     }
 
     private void WaitingForRefs()
     {
+        Receive<ConnectionResolved>(msg =>
+        {
+            Context.Watch(msg.Ref);
+            msg.Ref.Tell(new RequestMqttSink());
+            msg.Ref.Tell(new SubscribeInbound(Self));
+        });
+        Receive<EgressResolved>(msg =>
+        {
+            Context.Watch(msg.Ref);
+            msg.Ref.Tell(new RequestEgressSource());
+        });
         Receive<MqttSinkResponse>(response =>
         {
             _mqttSinkRef = response.SinkRef;

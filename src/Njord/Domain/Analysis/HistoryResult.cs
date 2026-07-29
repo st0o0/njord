@@ -24,8 +24,8 @@ public sealed record HistoryResult(
         var now = timeProvider.GetUtcNow();
         var tempApiName = ParameterRegistry.Temperature2m.ApiName;
 
-        var mae7d = HistoryAnalyzer.ModelAccuracy(history, tempApiName, 7, options.MinSampleSize);
-        var mae30d = HistoryAnalyzer.ModelAccuracy(history, tempApiName, 30, options.MinSampleSize);
+        var mae7d = HistoryAnalyzer.ModelAccuracy(history, tempApiName, 7, options.MinSampleSize, timeProvider);
+        var mae30d = HistoryAnalyzer.ModelAccuracy(history, tempApiName, 30, options.MinSampleSize, timeProvider);
         var weights = HistoryAnalyzer.ModelWeights(mae30d);
 
         var drift = new Dictionary<WeatherModel, double?>();
@@ -34,7 +34,7 @@ public sealed record HistoryResult(
             drift[model] = HistoryAnalyzer.ForecastDrift(history, model, tempApiName);
         }
 
-        var seasonalBest = HistoryAnalyzer.SeasonalPreference(history, tempApiName, now, options.MinSampleSize);
+        var seasonalBest = HistoryAnalyzer.SeasonalPreference(history, tempApiName, now, options.MinSampleSize, timeProvider);
 
         (bool, double)? anomaly = null;
         var currentConsensus = current.Entries
