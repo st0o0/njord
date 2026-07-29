@@ -11,6 +11,8 @@ The `MqttConnectionActor` SHALL be registered in the actor system only when `Mqt
 
 When SinkRef materialization fails, the actor SHALL send `Status.Failure(ex)` to the requesting actor. The actor SHALL NOT return `null` from the failure path.
 
+The actor SHALL use the injected `TimeProvider` for all timestamp operations (health state transitions). It SHALL NOT use `DateTimeOffset.UtcNow` directly.
+
 #### Scenario: Connection established
 - **WHEN** the actor connects to the broker
 - **THEN** it publishes "online" on the availability topic
@@ -29,7 +31,11 @@ When SinkRef materialization fails, the actor SHALL send `Status.Failure(ex)` to
 
 #### Scenario: SinkRef materialization failure sends Status.Failure
 - **WHEN** a requestor sends RequestMqttSink and materialization fails
-- **THEN** the requestor receives Status.Failure(ex)
+- **THEN** the requestor receives Status.Failure(ex), not null
+
+#### Scenario: Health timestamps use TimeProvider
+- **WHEN** the actor records a connect or disconnect timestamp
+- **THEN** it uses `TimeProvider.GetUtcNow()` instead of `DateTimeOffset.UtcNow`
 
 #### Scenario: Graceful shutdown publishes offline
 - **WHEN** the actor stops
