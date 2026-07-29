@@ -9,6 +9,8 @@ The EnrichmentActor consumes the pipeline's BroadcastHub via SourceRef, maintain
 ### Requirement: The EnrichmentActor requests a SourceRef from the PipelineActor
 The `EnrichmentActor` SHALL send a `RequestPipelineSource` message to the `PipelineActor` on startup. Upon receiving a `PipelineSourceResponse`, it SHALL transition from `WaitingForSourceRef` to its operational state. Messages received before the SourceRef arrives SHALL be stashed.
 
+The actor SHALL resolve peer actor references (PipelineActor, EgressActor) asynchronously via `GetActorAsync` with `PipeTo` instead of synchronous `GetActor` in PreStart. This eliminates startup-order sensitivity.
+
 #### Scenario: SourceRef received transitions to operational
 - **WHEN** the EnrichmentActor starts and receives a `PipelineSourceResponse`
 - **THEN** it transitions to its operational state and unstashes pending messages
@@ -20,6 +22,10 @@ The `EnrichmentActor` SHALL send a `RequestPipelineSource` message to the `Pipel
 #### Scenario: PipelineActor restart triggers re-request
 - **WHEN** the EnrichmentActor receives a `Terminated` message for the PipelineActor
 - **THEN** it sends a new `RequestPipelineSource` to the restarted PipelineActor
+
+#### Scenario: Peer actors resolved asynchronously
+- **WHEN** the EnrichmentActor starts
+- **THEN** it resolves PipelineActor and EgressActor via GetActorAsync, not sync GetActor
 
 ### Requirement: The EnrichmentActor maintains a ModelSnapshot via Scan
 The `EnrichmentActor` SHALL materialize a consumer on the pipeline's `SourceRef<FetchOutcome>` using a `Scan` operator to accumulate a `ModelSnapshot`. Each `FetchOutcome.Success` SHALL update the snapshot with the contained `ModelForecast`. `FetchOutcome.Failure` elements SHALL not modify the snapshot. Only snapshots where `HasChanged` is `true` SHALL propagate downstream.
