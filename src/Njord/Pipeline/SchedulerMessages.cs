@@ -1,5 +1,5 @@
 using Akka.Streams;
-using Njord.Ingest;
+using Njord.Domain.Weather;
 
 namespace Njord.Pipeline;
 

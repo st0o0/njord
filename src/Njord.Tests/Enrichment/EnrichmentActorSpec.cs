@@ -7,7 +7,6 @@ using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
-using Njord.Ingest;
 using Njord.Pipeline;
 
 namespace Njord.Tests.Enrichment;

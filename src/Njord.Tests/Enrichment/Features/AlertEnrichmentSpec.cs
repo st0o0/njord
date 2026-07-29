@@ -12,13 +12,18 @@ public sealed class AlertEnrichmentSpec
     private static readonly DateTimeOffset T0 = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
 
+    private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
+
     private static AlertEnrichment CreateFeature(bool enabled = true)
     {
         var enrichment = new EnrichmentOptions
         {
             Alerts = new AlertThresholdOptions { Enabled = enabled },
         };
-        return new AlertEnrichment(Options.Create(enrichment), TimeProvider.System);
+        return new AlertEnrichment(Options.Create(enrichment), new FakeTimeProvider(T0));
     }
 
     private static ModelSnapshot MakeSnapshot()
@@ -44,6 +49,39 @@ public sealed class AlertEnrichmentSpec
         Assert.Equal("lucerne", update.Location);
         Assert.Equal("alerts", update.TypeName);
         Assert.IsType<AlertResult>(update.Result);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Normal_conditions_produce_no_severe_alerts()
+    {
+        var feature = CreateFeature();
+        var snapshot = MakeSnapshot();
+
+        var events = feature.Compute(snapshot, ["lucerne"]).ToList();
+        var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(events[0]);
+        var result = Assert.IsType<AlertResult>(update.Result);
+
+        Assert.All(result.Alerts, a => Assert.Equal(AlertSeverity.None, a.Severity));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Frost_condition_produces_frost_alert()
+    {
+        var feature = CreateFeature();
+        var frostPoints = Enumerable.Range(0, 48).Select(h =>
+            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?> { [Temperature] = -5.0 }))
+            .ToList();
+        var forecast = new ModelForecast(new("icon_d2"), "lucerne", new CycleId(T0),
+            new ForecastSeries(frostPoints), DailyForecastSeries.Empty);
+        var snapshot = ModelSnapshot.Empty.Update(forecast);
+
+        var events = feature.Compute(snapshot, ["lucerne"]).ToList();
+        var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(events[0]);
+        var result = Assert.IsType<AlertResult>(update.Result);
+
+        var frostAlert = result.Alerts.FirstOrDefault(a => a.Type == AlertType.Frost);
+        Assert.NotNull(frostAlert);
+        Assert.NotEqual(AlertSeverity.None, frostAlert.Severity);
     }
 
     [Fact(Timeout = 5000)]

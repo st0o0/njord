@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Health;
-using Njord.Ingest;
+using Njord.Domain.Weather;
 using Njord.Persistence;
 using Servus.Akka;
 

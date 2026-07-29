@@ -105,6 +105,16 @@ public sealed class ConsensusEnrichmentSpec
     }
 
     [Fact(Timeout = 5000)]
+    public void Compute_returns_empty_for_empty_snapshot()
+    {
+        var feature = CreateFeature();
+
+        var events = feature.Compute(ModelSnapshot.Empty, ["lucerne"]).ToList();
+
+        Assert.Empty(events);
+    }
+
+    [Fact(Timeout = 5000)]
     public void Enabled_reflects_options()
     {
         Assert.True(CreateFeature(enabled: true).Enabled);

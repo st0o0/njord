@@ -10,7 +10,6 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Health;
-using Njord.Ingest;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 using Servus.Akka;

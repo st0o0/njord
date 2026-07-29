@@ -4,7 +4,7 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Ingest;
+using Njord.Domain.Weather;
 using Njord.Pipeline;
 using Servus.Akka;
 
