@@ -150,20 +150,21 @@ Activity and environmental index scores computed from forecast data: lifestyle s
 - **WHEN** models produce outdoor scores [30, 50, 70, 80, 90] with confidence tolerance 10%
 - **THEN** OutdoorMin=30, OutdoorMax=90, OutdoorConfidence reflects fraction within ±10% of median (70)
 
-### Requirement: Index computation evaluates each model independently then aggregates
-`IndexResult.Compute` SHALL compute a full score set per model using only that model's hourly data. The primary output values (existing) SHALL remain the mean/median-based computation. Envelope fields SHALL be derived from the per-model results: min = lowest per-model score, max = highest per-model score, confidence = fraction of models within tolerance of median score.
+### Requirement: Index computation evaluates consensus values instead of per-model aggregation
 
-#### Scenario: Per-model isolation
-- **WHEN** model A predicts rain (low outdoor score), model B predicts sun (high outdoor score)
-- **THEN** per-model scores differ significantly, producing a wide min/max range
+`IndexResult.Compute` SHALL accept a `ConsensusSnapshot` instead of `ModelSnapshot`. Activity scores (laundry, outdoor, running, cycling, BBQ, irrigation, solar, ventilation) SHALL be computed from consensus median values. The per-model envelope (min/max/confidence across individual models) is no longer available since enrichments no longer see raw model data.
 
-#### Scenario: Single model
-- **WHEN** only 1 model is available
-- **THEN** all _min = _max = the single score, all _confidence = 1.0
+#### Scenario: Scores computed from consensus medians
+- **WHEN** `IndexResult.Compute` is called with a `ConsensusSnapshot`
+- **THEN** each activity score is computed using consensus median temperature, precipitation, wind speed, etc.
 
-#### Scenario: Confidence tolerance
-- **WHEN** tolerance is configured at 15% and median outdoor score is 60
-- **THEN** models with scores between 51 and 69 count as "agreeing" for confidence
+#### Scenario: Envelope derived from consensus spread
+- **WHEN** consensus spread is available for the input parameters
+- **THEN** the score envelope min/max SHALL be derived from consensus confidence interval or spread bounds instead of per-model evaluation
+
+#### Scenario: Single-value consensus
+- **WHEN** only 2 models contribute and spread is minimal
+- **THEN** envelope min and max are close to the score value with high confidence
 
 ### Requirement: State payload includes envelope fields alongside existing scores
 The indices state JSON SHALL include `_min`, `_max`, `_confidence` variants for each score key. Existing field names and values SHALL NOT change.
@@ -180,15 +181,16 @@ The indices state JSON SHALL include `_min`, `_max`, `_confidence` variants for 
 - **THEN** components include `outdoor_min`, `outdoor_max`, `outdoor_confidence` with appropriate value templates
 
 ### Requirement: IndexResult aggregates all indices and serializes to MQTT
-`IndexResult` SHALL be a record holding the location and all index values. It SHALL expose a static `Compute` method taking a `ModelSnapshot`, location, parameter set, `TimeProvider`, and `IndexOptions`. It SHALL expose `ToMqttMessages(baseTopic)` producing a single `MqttMessage` on topic `{baseTopic}/{location}/indices` with a flat JSON payload containing all index values. Null values SHALL serialize as JSON null.
+
+`IndexResult` SHALL derive its location from `ConsensusSnapshot.Location`.
 
 #### Scenario: Index message content
-- **WHEN** ToMqttMessages is called for location "lucerne" with baseTopic "njord"
-- **THEN** one message has topic `njord/lucerne/indices` with JSON keys for all indices
+- **WHEN** indices are serialized to MQTT
+- **THEN** one retained message is published with all scores and envelope fields
 
 #### Scenario: Retained message
-- **WHEN** ToMqttMessages produces a message
-- **THEN** the message has Retain = true
+- **WHEN** an index message is published
+- **THEN** it is retained
 
 ### Requirement: IndexResult serialization with pinned wire names
 `IndexResult` and `ScoreEnvelope` records SHALL have `[property: JsonProperty("...")]` on all positional parameters. Value tuple properties `FrostProtection` and `Vpd` SHALL be replaced with named records (`FrostProtectionInfo`, `VpdInfo`) carrying `[JsonProperty]` attributes.

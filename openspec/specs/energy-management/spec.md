@@ -111,27 +111,33 @@ Energy-related forecast enrichments: heating demand scoring, heat-pump COP estim
 - **WHEN** temperature parameter is not available
 - **THEN** CopEstimateMin is null and CopOptimalConservative is empty
 
-### Requirement: Energy computation evaluates each model independently then aggregates
-`EnergyResult.Compute` SHALL first compute a full energy result per model (HeatingDemand, CopEstimate, CopOptimal, Shading, NightCooling) using only that model's forecast data. It SHALL then: keep existing mean-based values as the primary output, derive envelope fields from the per-model results (max of HeatingDemand, min of CopEstimate, intersection of CopOptimal hours).
+### Requirement: Energy computation evaluates consensus values instead of per-model aggregation
 
-#### Scenario: Per-model computation isolation
-- **WHEN** model A has temp=5°C mean and model B has temp=-2°C mean
-- **THEN** each model's heating demand is computed independently (model B will be higher), and HeatingDemandMax reflects model B's value
+`EnergyResult.Compute` SHALL accept a `ConsensusSnapshot` instead of `ModelSnapshot`. Heating demand, COP estimate, COP-optimal hours, shading, battery strategy, and night cooling SHALL be computed from consensus median values. Pessimistic envelope fields SHALL be derived from consensus spread/confidence interval instead of per-model evaluation.
 
-#### Scenario: Single model fallback
-- **WHEN** only 1 model provides data
-- **THEN** envelope fields equal the primary values (HeatingDemandMax = HeatingDemand, CopEstimateMin = CopEstimate)
+#### Scenario: Computed from consensus medians
+- **WHEN** `EnergyResult.Compute` is called with a `ConsensusSnapshot`
+- **THEN** all energy values use consensus median temperature, radiation, wind, and cloud cover
+
+#### Scenario: Pessimistic envelope from consensus spread
+- **WHEN** consensus spread is available
+- **THEN** `HeatingDemandMax` and `CopEstimateMin` SHALL be derived from the pessimistic end of the consensus confidence interval
+
+#### Scenario: COP-optimal hours from consensus
+- **WHEN** COP-optimal hours are computed
+- **THEN** the ranking uses consensus median temperatures per hour
 
 ### Requirement: EnergyResult aggregates all energy values and serializes to MQTT
-`EnergyResult` SHALL be a record holding the location and all energy values. It SHALL expose a static `Compute` method taking a `ModelSnapshot`, location, parameter set, `TimeProvider`, and `EnergyOptions`. It SHALL expose `ToMqttMessages(baseTopic)` producing a single `MqttMessage` on topic `{baseTopic}/{location}/energy` with a flat JSON payload. COP-optimal hours SHALL be serialized as a JSON array under key `cop_optimal`.
+
+`EnergyResult` SHALL derive its location from `ConsensusSnapshot.Location`.
 
 #### Scenario: Energy message content
-- **WHEN** ToMqttMessages is called for location "lucerne" with baseTopic "njord"
-- **THEN** one message has topic `njord/lucerne/energy` with JSON keys for all energy values
+- **WHEN** energy values are serialized to MQTT
+- **THEN** one retained message is published with all fields
 
 #### Scenario: Retained message
-- **WHEN** ToMqttMessages produces a message
-- **THEN** the message has Retain = true
+- **WHEN** an energy message is published
+- **THEN** it is retained
 
 ### Requirement: EnergyResult serialization with pinned wire names
 `EnergyResult` SHALL have `[property: JsonProperty("...")]` on all positional parameters. The value tuple `(int HoursFromNow, double Cop)` in the `CopOptimal` list SHALL be replaced with a named record (`CopOptimalEntry`) carrying `[JsonProperty]` attributes.

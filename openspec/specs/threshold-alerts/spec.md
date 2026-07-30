@@ -14,30 +14,32 @@ An `Alert` SHALL be a record carrying `AlertType` (enum), `Severity` (enum: None
 - **THEN** the record exposes Type=Frost, Severity=Yellow, Confidence=0.75, and the attributes dictionary
 
 ### Requirement: Frost warning evaluates minimum temperature across models
-`AlertEvaluator.EvaluateFrost` SHALL accept a `ModelSnapshot`, a location, a threshold (default 0 °C), and a `TimeProvider`. For each model it SHALL scan the hourly forecast series for the next 24 h and find the minimum `temperature_2m`. Confidence SHALL be the fraction of models whose minimum is ≤ threshold. Severity SHALL be Yellow if confidence > 0. Attributes SHALL include `expected_low` (median of minima), `earliest_frost` (earliest time any model predicts ≤ threshold), and `models_agreeing` (count).
+
+Frost warning SHALL evaluate temperature from `ConsensusSnapshot.Hourly` consensus medians instead of iterating raw model data. Confidence SHALL be derived from the consensus agreement score.
 
 #### Scenario: All models predict frost
-- **WHEN** 6 models all show min temp ≤ 0 °C in the next 24 h
-- **THEN** confidence is 1.0, severity is Yellow, expected_low is the median of the 6 minima
+- **WHEN** consensus median temperature is <= 0 degrees C with agreement >= 0.8
+- **THEN** a frost alert is produced with high confidence
 
 #### Scenario: No model predicts frost
-- **WHEN** no model shows min temp ≤ 0 °C
-- **THEN** severity is None, confidence is 0.0
+- **WHEN** consensus median temperature is > 2 degrees C across all horizons
+- **THEN** no frost alert is produced
 
 #### Scenario: Partial agreement
-- **WHEN** 3 of 8 models predict frost
-- **THEN** confidence is 0.375, severity is Yellow
+- **WHEN** consensus median temperature is <= 0 degrees C but agreement is < 0.5
+- **THEN** a frost alert is produced with low confidence
 
 ### Requirement: Heat warning evaluates apparent temperature max with tiered severity
-`AlertEvaluator.EvaluateHeat` SHALL accept a `ModelSnapshot`, a location, tiered thresholds (default [30, 35, 40] °C), and a `TimeProvider`. For each model it SHALL find the maximum `apparent_temperature` in the next 24 h. Severity SHALL be Red if any model exceeds the highest threshold (confidence = fraction ≥ that threshold), Orange if any exceeds the middle threshold, Yellow if any exceeds the lowest. The highest triggered tier wins.
+
+Heat warning SHALL use consensus median apparent temperature from `ConsensusSnapshot.Hourly`.
 
 #### Scenario: Extreme heat
-- **WHEN** 5 of 8 models predict apparent_temperature_max ≥ 40 °C
-- **THEN** severity is Red, confidence is 0.625
+- **WHEN** consensus median apparent temperature exceeds the extreme threshold
+- **THEN** a heat alert with severity "extreme" is produced
 
 #### Scenario: Moderate heat
-- **WHEN** all models predict max between 30–35 °C, none ≥ 35
-- **THEN** severity is Yellow, confidence is 1.0
+- **WHEN** consensus median apparent temperature exceeds the moderate threshold but not extreme
+- **THEN** a heat alert with severity "moderate" is produced
 
 ### Requirement: Storm warning evaluates wind gusts against threshold
 `AlertEvaluator.EvaluateStorm` SHALL accept a `ModelSnapshot`, a location, a gust threshold (default 16.7 m/s ≈ 60 km/h), and a `TimeProvider`. It SHALL scan `wind_gusts_10m` in the next 24 h per model. Confidence is the fraction of models with max gust ≥ threshold. Attributes include `expected_max_gust` (median of max gusts).
@@ -51,42 +53,32 @@ An `Alert` SHALL be a record carrying `AlertType` (enum), `Severity` (enum: None
 - **THEN** severity is None, confidence is 0.0
 
 ### Requirement: Heavy rain warning evaluates hourly and daily precipitation
-`AlertEvaluator.EvaluateHeavyRain` SHALL accept a `ModelSnapshot`, a location, an hourly threshold (default 10 mm), a daily threshold (default 25 mm), and a `TimeProvider`. It SHALL check both max hourly `precipitation` in the next 24 h and daily `precipitation_sum` (from both hourly accumulation and `DailyForecastSeries.precipitation_sum`, taking the higher). Confidence is the fraction of models exceeding either threshold. Severity is Yellow for hourly, Orange for daily, Red for both.
+
+Heavy rain warning SHALL use hourly precipitation from `ConsensusSnapshot.Hourly` and daily precipitation sum from `ConsensusSnapshot.Daily`.
 
 #### Scenario: Hourly heavy rain
-- **WHEN** 4 of 8 models show an hour with ≥ 10 mm precipitation
-- **THEN** severity is Yellow, confidence is 0.5
+- **WHEN** consensus median hourly precipitation exceeds the threshold
+- **THEN** a heavy rain alert is produced
 
 #### Scenario: Daily heavy rain
-- **WHEN** 6 of 8 models show daily sum ≥ 25 mm
-- **THEN** severity is Orange, confidence is 0.75
+- **WHEN** consensus median daily precipitation sum exceeds the threshold
+- **THEN** a heavy rain alert is produced with daily severity
 
-#### Scenario: Daily sum from DailyForecastSeries exceeds threshold
-- **WHEN** no single hourly precipitation exceeds hourly threshold, but models' DailyForecastSeries shows precipitation_sum > daily threshold
-- **THEN** severity is determined by the daily evaluation
-
-#### Scenario: Daily data unavailable
-- **WHEN** DailyForecastSeries is empty or precipitation_sum is not in resolved daily parameters
-- **THEN** the daily evaluation uses only hourly accumulation (existing behavior)
+#### Scenario: Daily sum from DailyConsensus
+- **WHEN** `ConsensusSnapshot.Daily` contains `precipitation_sum` consensus
+- **THEN** the daily heavy rain evaluation uses that median value directly
 
 ### Requirement: UV warning evaluates UV index at WHO levels
-`AlertEvaluator.EvaluateUv` SHALL accept a `ModelSnapshot`, a location, and a `TimeProvider`. It SHALL find the maximum `uv_index` across models for the next 24 h from both hourly series and `DailyForecastSeries.uv_index_max` (taking the higher per model). WHO levels: low (0–2), moderate (3–5), high (6–7), very_high (8–10), extreme (11+). Severity maps: low→None, moderate→Yellow, high→Orange, very_high/extreme→Red.
+
+UV warning SHALL use daily UV max from `ConsensusSnapshot.Daily`.
 
 #### Scenario: High UV
-- **WHEN** median max UV across models is 7.5
-- **THEN** severity is Orange, attribute `uv_level` is "high"
+- **WHEN** consensus median daily `uv_index_max` exceeds the threshold
+- **THEN** a UV alert is produced
 
 #### Scenario: Low UV
-- **WHEN** median max UV is 2.0
-- **THEN** severity is None, `uv_level` is "low"
-
-#### Scenario: Daily UV max higher than hourly peak
-- **WHEN** hourly UV scan finds max=7 but daily uv_index_max is 9
-- **THEN** severity is computed from the daily values (higher)
-
-#### Scenario: Daily UV not available
-- **WHEN** uv_index_max is not in resolved daily parameters
-- **THEN** UV alert uses only the hourly scan (existing behavior preserved)
+- **WHEN** consensus median daily `uv_index_max` is below the threshold
+- **THEN** no UV alert is produced
 
 ### Requirement: Fog risk evaluates combined conditions
 `AlertEvaluator.EvaluateFog` SHALL accept a `ModelSnapshot`, a location, and a `TimeProvider`. For each model and each hour in the next 24 h, fog conditions are met when `temperature_2m` − `dew_point_2m` < 2 °C AND `wind_speed_10m` < 3 m/s AND `relative_humidity_2m` > 90 %. Confidence is the fraction of models predicting at least one fog hour. Attributes include `fog_hours` (median count of fog hours).
@@ -141,15 +133,16 @@ An `Alert` SHALL be a record carrying `AlertType` (enum), `Severity` (enum: None
 - **THEN** severity is None, confidence is 0.0
 
 ### Requirement: AlertResult aggregates all alerts for a location
-`AlertResult` SHALL be a record holding a location and a list of `Alert` records. It SHALL expose a `ToMqttMessages(baseTopic, location)` method producing one `MqttMessage` per alert type on topic `{baseTopic}/{location}/alerts/{alert_type}`. The payload SHALL be a flat JSON with `severity`, `confidence`, and all diagnostic attributes. Retain flag SHALL be `true`.
+
+`AlertEvaluator.EvaluateAll` SHALL accept a `ConsensusSnapshot` instead of `ModelSnapshot`. The location is taken from `ConsensusSnapshot.Location`.
 
 #### Scenario: Serialization to MQTT messages
-- **WHEN** an AlertResult with 9 alerts is serialized
-- **THEN** 9 MqttMessages are produced, one per alert type
+- **WHEN** alerts are serialized
+- **THEN** each alert produces one MQTT message on its sub-topic
 
 #### Scenario: None severity still publishes
-- **WHEN** a frost alert has severity None
-- **THEN** an MqttMessage is still published with `{"severity":"none","confidence":0.0}` so HA entities stay current
+- **WHEN** no threshold is exceeded for an alert type
+- **THEN** a "none" severity alert is published
 
 ### Requirement: Alert thresholds are configurable
 All alert thresholds SHALL be configurable via `AlertThresholdOptions` bound from `NjordOptions.Enrichment.Alerts`. Defaults: frost 0 °C, heat [30,35,40] °C, storm 16.7 m/s, heavy rain hourly 10 mm / daily 25 mm, pressure drop 5 hPa. An `Enabled` flag (default `true`) SHALL gate the entire alert consumer.
