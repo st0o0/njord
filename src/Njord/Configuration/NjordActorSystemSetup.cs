@@ -81,7 +81,7 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
     {
         var childProps = resolver.Props<TActor>();
         var supervisorProps = BackoffSupervisor.Props(
-            Backoff.OnFailure(childProps, name, MinBackoff, MaxBackoff, RandomFactor));
+            Backoff.OnFailure(childProps, name, MinBackoff, MaxBackoff, RandomFactor, maxNrOfRetries: -1));
         var supervisor = system.ActorOf(supervisorProps, $"{name}-supervisor");
         registry.Register<TActor>(supervisor);
     }
