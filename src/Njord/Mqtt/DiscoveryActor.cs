@@ -131,9 +131,13 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
         Receive<CapabilityReceived>(msg =>
         {
             if (!_initialDiscoveryPublished)
+            {
                 OnCapabilityLearned(msg.Event);
+            }
             else
+            {
                 OnCapabilityUpdate(msg.Event);
+            }
         });
         Receive<CapabilityTimeout>(_ => OnCapabilityTimeout());
         Receive<MqttConnected>(_ => { });
@@ -220,6 +224,16 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
                 }
 
                 PublishDiscoveryForModel(cap);
+            }
+
+            {
+                var consensusDeviceId = TopicScheme.EnrichmentDeviceId(location.Name, "consensus");
+                var consensusTopic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, consensusDeviceId);
+                var consensusPayload = DiscoveryPayloadBuilder.BuildConsensus(
+                    location.Name, _parameters,
+                    _options.ForecastDays * 24, _options.ForecastDays,
+                    _options.Mqtt, _options.PollInterval, Version);
+                _queue?.OfferAsync(new MqttMessage(consensusTopic, consensusPayload, true));
             }
 
             foreach (var feature in _features)

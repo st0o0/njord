@@ -4,6 +4,7 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Actors;
 using Njord.Configuration;
+using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
@@ -105,6 +106,8 @@ public sealed class MqttEgressActor : StreamConsumerActor
         var messages = egressEvent switch
         {
             EgressEvent.PerModelUpdate e => MapPerModel(e, baseTopic),
+            EgressEvent.EnrichmentUpdate { TypeName: "consensus", Result: ConsensusSnapshot consensus } e
+                => StatePayloadBuilder.FromConsensus(consensus, baseTopic, e.Location),
             EgressEvent.EnrichmentUpdate e when _featuresByType.TryGetValue(e.TypeName, out var feature)
                 => feature.ToStateMessages(e.Result, baseTopic, e.Location),
             _ => [],

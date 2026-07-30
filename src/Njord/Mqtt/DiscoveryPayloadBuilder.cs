@@ -97,8 +97,8 @@ public static class DiscoveryPayloadBuilder
     public static string BuildConsensus(
         string location,
         ResolvedParameterSet parameters,
-        IReadOnlyList<int> horizons,
-        int forecastDays,
+        int maxHours,
+        int maxDays,
         MqttOptions mqtt,
         TimeSpan pollInterval,
         string version)
@@ -111,7 +111,7 @@ public static class DiscoveryPayloadBuilder
 
         foreach (var parameter in parameters.Hourly)
         {
-            foreach (var hours in horizons)
+            for (var hours = 0; hours <= maxHours; hours++)
             {
                 var horizonTopic = TopicScheme.EnrichmentSubTopic(mqtt.BaseTopic, location, "consensus", $"h{hours}");
                 var uniqueId = $"{deviceId}_{parameter.JsonKey}_h{hours}";
@@ -129,26 +129,27 @@ public static class DiscoveryPayloadBuilder
             }
         }
 
-        var payload = new JsonObject
+        foreach (var parameter in parameters.Daily)
         {
-            ["dev"] = new JsonObject
+            for (var day = 0; day < maxDays; day++)
             {
-                ["ids"] = new JsonArray(deviceId),
-                ["name"] = $"njord {location} consensus",
-                ["mf"] = "njord",
-                ["mdl"] = "consensus",
-                ["sw"] = version,
-            },
-            ["o"] = new JsonObject
-            {
-                ["name"] = "njord",
-                ["sw"] = version,
-            },
-            ["qos"] = 1,
-            ["cmps"] = components,
-        };
+                var horizonTopic = TopicScheme.EnrichmentSubTopic(mqtt.BaseTopic, location, "consensus", $"d{day}");
+                var uniqueId = $"{deviceId}_{parameter.JsonKey}_d{day}";
+                var component = BuildComponent(
+                    uniqueId,
+                    $"{parameter.JsonKey} +{day}d",
+                    parameter,
+                    $"{{{{ value_json.{parameter.JsonKey} }}}}",
+                    horizonTopic,
+                    $"{{% if value_json.{parameter.JsonKey} is not none %}}online{{% else %}}offline{{% endif %}}",
+                    availabilityTopic,
+                    expireAfterSeconds);
 
-        return payload.ToJsonString();
+                components[$"{parameter.JsonKey}_d{day}"] = component;
+            }
+        }
+
+        return BuildDeviceEnvelope(deviceId, location, "consensus", version, components);
     }
 
     public static string BuildAlerts(
