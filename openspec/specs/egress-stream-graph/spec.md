@@ -7,25 +7,24 @@ Defines the Akka.Streams graph owned by the MqttConnectionActor: a MergeHub that
 ## Requirements
 
 ### Requirement: MergeHub converges messages from multiple sources into a single publish sink
-The `MqttConnectionActor` SHALL materialize a MergeHub of `MqttMessage`. The publish sink SHALL process messages with `SelectAsync(1)` through `IMqttTransport.SendAsync` with `Supervision.Directive.Resume` on errors. The MergeHub SHALL receive `MqttMessage` instances from the following sources:
-- `MqttEgressActor` (handles both per-model and enrichment data via EgressEvent mapping)
-- `DiscoveryActor` (unchanged)
-- Availability Source.Queue (unchanged)
-- Tombstone Source.Queue (unchanged)
 
-The `MqttConnectionActor` SHALL no longer receive messages from `MqttPublisherActor` (deleted) or directly from `EnrichmentActor` (which now routes through EgressActor → MqttEgressActor). The availability source queue (online/offline) SHALL remain internal to `MqttConnectionActor`.
+The MergeHub SHALL accept messages from: (1) `MqttEgressActor` for enrichment state messages, (2) consensus egress for consensus state messages, (3) discovery and availability paths. Consensus state messages originate from the consensus pipeline stage, not from the enrichment pathway.
 
 #### Scenario: MqttEgressActor is the sole data publisher
-- **WHEN** the MQTT egress stream graph is materialized
-- **THEN** `MqttEgressActor` SHALL be the only actor sending per-model state and enrichment data as `MqttMessage` to the MqttConnectionActor's MergeHub
+- **WHEN** enrichment updates arrive at the `MqttEgressActor`
+- **THEN** they are formatted and fed into the MergeHub
+
+#### Scenario: Consensus egress feeds the MergeHub
+- **WHEN** `EgressEvent.ConsensusUpdate` arrives at the `MqttEgressActor`
+- **THEN** consensus state messages are formatted and fed into the MergeHub
 
 #### Scenario: Discovery and availability paths are unchanged
-- **WHEN** the MQTT egress stream graph is materialized
-- **THEN** `DiscoveryActor`, the availability Source.Queue, and the tombstone Source.Queue SHALL continue to feed into the MergeHub as before
+- **WHEN** discovery or availability events occur
+- **THEN** they follow existing `Source.Queue` paths into the MergeHub
 
 #### Scenario: Transport error resumes the stream
-- **WHEN** `IMqttTransport.SendAsync` throws for one message
-- **THEN** the stream resumes and processes subsequent messages
+- **WHEN** a transport error occurs during publish
+- **THEN** the stream resumes without data loss
 
 ### Requirement: MqttMessage is the unified publish protocol
 All messages destined for the broker SHALL be expressed as `MqttMessage(string Topic, string Payload, bool Retain)`. The Publish Sink SHALL be content-agnostic — it does not interpret topic or payload semantics.

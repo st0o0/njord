@@ -26,23 +26,24 @@ The `EnrichmentActor` SHALL inherit from `StreamConsumerActor`. It SHALL resolve
 - **THEN** it resolves PipelineActor and EgressActor via GetActorAsync, not sync GetActor
 
 ### Requirement: The EnrichmentActor maintains a ModelSnapshot via Scan
-The `EnrichmentActor` SHALL materialize a consumer on the pipeline's `SourceRef<FetchOutcome>` using a `Scan` operator to accumulate a `ModelSnapshot`. It SHALL import `FetchOutcome` from `Njord.Domain.Weather`, not from `Njord.Ingest`. The Enrichment zone SHALL NOT reference the Ingest namespace. Each `FetchOutcome.Success` SHALL update the snapshot with the contained `ModelForecast`. `FetchOutcome.Failure` elements SHALL not modify the snapshot. Only snapshots where `HasChanged` is `true` SHALL propagate downstream.
+
+The EnrichmentActor SHALL accumulate `FetchOutcome.Success` into a `ModelSnapshot` via Scan. After accumulation, the snapshot SHALL be broadcast to two branches: (1) History (raw `ModelSnapshot`), (2) Consensus transformation followed by enrichments.
 
 #### Scenario: Success updates the snapshot
-- **WHEN** a `FetchOutcome.Success` for (lucerne, icon_d2) arrives
-- **THEN** the snapshot is updated with that forecast and emitted downstream
+- **WHEN** a `FetchOutcome.Success` arrives
+- **THEN** the `ModelSnapshot` is updated and broadcast to both branches
 
 #### Scenario: Failure does not change the snapshot
 - **WHEN** a `FetchOutcome.Failure` arrives
-- **THEN** the snapshot remains unchanged and no element is emitted
+- **THEN** the `ModelSnapshot` remains unchanged
 
 #### Scenario: Unchanged data is filtered
-- **WHEN** a `FetchOutcome.Success` arrives with data identical to what is already in the snapshot
-- **THEN** `HasChanged` is `false` and the snapshot is not emitted to consumers
+- **WHEN** a `FetchOutcome.Success` arrives with identical data
+- **THEN** downstream receives no update
 
 #### Scenario: No Ingest namespace import in Enrichment
-- **WHEN** the codebase is compiled
-- **THEN** no file under Njord.Enrichment contains `using Njord.Ingest`
+- **WHEN** the EnrichmentActor source is inspected
+- **THEN** it SHALL NOT import any namespace from `Njord.Ingest`
 
 ### Requirement: The EnrichmentActor fans out via a second BroadcastHub
 The `EnrichmentActor` SHALL materialize a `BroadcastHub.Sink<ModelSnapshot>` with a buffer size of 8 from the Scan output to distribute rolling snapshots to enrichment features. Consumer streams SHALL each independently subscribe to this BroadcastHub. Each consumer SHALL receive every changed snapshot. The `ModelSnapshot.Update()` method SHALL use `ImmutableDictionary` with structural sharing instead of cloning a mutable `Dictionary` on every update.
@@ -61,58 +62,67 @@ The `EnrichmentActor` SHALL materialize a `BroadcastHub.Sink<ModelSnapshot>` wit
 
 ### Requirement: EnrichmentActor fans out enrichment results to EgressActor
 
-Each enrichment consumer sub-graph SHALL produce `EgressEvent.EnrichmentUpdate`
-instances (carrying `Location`, `TypeName`, and `Result`) and send them to the
-EgressActor's MergeHub via `ISinkRef<EgressEvent>`. The `EnrichmentActor` SHALL
-NOT contain type-specific Materialize methods — all dispatch is via the feature
-registry.
+The enrichment inline flow SHALL consume `ConsensusSnapshot` (not `ModelSnapshot`) and produce `EgressEvent` messages sent to the `EgressActor`.
 
 #### Scenario: Enrichment produces EnrichmentUpdate
-- **WHEN** any enrichment feature computes a result for location "lucerne"
-- **THEN** it SHALL emit `EgressEvent.EnrichmentUpdate("lucerne", feature.TypeName, result)`
-  into the EgressActor's MergeHub
+- **WHEN** a `ConsensusSnapshot` flows through the enrichment inline flow
+- **THEN** each enabled enrichment produces `EgressEvent.EnrichmentUpdate`
 
 #### Scenario: No type-specific Materialize methods
-- **WHEN** the `EnrichmentActor` source file is inspected
-- **THEN** it SHALL NOT contain methods named `MaterializeConsensusConsumer`,
-  `MaterializeAlertConsumer`, `MaterializeDerivedConsumer`,
-  `MaterializeTrendConsumer`, `MaterializeIndexConsumer`,
-  `MaterializeEnergyConsumer`, or `MaterializeHistoryConsumer`
+- **WHEN** the `EnrichmentActor` source is inspected
+- **THEN** there SHALL be no per-enrichment-type materialization methods
 
 #### Scenario: No MQTT dependency
-- **WHEN** the `EnrichmentActor` source file is compiled
-- **THEN** it SHALL have no `using Njord.Mqtt` directive and no reference to `MqttMessage`, `MqttSinkResponse`, `RequestMqttSink`, or any other `Njord.Mqtt` type
+- **WHEN** the `EnrichmentActor` project references are inspected
+- **THEN** there SHALL be no reference to MQTTnet
+
+### Requirement: The EnrichmentActor pipeline broadcasts ModelSnapshot before consensus
+
+The stream graph SHALL broadcast the `ModelSnapshot` to two outputs: one for History (raw) and one for the consensus `Select` stage. The consensus stage output SHALL feed the enrichment inline flow.
+
+#### Scenario: History receives raw ModelSnapshot
+- **WHEN** a `ModelSnapshot` is broadcast
+- **THEN** the History branch receives the unmodified `ModelSnapshot`
+
+#### Scenario: Enrichments receive ConsensusSnapshot
+- **WHEN** a `ModelSnapshot` is broadcast
+- **THEN** the enrichment branch receives `ConsensusSnapshot` instances produced by the consensus `Select` stage
+
+#### Scenario: Consensus stage is a Select transformation
+- **WHEN** the stream graph is inspected
+- **THEN** the consensus stage SHALL be a `Select` (map), not an actor or separate materialization
 
 ### Requirement: Consumer streams are materialized only when enabled
-The `EnrichmentActor` SHALL iterate over all `IEnrichmentFeature` instances
-received via DI. For each feature where `Enabled` is `true`, the actor SHALL
-materialise the appropriate consumer stream based on the feature's interface
-type:
-- `IStatelessEnrichment<T>`: `SelectMany(snapshot => feature.Compute(snapshot, locations))`
-- `IStatefulEnrichment<T>`: `Scan` to pair current/previous, then `SelectMany(pair => feature.Compute(...))`
-- `IActorEnrichment`: delegate to `feature.Materialize(source, sink, mat, context)`
 
-For features where `Enabled` is `false`, no consumer stream SHALL be
-materialised.
+Enrichment consumer streams SHALL be materialized only for enabled features. The consensus `Select` stage SHALL always be materialized (it is not toggleable). History materialization is unchanged.
 
 #### Scenario: Disabled feature is not materialized
-- **WHEN** an `IEnrichmentFeature` has `Enabled` set to `false`
-- **THEN** no consumer stream is materialised for that feature
+- **WHEN** `EnrichmentOptions.Alerts.Enabled` is false
+- **THEN** no alert consumer stream is materialized
 
 #### Scenario: Enabled stateless feature is materialized via loop
-- **WHEN** an `IStatelessEnrichment<T>` has `Enabled` set to `true`
-- **THEN** a consumer stream is materialised using
-  `SelectMany(snapshot => feature.Compute(snapshot, locations))`
+- **WHEN** `EnrichmentOptions.Alerts.Enabled` is true
+- **THEN** the alert consumer stream is materialized consuming `ConsensusSnapshot`
 
 #### Scenario: Enabled stateful feature uses Scan pairing
-- **WHEN** an `IStatefulEnrichment<T>` has `Enabled` set to `true`
-- **THEN** a consumer stream is materialised with a `Scan` operator carrying
-  the previous snapshot and calling `feature.Compute(snapshot, previous, locations)`
+- **WHEN** `EnrichmentOptions.Trends.Enabled` is true
+- **THEN** the trend consumer uses Scan to pair current and previous `ConsensusSnapshot`
 
 #### Scenario: Enabled actor feature delegates materialisation
-- **WHEN** an `IActorEnrichment` has `Enabled` set to `true`
-- **THEN** the actor calls `feature.Materialize(source, sink, mat, context)`
-  and does not wire the stream itself
+- **WHEN** `EnrichmentOptions.History.Enabled` is true
+- **THEN** the history consumer is materialized on the raw `ModelSnapshot` branch
+
+### Requirement: Consensus egress events originate from the consensus stage
+
+The consensus stage SHALL emit `EgressEvent.ConsensusUpdate` directly to the `EgressActor`, separate from the enrichment inline flow.
+
+#### Scenario: ConsensusUpdate reaches EgressActor
+- **WHEN** the consensus `Select` stage produces `ConsensusSnapshot` instances
+- **THEN** corresponding `EgressEvent.ConsensusUpdate` events SHALL be sent to the `EgressActor`
+
+#### Scenario: Consensus egress does not flow through enrichment inline flow
+- **WHEN** the enrichment inline flow processes enrichments
+- **THEN** it SHALL NOT produce consensus-related `EgressEvent` messages
 
 ### Requirement: Enrichment streams sink to EgressActor instead of MergeHub
 
@@ -127,11 +137,12 @@ Each enrichment consumer stream SHALL use `RunWith(egressSinkRef.Sink, mat)` to 
 - **THEN** the enrichment sub-graph SHALL still emit it — dedup is downstream
 
 ### Requirement: Stream supervision resumes on consumer errors
-Each consumer stream SHALL use a supervision strategy that resumes on exceptions. A failure in one consumer's computation SHALL NOT terminate other consumer streams or the snapshot BroadcastHub.
+
+The stream supervision strategy SHALL resume on consumer exceptions without killing the pipeline.
 
 #### Scenario: Consumer exception does not kill the pipeline
-- **WHEN** the consensus consumer throws during one computation
-- **THEN** the stream resumes and processes the next snapshot; other consumers are unaffected
+- **WHEN** an enrichment consumer throws an exception
+- **THEN** the stream resumes and other consumers are unaffected
 
 ### Requirement: The EnrichmentActor materializes an alert consumer stream when enabled
 The `EnrichmentActor` SHALL materialize an alert consumer stream when `EnrichmentOptions.Alerts.Enabled` is `true`. The stream SHALL subscribe to the `BroadcastHub<ModelSnapshot>`, evaluate all alert types via `AlertEvaluator`, wrap results in the corresponding `EgressEvent` variant, and sink into the EgressActor's SinkRef. If `Alerts.Enabled` is `false`, no alert consumer stream SHALL be materialized.

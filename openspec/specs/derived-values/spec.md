@@ -156,19 +156,20 @@ Pure-function derived weather values computed from model forecast data: Beaufort
 - **THEN** the result is null
 
 ### Requirement: DerivedResult aggregates all derived values and serializes to MQTT
-`DerivedResult` SHALL be a record holding the location, per-horizon derived values (Beaufort, wind chill, dew-point comfort, WMO description), and scalar values (diurnal amplitude, sunshine percentage, inversion detected). It SHALL expose a static `Compute` method that takes a `ModelSnapshot`, location, horizons, parameter set, and `TimeProvider`, and computes all derived values using median across models at each horizon. It SHALL expose `ToMqttMessages(baseTopic)` that produces `MqttMessage` list: one per horizon (JSON with `beaufort`, `wind_chill`, `dewpoint_comfort`, `wmo_description`) plus one meta message (JSON with `diurnal_amplitude`, `sunshine_pct`, `inversion`).
+
+`DerivedResult.Compute` SHALL accept a `ConsensusSnapshot` instead of `ModelSnapshot`. Beaufort, wind chill, dew-point comfort, WMO description, diurnal amplitude, sunshine percentage, and inversion detection SHALL all be computed from consensus median values at configured horizons.
 
 #### Scenario: Horizon message content
-- **WHEN** ToMqttMessages is called for location "lucerne" with baseTopic "njord" and horizon h3
-- **THEN** one message has topic `njord/lucerne/derived/h3` with JSON keys `beaufort`, `wind_chill`, `dewpoint_comfort`, `wmo_description`
+- **WHEN** derived values are computed from `ConsensusSnapshot.Hourly` medians at horizon h6
+- **THEN** the MQTT message for h6 contains beaufort, wind_chill, dewpoint_comfort, and wmo_description
 
 #### Scenario: Meta message content
-- **WHEN** ToMqttMessages is called for location "lucerne" with baseTopic "njord"
-- **THEN** one message has topic `njord/lucerne/derived/meta` with JSON keys `diurnal_amplitude`, `sunshine_pct`, `inversion`
+- **WHEN** derived scalar values are computed from `ConsensusSnapshot.Hourly`
+- **THEN** the meta MQTT message contains diurnal_amplitude, sunshine_pct, and inversion
 
 #### Scenario: Null values serialize as JSON null
-- **WHEN** wind chill is null for a horizon (T > 10 °C)
-- **THEN** the JSON payload contains `"wind_chill": null`
+- **WHEN** a consensus median is null for a parameter at a horizon
+- **THEN** the derived value for that parameter is null in the JSON payload
 
 ### Requirement: DerivedResult serialization with pinned wire names
 `DerivedResult`, `HorizonDerived`, and `ScalarDerived` records SHALL have `[property: JsonProperty("...")]` on all positional parameters producing camelCase wire names.

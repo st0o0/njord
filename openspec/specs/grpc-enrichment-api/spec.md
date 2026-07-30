@@ -47,20 +47,21 @@ energy, derived values, history, consensus). Backed by the
 - **THEN** the `IndexUpdate` SHALL contain laundry, outdoor, running, cycling, bbq, irrigation, solar, ventilation scores plus HDD, CDD, frost protection, and VPD
 
 ### Requirement: Proto messages map all enrichment domain types
-The proto definition SHALL include messages for all 7 enrichment types with full fidelity to the domain Result records. `EnrichmentProtoMapper.MapConsensus` SHALL map both the hourly `Parameters` and the `DailySummaries` from `ConsensusResult` to the proto `ConsensusUpdate` (fields `parameters` and `daily` respectively).
+
+The `ConsensusUpdate` proto message SHALL carry hourly and daily parameter consensus. The `daily_summaries` field (which mapped `DailyConsensusSummary`) SHALL be deprecated. Daily consensus SHALL be represented as `ParameterConsensus` entries in a `daily_parameters` repeated field with `dN` horizon keys.
 
 #### Scenario: AlertUpdate carries 9 alert types
-- **WHEN** an `AlertUpdate` is serialized
-- **THEN** it SHALL contain up to 9 alerts each with type (enum), severity (enum), and confidence (double)
+- **WHEN** an alert update is mapped to proto
+- **THEN** all 9 alert types are represented
 
 #### Scenario: TrendUpdate carries parameter trends and timing
-- **WHEN** a `TrendUpdate` is serialized
-- **THEN** it SHALL contain parameter trends (direction + delta), precipitation timing (starts/ends in hours), extrema timing, stability, and decay rate
+- **WHEN** a trend update is mapped to proto
+- **THEN** parameter trends, precipitation timing, and extrema timing are included
 
 #### Scenario: ConsensusUpdate carries per-parameter per-horizon data
-- **WHEN** a `ConsensusUpdate` is serialized
-- **THEN** it SHALL contain per-parameter entries, each with per-horizon consensus values (median, spread, agreement, available model count)
+- **WHEN** a `ConsensusSnapshot` is mapped to `ConsensusUpdate`
+- **THEN** `parameters` contains hourly `ParameterConsensus` with `hN` horizon keys and `daily_parameters` contains daily `ParameterConsensus` with `dN` horizon keys
 
-#### Scenario: ConsensusUpdate carries daily summaries
-- **WHEN** a `ConsensusUpdate` is serialized and the domain `ConsensusResult` contains `DailySummaries`
-- **THEN** the proto `ConsensusUpdate.daily` SHALL contain one `DailyConsensus` entry per calendar day with temperature_max, temperature_min, precipitation_sum, wind_speed_max, weather_code, spread, agreement, and available_models
+#### Scenario: ConsensusUpdate no longer carries daily summaries
+- **WHEN** a `ConsensusSnapshot` is mapped to `ConsensusUpdate`
+- **THEN** the `daily_summaries` field SHALL be empty (deprecated)

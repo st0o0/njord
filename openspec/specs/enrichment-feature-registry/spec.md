@@ -21,30 +21,25 @@ The system SHALL define an `IEnrichmentFeature` interface with properties
 - **WHEN** `EnrichmentOptions.Consensus.Enabled` is `false`
 - **THEN** the `ConsensusEnrichment.Enabled` property SHALL return `false`
 
-### Requirement: IStatelessEnrichment defines snapshot-in events-out computation
-The system SHALL define `IStatelessEnrichment<TResult> : IEnrichmentFeature`
-with a method `Compute(ModelSnapshot snapshot, IReadOnlyList<string> locations)`
-returning `IEnumerable<EgressEvent>`. The method SHALL iterate over locations,
-compute the result per location, and wrap each in an `EgressEvent.EnrichmentUpdate`.
+### Requirement: IStatelessEnrichment defines consensus-in events-out computation
 
-#### Scenario: Stateless enrichment produces one event per location
-- **WHEN** `Compute` is called with a snapshot and 2 locations
-- **THEN** it SHALL return 2 `EgressEvent.EnrichmentUpdate` instances, one per
-  location
+`IStatelessEnrichment.Compute` SHALL accept a single `ConsensusSnapshot` parameter (which includes the location) and return `IEnumerable<EgressEvent>`.
+
+#### Scenario: Stateless enrichment produces events from ConsensusSnapshot
+- **WHEN** a stateless enrichment's `Compute` is called with a `ConsensusSnapshot`
+- **THEN** it produces `EgressEvent` instances using consensus data from `ConsensusSnapshot.Location`
 
 ### Requirement: IStatefulEnrichment defines diff-based computation
-The system SHALL define `IStatefulEnrichment<TResult> : IEnrichmentFeature`
-with a method `Compute(ModelSnapshot snapshot, ModelSnapshot? previous,
-IReadOnlyList<string> locations)` returning `IEnumerable<EgressEvent>`. When
-`previous` is `null`, the method SHALL return an empty sequence.
+
+`IStatefulEnrichment.Compute` SHALL accept a `ConsensusSnapshot` and a nullable `ConsensusSnapshot?` previous parameter.
 
 #### Scenario: First snapshot produces no output
-- **WHEN** `Compute` is called with `previous` as `null`
-- **THEN** it SHALL return an empty sequence
+- **WHEN** `Compute` is called with `previous` as null
+- **THEN** no events are produced
 
 #### Scenario: Subsequent snapshot produces trend events
-- **WHEN** `Compute` is called with both `snapshot` and `previous` non-null
-- **THEN** it SHALL return one `EgressEvent.EnrichmentUpdate` per location
+- **WHEN** `Compute` is called with both current and previous `ConsensusSnapshot`
+- **THEN** trend events are produced comparing the two
 
 ### Requirement: IActorEnrichment defines actor-driven computation
 The system SHALL define `IActorEnrichment : IEnrichmentFeature` with a method
@@ -74,18 +69,20 @@ instead of individual parameters.
   `pollInterval`, `version` parameters
 
 ### Requirement: Features are registered via DI
-All enrichment feature implementations SHALL be registered as
-`IEnrichmentFeature` singletons in the DI container. Actors SHALL receive
-`IEnumerable<IEnrichmentFeature>` via constructor injection.
 
-#### Scenario: All 7 features are discoverable
-- **WHEN** `IEnumerable<IEnrichmentFeature>` is resolved from the container
-- **THEN** it SHALL contain 7 instances with unique `TypeName` values
+All enrichment features SHALL be registered as `IEnrichmentFeature` singletons via DI. Consensus SHALL NOT be registered as an `IEnrichmentFeature` — it is a pipeline stage, not an enrichment.
+
+#### Scenario: 6 enrichment features are discoverable
+- **WHEN** `IEnumerable<IEnrichmentFeature>` is resolved from the DI container
+- **THEN** exactly 6 features are returned: alerts, derived, trends, indices, energy, history
+
+#### Scenario: Consensus is not in the feature registry
+- **WHEN** `IEnumerable<IEnrichmentFeature>` is resolved
+- **THEN** no feature with `TypeName` "consensus" SHALL be present
 
 #### Scenario: Feature receives its dependencies via DI
-- **WHEN** `ConsensusEnrichment` is constructed
-- **THEN** it SHALL receive `ResolvedParameterSet`, horizons, `TimeProvider`,
-  and `ConsensusOptions` via constructor — not via `Compute` parameters
+- **WHEN** an enrichment feature is constructed
+- **THEN** it receives `IOptions`, `TimeProvider`, and other dependencies via constructor injection
 
 ### Requirement: Device envelope helper eliminates boilerplate
 The system SHALL provide a `BuildDeviceEnvelope(string deviceId, string location,
