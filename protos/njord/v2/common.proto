@@ -242,19 +242,7 @@ message ParameterConsensus {
   repeated HorizonConsensus by_horizon = 3;
 }
 
-message DailyConsensus {
-  string date = 1;
-  optional double temperature_max = 2;
-  optional double temperature_min = 3;
-  optional double precipitation_sum = 4;
-  optional double wind_speed_max = 5;
-  optional int32 weather_code = 6;
-  optional double spread = 7;
-  optional double agreement = 8;
-  int32 available_models = 9;
-}
-
 message ConsensusUpdate {
-  repeated ParameterConsensus parameters = 1;
-  repeated DailyConsensus daily = 2;
+  repeated ParameterConsensus hourly_parameters = 1;
+  repeated ParameterConsensus daily_parameters = 2;
 }

@@ -1,13 +1,11 @@
 using Njord.Domain.Analysis;
 using Njord.Grpc.V2;
-
 using DomainAlertType = Njord.Domain.Analysis.AlertType;
 using DomainAlertSeverity = Njord.Domain.Analysis.AlertSeverity;
 using ProtoAlertType = Njord.Grpc.V2.AlertType;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
 using ProtoHorizonConsensus = Njord.Grpc.V2.HorizonConsensus;
 using ProtoParameterConsensus = Njord.Grpc.V2.ParameterConsensus;
-using ProtoDailyConsensus = Njord.Grpc.V2.DailyConsensus;
 using ProtoHorizonDerived = Njord.Grpc.V2.HorizonDerived;
 using ProtoScalarDerived = Njord.Grpc.V2.ScalarDerived;
 using ProtoParameterTrend = Njord.Grpc.V2.ParameterTrend;
@@ -29,11 +27,24 @@ public static class EnrichmentProtoMapper
                 TriggerValue = alert.TriggerValue,
                 Threshold = alert.Threshold,
             };
-            if (alert.PeakValue is { } pv) protoAlert.PeakValue = pv;
-            if (alert.HoursUntil is { } hu) protoAlert.HoursUntil = hu;
-            if (alert.DurationHours is { } dh) protoAlert.DurationHours = dh;
+            if (alert.PeakValue is { } pv)
+            {
+                protoAlert.PeakValue = pv;
+            }
+
+            if (alert.HoursUntil is { } hu)
+            {
+                protoAlert.HoursUntil = hu;
+            }
+
+            if (alert.DurationHours is { } dh)
+            {
+                protoAlert.DurationHours = dh;
+            }
+
             update.Alerts.Add(protoAlert);
         }
+
         return update;
     }
 
@@ -307,26 +318,54 @@ public static class EnrichmentProtoMapper
                 proto.ByHorizon.Add(protoHorizon);
             }
 
-            update.Parameters.Add(proto);
+            update.HourlyParameters.Add(proto);
         }
 
-        foreach (var summary in result.DailySummaries)
+        foreach (var paramConsensus in result.DailyParameters)
         {
-            var daily = new ProtoDailyConsensus
+            var proto = new ProtoParameterConsensus
             {
-                Date = summary.Date.ToString("yyyy-MM-dd"),
-                AvailableModels = summary.AvailableModels,
+                Parameter = paramConsensus.Parameter.ApiName,
+                Unit = paramConsensus.Parameter.Unit,
             };
 
-            if (summary.TemperatureMax is { } tMax) daily.TemperatureMax = tMax;
-            if (summary.TemperatureMin is { } tMin) daily.TemperatureMin = tMin;
-            if (summary.PrecipitationSum is { } ps) daily.PrecipitationSum = ps;
-            if (summary.WindSpeedMax is { } ws) daily.WindSpeedMax = ws;
-            if (summary.WeatherCode is { } wc) daily.WeatherCode = wc;
-            if (summary.Spread is { } sp) daily.Spread = sp;
-            if (summary.Agreement is { } ag) daily.Agreement = ag;
+            foreach (var (horizonKey, horizon) in paramConsensus.ByHorizon)
+            {
+                var protoHorizon = new ProtoHorizonConsensus
+                {
+                    Horizon = horizonKey,
+                    AvailableModels = horizon.AvailableModels.Count,
+                };
 
-            update.Daily.Add(daily);
+                if (horizon.Median is { } med)
+                {
+                    protoHorizon.Median = med;
+                }
+
+                if (horizon.TrimmedMean is { } tm)
+                {
+                    protoHorizon.TrimmedMean = tm;
+                }
+
+                if (horizon.Spread is { } s)
+                {
+                    protoHorizon.Spread = s;
+                }
+
+                if (horizon.Iqr is { } iqr)
+                {
+                    protoHorizon.Iqr = iqr;
+                }
+
+                if (horizon.Agreement is { } ag)
+                {
+                    protoHorizon.Agreement = ag;
+                }
+
+                proto.ByHorizon.Add(protoHorizon);
+            }
+
+            update.DailyParameters.Add(proto);
         }
 
         return update;

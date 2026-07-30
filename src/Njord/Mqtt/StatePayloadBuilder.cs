@@ -16,12 +16,12 @@ public static class StatePayloadBuilder
         => HorizonProjection.BuildPerHorizon(forecast, parameters, horizons, forecastDays, anchorTime);
 
     public static IReadOnlyList<MqttMessage> FromConsensus(
-        ConsensusResult result, string baseTopic, string location)
+        ConsensusSnapshot consensus, string baseTopic, string location)
     {
         var messages = new List<MqttMessage>();
 
-        EmitConsensusMessages(result.Parameters, baseTopic, location, messages);
-        EmitConsensusMessages(result.DailyParameters, baseTopic, location, messages);
+        EmitConsensusMessages(consensus.Hourly.Parameters, baseTopic, location, messages);
+        EmitConsensusMessages(consensus.Daily.Parameters, baseTopic, location, messages);
 
         return messages;
     }
@@ -82,11 +82,19 @@ public static class StatePayloadBuilder
             };
 
             if (alert.PeakValue is { } pv)
+            {
                 payload["peak_value"] = JsonValue.Create(pv);
+            }
+
             if (alert.HoursUntil is { } hu)
+            {
                 payload["hours_until"] = JsonValue.Create(hu);
+            }
+
             if (alert.DurationHours is { } dh)
+            {
                 payload["duration_hours"] = JsonValue.Create(dh);
+            }
 
             foreach (var (attrKey, attrValue) in alert.Attributes)
             {
@@ -212,7 +220,9 @@ public static class StatePayloadBuilder
     private static void AddEnvelope(JsonObject payload, string key, ScoreEnvelope? envelope)
     {
         if (envelope is null)
+        {
             return;
+        }
 
         payload[$"{key}_min"] = envelope.Min;
         payload[$"{key}_max"] = envelope.Max;

@@ -53,10 +53,15 @@ public static class EnrichmentSnapshotMapping
         foreach (var (key, entry) in dto.Enrichments)
         {
             if (!EnrichmentTypes.TryGetValue(entry.TypeName, out var type))
+            {
                 continue;
+            }
+
             var value = JsonConvert.DeserializeObject(entry.JsonPayload, type, JsonSettings);
             if (value is not null)
+            {
                 state[key] = value;
+            }
         }
         return state;
     }
