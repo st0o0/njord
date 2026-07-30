@@ -46,7 +46,6 @@ public sealed class OpenMeteoClientSpec
         Assert.Equal(IconEu, forecast.Model);
         Assert.Equal("home", forecast.Location);
         Assert.Equal(Cycle, forecast.Cycle);
-        Assert.Equal(TimeZoneInfo.FindSystemTimeZoneById("GMT"), forecast.TimeZone);
         Assert.Equal(96, forecast.Hourly.Points.Count);
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var first = forecast.Hourly.Points[0];
@@ -73,7 +72,7 @@ public sealed class OpenMeteoClientSpec
         Assert.Contains("temperature_2m", uri);
         Assert.Contains("wind_speed_unit=ms", uri);
         Assert.Contains("timeformat=unixtime", uri);
-        Assert.Contains("timezone=auto", uri);
+        Assert.Contains("timezone=UTC", uri);
         Assert.Contains("forecast_days=4", uri);
         Assert.Contains("daily=", uri);
         Assert.Empty(request.Headers);
@@ -246,7 +245,7 @@ public sealed class OpenMeteoClientSpec
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Unrecognized_timezone_in_response_maps_to_malformed_payload()
+    public async Task Unrecognized_timezone_in_response_is_ignored()
     {
         var body = """
             {
@@ -259,9 +258,7 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        var failure = Assert.IsType<FetchOutcome.Failure>(outcome);
-        Assert.Equal(FetchFailureReason.MalformedPayload, failure.Reason);
-        Assert.Contains("Invalid/Zone", failure.Detail);
+        Assert.IsType<FetchOutcome.Success>(outcome);
     }
 
     [Fact(Timeout = 5000)]
@@ -278,7 +275,6 @@ public sealed class OpenMeteoClientSpec
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchOutcome.Success>(outcome);
-        Assert.Equal(TimeZoneInfo.Utc, success.Forecast.TimeZone);
     }
 
     [Fact(Timeout = 5000)]

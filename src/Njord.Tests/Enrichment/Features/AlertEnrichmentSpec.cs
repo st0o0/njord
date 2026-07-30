@@ -32,7 +32,7 @@ public sealed class AlertEnrichmentSpec
             new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?> { [Temperature] = 20.0 }))
             .ToList();
         var forecast = new ModelForecast(new("icon_d2"), "lucerne", new CycleId(T0),
-            new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+            new ForecastSeries(points), DailyForecastSeries.Empty);
         return ModelSnapshot.Empty.Update(forecast);
     }
 
@@ -72,7 +72,7 @@ public sealed class AlertEnrichmentSpec
             new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?> { [Temperature] = -5.0 }))
             .ToList();
         var forecast = new ModelForecast(new("icon_d2"), "lucerne", new CycleId(T0),
-            new ForecastSeries(frostPoints), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+            new ForecastSeries(frostPoints), DailyForecastSeries.Empty);
         var snapshot = ModelSnapshot.Empty.Update(forecast);
 
         var events = feature.Compute(snapshot, ["lucerne"]).ToList();

@@ -158,7 +158,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 }),
         };
         return new ModelForecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
-            new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+            new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
     private sealed class EmptyForecastActor : ReceiveActor

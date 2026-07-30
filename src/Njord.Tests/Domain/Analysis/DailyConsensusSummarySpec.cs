@@ -39,7 +39,7 @@ public sealed class DailyConsensusSummarySpec
             ["h4"] = 22.0,
         });
 
-        var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
+        var summaries = DailyConsensusSummary.Aggregate(consensus, Now);
 
         var day = Assert.Single(summaries);
         Assert.Equal(30.0, day.TemperatureMax);
@@ -53,7 +53,7 @@ public sealed class DailyConsensusSummarySpec
             (Temperature, new Dictionary<string, double> { ["h0"] = 20, ["h1"] = 21, ["h2"] = 22, ["h3"] = 23, ["h4"] = 24 }),
             (Precipitation, new Dictionary<string, double> { ["h0"] = 0.0, ["h1"] = 0.5, ["h2"] = 1.2, ["h3"] = 0.3, ["h4"] = 0.0 }));
 
-        var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
+        var summaries = DailyConsensusSummary.Aggregate(consensus, Now);
 
         var day = Assert.Single(summaries);
         Assert.Equal(2.0, day.PrecipitationSum);
@@ -66,7 +66,7 @@ public sealed class DailyConsensusSummarySpec
             (Temperature, new Dictionary<string, double> { ["h0"] = 20, ["h1"] = 21 }),
             (WindSpeed, new Dictionary<string, double> { ["h0"] = 3.0, ["h1"] = 8.0 }));
 
-        var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
+        var summaries = DailyConsensusSummary.Aggregate(consensus, Now);
 
         var day = Assert.Single(summaries);
         Assert.Equal(8.0, day.WindSpeedMax);
@@ -80,7 +80,7 @@ public sealed class DailyConsensusSummarySpec
             (Temperature, new Dictionary<string, double> { ["h0"] = 20, ["h1"] = 21, ["h2"] = 22, ["h3"] = 23, ["h4"] = 24, ["h5"] = 25, ["h6"] = 26 }),
             (WeatherCode, new Dictionary<string, double> { ["h0"] = 3, ["h1"] = 3, ["h2"] = 3, ["h3"] = 3, ["h4"] = 3, ["h5"] = 80, ["h6"] = 61 }));
 
-        var summaries = DailyConsensusSummary.Aggregate(consensus, nowMorning, TimeZoneInfo.Utc);
+        var summaries = DailyConsensusSummary.Aggregate(consensus, nowMorning);
 
         var day = Assert.Single(summaries);
         Assert.Equal(61, day.WeatherCode);
@@ -99,7 +99,7 @@ public sealed class DailyConsensusSummarySpec
                 ["h4"] = (21, 2.0),
             });
 
-        var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
+        var summaries = DailyConsensusSummary.Aggregate(consensus, Now);
 
         var day = Assert.Single(summaries);
         Assert.Equal(2.8, day.Spread);
@@ -118,7 +118,7 @@ public sealed class DailyConsensusSummarySpec
                 ["h4"] = (21, 0.9),
             });
 
-        var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
+        var summaries = DailyConsensusSummary.Aggregate(consensus, Now);
 
         var day = Assert.Single(summaries);
         Assert.Equal(0.83, day.Agreement);
@@ -139,7 +139,7 @@ public sealed class DailyConsensusSummarySpec
         var consensus = new ConsensusResult(
             [new ParameterConsensus(Temperature, horizons)]);
 
-        var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
+        var summaries = DailyConsensusSummary.Aggregate(consensus, Now);
 
         var day = Assert.Single(summaries);
         Assert.Equal(6, day.AvailableModels);
@@ -154,7 +154,7 @@ public sealed class DailyConsensusSummarySpec
             ["h1"] = 25,
         });
 
-        var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
+        var summaries = DailyConsensusSummary.Aggregate(consensus, Now);
 
         var day = Assert.Single(summaries);
         Assert.Null(day.PrecipitationSum);
@@ -163,7 +163,7 @@ public sealed class DailyConsensusSummarySpec
     }
 
     [Fact(Timeout = 5000)]
-    public void Horizons_grouped_by_timezone_calendar_day()
+    public void Horizons_grouped_by_utc_calendar_day()
     {
         var nowEvening = new DateTimeOffset(2026, 7, 29, 20, 0, 0, TimeSpan.Zero);
         var consensus = BuildConsensus(Temperature, new Dictionary<string, double>
@@ -179,14 +179,15 @@ public sealed class DailyConsensusSummarySpec
             ["h8"] = 25,
         });
 
-        var summaries = DailyConsensusSummary.Aggregate(consensus, nowEvening, Cest);
+        var summaries = DailyConsensusSummary.Aggregate(consensus, nowEvening);
 
         Assert.Equal(2, summaries.Count);
         var today = summaries.First(s => s.Date == new DateOnly(2026, 7, 29));
         var tomorrow = summaries.First(s => s.Date == new DateOnly(2026, 7, 30));
         Assert.Equal(25, today.TemperatureMax);
-        Assert.Equal(24, today.TemperatureMin);
+        Assert.Equal(22, today.TemperatureMin);
         Assert.Equal(25, tomorrow.TemperatureMax);
+        Assert.Equal(19, tomorrow.TemperatureMin);
     }
 
     [Fact(Timeout = 5000)]
@@ -194,7 +195,7 @@ public sealed class DailyConsensusSummarySpec
     {
         var consensus = new ConsensusResult([]);
 
-        var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
+        var summaries = DailyConsensusSummary.Aggregate(consensus, Now);
 
         Assert.Empty(summaries);
     }
@@ -208,7 +209,7 @@ public sealed class DailyConsensusSummarySpec
             ["h1"] = 25,
         });
 
-        var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
+        var summaries = DailyConsensusSummary.Aggregate(consensus, Now);
 
         var day = Assert.Single(summaries);
         Assert.Equal(new DateOnly(2026, 7, 29), day.Date);

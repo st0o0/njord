@@ -46,9 +46,9 @@ public sealed class ConsensusEnrichmentSpec
             .ToList();
         return ModelSnapshot.Empty
             .Update(new ModelForecast(new("icon_d2"), "lucerne", new CycleId(T0),
-                new ForecastSeries(points1), DailyForecastSeries.Empty, TimeZoneInfo.Utc))
+                new ForecastSeries(points1), DailyForecastSeries.Empty))
             .Update(new ModelForecast(new("gfs_seamless"), "lucerne", new CycleId(T0),
-                new ForecastSeries(points2), DailyForecastSeries.Empty, TimeZoneInfo.Utc));
+                new ForecastSeries(points2), DailyForecastSeries.Empty));
     }
 
     [Fact(Timeout = 5000)]

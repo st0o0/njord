@@ -122,7 +122,6 @@ public static class ForecastSnapshotMapping
             dto.Location,
             new CycleId(new DateTimeOffset(dto.CycleUtcTicks, TimeSpan.Zero)),
             new ForecastSeries(hourlyPoints),
-            new DailyForecastSeries(dailyPoints),
-            TimeZoneInfo.Utc);
+            new DailyForecastSeries(dailyPoints));
     }
 }

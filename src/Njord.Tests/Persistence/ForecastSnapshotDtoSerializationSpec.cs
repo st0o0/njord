@@ -18,7 +18,7 @@ public sealed class ForecastSnapshotDtoSerializationSpec
             new WeatherModel("icon_d2"), "lucerne", new CycleId(TestTime),
             new ForecastSeries([new ForecastPoint(TestTime.AddHours(3),
                 new Dictionary<ParameterDef, double?> { [temp] = 28.8 })]),
-            DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+            DailyForecastSeries.Empty);
 
         var state = new Dictionary<string, ModelForecast> { ["lucerne|icon_d2"] = forecast };
         var dto = ForecastSnapshotMapping.ToDto(state);
@@ -34,7 +34,7 @@ public sealed class ForecastSnapshotDtoSerializationSpec
             new WeatherModel("icon_d2"), "lucerne", new CycleId(TestTime),
             new ForecastSeries([new ForecastPoint(TestTime.AddHours(3),
                 new Dictionary<ParameterDef, double?> { [temp] = 28.8 })]),
-            DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+            DailyForecastSeries.Empty);
 
         var state = new Dictionary<string, ModelForecast> { ["lucerne|icon_d2"] = forecast };
         var dto = ForecastSnapshotMapping.ToDto(state);

@@ -27,7 +27,7 @@ public sealed class HorizonProjectionSpec
         ]);
 
         return new ModelForecast(new WeatherModel("icon_eu"), "home", new CycleId(Anchor),
-            new ForecastSeries(points), daily, TimeZoneInfo.Utc);
+            new ForecastSeries(points), daily);
     }
 
     [Fact(Timeout = 5000)]
@@ -107,7 +107,7 @@ public sealed class HorizonProjectionSpec
             new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 20.0, [wind] = null }),
         };
         var forecast = new ModelForecast(new WeatherModel("icon_eu"), "home", new CycleId(Anchor),
-            new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+            new ForecastSeries(points), DailyForecastSeries.Empty);
 
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [3], 0, Anchor);
 
@@ -125,7 +125,7 @@ public sealed class HorizonProjectionSpec
             new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = null }),
         };
         var forecast = new ModelForecast(new WeatherModel("icon_eu"), "home", new CycleId(Anchor),
-            new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+            new ForecastSeries(points), DailyForecastSeries.Empty);
 
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [3], 0, Anchor);
 
