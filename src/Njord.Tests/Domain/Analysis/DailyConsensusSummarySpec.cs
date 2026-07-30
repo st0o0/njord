@@ -32,7 +32,11 @@ public sealed class DailyConsensusSummarySpec
     {
         var consensus = BuildConsensus(Temperature, new Dictionary<string, double>
         {
-            ["h0"] = 20.0, ["h1"] = 25.0, ["h2"] = 30.0, ["h3"] = 28.0, ["h4"] = 22.0,
+            ["h0"] = 20.0,
+            ["h1"] = 25.0,
+            ["h2"] = 30.0,
+            ["h3"] = 28.0,
+            ["h4"] = 22.0,
         });
 
         var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
@@ -88,7 +92,11 @@ public sealed class DailyConsensusSummarySpec
         var consensus = BuildConsensusWithSpread(
             new Dictionary<string, (double Median, double Spread)>
             {
-                ["h0"] = (20, 2.0), ["h1"] = (22, 3.0), ["h2"] = (24, 4.0), ["h3"] = (23, 3.0), ["h4"] = (21, 2.0),
+                ["h0"] = (20, 2.0),
+                ["h1"] = (22, 3.0),
+                ["h2"] = (24, 4.0),
+                ["h3"] = (23, 3.0),
+                ["h4"] = (21, 2.0),
             });
 
         var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
@@ -103,7 +111,11 @@ public sealed class DailyConsensusSummarySpec
         var consensus = BuildConsensusWithAgreement(
             new Dictionary<string, (double Median, double Agreement)>
             {
-                ["h0"] = (20, 0.8), ["h1"] = (22, 0.9), ["h2"] = (24, 0.7), ["h3"] = (23, 0.85), ["h4"] = (21, 0.9),
+                ["h0"] = (20, 0.8),
+                ["h1"] = (22, 0.9),
+                ["h2"] = (24, 0.7),
+                ["h3"] = (23, 0.85),
+                ["h4"] = (21, 0.9),
             });
 
         var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
@@ -138,7 +150,8 @@ public sealed class DailyConsensusSummarySpec
     {
         var consensus = BuildConsensus(Temperature, new Dictionary<string, double>
         {
-            ["h0"] = 20, ["h1"] = 25,
+            ["h0"] = 20,
+            ["h1"] = 25,
         });
 
         var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
@@ -155,8 +168,15 @@ public sealed class DailyConsensusSummarySpec
         var nowEvening = new DateTimeOffset(2026, 7, 29, 20, 0, 0, TimeSpan.Zero);
         var consensus = BuildConsensus(Temperature, new Dictionary<string, double>
         {
-            ["h0"] = 25, ["h1"] = 24, ["h2"] = 23, ["h3"] = 22, ["h4"] = 21,
-            ["h5"] = 20, ["h6"] = 19, ["h7"] = 22, ["h8"] = 25,
+            ["h0"] = 25,
+            ["h1"] = 24,
+            ["h2"] = 23,
+            ["h3"] = 22,
+            ["h4"] = 21,
+            ["h5"] = 20,
+            ["h6"] = 19,
+            ["h7"] = 22,
+            ["h8"] = 25,
         });
 
         var summaries = DailyConsensusSummary.Aggregate(consensus, nowEvening, Cest);
@@ -184,7 +204,8 @@ public sealed class DailyConsensusSummarySpec
     {
         var consensus = BuildConsensus(Temperature, new Dictionary<string, double>
         {
-            ["h0"] = 20, ["h1"] = 25,
+            ["h0"] = 20,
+            ["h1"] = 25,
         });
 
         var summaries = DailyConsensusSummary.Aggregate(consensus, Now, TimeZoneInfo.Utc);
