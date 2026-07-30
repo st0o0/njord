@@ -5,6 +5,7 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Actors;
 using Njord.Configuration;
+using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Pipeline;
@@ -15,6 +16,9 @@ namespace Njord.Enrichment;
 public sealed class EnrichmentActor : StreamConsumerActor
 {
     private readonly NjordOptions _options;
+    private readonly EnrichmentOptions _enrichmentOptions;
+    private readonly ResolvedParameterSet _parameters;
+    private readonly TimeProvider _timeProvider;
     private readonly IReadOnlyList<IEnrichmentFeature> _features;
     private readonly ILogger<EnrichmentActor> _logger;
 
@@ -26,10 +30,16 @@ public sealed class EnrichmentActor : StreamConsumerActor
 
     public EnrichmentActor(
         IOptions<NjordOptions> options,
+        IOptions<EnrichmentOptions> enrichmentOptions,
+        ResolvedParameterSet parameters,
+        TimeProvider timeProvider,
         IEnumerable<IEnrichmentFeature> features,
         ILogger<EnrichmentActor> logger)
     {
         _options = options.Value;
+        _enrichmentOptions = enrichmentOptions.Value;
+        _parameters = parameters;
+        _timeProvider = timeProvider;
         _features = [.. features];
         _logger = logger;
     }
@@ -73,26 +83,48 @@ public sealed class EnrichmentActor : StreamConsumerActor
     protected override void MaterializeGraph(SharedKillSwitch killSwitch)
     {
         var locations = _options.Locations.Select(l => l.Name).ToList();
+        var trimPercent = _enrichmentOptions.Consensus.TrimPercent;
+        var consensusEgressEnabled = _enrichmentOptions.Consensus.Enabled;
 
         var statelessFeatures = _features.OfType<IStatelessEnrichment>().Where(f => f.Enabled).ToList();
         var statefulFeatures = _features.OfType<IStatefulEnrichment>().Where(f => f.Enabled).ToList();
         var actorFeatures = _features.OfType<IActorEnrichment>().Where(f => f.Enabled).ToList();
 
+        var hasInlineEnrichments = statelessFeatures.Count > 0 || statefulFeatures.Count > 0;
+        var hasActorEnrichments = actorFeatures.Count > 0;
+
+        if (!hasInlineEnrichments && !hasActorEnrichments && !consensusEgressEnabled)
+        {
+            return;
+        }
+
+        var snapshotSource = BuildScanSource(_sourceRef!.Source)
+            .Via(killSwitch.Flow<ModelSnapshot>());
+
+        var consensusFlow = Flow.Create<ModelSnapshot>()
+            .SelectMany(snapshot => ComputeConsensus(snapshot, locations, trimPercent));
+
+        var consensusInlineFlow = BuildConsensusInlineFlow(
+            consensusEgressEnabled, locations, statelessFeatures, statefulFeatures, _logger);
+
         var flows = new List<Flow<ModelSnapshot, EgressEvent, NotUsed>>();
 
-        if (statelessFeatures.Count > 0 || statefulFeatures.Count > 0)
-            flows.Add(BuildInlineFlow(locations, statelessFeatures, statefulFeatures, _logger));
+        if (hasInlineEnrichments || consensusEgressEnabled)
+        {
+            flows.Add(consensusFlow.Via(consensusInlineFlow));
+        }
 
         foreach (var feature in actorFeatures)
             flows.Add(feature.CreateFlow(Context));
 
         if (flows.Count == 0)
+        {
             return;
+        }
 
         if (flows.Count == 1)
         {
-            BuildScanSource(_sourceRef!.Source)
-                .Via(killSwitch.Flow<ModelSnapshot>())
+            snapshotSource
                 .Via(flows[0])
                 .RunWith(_egressSinkRef!.Sink, Mat);
             return;
@@ -100,12 +132,11 @@ public sealed class EnrichmentActor : StreamConsumerActor
 
         var graph = GraphDsl.Create(_egressSinkRef!.Sink, (builder, sink) =>
         {
-            var source = builder.Add(BuildScanSource(_sourceRef!.Source));
-            var kill = builder.Add(killSwitch.Flow<ModelSnapshot>());
+            var source = builder.Add(snapshotSource);
             var broadcast = builder.Add(new Broadcast<ModelSnapshot>(flows.Count));
             var merge = builder.Add(new Merge<EgressEvent>(flows.Count));
 
-            builder.From(source).Via(kill).To(broadcast);
+            builder.From(source).To(broadcast);
 
             for (var i = 0; i < flows.Count; i++)
             {
@@ -127,22 +158,35 @@ public sealed class EnrichmentActor : StreamConsumerActor
         _egressSinkRef = null;
     }
 
-    private static Flow<ModelSnapshot, EgressEvent, NotUsed> BuildInlineFlow(
+    private static Flow<ConsensusSnapshot, EgressEvent, NotUsed> BuildConsensusInlineFlow(
+        bool consensusEgressEnabled,
         IReadOnlyList<string> locations,
         IReadOnlyList<IStatelessEnrichment> stateless,
         IReadOnlyList<IStatefulEnrichment> stateful,
         ILogger logger)
     {
-        ModelSnapshot? previous = null;
+        ConsensusSnapshot? previous = null;
 
-        return Flow.Create<ModelSnapshot>()
-            .SelectMany(snapshot =>
+        return Flow.Create<ConsensusSnapshot>()
+            .SelectMany(consensus =>
             {
                 var prev = previous;
-                previous = snapshot;
-                return ComputeAll(snapshot, prev, locations, stateless, stateful);
+                previous = consensus;
+                return ComputeAll(consensus, prev, consensusEgressEnabled, stateless, stateful);
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(logger)));
+    }
+
+    private IEnumerable<ConsensusSnapshot> ComputeConsensus(
+        ModelSnapshot snapshot,
+        IReadOnlyList<string> locations,
+        double trimPercent)
+    {
+        foreach (var location in locations)
+        {
+            yield return ConsensusSnapshot.Compute(
+                snapshot, _parameters, location, _timeProvider, trimPercent);
+        }
     }
 
     private Source<ModelSnapshot, NotUsed> BuildScanSource(Source<FetchOutcome, NotUsed> source)
@@ -157,18 +201,23 @@ public sealed class EnrichmentActor : StreamConsumerActor
     }
 
     private static IEnumerable<EgressEvent> ComputeAll(
-        ModelSnapshot snapshot,
-        ModelSnapshot? previous,
-        IReadOnlyList<string> locations,
+        ConsensusSnapshot consensus,
+        ConsensusSnapshot? previous,
+        bool consensusEgressEnabled,
         IReadOnlyList<IStatelessEnrichment> stateless,
         IReadOnlyList<IStatefulEnrichment> stateful)
     {
+        if (consensusEgressEnabled)
+        {
+            yield return new EgressEvent.EnrichmentUpdate(consensus.Location, "consensus", consensus);
+        }
+
         foreach (var feature in stateless)
-            foreach (var evt in feature.Compute(snapshot, locations))
+            foreach (var evt in feature.Compute(consensus))
                 yield return evt;
 
         foreach (var feature in stateful)
-            foreach (var evt in feature.Compute(snapshot, previous, locations))
+            foreach (var evt in feature.Compute(consensus, previous))
                 yield return evt;
     }
 }
