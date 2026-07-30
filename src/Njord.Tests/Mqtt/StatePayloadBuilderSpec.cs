@@ -125,8 +125,9 @@ public sealed class StatePayloadBuilderSpec
             MakeForecast(IconD2, (Temperature, 20.0)),
             MakeForecast(new("ecmwf_ifs025"), (Temperature, 22.0)));
         var consensus = ConsensusSnapshot.Compute(snap, new ResolvedParameterSet([Temperature], []), "lucerne", Time);
+        var result = new ConsensusResult(consensus.Hourly.Parameters, consensus.Daily.Parameters);
 
-        var messages = StatePayloadBuilder.FromConsensus(consensus, "njord", "lucerne");
+        var messages = StatePayloadBuilder.FromConsensus(result, "njord", "lucerne");
 
         Assert.True(messages.Count > 0);
         Assert.All(messages, m => Assert.StartsWith("njord/lucerne/consensus/h", m.Topic));
@@ -160,8 +161,9 @@ public sealed class StatePayloadBuilderSpec
 
         var snap = dailyForecasts.Aggregate(ModelSnapshot.Empty, (s, f) => s.Update(f));
         var consensus = ConsensusSnapshot.Compute(snap, new ResolvedParameterSet([], [dailyParam]), "lucerne", Time);
+        var result = new ConsensusResult(consensus.Hourly.Parameters, consensus.Daily.Parameters);
 
-        var messages = StatePayloadBuilder.FromConsensus(consensus, "njord", "lucerne");
+        var messages = StatePayloadBuilder.FromConsensus(result, "njord", "lucerne");
 
         Assert.Equal(2, messages.Count);
         Assert.Contains(messages, m => m.Topic == "njord/lucerne/consensus/d0");

@@ -275,6 +275,35 @@ public sealed class EnrichmentProtoMapperSpec
     }
 
     [Fact(Timeout = 5000)]
+    public void MapToEvent_should_wrap_consensus_result_in_enrichment_event()
+    {
+        var param = new ParameterDef("temperature_2m", "C", "temperature", "temperature_2m",
+            ParameterGroup.Weather, ParameterGranularity.Hourly);
+        var horizonConsensus = new DomainHorizonConsensus(
+            Median: 20.5, TrimmedMean: 20.3, Spread: 2.1, Iqr: 1.5, Agreement: 0.85,
+            Outlier: null, ConfidenceInterval: null,
+            AvailableModels: [new WeatherModel("icon_d2"), new WeatherModel("ecmwf_ifs025")]);
+        var hourlyParam = new DomainParameterConsensus(param,
+            new Dictionary<string, DomainHorizonConsensus> { ["h3"] = horizonConsensus });
+
+        var dailyParam = new DomainParameterConsensus(
+            ParameterRegistry.GetByApiName("temperature_2m_max")!,
+            new Dictionary<string, DomainHorizonConsensus> { ["d0"] = horizonConsensus });
+
+        var result = new ConsensusResult([hourlyParam], [dailyParam]);
+        var updatedAt = new DateTimeOffset(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+
+        var evt = EnrichmentProtoMapper.MapToEvent("lucerne", "consensus", result, updatedAt);
+
+        Assert.NotNull(evt);
+        Assert.Equal("lucerne", evt.Location);
+        Assert.Equal("consensus", evt.TypeName);
+        Assert.NotNull(evt.Consensus);
+        Assert.Single(evt.Consensus.HourlyParameters);
+        Assert.Single(evt.Consensus.DailyParameters);
+    }
+
+    [Fact(Timeout = 5000)]
     public void MapToEvent_should_return_null_for_unknown_type_name()
     {
         var result = new AlertResult("lucerne", []);

@@ -16,12 +16,12 @@ public static class StatePayloadBuilder
         => HorizonProjection.BuildPerHorizon(forecast, parameters, horizons, forecastDays, anchorTime);
 
     public static IReadOnlyList<MqttMessage> FromConsensus(
-        ConsensusSnapshot consensus, string baseTopic, string location)
+        ConsensusResult consensus, string baseTopic, string location)
     {
         var messages = new List<MqttMessage>();
 
-        EmitConsensusMessages(consensus.Hourly.Parameters, baseTopic, location, messages);
-        EmitConsensusMessages(consensus.Daily.Parameters, baseTopic, location, messages);
+        EmitConsensusMessages(consensus.Parameters, baseTopic, location, messages);
+        EmitConsensusMessages(consensus.DailyParameters, baseTopic, location, messages);
 
         return messages;
     }

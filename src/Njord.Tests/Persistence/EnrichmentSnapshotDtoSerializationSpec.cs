@@ -65,4 +65,38 @@ public sealed class EnrichmentSnapshotDtoSerializationSpec
         Assert.Equal("lucerne", recovered.Location);
         Assert.Equal(18.5, recovered.WeightedTemperature);
     }
+
+    [Fact(Timeout = 5000)]
+    public void ConsensusResult_round_trips_through_enrichment_snapshot_dto()
+    {
+        var param = new ParameterDef("temperature_2m", "C", "temperature", "temperature_2m",
+            ParameterGroup.Weather, ParameterGranularity.Hourly);
+        var horizon = new HorizonConsensus(
+            Median: 20.5, TrimmedMean: 20.3, Spread: 2.1, Iqr: 1.5, Agreement: 0.85,
+            Outlier: null, ConfidenceInterval: null,
+            AvailableModels: [new WeatherModel("icon_d2")]);
+        var hourlyParam = new ParameterConsensus(param,
+            new Dictionary<string, HorizonConsensus> { ["h3"] = horizon });
+
+        var dailyParamDef = ParameterRegistry.GetByApiName("temperature_2m_max")!;
+        var dailyParam = new ParameterConsensus(dailyParamDef,
+            new Dictionary<string, HorizonConsensus> { ["d0"] = horizon });
+
+        var consensusResult = new ConsensusResult([hourlyParam], [dailyParam]);
+
+        var state = new Dictionary<string, object>
+        {
+            ["lucerne|consensus"] = consensusResult,
+        };
+        var dto = EnrichmentSnapshotMapping.ToDto(state);
+        var json = JsonConvert.SerializeObject(dto);
+        var deserialized = JsonConvert.DeserializeObject<EnrichmentSnapshotDto>(json)!;
+        var result = EnrichmentSnapshotMapping.ToDomain(deserialized);
+
+        Assert.Single(result);
+        var recovered = Assert.IsType<ConsensusResult>(result["lucerne|consensus"]);
+        Assert.Single(recovered.Parameters);
+        Assert.Single(recovered.DailyParameters);
+        Assert.Equal("temperature_2m", recovered.Parameters[0].Parameter.ApiName);
+    }
 }
