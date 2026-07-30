@@ -12,6 +12,8 @@ public sealed class AlertEnrichmentSpec
     private static readonly DateTimeOffset T0 = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
 
+    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+
     private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
@@ -42,7 +44,8 @@ public sealed class AlertEnrichmentSpec
         var feature = CreateFeature();
         var snapshot = MakeSnapshot();
 
-        var events = feature.Compute(snapshot, ["lucerne"]).ToList();
+        var consensus = ConsensusSnapshot.Compute(snapshot, Parameters, "lucerne", new FakeTimeProvider(T0));
+        var events = feature.Compute(consensus).ToList();
 
         Assert.Single(events);
         var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(events[0]);
@@ -57,7 +60,8 @@ public sealed class AlertEnrichmentSpec
         var feature = CreateFeature();
         var snapshot = MakeSnapshot();
 
-        var events = feature.Compute(snapshot, ["lucerne"]).ToList();
+        var consensus = ConsensusSnapshot.Compute(snapshot, Parameters, "lucerne", new FakeTimeProvider(T0));
+        var events = feature.Compute(consensus).ToList();
         var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(events[0]);
         var result = Assert.IsType<AlertResult>(update.Result);
 
@@ -68,14 +72,19 @@ public sealed class AlertEnrichmentSpec
     public void Frost_condition_produces_frost_alert()
     {
         var feature = CreateFeature();
-        var frostPoints = Enumerable.Range(0, 48).Select(h =>
-            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?> { [Temperature] = -5.0 }))
-            .ToList();
-        var forecast = new ModelForecast(new("icon_d2"), "lucerne", new CycleId(T0),
-            new ForecastSeries(frostPoints), DailyForecastSeries.Empty);
-        var snapshot = ModelSnapshot.Empty.Update(forecast);
 
-        var events = feature.Compute(snapshot, ["lucerne"]).ToList();
+        ModelForecast MakeFrostForecast(string modelId) =>
+            new(new(modelId), "lucerne", new CycleId(T0),
+                new ForecastSeries(Enumerable.Range(0, 48).Select(h =>
+                    new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?> { [Temperature] = -5.0 }))),
+                DailyForecastSeries.Empty);
+
+        var snapshot = ModelSnapshot.Empty
+            .Update(MakeFrostForecast("icon_d2"))
+            .Update(MakeFrostForecast("ecmwf_ifs025"));
+
+        var consensus = ConsensusSnapshot.Compute(snapshot, Parameters, "lucerne", new FakeTimeProvider(T0));
+        var events = feature.Compute(consensus).ToList();
         var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(events[0]);
         var result = Assert.IsType<AlertResult>(update.Result);
 

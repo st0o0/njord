@@ -188,9 +188,12 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
 
         hub.Emit(CreateCapability());
 
-        // Wait for and drain the initial publish batch
-        await publishProbe.ExpectMsgAsync<MqttMessage>();
-        // Drain any additional messages from the initial publish batch
+        // Wait for and drain the initial publish batch (model + consensus devices)
+        await publishProbe.FishForMessageAsync(msg => msg is MqttMessage, TimeSpan.FromSeconds(2));
+        // Allow all queued messages to arrive and drain
+        await Task.Delay(200);
+        while (publishProbe.HasMessages)
+            publishProbe.ReceiveOne();
         await publishProbe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200));
 
         // Birth -> should re-publish

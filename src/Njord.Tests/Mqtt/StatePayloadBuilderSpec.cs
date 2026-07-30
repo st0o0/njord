@@ -124,14 +124,16 @@ public sealed class StatePayloadBuilderSpec
         var snap = SnapshotWith(
             MakeForecast(IconD2, (Temperature, 20.0)),
             MakeForecast(new("ecmwf_ifs025"), (Temperature, 22.0)));
-        var result = ConsensusResult.Compute(snap, new ResolvedParameterSet([Temperature], []), [3], "lucerne", Time);
+        var consensus = ConsensusSnapshot.Compute(snap, new ResolvedParameterSet([Temperature], []), "lucerne", Time);
 
-        var messages = StatePayloadBuilder.FromConsensus(result, "njord", "lucerne");
+        var messages = StatePayloadBuilder.FromConsensus(consensus, "njord", "lucerne");
 
-        Assert.Single(messages);
-        Assert.Equal("njord/lucerne/consensus/h3", messages[0].Topic);
-        Assert.True(messages[0].Retain);
-        var payload = JsonNode.Parse(messages[0].Payload)!;
+        Assert.True(messages.Count > 0);
+        Assert.All(messages, m => Assert.StartsWith("njord/lucerne/consensus/h", m.Topic));
+        Assert.All(messages, m => Assert.True(m.Retain));
+        var h3 = messages.FirstOrDefault(m => m.Topic == "njord/lucerne/consensus/h3");
+        Assert.NotNull(h3);
+        var payload = JsonNode.Parse(h3.Payload)!;
         Assert.NotNull(payload["temperature"]);
         Assert.Equal(2, payload["temperature_models"]!.GetValue<int>());
         Assert.Null(payload["_models_used"]);
@@ -157,9 +159,9 @@ public sealed class StatePayloadBuilderSpec
         };
 
         var snap = dailyForecasts.Aggregate(ModelSnapshot.Empty, (s, f) => s.Update(f));
-        var result = ConsensusResult.Compute(snap, new ResolvedParameterSet([], [dailyParam]), [], "lucerne", Time);
+        var consensus = ConsensusSnapshot.Compute(snap, new ResolvedParameterSet([], [dailyParam]), "lucerne", Time);
 
-        var messages = StatePayloadBuilder.FromConsensus(result, "njord", "lucerne");
+        var messages = StatePayloadBuilder.FromConsensus(consensus, "njord", "lucerne");
 
         Assert.Equal(2, messages.Count);
         Assert.Contains(messages, m => m.Topic == "njord/lucerne/consensus/d0");
@@ -198,8 +200,13 @@ public sealed class StatePayloadBuilderSpec
             MakeForecast(M1,
                 (Temperature, 5.0), (WindSpeed, 8.0), (DewPoint, 3.0),
                 (WeatherCode, 0.0), (PressureMsl, 1020.0), (SurfacePressure, 1015.0),
+                (SunshineDuration, 3600.0), (IsDay, 1.0)),
+            MakeForecast(new("m2"),
+                (Temperature, 5.0), (WindSpeed, 8.0), (DewPoint, 3.0),
+                (WeatherCode, 0.0), (PressureMsl, 1020.0), (SurfacePressure, 1015.0),
                 (SunshineDuration, 3600.0), (IsDay, 1.0)));
-        var result = DerivedResult.Compute(snap, "lucerne", [3], FullParams, Time);
+        var consensus = ConsensusSnapshot.Compute(snap, FullParams, "lucerne", Time);
+        var result = DerivedResult.Compute(consensus, [3], FullParams, Time);
 
         var messages = StatePayloadBuilder.FromDerived(result, "njord");
 
@@ -216,7 +223,8 @@ public sealed class StatePayloadBuilderSpec
         var snap = SnapshotWith(
             MakeForecast(M1, (Temperature, 20.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)));
-        var result = TrendResult.Compute(snap, null, "lucerne", [3], FullParams, Time);
+        var consensus = ConsensusSnapshot.Compute(snap, FullParams, "lucerne", Time);
+        var result = TrendResult.Compute(consensus, null);
 
         var messages = StatePayloadBuilder.FromTrends(result, "njord");
 
@@ -230,7 +238,8 @@ public sealed class StatePayloadBuilderSpec
     {
         var snap = SnapshotWith(
             MakeForecast(M1, (Temperature, 20.0), (Humidity, 55.0), (WindSpeed, 2.0), (CloudCover, 30.0)));
-        var result = IndexResult.Compute(snap, "lucerne", FullParams, Time, new IndexOptions());
+        var consensus = ConsensusSnapshot.Compute(snap, FullParams, "lucerne", Time);
+        var result = IndexResult.Compute(consensus, FullParams, Time, new IndexOptions());
 
         var messages = StatePayloadBuilder.FromIndices(result, "njord");
 
@@ -245,7 +254,8 @@ public sealed class StatePayloadBuilderSpec
         var snap = SnapshotWith(
             MakeForecast(IconD2, (Temperature, 22.0), (Humidity, 50.0), (WindSpeed, 3.0), (CloudCover, 20.0)),
             MakeForecast(new("ecmwf_ifs025"), (Temperature, 10.0), (Humidity, 90.0), (WindSpeed, 15.0), (CloudCover, 95.0)));
-        var result = IndexResult.Compute(snap, "lucerne", FullParams, Time, new IndexOptions());
+        var consensus = ConsensusSnapshot.Compute(snap, FullParams, "lucerne", Time);
+        var result = IndexResult.Compute(consensus, FullParams, Time, new IndexOptions());
 
         var messages = StatePayloadBuilder.FromIndices(result, "njord");
         var payload = JsonNode.Parse(messages[0].Payload)!;
@@ -261,7 +271,8 @@ public sealed class StatePayloadBuilderSpec
     {
         var snap = SnapshotWith(
             MakeForecast(M1, (Temperature, 15.0), (WindSpeed, 2.0), (CloudCover, 30.0)));
-        var result = EnergyResult.Compute(snap, "lucerne", FullParams, Time, new EnergyOptions());
+        var consensus = ConsensusSnapshot.Compute(snap, FullParams, "lucerne", Time);
+        var result = EnergyResult.Compute(consensus, FullParams, Time, new EnergyOptions());
 
         var messages = StatePayloadBuilder.FromEnergy(result, "njord");
 
@@ -276,7 +287,8 @@ public sealed class StatePayloadBuilderSpec
         var snap = SnapshotWith(
             MakeForecast(IconD2, (Temperature, 15.0), (WindSpeed, 2.0), (CloudCover, 30.0)),
             MakeForecast(new("ecmwf_ifs025"), (Temperature, 2.0), (WindSpeed, 10.0), (CloudCover, 90.0)));
-        var result = EnergyResult.Compute(snap, "lucerne", FullParams, Time, new EnergyOptions());
+        var consensus = ConsensusSnapshot.Compute(snap, FullParams, "lucerne", Time);
+        var result = EnergyResult.Compute(consensus, FullParams, Time, new EnergyOptions());
 
         var messages = StatePayloadBuilder.FromEnergy(result, "njord");
         var payload = JsonNode.Parse(messages[0].Payload)!;

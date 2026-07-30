@@ -43,9 +43,12 @@ public sealed class EnergyResultSpec
     {
         var snap = SnapshotWith(
             MakeForecast(new("m1"),
+                (Temperature, 10.0), (WindSpeed, 3.0), (CloudCover, 50.0)),
+            MakeForecast(new("m2"),
                 (Temperature, 10.0), (WindSpeed, 3.0), (CloudCover, 50.0)));
 
-        var result = EnergyResult.Compute(snap, "lucerne", Parameters, Time, new EnergyOptions());
+        var consensus = ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
+        var result = EnergyResult.Compute(consensus, Parameters, Time, new EnergyOptions());
 
         Assert.Equal("lucerne", result.Location);
         Assert.InRange(result.HeatingDemand, 1, 100);
@@ -60,7 +63,8 @@ public sealed class EnergyResultSpec
             MakeForecast(new("m1"), (Temperature, 15.0), (WindSpeed, 2.0), (CloudCover, 30.0)),
             MakeForecast(new("m2"), (Temperature, 2.0), (WindSpeed, 10.0), (CloudCover, 90.0)));
 
-        var result = EnergyResult.Compute(snap, "lucerne", Parameters, Time, new EnergyOptions());
+        var consensus = ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
+        var result = EnergyResult.Compute(consensus, Parameters, Time, new EnergyOptions());
 
         Assert.True(result.HeatingDemandMax >= result.HeatingDemand);
     }
@@ -72,7 +76,8 @@ public sealed class EnergyResultSpec
             MakeForecast(new("m1"), (Temperature, 15.0), (WindSpeed, 2.0), (CloudCover, 30.0)),
             MakeForecast(new("m2"), (Temperature, -5.0), (WindSpeed, 5.0), (CloudCover, 80.0)));
 
-        var result = EnergyResult.Compute(snap, "lucerne", Parameters, Time, new EnergyOptions());
+        var consensus = ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
+        var result = EnergyResult.Compute(consensus, Parameters, Time, new EnergyOptions());
 
         Assert.NotNull(result.CopEstimateMin);
         Assert.True(result.CopEstimateMin <= result.CopEstimate);
@@ -84,7 +89,8 @@ public sealed class EnergyResultSpec
         var snap = SnapshotWith(
             MakeForecast(new("m1"), (Temperature, 10.0), (WindSpeed, 3.0), (CloudCover, 50.0)));
 
-        var result = EnergyResult.Compute(snap, "lucerne", Parameters, Time, new EnergyOptions());
+        var consensus = ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
+        var result = EnergyResult.Compute(consensus, Parameters, Time, new EnergyOptions());
 
         Assert.Equal(result.HeatingDemand, result.HeatingDemandMax);
         Assert.Equal(result.CopEstimate, result.CopEstimateMin);
@@ -97,12 +103,21 @@ public sealed class EnergyResultSpec
             MakeForecast(new("m1"), (Temperature, 10.0), (WindSpeed, 2.0), (CloudCover, 30.0)),
             MakeForecast(new("m2"), (Temperature, 8.0), (WindSpeed, 3.0), (CloudCover, 40.0)));
 
-        var result = EnergyResult.Compute(snap, "lucerne", Parameters, Time, new EnergyOptions());
+        var consensus = ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
+        var result = EnergyResult.Compute(consensus, Parameters, Time, new EnergyOptions());
 
         Assert.NotNull(result.CopOptimalConservative);
+        Assert.NotEmpty(result.CopOptimalConservative!);
+        // Conservative hours are a subset of all valid consensus hours
+        // and CopOptimal top-N entries are drawn from the same pool
         foreach (var hour in result.CopOptimalConservative!)
         {
-            Assert.Contains(result.CopOptimal, o => o.HoursFromNow == hour);
+            Assert.InRange(hour, 0, consensus.Hourly.CutoffHour);
+        }
+        // At least the best optimal hours should appear in conservative
+        foreach (var entry in result.CopOptimal)
+        {
+            Assert.Contains(result.CopOptimalConservative, h => h == entry.HoursFromNow);
         }
     }
 }

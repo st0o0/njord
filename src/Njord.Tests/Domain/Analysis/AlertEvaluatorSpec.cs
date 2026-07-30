@@ -20,6 +20,10 @@ public sealed class AlertEvaluatorSpec
     private static readonly ParameterDef Snowfall = ParameterRegistry.GetByApiName("snowfall")!;
     private static readonly ParameterDef PressureMsl = ParameterRegistry.GetByApiName("pressure_msl")!;
     private static readonly ParameterDef Cape = ParameterRegistry.GetByApiName("cape")!;
+    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather", "Solar"], [], []);
+
+    private static ConsensusSnapshot ToConsensus(ModelSnapshot snap) =>
+        ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
 
     private static ModelForecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues)
     {
@@ -52,7 +56,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m2"), (Temperature, -1.0)),
             MakeForecast(new("m3"), (Temperature, -3.0)));
 
-        var alert = AlertEvaluator.EvaluateFrost(snap, "lucerne", 0.0, Time);
+        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), 0.0);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.Equal(1.0, alert.Confidence);
@@ -65,7 +69,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m1"), (Temperature, 5.0)),
             MakeForecast(new("m2"), (Temperature, 3.0)));
 
-        var alert = AlertEvaluator.EvaluateFrost(snap, "lucerne", 0.0, Time);
+        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), 0.0);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
         Assert.Equal(0.0, alert.Confidence);
@@ -74,13 +78,15 @@ public sealed class AlertEvaluatorSpec
     [Fact(Timeout = 5000)]
     public void Frost_partial_agreement()
     {
+        // Sorted: [-3, -1, 1, 5] → median = 0.0 ≤ threshold
+        // Agreement within tolerance 2.0 of median 0.0: -1 (yes), 1 (yes), -3 (no), 5 (no) → 2/4 = 0.5
         var snap = SnapshotWith(
-            MakeForecast(new("m1"), (Temperature, -1.0)),
-            MakeForecast(new("m2"), (Temperature, 2.0)),
-            MakeForecast(new("m3"), (Temperature, 5.0)),
-            MakeForecast(new("m4"), (Temperature, -0.5)));
+            MakeForecast(new("m1"), (Temperature, -3.0)),
+            MakeForecast(new("m2"), (Temperature, -1.0)),
+            MakeForecast(new("m3"), (Temperature, 1.0)),
+            MakeForecast(new("m4"), (Temperature, 5.0)));
 
-        var alert = AlertEvaluator.EvaluateFrost(snap, "lucerne", 0.0, Time);
+        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), 0.0);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.Equal(0.5, alert.Confidence);
@@ -96,7 +102,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m2"), (ApparentTemp, 41.0)),
             MakeForecast(new("m3"), (ApparentTemp, 28.0)));
 
-        var alert = AlertEvaluator.EvaluateHeat(snap, "lucerne", [30, 35, 40], Time);
+        var alert = AlertEvaluator.EvaluateHeat(ToConsensus(snap), [30, 35, 40]);
 
         Assert.Equal(AlertSeverity.Red, alert.Severity);
         Assert.True(alert.Confidence > 0.5);
@@ -109,7 +115,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m1"), (ApparentTemp, 32.0)),
             MakeForecast(new("m2"), (ApparentTemp, 31.0)));
 
-        var alert = AlertEvaluator.EvaluateHeat(snap, "lucerne", [30, 35, 40], Time);
+        var alert = AlertEvaluator.EvaluateHeat(ToConsensus(snap), [30, 35, 40]);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.Equal(1.0, alert.Confidence);
@@ -125,7 +131,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m2"), (WindGusts, 18.0)),
             MakeForecast(new("m3"), (WindGusts, 10.0)));
 
-        var alert = AlertEvaluator.EvaluateStorm(snap, "lucerne", 16.7, Time);
+        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), 16.7);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.True(alert.Confidence > 0.6);
@@ -138,7 +144,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m1"), (WindGusts, 10.0)),
             MakeForecast(new("m2"), (WindGusts, 8.0)));
 
-        var alert = AlertEvaluator.EvaluateStorm(snap, "lucerne", 16.7, Time);
+        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), 16.7);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
@@ -148,12 +154,14 @@ public sealed class AlertEvaluatorSpec
     [Fact(Timeout = 5000)]
     public void HeavyRain_hourly_and_daily_both_exceeded()
     {
-        // 12mm/h × 24h = 288mm daily → both hourly and daily thresholds crossed → Red
+        // Median of [12, 11] = 11.5 mm/h → exceeds hourly threshold 10.0
+        // Daily sum from hourly: 11.5 × 25h = 287.5 mm → exceeds daily threshold 25.0
+        // Both hourly and daily thresholds crossed → Red
         var snap = SnapshotWith(
             MakeForecast(new("m1"), (Precipitation, 12.0)),
-            MakeForecast(new("m2"), (Precipitation, 5.0)));
+            MakeForecast(new("m2"), (Precipitation, 11.0)));
 
-        var alert = AlertEvaluator.EvaluateHeavyRain(snap, "lucerne", 10.0, 25.0, Time);
+        var alert = AlertEvaluator.EvaluateHeavyRain(ToConsensus(snap), 10.0, 25.0);
 
         Assert.Equal(AlertSeverity.Red, alert.Severity);
     }
@@ -167,7 +175,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m1"), (UvIndexParam, 7.5)),
             MakeForecast(new("m2"), (UvIndexParam, 8.0)));
 
-        var alert = AlertEvaluator.EvaluateUv(snap, "lucerne", Time);
+        var alert = AlertEvaluator.EvaluateUv(ToConsensus(snap));
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
         Assert.Equal("high", alert.Attributes["uv_level"]);
@@ -180,7 +188,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m1"), (UvIndexParam, 2.0)),
             MakeForecast(new("m2"), (UvIndexParam, 1.5)));
 
-        var alert = AlertEvaluator.EvaluateUv(snap, "lucerne", Time);
+        var alert = AlertEvaluator.EvaluateUv(ToConsensus(snap));
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
         Assert.Equal("low", alert.Attributes["uv_level"]);
@@ -195,7 +203,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m1"), (Temperature, 5.0), (Dewpoint, 4.5), (WindSpeed, 1.0), (Humidity, 95.0)),
             MakeForecast(new("m2"), (Temperature, 5.0), (Dewpoint, 4.0), (WindSpeed, 2.0), (Humidity, 92.0)));
 
-        var alert = AlertEvaluator.EvaluateFog(snap, "lucerne", Time);
+        var alert = AlertEvaluator.EvaluateFog(ToConsensus(snap));
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.Equal(1.0, alert.Confidence);
@@ -207,7 +215,7 @@ public sealed class AlertEvaluatorSpec
         var snap = SnapshotWith(
             MakeForecast(new("m1"), (Temperature, 20.0), (Dewpoint, 10.0), (WindSpeed, 5.0), (Humidity, 60.0)));
 
-        var alert = AlertEvaluator.EvaluateFog(snap, "lucerne", Time);
+        var alert = AlertEvaluator.EvaluateFog(ToConsensus(snap));
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
@@ -217,14 +225,16 @@ public sealed class AlertEvaluatorSpec
     [Fact(Timeout = 5000)]
     public void Snow_light()
     {
+        // Median of [0.1, 0.0] = 0.05 > 0 → snow detected
+        // Both values within tolerance 2.0 of median → agreement = 1.0
         var snap = SnapshotWith(
             MakeForecast(new("m1"), (Snowfall, 0.1)),
             MakeForecast(new("m2"), (Snowfall, 0.0)));
 
-        var alert = AlertEvaluator.EvaluateSnow(snap, "lucerne", Time);
+        var alert = AlertEvaluator.EvaluateSnow(ToConsensus(snap));
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
-        Assert.Equal(0.5, alert.Confidence);
+        Assert.Equal(1.0, alert.Confidence);
     }
 
     // --- Pressure Drop ---
@@ -232,18 +242,25 @@ public sealed class AlertEvaluatorSpec
     [Fact(Timeout = 5000)]
     public void PressureDrop_front_approaching()
     {
-        var points = new List<ForecastPoint>();
-        for (var h = 0; h < 24; h++)
+        // Two models with same pressure drop pattern (consensus needs >= 2 models)
+        ModelForecast MakePressureForecast(WeatherModel model)
         {
-            var pressure = 1020.0 - (h < 6 ? h * 2.5 : 0);
-            points.Add(new ForecastPoint(T0.AddHours(h),
-                new Dictionary<ParameterDef, double?> { [PressureMsl] = pressure }));
+            var points = new List<ForecastPoint>();
+            for (var h = 0; h < 24; h++)
+            {
+                var pressure = 1020.0 - (h < 6 ? h * 2.5 : 0);
+                points.Add(new ForecastPoint(T0.AddHours(h),
+                    new Dictionary<ParameterDef, double?> { [PressureMsl] = pressure }));
+            }
+            return new ModelForecast(model, "lucerne", new CycleId(T0),
+                new ForecastSeries(points), DailyForecastSeries.Empty);
         }
-        var forecast = new ModelForecast(new("m1"), "lucerne", new CycleId(T0),
-            new ForecastSeries(points), DailyForecastSeries.Empty);
-        var snap = ModelSnapshot.Empty.Update(forecast);
 
-        var alert = AlertEvaluator.EvaluatePressureDrop(snap, "lucerne", 5.0, Time);
+        var snap = SnapshotWith(
+            MakePressureForecast(new("m1")),
+            MakePressureForecast(new("m2")));
+
+        var alert = AlertEvaluator.EvaluatePressureDrop(ToConsensus(snap), 5.0);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.Equal(1.0, alert.Confidence);
@@ -255,7 +272,7 @@ public sealed class AlertEvaluatorSpec
         var snap = SnapshotWith(
             MakeForecast(new("m1"), (PressureMsl, 1015.0)));
 
-        var alert = AlertEvaluator.EvaluatePressureDrop(snap, "lucerne", 5.0, Time);
+        var alert = AlertEvaluator.EvaluatePressureDrop(ToConsensus(snap), 5.0);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
@@ -269,7 +286,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m1"), (Cape, 1500.0), (Precipitation, 10.0), (WindGusts, 20.0)),
             MakeForecast(new("m2"), (Cape, 1200.0), (Precipitation, 8.0), (WindGusts, 18.0)));
 
-        var alert = AlertEvaluator.EvaluateThunderstorm(snap, "lucerne", 1000, 5, 15, Time);
+        var alert = AlertEvaluator.EvaluateThunderstorm(ToConsensus(snap), 1000, 5, 15);
 
         Assert.True(alert.Severity >= AlertSeverity.Orange);
         Assert.Equal(1.0, alert.Confidence);
@@ -281,7 +298,7 @@ public sealed class AlertEvaluatorSpec
         var snap = SnapshotWith(
             MakeForecast(new("m1"), (Cape, 200.0), (Precipitation, 1.0), (WindGusts, 5.0)));
 
-        var alert = AlertEvaluator.EvaluateThunderstorm(snap, "lucerne", 1000, 5, 15, Time);
+        var alert = AlertEvaluator.EvaluateThunderstorm(ToConsensus(snap), 1000, 5, 15);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
@@ -327,7 +344,7 @@ public sealed class AlertEvaluatorSpec
                 [(Precipitation, 1.0)],
                 [(DailyPrecipSum, 40.0)]));
 
-        var alert = AlertEvaluator.EvaluateHeavyRain(snap, "lucerne", 10.0, 25.0, Time);
+        var alert = AlertEvaluator.EvaluateHeavyRain(ToConsensus(snap), 10.0, 25.0);
 
         Assert.True(alert.Severity >= AlertSeverity.Orange);
     }
@@ -343,7 +360,7 @@ public sealed class AlertEvaluatorSpec
                 [(UvIndexParam, 4.0)],
                 [(DailyUvMax, 8.5)]));
 
-        var alert = AlertEvaluator.EvaluateUv(snap, "lucerne", Time);
+        var alert = AlertEvaluator.EvaluateUv(ToConsensus(snap));
 
         Assert.Equal(AlertSeverity.Red, alert.Severity);
         Assert.Equal("very_high", alert.Attributes["uv_level"]);
@@ -356,7 +373,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m1"), (UvIndexParam, 7.0)),
             MakeForecast(new("m2"), (UvIndexParam, 6.5)));
 
-        var alert = AlertEvaluator.EvaluateUv(snap, "lucerne", Time);
+        var alert = AlertEvaluator.EvaluateUv(ToConsensus(snap));
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
@@ -372,7 +389,7 @@ public sealed class AlertEvaluatorSpec
                 [(Snowfall, 0.1)],
                 [(DailySnowfallSum, 7.0)]));
 
-        var alert = AlertEvaluator.EvaluateSnow(snap, "lucerne", Time);
+        var alert = AlertEvaluator.EvaluateSnow(ToConsensus(snap));
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
@@ -385,7 +402,7 @@ public sealed class AlertEvaluatorSpec
         var snap = SnapshotWith(MakeForecast(new("m1"), (Temperature, 15.0)));
         var options = new AlertThresholdOptions();
 
-        var result = AlertEvaluator.EvaluateAll(snap, "lucerne", options, Time);
+        var result = AlertEvaluator.EvaluateAll(ToConsensus(snap), options, Time);
 
         Assert.Equal(9, result.Alerts.Count);
     }
