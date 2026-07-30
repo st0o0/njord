@@ -20,6 +20,15 @@ public sealed class ConsensusResultSpec
             new ForecastSeries([point]), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
     }
 
+    private static ModelForecast MakeHourlyForecast(WeatherModel model, DateTimeOffset baseHour, params (int Hour, double Temp)[] points)
+    {
+        var forecastPoints = points.Select(p =>
+            new ForecastPoint(baseHour.AddHours(p.Hour),
+                new Dictionary<ParameterDef, double?> { [Temperature] = p.Temp })).ToList();
+        return new ModelForecast(model, "lucerne", new CycleId(baseHour),
+            new ForecastSeries(forecastPoints), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+    }
+
     [Fact(Timeout = 5000)]
     public void Compute_produces_result_with_metrics_per_parameter_and_horizon()
     {
@@ -185,5 +194,27 @@ public sealed class ConsensusResultSpec
 
         Assert.Equal(29.5, result.DailyParameters[0].ByHorizon["d0"].Median);
         Assert.Equal(8.0, result.DailyParameters[1].ByHorizon["d0"].Median);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void H0_consensus_median_falls_within_individual_model_range_at_mid_hour()
+    {
+        var baseHour = new DateTimeOffset(2026, 7, 11, 14, 0, 0, TimeSpan.Zero);
+        var midHourTick = new DateTimeOffset(2026, 7, 11, 14, 25, 0, TimeSpan.Zero);
+
+        var snapshot = ModelSnapshot.Empty
+            .Update(MakeHourlyForecast(IconD2, baseHour, (0, 20.0), (1, 25.0)))
+            .Update(MakeHourlyForecast(Ecmwf, baseHour, (0, 22.0), (1, 27.0)))
+            .Update(MakeHourlyForecast(Gfs, baseHour, (0, 21.0), (1, 26.0)));
+
+        var parameters = new ResolvedParameterSet([Temperature], []);
+        var timeProvider = new FakeTimeProvider(midHourTick);
+
+        var result = ConsensusResult.Compute(snapshot, parameters, [0], "lucerne", timeProvider);
+
+        var h0 = result.Parameters[0].ByHorizon["h0"];
+        Assert.Equal(21.0, h0.Median);
+        Assert.True(h0.Median >= 20.0 && h0.Median <= 22.0,
+            $"h0 median {h0.Median} should be within the model range [20.0, 22.0] for the current hour, not the next hour's range [25.0, 27.0]");
     }
 }
