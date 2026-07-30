@@ -41,42 +41,51 @@ public sealed record IndexResult(
     [property: JsonProperty("ventilationEnvelope")] ScoreEnvelope? VentilationEnvelope = null)
 {
     public static IndexResult Compute(
-        ModelSnapshot snapshot,
-        string location,
+        ConsensusSnapshot consensus,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider,
         IndexOptions options)
     {
-        var now = timeProvider.GetUtcNow();
-        var cutoff = now.AddHours(24);
+        var tempParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.Temperature2m));
+        var humidityParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.RelativeHumidity2m));
+        var windParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.WindSpeed10m));
+        var precipProbParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.PrecipitationProbability));
+        var cloudParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.CloudCover));
+        var radiationParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.ShortwaveRadiation));
+        var etParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.Et0FaoEvapotranspiration));
+        var sunshineDurationParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.SunshineDuration));
+        var isDayParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.IsDay));
 
-        var tempParam = parameters.Get(ParameterRegistry.Temperature2m);
-        var humidityParam = parameters.Get(ParameterRegistry.RelativeHumidity2m);
-        var windParam = parameters.Get(ParameterRegistry.WindSpeed10m);
-        var precipProbParam = parameters.Get(ParameterRegistry.PrecipitationProbability);
-        var cloudParam = parameters.Get(ParameterRegistry.CloudCover);
-        var radiationParam = parameters.Get(ParameterRegistry.ShortwaveRadiation);
-        var etParam = parameters.Get(ParameterRegistry.Et0FaoEvapotranspiration);
-        var sunshineDurationParam = parameters.Get(ParameterRegistry.SunshineDuration);
-        var isDayParam = parameters.Get(ParameterRegistry.IsDay);
+        var cutoffHour = Math.Min(consensus.Hourly.CutoffHour, 24);
 
-        var forecasts = snapshot.Entries
-            .Where(e => e.Key.Location == location)
-            .Select(e => e.Value)
-            .ToList();
-
-        var meanTemp = Mean24h(forecasts, tempParam, now, cutoff);
-        var meanHumidity = Mean24h(forecasts, humidityParam, now, cutoff);
-        var meanWind = Mean24h(forecasts, windParam, now, cutoff);
-        var meanRainProb = Mean24h(forecasts, precipProbParam, now, cutoff);
-        var meanCloud = Mean24h(forecasts, cloudParam, now, cutoff);
-        var meanRadiation = Mean24h(forecasts, radiationParam, now, cutoff);
-        var meanEt = Mean24h(forecasts, etParam, now, cutoff);
+        var meanTemp = Mean24hFromConsensus(tempParam, cutoffHour);
+        var meanHumidity = Mean24hFromConsensus(humidityParam, cutoffHour);
+        var meanWind = Mean24hFromConsensus(windParam, cutoffHour);
+        var meanRainProb = Mean24hFromConsensus(precipProbParam, cutoffHour);
+        var meanCloud = Mean24hFromConsensus(cloudParam, cutoffHour);
+        var meanRadiation = Mean24hFromConsensus(radiationParam, cutoffHour);
+        var meanEt = Mean24hFromConsensus(etParam, cutoffHour);
 
         double? sunshinePct = null;
-        if (sunshineDurationParam is not null && isDayParam is not null && forecasts.Count > 0)
+        if (sunshineDurationParam is not null && isDayParam is not null)
         {
-            sunshinePct = DerivedComputer.SunshinePercent(forecasts[0].Hourly, sunshineDurationParam, isDayParam, now);
+            var totalSunshine = 0.0;
+            var totalDaylight = 0.0;
+            for (var h = 0; h <= cutoffHour; h++)
+            {
+                var key = $"h{h}";
+                var sunMedian = sunshineDurationParam.ByHorizon.GetValueOrDefault(key)?.Median;
+                var dayMedian = isDayParam.ByHorizon.GetValueOrDefault(key)?.Median;
+                if (sunMedian.HasValue && dayMedian is > 0.5)
+                {
+                    totalSunshine += sunMedian.Value;
+                    totalDaylight += 3600.0;
+                }
+            }
+            if (totalDaylight > 0)
+            {
+                sunshinePct = Math.Round(totalSunshine / totalDaylight * 100, 1);
+            }
         }
 
         var laundry = IndexScorer.LaundryDrying(meanTemp, meanHumidity, meanWind, meanRainProb, sunshinePct);
@@ -90,77 +99,159 @@ public sealed record IndexResult(
         var solar = IndexScorer.SolarYield(meanRadiation, meanCloud, meanTemp);
         var ventilation = IndexScorer.Ventilation(meanTemp, options.IndoorTemp, meanHumidity, meanWind, meanRainProb);
 
-        var frostSeries = forecasts.Select(f => f.Hourly).ToList();
-        var frost = tempParam is not null
-            ? IndexScorer.FrostProtection(frostSeries, tempParam, now)
-            : null;
+        var frost = ComputeFrostFromConsensus(
+            FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.Temperature2m)),
+            consensus.Hourly.CutoffHour);
 
         var vpd = IndexScorer.VpdCategory(meanTemp, meanHumidity);
 
-        var envelopes = ComputeEnvelopes(forecasts, parameters, now, cutoff, options);
+        var envelopes = ComputeEnvelopes(
+            consensus, parameters, cutoffHour, options);
 
-        return new IndexResult(location, laundry, outdoor, running, cycling, bbq, irrigation,
+        return new IndexResult(consensus.Location, laundry, outdoor, running, cycling, bbq, irrigation,
             hdd, cdd, solar, ventilation, frost, vpd,
             envelopes.Laundry, envelopes.Outdoor, envelopes.Running, envelopes.Cycling,
             envelopes.Bbq, envelopes.Irrigation, envelopes.Solar, envelopes.Ventilation);
     }
-
-    private record struct PerModelScores(
-        int Laundry, int Outdoor, int Running, int Cycling,
-        int Bbq, int Irrigation, int Solar, int Ventilation);
 
     private record struct EnvelopeSet(
         ScoreEnvelope? Laundry, ScoreEnvelope? Outdoor, ScoreEnvelope? Running, ScoreEnvelope? Cycling,
         ScoreEnvelope? Bbq, ScoreEnvelope? Irrigation, ScoreEnvelope? Solar, ScoreEnvelope? Ventilation);
 
     private static EnvelopeSet ComputeEnvelopes(
-        List<ModelForecast> forecasts, ResolvedParameterSet parameters,
-        DateTimeOffset now, DateTimeOffset cutoff, IndexOptions options)
+        ConsensusSnapshot consensus, ResolvedParameterSet parameters,
+        int cutoffHour, IndexOptions options)
     {
-        if (forecasts.Count < 2)
-            return default;
+        var tempParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.Temperature2m));
+        var humidityParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.RelativeHumidity2m));
+        var windParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.WindSpeed10m));
+        var precipProbParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.PrecipitationProbability));
+        var cloudParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.CloudCover));
+        var radiationParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.ShortwaveRadiation));
+        var etParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.Et0FaoEvapotranspiration));
 
-        var perModel = new List<PerModelScores>();
+        var hasEnoughData = tempParam is not null &&
+            tempParam.ByHorizon.Values.Any(hc => hc.AvailableModels.Count >= 2);
 
-        foreach (var forecast in forecasts)
+        if (!hasEnoughData)
         {
-            var single = new List<ModelForecast> { forecast };
-            var tempParam = parameters.Get(ParameterRegistry.Temperature2m);
-            var humidityParam = parameters.Get(ParameterRegistry.RelativeHumidity2m);
-            var windParam = parameters.Get(ParameterRegistry.WindSpeed10m);
-            var precipProbParam = parameters.Get(ParameterRegistry.PrecipitationProbability);
-            var cloudParam = parameters.Get(ParameterRegistry.CloudCover);
-            var radiationParam = parameters.Get(ParameterRegistry.ShortwaveRadiation);
-            var etParam = parameters.Get(ParameterRegistry.Et0FaoEvapotranspiration);
-
-            var t = Mean24h(single, tempParam, now, cutoff);
-            var h = Mean24h(single, humidityParam, now, cutoff);
-            var w = Mean24h(single, windParam, now, cutoff);
-            var rp = Mean24h(single, precipProbParam, now, cutoff);
-            var cl = Mean24h(single, cloudParam, now, cutoff);
-            var rad = Mean24h(single, radiationParam, now, cutoff);
-            var et = Mean24h(single, etParam, now, cutoff);
-
-            perModel.Add(new PerModelScores(
-                IndexScorer.LaundryDrying(t, h, w, rp, null),
-                IndexScorer.OutdoorScore(t, rp, w, cl),
-                IndexScorer.RunningComfort(t, h, w, rp),
-                IndexScorer.CyclingComfort(t, h, w, rp),
-                IndexScorer.BbqWeather(t, h, w, rp),
-                IndexScorer.IrrigationNeed(rp, t, h, et),
-                IndexScorer.SolarYield(rad, cl, t),
-                IndexScorer.Ventilation(t, options.IndoorTemp, h, w, rp)));
+            return default;
         }
 
+        var pessimisticMeans = ComputePessimisticMeans(
+            tempParam, humidityParam, windParam, precipProbParam,
+            cloudParam, radiationParam, etParam, cutoffHour);
+        var optimisticMeans = ComputeOptimisticMeans(
+            tempParam, humidityParam, windParam, precipProbParam,
+            cloudParam, radiationParam, etParam, cutoffHour);
+
+        var pessScores = ComputeScoresFromMeans(pessimisticMeans, options);
+        var optScores = ComputeScoresFromMeans(optimisticMeans, options);
+
+        var avgAgreement = ComputeAverageAgreement(
+            tempParam, humidityParam, windParam, precipProbParam,
+            cloudParam, radiationParam, cutoffHour);
+
         return new EnvelopeSet(
-            BuildEnvelope(perModel.Select(m => m.Laundry).ToList()),
-            BuildEnvelope(perModel.Select(m => m.Outdoor).ToList()),
-            BuildEnvelope(perModel.Select(m => m.Running).ToList()),
-            BuildEnvelope(perModel.Select(m => m.Cycling).ToList()),
-            BuildEnvelope(perModel.Select(m => m.Bbq).ToList()),
-            BuildEnvelope(perModel.Select(m => m.Irrigation).ToList()),
-            BuildEnvelope(perModel.Select(m => m.Solar).ToList()),
-            BuildEnvelope(perModel.Select(m => m.Ventilation).ToList()));
+            BuildEnvelopeFromBounds(pessScores.Laundry, optScores.Laundry, avgAgreement),
+            BuildEnvelopeFromBounds(pessScores.Outdoor, optScores.Outdoor, avgAgreement),
+            BuildEnvelopeFromBounds(pessScores.Running, optScores.Running, avgAgreement),
+            BuildEnvelopeFromBounds(pessScores.Cycling, optScores.Cycling, avgAgreement),
+            BuildEnvelopeFromBounds(pessScores.Bbq, optScores.Bbq, avgAgreement),
+            BuildEnvelopeFromBounds(pessScores.Irrigation, optScores.Irrigation, avgAgreement),
+            BuildEnvelopeFromBounds(pessScores.Solar, optScores.Solar, avgAgreement),
+            BuildEnvelopeFromBounds(pessScores.Ventilation, optScores.Ventilation, avgAgreement));
+    }
+
+    private record struct MeanSet(
+        double? Temp, double? Humidity, double? Wind, double? RainProb,
+        double? Cloud, double? Radiation, double? Et);
+
+    private record struct ScoreSet(
+        int Laundry, int Outdoor, int Running, int Cycling,
+        int Bbq, int Irrigation, int Solar, int Ventilation);
+
+    private static MeanSet ComputePessimisticMeans(
+        ParameterConsensus? tempParam, ParameterConsensus? humidityParam,
+        ParameterConsensus? windParam, ParameterConsensus? precipProbParam,
+        ParameterConsensus? cloudParam, ParameterConsensus? radiationParam,
+        ParameterConsensus? etParam, int cutoffHour)
+    {
+        return new MeanSet(
+            MeanCiBound(tempParam, cutoffHour, lower: true),
+            MeanCiBound(humidityParam, cutoffHour, lower: false),
+            MeanCiBound(windParam, cutoffHour, lower: false),
+            MeanCiBound(precipProbParam, cutoffHour, lower: false),
+            MeanCiBound(cloudParam, cutoffHour, lower: false),
+            MeanCiBound(radiationParam, cutoffHour, lower: true),
+            MeanCiBound(etParam, cutoffHour, lower: true));
+    }
+
+    private static MeanSet ComputeOptimisticMeans(
+        ParameterConsensus? tempParam, ParameterConsensus? humidityParam,
+        ParameterConsensus? windParam, ParameterConsensus? precipProbParam,
+        ParameterConsensus? cloudParam, ParameterConsensus? radiationParam,
+        ParameterConsensus? etParam, int cutoffHour)
+    {
+        return new MeanSet(
+            MeanCiBound(tempParam, cutoffHour, lower: false),
+            MeanCiBound(humidityParam, cutoffHour, lower: true),
+            MeanCiBound(windParam, cutoffHour, lower: true),
+            MeanCiBound(precipProbParam, cutoffHour, lower: true),
+            MeanCiBound(cloudParam, cutoffHour, lower: true),
+            MeanCiBound(radiationParam, cutoffHour, lower: false),
+            MeanCiBound(etParam, cutoffHour, lower: false));
+    }
+
+    private static ScoreSet ComputeScoresFromMeans(MeanSet means, IndexOptions options)
+    {
+        return new ScoreSet(
+            IndexScorer.LaundryDrying(means.Temp, means.Humidity, means.Wind, means.RainProb, null),
+            IndexScorer.OutdoorScore(means.Temp, means.RainProb, means.Wind, means.Cloud),
+            IndexScorer.RunningComfort(means.Temp, means.Humidity, means.Wind, means.RainProb),
+            IndexScorer.CyclingComfort(means.Temp, means.Humidity, means.Wind, means.RainProb),
+            IndexScorer.BbqWeather(means.Temp, means.Humidity, means.Wind, means.RainProb),
+            IndexScorer.IrrigationNeed(means.RainProb, means.Temp, means.Humidity, means.Et),
+            IndexScorer.SolarYield(means.Radiation, means.Cloud, means.Temp),
+            IndexScorer.Ventilation(means.Temp, options.IndoorTemp, means.Humidity, means.Wind, means.RainProb));
+    }
+
+    private static double ComputeAverageAgreement(
+        ParameterConsensus? tempParam, ParameterConsensus? humidityParam,
+        ParameterConsensus? windParam, ParameterConsensus? precipProbParam,
+        ParameterConsensus? cloudParam, ParameterConsensus? radiationParam,
+        int cutoffHour)
+    {
+        var allParams = new[] { tempParam, humidityParam, windParam, precipProbParam, cloudParam, radiationParam };
+        double totalAgreement = 0;
+        var count = 0;
+
+        foreach (var param in allParams)
+        {
+            if (param is null)
+            {
+                continue;
+            }
+
+            for (var h = 0; h <= cutoffHour; h++)
+            {
+                var agreement = param.ByHorizon.GetValueOrDefault($"h{h}")?.Agreement;
+                if (agreement.HasValue)
+                {
+                    totalAgreement += agreement.Value;
+                    count++;
+                }
+            }
+        }
+
+        return count > 0 ? Math.Round(totalAgreement / count, 3) : 0;
+    }
+
+    private static ScoreEnvelope BuildEnvelopeFromBounds(int score1, int score2, double confidence)
+    {
+        var min = Math.Min(score1, score2);
+        var max = Math.Max(score1, score2);
+        return new ScoreEnvelope(min, max, confidence);
     }
 
     internal static ScoreEnvelope BuildEnvelope(List<int> scores)
@@ -175,11 +266,9 @@ public sealed record IndexResult(
         return new ScoreEnvelope(min, max, Math.Round(confidence, 3));
     }
 
-    private static double? Mean24h(
-        List<ModelForecast> forecasts, ParameterDef? param,
-        DateTimeOffset now, DateTimeOffset cutoff)
+    private static double? Mean24hFromConsensus(ParameterConsensus? param, int cutoffHour)
     {
-        if (param is null || forecasts.Count == 0)
+        if (param is null)
         {
             return null;
         }
@@ -187,26 +276,104 @@ public sealed record IndexResult(
         double sum = 0;
         var count = 0;
 
-        foreach (var forecast in forecasts)
+        for (var h = 0; h <= cutoffHour; h++)
         {
-            foreach (var point in forecast.Hourly.Points)
+            var median = param.ByHorizon.GetValueOrDefault($"h{h}")?.Median;
+            if (median is not { } v)
             {
-                if (point.ValidAt < now || point.ValidAt > cutoff)
-                {
-                    continue;
-                }
-
-                var val = point.Get(param);
-                if (val is not { } v)
-                {
-                    continue;
-                }
-
-                sum += v;
-                count++;
+                continue;
             }
+
+            sum += v;
+            count++;
         }
 
         return count > 0 ? sum / count : null;
     }
+
+    private static double? MeanCiBound(ParameterConsensus? param, int cutoffHour, bool lower)
+    {
+        if (param is null)
+        {
+            return null;
+        }
+
+        double sum = 0;
+        var count = 0;
+
+        for (var h = 0; h <= cutoffHour; h++)
+        {
+            var hc = param.ByHorizon.GetValueOrDefault($"h{h}");
+            if (hc is null)
+            {
+                continue;
+            }
+
+            double? val = null;
+            if (hc.ConfidenceInterval is { } ci)
+            {
+                val = lower ? ci.Lower : ci.Upper;
+            }
+            else if (hc.Median.HasValue && hc.Spread.HasValue)
+            {
+                val = lower ? hc.Median.Value - hc.Spread.Value / 2 : hc.Median.Value + hc.Spread.Value / 2;
+            }
+            else
+            {
+                val = hc.Median;
+            }
+
+            if (val is not { } v)
+            {
+                continue;
+            }
+
+            sum += v;
+            count++;
+        }
+
+        return count > 0 ? sum / count : null;
+    }
+
+    private static FrostProtectionInfo? ComputeFrostFromConsensus(
+        ParameterConsensus? tempParam, int cutoffHour)
+    {
+        if (tempParam is null)
+        {
+            return null;
+        }
+
+        var maxHour = Math.Min(cutoffHour, 48);
+        int? firstFrostHours = null;
+        var hoursWithFrost = 0;
+        var totalHours = 0;
+
+        for (var h = 0; h <= maxHour; h++)
+        {
+            var hc = tempParam.ByHorizon.GetValueOrDefault($"h{h}");
+            if (hc?.Median is not { } median)
+            {
+                continue;
+            }
+
+            totalHours++;
+            if (median <= 0)
+            {
+                firstFrostHours ??= h;
+                hoursWithFrost++;
+            }
+        }
+
+        if (firstFrostHours is null)
+        {
+            return null;
+        }
+
+        var h3Hc = tempParam.ByHorizon.GetValueOrDefault("h3");
+        var confidence = h3Hc?.Agreement ?? (totalHours > 0 ? 1.0 : 0.0);
+        return new FrostProtectionInfo(firstFrostHours.Value, Math.Round(confidence, 2));
+    }
+
+    private static ParameterConsensus? FindParam(IReadOnlyList<ParameterConsensus> parameters, ParameterDef? param)
+        => param is null ? null : parameters.FirstOrDefault(p => p.Parameter == param);
 }

@@ -32,14 +32,11 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
     public string DeviceId(string location) =>
         TopicScheme.EnrichmentDeviceId(location, TypeName);
 
-    public IEnumerable<EgressEvent> Compute(ModelSnapshot snapshot, IReadOnlyList<string> locations)
+    public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus)
     {
-        foreach (var location in locations)
-        {
-            var result = IndexResult.Compute(
-                snapshot, location, _parameters, _timeProvider, _indexOptions);
-            yield return new EgressEvent.EnrichmentUpdate(location, TypeName, result);
-        }
+        var result = IndexResult.Compute(
+            consensus, _parameters, _timeProvider, _indexOptions);
+        yield return new EgressEvent.EnrichmentUpdate(consensus.Location, TypeName, result);
     }
 
     public string BuildDiscoveryPayload(DiscoveryContext ctx, string location)

@@ -33,14 +33,10 @@ internal sealed class DerivedEnrichment : IStatelessEnrichment
     public string DeviceId(string location) =>
         TopicScheme.EnrichmentDeviceId(location, TypeName);
 
-    public IEnumerable<EgressEvent> Compute(ModelSnapshot snapshot, IReadOnlyList<string> locations)
+    public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus)
     {
-        foreach (var location in locations)
-        {
-            var result = DerivedResult.Compute(
-                snapshot, location, _horizons, _parameters, _timeProvider);
-            yield return new EgressEvent.EnrichmentUpdate(location, TypeName, result);
-        }
+        var result = DerivedResult.Compute(consensus, _horizons, _parameters, _timeProvider);
+        yield return new EgressEvent.EnrichmentUpdate(consensus.Location, TypeName, result);
     }
 
     public string BuildDiscoveryPayload(DiscoveryContext ctx, string location)

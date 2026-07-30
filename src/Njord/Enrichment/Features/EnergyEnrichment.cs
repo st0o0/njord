@@ -32,14 +32,11 @@ internal sealed class EnergyEnrichment : IStatelessEnrichment
     public string DeviceId(string location) =>
         TopicScheme.EnrichmentDeviceId(location, TypeName);
 
-    public IEnumerable<EgressEvent> Compute(ModelSnapshot snapshot, IReadOnlyList<string> locations)
+    public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus)
     {
-        foreach (var location in locations)
-        {
-            var result = EnergyResult.Compute(
-                snapshot, location, _parameters, _timeProvider, _energyOptions);
-            yield return new EgressEvent.EnrichmentUpdate(location, TypeName, result);
-        }
+        var result = EnergyResult.Compute(
+            consensus, _parameters, _timeProvider, _energyOptions);
+        yield return new EgressEvent.EnrichmentUpdate(consensus.Location, TypeName, result);
     }
 
     public string BuildDiscoveryPayload(DiscoveryContext ctx, string location)

@@ -2,7 +2,6 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
-using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Mqtt;
 
@@ -29,13 +28,10 @@ internal sealed class AlertEnrichment : IStatelessEnrichment
     public string DeviceId(string location) =>
         TopicScheme.EnrichmentDeviceId(location, TypeName);
 
-    public IEnumerable<EgressEvent> Compute(ModelSnapshot snapshot, IReadOnlyList<string> locations)
+    public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus)
     {
-        foreach (var location in locations)
-        {
-            var result = AlertEvaluator.EvaluateAll(snapshot, location, _alertOptions, _timeProvider);
-            yield return new EgressEvent.EnrichmentUpdate(location, TypeName, result);
-        }
+        var result = AlertEvaluator.EvaluateAll(consensus, _alertOptions, _timeProvider);
+        yield return new EgressEvent.EnrichmentUpdate(consensus.Location, TypeName, result);
     }
 
     public string BuildDiscoveryPayload(DiscoveryContext ctx, string location)
