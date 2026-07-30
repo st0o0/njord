@@ -60,7 +60,9 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
         {
             _log.Debug("Forecast snapshot saved (seqNr {0})", success.Metadata.SequenceNr);
             if (success.Metadata.SequenceNr > 0)
+            {
                 DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
+            }
         });
 
         Command<SaveSnapshotFailure>(failure =>

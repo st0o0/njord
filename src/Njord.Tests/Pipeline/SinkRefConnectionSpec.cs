@@ -412,7 +412,9 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
         private void TryConnect()
         {
             if (_queue is null || !_sourceReceived)
+            {
                 return;
+            }
 
             Self.Tell(new DoOffer());
             Become(Connecting);

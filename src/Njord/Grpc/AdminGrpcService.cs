@@ -147,59 +147,168 @@ public sealed class AdminGrpcService(
 
             if (request.Consensus is { } consensus)
             {
-                if (consensus.HasEnabled) options.Enrichment.Consensus.Enabled = consensus.Enabled;
-                if (consensus.HasMethod) options.Enrichment.Consensus.Method = consensus.Method;
-                if (consensus.HasTrimPercent) options.Enrichment.Consensus.TrimPercent = consensus.TrimPercent;
+                if (consensus.HasEnabled)
+                {
+                    options.Enrichment.Consensus.Enabled = consensus.Enabled;
+                }
+
+                if (consensus.HasMethod)
+                {
+                    options.Enrichment.Consensus.Method = consensus.Method;
+                }
+
+                if (consensus.HasTrimPercent)
+                {
+                    options.Enrichment.Consensus.TrimPercent = consensus.TrimPercent;
+                }
             }
 
             if (request.Alerts is { } alerts)
             {
-                if (alerts.HasEnabled) options.Enrichment.Alerts.Enabled = alerts.Enabled;
-                if (alerts.HasFrostThreshold) options.Enrichment.Alerts.FrostThreshold = alerts.FrostThreshold;
-                if (alerts.HeatThresholds.Count > 0) options.Enrichment.Alerts.HeatThresholds = [.. alerts.HeatThresholds];
-                if (alerts.HasStormGustThreshold) options.Enrichment.Alerts.StormGustThreshold = alerts.StormGustThreshold;
-                if (alerts.HasHeavyRainHourlyThreshold) options.Enrichment.Alerts.HeavyRainHourlyThreshold = alerts.HeavyRainHourlyThreshold;
-                if (alerts.HasHeavyRainDailyThreshold) options.Enrichment.Alerts.HeavyRainDailyThreshold = alerts.HeavyRainDailyThreshold;
-                if (alerts.HasPressureDropThreshold) options.Enrichment.Alerts.PressureDropThreshold = alerts.PressureDropThreshold;
-                if (alerts.HasCapeThreshold) options.Enrichment.Alerts.CapeThreshold = alerts.CapeThreshold;
-                if (alerts.HasThunderstormPrecipThreshold) options.Enrichment.Alerts.ThunderstormPrecipThreshold = alerts.ThunderstormPrecipThreshold;
-                if (alerts.HasThunderstormGustThreshold) options.Enrichment.Alerts.ThunderstormGustThreshold = alerts.ThunderstormGustThreshold;
+                if (alerts.HasEnabled)
+                {
+                    options.Enrichment.Alerts.Enabled = alerts.Enabled;
+                }
+
+                if (alerts.HasFrostThreshold)
+                {
+                    options.Enrichment.Alerts.FrostThreshold = alerts.FrostThreshold;
+                }
+
+                if (alerts.HeatThresholds.Count > 0)
+                {
+                    options.Enrichment.Alerts.HeatThresholds = [.. alerts.HeatThresholds];
+                }
+
+                if (alerts.HasStormGustThreshold)
+                {
+                    options.Enrichment.Alerts.StormGustThreshold = alerts.StormGustThreshold;
+                }
+
+                if (alerts.HasHeavyRainHourlyThreshold)
+                {
+                    options.Enrichment.Alerts.HeavyRainHourlyThreshold = alerts.HeavyRainHourlyThreshold;
+                }
+
+                if (alerts.HasHeavyRainDailyThreshold)
+                {
+                    options.Enrichment.Alerts.HeavyRainDailyThreshold = alerts.HeavyRainDailyThreshold;
+                }
+
+                if (alerts.HasPressureDropThreshold)
+                {
+                    options.Enrichment.Alerts.PressureDropThreshold = alerts.PressureDropThreshold;
+                }
+
+                if (alerts.HasCapeThreshold)
+                {
+                    options.Enrichment.Alerts.CapeThreshold = alerts.CapeThreshold;
+                }
+
+                if (alerts.HasThunderstormPrecipThreshold)
+                {
+                    options.Enrichment.Alerts.ThunderstormPrecipThreshold = alerts.ThunderstormPrecipThreshold;
+                }
+
+                if (alerts.HasThunderstormGustThreshold)
+                {
+                    options.Enrichment.Alerts.ThunderstormGustThreshold = alerts.ThunderstormGustThreshold;
+                }
             }
 
             if (request.Derived is { } derived)
             {
-                if (derived.HasEnabled) options.Enrichment.Derived.Enabled = derived.Enabled;
+                if (derived.HasEnabled)
+                {
+                    options.Enrichment.Derived.Enabled = derived.Enabled;
+                }
             }
 
             if (request.Trends is { } trends)
             {
-                if (trends.HasEnabled) options.Enrichment.Trends.Enabled = trends.Enabled;
+                if (trends.HasEnabled)
+                {
+                    options.Enrichment.Trends.Enabled = trends.Enabled;
+                }
             }
 
             if (request.Indices is { } indices)
             {
-                if (indices.HasEnabled) options.Enrichment.Indices.Enabled = indices.Enabled;
-                if (indices.HasHeatingBaseTemp) options.Enrichment.Indices.HeatingBaseTemp = indices.HeatingBaseTemp;
-                if (indices.HasCoolingBaseTemp) options.Enrichment.Indices.CoolingBaseTemp = indices.CoolingBaseTemp;
-                if (indices.HasIndoorTemp) options.Enrichment.Indices.IndoorTemp = indices.IndoorTemp;
+                if (indices.HasEnabled)
+                {
+                    options.Enrichment.Indices.Enabled = indices.Enabled;
+                }
+
+                if (indices.HasHeatingBaseTemp)
+                {
+                    options.Enrichment.Indices.HeatingBaseTemp = indices.HeatingBaseTemp;
+                }
+
+                if (indices.HasCoolingBaseTemp)
+                {
+                    options.Enrichment.Indices.CoolingBaseTemp = indices.CoolingBaseTemp;
+                }
+
+                if (indices.HasIndoorTemp)
+                {
+                    options.Enrichment.Indices.IndoorTemp = indices.IndoorTemp;
+                }
             }
 
             if (request.Energy is { } energy)
             {
-                if (energy.HasEnabled) options.Enrichment.Energy.Enabled = energy.Enabled;
-                if (energy.HasFlowTemp) options.Enrichment.Energy.FlowTemp = energy.FlowTemp;
-                if (energy.HasCarnotEfficiency) options.Enrichment.Energy.CarnotEfficiency = energy.CarnotEfficiency;
-                if (energy.HasHeatingBaseTemp) options.Enrichment.Energy.HeatingBaseTemp = energy.HeatingBaseTemp;
-                if (energy.HasCopOptimalHours) options.Enrichment.Energy.CopOptimalHours = energy.CopOptimalHours;
-                if (energy.HasIndoorTemp) options.Enrichment.Energy.IndoorTemp = energy.IndoorTemp;
+                if (energy.HasEnabled)
+                {
+                    options.Enrichment.Energy.Enabled = energy.Enabled;
+                }
+
+                if (energy.HasFlowTemp)
+                {
+                    options.Enrichment.Energy.FlowTemp = energy.FlowTemp;
+                }
+
+                if (energy.HasCarnotEfficiency)
+                {
+                    options.Enrichment.Energy.CarnotEfficiency = energy.CarnotEfficiency;
+                }
+
+                if (energy.HasHeatingBaseTemp)
+                {
+                    options.Enrichment.Energy.HeatingBaseTemp = energy.HeatingBaseTemp;
+                }
+
+                if (energy.HasCopOptimalHours)
+                {
+                    options.Enrichment.Energy.CopOptimalHours = energy.CopOptimalHours;
+                }
+
+                if (energy.HasIndoorTemp)
+                {
+                    options.Enrichment.Energy.IndoorTemp = energy.IndoorTemp;
+                }
             }
 
             if (request.History is { } history)
             {
-                if (history.HasEnabled) options.Enrichment.History.Enabled = history.Enabled;
-                if (history.HasRetentionDays) options.Enrichment.History.RetentionDays = history.RetentionDays;
-                if (history.HasMinSampleSize) options.Enrichment.History.MinSampleSize = history.MinSampleSize;
-                if (history.HasSnapshotInterval) options.Enrichment.History.SnapshotInterval = history.SnapshotInterval;
+                if (history.HasEnabled)
+                {
+                    options.Enrichment.History.Enabled = history.Enabled;
+                }
+
+                if (history.HasRetentionDays)
+                {
+                    options.Enrichment.History.RetentionDays = history.RetentionDays;
+                }
+
+                if (history.HasMinSampleSize)
+                {
+                    options.Enrichment.History.MinSampleSize = history.MinSampleSize;
+                }
+
+                if (history.HasSnapshotInterval)
+                {
+                    options.Enrichment.History.SnapshotInterval = history.SnapshotInterval;
+                }
             }
 
             var budget = BudgetValidator.Validate(options);

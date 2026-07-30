@@ -39,7 +39,9 @@ public sealed class WeightedBudgetGate : IBudgetGate<WeightedTarget>
 
         var cost = element.Weight;
         if (_tokens < cost)
+        {
             return false;
+        }
 
         _tokens -= cost;
         _trackerActor.Tell(new BudgetTrackerActor.RecordApiCall(cost));
@@ -50,7 +52,9 @@ public sealed class WeightedBudgetGate : IBudgetGate<WeightedTarget>
     {
         var deficit = element.Weight - _tokens;
         if (deficit <= 0)
+        {
             return TimeSpan.Zero;
+        }
 
         var delay = TimeSpan.FromSeconds(deficit / _tokensPerSecond);
         return delay < TimeSpan.FromMilliseconds(10)
@@ -76,7 +80,9 @@ public sealed class WeightedBudgetGate : IBudgetGate<WeightedTarget>
     {
         var now = _timeProvider.GetUtcNow();
         if (now - _lastRefresh < RefreshInterval)
+        {
             return;
+        }
 
         _lastRefresh = now;
         ApplyRate(_provider.GetCurrentRate());

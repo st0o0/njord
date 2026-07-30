@@ -172,7 +172,9 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         {
             _timestamps.Add(Stopwatch.GetTimestamp());
             if (Interlocked.Increment(ref _count) >= _expectedCount)
+            {
                 _allFetched.TrySetResult();
+            }
 
             var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
             var forecast = new ModelForecast(model, location.Name, cycle,
@@ -329,7 +331,9 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         private void TryConnect()
         {
             if (_queue is null || !_sourceReceived)
+            {
                 return;
+            }
 
             Self.Tell(new SchedulePoll());
             Become(Connecting);

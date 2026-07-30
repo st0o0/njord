@@ -169,8 +169,15 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
     private async Task<IActorRef> CreateAndWaitForReady(
         TaskCompletionSource graphTcs, IActorRef? depA = null, IActorRef? depB = null)
     {
-        if (depA is not null) ActorRegistry.Register<DepAKey>(depA, overwrite: true);
-        if (depB is not null) ActorRegistry.Register<DepBKey>(depB, overwrite: true);
+        if (depA is not null)
+        {
+            ActorRegistry.Register<DepAKey>(depA, overwrite: true);
+        }
+
+        if (depB is not null)
+        {
+            ActorRegistry.Register<DepBKey>(depB, overwrite: true);
+        }
 
         var consumer = Sys.ActorOf(TestStreamConsumer.CreateProps(graphTcs));
         await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));

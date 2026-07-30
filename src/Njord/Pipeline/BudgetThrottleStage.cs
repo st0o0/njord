@@ -36,15 +36,21 @@ public sealed class BudgetThrottleStage<T> : GraphStage<FlowShape<T, T>>
             SetHandler(stage.In, onPush: OnPush, onUpstreamFinish: () =>
             {
                 if (!_hasPending)
+                {
                     CompleteStage();
+                }
                 else
+                {
                     _upstreamFinished = true;
+                }
             });
 
             SetHandler(stage.Out, onPull: () =>
             {
                 if (!_hasPending && !_upstreamFinished)
+                {
                     Pull(stage.In);
+                }
             });
         }
 
@@ -67,7 +73,9 @@ public sealed class BudgetThrottleStage<T> : GraphStage<FlowShape<T, T>>
         protected override void OnTimer(object timerKey)
         {
             if (!_hasPending)
+            {
                 return;
+            }
 
             if (_stage._gate.TryAcquire(_pending!))
             {
@@ -82,7 +90,9 @@ public sealed class BudgetThrottleStage<T> : GraphStage<FlowShape<T, T>>
                 }
 
                 if (IsAvailable(_stage.Out))
+                {
                     Pull(_stage.In);
+                }
             }
             else
             {

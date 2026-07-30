@@ -41,7 +41,10 @@ public sealed class WeatherGrpcService(
 
             foreach (var modelId in models)
             {
-                if (!seenModels.Add(modelId)) continue;
+                if (!seenModels.Add(modelId))
+                {
+                    continue;
+                }
 
                 var coverage = ModelCoverageRegistry.Get(modelId);
                 var info = new ModelInfo { Id = modelId };
@@ -58,11 +61,19 @@ public sealed class WeatherGrpcService(
                         _ => V2.CoverageTier.Unspecified,
                     };
                     if (coverage.MaxForecastHours.HasValue)
+                    {
                         info.MaxForecastHours = coverage.MaxForecastHours.Value;
+                    }
+
                     if (coverage.ResolutionKm.HasValue)
+                    {
                         info.ResolutionKm = coverage.ResolutionKm.Value;
+                    }
+
                     if (coverage.Description is not null)
+                    {
                         info.Description = coverage.Description;
+                    }
                 }
                 response.Models.Add(info);
             }
@@ -103,7 +114,10 @@ public sealed class WeatherGrpcService(
         {
             var evt = EnrichmentProtoMapper.MapToEvent(
                 request.Location, typeName, resultObj, timeProvider.GetUtcNow());
-            if (evt is null) continue;
+            if (evt is null)
+            {
+                continue;
+            }
 
             switch (evt.PayloadCase)
             {
@@ -271,7 +285,9 @@ public sealed class WeatherGrpcService(
             foreach (var (param, value) in point.Values)
             {
                 if (value is null || HourlyFixedFields.Contains(param.ApiName))
+                {
                     continue;
+                }
 
                 hourly.Extra.Add(new V2.ParameterValue { Name = param.ApiName, Numeric = value.Value });
             }
@@ -283,29 +299,49 @@ public sealed class WeatherGrpcService(
         {
             var daily = new V2.DailyForecast { Date = point.Date.ToString("O") };
             var tempMax = point.GetNumeric(ParameterRegistry.GetByApiName("temperature_2m_max")!);
-            if (tempMax.HasValue) daily.TemperatureMax = tempMax.Value;
+            if (tempMax.HasValue)
+            {
+                daily.TemperatureMax = tempMax.Value;
+            }
 
             var tempMin = point.GetNumeric(ParameterRegistry.GetByApiName("temperature_2m_min")!);
-            if (tempMin.HasValue) daily.TemperatureMin = tempMin.Value;
+            if (tempMin.HasValue)
+            {
+                daily.TemperatureMin = tempMin.Value;
+            }
 
             var precipSum = point.GetNumeric(ParameterRegistry.GetByApiName("precipitation_sum")!);
-            if (precipSum.HasValue) daily.PrecipitationSum = precipSum.Value;
+            if (precipSum.HasValue)
+            {
+                daily.PrecipitationSum = precipSum.Value;
+            }
 
             var windMax = point.GetNumeric(ParameterRegistry.GetByApiName("wind_speed_10m_max")!);
-            if (windMax.HasValue) daily.WindSpeedMax = windMax.Value;
+            if (windMax.HasValue)
+            {
+                daily.WindSpeedMax = windMax.Value;
+            }
 
             var gustMax = point.GetNumeric(ParameterRegistry.GetByApiName("wind_gusts_10m_max")!);
-            if (gustMax.HasValue) daily.WindGustsMax = gustMax.Value;
+            if (gustMax.HasValue)
+            {
+                daily.WindGustsMax = gustMax.Value;
+            }
 
             daily.Sunrise = point.GetMeta(ParameterRegistry.GetByApiName("sunrise")!) ?? "";
             daily.Sunset = point.GetMeta(ParameterRegistry.GetByApiName("sunset")!) ?? "";
             var wc = point.GetNumeric(ParameterRegistry.GetByApiName("weather_code")!);
-            if (wc.HasValue) daily.WeatherCode = (int)wc.Value;
+            if (wc.HasValue)
+            {
+                daily.WeatherCode = (int)wc.Value;
+            }
 
             foreach (var (param, value) in point.NumericValues)
             {
                 if (value is null || DailyFixedFields.Contains(param.ApiName))
+                {
                     continue;
+                }
 
                 daily.Extra.Add(new V2.ParameterValue { Name = param.ApiName, Numeric = value.Value });
             }
@@ -313,7 +349,9 @@ public sealed class WeatherGrpcService(
             foreach (var (param, value) in point.MetaValues)
             {
                 if (value is null || DailyFixedFields.Contains(param.ApiName))
+                {
                     continue;
+                }
 
                 daily.Extra.Add(new V2.ParameterValue { Name = param.ApiName, Text = value });
             }

@@ -48,7 +48,9 @@ public static class ForecastSnapshotMapping
         {
             var domain = ToDomain(forecastDto);
             if (domain is not null)
+            {
                 state[key] = domain;
+            }
         }
         return state;
     }
@@ -90,7 +92,9 @@ public static class ForecastSnapshotMapping
             {
                 var param = ParameterRegistry.GetByApiName(apiName);
                 if (param is not null)
+                {
                     values[param] = value;
+                }
             }
             hourlyPoints.Add(new ForecastPoint(
                 new DateTimeOffset(pointDto.ValidAtUtcTicks, TimeSpan.Zero), values));
@@ -104,14 +108,18 @@ public static class ForecastSnapshotMapping
             {
                 var param = ParameterRegistry.GetByApiName(apiName);
                 if (param is not null)
+                {
                     numeric[param] = value;
+                }
             }
             var meta = new Dictionary<ParameterDef, string?>();
             foreach (var (apiName, value) in pointDto.MetaValues)
             {
                 var param = ParameterRegistry.GetByApiName(apiName);
                 if (param is not null)
+                {
                     meta[param] = value;
+                }
             }
             dailyPoints.Add(new DailyForecastPoint(
                 DateOnly.ParseExact(pointDto.Date, "O"), numeric, meta));

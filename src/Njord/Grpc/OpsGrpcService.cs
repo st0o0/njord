@@ -86,9 +86,15 @@ public sealed class OpsGrpcService(
                     MissCount = entry.MissCount,
                 };
                 if (entry.LastChangeUtc.HasValue)
+                {
                     modelStatus.LastChange = Timestamp.FromDateTimeOffset(entry.LastChangeUtc.Value);
+                }
+
                 if (entry.CycleSeconds.HasValue)
+                {
                     modelStatus.CycleSeconds = entry.CycleSeconds.Value;
+                }
+
                 status.Models.Add(modelStatus);
             }
         }
@@ -98,13 +104,40 @@ public sealed class OpsGrpcService(
         }
 
         var enrichment = _optionsMonitor.CurrentValue.Enrichment;
-        if (enrichment.Consensus.Enabled) status.ActiveEnrichments.Add("consensus");
-        if (enrichment.Alerts.Enabled) status.ActiveEnrichments.Add("alerts");
-        if (enrichment.Derived.Enabled) status.ActiveEnrichments.Add("derived");
-        if (enrichment.Trends.Enabled) status.ActiveEnrichments.Add("trends");
-        if (enrichment.Indices.Enabled) status.ActiveEnrichments.Add("indices");
-        if (enrichment.Energy.Enabled) status.ActiveEnrichments.Add("energy");
-        if (enrichment.History.Enabled) status.ActiveEnrichments.Add("history");
+        if (enrichment.Consensus.Enabled)
+        {
+            status.ActiveEnrichments.Add("consensus");
+        }
+
+        if (enrichment.Alerts.Enabled)
+        {
+            status.ActiveEnrichments.Add("alerts");
+        }
+
+        if (enrichment.Derived.Enabled)
+        {
+            status.ActiveEnrichments.Add("derived");
+        }
+
+        if (enrichment.Trends.Enabled)
+        {
+            status.ActiveEnrichments.Add("trends");
+        }
+
+        if (enrichment.Indices.Enabled)
+        {
+            status.ActiveEnrichments.Add("indices");
+        }
+
+        if (enrichment.Energy.Enabled)
+        {
+            status.ActiveEnrichments.Add("energy");
+        }
+
+        if (enrichment.History.Enabled)
+        {
+            status.ActiveEnrichments.Add("history");
+        }
 
         return status;
     }
@@ -132,9 +165,15 @@ public sealed class OpsGrpcService(
                     MissCount = entry.MissCount,
                 };
                 if (entry.LastChangeUtc.HasValue)
+                {
                     target.LastChange = Timestamp.FromDateTimeOffset(entry.LastChangeUtc.Value);
+                }
+
                 if (entry.CycleSeconds.HasValue)
+                {
                     target.CycleSeconds = entry.CycleSeconds.Value;
+                }
+
                 response.Targets.Add(target);
             }
         }
