@@ -174,7 +174,7 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
 
         return new ModelForecast(
             new WeatherModel(modelId), "lucerne", new CycleId(Anchor),
-            new ForecastSeries(points), DailyForecastSeries.Empty);
+            new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
     }
 
     // -- fakes ---------------------------------------------------------------

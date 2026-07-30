@@ -9,7 +9,7 @@ public sealed class ModelSnapshotSpec
     private static readonly WeatherModel Ecmwf = new("ecmwf_ifs025");
 
     private static ModelForecast Forecast(string location, WeatherModel model, CycleId cycle)
-        => new(model, location, cycle, new ForecastSeries([]), DailyForecastSeries.Empty);
+        => new(model, location, cycle, new ForecastSeries([]), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
 
     [Fact(Timeout = 5000)]
     public void Empty_snapshot_has_no_entries()

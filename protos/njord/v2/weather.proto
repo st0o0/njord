@@ -60,6 +60,7 @@ message GetEnrichmentsResponse {
   DerivedUpdate derived = 6;
   HistoryUpdate history = 7;
   ConsensusUpdate consensus = 8;
+  google.protobuf.Timestamp consensus_updated_at = 9;
 }
 
 // ═══════════════════════════════════════

@@ -7,6 +7,7 @@ using ProtoAlertType = Njord.Grpc.V2.AlertType;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
 using ProtoHorizonConsensus = Njord.Grpc.V2.HorizonConsensus;
 using ProtoParameterConsensus = Njord.Grpc.V2.ParameterConsensus;
+using ProtoDailyConsensus = Njord.Grpc.V2.DailyConsensus;
 using ProtoHorizonDerived = Njord.Grpc.V2.HorizonDerived;
 using ProtoScalarDerived = Njord.Grpc.V2.ScalarDerived;
 using ProtoParameterTrend = Njord.Grpc.V2.ParameterTrend;
@@ -307,6 +308,25 @@ public static class EnrichmentProtoMapper
             }
 
             update.Parameters.Add(proto);
+        }
+
+        foreach (var summary in result.DailySummaries)
+        {
+            var daily = new ProtoDailyConsensus
+            {
+                Date = summary.Date.ToString("yyyy-MM-dd"),
+                AvailableModels = summary.AvailableModels,
+            };
+
+            if (summary.TemperatureMax is { } tMax) daily.TemperatureMax = tMax;
+            if (summary.TemperatureMin is { } tMin) daily.TemperatureMin = tMin;
+            if (summary.PrecipitationSum is { } ps) daily.PrecipitationSum = ps;
+            if (summary.WindSpeedMax is { } ws) daily.WindSpeedMax = ws;
+            if (summary.WeatherCode is { } wc) daily.WeatherCode = wc;
+            if (summary.Spread is { } sp) daily.Spread = sp;
+            if (summary.Agreement is { } ag) daily.Agreement = ag;
+
+            update.Daily.Add(daily);
         }
 
         return update;

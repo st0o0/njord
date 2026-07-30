@@ -17,7 +17,7 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         return new ModelForecast(new WeatherModel(model), "lucerne", new CycleId(TestTime),
             new ForecastSeries([new ForecastPoint(TestTime.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 })]),
-            DailyForecastSeries.Empty);
+            DailyForecastSeries.Empty, TimeZoneInfo.Utc);
     }
 
     private async Task FillToSnapshotThreshold(IActorRef actor, int count = 20)

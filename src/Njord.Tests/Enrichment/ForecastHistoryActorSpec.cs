@@ -30,7 +30,7 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
                 [Temperature] = 20.0 + h * 0.5,
             })).ToList();
         var forecast = new ModelForecast(new("icon_d2"), "lucerne", new CycleId(T0),
-            new ForecastSeries(points), DailyForecastSeries.Empty);
+            new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
         return ModelSnapshot.Empty.Update(forecast);
     }
 

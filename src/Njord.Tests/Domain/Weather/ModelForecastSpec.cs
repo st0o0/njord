@@ -13,7 +13,7 @@ public sealed class ModelForecastSpec
         var point = new ForecastPoint(cycle.Timestamp.AddHours(3), new Dictionary<ParameterDef, double?> { [Temperature] = 20.0 });
         var series = new ForecastSeries([point]);
 
-        var forecast = new ModelForecast(new WeatherModel("ecmwf_ifs025"), "home", cycle, series, DailyForecastSeries.Empty);
+        var forecast = new ModelForecast(new WeatherModel("ecmwf_ifs025"), "home", cycle, series, DailyForecastSeries.Empty, TimeZoneInfo.Utc);
 
         Assert.Equal("ecmwf_ifs025", forecast.Model.Id);
         Assert.Equal("home", forecast.Location);

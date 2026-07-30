@@ -5,4 +5,5 @@ public sealed record ModelForecast(
     string Location,
     CycleId Cycle,
     ForecastSeries Hourly,
-    DailyForecastSeries Daily);
+    DailyForecastSeries Daily,
+    TimeZoneInfo TimeZone);

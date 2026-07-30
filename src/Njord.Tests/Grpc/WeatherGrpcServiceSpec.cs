@@ -2,7 +2,9 @@ using Akka.Actor;
 using Akka.Hosting;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
+using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Grpc;
 using Njord.Grpc.V2;
@@ -15,7 +17,11 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
 
-    private WeatherGrpcService CreateService(NjordOptions? options = null, IActorRef? forecastActor = null)
+    private WeatherGrpcService CreateService(
+        NjordOptions? options = null,
+        IActorRef? forecastActor = null,
+        IActorRef? enrichmentActor = null,
+        TimeProvider? timeProvider = null)
     {
         options ??= new NjordOptions
         {
@@ -29,12 +35,14 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
         ActorRegistry.Register<ForecastSnapshotActor>(
             forecastActor ?? Sys.ActorOf(Props.Create(() => new EmptyForecastActor())), overwrite: true);
+        ActorRegistry.Register<EnrichmentSnapshotActor>(
+            enrichmentActor ?? Sys.ActorOf(Props.Create(() => new EmptyEnrichmentActor())), overwrite: true);
 
         return new WeatherGrpcService(
             Microsoft.Extensions.Options.Options.Create(options),
             ActorRegistry,
             Sys,
-            TimeProvider.System);
+            timeProvider ?? TimeProvider.System);
     }
 
     [Fact(Timeout = 5000)]
@@ -113,6 +121,35 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(StatusCode.NotFound, ex.StatusCode);
     }
 
+    [Fact(Timeout = 5000)]
+    public async Task GetEnrichments_WithConsensusResult_SetsConsensusUpdatedAt()
+    {
+        var timeProvider = new FakeTimeProvider(Anchor);
+        var consensus = new ConsensusResult([]);
+        IReadOnlyList<(string TypeName, object Result)> results = [("consensus", (object)consensus)];
+        var actor = Sys.ActorOf(Props.Create(() => new FakeEnrichmentActor(results)));
+        var service = CreateService(enrichmentActor: actor, timeProvider: timeProvider);
+
+        var response = await service.GetEnrichments(
+            new GetEnrichmentsRequest { Location = "lucerne" },
+            TestServerCallContext.Create());
+
+        Assert.NotNull(response.ConsensusUpdatedAt);
+        Assert.Equal(Anchor, response.ConsensusUpdatedAt.ToDateTimeOffset());
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task GetEnrichments_WithoutConsensusResult_LeavesConsensusUpdatedAtUnset()
+    {
+        var service = CreateService();
+
+        var response = await service.GetEnrichments(
+            new GetEnrichmentsRequest { Location = "lucerne" },
+            TestServerCallContext.Create());
+
+        Assert.Null(response.ConsensusUpdatedAt);
+    }
+
     private static ModelForecast CreateForecast(string model = "icon_d2")
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
@@ -121,7 +158,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 }),
         };
         return new ModelForecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
-            new ForecastSeries(points), DailyForecastSeries.Empty);
+            new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
     }
 
     private sealed class EmptyForecastActor : ReceiveActor
@@ -139,6 +176,23 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         public FakeForecastActor(ModelForecast forecast)
         {
             Receive<Njord.Grpc.GetForecast>(_ => Sender.Tell(new ForecastResponse(forecast), Self));
+        }
+    }
+
+    private sealed class EmptyEnrichmentActor : ReceiveActor
+    {
+        public EmptyEnrichmentActor()
+        {
+            Receive<GetAllEnrichments>(_ => Sender.Tell(
+                new AllEnrichmentsResponse([]), Self));
+        }
+    }
+
+    private sealed class FakeEnrichmentActor : ReceiveActor
+    {
+        public FakeEnrichmentActor(IReadOnlyList<(string TypeName, object Result)> results)
+        {
+            Receive<GetAllEnrichments>(_ => Sender.Tell(new AllEnrichmentsResponse(results), Self));
         }
     }
 }

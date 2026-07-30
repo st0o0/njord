@@ -35,7 +35,7 @@ public sealed class TrendEnrichmentSpec
             new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?> { [Temperature] = baseTemp + h * 0.1 }))
             .ToList();
         var forecast = new ModelForecast(new("icon_d2"), "lucerne", new CycleId(T0),
-            new ForecastSeries(points), DailyForecastSeries.Empty);
+            new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
         return ModelSnapshot.Empty.Update(forecast);
     }
 
