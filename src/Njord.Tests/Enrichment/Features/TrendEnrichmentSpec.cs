@@ -12,21 +12,15 @@ public sealed class TrendEnrichmentSpec
     private static readonly DateTimeOffset T0 = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
 
+    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+
     private static TrendEnrichment CreateFeature(bool enabled = true)
     {
-        var options = new NjordOptions
-        {
-            Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
-            Models = ["icon_d2"],
-        };
         var enrichment = new EnrichmentOptions
         {
             Trends = new TrendOptions { Enabled = enabled },
         };
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-
-        return new TrendEnrichment(
-            Options.Create(options), Options.Create(enrichment), parameters, TimeProvider.System);
+        return new TrendEnrichment(Options.Create(enrichment));
     }
 
     private static ModelSnapshot MakeSnapshot(double baseTemp = 20.0)
@@ -45,7 +39,8 @@ public sealed class TrendEnrichmentSpec
         var feature = CreateFeature();
         var snapshot = MakeSnapshot();
 
-        var events = feature.Compute(snapshot, null, ["lucerne"]).ToList();
+        var consensus = ConsensusSnapshot.Compute(snapshot, Parameters, "lucerne", TimeProvider.System);
+        var events = feature.Compute(consensus, null).ToList();
 
         Assert.Empty(events);
     }
@@ -57,7 +52,9 @@ public sealed class TrendEnrichmentSpec
         var prev = MakeSnapshot(18.0);
         var current = MakeSnapshot(22.0);
 
-        var events = feature.Compute(current, prev, ["lucerne"]).ToList();
+        var prevConsensus = ConsensusSnapshot.Compute(prev, Parameters, "lucerne", TimeProvider.System);
+        var currentConsensus = ConsensusSnapshot.Compute(current, Parameters, "lucerne", TimeProvider.System);
+        var events = feature.Compute(currentConsensus, prevConsensus).ToList();
 
         Assert.Single(events);
         var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(events[0]);

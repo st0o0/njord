@@ -204,12 +204,12 @@ public sealed class EnrichmentProtoMapperSpec
 
         var update = EnrichmentProtoMapper.MapConsensus(result);
 
-        Assert.Single(update.Parameters);
-        Assert.Equal("temperature_2m", update.Parameters[0].Parameter);
-        Assert.Equal("C", update.Parameters[0].Unit);
-        Assert.Single(update.Parameters[0].ByHorizon);
+        Assert.Single(update.HourlyParameters);
+        Assert.Equal("temperature_2m", update.HourlyParameters[0].Parameter);
+        Assert.Equal("C", update.HourlyParameters[0].Unit);
+        Assert.Single(update.HourlyParameters[0].ByHorizon);
 
-        var h = update.Parameters[0].ByHorizon[0];
+        var h = update.HourlyParameters[0].ByHorizon[0];
         Assert.Equal("h3", h.Horizon);
         Assert.Equal(20.5, h.Median);
         Assert.Equal(20.3, h.TrimmedMean);
@@ -240,41 +240,38 @@ public sealed class EnrichmentProtoMapperSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void MapConsensus_should_map_daily_summaries()
+    public void MapConsensus_should_map_daily_parameters()
     {
-        var result = new ConsensusResult([], [],
-        [
-            new DailyConsensusSummary(
-                new DateOnly(2026, 7, 29),
-                TemperatureMax: 33.0, TemperatureMin: 16.5,
-                PrecipitationSum: 2.3, WindSpeedMax: 8.1,
-                WeatherCode: 80, Spread: 2.8, Agreement: 0.83,
-                AvailableModels: 6),
-        ]);
+        var tempMax = ParameterRegistry.GetByApiName("temperature_2m_max")!;
+        var dailyParams = new List<Njord.Domain.Analysis.ParameterConsensus>
+        {
+            new(tempMax, new Dictionary<string, Njord.Domain.Analysis.HorizonConsensus>
+            {
+                ["d0"] = new(29.5, 29.3, 3.0, 1.5, 0.83, null, null,
+                    [new WeatherModel("icon_d2"), new WeatherModel("ecmwf_ifs025"), new WeatherModel("gfs_seamless")]),
+            }),
+        };
+        var result = new ConsensusResult([], (IReadOnlyList<Njord.Domain.Analysis.ParameterConsensus>)dailyParams);
 
         var update = EnrichmentProtoMapper.MapConsensus(result);
 
-        Assert.Single(update.Daily);
-        var daily = update.Daily[0];
-        Assert.Equal("2026-07-29", daily.Date);
-        Assert.Equal(33.0, daily.TemperatureMax);
-        Assert.Equal(16.5, daily.TemperatureMin);
-        Assert.Equal(2.3, daily.PrecipitationSum);
-        Assert.Equal(8.1, daily.WindSpeedMax);
-        Assert.Equal(80, daily.WeatherCode);
-        Assert.Equal(2.8, daily.Spread);
-        Assert.Equal(0.83, daily.Agreement);
-        Assert.Equal(6, daily.AvailableModels);
+        Assert.Single(update.DailyParameters);
+        var proto = update.DailyParameters[0];
+        Assert.Equal("temperature_2m_max", proto.Parameter);
+        Assert.Single(proto.ByHorizon);
+        Assert.Equal("d0", proto.ByHorizon[0].Horizon);
+        Assert.Equal(29.5, proto.ByHorizon[0].Median);
+        Assert.Equal(3, proto.ByHorizon[0].AvailableModels);
     }
 
     [Fact(Timeout = 5000)]
-    public void MapConsensus_should_produce_empty_daily_for_no_summaries()
+    public void MapConsensus_should_produce_empty_daily_for_no_parameters()
     {
         var result = new ConsensusResult([]);
 
         var update = EnrichmentProtoMapper.MapConsensus(result);
 
-        Assert.Empty(update.Daily);
+        Assert.Empty(update.DailyParameters);
     }
 
     [Fact(Timeout = 5000)]

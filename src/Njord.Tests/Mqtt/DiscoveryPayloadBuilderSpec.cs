@@ -133,7 +133,7 @@ public sealed class DiscoveryPayloadBuilderSpec
     public void Consensus_device_id_and_model_name()
     {
         var payload = DiscoveryPayloadBuilder.BuildConsensus(
-            "lucerne", SmallParams, DefaultHorizons, 4, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+            "lucerne", SmallParams, 5, 4, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
         var json = JsonNode.Parse(payload)!;
 
         Assert.Equal("njord_lucerne_consensus", (string?)json["dev"]!["ids"]![0]);
@@ -146,7 +146,7 @@ public sealed class DiscoveryPayloadBuilderSpec
     {
         var payload = DiscoveryPayloadBuilder.BuildConsensus(
             "lucerne", new ResolvedParameterSet([Temperature], []),
-            [3], 4, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+            3, 4, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
         var json = JsonNode.Parse(payload)!;
         var component = json["cmps"]!["temperature_h3"]!;
 
@@ -157,14 +157,14 @@ public sealed class DiscoveryPayloadBuilderSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void Consensus_only_includes_hourly_parameters()
+    public void Consensus_includes_hourly_and_daily_parameters()
     {
         var payload = DiscoveryPayloadBuilder.BuildConsensus(
-            "lucerne", SmallParams, DefaultHorizons, 4, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
+            "lucerne", SmallParams, 5, 4, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
         var json = JsonNode.Parse(payload)!;
 
-        // 2 hourly × 6 horizons = 12 (no daily components)
-        Assert.Equal(12, json["cmps"]!.AsObject().Count);
+        // 2 hourly × 6 slots (h0-h5) + 1 daily × 4 days = 16
+        Assert.Equal(16, json["cmps"]!.AsObject().Count);
     }
 
     [Fact(Timeout = 5000)]

@@ -46,7 +46,8 @@ public sealed class IndexResultSpec
             MakeForecast(new("m1"),
                 (Temperature, 22.0), (Humidity, 50.0), (WindSpeed, 3.0), (CloudCover, 20.0)));
 
-        var result = IndexResult.Compute(snap, "lucerne", Parameters, Time, new IndexOptions());
+        var consensus = ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
+        var result = IndexResult.Compute(consensus, Parameters, Time, new IndexOptions());
 
         Assert.Equal("lucerne", result.Location);
         Assert.InRange(result.Outdoor, 1, 100);
@@ -62,7 +63,8 @@ public sealed class IndexResultSpec
             MakeForecast(new("m2"), (Temperature, 10.0), (Humidity, 90.0), (WindSpeed, 15.0), (CloudCover, 95.0)),
             MakeForecast(new("m3"), (Temperature, 20.0), (Humidity, 55.0), (WindSpeed, 4.0), (CloudCover, 30.0)));
 
-        var result = IndexResult.Compute(snap, "lucerne", Parameters, Time, new IndexOptions());
+        var consensus = ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
+        var result = IndexResult.Compute(consensus, Parameters, Time, new IndexOptions());
 
         Assert.NotNull(result.OutdoorEnvelope);
         Assert.True(result.OutdoorEnvelope!.Min <= result.OutdoorEnvelope.Max);
@@ -75,7 +77,8 @@ public sealed class IndexResultSpec
         var snap = SnapshotWith(
             MakeForecast(new("m1"), (Temperature, 22.0), (Humidity, 50.0), (WindSpeed, 3.0), (CloudCover, 20.0)));
 
-        var result = IndexResult.Compute(snap, "lucerne", Parameters, Time, new IndexOptions());
+        var consensus = ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
+        var result = IndexResult.Compute(consensus, Parameters, Time, new IndexOptions());
 
         Assert.Null(result.OutdoorEnvelope);
         Assert.Null(result.LaundryEnvelope);
@@ -88,7 +91,8 @@ public sealed class IndexResultSpec
             MakeForecast(new("m1"), (Temperature, 22.0), (Humidity, 50.0), (WindSpeed, 3.0), (CloudCover, 20.0)),
             MakeForecast(new("m2"), (Temperature, 21.0), (Humidity, 52.0), (WindSpeed, 3.5), (CloudCover, 22.0)));
 
-        var result = IndexResult.Compute(snap, "lucerne", Parameters, Time, new IndexOptions());
+        var consensus = ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
+        var result = IndexResult.Compute(consensus, Parameters, Time, new IndexOptions());
 
         Assert.NotNull(result.OutdoorEnvelope);
         Assert.Equal(1.0, result.OutdoorEnvelope!.Confidence);

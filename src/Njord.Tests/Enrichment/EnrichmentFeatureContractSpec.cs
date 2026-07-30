@@ -23,10 +23,9 @@ public sealed class EnrichmentFeatureContractSpec
 
         return
         [
-            new ConsensusEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System),
             new AlertEnrichment(enrichmentWrapped, TimeProvider.System),
             new DerivedEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System),
-            new TrendEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System),
+            new TrendEnrichment(enrichmentWrapped),
             new IndexEnrichment(enrichmentWrapped, parameters, TimeProvider.System),
             new EnergyEnrichment(enrichmentWrapped, parameters, TimeProvider.System),
             new HistoryEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System,
@@ -40,8 +39,16 @@ public sealed class EnrichmentFeatureContractSpec
         var features = CreateAllFeatures();
         var names = features.Select(f => f.TypeName).ToList();
 
-        Assert.Equal(7, names.Count);
+        Assert.Equal(6, names.Count);
         Assert.Equal(names.Count, names.Distinct().Count());
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Consensus_is_not_in_the_feature_registry()
+    {
+        var features = CreateAllFeatures();
+
+        Assert.DoesNotContain(features, f => f.TypeName == "consensus");
     }
 
     [Fact(Timeout = 5000)]
@@ -60,7 +67,6 @@ public sealed class EnrichmentFeatureContractSpec
     {
         var features = CreateAllFeatures();
 
-        Assert.True(features.Single(f => f.TypeName == "consensus").Enabled);
         Assert.True(features.Single(f => f.TypeName == "alerts").Enabled);
         Assert.True(features.Single(f => f.TypeName == "derived").Enabled);
     }
@@ -102,7 +108,7 @@ public sealed class EnrichmentFeatureContractSpec
     public void Stateless_features_implement_IStatelessEnrichment()
     {
         var features = CreateAllFeatures();
-        var stateless = new[] { "consensus", "alerts", "derived", "indices", "energy" };
+        var stateless = new[] { "alerts", "derived", "indices", "energy" };
 
         foreach (var name in stateless)
         {

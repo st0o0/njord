@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
+using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment.Features;
@@ -9,6 +10,7 @@ namespace Njord.Tests.Enrichment.Features;
 public sealed class DerivedEnrichmentSpec
 {
     private static readonly DateTimeOffset T0 = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
+    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
     private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider
     {
@@ -54,7 +56,8 @@ public sealed class DerivedEnrichmentSpec
         var feature = CreateFeature();
         var snapshot = ModelSnapshot.Empty.Update(BuildForecast("lucerne"));
 
-        var events = feature.Compute(snapshot, ["lucerne"]).ToList();
+        var consensus = ConsensusSnapshot.Compute(snapshot, Parameters, "lucerne", new FakeTimeProvider(T0));
+        var events = feature.Compute(consensus).ToList();
 
         var update = Assert.Single(events);
         var enrichment = Assert.IsType<EgressEvent.EnrichmentUpdate>(update);
@@ -68,7 +71,8 @@ public sealed class DerivedEnrichmentSpec
     {
         var feature = CreateFeature();
 
-        var events = feature.Compute(ModelSnapshot.Empty, ["lucerne"]).ToList();
+        var consensus = ConsensusSnapshot.Compute(ModelSnapshot.Empty, Parameters, "lucerne", new FakeTimeProvider(T0));
+        var events = feature.Compute(consensus).ToList();
 
         var update = Assert.Single(events);
         var enrichment = Assert.IsType<EgressEvent.EnrichmentUpdate>(update);

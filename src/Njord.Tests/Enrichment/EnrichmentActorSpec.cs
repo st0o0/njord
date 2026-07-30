@@ -45,6 +45,9 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
 
         return Sys.ActorOf(Props.Create(() => new EnrichmentActor(
             optionsWrapped,
+            enrichmentWrapped,
+            parameters,
+            TimeProvider.System,
             features,
             NullLogger<EnrichmentActor>.Instance)));
     }

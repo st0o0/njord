@@ -23,7 +23,7 @@
     },
     "lucerne|consensus": {
       "type": "ConsensusResult",
-      "json": "{\"parameters\":[],\"dailyParameters\":[],\"dailySummaries\":[]}"
+      "json": "{\"parameters\":[],\"dailyParameters\":[]}"
     }
   }
 }

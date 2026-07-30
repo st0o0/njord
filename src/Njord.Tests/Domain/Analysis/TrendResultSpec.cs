@@ -46,7 +46,8 @@ public sealed class TrendResultSpec
             MakeForecast(new("m1"), (Temperature, 20.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 3.0)));
 
-        var result = TrendResult.Compute(snap, null, "lucerne", [3, 6], Parameters, Time);
+        var consensus = ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
+        var result = TrendResult.Compute(consensus, null);
 
         Assert.Equal("lucerne", result.Location);
         Assert.All(result.ParameterTrends.Values, v => Assert.Null(v));
@@ -59,12 +60,18 @@ public sealed class TrendResultSpec
     {
         var prev = SnapshotWith(
             MakeForecast(new("m1"), (Temperature, 18.0), (WindSpeed, 5.0),
+                (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)),
+            MakeForecast(new("m2"), (Temperature, 18.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)));
         var curr = SnapshotWith(
             MakeForecast(new("m1"), (Temperature, 22.0), (WindSpeed, 5.0),
+                (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)),
+            MakeForecast(new("m2"), (Temperature, 22.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)));
 
-        var result = TrendResult.Compute(curr, prev, "lucerne", [3], Parameters, Time);
+        var prevConsensus = ConsensusSnapshot.Compute(prev, Parameters, "lucerne", Time);
+        var currConsensus = ConsensusSnapshot.Compute(curr, Parameters, "lucerne", Time);
+        var result = TrendResult.Compute(currConsensus, prevConsensus);
 
         var tempTrend = result.ParameterTrends["temperature_2m"];
         Assert.NotNull(tempTrend);
@@ -76,11 +83,15 @@ public sealed class TrendResultSpec
     public void Compute_detects_weather_change()
     {
         var prev = SnapshotWith(
-            MakeForecast(new("m1"), (Temperature, 20.0), (WeatherCode, 1.0)));
+            MakeForecast(new("m1"), (Temperature, 20.0), (WeatherCode, 1.0)),
+            MakeForecast(new("m2"), (Temperature, 20.0), (WeatherCode, 1.0)));
         var curr = SnapshotWith(
-            MakeForecast(new("m1"), (Temperature, 20.0), (WeatherCode, 63.0)));
+            MakeForecast(new("m1"), (Temperature, 20.0), (WeatherCode, 63.0)),
+            MakeForecast(new("m2"), (Temperature, 20.0), (WeatherCode, 63.0)));
 
-        var result = TrendResult.Compute(curr, prev, "lucerne", [3], Parameters, Time);
+        var prevConsensus = ConsensusSnapshot.Compute(prev, Parameters, "lucerne", Time);
+        var currConsensus = ConsensusSnapshot.Compute(curr, Parameters, "lucerne", Time);
+        var result = TrendResult.Compute(currConsensus, prevConsensus);
 
         Assert.NotNull(result.WeatherChange);
         Assert.Equal("clear", result.WeatherChange.FromCategory);
