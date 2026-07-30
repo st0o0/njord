@@ -2,7 +2,6 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
-using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Mqtt;
 
@@ -10,23 +9,14 @@ namespace Njord.Enrichment.Features;
 
 internal sealed class TrendEnrichment : IStatefulEnrichment
 {
-    private readonly ResolvedParameterSet _parameters;
-    private readonly IReadOnlyList<int> _horizons;
-    private readonly TimeProvider _timeProvider;
     private readonly bool _enabled;
 
     public string TypeName => "trends";
     public bool Enabled => _enabled;
 
     public TrendEnrichment(
-        IOptions<NjordOptions> options,
-        IOptions<EnrichmentOptions> enrichmentOptions,
-        ResolvedParameterSet parameters,
-        TimeProvider timeProvider)
+        IOptions<EnrichmentOptions> enrichmentOptions)
     {
-        _parameters = parameters;
-        _horizons = [.. options.Value.Horizons];
-        _timeProvider = timeProvider;
         _enabled = enrichmentOptions.Value.Trends.Enabled;
     }
 
@@ -34,19 +24,15 @@ internal sealed class TrendEnrichment : IStatefulEnrichment
         TopicScheme.EnrichmentDeviceId(location, TypeName);
 
     public IEnumerable<EgressEvent> Compute(
-        ModelSnapshot snapshot, ModelSnapshot? previous, IReadOnlyList<string> locations)
+        ConsensusSnapshot consensus, ConsensusSnapshot? previous)
     {
         if (previous is null)
         {
             yield break;
         }
 
-        foreach (var location in locations)
-        {
-            var result = TrendResult.Compute(
-                snapshot, previous, location, _horizons, _parameters, _timeProvider);
-            yield return new EgressEvent.EnrichmentUpdate(location, TypeName, result);
-        }
+        var result = TrendResult.Compute(consensus, previous);
+        yield return new EgressEvent.EnrichmentUpdate(consensus.Location, TypeName, result);
     }
 
     public string BuildDiscoveryPayload(DiscoveryContext ctx, string location)

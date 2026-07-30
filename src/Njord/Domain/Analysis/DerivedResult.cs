@@ -20,14 +20,11 @@ public sealed record DerivedResult(
     [property: JsonProperty("scalars")] ScalarDerived Scalars)
 {
     public static DerivedResult Compute(
-        ModelSnapshot snapshot,
-        string location,
+        ConsensusSnapshot consensus,
         IReadOnlyList<int> horizons,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider)
     {
-        var now = timeProvider.GetUtcNow();
-
         var windSpeed = parameters.Get(ParameterRegistry.WindSpeed10m);
         var temperature = parameters.Get(ParameterRegistry.Temperature2m);
         var dewPoint = parameters.Get(ParameterRegistry.DewPoint2m);
@@ -37,22 +34,20 @@ public sealed record DerivedResult(
         var sunshineDuration = parameters.Get(ParameterRegistry.SunshineDuration);
         var isDay = parameters.Get(ParameterRegistry.IsDay);
 
-        var forecasts = snapshot.Entries
-            .Where(e => e.Key.Location == location)
-            .Select(e => e.Value)
-            .ToList();
-
         var byHorizon = new Dictionary<string, HorizonDerived>();
 
         foreach (var hours in horizons)
         {
-            var targetTime = TimeAnchor.AtHorizon(now, hours);
             var horizonKey = $"h{hours}";
 
-            var windMedian = MedianAt(forecasts, windSpeed, targetTime);
-            var tempMedian = MedianAt(forecasts, temperature, targetTime);
-            var dpMedian = MedianAt(forecasts, dewPoint, targetTime);
-            var codeMedian = MedianAt(forecasts, weatherCode, targetTime);
+            var windMedian = FindParam(consensus.Hourly.Parameters, windSpeed)
+                ?.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
+            var tempMedian = FindParam(consensus.Hourly.Parameters, temperature)
+                ?.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
+            var dpMedian = FindParam(consensus.Hourly.Parameters, dewPoint)
+                ?.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
+            var codeMedian = FindParam(consensus.Hourly.Parameters, weatherCode)
+                ?.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
 
             byHorizon[horizonKey] = new HorizonDerived(
                 DerivedComputer.Beaufort(windMedian),
@@ -61,105 +56,125 @@ public sealed record DerivedResult(
                 DerivedComputer.WmoDescription(codeMedian.HasValue ? (int)Math.Round(codeMedian.Value) : null));
         }
 
-        var scalarAmplitude = ComputeScalarAmplitude(forecasts, temperature, now);
-        var scalarSunshine = ComputeScalarSunshine(forecasts, sunshineDuration, isDay, now);
-        var scalarInversion = ComputeScalarInversion(forecasts, pressureMsl, surfacePressure, temperature, dewPoint, now);
+        var scalarAmplitude = ComputeScalarAmplitude(consensus, temperature, timeProvider);
+        var scalarSunshine = ComputeScalarSunshine(consensus, sunshineDuration, isDay, timeProvider);
+        var scalarInversion = ComputeScalarInversion(consensus, pressureMsl, surfacePressure, temperature, dewPoint);
 
         var scalars = new ScalarDerived(scalarAmplitude, scalarSunshine, scalarInversion);
-        return new DerivedResult(location, byHorizon, scalars);
+        return new DerivedResult(consensus.Location, byHorizon, scalars);
     }
 
-    private static double? MedianAt(
-        List<ModelForecast> forecasts, ParameterDef? param, DateTimeOffset targetTime)
-    {
-        if (param is null)
-        {
-            return null;
-        }
-
-        var values = new List<double?>();
-        foreach (var forecast in forecasts)
-        {
-            var point = forecast.Hourly.Points.FirstOrDefault(p =>
-                Math.Abs((p.ValidAt - targetTime).TotalMinutes) < 30);
-            values.Add(point?.Get(param));
-        }
-        return ConsensusComputer.ComputeMedian(values);
-    }
+    static ParameterConsensus? FindParam(IReadOnlyList<ParameterConsensus> parameters, ParameterDef? param)
+        => param is null ? null : parameters.FirstOrDefault(p => p.Parameter == param);
 
     private static double? ComputeScalarAmplitude(
-        List<ModelForecast> forecasts, ParameterDef? tempParam, DateTimeOffset now)
+        ConsensusSnapshot consensus, ParameterDef? tempParam, TimeProvider timeProvider)
     {
         if (tempParam is null)
         {
             return null;
         }
 
-        var amplitudes = new List<double?>();
-        foreach (var forecast in forecasts)
+        var tempConsensus = FindParam(consensus.Hourly.Parameters, tempParam);
+        if (tempConsensus is null)
         {
-            amplitudes.Add(DerivedComputer.DiurnalAmplitude(forecast.Hourly, tempParam, now));
+            return null;
         }
-        return ConsensusComputer.ComputeMedian(amplitudes);
+
+        var maxHours = Math.Min(24, consensus.Hourly.CutoffHour);
+        double? min = null, max = null;
+        var count = 0;
+
+        for (var h = 0; h <= maxHours; h++)
+        {
+            var horizonKey = $"h{h}";
+            var median = tempConsensus.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
+            if (median is not { } v)
+            {
+                continue;
+            }
+
+            count++;
+            if (min is null || v < min)
+            {
+                min = v;
+            }
+
+            if (max is null || v > max)
+            {
+                max = v;
+            }
+        }
+
+        return count < 2 ? null : max!.Value - min!.Value;
     }
 
     private static double? ComputeScalarSunshine(
-        List<ModelForecast> forecasts, ParameterDef? sunshineDuration, ParameterDef? isDay, DateTimeOffset now)
+        ConsensusSnapshot consensus, ParameterDef? sunshineDuration, ParameterDef? isDay, TimeProvider timeProvider)
     {
         if (sunshineDuration is null || isDay is null)
         {
             return null;
         }
 
-        var values = new List<double?>();
-        foreach (var forecast in forecasts)
+        var sunshineConsensus = FindParam(consensus.Hourly.Parameters, sunshineDuration);
+        var isDayConsensus = FindParam(consensus.Hourly.Parameters, isDay);
+        if (sunshineConsensus is null || isDayConsensus is null)
         {
-            values.Add(DerivedComputer.SunshinePercent(forecast.Hourly, sunshineDuration, isDay, now));
+            return null;
         }
-        return ConsensusComputer.ComputeMedian(values);
+
+        var maxHours = Math.Min(24, consensus.Hourly.CutoffHour);
+        double totalSunshineSec = 0;
+        var daylightHours = 0;
+        var hasSunshine = false;
+
+        for (var h = 0; h <= maxHours; h++)
+        {
+            var horizonKey = $"h{h}";
+            var isDayMedian = isDayConsensus.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
+            if (isDayMedian is 1.0)
+            {
+                daylightHours++;
+            }
+
+            var sunshineMedian = sunshineConsensus.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
+            if (sunshineMedian is { } s)
+            {
+                hasSunshine = true;
+                totalSunshineSec += s;
+            }
+        }
+
+        if (!hasSunshine || daylightHours == 0)
+        {
+            return null;
+        }
+
+        var daylightSec = daylightHours * 3600.0;
+        return Math.Round(totalSunshineSec / daylightSec * 100.0, 1);
     }
 
     private static bool? ComputeScalarInversion(
-        List<ModelForecast> forecasts, ParameterDef? pressureMsl, ParameterDef? surfacePressure,
-        ParameterDef? temperature, ParameterDef? dewPoint, DateTimeOffset now)
+        ConsensusSnapshot consensus, ParameterDef? pressureMsl, ParameterDef? surfacePressure,
+        ParameterDef? temperature, ParameterDef? dewPoint)
     {
         if (pressureMsl is null || surfacePressure is null || temperature is null || dewPoint is null)
         {
             return null;
         }
 
-        var targetTime = now;
-        var trueCount = 0;
-        var totalCount = 0;
-        foreach (var forecast in forecasts)
-        {
-            var point = forecast.Hourly.Points.FirstOrDefault(p =>
-                Math.Abs((p.ValidAt - targetTime).TotalMinutes) < 30);
-            if (point is null)
-            {
-                continue;
-            }
+        const string horizonKey = "h0";
 
-            var result = DerivedComputer.InversionDetected(
-                point.Get(pressureMsl), point.Get(surfacePressure),
-                point.Get(temperature), point.Get(dewPoint));
-            if (result is not { } r)
-            {
-                continue;
-            }
+        var mslMedian = FindParam(consensus.Hourly.Parameters, pressureMsl)
+            ?.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
+        var spMedian = FindParam(consensus.Hourly.Parameters, surfacePressure)
+            ?.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
+        var tempMedian = FindParam(consensus.Hourly.Parameters, temperature)
+            ?.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
+        var dpMedian = FindParam(consensus.Hourly.Parameters, dewPoint)
+            ?.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
 
-            totalCount++;
-            if (r)
-            {
-                trueCount++;
-            }
-        }
-
-        if (totalCount == 0)
-        {
-            return null;
-        }
-
-        return trueCount > totalCount / 2;
+        return DerivedComputer.InversionDetected(mslMedian, spMedian, tempMedian, dpMedian);
     }
 }

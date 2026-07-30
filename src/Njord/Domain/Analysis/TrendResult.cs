@@ -48,148 +48,169 @@ public sealed record TrendResult(
     };
 
     public static TrendResult Compute(
-        ModelSnapshot current,
-        ModelSnapshot? previous,
-        string location,
-        IReadOnlyList<int> horizons,
-        ResolvedParameterSet parameters,
-        TimeProvider timeProvider)
+        ConsensusSnapshot current,
+        ConsensusSnapshot? previous)
     {
-        var now = timeProvider.GetUtcNow();
-        var tempParam = parameters.Get(ParameterRegistry.Temperature2m);
-        var precipParam = parameters.Get(ParameterRegistry.Precipitation);
-        var weatherCodeParam = parameters.Get(ParameterRegistry.WeatherCode);
-
         var paramTrends = new Dictionary<string, ParameterTrend?>();
         WeatherChangeResult? weatherChange = null;
         StabilityInfo? stability = null;
 
-        var referenceHorizon = horizons.Count > 0 ? horizons[0] : 3;
+        const string referenceKey = "h3";
 
         foreach (var paramDef in TrendParamDefs)
         {
-            var param = parameters.Get(paramDef);
-            if (param is null || previous is null)
+            if (previous is null)
             {
                 paramTrends[paramDef.ApiName] = null;
                 continue;
             }
 
-            var currMedian = MedianAtHorizon(current, param, location, referenceHorizon, now);
-            var prevMedian = MedianAtHorizon(previous, param, location, referenceHorizon, now);
+            var currParam = FindParam(current.Hourly.Parameters, paramDef);
+            var prevParam = FindParam(previous.Hourly.Parameters, paramDef);
+
+            var currMedian = currParam?.ByHorizon.GetValueOrDefault(referenceKey)?.Median;
+            var prevMedian = prevParam?.ByHorizon.GetValueOrDefault(referenceKey)?.Median;
             var threshold = Thresholds.GetValueOrDefault(paramDef, 0.5);
 
             var trend = TrendAnalyzer.TrendDirection(prevMedian, currMedian, threshold);
             paramTrends[paramDef.ApiName] = trend is { } t ? new ParameterTrend(t.Direction, t.Delta) : null;
         }
 
-        if (previous is not null && weatherCodeParam is not null)
+        if (previous is not null)
         {
-            var currCode = MedianAtHorizon(current, weatherCodeParam, location, referenceHorizon, now);
-            var prevCode = MedianAtHorizon(previous, weatherCodeParam, location, referenceHorizon, now);
+            var currWeatherCode = FindParam(current.Hourly.Parameters, ParameterRegistry.WeatherCode);
+            var prevWeatherCode = FindParam(previous.Hourly.Parameters, ParameterRegistry.WeatherCode);
+
+            var currCode = currWeatherCode?.ByHorizon.GetValueOrDefault(referenceKey)?.Median;
+            var prevCode = prevWeatherCode?.ByHorizon.GetValueOrDefault(referenceKey)?.Median;
+
             weatherChange = TrendAnalyzer.WeatherChange(
                 prevCode.HasValue ? (int)Math.Round(prevCode.Value) : null,
                 currCode.HasValue ? (int)Math.Round(currCode.Value) : null);
         }
 
-        var precipTiming = new PrecipTimingInfo(null, null);
-        var extremaTiming = new ExtremaTimingInfo(null, null);
+        var precipTiming = ComputePrecipTiming(current);
+        var extremaTiming = ComputeExtremaTiming(current);
 
-        var forecasts = current.Entries
-            .Where(e => e.Key.Location == location)
-            .Select(e => e.Value)
-            .ToList();
-
-        if (precipParam is not null && forecasts.Count > 0)
+        if (previous is not null)
         {
-            var timing = TrendAnalyzer.PrecipitationTiming(forecasts[0].Hourly, precipParam, now);
-            precipTiming = new PrecipTimingInfo(timing.StartsInHours, timing.EndsInHours);
-        }
+            var currTempParam = FindParam(current.Hourly.Parameters, ParameterRegistry.Temperature2m);
+            var prevTempParam = FindParam(previous.Hourly.Parameters, ParameterRegistry.Temperature2m);
 
-        if (tempParam is not null && forecasts.Count > 0)
-        {
-            var timing = TrendAnalyzer.ExtremaTiming(forecasts[0].Hourly, tempParam, now);
-            extremaTiming = new ExtremaTimingInfo(timing.MaxInHours, timing.MinInHours);
-        }
-
-        if (previous is not null && tempParam is not null)
-        {
-            var currIqr = ComputeIqrAtHorizon(current, tempParam, location, referenceHorizon, now);
-            var prevIqr = ComputeIqrAtHorizon(previous, tempParam, location, referenceHorizon, now);
+            var currIqr = currTempParam?.ByHorizon.GetValueOrDefault(referenceKey)?.Iqr;
+            var prevIqr = prevTempParam?.ByHorizon.GetValueOrDefault(referenceKey)?.Iqr;
             var stabilityResult = TrendAnalyzer.ConsensusStability(prevIqr, currIqr);
             stability = stabilityResult is { } s ? new StabilityInfo(s.Label, s.Ratio) : null;
         }
 
-        DecayInfo? decay = null;
-        if (tempParam is not null)
-        {
-            var spreads = new List<(int, double?)>();
-            foreach (var h in horizons)
-            {
-                var spread = ComputeSpreadAtHorizon(current, tempParam, location, h, now);
-                spreads.Add((h, spread));
-            }
-            var decayResult = TrendAnalyzer.PredictabilityDecay(spreads);
-            decay = decayResult is { } d ? new DecayInfo(d.DecayRate, d.ReliableHours) : null;
-        }
+        var decay = ComputeDecay(current);
 
-        return new TrendResult(location, paramTrends, weatherChange, precipTiming, extremaTiming, stability, decay);
+        return new TrendResult(current.Location, paramTrends, weatherChange, precipTiming, extremaTiming, stability, decay);
     }
 
-    private static double? MedianAtHorizon(
-        ModelSnapshot snapshot, ParameterDef param, string location, int horizonHours, DateTimeOffset now)
+    private static PrecipTimingInfo ComputePrecipTiming(ConsensusSnapshot snapshot)
     {
-        var targetTime = TimeAnchor.AtHorizon(now, horizonHours);
-        var values = new List<double?>();
-        foreach (var (key, forecast) in snapshot.Entries)
+        var precipParam = FindParam(snapshot.Hourly.Parameters, ParameterRegistry.Precipitation);
+        if (precipParam is null)
         {
-            if (key.Location != location)
+            return new PrecipTimingInfo(null, null);
+        }
+
+        int? first = null, last = null;
+
+        foreach (var (key, hc) in precipParam.ByHorizon)
+        {
+            if (!key.StartsWith('h') || hc.Median is not { } median || median <= 0)
             {
                 continue;
             }
 
-            var point = forecast.Hourly.Points.FirstOrDefault(p =>
-                Math.Abs((p.ValidAt - targetTime).TotalMinutes) < 30);
-            values.Add(point?.Get(param));
+            if (int.TryParse(key.AsSpan(1), out var hours))
+            {
+                if (first is null || hours < first)
+                {
+                    first = hours;
+                }
+
+                if (last is null || hours > last)
+                {
+                    last = hours;
+                }
+            }
         }
-        return ConsensusComputer.ComputeMedian(values);
+
+        return new PrecipTimingInfo(first, last);
     }
 
-    private static double? ComputeIqrAtHorizon(
-        ModelSnapshot snapshot, ParameterDef param, string location, int horizonHours, DateTimeOffset now)
+    private static ExtremaTimingInfo ComputeExtremaTiming(ConsensusSnapshot snapshot)
     {
-        var targetTime = TimeAnchor.AtHorizon(now, horizonHours);
-        var values = new List<double?>();
-        foreach (var (key, forecast) in snapshot.Entries)
+        var tempParam = FindParam(snapshot.Hourly.Parameters, ParameterRegistry.Temperature2m);
+        if (tempParam is null)
         {
-            if (key.Location != location)
+            return new ExtremaTimingInfo(null, null);
+        }
+
+        double? maxVal = null, minVal = null;
+        int? maxHours = null, minHours = null;
+        var count = 0;
+
+        foreach (var (key, hc) in tempParam.ByHorizon)
+        {
+            if (!key.StartsWith('h') || hc.Median is not { } median)
             {
                 continue;
             }
 
-            var point = forecast.Hourly.Points.FirstOrDefault(p =>
-                Math.Abs((p.ValidAt - targetTime).TotalMinutes) < 30);
-            values.Add(point?.Get(param));
-        }
-        return ConsensusComputer.ComputeIqr(values);
-    }
-
-    private static double? ComputeSpreadAtHorizon(
-        ModelSnapshot snapshot, ParameterDef param, string location, int horizonHours, DateTimeOffset now)
-    {
-        var targetTime = TimeAnchor.AtHorizon(now, horizonHours);
-        var values = new List<double?>();
-        foreach (var (key, forecast) in snapshot.Entries)
-        {
-            if (key.Location != location)
+            if (!int.TryParse(key.AsSpan(1), out var hours) || hours > 24)
             {
                 continue;
             }
 
-            var point = forecast.Hourly.Points.FirstOrDefault(p =>
-                Math.Abs((p.ValidAt - targetTime).TotalMinutes) < 30);
-            values.Add(point?.Get(param));
+            count++;
+            if (maxVal is null || median > maxVal)
+            {
+                maxVal = median;
+                maxHours = hours;
+            }
+            if (minVal is null || median < minVal)
+            {
+                minVal = median;
+                minHours = hours;
+            }
         }
-        return ConsensusComputer.ComputeSpread(values);
+
+        return count < 2 ? new ExtremaTimingInfo(null, null) : new ExtremaTimingInfo(maxHours, minHours);
     }
+
+    private static DecayInfo? ComputeDecay(ConsensusSnapshot snapshot)
+    {
+        var tempParam = FindParam(snapshot.Hourly.Parameters, ParameterRegistry.Temperature2m);
+        if (tempParam is null)
+        {
+            return null;
+        }
+
+        var spreads = new List<(int, double?)>();
+        foreach (var (key, hc) in tempParam.ByHorizon)
+        {
+            if (!key.StartsWith('h') || !int.TryParse(key.AsSpan(1), out var hours))
+            {
+                continue;
+            }
+
+            spreads.Add((hours, hc.Spread));
+        }
+
+        if (spreads.Count == 0)
+        {
+            return null;
+        }
+
+        spreads.Sort((a, b) => a.Item1.CompareTo(b.Item1));
+        var decayResult = TrendAnalyzer.PredictabilityDecay(spreads);
+        return decayResult is { } d ? new DecayInfo(d.DecayRate, d.ReliableHours) : null;
+    }
+
+    private static ParameterConsensus? FindParam(IReadOnlyList<ParameterConsensus> parameters, ParameterDef? param)
+        => param is null ? null : parameters.FirstOrDefault(p => p.Parameter == param);
 }
