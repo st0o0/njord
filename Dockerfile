@@ -6,7 +6,7 @@
 FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble AS prep
 RUN mkdir -p /data && chown 1654:1654 /data
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra
 LABEL org.opencontainers.image.title="njord" \
       org.opencontainers.image.description="Multi-model weather intelligence for Home Assistant" \
       org.opencontainers.image.source="https://github.com/st0o0/njord" \
