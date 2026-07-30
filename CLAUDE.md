@@ -91,7 +91,11 @@ MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
   with **unsuffixed** variable names + an `hourly_units` object; multi-model
   requests suffix every variable with the model id.
 - Wind defaults to km/h — always send `wind_speed_unit=ms`. Times default to
-  naive ISO strings — always send `timeformat=unixtime` (epoch seconds).
+  naive ISO strings — always send `timeformat=unixtime` (epoch seconds). Always
+  send `timezone=UTC` so all timestamps (hourly, daily, sunrise/sunset) align to
+  midnight UTC; the `timezone` field in the response is ignored. Using
+  `timezone=auto` would shift timestamps to midnight local time even with
+  `timeformat=unixtime`, causing off-by-one day errors for UTC+ timezones.
 - Values beyond a model's horizon are `null` entries (e.g. `icon_d2` ends
   ~+48–64 h). A single requested model outside its geographic coverage →
   HTTP 400 `{"error":true,"reason":"No data is available for this location"}`;

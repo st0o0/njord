@@ -25,7 +25,7 @@ public sealed class ForecastSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         return new ModelForecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
             new ForecastSeries([new ForecastPoint(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 })]),
-            DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+            DailyForecastSeries.Empty);
     }
 
     [Fact(Timeout = 5000)]

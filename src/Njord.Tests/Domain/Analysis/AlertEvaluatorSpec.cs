@@ -32,7 +32,7 @@ public sealed class AlertEvaluatorSpec
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
         return new ModelForecast(model, "lucerne", new CycleId(T0),
-            new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+            new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
     private static ModelSnapshot SnapshotWith(params ModelForecast[] forecasts)
@@ -240,7 +240,7 @@ public sealed class AlertEvaluatorSpec
                 new Dictionary<ParameterDef, double?> { [PressureMsl] = pressure }));
         }
         var forecast = new ModelForecast(new("m1"), "lucerne", new CycleId(T0),
-            new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+            new ForecastSeries(points), DailyForecastSeries.Empty);
         var snap = ModelSnapshot.Empty.Update(forecast);
 
         var alert = AlertEvaluator.EvaluatePressureDrop(snap, "lucerne", 5.0, Time);
@@ -313,7 +313,7 @@ public sealed class AlertEvaluatorSpec
         var dailyPoint = new DailyForecastPoint(today, numeric, new Dictionary<ParameterDef, string?>());
 
         return new ModelForecast(model, "lucerne", new CycleId(T0),
-            new ForecastSeries(points), new DailyForecastSeries([dailyPoint]), TimeZoneInfo.Utc);
+            new ForecastSeries(points), new DailyForecastSeries([dailyPoint]));
     }
 
     [Fact(Timeout = 5000)]

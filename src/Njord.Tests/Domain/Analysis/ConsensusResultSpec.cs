@@ -17,7 +17,7 @@ public sealed class ConsensusResultSpec
         var point = new ForecastPoint(T0.AddHours(3),
             new Dictionary<ParameterDef, double?> { [Temperature] = tempAt3H });
         return new ModelForecast(model, "lucerne", new CycleId(T0),
-            new ForecastSeries([point]), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+            new ForecastSeries([point]), DailyForecastSeries.Empty);
     }
 
     private static ModelForecast MakeHourlyForecast(WeatherModel model, DateTimeOffset baseHour, params (int Hour, double Temp)[] points)
@@ -26,7 +26,7 @@ public sealed class ConsensusResultSpec
             new ForecastPoint(baseHour.AddHours(p.Hour),
                 new Dictionary<ParameterDef, double?> { [Temperature] = p.Temp })).ToList();
         return new ModelForecast(model, "lucerne", new CycleId(baseHour),
-            new ForecastSeries(forecastPoints), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+            new ForecastSeries(forecastPoints), DailyForecastSeries.Empty);
     }
 
     [Fact(Timeout = 5000)]
@@ -86,7 +86,7 @@ public sealed class ConsensusResultSpec
         }
 
         return new ModelForecast(model, "lucerne", new CycleId(T0),
-            new ForecastSeries([]), new DailyForecastSeries(points), TimeZoneInfo.Utc);
+            new ForecastSeries([]), new DailyForecastSeries(points));
     }
 
     [Fact(Timeout = 5000)]

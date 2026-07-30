@@ -51,9 +51,8 @@ public sealed class ConsensusEnrichment : IStatelessEnrichment
 
             var filtered = FilterByModelCount(result, minModels: 2);
 
-            var tz = ExtractTimeZone(snapshot, location);
             var now = _timeProvider.GetUtcNow();
-            var dailySummaries = DailyConsensusSummary.Aggregate(filtered, now, tz)
+            var dailySummaries = DailyConsensusSummary.Aggregate(filtered, now)
                 .Where(s => s.AvailableModels >= 2)
                 .ToList();
 
@@ -86,17 +85,6 @@ public sealed class ConsensusEnrichment : IStatelessEnrichment
 
         maxHours.Sort();
         return maxHours[^2];
-    }
-
-    private static TimeZoneInfo ExtractTimeZone(ModelSnapshot snapshot, string location)
-    {
-        foreach (var (key, forecast) in snapshot.Entries)
-        {
-            if (key.Location == location)
-                return forecast.TimeZone;
-        }
-
-        return TimeZoneInfo.Utc;
     }
 
     private static ConsensusResult FilterByModelCount(ConsensusResult result, int minModels)

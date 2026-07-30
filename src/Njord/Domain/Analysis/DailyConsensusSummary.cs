@@ -14,7 +14,7 @@ public sealed record DailyConsensusSummary(
     int AvailableModels)
 {
     public static IReadOnlyList<DailyConsensusSummary> Aggregate(
-        ConsensusResult result, DateTimeOffset now, TimeZoneInfo tz)
+        ConsensusResult result, DateTimeOffset now)
     {
         var temperature = FindParameter(result.Parameters, "temperature_2m");
         var precipitation = FindParameter(result.Parameters, "precipitation");
@@ -24,7 +24,7 @@ public sealed record DailyConsensusSummary(
         if (temperature is null)
             return [];
 
-        var dayGroups = GroupHorizonsByDay(temperature, now, tz);
+        var dayGroups = GroupHorizonsByDay(temperature, now);
         var summaries = new List<DailyConsensusSummary>(dayGroups.Count);
 
         foreach (var (date, horizonKeys) in dayGroups.OrderBy(kv => kv.Key))
@@ -44,7 +44,7 @@ public sealed record DailyConsensusSummary(
             var windMax = windMedians.Count > 0 ? windMedians.Max() : (double?)null;
 
             var wCode = weatherCode is not null
-                ? FindNoonWeatherCode(weatherCode, horizonKeys, now, tz, date)
+                ? FindNoonWeatherCode(weatherCode, horizonKeys, now, date)
                 : (int?)null;
 
             var spreads = CollectValues(temperature, horizonKeys, h => h.Spread);
@@ -72,7 +72,7 @@ public sealed record DailyConsensusSummary(
         => parameters.FirstOrDefault(p => p.Parameter.ApiName == apiName);
 
     private static Dictionary<DateOnly, List<string>> GroupHorizonsByDay(
-        ParameterConsensus parameter, DateTimeOffset now, TimeZoneInfo tz)
+        ParameterConsensus parameter, DateTimeOffset now)
     {
         var groups = new Dictionary<DateOnly, List<string>>();
 
@@ -82,8 +82,7 @@ public sealed record DailyConsensusSummary(
                 continue;
 
             var utcTime = TimeAnchor.AtHorizon(now, hours);
-            var localTime = TimeZoneInfo.ConvertTime(utcTime, tz);
-            var date = DateOnly.FromDateTime(localTime.DateTime);
+            var date = DateOnly.FromDateTime(utcTime.UtcDateTime);
 
             if (!groups.TryGetValue(date, out var list))
             {
@@ -116,10 +115,9 @@ public sealed record DailyConsensusSummary(
 
     private static int? FindNoonWeatherCode(
         ParameterConsensus weatherCode, List<string> horizonKeys,
-        DateTimeOffset now, TimeZoneInfo tz, DateOnly date)
+        DateTimeOffset now, DateOnly date)
     {
-        var noonLocal = new DateTimeOffset(
-            date.Year, date.Month, date.Day, 12, 0, 0, tz.GetUtcOffset(date.ToDateTime(TimeOnly.MinValue)));
+        var noonUtc = new DateTimeOffset(date.Year, date.Month, date.Day, 12, 0, 0, TimeSpan.Zero);
 
         string? bestKey = null;
         var bestDiff = double.MaxValue;
@@ -130,7 +128,7 @@ public sealed record DailyConsensusSummary(
                 continue;
 
             var utcTime = TimeAnchor.AtHorizon(now, hours);
-            var diff = Math.Abs((utcTime - noonLocal).TotalMinutes);
+            var diff = Math.Abs((utcTime - noonUtc).TotalMinutes);
             if (diff < bestDiff)
             {
                 bestDiff = diff;

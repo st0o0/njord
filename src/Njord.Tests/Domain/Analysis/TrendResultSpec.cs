@@ -29,7 +29,7 @@ public sealed class TrendResultSpec
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
         return new ModelForecast(model, "lucerne", new CycleId(T0),
-            new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
+            new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
     private static ModelSnapshot SnapshotWith(params ModelForecast[] forecasts)
