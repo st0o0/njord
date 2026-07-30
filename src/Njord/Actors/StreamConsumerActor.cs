@@ -59,7 +59,9 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
     protected void TryTransition()
     {
         if (!AllRefsReady() || _lastTerminatedRef is not null)
+        {
             return;
+        }
 
         _retryCount = 0;
         MaterializeGraph(_killSwitch);
@@ -98,7 +100,9 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
     private void HandleTerminated(Terminated msg)
     {
         if (!_watchedDeps.Remove(msg.ActorRef))
+        {
             return;
+        }
 
         _killSwitch.Shutdown();
         _killSwitch = KillSwitches.Shared("stream-kill");

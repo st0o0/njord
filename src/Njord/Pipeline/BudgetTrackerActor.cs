@@ -56,12 +56,16 @@ public sealed class BudgetTrackerActor : ReceivePersistentActor
         var now = _timeProvider.GetUtcNow();
 
         if (utc.Month != now.Month || utc.Year != now.Year)
+        {
             return;
+        }
 
         _monthlyUsed += weight;
 
         if (utc.DayOfYear == now.DayOfYear)
+        {
             _dailyUsed += weight;
+        }
     }
 
     private void RestoreFromSnapshot(BudgetTrackerSnapshotDto snapshot)

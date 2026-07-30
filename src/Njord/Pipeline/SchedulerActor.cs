@@ -111,7 +111,9 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private void TryTransitionToConnecting()
     {
         if (_queue is null || !_sourceReceived)
+        {
             return;
+        }
 
         _logger.LogInformation("Pipeline refs received - connecting");
         InitializeStates();
@@ -124,7 +126,9 @@ public sealed class SchedulerActor : ReceivePersistentActor
         {
             var target = CreateTarget(poll);
             if (target is null)
+            {
                 return;
+            }
 
             _queue!.OfferAsync(target).PipeTo(Self,
                 success: _ => new ConnectionEstablished(),
@@ -257,7 +261,9 @@ public sealed class SchedulerActor : ReceivePersistentActor
     {
         var target = CreateTarget(poll);
         if (target is null)
+        {
             return;
+        }
 
         _queue!.OfferAsync(target);
     }
@@ -265,12 +271,16 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private WeightedTarget? CreateTarget(ScheduledPoll poll)
     {
         if (_queue is null)
+        {
             return null;
+        }
 
         var location = _options.Locations.FirstOrDefault(l =>
             l.Name.Equals(poll.Location, StringComparison.OrdinalIgnoreCase));
         if (location is null)
+        {
             return null;
+        }
 
         var cycle = new CycleId(_timeProvider.GetUtcNow());
         return new WeightedTarget(location, new WeatherModel(poll.ModelId), _weight, cycle);

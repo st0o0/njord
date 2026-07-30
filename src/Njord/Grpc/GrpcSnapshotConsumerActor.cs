@@ -61,7 +61,10 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
         });
         Receive<EgressSourceResponse>(response =>
         {
-            if (_lastTerminatedRef is not null) return;
+            if (_lastTerminatedRef is not null)
+            {
+                return;
+            }
 
             _pendingSourceRef = response.SourceRef;
 
@@ -97,7 +100,10 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
 
     private void OnTerminated(Terminated msg)
     {
-        if (!_watchedDeps.Remove(msg.ActorRef)) return;
+        if (!_watchedDeps.Remove(msg.ActorRef))
+        {
+            return;
+        }
 
         _logger.LogWarning("Watched actor {Actor} terminated — re-requesting source", msg.ActorRef.Path.Name);
         _lastTerminatedRef = msg.ActorRef;

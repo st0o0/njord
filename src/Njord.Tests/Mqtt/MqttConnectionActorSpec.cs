@@ -169,7 +169,10 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
             lock (_lock)
             {
                 if (_sent.Any(predicate))
+                {
                     return Task.CompletedTask;
+                }
+
                 var tcs = new TaskCompletionSource();
                 _waiters.Add((predicate, tcs));
                 return tcs.Task;
