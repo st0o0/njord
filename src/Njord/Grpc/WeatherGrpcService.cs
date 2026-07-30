@@ -113,7 +113,10 @@ public sealed class WeatherGrpcService(
                 case EnrichmentEvent.PayloadOneofCase.Energy: response.Energy = evt.Energy; break;
                 case EnrichmentEvent.PayloadOneofCase.Derived: response.Derived = evt.Derived; break;
                 case EnrichmentEvent.PayloadOneofCase.History: response.History = evt.History; break;
-                case EnrichmentEvent.PayloadOneofCase.Consensus: response.Consensus = evt.Consensus; break;
+                case EnrichmentEvent.PayloadOneofCase.Consensus:
+                    response.Consensus = evt.Consensus;
+                    response.ConsensusUpdatedAt = evt.UpdatedAt;
+                    break;
             }
         }
 

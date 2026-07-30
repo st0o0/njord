@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 namespace Njord.Ingest;
 
 internal sealed record OpenMeteoForecastResponse(
+    [property: JsonPropertyName("timezone")] string? Timezone,
     [property: JsonPropertyName("hourly_units")] Dictionary<string, string>? HourlyUnits,
     [property: JsonPropertyName("hourly")] OpenMeteoTimeSeries? Hourly,
     [property: JsonPropertyName("daily_units")] Dictionary<string, string>? DailyUnits,

@@ -214,6 +214,17 @@ fetched forecast window (96 h).
 - **WHEN** both `PersistencePath` and `Persistence:Provider` are configured
 - **THEN** both values are available; `PersistencePath` is used as fallback only when provider is `Sqlite` and no explicit `ConnectionString` is set
 
+### Requirement: Startup validates configuration
+`NjordOptionsValidator` SHALL validate all location entries at startup. Validation SHALL check that each location has a non-empty `Name`, valid `Latitude` (-90 to 90), and valid `Longitude` (-180 to 180). Timezone validation SHALL NOT be performed — the timezone is derived from the API response, not from configuration.
+
+#### Scenario: Valid location without timezone passes validation
+- **WHEN** a location has `Name: "Lucerne"`, `Latitude: 47.05`, `Longitude: 8.31` and no `Timezone` property
+- **THEN** validation SHALL succeed
+
+#### Scenario: Location with leftover Timezone property passes validation
+- **WHEN** a location config still contains a `Timezone` property from a previous configuration format
+- **THEN** validation SHALL succeed — the property is ignored by the binder since it no longer exists on `LocationOptions`
+
 ### Requirement: Startup validation covers persistence configuration
 The `NjordOptionsValidator` SHALL validate the persistence configuration: `Provider` must be a valid `PersistenceProvider` enum value, and `PostgreSql` provider SHALL require a non-empty `ConnectionString`. Validation failure messages SHALL name the specific problem and suggest corrective action.
 

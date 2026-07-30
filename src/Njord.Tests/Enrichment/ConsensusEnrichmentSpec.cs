@@ -45,7 +45,7 @@ public sealed class ConsensusEnrichmentSpec
 
             var forecast = new ModelForecast(
                 new WeatherModel(modelId), "lucerne", new CycleId(Now),
-                new ForecastSeries(points), DailyForecastSeries.Empty);
+                new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
             snapshot = snapshot.Update(forecast);
         }
 

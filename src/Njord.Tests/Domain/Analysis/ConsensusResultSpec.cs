@@ -17,7 +17,7 @@ public sealed class ConsensusResultSpec
         var point = new ForecastPoint(T0.AddHours(3),
             new Dictionary<ParameterDef, double?> { [Temperature] = tempAt3H });
         return new ModelForecast(model, "lucerne", new CycleId(T0),
-            new ForecastSeries([point]), DailyForecastSeries.Empty);
+            new ForecastSeries([point]), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
     }
 
     [Fact(Timeout = 5000)]
@@ -77,7 +77,7 @@ public sealed class ConsensusResultSpec
         }
 
         return new ModelForecast(model, "lucerne", new CycleId(T0),
-            new ForecastSeries([]), new DailyForecastSeries(points));
+            new ForecastSeries([]), new DailyForecastSeries(points), TimeZoneInfo.Utc);
     }
 
     [Fact(Timeout = 5000)]

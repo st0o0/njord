@@ -50,7 +50,15 @@ public sealed class ConsensusEnrichment : IStatelessEnrichment
                 snapshot, _parameters, horizons, location, _timeProvider, _trimPercent);
 
             var filtered = FilterByModelCount(result, minModels: 2);
-            yield return new EgressEvent.EnrichmentUpdate(location, TypeName, filtered);
+
+            var tz = ExtractTimeZone(snapshot, location);
+            var now = _timeProvider.GetUtcNow();
+            var dailySummaries = DailyConsensusSummary.Aggregate(filtered, now, tz)
+                .Where(s => s.AvailableModels >= 2)
+                .ToList();
+
+            var withDaily = new ConsensusResult(filtered.Parameters, filtered.DailyParameters, dailySummaries);
+            yield return new EgressEvent.EnrichmentUpdate(location, TypeName, withDaily);
         }
     }
 
@@ -80,11 +88,23 @@ public sealed class ConsensusEnrichment : IStatelessEnrichment
         return maxHours[^2];
     }
 
+    private static TimeZoneInfo ExtractTimeZone(ModelSnapshot snapshot, string location)
+    {
+        foreach (var (key, forecast) in snapshot.Entries)
+        {
+            if (key.Location == location)
+                return forecast.TimeZone;
+        }
+
+        return TimeZoneInfo.Utc;
+    }
+
     private static ConsensusResult FilterByModelCount(ConsensusResult result, int minModels)
     {
         return new ConsensusResult(
             FilterParameterList(result.Parameters, minModels),
-            FilterParameterList(result.DailyParameters, minModels));
+            FilterParameterList(result.DailyParameters, minModels),
+            result.DailySummaries);
     }
 
     private static List<ParameterConsensus> FilterParameterList(

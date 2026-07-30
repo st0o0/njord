@@ -39,7 +39,7 @@ public sealed class IndexEnrichmentSpec
                 }));
 
         return new ModelForecast(new WeatherModel("icon_d2"), location, new CycleId(T0),
-            new ForecastSeries(points), DailyForecastSeries.Empty);
+            new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
     }
 
     [Fact(Timeout = 5000)]

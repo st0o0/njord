@@ -177,7 +177,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
             var forecast = new ModelForecast(model, location.Name, cycle,
                 new ForecastSeries([new ForecastPoint(DateTimeOffset.UtcNow, new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
-                DailyForecastSeries.Empty);
+                DailyForecastSeries.Empty, TimeZoneInfo.Utc);
             return Task.FromResult<FetchOutcome>(new FetchOutcome.Success(forecast));
         }
     }
@@ -207,7 +207,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
             var forecast = new ModelForecast(model, location.Name, cycle,
                 new ForecastSeries([new ForecastPoint(DateTimeOffset.UtcNow, new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
-                DailyForecastSeries.Empty);
+                DailyForecastSeries.Empty, TimeZoneInfo.Utc);
             return Task.FromResult<FetchOutcome>(new FetchOutcome.Success(forecast));
         }
     }

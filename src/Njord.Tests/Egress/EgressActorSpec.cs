@@ -67,7 +67,7 @@ public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
         {
             new EgressEvent.PerModelUpdate("loc", new WeatherModel("icon_d2"),
                 new ModelForecast(new WeatherModel("icon_d2"), "loc", new CycleId(DateTimeOffset.UtcNow),
-                    new ForecastSeries([]), DailyForecastSeries.Empty)),
+                    new ForecastSeries([]), DailyForecastSeries.Empty, TimeZoneInfo.Utc)),
             new EgressEvent.EnrichmentUpdate("loc", "consensus", new ConsensusResult([])),
             new EgressEvent.EnrichmentUpdate("loc", "alerts", new AlertResult("loc", [])),
         };

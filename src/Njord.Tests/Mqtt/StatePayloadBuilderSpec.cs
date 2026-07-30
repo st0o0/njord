@@ -34,7 +34,8 @@ public sealed class StatePayloadBuilderSpec
                 new DailyForecastPoint(DateOnly.FromDateTime(tick.UtcDateTime),
                     new Dictionary<ParameterDef, double?> { [TempMax] = 28.5 },
                     new Dictionary<ParameterDef, string?> { [Sunrise] = "05:31" }),
-            ]));
+            ]),
+            TimeZoneInfo.Utc);
 
     [Fact(Timeout = 5000)]
     public void Returns_one_entry_per_configured_horizon()
@@ -112,7 +113,7 @@ public sealed class StatePayloadBuilderSpec
             model, "lucerne", new CycleId(T0),
             new ForecastSeries(Enumerable.Range(0, 72)
                 .Select(i => new ForecastPoint(T0.AddHours(i), values))),
-            new DailyForecastSeries([]));
+            new DailyForecastSeries([]), TimeZoneInfo.Utc);
     }
 
     private static ModelSnapshot SnapshotWith(params ModelForecast[] forecasts)
@@ -148,12 +149,12 @@ public sealed class StatePayloadBuilderSpec
                 new DailyForecastSeries([
                     new DailyForecastPoint(baseDate, new Dictionary<ParameterDef, double?> { [dailyParam] = 28.0 }, new Dictionary<ParameterDef, string?>()),
                     new DailyForecastPoint(baseDate.AddDays(1), new Dictionary<ParameterDef, double?> { [dailyParam] = 30.0 }, new Dictionary<ParameterDef, string?>()),
-                ])),
+                ]), TimeZoneInfo.Utc),
             new ModelForecast(new("ecmwf_ifs025"), "lucerne", new CycleId(T0), new ForecastSeries([]),
                 new DailyForecastSeries([
                     new DailyForecastPoint(baseDate, new Dictionary<ParameterDef, double?> { [dailyParam] = 31.0 }, new Dictionary<ParameterDef, string?>()),
                     new DailyForecastPoint(baseDate.AddDays(1), new Dictionary<ParameterDef, double?> { [dailyParam] = 33.0 }, new Dictionary<ParameterDef, string?>()),
-                ])),
+                ]), TimeZoneInfo.Utc),
         };
 
         var snap = dailyForecasts.Aggregate(ModelSnapshot.Empty, (s, f) => s.Update(f));

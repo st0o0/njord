@@ -21,6 +21,6 @@ public sealed class FakeOpenMeteoClient : IOpenMeteoClient
             model, location.Name, cycle,
             new ForecastSeries([new ForecastPoint(cycle.Timestamp.AddHours(3),
                 new Dictionary<ParameterDef, double?> { [ParameterRegistry.GetByApiName("temperature_2m")!] = 20.0 })]),
-            DailyForecastSeries.Empty)));
+            DailyForecastSeries.Empty, TimeZoneInfo.Utc)));
     }
 }

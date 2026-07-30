@@ -240,6 +240,44 @@ public sealed class EnrichmentProtoMapperSpec
     }
 
     [Fact(Timeout = 5000)]
+    public void MapConsensus_should_map_daily_summaries()
+    {
+        var result = new ConsensusResult([], [],
+        [
+            new DailyConsensusSummary(
+                new DateOnly(2026, 7, 29),
+                TemperatureMax: 33.0, TemperatureMin: 16.5,
+                PrecipitationSum: 2.3, WindSpeedMax: 8.1,
+                WeatherCode: 80, Spread: 2.8, Agreement: 0.83,
+                AvailableModels: 6),
+        ]);
+
+        var update = EnrichmentProtoMapper.MapConsensus(result);
+
+        Assert.Single(update.Daily);
+        var daily = update.Daily[0];
+        Assert.Equal("2026-07-29", daily.Date);
+        Assert.Equal(33.0, daily.TemperatureMax);
+        Assert.Equal(16.5, daily.TemperatureMin);
+        Assert.Equal(2.3, daily.PrecipitationSum);
+        Assert.Equal(8.1, daily.WindSpeedMax);
+        Assert.Equal(80, daily.WeatherCode);
+        Assert.Equal(2.8, daily.Spread);
+        Assert.Equal(0.83, daily.Agreement);
+        Assert.Equal(6, daily.AvailableModels);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void MapConsensus_should_produce_empty_daily_for_no_summaries()
+    {
+        var result = new ConsensusResult([]);
+
+        var update = EnrichmentProtoMapper.MapConsensus(result);
+
+        Assert.Empty(update.Daily);
+    }
+
+    [Fact(Timeout = 5000)]
     public void MapToEvent_should_return_null_for_unknown_type_name()
     {
         var result = new AlertResult("lucerne", []);

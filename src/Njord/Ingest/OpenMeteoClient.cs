@@ -45,6 +45,19 @@ public sealed class OpenMeteoClient(
                 return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, mismatch);
             }
 
+            TimeZoneInfo tz;
+            try
+            {
+                tz = dto.Timezone is { Length: > 0 }
+                    ? TimeZoneInfo.FindSystemTimeZoneById(dto.Timezone)
+                    : TimeZoneInfo.Utc;
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload,
+                    $"Unrecognized timezone '{dto.Timezone}' in API response");
+            }
+
             var hourlyResult = MapHourly(dto.Hourly);
             if (hourlyResult is null)
             {
@@ -57,7 +70,7 @@ public sealed class OpenMeteoClient(
 
             return new FetchOutcome.Success(new ModelForecast(
                 model, location.Name, cycle,
-                hourlyResult, daily));
+                hourlyResult, daily, tz));
         }
         catch (HttpRequestException ex)
         {
@@ -80,7 +93,7 @@ public sealed class OpenMeteoClient(
             CultureInfo.InvariantCulture,
             $"v1/forecast?latitude={location.Latitude}&longitude={location.Longitude}" +
             $"&models={Uri.EscapeDataString(model.Id)}&hourly={_hourlyVariables}" +
-            $"&wind_speed_unit=ms&timeformat=unixtime&forecast_days={effectiveDays}");
+            $"&wind_speed_unit=ms&timeformat=unixtime&timezone=auto&forecast_days={effectiveDays}");
 
         if (_dailyVariables.Length > 0)
         {

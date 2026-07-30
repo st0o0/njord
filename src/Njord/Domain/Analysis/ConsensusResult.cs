@@ -28,10 +28,17 @@ public sealed record ParameterConsensus(
 [method: JsonConstructor]
 public sealed record ConsensusResult(
     [property: JsonProperty("parameters")] IReadOnlyList<ParameterConsensus> Parameters,
-    [property: JsonProperty("dailyParameters")] IReadOnlyList<ParameterConsensus> DailyParameters)
+    [property: JsonProperty("dailyParameters")] IReadOnlyList<ParameterConsensus> DailyParameters,
+    IReadOnlyList<DailyConsensusSummary>? DailySummaries = null)
 {
+    [JsonProperty("dailySummaries")]
+    public IReadOnlyList<DailyConsensusSummary> DailySummaries { get; } = DailySummaries ?? [];
+
     public ConsensusResult(IReadOnlyList<ParameterConsensus> parameters)
-        : this(parameters, []) { }
+        : this(parameters, [], null) { }
+
+    public ConsensusResult(IReadOnlyList<ParameterConsensus> parameters, IReadOnlyList<ParameterConsensus> dailyParameters)
+        : this(parameters, dailyParameters, null) { }
 
     public static ConsensusResult Compute(
         ModelSnapshot snapshot,

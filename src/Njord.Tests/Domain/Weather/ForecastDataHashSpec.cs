@@ -21,7 +21,7 @@ public sealed class ForecastDataHashSpec
 
     private static ModelForecast Forecast(IEnumerable<ForecastPoint> points) =>
         new(new WeatherModel("icon_d2"), "lucerne", new CycleId(Now),
-            new ForecastSeries(points), DailyForecastSeries.Empty);
+            new ForecastSeries(points), DailyForecastSeries.Empty, TimeZoneInfo.Utc);
 
     [Fact(Timeout = 5000)]
     public void Same_data_produces_same_hash()
@@ -53,11 +53,11 @@ public sealed class ForecastDataHashSpec
     {
         var a = ForecastDataHash.Compute(
             new ModelForecast(new WeatherModel("icon_d2"), "lucerne", new CycleId(Now),
-                new ForecastSeries([HourlyPoint(Tomorrow, 20.0, 65)]), DailyForecastSeries.Empty),
+                new ForecastSeries([HourlyPoint(Tomorrow, 20.0, 65)]), DailyForecastSeries.Empty, TimeZoneInfo.Utc),
             Time);
         var b = ForecastDataHash.Compute(
             new ModelForecast(new WeatherModel("icon_d2"), "lucerne", new CycleId(Now.AddMinutes(20)),
-                new ForecastSeries([HourlyPoint(Tomorrow, 20.0, 65)]), DailyForecastSeries.Empty),
+                new ForecastSeries([HourlyPoint(Tomorrow, 20.0, 65)]), DailyForecastSeries.Empty, TimeZoneInfo.Utc),
             Time);
         Assert.Equal(a, b);
     }

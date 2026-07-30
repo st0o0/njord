@@ -7,7 +7,7 @@ HTTP client for the Open-Meteo forecast API: fetches hourly and daily forecasts 
 ## Requirements
 
 ### Requirement: Forecast fetch per location and model
-The client SHALL fetch `GET {OpenMeteoBaseUrl}/v1/forecast?latitude={lat}&longitude={lon}&models={id}` where `OpenMeteoBaseUrl` is read from `NjordOptions.OpenMeteoBaseUrl` (default `https://api.open-meteo.com`). The request SHALL include the hourly variables from the active parameter set and, when daily parameters are active, the daily variables. The request SHALL always include `wind_speed_unit=ms`, `timeformat=unixtime`, and `forecast_days` from configuration. No authentication header or API key SHALL be sent. One successful call SHALL yield one `ModelForecast` with hourly points covering at least +72 h and daily points spanning `forecast_days`. The `FetchAsync` method SHALL NOT accept a `CycleId` parameter — the `CycleId` SHALL be provided via the `WeightedTarget` that carries the fetch context.
+The client SHALL fetch `GET {OpenMeteoBaseUrl}/v1/forecast?latitude={lat}&longitude={lon}&models={id}` where `OpenMeteoBaseUrl` is read from `NjordOptions.OpenMeteoBaseUrl` (default `https://api.open-meteo.com`). The request SHALL include the hourly variables from the active parameter set and, when daily parameters are active, the daily variables. The request SHALL always include `wind_speed_unit=ms`, `timeformat=unixtime`, `timezone=auto`, and `forecast_days` from configuration. No authentication header or API key SHALL be sent. One successful call SHALL yield one `ModelForecast` with hourly points covering at least +72 h, daily points spanning `forecast_days`, and a `TimeZoneInfo` resolved from the API response's `timezone` field. The `FetchAsync` method SHALL NOT accept a `CycleId` parameter — the `CycleId` SHALL be provided via the `WeightedTarget` that carries the fetch context.
 
 #### Scenario: Successful fetch maps hourly and daily to domain
 - **WHEN** the API returns a valid single-model payload for `icon_eu` with the configured hourly and daily variables
@@ -24,6 +24,29 @@ The client SHALL fetch `GET {OpenMeteoBaseUrl}/v1/forecast?latitude={lat}&longit
 #### Scenario: Custom base URL is used when configured
 - **WHEN** `NjordOptions.OpenMeteoBaseUrl` is set to `http://localhost:8080`
 - **THEN** the client SHALL send requests to `http://localhost:8080/v1/forecast` instead of the default
+
+#### Scenario: Request includes timezone=auto
+- **WHEN** the client builds the request URI for any location and model
+- **THEN** the query string SHALL include `timezone=auto`
+
+#### Scenario: Timezone from response is carried on ModelForecast
+- **WHEN** the API response contains `"timezone": "Europe/Zurich"`
+- **THEN** the returned `ModelForecast.TimeZone` SHALL be `TimeZoneInfo.FindSystemTimeZoneById("Europe/Zurich")`
+
+#### Scenario: Unrecognized timezone in response is a malformed payload
+- **WHEN** the API response contains `"timezone": "Invalid/Zone"`
+- **THEN** the client SHALL return `Failure(MalformedPayload, detail)` describing the unrecognized timezone
+
+### Requirement: OpenMeteoForecastResponse deserializes timezone
+The `OpenMeteoForecastResponse` DTO SHALL include a `Timezone` property mapped from the JSON `timezone` field. The client SHALL use this value to resolve a `TimeZoneInfo` for the `ModelForecast`.
+
+#### Scenario: Timezone field present in response
+- **WHEN** the API response JSON contains `"timezone": "America/New_York"`
+- **THEN** the DTO's `Timezone` property SHALL be `"America/New_York"`
+
+#### Scenario: Timezone field missing from response
+- **WHEN** the API response JSON does not contain a `timezone` field
+- **THEN** the DTO's `Timezone` property SHALL be null, and the client SHALL fall back to `TimeZoneInfo.Utc` for the `ModelForecast`
 
 ### Requirement: Expected failures are typed outcomes, not exceptions
 The client SHALL return a typed outcome for every call: `Success(ModelForecast)` or `Failure` with reason `RateLimited`, `ModelUnavailable`, `MalformedPayload`, or `Transport`. Expected failure modes MUST NOT surface as thrown exceptions to the caller. `FetchOutcome.Failure` SHALL carry only `Reason` and `Detail` — no `CycleId`, `Location`, or `Model` fields.

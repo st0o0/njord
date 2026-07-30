@@ -43,4 +43,5 @@ public sealed class LocationOptionsSpec
 
         Assert.Equal(["icon_d2"], resolved);
     }
+
 }
