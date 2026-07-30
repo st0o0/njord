@@ -82,14 +82,14 @@ public sealed class StatePayloadBuilderSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void Anchor_bumps_to_next_full_hour_when_tick_is_mid_hour()
+    public void Anchor_floors_to_current_hour_when_tick_is_mid_hour()
     {
         var tick = new DateTimeOffset(2026, 7, 12, 19, 31, 0, TimeSpan.Zero);
         var firstPoint = new DateTimeOffset(2026, 7, 12, 20, 0, 0, TimeSpan.Zero);
         var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, firstPoint, 100), SmallParams, [3], 1, tick);
         var h3 = JsonNode.Parse(result["h3"])!;
 
-        Assert.Equal(3.0, (double?)h3["temperature"]);
+        Assert.Equal(2.0, (double?)h3["temperature"]);
     }
 
     private static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);

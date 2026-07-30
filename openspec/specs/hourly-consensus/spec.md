@@ -18,10 +18,10 @@ Unified consensus enrichment that computes per-hour consensus across all weather
 - **WHEN** only one model has data beyond h48
 - **THEN** the enrichment SHALL NOT produce consensus entries for h49 and beyond
 
-#### Scenario: 3-hourly models contribute at their native hours
+#### Scenario: 3-hourly models contribute at their native hours only
 - **WHEN** ecmwf_ifs025 provides data at h0, h3, h6, h9... (3-hourly)
-- **THEN** it SHALL be included in consensus at h3, h6, h9... via the existing +-30min tolerance window
-- **AND** it SHALL NOT contribute to h1, h2, h4, h5... (no data within tolerance)
+- **THEN** it SHALL be included in consensus at h3, h6, h9... via exact ValidAt match
+- **AND** it SHALL NOT contribute to h1, h2, h4, h5... (no data point at those exact times)
 
 ### Requirement: HourlyConsensusEnrichment is independently toggleable
 The enrichment SHALL be controlled by `EnrichmentOptions.Consensus.Enabled` (default `true`). There is no separate `HourlyConsensusOptions` — the single `ConsensusOptions` controls the only consensus enrichment.

@@ -69,6 +69,13 @@ public sealed record ConsensusResult(
         double trimPercent,
         double agreementTolerance)
     {
+        var pointIndex = new Dictionary<(string Location, WeatherModel Model), Dictionary<DateTimeOffset, ForecastPoint>>();
+        foreach (var (key, forecast) in snapshot.Entries)
+        {
+            if (key.Location == location)
+                pointIndex[key] = forecast.Hourly.Points.ToDictionary(p => p.ValidAt);
+        }
+
         var paramResults = new List<ParameterConsensus>();
 
         foreach (var parameter in hourlyParams)
@@ -81,15 +88,16 @@ public sealed record ConsensusResult(
                 var horizonKey = $"h{hours}";
 
                 var modelValues = new List<(WeatherModel Model, double? Value)>();
-                foreach (var (key, forecast) in snapshot.Entries)
+                foreach (var (key, _) in snapshot.Entries)
                 {
                     if (key.Location != location)
                     {
                         continue;
                     }
 
-                    var point = forecast.Hourly.Points.FirstOrDefault(p =>
-                        Math.Abs((p.ValidAt - targetTime).TotalMinutes) < 30);
+                    pointIndex.TryGetValue(key, out var pointsByValidAt);
+                    ForecastPoint? point = null;
+                    pointsByValidAt?.TryGetValue(targetTime, out point);
                     modelValues.Add((key.Model, point?.Get(parameter)));
                 }
 

@@ -7,7 +7,7 @@ Server-side aggregation of hourly consensus medians into per-calendar-day summar
 ## Requirements
 
 ### Requirement: ConsensusResult includes daily summaries aggregated from hourly consensus medians
-`ConsensusResult` SHALL expose a `DailySummaries` property of type `IReadOnlyList<DailyConsensusSummary>`. Each entry represents one calendar day and is computed by grouping hourly consensus horizons into calendar days using the timezone carried on the `ModelForecast` data for that location.
+`ConsensusResult` SHALL expose a `DailySummaries` property of type `IReadOnlyList<DailyConsensusSummary>`. Each entry represents one calendar day and is computed by grouping hourly consensus horizons into calendar days using the timezone carried on the `ModelForecast` data for that location. The grouping SHALL use floor-anchored times from `TimeAnchor.AtHorizon` (truncated to the start of the hour, not rounded up).
 
 #### Scenario: Full day with 24 hourly medians
 - **WHEN** hourly consensus has medians for temperature_2m at h0–h23 covering a single calendar day in timezone Europe/Zurich, with values [18, 19, 20, 22, 24, 26, 28, 30, 31, 32, 33, 33, 32, 31, 30, 28, 26, 24, 22, 20, 19, 18, 17, 16]
@@ -20,6 +20,10 @@ Server-side aggregation of hourly consensus medians into per-calendar-day summar
 #### Scenario: No forecasts available defaults to UTC
 - **WHEN** no `ModelForecast` entries exist for the location in the current snapshot
 - **THEN** calendar-day bucketing SHALL use UTC
+
+#### Scenario: Day boundary aligns with local midnight
+- **WHEN** the consensus is computed at 22:30 UTC (00:30 CEST) with floor-anchored h0 = 22:00 UTC (00:00 CEST)
+- **THEN** h0 SHALL be grouped into the new calendar day (the day starting at 00:00 CEST), not the previous day
 
 ### Requirement: DailyConsensusSummary aggregation logic
 `DailyConsensusSummary` SHALL be a sealed record with fields: `Date` (DateOnly), `TemperatureMax` (double?), `TemperatureMin` (double?), `PrecipitationSum` (double?), `WindSpeedMax` (double?), `WeatherCode` (int?), `Spread` (double?), `Agreement` (double?), `AvailableModels` (int).
