@@ -55,7 +55,6 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         var mqttEnabled = configuration
             .GetSection($"{NjordOptions.SectionName}:Mqtt")
             .GetValue("Enabled", false);
-        services.AddSingleton<IEnrichmentFeature, ConsensusEnrichment>();
         services.AddSingleton<IEnrichmentFeature, AlertEnrichment>();
         services.AddSingleton<IEnrichmentFeature, DerivedEnrichment>();
         services.AddSingleton<IEnrichmentFeature, TrendEnrichment>();
