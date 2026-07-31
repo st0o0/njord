@@ -71,7 +71,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         ActorRegistry.Register<SchedulerActor>(schedulerPlaceholder, overwrite: true);
 
         var pipeline = Sys.ActorOf(
-            Props.Create(() => new PipelineActor(client, time, gate, NullLogger<PipelineActor>())),
+            Props.Create(() => new PipelineActor(client, time, gate)),
             "real-pipeline");
         ActorRegistry.Register<PipelineActor>(pipeline, overwrite: true);
 
@@ -85,7 +85,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
 
         var scheduler = Sys.ActorOf(
             Props.Create(() => new SchedulerActor(
-                Options.Create(options), time, NullLogger<SchedulerActor>(), parameters, health)),
+                Options.Create(options), time, parameters, health)),
             "real-scheduler");
         ActorRegistry.Register<SchedulerActor>(scheduler, overwrite: true);
 
@@ -120,13 +120,13 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         ActorRegistry.Register<SchedulerActor>(schedulerPlaceholder, overwrite: true);
 
         var pipeline = Sys.ActorOf(
-            Props.Create(() => new PipelineActor(client, time, gate, NullLogger<PipelineActor>())),
+            Props.Create(() => new PipelineActor(client, time, gate)),
             "timing-pipeline");
         ActorRegistry.Register<PipelineActor>(pipeline, overwrite: true);
 
         var scheduler = Sys.ActorOf(
             Props.Create(() => new SchedulerActor(
-                Options.Create(options), time, NullLogger<SchedulerActor>(), parameters, health)),
+                Options.Create(options), time, parameters, health)),
             "timing-scheduler");
         ActorRegistry.Register<SchedulerActor>(scheduler, overwrite: true);
 
@@ -183,9 +183,6 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             return Task.FromResult<FetchOutcome>(new FetchOutcome.Success(forecast));
         }
     }
-
-    private static ILogger<T> NullLogger<T>() =>
-        Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance.CreateLogger<T>();
 
     private sealed class FakeOptionsMonitor(NjordOptions value) : IOptionsMonitor<NjordOptions>
     {

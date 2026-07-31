@@ -1,4 +1,5 @@
 using Akka.Actor;
+using Akka.Event;
 using Akka.Persistence;
 using Akka.Streams;
 using Akka.Streams.Dsl;
@@ -19,9 +20,10 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private IMaterializer _mat = null!;
     private readonly NjordOptions _options;
     private readonly TimeProvider _timeProvider;
-    private readonly ILogger<SchedulerActor> _logger;
     private readonly NjordHealthState _healthState;
+    private ILoggingAdapter _log = null!;
     private readonly Dictionary<string, ModelPollState> _states = new();
+    private readonly Dictionary<string, PollCycleTracker> _pollCycles = new();
     private ISourceQueueWithComplete<WeightedTarget>? _queue;
     private readonly int _weight;
     private bool _sourceReceived;
@@ -31,19 +33,18 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private sealed record PipelineResolved(IActorRef Pipeline);
     private sealed record ConnectionEstablished;
     private sealed record OfferFailed(string Location, string ModelId, Exception Error);
+    private sealed record PollCycleTracker(DateTimeOffset Start, int Changed, int Reported);
 
     private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
 
     public SchedulerActor(
         IOptions<NjordOptions> options,
         TimeProvider timeProvider,
-        ILogger<SchedulerActor> logger,
         ResolvedParameterSet parameters,
         NjordHealthState healthState)
     {
         _options = options.Value;
         _timeProvider = timeProvider;
-        _logger = logger;
         _healthState = healthState;
         _weight = WeightedTarget.ComputeWeight(parameters.HourlyCount, _options.ForecastDays);
 
@@ -55,9 +56,15 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     protected override void PreStart()
     {
+        _log = Context.GetLogger();
         _mat = Context.Materializer();
         Context.GetActorAsync<PipelineActor>()
             .PipeTo(Self, success: r => new PipelineResolved(r));
+    }
+
+    protected override void PostStop()
+    {
+        base.PostStop();
     }
 
     private void WaitingForPipeline()
@@ -96,7 +103,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             _queue = Source.Queue<WeightedTarget>(16, OverflowStrategy.Backpressure)
                 .To(response.SinkRef.Sink)
                 .Run(_mat);
-            _logger.LogInformation("Pipeline SinkRef received");
+            _log.Debug("SinkRef received from {Source}", Sender.Path);
             TryTransitionToConnecting();
         });
         Command<PipelineSourceResponse>(response =>
@@ -115,7 +122,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             return;
         }
 
-        _logger.LogInformation("Pipeline refs received - connecting");
+        _log.Debug("Refs received — connecting");
         InitializeStates();
         Become(Connecting);
     }
@@ -146,13 +153,13 @@ public sealed class SchedulerActor : ReceivePersistentActor
     {
         Command<ConnectionEstablished>(_ =>
         {
-            _logger.LogInformation("Pipeline connection established - scheduling initial polls");
+            _log.Info("Pipeline connection established - scheduling initial polls");
             Become(Ready);
             Stash.UnstashAll();
         });
         Command<OfferFailed>(msg =>
         {
-            _logger.LogWarning("Initial offer failed for {Location}/{Model}: {Error} - retrying",
+            _log.Warning("Initial offer failed for {Location}/{Model}: {Error} - retrying",
                 msg.Location, msg.ModelId, msg.Error.Message);
             Self.Tell(new ScheduledPoll(msg.Location, msg.ModelId));
             Become(Connecting);
@@ -175,7 +182,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     private void OnTerminated(Terminated msg)
     {
-        _logger.LogWarning("PipelineActor terminated - waiting for new refs");
+        _log.Warning("PipelineActor terminated - waiting for new refs");
         _queue?.Complete();
         _queue = null;
         _sourceReceived = false;
@@ -211,12 +218,13 @@ public sealed class SchedulerActor : ReceivePersistentActor
         response.SourceRef.Source
             .Collect(outcome => outcome is FetchOutcome.Failure, outcome => (FetchOutcome.Failure)outcome)
             .Select(f => new FetchFailed(f.Location, f.Model.Id, f.Reason, f.Detail))
+            .Log("pipeline-failure", f => $"{f.Location}/{f.ModelId} {f.Reason}", _log)
             .To(Sink.ActorRef<FetchFailed>(self, new Status.Success("failure-consumer-complete"),
                 ex => new Status.Failure(ex)))
             .Run(_mat);
 
         _sourceReceived = true;
-        _logger.LogInformation("Pipeline SourceRef received");
+        _log.Debug("SourceRef received from {Source}", Sender.Path);
     }
 
     private void OnFetchFailed(FetchFailed msg)
@@ -229,7 +237,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         {
             case FetchFailureReason.Transport:
                 _states[key] = state.WithTransientFailure(now);
-                _logger.LogWarning("Fetch failed for {Location}/{Model} (transport) - miss={Miss}, details={Details}",
+                _log.Warning("Fetch failed for {Location}/{Model} (transport) - miss={Miss}, details={Details}",
                     msg.Location, msg.ModelId, _states[key].MissCount, msg.Detail);
                 ScheduleNext(msg.Location, msg.ModelId);
                 break;
@@ -242,7 +250,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
                 }
 
                 _states[key] = rateLimitState;
-                _logger.LogWarning("Fetch rate-limited for {Location}/{Model} - next poll at {Next}",
+                _log.Warning("Fetch rate-limited for {Location}/{Model} - next poll at {Next}",
                     msg.Location, msg.ModelId, rateLimitState.NextPollUtc);
                 ScheduleNext(msg.Location, msg.ModelId);
                 break;
@@ -250,7 +258,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             case FetchFailureReason.ModelUnavailable:
             case FetchFailureReason.MalformedPayload:
                 _states[key] = state.WithTransientFailure(now);
-                _logger.LogWarning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - retry scheduled",
+                _log.Warning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - retry scheduled",
                     msg.Location, msg.ModelId, msg.Reason, msg.Detail);
                 ScheduleNext(msg.Location, msg.ModelId);
                 break;
@@ -308,7 +316,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             }
         }
 
-        _logger.LogInformation("TriggerImmediatePoll: triggered {Count} polls", targets.Count);
+        _log.Info("TriggerImmediatePoll: triggered {Count} polls", targets.Count);
         Sender.Tell(new TriggerPollResult(targets.Count, targets));
     }
 
@@ -326,22 +334,59 @@ public sealed class SchedulerActor : ReceivePersistentActor
             {
                 _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
                 _healthState.SetLastSuccessfulPoll(now);
-                _logger.LogInformation(
+                _log.Info(
                     "Data changed for {Location}/{Model} - phase={Phase}, cycle={Cycle}",
                     result.Location, result.ModelId, _states[key].Phase, _states[key].Cycle);
                 ScheduleNext(result.Location, result.ModelId);
                 Sender.Tell(new Ack());
+                RecordPollCompletion(result.Location, changed: true);
             });
         }
         else
         {
             _states[key] = state.WithMiss(now, _options.DiscoveryInterval);
             _healthState.SetLastSuccessfulPoll(now);
-            _logger.LogDebug(
-                "No data change for {Location}/{Model} - miss={Miss}, phase={Phase}",
+            _log.Debug(
+                "Hash unchanged for {Location}/{Model} - miss={Miss}, phase={Phase}",
                 result.Location, result.ModelId, _states[key].MissCount, _states[key].Phase);
             ScheduleNext(result.Location, result.ModelId);
             Sender.Tell(new Ack());
+            RecordPollCompletion(result.Location, changed: false);
+        }
+    }
+
+    private void RecordPollCompletion(string location, bool changed)
+    {
+        var total = _options.Locations
+            .FirstOrDefault(l => l.Name.Equals(location, StringComparison.OrdinalIgnoreCase))
+            ?.ResolveModels(_options.Models).Count ?? 0;
+        if (total == 0)
+        {
+            return;
+        }
+
+        var now = _timeProvider.GetUtcNow();
+        var tracker = _pollCycles.TryGetValue(location, out var existing)
+            ? existing
+            : new PollCycleTracker(now, 0, 0);
+
+        tracker = tracker with
+        {
+            Changed = tracker.Changed + (changed ? 1 : 0),
+            Reported = tracker.Reported + 1,
+        };
+
+        if (tracker.Reported >= total)
+        {
+            var duration = (now - tracker.Start).TotalMilliseconds;
+            _log.Info(
+                "Poll complete for {Location}: {Changed}/{Total} models changed in {Duration}ms",
+                location, tracker.Changed, total, duration);
+            _pollCycles.Remove(location);
+        }
+        else
+        {
+            _pollCycles[location] = tracker;
         }
     }
 
@@ -374,6 +419,8 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
         var now = _timeProvider.GetUtcNow();
         var msg = new ScheduledPoll(location, modelId);
+
+        _log.Debug("Scheduling next poll for {Location}/{Model} at {NextPoll}", location, modelId, state.NextPollUtc);
 
         if (state.NextPollUtc <= now)
         {

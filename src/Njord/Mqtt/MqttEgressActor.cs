@@ -1,4 +1,5 @@
 using Akka.Actor;
+using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
@@ -20,8 +21,8 @@ public sealed class MqttEgressActor : StreamConsumerActor
     private readonly IReadOnlyList<int> _horizons;
     private readonly int _forecastDays;
     private readonly TimeProvider _timeProvider;
-    private readonly ILogger<MqttEgressActor> _logger;
     private readonly Dictionary<string, IEnrichmentFeature> _featuresByType;
+    private ILoggingAdapter _log = null!;
 
     private ISinkRef<MqttMessage>? _mqttSinkRef;
     private ISourceRef<EgressEvent>? _egressSourceRef;
@@ -33,8 +34,7 @@ public sealed class MqttEgressActor : StreamConsumerActor
         IOptions<NjordOptions> options,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider,
-        IEnumerable<IEnrichmentFeature> features,
-        ILogger<MqttEgressActor> logger)
+        IEnumerable<IEnrichmentFeature> features)
     {
         var opts = options.Value;
         _baseTopic = opts.Mqtt.BaseTopic;
@@ -42,8 +42,13 @@ public sealed class MqttEgressActor : StreamConsumerActor
         _horizons = [.. opts.Horizons];
         _forecastDays = opts.ForecastDays;
         _timeProvider = timeProvider;
-        _logger = logger;
         _featuresByType = features.ToDictionary(f => f.TypeName);
+    }
+
+    protected override void PreStart()
+    {
+        _log = Context.GetLogger();
+        base.PreStart();
     }
 
     protected override void ResolveDependencies()
@@ -69,13 +74,13 @@ public sealed class MqttEgressActor : StreamConsumerActor
         Receive<EgressSourceResponse>(response =>
         {
             _egressSourceRef = response.SourceRef;
-            _logger.LogInformation("Egress SourceRef received");
+            _log.Debug("SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
         Receive<MqttSinkResponse>(response =>
         {
             _mqttSinkRef = response.SinkRef;
-            _logger.LogInformation("MQTT SinkRef received");
+            _log.Debug("SinkRef received from {Source}", Sender.Path);
             TryTransition();
         });
     }
@@ -89,8 +94,15 @@ public sealed class MqttEgressActor : StreamConsumerActor
 
         _egressSourceRef!.Source
             .Via(killSwitch.Flow<EgressEvent>())
+            .Log("mqtt-egress-in", e => e switch
+            {
+                EgressEvent.PerModelUpdate u => $"model {u.Location}/{u.Model.Id}",
+                EgressEvent.EnrichmentUpdate u => $"enrich {u.Location}/{u.TypeName}",
+                _ => "?",
+            }, _log)
             .SelectMany(egressEvent => MapToMqttMessages(egressEvent, baseTopic, lastPublished))
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
+            .Log("mqtt-egress-out", m => $"{m.Topic} [{m.Payload.Length}B]", _log)
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
             .RunWith(_mqttSinkRef!.Sink, Mat);
     }
 

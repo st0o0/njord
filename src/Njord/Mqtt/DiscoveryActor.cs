@@ -1,5 +1,6 @@
 using System.Reflection;
 using Akka.Actor;
+using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
@@ -22,10 +23,10 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
     private readonly NjordOptions _options;
     private readonly ResolvedParameterSet _parameters;
     private readonly IReadOnlyList<IEnrichmentFeature> _features;
-    private readonly ILogger<DiscoveryActor> _logger;
     private readonly string _haStatusTopic;
     private readonly bool _discoveryEnabled;
     private readonly int _expectedModelCount;
+    private ILoggingAdapter _log = null!;
 
     private ISourceQueueWithComplete<MqttMessage>? _queue;
     private ISinkRef<MqttMessage>? _mqttSinkRef;
@@ -43,13 +44,11 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
     public DiscoveryActor(
         IOptions<NjordOptions> options,
         ResolvedParameterSet parameters,
-        IEnumerable<IEnrichmentFeature> features,
-        ILogger<DiscoveryActor> logger)
+        IEnumerable<IEnrichmentFeature> features)
     {
         _options = options.Value;
         _parameters = parameters;
         _features = [.. features];
-        _logger = logger;
         _haStatusTopic = $"{_options.Mqtt.DiscoveryPrefix}/status";
         _discoveryEnabled = _options.Mqtt.DiscoveryEnabled;
 
@@ -59,9 +58,11 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
 
     protected override void PreStart()
     {
+        _log = Context.GetLogger();
+
         if (!_discoveryEnabled)
         {
-            _logger.LogInformation("MQTT discovery is disabled — DiscoveryActor idle");
+            _log.Info("MQTT discovery is disabled — DiscoveryActor idle");
             return;
         }
 
@@ -92,13 +93,13 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
         Receive<MqttSinkResponse>(response =>
         {
             _mqttSinkRef = response.SinkRef;
-            _logger.LogInformation("MQTT SinkRef received");
+            _log.Debug("SinkRef received from {Source}", Sender.Path);
             TryTransition();
         });
         Receive<EgressSourceResponse>(response =>
         {
             _egressSourceRef = response.SourceRef;
-            _logger.LogInformation("Egress SourceRef received");
+            _log.Debug("SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
     }
@@ -119,13 +120,14 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
         _egressSourceRef!.Source
             .Via(killSwitch.Flow<EgressEvent>())
             .Where(e => e is EgressEvent.CapabilityLearned)
+            .Log("discovery-capability", e => $"{((EgressEvent.CapabilityLearned)e).Location}/{((EgressEvent.CapabilityLearned)e).Model.Id}", _log)
             .Select(e => new CapabilityReceived((EgressEvent.CapabilityLearned)e))
             .RunWith(Sink.ActorRef<CapabilityReceived>(self, StreamCompleted.Instance, _ => StreamCompleted.Instance), Mat);
     }
 
     protected override void ConfigureReady()
     {
-        _logger.LogInformation("DiscoveryActor ready — waiting for model capabilities");
+        _log.Info("DiscoveryActor ready — waiting for model capabilities");
         ScheduleCapabilityTimeout();
 
         Receive<CapabilityReceived>(msg =>
@@ -156,7 +158,7 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
     private void OnCapabilityLearned(EgressEvent.CapabilityLearned msg)
     {
         _capabilities[(msg.Location, msg.Model.Id)] = msg;
-        _logger.LogInformation(
+        _log.Info(
             "Capability received for {Location}/{Model} ({Count}/{Expected})",
             msg.Location, msg.Model.Id, _capabilities.Count, _expectedModelCount);
 
@@ -174,7 +176,7 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
             return;
         }
 
-        _logger.LogWarning(
+        _log.Warning(
             "Capability timeout — publishing discovery for {Count}/{Expected} models",
             _capabilities.Count, _expectedModelCount);
 
@@ -190,11 +192,11 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
 
         if (isNew)
         {
-            _logger.LogInformation("Late capability for {Location}/{Model} — publishing discovery", msg.Location, msg.Model.Id);
+            _log.Info("Late capability for {Location}/{Model} — publishing discovery", msg.Location, msg.Model.Id);
         }
         else
         {
-            _logger.LogInformation("Capability expanded for {Location}/{Model} — re-publishing discovery", msg.Location, msg.Model.Id);
+            _log.Info("Capability expanded for {Location}/{Model} — re-publishing discovery", msg.Location, msg.Model.Id);
         }
 
         PublishDiscoveryForModel(msg);
@@ -204,7 +206,7 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
     {
         if (message.Topic == _haStatusTopic && message.Payload == "online")
         {
-            _logger.LogInformation("Home Assistant is back online — re-publishing discovery");
+            _log.Info("Home Assistant is back online — re-publishing discovery");
             PublishDiscovery();
         }
     }

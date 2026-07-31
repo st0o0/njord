@@ -1,5 +1,6 @@
 using Akka;
 using Akka.Actor;
+using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
@@ -20,7 +21,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
     private readonly ResolvedParameterSet _parameters;
     private readonly TimeProvider _timeProvider;
     private readonly IReadOnlyList<IEnrichmentFeature> _features;
-    private readonly ILogger<EnrichmentActor> _logger;
+    private ILoggingAdapter _log = null!;
 
     private ISourceRef<FetchOutcome>? _sourceRef;
     private ISinkRef<EgressEvent>? _egressSinkRef;
@@ -33,15 +34,19 @@ public sealed class EnrichmentActor : StreamConsumerActor
         IOptions<EnrichmentOptions> enrichmentOptions,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider,
-        IEnumerable<IEnrichmentFeature> features,
-        ILogger<EnrichmentActor> logger)
+        IEnumerable<IEnrichmentFeature> features)
     {
         _options = options.Value;
         _enrichmentOptions = enrichmentOptions.Value;
         _parameters = parameters;
         _timeProvider = timeProvider;
         _features = [.. features];
-        _logger = logger;
+    }
+
+    protected override void PreStart()
+    {
+        _log = Context.GetLogger();
+        base.PreStart();
     }
 
     protected override void ResolveDependencies()
@@ -67,13 +72,13 @@ public sealed class EnrichmentActor : StreamConsumerActor
         Receive<PipelineSourceResponse>(response =>
         {
             _sourceRef = response.SourceRef;
-            _logger.LogInformation("Pipeline SourceRef received");
+            _log.Debug("SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
         Receive<EgressSinkResponse>(response =>
         {
             _egressSinkRef = response.SinkRef;
-            _logger.LogInformation("Egress SinkRef received");
+            _log.Debug("SinkRef received from {Source}", Sender.Path);
             TryTransition();
         });
     }
@@ -99,13 +104,14 @@ public sealed class EnrichmentActor : StreamConsumerActor
         }
 
         var snapshotSource = BuildScanSource(_sourceRef!.Source)
+            .Log("enrichment-snapshot", s => $"{s.Entries.Count} models changed={s.HasChanged}", _log)
             .Via(killSwitch.Flow<ModelSnapshot>());
 
         var consensusFlow = Flow.Create<ModelSnapshot>()
             .SelectMany(snapshot => ComputeConsensus(snapshot, locations, trimPercent));
 
         var consensusInlineFlow = BuildConsensusInlineFlow(
-            consensusEgressEnabled, locations, statelessFeatures, statefulFeatures, _logger);
+            consensusEgressEnabled, locations, statelessFeatures, statefulFeatures, _log);
 
         var flows = new List<Flow<ModelSnapshot, EgressEvent, NotUsed>>();
 
@@ -122,10 +128,18 @@ public sealed class EnrichmentActor : StreamConsumerActor
             return;
         }
 
+        var logOut = Flow.Create<EgressEvent>()
+            .Log("enrichment-out", e => e switch
+            {
+                EgressEvent.EnrichmentUpdate u => $"{u.Location}/{u.TypeName}",
+                _ => "?",
+            }, _log);
+
         if (flows.Count == 1)
         {
             snapshotSource
                 .Via(flows[0])
+                .Via(logOut)
                 .RunWith(_egressSinkRef!.Sink, Mat);
             return;
         }
@@ -135,6 +149,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
             var source = builder.Add(snapshotSource);
             var broadcast = builder.Add(new Broadcast<ModelSnapshot>(flows.Count));
             var merge = builder.Add(new Merge<EgressEvent>(flows.Count));
+            var logStage = builder.Add(logOut);
 
             builder.From(source).To(broadcast);
 
@@ -145,7 +160,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
                     .To(merge.In(i));
             }
 
-            builder.From(merge).To(sink);
+            builder.From(merge).Via(logStage).To(sink);
             return ClosedShape.Instance;
         });
 
@@ -163,7 +178,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
         IReadOnlyList<string> locations,
         IReadOnlyList<IStatelessEnrichment> stateless,
         IReadOnlyList<IStatefulEnrichment> stateful,
-        ILogger logger)
+        ILoggingAdapter log)
     {
         ConsensusSnapshot? previous = null;
 
@@ -172,9 +187,21 @@ public sealed class EnrichmentActor : StreamConsumerActor
             {
                 var prev = previous;
                 previous = consensus;
-                return ComputeAll(consensus, prev, consensusEgressEnabled, stateless, stateful);
+                var events = ComputeAll(consensus, prev, consensusEgressEnabled, stateless, stateful).ToList();
+                if (events.Count > 0)
+                {
+                    var features = string.Join(
+                        ", ",
+                        events
+                            .Select(e => e is EgressEvent.EnrichmentUpdate eu ? eu.TypeName : null)
+                            .Where(t => t is not null)
+                            .Distinct());
+                    log.Info("Enrichment computed for {Location}: {Features}", consensus.Location, features);
+                }
+
+                return events;
             })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(logger)));
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(log)));
     }
 
     private IEnumerable<ConsensusSnapshot> ComputeConsensus(

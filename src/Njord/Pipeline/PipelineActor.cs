@@ -1,5 +1,6 @@
 using Akka;
 using Akka.Actor;
+using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Domain.Weather;
@@ -13,7 +14,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;
     private readonly IBudgetGate<WeightedTarget> _budgetGate;
-    private readonly ILogger<PipelineActor> _logger;
+    private ILoggingAdapter _log = null!;
 
     private Sink<WeightedTarget, NotUsed>? _mergeHubSink;
     private Source<FetchOutcome, NotUsed>? _broadcastHubSource;
@@ -27,22 +28,26 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     public PipelineActor(
         IOpenMeteoClient client,
         TimeProvider timeProvider,
-        IBudgetGate<WeightedTarget> budgetGate,
-        ILogger<PipelineActor> logger)
+        IBudgetGate<WeightedTarget> budgetGate)
     {
         _client = client;
         _timeProvider = timeProvider;
         _budgetGate = budgetGate;
-        _logger = logger;
 
         Initializing();
     }
 
     protected override void PreStart()
     {
+        _log = Context.GetLogger();
         _mat = Context.Materializer();
         Context.GetActorAsync<SchedulerActor>()
             .PipeTo(Self, success: r => new SchedulerResolved(r));
+    }
+
+    protected override void PostStop()
+    {
+        base.PostStop();
     }
 
     private void Initializing()
@@ -50,7 +55,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         Receive<SchedulerResolved>(msg => MaterializePipeline(msg.Ref));
         Receive<PipelineReady>(_ =>
         {
-            _logger.LogInformation("Pipeline graph materialized - ready to accept producers and consumers");
+            _log.Info("Pipeline graph materialized - ready to accept producers and consumers");
             Become(Ready);
             Stash.UnstashAll();
         });
@@ -68,7 +73,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                     sr => new PipelineSinkResponse(sr),
                     ex =>
                     {
-                        _logger.LogError(ex, "Failed to create SinkRef");
+                        _log.Error(ex, "Failed to create SinkRef");
                         return new Status.Failure(ex);
                     });
         });
@@ -80,7 +85,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                     sr => new PipelineSourceResponse(sr),
                     ex =>
                     {
-                        _logger.LogError(ex, "Failed to create SourceRef");
+                        _log.Error(ex, "Failed to create SourceRef");
                         return new Status.Failure(ex);
                     });
         });
@@ -96,12 +101,19 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
 
         mergeHubSource
             .Via(new BudgetThrottleStage<WeightedTarget>(_budgetGate))
+            .Log("pipeline-fetch-in", t => $"{t.Location.Name}/{t.Model.Id}", _log)
             .SelectAsyncUnordered(2, async target =>
             {
                 var outcome = await _client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None);
                 return outcome;
             })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
+            .Log("pipeline-fetch-out", o => o switch
+            {
+                FetchOutcome.Success s => $"OK {s.Forecast.Location}/{s.Forecast.Model.Id}",
+                FetchOutcome.Failure f => $"FAIL {f.Location}/{f.Model.Id} {f.Reason}",
+                _ => "?",
+            }, _log)
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
             .Buffer(32, OverflowStrategy.Backpressure)
             .To(broadcastHubSink)
             .Run(_mat);
@@ -112,8 +124,9 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                 success.Forecast.Location,
                 success.Forecast.Model.Id,
                 ForecastDataHash.Compute(success.Forecast, _timeProvider)))
+            .Log("pipeline-hash", h => $"{h.Location}/{h.ModelId} hash={h.Hash}", _log)
             .Ask<Ack>(schedulerActor, TimeSpan.FromSeconds(5))
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
             .To(Sink.Ignore<Ack>())
             .Run(_mat);
 

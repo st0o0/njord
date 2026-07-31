@@ -2,7 +2,6 @@ using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Weather;
@@ -36,8 +35,7 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
             Microsoft.Extensions.Options.Options.Create(options),
             parameters,
             timeProvider,
-            features,
-            NullLogger<MqttEgressActor>.Instance)));
+            features)));
     }
 
     private FakeEgressHub RegisterFakeEgressHub()

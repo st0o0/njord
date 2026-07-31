@@ -4,7 +4,6 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Grpc;
@@ -40,7 +39,7 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
     public async Task Re_requests_source_after_egress_actor_terminates()
     {
         var consumer = Sys.ActorOf(Props.Create(() =>
-            new GrpcSnapshotConsumerActor(NullLogger<GrpcSnapshotConsumerActor>.Instance)));
+            new GrpcSnapshotConsumerActor()));
 
         var firstRequest = await _requestProbe.ExpectMsgAsync<RequestEgressSource>();
         Assert.NotNull(firstRequest);

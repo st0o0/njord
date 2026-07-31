@@ -155,6 +155,7 @@ public sealed class WeatherGrpcService(
             .Collect(e => e is EgressEvent.PerModelUpdate, e => (EgressEvent.PerModelUpdate)e)
             .Where(u => string.IsNullOrEmpty(request.Location) ||
                         string.Equals(u.Location, request.Location, StringComparison.OrdinalIgnoreCase))
+            .Log("grpc-stream-forecast", u => $"{u.Location}/{u.Model.Id}")
             .SelectAsync(1, async update =>
             {
                 var proto = MapForecastUpdate(update, timeProvider.GetUtcNow());
@@ -180,6 +181,7 @@ public sealed class WeatherGrpcService(
             .Collect(e => e is EgressEvent.EnrichmentUpdate, e => (EgressEvent.EnrichmentUpdate)e)
             .Where(u => string.IsNullOrEmpty(request.Location) ||
                         string.Equals(u.Location, request.Location, StringComparison.OrdinalIgnoreCase))
+            .Log("grpc-stream-enrichment", u => $"{u.Location}/{u.TypeName}")
             .SelectAsync(1, async update =>
             {
                 var updatedAt = update.UpdatedAt ?? timeProvider.GetUtcNow();

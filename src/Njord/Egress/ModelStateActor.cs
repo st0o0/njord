@@ -1,4 +1,5 @@
 using Akka.Actor;
+using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
@@ -15,7 +16,7 @@ public sealed class ModelStateActor : StreamConsumerActor
     private readonly IReadOnlyList<int> _horizons;
     private readonly int _forecastDays;
     private readonly ResolvedParameterSet _parameters;
-    private readonly ILogger<ModelStateActor> _logger;
+    private ILoggingAdapter _log = null!;
 
     private ISinkRef<EgressEvent>? _egressSinkRef;
     private ISourceRef<FetchOutcome>? _sourceRef;
@@ -25,14 +26,18 @@ public sealed class ModelStateActor : StreamConsumerActor
 
     public ModelStateActor(
         IOptions<NjordOptions> options,
-        ResolvedParameterSet parameters,
-        ILogger<ModelStateActor> logger)
+        ResolvedParameterSet parameters)
     {
         var opts = options.Value;
         _horizons = [.. opts.Horizons];
         _forecastDays = opts.ForecastDays;
         _parameters = parameters;
-        _logger = logger;
+    }
+
+    protected override void PreStart()
+    {
+        _log = Context.GetLogger();
+        base.PreStart();
     }
 
     protected override void ResolveDependencies()
@@ -58,13 +63,13 @@ public sealed class ModelStateActor : StreamConsumerActor
         Receive<EgressSinkResponse>(response =>
         {
             _egressSinkRef = response.SinkRef;
-            _logger.LogInformation("Egress SinkRef received");
+            _log.Debug("SinkRef received from {Source}", Sender.Path);
             TryTransition();
         });
         Receive<PipelineSourceResponse>(response =>
         {
             _sourceRef = response.SourceRef;
-            _logger.LogInformation("Pipeline SourceRef received");
+            _log.Debug("SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
     }
@@ -76,11 +81,17 @@ public sealed class ModelStateActor : StreamConsumerActor
         var parameters = _parameters;
         var horizons = _horizons;
         var forecastDays = _forecastDays;
-        var logger = _logger;
+        var log = _log;
         var knownCapabilities = new Dictionary<(string Location, string ModelId), HashSet<ParameterDef>>();
 
         _sourceRef!.Source
             .Via(killSwitch.Flow<FetchOutcome>())
+            .Log("egress-in", o => o switch
+            {
+                FetchOutcome.Success s => $"OK {s.Forecast.Location}/{s.Forecast.Model.Id}",
+                FetchOutcome.Failure f => $"FAIL {f.Location}/{f.Model.Id}",
+                _ => "?",
+            }, _log)
             .Collect(outcome => outcome is FetchOutcome.Success, outcome => (FetchOutcome.Success)outcome)
             .SelectMany(success =>
             {
@@ -95,18 +106,30 @@ public sealed class ModelStateActor : StreamConsumerActor
                 {
                     known = new HashSet<ParameterDef>(observedParams);
                     knownCapabilities[capKey] = known;
-                    events.Add(BuildCapabilityLearned(forecast, known, horizons, forecastDays, maxHours, logger));
+                    var cap = BuildCapabilityLearned(forecast, known, horizons, forecastDays, maxHours);
+                    log.Info("Capability learned for {Location}/{Model}: {ParamCount} parameters, {HorizonCount} horizons",
+                        forecast.Location, forecast.Model.Id, known.Count, cap.ApplicableHorizons.Count);
+                    events.Add(cap);
                 }
                 else if (!observedParams.IsSubsetOf(known))
                 {
                     known.UnionWith(observedParams);
-                    events.Add(BuildCapabilityLearned(forecast, known, horizons, forecastDays, maxHours, logger));
+                    var cap = BuildCapabilityLearned(forecast, known, horizons, forecastDays, maxHours);
+                    log.Info("Capability learned for {Location}/{Model}: {ParamCount} parameters, {HorizonCount} horizons",
+                        forecast.Location, forecast.Model.Id, known.Count, cap.ApplicableHorizons.Count);
+                    events.Add(cap);
                 }
 
                 events.Add(new EgressEvent.PerModelUpdate(forecast.Location, forecast.Model, forecast));
                 return events;
             })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
+            .Log("egress-out", e => e switch
+            {
+                EgressEvent.CapabilityLearned c => $"cap {c.Location}/{c.Model.Id}",
+                EgressEvent.PerModelUpdate u => $"model {u.Location}/{u.Model.Id}",
+                _ => "?",
+            }, _log)
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
             .RunWith(_egressSinkRef!.Sink, Mat);
     }
 
@@ -161,8 +184,7 @@ public sealed class ModelStateActor : StreamConsumerActor
         HashSet<ParameterDef> supported,
         IReadOnlyList<int> horizons,
         int forecastDays,
-        int? maxForecastHours,
-        ILogger logger)
+        int? maxForecastHours)
     {
         var applicableHorizons = maxForecastHours.HasValue
             ? horizons.Where(h => h <= maxForecastHours.Value).ToList()
@@ -172,10 +194,6 @@ public sealed class ModelStateActor : StreamConsumerActor
             ? (int)Math.Ceiling(maxForecastHours.Value / 24.0)
             : forecastDays;
         var applicableDayOffsets = Enumerable.Range(0, Math.Min(forecastDays, maxDays)).ToList();
-
-        logger.LogInformation(
-            "Capability learned for {Location}/{Model}: {ParamCount} parameters, {HorizonCount} horizons",
-            forecast.Location, forecast.Model.Id, supported.Count, applicableHorizons.Count);
 
         return new EgressEvent.CapabilityLearned(
             forecast.Location,

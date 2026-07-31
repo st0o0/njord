@@ -1,6 +1,5 @@
 using Akka.Actor;
 using Akka.Hosting;
-using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Configuration;
 using Njord.Health;
 using Njord.Mqtt;
@@ -26,7 +25,6 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
             Microsoft.Extensions.Options.Options.Create(DefaultOptions()),
             connection,
             transport,
-            NullLogger<MqttConnectionActor>.Instance,
             tuning ?? new MqttEgressTuning(TimeSpan.FromMilliseconds(50)),
             new NjordHealthState { ServiceStartedUtc = DateTimeOffset.UtcNow },
             TimeProvider.System)));
