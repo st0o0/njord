@@ -2,7 +2,6 @@ using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
@@ -48,8 +47,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
             enrichmentWrapped,
             parameters,
             TimeProvider.System,
-            features,
-            NullLogger<EnrichmentActor>.Instance)));
+            features)));
     }
 
     private async Task AssertActorAlive(IActorRef actor)

@@ -2,7 +2,6 @@ using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
@@ -29,8 +28,7 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
 
         return Sys.ActorOf(Props.Create(() => new ModelStateActor(
             Microsoft.Extensions.Options.Options.Create(options),
-            parameters,
-            NullLogger<ModelStateActor>.Instance)));
+            parameters)));
     }
 
     [Fact(Timeout = 15000)]

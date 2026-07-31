@@ -1,5 +1,6 @@
 using Akka;
 using Akka.Actor;
+using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
@@ -21,12 +22,12 @@ public sealed class MqttConnectionActor : ReceiveActor
     private readonly NjordOptions _options;
     private readonly IMqttConnection _connection;
     private readonly IMqttTransport _transport;
-    private readonly ILogger<MqttConnectionActor> _logger;
     private readonly MqttEgressTuning _tuning;
     private readonly NjordHealthState _healthState;
     private readonly TimeProvider _timeProvider;
     private readonly string _availabilityTopic;
     private readonly string _haStatusTopic;
+    private ILoggingAdapter _log = null!;
     private int _connectAttempts;
 
     private ISourceQueueWithComplete<MqttMessage>? _availabilityQueue;
@@ -45,7 +46,6 @@ public sealed class MqttConnectionActor : ReceiveActor
         IOptions<NjordOptions> options,
         IMqttConnection connection,
         IMqttTransport transport,
-        ILogger<MqttConnectionActor> logger,
         MqttEgressTuning tuning,
         NjordHealthState healthState,
         TimeProvider timeProvider)
@@ -53,7 +53,6 @@ public sealed class MqttConnectionActor : ReceiveActor
         _options = options.Value;
         _connection = connection;
         _transport = transport;
-        _logger = logger;
         _tuning = tuning;
         _healthState = healthState;
         _timeProvider = timeProvider;
@@ -65,6 +64,7 @@ public sealed class MqttConnectionActor : ReceiveActor
 
     protected override void PreStart()
     {
+        _log = Context.GetLogger();
         _mat = Context.Materializer();
         MaterializeEgressGraph(_mat);
         Connect();
@@ -75,14 +75,14 @@ public sealed class MqttConnectionActor : ReceiveActor
         ReceiveAsync<Connected>(OnConnectedAsync);
         Receive<ConnectFailed>(msg =>
         {
-            _logger.LogWarning(msg.Cause, "MQTT connect to {Host}:{Port} failed",
+            _log.Warning(msg.Cause, "MQTT connect to {Host}:{Port} failed",
                 _options.Mqtt.Host, _options.Mqtt.Port);
             ScheduleReconnect();
         });
         Receive<Disconnected>(_ =>
         {
             _healthState.SetMqttDisconnected(_timeProvider.GetUtcNow());
-            _logger.LogWarning("MQTT connection lost — reconnecting");
+            _log.Warning("MQTT connection lost — reconnecting");
             ScheduleReconnect();
         });
         Receive<Reconnect>(_ => Connect());
@@ -96,7 +96,7 @@ public sealed class MqttConnectionActor : ReceiveActor
                     sr => new MqttSinkResponse(sr),
                     ex =>
                     {
-                        _logger.LogError(ex, "Failed to create MQTT SinkRef");
+                        _log.Error(ex, "Failed to create MQTT SinkRef");
                         return new Status.Failure(ex);
                     });
         });
@@ -130,12 +130,13 @@ public sealed class MqttConnectionActor : ReceiveActor
         availSource.RunWith(hubSink, mat);
 
         hubSource
+            .Log("mqtt-send", m => $"{m.Topic} [{m.Payload.Length}B] retain={m.Retain}", _log)
             .SelectAsync(1, async msg =>
             {
                 await _transport.SendAsync(msg.Topic, msg.Payload, msg.Retain, CancellationToken.None);
                 return NotUsed.Instance;
             })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
             .RunWith(Sink.Ignore<NotUsed>(), mat);
     }
 
@@ -165,6 +166,7 @@ public sealed class MqttConnectionActor : ReceiveActor
     private async Task OnConnectedAsync(Connected _)
     {
         _connectAttempts = 0;
+        _log.Info("MQTT connected to {Host}:{Port}", _options.Mqtt.Host, _options.Mqtt.Port);
         _healthState.SetMqttConnected(_timeProvider.GetUtcNow());
 
         try
@@ -173,7 +175,7 @@ public sealed class MqttConnectionActor : ReceiveActor
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Post-connect subscription failed");
+            _log.Warning(ex, "Post-connect subscription failed");
         }
 
         _availabilityQueue?.OfferAsync(new MqttMessage(_availabilityTopic, "online", true));

@@ -1,4 +1,5 @@
 using Akka.Actor;
+using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Egress;
@@ -9,8 +10,8 @@ namespace Njord.Grpc;
 
 public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
 {
-    private readonly ILogger<GrpcSnapshotConsumerActor> _logger;
     private readonly HashSet<IActorRef> _watchedDeps = [];
+    private ILoggingAdapter _log = null!;
     private IMaterializer? _mat;
     private ISourceRef<EgressEvent>? _pendingSourceRef;
     private IActorRef? _lastTerminatedRef;
@@ -23,16 +24,21 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
     private sealed record RetryResolve;
     private sealed record SnapshotActorsResolved(IActorRef Forecast, IActorRef Enrichment);
 
-    public GrpcSnapshotConsumerActor(ILogger<GrpcSnapshotConsumerActor> logger)
+    public GrpcSnapshotConsumerActor()
     {
-        _logger = logger;
         WaitingForSource();
     }
 
     protected override void PreStart()
     {
+        _log = Context.GetLogger();
         _mat = Context.Materializer();
         RequestEgressSource();
+    }
+
+    protected override void PostStop()
+    {
+        base.PostStop();
     }
 
     private void RequestEgressSource()
@@ -85,7 +91,7 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
         {
             MaterializeGraph(_pendingSourceRef!, msg.Forecast, msg.Enrichment);
             _pendingSourceRef = null;
-            _logger.LogInformation("gRPC snapshot consumer materialized — capturing forecasts and enrichments");
+            _log.Debug("gRPC snapshot consumer materialized — capturing forecasts and enrichments");
             Become(Ready);
             Stash.UnstashAll();
         });
@@ -105,7 +111,7 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
             return;
         }
 
-        _logger.LogWarning("Watched actor {Actor} terminated — re-requesting source", msg.ActorRef.Path.Name);
+        _log.Warning("Watched actor {Actor} terminated — re-requesting source", msg.ActorRef.Path.Name);
         _lastTerminatedRef = msg.ActorRef;
         _retryCount = 0;
         _pendingSourceRef = null;
@@ -119,6 +125,12 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
     {
         sourceRef.Source
             .Via(_killSwitch.Flow<EgressEvent>())
+            .Log("grpc-snapshot-in", e => e switch
+            {
+                EgressEvent.PerModelUpdate u => $"model {u.Location}/{u.Model.Id}",
+                EgressEvent.EnrichmentUpdate u => $"enrich {u.Location}/{u.TypeName}",
+                _ => "?",
+            }, _log)
             .SelectAsync(1, async update => update switch
             {
                 EgressEvent.PerModelUpdate pmu =>
@@ -133,7 +145,7 @@ public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
 
                 _ => update,
             })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_logger)))
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
             .To(Sink.Ignore<EgressEvent>())
             .Run(_mat!);
     }
