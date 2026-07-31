@@ -9,7 +9,7 @@ public abstract record EgressEvent
         WeatherModel Model,
         ModelForecast Forecast) : EgressEvent;
 
-    public sealed record EnrichmentUpdate(string Location, string TypeName, object Result) : EgressEvent;
+    public sealed record EnrichmentUpdate(string Location, string TypeName, object Result, DateTimeOffset? UpdatedAt = null) : EgressEvent;
 
     public sealed record CapabilityLearned(
         string Location,

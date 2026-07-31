@@ -90,6 +90,7 @@ public sealed class ConsensusSnapshotSpec
         Assert.Equal("lucerne", result.Location);
         Assert.NotEmpty(result.Hourly.Parameters);
         Assert.NotEmpty(result.Daily.Parameters);
+        Assert.Equal(T0, result.ComputedAt);
     }
 
     [Fact(Timeout = 5000)]
@@ -230,5 +231,21 @@ public sealed class ConsensusSnapshotSpec
         Assert.True(byHorizon.ContainsKey("d0"));
         Assert.True(byHorizon.ContainsKey("d1"));
         Assert.False(byHorizon.ContainsKey("d2"));
+    }
+
+    [Fact(Timeout = 5000)]
+    public void ComputedAt_matches_time_provider_value()
+    {
+        var anchorTime = new DateTimeOffset(2026, 7, 31, 6, 0, 0, TimeSpan.Zero);
+        var snapshot = ModelSnapshot.Empty
+            .Update(MakeHourlyForecast(IconD2, "lucerne", anchorTime, (0, 20.0), (1, 21.0)))
+            .Update(MakeHourlyForecast(Ecmwf, "lucerne", anchorTime, (0, 22.0), (1, 23.0)));
+
+        var parameters = new ResolvedParameterSet([Temperature], []);
+        var timeProvider = new FakeTimeProvider(anchorTime);
+
+        var result = ConsensusSnapshot.Compute(snapshot, parameters, "lucerne", timeProvider);
+
+        Assert.Equal(anchorTime, result.ComputedAt);
     }
 }

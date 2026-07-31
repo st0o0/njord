@@ -209,8 +209,8 @@ public sealed class EnrichmentActor : StreamConsumerActor
     {
         if (consensusEgressEnabled)
         {
-            var result = new ConsensusResult(consensus.Hourly.Parameters, consensus.Daily.Parameters);
-            yield return new EgressEvent.EnrichmentUpdate(consensus.Location, "consensus", result);
+            var result = new ConsensusResult(consensus.Hourly.Parameters, consensus.Daily.Parameters, consensus.ComputedAt);
+            yield return new EgressEvent.EnrichmentUpdate(consensus.Location, "consensus", result, consensus.ComputedAt);
         }
 
         foreach (var feature in stateless)
