@@ -2,6 +2,8 @@ name: ci
 
 on:
   pull_request:
+    paths-ignore:
+      - 'docs/**'
 
 permissions:
   contents: read
@@ -36,6 +38,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: src/global.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('src/**/*.csproj', 'src/Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
       - name: hadolint
         uses: hadolint/hadolint-action@v3.1.0
         with:
