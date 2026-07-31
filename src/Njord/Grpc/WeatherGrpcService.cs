@@ -112,8 +112,11 @@ public sealed class WeatherGrpcService(
 
         foreach (var (typeName, resultObj) in result.Results)
         {
+            var updatedAt = resultObj is Domain.Analysis.ConsensusResult cr && cr.ComputedAt is { } computedAt
+                ? computedAt
+                : timeProvider.GetUtcNow();
             var evt = EnrichmentProtoMapper.MapToEvent(
-                request.Location, typeName, resultObj, timeProvider.GetUtcNow());
+                request.Location, typeName, resultObj, updatedAt);
             if (evt is null)
             {
                 continue;
@@ -179,8 +182,9 @@ public sealed class WeatherGrpcService(
                         string.Equals(u.Location, request.Location, StringComparison.OrdinalIgnoreCase))
             .SelectAsync(1, async update =>
             {
+                var updatedAt = update.UpdatedAt ?? timeProvider.GetUtcNow();
                 var evt = EnrichmentProtoMapper.MapToEvent(
-                    update.Location, update.TypeName, update.Result, timeProvider.GetUtcNow());
+                    update.Location, update.TypeName, update.Result, updatedAt);
                 if (evt is not null)
                 {
                     await responseStream.WriteAsync(evt);

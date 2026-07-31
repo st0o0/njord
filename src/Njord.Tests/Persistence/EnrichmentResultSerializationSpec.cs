@@ -55,7 +55,7 @@ public sealed class EnrichmentResultSerializationSpec
             HeatingDemandMax: 50,
             CopEstimateMin: 2.8,
             CopOptimalConservative: [3, 7]),
-        ["lucerne|consensus"] = new ConsensusResult([], []),
+        ["lucerne|consensus"] = new ConsensusResult([], [], new DateTimeOffset(2026, 7, 15, 6, 0, 0, TimeSpan.Zero)),
     };
 
     [Fact(Timeout = 5000)]
@@ -121,5 +121,35 @@ public sealed class EnrichmentResultSerializationSpec
         var consensus = Assert.IsType<ConsensusResult>(result["lucerne|consensus"]);
         Assert.Empty(consensus.Parameters);
         Assert.Empty(consensus.DailyParameters);
+        Assert.Equal(new DateTimeOffset(2026, 7, 15, 6, 0, 0, TimeSpan.Zero), consensus.ComputedAt);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void ConsensusResult_ComputedAt_round_trips_through_persistence()
+    {
+        var computedAt = new DateTimeOffset(2026, 7, 31, 6, 0, 0, TimeSpan.Zero);
+        var state = new Dictionary<string, object>
+        {
+            ["lucerne|consensus"] = new ConsensusResult([], [], computedAt),
+        };
+
+        var dto = EnrichmentSnapshotMapping.ToDto(state);
+        var json = JsonConvert.SerializeObject(dto);
+        var deserialized = JsonConvert.DeserializeObject<EnrichmentSnapshotDto>(json)!;
+        var result = EnrichmentSnapshotMapping.ToDomain(deserialized);
+
+        var consensus = Assert.IsType<ConsensusResult>(result["lucerne|consensus"]);
+        Assert.Equal(computedAt, consensus.ComputedAt);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void ConsensusResult_without_ComputedAt_in_json_recovers_as_null()
+    {
+        var legacyJson = """{"v":1,"enrichments":{"lucerne|consensus":{"type":"ConsensusResult","json":"{\"parameters\":[],\"dailyParameters\":[]}"}}}""";
+        var deserialized = JsonConvert.DeserializeObject<EnrichmentSnapshotDto>(legacyJson)!;
+        var result = EnrichmentSnapshotMapping.ToDomain(deserialized);
+
+        var consensus = Assert.IsType<ConsensusResult>(result["lucerne|consensus"]);
+        Assert.Null(consensus.ComputedAt);
     }
 }

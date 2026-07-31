@@ -122,7 +122,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 5000)]
-    public async Task GetEnrichments_WithConsensusResult_SetsConsensusUpdatedAt()
+    public async Task GetEnrichments_WithConsensusResult_without_ComputedAt_falls_back_to_wall_clock()
     {
         var timeProvider = new FakeTimeProvider(Anchor);
         var consensus = new ConsensusResult([]);
@@ -136,6 +136,25 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
         Assert.NotNull(response.ConsensusUpdatedAt);
         Assert.Equal(Anchor, response.ConsensusUpdatedAt.ToDateTimeOffset());
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task GetEnrichments_WithConsensusResult_uses_ComputedAt_not_query_time()
+    {
+        var computationTime = new DateTimeOffset(2026, 7, 15, 6, 0, 0, TimeSpan.Zero);
+        var queryTime = new DateTimeOffset(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+        var timeProvider = new FakeTimeProvider(queryTime);
+        var consensus = new ConsensusResult([], [], computationTime);
+        IReadOnlyList<(string TypeName, object Result)> results = [("consensus", (object)consensus)];
+        var actor = Sys.ActorOf(Props.Create(() => new FakeEnrichmentActor(results)));
+        var service = CreateService(enrichmentActor: actor, timeProvider: timeProvider);
+
+        var response = await service.GetEnrichments(
+            new GetEnrichmentsRequest { Location = "lucerne" },
+            TestServerCallContext.Create());
+
+        Assert.NotNull(response.ConsensusUpdatedAt);
+        Assert.Equal(computationTime, response.ConsensusUpdatedAt.ToDateTimeOffset());
     }
 
     [Fact(Timeout = 5000)]

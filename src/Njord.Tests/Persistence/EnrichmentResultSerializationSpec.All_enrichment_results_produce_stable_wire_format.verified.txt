@@ -23,7 +23,7 @@
     },
     "lucerne|consensus": {
       "type": "ConsensusResult",
-      "json": "{\"parameters\":[],\"dailyParameters\":[]}"
+      "json": "{\"parameters\":[],\"dailyParameters\":[],\"computedAt\":\"2026-07-15T06:00:00+00:00\"}"
     }
   }
 }

@@ -13,7 +13,8 @@ public sealed record DailyConsensus(
 public sealed record ConsensusSnapshot(
     string Location,
     HourlyConsensus Hourly,
-    DailyConsensus Daily)
+    DailyConsensus Daily,
+    DateTimeOffset ComputedAt)
 {
     public static ConsensusSnapshot Compute(
         ModelSnapshot snapshot,
@@ -44,7 +45,7 @@ public sealed record ConsensusSnapshot(
             FilterParameterList(dailyResults, minModels: 2),
             cutoffDay);
 
-        return new ConsensusSnapshot(location, hourly, daily);
+        return new ConsensusSnapshot(location, hourly, daily, now);
     }
 
     private static int ComputeCutoffHour(ModelSnapshot snapshot, string location, DateTimeOffset now)
