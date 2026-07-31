@@ -18,14 +18,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  publish:
+  gate:
     # Fork PRs are skipped cleanly — their GITHUB_TOKEN cannot push to GHCR.
     if: >-
       contains(github.event.pull_request.labels.*.name, 'dev-build') &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     environment: dev
+    steps:
+      - run: echo "Dev build approved"
+
+  publish:
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       packages: write
