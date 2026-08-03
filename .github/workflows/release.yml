@@ -46,7 +46,7 @@ jobs:
             test: false
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: src/global.json
       - uses: actions/cache@v4
