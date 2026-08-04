@@ -15,7 +15,7 @@ The codebase is organized into three zones that only meet in the domain model:
 <likec4-view view-id="internals"></likec4-view>
 
 - **Ingest** — the Open-Meteo HTTP client, response parsing, and DTO mapping. Knows how to talk to the API but nothing about MQTT or Home Assistant.
-- **Domain** — forecast models, enrichment features (consensus, alerts, trends, derived values, indices, energy, history), and analysis logic. Pure domain, no I/O concerns.
+- **Domain** — forecast models, enrichment features (consensus, alerts, trends, derived values, indices, history), and analysis logic. Pure domain, no I/O concerns.
 - **Egress** — MQTT publishing, Home Assistant discovery payload construction, topic scheme, and availability management. Knows MQTT but nothing about Open-Meteo.
 
 Ingest and Egress never reference each other. All data flows through the domain model.
@@ -35,3 +35,7 @@ The poll pipeline is an Akka.Streams graph that runs on each tick:
 7. **MQTT Sink** publishes state and discovery payloads to the broker
 
 Actors own connection lifecycle (MQTT connect/disconnect, Home Assistant birth-message handling) while streams handle the data flow. This separation keeps the pipeline testable and the lifecycle management isolated.
+
+## External Sensor Input
+
+The **SensorHub** actor accepts external sensor readings (e.g. indoor temperature, indoor humidity) via a gRPC service (`SensorService`). Readings are stored as latest values per sensor kind. During each poll cycle, enrichments (e.g. index scoring) pull the current snapshot from SensorHub — there is no reactive re-computation on sensor updates. If no sensor data is available, the enrichment falls back to the configured value or a hardcoded default.

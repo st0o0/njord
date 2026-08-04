@@ -8,7 +8,7 @@ its own proto file so config-only clients need not import forecast types.
 ## Requirements
 
 ### Requirement: GetConfig returns current njord configuration
-`ConfigService.GetConfig` SHALL return the current `NjordConfig` including full enrichment details (not just enabled flags). The `NjordConfig` message SHALL include `ConsensusConfig`, `AlertConfig` (with all thresholds), `EnergyConfig`, `IndexConfig`, `HistoryConfig`, `DerivedConfig`, and `TrendConfig` sub-messages providing complete round-trip fidelity.
+`ConfigService.GetConfig` SHALL return the current `NjordConfig` including full enrichment details (not just enabled flags). The `NjordConfig` message SHALL include `ConsensusConfig`, `AlertConfig` (with all thresholds), `IndexConfig`, `HistoryConfig`, `DerivedConfig`, and `TrendConfig` sub-messages providing complete round-trip fidelity.
 
 #### Scenario: Config reflects current state
 - **WHEN** a client calls `GetConfig`
@@ -20,7 +20,7 @@ its own proto file so config-only clients need not import forecast types.
 
 #### Scenario: Config includes enrichment details
 - **WHEN** a client calls `GetConfig`
-- **THEN** the response SHALL contain full enrichment configuration including alert thresholds, energy parameters, index base temps, consensus method, and history retention settings
+- **THEN** the response SHALL contain full enrichment configuration including alert thresholds, index base temps, consensus method, and history retention settings
 
 #### Scenario: Config includes budget projection
 - **WHEN** a client calls `GetConfig`

@@ -30,7 +30,7 @@ model {
       }
       enrichment = component 'Enrichment' {
         #domain
-        description 'Consensus, alerts, trends, derived values, indices, energy'
+        description 'Consensus, alerts, trends, derived values, indices'
       }
     }
 

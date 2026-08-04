@@ -27,7 +27,7 @@ The `docker-compose.example.yml` SHALL contain every configurable environment va
 
 #### Scenario: All enrichment toggles are listed
 - **WHEN** the example compose file is read
-- **THEN** every enrichment sub-feature (Consensus, Alerts, Derived, Trends, History, Energy, Indices) has its `Enabled` toggle listed
+- **THEN** every enrichment sub-feature (Consensus, Alerts, Derived, Trends, History, Indices) has its `Enabled` toggle listed
 
 ### Requirement: Environment variables grouped by section
 The environment variables SHALL be organized into named groups using YAML comments: MQTT, Locations, Polling & Models, Parameters, Persistence, Budget, Enrichment.

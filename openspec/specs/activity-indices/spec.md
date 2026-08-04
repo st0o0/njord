@@ -118,7 +118,7 @@ Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (br
 - **THEN** the score is ≤ 20
 
 ### Requirement: Ventilation score from outdoor-indoor delta, humidity, wind, rain
-`IndexScorer.Ventilation` SHALL accept mean outdoor temperature (°C), indoor temperature from `ResolvedPreferences.IndoorTemp` (default 22°C), mean humidity (%), mean wind speed (m/s), mean precipitation probability (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. High score = open the windows. Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
+`IndexScorer.Ventilation` SHALL accept mean outdoor temperature (°C), indoor temperature, mean humidity (%), mean wind speed (m/s), mean precipitation probability (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. High score = open the windows. The indoor temperature SHALL be resolved using a fallback chain: (1) live `IndoorTemperature` from the `SensorSnapshot` when available, (2) configured `ResolvedPreferences.IndoorTemp` if no live reading exists, (3) hardcoded default of 22.0 if neither is set. Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Cool evening breeze
 - **WHEN** outdoor 17°C, humidity 45%, wind 3 m/s, rain prob 0%, IndoorTemp 22°C, all sensitivities 1.0
@@ -127,6 +127,21 @@ Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (br
 #### Scenario: Hot humid outside
 - **WHEN** outdoor 30°C, humidity 80%, wind 1 m/s, rain prob 0%, IndoorTemp 22°C, all sensitivities 1.0
 - **THEN** the score is ≤ 15
+
+#### Scenario: Live sensor value used
+- **WHEN** the SensorSnapshot contains `IndoorTemperature = 24.5`
+- **AND** the config `IndoorTemp` is `22.0`
+- **THEN** the Ventilation score SHALL be computed with indoor temperature `24.5`
+
+#### Scenario: No sensor value falls back to config
+- **WHEN** the SensorSnapshot is null or does not contain `IndoorTemperature`
+- **AND** the config `IndoorTemp` is `20.0`
+- **THEN** the Ventilation score SHALL be computed with indoor temperature `20.0`
+
+#### Scenario: No sensor and no config falls back to default
+- **WHEN** the SensorSnapshot is null
+- **AND** no config `IndoorTemp` is set
+- **THEN** the Ventilation score SHALL be computed with indoor temperature `22.0`
 
 ### Requirement: Frost protection hours and confidence
 `IndexScorer.FrostProtection` SHALL scan the next 48h of consensus temperature data for frost (≤ 0°C). It does not accept `ResolvedPreferences`.

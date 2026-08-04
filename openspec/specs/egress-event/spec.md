@@ -13,9 +13,9 @@ with the following sealed variants:
 
 - `PerModelUpdate(string Location, WeatherModel Model, ModelForecast Forecast)` — carries the typed domain forecast, not serialized JSON.
 - `EnrichmentUpdate(string Location, string TypeName, object Result, DateTimeOffset? UpdatedAt = null)` —
-  replaces the 7 type-specific enrichment records (`ConsensusUpdate`,
+  replaces the 6 type-specific enrichment records (`ConsensusUpdate`,
   `AlertUpdate`, `DerivedUpdate`, `TrendUpdate`, `IndexUpdate`,
-  `EnergyUpdate`, `HistoryUpdate`). The optional `UpdatedAt` field carries
+  `HistoryUpdate`). The optional `UpdatedAt` field carries
   the enrichment computation timestamp when available (e.g. from
   `ConsensusResult.ComputedAt`); when null, downstream consumers SHALL fall
   back to wall-clock time.

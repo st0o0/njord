@@ -105,11 +105,7 @@ The builder SHALL accept pasted docker-compose YAML containing an `environment:`
 - **THEN** only `Njord__ForecastDays=4` is imported; `TZ` is ignored
 
 ### Requirement: Enrichment toggles with per-feature settings
-The builder SHALL show toggles for each enrichment feature (consensus, alerts, derived, trends, indices, energy, history). When expanded, each feature SHALL show its configurable settings with defaults pre-filled.
-
-#### Scenario: Enable energy with custom settings
-- **WHEN** a user enables the Energy feature and changes FlowTemp to 40.0
-- **THEN** the generated config includes `"Energy": { "Enabled": true, "FlowTemp": 40.0, ... }`
+The builder SHALL show toggles for each enrichment feature (consensus, alerts, derived, trends, indices, history). When expanded, each feature SHALL show its configurable settings with defaults pre-filled.
 
 ### Requirement: Builder state persists in URL hash
 The builder SHALL encode its current state in the URL fragment (hash) so that configurations can be shared via link. Loading a URL with a hash SHALL restore the builder state.

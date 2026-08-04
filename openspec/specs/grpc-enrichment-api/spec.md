@@ -3,7 +3,7 @@
 ## Purpose
 
 gRPC RPCs for querying and streaming enrichment data (alerts, indices, trends,
-energy, derived values, history, consensus). Backed by the
+derived values, history, consensus). Backed by the
 `EnrichmentSnapshotActor` (Akka Persistence) queried via Ask.
 
 ## Requirements

@@ -11,7 +11,6 @@ Enrichment features compute derived data from the raw model forecasts. Each feat
 | [Derived](#derived) | enabled | Beaufort scale, wind chill, comfort index, WMO descriptions |
 | [Trends](#trends) | disabled | Temperature/wind/precipitation trend directions and timing |
 | [Indices](#indices) | disabled | Activity scores, degree days, VPD |
-| [Energy](#energy) | disabled | Heat pump COP, heating demand, solar/battery optimization |
 | [History](#history) | disabled | Forecast accuracy tracking and model weighting |
 
 ## Consensus
@@ -221,40 +220,6 @@ For any (location, score, property), the first non-null value wins:
 - Score envelopes: min, max, confidence for each activity score
 - Frost: hours-until-frost, confidence
 - VPD: vapour pressure deficit value (kPa) and category
-
-## Energy
-
-Heat pump and energy optimization calculations.
-
-```json
-{
-  "Enrichment": {
-    "Energy": {
-      "Enabled": false,
-      "FlowTemp": 35.0,
-      "CarnotEfficiency": 0.45,
-      "HeatingBaseTemp": 18.0,
-      "CopOptimalHours": 3,
-      "IndoorTemp": 22.0
-    }
-  }
-}
-```
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `FlowTemp` | `35.0` | Heating system flow temperature (Celsius) |
-| `CarnotEfficiency` | `0.45` | Fraction of Carnot COP the heat pump achieves |
-| `HeatingBaseTemp` | `18.0` | Temperature below which heating is needed (Celsius) |
-| `CopOptimalHours` | `3` | Number of optimal hours to identify for heating |
-| `IndoorTemp` | `22.0` | Target indoor temperature (Celsius) |
-
-**Published values:**
-- Heat pump COP estimate and optimal heating hours
-- Heating demand classification
-- Shading recommendation
-- Battery charge/discharge strategy
-- Night cooling recommendation
 
 ## History
 

@@ -37,7 +37,7 @@ The site SHALL include a `/configuration/` section with sub-pages for each confi
 
 #### Scenario: Enrichment feature documentation
 - **WHEN** a user navigates to the enrichment configuration page
-- **THEN** each feature (consensus, alerts, derived, trends, indices, energy, history) is documented with its options and defaults
+- **THEN** each feature (consensus, alerts, derived, trends, indices, history) is documented with its options and defaults
 
 ### Requirement: Model catalog lists all known models
 The site SHALL include a `/models/` page listing all models from `ModelCoverageRegistry` with: model ID, coverage tier, region description, geographic bounds, maximum forecast hours, and temporal resolution notes.

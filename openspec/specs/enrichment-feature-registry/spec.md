@@ -23,15 +23,23 @@ The system SHALL define an `IEnrichmentFeature` interface with properties
 
 ### Requirement: IStatelessEnrichment defines consensus-in events-out computation
 
-`IStatelessEnrichment.Compute` SHALL accept a single `ConsensusSnapshot` parameter (which includes the location) and return `IEnumerable<EgressEvent>`.
+`IStatelessEnrichment.Compute` SHALL accept a `ConsensusSnapshot` and an optional `SensorSnapshot?` parameter (which includes the location) and return `IEnumerable<EgressEvent>`. Implementations that do not use sensor data SHALL ignore the parameter.
 
 #### Scenario: Stateless enrichment produces events from ConsensusSnapshot
 - **WHEN** a stateless enrichment's `Compute` is called with a `ConsensusSnapshot`
 - **THEN** it produces `EgressEvent` instances using consensus data from `ConsensusSnapshot.Location`
 
+#### Scenario: Compute called with sensor data
+- **WHEN** the enrichment pipeline runs with available sensor readings
+- **THEN** `Compute` SHALL be called with a non-null `SensorSnapshot`
+
+#### Scenario: Compute called without sensor data
+- **WHEN** the enrichment pipeline runs without any sensor readings
+- **THEN** `Compute` SHALL be called with a null `SensorSnapshot`
+
 ### Requirement: IStatefulEnrichment defines diff-based computation
 
-`IStatefulEnrichment.Compute` SHALL accept a `ConsensusSnapshot` and a nullable `ConsensusSnapshot?` previous parameter.
+`IStatefulEnrichment.Compute` SHALL accept a `ConsensusSnapshot`, a nullable `ConsensusSnapshot?` previous parameter, and an optional `SensorSnapshot?` parameter. Implementations that do not use sensor data SHALL ignore the parameter.
 
 #### Scenario: First snapshot produces no output
 - **WHEN** `Compute` is called with `previous` as null
@@ -40,6 +48,14 @@ The system SHALL define an `IEnrichmentFeature` interface with properties
 #### Scenario: Subsequent snapshot produces trend events
 - **WHEN** `Compute` is called with both current and previous `ConsensusSnapshot`
 - **THEN** trend events are produced comparing the two
+
+#### Scenario: Compute called with sensor data
+- **WHEN** the enrichment pipeline runs with available sensor readings
+- **THEN** `Compute` SHALL be called with a non-null `SensorSnapshot`
+
+#### Scenario: Compute called without sensor data
+- **WHEN** the enrichment pipeline runs without any sensor readings
+- **THEN** `Compute` SHALL be called with a null `SensorSnapshot`
 
 ### Requirement: IActorEnrichment defines actor-driven computation
 The system SHALL define `IActorEnrichment : IEnrichmentFeature` with a method
@@ -74,7 +90,7 @@ All enrichment features SHALL be registered as `IEnrichmentFeature` singletons v
 
 #### Scenario: 6 enrichment features are discoverable
 - **WHEN** `IEnumerable<IEnrichmentFeature>` is resolved from the DI container
-- **THEN** exactly 6 features are returned: alerts, derived, trends, indices, energy, history
+- **THEN** exactly 5 features are returned: alerts, derived, trends, indices, history
 
 #### Scenario: Consensus is not in the feature registry
 - **WHEN** `IEnumerable<IEnrichmentFeature>` is resolved
