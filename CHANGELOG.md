@@ -1,5 +1,92 @@
 # Changelog
 
+## [0.3.0](https://github.com/st0o0/njord/compare/v0.2.2...v0.3.0) (2026-08-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* redesign IndexUpdate proto for daily slices and remove all reserved fields
+* add daily-slice index scoring with day/night awareness
+* remove energy management feature
+* overhaul index scoring with cascading preferences and outdoor fix
+* **grpc:** replace v1 API with clean v2 three-service design
+
+### Features
+
+* add daily-slice index scoring with day/night awareness ([2ab331c](https://github.com/st0o0/njord/commit/2ab331cc028b922ee3c672f0058c1924d373622b))
+* add SensorHub with gRPC service and enrichment integration ([83e3d3b](https://github.com/st0o0/njord/commit/83e3d3b7537f1662fb7c6f8f6f7b6833d49522e9))
+* **ci:** build multi-arch dev images (amd64, arm64, armv7) ([8285acc](https://github.com/st0o0/njord/commit/8285acc8005df8cb6154f0b12c94f9640dba27ee))
+* **consensus:** Record and propagate computation time ([cdf81ae](https://github.com/st0o0/njord/commit/cdf81ae5845fb513e1b1d811f5faac0496b35cf9))
+* derive timezone from Open-Meteo API response and add daily consensus aggregation ([181a9ab](https://github.com/st0o0/njord/commit/181a9abf3abea98381325f03564bd230b7830573))
+* Enable infinite retries for BackoffSupervisor ([ec37feb](https://github.com/st0o0/njord/commit/ec37feba742a0e6521f4a6433b02a10c8194996c))
+* **grpc:** add GetTriggerTargets RPC for flat location/model discovery ([5650a52](https://github.com/st0o0/njord/commit/5650a52f40739dd4ab694e97cfd243e57755fa9f))
+* **grpc:** add ModelInfo metadata to GetModels response ([1fb044b](https://github.com/st0o0/njord/commit/1fb044b88453568c44a8bea92ede14f86b04dacb))
+* **grpc:** expose per-model poll status and active enrichments in GetStatus ([a2d2052](https://github.com/st0o0/njord/commit/a2d2052528374ce95ece101d49394f05d71f59f1))
+* **grpc:** Inject TimeProvider for time-aware operations ([3efaa03](https://github.com/st0o0/njord/commit/3efaa03941d320e8d9ba4a6eb4afc868b052227f))
+* **grpc:** replace v1 API with clean v2 three-service design ([e387a15](https://github.com/st0o0/njord/commit/e387a158bcfd0006bb95e29c35bf1486392bf886))
+* **logging:** Unify logging APIs and add stream-level tracing ([3f422e7](https://github.com/st0o0/njord/commit/3f422e70127cf4fe9ca3fe2701970114580cdc1c))
+* overhaul index scoring with cascading preferences and outdoor fix ([85af636](https://github.com/st0o0/njord/commit/85af636ae09fafb87ab649b95f7560b2c5211478))
+* **pipeline:** persist budget tracker as ReceivePersistentActor ([2091d5d](https://github.com/st0o0/njord/commit/2091d5dd8146fc65406cb4f0c61168159cc0ebb6))
+* redesign IndexUpdate proto for daily slices and remove all reserved fields ([2f5c98f](https://github.com/st0o0/njord/commit/2f5c98f81f83752f68e18cd2640178323c3ff15b))
+* remove energy management feature ([98d0b6b](https://github.com/st0o0/njord/commit/98d0b6bd3bb47e671b10c7b7bc26e58451bf49aa))
+* Upgrade ASP.NET Core runtime image ([63caa80](https://github.com/st0o0/njord/commit/63caa8089fd83e112c82cdb59daea443c5c6065a))
+
+
+### Bug Fixes
+
+* clarify SourceRef startup log message ([f89cb9c](https://github.com/st0o0/njord/commit/f89cb9ccfc45a6973d462b333ee12fb8c45deafe))
+* extract StreamConsumerActor base and fix dead-letter flood on dependency termination ([fd3911f](https://github.com/st0o0/njord/commit/fd3911faa1cc9333f7223432118db656ef026319))
+* force IPv4 for Open-Meteo HTTP client ([7b60884](https://github.com/st0o0/njord/commit/7b608847c2d2062718b86c55b9fa021baf9eb743))
+* **grpc:** handle GetPollStates in all SchedulerActor states ([7db7e31](https://github.com/st0o0/njord/commit/7db7e31a8d462c227d31425d0462f4d388f555bc))
+* handle null Days in IndexResult from legacy journal snapshots ([21984b3](https://github.com/st0o0/njord/commit/21984b307ed8bcfeefcbb366cde86270ef6344c6))
+* harden actor resilience and replace blanket stream Resume with logging decider ([da70362](https://github.com/st0o0/njord/commit/da7036280e48a7cacf6b2573deb3210d3c6e3e8c))
+* Introduce ConsensusResult for enrichment events ([44f4120](https://github.com/st0o0/njord/commit/44f4120fd1f645cc9fda4b7dec7ef51adfe7e050))
+* move FetchOutcome to Domain, add BackoffSupervisor, and close test gaps ([7024214](https://github.com/st0o0/njord/commit/7024214e1bbd1735fedd271008e3b5a9f2b784f2))
+* prevent gRPC stream disconnect from killing the source stream ([cd4ed08](https://github.com/st0o0/njord/commit/cd4ed08c97137ca506988e07bbd9ce87e7948ca6))
+* resolve SchedulerActor startup crash and StreamConfig idle disconnect ([a3dcf5d](https://github.com/st0o0/njord/commit/a3dcf5d6d611ee92c1f6851d6b8042edceb67794))
+* use floor rounding in TimeAnchor and exact point lookup in consensus ([6c06574](https://github.com/st0o0/njord/commit/6c065747476d0848918100e42a79fef044a5bfa5))
+* use TimeProvider everywhere and resolve actors asynchronously ([fa55163](https://github.com/st0o0/njord/commit/fa55163a4db04a41b1159e54b4419b2002895e16))
+
+
+### Documentation
+
+* sync consensus-as-core-feature delta specs to main specs ([29db346](https://github.com/st0o0/njord/commit/29db34639a8e255b73ca91c2842059ac80c1a381))
+* sync specs and archive grpc-snapshot-throughput change ([adf70f2](https://github.com/st0o0/njord/commit/adf70f29a40d212c3e809b80fe9385d86ee51cac))
+* sync specs and archive test-coverage-and-cleanup change ([10dc629](https://github.com/st0o0/njord/commit/10dc629ac98290156acc030f702c09809a52a655))
+* sync specs for timeprovider-consistency and archive change ([8d437f8](https://github.com/st0o0/njord/commit/8d437f8352c832fd9e1a5071ee860cbb6338d107))
+* update config examples and builder for sensors and daily-slice indices ([19b5bf4](https://github.com/st0o0/njord/commit/19b5bf4cb0f2d86382341015d7ab6577e0859b6f))
+* update specs and documentation for energy removal and SensorHub ([0b06683](https://github.com/st0o0/njord/commit/0b06683332031a61199e6aeacfe30de49e1e10f1))
+* update specs for daily slices, proto redesign, and structural refactoring ([92b4167](https://github.com/st0o0/njord/commit/92b4167131249cee8c8cc87bbd081b687eeb501d))
+
+
+### Refactoring
+
+* adapt egress layer to ConsensusSnapshot ([593ef87](https://github.com/st0o0/njord/commit/593ef87a66493db818311e966cb884bfcb8a6bf2))
+* change enrichment interfaces to ConsensusSnapshot input ([10fbfac](https://github.com/st0o0/njord/commit/10fbfacb8dc127c6188fa726a4fdd6cf28376111))
+* clean up options layer — single root, file-per-type, renames ([11692a9](https://github.com/st0o0/njord/commit/11692a98b2545ab7365d8d339ea5795b70a2fa94))
+* enforce file-per-type and extract Compute into DI services ([c19f666](https://github.com/st0o0/njord/commit/c19f66638534c71aa4d46c35bf0c62edde7af40b))
+* enrichments consume ConsensusSnapshot instead of ModelSnapshot ([d8f4a05](https://github.com/st0o0/njord/commit/d8f4a05cdf906510c9545292cec105d0ee7bdac1))
+* introduce ConsensusSnapshot as core domain type ([a22bb1a](https://github.com/st0o0/njord/commit/a22bb1ada3d91aeaee33aae210547f2de4ce35c8))
+* restructure EnrichmentActor pipeline graph ([4713b7a](https://github.com/st0o0/njord/commit/4713b7a75a8c2821b17997510c2e6a50f912f9b1))
+* simplify actor stream management ([3681f51](https://github.com/st0o0/njord/commit/3681f515b36c297aa77a60a42a98a485593c843d))
+* use TimeProvider in BudgetTracker, WeightedBudgetGate, and ConfigGrpcService ([ea6a1ca](https://github.com/st0o0/njord/commit/ea6a1cabb44e5408a5397487b52a89a81c67ee09))
+* use timezone=UTC for all Open-Meteo API requests ([6b25abb](https://github.com/st0o0/njord/commit/6b25abb499ff54d2d16c67898537de630fda37ff))
+
+
+### Dependencies
+
+* bump actions/deploy-pages from 4 to 5 ([804dddc](https://github.com/st0o0/njord/commit/804dddc50f4070e292dffd19dd96bf396bc33f4b))
+* bump actions/download-artifact from 4 to 8 ([87ab89b](https://github.com/st0o0/njord/commit/87ab89be648ec4a206800213ad8b093e6affe61c))
+* bump actions/setup-dotnet from 4 to 6 ([9ae759f](https://github.com/st0o0/njord/commit/9ae759f749cd8598e55a55b107007662b4d2c5bb))
+* bump actions/setup-node from 4 to 7 ([03939d0](https://github.com/st0o0/njord/commit/03939d0ff55299890309879684f4227c8f4e7462))
+* bump actions/upload-artifact from 4 to 7 ([db9af40](https://github.com/st0o0/njord/commit/db9af40f610e4b16e5b9fe43abd32c1c67607211))
+* bump actions/upload-pages-artifact from 3 to 5 ([d439992](https://github.com/st0o0/njord/commit/d4399929f6a3263d3e47dfc82bebb4c72392b4f0))
+* Bump Akka.Persistence.Sql.Hosting from 1.5.67 to 1.5.70 ([554f5c1](https://github.com/st0o0/njord/commit/554f5c1275363bbb73cb7acf0a357b40b3ae060c))
+* bump docker/setup-buildx-action from 3 to 4 ([c97d304](https://github.com/st0o0/njord/commit/c97d304e28e7f0587342bb6b943bc208eeb437ef))
+* bump hadolint/hadolint-action from 3.1.0 to 3.4.0 ([3fd5857](https://github.com/st0o0/njord/commit/3fd5857344a7c8aaab2723b2ccb707ec9a67c583))
+* Bump Microsoft.Data.Sqlite from 10.0.9 to 10.0.10 ([520bf0e](https://github.com/st0o0/njord/commit/520bf0e06866ee201ab02403ab1fe1aac1f4f39f))
+* Bump the testing group with 1 update ([f3d74c5](https://github.com/st0o0/njord/commit/f3d74c579f7db9710320f814cff1708053d5e1bf))
+
 ## [0.2.2](https://github.com/st0o0/njord/compare/v0.2.1...v0.2.2) (2026-07-24)
 
 
