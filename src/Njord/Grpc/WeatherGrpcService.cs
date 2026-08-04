@@ -155,14 +155,14 @@ public sealed class WeatherGrpcService(
             .Where(u => string.IsNullOrEmpty(request.Location) ||
                         string.Equals(u.Location, request.Location, StringComparison.OrdinalIgnoreCase))
             .Log("grpc-stream-forecast", u => $"{u.Location}/{u.Model.Id}")
+            .TakeWhile(_ => !context.CancellationToken.IsCancellationRequested)
             .SelectAsync(1, async update =>
             {
                 var proto = MapForecastUpdate(update, timeProvider.GetUtcNow());
-                await responseStream.WriteAsync(proto);
+                await responseStream.WriteAsync(proto, context.CancellationToken);
                 return proto;
             })
-            .RunWith(Sink.Ignore<ForecastUpdate>(), mat)
-            .WaitAsync(context.CancellationToken);
+            .RunWith(Sink.Ignore<ForecastUpdate>(), mat);
     }
 
     public override async Task StreamEnrichments(
@@ -181,6 +181,7 @@ public sealed class WeatherGrpcService(
             .Where(u => string.IsNullOrEmpty(request.Location) ||
                         string.Equals(u.Location, request.Location, StringComparison.OrdinalIgnoreCase))
             .Log("grpc-stream-enrichment", u => $"{u.Location}/{u.TypeName}")
+            .TakeWhile(_ => !context.CancellationToken.IsCancellationRequested)
             .SelectAsync(1, async update =>
             {
                 var updatedAt = update.UpdatedAt ?? timeProvider.GetUtcNow();
@@ -188,13 +189,12 @@ public sealed class WeatherGrpcService(
                     update.Location, update.TypeName, update.Result, updatedAt);
                 if (evt is not null)
                 {
-                    await responseStream.WriteAsync(evt);
+                    await responseStream.WriteAsync(evt, context.CancellationToken);
                 }
 
                 return evt;
             })
-            .RunWith(Sink.Ignore<EnrichmentEvent?>(), mat)
-            .WaitAsync(context.CancellationToken);
+            .RunWith(Sink.Ignore<EnrichmentEvent?>(), mat);
     }
 
     private LocationOptions FindLocation(string name)
