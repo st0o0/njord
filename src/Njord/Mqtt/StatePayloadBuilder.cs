@@ -188,7 +188,7 @@ public static class StatePayloadBuilder
     {
         var messages = new List<MqttMessage>();
 
-        foreach (var day in result.Days)
+        foreach (var day in result.Days ?? [])
         {
             var payload = new JsonObject
             {
