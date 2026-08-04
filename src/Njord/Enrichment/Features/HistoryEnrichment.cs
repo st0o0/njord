@@ -19,6 +19,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
     private readonly NjordOptions _njordOptions;
     private readonly ResolvedParameterSet _parameters;
     private readonly TimeProvider _timeProvider;
+    private readonly HistoryComputer _computer;
     private readonly HistoryOptions _historyOptions;
     private readonly ILogger<HistoryEnrichment> _logger;
     private readonly bool _enabled;
@@ -31,11 +32,13 @@ internal sealed class HistoryEnrichment : IActorEnrichment
         IOptions<EnrichmentOptions> enrichmentOptions,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider,
+        HistoryComputer computer,
         ILogger<HistoryEnrichment> logger)
     {
         _njordOptions = options.Value;
         _parameters = parameters;
         _timeProvider = timeProvider;
+        _computer = computer;
         _historyOptions = enrichmentOptions.Value.History;
         _logger = logger;
         _enabled = enrichmentOptions.Value.History.Enabled;
@@ -47,6 +50,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
     public Flow<ModelSnapshot, EgressEvent, NotUsed> CreateFlow(IUntypedActorContext context)
     {
         var locations = _njordOptions.Locations.Select(l => l.Name).ToList();
+        var computer = _computer;
         var parameters = _parameters;
         var timeProvider = _timeProvider;
         var historyOptions = _historyOptions;
@@ -70,7 +74,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
                 foreach (var (location, actor) in historyActors)
                 {
                     var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(5));
-                    var result = HistoryResult.Compute(
+                    var result = computer.Compute(
                         response.History, snapshot, location, parameters, timeProvider, historyOptions);
                     events.Add(new EgressEvent.EnrichmentUpdate(location, TypeName, result));
                 }

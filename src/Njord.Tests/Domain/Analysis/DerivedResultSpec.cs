@@ -55,8 +55,8 @@ public sealed class DerivedResultSpec
                 (WeatherCode, 3.0), (PressureMsl, 1021.0), (SurfacePressure, 1016.0),
                 (SunshineDuration, 3600.0), (IsDay, 1.0)));
 
-        var consensus = ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
-        var result = DerivedResult.Compute(consensus, [3, 6], Parameters, Time);
+        var consensus = new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne");
+        var result = new DerivedResultComputer(Parameters).Compute(consensus, [3, 6]);
 
         Assert.Equal("lucerne", result.Location);
         Assert.Equal(2, result.ByHorizon.Count);

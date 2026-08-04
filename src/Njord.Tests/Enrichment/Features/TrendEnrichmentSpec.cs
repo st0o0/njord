@@ -20,7 +20,7 @@ public sealed class TrendEnrichmentSpec
         {
             Trends = new TrendOptions { Enabled = enabled },
         };
-        return new TrendEnrichment(Options.Create(enrichment));
+        return new TrendEnrichment(Options.Create(enrichment), new TrendComputer());
     }
 
     private static ModelSnapshot MakeSnapshot(double baseTemp = 20.0)
@@ -39,7 +39,7 @@ public sealed class TrendEnrichmentSpec
         var feature = CreateFeature();
         var snapshot = MakeSnapshot();
 
-        var consensus = ConsensusSnapshot.Compute(snapshot, Parameters, "lucerne", TimeProvider.System);
+        var consensus = new ConsensusSnapshotFactory(Parameters, TimeProvider.System).Create(snapshot, "lucerne");
         var events = feature.Compute(consensus, null).ToList();
 
         Assert.Empty(events);
@@ -52,8 +52,8 @@ public sealed class TrendEnrichmentSpec
         var prev = MakeSnapshot(18.0);
         var current = MakeSnapshot(22.0);
 
-        var prevConsensus = ConsensusSnapshot.Compute(prev, Parameters, "lucerne", TimeProvider.System);
-        var currentConsensus = ConsensusSnapshot.Compute(current, Parameters, "lucerne", TimeProvider.System);
+        var prevConsensus = new ConsensusSnapshotFactory(Parameters, TimeProvider.System).Create(prev, "lucerne");
+        var currentConsensus = new ConsensusSnapshotFactory(Parameters, TimeProvider.System).Create(current, "lucerne");
         var events = feature.Compute(currentConsensus, prevConsensus).ToList();
 
         Assert.Single(events);

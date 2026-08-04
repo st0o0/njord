@@ -10,14 +10,17 @@ namespace Njord.Enrichment.Features;
 
 internal sealed class TrendEnrichment : IStatefulEnrichment
 {
+    private readonly TrendComputer _computer;
     private readonly bool _enabled;
 
     public string TypeName => "trends";
     public bool Enabled => _enabled;
 
     public TrendEnrichment(
-        IOptions<EnrichmentOptions> enrichmentOptions)
+        IOptions<EnrichmentOptions> enrichmentOptions,
+        TrendComputer computer)
     {
+        _computer = computer;
         _enabled = enrichmentOptions.Value.Trends.Enabled;
     }
 
@@ -32,7 +35,7 @@ internal sealed class TrendEnrichment : IStatefulEnrichment
             yield break;
         }
 
-        var result = TrendResult.Compute(consensus, previous);
+        var result = _computer.Compute(consensus, previous);
         yield return new EgressEvent.EnrichmentUpdate(consensus.Location, TypeName, result);
     }
 

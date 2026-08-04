@@ -20,8 +20,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
 {
     private readonly NjordOptions _options;
     private readonly EnrichmentOptions _enrichmentOptions;
-    private readonly ResolvedParameterSet _parameters;
-    private readonly TimeProvider _timeProvider;
+    private readonly ConsensusSnapshotFactory _consensusFactory;
     private readonly IReadOnlyList<IEnrichmentFeature> _features;
     private ILoggingAdapter _log = null!;
 
@@ -36,14 +35,12 @@ public sealed class EnrichmentActor : StreamConsumerActor
     public EnrichmentActor(
         IOptions<NjordOptions> options,
         IOptions<EnrichmentOptions> enrichmentOptions,
-        ResolvedParameterSet parameters,
-        TimeProvider timeProvider,
+        ConsensusSnapshotFactory consensusFactory,
         IEnumerable<IEnrichmentFeature> features)
     {
         _options = options.Value;
         _enrichmentOptions = enrichmentOptions.Value;
-        _parameters = parameters;
-        _timeProvider = timeProvider;
+        _consensusFactory = consensusFactory;
         _features = [.. features];
     }
 
@@ -238,8 +235,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
     {
         foreach (var location in locations)
         {
-            yield return ConsensusSnapshot.Compute(
-                snapshot, _parameters, location, _timeProvider, trimPercent);
+            yield return _consensusFactory.Create(snapshot, location, trimPercent);
         }
     }
 

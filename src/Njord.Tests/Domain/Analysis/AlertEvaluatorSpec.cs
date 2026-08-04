@@ -23,7 +23,7 @@ public sealed class AlertEvaluatorSpec
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather", "Solar"], [], []);
 
     private static ConsensusSnapshot ToConsensus(ModelSnapshot snap) =>
-        ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
+        new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne");
 
     private static ModelForecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues)
     {
