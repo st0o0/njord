@@ -10,6 +10,7 @@ using Njord.Grpc;
 using Njord.Mqtt;
 using Njord.Enrichment;
 using Njord.Pipeline;
+using Njord.Sensors;
 using Servus.Akka;
 using Servus.Akka.Startup;
 
@@ -63,6 +64,7 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
                 r.Register<ModelStateActor>("model-state");
                 r.Register<PipelineActor>("pipeline");
                 r.Register<EnrichmentActor>("enrichment");
+                r.Register<SensorHubActor>("sensor-hub");
                 r.Register<GrpcSnapshotConsumerActor>("grpc-snapshot-consumer");
 
                 if (njordOptions.Mqtt.Enabled)

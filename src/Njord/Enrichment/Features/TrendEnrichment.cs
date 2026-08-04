@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
+using Njord.Domain.Sensors;
 using Njord.Egress;
 using Njord.Mqtt;
 
@@ -24,7 +25,7 @@ internal sealed class TrendEnrichment : IStatefulEnrichment
         TopicScheme.EnrichmentDeviceId(location, TypeName);
 
     public IEnumerable<EgressEvent> Compute(
-        ConsensusSnapshot consensus, ConsensusSnapshot? previous)
+        ConsensusSnapshot consensus, ConsensusSnapshot? previous, SensorSnapshot? sensors = null)
     {
         if (previous is null)
         {

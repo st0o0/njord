@@ -22,5 +22,6 @@ public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplica
         app.MapGrpcService<WeatherGrpcService>();
         app.MapGrpcService<AdminGrpcService>();
         app.MapGrpcService<OpsGrpcService>();
+        app.MapGrpcService<SensorGrpcService>();
     }
 }

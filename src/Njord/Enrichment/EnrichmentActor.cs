@@ -8,8 +8,10 @@ using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
+using Njord.Domain.Sensors;
 using Njord.Egress;
 using Njord.Pipeline;
+using Njord.Sensors;
 using Servus.Akka;
 
 namespace Njord.Enrichment;
@@ -25,9 +27,11 @@ public sealed class EnrichmentActor : StreamConsumerActor
 
     private ISourceRef<FetchOutcome>? _sourceRef;
     private ISinkRef<EgressEvent>? _egressSinkRef;
+    private IActorRef? _sensorHub;
 
     private sealed record PipelineResolved(IActorRef Ref);
     private sealed record EgressResolved(IActorRef Ref);
+    private sealed record SensorHubResolved(IActorRef Ref);
 
     public EnrichmentActor(
         IOptions<NjordOptions> options,
@@ -53,6 +57,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
     {
         Context.GetActorAsync<PipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r));
         Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
+        Context.GetActorAsync<SensorHubActor>().PipeTo(Self, success: r => new SensorHubResolved(r));
     }
 
     protected override void ConfigureWaitingForRefs()
@@ -69,6 +74,13 @@ public sealed class EnrichmentActor : StreamConsumerActor
             TrackDependency(msg.Ref);
             msg.Ref.Tell(new RequestEgressSink());
         });
+        Receive<SensorHubResolved>(msg =>
+        {
+            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+            _sensorHub = msg.Ref;
+            _log.Debug("SensorHub resolved at {Path}", msg.Ref.Path);
+            TryTransition();
+        });
         Receive<PipelineSourceResponse>(response =>
         {
             _sourceRef = response.SourceRef;
@@ -83,7 +95,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
         });
     }
 
-    protected override bool AllRefsReady() => _sourceRef is not null && _egressSinkRef is not null;
+    protected override bool AllRefsReady() => _sourceRef is not null && _egressSinkRef is not null && _sensorHub is not null;
 
     protected override void MaterializeGraph(SharedKillSwitch killSwitch)
     {
@@ -111,7 +123,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
             .SelectMany(snapshot => ComputeConsensus(snapshot, locations, trimPercent));
 
         var consensusInlineFlow = BuildConsensusInlineFlow(
-            consensusEgressEnabled, locations, statelessFeatures, statefulFeatures, _log);
+            consensusEgressEnabled, locations, statelessFeatures, statefulFeatures, _sensorHub!, _log);
 
         var flows = new List<Flow<ModelSnapshot, EgressEvent, NotUsed>>();
 
@@ -171,6 +183,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
     {
         _sourceRef = null;
         _egressSinkRef = null;
+        _sensorHub = null;
     }
 
     private static Flow<ConsensusSnapshot, EgressEvent, NotUsed> BuildConsensusInlineFlow(
@@ -178,16 +191,29 @@ public sealed class EnrichmentActor : StreamConsumerActor
         IReadOnlyList<string> locations,
         IReadOnlyList<IStatelessEnrichment> stateless,
         IReadOnlyList<IStatefulEnrichment> stateful,
+        IActorRef sensorHub,
         ILoggingAdapter log)
     {
         ConsensusSnapshot? previous = null;
 
         return Flow.Create<ConsensusSnapshot>()
-            .SelectMany(consensus =>
+            .SelectAsync(1, async consensus =>
             {
+                SensorSnapshot? sensors = null;
+                try
+                {
+                    var response = await sensorHub.Ask<SensorSnapshotResponse>(
+                        new GetSnapshot(consensus.Location), TimeSpan.FromSeconds(1));
+                    sensors = response.Snapshot;
+                }
+                catch
+                {
+                    log.Warning("SensorHub Ask timed out for {Location}, proceeding without sensor data", consensus.Location);
+                }
+
                 var prev = previous;
                 previous = consensus;
-                var events = ComputeAll(consensus, prev, consensusEgressEnabled, stateless, stateful).ToList();
+                var events = ComputeAll(consensus, prev, sensors, consensusEgressEnabled, stateless, stateful).ToList();
                 if (events.Count > 0)
                 {
                     var features = string.Join(
@@ -201,6 +227,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
 
                 return events;
             })
+            .SelectMany(events => events)
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(log)));
     }
 
@@ -230,6 +257,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
     private static IEnumerable<EgressEvent> ComputeAll(
         ConsensusSnapshot consensus,
         ConsensusSnapshot? previous,
+        SensorSnapshot? sensors,
         bool consensusEgressEnabled,
         IReadOnlyList<IStatelessEnrichment> stateless,
         IReadOnlyList<IStatefulEnrichment> stateful)
@@ -241,11 +269,11 @@ public sealed class EnrichmentActor : StreamConsumerActor
         }
 
         foreach (var feature in stateless)
-            foreach (var evt in feature.Compute(consensus))
+            foreach (var evt in feature.Compute(consensus, sensors))
                 yield return evt;
 
         foreach (var feature in stateful)
-            foreach (var evt in feature.Compute(consensus, previous))
+            foreach (var evt in feature.Compute(consensus, previous, sensors))
                 yield return evt;
     }
 }

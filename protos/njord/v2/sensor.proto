@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package njord.v2;
+
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "Njord.Grpc.V2";
+
+enum SensorKind {
+  SENSOR_KIND_UNSPECIFIED = 0;
+  SENSOR_KIND_INDOOR_TEMPERATURE = 1;
+  SENSOR_KIND_INDOOR_HUMIDITY = 2;
+}
+
+message SensorReading {
+  SensorKind kind = 1;
+  string location = 2;
+  string source = 3;
+  double value = 4;
+  google.protobuf.Timestamp measured_at = 5;
+}
+
+message PushResponse {
+  bool accepted = 1;
+  string rejection_reason = 2;
+}
+
+service SensorService {
+  rpc Push (SensorReading) returns (PushResponse);
+  rpc StreamPush (stream SensorReading) returns (PushResponse);
+}
