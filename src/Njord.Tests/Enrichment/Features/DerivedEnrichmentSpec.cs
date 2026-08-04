@@ -24,11 +24,10 @@ public sealed class DerivedEnrichmentSpec
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
             Models = ["icon_d2"],
         };
-        var enrichment = new EnrichmentOptions();
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
         return new DerivedEnrichment(
-            Options.Create(options), Options.Create(enrichment), new DerivedResultComputer(parameters));
+            Options.Create(options), new DerivedResultComputer(parameters));
     }
 
     private static ModelForecast BuildForecast(string location)

@@ -2,7 +2,7 @@ using Njord.Configuration;
 
 namespace Njord.Tests.Configuration;
 
-public sealed class BudgetValidatorSpec
+public sealed class BudgetCalculatorSpec
 {
     [Fact(Timeout = 5000)]
     public void Projects_monthly_calls_for_one_location_eight_models_weather_group_sixty_minute_interval()
@@ -15,7 +15,7 @@ public sealed class BudgetValidatorSpec
             Parameters = new ParameterOptions { Groups = ["Weather"] },
         };
 
-        var result = BudgetValidator.Validate(options);
+        var result = BudgetCalculator.Validate(options);
 
         // 8 models, Weather group = 31 params, ceil(31/10) = 4 weight
         // 8 * 4 = 32 calls/cycle, 24 cycles/day, 32 * 24 * 30 = 23040/month
@@ -36,7 +36,7 @@ public sealed class BudgetValidatorSpec
             BudgetOverride = new RequestBudget(100, 600),
         };
 
-        var result = BudgetValidator.Validate(options);
+        var result = BudgetCalculator.Validate(options);
 
         // 1 model, ceil(31/10)=4, 4 calls/cycle, 24/day, 4*24*30=2880
         // 2880/100 = 2880% — over 100, so no 80% warning, just not within budget
@@ -55,7 +55,7 @@ public sealed class BudgetValidatorSpec
             BudgetOverride = new RequestBudget(2_000, 600),
         };
 
-        var result = BudgetValidator.Validate(options);
+        var result = BudgetCalculator.Validate(options);
 
         // 2880 projected vs 2000 limit = 144%
         Assert.False(result.WithinBudget);
@@ -76,7 +76,7 @@ public sealed class BudgetValidatorSpec
             BudgetOverride = new RequestBudget(3_200, 600),
         };
 
-        var result = BudgetValidator.Validate(options);
+        var result = BudgetCalculator.Validate(options);
 
         Assert.True(result.WithinBudget);
         Assert.Single(result.Warnings);
@@ -95,7 +95,7 @@ public sealed class BudgetValidatorSpec
             BudgetOverride = new RequestBudget(1_000_000, 600),
         };
 
-        var result = BudgetValidator.Validate(options);
+        var result = BudgetCalculator.Validate(options);
 
         Assert.Equal(1_000_000, result.MonthlyLimit);
         Assert.True(result.WithinBudget);

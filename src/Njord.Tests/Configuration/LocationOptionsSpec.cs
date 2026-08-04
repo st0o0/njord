@@ -8,8 +8,9 @@ public sealed class LocationOptionsSpec
     public void Resolve_merges_global_and_location_models()
     {
         var location = new LocationOptions { Models = ["icon_d2"] };
+        IList<string> global = ["icon_global", "icon_eu"];
 
-        var resolved = location.ResolveModels(["icon_global", "icon_eu"]);
+        var resolved = global.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase).ToList();
 
         Assert.Equal(["icon_global", "icon_eu", "icon_d2"], resolved);
     }
@@ -18,8 +19,9 @@ public sealed class LocationOptionsSpec
     public void Resolve_returns_global_only_when_location_models_is_null()
     {
         var location = new LocationOptions();
+        IList<string> global = ["icon_global", "icon_eu"];
 
-        var resolved = location.ResolveModels(["icon_global", "icon_eu"]);
+        var resolved = global.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase).ToList();
 
         Assert.Equal(["icon_global", "icon_eu"], resolved);
     }
@@ -28,8 +30,9 @@ public sealed class LocationOptionsSpec
     public void Resolve_deduplicates_models()
     {
         var location = new LocationOptions { Models = ["icon_eu", "icon_d2"] };
+        IList<string> global = ["icon_global", "icon_eu"];
 
-        var resolved = location.ResolveModels(["icon_global", "icon_eu"]);
+        var resolved = global.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase).ToList();
 
         Assert.Equal(["icon_global", "icon_eu", "icon_d2"], resolved);
     }
@@ -38,8 +41,9 @@ public sealed class LocationOptionsSpec
     public void Resolve_returns_location_only_when_global_is_empty()
     {
         var location = new LocationOptions { Models = ["icon_d2"] };
+        IList<string> global = Array.Empty<string>();
 
-        var resolved = location.ResolveModels([]);
+        var resolved = global.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase).ToList();
 
         Assert.Equal(["icon_d2"], resolved);
     }

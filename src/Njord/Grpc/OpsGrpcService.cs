@@ -37,7 +37,7 @@ public sealed class OpsGrpcService(
     public override async Task<StatusResponse> GetStatus(GetStatusRequest request, ServerCallContext context)
     {
         var uptime = _timeProvider.GetUtcNow() - ProcessStart;
-        var budget = _optionsMonitor.CurrentValue.EffectiveBudget;
+        var budget = BudgetCalculator.GetEffectiveBudget(_optionsMonitor.CurrentValue);
 
         long monthlyUsed = 0;
         long dailyUsed = 0;

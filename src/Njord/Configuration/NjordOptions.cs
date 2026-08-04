@@ -8,8 +8,6 @@ public sealed class NjordOptions
     /// <summary>Replaces the free-tier default entirely when set (self-throttling below the soft limits).</summary>
     public RequestBudget? BudgetOverride { get; set; }
 
-    public RequestBudget EffectiveBudget => BudgetOverride ?? RequestBudget.OpenMeteoFreeTier;
-
     public TimeSpan PollInterval { get; set; } = TimeSpan.FromMinutes(60);
 
     public IList<LocationOptions> Locations { get; set; } = [];
@@ -35,6 +33,8 @@ public sealed class NjordOptions
     public TimeSpan DiscoveryInterval { get; set; } = TimeSpan.FromMinutes(20);
 
     public EnrichmentOptions Enrichment { get; set; } = new();
+
+    public SensorOptions Sensors { get; set; } = new();
 
     public PersistenceOptions Persistence { get; set; } = new();
 

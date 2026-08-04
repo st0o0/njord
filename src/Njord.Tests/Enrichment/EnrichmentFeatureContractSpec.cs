@@ -12,23 +12,22 @@ public sealed class EnrichmentFeatureContractSpec
     private static IReadOnlyList<IEnrichmentFeature> CreateAllFeatures(
         EnrichmentOptions? enrichment = null)
     {
-        enrichment ??= new EnrichmentOptions();
         var njordOptions = new NjordOptions
         {
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
             Models = ["icon_d2"],
+            Enrichment = enrichment ?? new EnrichmentOptions(),
         };
         var optionsWrapped = Options.Create(njordOptions);
-        var enrichmentWrapped = Options.Create(enrichment);
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
         return
         [
-            new AlertEnrichment(enrichmentWrapped, TimeProvider.System),
-            new DerivedEnrichment(optionsWrapped, enrichmentWrapped, new DerivedResultComputer(parameters)),
-            new TrendEnrichment(enrichmentWrapped, new TrendComputer()),
-            new IndexEnrichment(enrichmentWrapped, optionsWrapped, new IndexComputer(parameters, TimeProvider.System)),
-            new HistoryEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System,
+            new AlertEnrichment(optionsWrapped, TimeProvider.System),
+            new DerivedEnrichment(optionsWrapped, new DerivedResultComputer(parameters)),
+            new TrendEnrichment(optionsWrapped, new TrendComputer()),
+            new IndexEnrichment(optionsWrapped, new IndexComputer(parameters, TimeProvider.System)),
+            new HistoryEnrichment(optionsWrapped, parameters, TimeProvider.System,
                 new HistoryComputer(),
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoryEnrichment>.Instance),
         ];

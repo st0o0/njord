@@ -10,7 +10,7 @@ namespace Njord.Enrichment.Features;
 
 internal sealed class AlertEnrichment : IStatelessEnrichment
 {
-    private readonly AlertThresholdOptions _alertOptions;
+    private readonly AlertOptions _alertOptions;
     private readonly TimeProvider _timeProvider;
     private readonly bool _enabled;
 
@@ -18,12 +18,12 @@ internal sealed class AlertEnrichment : IStatelessEnrichment
     public bool Enabled => _enabled;
 
     public AlertEnrichment(
-        IOptions<EnrichmentOptions> enrichmentOptions,
+        IOptions<NjordOptions> options,
         TimeProvider timeProvider)
     {
-        _alertOptions = enrichmentOptions.Value.Alerts;
+        _alertOptions = options.Value.Enrichment.Alerts;
         _timeProvider = timeProvider;
-        _enabled = enrichmentOptions.Value.Alerts.Enabled;
+        _enabled = options.Value.Enrichment.Alerts.Enabled;
     }
 
     public string DeviceId(string location) =>

@@ -33,7 +33,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             Enrichment = new EnrichmentOptions
             {
                 Consensus = new ConsensusOptions { Enabled = true },
-                Alerts = new AlertThresholdOptions { Enabled = true },
+                Alerts = new AlertOptions { Enabled = true },
                 Derived = new DerivedOptions { Enabled = false },
                 Trends = new TrendOptions { Enabled = false },
                 Indices = new IndexOptions { Enabled = false },

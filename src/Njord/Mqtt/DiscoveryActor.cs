@@ -53,7 +53,7 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
         _discoveryEnabled = _options.Mqtt.DiscoveryEnabled;
 
         _expectedModelCount = _options.Locations
-            .Sum(loc => loc.ResolveModels(_options.Models).Count);
+            .Sum(loc => _options.Models.Union(loc.Models ?? [], StringComparer.OrdinalIgnoreCase).Count());
     }
 
     protected override void PreStart()
@@ -217,7 +217,7 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
 
         foreach (var location in _options.Locations)
         {
-            foreach (var modelId in location.ResolveModels(_options.Models))
+            foreach (var modelId in _options.Models.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase))
             {
                 var key = (location.Name, modelId);
                 if (!_capabilities.TryGetValue(key, out var cap))

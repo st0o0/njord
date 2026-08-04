@@ -34,12 +34,11 @@ public sealed class EnrichmentActor : StreamConsumerActor
 
     public EnrichmentActor(
         IOptions<NjordOptions> options,
-        IOptions<EnrichmentOptions> enrichmentOptions,
         ConsensusSnapshotFactory consensusFactory,
         IEnumerable<IEnrichmentFeature> features)
     {
         _options = options.Value;
-        _enrichmentOptions = enrichmentOptions.Value;
+        _enrichmentOptions = options.Value.Enrichment;
         _consensusFactory = consensusFactory;
         _features = [.. features];
     }

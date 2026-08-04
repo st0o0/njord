@@ -30,7 +30,7 @@ public sealed class WeatherGrpcService(
 
         foreach (var loc in _options.Locations)
         {
-            var models = loc.ResolveModels(_options.Models);
+            var models = _options.Models.Union(loc.Models ?? [], StringComparer.OrdinalIgnoreCase).ToList();
             response.Locations.Add(new LocationInfo
             {
                 Name = loc.Name,
@@ -206,7 +206,7 @@ public sealed class WeatherGrpcService(
 
     private void ValidateModel(LocationOptions location, string modelId)
     {
-        var models = location.ResolveModels(_options.Models);
+        var models = _options.Models.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase).ToList();
         if (!models.Contains(modelId, StringComparer.OrdinalIgnoreCase))
         {
             throw new RpcException(new GrpcStatus(StatusCode.NotFound,

@@ -7,14 +7,15 @@ public sealed class SensorOptionsValidationSpec
     [Fact(Timeout = 5000)]
     public void default_options_accepted()
     {
-        var result = new SensorOptionsValidator().Validate(null, new SensorOptions());
+        var result = new SensorOptionsValidator().Validate(null, new NjordOptions());
         Assert.True(result.Succeeded);
     }
 
     [Fact(Timeout = 5000)]
     public void positive_staleness_accepted()
     {
-        var result = new SensorOptionsValidator().Validate(null, new SensorOptions { StalenessSeconds = 3600 });
+        var opts = new NjordOptions { Sensors = new SensorOptions { StalenessSeconds = 3600 } };
+        var result = new SensorOptionsValidator().Validate(null, opts);
         Assert.True(result.Succeeded);
     }
 
@@ -23,7 +24,8 @@ public sealed class SensorOptionsValidationSpec
     [InlineData(-1)]
     public void non_positive_staleness_rejected(int staleness)
     {
-        var result = new SensorOptionsValidator().Validate(null, new SensorOptions { StalenessSeconds = staleness });
+        var opts = new NjordOptions { Sensors = new SensorOptions { StalenessSeconds = staleness } };
+        var result = new SensorOptionsValidator().Validate(null, opts);
         Assert.True(result.Failed);
         Assert.Contains("StalenessSeconds", result.FailureMessage);
     }

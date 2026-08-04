@@ -29,7 +29,6 @@ internal sealed class HistoryEnrichment : IActorEnrichment
 
     public HistoryEnrichment(
         IOptions<NjordOptions> options,
-        IOptions<EnrichmentOptions> enrichmentOptions,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider,
         HistoryComputer computer,
@@ -39,9 +38,9 @@ internal sealed class HistoryEnrichment : IActorEnrichment
         _parameters = parameters;
         _timeProvider = timeProvider;
         _computer = computer;
-        _historyOptions = enrichmentOptions.Value.History;
+        _historyOptions = options.Value.Enrichment.History;
         _logger = logger;
-        _enabled = enrichmentOptions.Value.History.Enabled;
+        _enabled = options.Value.Enrichment.History.Enabled;
     }
 
     public string DeviceId(string location) =>
