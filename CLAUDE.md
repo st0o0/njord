@@ -5,7 +5,7 @@
 njord — Multi-model weather intelligence for Home Assistant. A .NET service
 (Docker container) on Akka.NET + Akka.Streams: polls the Open-Meteo API for
 multiple weather models per location, processes forecasts through an enrichment
-pipeline (consensus, alerts, derived values, trends, indices, energy, history),
+pipeline (consensus, alerts, derived values, trends, indices, history),
 and publishes Home Assistant entities via MQTT Discovery (Mosquitto broker on
 the HA host).
 
@@ -28,6 +28,9 @@ the HA host).
   (cycle id = tick timestamp) with timeout and quorum — consensus from whatever
   arrived, plus `models_used`/spread diagnostics.
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow` directly.
+- **SensorHub for external sensor input.** The SensorHub actor receives readings
+  via gRPC (`SensorService`), stores latest values per `SensorKind` (closed enum).
+  Enrichments pull at each poll cycle (latest-value, no reactive re-computation).
 
 ### Decisions
 
@@ -43,11 +46,14 @@ the HA host).
   Steadman computation.
 - HA device cut: per location, one device per weather model plus one device per
   enabled enrichment feature. Enrichment features (consensus, alerts, derived,
-  trends, indices, energy, history) are independently toggleable.
+  trends, indices, history) are independently toggleable.
 - Entity grid per model device: one sensor per (parameter, horizon) — horizons
   configurable, default +3/+6/+12/+24/+48/+72 h. No JSON series attribute, no
   `state_class` (forecasts are not measurements). Recommend a `recorder:` exclude
   for `sensor.njord_*` in HA docs/snippets.
+- Sensor fallback chain: live sensor reading (SensorHub via gRPC) → config value
+  → hardcoded default. `SensorKind` is closed: `IndoorTemperature`,
+  `IndoorHumidity`.
 - MQTT egress: device-based discovery (one retained config per device,
   `homeassistant/device/<id>/config`), one retained state JSON per device per
   cycle, availability via LWT on `njord/status` + per-component
