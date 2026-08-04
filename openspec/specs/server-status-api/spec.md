@@ -52,8 +52,8 @@ The `ServerStatus` proto message SHALL include `repeated string active_enrichmen
 listing the names of enabled enrichment features.
 
 #### Scenario: All features enabled
-- **WHEN** all 7 enrichment features are enabled
-- **THEN** `active_enrichments` SHALL contain `["consensus", "alerts", "derived", "trends", "indices", "energy", "history"]`
+- **WHEN** all 6 enrichment features are enabled
+- **THEN** `active_enrichments` SHALL contain `["consensus", "alerts", "derived", "trends", "indices", "history"]`
 
 #### Scenario: No features enabled
 - **WHEN** all enrichment features are disabled

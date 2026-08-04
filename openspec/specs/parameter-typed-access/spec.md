@@ -95,7 +95,7 @@ of non-null `double` values for the parameter within the time window.
 - **THEN** it SHALL return `[5.0, 7.0]`
 
 ### Requirement: No string-based parameter lookups in domain Compute methods
-All domain Compute methods (`IndexResult.Compute`, `EnergyResult.Compute`,
+All domain Compute methods (`IndexResult.Compute`,
 `DerivedResult.Compute`, `TrendResult.Compute`, `ConsensusResult.Compute`,
 `HistoryResult.Compute`, `AlertEvaluator.EvaluateAll`) SHALL resolve
 parameters via `ParameterRegistry` static properties and
@@ -134,9 +134,9 @@ The `HistoryAnalyzer` API SHALL accept `ParameterDef` parameters instead of
 
 ### Requirement: Mean24h is not duplicated
 There SHALL be exactly one implementation of 24-hour mean computation.
-`IndexResult` and `EnergyResult` SHALL use `ForecastSeries.Mean` or a shared
-helper instead of containing their own private `Mean24h` methods.
+`IndexResult` SHALL use `ForecastSeries.Mean` or a shared
+helper instead of containing its own private `Mean24h` method.
 
 #### Scenario: No private Mean24h methods
-- **WHEN** `IndexResult.cs` and `EnergyResult.cs` are inspected
-- **THEN** neither SHALL contain a private `Mean24h` method
+- **WHEN** `IndexResult.cs` is inspected
+- **THEN** it SHALL NOT contain a private `Mean24h` method

@@ -53,7 +53,7 @@ The `MqttEgressActor` SHALL inherit from `StreamConsumerActor`. It SHALL resolve
 - **THEN** `MqttEgressActor` is not registered in the actor system
 
 #### Scenario: MqttEgressActor maps enrichment events to MQTT messages
-- **WHEN** `MqttEgressActor` receives a `ConsensusUpdate`, `AlertUpdate`, `DerivedUpdate`, `TrendUpdate`, `IndexUpdate`, `EnergyUpdate`, or `HistoryUpdate`
+- **WHEN** `MqttEgressActor` receives a `ConsensusUpdate`, `AlertUpdate`, `DerivedUpdate`, `TrendUpdate`, `IndexUpdate`, or `HistoryUpdate`
 - **THEN** it SHALL use the corresponding `StatePayloadBuilder.From*` method and send the resulting `MqttMessage` instances to `MqttConnectionActor`
 
 #### Scenario: MqttEgressActor deduplicates by topic

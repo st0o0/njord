@@ -50,17 +50,6 @@
     ]
   },
   {
-    "name": "Energy",
-    "enabledByDefault": false,
-    "options": [
-      { "name": "FlowTemp", "type": "number", "default": 35.0 },
-      { "name": "CarnotEfficiency", "type": "number", "default": 0.45 },
-      { "name": "HeatingBaseTemp", "type": "number", "default": 18.0 },
-      { "name": "CopOptimalHours", "type": "number", "default": 3 },
-      { "name": "IndoorTemp", "type": "number", "default": 22.0 }
-    ]
-  },
-  {
     "name": "History",
     "enabledByDefault": false,
     "options": [

@@ -56,7 +56,7 @@ Shared proto types for the v2 gRPC API — LocationInfo, ModelInfo, CoverageTier
 - **THEN** they SHALL be serialized as `ParameterValue` entries in the `extra` field
 
 ### Requirement: Enrichment payload messages
-`common.proto` SHALL define all enrichment payload messages identical to v1: `AlertUpdate`, `Alert`, `AlertType`, `AlertSeverity`, `IndexUpdate`, `ParameterTrend`, `TrendUpdate`, `EnergyUpdate`, `CopOptimalHour`, `HorizonDerived`, `ScalarDerived`, `DerivedUpdate`, `ModelMetrics`, `HistoryUpdate`, `HorizonConsensus`, `ParameterConsensus`, `ConsensusUpdate`.
+`common.proto` SHALL define all enrichment payload messages identical to v1: `AlertUpdate`, `Alert`, `AlertType`, `AlertSeverity`, `IndexUpdate`, `ParameterTrend`, `TrendUpdate`, `HorizonDerived`, `ScalarDerived`, `DerivedUpdate`, `ModelMetrics`, `HistoryUpdate`, `HorizonConsensus`, `ParameterConsensus`, `ConsensusUpdate`.
 
 #### Scenario: All enrichment types compile
 - **WHEN** `dotnet build` runs

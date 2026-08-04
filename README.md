@@ -26,8 +26,9 @@ everything as Home Assistant entities via
 
 - **50+ weather models** — ICON, ECMWF, GFS, UKMO, MeteoSwiss, and regional models from Open-Meteo
 - **Multiple locations** — configure as many locations as you need, each with its own model selection
-- **Enrichment pipeline** — consensus forecasts, weather alerts, derived values (Beaufort, wind chill, comfort), trend analysis, activity indices, energy optimization, and forecast accuracy tracking
+- **Enrichment pipeline** — consensus forecasts, weather alerts, derived values (Beaufort, wind chill, comfort), trend analysis, activity indices, and forecast accuracy tracking
 - **Hourly and daily forecasts** — configurable horizons for hourly data, plus daily min/max, precipitation sums, sunrise/sunset
+- **External sensor input** — feed indoor temperature/humidity from Home Assistant sensors via gRPC to improve index calculations
 - **Auto-discovery** — devices and sensors appear in Home Assistant automatically via MQTT Discovery
 - **Single container** — runs on any Docker host with SQLite persistence by default, no external database needed
 

@@ -63,7 +63,7 @@ AdminService gRPC service for configuration management. Replaces v1's ConfigServ
 - **THEN** the RPC SHALL return `ConfigResponse` with `applied = false`
 
 ### Requirement: SetEnrichment updates enrichment configuration
-`AdminService.SetEnrichment` SHALL accept a `SetEnrichmentRequest` with optional fields for each enrichment type (ConsensusConfig, AlertConfig, DerivedConfig, TrendConfig, IndexConfig, EnergyConfig, HistoryConfig). Only provided sub-messages SHALL be updated; within each sub-message, only provided fields SHALL be applied.
+`AdminService.SetEnrichment` SHALL accept a `SetEnrichmentRequest` with optional fields for each enrichment type (ConsensusConfig, AlertConfig, DerivedConfig, TrendConfig, IndexConfig, HistoryConfig). Only provided sub-messages SHALL be updated; within each sub-message, only provided fields SHALL be applied.
 
 #### Scenario: Enable single enrichment
 - **WHEN** a client sends `SetEnrichment` with only `consensus: { enabled: true }`

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Startup validation for enrichment configuration options (ConsensusOptions, EnergyOptions, HistoryOptions) using `IValidateOptions<T>`.
+Startup validation for enrichment configuration options (ConsensusOptions, HistoryOptions) using `IValidateOptions<T>`.
 
 ## Requirements
 
@@ -24,21 +24,6 @@ The system SHALL validate `ConsensusOptions.Method` is one of "Mean", "Median", 
 #### Scenario: TrimPercent ignored for non-TrimmedMean methods
 - **WHEN** ConsensusOptions.Method is "Median" and TrimPercent is 0.9
 - **THEN** validation succeeds (TrimPercent is irrelevant)
-
-### Requirement: EnergyOptions validates CarnotEfficiency and FlowTemp at startup
-The system SHALL validate `EnergyOptions.CarnotEfficiency` is in the range (0, 1) exclusive and `FlowTemp` is greater than 0. Invalid values SHALL cause a startup failure with a descriptive error message via `IValidateOptions<EnergyOptions>`.
-
-#### Scenario: Valid CarnotEfficiency accepted
-- **WHEN** EnergyOptions.CarnotEfficiency is 0.45
-- **THEN** validation succeeds
-
-#### Scenario: CarnotEfficiency out of range rejected
-- **WHEN** EnergyOptions.CarnotEfficiency is 1.5
-- **THEN** validation fails with a message indicating the valid range
-
-#### Scenario: FlowTemp must be positive
-- **WHEN** EnergyOptions.FlowTemp is -10
-- **THEN** validation fails with a message indicating FlowTemp must be positive
 
 ### Requirement: HistoryOptions validates SnapshotInterval, RetentionDays, and MinSampleSize at startup
 The system SHALL validate that `HistoryOptions.SnapshotInterval`, `RetentionDays`, and `MinSampleSize` are all greater than 0. Invalid values SHALL cause a startup failure with a descriptive error message via `IValidateOptions<HistoryOptions>`.

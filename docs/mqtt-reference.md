@@ -69,7 +69,6 @@ Enrichment features publish to their own sub-topics under the location:
 | Derived | `{baseTopic}/{location}/derived/h{N}` | `njord/berlin/derived/h3` |
 | Trends | `{baseTopic}/{location}/trends` | `njord/berlin/trends` |
 | Indices | `{baseTopic}/{location}/indices` | `njord/berlin/indices` |
-| Energy | `{baseTopic}/{location}/energy` | `njord/berlin/energy` |
 | History | `{baseTopic}/{location}/history` | `njord/berlin/history` |
 
 ## Payload format

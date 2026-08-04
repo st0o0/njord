@@ -40,7 +40,7 @@ WeatherService gRPC service for reading forecasts, enrichments, and streaming re
 - **THEN** the RPC SHALL throw a gRPC NOT_FOUND error
 
 ### Requirement: GetEnrichments returns all enrichment payloads
-`WeatherService.GetEnrichments` SHALL accept `GetEnrichmentsRequest` with `string location` and return `GetEnrichmentsResponse` with `string location` and optional fields for each enrichment type: `AlertUpdate alerts`, `IndexUpdate indices`, `TrendUpdate trends`, `EnergyUpdate energy`, `DerivedUpdate derived`, `HistoryUpdate history`, `ConsensusUpdate consensus`.
+`WeatherService.GetEnrichments` SHALL accept `GetEnrichmentsRequest` with `string location` and return `GetEnrichmentsResponse` with `string location` and optional fields for each enrichment type: `AlertUpdate alerts`, `IndexUpdate indices`, `TrendUpdate trends`, `DerivedUpdate derived`, `HistoryUpdate history`, `ConsensusUpdate consensus`.
 
 #### Scenario: All enabled enrichments returned
 - **WHEN** a client calls `GetEnrichments` for a location with consensus, alerts, and trends enabled

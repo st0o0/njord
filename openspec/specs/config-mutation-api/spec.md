@@ -77,10 +77,6 @@ budget projection.
 - **WHEN** a client calls `UpdateEnrichmentConfig` with `alerts = { frost_threshold: -2.0 }`
 - **THEN** the frost threshold SHALL change to -2.0°C
 
-#### Scenario: Change energy parameters
-- **WHEN** a client calls `UpdateEnrichmentConfig` with `energy = { flow_temp: 40.0, carnot_efficiency: 0.5 }`
-- **THEN** the energy enrichment SHALL use the new parameters
-
 ### Requirement: UpdateBudget overrides the request budget
 `ConfigService.UpdateBudget` SHALL accept optional requests_per_month and requests_per_minute. Setting them overrides the free-tier defaults. Clearing them (zero/unset) reverts to free-tier defaults.
 

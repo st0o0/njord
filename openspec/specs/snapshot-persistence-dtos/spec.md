@@ -24,7 +24,7 @@ The forecast persistence layer SHALL define DTO types that represent snapshot st
 ### Requirement: Enrichment snapshot DTOs use discriminated wrapper
 The enrichment persistence layer SHALL define a DTO that wraps each enrichment result with a `TypeName` string discriminator and a serialized `JsonPayload`. On save, the concrete enrichment type name and its JSON representation SHALL be stored. On recovery, `TypeName` SHALL select the deserialization target.
 
-The `EnrichmentTypes` dictionary SHALL contain entries for ALL enrichment result types: `AlertResult`, `IndexResult`, `TrendResult`, `DerivedResult`, `EnergyResult`, `ConsensusResult`, and `HistoryResult`. Missing entries cause silent data loss on snapshot recovery.
+The `EnrichmentTypes` dictionary SHALL contain entries for ALL enrichment result types: `AlertResult`, `IndexResult`, `TrendResult`, `DerivedResult`, `ConsensusResult`, and `HistoryResult`. Missing entries cause silent data loss on snapshot recovery.
 
 `ConsensusResult.ComputedAt` SHALL be included in the serialized `JsonPayload` via a `[JsonProperty("computedAt")]` attribute. When deserializing a `ConsensusResult` from a pre-upgrade snapshot where `computedAt` is absent, `ComputedAt` SHALL default to `null`. Callers SHALL treat null as "unknown computation time" and fall back to wall-clock time.
 

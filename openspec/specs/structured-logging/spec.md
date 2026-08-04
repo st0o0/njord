@@ -147,8 +147,8 @@ The message SHALL include: location, number of models with changed data, total m
 `EnrichmentActor` SHALL emit an Information-level log when enrichment features have been computed for a location, listing which features ran.
 
 #### Scenario: All enrichment features compute
-- **WHEN** enrichment computes for location "vreden" with consensus, alerts, trends, indices, energy, and history enabled
-- **THEN** an Information log `"Enrichment computed for vreden: consensus, alerts, trends, indices, energy, history"` is emitted
+- **WHEN** enrichment computes for location "vreden" with consensus, alerts, trends, indices, and history enabled
+- **THEN** an Information log `"Enrichment computed for vreden: consensus, alerts, trends, indices, history"` is emitted
 
 ### Requirement: State transitions remain at Information level
 
