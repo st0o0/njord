@@ -283,6 +283,20 @@ onMounted(() => {
       <div class="weight-display">API call weight: <strong>{{ Math.ceil(config.parameters.groups.reduce((s, g) => s + ({ Weather: 31, Solar: 9, Soil: 11 }[g] ?? 0), 0) / 10) * Math.ceil(config.forecastDays / 14) }}</strong></div>
     </div>
 
+    <!-- Sensors -->
+    <div class="section">
+      <h3>Sensors</h3>
+      <label class="mqtt-enabled">
+        <input type="checkbox" v-model="config.sensors.enabled" />
+        <strong>Enabled</strong>
+        <span class="enrichment-badge">default on</span>
+      </label>
+      <div v-if="config.sensors.enabled" class="general-row">
+        <label>Staleness (seconds) <input v-model.number="config.sensors.stalenessSeconds" type="number" min="60" placeholder="7200" /></label>
+      </div>
+      <p class="section-hint">External sensor data via gRPC (indoor temperature, humidity). Live readings override static config values in enrichment computations.</p>
+    </div>
+
     <!-- Enrichment -->
     <div class="section">
       <h3>Enrichment</h3>
