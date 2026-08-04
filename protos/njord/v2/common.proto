@@ -161,23 +161,7 @@ message TrendUpdate {
   optional int32 reliable_hours = 10;
 }
 
-// ═══════════════════════════════════════
-// Enrichment: Energy
-// ═══════════════════════════════════════
-
-message EnergyUpdate {
-  int32 heating_demand = 1;
-  optional double cop_estimate = 2;
-  int32 shading = 3;
-  string battery_strategy = 4;
-  int32 night_cooling = 5;
-  repeated CopOptimalHour cop_optimal = 6;
-}
-
-message CopOptimalHour {
-  int32 hours_from_now = 1;
-  double cop = 2;
-}
+// EnergyUpdate and CopOptimalHour removed — energy enrichment deleted
 
 // ═══════════════════════════════════════
 // Enrichment: Derived

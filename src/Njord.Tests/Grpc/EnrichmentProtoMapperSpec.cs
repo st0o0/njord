@@ -102,32 +102,6 @@ public sealed class EnrichmentProtoMapperSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void MapEnergy_should_map_all_fields_including_cop_optimal_list()
-    {
-        var result = new EnergyResult(
-            Location: "lucerne",
-            HeatingDemand: 75,
-            CopEstimate: 3.2,
-            CopOptimal: [new CopOptimalEntry(2, 3.8), new CopOptimalEntry(5, 4.1)],
-            Shading: 60,
-            BatteryStrategy: "charge",
-            NightCooling: 45);
-
-        var update = EnrichmentProtoMapper.MapEnergy(result);
-
-        Assert.Equal(75, update.HeatingDemand);
-        Assert.Equal(3.2, update.CopEstimate);
-        Assert.Equal(60, update.Shading);
-        Assert.Equal("charge", update.BatteryStrategy);
-        Assert.Equal(45, update.NightCooling);
-        Assert.Equal(2, update.CopOptimal.Count);
-        Assert.Equal(2, update.CopOptimal[0].HoursFromNow);
-        Assert.Equal(3.8, update.CopOptimal[0].Cop);
-        Assert.Equal(5, update.CopOptimal[1].HoursFromNow);
-        Assert.Equal(4.1, update.CopOptimal[1].Cop);
-    }
-
-    [Fact(Timeout = 5000)]
     public void MapDerived_should_map_horizon_entries_and_scalars()
     {
         var byHorizon = new Dictionary<string, DomainHorizonDerived>

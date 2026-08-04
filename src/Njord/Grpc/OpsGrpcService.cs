@@ -129,11 +129,6 @@ public sealed class OpsGrpcService(
             status.ActiveEnrichments.Add("indices");
         }
 
-        if (enrichment.Energy.Enabled)
-        {
-            status.ActiveEnrichments.Add("energy");
-        }
-
         if (enrichment.History.Enabled)
         {
             status.ActiveEnrichments.Add("history");

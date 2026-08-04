@@ -50,7 +50,8 @@ message DetailedEnrichmentConfig {
   DerivedConfig derived = 3;
   TrendConfig trends = 4;
   IndexConfig indices = 5;
-  EnergyConfig energy = 6;
+  reserved 6;
+  reserved "energy";
   HistoryConfig history = 7;
 }
 
@@ -98,14 +99,7 @@ message IndexConfig {
   optional double bbq_ideal_wind_high = 14;
 }
 
-message EnergyConfig {
-  optional bool enabled = 1;
-  optional double flow_temp = 2;
-  optional double carnot_efficiency = 3;
-  optional double heating_base_temp = 4;
-  optional int32 cop_optimal_hours = 5;
-  optional double indoor_temp = 6;
-}
+// EnergyConfig removed — energy enrichment deleted
 
 message HistoryConfig {
   optional bool enabled = 1;
@@ -143,7 +137,8 @@ message SetEnrichmentRequest {
   optional DerivedConfig derived = 3;
   optional TrendConfig trends = 4;
   optional IndexConfig indices = 5;
-  optional EnergyConfig energy = 6;
+  reserved 6;
+  reserved "energy";
   optional HistoryConfig history = 7;
 }
 

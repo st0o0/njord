@@ -30,28 +30,6 @@ public sealed class ConsensusOptionsValidator : IValidateOptions<EnrichmentOptio
     }
 }
 
-public sealed class EnergyOptionsValidator : IValidateOptions<EnrichmentOptions>
-{
-    public ValidateOptionsResult Validate(string? name, EnrichmentOptions options)
-    {
-        var e = options.Energy;
-
-        if (e.CarnotEfficiency is <= 0 or >= 1)
-        {
-            return ValidateOptionsResult.Fail(
-                $"Energy.CarnotEfficiency must be between 0 and 1 (exclusive), got {e.CarnotEfficiency}");
-        }
-
-        if (e.FlowTemp <= 0)
-        {
-            return ValidateOptionsResult.Fail(
-                $"Energy.FlowTemp must be positive, got {e.FlowTemp}");
-        }
-
-        return ValidateOptionsResult.Success;
-    }
-}
-
 public sealed class HistoryOptionsValidator : IValidateOptions<EnrichmentOptions>
 {
     public ValidateOptionsResult Validate(string? name, EnrichmentOptions options)

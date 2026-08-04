@@ -272,39 +272,6 @@ public sealed class StatePayloadBuilderSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void FromEnergy_produces_single_energy_topic()
-    {
-        var snap = SnapshotWith(
-            MakeForecast(M1, (Temperature, 15.0), (WindSpeed, 2.0), (CloudCover, 30.0)));
-        var consensus = ConsensusSnapshot.Compute(snap, FullParams, "lucerne", Time);
-        var result = EnergyResult.Compute(consensus, FullParams, Time, new EnergyOptions());
-
-        var messages = StatePayloadBuilder.FromEnergy(result, "njord");
-
-        Assert.Single(messages);
-        Assert.Equal("njord/lucerne/energy", messages[0].Topic);
-        Assert.True(messages[0].Retain);
-    }
-
-    [Fact(Timeout = 5000)]
-    public void FromEnergy_includes_envelope_fields_when_multiple_models()
-    {
-        var snap = SnapshotWith(
-            MakeForecast(IconD2, (Temperature, 15.0), (WindSpeed, 2.0), (CloudCover, 30.0)),
-            MakeForecast(new("ecmwf_ifs025"), (Temperature, 2.0), (WindSpeed, 10.0), (CloudCover, 90.0)));
-        var consensus = ConsensusSnapshot.Compute(snap, FullParams, "lucerne", Time);
-        var result = EnergyResult.Compute(consensus, FullParams, Time, new EnergyOptions());
-
-        var messages = StatePayloadBuilder.FromEnergy(result, "njord");
-        var payload = JsonNode.Parse(messages[0].Payload)!;
-
-        Assert.NotNull(payload["heating_demand_max"]);
-        Assert.NotNull(payload["cop_estimate_min"]);
-        Assert.NotNull(payload["cop_optimal_conservative"]);
-        Assert.True(payload["heating_demand_max"]!.GetValue<int>() >= payload["heating_demand"]!.GetValue<int>());
-    }
-
-    [Fact(Timeout = 5000)]
     public void FromHistory_produces_single_history_topic()
     {
         var history = new ForecastHistory(30);

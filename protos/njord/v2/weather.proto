@@ -56,7 +56,8 @@ message GetEnrichmentsResponse {
   AlertUpdate alerts = 2;
   IndexUpdate indices = 3;
   TrendUpdate trends = 4;
-  EnergyUpdate energy = 5;
+  reserved 5;
+  reserved "energy";
   DerivedUpdate derived = 6;
   HistoryUpdate history = 7;
   ConsensusUpdate consensus = 8;
@@ -91,7 +92,7 @@ message EnrichmentEvent {
     AlertUpdate alerts = 10;
     IndexUpdate indices = 11;
     TrendUpdate trends = 12;
-    EnergyUpdate energy = 13;
+    // field 13 reserved (energy removed)
     DerivedUpdate derived = 14;
     HistoryUpdate history = 15;
     ConsensusUpdate consensus = 16;
