@@ -46,8 +46,8 @@ public sealed class TrendResultSpec
             MakeForecast(new("m1"), (Temperature, 20.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 3.0)));
 
-        var consensus = ConsensusSnapshot.Compute(snap, Parameters, "lucerne", Time);
-        var result = TrendResult.Compute(consensus, null);
+        var consensus = new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne");
+        var result = new TrendComputer().Compute(consensus, null);
 
         Assert.Equal("lucerne", result.Location);
         Assert.All(result.ParameterTrends.Values, v => Assert.Null(v));
@@ -69,9 +69,9 @@ public sealed class TrendResultSpec
             MakeForecast(new("m2"), (Temperature, 22.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)));
 
-        var prevConsensus = ConsensusSnapshot.Compute(prev, Parameters, "lucerne", Time);
-        var currConsensus = ConsensusSnapshot.Compute(curr, Parameters, "lucerne", Time);
-        var result = TrendResult.Compute(currConsensus, prevConsensus);
+        var prevConsensus = new ConsensusSnapshotFactory(Parameters, Time).Create(prev, "lucerne");
+        var currConsensus = new ConsensusSnapshotFactory(Parameters, Time).Create(curr, "lucerne");
+        var result = new TrendComputer().Compute(currConsensus, prevConsensus);
 
         var tempTrend = result.ParameterTrends["temperature_2m"];
         Assert.NotNull(tempTrend);
@@ -89,9 +89,9 @@ public sealed class TrendResultSpec
             MakeForecast(new("m1"), (Temperature, 20.0), (WeatherCode, 63.0)),
             MakeForecast(new("m2"), (Temperature, 20.0), (WeatherCode, 63.0)));
 
-        var prevConsensus = ConsensusSnapshot.Compute(prev, Parameters, "lucerne", Time);
-        var currConsensus = ConsensusSnapshot.Compute(curr, Parameters, "lucerne", Time);
-        var result = TrendResult.Compute(currConsensus, prevConsensus);
+        var prevConsensus = new ConsensusSnapshotFactory(Parameters, Time).Create(prev, "lucerne");
+        var currConsensus = new ConsensusSnapshotFactory(Parameters, Time).Create(curr, "lucerne");
+        var result = new TrendComputer().Compute(currConsensus, prevConsensus);
 
         Assert.NotNull(result.WeatherChange);
         Assert.Equal("clear", result.WeatherChange.FromCategory);

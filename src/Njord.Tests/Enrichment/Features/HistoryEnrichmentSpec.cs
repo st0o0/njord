@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
+using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Enrichment;
 using Njord.Enrichment.Features;
@@ -25,6 +26,7 @@ public sealed class HistoryEnrichmentSpec
 
         return new HistoryEnrichment(
             Options.Create(options), Options.Create(enrichment), parameters, TimeProvider.System,
+            new HistoryComputer(),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoryEnrichment>.Instance);
     }
 

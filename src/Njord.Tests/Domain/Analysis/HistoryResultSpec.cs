@@ -20,7 +20,7 @@ public sealed class HistoryResultSpec
         var history = new ForecastHistory(30);
         var snapshot = ModelSnapshot.Empty;
 
-        var result = HistoryResult.Compute(history, snapshot, "lucerne", Parameters, Time, new HistoryOptions());
+        var result = new HistoryComputer().Compute(history, snapshot, "lucerne", Parameters, Time, new HistoryOptions());
 
         Assert.Equal("lucerne", result.Location);
         Assert.Empty(result.Mae7d);

@@ -1,61 +1,7 @@
-using Newtonsoft.Json;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 
 namespace Njord.Domain.Analysis;
-
-public enum AlertType
-{
-    Frost,
-    Heat,
-    Storm,
-    HeavyRain,
-    Uv,
-    Fog,
-    Snow,
-    PressureDrop,
-    Thunderstorm,
-}
-
-public enum AlertSeverity
-{
-    None,
-    Yellow,
-    Orange,
-    Red,
-}
-
-public sealed record Alert(
-    [property: JsonProperty("type")] AlertType Type,
-    [property: JsonProperty("severity")] AlertSeverity Severity,
-    [property: JsonProperty("confidence")] double Confidence,
-    [property: JsonProperty("attributes")] IReadOnlyDictionary<string, object?> Attributes,
-    [property: JsonProperty("triggerValue")] double TriggerValue = 0.0,
-    [property: JsonProperty("threshold")] double Threshold = 0.0,
-    [property: JsonProperty("peakValue")] double? PeakValue = null,
-    [property: JsonProperty("hoursUntil")] int? HoursUntil = null,
-    [property: JsonProperty("durationHours")] int? DurationHours = null)
-{
-    public static Alert None(AlertType type) =>
-        new(type, AlertSeverity.None, 0.0, new Dictionary<string, object?>());
-}
-
-public static class AlertTypeExtensions
-{
-    public static string ToTopicSegment(this AlertType type) => type switch
-    {
-        AlertType.Frost => "frost",
-        AlertType.Heat => "heat",
-        AlertType.Storm => "storm",
-        AlertType.HeavyRain => "heavy-rain",
-        AlertType.Uv => "uv",
-        AlertType.Fog => "fog",
-        AlertType.Snow => "snow",
-        AlertType.PressureDrop => "pressure-drop",
-        AlertType.Thunderstorm => "thunderstorm",
-        _ => type.ToString().ToLowerInvariant(),
-    };
-}
 
 public static class AlertEvaluator
 {

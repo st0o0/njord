@@ -28,7 +28,7 @@ public sealed class DerivedEnrichmentSpec
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
         return new DerivedEnrichment(
-            Options.Create(options), Options.Create(enrichment), parameters, new FakeTimeProvider(T0));
+            Options.Create(options), Options.Create(enrichment), new DerivedResultComputer(parameters));
     }
 
     private static ModelForecast BuildForecast(string location)
@@ -56,7 +56,7 @@ public sealed class DerivedEnrichmentSpec
         var feature = CreateFeature();
         var snapshot = ModelSnapshot.Empty.Update(BuildForecast("lucerne"));
 
-        var consensus = ConsensusSnapshot.Compute(snapshot, Parameters, "lucerne", new FakeTimeProvider(T0));
+        var consensus = new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(snapshot, "lucerne");
         var events = feature.Compute(consensus).ToList();
 
         var update = Assert.Single(events);
@@ -71,7 +71,7 @@ public sealed class DerivedEnrichmentSpec
     {
         var feature = CreateFeature();
 
-        var consensus = ConsensusSnapshot.Compute(ModelSnapshot.Empty, Parameters, "lucerne", new FakeTimeProvider(T0));
+        var consensus = new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(ModelSnapshot.Empty, "lucerne");
         var events = feature.Compute(consensus).ToList();
 
         var update = Assert.Single(events);

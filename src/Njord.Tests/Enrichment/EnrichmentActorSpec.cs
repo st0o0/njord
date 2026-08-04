@@ -3,6 +3,7 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Configuration;
+using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
@@ -41,12 +42,12 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
         IEnumerable<IEnrichmentFeature> features = [];
+        var consensusFactory = new ConsensusSnapshotFactory(parameters, TimeProvider.System);
 
         return Sys.ActorOf(Props.Create(() => new EnrichmentActor(
             optionsWrapped,
             enrichmentWrapped,
-            parameters,
-            TimeProvider.System,
+            consensusFactory,
             features)));
     }
 

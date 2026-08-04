@@ -11,9 +11,8 @@ namespace Njord.Enrichment.Features;
 
 internal sealed class DerivedEnrichment : IStatelessEnrichment
 {
-    private readonly ResolvedParameterSet _parameters;
+    private readonly DerivedResultComputer _computer;
     private readonly IReadOnlyList<int> _horizons;
-    private readonly TimeProvider _timeProvider;
     private readonly bool _enabled;
 
     public string TypeName => "derived";
@@ -22,12 +21,10 @@ internal sealed class DerivedEnrichment : IStatelessEnrichment
     public DerivedEnrichment(
         IOptions<NjordOptions> options,
         IOptions<EnrichmentOptions> enrichmentOptions,
-        ResolvedParameterSet parameters,
-        TimeProvider timeProvider)
+        DerivedResultComputer computer)
     {
-        _parameters = parameters;
+        _computer = computer;
         _horizons = [.. options.Value.Horizons];
-        _timeProvider = timeProvider;
         _enabled = enrichmentOptions.Value.Derived.Enabled;
     }
 
@@ -36,7 +33,7 @@ internal sealed class DerivedEnrichment : IStatelessEnrichment
 
     public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus, SensorSnapshot? sensors = null)
     {
-        var result = DerivedResult.Compute(consensus, _horizons, _parameters, _timeProvider);
+        var result = _computer.Compute(consensus, _horizons);
         yield return new EgressEvent.EnrichmentUpdate(consensus.Location, TypeName, result);
     }
 

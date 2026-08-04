@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
+using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Enrichment;
 using Njord.Enrichment.Features;
@@ -24,10 +25,11 @@ public sealed class EnrichmentFeatureContractSpec
         return
         [
             new AlertEnrichment(enrichmentWrapped, TimeProvider.System),
-            new DerivedEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System),
-            new TrendEnrichment(enrichmentWrapped),
-            new IndexEnrichment(enrichmentWrapped, optionsWrapped, parameters, TimeProvider.System),
+            new DerivedEnrichment(optionsWrapped, enrichmentWrapped, new DerivedResultComputer(parameters)),
+            new TrendEnrichment(enrichmentWrapped, new TrendComputer()),
+            new IndexEnrichment(enrichmentWrapped, optionsWrapped, new IndexComputer(parameters, TimeProvider.System)),
             new HistoryEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System,
+                new HistoryComputer(),
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoryEnrichment>.Instance),
         ];
     }

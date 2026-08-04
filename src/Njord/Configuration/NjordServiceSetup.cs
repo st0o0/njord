@@ -1,6 +1,7 @@
 using Akka.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Enrichment;
 using Njord.Enrichment.Features;
@@ -60,6 +61,11 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         var mqttEnabled = configuration
             .GetSection($"{NjordOptions.SectionName}:Mqtt")
             .GetValue("Enabled", false);
+        services.AddSingleton<ConsensusSnapshotFactory>();
+        services.AddSingleton<IndexComputer>();
+        services.AddSingleton<TrendComputer>();
+        services.AddSingleton<DerivedResultComputer>();
+        services.AddSingleton<HistoryComputer>();
         services.AddSingleton<IEnrichmentFeature, AlertEnrichment>();
         services.AddSingleton<IEnrichmentFeature, DerivedEnrichment>();
         services.AddSingleton<IEnrichmentFeature, TrendEnrichment>();
