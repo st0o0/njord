@@ -150,12 +150,15 @@ public sealed class WeatherGrpcService(
 
         var mat = actorSystem.Materializer();
 
+        var killSwitch = KillSwitches.Shared($"grpc-forecast-{context.Peer}");
+        await using var ctr = context.CancellationToken.Register(() => killSwitch.Shutdown());
+
         await sourceResponse.SourceRef.Source
             .Collect(e => e is EgressEvent.PerModelUpdate, e => (EgressEvent.PerModelUpdate)e)
             .Where(u => string.IsNullOrEmpty(request.Location) ||
                         string.Equals(u.Location, request.Location, StringComparison.OrdinalIgnoreCase))
             .Log("grpc-stream-forecast", u => $"{u.Location}/{u.Model.Id}")
-            .TakeWhile(_ => !context.CancellationToken.IsCancellationRequested)
+            .Via(killSwitch.Flow<EgressEvent.PerModelUpdate>())
             .SelectAsync(1, async update =>
             {
                 var proto = MapForecastUpdate(update, timeProvider.GetUtcNow());
@@ -176,12 +179,15 @@ public sealed class WeatherGrpcService(
 
         var mat = actorSystem.Materializer();
 
+        var killSwitch = KillSwitches.Shared($"grpc-enrichment-{context.Peer}");
+        await using var ctr = context.CancellationToken.Register(() => killSwitch.Shutdown());
+
         await sourceResponse.SourceRef.Source
             .Collect(e => e is EgressEvent.EnrichmentUpdate, e => (EgressEvent.EnrichmentUpdate)e)
             .Where(u => string.IsNullOrEmpty(request.Location) ||
                         string.Equals(u.Location, request.Location, StringComparison.OrdinalIgnoreCase))
             .Log("grpc-stream-enrichment", u => $"{u.Location}/{u.TypeName}")
-            .TakeWhile(_ => !context.CancellationToken.IsCancellationRequested)
+            .Via(killSwitch.Flow<EgressEvent.EnrichmentUpdate>())
             .SelectAsync(1, async update =>
             {
                 var updatedAt = update.UpdatedAt ?? timeProvider.GetUtcNow();

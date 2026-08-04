@@ -45,11 +45,6 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
             .PipeTo(Self, success: r => new SchedulerResolved(r));
     }
 
-    protected override void PostStop()
-    {
-        base.PostStop();
-    }
-
     private void Initializing()
     {
         Receive<SchedulerResolved>(msg => MaterializePipeline(msg.Ref));

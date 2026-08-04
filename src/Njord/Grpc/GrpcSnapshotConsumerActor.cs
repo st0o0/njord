@@ -2,158 +2,102 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Njord.Actors;
 using Njord.Egress;
 using Njord.Pipeline;
 using Servus.Akka;
 
 namespace Njord.Grpc;
 
-public sealed class GrpcSnapshotConsumerActor : ReceiveActor, IWithStash
+public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
 {
-    private readonly HashSet<IActorRef> _watchedDeps = [];
-    private ILoggingAdapter _log = null!;
-    private IMaterializer? _mat;
-    private ISourceRef<EgressEvent>? _pendingSourceRef;
-    private IActorRef? _lastTerminatedRef;
-    private int _retryCount;
-    private SharedKillSwitch _killSwitch = KillSwitches.Shared("stream-kill");
-
-    public IStash Stash { get; set; } = null!;
+    private ISourceRef<EgressEvent>? _sourceRef;
+    private IActorRef? _forecastActor;
+    private IActorRef? _enrichmentActor;
 
     private sealed record EgressResolved(IActorRef Ref);
-    private sealed record RetryResolve;
     private sealed record SnapshotActorsResolved(IActorRef Forecast, IActorRef Enrichment);
 
-    public GrpcSnapshotConsumerActor()
-    {
-        WaitingForSource();
-    }
-
-    protected override void PreStart()
-    {
-        _log = Context.GetLogger();
-        _mat = Context.Materializer();
-        RequestEgressSource();
-    }
-
-    protected override void PostStop()
-    {
-        base.PostStop();
-    }
-
-    private void RequestEgressSource()
+    protected override void ResolveDependencies()
     {
         Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
     }
 
-    private void WaitingForSource()
+    protected override void ConfigureWaitingForRefs()
     {
-        Receive<RetryResolve>(_ =>
-        {
-            _lastTerminatedRef = null;
-            RequestEgressSource();
-        });
         Receive<EgressResolved>(msg =>
         {
-            if (Equals(msg.Ref, _lastTerminatedRef))
+            if (IsDeadRef(msg.Ref))
             {
                 ScheduleRetryResolve();
                 return;
             }
 
-            _watchedDeps.Add(msg.Ref);
-            Context.Watch(msg.Ref);
+            TrackDependency(msg.Ref);
             msg.Ref.Tell(new RequestEgressSource());
         });
         Receive<EgressSourceResponse>(response =>
         {
-            if (_lastTerminatedRef is not null)
-            {
-                return;
-            }
-
-            _pendingSourceRef = response.SourceRef;
+            _sourceRef = response.SourceRef;
 
             var forecastTask = Context.GetActorAsync<ForecastSnapshotActor>();
             var enrichmentTask = Context.GetActorAsync<EnrichmentSnapshotActor>();
             Task.WhenAll(forecastTask, enrichmentTask)
                 .PipeTo(Self, success: _ => new SnapshotActorsResolved(forecastTask.Result, enrichmentTask.Result));
-
-            Become(WaitingForSnapshotActors);
         });
-        Receive<Terminated>(OnTerminated);
-        ReceiveAny(_ => Stash.Stash());
-    }
-
-    private void WaitingForSnapshotActors()
-    {
         Receive<SnapshotActorsResolved>(msg =>
         {
-            MaterializeGraph(_pendingSourceRef!, msg.Forecast, msg.Enrichment);
-            _pendingSourceRef = null;
-            _log.Debug("gRPC snapshot consumer materialized — capturing forecasts and enrichments");
-            Become(Ready);
-            Stash.UnstashAll();
+            _forecastActor = msg.Forecast;
+            _enrichmentActor = msg.Enrichment;
+            TryTransition();
         });
-        Receive<Terminated>(OnTerminated);
-        ReceiveAny(_ => Stash.Stash());
     }
 
-    private void Ready()
-    {
-        Receive<Terminated>(OnTerminated);
-    }
+    protected override bool AllRefsReady() =>
+        _sourceRef is not null && _forecastActor is not null && _enrichmentActor is not null;
 
-    private void OnTerminated(Terminated msg)
+    protected override void MaterializeGraph(SharedKillSwitch killSwitch)
     {
-        if (!_watchedDeps.Remove(msg.ActorRef))
-        {
-            return;
-        }
+        var log = Context.GetLogger();
+        var forecastActor = _forecastActor!;
+        var enrichmentActor = _enrichmentActor!;
 
-        _log.Warning("Watched actor {Actor} terminated — re-requesting source", msg.ActorRef.Path.Name);
-        _lastTerminatedRef = msg.ActorRef;
-        _retryCount = 0;
-        _pendingSourceRef = null;
-        _killSwitch.Shutdown();
-        _killSwitch = KillSwitches.Shared("stream-kill");
-        RequestEgressSource();
-        Become(WaitingForSource);
-    }
-
-    private void MaterializeGraph(ISourceRef<EgressEvent> sourceRef, IActorRef forecastActor, IActorRef enrichmentActor)
-    {
-        sourceRef.Source
-            .Via(_killSwitch.Flow<EgressEvent>())
+        _sourceRef!.Source
+            .Via(killSwitch.Flow<EgressEvent>())
             .Log("grpc-snapshot-in", e => e switch
             {
                 EgressEvent.PerModelUpdate u => $"model {u.Location}/{u.Model.Id}",
                 EgressEvent.EnrichmentUpdate u => $"enrich {u.Location}/{u.TypeName}",
                 _ => "?",
-            }, _log)
-            .SelectAsync(1, async update => update switch
+            }, log)
+            .SelectAsync(1, async update =>
             {
-                EgressEvent.PerModelUpdate pmu =>
-                    await forecastActor.Ask<Ack>(
-                        new UpdateForecast(pmu.Location, pmu.Model, pmu.Forecast))
-                    is var _ ? update : update,
+                switch (update)
+                {
+                    case EgressEvent.PerModelUpdate pmu:
+                        await forecastActor.Ask<Ack>(
+                            new UpdateForecast(pmu.Location, pmu.Model, pmu.Forecast));
+                        break;
 
-                EgressEvent.EnrichmentUpdate eu =>
-                    await enrichmentActor.Ask<Ack>(
-                        new UpdateEnrichment(eu.Location, eu.TypeName, eu.Result))
-                    is var _ ? update : update,
+                    case EgressEvent.EnrichmentUpdate eu:
+                        await enrichmentActor.Ask<Ack>(
+                            new UpdateEnrichment(eu.Location, eu.TypeName, eu.Result));
+                        break;
+                }
 
-                _ => update,
+                return update;
             })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(log)))
             .To(Sink.Ignore<EgressEvent>())
-            .Run(_mat!);
+            .Run(Mat);
+
+        log.Debug("gRPC snapshot consumer materialized — capturing forecasts and enrichments");
     }
 
-    private void ScheduleRetryResolve()
+    protected override void OnDependencyLost()
     {
-        var delay = TimeSpan.FromSeconds(Math.Min(Math.Pow(2, _retryCount), 30));
-        _retryCount++;
-        Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryResolve(), Self);
+        _sourceRef = null;
+        _forecastActor = null;
+        _enrichmentActor = null;
     }
 }

@@ -190,11 +190,14 @@ public sealed class EnrichmentActor : StreamConsumerActor
         IActorRef sensorHub,
         ILoggingAdapter log)
     {
-        ConsensusSnapshot? previous = null;
-
         return Flow.Create<ConsensusSnapshot>()
-            .SelectAsync(1, async consensus =>
+            .Scan(
+                (Previous: (ConsensusSnapshot?)null, Current: (ConsensusSnapshot?)null),
+                (state, consensus) => (Previous: state.Current, Current: consensus))
+            .Skip(1)
+            .SelectAsync(1, async pair =>
             {
+                var consensus = pair.Current!;
                 SensorSnapshot? sensors = null;
                 try
                 {
@@ -202,14 +205,12 @@ public sealed class EnrichmentActor : StreamConsumerActor
                         new GetSnapshot(consensus.Location), TimeSpan.FromSeconds(1));
                     sensors = response.Snapshot;
                 }
-                catch
+                catch (AskTimeoutException)
                 {
                     log.Warning("SensorHub Ask timed out for {Location}, proceeding without sensor data", consensus.Location);
                 }
 
-                var prev = previous;
-                previous = consensus;
-                var events = ComputeAll(consensus, prev, sensors, consensusEgressEnabled, stateless, stateful).ToList();
+                var events = ComputeAll(consensus, pair.Previous, sensors, consensusEgressEnabled, stateless, stateful).ToList();
                 if (events.Count > 0)
                 {
                     var features = string.Join(

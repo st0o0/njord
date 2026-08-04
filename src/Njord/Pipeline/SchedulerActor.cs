@@ -62,11 +62,6 @@ public sealed class SchedulerActor : ReceivePersistentActor
             .PipeTo(Self, success: r => new PipelineResolved(r));
     }
 
-    protected override void PostStop()
-    {
-        base.PostStop();
-    }
-
     private void WaitingForPipeline()
     {
         Command<PipelineResolved>(msg =>
