@@ -17,11 +17,11 @@ internal sealed class TrendEnrichment : IStatefulEnrichment
     public bool Enabled => _enabled;
 
     public TrendEnrichment(
-        IOptions<EnrichmentOptions> enrichmentOptions,
+        IOptions<NjordOptions> options,
         TrendComputer computer)
     {
         _computer = computer;
-        _enabled = enrichmentOptions.Value.Trends.Enabled;
+        _enabled = options.Value.Enrichment.Trends.Enabled;
     }
 
     public string DeviceId(string location) =>

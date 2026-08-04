@@ -17,15 +17,15 @@ public sealed class HistoryEnrichmentSpec
         {
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
             Models = ["icon_d2"],
-        };
-        var enrichment = new EnrichmentOptions
-        {
-            History = new HistoryOptions { Enabled = enabled },
+            Enrichment = new EnrichmentOptions
+            {
+                History = new HistoryOptions { Enabled = enabled },
+            },
         };
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
         return new HistoryEnrichment(
-            Options.Create(options), Options.Create(enrichment), parameters, TimeProvider.System,
+            Options.Create(options), parameters, TimeProvider.System,
             new HistoryComputer(),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoryEnrichment>.Instance);
     }

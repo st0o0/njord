@@ -16,11 +16,14 @@ public sealed class TrendEnrichmentSpec
 
     private static TrendEnrichment CreateFeature(bool enabled = true)
     {
-        var enrichment = new EnrichmentOptions
+        var options = new NjordOptions
         {
-            Trends = new TrendOptions { Enabled = enabled },
+            Enrichment = new EnrichmentOptions
+            {
+                Trends = new TrendOptions { Enabled = enabled },
+            },
         };
-        return new TrendEnrichment(Options.Create(enrichment), new TrendComputer());
+        return new TrendEnrichment(Options.Create(options), new TrendComputer());
     }
 
     private static ModelSnapshot MakeSnapshot(double baseTemp = 20.0)

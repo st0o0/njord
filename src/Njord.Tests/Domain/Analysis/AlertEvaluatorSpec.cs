@@ -400,7 +400,7 @@ public sealed class AlertEvaluatorSpec
     public void EvaluateAll_returns_9_alerts()
     {
         var snap = SnapshotWith(MakeForecast(new("m1"), (Temperature, 15.0)));
-        var options = new AlertThresholdOptions();
+        var options = new AlertOptions();
 
         var result = AlertEvaluator.EvaluateAll(ToConsensus(snap), options, Time);
 

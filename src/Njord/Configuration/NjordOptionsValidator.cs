@@ -80,7 +80,7 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
 
             foreach (var location in options.Locations)
             {
-                var effectiveModels = location.ResolveModels(options.Models);
+                var effectiveModels = options.Models.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase).ToList();
                 totalModelsPerCycle += effectiveModels.Count;
 
                 foreach (var modelId in effectiveModels)
@@ -99,7 +99,7 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
                 }
             }
 
-            var budget = options.EffectiveBudget;
+            var budget = BudgetCalculator.GetEffectiveBudget(options);
             var cyclesPerMonth = Month.TotalMinutes / options.PollInterval.TotalMinutes;
             var projected = (int)Math.Round(totalModelsPerCycle * cyclesPerMonth * resolved.ApiCallWeight);
             var guard = (int)Math.Round(budget.RequestsPerMonth * MonthlyBudgetGuardFactor);

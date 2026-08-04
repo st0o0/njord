@@ -21,11 +21,14 @@ public sealed class AlertEnrichmentSpec
 
     private static AlertEnrichment CreateFeature(bool enabled = true)
     {
-        var enrichment = new EnrichmentOptions
+        var options = new NjordOptions
         {
-            Alerts = new AlertThresholdOptions { Enabled = enabled },
+            Enrichment = new EnrichmentOptions
+            {
+                Alerts = new AlertOptions { Enabled = enabled },
+            },
         };
-        return new AlertEnrichment(Options.Create(enrichment), new FakeTimeProvider(T0));
+        return new AlertEnrichment(Options.Create(options), new FakeTimeProvider(T0));
     }
 
     private static ModelSnapshot MakeSnapshot()

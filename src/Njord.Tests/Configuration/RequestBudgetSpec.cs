@@ -30,8 +30,8 @@ public sealed class RequestBudgetSpec
             BudgetOverride = new RequestBudget(5_000, 10),
         };
 
-        Assert.Equal(5_000, options.EffectiveBudget.RequestsPerMonth);
-        Assert.Equal(10, options.EffectiveBudget.RequestsPerMinute);
+        Assert.Equal(5_000, BudgetCalculator.GetEffectiveBudget(options).RequestsPerMonth);
+        Assert.Equal(10, BudgetCalculator.GetEffectiveBudget(options).RequestsPerMinute);
     }
 
     [Fact(Timeout = 5000)]
@@ -39,6 +39,6 @@ public sealed class RequestBudgetSpec
     {
         var options = new NjordOptions();
 
-        Assert.Equal(RequestBudget.OpenMeteoFreeTier, options.EffectiveBudget);
+        Assert.Equal(RequestBudget.OpenMeteoFreeTier, BudgetCalculator.GetEffectiveBudget(options));
     }
 }

@@ -5,7 +5,7 @@ namespace Njord.Tests.Configuration;
 
 public sealed class EnrichmentOptionsValidationSpec
 {
-    private static EnrichmentOptions Default() => new();
+    private static NjordOptions Default() => new();
 
     // --- ConsensusOptionsValidator ---
 
@@ -16,7 +16,7 @@ public sealed class EnrichmentOptionsValidationSpec
     public void consensus_valid_methods_accepted(string method)
     {
         var opts = Default();
-        opts.Consensus.Method = method;
+        opts.Enrichment.Consensus.Method = method;
         var result = new ConsensusOptionsValidator().Validate(null, opts);
         Assert.True(result.Succeeded);
     }
@@ -25,7 +25,7 @@ public sealed class EnrichmentOptionsValidationSpec
     public void consensus_invalid_method_rejected()
     {
         var opts = Default();
-        opts.Consensus.Method = "InvalidMethod";
+        opts.Enrichment.Consensus.Method = "InvalidMethod";
         var result = new ConsensusOptionsValidator().Validate(null, opts);
         Assert.True(result.Failed);
         Assert.Contains("InvalidMethod", result.FailureMessage);
@@ -35,8 +35,8 @@ public sealed class EnrichmentOptionsValidationSpec
     public void consensus_trimmed_mean_with_valid_trim_percent_accepted()
     {
         var opts = Default();
-        opts.Consensus.Method = "TrimmedMean";
-        opts.Consensus.TrimPercent = 0.1;
+        opts.Enrichment.Consensus.Method = "TrimmedMean";
+        opts.Enrichment.Consensus.TrimPercent = 0.1;
         var result = new ConsensusOptionsValidator().Validate(null, opts);
         Assert.True(result.Succeeded);
     }
@@ -49,8 +49,8 @@ public sealed class EnrichmentOptionsValidationSpec
     public void consensus_trimmed_mean_with_invalid_trim_percent_rejected(double trimPercent)
     {
         var opts = Default();
-        opts.Consensus.Method = "TrimmedMean";
-        opts.Consensus.TrimPercent = trimPercent;
+        opts.Enrichment.Consensus.Method = "TrimmedMean";
+        opts.Enrichment.Consensus.TrimPercent = trimPercent;
         var result = new ConsensusOptionsValidator().Validate(null, opts);
         Assert.True(result.Failed);
         Assert.Contains("TrimPercent", result.FailureMessage);
@@ -60,8 +60,8 @@ public sealed class EnrichmentOptionsValidationSpec
     public void consensus_non_trimmed_mean_ignores_trim_percent()
     {
         var opts = Default();
-        opts.Consensus.Method = "Median";
-        opts.Consensus.TrimPercent = 0.9;
+        opts.Enrichment.Consensus.Method = "Median";
+        opts.Enrichment.Consensus.TrimPercent = 0.9;
         var result = new ConsensusOptionsValidator().Validate(null, opts);
         Assert.True(result.Succeeded);
     }
@@ -79,7 +79,7 @@ public sealed class EnrichmentOptionsValidationSpec
     public void history_zero_snapshot_interval_rejected()
     {
         var opts = Default();
-        opts.History.SnapshotInterval = 0;
+        opts.Enrichment.History.SnapshotInterval = 0;
         var result = new HistoryOptionsValidator().Validate(null, opts);
         Assert.True(result.Failed);
         Assert.Contains("SnapshotInterval", result.FailureMessage);
@@ -89,7 +89,7 @@ public sealed class EnrichmentOptionsValidationSpec
     public void history_negative_retention_days_rejected()
     {
         var opts = Default();
-        opts.History.RetentionDays = -1;
+        opts.Enrichment.History.RetentionDays = -1;
         var result = new HistoryOptionsValidator().Validate(null, opts);
         Assert.True(result.Failed);
         Assert.Contains("RetentionDays", result.FailureMessage);
@@ -99,7 +99,7 @@ public sealed class EnrichmentOptionsValidationSpec
     public void history_zero_min_sample_size_rejected()
     {
         var opts = Default();
-        opts.History.MinSampleSize = 0;
+        opts.Enrichment.History.MinSampleSize = 0;
         var result = new HistoryOptionsValidator().Validate(null, opts);
         Assert.True(result.Failed);
         Assert.Contains("MinSampleSize", result.FailureMessage);

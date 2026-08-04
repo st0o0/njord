@@ -1,12 +1,6 @@
 namespace Njord.Configuration;
 
-public enum PersistenceProvider
-{
-    Sqlite,
-    PostgreSql,
-}
-
-public sealed record PersistenceOptions
+public sealed class PersistenceOptions
 {
     public PersistenceProvider Provider { get; set; } = PersistenceProvider.Sqlite;
     public string? ConnectionString { get; set; }

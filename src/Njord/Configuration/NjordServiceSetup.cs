@@ -24,6 +24,10 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
             .Bind(configuration.GetSection(NjordOptions.SectionName))
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<NjordOptions>, NjordOptionsValidator>();
+        services.AddSingleton<IValidateOptions<NjordOptions>, ConsensusOptionsValidator>();
+        services.AddSingleton<IValidateOptions<NjordOptions>, HistoryOptionsValidator>();
+        services.AddSingleton<IValidateOptions<NjordOptions>, IndexOptionsValidator>();
+        services.AddSingleton<IValidateOptions<NjordOptions>, SensorOptionsValidator>();
         services.AddSingleton(sp =>
         {
             var options = sp.GetRequiredService<IOptions<NjordOptions>>().Value;
@@ -32,18 +36,6 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
                 options.Parameters.Extra,
                 options.Parameters.Exclude);
         });
-        services
-            .AddOptions<SensorOptions>()
-            .Bind(configuration.GetSection($"{NjordOptions.SectionName}:Sensors"))
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<SensorOptions>, SensorOptionsValidator>();
-        services
-            .AddOptions<EnrichmentOptions>()
-            .Bind(configuration.GetSection($"{NjordOptions.SectionName}:Enrichment"))
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<EnrichmentOptions>, ConsensusOptionsValidator>();
-        services.AddSingleton<IValidateOptions<EnrichmentOptions>, HistoryOptionsValidator>();
-        services.AddSingleton<IValidateOptions<EnrichmentOptions>, IndexOptionsValidator>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
         services.AddSingleton<IBudgetGate<WeightedTarget>>(sp =>

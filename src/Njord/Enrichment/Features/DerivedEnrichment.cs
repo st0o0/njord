@@ -20,12 +20,11 @@ internal sealed class DerivedEnrichment : IStatelessEnrichment
 
     public DerivedEnrichment(
         IOptions<NjordOptions> options,
-        IOptions<EnrichmentOptions> enrichmentOptions,
         DerivedResultComputer computer)
     {
         _computer = computer;
         _horizons = [.. options.Value.Horizons];
-        _enabled = enrichmentOptions.Value.Derived.Enabled;
+        _enabled = options.Value.Enrichment.Derived.Enabled;
     }
 
     public string DeviceId(string location) =>

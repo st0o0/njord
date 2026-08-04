@@ -198,7 +198,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         var now = _timeProvider.GetUtcNow();
         foreach (var location in _options.Locations)
         {
-            foreach (var modelId in location.ResolveModels(_options.Models))
+            foreach (var modelId in _options.Models.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase))
             {
                 var key = Key(location.Name, modelId);
                 if (!_states.ContainsKey(key))
@@ -303,9 +303,10 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
         foreach (var location in locations)
         {
+            var resolved = _options.Models.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase).ToList();
             var models = string.IsNullOrEmpty(msg.Model)
-                ? location.ResolveModels(_options.Models)
-                : location.ResolveModels(_options.Models)
+                ? resolved
+                : resolved
                     .Where(m => m.Equals(msg.Model, StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
@@ -357,9 +358,11 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     private void RecordPollCompletion(string location, bool changed)
     {
-        var total = _options.Locations
-            .FirstOrDefault(l => l.Name.Equals(location, StringComparison.OrdinalIgnoreCase))
-            ?.ResolveModels(_options.Models).Count ?? 0;
+        var matchedLocation = _options.Locations
+            .FirstOrDefault(l => l.Name.Equals(location, StringComparison.OrdinalIgnoreCase));
+        var total = matchedLocation is null
+            ? 0
+            : _options.Models.Union(matchedLocation.Models ?? [], StringComparer.OrdinalIgnoreCase).Count();
         if (total == 0)
         {
             return;

@@ -20,11 +20,10 @@ public sealed class IndexEnrichmentSpec
 
     private static IndexEnrichment CreateFeature()
     {
-        var enrichment = new EnrichmentOptions();
-        var njordOptions = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
+        var options = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
-        return new IndexEnrichment(Options.Create(enrichment), Options.Create(njordOptions), new IndexComputer(parameters, new FakeTimeProvider(T0)));
+        return new IndexEnrichment(Options.Create(options), new IndexComputer(parameters, new FakeTimeProvider(T0)));
     }
 
     private static ModelForecast BuildForecast(string location)
@@ -110,11 +109,10 @@ public sealed class IndexEnrichmentSpec
     [Fact(Timeout = 5000)]
     public void Sensor_indoor_temperature_overrides_config_value()
     {
-        var enrichment = new EnrichmentOptions();
-        enrichment.Indices.Preferences.IndoorTemp = 18.0;
         var njordOptions = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
+        njordOptions.Enrichment.Indices.Preferences.IndoorTemp = 18.0;
         var feature = new IndexEnrichment(
-            Options.Create(enrichment), Options.Create(njordOptions), new IndexComputer(Parameters, new FakeTimeProvider(T0)));
+            Options.Create(njordOptions), new IndexComputer(Parameters, new FakeTimeProvider(T0)));
 
         var consensus = BuildTwoModelConsensus("lucerne");
 
@@ -136,11 +134,10 @@ public sealed class IndexEnrichmentSpec
     [Fact(Timeout = 5000)]
     public void Null_sensor_snapshot_falls_back_to_config_value()
     {
-        var enrichment = new EnrichmentOptions();
-        enrichment.Indices.Preferences.IndoorTemp = 18.0;
         var njordOptions = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
+        njordOptions.Enrichment.Indices.Preferences.IndoorTemp = 18.0;
         var feature = new IndexEnrichment(
-            Options.Create(enrichment), Options.Create(njordOptions), new IndexComputer(Parameters, new FakeTimeProvider(T0)));
+            Options.Create(njordOptions), new IndexComputer(Parameters, new FakeTimeProvider(T0)));
 
         var consensus = BuildTwoModelConsensus("lucerne", temp: 10.0);
 

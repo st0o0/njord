@@ -22,7 +22,7 @@ public static class AlertEvaluator
     private static readonly ParameterDef? DailySnowfallSum = ParameterRegistry.GetByApiName("snowfall_sum");
 
     public static AlertResult EvaluateAll(
-        ConsensusSnapshot consensus, AlertThresholdOptions options, TimeProvider timeProvider)
+        ConsensusSnapshot consensus, AlertOptions options, TimeProvider timeProvider)
     {
         var alerts = new List<Alert>
         {

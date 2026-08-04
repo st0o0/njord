@@ -19,14 +19,13 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
     public bool Enabled => _enabled;
 
     public IndexEnrichment(
-        IOptions<EnrichmentOptions> enrichmentOptions,
-        IOptions<NjordOptions> njordOptions,
+        IOptions<NjordOptions> options,
         IndexComputer indexComputer)
     {
         _indexComputer = indexComputer;
-        _enabled = enrichmentOptions.Value.Indices.Enabled;
-        var locationNames = njordOptions.Value.Locations.Select(l => l.Name);
-        _resolvedPreferences = PreferenceResolver.Resolve(enrichmentOptions.Value.Indices, locationNames);
+        _enabled = options.Value.Enrichment.Indices.Enabled;
+        var locationNames = options.Value.Locations.Select(l => l.Name);
+        _resolvedPreferences = PreferenceResolver.Resolve(options.Value.Enrichment.Indices, locationNames);
     }
 
     public string DeviceId(string location) =>

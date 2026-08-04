@@ -36,9 +36,9 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         EnrichmentOptions? enrichment = null)
     {
         var options = DefaultOptions();
-        enrichment ??= new EnrichmentOptions();
+        if (enrichment is not null)
+            options.Enrichment = enrichment;
         var optionsWrapped = Microsoft.Extensions.Options.Options.Create(options);
-        var enrichmentWrapped = Microsoft.Extensions.Options.Options.Create(enrichment);
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
         IEnumerable<IEnrichmentFeature> features = [];
@@ -46,7 +46,6 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
 
         return Sys.ActorOf(Props.Create(() => new EnrichmentActor(
             optionsWrapped,
-            enrichmentWrapped,
             consensusFactory,
             features)));
     }
@@ -89,7 +88,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         var enrichment = new EnrichmentOptions
         {
             Consensus = new ConsensusOptions { Enabled = true },
-            Alerts = new AlertThresholdOptions { Enabled = true },
+            Alerts = new AlertOptions { Enabled = true },
             Derived = new DerivedOptions { Enabled = true },
         };
         var actor = CreateEnrichmentActor(enrichment);

@@ -61,7 +61,7 @@ public sealed class AdminGrpcService(
                 Models = l.Models.Count > 0 ? [.. l.Models] : null,
             }).ToList();
 
-            var budget = BudgetValidator.Validate(options);
+            var budget = BudgetCalculator.Validate(options);
             if (!budget.WithinBudget)
             {
                 return Rejected($"Would exceed budget: {budget.UsagePercent:F0}% of monthly limit");
@@ -123,7 +123,7 @@ public sealed class AdminGrpcService(
                 };
             }
 
-            var budget = BudgetValidator.Validate(options);
+            var budget = BudgetCalculator.Validate(options);
             if (!budget.WithinBudget)
             {
                 return Rejected($"Would exceed budget: {budget.UsagePercent:F0}% of monthly limit");
@@ -283,7 +283,7 @@ public sealed class AdminGrpcService(
                 }
             }
 
-            var budget = BudgetValidator.Validate(options);
+            var budget = BudgetCalculator.Validate(options);
             await _persistence.SaveAsync(options);
             return Success(options, budget);
         }
@@ -302,7 +302,7 @@ public sealed class AdminGrpcService(
 
             if (request.HasRequestsPerMonth || request.HasRequestsPerMinute)
             {
-                var current = options.BudgetOverride ?? options.EffectiveBudget;
+                var current = options.BudgetOverride ?? BudgetCalculator.GetEffectiveBudget(options);
                 options.BudgetOverride = new RequestBudget(
                     request.HasRequestsPerMonth ? request.RequestsPerMonth : current.RequestsPerMonth,
                     request.HasRequestsPerMinute ? request.RequestsPerMinute : current.RequestsPerMinute);
@@ -312,7 +312,7 @@ public sealed class AdminGrpcService(
                 options.BudgetOverride = null;
             }
 
-            var budget = BudgetValidator.Validate(options);
+            var budget = BudgetCalculator.Validate(options);
             await _persistence.SaveAsync(options);
             return Success(options, budget);
         }
@@ -324,7 +324,7 @@ public sealed class AdminGrpcService(
 
     internal static NjordConfig MapConfig(NjordOptions options)
     {
-        var budget = BudgetValidator.Validate(options);
+        var budget = BudgetCalculator.Validate(options);
 
         var config = new NjordConfig
         {
@@ -358,7 +358,7 @@ public sealed class AdminGrpcService(
                 Latitude = loc.Latitude,
                 Longitude = loc.Longitude,
             };
-            locationInfo.Models.AddRange(loc.ResolveModels(options.Models));
+            locationInfo.Models.AddRange(options.Models.Union(loc.Models ?? [], StringComparer.OrdinalIgnoreCase));
             config.Locations.Add(locationInfo);
         }
 
@@ -456,7 +456,7 @@ public sealed class AdminGrpcService(
                     Method = source.Enrichment.Consensus.Method,
                     TrimPercent = source.Enrichment.Consensus.TrimPercent,
                 },
-                Alerts = new AlertThresholdOptions
+                Alerts = new AlertOptions
                 {
                     Enabled = source.Enrichment.Alerts.Enabled,
                     FrostThreshold = source.Enrichment.Alerts.FrostThreshold,

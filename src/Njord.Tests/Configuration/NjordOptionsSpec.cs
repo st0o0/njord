@@ -9,8 +9,8 @@ public sealed class NjordOptionsSpec
     {
         var options = new NjordOptions();
 
-        Assert.Equal(300_000, options.EffectiveBudget.RequestsPerMonth);
-        Assert.Equal(600, options.EffectiveBudget.RequestsPerMinute);
+        Assert.Equal(300_000, BudgetCalculator.GetEffectiveBudget(options).RequestsPerMonth);
+        Assert.Equal(600, BudgetCalculator.GetEffectiveBudget(options).RequestsPerMinute);
     }
 
     [Fact(Timeout = 5000)]
@@ -20,7 +20,7 @@ public sealed class NjordOptionsSpec
 
         var options = new NjordOptions { BudgetOverride = overrideBudget };
 
-        Assert.Equal(overrideBudget, options.EffectiveBudget);
+        Assert.Equal(overrideBudget, BudgetCalculator.GetEffectiveBudget(options));
     }
 
     [Fact(Timeout = 5000)]
