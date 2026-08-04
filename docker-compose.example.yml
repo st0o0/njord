@@ -62,6 +62,10 @@ services:
       #- Njord__BudgetOverride__RequestsPerMonth=300000
       #- Njord__BudgetOverride__RequestsPerMinute=600
 
+      # ── Sensors (gRPC input for indoor readings) ──────────────
+      #- Njord__Sensors__Enabled=true
+      #- Njord__Sensors__StalenessSeconds=7200
+
       # ── Enrichment ────────────────────────────────────────────
       #- Njord__Enrichment__Consensus__Enabled=true
       #- Njord__Enrichment__Consensus__Method=Median
@@ -80,20 +84,17 @@ services:
       #- Njord__Enrichment__Alerts__ThunderstormGustThreshold=15
       #- Njord__Enrichment__Derived__Enabled=true
       #- Njord__Enrichment__Trends__Enabled=false
+      #- Njord__Enrichment__Indices__Enabled=false
+      #- Njord__Enrichment__Indices__Preferences__IndoorTemp=22
+      #- Njord__Enrichment__Indices__Preferences__IdealOutdoorTemp=22
+      #- Njord__Enrichment__Indices__Preferences__HeatSensitivity=1.0
+      #- Njord__Enrichment__Indices__Preferences__HumiditySensitivity=1.0
+      #- Njord__Enrichment__Indices__Preferences__WindSensitivity=1.0
+      #- Njord__Enrichment__Indices__Preferences__RainSensitivity=1.0
       #- Njord__Enrichment__History__Enabled=false
       #- Njord__Enrichment__History__RetentionDays=30
       #- Njord__Enrichment__History__MinSampleSize=48
       #- Njord__Enrichment__History__SnapshotInterval=100
-      #- Njord__Enrichment__Energy__Enabled=false
-      #- Njord__Enrichment__Energy__FlowTemp=35
-      #- Njord__Enrichment__Energy__CarnotEfficiency=0.45
-      #- Njord__Enrichment__Energy__HeatingBaseTemp=18
-      #- Njord__Enrichment__Energy__CopOptimalHours=3
-      #- Njord__Enrichment__Energy__IndoorTemp=22
-      #- Njord__Enrichment__Indices__Enabled=false
-      #- Njord__Enrichment__Indices__HeatingBaseTemp=18
-      #- Njord__Enrichment__Indices__CoolingBaseTemp=24
-      #- Njord__Enrichment__Indices__IndoorTemp=22
 
 volumes:
   njord-data:

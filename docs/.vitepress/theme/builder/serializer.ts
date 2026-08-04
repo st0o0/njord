@@ -23,6 +23,12 @@ export function exportAsJson(config: NjordConfig): string {
     if (config.parameters.extra.length) (n.Parameters as Record<string, unknown>).Extra = config.parameters.extra
     if (config.parameters.exclude.length) (n.Parameters as Record<string, unknown>).Exclude = config.parameters.exclude
   }
+  if (!config.sensors.enabled || config.sensors.stalenessSeconds !== 7200) {
+    const sensors: Record<string, unknown> = { Enabled: config.sensors.enabled }
+    if (config.sensors.stalenessSeconds !== 7200) sensors.StalenessSeconds = config.sensors.stalenessSeconds
+    n.Sensors = sensors
+  }
+
   const mqtt: Record<string, unknown> = { Enabled: config.mqtt.enabled }
   if (config.mqtt.enabled) {
     mqtt.Host = config.mqtt.host || '<your-mqtt-host>'
@@ -75,6 +81,9 @@ export function exportAsEnvVars(config: NjordConfig): string {
   })
 
   config.parameters.groups.forEach((g, i) => add(`Njord__Parameters__Groups__${i}`, g))
+
+  if (!config.sensors.enabled) add('Njord__Sensors__Enabled', 'false')
+  if (config.sensors.stalenessSeconds !== 7200) add('Njord__Sensors__StalenessSeconds', String(config.sensors.stalenessSeconds))
 
   if (config.mqtt.enabled) {
     add('Njord__Mqtt__Enabled', 'true')
@@ -160,6 +169,12 @@ export function importFromJson(json: string): Partial<NjordConfig> {
       exclude: (n.Parameters.Exclude as string[]) ?? [],
     }
   }
+  if (n.Sensors) {
+    config.sensors = {
+      enabled: n.Sensors.Enabled ?? true,
+      stalenessSeconds: n.Sensors.StalenessSeconds ?? 7200,
+    }
+  }
   if (n.Mqtt) {
     config.mqtt = {
       enabled: n.Mqtt.Enabled ?? false,
@@ -226,6 +241,10 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
       if (!config.enrichment[feature]) config.enrichment[feature] = {}
       const asNum = Number(value)
       config.enrichment[feature][setting] = value === 'true' ? true : value === 'false' ? false : !isNaN(asNum) ? asNum : value
+    }
+    else if (parts[0] === 'Sensors') {
+      if (parts[1] === 'Enabled') config.sensors.enabled = value === 'true'
+      else if (parts[1] === 'StalenessSeconds') config.sensors.stalenessSeconds = parseInt(value) || 7200
     }
     else if (parts[0] === 'Mqtt' && parts[1] === 'Enabled') {
       config.mqtt.enabled = value === 'true'
