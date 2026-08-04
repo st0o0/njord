@@ -50,13 +50,35 @@ derived values, history, consensus). Backed by the
 - **WHEN** an alert result flows through the stream at 06:15:02 UTC
 - **THEN** the `EnrichmentEvent.updated_at` SHALL be `06:15:02Z` (wall-clock time, as `UpdatedAt` is null)
 
-#### Scenario: Index update carries all scores
-- **WHEN** an index enrichment result arrives
-- **THEN** the `IndexUpdate` SHALL contain laundry, outdoor, running, cycling, bbq, irrigation, solar, ventilation scores plus HDD, CDD, frost protection, and VPD
+#### Scenario: Index update carries daily slices
+- **WHEN** an index enrichment result arrives with 3 day score sets
+- **THEN** the `IndexUpdate` SHALL contain 3 `DayScoreSet` entries with scores, envelopes, frost, and VPD
 
 ### Requirement: Proto messages map all enrichment domain types
 
+The `EnrichmentProtoMapper.MapIndices` method SHALL accept an `IndexResult` (with `Days` list) and return an `IndexUpdate` with `repeated DayScoreSet days`. For each `DayScoreSet` in the domain result, the mapper SHALL create a proto `DayScoreSet` with all 8 scores, `hours_included`, and `ScoreEnvelope` fields (when non-null). `FrostProtection` SHALL be mapped to `FrostInfo` on the `IndexUpdate`. `Vpd` SHALL be mapped to `VpdInfo` on the `IndexUpdate`.
+
 The `ConsensusUpdate` proto message SHALL carry hourly and daily parameter consensus. The `daily_summaries` field (which mapped `DailyConsensusSummary`) SHALL be deprecated. Daily consensus SHALL be represented as `ParameterConsensus` entries in a `daily_parameters` repeated field with `dN` horizon keys.
+
+#### Scenario: MapIndices produces per-day entries
+- **WHEN** `MapIndices` is called with an `IndexResult` containing 3 day score sets
+- **THEN** the returned `IndexUpdate.Days` SHALL contain 3 `DayScoreSet` entries
+
+#### Scenario: MapIndices maps envelopes
+- **WHEN** a `DayScoreSet` has a non-null `OutdoorEnvelope` with min=65, max=80, confidence=0.9
+- **THEN** the proto `DayScoreSet.outdoor_envelope` SHALL have `min=65`, `max=80`, `confidence=0.9`
+
+#### Scenario: MapIndices maps frost info
+- **WHEN** `IndexResult.FrostProtection` is `FrostProtectionInfo(14, 0.75)`
+- **THEN** `IndexUpdate.frost` SHALL have `hours_until_frost=14`, `confidence=0.75`
+
+#### Scenario: MapIndices omits frost when null
+- **WHEN** `IndexResult.FrostProtection` is null
+- **THEN** `IndexUpdate.frost` SHALL not be set
+
+#### Scenario: MapIndices maps VPD
+- **WHEN** `IndexResult.Vpd` is `VpdInfo("high", 1.27)`
+- **THEN** `IndexUpdate.vpd` SHALL have `category="high"`, `kpa=1.27`
 
 #### Scenario: AlertUpdate carries 9 alert types
 - **WHEN** an alert update is mapped to proto
