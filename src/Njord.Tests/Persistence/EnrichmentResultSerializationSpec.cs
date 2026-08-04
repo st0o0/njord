@@ -26,10 +26,11 @@ public sealed class EnrichmentResultSerializationSpec
                     DurationHours: 4),
             ]),
         ["lucerne|indices"] = new IndexResult(
-            "lucerne", 80, 90, 70, 85, 95, 60, 88, 75,
+            "lucerne",
+            [new DayScoreSet(0, 80, 90, 70, 85, 95, 60, 88, 75, HoursIncluded: 14,
+                LaundryEnvelope: new ScoreEnvelope(70, 90, 0.75))],
             new FrostProtectionInfo(6, 0.9),
-            new VpdInfo("moderate", 0.8),
-            new ScoreEnvelope(70, 90, 0.75)),
+            new VpdInfo("moderate", 0.8)),
         ["lucerne|trends"] = new TrendResult(
             "lucerne",
             new Dictionary<string, ParameterTrend?>
@@ -83,13 +84,13 @@ public sealed class EnrichmentResultSerializationSpec
         Assert.Equal(4, alert.DurationHours);
 
         var indices = Assert.IsType<IndexResult>(result["lucerne|indices"]);
-        Assert.Equal(80, indices.Laundry);
+        Assert.Equal(80, indices.Days[0].Laundry);
         Assert.NotNull(indices.FrostProtection);
         Assert.Equal(6, indices.FrostProtection!.HoursUntilFrost);
         Assert.NotNull(indices.Vpd);
         Assert.Equal("moderate", indices.Vpd!.Category);
-        Assert.NotNull(indices.LaundryEnvelope);
-        Assert.Equal(70, indices.LaundryEnvelope!.Min);
+        Assert.NotNull(indices.Days[0].LaundryEnvelope);
+        Assert.Equal(70, indices.Days[0].LaundryEnvelope!.Min);
 
         var trends = Assert.IsType<TrendResult>(result["lucerne|trends"]);
         Assert.Equal("rising", trends.ParameterTrends["temperature_2m"]!.Direction);

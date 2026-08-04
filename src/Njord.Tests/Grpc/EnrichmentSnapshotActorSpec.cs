@@ -22,7 +22,7 @@ public sealed class EnrichmentSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
     public async Task Update_and_retrieve_an_enrichment()
     {
         var actor = CreateActor();
-        var result = new IndexResult("lucerne", 80, 90, 70, 85, 95, 60, 88, 75, null, null);
+        var result = new IndexResult("lucerne", [new DayScoreSet(0, 80, 90, 70, 85, 95, 60, 88, 75, HoursIncluded: 14)], null, null);
 
         var ack = await actor.Ask<Ack>(new UpdateEnrichment("lucerne", "indices", result));
         Assert.NotNull(ack);
@@ -37,7 +37,7 @@ public sealed class EnrichmentSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var actor = CreateActor();
         await actor.Ask<Ack>(new UpdateEnrichment("lucerne", "indices",
-            new IndexResult("lucerne", 80, 90, 70, 85, 95, 60, 88, 75, null, null)));
+            new IndexResult("lucerne", [new DayScoreSet(0, 80, 90, 70, 85, 95, 60, 88, 75, HoursIncluded: 14)], null, null)));
         await actor.Ask<Ack>(new UpdateEnrichment("lucerne", "alerts",
             new AlertResult("lucerne", [])));
 

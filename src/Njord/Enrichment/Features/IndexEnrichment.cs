@@ -11,8 +11,7 @@ namespace Njord.Enrichment.Features;
 
 internal sealed class IndexEnrichment : IStatelessEnrichment
 {
-    private readonly ResolvedParameterSet _parameters;
-    private readonly TimeProvider _timeProvider;
+    private readonly IndexComputer _indexComputer;
     private readonly IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> _resolvedPreferences;
     private readonly bool _enabled;
 
@@ -22,11 +21,9 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
     public IndexEnrichment(
         IOptions<EnrichmentOptions> enrichmentOptions,
         IOptions<NjordOptions> njordOptions,
-        ResolvedParameterSet parameters,
-        TimeProvider timeProvider)
+        IndexComputer indexComputer)
     {
-        _parameters = parameters;
-        _timeProvider = timeProvider;
+        _indexComputer = indexComputer;
         _enabled = enrichmentOptions.Value.Indices.Enabled;
         var locationNames = njordOptions.Value.Locations.Select(l => l.Name);
         _resolvedPreferences = PreferenceResolver.Resolve(enrichmentOptions.Value.Indices, locationNames);
@@ -41,7 +38,7 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
             ? OverrideIndoorTemp(_resolvedPreferences, consensus.Location, liveTemp)
             : _resolvedPreferences;
 
-        var result = IndexResult.Compute(consensus, _parameters, _timeProvider, prefs);
+        var result = _indexComputer.Compute(consensus, prefs);
         yield return new EgressEvent.EnrichmentUpdate(consensus.Location, TypeName, result);
     }
 
@@ -59,33 +56,76 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
         return result;
     }
 
+    private static readonly string[] DayOffsets = ["d0", "d1", "d2"];
+
+    private static readonly string[] ScoreSensors =
+        ["laundry", "outdoor", "running", "cycling", "bbq", "irrigation", "solar", "night_ventilation"];
+
     public string BuildDiscoveryPayload(DiscoveryContext ctx, string location)
     {
         var deviceId = DeviceId(location);
         var availabilityTopic = TopicScheme.AvailabilityTopic(ctx.Mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * ctx.PollInterval.TotalSeconds);
 
-        var indexTopic = TopicScheme.EnrichmentTopic(ctx.Mqtt.BaseTopic, location, TypeName);
-
         var components = new JsonObject();
 
-        var scoreSensors = new[] { "laundry", "outdoor", "running", "cycling", "bbq", "irrigation", "solar", "ventilation" };
-
-        foreach (var key in scoreSensors)
+        foreach (var dayOffset in DayOffsets)
         {
-            components[key] = new JsonObject
+            var dayTopic = TopicScheme.EnrichmentSubTopic(ctx.Mqtt.BaseTopic, location, TypeName, dayOffset);
+
+            foreach (var key in ScoreSensors)
+            {
+                var compKey = $"{key}_{dayOffset}";
+                components[compKey] = new JsonObject
+                {
+                    ["p"] = "sensor",
+                    ["unique_id"] = $"{deviceId}_{compKey}",
+                    ["name"] = $"{key.Replace('_', ' ')} {dayOffset}",
+                    ["state_topic"] = dayTopic,
+                    ["expire_after"] = expireAfterSeconds,
+                    ["value_template"] = $"{{{{ value_json.{key} }}}}",
+                    ["availability"] = new JsonArray(
+                        new JsonObject { ["topic"] = availabilityTopic }),
+                    ["availability_mode"] = "all",
+                };
+            }
+
+            foreach (var key in ScoreSensors)
+            {
+                foreach (var suffix in new[] { "min", "max", "confidence" })
+                {
+                    var envelopeKey = $"{key}_{suffix}_{dayOffset}";
+                    components[envelopeKey] = new JsonObject
+                    {
+                        ["p"] = "sensor",
+                        ["unique_id"] = $"{deviceId}_{envelopeKey}",
+                        ["name"] = $"{key.Replace('_', ' ')} {suffix} {dayOffset}",
+                        ["state_topic"] = dayTopic,
+                        ["expire_after"] = expireAfterSeconds,
+                        ["value_template"] = $"{{{{ value_json.{key}_{suffix} }}}}",
+                        ["availability"] = new JsonArray(
+                            new JsonObject { ["topic"] = availabilityTopic }),
+                        ["availability_mode"] = "all",
+                    };
+                }
+            }
+
+            var hoursKey = $"hours_included_{dayOffset}";
+            components[hoursKey] = new JsonObject
             {
                 ["p"] = "sensor",
-                ["unique_id"] = $"{deviceId}_{key}",
-                ["name"] = key.Replace('_', ' '),
-                ["state_topic"] = indexTopic,
+                ["unique_id"] = $"{deviceId}_{hoursKey}",
+                ["name"] = $"hours included {dayOffset}",
+                ["state_topic"] = dayTopic,
                 ["expire_after"] = expireAfterSeconds,
-                ["value_template"] = $"{{{{ value_json.{key} }}}}",
+                ["value_template"] = "{{ value_json.hours_included }}",
                 ["availability"] = new JsonArray(
                     new JsonObject { ["topic"] = availabilityTopic }),
                 ["availability_mode"] = "all",
             };
         }
+
+        var d0Topic = TopicScheme.EnrichmentSubTopic(ctx.Mqtt.BaseTopic, location, TypeName, "d0");
 
         foreach (var (key, name, unit) in new (string, string, string)[]
                  {
@@ -99,7 +139,7 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
                 ["p"] = "sensor",
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = name,
-                ["state_topic"] = indexTopic,
+                ["state_topic"] = d0Topic,
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",
                 ["availability"] = new JsonArray(
@@ -119,33 +159,13 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
             ["p"] = "sensor",
             ["unique_id"] = $"{deviceId}_vpd_category",
             ["name"] = "VPD category",
-            ["state_topic"] = indexTopic,
+            ["state_topic"] = d0Topic,
             ["expire_after"] = expireAfterSeconds,
             ["value_template"] = "{{ value_json.vpd_category }}",
             ["availability"] = new JsonArray(
                 new JsonObject { ["topic"] = availabilityTopic }),
             ["availability_mode"] = "all",
         };
-
-        foreach (var key in scoreSensors)
-        {
-            foreach (var suffix in new[] { "min", "max", "confidence" })
-            {
-                var envelopeKey = $"{key}_{suffix}";
-                components[envelopeKey] = new JsonObject
-                {
-                    ["p"] = "sensor",
-                    ["unique_id"] = $"{deviceId}_{envelopeKey}",
-                    ["name"] = $"{key.Replace('_', ' ')} {suffix}",
-                    ["state_topic"] = indexTopic,
-                    ["expire_after"] = expireAfterSeconds,
-                    ["value_template"] = $"{{{{ value_json.{envelopeKey} }}}}",
-                    ["availability"] = new JsonArray(
-                        new JsonObject { ["topic"] = availabilityTopic }),
-                    ["availability_mode"] = "all",
-                };
-            }
-        }
 
         return DiscoveryPayloadBuilder.BuildDeviceEnvelope(
             deviceId, location, TypeName, ctx.Version, components);

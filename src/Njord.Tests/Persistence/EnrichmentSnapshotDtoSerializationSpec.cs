@@ -15,7 +15,7 @@ public sealed class EnrichmentSnapshotDtoSerializationSpec
         var state = new Dictionary<string, object>
         {
             ["lucerne|alerts"] = new AlertResult("lucerne", []),
-            ["lucerne|indices"] = new IndexResult("lucerne", 80, 90, 70, 85, 95, 60, 88, 75, null, null),
+            ["lucerne|indices"] = new IndexResult("lucerne", [new DayScoreSet(0, 80, 90, 70, 85, 95, 60, 88, 75, HoursIncluded: 14)], null, null),
         };
         var dto = EnrichmentSnapshotMapping.ToDto(state);
         var json = JsonConvert.SerializeObject(dto, Formatting.Indented);

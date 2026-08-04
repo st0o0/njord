@@ -166,7 +166,7 @@ public static class IndexScorer
         return Clamp(0.5 * radScore + 0.3 * cloudInverse + 0.2 * tempEff);
     }
 
-    public static int Ventilation(double? outdoorTemp, double? humidity, double? wind, double? rainProb, ResolvedPreferences prefs)
+    public static int NightVentilation(double? outdoorTemp, double? humidity, double? wind, double? rainProb, ResolvedPreferences prefs)
     {
         var tempDelta = outdoorTemp is { } ot
             ? Math.Clamp((prefs.IndoorTemp - ot) / 10 * 100, 0, 100)
