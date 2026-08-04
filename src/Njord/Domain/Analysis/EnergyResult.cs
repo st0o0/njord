@@ -50,7 +50,7 @@ public sealed record EnergyResult(
 
         var shading = EnergyForecaster.ShadingScore(meanRadiation, meanIsDay, meanTemp);
 
-        var solarYield = IndexScorer.SolarYield(meanRadiation, meanCloud, meanTemp);
+        var solarYield = IndexScorer.SolarYield(meanRadiation, meanCloud, meanTemp, ResolvedPreferences.Default);
         var batteryStrategy = EnergyForecaster.BatteryStrategy(solarYield, meanIsDay);
 
         var nightCooling = ComputeNightCoolingFromConsensus(

@@ -38,6 +38,7 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         services.AddSingleton<IValidateOptions<EnrichmentOptions>, ConsensusOptionsValidator>();
         services.AddSingleton<IValidateOptions<EnrichmentOptions>, EnergyOptionsValidator>();
         services.AddSingleton<IValidateOptions<EnrichmentOptions>, HistoryOptionsValidator>();
+        services.AddSingleton<IValidateOptions<EnrichmentOptions>, IndexOptionsValidator>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
         services.AddSingleton<IBudgetGate<WeightedTarget>>(sp =>

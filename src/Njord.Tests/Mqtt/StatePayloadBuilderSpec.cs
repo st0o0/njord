@@ -9,6 +9,9 @@ namespace Njord.Tests.Mqtt;
 
 public sealed class StatePayloadBuilderSpec
 {
+    private static IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> DefaultPrefs(
+        string location = "lucerne") =>
+        PreferenceResolver.Resolve(new IndexOptions(), [location]);
     private static readonly WeatherModel IconD2 = new("icon_d2");
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
     private static readonly ParameterDef WindSpeed = ParameterRegistry.GetByApiName("wind_speed_10m")!;
@@ -241,7 +244,7 @@ public sealed class StatePayloadBuilderSpec
         var snap = SnapshotWith(
             MakeForecast(M1, (Temperature, 20.0), (Humidity, 55.0), (WindSpeed, 2.0), (CloudCover, 30.0)));
         var consensus = ConsensusSnapshot.Compute(snap, FullParams, "lucerne", Time);
-        var result = IndexResult.Compute(consensus, FullParams, Time, new IndexOptions());
+        var result = IndexResult.Compute(consensus, FullParams, Time, DefaultPrefs());
 
         var messages = StatePayloadBuilder.FromIndices(result, "njord");
 
@@ -257,7 +260,7 @@ public sealed class StatePayloadBuilderSpec
             MakeForecast(IconD2, (Temperature, 22.0), (Humidity, 50.0), (WindSpeed, 3.0), (CloudCover, 20.0)),
             MakeForecast(new("ecmwf_ifs025"), (Temperature, 10.0), (Humidity, 90.0), (WindSpeed, 15.0), (CloudCover, 95.0)));
         var consensus = ConsensusSnapshot.Compute(snap, FullParams, "lucerne", Time);
-        var result = IndexResult.Compute(consensus, FullParams, Time, new IndexOptions());
+        var result = IndexResult.Compute(consensus, FullParams, Time, DefaultPrefs());
 
         var messages = StatePayloadBuilder.FromIndices(result, "njord");
         var payload = JsonNode.Parse(messages[0].Payload)!;

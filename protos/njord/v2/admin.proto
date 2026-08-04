@@ -83,9 +83,19 @@ message TrendConfig {
 
 message IndexConfig {
   optional bool enabled = 1;
-  optional double heating_base_temp = 2;
-  optional double cooling_base_temp = 3;
+  reserved 2, 3;
+  reserved "heating_base_temp", "cooling_base_temp";
   optional double indoor_temp = 4;
+  optional double ideal_outdoor_temp = 5;
+  optional double heat_sensitivity = 6;
+  optional double humidity_sensitivity = 7;
+  optional double wind_sensitivity = 8;
+  optional double rain_sensitivity = 9;
+  optional double running_ideal_temp_low = 10;
+  optional double running_ideal_temp_high = 11;
+  optional double bbq_min_temp = 12;
+  optional double bbq_ideal_wind_low = 13;
+  optional double bbq_ideal_wind_high = 14;
 }
 
 message EnergyConfig {

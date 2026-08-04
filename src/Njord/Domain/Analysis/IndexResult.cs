@@ -1,5 +1,4 @@
 using Newtonsoft.Json;
-using Njord.Configuration;
 using Njord.Domain.Weather;
 
 namespace Njord.Domain.Analysis;
@@ -25,8 +24,6 @@ public sealed record IndexResult(
     [property: JsonProperty("cycling")] int Cycling,
     [property: JsonProperty("bbq")] int Bbq,
     [property: JsonProperty("irrigation")] int Irrigation,
-    [property: JsonProperty("hdd")] double Hdd,
-    [property: JsonProperty("cdd")] double Cdd,
     [property: JsonProperty("solar")] int Solar,
     [property: JsonProperty("ventilation")] int Ventilation,
     [property: JsonProperty("frostProtection")] FrostProtectionInfo? FrostProtection,
@@ -44,8 +41,12 @@ public sealed record IndexResult(
         ConsensusSnapshot consensus,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider,
-        IndexOptions options)
+        IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> resolvedPreferences)
     {
+        ResolvedPreferences PrefsFor(string score) =>
+            resolvedPreferences.TryGetValue((consensus.Location, score), out var p)
+                ? p
+                : ResolvedPreferences.Default;
         var tempParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.Temperature2m));
         var humidityParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.RelativeHumidity2m));
         var windParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.WindSpeed10m));
@@ -88,16 +89,14 @@ public sealed record IndexResult(
             }
         }
 
-        var laundry = IndexScorer.LaundryDrying(meanTemp, meanHumidity, meanWind, meanRainProb, sunshinePct);
-        var outdoor = IndexScorer.OutdoorScore(meanTemp, meanRainProb, meanWind, meanCloud);
-        var running = IndexScorer.RunningComfort(meanTemp, meanHumidity, meanWind, meanRainProb);
-        var cycling = IndexScorer.CyclingComfort(meanTemp, meanHumidity, meanWind, meanRainProb);
-        var bbq = IndexScorer.BbqWeather(meanTemp, meanHumidity, meanWind, meanRainProb);
-        var irrigation = IndexScorer.IrrigationNeed(meanRainProb, meanTemp, meanHumidity, meanEt);
-        var hdd = meanTemp.HasValue ? IndexScorer.HeatingDegreeDays(meanTemp.Value, options.HeatingBaseTemp) : 0;
-        var cdd = meanTemp.HasValue ? IndexScorer.CoolingDegreeDays(meanTemp.Value, options.CoolingBaseTemp) : 0;
-        var solar = IndexScorer.SolarYield(meanRadiation, meanCloud, meanTemp);
-        var ventilation = IndexScorer.Ventilation(meanTemp, options.IndoorTemp, meanHumidity, meanWind, meanRainProb);
+        var laundry = IndexScorer.LaundryDrying(meanTemp, meanHumidity, meanWind, meanRainProb, sunshinePct, PrefsFor("Laundry"));
+        var outdoor = IndexScorer.OutdoorScore(meanTemp, meanHumidity, meanRainProb, meanWind, meanCloud, PrefsFor("Outdoor"));
+        var running = IndexScorer.RunningComfort(meanTemp, meanHumidity, meanWind, meanRainProb, PrefsFor("Running"));
+        var cycling = IndexScorer.CyclingComfort(meanTemp, meanHumidity, meanWind, meanRainProb, PrefsFor("Cycling"));
+        var bbq = IndexScorer.BbqWeather(meanTemp, meanHumidity, meanWind, meanRainProb, PrefsFor("Bbq"));
+        var irrigation = IndexScorer.IrrigationNeed(meanRainProb, meanTemp, meanHumidity, meanEt, PrefsFor("Irrigation"));
+        var solar = IndexScorer.SolarYield(meanRadiation, meanCloud, meanTemp, PrefsFor("Solar"));
+        var ventilation = IndexScorer.Ventilation(meanTemp, meanHumidity, meanWind, meanRainProb, PrefsFor("Ventilation"));
 
         var frost = ComputeFrostFromConsensus(
             FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.Temperature2m)),
@@ -106,10 +105,10 @@ public sealed record IndexResult(
         var vpd = IndexScorer.VpdCategory(meanTemp, meanHumidity);
 
         var envelopes = ComputeEnvelopes(
-            consensus, parameters, cutoffHour, options);
+            consensus, parameters, cutoffHour, resolvedPreferences);
 
         return new IndexResult(consensus.Location, laundry, outdoor, running, cycling, bbq, irrigation,
-            hdd, cdd, solar, ventilation, frost, vpd,
+            solar, ventilation, frost, vpd,
             envelopes.Laundry, envelopes.Outdoor, envelopes.Running, envelopes.Cycling,
             envelopes.Bbq, envelopes.Irrigation, envelopes.Solar, envelopes.Ventilation);
     }
@@ -120,7 +119,7 @@ public sealed record IndexResult(
 
     private static EnvelopeSet ComputeEnvelopes(
         ConsensusSnapshot consensus, ResolvedParameterSet parameters,
-        int cutoffHour, IndexOptions options)
+        int cutoffHour, IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> resolvedPreferences)
     {
         var tempParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.Temperature2m));
         var humidityParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.RelativeHumidity2m));
@@ -145,8 +144,13 @@ public sealed record IndexResult(
             tempParam, humidityParam, windParam, precipProbParam,
             cloudParam, radiationParam, etParam, cutoffHour);
 
-        var pessScores = ComputeScoresFromMeans(pessimisticMeans, options);
-        var optScores = ComputeScoresFromMeans(optimisticMeans, options);
+        ResolvedPreferences PrefsFor(string score) =>
+            resolvedPreferences.TryGetValue((consensus.Location, score), out var p)
+                ? p
+                : ResolvedPreferences.Default;
+
+        var pessScores = ComputeScoresFromMeans(pessimisticMeans, PrefsFor);
+        var optScores = ComputeScoresFromMeans(optimisticMeans, PrefsFor);
 
         var avgAgreement = ComputeAverageAgreement(
             tempParam, humidityParam, windParam, precipProbParam,
@@ -203,17 +207,17 @@ public sealed record IndexResult(
             MeanCiBound(etParam, cutoffHour, lower: false));
     }
 
-    private static ScoreSet ComputeScoresFromMeans(MeanSet means, IndexOptions options)
+    private static ScoreSet ComputeScoresFromMeans(MeanSet means, Func<string, ResolvedPreferences> prefsFor)
     {
         return new ScoreSet(
-            IndexScorer.LaundryDrying(means.Temp, means.Humidity, means.Wind, means.RainProb, null),
-            IndexScorer.OutdoorScore(means.Temp, means.RainProb, means.Wind, means.Cloud),
-            IndexScorer.RunningComfort(means.Temp, means.Humidity, means.Wind, means.RainProb),
-            IndexScorer.CyclingComfort(means.Temp, means.Humidity, means.Wind, means.RainProb),
-            IndexScorer.BbqWeather(means.Temp, means.Humidity, means.Wind, means.RainProb),
-            IndexScorer.IrrigationNeed(means.RainProb, means.Temp, means.Humidity, means.Et),
-            IndexScorer.SolarYield(means.Radiation, means.Cloud, means.Temp),
-            IndexScorer.Ventilation(means.Temp, options.IndoorTemp, means.Humidity, means.Wind, means.RainProb));
+            IndexScorer.LaundryDrying(means.Temp, means.Humidity, means.Wind, means.RainProb, null, prefsFor("Laundry")),
+            IndexScorer.OutdoorScore(means.Temp, means.Humidity, means.RainProb, means.Wind, means.Cloud, prefsFor("Outdoor")),
+            IndexScorer.RunningComfort(means.Temp, means.Humidity, means.Wind, means.RainProb, prefsFor("Running")),
+            IndexScorer.CyclingComfort(means.Temp, means.Humidity, means.Wind, means.RainProb, prefsFor("Cycling")),
+            IndexScorer.BbqWeather(means.Temp, means.Humidity, means.Wind, means.RainProb, prefsFor("Bbq")),
+            IndexScorer.IrrigationNeed(means.RainProb, means.Temp, means.Humidity, means.Et, prefsFor("Irrigation")),
+            IndexScorer.SolarYield(means.Radiation, means.Cloud, means.Temp, prefsFor("Solar")),
+            IndexScorer.Ventilation(means.Temp, means.Humidity, means.Wind, means.RainProb, prefsFor("Ventilation")));
     }
 
     private static double ComputeAverageAgreement(

@@ -12,7 +12,7 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
 {
     private readonly ResolvedParameterSet _parameters;
     private readonly TimeProvider _timeProvider;
-    private readonly IndexOptions _indexOptions;
+    private readonly IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> _resolvedPreferences;
     private readonly bool _enabled;
 
     public string TypeName => "indices";
@@ -20,13 +20,15 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
 
     public IndexEnrichment(
         IOptions<EnrichmentOptions> enrichmentOptions,
+        IOptions<NjordOptions> njordOptions,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider)
     {
         _parameters = parameters;
         _timeProvider = timeProvider;
-        _indexOptions = enrichmentOptions.Value.Indices;
         _enabled = enrichmentOptions.Value.Indices.Enabled;
+        var locationNames = njordOptions.Value.Locations.Select(l => l.Name);
+        _resolvedPreferences = PreferenceResolver.Resolve(enrichmentOptions.Value.Indices, locationNames);
     }
 
     public string DeviceId(string location) =>
@@ -35,7 +37,7 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
     public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus)
     {
         var result = IndexResult.Compute(
-            consensus, _parameters, _timeProvider, _indexOptions);
+            consensus, _parameters, _timeProvider, _resolvedPreferences);
         yield return new EgressEvent.EnrichmentUpdate(consensus.Location, TypeName, result);
     }
 
@@ -59,23 +61,6 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
                 ["unique_id"] = $"{deviceId}_{key}",
                 ["name"] = key.Replace('_', ' '),
                 ["state_topic"] = indexTopic,
-                ["expire_after"] = expireAfterSeconds,
-                ["value_template"] = $"{{{{ value_json.{key} }}}}",
-                ["availability"] = new JsonArray(
-                    new JsonObject { ["topic"] = availabilityTopic }),
-                ["availability_mode"] = "all",
-            };
-        }
-
-        foreach (var (key, name) in new (string, string)[] { ("hdd", "heating degree days"), ("cdd", "cooling degree days") })
-        {
-            components[key] = new JsonObject
-            {
-                ["p"] = "sensor",
-                ["unique_id"] = $"{deviceId}_{key}",
-                ["name"] = name,
-                ["state_topic"] = indexTopic,
-                ["unit_of_measurement"] = "°Cd",
                 ["expire_after"] = expireAfterSeconds,
                 ["value_template"] = $"{{{{ value_json.{key} }}}}",
                 ["availability"] = new JsonArray(

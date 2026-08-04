@@ -130,8 +130,8 @@ message IndexUpdate {
   int32 irrigation = 6;
   int32 solar = 7;
   int32 ventilation = 8;
-  double hdd = 9;
-  double cdd = 10;
+  reserved 9, 10;
+  reserved "hdd", "cdd";
   optional int32 frost_hours = 11;
   optional double frost_confidence = 12;
   optional double vpd_kpa = 13;

@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Njord.Domain.Analysis;
 
 namespace Njord.Configuration;
 
@@ -75,5 +77,78 @@ public sealed class HistoryOptionsValidator : IValidateOptions<EnrichmentOptions
         return errors.Count > 0
             ? ValidateOptionsResult.Fail(errors)
             : ValidateOptionsResult.Success;
+    }
+}
+
+public sealed class IndexOptionsValidator : IValidateOptions<EnrichmentOptions>
+{
+    private static readonly HashSet<string> ValidScoreNames =
+        new(PreferenceResolver.ScoreNames, StringComparer.OrdinalIgnoreCase);
+
+    private readonly ILogger<IndexOptionsValidator> _logger;
+    private readonly IOptions<NjordOptions> _njordOptions;
+
+    public IndexOptionsValidator(ILogger<IndexOptionsValidator> logger, IOptions<NjordOptions> njordOptions)
+    {
+        _logger = logger;
+        _njordOptions = njordOptions;
+    }
+
+    public ValidateOptionsResult Validate(string? name, EnrichmentOptions options)
+    {
+        var idx = options.Indices;
+
+        ClampPreferences(idx.Preferences);
+
+        foreach (var (scoreName, prefs) in idx.ScoreOverrides)
+        {
+            if (!ValidScoreNames.Contains(scoreName))
+            {
+                _logger.LogWarning("Indices.ScoreOverrides contains unknown score name '{ScoreName}', ignoring", scoreName);
+            }
+
+            ClampPreferences(prefs);
+        }
+
+        var knownLocations = new HashSet<string>(
+            _njordOptions.Value.Locations.Select(l => l.Name),
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var loc in idx.LocationOverrides)
+        {
+            if (!knownLocations.Contains(loc.Location))
+            {
+                _logger.LogWarning(
+                    "Indices.LocationOverrides contains unknown location '{Location}', ignoring",
+                    loc.Location);
+            }
+
+            ClampPreferences(loc.Preferences);
+            foreach (var (scoreName, prefs) in loc.ScoreOverrides)
+            {
+                if (!ValidScoreNames.Contains(scoreName))
+                {
+                    _logger.LogWarning(
+                        "Indices.LocationOverrides[{Location}].ScoreOverrides contains unknown score name '{ScoreName}', ignoring",
+                        loc.Location, scoreName);
+                }
+
+                ClampPreferences(prefs);
+            }
+        }
+
+        return ValidateOptionsResult.Success;
+    }
+
+    private static void ClampPreferences(IndexPreferences prefs)
+    {
+        if (prefs.HeatSensitivity is { } hs)
+            prefs.HeatSensitivity = Math.Clamp(hs, 0.0, 5.0);
+        if (prefs.HumiditySensitivity is { } hms)
+            prefs.HumiditySensitivity = Math.Clamp(hms, 0.0, 5.0);
+        if (prefs.WindSensitivity is { } ws)
+            prefs.WindSensitivity = Math.Clamp(ws, 0.0, 5.0);
+        if (prefs.RainSensitivity is { } rs)
+            prefs.RainSensitivity = Math.Clamp(rs, 0.0, 5.0);
     }
 }

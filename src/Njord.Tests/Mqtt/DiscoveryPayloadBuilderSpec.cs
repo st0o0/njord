@@ -347,8 +347,8 @@ public sealed class DiscoveryPayloadBuilderSpec
             "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
         var json = JsonNode.Parse(payload)!;
 
-        // 8 scores + 2 degree days + 3 numeric (frost_hours, frost_confidence, vpd_kpa) + 1 text (vpd_category) = 14
-        Assert.Equal(14, json["cmps"]!.AsObject().Count);
+        // 8 scores + 3 numeric (frost_hours, frost_confidence, vpd_kpa) + 1 text (vpd_category) = 12
+        Assert.Equal(12, json["cmps"]!.AsObject().Count);
     }
 
     [Fact(Timeout = 5000)]
@@ -360,17 +360,6 @@ public sealed class DiscoveryPayloadBuilderSpec
 
         Assert.False(json["cmps"]!["laundry"]!.AsObject().ContainsKey("unit_of_measurement"));
         Assert.False(json["cmps"]!["outdoor"]!.AsObject().ContainsKey("unit_of_measurement"));
-    }
-
-    [Fact(Timeout = 5000)]
-    public void Index_degree_day_sensors_have_unit()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildIndices(
-            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-
-        Assert.Equal("°Cd", (string?)json["cmps"]!["hdd"]!["unit_of_measurement"]);
-        Assert.Equal("°Cd", (string?)json["cmps"]!["cdd"]!["unit_of_measurement"]);
     }
 
     [Fact(Timeout = 5000)]

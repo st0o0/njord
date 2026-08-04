@@ -2,118 +2,137 @@
 
 ## Purpose
 
-Activity and environmental index scores computed from forecast data: lifestyle scores (laundry drying, outdoor, running, cycling, BBQ, irrigation, ventilation, solar yield), degree days (heating/cooling), frost protection, VPD plant stress, and a unified IndexResult that serializes all indices to MQTT.
+Activity and environmental index scores computed from forecast data: lifestyle scores (laundry drying, outdoor, running, cycling, BBQ, irrigation, ventilation, solar yield), frost protection, VPD plant stress, and a unified IndexResult that serializes all indices to MQTT. All scorer methods accept `ResolvedPreferences` for configurable sensitivity multipliers and ideal points.
 
 ## Requirements
 
 ### Requirement: Laundry drying score from temperature, humidity, wind, rain, sunshine
-`IndexScorer.LaundryDrying` SHALL accept mean temperature (°C), mean relative humidity (%), mean wind speed (m/s), mean precipitation probability (%), and sunshine percentage (%) over the next 24h. It SHALL return an `int` score 0–100. The formula SHALL weight: temperature 0.3, humidity 0.25, wind 0.2, rain probability 0.15, sunshine 0.1. Null inputs SHALL use neutral sub-score 50.
+`IndexScorer.LaundryDrying` SHALL accept mean temperature (°C), mean relative humidity (%), mean wind speed (m/s), mean precipitation probability (%), sunshine percentage (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. The formula SHALL weight: temperature 0.3, humidity 0.25, wind 0.2, rain probability 0.15, sunshine 0.1. Penalty terms SHALL be scaled by the corresponding sensitivity multipliers from `ResolvedPreferences`. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Perfect drying day
-- **WHEN** temp is 28 °C, humidity 35%, wind 5 m/s, rain prob 0%, sunshine 100%
+- **WHEN** temp is 28°C, humidity 35%, wind 5 m/s, rain prob 0%, sunshine 100%, all sensitivities 1.0
 - **THEN** the score is ≥ 90
 
 #### Scenario: Cold rainy day
-- **WHEN** temp is 5 °C, humidity 90%, wind 1 m/s, rain prob 80%, sunshine 0%
+- **WHEN** temp is 5°C, humidity 90%, wind 1 m/s, rain prob 80%, sunshine 0%, all sensitivities 1.0
 - **THEN** the score is ≤ 15
 
+#### Scenario: High humidity sensitivity makes drying score worse
+- **WHEN** temp is 20°C, humidity 70%, wind 3 m/s, rain prob 10%, sunshine 60%, HumiditySensitivity 2.0
+- **THEN** the score is lower than with HumiditySensitivity 1.0
+
 ### Requirement: Outdoor score from temperature comfort, rain, wind, cloud cover
-`IndexScorer.OutdoorScore` SHALL accept mean temperature (°C), mean precipitation probability (%), mean wind speed (m/s), and mean cloud cover (%) over the next 24h. It SHALL return an `int` score 0–100. Temperature comfort SHALL use a bell curve peaking at 22 °C. Null inputs SHALL use neutral sub-score 50.
+`IndexScorer.OutdoorScore` SHALL accept mean temperature (°C), mean relative humidity (%), mean precipitation probability (%), mean wind speed (m/s), mean cloud cover (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100.
+
+Temperature comfort SHALL use a bell curve peaking at `ResolvedPreferences.IdealTemp` (default 22°C). The penalty term SHALL be scaled by `ResolvedPreferences.HeatSensitivity`.
+
+Humidity SHALL be scored such that high humidity (≥80%) significantly reduces the score, scaled by `ResolvedPreferences.HumiditySensitivity`.
+
+Wind SHALL use a bell-curve (breeze score) where the ideal range is 2–4 m/s. Windstill conditions (< 1 m/s) and strong wind (> 8 m/s) SHALL both produce low sub-scores. The penalty SHALL be scaled by `ResolvedPreferences.WindSensitivity`.
+
+Rain probability SHALL be scored with penalty scaled by `ResolvedPreferences.RainSensitivity`.
+
+Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (breeze) 0.20, cloud cover 0.15. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Pleasant spring day
-- **WHEN** temp is 22 °C, rain prob 5%, wind 2 m/s, cloud cover 20%
+- **WHEN** temp is 22°C, humidity 50%, rain prob 5%, wind 3 m/s, cloud cover 20%, all sensitivities 1.0
 - **THEN** the score is ≥ 85
 
 #### Scenario: Stormy winter day
-- **WHEN** temp is 2 °C, rain prob 90%, wind 12 m/s, cloud cover 100%
+- **WHEN** temp is 2°C, humidity 70%, rain prob 90%, wind 12 m/s, cloud cover 100%, all sensitivities 1.0
 - **THEN** the score is ≤ 10
 
+#### Scenario: Hot humid windless day (the schwül fix)
+- **WHEN** temp is 33°C, humidity 85%, rain prob 10%, wind 0.5 m/s, cloud cover 30%, all sensitivities 1.0
+- **THEN** the score is ≤ 40
+
+#### Scenario: Hot humid windless day with high heat sensitivity
+- **WHEN** temp is 33°C, humidity 85%, rain prob 10%, wind 0.5 m/s, cloud cover 30%, HeatSensitivity 1.5, HumiditySensitivity 1.3
+- **THEN** the score is ≤ 32
+
+#### Scenario: Ideal outdoor temp shifted to 26°C
+- **WHEN** temp is 26°C, humidity 45%, rain prob 5%, wind 3 m/s, cloud cover 20%, IdealTemp 26.0, all sensitivities 1.0
+- **THEN** the score is ≥ 85
+
 ### Requirement: Running comfort with optimal temperature range
-`IndexScorer.RunningComfort` SHALL accept mean temperature (°C), mean humidity (%), mean wind speed (m/s), and mean precipitation probability (%). It SHALL return an `int` score 0–100. Optimal temperature range SHALL be 5–20 °C. Null inputs SHALL use neutral sub-score 50.
+`IndexScorer.RunningComfort` SHALL accept mean temperature (°C), mean humidity (%), mean wind speed (m/s), mean precipitation probability (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. Optimal temperature range SHALL be `ResolvedPreferences.IdealTempLow` to `ResolvedPreferences.IdealTempHigh` (defaults 5–20°C). Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Ideal running weather
-- **WHEN** temp is 12 °C, humidity 45%, wind 2 m/s, rain prob 0%
+- **WHEN** temp is 12°C, humidity 45%, wind 2 m/s, rain prob 0%, all sensitivities 1.0, IdealTempLow 5, IdealTempHigh 20
 - **THEN** the score is ≥ 85
 
 #### Scenario: Hot and humid
-- **WHEN** temp is 35 °C, humidity 80%, wind 0.5 m/s, rain prob 10%
+- **WHEN** temp is 35°C, humidity 80%, wind 0.5 m/s, rain prob 10%, all sensitivities 1.0
 - **THEN** the score is ≤ 20
 
+#### Scenario: Custom running temp range
+- **WHEN** temp is 3°C, humidity 50%, wind 2 m/s, rain prob 0%, IdealTempLow 0, IdealTempHigh 15
+- **THEN** the score is higher than with default range (5–20°C)
+
 ### Requirement: Cycling comfort penalizes wind more heavily
-`IndexScorer.CyclingComfort` SHALL accept mean temperature (°C), mean humidity (%), mean wind speed (m/s), and mean precipitation probability (%). It SHALL return an `int` score 0–100. Wind SHALL be weighted 0.3 (vs 0.2 for running). Null inputs SHALL use neutral sub-score 50.
+`IndexScorer.CyclingComfort` SHALL accept mean temperature (°C), mean humidity (%), mean wind speed (m/s), mean precipitation probability (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. Wind SHALL be weighted 0.3 (vs 0.2 for running). Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Calm warm day
-- **WHEN** temp is 18 °C, humidity 50%, wind 1.5 m/s, rain prob 0%
+- **WHEN** temp is 18°C, humidity 50%, wind 1.5 m/s, rain prob 0%, all sensitivities 1.0
 - **THEN** the score is ≥ 85
 
 #### Scenario: Very windy
-- **WHEN** temp is 18 °C, humidity 50%, wind 12 m/s, rain prob 0%
+- **WHEN** temp is 18°C, humidity 50%, wind 12 m/s, rain prob 0%, all sensitivities 1.0
 - **THEN** the score is ≤ 40
 
 ### Requirement: BBQ weather from warmth, dryness, light wind
-`IndexScorer.BbqWeather` SHALL accept mean temperature (°C), mean humidity (%), mean wind speed (m/s), and mean precipitation probability (%). It SHALL return an `int` score 0–100. Rain probability SHALL be weighted 0.35 (critical). Null inputs SHALL use neutral sub-score 50.
+`IndexScorer.BbqWeather` SHALL accept mean temperature (°C), mean humidity (%), mean wind speed (m/s), mean precipitation probability (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. Minimum temperature SHALL be `ResolvedPreferences.MinTemp` (default 10°C). Wind ideal range SHALL be `ResolvedPreferences.IdealWindLow` to `ResolvedPreferences.IdealWindHigh` (defaults 1–3 m/s). Rain probability SHALL be weighted 0.35 (critical). Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Perfect BBQ
-- **WHEN** temp is 26 °C, humidity 40%, wind 2 m/s, rain prob 0%
+- **WHEN** temp is 26°C, humidity 40%, wind 2 m/s, rain prob 0%, all sensitivities 1.0
 - **THEN** the score is ≥ 90
 
 #### Scenario: Rain kills the BBQ
-- **WHEN** temp is 26 °C, humidity 40%, wind 2 m/s, rain prob 80%
+- **WHEN** temp is 26°C, humidity 40%, wind 2 m/s, rain prob 80%, all sensitivities 1.0
 - **THEN** the score is ≤ 30
 
+#### Scenario: Custom BBQ min temp
+- **WHEN** temp is 12°C, humidity 40%, wind 2 m/s, rain prob 0%, MinTemp 15.0
+- **THEN** the score is lower than with MinTemp 10.0
+
 ### Requirement: Irrigation need from rain absence, heat, dryness, evapotranspiration
-`IndexScorer.IrrigationNeed` SHALL accept mean precipitation probability (%), mean temperature (°C), mean humidity (%), and mean evapotranspiration (mm). It SHALL return an `int` score 0–100. High score = water your garden. Null inputs SHALL use neutral sub-score 50.
+`IndexScorer.IrrigationNeed` SHALL accept mean precipitation probability (%), mean temperature (°C), mean humidity (%), mean evapotranspiration (mm), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. High score = water your garden. Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Hot dry day
-- **WHEN** rain prob 0%, temp 32 °C, humidity 30%, ET 6.0 mm
+- **WHEN** rain prob 0%, temp 32°C, humidity 30%, ET 6.0 mm, all sensitivities 1.0
 - **THEN** the score is ≥ 85
 
 #### Scenario: Rainy day
-- **WHEN** rain prob 90%, temp 15 °C, humidity 80%, ET 1.0 mm
+- **WHEN** rain prob 90%, temp 15°C, humidity 80%, ET 1.0 mm, all sensitivities 1.0
 - **THEN** the score is ≤ 15
 
-### Requirement: Heating and cooling degree days
-`IndexScorer.HeatingDegreeDays` SHALL accept mean daily temperature (°C) and base temperature (default 18 °C). It SHALL return `double` = max(0, base − meanTemp). `IndexScorer.CoolingDegreeDays` SHALL accept mean daily temperature and base (default 24 °C). It SHALL return `double` = max(0, meanTemp − base).
-
-#### Scenario: Cold day heating
-- **WHEN** mean temp is 5 °C and base is 18
-- **THEN** HDD is 13.0
-
-#### Scenario: Hot day cooling
-- **WHEN** mean temp is 30 °C and base is 24
-- **THEN** CDD is 6.0
-
-#### Scenario: Mild day
-- **WHEN** mean temp is 20 °C
-- **THEN** HDD (base 18) is 0.0 and CDD (base 24) is 0.0
-
 ### Requirement: Solar yield score from radiation, cloud cover, temperature
-`IndexScorer.SolarYield` SHALL accept mean shortwave radiation (W/m²), mean cloud cover (%), and mean temperature (°C). It SHALL return an `int` score 0–100. Temperature efficiency SHALL decrease ~0.4%/°C above 25 °C. Null inputs SHALL use neutral sub-score 50.
+`IndexScorer.SolarYield` SHALL accept mean shortwave radiation (W/m²), mean cloud cover (%), and mean temperature (°C), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. Temperature efficiency SHALL decrease above 25°C, scaled by `ResolvedPreferences.HeatSensitivity`. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Clear cool day
-- **WHEN** radiation 800 W/m², cloud cover 10%, temp 18 °C
+- **WHEN** radiation 800 W/m², cloud cover 10%, temp 18°C, all sensitivities 1.0
 - **THEN** the score is ≥ 85
 
 #### Scenario: Overcast hot day
-- **WHEN** radiation 150 W/m², cloud cover 90%, temp 38 °C
+- **WHEN** radiation 150 W/m², cloud cover 90%, temp 38°C, all sensitivities 1.0
 - **THEN** the score is ≤ 20
 
 ### Requirement: Ventilation score from outdoor-indoor delta, humidity, wind, rain
-`IndexScorer.Ventilation` SHALL accept mean outdoor temperature (°C), indoor temperature (default 22 °C), mean humidity (%), mean wind speed (m/s), and mean precipitation probability (%). It SHALL return an `int` score 0–100. High score = open the windows. Null inputs SHALL use neutral sub-score 50.
+`IndexScorer.Ventilation` SHALL accept mean outdoor temperature (°C), indoor temperature from `ResolvedPreferences.IndoorTemp` (default 22°C), mean humidity (%), mean wind speed (m/s), mean precipitation probability (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. High score = open the windows. Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Cool evening breeze
-- **WHEN** outdoor 17 °C, indoor 22 °C, humidity 45%, wind 3 m/s, rain prob 0%
+- **WHEN** outdoor 17°C, humidity 45%, wind 3 m/s, rain prob 0%, IndoorTemp 22°C, all sensitivities 1.0
 - **THEN** the score is ≥ 85
 
 #### Scenario: Hot humid outside
-- **WHEN** outdoor 30 °C, indoor 22 °C, humidity 80%, wind 1 m/s, rain prob 0%
+- **WHEN** outdoor 30°C, humidity 80%, wind 1 m/s, rain prob 0%, IndoorTemp 22°C, all sensitivities 1.0
 - **THEN** the score is ≤ 15
 
 ### Requirement: Frost protection hours and confidence
-`IndexScorer.FrostProtection` SHALL accept a `ForecastSeries`, temperature parameter, and `DateTimeOffset` (now). It SHALL scan the next 48h for the first point where temperature ≤ 0 °C. It SHALL return `(int? HoursUntilFrost, double? Confidence)?`. Confidence is from multi-model agreement (fraction predicting frost). If no frost found, the result SHALL be `null`.
+`IndexScorer.FrostProtection` SHALL scan the next 48h of consensus temperature data for frost (≤ 0°C). It does not accept `ResolvedPreferences`.
 
 #### Scenario: Frost in 8 hours
-- **WHEN** the series shows temp ≤ 0 at T0+8h
+- **WHEN** the consensus shows temp ≤ 0 at T0+8h
 - **THEN** HoursUntilFrost is 8
 
 #### Scenario: No frost risk
@@ -121,34 +140,36 @@ Activity and environmental index scores computed from forecast data: lifestyle s
 - **THEN** the result is null
 
 ### Requirement: VPD plant stress category
-`IndexScorer.VpdCategory` SHALL accept temperature (°C) and relative humidity (%). It SHALL compute VPD using the Magnus formula: `SVP = 0.6108 × exp(17.27 × T / (T + 237.3))`, `VPD = SVP × (1 − RH/100)`. Category SHALL be: "low" (< 0.4 kPa), "optimal" (0.4–1.2), "high" (1.2–2.0), "critical" (> 2.0). If either input is null, the result SHALL be `null`.
+`IndexScorer.VpdCategory` SHALL compute VPD using the Magnus formula. It does not accept `ResolvedPreferences`.
 
 #### Scenario: Optimal greenhouse
-- **WHEN** temp is 25 °C and humidity is 60%
+- **WHEN** temp is 25°C and humidity is 60%
 - **THEN** VPD is approximately 1.27 kPa and category is "high"
-
-#### Scenario: Very humid
-- **WHEN** temp is 20 °C and humidity is 90%
-- **THEN** VPD is approximately 0.23 kPa and category is "low"
 
 #### Scenario: Null inputs
 - **WHEN** temperature or humidity is null
 - **THEN** the result is null
 
+### Requirement: IndexResult excludes HDD and CDD
+`IndexResult` SHALL NOT contain `Hdd` or `Cdd` properties. The record constructor SHALL not accept degree-day values. `IndexResult.Compute` SHALL NOT call `IndexScorer.HeatingDegreeDays` or `IndexScorer.CoolingDegreeDays`.
+
+#### Scenario: IndexResult without degree days
+- **WHEN** `IndexResult.Compute` is called
+- **THEN** the result does not contain `Hdd` or `Cdd` properties
+
+### Requirement: IndexResult passes resolved preferences to scorers
+`IndexResult.Compute` SHALL accept a resolver function or dictionary to obtain `ResolvedPreferences` for the current location and score. Each scorer call SHALL use the preferences resolved for its specific (location, score) pair.
+
+#### Scenario: Per-score preferences used
+- **WHEN** Running has `HeatSensitivity: 0.7` and Outdoor has `HeatSensitivity: 1.5`
+- **THEN** `RunningComfort` receives 0.7 and `OutdoorScore` receives 1.5
+
 ### Requirement: IndexResult includes per-model envelope for each activity score
-`IndexResult` SHALL include, for each numeric score field (Laundry, Outdoor, Running, Cycling, Bbq, Irrigation, Solar, Ventilation): a `_min` (int), `_max` (int), and `_confidence` (double, 0.0–1.0) field. These represent the range across individual per-model computations and the agreement level.
+`IndexResult` SHALL include, for each numeric score field (Laundry, Outdoor, Running, Cycling, Bbq, Irrigation, Solar, Ventilation): a `ScoreEnvelope` with `Min` (int), `Max` (int), and `Confidence` (double, 0.0–1.0). Envelope computation SHALL use the same `ResolvedPreferences` as the main score computation.
 
-#### Scenario: Score envelope fields
-- **WHEN** IndexResult is computed from a snapshot with 5 models
-- **THEN** the result exposes OutdoorMin, OutdoorMax, OutdoorConfidence (and likewise for all 8 scores)
-
-#### Scenario: Tight model agreement
-- **WHEN** 5 models produce outdoor scores [70, 72, 71, 73, 70] with confidence tolerance 10%
-- **THEN** OutdoorConfidence=1.0, OutdoorMin=70, OutdoorMax=73
-
-#### Scenario: Wide disagreement
-- **WHEN** models produce outdoor scores [30, 50, 70, 80, 90] with confidence tolerance 10%
-- **THEN** OutdoorMin=30, OutdoorMax=90, OutdoorConfidence reflects fraction within ±10% of median (70)
+#### Scenario: Envelope uses resolved preferences
+- **WHEN** envelope pessimistic/optimistic scores are computed
+- **THEN** the same `ResolvedPreferences` are used for both bounds
 
 ### Requirement: Index computation evaluates consensus values instead of per-model aggregation
 
@@ -166,19 +187,33 @@ Activity and environmental index scores computed from forecast data: lifestyle s
 - **WHEN** only 2 models contribute and spread is minimal
 - **THEN** envelope min and max are close to the score value with high confidence
 
+### Requirement: State payload excludes HDD and CDD fields
+The indices state JSON SHALL NOT contain `hdd` or `cdd` keys.
+
+#### Scenario: JSON without degree days
+- **WHEN** index result is serialized to state payload
+- **THEN** JSON does not contain `"hdd"` or `"cdd"` keys
+
 ### Requirement: State payload includes envelope fields alongside existing scores
-The indices state JSON SHALL include `_min`, `_max`, `_confidence` variants for each score key. Existing field names and values SHALL NOT change.
+The indices state JSON SHALL include `_min`, `_max`, `_confidence` variants for each score key (excluding `hdd`/`cdd`).
 
 #### Scenario: JSON structure
 - **WHEN** index result is serialized
-- **THEN** JSON contains `{"outdoor": 72, "outdoor_min": 65, "outdoor_max": 80, "outdoor_confidence": 0.8, "running": 55, "running_min": 40, ...}`
+- **THEN** JSON contains `{"outdoor": 72, "outdoor_min": 65, "outdoor_max": 80, "outdoor_confidence": 0.8, ...}` without `hdd`/`cdd`
+
+### Requirement: Discovery excludes HDD and CDD components
+`IndexEnrichment.BuildDiscoveryPayload` SHALL NOT register sensor components for `hdd` or `cdd`. Sensor count per location drops from 38 to 34 (8 scores + 8x3 envelopes + frost_hours + frost_confidence + vpd_kpa + vpd_category = 34 without hdd/cdd).
+
+#### Scenario: Discovery without degree day sensors
+- **WHEN** discovery payload is built for indices
+- **THEN** components do not include `hdd` or `cdd`
 
 ### Requirement: Discovery registers envelope components
-`IndexEnrichment.BuildDiscoveryPayload` SHALL register additional sensor components for each envelope field. They SHALL share the same state topic as the base score and use value_template to extract the specific key.
+`IndexEnrichment.BuildDiscoveryPayload` SHALL register sensor components for each envelope field of the remaining 8 scores.
 
 #### Scenario: Envelope discovery components
 - **WHEN** discovery payload is built for indices
-- **THEN** components include `outdoor_min`, `outdoor_max`, `outdoor_confidence` with appropriate value templates
+- **THEN** components include `outdoor_min`, `outdoor_max`, `outdoor_confidence` (and likewise for all 8 scores)
 
 ### Requirement: IndexResult aggregates all indices and serializes to MQTT
 
@@ -193,11 +228,11 @@ The indices state JSON SHALL include `_min`, `_max`, `_confidence` variants for 
 - **THEN** it is retained
 
 ### Requirement: IndexResult serialization with pinned wire names
-`IndexResult` and `ScoreEnvelope` records SHALL have `[property: JsonProperty("...")]` on all positional parameters. Value tuple properties `FrostProtection` and `Vpd` SHALL be replaced with named records (`FrostProtectionInfo`, `VpdInfo`) carrying `[JsonProperty]` attributes.
+`IndexResult` and `ScoreEnvelope` records SHALL have `[property: JsonProperty("...")]` on all positional parameters. Value tuple properties `FrostProtection` and `Vpd` SHALL be replaced with named records (`FrostProtectionInfo`, `VpdInfo`) carrying `[JsonProperty]` attributes. The removal of `Hdd`/`Cdd` properties constitutes a version bump.
 
-#### Scenario: IndexResult with all fields round-trips through JSON
-- **WHEN** an `IndexResult` with FrostProtection, Vpd, and ScoreEnvelope values is serialized and deserialized
-- **THEN** all properties round-trip correctly, including the replaced tuple fields using named record types with camelCase wire names
+#### Scenario: IndexResult without hdd/cdd round-trips through JSON
+- **WHEN** an `IndexResult` is serialized and deserialized
+- **THEN** all properties round-trip correctly and no `hdd`/`cdd` keys appear
 
 #### Scenario: IndexResult with null optional fields round-trips
 - **WHEN** an `IndexResult` with null FrostProtection, Vpd, and null envelope fields is serialized and deserialized

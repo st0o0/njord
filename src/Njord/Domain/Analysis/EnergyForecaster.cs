@@ -118,7 +118,8 @@ public static class EnergyForecaster
             var wind = point.Get(windParam);
             var rainProb = point.Get(rainProbParam);
 
-            var score = IndexScorer.Ventilation(temp, indoorTemp, humidity, wind, rainProb);
+            var score = IndexScorer.Ventilation(temp, humidity, wind, rainProb,
+                ResolvedPreferences.Default with { IndoorTemp = indoorTemp });
             if (score > bestScore)
             {
                 bestScore = score;

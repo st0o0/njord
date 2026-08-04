@@ -36,9 +36,17 @@
     "name": "Indices",
     "enabledByDefault": false,
     "options": [
-      { "name": "HeatingBaseTemp", "type": "number", "default": 18.0 },
-      { "name": "CoolingBaseTemp", "type": "number", "default": 24.0 },
-      { "name": "IndoorTemp", "type": "number", "default": 22.0 }
+      { "name": "Preferences:IdealOutdoorTemp", "type": "number", "default": 22.0, "description": "Peak of the outdoor comfort curve (°C)" },
+      { "name": "Preferences:IndoorTemp", "type": "number", "default": 22.0, "description": "Reference indoor temperature for ventilation (°C)" },
+      { "name": "Preferences:HeatSensitivity", "type": "number", "default": 1.0, "description": "How much heat penalises scores (0.0–5.0, higher = more sensitive)" },
+      { "name": "Preferences:HumiditySensitivity", "type": "number", "default": 1.0, "description": "How much humidity penalises scores (0.0–5.0)" },
+      { "name": "Preferences:WindSensitivity", "type": "number", "default": 1.0, "description": "How much wind penalises scores (0.0–5.0)" },
+      { "name": "Preferences:RainSensitivity", "type": "number", "default": 1.0, "description": "How much rain penalises scores (0.0–5.0)" },
+      { "name": "Preferences:RunningIdealTempLow", "type": "number", "default": 5.0, "description": "Lower bound of ideal running temperature range (°C)" },
+      { "name": "Preferences:RunningIdealTempHigh", "type": "number", "default": 20.0, "description": "Upper bound of ideal running temperature range (°C)" },
+      { "name": "Preferences:BbqMinTemp", "type": "number", "default": 10.0, "description": "Minimum temperature for BBQ (°C)" },
+      { "name": "Preferences:BbqIdealWindLow", "type": "number", "default": 1.0, "description": "Lower bound of ideal BBQ wind range (m/s)" },
+      { "name": "Preferences:BbqIdealWindHigh", "type": "number", "default": 3.0, "description": "Upper bound of ideal BBQ wind range (m/s)" }
     ]
   },
   {

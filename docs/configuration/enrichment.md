@@ -120,30 +120,105 @@ Publishes to `njord/{location}/trends`:
 
 ## Indices
 
-Activity-oriented scores and degree-day calculations.
+Activity-oriented scores computed from forecast consensus data. Each score is 0–100 and aggregated over the next 24 hours. Scores include uncertainty envelopes (min/max/confidence) derived from model spread.
+
+### Basic configuration
 
 ```json
 {
   "Enrichment": {
     "Indices": {
       "Enabled": false,
-      "HeatingBaseTemp": 18.0,
-      "CoolingBaseTemp": 24.0,
-      "IndoorTemp": 22.0
+      "Preferences": {
+        "IdealOutdoorTemp": 22.0,
+        "IndoorTemp": 22.0,
+        "HeatSensitivity": 1.0,
+        "HumiditySensitivity": 1.0,
+        "WindSensitivity": 1.0,
+        "RainSensitivity": 1.0
+      }
     }
   }
 }
 ```
 
+### Global preferences
+
+These apply to all scores and all locations unless overridden.
+
 | Option | Default | Description |
 |--------|---------|-------------|
-| `HeatingBaseTemp` | `18.0` | Base temperature for heating degree days (Celsius) |
-| `CoolingBaseTemp` | `24.0` | Base temperature for cooling degree days (Celsius) |
-| `IndoorTemp` | `22.0` | Assumed indoor temperature (Celsius) |
+| `IdealOutdoorTemp` | `22.0` | Peak of the outdoor comfort curve (°C). A 26 makes the outdoor score favour warmer days. |
+| `IndoorTemp` | `22.0` | Reference indoor temperature for the ventilation score (°C) |
+| `HeatSensitivity` | `1.0` | Multiplier for temperature penalties across all scores (0.0–5.0). Higher = more sensitive to heat/cold. |
+| `HumiditySensitivity` | `1.0` | Multiplier for humidity penalties (0.0–5.0). Increase if you find humid days uncomfortable. |
+| `WindSensitivity` | `1.0` | Multiplier for wind penalties (0.0–5.0). Increase if wind bothers you. |
+| `RainSensitivity` | `1.0` | Multiplier for rain penalties (0.0–5.0). Increase if you want stricter rain avoidance. |
+| `RunningIdealTempLow` | `5.0` | Lower bound of ideal running/cycling temperature range (°C) |
+| `RunningIdealTempHigh` | `20.0` | Upper bound of ideal running/cycling temperature range (°C) |
+| `BbqMinTemp` | `10.0` | Minimum temperature for the BBQ score (°C). Below this, BBQ scores drop sharply. |
+| `BbqIdealWindLow` | `1.0` | Lower bound of ideal BBQ wind range (m/s) |
+| `BbqIdealWindHigh` | `3.0` | Upper bound of ideal BBQ wind range (m/s) |
 
-**Published values:**
-- Activity scores: laundry, outdoor, running, cycling, BBQ, irrigation, solar, ventilation
-- Degree days: HDD (heating), CDD (cooling)
+### Per-score overrides
+
+Override any preference for a specific score. Useful when you want different sensitivity for different activities.
+
+```json
+{
+  "Enrichment": {
+    "Indices": {
+      "Preferences": { "HeatSensitivity": 1.0 },
+      "ScoreOverrides": {
+        "Running": { "HeatSensitivity": 0.7 },
+        "Bbq": { "RainSensitivity": 2.0, "BbqMinTemp": 15.0 }
+      }
+    }
+  }
+}
+```
+
+Valid score names: `Laundry`, `Outdoor`, `Running`, `Cycling`, `Bbq`, `Irrigation`, `Solar`, `Ventilation`.
+
+### Per-location overrides
+
+Override preferences for a specific location. Each location can have its own global preferences and score overrides.
+
+```json
+{
+  "Enrichment": {
+    "Indices": {
+      "Preferences": { "IdealOutdoorTemp": 22.0 },
+      "LocationOverrides": [
+        {
+          "Location": "Lucerne",
+          "Preferences": { "IdealOutdoorTemp": 24.0 },
+          "ScoreOverrides": {
+            "Outdoor": { "WindSensitivity": 0.8 }
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+Location names are matched case-insensitively against the configured locations.
+
+### Resolution cascade
+
+For any (location, score, property), the first non-null value wins:
+
+1. `LocationOverrides[location].ScoreOverrides[score].{Property}`
+2. `LocationOverrides[location].Preferences.{Property}`
+3. `ScoreOverrides[score].{Property}`
+4. `Preferences.{Property}`
+5. Hardcoded default
+
+### Published values
+
+- Activity scores (0–100): laundry, outdoor, running, cycling, BBQ, irrigation, solar, ventilation
+- Score envelopes: min, max, confidence for each activity score
 - Frost: hours-until-frost, confidence
 - VPD: vapour pressure deficit value (kPa) and category
 

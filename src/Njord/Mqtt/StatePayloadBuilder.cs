@@ -194,8 +194,6 @@ public static class StatePayloadBuilder
             ["cycling"] = result.Cycling,
             ["bbq"] = result.Bbq,
             ["irrigation"] = result.Irrigation,
-            ["hdd"] = JsonValue.Create(Math.Round(result.Hdd, 1)),
-            ["cdd"] = JsonValue.Create(Math.Round(result.Cdd, 1)),
             ["solar"] = result.Solar,
             ["ventilation"] = result.Ventilation,
             ["frost_hours"] = result.FrostProtection?.HoursUntilFrost is { } fh ? JsonValue.Create(fh) : null,
