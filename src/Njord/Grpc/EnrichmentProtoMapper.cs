@@ -52,7 +52,7 @@ public static class EnrichmentProtoMapper
     {
         var update = new IndexUpdate();
 
-        foreach (var day in result.Days)
+        foreach (var day in result.Days ?? [])
         {
             var proto = new V2.DayScoreSet
             {
