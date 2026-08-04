@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
+using Njord.Domain.Sensors;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Mqtt;
@@ -34,11 +35,28 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
     public string DeviceId(string location) =>
         TopicScheme.EnrichmentDeviceId(location, TypeName);
 
-    public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus)
+    public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus, SensorSnapshot? sensors = null)
     {
-        var result = IndexResult.Compute(
-            consensus, _parameters, _timeProvider, _resolvedPreferences);
+        var prefs = sensors?.Get(SensorKind.IndoorTemperature) is { } liveTemp
+            ? OverrideIndoorTemp(_resolvedPreferences, consensus.Location, liveTemp)
+            : _resolvedPreferences;
+
+        var result = IndexResult.Compute(consensus, _parameters, _timeProvider, prefs);
         yield return new EgressEvent.EnrichmentUpdate(consensus.Location, TypeName, result);
+    }
+
+    private static IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> OverrideIndoorTemp(
+        IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> source,
+        string location,
+        double indoorTemp)
+    {
+        var result = new Dictionary<(string, string), ResolvedPreferences>(source);
+        foreach (var key in source.Keys.Where(k => k.Location == location))
+        {
+            result[key] = source[key] with { IndoorTemp = indoorTemp };
+        }
+
+        return result;
     }
 
     public string BuildDiscoveryPayload(DiscoveryContext ctx, string location)

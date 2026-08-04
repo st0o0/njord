@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
+using Njord.Domain.Sensors;
 using Njord.Egress;
 using Njord.Mqtt;
 
@@ -28,7 +29,7 @@ internal sealed class AlertEnrichment : IStatelessEnrichment
     public string DeviceId(string location) =>
         TopicScheme.EnrichmentDeviceId(location, TypeName);
 
-    public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus)
+    public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus, SensorSnapshot? sensors = null)
     {
         var result = AlertEvaluator.EvaluateAll(consensus, _alertOptions, _timeProvider);
         yield return new EgressEvent.EnrichmentUpdate(consensus.Location, TypeName, result);

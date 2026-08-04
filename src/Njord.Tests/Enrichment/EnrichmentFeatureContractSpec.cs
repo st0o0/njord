@@ -27,7 +27,6 @@ public sealed class EnrichmentFeatureContractSpec
             new DerivedEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System),
             new TrendEnrichment(enrichmentWrapped),
             new IndexEnrichment(enrichmentWrapped, optionsWrapped, parameters, TimeProvider.System),
-            new EnergyEnrichment(enrichmentWrapped, parameters, TimeProvider.System),
             new HistoryEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System,
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoryEnrichment>.Instance),
         ];
@@ -39,7 +38,7 @@ public sealed class EnrichmentFeatureContractSpec
         var features = CreateAllFeatures();
         var names = features.Select(f => f.TypeName).ToList();
 
-        Assert.Equal(6, names.Count);
+        Assert.Equal(5, names.Count);
         Assert.Equal(names.Count, names.Distinct().Count());
     }
 
@@ -78,7 +77,6 @@ public sealed class EnrichmentFeatureContractSpec
 
         Assert.False(features.Single(f => f.TypeName == "trends").Enabled);
         Assert.False(features.Single(f => f.TypeName == "indices").Enabled);
-        Assert.False(features.Single(f => f.TypeName == "energy").Enabled);
         Assert.False(features.Single(f => f.TypeName == "history").Enabled);
     }
 
@@ -108,7 +106,7 @@ public sealed class EnrichmentFeatureContractSpec
     public void Stateless_features_implement_IStatelessEnrichment()
     {
         var features = CreateAllFeatures();
-        var stateless = new[] { "alerts", "derived", "indices", "energy" };
+        var stateless = new[] { "alerts", "derived", "indices" };
 
         foreach (var name in stateless)
         {

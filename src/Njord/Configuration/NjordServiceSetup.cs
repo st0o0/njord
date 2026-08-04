@@ -32,11 +32,15 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
                 options.Parameters.Exclude);
         });
         services
+            .AddOptions<SensorOptions>()
+            .Bind(configuration.GetSection($"{NjordOptions.SectionName}:Sensors"))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<SensorOptions>, SensorOptionsValidator>();
+        services
             .AddOptions<EnrichmentOptions>()
             .Bind(configuration.GetSection($"{NjordOptions.SectionName}:Enrichment"))
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<EnrichmentOptions>, ConsensusOptionsValidator>();
-        services.AddSingleton<IValidateOptions<EnrichmentOptions>, EnergyOptionsValidator>();
         services.AddSingleton<IValidateOptions<EnrichmentOptions>, HistoryOptionsValidator>();
         services.AddSingleton<IValidateOptions<EnrichmentOptions>, IndexOptionsValidator>();
         services.AddSingleton(TimeProvider.System);
@@ -60,7 +64,6 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         services.AddSingleton<IEnrichmentFeature, DerivedEnrichment>();
         services.AddSingleton<IEnrichmentFeature, TrendEnrichment>();
         services.AddSingleton<IEnrichmentFeature, IndexEnrichment>();
-        services.AddSingleton<IEnrichmentFeature, EnergyEnrichment>();
         services.AddSingleton<IEnrichmentFeature, HistoryEnrichment>();
         if (mqttEnabled)
         {
