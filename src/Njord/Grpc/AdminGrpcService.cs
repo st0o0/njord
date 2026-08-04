@@ -260,39 +260,6 @@ public sealed class AdminGrpcService(
                     options.Enrichment.Indices.Preferences.BbqIdealWindHigh = indices.BbqIdealWindHigh;
             }
 
-            if (request.Energy is { } energy)
-            {
-                if (energy.HasEnabled)
-                {
-                    options.Enrichment.Energy.Enabled = energy.Enabled;
-                }
-
-                if (energy.HasFlowTemp)
-                {
-                    options.Enrichment.Energy.FlowTemp = energy.FlowTemp;
-                }
-
-                if (energy.HasCarnotEfficiency)
-                {
-                    options.Enrichment.Energy.CarnotEfficiency = energy.CarnotEfficiency;
-                }
-
-                if (energy.HasHeatingBaseTemp)
-                {
-                    options.Enrichment.Energy.HeatingBaseTemp = energy.HeatingBaseTemp;
-                }
-
-                if (energy.HasCopOptimalHours)
-                {
-                    options.Enrichment.Energy.CopOptimalHours = energy.CopOptimalHours;
-                }
-
-                if (energy.HasIndoorTemp)
-                {
-                    options.Enrichment.Energy.IndoorTemp = energy.IndoorTemp;
-                }
-            }
-
             if (request.History is { } history)
             {
                 if (history.HasEnabled)
@@ -438,15 +405,6 @@ public sealed class AdminGrpcService(
                 BbqIdealWindLow = enrichment.Indices.Preferences.BbqIdealWindLow ?? 1.0,
                 BbqIdealWindHigh = enrichment.Indices.Preferences.BbqIdealWindHigh ?? 3.0,
             },
-            Energy = new V2.EnergyConfig
-            {
-                Enabled = enrichment.Energy.Enabled,
-                FlowTemp = enrichment.Energy.FlowTemp,
-                CarnotEfficiency = enrichment.Energy.CarnotEfficiency,
-                HeatingBaseTemp = enrichment.Energy.HeatingBaseTemp,
-                CopOptimalHours = enrichment.Energy.CopOptimalHours,
-                IndoorTemp = enrichment.Energy.IndoorTemp,
-            },
             History = new V2.HistoryConfig
             {
                 Enabled = enrichment.History.Enabled,
@@ -530,15 +488,6 @@ public sealed class AdminGrpcService(
                         BbqIdealWindLow = source.Enrichment.Indices.Preferences.BbqIdealWindLow,
                         BbqIdealWindHigh = source.Enrichment.Indices.Preferences.BbqIdealWindHigh,
                     },
-                },
-                Energy = new EnergyOptions
-                {
-                    Enabled = source.Enrichment.Energy.Enabled,
-                    FlowTemp = source.Enrichment.Energy.FlowTemp,
-                    CarnotEfficiency = source.Enrichment.Energy.CarnotEfficiency,
-                    HeatingBaseTemp = source.Enrichment.Energy.HeatingBaseTemp,
-                    CopOptimalHours = source.Enrichment.Energy.CopOptimalHours,
-                    IndoorTemp = source.Enrichment.Energy.IndoorTemp,
                 },
                 History = new HistoryOptions
                 {

@@ -139,33 +139,6 @@ public static class EnrichmentProtoMapper
         return update;
     }
 
-    public static EnergyUpdate MapEnergy(EnergyResult result)
-    {
-        var update = new EnergyUpdate
-        {
-            HeatingDemand = result.HeatingDemand,
-            Shading = result.Shading,
-            BatteryStrategy = result.BatteryStrategy,
-            NightCooling = result.NightCooling,
-        };
-
-        if (result.CopEstimate is { } cop)
-        {
-            update.CopEstimate = cop;
-        }
-
-        foreach (var (hoursFromNow, copValue) in result.CopOptimal)
-        {
-            update.CopOptimal.Add(new CopOptimalHour
-            {
-                HoursFromNow = hoursFromNow,
-                Cop = copValue,
-            });
-        }
-
-        return update;
-    }
-
     public static DerivedUpdate MapDerived(DerivedResult result)
     {
         var update = new DerivedUpdate();
@@ -396,13 +369,6 @@ public static class EnrichmentProtoMapper
                 TypeName = typeName,
                 UpdatedAt = timestamp,
                 Trends = MapTrends(tr),
-            },
-            "energy" when result is EnergyResult er => new EnrichmentEvent
-            {
-                Location = location,
-                TypeName = typeName,
-                UpdatedAt = timestamp,
-                Energy = MapEnergy(er),
             },
             "derived" when result is DerivedResult dr => new EnrichmentEvent
             {

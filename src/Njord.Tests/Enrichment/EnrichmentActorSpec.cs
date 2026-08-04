@@ -115,15 +115,6 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Disabled_energy_does_not_crash()
-    {
-        var enrichment = new EnrichmentOptions { Energy = new EnergyOptions { Enabled = false } };
-        var actor = CreateEnrichmentActor(enrichment);
-
-        await AssertActorAlive(actor);
-    }
-
-    [Fact(Timeout = 5000)]
     public async Task Disabled_indices_does_not_crash()
     {
         var enrichment = new EnrichmentOptions { Indices = new IndexOptions { Enabled = false } };

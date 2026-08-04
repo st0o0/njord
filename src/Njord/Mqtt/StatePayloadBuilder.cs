@@ -227,38 +227,6 @@ public static class StatePayloadBuilder
         payload[$"{key}_confidence"] = JsonValue.Create(envelope.Confidence);
     }
 
-    public static IReadOnlyList<MqttMessage> FromEnergy(EnergyResult result, string baseTopic)
-    {
-        var copArray = new JsonArray();
-        foreach (var (h, c) in result.CopOptimal)
-        {
-            copArray.Add(new JsonObject { ["hour"] = h, ["cop"] = Math.Round(c, 2) });
-        }
-
-        var conservativeArray = new JsonArray();
-        if (result.CopOptimalConservative is not null)
-        {
-            foreach (var h in result.CopOptimalConservative)
-                conservativeArray.Add(h);
-        }
-
-        var payload = new JsonObject
-        {
-            ["heating_demand"] = result.HeatingDemand,
-            ["cop_estimate"] = result.CopEstimate.HasValue ? JsonValue.Create(result.CopEstimate.Value) : null,
-            ["cop_optimal"] = copArray,
-            ["shading"] = result.Shading,
-            ["battery_strategy"] = result.BatteryStrategy,
-            ["night_cooling"] = result.NightCooling,
-            ["heating_demand_max"] = result.HeatingDemandMax,
-            ["cop_estimate_min"] = result.CopEstimateMin.HasValue ? JsonValue.Create(result.CopEstimateMin.Value) : null,
-            ["cop_optimal_conservative"] = conservativeArray,
-        };
-
-        var topic = TopicScheme.EnrichmentTopic(baseTopic, result.Location, "energy");
-        return [new MqttMessage(topic, payload.ToJsonString(), true)];
-    }
-
     public static IReadOnlyList<MqttMessage> FromHistory(HistoryResult result, string baseTopic)
     {
         var payload = new JsonObject();

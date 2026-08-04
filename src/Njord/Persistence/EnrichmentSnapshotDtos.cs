@@ -22,7 +22,6 @@ public static class EnrichmentSnapshotMapping
         ["IndexResult"] = typeof(Domain.Analysis.IndexResult),
         ["TrendResult"] = typeof(Domain.Analysis.TrendResult),
         ["DerivedResult"] = typeof(Domain.Analysis.DerivedResult),
-        ["EnergyResult"] = typeof(Domain.Analysis.EnergyResult),
         ["ConsensusResult"] = typeof(Domain.Analysis.ConsensusResult),
         ["HistoryResult"] = typeof(Domain.Analysis.HistoryResult),
     };

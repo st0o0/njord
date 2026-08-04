@@ -66,44 +66,6 @@ public sealed class EnrichmentOptionsValidationSpec
         Assert.True(result.Succeeded);
     }
 
-    // --- EnergyOptionsValidator ---
-
-    [Fact(Timeout = 5000)]
-    public void energy_valid_options_accepted()
-    {
-        var opts = Default();
-        opts.Energy.CarnotEfficiency = 0.45;
-        opts.Energy.FlowTemp = 35.0;
-        var result = new EnergyOptionsValidator().Validate(null, opts);
-        Assert.True(result.Succeeded);
-    }
-
-    [Theory(Timeout = 5000)]
-    [InlineData(0.0)]
-    [InlineData(1.0)]
-    [InlineData(1.5)]
-    [InlineData(-0.1)]
-    public void energy_carnot_efficiency_out_of_range_rejected(double efficiency)
-    {
-        var opts = Default();
-        opts.Energy.CarnotEfficiency = efficiency;
-        var result = new EnergyOptionsValidator().Validate(null, opts);
-        Assert.True(result.Failed);
-        Assert.Contains("CarnotEfficiency", result.FailureMessage);
-    }
-
-    [Theory(Timeout = 5000)]
-    [InlineData(0.0)]
-    [InlineData(-10.0)]
-    public void energy_flow_temp_must_be_positive(double flowTemp)
-    {
-        var opts = Default();
-        opts.Energy.FlowTemp = flowTemp;
-        var result = new EnergyOptionsValidator().Validate(null, opts);
-        Assert.True(result.Failed);
-        Assert.Contains("FlowTemp", result.FailureMessage);
-    }
-
     // --- HistoryOptionsValidator ---
 
     [Fact(Timeout = 5000)]

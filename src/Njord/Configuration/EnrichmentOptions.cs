@@ -7,7 +7,6 @@ public sealed class EnrichmentOptions
     public DerivedOptions Derived { get; set; } = new();
     public TrendOptions Trends { get; set; } = new();
     public IndexOptions Indices { get; set; } = new();
-    public EnergyOptions Energy { get; set; } = new();
     public HistoryOptions History { get; set; } = new();
 }
 
@@ -48,16 +47,6 @@ public sealed class HistoryOptions
     public int RetentionDays { get; set; } = 30;
     public int MinSampleSize { get; set; } = 48;
     public int SnapshotInterval { get; set; } = 100;
-}
-
-public sealed class EnergyOptions
-{
-    public bool Enabled { get; set; } = false;
-    public double FlowTemp { get; set; } = 35.0;
-    public double CarnotEfficiency { get; set; } = 0.45;
-    public double HeatingBaseTemp { get; set; } = 18.0;
-    public int CopOptimalHours { get; set; } = 3;
-    public double IndoorTemp { get; set; } = 22.0;
 }
 
 public sealed class IndexOptions

@@ -17,10 +17,6 @@
       "type": "DerivedResult",
       "json": "{\"location\":\"lucerne\",\"byHorizon\":{\"h3\":{\"beaufort\":4,\"windChill\":-1.2,\"dewPointComfort\":\"comfortable\",\"wmoDescription\":\"clear sky\"}},\"scalars\":{\"diurnalAmplitude\":8.5,\"sunshinePct\":65.0,\"inversion\":false}}"
     },
-    "lucerne|energy": {
-      "type": "EnergyResult",
-      "json": "{\"location\":\"lucerne\",\"heatingDemand\":42,\"copEstimate\":3.2,\"copOptimal\":[{\"hoursFromNow\":3,\"cop\":3.6},{\"hoursFromNow\":7,\"cop\":3.9}],\"shading\":30,\"batteryStrategy\":\"charge\",\"nightCooling\":1,\"heatingDemandMax\":50,\"copEstimateMin\":2.8,\"copOptimalConservative\":[3,7]}"
-    },
     "lucerne|consensus": {
       "type": "ConsensusResult",
       "json": "{\"parameters\":[],\"dailyParameters\":[],\"computedAt\":\"2026-07-15T06:00:00+00:00\"}"

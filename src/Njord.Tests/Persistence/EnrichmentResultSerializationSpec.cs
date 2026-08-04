@@ -48,13 +48,6 @@ public sealed class EnrichmentResultSerializationSpec
                 ["h3"] = new HorizonDerived(4, -1.2, "comfortable", "clear sky"),
             },
             new ScalarDerived(8.5, 65.0, false)),
-        ["lucerne|energy"] = new EnergyResult(
-            "lucerne", 42, 3.2,
-            [new CopOptimalEntry(3, 3.6), new CopOptimalEntry(7, 3.9)],
-            30, "charge", 1,
-            HeatingDemandMax: 50,
-            CopEstimateMin: 2.8,
-            CopOptimalConservative: [3, 7]),
         ["lucerne|consensus"] = new ConsensusResult([], [], new DateTimeOffset(2026, 7, 15, 6, 0, 0, TimeSpan.Zero)),
     };
 
@@ -76,7 +69,7 @@ public sealed class EnrichmentResultSerializationSpec
         var deserialized = JsonConvert.DeserializeObject<EnrichmentSnapshotDto>(json)!;
         var result = EnrichmentSnapshotMapping.ToDomain(deserialized);
 
-        Assert.Equal(6, result.Count);
+        Assert.Equal(5, result.Count);
 
         var alerts = Assert.IsType<AlertResult>(result["lucerne|alerts"]);
         Assert.Equal("lucerne", alerts.Location);
@@ -110,13 +103,6 @@ public sealed class EnrichmentResultSerializationSpec
         Assert.Equal(4, derived.ByHorizon["h3"].Beaufort);
         Assert.Equal("comfortable", derived.ByHorizon["h3"].DewPointComfort);
         Assert.Equal(8.5, derived.Scalars.DiurnalAmplitude);
-
-        var energy = Assert.IsType<EnergyResult>(result["lucerne|energy"]);
-        Assert.Equal(42, energy.HeatingDemand);
-        Assert.Equal(2, energy.CopOptimal.Count);
-        Assert.Equal(50, energy.HeatingDemandMax);
-        Assert.Equal(2.8, energy.CopEstimateMin);
-        Assert.Equal([3, 7], energy.CopOptimalConservative);
 
         var consensus = Assert.IsType<ConsensusResult>(result["lucerne|consensus"]);
         Assert.Empty(consensus.Parameters);

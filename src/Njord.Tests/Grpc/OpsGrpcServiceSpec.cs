@@ -37,7 +37,6 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
                 Derived = new DerivedOptions { Enabled = false },
                 Trends = new TrendOptions { Enabled = false },
                 Indices = new IndexOptions { Enabled = false },
-                Energy = new EnergyOptions { Enabled = false },
                 History = new HistoryOptions { Enabled = false },
             },
         };
