@@ -56,12 +56,10 @@ message GetEnrichmentsResponse {
   AlertUpdate alerts = 2;
   IndexUpdate indices = 3;
   TrendUpdate trends = 4;
-  reserved 5;
-  reserved "energy";
-  DerivedUpdate derived = 6;
-  HistoryUpdate history = 7;
-  ConsensusUpdate consensus = 8;
-  google.protobuf.Timestamp consensus_updated_at = 9;
+  DerivedUpdate derived = 5;
+  HistoryUpdate history = 6;
+  ConsensusUpdate consensus = 7;
+  google.protobuf.Timestamp consensus_updated_at = 8;
 }
 
 // ═══════════════════════════════════════
@@ -92,9 +90,8 @@ message EnrichmentEvent {
     AlertUpdate alerts = 10;
     IndexUpdate indices = 11;
     TrendUpdate trends = 12;
-    // field 13 reserved (energy removed)
-    DerivedUpdate derived = 14;
-    HistoryUpdate history = 15;
-    ConsensusUpdate consensus = 16;
+    DerivedUpdate derived = 13;
+    HistoryUpdate history = 14;
+    ConsensusUpdate consensus = 15;
   }
 }

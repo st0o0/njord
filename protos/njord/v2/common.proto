@@ -121,21 +121,47 @@ message AlertUpdate {
 // Enrichment: Indices
 // ═══════════════════════════════════════
 
+message ScoreEnvelope {
+  int32 min = 1;
+  int32 max = 2;
+  double confidence = 3;
+}
+
+message FrostInfo {
+  int32 hours_until_frost = 1;
+  double confidence = 2;
+}
+
+message VpdInfo {
+  double kpa = 1;
+  string category = 2;
+}
+
+message DayScoreSet {
+  int32 day_offset = 1;
+  int32 laundry = 2;
+  int32 outdoor = 3;
+  int32 running = 4;
+  int32 cycling = 5;
+  int32 bbq = 6;
+  int32 irrigation = 7;
+  int32 solar = 8;
+  int32 night_ventilation = 9;
+  int32 hours_included = 10;
+  optional ScoreEnvelope laundry_envelope = 11;
+  optional ScoreEnvelope outdoor_envelope = 12;
+  optional ScoreEnvelope running_envelope = 13;
+  optional ScoreEnvelope cycling_envelope = 14;
+  optional ScoreEnvelope bbq_envelope = 15;
+  optional ScoreEnvelope irrigation_envelope = 16;
+  optional ScoreEnvelope solar_envelope = 17;
+  optional ScoreEnvelope night_ventilation_envelope = 18;
+}
+
 message IndexUpdate {
-  int32 laundry = 1;
-  int32 outdoor = 2;
-  int32 running = 3;
-  int32 cycling = 4;
-  int32 bbq = 5;
-  int32 irrigation = 6;
-  int32 solar = 7;
-  int32 ventilation = 8;
-  reserved 9, 10;
-  reserved "hdd", "cdd";
-  optional int32 frost_hours = 11;
-  optional double frost_confidence = 12;
-  optional double vpd_kpa = 13;
-  optional string vpd_category = 14;
+  repeated DayScoreSet days = 1;
+  optional FrostInfo frost = 2;
+  optional VpdInfo vpd = 3;
 }
 
 // ═══════════════════════════════════════
@@ -160,8 +186,6 @@ message TrendUpdate {
   optional double decay_rate = 9;
   optional int32 reliable_hours = 10;
 }
-
-// EnergyUpdate and CopOptimalHour removed — energy enrichment deleted
 
 // ═══════════════════════════════════════
 // Enrichment: Derived

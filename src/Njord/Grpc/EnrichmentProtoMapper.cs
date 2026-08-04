@@ -50,31 +50,66 @@ public static class EnrichmentProtoMapper
 
     public static IndexUpdate MapIndices(IndexResult result)
     {
-        var update = new IndexUpdate
+        var update = new IndexUpdate();
+
+        foreach (var day in result.Days)
         {
-            Laundry = result.Laundry,
-            Outdoor = result.Outdoor,
-            Running = result.Running,
-            Cycling = result.Cycling,
-            Bbq = result.Bbq,
-            Irrigation = result.Irrigation,
-            Solar = result.Solar,
-            Ventilation = result.Ventilation,
-        };
+            var proto = new V2.DayScoreSet
+            {
+                DayOffset = day.DayOffset,
+                Laundry = day.Laundry,
+                Outdoor = day.Outdoor,
+                Running = day.Running,
+                Cycling = day.Cycling,
+                Bbq = day.Bbq,
+                Irrigation = day.Irrigation,
+                Solar = day.Solar,
+                NightVentilation = day.NightVentilation,
+                HoursIncluded = day.HoursIncluded,
+            };
+
+            if (MapEnvelope(day.LaundryEnvelope) is { } le) proto.LaundryEnvelope = le;
+            if (MapEnvelope(day.OutdoorEnvelope) is { } oe) proto.OutdoorEnvelope = oe;
+            if (MapEnvelope(day.RunningEnvelope) is { } re) proto.RunningEnvelope = re;
+            if (MapEnvelope(day.CyclingEnvelope) is { } ce) proto.CyclingEnvelope = ce;
+            if (MapEnvelope(day.BbqEnvelope) is { } be) proto.BbqEnvelope = be;
+            if (MapEnvelope(day.IrrigationEnvelope) is { } ie) proto.IrrigationEnvelope = ie;
+            if (MapEnvelope(day.SolarEnvelope) is { } se) proto.SolarEnvelope = se;
+            if (MapEnvelope(day.NightVentilationEnvelope) is { } nve) proto.NightVentilationEnvelope = nve;
+
+            update.Days.Add(proto);
+        }
 
         if (result.FrostProtection is { } frost)
         {
-            update.FrostHours = frost.HoursUntilFrost;
-            update.FrostConfidence = frost.Confidence;
+            update.Frost = new V2.FrostInfo
+            {
+                HoursUntilFrost = frost.HoursUntilFrost,
+                Confidence = frost.Confidence,
+            };
         }
 
         if (result.Vpd is { } vpd)
         {
-            update.VpdKpa = vpd.Vpd;
-            update.VpdCategory = vpd.Category;
+            update.Vpd = new V2.VpdInfo
+            {
+                Kpa = vpd.Vpd,
+                Category = vpd.Category,
+            };
         }
 
         return update;
+    }
+
+    private static V2.ScoreEnvelope? MapEnvelope(Domain.Analysis.ScoreEnvelope? envelope)
+    {
+        if (envelope is null) return null;
+        return new V2.ScoreEnvelope
+        {
+            Min = envelope.Min,
+            Max = envelope.Max,
+            Confidence = envelope.Confidence,
+        };
     }
 
     public static TrendUpdate MapTrends(TrendResult result)
