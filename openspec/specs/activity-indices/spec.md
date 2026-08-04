@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Activity and environmental index scores computed from forecast data: lifestyle scores (laundry drying, outdoor, running, cycling, BBQ, irrigation, ventilation, solar yield), frost protection, VPD plant stress, and a unified IndexResult that serializes all indices to MQTT. All scorer methods accept `ResolvedPreferences` for configurable sensitivity multipliers and ideal points.
+Activity and environmental index scores computed from forecast data: lifestyle scores (laundry drying, outdoor, running, cycling, BBQ, irrigation, night ventilation, solar yield), frost protection, VPD plant stress, and a unified DaySliceIndexResult that serializes all indices to MQTT with per-day slicing (d0/d1/d2). Activity scores use daylight-only means, utility scores use full-day means, and NightVentilation uses nighttime-only means. All scorer methods accept `ResolvedPreferences` for configurable sensitivity multipliers and ideal points.
 
 ## Requirements
 
@@ -117,32 +117,6 @@ Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (br
 - **WHEN** radiation 150 W/m², cloud cover 90%, temp 38°C, all sensitivities 1.0
 - **THEN** the score is ≤ 20
 
-### Requirement: Ventilation score from outdoor-indoor delta, humidity, wind, rain
-`IndexScorer.Ventilation` SHALL accept mean outdoor temperature (°C), indoor temperature, mean humidity (%), mean wind speed (m/s), mean precipitation probability (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. High score = open the windows. The indoor temperature SHALL be resolved using a fallback chain: (1) live `IndoorTemperature` from the `SensorSnapshot` when available, (2) configured `ResolvedPreferences.IndoorTemp` if no live reading exists, (3) hardcoded default of 22.0 if neither is set. Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
-
-#### Scenario: Cool evening breeze
-- **WHEN** outdoor 17°C, humidity 45%, wind 3 m/s, rain prob 0%, IndoorTemp 22°C, all sensitivities 1.0
-- **THEN** the score is ≥ 85
-
-#### Scenario: Hot humid outside
-- **WHEN** outdoor 30°C, humidity 80%, wind 1 m/s, rain prob 0%, IndoorTemp 22°C, all sensitivities 1.0
-- **THEN** the score is ≤ 15
-
-#### Scenario: Live sensor value used
-- **WHEN** the SensorSnapshot contains `IndoorTemperature = 24.5`
-- **AND** the config `IndoorTemp` is `22.0`
-- **THEN** the Ventilation score SHALL be computed with indoor temperature `24.5`
-
-#### Scenario: No sensor value falls back to config
-- **WHEN** the SensorSnapshot is null or does not contain `IndoorTemperature`
-- **AND** the config `IndoorTemp` is `20.0`
-- **THEN** the Ventilation score SHALL be computed with indoor temperature `20.0`
-
-#### Scenario: No sensor and no config falls back to default
-- **WHEN** the SensorSnapshot is null
-- **AND** no config `IndoorTemp` is set
-- **THEN** the Ventilation score SHALL be computed with indoor temperature `22.0`
-
 ### Requirement: Frost protection hours and confidence
 `IndexScorer.FrostProtection` SHALL scan the next 48h of consensus temperature data for frost (≤ 0°C). It does not accept `ResolvedPreferences`.
 
@@ -166,41 +140,85 @@ Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (br
 - **THEN** the result is null
 
 ### Requirement: IndexResult excludes HDD and CDD
-`IndexResult` SHALL NOT contain `Hdd` or `Cdd` properties. The record constructor SHALL not accept degree-day values. `IndexResult.Compute` SHALL NOT call `IndexScorer.HeatingDegreeDays` or `IndexScorer.CoolingDegreeDays`.
+`DaySliceIndexResult` SHALL NOT contain `Hdd` or `Cdd` properties.
 
-#### Scenario: IndexResult without degree days
-- **WHEN** `IndexResult.Compute` is called
+#### Scenario: DaySliceIndexResult without degree days
+- **WHEN** `DaySliceIndexResult.Compute` is called
 - **THEN** the result does not contain `Hdd` or `Cdd` properties
 
 ### Requirement: IndexResult passes resolved preferences to scorers
-`IndexResult.Compute` SHALL accept a resolver function or dictionary to obtain `ResolvedPreferences` for the current location and score. Each scorer call SHALL use the preferences resolved for its specific (location, score) pair.
+`DaySliceIndexResult.Compute` SHALL accept a resolver function or dictionary to obtain `ResolvedPreferences` for the current location and score. Each scorer call SHALL use the preferences resolved for its specific (location, score) pair.
 
-#### Scenario: Per-score preferences used
+#### Scenario: Per-score preferences used across day slices
 - **WHEN** Running has `HeatSensitivity: 0.7` and Outdoor has `HeatSensitivity: 1.5`
-- **THEN** `RunningComfort` receives 0.7 and `OutdoorScore` receives 1.5
+- **THEN** `RunningComfort` receives 0.7 and `OutdoorScore` receives 1.5 for all day slices
 
-### Requirement: IndexResult includes per-model envelope for each activity score
-`IndexResult` SHALL include, for each numeric score field (Laundry, Outdoor, Running, Cycling, Bbq, Irrigation, Solar, Ventilation): a `ScoreEnvelope` with `Min` (int), `Max` (int), and `Confidence` (double, 0.0–1.0). Envelope computation SHALL use the same `ResolvedPreferences` as the main score computation.
+### Requirement: IndexResult includes per-day envelope for each activity score
+Each `DayScoreSet` SHALL include, for each numeric score field (Laundry, Outdoor, Running, Cycling, Bbq, Irrigation, Solar, NightVentilation): a `ScoreEnvelope` with `Min` (int), `Max` (int), and `Confidence` (double, 0.0–1.0). Envelope computation SHALL use the same time-filtered consensus bounds as the main score computation.
 
-#### Scenario: Envelope uses resolved preferences
-- **WHEN** envelope pessimistic/optimistic scores are computed
-- **THEN** the same `ResolvedPreferences` are used for both bounds
+#### Scenario: Envelope uses day-filtered CI bounds
+- **WHEN** envelope pessimistic/optimistic scores are computed for d1 Outdoor
+- **THEN** only daylight-hour CI bounds from d1 SHALL be used
 
-### Requirement: Index computation evaluates consensus values instead of per-model aggregation
+#### Scenario: Later days have wider envelopes
+- **WHEN** d0 and d2 envelopes are compared for the same weather conditions
+- **THEN** d2 confidence SHALL generally be lower than d0 confidence (reflecting forecast uncertainty)
 
-`IndexResult.Compute` SHALL accept a `ConsensusSnapshot` instead of `ModelSnapshot`. Activity scores (laundry, outdoor, running, cycling, BBQ, irrigation, solar, ventilation) SHALL be computed from consensus median values. The per-model envelope (min/max/confidence across individual models) is no longer available since enrichments no longer see raw model data.
+### Requirement: Index computation uses day-filtered means instead of rolling 24h
 
-#### Scenario: Scores computed from consensus medians
-- **WHEN** `IndexResult.Compute` is called with a `ConsensusSnapshot`
-- **THEN** each activity score is computed using consensus median temperature, precipitation, wind speed, etc.
+`DaySliceIndexResult.Compute` SHALL accept a `ConsensusSnapshot`, `ResolvedParameterSet`, `TimeProvider`, and resolved preferences. It SHALL use `TimeSliceAggregator` to split consensus into day slices, then compute scores per slice:
 
-#### Scenario: Envelope derived from consensus spread
-- **WHEN** consensus spread is available for the input parameters
-- **THEN** the score envelope min/max SHALL be derived from consensus confidence interval or spread bounds instead of per-model evaluation
+- **Activity scores** (Outdoor, Running, Cycling, BBQ, Solar): computed from `DaySlice.DayMeans` (daylight hours only).
+- **Utility scores** (Laundry, Irrigation): computed from `DaySlice.FullDayMeans` (all hours).
+- **NightVentilation**: computed from `DaySlice.NightMeans` (nighttime hours only).
 
-#### Scenario: Single-value consensus
-- **WHEN** only 2 models contribute and spread is minimal
-- **THEN** envelope min and max are close to the score value with high confidence
+FrostProtection and VPD SHALL be computed once (not per day), unchanged from current logic.
+
+#### Scenario: Outdoor score uses daylight means only
+- **WHEN** d1 has 16 daylight hours with mean temp 24°C and 8 nighttime hours with mean temp 14°C
+- **THEN** the d1 Outdoor score SHALL be computed from the 24°C daylight mean, not a 24h average
+
+#### Scenario: Laundry uses full-day means
+- **WHEN** d1 has mean temp 20°C across all 24 hours
+- **THEN** the d1 Laundry score SHALL use the 20°C full-day mean
+
+#### Scenario: NightVentilation uses nighttime means
+- **WHEN** d1 has nighttime mean temp 16°C and daytime mean temp 28°C, IndoorTemp 22°C
+- **THEN** the d1 NightVentilation score SHALL be computed from the 16°C nighttime mean
+
+#### Scenario: Day slice with zero daylight hours
+- **WHEN** d0 has 0 remaining daylight hours (late evening)
+- **THEN** activity scores for d0 SHALL use neutral fallback (50) and `HoursIncluded` SHALL be 0
+
+### Requirement: Ventilation replaced by NightVentilation in score set
+`DayScoreSet` SHALL contain `NightVentilation` (int) instead of `Ventilation`. The `IndexScorer.Ventilation` method SHALL be renamed to `NightVentilation`. All discovery components, state payload keys, and preference resolution SHALL use `night_ventilation` / `NightVentilation` instead of `ventilation` / `Ventilation`.
+
+#### Scenario: Wire format uses night_ventilation
+- **WHEN** index result is serialized to state payload
+- **THEN** the JSON key SHALL be `"night_ventilation"`, not `"ventilation"`
+
+#### Scenario: Discovery uses night_ventilation component name
+- **WHEN** discovery payload is built for indices
+- **THEN** components SHALL include `night_ventilation_d0`, `night_ventilation_d1`, `night_ventilation_d2`
+- **AND** components SHALL NOT include `ventilation`
+
+### Requirement: State payload includes hours_included per day
+Each day-offset state JSON SHALL include an `hours_included` field (int) indicating how many hours contributed to the scores in that slice. For activity scores, this is the daylight hour count; the field communicates the "today shrinks" behavior to HA templates.
+
+#### Scenario: Full day
+- **WHEN** d1 has 16 daylight hours
+- **THEN** the d1 state payload SHALL contain `"hours_included": 16`
+
+#### Scenario: Late today
+- **WHEN** d0 has 3 remaining daylight hours at poll time
+- **THEN** the d0 state payload SHALL contain `"hours_included": 3`
+
+### Requirement: MQTT state topics include day offset
+Index state messages SHALL be published to `<baseTopic>/<location>/indices/d0`, `<baseTopic>/<location>/indices/d1`, `<baseTopic>/<location>/indices/d2` instead of the former single `<baseTopic>/<location>/indices` topic.
+
+#### Scenario: Three state topics
+- **WHEN** indices are computed for location "lucerne" with base topic "njord"
+- **THEN** state messages SHALL be published to `njord/lucerne/indices/d0`, `njord/lucerne/indices/d1`, `njord/lucerne/indices/d2`
 
 ### Requirement: State payload excludes HDD and CDD fields
 The indices state JSON SHALL NOT contain `hdd` or `cdd` keys.
@@ -210,45 +228,55 @@ The indices state JSON SHALL NOT contain `hdd` or `cdd` keys.
 - **THEN** JSON does not contain `"hdd"` or `"cdd"` keys
 
 ### Requirement: State payload includes envelope fields alongside existing scores
-The indices state JSON SHALL include `_min`, `_max`, `_confidence` variants for each score key (excluding `hdd`/`cdd`).
+Each day-offset state JSON SHALL include `_min`, `_max`, `_confidence` variants for each score key (excluding `hdd`/`cdd`).
 
 #### Scenario: JSON structure
-- **WHEN** index result is serialized
+- **WHEN** index result is serialized for d1
 - **THEN** JSON contains `{"outdoor": 72, "outdoor_min": 65, "outdoor_max": 80, "outdoor_confidence": 0.8, ...}` without `hdd`/`cdd`
 
 ### Requirement: Discovery excludes HDD and CDD components
-`IndexEnrichment.BuildDiscoveryPayload` SHALL NOT register sensor components for `hdd` or `cdd`. Sensor count per location drops from 38 to 34 (8 scores + 8x3 envelopes + frost_hours + frost_confidence + vpd_kpa + vpd_category = 34 without hdd/cdd).
+`IndexEnrichment.BuildDiscoveryPayload` SHALL NOT register sensor components for `hdd` or `cdd`.
 
 #### Scenario: Discovery without degree day sensors
 - **WHEN** discovery payload is built for indices
 - **THEN** components do not include `hdd` or `cdd`
 
-### Requirement: Discovery registers envelope components
-`IndexEnrichment.BuildDiscoveryPayload` SHALL register sensor components for each envelope field of the remaining 8 scores.
+### Requirement: Discovery components include day offset dimension
+Discovery SHALL register sensor components with day-offset suffixes: `outdoor_d0`, `outdoor_d1`, `outdoor_d2`, etc. Each component SHALL reference its day-offset state topic. Envelope components follow the same pattern: `outdoor_min_d0`, `outdoor_max_d1`, etc.
 
-#### Scenario: Envelope discovery components
-- **WHEN** discovery payload is built for indices
-- **THEN** components include `outdoor_min`, `outdoor_max`, `outdoor_confidence` (and likewise for all 8 scores)
+#### Scenario: Discovery component count per location
+- **WHEN** discovery payload is built for indices with 3 day slices
+- **THEN** the device SHALL have (8 scores x 3 days x 4 fields) + frost (2) + VPD (2) = 100 components
+
+#### Scenario: Component references day-offset topic
+- **WHEN** the discovery payload for location "lucerne" includes `outdoor_d1`
+- **THEN** the component SHALL have `"state_topic": "njord/lucerne/indices/d1"` and `"value_template": "{{ value_json.outdoor }}"`
 
 ### Requirement: IndexResult aggregates all indices and serializes to MQTT
 
-`IndexResult` SHALL derive its location from `ConsensusSnapshot.Location`.
+`DaySliceIndexResult` SHALL replace `IndexResult` as the output of index computation. It SHALL contain a `Location` (string), a `Days` list of `DayScoreSet` (one per computed day, up to 3), `FrostProtection` (`FrostProtectionInfo?`), and `Vpd` (`VpdInfo?`).
 
-#### Scenario: Index message content
+Each `DayScoreSet` SHALL contain: `DayOffset` (int, 0/1/2), `Laundry` (int), `Outdoor` (int), `Running` (int), `Cycling` (int), `Bbq` (int), `Irrigation` (int), `Solar` (int), `NightVentilation` (int), `HoursIncluded` (int), envelope fields for each score, and derive its location from `ConsensusSnapshot.Location`.
+
+#### Scenario: Index message content with daily slices
 - **WHEN** indices are serialized to MQTT
-- **THEN** one retained message is published with all scores and envelope fields
+- **THEN** one retained message SHALL be published per day offset (d0, d1, d2) with all scores and envelope fields for that day
 
-#### Scenario: Retained message
-- **WHEN** an index message is published
-- **THEN** it is retained
+#### Scenario: Retained messages
+- **WHEN** index messages are published
+- **THEN** each day-offset message SHALL be retained
 
-### Requirement: IndexResult serialization with pinned wire names
-`IndexResult` and `ScoreEnvelope` records SHALL have `[property: JsonProperty("...")]` on all positional parameters. Value tuple properties `FrostProtection` and `Vpd` SHALL be replaced with named records (`FrostProtectionInfo`, `VpdInfo`) carrying `[JsonProperty]` attributes. The removal of `Hdd`/`Cdd` properties constitutes a version bump.
+#### Scenario: Frost and VPD on d0 only
+- **WHEN** index messages are published
+- **THEN** `frost_hours`, `frost_confidence`, `vpd_category`, `vpd_kpa` SHALL appear only in the d0 payload
 
-#### Scenario: IndexResult without hdd/cdd round-trips through JSON
-- **WHEN** an `IndexResult` is serialized and deserialized
-- **THEN** all properties round-trip correctly and no `hdd`/`cdd` keys appear
+### Requirement: DaySliceIndexResult serialization with pinned wire names
+`DaySliceIndexResult` and `DayScoreSet` records SHALL have `[property: JsonProperty("...")]` on all positional parameters. The `ventilation` wire name SHALL be replaced by `night_ventilation`. Persistence DTO version SHALL be incremented.
 
-#### Scenario: IndexResult with null optional fields round-trips
-- **WHEN** an `IndexResult` with null FrostProtection, Vpd, and null envelope fields is serialized and deserialized
-- **THEN** all null values are preserved and non-null fields round-trip correctly
+#### Scenario: DaySliceIndexResult round-trips through JSON
+- **WHEN** a `DaySliceIndexResult` with 3 day score sets is serialized and deserialized
+- **THEN** all properties round-trip correctly including day offsets, scores, envelopes, frost, and VPD
+
+#### Scenario: No ventilation key in JSON
+- **WHEN** a `DayScoreSet` is serialized
+- **THEN** JSON SHALL NOT contain a `"ventilation"` key; it SHALL contain `"night_ventilation"`
