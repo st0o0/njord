@@ -26,7 +26,7 @@ public sealed class EnrichmentFeatureContractSpec
             new AlertEnrichment(enrichmentWrapped, TimeProvider.System),
             new DerivedEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System),
             new TrendEnrichment(enrichmentWrapped),
-            new IndexEnrichment(enrichmentWrapped, parameters, TimeProvider.System),
+            new IndexEnrichment(enrichmentWrapped, optionsWrapped, parameters, TimeProvider.System),
             new EnergyEnrichment(enrichmentWrapped, parameters, TimeProvider.System),
             new HistoryEnrichment(optionsWrapped, enrichmentWrapped, parameters, TimeProvider.System,
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoryEnrichment>.Instance),

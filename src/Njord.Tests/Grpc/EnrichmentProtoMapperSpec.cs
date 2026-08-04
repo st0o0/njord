@@ -46,7 +46,7 @@ public sealed class EnrichmentProtoMapperSpec
         var result = new IndexResult(
             Location: "lucerne",
             Laundry: 80, Outdoor: 70, Running: 65, Cycling: 75,
-            Bbq: 90, Irrigation: 30, Hdd: 5.2, Cdd: 1.8,
+            Bbq: 90, Irrigation: 30,
             Solar: 85, Ventilation: 60,
             FrostProtection: new FrostProtectionInfo(HoursUntilFrost: 8, Confidence: 0.7),
             Vpd: new VpdInfo(Category: "optimal", Vpd: 1.2));
@@ -61,8 +61,6 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.Equal(30, update.Irrigation);
         Assert.Equal(85, update.Solar);
         Assert.Equal(60, update.Ventilation);
-        Assert.Equal(5.2, update.Hdd);
-        Assert.Equal(1.8, update.Cdd);
         Assert.Equal(8, update.FrostHours);
         Assert.Equal(0.7, update.FrostConfidence);
         Assert.Equal(1.2, update.VpdKpa);

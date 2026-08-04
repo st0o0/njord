@@ -33,7 +33,23 @@ export function exportAsJson(config: NjordConfig): string {
   if (config.mqtt.discoveryPrefix !== 'homeassistant') (n.Mqtt as Record<string, unknown>).DiscoveryPrefix = config.mqtt.discoveryPrefix
   if (config.mqtt.baseTopic !== 'njord') (n.Mqtt as Record<string, unknown>).BaseTopic = config.mqtt.baseTopic
 
-  if (Object.keys(config.enrichment).length) n.Enrichment = config.enrichment
+  if (Object.keys(config.enrichment).length) {
+    const enrichment: Record<string, unknown> = {}
+    for (const [feature, settings] of Object.entries(config.enrichment)) {
+      const featureObj: Record<string, unknown> = {}
+      for (const [key, value] of Object.entries(settings as Record<string, unknown>)) {
+        if (key.includes(':')) {
+          const [section, prop] = key.split(':')
+          if (!featureObj[section]) featureObj[section] = {}
+          ;(featureObj[section] as Record<string, unknown>)[prop] = value
+        } else {
+          featureObj[key] = value
+        }
+      }
+      enrichment[feature] = featureObj
+    }
+    n.Enrichment = enrichment
+  }
   if (config.budgetOverride) n.BudgetOverride = config.budgetOverride
   if (config.persistence.provider !== 'Sqlite') {
     n.Persistence = { Provider: config.persistence.provider, ConnectionString: config.persistence.connectionString }
@@ -70,7 +86,8 @@ export function exportAsEnvVars(config: NjordConfig): string {
 
   for (const [feature, settings] of Object.entries(config.enrichment)) {
     for (const [key, value] of Object.entries(settings as Record<string, unknown>)) {
-      add(`Njord__Enrichment__${feature}__${key}`, String(value))
+      const envKey = key.includes(':') ? key.replace(':', '__') : key
+      add(`Njord__Enrichment__${feature}__${envKey}`, String(value))
     }
   }
 

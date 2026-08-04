@@ -63,7 +63,29 @@ public sealed class EnergyOptions
 public sealed class IndexOptions
 {
     public bool Enabled { get; set; } = false;
-    public double HeatingBaseTemp { get; set; } = 18.0;
-    public double CoolingBaseTemp { get; set; } = 24.0;
-    public double IndoorTemp { get; set; } = 22.0;
+    public IndexPreferences Preferences { get; set; } = new();
+    public IDictionary<string, IndexPreferences> ScoreOverrides { get; set; } = new Dictionary<string, IndexPreferences>(StringComparer.OrdinalIgnoreCase);
+    public IList<LocationIndexOverride> LocationOverrides { get; set; } = [];
+}
+
+public sealed class IndexPreferences
+{
+    public double? IdealOutdoorTemp { get; set; }
+    public double? RunningIdealTempLow { get; set; }
+    public double? RunningIdealTempHigh { get; set; }
+    public double? BbqMinTemp { get; set; }
+    public double? BbqIdealWindLow { get; set; }
+    public double? BbqIdealWindHigh { get; set; }
+    public double? IndoorTemp { get; set; }
+    public double? HeatSensitivity { get; set; }
+    public double? HumiditySensitivity { get; set; }
+    public double? WindSensitivity { get; set; }
+    public double? RainSensitivity { get; set; }
+}
+
+public sealed class LocationIndexOverride
+{
+    public string Location { get; set; } = string.Empty;
+    public IndexPreferences Preferences { get; set; } = new();
+    public IDictionary<string, IndexPreferences> ScoreOverrides { get; set; } = new Dictionary<string, IndexPreferences>(StringComparer.OrdinalIgnoreCase);
 }

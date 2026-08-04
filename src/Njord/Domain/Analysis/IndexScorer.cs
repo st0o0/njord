@@ -6,103 +6,147 @@ public static class IndexScorer
 {
     private static int Clamp(double value) => (int)Math.Round(Math.Clamp(value, 0, 100));
 
-    private static double TempScore(double? temp) =>
-        temp is not { } t ? 50 : Math.Clamp((t - 5) / 20 * 100, 0, 100);
+    private static double Penalize(double rawScore, double sensitivity) =>
+        Math.Clamp(100 - (100 - rawScore) * sensitivity, 0, 100);
 
-    private static double HumidityScore(double? humidity) =>
-        humidity is not { } h ? 50 : Math.Clamp((90 - h) / 50 * 100, 0, 100);
+    private static double TempScore(double? temp, double sensitivity) =>
+        temp is not { } t ? 50 : Penalize(Math.Clamp((t - 5) / 20 * 100, 0, 100), sensitivity);
 
-    private static double WindScore(double? wind) =>
-        wind is not { } w ? 50 : Math.Clamp(w / 4 * 100, 0, 100);
+    private static double HumidityScore(double? humidity, double sensitivity) =>
+        humidity is not { } h ? 50 : Penalize(Math.Clamp((70 - h) / 40 * 100, 0, 100), sensitivity);
 
-    private static double RainScore(double? rainProb) =>
-        rainProb is not { } r ? 50 : Math.Clamp((60 - r) / 60 * 100, 0, 100);
+    private static double WindScore(double? wind, double sensitivity) =>
+        wind is not { } w ? 50 : Penalize(Math.Clamp(w / 4 * 100, 0, 100), sensitivity);
+
+    private static double RainScore(double? rainProb, double sensitivity) =>
+        rainProb is not { } r ? 50 : Penalize(Math.Clamp((60 - r) / 60 * 100, 0, 100), sensitivity);
 
     private static double SunshineScore(double? sunshinePct) =>
         sunshinePct ?? 50;
 
     private static double CloudScore(double? cloudCover) =>
-        cloudCover is not { } c ? 50 : Math.Clamp((100 - c), 0, 100);
+        cloudCover is not { } c ? 50 : Math.Clamp(100 - c, 0, 100);
 
-    private static double TempComfort(double? temp)
+    private static double TempComfort(double? temp, double idealTemp, double sensitivity)
     {
         if (temp is not { } t)
         {
             return 50;
         }
 
-        var diff = Math.Abs(t - 22);
-        return Math.Clamp(100 - diff * diff * 0.3, 0, 100);
+        var diff = Math.Abs(t - idealTemp);
+        var raw = Math.Clamp(100 - diff * diff * 0.55, 0, 100);
+        return Penalize(raw, sensitivity);
     }
 
-    private static double RunTempScore(double? temp)
-    {
-        if (temp is not { } t)
-        {
-            return 50;
-        }
-
-        if (t >= 5 && t <= 20)
-        {
-            var mid = 12.5;
-            var diff = Math.Abs(t - mid);
-            return Math.Clamp(100 - diff * diff * 0.5, 0, 100);
-        }
-        if (t < 5)
-        {
-            return Math.Clamp(100 - (5 - t) * 15, 0, 100);
-        }
-
-        return Math.Clamp(100 - (t - 20) * 5, 0, 100);
-    }
-
-    private static double BbqTempScore(double? temp) =>
-        temp is not { } t ? 50 : Math.Clamp((t - 10) / 16 * 100, 0, 100);
-
-    private static double BbqWindScore(double? wind)
+    internal static double BreezeScore(double? wind, double sensitivity)
     {
         if (wind is not { } w)
         {
             return 50;
         }
 
-        if (w >= 1 && w <= 3)
+        double raw;
+        if (w >= 2 && w <= 4)
+        {
+            raw = 100;
+        }
+        else if (w < 2)
+        {
+            raw = 30 + w / 2 * 35;
+        }
+        else
+        {
+            raw = Math.Clamp(100 - (w - 4) * 12, 0, 100);
+        }
+
+        var penalty = 100 - raw;
+        return Math.Clamp(100 - penalty * sensitivity, 0, 100);
+    }
+
+    private static double RunTempScore(double? temp, double low, double high, double sensitivity)
+    {
+        if (temp is not { } t)
+        {
+            return 50;
+        }
+
+        double raw;
+        if (t >= low && t <= high)
+        {
+            var mid = (low + high) / 2;
+            var diff = Math.Abs(t - mid);
+            raw = Math.Clamp(100 - diff * diff * 0.5, 0, 100);
+        }
+        else if (t < low)
+        {
+            raw = Math.Clamp(100 - (low - t) * 15, 0, 100);
+        }
+        else
+        {
+            raw = Math.Clamp(100 - (t - high) * 5, 0, 100);
+        }
+
+        var penalty = 100 - raw;
+        return Math.Clamp(100 - penalty * sensitivity, 0, 100);
+    }
+
+    private static double BbqTempScore(double? temp, double minTemp) =>
+        temp is not { } t ? 50 : Math.Clamp((t - minTemp) / 16 * 100, 0, 100);
+
+    private static double BbqWindScore(double? wind, double idealLow, double idealHigh)
+    {
+        if (wind is not { } w)
+        {
+            return 50;
+        }
+
+        if (w >= idealLow && w <= idealHigh)
         {
             return 100;
         }
 
-        if (w < 1)
+        if (w < idealLow)
         {
             return 70;
         }
 
-        return Math.Clamp(100 - (w - 3) * 12, 0, 100);
+        return Math.Clamp(100 - (w - idealHigh) * 12, 0, 100);
     }
 
-    private static double BbqRainScore(double? rainProb) =>
-        rainProb is not { } r ? 50 : Math.Clamp((30 - r) / 30 * 100, 0, 100);
+    private static double BbqRainScore(double? rainProb, double sensitivity) =>
+        rainProb is not { } r ? 50 : Penalize(Math.Clamp((30 - r) / 30 * 100, 0, 100), sensitivity);
 
-    public static int LaundryDrying(double? temp, double? humidity, double? wind, double? rainProb, double? sunshinePct) =>
-        Clamp(0.3 * TempScore(temp) + 0.25 * HumidityScore(humidity) + 0.2 * WindScore(wind)
-             + 0.15 * RainScore(rainProb) + 0.1 * SunshineScore(sunshinePct));
+    public static int LaundryDrying(double? temp, double? humidity, double? wind, double? rainProb, double? sunshinePct, ResolvedPreferences prefs) =>
+        Clamp(0.3 * TempScore(temp, prefs.HeatSensitivity) + 0.25 * HumidityScore(humidity, prefs.HumiditySensitivity)
+             + 0.2 * WindScore(wind, prefs.WindSensitivity) + 0.15 * RainScore(rainProb, prefs.RainSensitivity)
+             + 0.1 * SunshineScore(sunshinePct));
 
-    public static int OutdoorScore(double? temp, double? rainProb, double? wind, double? cloudCover) =>
-        Clamp(0.35 * TempComfort(temp) + 0.25 * RainScore(rainProb)
-             + 0.2 * Math.Clamp(100 - (wind ?? 5) * 8, 0, 100) + 0.2 * CloudScore(cloudCover));
+    public static int OutdoorScore(double? temp, double? humidity, double? rainProb, double? wind, double? cloudCover, ResolvedPreferences prefs) =>
+        Clamp(0.25 * TempComfort(temp, prefs.IdealTemp, prefs.HeatSensitivity)
+             + 0.25 * HumidityScore(humidity, prefs.HumiditySensitivity)
+             + 0.15 * RainScore(rainProb, prefs.RainSensitivity)
+             + 0.20 * BreezeScore(wind, prefs.WindSensitivity)
+             + 0.15 * CloudScore(cloudCover));
 
-    public static int RunningComfort(double? temp, double? humidity, double? wind, double? rainProb) =>
-        Clamp(0.3 * RunTempScore(temp) + 0.25 * HumidityScore(humidity)
-             + 0.2 * Math.Clamp(100 - (wind ?? 3) * 12, 0, 100) + 0.25 * RainScore(rainProb));
+    public static int RunningComfort(double? temp, double? humidity, double? wind, double? rainProb, ResolvedPreferences prefs) =>
+        Clamp(0.3 * RunTempScore(temp, prefs.IdealTempLow, prefs.IdealTempHigh, prefs.HeatSensitivity)
+             + 0.25 * HumidityScore(humidity, prefs.HumiditySensitivity)
+             + 0.2 * Penalize(Math.Clamp(100 - (wind ?? 3) * 12, 0, 100), prefs.WindSensitivity)
+             + 0.25 * RainScore(rainProb, prefs.RainSensitivity));
 
-    public static int CyclingComfort(double? temp, double? humidity, double? wind, double? rainProb) =>
-        Clamp(0.25 * RunTempScore(temp) + 0.15 * HumidityScore(humidity)
-             + 0.3 * Math.Clamp(100 - (wind ?? 3) * 10, 0, 100) + 0.3 * RainScore(rainProb));
+    public static int CyclingComfort(double? temp, double? humidity, double? wind, double? rainProb, ResolvedPreferences prefs) =>
+        Clamp(0.25 * RunTempScore(temp, prefs.IdealTempLow, prefs.IdealTempHigh, prefs.HeatSensitivity)
+             + 0.15 * HumidityScore(humidity, prefs.HumiditySensitivity)
+             + 0.3 * Penalize(Math.Clamp(100 - (wind ?? 3) * 10, 0, 100), prefs.WindSensitivity)
+             + 0.3 * RainScore(rainProb, prefs.RainSensitivity));
 
-    public static int BbqWeather(double? temp, double? humidity, double? wind, double? rainProb) =>
-        Clamp(0.3 * BbqTempScore(temp) + 0.1 * HumidityScore(humidity)
-             + 0.25 * BbqWindScore(wind) + 0.35 * BbqRainScore(rainProb));
+    public static int BbqWeather(double? temp, double? humidity, double? wind, double? rainProb, ResolvedPreferences prefs) =>
+        Clamp(0.3 * BbqTempScore(temp, prefs.MinTemp) + 0.1 * HumidityScore(humidity, prefs.HumiditySensitivity)
+             + 0.25 * BbqWindScore(wind, prefs.IdealWindLow, prefs.IdealWindHigh)
+             + 0.35 * BbqRainScore(rainProb, prefs.RainSensitivity));
 
-    public static int IrrigationNeed(double? rainProb, double? temp, double? humidity, double? et)
+    public static int IrrigationNeed(double? rainProb, double? temp, double? humidity, double? et, ResolvedPreferences prefs)
     {
         var rainInverse = rainProb is { } r ? Math.Clamp(r / 60 * 100, 0, 100) : 50;
         var tempScore = temp is { } t ? Math.Clamp((t - 10) / 20 * 100, 0, 100) : 50;
@@ -112,37 +156,35 @@ public static class IndexScorer
         return Clamp(0.3 * (100 - rainInverse) + 0.25 * tempScore + 0.25 * humInverse + 0.2 * etScore);
     }
 
-    public static double HeatingDegreeDays(double meanTemp, double baseTemp = 18) =>
-        Math.Max(0, baseTemp - meanTemp);
-
-    public static double CoolingDegreeDays(double meanTemp, double baseTemp = 24) =>
-        Math.Max(0, meanTemp - baseTemp);
-
-    public static int SolarYield(double? radiation, double? cloudCover, double? temp)
+    public static int SolarYield(double? radiation, double? cloudCover, double? temp, ResolvedPreferences prefs)
     {
         var radScore = radiation is { } r ? Math.Clamp(r / 1000 * 100, 0, 100) : 50;
         var cloudInverse = CloudScore(cloudCover);
-        var tempEff = temp is { } t && t > 25 ? Math.Clamp(100 - (t - 25) * 4, 0, 100) : 100.0;
+        var tempEff = temp is { } t && t > 25
+            ? Penalize(Math.Clamp(100 - (t - 25) * 4, 0, 100), prefs.HeatSensitivity)
+            : 100.0;
         return Clamp(0.5 * radScore + 0.3 * cloudInverse + 0.2 * tempEff);
     }
 
-    public static int Ventilation(double? outdoorTemp, double indoorTemp, double? humidity, double? wind, double? rainProb)
+    public static int Ventilation(double? outdoorTemp, double? humidity, double? wind, double? rainProb, ResolvedPreferences prefs)
     {
         var tempDelta = outdoorTemp is { } ot
-            ? Math.Clamp((indoorTemp - ot) / 10 * 100, 0, 100)
+            ? Math.Clamp((prefs.IndoorTemp - ot) / 10 * 100, 0, 100)
             : 50.0;
-        var humScore = humidity is { } h ? Math.Clamp((70 - h) / 30 * 100, 0, 100) : 50;
+        var humRaw = humidity is { } h ? Math.Clamp((70 - h) / 30 * 100, 0, 100) : 50;
+        var humScore = Penalize(humRaw, prefs.HumiditySensitivity);
         double windScore;
         if (wind is { } w)
         {
-            windScore = w >= 2 && w <= 5 ? 100 : w < 2 ? w / 2 * 100 : Math.Clamp(100 - (w - 5) * 15, 0, 100);
+            var windRaw = w >= 2 && w <= 5 ? 100 : w < 2 ? w / 2 * 100 : Math.Clamp(100 - (w - 5) * 15, 0, 100);
+            windScore = Penalize(windRaw, prefs.WindSensitivity);
         }
         else
         {
             windScore = 50;
         }
 
-        var rainSc = RainScore(rainProb);
+        var rainSc = RainScore(rainProb, prefs.RainSensitivity);
         return Clamp(0.3 * tempDelta + 0.25 * humScore + 0.25 * windScore + 0.2 * rainSc);
     }
 

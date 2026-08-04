@@ -20,9 +20,10 @@ public sealed class IndexEnrichmentSpec
     private static IndexEnrichment CreateFeature()
     {
         var enrichment = new EnrichmentOptions();
+        var njordOptions = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
-        return new IndexEnrichment(Options.Create(enrichment), parameters, new FakeTimeProvider(T0));
+        return new IndexEnrichment(Options.Create(enrichment), Options.Create(njordOptions), parameters, new FakeTimeProvider(T0));
     }
 
     private static ModelForecast BuildForecast(string location)

@@ -26,7 +26,7 @@ public sealed class EnrichmentResultSerializationSpec
                     DurationHours: 4),
             ]),
         ["lucerne|indices"] = new IndexResult(
-            "lucerne", 80, 90, 70, 85, 95, 60, 12.5, 0.5, 88, 75,
+            "lucerne", 80, 90, 70, 85, 95, 60, 88, 75,
             new FrostProtectionInfo(6, 0.9),
             new VpdInfo("moderate", 0.8),
             new ScoreEnvelope(70, 90, 0.75)),

@@ -235,24 +235,29 @@ public sealed class AdminGrpcService(
             if (request.Indices is { } indices)
             {
                 if (indices.HasEnabled)
-                {
                     options.Enrichment.Indices.Enabled = indices.Enabled;
-                }
-
-                if (indices.HasHeatingBaseTemp)
-                {
-                    options.Enrichment.Indices.HeatingBaseTemp = indices.HeatingBaseTemp;
-                }
-
-                if (indices.HasCoolingBaseTemp)
-                {
-                    options.Enrichment.Indices.CoolingBaseTemp = indices.CoolingBaseTemp;
-                }
-
                 if (indices.HasIndoorTemp)
-                {
-                    options.Enrichment.Indices.IndoorTemp = indices.IndoorTemp;
-                }
+                    options.Enrichment.Indices.Preferences.IndoorTemp = indices.IndoorTemp;
+                if (indices.HasIdealOutdoorTemp)
+                    options.Enrichment.Indices.Preferences.IdealOutdoorTemp = indices.IdealOutdoorTemp;
+                if (indices.HasHeatSensitivity)
+                    options.Enrichment.Indices.Preferences.HeatSensitivity = indices.HeatSensitivity;
+                if (indices.HasHumiditySensitivity)
+                    options.Enrichment.Indices.Preferences.HumiditySensitivity = indices.HumiditySensitivity;
+                if (indices.HasWindSensitivity)
+                    options.Enrichment.Indices.Preferences.WindSensitivity = indices.WindSensitivity;
+                if (indices.HasRainSensitivity)
+                    options.Enrichment.Indices.Preferences.RainSensitivity = indices.RainSensitivity;
+                if (indices.HasRunningIdealTempLow)
+                    options.Enrichment.Indices.Preferences.RunningIdealTempLow = indices.RunningIdealTempLow;
+                if (indices.HasRunningIdealTempHigh)
+                    options.Enrichment.Indices.Preferences.RunningIdealTempHigh = indices.RunningIdealTempHigh;
+                if (indices.HasBbqMinTemp)
+                    options.Enrichment.Indices.Preferences.BbqMinTemp = indices.BbqMinTemp;
+                if (indices.HasBbqIdealWindLow)
+                    options.Enrichment.Indices.Preferences.BbqIdealWindLow = indices.BbqIdealWindLow;
+                if (indices.HasBbqIdealWindHigh)
+                    options.Enrichment.Indices.Preferences.BbqIdealWindHigh = indices.BbqIdealWindHigh;
             }
 
             if (request.Energy is { } energy)
@@ -421,9 +426,17 @@ public sealed class AdminGrpcService(
             Indices = new V2.IndexConfig
             {
                 Enabled = enrichment.Indices.Enabled,
-                HeatingBaseTemp = enrichment.Indices.HeatingBaseTemp,
-                CoolingBaseTemp = enrichment.Indices.CoolingBaseTemp,
-                IndoorTemp = enrichment.Indices.IndoorTemp,
+                IndoorTemp = enrichment.Indices.Preferences.IndoorTemp ?? 22.0,
+                IdealOutdoorTemp = enrichment.Indices.Preferences.IdealOutdoorTemp ?? 22.0,
+                HeatSensitivity = enrichment.Indices.Preferences.HeatSensitivity ?? 1.0,
+                HumiditySensitivity = enrichment.Indices.Preferences.HumiditySensitivity ?? 1.0,
+                WindSensitivity = enrichment.Indices.Preferences.WindSensitivity ?? 1.0,
+                RainSensitivity = enrichment.Indices.Preferences.RainSensitivity ?? 1.0,
+                RunningIdealTempLow = enrichment.Indices.Preferences.RunningIdealTempLow ?? 5.0,
+                RunningIdealTempHigh = enrichment.Indices.Preferences.RunningIdealTempHigh ?? 20.0,
+                BbqMinTemp = enrichment.Indices.Preferences.BbqMinTemp ?? 10.0,
+                BbqIdealWindLow = enrichment.Indices.Preferences.BbqIdealWindLow ?? 1.0,
+                BbqIdealWindHigh = enrichment.Indices.Preferences.BbqIdealWindHigh ?? 3.0,
             },
             Energy = new V2.EnergyConfig
             {
@@ -503,9 +516,20 @@ public sealed class AdminGrpcService(
                 Indices = new IndexOptions
                 {
                     Enabled = source.Enrichment.Indices.Enabled,
-                    HeatingBaseTemp = source.Enrichment.Indices.HeatingBaseTemp,
-                    CoolingBaseTemp = source.Enrichment.Indices.CoolingBaseTemp,
-                    IndoorTemp = source.Enrichment.Indices.IndoorTemp,
+                    Preferences = new IndexPreferences
+                    {
+                        IndoorTemp = source.Enrichment.Indices.Preferences.IndoorTemp,
+                        IdealOutdoorTemp = source.Enrichment.Indices.Preferences.IdealOutdoorTemp,
+                        HeatSensitivity = source.Enrichment.Indices.Preferences.HeatSensitivity,
+                        HumiditySensitivity = source.Enrichment.Indices.Preferences.HumiditySensitivity,
+                        WindSensitivity = source.Enrichment.Indices.Preferences.WindSensitivity,
+                        RainSensitivity = source.Enrichment.Indices.Preferences.RainSensitivity,
+                        RunningIdealTempLow = source.Enrichment.Indices.Preferences.RunningIdealTempLow,
+                        RunningIdealTempHigh = source.Enrichment.Indices.Preferences.RunningIdealTempHigh,
+                        BbqMinTemp = source.Enrichment.Indices.Preferences.BbqMinTemp,
+                        BbqIdealWindLow = source.Enrichment.Indices.Preferences.BbqIdealWindLow,
+                        BbqIdealWindHigh = source.Enrichment.Indices.Preferences.BbqIdealWindHigh,
+                    },
                 },
                 Energy = new EnergyOptions
                 {

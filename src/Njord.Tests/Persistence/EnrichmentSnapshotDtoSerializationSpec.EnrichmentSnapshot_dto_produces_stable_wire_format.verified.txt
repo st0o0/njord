@@ -7,7 +7,7 @@
     },
     "lucerne|indices": {
       "type": "IndexResult",
-      "json": "{\"location\":\"lucerne\",\"laundry\":80,\"outdoor\":90,\"running\":70,\"cycling\":85,\"bbq\":95,\"irrigation\":60,\"hdd\":12.5,\"cdd\":0.5,\"solar\":88,\"ventilation\":75,\"frostProtection\":null,\"vpd\":null,\"laundryEnvelope\":null,\"outdoorEnvelope\":null,\"runningEnvelope\":null,\"cyclingEnvelope\":null,\"bbqEnvelope\":null,\"irrigationEnvelope\":null,\"solarEnvelope\":null,\"ventilationEnvelope\":null}"
+      "json": "{\"location\":\"lucerne\",\"laundry\":80,\"outdoor\":90,\"running\":70,\"cycling\":85,\"bbq\":95,\"irrigation\":60,\"solar\":88,\"ventilation\":75,\"frostProtection\":null,\"vpd\":null,\"laundryEnvelope\":null,\"outdoorEnvelope\":null,\"runningEnvelope\":null,\"cyclingEnvelope\":null,\"bbqEnvelope\":null,\"irrigationEnvelope\":null,\"solarEnvelope\":null,\"ventilationEnvelope\":null}"
     }
   }
 }

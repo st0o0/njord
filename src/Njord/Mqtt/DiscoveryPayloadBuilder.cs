@@ -384,24 +384,6 @@ public static class DiscoveryPayloadBuilder
             };
         }
 
-        var degreeDaySensors = new (string Key, string Name)[] { ("hdd", "heating degree days"), ("cdd", "cooling degree days") };
-        foreach (var (key, name) in degreeDaySensors)
-        {
-            components[key] = new JsonObject
-            {
-                ["p"] = "sensor",
-                ["unique_id"] = $"{deviceId}_{key}",
-                ["name"] = name,
-                ["state_topic"] = indexTopic,
-                ["unit_of_measurement"] = "°Cd",
-                ["expire_after"] = expireAfterSeconds,
-                ["value_template"] = $"{{{{ value_json.{key} }}}}",
-                ["availability"] = new JsonArray(
-                    new JsonObject { ["topic"] = availabilityTopic }),
-                ["availability_mode"] = "all",
-            };
-        }
-
         var numericSensors = new (string Key, string Name, string Unit)[]
         {
             ("frost_hours", "frost in", "h"),

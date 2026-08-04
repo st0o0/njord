@@ -60,8 +60,6 @@ public static class EnrichmentProtoMapper
             Irrigation = result.Irrigation,
             Solar = result.Solar,
             Ventilation = result.Ventilation,
-            Hdd = result.Hdd,
-            Cdd = result.Cdd,
         };
 
         if (result.FrostProtection is { } frost)

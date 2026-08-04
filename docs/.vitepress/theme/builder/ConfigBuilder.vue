@@ -294,8 +294,8 @@ onMounted(() => {
             <span v-if="f.enabledByDefault" class="enrichment-badge">default on</span>
           </label>
           <div v-if="isEnrichmentEnabled(f.name) && f.options.length" class="enrichment-options">
-            <label v-for="opt in f.options" :key="opt.name" class="enrichment-option">
-              <span class="option-name">{{ opt.name }}</span>
+            <label v-for="opt in f.options" :key="opt.name" class="enrichment-option" :title="opt.description || ''">
+              <span class="option-name">{{ opt.name.includes(':') ? opt.name.split(':')[1] : opt.name }}</span>
               <input
                 v-if="opt.type === 'number'"
                 type="number"
@@ -313,6 +313,7 @@ onMounted(() => {
                 @input="setEnrichmentOption(f.name, opt.name, ($event.target as HTMLInputElement).value || undefined, opt.default)"
                 class="option-input"
               />
+              <span v-if="opt.description" class="option-description">{{ opt.description }}</span>
             </label>
           </div>
         </div>
@@ -439,9 +440,10 @@ button.active { background: var(--vp-c-brand-1); color: white; border-color: var
 .enrichment-header { display: flex; gap: 6px; align-items: center; cursor: pointer; font-size: 13px; }
 .enrichment-badge { font-size: 10px; color: var(--vp-c-text-3); background: var(--vp-c-bg-mute); padding: 1px 6px; border-radius: 3px; }
 .enrichment-options { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
-.enrichment-option { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--vp-c-text-2); }
+.enrichment-option { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; font-size: 12px; color: var(--vp-c-text-2); gap: 2px; }
 .option-name { min-width: 100px; }
 .option-input { width: 100px; font-size: 12px; }
+.option-description { width: 100%; font-size: 10px; color: var(--vp-c-text-3); margin-top: -2px; }
 
 .preset-row { display: flex; gap: 4px; margin-bottom: 8px; }
 .custom-horizons { display: flex; gap: 8px; margin-bottom: 8px; }
