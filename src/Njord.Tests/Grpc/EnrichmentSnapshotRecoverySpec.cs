@@ -14,7 +14,7 @@ public sealed class EnrichmentSnapshotRecoverySpec : PersistenceTestKit
     {
         for (var i = 0; i < count; i++)
         {
-            var result = new IndexResult("lucerne", 80 + i, 90, 70, 85, 95, 60, 88, 75, null, null);
+            var result = new IndexResult("lucerne", [new DayScoreSet(0, 80 + i, 90, 70, 85, 95, 60, 88, 75, HoursIncluded: 14)], null, null);
             await actor.Ask<Ack>(new UpdateEnrichment("lucerne", $"type_{i}", result));
         }
     }

@@ -79,15 +79,15 @@ public sealed class IndexScorerSpec
     public void SolarYield_overcast_hot() =>
         Assert.InRange(IndexScorer.SolarYield(150, 90, 38, Prefs), 0, 20);
 
-    // --- Ventilation ---
+    // --- NightVentilation ---
 
     [Fact(Timeout = 5000)]
-    public void Ventilation_cool_evening() =>
-        Assert.InRange(IndexScorer.Ventilation(17, 45, 3, 0, Prefs), 75, 100);
+    public void NightVentilation_cool_evening() =>
+        Assert.InRange(IndexScorer.NightVentilation(17, 45, 3, 0, Prefs), 75, 100);
 
     [Fact(Timeout = 5000)]
-    public void Ventilation_hot_humid() =>
-        Assert.InRange(IndexScorer.Ventilation(30, 80, 1, 0, Prefs), 0, 35);
+    public void NightVentilation_hot_humid() =>
+        Assert.InRange(IndexScorer.NightVentilation(30, 80, 1, 0, Prefs), 0, 35);
 
     // --- FrostProtection ---
 
@@ -238,11 +238,11 @@ public sealed class IndexScorerSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void Ventilation_custom_indoor_temp()
+    public void NightVentilation_custom_indoor_temp()
     {
         var warm = Prefs with { IndoorTemp = 25.0 };
-        var scoreCoolOutdoor = IndexScorer.Ventilation(15, 45, 3, 0, warm);
-        var scoreDefault = IndexScorer.Ventilation(15, 45, 3, 0, Prefs);
-        Assert.True(scoreCoolOutdoor > scoreDefault, "Higher indoor temp with cool outdoor should increase ventilation score");
+        var scoreCoolOutdoor = IndexScorer.NightVentilation(15, 45, 3, 0, warm);
+        var scoreDefault = IndexScorer.NightVentilation(15, 45, 3, 0, Prefs);
+        Assert.True(scoreCoolOutdoor > scoreDefault, "Higher indoor temp with cool outdoor should increase night ventilation score");
     }
 }

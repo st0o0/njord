@@ -5,7 +5,7 @@ namespace Njord.Domain.Analysis;
 public static class PreferenceResolver
 {
     public static readonly IReadOnlyList<string> ScoreNames =
-        ["Laundry", "Outdoor", "Running", "Cycling", "Bbq", "Irrigation", "Solar", "Ventilation"];
+        ["Laundry", "Outdoor", "Running", "Cycling", "Bbq", "Irrigation", "Solar", "NightVentilation"];
 
     public static IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> Resolve(
         IndexOptions options, IEnumerable<string> locationNames)

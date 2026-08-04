@@ -186,33 +186,45 @@ public static class StatePayloadBuilder
 
     public static IReadOnlyList<MqttMessage> FromIndices(IndexResult result, string baseTopic)
     {
-        var payload = new JsonObject
+        var messages = new List<MqttMessage>();
+
+        foreach (var day in result.Days)
         {
-            ["laundry"] = result.Laundry,
-            ["outdoor"] = result.Outdoor,
-            ["running"] = result.Running,
-            ["cycling"] = result.Cycling,
-            ["bbq"] = result.Bbq,
-            ["irrigation"] = result.Irrigation,
-            ["solar"] = result.Solar,
-            ["ventilation"] = result.Ventilation,
-            ["frost_hours"] = result.FrostProtection?.HoursUntilFrost is { } fh ? JsonValue.Create(fh) : null,
-            ["frost_confidence"] = result.FrostProtection?.Confidence is { } fc ? JsonValue.Create(fc) : null,
-            ["vpd_category"] = result.Vpd?.Category,
-            ["vpd_kpa"] = result.Vpd?.Vpd is { } v ? JsonValue.Create(v) : null,
-        };
+            var payload = new JsonObject
+            {
+                ["laundry"] = day.Laundry,
+                ["outdoor"] = day.Outdoor,
+                ["running"] = day.Running,
+                ["cycling"] = day.Cycling,
+                ["bbq"] = day.Bbq,
+                ["irrigation"] = day.Irrigation,
+                ["solar"] = day.Solar,
+                ["night_ventilation"] = day.NightVentilation,
+                ["hours_included"] = day.HoursIncluded,
+            };
 
-        AddEnvelope(payload, "laundry", result.LaundryEnvelope);
-        AddEnvelope(payload, "outdoor", result.OutdoorEnvelope);
-        AddEnvelope(payload, "running", result.RunningEnvelope);
-        AddEnvelope(payload, "cycling", result.CyclingEnvelope);
-        AddEnvelope(payload, "bbq", result.BbqEnvelope);
-        AddEnvelope(payload, "irrigation", result.IrrigationEnvelope);
-        AddEnvelope(payload, "solar", result.SolarEnvelope);
-        AddEnvelope(payload, "ventilation", result.VentilationEnvelope);
+            if (day.DayOffset == 0)
+            {
+                payload["frost_hours"] = result.FrostProtection?.HoursUntilFrost is { } fh ? JsonValue.Create(fh) : null;
+                payload["frost_confidence"] = result.FrostProtection?.Confidence is { } fc ? JsonValue.Create(fc) : null;
+                payload["vpd_category"] = result.Vpd?.Category;
+                payload["vpd_kpa"] = result.Vpd?.Vpd is { } v ? JsonValue.Create(v) : null;
+            }
 
-        var topic = TopicScheme.EnrichmentTopic(baseTopic, result.Location, "indices");
-        return [new MqttMessage(topic, payload.ToJsonString(), true)];
+            AddEnvelope(payload, "laundry", day.LaundryEnvelope);
+            AddEnvelope(payload, "outdoor", day.OutdoorEnvelope);
+            AddEnvelope(payload, "running", day.RunningEnvelope);
+            AddEnvelope(payload, "cycling", day.CyclingEnvelope);
+            AddEnvelope(payload, "bbq", day.BbqEnvelope);
+            AddEnvelope(payload, "irrigation", day.IrrigationEnvelope);
+            AddEnvelope(payload, "solar", day.SolarEnvelope);
+            AddEnvelope(payload, "night_ventilation", day.NightVentilationEnvelope);
+
+            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location, "indices", $"d{day.DayOffset}");
+            messages.Add(new MqttMessage(topic, payload.ToJsonString(), true));
+        }
+
+        return messages;
     }
 
     private static void AddEnvelope(JsonObject payload, string key, ScoreEnvelope? envelope)

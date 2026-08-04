@@ -164,6 +164,29 @@ public sealed class PreferenceResolverSpec
     }
 
     [Fact(Timeout = 5000)]
+    public void NightVentilation_key_resolves_preferences()
+    {
+        var options = new IndexOptions
+        {
+            ScoreOverrides = new Dictionary<string, IndexPreferences>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["NightVentilation"] = new IndexPreferences { HumiditySensitivity = 1.5 }
+            }
+        };
+
+        var resolved = PreferenceResolver.Resolve(options, ["Lucerne"]);
+
+        Assert.Equal(1.5, resolved[("Lucerne", "NightVentilation")].HumiditySensitivity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void ScoreNames_does_not_contain_Ventilation()
+    {
+        Assert.DoesNotContain("Ventilation", PreferenceResolver.ScoreNames);
+        Assert.Contains("NightVentilation", PreferenceResolver.ScoreNames);
+    }
+
+    [Fact(Timeout = 5000)]
     public void Multiple_locations_resolve_independently()
     {
         var options = new IndexOptions

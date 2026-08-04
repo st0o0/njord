@@ -24,7 +24,7 @@ public sealed class IndexEnrichmentSpec
         var njordOptions = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
-        return new IndexEnrichment(Options.Create(enrichment), Options.Create(njordOptions), parameters, new FakeTimeProvider(T0));
+        return new IndexEnrichment(Options.Create(enrichment), Options.Create(njordOptions), new IndexComputer(parameters, new FakeTimeProvider(T0)));
     }
 
     private static ModelForecast BuildForecast(string location)
@@ -52,7 +52,7 @@ public sealed class IndexEnrichmentSpec
         var feature = CreateFeature();
         var snapshot = ModelSnapshot.Empty.Update(BuildForecast("lucerne"));
 
-        var consensus = ConsensusSnapshot.Compute(snapshot, Parameters, "lucerne", new FakeTimeProvider(T0));
+        var consensus = new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(snapshot, "lucerne");
         var events = feature.Compute(consensus).ToList();
 
         var update = Assert.Single(events);
@@ -67,7 +67,7 @@ public sealed class IndexEnrichmentSpec
     {
         var feature = CreateFeature();
 
-        var consensus = ConsensusSnapshot.Compute(ModelSnapshot.Empty, Parameters, "lucerne", new FakeTimeProvider(T0));
+        var consensus = new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(ModelSnapshot.Empty, "lucerne");
         var events = feature.Compute(consensus).ToList();
 
         var update = Assert.Single(events);
@@ -80,15 +80,20 @@ public sealed class IndexEnrichmentSpec
         var tempParam = ParameterRegistry.GetByApiName("temperature_2m")!;
         var wind = ParameterRegistry.GetByApiName("wind_speed_10m")!;
         var humidity = ParameterRegistry.GetByApiName("relative_humidity_2m")!;
+        var isDay = ParameterRegistry.IsDay;
         var points = new List<ForecastPoint>();
         for (var h = 0; h < 48; h++)
+        {
+            var absHour = T0.AddHours(h).UtcDateTime.Hour;
             points.Add(new ForecastPoint(T0.AddHours(h),
                 new Dictionary<ParameterDef, double?>
                 {
                     [tempParam] = temp,
                     [wind] = 4.0,
                     [humidity] = 55.0,
+                    [isDay] = absHour >= 6 && absHour < 20 ? 1.0 : 0.0,
                 }));
+        }
 
         return new ModelForecast(new WeatherModel(modelId), location, new CycleId(T0),
             new ForecastSeries(points), DailyForecastSeries.Empty);
@@ -99,7 +104,7 @@ public sealed class IndexEnrichmentSpec
         var snapshot = ModelSnapshot.Empty
             .Update(BuildForecast(location, "icon_d2", temp))
             .Update(BuildForecast(location, "icon_eu", temp));
-        return ConsensusSnapshot.Compute(snapshot, Parameters, location, new FakeTimeProvider(T0));
+        return new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(snapshot, location);
     }
 
     [Fact(Timeout = 5000)]
@@ -109,7 +114,7 @@ public sealed class IndexEnrichmentSpec
         enrichment.Indices.Preferences.IndoorTemp = 18.0;
         var njordOptions = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
         var feature = new IndexEnrichment(
-            Options.Create(enrichment), Options.Create(njordOptions), Parameters, new FakeTimeProvider(T0));
+            Options.Create(enrichment), Options.Create(njordOptions), new IndexComputer(Parameters, new FakeTimeProvider(T0)));
 
         var consensus = BuildTwoModelConsensus("lucerne");
 
@@ -124,8 +129,8 @@ public sealed class IndexEnrichmentSpec
         var resultWith = Assert.IsType<IndexResult>(Assert.IsType<EgressEvent.EnrichmentUpdate>(Assert.Single(withSensor)).Result);
         var resultWithout = Assert.IsType<IndexResult>(Assert.IsType<EgressEvent.EnrichmentUpdate>(Assert.Single(withoutSensor)).Result);
 
-        // Ventilation score depends on IndoorTemp; sensor value (30) vs config (18) should differ
-        Assert.NotEqual(resultWith.Ventilation, resultWithout.Ventilation);
+        // NightVentilation score depends on IndoorTemp; sensor value (30) vs config (18) should differ
+        Assert.NotEqual(resultWith.Days[0].NightVentilation, resultWithout.Days[0].NightVentilation);
     }
 
     [Fact(Timeout = 5000)]
@@ -135,7 +140,7 @@ public sealed class IndexEnrichmentSpec
         enrichment.Indices.Preferences.IndoorTemp = 18.0;
         var njordOptions = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
         var feature = new IndexEnrichment(
-            Options.Create(enrichment), Options.Create(njordOptions), Parameters, new FakeTimeProvider(T0));
+            Options.Create(enrichment), Options.Create(njordOptions), new IndexComputer(Parameters, new FakeTimeProvider(T0)));
 
         var consensus = BuildTwoModelConsensus("lucerne", temp: 10.0);
 
@@ -147,7 +152,7 @@ public sealed class IndexEnrichmentSpec
         var resultCustom = Assert.IsType<IndexResult>(Assert.IsType<EgressEvent.EnrichmentUpdate>(Assert.Single(eventsCustom)).Result);
         var resultDefault = Assert.IsType<IndexResult>(Assert.IsType<EgressEvent.EnrichmentUpdate>(Assert.Single(eventsDefault)).Result);
 
-        // Config IndoorTemp=18 vs default 22 should produce different ventilation scores
-        Assert.NotEqual(resultCustom.Ventilation, resultDefault.Ventilation);
+        // Config IndoorTemp=18 vs default 22 should produce different NightVentilation scores
+        Assert.NotEqual(resultCustom.Days[0].NightVentilation, resultDefault.Days[0].NightVentilation);
     }
 }
