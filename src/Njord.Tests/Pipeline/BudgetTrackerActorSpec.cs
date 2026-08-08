@@ -4,6 +4,7 @@ using Akka.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Health;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 
@@ -13,6 +14,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 {
     private static readonly DateTimeOffset T0 = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
     private readonly FakeTimeProvider _time = new(T0);
+    private readonly NjordHealthState _healthState = new() { ServiceStartedUtc = T0 };
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
@@ -27,7 +29,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
     private IActorRef CreateActor(string? name = null)
     {
         return Sys.ActorOf(
-            Props.Create(() => new BudgetTrackerActor(_time)),
+            Props.Create(() => new BudgetTrackerActor(_time, _healthState)),
             name ?? $"budget-tracker-{Guid.NewGuid():N}");
     }
 
