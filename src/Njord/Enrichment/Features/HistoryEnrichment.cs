@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using System.Text.Json.Nodes;
 using Akka;
 using Akka.Actor;
@@ -5,6 +6,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
+using Njord.Diagnostics;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
@@ -16,6 +18,8 @@ namespace Njord.Enrichment.Features;
 
 internal sealed class HistoryEnrichment : IActorEnrichment
 {
+    private static readonly Gauge<double> HistoryMae = NjordMetrics.Instance.AddHistoryMae();
+    private static readonly Gauge<double> HistoryModelWeight = NjordMetrics.Instance.AddHistoryModelWeight();
     private readonly NjordOptions _njordOptions;
     private readonly ResolvedParameterSet _parameters;
     private readonly TimeProvider _timeProvider;
@@ -75,6 +79,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
                     var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(5));
                     var result = computer.Compute(
                         response.History, snapshot, location, parameters, timeProvider, historyOptions);
+                    RecordHistoryMetrics(result);
                     events.Add(new EgressEvent.EnrichmentUpdate(location, TypeName, result));
                 }
                 return events;
@@ -177,4 +182,20 @@ internal sealed class HistoryEnrichment : IActorEnrichment
 
     public IReadOnlyList<MqttMessage> ToStateMessages(object result, string baseTopic, string location)
         => StatePayloadBuilder.FromHistory((HistoryResult)result, baseTopic);
+
+    private static void RecordHistoryMetrics(HistoryResult result)
+    {
+        var locationTag = new KeyValuePair<string, object?>("location", result.Location);
+        foreach (var (model, mae) in result.Mae7d)
+        {
+            if (mae.HasValue)
+                HistoryMae.Record(mae.Value, locationTag,
+                    new KeyValuePair<string, object?>("model", model.Id));
+        }
+        foreach (var (model, weight) in result.Weights)
+        {
+            HistoryModelWeight.Record(weight, locationTag,
+                new KeyValuePair<string, object?>("model", model.Id));
+        }
+    }
 }

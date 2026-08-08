@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Njord.Grpc;
+using Prometheus;
 using Servus.Core.Application.Startup;
 
 namespace Njord.Configuration;
@@ -19,6 +20,8 @@ public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplica
             },
         });
         app.MapGet("/alive", () => Results.Ok("Alive"));
+        app.UseHttpMetrics();
+        app.MapMetrics();
         app.MapGrpcService<WeatherGrpcService>();
         app.MapGrpcService<AdminGrpcService>();
         app.MapGrpcService<OpsGrpcService>();

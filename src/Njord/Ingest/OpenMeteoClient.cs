@@ -1,8 +1,11 @@
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
+using Njord.Diagnostics;
 using Njord.Domain.Weather;
 
 namespace Njord.Ingest;
@@ -12,6 +15,9 @@ public sealed class OpenMeteoClient(
     ResolvedParameterSet parameters,
     IOptions<NjordOptions> options) : IOpenMeteoClient
 {
+    private static readonly Counter<long> FetchTotal = NjordMetrics.Instance.AddFetchTotal();
+    private static readonly Histogram<double> FetchDuration = NjordMetrics.Instance.AddFetchDuration();
+
     private readonly string _hourlyVariables = string.Join(",", parameters.Hourly.Select(p => p.ApiName));
     private readonly string _dailyVariables = string.Join(",", parameters.Daily.Select(p => p.ApiName));
     private readonly int _forecastDays = options.Value.ForecastDays;
@@ -19,6 +25,8 @@ public sealed class OpenMeteoClient(
     public async Task<FetchOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken cancellationToken)
     {
         var uri = BuildUri(location, model);
+        var sw = Stopwatch.StartNew();
+        FetchOutcome? outcome = null;
 
         try
         {
@@ -26,50 +34,78 @@ public sealed class OpenMeteoClient(
 
             if (!response.IsSuccessStatusCode)
             {
-                return response.StatusCode switch
+                outcome = response.StatusCode switch
                 {
                     HttpStatusCode.TooManyRequests => new FetchOutcome.Failure(location.Name, model, FetchFailureReason.RateLimited, "HTTP 429 from the forecast endpoint"),
                     HttpStatusCode.BadRequest => new FetchOutcome.Failure(location.Name, model, FetchFailureReason.ModelUnavailable, await ReadErrorReasonAsync(response, cancellationToken)),
                     _ => new FetchOutcome.Failure(location.Name, model, FetchFailureReason.Transport, $"HTTP {(int)response.StatusCode} from the forecast endpoint"),
                 };
+                return outcome;
             }
 
             var dto = await response.Content.ReadFromJsonAsync(OpenMeteoJsonContext.Default.OpenMeteoForecastResponse, cancellationToken);
             if (dto?.Hourly is null || dto.Hourly.Time.Count == 0)
             {
-                return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, "Response contained no hourly data");
+                outcome = new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, "Response contained no hourly data");
+                return outcome;
             }
 
             if (UnitMismatch(dto.HourlyUnits) is { } mismatch)
             {
-                return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, mismatch);
+                outcome = new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, mismatch);
+                return outcome;
             }
 
             var hourlyResult = MapHourly(dto.Hourly);
             if (hourlyResult is null)
             {
-                return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, "Response carried hourly timestamps but no values");
+                outcome = new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, "Response carried hourly timestamps but no values");
+                return outcome;
             }
 
             var daily = dto.Daily is { Time.Count: > 0 }
                 ? MapDaily(dto.Daily)
                 : DailyForecastSeries.Empty;
 
-            return new FetchOutcome.Success(new ModelForecast(
+            outcome = new FetchOutcome.Success(new ModelForecast(
                 model, location.Name, cycle,
                 hourlyResult, daily));
+            return outcome;
         }
         catch (HttpRequestException ex)
         {
-            return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.Transport, ex.Message);
+            outcome = new FetchOutcome.Failure(location.Name, model, FetchFailureReason.Transport, ex.Message);
+            return outcome;
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.Transport, "Request timed out");
+            outcome = new FetchOutcome.Failure(location.Name, model, FetchFailureReason.Transport, "Request timed out");
+            return outcome;
         }
         catch (JsonException)
         {
-            return new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, "Response JSON did not match the expected schema");
+            outcome = new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, "Response JSON did not match the expected schema");
+            return outcome;
+        }
+        finally
+        {
+            if (outcome is not null)
+            {
+                sw.Stop();
+                var locationTag = new KeyValuePair<string, object?>("location", location.Name);
+                var modelTag = new KeyValuePair<string, object?>("model", model.Id);
+                var outcomeLabel = outcome switch
+                {
+                    FetchOutcome.Success => "success",
+                    FetchOutcome.Failure f => f.Reason.ToString().ToLowerInvariant(),
+                    _ => "unknown",
+                };
+                FetchTotal.Add(1, locationTag, modelTag, new KeyValuePair<string, object?>("outcome", outcomeLabel));
+                if (outcome is FetchOutcome.Success)
+                {
+                    FetchDuration.Record(sw.Elapsed.TotalSeconds, locationTag, modelTag);
+                }
+            }
         }
     }
 
