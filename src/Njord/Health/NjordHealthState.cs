@@ -6,6 +6,10 @@ public sealed class NjordHealthState
     private long _mqttDisconnectedSinceTicks;
     private int _isMqttConnected;
     private long _lastSuccessfulPollTicks;
+    private long _budgetUsedDaily;
+    private long _budgetUsedMonthly;
+    private long _budgetLimitDaily;
+    private long _budgetLimitMonthly;
 
     public DateTimeOffset ServiceStartedUtc { get; init; }
 
@@ -54,5 +58,22 @@ public sealed class NjordHealthState
     public void SetLastSuccessfulPoll(DateTimeOffset utcNow)
     {
         Interlocked.Exchange(ref _lastSuccessfulPollTicks, utcNow.UtcTicks);
+    }
+
+    public long BudgetUsedDaily => Interlocked.Read(ref _budgetUsedDaily);
+    public long BudgetUsedMonthly => Interlocked.Read(ref _budgetUsedMonthly);
+    public long BudgetLimitDaily => Interlocked.Read(ref _budgetLimitDaily);
+    public long BudgetLimitMonthly => Interlocked.Read(ref _budgetLimitMonthly);
+
+    public void SetBudgetUsage(long daily, long monthly)
+    {
+        Interlocked.Exchange(ref _budgetUsedDaily, daily);
+        Interlocked.Exchange(ref _budgetUsedMonthly, monthly);
+    }
+
+    public void SetBudgetLimits(long daily, long monthly)
+    {
+        Interlocked.Exchange(ref _budgetLimitDaily, daily);
+        Interlocked.Exchange(ref _budgetLimitMonthly, monthly);
     }
 }

@@ -1,5 +1,6 @@
 using Akka.Event;
 using Akka.Persistence;
+using Njord.Health;
 using Njord.Persistence;
 
 namespace Njord.Pipeline;
@@ -15,15 +16,17 @@ public sealed class BudgetTrackerActor : ReceivePersistentActor
     public sealed record BudgetUsage(long MonthlyUsed, long DailyUsed);
 
     private readonly TimeProvider _timeProvider;
+    private readonly NjordHealthState _healthState;
     private int _currentMonth;
     private int _currentDay;
     private long _monthlyUsed;
     private long _dailyUsed;
     private int _eventsSinceSnapshot;
 
-    public BudgetTrackerActor(TimeProvider timeProvider)
+    public BudgetTrackerActor(TimeProvider timeProvider, NjordHealthState healthState)
     {
         _timeProvider = timeProvider;
+        _healthState = healthState;
         var now = timeProvider.GetUtcNow();
         _currentMonth = now.Month;
         _currentDay = now.DayOfYear;
@@ -104,6 +107,7 @@ public sealed class BudgetTrackerActor : ReceivePersistentActor
         {
             _monthlyUsed += cmd.Weight;
             _dailyUsed += cmd.Weight;
+            _healthState.SetBudgetUsage(_dailyUsed, _monthlyUsed);
 
             _eventsSinceSnapshot++;
             if (_eventsSinceSnapshot >= SnapshotInterval)
