@@ -1,6 +1,7 @@
 using Akka.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Njord.Diagnostics;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Enrichment;
@@ -11,6 +12,7 @@ using Njord.Ingest;
 using Njord.Mqtt;
 using Njord.Mqtt.Transport;
 using Njord.Pipeline;
+using Prometheus;
 using Servus.Core.Application.Startup;
 
 namespace Njord.Configuration;
@@ -19,6 +21,10 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
+        Metrics.ConfigureMeterAdapter(options =>
+        {
+            options.InstrumentFilterPredicate = instrument => instrument.Meter.Name == "Njord";
+        });
         services
             .AddOptions<NjordOptions>()
             .Bind(configuration.GetSection(NjordOptions.SectionName))
@@ -43,9 +49,20 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
                 sp.GetRequiredService<IBudgetProvider>(),
                 sp.GetRequiredService<ActorRegistry>().Get<BudgetTrackerActor>(),
                 sp.GetRequiredService<TimeProvider>()));
-        services.AddSingleton(sp => new NjordHealthState
+        services.AddSingleton(sp =>
         {
-            ServiceStartedUtc = sp.GetRequiredService<TimeProvider>().GetUtcNow(),
+            var state = new NjordHealthState
+            {
+                ServiceStartedUtc = sp.GetRequiredService<TimeProvider>().GetUtcNow(),
+            };
+            var budget = BudgetCalculator.GetEffectiveBudget(
+                sp.GetRequiredService<IOptions<NjordOptions>>().Value);
+            state.SetBudgetLimits(RequestBudget.OpenMeteoFreeTierDailyLimit, budget.RequestsPerMonth);
+            NjordMetrics.Instance.AddBudgetUsedDaily(() => state.BudgetUsedDaily);
+            NjordMetrics.Instance.AddBudgetUsedMonthly(() => state.BudgetUsedMonthly);
+            NjordMetrics.Instance.AddBudgetLimitDaily(() => state.BudgetLimitDaily);
+            NjordMetrics.Instance.AddBudgetLimitMonthly(() => state.BudgetLimitMonthly);
+            return state;
         });
         var healthChecks = services.AddHealthChecks()
             .AddCheck<PipelineHealthCheck>("pipeline");

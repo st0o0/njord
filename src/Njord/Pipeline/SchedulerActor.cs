@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Persistence;
@@ -5,6 +6,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
+using Njord.Diagnostics;
 using Njord.Domain.Weather;
 using Njord.Health;
 using Njord.Ingest;
@@ -15,6 +17,10 @@ namespace Njord.Pipeline;
 
 public sealed class SchedulerActor : ReceivePersistentActor
 {
+    private static readonly Histogram<double> PollCycleDurationMetric = NjordMetrics.Instance.AddPollCycleDuration();
+    private static readonly Gauge<double> PollCycleModelsMetric = NjordMetrics.Instance.AddPollCycleModels();
+    private static readonly Counter<long> DataChangedMetric = NjordMetrics.Instance.AddDataChanged();
+
     public override string PersistenceId => "scheduler";
 
     private IMaterializer _mat = null!;
@@ -330,6 +336,9 @@ public sealed class SchedulerActor : ReceivePersistentActor
             {
                 _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
                 _healthState.SetLastSuccessfulPoll(now);
+                DataChangedMetric.Add(1,
+                    new KeyValuePair<string, object?>("location", result.Location),
+                    new KeyValuePair<string, object?>("model", result.ModelId));
                 _log.Info(
                     "Data changed for {Location}/{Model} - phase={Phase}, cycle={Cycle}",
                     result.Location, result.ModelId, _states[key].Phase, _states[key].Cycle);
@@ -376,10 +385,13 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
         if (tracker.Reported >= total)
         {
-            var duration = (now - tracker.Start).TotalMilliseconds;
+            var durationSeconds = (now - tracker.Start).TotalSeconds;
+            var locationTag = new KeyValuePair<string, object?>("location", location);
+            PollCycleDurationMetric.Record(durationSeconds, locationTag);
+            PollCycleModelsMetric.Record(tracker.Reported, locationTag);
             _log.Info(
                 "Poll complete for {Location}: {Changed}/{Total} models changed in {Duration}ms",
-                location, tracker.Changed, total, duration);
+                location, tracker.Changed, total, durationSeconds * 1000);
             _pollCycles.Remove(location);
         }
         else

@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
@@ -5,6 +6,7 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Actors;
 using Njord.Configuration;
+using Njord.Diagnostics;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
@@ -16,6 +18,8 @@ namespace Njord.Mqtt;
 
 public sealed class MqttEgressActor : StreamConsumerActor
 {
+    private static readonly Counter<long> DedupMetric = NjordMetrics.Instance.AddMqttDedup();
+
     private readonly string _baseTopic;
     private readonly ResolvedParameterSet _parameters;
     private readonly IReadOnlyList<int> _horizons;
@@ -125,15 +129,25 @@ public sealed class MqttEgressActor : StreamConsumerActor
             _ => [],
         };
 
+        var location = egressEvent switch
+        {
+            EgressEvent.PerModelUpdate u => u.Location,
+            EgressEvent.EnrichmentUpdate u => u.Location,
+            _ => "unknown",
+        };
+        var locationTag = new KeyValuePair<string, object?>("location", location);
+
         foreach (var msg in messages)
         {
             var hash = msg.Payload.GetHashCode();
             if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == hash)
             {
+                DedupMetric.Add(1, locationTag, new KeyValuePair<string, object?>("decision", "skipped"));
                 continue;
             }
 
             lastPublished[msg.Topic] = hash;
+            DedupMetric.Add(1, locationTag, new KeyValuePair<string, object?>("decision", "published"));
             yield return msg;
         }
     }

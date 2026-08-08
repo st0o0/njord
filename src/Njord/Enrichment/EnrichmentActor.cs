@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using Akka;
 using Akka.Actor;
 using Akka.Event;
@@ -6,6 +8,7 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Actors;
 using Njord.Configuration;
+using Njord.Diagnostics;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Domain.Sensors;
@@ -18,6 +21,10 @@ namespace Njord.Enrichment;
 
 public sealed class EnrichmentActor : StreamConsumerActor
 {
+    private static readonly Histogram<double> EnrichmentDuration = NjordMetrics.Instance.AddEnrichmentDuration();
+    private static readonly Gauge<double> ConsensusModelsGauge = NjordMetrics.Instance.AddConsensusModels();
+    private static readonly Gauge<double> ConsensusSpreadGauge = NjordMetrics.Instance.AddConsensusSpread();
+
     private readonly NjordOptions _options;
     private readonly EnrichmentOptions _enrichmentOptions;
     private readonly ConsensusSnapshotFactory _consensusFactory;
@@ -210,18 +217,27 @@ public sealed class EnrichmentActor : StreamConsumerActor
                     log.Warning("SensorHub Ask timed out for {Location}, proceeding without sensor data", consensus.Location);
                 }
 
+                var sw = Stopwatch.StartNew();
                 var events = ComputeAll(consensus, pair.Previous, sensors, consensusEgressEnabled, stateless, stateful).ToList();
+                sw.Stop();
                 if (events.Count > 0)
                 {
-                    var features = string.Join(
-                        ", ",
-                        events
-                            .Select(e => e is EgressEvent.EnrichmentUpdate eu ? eu.TypeName : null)
-                            .Where(t => t is not null)
-                            .Distinct());
-                    log.Info("Enrichment computed for {Location}: {Features}", consensus.Location, features);
+                    var locationTag = new KeyValuePair<string, object?>("location", consensus.Location);
+                    var featureNames = events
+                        .Select(e => e is EgressEvent.EnrichmentUpdate eu ? eu.TypeName : null)
+                        .Where(t => t is not null)
+                        .Distinct()
+                        .ToList();
+                    foreach (var feature in featureNames)
+                    {
+                        EnrichmentDuration.Record(sw.Elapsed.TotalSeconds, locationTag,
+                            new KeyValuePair<string, object?>("feature", feature));
+                    }
+                    log.Info("Enrichment computed for {Location}: {Features}", consensus.Location,
+                        string.Join(", ", featureNames));
                 }
 
+                RecordConsensusQuality(consensus);
                 return events;
             })
             .SelectMany(events => events)
@@ -248,6 +264,23 @@ public sealed class EnrichmentActor : StreamConsumerActor
                 _ => snap,
             })
             .Where(snap => snap.HasChanged);
+    }
+
+    private static void RecordConsensusQuality(ConsensusSnapshot consensus)
+    {
+        var locationTag = new KeyValuePair<string, object?>("location", consensus.Location);
+        var tempParam = consensus.Hourly.Parameters
+            .FirstOrDefault(p => p.Parameter.ApiName == "temperature_2m");
+        if (tempParam is null) return;
+
+        var firstHorizon = tempParam.ByHorizon.Values.FirstOrDefault();
+        if (firstHorizon is null) return;
+
+        ConsensusModelsGauge.Record(firstHorizon.AvailableModels.Count, locationTag);
+        if (firstHorizon.Spread.HasValue)
+        {
+            ConsensusSpreadGauge.Record(firstHorizon.Spread.Value, locationTag);
+        }
     }
 
     private static IEnumerable<EgressEvent> ComputeAll(

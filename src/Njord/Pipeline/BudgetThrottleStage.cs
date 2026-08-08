@@ -1,5 +1,8 @@
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using Akka.Streams;
 using Akka.Streams.Stage;
+using Njord.Diagnostics;
 
 namespace Njord.Pipeline;
 
@@ -23,11 +26,13 @@ public sealed class BudgetThrottleStage<T> : GraphStage<FlowShape<T, T>>
     private sealed class Logic : TimerGraphStageLogic
     {
         private const string EmitTimerKey = "emit";
+        private static readonly Histogram<double> ThrottleWait = NjordMetrics.Instance.AddThrottleWait();
 
         private readonly BudgetThrottleStage<T> _stage;
         private T? _pending;
         private bool _hasPending;
         private bool _upstreamFinished;
+        private long _parkedAt;
 
         public Logic(BudgetThrottleStage<T> stage) : base(stage.Shape)
         {
@@ -66,6 +71,7 @@ public sealed class BudgetThrottleStage<T> : GraphStage<FlowShape<T, T>>
             {
                 _pending = element;
                 _hasPending = true;
+                _parkedAt = Stopwatch.GetTimestamp();
                 ScheduleOnce(EmitTimerKey, _stage._gate.EstimateDelay(element));
             }
         }
@@ -79,6 +85,7 @@ public sealed class BudgetThrottleStage<T> : GraphStage<FlowShape<T, T>>
 
             if (_stage._gate.TryAcquire(_pending!))
             {
+                ThrottleWait.Record(Stopwatch.GetElapsedTime(_parkedAt).TotalSeconds);
                 Push(_stage.Out, _pending!);
                 _pending = default;
                 _hasPending = false;
