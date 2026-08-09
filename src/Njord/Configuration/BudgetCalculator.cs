@@ -1,3 +1,5 @@
+using Njord.Domain.Weather;
+
 namespace Njord.Configuration;
 
 public static class BudgetCalculator
@@ -36,22 +38,10 @@ public static class BudgetCalculator
             Warnings: warnings);
     }
 
-    private static int CountHourlyParameters(ParameterOptions paramOptions)
+    public static int CountHourlyParameters(ParameterOptions paramOptions)
     {
-        var count = 0;
-        foreach (var group in paramOptions.Groups)
-        {
-            count += group.ToLowerInvariant() switch
-            {
-                "weather" => 31,
-                "solar" => 9,
-                "soil" => 11,
-                _ => 0,
-            };
-        }
-        count += paramOptions.Extra.Count;
-        count -= paramOptions.Exclude.Count;
-        return Math.Max(1, count);
+        var resolved = ParameterRegistry.Resolve(paramOptions.Groups, paramOptions.Extra, paramOptions.Exclude);
+        return Math.Max(1, resolved.Hourly.Count);
     }
 }
 

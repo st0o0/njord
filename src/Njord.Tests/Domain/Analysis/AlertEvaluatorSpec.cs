@@ -121,6 +121,46 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(1.0, alert.Confidence);
     }
 
+    [Fact(Timeout = 5000)]
+    public void Heat_below_threshold_preserves_trigger_value()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (ApparentTemp, 28.0), (Temperature, 27.0)),
+            MakeForecast(new("m2"), (ApparentTemp, 27.0), (Temperature, 26.0)));
+
+        var alert = AlertEvaluator.EvaluateHeat(ToConsensus(snap), [30, 35, 40]);
+
+        Assert.Equal(AlertSeverity.None, alert.Severity);
+        Assert.Equal(27.5, alert.TriggerValue);
+        Assert.Equal(30.0, alert.Threshold);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Heat_fires_when_raw_temp_exceeds_threshold_but_apparent_does_not()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (ApparentTemp, 28.0), (Temperature, 32.0)),
+            MakeForecast(new("m2"), (ApparentTemp, 27.0), (Temperature, 31.0)));
+
+        var alert = AlertEvaluator.EvaluateHeat(ToConsensus(snap), [30, 35, 40]);
+
+        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
+        Assert.Equal(31.5, alert.TriggerValue);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void HeavyRain_below_threshold_preserves_trigger_value()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Precipitation, 0.5)),
+            MakeForecast(new("m2"), (Precipitation, 0.3)));
+
+        var alert = AlertEvaluator.EvaluateHeavyRain(ToConsensus(snap), 10.0, 25.0);
+
+        Assert.Equal(AlertSeverity.None, alert.Severity);
+        Assert.True(alert.TriggerValue > 0);
+    }
+
     // --- Storm ---
 
     [Fact(Timeout = 5000)]

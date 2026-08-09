@@ -280,7 +280,7 @@ onMounted(() => {
           <span class="param-count">{{ { Weather: 31, Solar: 9, Soil: 11 }[g] }} hourly vars</span>
         </label>
       </div>
-      <div class="weight-display">API call weight: <strong>{{ Math.ceil(config.parameters.groups.reduce((s, g) => s + ({ Weather: 31, Solar: 9, Soil: 11 }[g] ?? 0), 0) / 10) * Math.ceil(config.forecastDays / 14) }}</strong></div>
+      <div class="weight-display">{{ config.parameters.groups.reduce((s, g) => s + ({ Weather: 31, Solar: 9, Soil: 11 }[g] ?? 0), 0) }} hourly vars → API call weight: <strong>{{ Math.ceil(config.parameters.groups.reduce((s, g) => s + ({ Weather: 31, Solar: 9, Soil: 11 }[g] ?? 0), 0) / 10) * Math.ceil(config.forecastDays / 14) }}</strong></div>
     </div>
 
     <!-- Sensors -->

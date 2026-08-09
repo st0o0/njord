@@ -118,45 +118,46 @@ public static class AlertEvaluator
     public static Alert EvaluateHeat(
         ConsensusSnapshot consensus, double[] thresholds)
     {
-        if (ApparentTemp is null || thresholds.Length < 3)
+        if (thresholds.Length < 3)
         {
             return Alert.None(AlertType.Heat);
         }
 
-        var paramConsensus = FindParam(consensus.Hourly.Parameters, ApparentTemp);
-        if (paramConsensus is null)
+        var apparentConsensus = FindParam(consensus.Hourly.Parameters, ApparentTemp);
+        var tempConsensus = FindParam(consensus.Hourly.Parameters, Temperature);
+        if (apparentConsensus is null && tempConsensus is null)
         {
             return Alert.None(AlertType.Heat);
         }
 
         var maxMedian = double.MinValue;
         var peakMax = double.MinValue;
+        var bestConsensus = apparentConsensus ?? tempConsensus!;
 
-        foreach (var (horizonKey, hc) in paramConsensus.ByHorizon)
+        foreach (var source in new[] { apparentConsensus, tempConsensus })
         {
-            var hours = ParseHorizonHours(horizonKey);
-            if (hours is null || hours > 24)
-            {
-                continue;
-            }
+            if (source is null) continue;
 
-            if (hc.Median is not { } value)
+            foreach (var (horizonKey, hc) in source.ByHorizon)
             {
-                continue;
-            }
+                var hours = ParseHorizonHours(horizonKey);
+                if (hours is null || hours > 24) continue;
+                if (hc.Median is not { } value) continue;
 
-            if (value > maxMedian)
-            {
-                maxMedian = value;
-            }
+                if (value > maxMedian)
+                {
+                    maxMedian = value;
+                    bestConsensus = source;
+                }
 
-            if (hc.ConfidenceInterval is { Upper: var upper } && upper > peakMax)
-            {
-                peakMax = upper;
-            }
-            else if (value > peakMax)
-            {
-                peakMax = value;
+                if (hc.ConfidenceInterval is { Upper: var upper } && upper > peakMax)
+                {
+                    peakMax = upper;
+                }
+                else if (value > peakMax)
+                {
+                    peakMax = value;
+                }
             }
         }
 
@@ -168,18 +169,13 @@ public static class AlertEvaluator
         var (severity, effectiveThreshold, agreementAtSeverity) = maxMedian switch
         {
             _ when maxMedian >= thresholds[2] => (AlertSeverity.Red, thresholds[2],
-                AverageAgreementAbove(paramConsensus, thresholds[2], 24)),
+                AverageAgreementAbove(bestConsensus, thresholds[2], 24)),
             _ when maxMedian >= thresholds[1] => (AlertSeverity.Orange, thresholds[1],
-                AverageAgreementAbove(paramConsensus, thresholds[1], 24)),
+                AverageAgreementAbove(bestConsensus, thresholds[1], 24)),
             _ when maxMedian >= thresholds[0] => (AlertSeverity.Yellow, thresholds[0],
-                AverageAgreementAbove(paramConsensus, thresholds[0], 24)),
-            _ => (AlertSeverity.None, 0.0, 0.0),
+                AverageAgreementAbove(bestConsensus, thresholds[0], 24)),
+            _ => (AlertSeverity.None, thresholds[0], 0.0),
         };
-
-        if (severity == AlertSeverity.None)
-        {
-            return Alert.None(AlertType.Heat);
-        }
 
         var medianRounded = Math.Round(maxMedian, 1);
         var peakRounded = peakMax > double.MinValue ? Math.Round(peakMax, 1) : medianRounded;
@@ -187,7 +183,7 @@ public static class AlertEvaluator
         var attrs = new Dictionary<string, object?>
         {
             ["expected_max"] = medianRounded,
-            ["models_agreeing"] = CountModelsAtMax(paramConsensus, 24),
+            ["models_agreeing"] = CountModelsAtMax(bestConsensus, 24),
         };
 
         return new Alert(AlertType.Heat, severity, Math.Round(agreementAtSeverity, 3), attrs,
@@ -348,11 +344,6 @@ public static class AlertEvaluator
         var dailyExceeds = dailySum >= dailyThreshold;
         var hourlyExceeds = hourlyExceedCount > 0;
 
-        if (!hourlyExceeds && !dailyExceeds)
-        {
-            return Alert.None(AlertType.HeavyRain);
-        }
-
         AlertSeverity severity;
         if (hourlyExceeds && dailyExceeds)
         {
@@ -362,9 +353,13 @@ public static class AlertEvaluator
         {
             severity = AlertSeverity.Orange;
         }
-        else
+        else if (hourlyExceeds)
         {
             severity = AlertSeverity.Yellow;
+        }
+        else
+        {
+            severity = AlertSeverity.None;
         }
 
         var confidence = hourlyAgreements.Count > 0
