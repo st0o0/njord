@@ -177,6 +177,11 @@ public static class AlertEvaluator
             _ => (AlertSeverity.None, thresholds[0], 0.0),
         };
 
+        if (severity == AlertSeverity.None)
+        {
+            return Alert.None(AlertType.Heat);
+        }
+
         var medianRounded = Math.Round(maxMedian, 1);
         var peakRounded = peakMax > double.MinValue ? Math.Round(peakMax, 1) : medianRounded;
 
