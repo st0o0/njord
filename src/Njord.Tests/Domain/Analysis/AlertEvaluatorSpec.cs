@@ -122,7 +122,7 @@ public sealed class AlertEvaluatorSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void Heat_below_threshold_preserves_trigger_value()
+    public void Heat_below_threshold_returns_none_alert()
     {
         var snap = SnapshotWith(
             MakeForecast(new("m1"), (ApparentTemp, 28.0), (Temperature, 27.0)),
@@ -131,8 +131,9 @@ public sealed class AlertEvaluatorSpec
         var alert = AlertEvaluator.EvaluateHeat(ToConsensus(snap), [30, 35, 40]);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
-        Assert.Equal(27.5, alert.TriggerValue);
-        Assert.Equal(30.0, alert.Threshold);
+        Assert.Equal(0.0, alert.TriggerValue);
+        Assert.Equal(0.0, alert.Threshold);
+        Assert.Empty(alert.Attributes);
     }
 
     [Fact(Timeout = 5000)]
