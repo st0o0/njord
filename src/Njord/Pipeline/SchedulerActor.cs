@@ -237,14 +237,14 @@ public sealed class SchedulerActor : ReceivePersistentActor
         switch (msg.Reason)
         {
             case FetchFailureReason.Transport:
-                _states[key] = state.WithTransientFailure(now);
-                _log.Warning("Fetch failed for {Location}/{Model} (transport) - miss={Miss}, details={Details}",
-                    msg.Location, msg.ModelId, _states[key].MissCount, msg.Detail);
+                _states[key] = state.WithTransientFailure(now, _options.DiscoveryInterval);
+                _log.Warning("Fetch failed for {Location}/{Model} (transport) - tfc={Tfc}, details={Details}",
+                    msg.Location, msg.ModelId, _states[key].TransientFailureCount, msg.Detail);
                 ScheduleNext(msg.Location, msg.ModelId);
                 break;
 
             case FetchFailureReason.RateLimited:
-                var rateLimitState = state.WithTransientFailure(now);
+                var rateLimitState = state.WithTransientFailure(now, _options.DiscoveryInterval);
                 if (rateLimitState.NextPollUtc < now + RateLimitMinDelay)
                 {
                     rateLimitState = rateLimitState with { NextPollUtc = now + RateLimitMinDelay };
@@ -258,7 +258,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
             case FetchFailureReason.ModelUnavailable:
             case FetchFailureReason.MalformedPayload:
-                _states[key] = state.WithTransientFailure(now);
+                _states[key] = state.WithTransientFailure(now, _options.DiscoveryInterval);
                 _log.Warning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - retry scheduled",
                     msg.Location, msg.ModelId, msg.Reason, msg.Detail);
                 ScheduleNext(msg.Location, msg.ModelId);

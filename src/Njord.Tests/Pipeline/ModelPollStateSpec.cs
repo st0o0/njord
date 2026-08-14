@@ -115,4 +115,119 @@ public sealed class ModelPollStateSpec
             now = state.NextPollUtc;
         }
     }
+
+    [Fact(Timeout = 5000)]
+    public void Transient_failures_do_not_increment_miss_count()
+    {
+        var state = ModelPollState.Initial(T0)
+            .WithDataChange(1, T0, DiscoveryInterval)
+            .WithDataChange(2, T0.AddHours(3), DiscoveryInterval);
+
+        var now = T0.AddHours(6);
+        for (var i = 0; i < 10; i++)
+        {
+            state = state.WithTransientFailure(now, DiscoveryInterval);
+            now = state.NextPollUtc;
+        }
+
+        Assert.Equal(0, state.MissCount);
+        Assert.Equal(10, state.TransientFailureCount);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Transient_failures_preserve_phase_and_cycle()
+    {
+        var state = ModelPollState.Initial(T0)
+            .WithDataChange(1, T0, DiscoveryInterval)
+            .WithDataChange(2, T0.AddHours(3), DiscoveryInterval);
+
+        Assert.Equal(PollPhase.Steady, state.Phase);
+        Assert.Equal(TimeSpan.FromHours(3), state.Cycle);
+
+        var now = T0.AddHours(6);
+        for (var i = 0; i < 20; i++)
+        {
+            state = state.WithTransientFailure(now, DiscoveryInterval);
+            now = state.NextPollUtc;
+        }
+
+        Assert.Equal(PollPhase.Steady, state.Phase);
+        Assert.Equal(TimeSpan.FromHours(3), state.Cycle);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Transient_failure_backoff_then_caps_at_discovery_interval()
+    {
+        var state = ModelPollState.Initial(T0)
+            .WithDataChange(1, T0, DiscoveryInterval)
+            .WithDataChange(2, T0.AddHours(3), DiscoveryInterval);
+
+        var now = T0.AddHours(6);
+
+        state = state.WithTransientFailure(now, DiscoveryInterval);
+        Assert.Equal(now + TimeSpan.FromMinutes(1), state.NextPollUtc);
+
+        now = state.NextPollUtc;
+        state = state.WithTransientFailure(now, DiscoveryInterval);
+        Assert.Equal(now + TimeSpan.FromMinutes(2), state.NextPollUtc);
+
+        now = state.NextPollUtc;
+        state = state.WithTransientFailure(now, DiscoveryInterval);
+        Assert.Equal(now + TimeSpan.FromMinutes(4), state.NextPollUtc);
+
+        now = state.NextPollUtc;
+        state = state.WithTransientFailure(now, DiscoveryInterval);
+        Assert.Equal(now + TimeSpan.FromMinutes(8), state.NextPollUtc);
+
+        now = state.NextPollUtc;
+        state = state.WithTransientFailure(now, DiscoveryInterval);
+        Assert.Equal(now + DiscoveryInterval, state.NextPollUtc);
+
+        now = state.NextPollUtc;
+        state = state.WithTransientFailure(now, DiscoveryInterval);
+        Assert.Equal(now + DiscoveryInterval, state.NextPollUtc);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Recovery_after_transient_failures_first_miss_has_miss_count_one()
+    {
+        var state = ModelPollState.Initial(T0)
+            .WithDataChange(1, T0, DiscoveryInterval)
+            .WithDataChange(2, T0.AddHours(3), DiscoveryInterval);
+
+        var now = T0.AddHours(6);
+        for (var i = 0; i < 20; i++)
+        {
+            state = state.WithTransientFailure(now, DiscoveryInterval);
+            now = state.NextPollUtc;
+        }
+
+        Assert.Equal(0, state.MissCount);
+        Assert.Equal(PollPhase.Steady, state.Phase);
+
+        var miss = state.WithMiss(now, DiscoveryInterval);
+        Assert.Equal(1, miss.MissCount);
+        Assert.Equal(now + TimeSpan.FromMinutes(1), miss.NextPollUtc);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Data_change_resets_transient_failure_count()
+    {
+        var state = ModelPollState.Initial(T0)
+            .WithDataChange(1, T0, DiscoveryInterval)
+            .WithDataChange(2, T0.AddHours(3), DiscoveryInterval);
+
+        var now = T0.AddHours(6);
+        for (var i = 0; i < 10; i++)
+        {
+            state = state.WithTransientFailure(now, DiscoveryInterval);
+            now = state.NextPollUtc;
+        }
+
+        Assert.Equal(10, state.TransientFailureCount);
+
+        state = state.WithDataChange(3, now, DiscoveryInterval);
+        Assert.Equal(0, state.TransientFailureCount);
+        Assert.Equal(0, state.MissCount);
+    }
 }

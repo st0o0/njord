@@ -194,3 +194,29 @@ The SchedulerActor SHALL handle `GetPollStates` messages in ALL behaviors (`Wait
 #### Scenario: Query is read-only
 - **WHEN** a `GetPollStates` message is received in any behavior
 - **THEN** no events SHALL be persisted and no timers SHALL be scheduled
+
+### Requirement: Transient failures use an isolated counter and preserve learned cycles
+`ModelPollState` SHALL track transient failures with a dedicated `TransientFailureCount` that is independent of `MissCount`. `WithTransientFailure` SHALL only increment `TransientFailureCount` and SHALL never modify `Phase`, `Cycle`, or `MissCount`. A learned cycle SHALL survive any number of consecutive transient failures.
+
+After `MaxTransientBeforeThrottle` (5) consecutive transient failures, `WithTransientFailure` SHALL cap the retry delay at `discoveryInterval` instead of `MaxRetryBackoff`.
+
+`WithDataChange` SHALL reset both `MissCount` and `TransientFailureCount` to 0.
+
+#### Scenario: Transient failures do not poison MissCount
+- **WHEN** 20 consecutive transient failures occur in Steady phase
+- **AND** the network recovers and the first successful fetch returns unchanged data
+- **THEN** `WithMiss` SHALL see `MissCount = 0` and produce `MissCount = 1` with a 1-minute backoff
+
+#### Scenario: Learned cycle survives a network outage
+- **WHEN** a model is in Steady phase with `Cycle = 8h`
+- **AND** 20 consecutive transient failures occur
+- **THEN** `Phase` remains Steady and `Cycle` remains 8h
+
+#### Scenario: Transient failure backoff escalates then caps at discoveryInterval
+- **WHEN** consecutive transient failures occur
+- **THEN** the retry delays are 1m, 2m, 4m, 8m (exponential backoff)
+- **AND** from the 5th failure onward, the delay caps at `discoveryInterval` (20m)
+
+#### Scenario: Data change resets transient failure count
+- **WHEN** a data change is detected after a series of transient failures
+- **THEN** both `MissCount` and `TransientFailureCount` are reset to 0

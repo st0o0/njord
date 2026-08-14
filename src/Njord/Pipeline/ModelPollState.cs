@@ -9,10 +9,12 @@ public sealed record ModelPollState(
     DateTimeOffset NextPollUtc,
     int MissCount,
     PollPhase Phase,
-    TimeSpan? Cycle)
+    TimeSpan? Cycle,
+    int TransientFailureCount = 0)
 {
     private static readonly TimeSpan MaxRetryBackoff = TimeSpan.FromMinutes(15);
     private const int MaxMissesBeforeFallback = 5;
+    private const int MaxTransientBeforeThrottle = 5;
 
     public static ModelPollState Initial(DateTimeOffset now) =>
         new(null, null, null, now, 0, PollPhase.Discovery, null);
@@ -28,7 +30,7 @@ public sealed record ModelPollState(
             ? now + cycle.Value + TimeSpan.FromMinutes(1)
             : now + discoveryInterval;
 
-        return new ModelPollState(LastHash: hash, PrevChangeUtc: prevChange, LastChangeUtc: now, MissCount: 0, Phase: phase, Cycle: cycle ?? Cycle, NextPollUtc: nextPoll);
+        return new ModelPollState(LastHash: hash, PrevChangeUtc: prevChange, LastChangeUtc: now, MissCount: 0, Phase: phase, Cycle: cycle ?? Cycle, NextPollUtc: nextPoll, TransientFailureCount: 0);
     }
 
     public ModelPollState WithMiss(DateTimeOffset now, TimeSpan discoveryInterval)
@@ -57,13 +59,16 @@ public sealed record ModelPollState(
         };
     }
 
-    public ModelPollState WithTransientFailure(DateTimeOffset now)
+    public ModelPollState WithTransientFailure(DateTimeOffset now, TimeSpan discoveryInterval)
     {
-        var newMissCount = MissCount + 1;
+        var tfc = TransientFailureCount + 1;
+        var delay = tfc >= MaxTransientBeforeThrottle
+            ? discoveryInterval
+            : RetryBackoff(tfc);
         return this with
         {
-            MissCount = newMissCount,
-            NextPollUtc = now + RetryBackoff(newMissCount),
+            TransientFailureCount = tfc,
+            NextPollUtc = now + delay,
         };
     }
 
