@@ -353,18 +353,6 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
         return new FrostProtectionInfo(firstFrostHours.Value, Math.Round(confidence, 2));
     }
 
-    internal static ScoreEnvelope BuildEnvelope(List<int> scores)
-    {
-        var min = scores.Min();
-        var max = scores.Max();
-        var sorted = scores.OrderBy(s => s).ToList();
-        var median = sorted[sorted.Count / 2];
-        var tolerance = Math.Max(median * 0.1, 5.0);
-        var agreeing = scores.Count(s => Math.Abs(s - median) <= tolerance);
-        var confidence = (double)agreeing / scores.Count;
-        return new ScoreEnvelope(min, max, Math.Round(confidence, 3));
-    }
-
     private static ParameterConsensus? FindParam(IReadOnlyList<ParameterConsensus> parameters, ParameterDef? param)
         => param is null ? null : parameters.FirstOrDefault(p => p.Parameter == param);
 }

@@ -203,23 +203,4 @@ public sealed class IndexResultSpec
         Assert.True(d0.HoursIncluded > 0);
     }
 
-    [Fact(Timeout = 5000)]
-    public void BuildEnvelope_computes_min_max_confidence()
-    {
-        var envelope = IndexComputer.BuildEnvelope([70, 72, 71, 73, 70]);
-
-        Assert.Equal(70, envelope.Min);
-        Assert.Equal(73, envelope.Max);
-        Assert.Equal(1.0, envelope.Confidence);
-    }
-
-    [Fact(Timeout = 5000)]
-    public void BuildEnvelope_low_confidence_for_wide_spread()
-    {
-        var envelope = IndexComputer.BuildEnvelope([10, 50, 90]);
-
-        Assert.Equal(10, envelope.Min);
-        Assert.Equal(90, envelope.Max);
-        Assert.True(envelope.Confidence < 1.0);
-    }
 }

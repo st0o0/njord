@@ -188,53 +188,6 @@ public static class IndexScorer
         return Clamp(0.3 * tempDelta + 0.25 * humScore + 0.25 * windScore + 0.2 * rainSc);
     }
 
-    public static FrostProtectionInfo? FrostProtection(
-        IReadOnlyList<ForecastSeries> modelSeries, ParameterDef tempParam, DateTimeOffset now)
-    {
-        var cutoff = now.AddHours(48);
-        int? firstFrostHours = null;
-        var modelsWithFrost = 0;
-
-        foreach (var series in modelSeries)
-        {
-            var hasFrost = false;
-            foreach (var point in series.Points)
-            {
-                if (point.ValidAt < now || point.ValidAt > cutoff)
-                {
-                    continue;
-                }
-
-                var val = point.Get(tempParam);
-                if (val is not { } v || v > 0)
-                {
-                    continue;
-                }
-
-                hasFrost = true;
-                var hours = (int)Math.Round((point.ValidAt - now).TotalHours);
-                if (firstFrostHours is null || hours < firstFrostHours)
-                {
-                    firstFrostHours = hours;
-                }
-
-                break;
-            }
-            if (hasFrost)
-            {
-                modelsWithFrost++;
-            }
-        }
-
-        if (firstFrostHours is null)
-        {
-            return null;
-        }
-
-        var confidence = modelSeries.Count > 0 ? (double)modelsWithFrost / modelSeries.Count : 0;
-        return new FrostProtectionInfo(firstFrostHours.Value, Math.Round(confidence, 2));
-    }
-
     public static VpdInfo? VpdCategory(double? temp, double? humidity)
     {
         if (temp is not { } t || humidity is not { } rh)

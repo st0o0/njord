@@ -5,8 +5,6 @@ namespace Njord.Tests.Domain.Analysis;
 
 public sealed class IndexScorerSpec
 {
-    private static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
-    private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
     private static readonly ResolvedPreferences Prefs = ResolvedPreferences.Default;
 
     // --- LaundryDrying ---
@@ -88,36 +86,6 @@ public sealed class IndexScorerSpec
     [Fact(Timeout = 5000)]
     public void NightVentilation_hot_humid() =>
         Assert.InRange(IndexScorer.NightVentilation(30, 80, 1, 0, Prefs), 0, 35);
-
-    // --- FrostProtection ---
-
-    [Fact(Timeout = 5000)]
-    public void FrostProtection_frost_in_8_hours()
-    {
-        var points = Enumerable.Range(0, 48).Select(h =>
-            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
-            {
-                [Temperature] = h == 8 ? -1.0 : 10.0,
-            })).ToList();
-        var series = new ForecastSeries(points);
-
-        var result = IndexScorer.FrostProtection([series], Temperature, T0);
-        Assert.NotNull(result);
-        Assert.Equal(8, result.HoursUntilFrost);
-    }
-
-    [Fact(Timeout = 5000)]
-    public void FrostProtection_no_frost()
-    {
-        var points = Enumerable.Range(0, 48).Select(h =>
-            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
-            {
-                [Temperature] = 15.0,
-            })).ToList();
-        var series = new ForecastSeries(points);
-
-        Assert.Null(IndexScorer.FrostProtection([series], Temperature, T0));
-    }
 
     // --- VpdCategory ---
 
