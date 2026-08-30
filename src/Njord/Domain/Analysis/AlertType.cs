@@ -11,4 +11,9 @@ public enum AlertType
     Snow,
     PressureDrop,
     Thunderstorm,
+    Ice,
+    WindChill,
+    Visibility,
+    TropicalNight,
+    Humidity,
 }

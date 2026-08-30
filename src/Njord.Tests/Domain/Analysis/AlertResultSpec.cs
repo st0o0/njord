@@ -25,5 +25,16 @@ public sealed class AlertResultSpec
         Assert.Equal("snow", AlertType.Snow.ToTopicSegment());
         Assert.Equal("pressure-drop", AlertType.PressureDrop.ToTopicSegment());
         Assert.Equal("thunderstorm", AlertType.Thunderstorm.ToTopicSegment());
+        Assert.Equal("ice", AlertType.Ice.ToTopicSegment());
+        Assert.Equal("wind-chill", AlertType.WindChill.ToTopicSegment());
+        Assert.Equal("visibility", AlertType.Visibility.ToTopicSegment());
+        Assert.Equal("tropical-night", AlertType.TropicalNight.ToTopicSegment());
+        Assert.Equal("humidity", AlertType.Humidity.ToTopicSegment());
+    }
+
+    [Fact(Timeout = 5000)]
+    public void AlertType_has_14_values()
+    {
+        Assert.Equal(14, Enum.GetValues<AlertType>().Length);
     }
 }

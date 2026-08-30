@@ -168,7 +168,7 @@ public sealed class DiscoveryPayloadBuilderSpec
     }
 
     [Fact(Timeout = 5000)]
-    public void Alert_device_has_9_binary_sensor_components()
+    public void Alert_device_has_14_binary_sensor_components()
     {
         var payload = DiscoveryPayloadBuilder.BuildAlerts(
             "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
@@ -176,7 +176,7 @@ public sealed class DiscoveryPayloadBuilderSpec
 
         Assert.Equal("njord_lucerne_alerts", (string?)json["dev"]!["ids"]![0]);
         Assert.Equal("alerts", (string?)json["dev"]!["mdl"]);
-        Assert.Equal(9, json["cmps"]!.AsObject().Count);
+        Assert.Equal(14, json["cmps"]!.AsObject().Count);
     }
 
     [Fact(Timeout = 5000)]

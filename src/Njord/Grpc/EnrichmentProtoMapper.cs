@@ -441,6 +441,11 @@ public static class EnrichmentProtoMapper
         DomainAlertType.Snow => ProtoAlertType.Snow,
         DomainAlertType.PressureDrop => ProtoAlertType.PressureDrop,
         DomainAlertType.Thunderstorm => ProtoAlertType.Thunderstorm,
+        DomainAlertType.Ice => ProtoAlertType.Ice,
+        DomainAlertType.WindChill => ProtoAlertType.WindChill,
+        DomainAlertType.Visibility => ProtoAlertType.Visibility,
+        DomainAlertType.TropicalNight => ProtoAlertType.TropicalNight,
+        DomainAlertType.Humidity => ProtoAlertType.Humidity,
         _ => ProtoAlertType.Unspecified,
     };
 

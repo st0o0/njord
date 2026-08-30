@@ -61,15 +61,22 @@ message ConsensusConfig {
 
 message AlertConfig {
   optional bool enabled = 1;
-  optional double frost_threshold = 2;
+  repeated double frost_thresholds = 2;
   repeated double heat_thresholds = 3;
-  optional double storm_gust_threshold = 4;
+  repeated double storm_gust_thresholds = 4;
   optional double heavy_rain_hourly_threshold = 5;
   optional double heavy_rain_daily_threshold = 6;
   optional double pressure_drop_threshold = 7;
   optional double cape_threshold = 8;
   optional double thunderstorm_precip_threshold = 9;
   optional double thunderstorm_gust_threshold = 10;
+  optional double pressure_drop_severe_threshold = 11;
+  optional int32 fog_persistent_hours = 12;
+  optional double ice_threshold = 13;
+  repeated double wind_chill_thresholds = 14;
+  repeated double visibility_thresholds = 15;
+  repeated double tropical_night_thresholds = 16;
+  repeated double humidity_thresholds = 17;
 }
 
 message DerivedConfig {

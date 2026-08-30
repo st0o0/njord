@@ -170,9 +170,9 @@ public sealed class AdminGrpcService(
                     options.Enrichment.Alerts.Enabled = alerts.Enabled;
                 }
 
-                if (alerts.HasFrostThreshold)
+                if (alerts.FrostThresholds.Count > 0)
                 {
-                    options.Enrichment.Alerts.FrostThreshold = alerts.FrostThreshold;
+                    options.Enrichment.Alerts.FrostThresholds = [.. alerts.FrostThresholds];
                 }
 
                 if (alerts.HeatThresholds.Count > 0)
@@ -180,9 +180,9 @@ public sealed class AdminGrpcService(
                     options.Enrichment.Alerts.HeatThresholds = [.. alerts.HeatThresholds];
                 }
 
-                if (alerts.HasStormGustThreshold)
+                if (alerts.StormGustThresholds.Count > 0)
                 {
-                    options.Enrichment.Alerts.StormGustThreshold = alerts.StormGustThreshold;
+                    options.Enrichment.Alerts.StormGustThresholds = [.. alerts.StormGustThresholds];
                 }
 
                 if (alerts.HasHeavyRainHourlyThreshold)
@@ -213,6 +213,41 @@ public sealed class AdminGrpcService(
                 if (alerts.HasThunderstormGustThreshold)
                 {
                     options.Enrichment.Alerts.ThunderstormGustThreshold = alerts.ThunderstormGustThreshold;
+                }
+
+                if (alerts.HasPressureDropSevereThreshold)
+                {
+                    options.Enrichment.Alerts.PressureDropSevereThreshold = alerts.PressureDropSevereThreshold;
+                }
+
+                if (alerts.HasFogPersistentHours)
+                {
+                    options.Enrichment.Alerts.FogPersistentHours = alerts.FogPersistentHours;
+                }
+
+                if (alerts.HasIceThreshold)
+                {
+                    options.Enrichment.Alerts.IceThreshold = alerts.IceThreshold;
+                }
+
+                if (alerts.WindChillThresholds.Count > 0)
+                {
+                    options.Enrichment.Alerts.WindChillThresholds = [.. alerts.WindChillThresholds];
+                }
+
+                if (alerts.VisibilityThresholds.Count > 0)
+                {
+                    options.Enrichment.Alerts.VisibilityThresholds = [.. alerts.VisibilityThresholds];
+                }
+
+                if (alerts.TropicalNightThresholds.Count > 0)
+                {
+                    options.Enrichment.Alerts.TropicalNightThresholds = [.. alerts.TropicalNightThresholds];
+                }
+
+                if (alerts.HumidityThresholds.Count > 0)
+                {
+                    options.Enrichment.Alerts.HumidityThresholds = [.. alerts.HumidityThresholds];
                 }
             }
 
@@ -378,15 +413,22 @@ public sealed class AdminGrpcService(
             Alerts = new V2.AlertConfig
             {
                 Enabled = enrichment.Alerts.Enabled,
-                FrostThreshold = enrichment.Alerts.FrostThreshold,
+                FrostThresholds = { enrichment.Alerts.FrostThresholds },
                 HeatThresholds = { enrichment.Alerts.HeatThresholds },
-                StormGustThreshold = enrichment.Alerts.StormGustThreshold,
+                StormGustThresholds = { enrichment.Alerts.StormGustThresholds },
                 HeavyRainHourlyThreshold = enrichment.Alerts.HeavyRainHourlyThreshold,
                 HeavyRainDailyThreshold = enrichment.Alerts.HeavyRainDailyThreshold,
                 PressureDropThreshold = enrichment.Alerts.PressureDropThreshold,
                 CapeThreshold = enrichment.Alerts.CapeThreshold,
                 ThunderstormPrecipThreshold = enrichment.Alerts.ThunderstormPrecipThreshold,
                 ThunderstormGustThreshold = enrichment.Alerts.ThunderstormGustThreshold,
+                PressureDropSevereThreshold = enrichment.Alerts.PressureDropSevereThreshold,
+                FogPersistentHours = enrichment.Alerts.FogPersistentHours,
+                IceThreshold = enrichment.Alerts.IceThreshold,
+                WindChillThresholds = { enrichment.Alerts.WindChillThresholds },
+                VisibilityThresholds = { enrichment.Alerts.VisibilityThresholds },
+                TropicalNightThresholds = { enrichment.Alerts.TropicalNightThresholds },
+                HumidityThresholds = { enrichment.Alerts.HumidityThresholds },
             },
             Derived = new V2.DerivedConfig { Enabled = enrichment.Derived.Enabled },
             Trends = new V2.TrendConfig { Enabled = enrichment.Trends.Enabled },
@@ -459,15 +501,22 @@ public sealed class AdminGrpcService(
                 Alerts = new AlertOptions
                 {
                     Enabled = source.Enrichment.Alerts.Enabled,
-                    FrostThreshold = source.Enrichment.Alerts.FrostThreshold,
+                    FrostThresholds = [.. source.Enrichment.Alerts.FrostThresholds],
                     HeatThresholds = [.. source.Enrichment.Alerts.HeatThresholds],
-                    StormGustThreshold = source.Enrichment.Alerts.StormGustThreshold,
+                    StormGustThresholds = [.. source.Enrichment.Alerts.StormGustThresholds],
                     HeavyRainHourlyThreshold = source.Enrichment.Alerts.HeavyRainHourlyThreshold,
                     HeavyRainDailyThreshold = source.Enrichment.Alerts.HeavyRainDailyThreshold,
                     PressureDropThreshold = source.Enrichment.Alerts.PressureDropThreshold,
+                    PressureDropSevereThreshold = source.Enrichment.Alerts.PressureDropSevereThreshold,
+                    FogPersistentHours = source.Enrichment.Alerts.FogPersistentHours,
                     CapeThreshold = source.Enrichment.Alerts.CapeThreshold,
                     ThunderstormPrecipThreshold = source.Enrichment.Alerts.ThunderstormPrecipThreshold,
                     ThunderstormGustThreshold = source.Enrichment.Alerts.ThunderstormGustThreshold,
+                    IceThreshold = source.Enrichment.Alerts.IceThreshold,
+                    WindChillThresholds = [.. source.Enrichment.Alerts.WindChillThresholds],
+                    VisibilityThresholds = [.. source.Enrichment.Alerts.VisibilityThresholds],
+                    TropicalNightThresholds = [.. source.Enrichment.Alerts.TropicalNightThresholds],
+                    HumidityThresholds = [.. source.Enrichment.Alerts.HumidityThresholds],
                 },
                 Derived = new DerivedOptions { Enabled = source.Enrichment.Derived.Enabled },
                 Trends = new TrendOptions { Enabled = source.Enrichment.Trends.Enabled },

@@ -17,6 +17,10 @@ public static class AlertEvaluator
     private static readonly ParameterDef FreezingLevel = ParameterRegistry.FreezingLevelHeight;
     private static readonly ParameterDef PressureMsl = ParameterRegistry.PressureMsl;
     private static readonly ParameterDef Cape = ParameterRegistry.Cape;
+    private static readonly ParameterDef? Rain = ParameterRegistry.GetByApiName("rain");
+    private static readonly ParameterDef? SoilTemp0cm = ParameterRegistry.GetByApiName("soil_temperature_0cm");
+    private static readonly ParameterDef? VisibilityParam = ParameterRegistry.GetByApiName("visibility");
+    private static readonly ParameterDef IsDay = ParameterRegistry.IsDay;
     private static readonly ParameterDef? DailyPrecipSum = ParameterRegistry.GetByApiName("precipitation_sum");
     private static readonly ParameterDef? DailyUvMax = ParameterRegistry.GetByApiName("uv_index_max");
     private static readonly ParameterDef? DailySnowfallSum = ParameterRegistry.GetByApiName("snowfall_sum");
@@ -26,23 +30,28 @@ public static class AlertEvaluator
     {
         var alerts = new List<Alert>
         {
-            EvaluateFrost(consensus, options.FrostThreshold),
+            EvaluateFrost(consensus, options.FrostThresholds),
             EvaluateHeat(consensus, options.HeatThresholds),
-            EvaluateStorm(consensus, options.StormGustThreshold),
+            EvaluateStorm(consensus, options.StormGustThresholds),
             EvaluateHeavyRain(consensus, options.HeavyRainHourlyThreshold, options.HeavyRainDailyThreshold),
             EvaluateUv(consensus),
-            EvaluateFog(consensus),
+            EvaluateFog(consensus, options.FogPersistentHours),
             EvaluateSnow(consensus),
-            EvaluatePressureDrop(consensus, options.PressureDropThreshold),
+            EvaluatePressureDrop(consensus, options.PressureDropThreshold, options.PressureDropSevereThreshold),
             EvaluateThunderstorm(consensus, options.CapeThreshold, options.ThunderstormPrecipThreshold, options.ThunderstormGustThreshold),
+            EvaluateIce(consensus, options.IceThreshold),
+            EvaluateWindChill(consensus, options.WindChillThresholds),
+            EvaluateVisibility(consensus, options.VisibilityThresholds),
+            EvaluateTropicalNight(consensus, options.TropicalNightThresholds),
+            EvaluateHumidity(consensus, options.HumidityThresholds),
         };
         return new AlertResult(consensus.Location, alerts);
     }
 
     public static Alert EvaluateFrost(
-        ConsensusSnapshot consensus, double threshold)
+        ConsensusSnapshot consensus, double[] thresholds)
     {
-        if (Temperature is null)
+        if (thresholds.Length < 3)
         {
             return Alert.None(AlertType.Frost);
         }
@@ -75,7 +84,7 @@ public static class AlertEvaluator
                 minMedian = value;
             }
 
-            if (value <= threshold)
+            if (value <= thresholds[0])
             {
                 if (earliestFrostHour is null || hours < earliestFrostHour)
                 {
@@ -98,6 +107,19 @@ public static class AlertEvaluator
             ? Math.Round(frostAgreements.Average(), 3)
             : 0.0;
 
+        var (severity, effectiveThreshold) = minMedian switch
+        {
+            _ when minMedian <= thresholds[2] => (AlertSeverity.Red, thresholds[2]),
+            _ when minMedian <= thresholds[1] => (AlertSeverity.Orange, thresholds[1]),
+            _ when minMedian <= thresholds[0] => (AlertSeverity.Yellow, thresholds[0]),
+            _ => (AlertSeverity.None, thresholds[0]),
+        };
+
+        if (confidence == 0.0)
+        {
+            severity = AlertSeverity.None;
+        }
+
         var attrs = new Dictionary<string, object?>
         {
             ["expected_low"] = Math.Round(minMedian, 1),
@@ -107,11 +129,10 @@ public static class AlertEvaluator
             ["models_agreeing"] = CountModelsAtPeak(paramConsensus, earliestFrostHour),
         };
 
-        return new Alert(AlertType.Frost,
-            confidence > 0 ? AlertSeverity.Yellow : AlertSeverity.None,
+        return new Alert(AlertType.Frost, severity,
             confidence, attrs,
             TriggerValue: Math.Round(minMedian, 1),
-            Threshold: threshold,
+            Threshold: effectiveThreshold,
             HoursUntil: earliestFrostHour);
     }
 
@@ -198,9 +219,9 @@ public static class AlertEvaluator
     }
 
     public static Alert EvaluateStorm(
-        ConsensusSnapshot consensus, double gustThreshold)
+        ConsensusSnapshot consensus, double[] thresholds)
     {
-        if (WindGusts is null)
+        if (thresholds.Length < 3)
         {
             return Alert.None(AlertType.Storm);
         }
@@ -242,7 +263,7 @@ public static class AlertEvaluator
                 peakMax = value;
             }
 
-            if (value >= gustThreshold && hc.Agreement is { } agreement)
+            if (value >= thresholds[0] && hc.Agreement is { } agreement)
             {
                 exceedAgreements.Add(agreement);
             }
@@ -257,6 +278,19 @@ public static class AlertEvaluator
             ? Math.Round(exceedAgreements.Average(), 3)
             : 0.0;
 
+        var (severity, effectiveThreshold) = maxMedian switch
+        {
+            _ when maxMedian >= thresholds[2] => (AlertSeverity.Red, thresholds[2]),
+            _ when maxMedian >= thresholds[1] => (AlertSeverity.Orange, thresholds[1]),
+            _ when maxMedian >= thresholds[0] => (AlertSeverity.Yellow, thresholds[0]),
+            _ => (AlertSeverity.None, thresholds[0]),
+        };
+
+        if (confidence == 0.0)
+        {
+            severity = AlertSeverity.None;
+        }
+
         var medianRounded = Math.Round(maxMedian, 1);
         var peakRounded = peakMax > double.MinValue ? Math.Round(peakMax, 1) : medianRounded;
 
@@ -266,11 +300,10 @@ public static class AlertEvaluator
             ["models_agreeing"] = CountModelsAtMax(paramConsensus, 24),
         };
 
-        return new Alert(AlertType.Storm,
-            confidence > 0 ? AlertSeverity.Yellow : AlertSeverity.None,
+        return new Alert(AlertType.Storm, severity,
             confidence, attrs,
             TriggerValue: medianRounded,
-            Threshold: gustThreshold,
+            Threshold: effectiveThreshold,
             PeakValue: peakRounded != medianRounded ? peakRounded : null);
     }
 
@@ -463,7 +496,7 @@ public static class AlertEvaluator
             Threshold: uvThreshold);
     }
 
-    public static Alert EvaluateFog(ConsensusSnapshot consensus)
+    public static Alert EvaluateFog(ConsensusSnapshot consensus, int fogPersistentHours = 4)
     {
         if (Temperature is null || Dewpoint is null || WindSpeed is null || Humidity is null)
         {
@@ -538,8 +571,14 @@ public static class AlertEvaluator
             ["models_agreeing"] = CountModelsAtHorizon(tempConsensus, 0),
         };
 
-        return new Alert(AlertType.Fog,
-            fogHours > 0 ? AlertSeverity.Yellow : AlertSeverity.None,
+        var fogSeverity = fogHours switch
+        {
+            >= 1 when fogHours >= fogPersistentHours => AlertSeverity.Orange,
+            >= 1 => AlertSeverity.Yellow,
+            _ => AlertSeverity.None,
+        };
+
+        return new Alert(AlertType.Fog, fogSeverity,
             confidence, attrs,
             TriggerValue: fogHours,
             Threshold: 1,
@@ -659,7 +698,7 @@ public static class AlertEvaluator
     }
 
     public static Alert EvaluatePressureDrop(
-        ConsensusSnapshot consensus, double dropThreshold)
+        ConsensusSnapshot consensus, double dropThreshold, double severeThreshold = 10.0)
     {
         if (PressureMsl is null)
         {
@@ -718,6 +757,13 @@ public static class AlertEvaluator
             ? AverageAgreementAll(paramConsensus, 24)
             : 0.0;
 
+        var pressureSeverity = maxDrop switch
+        {
+            _ when maxDrop >= severeThreshold => AlertSeverity.Orange,
+            _ when maxDrop >= dropThreshold => AlertSeverity.Yellow,
+            _ => AlertSeverity.None,
+        };
+
         var medianDrop = Math.Round(maxDrop, 1);
 
         var attrs = new Dictionary<string, object?>
@@ -726,11 +772,10 @@ public static class AlertEvaluator
             ["models_agreeing"] = CountModelsAtMax(paramConsensus, 24),
         };
 
-        return new Alert(AlertType.PressureDrop,
-            exceeds ? AlertSeverity.Yellow : AlertSeverity.None,
+        return new Alert(AlertType.PressureDrop, pressureSeverity,
             Math.Round(confidence, 3), attrs,
             TriggerValue: medianDrop,
-            Threshold: dropThreshold);
+            Threshold: exceeds ? (maxDrop >= severeThreshold ? severeThreshold : dropThreshold) : dropThreshold);
     }
 
     public static Alert EvaluateThunderstorm(
@@ -806,6 +851,413 @@ public static class AlertEvaluator
         return new Alert(AlertType.Thunderstorm, severity, Math.Round(confidence, 3), attrs,
             TriggerValue: medianCape,
             Threshold: capeThreshold);
+    }
+
+    public static Alert EvaluateIce(
+        ConsensusSnapshot consensus, double iceThreshold)
+    {
+        if (Rain is null)
+        {
+            return Alert.None(AlertType.Ice);
+        }
+
+        var rainConsensus = FindParam(consensus.Hourly.Parameters, Rain);
+        var tempConsensus = FindParam(consensus.Hourly.Parameters, Temperature);
+        if (rainConsensus is null || tempConsensus is null)
+        {
+            return Alert.None(AlertType.Ice);
+        }
+
+        var soilConsensus = SoilTemp0cm is not null
+            ? FindParam(consensus.Hourly.Parameters, SoilTemp0cm)
+            : null;
+
+        var rainHours = 0;
+        var minTemp = double.MaxValue;
+        var iceAgreements = new List<double>();
+        var soilFrozen = false;
+
+        for (var h = 0; h <= 24; h++)
+        {
+            var key = $"h{h}";
+            if (!rainConsensus.ByHorizon.TryGetValue(key, out var rainHc)
+                || !tempConsensus.ByHorizon.TryGetValue(key, out var tempHc))
+            {
+                continue;
+            }
+
+            if (rainHc.Median is { } rainVal && rainVal > 0
+                && tempHc.Median is { } tempVal && tempVal <= iceThreshold)
+            {
+                rainHours++;
+                if (tempVal < minTemp)
+                {
+                    minTemp = tempVal;
+                }
+
+                if (tempHc.Agreement is { } agreement)
+                {
+                    iceAgreements.Add(agreement);
+                }
+
+                if (soilConsensus?.ByHorizon.GetValueOrDefault(key)?.Median is { } soilVal && soilVal <= 0)
+                {
+                    soilFrozen = true;
+                }
+            }
+        }
+
+        if (rainHours == 0)
+        {
+            return Alert.None(AlertType.Ice);
+        }
+
+        var confidence = iceAgreements.Count > 0
+            ? Math.Round(iceAgreements.Average(), 3)
+            : 0.0;
+
+        var severity = (minTemp, soilFrozen) switch
+        {
+            ( <= 0, true) => AlertSeverity.Red,
+            ( <= 0, false) => AlertSeverity.Orange,
+            _ => AlertSeverity.Yellow,
+        };
+
+        var attrs = new Dictionary<string, object?>
+        {
+            ["expected_low"] = Math.Round(minTemp, 1),
+            ["rain_hours"] = rainHours,
+            ["soil_frozen"] = soilFrozen,
+        };
+
+        return new Alert(AlertType.Ice, severity, confidence, attrs,
+            TriggerValue: Math.Round(minTemp, 1),
+            Threshold: iceThreshold);
+    }
+
+    public static Alert EvaluateWindChill(
+        ConsensusSnapshot consensus, double[] thresholds)
+    {
+        if (thresholds.Length < 3)
+        {
+            return Alert.None(AlertType.WindChill);
+        }
+
+        var apparentConsensus = FindParam(consensus.Hourly.Parameters, ApparentTemp);
+        var tempConsensus = FindParam(consensus.Hourly.Parameters, Temperature);
+        if (apparentConsensus is null)
+        {
+            return Alert.None(AlertType.WindChill);
+        }
+
+        var minApparent = double.MaxValue;
+        var windFactor = 0.0;
+        var chillAgreements = new List<double>();
+
+        foreach (var (horizonKey, hc) in apparentConsensus.ByHorizon)
+        {
+            var hours = ParseHorizonHours(horizonKey);
+            if (hours is null || hours > 24)
+            {
+                continue;
+            }
+
+            if (hc.Median is not { } value)
+            {
+                continue;
+            }
+
+            if (value < minApparent)
+            {
+                minApparent = value;
+                if (tempConsensus?.ByHorizon.GetValueOrDefault(horizonKey)?.Median is { } tempVal)
+                {
+                    windFactor = Math.Round(tempVal - value, 1);
+                }
+            }
+
+            if (value <= thresholds[0] && hc.Agreement is { } agreement)
+            {
+                chillAgreements.Add(agreement);
+            }
+        }
+
+        if (minApparent >= double.MaxValue)
+        {
+            return Alert.None(AlertType.WindChill);
+        }
+
+        var confidence = chillAgreements.Count > 0
+            ? Math.Round(chillAgreements.Average(), 3)
+            : 0.0;
+
+        var (severity, effectiveThreshold) = minApparent switch
+        {
+            _ when minApparent <= thresholds[2] => (AlertSeverity.Red, thresholds[2]),
+            _ when minApparent <= thresholds[1] => (AlertSeverity.Orange, thresholds[1]),
+            _ when minApparent <= thresholds[0] => (AlertSeverity.Yellow, thresholds[0]),
+            _ => (AlertSeverity.None, thresholds[0]),
+        };
+
+        if (confidence == 0.0)
+        {
+            severity = AlertSeverity.None;
+        }
+
+        var exposureRisk = severity switch
+        {
+            AlertSeverity.Red => "frostbite_10min",
+            AlertSeverity.Orange => "frostbite_30min",
+            _ => (string?)null,
+        };
+
+        var attrs = new Dictionary<string, object?>
+        {
+            ["felt_temperature"] = Math.Round(minApparent, 1),
+            ["wind_factor"] = windFactor,
+            ["exposure_risk"] = exposureRisk,
+        };
+
+        return new Alert(AlertType.WindChill, severity, confidence, attrs,
+            TriggerValue: Math.Round(minApparent, 1),
+            Threshold: effectiveThreshold);
+    }
+
+    public static Alert EvaluateVisibility(
+        ConsensusSnapshot consensus, double[] thresholds)
+    {
+        if (thresholds.Length < 3 || VisibilityParam is null)
+        {
+            return Alert.None(AlertType.Visibility);
+        }
+
+        var paramConsensus = FindParam(consensus.Hourly.Parameters, VisibilityParam);
+        if (paramConsensus is null)
+        {
+            return Alert.None(AlertType.Visibility);
+        }
+
+        var minVis = double.MaxValue;
+        var hoursBelow1000 = 0;
+        var totalHorizons = 0;
+
+        foreach (var (horizonKey, hc) in paramConsensus.ByHorizon)
+        {
+            var hours = ParseHorizonHours(horizonKey);
+            if (hours is null || hours > 24)
+            {
+                continue;
+            }
+
+            if (hc.Median is not { } value)
+            {
+                continue;
+            }
+
+            totalHorizons++;
+
+            if (value < minVis)
+            {
+                minVis = value;
+            }
+
+            if (value < thresholds[0])
+            {
+                hoursBelow1000++;
+            }
+        }
+
+        if (minVis >= double.MaxValue)
+        {
+            return Alert.None(AlertType.Visibility);
+        }
+
+        var confidence = totalHorizons > 0 && hoursBelow1000 > 0
+            ? Math.Round((double)hoursBelow1000 / totalHorizons, 3)
+            : 0.0;
+
+        var (severity, effectiveThreshold) = minVis switch
+        {
+            _ when minVis < thresholds[2] => (AlertSeverity.Red, thresholds[2]),
+            _ when minVis < thresholds[1] => (AlertSeverity.Orange, thresholds[1]),
+            _ when minVis < thresholds[0] => (AlertSeverity.Yellow, thresholds[0]),
+            _ => (AlertSeverity.None, thresholds[0]),
+        };
+
+        var attrs = new Dictionary<string, object?>
+        {
+            ["min_visibility"] = Math.Round(minVis, 0),
+            ["hours_below_1000m"] = hoursBelow1000,
+        };
+
+        return new Alert(AlertType.Visibility, severity, confidence, attrs,
+            TriggerValue: Math.Round(minVis, 0),
+            Threshold: effectiveThreshold);
+    }
+
+    public static Alert EvaluateTropicalNight(
+        ConsensusSnapshot consensus, double[] thresholds)
+    {
+        if (thresholds.Length < 3)
+        {
+            return Alert.None(AlertType.TropicalNight);
+        }
+
+        var tempConsensus = FindParam(consensus.Hourly.Parameters, Temperature);
+        var isDayConsensus = FindParam(consensus.Hourly.Parameters, IsDay);
+        if (tempConsensus is null || isDayConsensus is null)
+        {
+            return Alert.None(AlertType.TropicalNight);
+        }
+
+        var nightMin = double.MaxValue;
+        var hoursAbove20 = 0;
+        var nightAgreements = new List<double>();
+        var nightHoursCount = 0;
+
+        for (var h = 0; h <= 24; h++)
+        {
+            var key = $"h{h}";
+            var isDayHc = isDayConsensus.ByHorizon.GetValueOrDefault(key);
+            if (isDayHc?.Median is not { } isDayVal || isDayVal > 0.5)
+            {
+                continue;
+            }
+
+            nightHoursCount++;
+
+            if (!tempConsensus.ByHorizon.TryGetValue(key, out var tempHc)
+                || tempHc.Median is not { } tempVal)
+            {
+                continue;
+            }
+
+            if (tempVal < nightMin)
+            {
+                nightMin = tempVal;
+            }
+
+            if (tempVal > thresholds[0])
+            {
+                hoursAbove20++;
+                if (tempHc.Agreement is { } agreement)
+                {
+                    nightAgreements.Add(agreement);
+                }
+            }
+        }
+
+        if (nightHoursCount == 0 || nightMin >= double.MaxValue)
+        {
+            return Alert.None(AlertType.TropicalNight);
+        }
+
+        var confidence = nightAgreements.Count > 0
+            ? Math.Round(nightAgreements.Average(), 3)
+            : 0.0;
+
+        var (severity, effectiveThreshold) = nightMin switch
+        {
+            _ when nightMin > thresholds[2] => (AlertSeverity.Red, thresholds[2]),
+            _ when nightMin > thresholds[1] => (AlertSeverity.Orange, thresholds[1]),
+            _ when nightMin > thresholds[0] => (AlertSeverity.Yellow, thresholds[0]),
+            _ => (AlertSeverity.None, thresholds[0]),
+        };
+
+        if (confidence == 0.0)
+        {
+            severity = AlertSeverity.None;
+        }
+
+        var attrs = new Dictionary<string, object?>
+        {
+            ["night_minimum"] = Math.Round(nightMin, 1),
+            ["hours_above_20"] = hoursAbove20,
+        };
+
+        return new Alert(AlertType.TropicalNight, severity, confidence, attrs,
+            TriggerValue: Math.Round(nightMin, 1),
+            Threshold: effectiveThreshold);
+    }
+
+    public static Alert EvaluateHumidity(
+        ConsensusSnapshot consensus, double[] thresholds)
+    {
+        if (thresholds.Length < 3)
+        {
+            return Alert.None(AlertType.Humidity);
+        }
+
+        var dewConsensus = FindParam(consensus.Hourly.Parameters, Dewpoint);
+        var isDayConsensus = FindParam(consensus.Hourly.Parameters, IsDay);
+        if (dewConsensus is null || isDayConsensus is null)
+        {
+            return Alert.None(AlertType.Humidity);
+        }
+
+        var maxDewpoint = double.MinValue;
+        var dayAgreements = new List<double>();
+        var dayHoursCount = 0;
+
+        for (var h = 0; h <= 24; h++)
+        {
+            var key = $"h{h}";
+            var isDayHc = isDayConsensus.ByHorizon.GetValueOrDefault(key);
+            if (isDayHc?.Median is not { } isDayVal || isDayVal <= 0.5)
+            {
+                continue;
+            }
+
+            dayHoursCount++;
+
+            if (!dewConsensus.ByHorizon.TryGetValue(key, out var dewHc)
+                || dewHc.Median is not { } dewVal)
+            {
+                continue;
+            }
+
+            if (dewVal > maxDewpoint)
+            {
+                maxDewpoint = dewVal;
+            }
+
+            if (dewVal >= thresholds[0] && dewHc.Agreement is { } agreement)
+            {
+                dayAgreements.Add(agreement);
+            }
+        }
+
+        if (dayHoursCount == 0 || maxDewpoint <= double.MinValue)
+        {
+            return Alert.None(AlertType.Humidity);
+        }
+
+        var confidence = dayAgreements.Count > 0
+            ? Math.Round(dayAgreements.Average(), 3)
+            : 0.0;
+
+        var (severity, effectiveThreshold, comfortLevel) = maxDewpoint switch
+        {
+            _ when maxDewpoint >= thresholds[2] => (AlertSeverity.Red, thresholds[2], "tropical"),
+            _ when maxDewpoint >= thresholds[1] => (AlertSeverity.Orange, thresholds[1], "oppressive"),
+            _ when maxDewpoint >= thresholds[0] => (AlertSeverity.Yellow, thresholds[0], "muggy"),
+            _ => (AlertSeverity.None, thresholds[0], (string?)null),
+        };
+
+        if (confidence == 0.0)
+        {
+            severity = AlertSeverity.None;
+        }
+
+        var attrs = new Dictionary<string, object?>
+        {
+            ["max_dewpoint"] = Math.Round(maxDewpoint, 1),
+            ["comfort_level"] = comfortLevel,
+        };
+
+        return new Alert(AlertType.Humidity, severity, confidence, attrs,
+            TriggerValue: Math.Round(maxDewpoint, 1),
+            Threshold: effectiveThreshold);
     }
 
     internal static ParameterConsensus? FindParam(

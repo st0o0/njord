@@ -14,13 +14,17 @@ public sealed class AlertEvaluatorSpec
     private static readonly ParameterDef WindGusts = ParameterRegistry.GetByApiName("wind_gusts_10m")!;
     private static readonly ParameterDef Precipitation = ParameterRegistry.GetByApiName("precipitation")!;
     private static readonly ParameterDef UvIndexParam = ParameterRegistry.GetByApiName("uv_index")!;
-    private static readonly ParameterDef Dewpoint = ParameterRegistry.GetByApiName("dew_point_2m")!;
+    private static readonly ParameterDef DewpointParam = ParameterRegistry.GetByApiName("dew_point_2m")!;
     private static readonly ParameterDef WindSpeed = ParameterRegistry.GetByApiName("wind_speed_10m")!;
-    private static readonly ParameterDef Humidity = ParameterRegistry.GetByApiName("relative_humidity_2m")!;
+    private static readonly ParameterDef HumidityParam = ParameterRegistry.GetByApiName("relative_humidity_2m")!;
     private static readonly ParameterDef Snowfall = ParameterRegistry.GetByApiName("snowfall")!;
     private static readonly ParameterDef PressureMsl = ParameterRegistry.GetByApiName("pressure_msl")!;
     private static readonly ParameterDef Cape = ParameterRegistry.GetByApiName("cape")!;
-    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather", "Solar"], [], []);
+    private static readonly ParameterDef RainParam = ParameterRegistry.GetByApiName("rain")!;
+    private static readonly ParameterDef SoilTemp0cm = ParameterRegistry.GetByApiName("soil_temperature_0cm")!;
+    private static readonly ParameterDef VisibilityParam = ParameterRegistry.GetByApiName("visibility")!;
+    private static readonly ParameterDef IsDayParam = ParameterRegistry.GetByApiName("is_day")!;
+    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather", "Solar", "Soil"], [], []);
 
     private static ConsensusSnapshot ToConsensus(ModelSnapshot snap) =>
         new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne");
@@ -56,7 +60,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m2"), (Temperature, -1.0)),
             MakeForecast(new("m3"), (Temperature, -3.0)));
 
-        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), 0.0);
+        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), [0, -5, -15]);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.Equal(1.0, alert.Confidence);
@@ -69,7 +73,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m1"), (Temperature, 5.0)),
             MakeForecast(new("m2"), (Temperature, 3.0)));
 
-        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), 0.0);
+        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), [0, -5, -15]);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
         Assert.Equal(0.0, alert.Confidence);
@@ -78,18 +82,40 @@ public sealed class AlertEvaluatorSpec
     [Fact(Timeout = 5000)]
     public void Frost_partial_agreement()
     {
-        // Sorted: [-3, -1, 1, 5] → median = 0.0 ≤ threshold
-        // Agreement within tolerance 2.0 of median 0.0: -1 (yes), 1 (yes), -3 (no), 5 (no) → 2/4 = 0.5
         var snap = SnapshotWith(
             MakeForecast(new("m1"), (Temperature, -3.0)),
             MakeForecast(new("m2"), (Temperature, -1.0)),
             MakeForecast(new("m3"), (Temperature, 1.0)),
             MakeForecast(new("m4"), (Temperature, 5.0)));
 
-        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), 0.0);
+        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), [0, -5, -15]);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.Equal(0.5, alert.Confidence);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Frost_moderate_produces_orange()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, -8.0)),
+            MakeForecast(new("m2"), (Temperature, -7.0)));
+
+        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), [0, -5, -15]);
+
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Frost_severe_produces_red()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, -18.0)),
+            MakeForecast(new("m2"), (Temperature, -16.0)));
+
+        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), [0, -5, -15]);
+
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
     }
 
     // --- Heat ---
@@ -172,7 +198,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m2"), (WindGusts, 18.0)),
             MakeForecast(new("m3"), (WindGusts, 10.0)));
 
-        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), 16.7);
+        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), [17, 25, 33]);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.True(alert.Confidence > 0.6);
@@ -185,9 +211,33 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m1"), (WindGusts, 10.0)),
             MakeForecast(new("m2"), (WindGusts, 8.0)));
 
-        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), 16.7);
+        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), [17, 25, 33]);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Storm_severe_produces_orange()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (WindGusts, 28.0)),
+            MakeForecast(new("m2"), (WindGusts, 26.0)));
+
+        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), [17, 25, 33]);
+
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Storm_hurricane_produces_red()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (WindGusts, 36.0)),
+            MakeForecast(new("m2"), (WindGusts, 34.0)));
+
+        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), [17, 25, 33]);
+
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
     }
 
     // --- Heavy Rain ---
@@ -195,9 +245,6 @@ public sealed class AlertEvaluatorSpec
     [Fact(Timeout = 5000)]
     public void HeavyRain_hourly_and_daily_both_exceeded()
     {
-        // Median of [12, 11] = 11.5 mm/h → exceeds hourly threshold 10.0
-        // Daily sum from hourly: 11.5 × 25h = 287.5 mm → exceeds daily threshold 25.0
-        // Both hourly and daily thresholds crossed → Red
         var snap = SnapshotWith(
             MakeForecast(new("m1"), (Precipitation, 12.0)),
             MakeForecast(new("m2"), (Precipitation, 11.0)));
@@ -241,10 +288,10 @@ public sealed class AlertEvaluatorSpec
     public void Fog_likely()
     {
         var snap = SnapshotWith(
-            MakeForecast(new("m1"), (Temperature, 5.0), (Dewpoint, 4.5), (WindSpeed, 1.0), (Humidity, 95.0)),
-            MakeForecast(new("m2"), (Temperature, 5.0), (Dewpoint, 4.0), (WindSpeed, 2.0), (Humidity, 92.0)));
+            MakeForecast(new("m1"), (Temperature, 5.0), (DewpointParam, 4.5), (WindSpeed, 1.0), (HumidityParam, 95.0)),
+            MakeForecast(new("m2"), (Temperature, 5.0), (DewpointParam, 4.0), (WindSpeed, 2.0), (HumidityParam, 92.0)));
 
-        var alert = AlertEvaluator.EvaluateFog(ToConsensus(snap));
+        var alert = AlertEvaluator.EvaluateFog(ToConsensus(snap), fogPersistentHours: 25);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.Equal(1.0, alert.Confidence);
@@ -254,11 +301,23 @@ public sealed class AlertEvaluatorSpec
     public void Fog_not_likely()
     {
         var snap = SnapshotWith(
-            MakeForecast(new("m1"), (Temperature, 20.0), (Dewpoint, 10.0), (WindSpeed, 5.0), (Humidity, 60.0)));
+            MakeForecast(new("m1"), (Temperature, 20.0), (DewpointParam, 10.0), (WindSpeed, 5.0), (HumidityParam, 60.0)));
 
         var alert = AlertEvaluator.EvaluateFog(ToConsensus(snap));
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Fog_persistent_produces_orange()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, 5.0), (DewpointParam, 4.5), (WindSpeed, 1.0), (HumidityParam, 95.0)),
+            MakeForecast(new("m2"), (Temperature, 5.0), (DewpointParam, 4.0), (WindSpeed, 2.0), (HumidityParam, 92.0)));
+
+        var alert = AlertEvaluator.EvaluateFog(ToConsensus(snap), fogPersistentHours: 4);
+
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
 
     // --- Snow ---
@@ -266,8 +325,6 @@ public sealed class AlertEvaluatorSpec
     [Fact(Timeout = 5000)]
     public void Snow_light()
     {
-        // Median of [0.1, 0.0] = 0.05 > 0 → snow detected
-        // Both values within tolerance 2.0 of median → agreement = 1.0
         var snap = SnapshotWith(
             MakeForecast(new("m1"), (Snowfall, 0.1)),
             MakeForecast(new("m2"), (Snowfall, 0.0)));
@@ -283,7 +340,6 @@ public sealed class AlertEvaluatorSpec
     [Fact(Timeout = 5000)]
     public void PressureDrop_front_approaching()
     {
-        // Two models with same pressure drop pattern (consensus needs >= 2 models)
         ModelForecast MakePressureForecast(WeatherModel model)
         {
             var points = new List<ForecastPoint>();
@@ -301,7 +357,7 @@ public sealed class AlertEvaluatorSpec
             MakePressureForecast(new("m1")),
             MakePressureForecast(new("m2")));
 
-        var alert = AlertEvaluator.EvaluatePressureDrop(ToConsensus(snap), 5.0);
+        var alert = AlertEvaluator.EvaluatePressureDrop(ToConsensus(snap), 5.0, 15.0);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.Equal(1.0, alert.Confidence);
@@ -313,9 +369,34 @@ public sealed class AlertEvaluatorSpec
         var snap = SnapshotWith(
             MakeForecast(new("m1"), (PressureMsl, 1015.0)));
 
-        var alert = AlertEvaluator.EvaluatePressureDrop(ToConsensus(snap), 5.0);
+        var alert = AlertEvaluator.EvaluatePressureDrop(ToConsensus(snap), 5.0, 10.0);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void PressureDrop_severe_produces_orange()
+    {
+        ModelForecast MakeSeverePressureForecast(WeatherModel model)
+        {
+            var points = new List<ForecastPoint>();
+            for (var h = 0; h < 24; h++)
+            {
+                var pressure = 1020.0 - (h < 4 ? h * 4.0 : 0);
+                points.Add(new ForecastPoint(T0.AddHours(h),
+                    new Dictionary<ParameterDef, double?> { [PressureMsl] = pressure }));
+            }
+            return new ModelForecast(model, "lucerne", new CycleId(T0),
+                new ForecastSeries(points), DailyForecastSeries.Empty);
+        }
+
+        var snap = SnapshotWith(
+            MakeSeverePressureForecast(new("m1")),
+            MakeSeverePressureForecast(new("m2")));
+
+        var alert = AlertEvaluator.EvaluatePressureDrop(ToConsensus(snap), 5.0, 10.0);
+
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
 
     // --- Thunderstorm ---
@@ -340,6 +421,301 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new("m1"), (Cape, 200.0), (Precipitation, 1.0), (WindGusts, 5.0)));
 
         var alert = AlertEvaluator.EvaluateThunderstorm(ToConsensus(snap), 1000, 5, 15);
+
+        Assert.Equal(AlertSeverity.None, alert.Severity);
+    }
+
+    // --- Ice ---
+
+    [Fact(Timeout = 5000)]
+    public void Ice_rain_at_near_freezing_produces_yellow()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, 1.5), (RainParam, 2.0)),
+            MakeForecast(new("m2"), (Temperature, 1.0), (RainParam, 1.5)));
+
+        var alert = AlertEvaluator.EvaluateIce(ToConsensus(snap), 2.0);
+
+        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
+        Assert.True(alert.Confidence > 0);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Ice_freezing_rain_produces_orange()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, -1.0), (RainParam, 2.0)),
+            MakeForecast(new("m2"), (Temperature, -0.5), (RainParam, 1.5)));
+
+        var alert = AlertEvaluator.EvaluateIce(ToConsensus(snap), 2.0);
+
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Ice_frozen_ground_produces_red()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, -1.0), (RainParam, 2.0), (SoilTemp0cm, -2.0)),
+            MakeForecast(new("m2"), (Temperature, -0.5), (RainParam, 1.5), (SoilTemp0cm, -1.0)));
+
+        var alert = AlertEvaluator.EvaluateIce(ToConsensus(snap), 2.0);
+
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
+        Assert.Equal(true, alert.Attributes["soil_frozen"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Ice_snow_only_no_rain_produces_none()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, -3.0), (RainParam, 0.0), (Precipitation, 5.0)),
+            MakeForecast(new("m2"), (Temperature, -2.0), (RainParam, 0.0), (Precipitation, 4.0)));
+
+        var alert = AlertEvaluator.EvaluateIce(ToConsensus(snap), 2.0);
+
+        Assert.Equal(AlertSeverity.None, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Ice_without_soil_temp_caps_at_orange()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, -1.0), (RainParam, 2.0)),
+            MakeForecast(new("m2"), (Temperature, -0.5), (RainParam, 1.5)));
+
+        var alert = AlertEvaluator.EvaluateIce(ToConsensus(snap), 2.0);
+
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+        Assert.Equal(false, alert.Attributes["soil_frozen"]);
+    }
+
+    // --- WindChill ---
+
+    [Fact(Timeout = 5000)]
+    public void WindChill_moderate_produces_yellow()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (ApparentTemp, -12.0), (Temperature, -5.0)),
+            MakeForecast(new("m2"), (ApparentTemp, -11.0), (Temperature, -4.0)));
+
+        var alert = AlertEvaluator.EvaluateWindChill(ToConsensus(snap), [-10, -20, -30]);
+
+        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
+        Assert.True((double)alert.Attributes["wind_factor"]! > 5.0);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void WindChill_severe_produces_orange_with_frostbite_risk()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (ApparentTemp, -22.0), (Temperature, -10.0)),
+            MakeForecast(new("m2"), (ApparentTemp, -21.0), (Temperature, -9.0)));
+
+        var alert = AlertEvaluator.EvaluateWindChill(ToConsensus(snap), [-10, -20, -30]);
+
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+        Assert.Equal("frostbite_30min", alert.Attributes["exposure_risk"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void WindChill_extreme_produces_red()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (ApparentTemp, -35.0), (Temperature, -20.0)),
+            MakeForecast(new("m2"), (ApparentTemp, -33.0), (Temperature, -18.0)));
+
+        var alert = AlertEvaluator.EvaluateWindChill(ToConsensus(snap), [-10, -20, -30]);
+
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
+        Assert.Equal("frostbite_10min", alert.Attributes["exposure_risk"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void WindChill_cold_but_not_extreme_produces_none()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (ApparentTemp, -5.0), (Temperature, -2.0)),
+            MakeForecast(new("m2"), (ApparentTemp, -4.0), (Temperature, -1.0)));
+
+        var alert = AlertEvaluator.EvaluateWindChill(ToConsensus(snap), [-10, -20, -30]);
+
+        Assert.Equal(AlertSeverity.None, alert.Severity);
+    }
+
+    // --- Visibility ---
+
+    [Fact(Timeout = 5000)]
+    public void Visibility_reduced_produces_yellow()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (VisibilityParam, 800.0)),
+            MakeForecast(new("m2"), (VisibilityParam, 900.0)));
+
+        var alert = AlertEvaluator.EvaluateVisibility(ToConsensus(snap), [1000, 200, 50]);
+
+        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Visibility_dense_fog_produces_orange()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (VisibilityParam, 150.0)),
+            MakeForecast(new("m2"), (VisibilityParam, 180.0)));
+
+        var alert = AlertEvaluator.EvaluateVisibility(ToConsensus(snap), [1000, 200, 50]);
+
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Visibility_near_zero_produces_red()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (VisibilityParam, 30.0)),
+            MakeForecast(new("m2"), (VisibilityParam, 40.0)));
+
+        var alert = AlertEvaluator.EvaluateVisibility(ToConsensus(snap), [1000, 200, 50]);
+
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Visibility_good_produces_none()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (VisibilityParam, 5000.0)),
+            MakeForecast(new("m2"), (VisibilityParam, 8000.0)));
+
+        var alert = AlertEvaluator.EvaluateVisibility(ToConsensus(snap), [1000, 200, 50]);
+
+        Assert.Equal(AlertSeverity.None, alert.Severity);
+    }
+
+    // --- TropicalNight ---
+
+    [Fact(Timeout = 5000)]
+    public void TropicalNight_warm_night_produces_yellow()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, 21.0), (IsDayParam, 0.0)),
+            MakeForecast(new("m2"), (Temperature, 22.0), (IsDayParam, 0.0)));
+
+        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), [20, 23, 25]);
+
+        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void TropicalNight_severe_produces_orange()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, 24.0), (IsDayParam, 0.0)),
+            MakeForecast(new("m2"), (Temperature, 24.5), (IsDayParam, 0.0)));
+
+        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), [20, 23, 25]);
+
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void TropicalNight_extreme_produces_red()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, 26.0), (IsDayParam, 0.0)),
+            MakeForecast(new("m2"), (Temperature, 27.0), (IsDayParam, 0.0)));
+
+        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), [20, 23, 25]);
+
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void TropicalNight_cool_night_produces_none()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, 15.0), (IsDayParam, 0.0)),
+            MakeForecast(new("m2"), (Temperature, 14.0), (IsDayParam, 0.0)));
+
+        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), [20, 23, 25]);
+
+        Assert.Equal(AlertSeverity.None, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void TropicalNight_all_daytime_produces_none()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (Temperature, 25.0), (IsDayParam, 1.0)),
+            MakeForecast(new("m2"), (Temperature, 26.0), (IsDayParam, 1.0)));
+
+        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), [20, 23, 25]);
+
+        Assert.Equal(AlertSeverity.None, alert.Severity);
+    }
+
+    // --- Humidity ---
+
+    [Fact(Timeout = 5000)]
+    public void Humidity_muggy_produces_yellow()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (DewpointParam, 18.0), (IsDayParam, 1.0)),
+            MakeForecast(new("m2"), (DewpointParam, 17.0), (IsDayParam, 1.0)));
+
+        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), [16, 21, 24]);
+
+        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
+        Assert.Equal("muggy", alert.Attributes["comfort_level"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Humidity_oppressive_produces_orange()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (DewpointParam, 22.0), (IsDayParam, 1.0)),
+            MakeForecast(new("m2"), (DewpointParam, 23.0), (IsDayParam, 1.0)));
+
+        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), [16, 21, 24]);
+
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+        Assert.Equal("oppressive", alert.Attributes["comfort_level"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Humidity_tropical_produces_red()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (DewpointParam, 25.0), (IsDayParam, 1.0)),
+            MakeForecast(new("m2"), (DewpointParam, 26.0), (IsDayParam, 1.0)));
+
+        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), [16, 21, 24]);
+
+        Assert.Equal(AlertSeverity.Red, alert.Severity);
+        Assert.Equal("tropical", alert.Attributes["comfort_level"]);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Humidity_comfortable_produces_none()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (DewpointParam, 12.0), (IsDayParam, 1.0)),
+            MakeForecast(new("m2"), (DewpointParam, 10.0), (IsDayParam, 1.0)));
+
+        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), [16, 21, 24]);
+
+        Assert.Equal(AlertSeverity.None, alert.Severity);
+    }
+
+    [Fact(Timeout = 5000)]
+    public void Humidity_all_nighttime_produces_none()
+    {
+        var snap = SnapshotWith(
+            MakeForecast(new("m1"), (DewpointParam, 25.0), (IsDayParam, 0.0)),
+            MakeForecast(new("m2"), (DewpointParam, 26.0), (IsDayParam, 0.0)));
+
+        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), [16, 21, 24]);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
@@ -438,13 +814,13 @@ public sealed class AlertEvaluatorSpec
     // --- EvaluateAll ---
 
     [Fact(Timeout = 5000)]
-    public void EvaluateAll_returns_9_alerts()
+    public void EvaluateAll_returns_14_alerts()
     {
         var snap = SnapshotWith(MakeForecast(new("m1"), (Temperature, 15.0)));
         var options = new AlertOptions();
 
         var result = AlertEvaluator.EvaluateAll(ToConsensus(snap), options, Time);
 
-        Assert.Equal(9, result.Alerts.Count);
+        Assert.Equal(14, result.Alerts.Count);
     }
 }

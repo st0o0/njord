@@ -13,6 +13,11 @@ public static class AlertTypeExtensions
         AlertType.Snow => "snow",
         AlertType.PressureDrop => "pressure-drop",
         AlertType.Thunderstorm => "thunderstorm",
+        AlertType.Ice => "ice",
+        AlertType.WindChill => "wind-chill",
+        AlertType.Visibility => "visibility",
+        AlertType.TropicalNight => "tropical-night",
+        AlertType.Humidity => "humidity",
         _ => type.ToString().ToLowerInvariant(),
     };
 }
