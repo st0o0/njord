@@ -7,10 +7,10 @@
     <PackageVersion Include="Akka.Logger.Serilog" Version="1.5.69" />
     <PackageVersion Include="Akka.Persistence.Hosting" Version="1.5.71" />
     <PackageVersion Include="Akka.Persistence.TestKit.Xunit" Version="1.5.71" />
-    <PackageVersion Include="Google.Protobuf" Version="3.34.1" />
-    <PackageVersion Include="Grpc.AspNetCore" Version="2.80.0" />
+    <PackageVersion Include="Google.Protobuf" Version="3.36.1" />
+    <PackageVersion Include="Grpc.AspNetCore" Version="2.83.0" />
     <PackageVersion Include="Grpc.Net.Client" Version="2.83.0" />
-    <PackageVersion Include="Grpc.Tools" Version="2.80.0" />
+    <PackageVersion Include="Grpc.Tools" Version="2.83.0" />
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.12" />
     <PackageVersion Include="Npgsql" Version="10.0.3" />
     <PackageVersion Include="Akka.Hosting" Version="1.5.71" />
