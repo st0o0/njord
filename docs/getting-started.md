@@ -1,71 +1,90 @@
 # Getting Started
 
-This guide gets njord running with Docker, publishing weather forecasts to your Home Assistant instance via MQTT.
+This guide gets njord running and connected to Home Assistant.
 
 ## Prerequisites
 
 - **Docker** (or Podman) on any Linux, macOS, or Windows host
-- **Mosquitto** (or another MQTT broker) reachable from the Docker host — most Home Assistant setups already have the [Mosquitto add-on](https://github.com/home-assistant/addons/tree/master/mosquitto)
-- **MQTT integration** enabled in Home Assistant (Settings > Devices & Services > MQTT)
+- **Home Assistant** with [HACS](https://hacs.xyz/) installed
 
-## Minimal configuration
+## 1. Run njord
 
-Create an `appsettings.json` file:
+Create a `docker-compose.yml`:
 
-```json
-{
-  "Njord": {
-    "Mqtt": {
-      "Host": "192.168.1.100",
-      "Username": "mqtt-user",
-      "Password": "mqtt-pass"
-    },
-    "Locations": [
-      {
-        "Name": "Home",
-        "Latitude": 47.05,
-        "Longitude": 8.31
-      }
-    ],
-    "Models": [
-      "icon_eu",
-      "ecmwf_ifs025"
-    ]
-  }
-}
+```yaml
+services:
+  njord:
+    image: ghcr.io/st0o0/njord:latest
+    restart: unless-stopped
+    volumes:
+      - njord-data:/app/data
+    environment:
+      - Njord__Locations__0__Name=Home
+      - Njord__Locations__0__Latitude=47.05
+      - Njord__Locations__0__Longitude=8.31
+      - Njord__Models__0=icon_eu
+      - Njord__Models__1=ecmwf_ifs025
+
+volumes:
+  njord-data:
 ```
 
-This configures njord to poll two weather models for a single location every 60 minutes (the default) and publish forecasts at horizons +3, +6, +12, +24, +48, and +72 hours.
+```bash
+docker compose up -d
+```
+
+The `/app/data` volume stores the SQLite journal used for persistence (forecast history, scheduler state). Keep it mounted so data survives container restarts.
 
 ::: tip
 For complex setups with multiple locations, per-location models, and enrichment features, use the [Config Builder](/builder) to generate your configuration interactively.
 :::
 
-## Run with Docker
+## 2. Install the Home Assistant integration
+
+### HACS (recommended)
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=st0o0&repository=ha-njord&category=integration)
+
+1. Click the button above, or open HACS > three dots > **Custom repositories** > add `https://github.com/st0o0/ha-njord` as **Integration**
+2. Search for "njord Weather" and install
+3. Restart Home Assistant
+
+### Manual
+
+Copy the `custom_components/njord` directory from [ha-njord](https://github.com/st0o0/ha-njord) to your Home Assistant `config/custom_components/` directory and restart.
+
+## 3. Add the integration
+
+1. Go to **Settings > Devices & Services > Add Integration**
+2. Search for **njord Weather**
+3. Enter the host and gRPC port (default: 8081) of your njord instance
+4. The integration connects via gRPC streaming and auto-discovers all locations and models
+
+## Verify it works
+
+After adding the integration, entities appear immediately with no polling delay. Check **Settings > Devices & Services > njord Weather**. You should see:
+
+- One `weather` entity per model per location (e.g. `weather.njord_home_icon_eu`)
+- One `weather` entity for the consensus forecast per location
+- Alert, index, trend, and derived sensors per location
+- A "Trigger Poll" button on the server device
+- Stream connectivity sensors (diagnostic)
+
+## How it works
+
+<likec4-view view-id="index"></likec4-view>
+
+njord polls the Open-Meteo API on a configurable interval (default: 60 minutes), processes forecasts through an enrichment pipeline, and streams the results to the Home Assistant integration via gRPC. The integration creates native HA entities that update in real-time. See the [Architecture](/architecture) page for a deeper look.
+
+## Using environment variables
+
+You can pass all configuration via environment variables using double-underscore notation (`Njord__Section__Key`). Array items use zero-based indices:
 
 ```bash
 docker run -d \
   --name njord \
   --restart unless-stopped \
-  -v ./appsettings.json:/app/appsettings.json:ro \
   -v njord-data:/app/data \
-  ghcr.io/st0o0/njord:latest
-```
-
-The `/app/data` volume stores the SQLite journal used for persistence (forecast history, scheduler state). Keep it mounted so data survives container restarts.
-
-### Using environment variables
-
-You can also pass configuration entirely via environment variables instead of a config file. The convention is `Njord__Section__Key`:
-
-```bash
-docker run -d \
-  --name njord \
-  --restart unless-stopped \
-  -v njord-data:/app/data \
-  -e Njord__Mqtt__Host=192.168.1.100 \
-  -e Njord__Mqtt__Username=mqtt-user \
-  -e Njord__Mqtt__Password=mqtt-pass \
   -e Njord__Locations__0__Name=Home \
   -e Njord__Locations__0__Latitude=47.05 \
   -e Njord__Locations__0__Longitude=8.31 \
@@ -74,39 +93,23 @@ docker run -d \
   ghcr.io/st0o0/njord:latest
 ```
 
-## Verify it works
+## Alternative: MQTT
 
-### MQTT Explorer
+If you use njord without Home Assistant (e.g. with Node-RED or a custom dashboard), enable MQTT publishing:
 
-Connect [MQTT Explorer](https://mqtt-explorer.com/) to your broker and look for topics under `njord/` and `homeassistant/device/`. You should see:
-
-- `njord/status` — `online`
-- `njord/home/icon_eu/h3` — forecast state JSON for +3 hours
-- `homeassistant/device/njord_home_icon_eu/config` — HA discovery payload
-
-### mosquitto_sub
-
-```bash
-# Watch all njord topics
-mosquitto_sub -h 192.168.1.100 -u mqtt-user -P mqtt-pass -t 'njord/#' -v
-
-# Watch discovery payloads
-mosquitto_sub -h 192.168.1.100 -u mqtt-user -P mqtt-pass -t 'homeassistant/device/#' -v
+```yaml
+environment:
+  - Njord__Mqtt__Enabled=true
+  - Njord__Mqtt__Host=<your-mosquitto-host>
+  - Njord__Mqtt__Username=mqtt-user
+  - Njord__Mqtt__Password=mqtt-pass
 ```
 
-### Home Assistant
-
-After the first poll cycle (up to 60 minutes), check Settings > Devices & Services > MQTT. You should see devices named `njord home icon_eu` and `njord home ecmwf_ifs025`, each with sensors for every parameter and horizon.
-
-## How it works
-
-<likec4-view view-id="index"></likec4-view>
-
-njord polls the Open-Meteo API on a configurable interval, processes forecasts through an enrichment pipeline, and publishes everything to your MQTT broker. Home Assistant discovers the devices and sensors automatically. See the [Architecture](/architecture) page for a deeper look.
+See the [MQTT reference](/mqtt-reference) for the complete topic scheme and payload format.
 
 ## Next steps
 
-- [Configuration overview](/configuration/) — all available options
-- [Model catalog](/models) — choosing the right weather models for your region
-- [MQTT reference](/mqtt-reference) — topic scheme and payload format
-- [Home Assistant integration](/home-assistant) — entity naming, dashboards, recorder tips
+- [Configuration overview](/configuration/): all available options
+- [Model catalog](/models): choosing the right weather models for your region
+- [Home Assistant integration](/home-assistant): entity reference, dashboards, automations
+- [Config Builder](/builder): interactive configuration generator

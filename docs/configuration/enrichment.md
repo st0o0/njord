@@ -62,8 +62,8 @@ Generates weather alerts as binary sensors with severity levels (None, Yellow, O
 **Alert types:** Frost, Heat, Storm, HeavyRain, UV, Fog, Snow, PressureDrop, Thunderstorm
 
 Each alert publishes as a `binary_sensor` with attributes:
-- `severity` — None, Yellow, Orange, or Red
-- `confidence` — how many models agree
+- `severity`: None, Yellow, Orange, or Red
+- `confidence`: how many models agree
 - Type-specific fields (e.g. `expected_low`, `earliest_frost`, `models_agreeing`)
 
 ::: tip
@@ -85,15 +85,15 @@ Computes human-readable interpretations from raw forecast data.
 ```
 
 **Per-horizon values:**
-- `beaufort` — wind speed on the Beaufort scale (0--12)
-- `wind_chill` — perceived temperature in Celsius
-- `dewpoint_comfort` — comfort category based on dew point (e.g. "Comfortable", "Humid")
-- `wmo_description` — human-readable weather description from WMO code
+- `beaufort`: wind speed on the Beaufort scale (0 to 12)
+- `wind_chill`: perceived temperature in Celsius
+- `dewpoint_comfort`: comfort category based on dew point (e.g. "Comfortable", "Humid")
+- `wmo_description`: human-readable weather description from WMO code
 
 **Scalar values:**
-- `diurnal_amplitude` — daily temperature range in Celsius
-- `sunshine_pct` — percentage of daylight hours with sunshine
-- `inversion` — temperature inversion detected (boolean)
+- `diurnal_amplitude`: daily temperature range in Celsius
+- `sunshine_pct`: percentage of daylight hours with sunshine
+- `inversion`: temperature inversion detected (boolean)
 
 ## Trends
 

@@ -50,6 +50,6 @@ Adding a regional model (like `icon_d2` or `meteoswiss_icon_ch1`) to the global 
 
 ## Choosing models
 
-- Start with 2--3 global models (e.g. `ecmwf_ifs025`, `gfs_seamless`, `icon_global`) for broad coverage.
+- Start with 2 to 3 global models (e.g. `ecmwf_ifs025`, `gfs_seamless`, `icon_global`) for broad coverage.
 - Add regional models per location for higher resolution where available.
-- More models improve consensus accuracy but increase API usage — see [budget](./budget).
+- More models improve consensus accuracy but increase API usage. See [budget](./budget).

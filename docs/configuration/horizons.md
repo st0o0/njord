@@ -12,7 +12,7 @@ Horizons define the forecast time offsets that njord publishes as separate senso
 }
 ```
 
-The default is `[3, 6, 12, 24, 48, 72]` — forecasts for 3, 6, 12, 24, 48, and 72 hours ahead.
+The default is `[3, 6, 12, 24, 48, 72]`, covering forecasts for 3, 6, 12, 24, 48, and 72 hours ahead.
 
 ## What each horizon means
 
@@ -37,7 +37,7 @@ Each horizon must be between **1** and **96** (hours). At least one horizon is r
 Not every model provides data out to every horizon. For example, `icon_d2` only forecasts ~48 hours ahead. When a model has no data at a configured horizon:
 
 - njord does not publish a value for that model at that horizon
-- No null payloads are sent — the sensor simply does not update
+- No null payloads are sent; the sensor simply does not update
 - The `expire_after` mechanism (2x poll interval) marks the sensor as unavailable in Home Assistant
 
 This is expected behavior: short-range regional models naturally cover fewer horizons than global models.

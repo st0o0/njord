@@ -54,7 +54,7 @@ Choose models based on your location and how far ahead you need forecasts. Regio
 
 2. **Mix global and regional.** A global model provides the long-range outlook; a regional model gives higher-resolution short-term detail.
 
-3. **Use per-location models for regional coverage.** Add regional models only to the locations they cover — see [per-location model configuration](/configuration/locations).
+3. **Use per-location models for regional coverage.** Add regional models only to the locations they cover. See [per-location model configuration](/configuration/locations).
 
 4. **Check horizon vs. your needs.** If you only display +24h forecasts, a regional model with a 48h horizon is plenty. Long-range planning needs global models.
 

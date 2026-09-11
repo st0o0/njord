@@ -25,7 +25,7 @@ njord is configured via `appsettings.json` or environment variables. All setting
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `PollInterval` | `01:00:00` (60 min) | How often njord polls Open-Meteo for new forecasts |
-| `ForecastDays` | `4` | Number of days to request from the API (1--16) |
+| `ForecastDays` | `4` | Number of days to request from the API (1 to 16) |
 | `DiscoveryInterval` | `00:20:00` (20 min) | How often HA MQTT discovery payloads are re-published |
 | `PersistencePath` | `data/njord-journal.db` | Path to the SQLite journal file |
 
@@ -51,14 +51,14 @@ Use environment variables for secrets like `Njord__Mqtt__Password` instead of pu
 
 ## Configuration sections
 
-- [Locations](./locations) — where to fetch forecasts for
-- [Models](./models) — which weather models to poll
-- [Horizons](./horizons) — forecast time offsets
-- [Parameters](./parameters) — which weather variables to request
-- [Enrichment](./enrichment) — consensus, alerts, derived metrics, and more
-- [MQTT](./mqtt) — broker connection and topic settings
-- [Persistence](./persistence) — SQLite or PostgreSQL storage
-- [Budget](./budget) — Open-Meteo rate limits and usage projection
+- [Locations](./locations): where to fetch forecasts for
+- [Models](./models): which weather models to poll
+- [Horizons](./horizons): forecast time offsets
+- [Parameters](./parameters): which weather variables to request
+- [Enrichment](./enrichment): consensus, alerts, derived metrics, and more
+- [MQTT](./mqtt): broker connection and topic settings
+- [Persistence](./persistence): SQLite or PostgreSQL storage
+- [Budget](./budget): Open-Meteo rate limits and usage projection
 
 ## Startup validation
 
@@ -66,7 +66,7 @@ njord validates the entire configuration at startup and refuses to start if:
 
 - No locations or models are defined
 - The MQTT host is empty
-- Horizons are outside the valid range (1--96)
+- Horizons are outside the valid range (1 to 96)
 - PostgreSQL is selected without a connection string
 - Projected API usage exceeds 80% of the monthly budget
 - Parameter groups, extras, or excludes reference unknown parameters

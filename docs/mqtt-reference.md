@@ -1,5 +1,9 @@
 # MQTT Reference
 
+::: info
+MQTT is an **optional** egress path, disabled by default. The primary way to connect njord to Home Assistant is the [ha-njord custom integration](/home-assistant), which uses gRPC streaming for real-time updates. Enable MQTT only if you need to consume njord data from non-HA systems such as Node-RED, Grafana, or custom dashboards. See [MQTT configuration](/configuration/mqtt) to enable it.
+:::
+
 This page documents the complete MQTT topic scheme, payload format, and availability mechanism used by njord.
 
 ## Topic scheme
@@ -147,8 +151,8 @@ Only parameters that have a value for the given model and horizon are included. 
 
 njord uses a dual availability mechanism:
 
-1. **LWT topic** (`{baseTopic}/status`) — the broker publishes `offline` if njord disconnects unexpectedly
-2. **expire_after** — set to 2x the poll interval on every sensor; if no update arrives within that window, Home Assistant marks the sensor as unavailable
+1. **LWT topic** (`{baseTopic}/status`): the broker publishes `offline` if njord disconnects unexpectedly
+2. **expire_after**: set to 2x the poll interval on every sensor. If no update arrives within that window, Home Assistant marks the sensor as unavailable
 
 Both conditions must be met for a sensor to show as available (availability mode `"all"`).
 

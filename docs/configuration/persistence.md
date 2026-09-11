@@ -59,7 +59,7 @@ When using PostgreSQL, the `ConnectionString` is required. njord will refuse to 
 ## When is persistence needed?
 
 Persistence is required for:
-- **History enrichment** — tracking forecast accuracy over time
-- **Scheduler state** — remembering poll cycle progress across restarts
+- **History enrichment**: tracking forecast accuracy over time
+- **Scheduler state**: remembering poll cycle progress across restarts
 
 If you disable the History enrichment and do not need restart resilience, persistence is optional but still recommended.

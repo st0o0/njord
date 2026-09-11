@@ -25,7 +25,7 @@ guard     = budget.requestsPerMonth x 0.8
 Where:
 - **totalModelsPerCycle** = sum of effective models across all locations (global + per-location)
 - **cyclesPerMonth** = 30 days / poll interval
-- **apiCallWeight** = `ceil(hourlyVariableCount / 10)` — see [parameters](./parameters)
+- **apiCallWeight** = `ceil(hourlyVariableCount / 10)` (see [parameters](./parameters))
 
 ### Example calculation
 
@@ -50,10 +50,10 @@ guard               = 300,000 x 0.8 = 240,000
 
 With many locations, models, or all parameter groups enabled, projected usage can approach the limit. Options to reduce it:
 
-- **Increase `PollInterval`** — polling every 2 hours halves the request count
-- **Reduce models** — fewer models per location means fewer API calls
-- **Use `Exclude`** — removing hourly parameters can lower the API call weight
-- **Cap `ForecastDays`** — requesting fewer days slightly reduces API weight for large variable counts
+- **Increase `PollInterval`**: polling every 2 hours halves the request count
+- **Reduce models**: fewer models per location means fewer API calls
+- **Use `Exclude`**: removing hourly parameters can lower the API call weight
+- **Cap `ForecastDays`**: requesting fewer days slightly reduces API weight for large variable counts
 
 ## BudgetOverride
 

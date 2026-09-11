@@ -48,13 +48,13 @@ When `DiscoveryEnabled` is `true` (the default), njord publishes retained device
 
 Discovery payloads are re-published at the `DiscoveryInterval` (default 20 minutes) and on Home Assistant restart (detected via the `homeassistant/status` birth message).
 
-Set `DiscoveryEnabled` to `false` if you want to use njord's MQTT state data without Home Assistant auto-discovery — for example, with Node-RED or a custom dashboard.
+Set `DiscoveryEnabled` to `false` if you want to use njord's MQTT state data without Home Assistant auto-discovery, for example with Node-RED or a custom dashboard.
 
 ## Availability
 
 njord uses a Last Will and Testament (LWT) message on `{BaseTopic}/status`:
-- `online` — published on connect
-- `offline` — published by the broker if njord disconnects unexpectedly
+- `online`: published on connect
+- `offline`: published by the broker if njord disconnects unexpectedly
 
 Sensors also use `expire_after` set to 2x the poll interval. If no update arrives within that window, Home Assistant marks the sensor as unavailable.
 
