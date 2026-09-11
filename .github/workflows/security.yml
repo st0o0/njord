@@ -1,4 +1,4 @@
-name: security
+name: Security
 
 on:
   pull_request:
@@ -6,63 +6,19 @@ on:
       - 'Dockerfile'
       - 'src/Directory.Packages.props'
       - 'src/**/*.csproj'
-      - '.github/workflows/security.yml'
   schedule:
-    - cron: '0 6 * * 1'   # weekly — catch new CVEs in the base image/packages
+    - cron: '0 6 * * 1'
   workflow_dispatch:
-
-permissions:
-  contents: read
 
 concurrency:
   group: security-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  trivy:
-    runs-on: ubuntu-latest
+  scan:
+    uses: st0o0/github-workflows/.github/workflows/security.yml@main
+    with:
+      docker-image-name: njord
     permissions:
       contents: read
-      security-events: write   # upload SARIF to the Security tab
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v4
-      - name: Build image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: false
-          load: true
-          tags: njord:scan
-          cache-from: type=gha
-      # Report only — findings surface in the Security tab, they never fail the
-      # pipeline. Base-image bumps that clear CVEs come in via Dependabot PRs.
-      - name: Trivy scan
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: njord:scan
-          format: sarif
-          output: trivy.sarif
-          severity: CRITICAL,HIGH
-          trivyignore: .trivyignore
-          exit-code: '0'
-      - name: Upload SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy.sarif
-
-  nuget-audit:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v6
-        with:
-          global-json-file: src/global.json
-      - name: Restore
-        working-directory: src
-        run: dotnet restore Njord.slnx
-      - name: Check for vulnerable packages
-        working-directory: src
-        run: dotnet list Njord.slnx package --vulnerable --include-transitive
+      security-events: write

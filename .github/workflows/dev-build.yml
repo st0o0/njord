@@ -1,10 +1,5 @@
-name: dev-build
+name: Dev Build
 
-# Owner-approved dev images: label = request, environment approval = gate.
-# Put the `dev-build` label on a PR to request a build; every run then waits
-# on the `dev` environment (required reviewer: owner) before pushing to GHCR.
-# One-time setup in the repo settings: create environment `dev` with a
-# required reviewer, and create the `dev-build` label.
 on:
   pull_request:
     types: [labeled, synchronize, reopened]
@@ -12,166 +7,18 @@ on:
 permissions:
   contents: read
 
-# A new push replaces a still-pending approval request for the same PR.
 concurrency:
   group: dev-build-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  gate:
-    # Fork PRs are skipped cleanly — their GITHUB_TOKEN cannot push to GHCR.
-    if: >-
-      contains(github.event.pull_request.labels.*.name, 'dev-build') &&
-      github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    environment: dev
-    steps:
-      - run: echo "Dev build approved"
-
-  publish:
-    needs: gate
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      matrix:
-        include:
-          - rid: linux-x64
-            platform: linux/amd64
-          - rid: linux-arm64
-            platform: linux/arm64
-          - rid: linux-arm
-            platform: linux/arm/v7
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/setup-dotnet@v6
-        with:
-          global-json-file: src/global.json
-      - uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('src/**/*.csproj', 'src/Directory.Packages.props') }}
-          restore-keys: nuget-${{ runner.os }}-
-
-      - name: Compute short SHA
-        id: vars
-        run: echo "shortsha=$(cut -c1-7 <<< '${{ github.event.pull_request.head.sha }}')" >> "$GITHUB_OUTPUT"
-
-      - name: Publish
-        working-directory: src
-        run: >-
-          dotnet publish Njord/Njord.csproj
-          -c Release
-          -r ${{ matrix.rid }}
-          --self-contained false
-          -o ../publish/${{ matrix.rid }}
-          -p:Version=0.0.0-pr.${{ github.event.pull_request.number }}.${{ steps.vars.outputs.shortsha }}
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: publish-${{ matrix.rid }}
-          path: publish/${{ matrix.rid }}/
-          retention-days: 1
-
-  docker:
-    needs: publish
-    runs-on: ubuntu-latest
+  build:
+    uses: st0o0/github-workflows/.github/workflows/dotnet-dev-build.yml@main
+    with:
+      image-name: ghcr.io/st0o0/njord
+      image-description: "Dev build of njord"
+      publish-project: Njord/Njord.csproj
     permissions:
       contents: read
       packages: write
       pull-requests: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/download-artifact@v8
-        with:
-          path: publish
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Compute short SHA
-        id: vars
-        run: echo "shortsha=$(cut -c1-7 <<< '${{ github.event.pull_request.head.sha }}')" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push amd64
-        uses: docker/build-push-action@v7
-        id: build-amd64
-        with:
-          file: Dockerfile
-          context: publish/publish-linux-x64
-          platforms: linux/amd64
-          cache-from: type=gha,scope=dev-amd64
-          cache-to: type=gha,scope=dev-amd64,mode=max
-          outputs: type=image,name=ghcr.io/st0o0/njord,push-by-digest=true,name-canonical=true,push=true
-
-      - name: Build and push arm64
-        uses: docker/build-push-action@v7
-        id: build-arm64
-        with:
-          file: Dockerfile
-          context: publish/publish-linux-arm64
-          platforms: linux/arm64
-          cache-from: type=gha,scope=dev-arm64
-          cache-to: type=gha,scope=dev-arm64,mode=max
-          outputs: type=image,name=ghcr.io/st0o0/njord,push-by-digest=true,name-canonical=true,push=true
-
-      - name: Build and push armv7
-        uses: docker/build-push-action@v7
-        id: build-armv7
-        with:
-          file: Dockerfile
-          context: publish/publish-linux-arm
-          platforms: linux/arm/v7
-          cache-from: type=gha,scope=dev-armv7
-          cache-to: type=gha,scope=dev-armv7,mode=max
-          outputs: type=image,name=ghcr.io/st0o0/njord,push-by-digest=true,name-canonical=true,push=true
-
-      - name: Create multi-arch manifest
-        env:
-          PR: ${{ github.event.pull_request.number }}
-          SHA: ${{ steps.vars.outputs.shortsha }}
-          AMD64: ${{ steps.build-amd64.outputs.digest }}
-          ARM64: ${{ steps.build-arm64.outputs.digest }}
-          ARMV7: ${{ steps.build-armv7.outputs.digest }}
-        run: |
-          docker buildx imagetools create \
-            --annotation "index:org.opencontainers.image.description=Dev build of njord — unsigned multi-arch image from a pull request, not a release" \
-            --annotation "index:org.opencontainers.image.source=https://github.com/st0o0/njord" \
-            -t "ghcr.io/st0o0/njord:pr-${PR}" \
-            -t "ghcr.io/st0o0/njord:dev-${SHA}" \
-            "ghcr.io/st0o0/njord@${AMD64}" \
-            "ghcr.io/st0o0/njord@${ARM64}" \
-            "ghcr.io/st0o0/njord@${ARMV7}"
-
-      - name: Comment the pull command on the PR
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const pr = context.payload.pull_request.number;
-            const sha = '${{ steps.vars.outputs.shortsha }}';
-            const marker = '<!-- dev-build-comment -->';
-            const body = [
-              marker,
-              `🚧 Dev build published (\`dev-${sha}\`) — multi-arch (amd64, arm64, armv7):`,
-              '',
-              '```bash',
-              `docker pull ghcr.io/st0o0/njord:pr-${pr}`,
-              '```',
-            ].join('\n');
-            const { data: comments } = await github.rest.issues.listComments({
-              ...context.repo, issue_number: pr, per_page: 100 });
-            const existing = comments.find(c => c.body.startsWith(marker));
-            if (existing) {
-              await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
-            } else {
-              await github.rest.issues.createComment({ ...context.repo, issue_number: pr, body });
-            }

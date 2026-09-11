@@ -1,178 +1,24 @@
-name: release
+name: Release
 
 on:
   push:
     branches: [main]
-
-permissions:
-  contents: write
-  pull-requests: write
+  workflow_dispatch:
 
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
-  release-please:
-    runs-on: ubuntu-latest
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      version: ${{ steps.release.outputs.version }}
-      major: ${{ steps.release.outputs.major }}
-      minor: ${{ steps.release.outputs.minor }}
-    steps:
-      - uses: googleapis/release-please-action@v5
-        id: release
-        with:
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-
-  publish:
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      matrix:
-        include:
-          - rid: linux-x64
-            platform: linux/amd64
-            test: true
-          - rid: linux-arm64
-            platform: linux/arm64
-            test: false
-          - rid: linux-arm
-            platform: linux/arm/v7
-            test: false
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v6
-        with:
-          global-json-file: src/global.json
-      - uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('src/**/*.csproj', 'src/Directory.Packages.props') }}
-          restore-keys: nuget-${{ runner.os }}-
-
-      - name: Publish
-        working-directory: src
-        run: >-
-          dotnet publish Njord/Njord.csproj
-          -c Release
-          -r ${{ matrix.rid }}
-          --self-contained false
-          -o ../publish/${{ matrix.rid }}
-          -p:Version=${{ needs.release-please.outputs.version }}
-
-      - name: Test
-        if: matrix.test
-        working-directory: src
-        run: dotnet test Njord.slnx
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: publish-${{ matrix.rid }}
-          path: publish/${{ matrix.rid }}/
-          retention-days: 1
-
-  docker:
-    needs: [release-please, publish]
-    runs-on: ubuntu-latest
+  release:
+    uses: st0o0/github-workflows/.github/workflows/dotnet-release-docker.yml@main
+    with:
+      image-name: ghcr.io/st0o0/njord
+      image-description: "Multi-model weather intelligence for Home Assistant"
+      solution-file: Njord.slnx
+      publish-project: Njord/Njord.csproj
     permissions:
-      contents: read
+      contents: write
+      pull-requests: write
       packages: write
       id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v8
-        with:
-          path: publish
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ghcr.io/st0o0/njord
-          tags: |
-            type=raw,value=${{ needs.release-please.outputs.version }}
-            type=raw,value=${{ needs.release-please.outputs.major }}.${{ needs.release-please.outputs.minor }}
-            type=raw,value=latest
-
-      - name: Build and push amd64
-        uses: docker/build-push-action@v7
-        id: build-amd64
-        with:
-          file: Dockerfile
-          context: publish/publish-linux-x64
-          platforms: linux/amd64
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=amd64
-          cache-to: type=gha,scope=amd64,mode=max
-          provenance: true
-          sbom: true
-          outputs: type=image,name=ghcr.io/st0o0/njord,push-by-digest=true,name-canonical=true,push=true
-
-      - name: Build and push arm64
-        uses: docker/build-push-action@v7
-        id: build-arm64
-        with:
-          file: Dockerfile
-          context: publish/publish-linux-arm64
-          platforms: linux/arm64
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=arm64
-          cache-to: type=gha,scope=arm64,mode=max
-          provenance: true
-          sbom: true
-          outputs: type=image,name=ghcr.io/st0o0/njord,push-by-digest=true,name-canonical=true,push=true
-
-      - name: Build and push armv7
-        uses: docker/build-push-action@v7
-        id: build-armv7
-        with:
-          file: Dockerfile
-          context: publish/publish-linux-arm
-          platforms: linux/arm/v7
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=armv7
-          cache-to: type=gha,scope=armv7,mode=max
-          provenance: true
-          sbom: true
-          outputs: type=image,name=ghcr.io/st0o0/njord,push-by-digest=true,name-canonical=true,push=true
-
-      - name: Create multi-arch manifest
-        env:
-          TAGS: ${{ steps.meta.outputs.tags }}
-          AMD64: ${{ steps.build-amd64.outputs.digest }}
-          ARM64: ${{ steps.build-arm64.outputs.digest }}
-          ARMV7: ${{ steps.build-armv7.outputs.digest }}
-        run: |
-          TAG_ARGS=""
-          while IFS= read -r tag; do
-            [ -n "$tag" ] && TAG_ARGS="$TAG_ARGS -t $tag"
-          done <<< "$TAGS"
-
-          docker buildx imagetools create \
-            --annotation "index:org.opencontainers.image.description=Multi-model weather intelligence for Home Assistant" \
-            --annotation "index:org.opencontainers.image.source=https://github.com/st0o0/njord" \
-            $TAG_ARGS \
-            "ghcr.io/st0o0/njord@${AMD64}" \
-            "ghcr.io/st0o0/njord@${ARM64}" \
-            "ghcr.io/st0o0/njord@${ARMV7}"
-
-      - name: Get manifest digest
-        id: manifest
-        run: |
-          DIGEST=$(docker buildx imagetools inspect ghcr.io/st0o0/njord:${{ needs.release-please.outputs.version }} --format '{{.Manifest.Digest}}')
-          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
-
-      - uses: sigstore/cosign-installer@v3
-      - name: Sign the published image (keyless)
-        env:
-          DIGEST: ${{ steps.manifest.outputs.digest }}
-        run: cosign sign --yes "ghcr.io/st0o0/njord@${DIGEST}"
