@@ -10,15 +10,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  release-please:
+    uses: st0o0/github-workflows/.github/workflows/release-please.yml@main
+    permissions:
+      contents: write
+      pull-requests: write
+
+  docker:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
     uses: st0o0/github-workflows/.github/workflows/dotnet-release-docker.yml@main
     with:
+      version: ${{ needs.release-please.outputs.version }}
       image-name: ghcr.io/st0o0/njord
       image-description: "Multi-model weather intelligence for Home Assistant"
       solution-file: Njord.slnx
       publish-project: Njord/Njord.csproj
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
       packages: write
       id-token: write
