@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.4.0](https://github.com/st0o0/njord/compare/v0.3.0...v0.4.0) (2026-09-12)
+
+
+### Features
+
+* add 5 new alert types and extend severity for frost, storm, fog, pressure drop ([c8aa139](https://github.com/st0o0/njord/commit/c8aa139be16ae6651d62d866d4e043f7b6706856))
+* decouple release-please from build workflow ([aea7b31](https://github.com/st0o0/njord/commit/aea7b314fb8364b3ce9c2ed56abe9d012b8c41b6))
+
+
+### Documentation
+
+* rewrite documentation with gRPC integration focus and remove em dashes ([3cee2ec](https://github.com/st0o0/njord/commit/3cee2ec40e75f086dc7416122366556fb3444a69))
+
+
+### Refactoring
+
+* migrate to shared reusable workflows ([2d6434a](https://github.com/st0o0/njord/commit/2d6434a059ed273e67a5cdc665fb43b14fe43492))
+* remove dead IndexScorer.FrostProtection and IndexComputer.BuildEnvelope ([055cd93](https://github.com/st0o0/njord/commit/055cd9387e5d86043eb1b5dacd7131afbc6563e3))
+* rename CI jobs for cleaner GitHub check names ([4c50d99](https://github.com/st0o0/njord/commit/4c50d99c9e0bf83d3bdf7774bf09385d597d543c))
+
+
+### Dependencies
+
+* bump hadolint/hadolint-action from 3.4.0 to 3.5.0 ([415c75f](https://github.com/st0o0/njord/commit/415c75fb601d5062eb29b06d423b41839de6d8ba))
+* Bump the akka group with 4 updates ([fbc4d4b](https://github.com/st0o0/njord/commit/fbc4d4bafb53226dcb8f1a994a6be7baf2c0d812))
+* Bump the testing group with 1 update ([cbae007](https://github.com/st0o0/njord/commit/cbae0074e371884359359f8186a8a3829fb4f9bf))
+* Bump Verify.XunitV3 from 31.28.0 to 32.0.0 ([e9202f4](https://github.com/st0o0/njord/commit/e9202f42109f39c84bbd1b6947ec010054b78b63))
+
 ## [0.3.0](https://github.com/st0o0/njord/compare/v0.2.2...v0.3.0) (2026-08-17)
 
 
