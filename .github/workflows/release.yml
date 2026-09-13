@@ -16,16 +16,26 @@ jobs:
       contents: write
       pull-requests: write
 
-  docker:
+  build:
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
-    uses: st0o0/github-workflows/.github/workflows/dotnet-release-docker.yml@main
+    uses: st0o0/github-workflows/.github/workflows/dotnet-build.yml@main
+    with:
+      version: ${{ needs.release-please.outputs.version }}
+      solution-file: Njord.slnx
+      publish-project: Njord/Njord.csproj
+    permissions:
+      contents: read
+
+  docker:
+    needs: [release-please, build]
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: st0o0/github-workflows/.github/workflows/docker-release.yml@main
     with:
       version: ${{ needs.release-please.outputs.version }}
       image-name: ghcr.io/st0o0/njord
       image-description: "Multi-model weather intelligence for Home Assistant"
-      solution-file: Njord.slnx
-      publish-project: Njord/Njord.csproj
+      platforms: linux/amd64,linux/arm64,linux/arm/v7
     permissions:
       contents: read
       packages: write
