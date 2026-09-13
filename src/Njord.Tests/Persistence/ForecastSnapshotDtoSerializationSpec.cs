@@ -10,7 +10,7 @@ public sealed class ForecastSnapshotDtoSerializationSpec
 {
     private static readonly DateTimeOffset TestTime = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public Task ForecastSnapshot_dto_produces_stable_wire_format()
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
@@ -26,7 +26,7 @@ public sealed class ForecastSnapshotDtoSerializationSpec
         return Verify(json);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ForecastSnapshot_dto_round_trips_to_domain()
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;

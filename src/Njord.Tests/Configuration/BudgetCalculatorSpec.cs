@@ -4,7 +4,7 @@ namespace Njord.Tests.Configuration;
 
 public sealed class BudgetCalculatorSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Projects_monthly_calls_for_one_location_eight_models_weather_group_sixty_minute_interval()
     {
         var options = new NjordOptions
@@ -24,7 +24,7 @@ public sealed class BudgetCalculatorSpec
         Assert.Empty(result.Warnings);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Warns_when_usage_exceeds_eighty_percent_of_budget()
     {
         var options = new NjordOptions
@@ -43,7 +43,7 @@ public sealed class BudgetCalculatorSpec
         Assert.False(result.WithinBudget);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Reports_within_budget_false_when_projected_exceeds_monthly_limit()
     {
         var options = new NjordOptions
@@ -62,7 +62,7 @@ public sealed class BudgetCalculatorSpec
         Assert.True(result.UsagePercent > 100);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Issues_warning_at_eighty_percent_threshold()
     {
         var options = new NjordOptions
@@ -83,7 +83,7 @@ public sealed class BudgetCalculatorSpec
         Assert.Contains("90%", result.Warnings[0]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Uses_custom_budget_override_for_validation()
     {
         var options = new NjordOptions

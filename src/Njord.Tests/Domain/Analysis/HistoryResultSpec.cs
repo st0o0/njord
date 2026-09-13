@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
-using Njord.Domain.Weather;
 using Njord.Domain.Analysis;
+using Njord.Domain.Weather;
 
 namespace Njord.Tests.Domain.Analysis;
 
@@ -14,7 +14,7 @@ public sealed class HistoryResultSpec
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(
         ["Weather"], [], []);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Compute_with_empty_history_produces_null_metrics()
     {
         var history = new ForecastHistory(30);

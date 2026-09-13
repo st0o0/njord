@@ -20,57 +20,60 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
             DailyForecastSeries.Empty);
     }
 
-    private async Task FillToSnapshotThreshold(IActorRef actor, int count = 20)
+    private async Task FillToSnapshotThreshold(IActorRef actor, int count = 20, CancellationToken ct = default)
     {
         for (var i = 0; i < count; i++)
         {
             var model = $"model_{i}";
-            await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel(model), CreateForecast(model)));
+            await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel(model), CreateForecast(model)), ct);
         }
     }
 
     [Fact(Timeout = 5000)]
     public async Task State_recovers_from_snapshot_after_actor_restart()
     {
+        var ct = TestContext.Current.CancellationToken;
         var actor = CreateActor();
-        await FillToSnapshotThreshold(actor);
+        await FillToSnapshotThreshold(actor, ct: ct);
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
 
         var recovered = CreateActor();
 
-        var response = await recovered.Ask<AllForecastsResponse>(new GetAllForecasts(), TimeSpan.FromSeconds(3));
+        var response = await recovered.Ask<AllForecastsResponse>(new GetAllForecasts(), TimeSpan.FromSeconds(3), ct);
         Assert.Equal(20, response.Forecasts.Count);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Updates_below_snapshot_threshold_are_lost_on_restart()
     {
+        var ct = TestContext.Current.CancellationToken;
         var actor = CreateActor();
-        await FillToSnapshotThreshold(actor, count: 5);
+        await FillToSnapshotThreshold(actor, count: 5, ct: ct);
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
 
         var recovered = CreateActor();
 
-        var response = await recovered.Ask<AllForecastsResponse>(new GetAllForecasts(), TimeSpan.FromSeconds(3));
+        var response = await recovered.Ask<AllForecastsResponse>(new GetAllForecasts(), TimeSpan.FromSeconds(3), ct);
         Assert.Empty(response.Forecasts);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Actor_accepts_updates_after_recovery()
     {
+        var ct = TestContext.Current.CancellationToken;
         var actor = CreateActor();
-        await FillToSnapshotThreshold(actor);
+        await FillToSnapshotThreshold(actor, ct: ct);
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
 
         var recovered = CreateActor();
 
         var ack = await recovered.Ask<Ack>(
             new UpdateForecast("zurich", new WeatherModel("gfs"), CreateForecast("gfs")),
-            TimeSpan.FromSeconds(3));
+            TimeSpan.FromSeconds(3), ct);
         Assert.NotNull(ack);
 
         var response = await recovered.Ask<ForecastResponse>(
-            new GetForecast("zurich", "gfs"), TimeSpan.FromSeconds(3));
+            new GetForecast("zurich", "gfs"), TimeSpan.FromSeconds(3), ct);
         Assert.NotNull(response.Forecast);
         Assert.Equal("gfs", response.Forecast.Model.Id);
     }
@@ -78,8 +81,9 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
     [Fact(Timeout = 5000)]
     public async Task Snapshot_load_failure_during_recovery_kills_actor()
     {
+        var ct = TestContext.Current.CancellationToken;
         var actor = CreateActor();
-        await FillToSnapshotThreshold(actor);
+        await FillToSnapshotThreshold(actor, ct: ct);
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
 
         await WithSnapshotLoad(load => load.Fail(), async () =>

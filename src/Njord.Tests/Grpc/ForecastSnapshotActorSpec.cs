@@ -31,13 +31,14 @@ public sealed class ForecastSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 5000)]
     public async Task Update_and_retrieve_a_forecast()
     {
+        var ct = TestContext.Current.CancellationToken;
         var actor = CreateActor();
         var forecast = CreateForecast();
 
-        var ack = await actor.Ask<Ack>(new UpdateForecast("lucerne", forecast.Model, forecast));
+        var ack = await actor.Ask<Ack>(new UpdateForecast("lucerne", forecast.Model, forecast), ct);
         Assert.NotNull(ack);
 
-        var response = await actor.Ask<ForecastResponse>(new GetForecast("lucerne", "icon_d2"));
+        var response = await actor.Ask<ForecastResponse>(new GetForecast("lucerne", "icon_d2"), ct);
         Assert.NotNull(response.Forecast);
         Assert.Equal("icon_d2", response.Forecast.Model.Id);
     }
@@ -47,58 +48,62 @@ public sealed class ForecastSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var actor = CreateActor();
 
-        var response = await actor.Ask<ForecastResponse>(new GetForecast("lucerne", "unknown"));
+        var response = await actor.Ask<ForecastResponse>(new GetForecast("lucerne", "unknown"), TestContext.Current.CancellationToken);
         Assert.Null(response.Forecast);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Overwrite_replaces_previous()
     {
+        var ct = TestContext.Current.CancellationToken;
         var actor = CreateActor();
         var forecast1 = CreateForecast();
         var forecast2 = CreateForecast();
 
-        await actor.Ask<Ack>(new UpdateForecast("lucerne", forecast1.Model, forecast1));
-        await actor.Ask<Ack>(new UpdateForecast("lucerne", forecast2.Model, forecast2));
+        await actor.Ask<Ack>(new UpdateForecast("lucerne", forecast1.Model, forecast1), ct);
+        await actor.Ask<Ack>(new UpdateForecast("lucerne", forecast2.Model, forecast2), ct);
 
-        var response = await actor.Ask<ForecastResponse>(new GetForecast("lucerne", "icon_d2"));
+        var response = await actor.Ask<ForecastResponse>(new GetForecast("lucerne", "icon_d2"), ct);
         Assert.NotNull(response.Forecast);
     }
 
     [Fact(Timeout = 5000)]
     public async Task GetAllForecasts_returns_all()
     {
+        var ct = TestContext.Current.CancellationToken;
         var actor = CreateActor();
-        await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel("icon_d2"), CreateForecast("icon_d2")));
-        await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel("ecmwf"), CreateForecast("ecmwf")));
+        await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel("icon_d2"), CreateForecast("icon_d2")), ct);
+        await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel("ecmwf"), CreateForecast("ecmwf")), ct);
 
-        var response = await actor.Ask<AllForecastsResponse>(new GetAllForecasts());
+        var response = await actor.Ask<AllForecastsResponse>(new GetAllForecasts(), ct);
         Assert.Equal(2, response.Forecasts.Count);
     }
 
     [Fact(Timeout = 5000)]
     public async Task State_available_before_snapshot_threshold()
     {
+        var ct = TestContext.Current.CancellationToken;
         var actor = CreateActor();
         var forecast = CreateForecast();
-        await actor.Ask<Ack>(new UpdateForecast("lucerne", forecast.Model, forecast));
+        await actor.Ask<Ack>(new UpdateForecast("lucerne", forecast.Model, forecast), ct);
 
-        var response = await actor.Ask<ForecastResponse>(new GetForecast("lucerne", "icon_d2"));
+        var response = await actor.Ask<ForecastResponse>(new GetForecast("lucerne", "icon_d2"), ct);
         Assert.NotNull(response.Forecast);
     }
 
     [Fact(Timeout = 5000)]
     public async Task State_survives_after_snapshot_threshold_reached()
     {
+        var ct = TestContext.Current.CancellationToken;
         var actor = CreateActor();
 
         for (var i = 0; i < 20; i++)
         {
             var model = $"model_{i}";
-            await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel(model), CreateForecast(model)));
+            await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel(model), CreateForecast(model)), ct);
         }
 
-        var response = await actor.Ask<AllForecastsResponse>(new GetAllForecasts());
+        var response = await actor.Ask<AllForecastsResponse>(new GetAllForecasts(), ct);
         Assert.Equal(20, response.Forecasts.Count);
     }
 }

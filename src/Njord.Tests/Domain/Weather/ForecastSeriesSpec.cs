@@ -24,7 +24,7 @@ public sealed class ForecastSeriesSpec
         return new ForecastPoint(validAt, values);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Unordered_points_are_normalized_to_ascending_valid_at()
     {
         var series = new ForecastSeries([
@@ -36,7 +36,7 @@ public sealed class ForecastSeriesSpec
         Assert.Equal([T0, T0.AddHours(3), T0.AddHours(6)], series.Points.Select(p => p.ValidAt));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void A_point_with_a_missing_parameter_is_retained()
     {
         var point = Point(T0, temp: 19.5, dew: null);
@@ -48,7 +48,7 @@ public sealed class ForecastSeriesSpec
         Assert.Null(series.Points[0].Get(Dewpoint));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void All_parameters_in_values_are_readable_through_the_accessor()
     {
         var values = new Dictionary<ParameterDef, double?> { [Temperature] = 18.5, [Dewpoint] = 12.3 };

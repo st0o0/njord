@@ -5,7 +5,7 @@ namespace Njord.Tests.Diagnostics;
 
 public sealed class IngestMetricsExtensionsSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddFetchTotal_creates_counter_with_correct_name_and_unit()
     {
         var counter = NjordMetrics.Instance.AddFetchTotal();
@@ -14,7 +14,7 @@ public sealed class IngestMetricsExtensionsSpec
         Assert.Equal("{request}", counter.Unit);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddFetchDuration_creates_histogram_with_correct_name_and_unit()
     {
         var histogram = NjordMetrics.Instance.AddFetchDuration();
@@ -23,7 +23,7 @@ public sealed class IngestMetricsExtensionsSpec
         Assert.Equal("s", histogram.Unit);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FetchTotal_records_with_labels()
     {
         var counter = NjordMetrics.Instance.AddFetchTotal();
@@ -48,7 +48,7 @@ public sealed class IngestMetricsExtensionsSpec
         Assert.Contains(recordedTags, t => t is { Key: "outcome", Value: "success" });
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FetchDuration_records_value()
     {
         var histogram = NjordMetrics.Instance.AddFetchDuration();

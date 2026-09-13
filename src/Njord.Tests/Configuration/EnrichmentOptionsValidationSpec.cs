@@ -9,7 +9,7 @@ public sealed class EnrichmentOptionsValidationSpec
 
     // --- ConsensusOptionsValidator ---
 
-    [Theory(Timeout = 5000)]
+    [Theory]
     [InlineData("Mean")]
     [InlineData("Median")]
     [InlineData("TrimmedMean")]
@@ -21,7 +21,7 @@ public sealed class EnrichmentOptionsValidationSpec
         Assert.True(result.Succeeded);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void consensus_invalid_method_rejected()
     {
         var opts = Default();
@@ -31,7 +31,7 @@ public sealed class EnrichmentOptionsValidationSpec
         Assert.Contains("InvalidMethod", result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void consensus_trimmed_mean_with_valid_trim_percent_accepted()
     {
         var opts = Default();
@@ -41,7 +41,7 @@ public sealed class EnrichmentOptionsValidationSpec
         Assert.True(result.Succeeded);
     }
 
-    [Theory(Timeout = 5000)]
+    [Theory]
     [InlineData(0.0)]
     [InlineData(0.5)]
     [InlineData(0.6)]
@@ -56,7 +56,7 @@ public sealed class EnrichmentOptionsValidationSpec
         Assert.Contains("TrimPercent", result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void consensus_non_trimmed_mean_ignores_trim_percent()
     {
         var opts = Default();
@@ -68,14 +68,14 @@ public sealed class EnrichmentOptionsValidationSpec
 
     // --- HistoryOptionsValidator ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void history_valid_options_accepted()
     {
         var result = new HistoryOptionsValidator().Validate(null, Default());
         Assert.True(result.Succeeded);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void history_zero_snapshot_interval_rejected()
     {
         var opts = Default();
@@ -85,7 +85,7 @@ public sealed class EnrichmentOptionsValidationSpec
         Assert.Contains("SnapshotInterval", result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void history_negative_retention_days_rejected()
     {
         var opts = Default();
@@ -95,7 +95,7 @@ public sealed class EnrichmentOptionsValidationSpec
         Assert.Contains("RetentionDays", result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void history_zero_min_sample_size_rejected()
     {
         var opts = Default();

@@ -23,7 +23,7 @@ public sealed class ForecastDataHashSpec
         new(new WeatherModel("icon_d2"), "lucerne", new CycleId(Now),
             new ForecastSeries(points), DailyForecastSeries.Empty);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Same_data_produces_same_hash()
     {
         var points = new[]
@@ -36,7 +36,7 @@ public sealed class ForecastDataHashSpec
         Assert.Equal(a, b);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Different_values_produce_different_hash()
     {
         var a = ForecastDataHash.Compute(Forecast([
@@ -48,7 +48,7 @@ public sealed class ForecastDataHashSpec
         Assert.NotEqual(a, b);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Timestamp_only_change_produces_same_hash()
     {
         var a = ForecastDataHash.Compute(
@@ -62,7 +62,7 @@ public sealed class ForecastDataHashSpec
         Assert.Equal(a, b);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Cutoff_excludes_todays_points()
     {
         var todayPoint = HourlyPoint(Now.AddHours(1), 99.0, 99);
@@ -74,7 +74,7 @@ public sealed class ForecastDataHashSpec
         Assert.Equal(withToday, withoutToday);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Null_values_are_hashed_consistently()
     {
         var pointWithNull = new ForecastPoint(Tomorrow, new Dictionary<ParameterDef, double?>
@@ -87,7 +87,7 @@ public sealed class ForecastDataHashSpec
         Assert.Equal(a, b);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Null_value_differs_from_zero_value()
     {
         var withNull = new ForecastPoint(Tomorrow, new Dictionary<ParameterDef, double?>

@@ -52,7 +52,7 @@ public sealed class EnrichmentResultSerializationSpec
         ["lucerne|consensus"] = new ConsensusResult([], [], new DateTimeOffset(2026, 7, 15, 6, 0, 0, TimeSpan.Zero)),
     };
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public Task All_enrichment_results_produce_stable_wire_format()
     {
         var state = BuildState();
@@ -61,7 +61,7 @@ public sealed class EnrichmentResultSerializationSpec
         return Verify(json);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void All_enrichment_results_round_trip_through_nested_json()
     {
         var state = BuildState();
@@ -111,7 +111,7 @@ public sealed class EnrichmentResultSerializationSpec
         Assert.Equal(new DateTimeOffset(2026, 7, 15, 6, 0, 0, TimeSpan.Zero), consensus.ComputedAt);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ConsensusResult_ComputedAt_round_trips_through_persistence()
     {
         var computedAt = new DateTimeOffset(2026, 7, 31, 6, 0, 0, TimeSpan.Zero);
@@ -129,7 +129,7 @@ public sealed class EnrichmentResultSerializationSpec
         Assert.Equal(computedAt, consensus.ComputedAt);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ConsensusResult_without_ComputedAt_in_json_recovers_as_null()
     {
         var legacyJson = """{"v":1,"enrichments":{"lucerne|consensus":{"type":"ConsensusResult","json":"{\"parameters\":[],\"dailyParameters\":[]}"}}}""";

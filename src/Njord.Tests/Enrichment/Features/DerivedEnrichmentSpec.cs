@@ -49,7 +49,7 @@ public sealed class DerivedEnrichmentSpec
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Snapshot_with_temperature_data_produces_derived_values()
     {
         var feature = CreateFeature();
@@ -65,7 +65,7 @@ public sealed class DerivedEnrichmentSpec
         Assert.NotNull(enrichment.Result);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Empty_snapshot_produces_event_with_empty_result()
     {
         var feature = CreateFeature();

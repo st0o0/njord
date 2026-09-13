@@ -18,7 +18,7 @@ public sealed class PersistenceOptionsValidationSpec
 
     private static readonly NjordOptionsValidator Validator = new();
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Sqlite_default_without_connection_string_passes()
     {
         var options = ValidOptions();
@@ -28,7 +28,7 @@ public sealed class PersistenceOptionsValidationSpec
         Assert.True(result.Succeeded, result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Sqlite_with_explicit_connection_string_passes()
     {
         var options = ValidOptions();
@@ -43,7 +43,7 @@ public sealed class PersistenceOptionsValidationSpec
         Assert.True(result.Succeeded, result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void PostgreSql_with_connection_string_passes()
     {
         var options = ValidOptions();
@@ -58,7 +58,7 @@ public sealed class PersistenceOptionsValidationSpec
         Assert.True(result.Succeeded, result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void PostgreSql_without_connection_string_fails()
     {
         var options = ValidOptions();

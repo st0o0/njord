@@ -11,19 +11,19 @@ public sealed class ModelSnapshotSpec
     private static ModelForecast Forecast(string location, WeatherModel model, CycleId cycle)
         => new(model, location, cycle, new ForecastSeries([]), DailyForecastSeries.Empty);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Empty_snapshot_has_no_entries()
     {
         Assert.Empty(ModelSnapshot.Empty.Entries);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Empty_snapshot_has_changed_false()
     {
         Assert.False(ModelSnapshot.Empty.HasChanged);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void First_update_adds_entry_and_sets_has_changed()
     {
         var cycle = new CycleId(T0);
@@ -33,7 +33,7 @@ public sealed class ModelSnapshotSpec
         Assert.True(snapshot.HasChanged);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Update_replaces_existing_entry_on_new_cycle()
     {
         var cycle1 = new CycleId(T0);
@@ -48,7 +48,7 @@ public sealed class ModelSnapshotSpec
         Assert.True(snapshot.HasChanged);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Identical_cycle_does_not_set_has_changed()
     {
         var cycle = new CycleId(T0);
@@ -59,7 +59,7 @@ public sealed class ModelSnapshotSpec
         Assert.False(snapshot.HasChanged);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Different_models_coexist()
     {
         var cycle = new CycleId(T0);
@@ -70,7 +70,7 @@ public sealed class ModelSnapshotSpec
         Assert.Equal(2, snapshot.Entries.Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Original_snapshot_is_unchanged_after_update()
     {
         var cycle = new CycleId(T0);
@@ -80,7 +80,7 @@ public sealed class ModelSnapshotSpec
         Assert.Empty(original.Entries);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Models_for_returns_models_at_location()
     {
         var cycle = new CycleId(T0);
@@ -99,7 +99,7 @@ public sealed class ModelSnapshotSpec
         Assert.Contains(IconD2, zurichModels);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Models_for_unknown_location_returns_empty()
     {
         Assert.Empty(ModelSnapshot.Empty.ModelsFor("unknown"));

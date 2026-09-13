@@ -47,8 +47,8 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
 
         CreateModelStateActor();
 
-        await egressProbe.ExpectMsgAsync<RequestEgressSink>();
-        await pipelineProbe.ExpectMsgAsync<RequestPipelineSource>();
+        await egressProbe.ExpectMsgAsync<RequestEgressSink>(cancellationToken: TestContext.Current.CancellationToken);
+        await pipelineProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 15000)]
@@ -67,8 +67,8 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
 
         CreateModelStateActor();
 
-        var msg1 = await eventProbe.ExpectMsgAsync<EgressEvent>();
-        var msg2 = await eventProbe.ExpectMsgAsync<EgressEvent>();
+        var msg1 = await eventProbe.ExpectMsgAsync<EgressEvent>(cancellationToken: TestContext.Current.CancellationToken);
+        var msg2 = await eventProbe.ExpectMsgAsync<EgressEvent>(cancellationToken: TestContext.Current.CancellationToken);
         var events = new[] { msg1, msg2 };
 
         var capEvent = events.OfType<EgressEvent.CapabilityLearned>().Single();
@@ -99,7 +99,7 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
 
         var events = new List<EgressEvent>();
         for (var i = 0; i < 3; i++)
-            events.Add(await eventProbe.ExpectMsgAsync<EgressEvent>());
+            events.Add(await eventProbe.ExpectMsgAsync<EgressEvent>(cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Single(events.OfType<EgressEvent.CapabilityLearned>());
     }
@@ -123,7 +123,7 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
 
         var events = new List<EgressEvent>();
         for (var i = 0; i < 4; i++)
-            events.Add(await eventProbe.ExpectMsgAsync<EgressEvent>());
+            events.Add(await eventProbe.ExpectMsgAsync<EgressEvent>(cancellationToken: TestContext.Current.CancellationToken));
 
         var capEvents = events.OfType<EgressEvent.CapabilityLearned>()
             .OrderBy(m => m.SupportedParameters.Count).ToList();
@@ -147,7 +147,7 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
 
         CreateModelStateActor();
 
-        var cap = (EgressEvent.CapabilityLearned)await eventProbe.FishForMessageAsync(msg => msg is EgressEvent.CapabilityLearned);
+        var cap = (EgressEvent.CapabilityLearned)await eventProbe.FishForMessageAsync(msg => msg is EgressEvent.CapabilityLearned, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Contains(3, cap.ApplicableHorizons);
         Assert.Contains(24, cap.ApplicableHorizons);
         Assert.Contains(48, cap.ApplicableHorizons);

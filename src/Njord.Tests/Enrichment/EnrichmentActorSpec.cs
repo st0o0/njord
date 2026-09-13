@@ -50,9 +50,9 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
             features)));
     }
 
-    private async Task AssertActorAlive(IActorRef actor)
+    private async Task AssertActorAlive(IActorRef actor, CancellationToken cancellationToken)
     {
-        var identity = await actor.Ask<ActorIdentity>(new Identify(42), TimeSpan.FromSeconds(3));
+        var identity = await actor.Ask<ActorIdentity>(new Identify(42), TimeSpan.FromSeconds(3), cancellationToken);
         Assert.Equal(42, identity.MessageId);
     }
 
@@ -61,7 +61,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var actor = CreateEnrichmentActor();
 
-        await AssertActorAlive(actor);
+        await AssertActorAlive(actor, TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 5000)]
@@ -70,7 +70,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         var enrichment = new EnrichmentOptions { Consensus = new ConsensusOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await AssertActorAlive(actor);
+        await AssertActorAlive(actor, TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 5000)]
@@ -79,7 +79,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         var enrichment = new EnrichmentOptions { Derived = new DerivedOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await AssertActorAlive(actor);
+        await AssertActorAlive(actor, TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 5000)]
@@ -93,7 +93,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await AssertActorAlive(actor);
+        await AssertActorAlive(actor, TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 5000)]
@@ -102,7 +102,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         var enrichment = new EnrichmentOptions { Trends = new TrendOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await AssertActorAlive(actor);
+        await AssertActorAlive(actor, TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 5000)]
@@ -111,7 +111,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         var enrichment = new EnrichmentOptions { History = new HistoryOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await AssertActorAlive(actor);
+        await AssertActorAlive(actor, TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 5000)]
@@ -120,7 +120,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         var enrichment = new EnrichmentOptions { Indices = new IndexOptions { Enabled = false } };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await AssertActorAlive(actor);
+        await AssertActorAlive(actor, TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 5000)]
@@ -129,7 +129,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         var enrichment = new EnrichmentOptions { Trends = new TrendOptions { Enabled = true } };
         var actor = CreateEnrichmentActor(enrichment);
 
-        await AssertActorAlive(actor);
+        await AssertActorAlive(actor, TestContext.Current.CancellationToken);
     }
 
     private sealed class FakePipelineSource : ReceiveActor

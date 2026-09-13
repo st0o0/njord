@@ -4,7 +4,7 @@ namespace Njord.Tests.Domain.Sensors;
 
 public sealed class SensorSnapshotSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void get_returns_value_for_existing_kind()
     {
         var snapshot = new SensorSnapshot("Luzern", new Dictionary<SensorKind, AggregatedReading>
@@ -15,7 +15,7 @@ public sealed class SensorSnapshotSpec
         Assert.Equal(22.5, snapshot.Get(SensorKind.IndoorTemperature));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void get_returns_null_for_missing_kind()
     {
         var snapshot = new SensorSnapshot("Luzern", new Dictionary<SensorKind, AggregatedReading>());
@@ -23,7 +23,7 @@ public sealed class SensorSnapshotSpec
         Assert.Null(snapshot.Get(SensorKind.IndoorHumidity));
     }
 
-    [Theory(Timeout = 5000)]
+    [Theory]
     [InlineData(SensorKind.IndoorTemperature, 23.5, true)]
     [InlineData(SensorKind.IndoorTemperature, -10.0, true)]
     [InlineData(SensorKind.IndoorTemperature, 60.0, true)]
@@ -38,7 +38,7 @@ public sealed class SensorSnapshotSpec
         Assert.Equal(expected, metadata.IsPlausible(value));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void all_sensor_kinds_have_metadata()
     {
         foreach (var kind in Enum.GetValues<SensorKind>())

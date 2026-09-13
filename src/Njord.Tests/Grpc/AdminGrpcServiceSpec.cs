@@ -9,7 +9,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
 {
     private readonly string _tempDir = Path.Combine(Path.GetTempPath(), $"njord-test-{Guid.NewGuid():N}");
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task GetConfig_returns_current_configuration()
     {
         var service = CreateService();
@@ -27,7 +27,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Equal(3600, config.PollIntervalSeconds);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task SetLocations_replaces_all_locations()
     {
         var service = CreateService();
@@ -51,7 +51,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Equal(new[] { "icon_d2", "gfs_seamless" }, bern.Models);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task SetLocations_rejects_empty_list()
     {
         var service = CreateService();
@@ -63,7 +63,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Null(response.Config);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task SetSettings_applies_partial_update()
     {
         var service = CreateService();
@@ -80,7 +80,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Single(response.Config.Locations);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task SetSettings_rejects_poll_interval_below_minimum()
     {
         var service = CreateService();
@@ -93,7 +93,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Equal("Poll interval must be at least 60 seconds", response.RejectionReason);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task SetBudget_sets_override()
     {
         var service = CreateService();
@@ -109,7 +109,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Equal(500_000, response.BudgetProjection.MonthlyLimit);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task SetBudget_clears_override_when_empty()
     {
         var options = DefaultOptions();

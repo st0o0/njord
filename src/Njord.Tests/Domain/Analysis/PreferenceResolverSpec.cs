@@ -7,7 +7,7 @@ public sealed class PreferenceResolverSpec
 {
     private static IndexOptions DefaultOptions() => new();
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Default_options_resolve_to_default_preferences()
     {
         var resolved = PreferenceResolver.Resolve(DefaultOptions(), ["Lucerne"]);
@@ -16,7 +16,7 @@ public sealed class PreferenceResolverSpec
         Assert.Equal(ResolvedPreferences.Default, prefs);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Global_preferences_override_hardcoded_defaults()
     {
         var options = new IndexOptions
@@ -31,7 +31,7 @@ public sealed class PreferenceResolverSpec
         Assert.Equal(1.0, prefs.HeatSensitivity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Score_override_beats_global_preference()
     {
         var options = new IndexOptions
@@ -49,7 +49,7 @@ public sealed class PreferenceResolverSpec
         Assert.Equal(1.0, resolved[("Lucerne", "Running")].HeatSensitivity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Location_global_preference_beats_score_override()
     {
         var options = new IndexOptions
@@ -73,7 +73,7 @@ public sealed class PreferenceResolverSpec
         Assert.Equal(0.5, resolved[("Lucerne", "Outdoor")].HeatSensitivity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Location_score_override_wins_over_all()
     {
         var options = new IndexOptions
@@ -102,7 +102,7 @@ public sealed class PreferenceResolverSpec
         Assert.Equal(2.0, resolved[("Lucerne", "Outdoor")].HeatSensitivity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Unset_properties_fall_through_cascade()
     {
         var options = new IndexOptions
@@ -128,7 +128,7 @@ public sealed class PreferenceResolverSpec
         Assert.Equal(0.8, prefs.WindSensitivity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Location_matching_is_case_insensitive()
     {
         var options = new IndexOptions
@@ -148,7 +148,7 @@ public sealed class PreferenceResolverSpec
         Assert.Equal(25.0, resolved[("Lucerne", "Outdoor")].IdealTemp);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Sensitivity_is_clamped_to_range()
     {
         var options = new IndexOptions
@@ -163,7 +163,7 @@ public sealed class PreferenceResolverSpec
         Assert.Equal(0.0, prefs.WindSensitivity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void NightVentilation_key_resolves_preferences()
     {
         var options = new IndexOptions
@@ -179,14 +179,14 @@ public sealed class PreferenceResolverSpec
         Assert.Equal(1.5, resolved[("Lucerne", "NightVentilation")].HumiditySensitivity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ScoreNames_does_not_contain_Ventilation()
     {
         Assert.DoesNotContain("Ventilation", PreferenceResolver.ScoreNames);
         Assert.Contains("NightVentilation", PreferenceResolver.ScoreNames);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Multiple_locations_resolve_independently()
     {
         var options = new IndexOptions

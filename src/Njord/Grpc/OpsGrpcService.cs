@@ -15,7 +15,7 @@ public sealed class OpsGrpcService(
     IOptionsMonitor<NjordOptions> optionsMonitor,
     ActorRegistry actorRegistry,
     TimeProvider timeProvider,
-    ILogger<OpsGrpcService> logger) : V2.OpsService.OpsServiceBase
+    ILogger<OpsGrpcService> logger) : OpsService.OpsServiceBase
 {
     private static readonly string Version =
         typeof(OpsGrpcService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()

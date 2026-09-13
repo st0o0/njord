@@ -5,7 +5,7 @@ namespace Njord.Tests.Diagnostics;
 
 public sealed class EnrichmentMetricsExtensionsSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddEnrichmentDuration_creates_histogram()
     {
         var histogram = NjordMetrics.Instance.AddEnrichmentDuration();
@@ -14,7 +14,7 @@ public sealed class EnrichmentMetricsExtensionsSpec
         Assert.Equal("s", histogram.Unit);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddConsensusModels_creates_gauge()
     {
         var gauge = NjordMetrics.Instance.AddConsensusModels();
@@ -22,7 +22,7 @@ public sealed class EnrichmentMetricsExtensionsSpec
         Assert.Equal("njord_consensus_models", gauge.Name);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddConsensusSpread_creates_gauge_with_celsius_unit()
     {
         var gauge = NjordMetrics.Instance.AddConsensusSpread();
@@ -31,7 +31,7 @@ public sealed class EnrichmentMetricsExtensionsSpec
         Assert.Equal("Cel", gauge.Unit);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddHistoryMae_creates_gauge_with_celsius_unit()
     {
         var gauge = NjordMetrics.Instance.AddHistoryMae();
@@ -40,7 +40,7 @@ public sealed class EnrichmentMetricsExtensionsSpec
         Assert.Equal("Cel", gauge.Unit);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddHistoryModelWeight_creates_gauge()
     {
         var gauge = NjordMetrics.Instance.AddHistoryModelWeight();

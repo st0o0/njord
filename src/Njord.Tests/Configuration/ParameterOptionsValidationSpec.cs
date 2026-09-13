@@ -13,7 +13,7 @@ public sealed class ParameterOptionsValidationSpec
         Mqtt = new MqttOptions { Host = "broker.local" },
     };
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Unknown_group_is_rejected()
     {
         var options = ValidOptions();
@@ -25,7 +25,7 @@ public sealed class ParameterOptionsValidationSpec
         Assert.Contains("Unknown parameter group", result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Unknown_extra_variable_is_rejected()
     {
         var options = ValidOptions();
@@ -37,7 +37,7 @@ public sealed class ParameterOptionsValidationSpec
         Assert.Contains("Unknown parameter in Extra", result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Default_weather_group_passes_validation()
     {
         var options = ValidOptions();
@@ -47,7 +47,7 @@ public sealed class ParameterOptionsValidationSpec
         Assert.True(result.Succeeded, result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Budget_projection_accounts_for_call_weight()
     {
         var options = ValidOptions();
@@ -59,7 +59,7 @@ public sealed class ParameterOptionsValidationSpec
         Assert.Contains("weight", result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void All_groups_enabled_still_passes_on_default_budget()
     {
         var options = ValidOptions();

@@ -6,7 +6,7 @@ public sealed class CycleIdSpec
 {
     private static readonly DateTimeOffset Ts = new(2026, 7, 12, 14, 30, 0, TimeSpan.Zero);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Timestamp_is_preserved()
     {
         var cycle = new CycleId(Ts);
@@ -14,7 +14,7 @@ public sealed class CycleIdSpec
         Assert.Equal(Ts, cycle.Timestamp);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Equal_timestamps_produce_equal_cycle_ids()
     {
         var a = new CycleId(Ts);
@@ -24,7 +24,7 @@ public sealed class CycleIdSpec
         Assert.True(a == b);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Different_timestamps_produce_different_cycle_ids()
     {
         var a = new CycleId(Ts);
@@ -33,7 +33,7 @@ public sealed class CycleIdSpec
         Assert.NotEqual(a, b);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ToString_returns_round_trip_format()
     {
         var cycle = new CycleId(Ts);

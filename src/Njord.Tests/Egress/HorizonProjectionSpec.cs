@@ -30,7 +30,7 @@ public sealed class HorizonProjectionSpec
             new ForecastSeries(points), daily);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Returns_one_entry_per_horizon_plus_one_per_forecast_day()
     {
         var forecast = CreateForecast();
@@ -44,7 +44,7 @@ public sealed class HorizonProjectionSpec
         Assert.True(result.ContainsKey("d1"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Horizon_entries_contain_valid_json_with_parameter_keys()
     {
         var forecast = CreateForecast();
@@ -55,7 +55,7 @@ public sealed class HorizonProjectionSpec
         Assert.NotNull(h3["temperature"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Missing_horizon_data_point_is_omitted()
     {
         var forecast = CreateForecast(hourlyPoints: 2);
@@ -65,7 +65,7 @@ public sealed class HorizonProjectionSpec
         Assert.False(result.ContainsKey("h24"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Short_range_model_excludes_far_horizons()
     {
         var forecast = CreateForecast();
@@ -77,7 +77,7 @@ public sealed class HorizonProjectionSpec
         Assert.False(result.ContainsKey("h72"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Long_range_model_includes_all_horizons()
     {
         var forecast = CreateForecast();
@@ -87,7 +87,7 @@ public sealed class HorizonProjectionSpec
         Assert.Equal(Horizons.Count + ForecastDays, result.Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Unknown_model_with_null_max_includes_all_horizons()
     {
         var forecast = CreateForecast();
@@ -97,7 +97,7 @@ public sealed class HorizonProjectionSpec
         Assert.Equal(Horizons.Count + ForecastDays, result.Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Null_parameter_keys_are_omitted_from_json()
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
@@ -116,7 +116,7 @@ public sealed class HorizonProjectionSpec
         Assert.Null(json["wind_speed"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void All_null_horizon_is_excluded_entirely()
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
@@ -132,7 +132,7 @@ public sealed class HorizonProjectionSpec
         Assert.False(result.ContainsKey("h3"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Horizon_clamping_also_limits_daily_day_offsets()
     {
         var forecast = CreateForecast();

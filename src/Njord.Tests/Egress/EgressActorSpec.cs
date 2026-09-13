@@ -17,7 +17,7 @@ public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var egress = Sys.ActorOf(Props.Create<EgressActor>());
 
-        var response = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(), TimeSpan.FromSeconds(2));
+        var response = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.NotNull(response.SinkRef);
     }
@@ -27,7 +27,7 @@ public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var egress = Sys.ActorOf(Props.Create<EgressActor>());
 
-        var response = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(), TimeSpan.FromSeconds(2));
+        var response = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.NotNull(response.SourceRef);
     }
@@ -38,8 +38,8 @@ public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
         var mat = Sys.Materializer();
         var egress = Sys.ActorOf(Props.Create<EgressActor>());
 
-        var sinkResponse = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(), TimeSpan.FromSeconds(2));
-        var sourceResponse = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(), TimeSpan.FromSeconds(2));
+        var sinkResponse = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var sourceResponse = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var received = new List<EgressEvent>();
         var completionSource = new TaskCompletionSource();
@@ -53,14 +53,14 @@ public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
         Source.Single((EgressEvent)testEvent)
             .RunWith(sinkResponse.SinkRef.Sink, mat);
 
-        await completionSource.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        await completionSource.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Single(received);
         Assert.IsType<EgressEvent.EnrichmentUpdate>(received[0]);
         Assert.Equal("lucerne", ((EgressEvent.EnrichmentUpdate)received[0]).Location);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void All_egress_event_variants_are_pattern_matchable()
     {
         var events = new EgressEvent[]

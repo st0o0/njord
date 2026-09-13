@@ -7,7 +7,7 @@ public sealed class DailyForecastPointSpec
     private static readonly ParameterDef TempMax = ParameterRegistry.GetByApiName("temperature_2m_max")!;
     private static readonly ParameterDef Sunrise = ParameterRegistry.GetByApiName("sunrise")!;
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetNumeric_returns_value_for_numeric_parameter()
     {
         var point = new DailyForecastPoint(
@@ -18,7 +18,7 @@ public sealed class DailyForecastPointSpec
         Assert.Equal(28.5, point.GetNumeric(TempMax));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetMeta_returns_value_for_time_string_parameter()
     {
         var point = new DailyForecastPoint(
@@ -29,7 +29,7 @@ public sealed class DailyForecastPointSpec
         Assert.Equal("05:31", point.GetMeta(Sunrise));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetNumeric_returns_null_for_missing_parameter()
     {
         var point = new DailyForecastPoint(
@@ -40,7 +40,7 @@ public sealed class DailyForecastPointSpec
         Assert.Null(point.GetNumeric(TempMax));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetMeta_returns_null_for_missing_parameter()
     {
         var point = new DailyForecastPoint(

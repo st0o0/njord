@@ -4,7 +4,7 @@ namespace Njord.Tests.Configuration;
 
 public sealed class NjordOptionsSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Without_an_override_the_budget_is_the_open_meteo_free_tier()
     {
         var options = new NjordOptions();
@@ -13,7 +13,7 @@ public sealed class NjordOptionsSpec
         Assert.Equal(600, BudgetCalculator.GetEffectiveBudget(options).RequestsPerMinute);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void An_explicit_override_supersedes_the_default()
     {
         var overrideBudget = new RequestBudget(50_000, 60);
@@ -23,7 +23,7 @@ public sealed class NjordOptionsSpec
         Assert.Equal(overrideBudget, BudgetCalculator.GetEffectiveBudget(options));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Mqtt_defaults_are_broker_friendly()
     {
         var options = new NjordOptions();
@@ -34,7 +34,7 @@ public sealed class NjordOptionsSpec
         Assert.Equal("njord", options.Mqtt.BaseTopic);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Horizons_default_to_the_six_step_ladder()
     {
         Assert.Equal([3, 6, 12, 24, 48, 72], new NjordOptions().Horizons);

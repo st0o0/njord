@@ -1,5 +1,5 @@
-using Njord.Domain.Weather;
 using Njord.Domain.Analysis;
+using Njord.Domain.Weather;
 
 namespace Njord.Tests.Domain.Analysis;
 
@@ -11,35 +11,35 @@ public sealed class ConsensusComputerSpec
 
     // --- ComputeMedian ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Median_of_odd_count_returns_middle()
     {
         double?[] values = [19.0, 20.0, 21.0, 22.0, 23.0];
         Assert.Equal(21.0, ConsensusComputer.ComputeMedian(values));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Median_of_even_count_returns_average_of_two_middle()
     {
         double?[] values = [20.0, 21.0, 22.0, 23.0];
         Assert.Equal(21.5, ConsensusComputer.ComputeMedian(values));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Median_skips_nulls()
     {
         double?[] values = [20.0, null, 22.0, null, 21.0, 23.0, 19.0];
         Assert.Equal(21.0, ConsensusComputer.ComputeMedian(values));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Median_all_null_returns_null()
     {
         double?[] values = [null, null, null];
         Assert.Null(ConsensusComputer.ComputeMedian(values));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Median_single_value()
     {
         double?[] values = [42.0];
@@ -48,7 +48,7 @@ public sealed class ConsensusComputerSpec
 
     // --- ComputeTrimmedMean ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Trimmed_mean_10_percent_on_8_values()
     {
         double?[] values = [10, 12, 14, 16, 18, 20, 22, 24];
@@ -57,7 +57,7 @@ public sealed class ConsensusComputerSpec
         Assert.Equal(17.0, result);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Trimmed_mean_20_percent_on_10_values()
     {
         double?[] values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -66,7 +66,7 @@ public sealed class ConsensusComputerSpec
         Assert.Equal(5.5, result);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Trimmed_mean_fewer_than_3_falls_back_to_simple_mean()
     {
         double?[] values = [20.0, 22.0];
@@ -75,14 +75,14 @@ public sealed class ConsensusComputerSpec
 
     // --- ComputeSpread ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Spread_normal()
     {
         double?[] values = [18.0, 22.0, 20.0, null, 25.0];
         Assert.Equal(7.0, ConsensusComputer.ComputeSpread(values));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Spread_single_value_returns_null()
     {
         double?[] values = [20.0];
@@ -91,7 +91,7 @@ public sealed class ConsensusComputerSpec
 
     // --- ComputeIqr ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Iqr_8_values()
     {
         double?[] values = [18, 19, 20, 21, 22, 23, 24, 25];
@@ -100,7 +100,7 @@ public sealed class ConsensusComputerSpec
         Assert.Equal(3.5, result!.Value, 1);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Iqr_fewer_than_4_returns_null()
     {
         double?[] values = [18.0, 20.0, 22.0];
@@ -109,21 +109,21 @@ public sealed class ConsensusComputerSpec
 
     // --- ComputeAgreement ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Agreement_all_within_tolerance()
     {
         double?[] values = [20.0, 20.5, 19.5, 20.2];
         Assert.Equal(1.0, ConsensusComputer.ComputeAgreement(values, 20.1, 1.0));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Agreement_partial()
     {
         double?[] values = [20.0, 25.0, 19.0, 30.0];
         Assert.Equal(0.5, ConsensusComputer.ComputeAgreement(values, 22.5, 3.0));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Agreement_empty_returns_null()
     {
         double?[] values = [null, null];
@@ -132,7 +132,7 @@ public sealed class ConsensusComputerSpec
 
     // --- IdentifyOutlier ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Outlier_clear_deviation()
     {
         var models = new List<(WeatherModel, double?)>
@@ -145,7 +145,7 @@ public sealed class ConsensusComputerSpec
         Assert.Equal(14.0, result.Value.Deviation);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Outlier_all_equal()
     {
         var models = new List<(WeatherModel, double?)>
@@ -159,7 +159,7 @@ public sealed class ConsensusComputerSpec
 
     // --- ComputeConfidenceInterval ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Confidence_interval_p10_p90_on_8_values()
     {
         double?[] values = [18, 19, 20, 21, 22, 23, 24, 25];
@@ -168,7 +168,7 @@ public sealed class ConsensusComputerSpec
         Assert.True(result!.Value.Lower < result.Value.Upper);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Confidence_interval_single_value_returns_null()
     {
         double?[] values = [20.0];
@@ -177,7 +177,7 @@ public sealed class ConsensusComputerSpec
 
     // --- BuildAvailabilityMatrix ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Availability_model_with_data_at_horizon()
     {
         var t0 = new DateTimeOffset(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
@@ -192,7 +192,7 @@ public sealed class ConsensusComputerSpec
         Assert.True(matrix[IconD2]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Availability_model_beyond_horizon()
     {
         var t0 = new DateTimeOffset(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);

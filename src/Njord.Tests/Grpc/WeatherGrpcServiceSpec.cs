@@ -39,13 +39,13 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             enrichmentActor ?? Sys.ActorOf(Props.Create(() => new EmptyEnrichmentActor())), overwrite: true);
 
         return new WeatherGrpcService(
-            Microsoft.Extensions.Options.Options.Create(options),
+            Options.Create(options),
             ActorRegistry,
             Sys,
             timeProvider ?? TimeProvider.System);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task GetCatalog_returns_all_locations_with_resolved_models()
     {
         var service = CreateService();
@@ -65,7 +65,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(["icon_d2", "ecmwf_ifs025"], zurich.Models);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task GetCatalog_deduplicates_model_info_across_locations()
     {
         var options = new NjordOptions
@@ -86,7 +86,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal("icon_d2", response.Models[0].Id);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task GetForecast_returns_forecast_with_timestamps()
     {
         var forecast = CreateForecast();
@@ -108,7 +108,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(28.8, hourly.Temperature);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task GetForecast_throws_not_found_for_unknown_location()
     {
         var service = CreateService();
@@ -121,7 +121,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(StatusCode.NotFound, ex.StatusCode);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task GetEnrichments_WithConsensusResult_without_ComputedAt_falls_back_to_wall_clock()
     {
         var timeProvider = new FakeTimeProvider(Anchor);
@@ -138,7 +138,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(Anchor, response.ConsensusUpdatedAt.ToDateTimeOffset());
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task GetEnrichments_WithConsensusResult_uses_ComputedAt_not_query_time()
     {
         var computationTime = new DateTimeOffset(2026, 7, 15, 6, 0, 0, TimeSpan.Zero);
@@ -157,7 +157,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(computationTime, response.ConsensusUpdatedAt.ToDateTimeOffset());
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task GetEnrichments_WithoutConsensusResult_LeavesConsensusUpdatedAtUnset()
     {
         var service = CreateService();
@@ -184,7 +184,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public EmptyForecastActor()
         {
-            Receive<Njord.Grpc.GetForecast>(_ => Sender.Tell(new ForecastResponse(null), Self));
+            Receive<GetForecast>(_ => Sender.Tell(new ForecastResponse(null), Self));
             Receive<GetAllForecasts>(_ => Sender.Tell(
                 new AllForecastsResponse(new Dictionary<(string, string), ModelForecast>()), Self));
         }
@@ -194,7 +194,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakeForecastActor(ModelForecast forecast)
         {
-            Receive<Njord.Grpc.GetForecast>(_ => Sender.Tell(new ForecastResponse(forecast), Self));
+            Receive<GetForecast>(_ => Sender.Tell(new ForecastResponse(forecast), Self));
         }
     }
 

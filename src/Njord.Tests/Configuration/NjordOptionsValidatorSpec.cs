@@ -18,7 +18,7 @@ public sealed class NjordOptionsValidatorSpec
 
     private static readonly NjordOptionsValidator Validator = new();
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Default_configuration_passes()
     {
         var result = Validator.Validate(null, ValidOptions());
@@ -26,7 +26,7 @@ public sealed class NjordOptionsValidatorSpec
         Assert.True(result.Succeeded, result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void A_projection_above_the_override_budget_guard_is_rejected()
     {
         var options = ValidOptions();
@@ -45,7 +45,7 @@ public sealed class NjordOptionsValidatorSpec
         Assert.Contains("weight", result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Empty_model_list_is_rejected()
     {
         var options = ValidOptions();
@@ -57,7 +57,7 @@ public sealed class NjordOptionsValidatorSpec
         Assert.Contains("model", result.FailureMessage, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Blank_model_entries_are_rejected()
     {
         var options = ValidOptions();
@@ -68,13 +68,13 @@ public sealed class NjordOptionsValidatorSpec
         Assert.True(result.Failed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Poll_interval_defaults_to_sixty_minutes()
     {
         Assert.Equal(TimeSpan.FromMinutes(60), new NjordOptions().PollInterval);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Missing_mqtt_host_is_rejected_when_enabled()
     {
         var options = ValidOptions();
@@ -88,7 +88,7 @@ public sealed class NjordOptionsValidatorSpec
         Assert.Contains("Host", result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Empty_horizons_are_rejected()
     {
         var options = ValidOptions();
@@ -100,7 +100,7 @@ public sealed class NjordOptionsValidatorSpec
         Assert.Contains("horizon", result.FailureMessage, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Non_positive_horizons_are_rejected()
     {
         var options = ValidOptions();
@@ -111,7 +111,7 @@ public sealed class NjordOptionsValidatorSpec
         Assert.True(result.Failed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Horizons_beyond_the_fetch_window_are_rejected()
     {
         var options = ValidOptions();
@@ -123,7 +123,7 @@ public sealed class NjordOptionsValidatorSpec
         Assert.Contains("96", result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Missing_mqtt_host_is_accepted_when_mqtt_is_disabled()
     {
         var options = ValidOptions();
@@ -135,13 +135,13 @@ public sealed class NjordOptionsValidatorSpec
         Assert.True(result.Succeeded, result.FailureMessage);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Mqtt_is_disabled_by_default()
     {
         Assert.False(new MqttOptions().Enabled);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Failure_messages_never_contain_the_mqtt_password()
     {
         var options = ValidOptions();

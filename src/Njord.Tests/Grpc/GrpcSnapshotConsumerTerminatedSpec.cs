@@ -38,23 +38,24 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
     [Fact(Timeout = 10000)]
     public async Task Re_requests_source_after_egress_actor_terminates()
     {
+        var ct = TestContext.Current.CancellationToken;
         var consumer = Sys.ActorOf(Props.Create(() =>
             new GrpcSnapshotConsumerActor()));
 
-        var firstRequest = await _requestProbe.ExpectMsgAsync<RequestEgressSource>();
+        var firstRequest = await _requestProbe.ExpectMsgAsync<RequestEgressSource>(cancellationToken: ct);
         Assert.NotNull(firstRequest);
 
         var oldEgress = ActorRegistry.Get<EgressActor>();
+        Watch(oldEgress);
         await oldEgress.GracefulStop(TimeSpan.FromSeconds(2));
-
-        await Task.Delay(200);
+        await ExpectTerminatedAsync(oldEgress, cancellationToken: ct);
 
         var mat = Sys.Materializer();
         var newEgress = Sys.ActorOf(
             Props.Create(() => new FakeEgressActor(mat, _requestProbe)));
         ActorRegistry.Register<EgressActor>(newEgress, overwrite: true);
 
-        var secondRequest = await _requestProbe.ExpectMsgAsync<RequestEgressSource>(TimeSpan.FromSeconds(5));
+        var secondRequest = await _requestProbe.ExpectMsgAsync<RequestEgressSource>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         Assert.NotNull(secondRequest);
     }
 

@@ -58,7 +58,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 5000)]
     public async Task Scheduler_offers_target_after_receiving_sink_ref()
     {
-        var target = await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        var target = await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("lucerne", target.Location.Name);
         Assert.Equal("icon_d2", target.Model.Id);
     }
@@ -66,78 +66,78 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 5000)]
     public async Task Hash_change_triggers_ack_response()
     {
-        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        var result = await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2));
+        var result = await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.NotNull(result);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Unchanged_hash_also_acks()
     {
-        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2));
-        var result = await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2));
+        await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var result = await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.NotNull(result);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Transport_failure_does_not_crash_and_allows_immediate_repoll()
     {
-        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
         Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.Transport, "test"));
 
         var result = await Scheduler.Ask<TriggerPollResult>(
-            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2));
+            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
-        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Rate_limited_failure_does_not_crash_and_allows_immediate_repoll()
     {
-        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
         Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.RateLimited, "test"));
 
         var result = await Scheduler.Ask<TriggerPollResult>(
-            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2));
+            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Model_unavailable_does_not_crash_and_allows_immediate_repoll()
     {
-        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
         Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.ModelUnavailable, "test"));
 
         var result = await Scheduler.Ask<TriggerPollResult>(
-            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2));
+            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Malformed_payload_does_not_crash_and_allows_immediate_repoll()
     {
-        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
         Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.MalformedPayload, "test"));
 
         var result = await Scheduler.Ask<TriggerPollResult>(
-            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2));
+            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Trigger_immediate_poll_for_all_returns_all_targets()
     {
-        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
         var result = await Scheduler.Ask<TriggerPollResult>(
-            new TriggerImmediatePoll("", ""), TimeSpan.FromSeconds(2));
+            new TriggerImmediatePoll("", ""), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, result.Count);
         Assert.Contains("lucerne/icon_d2", result.Targets);
@@ -146,10 +146,10 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 5000)]
     public async Task Trigger_immediate_poll_for_unknown_location_returns_zero()
     {
-        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
         var result = await Scheduler.Ask<TriggerPollResult>(
-            new TriggerImmediatePoll("nonexistent", ""), TimeSpan.FromSeconds(2));
+            new TriggerImmediatePoll("nonexistent", ""), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.Count);
         Assert.Empty(result.Targets);
@@ -158,12 +158,12 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 5000)]
     public async Task Trigger_immediate_poll_actually_offers_target_to_pipeline()
     {
-        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
         await Scheduler.Ask<TriggerPollResult>(
-            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2));
+            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
-        var latest = await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        var latest = await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("lucerne", latest.Location.Name);
         Assert.Equal("icon_d2", latest.Model.Id);
     }

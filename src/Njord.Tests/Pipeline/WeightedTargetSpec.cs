@@ -10,7 +10,7 @@ public sealed class WeightedTargetSpec
     private static readonly WeatherModel Model = new("icon_d2");
     private static readonly CycleId Cycle = new(new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero));
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Properties_are_accessible()
     {
         var target = new WeightedTarget(Loc, Model, 1, Cycle);
@@ -21,7 +21,7 @@ public sealed class WeightedTargetSpec
         Assert.Equal(Cycle, target.Cycle);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Compute_weight_is_one_for_small_requests()
     {
         var weight = WeightedTarget.ComputeWeight(9, 4);
@@ -29,7 +29,7 @@ public sealed class WeightedTargetSpec
         Assert.Equal(1, weight);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Compute_weight_increases_with_many_variables()
     {
         var weight = WeightedTarget.ComputeWeight(25, 4);

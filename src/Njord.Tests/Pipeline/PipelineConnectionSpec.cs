@@ -7,6 +7,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
@@ -15,7 +16,6 @@ using Njord.Health;
 using Njord.Ingest;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
-using Microsoft.Extensions.Logging;
 using Servus.Akka;
 
 namespace Njord.Tests.Pipeline;
@@ -41,7 +41,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             Props.Create(() => new ProductionLikeSchedulerActor($"sched-{Guid.NewGuid():N}")),
             "scheduler");
 
-        var value = await offered.Task.WaitAsync(TimeSpan.FromSeconds(8));
+        var value = await offered.Task.WaitAsync(TimeSpan.FromSeconds(8), TestContext.Current.CancellationToken);
         Assert.Equal(42, value);
     }
 
@@ -79,8 +79,8 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         for (var i = 0; i < 3; i++)
         {
             var sourceRef = await pipeline.Ask<PipelineSourceResponse>(
-                new Njord.Pipeline.RequestPipelineSource(), TimeSpan.FromSeconds(5));
-            sourceRef.SourceRef.Source.RunWith(Sink.Ignore<FetchOutcome>(), Sys.Materializer());
+                new Njord.Pipeline.RequestPipelineSource(), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            _ = sourceRef.SourceRef.Source.RunWith(Sink.Ignore<FetchOutcome>(), Sys.Materializer());
         }
 
         var scheduler = Sys.ActorOf(
@@ -89,7 +89,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             "real-scheduler");
         ActorRegistry.Register<SchedulerActor>(scheduler, overwrite: true);
 
-        var location = await fetchCalled.Task.WaitAsync(TimeSpan.FromSeconds(8));
+        var location = await fetchCalled.Task.WaitAsync(TimeSpan.FromSeconds(8), TestContext.Current.CancellationToken);
         Assert.Equal("test", location);
     }
 
@@ -130,7 +130,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             "timing-scheduler");
         ActorRegistry.Register<SchedulerActor>(scheduler, overwrite: true);
 
-        await allFetched.Task.WaitAsync(TimeSpan.FromSeconds(8));
+        await allFetched.Task.WaitAsync(TimeSpan.FromSeconds(8), TestContext.Current.CancellationToken);
 
         var timestamps = fetchTimestamps.OrderBy(t => t).ToList();
         Assert.Equal(expectedCount, timestamps.Count);

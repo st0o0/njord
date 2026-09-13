@@ -5,7 +5,7 @@ namespace Njord.Tests.Diagnostics;
 
 public sealed class BudgetMetricsExtensionsSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddBudgetUsedDaily_reads_from_callback()
     {
         long value = 42;
@@ -15,7 +15,7 @@ public sealed class BudgetMetricsExtensionsSpec
         Assert.Equal("{request}", gauge.Unit);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddBudgetLimitMonthly_reads_from_callback()
     {
         long value = 300_000;
@@ -24,7 +24,7 @@ public sealed class BudgetMetricsExtensionsSpec
         Assert.Equal("njord_budget_limit_monthly", gauge.Name);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddThrottleWait_creates_histogram()
     {
         var histogram = NjordMetrics.Instance.AddThrottleWait();

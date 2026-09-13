@@ -53,7 +53,7 @@ public sealed class TimeSliceAggregatorSpec
         return new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Three_full_days_produces_three_slices()
     {
         var now = new DateTimeOffset(2026, 8, 4, 6, 0, 0, TimeSpan.Zero);
@@ -73,7 +73,7 @@ public sealed class TimeSliceAggregatorSpec
         Assert.Equal(2, slices[2].DayOffset);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Daylight_and_nighttime_hours_partitioned_by_is_day()
     {
         var now = new DateTimeOffset(2026, 8, 4, 0, 0, 0, TimeSpan.Zero);
@@ -92,7 +92,7 @@ public sealed class TimeSliceAggregatorSpec
         Assert.Equal(10, d0.NighttimeHoursCount);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Partial_today_has_fewer_hours()
     {
         var now = new DateTimeOffset(2026, 8, 4, 18, 0, 0, TimeSpan.Zero);
@@ -111,7 +111,7 @@ public sealed class TimeSliceAggregatorSpec
         Assert.Equal(4, d0.NighttimeHoursCount);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Midnight_boundary_hour_belongs_to_next_day()
     {
         var now = new DateTimeOffset(2026, 8, 4, 22, 0, 0, TimeSpan.Zero);
@@ -125,7 +125,7 @@ public sealed class TimeSliceAggregatorSpec
         Assert.Equal(2, d0.NighttimeHoursCount + d0.DaylightHoursCount);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Is_day_missing_treats_all_as_daylight()
     {
         var now = new DateTimeOffset(2026, 8, 4, 0, 0, 0, TimeSpan.Zero);
@@ -167,7 +167,7 @@ public sealed class TimeSliceAggregatorSpec
         Assert.Equal(0, d0.NighttimeHoursCount);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Fewer_than_three_days_returns_available_slices_only()
     {
         var now = new DateTimeOffset(2026, 8, 4, 18, 0, 0, TimeSpan.Zero);
@@ -185,7 +185,7 @@ public sealed class TimeSliceAggregatorSpec
         Assert.DoesNotContain(slices, s => s.DayOffset == 2);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Day_means_computed_from_daylight_hours_only()
     {
         var now = new DateTimeOffset(2026, 8, 4, 0, 0, 0, TimeSpan.Zero);
@@ -209,7 +209,7 @@ public sealed class TimeSliceAggregatorSpec
         Assert.True(nightTemp < 13.0);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Empty_consensus_returns_empty_list()
     {
         var now = new DateTimeOffset(2026, 8, 4, 6, 0, 0, TimeSpan.Zero);

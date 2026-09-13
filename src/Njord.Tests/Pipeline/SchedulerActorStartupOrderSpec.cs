@@ -60,7 +60,7 @@ public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKi
     public async Task Scheduler_starts_when_pipeline_registered_after()
     {
         var snapshot = await Scheduler.Ask<PollStatesSnapshot>(
-            new GetPollStates(), TimeSpan.FromSeconds(3));
+            new GetPollStates(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.NotNull(snapshot);
     }
@@ -73,9 +73,9 @@ public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKi
         await AwaitConditionAsync(async () =>
         {
             var snapshot = await scheduler.Ask<PollStatesSnapshot>(
-                new GetPollStates(), TimeSpan.FromSeconds(1));
+                new GetPollStates(), TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
             return snapshot.Entries.Count > 0;
-        }, TimeSpan.FromSeconds(3));
+        }, TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
     }
 
     private sealed class FakePipelineActor : ReceiveActor

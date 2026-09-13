@@ -30,7 +30,7 @@ public sealed class DiscoveryPayloadBuilderSpec
             allParams, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void The_grid_yields_expected_component_count()
     {
         var json = JsonNode.Parse(Build())!;
@@ -39,7 +39,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal(16, json["cmps"]!.AsObject().Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Hourly_components_carry_grid_identity_and_expiry()
     {
         var json = JsonNode.Parse(Build())!;
@@ -53,7 +53,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("{{ value_json.temperature }}", (string?)component["value_template"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Daily_components_use_day_offset_naming()
     {
         var json = JsonNode.Parse(Build())!;
@@ -65,7 +65,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("{{ value_json.temperature_max }}", (string?)component["value_template"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Components_without_device_class_omit_the_field()
     {
         var json = JsonNode.Parse(Build([3]))!;
@@ -75,7 +75,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("%", (string?)component["unit_of_measurement"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Components_are_unavailable_when_the_service_dies_or_the_value_is_null()
     {
         var json = JsonNode.Parse(Build([3]))!;
@@ -88,7 +88,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Contains("value_json.cloud_cover is not none", (string?)availability[1]!["value_template"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Unsupported_parameter_is_excluded_from_components()
     {
         var json = JsonNode.Parse(Build(supported: new HashSet<ParameterDef> { Temperature, TempMax }))!;
@@ -98,7 +98,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.False(cmps.ContainsKey("cloud_cover_h3"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Out_of_range_horizon_is_excluded()
     {
         var json = JsonNode.Parse(Build(horizons: [3, 6]))!;
@@ -109,7 +109,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.False(cmps.ContainsKey("temperature_h72"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Empty_supported_set_produces_device_with_no_components()
     {
         var json = JsonNode.Parse(Build(supported: new HashSet<ParameterDef>()))!;
@@ -118,7 +118,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Empty(cmps);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Forecasts_are_not_measurements()
     {
         var json = JsonNode.Parse(Build())!;
@@ -129,7 +129,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         }
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Consensus_device_id_and_model_name()
     {
         var payload = DiscoveryPayloadBuilder.BuildConsensus(
@@ -141,7 +141,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("consensus", (string?)json["dev"]!["mdl"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Consensus_components_use_consensus_topic()
     {
         var payload = DiscoveryPayloadBuilder.BuildConsensus(
@@ -156,7 +156,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("njord/lucerne/consensus/h3", (string?)availability[1]!["topic"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Consensus_includes_hourly_and_daily_parameters()
     {
         var payload = DiscoveryPayloadBuilder.BuildConsensus(
@@ -167,7 +167,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal(16, json["cmps"]!.AsObject().Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Alert_device_has_14_binary_sensor_components()
     {
         var payload = DiscoveryPayloadBuilder.BuildAlerts(
@@ -179,7 +179,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal(14, json["cmps"]!.AsObject().Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Alert_components_are_binary_sensors_with_value_template()
     {
         var payload = DiscoveryPayloadBuilder.BuildAlerts(
@@ -194,7 +194,7 @@ public sealed class DiscoveryPayloadBuilderSpec
 
     // --- Derived device ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Derived_device_id_and_model_name()
     {
         var payload = DiscoveryPayloadBuilder.BuildDerived(
@@ -206,7 +206,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("derived", (string?)json["dev"]!["mdl"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Derived_device_has_expected_component_count()
     {
         var payload = DiscoveryPayloadBuilder.BuildDerived(
@@ -217,7 +217,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal(27, json["cmps"]!.AsObject().Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Derived_beaufort_component_per_horizon()
     {
         var payload = DiscoveryPayloadBuilder.BuildDerived(
@@ -231,7 +231,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.False(component.AsObject().ContainsKey("device_class"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Derived_wind_chill_has_temperature_device_class()
     {
         var payload = DiscoveryPayloadBuilder.BuildDerived(
@@ -243,7 +243,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("temperature", (string?)component["device_class"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Derived_scalar_inversion_is_binary_sensor()
     {
         var payload = DiscoveryPayloadBuilder.BuildDerived(
@@ -255,7 +255,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("njord_lucerne_derived_inversion", (string?)component["unique_id"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Derived_scalar_sunshine_has_percent_unit()
     {
         var payload = DiscoveryPayloadBuilder.BuildDerived(
@@ -269,7 +269,7 @@ public sealed class DiscoveryPayloadBuilderSpec
 
     // --- Trend device ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Trend_device_id_and_model_name()
     {
         var payload = DiscoveryPayloadBuilder.BuildTrends(
@@ -281,7 +281,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("trends", (string?)json["dev"]!["mdl"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Trend_device_has_expected_component_count()
     {
         var payload = DiscoveryPayloadBuilder.BuildTrends(
@@ -292,7 +292,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal(12, json["cmps"]!.AsObject().Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Trend_direction_sensors_are_text()
     {
         var payload = DiscoveryPayloadBuilder.BuildTrends(
@@ -304,7 +304,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.False(component.AsObject().ContainsKey("unit_of_measurement"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Trend_timing_sensors_have_hour_unit()
     {
         var payload = DiscoveryPayloadBuilder.BuildTrends(
@@ -316,7 +316,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("h", (string?)json["cmps"]!["reliable_hours"]!["unit_of_measurement"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Trend_decay_rate_has_correct_unit()
     {
         var payload = DiscoveryPayloadBuilder.BuildTrends(
@@ -328,7 +328,7 @@ public sealed class DiscoveryPayloadBuilderSpec
 
     // --- Index device ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Index_device_id_and_model_name()
     {
         var payload = DiscoveryPayloadBuilder.BuildIndices(
@@ -340,7 +340,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("indices", (string?)json["dev"]!["mdl"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Index_device_has_expected_component_count()
     {
         var payload = DiscoveryPayloadBuilder.BuildIndices(
@@ -351,7 +351,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal(12, json["cmps"]!.AsObject().Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Index_score_sensors_have_no_unit()
     {
         var payload = DiscoveryPayloadBuilder.BuildIndices(
@@ -362,7 +362,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.False(json["cmps"]!["outdoor"]!.AsObject().ContainsKey("unit_of_measurement"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Index_vpd_category_is_text_sensor()
     {
         var payload = DiscoveryPayloadBuilder.BuildIndices(
@@ -375,7 +375,7 @@ public sealed class DiscoveryPayloadBuilderSpec
 
     // --- History device ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void History_device_id_and_model_name()
     {
         var payload = DiscoveryPayloadBuilder.BuildHistory(
@@ -387,7 +387,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("history", (string?)json["dev"]!["mdl"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void History_device_has_per_model_sensors()
     {
         var payload = DiscoveryPayloadBuilder.BuildHistory(
@@ -400,7 +400,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.True(cmps.ContainsKey("drift_icon_d2"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void History_anomaly_is_binary_sensor()
     {
         var payload = DiscoveryPayloadBuilder.BuildHistory(
@@ -410,7 +410,7 @@ public sealed class DiscoveryPayloadBuilderSpec
         Assert.Equal("binary_sensor", (string?)json["cmps"]!["anomaly"]!["p"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void History_weighted_temperature_has_unit()
     {
         var payload = DiscoveryPayloadBuilder.BuildHistory(

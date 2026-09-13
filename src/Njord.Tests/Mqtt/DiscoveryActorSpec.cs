@@ -75,7 +75,7 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
         var options = DefaultOptions(discoveryEnabled: false);
         CreateDiscoveryActor(options);
 
-        await requestProbe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500));
+        await requestProbe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 15000)]
@@ -91,8 +91,8 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
 
         CreateDiscoveryActor();
 
-        var msg1 = await requestProbe.ExpectMsgAsync<object>();
-        var msg2 = await requestProbe.ExpectMsgAsync<object>();
+        var msg1 = await requestProbe.ExpectMsgAsync<object>(cancellationToken: TestContext.Current.CancellationToken);
+        var msg2 = await requestProbe.ExpectMsgAsync<object>(cancellationToken: TestContext.Current.CancellationToken);
         var received = new[] { msg1, msg2 };
         Assert.Contains(received, m => m is RequestMqttSink);
         Assert.Contains(received, m => m is SubscribeInbound);
@@ -112,11 +112,11 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
 
         var actor = CreateDiscoveryActor();
 
-        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink);
+        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink, cancellationToken: TestContext.Current.CancellationToken);
 
         actor.Tell(new MqttConnected());
 
-        await publishProbe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300));
+        await publishProbe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 15000)]
@@ -133,12 +133,12 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
 
         CreateDiscoveryActor();
 
-        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink);
+        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink, cancellationToken: TestContext.Current.CancellationToken);
         await hub.WaitForQueue();
 
         hub.Emit(CreateCapability());
 
-        var msg = await publishProbe.ExpectMsgAsync<MqttMessage>();
+        var msg = await publishProbe.ExpectMsgAsync<MqttMessage>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(msg.Retain);
     }
 
@@ -159,12 +159,12 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
         options.PollInterval = TimeSpan.FromMilliseconds(500);
         CreateDiscoveryActor(options);
 
-        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink);
+        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink, cancellationToken: TestContext.Current.CancellationToken);
         await hub.WaitForQueue();
 
         hub.Emit(CreateCapability(modelId: "icon_d2"));
 
-        await publishProbe.ExpectMsgAsync<MqttMessage>();
+        await publishProbe.ExpectMsgAsync<MqttMessage>(cancellationToken: TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 15000)]
@@ -181,22 +181,18 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
 
         var actor = CreateDiscoveryActor();
 
-        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink);
+        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink, cancellationToken: TestContext.Current.CancellationToken);
         await hub.WaitForQueue();
 
         hub.Emit(CreateCapability());
 
-        // Wait for and drain the initial publish batch (model + consensus devices)
-        await publishProbe.FishForMessageAsync(msg => msg is MqttMessage, TimeSpan.FromSeconds(2));
-        // Allow all queued messages to arrive and drain
-        await Task.Delay(200);
-        while (publishProbe.HasMessages)
-            publishProbe.ReceiveOne();
-        await publishProbe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200));
+        // Drain entire initial publish batch until quiescence (no message for 500ms)
+        await publishProbe.FishForMessageAsync(msg => msg is MqttMessage, TimeSpan.FromSeconds(2), cancellationToken: TestContext.Current.CancellationToken);
+        while (publishProbe.ReceiveOne(TimeSpan.FromMilliseconds(500), cancellationToken: TestContext.Current.CancellationToken) is not null) { }
 
         // Birth -> should re-publish
         actor.Tell(new MqttInboundMessage("homeassistant/status", "online"));
-        await publishProbe.ExpectMsgAsync<MqttMessage>();
+        await publishProbe.ExpectMsgAsync<MqttMessage>(cancellationToken: TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 15000)]
@@ -215,14 +211,14 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
         options.Models = ["icon_d2", "ecmwf_ifs025"];
         CreateDiscoveryActor(options);
 
-        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink);
+        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink, cancellationToken: TestContext.Current.CancellationToken);
         await hub.WaitForQueue();
 
         hub.Emit(CreateCapability(modelId: "icon_d2"));
         hub.Emit(CreateCapability(modelId: "ecmwf_ifs025"));
 
-        await publishProbe.ExpectMsgAsync<MqttMessage>();
-        await publishProbe.ExpectMsgAsync<MqttMessage>();
+        await publishProbe.ExpectMsgAsync<MqttMessage>(cancellationToken: TestContext.Current.CancellationToken);
+        await publishProbe.ExpectMsgAsync<MqttMessage>(cancellationToken: TestContext.Current.CancellationToken);
     }
 
     // -- fake egress hub that vends SourceRef and allows emitting events ----------
@@ -319,17 +315,17 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
 
         CreateDiscoveryActor();
 
-        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink);
+        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink, cancellationToken: TestContext.Current.CancellationToken);
 
+        Watch(fake);
         await fake.GracefulStop(TimeSpan.FromSeconds(2));
-
-        await Task.Delay(200);
+        await ExpectTerminatedAsync(fake, cancellationToken: TestContext.Current.CancellationToken);
 
         var newFake = Sys.ActorOf(Props.Create(() => new FakeMqttConnection(mat, requestProbe)));
         registry.Register<MqttConnectionActor>(newFake, overwrite: true);
 
         var reRequest = await requestProbe.FishForMessageAsync(
-            msg => msg is RequestMqttSink, TimeSpan.FromSeconds(3));
+            msg => msg is RequestMqttSink, TimeSpan.FromSeconds(3), cancellationToken: TestContext.Current.CancellationToken);
         Assert.IsType<RequestMqttSink>(reRequest);
     }
 

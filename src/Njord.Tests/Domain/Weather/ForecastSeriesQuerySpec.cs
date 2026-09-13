@@ -16,7 +16,7 @@ public sealed class ForecastSeriesQuerySpec
             })));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Window_filters_points_by_inclusive_range()
     {
         var series = MakeSeries((0, 10), (2, 12), (4, 14), (6, 16));
@@ -28,7 +28,7 @@ public sealed class ForecastSeriesQuerySpec
         Assert.Equal(T0.AddHours(4), windowed.Points[1].ValidAt);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Window_returns_empty_when_no_match()
     {
         var series = MakeSeries((0, 10), (2, 12));
@@ -38,7 +38,7 @@ public sealed class ForecastSeriesQuerySpec
         Assert.Empty(windowed.Points);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Mean_computes_average_of_non_null_values()
     {
         var series = MakeSeries((0, 20.0), (2, 22.0), (4, 24.0));
@@ -48,7 +48,7 @@ public sealed class ForecastSeriesQuerySpec
         Assert.Equal(22.0, mean);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Mean_skips_null_values()
     {
         var series = MakeSeries((0, 20.0), (2, null), (4, 24.0));
@@ -58,7 +58,7 @@ public sealed class ForecastSeriesQuerySpec
         Assert.Equal(22.0, mean);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Mean_returns_null_when_all_values_are_null()
     {
         var series = MakeSeries((0, null), (2, null));
@@ -68,7 +68,7 @@ public sealed class ForecastSeriesQuerySpec
         Assert.Null(mean);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Values_returns_non_null_values_only()
     {
         var series = MakeSeries((0, 5.0), (2, null), (4, 7.0));

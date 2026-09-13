@@ -45,7 +45,7 @@ public sealed class IndexEnrichmentSpec
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Snapshot_with_temperature_data_produces_index_result()
     {
         var feature = CreateFeature();
@@ -61,7 +61,7 @@ public sealed class IndexEnrichmentSpec
         Assert.NotNull(enrichment.Result);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Empty_snapshot_produces_event_with_empty_result()
     {
         var feature = CreateFeature();
@@ -106,7 +106,7 @@ public sealed class IndexEnrichmentSpec
         return new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(snapshot, location);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Sensor_indoor_temperature_overrides_config_value()
     {
         var njordOptions = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
@@ -131,7 +131,7 @@ public sealed class IndexEnrichmentSpec
         Assert.NotEqual(resultWith.Days[0].NightVentilation, resultWithout.Days[0].NightVentilation);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Null_sensor_snapshot_falls_back_to_config_value()
     {
         var njordOptions = new NjordOptions { Locations = [new() { Name = "lucerne" }] };

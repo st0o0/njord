@@ -5,7 +5,7 @@ namespace Njord.Tests.Diagnostics;
 
 public sealed class NjordMetricsSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Instance_returns_same_reference()
     {
         var a = NjordMetrics.Instance;
@@ -14,13 +14,13 @@ public sealed class NjordMetricsSpec
         Assert.Same(a, b);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Meter_is_named_Njord()
     {
         Assert.Equal("Njord", NjordMetrics.Instance.Meter.Name);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Extension_creates_counter_on_shared_meter()
     {
         var counter = NjordMetrics.Instance.AddFetchTotal();

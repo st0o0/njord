@@ -5,7 +5,7 @@ namespace Njord.Tests.Diagnostics;
 
 public sealed class EgressMetricsExtensionsSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddMqttDedup_creates_counter()
     {
         var counter = NjordMetrics.Instance.AddMqttDedup();
@@ -14,7 +14,7 @@ public sealed class EgressMetricsExtensionsSpec
         Assert.Equal("{message}", counter.Unit);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddMqttConnected_creates_gauge()
     {
         var gauge = NjordMetrics.Instance.AddMqttConnected();
@@ -23,7 +23,7 @@ public sealed class EgressMetricsExtensionsSpec
         Assert.Equal("1", gauge.Unit);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MqttDedup_records_with_decision_label()
     {
         var counter = NjordMetrics.Instance.AddMqttDedup();

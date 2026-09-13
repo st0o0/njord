@@ -5,7 +5,7 @@ namespace Njord.Tests.Configuration;
 
 public sealed class NjordActorSystemSetupSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Extends_ActorSystemSetupContainer()
     {
         var setup = new NjordActorSystemSetup();
@@ -13,7 +13,7 @@ public sealed class NjordActorSystemSetupSpec
         Assert.IsAssignableFrom<ActorSystemSetupContainer>(setup);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Actor_system_name_is_njord()
     {
         var setup = new NjordActorSystemSetup();

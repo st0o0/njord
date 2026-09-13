@@ -58,29 +58,27 @@ public sealed class SchedulerActorSnapshotSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 10000)]
     public async Task State_recovers_from_snapshot_after_restart()
     {
-        await _offerProbe.ExpectMsgAsync<WeightedTarget>();
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
         for (var i = 0; i < 51; i++)
         {
-            await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 1000 + i), TimeSpan.FromSeconds(2));
+            await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 1000 + i), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         }
 
-        var statesBefore = await Scheduler.Ask<PollStatesSnapshot>(new GetPollStates(), TimeSpan.FromSeconds(2));
+        var statesBefore = await Scheduler.Ask<PollStatesSnapshot>(new GetPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         var entryBefore = statesBefore.Entries.Single();
         Assert.Equal(PollPhase.Steady, entryBefore.Phase);
 
+        Watch(Scheduler);
         await Scheduler.GracefulStop(TimeSpan.FromSeconds(3));
-
-        await Task.Delay(200);
+        await ExpectTerminatedAsync(Scheduler, cancellationToken: TestContext.Current.CancellationToken);
 
         var props = Akka.DependencyInjection.DependencyResolver.For(Sys)
             .Props<SchedulerActor>();
         var recovered = Sys.ActorOf(props, "scheduler");
         ActorRegistry.Register<SchedulerActor>(recovered, overwrite: true);
 
-        await Task.Delay(500);
-
-        var statesAfter = await recovered.Ask<PollStatesSnapshot>(new GetPollStates(), TimeSpan.FromSeconds(2));
+        var statesAfter = await recovered.Ask<PollStatesSnapshot>(new GetPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         var entryAfter = statesAfter.Entries.Single();
         Assert.Equal(PollPhase.Steady, entryAfter.Phase);
         Assert.NotNull(entryAfter.CycleSeconds);

@@ -9,7 +9,7 @@ public sealed class SchedulerDtoSerializationSpec
 {
     private static readonly DateTimeOffset TestTime = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public Task DataChanged_dto_round_trips_through_json()
     {
         var domain = new SchedulerActor.DataChanged("lucerne", "icon_d2", 42, TestTime);
@@ -18,7 +18,7 @@ public sealed class SchedulerDtoSerializationSpec
         return Verify(json);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void DataChanged_dto_deserializes_back_to_domain()
     {
         var original = new SchedulerActor.DataChanged("lucerne", "icon_d2", 42, TestTime);
@@ -33,7 +33,7 @@ public sealed class SchedulerDtoSerializationSpec
         Assert.Equal(original.Utc, result.Utc);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void DataChanged_dto_ignores_unknown_fields()
     {
         var json = """{"v":1,"loc":"lucerne","model":"icon_d2","hash":42,"utc":638899272000000000,"future_field":"hello"}""";
@@ -43,7 +43,7 @@ public sealed class SchedulerDtoSerializationSpec
         Assert.Equal("lucerne", result.Location);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Scheduler_snapshot_dto_round_trips_full_state()
     {
         var states = new Dictionary<string, ModelPollState>
@@ -81,7 +81,7 @@ public sealed class SchedulerDtoSerializationSpec
         Assert.Null(discovery.Cycle);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Scheduler_snapshot_dto_round_trips_empty_state()
     {
         var states = new Dictionary<string, ModelPollState>();

@@ -65,11 +65,8 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
     private async Task WaitForGraphMaterialized(
         Akka.TestKit.TestProbe requestProbe, FakeEgressHub hub)
     {
-        await requestProbe.ExpectMsgAsync<RequestMqttSink>();
+        await requestProbe.ExpectMsgAsync<RequestMqttSink>(cancellationToken: TestContext.Current.CancellationToken);
         await hub.WaitForQueue();
-        // Stream ref materialization (PipeTo) + graph wiring is async;
-        // allow the actor to process both responses and call MaterializeGraph.
-        await Task.Delay(500);
     }
 
     [Fact(Timeout = 15000)]
@@ -81,16 +78,15 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
         CreateMqttEgressActor();
 
         // Actor must request the MqttSink from MqttConnectionActor
-        await requestProbe.ExpectMsgAsync<RequestMqttSink>();
+        await requestProbe.ExpectMsgAsync<RequestMqttSink>(cancellationToken: TestContext.Current.CancellationToken);
         // Actor must request the EgressSource from EgressActor (confirmed by queue creation)
         await hub.WaitForQueue();
 
         // Verify the graph is live by emitting an event and expecting output
-        await Task.Delay(500);
         var forecast = CreateForecast("icon_d2");
         hub.Emit(new EgressEvent.PerModelUpdate("lucerne", new WeatherModel("icon_d2"), forecast));
 
-        var msg = await publishProbe.ExpectMsgAsync<MqttMessage>(TimeSpan.FromSeconds(5));
+        var msg = await publishProbe.ExpectMsgAsync<MqttMessage>(TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(msg);
     }
 
@@ -107,7 +103,7 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
         var forecast = CreateForecast("icon_d2");
         hub.Emit(new EgressEvent.PerModelUpdate("lucerne", new WeatherModel("icon_d2"), forecast));
 
-        var msg = await publishProbe.ExpectMsgAsync<MqttMessage>(TimeSpan.FromSeconds(5));
+        var msg = await publishProbe.ExpectMsgAsync<MqttMessage>(TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
         Assert.StartsWith("njord/", msg.Topic);
         Assert.True(msg.Retain);
         Assert.NotEmpty(msg.Payload);
@@ -128,11 +124,12 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
         CreateMqttEgressActor();
 
         // Wait for initial ref request
-        await requestProbe.ExpectMsgAsync<RequestMqttSink>();
+        await requestProbe.ExpectMsgAsync<RequestMqttSink>(cancellationToken: TestContext.Current.CancellationToken);
 
         // Terminate the fake MqttConnectionActor
+        Watch(fakeMqtt);
         await fakeMqtt.GracefulStop(TimeSpan.FromSeconds(2));
-        await Task.Delay(200);
+        await ExpectTerminatedAsync(fakeMqtt, cancellationToken: TestContext.Current.CancellationToken);
 
         // Register a replacement so GetActorAsync resolves again
         var newRequestProbe = CreateTestProbe();
@@ -143,7 +140,7 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
 
         // The actor should re-request refs after Terminated
         var reRequest = await newRequestProbe.FishForMessageAsync(
-            msg => msg is RequestMqttSink, TimeSpan.FromSeconds(5));
+            msg => msg is RequestMqttSink, TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
         Assert.IsType<RequestMqttSink>(reRequest);
     }
 

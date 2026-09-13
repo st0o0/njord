@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Time.Testing;
-using Njord.Domain.Weather;
 using Njord.Domain.Analysis;
+using Njord.Domain.Weather;
 
 namespace Njord.Tests.Domain.Analysis;
 
@@ -39,7 +39,7 @@ public sealed class TrendResultSpec
         return snap;
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Compute_with_no_previous_produces_null_trends()
     {
         var snap = SnapshotWith(
@@ -55,7 +55,7 @@ public sealed class TrendResultSpec
         Assert.Null(result.Stability);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Compute_with_previous_detects_rising_temperature()
     {
         var prev = SnapshotWith(
@@ -79,7 +79,7 @@ public sealed class TrendResultSpec
         Assert.Equal(4.0, tempTrend.Delta);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Compute_detects_weather_change()
     {
         var prev = SnapshotWith(

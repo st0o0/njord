@@ -9,7 +9,7 @@ public sealed class StreamSupervisionSpec
 {
     private readonly RecordingLogger _logger = new();
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AskTimeoutException_resumes()
     {
         var decider = StreamSupervision.LoggingDecider(_logger);
@@ -17,35 +17,35 @@ public sealed class StreamSupervisionSpec
         Assert.Single(_logger.Entries);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void TaskCanceledException_resumes()
     {
         var decider = StreamSupervision.LoggingDecider(_logger);
         Assert.Equal(StreamDirective.Resume, decider(new TaskCanceledException()));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void OperationCanceledException_resumes()
     {
         var decider = StreamSupervision.LoggingDecider(_logger);
         Assert.Equal(StreamDirective.Resume, decider(new OperationCanceledException()));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void TimeoutException_resumes()
     {
         var decider = StreamSupervision.LoggingDecider(_logger);
         Assert.Equal(StreamDirective.Resume, decider(new TimeoutException()));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void HttpRequestException_resumes()
     {
         var decider = StreamSupervision.LoggingDecider(_logger);
         Assert.Equal(StreamDirective.Resume, decider(new HttpRequestException()));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void NullReferenceException_stops()
     {
         var decider = StreamSupervision.LoggingDecider(_logger);
@@ -53,14 +53,14 @@ public sealed class StreamSupervisionSpec
         Assert.Single(_logger.Entries);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void InvalidOperationException_stops()
     {
         var decider = StreamSupervision.LoggingDecider(_logger);
         Assert.Equal(StreamDirective.Stop, decider(new InvalidOperationException("test")));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Logger_is_called_for_every_exception()
     {
         var decider = StreamSupervision.LoggingDecider(_logger);

@@ -10,45 +10,47 @@ public sealed class EnrichmentSnapshotRecoverySpec : PersistenceTestKit
     private IActorRef CreateActor() =>
         Sys.ActorOf(Props.Create(() => new EnrichmentSnapshotActor()));
 
-    private static async Task FillToSnapshotThreshold(IActorRef actor, int count = 14)
+    private static async Task FillToSnapshotThreshold(IActorRef actor, int count = 14, CancellationToken ct = default)
     {
         for (var i = 0; i < count; i++)
         {
             var result = new IndexResult("lucerne", [new DayScoreSet(0, 80 + i, 90, 70, 85, 95, 60, 88, 75, HoursIncluded: 14)], null, null);
-            await actor.Ask<Ack>(new UpdateEnrichment("lucerne", $"type_{i}", result));
+            await actor.Ask<Ack>(new UpdateEnrichment("lucerne", $"type_{i}", result), ct);
         }
     }
 
     [Fact(Timeout = 5000)]
     public async Task State_recovers_from_snapshot_after_actor_restart()
     {
+        var ct = TestContext.Current.CancellationToken;
         var actor = CreateActor();
-        await FillToSnapshotThreshold(actor);
+        await FillToSnapshotThreshold(actor, ct: ct);
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
 
         var recovered = CreateActor();
 
         var response = await recovered.Ask<AllEnrichmentsResponse>(
-            new GetAllEnrichments("lucerne"), TimeSpan.FromSeconds(3));
+            new GetAllEnrichments("lucerne"), TimeSpan.FromSeconds(3), ct);
         Assert.Equal(14, response.Results.Count);
     }
 
     [Fact(Timeout = 5000)]
     public async Task Actor_accepts_updates_after_recovery()
     {
+        var ct = TestContext.Current.CancellationToken;
         var actor = CreateActor();
-        await FillToSnapshotThreshold(actor);
+        await FillToSnapshotThreshold(actor, ct: ct);
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
 
         var recovered = CreateActor();
 
         var ack = await recovered.Ask<Ack>(
             new UpdateEnrichment("zurich", "alerts", new AlertResult("zurich", [])),
-            TimeSpan.FromSeconds(3));
+            TimeSpan.FromSeconds(3), ct);
         Assert.NotNull(ack);
 
         var response = await recovered.Ask<EnrichmentResponse>(
-            new GetEnrichment("zurich", "alerts"), TimeSpan.FromSeconds(3));
+            new GetEnrichment("zurich", "alerts"), TimeSpan.FromSeconds(3), ct);
         Assert.NotNull(response.Result);
         Assert.IsType<AlertResult>(response.Result);
     }
@@ -56,8 +58,9 @@ public sealed class EnrichmentSnapshotRecoverySpec : PersistenceTestKit
     [Fact(Timeout = 5000)]
     public async Task Snapshot_load_failure_during_recovery_kills_actor()
     {
+        var ct = TestContext.Current.CancellationToken;
         var actor = CreateActor();
-        await FillToSnapshotThreshold(actor);
+        await FillToSnapshotThreshold(actor, ct: ct);
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
 
         await WithSnapshotLoad(load => load.Fail(), async () =>

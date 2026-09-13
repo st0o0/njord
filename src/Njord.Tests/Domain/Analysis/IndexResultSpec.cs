@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
-using Njord.Domain.Weather;
 using Njord.Domain.Analysis;
+using Njord.Domain.Weather;
 
 namespace Njord.Tests.Domain.Analysis;
 
@@ -49,7 +49,7 @@ public sealed class IndexResultSpec
         return snap;
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Compute_produces_multiple_day_slices()
     {
         var snap = SnapshotWith(
@@ -76,7 +76,7 @@ public sealed class IndexResultSpec
         Assert.Equal(1, result.Days[1].DayOffset);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Activity_scores_use_daylight_means_only()
     {
         var snap = SnapshotWith(
@@ -103,7 +103,7 @@ public sealed class IndexResultSpec
         Assert.InRange(d0.Outdoor, 50, 100);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void NightVentilation_uses_nighttime_means()
     {
         var snap = SnapshotWith(
@@ -130,7 +130,7 @@ public sealed class IndexResultSpec
         Assert.InRange(d0.NightVentilation, 50, 100);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Frost_protection_computed_once_not_per_day()
     {
         var snap = SnapshotWith(
@@ -147,7 +147,7 @@ public sealed class IndexResultSpec
         Assert.Equal(10, result.FrostProtection!.HoursUntilFrost);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Vpd_computed_once()
     {
         var snap = SnapshotWith(
@@ -161,7 +161,7 @@ public sealed class IndexResultSpec
         Assert.NotNull(result.Vpd);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Multi_model_produces_envelopes_per_day()
     {
         var snap = SnapshotWith(
@@ -178,7 +178,7 @@ public sealed class IndexResultSpec
         Assert.True(d0.OutdoorEnvelope!.Min <= d0.OutdoorEnvelope.Max);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Hours_included_reflects_daylight_or_night_count()
     {
         var snap = SnapshotWith(

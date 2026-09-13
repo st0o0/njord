@@ -22,7 +22,7 @@ public sealed class MqttConnectionHealthCheckSpec
     {
         _state.SetMqttConnected(_time.GetUtcNow());
 
-        var result = await _check.CheckHealthAsync(new HealthCheckContext());
+        var result = await _check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Healthy, result.Status);
     }
@@ -35,7 +35,7 @@ public sealed class MqttConnectionHealthCheckSpec
         _state.SetMqttDisconnected(_time.GetUtcNow());
         _time.Advance(TimeSpan.FromSeconds(90));
 
-        var result = await _check.CheckHealthAsync(new HealthCheckContext());
+        var result = await _check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Degraded, result.Status);
     }
@@ -48,7 +48,7 @@ public sealed class MqttConnectionHealthCheckSpec
         _state.SetMqttDisconnected(_time.GetUtcNow());
         _time.Advance(TimeSpan.FromMinutes(3));
 
-        var result = await _check.CheckHealthAsync(new HealthCheckContext());
+        var result = await _check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Unhealthy, result.Status);
     }
@@ -56,7 +56,7 @@ public sealed class MqttConnectionHealthCheckSpec
     [Fact(Timeout = 5000)]
     public async Task Returns_degraded_when_never_connected()
     {
-        var result = await _check.CheckHealthAsync(new HealthCheckContext());
+        var result = await _check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Degraded, result.Status);
     }

@@ -33,7 +33,7 @@ public sealed class EnrichmentFeatureContractSpec
         ];
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void All_features_have_unique_type_names()
     {
         var features = CreateAllFeatures();
@@ -43,7 +43,7 @@ public sealed class EnrichmentFeatureContractSpec
         Assert.Equal(names.Count, names.Distinct().Count());
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Consensus_is_not_in_the_feature_registry()
     {
         var features = CreateAllFeatures();
@@ -51,7 +51,7 @@ public sealed class EnrichmentFeatureContractSpec
         Assert.DoesNotContain(features, f => f.TypeName == "consensus");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Type_names_are_kebab_case_identifiers()
     {
         var features = CreateAllFeatures();
@@ -62,7 +62,7 @@ public sealed class EnrichmentFeatureContractSpec
         }
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Enabled_reflects_options_for_default_enabled_features()
     {
         var features = CreateAllFeatures();
@@ -71,7 +71,7 @@ public sealed class EnrichmentFeatureContractSpec
         Assert.True(features.Single(f => f.TypeName == "derived").Enabled);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Enabled_reflects_options_for_default_disabled_features()
     {
         var features = CreateAllFeatures();
@@ -81,7 +81,7 @@ public sealed class EnrichmentFeatureContractSpec
         Assert.False(features.Single(f => f.TypeName == "history").Enabled);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Disabled_feature_becomes_enabled_when_option_is_set()
     {
         var enrichment = new EnrichmentOptions { Trends = new TrendOptions { Enabled = true } };
@@ -90,7 +90,7 @@ public sealed class EnrichmentFeatureContractSpec
         Assert.True(features.Single(f => f.TypeName == "trends").Enabled);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Device_id_follows_enrichment_pattern()
     {
         var features = CreateAllFeatures();
@@ -103,7 +103,7 @@ public sealed class EnrichmentFeatureContractSpec
         }
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Stateless_features_implement_IStatelessEnrichment()
     {
         var features = CreateAllFeatures();
@@ -116,7 +116,7 @@ public sealed class EnrichmentFeatureContractSpec
         }
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Trend_feature_implements_IStatefulEnrichment()
     {
         var features = CreateAllFeatures();
@@ -125,7 +125,7 @@ public sealed class EnrichmentFeatureContractSpec
         Assert.IsAssignableFrom<IStatefulEnrichment>(trend);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void History_feature_implements_IActorEnrichment()
     {
         var features = CreateAllFeatures();

@@ -39,7 +39,7 @@ public sealed class StatePayloadBuilderSpec
                     new Dictionary<ParameterDef, string?> { [Sunrise] = "05:31" }),
             ]));
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Returns_one_entry_per_configured_horizon()
     {
         var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
@@ -51,7 +51,7 @@ public sealed class StatePayloadBuilderSpec
         Assert.True(result.ContainsKey("d0"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Hourly_payload_is_flat_json_with_parameter_values()
     {
         var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
@@ -63,7 +63,7 @@ public sealed class StatePayloadBuilderSpec
         Assert.False(h3.AsObject().ContainsKey("h3"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Daily_payload_is_flat_json_with_parameter_values()
     {
         var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
@@ -74,7 +74,7 @@ public sealed class StatePayloadBuilderSpec
         Assert.Equal("05:31", (string?)d0["sunrise"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Horizons_beyond_series_are_omitted()
     {
         var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
@@ -83,7 +83,7 @@ public sealed class StatePayloadBuilderSpec
         Assert.False(result.ContainsKey("h72"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Anchor_floors_to_current_hour_when_tick_is_mid_hour()
     {
         var tick = new DateTimeOffset(2026, 7, 12, 19, 31, 0, TimeSpan.Zero);
@@ -121,7 +121,7 @@ public sealed class StatePayloadBuilderSpec
     private static ModelSnapshot SnapshotWith(params ModelForecast[] forecasts)
         => forecasts.Aggregate(ModelSnapshot.Empty, (s, f) => s.Update(f));
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromConsensus_produces_one_message_per_horizon()
     {
         var snap = SnapshotWith(
@@ -143,7 +143,7 @@ public sealed class StatePayloadBuilderSpec
         Assert.Null(payload["_models_used"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromConsensus_produces_daily_messages_for_daily_parameters()
     {
         var baseDate = DateOnly.FromDateTime(T0.UtcDateTime);
@@ -177,7 +177,7 @@ public sealed class StatePayloadBuilderSpec
         Assert.Equal(2, d0["temperature_max_models"]!.GetValue<int>());
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromAlerts_produces_one_message_per_alert()
     {
         var alerts = new List<Alert>
@@ -198,7 +198,7 @@ public sealed class StatePayloadBuilderSpec
         Assert.Equal(0.75, (double?)payload["confidence"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromDerived_produces_horizon_and_meta_messages()
     {
         var snap = SnapshotWith(
@@ -222,7 +222,7 @@ public sealed class StatePayloadBuilderSpec
         Assert.NotNull(json["beaufort"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromTrends_produces_single_trend_topic()
     {
         var snap = SnapshotWith(
@@ -238,7 +238,7 @@ public sealed class StatePayloadBuilderSpec
         Assert.True(messages[0].Retain);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromIndices_produces_per_day_topics()
     {
         var snap = SnapshotWith(
@@ -254,7 +254,7 @@ public sealed class StatePayloadBuilderSpec
         Assert.All(messages, m => Assert.True(m.Retain));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromIndices_includes_envelope_fields_when_multiple_models()
     {
         var snap = SnapshotWith(
@@ -273,7 +273,7 @@ public sealed class StatePayloadBuilderSpec
         Assert.True(payload["outdoor_min"]!.GetValue<int>() <= payload["outdoor_max"]!.GetValue<int>());
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromHistory_produces_single_history_topic()
     {
         var history = new ForecastHistory(30);

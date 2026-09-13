@@ -37,7 +37,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
             .To(broadcastHubSink)
             .Run(Mat);
 
-        broadcastHubSource
+        _ = broadcastHubSource
             .RunWith(Sink.ForEach<int>(x => received.TrySetResult(x)), Mat);
 
         var sinkRef = await StreamRefs.SinkRef<int>()
@@ -48,7 +48,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
             .To(sinkRef.Sink)
             .Run(Mat);
 
-        var result = await queue.OfferAsync(42);
+        var result = await queue.OfferAsync(42, TestContext.Current.CancellationToken);
 
         Assert.Equal(QueueOfferResult.Enqueued.Instance, result);
     }
@@ -74,7 +74,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
             .To(broadcastHubSink)
             .Run(Mat);
 
-        broadcastHubSource
+        _ = broadcastHubSource
             .RunWith(Sink.ForEach<int>(x => received.TrySetResult(x)), Mat);
 
         var sinkRef = await StreamRefs.SinkRef<int>()
@@ -85,7 +85,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
             .To(sinkRef.Sink)
             .Run(Mat);
 
-        var result = await queue.OfferAsync(42);
+        var result = await queue.OfferAsync(42, TestContext.Current.CancellationToken);
 
         Assert.Equal(QueueOfferResult.Enqueued.Instance, result);
     }
@@ -112,7 +112,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
             .To(sinkRef.Sink)
             .Run(Mat);
 
-        var result = await queue.OfferAsync(42);
+        var result = await queue.OfferAsync(42, TestContext.Current.CancellationToken);
 
         Assert.Equal(QueueOfferResult.Enqueued.Instance, result);
     }
@@ -153,7 +153,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
             .To(sinkRef.Sink)
             .Run(Mat);
 
-        var result = await queue.OfferAsync(42);
+        var result = await queue.OfferAsync(42, TestContext.Current.CancellationToken);
 
         Assert.Equal(QueueOfferResult.Enqueued.Instance, result);
     }
@@ -177,7 +177,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
             .To(broadcastHubSink)
             .Run(Mat);
 
-        broadcastHubSource
+        _ = broadcastHubSource
             .RunWith(Sink.ForEach<int>(x => received.TrySetResult(x)), Mat);
 
         var sinkRef = await StreamRefs.SinkRef<int>()
@@ -188,10 +188,10 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
             .To(sinkRef.Sink)
             .Run(Mat);
 
-        var result = await queue.OfferAsync(42);
+        var result = await queue.OfferAsync(42, TestContext.Current.CancellationToken);
         Assert.Equal(QueueOfferResult.Enqueued.Instance, result);
 
-        var value = await received.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        var value = await received.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(42, value);
     }
 
@@ -204,17 +204,17 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
             new FakePipelineWithFullGraph(Mat, received)));
 
         var response = await pipeline.Ask<SinkRefResponse>(
-            new RequestSinkRef(), TimeSpan.FromSeconds(2));
+            new RequestSinkRef(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var queue = Source.Queue<int>(4, OverflowStrategy.Backpressure)
             .To(response.SinkRef.Sink)
             .Run(Mat);
 
-        var result = await queue.OfferAsync(42);
+        var result = await queue.OfferAsync(42, TestContext.Current.CancellationToken);
 
         Assert.Equal(QueueOfferResult.Enqueued.Instance, result);
 
-        var value = await received.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        var value = await received.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(42, value);
     }
 
@@ -228,17 +228,17 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
             new ThrottledPipelineActor(Mat, received, gate)));
 
         var response = await pipeline.Ask<SinkRefResponse>(
-            new RequestSinkRef(), TimeSpan.FromSeconds(2));
+            new RequestSinkRef(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var queue = Source.Queue<int>(4, OverflowStrategy.Backpressure)
             .To(response.SinkRef.Sink)
             .Run(Mat);
 
-        var result = await queue.OfferAsync(42);
+        var result = await queue.OfferAsync(42, TestContext.Current.CancellationToken);
 
         Assert.Equal(QueueOfferResult.Enqueued.Instance, result);
 
-        var value = await received.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        var value = await received.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(42, value);
     }
 
@@ -329,7 +329,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
         var consumer = Sys.ActorOf(Props.Create(() =>
             new PersistentConsumerActor($"consumer-{Guid.NewGuid():N}")));
 
-        var value = await received.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        var value = await received.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(99, value);
     }
 
@@ -347,7 +347,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
         var first = Sys.ActorOf(Props.Create(() =>
             new PersistentConsumerActor(persistenceId)));
 
-        await received.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        await received.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         received = new TaskCompletionSource<int>();
 
         await first.GracefulStop(TimeSpan.FromSeconds(2));
@@ -359,7 +359,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
         var second = Sys.ActorOf(Props.Create(() =>
             new PersistentConsumerActor(persistenceId)));
 
-        var value = await received.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        var value = await received.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(99, value);
     }
 

@@ -36,7 +36,7 @@ public sealed class TrendEnrichmentSpec
         return ModelSnapshot.Empty.Update(forecast);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Compute_returns_empty_when_previous_is_null()
     {
         var feature = CreateFeature();
@@ -48,7 +48,7 @@ public sealed class TrendEnrichmentSpec
         Assert.Empty(events);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Compute_produces_events_when_previous_exists()
     {
         var feature = CreateFeature();
@@ -65,7 +65,7 @@ public sealed class TrendEnrichmentSpec
         Assert.IsType<TrendResult>(update.Result);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Enabled_reflects_options()
     {
         Assert.True(CreateFeature(enabled: true).Enabled);

@@ -21,7 +21,7 @@ public sealed class ForecastHistoryDtoSerializationSpec
         return new ForecastRecord(T0, "lucerne", modelValues, consensus);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public Task ForecastRecord_dto_round_trips_through_json()
     {
         var dto = ForecastHistoryDtoMapping.ToDto(MakeRecord());
@@ -29,7 +29,7 @@ public sealed class ForecastHistoryDtoSerializationSpec
         return Verify(json);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ForecastRecord_dto_deserializes_back_to_domain()
     {
         var original = MakeRecord();
@@ -44,7 +44,7 @@ public sealed class ForecastHistoryDtoSerializationSpec
         Assert.Equal(22.8, result.ConsensusValues["temperature_2m"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public Task ForecastHistorySnapshot_dto_round_trips_through_json()
     {
         var history = new ForecastHistory(retentionDays: 7);
@@ -54,7 +54,7 @@ public sealed class ForecastHistoryDtoSerializationSpec
         return Verify(json);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ForecastRecord_dto_ignores_unknown_fields()
     {
         var json = """{"v":1,"ts":638899272000000000,"loc":"lucerne","models":{},"consensus":{},"new_thing":true}""";

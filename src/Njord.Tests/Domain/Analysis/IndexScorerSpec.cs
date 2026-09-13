@@ -1,5 +1,5 @@
-using Njord.Domain.Weather;
 using Njord.Domain.Analysis;
+using Njord.Domain.Weather;
 
 namespace Njord.Tests.Domain.Analysis;
 
@@ -9,87 +9,87 @@ public sealed class IndexScorerSpec
 
     // --- LaundryDrying ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void LaundryDrying_perfect_day() =>
         Assert.InRange(IndexScorer.LaundryDrying(28, 35, 5, 0, 100, Prefs), 90, 100);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void LaundryDrying_cold_rainy_day() =>
         Assert.InRange(IndexScorer.LaundryDrying(5, 90, 1, 80, 0, Prefs), 0, 15);
 
     // --- OutdoorScore ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void OutdoorScore_pleasant_spring() =>
         Assert.InRange(IndexScorer.OutdoorScore(22, 50, 5, 3, 20, Prefs), 80, 100);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void OutdoorScore_stormy_winter() =>
         Assert.InRange(IndexScorer.OutdoorScore(2, 90, 90, 12, 100, Prefs), 0, 10);
 
     // --- RunningComfort ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void RunningComfort_ideal() =>
         Assert.InRange(IndexScorer.RunningComfort(12, 45, 2, 0, Prefs), 85, 100);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void RunningComfort_hot_humid() =>
         Assert.InRange(IndexScorer.RunningComfort(35, 80, 0.5, 10, Prefs), 0, 55);
 
     // --- CyclingComfort ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void CyclingComfort_calm_warm() =>
         Assert.InRange(IndexScorer.CyclingComfort(18, 50, 1.5, 0, Prefs), 80, 100);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void CyclingComfort_very_windy() =>
         Assert.InRange(IndexScorer.CyclingComfort(18, 50, 12, 0, Prefs), 0, 65);
 
     // --- BbqWeather ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void BbqWeather_perfect() =>
         Assert.InRange(IndexScorer.BbqWeather(26, 40, 2, 0, Prefs), 90, 100);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void BbqWeather_rain_kills_it() =>
         Assert.InRange(IndexScorer.BbqWeather(26, 40, 2, 80, Prefs), 0, 70);
 
     // --- IrrigationNeed ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void IrrigationNeed_hot_dry() =>
         Assert.InRange(IndexScorer.IrrigationNeed(0, 32, 30, 6, Prefs), 85, 100);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void IrrigationNeed_rainy() =>
         Assert.InRange(IndexScorer.IrrigationNeed(90, 15, 80, 1, Prefs), 0, 15);
 
     // --- SolarYield ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void SolarYield_clear_cool() =>
         Assert.InRange(IndexScorer.SolarYield(800, 10, 18, Prefs), 85, 100);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void SolarYield_overcast_hot() =>
         Assert.InRange(IndexScorer.SolarYield(150, 90, 38, Prefs), 0, 20);
 
     // --- NightVentilation ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void NightVentilation_cool_evening() =>
         Assert.InRange(IndexScorer.NightVentilation(17, 45, 3, 0, Prefs), 75, 100);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void NightVentilation_hot_humid() =>
         Assert.InRange(IndexScorer.NightVentilation(30, 80, 1, 0, Prefs), 0, 35);
 
     // --- VpdCategory ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void VpdCategory_high()
     {
         var result = IndexScorer.VpdCategory(25, 60);
@@ -98,7 +98,7 @@ public sealed class IndexScorerSpec
         Assert.InRange(result.Vpd, 1.2, 1.4);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void VpdCategory_low()
     {
         var result = IndexScorer.VpdCategory(20, 90);
@@ -106,20 +106,20 @@ public sealed class IndexScorerSpec
         Assert.Equal("low", result.Category);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void VpdCategory_null() =>
         Assert.Null(IndexScorer.VpdCategory(null, 60));
 
     // --- Outdoor: Schwül fix (hot + humid + windstill) ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void OutdoorScore_schwuel_day_scores_low()
     {
         var score = IndexScorer.OutdoorScore(33, 85, 10, 0.5, 30, Prefs);
         Assert.InRange(score, 0, 40);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void OutdoorScore_schwuel_day_with_high_sensitivity_scores_lower()
     {
         var highSens = Prefs with { HeatSensitivity = 1.5, HumiditySensitivity = 1.3 };
@@ -127,7 +127,7 @@ public sealed class IndexScorerSpec
         Assert.InRange(score, 0, 32);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void OutdoorScore_shifted_ideal_temp()
     {
         var shifted = Prefs with { IdealTemp = 26.0 };
@@ -139,20 +139,20 @@ public sealed class IndexScorerSpec
 
     // --- BreezeScore ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void BreezeScore_ideal_range_scores_100()
     {
         Assert.Equal(100, IndexScorer.BreezeScore(3, 1.0));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void BreezeScore_windstill_penalized()
     {
         var score = IndexScorer.BreezeScore(0, 1.0);
         Assert.InRange(score, 20, 40);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void BreezeScore_strong_wind_penalized()
     {
         var score = IndexScorer.BreezeScore(10, 1.0);
@@ -161,7 +161,7 @@ public sealed class IndexScorerSpec
 
     // --- Sensitivity multipliers ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Higher_heat_sensitivity_lowers_outdoor_score_in_heat()
     {
         var normal = IndexScorer.OutdoorScore(32, 50, 5, 3, 30, Prefs);
@@ -169,7 +169,7 @@ public sealed class IndexScorerSpec
         Assert.True(sensitive < normal, "Higher heat sensitivity should produce lower score in heat");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Higher_humidity_sensitivity_lowers_laundry_score()
     {
         var normal = IndexScorer.LaundryDrying(20, 55, 3, 10, 60, Prefs);
@@ -177,7 +177,7 @@ public sealed class IndexScorerSpec
         Assert.True(sensitive < normal, "Higher humidity sensitivity should produce lower score");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Higher_rain_sensitivity_lowers_bbq_score()
     {
         var normal = IndexScorer.BbqWeather(25, 40, 2, 15, Prefs);
@@ -187,7 +187,7 @@ public sealed class IndexScorerSpec
 
     // --- Score-specific ideal points ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Running_custom_temp_range()
     {
         var cold = Prefs with { IdealTempLow = 0, IdealTempHigh = 15 };
@@ -196,7 +196,7 @@ public sealed class IndexScorerSpec
         Assert.True(scoreCustom > scoreDefault, "Wider cold range should accept 3°C better");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Bbq_custom_min_temp()
     {
         var strict = Prefs with { MinTemp = 15.0 };
@@ -205,7 +205,7 @@ public sealed class IndexScorerSpec
         Assert.True(scoreStrict < scoreDefault, "Higher min temp should penalize 12°C more");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void NightVentilation_custom_indoor_temp()
     {
         var warm = Prefs with { IndoorTemp = 25.0 };

@@ -13,7 +13,7 @@ namespace Njord.Grpc;
 
 public sealed class SensorGrpcService(
     ActorRegistry actorRegistry,
-    IOptions<NjordOptions> njordOptions) : V2.SensorService.SensorServiceBase
+    IOptions<NjordOptions> njordOptions) : SensorService.SensorServiceBase
 {
     private readonly IActorRef _sensorHub = actorRegistry.Get<SensorHubActor>();
     private readonly HashSet<string> _knownLocations = new(

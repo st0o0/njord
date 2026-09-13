@@ -26,7 +26,7 @@ public sealed class PipelineHealthCheckSpec
         _state.SetLastSuccessfulPoll(_time.GetUtcNow());
         _time.Advance(TimeSpan.FromMinutes(45));
 
-        var result = await CreateCheck().CheckHealthAsync(new HealthCheckContext());
+        var result = await CreateCheck().CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Healthy, result.Status);
     }
@@ -37,7 +37,7 @@ public sealed class PipelineHealthCheckSpec
         _state.SetLastSuccessfulPoll(_time.GetUtcNow());
         _time.Advance(TimeSpan.FromMinutes(150));
 
-        var result = await CreateCheck().CheckHealthAsync(new HealthCheckContext());
+        var result = await CreateCheck().CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Degraded, result.Status);
     }
@@ -48,7 +48,7 @@ public sealed class PipelineHealthCheckSpec
         _state.SetLastSuccessfulPoll(_time.GetUtcNow());
         _time.Advance(TimeSpan.FromMinutes(200));
 
-        var result = await CreateCheck().CheckHealthAsync(new HealthCheckContext());
+        var result = await CreateCheck().CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Unhealthy, result.Status);
     }
@@ -58,7 +58,7 @@ public sealed class PipelineHealthCheckSpec
     {
         _time.Advance(TimeSpan.FromMinutes(30));
 
-        var result = await CreateCheck().CheckHealthAsync(new HealthCheckContext());
+        var result = await CreateCheck().CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Healthy, result.Status);
     }
@@ -68,7 +68,7 @@ public sealed class PipelineHealthCheckSpec
     {
         _time.Advance(TimeSpan.FromMinutes(130));
 
-        var result = await CreateCheck().CheckHealthAsync(new HealthCheckContext());
+        var result = await CreateCheck().CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Unhealthy, result.Status);
     }

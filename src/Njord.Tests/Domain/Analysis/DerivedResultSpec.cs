@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Time.Testing;
-using Njord.Domain.Weather;
 using Njord.Domain.Analysis;
+using Njord.Domain.Weather;
 
 namespace Njord.Tests.Domain.Analysis;
 
@@ -42,7 +42,7 @@ public sealed class DerivedResultSpec
         return snap;
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Compute_produces_horizon_and_scalar_results()
     {
         var snap = SnapshotWith(

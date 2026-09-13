@@ -6,7 +6,7 @@ public sealed class ModelForecastSpec
 {
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void A_forecast_is_fully_attributable()
     {
         var cycle = new CycleId(new DateTimeOffset(2026, 7, 11, 12, 0, 0, TimeSpan.Zero));

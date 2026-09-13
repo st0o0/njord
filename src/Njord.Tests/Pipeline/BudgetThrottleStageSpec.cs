@@ -22,6 +22,7 @@ public sealed class BudgetThrottleStageSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 5000)]
     public async Task Elements_pass_through_when_gate_allows_immediately()
     {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         var gate = new AlwaysAllowGate<int>();
         var stage = new BudgetThrottleStage<int>(gate);
 
@@ -36,6 +37,7 @@ public sealed class BudgetThrottleStageSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 5000)]
     public async Task Gate_is_called_for_every_element()
     {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         var gate = new AlwaysAllowGate<int>();
         var stage = new BudgetThrottleStage<int>(gate);
 
@@ -50,6 +52,7 @@ public sealed class BudgetThrottleStageSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 5000)]
     public async Task Stage_retries_after_delay_when_gate_rejects()
     {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         var gate = new RejectThenAllowGate<int>(rejectCount: 2);
         var stage = new BudgetThrottleStage<int>(gate);
 
@@ -64,6 +67,7 @@ public sealed class BudgetThrottleStageSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 5000)]
     public async Task Empty_source_completes_immediately()
     {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         var gate = new AlwaysAllowGate<int>();
         var stage = new BudgetThrottleStage<int>(gate);
 
@@ -78,6 +82,7 @@ public sealed class BudgetThrottleStageSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 5000)]
     public async Task Stage_preserves_element_order()
     {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         var gate = new AlwaysAllowGate<int>();
         var stage = new BudgetThrottleStage<int>(gate);
 
@@ -118,7 +123,7 @@ public sealed class BudgetThrottleStageSpec : Akka.Hosting.TestKit.TestKit
 
 public sealed class WeightedBudgetGateSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Acquires_immediately_when_tokens_available()
     {
         var provider = new FakeProvider(new BudgetRate(600, 10));
@@ -128,7 +133,7 @@ public sealed class WeightedBudgetGateSpec
         Assert.True(gate.TryAcquire(target));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Rejects_when_tokens_insufficient()
     {
         var provider = new FakeProvider(new BudgetRate(60, 1));
@@ -138,7 +143,7 @@ public sealed class WeightedBudgetGateSpec
         Assert.False(gate.TryAcquire(MakeTarget(1)));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void EstimateDelay_returns_positive_when_tokens_insufficient()
     {
         var provider = new FakeProvider(new BudgetRate(60, 1));
@@ -150,7 +155,7 @@ public sealed class WeightedBudgetGateSpec
         Assert.True(delay > TimeSpan.Zero);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Tells_actor_with_correct_weight_on_acquire()
     {
         var provider = new FakeProvider(new BudgetRate(6000, 100));
@@ -160,7 +165,7 @@ public sealed class WeightedBudgetGateSpec
         Assert.True(gate.TryAcquire(MakeTarget(2)));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Provider_is_polled_at_construction()
     {
         var provider = new FakeProvider(new BudgetRate(6000, 100));
@@ -169,7 +174,7 @@ public sealed class WeightedBudgetGateSpec
         Assert.True(provider.CallCount >= 1);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Burst_allows_multiple_immediate_acquires()
     {
         var provider = new FakeProvider(new BudgetRate(60, 4));
@@ -181,7 +186,7 @@ public sealed class WeightedBudgetGateSpec
         Assert.False(gate.TryAcquire(MakeTarget(1)));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Weight_exceeding_max_burst_becomes_acquirable_after_refill()
     {
         var provider = new FakeProvider(new BudgetRate(480, 16));
@@ -194,7 +199,7 @@ public sealed class WeightedBudgetGateSpec
         Assert.True(gate.TryAcquire(MakeTarget(12)));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Free_tier_with_heavy_weight_acquires_on_first_try()
     {
         var provider = new FakeProvider(new BudgetRate(480, 16));

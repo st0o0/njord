@@ -30,7 +30,7 @@ public sealed class HistoryEnrichmentSpec
             Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoryEnrichment>.Instance);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Implements_IActorEnrichment()
     {
         var feature = CreateFeature();
@@ -38,20 +38,20 @@ public sealed class HistoryEnrichmentSpec
         Assert.IsAssignableFrom<IActorEnrichment>(feature);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Enabled_reflects_options()
     {
         Assert.True(CreateFeature(enabled: true).Enabled);
         Assert.False(CreateFeature(enabled: false).Enabled);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void TypeName_is_history()
     {
         Assert.Equal("history", CreateFeature().TypeName);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void BuildDiscoveryPayload_returns_valid_json()
     {
         var feature = CreateFeature();

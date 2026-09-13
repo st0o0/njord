@@ -24,10 +24,10 @@ public sealed class EnrichmentSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
         var actor = CreateActor();
         var result = new IndexResult("lucerne", [new DayScoreSet(0, 80, 90, 70, 85, 95, 60, 88, 75, HoursIncluded: 14)], null, null);
 
-        var ack = await actor.Ask<Ack>(new UpdateEnrichment("lucerne", "indices", result));
+        var ack = await actor.Ask<Ack>(new UpdateEnrichment("lucerne", "indices", result), TestContext.Current.CancellationToken);
         Assert.NotNull(ack);
 
-        var response = await actor.Ask<EnrichmentResponse>(new GetEnrichment("lucerne", "indices"));
+        var response = await actor.Ask<EnrichmentResponse>(new GetEnrichment("lucerne", "indices"), TestContext.Current.CancellationToken);
         Assert.NotNull(response.Result);
         Assert.IsType<IndexResult>(response.Result);
     }
@@ -37,11 +37,11 @@ public sealed class EnrichmentSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var actor = CreateActor();
         await actor.Ask<Ack>(new UpdateEnrichment("lucerne", "indices",
-            new IndexResult("lucerne", [new DayScoreSet(0, 80, 90, 70, 85, 95, 60, 88, 75, HoursIncluded: 14)], null, null)));
+            new IndexResult("lucerne", [new DayScoreSet(0, 80, 90, 70, 85, 95, 60, 88, 75, HoursIncluded: 14)], null, null)), TestContext.Current.CancellationToken);
         await actor.Ask<Ack>(new UpdateEnrichment("lucerne", "alerts",
-            new AlertResult("lucerne", [])));
+            new AlertResult("lucerne", [])), TestContext.Current.CancellationToken);
 
-        var response = await actor.Ask<AllEnrichmentsResponse>(new GetAllEnrichments("lucerne"));
+        var response = await actor.Ask<AllEnrichmentsResponse>(new GetAllEnrichments("lucerne"), TestContext.Current.CancellationToken);
         Assert.Equal(2, response.Results.Count);
     }
 
@@ -50,7 +50,7 @@ public sealed class EnrichmentSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var actor = CreateActor();
 
-        var response = await actor.Ask<EnrichmentResponse>(new GetEnrichment("lucerne", "unknown"));
+        var response = await actor.Ask<EnrichmentResponse>(new GetEnrichment("lucerne", "unknown"), TestContext.Current.CancellationToken);
         Assert.Null(response.Result);
     }
 }

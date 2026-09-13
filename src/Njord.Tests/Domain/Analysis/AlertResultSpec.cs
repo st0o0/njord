@@ -4,7 +4,7 @@ namespace Njord.Tests.Domain.Analysis;
 
 public sealed class AlertResultSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Alert_none_has_zero_confidence_and_none_severity()
     {
         var alert = Alert.None(AlertType.Frost);
@@ -13,7 +13,7 @@ public sealed class AlertResultSpec
         Assert.Empty(alert.Attributes);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void All_alert_type_topic_segments()
     {
         Assert.Equal("frost", AlertType.Frost.ToTopicSegment());
@@ -32,7 +32,7 @@ public sealed class AlertResultSpec
         Assert.Equal("humidity", AlertType.Humidity.ToTopicSegment());
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AlertType_has_14_values()
     {
         Assert.Equal(14, Enum.GetValues<AlertType>().Length);

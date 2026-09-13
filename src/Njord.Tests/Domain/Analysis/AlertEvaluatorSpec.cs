@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
-using Njord.Domain.Weather;
 using Njord.Domain.Analysis;
+using Njord.Domain.Weather;
 
 namespace Njord.Tests.Domain.Analysis;
 
@@ -52,7 +52,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- Frost ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Frost_all_models_agree()
     {
         var snap = SnapshotWith(
@@ -66,7 +66,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(1.0, alert.Confidence);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Frost_no_model_agrees()
     {
         var snap = SnapshotWith(
@@ -79,7 +79,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(0.0, alert.Confidence);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Frost_partial_agreement()
     {
         var snap = SnapshotWith(
@@ -94,7 +94,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(0.5, alert.Confidence);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Frost_moderate_produces_orange()
     {
         var snap = SnapshotWith(
@@ -106,7 +106,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Frost_severe_produces_red()
     {
         var snap = SnapshotWith(
@@ -120,7 +120,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- Heat ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Heat_extreme()
     {
         var snap = SnapshotWith(
@@ -134,7 +134,7 @@ public sealed class AlertEvaluatorSpec
         Assert.True(alert.Confidence > 0.5);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Heat_moderate()
     {
         var snap = SnapshotWith(
@@ -147,7 +147,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(1.0, alert.Confidence);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Heat_below_threshold_returns_none_alert()
     {
         var snap = SnapshotWith(
@@ -162,7 +162,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Empty(alert.Attributes);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Heat_fires_when_raw_temp_exceeds_threshold_but_apparent_does_not()
     {
         var snap = SnapshotWith(
@@ -175,7 +175,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(31.5, alert.TriggerValue);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void HeavyRain_below_threshold_preserves_trigger_value()
     {
         var snap = SnapshotWith(
@@ -190,7 +190,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- Storm ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Storm_detected()
     {
         var snap = SnapshotWith(
@@ -204,7 +204,7 @@ public sealed class AlertEvaluatorSpec
         Assert.True(alert.Confidence > 0.6);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Storm_not_detected()
     {
         var snap = SnapshotWith(
@@ -216,7 +216,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Storm_severe_produces_orange()
     {
         var snap = SnapshotWith(
@@ -228,7 +228,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Storm_hurricane_produces_red()
     {
         var snap = SnapshotWith(
@@ -242,7 +242,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- Heavy Rain ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void HeavyRain_hourly_and_daily_both_exceeded()
     {
         var snap = SnapshotWith(
@@ -256,7 +256,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- UV ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Uv_high()
     {
         var snap = SnapshotWith(
@@ -269,7 +269,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal("high", alert.Attributes["uv_level"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Uv_low()
     {
         var snap = SnapshotWith(
@@ -284,7 +284,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- Fog ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Fog_likely()
     {
         var snap = SnapshotWith(
@@ -297,7 +297,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(1.0, alert.Confidence);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Fog_not_likely()
     {
         var snap = SnapshotWith(
@@ -308,7 +308,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Fog_persistent_produces_orange()
     {
         var snap = SnapshotWith(
@@ -322,7 +322,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- Snow ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Snow_light()
     {
         var snap = SnapshotWith(
@@ -337,7 +337,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- Pressure Drop ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void PressureDrop_front_approaching()
     {
         ModelForecast MakePressureForecast(WeatherModel model)
@@ -363,7 +363,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(1.0, alert.Confidence);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void PressureDrop_stable()
     {
         var snap = SnapshotWith(
@@ -374,7 +374,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void PressureDrop_severe_produces_orange()
     {
         ModelForecast MakeSeverePressureForecast(WeatherModel model)
@@ -401,7 +401,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- Thunderstorm ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Thunderstorm_likely()
     {
         var snap = SnapshotWith(
@@ -414,7 +414,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(1.0, alert.Confidence);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Thunderstorm_none()
     {
         var snap = SnapshotWith(
@@ -427,7 +427,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- Ice ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Ice_rain_at_near_freezing_produces_yellow()
     {
         var snap = SnapshotWith(
@@ -440,7 +440,7 @@ public sealed class AlertEvaluatorSpec
         Assert.True(alert.Confidence > 0);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Ice_freezing_rain_produces_orange()
     {
         var snap = SnapshotWith(
@@ -452,7 +452,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Ice_frozen_ground_produces_red()
     {
         var snap = SnapshotWith(
@@ -465,7 +465,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(true, alert.Attributes["soil_frozen"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Ice_snow_only_no_rain_produces_none()
     {
         var snap = SnapshotWith(
@@ -477,7 +477,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Ice_without_soil_temp_caps_at_orange()
     {
         var snap = SnapshotWith(
@@ -492,7 +492,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- WindChill ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void WindChill_moderate_produces_yellow()
     {
         var snap = SnapshotWith(
@@ -505,7 +505,7 @@ public sealed class AlertEvaluatorSpec
         Assert.True((double)alert.Attributes["wind_factor"]! > 5.0);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void WindChill_severe_produces_orange_with_frostbite_risk()
     {
         var snap = SnapshotWith(
@@ -518,7 +518,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal("frostbite_30min", alert.Attributes["exposure_risk"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void WindChill_extreme_produces_red()
     {
         var snap = SnapshotWith(
@@ -531,7 +531,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal("frostbite_10min", alert.Attributes["exposure_risk"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void WindChill_cold_but_not_extreme_produces_none()
     {
         var snap = SnapshotWith(
@@ -545,7 +545,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- Visibility ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Visibility_reduced_produces_yellow()
     {
         var snap = SnapshotWith(
@@ -557,7 +557,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Visibility_dense_fog_produces_orange()
     {
         var snap = SnapshotWith(
@@ -569,7 +569,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Visibility_near_zero_produces_red()
     {
         var snap = SnapshotWith(
@@ -581,7 +581,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.Red, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Visibility_good_produces_none()
     {
         var snap = SnapshotWith(
@@ -595,7 +595,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- TropicalNight ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void TropicalNight_warm_night_produces_yellow()
     {
         var snap = SnapshotWith(
@@ -607,7 +607,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void TropicalNight_severe_produces_orange()
     {
         var snap = SnapshotWith(
@@ -619,7 +619,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void TropicalNight_extreme_produces_red()
     {
         var snap = SnapshotWith(
@@ -631,7 +631,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.Red, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void TropicalNight_cool_night_produces_none()
     {
         var snap = SnapshotWith(
@@ -643,7 +643,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void TropicalNight_all_daytime_produces_none()
     {
         var snap = SnapshotWith(
@@ -657,7 +657,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- Humidity ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Humidity_muggy_produces_yellow()
     {
         var snap = SnapshotWith(
@@ -670,7 +670,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal("muggy", alert.Attributes["comfort_level"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Humidity_oppressive_produces_orange()
     {
         var snap = SnapshotWith(
@@ -683,7 +683,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal("oppressive", alert.Attributes["comfort_level"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Humidity_tropical_produces_red()
     {
         var snap = SnapshotWith(
@@ -696,7 +696,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal("tropical", alert.Attributes["comfort_level"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Humidity_comfortable_produces_none()
     {
         var snap = SnapshotWith(
@@ -708,7 +708,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Humidity_all_nighttime_produces_none()
     {
         var snap = SnapshotWith(
@@ -750,7 +750,7 @@ public sealed class AlertEvaluatorSpec
             new ForecastSeries(points), new DailyForecastSeries([dailyPoint]));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void HeavyRain_daily_sum_from_daily_series_triggers_alert()
     {
         var snap = SnapshotWith(
@@ -766,7 +766,7 @@ public sealed class AlertEvaluatorSpec
         Assert.True(alert.Severity >= AlertSeverity.Orange);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Uv_daily_max_higher_than_hourly_peak()
     {
         var snap = SnapshotWith(
@@ -783,7 +783,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal("very_high", alert.Attributes["uv_level"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Uv_daily_not_available_falls_back_to_hourly()
     {
         var snap = SnapshotWith(
@@ -795,7 +795,7 @@ public sealed class AlertEvaluatorSpec
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Snow_daily_sum_increases_severity()
     {
         var snap = SnapshotWith(
@@ -813,7 +813,7 @@ public sealed class AlertEvaluatorSpec
 
     // --- EvaluateAll ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void EvaluateAll_returns_14_alerts()
     {
         var snap = SnapshotWith(MakeForecast(new("m1"), (Temperature, 15.0)));

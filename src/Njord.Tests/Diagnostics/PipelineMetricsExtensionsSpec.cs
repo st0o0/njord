@@ -5,7 +5,7 @@ namespace Njord.Tests.Diagnostics;
 
 public sealed class PipelineMetricsExtensionsSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddPollCycleDuration_creates_histogram_with_correct_name()
     {
         var histogram = NjordMetrics.Instance.AddPollCycleDuration();
@@ -14,7 +14,7 @@ public sealed class PipelineMetricsExtensionsSpec
         Assert.Equal("s", histogram.Unit);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddPollCycleModels_creates_gauge()
     {
         var gauge = NjordMetrics.Instance.AddPollCycleModels();
@@ -22,7 +22,7 @@ public sealed class PipelineMetricsExtensionsSpec
         Assert.Equal("njord_poll_cycle_models", gauge.Name);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AddDataChanged_creates_counter()
     {
         var counter = NjordMetrics.Instance.AddDataChanged();
@@ -31,7 +31,7 @@ public sealed class PipelineMetricsExtensionsSpec
         Assert.Equal("{change}", counter.Unit);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void DataChanged_records_with_location_and_model_labels()
     {
         var counter = NjordMetrics.Instance.AddDataChanged();

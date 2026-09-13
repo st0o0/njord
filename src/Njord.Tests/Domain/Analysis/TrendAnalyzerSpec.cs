@@ -1,5 +1,5 @@
-using Njord.Domain.Weather;
 using Njord.Domain.Analysis;
+using Njord.Domain.Weather;
 
 namespace Njord.Tests.Domain.Analysis;
 
@@ -11,7 +11,7 @@ public sealed class TrendAnalyzerSpec
 
     // --- TrendDirection ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void TrendDirection_rising()
     {
         var result = TrendAnalyzer.TrendDirection(18.0, 22.0, 0.5);
@@ -20,7 +20,7 @@ public sealed class TrendAnalyzerSpec
         Assert.Equal(4.0, result.Value.Delta);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void TrendDirection_falling()
     {
         var result = TrendAnalyzer.TrendDirection(22.0, 18.0, 0.5);
@@ -29,7 +29,7 @@ public sealed class TrendAnalyzerSpec
         Assert.Equal(-4.0, result.Value.Delta);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void TrendDirection_stable_within_deadband()
     {
         var result = TrendAnalyzer.TrendDirection(20.0, 20.3, 0.5);
@@ -38,17 +38,17 @@ public sealed class TrendAnalyzerSpec
         Assert.Equal(0.3, result.Value.Delta);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void TrendDirection_null_previous() =>
         Assert.Null(TrendAnalyzer.TrendDirection(null, 20.0, 0.5));
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void TrendDirection_null_current() =>
         Assert.Null(TrendAnalyzer.TrendDirection(20.0, null, 0.5));
 
     // --- WeatherChange ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void WeatherChange_clear_to_rain()
     {
         var result = TrendAnalyzer.WeatherChange(1, 63);
@@ -58,17 +58,17 @@ public sealed class TrendAnalyzerSpec
         Assert.Equal("clear → rain", result.Description);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void WeatherChange_same_category_returns_null() =>
         Assert.Null(TrendAnalyzer.WeatherChange(61, 65));
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void WeatherChange_null_codes() =>
         Assert.Null(TrendAnalyzer.WeatherChange(null, 63));
 
     // --- PrecipitationTiming ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void PrecipitationTiming_rain_window()
     {
         var points = Enumerable.Range(0, 24).Select(h =>
@@ -83,7 +83,7 @@ public sealed class TrendAnalyzerSpec
         Assert.Equal(8, ends);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void PrecipitationTiming_no_precipitation()
     {
         var points = Enumerable.Range(0, 24).Select(h =>
@@ -98,7 +98,7 @@ public sealed class TrendAnalyzerSpec
         Assert.Null(ends);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void PrecipitationTiming_from_start()
     {
         var points = Enumerable.Range(0, 24).Select(h =>
@@ -115,7 +115,7 @@ public sealed class TrendAnalyzerSpec
 
     // --- ExtremaTiming ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ExtremaTiming_peak_and_low()
     {
         var points = Enumerable.Range(0, 24).Select(h =>
@@ -130,7 +130,7 @@ public sealed class TrendAnalyzerSpec
         Assert.Equal(18, minH);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ExtremaTiming_insufficient_data()
     {
         var points = new[] { new ForecastPoint(T0, new Dictionary<ParameterDef, double?> { [Temperature] = 20.0 }) };
@@ -143,7 +143,7 @@ public sealed class TrendAnalyzerSpec
 
     // --- ConsensusStability ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ConsensusStability_converging()
     {
         var result = TrendAnalyzer.ConsensusStability(5.0, 3.0);
@@ -152,7 +152,7 @@ public sealed class TrendAnalyzerSpec
         Assert.Equal(0.6, result.Value.Ratio);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ConsensusStability_diverging()
     {
         var result = TrendAnalyzer.ConsensusStability(3.0, 5.0);
@@ -161,7 +161,7 @@ public sealed class TrendAnalyzerSpec
         Assert.InRange(result.Value.Ratio, 1.66, 1.68);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ConsensusStability_stable()
     {
         var result = TrendAnalyzer.ConsensusStability(4.0, 4.2);
@@ -170,17 +170,17 @@ public sealed class TrendAnalyzerSpec
         Assert.Equal(1.05, result.Value.Ratio);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ConsensusStability_null_iqr() =>
         Assert.Null(TrendAnalyzer.ConsensusStability(null, 3.0));
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ConsensusStability_zero_previous() =>
         Assert.Null(TrendAnalyzer.ConsensusStability(0.0, 3.0));
 
     // --- PredictabilityDecay ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void PredictabilityDecay_gradual()
     {
         var spreads = new (int, double?)[]
@@ -192,7 +192,7 @@ public sealed class TrendAnalyzerSpec
         Assert.Equal(24, result.Value.ReliableHours);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void PredictabilityDecay_flat()
     {
         var spreads = new (int, double?)[]
@@ -204,7 +204,7 @@ public sealed class TrendAnalyzerSpec
         Assert.Null(result.Value.ReliableHours);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void PredictabilityDecay_insufficient_data() =>
         Assert.Null(TrendAnalyzer.PredictabilityDecay([(3, 1.0)]));
 }

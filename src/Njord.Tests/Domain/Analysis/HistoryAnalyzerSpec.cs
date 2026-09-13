@@ -1,5 +1,5 @@
-using Njord.Domain.Weather;
 using Njord.Domain.Analysis;
+using Njord.Domain.Weather;
 
 namespace Njord.Tests.Domain.Analysis;
 
@@ -31,7 +31,7 @@ public sealed class HistoryAnalyzerSpec
 
     // --- ModelAccuracy ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ModelAccuracy_consistent_overshoot()
     {
         var history = BuildHistory(100, i => (22.0, 20.0, 20.0));
@@ -41,7 +41,7 @@ public sealed class HistoryAnalyzerSpec
         Assert.Equal(0.0, mae[M2]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ModelAccuracy_insufficient_history()
     {
         var history = BuildHistory(10, i => (22.0, 20.0, 20.0));
@@ -52,7 +52,7 @@ public sealed class HistoryAnalyzerSpec
 
     // --- ModelWeights ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ModelWeights_low_error_gets_higher_weight()
     {
         var mae = new Dictionary<WeatherModel, double?> { [M1] = 0.5, [M2] = 2.0 };
@@ -62,7 +62,7 @@ public sealed class HistoryAnalyzerSpec
         Assert.InRange(weights.Values.Sum(), 0.99, 1.01);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ModelWeights_all_null_gives_equal()
     {
         var mae = new Dictionary<WeatherModel, double?> { [M1] = null, [M2] = null };
@@ -73,7 +73,7 @@ public sealed class HistoryAnalyzerSpec
 
     // --- WeightedConsensus ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void WeightedConsensus_applies_weights()
     {
         var values = new (WeatherModel, double?)[] { (M1, 20.0), (M2, 24.0) };
@@ -86,7 +86,7 @@ public sealed class HistoryAnalyzerSpec
 
     // --- ForecastDrift ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ForecastDrift_stable_model()
     {
         var history = BuildHistory(10, i => (20.0 + (i % 2) * 0.1, 20.0, 20.0));
@@ -96,7 +96,7 @@ public sealed class HistoryAnalyzerSpec
         Assert.InRange(drift.Value, 0, 0.2);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ForecastDrift_unstable_model()
     {
         var history = BuildHistory(10, i => (15.0 + i * 2, 20.0, 20.0));
@@ -106,7 +106,7 @@ public sealed class HistoryAnalyzerSpec
         Assert.True(drift.Value > 2.0);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ForecastDrift_insufficient_runs()
     {
         var history = BuildHistory(1, i => (20.0, 20.0, 20.0));
@@ -115,7 +115,7 @@ public sealed class HistoryAnalyzerSpec
 
     // --- SeasonalPreference ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void SeasonalPreference_best_model_in_summer()
     {
         var history = BuildHistory(100, i => (22.0, 20.0, 20.0));
@@ -125,7 +125,7 @@ public sealed class HistoryAnalyzerSpec
         Assert.Equal(M2, best);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void SeasonalPreference_no_data()
     {
         var history = new ForecastHistory(30);
@@ -135,7 +135,7 @@ public sealed class HistoryAnalyzerSpec
 
     // --- AnomalyDetection ---
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AnomalyDetection_normal_value()
     {
         var history = BuildHistory(100, i => (20.0, 20.0, 20.0));
@@ -145,7 +145,7 @@ public sealed class HistoryAnalyzerSpec
         Assert.False(result.Value.IsAnomaly);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AnomalyDetection_anomalous_value()
     {
         // All consensus at hour 0 will be 20.0, so 50.0 is a clear anomaly
@@ -163,7 +163,7 @@ public sealed class HistoryAnalyzerSpec
         Assert.True(result2.Value.DeviationSigma > 2.0);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void AnomalyDetection_insufficient_history()
     {
         var history = BuildHistory(10, i => (20.0, 20.0, 20.0));

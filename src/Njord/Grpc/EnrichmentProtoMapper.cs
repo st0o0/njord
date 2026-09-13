@@ -1,14 +1,14 @@
 using Njord.Domain.Analysis;
 using Njord.Grpc.V2;
-using DomainAlertType = Njord.Domain.Analysis.AlertType;
 using DomainAlertSeverity = Njord.Domain.Analysis.AlertSeverity;
-using ProtoAlertType = Njord.Grpc.V2.AlertType;
+using DomainAlertType = Njord.Domain.Analysis.AlertType;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
+using ProtoAlertType = Njord.Grpc.V2.AlertType;
 using ProtoHorizonConsensus = Njord.Grpc.V2.HorizonConsensus;
-using ProtoParameterConsensus = Njord.Grpc.V2.ParameterConsensus;
 using ProtoHorizonDerived = Njord.Grpc.V2.HorizonDerived;
-using ProtoScalarDerived = Njord.Grpc.V2.ScalarDerived;
+using ProtoParameterConsensus = Njord.Grpc.V2.ParameterConsensus;
 using ProtoParameterTrend = Njord.Grpc.V2.ParameterTrend;
+using ProtoScalarDerived = Njord.Grpc.V2.ScalarDerived;
 
 namespace Njord.Grpc;
 
@@ -82,7 +82,7 @@ public static class EnrichmentProtoMapper
 
         if (result.FrostProtection is { } frost)
         {
-            update.Frost = new V2.FrostInfo
+            update.Frost = new FrostInfo
             {
                 HoursUntilFrost = frost.HoursUntilFrost,
                 Confidence = frost.Confidence,

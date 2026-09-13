@@ -9,8 +9,8 @@ using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Grpc.V2;
-using GrpcStatus = Grpc.Core.Status;
 using ActorSystem = Akka.Actor.ActorSystem;
+using GrpcStatus = Grpc.Core.Status;
 
 namespace Njord.Grpc;
 
@@ -18,7 +18,7 @@ public sealed class WeatherGrpcService(
     IOptions<NjordOptions> options,
     ActorRegistry actorRegistry,
     ActorSystem actorSystem,
-    TimeProvider timeProvider) : V2.WeatherService.WeatherServiceBase
+    TimeProvider timeProvider) : WeatherService.WeatherServiceBase
 {
     private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(5);
     private readonly NjordOptions _options = options.Value;
@@ -89,7 +89,7 @@ public sealed class WeatherGrpcService(
 
         var actor = actorRegistry.Get<ForecastSnapshotActor>();
         var result = await actor.Ask<ForecastResponse>(
-            new Grpc.GetForecast(request.Location, request.Model), AskTimeout);
+            new GetForecast(request.Location, request.Model), AskTimeout);
 
         if (result.Forecast is null)
         {
@@ -259,12 +259,12 @@ public sealed class WeatherGrpcService(
 
     private static void MapForecastPoints(
         ModelForecast forecast,
-        Google.Protobuf.Collections.RepeatedField<V2.HourlyForecast> hourlyTarget,
-        Google.Protobuf.Collections.RepeatedField<V2.DailyForecast> dailyTarget)
+        Google.Protobuf.Collections.RepeatedField<HourlyForecast> hourlyTarget,
+        Google.Protobuf.Collections.RepeatedField<DailyForecast> dailyTarget)
     {
         foreach (var point in forecast.Hourly.Points)
         {
-            var hourly = new V2.HourlyForecast { ValidAt = Timestamp.FromDateTimeOffset(point.ValidAt) };
+            var hourly = new HourlyForecast { ValidAt = Timestamp.FromDateTimeOffset(point.ValidAt) };
             SetOptional(point, ParameterRegistry.Temperature2m, v => hourly.Temperature = v);
             SetOptional(point, ParameterRegistry.ApparentTemperature, v => hourly.ApparentTemperature = v);
             SetOptional(point, ParameterRegistry.Precipitation, v => hourly.Precipitation = v);
@@ -300,7 +300,7 @@ public sealed class WeatherGrpcService(
                     continue;
                 }
 
-                hourly.Extra.Add(new V2.ParameterValue { Name = param.ApiName, Numeric = value.Value });
+                hourly.Extra.Add(new ParameterValue { Name = param.ApiName, Numeric = value.Value });
             }
 
             hourlyTarget.Add(hourly);
@@ -308,7 +308,7 @@ public sealed class WeatherGrpcService(
 
         foreach (var point in forecast.Daily.Points)
         {
-            var daily = new V2.DailyForecast { Date = point.Date.ToString("O") };
+            var daily = new DailyForecast { Date = point.Date.ToString("O") };
             var tempMax = point.GetNumeric(ParameterRegistry.GetByApiName("temperature_2m_max")!);
             if (tempMax.HasValue)
             {
@@ -354,7 +354,7 @@ public sealed class WeatherGrpcService(
                     continue;
                 }
 
-                daily.Extra.Add(new V2.ParameterValue { Name = param.ApiName, Numeric = value.Value });
+                daily.Extra.Add(new ParameterValue { Name = param.ApiName, Numeric = value.Value });
             }
 
             foreach (var (param, value) in point.MetaValues)
@@ -364,7 +364,7 @@ public sealed class WeatherGrpcService(
                     continue;
                 }
 
-                daily.Extra.Add(new V2.ParameterValue { Name = param.ApiName, Text = value });
+                daily.Extra.Add(new ParameterValue { Name = param.ApiName, Text = value });
             }
 
             dailyTarget.Add(daily);

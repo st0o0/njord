@@ -9,7 +9,7 @@ namespace Njord.Tests.Persistence;
 
 public sealed class EnrichmentSnapshotDtoSerializationSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public Task EnrichmentSnapshot_dto_produces_stable_wire_format()
     {
         var state = new Dictionary<string, object>
@@ -22,7 +22,7 @@ public sealed class EnrichmentSnapshotDtoSerializationSpec
         return Verify(json);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void EnrichmentSnapshot_dto_round_trips_to_domain()
     {
         var state = new Dictionary<string, object>
@@ -38,7 +38,7 @@ public sealed class EnrichmentSnapshotDtoSerializationSpec
         Assert.IsType<AlertResult>(result["lucerne|alerts"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void HistoryResult_round_trips_through_enrichment_snapshot_dto()
     {
         var historyResult = new HistoryResult(
@@ -66,7 +66,7 @@ public sealed class EnrichmentSnapshotDtoSerializationSpec
         Assert.Equal(18.5, recovered.WeightedTemperature);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ConsensusResult_round_trips_through_enrichment_snapshot_dto()
     {
         var param = new ParameterDef("temperature_2m", "C", "temperature", "temperature_2m",

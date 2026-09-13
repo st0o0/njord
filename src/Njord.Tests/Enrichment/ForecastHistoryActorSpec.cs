@@ -40,7 +40,7 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
         var actor = Sys.ActorOf(Props.Create(() =>
             new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, TimeProvider.System)));
 
-        var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(2));
+        var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Empty(response.History.Records);
     }
 
@@ -52,7 +52,7 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
 
         actor.Tell(new RecordSnapshot(MakeSnapshot()));
 
-        var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(3));
+        var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Single(response.History.Records);
         Assert.Equal("lucerne", response.History.Records[0].Location);
     }
@@ -66,7 +66,7 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
         for (var i = 0; i < 5; i++)
             actor.Tell(new RecordSnapshot(MakeSnapshot()));
 
-        var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(3));
+        var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(5, response.History.Records.Count);
     }
 }

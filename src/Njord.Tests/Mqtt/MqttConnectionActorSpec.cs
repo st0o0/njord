@@ -37,7 +37,7 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
         var connection = new FakeConnection();
         _ = CreateActor(connection, transport);
 
-        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online");
+        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online").WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains(transport.Sent, m => m.Topic == "njord/status" && m.Payload == "online");
     }
@@ -49,7 +49,7 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
         var connection = new FakeConnection { FailConnectCount = 1 };
         _ = CreateActor(connection, transport);
 
-        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online");
+        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online").WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.True(connection.ConnectCallCount >= 2,
             $"Expected at least 2 connect attempts, got {connection.ConnectCallCount}");
@@ -63,7 +63,7 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
         var connection = new FakeConnection();
         var actor = CreateActor(connection, transport);
 
-        var response = await actor.Ask<MqttSinkResponse>(new RequestMqttSink(), TimeSpan.FromSeconds(3));
+        var response = await actor.Ask<MqttSinkResponse>(new RequestMqttSink(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.NotNull(response);
         Assert.NotNull(response.SinkRef);
     }
@@ -75,7 +75,7 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
         var connection = new FakeConnection();
         var actor = CreateActor(connection, transport);
 
-        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online");
+        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online").WaitAsync(TestContext.Current.CancellationToken);
 
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
     }
@@ -87,7 +87,7 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
         var connection = new FakeConnection();
         var actor = CreateActor(connection, transport);
 
-        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online");
+        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online").WaitAsync(TestContext.Current.CancellationToken);
 
         var inbox = Inbox.Create(Sys);
         actor.Tell(new SubscribeInbound(inbox.Receiver));

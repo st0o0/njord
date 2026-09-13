@@ -7,7 +7,7 @@ public sealed class ModelPollStateSpec
     private static readonly DateTimeOffset T0 = new(2026, 7, 12, 6, 0, 0, TimeSpan.Zero);
     private static readonly TimeSpan DiscoveryInterval = TimeSpan.FromMinutes(20);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Initial_state_is_discovery_with_immediate_poll()
     {
         var state = ModelPollState.Initial(T0);
@@ -16,7 +16,7 @@ public sealed class ModelPollStateSpec
         Assert.Null(state.Cycle);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void First_data_change_stays_in_discovery()
     {
         var state = ModelPollState.Initial(T0)
@@ -30,7 +30,7 @@ public sealed class ModelPollStateSpec
         Assert.Equal(T0.AddMinutes(40), state.NextPollUtc);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Second_data_change_computes_cycle_and_transitions_to_steady()
     {
         var state = ModelPollState.Initial(T0)
@@ -42,7 +42,7 @@ public sealed class ModelPollStateSpec
         Assert.Equal(T0.AddHours(4) + TimeSpan.FromHours(3) + TimeSpan.FromMinutes(1), state.NextPollUtc);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Retry_backoff_doubles_per_miss()
     {
         var state = ModelPollState.Initial(T0)
@@ -62,7 +62,7 @@ public sealed class ModelPollStateSpec
         Assert.Equal(T0.AddHours(6).AddMinutes(7) + TimeSpan.FromMinutes(8), miss4.NextPollUtc);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Retry_backoff_caps_at_15_minutes()
     {
         var state = ModelPollState.Initial(T0)
@@ -81,7 +81,7 @@ public sealed class ModelPollStateSpec
         Assert.True(state.NextPollUtc - now <= TimeSpan.FromMinutes(15));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Five_misses_in_steady_falls_back_to_discovery()
     {
         var state = ModelPollState.Initial(T0)
@@ -102,7 +102,7 @@ public sealed class ModelPollStateSpec
         Assert.Equal(0, state.MissCount);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Discovery_misses_do_not_fall_back()
     {
         var state = ModelPollState.Initial(T0);
@@ -116,7 +116,7 @@ public sealed class ModelPollStateSpec
         }
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Transient_failures_do_not_increment_miss_count()
     {
         var state = ModelPollState.Initial(T0)
@@ -134,7 +134,7 @@ public sealed class ModelPollStateSpec
         Assert.Equal(10, state.TransientFailureCount);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Transient_failures_preserve_phase_and_cycle()
     {
         var state = ModelPollState.Initial(T0)
@@ -155,7 +155,7 @@ public sealed class ModelPollStateSpec
         Assert.Equal(TimeSpan.FromHours(3), state.Cycle);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Transient_failure_backoff_then_caps_at_discovery_interval()
     {
         var state = ModelPollState.Initial(T0)
@@ -188,7 +188,7 @@ public sealed class ModelPollStateSpec
         Assert.Equal(now + DiscoveryInterval, state.NextPollUtc);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Recovery_after_transient_failures_first_miss_has_miss_count_one()
     {
         var state = ModelPollState.Initial(T0)
@@ -210,7 +210,7 @@ public sealed class ModelPollStateSpec
         Assert.Equal(now + TimeSpan.FromMinutes(1), miss.NextPollUtc);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Data_change_resets_transient_failure_count()
     {
         var state = ModelPollState.Initial(T0)

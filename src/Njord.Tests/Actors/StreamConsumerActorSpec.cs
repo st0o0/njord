@@ -180,7 +180,7 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         }
 
         var consumer = Sys.ActorOf(TestStreamConsumer.CreateProps(graphTcs));
-        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         return consumer;
     }
 
@@ -204,14 +204,14 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         await depA.GracefulStop(TimeSpan.FromSeconds(2));
 
         // Wait long enough to detect a tight loop if one existed
-        await Task.Delay(500);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
 
         // Assert: at most a small number of dead letters (not a tight loop)
         // Drain whatever dead letters accumulated in that window
         var deadLetterCount = 0;
         while (deadLetterProbe.HasMessages)
         {
-            deadLetterProbe.ReceiveOne(TimeSpan.FromMilliseconds(50));
+            deadLetterProbe.ReceiveOne(TimeSpan.FromMilliseconds(50), TestContext.Current.CancellationToken);
             deadLetterCount++;
         }
 
@@ -228,12 +228,12 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         var consumer = Sys.ActorOf(
             ResettableTestStreamConsumer.CreateProps(graphTcs));
 
-        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // Prepare a second TCS to detect a second MaterializeGraph call
         var secondGraphTcs = new TaskCompletionSource();
         consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(secondGraphTcs));
-        await Task.Delay(100); // let the message process
+        await ExpectNoMsgAsync(TimeSpan.FromMilliseconds(100), TestContext.Current.CancellationToken);
 
         // Act: stop depA so the consumer enters WaitingForRefs.
         // The dead ref is detected on the first re-resolve and a retry is
@@ -244,7 +244,7 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         // Wait 800 ms — safely inside the 1 s retry window.
         var completed = await Task.WhenAny(
             secondGraphTcs.Task,
-            Task.Delay(800));
+            Task.Delay(800, TestContext.Current.CancellationToken));
 
         // Assert: MaterializeGraph should NOT have been called a second time
         // while the retry is still pending and the dep is dead.
@@ -259,7 +259,7 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         var graphTcs = new TaskCompletionSource();
         var consumer = Sys.ActorOf(
             ResettableTestStreamConsumer.CreateProps(graphTcs));
-        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // Create an untracked actor and stop it so a Terminated is delivered
         var untracked = Sys.ActorOf(Props.Create(() => new BlackHoleActor()));
@@ -267,15 +267,15 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         // but the consumer never tracked it, so its Terminated should be ignored.
         Watch(untracked);
         Sys.Stop(untracked);
-        await ExpectTerminatedAsync(untracked);
+        await ExpectTerminatedAsync(untracked, cancellationToken: TestContext.Current.CancellationToken);
 
         // Allow a beat for any side effects
-        await Task.Delay(200);
+        await Task.Delay(200, TestContext.Current.CancellationToken);
 
         // Assert: the consumer is still alive and in Ready (responds to queries)
         var count = await consumer.Ask<int>(
             new ResettableTestStreamConsumer.GetMaterializeCount(),
-            TimeSpan.FromSeconds(2));
+            TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, count);
     }
 
@@ -291,11 +291,12 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         var graphTcs = new TaskCompletionSource();
         var consumer = Sys.ActorOf(
             ResettableTestStreamConsumer.CreateProps(graphTcs));
-        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // First failure: stop depA
+        Watch(depA);
         await depA.GracefulStop(TimeSpan.FromSeconds(2));
-        await Task.Delay(200);
+        await ExpectTerminatedAsync(depA, cancellationToken: TestContext.Current.CancellationToken);
 
         // Register a new depA so the retry resolves successfully
         var newDepA = CreateTestProbe();
@@ -304,11 +305,12 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         // Wait for recovery (retry delay is 1s for _retryCount=0)
         var secondGraphTcs = new TaskCompletionSource();
         consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(secondGraphTcs));
-        await secondGraphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await secondGraphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // Second failure: stop newDepA
+        Watch(newDepA);
         await newDepA.GracefulStop(TimeSpan.FromSeconds(2));
-        await Task.Delay(200);
+        await ExpectTerminatedAsync(newDepA, cancellationToken: TestContext.Current.CancellationToken);
 
         // Register yet another depA
         var thirdDepA = CreateTestProbe();
@@ -321,12 +323,12 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(thirdGraphTcs));
         var recovered = await Task.WhenAny(
             thirdGraphTcs.Task,
-            Task.Delay(3000));
+            Task.Delay(3000, TestContext.Current.CancellationToken));
 
         Assert.Equal(thirdGraphTcs.Task, recovered);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task Exponential_backoff_caps_at_30_seconds()
     {
         // Unit-level verification of the backoff formula used in ScheduleRetryResolve.

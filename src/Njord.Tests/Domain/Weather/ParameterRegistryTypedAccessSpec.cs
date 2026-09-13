@@ -4,7 +4,7 @@ namespace Njord.Tests.Domain.Weather;
 
 public sealed class ParameterRegistryTypedAccessSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void All_typed_properties_are_non_null()
     {
         Assert.NotNull(ParameterRegistry.Temperature2m);
@@ -29,7 +29,7 @@ public sealed class ParameterRegistryTypedAccessSpec
         Assert.NotNull(ParameterRegistry.Et0FaoEvapotranspiration);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Typed_property_returns_correct_api_name()
     {
         Assert.Equal("temperature_2m", ParameterRegistry.Temperature2m.ApiName);
@@ -37,7 +37,7 @@ public sealed class ParameterRegistryTypedAccessSpec
         Assert.Equal("cloud_cover", ParameterRegistry.CloudCover.ApiName);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Typed_property_matches_GetByApiName_result()
     {
         Assert.Equal(

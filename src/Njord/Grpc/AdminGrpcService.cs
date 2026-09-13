@@ -8,7 +8,7 @@ namespace Njord.Grpc;
 public sealed class AdminGrpcService(
     IOptionsMonitor<NjordOptions> optionsMonitor,
     ConfigPersistence persistence,
-    ILogger<AdminGrpcService> logger) : V2.AdminService.AdminServiceBase
+    ILogger<AdminGrpcService> logger) : AdminService.AdminServiceBase
 {
     private readonly IOptionsMonitor<NjordOptions> _optionsMonitor = optionsMonitor;
     private readonly ConfigPersistence _persistence = persistence;
@@ -28,7 +28,7 @@ public sealed class AdminGrpcService(
         await responseStream.WriteAsync(MapConfig(_optionsMonitor.CurrentValue));
 
         var tcs = new TaskCompletionSource();
-        using var registration = context.CancellationToken.Register(() => tcs.TrySetResult());
+        await using var registration = context.CancellationToken.Register(() => tcs.TrySetResult());
 
         using var onChange = _optionsMonitor.OnChange(async (options, _) =>
         {
@@ -365,14 +365,14 @@ public sealed class AdminGrpcService(
         {
             ForecastDays = options.ForecastDays,
             PollIntervalSeconds = (long)options.PollInterval.TotalSeconds,
-            Parameters = new V2.ParameterConfig(),
+            Parameters = new ParameterConfig(),
             Enrichment = MapEnrichment(options.Enrichment),
             BudgetProjection = MapBudgetProjection(budget),
         };
 
         if (options.BudgetOverride is { } bo)
         {
-            config.BudgetOverride = new V2.BudgetConfig
+            config.BudgetOverride = new BudgetConfig
             {
                 RequestsPerMonth = bo.RequestsPerMonth,
                 RequestsPerMinute = bo.RequestsPerMinute,
@@ -404,13 +404,13 @@ public sealed class AdminGrpcService(
     {
         return new DetailedEnrichmentConfig
         {
-            Consensus = new V2.ConsensusConfig
+            Consensus = new ConsensusConfig
             {
                 Enabled = enrichment.Consensus.Enabled,
                 Method = enrichment.Consensus.Method,
                 TrimPercent = enrichment.Consensus.TrimPercent,
             },
-            Alerts = new V2.AlertConfig
+            Alerts = new AlertConfig
             {
                 Enabled = enrichment.Alerts.Enabled,
                 FrostThresholds = { enrichment.Alerts.FrostThresholds },
@@ -430,9 +430,9 @@ public sealed class AdminGrpcService(
                 TropicalNightThresholds = { enrichment.Alerts.TropicalNightThresholds },
                 HumidityThresholds = { enrichment.Alerts.HumidityThresholds },
             },
-            Derived = new V2.DerivedConfig { Enabled = enrichment.Derived.Enabled },
-            Trends = new V2.TrendConfig { Enabled = enrichment.Trends.Enabled },
-            Indices = new V2.IndexConfig
+            Derived = new DerivedConfig { Enabled = enrichment.Derived.Enabled },
+            Trends = new TrendConfig { Enabled = enrichment.Trends.Enabled },
+            Indices = new IndexConfig
             {
                 Enabled = enrichment.Indices.Enabled,
                 IndoorTemp = enrichment.Indices.Preferences.IndoorTemp ?? 22.0,
@@ -447,7 +447,7 @@ public sealed class AdminGrpcService(
                 BbqIdealWindLow = enrichment.Indices.Preferences.BbqIdealWindLow ?? 1.0,
                 BbqIdealWindHigh = enrichment.Indices.Preferences.BbqIdealWindHigh ?? 3.0,
             },
-            History = new V2.HistoryConfig
+            History = new HistoryConfig
             {
                 Enabled = enrichment.History.Enabled,
                 RetentionDays = enrichment.History.RetentionDays,
@@ -457,9 +457,9 @@ public sealed class AdminGrpcService(
         };
     }
 
-    private static V2.BudgetProjection MapBudgetProjection(BudgetValidation validation)
+    private static BudgetProjection MapBudgetProjection(BudgetValidation validation)
     {
-        return new V2.BudgetProjection
+        return new BudgetProjection
         {
             ProjectedMonthlyCalls = validation.ProjectedMonthlyCalls,
             MonthlyLimit = validation.MonthlyLimit,

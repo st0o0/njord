@@ -45,7 +45,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             Microsoft.Extensions.Logging.Abstractions.NullLogger<OpsGrpcService>.Instance);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task GetStatus_returns_model_poll_states_with_timestamps()
     {
         var service = CreateService();
@@ -66,7 +66,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Null(zurich.LastChange);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task GetStatus_returns_active_enrichments()
     {
         var service = CreateService();
@@ -78,7 +78,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(2, status.ActiveEnrichments.Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task GetStatus_returns_process_start_as_timestamp()
     {
         var service = CreateService();
@@ -89,7 +89,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.True(status.ProcessStart.ToDateTimeOffset() > DateTimeOffset.MinValue);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task GetStatus_returns_budget_usage()
     {
         var service = CreateService();
@@ -100,7 +100,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(7, status.Budget.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task GetTargets_returns_all_configured_pairs_with_timestamps()
     {
         var service = CreateService();
@@ -120,7 +120,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Null(zurich.LastChange);
     }
 
-    [Fact(Timeout = 15000)]
+    [Fact]
     public async Task GetTargets_returns_empty_on_scheduler_timeout()
     {
         var slowScheduler = Sys.ActorOf(Props.Create(() => new SlowSchedulerActor()));
@@ -133,7 +133,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Empty(response.Targets);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task TriggerPoll_triggers_specific_model()
     {
         var service = CreateService();
@@ -146,7 +146,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Contains("lucerne/icon_d2", response.Targets);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task TriggerPoll_triggers_all_on_empty_filter()
     {
         var service = CreateService();

@@ -67,7 +67,7 @@ public sealed class ConsensusSnapshotSpec
             new ForecastSeries(forecastPoints), new DailyForecastSeries(dailyPoints));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Compute_produces_snapshot_with_hourly_and_daily_facets()
     {
         var baseDate = DateOnly.FromDateTime(T0.UtcDateTime);
@@ -93,7 +93,7 @@ public sealed class ConsensusSnapshotSpec
         Assert.Equal(T0, result.ComputedAt);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Compute_returns_empty_facets_for_location_with_no_data()
     {
         var snapshot = ModelSnapshot.Empty;
@@ -109,7 +109,7 @@ public sealed class ConsensusSnapshotSpec
         Assert.Equal(0, result.Daily.CutoffDay);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void CutoffHour_is_second_to_last_model_max_hour()
     {
         var snapshot = ModelSnapshot.Empty
@@ -125,7 +125,7 @@ public sealed class ConsensusSnapshotSpec
         Assert.Equal(72, result.Hourly.CutoffHour);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void CutoffHour_is_negative_one_with_fewer_than_two_models()
     {
         var snapshot = ModelSnapshot.Empty
@@ -140,7 +140,7 @@ public sealed class ConsensusSnapshotSpec
         Assert.Empty(result.Hourly.Parameters);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void CutoffDay_is_second_to_last_model_day_count()
     {
         var baseDate = DateOnly.FromDateTime(T0.UtcDateTime);
@@ -157,7 +157,7 @@ public sealed class ConsensusSnapshotSpec
         Assert.Equal(5, result.Daily.CutoffDay);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Horizons_with_fewer_than_two_models_are_filtered_out()
     {
         var snapshot = ModelSnapshot.Empty
@@ -175,7 +175,7 @@ public sealed class ConsensusSnapshotSpec
         Assert.False(byHorizon.ContainsKey("h2"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Hourly_consensus_median_matches_expected_value()
     {
         var snapshot = ModelSnapshot.Empty
@@ -194,7 +194,7 @@ public sealed class ConsensusSnapshotSpec
         Assert.Equal(3, h3.AvailableModels.Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Daily_consensus_from_model_daily_parameters()
     {
         var baseDate = DateOnly.FromDateTime(T0.UtcDateTime);
@@ -214,7 +214,7 @@ public sealed class ConsensusSnapshotSpec
         Assert.Equal(3, d0.AvailableModels.Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Daily_consensus_filters_single_model_horizons()
     {
         var baseDate = DateOnly.FromDateTime(T0.UtcDateTime);
@@ -233,7 +233,7 @@ public sealed class ConsensusSnapshotSpec
         Assert.False(byHorizon.ContainsKey("d2"));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ComputedAt_matches_time_provider_value()
     {
         var anchorTime = new DateTimeOffset(2026, 7, 31, 6, 0, 0, TimeSpan.Zero);

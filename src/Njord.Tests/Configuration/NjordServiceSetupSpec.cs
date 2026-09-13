@@ -3,8 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Mqtt.Transport;
 using Njord.Ingest;
+using Njord.Mqtt.Transport;
 using Servus.Core.Application.Startup;
 
 namespace Njord.Tests.Configuration;
@@ -39,7 +39,7 @@ public sealed class NjordServiceSetupSpec
         return services.BuildServiceProvider();
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Implements_IServiceSetupContainer()
     {
         IServiceSetupContainer setup = new NjordServiceSetup();
@@ -47,7 +47,7 @@ public sealed class NjordServiceSetupSpec
         Assert.NotNull(setup);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task Registers_NjordOptions_with_validation()
     {
         var provider = BuildProvider();
@@ -59,7 +59,7 @@ public sealed class NjordServiceSetupSpec
         await DisposeProviderAsync(provider);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task Registers_ResolvedParameterSet()
     {
         var provider = BuildProvider();
@@ -70,7 +70,7 @@ public sealed class NjordServiceSetupSpec
         await DisposeProviderAsync(provider);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task Registers_TimeProvider()
     {
         var provider = BuildProvider();
@@ -81,7 +81,7 @@ public sealed class NjordServiceSetupSpec
         await DisposeProviderAsync(provider);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task Registers_ingest_services()
     {
         var provider = BuildProvider();
@@ -92,7 +92,7 @@ public sealed class NjordServiceSetupSpec
         await DisposeProviderAsync(provider);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public async Task Registers_egress_services()
     {
         var provider = BuildProvider();

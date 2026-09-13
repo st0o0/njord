@@ -41,7 +41,7 @@ public sealed class AlertEnrichmentSpec
         return ModelSnapshot.Empty.Update(forecast);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Compute_produces_one_enrichment_update_per_location()
     {
         var feature = CreateFeature();
@@ -57,7 +57,7 @@ public sealed class AlertEnrichmentSpec
         Assert.IsType<AlertResult>(update.Result);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Normal_conditions_produce_no_severe_alerts()
     {
         var feature = CreateFeature();
@@ -71,7 +71,7 @@ public sealed class AlertEnrichmentSpec
         Assert.All(result.Alerts, a => Assert.Equal(AlertSeverity.None, a.Severity));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Frost_condition_produces_frost_alert()
     {
         var feature = CreateFeature();
@@ -96,7 +96,7 @@ public sealed class AlertEnrichmentSpec
         Assert.NotEqual(AlertSeverity.None, frostAlert.Severity);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Enabled_reflects_options()
     {
         Assert.True(CreateFeature(enabled: true).Enabled);

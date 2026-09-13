@@ -2,21 +2,20 @@ using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Grpc;
 using Njord.Grpc.V2;
-
 using DomainAlert = Njord.Domain.Analysis.Alert;
-using DomainAlertType = Njord.Domain.Analysis.AlertType;
 using DomainAlertSeverity = Njord.Domain.Analysis.AlertSeverity;
-using DomainHorizonDerived = Njord.Domain.Analysis.HorizonDerived;
-using DomainScalarDerived = Njord.Domain.Analysis.ScalarDerived;
-using DomainParameterTrend = Njord.Domain.Analysis.ParameterTrend;
+using DomainAlertType = Njord.Domain.Analysis.AlertType;
 using DomainHorizonConsensus = Njord.Domain.Analysis.HorizonConsensus;
+using DomainHorizonDerived = Njord.Domain.Analysis.HorizonDerived;
 using DomainParameterConsensus = Njord.Domain.Analysis.ParameterConsensus;
+using DomainParameterTrend = Njord.Domain.Analysis.ParameterTrend;
+using DomainScalarDerived = Njord.Domain.Analysis.ScalarDerived;
 
 namespace Njord.Tests.Grpc;
 
 public sealed class EnrichmentProtoMapperSpec
 {
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MapAlerts_should_map_alert_type_and_severity_enums()
     {
         var result = new AlertResult("lucerne",
@@ -40,7 +39,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.Equal(0.92, update.Alerts[1].Confidence);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MapIndices_should_map_daily_scores_frost_and_vpd()
     {
         var result = new IndexResult(
@@ -72,7 +71,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.Equal("optimal", update.Vpd.Category);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MapIndices_should_omit_frost_when_null()
     {
         var result = new IndexResult("lucerne",
@@ -85,7 +84,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.Null(update.Vpd);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MapIndices_should_map_envelopes_when_present()
     {
         var envelope = new Njord.Domain.Analysis.ScoreEnvelope(65, 80, 0.9);
@@ -104,7 +103,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.Null(d0.LaundryEnvelope);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MapTrends_should_map_parameter_trends_and_nullable_timing()
     {
         var trends = new Dictionary<string, DomainParameterTrend?>
@@ -138,7 +137,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.Equal(24, update.ReliableHours);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MapDerived_should_map_horizon_entries_and_scalars()
     {
         var byHorizon = new Dictionary<string, DomainHorizonDerived>
@@ -161,7 +160,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.True(update.Scalars.Inversion);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MapHistory_should_map_per_model_metrics_and_anomaly()
     {
         var model = new WeatherModel("icon_d2");
@@ -189,7 +188,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.Equal(18.5, update.WeightedTemperature);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MapConsensus_should_map_parameter_and_horizon_nesting()
     {
         var param = new ParameterDef("temperature_2m", "C", "temperature", "temperature_2m",
@@ -228,7 +227,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.Equal(2, h.AvailableModels);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MapToEvent_should_wrap_alert_result_in_enrichment_event()
     {
         var alertResult = new AlertResult("lucerne",
@@ -248,7 +247,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.Single(evt.Alerts.Alerts);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MapConsensus_should_map_daily_parameters()
     {
         var tempMax = ParameterRegistry.GetByApiName("temperature_2m_max")!;
@@ -273,7 +272,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.Equal(3, proto.ByHorizon[0].AvailableModels);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MapConsensus_should_produce_empty_daily_for_no_parameters()
     {
         var result = new ConsensusResult([]);
@@ -283,7 +282,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.Empty(update.DailyParameters);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MapToEvent_should_wrap_consensus_result_in_enrichment_event()
     {
         var param = new ParameterDef("temperature_2m", "C", "temperature", "temperature_2m",
@@ -312,7 +311,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.Single(evt.Consensus.DailyParameters);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void MapToEvent_should_return_null_for_unknown_type_name()
     {
         var result = new AlertResult("lucerne", []);
