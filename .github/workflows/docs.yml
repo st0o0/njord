@@ -12,8 +12,7 @@ jobs:
   deploy:
     uses: st0o0/github-workflows/.github/workflows/docs.yml@main
     with:
-      needs-dotnet-build: true
-      dotnet-project-path: src
+      needs-dotnet-build: false
     permissions:
       contents: read
       pages: write
