@@ -2,10 +2,10 @@ import { defineConfig } from 'vitepress'
 import { withLikeC4 } from '@leberkas-org/vitepress-likec4'
 
 export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, defineConfig({
-  base: '/njord/',
+  base: '/',
   title: 'njord',
   description: 'Multi-model weather intelligence for Home Assistant',
-  head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/njord/logo.svg' }]],
+  head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }]],
 
   themeConfig: {
     logo: '/logo.svg',
