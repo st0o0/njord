@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.4.0](https://github.com/st0o0/njord/compare/v0.3.0...v0.4.0) (2026-09-16)
+
+
+### Features
+
+* add 5 new alert types and extend severity for frost, storm, fog, pressure drop ([c8aa139](https://github.com/st0o0/njord/commit/c8aa139be16ae6651d62d866d4e043f7b6706856))
+* add global.json with SDK roll-forward and MTP runner ([311eb22](https://github.com/st0o0/njord/commit/311eb220db7b03b2fc7aaa52358ff0d5e8dfad16))
+* decouple release-please from build workflow ([aea7b31](https://github.com/st0o0/njord/commit/aea7b314fb8364b3ce9c2ed56abe9d012b8c41b6))
+* migrate to modular build and docker workflows ([4e1c37c](https://github.com/st0o0/njord/commit/4e1c37cae8bf02cd2086d93a840b3610b6d3d511))
+* migrate to multi-stage Dockerfile ([6f74185](https://github.com/st0o0/njord/commit/6f741857c3c475ba24ab3284a81386802fd28dcc))
+
+
+### Bug Fixes
+
+* add id-token permission for cosign signing in dev builds ([0a48375](https://github.com/st0o0/njord/commit/0a48375dd4b0e5e79a11074dac71c1bca4a01e44))
+* copy protos directory into Docker build stage ([7437ba3](https://github.com/st0o0/njord/commit/7437ba3488904a37f2b355254cc9bb8e92fae00f))
+* resolve all warnings, add editorconfig, replace Task.Delay with deterministic sync ([37157b2](https://github.com/st0o0/njord/commit/37157b2d2515662e7be47b3fb3bc9cf3c0f20420))
+
+
+### Documentation
+
+* rewrite documentation with gRPC integration focus and remove em dashes ([3cee2ec](https://github.com/st0o0/njord/commit/3cee2ec40e75f086dc7416122366556fb3444a69))
+* Update base path for VitePress ([be58c43](https://github.com/st0o0/njord/commit/be58c4327bfd42986923f27c0f596bf0a3c8b28c))
+
+
+### Refactoring
+
+* migrate to shared reusable workflows ([2d6434a](https://github.com/st0o0/njord/commit/2d6434a059ed273e67a5cdc665fb43b14fe43492))
+* remove dead IndexScorer.FrostProtection and IndexComputer.BuildEnvelope ([055cd93](https://github.com/st0o0/njord/commit/055cd9387e5d86043eb1b5dacd7131afbc6563e3))
+* rename CI jobs for cleaner GitHub check names ([4c50d99](https://github.com/st0o0/njord/commit/4c50d99c9e0bf83d3bdf7774bf09385d597d543c))
+
+
+### Dependencies
+
+* bump hadolint/hadolint-action from 3.4.0 to 3.5.0 ([415c75f](https://github.com/st0o0/njord/commit/415c75fb601d5062eb29b06d423b41839de6d8ba))
+* Bump the akka group with 4 updates ([fbc4d4b](https://github.com/st0o0/njord/commit/fbc4d4bafb53226dcb8f1a994a6be7baf2c0d812))
+* Bump the testing group with 1 update ([cbae007](https://github.com/st0o0/njord/commit/cbae0074e371884359359f8186a8a3829fb4f9bf))
+* Bump Verify.XunitV3 from 31.28.0 to 32.0.0 ([e9202f4](https://github.com/st0o0/njord/commit/e9202f42109f39c84bbd1b6947ec010054b78b63))
+
 ## [0.3.0](https://github.com/st0o0/njord/compare/v0.2.2...v0.3.0) (2026-08-17)
 
 
