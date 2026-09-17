@@ -25,23 +25,24 @@ artifacts/
 # Benchmark results
 BenchmarkDotNet.Artifacts/
 
-# JetBrains Rider
-*.sln.iml
-
 # Environment files
 **.env
 
-# Verify snapshot testing — only .verified files are committed
+# Verify snapshot testing
 *.received.*
 
-# OpenSpec archive (design history preserved in git)
-openspec/changes/archive/
-
-# Project-specific
+# Coverage
 coverage-results/
 results/
+
+# OpenSpec archive
+openspec/changes/archive/
+
+# Claude Code
+.claude/
+
+# Worktrees
 .worktrees/
-.claude/settings.local.json
 
 # SQLite persistence data (runtime)
 src/Njord/data/
