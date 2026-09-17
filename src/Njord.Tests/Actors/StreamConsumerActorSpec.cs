@@ -312,15 +312,15 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         await newDepA.GracefulStop(TimeSpan.FromSeconds(2));
         await ExpectTerminatedAsync(newDepA, cancellationToken: TestContext.Current.CancellationToken);
 
+        // Set the TCS before registering the new dep so the consumer uses it
+        // even if recovery completes instantly (no retry delay when the resolved
+        // ref is already alive).
+        var thirdGraphTcs = new TaskCompletionSource();
+        consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(thirdGraphTcs));
+
         // Register yet another depA
         var thirdDepA = CreateTestProbe();
         ActorRegistry.Register<DepAKey>(thirdDepA, overwrite: true);
-
-        // The retry delay should be 1s again (not accumulated)
-        // We verify by checking that recovery happens within 3s (well under
-        // what accumulated backoff would require).
-        var thirdGraphTcs = new TaskCompletionSource();
-        consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(thirdGraphTcs));
         var recovered = await Task.WhenAny(
             thirdGraphTcs.Task,
             Task.Delay(3000, TestContext.Current.CancellationToken));
