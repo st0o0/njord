@@ -5,6 +5,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+  packages: write
+  pages: write
+  id-token: write
+
 concurrency:
   group: release
   cancel-in-progress: false
@@ -12,9 +19,6 @@ concurrency:
 jobs:
   release-please:
     uses: st0o0/github-workflows/.github/workflows/release-please.yml@main
-    permissions:
-      contents: write
-      pull-requests: write
 
   docker:
     needs: release-please
@@ -25,7 +29,10 @@ jobs:
       image-name: ghcr.io/st0o0/njord
       image-description: "Multi-model weather intelligence for Home Assistant"
       platforms: linux/amd64,linux/arm64,linux/arm/v7
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
+
+  docs:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: st0o0/github-workflows/.github/workflows/docs.yml@main
+    with:
+      needs-dotnet-build: false
