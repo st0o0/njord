@@ -9,9 +9,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/st0o0/njord/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License" /></a>
-  <img src="https://img.shields.io/badge/.NET-10-512bd4" alt=".NET 10" />
-  <a href="https://st0o0.github.io/njord/"><img src="https://img.shields.io/badge/docs-st0o0.github.io%2Fnjord-2563eb" alt="Docs" /></a>
+  <a href="https://github.com/st0o0/njord/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/st0o0/njord/ci.yml?style=flat-square&label=CI" alt="CI" /></a>
+  <a href="https://github.com/st0o0/njord/releases"><img src="https://img.shields.io/github/v/release/st0o0/njord?style=flat-square" alt="Release" /></a>
+  <a href="https://github.com/st0o0/njord/pkgs/container/njord"><img src="https://img.shields.io/badge/ghcr.io-st0o0%2Fnjord-2496ED?style=flat-square&logo=docker&logoColor=white" alt="GHCR" /></a>
+  <a href="https://github.com/st0o0/njord/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License" /></a>
+  <img src="https://img.shields.io/badge/.NET-10-512bd4?style=flat-square" alt=".NET 10" />
+  <a href="https://st0o0.github.io/njord/"><img src="https://img.shields.io/badge/docs-st0o0.github.io%2Fnjord-2563eb?style=flat-square" alt="Docs" /></a>
 </p>
 
 ---
