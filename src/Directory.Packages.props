@@ -29,7 +29,7 @@
   </ItemGroup>
   <ItemGroup Label="Transitive pins (security)">
     <!-- NU1902: Akka.Hosting pulls OpenTelemetry.Api 1.10.0 with known advisories -->
-    <PackageVersion Include="OpenTelemetry.Api" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.18.0" />
     <!-- NU1903: Akka.Persistence.Sql transitively pulls SQLitePCLRaw.lib.e_sqlite3 with known advisories -->
     <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
   </ItemGroup>
