@@ -37,11 +37,15 @@ public sealed class SchedulerActor : ReceivePersistentActor
     public sealed record DataChanged(string Location, string ModelId, int Hash, DateTimeOffset Utc);
 
     private sealed record PipelineResolved(IActorRef Pipeline);
+    private sealed record RetryPipelineResolve;
     private sealed record ConnectionEstablished;
     private sealed record OfferFailed(string Location, string ModelId, Exception Error);
     private sealed record PollCycleTracker(DateTimeOffset Start, int Changed, int Reported);
 
     private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
+
+    private IActorRef? _lastTerminatedPipeline;
+    private int _pipelineRetryCount;
 
     public SchedulerActor(
         IOptions<NjordOptions> options,
@@ -72,10 +76,29 @@ public sealed class SchedulerActor : ReceivePersistentActor
     {
         Command<PipelineResolved>(msg =>
         {
+            if (Equals(msg.Pipeline, _lastTerminatedPipeline))
+            {
+                // ActorRegistry handed back the same (already-dead) ref we just
+                // watched — nothing has replaced it yet. Back off exponentially
+                // instead of immediately re-watching it, which would deliver
+                // another Terminated instantly and spin in a tight loop.
+                var delay = TimeSpan.FromSeconds(Math.Min(Math.Pow(2, _pipelineRetryCount), 30));
+                _pipelineRetryCount++;
+                Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryPipelineResolve(), Self);
+                return;
+            }
+
+            _pipelineRetryCount = 0;
+            _lastTerminatedPipeline = null;
             Context.Watch(msg.Pipeline);
             msg.Pipeline.Tell(new RequestPipelineSink());
             msg.Pipeline.Tell(new RequestPipelineSource());
             Become(WaitingForRefs);
+        });
+        Command<RetryPipelineResolve>(_ =>
+        {
+            Context.GetActorAsync<PipelineActor>()
+                .PipeTo(Self, success: r => new PipelineResolved(r));
         });
         Command<GetPollStates>(OnGetPollStates);
         CommandAny(_ => Stash.Stash());
@@ -187,6 +210,8 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _queue?.Complete();
         _queue = null;
         _sourceReceived = false;
+        _lastTerminatedPipeline = msg.ActorRef;
+        _pipelineRetryCount = 0;
 
         Context.GetActorAsync<PipelineActor>()
             .PipeTo(Self, success: r => new PipelineResolved(r));

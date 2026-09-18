@@ -1,5 +1,6 @@
 using Akka;
 using Akka.Actor;
+using Akka.Event;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
@@ -166,6 +167,42 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         var latest = await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("lucerne", latest.Location.Name);
         Assert.Equal("icon_d2", latest.Model.Id);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Pipeline_termination_does_not_busy_loop_when_no_replacement_is_registered()
+    {
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
+
+        // Subscribe to Warning log events to count tight-loop iterations. Each
+        // loop iteration logs "PipelineActor terminated - waiting for new refs".
+        var warningProbe = CreateTestProbe();
+        Sys.EventStream.Subscribe(warningProbe, typeof(Warning));
+
+        // Act: stop the pipeline with no replacement registered. The scheduler
+        // will keep resolving ActorRegistry.Get<PipelineActor>(), which keeps
+        // returning the same (now-dead) ref, and should back off rather than
+        // spin in a tight watch/Terminated loop.
+        var pipeline = ActorRegistry.Get<PipelineActor>();
+        Watch(pipeline);
+        await pipeline.GracefulStop(TimeSpan.FromSeconds(2));
+        await ExpectTerminatedAsync(pipeline, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Wait long enough to detect a tight loop if one existed.
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+
+        var terminatedWarnings = 0;
+        while (warningProbe.HasMessages)
+        {
+            var msg = warningProbe.ReceiveOne(TimeSpan.FromMilliseconds(50), TestContext.Current.CancellationToken);
+            if (msg is Warning { Message: var message } && message?.ToString()?.Contains("PipelineActor terminated") == true)
+            {
+                terminatedWarnings++;
+            }
+        }
+
+        Assert.True(terminatedWarnings <= 1,
+            $"Expected at most 1 'PipelineActor terminated' warning within 500ms but got {terminatedWarnings} — possible tight loop");
     }
 
     private sealed class FakePipelineActor : ReceiveActor
