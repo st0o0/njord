@@ -3,9 +3,6 @@ name: Dev Build
 on:
   pull_request:
     types: [labeled, synchronize, reopened]
-    paths:
-      - 'src/**'
-      - 'Dockerfile'
 
 permissions:
   contents: read
@@ -31,6 +28,7 @@ jobs:
       image-name: ghcr.io/st0o0/njord
       image-description: "Dev build of njord"
     permissions:
+      contents: read
       packages: write
       pull-requests: write
       id-token: write
