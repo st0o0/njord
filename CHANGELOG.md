@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.4.1](https://github.com/st0o0/njord/compare/v0.4.0...v0.4.1) (2026-09-18)
+
+
+### Features
+
+* extend docker preset for base image digest pinning + automerge ([7c02aac](https://github.com/st0o0/njord/commit/7c02aacee527573328c988c406e09a8277f38308))
+
+
+### Bug Fixes
+
+* grant contents:read and drop paths filter in dev-build docker job ([02ef082](https://github.com/st0o0/njord/commit/02ef08239277d5b0c727754b3468a1e4b8d2ba54))
+* prevent SchedulerActor busy-loop on pipeline termination ([061766e](https://github.com/st0o0/njord/commit/061766e76d50270ef0432fd9b57c1f891745a0e7))
+* use pnpm renovate preset instead of npm ([9a68c14](https://github.com/st0o0/njord/commit/9a68c1414d1af2ce1ef8283f3408f23d806b8058))
+
+
+### Documentation
+
+* align README badges, add MIT LICENSE ([40910cd](https://github.com/st0o0/njord/commit/40910cd849e6adee0d308ceb2d740e0f730abdbb))
+
 ## [0.4.0](https://github.com/st0o0/njord/compare/v0.3.0...v0.4.0) (2026-09-17)
 
 
