@@ -15,6 +15,7 @@ jobs:
     uses: st0o0/github-workflows/.github/workflows/dotnet-ci.yml@main
     with:
       solution-file: Njord.slnx
+      locked-mode: false
 
   commits:
     uses: st0o0/github-workflows/.github/workflows/commitlint.yml@main
