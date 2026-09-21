@@ -140,18 +140,22 @@ changes.
 
 Prefer retrieval-led reasoning: consult these before implementing.
 
-### User skills (cross-project Akka.NET)
+### Akka.NET skills (akka-skills plugin)
 
-- Actor state pattern: `akka-actor-state` (state records, Apply/GetSnapshot, persistence)
-- Persistence separation: `akka-persistence` (three-tier state model, SaveSnapshot, extend-only DTOs)
-- Project structure: `akka-project-structure` (solution layout, domain isolation, architecture tests)
-- Message conventions: `akka-messages` (VerbNoun commands, QueryNoun queries) — this project uses Pattern A (dedicated Messages project)
-- Actor testing: `akka-testing` (TestKit, TestProbe, state-only tests)
-- Logging: `akka-logging` (ILoggingAdapter in actors, ILogger in services, Serilog setup)
-- Setup containers: `akka-setup-container` (Servus AppBuilder, DI/Actor/App composition)
-- Cluster hosting: `akka-cluster-hosting` (Singletons, ShardRegions, MessageExtractor)
-- Actor pools: `akka-actor-pools` (Router-Pools, DI-Pools, Stash-Capacity)
-- Persistence setup: `akka-persistence-setup` (WithSqlPersistence, Provider, Clustering)
+- Actor state pattern: `akka-skills:actor-state` (state records, Apply/GetSnapshot, persistence)
+- Persistence separation: `akka-skills:persistence` (three-tier state model, SaveSnapshot, extend-only DTOs)
+- Project structure: `akka-skills:project-structure` (solution layout, domain isolation, ArchUnitNET)
+- Message conventions: `akka-skills:messages` (VerbNoun commands, QueryNoun queries) — this project uses Pattern B (co-located with actors)
+- Actor testing: `akka-skills:testing` (Classic + Hosting TestKit, async assertions, persistence testing)
+- Logging: `akka-skills:logging` (ILoggingAdapter in actors, ILogger in services, Serilog setup)
+- Setup containers: `akka-skills:setup-container` (Servus AppBuilder, DI/Actor/App composition)
+- Cluster hosting: `akka-skills:cluster-hosting` (Singletons, ShardRegions, MessageExtractor)
+- Actor pools: `akka-skills:actor-pools` (Router-Pools, DI-Pools, Stash-Capacity)
+- Persistence setup: `akka-skills:persistence-setup` (WithSqlPersistence, Provider, Clustering)
+- Become state machines: `akka-skills:become-state-machines` (multi-phase workflows, stash-during-init, connection lifecycle)
+- Advanced patterns: `akka-skills:advanced-patterns` (IWithTimers, ReceiveAsync, PipeTo, DeathWatch, Passivation, PersistAll)
+- Streams: `akka-skills:streams` (Source/Flow/Sink, MergeHub/BroadcastHub, StreamRefs, custom GraphStage, supervision)
+- Supervision: `akka-skills:supervision` (BackoffSupervisor, custom SupervisorStrategy, escalation)
 
 ### Plugin skills
 
