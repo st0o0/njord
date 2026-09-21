@@ -69,7 +69,7 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
                 Source.Empty<EgressEvent>()
                     .RunWith(StreamRefs.SourceRef<EgressEvent>(), mat)
                     .PipeTo(Sender, Self,
-                        sr => new EgressSourceResponse(sr),
+                        sr => new EgressSourceResponse(msg.RequestId, sr),
                         _ => null!);
             });
         }

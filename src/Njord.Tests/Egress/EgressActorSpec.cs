@@ -17,7 +17,7 @@ public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var egress = Sys.ActorOf(Props.Create<EgressActor>());
 
-        var response = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var response = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(0), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.NotNull(response.SinkRef);
     }
@@ -27,7 +27,7 @@ public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var egress = Sys.ActorOf(Props.Create<EgressActor>());
 
-        var response = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var response = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(0), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.NotNull(response.SourceRef);
     }
@@ -38,8 +38,8 @@ public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
         var mat = Sys.Materializer();
         var egress = Sys.ActorOf(Props.Create<EgressActor>());
 
-        var sinkResponse = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
-        var sourceResponse = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var sinkResponse = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(0), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var sourceResponse = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(0), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var received = new List<EgressEvent>();
         var completionSource = new TaskCompletionSource();

@@ -196,7 +196,7 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
                     .To(sink)
                     .Run(mat);
                 sinkRef.PipeTo(Sender, Self,
-                    sr => new EgressSinkResponse(sr),
+                    sr => new EgressSinkResponse(msg.RequestId, sr),
                     _ => null!);
             });
         }
@@ -218,7 +218,7 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
                 Source.Empty<FetchOutcome>()
                     .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat)
                     .PipeTo(Sender, Self,
-                        sr => new PipelineSourceResponse(sr),
+                        sr => new PipelineSourceResponse(msg.RequestId, sr),
                         _ => null!);
             });
         }
@@ -231,13 +231,13 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
     {
         public FeedingPipelineSource(IMaterializer mat, params ModelForecast[] forecasts)
         {
-            Receive<RequestPipelineSource>(_ =>
+            Receive<RequestPipelineSource>(msg =>
             {
                 var outcomes = forecasts.Select(f => (FetchOutcome)new FetchOutcome.Success(f));
                 Source.From(outcomes)
                     .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat)
                     .PipeTo(Sender, Self,
-                        sr => new PipelineSourceResponse(sr),
+                        sr => new PipelineSourceResponse(msg.RequestId, sr),
                         _ => null!);
             });
         }

@@ -146,7 +146,7 @@ public sealed class WeatherGrpcService(
     {
         var egressActor = actorRegistry.Get<EgressActor>();
         var sourceResponse = await egressActor.Ask<EgressSourceResponse>(
-            new RequestEgressSource(), context.CancellationToken);
+            new RequestEgressSource(0), context.CancellationToken);
 
         var mat = actorSystem.Materializer();
 
@@ -175,7 +175,7 @@ public sealed class WeatherGrpcService(
     {
         var egressActor = actorRegistry.Get<EgressActor>();
         var sourceResponse = await egressActor.Ask<EgressSourceResponse>(
-            new RequestEgressSource(), context.CancellationToken);
+            new RequestEgressSource(0), context.CancellationToken);
 
         var mat = actorSystem.Materializer();
 

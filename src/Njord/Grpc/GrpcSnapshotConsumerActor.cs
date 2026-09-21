@@ -14,6 +14,7 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
     private ISourceRef<EgressEvent>? _sourceRef;
     private IActorRef? _forecastActor;
     private IActorRef? _enrichmentActor;
+    private long _egressSourceRequestId;
 
     private sealed record EgressResolved(IActorRef Ref);
     private sealed record SnapshotActorsResolved(IActorRef Forecast, IActorRef Enrichment);
@@ -34,10 +35,13 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
             }
 
             TrackDependency(msg.Ref);
-            msg.Ref.Tell(new RequestEgressSource());
+            var id = NextRequestId();
+            _egressSourceRequestId = id;
+            msg.Ref.Tell(new RequestEgressSource(id));
         });
         Receive<EgressSourceResponse>(response =>
         {
+            if (response.RequestId != _egressSourceRequestId) return;
             _sourceRef = response.SourceRef;
 
             var forecastTask = Context.GetActorAsync<ForecastSnapshotActor>();
@@ -99,5 +103,6 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
         _sourceRef = null;
         _forecastActor = null;
         _enrichmentActor = null;
+        _egressSourceRequestId = 0;
     }
 }

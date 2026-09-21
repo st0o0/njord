@@ -34,6 +34,8 @@ public sealed class EnrichmentActor : StreamConsumerActor
     private ISourceRef<FetchOutcome>? _sourceRef;
     private ISinkRef<EgressEvent>? _egressSinkRef;
     private IActorRef? _sensorHub;
+    private long _pipelineSourceRequestId;
+    private long _egressSinkRequestId;
 
     private sealed record PipelineResolved(IActorRef Ref);
     private sealed record EgressResolved(IActorRef Ref);
@@ -69,13 +71,17 @@ public sealed class EnrichmentActor : StreamConsumerActor
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
             TrackDependency(msg.Ref);
-            msg.Ref.Tell(new RequestPipelineSource());
+            var id = NextRequestId();
+            _pipelineSourceRequestId = id;
+            msg.Ref.Tell(new RequestPipelineSource(id));
         });
         Receive<EgressResolved>(msg =>
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
             TrackDependency(msg.Ref);
-            msg.Ref.Tell(new RequestEgressSink());
+            var id = NextRequestId();
+            _egressSinkRequestId = id;
+            msg.Ref.Tell(new RequestEgressSink(id));
         });
         Receive<SensorHubResolved>(msg =>
         {
@@ -86,12 +92,14 @@ public sealed class EnrichmentActor : StreamConsumerActor
         });
         Receive<PipelineSourceResponse>(response =>
         {
+            if (response.RequestId != _pipelineSourceRequestId) return;
             _sourceRef = response.SourceRef;
             _log.Debug("SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
         Receive<EgressSinkResponse>(response =>
         {
+            if (response.RequestId != _egressSinkRequestId) return;
             _egressSinkRef = response.SinkRef;
             _log.Debug("SinkRef received from {Source}", Sender.Path);
             TryTransition();
@@ -187,6 +195,8 @@ public sealed class EnrichmentActor : StreamConsumerActor
         _sourceRef = null;
         _egressSinkRef = null;
         _sensorHub = null;
+        _pipelineSourceRequestId = 0;
+        _egressSinkRequestId = 0;
     }
 
     private static Flow<ConsensusSnapshot, EgressEvent, NotUsed> BuildConsensusInlineFlow(

@@ -20,6 +20,8 @@ public sealed class ModelStateActor : StreamConsumerActor
 
     private ISinkRef<EgressEvent>? _egressSinkRef;
     private ISourceRef<FetchOutcome>? _sourceRef;
+    private long _egressSinkRequestId;
+    private long _pipelineSourceRequestId;
 
     private sealed record EgressResolved(IActorRef Ref);
     private sealed record PipelineResolved(IActorRef Ref);
@@ -52,22 +54,28 @@ public sealed class ModelStateActor : StreamConsumerActor
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
             TrackDependency(msg.Ref);
-            msg.Ref.Tell(new RequestEgressSink());
+            var id = NextRequestId();
+            _egressSinkRequestId = id;
+            msg.Ref.Tell(new RequestEgressSink(id));
         });
         Receive<PipelineResolved>(msg =>
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
             TrackDependency(msg.Ref);
-            msg.Ref.Tell(new RequestPipelineSource());
+            var id = NextRequestId();
+            _pipelineSourceRequestId = id;
+            msg.Ref.Tell(new RequestPipelineSource(id));
         });
         Receive<EgressSinkResponse>(response =>
         {
+            if (response.RequestId != _egressSinkRequestId) return;
             _egressSinkRef = response.SinkRef;
             _log.Debug("SinkRef received from {Source}", Sender.Path);
             TryTransition();
         });
         Receive<PipelineSourceResponse>(response =>
         {
+            if (response.RequestId != _pipelineSourceRequestId) return;
             _sourceRef = response.SourceRef;
             _log.Debug("SourceRef received from {Source}", Sender.Path);
             TryTransition();
@@ -137,6 +145,8 @@ public sealed class ModelStateActor : StreamConsumerActor
     {
         _egressSinkRef = null;
         _sourceRef = null;
+        _egressSinkRequestId = 0;
+        _pipelineSourceRequestId = 0;
     }
 
     private static HashSet<ParameterDef> ExtractSupportedParameters(

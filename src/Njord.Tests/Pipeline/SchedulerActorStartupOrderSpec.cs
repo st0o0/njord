@@ -82,7 +82,7 @@ public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKi
     {
         public FakePipelineActor(IMaterializer mat)
         {
-            Receive<RequestPipelineSink>(_ =>
+            Receive<RequestPipelineSink>(msg =>
             {
                 var (hubSink, hubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 8)
                     .PreMaterialize(mat);
@@ -93,16 +93,16 @@ public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKi
                     .To(hubSink)
                     .Run(mat)
                     .PipeTo(Sender, Self,
-                        sr => new PipelineSinkResponse(sr),
+                        sr => new PipelineSinkResponse(msg.RequestId, sr),
                         _ => null!);
             });
 
-            Receive<RequestPipelineSource>(_ =>
+            Receive<RequestPipelineSource>(msg =>
             {
                 Source.Empty<FetchOutcome>()
                     .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat)
                     .PipeTo(Sender, Self,
-                        sr => new PipelineSourceResponse(sr),
+                        sr => new PipelineSourceResponse(msg.RequestId, sr),
                         _ => null!);
             });
         }

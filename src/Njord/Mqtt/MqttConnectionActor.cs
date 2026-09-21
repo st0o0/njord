@@ -92,13 +92,13 @@ public sealed class MqttConnectionActor : ReceiveActor
         });
         Receive<Reconnect>(_ => Connect());
         Receive<Inbound>(OnInbound);
-        Receive<RequestMqttSink>(_ =>
+        Receive<RequestMqttSink>(msg =>
         {
             StreamRefs.SinkRef<MqttMessage>()
                 .To(_mergeHubSink!)
                 .Run(_mat!)
                 .PipeTo(Sender, Self,
-                    sr => new MqttSinkResponse(sr),
+                    sr => new MqttSinkResponse(msg.RequestId, sr),
                     ex =>
                     {
                         _log.Error(ex, "Failed to create MQTT SinkRef");

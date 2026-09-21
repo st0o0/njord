@@ -79,7 +79,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         for (var i = 0; i < 3; i++)
         {
             var sourceRef = await pipeline.Ask<PipelineSourceResponse>(
-                new Njord.Pipeline.RequestPipelineSource(), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+                new Njord.Pipeline.RequestPipelineSource(0), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
             _ = sourceRef.SourceRef.Source.RunWith(Sink.Ignore<FetchOutcome>(), Sys.Materializer());
         }
 

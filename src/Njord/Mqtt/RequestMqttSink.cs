@@ -1,3 +1,3 @@
 namespace Njord.Mqtt;
 
-public sealed record RequestMqttSink;
+public sealed record RequestMqttSink(long RequestId);

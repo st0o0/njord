@@ -63,7 +63,7 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
         var connection = new FakeConnection();
         var actor = CreateActor(connection, transport);
 
-        var response = await actor.Ask<MqttSinkResponse>(new RequestMqttSink(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+        var response = await actor.Ask<MqttSinkResponse>(new RequestMqttSink(0), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.NotNull(response);
         Assert.NotNull(response.SinkRef);
     }

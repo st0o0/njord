@@ -91,8 +91,8 @@ public sealed class SchedulerActor : ReceivePersistentActor
             _pipelineRetryCount = 0;
             _lastTerminatedPipeline = null;
             Context.Watch(msg.Pipeline);
-            msg.Pipeline.Tell(new RequestPipelineSink());
-            msg.Pipeline.Tell(new RequestPipelineSource());
+            msg.Pipeline.Tell(new RequestPipelineSink(0));
+            msg.Pipeline.Tell(new RequestPipelineSource(0));
             Become(WaitingForRefs);
         });
         Command<RetryPipelineResolve>(_ =>

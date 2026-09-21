@@ -31,6 +31,8 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
     private ISourceQueueWithComplete<MqttMessage>? _queue;
     private ISinkRef<MqttMessage>? _mqttSinkRef;
     private ISourceRef<EgressEvent>? _egressSourceRef;
+    private long _mqttSinkRequestId;
+    private long _egressSourceRequestId;
     private readonly Dictionary<(string Location, string ModelId), EgressEvent.CapabilityLearned> _capabilities = new();
     private bool _initialDiscoveryPublished;
 
@@ -81,23 +83,29 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
             TrackDependency(msg.Ref);
-            msg.Ref.Tell(new RequestMqttSink());
+            var id = NextRequestId();
+            _mqttSinkRequestId = id;
+            msg.Ref.Tell(new RequestMqttSink(id));
             msg.Ref.Tell(new SubscribeInbound(Self));
         });
         Receive<EgressResolved>(msg =>
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
             TrackDependency(msg.Ref);
-            msg.Ref.Tell(new RequestEgressSource());
+            var id = NextRequestId();
+            _egressSourceRequestId = id;
+            msg.Ref.Tell(new RequestEgressSource(id));
         });
         Receive<MqttSinkResponse>(response =>
         {
+            if (response.RequestId != _mqttSinkRequestId) return;
             _mqttSinkRef = response.SinkRef;
             _log.Debug("SinkRef received from {Source}", Sender.Path);
             TryTransition();
         });
         Receive<EgressSourceResponse>(response =>
         {
+            if (response.RequestId != _egressSourceRequestId) return;
             _egressSourceRef = response.SourceRef;
             _log.Debug("SourceRef received from {Source}", Sender.Path);
             TryTransition();
@@ -151,6 +159,8 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
     {
         _mqttSinkRef = null;
         _egressSourceRef = null;
+        _mqttSinkRequestId = 0;
+        _egressSourceRequestId = 0;
         _queue?.Complete();
         _queue = null;
     }

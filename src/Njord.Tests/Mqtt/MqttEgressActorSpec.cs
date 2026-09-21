@@ -192,7 +192,7 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakeEgressSourceProvider(IMaterializer mat, FakeEgressHub hub)
         {
-            Receive<RequestEgressSource>(_ =>
+            Receive<RequestEgressSource>(msg =>
             {
                 var (queue, source) = Source.Queue<EgressEvent>(32, OverflowStrategy.DropHead)
                     .PreMaterialize(mat);
@@ -201,7 +201,7 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
                 source
                     .RunWith(StreamRefs.SourceRef<EgressEvent>(), mat)
                     .PipeTo(Sender, Self,
-                        sr => new EgressSourceResponse(sr),
+                        sr => new EgressSourceResponse(msg.RequestId, sr),
                         _ => null!);
             });
         }
@@ -220,7 +220,7 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
                     .To(sink)
                     .Run(mat);
                 sinkRef.PipeTo(Sender, Self,
-                    sr => new MqttSinkResponse(sr),
+                    sr => new MqttSinkResponse(msg.RequestId, sr),
                     _ => null!);
             });
         }

@@ -17,7 +17,7 @@ public sealed class EgressActor : ReceiveActor
     {
         _mat = Context.Materializer();
 
-        Receive<RequestEgressSink>(_ =>
+        Receive<RequestEgressSink>(msg =>
         {
             if (_mergeHubSink is null)
             {
@@ -29,11 +29,11 @@ public sealed class EgressActor : ReceiveActor
                 .To(_mergeHubSink)
                 .Run(_mat)
                 .PipeTo(sender, Self,
-                    sr => new EgressSinkResponse(sr),
+                    sr => new EgressSinkResponse(msg.RequestId, sr),
                     ex => new Status.Failure(ex));
         });
 
-        Receive<RequestEgressSource>(_ =>
+        Receive<RequestEgressSource>(msg =>
         {
             if (_broadcastHubSource is null)
             {
@@ -44,7 +44,7 @@ public sealed class EgressActor : ReceiveActor
             _broadcastHubSource
                 .RunWith(StreamRefs.SourceRef<EgressEvent>(), _mat)
                 .PipeTo(sender, Self,
-                    sr => new EgressSourceResponse(sr),
+                    sr => new EgressSourceResponse(msg.RequestId, sr),
                     ex => new Status.Failure(ex));
         });
     }

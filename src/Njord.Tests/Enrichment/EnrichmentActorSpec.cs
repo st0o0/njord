@@ -136,12 +136,12 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakePipelineSource(IMaterializer mat)
         {
-            Receive<RequestPipelineSource>(_ =>
+            Receive<RequestPipelineSource>(msg =>
             {
                 var task = Source.Empty<FetchOutcome>()
                     .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat);
                 task.PipeTo(Sender, Self,
-                    sr => new PipelineSourceResponse(sr),
+                    sr => new PipelineSourceResponse(msg.RequestId, sr),
                     _ => null!);
             });
         }
@@ -151,13 +151,13 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakeEgressSinkProvider(IMaterializer mat)
         {
-            Receive<RequestEgressSink>(_ =>
+            Receive<RequestEgressSink>(msg =>
             {
                 var sinkRef = StreamRefs.SinkRef<EgressEvent>()
                     .To(Sink.Ignore<EgressEvent>().MapMaterializedValue(_ => Akka.NotUsed.Instance))
                     .Run(mat);
                 sinkRef.PipeTo(Sender, Self,
-                    sr => new EgressSinkResponse(sr),
+                    sr => new EgressSinkResponse(msg.RequestId, sr),
                     _ => null!);
             });
         }

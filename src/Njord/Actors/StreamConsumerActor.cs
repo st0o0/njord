@@ -9,11 +9,13 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
     private readonly HashSet<IActorRef> _watchedDeps = [];
     private IActorRef? _lastTerminatedRef;
     private int _retryCount;
+    private long _requestId;
     private SharedKillSwitch _killSwitch = KillSwitches.Shared("stream-kill");
 
     public IStash Stash { get; set; } = null!;
 
     private sealed record RetryResolve;
+    private sealed record RecoverAfterTerminated;
 
     protected IMaterializer Mat { get; private set; } = null!;
 
@@ -40,6 +42,8 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
     protected virtual void ConfigureReady() { }
 
     protected virtual void OnDependencyLost() { }
+
+    protected long NextRequestId() => ++_requestId;
 
     protected void TrackDependency(IActorRef dep)
     {
@@ -82,6 +86,11 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
             _lastTerminatedRef = null;
             ResolveDependencies();
         });
+        Receive<RecoverAfterTerminated>(_ =>
+        {
+            OnDependencyLost();
+            ResolveDependencies();
+        });
         ConfigureWaitingForRefs();
         Receive<Terminated>(HandleTerminated);
         ReceiveAny(_ => Stash.Stash());
@@ -96,6 +105,12 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
     {
         ConfigureReady();
         Receive<Terminated>(HandleTerminated);
+        Receive<RecoverAfterTerminated>(_ =>
+        {
+            OnDependencyLost();
+            EnterWaitingForRefs();
+            ResolveDependencies();
+        });
     }
 
     private void HandleTerminated(Terminated msg)
@@ -109,9 +124,8 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
         _killSwitch = KillSwitches.Shared("stream-kill");
         _lastTerminatedRef = msg.ActorRef;
         _retryCount = 0;
+        _requestId++;
 
-        OnDependencyLost();
-        ResolveDependencies();
-        EnterWaitingForRefs();
+        Self.Tell(new RecoverAfterTerminated());
     }
 }

@@ -140,6 +140,21 @@ changes.
 
 Prefer retrieval-led reasoning: consult these before implementing.
 
+### User skills (cross-project Akka.NET)
+
+- Actor state pattern: `akka-actor-state` (state records, Apply/GetSnapshot, persistence)
+- Persistence separation: `akka-persistence` (three-tier state model, SaveSnapshot, extend-only DTOs)
+- Project structure: `akka-project-structure` (solution layout, domain isolation, architecture tests)
+- Message conventions: `akka-messages` (VerbNoun commands, QueryNoun queries) — this project uses Pattern A (dedicated Messages project)
+- Actor testing: `akka-testing` (TestKit, TestProbe, state-only tests)
+- Logging: `akka-logging` (ILoggingAdapter in actors, ILogger in services, Serilog setup)
+- Setup containers: `akka-setup-container` (Servus AppBuilder, DI/Actor/App composition)
+- Cluster hosting: `akka-cluster-hosting` (Singletons, ShardRegions, MessageExtractor)
+- Actor pools: `akka-actor-pools` (Router-Pools, DI-Pools, Stash-Capacity)
+- Persistence setup: `akka-persistence-setup` (WithSqlPersistence, Provider, Clustering)
+
+### Plugin skills
+
 - Actors & supervision: `dotnet-skills:akka-best-practices`,
   `dotnet-skills:akka-hosting-actor-patterns`, `sepp:actor-pattern-library`,
   `sepp:resilience-patterns`

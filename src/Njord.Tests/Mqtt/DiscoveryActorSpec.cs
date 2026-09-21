@@ -256,7 +256,7 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakeEgressSourceProvider(IMaterializer mat, FakeEgressHub hub)
         {
-            Receive<RequestEgressSource>(_ =>
+            Receive<RequestEgressSource>(msg =>
             {
                 var (queue, source) = Source.Queue<EgressEvent>(32, OverflowStrategy.DropHead)
                     .PreMaterialize(mat);
@@ -265,17 +265,17 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
                 source
                     .RunWith(StreamRefs.SourceRef<EgressEvent>(), mat)
                     .PipeTo(Sender, Self,
-                        sr => new EgressSourceResponse(sr),
+                        sr => new EgressSourceResponse(msg.RequestId, sr),
                         _ => null!);
             });
 
-            Receive<RequestEgressSink>(_ =>
+            Receive<RequestEgressSink>(msg =>
             {
                 var sinkRef = StreamRefs.SinkRef<EgressEvent>()
                     .To(Sink.Ignore<EgressEvent>().MapMaterializedValue(_ => Akka.NotUsed.Instance))
                     .Run(mat);
                 sinkRef.PipeTo(Sender, Self,
-                    sr => new EgressSinkResponse(sr),
+                    sr => new EgressSinkResponse(msg.RequestId, sr),
                     _ => null!);
             });
         }
@@ -294,7 +294,7 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
                     .To(Sink.Ignore<MqttMessage>().MapMaterializedValue(_ => Akka.NotUsed.Instance))
                     .Run(mat);
                 sinkRef.PipeTo(Sender, Self,
-                    sr => new MqttSinkResponse(sr),
+                    sr => new MqttSinkResponse(msg.RequestId, sr),
                     _ => null!);
             });
 
@@ -344,7 +344,7 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
                     .To(sink)
                     .Run(mat);
                 sinkRef.PipeTo(Sender, Self,
-                    sr => new MqttSinkResponse(sr),
+                    sr => new MqttSinkResponse(msg.RequestId, sr),
                     _ => null!);
             });
 

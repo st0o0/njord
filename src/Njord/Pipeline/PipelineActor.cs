@@ -59,25 +59,25 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
 
     private void Ready()
     {
-        Receive<RequestPipelineSink>(_ =>
+        Receive<RequestPipelineSink>(msg =>
         {
             StreamRefs.SinkRef<WeightedTarget>()
                 .To(_mergeHubSink!)
                 .Run(_mat!)
                 .PipeTo(Sender, Self,
-                    sr => new PipelineSinkResponse(sr),
+                    sr => new PipelineSinkResponse(msg.RequestId, sr),
                     ex =>
                     {
                         _log.Error(ex, "Failed to create SinkRef");
                         return new Status.Failure(ex);
                     });
         });
-        Receive<RequestPipelineSource>(_ =>
+        Receive<RequestPipelineSource>(msg =>
         {
             _broadcastHubSource!
                 .RunWith(StreamRefs.SourceRef<FetchOutcome>(), _mat!)
                 .PipeTo(Sender, Self,
-                    sr => new PipelineSourceResponse(sr),
+                    sr => new PipelineSourceResponse(msg.RequestId, sr),
                     ex =>
                     {
                         _log.Error(ex, "Failed to create SourceRef");

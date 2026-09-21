@@ -30,6 +30,8 @@ public sealed class MqttEgressActor : StreamConsumerActor
 
     private ISinkRef<MqttMessage>? _mqttSinkRef;
     private ISourceRef<EgressEvent>? _egressSourceRef;
+    private long _mqttSinkRequestId;
+    private long _egressSourceRequestId;
 
     private sealed record EgressResolved(IActorRef Ref);
     private sealed record ConnectionResolved(IActorRef Ref);
@@ -67,22 +69,28 @@ public sealed class MqttEgressActor : StreamConsumerActor
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
             TrackDependency(msg.Ref);
-            msg.Ref.Tell(new RequestEgressSource());
+            var id = NextRequestId();
+            _egressSourceRequestId = id;
+            msg.Ref.Tell(new RequestEgressSource(id));
         });
         Receive<ConnectionResolved>(msg =>
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
             TrackDependency(msg.Ref);
-            msg.Ref.Tell(new RequestMqttSink());
+            var id = NextRequestId();
+            _mqttSinkRequestId = id;
+            msg.Ref.Tell(new RequestMqttSink(id));
         });
         Receive<EgressSourceResponse>(response =>
         {
+            if (response.RequestId != _egressSourceRequestId) return;
             _egressSourceRef = response.SourceRef;
             _log.Debug("SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
         Receive<MqttSinkResponse>(response =>
         {
+            if (response.RequestId != _mqttSinkRequestId) return;
             _mqttSinkRef = response.SinkRef;
             _log.Debug("SinkRef received from {Source}", Sender.Path);
             TryTransition();
@@ -114,6 +122,8 @@ public sealed class MqttEgressActor : StreamConsumerActor
     {
         _mqttSinkRef = null;
         _egressSourceRef = null;
+        _mqttSinkRequestId = 0;
+        _egressSourceRequestId = 0;
     }
 
     private IEnumerable<MqttMessage> MapToMqttMessages(

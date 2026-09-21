@@ -7,13 +7,13 @@ public sealed record HashResult(string Location, string ModelId, int Hash);
 
 public sealed record Ack;
 
-public sealed record RequestPipelineSink;
+public sealed record RequestPipelineSink(long RequestId);
 
-public sealed record PipelineSinkResponse(ISinkRef<WeightedTarget> SinkRef);
+public sealed record PipelineSinkResponse(long RequestId, ISinkRef<WeightedTarget> SinkRef);
 
-public sealed record RequestPipelineSource;
+public sealed record RequestPipelineSource(long RequestId);
 
-public sealed record PipelineSourceResponse(ISourceRef<FetchOutcome> SourceRef);
+public sealed record PipelineSourceResponse(long RequestId, ISourceRef<FetchOutcome> SourceRef);
 
 public sealed record ScheduledPoll(string Location, string ModelId);
 
