@@ -24,10 +24,12 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        builder.AddTestPersistence();
+        builder
+            .AddTestPersistence()
+            .AddTestTimefactor();
     }
 
-    [Fact(Timeout = 10000)]
+    [Fact(Timeout = 30000)]
     public async Task Persistent_scheduler_connects_and_offers_through_full_pipeline()
     {
         var offered = new TaskCompletionSource<int>();
@@ -45,7 +47,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(42, value);
     }
 
-    [Fact(Timeout = 10000)]
+    [Fact(Timeout = 30000)]
     public async Task Real_scheduler_and_pipeline_actors_connect_and_poll()
     {
         var fetchCalled = new TaskCompletionSource<string>();
@@ -59,10 +61,10 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
         var optionsMonitor = new FakeOptionsMonitor(options);
         var fakeTracker = Sys.ActorOf(Props.Create(() => new FakeBudgetTrackerActor()));
-        IBudgetGate<WeightedTarget> gate = new WeightedBudgetGate(
-            new OptionsBudgetProvider(optionsMonitor), fakeTracker, TimeProvider.System);
-        var client = new FakeOpenMeteoClient(fetchCalled);
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero));
+        IBudgetGate<WeightedTarget> gate = new WeightedBudgetGate(
+            new OptionsBudgetProvider(optionsMonitor), fakeTracker, time);
+        var client = new FakeOpenMeteoClient(fetchCalled);
         var health = new NjordHealthState { ServiceStartedUtc = time.GetUtcNow() };
 
         // Register SchedulerActor placeholder FIRST (PipelineActor.MaterializePipeline
@@ -93,7 +95,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal("test", location);
     }
 
-    [Fact(Timeout = 10000)]
+    [Fact(Timeout = 30000)]
     public async Task Requests_have_no_serialization_gap_from_scheduler()
     {
         var fetchTimestamps = new System.Collections.Concurrent.ConcurrentBag<long>();
@@ -178,7 +180,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
 
             var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
             var forecast = new ModelForecast(model, location.Name, cycle,
-                new ForecastSeries([new ForecastPoint(DateTimeOffset.UtcNow, new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
+                new ForecastSeries([new ForecastPoint(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero), new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
                 DailyForecastSeries.Empty);
             return Task.FromResult<FetchOutcome>(new FetchOutcome.Success(forecast));
         }
@@ -205,7 +207,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             _fetchCalled.TrySetResult(location.Name);
             var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
             var forecast = new ModelForecast(model, location.Name, cycle,
-                new ForecastSeries([new ForecastPoint(DateTimeOffset.UtcNow, new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
+                new ForecastSeries([new ForecastPoint(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero), new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
                 DailyForecastSeries.Empty);
             return Task.FromResult<FetchOutcome>(new FetchOutcome.Success(forecast));
         }

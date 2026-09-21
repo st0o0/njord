@@ -2,12 +2,14 @@ using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
 using Njord.Pipeline;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Enrichment;
 
@@ -16,14 +18,16 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        builder.WithActors((system, registry) =>
-        {
-            var mat = system.Materializer();
-            var fakePipeline = system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
-            var fakeEgress = system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
-            registry.Register<PipelineActor>(fakePipeline);
-            registry.Register<EgressActor>(fakeEgress);
-        });
+        builder
+            .WithActors((system, registry) =>
+            {
+                var mat = system.Materializer();
+                var fakePipeline = system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
+                var fakeEgress = system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
+                registry.Register<PipelineActor>(fakePipeline);
+                registry.Register<EgressActor>(fakeEgress);
+            })
+            .AddTestTimefactor();
     }
 
     private static NjordOptions DefaultOptions() => new()
@@ -42,7 +46,8 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
         IEnumerable<IEnrichmentFeature> features = [];
-        var consensusFactory = new ConsensusSnapshotFactory(parameters, TimeProvider.System);
+        var consensusFactory = new ConsensusSnapshotFactory(parameters,
+            new FakeTimeProvider(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero)));
 
         return Sys.ActorOf(Props.Create(() => new EnrichmentActor(
             optionsWrapped,

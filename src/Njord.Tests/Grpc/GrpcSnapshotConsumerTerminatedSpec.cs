@@ -32,7 +32,8 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
                     system.ActorOf(Props.Create(() => new ForecastSnapshotActor())));
                 registry.Register<EnrichmentSnapshotActor>(
                     system.ActorOf(Props.Create(() => new EnrichmentSnapshotActor())));
-            });
+            })
+            .AddTestTimefactor();
     }
 
     [Fact(Timeout = 10000)]

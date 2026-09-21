@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
@@ -9,6 +10,8 @@ namespace Njord.Tests.Enrichment;
 
 public sealed class EnrichmentFeatureContractSpec
 {
+    private static readonly FakeTimeProvider Time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
+
     private static IReadOnlyList<IEnrichmentFeature> CreateAllFeatures(
         EnrichmentOptions? enrichment = null)
     {
@@ -23,11 +26,11 @@ public sealed class EnrichmentFeatureContractSpec
 
         return
         [
-            new AlertEnrichment(optionsWrapped, TimeProvider.System),
+            new AlertEnrichment(optionsWrapped, Time),
             new DerivedEnrichment(optionsWrapped, new DerivedResultComputer(parameters)),
             new TrendEnrichment(optionsWrapped, new TrendComputer()),
-            new IndexEnrichment(optionsWrapped, new IndexComputer(parameters, TimeProvider.System)),
-            new HistoryEnrichment(optionsWrapped, parameters, TimeProvider.System,
+            new IndexEnrichment(optionsWrapped, new IndexComputer(parameters, Time)),
+            new HistoryEnrichment(optionsWrapped, parameters, Time,
                 new HistoryComputer(),
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoryEnrichment>.Instance),
         ];

@@ -51,7 +51,8 @@ public sealed class SchedulerActorSnapshotSpec : Akka.Hosting.TestKit.TestKit
             .WithResolvableActors(r =>
             {
                 r.Register<SchedulerActor>("scheduler");
-            });
+            })
+            .AddTestTimefactor();
     }
 
     private IActorRef Scheduler => ActorRegistry.Get<SchedulerActor>();

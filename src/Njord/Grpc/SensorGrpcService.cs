@@ -13,7 +13,8 @@ namespace Njord.Grpc;
 
 public sealed class SensorGrpcService(
     ActorRegistry actorRegistry,
-    IOptions<NjordOptions> njordOptions) : SensorService.SensorServiceBase
+    IOptions<NjordOptions> njordOptions,
+    TimeProvider timeProvider) : SensorService.SensorServiceBase
 {
     private readonly IActorRef _sensorHub = actorRegistry.Get<SensorHubActor>();
     private readonly HashSet<string> _knownLocations = new(
@@ -74,7 +75,7 @@ public sealed class SensorGrpcService(
         }
 
         var source = string.IsNullOrWhiteSpace(request.Source) ? "default" : request.Source;
-        var measuredAt = request.MeasuredAt?.ToDateTimeOffset() ?? DateTimeOffset.UtcNow;
+        var measuredAt = request.MeasuredAt?.ToDateTimeOffset() ?? timeProvider.GetUtcNow();
 
         var reading = new Domain.Sensors.SensorReading(kind, request.Location, source, request.Value, measuredAt);
         return (reading, null);

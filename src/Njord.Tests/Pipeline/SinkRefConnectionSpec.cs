@@ -18,7 +18,9 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        builder.AddTestPersistence();
+        builder
+            .AddTestPersistence()
+            .AddTestTimefactor();
     }
 
     [Fact(Timeout = 5000)]

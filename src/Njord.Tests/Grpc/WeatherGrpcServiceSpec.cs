@@ -8,14 +8,19 @@ using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Grpc;
 using Njord.Grpc.V2;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Grpc;
 
 public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 {
     private static readonly DateTimeOffset Anchor = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+    private readonly FakeTimeProvider _time = new(Anchor);
 
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestTimefactor();
+    }
 
     private WeatherGrpcService CreateService(
         NjordOptions? options = null,
@@ -42,7 +47,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             Options.Create(options),
             ActorRegistry,
             Sys,
-            timeProvider ?? TimeProvider.System);
+            timeProvider ?? _time);
     }
 
     [Fact]

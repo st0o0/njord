@@ -5,12 +5,18 @@ using Akka.Streams.Dsl;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Egress;
 
 public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
 {
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
+    private static readonly DateTimeOffset Epoch = new(2026, 7, 12, 6, 0, 0, TimeSpan.Zero);
+
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestTimefactor();
+    }
 
     [Fact(Timeout = 5000)]
     public async Task Vends_sink_ref_on_request()
@@ -66,7 +72,7 @@ public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
         var events = new EgressEvent[]
         {
             new EgressEvent.PerModelUpdate("loc", new WeatherModel("icon_d2"),
-                new ModelForecast(new WeatherModel("icon_d2"), "loc", new CycleId(DateTimeOffset.UtcNow),
+                new ModelForecast(new WeatherModel("icon_d2"), "loc", new CycleId(Epoch),
                     new ForecastSeries([]), DailyForecastSeries.Empty)),
             new EgressEvent.EnrichmentUpdate("loc", "consensus", new ConsensusResult([])),
             new EgressEvent.EnrichmentUpdate("loc", "alerts", new AlertResult("loc", [])),

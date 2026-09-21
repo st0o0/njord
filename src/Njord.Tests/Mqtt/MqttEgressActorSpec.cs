@@ -8,12 +8,16 @@ using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
 using Njord.Mqtt;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Mqtt;
 
 public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
 {
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestTimefactor();
+    }
 
     private static readonly DateTimeOffset Anchor = new(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
 

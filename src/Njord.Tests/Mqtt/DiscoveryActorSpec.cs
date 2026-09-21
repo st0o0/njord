@@ -7,12 +7,16 @@ using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
 using Njord.Mqtt;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Mqtt;
 
 public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
 {
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestTimefactor();
+    }
 
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
     private static readonly ParameterDef WindSpeed = ParameterRegistry.GetByApiName("wind_speed_10m")!;
@@ -116,7 +120,7 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
 
         actor.Tell(new MqttConnected());
 
-        await publishProbe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+        await publishProbe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 15000)]

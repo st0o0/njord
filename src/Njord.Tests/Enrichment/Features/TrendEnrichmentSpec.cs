@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
@@ -13,6 +14,7 @@ public sealed class TrendEnrichmentSpec
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
 
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+    private static readonly FakeTimeProvider Time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
 
     private static TrendEnrichment CreateFeature(bool enabled = true)
     {
@@ -42,7 +44,7 @@ public sealed class TrendEnrichmentSpec
         var feature = CreateFeature();
         var snapshot = MakeSnapshot();
 
-        var consensus = new ConsensusSnapshotFactory(Parameters, TimeProvider.System).Create(snapshot, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, Time).Create(snapshot, "lucerne");
         var events = feature.Compute(consensus, null).ToList();
 
         Assert.Empty(events);
@@ -55,8 +57,8 @@ public sealed class TrendEnrichmentSpec
         var prev = MakeSnapshot(18.0);
         var current = MakeSnapshot(22.0);
 
-        var prevConsensus = new ConsensusSnapshotFactory(Parameters, TimeProvider.System).Create(prev, "lucerne");
-        var currentConsensus = new ConsensusSnapshotFactory(Parameters, TimeProvider.System).Create(current, "lucerne");
+        var prevConsensus = new ConsensusSnapshotFactory(Parameters, Time).Create(prev, "lucerne");
+        var currentConsensus = new ConsensusSnapshotFactory(Parameters, Time).Create(current, "lucerne");
         var events = feature.Compute(currentConsensus, prevConsensus).ToList();
 
         Assert.Single(events);

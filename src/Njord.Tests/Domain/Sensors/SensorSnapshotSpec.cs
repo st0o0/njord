@@ -9,7 +9,7 @@ public sealed class SensorSnapshotSpec
     {
         var snapshot = new SensorSnapshot("Luzern", new Dictionary<SensorKind, AggregatedReading>
         {
-            [SensorKind.IndoorTemperature] = new(22.5, 1, DateTimeOffset.UtcNow),
+            [SensorKind.IndoorTemperature] = new(22.5, 1, new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero)),
         });
 
         Assert.Equal(22.5, snapshot.Get(SensorKind.IndoorTemperature));

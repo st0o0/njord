@@ -315,7 +315,7 @@ public sealed class EnrichmentProtoMapperSpec
     public void MapToEvent_should_return_null_for_unknown_type_name()
     {
         var result = new AlertResult("lucerne", []);
-        var evt = EnrichmentProtoMapper.MapToEvent("lucerne", "unknown", result, DateTimeOffset.UtcNow);
+        var evt = EnrichmentProtoMapper.MapToEvent("lucerne", "unknown", result, new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
 
         Assert.Null(evt);
     }

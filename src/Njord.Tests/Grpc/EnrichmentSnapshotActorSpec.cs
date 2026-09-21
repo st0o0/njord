@@ -13,7 +13,9 @@ public sealed class EnrichmentSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        builder.AddTestPersistence();
+        builder
+            .AddTestPersistence()
+            .AddTestTimefactor();
     }
 
     private IActorRef CreateActor() =>

@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
@@ -11,6 +12,8 @@ namespace Njord.Tests.Enrichment.Features;
 
 public sealed class HistoryEnrichmentSpec
 {
+    private static readonly FakeTimeProvider Time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
+
     private static HistoryEnrichment CreateFeature(bool enabled = true)
     {
         var options = new NjordOptions
@@ -25,7 +28,7 @@ public sealed class HistoryEnrichmentSpec
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
         return new HistoryEnrichment(
-            Options.Create(options), parameters, TimeProvider.System,
+            Options.Create(options), parameters, Time,
             new HistoryComputer(),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoryEnrichment>.Instance);
     }

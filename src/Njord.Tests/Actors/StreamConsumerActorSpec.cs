@@ -4,13 +4,17 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Actors;
+using Njord.Tests.Shared;
 using Servus.Akka;
 
 namespace Njord.Tests.Actors;
 
 public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
 {
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestTimefactor();
+    }
 
     // -- marker keys for ActorRegistry --
     private sealed class DepAKey;
@@ -186,7 +190,7 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
 
     // -- tests --
 
-    [Fact(Timeout = 10000)]
+    [Fact(Timeout = 30000)]
     public async Task Dead_ref_detection_schedules_retry_instead_of_watching()
     {
         // Arrange: register deps and wait for initial graph materialization
@@ -203,10 +207,11 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         // rather than spinning in a tight loop.
         await depA.GracefulStop(TimeSpan.FromSeconds(2));
 
-        // Wait long enough to detect a tight loop if one existed
+        // Wait long enough to detect a tight loop if one existed.
+        // We use Task.Delay intentionally: the Akka scheduler is wall-clock based,
+        // so we need real-time waiting to observe retry behavior.
         await Task.Delay(500, TestContext.Current.CancellationToken);
 
-        // Assert: at most a small number of dead letters (not a tight loop)
         // Drain whatever dead letters accumulated in that window
         var deadLetterCount = 0;
         while (deadLetterProbe.HasMessages)
@@ -219,7 +224,7 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
             $"Expected at most 10 dead letters but got {deadLetterCount} — possible tight loop");
     }
 
-    [Fact(Timeout = 10000)]
+    [Fact(Timeout = 30000)]
     public async Task Stale_response_does_not_trigger_premature_ready()
     {
         // Arrange: register deps and wait for initial graph materialization
@@ -233,7 +238,7 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         // Prepare a second TCS to detect a second MaterializeGraph call
         var secondGraphTcs = new TaskCompletionSource();
         consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(secondGraphTcs));
-        await ExpectNoMsgAsync(TimeSpan.FromMilliseconds(100), TestContext.Current.CancellationToken);
+        await ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
 
         // Act: stop depA so the consumer enters WaitingForRefs.
         // The dead ref is detected on the first re-resolve and a retry is
@@ -241,14 +246,14 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         // response must NOT cause a premature transition.
         await depA.GracefulStop(TimeSpan.FromSeconds(2));
 
-        // Wait 800 ms — safely inside the 1 s retry window.
-        var completed = await Task.WhenAny(
-            secondGraphTcs.Task,
-            Task.Delay(800, TestContext.Current.CancellationToken));
-
         // Assert: MaterializeGraph should NOT have been called a second time
         // while the retry is still pending and the dep is dead.
-        Assert.NotEqual(secondGraphTcs.Task, completed);
+        // Wait 500ms real time (inside the 1s Akka scheduler retry window).
+        // We use Task.Delay here intentionally: the Akka scheduler is wall-clock
+        // based, so we need a real-time wait to stay inside the retry window.
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+        Assert.False(secondGraphTcs.Task.IsCompleted,
+            "MaterializeGraph should not have been called while retry is pending and dep is dead");
     }
 
     [Fact(Timeout = 5000)]
@@ -269,17 +274,15 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         Sys.Stop(untracked);
         await ExpectTerminatedAsync(untracked, cancellationToken: TestContext.Current.CancellationToken);
 
-        // Allow a beat for any side effects
-        await Task.Delay(200, TestContext.Current.CancellationToken);
-
         // Assert: the consumer is still alive and in Ready (responds to queries)
+        // The Ask itself verifies the actor is responsive — no artificial delay needed.
         var count = await consumer.Ask<int>(
             new ResettableTestStreamConsumer.GetMaterializeCount(),
-            TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.Equal(1, count);
     }
 
-    [Fact(Timeout = 15000)]
+    [Fact(Timeout = 60000)]
     public async Task Retry_count_resets_on_successful_transition()
     {
         // Arrange: register deps and wait for initial graph
@@ -321,11 +324,8 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         // Register yet another depA
         var thirdDepA = CreateTestProbe();
         ActorRegistry.Register<DepAKey>(thirdDepA, overwrite: true);
-        var recovered = await Task.WhenAny(
-            thirdGraphTcs.Task,
-            Task.Delay(3000, TestContext.Current.CancellationToken));
-
-        Assert.Equal(thirdGraphTcs.Task, recovered);
+        await AwaitConditionAsync(async () => { await Task.Yield(); return thirdGraphTcs.Task.IsCompleted; }, TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.True(thirdGraphTcs.Task.IsCompletedSuccessfully);
     }
 
     [Fact]

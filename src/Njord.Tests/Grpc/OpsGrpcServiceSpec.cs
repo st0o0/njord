@@ -1,27 +1,32 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Grpc;
 using Njord.Grpc.V2;
 using Njord.Pipeline;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Grpc;
 
 public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 {
     private readonly DateTimeOffset _now = new(2026, 7, 28, 12, 0, 0, TimeSpan.Zero);
+    private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero));
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        builder.WithActors((system, registry) =>
-        {
-            var fakeScheduler = system.ActorOf(Props.Create(() => new FakeSchedulerActor(_now)));
-            registry.Register<SchedulerActor>(fakeScheduler);
+        builder
+            .WithActors((system, registry) =>
+            {
+                var fakeScheduler = system.ActorOf(Props.Create(() => new FakeSchedulerActor(_now)));
+                registry.Register<SchedulerActor>(fakeScheduler);
 
-            var fakeBudgetTracker = system.ActorOf(Props.Create(() => new FakeBudgetTrackerActor()));
-            registry.Register<BudgetTrackerActor>(fakeBudgetTracker);
-        });
+                var fakeBudgetTracker = system.ActorOf(Props.Create(() => new FakeBudgetTrackerActor()));
+                registry.Register<BudgetTrackerActor>(fakeBudgetTracker);
+            })
+            .AddTestTimefactor();
     }
 
     private OpsGrpcService CreateService(NjordOptions? options = null)
@@ -41,7 +46,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             },
         };
         var monitor = new MutableOptionsMonitor(options);
-        return new OpsGrpcService(monitor, ActorRegistry, TimeProvider.System,
+        return new OpsGrpcService(monitor, ActorRegistry, _time,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<OpsGrpcService>.Instance);
     }
 

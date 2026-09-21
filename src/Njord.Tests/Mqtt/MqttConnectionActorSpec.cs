@@ -1,15 +1,23 @@
 using Akka.Actor;
 using Akka.Hosting;
+using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Health;
 using Njord.Mqtt;
 using Njord.Mqtt.Transport;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Mqtt;
 
 public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
 {
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
+    private static readonly DateTimeOffset Epoch = new(2026, 7, 12, 6, 0, 0, TimeSpan.Zero);
+    private readonly FakeTimeProvider _time = new(Epoch);
+
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestTimefactor();
+    }
 
     private static NjordOptions DefaultOptions() => new()
     {
@@ -26,8 +34,8 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
             connection,
             transport,
             tuning ?? new MqttEgressTuning(TimeSpan.FromMilliseconds(50)),
-            new NjordHealthState { ServiceStartedUtc = DateTimeOffset.UtcNow },
-            TimeProvider.System)));
+            new NjordHealthState { ServiceStartedUtc = Epoch },
+            _time)));
     }
 
     [Fact(Timeout = 15000)]

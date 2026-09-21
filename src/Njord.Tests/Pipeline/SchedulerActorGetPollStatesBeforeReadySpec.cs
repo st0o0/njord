@@ -47,7 +47,8 @@ public sealed class SchedulerActorGetPollStatesBeforeReadySpec : Akka.Hosting.Te
             .WithResolvableActors(r =>
             {
                 r.Register<SchedulerActor>("scheduler");
-            });
+            })
+            .AddTestTimefactor();
     }
 
     private IActorRef Scheduler => ActorRegistry.Get<SchedulerActor>();

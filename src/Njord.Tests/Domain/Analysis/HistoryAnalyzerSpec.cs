@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Time.Testing;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 
@@ -7,6 +8,7 @@ public sealed class HistoryAnalyzerSpec
 {
     private static readonly WeatherModel M1 = new("m1");
     private static readonly WeatherModel M2 = new("m2");
+    private static readonly FakeTimeProvider Time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
 
     private static ForecastHistory BuildHistory(int records, Func<int, (double m1Val, double m2Val, double consensus)> generator)
     {
@@ -35,7 +37,7 @@ public sealed class HistoryAnalyzerSpec
     public void ModelAccuracy_consistent_overshoot()
     {
         var history = BuildHistory(100, i => (22.0, 20.0, 20.0));
-        var mae = HistoryAnalyzer.ModelAccuracy(history, "temperature_2m", 30);
+        var mae = HistoryAnalyzer.ModelAccuracy(history, "temperature_2m", 30, Time);
 
         Assert.Equal(2.0, mae[M1]);
         Assert.Equal(0.0, mae[M2]);
@@ -45,7 +47,7 @@ public sealed class HistoryAnalyzerSpec
     public void ModelAccuracy_insufficient_history()
     {
         var history = BuildHistory(10, i => (22.0, 20.0, 20.0));
-        var mae = HistoryAnalyzer.ModelAccuracy(history, "temperature_2m", 30);
+        var mae = HistoryAnalyzer.ModelAccuracy(history, "temperature_2m", 30, Time);
 
         Assert.Null(mae[M1]);
     }
@@ -120,7 +122,7 @@ public sealed class HistoryAnalyzerSpec
     {
         var history = BuildHistory(100, i => (22.0, 20.0, 20.0));
         var best = HistoryAnalyzer.SeasonalPreference(history, "temperature_2m",
-            new DateTimeOffset(2026, 7, 15, 12, 0, 0, TimeSpan.Zero));
+            new DateTimeOffset(2026, 7, 15, 12, 0, 0, TimeSpan.Zero), Time);
 
         Assert.Equal(M2, best);
     }
@@ -130,7 +132,7 @@ public sealed class HistoryAnalyzerSpec
     {
         var history = new ForecastHistory(30);
         Assert.Null(HistoryAnalyzer.SeasonalPreference(history, "temperature_2m",
-            new DateTimeOffset(2026, 7, 15, 12, 0, 0, TimeSpan.Zero)));
+            new DateTimeOffset(2026, 7, 15, 12, 0, 0, TimeSpan.Zero), Time));
     }
 
     // --- AnomalyDetection ---

@@ -13,7 +13,12 @@ namespace Njord.Tests.Pipeline;
 
 public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
 {
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestTimefactor();
+    }
+
+    private static readonly DateTimeOffset Epoch = new(2026, 7, 12, 6, 0, 0, TimeSpan.Zero);
 
     private IMaterializer Mat => Sys.Materializer();
 
@@ -35,7 +40,7 @@ public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
         var client = new FakeOpenMeteoClient();
         var options = Options(1, "A", "B");
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        var cycle = new CycleId(DateTimeOffset.UtcNow);
+        var cycle = new CycleId(Epoch);
 
         var locA = options.Locations[0];
         var targets = new[]
@@ -69,7 +74,7 @@ public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
         var client = new FakeOpenMeteoClient { FailingModels = { "BROKEN" } };
         var options = Options(1, "A", "BROKEN");
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        var cycle = new CycleId(DateTimeOffset.UtcNow);
+        var cycle = new CycleId(Epoch);
 
         var loc = options.Locations[0];
         var targets = new[]

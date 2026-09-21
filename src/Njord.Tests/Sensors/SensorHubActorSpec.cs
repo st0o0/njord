@@ -4,14 +4,18 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Sensors;
 using Njord.Sensors;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Sensors;
 
 public sealed class SensorHubActorSpec : Akka.Hosting.TestKit.TestKit
 {
-    private readonly FakeTimeProvider _time = new(DateTimeOffset.UtcNow);
+    private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
 
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) { }
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestTimefactor();
+    }
 
     private IActorRef CreateHub(int stalenessSeconds = 7200)
     {

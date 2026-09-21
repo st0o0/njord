@@ -2,6 +2,7 @@ using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Enrichment;
@@ -12,6 +13,7 @@ namespace Njord.Tests.Enrichment;
 public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
 {
     private static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
+    private static readonly FakeTimeProvider Time = new(T0);
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
 
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(
@@ -19,7 +21,9 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        builder.AddTestPersistence();
+        builder
+            .AddTestPersistence()
+            .AddTestTimefactor();
     }
 
     private static ModelSnapshot MakeSnapshot()
@@ -38,7 +42,7 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
     public async Task Query_returns_empty_history_initially()
     {
         var actor = Sys.ActorOf(Props.Create(() =>
-            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, TimeProvider.System)));
+            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, Time)));
 
         var response = await actor.Ask<ForecastHistoryResult>(new QueryHistory(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Empty(response.History.Records);
@@ -48,7 +52,7 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
     public async Task Record_and_query_returns_persisted_data()
     {
         var actor = Sys.ActorOf(Props.Create(() =>
-            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, TimeProvider.System)));
+            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, Time)));
 
         actor.Tell(new RecordSnapshot(MakeSnapshot()));
 
@@ -61,7 +65,7 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
     public async Task Multiple_records_accumulate()
     {
         var actor = Sys.ActorOf(Props.Create(() =>
-            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, TimeProvider.System)));
+            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, Time)));
 
         for (var i = 0; i < 5; i++)
             actor.Tell(new RecordSnapshot(MakeSnapshot()));

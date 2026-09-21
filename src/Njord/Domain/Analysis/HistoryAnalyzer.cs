@@ -5,13 +5,12 @@ namespace Njord.Domain.Analysis;
 public static class HistoryAnalyzer
 {
     public static Dictionary<WeatherModel, double?> ModelAccuracy(
-        ForecastHistory history, string paramApiName, int windowDays, int minSampleSize = 48,
-        TimeProvider? timeProvider = null)
+        ForecastHistory history, string paramApiName, int windowDays, TimeProvider timeProvider, int minSampleSize = 48)
     {
         var result = new Dictionary<WeatherModel, double?>();
         var now = history.Records.Count > 0
             ? history.Records[^1].Timestamp
-            : (timeProvider ?? TimeProvider.System).GetUtcNow();
+            : timeProvider.GetUtcNow();
         var cutoff = now.AddDays(-windowDays);
 
         var records = history.Records.Where(r => r.Timestamp >= cutoff).ToList();
@@ -142,8 +141,7 @@ public static class HistoryAnalyzer
     }
 
     public static WeatherModel? SeasonalPreference(
-        ForecastHistory history, string paramApiName, DateTimeOffset now, int minSampleSize = 48,
-        TimeProvider? timeProvider = null)
+        ForecastHistory history, string paramApiName, DateTimeOffset now, TimeProvider timeProvider, int minSampleSize = 48)
     {
         var season = GetSeason(now.Month);
         var seasonRecords = history.Records
@@ -161,7 +159,7 @@ public static class HistoryAnalyzer
             seasonHistory.Add(r);
         }
 
-        var maes = ModelAccuracy(seasonHistory, paramApiName, 365, minSampleSize, timeProvider);
+        var maes = ModelAccuracy(seasonHistory, paramApiName, 365, timeProvider, minSampleSize);
         return maes
             .Where(kv => kv.Value.HasValue)
             .OrderBy(kv => kv.Value!.Value)

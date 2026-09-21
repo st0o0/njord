@@ -51,7 +51,8 @@ public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKi
                 var fakePipeline = system.ActorOf(
                     Props.Create(() => new FakePipelineActor(mat)));
                 registry.Register<PipelineActor>(fakePipeline);
-            });
+            })
+            .AddTestTimefactor();
     }
 
     private IActorRef Scheduler => ActorRegistry.Get<SchedulerActor>();

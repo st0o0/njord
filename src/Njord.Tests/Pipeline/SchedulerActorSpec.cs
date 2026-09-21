@@ -52,7 +52,8 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
             .WithResolvableActors(r =>
             {
                 r.Register<SchedulerActor>("scheduler");
-            });
+            })
+            .AddTestTimefactor();
     }
 
     private IActorRef Scheduler => ActorRegistry.Get<SchedulerActor>();
@@ -189,8 +190,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         await pipeline.GracefulStop(TimeSpan.FromSeconds(2));
         await ExpectTerminatedAsync(pipeline, cancellationToken: TestContext.Current.CancellationToken);
 
-        // Wait long enough to detect a tight loop if one existed.
-        await Task.Delay(500, TestContext.Current.CancellationToken);
+        await AwaitConditionAsync(() => warningProbe.HasMessages, TimeSpan.FromSeconds(5), TimeSpan.FromMilliseconds(100), cancellationToken: TestContext.Current.CancellationToken);
 
         var terminatedWarnings = 0;
         while (warningProbe.HasMessages)
@@ -203,7 +203,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         }
 
         Assert.True(terminatedWarnings <= 1,
-            $"Expected at most 1 'PipelineActor terminated' warning within 500ms but got {terminatedWarnings} — possible tight loop");
+            $"Expected at most 1 'PipelineActor terminated' warning but got {terminatedWarnings} — possible tight loop");
     }
 
     private sealed class FakePipelineActor : ReceiveActor
