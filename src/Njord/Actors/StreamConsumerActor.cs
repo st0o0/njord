@@ -58,11 +58,12 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
 
     protected void TryTransition()
     {
-        if (!AllRefsReady() || _lastTerminatedRef is not null)
+        if (!AllRefsReady())
         {
             return;
         }
 
+        _lastTerminatedRef = null;
         _retryCount = 0;
         MaterializeGraph(_killSwitch);
         EnterReady();
