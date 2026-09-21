@@ -55,8 +55,8 @@ public sealed class SchedulerActorGetPollStatesBeforeReadySpec : Akka.Hosting.Te
     [Fact(Timeout = 5000)]
     public async Task Get_poll_states_responds_while_waiting_for_pipeline_refs()
     {
-        var snapshot = await Scheduler.Ask<PollStatesSnapshot>(
-            new GetPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var snapshot = await Scheduler.Ask<PollStatesResult>(
+            new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.NotNull(snapshot);
         Assert.Empty(snapshot.Entries);

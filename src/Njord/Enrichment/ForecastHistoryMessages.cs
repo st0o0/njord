@@ -7,4 +7,6 @@ public sealed record RecordSnapshot(ModelSnapshot Snapshot);
 
 public sealed record QueryHistory;
 
-public sealed record HistoryResponse(ForecastHistory History);
+public abstract record HistoryQueryResponse;
+public sealed record ForecastHistoryResult(ForecastHistory History) : HistoryQueryResponse;
+public sealed record HistoryQueryFailed(Exception Cause) : HistoryQueryResponse;

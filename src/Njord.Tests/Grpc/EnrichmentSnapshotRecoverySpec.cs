@@ -1,5 +1,6 @@
 using Akka.Actor;
 using Akka.Persistence.TestKit;
+using Njord.Actors;
 using Njord.Domain.Analysis;
 using Njord.Grpc;
 
@@ -29,8 +30,8 @@ public sealed class EnrichmentSnapshotRecoverySpec : PersistenceTestKit
 
         var recovered = CreateActor();
 
-        var response = await recovered.Ask<AllEnrichmentsResponse>(
-            new GetAllEnrichments("lucerne"), TimeSpan.FromSeconds(3), ct);
+        var response = await recovered.Ask<AllEnrichmentsResult>(
+            new QueryAllEnrichments("lucerne"), TimeSpan.FromSeconds(3), ct);
         Assert.Equal(14, response.Results.Count);
     }
 
@@ -49,10 +50,10 @@ public sealed class EnrichmentSnapshotRecoverySpec : PersistenceTestKit
             TimeSpan.FromSeconds(3), ct);
         Assert.NotNull(ack);
 
-        var response = await recovered.Ask<EnrichmentResponse>(
-            new GetEnrichment("zurich", "alerts"), TimeSpan.FromSeconds(3), ct);
-        Assert.NotNull(response.Result);
-        Assert.IsType<AlertResult>(response.Result);
+        var response = await recovered.Ask<EnrichmentQueryResponse>(
+            new QueryEnrichment("zurich", "alerts"), TimeSpan.FromSeconds(3), ct);
+        var found = Assert.IsType<EnrichmentFound>(response);
+        Assert.IsType<AlertResult>(found.Result);
     }
 
     [Fact(Timeout = 5000)]

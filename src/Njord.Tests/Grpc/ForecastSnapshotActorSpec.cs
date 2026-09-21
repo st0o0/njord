@@ -2,6 +2,7 @@ using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Njord.Actors;
 using Njord.Domain.Weather;
 using Njord.Grpc;
 using Njord.Tests.Shared;
@@ -38,18 +39,18 @@ public sealed class ForecastSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
         var ack = await actor.Ask<Ack>(new UpdateForecast("lucerne", forecast.Model, forecast), ct);
         Assert.NotNull(ack);
 
-        var response = await actor.Ask<ForecastResponse>(new GetForecast("lucerne", "icon_d2"), ct);
-        Assert.NotNull(response.Forecast);
-        Assert.Equal("icon_d2", response.Forecast.Model.Id);
+        var response = await actor.Ask<ForecastQueryResponse>(new QueryForecast("lucerne", "icon_d2"), ct);
+        var found = Assert.IsType<ForecastFound>(response);
+        Assert.Equal("icon_d2", found.Forecast.Model.Id);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Unknown_forecast_returns_null()
+    public async Task Unknown_forecast_returns_not_found()
     {
         var actor = CreateActor();
 
-        var response = await actor.Ask<ForecastResponse>(new GetForecast("lucerne", "unknown"), TestContext.Current.CancellationToken);
-        Assert.Null(response.Forecast);
+        var response = await actor.Ask<ForecastQueryResponse>(new QueryForecast("lucerne", "unknown"), TestContext.Current.CancellationToken);
+        Assert.IsType<ForecastNotFound>(response);
     }
 
     [Fact(Timeout = 5000)]
@@ -63,19 +64,19 @@ public sealed class ForecastSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
         await actor.Ask<Ack>(new UpdateForecast("lucerne", forecast1.Model, forecast1), ct);
         await actor.Ask<Ack>(new UpdateForecast("lucerne", forecast2.Model, forecast2), ct);
 
-        var response = await actor.Ask<ForecastResponse>(new GetForecast("lucerne", "icon_d2"), ct);
-        Assert.NotNull(response.Forecast);
+        var response = await actor.Ask<ForecastQueryResponse>(new QueryForecast("lucerne", "icon_d2"), ct);
+        Assert.IsType<ForecastFound>(response);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task GetAllForecasts_returns_all()
+    public async Task QueryAllForecasts_returns_all()
     {
         var ct = TestContext.Current.CancellationToken;
         var actor = CreateActor();
         await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel("icon_d2"), CreateForecast("icon_d2")), ct);
         await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel("ecmwf"), CreateForecast("ecmwf")), ct);
 
-        var response = await actor.Ask<AllForecastsResponse>(new GetAllForecasts(), ct);
+        var response = await actor.Ask<AllForecastsResult>(new QueryAllForecasts(), ct);
         Assert.Equal(2, response.Forecasts.Count);
     }
 
@@ -87,8 +88,8 @@ public sealed class ForecastSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
         var forecast = CreateForecast();
         await actor.Ask<Ack>(new UpdateForecast("lucerne", forecast.Model, forecast), ct);
 
-        var response = await actor.Ask<ForecastResponse>(new GetForecast("lucerne", "icon_d2"), ct);
-        Assert.NotNull(response.Forecast);
+        var response = await actor.Ask<ForecastQueryResponse>(new QueryForecast("lucerne", "icon_d2"), ct);
+        Assert.IsType<ForecastFound>(response);
     }
 
     [Fact(Timeout = 5000)]
@@ -103,7 +104,7 @@ public sealed class ForecastSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
             await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel(model), CreateForecast(model)), ct);
         }
 
-        var response = await actor.Ask<AllForecastsResponse>(new GetAllForecasts(), ct);
+        var response = await actor.Ask<AllForecastsResult>(new QueryAllForecasts(), ct);
         Assert.Equal(20, response.Forecasts.Count);
     }
 }

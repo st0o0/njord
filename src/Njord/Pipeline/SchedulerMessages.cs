@@ -5,8 +5,6 @@ namespace Njord.Pipeline;
 
 public sealed record HashResult(string Location, string ModelId, int Hash);
 
-public sealed record Ack;
-
 public sealed record RequestPipelineSink(long RequestId);
 
 public sealed record PipelineSinkResponse(long RequestId, ISinkRef<WeightedTarget> SinkRef);
@@ -23,7 +21,7 @@ public sealed record TriggerImmediatePoll(string Location, string Model);
 
 public sealed record TriggerPollResult(int Count, List<string> Targets);
 
-public sealed record GetPollStates;
+public sealed record QueryPollStates;
 
 public sealed record PollStateEntry(
     string Location,
@@ -34,4 +32,6 @@ public sealed record PollStateEntry(
     int MissCount,
     long? CycleSeconds);
 
-public sealed record PollStatesSnapshot(IReadOnlyList<PollStateEntry> Entries);
+public abstract record SchedulerQueryResponse;
+public sealed record PollStatesResult(IReadOnlyList<PollStateEntry> Entries) : SchedulerQueryResponse;
+public sealed record SchedulerQueryFailed(Exception Cause) : SchedulerQueryResponse;

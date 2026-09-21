@@ -36,19 +36,17 @@ public sealed class SensorHubActorSpec : Akka.Hosting.TestKit.TestKit
         var push = await ExpectMsgAsync<PushResult>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(push.Accepted);
 
-        hub.Tell(new GetSnapshot("Luzern"), TestActor);
-        var response = await ExpectMsgAsync<SensorSnapshotResponse>(cancellationToken: TestContext.Current.CancellationToken);
-        Assert.NotNull(response.Snapshot);
-        Assert.Equal(23.5, response.Snapshot!.Get(SensorKind.IndoorTemperature));
+        hub.Tell(new QuerySensorSnapshot("Luzern"), TestActor);
+        var response = await ExpectMsgAsync<SensorSnapshotFound>(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(23.5, response.Snapshot.Get(SensorKind.IndoorTemperature));
     }
 
     [Fact(Timeout = 5000)]
-    public async Task returns_null_snapshot_for_unknown_location()
+    public async Task returns_not_found_for_unknown_location()
     {
         var hub = CreateHub();
-        hub.Tell(new GetSnapshot("Atlantis"), TestActor);
-        var response = await ExpectMsgAsync<SensorSnapshotResponse>(cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Null(response.Snapshot);
+        hub.Tell(new QuerySensorSnapshot("Atlantis"), TestActor);
+        await ExpectMsgAsync<SensorSnapshotNotFound>(cancellationToken: TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 5000)]
@@ -60,11 +58,10 @@ public sealed class SensorHubActorSpec : Akka.Hosting.TestKit.TestKit
         hub.Tell(new UpdateReading(Reading(source: "schlafzimmer", value: 21.0)), TestActor);
         await ExpectMsgAsync<PushResult>(cancellationToken: TestContext.Current.CancellationToken);
 
-        hub.Tell(new GetSnapshot("Luzern"), TestActor);
-        var response = await ExpectMsgAsync<SensorSnapshotResponse>(cancellationToken: TestContext.Current.CancellationToken);
-        Assert.NotNull(response.Snapshot);
+        hub.Tell(new QuerySensorSnapshot("Luzern"), TestActor);
+        var response = await ExpectMsgAsync<SensorSnapshotFound>(cancellationToken: TestContext.Current.CancellationToken);
 
-        var reading = response.Snapshot!.Readings[SensorKind.IndoorTemperature];
+        var reading = response.Snapshot.Readings[SensorKind.IndoorTemperature];
         Assert.Equal(22.25, reading.Value);
         Assert.Equal(2, reading.SourceCount);
     }
@@ -91,9 +88,9 @@ public sealed class SensorHubActorSpec : Akka.Hosting.TestKit.TestKit
         hub.Tell(new UpdateReading(Reading(source: "fresh", value: 24.0)), TestActor);
         await ExpectMsgAsync<PushResult>(cancellationToken: TestContext.Current.CancellationToken);
 
-        hub.Tell(new GetSnapshot("Luzern"), TestActor);
-        var response = await ExpectMsgAsync<SensorSnapshotResponse>(cancellationToken: TestContext.Current.CancellationToken);
-        var reading = response.Snapshot!.Readings[SensorKind.IndoorTemperature];
+        hub.Tell(new QuerySensorSnapshot("Luzern"), TestActor);
+        var response = await ExpectMsgAsync<SensorSnapshotFound>(cancellationToken: TestContext.Current.CancellationToken);
+        var reading = response.Snapshot.Readings[SensorKind.IndoorTemperature];
         Assert.Equal(24.0, reading.Value);
         Assert.Equal(1, reading.SourceCount);
     }
@@ -107,8 +104,8 @@ public sealed class SensorHubActorSpec : Akka.Hosting.TestKit.TestKit
         hub.Tell(new UpdateReading(Reading(value: 25.0)), TestActor);
         await ExpectMsgAsync<PushResult>(cancellationToken: TestContext.Current.CancellationToken);
 
-        hub.Tell(new GetSnapshot("Luzern"), TestActor);
-        var response = await ExpectMsgAsync<SensorSnapshotResponse>(cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(25.0, response.Snapshot!.Get(SensorKind.IndoorTemperature));
+        hub.Tell(new QuerySensorSnapshot("Luzern"), TestActor);
+        var response = await ExpectMsgAsync<SensorSnapshotFound>(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(25.0, response.Snapshot.Get(SensorKind.IndoorTemperature));
     }
 }

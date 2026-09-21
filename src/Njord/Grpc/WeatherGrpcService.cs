@@ -88,16 +88,15 @@ public sealed class WeatherGrpcService(
         ValidateModel(location, request.Model);
 
         var actor = actorRegistry.Get<ForecastSnapshotActor>();
-        var result = await actor.Ask<ForecastResponse>(
-            new GetForecast(request.Location, request.Model), AskTimeout);
+        var result = await actor.Ask<ForecastQueryResponse>(
+            new QueryForecast(request.Location, request.Model), AskTimeout);
 
-        if (result.Forecast is null)
+        return result switch
         {
-            throw new RpcException(new GrpcStatus(StatusCode.NotFound,
-                $"No forecast data available yet for '{request.Location}/{request.Model}'"));
-        }
-
-        return MapForecastResponse(result.Forecast, timeProvider.GetUtcNow());
+            ForecastFound found => MapForecastResponse(found.Forecast, timeProvider.GetUtcNow()),
+            _ => throw new RpcException(new GrpcStatus(StatusCode.NotFound,
+                $"No forecast data available yet for '{request.Location}/{request.Model}'")),
+        };
     }
 
     public override async Task<GetEnrichmentsResponse> GetEnrichments(GetEnrichmentsRequest request, ServerCallContext context)
@@ -105,8 +104,8 @@ public sealed class WeatherGrpcService(
         FindLocation(request.Location);
 
         var actor = actorRegistry.Get<EnrichmentSnapshotActor>();
-        var result = await actor.Ask<AllEnrichmentsResponse>(
-            new GetAllEnrichments(request.Location), AskTimeout);
+        var result = await actor.Ask<AllEnrichmentsResult>(
+            new QueryAllEnrichments(request.Location), AskTimeout);
 
         var response = new GetEnrichmentsResponse { Location = request.Location };
 

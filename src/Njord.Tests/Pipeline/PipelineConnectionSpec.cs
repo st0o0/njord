@@ -401,8 +401,8 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         public FakeBudgetTrackerActor()
         {
             Receive<BudgetTrackerActor.RecordApiCall>(_ => { });
-            Receive<BudgetTrackerActor.GetBudgetUsage>(_ =>
-                Sender.Tell(new BudgetTrackerActor.BudgetUsage(0, 0), Self));
+            Receive<BudgetTrackerActor.QueryBudgetUsage>(_ =>
+                Sender.Tell(new BudgetUsageResult(0, 0), Self));
         }
     }
 }

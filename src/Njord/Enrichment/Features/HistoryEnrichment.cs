@@ -76,7 +76,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
                 var events = new List<EgressEvent>();
                 foreach (var (location, actor) in historyActors)
                 {
-                    var response = await actor.Ask<HistoryResponse>(new QueryHistory(), TimeSpan.FromSeconds(5));
+                    var response = await actor.Ask<ForecastHistoryResult>(new QueryHistory(), TimeSpan.FromSeconds(5));
                     var result = computer.Compute(
                         response.History, snapshot, location, parameters, timeProvider, historyOptions);
                     RecordHistoryMetrics(result);

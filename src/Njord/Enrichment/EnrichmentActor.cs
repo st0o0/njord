@@ -218,9 +218,12 @@ public sealed class EnrichmentActor : StreamConsumerActor
                 SensorSnapshot? sensors = null;
                 try
                 {
-                    var response = await sensorHub.Ask<SensorSnapshotResponse>(
-                        new GetSnapshot(consensus.Location), TimeSpan.FromSeconds(1));
-                    sensors = response.Snapshot;
+                    var response = await sensorHub.Ask<SensorSnapshotQueryResponse>(
+                        new QuerySensorSnapshot(consensus.Location), TimeSpan.FromSeconds(1));
+                    if (response is SensorSnapshotFound found)
+                    {
+                        sensors = found.Snapshot;
+                    }
                 }
                 catch (AskTimeoutException)
                 {

@@ -1,5 +1,6 @@
 using Akka.Actor;
 using Akka.Persistence.TestKit;
+using Njord.Actors;
 using Njord.Domain.Weather;
 using Njord.Grpc;
 
@@ -39,7 +40,7 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
 
         var recovered = CreateActor();
 
-        var response = await recovered.Ask<AllForecastsResponse>(new GetAllForecasts(), TimeSpan.FromSeconds(3), ct);
+        var response = await recovered.Ask<AllForecastsResult>(new QueryAllForecasts(), TimeSpan.FromSeconds(3), ct);
         Assert.Equal(20, response.Forecasts.Count);
     }
 
@@ -53,7 +54,7 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
 
         var recovered = CreateActor();
 
-        var response = await recovered.Ask<AllForecastsResponse>(new GetAllForecasts(), TimeSpan.FromSeconds(3), ct);
+        var response = await recovered.Ask<AllForecastsResult>(new QueryAllForecasts(), TimeSpan.FromSeconds(3), ct);
         Assert.Empty(response.Forecasts);
     }
 
@@ -72,10 +73,10 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
             TimeSpan.FromSeconds(3), ct);
         Assert.NotNull(ack);
 
-        var response = await recovered.Ask<ForecastResponse>(
-            new GetForecast("zurich", "gfs"), TimeSpan.FromSeconds(3), ct);
-        Assert.NotNull(response.Forecast);
-        Assert.Equal("gfs", response.Forecast.Model.Id);
+        var response = await recovered.Ask<ForecastQueryResponse>(
+            new QueryForecast("zurich", "gfs"), TimeSpan.FromSeconds(3), ct);
+        var found = Assert.IsType<ForecastFound>(response);
+        Assert.Equal("gfs", found.Forecast.Model.Id);
     }
 
     [Fact(Timeout = 5000)]

@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Health;
@@ -65,7 +66,7 @@ public sealed class SchedulerActorSnapshotSpec : Akka.Hosting.TestKit.TestKit
             await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 1000 + i), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         }
 
-        var statesBefore = await Scheduler.Ask<PollStatesSnapshot>(new GetPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var statesBefore = await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         var entryBefore = statesBefore.Entries.Single();
         Assert.Equal(PollPhase.Steady, entryBefore.Phase);
 
@@ -78,7 +79,7 @@ public sealed class SchedulerActorSnapshotSpec : Akka.Hosting.TestKit.TestKit
         var recovered = Sys.ActorOf(props, "scheduler");
         ActorRegistry.Register<SchedulerActor>(recovered, overwrite: true);
 
-        var statesAfter = await recovered.Ask<PollStatesSnapshot>(new GetPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var statesAfter = await recovered.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         var entryAfter = statesAfter.Entries.Single();
         Assert.Equal(PollPhase.Steady, entryAfter.Phase);
         Assert.NotNull(entryAfter.CycleSeconds);

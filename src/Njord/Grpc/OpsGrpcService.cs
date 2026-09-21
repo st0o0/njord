@@ -44,8 +44,8 @@ public sealed class OpsGrpcService(
         try
         {
             var tracker = _actorRegistry.Get<BudgetTrackerActor>();
-            var usage = await tracker.Ask<BudgetTrackerActor.BudgetUsage>(
-                new BudgetTrackerActor.GetBudgetUsage(), AskTimeout);
+            var usage = await tracker.Ask<BudgetUsageResult>(
+                new BudgetTrackerActor.QueryBudgetUsage(), AskTimeout);
             monthlyUsed = usage.MonthlyUsed;
             dailyUsed = usage.DailyUsed;
         }
@@ -74,7 +74,7 @@ public sealed class OpsGrpcService(
         try
         {
             var scheduler = _actorRegistry.Get<SchedulerActor>();
-            var snapshot = await scheduler.Ask<PollStatesSnapshot>(new GetPollStates(), AskTimeout);
+            var snapshot = await scheduler.Ask<PollStatesResult>(new QueryPollStates(), AskTimeout);
             foreach (var entry in snapshot.Entries)
             {
                 var modelStatus = new ModelStatus
@@ -148,7 +148,7 @@ public sealed class OpsGrpcService(
         try
         {
             var scheduler = _actorRegistry.Get<SchedulerActor>();
-            var snapshot = await scheduler.Ask<PollStatesSnapshot>(new GetPollStates(), AskTimeout);
+            var snapshot = await scheduler.Ask<PollStatesResult>(new QueryPollStates(), AskTimeout);
             foreach (var entry in snapshot.Entries)
             {
                 var target = new TriggerTarget

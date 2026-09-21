@@ -23,7 +23,7 @@ public sealed class SensorHubActor : ReceiveActor, IWithTimers
         _staleness = TimeSpan.FromSeconds(options.Value.Sensors.StalenessSeconds);
 
         Receive<UpdateReading>(Handle);
-        Receive<GetSnapshot>(Handle);
+        Receive<QuerySensorSnapshot>(Handle);
         Receive<ExpireTick>(_ => Expire());
     }
 
@@ -58,7 +58,7 @@ public sealed class SensorHubActor : ReceiveActor, IWithTimers
         Sender.Tell(new PushResult(true, null));
     }
 
-    private void Handle(GetSnapshot msg)
+    private void Handle(QuerySensorSnapshot msg)
     {
         var now = _timeProvider.GetUtcNow();
         var readings = new Dictionary<SensorKind, AggregatedReading>();
@@ -78,11 +78,11 @@ public sealed class SensorHubActor : ReceiveActor, IWithTimers
             }
         }
 
-        var snapshot = readings.Count > 0
-            ? new SensorSnapshot(msg.Location, readings)
-            : null;
+        SensorSnapshotQueryResponse response = readings.Count > 0
+            ? new SensorSnapshotFound(new SensorSnapshot(msg.Location, readings))
+            : new SensorSnapshotNotFound(msg.Location);
 
-        Sender.Tell(new SensorSnapshotResponse(snapshot));
+        Sender.Tell(response);
     }
 
     private static AggregatedReading? Aggregate(List<SensorReading> values, AggregationStrategy strategy)
