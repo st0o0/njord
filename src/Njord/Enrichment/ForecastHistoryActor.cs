@@ -10,37 +10,35 @@ namespace Njord.Enrichment;
 public sealed class ForecastHistoryActor : ReceivePersistentActor
 {
     private readonly string _location;
-    private readonly HistoryOptions _options;
     private readonly ResolvedParameterSet _parameters;
     private readonly TimeProvider _timeProvider;
-    private readonly ForecastHistory _history;
-    private int _eventsSinceSnapshot;
+    private ForecastHistoryState _state;
 
     public override string PersistenceId => $"forecast-history-{_location}";
 
     public ForecastHistoryActor(string location, HistoryOptions options, ResolvedParameterSet parameters, TimeProvider timeProvider)
     {
         _location = location;
-        _options = options;
         _parameters = parameters;
         _timeProvider = timeProvider;
-        _history = new ForecastHistory(options.RetentionDays);
+        _state = ForecastHistoryState.Create(options.RetentionDays, options.SnapshotInterval);
 
-        Recover<ForecastRecordDto>(dto => OnRecover(ForecastHistoryDtoMapping.ToDomain(dto)));
+        Recover<ForecastRecordDto>(dto =>
+        {
+            var evt = ForecastHistoryDtoMapping.ToDomain(dto);
+            var cutoff = _timeProvider.GetUtcNow().AddDays(-options.RetentionDays);
+            _state = _state.ApplyRecover(evt, cutoff);
+        });
         Recover<SnapshotOffer>(offer =>
         {
             if (offer.Snapshot is ForecastHistorySnapshotDto saved)
             {
-                var restored = ForecastHistoryDtoMapping.ToDomain(saved);
-                foreach (var record in restored.Records)
-                {
-                    _history.Add(record);
-                }
+                _state = ForecastHistoryStateExtensions.FromPersistence(saved, options.SnapshotInterval);
             }
         });
 
         Command<RecordSnapshot>(OnRecordSnapshot);
-        Command<QueryHistory>(_ => Sender.Tell(new HistoryResponse(_history), Self));
+        Command<QueryHistory>(_ => Sender.Tell(_state.GetSnapshot(), Self));
         Command<SaveSnapshotSuccess>(success =>
         {
             DeleteMessages(success.Metadata.SequenceNr);
@@ -51,17 +49,6 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
                 .Warning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
         Command<DeleteMessagesSuccess>(_ => { });
         Command<DeleteSnapshotSuccess>(_ => { });
-    }
-
-    private void OnRecover(ForecastRecord evt)
-    {
-        var cutoff = _timeProvider.GetUtcNow().AddDays(-_options.RetentionDays);
-        if (evt.Timestamp < cutoff)
-        {
-            return;
-        }
-
-        _history.Add(evt);
     }
 
     private void OnRecordSnapshot(RecordSnapshot msg)
@@ -75,9 +62,7 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
         foreach (var (key, forecast) in snapshot.Entries)
         {
             if (key.Location != _location)
-            {
                 continue;
-            }
 
             var values = new Dictionary<string, double?>();
             var nearestPoint = forecast.Hourly.Points
@@ -87,9 +72,7 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
             if (nearestPoint is not null)
             {
                 foreach (var param in _parameters.Hourly)
-                {
                     values[param.ApiName] = nearestPoint.Get(param);
-                }
             }
 
             modelValuesList.Add(values);
@@ -111,13 +94,12 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
         var dto = ForecastHistoryDtoMapping.ToDto(evt);
         Persist(dto, _ =>
         {
-            _history.Add(evt);
+            _state = _state.Apply(evt);
 
-            _eventsSinceSnapshot++;
-            if (_eventsSinceSnapshot >= _options.SnapshotInterval)
+            if (_state.EventsSinceSnapshot >= _state.SnapshotInterval)
             {
-                SaveSnapshot(ForecastHistoryDtoMapping.ToDto(_history));
-                _eventsSinceSnapshot = 0;
+                SaveSnapshot(_state.GetPersistenceState());
+                _state = _state.ResetSnapshotCounter();
             }
         });
     }

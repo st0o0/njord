@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics.Metrics;
 using Akka.Actor;
 using Akka.Event;
@@ -5,6 +6,7 @@ using Akka.Persistence;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Diagnostics;
 using Njord.Domain.Weather;
@@ -28,7 +30,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private readonly TimeProvider _timeProvider;
     private readonly NjordHealthState _healthState;
     private ILoggingAdapter _log = null!;
-    private readonly Dictionary<string, ModelPollState> _states = new();
+    private SchedulerState _state = SchedulerState.Empty;
     private readonly Dictionary<string, PollCycleTracker> _pollCycles = new();
     private ISourceQueueWithComplete<WeightedTarget>? _queue;
     private readonly int _weight;
@@ -58,7 +60,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _healthState = healthState;
         _weight = WeightedTarget.ComputeWeight(parameters.HourlyCount, _options.ForecastDays);
 
-        Recover<DataChangedDto>(dto => OnRecover(SchedulerDtoMapping.ToDomain(dto)));
+        Recover<DataChangedDto>(dto => _state = _state.ApplyRecover(dto, _options.DiscoveryInterval));
         Recover<SnapshotOffer>(_ => { });
 
         WaitingForPipeline();
@@ -100,15 +102,8 @@ public sealed class SchedulerActor : ReceivePersistentActor
             Context.GetActorAsync<PipelineActor>()
                 .PipeTo(Self, success: r => new PipelineResolved(r));
         });
-        Command<GetPollStates>(OnGetPollStates);
+        Command<QueryPollStates>(OnQueryPollStates);
         CommandAny(_ => Stash.Stash());
-    }
-
-    private void OnRecover(DataChanged evt)
-    {
-        var key = Key(evt.Location, evt.ModelId);
-        var state = _states.GetValueOrDefault(key, ModelPollState.Initial(_timeProvider.GetUtcNow()));
-        _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
     }
 
     private void StashKnownCommands()
@@ -117,7 +112,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Command<HashResult>(_ => Stash.Stash());
         Command<FetchFailed>(_ => Stash.Stash());
         Command<TriggerImmediatePoll>(_ => Stash.Stash());
-        Command<GetPollStates>(OnGetPollStates);
+        Command<QueryPollStates>(OnQueryPollStates);
     }
 
     private void WaitingForRefs()
@@ -170,7 +165,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Command<HashResult>(_ => Stash.Stash());
         Command<FetchFailed>(_ => Stash.Stash());
         Command<TriggerImmediatePoll>(_ => Stash.Stash());
-        Command<GetPollStates>(OnGetPollStates);
+        Command<QueryPollStates>(OnQueryPollStates);
     }
 
     private void WaitingForConnection()
@@ -200,7 +195,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Command<HashResult>(OnHashResult);
         Command<FetchFailed>(OnFetchFailed);
         Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
-        Command<GetPollStates>(OnGetPollStates);
+        Command<QueryPollStates>(OnQueryPollStates);
         Command<Terminated>(OnTerminated);
     }
 
@@ -227,11 +222,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             foreach (var modelId in _options.Models.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase))
             {
                 var key = Key(location.Name, modelId);
-                if (!_states.ContainsKey(key))
-                {
-                    _states[key] = ModelPollState.Initial(now);
-                }
-
+                _state = _state.EnsureInitialized(key, now);
                 ScheduleNext(location.Name, modelId);
             }
         }
@@ -257,25 +248,24 @@ public sealed class SchedulerActor : ReceivePersistentActor
     {
         var key = Key(msg.Location, msg.ModelId);
         var now = _timeProvider.GetUtcNow();
-        var state = _states.GetValueOrDefault(key, ModelPollState.Initial(now));
 
         switch (msg.Reason)
         {
             case FetchFailureReason.Transport:
-                _states[key] = state.WithTransientFailure(now, _options.DiscoveryInterval);
+                _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
                 _log.Warning("Fetch failed for {Location}/{Model} (transport) - tfc={Tfc}, details={Details}",
-                    msg.Location, msg.ModelId, _states[key].TransientFailureCount, msg.Detail);
+                    msg.Location, msg.ModelId, _state.States[key].TransientFailureCount, msg.Detail);
                 ScheduleNext(msg.Location, msg.ModelId);
                 break;
 
             case FetchFailureReason.RateLimited:
-                var rateLimitState = state.WithTransientFailure(now, _options.DiscoveryInterval);
+                _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
+                var rateLimitState = _state.States[key];
                 if (rateLimitState.NextPollUtc < now + RateLimitMinDelay)
                 {
                     rateLimitState = rateLimitState with { NextPollUtc = now + RateLimitMinDelay };
+                    _state = _state.SetPollState(key, rateLimitState);
                 }
-
-                _states[key] = rateLimitState;
                 _log.Warning("Fetch rate-limited for {Location}/{Model} - next poll at {Next}",
                     msg.Location, msg.ModelId, rateLimitState.NextPollUtc);
                 ScheduleNext(msg.Location, msg.ModelId);
@@ -283,7 +273,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
             case FetchFailureReason.ModelUnavailable:
             case FetchFailureReason.MalformedPayload:
-                _states[key] = state.WithTransientFailure(now, _options.DiscoveryInterval);
+                _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
                 _log.Warning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - retry scheduled",
                     msg.Location, msg.ModelId, msg.Reason, msg.Detail);
                 ScheduleNext(msg.Location, msg.ModelId);
@@ -351,22 +341,23 @@ public sealed class SchedulerActor : ReceivePersistentActor
     {
         var key = Key(result.Location, result.ModelId);
         var now = _timeProvider.GetUtcNow();
-        var state = _states.GetValueOrDefault(key, ModelPollState.Initial(now));
+        var currentPollState = _state.States.GetValueOrDefault(key, ModelPollState.Initial(now));
 
-        if (state.LastHash != result.Hash)
+        if (currentPollState.LastHash != result.Hash)
         {
             var evt = new DataChanged(result.Location, result.ModelId, result.Hash, now);
             var dto = SchedulerDtoMapping.ToDto(evt);
             Persist(dto, _ =>
             {
-                _states[key] = state.WithDataChange(evt.Hash, evt.Utc, _options.DiscoveryInterval);
+                _state = _state.Apply(key, evt.Hash, evt.Utc, _options.DiscoveryInterval);
                 _healthState.SetLastSuccessfulPoll(now);
                 DataChangedMetric.Add(1,
                     new KeyValuePair<string, object?>("location", result.Location),
                     new KeyValuePair<string, object?>("model", result.ModelId));
+                var updated = _state.States[key];
                 _log.Info(
                     "Data changed for {Location}/{Model} - phase={Phase}, cycle={Cycle}",
-                    result.Location, result.ModelId, _states[key].Phase, _states[key].Cycle);
+                    result.Location, result.ModelId, updated.Phase, updated.Cycle);
                 ScheduleNext(result.Location, result.ModelId);
                 Sender.Tell(new Ack());
                 RecordPollCompletion(result.Location, changed: true);
@@ -374,11 +365,12 @@ public sealed class SchedulerActor : ReceivePersistentActor
         }
         else
         {
-            _states[key] = state.WithMiss(now, _options.DiscoveryInterval);
+            _state = _state.ApplyMiss(key, now, _options.DiscoveryInterval);
             _healthState.SetLastSuccessfulPoll(now);
+            var updated = _state.States[key];
             _log.Debug(
                 "Hash unchanged for {Location}/{Model} - miss={Miss}, phase={Phase}",
-                result.Location, result.ModelId, _states[key].MissCount, _states[key].Phase);
+                result.Location, result.ModelId, updated.MissCount, updated.Phase);
             ScheduleNext(result.Location, result.ModelId);
             Sender.Tell(new Ack());
             RecordPollCompletion(result.Location, changed: false);
@@ -425,29 +417,15 @@ public sealed class SchedulerActor : ReceivePersistentActor
         }
     }
 
-    private void OnGetPollStates(GetPollStates _)
+    private void OnQueryPollStates(QueryPollStates _)
     {
-        var entries = _states.Select(kvp =>
-        {
-            var parts = kvp.Key.Split('|', 2);
-            var state = kvp.Value;
-            return new PollStateEntry(
-                parts[0],
-                parts[1],
-                state.Phase,
-                state.NextPollUtc,
-                state.LastChangeUtc,
-                state.MissCount,
-                state.Cycle is not null ? (long)state.Cycle.Value.TotalSeconds : null);
-        }).ToList();
-
-        Sender.Tell(new PollStatesSnapshot(entries));
+        Sender.Tell(_state.GetSnapshot());
     }
 
     private void ScheduleNext(string location, string modelId)
     {
         var key = Key(location, modelId);
-        if (!_states.TryGetValue(key, out var state))
+        if (!_state.States.TryGetValue(key, out var state))
         {
             return;
         }

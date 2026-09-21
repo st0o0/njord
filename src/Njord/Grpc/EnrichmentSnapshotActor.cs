@@ -1,5 +1,6 @@
 using Akka.Event;
 using Akka.Persistence;
+using Njord.Actors;
 using Njord.Persistence;
 
 namespace Njord.Grpc;
@@ -11,8 +12,7 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
     public override string PersistenceId => "enrichment-snapshot";
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
-    private readonly Dictionary<string, object> _state = new();
-    private int _updatesSinceSnapshot;
+    private EnrichmentSnapshotState _state = EnrichmentSnapshotState.Empty;
 
     public EnrichmentSnapshotActor()
     {
@@ -20,41 +20,33 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
         {
             if (offer.Snapshot is EnrichmentSnapshotDto saved)
             {
-                foreach (var kvp in EnrichmentSnapshotMapping.ToDomain(saved))
-                    _state[kvp.Key] = kvp.Value;
+                _state = EnrichmentSnapshotStateExtensions.FromPersistence(saved);
             }
         });
 
         Command<UpdateEnrichment>(cmd =>
         {
-            var key = MakeKey(cmd.Location, cmd.TypeName);
-            _state[key] = cmd.Result;
+            var key = EnrichmentSnapshotStateExtensions.MakeKey(cmd.Location, cmd.TypeName);
+            _state = _state.Apply(key, cmd.Result);
 
-            _updatesSinceSnapshot++;
-            if (_updatesSinceSnapshot >= SnapshotInterval)
+            if (_state.UpdatesSinceSnapshot >= SnapshotInterval)
             {
-                SaveSnapshot(EnrichmentSnapshotMapping.ToDto(_state));
-                _updatesSinceSnapshot = 0;
+                SaveSnapshot(_state.GetPersistenceState());
+                _state = _state.ResetSnapshotCounter();
             }
 
             Sender.Tell(new Ack(), Self);
         });
 
-        Command<GetEnrichment>(query =>
+        Command<QueryEnrichment>(query =>
         {
-            var key = MakeKey(query.Location, query.TypeName);
-            _state.TryGetValue(key, out var result);
-            Sender.Tell(new EnrichmentResponse(result), Self);
+            var key = EnrichmentSnapshotStateExtensions.MakeKey(query.Location, query.TypeName);
+            Sender.Tell(_state.GetEnrichment(key), Self);
         });
 
-        Command<GetAllEnrichments>(query =>
+        Command<QueryAllEnrichments>(query =>
         {
-            var prefix = $"{query.Location}|";
-            var results = _state
-                .Where(kvp => kvp.Key.StartsWith(prefix))
-                .Select(kvp => (TypeName: kvp.Key[(prefix.Length)..], kvp.Value))
-                .ToList();
-            Sender.Tell(new AllEnrichmentsResponse(results), Self);
+            Sender.Tell(_state.GetAllEnrichments(query.Location), Self);
         });
 
         Command<SaveSnapshotSuccess>(success =>
@@ -77,6 +69,4 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
             _log.Warning("Old snapshot cleanup failed: {0}", failure.Cause.Message);
         });
     }
-
-    private static string MakeKey(string location, string typeName) => $"{location}|{typeName}";
 }

@@ -3,6 +3,7 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Njord.Actors;
 using Njord.Domain.Weather;
 using Njord.Ingest;
 using Servus.Akka;

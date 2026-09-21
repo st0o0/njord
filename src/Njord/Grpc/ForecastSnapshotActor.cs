@@ -1,6 +1,6 @@
 using Akka.Event;
 using Akka.Persistence;
-using Njord.Domain.Weather;
+using Njord.Actors;
 using Njord.Persistence;
 
 namespace Njord.Grpc;
@@ -12,8 +12,7 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
     public override string PersistenceId => "forecast-snapshot";
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
-    private readonly Dictionary<string, ModelForecast> _state = new();
-    private int _updatesSinceSnapshot;
+    private ForecastSnapshotState _state = ForecastSnapshotState.Empty;
 
     public ForecastSnapshotActor()
     {
@@ -21,39 +20,33 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
         {
             if (offer.Snapshot is ForecastSnapshotDto saved)
             {
-                foreach (var kvp in ForecastSnapshotMapping.ToDomain(saved))
-                    _state[kvp.Key] = kvp.Value;
+                _state = ForecastSnapshotStateExtensions.FromPersistence(saved);
             }
         });
 
         Command<UpdateForecast>(cmd =>
         {
-            var key = MakeKey(cmd.Location, cmd.Model.Id);
-            _state[key] = cmd.Forecast;
+            var key = ForecastSnapshotStateExtensions.MakeKey(cmd.Location, cmd.Model.Id);
+            _state = _state.Apply(key, cmd.Forecast);
 
-            _updatesSinceSnapshot++;
-            if (_updatesSinceSnapshot >= SnapshotInterval)
+            if (_state.UpdatesSinceSnapshot >= SnapshotInterval)
             {
-                SaveSnapshot(ForecastSnapshotMapping.ToDto(_state));
-                _updatesSinceSnapshot = 0;
+                SaveSnapshot(_state.GetPersistenceState());
+                _state = _state.ResetSnapshotCounter();
             }
 
             Sender.Tell(new Ack(), Self);
         });
 
-        Command<GetForecast>(query =>
+        Command<QueryForecast>(query =>
         {
-            var key = MakeKey(query.Location, query.ModelId);
-            _state.TryGetValue(key, out var forecast);
-            Sender.Tell(new ForecastResponse(forecast), Self);
+            var key = ForecastSnapshotStateExtensions.MakeKey(query.Location, query.ModelId);
+            Sender.Tell(_state.GetForecast(key), Self);
         });
 
-        Command<GetAllForecasts>(_ =>
+        Command<QueryAllForecasts>(_ =>
         {
-            var result = _state.ToDictionary(
-                kvp => ParseKey(kvp.Key),
-                kvp => kvp.Value);
-            Sender.Tell(new AllForecastsResponse(result), Self);
+            Sender.Tell(_state.GetAllForecasts(), Self);
         });
 
         Command<SaveSnapshotSuccess>(success =>
@@ -75,13 +68,5 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
         {
             _log.Warning("Old snapshot cleanup failed: {0}", failure.Cause.Message);
         });
-    }
-
-    private static string MakeKey(string location, string modelId) => $"{location}|{modelId}";
-
-    private static (string Location, string ModelId) ParseKey(string key)
-    {
-        var sep = key.IndexOf('|');
-        return (key[..sep], key[(sep + 1)..]);
     }
 }
