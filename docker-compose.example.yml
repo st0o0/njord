@@ -1,6 +1,6 @@
 services:
   njord:
-    image: ghcr.io/st0o0/njord:latest@sha256:d8fa64f86c66c5d8efab52c382c6c810a57dd8b6dea45bd7633984c99d50a39b
+    image: ghcr.io/st0o0/njord:latest@sha256:6f03fba66ca630683af2e11f6c11d3ef35f284bec5ef82f0b353636fbed25124
     restart: unless-stopped
     ports:
       - "8080:8080"
