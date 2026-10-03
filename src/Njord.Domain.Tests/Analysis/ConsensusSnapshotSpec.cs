@@ -169,7 +169,8 @@ public sealed class ConsensusSnapshotSpec
 
         var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
 
-        var byHorizon = result.Hourly.Parameters[0].ByHorizon;
+        var hourlyParam = Assert.Single(result.Hourly.Parameters);
+        var byHorizon = hourlyParam.ByHorizon;
         Assert.True(byHorizon.ContainsKey("h0"));
         Assert.True(byHorizon.ContainsKey("h1"));
         Assert.False(byHorizon.ContainsKey("h2"));
@@ -188,7 +189,8 @@ public sealed class ConsensusSnapshotSpec
 
         var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
 
-        var h3 = result.Hourly.Parameters[0].ByHorizon["h3"];
+        var hourlyParam = Assert.Single(result.Hourly.Parameters);
+        var h3 = hourlyParam.ByHorizon["h3"];
         Assert.Equal(21.0, h3.Median);
         Assert.NotNull(h3.Spread);
         Assert.Equal(3, h3.AvailableModels.Count);
@@ -208,8 +210,8 @@ public sealed class ConsensusSnapshotSpec
 
         var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
 
-        Assert.Single(result.Daily.Parameters);
-        var d0 = result.Daily.Parameters[0].ByHorizon["d0"];
+        var dailyParam = Assert.Single(result.Daily.Parameters);
+        var d0 = dailyParam.ByHorizon["d0"];
         Assert.Equal(29.5, d0.Median);
         Assert.Equal(3, d0.AvailableModels.Count);
     }
@@ -227,7 +229,8 @@ public sealed class ConsensusSnapshotSpec
 
         var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
 
-        var byHorizon = result.Daily.Parameters[0].ByHorizon;
+        var dailyParam = Assert.Single(result.Daily.Parameters);
+        var byHorizon = dailyParam.ByHorizon;
         Assert.True(byHorizon.ContainsKey("d0"));
         Assert.True(byHorizon.ContainsKey("d1"));
         Assert.False(byHorizon.ContainsKey("d2"));

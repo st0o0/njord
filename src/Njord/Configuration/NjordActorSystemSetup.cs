@@ -1,8 +1,8 @@
 using Akka;
 using Akka.Actor;
 using Akka.DependencyInjection;
-using Akka.Hosting;
 using Akka.Event;
+using Akka.Hosting;
 using Akka.Pattern;
 using Akka.Persistence.Sql.Hosting;
 using LinqToDB;

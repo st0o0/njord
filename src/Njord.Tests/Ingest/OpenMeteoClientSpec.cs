@@ -48,7 +48,7 @@ public sealed class OpenMeteoClientSpec
         Assert.Equal(Cycle, forecast.Cycle);
         Assert.Equal(96, forecast.Hourly.Points.Count);
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
-        var first = forecast.Hourly.Points[0];
+        var first = forecast.Hourly.Points[0]; // Count asserted above (96)
         Assert.Equal(FixtureStart, first.ValidAt);
         Assert.Equal(20.2, first.Get(temp));
         var pressureMsl = ParameterRegistry.GetByApiName("pressure_msl")!;
@@ -63,7 +63,8 @@ public sealed class OpenMeteoClientSpec
         await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
         var request = Assert.Single(handler.Requests);
-        var uri = request.RequestUri!.ToString();
+        Assert.NotNull(request.RequestUri);
+        var uri = request.RequestUri.ToString();
         Assert.Contains("/v1/forecast?", uri);
         Assert.Contains("latitude=47.05", uri);
         Assert.Contains("longitude=8.31", uri);
@@ -177,7 +178,7 @@ public sealed class OpenMeteoClientSpec
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchOutcome.Success>(outcome);
-        var dailyPoint = success.Forecast.Daily.Points[0];
+        var dailyPoint = Assert.Single(success.Forecast.Daily.Points);
         var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
         var sunriseVal = dailyPoint.GetMeta(sunrise);
         Assert.NotNull(sunriseVal);
@@ -200,7 +201,7 @@ public sealed class OpenMeteoClientSpec
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchOutcome.Success>(outcome);
-        var dailyPoint = success.Forecast.Daily.Points[0];
+        var dailyPoint = Assert.Single(success.Forecast.Daily.Points);
         var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
         Assert.Equal("2026-07-11T05:23", dailyPoint.GetMeta(sunrise));
     }
@@ -237,6 +238,7 @@ public sealed class OpenMeteoClientSpec
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
         var success = Assert.IsType<FetchOutcome.Success>(outcome);
+        Assert.Single(success.Forecast.Hourly.Points);
         var point = success.Forecast.Hourly.Points[0];
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var windSpeed = ParameterRegistry.GetByApiName("wind_speed_10m")!;
@@ -288,7 +290,8 @@ public sealed class OpenMeteoClientSpec
         await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
         var request = Assert.Single(handler.Requests);
-        Assert.StartsWith(customUrl, request.RequestUri!.ToString());
+        Assert.NotNull(request.RequestUri);
+        Assert.StartsWith(customUrl, request.RequestUri.ToString());
     }
 
     private sealed class RecordingHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler

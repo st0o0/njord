@@ -11,8 +11,8 @@ using Njord.Egress;
 using Njord.Enrichment;
 using Njord.Messages.Egress;
 using Njord.Mqtt;
-using FailingRefProvider = Njord.Tests.Actors.FailingRefProvider;
 using Njord.Tests.Shared;
+using FailingRefProvider = Njord.Tests.Actors.FailingRefProvider;
 
 namespace Njord.Tests.Mqtt;
 
@@ -69,10 +69,6 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
         return (probe, requestProbe, publishProbe);
     }
 
-    /// <summary>
-    /// Wait for both refs to be requested and give stream ref PipeTo responses
-    /// time to propagate back to MqttEgressActor and materialize the graph.
-    /// </summary>
     private async Task WaitForGraphMaterialized(
         Akka.TestKit.TestProbe requestProbe, FakeEgressHub hub)
     {

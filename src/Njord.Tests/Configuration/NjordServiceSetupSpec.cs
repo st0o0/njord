@@ -54,8 +54,8 @@ public sealed class NjordServiceSetupSpec
 
         var options = provider.GetRequiredService<IOptions<NjordOptions>>().Value;
 
-        Assert.Single(options.Locations);
-        Assert.Equal("Lucerne", options.Locations[0].Name);
+        var loc = Assert.Single(options.Locations);
+        Assert.Equal("Lucerne", loc.Name);
         await DisposeProviderAsync(provider);
     }
 

@@ -60,9 +60,9 @@ public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
 
         await consumed.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
-        Assert.Single(received);
-        Assert.IsType<EgressEvent.EnrichmentUpdate>(received[0]);
-        Assert.Equal("lucerne", ((EgressEvent.EnrichmentUpdate)received[0]).Location);
+        var item = Assert.Single(received);
+        var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(item);
+        Assert.Equal("lucerne", update.Location);
     }
 
     [Fact]

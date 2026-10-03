@@ -12,8 +12,8 @@ using Njord.Enrichment;
 using Njord.Messages.Egress;
 using Njord.Messages.Pipeline;
 using Njord.Pipeline;
-using FailingRefProvider = Njord.Tests.Actors.FailingRefProvider;
 using Njord.Tests.Shared;
+using FailingRefProvider = Njord.Tests.Actors.FailingRefProvider;
 
 namespace Njord.Tests.Enrichment;
 

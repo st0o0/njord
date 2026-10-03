@@ -24,10 +24,6 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
     private sealed record DepAResolved(IActorRef Ref);
     private sealed record DepBResolved(IActorRef Ref);
 
-    /// <summary>
-    /// Concrete StreamConsumerActor subclass used exclusively for testing.
-    /// Two dependencies (DepA, DepB) resolved via ActorRegistry.
-    /// </summary>
     private sealed class TestStreamConsumer : StreamConsumerActor
     {
         private IActorRef? _depA;
@@ -86,20 +82,14 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         }
     }
 
-    /// <summary>
-    /// Extended test consumer that allows replacing the graph-materialized TCS
-    /// between recovery cycles so callers can await a second materialization.
-    /// </summary>
     private sealed class ResettableTestStreamConsumer : StreamConsumerActor
     {
         private IActorRef? _depA;
         private IActorRef? _depB;
         private int _materializeCount;
 
-        /// <summary>Sent to Self to swap the TCS for the next materialization cycle.</summary>
         public sealed record SetGraphTcs(TaskCompletionSource Tcs);
 
-        /// <summary>Query message: consumer replies with the current materialize count.</summary>
         public sealed record GetMaterializeCount;
 
         private TaskCompletionSource _graphMaterialized;
@@ -329,7 +319,7 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact]
-    public async Task Exponential_backoff_caps_at_30_seconds()
+    public void Exponential_backoff_caps_at_30_seconds()
     {
         // Unit-level verification of the backoff formula used in ScheduleRetryResolve.
         // The formula is: delay = min(2^retryCount, 30)

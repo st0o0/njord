@@ -145,7 +145,9 @@ public sealed class EnrichmentFeatureContractSpec
         };
         var presenter = new ConsensusPresenter(Options.Create(disabled), ParameterRegistry.Resolve(["Weather"], [], []));
 
-        Assert.Equal("consensus", CreateAllPresenters()[0].TypeName);
+        var presenters = CreateAllPresenters();
+        Assert.True(presenters.Count > 0, "Expected at least one presenter");
+        Assert.Equal("consensus", presenters[0].TypeName);
         Assert.True(presenter.Enabled);
     }
 

@@ -8,7 +8,6 @@ public enum FetchFailureReason
     Transport,
 }
 
-/// <summary>Result of one fetch attempt. Expected failures are data, not exceptions.</summary>
 public abstract record FetchOutcome
 {
     private FetchOutcome() { }

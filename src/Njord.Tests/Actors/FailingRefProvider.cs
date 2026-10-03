@@ -7,10 +7,6 @@ using Njord.Pipeline;
 
 namespace Njord.Tests.Actors;
 
-/// <summary>
-/// Stands in for any ref-vending actor (egress, MQTT connection, pipeline) and answers every
-/// request with the matching typed failure while recording the request on a probe.
-/// </summary>
 internal sealed class FailingRefProvider : ReceiveActor
 {
     public static Props Props(IActorRef requestProbe) =>

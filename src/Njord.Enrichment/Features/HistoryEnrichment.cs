@@ -1,9 +1,9 @@
-using Microsoft.Extensions.Logging;
 using System.Diagnostics.Metrics;
 using Akka;
 using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Actors;
 using Njord.Configuration;

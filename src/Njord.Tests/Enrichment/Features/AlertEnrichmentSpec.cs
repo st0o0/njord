@@ -47,8 +47,8 @@ public sealed class AlertEnrichmentSpec
         var consensus = new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(snapshot, "lucerne");
         var events = feature.Compute(consensus).ToList();
 
-        Assert.Single(events);
-        var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(events[0]);
+        var evt = Assert.Single(events);
+        var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(evt);
         Assert.Equal("lucerne", update.Location);
         Assert.Equal("alerts", update.TypeName);
         Assert.IsType<AlertResult>(update.Result);
@@ -62,6 +62,7 @@ public sealed class AlertEnrichmentSpec
 
         var consensus = new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(snapshot, "lucerne");
         var events = feature.Compute(consensus).ToList();
+        Assert.Single(events);
         var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(events[0]);
         var result = Assert.IsType<AlertResult>(update.Result);
 

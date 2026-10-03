@@ -113,7 +113,7 @@ public sealed class BudgetThrottleStageSpec : Akka.Hosting.TestKit.TestKit
 
     private sealed class RejectThenAllowGate<T>(int rejectCount) : IBudgetGate<T>
     {
-        public int TryCount;
+        public int TryCount { get; set; }
 
         public bool TryAcquire(T element)
         {

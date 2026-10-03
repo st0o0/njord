@@ -1,6 +1,5 @@
 namespace Njord.Domain.Weather;
 
-/// <summary>An ordered (ascending ValidAt) series of forecast points.</summary>
 public sealed class ForecastSeries
 {
     public IReadOnlyList<ForecastPoint> Points { get; }

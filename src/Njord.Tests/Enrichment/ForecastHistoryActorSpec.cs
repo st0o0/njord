@@ -57,8 +57,8 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
         actor.Tell(new RecordSnapshot(MakeSnapshot()));
 
         var response = await actor.Ask<ForecastHistoryResult>(new QueryHistory(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
-        Assert.Single(response.History.Records);
-        Assert.Equal("lucerne", response.History.Records[0].Location);
+        var record = Assert.Single(response.History.Records);
+        Assert.Equal("lucerne", record.Location);
     }
 
     [Fact(Timeout = 15000)]

@@ -62,8 +62,8 @@ public sealed class TrendEnrichmentSpec
         var currentConsensus = new ConsensusSnapshotFactory(Parameters, Time).Create(current, "lucerne");
         var events = feature.Compute(currentConsensus, prevConsensus).ToList();
 
-        Assert.Single(events);
-        var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(events[0]);
+        var evt = Assert.Single(events);
+        var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(evt);
         Assert.Equal("trends", update.TypeName);
         Assert.IsType<TrendResult>(update.Result);
     }
