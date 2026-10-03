@@ -90,7 +90,6 @@ public sealed class SchedulerActor : ReceivePersistentActor
                 return;
             }
 
-            _pipelineRetryCount = 0;
             _lastTerminatedPipeline = null;
             Context.Watch(msg.Pipeline);
             msg.Pipeline.Tell(new RequestPipelineSink(0));
@@ -103,11 +102,29 @@ public sealed class SchedulerActor : ReceivePersistentActor
                 .PipeTo(Self, success: r => new PipelineResolved(r));
         });
         Command<QueryPollStates>(OnQueryPollStates);
+        Command<FailureConsumerCompleted>(_ => _log.Debug("Failure consumer stream completed"));
+        Command<FailureConsumerFailed>(msg =>
+            _log.Debug("Ignoring failure consumer error while waiting for pipeline: {Error}", msg.Cause.Message));
+        Command<PipelineSinkFailed>(msg =>
+            _log.Debug("Ignoring pipeline sink failure while waiting for pipeline: {Error}", msg.Cause.Message));
+        Command<PipelineSourceFailed>(msg =>
+            _log.Debug("Ignoring pipeline source failure while waiting for pipeline: {Error}", msg.Cause.Message));
         CommandAny(_ => Stash.Stash());
+    }
+
+    private void HandleFailureConsumerMessages()
+    {
+        Command<FailureConsumerCompleted>(_ => _log.Debug("Failure consumer stream completed"));
+        Command<FailureConsumerFailed>(msg =>
+        {
+            _log.Warning(msg.Cause, "Failure consumer stream failed - reconnecting to pipeline");
+            RestartPipelineConnection();
+        });
     }
 
     private void StashKnownCommands()
     {
+        HandleFailureConsumerMessages();
         Command<ScheduledPoll>(_ => Stash.Stash());
         Command<HashResult>(_ => Stash.Stash());
         Command<FetchFailed>(_ => Stash.Stash());
@@ -130,8 +147,24 @@ public sealed class SchedulerActor : ReceivePersistentActor
             OnSourceReceived(response);
             TryTransitionToConnecting();
         });
+        Command<PipelineSinkFailed>(msg => OnPipelineRefFailed(msg.Cause, "Pipeline sink request failed"));
+        Command<PipelineSourceFailed>(msg => OnPipelineRefFailed(msg.Cause, "Pipeline source request failed"));
         Command<Terminated>(OnTerminated);
         StashKnownCommands();
+    }
+
+    private void OnPipelineRefFailed(Exception cause, string what)
+    {
+        _log.Warning(cause, "{What} - retrying", what);
+        _queue?.Complete();
+        _queue = null;
+        _sourceReceived = false;
+
+        var delay = TimeSpan.FromSeconds(Math.Min(Math.Pow(2, _pipelineRetryCount), 30));
+        _pipelineRetryCount++;
+        Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryPipelineResolve(), Self);
+
+        Become(WaitingForPipeline);
     }
 
     private void TryTransitionToConnecting()
@@ -141,6 +174,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             return;
         }
 
+        _pipelineRetryCount = 0;
         _log.Debug("Refs received — connecting");
         InitializeStates();
         Become(Connecting);
@@ -162,6 +196,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             Become(WaitingForConnection);
         });
         Command<Terminated>(OnTerminated);
+        HandleFailureConsumerMessages();
         Command<HashResult>(_ => Stash.Stash());
         Command<FetchFailed>(_ => Stash.Stash());
         Command<TriggerImmediatePoll>(_ => Stash.Stash());
@@ -197,15 +232,21 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
         Command<QueryPollStates>(OnQueryPollStates);
         Command<Terminated>(OnTerminated);
+        HandleFailureConsumerMessages();
     }
 
     private void OnTerminated(Terminated msg)
     {
         _log.Warning("PipelineActor terminated - waiting for new refs");
+        _lastTerminatedPipeline = msg.ActorRef;
+        RestartPipelineConnection();
+    }
+
+    private void RestartPipelineConnection()
+    {
         _queue?.Complete();
         _queue = null;
         _sourceReceived = false;
-        _lastTerminatedPipeline = msg.ActorRef;
         _pipelineRetryCount = 0;
 
         Context.GetActorAsync<PipelineActor>()
@@ -236,8 +277,8 @@ public sealed class SchedulerActor : ReceivePersistentActor
             .Collect(outcome => outcome is FetchOutcome.Failure, outcome => (FetchOutcome.Failure)outcome)
             .Select(f => new FetchFailed(f.Location, f.Model.Id, f.Reason, f.Detail))
             .Log("pipeline-failure", f => $"{f.Location}/{f.ModelId} {f.Reason}", _log)
-            .To(Sink.ActorRef<FetchFailed>(self, new Status.Success("failure-consumer-complete"),
-                ex => new Status.Failure(ex)))
+            .To(Sink.ActorRef<FetchFailed>(self, new FailureConsumerCompleted(),
+                ex => new FailureConsumerFailed(ex)))
             .Run(_mat);
 
         _sourceReceived = true;

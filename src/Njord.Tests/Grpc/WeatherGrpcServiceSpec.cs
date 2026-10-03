@@ -6,8 +6,10 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
+using Njord.Egress;
 using Njord.Grpc;
 using Njord.Grpc.V2;
+using Njord.Tests.Actors;
 using Njord.Tests.Shared;
 
 namespace Njord.Tests.Grpc;
@@ -183,6 +185,39 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         };
         return new ModelForecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
             new ForecastSeries(points), DailyForecastSeries.Empty);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task StreamForecasts_throws_unavailable_when_egress_source_request_fails()
+    {
+        ActorRegistry.Register<EgressActor>(
+            Sys.ActorOf(FailingRefProvider.Props(CreateTestProbe())), overwrite: true);
+        var service = CreateService();
+
+        var ex = await Assert.ThrowsAsync<RpcException>(() => service.StreamForecasts(
+            new StreamForecastsRequest(), new DiscardingStreamWriter<ForecastUpdate>(), TestServerCallContext.Create()));
+
+        Assert.Equal(StatusCode.Unavailable, ex.StatusCode);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task StreamEnrichments_throws_unavailable_when_egress_source_request_fails()
+    {
+        ActorRegistry.Register<EgressActor>(
+            Sys.ActorOf(FailingRefProvider.Props(CreateTestProbe())), overwrite: true);
+        var service = CreateService();
+
+        var ex = await Assert.ThrowsAsync<RpcException>(() => service.StreamEnrichments(
+            new StreamEnrichmentsRequest(), new DiscardingStreamWriter<EnrichmentEvent>(), TestServerCallContext.Create()));
+
+        Assert.Equal(StatusCode.Unavailable, ex.StatusCode);
+    }
+
+    private sealed class DiscardingStreamWriter<T> : IServerStreamWriter<T>
+    {
+        public WriteOptions? WriteOptions { get; set; }
+
+        public Task WriteAsync(T message) => Task.CompletedTask;
     }
 
     private sealed class EmptyForecastActor : ReceiveActor

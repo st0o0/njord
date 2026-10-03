@@ -9,6 +9,7 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
     private readonly HashSet<IActorRef> _watchedDeps = [];
     private IActorRef? _lastTerminatedRef;
     private int _retryCount;
+    private bool _retryPending;
     private long _requestId;
     private SharedKillSwitch _killSwitch = KillSwitches.Shared("stream-kill");
 
@@ -55,6 +56,12 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
 
     protected void ScheduleRetryResolve()
     {
+        if (_retryPending)
+        {
+            return;
+        }
+
+        _retryPending = true;
         var delay = TimeSpan.FromSeconds(Math.Min(Math.Pow(2, _retryCount), 30));
         _retryCount++;
         Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryResolve(), Self);
@@ -69,6 +76,7 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
 
         _lastTerminatedRef = null;
         _retryCount = 0;
+        _retryPending = false;
         MaterializeGraph(_killSwitch);
         EnterReady();
         Stash.UnstashAll();
@@ -76,6 +84,7 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
 
     private void EnterWaitingForRefs()
     {
+        _retryPending = false;
         Become(WaitingForRefsBehavior);
     }
 
@@ -83,6 +92,7 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
     {
         Receive<RetryResolve>(_ =>
         {
+            _retryPending = false;
             _lastTerminatedRef = null;
             ResolveDependencies();
         });

@@ -80,6 +80,18 @@ public sealed class ModelStateActor : StreamConsumerActor
             _log.Debug("SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
+        Receive<EgressSinkFailed>(msg =>
+        {
+            if (msg.RequestId != _egressSinkRequestId) return;
+            _log.Warning(msg.Cause, "Egress sink request failed - retrying");
+            ScheduleRetryResolve();
+        });
+        Receive<PipelineSourceFailed>(msg =>
+        {
+            if (msg.RequestId != _pipelineSourceRequestId) return;
+            _log.Warning(msg.Cause, "Pipeline source request failed - retrying");
+            ScheduleRetryResolve();
+        });
     }
 
     protected override bool AllRefsReady() => _egressSinkRef is not null && _sourceRef is not null;

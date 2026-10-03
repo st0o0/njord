@@ -9,6 +9,7 @@ using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
 using Njord.Pipeline;
+using Njord.Tests.Actors;
 using Njord.Tests.Shared;
 
 namespace Njord.Tests.Enrichment;
@@ -67,6 +68,32 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         var actor = CreateEnrichmentActor();
 
         await AssertActorAlive(actor, TestContext.Current.CancellationToken);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Re_requests_pipeline_source_after_pipeline_source_failure()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var requestProbe = CreateTestProbe();
+        ActorRegistry.Register<PipelineActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
+
+        CreateEnrichmentActor();
+
+        await requestProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: ct);
+        await requestProbe.ExpectMsgAsync<RequestPipelineSource>(TimeSpan.FromSeconds(4), cancellationToken: ct);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Re_requests_egress_sink_after_egress_sink_failure()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var requestProbe = CreateTestProbe();
+        ActorRegistry.Register<EgressActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
+
+        CreateEnrichmentActor();
+
+        await requestProbe.ExpectMsgAsync<RequestEgressSink>(cancellationToken: ct);
+        await requestProbe.ExpectMsgAsync<RequestEgressSink>(TimeSpan.FromSeconds(4), cancellationToken: ct);
     }
 
     [Fact(Timeout = 5000)]

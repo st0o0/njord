@@ -7,6 +7,7 @@ using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
 using Njord.Mqtt;
+using Njord.Tests.Actors;
 using Njord.Tests.Shared;
 
 namespace Njord.Tests.Mqtt;
@@ -100,6 +101,34 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
         var received = new[] { msg1, msg2 };
         Assert.Contains(received, m => m is RequestMqttSink);
         Assert.Contains(received, m => m is SubscribeInbound);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Re_requests_mqtt_sink_after_mqtt_sink_failure()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var requestProbe = CreateTestProbe();
+        ActorRegistry.Register<MqttConnectionActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
+        ActorRegistry.Register<EgressActor>(CreateTestProbe().Ref, overwrite: true);
+
+        CreateDiscoveryActor();
+
+        await requestProbe.ExpectMsgAsync<RequestMqttSink>(cancellationToken: ct);
+        await requestProbe.ExpectMsgAsync<RequestMqttSink>(TimeSpan.FromSeconds(4), cancellationToken: ct);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Re_requests_egress_source_after_egress_source_failure()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var requestProbe = CreateTestProbe();
+        ActorRegistry.Register<MqttConnectionActor>(CreateTestProbe().Ref, overwrite: true);
+        ActorRegistry.Register<EgressActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
+
+        CreateDiscoveryActor();
+
+        await requestProbe.ExpectMsgAsync<RequestEgressSource>(cancellationToken: ct);
+        await requestProbe.ExpectMsgAsync<RequestEgressSource>(TimeSpan.FromSeconds(4), cancellationToken: ct);
     }
 
     [Fact(Timeout = 15000)]

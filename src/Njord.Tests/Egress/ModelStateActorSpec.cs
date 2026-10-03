@@ -6,6 +6,7 @@ using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Pipeline;
+using Njord.Tests.Actors;
 using Njord.Tests.Shared;
 
 namespace Njord.Tests.Egress;
@@ -53,6 +54,34 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
 
         await egressProbe.ExpectMsgAsync<RequestEgressSink>(cancellationToken: TestContext.Current.CancellationToken);
         await pipelineProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Re_requests_egress_sink_after_egress_sink_failure()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var egressProbe = CreateTestProbe();
+        ActorRegistry.Register<EgressActor>(Sys.ActorOf(FailingRefProvider.Props(egressProbe)), overwrite: true);
+        ActorRegistry.Register<PipelineActor>(CreateTestProbe().Ref, overwrite: true);
+
+        CreateModelStateActor();
+
+        await egressProbe.ExpectMsgAsync<RequestEgressSink>(cancellationToken: ct);
+        await egressProbe.ExpectMsgAsync<RequestEgressSink>(TimeSpan.FromSeconds(4), cancellationToken: ct);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Re_requests_pipeline_source_after_pipeline_source_failure()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var pipelineProbe = CreateTestProbe();
+        ActorRegistry.Register<EgressActor>(CreateTestProbe().Ref, overwrite: true);
+        ActorRegistry.Register<PipelineActor>(Sys.ActorOf(FailingRefProvider.Props(pipelineProbe)), overwrite: true);
+
+        CreateModelStateActor();
+
+        await pipelineProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: ct);
+        await pipelineProbe.ExpectMsgAsync<RequestPipelineSource>(TimeSpan.FromSeconds(4), cancellationToken: ct);
     }
 
     [Fact(Timeout = 15000)]

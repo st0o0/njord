@@ -70,7 +70,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                     ex =>
                     {
                         _log.Error(ex, "Failed to create SinkRef");
-                        return new Status.Failure(ex);
+                        return new PipelineSinkFailed(msg.RequestId, ex);
                     });
         });
         Receive<RequestPipelineSource>(msg =>
@@ -82,7 +82,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                     ex =>
                     {
                         _log.Error(ex, "Failed to create SourceRef");
-                        return new Status.Failure(ex);
+                        return new PipelineSourceFailed(msg.RequestId, ex);
                     });
         });
     }

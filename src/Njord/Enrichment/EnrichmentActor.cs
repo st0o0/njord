@@ -104,6 +104,18 @@ public sealed class EnrichmentActor : StreamConsumerActor
             _log.Debug("SinkRef received from {Source}", Sender.Path);
             TryTransition();
         });
+        Receive<PipelineSourceFailed>(msg =>
+        {
+            if (msg.RequestId != _pipelineSourceRequestId) return;
+            _log.Warning(msg.Cause, "Pipeline source request failed - retrying");
+            ScheduleRetryResolve();
+        });
+        Receive<EgressSinkFailed>(msg =>
+        {
+            if (msg.RequestId != _egressSinkRequestId) return;
+            _log.Warning(msg.Cause, "Egress sink request failed - retrying");
+            ScheduleRetryResolve();
+        });
     }
 
     protected override bool AllRefsReady() => _sourceRef is not null && _egressSinkRef is not null && _sensorHub is not null;

@@ -28,7 +28,7 @@ A `PipelineActor` SHALL materialize the full pipeline graph using `Context.Mater
 ### Requirement: The pipeline actor vends a SinkRef for producers and a SourceRef for consumers
 The PipelineActor SHALL materialize a `MergeHub` as the pipeline entry point and a `BroadcastHub` as the pipeline output. The BroadcastHub SHALL carry `FetchOutcome` (not just `FetchOutcome.Success`) so that both successes and failures are available to all consumers. On request, it SHALL vend a `SinkRef<WeightedTarget>` (connected to the MergeHub) for producers, and a `SourceRef<FetchOutcome>` (connected to the BroadcastHub) for consumers. No raw `ISourceQueueWithComplete` SHALL be exposed.
 
-When SinkRef or SourceRef materialization fails, the PipelineActor SHALL send `Status.Failure(ex)` to the requesting actor. The actor SHALL NOT return `null` or `null!` from a PipeTo failure handler.
+When SinkRef or SourceRef materialization fails, the PipelineActor SHALL send a project-owned failure message (`PipelineSinkFailed(long RequestId, Exception Cause)` / `PipelineSourceFailed(long RequestId, Exception Cause)`) to the requesting actor. The actor SHALL NOT send `Status.Failure` and SHALL NOT return `null` or `null!` from a PipeTo failure handler.
 
 #### Scenario: SchedulerActor requests and receives a SinkRef
 - **WHEN** SchedulerActor sends RequestPipelineSink
@@ -42,14 +42,14 @@ When SinkRef or SourceRef materialization fails, the PipelineActor SHALL send `S
 - **WHEN** any actor requests pipeline access
 - **THEN** only SinkRef/SourceRef handles are provided
 
-#### Scenario: SinkRef materialization failure sends Status.Failure
+#### Scenario: SinkRef materialization failure sends PipelineSinkFailed
 - **WHEN** SinkRef materialization fails with an exception
-- **THEN** PipelineActor sends Status.Failure(ex) to the requesting actor
+- **THEN** PipelineActor sends PipelineSinkFailed carrying the exception to the requesting actor
 - **THEN** the failure is logged at Error level
 
-#### Scenario: SourceRef materialization failure sends Status.Failure
+#### Scenario: SourceRef materialization failure sends PipelineSourceFailed
 - **WHEN** SourceRef materialization fails with an exception
-- **THEN** PipelineActor sends Status.Failure(ex) to the requesting actor
+- **THEN** PipelineActor sends PipelineSourceFailed carrying the exception to the requesting actor
 - **THEN** the failure is logged at Error level
 
 ### Requirement: PipelineActor materializes a BroadcastHub for FetchOutcome distribution

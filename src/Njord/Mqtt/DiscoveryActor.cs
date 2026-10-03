@@ -110,6 +110,18 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
             _log.Debug("SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
+        Receive<MqttSinkFailed>(msg =>
+        {
+            if (msg.RequestId != _mqttSinkRequestId) return;
+            _log.Warning(msg.Cause, "MQTT sink request failed - retrying");
+            ScheduleRetryResolve();
+        });
+        Receive<EgressSourceFailed>(msg =>
+        {
+            if (msg.RequestId != _egressSourceRequestId) return;
+            _log.Warning(msg.Cause, "Egress source request failed - retrying");
+            ScheduleRetryResolve();
+        });
     }
 
     protected override bool AllRefsReady() => _mqttSinkRef is not null && _egressSourceRef is not null;

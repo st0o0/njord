@@ -143,9 +143,7 @@ public sealed class WeatherGrpcService(
         IServerStreamWriter<ForecastUpdate> responseStream,
         ServerCallContext context)
     {
-        var egressActor = actorRegistry.Get<EgressActor>();
-        var sourceResponse = await egressActor.Ask<EgressSourceResponse>(
-            new RequestEgressSource(0), context.CancellationToken);
+        var sourceResponse = await RequestEgressSourceAsync(context.CancellationToken);
 
         var mat = actorSystem.Materializer();
 
@@ -172,9 +170,7 @@ public sealed class WeatherGrpcService(
         IServerStreamWriter<EnrichmentEvent> responseStream,
         ServerCallContext context)
     {
-        var egressActor = actorRegistry.Get<EgressActor>();
-        var sourceResponse = await egressActor.Ask<EgressSourceResponse>(
-            new RequestEgressSource(0), context.CancellationToken);
+        var sourceResponse = await RequestEgressSourceAsync(context.CancellationToken);
 
         var mat = actorSystem.Materializer();
 
@@ -200,6 +196,21 @@ public sealed class WeatherGrpcService(
                 return evt;
             })
             .RunWith(Sink.Ignore<EnrichmentEvent?>(), mat);
+    }
+
+    private async Task<EgressSourceResponse> RequestEgressSourceAsync(CancellationToken cancellationToken)
+    {
+        var reply = await actorRegistry.Get<EgressActor>()
+            .Ask<object>(new RequestEgressSource(0), cancellationToken);
+
+        return reply switch
+        {
+            EgressSourceResponse response => response,
+            EgressSourceFailed => throw new RpcException(
+                new GrpcStatus(StatusCode.Unavailable, "Egress stream is currently unavailable")),
+            _ => throw new RpcException(
+                new GrpcStatus(StatusCode.Internal, $"Unexpected egress reply: {reply.GetType().Name}")),
+        };
     }
 
     private LocationOptions FindLocation(string name)

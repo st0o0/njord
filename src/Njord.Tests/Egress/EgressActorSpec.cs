@@ -48,18 +48,16 @@ public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
         var sourceResponse = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(0), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var received = new List<EgressEvent>();
-        var completionSource = new TaskCompletionSource();
-        _ = sourceResponse.SourceRef.Source
+        var consumed = sourceResponse.SourceRef.Source
             .Take(1)
-            .RunForeach(e => received.Add(e), mat)
-            .ContinueWith(_ => completionSource.TrySetResult());
+            .RunForeach(e => received.Add(e), mat);
 
         var testEvent = new EgressEvent.EnrichmentUpdate("lucerne", "alerts", new AlertResult("lucerne", []));
 
         Source.Single((EgressEvent)testEvent)
             .RunWith(sinkResponse.SinkRef.Sink, mat);
 
-        await completionSource.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+        await consumed.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Single(received);
         Assert.IsType<EgressEvent.EnrichmentUpdate>(received[0]);

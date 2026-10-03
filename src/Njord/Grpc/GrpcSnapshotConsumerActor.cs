@@ -49,6 +49,12 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
             Task.WhenAll(forecastTask, enrichmentTask)
                 .PipeTo(Self, success: _ => new SnapshotActorsResolved(forecastTask.Result, enrichmentTask.Result));
         });
+        Receive<EgressSourceFailed>(msg =>
+        {
+            if (msg.RequestId != _egressSourceRequestId) return;
+            Context.GetLogger().Warning(msg.Cause, "Egress source request failed - retrying");
+            ScheduleRetryResolve();
+        });
         Receive<SnapshotActorsResolved>(msg =>
         {
             _forecastActor = msg.Forecast;

@@ -65,6 +65,32 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 15000)]
+    public async Task Reconnect_is_attempted_after_canceled_connect()
+    {
+        var transport = new RecordingTransport();
+        var connection = new FakeConnection { CancelConnectCount = 1 };
+        _ = CreateActor(connection, transport);
+
+        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online").WaitAsync(TestContext.Current.CancellationToken);
+
+        Assert.True(connection.ConnectCallCount >= 2,
+            $"Expected at least 2 connect attempts, got {connection.ConnectCallCount}");
+    }
+
+    [Fact(Timeout = 15000)]
+    public async Task Reconnect_is_attempted_after_repeated_connect_failures()
+    {
+        var transport = new RecordingTransport();
+        var connection = new FakeConnection { FailConnectCount = 2 };
+        _ = CreateActor(connection, transport);
+
+        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online").WaitAsync(TestContext.Current.CancellationToken);
+
+        Assert.True(connection.ConnectCallCount >= 3,
+            $"Expected at least 3 connect attempts, got {connection.ConnectCallCount}");
+    }
+
+    [Fact(Timeout = 15000)]
     public async Task SinkRef_is_returned_on_RequestMqttSink()
     {
         var transport = new RecordingTransport();
@@ -113,9 +139,11 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
     {
         private Action<string, string>? _onMessage;
         private int _failConnectCount;
+        private int _cancelConnectCount;
         private int _connectCalls;
 
         public int FailConnectCount { get => _failConnectCount; init => _failConnectCount = value; }
+        public int CancelConnectCount { get => _cancelConnectCount; init => _cancelConnectCount = value; }
         public int ConnectCallCount => Volatile.Read(ref _connectCalls);
 
         public Task ConnectAsync(
@@ -127,6 +155,11 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
             if (attempt <= _failConnectCount)
             {
                 return Task.FromException(new InvalidOperationException($"Simulated connect failure #{attempt}"));
+            }
+
+            if (attempt <= _failConnectCount + _cancelConnectCount)
+            {
+                return Task.FromCanceled(new CancellationToken(canceled: true));
             }
 
             _onMessage = onMessage;

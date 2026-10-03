@@ -102,7 +102,7 @@ public sealed class MqttConnectionActor : ReceiveActor
                     ex =>
                     {
                         _log.Error(ex, "Failed to create MQTT SinkRef");
-                        return new Status.Failure(ex);
+                        return new MqttSinkFailed(msg.RequestId, ex);
                     });
         });
         Receive<SubscribeInbound>(msg =>
@@ -153,11 +153,9 @@ public sealed class MqttConnectionActor : ReceiveActor
                 (topic, payload) => self.Tell(new Inbound(topic, payload)),
                 () => self.Tell(new Disconnected()),
                 CancellationToken.None)
-            .ContinueWith(t => t.IsCompletedSuccessfully
-                ? (object)new Connected()
-                : new ConnectFailed(t.Exception?.GetBaseException()
-                    ?? new InvalidOperationException("connect canceled")))
-            .PipeTo(self);
+            .PipeTo(self,
+                success: () => new Connected(),
+                failure: ex => new ConnectFailed(ex));
     }
 
     private void ScheduleReconnect()

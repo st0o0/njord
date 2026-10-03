@@ -30,7 +30,7 @@ public sealed class EgressActor : ReceiveActor
                 .Run(_mat)
                 .PipeTo(sender, Self,
                     sr => new EgressSinkResponse(msg.RequestId, sr),
-                    ex => new Status.Failure(ex));
+                    ex => new EgressSinkFailed(msg.RequestId, ex));
         });
 
         Receive<RequestEgressSource>(msg =>
@@ -45,7 +45,7 @@ public sealed class EgressActor : ReceiveActor
                 .RunWith(StreamRefs.SourceRef<EgressEvent>(), _mat)
                 .PipeTo(sender, Self,
                     sr => new EgressSourceResponse(msg.RequestId, sr),
-                    ex => new Status.Failure(ex));
+                    ex => new EgressSourceFailed(msg.RequestId, ex));
         });
     }
 

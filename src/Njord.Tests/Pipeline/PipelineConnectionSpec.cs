@@ -282,6 +282,8 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
 
         private sealed record ConnectionEstablished;
         private sealed record OfferFailed(Exception Error);
+        private sealed record FailureConsumerDone;
+        private sealed record FailureConsumerBroke(Exception Cause);
         private sealed record Evt(int Value);
 
         public ProductionLikeSchedulerActor(string persistenceId)
@@ -316,8 +318,8 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
                 // Materialize failure consumer with Sink.ActorRef (like production)
                 response.SourceRef.Source
                     .Collect(x => x < 0, x => x)
-                    .To(Sink.ActorRef<int>(Self, new Status.Success("done"),
-                        ex => new Status.Failure(ex)))
+                    .To(Sink.ActorRef<int>(Self, new FailureConsumerDone(),
+                        ex => new FailureConsumerBroke(ex)))
                     .Run(_mat);
 
                 _sourceReceived = true;

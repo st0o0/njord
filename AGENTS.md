@@ -31,6 +31,8 @@ the HA host).
 - **SensorHub for external sensor input.** The SensorHub actor receives readings
   via gRPC (`SensorService`), stores latest values per `SensorKind` (closed enum).
   Enrichments pull at each poll cycle (latest-value, no reactive re-computation).
+- **Zone rules are enforced by tests** in `src/Njord.Tests/Architecture/` (Ingest ↔
+  Egress side independence, Domain independence, sealed/`Spec` conventions).
 
 ### Decisions
 
@@ -167,23 +169,15 @@ Rules apply to production code (`src/Njord/`).
 
 - **No `ContinueWith`** in actor code. Use `PipeTo` with `success:` and
   `failure:` mappers.
-- **No `Status.Failure`.** Use project-owned `XxxFailed(Exception Cause)`
-  records; in `PipeTo` always provide `failure: ex => new XxxFailed(ex)`.
+- **No `Status.Failure`/`Status.Success`.** Use project-owned
+  `XxxFailed(Exception Cause)` records (plus the `RequestId` when answering a
+  correlated request); in `PipeTo` always provide
+  `failure: ex => new XxxFailed(ex)`. A failure message must be handled by its
+  requester, never left to the stash or dead letters.
 - **No `EventStream`** in production code. Use explicit actor references.
   TestKit probes may subscribe to `DeadLetter`/`Warning` in tests.
 - **No `IActorRef` constructor parameters** in production actors.
 - **Actor naming:** `XxxActor`, sealed.
-
-Known deviations (tracked in the `akka-failure-hygiene` change, remove this
-list when it lands):
-
-- `ContinueWith`: `Njord/Mqtt/MqttConnectionActor.cs:156`;
-  `Njord.Tests/Egress/EgressActorSpec.cs:49`.
-- `Status.Failure`: `Njord/Egress/EgressActor.cs:33,48`,
-  `Njord/Mqtt/MqttConnectionActor.cs:105`,
-  `Njord/Pipeline/PipelineActor.cs:72,84`,
-  `Njord/Pipeline/SchedulerActor.cs:249`;
-  `Njord.Tests/Pipeline/PipelineConnectionSpec.cs:318`.
 
 ## Test assertion conventions
 

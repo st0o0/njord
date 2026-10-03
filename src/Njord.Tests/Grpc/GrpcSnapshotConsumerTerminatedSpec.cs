@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Grpc;
+using Njord.Tests.Actors;
 using Njord.Tests.Shared;
 
 namespace Njord.Tests.Grpc;
@@ -58,6 +59,19 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
 
         var secondRequest = await _requestProbe.ExpectMsgAsync<RequestEgressSource>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         Assert.NotNull(secondRequest);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Re_requests_source_after_egress_source_failure()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var failureProbe = CreateTestProbe();
+        ActorRegistry.Register<EgressActor>(Sys.ActorOf(FailingRefProvider.Props(failureProbe)), overwrite: true);
+
+        Sys.ActorOf(Props.Create(() => new GrpcSnapshotConsumerActor()));
+
+        await failureProbe.ExpectMsgAsync<RequestEgressSource>(cancellationToken: ct);
+        await failureProbe.ExpectMsgAsync<RequestEgressSource>(TimeSpan.FromSeconds(4), cancellationToken: ct);
     }
 
     private sealed class FakeEgressActor : ReceiveActor
