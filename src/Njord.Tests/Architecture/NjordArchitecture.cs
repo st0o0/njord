@@ -7,7 +7,10 @@ namespace Njord.Tests.Architecture;
 
 internal static class NjordArchitecture
 {
-    private static readonly Assembly NjordAssembly = typeof(Njord.Ingest.OpenMeteoClient).Assembly;
+    private static readonly Assembly NjordAssembly = typeof(Njord.Configuration.NjordServiceSetup).Assembly;
+    private static readonly Assembly IngestAssembly = typeof(Njord.Ingest.OpenMeteoClient).Assembly;
+    private static readonly Assembly GrpcAssembly = typeof(Njord.Grpc.WeatherGrpcService).Assembly;
+    private static readonly Assembly SensorsAssembly = typeof(Njord.Sensors.SensorHubActor).Assembly;
     private static readonly Assembly DomainAssembly = typeof(Njord.Domain.Weather.ModelForecast).Assembly;
     private static readonly Assembly PersistenceAssembly = typeof(Njord.Persistence.BudgetTrackerSnapshotDto).Assembly;
     private static readonly Assembly MessagesAssembly = typeof(Njord.Messages.Pipeline.WeightedTarget).Assembly;
@@ -16,7 +19,7 @@ internal static class NjordArchitecture
 
     public static readonly ArchUnitNET.Domain.Architecture Instance =
         new ArchLoader()
-            .LoadAssemblies(NjordAssembly, DomainAssembly, PersistenceAssembly, MessagesAssembly, CoreAssembly, TestsAssembly)
+            .LoadAssemblies(NjordAssembly, IngestAssembly, SensorsAssembly, GrpcAssembly, DomainAssembly, PersistenceAssembly, MessagesAssembly, CoreAssembly, TestsAssembly)
             .Build();
 
     public static readonly IObjectProvider<IType> Ingest =
@@ -30,6 +33,9 @@ internal static class NjordArchitecture
 
     public static IObjectProvider<IType> ProductionTypes =>
         Types().That().ResideInAssembly(NjordAssembly)
+            .Or().ResideInAssembly(IngestAssembly)
+            .Or().ResideInAssembly(SensorsAssembly)
+            .Or().ResideInAssembly(GrpcAssembly)
             .Or().ResideInAssembly(DomainAssembly)
             .Or().ResideInAssembly(PersistenceAssembly)
             .Or().ResideInAssembly(MessagesAssembly)

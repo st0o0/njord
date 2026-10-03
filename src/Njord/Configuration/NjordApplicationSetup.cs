@@ -22,9 +22,6 @@ public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplica
         app.MapGet("/alive", () => Results.Ok("Alive"));
         app.UseHttpMetrics();
         app.MapMetrics();
-        app.MapGrpcService<WeatherGrpcService>();
-        app.MapGrpcService<AdminGrpcService>();
-        app.MapGrpcService<OpsGrpcService>();
-        app.MapGrpcService<SensorGrpcService>();
+        app.MapNjordGrpc();
     }
 }

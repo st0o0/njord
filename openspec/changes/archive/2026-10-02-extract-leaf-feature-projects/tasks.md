@@ -1,0 +1,43 @@
+## 1. Preconditions and shared plumbing
+
+- [x] 1.1 Verify prerequisites: `extract-core-projects` applied (`src/Njord.Core`, `Njord.Domain`, `Njord.Messages`, `Njord.Persistence` exist), `akka-failure-hygiene` merged, `dotnet build Njord.slnx` and `dotnet run --project Njord.Tests/Njord.Tests.csproj` green from `src/`
+- [x] 1.2 Verify stage-1 marker prerequisites: `src/Njord.Core/Actors/ActorKeys.cs` exists with the 13 `IXxxActor` interfaces, `src/Njord.Tests/Configuration/ActorKeyRegistrationSpec.cs` is green, and `grep -rnE --include=*.cs "(Get|GetActorAsync|GetActor|Register)<[A-Za-z]+Actor>" src` finds no class-keyed use; if not, finish that in stage 1 first
+- [x] 1.3 Check which actor classes move in this stage (`SensorHubActor`, `GrpcSnapshotConsumerActor`, `ForecastSnapshotActor`, `EnrichmentSnapshotActor`) and make them `public sealed` where they are not, so the host can call `resolver.Props<T>()` after the move
+- [x] 1.4 Confirm `RegisterWithBackoff<TKey, TActor>` (stage 1) stays private in `src/Njord/Configuration/NjordActorSystemSetup.cs` (registration is central, FunkArr style); no Core extension is needed
+
+## 2. Njord.Sensors
+
+- [x] 2.1 Create `src/Njord.Sensors/Njord.Sensors.csproj` (plain SDK, `ProjectReference` Njord.Core only, `InternalsVisibleTo Njord.Tests`); add to `src/Njord.slnx`
+- [x] 2.2 Move `src/Njord/Sensors/SensorHubActor.cs` to `src/Njord.Sensors/`; keep namespace `Njord.Sensors`; build green
+- [x] 2.3 Keep the registration in `NjordActorSystemSetup.RegisterSensorActors` (`ISensorHubActor`, name `sensor-hub`, `resolver.Props<SensorHubActor>()`); no `WithSensorsActors` extension; skip `AddNjordSensors()` unless a service registration exists
+- [x] 2.4 Host `Njord.csproj` references `Njord.Sensors`; `src/Njord.Tests/Sensors/SensorHubActorSpec.cs` compiles unchanged; build + full test run green; commit
+
+## 3. Njord.Ingest
+
+- [x] 3.1 Create `src/Njord.Ingest/Njord.Ingest.csproj` (plain SDK, references Njord.Core only; `dotnet add package Microsoft.Extensions.Http` if `AddHttpClient` is not available, `InternalsVisibleTo Njord.Tests`); add to `src/Njord.slnx`
+- [x] 3.2 Move `OpenMeteoClient.cs`, `OpenMeteoDtos.cs`, `OpenMeteoJsonContext.cs`, `IngestServiceCollectionExtensions.cs` from `src/Njord/Ingest/` (`IOpenMeteoClient` already lives in `src/Njord.Core/Ingest/` with namespace `Njord.Ingest`; it stays there); namespace `Njord.Ingest` unchanged
+- [x] 3.3 Rename `AddOpenMeteoIngest` to `AddNjordIngest`; update `NjordServiceSetup.cs` and `src/Njord.Tests/Configuration/NjordServiceSetupSpec.cs`; update `src/Njord.Tests.Shared/FakeOpenMeteoClient.cs` references only if it needs more than `IOpenMeteoClient`
+- [x] 3.4 Host and `Njord.Tests` reference `Njord.Ingest`; `src/Njord.Tests/Ingest/OpenMeteoClientSpec.cs` still compiles (internals via IVT); build + full test run green; commit
+
+## 4. Njord.Grpc
+
+- [x] 4.1 Verify with grep that `src/Njord/Grpc/*.cs` references no `Njord.Pipeline`, `Njord.Egress`, `Njord.Sensors` classes after stage 1 (only Core/Messages/Domain/Persistence types); fix any leftover in Core first. Fact: `Grpc/*.cs` still has stale `using Njord.Egress/Pipeline/Sensors` lines (the types come from Messages/Core; remove the usings). `ConfigPersistence` already lives in `src/Njord.Core/Configuration/` (stage 1); it stays in Core, so `AddNjordGrpc()` does not own it
+- [x] 4.2 Create `src/Njord.Grpc/Njord.Grpc.csproj`: plain SDK + `<FrameworkReference Include="Microsoft.AspNetCore.App" />`, `dotnet add package Grpc.AspNetCore`, the `<Protobuf Include="..\..\protos\njord\v2\*.proto" GrpcServices="Server" ProtoRoot="..\..\protos" />` item, `InternalsVisibleTo Njord.Tests`; references Njord.Core only; add to `src/Njord.slnx`
+- [x] 4.3 Move `src/Njord/Grpc/*.cs` (WeatherGrpcService, AdminGrpcService, OpsGrpcService, SensorGrpcService, EnrichmentProtoMapper, ForecastSnapshotActor/State, EnrichmentSnapshotActor/State, GrpcSnapshotConsumerActor, SnapshotMessages) to `src/Njord.Grpc/`; remove `<Protobuf>` and `Grpc.AspNetCore` from `src/Njord/Njord.csproj`
+- [x] 4.4 Confirm `OpsGrpcService.cs`, `WeatherGrpcService.cs`, `SensorGrpcService.cs` already resolve `ISchedulerActor`/`IBudgetTrackerActor`/`IEgressActor`/`ISensorHubActor`/`IForecastSnapshotActor`/`IEnrichmentSnapshotActor` (stage 1) and that `Njord.Grpc.csproj` compiles without a reference to the Pipeline/Egress/Sensors code; the specs under `src/Njord.Tests/Grpc/` register fakes under the markers
+- [x] 4.5 Add `src/Njord.Grpc/GrpcServiceCollectionExtensions.cs` (`AddNjordGrpc()`: `services.AddGrpc()` only; `ConfigPersistence` stays registered where it is today), `GrpcEndpointExtensions.cs` (`MapNjordGrpc(this WebApplication)` mapping the four services); host setup files call them
+- [x] 4.6 Host and `Njord.Tests` reference `Njord.Grpc`; confirm the generated `Njord.Grpc.V2` types still compile; run `dotnet build Njord.slnx` and the full test run; commit
+
+## 5. Setup shells, architecture rules, docker, docs
+
+- [x] 5.1 `NjordArchitecture.cs` already loads host, Ingest, Sensors and Grpc assemblies and `ProductionTypes` covers them (done in the moves, needed to keep zone specs positive); remaining: the assembly-reference specs; add specs asserting `Njord.Ingest`, `Njord.Grpc`, `Njord.Sensors` reference only Core-and-below assemblies and never each other or the host; prove each red with a temporary violation, then remove it; `ProductionTypes` covers all production assemblies
+- [x] 5.2 Narrow `src/Njord.Tests.Shared/Njord.Tests.Shared.csproj` references from the host to Core (+ whatever it really uses); build green
+- [x] 5.3 `Dockerfile` already has COPY lines for Sensors/Ingest/Grpc (added in the Grpc move; docker build not run). Verify and update: `COPY` the new csprojs before `dotnet restore` (keep `COPY protos/ /protos/`); run `docker build .` locally if Docker is available, otherwise record that it was not run
+- [x] 5.4 Update `AGENTS.md` "Solution structure" for the new projects and reference direction; update paths cited in `.claude/skills/njord-persistent-actor/SKILL.md`, `njord-enrichment-feature/SKILL.md`, `njord-actor-spec/SKILL.md` (verify every cited path with `ls`)
+
+## 6. Validation
+
+- [x] 6.1 From `src/`: `dotnet build Njord.slnx` (0 errors) and `dotnet run --project Njord.Tests/Njord.Tests.csproj` (all green, test count unchanged except the new marker/architecture specs)
+- [x] 6.2 From `src/Njord/`: `dotnet run` with `Njord__Mqtt__Enabled=false` starts and serves gRPC and `/healthz` (smoke check; note if not run)
+- [x] 6.3 `openspec validate extract-leaf-feature-projects` passes; `git diff --stat` shows no behavior-related changes (moves, csproj, setup, docs only); grep confirms no `using Njord.Pipeline|Njord.Egress|Njord.Enrichment|Njord.Mqtt` remains in `src/Njord.Grpc`, `src/Njord.Ingest`, `src/Njord.Sensors`
+- [x] 6.4 Conventional Commits per step (`refactor: extract Njord.Sensors`, `refactor: extract Njord.Ingest`, `refactor: extract Njord.Grpc`, `docs: update structure for leaf projects`); do not push

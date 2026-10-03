@@ -35,4 +35,24 @@ public sealed class LayerReferenceSpec
     {
         Assert.Empty(NjordReferences<Njord.Actors.ISchedulerActor>().Except(["Njord.Domain", "Njord.Messages", "Njord.Persistence"]));
     }
+
+    private static readonly string[] CoreAndBelow = ["Njord.Core", "Njord.Domain", "Njord.Messages", "Njord.Persistence"];
+
+    [Fact]
+    public void Ingest_references_only_Core_and_below()
+    {
+        Assert.Empty(NjordReferences<Njord.Ingest.OpenMeteoClient>().Except(CoreAndBelow));
+    }
+
+    [Fact]
+    public void Sensors_references_only_Core_and_below()
+    {
+        Assert.Empty(NjordReferences<Njord.Sensors.SensorHubActor>().Except(CoreAndBelow));
+    }
+
+    [Fact]
+    public void Grpc_references_only_Core_and_below()
+    {
+        Assert.Empty(NjordReferences<Njord.Grpc.WeatherGrpcService>().Except(CoreAndBelow));
+    }
 }

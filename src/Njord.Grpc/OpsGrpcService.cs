@@ -4,12 +4,12 @@ using Akka.Actor;
 using Akka.Hosting;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Actors;
 using Njord.Configuration;
 using Njord.Grpc.V2;
 using Njord.Messages.Pipeline;
-using Njord.Pipeline;
 
 namespace Njord.Grpc;
 

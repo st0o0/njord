@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Njord.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Protobuf Include="..\..\protos\njord\v2\*.proto" GrpcServices="Server" ProtoRoot="..\..\protos" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Njord.Core\Njord.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Akka.Hosting" />
+      <PackageReference Include="Akka.Persistence.Hosting" />
+      <PackageReference Include="Grpc.AspNetCore" />
+      <PackageReference Include="Servus.Akka" />
+    </ItemGroup>
+
+</Project>

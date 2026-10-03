@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
@@ -8,7 +9,7 @@ namespace Njord.Ingest;
 
 public static class IngestServiceCollectionExtensions
 {
-    public static IServiceCollection AddOpenMeteoIngest(this IServiceCollection services)
+    public static IServiceCollection AddNjordIngest(this IServiceCollection services)
     {
         services.TryAddSingleton(TimeProvider.System);
         services.AddHttpClient<IOpenMeteoClient, OpenMeteoClient>((sp, client) =>

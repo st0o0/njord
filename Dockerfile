@@ -11,6 +11,9 @@ COPY src/Njord.Domain/Njord.Domain.csproj Njord.Domain/
 COPY src/Njord.Persistence/Njord.Persistence.csproj Njord.Persistence/
 COPY src/Njord.Messages/Njord.Messages.csproj Njord.Messages/
 COPY src/Njord.Core/Njord.Core.csproj Njord.Core/
+COPY src/Njord.Sensors/Njord.Sensors.csproj Njord.Sensors/
+COPY src/Njord.Ingest/Njord.Ingest.csproj Njord.Ingest/
+COPY src/Njord.Grpc/Njord.Grpc.csproj Njord.Grpc/
 COPY src/Njord/Njord.csproj Njord/
 RUN dotnet restore Njord/Njord.csproj -a ${TARGETARCH}
 
@@ -18,6 +21,9 @@ COPY src/Njord.Domain/ Njord.Domain/
 COPY src/Njord.Persistence/ Njord.Persistence/
 COPY src/Njord.Messages/ Njord.Messages/
 COPY src/Njord.Core/ Njord.Core/
+COPY src/Njord.Sensors/ Njord.Sensors/
+COPY src/Njord.Ingest/ Njord.Ingest/
+COPY src/Njord.Grpc/ Njord.Grpc/
 COPY src/Njord/ Njord/
 RUN dotnet publish Njord/Njord.csproj -c Release -a ${TARGETARCH} -o /app /p:Version=${VERSION} /p:ContinuousIntegrationBuild=true
 

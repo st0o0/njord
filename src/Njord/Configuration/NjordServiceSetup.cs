@@ -94,8 +94,8 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
             services.TryAddSingleton<IMqttTransport>(static provider => provider.GetRequiredService<MqttNetPublisher>());
         }
 
-        services.AddGrpc();
-        services.AddOpenMeteoIngest();
+        services.AddNjordGrpc();
+        services.AddNjordIngest();
         services.AddSingleton<ConfigPersistence>();
     }
 }

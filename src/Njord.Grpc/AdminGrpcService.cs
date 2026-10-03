@@ -1,4 +1,5 @@
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Grpc.V2;

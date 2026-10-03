@@ -80,18 +80,25 @@ src/
   Njord.Messages/             # Actor message records (-> Domain)
   Njord.Core/                 # Options, diagnostics, IOpenMeteoClient, actor keys,
                               #   StreamSupervision (-> Domain, Messages, Persistence)
+  Njord.Ingest/               # Open-Meteo client, DTOs, JSON source generator (-> Core)
+  Njord.Sensors/              # SensorHubActor (-> Core)
+  Njord.Grpc/                 # gRPC services, snapshot actors, protos (-> Core)
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
-    Ingest/                   # Open-Meteo client, DTOs, JSON source generator
     Egress/                   # EgressActor, ModelStateActor
     Mqtt/                     # MQTT connection, discovery, state payloads
     Pipeline/                 # Scheduler, budget, poll pipeline
     Enrichment/ (+ Features/) # Enrichment actor and feature implementations
-    Grpc/  Sensors/           # gRPC services, SensorHub
     Configuration/            # Host setup (service, actor system, application)
     Health/
   Njord.Tests/                # Unit + actor tests (mirrors Njord/ folders)
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers
 ```
+
+Reference direction: Domain/Persistence <- Messages <- Core <- feature libs
+(Ingest, Sensors, Grpc) <- host. Feature libs reference only Njord.Core (and
+below), never each other and never the host; they reach each other's actors
+through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs`. Registration
+stays central in the host. Enforced by `Architecture/LayerReferenceSpec.cs`.
 
 ## Build & test
 

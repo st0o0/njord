@@ -8,7 +8,6 @@ using Microsoft.Extensions.Options;
 using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Egress;
 using Njord.Grpc.V2;
 using Njord.Messages.Egress;
 using Njord.Messages.Snapshots;

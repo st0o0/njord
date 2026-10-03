@@ -11,7 +11,7 @@ Mirrors what the code does today. Rules (extend-only DTOs, `TimeProvider`, Akka 
 
 | Need | Shape | Example |
 |---|---|---|
-| Derived/replaceable state, latest value wins | **Snapshot-only**: no events, `SaveSnapshot` every N updates | `src/Njord/Grpc/EnrichmentSnapshotActor.cs` |
+| Derived/replaceable state, latest value wins | **Snapshot-only**: no events, `SaveSnapshot` every N updates | `src/Njord.Grpc/EnrichmentSnapshotActor.cs` |
 | Accumulating state that must not lose increments | **Event + snapshot**: `Persist` each event, snapshot every N events | `src/Njord/Pipeline/BudgetTrackerActor.cs` |
 
 Cleanup after `SaveSnapshotSuccess` differs: snapshot-only → `DeleteSnapshots` only; event+snapshot → `DeleteMessages` **and** `DeleteSnapshots`.
@@ -19,7 +19,7 @@ Cleanup after `SaveSnapshotSuccess` differs: snapshot-only → `DeleteSnapshots`
 ## Layout (per actor)
 
 - `XxxActor.cs` — thin: message routing, persistence, lifecycle.
-- `XxxState.cs` — immutable `sealed record` + `static class XxxStateExtensions` with `Apply(...)`, query helpers, `GetPersistenceState()` (state → DTO) and `FromPersistence(dto)` (DTO → state). See `src/Njord/Grpc/EnrichmentSnapshotState.cs`.
+- `XxxState.cs` — immutable `sealed record` + `static class XxxStateExtensions` with `Apply(...)`, query helpers, `GetPersistenceState()` (state → DTO) and `FromPersistence(dto)` (DTO → state). See `src/Njord.Grpc/EnrichmentSnapshotState.cs`.
 - `src/Njord.Persistence/XxxDtos.cs` — DTOs only (separate project `Njord.Persistence`, no references). The static `XxxMapping` classes stay in the host next to their consumer (`Pipeline/`, `Grpc/`, `Enrichment/`), namespace `Njord.Persistence`.
 
 ## Actor skeleton (snapshot-only, from `EnrichmentSnapshotActor`)

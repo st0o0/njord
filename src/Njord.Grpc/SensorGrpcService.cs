@@ -7,7 +7,6 @@ using Njord.Configuration;
 using Njord.Domain.Sensors;
 using Njord.Grpc.V2;
 using Njord.Messages.Sensors;
-using Njord.Sensors;
 using DomainSensorKind = Njord.Domain.Sensors.SensorKind;
 using ProtoSensorKind = Njord.Grpc.V2.SensorKind;
 

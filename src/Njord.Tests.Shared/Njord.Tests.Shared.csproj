@@ -7,7 +7,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Njord\Njord.csproj" />
+        <ProjectReference Include="..\Njord.Core\Njord.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>

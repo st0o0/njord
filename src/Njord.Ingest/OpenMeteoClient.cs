@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
