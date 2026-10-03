@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
@@ -6,7 +5,6 @@ using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Enrichment;
 using Njord.Enrichment.Features;
-using Njord.Mqtt;
 
 namespace Njord.Tests.Enrichment.Features;
 
@@ -52,19 +50,5 @@ public sealed class HistoryEnrichmentSpec
     public void TypeName_is_history()
     {
         Assert.Equal("history", CreateFeature().TypeName);
-    }
-
-    [Fact]
-    public void BuildDiscoveryPayload_returns_valid_json()
-    {
-        var feature = CreateFeature();
-        var ctx = new DiscoveryContext(new MqttOptions(), TimeSpan.FromMinutes(60), "1.0.0");
-
-        var payload = feature.BuildDiscoveryPayload(ctx, "lucerne");
-        var json = JsonNode.Parse(payload);
-
-        Assert.NotNull(json);
-        Assert.NotNull(json!["dev"]);
-        Assert.NotNull(json["cmps"]);
     }
 }

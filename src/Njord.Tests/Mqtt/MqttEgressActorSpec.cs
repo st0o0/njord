@@ -5,6 +5,7 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Actors;
 using Njord.Configuration;
+using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
@@ -31,18 +32,21 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
         Mqtt = new MqttOptions { BaseTopic = "njord" },
     };
 
-    private IActorRef CreateMqttEgressActor(NjordOptions? options = null, TimeProvider? timeProvider = null)
+    private IActorRef CreateMqttEgressActor(
+        NjordOptions? options = null, TimeProvider? timeProvider = null, bool withPresenters = false)
     {
         options ??= DefaultOptions();
         timeProvider ??= new FakeTimeProvider(Anchor);
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        IEnumerable<IEnrichmentFeature> features = [];
+        IEnumerable<IEnrichmentPresenter> presenters = withPresenters
+            ? EnrichmentGoldenMasterFixtures.Presenters(options, parameters)
+            : [];
 
         return Sys.ActorOf(Props.Create(() => new MqttEgressActor(
             Microsoft.Extensions.Options.Options.Create(options),
             parameters,
             timeProvider,
-            features)));
+            presenters)));
     }
 
     private FakeEgressHub RegisterFakeEgressHub()
@@ -114,6 +118,45 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.StartsWith("njord/", msg.Topic);
         Assert.True(msg.Retain);
         Assert.NotEmpty(msg.Payload);
+    }
+
+    [Fact(Timeout = 15000)]
+    public async Task Should_publish_consensus_update_through_the_consensus_presenter()
+    {
+        var hub = RegisterFakeEgressHub();
+        var (_, requestProbe, publishProbe) = RegisterFakeMqttConnection();
+
+        CreateMqttEgressActor(withPresenters: true);
+
+        await WaitForGraphMaterialized(requestProbe, hub);
+
+        var temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
+        var consensus = new ConsensusResult(
+        [
+            new ParameterConsensus(temperature, new Dictionary<string, HorizonConsensus>
+            {
+                ["h3"] = new(5.0, 5.0, 0.5, 0.4, 0.9, null, null, [new WeatherModel("icon_d2")]),
+            }),
+        ]);
+        hub.Emit(new EgressEvent.EnrichmentUpdate("lucerne", "consensus", consensus));
+
+        var msg = await publishProbe.ExpectMsgAsync<MqttMessage>(TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
+        Assert.StartsWith("njord/lucerne/consensus", msg.Topic);
+    }
+
+    [Fact(Timeout = 15000)]
+    public async Task Should_publish_nothing_for_an_unknown_enrichment_type_name()
+    {
+        var hub = RegisterFakeEgressHub();
+        var (_, requestProbe, publishProbe) = RegisterFakeMqttConnection();
+
+        CreateMqttEgressActor(withPresenters: true);
+
+        await WaitForGraphMaterialized(requestProbe, hub);
+
+        hub.Emit(new EgressEvent.EnrichmentUpdate("lucerne", "no-such-type", new object()));
+
+        await publishProbe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 15000)]

@@ -1,0 +1,1463 @@
+﻿device_id: njord_lucerne_indices
+{
+  "dev": {
+    "ids": [
+      "njord_lucerne_indices"
+    ],
+    "name": "njord lucerne indices",
+    "mf": "njord",
+    "mdl": "indices",
+    "sw": "1.0.0-golden"
+  },
+  "o": {
+    "name": "njord",
+    "sw": "1.0.0-golden"
+  },
+  "qos": 1,
+  "cmps": {
+    "laundry_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_laundry_d0",
+      "name": "laundry d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.laundry }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "outdoor_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_outdoor_d0",
+      "name": "outdoor d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.outdoor }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "running_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_running_d0",
+      "name": "running d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.running }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "cycling_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_cycling_d0",
+      "name": "cycling d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.cycling }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "bbq_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_bbq_d0",
+      "name": "bbq d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.bbq }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "irrigation_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_irrigation_d0",
+      "name": "irrigation d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.irrigation }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "solar_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_solar_d0",
+      "name": "solar d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.solar }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "night_ventilation_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_night_ventilation_d0",
+      "name": "night ventilation d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.night_ventilation }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "laundry_min_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_laundry_min_d0",
+      "name": "laundry min d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.laundry_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "laundry_max_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_laundry_max_d0",
+      "name": "laundry max d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.laundry_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "laundry_confidence_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_laundry_confidence_d0",
+      "name": "laundry confidence d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.laundry_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "outdoor_min_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_outdoor_min_d0",
+      "name": "outdoor min d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.outdoor_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "outdoor_max_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_outdoor_max_d0",
+      "name": "outdoor max d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.outdoor_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "outdoor_confidence_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_outdoor_confidence_d0",
+      "name": "outdoor confidence d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.outdoor_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "running_min_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_running_min_d0",
+      "name": "running min d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.running_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "running_max_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_running_max_d0",
+      "name": "running max d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.running_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "running_confidence_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_running_confidence_d0",
+      "name": "running confidence d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.running_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "cycling_min_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_cycling_min_d0",
+      "name": "cycling min d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.cycling_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "cycling_max_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_cycling_max_d0",
+      "name": "cycling max d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.cycling_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "cycling_confidence_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_cycling_confidence_d0",
+      "name": "cycling confidence d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.cycling_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "bbq_min_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_bbq_min_d0",
+      "name": "bbq min d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.bbq_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "bbq_max_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_bbq_max_d0",
+      "name": "bbq max d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.bbq_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "bbq_confidence_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_bbq_confidence_d0",
+      "name": "bbq confidence d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.bbq_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "irrigation_min_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_irrigation_min_d0",
+      "name": "irrigation min d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.irrigation_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "irrigation_max_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_irrigation_max_d0",
+      "name": "irrigation max d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.irrigation_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "irrigation_confidence_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_irrigation_confidence_d0",
+      "name": "irrigation confidence d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.irrigation_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "solar_min_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_solar_min_d0",
+      "name": "solar min d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.solar_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "solar_max_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_solar_max_d0",
+      "name": "solar max d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.solar_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "solar_confidence_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_solar_confidence_d0",
+      "name": "solar confidence d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.solar_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "night_ventilation_min_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_night_ventilation_min_d0",
+      "name": "night ventilation min d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.night_ventilation_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "night_ventilation_max_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_night_ventilation_max_d0",
+      "name": "night ventilation max d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.night_ventilation_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "night_ventilation_confidence_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_night_ventilation_confidence_d0",
+      "name": "night ventilation confidence d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.night_ventilation_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "hours_included_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_hours_included_d0",
+      "name": "hours included d0",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.hours_included }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "laundry_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_laundry_d1",
+      "name": "laundry d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.laundry }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "outdoor_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_outdoor_d1",
+      "name": "outdoor d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.outdoor }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "running_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_running_d1",
+      "name": "running d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.running }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "cycling_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_cycling_d1",
+      "name": "cycling d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.cycling }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "bbq_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_bbq_d1",
+      "name": "bbq d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.bbq }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "irrigation_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_irrigation_d1",
+      "name": "irrigation d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.irrigation }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "solar_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_solar_d1",
+      "name": "solar d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.solar }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "night_ventilation_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_night_ventilation_d1",
+      "name": "night ventilation d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.night_ventilation }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "laundry_min_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_laundry_min_d1",
+      "name": "laundry min d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.laundry_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "laundry_max_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_laundry_max_d1",
+      "name": "laundry max d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.laundry_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "laundry_confidence_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_laundry_confidence_d1",
+      "name": "laundry confidence d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.laundry_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "outdoor_min_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_outdoor_min_d1",
+      "name": "outdoor min d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.outdoor_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "outdoor_max_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_outdoor_max_d1",
+      "name": "outdoor max d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.outdoor_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "outdoor_confidence_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_outdoor_confidence_d1",
+      "name": "outdoor confidence d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.outdoor_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "running_min_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_running_min_d1",
+      "name": "running min d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.running_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "running_max_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_running_max_d1",
+      "name": "running max d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.running_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "running_confidence_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_running_confidence_d1",
+      "name": "running confidence d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.running_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "cycling_min_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_cycling_min_d1",
+      "name": "cycling min d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.cycling_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "cycling_max_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_cycling_max_d1",
+      "name": "cycling max d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.cycling_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "cycling_confidence_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_cycling_confidence_d1",
+      "name": "cycling confidence d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.cycling_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "bbq_min_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_bbq_min_d1",
+      "name": "bbq min d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.bbq_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "bbq_max_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_bbq_max_d1",
+      "name": "bbq max d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.bbq_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "bbq_confidence_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_bbq_confidence_d1",
+      "name": "bbq confidence d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.bbq_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "irrigation_min_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_irrigation_min_d1",
+      "name": "irrigation min d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.irrigation_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "irrigation_max_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_irrigation_max_d1",
+      "name": "irrigation max d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.irrigation_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "irrigation_confidence_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_irrigation_confidence_d1",
+      "name": "irrigation confidence d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.irrigation_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "solar_min_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_solar_min_d1",
+      "name": "solar min d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.solar_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "solar_max_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_solar_max_d1",
+      "name": "solar max d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.solar_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "solar_confidence_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_solar_confidence_d1",
+      "name": "solar confidence d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.solar_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "night_ventilation_min_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_night_ventilation_min_d1",
+      "name": "night ventilation min d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.night_ventilation_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "night_ventilation_max_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_night_ventilation_max_d1",
+      "name": "night ventilation max d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.night_ventilation_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "night_ventilation_confidence_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_night_ventilation_confidence_d1",
+      "name": "night ventilation confidence d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.night_ventilation_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "hours_included_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_hours_included_d1",
+      "name": "hours included d1",
+      "state_topic": "njord/lucerne/indices/d1",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.hours_included }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "laundry_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_laundry_d2",
+      "name": "laundry d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.laundry }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "outdoor_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_outdoor_d2",
+      "name": "outdoor d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.outdoor }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "running_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_running_d2",
+      "name": "running d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.running }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "cycling_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_cycling_d2",
+      "name": "cycling d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.cycling }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "bbq_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_bbq_d2",
+      "name": "bbq d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.bbq }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "irrigation_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_irrigation_d2",
+      "name": "irrigation d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.irrigation }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "solar_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_solar_d2",
+      "name": "solar d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.solar }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "night_ventilation_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_night_ventilation_d2",
+      "name": "night ventilation d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.night_ventilation }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "laundry_min_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_laundry_min_d2",
+      "name": "laundry min d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.laundry_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "laundry_max_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_laundry_max_d2",
+      "name": "laundry max d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.laundry_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "laundry_confidence_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_laundry_confidence_d2",
+      "name": "laundry confidence d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.laundry_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "outdoor_min_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_outdoor_min_d2",
+      "name": "outdoor min d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.outdoor_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "outdoor_max_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_outdoor_max_d2",
+      "name": "outdoor max d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.outdoor_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "outdoor_confidence_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_outdoor_confidence_d2",
+      "name": "outdoor confidence d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.outdoor_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "running_min_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_running_min_d2",
+      "name": "running min d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.running_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "running_max_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_running_max_d2",
+      "name": "running max d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.running_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "running_confidence_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_running_confidence_d2",
+      "name": "running confidence d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.running_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "cycling_min_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_cycling_min_d2",
+      "name": "cycling min d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.cycling_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "cycling_max_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_cycling_max_d2",
+      "name": "cycling max d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.cycling_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "cycling_confidence_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_cycling_confidence_d2",
+      "name": "cycling confidence d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.cycling_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "bbq_min_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_bbq_min_d2",
+      "name": "bbq min d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.bbq_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "bbq_max_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_bbq_max_d2",
+      "name": "bbq max d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.bbq_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "bbq_confidence_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_bbq_confidence_d2",
+      "name": "bbq confidence d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.bbq_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "irrigation_min_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_irrigation_min_d2",
+      "name": "irrigation min d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.irrigation_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "irrigation_max_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_irrigation_max_d2",
+      "name": "irrigation max d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.irrigation_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "irrigation_confidence_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_irrigation_confidence_d2",
+      "name": "irrigation confidence d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.irrigation_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "solar_min_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_solar_min_d2",
+      "name": "solar min d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.solar_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "solar_max_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_solar_max_d2",
+      "name": "solar max d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.solar_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "solar_confidence_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_solar_confidence_d2",
+      "name": "solar confidence d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.solar_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "night_ventilation_min_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_night_ventilation_min_d2",
+      "name": "night ventilation min d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.night_ventilation_min }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "night_ventilation_max_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_night_ventilation_max_d2",
+      "name": "night ventilation max d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.night_ventilation_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "night_ventilation_confidence_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_night_ventilation_confidence_d2",
+      "name": "night ventilation confidence d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.night_ventilation_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "hours_included_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_hours_included_d2",
+      "name": "hours included d2",
+      "state_topic": "njord/lucerne/indices/d2",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.hours_included }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "frost_hours": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_frost_hours",
+      "name": "frost in",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.frost_hours }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all",
+      "unit_of_measurement": "h"
+    },
+    "frost_confidence": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_frost_confidence",
+      "name": "frost confidence",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.frost_confidence }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "vpd_kpa": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_vpd_kpa",
+      "name": "VPD",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.vpd_kpa }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all",
+      "unit_of_measurement": "kPa"
+    },
+    "vpd_category": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_indices_vpd_category",
+      "name": "VPD category",
+      "state_topic": "njord/lucerne/indices/d0",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.vpd_category }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    }
+  }
+}

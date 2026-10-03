@@ -16,6 +16,8 @@ COPY src/Njord.Ingest/Njord.Ingest.csproj Njord.Ingest/
 COPY src/Njord.Grpc/Njord.Grpc.csproj Njord.Grpc/
 COPY src/Njord.Pipeline/Njord.Pipeline.csproj Njord.Pipeline/
 COPY src/Njord.Egress/Njord.Egress.csproj Njord.Egress/
+COPY src/Njord.Mqtt/Njord.Mqtt.csproj Njord.Mqtt/
+COPY src/Njord.Enrichment/Njord.Enrichment.csproj Njord.Enrichment/
 COPY src/Njord/Njord.csproj Njord/
 RUN dotnet restore Njord/Njord.csproj -a ${TARGETARCH}
 
@@ -28,6 +30,8 @@ COPY src/Njord.Ingest/ Njord.Ingest/
 COPY src/Njord.Grpc/ Njord.Grpc/
 COPY src/Njord.Pipeline/ Njord.Pipeline/
 COPY src/Njord.Egress/ Njord.Egress/
+COPY src/Njord.Mqtt/ Njord.Mqtt/
+COPY src/Njord.Enrichment/ Njord.Enrichment/
 COPY src/Njord/ Njord/
 RUN dotnet publish Njord/Njord.csproj -c Release -a ${TARGETARCH} -o /app /p:Version=${VERSION} /p:ContinuousIntegrationBuild=true
 

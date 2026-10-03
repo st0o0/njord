@@ -1,0 +1,193 @@
+﻿device_id: njord_lucerne_trends
+{
+  "dev": {
+    "ids": [
+      "njord_lucerne_trends"
+    ],
+    "name": "njord lucerne trends",
+    "mf": "njord",
+    "mdl": "trends",
+    "sw": "1.0.0-golden"
+  },
+  "o": {
+    "name": "njord",
+    "sw": "1.0.0-golden"
+  },
+  "qos": 1,
+  "cmps": {
+    "trend_temperature_dir": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_trends_trend_temperature_dir",
+      "name": "temperature trend",
+      "state_topic": "njord/lucerne/trends",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.trend_temperature_dir }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "trend_wind_speed_dir": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_trends_trend_wind_speed_dir",
+      "name": "wind trend",
+      "state_topic": "njord/lucerne/trends",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.trend_wind_speed_dir }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "trend_precipitation_dir": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_trends_trend_precipitation_dir",
+      "name": "precipitation trend",
+      "state_topic": "njord/lucerne/trends",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.trend_precipitation_dir }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "trend_cloud_cover_dir": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_trends_trend_cloud_cover_dir",
+      "name": "cloud cover trend",
+      "state_topic": "njord/lucerne/trends",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.trend_cloud_cover_dir }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "weather_change": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_trends_weather_change",
+      "name": "weather change",
+      "state_topic": "njord/lucerne/trends",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.weather_change }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "stability": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_trends_stability",
+      "name": "stability",
+      "state_topic": "njord/lucerne/trends",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.stability }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "precip_starts": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_trends_precip_starts",
+      "name": "precip starts in",
+      "state_topic": "njord/lucerne/trends",
+      "unit_of_measurement": "h",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.precip_starts }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "precip_ends": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_trends_precip_ends",
+      "name": "precip ends in",
+      "state_topic": "njord/lucerne/trends",
+      "unit_of_measurement": "h",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.precip_ends }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "temp_max_in": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_trends_temp_max_in",
+      "name": "temp max in",
+      "state_topic": "njord/lucerne/trends",
+      "unit_of_measurement": "h",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.temp_max_in }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "temp_min_in": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_trends_temp_min_in",
+      "name": "temp min in",
+      "state_topic": "njord/lucerne/trends",
+      "unit_of_measurement": "h",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.temp_min_in }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "decay_rate": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_trends_decay_rate",
+      "name": "decay rate",
+      "state_topic": "njord/lucerne/trends",
+      "unit_of_measurement": "\u00B0C/h",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.decay_rate }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "reliable_hours": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_trends_reliable_hours",
+      "name": "reliable hours",
+      "state_topic": "njord/lucerne/trends",
+      "unit_of_measurement": "h",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.reliable_hours }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    }
+  }
+}

@@ -1,0 +1,508 @@
+﻿device_id: njord_lucerne_derived
+{
+  "dev": {
+    "ids": [
+      "njord_lucerne_derived"
+    ],
+    "name": "njord lucerne derived",
+    "mf": "njord",
+    "mdl": "derived",
+    "sw": "1.0.0-golden"
+  },
+  "o": {
+    "name": "njord",
+    "sw": "1.0.0-golden"
+  },
+  "qos": 1,
+  "cmps": {
+    "beaufort_h3": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_beaufort_h3",
+      "name": "beaufort \u002B3h",
+      "state_topic": "njord/lucerne/derived/h3",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.beaufort }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h3",
+          "value_template": "{% if value_json.beaufort is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "wind_chill_h3": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_wind_chill_h3",
+      "name": "wind chill \u002B3h",
+      "state_topic": "njord/lucerne/derived/h3",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wind_chill }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h3",
+          "value_template": "{% if value_json.wind_chill is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "unit_of_measurement": "\u00B0C",
+      "device_class": "temperature"
+    },
+    "dewpoint_comfort_h3": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_dewpoint_comfort_h3",
+      "name": "dew-point comfort \u002B3h",
+      "state_topic": "njord/lucerne/derived/h3",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.dewpoint_comfort }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h3",
+          "value_template": "{% if value_json.dewpoint_comfort is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "wmo_description_h3": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_wmo_description_h3",
+      "name": "weather \u002B3h",
+      "state_topic": "njord/lucerne/derived/h3",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wmo_description }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h3",
+          "value_template": "{% if value_json.wmo_description is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "beaufort_h6": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_beaufort_h6",
+      "name": "beaufort \u002B6h",
+      "state_topic": "njord/lucerne/derived/h6",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.beaufort }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h6",
+          "value_template": "{% if value_json.beaufort is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "wind_chill_h6": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_wind_chill_h6",
+      "name": "wind chill \u002B6h",
+      "state_topic": "njord/lucerne/derived/h6",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wind_chill }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h6",
+          "value_template": "{% if value_json.wind_chill is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "unit_of_measurement": "\u00B0C",
+      "device_class": "temperature"
+    },
+    "dewpoint_comfort_h6": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_dewpoint_comfort_h6",
+      "name": "dew-point comfort \u002B6h",
+      "state_topic": "njord/lucerne/derived/h6",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.dewpoint_comfort }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h6",
+          "value_template": "{% if value_json.dewpoint_comfort is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "wmo_description_h6": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_wmo_description_h6",
+      "name": "weather \u002B6h",
+      "state_topic": "njord/lucerne/derived/h6",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wmo_description }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h6",
+          "value_template": "{% if value_json.wmo_description is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "beaufort_h12": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_beaufort_h12",
+      "name": "beaufort \u002B12h",
+      "state_topic": "njord/lucerne/derived/h12",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.beaufort }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h12",
+          "value_template": "{% if value_json.beaufort is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "wind_chill_h12": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_wind_chill_h12",
+      "name": "wind chill \u002B12h",
+      "state_topic": "njord/lucerne/derived/h12",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wind_chill }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h12",
+          "value_template": "{% if value_json.wind_chill is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "unit_of_measurement": "\u00B0C",
+      "device_class": "temperature"
+    },
+    "dewpoint_comfort_h12": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_dewpoint_comfort_h12",
+      "name": "dew-point comfort \u002B12h",
+      "state_topic": "njord/lucerne/derived/h12",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.dewpoint_comfort }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h12",
+          "value_template": "{% if value_json.dewpoint_comfort is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "wmo_description_h12": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_wmo_description_h12",
+      "name": "weather \u002B12h",
+      "state_topic": "njord/lucerne/derived/h12",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wmo_description }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h12",
+          "value_template": "{% if value_json.wmo_description is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "beaufort_h24": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_beaufort_h24",
+      "name": "beaufort \u002B24h",
+      "state_topic": "njord/lucerne/derived/h24",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.beaufort }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h24",
+          "value_template": "{% if value_json.beaufort is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "wind_chill_h24": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_wind_chill_h24",
+      "name": "wind chill \u002B24h",
+      "state_topic": "njord/lucerne/derived/h24",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wind_chill }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h24",
+          "value_template": "{% if value_json.wind_chill is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "unit_of_measurement": "\u00B0C",
+      "device_class": "temperature"
+    },
+    "dewpoint_comfort_h24": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_dewpoint_comfort_h24",
+      "name": "dew-point comfort \u002B24h",
+      "state_topic": "njord/lucerne/derived/h24",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.dewpoint_comfort }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h24",
+          "value_template": "{% if value_json.dewpoint_comfort is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "wmo_description_h24": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_wmo_description_h24",
+      "name": "weather \u002B24h",
+      "state_topic": "njord/lucerne/derived/h24",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wmo_description }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h24",
+          "value_template": "{% if value_json.wmo_description is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "beaufort_h48": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_beaufort_h48",
+      "name": "beaufort \u002B48h",
+      "state_topic": "njord/lucerne/derived/h48",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.beaufort }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h48",
+          "value_template": "{% if value_json.beaufort is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "wind_chill_h48": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_wind_chill_h48",
+      "name": "wind chill \u002B48h",
+      "state_topic": "njord/lucerne/derived/h48",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wind_chill }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h48",
+          "value_template": "{% if value_json.wind_chill is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "unit_of_measurement": "\u00B0C",
+      "device_class": "temperature"
+    },
+    "dewpoint_comfort_h48": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_dewpoint_comfort_h48",
+      "name": "dew-point comfort \u002B48h",
+      "state_topic": "njord/lucerne/derived/h48",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.dewpoint_comfort }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h48",
+          "value_template": "{% if value_json.dewpoint_comfort is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "wmo_description_h48": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_wmo_description_h48",
+      "name": "weather \u002B48h",
+      "state_topic": "njord/lucerne/derived/h48",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wmo_description }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h48",
+          "value_template": "{% if value_json.wmo_description is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "beaufort_h72": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_beaufort_h72",
+      "name": "beaufort \u002B72h",
+      "state_topic": "njord/lucerne/derived/h72",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.beaufort }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h72",
+          "value_template": "{% if value_json.beaufort is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "wind_chill_h72": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_wind_chill_h72",
+      "name": "wind chill \u002B72h",
+      "state_topic": "njord/lucerne/derived/h72",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wind_chill }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h72",
+          "value_template": "{% if value_json.wind_chill is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "unit_of_measurement": "\u00B0C",
+      "device_class": "temperature"
+    },
+    "dewpoint_comfort_h72": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_dewpoint_comfort_h72",
+      "name": "dew-point comfort \u002B72h",
+      "state_topic": "njord/lucerne/derived/h72",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.dewpoint_comfort }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h72",
+          "value_template": "{% if value_json.dewpoint_comfort is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "wmo_description_h72": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_wmo_description_h72",
+      "name": "weather \u002B72h",
+      "state_topic": "njord/lucerne/derived/h72",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wmo_description }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/derived/h72",
+          "value_template": "{% if value_json.wmo_description is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "diurnal_amplitude": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_diurnal_amplitude",
+      "name": "diurnal amplitude",
+      "state_topic": "njord/lucerne/derived/meta",
+      "unit_of_measurement": "\u00B0C",
+      "device_class": "temperature",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.diurnal_amplitude }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "sunshine_pct": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_derived_sunshine_pct",
+      "name": "sunshine",
+      "state_topic": "njord/lucerne/derived/meta",
+      "unit_of_measurement": "%",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.sunshine_pct }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "inversion": {
+      "p": "binary_sensor",
+      "unique_id": "njord_lucerne_derived_inversion",
+      "name": "inversion",
+      "state_topic": "njord/lucerne/derived/meta",
+      "expire_after": 7200,
+      "value_template": "{% if value_json.inversion == true %}ON{% else %}OFF{% endif %}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    }
+  }
+}

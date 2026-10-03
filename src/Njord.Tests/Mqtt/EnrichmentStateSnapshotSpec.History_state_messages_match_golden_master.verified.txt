@@ -1,0 +1,17 @@
+﻿topic: njord/lucerne/history
+retain: True
+{
+  "mae_7d_icon_d2": null,
+  "mae_7d_ecmwf_ifs025": null,
+  "mae_30d_icon_d2": null,
+  "mae_30d_ecmwf_ifs025": null,
+  "weight_icon_d2": 0.5,
+  "weight_ecmwf_ifs025": 0.5,
+  "drift_icon_d2": 1.41,
+  "drift_ecmwf_ifs025": 1.41,
+  "seasonal_best": null,
+  "anomaly": null,
+  "anomaly_deviation": null,
+  "weighted_temperature": null
+}
+

@@ -22,12 +22,17 @@ internal static class NjordArchitecture
         .Select(n => Assembly.Load(n!))
         .ToArray();
 
-    private static readonly Assembly[] LibraryAssemblies = NjordAssembly.GetReferencedAssemblies()
-        .Where(a => a.Name!.StartsWith("Njord.", StringComparison.Ordinal) && !a.Name.StartsWith("Njord.Tests", StringComparison.Ordinal))
-        .Select(Assembly.Load)
+    // Production libraries: every Njord.* assembly next to this one that is not a test assembly
+    // (the host may reference a library only transitively, so its referenced assemblies are not enough).
+    private static readonly Assembly[] LibraryAssemblies = Directory
+        .GetFiles(AppContext.BaseDirectory, "Njord.*.dll")
+        .Select(Path.GetFileNameWithoutExtension)
+        .Where(n => !n!.StartsWith("Njord.Tests", StringComparison.Ordinal) && !n.EndsWith("Tests", StringComparison.Ordinal))
+        .Order(StringComparer.Ordinal)
+        .Select(n => Assembly.Load(n!))
         .ToArray();
 
-    private static readonly string[] FeatureLibraryNames = ["Njord.Pipeline", "Njord.Egress", "Njord.Grpc", "Njord.Ingest", "Njord.Sensors"];
+    private static readonly string[] FeatureLibraryNames = ["Njord.Pipeline", "Njord.Egress", "Njord.Grpc", "Njord.Ingest", "Njord.Sensors", "Njord.Mqtt", "Njord.Enrichment"];
     private static readonly string[] BaseLibraryNames = ["Njord.Core", "Njord.Messages", "Njord.Persistence", "Njord.Domain"];
 
     public static readonly ArchUnitNET.Domain.Architecture Instance =
@@ -55,15 +60,6 @@ internal static class NjordArchitecture
 
     private static Assembly AssemblyByName(string name)
         => LibraryAssemblies.Single(a => a.GetName().Name == name);
-
-    public static readonly IObjectProvider<IType> Ingest =
-        Types().That().ResideInNamespaceMatching(@"^Njord\.Ingest(\..*)?$").As("Ingest");
-
-    public static readonly IObjectProvider<IType> Domain =
-        Types().That().ResideInNamespaceMatching(@"^Njord\.Domain(\..*)?$").As("Domain");
-
-    public static readonly IObjectProvider<IType> EgressSide =
-        Types().That().ResideInNamespaceMatching(@"^Njord\.(Egress|Mqtt|Grpc)(\..*)?$").As("Egress side");
 
     public static IObjectProvider<IType> ProductionTypes =>
         Types().That().ResideInAssembly(NjordAssembly,

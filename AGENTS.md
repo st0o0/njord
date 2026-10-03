@@ -31,11 +31,17 @@ the HA host).
 - **SensorHub for external sensor input.** The SensorHub actor receives readings
   via gRPC (`SensorService`), stores latest values per `SensorKind` (closed enum).
   Enrichments pull at each poll cycle (latest-value, no reactive re-computation).
-- **Zone rules are enforced by tests** in `src/Njord.Architecture.Tests/` (Ingest ↔
-  Egress side independence, Domain independence, sealed/`Spec` conventions,
+- **Enrichment computes, Mqtt presents.** Enrichment features (`Njord.Enrichment`)
+  are compute-only; each feature's HA device id, discovery payload and state
+  messages come from an `IEnrichmentPresenter` in `Njord.Mqtt` (plus a
+  `ConsensusPresenter` for consensus), matched by `EnrichmentTypeNames`. The two
+  libraries never reference each other.
+- **Zone rules are enforced by tests** in `src/Njord.Architecture.Tests/` (lateral
+  independence of the feature libraries, Domain independence, Enrichment/Mqtt
+  separation, sealed/`Spec` conventions,
   `LayerReferenceSpec` for the assembly reference direction: Domain and
   Persistence reference no Njord assembly, Messages only Domain, Core only those
-  three, feature libraries (Ingest, Sensors, Grpc, Pipeline, Egress) only Core and
+  three, feature libraries (Ingest, Sensors, Grpc, Pipeline, Egress, Mqtt, Enrichment) only Core and
   below; the host references all. Feature libraries never reference each other,
   checked by the lateral rule in `ZoneArchitectureSpec`).
 
@@ -87,9 +93,9 @@ src/
   Njord.Grpc/                 # gRPC services, snapshot actors, protos (-> Core)
   Njord.Pipeline/             # Scheduler, budget, poll pipeline (-> Core)
   Njord.Egress/               # EgressActor, ModelStateActor, HorizonProjection, TopicSlug (-> Core)
+  Njord.Mqtt/                 # MQTT connection, discovery, state payloads, enrichment presenters (-> Core)
+  Njord.Enrichment/           # Enrichment actor, compute-only features, ForecastHistoryActor (-> Core)
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
-    Mqtt/                     # MQTT connection, discovery, state payloads (still in host)
-    Enrichment/ (+ Features/) # Enrichment actor and feature implementations (still in host)
     Configuration/            # Host setup (service, actor system, application)
     Health/
   Njord.Domain.Tests/         # Tests for Njord.Domain (mirrors its folders)
@@ -99,16 +105,16 @@ src/
   Njord.Grpc.Tests/           # Tests for Njord.Grpc
   Njord.Pipeline.Tests/       # Tests for Njord.Pipeline (scheduler, budget, poll stages)
   Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules over all assemblies
-  Njord.Tests/                # Host-resident tests: Mqtt, Enrichment, Health, Configuration
-                              #   (host setup), Ingest, Sensors, PollPipelineSpec
+  Njord.Tests/                # Host-resident tests: Mqtt and Enrichment specs (incl. golden
+                              #   masters), Health, Configuration (host setup), Ingest, Sensors,
+                              #   PollPipelineSpec
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
 
-Mqtt and Enrichment still live in the host and are extracted by a later change
-(`extract-enrichment-mqtt-projects`); their tests stay in `Njord.Tests` until then.
+The Mqtt and Enrichment specs stay in the host test project `Njord.Tests`.
 
 Reference direction: Domain/Persistence <- Messages <- Core <- feature libs
-(Ingest, Sensors, Grpc, Pipeline, Egress) <- host. Feature libs reference only Njord.Core (and
+(Ingest, Sensors, Grpc, Pipeline, Egress, Mqtt, Enrichment) <- host. Feature libs reference only Njord.Core (and
 below), never each other and never the host; they reach each other's actors
 through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs`. Registration
 stays central in the host. Enforced by project references plus `Njord.Architecture.Tests/LayerReferenceSpec.cs` and the
@@ -134,8 +140,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 825 tests (Domain 286, Persistence 10, Core 97, Egress 27, Grpc 74,
-Pipeline 111, Architecture 25, host `Njord.Tests` 195). CI's
+Current total: 859 tests (Domain 286, Persistence 10, Core 120, Egress 13, Grpc 74,
+Pipeline 111, Architecture 27, host `Njord.Tests` 218). CI's
 `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -175,6 +181,8 @@ OpenSpec checks (run from the repo root):
 openspec validate --all --no-interactive
 bash scripts/check-openspec-root.sh    # fails if an openspec/ root exists outside <repo root>/openspec
 ```
+
+These checks run locally only; they are deliberately not part of CI.
 
 ## Open-Meteo API (verified 2026-07-11 via live probes)
 

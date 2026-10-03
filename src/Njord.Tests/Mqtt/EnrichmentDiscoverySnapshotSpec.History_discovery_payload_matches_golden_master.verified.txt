@@ -1,0 +1,190 @@
+﻿device_id: njord_lucerne_history
+{
+  "dev": {
+    "ids": [
+      "njord_lucerne_history"
+    ],
+    "name": "njord lucerne history",
+    "mf": "njord",
+    "mdl": "history",
+    "sw": "1.0.0-golden"
+  },
+  "o": {
+    "name": "njord",
+    "sw": "1.0.0-golden"
+  },
+  "qos": 1,
+  "cmps": {
+    "mae_7d_icon_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_history_mae_7d_icon_d2",
+      "name": "MAE 7d icon_d2",
+      "state_topic": "njord/lucerne/history",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.mae_7d_icon_d2 }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "mae_30d_icon_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_history_mae_30d_icon_d2",
+      "name": "MAE 30d icon_d2",
+      "state_topic": "njord/lucerne/history",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.mae_30d_icon_d2 }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "weight_icon_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_history_weight_icon_d2",
+      "name": "weight icon_d2",
+      "state_topic": "njord/lucerne/history",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.weight_icon_d2 }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "drift_icon_d2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_history_drift_icon_d2",
+      "name": "drift icon_d2",
+      "state_topic": "njord/lucerne/history",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.drift_icon_d2 }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "mae_7d_ecmwf_ifs025": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_history_mae_7d_ecmwf_ifs025",
+      "name": "MAE 7d ecmwf_ifs025",
+      "state_topic": "njord/lucerne/history",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.mae_7d_ecmwf_ifs025 }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "mae_30d_ecmwf_ifs025": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_history_mae_30d_ecmwf_ifs025",
+      "name": "MAE 30d ecmwf_ifs025",
+      "state_topic": "njord/lucerne/history",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.mae_30d_ecmwf_ifs025 }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "weight_ecmwf_ifs025": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_history_weight_ecmwf_ifs025",
+      "name": "weight ecmwf_ifs025",
+      "state_topic": "njord/lucerne/history",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.weight_ecmwf_ifs025 }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "drift_ecmwf_ifs025": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_history_drift_ecmwf_ifs025",
+      "name": "drift ecmwf_ifs025",
+      "state_topic": "njord/lucerne/history",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.drift_ecmwf_ifs025 }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "seasonal_best": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_history_seasonal_best",
+      "name": "seasonal best model",
+      "state_topic": "njord/lucerne/history",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.seasonal_best }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "anomaly": {
+      "p": "binary_sensor",
+      "unique_id": "njord_lucerne_history_anomaly",
+      "name": "anomaly",
+      "state_topic": "njord/lucerne/history",
+      "expire_after": 7200,
+      "value_template": "{% if value_json.anomaly == true %}ON{% else %}OFF{% endif %}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "anomaly_deviation": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_history_anomaly_deviation",
+      "name": "anomaly deviation",
+      "state_topic": "njord/lucerne/history",
+      "unit_of_measurement": "\u03C3",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.anomaly_deviation }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "weighted_temperature": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_history_weighted_temperature",
+      "name": "weighted temperature",
+      "state_topic": "njord/lucerne/history",
+      "unit_of_measurement": "\u00B0C",
+      "device_class": "temperature",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.weighted_temperature }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    }
+  }
+}

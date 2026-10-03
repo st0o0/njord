@@ -1,0 +1,243 @@
+﻿device_id: njord_lucerne_alerts
+{
+  "dev": {
+    "ids": [
+      "njord_lucerne_alerts"
+    ],
+    "name": "njord lucerne alerts",
+    "mf": "njord",
+    "mdl": "alerts",
+    "sw": "1.0.0-golden"
+  },
+  "o": {
+    "name": "njord",
+    "sw": "1.0.0-golden"
+  },
+  "qos": 1,
+  "cmps": {
+    "frost": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_frost",
+      "name": "frost",
+      "state_topic": "njord/lucerne/alerts/frost",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/frost",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "heat": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_heat",
+      "name": "heat",
+      "state_topic": "njord/lucerne/alerts/heat",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/heat",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "storm": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_storm",
+      "name": "storm",
+      "state_topic": "njord/lucerne/alerts/storm",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/storm",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "heavy_rain": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_heavy_rain",
+      "name": "heavy-rain",
+      "state_topic": "njord/lucerne/alerts/heavy-rain",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/heavy-rain",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "uv": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_uv",
+      "name": "uv",
+      "state_topic": "njord/lucerne/alerts/uv",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/uv",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "fog": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_fog",
+      "name": "fog",
+      "state_topic": "njord/lucerne/alerts/fog",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/fog",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "snow": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_snow",
+      "name": "snow",
+      "state_topic": "njord/lucerne/alerts/snow",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/snow",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "pressure_drop": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_pressure_drop",
+      "name": "pressure-drop",
+      "state_topic": "njord/lucerne/alerts/pressure-drop",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/pressure-drop",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "thunderstorm": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_thunderstorm",
+      "name": "thunderstorm",
+      "state_topic": "njord/lucerne/alerts/thunderstorm",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/thunderstorm",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "ice": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_ice",
+      "name": "ice",
+      "state_topic": "njord/lucerne/alerts/ice",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/ice",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "wind_chill": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_wind_chill",
+      "name": "wind-chill",
+      "state_topic": "njord/lucerne/alerts/wind-chill",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/wind-chill",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "visibility": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_visibility",
+      "name": "visibility",
+      "state_topic": "njord/lucerne/alerts/visibility",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/visibility",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "tropical_night": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_tropical_night",
+      "name": "tropical-night",
+      "state_topic": "njord/lucerne/alerts/tropical-night",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/tropical-night",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    },
+    "humidity": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_alerts_humidity",
+      "name": "humidity",
+      "state_topic": "njord/lucerne/alerts/humidity",
+      "expire_after": 7200,
+      "value_template": "{{ value_json.severity }}",
+      "json_attributes_topic": "njord/lucerne/alerts/humidity",
+      "json_attributes_template": "{{ value_json | tojson }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        }
+      ],
+      "availability_mode": "all"
+    }
+  }
+}

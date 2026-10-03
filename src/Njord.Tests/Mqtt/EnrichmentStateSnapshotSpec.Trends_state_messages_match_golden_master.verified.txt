@@ -1,0 +1,22 @@
+﻿topic: njord/lucerne/trends
+retain: True
+{
+  "trend_temperature_dir": "rising",
+  "trend_temperature_delta": 2.5,
+  "trend_wind_speed_dir": "rising",
+  "trend_wind_speed_delta": 4.25,
+  "trend_precipitation_dir": "falling",
+  "trend_precipitation_delta": -1,
+  "trend_cloud_cover_dir": "falling",
+  "trend_cloud_cover_delta": -45,
+  "weather_change": null,
+  "precip_starts": 0,
+  "precip_ends": 71,
+  "temp_max_in": 0,
+  "temp_min_in": 0,
+  "stability": null,
+  "stability_ratio": null,
+  "decay_rate": 0,
+  "reliable_hours": null
+}
+

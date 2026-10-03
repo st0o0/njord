@@ -1,18 +1,12 @@
 using Akka.Hosting;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using Njord.Actors;
 using Njord.Diagnostics;
-using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Enrichment;
-using Njord.Enrichment.Features;
 using Njord.Grpc;
 using Njord.Health;
 using Njord.Ingest;
-using Njord.Messages.Pipeline;
 using Njord.Mqtt;
-using Njord.Mqtt.Transport;
 using Njord.Pipeline;
 using Prometheus;
 using Servus.Core.Application.Startup;
@@ -67,26 +61,11 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         var mqttEnabled = configuration
             .GetSection($"{NjordOptions.SectionName}:Mqtt")
             .GetValue("Enabled", false);
-        services.AddSingleton<ConsensusSnapshotFactory>();
-        services.AddSingleton<IndexComputer>();
-        services.AddSingleton<TrendComputer>();
-        services.AddSingleton<DerivedResultComputer>();
-        services.AddSingleton<HistoryComputer>();
-        services.AddSingleton<IEnrichmentFeature, AlertEnrichment>();
-        services.AddSingleton<IEnrichmentFeature, DerivedEnrichment>();
-        services.AddSingleton<IEnrichmentFeature, TrendEnrichment>();
-        services.AddSingleton<IEnrichmentFeature, IndexEnrichment>();
-        services.AddSingleton<IEnrichmentFeature, HistoryEnrichment>();
+        services.AddNjordEnrichment();
+        services.AddNjordMqtt(mqttEnabled);
         if (mqttEnabled)
         {
             healthChecks.AddCheck<MqttConnectionHealthCheck>("mqtt-connection");
-            services.TryAddSingleton(MqttEgressTuning.Default);
-            services.TryAddSingleton(static provider =>
-                new MqttNetPublisher(
-                    provider.GetRequiredService<IOptions<NjordOptions>>().Value.Mqtt,
-                    provider.GetRequiredService<ILogger<MqttNetPublisher>>()));
-            services.TryAddSingleton<IMqttConnection>(static provider => provider.GetRequiredService<MqttNetPublisher>());
-            services.TryAddSingleton<IMqttTransport>(static provider => provider.GetRequiredService<MqttNetPublisher>());
         }
 
         services.AddNjordGrpc();

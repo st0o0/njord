@@ -32,17 +32,18 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
         PollInterval = TimeSpan.FromSeconds(5),
     };
 
-    private IActorRef CreateDiscoveryActor(NjordOptions? options = null, EnrichmentOptions? enrichment = null)
+    private IActorRef CreateDiscoveryActor(NjordOptions? options = null, bool withPresenters = false)
     {
         options ??= DefaultOptions();
-        enrichment ??= new EnrichmentOptions();
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        IEnumerable<IEnrichmentFeature> features = [];
+        IEnumerable<IEnrichmentPresenter> presenters = withPresenters
+            ? EnrichmentGoldenMasterFixtures.Presenters(options, parameters)
+            : [];
 
         return Sys.ActorOf(Props.Create(() => new DiscoveryActor(
             Microsoft.Extensions.Options.Options.Create(options),
             parameters,
-            features)));
+            presenters)));
     }
 
     private static EgressEvent.CapabilityLearned CreateCapability(
@@ -254,6 +255,73 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
 
         await publishProbe.ExpectMsgAsync<MqttMessage>(cancellationToken: TestContext.Current.CancellationToken);
         await publishProbe.ExpectMsgAsync<MqttMessage>(cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    private async Task<List<string>> PublishedDeviceIds(NjordOptions options, CancellationToken ct)
+    {
+        var mat = Sys.Materializer();
+        var requestProbe = CreateTestProbe();
+        var publishProbe = CreateTestProbe();
+        var mqttProbe = Sys.ActorOf(Props.Create(() => new MqttMessageProbe(mat, requestProbe, publishProbe)));
+        ActorRegistry.Register<IMqttConnectionActor>(mqttProbe, overwrite: true);
+        var hub = RegisterFakeEgressHub();
+
+        CreateDiscoveryActor(options, withPresenters: true);
+
+        await requestProbe.FishForMessageAsync(msg => msg is RequestMqttSink, cancellationToken: ct);
+        await hub.WaitForQueue();
+        hub.Emit(CreateCapability());
+
+        var deviceIds = new List<string>();
+        await foreach (var message in publishProbe.ReceiveNAsync(7, cancellationToken: ct))
+        {
+            deviceIds.Add(((MqttMessage)message).Topic.Split('/')[^2]);
+        }
+
+        await publishProbe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
+        return deviceIds;
+    }
+
+    private static NjordOptions AllEnrichmentOptions(bool consensusEnabled)
+    {
+        var options = DefaultOptions();
+        options.Enrichment = new EnrichmentOptions
+        {
+            Consensus = new ConsensusOptions { Enabled = consensusEnabled },
+            Alerts = new AlertOptions { Enabled = true },
+            Derived = new DerivedOptions { Enabled = true },
+            Trends = new TrendOptions { Enabled = true },
+            Indices = new IndexOptions { Enabled = true },
+            History = new HistoryOptions { Enabled = true },
+        };
+        return options;
+    }
+
+    private static readonly string[] ExpectedDiscoveryOrder =
+    [
+        "njord_lucerne_icon_d2",
+        "njord_lucerne_consensus",
+        "njord_lucerne_alerts",
+        "njord_lucerne_derived",
+        "njord_lucerne_trends",
+        "njord_lucerne_indices",
+        "njord_lucerne_history",
+    ];
+
+    [Fact(Timeout = 15000)]
+    public async Task Publishes_model_then_consensus_then_features_in_order_per_location()
+    {
+        var deviceIds = await PublishedDeviceIds(AllEnrichmentOptions(consensusEnabled: true), TestContext.Current.CancellationToken);
+
+        Assert.Equal(ExpectedDiscoveryOrder, deviceIds);
+    }
+
+    [Fact(Timeout = 15000)]
+    public async Task Consensus_discovery_is_published_even_when_consensus_is_disabled()
+    {
+        var deviceIds = await PublishedDeviceIds(AllEnrichmentOptions(consensusEnabled: false), TestContext.Current.CancellationToken);
+
+        Assert.Equal(ExpectedDiscoveryOrder, deviceIds);
     }
 
     // -- fake egress hub that vends SourceRef and allows emitting events ----------

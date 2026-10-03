@@ -24,9 +24,11 @@
   <Project Path="Njord.Core/Njord.Core.csproj" />
   <Project Path="Njord.Domain/Njord.Domain.csproj" />
   <Project Path="Njord.Egress/Njord.Egress.csproj" />
+  <Project Path="Njord.Enrichment/Njord.Enrichment.csproj" />
   <Project Path="Njord.Grpc/Njord.Grpc.csproj" />
   <Project Path="Njord.Ingest/Njord.Ingest.csproj" />
   <Project Path="Njord.Messages/Njord.Messages.csproj" />
+  <Project Path="Njord.Mqtt/Njord.Mqtt.csproj" />
   <Project Path="Njord.Persistence/Njord.Persistence.csproj" />
   <Project Path="Njord.Pipeline/Njord.Pipeline.csproj" />
   <Project Path="Njord.Sensors/Njord.Sensors.csproj" />

@@ -1,0 +1,2088 @@
+﻿topic: njord/lucerne/consensus/h0
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h1
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h2
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h3
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h4
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h5
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h6
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h7
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h8
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h9
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h10
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h11
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h12
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h13
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h14
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h15
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h16
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h17
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h18
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h19
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h20
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h21
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h22
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h23
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h24
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h25
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h26
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h27
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h28
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h29
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h30
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h31
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h32
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h33
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h34
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h35
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h36
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h37
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h38
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h39
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h40
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h41
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h42
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h43
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h44
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h45
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h46
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h47
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h48
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h49
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h50
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h51
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h52
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h53
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h54
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h55
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h56
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h57
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h58
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h59
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h60
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h61
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h62
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h63
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h64
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h65
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h66
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h67
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h68
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h69
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h70
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+
+topic: njord/lucerne/consensus/h71
+retain: True
+{
+  "temperature": 6,
+  "temperature_models": 2,
+  "relative_humidity": 57.5,
+  "relative_humidity_models": 2,
+  "dewpoint": 3.5,
+  "dewpoint_models": 2,
+  "precipitation": 0.1,
+  "precipitation_models": 2,
+  "weather_code": 0.5,
+  "weather_code_models": 2,
+  "cloud_cover": 37.5,
+  "cloud_cover_models": 2,
+  "pressure_msl": 1019,
+  "pressure_msl_models": 2,
+  "surface_pressure": 1014,
+  "surface_pressure_models": 2,
+  "is_day": 1,
+  "is_day_models": 2,
+  "wind_speed_10m": 8.75,
+  "wind_speed_10m_models": 2,
+  "sunshine_duration": 3300,
+  "sunshine_duration_models": 2,
+  "_spread": 2,
+  "_agreement": 1
+}
+

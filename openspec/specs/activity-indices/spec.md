@@ -235,7 +235,7 @@ Each day-offset state JSON SHALL include `_min`, `_max`, `_confidence` variants 
 - **THEN** JSON contains `{"outdoor": 72, "outdoor_min": 65, "outdoor_max": 80, "outdoor_confidence": 0.8, ...}` without `hdd`/`cdd`
 
 ### Requirement: Discovery excludes HDD and CDD components
-`IndexEnrichment.BuildDiscoveryPayload` SHALL NOT register sensor components for `hdd` or `cdd`.
+The indices presenter's `BuildDiscoveryPayload` SHALL NOT register sensor components for `hdd` or `cdd`.
 
 #### Scenario: Discovery without degree day sensors
 - **WHEN** discovery payload is built for indices

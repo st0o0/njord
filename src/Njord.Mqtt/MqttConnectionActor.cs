@@ -1,0 +1,201 @@
+using System.Diagnostics.Metrics;
+using Akka;
+using Akka.Actor;
+using Akka.Event;
+using Akka.Streams;
+using Akka.Streams.Dsl;
+using Microsoft.Extensions.Options;
+using Njord.Actors;
+using Njord.Configuration;
+using Njord.Diagnostics;
+using Njord.Health;
+using Njord.Mqtt.Transport;
+
+namespace Njord.Mqtt;
+
+public sealed record SubscribeInbound(IActorRef Listener);
+
+public sealed record MqttConnected;
+
+public sealed record MqttInboundMessage(string Topic, string Payload);
+
+public sealed class MqttConnectionActor : ReceiveActor
+{
+    private static readonly Gauge<double> MqttConnectedGauge = NjordMetrics.Instance.AddMqttConnected();
+
+    private readonly NjordOptions _options;
+    private readonly IMqttConnection _connection;
+    private readonly IMqttTransport _transport;
+    private readonly MqttEgressTuning _tuning;
+    private readonly NjordHealthState _healthState;
+    private readonly TimeProvider _timeProvider;
+    private readonly string _availabilityTopic;
+    private readonly string _haStatusTopic;
+    private ILoggingAdapter _log = null!;
+    private int _connectAttempts;
+
+    private ISourceQueueWithComplete<MqttMessage>? _availabilityQueue;
+    private Sink<MqttMessage, NotUsed>? _mergeHubSink;
+    private IMaterializer? _mat;
+
+    private readonly List<IActorRef> _inboundListeners = [];
+
+    private sealed record Connected;
+    private sealed record ConnectFailed(Exception Cause);
+    private sealed record Disconnected;
+    private sealed record Reconnect;
+    private sealed record Inbound(string Topic, string Payload);
+
+    public MqttConnectionActor(
+        IOptions<NjordOptions> options,
+        IMqttConnection connection,
+        IMqttTransport transport,
+        MqttEgressTuning tuning,
+        NjordHealthState healthState,
+        TimeProvider timeProvider)
+    {
+        _options = options.Value;
+        _connection = connection;
+        _transport = transport;
+        _tuning = tuning;
+        _healthState = healthState;
+        _timeProvider = timeProvider;
+        _availabilityTopic = TopicScheme.AvailabilityTopic(_options.Mqtt.BaseTopic);
+        _haStatusTopic = $"{_options.Mqtt.DiscoveryPrefix}/status";
+
+        Ready();
+    }
+
+    protected override void PreStart()
+    {
+        _log = Context.GetLogger();
+        _mat = Context.Materializer();
+        MaterializeEgressGraph(_mat);
+        Connect();
+    }
+
+    private void Ready()
+    {
+        ReceiveAsync<Connected>(OnConnectedAsync);
+        Receive<ConnectFailed>(msg =>
+        {
+            _log.Warning(msg.Cause, "MQTT connect to {Host}:{Port} failed",
+                _options.Mqtt.Host, _options.Mqtt.Port);
+            ScheduleReconnect();
+        });
+        Receive<Disconnected>(_ =>
+        {
+            _healthState.SetMqttDisconnected(_timeProvider.GetUtcNow());
+            MqttConnectedGauge.Record(0);
+            _log.Warning("MQTT connection lost — reconnecting");
+            ScheduleReconnect();
+        });
+        Receive<Reconnect>(_ => Connect());
+        Receive<Inbound>(OnInbound);
+        Receive<RequestMqttSink>(msg =>
+        {
+            StreamRefs.SinkRef<MqttMessage>()
+                .To(_mergeHubSink!)
+                .Run(_mat!)
+                .PipeTo(Sender, Self,
+                    sr => new MqttSinkResponse(msg.RequestId, sr),
+                    ex =>
+                    {
+                        _log.Error(ex, "Failed to create MQTT SinkRef");
+                        return new MqttSinkFailed(msg.RequestId, ex);
+                    });
+        });
+        Receive<SubscribeInbound>(msg =>
+        {
+            _inboundListeners.Add(msg.Listener);
+            Context.Watch(msg.Listener);
+        });
+        Receive<Terminated>(msg =>
+        {
+            _inboundListeners.Remove(msg.ActorRef);
+        });
+    }
+
+    protected override void PostStop()
+    {
+        _availabilityQueue?.OfferAsync(new MqttMessage(_availabilityTopic, "offline", true));
+        _availabilityQueue?.Complete();
+    }
+
+    private void MaterializeEgressGraph(IMaterializer mat)
+    {
+        var (availQueue, availSource) = Source.Queue<MqttMessage>(8, OverflowStrategy.DropHead)
+            .PreMaterialize(mat);
+        _availabilityQueue = availQueue;
+
+        var (hubSink, hubSource) = MergeHub.Source<MqttMessage>(perProducerBufferSize: 8)
+            .PreMaterialize(mat);
+        _mergeHubSink = hubSink;
+
+        availSource.RunWith(hubSink, mat);
+
+        hubSource
+            .Log("mqtt-send", m => $"{m.Topic} [{m.Payload.Length}B] retain={m.Retain}", _log)
+            .SelectAsync(1, async msg =>
+            {
+                await _transport.SendAsync(msg.Topic, msg.Payload, msg.Retain, CancellationToken.None);
+                return NotUsed.Instance;
+            })
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
+            .RunWith(Sink.Ignore<NotUsed>(), mat);
+    }
+
+    private void Connect()
+    {
+        var self = Self;
+        _connection
+            .ConnectAsync(
+                (topic, payload) => self.Tell(new Inbound(topic, payload)),
+                () => self.Tell(new Disconnected()),
+                CancellationToken.None)
+            .PipeTo(self,
+                success: () => new Connected(),
+                failure: ex => new ConnectFailed(ex));
+    }
+
+    private void ScheduleReconnect()
+    {
+        _connectAttempts++;
+        var factor = Math.Pow(2, Math.Min(_connectAttempts - 1, 6));
+        var delay = TimeSpan.FromMilliseconds(_tuning.ReconnectDelay.TotalMilliseconds * factor);
+        Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new Reconnect(), Self);
+    }
+
+    private async Task OnConnectedAsync(Connected _)
+    {
+        _connectAttempts = 0;
+        _log.Info("MQTT connected to {Host}:{Port}", _options.Mqtt.Host, _options.Mqtt.Port);
+        _healthState.SetMqttConnected(_timeProvider.GetUtcNow());
+        MqttConnectedGauge.Record(1);
+
+        try
+        {
+            await _connection.SubscribeAsync(_haStatusTopic, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _log.Warning(ex, "Post-connect subscription failed");
+        }
+
+        _availabilityQueue?.OfferAsync(new MqttMessage(_availabilityTopic, "online", true));
+
+        foreach (var listener in _inboundListeners)
+        {
+            listener.Tell(new MqttConnected());
+        }
+    }
+
+    private void OnInbound(Inbound message)
+    {
+        var pub = new MqttInboundMessage(message.Topic, message.Payload);
+        foreach (var listener in _inboundListeners)
+        {
+            listener.Tell(pub);
+        }
+    }
+}

@@ -1,0 +1,26 @@
+﻿topic: njord/lucerne/derived/h3
+retain: True
+{
+  "beaufort": 5,
+  "wind_chill": 1.2,
+  "dewpoint_comfort": "dry",
+  "wmo_description": "Clear sky"
+}
+
+topic: njord/lucerne/derived/h24
+retain: True
+{
+  "beaufort": 5,
+  "wind_chill": 1.2,
+  "dewpoint_comfort": "dry",
+  "wmo_description": "Clear sky"
+}
+
+topic: njord/lucerne/derived/meta
+retain: True
+{
+  "diurnal_amplitude": 0,
+  "sunshine_pct": 91.7,
+  "inversion": true
+}
+

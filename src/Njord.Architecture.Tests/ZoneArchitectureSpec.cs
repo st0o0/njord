@@ -7,35 +7,19 @@ namespace Njord.Architecture.Tests;
 public sealed class ZoneArchitectureSpec
 {
     [Fact]
-    public void Ingest_does_not_depend_on_egress_side()
+    public void Enrichment_does_not_depend_on_mqtt_or_grpc()
     {
-        Types().That().Are(NjordArchitecture.Ingest)
-            .Should().NotDependOnAnyTypesThat().Are(NjordArchitecture.EgressSide)
+        Types().That().Are(NjordArchitecture.TypesInLibrary("Njord.Enrichment"))
+            .Should().NotDependOnAnyTypesThat().Are(NjordArchitecture.TypesInLibrary("Njord.Mqtt"))
+            .AndShould().NotDependOnAnyTypesThat().Are(NjordArchitecture.TypesInLibrary("Njord.Grpc"))
             .Check(NjordArchitecture.Instance);
     }
 
     [Fact]
-    public void Egress_side_does_not_depend_on_ingest()
+    public void Mqtt_does_not_depend_on_enrichment()
     {
-        Types().That().Are(NjordArchitecture.EgressSide)
-            .Should().NotDependOnAnyTypesThat().Are(NjordArchitecture.Ingest)
-            .Check(NjordArchitecture.Instance);
-    }
-
-    [Fact]
-    public void Domain_does_not_depend_on_ingest_or_egress_side()
-    {
-        Types().That().Are(NjordArchitecture.Domain)
-            .Should().NotDependOnAnyTypesThat().Are(NjordArchitecture.Ingest)
-            .AndShould().NotDependOnAnyTypesThat().Are(NjordArchitecture.EgressSide)
-            .Check(NjordArchitecture.Instance);
-    }
-
-    [Fact]
-    public void Egress_does_not_depend_on_pipeline()
-    {
-        Types().That().ResideInNamespaceMatching(@"^Njord\.Egress(\..*)?$")
-            .Should().NotDependOnAnyTypesThat().ResideInNamespaceMatching(@"^Njord\.Pipeline(\..*)?$")
+        Types().That().Are(NjordArchitecture.TypesInLibrary("Njord.Mqtt"))
+            .Should().NotDependOnAnyTypesThat().Are(NjordArchitecture.TypesInLibrary("Njord.Enrichment"))
             .Check(NjordArchitecture.Instance);
     }
 

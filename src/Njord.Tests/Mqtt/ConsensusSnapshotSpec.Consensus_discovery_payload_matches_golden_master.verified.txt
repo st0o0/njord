@@ -1,0 +1,398 @@
+﻿config_topic: homeassistant/device/njord_lucerne_consensus/config
+device_id: njord_lucerne_consensus
+{
+  "dev": {
+    "ids": [
+      "njord_lucerne_consensus"
+    ],
+    "name": "njord lucerne consensus",
+    "mf": "njord",
+    "mdl": "consensus",
+    "sw": "1.0.0-golden"
+  },
+  "o": {
+    "name": "njord",
+    "sw": "1.0.0-golden"
+  },
+  "qos": 1,
+  "cmps": {
+    "temperature_h0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_temperature_h0",
+      "name": "temperature \u002B0h",
+      "state_topic": "njord/lucerne/consensus/h0",
+      "unit_of_measurement": "\u00B0C",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.temperature }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h0",
+          "value_template": "{% if value_json.temperature is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "temperature"
+    },
+    "temperature_h1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_temperature_h1",
+      "name": "temperature \u002B1h",
+      "state_topic": "njord/lucerne/consensus/h1",
+      "unit_of_measurement": "\u00B0C",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.temperature }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h1",
+          "value_template": "{% if value_json.temperature is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "temperature"
+    },
+    "temperature_h2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_temperature_h2",
+      "name": "temperature \u002B2h",
+      "state_topic": "njord/lucerne/consensus/h2",
+      "unit_of_measurement": "\u00B0C",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.temperature }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h2",
+          "value_template": "{% if value_json.temperature is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "temperature"
+    },
+    "temperature_h3": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_temperature_h3",
+      "name": "temperature \u002B3h",
+      "state_topic": "njord/lucerne/consensus/h3",
+      "unit_of_measurement": "\u00B0C",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.temperature }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h3",
+          "value_template": "{% if value_json.temperature is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "temperature"
+    },
+    "temperature_h4": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_temperature_h4",
+      "name": "temperature \u002B4h",
+      "state_topic": "njord/lucerne/consensus/h4",
+      "unit_of_measurement": "\u00B0C",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.temperature }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h4",
+          "value_template": "{% if value_json.temperature is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "temperature"
+    },
+    "temperature_h5": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_temperature_h5",
+      "name": "temperature \u002B5h",
+      "state_topic": "njord/lucerne/consensus/h5",
+      "unit_of_measurement": "\u00B0C",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.temperature }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h5",
+          "value_template": "{% if value_json.temperature is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "temperature"
+    },
+    "temperature_h6": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_temperature_h6",
+      "name": "temperature \u002B6h",
+      "state_topic": "njord/lucerne/consensus/h6",
+      "unit_of_measurement": "\u00B0C",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.temperature }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h6",
+          "value_template": "{% if value_json.temperature is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "temperature"
+    },
+    "wind_speed_10m_h0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_wind_speed_10m_h0",
+      "name": "wind_speed_10m \u002B0h",
+      "state_topic": "njord/lucerne/consensus/h0",
+      "unit_of_measurement": "m/s",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wind_speed_10m }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h0",
+          "value_template": "{% if value_json.wind_speed_10m is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "wind_speed"
+    },
+    "wind_speed_10m_h1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_wind_speed_10m_h1",
+      "name": "wind_speed_10m \u002B1h",
+      "state_topic": "njord/lucerne/consensus/h1",
+      "unit_of_measurement": "m/s",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wind_speed_10m }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h1",
+          "value_template": "{% if value_json.wind_speed_10m is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "wind_speed"
+    },
+    "wind_speed_10m_h2": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_wind_speed_10m_h2",
+      "name": "wind_speed_10m \u002B2h",
+      "state_topic": "njord/lucerne/consensus/h2",
+      "unit_of_measurement": "m/s",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wind_speed_10m }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h2",
+          "value_template": "{% if value_json.wind_speed_10m is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "wind_speed"
+    },
+    "wind_speed_10m_h3": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_wind_speed_10m_h3",
+      "name": "wind_speed_10m \u002B3h",
+      "state_topic": "njord/lucerne/consensus/h3",
+      "unit_of_measurement": "m/s",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wind_speed_10m }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h3",
+          "value_template": "{% if value_json.wind_speed_10m is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "wind_speed"
+    },
+    "wind_speed_10m_h4": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_wind_speed_10m_h4",
+      "name": "wind_speed_10m \u002B4h",
+      "state_topic": "njord/lucerne/consensus/h4",
+      "unit_of_measurement": "m/s",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wind_speed_10m }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h4",
+          "value_template": "{% if value_json.wind_speed_10m is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "wind_speed"
+    },
+    "wind_speed_10m_h5": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_wind_speed_10m_h5",
+      "name": "wind_speed_10m \u002B5h",
+      "state_topic": "njord/lucerne/consensus/h5",
+      "unit_of_measurement": "m/s",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wind_speed_10m }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h5",
+          "value_template": "{% if value_json.wind_speed_10m is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "wind_speed"
+    },
+    "wind_speed_10m_h6": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_wind_speed_10m_h6",
+      "name": "wind_speed_10m \u002B6h",
+      "state_topic": "njord/lucerne/consensus/h6",
+      "unit_of_measurement": "m/s",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.wind_speed_10m }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/h6",
+          "value_template": "{% if value_json.wind_speed_10m is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "wind_speed"
+    },
+    "temperature_max_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_temperature_max_d0",
+      "name": "temperature_max \u002B0d",
+      "state_topic": "njord/lucerne/consensus/d0",
+      "unit_of_measurement": "\u00B0C",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.temperature_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/d0",
+          "value_template": "{% if value_json.temperature_max is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "temperature"
+    },
+    "temperature_max_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_temperature_max_d1",
+      "name": "temperature_max \u002B1d",
+      "state_topic": "njord/lucerne/consensus/d1",
+      "unit_of_measurement": "\u00B0C",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.temperature_max }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/d1",
+          "value_template": "{% if value_json.temperature_max is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "temperature"
+    },
+    "sunrise_d0": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_sunrise_d0",
+      "name": "sunrise \u002B0d",
+      "state_topic": "njord/lucerne/consensus/d0",
+      "unit_of_measurement": "",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.sunrise }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/d0",
+          "value_template": "{% if value_json.sunrise is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "timestamp"
+    },
+    "sunrise_d1": {
+      "p": "sensor",
+      "unique_id": "njord_lucerne_consensus_sunrise_d1",
+      "name": "sunrise \u002B1d",
+      "state_topic": "njord/lucerne/consensus/d1",
+      "unit_of_measurement": "",
+      "suggested_display_precision": 1,
+      "expire_after": 7200,
+      "value_template": "{{ value_json.sunrise }}",
+      "availability": [
+        {
+          "topic": "njord/status"
+        },
+        {
+          "topic": "njord/lucerne/consensus/d1",
+          "value_template": "{% if value_json.sunrise is not none %}online{% else %}offline{% endif %}"
+        }
+      ],
+      "availability_mode": "all",
+      "device_class": "timestamp"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+﻿topic: njord/lucerne/alerts/frost
+retain: True
+{
+  "severity": "yellow",
+  "confidence": 0.75,
+  "trigger_value": 0,
+  "threshold": 0,
+  "expected_low": -2.1
+}
+
+topic: njord/lucerne/alerts/heat
+retain: True
+{
+  "severity": "none",
+  "confidence": 0,
+  "trigger_value": 0,
+  "threshold": 0
+}
+

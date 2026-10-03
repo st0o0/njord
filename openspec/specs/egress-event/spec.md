@@ -8,7 +8,7 @@ Protocol-neutral egress layer: `EgressEvent` is the discriminated union carrying
 
 ### Requirement: EgressEvent is a protocol-neutral discriminated union
 
-The system SHALL define `EgressEvent` as an abstract record in `Njord.Egress`
+The system SHALL define `EgressEvent` as an abstract record in `Njord.Messages` (namespace `Njord.Messages.Egress`)
 with the following sealed variants:
 
 - `PerModelUpdate(string Location, WeatherModel Model, ModelForecast Forecast)` — carries the typed domain forecast, not serialized JSON.
@@ -22,8 +22,8 @@ with the following sealed variants:
 - `CapabilityLearned(string Location, WeatherModel Model, IReadOnlySet<ParameterDef> SupportedParameters, IReadOnlyList<int> ApplicableHorizons, IReadOnlyList<int> ApplicableDayOffsets)` — carries the full capability state for a (location, model) pair, emitted when the tracked parameter set changes.
 
 The `MqttEgressActor` SHALL dispatch `EnrichmentUpdate` events by looking up
-the `IEnrichmentFeature` whose `TypeName` matches `EnrichmentUpdate.TypeName`
-and calling `feature.ToStateMessages(result, baseTopic)`.
+the `IEnrichmentPresenter` whose `TypeName` matches `EnrichmentUpdate.TypeName`
+and calling `presenter.ToStateMessages(result, baseTopic, location)`.
 
 #### Scenario: EgressEvent carries domain data only
 - **WHEN** an `EgressEvent` variant is constructed
@@ -43,12 +43,19 @@ and calling `feature.ToStateMessages(result, baseTopic)`.
 - **WHEN** the enrichment actor produces an alert result
 - **THEN** it SHALL emit `EgressEvent.EnrichmentUpdate` with `UpdatedAt = null`
 
-#### Scenario: MqttEgressActor dispatches via feature registry
+#### Scenario: MqttEgressActor dispatches via presenter registry
 - **WHEN** `MqttEgressActor` receives an `EnrichmentUpdate` with
   `TypeName = "alerts"`
-- **THEN** it SHALL find the `IEnrichmentFeature` with `TypeName == "alerts"`
-  and call `feature.ToStateMessages(result, baseTopic)` to produce MQTT
+- **THEN** it SHALL find the `IEnrichmentPresenter` with `TypeName == "alerts"`
+  and call `presenter.ToStateMessages(result, baseTopic, location)` to produce MQTT
   messages
+
+#### Scenario: MqttEgressActor dispatches consensus via the same registry
+- **WHEN** `MqttEgressActor` receives an `EnrichmentUpdate` with
+  `TypeName = "consensus"` and a `ConsensusResult`
+- **THEN** it SHALL find the `IEnrichmentPresenter` with `TypeName == "consensus"`
+  and call `presenter.ToStateMessages(result, baseTopic, location)`, with no
+  consensus-specific branch outside the registry
 
 #### Scenario: PerModelUpdate carries typed ModelForecast
 - **WHEN** `ModelStateActor` produces a per-model update
