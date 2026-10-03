@@ -229,7 +229,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         {
             Receive<QueryForecast>(msg => Sender.Tell(new ForecastNotFound(msg.Location + "|" + msg.ModelId), Self));
             Receive<QueryAllForecasts>(_ => Sender.Tell(
-                new AllForecastsResult(new Dictionary<(string, string), ModelForecast>()), Self));
+                new QueryAllForecastsResult(new Dictionary<(string, string), ModelForecast>()), Self));
         }
     }
 
@@ -246,7 +246,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         public EmptyEnrichmentActor()
         {
             Receive<QueryAllEnrichments>(_ => Sender.Tell(
-                new AllEnrichmentsResult([]), Self));
+                new QueryAllEnrichmentsResult([]), Self));
         }
     }
 
@@ -254,7 +254,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakeEnrichmentActor(IReadOnlyList<(string TypeName, object Result)> results)
         {
-            Receive<QueryAllEnrichments>(_ => Sender.Tell(new AllEnrichmentsResult(results), Self));
+            Receive<QueryAllEnrichments>(_ => Sender.Tell(new QueryAllEnrichmentsResult(results), Self));
         }
     }
 }

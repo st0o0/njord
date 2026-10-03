@@ -24,19 +24,19 @@ public static class EnrichmentSnapshotStateExtensions
     public static EnrichmentSnapshotState ResetSnapshotCounter(this EnrichmentSnapshotState state) =>
         state with { UpdatesSinceSnapshot = 0 };
 
-    public static EnrichmentQueryResponse GetEnrichment(this EnrichmentSnapshotState state, string key) =>
+    public static QueryEnrichmentResponse GetEnrichment(this EnrichmentSnapshotState state, string key) =>
         state.Enrichments.TryGetValue(key, out var result)
             ? new EnrichmentFound(result)
             : new EnrichmentNotFound(key);
 
-    public static AllEnrichmentsResult GetAllEnrichments(this EnrichmentSnapshotState state, string location)
+    public static QueryAllEnrichmentsResult GetAllEnrichments(this EnrichmentSnapshotState state, string location)
     {
         var prefix = $"{location}|";
         var results = state.Enrichments
             .Where(kvp => kvp.Key.StartsWith(prefix))
             .Select(kvp => (TypeName: kvp.Key[prefix.Length..], kvp.Value))
             .ToList();
-        return new AllEnrichmentsResult(results);
+        return new QueryAllEnrichmentsResult(results);
     }
 
     public static EnrichmentSnapshotDto GetPersistenceState(this EnrichmentSnapshotState state) =>

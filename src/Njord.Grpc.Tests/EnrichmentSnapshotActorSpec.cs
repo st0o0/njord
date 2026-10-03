@@ -32,7 +32,7 @@ public sealed class EnrichmentSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
         var ack = await actor.Ask<Ack>(new UpdateEnrichment("lucerne", "indices", result), TestContext.Current.CancellationToken);
         Assert.NotNull(ack);
 
-        var response = await actor.Ask<EnrichmentQueryResponse>(new QueryEnrichment("lucerne", "indices"), TestContext.Current.CancellationToken);
+        var response = await actor.Ask<QueryEnrichmentResponse>(new QueryEnrichment("lucerne", "indices"), TestContext.Current.CancellationToken);
         var found = Assert.IsType<EnrichmentFound>(response);
         Assert.IsType<IndexResult>(found.Result);
     }
@@ -46,7 +46,7 @@ public sealed class EnrichmentSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
         await actor.Ask<Ack>(new UpdateEnrichment("lucerne", "alerts",
             new AlertResult("lucerne", [])), TestContext.Current.CancellationToken);
 
-        var response = await actor.Ask<AllEnrichmentsResult>(new QueryAllEnrichments("lucerne"), TestContext.Current.CancellationToken);
+        var response = await actor.Ask<QueryAllEnrichmentsResult>(new QueryAllEnrichments("lucerne"), TestContext.Current.CancellationToken);
         Assert.Equal(2, response.Results.Count);
     }
 
@@ -55,7 +55,7 @@ public sealed class EnrichmentSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var actor = CreateActor();
 
-        var response = await actor.Ask<EnrichmentQueryResponse>(new QueryEnrichment("lucerne", "unknown"), TestContext.Current.CancellationToken);
+        var response = await actor.Ask<QueryEnrichmentResponse>(new QueryEnrichment("lucerne", "unknown"), TestContext.Current.CancellationToken);
         Assert.IsType<EnrichmentNotFound>(response);
     }
 }

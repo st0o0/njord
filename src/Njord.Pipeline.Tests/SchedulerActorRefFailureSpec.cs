@@ -71,8 +71,8 @@ public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
         await _requestProbe.ExpectMsgAsync<RequestPipelineSink>(cancellationToken: ct);
 
         var states = await ActorRegistry.Get<ISchedulerActor>()
-            .Ask<SchedulerQueryResponse>(new QueryPollStates(), TimeSpan.FromSeconds(2), ct);
+            .Ask<QueryPollStatesResponse>(new QueryPollStates(), TimeSpan.FromSeconds(2), ct);
 
-        Assert.IsAssignableFrom<SchedulerQueryResponse>(states);
+        Assert.IsAssignableFrom<QueryPollStatesResponse>(states);
     }
 }

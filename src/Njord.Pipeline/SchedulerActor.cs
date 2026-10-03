@@ -385,7 +385,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         }
 
         _log.Info("TriggerImmediatePoll: triggered {Count} polls", targets.Count);
-        Sender.Tell(new TriggerPollResult(targets.Count, targets));
+        Sender.Tell(new TriggerImmediatePollResult(targets.Count, targets));
     }
 
     private void OnHashResult(HashResult result)

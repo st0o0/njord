@@ -33,7 +33,7 @@ public static class ForecastHistoryStateExtensions
     public static ForecastHistoryState ResetSnapshotCounter(this ForecastHistoryState state) =>
         state with { EventsSinceSnapshot = 0 };
 
-    public static ForecastHistoryResult GetSnapshot(this ForecastHistoryState state) =>
+    public static QueryHistoryResult GetSnapshot(this ForecastHistoryState state) =>
         new(state.History);
 
     public static ForecastHistorySnapshotDto GetPersistenceState(this ForecastHistoryState state) =>

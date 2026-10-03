@@ -6,7 +6,7 @@ public sealed record UpdateReading(SensorReading Reading);
 
 public sealed record QuerySensorSnapshot(string Location);
 
-public abstract record SensorSnapshotQueryResponse;
-public sealed record SensorSnapshotFound(SensorSnapshot Snapshot) : SensorSnapshotQueryResponse;
-public sealed record SensorSnapshotNotFound(string Location) : SensorSnapshotQueryResponse;
-public sealed record SensorSnapshotQueryFailed(Exception Cause) : SensorSnapshotQueryResponse;
+public abstract record QuerySensorSnapshotResponse;
+public sealed record SensorSnapshotFound(SensorSnapshot Snapshot) : QuerySensorSnapshotResponse;
+public sealed record SensorSnapshotNotFound(string Location) : QuerySensorSnapshotResponse;
+public sealed record QuerySensorSnapshotFailed(Exception Cause) : QuerySensorSnapshotResponse;

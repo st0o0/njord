@@ -25,12 +25,12 @@ public static class ForecastSnapshotStateExtensions
     public static ForecastSnapshotState ResetSnapshotCounter(this ForecastSnapshotState state) =>
         state with { UpdatesSinceSnapshot = 0 };
 
-    public static ForecastQueryResponse GetForecast(this ForecastSnapshotState state, string key) =>
+    public static QueryForecastResponse GetForecast(this ForecastSnapshotState state, string key) =>
         state.Forecasts.TryGetValue(key, out var forecast)
             ? new ForecastFound(forecast)
             : new ForecastNotFound(key);
 
-    public static AllForecastsResult GetAllForecasts(this ForecastSnapshotState state) =>
+    public static QueryAllForecastsResult GetAllForecasts(this ForecastSnapshotState state) =>
         new(state.Forecasts.ToDictionary(
             kvp => ParseKey(kvp.Key),
             kvp => kvp.Value));

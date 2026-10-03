@@ -44,7 +44,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
         actor.Tell(new RecordApiCall(1));
         actor.Tell(new RecordApiCall(1));
 
-        var usage = await actor.Ask<BudgetUsageResult>(
+        var usage = await actor.Ask<QueryBudgetUsageResult>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, usage.MonthlyUsed);
@@ -60,7 +60,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
         actor.Tell(new RecordApiCall(2));
         actor.Tell(new RecordApiCall(1));
 
-        var usage = await actor.Ask<BudgetUsageResult>(
+        var usage = await actor.Ask<QueryBudgetUsageResult>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(6, usage.MonthlyUsed);
@@ -74,7 +74,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         actor.Tell(new RecordApiCall(5));
 
-        var usage1 = await actor.Ask<BudgetUsageResult>(
+        var usage1 = await actor.Ask<QueryBudgetUsageResult>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(5, usage1.DailyUsed);
 
@@ -82,7 +82,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         actor.Tell(new RecordApiCall(2));
 
-        var usage2 = await actor.Ask<BudgetUsageResult>(
+        var usage2 = await actor.Ask<QueryBudgetUsageResult>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(7, usage2.MonthlyUsed);
@@ -96,7 +96,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         actor.Tell(new RecordApiCall(10));
 
-        var usage1 = await actor.Ask<BudgetUsageResult>(
+        var usage1 = await actor.Ask<QueryBudgetUsageResult>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(10, usage1.MonthlyUsed);
 
@@ -104,7 +104,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         actor.Tell(new RecordApiCall(3));
 
-        var usage2 = await actor.Ask<BudgetUsageResult>(
+        var usage2 = await actor.Ask<QueryBudgetUsageResult>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(3, usage2.MonthlyUsed);
@@ -120,7 +120,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
         actor.Tell(new RecordApiCall(4));
         actor.Tell(new RecordApiCall(3));
 
-        var usage1 = await actor.Ask<BudgetUsageResult>(
+        var usage1 = await actor.Ask<QueryBudgetUsageResult>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(7, usage1.MonthlyUsed);
 
@@ -128,7 +128,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         var recovered = CreateActor();
 
-        var usage2 = await recovered.Ask<BudgetUsageResult>(
+        var usage2 = await recovered.Ask<QueryBudgetUsageResult>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(7, usage2.MonthlyUsed);
@@ -143,7 +143,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         actor.Tell(new RecordApiCall(10));
 
-        var usage1 = await actor.Ask<BudgetUsageResult>(
+        var usage1 = await actor.Ask<QueryBudgetUsageResult>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(10, usage1.MonthlyUsed);
 
@@ -153,7 +153,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         var recovered = CreateActor();
 
-        var usage2 = await recovered.Ask<BudgetUsageResult>(
+        var usage2 = await recovered.Ask<QueryBudgetUsageResult>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(0, usage2.MonthlyUsed);
@@ -165,7 +165,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var actor = CreateActor();
 
-        var usage = await actor.Ask<BudgetUsageResult>(
+        var usage = await actor.Ask<QueryBudgetUsageResult>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(0, usage.MonthlyUsed);

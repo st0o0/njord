@@ -97,7 +97,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
 
         Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.Transport, "test"));
 
-        var result = await Scheduler.Ask<TriggerPollResult>(
+        var result = await Scheduler.Ask<TriggerImmediatePollResult>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -110,7 +110,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
 
         Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.RateLimited, "test"));
 
-        var result = await Scheduler.Ask<TriggerPollResult>(
+        var result = await Scheduler.Ask<TriggerImmediatePollResult>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
     }
@@ -122,7 +122,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
 
         Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.ModelUnavailable, "test"));
 
-        var result = await Scheduler.Ask<TriggerPollResult>(
+        var result = await Scheduler.Ask<TriggerImmediatePollResult>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
     }
@@ -134,7 +134,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
 
         Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.MalformedPayload, "test"));
 
-        var result = await Scheduler.Ask<TriggerPollResult>(
+        var result = await Scheduler.Ask<TriggerImmediatePollResult>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
     }
@@ -144,7 +144,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        var result = await Scheduler.Ask<TriggerPollResult>(
+        var result = await Scheduler.Ask<TriggerImmediatePollResult>(
             new TriggerImmediatePoll("", ""), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, result.Count);
@@ -156,7 +156,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        var result = await Scheduler.Ask<TriggerPollResult>(
+        var result = await Scheduler.Ask<TriggerImmediatePollResult>(
             new TriggerImmediatePoll("nonexistent", ""), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.Count);
@@ -168,7 +168,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Scheduler.Ask<TriggerPollResult>(
+        await Scheduler.Ask<TriggerImmediatePollResult>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var latest = await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -220,7 +220,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         Sys.EventStream.Subscribe(unhandledProbe, typeof(UnhandledMessage));
 
         Scheduler.Tell(new FailureConsumerCompleted());
-        var poll = await Scheduler.Ask<TriggerPollResult>(
+        var poll = await Scheduler.Ask<TriggerImmediatePollResult>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, poll.Count);

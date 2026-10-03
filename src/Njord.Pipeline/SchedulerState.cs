@@ -61,7 +61,7 @@ public static class SchedulerStateExtensions
         return state with { States = state.States.SetItem(key, ModelPollState.Initial(now)) };
     }
 
-    public static PollStatesResult GetSnapshot(this SchedulerState state)
+    public static QueryPollStatesResult GetSnapshot(this SchedulerState state)
     {
         var entries = state.States.Select(kvp =>
         {
@@ -77,7 +77,7 @@ public static class SchedulerStateExtensions
                 s.Cycle is not null ? (long)s.Cycle.Value.TotalSeconds : null);
         }).ToList();
 
-        return new PollStatesResult(entries);
+        return new QueryPollStatesResult(entries);
     }
 
     public static SchedulerState ApplyRecover(

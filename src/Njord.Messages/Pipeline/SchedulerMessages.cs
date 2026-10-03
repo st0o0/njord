@@ -27,7 +27,7 @@ public sealed record FetchFailed(string Location, string ModelId, FetchFailureRe
 
 public sealed record TriggerImmediatePoll(string Location, string Model);
 
-public sealed record TriggerPollResult(int Count, List<string> Targets);
+public sealed record TriggerImmediatePollResult(int Count, List<string> Targets);
 
 public sealed record QueryPollStates;
 
@@ -40,6 +40,6 @@ public sealed record PollStateEntry(
     int MissCount,
     long? CycleSeconds);
 
-public abstract record SchedulerQueryResponse;
-public sealed record PollStatesResult(IReadOnlyList<PollStateEntry> Entries) : SchedulerQueryResponse;
-public sealed record SchedulerQueryFailed(Exception Cause) : SchedulerQueryResponse;
+public abstract record QueryPollStatesResponse;
+public sealed record QueryPollStatesResult(IReadOnlyList<PollStateEntry> Entries) : QueryPollStatesResponse;
+public sealed record QueryPollStatesFailed(Exception Cause) : QueryPollStatesResponse;

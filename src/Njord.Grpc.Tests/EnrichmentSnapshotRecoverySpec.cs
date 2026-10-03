@@ -32,7 +32,7 @@ public sealed class EnrichmentSnapshotRecoverySpec : PersistenceTestKit
 
         var recovered = CreateActor();
 
-        var response = await recovered.Ask<AllEnrichmentsResult>(
+        var response = await recovered.Ask<QueryAllEnrichmentsResult>(
             new QueryAllEnrichments("lucerne"), TimeSpan.FromSeconds(3), ct);
         Assert.Equal(14, response.Results.Count);
     }
@@ -52,7 +52,7 @@ public sealed class EnrichmentSnapshotRecoverySpec : PersistenceTestKit
             TimeSpan.FromSeconds(3), ct);
         Assert.NotNull(ack);
 
-        var response = await recovered.Ask<EnrichmentQueryResponse>(
+        var response = await recovered.Ask<QueryEnrichmentResponse>(
             new QueryEnrichment("zurich", "alerts"), TimeSpan.FromSeconds(3), ct);
         var found = Assert.IsType<EnrichmentFound>(response);
         Assert.IsType<AlertResult>(found.Result);

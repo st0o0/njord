@@ -82,7 +82,7 @@ public sealed class ForecastHistoryStateSpec
         state = state.Apply(MakeRecord());
 
         var snapshot = state.GetSnapshot();
-        Assert.IsType<ForecastHistoryResult>(snapshot);
+        Assert.IsType<QueryHistoryResult>(snapshot);
         Assert.Single(snapshot.History.Records);
     }
 

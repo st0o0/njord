@@ -66,7 +66,7 @@ public static class BudgetTrackerStateExtensions
         return state with { MonthlyUsed = newMonthly, DailyUsed = newDaily };
     }
 
-    public static BudgetUsageResult GetSnapshot(this BudgetTrackerState state) =>
+    public static QueryBudgetUsageResult GetSnapshot(this BudgetTrackerState state) =>
         new(state.MonthlyUsed, state.DailyUsed);
 
     public static BudgetTrackerSnapshotDto GetPersistenceState(this BudgetTrackerState state) =>

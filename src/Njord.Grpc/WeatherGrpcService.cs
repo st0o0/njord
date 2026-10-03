@@ -90,7 +90,7 @@ public sealed class WeatherGrpcService(
         ValidateModel(location, request.Model);
 
         var actor = actorRegistry.Get<IForecastSnapshotActor>();
-        var result = await actor.Ask<ForecastQueryResponse>(
+        var result = await actor.Ask<QueryForecastResponse>(
             new QueryForecast(request.Location, request.Model), AskTimeout);
 
         return result switch
@@ -106,7 +106,7 @@ public sealed class WeatherGrpcService(
         FindLocation(request.Location);
 
         var actor = actorRegistry.Get<IEnrichmentSnapshotActor>();
-        var result = await actor.Ask<AllEnrichmentsResult>(
+        var result = await actor.Ask<QueryAllEnrichmentsResult>(
             new QueryAllEnrichments(request.Location), AskTimeout);
 
         var response = new GetEnrichmentsResponse { Location = request.Location };

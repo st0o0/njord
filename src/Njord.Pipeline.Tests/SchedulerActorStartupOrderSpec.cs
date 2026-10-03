@@ -63,7 +63,7 @@ public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKi
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Scheduler_starts_when_pipeline_registered_after()
     {
-        var snapshot = await Scheduler.Ask<PollStatesResult>(
+        var snapshot = await Scheduler.Ask<QueryPollStatesResult>(
             new QueryPollStates(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.NotNull(snapshot);
@@ -76,7 +76,7 @@ public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKi
 
         await AwaitConditionAsync(async () =>
         {
-            var snapshot = await scheduler.Ask<PollStatesResult>(
+            var snapshot = await scheduler.Ask<QueryPollStatesResult>(
                 new QueryPollStates(), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
             return snapshot.Entries.Count > 0;
         }, TestTimeouts.AwaitAssertMax, TestContext.Current.CancellationToken);

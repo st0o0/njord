@@ -13,21 +13,21 @@ public sealed record QueryEnrichment(string Location, string TypeName);
 public sealed record QueryAllEnrichments(string Location);
 
 // Forecast responses
-public abstract record ForecastQueryResponse;
-public sealed record ForecastFound(ModelForecast Forecast) : ForecastQueryResponse;
-public sealed record ForecastNotFound(string ModelKey) : ForecastQueryResponse;
-public sealed record ForecastQueryFailed(Exception Cause) : ForecastQueryResponse;
+public abstract record QueryForecastResponse;
+public sealed record ForecastFound(ModelForecast Forecast) : QueryForecastResponse;
+public sealed record ForecastNotFound(string ModelKey) : QueryForecastResponse;
+public sealed record QueryForecastFailed(Exception Cause) : QueryForecastResponse;
 
-public abstract record AllForecastsQueryResponse;
-public sealed record AllForecastsResult(IReadOnlyDictionary<(string Location, string ModelId), ModelForecast> Forecasts) : AllForecastsQueryResponse;
-public sealed record AllForecastsFailed(Exception Cause) : AllForecastsQueryResponse;
+public abstract record QueryAllForecastsResponse;
+public sealed record QueryAllForecastsResult(IReadOnlyDictionary<(string Location, string ModelId), ModelForecast> Forecasts) : QueryAllForecastsResponse;
+public sealed record QueryAllForecastsFailed(Exception Cause) : QueryAllForecastsResponse;
 
 // Enrichment responses
-public abstract record EnrichmentQueryResponse;
-public sealed record EnrichmentFound(object Result) : EnrichmentQueryResponse;
-public sealed record EnrichmentNotFound(string Key) : EnrichmentQueryResponse;
-public sealed record EnrichmentQueryFailed(Exception Cause) : EnrichmentQueryResponse;
+public abstract record QueryEnrichmentResponse;
+public sealed record EnrichmentFound(object Result) : QueryEnrichmentResponse;
+public sealed record EnrichmentNotFound(string Key) : QueryEnrichmentResponse;
+public sealed record QueryEnrichmentFailed(Exception Cause) : QueryEnrichmentResponse;
 
-public abstract record AllEnrichmentsQueryResponse;
-public sealed record AllEnrichmentsResult(IReadOnlyList<(string TypeName, object Value)> Results) : AllEnrichmentsQueryResponse;
-public sealed record AllEnrichmentsFailed(Exception Cause) : AllEnrichmentsQueryResponse;
+public abstract record QueryAllEnrichmentsResponse;
+public sealed record QueryAllEnrichmentsResult(IReadOnlyList<(string TypeName, object Value)> Results) : QueryAllEnrichmentsResponse;
+public sealed record QueryAllEnrichmentsFailed(Exception Cause) : QueryAllEnrichmentsResponse;

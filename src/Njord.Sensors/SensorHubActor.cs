@@ -79,7 +79,7 @@ public sealed class SensorHubActor : ReceiveActor, IWithTimers
             }
         }
 
-        SensorSnapshotQueryResponse response = readings.Count > 0
+        QuerySensorSnapshotResponse response = readings.Count > 0
             ? new SensorSnapshotFound(new SensorSnapshot(msg.Location, readings))
             : new SensorSnapshotNotFound(msg.Location);
 

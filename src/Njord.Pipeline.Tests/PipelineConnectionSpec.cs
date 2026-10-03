@@ -408,7 +408,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         {
             Receive<RecordApiCall>(_ => { });
             Receive<QueryBudgetUsage>(_ =>
-                Sender.Tell(new BudgetUsageResult(0, 0), Self));
+                Sender.Tell(new QueryBudgetUsageResult(0, 0), Self));
         }
     }
 }
