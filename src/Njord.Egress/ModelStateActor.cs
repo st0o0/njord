@@ -8,7 +8,6 @@ using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Messages.Egress;
 using Njord.Messages.Pipeline;
-using Njord.Pipeline;
 using Servus.Akka;
 
 namespace Njord.Egress;

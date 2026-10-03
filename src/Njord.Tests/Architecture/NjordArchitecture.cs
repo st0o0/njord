@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using ArchUnitNET.Domain;
 using ArchUnitNET.Loader;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
@@ -8,19 +11,41 @@ namespace Njord.Tests.Architecture;
 internal static class NjordArchitecture
 {
     private static readonly Assembly NjordAssembly = typeof(Njord.Configuration.NjordServiceSetup).Assembly;
-    private static readonly Assembly IngestAssembly = typeof(Njord.Ingest.OpenMeteoClient).Assembly;
-    private static readonly Assembly GrpcAssembly = typeof(Njord.Grpc.WeatherGrpcService).Assembly;
-    private static readonly Assembly SensorsAssembly = typeof(Njord.Sensors.SensorHubActor).Assembly;
-    private static readonly Assembly DomainAssembly = typeof(Njord.Domain.Weather.ModelForecast).Assembly;
-    private static readonly Assembly PersistenceAssembly = typeof(Njord.Persistence.BudgetTrackerSnapshotDto).Assembly;
-    private static readonly Assembly MessagesAssembly = typeof(Njord.Messages.Pipeline.WeightedTarget).Assembly;
-    private static readonly Assembly CoreAssembly = typeof(Njord.Actors.ISchedulerActor).Assembly;
     private static readonly Assembly TestsAssembly = typeof(NjordArchitecture).Assembly;
+
+    private static readonly Assembly[] LibraryAssemblies = NjordAssembly.GetReferencedAssemblies()
+        .Where(a => a.Name!.StartsWith("Njord.", StringComparison.Ordinal) && !a.Name.StartsWith("Njord.Tests", StringComparison.Ordinal))
+        .Select(Assembly.Load)
+        .ToArray();
+
+    private static readonly string[] FeatureLibraryNames = ["Njord.Pipeline", "Njord.Egress", "Njord.Grpc", "Njord.Ingest", "Njord.Sensors"];
+    private static readonly string[] BaseLibraryNames = ["Njord.Core", "Njord.Messages", "Njord.Persistence", "Njord.Domain"];
 
     public static readonly ArchUnitNET.Domain.Architecture Instance =
         new ArchLoader()
-            .LoadAssemblies(NjordAssembly, IngestAssembly, SensorsAssembly, GrpcAssembly, DomainAssembly, PersistenceAssembly, MessagesAssembly, CoreAssembly, TestsAssembly)
+            .LoadAssemblies([NjordAssembly, .. LibraryAssemblies, TestsAssembly])
             .Build();
+
+    public static IEnumerable<string> FeatureLibraries => FeatureLibraryNames;
+
+    public static IEnumerable<string> BaseLibraries => BaseLibraryNames;
+
+    public static IObjectProvider<IType> TypesInLibrary(string name)
+        => Types().That().ResideInAssembly(AssemblyByName(name)).As(name);
+
+    public static IObjectProvider<IType> TypesInOtherLibrariesAndHost(string name)
+        => Types().That().ResideInAssembly(NjordAssembly)
+            .Or().ResideInAssembly(AssemblyByName(FeatureLibraryNames.First(n => n != name)),
+                FeatureLibraryNames.Where(n => n != name).Skip(1).Select(AssemblyByName).ToArray())
+            .As("other feature libraries and the host");
+
+    public static IObjectProvider<IType> FeatureLibrariesAndHost =>
+        Types().That().ResideInAssembly(NjordAssembly,
+                FeatureLibraryNames.Select(AssemblyByName).ToArray())
+            .As("feature libraries and the host");
+
+    private static Assembly AssemblyByName(string name)
+        => LibraryAssemblies.Single(a => a.GetName().Name == name);
 
     public static readonly IObjectProvider<IType> Ingest =
         Types().That().ResideInNamespaceMatching(@"^Njord\.Ingest(\..*)?$").As("Ingest");
@@ -32,14 +57,8 @@ internal static class NjordArchitecture
         Types().That().ResideInNamespaceMatching(@"^Njord\.(Egress|Mqtt|Grpc)(\..*)?$").As("Egress side");
 
     public static IObjectProvider<IType> ProductionTypes =>
-        Types().That().ResideInAssembly(NjordAssembly)
-            .Or().ResideInAssembly(IngestAssembly)
-            .Or().ResideInAssembly(SensorsAssembly)
-            .Or().ResideInAssembly(GrpcAssembly)
-            .Or().ResideInAssembly(DomainAssembly)
-            .Or().ResideInAssembly(PersistenceAssembly)
-            .Or().ResideInAssembly(MessagesAssembly)
-            .Or().ResideInAssembly(CoreAssembly)
+        Types().That().ResideInAssembly(NjordAssembly,
+                LibraryAssemblies)
             .As("Njord types");
 
     public static IObjectProvider<IType> TestTypes =>

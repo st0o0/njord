@@ -45,12 +45,7 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
                 options.Parameters.Exclude);
         });
         services.AddSingleton(TimeProvider.System);
-        services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
-        services.AddSingleton<IBudgetGate<WeightedTarget>>(sp =>
-            new WeightedBudgetGate(
-                sp.GetRequiredService<IBudgetProvider>(),
-                sp.GetRequiredService<ActorRegistry>().Get<IBudgetTrackerActor>(),
-                sp.GetRequiredService<TimeProvider>()));
+        services.AddNjordPipeline();
         services.AddSingleton(sp =>
         {
             var state = new NjordHealthState

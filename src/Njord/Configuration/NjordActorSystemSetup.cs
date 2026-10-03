@@ -27,6 +27,11 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
     protected override void BuildSystem(AkkaConfigurationBuilder builder, IServiceProvider serviceProvider)
     {
         var njordOptions = serviceProvider.GetRequiredService<IOptions<NjordOptions>>().Value;
+        ConfigureSystem(builder, njordOptions);
+    }
+
+    internal static AkkaConfigurationBuilder ConfigureSystem(AkkaConfigurationBuilder builder, NjordOptions njordOptions)
+    {
         var persistence = njordOptions.Persistence;
 
         var connectionString = persistence.ConnectionString
@@ -50,11 +55,18 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
             })
             .WithSqlPersistence(connectionString, providerName, autoInitialize: true);
 
-        WithNjordActors(builder, njordOptions.Mqtt.Enabled);
+        return WithNjordActors(builder, njordOptions.Mqtt.Enabled);
     }
 
     internal static AkkaConfigurationBuilder WithNjordActors(AkkaConfigurationBuilder builder, bool mqttEnabled)
     {
+        if (!builder.Configuration.HasValue
+            || !builder.Configuration.Value.HasPath("akka.persistence.journal.plugin"))
+        {
+            throw new InvalidOperationException(
+                "Persistence must be configured before the actors are registered (journal plugin is not set).");
+        }
+
         return builder.WithActors((system, registry) =>
         {
             var resolver = DependencyResolver.For(system);

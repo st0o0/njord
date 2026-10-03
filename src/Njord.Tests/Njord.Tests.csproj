@@ -23,6 +23,8 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Njord\Njord.csproj" />
+        <ProjectReference Include="..\Njord.Pipeline\Njord.Pipeline.csproj" />
+        <ProjectReference Include="..\Njord.Egress\Njord.Egress.csproj" />
         <ProjectReference Include="..\Njord.Tests.Shared\Njord.Tests.Shared.csproj" />
     </ItemGroup>
 

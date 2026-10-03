@@ -35,7 +35,9 @@ the HA host).
   Egress side independence, Domain independence, sealed/`Spec` conventions,
   `LayerReferenceSpec` for the assembly reference direction: Domain and
   Persistence reference no Njord assembly, Messages only Domain, Core only those
-  three; the host references all).
+  three, feature libraries (Ingest, Sensors, Grpc, Pipeline, Egress) only Core and
+  below; the host references all. Feature libraries never reference each other,
+  checked by the lateral rule in `ZoneArchitectureSpec`).
 
 ### Decisions
 
@@ -83,22 +85,26 @@ src/
   Njord.Ingest/               # Open-Meteo client, DTOs, JSON source generator (-> Core)
   Njord.Sensors/              # SensorHubActor (-> Core)
   Njord.Grpc/                 # gRPC services, snapshot actors, protos (-> Core)
+  Njord.Pipeline/             # Scheduler, budget, poll pipeline (-> Core)
+  Njord.Egress/               # EgressActor, ModelStateActor, HorizonProjection, TopicSlug (-> Core)
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
-    Egress/                   # EgressActor, ModelStateActor
-    Mqtt/                     # MQTT connection, discovery, state payloads
-    Pipeline/                 # Scheduler, budget, poll pipeline
-    Enrichment/ (+ Features/) # Enrichment actor and feature implementations
+    Mqtt/                     # MQTT connection, discovery, state payloads (still in host)
+    Enrichment/ (+ Features/) # Enrichment actor and feature implementations (still in host)
     Configuration/            # Host setup (service, actor system, application)
     Health/
   Njord.Tests/                # Unit + actor tests (mirrors Njord/ folders)
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers
 ```
 
+Mqtt and Enrichment still live in the host and are extracted by a later change
+(`extract-enrichment-mqtt-projects`).
+
 Reference direction: Domain/Persistence <- Messages <- Core <- feature libs
-(Ingest, Sensors, Grpc) <- host. Feature libs reference only Njord.Core (and
+(Ingest, Sensors, Grpc, Pipeline, Egress) <- host. Feature libs reference only Njord.Core (and
 below), never each other and never the host; they reach each other's actors
 through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs`. Registration
-stays central in the host. Enforced by `Architecture/LayerReferenceSpec.cs`.
+stays central in the host. Enforced by project references plus `Architecture/LayerReferenceSpec.cs` and the
+lateral/upward ArchUnit rules in `Architecture/ZoneArchitectureSpec.cs`.
 
 ## Build & test
 
