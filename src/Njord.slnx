@@ -18,6 +18,10 @@
     <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
     <Project Path="Njord.Persistence.Tests/Njord.Persistence.Tests.csproj" />
     <Project Path="Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj" />
+    <Project Path="Njord.Enrichment.Tests/Njord.Enrichment.Tests.csproj" />
+    <Project Path="Njord.Ingest.Tests/Njord.Ingest.Tests.csproj" />
+    <Project Path="Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj" />
+    <Project Path="Njord.Sensors.Tests/Njord.Sensors.Tests.csproj" />
     <Project Path="Njord.Tests/Njord.Tests.csproj" />
     <Project Path="Njord.Tests.Shared/Njord.Tests.Shared.csproj" />
   </Folder>

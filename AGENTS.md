@@ -104,14 +104,14 @@ src/
   Njord.Egress.Tests/         # Tests for Njord.Egress
   Njord.Grpc.Tests/           # Tests for Njord.Grpc
   Njord.Pipeline.Tests/       # Tests for Njord.Pipeline (scheduler, budget, poll stages)
+  Njord.Mqtt.Tests/           # Tests for Njord.Mqtt (discovery, connection, egress, golden masters)
+  Njord.Enrichment.Tests/     # Tests for Njord.Enrichment (features, history, actor)
+  Njord.Ingest.Tests/         # Tests for Njord.Ingest (OpenMeteoClient)
+  Njord.Sensors.Tests/        # Tests for Njord.Sensors (SensorHub)
   Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules over all assemblies
-  Njord.Tests/                # Host-resident tests: Mqtt and Enrichment specs (incl. golden
-                              #   masters), Health, Configuration (host setup), Ingest, Sensors,
-                              #   PollPipelineSpec
+  Njord.Tests/                # Host-level tests: Health, Configuration, PollPipeline, Persistence
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
-
-The Mqtt and Enrichment specs stay in the host test project `Njord.Tests`.
 
 Reference direction: Domain/Persistence <- Messages <- Core <- feature libs
 (Ingest, Sensors, Grpc, Pipeline, Egress, Mqtt, Enrichment) <- host. Feature libs reference only Njord.Core (and
@@ -141,7 +141,8 @@ done
 ```
 
 Current total: 859 tests (Domain 286, Persistence 10, Core 120, Egress 13, Grpc 74,
-Pipeline 111, Architecture 27, host `Njord.Tests` 218). CI's
+Pipeline 111, Mqtt 102, Enrichment 52, Ingest 15, Sensors 6, Architecture 27,
+host `Njord.Tests` 43). CI's
 `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
