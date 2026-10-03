@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Exposes njord runtime metrics through a single `Meter` named "Njord" and prometheus-net export, with bounded naming and tag conventions.
+
+## Requirements
 
 ### Requirement: NjordMetrics singleton owns the Meter
 A `NjordMetrics` class SHALL expose a static `Instance` property holding a

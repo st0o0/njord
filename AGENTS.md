@@ -131,6 +131,13 @@ MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
 
 `dotnet slopwatch` runs from the repo root (baseline in `.slopwatch/`).
 
+OpenSpec checks (run from the repo root):
+
+```bash
+openspec validate --all --no-interactive
+bash scripts/check-openspec-root.sh    # fails if an openspec/ root exists outside <repo root>/openspec
+```
+
 ## Open-Meteo API (verified 2026-07-11 via live probes)
 
 - Endpoint `GET https://api.open-meteo.com/v1/forecast?latitude=&longitude=` —
@@ -158,6 +165,8 @@ MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
 
 ## Conventions
 
+- OpenSpec lives only in `<repo root>/openspec`. Never delete `openspec/changes/archive`
+  (it is tracked, no longer gitignored).
 - **Git: NEVER `git push`** — the user pushes. Commit messages are Conventional
   Commits (commitlint-enforced).
 - Versioning is release-please. Never edit `<Version>` in

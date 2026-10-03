@@ -40,7 +40,7 @@ Daily parameters SHALL be exposed as HA sensors with day-offset horizons (`d0` =
 - **THEN** the state JSON contains keys `d0`, `d1`, etc. alongside the hourly `h3`, `h6`, etc.
 
 ### Requirement: Daily parameter count does not affect API call weight
-Only hourly variable count determines the API call weight (`ceil(hourly_count / 10)`). Daily variables do not contribute to the weight calculation as per Open-Meteo documentation.
+Only hourly variable count SHALL determine the API call weight (`ceil(hourly_count / 10)`). Daily variables do not contribute to the weight calculation as per Open-Meteo documentation.
 
 #### Scenario: Adding daily variables does not increase weight
 - **WHEN** 15 hourly and 10 daily variables are active

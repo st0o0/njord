@@ -107,6 +107,10 @@ The builder SHALL accept pasted docker-compose YAML containing an `environment:`
 ### Requirement: Enrichment toggles with per-feature settings
 The builder SHALL show toggles for each enrichment feature (consensus, alerts, derived, trends, indices, history). When expanded, each feature SHALL show its configurable settings with defaults pre-filled.
 
+#### Scenario: Enrichment feature toggles
+- **WHEN** a user opens the enrichment section and expands a feature
+- **THEN** toggles exist for consensus, alerts, derived, trends, indices and history, and the expanded feature shows its configurable settings pre-filled with defaults
+
 ### Requirement: Builder state persists in URL hash
 The builder SHALL encode its current state in the URL fragment (hash) so that configurations can be shared via link. Loading a URL with a hash SHALL restore the builder state.
 

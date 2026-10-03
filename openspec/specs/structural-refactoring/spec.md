@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Keeps the production project structurally consistent: one type per source file and data records free of computation logic.
+
+## Requirements
 
 ### Requirement: One public or internal type per source file
 
