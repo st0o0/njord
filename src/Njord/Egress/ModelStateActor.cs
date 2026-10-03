@@ -6,6 +6,8 @@ using Microsoft.Extensions.Options;
 using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
+using Njord.Messages.Egress;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Servus.Akka;
 
@@ -44,8 +46,8 @@ public sealed class ModelStateActor : StreamConsumerActor
 
     protected override void ResolveDependencies()
     {
-        Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
-        Context.GetActorAsync<PipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r));
+        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
+        Context.GetActorAsync<IPipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r));
     }
 
     protected override void ConfigureWaitingForRefs()

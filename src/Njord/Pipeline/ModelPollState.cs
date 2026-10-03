@@ -1,6 +1,6 @@
-namespace Njord.Pipeline;
+using Njord.Messages.Pipeline;
 
-public enum PollPhase { Discovery, Steady }
+namespace Njord.Pipeline;
 
 public sealed record ModelPollState(
     int? LastHash,

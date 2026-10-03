@@ -11,6 +11,8 @@ using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Health;
+using Njord.Messages.Common;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 using Servus.Akka;
@@ -50,16 +52,17 @@ public sealed class SchedulerActorGetPollStatesSpec : Akka.Hosting.TestKit.TestK
                 var mat = system.Materializer();
                 var fakePipeline = system.ActorOf(
                     Props.Create(() => new FakePipelineActor(_offerProbe, mat)));
-                registry.Register<PipelineActor>(fakePipeline);
+                registry.Register<IPipelineActor>(fakePipeline);
             })
-            .WithResolvableActors(r =>
+            .WithActors((system, registry, resolver) =>
             {
-                r.Register<SchedulerActor>("scheduler");
+                registry.Register<ISchedulerActor>(
+                    system.ActorOf(resolver.Props<SchedulerActor>(), "scheduler"));
             })
             .AddTestTimefactor();
     }
 
-    private IActorRef Scheduler => ActorRegistry.Get<SchedulerActor>();
+    private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
 
     [Fact(Timeout = 5000)]
     public async Task Get_poll_states_returns_all_configured_models()

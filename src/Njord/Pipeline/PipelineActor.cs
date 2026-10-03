@@ -6,6 +6,8 @@ using Akka.Streams.Dsl;
 using Njord.Actors;
 using Njord.Domain.Weather;
 using Njord.Ingest;
+using Njord.Messages.Common;
+using Njord.Messages.Pipeline;
 using Servus.Akka;
 
 namespace Njord.Pipeline;
@@ -42,7 +44,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     {
         _log = Context.GetLogger();
         _mat = Context.Materializer();
-        Context.GetActorAsync<SchedulerActor>()
+        Context.GetActorAsync<ISchedulerActor>()
             .PipeTo(Self, success: r => new SchedulerResolved(r));
     }
 

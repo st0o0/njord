@@ -12,6 +12,8 @@ using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Health;
+using Njord.Messages.Common;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 using Servus.Akka;
@@ -49,16 +51,17 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
                 var mat = system.Materializer();
                 var fakePipeline = system.ActorOf(
                     Props.Create(() => new FakePipelineActor(_offerProbe, _requestProbe, mat)));
-                registry.Register<PipelineActor>(fakePipeline);
+                registry.Register<IPipelineActor>(fakePipeline);
             })
-            .WithResolvableActors(r =>
+            .WithActors((system, registry, resolver) =>
             {
-                r.Register<SchedulerActor>("scheduler");
+                registry.Register<ISchedulerActor>(
+                    system.ActorOf(resolver.Props<SchedulerActor>(), "scheduler"));
             })
             .AddTestTimefactor();
     }
 
-    private IActorRef Scheduler => ActorRegistry.Get<SchedulerActor>();
+    private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
 
     [Fact(Timeout = 5000)]
     public async Task Scheduler_offers_target_after_receiving_sink_ref()
@@ -184,10 +187,10 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         Sys.EventStream.Subscribe(warningProbe, typeof(Warning));
 
         // Act: stop the pipeline with no replacement registered. The scheduler
-        // will keep resolving ActorRegistry.Get<PipelineActor>(), which keeps
+        // will keep resolving ActorRegistry.Get<IPipelineActor>(), which keeps
         // returning the same (now-dead) ref, and should back off rather than
         // spin in a tight watch/Terminated loop.
-        var pipeline = ActorRegistry.Get<PipelineActor>();
+        var pipeline = ActorRegistry.Get<IPipelineActor>();
         Watch(pipeline);
         await pipeline.GracefulStop(TimeSpan.FromSeconds(2));
         await ExpectTerminatedAsync(pipeline, cancellationToken: TestContext.Current.CancellationToken);

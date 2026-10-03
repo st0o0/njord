@@ -1,5 +1,6 @@
 using Njord.Domain.Weather;
 using Njord.Grpc;
+using Njord.Messages.Snapshots;
 
 namespace Njord.Tests.Grpc;
 

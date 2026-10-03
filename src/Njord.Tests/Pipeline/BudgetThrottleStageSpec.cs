@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 

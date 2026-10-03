@@ -6,6 +6,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Njord.Actors;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 using Servus.Akka;
@@ -326,7 +327,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
         var pipeline = Sys.ActorOf(Props.Create(() =>
             new FakePipelineWithFullGraph(Mat, received)));
 
-        ActorRegistry.Register<PipelineActor>(pipeline, overwrite: true);
+        ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
 
         var consumer = Sys.ActorOf(Props.Create(() =>
             new PersistentConsumerActor($"consumer-{Guid.NewGuid():N}")));
@@ -344,7 +345,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
         var pipeline = Sys.ActorOf(Props.Create(() =>
             new FakePipelineWithFullGraph(Mat, received)));
 
-        ActorRegistry.Register<PipelineActor>(pipeline, overwrite: true);
+        ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
 
         var first = Sys.ActorOf(Props.Create(() =>
             new PersistentConsumerActor(persistenceId)));
@@ -356,7 +357,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
 
         var pipeline2 = Sys.ActorOf(Props.Create(() =>
             new FakePipelineWithFullGraph(Mat, received)));
-        ActorRegistry.Register<PipelineActor>(pipeline2, overwrite: true);
+        ActorRegistry.Register<IPipelineActor>(pipeline2, overwrite: true);
 
         var second = Sys.ActorOf(Props.Create(() =>
             new PersistentConsumerActor(persistenceId)));
@@ -389,7 +390,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
 
         protected override void PreStart()
         {
-            var pipeline = Context.GetActor<PipelineActor>();
+            var pipeline = Context.GetActor<IPipelineActor>();
             pipeline.Tell(new RequestSinkRef());
             pipeline.Tell(new RequestSourceRef());
         }

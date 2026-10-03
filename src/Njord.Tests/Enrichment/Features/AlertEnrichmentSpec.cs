@@ -5,6 +5,7 @@ using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment.Features;
+using Njord.Messages.Egress;
 
 namespace Njord.Tests.Enrichment.Features;
 

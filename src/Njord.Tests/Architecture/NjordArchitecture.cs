@@ -8,11 +8,15 @@ namespace Njord.Tests.Architecture;
 internal static class NjordArchitecture
 {
     private static readonly Assembly NjordAssembly = typeof(Njord.Ingest.OpenMeteoClient).Assembly;
+    private static readonly Assembly DomainAssembly = typeof(Njord.Domain.Weather.ModelForecast).Assembly;
+    private static readonly Assembly PersistenceAssembly = typeof(Njord.Persistence.BudgetTrackerSnapshotDto).Assembly;
+    private static readonly Assembly MessagesAssembly = typeof(Njord.Messages.Pipeline.WeightedTarget).Assembly;
+    private static readonly Assembly CoreAssembly = typeof(Njord.Actors.ISchedulerActor).Assembly;
     private static readonly Assembly TestsAssembly = typeof(NjordArchitecture).Assembly;
 
     public static readonly ArchUnitNET.Domain.Architecture Instance =
         new ArchLoader()
-            .LoadAssemblies(NjordAssembly, TestsAssembly)
+            .LoadAssemblies(NjordAssembly, DomainAssembly, PersistenceAssembly, MessagesAssembly, CoreAssembly, TestsAssembly)
             .Build();
 
     public static readonly IObjectProvider<IType> Ingest =
@@ -25,7 +29,12 @@ internal static class NjordArchitecture
         Types().That().ResideInNamespaceMatching(@"^Njord\.(Egress|Mqtt|Grpc)(\..*)?$").As("Egress side");
 
     public static IObjectProvider<IType> ProductionTypes =>
-        Types().That().ResideInAssembly(NjordAssembly).As("Njord types");
+        Types().That().ResideInAssembly(NjordAssembly)
+            .Or().ResideInAssembly(DomainAssembly)
+            .Or().ResideInAssembly(PersistenceAssembly)
+            .Or().ResideInAssembly(MessagesAssembly)
+            .Or().ResideInAssembly(CoreAssembly)
+            .As("Njord types");
 
     public static IObjectProvider<IType> TestTypes =>
         Types().That().ResideInAssembly(TestsAssembly).As("Njord.Tests types");

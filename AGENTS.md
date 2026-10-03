@@ -32,7 +32,10 @@ the HA host).
   via gRPC (`SensorService`), stores latest values per `SensorKind` (closed enum).
   Enrichments pull at each poll cycle (latest-value, no reactive re-computation).
 - **Zone rules are enforced by tests** in `src/Njord.Tests/Architecture/` (Ingest ↔
-  Egress side independence, Domain independence, sealed/`Spec` conventions).
+  Egress side independence, Domain independence, sealed/`Spec` conventions,
+  `LayerReferenceSpec` for the assembly reference direction: Domain and
+  Persistence reference no Njord assembly, Messages only Domain, Core only those
+  three; the host references all).
 
 ### Decisions
 
@@ -72,17 +75,20 @@ All code, specs, docs, and communication in English.
 ```
 src/
   Njord.slnx
-  Njord/                      # Service: Program.cs, DI, actors, streams
+  Njord.Domain/               # Pure records, computers, domain options (no Njord references)
+  Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references)
+  Njord.Messages/             # Actor message records (-> Domain)
+  Njord.Core/                 # Options, diagnostics, IOpenMeteoClient, actor keys,
+                              #   StreamSupervision (-> Domain, Messages, Persistence)
+  Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
     Ingest/                   # Open-Meteo client, DTOs, JSON source generator
-    Domain/{Weather,Sensors,Analysis}/  # Pure records and computers
-    Egress/                   # EgressActor, ModelStateActor, EgressEvent
+    Egress/                   # EgressActor, ModelStateActor
     Mqtt/                     # MQTT connection, discovery, state payloads
     Pipeline/                 # Scheduler, budget, poll pipeline
     Enrichment/ (+ Features/) # Enrichment actor and feature implementations
     Grpc/  Sensors/           # gRPC services, SensorHub
-    Persistence/              # Persistence DTOs (extend-only)
-    Configuration/            # Options and validators
-    Diagnostics/  Health/  Actors/
+    Configuration/            # Host setup (service, actor system, application)
+    Health/
   Njord.Tests/                # Unit + actor tests (mirrors Njord/ folders)
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers
 ```
@@ -156,7 +162,9 @@ MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
 - Persistence DTOs (`Njord.Persistence`): extend-only. Never remove or rename
   a `[JsonProperty]` string. New properties must be nullable or have a default.
   Increment `Version` when semantics change. Recovery code must handle all
-  versions ≥ 1.
+  versions ≥ 1. While the project is 0.x, moving or renaming persistence DTO
+  types is allowed as a breaking change (`refactor!:`); `[JsonProperty]` names
+  and `Version` semantics stay extend-only.
 
 ## C# conventions
 
@@ -181,6 +189,9 @@ Rules apply to production code (`src/Njord/`).
   TestKit probes may subscribe to `DeadLetter`/`Warning` in tests.
 - **No `IActorRef` constructor parameters** in production actors.
 - **Actor naming:** `XxxActor`, sealed.
+- **Actors are resolved by marker interfaces** (`ISchedulerActor`, ... in
+  `Njord.Core/Actors/ActorKeys.cs`), registered in the host
+  (`NjordActorSystemSetup`); never key a registry lookup by the actor class.
 
 ## Test assertion conventions
 

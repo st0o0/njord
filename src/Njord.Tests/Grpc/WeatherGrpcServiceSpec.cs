@@ -3,12 +3,14 @@ using Akka.Hosting;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Grpc;
 using Njord.Grpc.V2;
+using Njord.Messages.Snapshots;
 using Njord.Tests.Actors;
 using Njord.Tests.Shared;
 
@@ -40,9 +42,9 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             Models = ["icon_d2", "ecmwf_ifs025"],
         };
 
-        ActorRegistry.Register<ForecastSnapshotActor>(
+        ActorRegistry.Register<IForecastSnapshotActor>(
             forecastActor ?? Sys.ActorOf(Props.Create(() => new EmptyForecastActor())), overwrite: true);
-        ActorRegistry.Register<EnrichmentSnapshotActor>(
+        ActorRegistry.Register<IEnrichmentSnapshotActor>(
             enrichmentActor ?? Sys.ActorOf(Props.Create(() => new EmptyEnrichmentActor())), overwrite: true);
 
         return new WeatherGrpcService(
@@ -190,7 +192,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 5000)]
     public async Task StreamForecasts_throws_unavailable_when_egress_source_request_fails()
     {
-        ActorRegistry.Register<EgressActor>(
+        ActorRegistry.Register<IEgressActor>(
             Sys.ActorOf(FailingRefProvider.Props(CreateTestProbe())), overwrite: true);
         var service = CreateService();
 
@@ -204,7 +206,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 5000)]
     public async Task StreamEnrichments_throws_unavailable_when_egress_source_request_fails()
     {
-        ActorRegistry.Register<EgressActor>(
+        ActorRegistry.Register<IEgressActor>(
             Sys.ActorOf(FailingRefProvider.Props(CreateTestProbe())), overwrite: true);
         var service = CreateService();
 

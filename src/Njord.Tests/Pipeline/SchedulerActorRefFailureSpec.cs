@@ -4,9 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Health;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Actors;
 using Njord.Tests.Shared;
@@ -40,11 +42,12 @@ public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
             .WithActors((system, registry) =>
             {
                 _requestProbe = CreateTestProbe();
-                registry.Register<PipelineActor>(system.ActorOf(FailingRefProvider.Props(_requestProbe)));
+                registry.Register<IPipelineActor>(system.ActorOf(FailingRefProvider.Props(_requestProbe)));
             })
-            .WithResolvableActors(r =>
+            .WithActors((system, registry, resolver) =>
             {
-                r.Register<SchedulerActor>("scheduler");
+                registry.Register<ISchedulerActor>(
+                    system.ActorOf(resolver.Props<SchedulerActor>(), "scheduler"));
             })
             .AddTestTimefactor();
     }
@@ -67,7 +70,7 @@ public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         await _requestProbe.ExpectMsgAsync<RequestPipelineSink>(cancellationToken: ct);
 
-        var states = await ActorRegistry.Get<SchedulerActor>()
+        var states = await ActorRegistry.Get<ISchedulerActor>()
             .Ask<SchedulerQueryResponse>(new QueryPollStates(), TimeSpan.FromSeconds(2), ct);
 
         Assert.IsAssignableFrom<SchedulerQueryResponse>(states);

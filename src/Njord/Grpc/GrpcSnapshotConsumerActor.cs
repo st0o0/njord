@@ -4,6 +4,9 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Actors;
 using Njord.Egress;
+using Njord.Messages.Common;
+using Njord.Messages.Egress;
+using Njord.Messages.Snapshots;
 using Njord.Pipeline;
 using Servus.Akka;
 
@@ -21,7 +24,7 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
 
     protected override void ResolveDependencies()
     {
-        Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
+        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
     }
 
     protected override void ConfigureWaitingForRefs()
@@ -44,8 +47,8 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
             if (response.RequestId != _egressSourceRequestId) return;
             _sourceRef = response.SourceRef;
 
-            var forecastTask = Context.GetActorAsync<ForecastSnapshotActor>();
-            var enrichmentTask = Context.GetActorAsync<EnrichmentSnapshotActor>();
+            var forecastTask = Context.GetActorAsync<IForecastSnapshotActor>();
+            var enrichmentTask = Context.GetActorAsync<IEnrichmentSnapshotActor>();
             Task.WhenAll(forecastTask, enrichmentTask)
                 .PipeTo(Self, success: _ => new SnapshotActorsResolved(forecastTask.Result, enrichmentTask.Result));
         });

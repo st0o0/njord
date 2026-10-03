@@ -5,10 +5,13 @@ using Akka.Streams.Dsl;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Grpc.V2;
+using Njord.Messages.Egress;
+using Njord.Messages.Snapshots;
 using ActorSystem = Akka.Actor.ActorSystem;
 using GrpcStatus = Grpc.Core.Status;
 
@@ -87,7 +90,7 @@ public sealed class WeatherGrpcService(
         var location = FindLocation(request.Location);
         ValidateModel(location, request.Model);
 
-        var actor = actorRegistry.Get<ForecastSnapshotActor>();
+        var actor = actorRegistry.Get<IForecastSnapshotActor>();
         var result = await actor.Ask<ForecastQueryResponse>(
             new QueryForecast(request.Location, request.Model), AskTimeout);
 
@@ -103,7 +106,7 @@ public sealed class WeatherGrpcService(
     {
         FindLocation(request.Location);
 
-        var actor = actorRegistry.Get<EnrichmentSnapshotActor>();
+        var actor = actorRegistry.Get<IEnrichmentSnapshotActor>();
         var result = await actor.Ask<AllEnrichmentsResult>(
             new QueryAllEnrichments(request.Location), AskTimeout);
 
@@ -200,7 +203,7 @@ public sealed class WeatherGrpcService(
 
     private async Task<EgressSourceResponse> RequestEgressSourceAsync(CancellationToken cancellationToken)
     {
-        var reply = await actorRegistry.Get<EgressActor>()
+        var reply = await actorRegistry.Get<IEgressActor>()
             .Ask<object>(new RequestEgressSource(0), cancellationToken);
 
         return reply switch

@@ -3,11 +3,14 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
+using Njord.Messages.Egress;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Actors;
 using Njord.Tests.Shared;
@@ -25,8 +28,8 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
                 var mat = system.Materializer();
                 var fakePipeline = system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
                 var fakeEgress = system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
-                registry.Register<PipelineActor>(fakePipeline);
-                registry.Register<EgressActor>(fakeEgress);
+                registry.Register<IPipelineActor>(fakePipeline);
+                registry.Register<IEgressActor>(fakeEgress);
             })
             .AddTestTimefactor();
     }
@@ -75,7 +78,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var requestProbe = CreateTestProbe();
-        ActorRegistry.Register<PipelineActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
+        ActorRegistry.Register<IPipelineActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
 
         CreateEnrichmentActor();
 
@@ -88,7 +91,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var requestProbe = CreateTestProbe();
-        ActorRegistry.Register<EgressActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
+        ActorRegistry.Register<IEgressActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
 
         CreateEnrichmentActor();
 

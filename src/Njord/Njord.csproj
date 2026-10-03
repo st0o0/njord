@@ -33,4 +33,11 @@
       <Protobuf Include="..\..\protos\njord\v2\*.proto" GrpcServices="Server" ProtoRoot="..\..\protos" />
     </ItemGroup>
 
+<ItemGroup>
+  <ProjectReference Include="..\Njord.Domain\Njord.Domain.csproj" />
+  <ProjectReference Include="..\Njord.Persistence\Njord.Persistence.csproj" />
+  <ProjectReference Include="..\Njord.Messages\Njord.Messages.csproj" />
+  <ProjectReference Include="..\Njord.Core\Njord.Core.csproj" />
+</ItemGroup>
+
 </Project>

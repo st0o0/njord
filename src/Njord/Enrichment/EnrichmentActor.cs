@@ -13,6 +13,9 @@ using Njord.Domain.Analysis;
 using Njord.Domain.Sensors;
 using Njord.Domain.Weather;
 using Njord.Egress;
+using Njord.Messages.Egress;
+using Njord.Messages.Pipeline;
+using Njord.Messages.Sensors;
 using Njord.Pipeline;
 using Njord.Sensors;
 using Servus.Akka;
@@ -60,9 +63,9 @@ public sealed class EnrichmentActor : StreamConsumerActor
 
     protected override void ResolveDependencies()
     {
-        Context.GetActorAsync<PipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r));
-        Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
-        Context.GetActorAsync<SensorHubActor>().PipeTo(Self, success: r => new SensorHubResolved(r));
+        Context.GetActorAsync<IPipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r));
+        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
+        Context.GetActorAsync<ISensorHubActor>().PipeTo(Self, success: r => new SensorHubResolved(r));
     }
 
     protected override void ConfigureWaitingForRefs()

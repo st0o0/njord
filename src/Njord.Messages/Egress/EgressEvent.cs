@@ -1,6 +1,6 @@
 using Njord.Domain.Weather;
 
-namespace Njord.Egress;
+namespace Njord.Messages.Egress;
 
 public abstract record EgressEvent
 {

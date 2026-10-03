@@ -14,5 +14,9 @@
     <Project Path="Njord.Tests/Njord.Tests.csproj" />
     <Project Path="Njord.Tests.Shared/Njord.Tests.Shared.csproj" />
   </Folder>
+  <Project Path="Njord.Core/Njord.Core.csproj" />
+  <Project Path="Njord.Domain/Njord.Domain.csproj" />
+  <Project Path="Njord.Messages/Njord.Messages.csproj" />
+  <Project Path="Njord.Persistence/Njord.Persistence.csproj" />
   <Project Path="Njord/Njord.csproj" />
 </Solution>

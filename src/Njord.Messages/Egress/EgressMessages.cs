@@ -1,6 +1,6 @@
 using Akka.Streams;
 
-namespace Njord.Egress;
+namespace Njord.Messages.Egress;
 
 public sealed record RequestEgressSink(long RequestId);
 public sealed record EgressSinkResponse(long RequestId, ISinkRef<EgressEvent> SinkRef);

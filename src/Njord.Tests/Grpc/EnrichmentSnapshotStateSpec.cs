@@ -1,5 +1,6 @@
 using Njord.Domain.Analysis;
 using Njord.Grpc;
+using Njord.Messages.Snapshots;
 using Njord.Persistence;
 
 namespace Njord.Tests.Grpc;

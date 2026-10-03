@@ -1,5 +1,7 @@
 using Akka.Actor;
 using Njord.Egress;
+using Njord.Messages.Egress;
+using Njord.Messages.Pipeline;
 using Njord.Mqtt;
 using Njord.Pipeline;
 

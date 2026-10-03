@@ -2,9 +2,11 @@ using Akka.Actor;
 using Akka.Hosting;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Sensors;
 using Njord.Grpc.V2;
+using Njord.Messages.Sensors;
 using Njord.Sensors;
 using DomainSensorKind = Njord.Domain.Sensors.SensorKind;
 using ProtoSensorKind = Njord.Grpc.V2.SensorKind;
@@ -16,7 +18,7 @@ public sealed class SensorGrpcService(
     IOptions<NjordOptions> njordOptions,
     TimeProvider timeProvider) : SensorService.SensorServiceBase
 {
-    private readonly IActorRef _sensorHub = actorRegistry.Get<SensorHubActor>();
+    private readonly IActorRef _sensorHub = actorRegistry.Get<ISensorHubActor>();
     private readonly HashSet<string> _knownLocations = new(
         njordOptions.Value.Locations.Select(l => l.Name),
         StringComparer.OrdinalIgnoreCase);

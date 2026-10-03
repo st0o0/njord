@@ -1,7 +1,7 @@
 using Njord.Configuration;
 using Njord.Domain.Weather;
 
-namespace Njord.Pipeline;
+namespace Njord.Messages.Pipeline;
 
 public sealed record WeightedTarget(LocationOptions Location, WeatherModel Model, int Weight, CycleId Cycle)
 {

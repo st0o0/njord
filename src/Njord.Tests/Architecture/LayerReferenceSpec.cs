@@ -1,0 +1,38 @@
+using System.Linq;
+using Xunit;
+
+namespace Njord.Tests.Architecture;
+
+public sealed class LayerReferenceSpec
+{
+    private static string[] NjordReferences<T>()
+        => typeof(T).Assembly.GetReferencedAssemblies()
+            .Select(a => a.Name!)
+            .Where(n => n.StartsWith("Njord", System.StringComparison.Ordinal))
+            .Order()
+            .ToArray();
+
+    [Fact]
+    public void Domain_references_no_other_Njord_assembly()
+    {
+        Assert.Empty(NjordReferences<Njord.Domain.Weather.ModelForecast>());
+    }
+
+    [Fact]
+    public void Persistence_references_no_other_Njord_assembly()
+    {
+        Assert.Empty(NjordReferences<Njord.Persistence.BudgetTrackerSnapshotDto>());
+    }
+
+    [Fact]
+    public void Messages_references_only_Domain()
+    {
+        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.WeightedTarget>().Except(["Njord.Domain"]));
+    }
+
+    [Fact]
+    public void Core_references_only_Domain_Messages_and_Persistence()
+    {
+        Assert.Empty(NjordReferences<Njord.Actors.ISchedulerActor>().Except(["Njord.Domain", "Njord.Messages", "Njord.Persistence"]));
+    }
+}

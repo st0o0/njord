@@ -10,10 +10,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Health;
 using Njord.Ingest;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 using Servus.Akka;
@@ -37,7 +39,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         var pipeline = Sys.ActorOf(
             Props.Create(() => new ProductionLikePipelineActor(offered)),
             "pipeline");
-        ActorRegistry.Register<PipelineActor>(pipeline, overwrite: true);
+        ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
 
         var scheduler = Sys.ActorOf(
             Props.Create(() => new ProductionLikeSchedulerActor($"sched-{Guid.NewGuid():N}")),
@@ -68,20 +70,20 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         var health = new NjordHealthState { ServiceStartedUtc = time.GetUtcNow() };
 
         // Register SchedulerActor placeholder FIRST (PipelineActor.MaterializePipeline
-        // needs GetActor<SchedulerActor> for the inline feedback consumer)
+        // needs GetActor<ISchedulerActor> for the inline feedback consumer)
         var schedulerPlaceholder = Sys.ActorOf(Props.Create(() => new BlackholeActor()), "sched-placeholder");
-        ActorRegistry.Register<SchedulerActor>(schedulerPlaceholder, overwrite: true);
+        ActorRegistry.Register<ISchedulerActor>(schedulerPlaceholder, overwrite: true);
 
         var pipeline = Sys.ActorOf(
             Props.Create(() => new PipelineActor(client, time, gate)),
             "real-pipeline");
-        ActorRegistry.Register<PipelineActor>(pipeline, overwrite: true);
+        ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
 
         // Simulate other actors requesting SourceRefs (like ModelStateActor, EnrichmentActor)
         for (var i = 0; i < 3; i++)
         {
             var sourceRef = await pipeline.Ask<PipelineSourceResponse>(
-                new Njord.Pipeline.RequestPipelineSource(0), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+                new Njord.Messages.Pipeline.RequestPipelineSource(0), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
             _ = sourceRef.SourceRef.Source.RunWith(Sink.Ignore<FetchOutcome>(), Sys.Materializer());
         }
 
@@ -89,7 +91,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             Props.Create(() => new SchedulerActor(
                 Options.Create(options), time, parameters, health)),
             "real-scheduler");
-        ActorRegistry.Register<SchedulerActor>(scheduler, overwrite: true);
+        ActorRegistry.Register<ISchedulerActor>(scheduler, overwrite: true);
 
         var location = await fetchCalled.Task.WaitAsync(TimeSpan.FromSeconds(8), TestContext.Current.CancellationToken);
         Assert.Equal("test", location);
@@ -119,18 +121,18 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         var health = new NjordHealthState { ServiceStartedUtc = time.GetUtcNow() };
 
         var schedulerPlaceholder = Sys.ActorOf(Props.Create(() => new BlackholeActor()), "sched-ph");
-        ActorRegistry.Register<SchedulerActor>(schedulerPlaceholder, overwrite: true);
+        ActorRegistry.Register<ISchedulerActor>(schedulerPlaceholder, overwrite: true);
 
         var pipeline = Sys.ActorOf(
             Props.Create(() => new PipelineActor(client, time, gate)),
             "timing-pipeline");
-        ActorRegistry.Register<PipelineActor>(pipeline, overwrite: true);
+        ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
 
         var scheduler = Sys.ActorOf(
             Props.Create(() => new SchedulerActor(
                 Options.Create(options), time, parameters, health)),
             "timing-scheduler");
-        ActorRegistry.Register<SchedulerActor>(scheduler, overwrite: true);
+        ActorRegistry.Register<ISchedulerActor>(scheduler, overwrite: true);
 
         await allFetched.Task.WaitAsync(TimeSpan.FromSeconds(8), TestContext.Current.CancellationToken);
 
@@ -299,7 +301,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         protected override void PreStart()
         {
             _mat = Context.Materializer();
-            var pipeline = Context.GetActor<PipelineActor>();
+            var pipeline = Context.GetActor<IPipelineActor>();
             pipeline.Tell(new RequestPipelineSink());
             pipeline.Tell(new RequestPipelineSource());
         }
@@ -404,8 +406,8 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakeBudgetTrackerActor()
         {
-            Receive<BudgetTrackerActor.RecordApiCall>(_ => { });
-            Receive<BudgetTrackerActor.QueryBudgetUsage>(_ =>
+            Receive<RecordApiCall>(_ => { });
+            Receive<QueryBudgetUsage>(_ =>
                 Sender.Tell(new BudgetUsageResult(0, 0), Self));
         }
     }

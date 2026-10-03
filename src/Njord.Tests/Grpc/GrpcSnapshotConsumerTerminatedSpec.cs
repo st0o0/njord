@@ -4,9 +4,11 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Njord.Actors;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Grpc;
+using Njord.Messages.Egress;
 using Njord.Tests.Actors;
 using Njord.Tests.Shared;
 
@@ -27,11 +29,11 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
 
                 var fakeEgress = system.ActorOf(
                     Props.Create(() => new FakeEgressActor(mat, _requestProbe)));
-                registry.Register<EgressActor>(fakeEgress);
+                registry.Register<IEgressActor>(fakeEgress);
 
-                registry.Register<ForecastSnapshotActor>(
+                registry.Register<IForecastSnapshotActor>(
                     system.ActorOf(Props.Create(() => new ForecastSnapshotActor())));
-                registry.Register<EnrichmentSnapshotActor>(
+                registry.Register<IEnrichmentSnapshotActor>(
                     system.ActorOf(Props.Create(() => new EnrichmentSnapshotActor())));
             })
             .AddTestTimefactor();
@@ -47,7 +49,7 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
         var firstRequest = await _requestProbe.ExpectMsgAsync<RequestEgressSource>(cancellationToken: ct);
         Assert.NotNull(firstRequest);
 
-        var oldEgress = ActorRegistry.Get<EgressActor>();
+        var oldEgress = ActorRegistry.Get<IEgressActor>();
         Watch(oldEgress);
         await oldEgress.GracefulStop(TimeSpan.FromSeconds(2));
         await ExpectTerminatedAsync(oldEgress, cancellationToken: ct);
@@ -55,7 +57,7 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
         var mat = Sys.Materializer();
         var newEgress = Sys.ActorOf(
             Props.Create(() => new FakeEgressActor(mat, _requestProbe)));
-        ActorRegistry.Register<EgressActor>(newEgress, overwrite: true);
+        ActorRegistry.Register<IEgressActor>(newEgress, overwrite: true);
 
         var secondRequest = await _requestProbe.ExpectMsgAsync<RequestEgressSource>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         Assert.NotNull(secondRequest);
@@ -66,7 +68,7 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
     {
         var ct = TestContext.Current.CancellationToken;
         var failureProbe = CreateTestProbe();
-        ActorRegistry.Register<EgressActor>(Sys.ActorOf(FailingRefProvider.Props(failureProbe)), overwrite: true);
+        ActorRegistry.Register<IEgressActor>(Sys.ActorOf(FailingRefProvider.Props(failureProbe)), overwrite: true);
 
         Sys.ActorOf(Props.Create(() => new GrpcSnapshotConsumerActor()));
 

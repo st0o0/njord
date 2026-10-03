@@ -1,6 +1,7 @@
 using Akka.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Njord.Actors;
 using Njord.Diagnostics;
 using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
@@ -9,6 +10,7 @@ using Njord.Enrichment.Features;
 using Njord.Grpc;
 using Njord.Health;
 using Njord.Ingest;
+using Njord.Messages.Pipeline;
 using Njord.Mqtt;
 using Njord.Mqtt.Transport;
 using Njord.Pipeline;
@@ -47,7 +49,7 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         services.AddSingleton<IBudgetGate<WeightedTarget>>(sp =>
             new WeightedBudgetGate(
                 sp.GetRequiredService<IBudgetProvider>(),
-                sp.GetRequiredService<ActorRegistry>().Get<BudgetTrackerActor>(),
+                sp.GetRequiredService<ActorRegistry>().Get<IBudgetTrackerActor>(),
                 sp.GetRequiredService<TimeProvider>()));
         services.AddSingleton(sp =>
         {

@@ -12,6 +12,8 @@ using Njord.Diagnostics;
 using Njord.Domain.Weather;
 using Njord.Health;
 using Njord.Ingest;
+using Njord.Messages.Common;
+using Njord.Messages.Pipeline;
 using Njord.Persistence;
 using Servus.Akka;
 
@@ -70,7 +72,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
     {
         _log = Context.GetLogger();
         _mat = Context.Materializer();
-        Context.GetActorAsync<PipelineActor>()
+        Context.GetActorAsync<IPipelineActor>()
             .PipeTo(Self, success: r => new PipelineResolved(r));
     }
 
@@ -98,7 +100,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         });
         Command<RetryPipelineResolve>(_ =>
         {
-            Context.GetActorAsync<PipelineActor>()
+            Context.GetActorAsync<IPipelineActor>()
                 .PipeTo(Self, success: r => new PipelineResolved(r));
         });
         Command<QueryPollStates>(OnQueryPollStates);
@@ -249,7 +251,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _sourceReceived = false;
         _pipelineRetryCount = 0;
 
-        Context.GetActorAsync<PipelineActor>()
+        Context.GetActorAsync<IPipelineActor>()
             .PipeTo(Self, success: r => new PipelineResolved(r));
 
         Become(WaitingForPipeline);

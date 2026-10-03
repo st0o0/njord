@@ -2,9 +2,12 @@ using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
+using Njord.Messages.Egress;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Actors;
 using Njord.Tests.Shared;
@@ -47,8 +50,8 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
         var fakeEgress = Sys.ActorOf(FakeEgressSinkProvider.Props(mat, requestProbe: egressProbe));
         var fakePipeline = Sys.ActorOf(FakePipelineSource.Props(mat, requestProbe: pipelineProbe));
 
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<IEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<IPipelineActor>(fakePipeline, overwrite: true);
 
         CreateModelStateActor();
 
@@ -61,8 +64,8 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var egressProbe = CreateTestProbe();
-        ActorRegistry.Register<EgressActor>(Sys.ActorOf(FailingRefProvider.Props(egressProbe)), overwrite: true);
-        ActorRegistry.Register<PipelineActor>(CreateTestProbe().Ref, overwrite: true);
+        ActorRegistry.Register<IEgressActor>(Sys.ActorOf(FailingRefProvider.Props(egressProbe)), overwrite: true);
+        ActorRegistry.Register<IPipelineActor>(CreateTestProbe().Ref, overwrite: true);
 
         CreateModelStateActor();
 
@@ -75,8 +78,8 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var pipelineProbe = CreateTestProbe();
-        ActorRegistry.Register<EgressActor>(CreateTestProbe().Ref, overwrite: true);
-        ActorRegistry.Register<PipelineActor>(Sys.ActorOf(FailingRefProvider.Props(pipelineProbe)), overwrite: true);
+        ActorRegistry.Register<IEgressActor>(CreateTestProbe().Ref, overwrite: true);
+        ActorRegistry.Register<IPipelineActor>(Sys.ActorOf(FailingRefProvider.Props(pipelineProbe)), overwrite: true);
 
         CreateModelStateActor();
 
@@ -95,8 +98,8 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
         var forecast = CreateForecast("icon_d2", withNullParams: false);
         var fakePipeline = Sys.ActorOf(FeedingPipelineSource.Props(mat, forecast));
 
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<IEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<IPipelineActor>(fakePipeline, overwrite: true);
 
         CreateModelStateActor();
 
@@ -125,8 +128,8 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
         var forecast2 = CreateForecast("icon_d2", withNullParams: false, tempOffset: 1.0);
         var fakePipeline = Sys.ActorOf(FeedingPipelineSource.Props(mat, forecast1, forecast2));
 
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<IEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<IPipelineActor>(fakePipeline, overwrite: true);
 
         CreateModelStateActor();
 
@@ -149,8 +152,8 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
         var forecast2 = CreateForecast("icon_d2", withNullParams: false);
         var fakePipeline = Sys.ActorOf(FeedingPipelineSource.Props(mat, forecast1, forecast2));
 
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<IEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<IPipelineActor>(fakePipeline, overwrite: true);
 
         CreateModelStateActor();
 
@@ -175,8 +178,8 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
         var forecast = CreateForecast("icon_d2", withNullParams: false);
         var fakePipeline = Sys.ActorOf(FeedingPipelineSource.Props(mat, forecast));
 
-        registry.Register<EgressActor>(fakeEgress, overwrite: true);
-        registry.Register<PipelineActor>(fakePipeline, overwrite: true);
+        registry.Register<IEgressActor>(fakeEgress, overwrite: true);
+        registry.Register<IPipelineActor>(fakePipeline, overwrite: true);
 
         CreateModelStateActor();
 

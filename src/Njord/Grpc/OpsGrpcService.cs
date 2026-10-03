@@ -5,8 +5,10 @@ using Akka.Hosting;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Grpc.V2;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 
 namespace Njord.Grpc;
@@ -43,9 +45,9 @@ public sealed class OpsGrpcService(
         long dailyUsed = 0;
         try
         {
-            var tracker = _actorRegistry.Get<BudgetTrackerActor>();
+            var tracker = _actorRegistry.Get<IBudgetTrackerActor>();
             var usage = await tracker.Ask<BudgetUsageResult>(
-                new BudgetTrackerActor.QueryBudgetUsage(), AskTimeout);
+                new QueryBudgetUsage(), AskTimeout);
             monthlyUsed = usage.MonthlyUsed;
             dailyUsed = usage.DailyUsed;
         }
@@ -73,7 +75,7 @@ public sealed class OpsGrpcService(
 
         try
         {
-            var scheduler = _actorRegistry.Get<SchedulerActor>();
+            var scheduler = _actorRegistry.Get<ISchedulerActor>();
             var snapshot = await scheduler.Ask<PollStatesResult>(new QueryPollStates(), AskTimeout);
             foreach (var entry in snapshot.Entries)
             {
@@ -147,7 +149,7 @@ public sealed class OpsGrpcService(
 
         try
         {
-            var scheduler = _actorRegistry.Get<SchedulerActor>();
+            var scheduler = _actorRegistry.Get<ISchedulerActor>();
             var snapshot = await scheduler.Ask<PollStatesResult>(new QueryPollStates(), AskTimeout);
             foreach (var entry in snapshot.Entries)
             {
@@ -186,7 +188,7 @@ public sealed class OpsGrpcService(
 
     public override async Task<TriggerPollResponse> TriggerPoll(TriggerPollRequest request, ServerCallContext context)
     {
-        var scheduler = _actorRegistry.Get<SchedulerActor>();
+        var scheduler = _actorRegistry.Get<ISchedulerActor>();
         var result = await scheduler.Ask<TriggerPollResult>(
             new TriggerImmediatePoll(request.Location, request.Model), AskTimeout);
 

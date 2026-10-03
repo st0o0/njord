@@ -3,10 +3,12 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
+using Njord.Messages.Egress;
 using Njord.Mqtt;
 using Njord.Tests.Actors;
 using Njord.Tests.Shared;
@@ -47,7 +49,7 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var mat = Sys.Materializer();
         var hub = new FakeEgressHub(mat);
-        ActorRegistry.Register<EgressActor>(hub.Actor(Sys), overwrite: true);
+        ActorRegistry.Register<IEgressActor>(hub.Actor(Sys), overwrite: true);
         return hub;
     }
 
@@ -59,7 +61,7 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
         var publishProbe = CreateTestProbe();
         var probe = Sys.ActorOf(Props.Create(() =>
             new MqttMessageProbe(mat, requestProbe, publishProbe)));
-        ActorRegistry.Register<MqttConnectionActor>(probe, overwrite: true);
+        ActorRegistry.Register<IMqttConnectionActor>(probe, overwrite: true);
         return (probe, requestProbe, publishProbe);
     }
 
@@ -124,7 +126,7 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
         var publishProbe = CreateTestProbe();
         var fakeMqtt = Sys.ActorOf(Props.Create(() =>
             new MqttMessageProbe(mat, requestProbe, publishProbe)));
-        ActorRegistry.Register<MqttConnectionActor>(fakeMqtt, overwrite: true);
+        ActorRegistry.Register<IMqttConnectionActor>(fakeMqtt, overwrite: true);
 
         CreateMqttEgressActor();
 
@@ -141,7 +143,7 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
         var newPublishProbe = CreateTestProbe();
         var newFakeMqtt = Sys.ActorOf(Props.Create(() =>
             new MqttMessageProbe(mat, newRequestProbe, newPublishProbe)));
-        ActorRegistry.Register<MqttConnectionActor>(newFakeMqtt, overwrite: true);
+        ActorRegistry.Register<IMqttConnectionActor>(newFakeMqtt, overwrite: true);
 
         // The actor should re-request refs after Terminated
         var reRequest = await newRequestProbe.FishForMessageAsync(
@@ -154,8 +156,8 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var requestProbe = CreateTestProbe();
-        ActorRegistry.Register<MqttConnectionActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
-        ActorRegistry.Register<EgressActor>(CreateTestProbe().Ref, overwrite: true);
+        ActorRegistry.Register<IMqttConnectionActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
+        ActorRegistry.Register<IEgressActor>(CreateTestProbe().Ref, overwrite: true);
 
         CreateMqttEgressActor();
 
@@ -168,8 +170,8 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var requestProbe = CreateTestProbe();
-        ActorRegistry.Register<MqttConnectionActor>(CreateTestProbe().Ref, overwrite: true);
-        ActorRegistry.Register<EgressActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
+        ActorRegistry.Register<IMqttConnectionActor>(CreateTestProbe().Ref, overwrite: true);
+        ActorRegistry.Register<IEgressActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
 
         CreateMqttEgressActor();
 

@@ -1,6 +1,6 @@
 ---
 name: njord-persistent-actor
-description: Use when creating or modifying a persistent actor (ReceivePersistentActor) or a persistence DTO under src/Njord/Persistence. Covers snapshot-only vs event+snapshot actors, recovery, snapshot cleanup and the DTO/mapping shape.
+description: Use when creating or modifying a persistent actor (ReceivePersistentActor) or a persistence DTO under src/Njord.Persistence. Covers snapshot-only vs event+snapshot actors, recovery, snapshot cleanup and the DTO/mapping shape.
 ---
 
 # njord persistent actor
@@ -20,7 +20,7 @@ Cleanup after `SaveSnapshotSuccess` differs: snapshot-only → `DeleteSnapshots`
 
 - `XxxActor.cs` — thin: message routing, persistence, lifecycle.
 - `XxxState.cs` — immutable `sealed record` + `static class XxxStateExtensions` with `Apply(...)`, query helpers, `GetPersistenceState()` (state → DTO) and `FromPersistence(dto)` (DTO → state). See `src/Njord/Grpc/EnrichmentSnapshotState.cs`.
-- `src/Njord/Persistence/XxxDtos.cs` — DTOs + static `XxxMapping` (folder `Persistence/`, namespace `Njord.Persistence`; it is not a separate project).
+- `src/Njord.Persistence/XxxDtos.cs` — DTOs only (separate project `Njord.Persistence`, no references). The static `XxxMapping` classes stay in the host next to their consumer (`Pipeline/`, `Grpc/`, `Enrichment/`), namespace `Njord.Persistence`.
 
 ## Actor skeleton (snapshot-only, from `EnrichmentSnapshotActor`)
 
@@ -67,7 +67,7 @@ Event variant additions (`BudgetTrackerActor`):
 - Fixed constants: `SnapshotInterval` (14–50 in the code today) and a stable string `PersistenceId`.
 - Inject `TimeProvider`; query messages answer with `Sender.Tell(..., Self)`.
 
-## DTO shape (from `src/Njord/Persistence/BudgetTrackerDtos.cs`)
+## DTO shape (from `src/Njord.Persistence/BudgetTrackerDtos.cs`)
 
 - `sealed class` with settable props and Newtonsoft `[JsonProperty("short")]` names.
 - `[JsonProperty("v")] public int Version { get; set; } = 1;` on every DTO.

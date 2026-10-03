@@ -1,4 +1,5 @@
 using Akka.Actor;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Pipeline;
 
@@ -44,7 +45,7 @@ public sealed class WeightedBudgetGate : IBudgetGate<WeightedTarget>
         }
 
         _tokens -= cost;
-        _trackerActor.Tell(new BudgetTrackerActor.RecordApiCall(cost));
+        _trackerActor.Tell(new RecordApiCall(cost));
         return true;
     }
 

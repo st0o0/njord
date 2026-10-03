@@ -1,22 +1,16 @@
 using Akka.Event;
 using Akka.Persistence;
 using Njord.Health;
+using Njord.Messages.Pipeline;
 using Njord.Persistence;
 
 namespace Njord.Pipeline;
-
-public abstract record BudgetResponse;
-public sealed record BudgetUsageResult(long MonthlyUsed, long DailyUsed) : BudgetResponse;
-public sealed record BudgetResponseFailed(Exception Cause) : BudgetResponse;
 
 public sealed class BudgetTrackerActor : ReceivePersistentActor
 {
     private const int SnapshotInterval = 50;
 
     public override string PersistenceId => "budget-tracker";
-
-    public sealed record RecordApiCall(int Weight);
-    public sealed record QueryBudgetUsage;
 
     private readonly TimeProvider _timeProvider;
     private readonly NjordHealthState _healthState;

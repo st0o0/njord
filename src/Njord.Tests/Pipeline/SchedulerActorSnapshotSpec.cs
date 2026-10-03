@@ -11,6 +11,8 @@ using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Health;
+using Njord.Messages.Common;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 using Servus.Akka;
@@ -46,16 +48,17 @@ public sealed class SchedulerActorSnapshotSpec : Akka.Hosting.TestKit.TestKit
                 var mat = system.Materializer();
                 var fakePipeline = system.ActorOf(
                     Props.Create(() => new FakePipelineActor(_offerProbe, mat)));
-                registry.Register<PipelineActor>(fakePipeline);
+                registry.Register<IPipelineActor>(fakePipeline);
             })
-            .WithResolvableActors(r =>
+            .WithActors((system, registry, resolver) =>
             {
-                r.Register<SchedulerActor>("scheduler");
+                registry.Register<ISchedulerActor>(
+                    system.ActorOf(resolver.Props<SchedulerActor>(), "scheduler"));
             })
             .AddTestTimefactor();
     }
 
-    private IActorRef Scheduler => ActorRegistry.Get<SchedulerActor>();
+    private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
 
     [Fact(Timeout = 10000)]
     public async Task State_recovers_from_snapshot_after_restart()
@@ -78,7 +81,7 @@ public sealed class SchedulerActorSnapshotSpec : Akka.Hosting.TestKit.TestKit
         var props = Akka.DependencyInjection.DependencyResolver.For(Sys)
             .Props<SchedulerActor>();
         var recovered = Sys.ActorOf(props, "scheduler");
-        ActorRegistry.Register<SchedulerActor>(recovered, overwrite: true);
+        ActorRegistry.Register<ISchedulerActor>(recovered, overwrite: true);
 
         var statesAfter = await recovered.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         var entryAfter = statesAfter.Entries.Single();

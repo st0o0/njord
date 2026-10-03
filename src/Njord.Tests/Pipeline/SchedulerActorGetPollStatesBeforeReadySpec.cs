@@ -4,9 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Health;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 using Servus.Akka;
@@ -42,16 +44,17 @@ public sealed class SchedulerActorGetPollStatesBeforeReadySpec : Akka.Hosting.Te
             {
                 var silentPipeline = system.ActorOf(
                     Props.Create(() => new SilentPipelineActor()));
-                registry.Register<PipelineActor>(silentPipeline);
+                registry.Register<IPipelineActor>(silentPipeline);
             })
-            .WithResolvableActors(r =>
+            .WithActors((system, registry, resolver) =>
             {
-                r.Register<SchedulerActor>("scheduler");
+                registry.Register<ISchedulerActor>(
+                    system.ActorOf(resolver.Props<SchedulerActor>(), "scheduler"));
             })
             .AddTestTimefactor();
     }
 
-    private IActorRef Scheduler => ActorRegistry.Get<SchedulerActor>();
+    private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
 
     [Fact(Timeout = 5000)]
     public async Task Get_poll_states_responds_while_waiting_for_pipeline_refs()

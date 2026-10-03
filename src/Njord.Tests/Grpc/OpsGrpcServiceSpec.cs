@@ -2,9 +2,11 @@ using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Grpc;
 using Njord.Grpc.V2;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 
@@ -21,10 +23,10 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             .WithActors((system, registry) =>
             {
                 var fakeScheduler = system.ActorOf(Props.Create(() => new FakeSchedulerActor(_now)));
-                registry.Register<SchedulerActor>(fakeScheduler);
+                registry.Register<ISchedulerActor>(fakeScheduler);
 
                 var fakeBudgetTracker = system.ActorOf(Props.Create(() => new FakeBudgetTrackerActor()));
-                registry.Register<BudgetTrackerActor>(fakeBudgetTracker);
+                registry.Register<IBudgetTrackerActor>(fakeBudgetTracker);
             })
             .AddTestTimefactor();
     }
@@ -129,7 +131,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     public async Task GetTargets_returns_empty_on_scheduler_timeout()
     {
         var slowScheduler = Sys.ActorOf(Props.Create(() => new SlowSchedulerActor()));
-        ActorRegistry.Register<SchedulerActor>(slowScheduler, overwrite: true);
+        ActorRegistry.Register<ISchedulerActor>(slowScheduler, overwrite: true);
 
         var service = CreateService();
 
@@ -201,7 +203,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakeBudgetTrackerActor()
         {
-            Receive<BudgetTrackerActor.QueryBudgetUsage>(_ =>
+            Receive<QueryBudgetUsage>(_ =>
                 Sender.Tell(new BudgetUsageResult(42, 7), Self));
         }
     }

@@ -5,6 +5,7 @@ using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Diagnostics;
 using Njord.Health;

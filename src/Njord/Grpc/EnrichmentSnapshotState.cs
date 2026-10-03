@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Njord.Messages.Snapshots;
 using Njord.Persistence;
 
 namespace Njord.Grpc;

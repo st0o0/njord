@@ -1,5 +1,6 @@
 using Njord.Configuration;
 using Njord.Domain.Weather;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 
 namespace Njord.Tests.Pipeline;

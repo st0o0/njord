@@ -1,6 +1,6 @@
 using Njord.Domain.Weather;
 
-namespace Njord.Grpc;
+namespace Njord.Messages.Snapshots;
 
 // Commands
 public sealed record UpdateForecast(string Location, WeatherModel Model, ModelForecast Forecast);

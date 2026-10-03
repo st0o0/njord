@@ -1,5 +1,6 @@
 using Akka.Actor;
 using Microsoft.Extensions.Logging;
+using Njord.Actors;
 using Njord.Pipeline;
 using StreamDirective = Akka.Streams.Supervision.Directive;
 

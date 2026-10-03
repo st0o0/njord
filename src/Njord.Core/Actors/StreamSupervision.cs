@@ -1,10 +1,11 @@
 using System.Net.Http;
 using Akka.Actor;
 using Akka.Event;
+using Microsoft.Extensions.Logging;
 using StreamDecider = Akka.Streams.Supervision.Decider;
 using StreamDirective = Akka.Streams.Supervision.Directive;
 
-namespace Njord.Pipeline;
+namespace Njord.Actors;
 
 public static class StreamSupervision
 {

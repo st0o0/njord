@@ -1,7 +1,7 @@
 using Akka.Streams;
 using Njord.Domain.Weather;
 
-namespace Njord.Pipeline;
+namespace Njord.Messages.Pipeline;
 
 public sealed record HashResult(string Location, string ModelId, int Hash);
 

@@ -7,9 +7,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Health;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 using Servus.Akka;
@@ -41,21 +43,22 @@ public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKi
     {
         builder
             .AddTestPersistence()
-            .WithResolvableActors(r =>
+            .WithActors((system, registry, resolver) =>
             {
-                r.Register<SchedulerActor>("scheduler");
+                registry.Register<ISchedulerActor>(
+                    system.ActorOf(resolver.Props<SchedulerActor>(), "scheduler"));
             })
             .WithActors((system, registry) =>
             {
                 var mat = system.Materializer();
                 var fakePipeline = system.ActorOf(
                     Props.Create(() => new FakePipelineActor(mat)));
-                registry.Register<PipelineActor>(fakePipeline);
+                registry.Register<IPipelineActor>(fakePipeline);
             })
             .AddTestTimefactor();
     }
 
-    private IActorRef Scheduler => ActorRegistry.Get<SchedulerActor>();
+    private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
 
     [Fact(Timeout = 5000)]
     public async Task Scheduler_starts_when_pipeline_registered_after()

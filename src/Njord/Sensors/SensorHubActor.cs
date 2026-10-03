@@ -3,6 +3,7 @@ using Akka.Event;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Domain.Sensors;
+using Njord.Messages.Sensors;
 
 namespace Njord.Sensors;
 
@@ -121,5 +122,3 @@ public sealed class SensorHubActor : ReceiveActor, IWithTimers
         }
     }
 }
-
-public sealed record PushResult(bool Accepted, string? RejectionReason);

@@ -11,6 +11,7 @@ using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Enrichment;
+using Njord.Messages.Egress;
 using Njord.Pipeline;
 using Servus.Akka;
 
@@ -59,8 +60,8 @@ public sealed class MqttEgressActor : StreamConsumerActor
 
     protected override void ResolveDependencies()
     {
-        Context.GetActorAsync<EgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
-        Context.GetActorAsync<MqttConnectionActor>().PipeTo(Self, success: r => new ConnectionResolved(r));
+        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
+        Context.GetActorAsync<IMqttConnectionActor>().PipeTo(Self, success: r => new ConnectionResolved(r));
     }
 
     protected override void ConfigureWaitingForRefs()

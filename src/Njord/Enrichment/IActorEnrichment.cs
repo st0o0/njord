@@ -4,6 +4,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Domain.Weather;
 using Njord.Egress;
+using Njord.Messages.Egress;
 
 namespace Njord.Enrichment;
 

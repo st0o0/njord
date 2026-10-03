@@ -1,4 +1,6 @@
-namespace Njord.Domain.Sensors;
+using Njord.Domain.Sensors;
+
+namespace Njord.Messages.Sensors;
 
 public sealed record UpdateReading(SensorReading Reading);
 
