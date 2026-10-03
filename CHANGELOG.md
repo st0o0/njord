@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.5.0](https://github.com/st0o0/njord/compare/v0.4.1...v0.5.0) (2026-10-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* persistence DTO types moved to Njord.Persistence assembly; existing persisted scheduler/budget/snapshot data may need to be reset.
+
+### Bug Fixes
+
+* stabilize specs, complete streams on shutdown, restore slopwatch ([9d40a9d](https://github.com/st0o0/njord/commit/9d40a9d2ef82dfab7f40cf6f8143f1460c0e90ee))
+
+
+### Documentation
+
+* **openspec:** add archived change specs and main specs ([c8bedcd](https://github.com/st0o0/njord/commit/c8bedcd42cd8d0facd5bbdb102043922c342c008))
+* **openspec:** merge stray openspec root, repair specs, add proposals ([b605b2d](https://github.com/st0o0/njord/commit/b605b2d66db1b16bf15effeec38045afc6711663))
+* split agent docs and add project skills and openspec tooling ([ed430a8](https://github.com/st0o0/njord/commit/ed430a8124dc32e0649f9cd7e19e7167addc903d))
+
+
+### Refactoring
+
+* enforce zone architecture rules and typed Akka failures ([c0f9738](https://github.com/st0o0/njord/commit/c0f973830d37d0c4f032197b58641b43296402ed))
+* extract Domain, Persistence, Messages and Core projects ([ed1754c](https://github.com/st0o0/njord/commit/ed1754c3c2171dbda28a5244d9969ad0a5120855))
+* extract Mqtt and Enrichment libraries ([095f823](https://github.com/st0o0/njord/commit/095f823f237d924117c315eba9c57b60683afde8))
+* extract Pipeline and Egress libraries ([c4e0d76](https://github.com/st0o0/njord/commit/c4e0d76ffbdfc164090ce9c716de6acdd11c0cc6))
+* extract Sensors, Ingest and Grpc libraries ([b59ebbb](https://github.com/st0o0/njord/commit/b59ebbb9e17a7f12d696c3a1326f49a17cee37eb))
+* split tests into per-library test projects ([37ac890](https://github.com/st0o0/njord/commit/37ac89016192bbab04fc7dc635b3bec585932413))
+
 ## [0.4.1](https://github.com/st0o0/njord/compare/v0.4.0...v0.4.1) (2026-09-21)
 
 
