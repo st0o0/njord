@@ -14,7 +14,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
     {
         var service = CreateService();
 
-        var config = await service.GetConfig(new GetConfigRequest(), TestServerCallContext.Create());
+        var config = await service.GetConfig(new GetConfigRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         var location = Assert.Single(config.Locations);
         Assert.Equal("lucerne", location.Name);
@@ -40,7 +40,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
             },
         };
 
-        var response = await service.SetLocations(request, TestServerCallContext.Create());
+        var response = await service.SetLocations(request, TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.True(response.Applied);
         Assert.Equal(2, response.Config.Locations.Count);
@@ -56,7 +56,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
     {
         var service = CreateService();
 
-        var response = await service.SetLocations(new SetLocationsRequest(), TestServerCallContext.Create());
+        var response = await service.SetLocations(new SetLocationsRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.False(response.Applied);
         Assert.Equal("Cannot set empty location list", response.RejectionReason);
@@ -70,7 +70,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
 
         var response = await service.SetSettings(
             new SetSettingsRequest { PollIntervalSeconds = 1800 },
-            TestServerCallContext.Create());
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.True(response.Applied);
         Assert.Equal(1800, response.Config.PollIntervalSeconds);
@@ -87,7 +87,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
 
         var response = await service.SetSettings(
             new SetSettingsRequest { PollIntervalSeconds = 30 },
-            TestServerCallContext.Create());
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.False(response.Applied);
         Assert.Equal("Poll interval must be at least 60 seconds", response.RejectionReason);
@@ -100,7 +100,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
 
         var response = await service.SetBudget(
             new SetBudgetRequest { RequestsPerMonth = 500_000 },
-            TestServerCallContext.Create());
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.True(response.Applied);
         Assert.NotNull(response.Config.BudgetOverride);
@@ -116,7 +116,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         options.BudgetOverride = new RequestBudget(100_000, 60);
         var service = CreateService(options);
 
-        var response = await service.SetBudget(new SetBudgetRequest(), TestServerCallContext.Create());
+        var response = await service.SetBudget(new SetBudgetRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.True(response.Applied);
         Assert.Null(response.Config.BudgetOverride);

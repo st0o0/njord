@@ -5,11 +5,9 @@
 gRPC RPCs for querying and streaming enrichment data (alerts, indices, trends,
 derived values, history, consensus). Backed by the
 `EnrichmentSnapshotActor` (Akka Persistence) queried via Ask.
-
 ## Requirements
-
 ### Requirement: GetEnrichments returns latest enrichment snapshot
-`ForecastService.GetEnrichments` SHALL query the `EnrichmentSnapshotActor` via Ask to retrieve the latest enrichment results for a location. It SHALL map domain Result types to proto messages via `EnrichmentProtoMapper`. When the snapshot includes a consensus result, the response SHALL set `consensus_updated_at` to the consensus computation timestamp (`ConsensusResult.ComputedAt`), NOT the current wall-clock time. If `ComputedAt` is null (legacy snapshot recovery), the service SHALL fall back to `timeProvider.GetUtcNow()`.
+`WeatherService.GetEnrichments` SHALL query the `EnrichmentSnapshotActor` via Ask to retrieve the latest enrichment results for a location. It SHALL map domain Result types to proto messages via `EnrichmentProtoMapper`. When the snapshot includes a consensus result, the response SHALL set `consensus_updated_at` to the consensus computation timestamp (`ConsensusResult.ComputedAt`), NOT the current wall-clock time. If `ComputedAt` is null (legacy snapshot recovery), the service SHALL fall back to `timeProvider.GetUtcNow()`.
 
 #### Scenario: Enrichments queried via actor Ask
 - **WHEN** a client calls `GetEnrichments` with location "lucerne"
@@ -36,7 +34,7 @@ derived values, history, consensus). Backed by the
 - **THEN** `consensus_updated_at` SHALL be left unset rather than defaulting to an arbitrary value
 
 ### Requirement: StreamEnrichments pushes enrichment updates in real-time
-`ForecastService.StreamEnrichments` SHALL be a server-streaming RPC. It SHALL subscribe to the EgressActor BroadcastHub, filter for `EnrichmentUpdate` events, map them to typed proto messages via the enrichment feature's type name, and write them to the gRPC response stream. For consensus events, the `updated_at` field in the `EnrichmentEvent` proto SHALL use `EnrichmentUpdate.UpdatedAt` (the computation timestamp). For non-consensus events where `UpdatedAt` is null, it SHALL fall back to `timeProvider.GetUtcNow()`.
+`WeatherService.StreamEnrichments` SHALL be a server-streaming RPC. It SHALL subscribe to the EgressActor BroadcastHub, filter for `EnrichmentUpdate` events, map them to typed proto messages via the enrichment feature's type name, and write them to the gRPC response stream. For consensus events, the `updated_at` field in the `EnrichmentEvent` proto SHALL use `EnrichmentUpdate.UpdatedAt` (the computation timestamp). For non-consensus events where `UpdatedAt` is null, it SHALL fall back to `timeProvider.GetUtcNow()`.
 
 #### Scenario: Alert update pushed to client
 - **WHEN** the alert enrichment computes a new result for location "lucerne"
@@ -54,11 +52,11 @@ derived values, history, consensus). Backed by the
 - **WHEN** an index enrichment result arrives with 3 day score sets
 - **THEN** the `IndexUpdate` SHALL contain 3 `DayScoreSet` entries with scores, envelopes, frost, and VPD
 
-### Requirement: Proto messages map all enrichment domain types
+### Requirement: Proto messages map the enrichment domain types
 
 The `EnrichmentProtoMapper.MapIndices` method SHALL accept an `IndexResult` (with `Days` list) and return an `IndexUpdate` with `repeated DayScoreSet days`. For each `DayScoreSet` in the domain result, the mapper SHALL create a proto `DayScoreSet` with all 8 scores, `hours_included`, and `ScoreEnvelope` fields (when non-null). `FrostProtection` SHALL be mapped to `FrostInfo` on the `IndexUpdate`. `Vpd` SHALL be mapped to `VpdInfo` on the `IndexUpdate`.
 
-The `ConsensusUpdate` proto message SHALL carry hourly and daily parameter consensus. The `daily_summaries` field (which mapped `DailyConsensusSummary`) SHALL be deprecated. Daily consensus SHALL be represented as `ParameterConsensus` entries in a `daily_parameters` repeated field with `dN` horizon keys.
+The `ConsensusUpdate` proto message SHALL carry hourly parameter consensus as `ParameterConsensus` entries in `hourly_parameters` and daily parameter consensus as `ParameterConsensus` entries in `daily_parameters`, with `hN` and `dN` horizon keys respectively.
 
 #### Scenario: MapIndices produces per-day entries
 - **WHEN** `MapIndices` is called with an `IndexResult` containing 3 day score sets
@@ -90,8 +88,5 @@ The `ConsensusUpdate` proto message SHALL carry hourly and daily parameter conse
 
 #### Scenario: ConsensusUpdate carries per-parameter per-horizon data
 - **WHEN** a `ConsensusSnapshot` is mapped to `ConsensusUpdate`
-- **THEN** `parameters` contains hourly `ParameterConsensus` with `hN` horizon keys and `daily_parameters` contains daily `ParameterConsensus` with `dN` horizon keys
+- **THEN** `hourly_parameters` contains hourly `ParameterConsensus` with `hN` horizon keys and `daily_parameters` contains daily `ParameterConsensus` with `dN` horizon keys
 
-#### Scenario: ConsensusUpdate no longer carries daily summaries
-- **WHEN** a `ConsensusSnapshot` is mapped to `ConsensusUpdate`
-- **THEN** the `daily_summaries` field SHALL be empty (deprecated)

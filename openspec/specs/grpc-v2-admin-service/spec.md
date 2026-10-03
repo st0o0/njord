@@ -3,9 +3,7 @@
 ## Purpose
 
 AdminService gRPC service for configuration management. Replaces v1's ConfigService read/mutation RPCs with declarative SetLocations and consolidated SetSettings.
-
 ## Requirements
-
 ### Requirement: AdminService definition
 `protos/njord/v2/admin.proto` SHALL define an `AdminService` with 6 RPCs: `GetConfig`, `StreamConfig`, `SetLocations`, `SetSettings`, `SetEnrichment`, `SetBudget`. The package SHALL be `njord.v2` with `csharp_namespace = "Njord.Grpc.V2"`. It SHALL import `common.proto`.
 
@@ -30,26 +28,6 @@ AdminService gRPC service for configuration management. Replaces v1's ConfigServ
 #### Scenario: Config change triggers push
 - **WHEN** the configuration changes
 - **THEN** all `StreamConfig` subscribers SHALL receive a new `NjordConfig` snapshot
-
-### Requirement: SetLocations uses replace-all semantics
-`AdminService.SetLocations` SHALL accept a `SetLocationsRequest` with `repeated LocationInput locations`. Each `LocationInput` SHALL have `string name`, `double latitude`, `double longitude`, `repeated string models` (empty = use defaults). The RPC SHALL replace the entire location list atomically. It SHALL validate the resulting budget and reject if it exceeds limits.
-
-#### Scenario: Replace all locations
-- **WHEN** a client sends `SetLocations` with 3 locations
-- **THEN** the configuration SHALL contain exactly those 3 locations
-- **AND** any previously configured locations not in the list SHALL be removed
-
-#### Scenario: Empty models uses defaults
-- **WHEN** a `LocationInput` has empty `models`
-- **THEN** the location SHALL use the global `default_models`
-
-#### Scenario: Budget exceeded rejects mutation
-- **WHEN** the resulting location/model matrix would exceed 80% of the monthly budget
-- **THEN** the RPC SHALL return `ConfigResponse` with `applied = false` and `rejection_reason`
-
-#### Scenario: Empty list rejected without force
-- **WHEN** a client sends `SetLocations` with an empty list
-- **THEN** the RPC SHALL return `ConfigResponse` with `applied = false` and a rejection reason
 
 ### Requirement: SetSettings consolidates forecast settings
 `AdminService.SetSettings` SHALL accept a `SetSettingsRequest` with optional fields: `int64 poll_interval_seconds`, `repeated int32 horizons`, `int32 forecast_days`, `ParameterConfig parameters`, `repeated string default_models`. Only provided fields SHALL be updated. It SHALL validate the resulting budget.
@@ -110,3 +88,28 @@ All mutation RPCs SHALL return a `ConfigResponse` with `bool applied`, `NjordCon
 #### Scenario: Rejected mutation returns reason
 - **WHEN** a mutation is rejected (e.g. budget exceeded)
 - **THEN** `applied` SHALL be false and `rejection_reason` SHALL explain why
+
+#### Scenario: Budget warning near the limit
+- **WHEN** a mutation is applied and the projected monthly API usage is above 80% and at most 100% of the monthly budget
+- **THEN** `applied` SHALL be true and `warnings` SHALL contain a message stating the projected usage percentage
+
+### Requirement: SetLocations replaces the whole location list
+`AdminService.SetLocations` SHALL accept a `SetLocationsRequest` with `repeated LocationInput locations`. Each `LocationInput` SHALL have `string name`, `double latitude`, `double longitude`, `repeated string models` (empty = use defaults). The RPC SHALL replace the entire location list atomically. It SHALL validate the resulting budget and reject if it exceeds limits.
+
+#### Scenario: Replace all locations
+- **WHEN** a client sends `SetLocations` with 3 locations
+- **THEN** the configuration SHALL contain exactly those 3 locations
+- **AND** any previously configured locations not in the list SHALL be removed
+
+#### Scenario: Empty models uses defaults
+- **WHEN** a `LocationInput` has empty `models`
+- **THEN** the location SHALL use the global `default_models`
+
+#### Scenario: Budget exceeded rejects mutation
+- **WHEN** the projected monthly API usage of the resulting location/model matrix would exceed 100% of the monthly budget
+- **THEN** the RPC SHALL return `ConfigResponse` with `applied = false` and `rejection_reason`
+
+#### Scenario: Empty list rejected
+- **WHEN** a client sends `SetLocations` with an empty list
+- **THEN** the RPC SHALL return `ConfigResponse` with `applied = false` and a rejection reason
+

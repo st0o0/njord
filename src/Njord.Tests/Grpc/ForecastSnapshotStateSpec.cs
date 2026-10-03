@@ -15,7 +15,7 @@ public sealed class ForecastSnapshotStateSpec
             DailyForecastSeries.Empty);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Apply_adds_forecast_to_state()
     {
         var state = ForecastSnapshotState.Empty;
@@ -28,7 +28,7 @@ public sealed class ForecastSnapshotStateSpec
         Assert.Equal("icon_d2", next.Forecasts[key].Model.Id);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Apply_increments_update_counter()
     {
         var state = ForecastSnapshotState.Empty;
@@ -40,7 +40,7 @@ public sealed class ForecastSnapshotStateSpec
         Assert.Equal(1, next.UpdatesSinceSnapshot);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Apply_overwrites_existing_forecast()
     {
         var key = ForecastSnapshotStateExtensions.MakeKey("lucerne", "icon_d2");
@@ -52,7 +52,7 @@ public sealed class ForecastSnapshotStateSpec
         Assert.Equal(2, state.UpdatesSinceSnapshot);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetForecast_returns_found_when_exists()
     {
         var key = ForecastSnapshotStateExtensions.MakeKey("lucerne", "icon_d2");
@@ -64,7 +64,7 @@ public sealed class ForecastSnapshotStateSpec
         Assert.Equal("icon_d2", found.Forecast.Model.Id);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetForecast_returns_not_found_when_missing()
     {
         var response = ForecastSnapshotState.Empty.GetForecast("nonexistent|key");
@@ -72,7 +72,7 @@ public sealed class ForecastSnapshotStateSpec
         Assert.IsType<ForecastNotFound>(response);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetAllForecasts_returns_all_entries()
     {
         var state = ForecastSnapshotState.Empty
@@ -84,7 +84,7 @@ public sealed class ForecastSnapshotStateSpec
         Assert.Equal(2, result.Forecasts.Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetPersistenceState_returns_valid_dto()
     {
         var key = ForecastSnapshotStateExtensions.MakeKey("lucerne", "icon_d2");
@@ -96,7 +96,7 @@ public sealed class ForecastSnapshotStateSpec
         Assert.True(dto.Forecasts.ContainsKey(key));
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromPersistence_roundtrip_preserves_state()
     {
         var key = ForecastSnapshotStateExtensions.MakeKey("lucerne", "icon_d2");
@@ -109,7 +109,7 @@ public sealed class ForecastSnapshotStateSpec
         Assert.Equal(0, restored.UpdatesSinceSnapshot);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ResetSnapshotCounter_zeroes_counter()
     {
         var key = ForecastSnapshotStateExtensions.MakeKey("lucerne", "icon_d2");

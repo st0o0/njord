@@ -3,18 +3,16 @@
 ## Purpose
 
 Historical learning tracks forecast accuracy over time, computes model weights from inverse MAE, detects anomalies and forecast drift, identifies seasonal model preferences, and produces a weighted consensus. Results are serialized to MQTT for Home Assistant consumption.
-
 ## Requirements
-
 ### Requirement: ForecastHistoryActor persists forecast records via Akka.Persistence
-The `ForecastHistoryActor` SHALL be a `ReceivePersistentActor` with PersistenceId `"forecast-history-{location}"`. It SHALL accept `RecordSnapshot` messages containing a `ModelSnapshot` and persist `ForecastRecorded` events with: timestamp, location, and consensus values. Per-model forecast values SHALL NOT be stored in the record to reduce memory footprint. On recovery, it SHALL rebuild in-memory `ForecastHistory` state from persisted events. It SHALL take a snapshot every 100 events. Records older than the retention window SHALL be excluded from analysis during recovery.
+The `ForecastHistoryActor` SHALL be a `ReceivePersistentActor` with PersistenceId `"forecast-history-{location}"`. It SHALL accept `RecordSnapshot` messages containing a `ModelSnapshot` and persist `ForecastRecordDto` events with: timestamp, location, and consensus values. Per-model forecast values SHALL NOT be stored in the record to reduce memory footprint. On recovery, it SHALL rebuild in-memory `ForecastHistory` state from persisted events. It SHALL take a snapshot every `HistoryOptions.SnapshotInterval` events (default 100). Records older than the retention window SHALL be excluded from analysis during recovery.
 
 #### Scenario: Persist and recover
 - **WHEN** the actor receives a `RecordSnapshot` and restarts
 - **THEN** the recovered state contains the previously persisted record with consensus values
 
 #### Scenario: Snapshot taken after 100 events
-- **WHEN** 100 `ForecastRecorded` events have been persisted
+- **WHEN** 100 `ForecastRecordDto` events have been persisted with the default `SnapshotInterval`
 - **THEN** the actor saves a snapshot of the current `ForecastHistory`
 
 #### Scenario: Old records excluded during recovery
@@ -26,11 +24,11 @@ The `ForecastHistoryActor` SHALL be a `ReceivePersistentActor` with PersistenceI
 - **THEN** the persisted `ForecastRecord` SHALL contain consensus values and an empty model values dictionary
 
 ### Requirement: ForecastHistoryActor responds to history queries
-The `ForecastHistoryActor` SHALL accept `QueryHistory` messages and respond with a `HistoryResponse` containing the current `ForecastHistory` state (all records within the retention window).
+The `ForecastHistoryActor` SHALL accept `QueryHistory` messages and respond with a `ForecastHistoryResult` (a `HistoryQueryResponse`) containing the current `ForecastHistory` state (all records within the retention window).
 
 #### Scenario: Query returns current state
 - **WHEN** the actor has 100 records within retention and receives a `QueryHistory`
-- **THEN** it responds with a `HistoryResponse` containing 100 records
+- **THEN** it responds with a `ForecastHistoryResult` containing 100 records
 
 ### Requirement: Model accuracy tracking via MAE
 `HistoryAnalyzer.ModelAccuracy` SHALL accept a `ForecastHistory` and a `ParameterDef`. For each model, it SHALL compute MAE by comparing the model's forecast at horizon h24 against the "observed" value (consensus at h0 for the same target hour, recorded when that hour arrived). It SHALL compute rolling 7-day and 30-day MAE. If fewer than 48 matching pairs exist, the result SHALL be `null`.
@@ -96,10 +94,10 @@ The `ForecastHistoryActor` SHALL accept `QueryHistory` messages and respond with
 - **THEN** the result is null
 
 ### Requirement: HistoryResult aggregates all history analysis and serializes to MQTT
-`HistoryResult` SHALL be a record holding the location and all history analysis values (per-model MAE, weights, drift, seasonal preference, anomaly detection, weighted consensus values). It SHALL expose `ToMqttMessages(baseTopic)` producing a single `MqttMessage` on topic `{baseTopic}/{location}/history` with a flat JSON payload.
+`HistoryResult` SHALL be a record holding the location and all history analysis values (per-model MAE, weights, drift, seasonal preference, anomaly detection, weighted consensus values). `StatePayloadBuilder.FromHistory(result, baseTopic)` SHALL serialize it into a single `MqttMessage` on topic `{baseTopic}/{location}/history` with a flat JSON payload.
 
 #### Scenario: History message content
-- **WHEN** ToMqttMessages is called for location "lucerne" with baseTopic "njord"
+- **WHEN** `StatePayloadBuilder.FromHistory` is called for location "lucerne" with baseTopic "njord"
 - **THEN** one message has topic `njord/lucerne/history`
 
 #### Scenario: Cold start produces nulls
@@ -107,5 +105,6 @@ The `ForecastHistoryActor` SHALL accept `QueryHistory` messages and respond with
 - **THEN** the JSON contains null values for MAE, drift, and anomaly fields
 
 #### Scenario: Retained message
-- **WHEN** ToMqttMessages produces a message
+- **WHEN** `StatePayloadBuilder.FromHistory` produces a message
 - **THEN** the message has Retain = true
+

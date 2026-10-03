@@ -221,7 +221,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, poll.Count);
-        unhandledProbe.ExpectNoMsg(TimeSpan.FromMilliseconds(200));
+        unhandledProbe.ExpectNoMsg(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 5000)]

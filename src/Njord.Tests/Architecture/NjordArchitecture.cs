@@ -7,12 +7,12 @@ namespace Njord.Tests.Architecture;
 
 internal static class NjordArchitecture
 {
-    private static readonly Assembly _njordAssembly = typeof(Njord.Ingest.OpenMeteoClient).Assembly;
-    private static readonly Assembly _testsAssembly = typeof(NjordArchitecture).Assembly;
+    private static readonly Assembly NjordAssembly = typeof(Njord.Ingest.OpenMeteoClient).Assembly;
+    private static readonly Assembly TestsAssembly = typeof(NjordArchitecture).Assembly;
 
     public static readonly ArchUnitNET.Domain.Architecture Instance =
         new ArchLoader()
-            .LoadAssemblies(_njordAssembly, _testsAssembly)
+            .LoadAssemblies(NjordAssembly, TestsAssembly)
             .Build();
 
     public static readonly IObjectProvider<IType> Ingest =
@@ -25,8 +25,8 @@ internal static class NjordArchitecture
         Types().That().ResideInNamespaceMatching(@"^Njord\.(Egress|Mqtt|Grpc)(\..*)?$").As("Egress side");
 
     public static IObjectProvider<IType> ProductionTypes =>
-        Types().That().ResideInAssembly(_njordAssembly).As("Njord types");
+        Types().That().ResideInAssembly(NjordAssembly).As("Njord types");
 
     public static IObjectProvider<IType> TestTypes =>
-        Types().That().ResideInAssembly(_testsAssembly).As("Njord.Tests types");
+        Types().That().ResideInAssembly(TestsAssembly).As("Njord.Tests types");
 }

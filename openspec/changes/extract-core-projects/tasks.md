@@ -31,24 +31,33 @@
 - [ ] 5.4 `git mv` `src/Njord/Actors/StreamConsumerActor.cs` and `src/Njord/Pipeline/StreamSupervision.cs` → `src/Njord.Core/Actors/`; set `StreamSupervision` namespace to `Njord.Actors` and update its callers (Egress, Enrichment, Mqtt, Grpc, Pipeline)
 - [ ] 5.5 Build and run the full suite (green); `Njord.Tests.Shared` (`FakeOpenMeteoClient`, `TestPersistenceConfig`) still compiles without csproj changes
 
-## 6. Wiring, enforcement, docs
+## 6. Actor marker interfaces (FunkArr-style keys)
 
-- [ ] 6.1 Update `src/Njord.Tests/Architecture/NjordArchitecture.cs` to load all five production assemblies and make `ProductionTypes` span them; keep the zone and sealed/`Spec` rules and the `Timeout = 60_000` comment
-- [ ] 6.2 Add `src/Njord.Tests/Architecture/LayerReferenceSpec.cs` (red first by adding a temporary forbidden reference, then removed): `Njord.Domain` references no other Njord assembly, `Njord.Persistence` none, `Njord.Messages` only `Njord.Domain`, `Njord.Core` only those three
-- [ ] 6.3 Update `Dockerfile`: copy each new csproj before `dotnet restore Njord/Njord.csproj` (`Njord.Domain`, `Njord.Persistence`, `Njord.Messages`, `Njord.Core`), copy the project folders before `dotnet publish`; do not change workflows
-- [ ] 6.4 Update `AGENTS.md` "Solution structure" (new projects, reference direction) and the guardrail line about enforced zones; do not change decision text
-- [ ] 6.5 Update cited paths in `.claude/skills/njord-persistent-actor/SKILL.md`, `.claude/skills/njord-enrichment-feature/SKILL.md`, `.claude/skills/njord-actor-spec/SKILL.md`; `grep -rnE "src/Njord/(Domain|Persistence|Configuration|Diagnostics|Actors)" AGENTS.md CLAUDE.md .claude/skills` must return only intentional hits
+- [ ] 6.0 Spike (reading only): check whether `Servus.Akka` `WithResolvableActors` offers a registration with a key type separate from the actor type (decompile/README of `servus.akka` 0.3.14 via `monodis --method`); record the result in design.md Decision 6; default is Akka.Hosting `WithActors` + `registry.Register<IMarker>(ref)`
+- [ ] 6.1 Red first: add `src/Njord.Tests/Configuration/ActorKeyRegistrationSpec.cs` (sealed, Hosting TestKit, `[Fact(Timeout = 5000)]`, `TestContext.Current.CancellationToken`): boots the production actor registration with in-memory persistence and asserts `ActorRegistry` resolves every `IXxxActor` marker; fails to compile/run until 6.2/6.3 exist
+- [ ] 6.2 Add `src/Njord.Core/ActorKeys.cs` with the 13 empty marker interfaces from design.md Decision 6 (`namespace Njord.Actors;`, FunkArr precedent `FunkArr.Core/ActorKeys.cs`); add `Servus.Akka` and `Akka.Hosting` package references to `Njord.Core` via `dotnet add src/Njord.Core package ...` only if the compiler requires them there
+- [ ] 6.3 In `src/Njord/Configuration/NjordActorSystemSetup.cs` register every actor under its marker, grouped by domain in private methods (`RegisterPipelineActors`, `RegisterEgressActors`, `RegisterEnrichmentActors`, `RegisterMqttActors` gated on `Mqtt.Enabled`, `RegisterSensorActors`, `RegisterGrpcActors`), names unchanged (`scheduler`, `budget-tracker`, `forecast-snapshot`, `enrichment-snapshot`, `egress`, `model-state`, `pipeline`, `enrichment`, `sensor-hub`, `grpc-snapshot-consumer`, `mqtt-connection`, `mqtt-egress`, `mqtt-discovery`); generalize `RegisterWithBackoff<TActor>` to `<TKey, TActor>` (backoff constants unchanged); remove the `WithResolvableActors` block
+- [ ] 6.4 Replace every class-keyed lookup in production code (`Get<SchedulerActor>()`, `Get<BudgetTrackerActor>()`, `GetActorAsync<PipelineActor|EgressActor|SensorHubActor|MqttConnectionActor|...>()` in `Grpc/*GrpcService.cs`, `Configuration/NjordServiceSetup.cs`, `Egress/ModelStateActor.cs`, `Enrichment/EnrichmentActor.cs`, `Mqtt/*.cs`, `Pipeline/SchedulerActor.cs`) by the marker; update the ~70 test registrations/lookups the same way (`registry.Register<PipelineActor>(probe)` → `<IPipelineActor>`) in `src/Njord.Tests/**` and `src/Njord.Tests.Shared/**`
+- [ ] 6.5 `grep -rnE "(Get|GetActorAsync|GetActor|Register)<[A-Za-z]+Actor>" src` shows no remaining class-keyed use (only `I...Actor` keys and the generic helper); build and run the full suite (green incl. `ActorKeyRegistrationSpec`); commit `refactor: key actors by FunkArr-style marker interfaces`
 
-- [ ] 6.6 In `AGENTS.md` next to the persistence rule add one line: while the project is 0.x, moving or renaming persistence DTO types is allowed as a breaking change (`refactor!:`), but `[JsonProperty]` names and `Version` semantics stay extend-only
+## 7. Wiring, enforcement, docs
 
-## 7. Validation
+- [ ] 7.1 Update `src/Njord.Tests/Architecture/NjordArchitecture.cs` to load all five production assemblies and make `ProductionTypes` span them; keep the zone and sealed/`Spec` rules and the `Timeout = 60_000` comment
+- [ ] 7.2 Add `src/Njord.Tests/Architecture/LayerReferenceSpec.cs` (red first by adding a temporary forbidden reference, then removed): `Njord.Domain` references no other Njord assembly, `Njord.Persistence` none, `Njord.Messages` only `Njord.Domain`, `Njord.Core` only those three
+- [ ] 7.3 Update `Dockerfile`: copy each new csproj before `dotnet restore Njord/Njord.csproj` (`Njord.Domain`, `Njord.Persistence`, `Njord.Messages`, `Njord.Core`), copy the project folders before `dotnet publish`; do not change workflows
+- [ ] 7.4 Update `AGENTS.md` "Solution structure" (new projects, reference direction) and the guardrail line about enforced zones; do not change decision text
+- [ ] 7.5 Update cited paths in `.claude/skills/njord-persistent-actor/SKILL.md`, `.claude/skills/njord-enrichment-feature/SKILL.md`, `.claude/skills/njord-actor-spec/SKILL.md`; `grep -rnE "src/Njord/(Domain|Persistence|Configuration|Diagnostics|Actors)" AGENTS.md CLAUDE.md .claude/skills` must return only intentional hits
 
-- [ ] 7.1 From `src/`: `dotnet build Njord.slnx` (0 errors, no new warnings) and `dotnet run --project Njord.Tests/Njord.Tests.csproj` (all green, count ≥ the baseline from 1.1 plus the new specs)
-- [ ] 7.2 `git status --short -- 'src/Njord.Tests/**/*.verified.*'` shows no modification and no `*.received.*` exists
-- [ ] 7.3 `docker build -t njord:split-check .` from the repo root if Docker is available (otherwise note it and rely on CI)
-- [ ] 7.4 `openspec validate extract-core-projects` passes
-- [ ] 7.5 One Conventional Commit per task group (for example `refactor: extract Njord.Domain project`); the commit that moves the persistence DTOs (group 3) is `refactor!: extract Njord.Persistence project` with a `BREAKING CHANGE:` footer saying persisted scheduler/budget/snapshot data may need to be reset; no push; no attribution trailers
+- [ ] 7.6 In `AGENTS.md` next to the persistence rule add one line: while the project is 0.x, moving or renaming persistence DTO types is allowed as a breaking change (`refactor!:`), but `[JsonProperty]` names and `Version` semantics stay extend-only
 
-## 8. Follow-up (not part of this change)
+## 8. Validation
 
-- [ ] 8.1 `extract-leaf-feature-projects` (stage 2: `Grpc` with protos, `Ingest`, `Sensors`) and `extract-pipeline-egress-projects` (stage 3: `Pipeline`, `Egress`, `Enrichment`/`Mqtt` descriptor refactor, per-project `AddNjordX()` setup, compiler-enforced zones)
+- [ ] 8.1 From `src/`: `dotnet build Njord.slnx` (0 errors, no new warnings) and `dotnet run --project Njord.Tests/Njord.Tests.csproj` (all green, count ≥ the baseline from 1.1 plus the new specs)
+- [ ] 8.2 `git status --short -- 'src/Njord.Tests/**/*.verified.*'` shows no modification and no `*.received.*` exists
+- [ ] 8.3 `docker build -t njord:split-check .` from the repo root if Docker is available (otherwise note it and rely on CI)
+- [ ] 8.4 `openspec validate extract-core-projects` passes
+- [ ] 8.5 One Conventional Commit per task group (for example `refactor: extract Njord.Domain project`); the commit that moves the persistence DTOs (group 3) is `refactor!: extract Njord.Persistence project` with a `BREAKING CHANGE:` footer saying persisted scheduler/budget/snapshot data may need to be reset; no push; no attribution trailers
+
+## 9. Follow-up (not part of this change)
+
+- [ ] 9.1 `extract-leaf-feature-projects` (stage 2: `Grpc` with protos, `Ingest`, `Sensors`) and `extract-pipeline-egress-projects` (stage 3: `Pipeline`, `Egress`, `Enrichment`/`Mqtt` descriptor refactor, per-project `AddNjordX()` setup, compiler-enforced zones)

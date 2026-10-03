@@ -55,7 +55,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         var service = CreateService();
 
-        var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create());
+        var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal(2, status.Models.Count);
 
@@ -76,7 +76,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         var service = CreateService();
 
-        var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create());
+        var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Contains("consensus", status.ActiveEnrichments);
         Assert.Contains("alerts", status.ActiveEnrichments);
@@ -88,7 +88,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         var service = CreateService();
 
-        var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create());
+        var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.NotNull(status.ProcessStart);
         Assert.True(status.ProcessStart.ToDateTimeOffset() > DateTimeOffset.MinValue);
@@ -99,7 +99,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         var service = CreateService();
 
-        var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create());
+        var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal(42, status.Budget.MonthlyUsed);
         Assert.Equal(7, status.Budget.DailyUsed);
@@ -110,7 +110,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         var service = CreateService();
 
-        var response = await service.GetTargets(new GetTargetsRequest(), TestServerCallContext.Create());
+        var response = await service.GetTargets(new GetTargetsRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal(2, response.Targets.Count);
 
@@ -133,7 +133,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
         var service = CreateService();
 
-        var response = await service.GetTargets(new GetTargetsRequest(), TestServerCallContext.Create());
+        var response = await service.GetTargets(new GetTargetsRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Empty(response.Targets);
     }
@@ -145,7 +145,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
         var response = await service.TriggerPoll(
             new TriggerPollRequest { Location = "lucerne", Model = "icon_d2" },
-            TestServerCallContext.Create());
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal(1, response.TriggeredCount);
         Assert.Contains("lucerne/icon_d2", response.Targets);
@@ -157,7 +157,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         var service = CreateService();
 
         var response = await service.TriggerPoll(
-            new TriggerPollRequest(), TestServerCallContext.Create());
+            new TriggerPollRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal(2, response.TriggeredCount);
     }

@@ -3,9 +3,7 @@
 ## Purpose
 
 OpsService gRPC service for operational queries and actions — server status, trigger target discovery, and on-demand poll triggering. All temporal fields use Timestamp.
-
 ## Requirements
-
 ### Requirement: OpsService definition
 `protos/njord/v2/ops.proto` SHALL define an `OpsService` with 3 RPCs: `GetStatus`, `GetTargets`, `TriggerPoll`. The package SHALL be `njord.v2` with `csharp_namespace = "Njord.Grpc.V2"`. It SHALL import `common.proto` for `google.protobuf.Timestamp`.
 
@@ -29,6 +27,14 @@ OpsService gRPC service for operational queries and actions — server status, t
 - **WHEN** the SchedulerActor does not respond within 5 seconds
 - **THEN** the response SHALL contain empty `models` list but still include version, uptime, budget, and enrichments
 
+#### Scenario: Budget tracker timeout returns zero usage
+- **WHEN** the BudgetTrackerActor does not respond within 5 seconds
+- **THEN** the response SHALL contain version, uptime, models and enrichments as normal, `BudgetStatus` SHALL report zero monthly and daily usage, and the call SHALL log a warning and SHALL NOT fail
+
+#### Scenario: Active enrichments lists enabled features
+- **WHEN** a client calls `GetStatus`
+- **THEN** `active_enrichments` SHALL contain the names of the enabled enrichment features and no others
+
 ### Requirement: GetTargets returns trigger target list
 `OpsService.GetTargets` SHALL return a `GetTargetsResponse` with `repeated TriggerTarget targets`. Each `TriggerTarget` SHALL contain `string location`, `string model`, `string phase`, `google.protobuf.Timestamp next_poll`, `optional google.protobuf.Timestamp last_change`, `int32 miss_count`, `optional int64 cycle_seconds`.
 
@@ -39,6 +45,11 @@ OpsService gRPC service for operational queries and actions — server status, t
 #### Scenario: Scheduler timeout returns empty list
 - **WHEN** the SchedulerActor does not respond within 5 seconds
 - **THEN** the response SHALL contain an empty `targets` list without error
+
+#### Scenario: Each target carries its poll state
+- **WHEN** a client calls `GetTargets` after polls have run
+- **THEN** each `TriggerTarget` SHALL have `phase` "steady" or "discovery", a `next_poll` Timestamp and a `miss_count`
+- **AND** `last_change` SHALL be set if the model has received data at least once and `cycle_seconds` SHALL be set if the scheduler has computed a cycle duration
 
 ### Requirement: TriggerPoll triggers immediate polls
 `OpsService.TriggerPoll` SHALL accept `TriggerPollRequest` with optional `string location` and `string model` (empty = wildcard). It SHALL return `TriggerPollResponse` with `int32 triggered_count` and `repeated string targets` (format `"{location}/{model}"`).
@@ -54,3 +65,8 @@ OpsService gRPC service for operational queries and actions — server status, t
 #### Scenario: Unknown location returns zero
 - **WHEN** a client calls `TriggerPoll` with a nonexistent location
 - **THEN** `triggered_count` SHALL be 0 and `targets` SHALL be empty
+
+#### Scenario: Trigger does not wait for fetches
+- **WHEN** a client calls `TriggerPoll`
+- **THEN** the response SHALL return the scheduled count and targets without waiting for any fetch to complete
+

@@ -3,16 +3,14 @@
 ## Purpose
 
 MQTT egress to Home Assistant: an actor-owned broker connection lifecycle with a Last Will availability topic, device-based MQTT Discovery (gated by `DiscoveryEnabled`) for the static config-derived entity grid, per-horizon retained telemetry state topics with flat JSON payloads, and declarative mapping of missing values to `unavailable` so entities never disappear or go stale.
-
 ## Requirements
-
 ### Requirement: Device-based discovery for a static entity grid
 For every configured (location, model) pair the system SHALL publish one retained
 device-based discovery payload when `DiscoveryEnabled` is `true` (the default).
 The payload contains the device block, origin block, shared state and availability
 options, and one sensor component per **supported** (parameter, horizon) pair for
 hourly parameters plus one per **supported** (parameter, day-offset) for daily parameters.
-A parameter is supported when `ModelCapabilityLearned` reports it in `SupportedParameters`.
+A parameter is supported when `EgressEvent.CapabilityLearned` reports it in `SupportedParameters`.
 A horizon is supported when it appears in `ApplicableHorizons` (hourly) or `ApplicableDayOffsets` (daily).
 Discovery SHALL be published after capability learning completes (not at startup)
 and re-published when Home Assistant announces `online` on `<prefix>/status`.
@@ -70,19 +68,19 @@ be registered at all — they SHALL NOT appear as unavailable entities in HA.
 - **THEN** its components become unavailable without any explicit publish
 
 ### Requirement: TopicScheme provides derived topic helpers
-`TopicScheme` SHALL expose `DerivedDeviceId(string location)` returning `njord_{slug(location)}_derived`, `DerivedHorizonTopic(string baseTopic, string location, string horizon)` returning `{baseTopic}/{slug(location)}/derived/{horizon}`, and `DerivedMetaTopic(string baseTopic, string location)` returning `{baseTopic}/{slug(location)}/derived/meta`.
+`TopicScheme` SHALL expose `EnrichmentDeviceId(string location, string typeName)` returning `njord_{slug(location)}_{typeName}` and `EnrichmentSubTopic(string baseTopic, string location, string typeName, string sub)` returning `{baseTopic}/{slug(location)}/{typeName}/{sub}`; the derived feature uses typeName `derived` with sub `h3` for a horizon topic and `meta` for the meta topic.
 
 #### Scenario: Derived device id
 - **WHEN** location is "lucerne"
-- **THEN** `DerivedDeviceId` returns "njord_lucerne_derived"
+- **THEN** `EnrichmentDeviceId(location, "derived")` returns "njord_lucerne_derived"
 
 #### Scenario: Derived horizon topic
 - **WHEN** baseTopic is "njord", location is "lucerne", horizon is "h3"
-- **THEN** `DerivedHorizonTopic` returns "njord/lucerne/derived/h3"
+- **THEN** `EnrichmentSubTopic(baseTopic, location, "derived", horizon)` returns "njord/lucerne/derived/h3"
 
 #### Scenario: Derived meta topic
 - **WHEN** baseTopic is "njord", location is "lucerne"
-- **THEN** `DerivedMetaTopic` returns "njord/lucerne/derived/meta"
+- **THEN** `EnrichmentSubTopic(baseTopic, location, "derived", "meta")` returns "njord/lucerne/derived/meta"
 
 ### Requirement: DiscoveryPayloadBuilder builds a derived device
 `DiscoveryPayloadBuilder.BuildDerived` SHALL produce a device-based discovery payload for location with device id `njord_{location}_derived`, model `derived`, and sensor components for: each horizon-based derived value (beaufort, wind_chill, dewpoint_comfort, wmo_description) at each configured horizon, plus scalar sensors (diurnal_amplitude, sunshine_pct, inversion). Numeric sensors SHALL have `unit_of_measurement` and `device_class` where applicable. String sensors (dewpoint_comfort, wmo_description) SHALL use platform `sensor` with no unit. The boolean sensor (inversion) SHALL use platform `binary_sensor`.
@@ -112,15 +110,15 @@ be registered at all — they SHALL NOT appear as unavailable entities in HA.
 - **THEN** sensor components exist for diurnal_amplitude (unit "°C", device_class "temperature"), sunshine_pct (unit "%"), and inversion (platform "binary_sensor")
 
 ### Requirement: TopicScheme provides trend topic helpers
-`TopicScheme` SHALL expose `TrendDeviceId(string location)` returning `njord_{slug(location)}_trends` and `TrendTopic(string baseTopic, string location)` returning `{baseTopic}/{slug(location)}/trends`.
+`TopicScheme.EnrichmentDeviceId(location, "trends")` SHALL return `njord_{slug(location)}_trends` and `TopicScheme.EnrichmentTopic(baseTopic, location, "trends")` SHALL return `{baseTopic}/{slug(location)}/trends`.
 
 #### Scenario: Trend device id
 - **WHEN** location is "lucerne"
-- **THEN** `TrendDeviceId` returns "njord_lucerne_trends"
+- **THEN** `EnrichmentDeviceId(location, "trends")` returns "njord_lucerne_trends"
 
 #### Scenario: Trend topic
 - **WHEN** baseTopic is "njord", location is "lucerne"
-- **THEN** `TrendTopic` returns "njord/lucerne/trends"
+- **THEN** `EnrichmentTopic(baseTopic, location, "trends")` returns "njord/lucerne/trends"
 
 ### Requirement: DiscoveryPayloadBuilder builds a trend device
 `DiscoveryPayloadBuilder.BuildTrends` SHALL produce a device-based discovery payload for location with device id `njord_{location}_trends`, model `trends`, and sensor components for: trend direction sensors per primary parameter (temperature, wind_speed, precipitation, cloud_cover) as text sensors, weather_change as a text sensor, precip_starts and precip_ends as numeric sensors (unit "h"), temp_max_in and temp_min_in as numeric sensors (unit "h"), stability as a text sensor, decay_rate as a numeric sensor (unit "°C/h"), and reliable_hours as a numeric sensor (unit "h").
@@ -142,15 +140,15 @@ be registered at all — they SHALL NOT appear as unavailable entities in HA.
 - **THEN** decay_rate has unit "°C/h" and reliable_hours has unit "h"
 
 ### Requirement: TopicScheme provides index topic helpers
-`TopicScheme` SHALL expose `IndexDeviceId(string location)` returning `njord_{slug(location)}_indices` and `IndexTopic(string baseTopic, string location)` returning `{baseTopic}/{slug(location)}/indices`.
+`TopicScheme.EnrichmentDeviceId(location, "indices")` SHALL return `njord_{slug(location)}_indices` and `TopicScheme.EnrichmentTopic(baseTopic, location, "indices")` SHALL return `{baseTopic}/{slug(location)}/indices`.
 
 #### Scenario: Index device id
 - **WHEN** location is "lucerne"
-- **THEN** `IndexDeviceId` returns "njord_lucerne_indices"
+- **THEN** `EnrichmentDeviceId(location, "indices")` returns "njord_lucerne_indices"
 
 #### Scenario: Index topic
 - **WHEN** baseTopic is "njord", location is "lucerne"
-- **THEN** `IndexTopic` returns "njord/lucerne/indices"
+- **THEN** `EnrichmentTopic(baseTopic, location, "indices")` returns "njord/lucerne/indices"
 
 ### Requirement: DiscoveryPayloadBuilder builds an index device
 `DiscoveryPayloadBuilder.BuildIndices` SHALL produce a device-based discovery payload for location with device id `njord_{location}_indices`, model `indices`. Score sensors (laundry, outdoor, running, cycling, bbq, irrigation, solar, ventilation) SHALL be numeric sensors with no unit. Degree day sensors (hdd, cdd) SHALL have unit "°Cd". Frost protection sensors (frost_hours, frost_confidence) SHALL be numeric. VPD sensor SHALL be a text sensor. Weather change, stability — text sensors.
@@ -172,15 +170,15 @@ be registered at all — they SHALL NOT appear as unavailable entities in HA.
 - **THEN** vpd sensor has no unit_of_measurement (text category)
 
 ### Requirement: TopicScheme provides history topic helpers
-`TopicScheme` SHALL expose `HistoryDeviceId(string location)` returning `njord_{slug(location)}_history` and `HistoryTopic(string baseTopic, string location)` returning `{baseTopic}/{slug(location)}/history`.
+`TopicScheme.EnrichmentDeviceId(location, "history")` SHALL return `njord_{slug(location)}_history` and `TopicScheme.EnrichmentTopic(baseTopic, location, "history")` SHALL return `{baseTopic}/{slug(location)}/history`.
 
 #### Scenario: History device id
 - **WHEN** location is "lucerne"
-- **THEN** `HistoryDeviceId` returns "njord_lucerne_history"
+- **THEN** `EnrichmentDeviceId(location, "history")` returns "njord_lucerne_history"
 
 #### Scenario: History topic
 - **WHEN** baseTopic is "njord", location is "lucerne"
-- **THEN** `HistoryTopic` returns "njord/lucerne/history"
+- **THEN** `EnrichmentTopic(baseTopic, location, "history")` returns "njord/lucerne/history"
 
 ### Requirement: DiscoveryPayloadBuilder builds a history device
 `DiscoveryPayloadBuilder.BuildHistory` SHALL produce a device-based discovery payload for location with device id `njord_{location}_history`, model `history`. Sensors SHALL include: per-model MAE sensors (numeric), per-model weight sensors (numeric), per-model drift sensors (numeric), seasonal best-model sensor (text), anomaly sensor (binary_sensor), anomaly deviation sensor (numeric), and weighted consensus sensors (numeric per parameter).
@@ -196,3 +194,4 @@ be registered at all — they SHALL NOT appear as unavailable entities in HA.
 #### Scenario: Anomaly is binary sensor
 - **WHEN** the history device is built
 - **THEN** an anomaly sensor exists with platform "binary_sensor"
+

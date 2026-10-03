@@ -97,3 +97,6 @@ dotnet_style_collection_initializer = true:suggestion
 dotnet_style_prefer_auto_properties = true:suggestion
 dotnet_style_prefer_simplified_boolean_expressions = true:suggestion
 dotnet_style_prefer_compound_assignment = true:suggestion
+
+# Tests with a Timeout must observe TestContext.Current.CancellationToken
+dotnet_diagnostic.xUnit1069.severity = error

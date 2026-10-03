@@ -1,0 +1,120 @@
+## REMOVED Requirements
+
+### Requirement: ForecastSnapshotActor holds latest forecasts with persistence
+**Reason**: Scenarios are dropped or renamed so the text matches the code (OpenSpec refuses to drop scenarios through MODIFIED): Unknown forecast returns null.
+**Migration**: Re-added in this delta as `ForecastSnapshotActor stores the latest forecasts as persisted snapshots` with the corrected scenarios.
+
+### Requirement: EnrichmentSnapshotActor holds latest enrichment results with persistence
+**Reason**: Scenarios are dropped or renamed so the text matches the code (OpenSpec refuses to drop scenarios through MODIFIED): GetAllEnrichments returns all types for a location.
+**Migration**: Re-added in this delta as `EnrichmentSnapshotActor stores the latest enrichment results as persisted snapshots` with the corrected scenarios.
+
+### Requirement: SnapshotConsumerActor routes events from BroadcastHub to snapshot actors
+**Reason**: Scenarios are dropped or renamed so the text matches the code (OpenSpec refuses to drop scenarios through MODIFIED): SnapshotConsumerActor remains functional after upstream restart.
+**Migration**: Re-added in this delta as `GrpcSnapshotConsumerActor routes events from BroadcastHub to snapshot actors` with the corrected scenarios.
+
+## MODIFIED Requirements
+
+### Requirement: ForecastSnapshotActor recovers state from snapshot after restart
+`ForecastSnapshotActor` SHALL recover all previously stored `ModelForecast` entries from its latest snapshot when restarted with the same `PersistenceId`. After recovery, `QueryForecast` and `QueryAllForecasts` SHALL return the same data that was stored before the restart.
+
+#### Scenario: State recovered after actor restart
+- **WHEN** `ForecastSnapshotActor` has stored 20+ forecasts (triggering a snapshot), is gracefully stopped, and a new instance with the same `PersistenceId` is created
+- **THEN** `GetAllForecasts` on the new instance SHALL return all previously stored forecasts
+
+#### Scenario: Updates before snapshot threshold are lost on restart
+- **WHEN** `ForecastSnapshotActor` has stored fewer than 20 forecasts (no snapshot triggered), is stopped, and a new instance is created
+- **THEN** `GetAllForecasts` on the new instance SHALL return an empty collection (state was only in memory)
+
+#### Scenario: Actor accepts new updates after recovery
+- **WHEN** `ForecastSnapshotActor` recovers from a snapshot and receives a new `UpdateForecast`
+- **THEN** it SHALL store the new forecast and respond with `Ack`
+
+## ADDED Requirements
+
+### Requirement: ForecastSnapshotActor stores the latest forecasts as persisted snapshots
+`ForecastSnapshotActor` SHALL be an Akka Persistence actor (snapshot-only, no event journal) holding the latest `ModelForecast` per (location, model) pair. It SHALL respond to `QueryForecast(location, modelId)` with `ForecastFound` carrying the stored `ModelForecast`, or with `ForecastNotFound` when none is stored, and to `QueryAllForecasts` with `AllForecastsResult`. It SHALL respond to `GetAllForecasts` with all stored forecasts. It SHALL persist its state as a snapshot every N updates (default 20), not on every individual update. After a successful snapshot save, it SHALL delete all previous snapshots to prevent unbounded storage growth. The snapshot state SHALL be a dedicated DTO type (`ForecastSnapshotDto`), not domain objects directly. The actor SHALL map domain objects to DTOs on save and DTOs to domain objects on recovery.
+
+#### Scenario: Store and retrieve a forecast
+- **WHEN** `ForecastSnapshotActor` receives `UpdateForecast(location, model, forecast)` followed by `QueryForecast(location, modelId)`
+- **THEN** it SHALL reply `ForecastFound` with the stored `ModelForecast` and send `Ack` for the update
+
+#### Scenario: Overwrite on new data
+- **WHEN** a new `UpdateForecast` arrives for the same (location, model)
+- **THEN** the actor SHALL replace the previous forecast and persist a new snapshot
+
+#### Scenario: Unknown forecast returns ForecastNotFound
+- **WHEN** `QueryForecast` is called for a (location, model) with no stored data
+- **THEN** the actor SHALL reply `ForecastNotFound`
+
+#### Scenario: Snapshot saved after N updates
+- **WHEN** `ForecastSnapshotActor` receives 20 `UpdateForecast` messages
+- **THEN** it SHALL save a snapshot containing all current state as a `ForecastSnapshotDto`
+
+#### Scenario: Single update does not trigger snapshot
+- **WHEN** `ForecastSnapshotActor` receives 1 `UpdateForecast` message
+- **THEN** it SHALL NOT save a snapshot
+
+#### Scenario: Old snapshots deleted after save
+- **WHEN** a snapshot save succeeds with `SequenceNr > 0`
+- **THEN** the actor SHALL delete all snapshots older than the current one
+
+#### Scenario: State survives restart
+- **WHEN** the actor restarts and a persisted snapshot exists
+- **THEN** the actor SHALL recover its state from the DTO snapshot and map it back to domain objects
+
+### Requirement: EnrichmentSnapshotActor stores the latest enrichment results as persisted snapshots
+`EnrichmentSnapshotActor` SHALL be an Akka Persistence actor (snapshot-only) holding the latest enrichment result per (location, typeName) pair. It SHALL respond to `QueryEnrichment(location, typeName)` with `EnrichmentFound` or `EnrichmentNotFound`, and to `QueryAllEnrichments(location)` with `AllEnrichmentsResult`. It SHALL persist its state as a snapshot every N updates (default 14), not on every individual update. After a successful snapshot save, it SHALL delete all previous snapshots. The snapshot state SHALL be a dedicated DTO type (`EnrichmentSnapshotDto`), not domain objects directly. The actor SHALL map domain objects to DTOs on save and DTOs to domain objects on recovery.
+
+#### Scenario: Store and retrieve an enrichment
+- **WHEN** `EnrichmentSnapshotActor` receives `UpdateEnrichment(location, typeName, result)` followed by `QueryEnrichment(location, typeName)`
+- **THEN** it SHALL reply `EnrichmentFound` with the stored result and send `Ack` for the update
+
+#### Scenario: QueryAllEnrichments returns all types for a location
+- **WHEN** multiple enrichment types are stored for location "lucerne"
+- **THEN** `QueryAllEnrichments("lucerne")` SHALL reply `AllEnrichmentsResult` containing all of them
+
+#### Scenario: Snapshot saved after N updates
+- **WHEN** `EnrichmentSnapshotActor` receives 14 `UpdateEnrichment` messages
+- **THEN** it SHALL save a snapshot containing all current state as an `EnrichmentSnapshotDto`
+
+#### Scenario: Old snapshots deleted after save
+- **WHEN** a snapshot save succeeds with `SequenceNr > 0`
+- **THEN** the actor SHALL delete all snapshots older than the current one
+
+#### Scenario: State survives restart
+- **WHEN** the actor restarts and a persisted snapshot exists
+- **THEN** the actor SHALL recover its state from the DTO snapshot and map it back to domain objects
+
+### Requirement: GrpcSnapshotConsumerActor routes events from BroadcastHub to snapshot actors
+`GrpcSnapshotConsumerActor` SHALL subscribe to the EgressActor BroadcastHub. It SHALL route `PerModelUpdate` events to `ForecastSnapshotActor` via Ask and wait for Ack. It SHALL route `EnrichmentUpdate` events to `EnrichmentSnapshotActor` via Ask/Ack.
+
+The `GrpcSnapshotConsumerActor` (through its base class `StreamConsumerActor`) SHALL maintain a `HashSet<IActorRef>` of explicitly tracked dependencies (`_watchedDeps`). It SHALL call `Context.Watch` and add to the set only for refs resolved via `GetActorAsync`. On `Terminated`, it SHALL ignore any ref not in the tracked set.
+
+The `GrpcSnapshotConsumerActor` (through `StreamConsumerActor`) SHALL detect dead refs returned by `GetActorAsync` (ref matches `_lastTerminatedRef`) and schedule a retry with exponential backoff (`min(1s × 2^retryCount, 30s)`) instead of immediately re-resolving. It SHALL gate its transition to the next phase with `_lastTerminatedRef is not null` to prevent stale in-flight responses from triggering premature transitions.
+
+The `GrpcSnapshotConsumerActor` (through `StreamConsumerActor`) SHALL wire a `SharedKillSwitch.Flow<EgressEvent>()` into its stream graph. On `Terminated` for a tracked dependency, it SHALL call `_killSwitch.Shutdown()` before re-resolving.
+
+#### Scenario: Forecast update routed with backpressure
+- **WHEN** a PerModelUpdate event arrives from the BroadcastHub
+- **THEN** it is sent to ForecastSnapshotActor via Ask and Ack is awaited
+
+#### Scenario: Enrichment update routed with backpressure
+- **WHEN** an EnrichmentUpdate event arrives from the BroadcastHub
+- **THEN** it is sent to EnrichmentSnapshotActor via Ask and Ack is awaited
+
+#### Scenario: EgressActor restart triggers re-subscription
+- **WHEN** `GrpcSnapshotConsumerActor` receives Terminated for the EgressActor
+- **THEN** it shuts down the KillSwitch and re-requests a SourceRef with backoff retry
+- **THEN** it transitions to WaitingForSource and rematerializes the stream graph
+
+#### Scenario: GrpcSnapshotConsumerActor remains functional after upstream restart
+- **WHEN** the EgressActor restarts and `GrpcSnapshotConsumerActor` re-subscribes
+- **THEN** new events from the BroadcastHub are routed to snapshot actors
+
+#### Scenario: Dead ref detected triggers backoff retry
+- **WHEN** `GetActorAsync<EgressActor>` returns the same dead ref from the registry
+- **THEN** the actor schedules a retry with exponential backoff instead of tight-looping
+
+#### Scenario: Untracked Terminated is ignored
+- **WHEN** `Terminated` arrives for a ref not in `_watchedDeps` (e.g. StreamSupervisor child)
+- **THEN** the actor ignores it

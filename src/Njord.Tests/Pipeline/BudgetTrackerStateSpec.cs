@@ -9,7 +9,7 @@ public sealed class BudgetTrackerStateSpec
     private static BudgetTrackerState EmptyState() =>
         new(T0.Month, T0.DayOfYear, 0, 0, 0);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Apply_increments_monthly_and_daily_usage()
     {
         var state = EmptyState().Apply(3, T0);
@@ -19,7 +19,7 @@ public sealed class BudgetTrackerStateSpec
         Assert.Equal(1, state.EventsSinceSnapshot);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Apply_accumulates_multiple_calls()
     {
         var state = EmptyState()
@@ -32,7 +32,7 @@ public sealed class BudgetTrackerStateSpec
         Assert.Equal(3, state.EventsSinceSnapshot);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Apply_resets_daily_on_new_day()
     {
         var state = EmptyState().Apply(5, T0);
@@ -45,7 +45,7 @@ public sealed class BudgetTrackerStateSpec
         Assert.Equal(nextDay.DayOfYear, updated.CurrentDay);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Apply_resets_both_on_new_month()
     {
         var state = EmptyState().Apply(10, T0);
@@ -58,7 +58,7 @@ public sealed class BudgetTrackerStateSpec
         Assert.Equal(8, updated.CurrentMonth);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetSnapshot_returns_current_usage()
     {
         var state = EmptyState().Apply(4, T0).Apply(2, T0);
@@ -69,7 +69,7 @@ public sealed class BudgetTrackerStateSpec
         Assert.Equal(6, snapshot.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetPersistenceState_returns_valid_dto()
     {
         var state = EmptyState().Apply(5, T0);
@@ -82,7 +82,7 @@ public sealed class BudgetTrackerStateSpec
         Assert.Equal(5, dto.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromPersistence_roundtrip_preserves_state()
     {
         var state = EmptyState()
@@ -98,7 +98,7 @@ public sealed class BudgetTrackerStateSpec
         Assert.Equal(state.DailyUsed, restored.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromPersistence_resets_when_month_differs()
     {
         var state = EmptyState().Apply(10, T0);
@@ -112,7 +112,7 @@ public sealed class BudgetTrackerStateSpec
         Assert.Equal(8, restored.CurrentMonth);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromPersistence_resets_daily_when_day_differs()
     {
         var state = EmptyState().Apply(10, T0);
@@ -125,7 +125,7 @@ public sealed class BudgetTrackerStateSpec
         Assert.Equal(0, restored.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ApplyRecover_skips_events_from_old_months()
     {
         var now = new DateTimeOffset(2026, 8, 1, 12, 0, 0, TimeSpan.Zero);
@@ -138,7 +138,7 @@ public sealed class BudgetTrackerStateSpec
         Assert.Equal(0, result.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ApplyRecover_adds_weight_for_current_month_events()
     {
         var state = new BudgetTrackerState(7, T0.DayOfYear, 0, 0, 0);
@@ -149,7 +149,7 @@ public sealed class BudgetTrackerStateSpec
         Assert.Equal(5, result.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ApplyRecover_adds_monthly_but_not_daily_for_different_day()
     {
         var now = T0;
@@ -162,7 +162,7 @@ public sealed class BudgetTrackerStateSpec
         Assert.Equal(0, result.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Empty_state_has_zero_counters()
     {
         var state = EmptyState();

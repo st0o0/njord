@@ -8,15 +8,12 @@ namespace Njord.Tests.Architecture;
 
 public sealed class ConventionArchitectureSpec
 {
-    // See ZoneArchitectureSpec: the shared architecture load exceeds the default 5 s timeout.
-    private const int ArchitectureTimeoutMs = 60_000;
-
-    private static readonly string[] _testAttributes = ["Xunit.FactAttribute", "Xunit.TheoryAttribute"];
+    private static readonly string[] TestAttributes = ["Xunit.FactAttribute", "Xunit.TheoryAttribute"];
 
     private static bool DeclaresTests(Class c)
-        => c.Members.OfType<MethodMember>().Any(m => m.Attributes.Any(a => _testAttributes.Contains(a.FullName)));
+        => c.Members.OfType<MethodMember>().Any(m => m.Attributes.Any(a => TestAttributes.Contains(a.FullName)));
 
-    [Fact(Timeout = ArchitectureTimeoutMs)]
+    [Fact]
     public void Production_classes_are_sealed()
     {
         Classes().That().Are(NjordArchitecture.ProductionTypes)
@@ -26,7 +23,7 @@ public sealed class ConventionArchitectureSpec
             .Check(NjordArchitecture.Instance);
     }
 
-    [Fact(Timeout = ArchitectureTimeoutMs)]
+    [Fact]
     public void Test_classes_with_tests_are_sealed_and_suffixed_Spec()
     {
         Classes().That().Are(NjordArchitecture.TestTypes)

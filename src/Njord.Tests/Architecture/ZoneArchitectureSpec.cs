@@ -6,11 +6,7 @@ namespace Njord.Tests.Architecture;
 
 public sealed class ZoneArchitectureSpec
 {
-    // Loading the architecture (IL analysis of two assemblies) takes ~6-10 s once per run; the shared static
-    // initializer is what the first test waits on, so the default 5 s timeout is too tight for these specs.
-    private const int ArchitectureTimeoutMs = 60_000;
-
-    [Fact(Timeout = ArchitectureTimeoutMs)]
+    [Fact]
     public void Ingest_does_not_depend_on_egress_side()
     {
         Types().That().Are(NjordArchitecture.Ingest)
@@ -18,7 +14,7 @@ public sealed class ZoneArchitectureSpec
             .Check(NjordArchitecture.Instance);
     }
 
-    [Fact(Timeout = ArchitectureTimeoutMs)]
+    [Fact]
     public void Egress_side_does_not_depend_on_ingest()
     {
         Types().That().Are(NjordArchitecture.EgressSide)
@@ -26,7 +22,7 @@ public sealed class ZoneArchitectureSpec
             .Check(NjordArchitecture.Instance);
     }
 
-    [Fact(Timeout = ArchitectureTimeoutMs)]
+    [Fact]
     public void Domain_does_not_depend_on_ingest_or_egress_side()
     {
         Types().That().Are(NjordArchitecture.Domain)

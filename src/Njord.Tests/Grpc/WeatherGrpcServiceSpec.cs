@@ -57,7 +57,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         var service = CreateService();
 
-        var response = await service.GetCatalog(new GetCatalogRequest(), TestServerCallContext.Create());
+        var response = await service.GetCatalog(new GetCatalogRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal(2, response.Locations.Count);
 
@@ -86,7 +86,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         };
         var service = CreateService(options);
 
-        var response = await service.GetCatalog(new GetCatalogRequest(), TestServerCallContext.Create());
+        var response = await service.GetCatalog(new GetCatalogRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal(2, response.Locations.Count);
         Assert.Single(response.Models);
@@ -102,7 +102,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
         var response = await service.GetForecast(
             new GetForecastRequest { Location = "lucerne", Model = "icon_d2" },
-            TestServerCallContext.Create());
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal("lucerne", response.Location);
         Assert.Equal("icon_d2", response.Model);
@@ -123,7 +123,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         var ex = await Assert.ThrowsAsync<RpcException>(() =>
             service.GetForecast(
                 new GetForecastRequest { Location = "unknown", Model = "icon_d2" },
-                TestServerCallContext.Create()));
+                TestServerCallContext.Create(TestContext.Current.CancellationToken)));
 
         Assert.Equal(StatusCode.NotFound, ex.StatusCode);
     }
@@ -139,7 +139,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
         var response = await service.GetEnrichments(
             new GetEnrichmentsRequest { Location = "lucerne" },
-            TestServerCallContext.Create());
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.NotNull(response.ConsensusUpdatedAt);
         Assert.Equal(Anchor, response.ConsensusUpdatedAt.ToDateTimeOffset());
@@ -158,7 +158,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
         var response = await service.GetEnrichments(
             new GetEnrichmentsRequest { Location = "lucerne" },
-            TestServerCallContext.Create());
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.NotNull(response.ConsensusUpdatedAt);
         Assert.Equal(computationTime, response.ConsensusUpdatedAt.ToDateTimeOffset());
@@ -171,7 +171,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
         var response = await service.GetEnrichments(
             new GetEnrichmentsRequest { Location = "lucerne" },
-            TestServerCallContext.Create());
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Null(response.ConsensusUpdatedAt);
     }
@@ -195,7 +195,8 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         var service = CreateService();
 
         var ex = await Assert.ThrowsAsync<RpcException>(() => service.StreamForecasts(
-            new StreamForecastsRequest(), new DiscardingStreamWriter<ForecastUpdate>(), TestServerCallContext.Create()));
+            new StreamForecastsRequest(), new DiscardingStreamWriter<ForecastUpdate>(),
+            TestServerCallContext.Create(TestContext.Current.CancellationToken)));
 
         Assert.Equal(StatusCode.Unavailable, ex.StatusCode);
     }
@@ -208,7 +209,8 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         var service = CreateService();
 
         var ex = await Assert.ThrowsAsync<RpcException>(() => service.StreamEnrichments(
-            new StreamEnrichmentsRequest(), new DiscardingStreamWriter<EnrichmentEvent>(), TestServerCallContext.Create()));
+            new StreamEnrichmentsRequest(), new DiscardingStreamWriter<EnrichmentEvent>(),
+            TestServerCallContext.Create(TestContext.Current.CancellationToken)));
 
         Assert.Equal(StatusCode.Unavailable, ex.StatusCode);
     }

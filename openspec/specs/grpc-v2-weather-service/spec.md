@@ -3,9 +3,7 @@
 ## Purpose
 
 WeatherService gRPC service for reading forecasts, enrichments, and streaming real-time updates. Replaces v1's ForecastService with unified Timestamp types and a merged GetCatalog RPC.
-
 ## Requirements
-
 ### Requirement: WeatherService definition
 `protos/njord/v2/weather.proto` SHALL define a `WeatherService` with 5 RPCs: `GetCatalog`, `GetForecast`, `GetEnrichments`, `StreamForecasts`, `StreamEnrichments`. The package SHALL be `njord.v2` with `csharp_namespace = "Njord.Grpc.V2"`. It SHALL import `common.proto`.
 
@@ -39,6 +37,10 @@ WeatherService gRPC service for reading forecasts, enrichments, and streaming re
 - **WHEN** a client calls `GetForecast` before any poll has completed for that model
 - **THEN** the RPC SHALL throw a gRPC NOT_FOUND error
 
+#### Scenario: Unknown model returns NOT_FOUND
+- **WHEN** a client calls `GetForecast` with a model that is not configured for the location
+- **THEN** the RPC SHALL throw a gRPC NOT_FOUND error
+
 ### Requirement: GetEnrichments returns all enrichment payloads
 `WeatherService.GetEnrichments` SHALL accept `GetEnrichmentsRequest` with `string location` and return `GetEnrichmentsResponse` with `string location` and optional fields for each enrichment type: `AlertUpdate alerts`, `IndexUpdate indices`, `TrendUpdate trends`, `DerivedUpdate derived`, `HistoryUpdate history`, `ConsensusUpdate consensus`, `google.protobuf.Timestamp consensus_updated_at`. It SHALL NOT contain any `reserved` statements or energy-related fields.
 
@@ -61,6 +63,14 @@ WeatherService gRPC service for reading forecasts, enrichments, and streaming re
 - **WHEN** a client subscribes with empty `location`
 - **THEN** forecast updates for all locations SHALL be streamed
 
+#### Scenario: Multiple clients receive the same update
+- **WHEN** two clients have active `StreamForecasts` streams and a poll cycle completes
+- **THEN** both clients SHALL receive the `ForecastUpdate`
+
+#### Scenario: Stream ends on client disconnect
+- **WHEN** a client disconnects from the `StreamForecasts` stream
+- **THEN** the server-side stream SHALL be shut down and its egress subscription released
+
 ### Requirement: StreamEnrichments streams enrichment events
 `WeatherService.StreamEnrichments` SHALL be a server-streaming RPC accepting `StreamEnrichmentsRequest` with optional `string location`. Each `EnrichmentEvent` SHALL contain `string location`, `string type_name`, `google.protobuf.Timestamp updated_at`, and a `oneof payload` with cases: `AlertUpdate alerts`, `IndexUpdate indices`, `TrendUpdate trends`, `DerivedUpdate derived`, `HistoryUpdate history`, `ConsensusUpdate consensus`. It SHALL NOT contain any `reserved` fields, comments about removed features, or energy-related entries.
 
@@ -71,3 +81,4 @@ WeatherService gRPC service for reading forecasts, enrichments, and streaming re
 #### Scenario: Oneof without energy gap
 - **WHEN** `EnrichmentEvent` is inspected in the proto
 - **THEN** the oneof field numbers SHALL be sequential with no gaps or comments about removed fields
+

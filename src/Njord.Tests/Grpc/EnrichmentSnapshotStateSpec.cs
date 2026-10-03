@@ -10,7 +10,7 @@ public sealed class EnrichmentSnapshotStateSpec
     private static readonly IndexResult TestIndex = new("lucerne",
         [new DayScoreSet(0, 80, 90, 70, 85, 95, 60, 88, 75, HoursIncluded: 14)], null, null);
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Empty_state_has_no_enrichments()
     {
         var state = EnrichmentSnapshotState.Empty;
@@ -19,7 +19,7 @@ public sealed class EnrichmentSnapshotStateSpec
         Assert.Equal(0, state.UpdatesSinceSnapshot);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Apply_adds_enrichment_and_increments_counter()
     {
         var state = EnrichmentSnapshotState.Empty
@@ -30,7 +30,7 @@ public sealed class EnrichmentSnapshotStateSpec
         Assert.Same(TestAlert, state.Enrichments["lucerne|alerts"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Apply_overwrites_existing_enrichment()
     {
         var updated = new AlertResult("lucerne", [Alert.None(AlertType.Heat)]);
@@ -43,7 +43,7 @@ public sealed class EnrichmentSnapshotStateSpec
         Assert.Same(updated, state.Enrichments["lucerne|alerts"]);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetEnrichment_returns_found_for_existing_key()
     {
         var state = EnrichmentSnapshotState.Empty
@@ -55,7 +55,7 @@ public sealed class EnrichmentSnapshotStateSpec
         Assert.Same(TestAlert, found.Result);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetEnrichment_returns_not_found_for_missing_key()
     {
         var state = EnrichmentSnapshotState.Empty;
@@ -65,7 +65,7 @@ public sealed class EnrichmentSnapshotStateSpec
         Assert.IsType<EnrichmentNotFound>(response);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetAllEnrichments_filters_by_location()
     {
         var state = EnrichmentSnapshotState.Empty
@@ -80,7 +80,7 @@ public sealed class EnrichmentSnapshotStateSpec
         Assert.Contains(result.Results, r => r.TypeName == "indices");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetAllEnrichments_returns_empty_for_unknown_location()
     {
         var state = EnrichmentSnapshotState.Empty
@@ -91,7 +91,7 @@ public sealed class EnrichmentSnapshotStateSpec
         Assert.Empty(result.Results);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ResetSnapshotCounter_clears_counter()
     {
         var state = EnrichmentSnapshotState.Empty
@@ -105,7 +105,7 @@ public sealed class EnrichmentSnapshotStateSpec
         Assert.Equal(2, reset.Enrichments.Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetPersistenceState_returns_valid_dto()
     {
         var state = EnrichmentSnapshotState.Empty
@@ -117,7 +117,7 @@ public sealed class EnrichmentSnapshotStateSpec
         Assert.Single(dto.Enrichments);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromPersistence_roundtrip_preserves_state()
     {
         var state = EnrichmentSnapshotState.Empty

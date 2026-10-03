@@ -14,31 +14,21 @@ Target layout (stage 1 design is authoritative): `Domain <- Messages <- Core <- 
 
 ## Goals / Non-Goals
 
-**Goals:** three leaf libs compile on their own, reference only Core, are registered through one `Add*`/`With*` pair each, and keep build + the full test suite green after every task.
+**Goals:** three leaf libs compile on their own, reference only Core, are wired by the host (actors registered centrally under their `IXxxActor` markers, services through one `Add*` each), and keep build + the full test suite green after every task.
 
 **Non-Goals:** Pipeline/Egress/Enrichment/Mqtt extraction, behavior changes, per-lib test projects, analyzer rollout.
 
 ## Decisions
 
-### 1. Cross-project actor access via marker keys in Core
+### 1. Cross-project actor access: FunkArr-style marker interfaces (created in stage 1)
 
-`ActorRegistry.Get<T>()` keys on a type. Today `Njord.Grpc` keys on the actor classes of other features. After the move, `Njord.Grpc` must not reference `Njord.Pipeline/Egress/Sensors`. Exact markers needed (all in `Njord.Core`, e.g. `ActorKeys.cs`, empty marker types, FunkArr precedent `FunkArr.Core/ActorKeys.cs`):
+User decision (2026-10-02): no `IRequiredActor<T>`; do it like FunkArr. Stage 1 (`extract-core-projects`, Decision 6) already creates `src/Njord.Core/ActorKeys.cs` (13 empty `IXxxActor` marker interfaces), registers every actor under its marker in the host `NjordActorSystemSetup` and replaces all class-keyed lookups. This stage therefore only moves code; it adds no new key mechanism. After the move `Njord.Grpc` resolves `ISchedulerActor`, `IBudgetTrackerActor`, `IEgressActor`, `ISensorHubActor` (cross-lib) and `IForecastSnapshotActor`/`IEnrichmentSnapshotActor` (own) through `ActorRegistry.Get<IXxxActor>()`/`Context.GetActorAsync<IXxxActor>()` and never references `Njord.Pipeline/Egress/Sensors`. Request/response messages Grpc sends (`QueryPollStates`, `TriggerImmediatePoll`, `RequestEgressSource`, `PushResult`, budget queries) must already be in `Njord.Messages` after stage 1; if any is not, that is a stage-1 gap to fix there, not here.
 
-| Marker | Used by (Grpc file) | Registered by |
-|---|---|---|
-| `SchedulerActorKey` | `OpsGrpcService.cs` (lines ~76, 150, 189) | host/Pipeline setup (`registry.Register<SchedulerActorKey>(supervisor)`) |
-| `BudgetTrackerActorKey` | `OpsGrpcService.cs` (~46) | same |
-| `EgressActorKey` | `WeatherGrpcService.cs` (~203) | same |
-| `SensorHubActorKey` | `SensorGrpcService.cs` (19) | `Njord.Sensors` (`WithSensorsActors`) |
+*Alternatives rejected:* class keys plus project references to the feature libs (recreates the cross-feature dependency); `IRequiredActor<T>` (still keyed by the class, user rejected); marker classes (`SchedulerActorKey`; not the FunkArr pattern).
 
-`ForecastSnapshotActor` and `EnrichmentSnapshotActor` are owned by `Njord.Grpc` itself (registered by `WithGrpcActors`), so they need no marker. Request/response messages Grpc sends (`QueryPollStates`, `TriggerImmediatePoll`, `RequestEgressSource`, `PushResult`, budget queries) must already be in `Njord.Messages` after stage 1; if any is not, that is a stage-1 gap to fix there, not here.
+### 2. Registration stays central in the host; libraries expose services and endpoints only
 
-*Alternative:* keep class keys and reference the feature projects. Rejected: recreates the cross-feature dependency the split removes.
-*Open point:* `WithResolvableActors(r => r.Register<T>(name))` (Servus) keys by `T` and builds the props from `T`. For marker-keyed registration use Akka.Hosting `WithActors` + `registry.Register<Marker>(ref)` (as the backoff helper already does), or verify whether Servus supports a separate key type. Decide in task 1.2.
-
-### 2. Registration helpers move into the libs, wiring stays in the host
-
-`AddNjordGrpc()` (`services.AddGrpc()`, `ConfigPersistence` if only Grpc uses it — confirm with grep; otherwise it stays in Core), `AddNjordIngest()` (renamed `AddOpenMeteoIngest`, same body, keep a one-release `[Obsolete]`-free rename; no compat shim needed, internal API), `AddNjordSensors()` (no services today; keep for symmetry only if it carries something — otherwise omit and register the actor only). `WithGrpcActors(AkkaConfigurationBuilder, ...)`/`WithSensorsActors(...)` carry the actor registrations. `MapNjordGrpc(this WebApplication)` replaces the four `MapGrpcService<>()` calls. The private `RegisterWithBackoff<TActor>` helper in `NjordActorSystemSetup` is needed by Grpc (two snapshot actors) and by later stages: extract it to `Njord.Core` as a public extension first (task 1.4), then reuse. Host setup files stay as thin shells (`NjordServiceSetup`, `NjordActorSystemSetup`, `NjordApplicationSetup`) calling the extensions; persistence config (`WithSqlPersistence`) stays in the host.
+FunkArr registers all actors in one host-side Akka setup (`AkkaSetupContainer`, per-domain private methods) and keeps per-domain setup in the host. njord already has that shape after stage 1 (`RegisterSensorActors`, `RegisterGrpcActors` in `NjordActorSystemSetup`, `RegisterWithBackoff<TKey, TActor>` stays private there). So the libraries do NOT get `WithXActors()` extensions; instead their actor classes become `public` so the host can call `resolver.Props<T>()`. Libraries expose: `AddNjordGrpc()` (`services.AddGrpc()`, `ConfigPersistence` if only Grpc uses it — confirm with grep; otherwise it stays in Core), `AddNjordIngest()` (renamed `AddOpenMeteoIngest`, same body; internal API, no compat shim), `MapNjordGrpc(this WebApplication)` (replaces the four `MapGrpcService<>()` calls); `AddNjordSensors()` only if it carries a service registration (none today, omit). Host setup files stay thin shells (`NjordServiceSetup`, `NjordActorSystemSetup`, `NjordApplicationSetup`); persistence config (`WithSqlPersistence`) stays in the host and runs before the actor registrations.
 
 ### 3. Project files
 
@@ -65,12 +55,12 @@ FunkArr has one test project per domain lib (12). For njord keep `Njord.Tests` a
 
 ### 7. Order inside the stage (leaf-first, each step green)
 
-Sensors (smallest, proves the marker + registration pattern) -> Ingest (no marker, tests use internals) -> Grpc (largest, protos, markers) -> setup shells/ArchUnit/Dockerfile/docs.
+Sensors (smallest, proves the move with markers already in place) -> Ingest (no marker, tests use internals) -> Grpc (largest, protos) -> setup shells/ArchUnit/Dockerfile/docs.
 
 ## Risks / Trade-offs
 
 - [Stage 1 gaps: a message/interface Grpc needs is still in a feature project] -> grep Grpc's `using Njord.*` after stage 1; fix in stage 1 or add the type to Core here as a prerequisite task.
-- [Marker registration changes how actors are resolved; a missing registration fails at runtime, not compile time] -> keep `GrpcSnapshotConsumerTerminatedSpec`, `*GrpcServiceSpec` and `NjordServiceSetupSpec`; add one spec that builds the host and resolves every marker from `ActorRegistry`.
+- [Marker registration (stage 1) is the only runtime link between libraries; a missing registration fails at runtime, not compile time] -> keep `GrpcSnapshotConsumerTerminatedSpec`, `*GrpcServiceSpec` and `NjordServiceSetupSpec`; the stage-1 `ActorKeyRegistrationSpec` already resolves every marker; keep it green after each move.
 - [Protobuf build item path and `ProtoRoot` break after the move, silently producing no generated code] -> compile `Njord.Grpc` alone as a task checkpoint; proto package/namespace unchanged.
 - [`InternalsVisibleTo` omission breaks tests that use internals] -> compile `Njord.Tests` after each project move.
 - [Docker build breaks because restore sees only one csproj] -> Dockerfile task with a local `docker build` check.
@@ -83,6 +73,5 @@ Prerequisites: `extract-core-projects` applied; `akka-failure-hygiene` merged. O
 
 ## Open Questions
 
-- Marker registration mechanism (Servus `Register<T>` vs Akka.Hosting `registry.Register<Marker>`): decided in task 1.2; does not change the layout.
 - Per-library test projects (FunkArr style) after stage 3? Deferred; default is to keep one.
 - `ConfigPersistence` is used only by `AdminGrpcService` and its DI registration (grep-verified); default: it moves to `Njord.Grpc` and `AddNjordGrpc()` registers it, unless stage 1 already placed it in Core for another consumer (confirm in task 4.1).

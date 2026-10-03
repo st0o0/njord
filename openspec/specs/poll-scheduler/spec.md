@@ -3,9 +3,7 @@
 ## Purpose
 
 Adaptive per-model poll scheduling: a persistent actor that learns each weather model's update cycle from data hash changes, schedules polls via ScheduleOnce timers, and persists learned rhythms across restarts via Akka.Persistence + SQLite.
-
 ## Requirements
-
 ### Requirement: The SchedulerActor obtains a SinkRef from the PipelineActor
 The SchedulerActor SHALL resolve the PipelineActor reference asynchronously via `GetActorAsync<PipelineActor>().PipeTo(Self)` in `PreStart`. The actor SHALL NOT call synchronous `GetActor<PipelineActor>()` during `PreStart` or any state transition, because the PipelineActor may not yet be registered in the `IActorRegistry` at that point. Once the resolved reference arrives as a message, the actor SHALL call `Context.Watch` and add the ref to a `HashSet<IActorRef> _watchedDeps`, send `RequestPipelineSink` and `RequestPipelineSource`, and stash all timer messages until both refs are received. Only after obtaining the SinkRef SHALL the actor materialize a local `Source.Queue<WeightedTarget>` connected to the SinkRef and start scheduling timers.
 
@@ -118,8 +116,7 @@ failure-routing spec).
 - **THEN** the scheduler increments missCount and schedules a backoff retry
 
 ### Requirement: SchedulerActor iterates resolved models per location
-The `SchedulerActor` SHALL resolve effective models per location using
-`LocationOptions.ResolveModels(globalModels)` and iterate over the
+The `SchedulerActor` SHALL resolve effective models per location as the case-insensitive union of the global `Models` list and the location's own `Models` and iterate over the
 resolved list. It SHALL NOT iterate the global `Models` list directly.
 
 #### Scenario: Location with extra models gets polled for all
@@ -137,7 +134,7 @@ resolved list. It SHALL NOT iterate the global `Models` list directly.
 ### Requirement: State is persisted and recovered via Akka.Persistence
 The SchedulerActor SHALL persist `DataChanged` events to a SQLite journal via Akka.Persistence. On recovery, the actor SHALL rebuild all `ModelPollState` entries from the event stream. If a recovered `nextPollUtc` is in the past, the actor SHALL poll immediately. If a cycle is known from recovery, the actor SHALL enter Steady phase directly without re-discovery.
 
-The SchedulerActor SHALL save a snapshot of its full `_states` dictionary every 50 persisted events. The snapshot SHALL be a dedicated `SchedulerSnapshotDto` containing all `ModelPollState` entries. On `SaveSnapshotSuccess`, the actor SHALL delete all journal entries up to the snapshot's sequence number and delete all previous snapshots. On `SaveSnapshotFailure`, the actor SHALL log a warning. Recovery SHALL prefer the latest snapshot and replay only events after it.
+The SchedulerActor SHALL save a snapshot of its full `SchedulerState.States` dictionary every 50 persisted events. The snapshot SHALL be a dedicated `SchedulerSnapshotDto` containing all `ModelPollState` entries. On `SaveSnapshotSuccess`, the actor SHALL delete all journal entries up to the snapshot's sequence number and delete all previous snapshots. On `SaveSnapshotFailure`, the actor SHALL log a warning. Recovery SHALL prefer the latest snapshot and replay only events after it.
 
 #### Scenario: Recovery skips discovery for known cycles
 - **WHEN** SchedulerActor recovers with persisted events containing learned cycles
@@ -153,7 +150,7 @@ The SchedulerActor SHALL save a snapshot of its full `_states` dictionary every 
 
 #### Scenario: Snapshot saved after 50 persisted events
 - **WHEN** 50 DataChanged events have been persisted since the last snapshot
-- **THEN** the actor saves a snapshot of the full _states dictionary
+- **THEN** the actor saves a snapshot of the full SchedulerState.States dictionary
 
 #### Scenario: Journal and old snapshots cleaned after snapshot success
 - **WHEN** a snapshot save succeeds
@@ -180,21 +177,6 @@ The SchedulerActor SHALL handle the result of `OfferAsync` in the Ready state by
 - **THEN** the actor logs a warning with the location, model, and error
 - **THEN** the poll is re-scheduled via ScheduleNext
 
-### Requirement: GetPollStates is handled in all behaviors
-The SchedulerActor SHALL handle `GetPollStates` messages in ALL behaviors (`WaitingForPipeline`, `WaitingForRefs`, `Connecting`, `WaitingForConnection`, `Ready`) by responding immediately with a `PollStatesSnapshot` of the current `_states` dictionary. The handler SHALL NOT stash, delay, or drop the message in any state.
-
-#### Scenario: Query returns current state during pipeline resolution
-- **WHEN** a `GetPollStates` message is received while the actor is waiting for the PipelineActor reference to resolve
-- **THEN** the actor SHALL respond with a `PollStatesSnapshot` (which may be empty if no states are initialized yet)
-
-#### Scenario: Query returns current state in Ready
-- **WHEN** a `GetPollStates` message is received in Ready state with 6 model poll states
-- **THEN** the actor SHALL respond with `PollStatesSnapshot` containing 6 entries
-
-#### Scenario: Query is read-only
-- **WHEN** a `GetPollStates` message is received in any behavior
-- **THEN** no events SHALL be persisted and no timers SHALL be scheduled
-
 ### Requirement: Transient failures use an isolated counter and preserve learned cycles
 `ModelPollState` SHALL track transient failures with a dedicated `TransientFailureCount` that is independent of `MissCount`. `WithTransientFailure` SHALL only increment `TransientFailureCount` and SHALL never modify `Phase`, `Cycle`, or `MissCount`. A learned cycle SHALL survive any number of consecutive transient failures.
 
@@ -220,3 +202,27 @@ After `MaxTransientBeforeThrottle` (5) consecutive transient failures, `WithTran
 #### Scenario: Data change resets transient failure count
 - **WHEN** a data change is detected after a series of transient failures
 - **THEN** both `MissCount` and `TransientFailureCount` are reset to 0
+
+### Requirement: QueryPollStates is handled in all behaviors
+The SchedulerActor SHALL handle `QueryPollStates` messages in ALL behaviors (`WaitingForPipeline`, `WaitingForRefs`, `Connecting`, `WaitingForConnection`, `Ready`) by responding immediately with a `PollStatesResult` of the current `SchedulerState.States` dictionary. The handler SHALL NOT stash, delay, or drop the message in any state.
+
+#### Scenario: Query returns current state during pipeline resolution
+- **WHEN** a `QueryPollStates` message is received while the actor is waiting for the PipelineActor reference to resolve
+- **THEN** the actor SHALL respond with a `PollStatesResult` (which may be empty if no states are initialized yet)
+
+#### Scenario: Query returns current state in Ready
+- **WHEN** a `QueryPollStates` message is received in Ready state with 6 model poll states
+- **THEN** the actor SHALL respond with `PollStatesResult` containing 6 entries
+
+#### Scenario: Query is read-only
+- **WHEN** a `QueryPollStates` message is received in any behavior
+- **THEN** no events SHALL be persisted and no timers SHALL be scheduled
+
+### Requirement: SchedulerActor accepts TriggerImmediatePoll message
+The `SchedulerActor` SHALL handle a `TriggerImmediatePoll(string Location, string Model)` message in the `Ready` behavior by scheduling an immediate `ScheduledPoll` for each matching target and replying with `TriggerPollResult(Count, Targets)`, where each target is `"{location}/{model}"`. When `Location` or `Model` is empty, it SHALL expand to all matching configured pairs. In every other behavior the message SHALL be stashed until the actor is `Ready`.
+
+#### Scenario: Immediate poll bypasses normal schedule
+- **WHEN** `SchedulerActor` receives `TriggerImmediatePoll("home", "icon_d2")`
+- **THEN** the actor SHALL schedule a `ScheduledPoll("home", "icon_d2")` immediately and reply with `TriggerPollResult(1, ["home/icon_d2"])`
+- **AND** the normal schedule for that model SHALL NOT be disrupted
+

@@ -14,7 +14,7 @@ public sealed class ForecastHistoryStateSpec
             new Dictionary<WeatherModel, IReadOnlyDictionary<string, double?>>(),
             new Dictionary<string, double?> { ["temperature_2m"] = 22.5 });
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Empty_state_has_no_records()
     {
         var state = ForecastHistoryState.Create(30, 10);
@@ -22,7 +22,7 @@ public sealed class ForecastHistoryStateSpec
         Assert.Equal(0, state.EventsSinceSnapshot);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Apply_adds_record_to_history()
     {
         var state = ForecastHistoryState.Create(30, 10);
@@ -30,7 +30,7 @@ public sealed class ForecastHistoryStateSpec
         Assert.Single(state.History.Records);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void Apply_increments_event_counter()
     {
         var state = ForecastHistoryState.Create(30, 10);
@@ -41,7 +41,7 @@ public sealed class ForecastHistoryStateSpec
         Assert.Equal(2, state.EventsSinceSnapshot);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ApplyRecover_skips_events_before_cutoff()
     {
         var state = ForecastHistoryState.Create(30, 10);
@@ -52,7 +52,7 @@ public sealed class ForecastHistoryStateSpec
         Assert.Empty(state.History.Records);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ApplyRecover_keeps_events_after_cutoff()
     {
         var state = ForecastHistoryState.Create(30, 10);
@@ -63,7 +63,7 @@ public sealed class ForecastHistoryStateSpec
         Assert.Single(state.History.Records);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void ResetSnapshotCounter_zeroes_counter()
     {
         var state = ForecastHistoryState.Create(30, 10);
@@ -75,7 +75,7 @@ public sealed class ForecastHistoryStateSpec
         Assert.Equal(0, state.EventsSinceSnapshot);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetSnapshot_returns_history_result()
     {
         var state = ForecastHistoryState.Create(30, 10);
@@ -86,7 +86,7 @@ public sealed class ForecastHistoryStateSpec
         Assert.Single(snapshot.History.Records);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void GetPersistenceState_returns_valid_dto()
     {
         var state = ForecastHistoryState.Create(30, 10);
@@ -98,7 +98,7 @@ public sealed class ForecastHistoryStateSpec
         Assert.Equal(T0.UtcTicks, dto.Records[0].TimestampUtcTicks);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact]
     public void FromPersistence_roundtrip_preserves_state()
     {
         var state = ForecastHistoryState.Create(30, 10);

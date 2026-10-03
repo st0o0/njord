@@ -1,46 +1,42 @@
 ## Why
 
-Stage 3 of the FunkArr-style split of the single `Njord` assembly. After `extract-core-projects` (stage 1: `Njord.Domain`, `Njord.Persistence`, `Njord.Messages`, `Njord.Core`) and `extract-leaf-feature-projects` (stage 2: `Njord.Grpc`, `Njord.Ingest`, `Njord.Sensors`), four entangled features remain in the host: `Pipeline`, `Egress`, `Enrichment`, `Mqtt`. They cannot move as-is because `Enrichment` and `Mqtt` depend on each other: enrichment features build MQTT discovery JSON and state messages (`IEnrichmentFeature.BuildDiscoveryPayload` / `ToStateMessages`), and `Mqtt` consumes `IEnrichmentFeature`. Breaking that cycle is the real work of this stage; the rest is mechanical moves.
+Stage 3a of the FunkArr-style split of the single `Njord` assembly (stage 3 was split in two on 2026-10-02, see design.md Decision 1). After `extract-core-projects` (stage 1: `Njord.Domain`, `Njord.Persistence`, `Njord.Messages`, `Njord.Core`) and `extract-leaf-feature-projects` (stage 2: `Njord.Grpc`, `Njord.Ingest`, `Njord.Sensors`), `Pipeline` and `Egress` can leave the host: neither depends on `Mqtt` or `Enrichment`, so they move without touching the Enrichment/Mqtt cycle. That cycle, and the possible removal of MQTT after the user review on 2026-10-04, is handled separately in `extract-enrichment-mqtt-projects` (stage 3b).
+
+This stage is safe to apply before the MQTT review: `Pipeline` and `Egress` never reference `Mqtt`, so nothing here is wasted if MQTT is removed.
 
 ## What Changes
 
-- **Break the Enrichment↔Mqtt cycle by inversion** (design.md, Decision 1): features keep only computation (`TypeName`, `Enabled`, `Compute`/`CreateFlow`); everything that knows about Home Assistant/MQTT (device id, discovery payload, state messages) moves into per-type `IEnrichmentPresenter` implementations owned by `Njord.Mqtt`. `Njord.Enrichment` ends up with no MQTT knowledge.
-- New projects `src/Njord.Egress/`, `src/Njord.Pipeline/`, `src/Njord.Mqtt/`, `src/Njord.Enrichment/`, each referencing only `Njord.Core`, never each other and never the host.
-- Move `src/Njord/Egress/*` (6 files), `src/Njord/Pipeline/*` (12), `src/Njord/Mqtt/*` (14 incl. `Transport/`) and `src/Njord/Enrichment/*` (13 incl. `Features/`) into the new projects.
-- Cross-library actor lookups use the marker keys introduced in stage 1/2 (`ActorRegistry.Get<TMarker>()`) instead of actor classes (`EgressActor`, `PipelineActor`, `SensorHubActor`, `MqttConnectionActor`).
-- Each library exposes `AddNjordX()` (services) and `WithXActors()` (Akka.Hosting); host setup files only call them. `WithSqlPersistence` and persistence-provider selection stay in the host and run before the persistent actors register.
-- Add golden-master Verify snapshots for all five enrichment discovery payloads and state messages **before** moving any code, so wire-format equality is proven rather than assumed.
-- Present `consensus` through the same presenter registry (`ConsensusPresenter` wrapping the existing builders, byte-identical) and delete the two hardwired consensus branches in `MqttEgressActor` and `DiscoveryActor`; `consensus` stays a pipeline result and is not an `IEnrichmentFeature` (design.md, Decision 8). Its discovery stays unconditional, as today.
-- Delta specs restate every affected requirement completely (design.md, Decision 9), which also removes the drift the base `enrichment-feature-registry` spec has accumulated in the touched requirements (`CreateFlow`, `ToStateMessages(..., location)`, `DiscoveryContext`, 5 registered features).
-- Rewrite ArchUnit rules per assembly: lateral references between feature libraries are forbidden (the compiler stops cycles and upward references, not lateral ones); convention rules (sealed, `Spec` suffix) run over all `Njord.*` assemblies.
-- Update `AGENTS.md` (structure and guardrails) and the `njord-*` skills (the `njord-enrichment-feature` skill is rewritten for the presenter contract).
-- Plan only (executed as tasks, no behavior change): Dockerfile restore/COPY lines for the new csprojs; CI is unaffected (solution-level build/test).
+- New projects `src/Njord.Pipeline/` (12 files of `src/Njord/Pipeline`) and `src/Njord.Egress/` (6 files of `src/Njord/Egress`), each referencing only `Njord.Core` (and the Messages/Persistence/Domain chain below it), never each other and never the host. File counts are the host folders today; types stage 1 already moved to Core/Messages (`StreamSupervision`, `EgressEvent`, `EgressMessages`, `TopicSlug`, `HorizonProjection`) are not moved again.
+- **Extraction order: Pipeline first, then Egress.** `ModelStateActor` (Egress) uses `PipelineActor`, `RequestPipelineSource`, `PipelineSourceResponse` and `StreamSupervision` (Pipeline), so Egress depends on Pipeline today. Earlier text claiming "leaf-most first, Egress first" was wrong.
+- **Remove the lateral edge Egress -> Pipeline first** (red-first task, still one assembly): `ModelStateActor` reaches the pipeline only through the `IPipelineActor` marker (`src/Njord.Core/ActorKeys.cs`, stage 1) and the request/response messages and `StreamSupervision` that live in Messages/Core. An ArchUnit rule "no type in `Njord.Egress` depends on a type in `Njord.Pipeline`" is added red first and turns green with that change; otherwise the new assembly rule against lateral library references would fail after extraction.
+- Cross-library actor access uses FunkArr-style `IXxxActor` markers, registered centrally in the host `NjordActorSystemSetup` (per-domain `RegisterPipelineActors` / `RegisterEgressActors`); actor classes become `public`; libraries expose only `AddNjordPipeline()` / `AddNjordEgress()` (services).
+- **Registration-order guard:** `WithSqlPersistence(...)` must run before the actor registrations (journal configured before persistent actors start). A spec fails if the persistent actors (`scheduler`, `budget-tracker`) are registered first.
+- ArchUnit assembly-reference rules: libraries reference only Core and below, never each other, never the host; the sealed convention covers all `Njord.*` production assemblies.
+- `AGENTS.md` (structure and guardrails) and the `njord-*` skills: paths of what moved.
+- Plan only (executed as tasks, no behavior change): Dockerfile restore/COPY lines for the two new csprojs; CI is unaffected.
+- `Mqtt` and `Enrichment` stay in the host and simply reference the new libraries.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `mqtt-enrichment-presentation`: the `IEnrichmentPresenter` contract in `Njord.Mqtt` (per-`TypeName` discovery payload and state messages), one presenter per feature plus `consensus`, no `TypeName`-specific dispatch outside the registry, and byte-identical payloads.
+None.
 
 ### Modified Capabilities
 
-- `enrichment-feature-registry`: `IEnrichmentFeature` loses `DeviceId`, `BuildDiscoveryPayload` and `ToStateMessages`; `DiscoveryContext` and the device-envelope helper belong to `Njord.Mqtt` and are consumed by presenters; `IActorEnrichment` and the DI-registration requirement are restated to match the code (`CreateFlow`, 5 features).
-- `egress-event`: `MqttEgressActor` dispatches `EnrichmentUpdate` (including `consensus`) through presenters, not features.
-- `enrichment-model-envelope`: the indices discovery requirement refers to the indices presenter.
-- `activity-indices`: the HDD/CDD discovery exclusion refers to the indices presenter.
-- `architecture-zone-enforcement`: dependency rules run per assembly with lateral-reference checks; sealed convention covers all `Njord.*` production assemblies.
+- `architecture-zone-enforcement`: sealed convention covers all `Njord.*` production assemblies; new requirements for lateral-reference rules between feature libraries, marker-only actor access between libraries, and persistence configured before actor registration.
 
 ## Impact
 
-- Prerequisites: `extract-core-projects` and `extract-leaf-feature-projects` applied (Core owns options, `StreamSupervision`, `NjordHealthState`, `NjordMetrics`, `StreamConsumerActor`, `TopicSlug`, `HorizonProjection`, actor marker keys; Messages owns `EgressEvent`, `Request*/…Response` messages and Pipeline/Budget/Sensor messages). `zone-architecture-tests` applied and archived (its spec is the base for the `architecture-zone-enforcement` delta).
-- Code: `src/Njord/{Egress,Pipeline,Mqtt,Enrichment}`, `src/Njord/Configuration/Njord{Service,ActorSystem,Application}Setup.cs`, `src/Njord/Njord.csproj`, `src/Njord.Tests/{Architecture,Egress,Pipeline,Mqtt,Enrichment}`, `src/Njord.Tests.Shared`, `src/Njord.slnx`, `Dockerfile`, `AGENTS.md`, `.claude/skills/njord-*`.
-- API budget: none; no polling is added or altered (0 requests/month against the 300k free-tier limit).
-- Wire/persistence formats unchanged: MQTT discovery and state payloads byte-identical (proven by snapshots), persistence IDs, DTO `[JsonProperty]` names, actor names (`scheduler`, `budget-tracker`, `egress`, `model-state`, `pipeline`, `enrichment`, `mqtt-*`) and metric names stay identical.
+- Prerequisites: `extract-core-projects` and `extract-leaf-feature-projects` applied (Core owns options, `StreamSupervision`, `NjordHealthState`, `NjordMetrics`, `StreamConsumerActor`, `TopicSlug`, `HorizonProjection`, `ActorKeys.cs`; Messages owns `EgressEvent`, `Request*/...Response` messages and Pipeline/Budget messages). `architecture-zone-enforcement` exists in `openspec/specs` (archived `zone-architecture-tests`).
+- Code: `src/Njord/{Egress,Pipeline}`, `src/Njord/Configuration/Njord{Service,ActorSystem,Application}Setup.cs`, `src/Njord/Njord.csproj`, `src/Njord.Tests/{Architecture,Egress,Pipeline,Configuration}`, `src/Njord.slnx`, `Dockerfile`, `AGENTS.md`, `.claude/skills/njord-*`.
+- API budget: 0 requests/month; no polling is added or altered (the free-tier limits of 300k/month, 10k/day are untouched).
+- Wire/persistence formats unchanged: persistence IDs, DTO `[JsonProperty]` names, actor names (`scheduler`, `budget-tracker`, `egress`, `model-state`, `pipeline`) and metric names stay identical.
 
 ## Non-goals
 
-- Any behavior or wire-format change, new enrichment features, new MQTT entities.
-- Creating `Core/Domain/Messages/Persistence` (stage 1) or extracting `Grpc/Ingest/Sensors` (stage 2).
-- Neutral discovery descriptor types (rejected in design.md) and moving MQTT payload builders into Core (rejected).
-- Splitting the test project into per-library test projects (decision from stage 2 stands; revisit afterwards).
+- Any behavior or wire-format change, new features, new MQTT entities.
+- Extracting `Njord.Enrichment` or `Njord.Mqtt`, presenters, golden masters (all in `extract-enrichment-mqtt-projects`).
+- Creating Core/Domain/Messages/Persistence (stage 1) or Grpc/Ingest/Sensors (stage 2).
+- Per-library test projects: tests stay in the single `Njord.Tests` project (`InternalsVisibleTo` plus a project reference per new library). FunkArr-style per-library test projects are a separate later change.
 - Analyzer/`BannedSymbols.txt` rollout and CI workflow changes.

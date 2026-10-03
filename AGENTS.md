@@ -146,8 +146,11 @@ MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
 - Central package management with transitive pinning: versions live only in
   `src/Directory.Packages.props`; add packages via `dotnet add package`, never
   edit csproj XML for versions.
-- Tests: `Spec` suffix, `sealed` classes, `[Fact(Timeout = 5000)]`, BDD-style
-  method names.
+- Tests: `Spec` suffix, `sealed` classes, BDD-style method names. Async and
+  actor tests use `[Fact(Timeout = 5000)]` and pass
+  `TestContext.Current.CancellationToken` to awaited calls (xUnit1069 is an
+  error); pure synchronous specs use a plain `[Fact]`, a timeout cannot be
+  enforced there.
 - C#: records for messages/DTOs, value objects in the domain, `sealed` by
   default, nullable enabled.
 - Persistence DTOs (`Njord.Persistence`): extend-only. Never remove or rename
@@ -188,9 +191,11 @@ Rules apply to production code (`src/Njord/`).
 - Assert the count (`Assert.Equal(2, list.Count)`) before indexing several
   elements.
 
-Known deviations: about 20 existing `!.` uses on nullable results in
-`Njord.Tests` (e.g. `Domain/Analysis/ConsensusComputerSpec.cs`,
-`Configuration/ModelCoverageRegistrySpec.cs`); new code follows the rule.
+Known deviations: 21 existing `!.` uses on nullable results in `Njord.Tests`
+(most in `Persistence/EnrichmentResultSerializationSpec.cs`,
+`Domain/Analysis/ConsensusComputerSpec.cs` and
+`Configuration/ModelCoverageRegistrySpec.cs`), not counting the allowed
+`JsonNode` indexers; new code follows the rule.
 
 ## Metrics conventions
 

@@ -3,9 +3,7 @@
 ## Purpose
 
 Persistent actor for tracking API call budget usage across restarts. Uses Akka.Persistence to journal call events, snapshot state periodically, and handle day/month boundary resets so budget counters survive process restarts.
-
 ## Requirements
-
 ### Requirement: BudgetTrackerActor persists API call events
 `BudgetTrackerActor` SHALL be a `ReceivePersistentActor` with `PersistenceId` `"budget-tracker"`. When it receives a `RecordApiCall(int Weight)` command, it SHALL persist an `ApiCallRecordedDto` event and update its in-memory monthly and daily usage counters.
 
@@ -20,11 +18,11 @@ Persistent actor for tracking API call budget usage across restarts. Uses Akka.P
 - **AND** increment `MonthlyUsed` and `DailyUsed` by 4
 
 ### Requirement: BudgetTrackerActor responds to usage queries
-When the actor receives a `GetBudgetUsage` command, it SHALL reply with a `BudgetUsage(long MonthlyUsed, long DailyUsed)` message reflecting current counters.
+When the actor receives a `QueryBudgetUsage` command, it SHALL reply with a `BudgetUsageResult(long MonthlyUsed, long DailyUsed)` message reflecting current counters.
 
 #### Scenario: Query returns current counters
-- **WHEN** the actor has recorded 10 calls (weight 1 each) and receives `GetBudgetUsage`
-- **THEN** it SHALL reply with `BudgetUsage(MonthlyUsed: 10, DailyUsed: 10)`
+- **WHEN** the actor has recorded 10 calls (weight 1 each) and receives `QueryBudgetUsage`
+- **THEN** it SHALL reply with `BudgetUsageResult(MonthlyUsed: 10, DailyUsed: 10)`
 
 ### Requirement: BudgetTrackerActor recovers state from persisted events
 On recovery, the actor SHALL replay persisted `ApiCallRecordedDto` events to rebuild its monthly and daily counters. Events whose timestamp falls in a month earlier than the current UTC month SHALL be skipped during recovery.
@@ -83,3 +81,4 @@ During live operation, before processing each `RecordApiCall`, the actor SHALL c
 #### Scenario: DTO version field
 - **WHEN** an `ApiCallRecordedDto` is serialized
 - **THEN** it SHALL include `"v": 1` in the JSON output
+

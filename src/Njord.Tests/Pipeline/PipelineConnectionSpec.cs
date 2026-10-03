@@ -140,7 +140,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         var gaps = new List<double>();
         for (var i = 1; i < timestamps.Count; i++)
         {
-            var gapMs = (timestamps[i] - timestamps[i - 1]) / (double)TimeSpan.TicksPerMillisecond;
+            var gapMs = StopwatchGap.Milliseconds(timestamps[i - 1], timestamps[i]);
             gaps.Add(gapMs);
         }
 
