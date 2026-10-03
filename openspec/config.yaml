@@ -2,29 +2,16 @@ schema: spec-driven
 
 # Injected verbatim into the AI when it generates change artifacts.
 context: |
-  njord — Multi-model weather intelligence for Home Assistant.
-  .NET service (Docker container) on Akka.NET + Akka.Streams: polls the
-  Open-Meteo API for multiple weather models per location, processes
-  forecasts through an enrichment pipeline (consensus, alerts, derived
-  values, trends, indices, energy, history), and publishes Home Assistant
-  entities via MQTT Discovery (Mosquitto broker on the HA host).
+  njord — Multi-model weather intelligence for Home Assistant. A .NET service
+  on Akka.NET + Akka.Streams that polls Open-Meteo and publishes Home
+  Assistant entities via MQTT Discovery.
 
-  Build & test: all commands run from `src/` (where global.json lives).
-  Tests are xUnit v3 on Microsoft.Testing.Platform — use `dotnet run`, NOT `dotnet test`.
-    - All tests: dotnet run --project Njord.Tests/Njord.Tests.csproj
-    - Single class: append `-- -class "<FullyQualifiedName>"`
+  Stack, structure, build/test commands, API facts and conventions live in
+  `AGENTS.md` at the repo root — read it before writing artifacts.
 
-  Structure: solution `src/Njord.slnx`; service code in `src/Njord/`, unit
-  tests in `src/Njord.Tests/`, shared test infrastructure in
-  `src/Njord.Tests.Shared/`. Central package management with transitive
-  pinning (`src/Directory.Packages.props`) — never put versions in a csproj;
-  add packages via `dotnet add package`.
-
-  Open-Meteo API: endpoint `GET https://api.open-meteo.com/v1/forecast` —
-  no API key, no auth header. Free tier is non-commercial; soft limits
-  600/min, 5k/h, 10k/day, 300k/month.
-
-  Git: commit conventionally, but NEVER `git push` — the user pushes.
+  Hard constraints: all commands run from `src/`; tests are xUnit v3 on
+  Microsoft.Testing.Platform — use `dotnet run --project ...`, NOT
+  `dotnet test`; NEVER `git push` (the user pushes).
 
 rules:
   proposal:

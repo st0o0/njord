@@ -35,11 +35,9 @@ BenchmarkDotNet.Artifacts/
 coverage-results/
 results/
 
-# OpenSpec archive
-openspec/changes/archive/
-
-# Claude Code
-.claude/
+# Claude Code (local state only; commands and skills are versioned)
+.claude/worktrees/
+.claude/settings.local.json
 
 # Worktrees
 .worktrees/
