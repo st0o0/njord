@@ -36,7 +36,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
             name ?? $"budget-tracker-{Guid.NewGuid():N}");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Records_and_queries_usage()
     {
         var actor = CreateActor();
@@ -51,7 +51,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(2, usage.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Weighted_calls_accumulate_correctly()
     {
         var actor = CreateActor();
@@ -67,7 +67,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(6, usage.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Day_boundary_resets_daily_but_not_monthly()
     {
         var actor = CreateActor();
@@ -89,7 +89,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(2, usage2.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Month_boundary_resets_both_counters()
     {
         var actor = CreateActor();
@@ -111,7 +111,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(3, usage2.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Recovery_replays_events_from_current_month()
     {
         const string actorName = "recovery-test";
@@ -126,7 +126,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
 
-        var recovered = CreateActor(actorName);
+        var recovered = CreateActor();
 
         var usage2 = await recovered.Ask<BudgetUsageResult>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
@@ -135,7 +135,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(7, usage2.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Recovery_skips_events_from_previous_month()
     {
         const string actorName = "stale-month-test";
@@ -151,7 +151,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         _time.SetUtcNow(new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero));
 
-        var recovered = CreateActor(actorName);
+        var recovered = CreateActor();
 
         var usage2 = await recovered.Ask<BudgetUsageResult>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
@@ -160,7 +160,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(0, usage2.DailyUsed);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Returns_zero_before_any_calls()
     {
         var actor = CreateActor();

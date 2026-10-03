@@ -3,6 +3,7 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Njord.Messages.Common;
 using Njord.Messages.Egress;
 
 namespace Njord.Egress;
@@ -13,6 +14,8 @@ public sealed class EgressActor : ReceiveActor
     private ILoggingAdapter _log = null!;
     private Sink<EgressEvent, NotUsed>? _mergeHubSink;
     private Source<EgressEvent, NotUsed>? _broadcastHubSource;
+    private UniqueKillSwitch? _killSwitch;
+    private Task? _completion;
 
     public EgressActor()
     {
@@ -32,6 +35,15 @@ public sealed class EgressActor : ReceiveActor
                 .PipeTo(sender, Self,
                     sr => new EgressSinkResponse(msg.RequestId, sr),
                     ex => new EgressSinkFailed(msg.RequestId, ex));
+        });
+
+        Receive<StopStreams>(_ =>
+        {
+            _killSwitch?.Shutdown();
+            (_completion ?? Task.CompletedTask)
+                .PipeTo(Sender, Self,
+                    success: () => new StreamsStopped(),
+                    failure: ex => new StreamsStopFailed(ex));
         });
 
         Receive<RequestEgressSource>(msg =>
@@ -60,7 +72,8 @@ public sealed class EgressActor : ReceiveActor
         (_mergeHubSink, var mergeHubSource) = MergeHub.Source<EgressEvent>(perProducerBufferSize: 8)
             .PreMaterialize(_mat);
 
-        mergeHubSource
+        (_killSwitch, _completion) = mergeHubSource
+            .ViaMaterialized(KillSwitches.Single<EgressEvent>(), Keep.Right)
             .Log("egress-hub", e => e switch
             {
                 EgressEvent.PerModelUpdate u => $"model {u.Location}/{u.Model.Id}",
@@ -68,6 +81,7 @@ public sealed class EgressActor : ReceiveActor
                 EgressEvent.CapabilityLearned c => $"cap {c.Location}/{c.Model.Id}",
                 _ => "?",
             }, _log)
+            .WatchTermination((killSwitch, completion) => (killSwitch, completion))
             .To(broadcastHubSink)
             .Run(_mat);
     }

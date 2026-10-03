@@ -6,7 +6,8 @@
 
 Changes go through OpenSpec: `/opsx:explore` to think → `/opsx:propose` to create
 a change (proposal/design/specs/tasks) → `/opsx:apply` to implement → `/opsx:archive`.
-Implementation is TDD; run `dotnet slopwatch` (local tool) after substantial code
+Implementation is TDD; run `dotnet tool restore` and then
+`dotnet slopwatch analyze -d . --fail-on warning` (repo root) after substantial code
 changes.
 
 ## Skill routing (invoke by name)
@@ -58,6 +59,8 @@ Requires the `akka-skills` plugin, which is not installed on every machine; rout
   `dotnet-skills:snapshot-testing` (discovery payloads via Verify)
 - Packages & structure: `dotnet-skills:package-management`,
   `dotnet-skills:project-structure`
-- Quality gates: `dotnet-skills:slopwatch` (after code changes)
+- Quality gates: `dotnet-skills:slopwatch` (after code changes; the version pinned in
+  `.config/dotnet-tools.json` wins over the skill's example version; it does not
+  detect skipped tests in `*Spec.cs`; `DisabledTestArchitectureSpec` does, see AGENTS.md)
 - Specialist agents: `dotnet-skills:akka-net-specialist`,
   `dotnet-skills:dotnet-concurrency-specialist`

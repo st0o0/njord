@@ -19,7 +19,7 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        builder.AddTestTimefactor();
+        builder.AddTestTimefactor().AddFastRetryBackoff();
     }
 
     private static readonly DateTimeOffset Anchor = new(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
@@ -162,7 +162,7 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
         CreateMqttEgressActor();
 
         await requestProbe.ExpectMsgAsync<RequestMqttSink>(cancellationToken: ct);
-        await requestProbe.ExpectMsgAsync<RequestMqttSink>(TimeSpan.FromSeconds(4), cancellationToken: ct);
+        await requestProbe.ExpectMsgAsync<RequestMqttSink>(cancellationToken: ct);
     }
 
     [Fact(Timeout = 5000)]
@@ -176,7 +176,7 @@ public sealed class MqttEgressActorSpec : Akka.Hosting.TestKit.TestKit
         CreateMqttEgressActor();
 
         await requestProbe.ExpectMsgAsync<RequestEgressSource>(cancellationToken: ct);
-        await requestProbe.ExpectMsgAsync<RequestEgressSource>(TimeSpan.FromSeconds(4), cancellationToken: ct);
+        await requestProbe.ExpectMsgAsync<RequestEgressSource>(cancellationToken: ct);
     }
 
     private static ModelForecast CreateForecast(string modelId)

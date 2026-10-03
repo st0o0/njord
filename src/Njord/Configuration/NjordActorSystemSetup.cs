@@ -1,6 +1,8 @@
+using Akka;
 using Akka.Actor;
 using Akka.DependencyInjection;
 using Akka.Hosting;
+using Akka.Event;
 using Akka.Pattern;
 using Akka.Persistence.Sql.Hosting;
 using LinqToDB;
@@ -9,6 +11,7 @@ using Njord.Actors;
 using Njord.Egress;
 using Njord.Enrichment;
 using Njord.Grpc;
+using Njord.Messages.Common;
 using Njord.Mqtt;
 using Njord.Pipeline;
 using Njord.Sensors;
@@ -20,6 +23,7 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
 {
     private static readonly TimeSpan MinBackoff = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan StreamStopTimeout = TimeSpan.FromSeconds(5);
     private const double RandomFactor = 0.2;
 
     protected override string GetActorSystemName() => "njord";
@@ -81,7 +85,42 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
             {
                 RegisterMqttActors(system, registry, resolver);
             }
+
+            AddStreamShutdownTask(system, registry, StreamStopTimeout);
         });
+    }
+
+    internal static void AddStreamShutdownTask(ActorSystem system, IActorRegistry registry, TimeSpan askTimeout)
+    {
+        var log = Logging.GetLogger(system, "NjordStreamShutdown");
+
+        CoordinatedShutdown.Get(system).AddTask(
+            CoordinatedShutdown.PhaseBeforeServiceUnbind,
+            "stop-njord-streams",
+            async () =>
+            {
+                await StopStreamsOf<IPipelineActor>(registry, askTimeout, log);
+                await StopStreamsOf<IEgressActor>(registry, askTimeout, log);
+                return Done.Instance;
+            });
+    }
+
+    private static async Task StopStreamsOf<TKey>(IActorRegistry registry, TimeSpan askTimeout, ILoggingAdapter log)
+    {
+        var name = typeof(TKey).Name;
+        try
+        {
+            var actor = await registry.GetAsync<TKey>();
+            var reply = await actor.Ask<object>(new StopStreams(), askTimeout);
+            if (reply is StreamsStopFailed failed)
+            {
+                log.Warning(failed.Cause, "Failed to stop streams of {0}", name);
+            }
+        }
+        catch (Exception ex)
+        {
+            log.Warning(ex, "Failed to stop streams of {0}", name);
+        }
     }
 
     private static void RegisterPipelineActors(ActorSystem system, IActorRegistry registry, DependencyResolver resolver)

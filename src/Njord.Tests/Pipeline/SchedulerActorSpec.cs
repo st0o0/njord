@@ -63,7 +63,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
 
     private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Scheduler_offers_target_after_receiving_sink_ref()
     {
         var target = await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -71,7 +71,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal("icon_d2", target.Model.Id);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Hash_change_triggers_ack_response()
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -80,7 +80,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.NotNull(result);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Unchanged_hash_also_acks()
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -90,7 +90,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.NotNull(result);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Transport_failure_does_not_crash_and_allows_immediate_repoll()
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -103,7 +103,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Rate_limited_failure_does_not_crash_and_allows_immediate_repoll()
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -115,7 +115,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(1, result.Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Model_unavailable_does_not_crash_and_allows_immediate_repoll()
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -127,7 +127,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(1, result.Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Malformed_payload_does_not_crash_and_allows_immediate_repoll()
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -139,7 +139,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(1, result.Count);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Trigger_immediate_poll_for_all_returns_all_targets()
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -151,7 +151,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.Contains("lucerne/icon_d2", result.Targets);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Trigger_immediate_poll_for_unknown_location_returns_zero()
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -163,7 +163,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.Empty(result.Targets);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Trigger_immediate_poll_actually_offers_target_to_pipeline()
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -176,7 +176,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal("icon_d2", latest.Model.Id);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Pipeline_termination_does_not_busy_loop_when_no_replacement_is_registered()
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -211,7 +211,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
             $"Expected at most 1 'PipelineActor terminated' warning but got {terminatedWarnings} — possible tight loop");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Failure_consumer_completion_is_handled_not_unhandled()
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -227,7 +227,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         unhandledProbe.ExpectNoMsg(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Failure_consumer_failure_re_resolves_pipeline_and_requests_refs_again()
     {
         var ct = TestContext.Current.CancellationToken;

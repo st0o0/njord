@@ -129,7 +129,20 @@ Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
 MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
 `Njord__Mqtt__Enabled=true` + `Njord__Mqtt__Host=...`.
 
-`dotnet slopwatch` runs from the repo root (baseline in `.slopwatch/`).
+Slopwatch (local tool `slopwatch.cmd`, pinned in `.config/dotnet-tools.json`) runs
+from the **repo root**, not `src/`; baseline is `.slopwatch/baseline.json`:
+
+```powershell
+dotnet tool restore
+dotnet slopwatch analyze -d . --fail-on warning
+```
+
+Known limits (verified with 0.4.2): SW001 (disabled tests) only inspects files whose
+name matches `*Tests.cs`, so it does not see `[Fact(Skip = ...)]`, `[Theory(Skip = ...)]`
+or `[Ignore]` in this project's `*Spec.cs` files. `DisabledTestArchitectureSpec`
+(`src/Njord.Tests/Architecture`) guards against skipped or ignored tests instead.
+SW002 (`#pragma warning disable`) and SW003 (empty `catch`) do work. Use
+`--update-baseline` only with a written justification.
 
 OpenSpec checks (run from the repo root):
 
@@ -175,10 +188,18 @@ bash scripts/check-openspec-root.sh    # fails if an openspec/ root exists outsi
   `src/Directory.Packages.props`; add packages via `dotnet add package`, never
   edit csproj XML for versions.
 - Tests: `Spec` suffix, `sealed` classes, BDD-style method names. Async and
-  actor tests use `[Fact(Timeout = 5000)]` and pass
+  actor tests carry an explicit `[Fact(Timeout = ...)]` and pass
   `TestContext.Current.CancellationToken` to awaited calls (xUnit1069 is an
-  error); pure synchronous specs use a plain `[Fact]`, a timeout cannot be
-  enforced there.
+  error). The xUnit timeout is an outer safety net and must exceed every Akka
+  wait it wraps: TestKit waits dilate by `akka.test.timefactor = 3` (3 s
+  default becomes 9 s). Specs that start a hosted actor system or host use
+  `TestTimeouts.Hosted` (`Njord.Tests.Shared`) and bound `AwaitAssert` /
+  `AwaitCondition` explicitly (`TestTimeouts.AwaitAssertMax`); plain
+  `Timeout = 5000` is only for specs that make no dilated Akka wait. Never
+  reuse an actor name after `GracefulStop` (name release lags `Terminated`):
+  use a unique name. Retry-backoff specs set `AddFastRetryBackoff()` instead of
+  waiting real seconds. Pure synchronous specs use a plain `[Fact]`, a timeout
+  cannot be enforced there.
 - C#: records for messages/DTOs, value objects in the domain, `sealed` by
   default, nullable enabled.
 - Persistence DTOs (`Njord.Persistence`): extend-only. Never remove or rename

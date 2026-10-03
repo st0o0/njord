@@ -1,9 +1,10 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Health;
 
-public sealed class HealthEndpointSpec : IClassFixture<WebApplicationFactory<Program>>
+public sealed class HealthEndpointSpec : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly HttpClient _client;
 
@@ -15,7 +16,19 @@ public sealed class HealthEndpointSpec : IClassFixture<WebApplicationFactory<Pro
         }).CreateClient();
     }
 
-    [Fact(Timeout = 5000)]
+    public async ValueTask InitializeAsync()
+    {
+        // Host startup (Serilog, Akka.Hosting, gRPC, startup gates) is charged here, not to a fact's Timeout.
+        using var warmUp = await _client.GetAsync("/alive", TestContext.Current.CancellationToken);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _client.Dispose();
+        return ValueTask.CompletedTask;
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Healthz_returns_200_when_within_startup_grace()
     {
         var response = await _client.GetAsync("/healthz", TestContext.Current.CancellationToken);
@@ -23,7 +36,7 @@ public sealed class HealthEndpointSpec : IClassFixture<WebApplicationFactory<Pro
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Alive_returns_200_always()
     {
         var response = await _client.GetAsync("/alive", TestContext.Current.CancellationToken);
@@ -31,7 +44,7 @@ public sealed class HealthEndpointSpec : IClassFixture<WebApplicationFactory<Pro
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Unknown_path_returns_404()
     {
         var response = await _client.GetAsync("/other", TestContext.Current.CancellationToken);

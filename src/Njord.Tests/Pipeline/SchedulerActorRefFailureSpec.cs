@@ -49,10 +49,11 @@ public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
                 registry.Register<ISchedulerActor>(
                     system.ActorOf(resolver.Props<SchedulerActor>(), "scheduler"));
             })
-            .AddTestTimefactor();
+            .AddTestTimefactor()
+            .AddFastRetryBackoff();
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Re_requests_both_refs_after_pipeline_ref_failures()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -60,11 +61,11 @@ public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
         await _requestProbe.ExpectMsgAsync<RequestPipelineSink>(cancellationToken: ct);
         await _requestProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: ct);
 
-        await _requestProbe.ExpectMsgAsync<RequestPipelineSink>(TimeSpan.FromSeconds(4), cancellationToken: ct);
-        await _requestProbe.ExpectMsgAsync<RequestPipelineSource>(TimeSpan.FromSeconds(4), cancellationToken: ct);
+        await _requestProbe.ExpectMsgAsync<RequestPipelineSink>(cancellationToken: ct);
+        await _requestProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: ct);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Stays_responsive_while_waiting_for_refs_after_failure()
     {
         var ct = TestContext.Current.CancellationToken;

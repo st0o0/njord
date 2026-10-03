@@ -36,7 +36,8 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
                 registry.Register<IEnrichmentSnapshotActor>(
                     system.ActorOf(Props.Create(() => new EnrichmentSnapshotActor())));
             })
-            .AddTestTimefactor();
+            .AddTestTimefactor()
+            .AddFastRetryBackoff();
     }
 
     [Fact(Timeout = 10000)]
@@ -73,7 +74,7 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
         Sys.ActorOf(Props.Create(() => new GrpcSnapshotConsumerActor()));
 
         await failureProbe.ExpectMsgAsync<RequestEgressSource>(cancellationToken: ct);
-        await failureProbe.ExpectMsgAsync<RequestEgressSource>(TimeSpan.FromSeconds(4), cancellationToken: ct);
+        await failureProbe.ExpectMsgAsync<RequestEgressSource>(cancellationToken: ct);
     }
 
     private sealed class FakeEgressActor : ReceiveActor

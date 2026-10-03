@@ -18,7 +18,7 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        builder.AddTestTimefactor();
+        builder.AddTestTimefactor().AddFastRetryBackoff();
     }
 
     private static readonly DateTimeOffset Anchor = new(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
@@ -70,7 +70,7 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
         CreateModelStateActor();
 
         await egressProbe.ExpectMsgAsync<RequestEgressSink>(cancellationToken: ct);
-        await egressProbe.ExpectMsgAsync<RequestEgressSink>(TimeSpan.FromSeconds(4), cancellationToken: ct);
+        await egressProbe.ExpectMsgAsync<RequestEgressSink>(cancellationToken: ct);
     }
 
     [Fact(Timeout = 5000)]
@@ -84,7 +84,7 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
         CreateModelStateActor();
 
         await pipelineProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: ct);
-        await pipelineProbe.ExpectMsgAsync<RequestPipelineSource>(TimeSpan.FromSeconds(4), cancellationToken: ct);
+        await pipelineProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: ct);
     }
 
     [Fact(Timeout = 15000)]

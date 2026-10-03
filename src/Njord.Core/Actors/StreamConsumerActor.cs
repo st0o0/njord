@@ -62,7 +62,7 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
         }
 
         _retryPending = true;
-        var delay = TimeSpan.FromSeconds(Math.Min(Math.Pow(2, _retryCount), 30));
+        var delay = RetryBackoff.For(Context.System, _retryCount);
         _retryCount++;
         Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryResolve(), Self);
     }

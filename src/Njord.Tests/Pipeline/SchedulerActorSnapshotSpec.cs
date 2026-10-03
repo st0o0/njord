@@ -60,7 +60,7 @@ public sealed class SchedulerActorSnapshotSpec : Akka.Hosting.TestKit.TestKit
 
     private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
 
-    [Fact(Timeout = 10000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task State_recovers_from_snapshot_after_restart()
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);

@@ -31,7 +31,8 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
                 registry.Register<IPipelineActor>(fakePipeline);
                 registry.Register<IEgressActor>(fakeEgress);
             })
-            .AddTestTimefactor();
+            .AddTestTimefactor()
+            .AddFastRetryBackoff();
     }
 
     private static NjordOptions DefaultOptions() => new()
@@ -83,7 +84,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         CreateEnrichmentActor();
 
         await requestProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: ct);
-        await requestProbe.ExpectMsgAsync<RequestPipelineSource>(TimeSpan.FromSeconds(4), cancellationToken: ct);
+        await requestProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: ct);
     }
 
     [Fact(Timeout = 5000)]
@@ -96,7 +97,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         CreateEnrichmentActor();
 
         await requestProbe.ExpectMsgAsync<RequestEgressSink>(cancellationToken: ct);
-        await requestProbe.ExpectMsgAsync<RequestEgressSink>(TimeSpan.FromSeconds(4), cancellationToken: ct);
+        await requestProbe.ExpectMsgAsync<RequestEgressSink>(cancellationToken: ct);
     }
 
     [Fact(Timeout = 5000)]

@@ -18,7 +18,7 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        builder.AddTestTimefactor();
+        builder.AddTestTimefactor().AddFastRetryBackoff();
     }
 
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
@@ -116,7 +116,7 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
         CreateDiscoveryActor();
 
         await requestProbe.ExpectMsgAsync<RequestMqttSink>(cancellationToken: ct);
-        await requestProbe.ExpectMsgAsync<RequestMqttSink>(TimeSpan.FromSeconds(4), cancellationToken: ct);
+        await requestProbe.ExpectMsgAsync<RequestMqttSink>(cancellationToken: ct);
     }
 
     [Fact(Timeout = 5000)]
@@ -130,7 +130,7 @@ public sealed class DiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
         CreateDiscoveryActor();
 
         await requestProbe.ExpectMsgAsync<RequestEgressSource>(cancellationToken: ct);
-        await requestProbe.ExpectMsgAsync<RequestEgressSource>(TimeSpan.FromSeconds(4), cancellationToken: ct);
+        await requestProbe.ExpectMsgAsync<RequestEgressSource>(cancellationToken: ct);
     }
 
     [Fact(Timeout = 15000)]

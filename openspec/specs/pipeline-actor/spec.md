@@ -3,15 +3,17 @@
 ## Purpose
 
 Defines the PipelineActor that owns the pipeline stream graph lifecycle: actor-bound materialization with independent startup (no egress dependency), SinkRef vending for producers (SchedulerActor) via MergeHub, SourceRef vending for consumers (EgressActor) via BroadcastHub, local feedback consumer for hash computation, and egress watch for lifecycle coordination.
-
 ## Requirements
-
 ### Requirement: The pipeline graph is materialized by an actor
-A `PipelineActor` SHALL materialize the full pipeline graph using `Context.Materializer()`. The pipeline graph SHALL be materialized independently -- the actor SHALL NOT wait for the EgressActor before materializing. The stream lifecycle SHALL be bound to the actor -- when the actor stops, the graph terminates. No `IHostedService` or manual `KillSwitch` SHALL be used for pipeline lifecycle. The fetch logic (calling `IOpenMeteoClient.FetchAsync`) SHALL be inlined in the pipeline graph as a `SelectAsyncUnordered` operator — no separate `FetchStage` class.
+A `PipelineActor` SHALL materialize the full pipeline graph using `Context.Materializer()`. The pipeline graph SHALL be materialized independently -- the actor SHALL NOT wait for the EgressActor before materializing. The stream lifecycle SHALL be bound to the actor -- when the actor stops, the graph terminates. No `IHostedService` SHALL be used for pipeline lifecycle. The actor SHALL own a `UniqueKillSwitch` behind the MergeHub source that is used only for graceful shutdown. On `StopStreams` the actor SHALL shut the switch down, wait for the graph completion, and reply `StreamsStopped` (or `StreamsStopFailed`). The fetch logic (calling `IOpenMeteoClient.FetchAsync`) SHALL be inlined in the pipeline graph as a `SelectAsyncUnordered` operator -- no separate `FetchStage` class.
 
 #### Scenario: Actor stop terminates the pipeline
 - **WHEN** the PipelineActor is stopped
 - **THEN** the pipeline graph and all BroadcastHub consumers complete and no further commands are processed
+
+#### Scenario: Graceful stop completes the graph without abrupt termination
+- **WHEN** the PipelineActor receives `StopStreams` while Ready
+- **THEN** the graph completes normally, `StreamsStopped` is sent to the requester, and no `AbruptTerminationException` is logged
 
 #### Scenario: Actor restart rematerializes the pipeline
 - **WHEN** the PipelineActor restarts after a failure
@@ -86,3 +88,4 @@ The PipelineActor SHALL watch the EgressActor. If the EgressActor terminates (`T
 #### Scenario: Egress restart does not affect pipeline
 - **WHEN** the EgressActor restarts and the PipelineActor receives `Terminated`
 - **THEN** the pipeline graph continues running; the EgressActor re-requests a SourceRef when ready
+

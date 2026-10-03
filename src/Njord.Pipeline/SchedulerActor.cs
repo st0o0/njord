@@ -86,7 +86,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
                 // watched — nothing has replaced it yet. Back off exponentially
                 // instead of immediately re-watching it, which would deliver
                 // another Terminated instantly and spin in a tight loop.
-                var delay = TimeSpan.FromSeconds(Math.Min(Math.Pow(2, _pipelineRetryCount), 30));
+                var delay = RetryBackoff.For(Context.System, _pipelineRetryCount);
                 _pipelineRetryCount++;
                 Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryPipelineResolve(), Self);
                 return;
@@ -162,7 +162,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _queue = null;
         _sourceReceived = false;
 
-        var delay = TimeSpan.FromSeconds(Math.Min(Math.Pow(2, _pipelineRetryCount), 30));
+        var delay = RetryBackoff.For(Context.System, _pipelineRetryCount);
         _pipelineRetryCount++;
         Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryPipelineResolve(), Self);
 

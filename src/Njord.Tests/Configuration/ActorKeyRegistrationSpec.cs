@@ -49,7 +49,7 @@ public sealed class ActorKeyRegistrationSpec : Akka.Hosting.TestKit.TestKit
         typeof(IDiscoveryActor),
     ];
 
-    [Theory(Timeout = 5000)]
+    [Theory(Timeout = TestTimeouts.Hosted)]
     [MemberData(nameof(Markers))]
     public async Task Registry_resolves_every_actor_marker(Type marker)
     {
@@ -62,6 +62,7 @@ public sealed class ActorKeyRegistrationSpec : Akka.Hosting.TestKit.TestKit
                 Assert.NotNull(actor);
                 Assert.NotEqual(ActorRefs.Nobody, actor);
             },
+            duration: TestTimeouts.AwaitAssertMax,
             cancellationToken: TestContext.Current.CancellationToken);
     }
 }
