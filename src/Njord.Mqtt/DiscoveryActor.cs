@@ -37,6 +37,8 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
 
     private sealed record ConnectionResolved(IActorRef Ref);
     private sealed record EgressResolved(IActorRef Ref);
+    private sealed record ConnectionResolveFailed(Exception Cause);
+    private sealed record EgressResolveFailed(Exception Cause);
     private sealed record StreamCompleted
     {
         public static readonly StreamCompleted Instance = new();
@@ -72,8 +74,8 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
 
     protected override void ResolveDependencies()
     {
-        Context.GetActorAsync<IMqttConnectionActor>().PipeTo(Self, success: r => new ConnectionResolved(r));
-        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
+        Context.GetActorAsync<IMqttConnectionActor>().PipeTo(Self, success: r => new ConnectionResolved(r), failure: ex => new ConnectionResolveFailed(ex));
+        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r), failure: ex => new EgressResolveFailed(ex));
     }
 
     protected override void ConfigureWaitingForRefs()
@@ -119,6 +121,16 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
         {
             if (msg.RequestId != _egressSourceRequestId) return;
             _log.Warning(msg.Cause, "Egress source request failed - retrying");
+            ScheduleRetryResolve();
+        });
+        Receive<ConnectionResolveFailed>(msg =>
+        {
+            _log.Warning(msg.Cause, "Failed to resolve MqttConnectionActor - retrying");
+            ScheduleRetryResolve();
+        });
+        Receive<EgressResolveFailed>(msg =>
+        {
+            _log.Warning(msg.Cause, "Failed to resolve EgressActor - retrying");
             ScheduleRetryResolve();
         });
     }

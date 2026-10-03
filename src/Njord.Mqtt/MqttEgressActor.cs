@@ -34,6 +34,8 @@ public sealed class MqttEgressActor : StreamConsumerActor
 
     private sealed record EgressResolved(IActorRef Ref);
     private sealed record ConnectionResolved(IActorRef Ref);
+    private sealed record EgressResolveFailed(Exception Cause);
+    private sealed record ConnectionResolveFailed(Exception Cause);
 
     public MqttEgressActor(
         IOptions<NjordOptions> options,
@@ -58,8 +60,8 @@ public sealed class MqttEgressActor : StreamConsumerActor
 
     protected override void ResolveDependencies()
     {
-        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
-        Context.GetActorAsync<IMqttConnectionActor>().PipeTo(Self, success: r => new ConnectionResolved(r));
+        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r), failure: ex => new EgressResolveFailed(ex));
+        Context.GetActorAsync<IMqttConnectionActor>().PipeTo(Self, success: r => new ConnectionResolved(r), failure: ex => new ConnectionResolveFailed(ex));
     }
 
     protected override void ConfigureWaitingForRefs()
@@ -104,6 +106,16 @@ public sealed class MqttEgressActor : StreamConsumerActor
         {
             if (msg.RequestId != _mqttSinkRequestId) return;
             _log.Warning(msg.Cause, "MQTT sink request failed - retrying");
+            ScheduleRetryResolve();
+        });
+        Receive<EgressResolveFailed>(msg =>
+        {
+            _log.Warning(msg.Cause, "Failed to resolve EgressActor - retrying");
+            ScheduleRetryResolve();
+        });
+        Receive<ConnectionResolveFailed>(msg =>
+        {
+            _log.Warning(msg.Cause, "Failed to resolve MqttConnectionActor - retrying");
             ScheduleRetryResolve();
         });
     }

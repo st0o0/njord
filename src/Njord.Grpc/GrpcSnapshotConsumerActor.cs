@@ -18,11 +18,13 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
     private long _egressSourceRequestId;
 
     private sealed record EgressResolved(IActorRef Ref);
+    private sealed record EgressResolveFailed(Exception Cause);
     private sealed record SnapshotActorsResolved(IActorRef Forecast, IActorRef Enrichment);
+    private sealed record SnapshotResolveFailed(Exception Cause);
 
     protected override void ResolveDependencies()
     {
-        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
+        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r), failure: ex => new EgressResolveFailed(ex));
     }
 
     protected override void ConfigureWaitingForRefs()
@@ -48,7 +50,7 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
             var forecastTask = Context.GetActorAsync<IForecastSnapshotActor>();
             var enrichmentTask = Context.GetActorAsync<IEnrichmentSnapshotActor>();
             Task.WhenAll(forecastTask, enrichmentTask)
-                .PipeTo(Self, success: _ => new SnapshotActorsResolved(forecastTask.Result, enrichmentTask.Result));
+                .PipeTo(Self, success: _ => new SnapshotActorsResolved(forecastTask.Result, enrichmentTask.Result), failure: ex => new SnapshotResolveFailed(ex));
         });
         Receive<EgressSourceFailed>(msg =>
         {
@@ -61,6 +63,16 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
             _forecastActor = msg.Forecast;
             _enrichmentActor = msg.Enrichment;
             TryTransition();
+        });
+        Receive<EgressResolveFailed>(msg =>
+        {
+            Context.GetLogger().Warning(msg.Cause, "Failed to resolve EgressActor - retrying");
+            ScheduleRetryResolve();
+        });
+        Receive<SnapshotResolveFailed>(msg =>
+        {
+            Context.GetLogger().Warning(msg.Cause, "Failed to resolve snapshot actors - retrying");
+            ScheduleRetryResolve();
         });
     }
 

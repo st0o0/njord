@@ -29,6 +29,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
 
     private sealed record PipelineReady;
     private sealed record SchedulerResolved(IActorRef Ref);
+    private sealed record SchedulerResolveFailed(Exception Cause);
 
     public PipelineActor(
         IOpenMeteoClient client,
@@ -47,12 +48,18 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         _log = Context.GetLogger();
         _mat = Context.Materializer();
         Context.GetActorAsync<ISchedulerActor>()
-            .PipeTo(Self, success: r => new SchedulerResolved(r));
+            .PipeTo(Self, success: r => new SchedulerResolved(r), failure: ex => new SchedulerResolveFailed(ex));
     }
 
     private void Initializing()
     {
         Receive<SchedulerResolved>(msg => MaterializePipeline(msg.Ref));
+        Receive<SchedulerResolveFailed>(msg =>
+        {
+            _log.Warning(msg.Cause, "Failed to resolve SchedulerActor - retrying");
+            Context.GetActorAsync<ISchedulerActor>()
+                .PipeTo(Self, success: r => new SchedulerResolved(r), failure: ex => new SchedulerResolveFailed(ex));
+        });
         Receive<PipelineReady>(_ =>
         {
             _log.Info("Pipeline graph materialized - ready to accept producers and consumers");

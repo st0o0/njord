@@ -41,6 +41,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
     public sealed record DataChanged(string Location, string ModelId, int Hash, DateTimeOffset Utc);
 
     private sealed record PipelineResolved(IActorRef Pipeline);
+    private sealed record PipelineResolveFailed(Exception Cause);
     private sealed record RetryPipelineResolve;
     private sealed record ConnectionEstablished;
     private sealed record OfferFailed(string Location, string ModelId, Exception Error);
@@ -73,7 +74,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _log = Context.GetLogger();
         _mat = Context.Materializer();
         Context.GetActorAsync<IPipelineActor>()
-            .PipeTo(Self, success: r => new PipelineResolved(r));
+            .PipeTo(Self, success: r => new PipelineResolved(r), failure: ex => new PipelineResolveFailed(ex));
     }
 
     private void WaitingForPipeline()
@@ -101,7 +102,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Command<RetryPipelineResolve>(_ =>
         {
             Context.GetActorAsync<IPipelineActor>()
-                .PipeTo(Self, success: r => new PipelineResolved(r));
+                .PipeTo(Self, success: r => new PipelineResolved(r), failure: ex => new PipelineResolveFailed(ex));
         });
         Command<QueryPollStates>(OnQueryPollStates);
         Command<FailureConsumerCompleted>(_ => _log.Debug("Failure consumer stream completed"));
@@ -111,6 +112,13 @@ public sealed class SchedulerActor : ReceivePersistentActor
             _log.Debug("Ignoring pipeline sink failure while waiting for pipeline: {Error}", msg.Cause.Message));
         Command<PipelineSourceFailed>(msg =>
             _log.Debug("Ignoring pipeline source failure while waiting for pipeline: {Error}", msg.Cause.Message));
+        Command<PipelineResolveFailed>(msg =>
+        {
+            _log.Warning(msg.Cause, "Failed to resolve PipelineActor - retrying");
+            var delay = RetryBackoff.For(Context.System, _pipelineRetryCount);
+            _pipelineRetryCount++;
+            Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryPipelineResolve(), Self);
+        });
         CommandAny(_ => Stash.Stash());
     }
 
@@ -252,7 +260,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _pipelineRetryCount = 0;
 
         Context.GetActorAsync<IPipelineActor>()
-            .PipeTo(Self, success: r => new PipelineResolved(r));
+            .PipeTo(Self, success: r => new PipelineResolved(r), failure: ex => new PipelineResolveFailed(ex));
 
         Become(WaitingForPipeline);
     }

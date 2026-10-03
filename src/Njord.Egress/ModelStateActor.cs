@@ -25,7 +25,9 @@ public sealed class ModelStateActor : StreamConsumerActor
     private long _pipelineSourceRequestId;
 
     private sealed record EgressResolved(IActorRef Ref);
+    private sealed record EgressResolveFailed(Exception Cause);
     private sealed record PipelineResolved(IActorRef Ref);
+    private sealed record PipelineResolveFailed(Exception Cause);
 
     public ModelStateActor(
         IOptions<NjordOptions> options,
@@ -45,8 +47,8 @@ public sealed class ModelStateActor : StreamConsumerActor
 
     protected override void ResolveDependencies()
     {
-        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
-        Context.GetActorAsync<IPipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r));
+        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r), failure: ex => new EgressResolveFailed(ex));
+        Context.GetActorAsync<IPipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r), failure: ex => new PipelineResolveFailed(ex));
     }
 
     protected override void ConfigureWaitingForRefs()
@@ -91,6 +93,16 @@ public sealed class ModelStateActor : StreamConsumerActor
         {
             if (msg.RequestId != _pipelineSourceRequestId) return;
             _log.Warning(msg.Cause, "Pipeline source request failed - retrying");
+            ScheduleRetryResolve();
+        });
+        Receive<EgressResolveFailed>(msg =>
+        {
+            _log.Warning(msg.Cause, "Failed to resolve EgressActor - retrying");
+            ScheduleRetryResolve();
+        });
+        Receive<PipelineResolveFailed>(msg =>
+        {
+            _log.Warning(msg.Cause, "Failed to resolve PipelineActor - retrying");
             ScheduleRetryResolve();
         });
     }

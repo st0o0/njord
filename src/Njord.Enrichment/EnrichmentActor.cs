@@ -41,6 +41,9 @@ public sealed class EnrichmentActor : StreamConsumerActor
     private sealed record PipelineResolved(IActorRef Ref);
     private sealed record EgressResolved(IActorRef Ref);
     private sealed record SensorHubResolved(IActorRef Ref);
+    private sealed record PipelineResolveFailed(Exception Cause);
+    private sealed record EgressResolveFailed(Exception Cause);
+    private sealed record SensorHubResolveFailed(Exception Cause);
 
     public EnrichmentActor(
         IOptions<NjordOptions> options,
@@ -61,9 +64,9 @@ public sealed class EnrichmentActor : StreamConsumerActor
 
     protected override void ResolveDependencies()
     {
-        Context.GetActorAsync<IPipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r));
-        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r));
-        Context.GetActorAsync<ISensorHubActor>().PipeTo(Self, success: r => new SensorHubResolved(r));
+        Context.GetActorAsync<IPipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r), failure: ex => new PipelineResolveFailed(ex));
+        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r), failure: ex => new EgressResolveFailed(ex));
+        Context.GetActorAsync<ISensorHubActor>().PipeTo(Self, success: r => new SensorHubResolved(r), failure: ex => new SensorHubResolveFailed(ex));
     }
 
     protected override void ConfigureWaitingForRefs()
@@ -115,6 +118,21 @@ public sealed class EnrichmentActor : StreamConsumerActor
         {
             if (msg.RequestId != _egressSinkRequestId) return;
             _log.Warning(msg.Cause, "Egress sink request failed - retrying");
+            ScheduleRetryResolve();
+        });
+        Receive<PipelineResolveFailed>(msg =>
+        {
+            _log.Warning(msg.Cause, "Failed to resolve PipelineActor - retrying");
+            ScheduleRetryResolve();
+        });
+        Receive<EgressResolveFailed>(msg =>
+        {
+            _log.Warning(msg.Cause, "Failed to resolve EgressActor - retrying");
+            ScheduleRetryResolve();
+        });
+        Receive<SensorHubResolveFailed>(msg =>
+        {
+            _log.Warning(msg.Cause, "Failed to resolve SensorHubActor - retrying");
             ScheduleRetryResolve();
         });
     }
