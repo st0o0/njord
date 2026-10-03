@@ -94,7 +94,7 @@ All commands run from `src/`:
 
 ```powershell
 dotnet build Njord.slnx
-dotnet run --project Njord.Tests/Njord.Tests.csproj   # xUnit v3 via MTP
+dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj   # xUnit v3 via MTP; one project per library (see AGENTS.md for the run-all loop)
 ```
 
 ## License

@@ -1,0 +1,92 @@
+using Akka.Actor;
+using Akka.Hosting;
+using Akka.Streams;
+using Akka.Streams.Dsl;
+using Njord.Domain.Analysis;
+using Njord.Domain.Weather;
+using Njord.Egress;
+using Njord.Messages.Egress;
+using Njord.Tests.Shared;
+
+namespace Njord.Egress.Tests;
+
+public sealed class EgressActorSpec : Akka.Hosting.TestKit.TestKit
+{
+    private static readonly DateTimeOffset Epoch = new(2026, 7, 12, 6, 0, 0, TimeSpan.Zero);
+
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.AddTestTimefactor();
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Vends_sink_ref_on_request()
+    {
+        var egress = Sys.ActorOf(Props.Create<EgressActor>());
+
+        var response = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(0), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+        Assert.NotNull(response.SinkRef);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Vends_source_ref_on_request()
+    {
+        var egress = Sys.ActorOf(Props.Create<EgressActor>());
+
+        var response = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(0), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+        Assert.NotNull(response.SourceRef);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Events_flow_from_producer_to_consumer_through_hub()
+    {
+        var mat = Sys.Materializer();
+        var egress = Sys.ActorOf(Props.Create<EgressActor>());
+
+        var sinkResponse = await egress.Ask<EgressSinkResponse>(new RequestEgressSink(0), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var sourceResponse = await egress.Ask<EgressSourceResponse>(new RequestEgressSource(0), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+        var received = new List<EgressEvent>();
+        var consumed = sourceResponse.SourceRef.Source
+            .Take(1)
+            .RunForeach(e => received.Add(e), mat);
+
+        var testEvent = new EgressEvent.EnrichmentUpdate("lucerne", "alerts", new AlertResult("lucerne", []));
+
+        Source.Single((EgressEvent)testEvent)
+            .RunWith(sinkResponse.SinkRef.Sink, mat);
+
+        await consumed.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+
+        Assert.Single(received);
+        Assert.IsType<EgressEvent.EnrichmentUpdate>(received[0]);
+        Assert.Equal("lucerne", ((EgressEvent.EnrichmentUpdate)received[0]).Location);
+    }
+
+    [Fact]
+    public void All_egress_event_variants_are_pattern_matchable()
+    {
+        var events = new EgressEvent[]
+        {
+            new EgressEvent.PerModelUpdate("loc", new WeatherModel("icon_d2"),
+                new ModelForecast(new WeatherModel("icon_d2"), "loc", new CycleId(Epoch),
+                    new ForecastSeries([]), DailyForecastSeries.Empty)),
+            new EgressEvent.EnrichmentUpdate("loc", "consensus", new ConsensusResult([])),
+            new EgressEvent.EnrichmentUpdate("loc", "alerts", new AlertResult("loc", [])),
+        };
+
+        foreach (var e in events)
+        {
+            var matched = e switch
+            {
+                EgressEvent.PerModelUpdate => "per-model",
+                EgressEvent.EnrichmentUpdate u => u.TypeName,
+                _ => throw new InvalidOperationException("Unknown variant"),
+            };
+
+            Assert.NotNull(matched);
+        }
+    }
+}

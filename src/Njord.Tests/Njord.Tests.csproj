@@ -7,12 +7,9 @@
 
     <ItemGroup>
         <PackageReference Include="Akka.Hosting.TestKit" />
-        <PackageReference Include="Akka.Persistence.TestKit" />
-        <PackageReference Include="Akka.Persistence.TestKit.Xunit" />
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
         <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
         <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
-        <PackageReference Include="TngTech.ArchUnitNET.xUnitV3" />
         <PackageReference Include="Verify.XunitV3" />
         <PackageReference Include="xunit.v3.mtp-v2" />
     </ItemGroup>
@@ -23,13 +20,11 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Njord\Njord.csproj" />
-        <ProjectReference Include="..\Njord.Pipeline\Njord.Pipeline.csproj" />
-        <ProjectReference Include="..\Njord.Egress\Njord.Egress.csproj" />
         <ProjectReference Include="..\Njord.Tests.Shared\Njord.Tests.Shared.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="xunit.runner.json">
+        <Content Include="..\xunit.runner.json" Link="xunit.runner.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

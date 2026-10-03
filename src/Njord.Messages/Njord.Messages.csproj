@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-        <InternalsVisibleTo Include="Njord.Tests" />
     </ItemGroup>
 
     <ItemGroup>

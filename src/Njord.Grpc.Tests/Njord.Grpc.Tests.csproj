@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <IsTestProject>true</IsTestProject>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Akka.Hosting.TestKit" />
+        <PackageReference Include="Akka.Persistence.TestKit" />
+        <PackageReference Include="Akka.Persistence.TestKit.Xunit" />
+        <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+        <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+        <PackageReference Include="xunit.v3.mtp-v2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Njord.Grpc\Njord.Grpc.csproj" />
+        <ProjectReference Include="..\Njord.Egress\Njord.Egress.csproj" />
+        <ProjectReference Include="..\Njord.Pipeline\Njord.Pipeline.csproj" />
+        <ProjectReference Include="..\Njord.Persistence\Njord.Persistence.csproj" />
+        <ProjectReference Include="..\Njord.Tests.Shared\Njord.Tests.Shared.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="..\xunit.runner.json" Link="xunit.runner.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+</Project>

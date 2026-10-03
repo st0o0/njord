@@ -1,6 +1,6 @@
 ---
 name: njord-actor-spec
-description: Use when writing or changing tests for actors, enrichment features or persistence DTOs in src/Njord.Tests — Akka.Hosting TestKit specs, in-memory persistence, FakeTimeProvider, nested fake actors and Verify wire-format snapshots.
+description: Use when writing or changing tests for actors, enrichment features or persistence DTOs in the src/Njord*.Tests projects — Akka.Hosting TestKit specs, in-memory persistence, FakeTimeProvider, nested fake actors and Verify wire-format snapshots.
 ---
 
 # njord actor spec
@@ -8,17 +8,17 @@ description: Use when writing or changing tests for actors, enrichment features 
 Test rules (`Spec` suffix, `sealed`, `[Fact(Timeout = ...)]` as outer safety net above the dilated TestKit waits (`TestTimeouts.Hosted` for hosted specs), BDD-style names, assertion conventions) live in `AGENTS.md` — follow them. Run tests with `dotnet run`, never `dotnet test`:
 
 ```powershell
-dotnet run --project Njord.Tests/Njord.Tests.csproj -- -class "Njord.Tests.Pipeline.BudgetTrackerActorSpec"
+dotnet run --project Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj -- -class "Njord.Pipeline.Tests.BudgetTrackerActorSpec"
 ```
 
 ## Which kind of spec
 
 | Subject | Base | Example |
 |---|---|---|
-| Actor (incl. persistent) | `Akka.Hosting.TestKit.TestKit` | `src/Njord.Tests/Pipeline/BudgetTrackerActorSpec.cs` |
+| Actor (incl. persistent) | `Akka.Hosting.TestKit.TestKit` | `src/Njord.Pipeline.Tests/BudgetTrackerActorSpec.cs` |
 | Enrichment feature / pure logic | plain class, no TestKit | `src/Njord.Tests/Enrichment/Features/AlertEnrichmentSpec.cs` |
 | Cross-feature invariants | plain class | `src/Njord.Tests/Enrichment/EnrichmentFeatureContractSpec.cs` |
-| DTO wire format | plain class + Verify | `src/Njord.Tests/Persistence/EnrichmentSnapshotDtoSerializationSpec.cs` |
+| DTO wire format | plain class + Verify | `src/Njord.Persistence.Tests/EnrichmentSnapshotDtoSerializationSpec.cs` |
 
 ## Actor spec skeleton (from `BudgetTrackerActorSpec`)
 
@@ -55,7 +55,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 - `AddTestPersistence()` (`src/Njord.Tests.Shared/TestPersistenceConfig.cs`) = in-memory journal + snapshot store.
 - Always pass `TestContext.Current.CancellationToken`; advance time with `_time.SetUtcNow(...)`, never sleep.
 - Recovery test: use a fixed name, `await actor.GracefulStop(...)`, recreate with the same name, assert state (`Recovery_replays_events_from_current_month`).
-- Collaborators: nested `private sealed class FakeXxxActor : ReceiveActor` or `CreateTestProbe()` (examples: `src/Njord.Tests/Grpc/OpsGrpcServiceSpec.cs`, `src/Njord.Tests/Egress/ModelStateActorSpec.cs`).
+- Collaborators: nested `private sealed class FakeXxxActor : ReceiveActor` or `CreateTestProbe()` (examples: `src/Njord.Grpc.Tests/OpsGrpcServiceSpec.cs`, `src/Njord.Egress.Tests/ModelStateActorSpec.cs`).
 - Time: use the framework `FakeTimeProvider` everywhere (the feature specs do too); do not write your own.
 
 ## Verify wire-format snapshot (from `EnrichmentSnapshotDtoSerializationSpec`)
@@ -72,7 +72,7 @@ public Task EnrichmentSnapshot_dto_produces_stable_wire_format()
 ```
 
 - Baselines sit next to the spec as `<Class>.<Method>.verified.txt`; a change in them is a wire-format change — review it against the DTO rules in `AGENTS.md`.
-- `src/Njord.Tests/ModuleInitializer.cs` disables the diff tool (`DiffRunner.Disabled = true`): failures print the diff, nothing launches.
+- `ModuleInitializer.cs` (in `src/Njord.Tests`, `Njord.Persistence.Tests`, `Njord.Pipeline.Tests`) disables the diff tool (`DiffRunner.Disabled = true`): failures print the diff, nothing launches.
 
 ## Checklist
 

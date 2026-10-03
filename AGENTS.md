@@ -31,7 +31,7 @@ the HA host).
 - **SensorHub for external sensor input.** The SensorHub actor receives readings
   via gRPC (`SensorService`), stores latest values per `SensorKind` (closed enum).
   Enrichments pull at each poll cycle (latest-value, no reactive re-computation).
-- **Zone rules are enforced by tests** in `src/Njord.Tests/Architecture/` (Ingest ↔
+- **Zone rules are enforced by tests** in `src/Njord.Architecture.Tests/` (Ingest ↔
   Egress side independence, Domain independence, sealed/`Spec` conventions,
   `LayerReferenceSpec` for the assembly reference direction: Domain and
   Persistence reference no Njord assembly, Messages only Domain, Core only those
@@ -92,19 +92,27 @@ src/
     Enrichment/ (+ Features/) # Enrichment actor and feature implementations (still in host)
     Configuration/            # Host setup (service, actor system, application)
     Health/
-  Njord.Tests/                # Unit + actor tests (mirrors Njord/ folders)
-  Njord.Tests.Shared/         # Shared fakes, fixtures, helpers
+  Njord.Domain.Tests/         # Tests for Njord.Domain (mirrors its folders)
+  Njord.Persistence.Tests/    # DTO wire-format specs (Verify)
+  Njord.Core.Tests/           # Configuration, Diagnostics, StreamConsumerActor, RetryBackoff
+  Njord.Egress.Tests/         # Tests for Njord.Egress
+  Njord.Grpc.Tests/           # Tests for Njord.Grpc
+  Njord.Pipeline.Tests/       # Tests for Njord.Pipeline (scheduler, budget, poll stages)
+  Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules over all assemblies
+  Njord.Tests/                # Host-resident tests: Mqtt, Enrichment, Health, Configuration
+                              #   (host setup), Ingest, Sensors, PollPipelineSpec
+  Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
 
 Mqtt and Enrichment still live in the host and are extracted by a later change
-(`extract-enrichment-mqtt-projects`).
+(`extract-enrichment-mqtt-projects`); their tests stay in `Njord.Tests` until then.
 
 Reference direction: Domain/Persistence <- Messages <- Core <- feature libs
 (Ingest, Sensors, Grpc, Pipeline, Egress) <- host. Feature libs reference only Njord.Core (and
 below), never each other and never the host; they reach each other's actors
 through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs`. Registration
-stays central in the host. Enforced by project references plus `Architecture/LayerReferenceSpec.cs` and the
-lateral/upward ArchUnit rules in `Architecture/ZoneArchitectureSpec.cs`.
+stays central in the host. Enforced by project references plus `Njord.Architecture.Tests/LayerReferenceSpec.cs` and the
+lateral/upward ArchUnit rules in `Njord.Architecture.Tests/ZoneArchitectureSpec.cs`.
 
 ## Build & test
 
@@ -112,9 +120,26 @@ All commands run from `src/` (where `global.json` lives):
 
 ```powershell
 dotnet build Njord.slnx
-dotnet run --project Njord.Tests/Njord.Tests.csproj                                    # unit + actor tests (no Docker)
-dotnet run --project Njord.Tests/Njord.Tests.csproj -- -class "<FullyQualifiedName>"   # single class
+dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj                          # one test project (no Docker)
+dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj -- -class "<FullyQualifiedName>"   # single class
 ```
+
+Every `Njord.*Tests` project is its own executable; run all of them with a loop
+(a new test project is picked up automatically, `Njord.Tests.Shared` is not a test project):
+
+```bash
+for p in Njord.*Tests; do
+  [ "$p" = Njord.Tests.Shared ] && continue
+  dotnet run --project "$p/$p.csproj" --no-build   # build first: dotnet build Njord.slnx
+done
+```
+
+Current total: 825 tests (Domain 286, Persistence 10, Core 97, Egress 27, Grpc 74,
+Pipeline 111, Architecture 25, host `Njord.Tests` 195). CI's
+`dotnet test --solution Njord.slnx` runs every test project of the solution.
+Each project is its own process with its own thread pool: running many at once on a small
+runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
+limit parallel test modules (`--max-parallel-test-modules`) if flakes appear.
 
 Tests are xUnit v3 on Microsoft.Testing.Platform — `dotnet run`, **not** `dotnet test`.
 Shared test infrastructure (fixtures, fakes, helpers) lives in `Njord.Tests.Shared`.
@@ -140,7 +165,7 @@ dotnet slopwatch analyze -d . --fail-on warning
 Known limits (verified with 0.4.2): SW001 (disabled tests) only inspects files whose
 name matches `*Tests.cs`, so it does not see `[Fact(Skip = ...)]`, `[Theory(Skip = ...)]`
 or `[Ignore]` in this project's `*Spec.cs` files. `DisabledTestArchitectureSpec`
-(`src/Njord.Tests/Architecture`) guards against skipped or ignored tests instead.
+(`src/Njord.Architecture.Tests`) guards against skipped or ignored tests instead.
 SW002 (`#pragma warning disable`) and SW003 (empty `catch`) do work. Use
 `--update-baseline` only with a written justification.
 
@@ -245,10 +270,10 @@ Rules apply to production code (`src/Njord/`).
 - Assert the count (`Assert.Equal(2, list.Count)`) before indexing several
   elements.
 
-Known deviations: 21 existing `!.` uses on nullable results in `Njord.Tests`
-(most in `Persistence/EnrichmentResultSerializationSpec.cs`,
-`Domain/Analysis/ConsensusComputerSpec.cs` and
-`Configuration/ModelCoverageRegistrySpec.cs`), not counting the allowed
+Known deviations: 21 existing `!.` uses on nullable results in the test projects
+(most in `Njord.Persistence.Tests/EnrichmentResultSerializationSpec.cs`,
+`Njord.Domain.Tests/Analysis/ConsensusComputerSpec.cs` and
+`Njord.Core.Tests/Configuration/ModelCoverageRegistrySpec.cs`), not counting the allowed
 `JsonNode` indexers; new code follows the rule.
 
 ## Metrics conventions

@@ -9,7 +9,7 @@ using Njord.Egress;
 using Njord.Enrichment;
 using Njord.Messages.Egress;
 using Njord.Mqtt;
-using Njord.Tests.Actors;
+using FailingRefProvider = Njord.Tests.Actors.FailingRefProvider;
 using Njord.Tests.Shared;
 
 namespace Njord.Tests.Mqtt;

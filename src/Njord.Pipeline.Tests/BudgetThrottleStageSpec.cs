@@ -1,0 +1,237 @@
+using Akka.Actor;
+using Akka.Hosting;
+using Akka.Streams;
+using Akka.Streams.Dsl;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Time.Testing;
+using Njord.Configuration;
+using Njord.Messages.Pipeline;
+using Njord.Pipeline;
+using Njord.Tests.Shared;
+
+namespace Njord.Pipeline.Tests;
+
+public sealed class BudgetThrottleStageSpec : Akka.Hosting.TestKit.TestKit
+{
+    private IMaterializer Mat => Sys.Materializer();
+
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder
+            .AddTestPersistence()
+            .AddTestTimefactor();
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Elements_pass_through_when_gate_allows_immediately()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        var gate = new AlwaysAllowGate<int>();
+        var stage = new BudgetThrottleStage<int>(gate);
+
+        var result = await Source.From(Enumerable.Range(0, 5))
+            .Via(stage)
+            .RunWith(Sink.Seq<int>(), Mat);
+
+        Assert.Equal(5, result.Count);
+        Assert.Equal(5, gate.AcquireCount);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Gate_is_called_for_every_element()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        var gate = new AlwaysAllowGate<int>();
+        var stage = new BudgetThrottleStage<int>(gate);
+
+        var result = await Source.From([10, 20, 30])
+            .Via(stage)
+            .RunWith(Sink.Seq<int>(), Mat);
+
+        Assert.Equal([10, 20, 30], result);
+        Assert.Equal([10, 20, 30], gate.Acquired);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Stage_retries_after_delay_when_gate_rejects()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        var gate = new RejectThenAllowGate<int>(rejectCount: 2);
+        var stage = new BudgetThrottleStage<int>(gate);
+
+        var result = await Source.From([42])
+            .Via(stage)
+            .RunWith(Sink.Seq<int>(), Mat);
+
+        Assert.Equal([42], result);
+        Assert.Equal(3, gate.TryCount);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Empty_source_completes_immediately()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        var gate = new AlwaysAllowGate<int>();
+        var stage = new BudgetThrottleStage<int>(gate);
+
+        var result = await Source.Empty<int>()
+            .Via(stage)
+            .RunWith(Sink.Seq<int>(), Mat);
+
+        Assert.Empty(result);
+        Assert.Empty(gate.Acquired);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Stage_preserves_element_order()
+    {
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        var gate = new AlwaysAllowGate<int>();
+        var stage = new BudgetThrottleStage<int>(gate);
+
+        var result = await Source.From([1, 2, 3, 4, 5])
+            .Via(stage)
+            .RunWith(Sink.Seq<int>(), Mat);
+
+        Assert.Equal([1, 2, 3, 4, 5], result);
+    }
+
+    private sealed class AlwaysAllowGate<T> : IBudgetGate<T>
+    {
+        public List<T> Acquired { get; } = [];
+        public int AcquireCount => Acquired.Count;
+
+        public bool TryAcquire(T element)
+        {
+            lock (Acquired) Acquired.Add(element);
+            return true;
+        }
+
+        public TimeSpan EstimateDelay(T element) => TimeSpan.Zero;
+    }
+
+    private sealed class RejectThenAllowGate<T>(int rejectCount) : IBudgetGate<T>
+    {
+        public int TryCount;
+
+        public bool TryAcquire(T element)
+        {
+            TryCount++;
+            return TryCount > rejectCount;
+        }
+
+        public TimeSpan EstimateDelay(T element) => TimeSpan.FromMilliseconds(10);
+    }
+}
+
+public sealed class WeightedBudgetGateSpec
+{
+    private static readonly DateTimeOffset Epoch = new(2026, 7, 12, 6, 0, 0, TimeSpan.Zero);
+    private readonly FakeTimeProvider _time = new(Epoch);
+
+    [Fact]
+    public void Acquires_immediately_when_tokens_available()
+    {
+        var provider = new FakeProvider(new BudgetRate(600, 10));
+        var gate = new WeightedBudgetGate(provider, ActorRefs.Nobody, _time);
+
+        var target = MakeTarget(weight: 1);
+        Assert.True(gate.TryAcquire(target));
+    }
+
+    [Fact]
+    public void Rejects_when_tokens_insufficient()
+    {
+        var provider = new FakeProvider(new BudgetRate(60, 1));
+        var gate = new WeightedBudgetGate(provider, ActorRefs.Nobody, _time);
+
+        Assert.True(gate.TryAcquire(MakeTarget(1)));
+        Assert.False(gate.TryAcquire(MakeTarget(1)));
+    }
+
+    [Fact]
+    public void EstimateDelay_returns_positive_when_tokens_insufficient()
+    {
+        var provider = new FakeProvider(new BudgetRate(60, 1));
+        var gate = new WeightedBudgetGate(provider, ActorRefs.Nobody, _time);
+
+        gate.TryAcquire(MakeTarget(1));
+        var delay = gate.EstimateDelay(MakeTarget(1));
+
+        Assert.True(delay > TimeSpan.Zero);
+    }
+
+    [Fact]
+    public void Tells_actor_with_correct_weight_on_acquire()
+    {
+        var provider = new FakeProvider(new BudgetRate(6000, 100));
+        var gate = new WeightedBudgetGate(provider, ActorRefs.Nobody, _time);
+
+        Assert.True(gate.TryAcquire(MakeTarget(3)));
+        Assert.True(gate.TryAcquire(MakeTarget(2)));
+    }
+
+    [Fact]
+    public void Provider_is_polled_at_construction()
+    {
+        var provider = new FakeProvider(new BudgetRate(6000, 100));
+        _ = new WeightedBudgetGate(provider, ActorRefs.Nobody, _time);
+
+        Assert.True(provider.CallCount >= 1);
+    }
+
+    [Fact]
+    public void Burst_allows_multiple_immediate_acquires()
+    {
+        var provider = new FakeProvider(new BudgetRate(60, 4));
+        var gate = new WeightedBudgetGate(provider, ActorRefs.Nobody, _time);
+
+        for (var i = 0; i < 4; i++)
+            Assert.True(gate.TryAcquire(MakeTarget(1)));
+
+        Assert.False(gate.TryAcquire(MakeTarget(1)));
+    }
+
+    [Fact]
+    public void Weight_exceeding_max_burst_becomes_acquirable_after_refill()
+    {
+        var provider = new FakeProvider(new BudgetRate(480, 16));
+        var gate = new WeightedBudgetGate(provider, ActorRefs.Nobody, _time);
+
+        gate.TryAcquire(MakeTarget(16));
+        Assert.False(gate.TryAcquire(MakeTarget(12)));
+
+        _time.Advance(TimeSpan.FromMilliseconds(1600));
+        Assert.True(gate.TryAcquire(MakeTarget(12)));
+    }
+
+    [Fact]
+    public void Free_tier_with_heavy_weight_acquires_on_first_try()
+    {
+        var provider = new FakeProvider(new BudgetRate(480, 16));
+        var gate = new WeightedBudgetGate(provider, ActorRefs.Nobody, _time);
+
+        var heavyTarget = MakeTarget(weight: 12);
+        Assert.True(gate.TryAcquire(heavyTarget));
+    }
+
+    private static WeightedTarget MakeTarget(int weight)
+    {
+        var location = new LocationOptions
+        {
+            Name = "test",
+            Latitude = 0,
+            Longitude = 0,
+        };
+        return new WeightedTarget(location, new Njord.Domain.Weather.WeatherModel("test"),
+            weight, new Njord.Domain.Weather.CycleId(Epoch));
+    }
+
+    private sealed class FakeProvider(BudgetRate rate) : IBudgetProvider
+    {
+        public BudgetRate Rate { get; set; } = rate;
+        public int CallCount;
+        public BudgetRate GetCurrentRate() { Interlocked.Increment(ref CallCount); return Rate; }
+    }
+}

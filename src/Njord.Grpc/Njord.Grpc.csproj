@@ -5,7 +5,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="Njord.Tests" />
+        <InternalsVisibleTo Include="Njord.Grpc.Tests" />
     </ItemGroup>
 
     <ItemGroup>

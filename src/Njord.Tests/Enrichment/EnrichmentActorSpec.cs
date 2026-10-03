@@ -12,7 +12,7 @@ using Njord.Enrichment;
 using Njord.Messages.Egress;
 using Njord.Messages.Pipeline;
 using Njord.Pipeline;
-using Njord.Tests.Actors;
+using FailingRefProvider = Njord.Tests.Actors.FailingRefProvider;
 using Njord.Tests.Shared;
 
 namespace Njord.Tests.Enrichment;

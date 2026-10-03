@@ -11,6 +11,13 @@
     <File Path="global.json" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />
+    <Project Path="Njord.Core.Tests/Njord.Core.Tests.csproj" />
+    <Project Path="Njord.Domain.Tests/Njord.Domain.Tests.csproj" />
+    <Project Path="Njord.Egress.Tests/Njord.Egress.Tests.csproj" />
+    <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
+    <Project Path="Njord.Persistence.Tests/Njord.Persistence.Tests.csproj" />
+    <Project Path="Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj" />
     <Project Path="Njord.Tests/Njord.Tests.csproj" />
     <Project Path="Njord.Tests.Shared/Njord.Tests.Shared.csproj" />
   </Folder>

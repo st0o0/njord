@@ -15,12 +15,12 @@
 
 ## 2. Shared pieces in Core (no behavior change)
 
-- [ ] 2.1 Add `src/Njord.Core/Enrichment/EnrichmentTypeNames.cs` (`Alerts`, `Derived`, `Trends`, `Indices`, `History`, `Consensus`) and `EnrichmentOptions.IsEnabled(string typeName)` (test first in `src/Njord.Tests/Configuration/EnrichmentOptionsSpec.cs`: each toggle maps to its type name, unknown name throws)
+- [ ] 2.1 Add `src/Njord.Core/Enrichment/EnrichmentTypeNames.cs` (`Alerts`, `Derived`, `Trends`, `Indices`, `History`, `Consensus`) and `EnrichmentOptions.IsEnabled(string typeName)` (test first in `src/Njord.Core.Tests/Configuration/EnrichmentOptionsValidationSpec.cs`: each toggle maps to its type name, unknown name throws)
 - [ ] 2.2 Switch the five features' `TypeName`/`Enabled` in `src/Njord/Enrichment/Features/*Enrichment.cs` to the constants and `IsEnabled`; run suite
 
 ## 3. Break the Enrichment<->Mqtt cycle (still one assembly)
 
-- [ ] 3.1 Add the failing architecture rule "no type in `Njord.Enrichment` depends on `Njord.Mqtt`" to `src/Njord.Tests/Architecture/ZoneArchitectureSpec.cs` (red: it currently fails with the feature/MQTT edges)
+- [ ] 3.1 Add the failing architecture rule "no type in `Njord.Enrichment` depends on `Njord.Mqtt`" to `src/Njord.Architecture.Tests/ZoneArchitectureSpec.cs` (red: it currently fails with the feature/MQTT edges)
 - [ ] 3.2 Add `src/Njord/Mqtt/IEnrichmentPresenter.cs` and five internal sealed presenters (`AlertPresenter`, `DerivedPresenter`, `TrendPresenter`, `IndexPresenter`, `HistoryPresenter`) under `src/Njord/Mqtt/Presentation/`; move the bodies of `DeviceId`, `BuildDiscoveryPayload`, `ToStateMessages` from the features **verbatim**; each presenter derives its inputs from `IOptions<NjordOptions>` (horizons, `PreferenceResolver.Resolve`, `ParameterRegistry.Resolve`) per design Decision 2a
 - [ ] 3.3 Register presenters in the Mqtt service registration (`src/Njord/Configuration/NjordServiceSetup.cs`); change `src/Njord/Mqtt/DiscoveryActor.cs` and `src/Njord/Mqtt/MqttEgressActor.cs` to take `IEnumerable<IEnrichmentPresenter>` (`_featuresByType` -> `_presentersByType`)
 - [ ] 3.4 Slim `src/Njord/Enrichment/IEnrichmentFeature.cs` to `TypeName` + `Enabled`; delete the moved members, `using Njord.Mqtt` and the now unused builder calls from the five features; add presenter parity and "no MQTT surface" assertions to `EnrichmentFeatureContractSpec`; adapt `HistoryEnrichmentSpec` (uses `ToStateMessages`) to the presenter
@@ -53,7 +53,7 @@
 ## 7. Host cleanup and architecture rules
 
 - [ ] 7.1 Reduce `src/Njord/Configuration/Njord{Service,ActorSystem,Application}Setup.cs` to shells calling the per-library extensions; remove emptied folders; `src/Njord/Njord.csproj` references all feature libraries
-- [ ] 7.2 In `src/Njord.Tests/Architecture/ZoneArchitectureSpec.cs` add Enrichment and Mqtt to the lateral matrix from 3a plus the rules "Enrichment does not depend on Mqtt/Grpc" and "Mqtt does not depend on Enrichment" (red-prove each with a temporary reference, then remove); drop the superseded namespace zone rules (the last in-host feature has moved)
+- [ ] 7.2 In `src/Njord.Architecture.Tests/ZoneArchitectureSpec.cs` add Enrichment and Mqtt to the lateral matrix from 3a plus the rules "Enrichment does not depend on Mqtt/Grpc" and "Mqtt does not depend on Enrichment" (red-prove each with a temporary reference, then remove); drop the superseded namespace zone rules (the last in-host feature has moved)
 - [ ] 7.3 Build + suite; commit `refactor: host composes all feature libraries`
 
 ## 8. Documentation and skills

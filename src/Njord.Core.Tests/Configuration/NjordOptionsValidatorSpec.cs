@@ -1,0 +1,156 @@
+using Njord.Configuration;
+
+namespace Njord.Core.Tests.Configuration;
+
+public sealed class NjordOptionsValidatorSpec
+{
+    private static NjordOptions ValidOptions() => new()
+    {
+        Locations = [new LocationOptions { Name = "home", Latitude = 47.05, Longitude = 8.31 }],
+        Models =
+        [
+            "icon_d2", "icon_eu", "icon_global", "ecmwf_ifs025",
+            "gfs_seamless", "ukmo_global_deterministic_10km",
+            "meteoswiss_icon_ch1", "meteoswiss_icon_ch2",
+        ],
+        Mqtt = new MqttOptions { Host = "broker.local" },
+    };
+
+    private static readonly NjordOptionsValidator Validator = new();
+
+    [Fact]
+    public void Default_configuration_passes()
+    {
+        var result = Validator.Validate(null, ValidOptions());
+
+        Assert.True(result.Succeeded, result.FailureMessage);
+    }
+
+    [Fact]
+    public void A_projection_above_the_override_budget_guard_is_rejected()
+    {
+        var options = ValidOptions();
+        options.BudgetOverride = new RequestBudget(10_000, 600);
+        options.Locations = [.. Enumerable.Range(1, 2).Select(i => new LocationOptions
+        {
+            Name = $"loc-{i}",
+            Latitude = 47.0,
+            Longitude = 8.0,
+        })];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("8000", result.FailureMessage);
+        Assert.Contains("weight", result.FailureMessage);
+    }
+
+    [Fact]
+    public void Empty_model_list_is_rejected()
+    {
+        var options = ValidOptions();
+        options.Models = [];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("model", result.FailureMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Blank_model_entries_are_rejected()
+    {
+        var options = ValidOptions();
+        options.Models = ["icon_d2", "  "];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+    }
+
+    [Fact]
+    public void Poll_interval_defaults_to_sixty_minutes()
+    {
+        Assert.Equal(TimeSpan.FromMinutes(60), new NjordOptions().PollInterval);
+    }
+
+    [Fact]
+    public void Missing_mqtt_host_is_rejected_when_enabled()
+    {
+        var options = ValidOptions();
+        options.Mqtt.Enabled = true;
+        options.Mqtt.Host = "";
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Mqtt", result.FailureMessage);
+        Assert.Contains("Host", result.FailureMessage);
+    }
+
+    [Fact]
+    public void Empty_horizons_are_rejected()
+    {
+        var options = ValidOptions();
+        options.Horizons = [];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("horizon", result.FailureMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Non_positive_horizons_are_rejected()
+    {
+        var options = ValidOptions();
+        options.Horizons = [3, 0];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+    }
+
+    [Fact]
+    public void Horizons_beyond_the_fetch_window_are_rejected()
+    {
+        var options = ValidOptions();
+        options.Horizons = [3, 120];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("96", result.FailureMessage);
+    }
+
+    [Fact]
+    public void Missing_mqtt_host_is_accepted_when_mqtt_is_disabled()
+    {
+        var options = ValidOptions();
+        options.Mqtt.Host = "";
+        options.Mqtt.Enabled = false;
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Succeeded, result.FailureMessage);
+    }
+
+    [Fact]
+    public void Mqtt_is_disabled_by_default()
+    {
+        Assert.False(new MqttOptions().Enabled);
+    }
+
+    [Fact]
+    public void Failure_messages_never_contain_the_mqtt_password()
+    {
+        var options = ValidOptions();
+        options.Mqtt.Password = "super-secret-broker-pass";
+        options.Models = [];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.DoesNotContain("super-secret-broker-pass", result.FailureMessage);
+    }
+}

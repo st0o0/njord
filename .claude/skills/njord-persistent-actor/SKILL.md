@@ -74,7 +74,7 @@ Event variant additions (`BudgetTrackerActor`):
 - Timestamps stored as `long UtcTicks` (`"utc"`); rebuild with `new DateTimeOffset(ticks, TimeSpan.Zero)`.
 - Static `XxxDtoMapping` / `XxxSnapshotMapping` with `ToDto` / `ToDomain` / `ToSnapshot`; no logic in the DTOs.
 - Evolving a DTO: follow the "Persistence DTOs" rule in `AGENTS.md` (never rename/remove a `[JsonProperty]`, new props nullable or defaulted, bump `Version` on semantic change).
-- Every DTO gets a wire-format spec with Verify (see `njord-actor-spec`, e.g. `src/Njord.Tests/Persistence/EnrichmentSnapshotDtoSerializationSpec.cs`).
+- Every DTO gets a wire-format spec with Verify (see `njord-actor-spec`, e.g. `src/Njord.Persistence.Tests/EnrichmentSnapshotDtoSerializationSpec.cs`).
 
 ## Checklist
 

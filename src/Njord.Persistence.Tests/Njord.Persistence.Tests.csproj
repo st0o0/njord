@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <IsTestProject>true</IsTestProject>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+        <PackageReference Include="Verify.XunitV3" />
+        <PackageReference Include="xunit.v3.mtp-v2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Njord.Domain\Njord.Domain.csproj" />
+        <ProjectReference Include="..\Njord.Grpc\Njord.Grpc.csproj" />
+        <ProjectReference Include="..\Njord.Persistence\Njord.Persistence.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="..\xunit.runner.json" Link="xunit.runner.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+</Project>

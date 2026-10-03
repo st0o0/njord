@@ -18,7 +18,7 @@ rules:
     - "Include an API-budget impact estimate (requests/month against the 300k free-tier limit) for any change that adds or alters polling."
     - "Always include a 'Non-goals' section."
   tasks:
-    - "Reference concrete file paths under `src/Njord/...` and `src/Njord.Tests/...`."
+    - "Reference concrete file paths under `src/Njord/...` and the matching test project (`src/Njord.<Name>.Tests/...`, or `src/Njord.Tests/...` for host-resident code)."
     - "Every implementation chunk includes unit tests: `Spec` suffix, sealed class, `[Fact(Timeout = 5000)]`, BDD-style method names."
     - "Add a Validation section running the exact `dotnet run --project ...` commands (not `dotnet test`) for the touched suites."
     - "Chunks completable in one session, ordered by dependency."
