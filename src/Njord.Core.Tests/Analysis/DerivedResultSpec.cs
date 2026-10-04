@@ -28,7 +28,10 @@ public sealed class DerivedResultSpec
         {
             var values = new Dictionary<ParameterDef, double?>();
             foreach (var (param, value) in hourlyValues)
+            {
                 values[param] = value;
+            }
+
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
         return new ModelForecast(model, "lucerne", new CycleId(T0),
@@ -38,7 +41,11 @@ public sealed class DerivedResultSpec
     private static ModelSnapshot SnapshotWith(params ModelForecast[] forecasts)
     {
         var snap = ModelSnapshot.Empty;
-        foreach (var f in forecasts) snap = snap.Update(f);
+        foreach (var f in forecasts)
+        {
+            snap = snap.Update(f);
+        }
+
         return snap;
     }
 

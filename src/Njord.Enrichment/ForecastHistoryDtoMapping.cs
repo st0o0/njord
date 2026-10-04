@@ -38,7 +38,10 @@ public static class ForecastHistoryDtoMapping
     {
         var history = new ForecastHistory(dto.RetentionDays);
         foreach (var record in dto.Records)
+        {
             history.Add(ToDomain(record));
+        }
+
         return history;
     }
 }

@@ -40,7 +40,10 @@ public sealed class PipelineMetricsExtensionsSpec
         using var listener = new MeterListener();
         listener.InstrumentPublished = (instrument, ml) =>
         {
-            if (instrument == counter) ml.EnableMeasurementEvents(instrument);
+            if (instrument == counter)
+            {
+                ml.EnableMeasurementEvents(instrument);
+            }
         };
         listener.SetMeasurementEventCallback<long>((_, _, tags, _) => recordedTags = tags.ToArray());
         listener.Start();

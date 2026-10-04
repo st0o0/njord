@@ -12,7 +12,9 @@ public static class TimeSliceAggregator
         var cutoffHour = consensus.Hourly.CutoffHour;
 
         if (cutoffHour < 0)
+        {
             return [];
+        }
 
         var isDayParam = FindParam(consensus.Hourly.Parameters,
             parameters.Get(ParameterRegistry.IsDay));
@@ -25,7 +27,9 @@ public static class TimeSliceAggregator
             var dayOffset = (int)Math.Floor((absoluteTime - todayMidnight).TotalDays);
 
             if (dayOffset > 2)
+            {
                 break;
+            }
 
             if (!hoursByDay.TryGetValue(dayOffset, out var list))
             {
@@ -49,9 +53,13 @@ public static class TimeSliceAggregator
             {
                 var isDayValue = isDayParam?.ByHorizon.GetValueOrDefault($"h{h}")?.Median;
                 if (isDayParam is null || isDayValue is > 0.5)
+                {
                     dayHours.Add(h);
+                }
                 else
+                {
                     nightHours.Add(h);
+                }
             }
 
             var dayMeans = ComputeMeans(scoringParams, dayHours);

@@ -30,6 +30,7 @@ public sealed class IndexEnrichmentSpec
         var humidity = ParameterRegistry.GetByApiName("relative_humidity_2m")!;
         var points = new List<ForecastPoint>();
         for (var h = 0; h < 48; h++)
+        {
             points.Add(new ForecastPoint(T0.AddHours(h),
                 new Dictionary<ParameterDef, double?>
                 {
@@ -37,6 +38,7 @@ public sealed class IndexEnrichmentSpec
                     [wind] = 4.0,
                     [humidity] = 55.0,
                 }));
+        }
 
         return new ModelForecast(new WeatherModel("icon_d2"), location, new CycleId(T0),
             new ForecastSeries(points), DailyForecastSeries.Empty);

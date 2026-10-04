@@ -45,7 +45,11 @@ public sealed class IndexResultSpec
     private static ModelSnapshot SnapshotWith(params ModelForecast[] forecasts)
     {
         var snap = ModelSnapshot.Empty;
-        foreach (var f in forecasts) snap = snap.Update(f);
+        foreach (var f in forecasts)
+        {
+            snap = snap.Update(f);
+        }
+
         return snap;
     }
 

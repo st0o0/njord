@@ -32,7 +32,10 @@ public sealed class IngestMetricsExtensionsSpec
         using var listener = new MeterListener();
         listener.InstrumentPublished = (instrument, ml) =>
         {
-            if (instrument == counter) ml.EnableMeasurementEvents(instrument);
+            if (instrument == counter)
+            {
+                ml.EnableMeasurementEvents(instrument);
+            }
         };
         listener.SetMeasurementEventCallback<long>((_, _, tags, _) => recordedTags = tags.ToArray());
         listener.Start();
@@ -57,7 +60,10 @@ public sealed class IngestMetricsExtensionsSpec
         using var listener = new MeterListener();
         listener.InstrumentPublished = (instrument, ml) =>
         {
-            if (instrument == histogram) ml.EnableMeasurementEvents(instrument);
+            if (instrument == histogram)
+            {
+                ml.EnableMeasurementEvents(instrument);
+            }
         };
         listener.SetMeasurementEventCallback<double>((_, value, _, _) => recordedValue = value);
         listener.Start();

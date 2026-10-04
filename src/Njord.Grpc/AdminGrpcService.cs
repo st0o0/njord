@@ -271,29 +271,64 @@ public sealed class AdminGrpcService(
             if (request.Indices is { } indices)
             {
                 if (indices.HasEnabled)
+                {
                     options.Enrichment.Indices.Enabled = indices.Enabled;
+                }
+
                 if (indices.HasIndoorTemp)
+                {
                     options.Enrichment.Indices.Preferences.IndoorTemp = indices.IndoorTemp;
+                }
+
                 if (indices.HasIdealOutdoorTemp)
+                {
                     options.Enrichment.Indices.Preferences.IdealOutdoorTemp = indices.IdealOutdoorTemp;
+                }
+
                 if (indices.HasHeatSensitivity)
+                {
                     options.Enrichment.Indices.Preferences.HeatSensitivity = indices.HeatSensitivity;
+                }
+
                 if (indices.HasHumiditySensitivity)
+                {
                     options.Enrichment.Indices.Preferences.HumiditySensitivity = indices.HumiditySensitivity;
+                }
+
                 if (indices.HasWindSensitivity)
+                {
                     options.Enrichment.Indices.Preferences.WindSensitivity = indices.WindSensitivity;
+                }
+
                 if (indices.HasRainSensitivity)
+                {
                     options.Enrichment.Indices.Preferences.RainSensitivity = indices.RainSensitivity;
+                }
+
                 if (indices.HasRunningIdealTempLow)
+                {
                     options.Enrichment.Indices.Preferences.RunningIdealTempLow = indices.RunningIdealTempLow;
+                }
+
                 if (indices.HasRunningIdealTempHigh)
+                {
                     options.Enrichment.Indices.Preferences.RunningIdealTempHigh = indices.RunningIdealTempHigh;
+                }
+
                 if (indices.HasBbqMinTemp)
+                {
                     options.Enrichment.Indices.Preferences.BbqMinTemp = indices.BbqMinTemp;
+                }
+
                 if (indices.HasBbqIdealWindLow)
+                {
                     options.Enrichment.Indices.Preferences.BbqIdealWindLow = indices.BbqIdealWindLow;
+                }
+
                 if (indices.HasBbqIdealWindHigh)
+                {
                     options.Enrichment.Indices.Preferences.BbqIdealWindHigh = indices.BbqIdealWindHigh;
+                }
             }
 
             if (request.History is { } history)

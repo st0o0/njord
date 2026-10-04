@@ -157,13 +157,23 @@ public static class AlertEvaluator
 
         foreach (var source in new[] { apparentConsensus, tempConsensus })
         {
-            if (source is null) continue;
+            if (source is null)
+            {
+                continue;
+            }
 
             foreach (var (horizonKey, hc) in source.ByHorizon)
             {
                 var hours = ParseHorizonHours(horizonKey);
-                if (hours is null || hours > 24) continue;
-                if (hc.Median is not { } value) continue;
+                if (hours is null || hours > 24)
+                {
+                    continue;
+                }
+
+                if (hc.Median is not { } value)
+                {
+                    continue;
+                }
 
                 if (value > maxMedian)
                 {

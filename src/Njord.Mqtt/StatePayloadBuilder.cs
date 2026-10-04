@@ -244,16 +244,24 @@ public static class StatePayloadBuilder
         var payload = new JsonObject();
 
         foreach (var (model, mae) in result.Mae7d)
+        {
             payload[$"mae_7d_{model.Id}"] = mae.HasValue ? JsonValue.Create(mae.Value) : null;
+        }
 
         foreach (var (model, mae) in result.Mae30d)
+        {
             payload[$"mae_30d_{model.Id}"] = mae.HasValue ? JsonValue.Create(mae.Value) : null;
+        }
 
         foreach (var (model, w) in result.Weights)
+        {
             payload[$"weight_{model.Id}"] = JsonValue.Create(w);
+        }
 
         foreach (var (model, d) in result.Drift)
+        {
             payload[$"drift_{model.Id}"] = d.HasValue ? JsonValue.Create(d.Value) : null;
+        }
 
         payload["seasonal_best"] = result.SeasonalBest?.Id;
         payload["anomaly"] = result.Anomaly?.IsAnomaly;

@@ -35,7 +35,10 @@ public sealed class ConsensusSnapshotSpec
         {
             var numericValues = new Dictionary<ParameterDef, double?>();
             foreach (var (param, values) in series)
+            {
                 numericValues[param] = values[d];
+            }
+
             points.Add(new DailyForecastPoint(baseDate.AddDays(d), numericValues, new Dictionary<ParameterDef, string?>()));
         }
 
@@ -59,7 +62,10 @@ public sealed class ConsensusSnapshotSpec
         {
             var numericValues = new Dictionary<ParameterDef, double?>();
             foreach (var (param, values) in dailySeries)
+            {
                 numericValues[param] = values[d];
+            }
+
             dailyPoints.Add(new DailyForecastPoint(baseDate.AddDays(d), numericValues, new Dictionary<ParameterDef, string?>()));
         }
 

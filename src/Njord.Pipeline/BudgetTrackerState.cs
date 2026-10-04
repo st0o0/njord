@@ -56,7 +56,9 @@ public static class BudgetTrackerStateExtensions
         this BudgetTrackerState state, int weight, DateTimeOffset eventUtc, DateTimeOffset now)
     {
         if (eventUtc.Month != now.Month || eventUtc.Year != now.Year)
+        {
             return state;
+        }
 
         var newMonthly = state.MonthlyUsed + weight;
         var newDaily = eventUtc.DayOfYear == now.DayOfYear

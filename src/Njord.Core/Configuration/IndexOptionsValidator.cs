@@ -68,12 +68,23 @@ public sealed class IndexOptionsValidator : IValidateOptions<NjordOptions>
     private static void ValidatePreferences(IndexPreferences prefs, string path, List<string> errors)
     {
         if (prefs.HeatSensitivity is { } hs && hs is < 0.0 or > 5.0)
+        {
             errors.Add($"{path}.HeatSensitivity must be between 0.0 and 5.0, got {hs}");
+        }
+
         if (prefs.HumiditySensitivity is { } hms && hms is < 0.0 or > 5.0)
+        {
             errors.Add($"{path}.HumiditySensitivity must be between 0.0 and 5.0, got {hms}");
+        }
+
         if (prefs.WindSensitivity is { } ws && ws is < 0.0 or > 5.0)
+        {
             errors.Add($"{path}.WindSensitivity must be between 0.0 and 5.0, got {ws}");
+        }
+
         if (prefs.RainSensitivity is { } rs && rs is < 0.0 or > 5.0)
+        {
             errors.Add($"{path}.RainSensitivity must be between 0.0 and 5.0, got {rs}");
+        }
     }
 }

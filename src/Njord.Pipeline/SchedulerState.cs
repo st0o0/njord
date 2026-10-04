@@ -57,7 +57,10 @@ public static class SchedulerStateExtensions
         DateTimeOffset now)
     {
         if (state.States.ContainsKey(key))
+        {
             return state;
+        }
+
         return state with { States = state.States.SetItem(key, ModelPollState.Initial(now)) };
     }
 

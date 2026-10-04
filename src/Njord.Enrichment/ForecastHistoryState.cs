@@ -24,7 +24,9 @@ public static class ForecastHistoryStateExtensions
         this ForecastHistoryState state, ForecastRecord evt, DateTimeOffset cutoff)
     {
         if (evt.Timestamp < cutoff)
+        {
             return state;
+        }
 
         state.History.Add(evt);
         return state;
