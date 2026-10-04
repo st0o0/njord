@@ -45,17 +45,21 @@ internal static class NjordArchitecture
     public static IEnumerable<string> BaseLibraries => BaseLibraryNames;
 
     public static IObjectProvider<IType> TypesInLibrary(string name)
-        => Types().That().ResideInAssembly(AssemblyByName(name)).As(name);
+        => Types().That().ResideInAssembly(AssemblyByName(name))
+            .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage")
+            .As(name);
 
     public static IObjectProvider<IType> TypesInOtherLibrariesAndHost(string name)
         => Types().That().ResideInAssembly(NjordAssembly)
             .Or().ResideInAssembly(AssemblyByName(FeatureLibraryNames.First(n => n != name)),
                 FeatureLibraryNames.Where(n => n != name).Skip(1).Select(AssemblyByName).ToArray())
+            .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage")
             .As("other feature libraries and the host");
 
     public static IObjectProvider<IType> FeatureLibrariesAndHost =>
         Types().That().ResideInAssembly(NjordAssembly,
                 FeatureLibraryNames.Select(AssemblyByName).ToArray())
+            .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage")
             .As("feature libraries and the host");
 
     private static Assembly AssemblyByName(string name)

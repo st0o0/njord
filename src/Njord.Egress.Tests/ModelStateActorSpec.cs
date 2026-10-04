@@ -244,6 +244,7 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
             {
                 var outcomes = forecasts.Select(f => (FetchOutcome)new FetchOutcome.Success(f));
                 Source.From(outcomes)
+                    .Concat(Source.Never<FetchOutcome>())
                     .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat)
                     .PipeTo(Sender, Self,
                         sr => new PipelineSourceResponse(msg.RequestId, sr),
