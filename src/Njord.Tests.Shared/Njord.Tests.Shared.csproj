@@ -2,6 +2,7 @@
 
     <ItemGroup>
         <PackageReference Include="Akka.Persistence.Hosting" />
+        <PackageReference Include="Newtonsoft.Json" />
         <PackageReference Include="xunit.v3.extensibility.core" />
     </ItemGroup>
 

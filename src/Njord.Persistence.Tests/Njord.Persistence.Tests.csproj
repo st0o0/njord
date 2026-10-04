@@ -19,6 +19,8 @@
         <ProjectReference Include="..\Njord.Domain\Njord.Domain.csproj" />
         <ProjectReference Include="..\Njord.Grpc\Njord.Grpc.csproj" />
         <ProjectReference Include="..\Njord.Persistence\Njord.Persistence.csproj" />
+        <ProjectReference Include="..\Njord.Tests.Shared\Njord.Tests.Shared.csproj" />
+        <ProjectReference Include="..\Njord.Enrichment\Njord.Enrichment.csproj" />
     </ItemGroup>
 
     <ItemGroup>
