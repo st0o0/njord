@@ -10,7 +10,7 @@ using Njord.Mqtt;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 
-namespace Njord.Tests.Pipeline;
+namespace Njord.Pipeline.Tests;
 
 public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
 {

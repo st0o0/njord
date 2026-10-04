@@ -2,7 +2,7 @@ using Akka.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Njord.Configuration;
 
-namespace Njord.Tests.Configuration;
+namespace Njord.IntegrationTests.Configuration;
 
 public sealed class PersistenceBeforeActorsSpec
 {

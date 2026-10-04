@@ -4,7 +4,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Health;
 
-namespace Njord.Tests.Health;
+namespace Njord.IntegrationTests.Health;
 
 public sealed class PipelineHealthCheckSpec
 {

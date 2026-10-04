@@ -9,7 +9,7 @@ using Njord.Actors;
 using Njord.Configuration;
 using Njord.Tests.Shared;
 
-namespace Njord.Tests.Configuration;
+namespace Njord.IntegrationTests.Configuration;
 
 public sealed class ActorKeyRegistrationSpec : Akka.Hosting.TestKit.TestKit
 {

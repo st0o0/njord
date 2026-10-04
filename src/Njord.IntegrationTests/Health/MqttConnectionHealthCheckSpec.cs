@@ -2,7 +2,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Health;
 
-namespace Njord.Tests.Health;
+namespace Njord.IntegrationTests.Health;
 
 public sealed class MqttConnectionHealthCheckSpec
 {

@@ -1,7 +1,7 @@
 using Njord.Configuration;
 using Servus.Akka.Startup;
 
-namespace Njord.Tests.Configuration;
+namespace Njord.IntegrationTests.Configuration;
 
 public sealed class NjordActorSystemSetupSpec
 {

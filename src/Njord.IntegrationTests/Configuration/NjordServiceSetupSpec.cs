@@ -7,7 +7,7 @@ using Njord.Ingest;
 using Njord.Mqtt.Transport;
 using Servus.Core.Application.Startup;
 
-namespace Njord.Tests.Configuration;
+namespace Njord.IntegrationTests.Configuration;
 
 public sealed class NjordServiceSetupSpec
 {
@@ -27,6 +27,8 @@ public sealed class NjordServiceSetupSpec
                 ["Njord:Models:0"] = "icon_d2",
                 ["Njord:Mqtt:Enabled"] = "true",
                 ["Njord:Mqtt:Host"] = "localhost",
+                ["Njord:PersistencePath"] = Path.Combine(
+                    Path.GetTempPath(), $"njord-setup-{Guid.NewGuid():N}", "journal.db"),
             })
             .Build();
 

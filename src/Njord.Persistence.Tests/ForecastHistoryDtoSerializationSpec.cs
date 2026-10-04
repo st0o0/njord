@@ -4,7 +4,7 @@ using Njord.Domain.Weather;
 using Njord.Persistence;
 using static VerifyXunit.Verifier;
 
-namespace Njord.Tests.Persistence;
+namespace Njord.Persistence.Tests;
 
 public sealed class ForecastHistoryDtoSerializationSpec
 {

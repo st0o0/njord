@@ -37,8 +37,8 @@
     <Project Path="Njord.Enrichment.Tests/Njord.Enrichment.Tests.csproj" />
     <Project Path="Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj" />
     <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
-    <Project Path="Njord.Tests/Njord.Tests.csproj" />
     <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />
   </Folder>
+  <Project Path="Njord.IntegrationTests/Njord.IntegrationTests.csproj" />
   <Project Path="Njord/Njord.csproj" />
 </Solution>

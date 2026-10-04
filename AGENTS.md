@@ -120,7 +120,10 @@ src/
   Njord.Enrichment.Tests/     # Enrichment feature + actor specs
   Njord.Mqtt.Tests/           # MQTT discovery, connection, egress, golden masters
   Njord.Grpc.Tests/           # gRPC service specs
-  Njord.Tests/                # Host-level: Health, Configuration, PollPipeline, Persistence
+  Njord.IntegrationTests/      # Integration: NjordFixture (TestServer + TestProbes), health,
+                              #   configuration, gRPC integration, Testcontainers (Mosquitto),
+                              #   NjordFixture-based HTTP/gRPC tests (requires Docker for
+                              #   Testcontainers specs; skipped in non-Docker CI)
   Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
@@ -152,9 +155,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 859 tests (Domain 70, Persistence 10, Core 336, Egress 13, Grpc 74,
-Pipeline 111, Mqtt 102, Enrichment 52, Ingest 15, Sensors 6, Architecture 27,
-host `Njord.Tests` 43). CI's
+Current total: 870 tests (Domain 70, Persistence 22, Core 341, Egress 6, Grpc 74,
+Pipeline 111, Mqtt 99, Enrichment 51, Ingest 15, Sensors 6, Architecture 27,
+IntegrationTests 43 (5 skipped without Docker)). CI's
 `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -162,6 +165,15 @@ limit parallel test modules (`--max-parallel-test-modules`) if flakes appear.
 
 Tests are xUnit v3 on Microsoft.Testing.Platform — `dotnet run`, **not** `dotnet test`.
 Shared test infrastructure (fixtures, fakes, helpers) lives in `Njord.Tests.Shared`.
+
+Integration tests (`Njord.IntegrationTests`) require Docker for Testcontainers
+(Mosquitto). They are skipped automatically when Docker is unavailable. Run them with:
+```bash
+dotnet run --project Njord.IntegrationTests/Njord.IntegrationTests.csproj
+```
+
+Integration tests in `Njord.Tests` use `NjordFixture` (TestServer +
+TestProbe-stubbed actors) via domain-grouped xUnit collections. No Docker needed.
 
 Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
 - `appsettings.json` — production logging only (no `Njord:` section).

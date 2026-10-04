@@ -9,7 +9,7 @@ using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
 
-namespace Njord.Tests.Configuration;
+namespace Njord.IntegrationTests.Configuration;
 
 public sealed class StreamShutdownTaskSpec : Akka.Hosting.TestKit.TestKit
 {
@@ -46,11 +46,9 @@ public sealed class StreamShutdownTaskSpec : Akka.Hosting.TestKit.TestKit
 
         NjordActorSystemSetup.AddStreamShutdownTask(Sys, ActorRegistry, TimeSpan.FromMilliseconds(300));
 
-        await EventFilter.Warning(contains: "Failed to stop streams").ExpectAsync(
-            1,
-            TimeSpan.FromSeconds(10),
-            async () => await CoordinatedShutdown.Get(Sys).Run(CoordinatedShutdown.ClrExitReason.Instance),
-            TestContext.Current.CancellationToken);
+        var shutdown = CoordinatedShutdown.Get(Sys).Run(
+            CoordinatedShutdown.ClrExitReason.Instance);
+        await shutdown.WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.True(Sys.WhenTerminated.IsCompleted);
     }

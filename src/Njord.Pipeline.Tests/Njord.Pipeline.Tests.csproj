@@ -24,6 +24,7 @@
         <ProjectReference Include="..\Njord.Pipeline\Njord.Pipeline.csproj" />
         <ProjectReference Include="..\Njord.Persistence\Njord.Persistence.csproj" />
         <ProjectReference Include="..\Njord.Tests.Shared\Njord.Tests.Shared.csproj" />
+        <ProjectReference Include="..\Njord.Mqtt\Njord.Mqtt.csproj" />
     </ItemGroup>
 
     <ItemGroup>
