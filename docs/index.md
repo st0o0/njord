@@ -4,7 +4,7 @@ layout: home
 hero:
   name: njord
   text: Multi-model weather intelligence for Home Assistant
-  tagline: Poll 50+ weather models per location, enrich forecasts with consensus, alerts, trends, and activity indices, and stream everything to the ha-njord custom integration via gRPC. MQTT is available as an alternative for non-HA consumers.
+  tagline: Poll 50+ weather models per location, enrich forecasts with consensus, alerts, trends, and activity indices, and serve Home Assistant via the included custom integration (gRPC). MQTT is available as an alternative for non-HA consumers.
   image:
     src: /logo.svg
     alt: njord
@@ -18,7 +18,7 @@ hero:
 
 features:
   - title: Native Home Assistant integration
-    details: The ha-njord custom integration connects via gRPC streaming for real-time updates. Creates native weather, sensor, binary sensor, event, and button entities with no polling delay.
+    details: The included custom integration connects via gRPC streaming for real-time updates. Creates native weather, sensor, binary sensor, event, and button entities with no polling delay.
   - title: Multi-model forecasts
     details: Poll multiple weather models per location (ICON, ECMWF, GFS, UKMO, MeteoSwiss, and 40+ regional models). Each model becomes a dedicated weather entity with hourly and daily forecasts.
   - title: 14 weather alerts

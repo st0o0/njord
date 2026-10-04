@@ -1,6 +1,6 @@
 # Architecture
 
-njord is a .NET service built on Akka.NET and Akka.Streams. It polls the Open-Meteo API for weather forecasts, processes them through an enrichment pipeline, and exposes the results via gRPC for the ha-njord Home Assistant integration. An optional MQTT egress path is available for non-HA consumers.
+njord is a .NET service built on Akka.NET and Akka.Streams. It polls the Open-Meteo API for weather forecasts, processes them through an enrichment pipeline, and exposes the results via gRPC for the included Home Assistant integration. An optional MQTT egress path is available for non-HA consumers.
 
 ## System Overview
 
@@ -10,9 +10,9 @@ njord runs as a single Docker container with no external database required (SQLi
 
 ## Integration Paths
 
-### Primary: ha-njord custom integration (gRPC)
+### Primary: Home Assistant custom integration (gRPC)
 
-The ha-njord custom integration (in [`ha/`](/ha/)) connects to njord via gRPC streaming on port 8081. It receives forecast, enrichment, and configuration updates in real time with no polling delay. The integration creates native Home Assistant entities across five platforms: `weather`, `sensor`, `binary_sensor`, `event`, and `button`.
+The custom integration (source in [`ha/`](/ha/)) connects to njord via gRPC streaming on port 8081. It receives forecast, enrichment, and configuration updates in real time with no polling delay. The integration creates native Home Assistant entities across five platforms: `weather`, `sensor`, `binary_sensor`, `event`, and `button`.
 
 ### Alternative: MQTT
 
@@ -41,7 +41,7 @@ njord exposes four gRPC service groups on port 8081:
 | **OpsService** | `GetStatus`, `GetTargets`, `TriggerPoll` | Server status, per-target poll state, and manual poll trigger. |
 | **SensorService** | `Push`, `StreamPush` | Receive external sensor readings (indoor temperature, humidity). |
 
-ha-njord uses `StreamForecasts`, `StreamEnrichments`, and `StreamConfig` for real-time updates, `GetCatalog` for initial discovery, and `TriggerPoll` for the poll button.
+The HA integration uses `StreamForecasts`, `StreamEnrichments`, and `StreamConfig` for real-time updates, `GetCatalog` for initial discovery, and `TriggerPoll` for the poll button.
 
 ## Streaming Pipeline
 

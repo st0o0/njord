@@ -1,6 +1,6 @@
 # Home Assistant
 
-The ha-njord custom integration connects Home Assistant to njord via gRPC. Data flows in real time through gRPC streams, so entities update as soon as njord processes a new poll cycle. There is no polling delay on the HA side.
+The njord custom integration connects Home Assistant to njord via gRPC. Data flows in real time through gRPC streams, so entities update as soon as njord processes a new poll cycle. There is no polling delay on the HA side.
 
 ## Installation
 

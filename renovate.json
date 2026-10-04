@@ -4,5 +4,12 @@
     "local>st0o0/renovate-config:dotnet",
     "local>st0o0/renovate-config:pnpm",
     "local>st0o0/renovate-config:docker"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["pep621"],
+      "groupName": "python dependencies",
+      "labels": ["dependencies", "python"]
+    }
   ]
 }
