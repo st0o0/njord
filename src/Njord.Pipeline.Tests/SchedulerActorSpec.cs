@@ -1,9 +1,6 @@
-using Akka;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Hosting;
-using Akka.Streams;
-using Akka.Streams.Dsl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -24,7 +21,6 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
 {
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
     private Akka.TestKit.TestProbe _offerProbe = null!;
-    private Akka.TestKit.TestProbe _requestProbe = null!;
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
@@ -47,10 +43,8 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
             .WithActors((system, registry) =>
             {
                 _offerProbe = CreateTestProbe();
-                _requestProbe = CreateTestProbe();
-                var mat = system.Materializer();
                 var fakePipeline = system.ActorOf(
-                    Props.Create(() => new FakePipelineActor(_offerProbe, _requestProbe, mat)));
+                    Props.Create(() => new FakePipelineActor(_offerProbe)));
                 registry.Register<IPipelineActor>(fakePipeline);
             })
             .WithActors((system, registry, resolver) =>
@@ -64,7 +58,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
     private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Scheduler_offers_target_after_receiving_sink_ref()
+    public async Task Scheduler_sends_target_to_pipeline_on_startup()
     {
         var target = await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("lucerne", target.Location.Name);
@@ -182,7 +176,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
         // Subscribe to Warning log events to count tight-loop iterations. Each
-        // loop iteration logs "PipelineActor terminated - waiting for new refs".
+        // loop iteration logs "PipelineActor terminated - waiting for new ref".
         var warningProbe = CreateTestProbe();
         Sys.EventStream.Subscribe(warningProbe, typeof(Warning));
 
@@ -211,66 +205,11 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
             $"Expected at most 1 'PipelineActor terminated' warning but got {terminatedWarnings} — possible tight loop");
     }
 
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Failure_consumer_completion_is_handled_not_unhandled()
-    {
-        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
-
-        var unhandledProbe = CreateTestProbe();
-        Sys.EventStream.Subscribe(unhandledProbe, typeof(UnhandledMessage));
-
-        Scheduler.Tell(new FailureConsumerCompleted());
-        var poll = await Scheduler.Ask<TriggerImmediatePollResult>(
-            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
-
-        Assert.Equal(1, poll.Count);
-        unhandledProbe.ExpectNoMsg(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Failure_consumer_failure_re_resolves_pipeline_and_requests_refs_again()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: ct);
-        await _requestProbe.ExpectMsgAsync<RequestPipelineSink>(cancellationToken: ct);
-        await _requestProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: ct);
-
-        Scheduler.Tell(new FailureConsumerFailed(new InvalidOperationException("source ref broke")));
-
-        await _requestProbe.ExpectMsgAsync<RequestPipelineSink>(TimeSpan.FromSeconds(3), cancellationToken: ct);
-        await _requestProbe.ExpectMsgAsync<RequestPipelineSource>(TimeSpan.FromSeconds(3), cancellationToken: ct);
-    }
-
     private sealed class FakePipelineActor : ReceiveActor
     {
-        public FakePipelineActor(IActorRef probe, IActorRef requestProbe, IMaterializer mat)
+        public FakePipelineActor(IActorRef probe)
         {
-            Receive<RequestPipelineSink>(msg =>
-            {
-                requestProbe.Tell(msg);
-                var (hubSink, hubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 8)
-                    .PreMaterialize(mat);
-
-                hubSource
-                    .RunWith(Sink.ForEach<WeightedTarget>(t => probe.Tell(t)), mat);
-
-                StreamRefs.SinkRef<WeightedTarget>()
-                    .To(hubSink)
-                    .Run(mat)
-                    .PipeTo(Sender, Self,
-                        sr => new PipelineSinkResponse(msg.RequestId, sr),
-                        _ => null!);
-            });
-
-            Receive<RequestPipelineSource>(msg =>
-            {
-                requestProbe.Tell(msg);
-                Source.Empty<FetchOutcome>()
-                    .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat)
-                    .PipeTo(Sender, Self,
-                        sr => new PipelineSourceResponse(msg.RequestId, sr),
-                        _ => null!);
-            });
+            Receive<WeightedTarget>(msg => probe.Tell(msg));
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Diagnostics.Metrics;
 using Akka;
 using Akka.Actor;
+using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Logging;
@@ -10,9 +11,8 @@ using Njord.Analysis;
 using Njord.Configuration;
 using Njord.Diagnostics;
 using Njord.Domain.Weather;
-using Njord.Egress;
 using Njord.Messages.Egress;
-using Servus.Akka;
+using Njord.Messages.Enrichment;
 
 namespace Njord.Enrichment.Features;
 
@@ -55,25 +55,21 @@ internal sealed class HistoryEnrichment : IActorEnrichment
         var timeProvider = _timeProvider;
         var historyOptions = _historyOptions;
 
-        var historyActors = new Dictionary<string, IActorRef>();
-        foreach (var location in locations)
-        {
-            var actor = context.ResolveChildActor<ForecastHistoryActor>(
-                $"forecast-history-{TopicSlug.Slug(location)}",
-                location, historyOptions);
-            historyActors[location] = actor;
-        }
+        var historyRegion = ActorRegistry.For(context.System).Get<IForecastHistoryRegion>();
 
         return Flow.Create<ModelSnapshot>()
             .SelectAsync(1, async snapshot =>
             {
-                foreach (var (_, actor) in historyActors)
-                    actor.Tell(new RecordSnapshot(snapshot));
+                foreach (var location in locations)
+                {
+                    historyRegion.Tell(new RecordSnapshot(location, snapshot));
+                }
 
                 var events = new List<EgressEvent>();
-                foreach (var (location, actor) in historyActors)
+                foreach (var location in locations)
                 {
-                    var response = await actor.Ask<QueryHistoryResult>(new QueryHistory(), TimeSpan.FromSeconds(5));
+                    var response = await historyRegion.Ask<QueryHistoryResult>(
+                        new QueryHistory(location), TimeSpan.FromSeconds(5));
                     var result = computer.Compute(
                         response.History, snapshot, location, parameters, timeProvider, historyOptions);
                     RecordHistoryMetrics(result);
@@ -91,8 +87,10 @@ internal sealed class HistoryEnrichment : IActorEnrichment
         foreach (var (model, mae) in result.Mae7d)
         {
             if (mae.HasValue)
+            {
                 HistoryMae.Record(mae.Value, locationTag,
                     new KeyValuePair<string, object?>("model", model.Id));
+            }
         }
         foreach (var (model, weight) in result.Weights)
         {

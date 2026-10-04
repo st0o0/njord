@@ -3,14 +3,18 @@ using Njord.Domain.Weather;
 namespace Njord.Messages.Snapshots;
 
 // Commands
-public sealed record UpdateForecast(string Location, WeatherModel Model, ModelForecast Forecast);
-public sealed record UpdateEnrichment(string Location, string TypeName, object Result);
+public sealed record UpdateForecast(string Location, WeatherModel Model, ModelForecast Forecast) : IWithModelKey
+{
+    string IWithModelKey.ModelId => Model.Id;
+}
+
+public sealed record UpdateEnrichment(string Location, string TypeName, object Result) : IWithEnrichmentKey;
 
 // Queries
-public sealed record QueryForecast(string Location, string ModelId);
+public sealed record QueryForecast(string Location, string ModelId) : IWithModelKey;
 public sealed record QueryAllForecasts;
-public sealed record QueryEnrichment(string Location, string TypeName);
-public sealed record QueryAllEnrichments(string Location);
+public sealed record QueryEnrichment(string Location, string TypeName) : IWithEnrichmentKey;
+public sealed record QueryAllEnrichments(string Location) : IWithLocation;
 
 // Forecast responses
 public abstract record QueryForecastResponse;

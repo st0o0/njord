@@ -1,4 +1,5 @@
 using System.Diagnostics.Metrics;
+using Akka;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
@@ -11,11 +12,12 @@ using Njord.Diagnostics;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Messages.Egress;
+using Njord.Mqtt.Transport;
 using Servus.Akka;
 
 namespace Njord.Mqtt;
 
-public sealed class MqttEgressActor : StreamConsumerActor
+public sealed class MqttStateActor : StreamConsumerActor
 {
     private static readonly Counter<long> DedupMetric = NjordMetrics.Instance.AddMqttDedup();
 
@@ -24,23 +26,25 @@ public sealed class MqttEgressActor : StreamConsumerActor
     private readonly IReadOnlyList<int> _horizons;
     private readonly int _forecastDays;
     private readonly TimeProvider _timeProvider;
+    private readonly IMqttTransport _transport;
     private readonly Dictionary<string, IEnrichmentPresenter> _presentersByType;
     private ILoggingAdapter _log = null!;
 
-    private ISinkRef<MqttMessage>? _mqttSinkRef;
-    private ISourceRef<EgressEvent>? _egressSourceRef;
-    private long _mqttSinkRequestId;
-    private long _egressSourceRequestId;
+    private ISourceRef<EgressEvent>? _modelStateSourceRef;
+    private ISourceRef<EgressEvent>? _enrichmentSourceRef;
+    private long _modelStateSourceRequestId;
+    private long _enrichmentSourceRequestId;
 
-    private sealed record EgressResolved(IActorRef Ref);
-    private sealed record ConnectionResolved(IActorRef Ref);
-    private sealed record EgressResolveFailed(Exception Cause);
-    private sealed record ConnectionResolveFailed(Exception Cause);
+    private sealed record ModelStateResolved(IActorRef Ref);
+    private sealed record EnrichmentResolved(IActorRef Ref);
+    private sealed record ModelStateResolveFailed(Exception Cause);
+    private sealed record EnrichmentResolveFailed(Exception Cause);
 
-    public MqttEgressActor(
+    public MqttStateActor(
         IOptions<NjordOptions> options,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider,
+        IMqttTransport transport,
         IEnumerable<IEnrichmentPresenter> presenters)
     {
         var opts = options.Value;
@@ -49,6 +53,7 @@ public sealed class MqttEgressActor : StreamConsumerActor
         _horizons = [.. opts.Horizons];
         _forecastDays = opts.ForecastDays;
         _timeProvider = timeProvider;
+        _transport = transport;
         _presentersByType = presenters.ToDictionary(p => p.TypeName);
     }
 
@@ -60,93 +65,116 @@ public sealed class MqttEgressActor : StreamConsumerActor
 
     protected override void ResolveDependencies()
     {
-        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r), failure: ex => new EgressResolveFailed(ex));
-        Context.GetActorAsync<IMqttConnectionActor>().PipeTo(Self, success: r => new ConnectionResolved(r), failure: ex => new ConnectionResolveFailed(ex));
+        Context.GetActorAsync<IModelStateActor>().PipeTo(Self, success: r => new ModelStateResolved(r), failure: ex => new ModelStateResolveFailed(ex));
+        Context.GetActorAsync<IEnrichmentActor>().PipeTo(Self, success: r => new EnrichmentResolved(r), failure: ex => new EnrichmentResolveFailed(ex));
     }
 
     protected override void ConfigureWaitingForRefs()
     {
-        Receive<EgressResolved>(msg =>
+        Receive<ModelStateResolved>(msg =>
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
             TrackDependency(msg.Ref);
             var id = NextRequestId();
-            _egressSourceRequestId = id;
-            msg.Ref.Tell(new RequestEgressSource(id));
+            _modelStateSourceRequestId = id;
+            msg.Ref.Tell(new RequestModelStateSource(id));
         });
-        Receive<ConnectionResolved>(msg =>
+        Receive<EnrichmentResolved>(msg =>
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
             TrackDependency(msg.Ref);
             var id = NextRequestId();
-            _mqttSinkRequestId = id;
-            msg.Ref.Tell(new RequestMqttSink(id));
+            _enrichmentSourceRequestId = id;
+            msg.Ref.Tell(new RequestEnrichmentSource(id));
         });
-        Receive<EgressSourceResponse>(response =>
+        Receive<ModelStateSourceResponse>(response =>
         {
-            if (response.RequestId != _egressSourceRequestId) return;
-            _egressSourceRef = response.SourceRef;
-            _log.Debug("SourceRef received from {Source}", Sender.Path);
+            if (response.RequestId != _modelStateSourceRequestId)
+            {
+                return;
+            }
+
+            _modelStateSourceRef = response.SourceRef;
+            _log.Debug("ModelState SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
-        Receive<MqttSinkResponse>(response =>
+        Receive<EnrichmentSourceResponse>(response =>
         {
-            if (response.RequestId != _mqttSinkRequestId) return;
-            _mqttSinkRef = response.SinkRef;
-            _log.Debug("SinkRef received from {Source}", Sender.Path);
+            if (response.RequestId != _enrichmentSourceRequestId)
+            {
+                return;
+            }
+
+            _enrichmentSourceRef = response.SourceRef;
+            _log.Debug("Enrichment SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
-        Receive<EgressSourceFailed>(msg =>
+        Receive<ModelStateSourceFailed>(msg =>
         {
-            if (msg.RequestId != _egressSourceRequestId) return;
-            _log.Warning(msg.Cause, "Egress source request failed - retrying");
+            if (msg.RequestId != _modelStateSourceRequestId)
+            {
+                return;
+            }
+
+            _log.Warning(msg.Cause, "ModelState source request failed - retrying");
             ScheduleRetryResolve();
         });
-        Receive<MqttSinkFailed>(msg =>
+        Receive<EnrichmentSourceFailed>(msg =>
         {
-            if (msg.RequestId != _mqttSinkRequestId) return;
-            _log.Warning(msg.Cause, "MQTT sink request failed - retrying");
+            if (msg.RequestId != _enrichmentSourceRequestId)
+            {
+                return;
+            }
+
+            _log.Warning(msg.Cause, "Enrichment source request failed - retrying");
             ScheduleRetryResolve();
         });
-        Receive<EgressResolveFailed>(msg =>
+        Receive<ModelStateResolveFailed>(msg =>
         {
-            _log.Warning(msg.Cause, "Failed to resolve EgressActor - retrying");
+            _log.Warning(msg.Cause, "Failed to resolve ModelStateActor - retrying");
             ScheduleRetryResolve();
         });
-        Receive<ConnectionResolveFailed>(msg =>
+        Receive<EnrichmentResolveFailed>(msg =>
         {
-            _log.Warning(msg.Cause, "Failed to resolve MqttConnectionActor - retrying");
+            _log.Warning(msg.Cause, "Failed to resolve EnrichmentActor - retrying");
             ScheduleRetryResolve();
         });
     }
 
-    protected override bool AllRefsReady() => _egressSourceRef is not null && _mqttSinkRef is not null;
+    protected override bool AllRefsReady() => _modelStateSourceRef is not null && _enrichmentSourceRef is not null;
 
     protected override void MaterializeGraph(SharedKillSwitch killSwitch)
     {
         var baseTopic = _baseTopic;
         var lastPublished = new Dictionary<string, int>();
+        var transport = _transport;
 
-        _egressSourceRef!.Source
+        _modelStateSourceRef!.Source
+            .Merge(_enrichmentSourceRef!.Source)
             .Via(killSwitch.Flow<EgressEvent>())
-            .Log("mqtt-egress-in", e => e switch
+            .Log("mqtt-state-in", e => e switch
             {
                 EgressEvent.PerModelUpdate u => $"model {u.Location}/{u.Model.Id}",
                 EgressEvent.EnrichmentUpdate u => $"enrich {u.Location}/{u.TypeName}",
                 _ => "?",
             }, _log)
             .SelectMany(egressEvent => MapToMqttMessages(egressEvent, baseTopic, lastPublished))
-            .Log("mqtt-egress-out", m => $"{m.Topic} [{m.Payload.Length}B]", _log)
+            .Log("mqtt-state-out", m => $"{m.Topic} [{m.Payload.Length}B]", _log)
+            .SelectAsync(1, async msg =>
+            {
+                await transport.SendAsync(msg.Topic, msg.Payload, msg.Retain, CancellationToken.None);
+                return msg;
+            })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
-            .RunWith(_mqttSinkRef!.Sink, Mat);
+            .RunWith(Sink.Ignore<MqttMessage>(), Mat);
     }
 
     protected override void OnDependencyLost()
     {
-        _mqttSinkRef = null;
-        _egressSourceRef = null;
-        _mqttSinkRequestId = 0;
-        _egressSourceRequestId = 0;
+        _modelStateSourceRef = null;
+        _enrichmentSourceRef = null;
+        _modelStateSourceRequestId = 0;
+        _enrichmentSourceRequestId = 0;
     }
 
     private IEnumerable<MqttMessage> MapToMqttMessages(

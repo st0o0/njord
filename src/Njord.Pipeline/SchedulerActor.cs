@@ -1,17 +1,13 @@
-using System.Collections.Immutable;
 using System.Diagnostics.Metrics;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Persistence;
-using Akka.Streams;
-using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Actors;
 using Njord.Configuration;
 using Njord.Diagnostics;
 using Njord.Domain.Weather;
 using Njord.Health;
-using Njord.Ingest;
 using Njord.Messages.Common;
 using Njord.Messages.Pipeline;
 using Njord.Persistence;
@@ -27,30 +23,26 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     public override string PersistenceId => "scheduler";
 
-    private IMaterializer _mat = null!;
     private readonly NjordOptions _options;
     private readonly TimeProvider _timeProvider;
     private readonly NjordHealthState _healthState;
+    private readonly int _weight;
     private ILoggingAdapter _log = null!;
     private SchedulerState _state = SchedulerState.Empty;
     private readonly Dictionary<string, PollCycleTracker> _pollCycles = new();
-    private ISourceQueueWithComplete<WeightedTarget>? _queue;
-    private readonly int _weight;
-    private bool _sourceReceived;
+
+    private IActorRef? _pipeline;
+    private IActorRef? _lastTerminatedPipeline;
+    private int _pipelineRetryCount;
 
     public sealed record DataChanged(string Location, string ModelId, int Hash, DateTimeOffset Utc);
 
     private sealed record PipelineResolved(IActorRef Pipeline);
     private sealed record PipelineResolveFailed(Exception Cause);
     private sealed record RetryPipelineResolve;
-    private sealed record ConnectionEstablished;
-    private sealed record OfferFailed(string Location, string ModelId, Exception Error);
     private sealed record PollCycleTracker(DateTimeOffset Start, int Changed, int Reported);
 
     private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
-
-    private IActorRef? _lastTerminatedPipeline;
-    private int _pipelineRetryCount;
 
     public SchedulerActor(
         IOptions<NjordOptions> options,
@@ -72,7 +64,6 @@ public sealed class SchedulerActor : ReceivePersistentActor
     protected override void PreStart()
     {
         _log = Context.GetLogger();
-        _mat = Context.Materializer();
         Context.GetActorAsync<IPipelineActor>()
             .PipeTo(Self, success: r => new PipelineResolved(r), failure: ex => new PipelineResolveFailed(ex));
     }
@@ -83,10 +74,6 @@ public sealed class SchedulerActor : ReceivePersistentActor
         {
             if (Equals(msg.Pipeline, _lastTerminatedPipeline))
             {
-                // ActorRegistry handed back the same (already-dead) ref we just
-                // watched — nothing has replaced it yet. Back off exponentially
-                // instead of immediately re-watching it, which would deliver
-                // another Terminated instantly and spin in a tight loop.
                 var delay = RetryBackoff.For(Context.System, _pipelineRetryCount);
                 _pipelineRetryCount++;
                 Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryPipelineResolve(), Self);
@@ -94,24 +81,20 @@ public sealed class SchedulerActor : ReceivePersistentActor
             }
 
             _lastTerminatedPipeline = null;
-            Context.Watch(msg.Pipeline);
-            msg.Pipeline.Tell(new RequestPipelineSink(0));
-            msg.Pipeline.Tell(new RequestPipelineSource(0));
-            Become(WaitingForRefs);
+            _pipeline = msg.Pipeline;
+            Context.Watch(_pipeline);
+            _pipelineRetryCount = 0;
+
+            InitializeStates();
+            _log.Info("PipelineActor resolved - scheduling initial polls");
+            Become(Ready);
+            Stash.UnstashAll();
         });
         Command<RetryPipelineResolve>(_ =>
         {
             Context.GetActorAsync<IPipelineActor>()
                 .PipeTo(Self, success: r => new PipelineResolved(r), failure: ex => new PipelineResolveFailed(ex));
         });
-        Command<QueryPollStates>(OnQueryPollStates);
-        Command<FailureConsumerCompleted>(_ => _log.Debug("Failure consumer stream completed"));
-        Command<FailureConsumerFailed>(msg =>
-            _log.Debug("Ignoring failure consumer error while waiting for pipeline: {Error}", msg.Cause.Message));
-        Command<PipelineSinkFailed>(msg =>
-            _log.Debug("Ignoring pipeline sink failure while waiting for pipeline: {Error}", msg.Cause.Message));
-        Command<PipelineSourceFailed>(msg =>
-            _log.Debug("Ignoring pipeline source failure while waiting for pipeline: {Error}", msg.Cause.Message));
         Command<PipelineResolveFailed>(msg =>
         {
             _log.Warning(msg.Cause, "Failed to resolve PipelineActor - retrying");
@@ -119,144 +102,25 @@ public sealed class SchedulerActor : ReceivePersistentActor
             _pipelineRetryCount++;
             Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryPipelineResolve(), Self);
         });
+        Command<QueryPollStates>(OnQueryPollStates);
         CommandAny(_ => Stash.Stash());
-    }
-
-    private void HandleFailureConsumerMessages()
-    {
-        Command<FailureConsumerCompleted>(_ => _log.Debug("Failure consumer stream completed"));
-        Command<FailureConsumerFailed>(msg =>
-        {
-            _log.Warning(msg.Cause, "Failure consumer stream failed - reconnecting to pipeline");
-            RestartPipelineConnection();
-        });
-    }
-
-    private void StashKnownCommands()
-    {
-        HandleFailureConsumerMessages();
-        Command<ScheduledPoll>(_ => Stash.Stash());
-        Command<HashResult>(_ => Stash.Stash());
-        Command<FetchFailed>(_ => Stash.Stash());
-        Command<TriggerImmediatePoll>(_ => Stash.Stash());
-        Command<QueryPollStates>(OnQueryPollStates);
-    }
-
-    private void WaitingForRefs()
-    {
-        Command<PipelineSinkResponse>(response =>
-        {
-            _queue = Source.Queue<WeightedTarget>(16, OverflowStrategy.Backpressure)
-                .To(response.SinkRef.Sink)
-                .Run(_mat);
-            _log.Debug("SinkRef received from {Source}", Sender.Path);
-            TryTransitionToConnecting();
-        });
-        Command<PipelineSourceResponse>(response =>
-        {
-            OnSourceReceived(response);
-            TryTransitionToConnecting();
-        });
-        Command<PipelineSinkFailed>(msg => OnPipelineRefFailed(msg.Cause, "Pipeline sink request failed"));
-        Command<PipelineSourceFailed>(msg => OnPipelineRefFailed(msg.Cause, "Pipeline source request failed"));
-        Command<Terminated>(OnTerminated);
-        StashKnownCommands();
-    }
-
-    private void OnPipelineRefFailed(Exception cause, string what)
-    {
-        _log.Warning(cause, "{What} - retrying", what);
-        _queue?.Complete();
-        _queue = null;
-        _sourceReceived = false;
-
-        var delay = RetryBackoff.For(Context.System, _pipelineRetryCount);
-        _pipelineRetryCount++;
-        Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryPipelineResolve(), Self);
-
-        Become(WaitingForPipeline);
-    }
-
-    private void TryTransitionToConnecting()
-    {
-        if (_queue is null || !_sourceReceived)
-        {
-            return;
-        }
-
-        _pipelineRetryCount = 0;
-        _log.Debug("Refs received — connecting");
-        InitializeStates();
-        Become(Connecting);
-    }
-
-    private void Connecting()
-    {
-        Command<ScheduledPoll>(poll =>
-        {
-            var target = CreateTarget(poll);
-            if (target is null)
-            {
-                return;
-            }
-
-            _queue!.OfferAsync(target).PipeTo(Self,
-                success: _ => new ConnectionEstablished(),
-                failure: ex => new OfferFailed(poll.Location, poll.ModelId, ex));
-            Become(WaitingForConnection);
-        });
-        Command<Terminated>(OnTerminated);
-        HandleFailureConsumerMessages();
-        Command<HashResult>(_ => Stash.Stash());
-        Command<FetchFailed>(_ => Stash.Stash());
-        Command<TriggerImmediatePoll>(_ => Stash.Stash());
-        Command<QueryPollStates>(OnQueryPollStates);
-    }
-
-    private void WaitingForConnection()
-    {
-        Command<ConnectionEstablished>(_ =>
-        {
-            _log.Info("Pipeline connection established - scheduling initial polls");
-            Become(Ready);
-            Stash.UnstashAll();
-        });
-        Command<OfferFailed>(msg =>
-        {
-            _log.Warning("Initial offer failed for {Location}/{Model}: {Error} - retrying",
-                msg.Location, msg.ModelId, msg.Error.Message);
-            Self.Tell(new ScheduledPoll(msg.Location, msg.ModelId));
-            Become(Connecting);
-        });
-        Command<Terminated>(OnTerminated);
-        StashKnownCommands();
     }
 
     private void Ready()
     {
-        Command<PipelineSinkResponse>(_ => { });
-        Command<PipelineSourceResponse>(_ => { });
         Command<ScheduledPoll>(OnScheduledPoll);
         Command<HashResult>(OnHashResult);
         Command<FetchFailed>(OnFetchFailed);
         Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
         Command<QueryPollStates>(OnQueryPollStates);
         Command<Terminated>(OnTerminated);
-        HandleFailureConsumerMessages();
     }
 
     private void OnTerminated(Terminated msg)
     {
-        _log.Warning("PipelineActor terminated - waiting for new refs");
+        _log.Warning("PipelineActor terminated - waiting for new ref");
         _lastTerminatedPipeline = msg.ActorRef;
-        RestartPipelineConnection();
-    }
-
-    private void RestartPipelineConnection()
-    {
-        _queue?.Complete();
-        _queue = null;
-        _sourceReceived = false;
+        _pipeline = null;
         _pipelineRetryCount = 0;
 
         Context.GetActorAsync<IPipelineActor>()
@@ -279,73 +143,18 @@ public sealed class SchedulerActor : ReceivePersistentActor
         }
     }
 
-    private void OnSourceReceived(PipelineSourceResponse response)
-    {
-        var self = Self;
-
-        response.SourceRef.Source
-            .Collect(outcome => outcome is FetchOutcome.Failure, outcome => (FetchOutcome.Failure)outcome)
-            .Select(f => new FetchFailed(f.Location, f.Model.Id, f.Reason, f.Detail))
-            .Log("pipeline-failure", f => $"{f.Location}/{f.ModelId} {f.Reason}", _log)
-            .To(Sink.ActorRef<FetchFailed>(self, new FailureConsumerCompleted(),
-                ex => new FailureConsumerFailed(ex)))
-            .Run(_mat);
-
-        _sourceReceived = true;
-        _log.Debug("SourceRef received from {Source}", Sender.Path);
-    }
-
-    private void OnFetchFailed(FetchFailed msg)
-    {
-        var key = Key(msg.Location, msg.ModelId);
-        var now = _timeProvider.GetUtcNow();
-
-        switch (msg.Reason)
-        {
-            case FetchFailureReason.Transport:
-                _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
-                _log.Warning("Fetch failed for {Location}/{Model} (transport) - tfc={Tfc}, details={Details}",
-                    msg.Location, msg.ModelId, _state.States[key].TransientFailureCount, msg.Detail);
-                ScheduleNext(msg.Location, msg.ModelId);
-                break;
-
-            case FetchFailureReason.RateLimited:
-                _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
-                var rateLimitState = _state.States[key];
-                if (rateLimitState.NextPollUtc < now + RateLimitMinDelay)
-                {
-                    rateLimitState = rateLimitState with { NextPollUtc = now + RateLimitMinDelay };
-                    _state = _state.SetPollState(key, rateLimitState);
-                }
-                _log.Warning("Fetch rate-limited for {Location}/{Model} - next poll at {Next}",
-                    msg.Location, msg.ModelId, rateLimitState.NextPollUtc);
-                ScheduleNext(msg.Location, msg.ModelId);
-                break;
-
-            case FetchFailureReason.ModelUnavailable:
-            case FetchFailureReason.MalformedPayload:
-                _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
-                _log.Warning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - retry scheduled",
-                    msg.Location, msg.ModelId, msg.Reason, msg.Detail);
-                ScheduleNext(msg.Location, msg.ModelId);
-                break;
-        }
-    }
-
     private void OnScheduledPoll(ScheduledPoll poll)
     {
         var target = CreateTarget(poll);
-        if (target is null)
+        if (target is not null)
         {
-            return;
+            _pipeline!.Tell(target);
         }
-
-        _queue!.OfferAsync(target);
     }
 
     private WeightedTarget? CreateTarget(ScheduledPoll poll)
     {
-        if (_queue is null)
+        if (_pipeline is null)
         {
             return null;
         }
@@ -425,6 +234,43 @@ public sealed class SchedulerActor : ReceivePersistentActor
             ScheduleNext(result.Location, result.ModelId);
             Sender.Tell(new Ack());
             RecordPollCompletion(result.Location, changed: false);
+        }
+    }
+
+    private void OnFetchFailed(FetchFailed msg)
+    {
+        var key = Key(msg.Location, msg.ModelId);
+        var now = _timeProvider.GetUtcNow();
+
+        switch (msg.Reason)
+        {
+            case FetchFailureReason.Transport:
+                _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
+                _log.Warning("Fetch failed for {Location}/{Model} (transport) - tfc={Tfc}, details={Details}",
+                    msg.Location, msg.ModelId, _state.States[key].TransientFailureCount, msg.Detail);
+                ScheduleNext(msg.Location, msg.ModelId);
+                break;
+
+            case FetchFailureReason.RateLimited:
+                _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
+                var rateLimitState = _state.States[key];
+                if (rateLimitState.NextPollUtc < now + RateLimitMinDelay)
+                {
+                    rateLimitState = rateLimitState with { NextPollUtc = now + RateLimitMinDelay };
+                    _state = _state.SetPollState(key, rateLimitState);
+                }
+                _log.Warning("Fetch rate-limited for {Location}/{Model} - next poll at {Next}",
+                    msg.Location, msg.ModelId, rateLimitState.NextPollUtc);
+                ScheduleNext(msg.Location, msg.ModelId);
+                break;
+
+            case FetchFailureReason.ModelUnavailable:
+            case FetchFailureReason.MalformedPayload:
+                _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
+                _log.Warning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - retry scheduled",
+                    msg.Location, msg.ModelId, msg.Reason, msg.Detail);
+                ScheduleNext(msg.Location, msg.ModelId);
+                break;
         }
     }
 

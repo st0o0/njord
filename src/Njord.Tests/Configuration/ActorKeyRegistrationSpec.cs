@@ -1,5 +1,7 @@
 using Akka.Actor;
+using Akka.Cluster.Hosting;
 using Akka.Hosting;
+using Akka.Remote.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -29,7 +31,10 @@ public sealed class ActorKeyRegistrationSpec : Akka.Hosting.TestKit.TestKit
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        NjordActorSystemSetup.WithNjordActors(builder.AddTestPersistence(), mqttEnabled: true);
+        builder.AddTestPersistence()
+            .WithRemoting(new RemoteOptions { HostName = "localhost", Port = 0 })
+            .WithClustering();
+        NjordActorSystemSetup.WithNjordActors(builder, mqttEnabled: true);
     }
 
     public static TheoryData<Type> Markers() =>
@@ -37,7 +42,6 @@ public sealed class ActorKeyRegistrationSpec : Akka.Hosting.TestKit.TestKit
         typeof(ISchedulerActor),
         typeof(IBudgetTrackerActor),
         typeof(IPipelineActor),
-        typeof(IEgressActor),
         typeof(IModelStateActor),
         typeof(IEnrichmentActor),
         typeof(ISensorHubActor),
@@ -45,8 +49,8 @@ public sealed class ActorKeyRegistrationSpec : Akka.Hosting.TestKit.TestKit
         typeof(IEnrichmentSnapshotActor),
         typeof(IGrpcSnapshotConsumerActor),
         typeof(IMqttConnectionActor),
-        typeof(IMqttEgressActor),
-        typeof(IDiscoveryActor),
+        typeof(IMqttStateActor),
+        typeof(IMqttDiscoveryActor),
     ];
 
     [Theory(Timeout = TestTimeouts.Hosted)]

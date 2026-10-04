@@ -1,9 +1,6 @@
 using Akka.Actor;
-using Njord.Egress;
-using Njord.Messages.Egress;
-using Njord.Messages.Pipeline;
+using Njord.Actors;
 using Njord.Mqtt;
-using Njord.Pipeline;
 
 namespace Njord.Tests.Actors;
 
@@ -16,20 +13,15 @@ internal sealed class FailingRefProvider : ReceiveActor
     {
         var cause = new InvalidOperationException("simulated stream ref failure");
 
-        Receive<RequestEgressSink>(msg =>
+        Receive<RequestModelStateSource>(msg =>
         {
             requestProbe.Tell(msg);
-            Sender.Tell(new EgressSinkFailed(msg.RequestId, cause));
+            Sender.Tell(new ModelStateSourceFailed(msg.RequestId, cause));
         });
-        Receive<RequestEgressSource>(msg =>
+        Receive<RequestEnrichmentSource>(msg =>
         {
             requestProbe.Tell(msg);
-            Sender.Tell(new EgressSourceFailed(msg.RequestId, cause));
-        });
-        Receive<RequestMqttSink>(msg =>
-        {
-            requestProbe.Tell(msg);
-            Sender.Tell(new MqttSinkFailed(msg.RequestId, cause));
+            Sender.Tell(new EnrichmentSourceFailed(msg.RequestId, cause));
         });
         Receive<RequestPipelineSink>(msg =>
         {

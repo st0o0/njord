@@ -12,7 +12,6 @@ using Njord.Configuration;
 using Njord.Diagnostics;
 using Njord.Domain.Sensors;
 using Njord.Domain.Weather;
-using Njord.Egress;
 using Njord.Messages.Egress;
 using Njord.Messages.Pipeline;
 using Njord.Messages.Sensors;
@@ -33,16 +32,13 @@ public sealed class EnrichmentActor : StreamConsumerActor
     private ILoggingAdapter _log = null!;
 
     private ISourceRef<FetchOutcome>? _sourceRef;
-    private ISinkRef<EgressEvent>? _egressSinkRef;
     private IActorRef? _sensorHub;
     private long _pipelineSourceRequestId;
-    private long _egressSinkRequestId;
+    private Source<EgressEvent, NotUsed>? _broadcastHubSource;
 
     private sealed record PipelineResolved(IActorRef Ref);
-    private sealed record EgressResolved(IActorRef Ref);
     private sealed record SensorHubResolved(IActorRef Ref);
     private sealed record PipelineResolveFailed(Exception Cause);
-    private sealed record EgressResolveFailed(Exception Cause);
     private sealed record SensorHubResolveFailed(Exception Cause);
 
     public EnrichmentActor(
@@ -65,7 +61,6 @@ public sealed class EnrichmentActor : StreamConsumerActor
     protected override void ResolveDependencies()
     {
         Context.GetActorAsync<IPipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r), failure: ex => new PipelineResolveFailed(ex));
-        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r), failure: ex => new EgressResolveFailed(ex));
         Context.GetActorAsync<ISensorHubActor>().PipeTo(Self, success: r => new SensorHubResolved(r), failure: ex => new SensorHubResolveFailed(ex));
     }
 
@@ -79,14 +74,6 @@ public sealed class EnrichmentActor : StreamConsumerActor
             _pipelineSourceRequestId = id;
             msg.Ref.Tell(new RequestPipelineSource(id));
         });
-        Receive<EgressResolved>(msg =>
-        {
-            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
-            TrackDependency(msg.Ref);
-            var id = NextRequestId();
-            _egressSinkRequestId = id;
-            msg.Ref.Tell(new RequestEgressSink(id));
-        });
         Receive<SensorHubResolved>(msg =>
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
@@ -96,38 +83,28 @@ public sealed class EnrichmentActor : StreamConsumerActor
         });
         Receive<PipelineSourceResponse>(response =>
         {
-            if (response.RequestId != _pipelineSourceRequestId) return;
+            if (response.RequestId != _pipelineSourceRequestId)
+            {
+                return;
+            }
+
             _sourceRef = response.SourceRef;
             _log.Debug("SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
-        Receive<EgressSinkResponse>(response =>
-        {
-            if (response.RequestId != _egressSinkRequestId) return;
-            _egressSinkRef = response.SinkRef;
-            _log.Debug("SinkRef received from {Source}", Sender.Path);
-            TryTransition();
-        });
         Receive<PipelineSourceFailed>(msg =>
         {
-            if (msg.RequestId != _pipelineSourceRequestId) return;
+            if (msg.RequestId != _pipelineSourceRequestId)
+            {
+                return;
+            }
+
             _log.Warning(msg.Cause, "Pipeline source request failed - retrying");
-            ScheduleRetryResolve();
-        });
-        Receive<EgressSinkFailed>(msg =>
-        {
-            if (msg.RequestId != _egressSinkRequestId) return;
-            _log.Warning(msg.Cause, "Egress sink request failed - retrying");
             ScheduleRetryResolve();
         });
         Receive<PipelineResolveFailed>(msg =>
         {
             _log.Warning(msg.Cause, "Failed to resolve PipelineActor - retrying");
-            ScheduleRetryResolve();
-        });
-        Receive<EgressResolveFailed>(msg =>
-        {
-            _log.Warning(msg.Cause, "Failed to resolve EgressActor - retrying");
             ScheduleRetryResolve();
         });
         Receive<SensorHubResolveFailed>(msg =>
@@ -137,7 +114,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
         });
     }
 
-    protected override bool AllRefsReady() => _sourceRef is not null && _egressSinkRef is not null && _sensorHub is not null;
+    protected override bool AllRefsReady() => _sourceRef is not null && _sensorHub is not null;
 
     protected override void MaterializeGraph(SharedKillSwitch killSwitch)
     {
@@ -175,7 +152,9 @@ public sealed class EnrichmentActor : StreamConsumerActor
         }
 
         foreach (var feature in actorFeatures)
+        {
             flows.Add(feature.CreateFlow(Context));
+        }
 
         if (flows.Count == 0)
         {
@@ -189,16 +168,22 @@ public sealed class EnrichmentActor : StreamConsumerActor
                 _ => "?",
             }, _log);
 
+        var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<EgressEvent>(bufferSize: 4)
+            .PreMaterialize(Mat);
+
+        _broadcastHubSource = broadcastHubSource;
+
         if (flows.Count == 1)
         {
             snapshotSource
                 .Via(flows[0])
                 .Via(logOut)
-                .RunWith(_egressSinkRef!.Sink, Mat);
+                .To(broadcastHubSink)
+                .Run(Mat);
             return;
         }
 
-        var graph = GraphDsl.Create(_egressSinkRef!.Sink, (builder, sink) =>
+        var graph = GraphDsl.Create(broadcastHubSink, (builder, sink) =>
         {
             var source = builder.Add(snapshotSource);
             var broadcast = builder.Add(new Broadcast<ModelSnapshot>(flows.Count));
@@ -221,13 +206,28 @@ public sealed class EnrichmentActor : StreamConsumerActor
         RunnableGraph.FromGraph(graph).Run(Mat);
     }
 
+    protected override void ConfigureReady()
+    {
+        Receive<RequestEnrichmentSource>(msg =>
+        {
+            _broadcastHubSource!
+                .RunWith(StreamRefs.SourceRef<EgressEvent>(), Mat)
+                .PipeTo(Sender, Self,
+                    sr => new EnrichmentSourceResponse(msg.RequestId, sr),
+                    ex =>
+                    {
+                        _log.Error(ex, "Failed to create Enrichment SourceRef");
+                        return new EnrichmentSourceFailed(msg.RequestId, ex);
+                    });
+        });
+    }
+
     protected override void OnDependencyLost()
     {
         _sourceRef = null;
-        _egressSinkRef = null;
         _sensorHub = null;
         _pipelineSourceRequestId = 0;
-        _egressSinkRequestId = 0;
+        _broadcastHubSource = null;
     }
 
     private static Flow<ConsensusSnapshot, EgressEvent, NotUsed> BuildConsensusInlineFlow(
@@ -315,10 +315,16 @@ public sealed class EnrichmentActor : StreamConsumerActor
         var locationTag = new KeyValuePair<string, object?>("location", consensus.Location);
         var tempParam = consensus.Hourly.Parameters
             .FirstOrDefault(p => p.Parameter.ApiName == "temperature_2m");
-        if (tempParam is null) return;
+        if (tempParam is null)
+        {
+            return;
+        }
 
         var firstHorizon = tempParam.ByHorizon.Values.FirstOrDefault();
-        if (firstHorizon is null) return;
+        if (firstHorizon is null)
+        {
+            return;
+        }
 
         ConsensusModelsGauge.Record(firstHorizon.AvailableModels.Count, locationTag);
         if (firstHorizon.Spread.HasValue)
@@ -343,10 +349,14 @@ public sealed class EnrichmentActor : StreamConsumerActor
 
         foreach (var feature in stateless)
             foreach (var evt in feature.Compute(consensus, sensors))
+            {
                 yield return evt;
+            }
 
         foreach (var feature in stateful)
             foreach (var evt in feature.Compute(consensus, previous, sensors))
+            {
                 yield return evt;
+            }
     }
 }

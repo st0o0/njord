@@ -68,14 +68,45 @@ public static class EnrichmentProtoMapper
                 HoursIncluded = day.HoursIncluded,
             };
 
-            if (MapEnvelope(day.LaundryEnvelope) is { } le) proto.LaundryEnvelope = le;
-            if (MapEnvelope(day.OutdoorEnvelope) is { } oe) proto.OutdoorEnvelope = oe;
-            if (MapEnvelope(day.RunningEnvelope) is { } re) proto.RunningEnvelope = re;
-            if (MapEnvelope(day.CyclingEnvelope) is { } ce) proto.CyclingEnvelope = ce;
-            if (MapEnvelope(day.BbqEnvelope) is { } be) proto.BbqEnvelope = be;
-            if (MapEnvelope(day.IrrigationEnvelope) is { } ie) proto.IrrigationEnvelope = ie;
-            if (MapEnvelope(day.SolarEnvelope) is { } se) proto.SolarEnvelope = se;
-            if (MapEnvelope(day.NightVentilationEnvelope) is { } nve) proto.NightVentilationEnvelope = nve;
+            if (MapEnvelope(day.LaundryEnvelope) is { } le)
+            {
+                proto.LaundryEnvelope = le;
+            }
+
+            if (MapEnvelope(day.OutdoorEnvelope) is { } oe)
+            {
+                proto.OutdoorEnvelope = oe;
+            }
+
+            if (MapEnvelope(day.RunningEnvelope) is { } re)
+            {
+                proto.RunningEnvelope = re;
+            }
+
+            if (MapEnvelope(day.CyclingEnvelope) is { } ce)
+            {
+                proto.CyclingEnvelope = ce;
+            }
+
+            if (MapEnvelope(day.BbqEnvelope) is { } be)
+            {
+                proto.BbqEnvelope = be;
+            }
+
+            if (MapEnvelope(day.IrrigationEnvelope) is { } ie)
+            {
+                proto.IrrigationEnvelope = ie;
+            }
+
+            if (MapEnvelope(day.SolarEnvelope) is { } se)
+            {
+                proto.SolarEnvelope = se;
+            }
+
+            if (MapEnvelope(day.NightVentilationEnvelope) is { } nve)
+            {
+                proto.NightVentilationEnvelope = nve;
+            }
 
             update.Days.Add(proto);
         }
@@ -103,7 +134,11 @@ public static class EnrichmentProtoMapper
 
     private static V2.ScoreEnvelope? MapEnvelope(Analysis.ScoreEnvelope? envelope)
     {
-        if (envelope is null) return null;
+        if (envelope is null)
+        {
+            return null;
+        }
+
         return new V2.ScoreEnvelope
         {
             Min = envelope.Min,

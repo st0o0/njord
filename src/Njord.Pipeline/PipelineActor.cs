@@ -19,9 +19,9 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     private readonly IBudgetGate<WeightedTarget> _budgetGate;
     private ILoggingAdapter _log = null!;
 
-    private Sink<WeightedTarget, NotUsed>? _mergeHubSink;
     private Source<FetchOutcome, NotUsed>? _broadcastHubSource;
     private IMaterializer? _mat;
+    private ISourceQueueWithComplete<WeightedTarget>? _queue;
     private UniqueKillSwitch? _killSwitch;
     private Task[] _completions = [];
 
@@ -62,7 +62,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         });
         Receive<PipelineReady>(_ =>
         {
-            _log.Info("Pipeline graph materialized - ready to accept producers and consumers");
+            _log.Info("Pipeline graph materialized - ready to accept polls");
             Become(Ready);
             Stash.UnstashAll();
         });
@@ -71,27 +71,18 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
 
     private void Ready()
     {
+        Receive<WeightedTarget>(target => _queue?.OfferAsync(target));
+
         Receive<StopStreams>(_ =>
         {
             _killSwitch?.Shutdown();
+            _queue?.Complete();
             Task.WhenAll(_completions)
                 .PipeTo(Sender, Self,
                     success: () => new StreamsStopped(),
                     failure: ex => new StreamsStopFailed(ex));
         });
-        Receive<RequestPipelineSink>(msg =>
-        {
-            StreamRefs.SinkRef<WeightedTarget>()
-                .To(_mergeHubSink!)
-                .Run(_mat!)
-                .PipeTo(Sender, Self,
-                    sr => new PipelineSinkResponse(msg.RequestId, sr),
-                    ex =>
-                    {
-                        _log.Error(ex, "Failed to create SinkRef");
-                        return new PipelineSinkFailed(msg.RequestId, ex);
-                    });
-        });
+
         Receive<RequestPipelineSource>(msg =>
         {
             _broadcastHubSource!
@@ -108,13 +99,13 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
 
     private void MaterializePipeline(IActorRef schedulerActor)
     {
-        var (mergeHubSink, mergeHubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 16)
+        var (queue, queueSource) = Source.Queue<WeightedTarget>(16, OverflowStrategy.Backpressure)
             .PreMaterialize(_mat);
 
         var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<FetchOutcome>(bufferSize: 2)
             .PreMaterialize(_mat);
 
-        var (killSwitch, fetchCompletion) = mergeHubSource
+        var (killSwitch, fetchCompletion) = queueSource
             .ViaMaterialized(KillSwitches.Single<WeightedTarget>(), Keep.Right)
             .Via(new BudgetThrottleStage<WeightedTarget>(_budgetGate))
             .Log("pipeline-fetch-in", t => $"{t.Location.Name}/{t.Model.Id}", _log)
@@ -147,9 +138,17 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
             .ToMaterialized(Sink.Ignore<Ack>(), Keep.Right)
             .Run(_mat);
 
+        broadcastHubSource
+            .Collect(outcome => outcome is FetchOutcome.Failure, outcome => (FetchOutcome.Failure)outcome)
+            .Select(f => new FetchFailed(f.Location, f.Model.Id, f.Reason, f.Detail))
+            .Log("pipeline-failure", f => $"{f.Location}/{f.ModelId} {f.Reason}", _log)
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
+            .To(Sink.ActorRef<FetchFailed>(schedulerActor, PoisonPill.Instance))
+            .Run(_mat);
+
         _killSwitch = killSwitch;
         _completions = [fetchCompletion, hashCompletion];
-        _mergeHubSink = mergeHubSink;
+        _queue = queue;
         _broadcastHubSource = broadcastHubSource;
 
         Self.Tell(new PipelineReady());

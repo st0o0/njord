@@ -39,37 +39,19 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 15000)]
-    public async Task Requests_egress_sink_and_pipeline_source_on_startup()
+    public async Task Requests_pipeline_source_on_startup()
     {
         var registry = ActorRegistry;
         var mat = Sys.Materializer();
-        var egressProbe = CreateTestProbe();
         var pipelineProbe = CreateTestProbe();
 
-        var fakeEgress = Sys.ActorOf(FakeEgressSinkProvider.Props(mat, requestProbe: egressProbe));
         var fakePipeline = Sys.ActorOf(FakePipelineSource.Props(mat, requestProbe: pipelineProbe));
 
-        registry.Register<IEgressActor>(fakeEgress, overwrite: true);
         registry.Register<IPipelineActor>(fakePipeline, overwrite: true);
 
         CreateModelStateActor();
 
-        await egressProbe.ExpectMsgAsync<RequestEgressSink>(cancellationToken: TestContext.Current.CancellationToken);
         await pipelineProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: TestContext.Current.CancellationToken);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Re_requests_egress_sink_after_egress_sink_failure()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var egressProbe = CreateTestProbe();
-        ActorRegistry.Register<IEgressActor>(Sys.ActorOf(FailingRefProvider.Props(egressProbe)), overwrite: true);
-        ActorRegistry.Register<IPipelineActor>(CreateTestProbe().Ref, overwrite: true);
-
-        CreateModelStateActor();
-
-        await egressProbe.ExpectMsgAsync<RequestEgressSink>(cancellationToken: ct);
-        await egressProbe.ExpectMsgAsync<RequestEgressSink>(cancellationToken: ct);
     }
 
     [Fact(Timeout = 5000)]
@@ -77,7 +59,6 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var pipelineProbe = CreateTestProbe();
-        ActorRegistry.Register<IEgressActor>(CreateTestProbe().Ref, overwrite: true);
         ActorRegistry.Register<IPipelineActor>(Sys.ActorOf(FailingRefProvider.Props(pipelineProbe)), overwrite: true);
 
         CreateModelStateActor();
@@ -87,23 +68,28 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 15000)]
-    public async Task First_fetch_emits_capability_learned_into_egress_sink()
+    public async Task First_fetch_emits_capability_learned_into_broadcast()
     {
+        var ct = TestContext.Current.CancellationToken;
         var registry = ActorRegistry;
         var mat = Sys.Materializer();
-        var eventProbe = CreateTestProbe();
 
-        var fakeEgress = Sys.ActorOf(FakeEgressSinkProvider.Props(mat, eventProbe: eventProbe));
         var forecast = CreateForecast("icon_d2", withNullParams: false);
         var fakePipeline = Sys.ActorOf(FeedingPipelineSource.Props(mat, forecast));
 
-        registry.Register<IEgressActor>(fakeEgress, overwrite: true);
         registry.Register<IPipelineActor>(fakePipeline, overwrite: true);
 
-        CreateModelStateActor();
+        var actor = CreateModelStateActor();
 
-        var msg1 = await eventProbe.ExpectMsgAsync<EgressEvent>(cancellationToken: TestContext.Current.CancellationToken);
-        var msg2 = await eventProbe.ExpectMsgAsync<EgressEvent>(cancellationToken: TestContext.Current.CancellationToken);
+        var sourceResponse = await actor.Ask<ModelStateSourceResponse>(
+            new RequestModelStateSource(0), TimeSpan.FromSeconds(5), ct);
+
+        var eventProbe = CreateTestProbe();
+        sourceResponse.SourceRef.Source
+            .RunWith(Sink.ActorRef<EgressEvent>(eventProbe, "completed", ex => new Akka.Actor.Status.Failure(ex)), mat);
+
+        var msg1 = await eventProbe.ExpectMsgAsync<EgressEvent>(cancellationToken: ct);
+        var msg2 = await eventProbe.ExpectMsgAsync<EgressEvent>(cancellationToken: ct);
         var events = new[] { msg1, msg2 };
 
         var capEvent = events.OfType<EgressEvent.CapabilityLearned>().Single();
@@ -118,23 +104,30 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 15000)]
     public async Task Unchanged_capability_set_does_not_re_emit()
     {
+        var ct = TestContext.Current.CancellationToken;
         var registry = ActorRegistry;
         var mat = Sys.Materializer();
-        var eventProbe = CreateTestProbe();
 
-        var fakeEgress = Sys.ActorOf(FakeEgressSinkProvider.Props(mat, eventProbe: eventProbe));
         var forecast1 = CreateForecast("icon_d2", withNullParams: false);
         var forecast2 = CreateForecast("icon_d2", withNullParams: false, tempOffset: 1.0);
         var fakePipeline = Sys.ActorOf(FeedingPipelineSource.Props(mat, forecast1, forecast2));
 
-        registry.Register<IEgressActor>(fakeEgress, overwrite: true);
         registry.Register<IPipelineActor>(fakePipeline, overwrite: true);
 
-        CreateModelStateActor();
+        var actor = CreateModelStateActor();
+
+        var sourceResponse = await actor.Ask<ModelStateSourceResponse>(
+            new RequestModelStateSource(0), TimeSpan.FromSeconds(5), ct);
+
+        var eventProbe = CreateTestProbe();
+        sourceResponse.SourceRef.Source
+            .RunWith(Sink.ActorRef<EgressEvent>(eventProbe, "completed", ex => new Akka.Actor.Status.Failure(ex)), mat);
 
         var events = new List<EgressEvent>();
         for (var i = 0; i < 3; i++)
-            events.Add(await eventProbe.ExpectMsgAsync<EgressEvent>(cancellationToken: TestContext.Current.CancellationToken));
+        {
+            events.Add(await eventProbe.ExpectMsgAsync<EgressEvent>(cancellationToken: ct));
+        }
 
         Assert.Single(events.OfType<EgressEvent.CapabilityLearned>());
     }
@@ -142,23 +135,30 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 15000)]
     public async Task Expanded_capability_set_triggers_update()
     {
+        var ct = TestContext.Current.CancellationToken;
         var registry = ActorRegistry;
         var mat = Sys.Materializer();
-        var eventProbe = CreateTestProbe();
 
-        var fakeEgress = Sys.ActorOf(FakeEgressSinkProvider.Props(mat, eventProbe: eventProbe));
         var forecast1 = CreateForecast("icon_d2", withNullParams: true);
         var forecast2 = CreateForecast("icon_d2", withNullParams: false);
         var fakePipeline = Sys.ActorOf(FeedingPipelineSource.Props(mat, forecast1, forecast2));
 
-        registry.Register<IEgressActor>(fakeEgress, overwrite: true);
         registry.Register<IPipelineActor>(fakePipeline, overwrite: true);
 
-        CreateModelStateActor();
+        var actor = CreateModelStateActor();
+
+        var sourceResponse = await actor.Ask<ModelStateSourceResponse>(
+            new RequestModelStateSource(0), TimeSpan.FromSeconds(5), ct);
+
+        var eventProbe = CreateTestProbe();
+        sourceResponse.SourceRef.Source
+            .RunWith(Sink.ActorRef<EgressEvent>(eventProbe, "completed", ex => new Akka.Actor.Status.Failure(ex)), mat);
 
         var events = new List<EgressEvent>();
         for (var i = 0; i < 4; i++)
-            events.Add(await eventProbe.ExpectMsgAsync<EgressEvent>(cancellationToken: TestContext.Current.CancellationToken));
+        {
+            events.Add(await eventProbe.ExpectMsgAsync<EgressEvent>(cancellationToken: ct));
+        }
 
         var capEvents = events.OfType<EgressEvent.CapabilityLearned>()
             .OrderBy(m => m.SupportedParameters.Count).ToList();
@@ -169,20 +169,25 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = 15000)]
     public async Task Horizon_capping_excludes_72h_for_icon_d2()
     {
+        var ct = TestContext.Current.CancellationToken;
         var registry = ActorRegistry;
         var mat = Sys.Materializer();
-        var eventProbe = CreateTestProbe();
 
-        var fakeEgress = Sys.ActorOf(FakeEgressSinkProvider.Props(mat, eventProbe: eventProbe));
         var forecast = CreateForecast("icon_d2", withNullParams: false);
         var fakePipeline = Sys.ActorOf(FeedingPipelineSource.Props(mat, forecast));
 
-        registry.Register<IEgressActor>(fakeEgress, overwrite: true);
         registry.Register<IPipelineActor>(fakePipeline, overwrite: true);
 
-        CreateModelStateActor();
+        var actor = CreateModelStateActor();
 
-        var cap = (EgressEvent.CapabilityLearned)await eventProbe.FishForMessageAsync(msg => msg is EgressEvent.CapabilityLearned, cancellationToken: TestContext.Current.CancellationToken);
+        var sourceResponse = await actor.Ask<ModelStateSourceResponse>(
+            new RequestModelStateSource(0), TimeSpan.FromSeconds(5), ct);
+
+        var eventProbe = CreateTestProbe();
+        sourceResponse.SourceRef.Source
+            .RunWith(Sink.ActorRef<EgressEvent>(eventProbe, "completed", ex => new Akka.Actor.Status.Failure(ex)), mat);
+
+        var cap = (EgressEvent.CapabilityLearned)await eventProbe.FishForMessageAsync(msg => msg is EgressEvent.CapabilityLearned, cancellationToken: ct);
         Assert.Contains(3, cap.ApplicableHorizons);
         Assert.Contains(24, cap.ApplicableHorizons);
         Assert.Contains(48, cap.ApplicableHorizons);
@@ -211,37 +216,6 @@ public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
     }
 
     // -- fakes ---------------------------------------------------------------
-
-    private sealed class FakeEgressSinkProvider : ReceiveActor
-    {
-        public FakeEgressSinkProvider(
-            IMaterializer mat,
-            IActorRef? requestProbe = null,
-            IActorRef? eventProbe = null)
-        {
-            Receive<RequestEgressSink>(msg =>
-            {
-                requestProbe?.Tell(msg);
-
-                Sink<EgressEvent, Akka.NotUsed> sink = eventProbe is not null
-                    ? Sink.ForEach<EgressEvent>(e => eventProbe.Tell(e)).MapMaterializedValue(_ => Akka.NotUsed.Instance)
-                    : Sink.Ignore<EgressEvent>().MapMaterializedValue(_ => Akka.NotUsed.Instance);
-
-                var sinkRef = StreamRefs.SinkRef<EgressEvent>()
-                    .To(sink)
-                    .Run(mat);
-                sinkRef.PipeTo(Sender, Self,
-                    sr => new EgressSinkResponse(msg.RequestId, sr),
-                    _ => null!);
-            });
-        }
-
-        public static Props Props(
-            IMaterializer mat,
-            IActorRef? requestProbe = null,
-            IActorRef? eventProbe = null) =>
-            Akka.Actor.Props.Create(() => new FakeEgressSinkProvider(mat, requestProbe, eventProbe));
-    }
 
     private sealed class FakePipelineSource : ReceiveActor
     {

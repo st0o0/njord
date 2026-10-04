@@ -38,14 +38,10 @@ public sealed class SchedulerActorGetPollStatesBeforeReadySpec : Akka.Hosting.Te
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
+        // Do NOT register IPipelineActor — GetActorAsync will wait indefinitely,
+        // keeping the scheduler in the WaitingForPipeline phase.
         builder
             .AddTestPersistence()
-            .WithActors((system, registry) =>
-            {
-                var silentPipeline = system.ActorOf(
-                    Props.Create(() => new SilentPipelineActor()));
-                registry.Register<IPipelineActor>(silentPipeline);
-            })
             .WithActors((system, registry, resolver) =>
             {
                 registry.Register<ISchedulerActor>(
@@ -57,20 +53,12 @@ public sealed class SchedulerActorGetPollStatesBeforeReadySpec : Akka.Hosting.Te
     private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Get_poll_states_responds_while_waiting_for_pipeline_refs()
+    public async Task Get_poll_states_responds_while_waiting_for_pipeline()
     {
         var snapshot = await Scheduler.Ask<QueryPollStatesResult>(
             new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.NotNull(snapshot);
         Assert.Empty(snapshot.Entries);
-    }
-
-    private sealed class SilentPipelineActor : ReceiveActor
-    {
-        public SilentPipelineActor()
-        {
-            ReceiveAny(_ => { });
-        }
     }
 }

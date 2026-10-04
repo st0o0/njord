@@ -104,7 +104,11 @@ public sealed class BudgetThrottleStageSpec : Akka.Hosting.TestKit.TestKit
 
         public bool TryAcquire(T element)
         {
-            lock (Acquired) Acquired.Add(element);
+            lock (Acquired)
+            {
+                Acquired.Add(element);
+            }
+
             return true;
         }
 
@@ -188,7 +192,9 @@ public sealed class WeightedBudgetGateSpec
         var gate = new WeightedBudgetGate(provider, ActorRefs.Nobody, _time);
 
         for (var i = 0; i < 4; i++)
+        {
             Assert.True(gate.TryAcquire(MakeTarget(1)));
+        }
 
         Assert.False(gate.TryAcquire(MakeTarget(1)));
     }

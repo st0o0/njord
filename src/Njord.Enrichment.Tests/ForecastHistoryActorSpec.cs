@@ -2,10 +2,12 @@ using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Enrichment;
+using Njord.Messages.Enrichment;
 using Njord.Tests.Shared;
 
 namespace Njord.Enrichment.Tests;
@@ -42,9 +44,9 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
     public async Task Query_returns_empty_history_initially()
     {
         var actor = Sys.ActorOf(Props.Create(() =>
-            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, Time)));
+            new ForecastHistoryActor("lucerne", Options.Create(new NjordOptions()), Parameters, Time)));
 
-        var response = await actor.Ask<QueryHistoryResult>(new QueryHistory(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var response = await actor.Ask<QueryHistoryResult>(new QueryHistory("lucerne"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Empty(response.History.Records);
     }
 
@@ -52,11 +54,11 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
     public async Task Record_and_query_returns_persisted_data()
     {
         var actor = Sys.ActorOf(Props.Create(() =>
-            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, Time)));
+            new ForecastHistoryActor("lucerne", Options.Create(new NjordOptions()), Parameters, Time)));
 
-        actor.Tell(new RecordSnapshot(MakeSnapshot()));
+        actor.Tell(new RecordSnapshot("lucerne", MakeSnapshot()));
 
-        var response = await actor.Ask<QueryHistoryResult>(new QueryHistory(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+        var response = await actor.Ask<QueryHistoryResult>(new QueryHistory("lucerne"), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         var record = Assert.Single(response.History.Records);
         Assert.Equal("lucerne", record.Location);
     }
@@ -65,12 +67,14 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
     public async Task Multiple_records_accumulate()
     {
         var actor = Sys.ActorOf(Props.Create(() =>
-            new ForecastHistoryActor("lucerne", new HistoryOptions(), Parameters, Time)));
+            new ForecastHistoryActor("lucerne", Options.Create(new NjordOptions()), Parameters, Time)));
 
         for (var i = 0; i < 5; i++)
-            actor.Tell(new RecordSnapshot(MakeSnapshot()));
+        {
+            actor.Tell(new RecordSnapshot("lucerne", MakeSnapshot()));
+        }
 
-        var response = await actor.Ask<QueryHistoryResult>(new QueryHistory(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+        var response = await actor.Ask<QueryHistoryResult>(new QueryHistory("lucerne"), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(5, response.History.Records.Count);
     }
 }

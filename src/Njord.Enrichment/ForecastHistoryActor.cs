@@ -1,8 +1,10 @@
 using Akka.Event;
 using Akka.Persistence;
+using Microsoft.Extensions.Options;
 using Njord.Analysis;
 using Njord.Configuration;
 using Njord.Domain.Weather;
+using Njord.Messages.Enrichment;
 using Njord.Persistence;
 
 namespace Njord.Enrichment;
@@ -16,24 +18,25 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
 
     public override string PersistenceId => $"forecast-history-{_location}";
 
-    public ForecastHistoryActor(string location, HistoryOptions options, ResolvedParameterSet parameters, TimeProvider timeProvider)
+    public ForecastHistoryActor(string entityId, IOptions<NjordOptions> options, ResolvedParameterSet parameters, TimeProvider timeProvider)
     {
-        _location = location;
+        _location = entityId;
+        var historyOptions = options.Value.Enrichment.History;
         _parameters = parameters;
         _timeProvider = timeProvider;
-        _state = ForecastHistoryState.Create(options.RetentionDays, options.SnapshotInterval);
+        _state = ForecastHistoryState.Create(historyOptions.RetentionDays, historyOptions.SnapshotInterval);
 
         Recover<ForecastRecordDto>(dto =>
         {
             var evt = ForecastHistoryDtoMapping.ToDomain(dto);
-            var cutoff = _timeProvider.GetUtcNow().AddDays(-options.RetentionDays);
+            var cutoff = _timeProvider.GetUtcNow().AddDays(-historyOptions.RetentionDays);
             _state = _state.ApplyRecover(evt, cutoff);
         });
         Recover<SnapshotOffer>(offer =>
         {
             if (offer.Snapshot is ForecastHistorySnapshotDto saved)
             {
-                _state = ForecastHistoryStateExtensions.FromPersistence(saved, options.SnapshotInterval);
+                _state = ForecastHistoryStateExtensions.FromPersistence(saved, historyOptions.SnapshotInterval);
             }
         });
 
@@ -62,7 +65,9 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
         foreach (var (key, forecast) in snapshot.Entries)
         {
             if (key.Location != _location)
+            {
                 continue;
+            }
 
             var values = new Dictionary<string, double?>();
             var nearestPoint = forecast.Hourly.Points
@@ -72,7 +77,9 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
             if (nearestPoint is not null)
             {
                 foreach (var param in _parameters.Hourly)
+                {
                     values[param.ApiName] = nearestPoint.Get(param);
+                }
             }
 
             modelValuesList.Add(values);

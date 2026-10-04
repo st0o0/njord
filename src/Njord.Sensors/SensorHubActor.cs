@@ -88,7 +88,10 @@ public sealed class SensorHubActor : ReceiveActor, IWithTimers
 
     private static AggregatedReading? Aggregate(List<SensorReading> values, AggregationStrategy strategy)
     {
-        if (values.Count == 0) return null;
+        if (values.Count == 0)
+        {
+            return null;
+        }
 
         var newest = values.Max(v => v.MeasuredAt);
         var count = values.Count;

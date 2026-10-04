@@ -145,7 +145,7 @@ public sealed class WeatherGrpcService(
         IServerStreamWriter<ForecastUpdate> responseStream,
         ServerCallContext context)
     {
-        var sourceResponse = await RequestEgressSourceAsync(context.CancellationToken);
+        var sourceResponse = await RequestModelStateSourceAsync(context.CancellationToken);
 
         var mat = actorSystem.Materializer();
 
@@ -172,7 +172,7 @@ public sealed class WeatherGrpcService(
         IServerStreamWriter<EnrichmentEvent> responseStream,
         ServerCallContext context)
     {
-        var sourceResponse = await RequestEgressSourceAsync(context.CancellationToken);
+        var sourceResponse = await RequestEnrichmentSourceAsync(context.CancellationToken);
 
         var mat = actorSystem.Materializer();
 
@@ -200,18 +200,33 @@ public sealed class WeatherGrpcService(
             .RunWith(Sink.Ignore<EnrichmentEvent?>(), mat);
     }
 
-    private async Task<EgressSourceResponse> RequestEgressSourceAsync(CancellationToken cancellationToken)
+    private async Task<ModelStateSourceResponse> RequestModelStateSourceAsync(CancellationToken cancellationToken)
     {
-        var reply = await actorRegistry.Get<IEgressActor>()
-            .Ask<object>(new RequestEgressSource(0), cancellationToken);
+        var reply = await actorRegistry.Get<IModelStateActor>()
+            .Ask<object>(new RequestModelStateSource(0), cancellationToken);
 
         return reply switch
         {
-            EgressSourceResponse response => response,
-            EgressSourceFailed => throw new RpcException(
-                new GrpcStatus(StatusCode.Unavailable, "Egress stream is currently unavailable")),
+            ModelStateSourceResponse response => response,
+            ModelStateSourceFailed => throw new RpcException(
+                new GrpcStatus(StatusCode.Unavailable, "Model state stream is currently unavailable")),
             _ => throw new RpcException(
-                new GrpcStatus(StatusCode.Internal, $"Unexpected egress reply: {reply.GetType().Name}")),
+                new GrpcStatus(StatusCode.Internal, $"Unexpected model state reply: {reply.GetType().Name}")),
+        };
+    }
+
+    private async Task<EnrichmentSourceResponse> RequestEnrichmentSourceAsync(CancellationToken cancellationToken)
+    {
+        var reply = await actorRegistry.Get<IEnrichmentActor>()
+            .Ask<object>(new RequestEnrichmentSource(0), cancellationToken);
+
+        return reply switch
+        {
+            EnrichmentSourceResponse response => response,
+            EnrichmentSourceFailed => throw new RpcException(
+                new GrpcStatus(StatusCode.Unavailable, "Enrichment stream is currently unavailable")),
+            _ => throw new RpcException(
+                new GrpcStatus(StatusCode.Internal, $"Unexpected enrichment reply: {reply.GetType().Name}")),
         };
     }
 

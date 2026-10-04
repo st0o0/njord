@@ -65,13 +65,13 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Egress_references_only_Core_and_below()
     {
-        Assert.Empty(NjordReferences<Njord.Egress.EgressActor>().Except(CoreAndBelow));
+        Assert.Empty(NjordReferences<Njord.Egress.ModelStateActor>().Except(CoreAndBelow));
     }
 
     [Fact]
     public void Mqtt_references_only_Core_and_below()
     {
-        Assert.Empty(NjordReferences<Njord.Mqtt.MqttEgressActor>().Except(CoreAndBelow));
+        Assert.Empty(NjordReferences<Njord.Mqtt.MqttStateActor>().Except(CoreAndBelow));
     }
 
     [Fact]

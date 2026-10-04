@@ -7,7 +7,6 @@ using Njord.Actors;
 using Njord.Analysis;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Egress;
 using Njord.Grpc;
 using Njord.Grpc.V2;
 using Njord.Messages.Snapshots;
@@ -189,9 +188,9 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 5000)]
-    public async Task StreamForecasts_throws_unavailable_when_egress_source_request_fails()
+    public async Task StreamForecasts_throws_unavailable_when_model_state_source_request_fails()
     {
-        ActorRegistry.Register<IEgressActor>(
+        ActorRegistry.Register<IModelStateActor>(
             Sys.ActorOf(FailingRefProvider.Props(CreateTestProbe())), overwrite: true);
         var service = CreateService();
 
@@ -203,9 +202,9 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 5000)]
-    public async Task StreamEnrichments_throws_unavailable_when_egress_source_request_fails()
+    public async Task StreamEnrichments_throws_unavailable_when_enrichment_source_request_fails()
     {
-        ActorRegistry.Register<IEgressActor>(
+        ActorRegistry.Register<IEnrichmentActor>(
             Sys.ActorOf(FailingRefProvider.Props(CreateTestProbe())), overwrite: true);
         var service = CreateService();
 

@@ -5,7 +5,6 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Actors;
 using Njord.Domain.Weather;
-using Njord.Messages.Common;
 using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Shared;

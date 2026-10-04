@@ -8,7 +8,10 @@ public static class ForecastSnapshotMapping
     {
         var dto = new ForecastSnapshotDto();
         foreach (var (key, forecast) in state)
+        {
             dto.Forecasts[key] = ToDto(forecast);
+        }
+
         return dto;
     }
 
@@ -39,7 +42,10 @@ public static class ForecastSnapshotMapping
     {
         var dto = new ForecastPointDto { ValidAtUtcTicks = point.ValidAt.UtcTicks };
         foreach (var (param, value) in point.Values)
+        {
             dto.Values[param.ApiName] = value;
+        }
+
         return dto;
     }
 
@@ -47,9 +53,15 @@ public static class ForecastSnapshotMapping
     {
         var dto = new DailyForecastPointDto { Date = point.Date.ToString("O") };
         foreach (var (param, value) in point.NumericValues)
+        {
             dto.NumericValues[param.ApiName] = value;
+        }
+
         foreach (var (param, value) in point.MetaValues)
+        {
             dto.MetaValues[param.ApiName] = value;
+        }
+
         return dto;
     }
 

@@ -1,8 +1,5 @@
-using Akka;
 using Akka.Actor;
 using Akka.Hosting;
-using Akka.Streams;
-using Akka.Streams.Dsl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -50,9 +47,8 @@ public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKi
             })
             .WithActors((system, registry) =>
             {
-                var mat = system.Materializer();
                 var fakePipeline = system.ActorOf(
-                    Props.Create(() => new FakePipelineActor(mat)));
+                    Props.Create(() => new FakePipelineActor()));
                 registry.Register<IPipelineActor>(fakePipeline);
             })
             .AddTestTimefactor();
@@ -84,31 +80,9 @@ public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKi
 
     private sealed class FakePipelineActor : ReceiveActor
     {
-        public FakePipelineActor(IMaterializer mat)
+        public FakePipelineActor()
         {
-            Receive<RequestPipelineSink>(msg =>
-            {
-                var (hubSink, hubSource) = MergeHub.Source<WeightedTarget>(perProducerBufferSize: 8)
-                    .PreMaterialize(mat);
-
-                hubSource.RunWith(Sink.Ignore<WeightedTarget>(), mat);
-
-                StreamRefs.SinkRef<WeightedTarget>()
-                    .To(hubSink)
-                    .Run(mat)
-                    .PipeTo(Sender, Self,
-                        sr => new PipelineSinkResponse(msg.RequestId, sr),
-                        _ => null!);
-            });
-
-            Receive<RequestPipelineSource>(msg =>
-            {
-                Source.Empty<FetchOutcome>()
-                    .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat)
-                    .PipeTo(Sender, Self,
-                        sr => new PipelineSourceResponse(msg.RequestId, sr),
-                        _ => null!);
-            });
+            Receive<WeightedTarget>(_ => { });
         }
     }
 }

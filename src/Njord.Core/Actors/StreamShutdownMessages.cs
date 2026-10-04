@@ -1,4 +1,4 @@
-namespace Njord.Messages.Common;
+namespace Njord.Actors;
 
 public sealed record StopStreams;
 

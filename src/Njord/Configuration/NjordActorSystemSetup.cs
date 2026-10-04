@@ -1,17 +1,19 @@
 using Akka;
 using Akka.Actor;
+using Akka.Cluster.Hosting;
+using Akka.Cluster.Sharding;
 using Akka.DependencyInjection;
 using Akka.Event;
 using Akka.Hosting;
 using Akka.Pattern;
 using Akka.Persistence.Sql.Hosting;
+using Akka.Remote.Hosting;
 using LinqToDB;
 using Microsoft.Extensions.Options;
 using Njord.Actors;
 using Njord.Egress;
 using Njord.Enrichment;
 using Njord.Grpc;
-using Njord.Messages.Common;
 using Njord.Mqtt;
 using Njord.Pipeline;
 using Njord.Sensors;
@@ -57,7 +59,9 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
                 loggers.ClearLoggers();
                 loggers.AddLoggerFactory();
             })
-            .WithSqlPersistence(connectionString, providerName, autoInitialize: true);
+            .WithSqlPersistence(connectionString, providerName, autoInitialize: true)
+            .WithRemoting(new RemoteOptions { HostName = "localhost", Port = 0 })
+            .WithClustering();
 
         return WithNjordActors(builder, njordOptions.Mqtt.Enabled);
     }
@@ -71,12 +75,25 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
                 "Persistence must be configured before the actors are registered (journal plugin is not set).");
         }
 
+        builder.WithShardRegion<IForecastHistoryRegion>(
+            "forecast-history",
+            (_, _, resolver) => entityId => resolver.Props<ForecastHistoryActor>(entityId),
+            new NjordMessageExtractor(),
+            new ShardOptions
+            {
+                PassivateIdleEntityAfter = TimeSpan.FromMinutes(10),
+                ShouldPassivateIdleEntities = true
+            });
+
         return builder.WithActors((system, registry) =>
         {
+            var cluster = Akka.Cluster.Cluster.Get(system);
+            cluster.Join(cluster.SelfAddress);
+
             var resolver = DependencyResolver.For(system);
 
             RegisterPipelineActors(system, registry, resolver);
-            RegisterEgressActors(system, registry, resolver);
+            RegisterModelStateActors(system, registry, resolver);
             RegisterEnrichmentActors(system, registry, resolver);
             RegisterSensorActors(system, registry, resolver);
             RegisterGrpcActors(system, registry, resolver);
@@ -100,7 +117,6 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
             async () =>
             {
                 await StopStreamsOf<IPipelineActor>(registry, askTimeout, log);
-                await StopStreamsOf<IEgressActor>(registry, askTimeout, log);
                 return Done.Instance;
             });
     }
@@ -130,9 +146,8 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
         registry.Register<IPipelineActor>(system.ActorOf(resolver.Props<PipelineActor>(), "pipeline"));
     }
 
-    private static void RegisterEgressActors(ActorSystem system, IActorRegistry registry, DependencyResolver resolver)
+    private static void RegisterModelStateActors(ActorSystem system, IActorRegistry registry, DependencyResolver resolver)
     {
-        registry.Register<IEgressActor>(system.ActorOf(resolver.Props<EgressActor>(), "egress"));
         registry.Register<IModelStateActor>(system.ActorOf(resolver.Props<ModelStateActor>(), "model-state"));
     }
 
@@ -157,8 +172,8 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
     private static void RegisterMqttActors(ActorSystem system, IActorRegistry registry, DependencyResolver resolver)
     {
         registry.Register<IMqttConnectionActor>(system.ActorOf(resolver.Props<MqttConnectionActor>(), "mqtt-connection"));
-        registry.Register<IMqttEgressActor>(system.ActorOf(resolver.Props<MqttEgressActor>(), "mqtt-egress"));
-        registry.Register<IDiscoveryActor>(system.ActorOf(resolver.Props<DiscoveryActor>(), "mqtt-discovery"));
+        registry.Register<IMqttStateActor>(system.ActorOf(resolver.Props<MqttStateActor>(), "mqtt-state"));
+        registry.Register<IMqttDiscoveryActor>(system.ActorOf(resolver.Props<MqttDiscoveryActor>(), "mqtt-discovery"));
     }
 
     private static void RegisterWithBackoff<TKey, TActor>(

@@ -1,23 +1,16 @@
 using System.Diagnostics.Metrics;
-using Akka;
 using Akka.Actor;
 using Akka.Event;
-using Akka.Streams;
-using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
-using Njord.Actors;
 using Njord.Configuration;
 using Njord.Diagnostics;
 using Njord.Health;
+using Njord.Messages.Mqtt;
 using Njord.Mqtt.Transport;
 
 namespace Njord.Mqtt;
 
 public sealed record SubscribeInbound(IActorRef Listener);
-
-public sealed record MqttConnected;
-
-public sealed record MqttInboundMessage(string Topic, string Payload);
 
 public sealed class MqttConnectionActor : ReceiveActor
 {
@@ -33,10 +26,6 @@ public sealed class MqttConnectionActor : ReceiveActor
     private readonly string _haStatusTopic;
     private ILoggingAdapter _log = null!;
     private int _connectAttempts;
-
-    private ISourceQueueWithComplete<MqttMessage>? _availabilityQueue;
-    private Sink<MqttMessage, NotUsed>? _mergeHubSink;
-    private IMaterializer? _mat;
 
     private readonly List<IActorRef> _inboundListeners = [];
 
@@ -69,8 +58,6 @@ public sealed class MqttConnectionActor : ReceiveActor
     protected override void PreStart()
     {
         _log = Context.GetLogger();
-        _mat = Context.Materializer();
-        MaterializeEgressGraph(_mat);
         Connect();
     }
 
@@ -92,19 +79,6 @@ public sealed class MqttConnectionActor : ReceiveActor
         });
         Receive<Reconnect>(_ => Connect());
         Receive<Inbound>(OnInbound);
-        Receive<RequestMqttSink>(msg =>
-        {
-            StreamRefs.SinkRef<MqttMessage>()
-                .To(_mergeHubSink!)
-                .Run(_mat!)
-                .PipeTo(Sender, Self,
-                    sr => new MqttSinkResponse(msg.RequestId, sr),
-                    ex =>
-                    {
-                        _log.Error(ex, "Failed to create MQTT SinkRef");
-                        return new MqttSinkFailed(msg.RequestId, ex);
-                    });
-        });
         Receive<SubscribeInbound>(msg =>
         {
             _inboundListeners.Add(msg.Listener);
@@ -118,31 +92,7 @@ public sealed class MqttConnectionActor : ReceiveActor
 
     protected override void PostStop()
     {
-        _availabilityQueue?.OfferAsync(new MqttMessage(_availabilityTopic, "offline", true));
-        _availabilityQueue?.Complete();
-    }
-
-    private void MaterializeEgressGraph(IMaterializer mat)
-    {
-        var (availQueue, availSource) = Source.Queue<MqttMessage>(8, OverflowStrategy.DropHead)
-            .PreMaterialize(mat);
-        _availabilityQueue = availQueue;
-
-        var (hubSink, hubSource) = MergeHub.Source<MqttMessage>(perProducerBufferSize: 8)
-            .PreMaterialize(mat);
-        _mergeHubSink = hubSink;
-
-        availSource.RunWith(hubSink, mat);
-
-        hubSource
-            .Log("mqtt-send", m => $"{m.Topic} [{m.Payload.Length}B] retain={m.Retain}", _log)
-            .SelectAsync(1, async msg =>
-            {
-                await _transport.SendAsync(msg.Topic, msg.Payload, msg.Retain, CancellationToken.None);
-                return NotUsed.Instance;
-            })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
-            .RunWith(Sink.Ignore<NotUsed>(), mat);
+        _transport.SendAsync(_availabilityTopic, "offline", true, CancellationToken.None);
     }
 
     private void Connect()
@@ -182,7 +132,7 @@ public sealed class MqttConnectionActor : ReceiveActor
             _log.Warning(ex, "Post-connect subscription failed");
         }
 
-        _availabilityQueue?.OfferAsync(new MqttMessage(_availabilityTopic, "online", true));
+        await _transport.SendAsync(_availabilityTopic, "online", true, CancellationToken.None);
 
         foreach (var listener in _inboundListeners)
         {

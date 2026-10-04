@@ -8,49 +8,51 @@ using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Messages.Egress;
+using Njord.Messages.Mqtt;
+using Njord.Mqtt.Transport;
 using Servus.Akka;
 
 namespace Njord.Mqtt;
 
-public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
+public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
 {
     public ITimerScheduler Timers { get; set; } = null!;
     private static readonly string Version =
-        typeof(DiscoveryActor).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+        typeof(MqttDiscoveryActor).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion ?? "unknown";
 
     private readonly NjordOptions _options;
     private readonly ResolvedParameterSet _parameters;
     private readonly IReadOnlyList<IEnrichmentPresenter> _presenters;
+    private readonly IMqttTransport _transport;
     private readonly string _haStatusTopic;
     private readonly bool _discoveryEnabled;
     private readonly int _expectedModelCount;
     private ILoggingAdapter _log = null!;
 
-    private ISourceQueueWithComplete<MqttMessage>? _queue;
-    private ISinkRef<MqttMessage>? _mqttSinkRef;
-    private ISourceRef<EgressEvent>? _egressSourceRef;
-    private long _mqttSinkRequestId;
-    private long _egressSourceRequestId;
+    private ISourceRef<EgressEvent>? _modelStateSourceRef;
+    private long _modelStateSourceRequestId;
     private readonly Dictionary<(string Location, string ModelId), EgressEvent.CapabilityLearned> _capabilities = new();
     private bool _initialDiscoveryPublished;
 
+    private sealed record ModelStateResolved(IActorRef Ref);
     private sealed record ConnectionResolved(IActorRef Ref);
-    private sealed record EgressResolved(IActorRef Ref);
+    private sealed record ModelStateResolveFailed(Exception Cause);
     private sealed record ConnectionResolveFailed(Exception Cause);
-    private sealed record EgressResolveFailed(Exception Cause);
     private sealed record StreamCompleted
     {
         public static readonly StreamCompleted Instance = new();
     }
 
-    public DiscoveryActor(
+    public MqttDiscoveryActor(
         IOptions<NjordOptions> options,
         ResolvedParameterSet parameters,
+        IMqttTransport transport,
         IEnumerable<IEnrichmentPresenter> presenters)
     {
         _options = options.Value;
         _parameters = parameters;
+        _transport = transport;
         _presenters = [.. presenters];
         _haStatusTopic = $"{_options.Mqtt.DiscoveryPrefix}/status";
         _discoveryEnabled = _options.Mqtt.DiscoveryEnabled;
@@ -65,7 +67,7 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
 
         if (!_discoveryEnabled)
         {
-            _log.Info("MQTT discovery is disabled — DiscoveryActor idle");
+            _log.Info("MQTT discovery is disabled — MqttDiscoveryActor idle");
             return;
         }
 
@@ -74,53 +76,51 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
 
     protected override void ResolveDependencies()
     {
+        Context.GetActorAsync<IModelStateActor>().PipeTo(Self, success: r => new ModelStateResolved(r), failure: ex => new ModelStateResolveFailed(ex));
         Context.GetActorAsync<IMqttConnectionActor>().PipeTo(Self, success: r => new ConnectionResolved(r), failure: ex => new ConnectionResolveFailed(ex));
-        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r), failure: ex => new EgressResolveFailed(ex));
     }
 
     protected override void ConfigureWaitingForRefs()
     {
+        Receive<ModelStateResolved>(msg =>
+        {
+            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+            TrackDependency(msg.Ref);
+            var id = NextRequestId();
+            _modelStateSourceRequestId = id;
+            msg.Ref.Tell(new RequestModelStateSource(id));
+        });
         Receive<ConnectionResolved>(msg =>
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
             TrackDependency(msg.Ref);
-            var id = NextRequestId();
-            _mqttSinkRequestId = id;
-            msg.Ref.Tell(new RequestMqttSink(id));
             msg.Ref.Tell(new SubscribeInbound(Self));
-        });
-        Receive<EgressResolved>(msg =>
-        {
-            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
-            TrackDependency(msg.Ref);
-            var id = NextRequestId();
-            _egressSourceRequestId = id;
-            msg.Ref.Tell(new RequestEgressSource(id));
-        });
-        Receive<MqttSinkResponse>(response =>
-        {
-            if (response.RequestId != _mqttSinkRequestId) return;
-            _mqttSinkRef = response.SinkRef;
-            _log.Debug("SinkRef received from {Source}", Sender.Path);
             TryTransition();
         });
-        Receive<EgressSourceResponse>(response =>
+        Receive<ModelStateSourceResponse>(response =>
         {
-            if (response.RequestId != _egressSourceRequestId) return;
-            _egressSourceRef = response.SourceRef;
-            _log.Debug("SourceRef received from {Source}", Sender.Path);
+            if (response.RequestId != _modelStateSourceRequestId)
+            {
+                return;
+            }
+
+            _modelStateSourceRef = response.SourceRef;
+            _log.Debug("ModelState SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
-        Receive<MqttSinkFailed>(msg =>
+        Receive<ModelStateSourceFailed>(msg =>
         {
-            if (msg.RequestId != _mqttSinkRequestId) return;
-            _log.Warning(msg.Cause, "MQTT sink request failed - retrying");
+            if (msg.RequestId != _modelStateSourceRequestId)
+            {
+                return;
+            }
+
+            _log.Warning(msg.Cause, "ModelState source request failed - retrying");
             ScheduleRetryResolve();
         });
-        Receive<EgressSourceFailed>(msg =>
+        Receive<ModelStateResolveFailed>(msg =>
         {
-            if (msg.RequestId != _egressSourceRequestId) return;
-            _log.Warning(msg.Cause, "Egress source request failed - retrying");
+            _log.Warning(msg.Cause, "Failed to resolve ModelStateActor - retrying");
             ScheduleRetryResolve();
         });
         Receive<ConnectionResolveFailed>(msg =>
@@ -128,27 +128,14 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
             _log.Warning(msg.Cause, "Failed to resolve MqttConnectionActor - retrying");
             ScheduleRetryResolve();
         });
-        Receive<EgressResolveFailed>(msg =>
-        {
-            _log.Warning(msg.Cause, "Failed to resolve EgressActor - retrying");
-            ScheduleRetryResolve();
-        });
     }
 
-    protected override bool AllRefsReady() => _mqttSinkRef is not null && _egressSourceRef is not null;
+    protected override bool AllRefsReady() => _modelStateSourceRef is not null;
 
     protected override void MaterializeGraph(SharedKillSwitch killSwitch)
     {
-        var (queue, source) = Source.Queue<MqttMessage>(32, OverflowStrategy.DropHead)
-            .PreMaterialize(Mat);
-        _queue = queue;
-
-        source
-            .Via(killSwitch.Flow<MqttMessage>())
-            .RunWith(_mqttSinkRef!.Sink, Mat);
-
         var self = Self;
-        _egressSourceRef!.Source
+        _modelStateSourceRef!.Source
             .Via(killSwitch.Flow<EgressEvent>())
             .Where(e => e is EgressEvent.CapabilityLearned)
             .Log("discovery-capability", e => $"{((EgressEvent.CapabilityLearned)e).Location}/{((EgressEvent.CapabilityLearned)e).Model.Id}", _log)
@@ -158,7 +145,7 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
 
     protected override void ConfigureReady()
     {
-        _log.Info("DiscoveryActor ready — waiting for model capabilities");
+        _log.Info("MqttDiscoveryActor ready — waiting for model capabilities");
         ScheduleCapabilityTimeout();
 
         Receive<CapabilityReceived>(msg =>
@@ -180,12 +167,8 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
 
     protected override void OnDependencyLost()
     {
-        _mqttSinkRef = null;
-        _egressSourceRef = null;
-        _mqttSinkRequestId = 0;
-        _egressSourceRequestId = 0;
-        _queue?.Complete();
-        _queue = null;
+        _modelStateSourceRef = null;
+        _modelStateSourceRequestId = 0;
     }
 
     private void OnCapabilityLearned(EgressEvent.CapabilityLearned msg)
@@ -271,7 +254,7 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
                 var deviceId = presenter.DeviceId(location.Name);
                 var topic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, deviceId);
                 var payload = presenter.BuildDiscoveryPayload(ctx, location.Name);
-                _queue?.OfferAsync(new MqttMessage(topic, payload, true));
+                _transport.SendAsync(topic, payload, true, CancellationToken.None);
             }
         }
     }
@@ -286,18 +269,13 @@ public sealed class DiscoveryActor : StreamConsumerActor, IWithTimers
             cap.ApplicableHorizons, cap.ApplicableDayOffsets,
             cap.SupportedParameters,
             _options.Mqtt, _options.PollInterval, Version);
-        _queue?.OfferAsync(new MqttMessage(topic, payload, true));
+        _transport.SendAsync(topic, payload, true, CancellationToken.None);
     }
 
     private void ScheduleCapabilityTimeout()
     {
         var timeout = _options.PollInterval + _options.PollInterval;
         Timers.StartSingleTimer("capability-timeout", new CapabilityTimeout(), timeout);
-    }
-
-    protected override void PostStop()
-    {
-        _queue?.Complete();
     }
 
     private sealed record CapabilityTimeout;

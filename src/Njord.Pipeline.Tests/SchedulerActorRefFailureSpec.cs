@@ -18,7 +18,7 @@ namespace Njord.Pipeline.Tests;
 public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
 {
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
-    private Akka.TestKit.TestProbe _requestProbe = null!;
+    private Akka.TestKit.TestProbe _offerProbe = null!;
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
@@ -40,8 +40,10 @@ public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
             .AddTestPersistence()
             .WithActors((system, registry) =>
             {
-                _requestProbe = CreateTestProbe();
-                registry.Register<IPipelineActor>(system.ActorOf(FailingRefProvider.Props(_requestProbe)));
+                _offerProbe = CreateTestProbe();
+                var fakePipeline = system.ActorOf(
+                    Props.Create(() => new FakePipelineActor(_offerProbe)));
+                registry.Register<IPipelineActor>(fakePipeline);
             })
             .WithActors((system, registry, resolver) =>
             {
@@ -52,27 +54,54 @@ public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
             .AddFastRetryBackoff();
     }
 
+    private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
+
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Re_requests_both_refs_after_pipeline_ref_failures()
+    public async Task Recovers_after_pipeline_termination_with_new_ref()
     {
         var ct = TestContext.Current.CancellationToken;
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: ct);
 
-        await _requestProbe.ExpectMsgAsync<RequestPipelineSink>(cancellationToken: ct);
-        await _requestProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: ct);
+        // Stop the pipeline actor to simulate failure
+        var oldPipeline = ActorRegistry.Get<IPipelineActor>();
+        Watch(oldPipeline);
+        await oldPipeline.GracefulStop(TimeSpan.FromSeconds(2));
+        await ExpectTerminatedAsync(oldPipeline, cancellationToken: ct);
 
-        await _requestProbe.ExpectMsgAsync<RequestPipelineSink>(cancellationToken: ct);
-        await _requestProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: ct);
+        // Register a replacement pipeline actor
+        var newPipeline = Sys.ActorOf(
+            Props.Create(() => new FakePipelineActor(_offerProbe)), "pipeline-replacement");
+        ActorRegistry.Register<IPipelineActor>(newPipeline, overwrite: true);
+
+        // Scheduler should re-resolve and send targets to the new pipeline
+        var target = await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: ct);
+        Assert.Equal("lucerne", target.Location.Name);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Stays_responsive_while_waiting_for_refs_after_failure()
+    public async Task Stays_responsive_after_pipeline_termination()
     {
         var ct = TestContext.Current.CancellationToken;
-        await _requestProbe.ExpectMsgAsync<RequestPipelineSink>(cancellationToken: ct);
+        await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: ct);
 
-        var states = await ActorRegistry.Get<ISchedulerActor>()
-            .Ask<QueryPollStatesResponse>(new QueryPollStates(), TimeSpan.FromSeconds(2), ct);
+        // Stop the pipeline actor
+        var pipeline = ActorRegistry.Get<IPipelineActor>();
+        Watch(pipeline);
+        await pipeline.GracefulStop(TimeSpan.FromSeconds(2));
+        await ExpectTerminatedAsync(pipeline, cancellationToken: ct);
+
+        // Scheduler should still respond to queries while waiting for a new pipeline
+        var states = await Scheduler.Ask<QueryPollStatesResponse>(
+            new QueryPollStates(), TimeSpan.FromSeconds(2), ct);
 
         Assert.IsAssignableFrom<QueryPollStatesResponse>(states);
+    }
+
+    private sealed class FakePipelineActor : ReceiveActor
+    {
+        public FakePipelineActor(IActorRef probe)
+        {
+            Receive<WeightedTarget>(msg => probe.Tell(msg));
+        }
     }
 }

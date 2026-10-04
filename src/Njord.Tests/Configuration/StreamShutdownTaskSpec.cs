@@ -5,7 +5,6 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Egress;
 using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
@@ -26,9 +25,7 @@ public sealed class StreamShutdownTaskSpec : Akka.Hosting.TestKit.TestKit
         ActorRegistry.Register<ISchedulerActor>(scheduler, overwrite: true);
         var pipeline = Sys.ActorOf(Props.Create(() => new PipelineActor(
             new FakeOpenMeteoClient(), new FakeTimeProvider(), new AllowAllGate())));
-        var egress = Sys.ActorOf(Props.Create<EgressActor>());
         ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
-        ActorRegistry.Register<IEgressActor>(egress, overwrite: true);
         await pipeline.Ask<PipelineSourceResponse>(
             new RequestPipelineSource(0), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
@@ -45,9 +42,7 @@ public sealed class StreamShutdownTaskSpec : Akka.Hosting.TestKit.TestKit
     public async Task Unresponsive_actor_logs_warning_and_shutdown_still_completes()
     {
         var silent = Sys.ActorOf(Props.Create(() => new IdleActor()));
-        var egress = Sys.ActorOf(Props.Create<EgressActor>());
         ActorRegistry.Register<IPipelineActor>(silent, overwrite: true);
-        ActorRegistry.Register<IEgressActor>(egress, overwrite: true);
 
         NjordActorSystemSetup.AddStreamShutdownTask(Sys, ActorRegistry, TimeSpan.FromMilliseconds(300));
 

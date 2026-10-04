@@ -7,9 +7,7 @@ using Njord.Actors;
 using Njord.Analysis;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Egress;
 using Njord.Enrichment;
-using Njord.Messages.Egress;
 using Njord.Messages.Pipeline;
 using Njord.Pipeline;
 using Njord.Tests.Shared;
@@ -27,9 +25,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
             {
                 var mat = system.Materializer();
                 var fakePipeline = system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
-                var fakeEgress = system.ActorOf(Props.Create(() => new FakeEgressSinkProvider(mat)));
                 registry.Register<IPipelineActor>(fakePipeline);
-                registry.Register<IEgressActor>(fakeEgress);
             })
             .AddTestTimefactor()
             .AddFastRetryBackoff();
@@ -46,7 +42,10 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var options = DefaultOptions();
         if (enrichment is not null)
+        {
             options.Enrichment = enrichment;
+        }
+
         var optionsWrapped = Microsoft.Extensions.Options.Options.Create(options);
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
@@ -85,19 +84,6 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
 
         await requestProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: ct);
         await requestProbe.ExpectMsgAsync<RequestPipelineSource>(cancellationToken: ct);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Re_requests_egress_sink_after_egress_sink_failure()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var requestProbe = CreateTestProbe();
-        ActorRegistry.Register<IEgressActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
-
-        CreateEnrichmentActor();
-
-        await requestProbe.ExpectMsgAsync<RequestEgressSink>(cancellationToken: ct);
-        await requestProbe.ExpectMsgAsync<RequestEgressSink>(cancellationToken: ct);
     }
 
     [Fact(Timeout = 5000)]
@@ -178,22 +164,6 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
                     .RunWith(StreamRefs.SourceRef<FetchOutcome>(), mat);
                 task.PipeTo(Sender, Self,
                     sr => new PipelineSourceResponse(msg.RequestId, sr),
-                    _ => null!);
-            });
-        }
-    }
-
-    private sealed class FakeEgressSinkProvider : ReceiveActor
-    {
-        public FakeEgressSinkProvider(IMaterializer mat)
-        {
-            Receive<RequestEgressSink>(msg =>
-            {
-                var sinkRef = StreamRefs.SinkRef<EgressEvent>()
-                    .To(Sink.Ignore<EgressEvent>().MapMaterializedValue(_ => Akka.NotUsed.Instance))
-                    .Run(mat);
-                sinkRef.PipeTo(Sender, Self,
-                    sr => new EgressSinkResponse(msg.RequestId, sr),
                     _ => null!);
             });
         }

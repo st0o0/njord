@@ -7,8 +7,5 @@
         <ProjectReference Include="..\Njord.Domain\Njord.Domain.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <PackageReference Include="Akka.Streams" />
-    </ItemGroup>
 
 </Project>

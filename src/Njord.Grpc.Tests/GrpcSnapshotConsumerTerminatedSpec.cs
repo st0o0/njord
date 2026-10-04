@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Njord.Actors;
 using Njord.Domain.Weather;
-using Njord.Egress;
 using Njord.Grpc;
 using Njord.Messages.Egress;
 using Njord.Tests.Shared;
@@ -15,7 +14,8 @@ namespace Njord.Grpc.Tests;
 
 public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.TestKit
 {
-    private Akka.TestKit.TestProbe _requestProbe = null!;
+    private Akka.TestKit.TestProbe _modelStateProbe = null!;
+    private Akka.TestKit.TestProbe _enrichmentProbe = null!;
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
@@ -23,12 +23,17 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
             .AddTestPersistence()
             .WithActors((system, registry) =>
             {
-                _requestProbe = CreateTestProbe();
+                _modelStateProbe = CreateTestProbe();
+                _enrichmentProbe = CreateTestProbe();
                 var mat = system.Materializer();
 
-                var fakeEgress = system.ActorOf(
-                    Props.Create(() => new FakeEgressActor(mat, _requestProbe)));
-                registry.Register<IEgressActor>(fakeEgress);
+                var fakeModelState = system.ActorOf(
+                    Props.Create(() => new FakeModelStateActor(mat, _modelStateProbe)));
+                registry.Register<IModelStateActor>(fakeModelState);
+
+                var fakeEnrichment = system.ActorOf(
+                    Props.Create(() => new FakeEnrichmentActor(mat, _enrichmentProbe)));
+                registry.Register<IEnrichmentActor>(fakeEnrichment);
 
                 registry.Register<IForecastSnapshotActor>(
                     system.ActorOf(Props.Create(() => new ForecastSnapshotActor())));
@@ -40,53 +45,69 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
     }
 
     [Fact(Timeout = 10000)]
-    public async Task Re_requests_source_after_egress_actor_terminates()
+    public async Task Re_requests_source_after_model_state_actor_terminates()
     {
         var ct = TestContext.Current.CancellationToken;
         var consumer = Sys.ActorOf(Props.Create(() =>
             new GrpcSnapshotConsumerActor()));
 
-        var firstRequest = await _requestProbe.ExpectMsgAsync<RequestEgressSource>(cancellationToken: ct);
+        var firstRequest = await _modelStateProbe.ExpectMsgAsync<RequestModelStateSource>(cancellationToken: ct);
         Assert.NotNull(firstRequest);
 
-        var oldEgress = ActorRegistry.Get<IEgressActor>();
-        Watch(oldEgress);
-        await oldEgress.GracefulStop(TimeSpan.FromSeconds(2));
-        await ExpectTerminatedAsync(oldEgress, cancellationToken: ct);
+        var oldModelState = ActorRegistry.Get<IModelStateActor>();
+        Watch(oldModelState);
+        await oldModelState.GracefulStop(TimeSpan.FromSeconds(2));
+        await ExpectTerminatedAsync(oldModelState, cancellationToken: ct);
 
         var mat = Sys.Materializer();
-        var newEgress = Sys.ActorOf(
-            Props.Create(() => new FakeEgressActor(mat, _requestProbe)));
-        ActorRegistry.Register<IEgressActor>(newEgress, overwrite: true);
+        var newModelState = Sys.ActorOf(
+            Props.Create(() => new FakeModelStateActor(mat, _modelStateProbe)));
+        ActorRegistry.Register<IModelStateActor>(newModelState, overwrite: true);
 
-        var secondRequest = await _requestProbe.ExpectMsgAsync<RequestEgressSource>(TimeSpan.FromSeconds(5), cancellationToken: ct);
+        var secondRequest = await _modelStateProbe.ExpectMsgAsync<RequestModelStateSource>(TimeSpan.FromSeconds(5), cancellationToken: ct);
         Assert.NotNull(secondRequest);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Re_requests_source_after_egress_source_failure()
+    public async Task Re_requests_source_after_model_state_source_failure()
     {
         var ct = TestContext.Current.CancellationToken;
         var failureProbe = CreateTestProbe();
-        ActorRegistry.Register<IEgressActor>(Sys.ActorOf(FailingRefProvider.Props(failureProbe)), overwrite: true);
+        ActorRegistry.Register<IModelStateActor>(Sys.ActorOf(FailingRefProvider.Props(failureProbe)), overwrite: true);
 
         Sys.ActorOf(Props.Create(() => new GrpcSnapshotConsumerActor()));
 
-        await failureProbe.ExpectMsgAsync<RequestEgressSource>(cancellationToken: ct);
-        await failureProbe.ExpectMsgAsync<RequestEgressSource>(cancellationToken: ct);
+        await failureProbe.ExpectMsgAsync<RequestModelStateSource>(cancellationToken: ct);
+        await failureProbe.ExpectMsgAsync<RequestModelStateSource>(cancellationToken: ct);
     }
 
-    private sealed class FakeEgressActor : ReceiveActor
+    private sealed class FakeModelStateActor : ReceiveActor
     {
-        public FakeEgressActor(IMaterializer mat, IActorRef requestProbe)
+        public FakeModelStateActor(IMaterializer mat, IActorRef requestProbe)
         {
-            Receive<RequestEgressSource>(msg =>
+            Receive<RequestModelStateSource>(msg =>
             {
                 requestProbe.Tell(msg);
                 Source.Empty<EgressEvent>()
                     .RunWith(StreamRefs.SourceRef<EgressEvent>(), mat)
                     .PipeTo(Sender, Self,
-                        sr => new EgressSourceResponse(msg.RequestId, sr),
+                        sr => new ModelStateSourceResponse(msg.RequestId, sr),
+                        _ => null!);
+            });
+        }
+    }
+
+    private sealed class FakeEnrichmentActor : ReceiveActor
+    {
+        public FakeEnrichmentActor(IMaterializer mat, IActorRef requestProbe)
+        {
+            Receive<RequestEnrichmentSource>(msg =>
+            {
+                requestProbe.Tell(msg);
+                Source.Empty<EgressEvent>()
+                    .RunWith(StreamRefs.SourceRef<EgressEvent>(), mat)
+                    .PipeTo(Sender, Self,
+                        sr => new EnrichmentSourceResponse(msg.RequestId, sr),
                         _ => null!);
             });
         }

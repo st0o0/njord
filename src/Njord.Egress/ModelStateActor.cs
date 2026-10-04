@@ -1,3 +1,4 @@
+using Akka;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
@@ -19,13 +20,10 @@ public sealed class ModelStateActor : StreamConsumerActor
     private readonly ResolvedParameterSet _parameters;
     private ILoggingAdapter _log = null!;
 
-    private ISinkRef<EgressEvent>? _egressSinkRef;
     private ISourceRef<FetchOutcome>? _sourceRef;
-    private long _egressSinkRequestId;
     private long _pipelineSourceRequestId;
+    private Source<EgressEvent, NotUsed>? _broadcastHubSource;
 
-    private sealed record EgressResolved(IActorRef Ref);
-    private sealed record EgressResolveFailed(Exception Cause);
     private sealed record PipelineResolved(IActorRef Ref);
     private sealed record PipelineResolveFailed(Exception Cause);
 
@@ -47,20 +45,11 @@ public sealed class ModelStateActor : StreamConsumerActor
 
     protected override void ResolveDependencies()
     {
-        Context.GetActorAsync<IEgressActor>().PipeTo(Self, success: r => new EgressResolved(r), failure: ex => new EgressResolveFailed(ex));
         Context.GetActorAsync<IPipelineActor>().PipeTo(Self, success: r => new PipelineResolved(r), failure: ex => new PipelineResolveFailed(ex));
     }
 
     protected override void ConfigureWaitingForRefs()
     {
-        Receive<EgressResolved>(msg =>
-        {
-            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
-            TrackDependency(msg.Ref);
-            var id = NextRequestId();
-            _egressSinkRequestId = id;
-            msg.Ref.Tell(new RequestEgressSink(id));
-        });
         Receive<PipelineResolved>(msg =>
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
@@ -69,13 +58,6 @@ public sealed class ModelStateActor : StreamConsumerActor
             _pipelineSourceRequestId = id;
             msg.Ref.Tell(new RequestPipelineSource(id));
         });
-        Receive<EgressSinkResponse>(response =>
-        {
-            if (response.RequestId != _egressSinkRequestId) return;
-            _egressSinkRef = response.SinkRef;
-            _log.Debug("SinkRef received from {Source}", Sender.Path);
-            TryTransition();
-        });
         Receive<PipelineSourceResponse>(response =>
         {
             if (response.RequestId != _pipelineSourceRequestId) return;
@@ -83,21 +65,10 @@ public sealed class ModelStateActor : StreamConsumerActor
             _log.Debug("SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
-        Receive<EgressSinkFailed>(msg =>
-        {
-            if (msg.RequestId != _egressSinkRequestId) return;
-            _log.Warning(msg.Cause, "Egress sink request failed - retrying");
-            ScheduleRetryResolve();
-        });
         Receive<PipelineSourceFailed>(msg =>
         {
             if (msg.RequestId != _pipelineSourceRequestId) return;
             _log.Warning(msg.Cause, "Pipeline source request failed - retrying");
-            ScheduleRetryResolve();
-        });
-        Receive<EgressResolveFailed>(msg =>
-        {
-            _log.Warning(msg.Cause, "Failed to resolve EgressActor - retrying");
             ScheduleRetryResolve();
         });
         Receive<PipelineResolveFailed>(msg =>
@@ -107,7 +78,7 @@ public sealed class ModelStateActor : StreamConsumerActor
         });
     }
 
-    protected override bool AllRefsReady() => _egressSinkRef is not null && _sourceRef is not null;
+    protected override bool AllRefsReady() => _sourceRef is not null;
 
     protected override void MaterializeGraph(SharedKillSwitch killSwitch)
     {
@@ -116,6 +87,11 @@ public sealed class ModelStateActor : StreamConsumerActor
         var forecastDays = _forecastDays;
         var log = _log;
         var knownCapabilities = new Dictionary<(string Location, string ModelId), HashSet<ParameterDef>>();
+
+        var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<EgressEvent>(bufferSize: 4)
+            .PreMaterialize(Mat);
+
+        _broadcastHubSource = broadcastHubSource;
 
         _sourceRef!.Source
             .Via(killSwitch.Flow<FetchOutcome>())
@@ -163,15 +139,31 @@ public sealed class ModelStateActor : StreamConsumerActor
                 _ => "?",
             }, _log)
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
-            .RunWith(_egressSinkRef!.Sink, Mat);
+            .To(broadcastHubSink)
+            .Run(Mat);
+    }
+
+    protected override void ConfigureReady()
+    {
+        Receive<RequestModelStateSource>(msg =>
+        {
+            _broadcastHubSource!
+                .RunWith(StreamRefs.SourceRef<EgressEvent>(), Mat)
+                .PipeTo(Sender, Self,
+                    sr => new ModelStateSourceResponse(msg.RequestId, sr),
+                    ex =>
+                    {
+                        _log.Error(ex, "Failed to create ModelState SourceRef");
+                        return new ModelStateSourceFailed(msg.RequestId, ex);
+                    });
+        });
     }
 
     protected override void OnDependencyLost()
     {
-        _egressSinkRef = null;
         _sourceRef = null;
-        _egressSinkRequestId = 0;
         _pipelineSourceRequestId = 0;
+        _broadcastHubSource = null;
     }
 
     private static HashSet<ParameterDef> ExtractSupportedParameters(

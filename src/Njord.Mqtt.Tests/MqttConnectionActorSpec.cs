@@ -3,6 +3,7 @@ using Akka.Hosting;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Health;
+using Njord.Messages.Mqtt;
 using Njord.Mqtt;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
@@ -91,18 +92,6 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 15000)]
-    public async Task SinkRef_is_returned_on_RequestMqttSink()
-    {
-        var transport = new RecordingTransport();
-        var connection = new FakeConnection();
-        var actor = CreateActor(connection, transport);
-
-        var response = await actor.Ask<MqttSinkResponse>(new RequestMqttSink(0), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
-        Assert.NotNull(response);
-        Assert.NotNull(response.SinkRef);
-    }
-
-    [Fact(Timeout = 15000)]
     public async Task Offline_is_enqueued_on_stop()
     {
         var transport = new RecordingTransport();
@@ -183,7 +172,16 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
         private readonly List<(Func<SentMessage, bool> Predicate, TaskCompletionSource Tcs)> _waiters = [];
         private readonly object _lock = new();
 
-        public IReadOnlyList<SentMessage> Sent { get { lock (_lock) return [.. _sent]; } }
+        public IReadOnlyList<SentMessage> Sent
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return [.. _sent];
+                }
+            }
+        }
 
         public Task SendAsync(string topic, string payload, bool retain, CancellationToken cancellationToken)
         {
