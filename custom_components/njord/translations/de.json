@@ -1,0 +1,119 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Mit njord verbinden",
+        "description": "Gib Host und Port deines njord Wetter-Dienstes ein.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      },
+      "reconfigure": {
+        "title": "njord neu konfigurieren",
+        "description": "Host und Port deines njord Wetter-Dienstes aktualisieren.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zu njord fehlgeschlagen. Bitte Host und Port prüfen."
+    },
+    "abort": {
+      "already_configured": "Diese njord-Instanz ist bereits konfiguriert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "njord Optionen",
+        "description": "Status-Abfrageintervall und Enrichment-Gruppen konfigurieren.",
+        "data": {
+          "status_poll_interval": "Status-Abfrageintervall (Sekunden)",
+          "enabled_enrichment_groups": "Aktivierte Enrichment-Gruppen"
+        },
+        "data_description": {
+          "status_poll_interval": "Wie oft der Server-Status abgefragt wird (10–300 Sekunden, Standard 30).",
+          "enabled_enrichment_groups": "Wähle welche Enrichment-Gruppen aktiviert sein sollen. Deaktivierte Gruppen erzeugen keine Entitäten."
+        }
+      },
+      "sensors": {
+        "title": "Sensor-Weiterleitung",
+        "description": "Wähle Home Assistant Sensoren, die an njord weitergeleitet werden. Messwerte werden bei jeder Änderung gesendet.",
+        "data": {
+          "indoor_temperature": "Innentemperatur",
+          "indoor_humidity": "Luftfeuchtigkeit innen"
+        },
+        "data_description": {
+          "indoor_temperature": "Temperatursensoren, die für diesen Standort an njord weitergeleitet werden.",
+          "indoor_humidity": "Feuchtigkeitssensoren, die für diesen Standort an njord weitergeleitet werden."
+        }
+      }
+    }
+  },
+  "issues": {
+    "stream_forecast_disconnected": {
+      "title": "Vorhersage-Stream getrennt",
+      "description": "Der njord Vorhersage-Stream ist seit über 60 Sekunden getrennt. Daten könnten veraltet sein."
+    },
+    "stream_enrichment_disconnected": {
+      "title": "Enrichment-Stream getrennt",
+      "description": "Der njord Enrichment-Stream ist seit über 60 Sekunden getrennt. Enrichment-Daten könnten veraltet sein."
+    },
+    "stream_config_disconnected": {
+      "title": "Konfigurations-Stream getrennt",
+      "description": "Der njord Konfigurations-Stream ist seit über 60 Sekunden getrennt. Neue Standorte werden nicht erkannt."
+    }
+  },
+  "entity": {
+    "button": {
+      "trigger_poll": { "name": "Abfrage auslösen" }
+    },
+    "sensor": {
+      "laundry_index": { "name": "Wäsche-Index" },
+      "outdoor_index": { "name": "Outdoor-Index" },
+      "running_index": { "name": "Lauf-Index" },
+      "cycling_index": { "name": "Rad-Index" },
+      "bbq_index": { "name": "Grillwetter-Index" },
+      "irrigation_index": { "name": "Bewässerungs-Index" },
+      "solar_index": { "name": "Solar-Index" },
+      "night_ventilation_index": { "name": "Nachtlüftungs-Index" },
+      "vpd": { "name": "VPD" },
+      "weather_trend": { "name": "Wettertrend" },
+      "sunshine": { "name": "Sonnenschein" },
+      "diurnal_amplitude": { "name": "Tagesamplitude" },
+      "model_performance": { "name": "Modell-Performance" },
+      "frost_hours": { "name": "Froststunden" },
+      "frost_confidence": { "name": "Frostwahrscheinlichkeit" },
+      "beaufort": { "name": "Beaufort" },
+      "wind_chill": { "name": "Windchill" },
+      "dewpoint_comfort": { "name": "Taupunkt-Komfort" },
+      "api_budget": { "name": "API-Budget" },
+      "uptime": { "name": "Betriebszeit" },
+      "target_poll": { "name": "Abfrage-Ziel" }
+    },
+    "binary_sensor": {
+      "inversion": { "name": "Inversion" },
+      "forecast_stream": { "name": "Vorhersage-Stream" },
+      "enrichment_stream": { "name": "Enrichment-Stream" },
+      "config_stream": { "name": "Konfigurations-Stream" }
+    },
+    "event": {
+      "weather_alert": {
+        "name": "Wetterwarnung",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "alert_started": "Warnung ausgelöst",
+              "alert_escalated": "Warnung verschärft",
+              "alert_deescalated": "Warnung herabgestuft",
+              "alert_cleared": "Warnung aufgehoben"
+            }
+          }
+        }
+      }
+    }
+  }
+}

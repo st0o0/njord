@@ -22,7 +22,7 @@ A .NET service (Docker container) built on [Akka.NET](https://getakka.net/) + Ak
 the [Open-Meteo API](https://open-meteo.com/en/docs) for multiple weather models
 per location, enriches the data through a configurable pipeline, and streams
 everything to Home Assistant via the
-[ha-njord](https://github.com/st0o0/ha-njord) custom integration (gRPC).
+[ha-njord](ha/) custom integration (gRPC).
 MQTT publishing is available as an optional alternative for non-HA consumers.
 
 ## Features
@@ -32,7 +32,7 @@ MQTT publishing is available as an optional alternative for non-HA consumers.
 - **Enrichment pipeline.** Consensus forecasts, weather alerts, derived values (Beaufort, wind chill, comfort), trend analysis, activity indices, and forecast accuracy tracking.
 - **Hourly and daily forecasts.** Configurable horizons for hourly data, plus daily min/max, precipitation sums, sunrise/sunset.
 - **External sensor input.** Feed indoor temperature/humidity from Home Assistant sensors via gRPC to improve index calculations.
-- **Native HA integration.** The [ha-njord](https://github.com/st0o0/ha-njord) custom integration connects via gRPC streaming for real-time updates, native `weather` entities, alert events, activity indices, and more.
+- **Native HA integration.** The [ha-njord](ha/) custom integration connects via gRPC streaming for real-time updates, native `weather` entities, alert events, activity indices, and more.
 - **Single container.** Runs on any Docker host with SQLite persistence by default, no external database needed.
 
 ## Architecture
@@ -70,7 +70,7 @@ docker compose up -d
 
 ### 2. Install ha-njord in Home Assistant
 
-Install via [HACS](https://hacs.xyz/) (search for "njord Weather") or copy `custom_components/njord` manually from [ha-njord](https://github.com/st0o0/ha-njord). Restart Home Assistant.
+Install via [HACS](https://hacs.xyz/) (search for "njord Weather") or copy `custom_components/njord` manually. Restart Home Assistant.
 
 ### 3. Add the integration
 
@@ -86,7 +86,7 @@ Full documentation is available at **[st0o0.github.io/njord](https://st0o0.githu
 - [Home Assistant](https://st0o0.github.io/njord/home-assistant): entities, dashboards, automations
 - [Architecture](https://st0o0.github.io/njord/architecture): system design and data flow
 - [Config Builder](https://st0o0.github.io/njord/builder): interactive configuration generator
-- [ha-njord](https://github.com/st0o0/ha-njord): the HA custom integration (entity reference, installation)
+- [Home Assistant Integration](ha/): the HA custom integration (entity reference, installation)
 
 ## Build & Test
 

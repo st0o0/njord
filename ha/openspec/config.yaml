@@ -1,0 +1,36 @@
+schema: spec-driven
+
+# Injected verbatim into the AI when it generates change artifacts.
+context: |
+  ha-njord — Home Assistant custom integration for njord weather service.
+  Python package (HACS-installable) that connects to njord's gRPC API,
+  creates native `weather` entities with full forecast support, and receives
+  live updates via server-streaming — no polling, no MQTT sensor flood.
+
+  Architecture: ha-njord is a pure consumer — no config logic, no write
+  access to njord. Streaming statt polling (gRPC server streams). Snapshot +
+  Subscribe pattern for initial state + live updates.
+
+  Structure: custom_components/njord/ contains the HA integration code.
+  Tests in tests/. Proto definitions in protos/njord/v1/.
+
+  Tech stack: Python 3.12+, grpcio, protobuf, Home Assistant Core APIs.
+  Testing: pytest with homeassistant test helpers.
+
+  Key patterns:
+  - Config Flow: Host + Port entry, gRPC validation
+  - weather entities per Location x Model (e.g. weather.njord_lucerne_icon_d2)
+  - WMO weather_code + is_day → HA condition mapping lives in ha-njord
+  - Exponential backoff reconnect on stream failure
+  - Entities marked unavailable on disconnect
+
+  Git: commit conventionally, but NEVER `git push` — the user pushes.
+
+rules:
+  proposal:
+    - "Always include a 'Non-goals' section."
+    - "Note which gRPC endpoints from njord are required (existing vs TODO)."
+  tasks:
+    - "Reference concrete file paths under `custom_components/njord/` and `tests/`."
+    - "Every implementation chunk includes pytest tests."
+    - "Add a Validation section running `pytest` commands for the touched suites."

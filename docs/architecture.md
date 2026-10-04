@@ -12,7 +12,7 @@ njord runs as a single Docker container with no external database required (SQLi
 
 ### Primary: ha-njord custom integration (gRPC)
 
-The [ha-njord](https://github.com/st0o0/ha-njord) custom integration connects to njord via gRPC streaming on port 8081. It receives forecast, enrichment, and configuration updates in real time with no polling delay. The integration creates native Home Assistant entities across five platforms: `weather`, `sensor`, `binary_sensor`, `event`, and `button`.
+The ha-njord custom integration (in [`ha/`](/ha/)) connects to njord via gRPC streaming on port 8081. It receives forecast, enrichment, and configuration updates in real time with no polling delay. The integration creates native Home Assistant entities across five platforms: `weather`, `sensor`, `binary_sensor`, `event`, and `button`.
 
 ### Alternative: MQTT
 

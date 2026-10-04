@@ -1,0 +1,18 @@
+trigger_poll:
+  name: Trigger Poll
+  description: Trigger a forecast poll on the njord server.
+  fields:
+    location:
+      name: Location
+      description: Location name to poll. Leave empty for all locations.
+      required: false
+      example: "graz"
+      selector:
+        text:
+    model:
+      name: Model
+      description: Model name to poll. Leave empty for all models.
+      required: false
+      example: "icon_d2"
+      selector:
+        text:

@@ -1,13 +1,13 @@
 # Home Assistant
 
-The [ha-njord](https://github.com/st0o0/ha-njord) custom integration connects Home Assistant to njord via gRPC. Data flows in real time through gRPC streams, so entities update as soon as njord processes a new poll cycle. There is no polling delay on the HA side.
+The ha-njord custom integration connects Home Assistant to njord via gRPC. Data flows in real time through gRPC streams, so entities update as soon as njord processes a new poll cycle. There is no polling delay on the HA side.
 
 ## Installation
 
 ### HACS (recommended)
 
 1. Open HACS, then go to three dots > **Custom repositories**
-2. Add `https://github.com/st0o0/ha-njord` as **Integration**
+2. Add `https://github.com/st0o0/njord` as **Integration**
 3. Search for **njord Weather** and install
 4. Restart Home Assistant
 

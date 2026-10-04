@@ -12,10 +12,42 @@ concurrency:
 
 jobs:
   dotnet:
+    if: >-
+      !contains(github.event.pull_request.labels.*.name, 'ha-only')
     uses: st0o0/github-workflows/.github/workflows/dotnet-ci.yml@main
     with:
       solution-file: Njord.slnx
       locked-mode: false
+
+  python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ha/pyproject.toml
+      - name: Install dependencies
+        run: pip install grpcio "protobuf>=5.0,<7.0" pytest pytest-asyncio pytest-homeassistant-custom-component voluptuous
+      - name: Run tests
+        run: python -m pytest ha/tests/ -v --tb=short
+      - name: Lint
+        run: |
+          pip install ruff
+          ruff format --check ha/ custom_components/njord/ --exclude "custom_components/njord/proto/"
+          ruff check ha/ custom_components/njord/ --exclude "custom_components/njord/proto/"
+
+  hacs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hacs/action@main
+        with:
+          category: integration
+          path: custom_components/njord
 
   commits:
     uses: st0o0/github-workflows/.github/workflows/commitlint.yml@main

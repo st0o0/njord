@@ -1,0 +1,18 @@
+{
+  "domain": "njord",
+  "name": "njord Weather",
+  "version": "0.1.0",
+  "documentation": "https://github.com/st0o0/njord",
+  "issue_tracker": "https://github.com/st0o0/njord/issues",
+  "dependencies": [],
+  "codeowners": [
+    "@st0o0"
+  ],
+  "requirements": [
+    "grpcio>=1.60.0",
+    "protobuf>=5.0,<7.0"
+  ],
+  "iot_class": "local_push",
+  "config_flow": true,
+  "integration_type": "hub"
+}
