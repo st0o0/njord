@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Njord.Domain.Analysis;
+using Njord.Analysis;
 
 namespace Njord.Configuration;
 

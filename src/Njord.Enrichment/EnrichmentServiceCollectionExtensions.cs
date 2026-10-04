@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using Njord.Domain.Analysis;
+using Njord.Analysis;
 using Njord.Enrichment.Features;
 
 namespace Njord.Enrichment;

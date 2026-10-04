@@ -2,7 +2,7 @@ using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Njord.Domain.Analysis;
+using Njord.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 using Njord.Messages.Egress;

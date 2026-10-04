@@ -83,33 +83,45 @@ All code, specs, docs, and communication in English.
 ```
 src/
   Njord.slnx
-  Njord.Domain/               # Pure records, computers, domain options (no Njord references)
+
+  # /Foundation/ — shared types, messages, persistence, infrastructure
+  Njord.Domain/               # Pure weather + sensor records (no Njord references)
   Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references)
   Njord.Messages/             # Actor message records (-> Domain)
-  Njord.Core/                 # Options, diagnostics, IOpenMeteoClient, actor keys,
+  Njord.Core/                 # Options, diagnostics, actor keys, analysis computers,
                               #   StreamSupervision (-> Domain, Messages, Persistence)
-  Njord.Ingest/               # Open-Meteo client, DTOs, JSON source generator (-> Core)
-  Njord.Sensors/              # SensorHubActor (-> Core)
-  Njord.Grpc/                 # gRPC services, snapshot actors, protos (-> Core)
-  Njord.Pipeline/             # Scheduler, budget, poll pipeline (-> Core)
-  Njord.Egress/               # EgressActor, ModelStateActor, HorizonProjection, TopicSlug (-> Core)
-  Njord.Mqtt/                 # MQTT connection, discovery, state payloads, enrichment presenters (-> Core)
-  Njord.Enrichment/           # Enrichment actor, compute-only features, ForecastHistoryActor (-> Core)
+    Analysis/                 # Consensus, alerts, derived, trends, indices, history computers
+    Configuration/            # Options, validators, budget calculator
+    Diagnostics/              # Metrics
+    Weather/ + Sensors/       # (in Domain, not here)
+
+  # /Domain/ — feature libraries (each -> Core only)
+  Njord.Ingest/               # Open-Meteo client, DTOs, JSON source generator
+  Njord.Sensors/              # SensorHubActor
+  Njord.Pipeline/             # Scheduler, budget, poll pipeline
+  Njord.Egress/               # EgressActor, ModelStateActor, HorizonProjection
+  Njord.Enrichment/           # Enrichment actor, compute-only features, ForecastHistoryActor
+  Njord.Mqtt/                 # MQTT connection, discovery, state payloads, enrichment presenters
+  Njord.Grpc/                 # gRPC services, snapshot actors, protos
+
+  # Host
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
     Configuration/            # Host setup (service, actor system, application)
     Health/
-  Njord.Domain.Tests/         # Tests for Njord.Domain (mirrors its folders)
+
+  # /Tests/ — one test project per production project
+  Njord.Domain.Tests/         # Weather + sensor record specs
   Njord.Persistence.Tests/    # DTO wire-format specs (Verify)
-  Njord.Core.Tests/           # Configuration, Diagnostics, StreamConsumerActor, RetryBackoff
-  Njord.Egress.Tests/         # Tests for Njord.Egress
-  Njord.Grpc.Tests/           # Tests for Njord.Grpc
-  Njord.Pipeline.Tests/       # Tests for Njord.Pipeline (scheduler, budget, poll stages)
-  Njord.Mqtt.Tests/           # Tests for Njord.Mqtt (discovery, connection, egress, golden masters)
-  Njord.Enrichment.Tests/     # Tests for Njord.Enrichment (features, history, actor)
-  Njord.Ingest.Tests/         # Tests for Njord.Ingest (OpenMeteoClient)
-  Njord.Sensors.Tests/        # Tests for Njord.Sensors (SensorHub)
-  Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules over all assemblies
-  Njord.Tests/                # Host-level tests: Health, Configuration, PollPipeline, Persistence
+  Njord.Core.Tests/           # Configuration, Diagnostics, Analysis, StreamConsumerActor
+  Njord.Ingest.Tests/         # OpenMeteoClient specs
+  Njord.Sensors.Tests/        # SensorHub specs
+  Njord.Pipeline.Tests/       # Scheduler, budget, poll stage specs
+  Njord.Egress.Tests/         # Egress specs
+  Njord.Enrichment.Tests/     # Enrichment feature + actor specs
+  Njord.Mqtt.Tests/           # MQTT discovery, connection, egress, golden masters
+  Njord.Grpc.Tests/           # gRPC service specs
+  Njord.Tests/                # Host-level: Health, Configuration, PollPipeline, Persistence
+  Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
 
@@ -140,7 +152,7 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 859 tests (Domain 286, Persistence 10, Core 120, Egress 13, Grpc 74,
+Current total: 859 tests (Domain 70, Persistence 10, Core 336, Egress 13, Grpc 74,
 Pipeline 111, Mqtt 102, Enrichment 52, Ingest 15, Sensors 6, Architecture 27,
 host `Njord.Tests` 43). CI's
 `dotnet test --solution Njord.slnx` runs every test project of the solution.

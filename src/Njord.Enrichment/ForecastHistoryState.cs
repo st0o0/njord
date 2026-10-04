@@ -1,4 +1,4 @@
-using Njord.Domain.Analysis;
+using Njord.Analysis;
 using Njord.Persistence;
 
 namespace Njord.Enrichment;

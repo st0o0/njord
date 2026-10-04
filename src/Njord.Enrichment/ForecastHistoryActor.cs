@@ -1,7 +1,7 @@
 using Akka.Event;
 using Akka.Persistence;
+using Njord.Analysis;
 using Njord.Configuration;
-using Njord.Domain.Analysis;
 using Njord.Domain.Weather;
 using Njord.Persistence;
 

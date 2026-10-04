@@ -1,5 +1,5 @@
 using System.Text.Json.Nodes;
-using Njord.Domain.Analysis;
+using Njord.Analysis;
 using Njord.Domain.Weather;
 using Njord.Egress;
 

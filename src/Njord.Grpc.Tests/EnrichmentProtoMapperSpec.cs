@@ -1,15 +1,15 @@
-using Njord.Domain.Analysis;
+using Njord.Analysis;
 using Njord.Domain.Weather;
 using Njord.Grpc;
 using Njord.Grpc.V2;
-using DomainAlert = Njord.Domain.Analysis.Alert;
-using DomainAlertSeverity = Njord.Domain.Analysis.AlertSeverity;
-using DomainAlertType = Njord.Domain.Analysis.AlertType;
-using DomainHorizonConsensus = Njord.Domain.Analysis.HorizonConsensus;
-using DomainHorizonDerived = Njord.Domain.Analysis.HorizonDerived;
-using DomainParameterConsensus = Njord.Domain.Analysis.ParameterConsensus;
-using DomainParameterTrend = Njord.Domain.Analysis.ParameterTrend;
-using DomainScalarDerived = Njord.Domain.Analysis.ScalarDerived;
+using DomainAlert = Njord.Analysis.Alert;
+using DomainAlertSeverity = Njord.Analysis.AlertSeverity;
+using DomainAlertType = Njord.Analysis.AlertType;
+using DomainHorizonConsensus = Njord.Analysis.HorizonConsensus;
+using DomainHorizonDerived = Njord.Analysis.HorizonDerived;
+using DomainParameterConsensus = Njord.Analysis.ParameterConsensus;
+using DomainParameterTrend = Njord.Analysis.ParameterTrend;
+using DomainScalarDerived = Njord.Analysis.ScalarDerived;
 
 namespace Njord.Grpc.Tests;
 
@@ -44,10 +44,10 @@ public sealed class EnrichmentProtoMapperSpec
     {
         var result = new IndexResult(
             Location: "lucerne",
-            Days: [new Njord.Domain.Analysis.DayScoreSet(0, Laundry: 80, Outdoor: 70, Running: 65, Cycling: 75,
+            Days: [new Njord.Analysis.DayScoreSet(0, Laundry: 80, Outdoor: 70, Running: 65, Cycling: 75,
                 Bbq: 90, Irrigation: 30, Solar: 85, NightVentilation: 60, HoursIncluded: 14)],
             FrostProtection: new FrostProtectionInfo(HoursUntilFrost: 8, Confidence: 0.7),
-            Vpd: new Njord.Domain.Analysis.VpdInfo(Category: "optimal", Vpd: 1.2));
+            Vpd: new Njord.Analysis.VpdInfo(Category: "optimal", Vpd: 1.2));
 
         var update = EnrichmentProtoMapper.MapIndices(result);
 
@@ -75,7 +75,7 @@ public sealed class EnrichmentProtoMapperSpec
     public void MapIndices_should_omit_frost_when_null()
     {
         var result = new IndexResult("lucerne",
-            [new Njord.Domain.Analysis.DayScoreSet(0, 50, 50, 50, 50, 50, 50, 50, 50, HoursIncluded: 14)],
+            [new Njord.Analysis.DayScoreSet(0, 50, 50, 50, 50, 50, 50, 50, 50, HoursIncluded: 14)],
             null, null);
 
         var update = EnrichmentProtoMapper.MapIndices(result);
@@ -87,9 +87,9 @@ public sealed class EnrichmentProtoMapperSpec
     [Fact]
     public void MapIndices_should_map_envelopes_when_present()
     {
-        var envelope = new Njord.Domain.Analysis.ScoreEnvelope(65, 80, 0.9);
+        var envelope = new Njord.Analysis.ScoreEnvelope(65, 80, 0.9);
         var result = new IndexResult("lucerne",
-            [new Njord.Domain.Analysis.DayScoreSet(0, 70, 70, 70, 70, 70, 70, 70, 70, HoursIncluded: 14,
+            [new Njord.Analysis.DayScoreSet(0, 70, 70, 70, 70, 70, 70, 70, 70, HoursIncluded: 14,
                 OutdoorEnvelope: envelope)],
             null, null);
 
@@ -251,15 +251,15 @@ public sealed class EnrichmentProtoMapperSpec
     public void MapConsensus_should_map_daily_parameters()
     {
         var tempMax = ParameterRegistry.GetByApiName("temperature_2m_max")!;
-        var dailyParams = new List<Njord.Domain.Analysis.ParameterConsensus>
+        var dailyParams = new List<Njord.Analysis.ParameterConsensus>
         {
-            new(tempMax, new Dictionary<string, Njord.Domain.Analysis.HorizonConsensus>
+            new(tempMax, new Dictionary<string, Njord.Analysis.HorizonConsensus>
             {
                 ["d0"] = new(29.5, 29.3, 3.0, 1.5, 0.83, null, null,
                     [new WeatherModel("icon_d2"), new WeatherModel("ecmwf_ifs025"), new WeatherModel("gfs_seamless")]),
             }),
         };
-        var result = new ConsensusResult([], (IReadOnlyList<Njord.Domain.Analysis.ParameterConsensus>)dailyParams);
+        var result = new ConsensusResult([], (IReadOnlyList<Njord.Analysis.ParameterConsensus>)dailyParams);
 
         var update = EnrichmentProtoMapper.MapConsensus(result);
 

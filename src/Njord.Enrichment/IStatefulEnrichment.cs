@@ -1,4 +1,4 @@
-using Njord.Domain.Analysis;
+using Njord.Analysis;
 using Njord.Domain.Sensors;
 using Njord.Egress;
 using Njord.Messages.Egress;

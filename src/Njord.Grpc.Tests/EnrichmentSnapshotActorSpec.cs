@@ -3,7 +3,7 @@ using Akka.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Njord.Actors;
-using Njord.Domain.Analysis;
+using Njord.Analysis;
 using Njord.Grpc;
 using Njord.Messages.Common;
 using Njord.Messages.Snapshots;

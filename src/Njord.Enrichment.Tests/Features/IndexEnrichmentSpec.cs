@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Analysis;
 using Njord.Configuration;
-using Njord.Domain.Analysis;
 using Njord.Domain.Sensors;
 using Njord.Domain.Weather;
 using Njord.Egress;

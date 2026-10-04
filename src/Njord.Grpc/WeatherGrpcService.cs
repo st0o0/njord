@@ -113,7 +113,7 @@ public sealed class WeatherGrpcService(
 
         foreach (var (typeName, resultObj) in result.Results)
         {
-            var updatedAt = resultObj is Domain.Analysis.ConsensusResult cr && cr.ComputedAt is { } computedAt
+            var updatedAt = resultObj is Analysis.ConsensusResult cr && cr.ComputedAt is { } computedAt
                 ? computedAt
                 : timeProvider.GetUtcNow();
             var evt = EnrichmentProtoMapper.MapToEvent(

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
+using Njord.Analysis;
 using Njord.Configuration;
-using Njord.Domain.Analysis;
 using Njord.Domain.Sensors;
 using Njord.Egress;
 using Njord.Messages.Egress;

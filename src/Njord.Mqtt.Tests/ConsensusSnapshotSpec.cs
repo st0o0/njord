@@ -1,4 +1,4 @@
-using Njord.Domain.Analysis;
+using Njord.Analysis;
 using Njord.Domain.Weather;
 using Njord.Mqtt;
 using static Njord.Mqtt.Tests.EnrichmentGoldenMasterFixtures;

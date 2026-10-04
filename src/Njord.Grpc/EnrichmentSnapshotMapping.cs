@@ -6,12 +6,12 @@ public static class EnrichmentSnapshotMapping
 {
     private static readonly Dictionary<string, Type> EnrichmentTypes = new()
     {
-        ["AlertResult"] = typeof(Domain.Analysis.AlertResult),
-        ["IndexResult"] = typeof(Domain.Analysis.IndexResult),
-        ["TrendResult"] = typeof(Domain.Analysis.TrendResult),
-        ["DerivedResult"] = typeof(Domain.Analysis.DerivedResult),
-        ["ConsensusResult"] = typeof(Domain.Analysis.ConsensusResult),
-        ["HistoryResult"] = typeof(Domain.Analysis.HistoryResult),
+        ["AlertResult"] = typeof(Analysis.AlertResult),
+        ["IndexResult"] = typeof(Analysis.IndexResult),
+        ["TrendResult"] = typeof(Analysis.TrendResult),
+        ["DerivedResult"] = typeof(Analysis.DerivedResult),
+        ["ConsensusResult"] = typeof(Analysis.ConsensusResult),
+        ["HistoryResult"] = typeof(Analysis.HistoryResult),
     };
 
     private static readonly JsonSerializerSettings JsonSettings = new()

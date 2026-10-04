@@ -10,31 +10,35 @@
     <File Path="Directory.Packages.props" />
     <File Path="global.json" />
   </Folder>
+  <Folder Name="/Foundation/">
+    <Project Path="Njord.Core/Njord.Core.csproj" />
+    <Project Path="Njord.Domain/Njord.Domain.csproj" />
+    <Project Path="Njord.Messages/Njord.Messages.csproj" />
+    <Project Path="Njord.Persistence/Njord.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/Domain/">
+    <Project Path="Njord.Ingest/Njord.Ingest.csproj" />
+    <Project Path="Njord.Sensors/Njord.Sensors.csproj" />
+    <Project Path="Njord.Pipeline/Njord.Pipeline.csproj" />
+    <Project Path="Njord.Egress/Njord.Egress.csproj" />
+    <Project Path="Njord.Enrichment/Njord.Enrichment.csproj" />
+    <Project Path="Njord.Mqtt/Njord.Mqtt.csproj" />
+    <Project Path="Njord.Grpc/Njord.Grpc.csproj" />
+  </Folder>
   <Folder Name="/Tests/">
-    <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />
+    <Project Path="Njord.Tests.Shared/Njord.Tests.Shared.csproj" />
     <Project Path="Njord.Core.Tests/Njord.Core.Tests.csproj" />
     <Project Path="Njord.Domain.Tests/Njord.Domain.Tests.csproj" />
-    <Project Path="Njord.Egress.Tests/Njord.Egress.Tests.csproj" />
-    <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
     <Project Path="Njord.Persistence.Tests/Njord.Persistence.Tests.csproj" />
-    <Project Path="Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj" />
-    <Project Path="Njord.Enrichment.Tests/Njord.Enrichment.Tests.csproj" />
     <Project Path="Njord.Ingest.Tests/Njord.Ingest.Tests.csproj" />
-    <Project Path="Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj" />
     <Project Path="Njord.Sensors.Tests/Njord.Sensors.Tests.csproj" />
+    <Project Path="Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj" />
+    <Project Path="Njord.Egress.Tests/Njord.Egress.Tests.csproj" />
+    <Project Path="Njord.Enrichment.Tests/Njord.Enrichment.Tests.csproj" />
+    <Project Path="Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj" />
+    <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
     <Project Path="Njord.Tests/Njord.Tests.csproj" />
-    <Project Path="Njord.Tests.Shared/Njord.Tests.Shared.csproj" />
+    <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />
   </Folder>
-  <Project Path="Njord.Core/Njord.Core.csproj" />
-  <Project Path="Njord.Domain/Njord.Domain.csproj" />
-  <Project Path="Njord.Egress/Njord.Egress.csproj" />
-  <Project Path="Njord.Enrichment/Njord.Enrichment.csproj" />
-  <Project Path="Njord.Grpc/Njord.Grpc.csproj" />
-  <Project Path="Njord.Ingest/Njord.Ingest.csproj" />
-  <Project Path="Njord.Messages/Njord.Messages.csproj" />
-  <Project Path="Njord.Mqtt/Njord.Mqtt.csproj" />
-  <Project Path="Njord.Persistence/Njord.Persistence.csproj" />
-  <Project Path="Njord.Pipeline/Njord.Pipeline.csproj" />
-  <Project Path="Njord.Sensors/Njord.Sensors.csproj" />
   <Project Path="Njord/Njord.csproj" />
 </Solution>
