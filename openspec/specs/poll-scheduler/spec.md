@@ -3,39 +3,42 @@
 ## Purpose
 
 Adaptive per-model poll scheduling: a persistent actor that learns each weather model's update cycle from data hash changes, schedules polls via ScheduleOnce timers, and persists learned rhythms across restarts via Akka.Persistence + SQLite.
+
 ## Requirements
-### Requirement: The SchedulerActor obtains a SinkRef from the PipelineActor
-The SchedulerActor SHALL resolve the PipelineActor reference asynchronously via `GetActorAsync<PipelineActor>().PipeTo(Self)` in `PreStart`. The actor SHALL NOT call synchronous `GetActor<PipelineActor>()` during `PreStart` or any state transition, because the PipelineActor may not yet be registered in the `IActorRegistry` at that point. Once the resolved reference arrives as a message, the actor SHALL call `Context.Watch` and add the ref to a `HashSet<IActorRef> _watchedDeps`, send `RequestPipelineSink` and `RequestPipelineSource`, and stash all timer messages until both refs are received. Only after obtaining the SinkRef SHALL the actor materialize a local `Source.Queue<WeightedTarget>` connected to the SinkRef and start scheduling timers.
 
-The SchedulerActor SHALL detect dead refs returned by `GetActorAsync` (ref matches `_lastTerminatedRef`) and schedule a retry with exponential backoff (`min(1s × 2^retryCount, 30s)`) instead of immediately re-resolving. It SHALL gate `TryTransitionToConnecting` with `_lastTerminatedRef is not null` to prevent stale in-flight responses from triggering premature transitions.
+### Requirement: The PollSchedulerActor sends ScheduledPoll via Tell to PipelineActor
+The PollSchedulerActor SHALL resolve the PipelineActor reference asynchronously via `GetActorAsync<IPipelineActor>().PipeTo(Self)` in `PreStart`. Once resolved, the actor SHALL call `Context.Watch` on the PipelineActor ref. The actor SHALL request a `SourceRef<FetchOutcome>` from PipelineActor for failure feedback. The actor SHALL NOT request a SinkRef from PipelineActor. The actor SHALL NOT materialize a local `Source.Queue<WeightedTarget>` connected to a SinkRef.
 
-The SchedulerActor SHALL wire a `SharedKillSwitch` into both materialized stream graphs (the `Source.Queue → SinkRef.Sink` graph and the `SourceRef.Source → Sink.ActorRef` failure-consumer graph). On `Terminated` for a tracked dependency, it SHALL call `_killSwitch.Shutdown()` before re-resolving.
+When a `ScheduledPoll` fires, the actor SHALL send it directly to PipelineActor via Tell. PipelineActor handles the `ScheduledPoll` message and enqueues the target into its internal queue.
 
-On `Terminated`, the actor SHALL ignore any ref not in `_watchedDeps`. This prevents StreamSupervisor child termination from triggering dependency re-resolution.
+The actor SHALL have at most two Become phases: `WaitingForPipeline` (resolving PipelineActor + requesting SourceRef for failure feedback) and `Ready`. The `WaitingForRefs`, `Connecting`, and `WaitingForConnection` phases are eliminated.
 
-#### Scenario: Scheduler resolves PipelineActor asynchronously on startup
-- **WHEN** the SchedulerActor starts and PipelineActor is not yet registered in the IActorRegistry
-- **THEN** the actor SHALL use `GetActorAsync<PipelineActor>().PipeTo(Self)` and wait for the resolved reference before sending pipeline requests
+On `Terminated` for the PipelineActor, the actor SHALL re-resolve with dead-ref detection and exponential backoff. It SHALL transition to `WaitingForPipeline`. Poll timers already scheduled SHALL continue to fire; their `ScheduledPoll` messages SHALL be stashed until the actor is `Ready` again.
 
-#### Scenario: Scheduler starts successfully regardless of registration order
-- **WHEN** SchedulerActor is registered before PipelineActor in the same `WithResolvableActors` block
-- **THEN** the SchedulerActor SHALL start without error and eventually receive the PipelineActor reference once it is registered
+#### Scenario: Scheduler sends ScheduledPoll to PipelineActor
+- **WHEN** a ScheduleOnce timer fires for (lucerne, icon_d2)
+- **THEN** the actor sends `ScheduledPoll("lucerne", "icon_d2")` to PipelineActor via Tell
 
-#### Scenario: SinkRef received triggers local queue materialization and scheduling
-- **WHEN** the PipelineActor responds with a `PipelineSinkResponse` containing a `SinkRef<WeightedTarget>`
-- **THEN** the SchedulerActor materializes a local `Source.Queue<WeightedTarget>` connected to `sinkRef.Sink`, schedules `ScheduleOnce` for every (location, model) pair, and unstashes pending messages
+#### Scenario: No SinkRef requested
+- **WHEN** the PollSchedulerActor resolves PipelineActor
+- **THEN** it does NOT send `RequestPipelineSink` — only `RequestPipelineSource` for failure feedback
 
-#### Scenario: Dead ref detected triggers backoff retry
-- **WHEN** `GetActorAsync<PipelineActor>` returns the same dead ref from the registry
-- **THEN** the actor schedules a retry with exponential backoff instead of tight-looping
+#### Scenario: No local Source.Queue materialized
+- **WHEN** the PollSchedulerActor starts
+- **THEN** no `Source.Queue<WeightedTarget>` is materialized
 
-#### Scenario: KillSwitch shuts down both graphs on dependency loss
-- **WHEN** `Terminated` fires for the PipelineActor
-- **THEN** both the Source.Queue graph and the failure-consumer graph are shut down via KillSwitch
+#### Scenario: Two Become phases only
+- **WHEN** the PollSchedulerActor starts
+- **THEN** it transitions through at most `WaitingForPipeline` → `Ready`
+- **THEN** there are no `WaitingForRefs`, `Connecting`, or `WaitingForConnection` phases
 
-#### Scenario: Untracked Terminated is ignored
-- **WHEN** `Terminated` arrives for a ref not in `_watchedDeps` (e.g. StreamSupervisor child)
-- **THEN** the actor ignores it
+#### Scenario: PipelineActor terminated triggers re-resolve
+- **WHEN** PipelineActor terminates
+- **THEN** the actor transitions to `WaitingForPipeline` and re-resolves with backoff
+
+#### Scenario: ScheduledPoll stashed during WaitingForPipeline
+- **WHEN** a `ScheduledPoll` arrives while the actor is in `WaitingForPipeline`
+- **THEN** it is stashed and replayed on transition to `Ready`
 
 ### Requirement: The SchedulerActor manages per-model poll timing
 A `SchedulerActor` (ReceivePersistentActor) SHALL maintain a `ModelPollState` per configured (location, model) pair. Each state SHALL track: `lastHash` (int?), `lastChangeUtc` (DateTimeOffset?), `prevChangeUtc` (DateTimeOffset?), `nextPollUtc` (DateTimeOffset), `missCount` (int), and `phase` (Discovery or Steady). The actor SHALL use `ScheduleTellOnce` to fire polls at each model's individually calculated time. On first initialization (no prior persisted state), all models SHALL have `NextPollUtc = now` — there is no stagger delay. The pipeline's Throttle operator is the sole rate-limiting gate.
@@ -165,18 +168,6 @@ The SchedulerActor SHALL save a snapshot of its full `SchedulerState.States` dic
 - **WHEN** SchedulerActor recovers with both a snapshot and subsequent events
 - **THEN** the snapshot is restored first, then remaining events are replayed
 
-### Requirement: OfferAsync result is handled in the Ready state
-The SchedulerActor SHALL handle the result of `OfferAsync` in the Ready state by piping it to Self. If the offer fails (queue completed or dropped), the actor SHALL log a warning and re-schedule the poll for that (location, model) pair using the standard `ScheduleNext` logic. The actor SHALL NOT silently discard a failed offer.
-
-#### Scenario: Successful offer in Ready state
-- **WHEN** a ScheduledPoll fires in the Ready state and OfferAsync succeeds
-- **THEN** the target is enqueued and no additional action is taken
-
-#### Scenario: Failed offer in Ready state triggers re-schedule
-- **WHEN** a ScheduledPoll fires in the Ready state and OfferAsync fails
-- **THEN** the actor logs a warning with the location, model, and error
-- **THEN** the poll is re-scheduled via ScheduleNext
-
 ### Requirement: Transient failures use an isolated counter and preserve learned cycles
 `ModelPollState` SHALL track transient failures with a dedicated `TransientFailureCount` that is independent of `MissCount`. `WithTransientFailure` SHALL only increment `TransientFailureCount` and SHALL never modify `Phase`, `Cycle`, or `MissCount`. A learned cycle SHALL survive any number of consecutive transient failures.
 
@@ -204,15 +195,15 @@ After `MaxTransientBeforeThrottle` (5) consecutive transient failures, `WithTran
 - **THEN** both `MissCount` and `TransientFailureCount` are reset to 0
 
 ### Requirement: QueryPollStates is handled in all behaviors
-The SchedulerActor SHALL handle `QueryPollStates` messages in ALL behaviors (`WaitingForPipeline`, `WaitingForRefs`, `Connecting`, `WaitingForConnection`, `Ready`) by responding immediately with a `PollStatesResult` of the current `SchedulerState.States` dictionary. The handler SHALL NOT stash, delay, or drop the message in any state.
+The PollSchedulerActor SHALL handle `QueryPollStates` messages in ALL behaviors (`WaitingForPipeline` and `Ready`) by responding immediately with a `QueryPollStatesResult` of the current `SchedulerState.States` dictionary. The handler SHALL NOT stash, delay, or drop the message in any state.
 
 #### Scenario: Query returns current state during pipeline resolution
-- **WHEN** a `QueryPollStates` message is received while the actor is waiting for the PipelineActor reference to resolve
-- **THEN** the actor SHALL respond with a `PollStatesResult` (which may be empty if no states are initialized yet)
+- **WHEN** a `QueryPollStates` message is received while the actor is in `WaitingForPipeline`
+- **THEN** the actor SHALL respond with a `QueryPollStatesResult` (which may be empty if no states are initialized yet)
 
 #### Scenario: Query returns current state in Ready
 - **WHEN** a `QueryPollStates` message is received in Ready state with 6 model poll states
-- **THEN** the actor SHALL respond with `PollStatesResult` containing 6 entries
+- **THEN** the actor SHALL respond with `QueryPollStatesResult` containing 6 entries
 
 #### Scenario: Query is read-only
 - **WHEN** a `QueryPollStates` message is received in any behavior
@@ -225,4 +216,3 @@ The `SchedulerActor` SHALL handle a `TriggerImmediatePoll(string Location, strin
 - **WHEN** `SchedulerActor` receives `TriggerImmediatePoll("home", "icon_d2")`
 - **THEN** the actor SHALL schedule a `ScheduledPoll("home", "icon_d2")` immediately and reply with `TriggerPollResult(1, ["home/icon_d2"])`
 - **AND** the normal schedule for that model SHALL NOT be disrupted
-

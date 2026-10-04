@@ -1,10 +1,4 @@
-# egress-stream-graph Specification
-
-## Purpose
-
-Defines the stream graph topology for data distribution: ModelStateActor owns a BroadcastHub for EgressEvent distribution to consumers, MqttConnectionActor manages its internal MergeHub for availability messages, and GrpcSnapshotConsumerActor routes events from producer BroadcastHubs to snapshot actors. The Publish Sink provides bounded buffering with DropHead overflow.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: ModelStateActor owns a BroadcastHub and serves SourceRefs to consumers
 The `ModelStateActor` SHALL inherit from `StreamConsumerActor`. It SHALL resolve `PipelineActor` via `GetActorAsync` in its `ResolveDependencies()` override to obtain a single SourceRef for `FetchOutcome`. It SHALL NOT resolve `EgressActor` (eliminated). In its `MaterializeGraph()`, it SHALL process the `FetchOutcome` stream (capability learning, horizon projection, per-model update emission) and feed the output into a `BroadcastHub.Sink<EgressEvent>`. The BroadcastHub source SHALL be stored and used to serve `RequestModelStateSource(long RequestId)` messages from consumers. On request, it SHALL vend a `SourceRef<EgressEvent>` via `StreamRefs.SourceRef<EgressEvent>()` run against the BroadcastHub source. When SourceRef materialization fails, it SHALL send `ModelStateSourceFailed(long RequestId, Exception Cause)` to the requester.
@@ -72,3 +66,21 @@ The `MqttConnectionActor` SHALL offer an `online` availability MqttMessage after
 #### Scenario: Consumer subscribes to two producers
 - **WHEN** GrpcSnapshotConsumerActor starts
 - **THEN** it resolves ModelStateActor and EnrichmentActor and requests SourceRefs from both
+
+## REMOVED Requirements
+
+### Requirement: MergeHub converges messages from multiple sources into a single publish sink
+**Reason**: The central EgressActor hub that merged messages from ModelStateActor and EnrichmentActor into a single MergeHub is eliminated. Each producer owns its own BroadcastHub. MqttConnectionActor retains its internal MergeHub only for availability/tombstone messages — not for data flow.
+**Migration**: Consumers (MqttStateActor, MqttDiscoveryActor, GrpcSnapshotConsumerActor) subscribe directly to the producers' BroadcastHubs via SourceRef.
+
+### Requirement: ModelStateActor consumes FetchOutcome from Pipeline SourceRef
+**Reason**: Superseded by the expanded requirement above that adds BroadcastHub ownership. The original requirement only covered input; the replacement covers input and output.
+**Migration**: No action needed — the replacement includes all original behavior.
+
+### Requirement: Discovery messages are fed via Source.Queue on lifecycle events
+**Reason**: Discovery is now handled by MqttDiscoveryActor which calls `IMqttTransport.SendAsync` directly. Discovery messages no longer flow through the MqttConnectionActor's MergeHub.
+**Migration**: MqttDiscoveryActor calls `IMqttTransport.SendAsync` for discovery payloads.
+
+### Requirement: Tombstone messages are fed via Source.Queue on stale config detection
+**Reason**: Tombstone publishing moves to MqttDiscoveryActor which calls `IMqttTransport.SendAsync` directly.
+**Migration**: MqttDiscoveryActor handles tombstone detection and publishes empty payloads via `IMqttTransport.SendAsync`.

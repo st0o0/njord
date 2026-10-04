@@ -1,10 +1,4 @@
-# mqtt-actor-topology Specification
-
-## Purpose
-
-Actor topology for MQTT concerns: MqttConnectionActor owns the physical broker connection and internal MergeHub, MqttStateActor maps EgressEvent to MqttMessages, MqttDiscoveryActor handles HA discovery config publishing. All live in `Njord.Mqtt`.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: MqttConnectionActor owns the broker connection and MergeHub
 The `MqttConnectionActor` SHALL be registered in the actor system only when `Mqtt.Enabled` is `true`. When registered, it SHALL own the `IMqttConnection` and `IMqttTransport` instances. It SHALL materialize a MergeHub sink for its own internal outbound `MqttMessage` flow (availability messages, internally-queued discovery tombstones). It SHALL handle connect, reconnect with exponential backoff, LWT (online/offline on the availability topic), and disconnection recovery. It SHALL NOT vend `SinkRef<MqttMessage>` to external requestors — the `RequestMqttSink`/`MqttSinkResponse` protocol is removed. Downstream actors (MqttStateActor, MqttDiscoveryActor) SHALL call `IMqttTransport.SendAsync` directly via DI-injected transport.
@@ -88,3 +82,13 @@ The `MqttDiscoveryActor` (renamed from `DiscoveryActor`) SHALL inherit from `Str
 #### Scenario: MqttDiscoveryActor calls transport directly
 - **WHEN** MqttDiscoveryActor publishes a discovery payload
 - **THEN** it calls `IMqttTransport.SendAsync` directly, not through a SinkRef
+
+## RENAMED Requirements
+
+### Requirement: MqttEgressActor maps EgressEvent to MQTT messages
+- **FROM:** MqttEgressActor
+- **TO:** MqttStateActor
+
+### Requirement: DiscoveryActor publishes HA discovery configs
+- **FROM:** DiscoveryActor
+- **TO:** MqttDiscoveryActor

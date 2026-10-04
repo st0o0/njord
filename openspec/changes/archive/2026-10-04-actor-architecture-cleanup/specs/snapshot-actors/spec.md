@@ -1,10 +1,4 @@
-# snapshot-actors Specification
-
-## Purpose
-
-Akka Persistence actors that hold the latest forecast and enrichment state as ShardRegion entities, surviving restarts via persisted snapshots. A `GrpcSnapshotConsumerActor` (built on `StreamConsumerActor`) routes events from producer BroadcastHubs to both ShardRegion types using Ask/Ack backpressure.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: ForecastSnapshotActor stores the latest forecasts as ShardRegion entities
 `ForecastSnapshotActor` SHALL be a ShardRegion entity managed by the `IForecastSnapshotRegion` ShardRegion. Each entity SHALL manage the forecast for a single `(location, modelId)` key. The entity's `PersistenceId` SHALL be derived from the entity id (e.g. `"forecast-snapshot-{location}|{modelId}"`). The entity SHALL hold a single `ModelForecast` value (not a dictionary). It SHALL respond to `UpdateForecast` (which implements `IWithModelKey`) with `Ack` after storing the forecast. It SHALL respond to `QueryForecast` (which implements `IWithModelKey`) with `ForecastFound` or `ForecastNotFound`. It SHALL persist its state as a snapshot every N updates (default 20). After a successful snapshot save, it SHALL delete all previous snapshots. The snapshot state SHALL be a dedicated DTO type (`ForecastSnapshotDto`). The entity SHALL passivate after idle timeout.
@@ -66,3 +60,17 @@ Akka Persistence actors that hold the latest forecast and enrichment state as Sh
 #### Scenario: Enrichment update routed to ShardRegion
 - **WHEN** an EnrichmentUpdate event arrives from EnrichmentActor
 - **THEN** it is converted to an `UpdateEnrichment` message (implementing `IWithEnrichmentKey`) and sent to the `IEnrichmentSnapshotRegion` ShardRegion via Ask
+
+## REMOVED Requirements
+
+### Requirement: ForecastSnapshotActor recovers state from snapshot after restart
+**Reason**: Superseded by the per-entity ShardRegion version above. The singleton actor with dictionary-based state is replaced by per-key entities.
+**Migration**: Each entity manages a single key. Snapshot recovery is per-entity, not for the whole dictionary.
+
+### Requirement: EnrichmentSnapshotActor recovers state from snapshot after restart
+**Reason**: Superseded by the per-entity ShardRegion version above.
+**Migration**: Same as above.
+
+### Requirement: Snapshot actors handle snapshot store failures during recovery
+**Reason**: Superseded — ShardRegion entities handle recovery failures via shard supervision. The backoff supervisor wraps the shard, not individual entities.
+**Migration**: ShardRegion configuration handles entity restart on recovery failure.

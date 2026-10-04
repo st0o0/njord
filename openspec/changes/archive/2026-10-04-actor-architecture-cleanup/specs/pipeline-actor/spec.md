@@ -1,10 +1,4 @@
-# pipeline-actor Specification
-
-## Purpose
-
-Defines the PipelineActor that owns the pipeline stream graph lifecycle: actor-bound materialization with independent startup, ScheduledPoll reception via Tell, BroadcastHub distribution of FetchOutcome to consumers, and local feedback consumer for hash computation.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: The pipeline graph is materialized by an actor
 A `PipelineActor` SHALL materialize the pipeline graph using `Context.Materializer()`. The pipeline graph SHALL be materialized independently — the actor SHALL NOT wait for any downstream actor before materializing. The stream lifecycle SHALL be bound to the actor — when the actor stops, the graph terminates. No `IHostedService` SHALL be used for pipeline lifecycle. The actor SHALL own a `UniqueKillSwitch` that is used only for graceful shutdown. On `StopStreams` the actor SHALL shut the switch down, wait for the graph completion, and reply `StreamsStopped` (or `StreamsStopFailed`). The fetch logic (calling `IOpenMeteoClient.FetchAsync`) SHALL be inlined in the pipeline graph as a `SelectAsyncUnordered` operator.
@@ -75,3 +69,13 @@ The feedback consumer's stream supervision SHALL use the shared `StreamSupervisi
 #### Scenario: Feedback consumer lifecycle is bound to PipelineActor
 - **WHEN** PipelineActor stops
 - **THEN** the feedback consumer stream completes
+
+## REMOVED Requirements
+
+### Requirement: The pipeline actor vends a SinkRef for producers and a SourceRef for consumers
+**Reason**: The MergeHub and SinkRef API are removed. PipelineActor now receives `ScheduledPoll` via Tell from the PollSchedulerActor (single producer) and only vends SourceRefs from its BroadcastHub.
+**Migration**: PollSchedulerActor sends `ScheduledPoll` messages via Tell to PipelineActor instead of requesting a SinkRef and materializing a Source.Queue connected to it.
+
+### Requirement: The pipeline actor watches the egress actor for lifecycle coordination
+**Reason**: The EgressActor hub is eliminated. There is no EgressActor to watch.
+**Migration**: Consumers (ModelStateActor, EnrichmentActor) subscribe directly to PipelineActor's BroadcastHub via SourceRef. PipelineActor does not need to watch any downstream actor.
