@@ -47,7 +47,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
                 History = new HistoryOptions { Enabled = false },
             },
         };
-        var monitor = new MutableOptionsMonitor(options);
+        var monitor = new TestOptionsMonitor<NjordOptions>(options);
         return new OpsGrpcService(monitor, ActorRegistry, _time,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<OpsGrpcService>.Instance);
     }
@@ -164,12 +164,6 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(2, response.TriggeredCount);
     }
 
-    private sealed class MutableOptionsMonitor(NjordOptions value) : IOptionsMonitor<NjordOptions>
-    {
-        public NjordOptions CurrentValue { get; set; } = value;
-        public NjordOptions Get(string? name) => CurrentValue;
-        public IDisposable? OnChange(Action<NjordOptions, string?> listener) => null;
-    }
 
     private sealed class FakeSchedulerActor : ReceiveActor
     {

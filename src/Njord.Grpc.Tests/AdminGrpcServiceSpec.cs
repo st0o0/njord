@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Grpc;
 using Njord.Grpc.V2;
+using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
 
@@ -139,16 +140,10 @@ public sealed class AdminGrpcServiceSpec : IDisposable
 
     private AdminGrpcService CreateService(NjordOptions? options = null)
     {
-        var monitor = new MutableOptionsMonitor(options ?? DefaultOptions());
+        var monitor = new TestOptionsMonitor<NjordOptions>(options ?? DefaultOptions());
         var persistence = new ConfigPersistence(_tempDir);
         return new AdminGrpcService(monitor, persistence,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<AdminGrpcService>.Instance);
     }
 
-    private sealed class MutableOptionsMonitor(NjordOptions value) : IOptionsMonitor<NjordOptions>
-    {
-        public NjordOptions CurrentValue { get; set; } = value;
-        public NjordOptions Get(string? name) => CurrentValue;
-        public IDisposable? OnChange(Action<NjordOptions, string?> listener) => null;
-    }
 }

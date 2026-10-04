@@ -1,9 +1,9 @@
 ## 1. Shared Test Infrastructure
 
-- [ ] 1.1 Create `src/Njord.Tests.Shared/TestOptionsMonitor.cs` — generic `TestOptionsMonitor<T> : IOptionsMonitor<T>` with `Update(T)` method that fires `OnChange` listeners
-- [ ] 1.2 Replace `MutableOptionsMonitor` in `src/Njord.Grpc.Tests/OpsGrpcServiceSpec.cs` with `TestOptionsMonitor<NjordOptions>`
-- [ ] 1.3 Replace `MutableOptionsMonitor`/`FakeOptionsMonitor` in `src/Njord.Grpc.Tests/AdminGrpcServiceSpec.cs` with `TestOptionsMonitor<NjordOptions>`
-- [ ] 1.4 Replace duplicated options monitor fake in `src/Njord.Mqtt.Tests/` (find the file) with `TestOptionsMonitor<T>`
+- [x] 1.1 Create `src/Njord.Tests.Shared/TestOptionsMonitor.cs` — generic `TestOptionsMonitor<T> : IOptionsMonitor<T>` with `Update(T)` method that fires `OnChange` listeners
+- [x] 1.2 Replace `MutableOptionsMonitor` in `src/Njord.Grpc.Tests/OpsGrpcServiceSpec.cs` with `TestOptionsMonitor<NjordOptions>`
+- [x] 1.3 Replace `MutableOptionsMonitor`/`FakeOptionsMonitor` in `src/Njord.Grpc.Tests/AdminGrpcServiceSpec.cs` with `TestOptionsMonitor<NjordOptions>`
+- [x] 1.4 Replace duplicated options monitor fake in `src/Njord.Pipeline.Tests/PipelineConnectionSpec.cs` (find the file) with `TestOptionsMonitor<T>`
 
 ## 2. Extract MqttOptions
 

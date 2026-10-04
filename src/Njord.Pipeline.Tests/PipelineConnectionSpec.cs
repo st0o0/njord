@@ -61,7 +61,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             DiscoveryInterval = TimeSpan.FromMinutes(20),
         };
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        var optionsMonitor = new FakeOptionsMonitor(options);
+        var optionsMonitor = new TestOptionsMonitor<NjordOptions>(options);
         var fakeTracker = Sys.ActorOf(Props.Create(() => new FakeBudgetTrackerActor()));
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero));
         IBudgetGate<WeightedTarget> gate = new WeightedBudgetGate(
@@ -188,12 +188,6 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         }
     }
 
-    private sealed class FakeOptionsMonitor(NjordOptions value) : IOptionsMonitor<NjordOptions>
-    {
-        public NjordOptions CurrentValue => value;
-        public NjordOptions Get(string? name) => value;
-        public IDisposable? OnChange(Action<NjordOptions, string?> listener) => null;
-    }
 
     private sealed class FakeOpenMeteoClient : IOpenMeteoClient
     {
