@@ -12,6 +12,7 @@ using Njord.Messages.Common;
 using Njord.Messages.Pipeline;
 using Njord.Persistence;
 using Servus.Akka;
+using Servus.Resilience;
 
 namespace Njord.Pipeline;
 
@@ -42,6 +43,9 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private sealed record RetryPipelineResolve;
     private sealed record PollCycleTracker(DateTimeOffset Start, int Changed, int Reported);
 
+    private static readonly BackoffPolicy PipelineRetryPolicy =
+        Backoff.Create(TimeSpan.FromSeconds(1), maxDelay: TimeSpan.FromSeconds(30));
+
     private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
 
     public SchedulerActor(
@@ -55,17 +59,20 @@ public sealed class SchedulerActor : ReceivePersistentActor
         _healthState = healthState;
         _weight = WeightedTarget.ComputeWeight(parameters.HourlyCount, _options.ForecastDays);
 
+        _pipeline = Context.GetActor<IPipelineActor>();
+        Context.Watch(_pipeline);
+
         Recover<DataChangedDto>(dto => _state = _state.ApplyRecover(dto, _options.DiscoveryInterval));
         Recover<SnapshotOffer>(_ => { });
 
-        WaitingForPipeline();
+        Ready();
     }
 
     protected override void PreStart()
     {
         _log = Context.GetLogger();
-        Context.GetActorAsync<IPipelineActor>()
-            .PipeTo(Self, success: r => new PipelineResolved(r), failure: ex => new PipelineResolveFailed(ex));
+        InitializeStates();
+        _log.Info("PipelineActor resolved - scheduling initial polls");
     }
 
     private void WaitingForPipeline()
@@ -74,7 +81,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         {
             if (Equals(msg.Pipeline, _lastTerminatedPipeline))
             {
-                var delay = RetryBackoff.For(Context.System, _pipelineRetryCount);
+                var delay = PipelineRetryPolicy.DelayWithJitter(_pipelineRetryCount);
                 _pipelineRetryCount++;
                 Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryPipelineResolve(), Self);
                 return;
@@ -98,7 +105,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         Command<PipelineResolveFailed>(msg =>
         {
             _log.Warning(msg.Cause, "Failed to resolve PipelineActor - retrying");
-            var delay = RetryBackoff.For(Context.System, _pipelineRetryCount);
+            var delay = PipelineRetryPolicy.DelayWithJitter(_pipelineRetryCount);
             _pipelineRetryCount++;
             Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryPipelineResolve(), Self);
         });

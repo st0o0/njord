@@ -50,8 +50,7 @@ public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
                 registry.Register<ISchedulerActor>(
                     system.ActorOf(resolver.Props<SchedulerActor>(), "scheduler"));
             })
-            .AddTestTimefactor()
-            .AddFastRetryBackoff();
+            .AddTestTimefactor();
     }
 
     private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();

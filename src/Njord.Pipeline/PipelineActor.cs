@@ -17,6 +17,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;
     private readonly IBudgetGate<WeightedTarget> _budgetGate;
+    private readonly IActorRef _scheduler;
     private ILoggingAdapter _log = null!;
 
     private Source<FetchOutcome, NotUsed>? _broadcastHubSource;
@@ -27,10 +28,6 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
 
     public IStash Stash { get; set; } = null!;
 
-    private sealed record PipelineReady;
-    private sealed record SchedulerResolved(IActorRef Ref);
-    private sealed record SchedulerResolveFailed(Exception Cause);
-
     public PipelineActor(
         IOpenMeteoClient client,
         TimeProvider timeProvider,
@@ -39,34 +36,17 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         _client = client;
         _timeProvider = timeProvider;
         _budgetGate = budgetGate;
+        _scheduler = Context.GetActor<ISchedulerActor>();
 
-        Initializing();
+        Ready();
     }
 
     protected override void PreStart()
     {
         _log = Context.GetLogger();
         _mat = Context.Materializer();
-        Context.GetActorAsync<ISchedulerActor>()
-            .PipeTo(Self, success: r => new SchedulerResolved(r), failure: ex => new SchedulerResolveFailed(ex));
-    }
-
-    private void Initializing()
-    {
-        Receive<SchedulerResolved>(msg => MaterializePipeline(msg.Ref));
-        Receive<SchedulerResolveFailed>(msg =>
-        {
-            _log.Warning(msg.Cause, "Failed to resolve SchedulerActor - retrying");
-            Context.GetActorAsync<ISchedulerActor>()
-                .PipeTo(Self, success: r => new SchedulerResolved(r), failure: ex => new SchedulerResolveFailed(ex));
-        });
-        Receive<PipelineReady>(_ =>
-        {
-            _log.Info("Pipeline graph materialized - ready to accept polls");
-            Become(Ready);
-            Stash.UnstashAll();
-        });
-        ReceiveAny(_ => Stash.Stash());
+        MaterializePipeline(_scheduler);
+        _log.Info("Pipeline graph materialized - ready to accept polls");
     }
 
     private void Ready()
@@ -150,7 +130,5 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         _completions = [fetchCompletion, hashCompletion];
         _queue = queue;
         _broadcastHubSource = broadcastHubSource;
-
-        Self.Tell(new PipelineReady());
     }
 }
