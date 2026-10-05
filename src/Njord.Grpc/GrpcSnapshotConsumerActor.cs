@@ -12,6 +12,8 @@ namespace Njord.Grpc;
 
 public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
 {
+    private IActorRef? _modelStateRef;
+    private IActorRef? _enrichmentRef;
     private ISourceRef<EgressEvent>? _modelStateSourceRef;
     private ISourceRef<EgressEvent>? _enrichmentSourceRef;
     private IActorRef? _forecastActor;
@@ -25,6 +27,29 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
     private sealed record EnrichmentResolveFailed(Exception Cause);
     private sealed record SnapshotActorsResolved(IActorRef Forecast, IActorRef Enrichment);
     private sealed record SnapshotResolveFailed(Exception Cause);
+
+    protected override void ResolveInitialDependencies()
+    {
+        _modelStateRef = Context.GetActor<IModelStateActor>();
+        TrackDependency(_modelStateRef);
+
+        _enrichmentRef = Context.GetActor<IEnrichmentActor>();
+        TrackDependency(_enrichmentRef);
+
+        _forecastActor = Context.GetActor<IForecastSnapshotActor>();
+        _enrichmentSnapshotActor = Context.GetActor<IEnrichmentSnapshotActor>();
+    }
+
+    protected override void RequestSourceRefs()
+    {
+        var modelId = NextRequestId();
+        _modelStateSourceRequestId = modelId;
+        _modelStateRef!.Tell(new RequestModelStateSource(modelId));
+
+        var enrichId = NextRequestId();
+        _enrichmentSourceRequestId = enrichId;
+        _enrichmentRef!.Tell(new RequestEnrichmentSource(enrichId));
+    }
 
     protected override void ResolveDependencies()
     {
@@ -185,6 +210,8 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
 
     protected override void OnDependencyLost()
     {
+        _modelStateRef = null;
+        _enrichmentRef = null;
         _modelStateSourceRef = null;
         _enrichmentSourceRef = null;
         _forecastActor = null;

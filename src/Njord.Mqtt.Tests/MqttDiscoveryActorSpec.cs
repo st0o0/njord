@@ -17,7 +17,7 @@ public sealed class MqttDiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        builder.AddTestTimefactor().AddFastRetryBackoff();
+        builder.AddTestTimefactor();
     }
 
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;

@@ -18,7 +18,7 @@ public sealed class MqttStateActorSpec : Akka.Hosting.TestKit.TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
-        builder.AddTestTimefactor().AddFastRetryBackoff();
+        builder.AddTestTimefactor();
     }
 
     private static readonly DateTimeOffset Anchor = new(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);

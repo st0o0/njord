@@ -30,6 +30,8 @@ public sealed class MqttStateActor : StreamConsumerActor
     private readonly Dictionary<string, IEnrichmentPresenter> _presentersByType;
     private ILoggingAdapter _log = null!;
 
+    private IActorRef? _modelStateRef;
+    private IActorRef? _enrichmentRef;
     private ISourceRef<EgressEvent>? _modelStateSourceRef;
     private ISourceRef<EgressEvent>? _enrichmentSourceRef;
     private long _modelStateSourceRequestId;
@@ -62,6 +64,26 @@ public sealed class MqttStateActor : StreamConsumerActor
     {
         _log = Context.GetLogger();
         base.PreStart();
+    }
+
+    protected override void ResolveInitialDependencies()
+    {
+        _modelStateRef = Context.GetActor<IModelStateActor>();
+        TrackDependency(_modelStateRef);
+
+        _enrichmentRef = Context.GetActor<IEnrichmentActor>();
+        TrackDependency(_enrichmentRef);
+    }
+
+    protected override void RequestSourceRefs()
+    {
+        var modelId = NextRequestId();
+        _modelStateSourceRequestId = modelId;
+        _modelStateRef!.Tell(new RequestModelStateSource(modelId));
+
+        var enrichId = NextRequestId();
+        _enrichmentSourceRequestId = enrichId;
+        _enrichmentRef!.Tell(new RequestEnrichmentSource(enrichId));
     }
 
     protected override void ResolveDependencies()
@@ -172,6 +194,8 @@ public sealed class MqttStateActor : StreamConsumerActor
 
     protected override void OnDependencyLost()
     {
+        _modelStateRef = null;
+        _enrichmentRef = null;
         _modelStateSourceRef = null;
         _enrichmentSourceRef = null;
         _modelStateSourceRequestId = 0;

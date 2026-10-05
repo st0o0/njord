@@ -53,10 +53,27 @@ public sealed class EnrichmentActor : StreamConsumerActor
         _features = [.. features];
     }
 
+    private IActorRef? _pipelineRef;
+
     protected override void PreStart()
     {
         _log = Context.GetLogger();
         base.PreStart();
+    }
+
+    protected override void ResolveInitialDependencies()
+    {
+        _pipelineRef = Context.GetActor<IPipelineActor>();
+        TrackDependency(_pipelineRef);
+
+        _sensorHub = Context.GetActor<ISensorHubActor>();
+    }
+
+    protected override void RequestSourceRefs()
+    {
+        var id = NextRequestId();
+        _pipelineSourceRequestId = id;
+        _pipelineRef!.Tell(new RequestPipelineSource(id));
     }
 
     protected override void ResolveDependencies()
@@ -225,6 +242,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
 
     protected override void OnDependencyLost()
     {
+        _pipelineRef = null;
         _sourceRef = null;
         _sensorHub = null;
         _pipelineSourceRequestId = 0;

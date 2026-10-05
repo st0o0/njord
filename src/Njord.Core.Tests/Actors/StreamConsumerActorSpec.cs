@@ -40,6 +40,36 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         public static Props CreateProps(TaskCompletionSource graphMaterialized)
             => Props.Create(() => new TestStreamConsumer(graphMaterialized));
 
+    private sealed class TestStreamConsumer : StreamConsumerActor
+    {
+        private IActorRef? _depA;
+        private IActorRef? _depB;
+
+        private readonly TaskCompletionSource _graphMaterialized;
+        private int _materializeCount;
+
+        public TestStreamConsumer(TaskCompletionSource graphMaterialized)
+        {
+            _graphMaterialized = graphMaterialized;
+        }
+
+        public static Props CreateProps(TaskCompletionSource graphMaterialized)
+            => Props.Create(() => new TestStreamConsumer(graphMaterialized));
+
+        protected override void ResolveInitialDependencies()
+        {
+            _depA = Context.GetActor<DepAKey>();
+            TrackDependency(_depA);
+            _depB = Context.GetActor<DepBKey>();
+            TrackDependency(_depB);
+        }
+
+        protected override void RequestSourceRefs()
+        {
+            // Test actor has no SourceRefs — transition immediately
+            TryTransition();
+        }
+
         protected override void ResolveDependencies()
         {
             Context.GetActorAsync<DepAKey>().PipeTo(Self, success: r => new DepAResolved(r));
@@ -76,9 +106,6 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         {
             _depA = null;
             _depB = null;
-
-            // Reset the TCS so callers can await the next materialization.
-            // The old TCS is already completed, so we swap in a fresh one.
         }
     }
 
@@ -101,6 +128,19 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
 
         public static Props CreateProps(TaskCompletionSource graphMaterialized)
             => Props.Create(() => new ResettableTestStreamConsumer(graphMaterialized));
+
+        protected override void ResolveInitialDependencies()
+        {
+            _depA = Context.GetActor<DepAKey>();
+            TrackDependency(_depA);
+            _depB = Context.GetActor<DepBKey>();
+            TrackDependency(_depB);
+        }
+
+        protected override void RequestSourceRefs()
+        {
+            TryTransition();
+        }
 
         protected override void ResolveDependencies()
         {

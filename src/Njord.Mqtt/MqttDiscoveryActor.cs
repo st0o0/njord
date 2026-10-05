@@ -31,6 +31,7 @@ public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
     private readonly int _expectedModelCount;
     private ILoggingAdapter _log = null!;
 
+    private IActorRef? _modelStateRef;
     private ISourceRef<EgressEvent>? _modelStateSourceRef;
     private long _modelStateSourceRequestId;
     private readonly Dictionary<(string Location, string ModelId), EgressEvent.CapabilityLearned> _capabilities = new();
@@ -75,6 +76,23 @@ public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
         }
 
         base.PreStart();
+    }
+
+    protected override void ResolveInitialDependencies()
+    {
+        _modelStateRef = Context.GetActor<IModelStateActor>();
+        TrackDependency(_modelStateRef);
+
+        var connection = Context.GetActor<IMqttConnectionActor>();
+        TrackDependency(connection);
+        connection.Tell(new SubscribeInbound(Self));
+    }
+
+    protected override void RequestSourceRefs()
+    {
+        var id = NextRequestId();
+        _modelStateSourceRequestId = id;
+        _modelStateRef!.Tell(new RequestModelStateSource(id));
     }
 
     protected override void ResolveDependencies()
@@ -170,6 +188,7 @@ public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
 
     protected override void OnDependencyLost()
     {
+        _modelStateRef = null;
         _modelStateSourceRef = null;
         _modelStateSourceRequestId = 0;
     }

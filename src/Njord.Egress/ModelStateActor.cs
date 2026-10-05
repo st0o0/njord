@@ -20,6 +20,7 @@ public sealed class ModelStateActor : StreamConsumerActor
     private readonly ResolvedParameterSet _parameters;
     private ILoggingAdapter _log = null!;
 
+    private IActorRef? _pipelineRef;
     private ISourceRef<FetchOutcome>? _sourceRef;
     private long _pipelineSourceRequestId;
     private Source<EgressEvent, NotUsed>? _broadcastHubSource;
@@ -41,6 +42,19 @@ public sealed class ModelStateActor : StreamConsumerActor
     {
         _log = Context.GetLogger();
         base.PreStart();
+    }
+
+    protected override void ResolveInitialDependencies()
+    {
+        _pipelineRef = Context.GetActor<IPipelineActor>();
+        TrackDependency(_pipelineRef);
+    }
+
+    protected override void RequestSourceRefs()
+    {
+        var id = NextRequestId();
+        _pipelineSourceRequestId = id;
+        _pipelineRef!.Tell(new RequestPipelineSource(id));
     }
 
     protected override void ResolveDependencies()
@@ -161,6 +175,7 @@ public sealed class ModelStateActor : StreamConsumerActor
 
     protected override void OnDependencyLost()
     {
+        _pipelineRef = null;
         _sourceRef = null;
         _pipelineSourceRequestId = 0;
         _broadcastHubSource = null;

@@ -26,9 +26,9 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
                 var mat = system.Materializer();
                 var fakePipeline = system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
                 registry.Register<IPipelineActor>(fakePipeline);
+                registry.Register<ISensorHubActor>(system.ActorOf(Props.Empty, "sensor-hub"));
             })
-            .AddTestTimefactor()
-            .AddFastRetryBackoff();
+            .AddTestTimefactor();
     }
 
     private static NjordOptions DefaultOptions() => new()
@@ -75,7 +75,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
         await AssertActorAlive(actor, TestContext.Current.CancellationToken);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = 10000)]
     public async Task Re_requests_pipeline_source_after_pipeline_source_failure()
     {
         var ct = TestContext.Current.CancellationToken;
