@@ -2,7 +2,6 @@ using Akka;
 using Akka.Actor;
 using Akka.Cluster.Hosting;
 using Akka.Cluster.Sharding;
-using Akka.DependencyInjection;
 using Akka.Event;
 using Akka.Hosting;
 using Akka.Pattern;
@@ -75,6 +74,7 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
                 "Persistence must be configured before the actors are registered (journal plugin is not set).");
         }
 
+        // Tier 0: ShardRegion (registered before all singletons)
         builder.WithShardRegion<IForecastHistoryRegion>(
             "forecast-history",
             (_, _, resolver) => entityId => resolver.Props<ForecastHistoryActor>(entityId),
@@ -85,23 +85,56 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
                 ShouldPassivateIdleEntities = true
             });
 
+        // Tier 0: actors with no dependencies
+        builder
+            .WithSingleton<IBudgetTrackerActor>("budget-tracker-supervisor",
+                (_, _, resolver) => BackoffSupervisorProps(resolver.Props<BudgetTrackerActor>(), "budget-tracker"))
+            .WithSingleton<ISensorHubActor>("sensor-hub",
+                (_, _, resolver) => resolver.Props<SensorHubActor>());
+
+        if (mqttEnabled)
+        {
+            builder.WithSingleton<IMqttConnectionActor>("mqtt-connection",
+                (_, _, resolver) => resolver.Props<MqttConnectionActor>());
+        }
+
+        // Tier 1: Scheduler (BackoffSupervisor) then Pipeline (resolves ISchedulerActor)
+        builder
+            .WithSingleton<ISchedulerActor>("scheduler-supervisor",
+                (_, _, resolver) => BackoffSupervisorProps(resolver.Props<SchedulerActor>(), "scheduler"))
+            .WithSingleton<IPipelineActor>("pipeline",
+                (_, _, resolver) => resolver.Props<PipelineActor>());
+
+        // Tier 2: actors that depend on Pipeline and/or SensorHub
+        builder
+            .WithSingleton<IModelStateActor>("model-state",
+                (_, _, resolver) => resolver.Props<ModelStateActor>())
+            .WithSingleton<IEnrichmentActor>("enrichment",
+                (_, _, resolver) => resolver.Props<EnrichmentActor>());
+
+        // Tier 3: actors that depend on ModelState, Enrichment, MqttConnection
+        builder
+            .WithSingleton<IForecastSnapshotActor>("forecast-snapshot-supervisor",
+                (_, _, resolver) => BackoffSupervisorProps(resolver.Props<ForecastSnapshotActor>(), "forecast-snapshot"))
+            .WithSingleton<IEnrichmentSnapshotActor>("enrichment-snapshot-supervisor",
+                (_, _, resolver) => BackoffSupervisorProps(resolver.Props<EnrichmentSnapshotActor>(), "enrichment-snapshot"))
+            .WithSingleton<IGrpcSnapshotConsumerActor>("grpc-snapshot-consumer",
+                (_, _, resolver) => resolver.Props<GrpcSnapshotConsumerActor>());
+
+        if (mqttEnabled)
+        {
+            builder
+                .WithSingleton<IMqttStateActor>("mqtt-state",
+                    (_, _, resolver) => resolver.Props<MqttStateActor>())
+                .WithSingleton<IMqttDiscoveryActor>("mqtt-discovery",
+                    (_, _, resolver) => resolver.Props<MqttDiscoveryActor>());
+        }
+
+        // Cluster self-join and shutdown task (no actor creation)
         return builder.WithActors((system, registry) =>
         {
             var cluster = Akka.Cluster.Cluster.Get(system);
             cluster.Join(cluster.SelfAddress);
-
-            var resolver = DependencyResolver.For(system);
-
-            RegisterPipelineActors(system, registry, resolver);
-            RegisterModelStateActors(system, registry, resolver);
-            RegisterEnrichmentActors(system, registry, resolver);
-            RegisterSensorActors(system, registry, resolver);
-            RegisterGrpcActors(system, registry, resolver);
-
-            if (mqttEnabled)
-            {
-                RegisterMqttActors(system, registry, resolver);
-            }
 
             AddStreamShutdownTask(system, registry, StreamStopTimeout);
         });
@@ -139,52 +172,7 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
         }
     }
 
-    private static void RegisterPipelineActors(ActorSystem system, IActorRegistry registry, DependencyResolver resolver)
-    {
-        RegisterWithBackoff<ISchedulerActor, SchedulerActor>(system, registry, resolver, "scheduler");
-        RegisterWithBackoff<IBudgetTrackerActor, BudgetTrackerActor>(system, registry, resolver, "budget-tracker");
-        registry.Register<IPipelineActor>(system.ActorOf(resolver.Props<PipelineActor>(), "pipeline"));
-    }
-
-    private static void RegisterModelStateActors(ActorSystem system, IActorRegistry registry, DependencyResolver resolver)
-    {
-        registry.Register<IModelStateActor>(system.ActorOf(resolver.Props<ModelStateActor>(), "model-state"));
-    }
-
-    private static void RegisterEnrichmentActors(ActorSystem system, IActorRegistry registry, DependencyResolver resolver)
-    {
-        registry.Register<IEnrichmentActor>(system.ActorOf(resolver.Props<EnrichmentActor>(), "enrichment"));
-    }
-
-    private static void RegisterSensorActors(ActorSystem system, IActorRegistry registry, DependencyResolver resolver)
-    {
-        registry.Register<ISensorHubActor>(system.ActorOf(resolver.Props<SensorHubActor>(), "sensor-hub"));
-    }
-
-    private static void RegisterGrpcActors(ActorSystem system, IActorRegistry registry, DependencyResolver resolver)
-    {
-        RegisterWithBackoff<IForecastSnapshotActor, ForecastSnapshotActor>(system, registry, resolver, "forecast-snapshot");
-        RegisterWithBackoff<IEnrichmentSnapshotActor, EnrichmentSnapshotActor>(system, registry, resolver, "enrichment-snapshot");
-        registry.Register<IGrpcSnapshotConsumerActor>(
-            system.ActorOf(resolver.Props<GrpcSnapshotConsumerActor>(), "grpc-snapshot-consumer"));
-    }
-
-    private static void RegisterMqttActors(ActorSystem system, IActorRegistry registry, DependencyResolver resolver)
-    {
-        registry.Register<IMqttConnectionActor>(system.ActorOf(resolver.Props<MqttConnectionActor>(), "mqtt-connection"));
-        registry.Register<IMqttStateActor>(system.ActorOf(resolver.Props<MqttStateActor>(), "mqtt-state"));
-        registry.Register<IMqttDiscoveryActor>(system.ActorOf(resolver.Props<MqttDiscoveryActor>(), "mqtt-discovery"));
-    }
-
-    private static void RegisterWithBackoff<TKey, TActor>(
-        ActorSystem system, IActorRegistry registry,
-        DependencyResolver resolver, string name)
-        where TActor : ActorBase
-    {
-        var childProps = resolver.Props<TActor>();
-        var supervisorProps = BackoffSupervisor.Props(
-            Backoff.OnFailure(childProps, name, MinBackoff, MaxBackoff, RandomFactor, maxNrOfRetries: -1));
-        var supervisor = system.ActorOf(supervisorProps, $"{name}-supervisor");
-        registry.Register<TKey>(supervisor);
-    }
+    private static Props BackoffSupervisorProps(Props childProps, string childName)
+        => BackoffSupervisor.Props(
+            Backoff.OnFailure(childProps, childName, MinBackoff, MaxBackoff, RandomFactor, maxNrOfRetries: -1));
 }
