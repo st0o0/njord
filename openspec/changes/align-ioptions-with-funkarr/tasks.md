@@ -7,47 +7,47 @@
 
 ## 2. Extract MqttOptions
 
-- [ ] 2.1 Add `public const string SectionName = "Njord:Mqtt"` to `src/Njord.Core/Configuration/MqttOptions.cs`; remove the `Mqtt` property from `NjordOptions`
-- [ ] 2.2 Update `src/Njord.Mqtt/MqttServiceCollectionExtensions.cs` `AddNjordMqtt()` to accept `IConfiguration`, call `AddOptions<MqttOptions>().Bind(config.GetSection(MqttOptions.SectionName)).ValidateOnStart()`
-- [ ] 2.3 Update `MqttConnectionActor` to inject `IOptionsMonitor<MqttOptions>` instead of extracting from `IOptions<NjordOptions>`
-- [ ] 2.4 Update `MqttDiscoveryActor`, `MqttStateActor` to inject `IOptions<MqttOptions>` where they use MQTT config
-- [ ] 2.5 Update all MQTT test specs to construct with the new options type
+- [x] 2.1 Add `public const string SectionName = "Njord:Mqtt"` to `src/Njord.Core/Configuration/MqttOptions.cs`; remove the `Mqtt` property from `NjordOptions`
+- [x] 2.2 Update `src/Njord.Mqtt/MqttServiceCollectionExtensions.cs` `AddNjordMqtt()` to accept `IConfiguration`, call `AddOptions<MqttOptions>().Bind(config.GetSection(MqttOptions.SectionName)).ValidateOnStart()`
+- [x] 2.3 Update `MqttConnectionActor` to inject `IOptions<MqttOptions>` instead of extracting from `IOptions<NjordOptions>`
+- [x] 2.4 Update `MqttDiscoveryActor`, `MqttStateActor` to inject `IOptions<MqttOptions>` where they use MQTT config
+- [x] 2.5 Update all MQTT test specs to construct with the new options type
 
 ## 3. Extract GrpcOptions
 
-- [ ] 3.1 Add `public const string SectionName = "Njord:Grpc"` to `src/Njord.Core/Configuration/GrpcOptions.cs`; remove the `Grpc` property from `NjordOptions`
-- [ ] 3.2 Update `src/Njord.Grpc/GrpcServiceCollectionExtensions.cs` `AddNjordGrpc()` to accept `IConfiguration` and register `GrpcOptions`
-- [ ] 3.3 Update gRPC services that read `GrpcOptions` to inject `IOptions<GrpcOptions>`
-- [ ] 3.4 Update gRPC test specs
+- [x] 3.1 Add `public const string SectionName = "Njord:Grpc"` to `src/Njord.Core/Configuration/GrpcOptions.cs`; remove the `Grpc` property from `NjordOptions`
+- [x] 3.2 Update `src/Njord.Grpc/GrpcServiceCollectionExtensions.cs` (GrpcOptions.Port is unused — no registration needed) `AddNjordGrpc()` to accept `IConfiguration` and register `GrpcOptions`
+- [x] 3.3 No gRPC services read `GrpcOptions` — no changes needed to inject `IOptions<GrpcOptions>`
+- [x] 3.4 No gRPC tests reference GrpcOptions — no changes needed
 
 ## 4. Extract SensorOptions
 
-- [ ] 4.1 Add `public const string SectionName = "Njord:Sensors"` to `src/Njord.Core/Configuration/SensorOptions.cs`; remove from `NjordOptions`
-- [ ] 4.2 Move `SensorOptionsValidator` to validate `IValidateOptions<SensorOptions>` instead of `IValidateOptions<NjordOptions>`
-- [ ] 4.3 Register `SensorOptions` in `AddNjordPipeline()` or a new `AddNjordSensors()` extension
-- [ ] 4.4 Update `SensorHubActor` and `EnrichmentActor` to inject `IOptions<SensorOptions>`
-- [ ] 4.5 Update sensor and enrichment test specs
+- [x] 4.1 Add `public const string SectionName = "Njord:Sensors"` to `src/Njord.Core/Configuration/SensorOptions.cs`; remove from `NjordOptions`
+- [x] 4.2 Move `SensorOptionsValidator` to validate `IValidateOptions<SensorOptions>` instead of `IValidateOptions<NjordOptions>`
+- [x] 4.3 Register `SensorOptions` in `AddNjordPipeline()` or a new `AddNjordSensors()` extension
+- [x] 4.4 Update `SensorHubActor` and `EnrichmentActor` to inject `IOptions<SensorOptions>`
+- [x] 4.5 Update sensor test specs
 
 ## 5. Extract EnrichmentOptions
 
-- [ ] 5.1 Add `public const string SectionName = "Njord:Enrichment"` to `EnrichmentOptions`; remove from `NjordOptions`
-- [ ] 5.2 Move enrichment sub-validators (`ConsensusOptionsValidator`, `HistoryOptionsValidator`, `IndexOptionsValidator`) to validate their respective sub-options under `EnrichmentOptions`
-- [ ] 5.3 Register `EnrichmentOptions` in `AddNjordEnrichment()`
-- [ ] 5.4 Update enrichment actors/features to inject `IOptions<EnrichmentOptions>`
-- [ ] 5.5 Update enrichment test specs
+- [x] 5.1 Add `public const string SectionName = "Njord:Enrichment"` to `EnrichmentOptions`; remove from `NjordOptions`
+- [x] 5.2 Enrichment actors now inject IOptions&lt;EnrichmentOptions&gt; directly (`ConsensusOptionsValidator`, `HistoryOptionsValidator`, `IndexOptionsValidator`) to validate their respective sub-options under `EnrichmentOptions`
+- [x] 5.3 Register `EnrichmentOptions` in `AddNjordEnrichment()`
+- [x] 5.4 Update enrichment actors/features to inject `IOptions<EnrichmentOptions>`
+- [x] 5.5 Update enrichment test specs
 
 ## 6. Extract PersistenceOptions
 
-- [ ] 6.1 Add `public const string SectionName = "Njord:Persistence"` to `PersistenceOptions`; keep `PersistencePath` on `NjordOptions` for the DB file path
-- [ ] 6.2 Register `PersistenceOptions` in `NjordActorSystemSetup.ConfigureSystem()` or `NjordServiceSetup`
-- [ ] 6.3 Update persistence-dependent code to inject `IOptions<PersistenceOptions>`
+- [x] 6.1 Add `public const string SectionName = "Njord:Persistence"` to `PersistenceOptions`; keep `PersistencePath` on `NjordOptions` for the DB file path
+- [x] 6.2 PersistenceOptions consumed only by host's `NjordActorSystemSetup.ConfigureSystem()` — registration stays in host, no feature library owns it
+- [x] 6.3 `ConfigureSystem()` already receives `NjordOptions` directly (not via DI) — accesses `.Persistence` inline, no injection change needed
 
 ## 7. Slim NjordServiceSetup and NjordOptionsValidator
 
-- [ ] 7.1 Remove sub-option registration from `NjordServiceSetup.SetupServices()` — feature libs now handle their own
-- [ ] 7.2 Remove sub-option validators from `NjordServiceSetup` registration — feature libs register their own
-- [ ] 7.3 Slim `NjordOptionsValidator` to only validate cross-cutting concerns (locations, models, persistence path)
-- [ ] 7.4 Update `NjordServiceSetupSpec` and other host tests for the new structure
+- [x] 7.1 Remove sub-option registration from `NjordServiceSetup.SetupServices()` — feature libs now handle their own
+- [x] 7.2 Remove sub-option validators from `NjordServiceSetup` registration — feature libs register their own
+- [x] 7.3 `NjordOptionsValidator` already only validates cross-cutting concerns to only validate cross-cutting concerns (locations, models, persistence path)
+- [x] 7.4 All host tests pass with new structure and other host tests for the new structure
 
 ## Validation
 
