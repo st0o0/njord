@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -10,8 +11,13 @@ namespace Njord.Mqtt;
 
 public static class MqttServiceCollectionExtensions
 {
-    public static IServiceCollection AddNjordMqtt(this IServiceCollection services, bool mqttEnabled)
+    public static IServiceCollection AddNjordMqtt(this IServiceCollection services, IConfiguration configuration, bool mqttEnabled)
     {
+        services
+            .AddOptions<MqttOptions>()
+            .Bind(configuration.GetSection(MqttOptions.SectionName))
+            .ValidateOnStart();
+
         services.AddSingleton<IEnrichmentPresenter, ConsensusPresenter>();
         services.AddSingleton<IEnrichmentPresenter, AlertPresenter>();
         services.AddSingleton<IEnrichmentPresenter, DerivedPresenter>();
@@ -24,7 +30,7 @@ public static class MqttServiceCollectionExtensions
             services.TryAddSingleton(MqttEgressTuning.Default);
             services.TryAddSingleton(static provider =>
                 new MqttNetPublisher(
-                    provider.GetRequiredService<IOptions<NjordOptions>>().Value.Mqtt,
+                    provider.GetRequiredService<IOptions<MqttOptions>>().Value,
                     provider.GetRequiredService<ILogger<MqttNetPublisher>>()));
             services.TryAddSingleton<IMqttConnection>(static provider => provider.GetRequiredService<MqttNetPublisher>());
             services.TryAddSingleton<IMqttTransport>(static provider => provider.GetRequiredService<MqttNetPublisher>());

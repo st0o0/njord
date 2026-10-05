@@ -2,14 +2,14 @@ using Microsoft.Extensions.Options;
 
 namespace Njord.Configuration;
 
-public sealed class SensorOptionsValidator : IValidateOptions<NjordOptions>
+public sealed class SensorOptionsValidator : IValidateOptions<SensorOptions>
 {
-    public ValidateOptionsResult Validate(string? name, NjordOptions options)
+    public ValidateOptionsResult Validate(string? name, SensorOptions options)
     {
-        if (options.Sensors.StalenessSeconds <= 0)
+        if (options.StalenessSeconds <= 0)
         {
             return ValidateOptionsResult.Fail(
-                $"Sensors.StalenessSeconds must be positive, got {options.Sensors.StalenessSeconds}");
+                $"Sensors.StalenessSeconds must be positive, got {options.StalenessSeconds}");
         }
 
         return ValidateOptionsResult.Success;

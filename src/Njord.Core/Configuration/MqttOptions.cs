@@ -2,6 +2,8 @@ namespace Njord.Configuration;
 
 public sealed class MqttOptions
 {
+    public const string SectionName = "Njord:Mqtt";
+
     public bool Enabled { get; set; }
 
     public string Host { get; set; } = string.Empty;

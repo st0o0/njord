@@ -2,11 +2,11 @@ using Microsoft.Extensions.Options;
 
 namespace Njord.Configuration;
 
-public sealed class HistoryOptionsValidator : IValidateOptions<NjordOptions>
+public sealed class HistoryOptionsValidator : IValidateOptions<EnrichmentOptions>
 {
-    public ValidateOptionsResult Validate(string? name, NjordOptions options)
+    public ValidateOptionsResult Validate(string? name, EnrichmentOptions options)
     {
-        var h = options.Enrichment.History;
+        var h = options.History;
         var errors = new List<string>();
 
         if (h.SnapshotInterval <= 0)

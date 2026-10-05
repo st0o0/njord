@@ -4,6 +4,8 @@ namespace Njord.Configuration;
 
 public sealed class EnrichmentOptions
 {
+    public const string SectionName = "Njord:Enrichment";
+
     public ConsensusOptions Consensus { get; set; } = new();
     public AlertOptions Alerts { get; set; } = new();
     public DerivedOptions Derived { get; set; } = new();

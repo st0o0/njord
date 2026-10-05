@@ -4,7 +4,7 @@ using Njord.Analysis;
 
 namespace Njord.Configuration;
 
-public sealed class IndexOptionsValidator : IValidateOptions<NjordOptions>
+public sealed class IndexOptionsValidator : IValidateOptions<EnrichmentOptions>
 {
     private static readonly HashSet<string> ValidScoreNames =
         new(PreferenceResolver.ScoreNames, StringComparer.OrdinalIgnoreCase);
@@ -16,9 +16,9 @@ public sealed class IndexOptionsValidator : IValidateOptions<NjordOptions>
         _logger = logger;
     }
 
-    public ValidateOptionsResult Validate(string? name, NjordOptions options)
+    public ValidateOptionsResult Validate(string? name, EnrichmentOptions options)
     {
-        var idx = options.Enrichment.Indices;
+        var idx = options.Indices;
         var errors = new List<string>();
 
         ValidatePreferences(idx.Preferences, "Indices.Preferences", errors);
@@ -33,19 +33,8 @@ public sealed class IndexOptionsValidator : IValidateOptions<NjordOptions>
             ValidatePreferences(prefs, $"Indices.ScoreOverrides[{scoreName}]", errors);
         }
 
-        var knownLocations = new HashSet<string>(
-            options.Locations.Select(l => l.Name),
-            StringComparer.OrdinalIgnoreCase);
-
         foreach (var loc in idx.LocationOverrides)
         {
-            if (!knownLocations.Contains(loc.Location))
-            {
-                _logger.LogWarning(
-                    "Indices.LocationOverrides contains unknown location '{Location}', ignoring",
-                    loc.Location);
-            }
-
             ValidatePreferences(loc.Preferences, $"Indices.LocationOverrides[{loc.Location}]", errors);
             foreach (var (scoreName, prefs) in loc.ScoreOverrides)
             {

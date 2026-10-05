@@ -26,10 +26,11 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
             .Bind(configuration.GetSection(NjordOptions.SectionName))
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<NjordOptions>, NjordOptionsValidator>();
-        services.AddSingleton<IValidateOptions<NjordOptions>, ConsensusOptionsValidator>();
-        services.AddSingleton<IValidateOptions<NjordOptions>, HistoryOptionsValidator>();
-        services.AddSingleton<IValidateOptions<NjordOptions>, IndexOptionsValidator>();
-        services.AddSingleton<IValidateOptions<NjordOptions>, SensorOptionsValidator>();
+        services
+            .AddOptions<SensorOptions>()
+            .Bind(configuration.GetSection(SensorOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<SensorOptions>, SensorOptionsValidator>();
         services.AddSingleton(sp =>
         {
             var options = sp.GetRequiredService<IOptions<NjordOptions>>().Value;
@@ -61,8 +62,8 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         var mqttEnabled = configuration
             .GetSection($"{NjordOptions.SectionName}:Mqtt")
             .GetValue("Enabled", false);
-        services.AddNjordEnrichment();
-        services.AddNjordMqtt(mqttEnabled);
+        services.AddNjordEnrichment(configuration);
+        services.AddNjordMqtt(configuration, mqttEnabled);
         if (mqttEnabled)
         {
             healthChecks.AddCheck<MqttConnectionHealthCheck>("mqtt-connection");

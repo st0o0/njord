@@ -86,10 +86,7 @@ public sealed class NjordFixture : IAsyncLifetime
             .Bind(builder.Configuration.GetSection(NjordOptions.SectionName))
             .ValidateOnStart();
         builder.Services.AddSingleton<IValidateOptions<NjordOptions>, NjordOptionsValidator>();
-        builder.Services.AddSingleton<IValidateOptions<NjordOptions>, ConsensusOptionsValidator>();
-        builder.Services.AddSingleton<IValidateOptions<NjordOptions>, HistoryOptionsValidator>();
-        builder.Services.AddSingleton<IValidateOptions<NjordOptions>, IndexOptionsValidator>();
-        builder.Services.AddSingleton<IValidateOptions<NjordOptions>, SensorOptionsValidator>();
+        builder.Services.AddSingleton<IValidateOptions<SensorOptions>, SensorOptionsValidator>();
         builder.Services.AddSingleton(sp =>
         {
             var options = sp.GetRequiredService<IOptions<NjordOptions>>().Value;
@@ -111,8 +108,8 @@ public sealed class NjordFixture : IAsyncLifetime
         });
         builder.Services.AddHealthChecks()
             .AddCheck<PipelineHealthCheck>("pipeline");
-        builder.Services.AddNjordEnrichment();
-        builder.Services.AddNjordMqtt(false);
+        builder.Services.AddNjordEnrichment(builder.Configuration);
+        builder.Services.AddNjordMqtt(builder.Configuration, false);
         builder.Services.AddNjordGrpc();
         builder.Services.AddNjordIngest();
         builder.Services.AddSingleton<ConfigPersistence>();

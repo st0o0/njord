@@ -2,14 +2,14 @@ using Microsoft.Extensions.Options;
 
 namespace Njord.Configuration;
 
-public sealed class ConsensusOptionsValidator : IValidateOptions<NjordOptions>
+public sealed class ConsensusOptionsValidator : IValidateOptions<EnrichmentOptions>
 {
     private static readonly HashSet<string> ValidMethods = new(StringComparer.OrdinalIgnoreCase)
         { "Mean", "Median", "TrimmedMean" };
 
-    public ValidateOptionsResult Validate(string? name, NjordOptions options)
+    public ValidateOptionsResult Validate(string? name, EnrichmentOptions options)
     {
-        var c = options.Enrichment.Consensus;
+        var c = options.Consensus;
 
         if (!ValidMethods.Contains(c.Method))
         {
