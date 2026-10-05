@@ -37,7 +37,9 @@ from .models import (
 
 
 def _get_sw_version(hass: HomeAssistant, entry: ConfigEntry) -> str | None:
-    status_coordinator: NjordStatusCoordinator | None = hass.data[DOMAIN][entry.entry_id].get("status_coordinator")
+    status_coordinator: NjordStatusCoordinator | None = hass.data[DOMAIN][
+        entry.entry_id
+    ].get("status_coordinator")
     if status_coordinator is not None and status_coordinator.data is not None:
         return status_coordinator.data.version or None
     return None
@@ -54,7 +56,9 @@ async def async_setup_entry(
 
     entities: list[WeatherEntity] = []
     for location, model in coordinator.data.forecasts:
-        entities.append(NjordWeatherEntity(coordinator, entry, location, model, sw_version))
+        entities.append(
+            NjordWeatherEntity(coordinator, entry, location, model, sw_version)
+        )
 
     disabled_groups: list[str] = entry.options.get("disabled_enrichment_groups", [])
     active = coordinator.data.active_enrichments
@@ -63,19 +67,29 @@ async def async_setup_entry(
         for location in sorted(locations):
             enrichment = coordinator.data.enrichments.get(location)
             if enrichment and enrichment.consensus:
-                entities.append(NjordConsensusWeatherEntity(coordinator, entry, location, sw_version))
+                entities.append(
+                    NjordConsensusWeatherEntity(
+                        coordinator, entry, location, sw_version
+                    )
+                )
 
     async_add_entities(entities)
 
     def weather_factory(location: NjordLocation) -> list[WeatherEntity]:
         new_entities: list[WeatherEntity] = []
         for model in location.models:
-            new_entities.append(NjordWeatherEntity(coordinator, entry, location.name, model, sw_version))
+            new_entities.append(
+                NjordWeatherEntity(coordinator, entry, location.name, model, sw_version)
+            )
         act = coordinator.data.active_enrichments
         if (act is None or "consensus" in act) and "consensus" not in disabled_groups:
             enrichment = coordinator.data.enrichments.get(location.name)
             if enrichment and enrichment.consensus:
-                new_entities.append(NjordConsensusWeatherEntity(coordinator, entry, location.name, sw_version))
+                new_entities.append(
+                    NjordConsensusWeatherEntity(
+                        coordinator, entry, location.name, sw_version
+                    )
+                )
         return new_entities
 
     coordinator.register_entity_factory("weather", async_add_entities, weather_factory)
@@ -119,7 +133,11 @@ class NjordWeatherEntity(SingleCoordinatorWeatherEntity[NjordDataCoordinator]):
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        self.async_on_remove(async_track_utc_time_change(self.hass, self._async_hourly_refresh, minute=0, second=0))
+        self.async_on_remove(
+            async_track_utc_time_change(
+                self.hass, self._async_hourly_refresh, minute=0, second=0
+            )
+        )
 
     @callback
     def _async_hourly_refresh(self, now: datetime) -> None:
@@ -127,7 +145,10 @@ class NjordWeatherEntity(SingleCoordinatorWeatherEntity[NjordDataCoordinator]):
 
     @property
     def available(self) -> bool:
-        return self.coordinator.data is not None and (self._location, self._model) in self.coordinator.data.forecasts
+        return (
+            self.coordinator.data is not None
+            and (self._location, self._model) in self.coordinator.data.forecasts
+        )
 
     @property
     def _forecast_data(self) -> ForecastData | None:
@@ -252,7 +273,9 @@ class NjordWeatherEntity(SingleCoordinatorWeatherEntity[NjordDataCoordinator]):
                 continue
             condition = None
             if h.weather_code is not None:
-                condition = map_condition(h.weather_code, h.is_day if h.is_day is not None else True)
+                condition = map_condition(
+                    h.weather_code, h.is_day if h.is_day is not None else True
+                )
 
             entry = Forecast(
                 datetime=h.valid_at.isoformat(),
@@ -277,7 +300,9 @@ class NjordWeatherEntity(SingleCoordinatorWeatherEntity[NjordDataCoordinator]):
         midday = None
         for h in data.hourly:
             if h.valid_at.strftime("%Y-%m-%d") == date_str:
-                if midday is None or abs(h.valid_at.hour - 12) < abs(midday.valid_at.hour - 12):
+                if midday is None or abs(h.valid_at.hour - 12) < abs(
+                    midday.valid_at.hour - 12
+                ):
                     midday = h
         if midday is None or midday.weather_code is None:
             return None
@@ -358,12 +383,19 @@ class NjordConsensusWeatherEntity(SingleCoordinatorWeatherEntity[NjordDataCoordi
 
         features = WeatherEntityFeature(0)
         if self._sorted_horizons() and len(self._sorted_horizons()) >= 2:
-            features |= WeatherEntityFeature.FORECAST_HOURLY | WeatherEntityFeature.FORECAST_DAILY
+            features |= (
+                WeatherEntityFeature.FORECAST_HOURLY
+                | WeatherEntityFeature.FORECAST_DAILY
+            )
         self._attr_supported_features = features
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        self.async_on_remove(async_track_utc_time_change(self.hass, self._async_hourly_refresh, minute=0, second=0))
+        self.async_on_remove(
+            async_track_utc_time_change(
+                self.hass, self._async_hourly_refresh, minute=0, second=0
+            )
+        )
 
     @callback
     def _async_hourly_refresh(self, now: datetime) -> None:
@@ -409,7 +441,9 @@ class NjordConsensusWeatherEntity(SingleCoordinatorWeatherEntity[NjordDataCoordi
                     break
         return result
 
-    def _get_horizon_value(self, parameter: str, horizon: str | None = None) -> float | None:
+    def _get_horizon_value(
+        self, parameter: str, horizon: str | None = None
+    ) -> float | None:
         if horizon is None:
             horizon = f"h{self._current_horizon_offset()}"
         consensus = self._consensus()
@@ -422,7 +456,9 @@ class NjordConsensusWeatherEntity(SingleCoordinatorWeatherEntity[NjordDataCoordi
                         return h.median
         return None
 
-    def _get_horizon_data(self, parameter: str, horizon: str | None = None) -> HorizonConsensusData | None:
+    def _get_horizon_data(
+        self, parameter: str, horizon: str | None = None
+    ) -> HorizonConsensusData | None:
         if horizon is None:
             horizon = f"h{self._current_horizon_offset()}"
         consensus = self._consensus()

@@ -10,12 +10,22 @@ from datetime import UTC, datetime, timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue, async_delete_issue
+from homeassistant.helpers.issue_registry import (
+    IssueSeverity,
+    async_create_issue,
+    async_delete_issue,
+)
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN
 from .grpc_client import NjordClient
-from .models import EnrichmentData, ForecastData, ModelInfoData, NjordLocation, ServerStatusData
+from .models import (
+    EnrichmentData,
+    ForecastData,
+    ModelInfoData,
+    NjordLocation,
+    ServerStatusData,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,7 +53,9 @@ _ENRICHMENT_DEFAULTS: dict[str, object] = {
 }
 
 
-def merge_enrichment(existing: EnrichmentData | None, event: EnrichmentData) -> EnrichmentData:
+def merge_enrichment(
+    existing: EnrichmentData | None, event: EnrichmentData
+) -> EnrichmentData:
     """Merge a partial enrichment event into existing data.
 
     Only fields that differ from defaults in the event are applied.
@@ -88,7 +100,9 @@ class NjordDataCoordinator(DataUpdateCoordinator[NjordCoordinatorData]):
         self.client = client
         self._known_locations: set[str] = set()
         self._stream_tasks: list[asyncio.Task] = []
-        self._entity_factories: dict[str, tuple[AddEntitiesCallback, EntityFactory]] = {}
+        self._entity_factories: dict[
+            str, tuple[AddEntitiesCallback, EntityFactory]
+        ] = {}
         self.stream_states: dict[str, bool] = {
             "forecast": False,
             "enrichment": False,
@@ -122,7 +136,9 @@ class NjordDataCoordinator(DataUpdateCoordinator[NjordCoordinatorData]):
                         err,
                     )
                     result.forecasts[(location.name, model)] = ForecastData(
-                        location=location.name, model=model, updated_at=datetime.min.replace(tzinfo=UTC)
+                        location=location.name,
+                        model=model,
+                        updated_at=datetime.min.replace(tzinfo=UTC),
                     )
 
             try:
@@ -147,9 +163,15 @@ class NjordDataCoordinator(DataUpdateCoordinator[NjordCoordinatorData]):
 
     def start_streams(self) -> None:
         self._stream_tasks = [
-            self.hass.async_create_background_task(self._run_forecast_stream(), "njord_forecast_stream"),
-            self.hass.async_create_background_task(self._run_enrichment_stream(), "njord_enrichment_stream"),
-            self.hass.async_create_background_task(self._run_config_stream(), "njord_config_stream"),
+            self.hass.async_create_background_task(
+                self._run_forecast_stream(), "njord_forecast_stream"
+            ),
+            self.hass.async_create_background_task(
+                self._run_enrichment_stream(), "njord_enrichment_stream"
+            ),
+            self.hass.async_create_background_task(
+                self._run_config_stream(), "njord_config_stream"
+            ),
         ]
 
     async def stop_streams(self) -> None:
@@ -207,7 +229,9 @@ class NjordDataCoordinator(DataUpdateCoordinator[NjordCoordinatorData]):
                 on_disconnect=lambda: self._on_stream_disconnect("enrichment"),
             ):
                 existing = self.data.enrichments.get(event.location)
-                self.data.enrichments[event.location] = merge_enrichment(existing, event)
+                self.data.enrichments[event.location] = merge_enrichment(
+                    existing, event
+                )
                 self.async_set_updated_data(self.data)
         except asyncio.CancelledError:
             return
@@ -221,7 +245,11 @@ class NjordDataCoordinator(DataUpdateCoordinator[NjordCoordinatorData]):
                 on_reconnect=lambda: self._on_stream_connect("config"),
                 on_disconnect=lambda: self._on_stream_disconnect("config"),
             ):
-                new_locations = [loc for loc in config.locations if loc.name not in self._known_locations]
+                new_locations = [
+                    loc
+                    for loc in config.locations
+                    if loc.name not in self._known_locations
+                ]
                 for location in new_locations:
                     await self._create_entities_for_location(location)
         except asyncio.CancelledError:
@@ -274,7 +302,9 @@ class NjordDataCoordinator(DataUpdateCoordinator[NjordCoordinatorData]):
 class NjordStatusCoordinator(DataUpdateCoordinator[ServerStatusData]):
     """Polling coordinator for njord server status (budget, uptime)."""
 
-    def __init__(self, hass: HomeAssistant, client: NjordClient, poll_interval: int = 30) -> None:
+    def __init__(
+        self, hass: HomeAssistant, client: NjordClient, poll_interval: int = 30
+    ) -> None:
         super().__init__(
             hass,
             _LOGGER,

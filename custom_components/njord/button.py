@@ -22,7 +22,9 @@ async def async_setup_entry(
 ) -> None:
     """Set up njord button entities."""
     client: NjordClient = hass.data[DOMAIN][entry.entry_id]["client"]
-    status_coordinator: NjordStatusCoordinator | None = hass.data[DOMAIN][entry.entry_id].get("status_coordinator")
+    status_coordinator: NjordStatusCoordinator | None = hass.data[DOMAIN][
+        entry.entry_id
+    ].get("status_coordinator")
     sw_version: str | None = None
     if status_coordinator is not None and status_coordinator.data is not None:
         sw_version = status_coordinator.data.version or None
@@ -35,7 +37,9 @@ class NjordTriggerPollButton(ButtonEntity):
     _attr_has_entity_name = True
     _attr_name = "Trigger Poll"
 
-    def __init__(self, entry: ConfigEntry, client: NjordClient, sw_version: str | None = None) -> None:
+    def __init__(
+        self, entry: ConfigEntry, client: NjordClient, sw_version: str | None = None
+    ) -> None:
         self._client = client
         self._attr_unique_id = f"{entry.entry_id}_trigger_poll"
         self._attr_device_info = server_device_info(entry, sw_version)

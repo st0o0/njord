@@ -73,7 +73,9 @@ class NjordConfigFlow(ConfigFlow, domain=DOMAIN):
             await client.close()
         return errors
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Handle the initial step."""
         errors: dict[str, str] = {}
 
@@ -103,7 +105,9 @@ class NjordConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Handle reconfiguration of the integration."""
         errors: dict[str, str] = {}
         entry = self._get_reconfigure_entry()
@@ -152,12 +156,16 @@ class NjordOptionsFlow(OptionsFlow):
             return sorted(coordinator._known_locations)
         return []
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         if user_input is not None:
             self._init_data = user_input
             return await self.async_step_sensors()
 
-        current_disabled = set(self._config_entry.options.get("disabled_enrichment_groups", []))
+        current_disabled = set(
+            self._config_entry.options.get("disabled_enrichment_groups", [])
+        )
         current_enabled = [g for g in ENRICHMENT_GROUPS if g not in current_disabled]
 
         return self.async_show_form(
@@ -166,7 +174,9 @@ class NjordOptionsFlow(OptionsFlow):
                 {
                     vol.Required(
                         "status_poll_interval",
-                        default=self._config_entry.options.get("status_poll_interval", DEFAULT_STATUS_POLL_INTERVAL),
+                        default=self._config_entry.options.get(
+                            "status_poll_interval", DEFAULT_STATUS_POLL_INTERVAL
+                        ),
                     ): vol.All(int, vol.Range(min=10, max=300)),
                     vol.Required(
                         "enabled_enrichment_groups",
@@ -182,9 +192,13 @@ class NjordOptionsFlow(OptionsFlow):
             ),
         )
 
-    async def async_step_sensors(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_sensors(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         if user_input is not None:
-            old_disabled = set(self._config_entry.options.get("disabled_enrichment_groups", []))
+            old_disabled = set(
+                self._config_entry.options.get("disabled_enrichment_groups", [])
+            )
             new_disabled = set(ENRICHMENT_GROUPS) - set(
                 self._init_data.get("enabled_enrichment_groups", ENRICHMENT_GROUPS)
             )
@@ -205,9 +219,13 @@ class NjordOptionsFlow(OptionsFlow):
             }
             result = self.async_create_entry(title="", data=options)
 
-            needs_reload = new_disabled != old_disabled or sensor_push != old_sensor_push
+            needs_reload = (
+                new_disabled != old_disabled or sensor_push != old_sensor_push
+            )
             if needs_reload:
-                self.hass.async_create_task(self.hass.config_entries.async_reload(self._config_entry.entry_id))
+                self.hass.async_create_task(
+                    self.hass.config_entries.async_reload(self._config_entry.entry_id)
+                )
 
             return result
 

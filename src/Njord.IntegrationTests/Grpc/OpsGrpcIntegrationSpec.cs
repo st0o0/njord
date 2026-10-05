@@ -1,8 +1,8 @@
 using Akka.Actor;
 using Akka.TestKit;
 using Njord.Grpc.V2;
-using Njord.Messages.Pipeline;
 using Njord.IntegrationTests.Infrastructure;
+using Njord.Messages.Pipeline;
 
 namespace Njord.IntegrationTests.Grpc;
 
@@ -31,7 +31,7 @@ public sealed class OpsGrpcIntegrationSpec
             async () => await client.TriggerPollAsync(request),
             TestContext.Current.CancellationToken);
 
-        var msg = _fixture.SchedulerProbe.ExpectMsg<TriggerImmediatePoll>(TimeSpan.FromSeconds(5));
+        var msg = _fixture.SchedulerProbe.ExpectMsg<TriggerImmediatePoll>(TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("lucerne", msg.Location);
         Assert.Equal("icon_d2", msg.Model);
         _fixture.SchedulerProbe.Sender.Tell(

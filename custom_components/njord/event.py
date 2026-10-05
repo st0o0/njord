@@ -20,7 +20,9 @@ EVENT_ALERT_CLEARED = "alert_cleared"
 
 
 def _get_sw_version(hass: HomeAssistant, entry: ConfigEntry) -> str | None:
-    status_coordinator: NjordStatusCoordinator | None = hass.data[DOMAIN][entry.entry_id].get("status_coordinator")
+    status_coordinator: NjordStatusCoordinator | None = hass.data[DOMAIN][
+        entry.entry_id
+    ].get("status_coordinator")
     if status_coordinator is not None and status_coordinator.data is not None:
         return status_coordinator.data.version or None
     return None
@@ -42,7 +44,9 @@ async def async_setup_entry(
     if (active is None or "alerts" in active) and "alerts" not in disabled_groups:
         locations = {loc for loc, _ in coordinator.data.forecasts}
         for location in sorted(locations):
-            entities.append(NjordWeatherAlertEvent(coordinator, entry, location, sw_version))
+            entities.append(
+                NjordWeatherAlertEvent(coordinator, entry, location, sw_version)
+            )
 
     async_add_entities(entities)
 
@@ -89,7 +93,9 @@ class NjordWeatherAlertEvent(CoordinatorEntity[NjordDataCoordinator], EventEntit
     def _current_alert_map(self) -> dict[str, str]:
         if self.coordinator.data is None:
             return {}
-        enrichment: EnrichmentData | None = self.coordinator.data.enrichments.get(self._location)
+        enrichment: EnrichmentData | None = self.coordinator.data.enrichments.get(
+            self._location
+        )
         if enrichment is None:
             return {}
         return {a.type: a.severity for a in enrichment.alerts if a.severity != "none"}
@@ -147,7 +153,11 @@ class NjordWeatherAlertEvent(CoordinatorEntity[NjordDataCoordinator], EventEntit
                 severity_order = {"yellow": 1, "orange": 2, "red": 3}
                 prev_rank = severity_order.get(prev_severity, 0)
                 curr_rank = severity_order.get(curr_severity, 0)
-                event_type = EVENT_ALERT_ESCALATED if curr_rank > prev_rank else EVENT_ALERT_DEESCALATED
+                event_type = (
+                    EVENT_ALERT_ESCALATED
+                    if curr_rank > prev_rank
+                    else EVENT_ALERT_DEESCALATED
+                )
                 data = self._alert_data(alert_type)
                 data["previous_severity"] = prev_severity
                 self._trigger_event(event_type, data)

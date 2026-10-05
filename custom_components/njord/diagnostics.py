@@ -61,7 +61,9 @@ async def async_get_config_entry_diagnostics(
         data["coordinator"] = None
         data["stream_states"] = None
 
-    status_coordinator: NjordStatusCoordinator | None = entry_data.get("status_coordinator")
+    status_coordinator: NjordStatusCoordinator | None = entry_data.get(
+        "status_coordinator"
+    )
     if status_coordinator is not None and status_coordinator.data is not None:
         status = status_coordinator.data
         data["server_status"] = {

@@ -19,7 +19,9 @@ from .models import NjordLocation
 
 
 def _get_sw_version(hass: HomeAssistant, entry: ConfigEntry) -> str | None:
-    status_coordinator: NjordStatusCoordinator | None = hass.data[DOMAIN][entry.entry_id].get("status_coordinator")
+    status_coordinator: NjordStatusCoordinator | None = hass.data[DOMAIN][
+        entry.entry_id
+    ].get("status_coordinator")
     if status_coordinator is not None and status_coordinator.data is not None:
         return status_coordinator.data.version or None
     return None
@@ -43,7 +45,9 @@ async def async_setup_entry(
         for location in sorted(locations):
             enrichment = coordinator.data.enrichments.get(location)
             if enrichment and enrichment.derived is not None:
-                entities.append(NjordInversionEntity(coordinator, entry, location, sw_version))
+                entities.append(
+                    NjordInversionEntity(coordinator, entry, location, sw_version)
+                )
 
     entities.append(NjordStreamSensor(coordinator, entry, "forecast", sw_version))
     entities.append(NjordStreamSensor(coordinator, entry, "enrichment", sw_version))
@@ -57,10 +61,14 @@ async def async_setup_entry(
         if (act is None or "derived" in act) and "derived" not in disabled_groups:
             enrichment = coordinator.data.enrichments.get(location.name)
             if enrichment and enrichment.derived is not None:
-                new_entities.append(NjordInversionEntity(coordinator, entry, location.name, sw_version))
+                new_entities.append(
+                    NjordInversionEntity(coordinator, entry, location.name, sw_version)
+                )
         return new_entities
 
-    coordinator.register_entity_factory("binary_sensor", async_add_entities, binary_sensor_factory)
+    coordinator.register_entity_factory(
+        "binary_sensor", async_add_entities, binary_sensor_factory
+    )
 
 
 class NjordInversionEntity(CoordinatorEntity[NjordDataCoordinator], BinarySensorEntity):

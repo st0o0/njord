@@ -1,8 +1,8 @@
 using Akka.Actor;
 using Akka.TestKit;
 using Njord.Grpc.V2;
-using Njord.Messages.Sensors;
 using Njord.IntegrationTests.Infrastructure;
+using Njord.Messages.Sensors;
 
 namespace Njord.IntegrationTests.Grpc;
 
@@ -30,7 +30,7 @@ public sealed class SensorGrpcIntegrationSpec
 
         var callTask = Task.Run(async () => await client.PushAsync(reading), TestContext.Current.CancellationToken);
 
-        var msg = _fixture.SensorHubProbe.ExpectMsg<UpdateReading>(TimeSpan.FromSeconds(5));
+        var msg = _fixture.SensorHubProbe.ExpectMsg<UpdateReading>(TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("lucerne", msg.Reading.Location);
         _fixture.SensorHubProbe.Sender.Tell(new PushResult(true, ""), ActorRefs.NoSender);
 

@@ -8,7 +8,9 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from .const import DOMAIN
 
 
-def device_info(entry: ConfigEntry, location: str, sw_version: str | None = None) -> DeviceInfo:
+def device_info(
+    entry: ConfigEntry, location: str, sw_version: str | None = None
+) -> DeviceInfo:
     return DeviceInfo(
         identifiers={(DOMAIN, f"{entry.entry_id}_{location}")},
         name=location.title(),

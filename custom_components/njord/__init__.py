@@ -19,7 +19,13 @@ from .grpc_client import SENSOR_KIND_MAP, NjordClient
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.WEATHER, Platform.BINARY_SENSOR, Platform.SENSOR, Platform.BUTTON, Platform.EVENT]
+PLATFORMS = [
+    Platform.WEATHER,
+    Platform.BINARY_SENSOR,
+    Platform.SENSOR,
+    Platform.BUTTON,
+    Platform.EVENT,
+]
 
 SERVICE_TRIGGER_POLL = "trigger_poll"
 SERVICE_TRIGGER_POLL_SCHEMA = vol.Schema(
@@ -53,15 +59,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = NjordDataCoordinator(hass, client)
     await coordinator.async_config_entry_first_refresh()
 
-    poll_interval = entry.options.get("status_poll_interval", DEFAULT_STATUS_POLL_INTERVAL)
-    status_coordinator = NjordStatusCoordinator(hass, client, poll_interval=poll_interval)
+    poll_interval = entry.options.get(
+        "status_poll_interval", DEFAULT_STATUS_POLL_INTERVAL
+    )
+    status_coordinator = NjordStatusCoordinator(
+        hass, client, poll_interval=poll_interval
+    )
     try:
         await status_coordinator.async_config_entry_first_refresh()
     except Exception:
         status_coordinator = None
 
     if status_coordinator is not None:
-        coordinator.data.active_enrichments = set(status_coordinator.data.active_enrichments)
+        coordinator.data.active_enrichments = set(
+            status_coordinator.data.active_enrichments
+        )
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
@@ -75,7 +87,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator.start_streams()
 
     if status_coordinator is not None:
-        _previous_enrichments: frozenset[str] = frozenset(status_coordinator.data.active_enrichments)
+        _previous_enrichments: frozenset[str] = frozenset(
+            status_coordinator.data.active_enrichments
+        )
 
         @ha_callback
         def _check_enrichment_changes() -> None:
@@ -87,10 +101,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 _previous_enrichments = current
                 hass.async_create_task(hass.config_entries.async_reload(entry.entry_id))
 
-        entry.async_on_unload(status_coordinator.async_add_listener(_check_enrichment_changes))
+        entry.async_on_unload(
+            status_coordinator.async_add_listener(_check_enrichment_changes)
+        )
 
-    async def _async_options_updated(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
-        new_interval = config_entry.options.get("status_poll_interval", DEFAULT_STATUS_POLL_INTERVAL)
+    async def _async_options_updated(
+        hass: HomeAssistant, config_entry: ConfigEntry
+    ) -> None:
+        new_interval = config_entry.options.get(
+            "status_poll_interval", DEFAULT_STATUS_POLL_INTERVAL
+        )
         if status_coordinator is not None:
             status_coordinator.update_interval = timedelta(seconds=new_interval)
 
@@ -119,9 +139,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             except (ValueError, TypeError):
                 return
             location, kind = mapping
-            hass.async_create_task(_async_push_sensor(client, kind, location, value, entity_id))
+            hass.async_create_task(
+                _async_push_sensor(client, kind, location, value, entity_id)
+            )
 
-        unsub = async_track_state_change_event(hass, list(reverse_map.keys()), _sensor_state_changed)
+        unsub = async_track_state_change_event(
+            hass, list(reverse_map.keys()), _sensor_state_changed
+        )
         entry.async_on_unload(unsub)
 
     if not hass.services.has_service(DOMAIN, SERVICE_TRIGGER_POLL):
@@ -158,7 +182,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             try:
                 value = float(state.state)
             except (ValueError, TypeError):
-                raise ServiceValidationError(f"Entity {entity_id} state is not numeric: {state.state!r}")
+                raise ServiceValidationError(
+                    f"Entity {entity_id} state is not numeric: {state.state!r}"
+                )
 
             if not location:
                 locations = set()
@@ -169,7 +195,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 if len(locations) == 1:
                     location = next(iter(locations))
                 else:
-                    raise ServiceValidationError("Multiple locations configured — 'location' parameter is required")
+                    raise ServiceValidationError(
+                        "Multiple locations configured — 'location' parameter is required"
+                    )
 
             for entry_data in hass.data[DOMAIN].values():
                 c: NjordClient = entry_data["client"]
@@ -185,11 +213,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def _async_push_sensor(client: NjordClient, kind: str, location: str, value: float, entity_id: str) -> None:
+async def _async_push_sensor(
+    client: NjordClient, kind: str, location: str, value: float, entity_id: str
+) -> None:
     try:
         await client.push_sensor(kind, location, value, source=entity_id)
     except Exception:
-        _LOGGER.warning("Failed to push sensor reading for %s", entity_id, exc_info=True)
+        _LOGGER.warning(
+            "Failed to push sensor reading for %s", entity_id, exc_info=True
+        )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

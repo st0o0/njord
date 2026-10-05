@@ -91,7 +91,9 @@ def _to_hourly(pb: common_pb2.HourlyForecast) -> HourlyForecastData:
     return HourlyForecastData(
         valid_at=_ts_to_dt(pb.valid_at),
         temperature=pb.temperature if pb.HasField("temperature") else None,
-        apparent_temperature=pb.apparent_temperature if pb.HasField("apparent_temperature") else None,
+        apparent_temperature=pb.apparent_temperature
+        if pb.HasField("apparent_temperature")
+        else None,
         precipitation=pb.precipitation if pb.HasField("precipitation") else None,
         humidity=pb.humidity if pb.HasField("humidity") else None,
         wind_speed=pb.wind_speed if pb.HasField("wind_speed") else None,
@@ -111,7 +113,9 @@ def _to_daily(pb: common_pb2.DailyForecast) -> DailyForecastData:
         date=pb.date,
         temperature_max=pb.temperature_max if pb.HasField("temperature_max") else None,
         temperature_min=pb.temperature_min if pb.HasField("temperature_min") else None,
-        precipitation_sum=pb.precipitation_sum if pb.HasField("precipitation_sum") else None,
+        precipitation_sum=pb.precipitation_sum
+        if pb.HasField("precipitation_sum")
+        else None,
         wind_speed_max=pb.wind_speed_max if pb.HasField("wind_speed_max") else None,
         wind_gusts_max=pb.wind_gusts_max if pb.HasField("wind_gusts_max") else None,
         sunrise=pb.sunrise or None,
@@ -148,7 +152,9 @@ def _to_model_info(pb: common_pb2.ModelInfo) -> ModelInfoData:
         provider=pb.provider,
         region=pb.region,
         coverage_tier=_COVERAGE_TIER_MAP.get(pb.coverage_tier, "unspecified"),
-        max_forecast_hours=pb.max_forecast_hours if pb.HasField("max_forecast_hours") else None,
+        max_forecast_hours=pb.max_forecast_hours
+        if pb.HasField("max_forecast_hours")
+        else None,
         resolution_km=pb.resolution_km if pb.HasField("resolution_km") else None,
         description=pb.description if pb.HasField("description") else None,
     )
@@ -195,7 +201,9 @@ def _to_model_status(pb: ops_pb2.ModelStatus) -> ModelStatusData:
         location=pb.location,
         model=pb.model,
         phase=pb.phase,
-        next_poll=_ts_to_dt(pb.next_poll) if pb.next_poll.seconds or pb.next_poll.nanos else None,
+        next_poll=_ts_to_dt(pb.next_poll)
+        if pb.next_poll.seconds or pb.next_poll.nanos
+        else None,
         last_change=_ts_to_dt(pb.last_change) if pb.HasField("last_change") else None,
         miss_count=pb.miss_count,
         cycle_seconds=pb.cycle_seconds if pb.HasField("cycle_seconds") else None,
@@ -207,7 +215,9 @@ def _to_server_status(pb: ops_pb2.StatusResponse) -> ServerStatusData:
         version=pb.version,
         uptime_seconds=pb.uptime_seconds,
         budget=_to_budget_status(pb.budget) if pb.HasField("budget") else None,
-        process_start=_ts_to_dt(pb.process_start) if pb.process_start.seconds or pb.process_start.nanos else None,
+        process_start=_ts_to_dt(pb.process_start)
+        if pb.process_start.seconds or pb.process_start.nanos
+        else None,
         model_statuses=[_to_model_status(m) for m in pb.models],
         active_enrichments=list(pb.active_enrichments),
     )
@@ -218,7 +228,9 @@ def _to_target_data(pb: ops_pb2.TriggerTarget) -> TargetData:
         location=pb.location,
         model=pb.model,
         phase=pb.phase,
-        next_poll=_ts_to_dt(pb.next_poll) if pb.next_poll.seconds or pb.next_poll.nanos else None,
+        next_poll=_ts_to_dt(pb.next_poll)
+        if pb.next_poll.seconds or pb.next_poll.nanos
+        else None,
         last_change=_ts_to_dt(pb.last_change) if pb.HasField("last_change") else None,
         miss_count=pb.miss_count,
         cycle_seconds=pb.cycle_seconds if pb.HasField("cycle_seconds") else None,
@@ -313,11 +325,21 @@ def _to_parameter_trend(pb: common_pb2.ParameterTrend) -> ParameterTrendData:
 def _to_trend_data(pb: common_pb2.TrendUpdate) -> TrendData:
     return TrendData(
         parameter_trends=[_to_parameter_trend(t) for t in pb.parameter_trends],
-        weather_change_description=pb.weather_change_description if pb.HasField("weather_change_description") else None,
-        precip_starts_in_hours=pb.precip_starts_in_hours if pb.HasField("precip_starts_in_hours") else None,
-        precip_ends_in_hours=pb.precip_ends_in_hours if pb.HasField("precip_ends_in_hours") else None,
-        temp_max_in_hours=pb.temp_max_in_hours if pb.HasField("temp_max_in_hours") else None,
-        temp_min_in_hours=pb.temp_min_in_hours if pb.HasField("temp_min_in_hours") else None,
+        weather_change_description=pb.weather_change_description
+        if pb.HasField("weather_change_description")
+        else None,
+        precip_starts_in_hours=pb.precip_starts_in_hours
+        if pb.HasField("precip_starts_in_hours")
+        else None,
+        precip_ends_in_hours=pb.precip_ends_in_hours
+        if pb.HasField("precip_ends_in_hours")
+        else None,
+        temp_max_in_hours=pb.temp_max_in_hours
+        if pb.HasField("temp_max_in_hours")
+        else None,
+        temp_min_in_hours=pb.temp_min_in_hours
+        if pb.HasField("temp_min_in_hours")
+        else None,
         stability_label=pb.stability_label if pb.HasField("stability_label") else None,
         stability_ratio=pb.stability_ratio if pb.HasField("stability_ratio") else None,
         decay_rate=pb.decay_rate if pb.HasField("decay_rate") else None,
@@ -330,7 +352,9 @@ def _to_horizon_derived(pb: common_pb2.HorizonDerived) -> HorizonDerivedData:
         horizon=pb.horizon,
         beaufort=pb.beaufort if pb.HasField("beaufort") else None,
         wind_chill=pb.wind_chill if pb.HasField("wind_chill") else None,
-        dewpoint_comfort=pb.dewpoint_comfort if pb.HasField("dewpoint_comfort") else None,
+        dewpoint_comfort=pb.dewpoint_comfort
+        if pb.HasField("dewpoint_comfort")
+        else None,
         wmo_description=pb.wmo_description if pb.HasField("wmo_description") else None,
     )
 
@@ -339,9 +363,15 @@ def _to_derived_data(pb: common_pb2.DerivedUpdate) -> DerivedData:
     scalars = pb.scalars if pb.HasField("scalars") else None
     return DerivedData(
         by_horizon=[_to_horizon_derived(h) for h in pb.by_horizon],
-        diurnal_amplitude=scalars.diurnal_amplitude if scalars and scalars.HasField("diurnal_amplitude") else None,
-        sunshine_pct=scalars.sunshine_pct if scalars and scalars.HasField("sunshine_pct") else None,
-        inversion=scalars.inversion if scalars and scalars.HasField("inversion") else None,
+        diurnal_amplitude=scalars.diurnal_amplitude
+        if scalars and scalars.HasField("diurnal_amplitude")
+        else None,
+        sunshine_pct=scalars.sunshine_pct
+        if scalars and scalars.HasField("sunshine_pct")
+        else None,
+        inversion=scalars.inversion
+        if scalars and scalars.HasField("inversion")
+        else None,
     )
 
 
@@ -360,8 +390,12 @@ def _to_history_data(pb: common_pb2.HistoryUpdate) -> HistoryData:
         models=[_to_model_metrics(m) for m in pb.models],
         seasonal_best=pb.seasonal_best if pb.HasField("seasonal_best") else None,
         anomaly=pb.anomaly if pb.HasField("anomaly") else None,
-        anomaly_deviation=pb.anomaly_deviation if pb.HasField("anomaly_deviation") else None,
-        weighted_temperature=pb.weighted_temperature if pb.HasField("weighted_temperature") else None,
+        anomaly_deviation=pb.anomaly_deviation
+        if pb.HasField("anomaly_deviation")
+        else None,
+        weighted_temperature=pb.weighted_temperature
+        if pb.HasField("weighted_temperature")
+        else None,
     )
 
 
@@ -377,7 +411,9 @@ def _to_horizon_consensus(pb: common_pb2.HorizonConsensus) -> HorizonConsensusDa
     )
 
 
-def _to_parameter_consensus(pb: common_pb2.ParameterConsensus) -> ParameterConsensusData:
+def _to_parameter_consensus(
+    pb: common_pb2.ParameterConsensus,
+) -> ParameterConsensusData:
     return ParameterConsensusData(
         parameter=pb.parameter,
         unit=pb.unit,
@@ -398,7 +434,9 @@ def _to_enrichment_data(pb: weather_pb2.GetEnrichmentsResponse) -> EnrichmentDat
     now = datetime.now(UTC)
     return EnrichmentData(
         location=pb.location,
-        alerts=[_to_alert(a) for a in pb.alerts.alerts] if pb.HasField("alerts") else [],
+        alerts=[_to_alert(a) for a in pb.alerts.alerts]
+        if pb.HasField("alerts")
+        else [],
         indices=_to_index_data(pb.indices) if pb.HasField("indices") else None,
         trends=_to_trend_data(pb.trends) if pb.HasField("trends") else None,
         derived=_to_derived_data(pb.derived) if has_derived else None,
@@ -502,7 +540,9 @@ class NjordClient:
         """Retrieve the current forecast for a location and model."""
         self._ensure_connected()
         assert self._weather_stub is not None
-        resp = await self._weather_stub.GetForecast(weather_pb2.GetForecastRequest(location=location, model=model))
+        resp = await self._weather_stub.GetForecast(
+            weather_pb2.GetForecastRequest(location=location, model=model)
+        )
         return _to_forecast_data(resp)
 
     async def get_config(self) -> NjordConfigData:
@@ -523,7 +563,9 @@ class NjordClient:
         """Retrieve enrichment data for a location."""
         self._ensure_connected()
         assert self._weather_stub is not None
-        resp = await self._weather_stub.GetEnrichments(weather_pb2.GetEnrichmentsRequest(location=location))
+        resp = await self._weather_stub.GetEnrichments(
+            weather_pb2.GetEnrichmentsRequest(location=location)
+        )
         return _to_enrichment_data(resp)
 
     async def get_targets(self) -> list[TargetData]:
@@ -537,7 +579,9 @@ class NjordClient:
         """Trigger a forecast poll and return triggered_count."""
         self._ensure_connected()
         assert self._ops_stub is not None
-        resp = await self._ops_stub.TriggerPoll(ops_pb2.TriggerPollRequest(location=location, model=model))
+        resp = await self._ops_stub.TriggerPoll(
+            ops_pb2.TriggerPollRequest(location=location, model=model)
+        )
         return resp.triggered_count
 
     # --- Sensor RPCs ---
@@ -579,9 +623,13 @@ class NjordClient:
         """Push a single sensor reading to njord."""
         self._ensure_connected()
         assert self._sensor_stub is not None
-        reading = self._make_sensor_reading(kind, location, value, source=source, measured_at=measured_at)
+        reading = self._make_sensor_reading(
+            kind, location, value, source=source, measured_at=measured_at
+        )
         resp = await self._sensor_stub.Push(reading)
-        return SensorPushResult(accepted=resp.accepted, rejection_reason=resp.rejection_reason)
+        return SensorPushResult(
+            accepted=resp.accepted, rejection_reason=resp.rejection_reason
+        )
 
     async def stream_push_sensors(
         self,
@@ -591,7 +639,9 @@ class NjordClient:
         self._ensure_connected()
         assert self._sensor_stub is not None
         resp = await self._sensor_stub.StreamPush(readings)
-        return SensorPushResult(accepted=resp.accepted, rejection_reason=resp.rejection_reason)
+        return SensorPushResult(
+            accepted=resp.accepted, rejection_reason=resp.rejection_reason
+        )
 
     # --- Streaming RPCs ---
 
