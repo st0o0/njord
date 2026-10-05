@@ -16,6 +16,7 @@
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
       <PackageReference Include="Microsoft.Extensions.Options" />
       <PackageReference Include="Newtonsoft.Json" />
+      <PackageReference Include="Servus" />
     </ItemGroup>
 
 </Project>

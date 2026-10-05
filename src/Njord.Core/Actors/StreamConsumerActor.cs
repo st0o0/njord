@@ -1,11 +1,16 @@
 using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Servus.Resilience;
 
 namespace Njord.Actors;
 
 public abstract class StreamConsumerActor : ReceiveActor, IWithStash
 {
+    internal static readonly BackoffPolicy DefaultRetryPolicy =
+        Backoff.Create(TimeSpan.FromSeconds(1), maxDelay: TimeSpan.FromSeconds(30));
+
+    private readonly BackoffPolicy _retryPolicy;
     private readonly HashSet<IActorRef> _watchedDeps = [];
     private IActorRef? _lastTerminatedRef;
     private int _retryCount;
@@ -20,17 +25,23 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
 
     protected IMaterializer Mat { get; private set; } = null!;
 
-    protected StreamConsumerActor()
+    protected StreamConsumerActor(BackoffPolicy? retryPolicy = null)
     {
+        _retryPolicy = retryPolicy ?? DefaultRetryPolicy;
         ReceiveAny(_ => Stash.Stash());
     }
 
     protected override void PreStart()
     {
         Mat = Context.Materializer();
+        ResolveInitialDependencies();
         EnterWaitingForRefs();
-        ResolveDependencies();
+        RequestSourceRefs();
     }
+
+    protected abstract void ResolveInitialDependencies();
+
+    protected abstract void RequestSourceRefs();
 
     protected abstract void ResolveDependencies();
 
@@ -62,7 +73,7 @@ public abstract class StreamConsumerActor : ReceiveActor, IWithStash
         }
 
         _retryPending = true;
-        var delay = RetryBackoff.For(Context.System, _retryCount);
+        var delay = _retryPolicy.DelayWithJitter(_retryCount);
         _retryCount++;
         Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryResolve(), Self);
     }
