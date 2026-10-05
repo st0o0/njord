@@ -16,11 +16,11 @@ internal sealed class TrendEnrichment : IStatefulEnrichment
     public bool Enabled => _enabled;
 
     public TrendEnrichment(
-        IOptions<NjordOptions> options,
+        IOptions<EnrichmentOptions> enrichmentOptions,
         TrendComputer computer)
     {
         _computer = computer;
-        _enabled = options.Value.Enrichment.IsEnabled(TypeName);
+        _enabled = enrichmentOptions.Value.IsEnabled(TypeName);
     }
 
     public IEnumerable<EgressEvent> Compute(

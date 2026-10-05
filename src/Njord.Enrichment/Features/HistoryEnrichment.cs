@@ -33,6 +33,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
 
     public HistoryEnrichment(
         IOptions<NjordOptions> options,
+        IOptions<EnrichmentOptions> enrichmentOptions,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider,
         HistoryComputer computer,
@@ -42,9 +43,9 @@ internal sealed class HistoryEnrichment : IActorEnrichment
         _parameters = parameters;
         _timeProvider = timeProvider;
         _computer = computer;
-        _historyOptions = options.Value.Enrichment.History;
+        _historyOptions = enrichmentOptions.Value.History;
         _logger = logger;
-        _enabled = options.Value.Enrichment.IsEnabled(TypeName);
+        _enabled = enrichmentOptions.Value.IsEnabled(TypeName);
     }
 
     public Flow<ModelSnapshot, EgressEvent, NotUsed> CreateFlow(IUntypedActorContext context)

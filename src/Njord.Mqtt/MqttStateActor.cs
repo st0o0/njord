@@ -42,13 +42,14 @@ public sealed class MqttStateActor : StreamConsumerActor
 
     public MqttStateActor(
         IOptions<NjordOptions> options,
+        IOptions<MqttOptions> mqttOptions,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider,
         IMqttTransport transport,
         IEnumerable<IEnrichmentPresenter> presenters)
     {
         var opts = options.Value;
-        _baseTopic = opts.Mqtt.BaseTopic;
+        _baseTopic = mqttOptions.Value.BaseTopic;
         _parameters = parameters;
         _horizons = [.. opts.Horizons];
         _forecastDays = opts.ForecastDays;

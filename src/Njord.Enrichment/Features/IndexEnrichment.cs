@@ -19,12 +19,13 @@ internal sealed class IndexEnrichment : IStatelessEnrichment
 
     public IndexEnrichment(
         IOptions<NjordOptions> options,
+        IOptions<EnrichmentOptions> enrichmentOptions,
         IndexComputer indexComputer)
     {
         _indexComputer = indexComputer;
-        _enabled = options.Value.Enrichment.IsEnabled(TypeName);
+        _enabled = enrichmentOptions.Value.IsEnabled(TypeName);
         var locationNames = options.Value.Locations.Select(l => l.Name);
-        _resolvedPreferences = PreferenceResolver.Resolve(options.Value.Enrichment.Indices, locationNames);
+        _resolvedPreferences = PreferenceResolver.Resolve(enrichmentOptions.Value.Indices, locationNames);
     }
 
     public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus, SensorSnapshot? sensors = null)

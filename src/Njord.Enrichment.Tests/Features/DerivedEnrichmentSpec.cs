@@ -24,7 +24,7 @@ public sealed class DerivedEnrichmentSpec
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
         return new DerivedEnrichment(
-            Options.Create(options), new DerivedResultComputer(parameters));
+            Options.Create(options), Options.Create(options.Enrichment), new DerivedResultComputer(parameters));
     }
 
     private static ModelForecast BuildForecast(string location)

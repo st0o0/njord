@@ -31,7 +31,7 @@ public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
         MqttEgressTuning? tuning = null)
     {
         return Sys.ActorOf(Props.Create(() => new MqttConnectionActor(
-            Microsoft.Extensions.Options.Options.Create(DefaultOptions()),
+            Microsoft.Extensions.Options.Options.Create(DefaultOptions().Mqtt),
             connection,
             transport,
             tuning ?? new MqttEgressTuning(TimeSpan.FromMilliseconds(50)),

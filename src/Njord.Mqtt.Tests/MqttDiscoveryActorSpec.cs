@@ -42,6 +42,7 @@ public sealed class MqttDiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
 
         return Sys.ActorOf(Props.Create(() => new MqttDiscoveryActor(
             Microsoft.Extensions.Options.Options.Create(options),
+            Microsoft.Extensions.Options.Options.Create(options.Mqtt),
             parameters,
             transport,
             presenters)));

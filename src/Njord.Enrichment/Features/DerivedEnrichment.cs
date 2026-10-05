@@ -19,11 +19,12 @@ internal sealed class DerivedEnrichment : IStatelessEnrichment
 
     public DerivedEnrichment(
         IOptions<NjordOptions> options,
+        IOptions<EnrichmentOptions> enrichmentOptions,
         DerivedResultComputer computer)
     {
         _computer = computer;
         _horizons = [.. options.Value.Horizons];
-        _enabled = options.Value.Enrichment.IsEnabled(TypeName);
+        _enabled = enrichmentOptions.Value.IsEnabled(TypeName);
     }
 
     public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus, SensorSnapshot? sensors = null)

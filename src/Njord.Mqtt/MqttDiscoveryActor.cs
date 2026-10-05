@@ -22,6 +22,7 @@ public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
             ?.InformationalVersion ?? "unknown";
 
     private readonly NjordOptions _options;
+    private readonly MqttOptions _mqttOptions;
     private readonly ResolvedParameterSet _parameters;
     private readonly IReadOnlyList<IEnrichmentPresenter> _presenters;
     private readonly IMqttTransport _transport;
@@ -46,16 +47,18 @@ public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
 
     public MqttDiscoveryActor(
         IOptions<NjordOptions> options,
+        IOptions<MqttOptions> mqttOptions,
         ResolvedParameterSet parameters,
         IMqttTransport transport,
         IEnumerable<IEnrichmentPresenter> presenters)
     {
         _options = options.Value;
+        _mqttOptions = mqttOptions.Value;
         _parameters = parameters;
         _transport = transport;
         _presenters = [.. presenters];
-        _haStatusTopic = $"{_options.Mqtt.DiscoveryPrefix}/status";
-        _discoveryEnabled = _options.Mqtt.DiscoveryEnabled;
+        _haStatusTopic = $"{_mqttOptions.DiscoveryPrefix}/status";
+        _discoveryEnabled = _mqttOptions.DiscoveryEnabled;
 
         _expectedModelCount = _options.Locations
             .Sum(loc => _options.Models.Union(loc.Models ?? [], StringComparer.OrdinalIgnoreCase).Count());
@@ -229,7 +232,7 @@ public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
 
     private void PublishDiscovery()
     {
-        var ctx = new DiscoveryContext(_options.Mqtt, _options.PollInterval, Version);
+        var ctx = new DiscoveryContext(_mqttOptions, _options.PollInterval, Version);
 
         foreach (var location in _options.Locations)
         {
@@ -252,7 +255,7 @@ public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
                 }
 
                 var deviceId = presenter.DeviceId(location.Name);
-                var topic = TopicScheme.ConfigTopic(_options.Mqtt.DiscoveryPrefix, deviceId);
+                var topic = TopicScheme.ConfigTopic(_mqttOptions.DiscoveryPrefix, deviceId);
                 var payload = presenter.BuildDiscoveryPayload(ctx, location.Name);
                 _transport.SendAsync(topic, payload, true, CancellationToken.None);
             }
@@ -263,12 +266,12 @@ public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
     {
         var model = cap.Model;
         var topic = TopicScheme.ConfigTopic(
-            _options.Mqtt.DiscoveryPrefix, TopicScheme.DeviceId(cap.Location, model));
+            _mqttOptions.DiscoveryPrefix, TopicScheme.DeviceId(cap.Location, model));
         var payload = DiscoveryPayloadBuilder.Build(
             cap.Location, model, _parameters,
             cap.ApplicableHorizons, cap.ApplicableDayOffsets,
             cap.SupportedParameters,
-            _options.Mqtt, _options.PollInterval, Version);
+            _mqttOptions, _options.PollInterval, Version);
         _transport.SendAsync(topic, payload, true, CancellationToken.None);
     }
 

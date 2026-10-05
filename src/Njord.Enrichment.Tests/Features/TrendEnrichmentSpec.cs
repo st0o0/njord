@@ -26,7 +26,7 @@ public sealed class TrendEnrichmentSpec
                 Trends = new TrendOptions { Enabled = enabled },
             },
         };
-        return new TrendEnrichment(Options.Create(options), new TrendComputer());
+        return new TrendEnrichment(Options.Create(options.Enrichment), new TrendComputer());
     }
 
     private static ModelSnapshot MakeSnapshot(double baseTemp = 20.0)

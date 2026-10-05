@@ -20,7 +20,7 @@ public sealed class IndexEnrichmentSpec
         var options = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
-        return new IndexEnrichment(Options.Create(options), new IndexComputer(parameters, new FakeTimeProvider(T0)));
+        return new IndexEnrichment(Options.Create(options), Options.Create(options.Enrichment), new IndexComputer(parameters, new FakeTimeProvider(T0)));
     }
 
     private static ModelForecast BuildForecast(string location)
@@ -111,7 +111,7 @@ public sealed class IndexEnrichmentSpec
         var njordOptions = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
         njordOptions.Enrichment.Indices.Preferences.IndoorTemp = 18.0;
         var feature = new IndexEnrichment(
-            Options.Create(njordOptions), new IndexComputer(Parameters, new FakeTimeProvider(T0)));
+            Options.Create(njordOptions), Options.Create(njordOptions.Enrichment), new IndexComputer(Parameters, new FakeTimeProvider(T0)));
 
         var consensus = BuildTwoModelConsensus("lucerne");
 
@@ -136,7 +136,7 @@ public sealed class IndexEnrichmentSpec
         var njordOptions = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
         njordOptions.Enrichment.Indices.Preferences.IndoorTemp = 18.0;
         var feature = new IndexEnrichment(
-            Options.Create(njordOptions), new IndexComputer(Parameters, new FakeTimeProvider(T0)));
+            Options.Create(njordOptions), Options.Create(njordOptions.Enrichment), new IndexComputer(Parameters, new FakeTimeProvider(T0)));
 
         var consensus = BuildTwoModelConsensus("lucerne", temp: 10.0);
 

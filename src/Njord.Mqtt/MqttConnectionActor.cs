@@ -16,7 +16,7 @@ public sealed class MqttConnectionActor : ReceiveActor
 {
     private static readonly Gauge<double> MqttConnectedGauge = NjordMetrics.Instance.AddMqttConnected();
 
-    private readonly NjordOptions _options;
+    private readonly MqttOptions _mqttOptions;
     private readonly IMqttConnection _connection;
     private readonly IMqttTransport _transport;
     private readonly MqttEgressTuning _tuning;
@@ -36,21 +36,21 @@ public sealed class MqttConnectionActor : ReceiveActor
     private sealed record Inbound(string Topic, string Payload);
 
     public MqttConnectionActor(
-        IOptions<NjordOptions> options,
+        IOptions<MqttOptions> mqttOptions,
         IMqttConnection connection,
         IMqttTransport transport,
         MqttEgressTuning tuning,
         NjordHealthState healthState,
         TimeProvider timeProvider)
     {
-        _options = options.Value;
+        _mqttOptions = mqttOptions.Value;
         _connection = connection;
         _transport = transport;
         _tuning = tuning;
         _healthState = healthState;
         _timeProvider = timeProvider;
-        _availabilityTopic = TopicScheme.AvailabilityTopic(_options.Mqtt.BaseTopic);
-        _haStatusTopic = $"{_options.Mqtt.DiscoveryPrefix}/status";
+        _availabilityTopic = TopicScheme.AvailabilityTopic(_mqttOptions.BaseTopic);
+        _haStatusTopic = $"{_mqttOptions.DiscoveryPrefix}/status";
 
         Ready();
     }
@@ -67,7 +67,7 @@ public sealed class MqttConnectionActor : ReceiveActor
         Receive<ConnectFailed>(msg =>
         {
             _log.Warning(msg.Cause, "MQTT connect to {Host}:{Port} failed",
-                _options.Mqtt.Host, _options.Mqtt.Port);
+                _mqttOptions.Host, _mqttOptions.Port);
             ScheduleReconnect();
         });
         Receive<Disconnected>(_ =>
@@ -119,7 +119,7 @@ public sealed class MqttConnectionActor : ReceiveActor
     private async Task OnConnectedAsync(Connected _)
     {
         _connectAttempts = 0;
-        _log.Info("MQTT connected to {Host}:{Port}", _options.Mqtt.Host, _options.Mqtt.Port);
+        _log.Info("MQTT connected to {Host}:{Port}", _mqttOptions.Host, _mqttOptions.Port);
         _healthState.SetMqttConnected(_timeProvider.GetUtcNow());
         MqttConnectedGauge.Record(1);
 

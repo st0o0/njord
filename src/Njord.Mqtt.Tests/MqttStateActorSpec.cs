@@ -44,6 +44,7 @@ public sealed class MqttStateActorSpec : Akka.Hosting.TestKit.TestKit
 
         return Sys.ActorOf(Props.Create(() => new MqttStateActor(
             Microsoft.Extensions.Options.Options.Create(options),
+            Microsoft.Extensions.Options.Options.Create(options.Mqtt),
             parameters,
             timeProvider,
             transport,

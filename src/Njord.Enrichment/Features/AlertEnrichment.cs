@@ -17,12 +17,12 @@ internal sealed class AlertEnrichment : IStatelessEnrichment
     public bool Enabled => _enabled;
 
     public AlertEnrichment(
-        IOptions<NjordOptions> options,
+        IOptions<EnrichmentOptions> enrichmentOptions,
         TimeProvider timeProvider)
     {
-        _alertOptions = options.Value.Enrichment.Alerts;
+        _alertOptions = enrichmentOptions.Value.Alerts;
         _timeProvider = timeProvider;
-        _enabled = options.Value.Enrichment.IsEnabled(TypeName);
+        _enabled = enrichmentOptions.Value.IsEnabled(TypeName);
     }
 
     public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus, SensorSnapshot? sensors = null)

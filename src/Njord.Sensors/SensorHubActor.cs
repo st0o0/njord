@@ -18,10 +18,10 @@ public sealed class SensorHubActor : ReceiveActor, IWithTimers
 
     private sealed record ExpireTick;
 
-    public SensorHubActor(IOptions<NjordOptions> options, TimeProvider timeProvider)
+    public SensorHubActor(IOptions<SensorOptions> sensorOptions, TimeProvider timeProvider)
     {
         _timeProvider = timeProvider;
-        _staleness = TimeSpan.FromSeconds(options.Value.Sensors.StalenessSeconds);
+        _staleness = TimeSpan.FromSeconds(sensorOptions.Value.StalenessSeconds);
 
         Receive<UpdateReading>(Handle);
         Receive<QuerySensorSnapshot>(Handle);

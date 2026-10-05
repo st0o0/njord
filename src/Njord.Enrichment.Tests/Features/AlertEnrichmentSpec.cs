@@ -25,7 +25,7 @@ public sealed class AlertEnrichmentSpec
                 Alerts = new AlertOptions { Enabled = enabled },
             },
         };
-        return new AlertEnrichment(Options.Create(options), new FakeTimeProvider(T0));
+        return new AlertEnrichment(Options.Create(options.Enrichment), new FakeTimeProvider(T0));
     }
 
     private static ModelSnapshot MakeSnapshot()

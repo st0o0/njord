@@ -18,10 +18,10 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
 
     public override string PersistenceId => $"forecast-history-{_location}";
 
-    public ForecastHistoryActor(string entityId, IOptions<NjordOptions> options, ResolvedParameterSet parameters, TimeProvider timeProvider)
+    public ForecastHistoryActor(string entityId, IOptions<EnrichmentOptions> enrichmentOptions, ResolvedParameterSet parameters, TimeProvider timeProvider)
     {
         _location = entityId;
-        var historyOptions = options.Value.Enrichment.History;
+        var historyOptions = enrichmentOptions.Value.History;
         _parameters = parameters;
         _timeProvider = timeProvider;
         _state = ForecastHistoryState.Create(historyOptions.RetentionDays, historyOptions.SnapshotInterval);

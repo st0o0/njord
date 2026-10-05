@@ -24,15 +24,16 @@ public sealed class EnrichmentFeatureContractSpec
             Enrichment = enrichment ?? new EnrichmentOptions(),
         };
         var optionsWrapped = Options.Create(njordOptions);
+        var enrichmentWrapped = Options.Create(njordOptions.Enrichment);
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
         return
         [
-            new AlertEnrichment(optionsWrapped, Time),
-            new DerivedEnrichment(optionsWrapped, new DerivedResultComputer(parameters)),
-            new TrendEnrichment(optionsWrapped, new TrendComputer()),
-            new IndexEnrichment(optionsWrapped, new IndexComputer(parameters, Time)),
-            new HistoryEnrichment(optionsWrapped, parameters, Time,
+            new AlertEnrichment(enrichmentWrapped, Time),
+            new DerivedEnrichment(optionsWrapped, enrichmentWrapped, new DerivedResultComputer(parameters)),
+            new TrendEnrichment(enrichmentWrapped, new TrendComputer()),
+            new IndexEnrichment(optionsWrapped, enrichmentWrapped, new IndexComputer(parameters, Time)),
+            new HistoryEnrichment(optionsWrapped, enrichmentWrapped, parameters, Time,
                 new HistoryComputer(),
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoryEnrichment>.Instance),
         ];
