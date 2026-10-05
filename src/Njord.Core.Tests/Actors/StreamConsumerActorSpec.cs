@@ -24,7 +24,7 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
     private sealed record DepAResolved(IActorRef Ref);
     private sealed record DepBResolved(IActorRef Ref);
 
-    public sealed class TestStreamConsumer : StreamConsumerActor
+    private sealed class TestStreamConsumer : StreamConsumerActor
     {
         private IActorRef? _depA;
         private IActorRef? _depB;
@@ -40,74 +40,57 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         public static Props CreateProps(TaskCompletionSource graphMaterialized)
             => Props.Create(() => new TestStreamConsumer(graphMaterialized));
 
-        private sealed class TestStreamConsumer : StreamConsumerActor
+        protected override void ResolveInitialDependencies()
         {
-            private IActorRef? _depA;
-            private IActorRef? _depB;
-
-            private readonly TaskCompletionSource _graphMaterialized;
-            private int _materializeCount;
-
-            public TestStreamConsumer(TaskCompletionSource graphMaterialized)
-            {
-                _graphMaterialized = graphMaterialized;
-            }
-
-            public static Props CreateProps(TaskCompletionSource graphMaterialized)
-                => Props.Create(() => new TestStreamConsumer(graphMaterialized));
-
-            protected override void ResolveInitialDependencies()
-            {
-                _depA = Context.GetActor<DepAKey>();
-                TrackDependency(_depA);
-                _depB = Context.GetActor<DepBKey>();
-                TrackDependency(_depB);
-            }
-
-            protected override void RequestSourceRefs()
-            {
-                // Test actor has no SourceRefs — transition immediately
-                TryTransition();
-            }
-
-            protected override void ResolveDependencies()
-            {
-                Context.GetActorAsync<DepAKey>().PipeTo(Self, success: r => new DepAResolved(r));
-                Context.GetActorAsync<DepBKey>().PipeTo(Self, success: r => new DepBResolved(r));
-            }
-
-            protected override void ConfigureWaitingForRefs()
-            {
-                Receive<DepAResolved>(msg =>
-                {
-                    if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
-                    TrackDependency(msg.Ref);
-                    _depA = msg.Ref;
-                    TryTransition();
-                });
-                Receive<DepBResolved>(msg =>
-                {
-                    if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
-                    TrackDependency(msg.Ref);
-                    _depB = msg.Ref;
-                    TryTransition();
-                });
-            }
-
-            protected override bool AllRefsReady() => _depA is not null && _depB is not null;
-
-            protected override void MaterializeGraph(SharedKillSwitch killSwitch)
-            {
-                _materializeCount++;
-                _graphMaterialized.TrySetResult();
-            }
-
-            protected override void OnDependencyLost()
-            {
-                _depA = null;
-                _depB = null;
-            }
+            _depA = Context.GetActor<DepAKey>();
+            TrackDependency(_depA);
+            _depB = Context.GetActor<DepBKey>();
+            TrackDependency(_depB);
         }
+
+        protected override void RequestSourceRefs()
+        {
+            TryTransition();
+        }
+
+        protected override void ResolveDependencies()
+        {
+            Context.GetActorAsync<DepAKey>().PipeTo(Self, success: r => new DepAResolved(r));
+            Context.GetActorAsync<DepBKey>().PipeTo(Self, success: r => new DepBResolved(r));
+        }
+
+        protected override void ConfigureWaitingForRefs()
+        {
+            Receive<DepAResolved>(msg =>
+            {
+                if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+                TrackDependency(msg.Ref);
+                _depA = msg.Ref;
+                TryTransition();
+            });
+            Receive<DepBResolved>(msg =>
+            {
+                if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+                TrackDependency(msg.Ref);
+                _depB = msg.Ref;
+                TryTransition();
+            });
+        }
+
+        protected override bool AllRefsReady() => _depA is not null && _depB is not null;
+
+        protected override void MaterializeGraph(SharedKillSwitch killSwitch)
+        {
+            _materializeCount++;
+            _graphMaterialized.TrySetResult();
+        }
+
+        protected override void OnDependencyLost()
+        {
+            _depA = null;
+            _depB = null;
+        }
+    }
 
         private sealed class ResettableTestStreamConsumer : StreamConsumerActor
         {
@@ -213,7 +196,7 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
                 ActorRegistry.Register<DepBKey>(depB, overwrite: true);
             }
 
-            var consumer = Context.ActorOf(TestStreamConsumer.CreateProps(graphTcs));
+            var consumer = Sys.ActorOf(TestStreamConsumer.CreateProps(graphTcs));
             await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
             return consumer;
         }
@@ -260,7 +243,7 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
             // Arrange: register deps and wait for initial graph materialization
             var (depA, depB) = RegisterDeps();
             var graphTcs = new TaskCompletionSource();
-            var consumer = Context.ActorOf(
+            var consumer = Sys.ActorOf(
                 ResettableTestStreamConsumer.CreateProps(graphTcs));
 
             await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
@@ -292,12 +275,12 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
             // Arrange: register deps and wait for initial graph materialization
             var (depA, depB) = RegisterDeps();
             var graphTcs = new TaskCompletionSource();
-            var consumer = Context.ActorOf(
+            var consumer = Sys.ActorOf(
                 ResettableTestStreamConsumer.CreateProps(graphTcs));
             await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
             // Create an untracked actor and stop it so a Terminated is delivered
-            var untracked = Context.ActorOf(Props.Create(() => new BlackHoleActor()));
+            var untracked = Sys.ActorOf(Props.Create(() => new BlackHoleActor()));
             // Manually watch the untracked actor from a probe, then stop it —
             // but the consumer never tracked it, so its Terminated should be ignored.
             Watch(untracked);
@@ -322,7 +305,7 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
             ActorRegistry.Register<DepBKey>(depB, overwrite: true);
 
             var graphTcs = new TaskCompletionSource();
-            var consumer = Context.ActorOf(
+            var consumer = Sys.ActorOf(
                 ResettableTestStreamConsumer.CreateProps(graphTcs));
             await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 

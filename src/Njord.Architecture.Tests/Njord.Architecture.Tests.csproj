@@ -17,7 +17,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Njord\Njord.csproj" />
-        <ProjectReference Include="..\Njord.Tests\Njord.Tests.csproj" />
         <ProjectReference Include="..\Njord.Tests.Shared\Njord.Tests.Shared.csproj" />
         <ProjectReference Include="..\Njord.*.Tests\Njord.*.Tests.csproj" Exclude="..\Njord.Architecture.Tests\Njord.Architecture.Tests.csproj" />
     </ItemGroup>
