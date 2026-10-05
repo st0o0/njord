@@ -13,20 +13,20 @@
   <a href="https://github.com/st0o0/njord/pkgs/container/njord"><img src="https://img.shields.io/badge/ghcr.io-st0o0%2Fnjord-2496ED?style=flat-square&logo=docker&logoColor=white" alt="GHCR" /></a>
   <a href="https://github.com/st0o0/njord/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License" /></a>
   <img src="https://img.shields.io/badge/.NET-10-512bd4?style=flat-square" alt=".NET 10" />
-  <img src="https://img.shields.io/badge/python-3.12+-3776ab?style=flat-square&logo=python&logoColor=white" alt="Python 3.12+" />
-  <img src="https://img.shields.io/badge/HACS-custom-41bdf5?style=flat-square" alt="HACS" />
   <a href="https://st0o0.github.io/njord/"><img src="https://img.shields.io/badge/docs-st0o0.github.io%2Fnjord-2563eb?style=flat-square" alt="Docs" /></a>
 </p>
 
 ---
 
-A monorepo containing both the **njord weather service** and the **Home Assistant
-custom integration**. The service is a .NET container built on
+The **njord weather service** is a .NET container built on
 [Akka.NET](https://getakka.net/) + Akka.Streams that polls the
 [Open-Meteo API](https://open-meteo.com/en/docs) for multiple weather models per
-location and enriches forecasts through a configurable pipeline. The included HA
-integration connects via gRPC streaming for real-time updates. MQTT publishing is
-available as an optional alternative for non-HA consumers.
+location and enriches forecasts through a configurable pipeline. It serves
+consumers via gRPC (primary) and MQTT (optional).
+
+The **[Home Assistant custom integration](https://github.com/st0o0/ha-njord)**
+connects via gRPC streaming for real-time updates, creating native weather
+entities, alert sensors, activity indices, and more.
 
 ## Features
 
@@ -35,7 +35,6 @@ available as an optional alternative for non-HA consumers.
 - **Enrichment pipeline.** Consensus forecasts, weather alerts, derived values (Beaufort, wind chill, comfort), trend analysis, activity indices, and forecast accuracy tracking.
 - **Hourly and daily forecasts.** Configurable horizons for hourly data, plus daily min/max, precipitation sums, sunrise/sunset.
 - **External sensor input.** Feed indoor temperature/humidity from Home Assistant sensors via gRPC to improve index calculations.
-- **Native HA integration.** Included in this repo — connects via gRPC streaming for real-time updates, native `weather` entities, alert events, activity indices, and more.
 - **Single container.** Runs on any Docker host with SQLite persistence by default, no external database needed.
 
 ## Architecture
@@ -73,11 +72,7 @@ docker compose up -d
 
 ### 2. Install the HA integration
 
-Install via [HACS](https://hacs.xyz/): add `https://github.com/st0o0/njord` as a **custom repository** (category: Integration), search for "njord Weather", and install. Alternatively, copy `custom_components/njord` into your HA `config/custom_components/` directory. Restart Home Assistant.
-
-### 3. Add the integration
-
-Go to **Settings > Devices & Services > Add Integration**, search for **njord Weather**, and enter the host and gRPC port (default: 8081). The integration auto-discovers all locations and models and creates weather entities, alert sensors, activity indices, and more.
+See the **[ha-njord](https://github.com/st0o0/ha-njord)** repository for installation via HACS and setup instructions.
 
 ## Documentation
 
@@ -86,7 +81,7 @@ Full documentation is available at **[st0o0.github.io/njord](https://st0o0.githu
 - [Getting Started](https://st0o0.github.io/njord/getting-started): installation and setup
 - [Configuration](https://st0o0.github.io/njord/configuration/): all available options
 - [Model Catalog](https://st0o0.github.io/njord/models): choosing the right weather models
-- [Home Assistant](https://st0o0.github.io/njord/home-assistant): entities, dashboards, automations
+- [Home Assistant](https://st0o0.github.io/njord/home-assistant/): entities, options, diagnostics
 - [Architecture](https://st0o0.github.io/njord/architecture): system design and data flow
 - [Config Builder](https://st0o0.github.io/njord/builder): interactive configuration generator
 
@@ -94,26 +89,19 @@ Full documentation is available at **[st0o0.github.io/njord](https://st0o0.githu
 
 ```
 src/                         .NET service (Akka.NET + Akka.Streams)
-custom_components/njord/     Home Assistant custom integration (Python)
-ha/                          HA integration tests and tooling
-protos/                      Shared protobuf definitions (used by both .NET and Python)
+protos/                      Protobuf definitions (shared with ha-njord)
 docs/                        VitePress documentation site
 ```
 
+The Home Assistant integration lives in a separate repo: **[st0o0/ha-njord](https://github.com/st0o0/ha-njord)**.
+
 ## Build & Test
 
-**.NET service** (from `src/`):
+From `src/`:
 
 ```powershell
 dotnet build Njord.slnx
 dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj   # xUnit v3 via MTP; one project per library (see AGENTS.md for the run-all loop)
-```
-
-**HA integration** (from repo root):
-
-```bash
-pip install grpcio "protobuf>=5.0,<7.0" pytest pytest-asyncio pytest-homeassistant-custom-component voluptuous
-python -m pytest ha/tests/ -v
 ```
 
 ## License

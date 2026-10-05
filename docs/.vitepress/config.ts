@@ -11,10 +11,10 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
     logo: '/logo.svg',
     nav: [
       { text: 'Guide', link: '/getting-started' },
+      { text: 'Home Assistant', link: '/home-assistant/' },
       { text: 'Config', link: '/configuration/' },
-      { text: 'Models', link: '/models' },
-      { text: 'Builder', link: '/builder' },
-      { text: 'Home Assistant', link: '/home-assistant' },
+      { text: 'Reference', link: '/models' },
+      { text: 'Dev', link: '/development/setup' },
     ],
 
     sidebar: [
@@ -23,7 +23,15 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
         items: [
           { text: 'Getting Started', link: '/getting-started' },
           { text: 'Architecture', link: '/architecture' },
-          { text: 'Home Assistant', link: '/home-assistant' },
+        ],
+      },
+      {
+        text: 'Home Assistant',
+        items: [
+          { text: 'Installation', link: '/home-assistant/' },
+          { text: 'Entities', link: '/home-assistant/entities' },
+          { text: 'Options', link: '/home-assistant/options' },
+          { text: 'Diagnostics', link: '/home-assistant/diagnostics' },
         ],
       },
       {
@@ -46,6 +54,15 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
           { text: 'Model Catalog', link: '/models' },
           { text: 'MQTT Topics', link: '/mqtt-reference' },
           { text: 'Config Builder', link: '/builder' },
+        ],
+      },
+      {
+        text: 'Development',
+        items: [
+          { text: 'Dev Setup', link: '/development/setup' },
+          { text: 'Service (.NET)', link: '/development/service' },
+          { text: 'Integration (Python)', link: '/development/integration' },
+          { text: 'Proto Management', link: '/development/protos' },
         ],
       },
     ],

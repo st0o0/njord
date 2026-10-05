@@ -43,15 +43,15 @@ For complex setups with multiple locations, per-location models, and enrichment 
 
 ### HACS (recommended)
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=st0o0&repository=njord&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=st0o0&repository=ha-njord&category=integration)
 
-1. Click the button above, or open HACS > three dots > **Custom repositories** > add `https://github.com/st0o0/njord` as **Integration**
+1. Click the button above, or open HACS > three dots > **Custom repositories** > add `https://github.com/st0o0/ha-njord` as **Integration**
 2. Search for "njord Weather" and install
 3. Restart Home Assistant
 
 ### Manual
 
-Copy the `custom_components/njord` directory from the [njord repository](https://github.com/st0o0/njord) to your Home Assistant `config/custom_components/` directory and restart.
+Copy the `custom_components/njord` directory from the [ha-njord repository](https://github.com/st0o0/ha-njord) to your Home Assistant `config/custom_components/` directory and restart.
 
 ## 3. Add the integration
 
@@ -111,5 +111,5 @@ See the [MQTT reference](/mqtt-reference) for the complete topic scheme and payl
 
 - [Configuration overview](/configuration/): all available options
 - [Model catalog](/models): choosing the right weather models for your region
-- [Home Assistant integration](/home-assistant): entity reference, dashboards, automations
+- [Home Assistant integration](/home-assistant/): entity reference, dashboards, automations
 - [Config Builder](/builder): interactive configuration generator

@@ -1,6 +1,6 @@
 # Architecture
 
-njord is a .NET service built on Akka.NET and Akka.Streams. It polls the Open-Meteo API for weather forecasts, processes them through an enrichment pipeline, and exposes the results via gRPC for the included Home Assistant integration. An optional MQTT egress path is available for non-HA consumers.
+njord is a weather intelligence system in two parts: a .NET service that polls the Open-Meteo API and enriches forecasts, and a [Home Assistant custom integration](https://github.com/st0o0/ha-njord) that presents the results as native HA entities. The service exposes data via gRPC (primary, used by the integration) and MQTT (optional, for non-HA consumers).
 
 ## System Overview
 
@@ -12,7 +12,7 @@ njord runs as a single Docker container with no external database required (SQLi
 
 ### Primary: Home Assistant custom integration (gRPC)
 
-The custom integration (source in [`ha/`](/ha/)) connects to njord via gRPC streaming on port 8081. It receives forecast, enrichment, and configuration updates in real time with no polling delay. The integration creates native Home Assistant entities across five platforms: `weather`, `sensor`, `binary_sensor`, `event`, and `button`.
+The [ha-njord](https://github.com/st0o0/ha-njord) custom integration connects to njord via gRPC streaming on port 8081. It receives forecast, enrichment, and configuration updates in real time with no polling delay. The integration creates native Home Assistant entities across five platforms: `weather`, `sensor`, `binary_sensor`, `event`, and `button`. See the [Home Assistant](/home-assistant/) section for details.
 
 ### Alternative: MQTT
 

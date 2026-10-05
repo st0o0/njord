@@ -172,9 +172,6 @@ Integration tests (`Njord.IntegrationTests`) require Docker for Testcontainers
 dotnet run --project Njord.IntegrationTests/Njord.IntegrationTests.csproj
 ```
 
-Integration tests in `Njord.Tests` use `NjordFixture` (TestServer +
-TestProbe-stubbed actors) via domain-grouped xUnit collections. No Docker needed.
-
 Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
 - `appsettings.json` — production logging only (no `Njord:` section).
 - `appsettings.Development.json` — dev overrides (locations, models, MQTT

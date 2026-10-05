@@ -52,17 +52,5 @@ docs/.vitepress/cache/
 docs/public/likec4-views.js
 docs/package-lock.json
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-.venv/
-venv/
-.pytest_cache/
-.coverage
-htmlcov/
-.ruff_cache/
-
 # Node (commitlint)
 node_modules/
