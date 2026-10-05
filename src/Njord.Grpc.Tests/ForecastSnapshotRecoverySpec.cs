@@ -1,8 +1,6 @@
 using Akka.Actor;
 using Akka.Persistence.TestKit;
-using Njord.Actors;
 using Njord.Domain.Weather;
-using Njord.Grpc;
 using Njord.Messages.Common;
 using Njord.Messages.Snapshots;
 

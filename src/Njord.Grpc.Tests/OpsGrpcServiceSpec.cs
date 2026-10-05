@@ -1,13 +1,10 @@
 using Akka.Actor;
 using Akka.Hosting;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Actors;
 using Njord.Configuration;
-using Njord.Grpc;
 using Njord.Grpc.V2;
 using Njord.Messages.Pipeline;
-using Njord.Pipeline;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;

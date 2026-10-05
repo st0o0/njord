@@ -1,7 +1,6 @@
 using Njord.Analysis;
 using Njord.Domain.Weather;
 using static Njord.Mqtt.Tests.EnrichmentGoldenMasterFixtures;
-using static VerifyXunit.Verifier;
 
 namespace Njord.Mqtt.Tests;
 

@@ -8,7 +8,6 @@ using Njord.Analysis;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 using Njord.Messages.Egress;
-using Njord.Mqtt;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
 

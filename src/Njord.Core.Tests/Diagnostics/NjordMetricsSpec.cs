@@ -1,4 +1,3 @@
-using System.Diagnostics.Metrics;
 using Njord.Diagnostics;
 
 namespace Njord.Core.Tests.Diagnostics;

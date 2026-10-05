@@ -1,5 +1,4 @@
 using Njord.Analysis;
-using Njord.Domain.Weather;
 
 namespace Njord.Core.Tests.Analysis;
 

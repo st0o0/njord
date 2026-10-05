@@ -1,7 +1,5 @@
-using System.Linq;
 using ArchUnitNET.Domain;
 using ArchUnitNET.xUnitV3;
-using Xunit;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 namespace Njord.Architecture.Tests;

@@ -4,7 +4,6 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Health;
 using Njord.Messages.Mqtt;
-using Njord.Mqtt;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
 

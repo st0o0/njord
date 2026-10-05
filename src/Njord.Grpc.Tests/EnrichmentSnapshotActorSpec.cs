@@ -1,10 +1,6 @@
 using Akka.Actor;
 using Akka.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Njord.Actors;
 using Njord.Analysis;
-using Njord.Grpc;
 using Njord.Messages.Common;
 using Njord.Messages.Snapshots;
 using Njord.Tests.Shared;

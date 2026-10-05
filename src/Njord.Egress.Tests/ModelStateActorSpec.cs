@@ -5,10 +5,7 @@ using Akka.Streams.Dsl;
 using Njord.Actors;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Egress;
 using Njord.Messages.Egress;
-using Njord.Messages.Pipeline;
-using Njord.Pipeline;
 using Njord.Tests.Shared;
 
 namespace Njord.Egress.Tests;

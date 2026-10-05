@@ -11,9 +11,7 @@ using Njord.Domain.Weather;
 using Njord.Health;
 using Njord.Messages.Common;
 using Njord.Messages.Pipeline;
-using Njord.Pipeline;
 using Njord.Tests.Shared;
-using Servus.Akka;
 
 namespace Njord.Pipeline.Tests;
 

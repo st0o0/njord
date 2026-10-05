@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Options;
 using Njord.Configuration;
-using Njord.Grpc;
 using Njord.Grpc.V2;
 using Njord.Tests.Shared;
 

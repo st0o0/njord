@@ -1,12 +1,10 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Analysis;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Mqtt;
 using Njord.Mqtt.Presentation;
 
 namespace Njord.Mqtt.Tests;

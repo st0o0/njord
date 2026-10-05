@@ -1,6 +1,5 @@
 using Akka.Actor;
 using Akka.Streams;
-using Akka.Streams.Dsl;
 using Servus.Resilience;
 
 namespace Njord.Actors;

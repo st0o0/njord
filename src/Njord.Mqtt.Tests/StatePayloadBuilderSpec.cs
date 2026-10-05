@@ -3,7 +3,6 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Analysis;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Mqtt;
 
 namespace Njord.Mqtt.Tests;
 

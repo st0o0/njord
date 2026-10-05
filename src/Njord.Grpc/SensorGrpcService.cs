@@ -4,7 +4,6 @@ using Grpc.Core;
 using Microsoft.Extensions.Options;
 using Njord.Actors;
 using Njord.Configuration;
-using Njord.Domain.Sensors;
 using Njord.Grpc.V2;
 using Njord.Messages.Sensors;
 using DomainSensorKind = Njord.Domain.Sensors.SensorKind;

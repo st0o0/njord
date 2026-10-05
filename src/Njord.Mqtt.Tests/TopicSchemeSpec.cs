@@ -1,5 +1,4 @@
 using Njord.Domain.Weather;
-using Njord.Mqtt;
 
 namespace Njord.Mqtt.Tests;
 

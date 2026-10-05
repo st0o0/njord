@@ -1,4 +1,3 @@
-using Njord.Persistence;
 using Njord.Tests.Shared;
 
 namespace Njord.Persistence.Tests;

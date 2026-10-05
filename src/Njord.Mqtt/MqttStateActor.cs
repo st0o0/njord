@@ -1,12 +1,10 @@
 using System.Diagnostics.Metrics;
-using Akka;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Actors;
-using Njord.Analysis;
 using Njord.Configuration;
 using Njord.Diagnostics;
 using Njord.Domain.Weather;

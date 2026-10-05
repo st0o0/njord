@@ -1,6 +1,3 @@
-using System.Linq;
-using Xunit;
-
 namespace Njord.Architecture.Tests;
 
 public sealed class LayerReferenceSpec

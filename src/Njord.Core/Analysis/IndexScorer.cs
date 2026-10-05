@@ -1,5 +1,3 @@
-using Njord.Domain.Weather;
-
 namespace Njord.Analysis;
 
 public static class IndexScorer

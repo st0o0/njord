@@ -1,7 +1,6 @@
 using Akka;
 using Akka.Actor;
 using Akka.Cluster.Hosting;
-using Akka.Cluster.Sharding;
 using Akka.Event;
 using Akka.Hosting;
 using Akka.Pattern;

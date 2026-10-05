@@ -1,5 +1,3 @@
-using static VerifyXunit.Verifier;
-
 namespace Njord.Mqtt.Tests;
 
 public sealed class EnrichmentDiscoverySnapshotSpec

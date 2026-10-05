@@ -1,13 +1,9 @@
 using System.Diagnostics;
-using Akka;
 using Akka.Actor;
 using Akka.Hosting;
 using Akka.Persistence;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Actors;
@@ -16,7 +12,6 @@ using Njord.Domain.Weather;
 using Njord.Health;
 using Njord.Ingest;
 using Njord.Messages.Pipeline;
-using Njord.Pipeline;
 using Njord.Tests.Shared;
 using Servus.Akka;
 

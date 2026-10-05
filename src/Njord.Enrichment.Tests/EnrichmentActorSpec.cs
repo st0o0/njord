@@ -7,9 +7,6 @@ using Njord.Actors;
 using Njord.Analysis;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Enrichment;
-using Njord.Messages.Pipeline;
-using Njord.Pipeline;
 using Njord.Tests.Shared;
 using FailingRefProvider = Njord.Tests.Shared.FailingRefProvider;
 

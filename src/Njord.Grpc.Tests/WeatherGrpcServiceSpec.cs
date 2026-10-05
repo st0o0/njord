@@ -7,7 +7,6 @@ using Njord.Actors;
 using Njord.Analysis;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Grpc;
 using Njord.Grpc.V2;
 using Njord.Messages.Snapshots;
 using Njord.Tests.Shared;

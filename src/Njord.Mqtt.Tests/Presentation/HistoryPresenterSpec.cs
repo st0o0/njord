@@ -1,7 +1,6 @@
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
-using Njord.Mqtt;
 using Njord.Mqtt.Presentation;
 
 namespace Njord.Mqtt.Tests.Presentation;

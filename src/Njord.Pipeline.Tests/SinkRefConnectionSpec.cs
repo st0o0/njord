@@ -1,13 +1,9 @@
-using Akka;
 using Akka.Actor;
 using Akka.Hosting;
 using Akka.Persistence;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Njord.Actors;
-using Njord.Pipeline;
 using Njord.Tests.Shared;
 using Servus.Akka;
 

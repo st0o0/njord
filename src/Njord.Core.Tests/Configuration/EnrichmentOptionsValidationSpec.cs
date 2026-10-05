@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Enrichment;
 

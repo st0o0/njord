@@ -1,9 +1,6 @@
 using Newtonsoft.Json;
 using Njord.Analysis;
 using Njord.Domain.Weather;
-using Njord.Persistence;
-
-using static VerifyXunit.Verifier;
 
 namespace Njord.Persistence.Tests;
 

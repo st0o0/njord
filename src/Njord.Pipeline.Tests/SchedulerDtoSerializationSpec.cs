@@ -1,8 +1,6 @@
 using Newtonsoft.Json;
 using Njord.Messages.Pipeline;
 using Njord.Persistence;
-using Njord.Pipeline;
-using static VerifyXunit.Verifier;
 
 namespace Njord.Pipeline.Tests;
 

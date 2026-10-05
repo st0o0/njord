@@ -1,13 +1,10 @@
-using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Configuration;
 using Njord.Domain.Weather;
-using Njord.Ingest;
 using Njord.Messages.Pipeline;
 using Njord.Mqtt;
-using Njord.Pipeline;
 using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;

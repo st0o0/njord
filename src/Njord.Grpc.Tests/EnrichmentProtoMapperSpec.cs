@@ -1,7 +1,5 @@
 using Njord.Analysis;
 using Njord.Domain.Weather;
-using Njord.Grpc;
-using Njord.Grpc.V2;
 using DomainAlert = Njord.Analysis.Alert;
 using DomainAlertSeverity = Njord.Analysis.AlertSeverity;
 using DomainAlertType = Njord.Analysis.AlertType;

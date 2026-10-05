@@ -4,7 +4,6 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Configuration;
 using Njord.Domain.Sensors;
 using Njord.Messages.Sensors;
-using Njord.Sensors;
 using Njord.Tests.Shared;
 
 namespace Njord.Sensors.Tests;

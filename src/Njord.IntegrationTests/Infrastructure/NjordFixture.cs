@@ -24,7 +24,6 @@ using Njord.Health;
 using Njord.Ingest;
 using Njord.Mqtt;
 using Njord.Pipeline;
-using Njord.Tests.Shared;
 
 namespace Njord.IntegrationTests.Infrastructure;
 

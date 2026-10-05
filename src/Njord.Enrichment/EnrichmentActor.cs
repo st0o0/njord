@@ -13,7 +13,6 @@ using Njord.Diagnostics;
 using Njord.Domain.Sensors;
 using Njord.Domain.Weather;
 using Njord.Messages.Egress;
-using Njord.Messages.Pipeline;
 using Njord.Messages.Sensors;
 using Servus.Akka;
 

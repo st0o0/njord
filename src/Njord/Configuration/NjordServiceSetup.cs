@@ -1,4 +1,3 @@
-using Akka.Hosting;
 using Microsoft.Extensions.Options;
 using Njord.Diagnostics;
 using Njord.Domain.Weather;

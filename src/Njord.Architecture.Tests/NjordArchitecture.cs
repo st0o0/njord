@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using ArchUnitNET.Domain;
 using ArchUnitNET.Loader;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;

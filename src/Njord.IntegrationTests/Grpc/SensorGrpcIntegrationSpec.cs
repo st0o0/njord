@@ -1,5 +1,4 @@
 using Akka.Actor;
-using Akka.TestKit;
 using Njord.Grpc.V2;
 using Njord.IntegrationTests.Infrastructure;
 using Njord.Messages.Sensors;

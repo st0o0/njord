@@ -1,4 +1,3 @@
-using System.Net.Http;
 using Akka.Actor;
 using Akka.Event;
 using Microsoft.Extensions.Logging;

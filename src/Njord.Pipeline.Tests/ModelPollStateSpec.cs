@@ -1,5 +1,4 @@
 using Njord.Messages.Pipeline;
-using Njord.Pipeline;
 
 namespace Njord.Pipeline.Tests;
 

@@ -1,6 +1,5 @@
 using Akka.Event;
 using Akka.Persistence;
-using Njord.Actors;
 using Njord.Messages.Common;
 using Njord.Messages.Snapshots;
 using Njord.Persistence;

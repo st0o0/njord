@@ -2,7 +2,6 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Hosting;
 using Akka.Streams;
-using Akka.Streams.Dsl;
 using Njord.Actors;
 using Njord.Tests.Shared;
 using Servus.Akka;
