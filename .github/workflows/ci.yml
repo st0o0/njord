@@ -19,7 +19,7 @@ jobs:
       solution-file: Njord.slnx
       locked-mode: false
 
-  python:
+  python-test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -33,6 +33,15 @@ jobs:
         run: pip install grpcio "protobuf>=5.0,<7.0" pytest pytest-asyncio pytest-homeassistant-custom-component voluptuous
       - name: Run tests
         run: python -m pytest ha/tests/ -v --tb=short
+
+  python-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
       - name: Lint
         run: |
           pip install ruff
