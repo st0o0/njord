@@ -320,6 +320,17 @@ Rules apply to production code (`src/Njord/`).
 - **Mock-call assertions specify exact args and count** —
   `mock.Received(1).Method(Arg.Is<T>(x => ...))`, not just "was called" /
   "didn't throw."
+- **NSubstitute for plain-interface mocking, when actually needed.** Not
+  currently a dependency here - no project collaborator has needed a
+  hand-rolled stub class yet (actor collaborators go through
+  `TestProbe`/real actors, never mocked). Reach for
+  `Substitute.For<T>()` + `sub.Member(...).Returns(...)` the first time a
+  non-actor interface needs faking, instead of writing a new stub class by
+  hand (see FunkArr's `IDataFiles`/`IHttpClientFactory` tests for the
+  pattern). A stateful shared fake with its own small, purpose-built API
+  (like `Njord.Tests.Shared.FakeOpenMeteoClient`) is still the better choice
+  over NSubstitute when many test files need the same simple toggle
+  behavior.
 - **`Assert.IsType<T>(obj, exactMatch: false)`** to prove interface/base-type
   conformance instead of an unchecked cast.
 - **No `Thread.Sleep`/arbitrary delay for async or eventually-consistent
