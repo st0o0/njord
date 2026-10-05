@@ -1,3 +1,4 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Force LF everywhere — matches .editorconfig end_of_line = lf
+* text=auto eol=lf
+*.sh text eol=lf
 *.verified.txt text eol=lf working-tree-encoding=UTF-8
