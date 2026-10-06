@@ -1,5 +1,3 @@
-using Njord.Tests.Shared;
-
 namespace Njord.Persistence.Tests;
 
 public sealed class SchedulerDtoRoundtripSpec

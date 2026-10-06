@@ -121,9 +121,7 @@ src/
   Njord.Mqtt.Tests/           # MQTT discovery, connection, egress, golden masters
   Njord.Grpc.Tests/           # gRPC service specs
   Njord.IntegrationTests/      # Integration: NjordFixture (TestServer + TestProbes), health,
-                              #   configuration, gRPC integration, Testcontainers (Mosquitto),
-                              #   NjordFixture-based HTTP/gRPC tests (requires Docker for
-                              #   Testcontainers specs; skipped in non-Docker CI)
+                              #   configuration, gRPC integration
   Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
@@ -155,9 +153,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 870 tests (Domain 70, Persistence 22, Core 341, Egress 6, Grpc 74,
+Current total: 845 tests (Domain 70, Persistence 22, Core 341, Egress 6, Grpc 74,
 Pipeline 111, Mqtt 99, Enrichment 51, Ingest 15, Sensors 6, Architecture 27,
-IntegrationTests 43 (5 skipped without Docker)). CI's
+IntegrationTests 18). CI's
 `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -166,8 +164,8 @@ limit parallel test modules (`--max-parallel-test-modules`) if flakes appear.
 Tests are xUnit v3 on Microsoft.Testing.Platform — `dotnet run`, **not** `dotnet test`.
 Shared test infrastructure (fixtures, fakes, helpers) lives in `Njord.Tests.Shared`.
 
-Integration tests (`Njord.IntegrationTests`) require Docker for Testcontainers
-(Mosquitto). They are skipped automatically when Docker is unavailable. Run them with:
+Integration tests (`Njord.IntegrationTests`) use `NjordFixture` (TestServer +
+TestProbes) and do not require Docker. Run them with:
 ```bash
 dotnet run --project Njord.IntegrationTests/Njord.IntegrationTests.csproj
 ```

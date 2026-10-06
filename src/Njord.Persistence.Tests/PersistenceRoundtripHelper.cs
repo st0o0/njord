@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Njord.Tests.Shared;
+namespace Njord.Persistence.Tests;
 
 public static class PersistenceRoundtripHelper
 {
