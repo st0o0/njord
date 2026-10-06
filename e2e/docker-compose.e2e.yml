@@ -1,0 +1,58 @@
+services:
+  njord:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: njord-e2e
+    restart: "no"
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - njord-data:/app/data
+    environment:
+      # ── Location (minimal: 1 location) ────────────────────────
+      - Njord__Locations__0__Name=lucerne
+      - Njord__Locations__0__Latitude=47.05
+      - Njord__Locations__0__Longitude=8.31
+
+      # ── Models (2 models for multi-model + consensus testing) ─
+      - Njord__Models__0=icon_d2
+      - Njord__Models__1=ecmwf_ifs025
+
+      # ── Forecast ──────────────────────────────────────────────
+      - Njord__ForecastDays=4
+      - Njord__Horizons__0=3
+      - Njord__Horizons__1=6
+      - Njord__Horizons__2=12
+      - Njord__Horizons__3=24
+      - Njord__Horizons__4=48
+      - Njord__Horizons__5=72
+
+      # ── Parameters ────────────────────────────────────────────
+      - Njord__Parameters__Groups__0=Weather
+
+
+      # ── Enrichment (all features enabled) ─────────────────────
+      - Njord__Enrichment__Consensus__Enabled=true
+      - Njord__Enrichment__Alerts__Enabled=true
+      - Njord__Enrichment__Derived__Enabled=true
+      - Njord__Enrichment__Trends__Enabled=true
+      - Njord__Enrichment__Indices__Enabled=true
+      - Njord__Enrichment__History__Enabled=true
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: ha-e2e
+    restart: "no"
+    ports:
+      - "8123:8123"
+    volumes:
+      - ha-config:/config
+      - ../../ha-njord/custom_components/njord:/config/custom_components/njord:ro
+    environment:
+      - TZ=Europe/Zurich
+
+volumes:
+  njord-data:
+  ha-config:
