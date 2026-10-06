@@ -182,7 +182,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         // will keep resolving ActorRegistry.Get<IPipelineActor>(), which keeps
         // returning the same (now-dead) ref, and should back off rather than
         // spin in a tight watch/Terminated loop.
-        var pipeline = await ActorRegistry.GetAsync<IPipelineActor>();
+        var pipeline = await ActorRegistry.GetAsync<IPipelineActor>(TestContext.Current.CancellationToken);
         await WatchAsync(pipeline);
         await pipeline.GracefulStop(TimeSpan.FromSeconds(2));
         await ExpectTerminatedAsync(pipeline, cancellationToken: TestContext.Current.CancellationToken);
