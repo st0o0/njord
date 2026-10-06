@@ -1,6 +1,6 @@
 using Njord.Analysis;
 
-namespace Njord.Core.Tests.Analysis;
+namespace Njord.Compute.Tests.Analysis;
 
 public sealed class IndexScorerSpec
 {

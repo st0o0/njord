@@ -5,6 +5,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\Njord.Compute\Njord.Compute.csproj" />
         <ProjectReference Include="..\Njord.Domain\Njord.Domain.csproj" />
         <ProjectReference Include="..\Njord.Messages\Njord.Messages.csproj" />
         <ProjectReference Include="..\Njord.Persistence\Njord.Persistence.csproj" />

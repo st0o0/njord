@@ -28,12 +28,18 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Core_references_only_Domain_Messages_and_Persistence()
+    public void Compute_references_only_Domain()
     {
-        Assert.Empty(NjordReferences<Njord.Actors.ISchedulerActor>().Except(["Njord.Domain", "Njord.Messages", "Njord.Persistence"]));
+        Assert.Empty(NjordReferences<Njord.Analysis.ConsensusSnapshot>().Except(["Njord.Domain"]));
     }
 
-    private static readonly string[] CoreAndBelow = ["Njord.Core", "Njord.Domain", "Njord.Messages", "Njord.Persistence"];
+    [Fact]
+    public void Core_references_only_Domain_Messages_Persistence_and_Compute()
+    {
+        Assert.Empty(NjordReferences<Njord.Actors.ISchedulerActor>().Except(["Njord.Compute", "Njord.Domain", "Njord.Messages", "Njord.Persistence"]));
+    }
+
+    private static readonly string[] CoreAndBelow = ["Njord.Compute", "Njord.Core", "Njord.Domain", "Njord.Messages", "Njord.Persistence"];
 
     [Fact]
     public void Ingest_references_only_Core_and_below()

@@ -84,16 +84,17 @@ All code, specs, docs, and communication in English.
 src/
   Njord.slnx
 
-  # /Foundation/ — shared types, messages, persistence, infrastructure
+  # /Foundation/ — shared types, messages, persistence, computation, infrastructure
   Njord.Domain/               # Pure weather + sensor records (no Njord references)
   Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references)
   Njord.Messages/             # Actor message records (-> Domain)
-  Njord.Core/                 # Options, diagnostics, actor keys, analysis computers,
-                              #   StreamSupervision (-> Domain, Messages, Persistence)
+  Njord.Compute/              # Pure analysis computation (-> Domain only)
     Analysis/                 # Consensus, alerts, derived, trends, indices, history computers
-    Configuration/            # Options, validators, budget calculator
+    Configuration/            # Compute-parameter options (AlertOptions, HistoryOptions, IndexOptions)
+  Njord.Core/                 # Options validators, diagnostics, actor keys,
+                              #   StreamSupervision (-> Domain, Messages, Persistence, Compute)
+    Configuration/            # Validators, budget calculator
     Diagnostics/              # Metrics
-    Weather/ + Sensors/       # (in Domain, not here)
 
   # /Domain/ — feature libraries (each -> Core only)
   Njord.Ingest/               # Open-Meteo client, DTOs, JSON source generator
@@ -112,7 +113,8 @@ src/
   # /Tests/ — one test project per production project
   Njord.Domain.Tests/         # Weather + sensor record specs
   Njord.Persistence.Tests/    # DTO wire-format specs (Verify)
-  Njord.Core.Tests/           # Configuration, Diagnostics, Analysis, StreamConsumerActor
+  Njord.Compute.Tests/        # Pure analysis computation specs (no Akka)
+  Njord.Core.Tests/           # Configuration, Diagnostics, StreamConsumerActor
   Njord.Ingest.Tests/         # OpenMeteoClient specs
   Njord.Sensors.Tests/        # SensorHub specs
   Njord.Pipeline.Tests/       # Scheduler, budget, poll stage specs
@@ -126,9 +128,9 @@ src/
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
 
-Reference direction: Domain/Persistence <- Messages <- Core <- feature libs
+Reference direction: Domain/Persistence <- Messages <- Compute <- Core <- feature libs
 (Ingest, Sensors, Grpc, Pipeline, Egress, Mqtt, Enrichment) <- host. Feature libs reference only Njord.Core (and
-below), never each other and never the host; they reach each other's actors
+below, including Compute transitively), never each other and never the host; they reach each other's actors
 through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs`. Registration
 stays central in the host. Enforced by project references plus `Njord.Architecture.Tests/LayerReferenceSpec.cs` and the
 lateral/upward ArchUnit rules in `Njord.Architecture.Tests/ZoneArchitectureSpec.cs`.
@@ -153,8 +155,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 845 tests (Domain 70, Persistence 22, Core 341, Egress 6, Grpc 74,
-Pipeline 111, Mqtt 99, Enrichment 51, Ingest 15, Sensors 6, Architecture 27,
+Current total: 837 tests (Domain 70, Persistence 22, Compute 216, Core 122, Egress 6,
+Grpc 74, Pipeline 109, Mqtt 99, Enrichment 51, Ingest 15, Sensors 6, Architecture 29,
 IntegrationTests 18). CI's
 `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small

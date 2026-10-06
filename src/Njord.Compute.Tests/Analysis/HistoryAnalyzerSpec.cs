@@ -2,7 +2,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Analysis;
 using Njord.Domain.Weather;
 
-namespace Njord.Core.Tests.Analysis;
+namespace Njord.Compute.Tests.Analysis;
 
 public sealed class HistoryAnalyzerSpec
 {

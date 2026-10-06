@@ -1,7 +1,7 @@
 using Njord.Analysis;
 using Njord.Configuration;
 
-namespace Njord.Core.Tests.Analysis;
+namespace Njord.Compute.Tests.Analysis;
 
 public sealed class PreferenceResolverSpec
 {

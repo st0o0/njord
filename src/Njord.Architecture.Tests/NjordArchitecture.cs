@@ -29,7 +29,7 @@ internal static class NjordArchitecture
         .ToArray();
 
     private static readonly string[] FeatureLibraryNames = ["Njord.Pipeline", "Njord.Egress", "Njord.Grpc", "Njord.Ingest", "Njord.Sensors", "Njord.Mqtt", "Njord.Enrichment"];
-    private static readonly string[] BaseLibraryNames = ["Njord.Core", "Njord.Messages", "Njord.Persistence", "Njord.Domain"];
+    private static readonly string[] BaseLibraryNames = ["Njord.Compute", "Njord.Core", "Njord.Messages", "Njord.Persistence", "Njord.Domain"];
 
     public static readonly ArchUnitNET.Domain.Architecture Instance =
         new ArchLoader()

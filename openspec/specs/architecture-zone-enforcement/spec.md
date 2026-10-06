@@ -42,6 +42,28 @@ Every test class in every `Njord.*Tests` assembly (the per-library test projects
 - **WHEN** a class containing `[Fact]` or `[Theory]` methods is unsealed or not suffixed `Spec`
 - **THEN** the architecture test run fails and lists the class
 
+### Requirement: Layer reference direction
+Foundation libraries SHALL follow this reference direction: `Domain` and `Persistence` reference no Njord assembly; `Messages` references only `Domain`; `Compute` references only `Domain`; `Core` references only `Domain`, `Messages`, `Persistence`, and `Compute`. Feature libraries reference only `Core` and below. The host references all.
+
+#### Scenario: Compute references only Domain
+- **WHEN** `LayerReferenceSpec` checks `Njord.Compute` assembly references
+- **THEN** the only Njord reference SHALL be `Njord.Domain`
+
+#### Scenario: Core references include Compute
+- **WHEN** `LayerReferenceSpec` checks `Njord.Core` assembly references
+- **THEN** the allowed Njord references SHALL be `Njord.Domain`, `Njord.Messages`, `Njord.Persistence`, and `Njord.Compute`
+
+#### Scenario: Feature libraries reference Core and below
+- **WHEN** `LayerReferenceSpec` checks a feature library's assembly references
+- **THEN** the allowed set SHALL include `Njord.Compute` (transitively via Core and below)
+
+### Requirement: Base library registration
+The architecture test infrastructure SHALL list `Njord.Compute` as a base library alongside `Njord.Core`, `Njord.Domain`, `Njord.Messages`, and `Njord.Persistence`.
+
+#### Scenario: BaseLibraryNames includes Compute
+- **WHEN** `NjordArchitecture.BaseLibraryNames` is inspected
+- **THEN** it SHALL contain `"Njord.Compute"`
+
 ### Requirement: Feature libraries do not reference each other
 `Njord.Pipeline`, `Njord.Egress`, `Njord.Grpc`, `Njord.Ingest` and `Njord.Sensors` SHALL depend only on `Njord.Core`, `Njord.Messages`, `Njord.Persistence` and `Njord.Domain` (never on each other, never on the `Njord` host). The reference direction SHALL be host -> feature libraries -> `Njord.Core` -> `Njord.Messages`/`Njord.Persistence` -> `Njord.Domain`.
 

@@ -3,7 +3,7 @@ using Njord.Analysis;
 using Njord.Configuration;
 using Njord.Domain.Weather;
 
-namespace Njord.Core.Tests.Analysis;
+namespace Njord.Compute.Tests.Analysis;
 
 public sealed class IndexResultSpec
 {
