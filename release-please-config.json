@@ -4,7 +4,7 @@
     "src": {
       "release-type": "simple",
       "component": "njord",
-      "include-component-in-tag": true,
+      "include-component-in-tag": false,
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "changelog-sections": [
