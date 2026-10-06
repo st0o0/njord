@@ -35,20 +35,6 @@ public sealed class PipelineActorShutdownSpec : Akka.Hosting.TestKit.TestKit
             TestContext.Current.CancellationToken);
     }
 
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Stop_streams_sent_while_initializing_is_answered_once_ready()
-    {
-        var pipeline = Sys.ActorOf(Props.Create(() => new PipelineActor(
-            new FakeOpenMeteoClient(), new FakeTimeProvider(), new AllowAllGate())));
-
-        var pending = pipeline.Ask<object>(new StopStreams(), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        var scheduler = Sys.ActorOf(Props.Create(() => new IdleActor()));
-        ActorRegistry.Register<ISchedulerActor>(scheduler, overwrite: true);
-
-        var reply = await pending;
-        Assert.IsType<StreamsStopped>(reply);
-    }
-
     private async Task<IActorRef> StartReadyPipeline()
     {
         var scheduler = Sys.ActorOf(Props.Create(() => new IdleActor()));

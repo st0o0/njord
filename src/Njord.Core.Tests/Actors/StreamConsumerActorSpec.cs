@@ -1,6 +1,7 @@
 using Akka.Actor;
 using Akka.Event;
 using Akka.Hosting;
+using Akka.Hosting.TestKit;
 using Akka.Streams;
 using Njord.Actors;
 using Njord.Tests.Shared;
@@ -8,19 +9,17 @@ using Servus.Akka;
 
 namespace Njord.Core.Tests.Actors;
 
-public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
+public sealed class StreamConsumerActorSpec : TestKit
 {
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
-    {
-        builder.AddTestTimefactor();
-    }
+        => builder.AddTestTimefactor();
 
-    // -- marker keys for ActorRegistry --
     private sealed class DepAKey;
+
     private sealed class DepBKey;
 
-    // -- messages for the test actor --
     private sealed record DepAResolved(IActorRef Ref);
+
     private sealed record DepBResolved(IActorRef Ref);
 
     private sealed class TestStreamConsumer : StreamConsumerActor
@@ -62,14 +61,24 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         {
             Receive<DepAResolved>(msg =>
             {
-                if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+                if (IsDeadRef(msg.Ref))
+                {
+                    ScheduleRetryResolve();
+                    return;
+                }
+
                 TrackDependency(msg.Ref);
                 _depA = msg.Ref;
                 TryTransition();
             });
             Receive<DepBResolved>(msg =>
             {
-                if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
+                if (IsDeadRef(msg.Ref))
+                {
+                    ScheduleRetryResolve();
+                    return;
+                }
+
                 TrackDependency(msg.Ref);
                 _depB = msg.Ref;
                 TryTransition();
@@ -91,273 +100,287 @@ public sealed class StreamConsumerActorSpec : Akka.Hosting.TestKit.TestKit
         }
     }
 
-        private sealed class ResettableTestStreamConsumer : StreamConsumerActor
+    private sealed class ResettableTestStreamConsumer : StreamConsumerActor
+    {
+        private IActorRef? _depA;
+        private IActorRef? _depB;
+        private int _materializeCount;
+
+        public sealed record SetGraphTcs(TaskCompletionSource Tcs);
+
+        public sealed record GetMaterializeCount;
+
+        private TaskCompletionSource _graphMaterialized;
+
+        public ResettableTestStreamConsumer(TaskCompletionSource graphMaterialized)
         {
-            private IActorRef? _depA;
-            private IActorRef? _depB;
-            private int _materializeCount;
+            _graphMaterialized = graphMaterialized;
+        }
 
-            public sealed record SetGraphTcs(TaskCompletionSource Tcs);
+        public static Props CreateProps(TaskCompletionSource graphMaterialized)
+            => Props.Create(() => new ResettableTestStreamConsumer(graphMaterialized));
 
-            public sealed record GetMaterializeCount;
+        protected override void ResolveInitialDependencies()
+        {
+            _depA = Context.GetActor<DepAKey>();
+            TrackDependency(_depA);
+            _depB = Context.GetActor<DepBKey>();
+            TrackDependency(_depB);
+        }
 
-            private TaskCompletionSource _graphMaterialized;
+        protected override void RequestSourceRefs()
+        {
+            TryTransition();
+        }
 
-            public ResettableTestStreamConsumer(TaskCompletionSource graphMaterialized)
+        protected override void ResolveDependencies()
+        {
+            Context.GetActorAsync<DepAKey>().PipeTo(Self, success: r => new DepAResolved(r));
+            Context.GetActorAsync<DepBKey>().PipeTo(Self, success: r => new DepBResolved(r));
+        }
+
+        protected override void ConfigureWaitingForRefs()
+        {
+            Receive<DepAResolved>(msg =>
             {
-                _graphMaterialized = graphMaterialized;
-            }
+                if (IsDeadRef(msg.Ref))
+                {
+                    ScheduleRetryResolve();
+                    return;
+                }
 
-            public static Props CreateProps(TaskCompletionSource graphMaterialized)
-                => Props.Create(() => new ResettableTestStreamConsumer(graphMaterialized));
-
-            protected override void ResolveInitialDependencies()
-            {
-                _depA = Context.GetActor<DepAKey>();
-                TrackDependency(_depA);
-                _depB = Context.GetActor<DepBKey>();
-                TrackDependency(_depB);
-            }
-
-            protected override void RequestSourceRefs()
-            {
+                TrackDependency(msg.Ref);
+                _depA = msg.Ref;
                 TryTransition();
-            }
-
-            protected override void ResolveDependencies()
+            });
+            Receive<DepBResolved>(msg =>
             {
-                Context.GetActorAsync<DepAKey>().PipeTo(Self, success: r => new DepAResolved(r));
-                Context.GetActorAsync<DepBKey>().PipeTo(Self, success: r => new DepBResolved(r));
-            }
-
-            protected override void ConfigureWaitingForRefs()
-            {
-                Receive<DepAResolved>(msg =>
+                if (IsDeadRef(msg.Ref))
                 {
-                    if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
-                    TrackDependency(msg.Ref);
-                    _depA = msg.Ref;
-                    TryTransition();
-                });
-                Receive<DepBResolved>(msg =>
-                {
-                    if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
-                    TrackDependency(msg.Ref);
-                    _depB = msg.Ref;
-                    TryTransition();
-                });
-                Receive<SetGraphTcs>(msg => _graphMaterialized = msg.Tcs);
-                Receive<GetMaterializeCount>(_ => Sender.Tell(_materializeCount));
-            }
+                    ScheduleRetryResolve();
+                    return;
+                }
 
-            protected override void ConfigureReady()
-            {
-                Receive<SetGraphTcs>(msg => _graphMaterialized = msg.Tcs);
-                Receive<GetMaterializeCount>(_ => Sender.Tell(_materializeCount));
-            }
-
-            protected override bool AllRefsReady() => _depA is not null && _depB is not null;
-
-            protected override void MaterializeGraph(SharedKillSwitch killSwitch)
-            {
-                _materializeCount++;
-                _graphMaterialized.TrySetResult();
-            }
-
-            protected override void OnDependencyLost()
-            {
-                _depA = null;
-                _depB = null;
-            }
+                TrackDependency(msg.Ref);
+                _depB = msg.Ref;
+                TryTransition();
+            });
+            Receive<SetGraphTcs>(msg => _graphMaterialized = msg.Tcs);
+            Receive<GetMaterializeCount>(_ => Sender.Tell(_materializeCount));
         }
 
-        // -- helpers --
-
-        private (IActorRef DepA, IActorRef DepB) RegisterDeps()
+        protected override void ConfigureReady()
         {
-            var depA = CreateTestProbe();
-            var depB = CreateTestProbe();
-            ActorRegistry.Register<DepAKey>(depA, overwrite: true);
-            ActorRegistry.Register<DepBKey>(depB, overwrite: true);
-            return (depA, depB);
+            Receive<SetGraphTcs>(msg => _graphMaterialized = msg.Tcs);
+            Receive<GetMaterializeCount>(_ => Sender.Tell(_materializeCount));
         }
 
-        private async Task<IActorRef> CreateAndWaitForReady(
-            TaskCompletionSource graphTcs, IActorRef? depA = null, IActorRef? depB = null)
+        protected override bool AllRefsReady() => _depA is not null && _depB is not null;
+
+        protected override void MaterializeGraph(SharedKillSwitch killSwitch)
         {
-            if (depA is not null)
-            {
-                ActorRegistry.Register<DepAKey>(depA, overwrite: true);
-            }
-
-            if (depB is not null)
-            {
-                ActorRegistry.Register<DepBKey>(depB, overwrite: true);
-            }
-
-            var consumer = Sys.ActorOf(TestStreamConsumer.CreateProps(graphTcs));
-            await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-            return consumer;
+            _materializeCount++;
+            _graphMaterialized.TrySetResult();
         }
 
-        // -- tests --
-
-        [Fact(Timeout = 30000)]
-        public async Task Dead_ref_detection_schedules_retry_instead_of_watching()
+        protected override void OnDependencyLost()
         {
-            // Arrange: register deps and wait for initial graph materialization
-            var (depA, depB) = RegisterDeps();
-            var graphTcs = new TaskCompletionSource();
-            var consumer = await CreateAndWaitForReady(graphTcs, depA, depB);
-
-            // Subscribe to DeadLetters to count tight-loop messages
-            var deadLetterProbe = CreateTestProbe();
-            Sys.EventStream.Subscribe(deadLetterProbe, typeof(DeadLetter));
-
-            // Act: stop depA. The consumer sees Terminated, re-resolves, gets
-            // the same (dead) ref back from registry, and should schedule a retry
-            // rather than spinning in a tight loop.
-            await depA.GracefulStop(TimeSpan.FromSeconds(2));
-
-            // Wait long enough to detect a tight loop if one existed.
-            // We use Task.Delay intentionally: the Akka scheduler is wall-clock based,
-            // so we need real-time waiting to observe retry behavior.
-            await Task.Delay(500, TestContext.Current.CancellationToken);
-
-            // Drain whatever dead letters accumulated in that window
-            var deadLetterCount = 0;
-            while (deadLetterProbe.HasMessages)
-            {
-                deadLetterProbe.ReceiveOne(TimeSpan.FromMilliseconds(50), TestContext.Current.CancellationToken);
-                deadLetterCount++;
-            }
-
-            Assert.True(deadLetterCount <= 10,
-                $"Expected at most 10 dead letters but got {deadLetterCount} — possible tight loop");
-        }
-
-        [Fact(Timeout = 30000)]
-        public async Task Stale_response_does_not_trigger_premature_ready()
-        {
-            // Arrange: register deps and wait for initial graph materialization
-            var (depA, depB) = RegisterDeps();
-            var graphTcs = new TaskCompletionSource();
-            var consumer = Sys.ActorOf(
-                ResettableTestStreamConsumer.CreateProps(graphTcs));
-
-            await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-
-            // Prepare a second TCS to detect a second MaterializeGraph call
-            var secondGraphTcs = new TaskCompletionSource();
-            consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(secondGraphTcs));
-            await ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
-
-            // Act: stop depA so the consumer enters WaitingForRefs.
-            // The dead ref is detected on the first re-resolve and a retry is
-            // scheduled (1 s delay = 2^0). Within that window the stale DepB
-            // response must NOT cause a premature transition.
-            await depA.GracefulStop(TimeSpan.FromSeconds(2));
-
-            // Assert: MaterializeGraph should NOT have been called a second time
-            // while the retry is still pending and the dep is dead.
-            // Wait 500ms real time (inside the 1s Akka scheduler retry window).
-            // We use Task.Delay here intentionally: the Akka scheduler is wall-clock
-            // based, so we need a real-time wait to stay inside the retry window.
-            await Task.Delay(500, TestContext.Current.CancellationToken);
-            Assert.False(secondGraphTcs.Task.IsCompleted,
-                "MaterializeGraph should not have been called while retry is pending and dep is dead");
-        }
-
-        [Fact(Timeout = 5000)]
-        public async Task Untracked_terminated_is_ignored()
-        {
-            // Arrange: register deps and wait for initial graph materialization
-            var (depA, depB) = RegisterDeps();
-            var graphTcs = new TaskCompletionSource();
-            var consumer = Sys.ActorOf(
-                ResettableTestStreamConsumer.CreateProps(graphTcs));
-            await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-
-            // Create an untracked actor and stop it so a Terminated is delivered
-            var untracked = Sys.ActorOf(Props.Create(() => new BlackHoleActor()));
-            // Manually watch the untracked actor from a probe, then stop it —
-            // but the consumer never tracked it, so its Terminated should be ignored.
-            Watch(untracked);
-            Sys.Stop(untracked);
-            await ExpectTerminatedAsync(untracked, cancellationToken: TestContext.Current.CancellationToken);
-
-            // Assert: the consumer is still alive and in Ready (responds to queries)
-            // The Ask itself verifies the actor is responsive — no artificial delay needed.
-            var count = await consumer.Ask<int>(
-                new ResettableTestStreamConsumer.GetMaterializeCount(),
-                TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-            Assert.Equal(1, count);
-        }
-
-        [Fact(Timeout = 60000)]
-        public async Task Retry_count_resets_on_successful_transition()
-        {
-            // Arrange: register deps and wait for initial graph
-            var depA = CreateTestProbe();
-            var depB = CreateTestProbe();
-            ActorRegistry.Register<DepAKey>(depA, overwrite: true);
-            ActorRegistry.Register<DepBKey>(depB, overwrite: true);
-
-            var graphTcs = new TaskCompletionSource();
-            var consumer = Sys.ActorOf(
-                ResettableTestStreamConsumer.CreateProps(graphTcs));
-            await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-
-            // First failure: stop depA
-            Watch(depA);
-            await depA.GracefulStop(TimeSpan.FromSeconds(2));
-            await ExpectTerminatedAsync(depA, cancellationToken: TestContext.Current.CancellationToken);
-
-            // Register a new depA so the retry resolves successfully
-            var newDepA = CreateTestProbe();
-            ActorRegistry.Register<DepAKey>(newDepA, overwrite: true);
-
-            // Wait for recovery (retry delay is 1s for _retryCount=0)
-            var secondGraphTcs = new TaskCompletionSource();
-            consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(secondGraphTcs));
-            await secondGraphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-
-            // Second failure: stop newDepA
-            Watch(newDepA);
-            await newDepA.GracefulStop(TimeSpan.FromSeconds(2));
-            await ExpectTerminatedAsync(newDepA, cancellationToken: TestContext.Current.CancellationToken);
-
-            // Set the TCS before registering the new dep so the consumer uses it
-            // even if recovery completes instantly (no retry delay when the resolved
-            // ref is already alive).
-            var thirdGraphTcs = new TaskCompletionSource();
-            consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(thirdGraphTcs));
-
-            // Register yet another depA
-            var thirdDepA = CreateTestProbe();
-            ActorRegistry.Register<DepAKey>(thirdDepA, overwrite: true);
-            await AwaitConditionAsync(async () => { await Task.Yield(); return thirdGraphTcs.Task.IsCompleted; }, TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-            Assert.True(thirdGraphTcs.Task.IsCompletedSuccessfully);
-        }
-
-        [Fact]
-        public void Exponential_backoff_caps_at_30_seconds()
-        {
-            // Unit-level verification of the backoff formula used in ScheduleRetryResolve.
-            // The formula is: delay = min(2^retryCount, 30)
-            var expected = new[] { 1, 2, 4, 8, 16, 30, 30, 30 };
-
-            for (var i = 0; i < expected.Length; i++)
-            {
-                var delay = Math.Min(Math.Pow(2, i), 30);
-                Assert.Equal(expected[i], (int)delay);
-            }
-        }
-
-        // -- inner fakes --
-
-        private sealed class BlackHoleActor : ReceiveActor
-        {
-            public BlackHoleActor() { ReceiveAny(_ => { }); }
+            _depA = null;
+            _depB = null;
         }
     }
+
+    // -- helpers --
+
+    private (IActorRef DepA, IActorRef DepB) RegisterDeps()
+    {
+        var depA = CreateTestProbe();
+        var depB = CreateTestProbe();
+        ActorRegistry.Register<DepAKey>(depA, overwrite: true);
+        ActorRegistry.Register<DepBKey>(depB, overwrite: true);
+        return (depA, depB);
+    }
+
+    private async Task CreateAndWaitForReady(TaskCompletionSource graphTcs, IActorRef? depA = null,
+        IActorRef? depB = null)
+    {
+        if (depA is not null)
+        {
+            ActorRegistry.Register<DepAKey>(depA, overwrite: true);
+        }
+
+        if (depB is not null)
+        {
+            ActorRegistry.Register<DepBKey>(depB, overwrite: true);
+        }
+
+        Sys.ActorOf(TestStreamConsumer.CreateProps(graphTcs));
+        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+    }
+
+    [Fact(Timeout = 30000)]
+    public async Task Dead_ref_detection_schedules_retry_instead_of_watching()
+    {
+        // Arrange: register deps and wait for initial graph materialization
+        var (depA, depB) = RegisterDeps();
+        var graphTcs = new TaskCompletionSource();
+        await CreateAndWaitForReady(graphTcs, depA, depB);
+
+        // Subscribe to DeadLetters to count tight-loop messages
+        var deadLetterProbe = CreateTestProbe();
+        Sys.EventStream.Subscribe(deadLetterProbe, typeof(DeadLetter));
+
+        // Act: stop depA. The consumer sees Terminated, re-resolves, gets
+        // the same (dead) ref back from registry, and should schedule a retry
+        // rather than spinning in a tight loop.
+        await depA.GracefulStop(TimeSpan.FromSeconds(2));
+
+        // Wait long enough to detect a tight loop if one existed.
+        // We use Task.Delay intentionally: the Akka scheduler is wall-clock based,
+        // so we need real-time waiting to observe retry behavior.
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+
+        // Drain whatever dead letters accumulated in that window
+        var deadLetterCount = 0;
+        while (deadLetterProbe.HasMessages)
+        {
+            await deadLetterProbe.ReceiveOneAsync(TimeSpan.FromMilliseconds(50), TestContext.Current.CancellationToken);
+            deadLetterCount++;
+        }
+
+        Assert.True(deadLetterCount <= 10,
+            $"Expected at most 10 dead letters but got {deadLetterCount} — possible tight loop");
+    }
+
+    [Fact(Timeout = 30000)]
+    public async Task Stale_response_does_not_trigger_premature_ready()
+    {
+        // Arrange: register deps and wait for initial graph materialization
+        var (depA, _) = RegisterDeps();
+        var graphTcs = new TaskCompletionSource();
+        var consumer = Sys.ActorOf(
+            ResettableTestStreamConsumer.CreateProps(graphTcs));
+
+        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        // Prepare a second TCS to detect a second MaterializeGraph call
+        var secondGraphTcs = new TaskCompletionSource();
+        consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(secondGraphTcs));
+        await ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
+
+        // Act: stop depA so the consumer enters WaitingForRefs.
+        // The dead ref is detected on the first re-resolve and a retry is
+        // scheduled (1 s delay = 2^0). Within that window the stale DepB
+        // response must NOT cause a premature transition.
+        await depA.GracefulStop(TimeSpan.FromSeconds(2));
+
+        // Assert: MaterializeGraph should NOT have been called a second time
+        // while the retry is still pending and the dep is dead.
+        // Wait 500ms real time (inside the 1s Akka scheduler retry window).
+        // We use Task.Delay here intentionally: the Akka scheduler is wall-clock
+        // based, so we need a real-time wait to stay inside the retry window.
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+        Assert.False(secondGraphTcs.Task.IsCompleted,
+            "MaterializeGraph should not have been called while retry is pending and dep is dead");
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Untracked_terminated_is_ignored()
+    {
+        // Arrange: register deps and wait for initial graph materialization
+        RegisterDeps();
+        var graphTcs = new TaskCompletionSource();
+        var consumer = Sys.ActorOf(
+            ResettableTestStreamConsumer.CreateProps(graphTcs));
+        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        // Create an untracked actor and stop it so a Terminated is delivered
+        var untracked = Sys.ActorOf(Props.Create(() => new BlackHoleActor()));
+        // Manually watch the untracked actor from a probe, then stop it —
+        // but the consumer never tracked it, so its Terminated should be ignored.
+        await WatchAsync(untracked);
+        Sys.Stop(untracked);
+        await ExpectTerminatedAsync(untracked, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert: the consumer is still alive and in Ready (responds to queries)
+        // The Ask itself verifies the actor is responsive — no artificial delay needed.
+        var count = await consumer.Ask<int>(
+            new ResettableTestStreamConsumer.GetMaterializeCount(),
+            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.Equal(1, count);
+    }
+
+    [Fact(Timeout = 60000)]
+    public async Task Retry_count_resets_on_successful_transition()
+    {
+        // Arrange: register deps and wait for initial graph
+        var depA = CreateTestProbe();
+        var depB = CreateTestProbe();
+        ActorRegistry.Register<DepAKey>(depA, overwrite: true);
+        ActorRegistry.Register<DepBKey>(depB, overwrite: true);
+
+        var graphTcs = new TaskCompletionSource();
+        var consumer = Sys.ActorOf(
+            ResettableTestStreamConsumer.CreateProps(graphTcs));
+        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        // First failure: stop depA
+        await WatchAsync(depA);
+        await depA.GracefulStop(TimeSpan.FromSeconds(2));
+        await ExpectTerminatedAsync(depA, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Register a new depA so the retry resolves successfully
+        var newDepA = CreateTestProbe();
+        ActorRegistry.Register<DepAKey>(newDepA, overwrite: true);
+
+        // Wait for recovery (retry delay is 1s for _retryCount=0)
+        var secondGraphTcs = new TaskCompletionSource();
+        consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(secondGraphTcs));
+        await secondGraphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        // Second failure: stop newDepA
+        await WatchAsync(newDepA);
+        await newDepA.GracefulStop(TimeSpan.FromSeconds(2));
+        await ExpectTerminatedAsync(newDepA, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Set the TCS before registering the new dep so the consumer uses it
+        // even if recovery completes instantly (no retry delay when the resolved
+        // ref is already alive).
+        var thirdGraphTcs = new TaskCompletionSource();
+        consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(thirdGraphTcs));
+
+        // Register yet another depA
+        var thirdDepA = CreateTestProbe();
+        ActorRegistry.Register<DepAKey>(thirdDepA, overwrite: true);
+        await AwaitConditionAsync(async () =>
+        {
+            await Task.Yield();
+            return thirdGraphTcs.Task.IsCompleted;
+        }, TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.True(thirdGraphTcs.Task.IsCompletedSuccessfully);
+    }
+
+    [Fact]
+    public void Exponential_backoff_caps_at_30_seconds()
+    {
+        // Unit-level verification of the backoff formula used in ScheduleRetryResolve.
+        // The formula is: delay = min(2^retryCount, 30)
+        var expected = new[] { 1, 2, 4, 8, 16, 30, 30, 30 };
+
+        for (var i = 0; i < expected.Length; i++)
+        {
+            var delay = Math.Min(Math.Pow(2, i), 30);
+            Assert.Equal(expected[i], (int)delay);
+        }
+    }
+
+    // -- inner fakes --
+
+    private sealed class BlackHoleActor : ReceiveActor
+    {
+        public BlackHoleActor()
+        {
+            ReceiveAny(_ => { });
+        }
+    }
+}
