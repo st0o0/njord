@@ -68,7 +68,7 @@ public sealed class SchedulerActorSnapshotSpec : Akka.Hosting.TestKit.TestKit
         var entryBefore = statesBefore.Entries.Single();
         Assert.Equal(PollPhase.Steady, entryBefore.Phase);
 
-        Watch(Scheduler);
+        await WatchAsync(Scheduler);
         await Scheduler.GracefulStop(TimeSpan.FromSeconds(3));
         await ExpectTerminatedAsync(Scheduler, cancellationToken: TestContext.Current.CancellationToken);
 

@@ -45,7 +45,7 @@ public sealed class OpsGrpcService(
         long dailyUsed = 0;
         try
         {
-            var tracker = _actorRegistry.Get<IBudgetTrackerActor>();
+            var tracker = await _actorRegistry.GetAsync<IBudgetTrackerActor>();
             var usage = await tracker.Ask<QueryBudgetUsageResult>(
                 new QueryBudgetUsage(), AskTimeout);
             monthlyUsed = usage.MonthlyUsed;
@@ -75,7 +75,7 @@ public sealed class OpsGrpcService(
 
         try
         {
-            var scheduler = _actorRegistry.Get<ISchedulerActor>();
+            var scheduler = await _actorRegistry.GetAsync<ISchedulerActor>();
             var snapshot = await scheduler.Ask<QueryPollStatesResult>(new QueryPollStates(), AskTimeout);
             foreach (var entry in snapshot.Entries)
             {
@@ -149,7 +149,7 @@ public sealed class OpsGrpcService(
 
         try
         {
-            var scheduler = _actorRegistry.Get<ISchedulerActor>();
+            var scheduler = await _actorRegistry.GetAsync<ISchedulerActor>();
             var snapshot = await scheduler.Ask<QueryPollStatesResult>(new QueryPollStates(), AskTimeout);
             foreach (var entry in snapshot.Entries)
             {
@@ -188,7 +188,7 @@ public sealed class OpsGrpcService(
 
     public override async Task<TriggerPollResponse> TriggerPoll(TriggerPollRequest request, ServerCallContext context)
     {
-        var scheduler = _actorRegistry.Get<ISchedulerActor>();
+        var scheduler = await _actorRegistry.GetAsync<ISchedulerActor>();
         var result = await scheduler.Ask<TriggerImmediatePollResult>(
             new TriggerImmediatePoll(request.Location, request.Model), AskTimeout);
 

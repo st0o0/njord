@@ -50,7 +50,7 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
         Assert.NotNull(firstRequest);
 
         var oldModelState = ActorRegistry.Get<IModelStateActor>();
-        Watch(oldModelState);
+        await WatchAsync(oldModelState);
         await oldModelState.GracefulStop(TimeSpan.FromSeconds(2));
         await ExpectTerminatedAsync(oldModelState, cancellationToken: ct);
 

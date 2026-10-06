@@ -33,7 +33,9 @@ public sealed class ActorKeyRegistrationSpec : Akka.Hosting.TestKit.TestKit
     {
         builder.AddTestPersistence()
             .WithRemoting(new RemoteOptions { HostName = "localhost", Port = 0 })
-            .WithClustering();
+            .WithClustering()
+            .WithActors((system, _) =>
+                Akka.Cluster.Cluster.Get(system).Join(Akka.Cluster.Cluster.Get(system).SelfAddress));
         NjordActorSystemSetup.WithNjordActors(builder, mqttEnabled: true);
     }
 

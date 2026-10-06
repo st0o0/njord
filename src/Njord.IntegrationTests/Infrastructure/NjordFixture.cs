@@ -129,9 +129,7 @@ public sealed class NjordFixture : IAsyncLifetime
                 .WithClustering()
                 .WithActors((system, registry) =>
                 {
-                    var cluster = Akka.Cluster.Cluster.Get(system);
-                    cluster.Join(cluster.SelfAddress);
-
+                    Akka.Cluster.Cluster.Get(system).Join(Akka.Cluster.Cluster.Get(system).SelfAddress);
                     System = system;
 
                     _schedulerProbe = CreateAndRegister<ISchedulerActor>(system, registry);

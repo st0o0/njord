@@ -58,8 +58,11 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
                 loggers.AddLoggerFactory();
             })
             .WithSqlPersistence(connectionString, providerName, autoInitialize: true)
-            .WithRemoting(new RemoteOptions { HostName = "localhost", Port = 0 })
-            .WithClustering();
+            .WithRemoting(new RemoteOptions { HostName = "localhost", Port = 2552 })
+            .WithClustering(new ClusterOptions
+            {
+                SeedNodes = ["akka.tcp://njord@localhost:2552"]
+            });
 
         return WithNjordActors(builder, njordOptions.Mqtt.Enabled);
     }
@@ -73,7 +76,6 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
                 "Persistence must be configured before the actors are registered (journal plugin is not set).");
         }
 
-        // Tier 0: ShardRegion (registered before all singletons)
         builder.WithShardRegion<IForecastHistoryRegion>(
             "forecast-history",
             (_, _, resolver) => entityId => resolver.Props<ForecastHistoryActor>(entityId),
@@ -84,7 +86,6 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
                 ShouldPassivateIdleEntities = true
             });
 
-        // Tier 0: actors with no dependencies
         builder
             .WithSingleton<IBudgetTrackerActor>("budget-tracker-supervisor",
                 (_, _, resolver) => BackoffSupervisorProps(resolver.Props<BudgetTrackerActor>(), "budget-tracker"))
@@ -129,12 +130,8 @@ public sealed class NjordActorSystemSetup : ActorSystemSetupContainer
                     (_, _, resolver) => resolver.Props<MqttDiscoveryActor>());
         }
 
-        // Cluster self-join and shutdown task (no actor creation)
         return builder.WithActors((system, registry) =>
         {
-            var cluster = Akka.Cluster.Cluster.Get(system);
-            cluster.Join(cluster.SelfAddress);
-
             AddStreamShutdownTask(system, registry, StreamStopTimeout);
         });
     }

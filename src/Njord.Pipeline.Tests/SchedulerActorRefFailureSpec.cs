@@ -61,7 +61,7 @@ public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
 
         // Stop the pipeline actor to simulate failure
         var oldPipeline = ActorRegistry.Get<IPipelineActor>();
-        Watch(oldPipeline);
+        await WatchAsync(oldPipeline);
         await oldPipeline.GracefulStop(TimeSpan.FromSeconds(2));
         await ExpectTerminatedAsync(oldPipeline, cancellationToken: ct);
 
@@ -83,7 +83,7 @@ public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
 
         // Stop the pipeline actor
         var pipeline = ActorRegistry.Get<IPipelineActor>();
-        Watch(pipeline);
+        await WatchAsync(pipeline);
         await pipeline.GracefulStop(TimeSpan.FromSeconds(2));
         await ExpectTerminatedAsync(pipeline, cancellationToken: ct);
 

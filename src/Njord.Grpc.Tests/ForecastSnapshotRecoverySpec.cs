@@ -90,7 +90,7 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
         await WithSnapshotLoad(load => load.Fail(), async () =>
         {
             var recovered = CreateActor();
-            Watch(recovered);
+            await WatchAsync(recovered);
             await ExpectTerminatedAsync(recovered);
         });
     }

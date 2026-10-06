@@ -296,7 +296,7 @@ public sealed class MqttDiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
 
         await hub.WaitForQueue();
 
-        Watch(fakeModelState);
+        await WatchAsync(fakeModelState);
         await fakeModelState.GracefulStop(TimeSpan.FromSeconds(2));
         await ExpectTerminatedAsync(fakeModelState, cancellationToken: TestContext.Current.CancellationToken);
 
