@@ -3,6 +3,8 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <IsTestProject>true</IsTestProject>
+        <!-- gRPC client stubs share service descriptor types with Njord.Grpc server stubs -->
+        <NoWarn>$(NoWarn);CS0436</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -32,8 +34,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Protobuf Include="..\..\protos\njord\v2\sensor.proto" GrpcServices="Client" ProtoRoot="..\..\protos" />
-        <Protobuf Include="..\..\protos\njord\v2\ops.proto" GrpcServices="Client" ProtoRoot="..\..\protos" />
+        <Protobuf Include="..\..\protos\njord\v2\sensor.proto" GrpcServices="Client" ProtoRoot="..\..\protos" CompileOutputs="false" />
+        <Protobuf Include="..\..\protos\njord\v2\ops.proto" GrpcServices="Client" ProtoRoot="..\..\protos" CompileOutputs="false" />
+        <Compile Include="$(IntermediateOutputPath)njord\v2\SensorGrpc.cs" Link="Generated\SensorGrpc.cs" />
+        <Compile Include="$(IntermediateOutputPath)njord\v2\OpsGrpc.cs" Link="Generated\OpsGrpc.cs" />
     </ItemGroup>
 
 </Project>
