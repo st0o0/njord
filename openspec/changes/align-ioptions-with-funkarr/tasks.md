@@ -1,3 +1,7 @@
+> Re-audited 2026-10-07 against actual code: several tasks had been checked off
+> without the corresponding change (a tasks.md-only commit). Checkboxes below
+> reflect what the code actually does, not what was previously marked.
+
 ## 1. Shared Test Infrastructure
 
 - [x] 1.1 Create `src/Njord.Tests.Shared/TestOptionsMonitor.cs` — generic `TestOptionsMonitor<T> : IOptionsMonitor<T>` with `Update(T)` method that fires `OnChange` listeners
@@ -7,7 +11,7 @@
 
 ## 2. Extract MqttOptions
 
-- [x] 2.1 Add `public const string SectionName = "Njord:Mqtt"` to `src/Njord.Core/Configuration/MqttOptions.cs`; remove the `Mqtt` property from `NjordOptions`
+- [ ] 2.1 Add `public const string SectionName = "Njord:Mqtt"` to `src/Njord.Core/Configuration/MqttOptions.cs`; remove the `Mqtt` property from `NjordOptions` (SectionName added; `NjordOptions.Mqtt` still present — not removed)
 - [x] 2.2 Update `src/Njord.Mqtt/MqttServiceCollectionExtensions.cs` `AddNjordMqtt()` to accept `IConfiguration`, call `AddOptions<MqttOptions>().Bind(config.GetSection(MqttOptions.SectionName)).ValidateOnStart()`
 - [x] 2.3 Update `MqttConnectionActor` to inject `IOptions<MqttOptions>` instead of extracting from `IOptions<NjordOptions>`
 - [x] 2.4 Update `MqttDiscoveryActor`, `MqttStateActor` to inject `IOptions<MqttOptions>` where they use MQTT config
@@ -22,15 +26,15 @@
 
 ## 4. Extract SensorOptions
 
-- [x] 4.1 Add `public const string SectionName = "Njord:Sensors"` to `src/Njord.Core/Configuration/SensorOptions.cs`; remove from `NjordOptions`
+- [ ] 4.1 Add `public const string SectionName = "Njord:Sensors"` to `src/Njord.Core/Configuration/SensorOptions.cs`; remove from `NjordOptions` (SectionName added; `NjordOptions.Sensors` still present — not removed)
 - [x] 4.2 Move `SensorOptionsValidator` to validate `IValidateOptions<SensorOptions>` instead of `IValidateOptions<NjordOptions>`
-- [x] 4.3 Register `SensorOptions` in `AddNjordPipeline()` or a new `AddNjordSensors()` extension
+- [ ] 4.3 Register `SensorOptions` in `AddNjordPipeline()` or a new `AddNjordSensors()` extension (still registered directly in the host's `NjordServiceSetup`, not a feature library)
 - [x] 4.4 Update `SensorHubActor` and `EnrichmentActor` to inject `IOptions<SensorOptions>`
 - [x] 4.5 Update sensor test specs
 
 ## 5. Extract EnrichmentOptions
 
-- [x] 5.1 Add `public const string SectionName = "Njord:Enrichment"` to `EnrichmentOptions`; remove from `NjordOptions`
+- [ ] 5.1 Add `public const string SectionName = "Njord:Enrichment"` to `EnrichmentOptions`; remove from `NjordOptions` (SectionName added; `NjordOptions.Enrichment` still present — not removed)
 - [x] 5.2 Enrichment actors now inject IOptions&lt;EnrichmentOptions&gt; directly (`ConsensusOptionsValidator`, `HistoryOptionsValidator`, `IndexOptionsValidator`) to validate their respective sub-options under `EnrichmentOptions`
 - [x] 5.3 Register `EnrichmentOptions` in `AddNjordEnrichment()`
 - [x] 5.4 Update enrichment actors/features to inject `IOptions<EnrichmentOptions>`
@@ -44,10 +48,10 @@
 
 ## 7. Slim NjordServiceSetup and NjordOptionsValidator
 
-- [x] 7.1 Remove sub-option registration from `NjordServiceSetup.SetupServices()` — feature libs now handle their own
-- [x] 7.2 Remove sub-option validators from `NjordServiceSetup` registration — feature libs register their own
-- [x] 7.3 `NjordOptionsValidator` already only validates cross-cutting concerns to only validate cross-cutting concerns (locations, models, persistence path)
-- [x] 7.4 All host tests pass with new structure and other host tests for the new structure
+- [ ] 7.1 Remove sub-option registration from `NjordServiceSetup.SetupServices()` — feature libs now handle their own (Mqtt/Enrichment already moved; `SensorOptions` is still registered directly in `NjordServiceSetup`)
+- [ ] 7.2 Remove sub-option validators from `NjordServiceSetup` registration — feature libs register their own (`IValidateOptions<SensorOptions>` is still registered directly in `NjordServiceSetup`)
+- [ ] 7.3 `NjordOptionsValidator` already only validates cross-cutting concerns to only validate cross-cutting concerns (locations, models, persistence path) (it still validates `options.Mqtt.Enabled`/`Host` — no `MqttOptionsValidator` exists yet)
+- [ ] 7.4 All host tests pass with new structure and other host tests for the new structure (not re-verified after the above corrections)
 
 ## Validation
 

@@ -1,3 +1,9 @@
+> Re-audited 2026-10-07 against actual code: sections 1 and 2 are genuinely
+> implemented. Sections 3–5's E2E-project tasks had been checked off without
+> a `Njord.E2E.Tests` project ever being created — a different
+> (agent-orchestrated, Docker-Compose based) E2E approach was built instead
+> and never reconciled with this change. Checkboxes below reflect the code.
+
 ## 1. Integration Test Fixture
 
 - [x] 1.1 Create `NjordFixture` in `src/Njord.Tests/Infrastructure/NjordFixture.cs` — `IAsyncLifetime` fixture that builds a `WebApplicationBuilder` with `TestServer`, configures in-memory persistence, registers a `TestProbe` for every actor key in `ActorKeys.cs` (15 keys), exposes probes as properties, and provides `HttpClient` + gRPC `GrpcChannel`
@@ -16,24 +22,24 @@
 
 ## 3. E2E Test Project Setup
 
-- [x] 3.1 Create `src/Njord.E2E.Tests/Njord.E2E.Tests.csproj` — executable test project with references to `Njord`, `Njord.Tests.Shared`, `Testcontainers`, `Verify.Xunit`, `MQTTnet`; add to `Njord.slnx`
-- [x] 3.2 Create `src/Njord.E2E.Tests/Infrastructure/MosquittoFixture.cs` — `IAsyncLifetime` fixture that starts a Mosquitto container via Testcontainers, exposes the mapped MQTT port, and subscribes to `#` to collect all published messages
-- [x] 3.3 Create `src/Njord.E2E.Tests/Infrastructure/FakeOpenMeteoHandler.cs` — `DelegatingHandler` that returns canned JSON responses from fixture files in `Njord.Tests.Shared`
-- [x] 3.4 Create `src/Njord.E2E.Tests/Infrastructure/E2EFixture.cs` — `IAsyncLifetime` fixture composing `MosquittoFixture` + full njord host with `FakeTimeProvider`, `FakeOpenMeteoHandler`, and MQTT configured to the Testcontainers broker
+- [ ] 3.1 Create `src/Njord.E2E.Tests/Njord.E2E.Tests.csproj` — executable test project with references to `Njord`, `Njord.Tests.Shared`, `Testcontainers`, `Verify.Xunit`, `MQTTnet`; add to `Njord.slnx` (project does not exist; `a90daee feat: add agent-orchestrated E2E test infrastructure` built a different, Docker-Compose + browser-automation based E2E setup instead — see the `e2e-test` skill)
+- [ ] 3.2 Create `src/Njord.E2E.Tests/Infrastructure/MosquittoFixture.cs` — `IAsyncLifetime` fixture that starts a Mosquitto container via Testcontainers, exposes the mapped MQTT port, and subscribes to `#` to collect all published messages
+- [ ] 3.3 Create `src/Njord.E2E.Tests/Infrastructure/FakeOpenMeteoHandler.cs` — `DelegatingHandler` that returns canned JSON responses from fixture files in `Njord.Tests.Shared`
+- [ ] 3.4 Create `src/Njord.E2E.Tests/Infrastructure/E2EFixture.cs` — `IAsyncLifetime` fixture composing `MosquittoFixture` + full njord host with `FakeTimeProvider`, `FakeOpenMeteoHandler`, and MQTT configured to the Testcontainers broker
 
 ## 4. E2E Test Scenarios
 
-- [x] 4.1 Add `src/Njord.E2E.Tests/SingleModelHappyPathSpec.cs` — single location, single model, one poll cycle; Verify-snapshot all MQTT messages (discovery + state)
-- [x] 4.2 Add `src/Njord.E2E.Tests/MultiModelConsensusSpec.cs` — single location, two models, one poll cycle; Verify consensus device payloads
-- [x] 4.3 Add `src/Njord.E2E.Tests/EnrichmentPipelineSpec.cs` — verify alert/derived/trend/index/history enrichment payloads for a location
-- [x] 4.4 Add `src/Njord.E2E.Tests/HaBirthRediscoverySpec.cs` — publish `online` to `homeassistant/status`, verify all discovery payloads are re-published
-- [x] 4.5 Add `src/Njord.E2E.Tests/SensorPushIntegrationSpec.cs` — push indoor temperature via gRPC, trigger poll, verify enrichment uses the pushed value
+- [ ] 4.1 Add `src/Njord.E2E.Tests/SingleModelHappyPathSpec.cs` — single location, single model, one poll cycle; Verify-snapshot all MQTT messages (discovery + state)
+- [ ] 4.2 Add `src/Njord.E2E.Tests/MultiModelConsensusSpec.cs` — single location, two models, one poll cycle; Verify consensus device payloads
+- [ ] 4.3 Add `src/Njord.E2E.Tests/EnrichmentPipelineSpec.cs` — verify alert/derived/trend/index/history enrichment payloads for a location
+- [ ] 4.4 Add `src/Njord.E2E.Tests/HaBirthRediscoverySpec.cs` — publish `online` to `homeassistant/status`, verify all discovery payloads are re-published
+- [ ] 4.5 Add `src/Njord.E2E.Tests/SensorPushIntegrationSpec.cs` — push indoor temperature via gRPC, trigger poll, verify enrichment uses the pushed value
 
 ## 5. Cleanup and Validation
 
 - [x] 5.1 Remove `[Collection("HostIntegration")]` from specs that are migrated to the new fixture pattern; delete stale `WebApplicationFactory` usage
-- [x] 5.2 Update `AGENTS.md` test counts and solution structure to reflect the new E2E project and updated test organization
-- [x] 5.3 Add E2E test run instructions to `AGENTS.md` — Docker requirement, how to run E2E tests separately
+- [ ] 5.2 Update `AGENTS.md` test counts and solution structure to reflect the new E2E project and updated test organization (no `Njord.E2E.Tests` project exists to document)
+- [ ] 5.3 Add E2E test run instructions to `AGENTS.md` — Docker requirement, how to run E2E tests separately (N/A until 3.1–3.4/4.1–4.5 are actually built, or the change is rescoped to the agent-orchestrated approach)
 
 ## Validation
 
