@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Njord.Analysis;
+namespace Njord.Compute.Analysis;
 
 [method: JsonConstructor]
 public sealed record ConsensusResult(

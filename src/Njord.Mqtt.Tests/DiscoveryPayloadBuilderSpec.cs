@@ -1,5 +1,5 @@
 using System.Text.Json.Nodes;
-using Njord.Configuration;
+using Njord.Core.Configuration;
 using Njord.Domain.Weather;
 
 namespace Njord.Mqtt.Tests;

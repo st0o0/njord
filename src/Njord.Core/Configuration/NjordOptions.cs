@@ -1,4 +1,6 @@
-namespace Njord.Configuration;
+using Njord.Domain.Options;
+
+namespace Njord.Core.Configuration;
 
 public sealed class NjordOptions
 {

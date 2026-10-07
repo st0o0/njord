@@ -1,7 +1,7 @@
 using Akka.Actor;
 using Akka.Event;
 using Microsoft.Extensions.Options;
-using Njord.Configuration;
+using Njord.Core.Configuration;
 using Njord.Domain.Sensors;
 using Njord.Messages.Sensors;
 

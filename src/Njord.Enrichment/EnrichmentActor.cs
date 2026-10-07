@@ -6,10 +6,10 @@ using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
-using Njord.Actors;
-using Njord.Analysis;
-using Njord.Configuration;
-using Njord.Diagnostics;
+using Njord.Compute.Analysis;
+using Njord.Core.Actors;
+using Njord.Core.Configuration;
+using Njord.Core.Diagnostics;
 using Njord.Domain.Sensors;
 using Njord.Domain.Weather;
 using Njord.Messages.Egress;
@@ -159,7 +159,7 @@ public sealed class EnrichmentActor : StreamConsumerActor
             .SelectMany(snapshot => ComputeConsensus(snapshot, locations, trimPercent));
 
         var consensusInlineFlow = BuildConsensusInlineFlow(
-            consensusEgressEnabled, locations, statelessFeatures, statefulFeatures, _sensorHub!, _log);
+            consensusEgressEnabled, statelessFeatures, statefulFeatures, _sensorHub!, _log);
 
         var flows = new List<Flow<ModelSnapshot, EgressEvent, NotUsed>>();
 
@@ -250,7 +250,6 @@ public sealed class EnrichmentActor : StreamConsumerActor
 
     private static Flow<ConsensusSnapshot, EgressEvent, NotUsed> BuildConsensusInlineFlow(
         bool consensusEgressEnabled,
-        IReadOnlyList<string> locations,
         IReadOnlyList<IStatelessEnrichment> stateless,
         IReadOnlyList<IStatefulEnrichment> stateful,
         IActorRef sensorHub,
@@ -366,15 +365,19 @@ public sealed class EnrichmentActor : StreamConsumerActor
         }
 
         foreach (var feature in stateless)
+        {
             foreach (var evt in feature.Compute(consensus, sensors))
             {
                 yield return evt;
             }
+        }
 
         foreach (var feature in stateful)
-            foreach (var evt in feature.Compute(consensus, previous, sensors))
+        {
+            foreach (var evt in feature.Compute(consensus, previous))
             {
                 yield return evt;
             }
+        }
     }
 }

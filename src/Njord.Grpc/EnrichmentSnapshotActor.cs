@@ -10,30 +10,41 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
 {
     private const int SnapshotInterval = 14;
 
-    public override string PersistenceId => "enrichment-snapshot";
+    private readonly string _entityId;
+    public override string PersistenceId { get; }
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
-    private EnrichmentSnapshotState _state = EnrichmentSnapshotState.Empty;
+    private object? _result;
+    private int _updatesSinceSnapshot;
 
-    public EnrichmentSnapshotActor()
+    public EnrichmentSnapshotActor(string entityId)
     {
+        _entityId = entityId;
+        PersistenceId = $"enrichment-snapshot-{entityId}";
+
         Recover<SnapshotOffer>(offer =>
         {
             if (offer.Snapshot is EnrichmentSnapshotDto saved)
             {
-                _state = EnrichmentSnapshotStateExtensions.FromPersistence(saved);
+                var domain = EnrichmentSnapshotMapping.ToDomain(saved);
+                if (domain.TryGetValue(_entityId, out var result))
+                {
+                    _result = result;
+                }
             }
         });
 
         Command<UpdateEnrichment>(cmd =>
         {
-            var key = EnrichmentSnapshotStateExtensions.MakeKey(cmd.Location, cmd.TypeName);
-            _state = _state.Apply(key, cmd.Result);
+            _result = cmd.Result;
+            _updatesSinceSnapshot++;
 
-            if (_state.UpdatesSinceSnapshot >= SnapshotInterval)
+            if (_updatesSinceSnapshot >= SnapshotInterval)
             {
-                SaveSnapshot(_state.GetPersistenceState());
-                _state = _state.ResetSnapshotCounter();
+                var dto = EnrichmentSnapshotMapping.ToDto(
+                    new Dictionary<string, object> { [_entityId] = _result });
+                SaveSnapshot(dto);
+                _updatesSinceSnapshot = 0;
             }
 
             Sender.Tell(new Ack(), Self);
@@ -41,18 +52,16 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
 
         Command<QueryEnrichment>(query =>
         {
-            var key = EnrichmentSnapshotStateExtensions.MakeKey(query.Location, query.TypeName);
-            Sender.Tell(_state.GetEnrichment(key), Self);
-        });
-
-        Command<QueryAllEnrichments>(query =>
-        {
-            Sender.Tell(_state.GetAllEnrichments(query.Location), Self);
+            Sender.Tell(
+                _result is not null
+                    ? new EnrichmentFound(_result)
+                    : (QueryEnrichmentResponse)new EnrichmentNotFound(_entityId),
+                Self);
         });
 
         Command<SaveSnapshotSuccess>(success =>
         {
-            _log.Debug("Enrichment snapshot saved (seqNr {0})", success.Metadata.SequenceNr);
+            _log.Debug("Enrichment snapshot saved (seqNr {0}) for {1}", success.Metadata.SequenceNr, _entityId);
             if (success.Metadata.SequenceNr > 0)
             {
                 DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
@@ -61,13 +70,13 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
 
         Command<SaveSnapshotFailure>(failure =>
         {
-            _log.Warning("Enrichment snapshot save failed: {0}", failure.Cause.Message);
+            _log.Warning("Enrichment snapshot save failed for {0}: {1}", _entityId, failure.Cause.Message);
         });
 
         Command<DeleteSnapshotsSuccess>(_ => { });
         Command<DeleteSnapshotsFailure>(failure =>
         {
-            _log.Warning("Old snapshot cleanup failed: {0}", failure.Cause.Message);
+            _log.Warning("Old snapshot cleanup failed for {0}: {1}", _entityId, failure.Cause.Message);
         });
     }
 }

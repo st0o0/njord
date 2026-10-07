@@ -1,6 +1,6 @@
 using Akka.Actor;
 using Microsoft.Extensions.Logging;
-using Njord.Actors;
+using Njord.Core.Actors;
 using StreamDirective = Akka.Streams.Supervision.Directive;
 
 namespace Njord.Pipeline.Tests;

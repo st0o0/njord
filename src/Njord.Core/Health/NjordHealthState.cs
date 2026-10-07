@@ -1,4 +1,4 @@
-namespace Njord.Health;
+namespace Njord.Core.Health;
 
 public sealed class NjordHealthState
 {

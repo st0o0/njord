@@ -1,5 +1,13 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Njord.Configuration;
+using Njord.Core.Configuration;
+using Njord.Egress.Configuration;
+using Njord.Enrichment.Configuration;
+using Njord.Grpc.Configuration;
+using Njord.Ingest.Configuration;
+using Njord.Mqtt.Configuration;
+using Njord.Pipeline.Configuration;
+using Njord.Sensors.Configuration;
 using Serilog;
 using Servus.Core.Application.Startup;
 
@@ -49,8 +57,15 @@ builder.Configuration.AddJsonFile(
     reloadOnChange: true);
 
 var runner = AppBuilder.Create(builder, b => b.Build())
-    .WithSetup<NjordServiceSetup>()
-    .WithSetup<NjordActorSystemSetup>()
+    .WithSetup<CoreSetupContainer>()
+    .WithSetup<IngestSetupContainer>()
+    .WithSetup<SensorSetupContainer>()
+    .WithSetup<PipelineSetupContainer>()
+    .WithSetup<EgressSetupContainer>()
+    .WithSetup<EnrichmentSetupContainer>()
+    .WithSetup<MqttSetupContainer>()
+    .WithSetup<GrpcSetupContainer>()
+    .WithSetup<AkkaSetupContainer>()
     .WithSetup<NjordApplicationSetup>()
     .Build();
 

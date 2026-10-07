@@ -1,4 +1,6 @@
-namespace Njord.Persistence;
+using Njord.Persistence;
+
+namespace Njord.Pipeline;
 
 public static class BudgetTrackerDtoMapping
 {

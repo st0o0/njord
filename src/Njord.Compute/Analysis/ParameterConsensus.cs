@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using Njord.Domain.Weather;
 
-namespace Njord.Analysis;
+namespace Njord.Compute.Analysis;
 
 public sealed record ParameterConsensus(
     [property: JsonProperty("parameter")] ParameterDef Parameter,

@@ -1,4 +1,4 @@
-using Njord.Analysis;
+using Njord.Compute.Analysis;
 using Njord.Messages.Snapshots;
 using Njord.Persistence;
 

@@ -2,9 +2,9 @@ using System.Diagnostics.Metrics;
 using Akka.Actor;
 using Akka.Event;
 using Microsoft.Extensions.Options;
-using Njord.Configuration;
-using Njord.Diagnostics;
-using Njord.Health;
+using Njord.Core.Configuration;
+using Njord.Core.Diagnostics;
+using Njord.Core.Health;
 using Njord.Messages.Mqtt;
 using Njord.Mqtt.Transport;
 

@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Njord.Analysis;
+namespace Njord.Compute.Analysis;
 
 public sealed record WeatherChangeResult(
     [property: JsonProperty("fromCategory")] string FromCategory,

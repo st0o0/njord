@@ -1,7 +1,8 @@
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Njord.Configuration;
+using Njord.Core.Configuration;
+using Njord.Domain.Options;
 using Njord.Domain.Weather;
 using Njord.Messages.Pipeline;
 using Njord.Mqtt;

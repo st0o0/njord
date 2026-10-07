@@ -2,7 +2,7 @@ using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Configuration;
+using Njord.Core.Configuration;
 using Njord.Domain.Weather;
 using Njord.Messages.Enrichment;
 using Njord.Tests.Shared;

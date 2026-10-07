@@ -1,7 +1,8 @@
-using Njord.Analysis;
+using Njord.Compute.Analysis;
 using Njord.Domain.Weather;
+using Njord.Persistence;
 
-namespace Njord.Persistence;
+namespace Njord.Enrichment;
 
 public static class ForecastHistoryDtoMapping
 {
@@ -18,8 +19,7 @@ public static class ForecastHistoryDtoMapping
     public static ForecastRecord ToDomain(ForecastRecordDto dto)
     {
         var modelValues = dto.ModelValues.ToDictionary(
-            kvp => new WeatherModel(kvp.Key),
-            kvp => (IReadOnlyDictionary<string, double?>)new Dictionary<string, double?>(kvp.Value));
+            kvp => new WeatherModel(kvp.Key), IReadOnlyDictionary<string, double?> (kvp) => new Dictionary<string, double?>(kvp.Value));
         var consensus = new Dictionary<string, double?>(dto.ConsensusValues);
         return new ForecastRecord(
             new DateTimeOffset(dto.TimestampUtcTicks, TimeSpan.Zero),
@@ -31,7 +31,7 @@ public static class ForecastHistoryDtoMapping
     public static ForecastHistorySnapshotDto ToDto(ForecastHistory history) => new()
     {
         RetentionDays = history.RetentionDays,
-        Records = history.Records.Select(ToDto).ToList(),
+        Records = [.. history.Records.Select(ToDto)],
     };
 
     public static ForecastHistory ToDomain(ForecastHistorySnapshotDto dto)

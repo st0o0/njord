@@ -1,8 +1,9 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Njord.Analysis;
+using Njord.Compute.Analysis;
+using Njord.Compute.Configuration;
 
-namespace Njord.Configuration;
+namespace Njord.Core.Configuration;
 
 public sealed class IndexOptionsValidator : IValidateOptions<EnrichmentOptions>
 {

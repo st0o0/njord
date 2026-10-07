@@ -1,18 +1,15 @@
 using Microsoft.Extensions.Options;
-using Njord.Diagnostics;
+using Njord.Core.Configuration;
+using Njord.Core.Health;
+using Njord.Core.Diagnostics;
 using Njord.Domain.Weather;
-using Njord.Enrichment;
-using Njord.Grpc;
 using Njord.Health;
-using Njord.Ingest;
-using Njord.Mqtt;
-using Njord.Pipeline;
 using Prometheus;
 using Servus.Core.Application.Startup;
 
 namespace Njord.Configuration;
 
-public sealed class NjordServiceSetup : IServiceSetupContainer
+public sealed class CoreSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
@@ -20,16 +17,19 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
         {
             options.InstrumentFilterPredicate = instrument => instrument.Meter.Name == "Njord";
         });
+
         services
             .AddOptions<NjordOptions>()
             .Bind(configuration.GetSection(NjordOptions.SectionName))
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<NjordOptions>, NjordOptionsValidator>();
+
         services
             .AddOptions<SensorOptions>()
             .Bind(configuration.GetSection(SensorOptions.SectionName))
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<SensorOptions>, SensorOptionsValidator>();
+
         services.AddSingleton(sp =>
         {
             var options = sp.GetRequiredService<IOptions<NjordOptions>>().Value;
@@ -38,8 +38,9 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
                 options.Parameters.Extra,
                 options.Parameters.Exclude);
         });
+
         services.AddSingleton(TimeProvider.System);
-        services.AddNjordPipeline();
+
         services.AddSingleton(sp =>
         {
             var state = new NjordHealthState
@@ -55,21 +56,18 @@ public sealed class NjordServiceSetup : IServiceSetupContainer
             NjordMetrics.Instance.AddBudgetLimitMonthly(() => state.BudgetLimitMonthly);
             return state;
         });
-        var healthChecks = services.AddHealthChecks()
-            .AddCheck<PipelineHealthCheck>("pipeline");
 
         var mqttEnabled = configuration
             .GetSection($"{NjordOptions.SectionName}:Mqtt")
             .GetValue("Enabled", false);
-        services.AddNjordEnrichment(configuration);
-        services.AddNjordMqtt(configuration, mqttEnabled);
+
+        var healthChecks = services.AddHealthChecks()
+            .AddCheck<PipelineHealthCheck>("pipeline");
         if (mqttEnabled)
         {
             healthChecks.AddCheck<MqttConnectionHealthCheck>("mqtt-connection");
         }
 
-        services.AddNjordGrpc();
-        services.AddNjordIngest();
         services.AddSingleton<ConfigPersistence>();
     }
 }

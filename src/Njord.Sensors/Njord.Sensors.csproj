@@ -7,4 +7,9 @@
         <ProjectReference Include="..\Njord.Core\Njord.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Akka.Cluster.Hosting" />
+      <PackageReference Include="Servus.Akka" />
+    </ItemGroup>
+
 </Project>

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Njord.Domain.Weather;
 
-namespace Njord.Configuration;
+namespace Njord.Core.Configuration;
 
 public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
 {

@@ -1,4 +1,5 @@
-using Njord.Configuration;
+using Njord.Core.Configuration;
+using Njord.Domain.Options;
 using Njord.Grpc.V2;
 using Njord.Tests.Shared;
 

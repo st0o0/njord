@@ -1,4 +1,4 @@
-namespace Njord.Configuration;
+namespace Njord.Core.Configuration;
 
 public sealed class ParameterOptions
 {

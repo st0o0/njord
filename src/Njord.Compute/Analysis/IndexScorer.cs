@@ -1,4 +1,4 @@
-namespace Njord.Analysis;
+namespace Njord.Compute.Analysis;
 
 public static class IndexScorer
 {

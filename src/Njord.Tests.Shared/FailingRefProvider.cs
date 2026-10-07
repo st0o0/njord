@@ -1,5 +1,5 @@
 using Akka.Actor;
-using Njord.Actors;
+using Njord.Core.Actors;
 
 namespace Njord.Tests.Shared;
 

@@ -1,4 +1,4 @@
-namespace Njord.Actors;
+namespace Njord.Core.Actors;
 
 public interface ISchedulerActor;
 public interface IBudgetTrackerActor;

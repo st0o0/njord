@@ -3,7 +3,7 @@ using Akka.Event;
 using Akka.Hosting;
 using Akka.Hosting.TestKit;
 using Akka.Streams;
-using Njord.Actors;
+using Njord.Core.Actors;
 using Njord.Tests.Shared;
 using Servus.Akka;
 

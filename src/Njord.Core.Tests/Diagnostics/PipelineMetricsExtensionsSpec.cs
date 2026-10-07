@@ -1,5 +1,5 @@
 using System.Diagnostics.Metrics;
-using Njord.Diagnostics;
+using Njord.Core.Diagnostics;
 
 namespace Njord.Core.Tests.Diagnostics;
 

@@ -9,9 +9,10 @@ namespace Njord.Grpc.Tests;
 public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
 {
     private static readonly DateTimeOffset TestTime = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+    private const string EntityId = "lucerne|icon_d2";
 
     private IActorRef CreateActor() =>
-        Sys.ActorOf(Props.Create(() => new ForecastSnapshotActor()));
+        Sys.ActorOf(Props.Create(() => new ForecastSnapshotActor(EntityId)));
 
     private static ModelForecast CreateForecast(string model = "icon_d2")
     {
@@ -21,12 +22,11 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
             DailyForecastSeries.Empty);
     }
 
-    private async Task FillToSnapshotThreshold(IActorRef actor, int count = 20, CancellationToken ct = default)
+    private static async Task FillToSnapshotThreshold(IActorRef actor, int count = 20, CancellationToken ct = default)
     {
         for (var i = 0; i < count; i++)
         {
-            var model = $"model_{i}";
-            await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel(model), CreateForecast(model)), ct);
+            await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel("icon_d2"), CreateForecast()), ct);
         }
     }
 
@@ -40,8 +40,9 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
 
         var recovered = CreateActor();
 
-        var response = await recovered.Ask<QueryAllForecastsResult>(new QueryAllForecasts(), TimeSpan.FromSeconds(3), ct);
-        Assert.Equal(20, response.Forecasts.Count);
+        var response = await recovered.Ask<QueryForecastResponse>(
+            new QueryForecast("lucerne", "icon_d2"), TimeSpan.FromSeconds(3), ct);
+        Assert.IsType<ForecastFound>(response);
     }
 
     [Fact(Timeout = 5000)]
@@ -54,8 +55,9 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
 
         var recovered = CreateActor();
 
-        var response = await recovered.Ask<QueryAllForecastsResult>(new QueryAllForecasts(), TimeSpan.FromSeconds(3), ct);
-        Assert.Empty(response.Forecasts);
+        var response = await recovered.Ask<QueryForecastResponse>(
+            new QueryForecast("lucerne", "icon_d2"), TimeSpan.FromSeconds(3), ct);
+        Assert.IsType<ForecastNotFound>(response);
     }
 
     [Fact(Timeout = 5000)]
@@ -69,14 +71,14 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
         var recovered = CreateActor();
 
         var ack = await recovered.Ask<Ack>(
-            new UpdateForecast("zurich", new WeatherModel("gfs"), CreateForecast("gfs")),
+            new UpdateForecast("lucerne", new WeatherModel("icon_d2"), CreateForecast()),
             TimeSpan.FromSeconds(3), ct);
         Assert.NotNull(ack);
 
         var response = await recovered.Ask<QueryForecastResponse>(
-            new QueryForecast("zurich", "gfs"), TimeSpan.FromSeconds(3), ct);
+            new QueryForecast("lucerne", "icon_d2"), TimeSpan.FromSeconds(3), ct);
         var found = Assert.IsType<ForecastFound>(response);
-        Assert.Equal("gfs", found.Forecast.Model.Id);
+        Assert.Equal("icon_d2", found.Forecast.Model.Id);
     }
 
     [Fact(Timeout = 5000)]

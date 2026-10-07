@@ -3,7 +3,7 @@ using Njord.Domain.Weather;
 using Njord.Messages.Egress;
 using Njord.Messages.Pipeline;
 
-namespace Njord.Actors;
+namespace Njord.Core.Actors;
 
 // Pipeline stream wiring (Phase 2 will remove these)
 public sealed record RequestPipelineSink(long RequestId);

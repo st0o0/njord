@@ -10,6 +10,7 @@ namespace Njord.Grpc.Tests;
 public sealed class ForecastSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
 {
     private static readonly DateTimeOffset Anchor = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+    private const string EntityId = "lucerne|icon_d2";
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
@@ -18,8 +19,8 @@ public sealed class ForecastSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
             .AddTestTimefactor();
     }
 
-    private IActorRef CreateActor() =>
-        Sys.ActorOf(Props.Create(() => new ForecastSnapshotActor()));
+    private IActorRef CreateActor(string entityId = EntityId) =>
+        Sys.ActorOf(Props.Create(() => new ForecastSnapshotActor(entityId)));
 
     private static ModelForecast CreateForecast(string model = "icon_d2")
     {
@@ -49,7 +50,7 @@ public sealed class ForecastSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var actor = CreateActor();
 
-        var response = await actor.Ask<QueryForecastResponse>(new QueryForecast("lucerne", "unknown"), TestContext.Current.CancellationToken);
+        var response = await actor.Ask<QueryForecastResponse>(new QueryForecast("lucerne", "icon_d2"), TestContext.Current.CancellationToken);
         Assert.IsType<ForecastNotFound>(response);
     }
 
@@ -66,18 +67,6 @@ public sealed class ForecastSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
 
         var response = await actor.Ask<QueryForecastResponse>(new QueryForecast("lucerne", "icon_d2"), ct);
         Assert.IsType<ForecastFound>(response);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task QueryAllForecasts_returns_all()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var actor = CreateActor();
-        await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel("icon_d2"), CreateForecast("icon_d2")), ct);
-        await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel("ecmwf"), CreateForecast("ecmwf")), ct);
-
-        var response = await actor.Ask<QueryAllForecastsResult>(new QueryAllForecasts(), ct);
-        Assert.Equal(2, response.Forecasts.Count);
     }
 
     [Fact(Timeout = 5000)]
@@ -100,11 +89,10 @@ public sealed class ForecastSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
 
         for (var i = 0; i < 20; i++)
         {
-            var model = $"model_{i}";
-            await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel(model), CreateForecast(model)), ct);
+            await actor.Ask<Ack>(new UpdateForecast("lucerne", new WeatherModel("icon_d2"), CreateForecast()), ct);
         }
 
-        var response = await actor.Ask<QueryAllForecastsResult>(new QueryAllForecasts(), ct);
-        Assert.Equal(20, response.Forecasts.Count);
+        var response = await actor.Ask<QueryForecastResponse>(new QueryForecast("lucerne", "icon_d2"), ct);
+        Assert.IsType<ForecastFound>(response);
     }
 }

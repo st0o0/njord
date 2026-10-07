@@ -1,7 +1,7 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Configuration;
+using Njord.Core.Configuration;
 using Njord.Domain.Sensors;
 using Njord.Messages.Sensors;
 using Njord.Tests.Shared;

@@ -1,7 +1,7 @@
-using Njord.Configuration;
+using Njord.Compute.Configuration;
 using Njord.Domain.Weather;
 
-namespace Njord.Analysis;
+namespace Njord.Compute.Analysis;
 
 public static class AlertEvaluator
 {

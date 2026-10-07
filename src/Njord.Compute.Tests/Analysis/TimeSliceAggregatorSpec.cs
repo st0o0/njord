@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Time.Testing;
-using Njord.Analysis;
+using Njord.Compute.Analysis;
 using Njord.Domain.Weather;
 
 namespace Njord.Compute.Tests.Analysis;

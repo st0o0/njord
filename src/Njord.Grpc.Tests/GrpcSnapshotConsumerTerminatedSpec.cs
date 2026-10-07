@@ -2,7 +2,7 @@ using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Njord.Actors;
+using Njord.Core.Actors;
 using Njord.Messages.Egress;
 using Njord.Tests.Shared;
 
@@ -31,10 +31,10 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
                     Props.Create(() => new FakeEnrichmentActor(mat, _enrichmentProbe)));
                 registry.Register<IEnrichmentActor>(fakeEnrichment);
 
-                registry.Register<IForecastSnapshotActor>(
-                    system.ActorOf(Props.Create(() => new ForecastSnapshotActor())));
-                registry.Register<IEnrichmentSnapshotActor>(
-                    system.ActorOf(Props.Create(() => new EnrichmentSnapshotActor())));
+                registry.Register<IForecastSnapshotRegion>(
+                    system.ActorOf(Props.Create(() => new ForecastSnapshotActor("test|entity"))));
+                registry.Register<IEnrichmentSnapshotRegion>(
+                    system.ActorOf(Props.Create(() => new EnrichmentSnapshotActor("test|entity"))));
             })
             .AddTestTimefactor();
     }

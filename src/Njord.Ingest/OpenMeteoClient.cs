@@ -5,8 +5,10 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using Njord.Configuration;
-using Njord.Diagnostics;
+using Njord.Core.Configuration;
+using Njord.Core.Diagnostics;
+using Njord.Core.Ingest;
+using Njord.Domain.Options;
 using Njord.Domain.Weather;
 
 namespace Njord.Ingest;

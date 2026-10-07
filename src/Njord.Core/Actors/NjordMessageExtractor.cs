@@ -1,7 +1,7 @@
 using Akka.Cluster.Sharding;
 using Njord.Messages;
 
-namespace Njord.Actors;
+namespace Njord.Core.Actors;
 
 public sealed class NjordMessageExtractor(int maxShards = 10) : HashCodeMessageExtractor(maxShards)
 {

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
-using Njord.Analysis;
-using Njord.Configuration;
+using Njord.Compute.Analysis;
+using Njord.Core.Configuration;
+using Njord.Core.Enrichment;
 using Njord.Domain.Sensors;
 using Njord.Messages.Egress;
 
@@ -9,21 +10,19 @@ namespace Njord.Enrichment.Features;
 internal sealed class TrendEnrichment : IStatefulEnrichment
 {
     private readonly TrendComputer _computer;
-    private readonly bool _enabled;
 
     public string TypeName => EnrichmentTypeNames.Trends;
-    public bool Enabled => _enabled;
+    public bool Enabled { get; }
 
     public TrendEnrichment(
         IOptions<EnrichmentOptions> enrichmentOptions,
         TrendComputer computer)
     {
         _computer = computer;
-        _enabled = enrichmentOptions.Value.IsEnabled(TypeName);
+        Enabled = enrichmentOptions.Value.IsEnabled(TypeName);
     }
 
-    public IEnumerable<EgressEvent> Compute(
-        ConsensusSnapshot consensus, ConsensusSnapshot? previous, SensorSnapshot? sensors = null)
+    public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus, ConsensusSnapshot? previous)
     {
         if (previous is null)
         {

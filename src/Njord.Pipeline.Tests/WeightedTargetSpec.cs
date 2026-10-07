@@ -1,4 +1,4 @@
-using Njord.Configuration;
+using Njord.Domain.Options;
 using Njord.Domain.Weather;
 using Njord.Messages.Pipeline;
 

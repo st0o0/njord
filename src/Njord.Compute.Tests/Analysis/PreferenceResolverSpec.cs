@@ -1,5 +1,5 @@
-using Njord.Analysis;
-using Njord.Configuration;
+using Njord.Compute.Analysis;
+using Njord.Compute.Configuration;
 
 namespace Njord.Compute.Tests.Analysis;
 

@@ -1,6 +1,6 @@
 using Njord.Domain.Weather;
 
-namespace Njord.Analysis;
+namespace Njord.Compute.Analysis;
 
 public sealed class ConsensusSnapshotFactory(ResolvedParameterSet parameters, TimeProvider timeProvider)
 {
@@ -239,7 +239,7 @@ public sealed class ConsensusSnapshotFactory(ResolvedParameterSet parameters, Ti
 
             if (filteredHorizons.Count > 0)
             {
-                filtered.Add(new ParameterConsensus(pc.Parameter, filteredHorizons));
+                filtered.Add(pc with { ByHorizon = filteredHorizons });
             }
         }
 

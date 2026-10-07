@@ -7,7 +7,7 @@ namespace Njord.Architecture.Tests;
 
 internal static class NjordArchitecture
 {
-    private static readonly Assembly NjordAssembly = typeof(Njord.Configuration.NjordServiceSetup).Assembly;
+    private static readonly Assembly NjordAssembly = typeof(Njord.Configuration.CoreSetupContainer).Assembly;
 
     // Every test assembly copied next to this one by the project references (Njord.*Tests plus Shared, this one included).
     public static readonly Assembly[] TestAssemblies = Directory

@@ -1,6 +1,6 @@
 using Akka.Actor;
 using Akka.Persistence.TestKit;
-using Njord.Analysis;
+using Njord.Compute.Analysis;
 using Njord.Messages.Common;
 using Njord.Messages.Snapshots;
 
@@ -8,15 +8,17 @@ namespace Njord.Grpc.Tests;
 
 public sealed class EnrichmentSnapshotRecoverySpec : PersistenceTestKit
 {
+    private const string EntityId = "lucerne|indices";
+
     private IActorRef CreateActor() =>
-        Sys.ActorOf(Props.Create(() => new EnrichmentSnapshotActor()));
+        Sys.ActorOf(Props.Create(() => new EnrichmentSnapshotActor(EntityId)));
 
     private static async Task FillToSnapshotThreshold(IActorRef actor, int count = 14, CancellationToken ct = default)
     {
         for (var i = 0; i < count; i++)
         {
             var result = new IndexResult("lucerne", [new DayScoreSet(0, 80 + i, 90, 70, 85, 95, 60, 88, 75, HoursIncluded: 14)], null, null);
-            await actor.Ask<Ack>(new UpdateEnrichment("lucerne", $"type_{i}", result), ct);
+            await actor.Ask<Ack>(new UpdateEnrichment("lucerne", "indices", result), ct);
         }
     }
 
@@ -30,9 +32,9 @@ public sealed class EnrichmentSnapshotRecoverySpec : PersistenceTestKit
 
         var recovered = CreateActor();
 
-        var response = await recovered.Ask<QueryAllEnrichmentsResult>(
-            new QueryAllEnrichments("lucerne"), TimeSpan.FromSeconds(3), ct);
-        Assert.Equal(14, response.Results.Count);
+        var response = await recovered.Ask<QueryEnrichmentResponse>(
+            new QueryEnrichment("lucerne", "indices"), TimeSpan.FromSeconds(3), ct);
+        Assert.IsType<EnrichmentFound>(response);
     }
 
     [Fact(Timeout = 5000)]
@@ -46,14 +48,14 @@ public sealed class EnrichmentSnapshotRecoverySpec : PersistenceTestKit
         var recovered = CreateActor();
 
         var ack = await recovered.Ask<Ack>(
-            new UpdateEnrichment("zurich", "alerts", new AlertResult("zurich", [])),
+            new UpdateEnrichment("lucerne", "indices", new IndexResult("lucerne", [new DayScoreSet(0, 99, 90, 70, 85, 95, 60, 88, 75, HoursIncluded: 14)], null, null)),
             TimeSpan.FromSeconds(3), ct);
         Assert.NotNull(ack);
 
         var response = await recovered.Ask<QueryEnrichmentResponse>(
-            new QueryEnrichment("zurich", "alerts"), TimeSpan.FromSeconds(3), ct);
+            new QueryEnrichment("lucerne", "indices"), TimeSpan.FromSeconds(3), ct);
         var found = Assert.IsType<EnrichmentFound>(response);
-        Assert.IsType<AlertResult>(found.Result);
+        Assert.IsType<IndexResult>(found.Result);
     }
 
     [Fact(Timeout = 5000)]

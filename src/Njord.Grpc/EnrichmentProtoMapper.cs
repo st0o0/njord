@@ -1,7 +1,7 @@
-using Njord.Analysis;
+using Njord.Compute.Analysis;
 using Njord.Grpc.V2;
-using DomainAlertSeverity = Njord.Analysis.AlertSeverity;
-using DomainAlertType = Njord.Analysis.AlertType;
+using DomainAlertSeverity = Njord.Compute.Analysis.AlertSeverity;
+using DomainAlertType = Njord.Compute.Analysis.AlertType;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
 using ProtoAlertType = Njord.Grpc.V2.AlertType;
 using ProtoHorizonConsensus = Njord.Grpc.V2.HorizonConsensus;
@@ -9,6 +9,7 @@ using ProtoHorizonDerived = Njord.Grpc.V2.HorizonDerived;
 using ProtoParameterConsensus = Njord.Grpc.V2.ParameterConsensus;
 using ProtoParameterTrend = Njord.Grpc.V2.ParameterTrend;
 using ProtoScalarDerived = Njord.Grpc.V2.ScalarDerived;
+using ScoreEnvelope = Njord.Compute.Analysis.ScoreEnvelope;
 
 namespace Njord.Grpc;
 
@@ -132,7 +133,7 @@ public static class EnrichmentProtoMapper
         return update;
     }
 
-    private static V2.ScoreEnvelope? MapEnvelope(Analysis.ScoreEnvelope? envelope)
+    private static V2.ScoreEnvelope? MapEnvelope(ScoreEnvelope? envelope)
     {
         if (envelope is null)
         {

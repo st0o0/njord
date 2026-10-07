@@ -1,8 +1,8 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Configuration;
-using Njord.Health;
+using Njord.Core.Configuration;
+using Njord.Core.Health;
 using Njord.Messages.Mqtt;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;

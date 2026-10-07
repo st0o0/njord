@@ -9,7 +9,7 @@ Akka Persistence actors that hold the latest forecast and enrichment state as Sh
 ### Requirement: ForecastSnapshotActor stores the latest forecasts as ShardRegion entities
 `ForecastSnapshotActor` SHALL be a ShardRegion entity managed by the `IForecastSnapshotRegion` ShardRegion. Each entity SHALL manage the forecast for a single `(location, modelId)` key. The entity's `PersistenceId` SHALL be derived from the entity id (e.g. `"forecast-snapshot-{location}|{modelId}"`). The entity SHALL hold a single `ModelForecast` value (not a dictionary). It SHALL respond to `UpdateForecast` (which implements `IWithModelKey`) with `Ack` after storing the forecast. It SHALL respond to `QueryForecast` (which implements `IWithModelKey`) with `ForecastFound` or `ForecastNotFound`. It SHALL persist its state as a snapshot every N updates (default 20). After a successful snapshot save, it SHALL delete all previous snapshots. The snapshot state SHALL be a dedicated DTO type (`ForecastSnapshotDto`). The entity SHALL passivate after idle timeout.
 
-`QueryAllForecasts` SHALL be handled by a coordinator or scatter-gather pattern — not by individual entities. The existing `QueryAllForecasts`/`QueryAllForecastsResult` protocol MAY be handled by the GrpcSnapshotConsumerActor or a dedicated query actor that fans out to known entity keys.
+`QueryAllForecasts` SHALL be handled via Akka.Streams fan-out: `Source.From(knownKeys).Ask<T>(region, timeout, parallelism)` with `ResumingDecider` supervision. The caller SHALL derive entity keys from configured locations and models.
 
 #### Scenario: Store and retrieve a forecast via ShardRegion
 - **WHEN** `UpdateForecast("lucerne", "icon_d2", forecast)` is sent to the ShardRegion
@@ -35,10 +35,14 @@ Akka Persistence actors that hold the latest forecast and enrichment state as Sh
 - **WHEN** an entity restarts and a persisted snapshot exists for its key
 - **THEN** the entity recovers its single forecast from the snapshot
 
+#### Scenario: QueryAllForecasts uses Akka.Streams fan-out
+- **WHEN** `QueryAllForecasts` is requested
+- **THEN** the handler fans out `QueryForecast` to all known entity keys via `Source.From(keys).Ask<T>(region)` with bounded parallelism and `ResumingDecider`
+
 ### Requirement: EnrichmentSnapshotActor stores the latest enrichment results as ShardRegion entities
 `EnrichmentSnapshotActor` SHALL be a ShardRegion entity managed by the `IEnrichmentSnapshotRegion` ShardRegion. Each entity SHALL manage the enrichment result for a single `(location, typeName)` key. The entity's `PersistenceId` SHALL be derived from the entity id (e.g. `"enrichment-snapshot-{location}|{typeName}"`). The entity SHALL hold a single enrichment result value (not a dictionary). It SHALL respond to `UpdateEnrichment` (which implements `IWithEnrichmentKey`) with `Ack`. It SHALL respond to `QueryEnrichment` (which implements `IWithEnrichmentKey`) with `EnrichmentFound` or `EnrichmentNotFound`. It SHALL persist its state as a snapshot every N updates (default 14). After a successful snapshot save, it SHALL delete all previous snapshots. The entity SHALL passivate after idle timeout.
 
-`QueryAllEnrichments(location)` SHALL be handled by a coordinator or scatter-gather pattern — not by individual entities.
+`QueryAllEnrichments(location)` SHALL be handled via Akka.Streams fan-out to the ShardRegion, deriving entity keys from the location and registered enrichment type names.
 
 #### Scenario: Store and retrieve an enrichment via ShardRegion
 - **WHEN** `UpdateEnrichment("lucerne", "consensus", result)` is sent to the ShardRegion
@@ -55,6 +59,10 @@ Akka Persistence actors that hold the latest forecast and enrichment state as Sh
 #### Scenario: Entity passivates after idle timeout
 - **WHEN** an entity receives no messages for the configured idle period
 - **THEN** it passivates and is removed from memory
+
+#### Scenario: QueryAllEnrichments uses Akka.Streams fan-out
+- **WHEN** `QueryAllEnrichments("lucerne")` is requested
+- **THEN** the handler fans out `QueryEnrichment` to all known enrichment type keys for that location via `Source.From(keys).Ask<T>(region)` with bounded parallelism and `ResumingDecider`
 
 ### Requirement: GrpcSnapshotConsumerActor routes events from producer BroadcastHubs to ShardRegion entities
 `GrpcSnapshotConsumerActor` SHALL subscribe to `ModelStateActor` and `EnrichmentActor` BroadcastHubs via SourceRef. It SHALL route `PerModelUpdate` events to the `IForecastSnapshotRegion` ShardRegion and `EnrichmentUpdate` events to the `IEnrichmentSnapshotRegion` ShardRegion. Messages sent to ShardRegions SHALL implement the appropriate routing marker interface (`IWithModelKey` or `IWithEnrichmentKey`) so the `NjordMessageExtractor` can extract the entity id.

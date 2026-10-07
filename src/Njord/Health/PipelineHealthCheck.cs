@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
+using Njord.Core.Configuration;
+using Njord.Core.Health;
 
 namespace Njord.Health;
 

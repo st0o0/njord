@@ -2,7 +2,7 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Njord.Actors;
+using Njord.Core.Actors;
 using Njord.Messages.Common;
 using Njord.Messages.Egress;
 using Njord.Messages.Snapshots;
@@ -16,8 +16,8 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
     private IActorRef? _enrichmentRef;
     private ISourceRef<EgressEvent>? _modelStateSourceRef;
     private ISourceRef<EgressEvent>? _enrichmentSourceRef;
-    private IActorRef? _forecastActor;
-    private IActorRef? _enrichmentSnapshotActor;
+    private IActorRef? _forecastRegion;
+    private IActorRef? _enrichmentRegion;
     private long _modelStateSourceRequestId;
     private long _enrichmentSourceRequestId;
 
@@ -25,7 +25,7 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
     private sealed record ModelStateResolveFailed(Exception Cause);
     private sealed record EnrichmentResolved(IActorRef Ref);
     private sealed record EnrichmentResolveFailed(Exception Cause);
-    private sealed record SnapshotActorsResolved(IActorRef Forecast, IActorRef Enrichment);
+    private sealed record SnapshotRegionsResolved(IActorRef Forecast, IActorRef Enrichment);
     private sealed record SnapshotResolveFailed(Exception Cause);
 
     protected override void ResolveInitialDependencies()
@@ -36,8 +36,8 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
         _enrichmentRef = Context.GetActor<IEnrichmentActor>();
         TrackDependency(_enrichmentRef);
 
-        _forecastActor = Context.GetActor<IForecastSnapshotActor>();
-        _enrichmentSnapshotActor = Context.GetActor<IEnrichmentSnapshotActor>();
+        _forecastRegion = Context.GetActor<IForecastSnapshotRegion>();
+        _enrichmentRegion = Context.GetActor<IEnrichmentSnapshotRegion>();
     }
 
     protected override void RequestSourceRefs()
@@ -137,10 +137,10 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
             ScheduleRetryResolve();
         });
 
-        Receive<SnapshotActorsResolved>(msg =>
+        Receive<SnapshotRegionsResolved>(msg =>
         {
-            _forecastActor = msg.Forecast;
-            _enrichmentSnapshotActor = msg.Enrichment;
+            _forecastRegion = msg.Forecast;
+            _enrichmentRegion = msg.Enrichment;
             TryTransition();
         });
         Receive<SnapshotResolveFailed>(msg =>
@@ -157,21 +157,21 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
             return;
         }
 
-        var forecastTask = Context.GetActorAsync<IForecastSnapshotActor>();
-        var enrichmentTask = Context.GetActorAsync<IEnrichmentSnapshotActor>();
+        var forecastTask = Context.GetActorAsync<IForecastSnapshotRegion>();
+        var enrichmentTask = Context.GetActorAsync<IEnrichmentSnapshotRegion>();
         Task.WhenAll(forecastTask, enrichmentTask)
-            .PipeTo(Self, success: _ => new SnapshotActorsResolved(forecastTask.Result, enrichmentTask.Result), failure: ex => new SnapshotResolveFailed(ex));
+            .PipeTo(Self, success: _ => new SnapshotRegionsResolved(forecastTask.Result, enrichmentTask.Result), failure: ex => new SnapshotResolveFailed(ex));
     }
 
     protected override bool AllRefsReady() =>
         _modelStateSourceRef is not null && _enrichmentSourceRef is not null
-        && _forecastActor is not null && _enrichmentSnapshotActor is not null;
+        && _forecastRegion is not null && _enrichmentRegion is not null;
 
     protected override void MaterializeGraph(SharedKillSwitch killSwitch)
     {
         var log = Context.GetLogger();
-        var forecastActor = _forecastActor!;
-        var enrichmentSnapshotActor = _enrichmentSnapshotActor!;
+        var forecastRegion = _forecastRegion!;
+        var enrichmentRegion = _enrichmentRegion!;
 
         var modelStateSource = _modelStateSourceRef!.Source;
         var enrichmentSource = _enrichmentSourceRef!.Source;
@@ -189,12 +189,12 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
                 switch (update)
                 {
                     case EgressEvent.PerModelUpdate pmu:
-                        await forecastActor.Ask<Ack>(
+                        await forecastRegion.Ask<Ack>(
                             new UpdateForecast(pmu.Location, pmu.Model, pmu.Forecast));
                         break;
 
                     case EgressEvent.EnrichmentUpdate eu:
-                        await enrichmentSnapshotActor.Ask<Ack>(
+                        await enrichmentRegion.Ask<Ack>(
                             new UpdateEnrichment(eu.Location, eu.TypeName, eu.Result));
                         break;
                 }
@@ -214,8 +214,8 @@ public sealed class GrpcSnapshotConsumerActor : StreamConsumerActor
         _enrichmentRef = null;
         _modelStateSourceRef = null;
         _enrichmentSourceRef = null;
-        _forecastActor = null;
-        _enrichmentSnapshotActor = null;
+        _forecastRegion = null;
+        _enrichmentRegion = null;
         _modelStateSourceRequestId = 0;
         _enrichmentSourceRequestId = 0;
     }

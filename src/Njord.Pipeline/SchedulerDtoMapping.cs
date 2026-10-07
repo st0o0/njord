@@ -1,7 +1,7 @@
 using Njord.Messages.Pipeline;
-using Njord.Pipeline;
+using Njord.Persistence;
 
-namespace Njord.Persistence;
+namespace Njord.Pipeline;
 
 public static class SchedulerDtoMapping
 {

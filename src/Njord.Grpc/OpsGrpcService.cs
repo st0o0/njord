@@ -6,8 +6,8 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Njord.Actors;
-using Njord.Configuration;
+using Njord.Core.Actors;
+using Njord.Core.Configuration;
 using Njord.Grpc.V2;
 using Njord.Messages.Pipeline;
 

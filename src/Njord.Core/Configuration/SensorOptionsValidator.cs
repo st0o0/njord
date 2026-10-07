@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-namespace Njord.Configuration;
+namespace Njord.Core.Configuration;
 
 public sealed class SensorOptionsValidator : IValidateOptions<SensorOptions>
 {

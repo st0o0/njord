@@ -1,4 +1,4 @@
-namespace Njord.Configuration;
+namespace Njord.Compute.Configuration;
 
 public sealed class AlertOptions
 {

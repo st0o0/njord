@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
-using Njord.Analysis;
+using Njord.Compute.Analysis;
+using Njord.Core.Egress;
 using Njord.Domain.Weather;
-using Njord.Egress;
 
 namespace Njord.Mqtt;
 

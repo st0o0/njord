@@ -6,10 +6,12 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Actors;
-using Njord.Configuration;
+using Njord.Core.Actors;
+using Njord.Core.Configuration;
+using Njord.Core.Health;
+using Njord.Core.Ingest;
+using Njord.Domain.Options;
 using Njord.Domain.Weather;
-using Njord.Health;
 using Njord.Ingest;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -78,7 +80,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         for (var i = 0; i < 3; i++)
         {
             var sourceRef = await pipeline.Ask<PipelineSourceResponse>(
-                new Njord.Actors.RequestPipelineSource(0), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+                new Core.Actors.RequestPipelineSource(0), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
             _ = sourceRef.SourceRef.Source.RunWith(Sink.Ignore<FetchOutcome>(), Sys.Materializer());
         }
 

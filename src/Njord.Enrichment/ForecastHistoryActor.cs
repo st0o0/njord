@@ -1,8 +1,8 @@
 using Akka.Event;
 using Akka.Persistence;
 using Microsoft.Extensions.Options;
-using Njord.Analysis;
-using Njord.Configuration;
+using Njord.Compute.Analysis;
+using Njord.Core.Configuration;
 using Njord.Domain.Weather;
 using Njord.Messages.Enrichment;
 using Njord.Persistence;
@@ -90,7 +90,7 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
             foreach (var param in _parameters.Hourly)
             {
                 var vals = modelValuesList
-                    .Select(v => v.TryGetValue(param.ApiName, out var val) ? val : null)
+                    .Select(v => v.GetValueOrDefault(param.ApiName))
                     .ToList();
                 consensusValues[param.ApiName] = ConsensusComputer.ComputeMedian(vals);
             }

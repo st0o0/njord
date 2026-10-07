@@ -1,5 +1,5 @@
-using Njord.Configuration;
-using Njord.Enrichment;
+using Njord.Core.Configuration;
+using Njord.Core.Enrichment;
 
 namespace Njord.Core.Tests.Configuration;
 

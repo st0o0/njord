@@ -1,3 +1,6 @@
+using Njord.Compute.Analysis;
+using Njord.Core.Actors;
+
 namespace Njord.Architecture.Tests;
 
 public sealed class LayerReferenceSpec
@@ -30,13 +33,13 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Compute_references_only_Domain()
     {
-        Assert.Empty(NjordReferences<Njord.Analysis.ConsensusSnapshot>().Except(["Njord.Domain"]));
+        Assert.Empty(NjordReferences<ConsensusSnapshot>().Except(["Njord.Domain"]));
     }
 
     [Fact]
     public void Core_references_only_Domain_Messages_Persistence_and_Compute()
     {
-        Assert.Empty(NjordReferences<Njord.Actors.ISchedulerActor>().Except(["Njord.Compute", "Njord.Domain", "Njord.Messages", "Njord.Persistence"]));
+        Assert.Empty(NjordReferences<ISchedulerActor>().Except(["Njord.Compute", "Njord.Domain", "Njord.Messages", "Njord.Persistence"]));
     }
 
     private static readonly string[] CoreAndBelow = ["Njord.Compute", "Njord.Core", "Njord.Domain", "Njord.Messages", "Njord.Persistence"];

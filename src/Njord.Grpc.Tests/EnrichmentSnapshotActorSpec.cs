@@ -1,6 +1,6 @@
 using Akka.Actor;
 using Akka.Hosting;
-using Njord.Analysis;
+using Njord.Compute.Analysis;
 using Njord.Messages.Common;
 using Njord.Messages.Snapshots;
 using Njord.Tests.Shared;
@@ -9,6 +9,8 @@ namespace Njord.Grpc.Tests;
 
 public sealed class EnrichmentSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
 {
+    private const string EntityId = "lucerne|indices";
+
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
         builder
@@ -16,8 +18,8 @@ public sealed class EnrichmentSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
             .AddTestTimefactor();
     }
 
-    private IActorRef CreateActor() =>
-        Sys.ActorOf(Props.Create(() => new EnrichmentSnapshotActor()));
+    private IActorRef CreateActor(string entityId = EntityId) =>
+        Sys.ActorOf(Props.Create(() => new EnrichmentSnapshotActor(entityId)));
 
     [Fact(Timeout = 5000)]
     public async Task Update_and_retrieve_an_enrichment()
@@ -34,24 +36,11 @@ public sealed class EnrichmentSnapshotActorSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 5000)]
-    public async Task QueryAllEnrichments_returns_all_for_location()
-    {
-        var actor = CreateActor();
-        await actor.Ask<Ack>(new UpdateEnrichment("lucerne", "indices",
-            new IndexResult("lucerne", [new DayScoreSet(0, 80, 90, 70, 85, 95, 60, 88, 75, HoursIncluded: 14)], null, null)), TestContext.Current.CancellationToken);
-        await actor.Ask<Ack>(new UpdateEnrichment("lucerne", "alerts",
-            new AlertResult("lucerne", [])), TestContext.Current.CancellationToken);
-
-        var response = await actor.Ask<QueryAllEnrichmentsResult>(new QueryAllEnrichments("lucerne"), TestContext.Current.CancellationToken);
-        Assert.Equal(2, response.Results.Count);
-    }
-
-    [Fact(Timeout = 5000)]
     public async Task Unknown_enrichment_returns_not_found()
     {
         var actor = CreateActor();
 
-        var response = await actor.Ask<QueryEnrichmentResponse>(new QueryEnrichment("lucerne", "unknown"), TestContext.Current.CancellationToken);
+        var response = await actor.Ask<QueryEnrichmentResponse>(new QueryEnrichment("lucerne", "indices"), TestContext.Current.CancellationToken);
         Assert.IsType<EnrichmentNotFound>(response);
     }
 }

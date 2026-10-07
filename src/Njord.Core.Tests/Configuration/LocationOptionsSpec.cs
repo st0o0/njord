@@ -1,4 +1,4 @@
-using Njord.Configuration;
+using Njord.Domain.Options;
 
 namespace Njord.Core.Tests.Configuration;
 

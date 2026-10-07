@@ -1,4 +1,4 @@
-namespace Njord.Configuration;
+namespace Njord.Core.Configuration;
 
 public sealed record RequestBudget(int RequestsPerMonth, int RequestsPerMinute)
 {

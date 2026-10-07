@@ -1,4 +1,4 @@
-namespace Njord.Configuration;
+namespace Njord.Core.Configuration;
 
 public enum CoverageTier { Global, Continental, Regional }
 

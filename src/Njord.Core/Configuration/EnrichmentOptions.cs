@@ -1,6 +1,7 @@
-using Njord.Enrichment;
+using Njord.Compute.Configuration;
+using Njord.Core.Enrichment;
 
-namespace Njord.Configuration;
+namespace Njord.Core.Configuration;
 
 public sealed class EnrichmentOptions
 {

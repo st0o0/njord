@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Analysis;
-using Njord.Configuration;
+using Njord.Compute.Analysis;
+using Njord.Compute.Configuration;
 using Njord.Domain.Weather;
 
 namespace Njord.Mqtt.Tests;

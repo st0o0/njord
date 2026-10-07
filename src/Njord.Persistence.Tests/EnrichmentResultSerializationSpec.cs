@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
-using Njord.Analysis;
+using Njord.Compute.Analysis;
+using Njord.Grpc;
 
 namespace Njord.Persistence.Tests;
 

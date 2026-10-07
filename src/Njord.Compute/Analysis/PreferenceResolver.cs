@@ -1,6 +1,6 @@
-using Njord.Configuration;
+using Njord.Compute.Configuration;
 
-namespace Njord.Analysis;
+namespace Njord.Compute.Analysis;
 
 public static class PreferenceResolver
 {

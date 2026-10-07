@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using Njord.Domain.Weather;
 
-namespace Njord.Egress;
+namespace Njord.Core.Egress;
 
 public static class HorizonProjection
 {

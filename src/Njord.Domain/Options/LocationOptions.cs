@@ -1,4 +1,4 @@
-namespace Njord.Configuration;
+namespace Njord.Domain.Options;
 
 public sealed class LocationOptions
 {

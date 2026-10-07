@@ -1,6 +1,6 @@
 using Njord.Domain.Weather;
 
-namespace Njord.Analysis;
+namespace Njord.Compute.Analysis;
 
 public sealed record HistoryResult(
     string Location,

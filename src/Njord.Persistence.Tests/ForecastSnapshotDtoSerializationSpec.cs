@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Njord.Domain.Weather;
+using Njord.Grpc;
 
 namespace Njord.Persistence.Tests;
 

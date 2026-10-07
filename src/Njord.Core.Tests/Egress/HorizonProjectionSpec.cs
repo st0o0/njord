@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
+using Njord.Core.Egress;
 using Njord.Domain.Weather;
-using Njord.Egress;
 
 namespace Njord.Core.Tests.Egress;
 

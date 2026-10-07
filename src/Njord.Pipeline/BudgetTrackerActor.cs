@@ -1,6 +1,6 @@
 using Akka.Event;
 using Akka.Persistence;
-using Njord.Health;
+using Njord.Core.Health;
 using Njord.Messages.Pipeline;
 using Njord.Persistence;
 

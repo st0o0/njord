@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Analysis;
-using Njord.Configuration;
+using Njord.Compute.Analysis;
+using Njord.Core.Configuration;
+using Njord.Domain.Options;
 using Njord.Domain.Weather;
 using Njord.Enrichment.Features;
 using Njord.Messages.Egress;

@@ -1,4 +1,4 @@
-using Njord.Actors;
+using Njord.Core.Actors;
 using Njord.Messages;
 
 namespace Njord.Core.Tests.Actors;

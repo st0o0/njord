@@ -11,6 +11,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Akka.Cluster.Hosting" />
       <PackageReference Include="MQTTnet" />
       <PackageReference Include="Servus.Akka" />
     </ItemGroup>

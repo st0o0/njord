@@ -1,4 +1,4 @@
-namespace Njord.Enrichment;
+namespace Njord.Core.Enrichment;
 
 public static class EnrichmentTypeNames
 {

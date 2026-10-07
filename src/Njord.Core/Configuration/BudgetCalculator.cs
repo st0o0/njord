@@ -1,6 +1,6 @@
 using Njord.Domain.Weather;
 
-namespace Njord.Configuration;
+namespace Njord.Core.Configuration;
 
 public static class BudgetCalculator
 {

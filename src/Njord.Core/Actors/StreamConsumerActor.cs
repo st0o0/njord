@@ -2,7 +2,7 @@ using Akka.Actor;
 using Akka.Streams;
 using Servus.Resilience;
 
-namespace Njord.Actors;
+namespace Njord.Core.Actors;
 
 public abstract class StreamConsumerActor : ReceiveActor, IWithStash
 {

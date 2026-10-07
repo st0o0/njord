@@ -1,17 +1,18 @@
 using System.Net.Sockets;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using Njord.Configuration;
+using Njord.Core.Configuration;
+using Njord.Core.Ingest;
+using Servus.Core.Application.Startup;
 
-namespace Njord.Ingest;
+namespace Njord.Ingest.Configuration;
 
-public static class IngestServiceCollectionExtensions
+public sealed class IngestSetupContainer : IServiceSetupContainer
 {
-    public static IServiceCollection AddNjordIngest(this IServiceCollection services)
+    public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.TryAddSingleton(TimeProvider.System);
-        services.AddHttpClient<IOpenMeteoClient, OpenMeteoClient>((sp, client) =>
+        services.AddHttpClient<IOpenMeteoClient, OpenMeteoClient>((IServiceProvider sp, HttpClient client) =>
             {
                 var options = sp.GetRequiredService<IOptions<NjordOptions>>().Value;
                 client.BaseAddress = new Uri(options.OpenMeteoBaseUrl);
@@ -35,6 +36,5 @@ public static class IngestServiceCollectionExtensions
                     }
                 }
             });
-        return services;
     }
 }

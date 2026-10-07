@@ -1,7 +1,7 @@
-using Njord.Configuration;
+using Njord.Domain.Options;
 using Njord.Domain.Weather;
 
-namespace Njord.Ingest;
+namespace Njord.Core.Ingest;
 
 public interface IOpenMeteoClient
 {

@@ -1,4 +1,4 @@
-using Njord.Configuration;
+using Njord.Core.Configuration;
 
 namespace Njord.Mqtt;
 

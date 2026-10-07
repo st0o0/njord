@@ -3,9 +3,10 @@ using Akka.Hosting;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Actors;
-using Njord.Analysis;
-using Njord.Configuration;
+using Njord.Compute.Analysis;
+using Njord.Core.Actors;
+using Njord.Core.Configuration;
+using Njord.Domain.Options;
 using Njord.Domain.Weather;
 using Njord.Grpc.V2;
 using Njord.Messages.Snapshots;
@@ -39,9 +40,9 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             Models = ["icon_d2", "ecmwf_ifs025"],
         };
 
-        ActorRegistry.Register<IForecastSnapshotActor>(
+        ActorRegistry.Register<IForecastSnapshotRegion>(
             forecastActor ?? Sys.ActorOf(Props.Create(() => new EmptyForecastActor())), overwrite: true);
-        ActorRegistry.Register<IEnrichmentSnapshotActor>(
+        ActorRegistry.Register<IEnrichmentSnapshotRegion>(
             enrichmentActor ?? Sys.ActorOf(Props.Create(() => new EmptyEnrichmentActor())), overwrite: true);
 
         return new WeatherGrpcService(
@@ -226,8 +227,6 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         public EmptyForecastActor()
         {
             Receive<QueryForecast>(msg => Sender.Tell(new ForecastNotFound(msg.Location + "|" + msg.ModelId), Self));
-            Receive<QueryAllForecasts>(_ => Sender.Tell(
-                new QueryAllForecastsResult(new Dictionary<(string, string), ModelForecast>()), Self));
         }
     }
 
@@ -243,8 +242,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public EmptyEnrichmentActor()
         {
-            Receive<QueryAllEnrichments>(_ => Sender.Tell(
-                new QueryAllEnrichmentsResult([]), Self));
+            Receive<QueryEnrichment>(msg => Sender.Tell(new EnrichmentNotFound(msg.Location + "|" + msg.TypeName), Self));
         }
     }
 
@@ -252,7 +250,14 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakeEnrichmentActor(IReadOnlyList<(string TypeName, object Result)> results)
         {
-            Receive<QueryAllEnrichments>(_ => Sender.Tell(new QueryAllEnrichmentsResult(results), Self));
+            var lookup = results.ToDictionary(r => r.TypeName, r => r.Result);
+            Receive<QueryEnrichment>(msg =>
+            {
+                if (lookup.TryGetValue(msg.TypeName, out var result))
+                    Sender.Tell(new EnrichmentFound(result), Self);
+                else
+                    Sender.Tell(new EnrichmentNotFound(msg.Location + "|" + msg.TypeName), Self);
+            });
         }
     }
 }

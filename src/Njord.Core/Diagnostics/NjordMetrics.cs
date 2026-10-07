@@ -1,6 +1,6 @@
 using System.Diagnostics.Metrics;
 
-namespace Njord.Diagnostics;
+namespace Njord.Core.Diagnostics;
 
 public sealed class NjordMetrics
 {

@@ -1,7 +1,9 @@
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Njord.Configuration;
+using Njord.Compute.Configuration;
+using Njord.Core.Configuration;
+using Njord.Domain.Options;
 using Njord.Grpc.V2;
 
 namespace Njord.Grpc;

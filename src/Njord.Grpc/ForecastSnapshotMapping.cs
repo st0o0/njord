@@ -1,6 +1,7 @@
 using Njord.Domain.Weather;
+using Njord.Persistence;
 
-namespace Njord.Persistence;
+namespace Njord.Grpc;
 
 public static class ForecastSnapshotMapping
 {

@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using Akka.Streams;
 using Akka.Streams.Stage;
-using Njord.Diagnostics;
+using Njord.Core.Diagnostics;
 
 namespace Njord.Pipeline;
 

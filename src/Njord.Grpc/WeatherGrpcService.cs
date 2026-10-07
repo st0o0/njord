@@ -5,13 +5,17 @@ using Akka.Streams.Dsl;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
-using Njord.Actors;
-using Njord.Configuration;
+using Njord.Compute.Analysis;
+using Njord.Core.Actors;
+using Njord.Core.Configuration;
+using Njord.Core.Enrichment;
+using Njord.Domain.Options;
 using Njord.Domain.Weather;
 using Njord.Grpc.V2;
 using Njord.Messages.Egress;
 using Njord.Messages.Snapshots;
 using ActorSystem = Akka.Actor.ActorSystem;
+using CoverageTier = Njord.Core.Configuration.CoverageTier;
 using GrpcStatus = Grpc.Core.Status;
 
 namespace Njord.Grpc;
@@ -57,9 +61,9 @@ public sealed class WeatherGrpcService(
                     info.Region = coverage.Region;
                     info.CoverageTier = coverage.Tier switch
                     {
-                        Configuration.CoverageTier.Global => V2.CoverageTier.Global,
-                        Configuration.CoverageTier.Continental => V2.CoverageTier.Continental,
-                        Configuration.CoverageTier.Regional => V2.CoverageTier.Regional,
+                        CoverageTier.Global => V2.CoverageTier.Global,
+                        CoverageTier.Continental => V2.CoverageTier.Continental,
+                        CoverageTier.Regional => V2.CoverageTier.Regional,
                         _ => V2.CoverageTier.Unspecified,
                     };
                     if (coverage.MaxForecastHours.HasValue)
@@ -89,8 +93,8 @@ public sealed class WeatherGrpcService(
         var location = FindLocation(request.Location);
         ValidateModel(location, request.Model);
 
-        var actor = await actorRegistry.GetAsync<IForecastSnapshotActor>();
-        var result = await actor.Ask<QueryForecastResponse>(
+        var region = await actorRegistry.GetAsync<IForecastSnapshotRegion>();
+        var result = await region.Ask<QueryForecastResponse>(
             new QueryForecast(request.Location, request.Model), AskTimeout);
 
         return result switch
@@ -105,15 +109,28 @@ public sealed class WeatherGrpcService(
     {
         FindLocation(request.Location);
 
-        var actor = await actorRegistry.GetAsync<IEnrichmentSnapshotActor>();
-        var result = await actor.Ask<QueryAllEnrichmentsResult>(
-            new QueryAllEnrichments(request.Location), AskTimeout);
+        var region = await actorRegistry.GetAsync<IEnrichmentSnapshotRegion>();
+        var enrichmentTypes = new[]
+        {
+            EnrichmentTypeNames.Consensus, EnrichmentTypeNames.Alerts,
+            EnrichmentTypeNames.Derived, EnrichmentTypeNames.Trends,
+            EnrichmentTypeNames.Indices, EnrichmentTypeNames.History
+        };
+        var tasks = enrichmentTypes.Select(type =>
+            region.Ask<QueryEnrichmentResponse>(
+                new QueryEnrichment(request.Location, type), AskTimeout));
+        var responses = await Task.WhenAll(tasks);
+        var results = enrichmentTypes.Zip(responses)
+            .Where(pair => pair.Second is EnrichmentFound)
+            .Select(pair => (pair.First, ((EnrichmentFound)pair.Second).Result))
+            .ToList();
+        var result = new QueryAllEnrichmentsResult(results);
 
         var response = new GetEnrichmentsResponse { Location = request.Location };
 
         foreach (var (typeName, resultObj) in result.Results)
         {
-            var updatedAt = resultObj is Analysis.ConsensusResult cr && cr.ComputedAt is { } computedAt
+            var updatedAt = resultObj is ConsensusResult cr && cr.ComputedAt is { } computedAt
                 ? computedAt
                 : timeProvider.GetUtcNow();
             var evt = EnrichmentProtoMapper.MapToEvent(

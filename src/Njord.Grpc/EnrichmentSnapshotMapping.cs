@@ -1,17 +1,19 @@
 using Newtonsoft.Json;
+using Njord.Compute.Analysis;
+using Njord.Persistence;
 
-namespace Njord.Persistence;
+namespace Njord.Grpc;
 
 public static class EnrichmentSnapshotMapping
 {
     private static readonly Dictionary<string, Type> EnrichmentTypes = new()
     {
-        ["AlertResult"] = typeof(Analysis.AlertResult),
-        ["IndexResult"] = typeof(Analysis.IndexResult),
-        ["TrendResult"] = typeof(Analysis.TrendResult),
-        ["DerivedResult"] = typeof(Analysis.DerivedResult),
-        ["ConsensusResult"] = typeof(Analysis.ConsensusResult),
-        ["HistoryResult"] = typeof(Analysis.HistoryResult),
+        ["AlertResult"] = typeof(AlertResult),
+        ["IndexResult"] = typeof(IndexResult),
+        ["TrendResult"] = typeof(TrendResult),
+        ["DerivedResult"] = typeof(DerivedResult),
+        ["ConsensusResult"] = typeof(ConsensusResult),
+        ["HistoryResult"] = typeof(HistoryResult),
     };
 
     private static readonly JsonSerializerSettings JsonSettings = new()

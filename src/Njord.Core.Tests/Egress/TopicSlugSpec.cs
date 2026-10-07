@@ -1,4 +1,4 @@
-using Njord.Egress;
+using Njord.Core.Egress;
 
 namespace Njord.Core.Tests.Egress;
 

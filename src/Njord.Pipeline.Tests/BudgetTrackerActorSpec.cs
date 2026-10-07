@@ -3,7 +3,7 @@ using Akka.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Health;
+using Njord.Core.Health;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 

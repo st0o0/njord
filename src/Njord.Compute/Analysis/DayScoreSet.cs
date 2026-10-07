@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Njord.Analysis;
+namespace Njord.Compute.Analysis;
 
 public sealed record DayScoreSet(
     [property: JsonProperty("day_offset")] int DayOffset,

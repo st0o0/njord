@@ -1,4 +1,4 @@
-using Njord.Analysis;
+using Njord.Compute.Analysis;
 
 namespace Njord.Compute.Tests.Analysis;
 

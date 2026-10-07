@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using StreamDecider = Akka.Streams.Supervision.Decider;
 using StreamDirective = Akka.Streams.Supervision.Directive;
 
-namespace Njord.Actors;
+namespace Njord.Core.Actors;
 
 public static class StreamSupervision
 {
