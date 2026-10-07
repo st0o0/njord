@@ -24,12 +24,6 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<NjordOptions>, NjordOptionsValidator>();
 
-        services
-            .AddOptions<SensorOptions>()
-            .Bind(configuration.GetSection(SensorOptions.SectionName))
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<SensorOptions>, SensorOptionsValidator>();
-
         services.AddSingleton(sp =>
         {
             var options = sp.GetRequiredService<IOptions<NjordOptions>>().Value;

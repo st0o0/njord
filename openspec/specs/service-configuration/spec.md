@@ -240,42 +240,19 @@ The `NjordOptionsValidator` SHALL validate the persistence configuration: `Provi
 - **WHEN** provider is `PostgreSql` and `ConnectionString` is non-empty
 - **THEN** validation succeeds
 
-### Requirement: NjordOptions is the single options root
+### Requirement: Validators implement IValidateOptions of their own sub-option, except cross-cutting and Mqtt
 
-`NjordOptions` SHALL be the only options type registered via `IOptions<>`. All configuration sub-sections (Mqtt, Grpc, Enrichment, Sensors, Persistence, Parameters) SHALL be nested properties on `NjordOptions`. There SHALL be no independent `IOptions<EnrichmentOptions>` or `IOptions<SensorOptions>` registrations. All consumers SHALL inject `IOptions<NjordOptions>` and access sub-sections via the nested property path.
+`NjordOptionsValidator` SHALL implement `IValidateOptions<NjordOptions>` and validate only cross-cutting concerns (locations, models, horizons, persistence, and `Mqtt` — see `standalone-sub-options` for why Mqtt stays here). `ConsensusOptionsValidator`, `HistoryOptionsValidator`, and `IndexOptionsValidator` SHALL implement `IValidateOptions<EnrichmentOptions>` and access config via `options.*` (not `options.Enrichment.*`). `SensorOptionsValidator` SHALL implement `IValidateOptions<SensorOptions>`.
 
-#### Scenario: Enrichment feature uses NjordOptions
-
-- **WHEN** `IndexEnrichment` needs enrichment configuration
-- **THEN** it SHALL inject `IOptions<NjordOptions>` and access `.Value.Enrichment.Indices`
-
-#### Scenario: Sensor consumer uses NjordOptions
-
-- **WHEN** `SensorHubActor` needs sensor configuration
-- **THEN** it SHALL inject `IOptions<NjordOptions>` and access `.Value.Sensors`
-
-#### Scenario: No independent enrichment options registration
-
-- **WHEN** the DI container is inspected
-- **THEN** there SHALL be no `IOptions<EnrichmentOptions>` or `IOptions<SensorOptions>` service registrations
-
-### Requirement: SensorOptions is a nested property on NjordOptions
-
-`NjordOptions` SHALL contain a `Sensors` property of type `SensorOptions` with a default value of `new()`. Config path `Njord:Sensors` SHALL bind to this nested property.
-
-#### Scenario: SensorOptions bound through NjordOptions
-
-- **WHEN** config JSON contains `"Njord": { "Sensors": { "Enabled": false } }`
-- **THEN** `IOptions<NjordOptions>.Value.Sensors.Enabled` SHALL be `false`
-
-### Requirement: All validators implement IValidateOptions of NjordOptions
-
-All configuration validators (`NjordOptionsValidator`, `ConsensusOptionsValidator`, `HistoryOptionsValidator`, `IndexOptionsValidator`, `SensorOptionsValidator`) SHALL implement `IValidateOptions<NjordOptions>`. They SHALL access enrichment config via `options.Enrichment.*` and sensor config via `options.Sensors.*`.
-
-#### Scenario: IndexOptionsValidator validates through NjordOptions
+#### Scenario: IndexOptionsValidator validates through EnrichmentOptions
 
 - **WHEN** `IndexOptionsValidator` validates index preferences
-- **THEN** it SHALL receive `NjordOptions` directly and access `.Enrichment.Indices` and `.Locations` without injecting a separate `IOptions<NjordOptions>`
+- **THEN** it SHALL receive `EnrichmentOptions` directly and access `.Indices` without injecting `IOptions<NjordOptions>`
+
+#### Scenario: SensorOptionsValidator validates through SensorOptions
+
+- **WHEN** `SensorOptionsValidator` validates sensor configuration
+- **THEN** it SHALL receive `SensorOptions` directly, not `NjordOptions`
 
 ### Requirement: IndexOptionsValidator does not mutate options
 

@@ -24,13 +24,9 @@ public sealed class NjordOptions
 
     public MqttOptions Mqtt { get; set; } = new();
 
-    public GrpcOptions Grpc { get; set; } = new();
-
     public TimeSpan DiscoveryInterval { get; set; } = TimeSpan.FromMinutes(20);
 
     public EnrichmentOptions Enrichment { get; set; } = new();
-
-    public SensorOptions Sensors { get; set; } = new();
 
     public PersistenceOptions Persistence { get; set; } = new();
 
