@@ -10,6 +10,7 @@ COPY src/global.json src/Directory.Build.props src/Directory.Packages.props src/
 COPY src/Njord.Domain/Njord.Domain.csproj Njord.Domain/
 COPY src/Njord.Persistence/Njord.Persistence.csproj Njord.Persistence/
 COPY src/Njord.Messages/Njord.Messages.csproj Njord.Messages/
+COPY src/Njord.Compute/Njord.Compute.csproj Njord.Compute/
 COPY src/Njord.Core/Njord.Core.csproj Njord.Core/
 COPY src/Njord.Sensors/Njord.Sensors.csproj Njord.Sensors/
 COPY src/Njord.Ingest/Njord.Ingest.csproj Njord.Ingest/
@@ -24,6 +25,7 @@ RUN dotnet restore Njord/Njord.csproj -a ${TARGETARCH}
 COPY src/Njord.Domain/ Njord.Domain/
 COPY src/Njord.Persistence/ Njord.Persistence/
 COPY src/Njord.Messages/ Njord.Messages/
+COPY src/Njord.Compute/ Njord.Compute/
 COPY src/Njord.Core/ Njord.Core/
 COPY src/Njord.Sensors/ Njord.Sensors/
 COPY src/Njord.Ingest/ Njord.Ingest/
