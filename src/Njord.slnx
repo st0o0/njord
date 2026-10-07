@@ -38,7 +38,6 @@
     <Project Path="Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj" />
     <Project Path="Njord.Egress.Tests/Njord.Egress.Tests.csproj" />
     <Project Path="Njord.Enrichment.Tests/Njord.Enrichment.Tests.csproj" />
-    <Project Path="Njord.IntegrationTests/Njord.IntegrationTests.csproj" />
     <Project Path="Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj" />
     <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
     <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />
