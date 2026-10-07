@@ -122,8 +122,6 @@ src/
   Njord.Enrichment.Tests/     # Enrichment feature + actor specs
   Njord.Mqtt.Tests/           # MQTT discovery, connection, egress, golden masters
   Njord.Grpc.Tests/           # gRPC service specs
-  Njord.IntegrationTests/      # Integration: NjordFixture (TestServer + TestProbes), health,
-                              #   configuration, gRPC integration
   Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
@@ -155,10 +153,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 837 tests (Domain 70, Persistence 22, Compute 216, Core 122, Egress 6,
-Grpc 74, Pipeline 109, Mqtt 99, Enrichment 51, Ingest 15, Sensors 6, Architecture 29,
-IntegrationTests 18). CI's
-`dotnet test --solution Njord.slnx` runs every test project of the solution.
+Current total: 817 tests (Domain 70, Persistence 22, Compute 216, Core 122, Egress 6,
+Grpc 72, Pipeline 109, Mqtt 99, Enrichment 51, Ingest 15, Sensors 6, Architecture 29).
+CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
 limit parallel test modules (`--max-parallel-test-modules`) if flakes appear.
@@ -166,11 +163,10 @@ limit parallel test modules (`--max-parallel-test-modules`) if flakes appear.
 Tests are xUnit v3 on Microsoft.Testing.Platform — `dotnet run`, **not** `dotnet test`.
 Shared test infrastructure (fixtures, fakes, helpers) lives in `Njord.Tests.Shared`.
 
-Integration tests (`Njord.IntegrationTests`) use `NjordFixture` (TestServer +
-TestProbes) and do not require Docker. Run them with:
-```bash
-dotnet run --project Njord.IntegrationTests/Njord.IntegrationTests.csproj
-```
+End-to-end verification of the full stack (njord + ha-njord + Home Assistant,
+via Docker Compose + browser automation) is the `e2e-test` skill, not a
+`dotnet test` project — see `.claude/skills/e2e-test/SKILL.md` and
+`e2e/E2E-TEST-PLAN.md`.
 
 Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
 - `appsettings.json` — production logging only (no `Njord:` section).
