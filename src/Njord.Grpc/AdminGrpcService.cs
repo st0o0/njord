@@ -196,6 +196,16 @@ public sealed class AdminGrpcService(
 
     public override Task<ConfigResponse> SetBudget(SetBudgetRequest request, ServerCallContext context)
     {
+        if (request.HasRequestsPerMonth && request.RequestsPerMonth <= 0)
+        {
+            return Task.FromResult(Rejected("requests_per_month must be greater than zero"));
+        }
+
+        if (request.HasRequestsPerMinute && request.RequestsPerMinute <= 0)
+        {
+            return Task.FromResult(Rejected("requests_per_minute must be greater than zero"));
+        }
+
         var snapshot = writableOptions.Update(opt =>
         {
             if (request.HasRequestsPerMonth || request.HasRequestsPerMinute)

@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -100,6 +101,55 @@ public sealed class WritableNjordOptionsSpec : IDisposable
 
         Assert.Equal("lucerne", original.Locations[0].Name);
         Assert.Equal("icon_d2", original.Models[0]);
+    }
+
+    [Fact]
+    public void Update_writes_only_changed_properties_to_override_file()
+    {
+        var (writable, _) = CreateWritable(opt => opt.Horizons = [3, 6, 12, 24, 48, 72]);
+
+        writable.Update(opt => opt.Horizons = [6, 24]);
+
+        var json = File.ReadAllText(OverridePath());
+        var root = JsonNode.Parse(json)!;
+        var njord = root["Njord"]!.AsObject();
+
+        Assert.True(njord.ContainsKey("Horizons"));
+        Assert.False(njord.ContainsKey("ForecastDays"));
+        Assert.False(njord.ContainsKey("Locations"));
+    }
+
+    [Fact]
+    public void Successive_mutations_preserve_both_changes_in_override_file()
+    {
+        var (writable, _) = CreateWritable(opt => opt.Horizons = [3, 6, 12, 24, 48, 72]);
+
+        writable.Update(opt => opt.Horizons = [6, 24]);
+        writable.Update(opt => opt.Enrichment.Alerts.Enabled = false);
+
+        var json = File.ReadAllText(OverridePath());
+        var root = JsonNode.Parse(json)!;
+        var njord = root["Njord"]!.AsObject();
+        var horizons = njord["Horizons"]!.AsArray();
+        Assert.Equal(2, horizons.Count);
+        Assert.Equal(6, horizons[0]!.GetValue<int>());
+        Assert.Equal(24, horizons[1]!.GetValue<int>());
+        Assert.False(njord["Enrichment"]!["Alerts"]!["Enabled"]!.GetValue<bool>());
+    }
+
+    [Fact]
+    public void Array_mutation_writes_only_new_values_to_override_file()
+    {
+        var (writable, _) = CreateWritable(opt => opt.Horizons = [3, 6, 12, 24, 48, 72]);
+
+        writable.Update(opt => opt.Horizons = [6, 24]);
+
+        var json = File.ReadAllText(OverridePath());
+        var root = JsonNode.Parse(json)!;
+        var horizons = root["Njord"]!["Horizons"]!.AsArray();
+        Assert.Equal(2, horizons.Count);
+        Assert.Equal(6, horizons[0]!.GetValue<int>());
+        Assert.Equal(24, horizons[1]!.GetValue<int>());
     }
 
     public void Dispose()

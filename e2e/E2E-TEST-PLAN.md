@@ -197,7 +197,7 @@ Derived from config: 1 location × 2 models × all enrichments.
 |------|--------|---------------|
 | 7.1 | `GET /api/states/weather.lucerne_icon_d2` | State ≠ "unavailable", state ∈ HA condition list (sunny, cloudy, rainy, etc.) |
 | 7.2 | Verify attributes: `temperature` is numeric, `temperature_unit` = "°C" | Both correct |
-| 7.3 | Verify attributes: `wind_speed` is numeric, `wind_speed_unit` = "m/s" | Both correct |
+| 7.3 | Verify attributes: `wind_speed` is numeric, `native_wind_speed_unit` = "m/s" (HA may convert display `wind_speed_unit` to the user's unit system, e.g. km/h) | Both correct |
 | 7.4 | Verify attributes: `humidity` is numeric (0–100) | In range |
 | 7.5 | `POST /api/services/weather/get_forecasts` with `entity_id: weather.lucerne_icon_d2, type: hourly` | Forecast entries returned |
 | 7.6 | Verify forecast entries have `temperature`, `humidity`, `wind_speed` keys | All keys present |
@@ -261,8 +261,8 @@ Derived from config: 1 location × 2 models × all enrichments.
 |------|--------|---------------|
 | 9.1 | `GET /api/states/sensor.version` | State matches semver pattern (e.g., "0.1.0" or "0.1.0-alpha.1") |
 | 9.2 | `GET /api/states/sensor.uptime` | State is non-empty (duration string or numeric) |
-| 9.3 | `GET /api/states/sensor.monthly_usage` | State is numeric, attribute `unit_of_measurement` = "requests" |
-| 9.4 | `GET /api/states/sensor.daily_usage` | State is numeric, attribute `unit_of_measurement` = "requests" |
+| 9.3 | `GET /api/states/sensor.monthly_usage` | State is numeric, attribute `unit_of_measurement` = "%" (percentage of monthly budget) |
+| 9.4 | `GET /api/states/sensor.daily_usage` | State is numeric, attribute `unit_of_measurement` = "%" (percentage of daily budget) |
 | 9.5 | `GET /api/states/button.trigger_poll` | Entity exists |
 | 9.6 | `GET /api/states/sensor.lucerne_icon_d2_target` | State is ISO timestamp or "unknown" |
 | 9.7 | `GET /api/states/sensor.lucerne_ecmwf_ifs025_target` | State is ISO timestamp or "unknown" |
@@ -364,12 +364,12 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 16.1 | Record `last_updated` timestamp for `weather.lucerne_icon_d2` via `GET /api/states/weather.lucerne_icon_d2` | Timestamp captured |
+| 16.1 | Record `last_updated` timestamp for `sensor.lucerne_weather_trend` via `GET /api/states/sensor.lucerne_weather_trend` | Timestamp captured |
 | 16.2 | `grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll` | `triggeredCount` ≥ 2 |
-| 16.3 | Poll `GET /api/states/weather.lucerne_icon_d2` until `last_updated` > captured timestamp (interval: 5s, timeout: 120s) | Timestamp advanced |
+| 16.3 | Poll `GET /api/states/sensor.lucerne_weather_trend` until `last_updated` > captured timestamp (interval: 5s, timeout: 120s). Note: weather entity `last_updated` may not advance when Open-Meteo returns identical forecast data; enrichment entities always update. | Timestamp advanced |
 | 16.4 | Record new `last_updated`, trigger second poll: `grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll` | `triggeredCount` ≥ 2 |
-| 16.5 | Poll until `last_updated` advances again (timeout: 120s) | Second cycle confirmed |
-| 16.6 | Verify enrichment entity `sensor.lucerne_weather_trend` `last_updated` also advanced | Enrichments updated |
+| 16.5 | Poll `sensor.lucerne_weather_trend` until `last_updated` advances again (timeout: 120s) | Second cycle confirmed |
+| 16.6 | Verify `weather.lucerne_icon_d2` state ≠ "unavailable" after both cycles | Weather entity still healthy |
 
 ---
 
@@ -458,7 +458,7 @@ Derived from config: 1 location × 2 models × all enrichments.
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
 | 23.1 | `docker stop njord-e2e` | Container stopped |
-| 23.2 | Wait 10s, then `GET /api/states/binary_sensor.forecast_stream` | State = "off" (stream lost) |
+| 23.2 | Wait 60s (gRPC keepalive and `expire_after` make disconnect detection slower than 10s), then `GET /api/states/binary_sensor.forecast_stream` | State = "off" (stream lost) |
 | 23.3 | Verify `weather.lucerne_icon_d2` shows "unavailable" or stale state | Reflects downtime |
 | 23.4 | `docker start njord-e2e` | Container starts |
 | 23.5 | Poll `http://localhost:8080/alive` until HTTP 200 (timeout: 60s) | njord healthy again |

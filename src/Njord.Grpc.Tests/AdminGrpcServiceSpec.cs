@@ -132,6 +132,58 @@ public sealed class AdminGrpcServiceSpec : IDisposable
     }
 
     [Fact(Timeout = 5000)]
+    public async Task SetBudget_rejects_zero_monthly_budget()
+    {
+        var service = CreateService();
+
+        var response = await service.SetBudget(
+            new SetBudgetRequest { RequestsPerMonth = 0 },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.False(response.Applied);
+        Assert.Contains("must be greater than zero", response.RejectionReason);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task SetBudget_rejects_negative_monthly_budget()
+    {
+        var service = CreateService();
+
+        var response = await service.SetBudget(
+            new SetBudgetRequest { RequestsPerMonth = -100 },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.False(response.Applied);
+        Assert.Contains("must be greater than zero", response.RejectionReason);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task SetBudget_rejects_zero_per_minute_budget()
+    {
+        var service = CreateService();
+
+        var response = await service.SetBudget(
+            new SetBudgetRequest { RequestsPerMinute = 0 },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.False(response.Applied);
+        Assert.Contains("must be greater than zero", response.RejectionReason);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task SetBudget_rejects_when_valid_monthly_but_zero_per_minute()
+    {
+        var service = CreateService();
+
+        var response = await service.SetBudget(
+            new SetBudgetRequest { RequestsPerMonth = 300_000, RequestsPerMinute = 0 },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.False(response.Applied);
+        Assert.Contains("must be greater than zero", response.RejectionReason);
+    }
+
+    [Fact(Timeout = 5000)]
     public async Task SetEnrichment_disable_alerts_is_reflected_in_GetConfig()
     {
         var service = CreateService();
