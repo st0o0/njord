@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Njord.Configuration;
-using Njord.Core.Configuration;
 using Njord.Egress.Configuration;
 using Njord.Enrichment.Configuration;
 using Njord.Grpc.Configuration;
@@ -25,34 +23,13 @@ builder.Services.AddSerilog(config =>
 });
 builder.Logging.ClearProviders();
 
-var njordConfig = builder.Configuration.GetSection(NjordOptions.SectionName);
-var grpcPort = njordConfig.GetValue("Grpc:Port", 8081);
-var httpPort = njordConfig.GetValue("Http:Port", 8080);
-
 builder.WebHost.ConfigureKestrel(options =>
 {
-    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
-    {
-        options.ListenAnyIP(httpPort, o => o.Protocols = HttpProtocols.Http1);
-        options.ListenAnyIP(grpcPort, o =>
-        {
-            o.Protocols = HttpProtocols.Http2;
-            o.KestrelServerOptions.Limits.MinResponseDataRate = null;
-        });
-    }
-    else
-    {
-        options.ConfigureEndpointDefaults(o => o.Protocols = HttpProtocols.Http1);
-        options.ListenAnyIP(grpcPort, o =>
-        {
-            o.Protocols = HttpProtocols.Http2;
-            o.KestrelServerOptions.Limits.MinResponseDataRate = null;
-        });
-    }
+    options.Limits.MinResponseDataRate = null;
 });
 
 builder.Configuration.AddJsonFile(
-    Path.Combine("data", "njord-config.json"),
+    Path.Combine("data", "appsettings.Override.json"),
     optional: true,
     reloadOnChange: true);
 

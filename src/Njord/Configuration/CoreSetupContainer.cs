@@ -1,7 +1,8 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
-using Njord.Core.Health;
 using Njord.Core.Diagnostics;
+using Njord.Core.Health;
 using Njord.Domain.Weather;
 using Njord.Health;
 using Prometheus;
@@ -62,6 +63,11 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
             healthChecks.AddCheck<MqttConnectionHealthCheck>("mqtt-connection");
         }
 
-        services.AddSingleton<ConfigPersistence>();
+        services.AddSingleton<IWritableOptions<NjordOptions>>(sp =>
+        {
+            var monitor = sp.GetRequiredService<IOptionsMonitor<NjordOptions>>();
+            var configRoot = (IConfigurationRoot)sp.GetRequiredService<IConfiguration>();
+            return new WritableNjordOptions(monitor, configRoot, Path.Combine("data", "appsettings.Override.json"));
+        });
     }
 }

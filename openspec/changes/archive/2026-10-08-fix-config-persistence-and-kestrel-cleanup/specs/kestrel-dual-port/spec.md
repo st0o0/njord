@@ -1,12 +1,4 @@
-# kestrel-dual-port Specification
-
-## Purpose
-
-Dual-port Kestrel binding separating HTTP/1.1 (REST health endpoints) from
-HTTP/2 (gRPC h2c). Required because gRPC mandates HTTP/2 while health probes
-and Docker HEALTHCHECK use HTTP/1.1. Both ports operate without TLS.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Kestrel binds HTTP/1.1 and HTTP/2 on separate ports
 Kestrel SHALL be configured with dual-port binding via declarative `Kestrel:Endpoints` configuration in `appsettings.json`: one endpoint for HTTP/1.1 (REST health endpoints, default port 8080) and one endpoint for HTTP/2 (gRPC h2c, default port 8081). Both endpoints SHALL operate without TLS. No code-based `ConfigureKestrel` endpoint setup SHALL be needed for port binding.
@@ -47,3 +39,13 @@ The Dockerfile SHALL expose both the HTTP port (8080) and the gRPC port (8081).
 #### Scenario: Docker container accessible on both ports
 - **WHEN** the njord container runs with `-p 8080:8080 -p 8081:8081`
 - **THEN** both REST and gRPC endpoints SHALL be reachable from the host
+
+## REMOVED Requirements
+
+### Requirement: GrpcOptions class
+**Reason**: Port configuration moves to Kestrel's `Kestrel:Endpoints:Grpc:Url` section. The separate `GrpcOptions` class with `Port` property is no longer needed.
+**Migration**: Use `Kestrel__Endpoints__Grpc__Url` environment variable instead of `Njord__Grpc__Port`.
+
+### Requirement: HTTP/1.1 endpoint retains default rate limits
+**Reason**: `MinResponseDataRate` is now set to `null` globally rather than per-endpoint. The HTTP/1.1 port only serves short health check requests where `MinResponseDataRate` is irrelevant, so the per-endpoint distinction adds complexity without benefit.
+**Migration**: None required. Health endpoint behavior is unchanged.

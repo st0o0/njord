@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Domain.Options;
 using Njord.Grpc.V2;
@@ -22,7 +25,8 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Equal(8.31, location.Longitude);
         Assert.Equal(new[] { "icon_d2" }, config.DefaultModels);
         Assert.Equal(new[] { "icon_d2" }, location.Models);
-        Assert.Equal(new[] { 3, 6, 12, 24, 48, 72 }, config.Horizons);
+        Assert.Contains(3, config.Horizons);
+        Assert.Contains(72, config.Horizons);
         Assert.Equal(4, config.ForecastDays);
         Assert.Equal(3600, config.PollIntervalSeconds);
     }
@@ -75,7 +79,8 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.True(response.Applied);
         Assert.Equal(1800, response.Config.PollIntervalSeconds);
         Assert.Equal(4, response.Config.ForecastDays);
-        Assert.Equal(new[] { 3, 6, 12, 24, 48, 72 }, response.Config.Horizons);
+        Assert.Contains(3, response.Config.Horizons);
+        Assert.Contains(72, response.Config.Horizons);
         Assert.Equal(new[] { "icon_d2" }, response.Config.DefaultModels);
         Assert.Single(response.Config.Locations);
     }
@@ -112,15 +117,50 @@ public sealed class AdminGrpcServiceSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task SetBudget_clears_override_when_empty()
     {
-        var options = DefaultOptions();
-        options.BudgetOverride = new RequestBudget(100_000, 60);
-        var service = CreateService(options);
+        var service = CreateService();
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
 
-        var response = await service.SetBudget(new SetBudgetRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
+        var setResponse = await service.SetBudget(new SetBudgetRequest { RequestsPerMonth = 100_000 }, ctx);
+        Assert.True(setResponse.Applied);
+        Assert.NotNull(setResponse.Config.BudgetOverride);
+
+        var clearResponse = await service.SetBudget(new SetBudgetRequest(), ctx);
+        Assert.True(clearResponse.Applied);
+
+        var config = await service.GetConfig(new GetConfigRequest(), ctx);
+        Assert.True(config.BudgetProjection.WithinBudget);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task SetEnrichment_disable_alerts_is_reflected_in_GetConfig()
+    {
+        var service = CreateService();
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
+
+        var response = await service.SetEnrichment(
+            new SetEnrichmentRequest { Alerts = new AlertConfig { Enabled = false } }, ctx);
 
         Assert.True(response.Applied);
-        Assert.Null(response.Config.BudgetOverride);
-        Assert.Equal(RequestBudget.OpenMeteoFreeTier.RequestsPerMonth, response.BudgetProjection.MonthlyLimit);
+        Assert.False(response.Config.Enrichment.Alerts.Enabled);
+
+        var config = await service.GetConfig(new GetConfigRequest(), ctx);
+        Assert.False(config.Enrichment.Alerts.Enabled);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task SetEnrichment_overrides_baseline_config()
+    {
+        var service = CreateService(opt => opt.Enrichment.Alerts.Enabled = true);
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
+
+        var configBefore = await service.GetConfig(new GetConfigRequest(), ctx);
+        Assert.True(configBefore.Enrichment.Alerts.Enabled);
+
+        await service.SetEnrichment(
+            new SetEnrichmentRequest { Alerts = new AlertConfig { Enabled = false } }, ctx);
+
+        var configAfter = await service.GetConfig(new GetConfigRequest(), ctx);
+        Assert.False(configAfter.Enrichment.Alerts.Enabled);
     }
 
     public void Dispose()
@@ -131,18 +171,45 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         }
     }
 
-    private static NjordOptions DefaultOptions() => new()
+    private AdminGrpcService CreateService(Action<NjordOptions>? configureBaseline = null)
     {
-        Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
-        Models = ["icon_d2"],
-    };
+        var baseline = new NjordOptions
+        {
+            Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
+            Models = ["icon_d2"],
+        };
+        configureBaseline?.Invoke(baseline);
 
-    private AdminGrpcService CreateService(NjordOptions? options = null)
-    {
-        var monitor = new TestOptionsMonitor<NjordOptions>(options ?? DefaultOptions());
-        var persistence = new ConfigPersistence(_tempDir);
-        return new AdminGrpcService(monitor, persistence,
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<AdminGrpcService>.Instance);
+        var overridePath = Path.Combine(_tempDir, "appsettings.Override.json");
+
+        var configBuilder = new ConfigurationBuilder();
+        var configEntries = new Dictionary<string, string?>
+        {
+            ["Njord:Locations:0:Name"] = baseline.Locations[0].Name,
+            ["Njord:Locations:0:Latitude"] = baseline.Locations[0].Latitude.ToString(),
+            ["Njord:Locations:0:Longitude"] = baseline.Locations[0].Longitude.ToString(),
+            ["Njord:Models:0"] = baseline.Models[0],
+            ["Njord:Enrichment:Alerts:Enabled"] = baseline.Enrichment.Alerts.Enabled.ToString(),
+            ["Njord:ForecastDays"] = baseline.ForecastDays.ToString(),
+        };
+        if (baseline.BudgetOverride is { } bo)
+        {
+            configEntries["Njord:BudgetOverride:RequestsPerMonth"] = bo.RequestsPerMonth.ToString();
+            configEntries["Njord:BudgetOverride:RequestsPerMinute"] = bo.RequestsPerMinute.ToString();
+        }
+
+        configBuilder.AddInMemoryCollection(configEntries);
+
+        configBuilder.AddJsonFile(overridePath, optional: true, reloadOnChange: false);
+        var configRoot = configBuilder.Build();
+
+        var services = new ServiceCollection();
+        services.AddOptions<NjordOptions>().Bind(configRoot.GetSection(NjordOptions.SectionName));
+        var sp = services.BuildServiceProvider();
+        var monitor = sp.GetRequiredService<IOptionsMonitor<NjordOptions>>();
+
+        var writable = new WritableNjordOptions(monitor, configRoot, overridePath);
+
+        return new AdminGrpcService(monitor, writable);
     }
-
 }

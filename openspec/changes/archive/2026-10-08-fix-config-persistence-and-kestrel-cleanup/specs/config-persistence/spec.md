@@ -1,16 +1,7 @@
-# config-persistence Specification
-
-## Purpose
-
-Atomic file-based persistence for runtime config mutations. User overrides are
-stored in `data/appsettings.Override.json`, loaded as the last configuration
-source (highest priority), and propagated to all subscribers via
-`IConfigurationRoot.Reload()`.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Config mutations persist to override file
-All config mutations SHALL persist user overrides to `data/appsettings.Override.json`. The file SHALL be written atomically (write to temp file, then rename). The content SHALL be wrapped in a `{"Njord": {...}}` section to match the `NjordOptions.SectionName` configuration binding. On startup, njord SHALL load the override file as the last configuration source, giving it higher priority than environment variables.
+All config mutations SHALL persist user overrides to `data/appsettings.Override.json` (was `data/njord-config.json`). The file SHALL be written atomically (write to temp file, then rename). The content SHALL be wrapped in a `{"Njord": {...}}` section to match the `NjordOptions.SectionName` configuration binding. On startup, njord SHALL load the override file as the last configuration source, giving it higher priority than environment variables.
 
 #### Scenario: Mutation persists to file
 - **WHEN** a config mutation succeeds
@@ -46,3 +37,9 @@ Config mutations SHALL be serialized via a `SemaphoreSlim(1)` to prevent concurr
 #### Scenario: Two concurrent mutations are ordered
 - **WHEN** two clients call mutation RPCs simultaneously
 - **THEN** the mutations SHALL be applied sequentially and each response SHALL reflect the state after its own mutation
+
+## REMOVED Requirements
+
+### Requirement: ConfigPersistence class
+**Reason**: Replaced by `WritableNjordOptions` which implements the `IWritableOptions<NjordOptions>` pattern. The separate `ConfigPersistence` class is no longer needed.
+**Migration**: Replace `ConfigPersistence` injection with `IWritableOptions<NjordOptions>`.

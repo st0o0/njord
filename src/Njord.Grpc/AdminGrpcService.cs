@@ -1,5 +1,4 @@
 using Grpc.Core;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Compute.Configuration;
 using Njord.Core.Configuration;
@@ -10,17 +9,11 @@ namespace Njord.Grpc;
 
 public sealed class AdminGrpcService(
     IOptionsMonitor<NjordOptions> optionsMonitor,
-    ConfigPersistence persistence,
-    ILogger<AdminGrpcService> logger) : AdminService.AdminServiceBase
+    IWritableOptions<NjordOptions> writableOptions) : AdminService.AdminServiceBase
 {
-    private readonly IOptionsMonitor<NjordOptions> _optionsMonitor = optionsMonitor;
-    private readonly ConfigPersistence _persistence = persistence;
-    private readonly ILogger<AdminGrpcService> _logger = logger;
-    private readonly SemaphoreSlim _mutationLock = new(1, 1);
-
     public override Task<NjordConfig> GetConfig(GetConfigRequest request, ServerCallContext context)
     {
-        return Task.FromResult(MapConfig(_optionsMonitor.CurrentValue));
+        return Task.FromResult(MapConfig(optionsMonitor.CurrentValue));
     }
 
     public override async Task StreamConfig(
@@ -28,12 +21,12 @@ public sealed class AdminGrpcService(
         IServerStreamWriter<NjordConfig> responseStream,
         ServerCallContext context)
     {
-        await responseStream.WriteAsync(MapConfig(_optionsMonitor.CurrentValue));
+        await responseStream.WriteAsync(MapConfig(optionsMonitor.CurrentValue));
 
         var tcs = new TaskCompletionSource();
         await using var registration = context.CancellationToken.Register(() => tcs.TrySetResult());
 
-        using var onChange = _optionsMonitor.OnChange(async (options, _) =>
+        using var onChange = optionsMonitor.OnChange(async (options, _) =>
         {
             if (!context.CancellationToken.IsCancellationRequested)
             {
@@ -44,355 +37,182 @@ public sealed class AdminGrpcService(
         await tcs.Task;
     }
 
-    public override async Task<ConfigResponse> SetLocations(SetLocationsRequest request, ServerCallContext context)
+    public override Task<ConfigResponse> SetLocations(SetLocationsRequest request, ServerCallContext context)
     {
-        await _mutationLock.WaitAsync(context.CancellationToken);
-        try
+        if (request.Locations.Count == 0)
         {
-            var options = CloneOptions(_optionsMonitor.CurrentValue);
+            return Task.FromResult(Rejected("Cannot set empty location list"));
+        }
 
-            if (request.Locations.Count == 0)
-            {
-                return Rejected("Cannot set empty location list");
-            }
-
-            options.Locations = request.Locations.Select(l => new LocationOptions
+        var snapshot = writableOptions.Update(opt =>
+        {
+            opt.Locations = request.Locations.Select(l => new LocationOptions
             {
                 Name = l.Name,
                 Latitude = l.Latitude,
                 Longitude = l.Longitude,
                 Models = l.Models.Count > 0 ? [.. l.Models] : null,
             }).ToList();
+        });
 
-            var budget = BudgetCalculator.Validate(options);
-            if (!budget.WithinBudget)
-            {
-                return Rejected($"Would exceed budget: {budget.UsagePercent:F0}% of monthly limit");
-            }
-
-            await _persistence.SaveAsync(options);
-            return Success(options, budget);
-        }
-        finally
+        var budget = BudgetCalculator.Validate(snapshot);
+        if (!budget.WithinBudget)
         {
-            _mutationLock.Release();
+            writableOptions.Update(opt =>
+            {
+                opt.Locations = optionsMonitor.CurrentValue.Locations.ToList();
+            });
+            return Task.FromResult(Rejected($"Would exceed budget: {budget.UsagePercent:F0}% of monthly limit"));
         }
+
+        return Task.FromResult(Success(snapshot, budget));
     }
 
-    public override async Task<ConfigResponse> SetSettings(SetSettingsRequest request, ServerCallContext context)
+    public override Task<ConfigResponse> SetSettings(SetSettingsRequest request, ServerCallContext context)
     {
-        await _mutationLock.WaitAsync(context.CancellationToken);
-        try
+        if (request.HasPollIntervalSeconds && request.PollIntervalSeconds < 60)
         {
-            var options = CloneOptions(_optionsMonitor.CurrentValue);
+            return Task.FromResult(Rejected("Poll interval must be at least 60 seconds"));
+        }
 
+        if (request.HasForecastDays && request.ForecastDays is < 1 or > 16)
+        {
+            return Task.FromResult(Rejected("Forecast days must be between 1 and 16"));
+        }
+
+        var snapshot = writableOptions.Update(opt =>
+        {
             if (request.HasPollIntervalSeconds)
             {
-                if (request.PollIntervalSeconds < 60)
-                {
-                    return Rejected("Poll interval must be at least 60 seconds");
-                }
-
-                options.PollInterval = TimeSpan.FromSeconds(request.PollIntervalSeconds);
+                opt.PollInterval = TimeSpan.FromSeconds(request.PollIntervalSeconds);
             }
 
             if (request.HasForecastDays)
             {
-                if (request.ForecastDays is < 1 or > 16)
-                {
-                    return Rejected("Forecast days must be between 1 and 16");
-                }
-
-                options.ForecastDays = request.ForecastDays;
+                opt.ForecastDays = request.ForecastDays;
             }
 
             if (request.Horizons.Count > 0)
             {
-                options.Horizons = [.. request.Horizons];
+                opt.Horizons = [.. request.Horizons];
             }
 
             if (request.DefaultModels.Count > 0)
             {
-                options.Models = [.. request.DefaultModels];
+                opt.Models = [.. request.DefaultModels];
             }
 
             if (request.Parameters is not null)
             {
-                options.Parameters = new ParameterOptions
+                opt.Parameters = new ParameterOptions
                 {
                     Groups = [.. request.Parameters.Groups],
                     Extra = [.. request.Parameters.Extra],
                     Exclude = [.. request.Parameters.Exclude],
                 };
             }
+        });
 
-            var budget = BudgetCalculator.Validate(options);
-            if (!budget.WithinBudget)
-            {
-                return Rejected($"Would exceed budget: {budget.UsagePercent:F0}% of monthly limit");
-            }
-
-            await _persistence.SaveAsync(options);
-            return Success(options, budget);
-        }
-        finally
+        var budget = BudgetCalculator.Validate(snapshot);
+        if (!budget.WithinBudget)
         {
-            _mutationLock.Release();
+            writableOptions.Update(_ => { });
+            return Task.FromResult(Rejected($"Would exceed budget: {budget.UsagePercent:F0}% of monthly limit"));
         }
+
+        return Task.FromResult(Success(snapshot, budget));
     }
 
-    public override async Task<ConfigResponse> SetEnrichment(SetEnrichmentRequest request, ServerCallContext context)
+    public override Task<ConfigResponse> SetEnrichment(SetEnrichmentRequest request, ServerCallContext context)
     {
-        await _mutationLock.WaitAsync(context.CancellationToken);
-        try
+        var snapshot = writableOptions.Update(opt =>
         {
-            var options = CloneOptions(_optionsMonitor.CurrentValue);
-
             if (request.Consensus is { } consensus)
             {
-                if (consensus.HasEnabled)
-                {
-                    options.Enrichment.Consensus.Enabled = consensus.Enabled;
-                }
-
-                if (consensus.HasMethod)
-                {
-                    options.Enrichment.Consensus.Method = consensus.Method;
-                }
-
-                if (consensus.HasTrimPercent)
-                {
-                    options.Enrichment.Consensus.TrimPercent = consensus.TrimPercent;
-                }
+                if (consensus.HasEnabled) opt.Enrichment.Consensus.Enabled = consensus.Enabled;
+                if (consensus.HasMethod) opt.Enrichment.Consensus.Method = consensus.Method;
+                if (consensus.HasTrimPercent) opt.Enrichment.Consensus.TrimPercent = consensus.TrimPercent;
             }
 
             if (request.Alerts is { } alerts)
             {
-                if (alerts.HasEnabled)
-                {
-                    options.Enrichment.Alerts.Enabled = alerts.Enabled;
-                }
-
-                if (alerts.FrostThresholds.Count > 0)
-                {
-                    options.Enrichment.Alerts.FrostThresholds = [.. alerts.FrostThresholds];
-                }
-
-                if (alerts.HeatThresholds.Count > 0)
-                {
-                    options.Enrichment.Alerts.HeatThresholds = [.. alerts.HeatThresholds];
-                }
-
-                if (alerts.StormGustThresholds.Count > 0)
-                {
-                    options.Enrichment.Alerts.StormGustThresholds = [.. alerts.StormGustThresholds];
-                }
-
-                if (alerts.HasHeavyRainHourlyThreshold)
-                {
-                    options.Enrichment.Alerts.HeavyRainHourlyThreshold = alerts.HeavyRainHourlyThreshold;
-                }
-
-                if (alerts.HasHeavyRainDailyThreshold)
-                {
-                    options.Enrichment.Alerts.HeavyRainDailyThreshold = alerts.HeavyRainDailyThreshold;
-                }
-
-                if (alerts.HasPressureDropThreshold)
-                {
-                    options.Enrichment.Alerts.PressureDropThreshold = alerts.PressureDropThreshold;
-                }
-
-                if (alerts.HasCapeThreshold)
-                {
-                    options.Enrichment.Alerts.CapeThreshold = alerts.CapeThreshold;
-                }
-
-                if (alerts.HasThunderstormPrecipThreshold)
-                {
-                    options.Enrichment.Alerts.ThunderstormPrecipThreshold = alerts.ThunderstormPrecipThreshold;
-                }
-
-                if (alerts.HasThunderstormGustThreshold)
-                {
-                    options.Enrichment.Alerts.ThunderstormGustThreshold = alerts.ThunderstormGustThreshold;
-                }
-
-                if (alerts.HasPressureDropSevereThreshold)
-                {
-                    options.Enrichment.Alerts.PressureDropSevereThreshold = alerts.PressureDropSevereThreshold;
-                }
-
-                if (alerts.HasFogPersistentHours)
-                {
-                    options.Enrichment.Alerts.FogPersistentHours = alerts.FogPersistentHours;
-                }
-
-                if (alerts.HasIceThreshold)
-                {
-                    options.Enrichment.Alerts.IceThreshold = alerts.IceThreshold;
-                }
-
-                if (alerts.WindChillThresholds.Count > 0)
-                {
-                    options.Enrichment.Alerts.WindChillThresholds = [.. alerts.WindChillThresholds];
-                }
-
-                if (alerts.VisibilityThresholds.Count > 0)
-                {
-                    options.Enrichment.Alerts.VisibilityThresholds = [.. alerts.VisibilityThresholds];
-                }
-
-                if (alerts.TropicalNightThresholds.Count > 0)
-                {
-                    options.Enrichment.Alerts.TropicalNightThresholds = [.. alerts.TropicalNightThresholds];
-                }
-
-                if (alerts.HumidityThresholds.Count > 0)
-                {
-                    options.Enrichment.Alerts.HumidityThresholds = [.. alerts.HumidityThresholds];
-                }
+                if (alerts.HasEnabled) opt.Enrichment.Alerts.Enabled = alerts.Enabled;
+                if (alerts.FrostThresholds.Count > 0) opt.Enrichment.Alerts.FrostThresholds = [.. alerts.FrostThresholds];
+                if (alerts.HeatThresholds.Count > 0) opt.Enrichment.Alerts.HeatThresholds = [.. alerts.HeatThresholds];
+                if (alerts.StormGustThresholds.Count > 0) opt.Enrichment.Alerts.StormGustThresholds = [.. alerts.StormGustThresholds];
+                if (alerts.HasHeavyRainHourlyThreshold) opt.Enrichment.Alerts.HeavyRainHourlyThreshold = alerts.HeavyRainHourlyThreshold;
+                if (alerts.HasHeavyRainDailyThreshold) opt.Enrichment.Alerts.HeavyRainDailyThreshold = alerts.HeavyRainDailyThreshold;
+                if (alerts.HasPressureDropThreshold) opt.Enrichment.Alerts.PressureDropThreshold = alerts.PressureDropThreshold;
+                if (alerts.HasCapeThreshold) opt.Enrichment.Alerts.CapeThreshold = alerts.CapeThreshold;
+                if (alerts.HasThunderstormPrecipThreshold) opt.Enrichment.Alerts.ThunderstormPrecipThreshold = alerts.ThunderstormPrecipThreshold;
+                if (alerts.HasThunderstormGustThreshold) opt.Enrichment.Alerts.ThunderstormGustThreshold = alerts.ThunderstormGustThreshold;
+                if (alerts.HasPressureDropSevereThreshold) opt.Enrichment.Alerts.PressureDropSevereThreshold = alerts.PressureDropSevereThreshold;
+                if (alerts.HasFogPersistentHours) opt.Enrichment.Alerts.FogPersistentHours = alerts.FogPersistentHours;
+                if (alerts.HasIceThreshold) opt.Enrichment.Alerts.IceThreshold = alerts.IceThreshold;
+                if (alerts.WindChillThresholds.Count > 0) opt.Enrichment.Alerts.WindChillThresholds = [.. alerts.WindChillThresholds];
+                if (alerts.VisibilityThresholds.Count > 0) opt.Enrichment.Alerts.VisibilityThresholds = [.. alerts.VisibilityThresholds];
+                if (alerts.TropicalNightThresholds.Count > 0) opt.Enrichment.Alerts.TropicalNightThresholds = [.. alerts.TropicalNightThresholds];
+                if (alerts.HumidityThresholds.Count > 0) opt.Enrichment.Alerts.HumidityThresholds = [.. alerts.HumidityThresholds];
             }
 
             if (request.Derived is { } derived)
             {
-                if (derived.HasEnabled)
-                {
-                    options.Enrichment.Derived.Enabled = derived.Enabled;
-                }
+                if (derived.HasEnabled) opt.Enrichment.Derived.Enabled = derived.Enabled;
             }
 
             if (request.Trends is { } trends)
             {
-                if (trends.HasEnabled)
-                {
-                    options.Enrichment.Trends.Enabled = trends.Enabled;
-                }
+                if (trends.HasEnabled) opt.Enrichment.Trends.Enabled = trends.Enabled;
             }
 
             if (request.Indices is { } indices)
             {
-                if (indices.HasEnabled)
-                {
-                    options.Enrichment.Indices.Enabled = indices.Enabled;
-                }
-
-                if (indices.HasIndoorTemp)
-                {
-                    options.Enrichment.Indices.Preferences.IndoorTemp = indices.IndoorTemp;
-                }
-
-                if (indices.HasIdealOutdoorTemp)
-                {
-                    options.Enrichment.Indices.Preferences.IdealOutdoorTemp = indices.IdealOutdoorTemp;
-                }
-
-                if (indices.HasHeatSensitivity)
-                {
-                    options.Enrichment.Indices.Preferences.HeatSensitivity = indices.HeatSensitivity;
-                }
-
-                if (indices.HasHumiditySensitivity)
-                {
-                    options.Enrichment.Indices.Preferences.HumiditySensitivity = indices.HumiditySensitivity;
-                }
-
-                if (indices.HasWindSensitivity)
-                {
-                    options.Enrichment.Indices.Preferences.WindSensitivity = indices.WindSensitivity;
-                }
-
-                if (indices.HasRainSensitivity)
-                {
-                    options.Enrichment.Indices.Preferences.RainSensitivity = indices.RainSensitivity;
-                }
-
-                if (indices.HasRunningIdealTempLow)
-                {
-                    options.Enrichment.Indices.Preferences.RunningIdealTempLow = indices.RunningIdealTempLow;
-                }
-
-                if (indices.HasRunningIdealTempHigh)
-                {
-                    options.Enrichment.Indices.Preferences.RunningIdealTempHigh = indices.RunningIdealTempHigh;
-                }
-
-                if (indices.HasBbqMinTemp)
-                {
-                    options.Enrichment.Indices.Preferences.BbqMinTemp = indices.BbqMinTemp;
-                }
-
-                if (indices.HasBbqIdealWindLow)
-                {
-                    options.Enrichment.Indices.Preferences.BbqIdealWindLow = indices.BbqIdealWindLow;
-                }
-
-                if (indices.HasBbqIdealWindHigh)
-                {
-                    options.Enrichment.Indices.Preferences.BbqIdealWindHigh = indices.BbqIdealWindHigh;
-                }
+                if (indices.HasEnabled) opt.Enrichment.Indices.Enabled = indices.Enabled;
+                if (indices.HasIndoorTemp) opt.Enrichment.Indices.Preferences.IndoorTemp = indices.IndoorTemp;
+                if (indices.HasIdealOutdoorTemp) opt.Enrichment.Indices.Preferences.IdealOutdoorTemp = indices.IdealOutdoorTemp;
+                if (indices.HasHeatSensitivity) opt.Enrichment.Indices.Preferences.HeatSensitivity = indices.HeatSensitivity;
+                if (indices.HasHumiditySensitivity) opt.Enrichment.Indices.Preferences.HumiditySensitivity = indices.HumiditySensitivity;
+                if (indices.HasWindSensitivity) opt.Enrichment.Indices.Preferences.WindSensitivity = indices.WindSensitivity;
+                if (indices.HasRainSensitivity) opt.Enrichment.Indices.Preferences.RainSensitivity = indices.RainSensitivity;
+                if (indices.HasRunningIdealTempLow) opt.Enrichment.Indices.Preferences.RunningIdealTempLow = indices.RunningIdealTempLow;
+                if (indices.HasRunningIdealTempHigh) opt.Enrichment.Indices.Preferences.RunningIdealTempHigh = indices.RunningIdealTempHigh;
+                if (indices.HasBbqMinTemp) opt.Enrichment.Indices.Preferences.BbqMinTemp = indices.BbqMinTemp;
+                if (indices.HasBbqIdealWindLow) opt.Enrichment.Indices.Preferences.BbqIdealWindLow = indices.BbqIdealWindLow;
+                if (indices.HasBbqIdealWindHigh) opt.Enrichment.Indices.Preferences.BbqIdealWindHigh = indices.BbqIdealWindHigh;
             }
 
             if (request.History is { } history)
             {
-                if (history.HasEnabled)
-                {
-                    options.Enrichment.History.Enabled = history.Enabled;
-                }
-
-                if (history.HasRetentionDays)
-                {
-                    options.Enrichment.History.RetentionDays = history.RetentionDays;
-                }
-
-                if (history.HasMinSampleSize)
-                {
-                    options.Enrichment.History.MinSampleSize = history.MinSampleSize;
-                }
-
-                if (history.HasSnapshotInterval)
-                {
-                    options.Enrichment.History.SnapshotInterval = history.SnapshotInterval;
-                }
+                if (history.HasEnabled) opt.Enrichment.History.Enabled = history.Enabled;
+                if (history.HasRetentionDays) opt.Enrichment.History.RetentionDays = history.RetentionDays;
+                if (history.HasMinSampleSize) opt.Enrichment.History.MinSampleSize = history.MinSampleSize;
+                if (history.HasSnapshotInterval) opt.Enrichment.History.SnapshotInterval = history.SnapshotInterval;
             }
+        });
 
-            var budget = BudgetCalculator.Validate(options);
-            await _persistence.SaveAsync(options);
-            return Success(options, budget);
-        }
-        finally
-        {
-            _mutationLock.Release();
-        }
+        var budget = BudgetCalculator.Validate(snapshot);
+        return Task.FromResult(Success(snapshot, budget));
     }
 
-    public override async Task<ConfigResponse> SetBudget(SetBudgetRequest request, ServerCallContext context)
+    public override Task<ConfigResponse> SetBudget(SetBudgetRequest request, ServerCallContext context)
     {
-        await _mutationLock.WaitAsync(context.CancellationToken);
-        try
+        var snapshot = writableOptions.Update(opt =>
         {
-            var options = CloneOptions(_optionsMonitor.CurrentValue);
-
             if (request.HasRequestsPerMonth || request.HasRequestsPerMinute)
             {
-                var current = options.BudgetOverride ?? BudgetCalculator.GetEffectiveBudget(options);
-                options.BudgetOverride = new RequestBudget(
+                var current = opt.BudgetOverride ?? BudgetCalculator.GetEffectiveBudget(opt);
+                opt.BudgetOverride = new RequestBudget(
                     request.HasRequestsPerMonth ? request.RequestsPerMonth : current.RequestsPerMonth,
                     request.HasRequestsPerMinute ? request.RequestsPerMinute : current.RequestsPerMinute);
             }
             else
             {
-                options.BudgetOverride = null;
+                opt.BudgetOverride = null;
             }
+        });
 
-            var budget = BudgetCalculator.Validate(options);
-            await _persistence.SaveAsync(options);
-            return Success(options, budget);
-        }
-        finally
-        {
-            _mutationLock.Release();
-        }
+        var budget = BudgetCalculator.Validate(snapshot);
+        return Task.FromResult(Success(snapshot, budget));
     }
 
     internal static NjordConfig MapConfig(NjordOptions options)
@@ -503,87 +323,6 @@ public sealed class AdminGrpcService(
             MonthlyLimit = validation.MonthlyLimit,
             UsagePercent = validation.UsagePercent,
             WithinBudget = validation.WithinBudget,
-        };
-    }
-
-    internal static NjordOptions CloneOptions(NjordOptions source)
-    {
-        return new NjordOptions
-        {
-            PollInterval = source.PollInterval,
-            Locations = source.Locations.Select(l => new LocationOptions
-            {
-                Name = l.Name,
-                Latitude = l.Latitude,
-                Longitude = l.Longitude,
-                Models = l.Models is not null ? [.. l.Models] : null,
-            }).ToList(),
-            Models = [.. source.Models],
-            Horizons = [.. source.Horizons],
-            ForecastDays = source.ForecastDays,
-            Parameters = new ParameterOptions
-            {
-                Groups = [.. source.Parameters.Groups],
-                Extra = [.. source.Parameters.Extra],
-                Exclude = [.. source.Parameters.Exclude],
-            },
-            BudgetOverride = source.BudgetOverride,
-            Enrichment = new EnrichmentOptions
-            {
-                Consensus = new ConsensusOptions
-                {
-                    Enabled = source.Enrichment.Consensus.Enabled,
-                    Method = source.Enrichment.Consensus.Method,
-                    TrimPercent = source.Enrichment.Consensus.TrimPercent,
-                },
-                Alerts = new AlertOptions
-                {
-                    Enabled = source.Enrichment.Alerts.Enabled,
-                    FrostThresholds = [.. source.Enrichment.Alerts.FrostThresholds],
-                    HeatThresholds = [.. source.Enrichment.Alerts.HeatThresholds],
-                    StormGustThresholds = [.. source.Enrichment.Alerts.StormGustThresholds],
-                    HeavyRainHourlyThreshold = source.Enrichment.Alerts.HeavyRainHourlyThreshold,
-                    HeavyRainDailyThreshold = source.Enrichment.Alerts.HeavyRainDailyThreshold,
-                    PressureDropThreshold = source.Enrichment.Alerts.PressureDropThreshold,
-                    PressureDropSevereThreshold = source.Enrichment.Alerts.PressureDropSevereThreshold,
-                    FogPersistentHours = source.Enrichment.Alerts.FogPersistentHours,
-                    CapeThreshold = source.Enrichment.Alerts.CapeThreshold,
-                    ThunderstormPrecipThreshold = source.Enrichment.Alerts.ThunderstormPrecipThreshold,
-                    ThunderstormGustThreshold = source.Enrichment.Alerts.ThunderstormGustThreshold,
-                    IceThreshold = source.Enrichment.Alerts.IceThreshold,
-                    WindChillThresholds = [.. source.Enrichment.Alerts.WindChillThresholds],
-                    VisibilityThresholds = [.. source.Enrichment.Alerts.VisibilityThresholds],
-                    TropicalNightThresholds = [.. source.Enrichment.Alerts.TropicalNightThresholds],
-                    HumidityThresholds = [.. source.Enrichment.Alerts.HumidityThresholds],
-                },
-                Derived = new DerivedOptions { Enabled = source.Enrichment.Derived.Enabled },
-                Trends = new TrendOptions { Enabled = source.Enrichment.Trends.Enabled },
-                Indices = new IndexOptions
-                {
-                    Enabled = source.Enrichment.Indices.Enabled,
-                    Preferences = new IndexPreferences
-                    {
-                        IndoorTemp = source.Enrichment.Indices.Preferences.IndoorTemp,
-                        IdealOutdoorTemp = source.Enrichment.Indices.Preferences.IdealOutdoorTemp,
-                        HeatSensitivity = source.Enrichment.Indices.Preferences.HeatSensitivity,
-                        HumiditySensitivity = source.Enrichment.Indices.Preferences.HumiditySensitivity,
-                        WindSensitivity = source.Enrichment.Indices.Preferences.WindSensitivity,
-                        RainSensitivity = source.Enrichment.Indices.Preferences.RainSensitivity,
-                        RunningIdealTempLow = source.Enrichment.Indices.Preferences.RunningIdealTempLow,
-                        RunningIdealTempHigh = source.Enrichment.Indices.Preferences.RunningIdealTempHigh,
-                        BbqMinTemp = source.Enrichment.Indices.Preferences.BbqMinTemp,
-                        BbqIdealWindLow = source.Enrichment.Indices.Preferences.BbqIdealWindLow,
-                        BbqIdealWindHigh = source.Enrichment.Indices.Preferences.BbqIdealWindHigh,
-                    },
-                },
-                History = new HistoryOptions
-                {
-                    Enabled = source.Enrichment.History.Enabled,
-                    RetentionDays = source.Enrichment.History.RetentionDays,
-                    MinSampleSize = source.Enrichment.History.MinSampleSize,
-                    SnapshotInterval = source.Enrichment.History.SnapshotInterval,
-                },
-            },
         };
     }
 
