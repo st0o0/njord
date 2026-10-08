@@ -91,4 +91,4 @@
 - [x] 17.1 Review `e2e/E2E-TEST-PLAN.md` for section count (target: ~25 sections), step count (target: ~150+ steps), and completeness against all 10 spec files.
 - [x] 17.2 Review `.claude/skills/e2e-test/SKILL.md` for consistency with the updated test plan — all sections referenced, 3-subagent orchestration, config scenario handling.
 - [x] 17.3 Run `openspec validate --all --no-interactive` from repo root to verify change artifacts are valid.
-- [ ] 17.4 Run the full E2E test via `/e2e-test` skill invocation and verify all new sections execute. Record results in `e2e/results/E2E-TEST-RESULTS-<YYYY-MM-DD>.md`.
+- [x] 17.4 Run the full E2E test via `/e2e-test` skill invocation and verify all new sections execute. Record results in `e2e/results/E2E-TEST-RESULTS-<YYYY-MM-DD>.md`.
