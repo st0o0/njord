@@ -10,18 +10,18 @@ gRPC path only (no MQTT). Real Open-Meteo API.
 | S0 | Stack Setup | 5 | Opus |
 | S1 | HA Onboarding + Token | 8 | Opus |
 | S2 | Integration Setup | 6 | Opus |
-| S3 | Entity Registration | 5 | Opus |
-| S4 | WeatherService: GetCatalog + Streaming | 8 | Haiku #1 |
-| S5 | WeatherService: GetForecast | 5 | Haiku #1 |
-| S6 | WeatherService: GetEnrichments | 7 | Haiku #1 |
-| S7 | Entity Attribute Depth + Enrichment Validation | 22 | Haiku #1 |
-| S8 | Connectivity Entities | 4 | Haiku #2 |
-| S9 | Server Entities | 7 | Haiku #2 |
-| S10 | OpsService: Full Coverage | 8 | Haiku #2 |
+| S3 | Entity Registration + Enable All | 8 | Opus |
+| S4 | WeatherService: GetCatalog + Streaming | 8 | Haiku #1 (gRPC) |
+| S5 | WeatherService: GetForecast | 5 | Haiku #1 (gRPC) |
+| S6 | WeatherService: GetEnrichments | 7 | Haiku #1 (gRPC) |
+| S7 | Entity Attribute Depth + Enrichment Validation | 22 | Haiku #1 (REST) |
+| S8 | Connectivity Entities | 4 | Haiku #2 (REST) |
+| S9 | Server Entities | 7 | Haiku #2 (REST) |
+| S10 | OpsService: Full Coverage | 8 | Haiku #2 (gRPC) |
 | S11 | gRPC + REST Error Handling | 8 | Haiku #2 |
-| S12 | HA Browser: Weather Cards | 3 | Haiku #3 |
-| S13 | HA Browser: Enrichment Entities | 3 | Haiku #3 |
-| S14 | HA Browser: Server Entities | 2 | Haiku #3 |
+| S12 | HA Verification: Weather Cards | 3 | Haiku #3 (browser/REST) |
+| S13 | HA Verification: Enrichment Entities | 3 | Haiku #3 (browser/REST) |
+| S14 | HA Verification: Server Entities | 2 | Haiku #3 (browser/REST) |
 | S15 | SensorService: Push + StreamPush | 4 | Opus |
 | S16 | Multi-Cycle: TriggerPoll × 2 | 6 | Opus |
 | S17 | Budget Tracking Across Cycles | 4 | Opus |
@@ -56,17 +56,24 @@ gRPC path only (no MQTT). Real Open-Meteo API.
 
 Derived from config: 1 location × 2 models × all enrichments.
 
+**Enabled by default (26):** weather (3), alerts (14), server sensors (4),
+stream binary_sensors (3), event (1), button (1).
+**Disabled by default (21):** indices (11), derived (5), trend (1), history (1),
+inversion binary_sensor (1), target sensors (2). These exist in the HA entity
+registry but require explicit enabling via `config/entity_registry/update`
+(websocket) or the HA UI before they appear in `/api/states`.
+
 | Platform | Count | Pattern | device_class | state_class | unit | Expected Values |
 |----------|-------|---------|-------------|-------------|------|-----------------|
 | weather | 3 | `lucerne_icon_d2`, `lucerne_ecmwf_ifs_0_25deg`, `lucerne_consensus` | — | — | — | state ∈ HA condition list |
 | sensor (alerts) | 14 | `lucerne_{frost,heat,storm,heavy_rain,uv,fog,snow,pressure_drop,thunderstorm,ice,wind_chill,visibility,tropical_night,humidity}_alert` | — | — | — | severity ∈ {none,yellow,orange,red}, confidence 0–100 |
-| sensor (indices) | 8 | `lucerne_{laundry,outdoor,running,cycling,bbq,irrigation,solar,night_ventilation}_index` | — | — | — | 0–10 |
+| sensor (indices) | 8 | `lucerne_{laundry,outdoor,running,cycling,bbq,irrigation,solar,night_ventilation}_index` | — | — | — | 0–100 |
 | sensor (indices) | 3 | `lucerne_vpd`, `lucerne_frost_hours`, `lucerne_frost_confidence` | — | — | kPa, h, % | numeric |
 | sensor (trends) | 1 | `lucerne_weather_trend` | — | — | — | non-empty string |
 | sensor (derived) | 5 | `lucerne_{sunshine,diurnal_amplitude,beaufort,wind_chill,dewpoint_comfort}` | — | — | h, °C, Bft, °C, — | beaufort 0–12, sunshine ≥ 0 |
 | sensor (history) | 1 | `lucerne_model_performance` | — | — | — | not unavailable |
-| sensor (server) | 4 | `server_monthly_usage`, `server_daily_usage`, `server_version`, `server_uptime` | — | — | requests, requests, —, — | version=semver, usage=numeric |
-| sensor (targets) | 2 | `lucerne_icon_d2_target`, `lucerne_ecmwf_ifs_0_25deg_target` | timestamp | — | — | ISO timestamp |
+| sensor (server) | 4 | `server_monthly_usage`, `server_daily_usage`, `server_version`, `server_uptime` | — | — | %, %, —, h | version=semver, usage=numeric |
+| sensor (targets) | 2 | `server_icon_d2_lucerne`, `server_ecmwf_ifs025_lucerne` | timestamp | — | — | ISO timestamp |
 | binary_sensor | 4 | `lucerne_inversion`, `server_forecast_stream`, `server_enrichment_stream`, `server_config_stream` | connectivity (streams) | — | — | on/off |
 | event | 1 | `lucerne_weather_alert` | — | — | — | exists |
 | button | 1 | `server_trigger_poll` | — | — | — | exists |
@@ -89,17 +96,32 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 ## S1 — HA Onboarding + Token
 
-**Agent:** Opus (main), using claude-in-chrome
+**Agent:** Opus (main), using claude-in-chrome (preferred) or HA API (fallback)
+
+The user path is browser-based; the API fallback keeps the test runnable when
+Chrome is unavailable. Both paths produce the same long-lived access token.
 
 ### S1A — HA Onboarding (first run only)
+
+**Browser path (preferred):**
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
 | 1.1 | Open `http://localhost:8123` in browser | Onboarding page loads |
 | 1.2 | Create user account (name: "njord-e2e", username: "njord", password: "e2e-test-2026") | Account created |
-| 1.3 | Complete onboarding wizard (location, timezone, telemetry opt-out) | Dashboard appears |
+| 1.3 | Complete onboarding wizard (location: Lucerne 47.05/8.31, timezone: Europe/Zurich, telemetry opt-out) | Dashboard appears |
+
+**API fallback** (if chrome extension unavailable):
+
+| Step | Action | Pass Criteria |
+|------|--------|---------------|
+| 1.1f | `GET /api/onboarding` → check all steps `done: false` | Onboarding needed |
+| 1.2f | `POST /api/onboarding/users` with `{"client_id":"http://localhost:8123/","name":"njord-e2e","username":"njord","password":"e2e-test-2026","language":"en"}` | `auth_code` returned |
+| 1.3f | Exchange auth_code via `POST /auth/token`, then complete `core_config`, `analytics`, `integration` onboarding steps | All steps completed |
 
 ### S1B — Create Long-Lived Access Token
+
+**Browser path (preferred):**
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
@@ -107,13 +129,27 @@ Derived from config: 1 location × 2 models × all enrichments.
 | 1.5 | Scroll to "Long-Lived Access Tokens" section | Section visible |
 | 1.6 | Click "Create Token", name: "e2e-test" | Token displayed |
 | 1.7 | Copy token value, store for REST API calls | Token captured |
+
+**API fallback** (if chrome extension unavailable):
+
+| Step | Action | Pass Criteria |
+|------|--------|---------------|
+| 1.4f | Connect websocket `ws://localhost:8123/api/websocket`, authenticate with short-lived access token | `auth_ok` |
+| 1.5f | Send `{"type":"auth/long_lived_access_token","client_name":"e2e-test","lifespan":365}` | Token returned |
+
+**Common:**
+
+| Step | Action | Pass Criteria |
+|------|--------|---------------|
 | 1.8 | All subsequent REST calls use `Authorization: Bearer <token>` | — |
 
 ---
 
 ## S2 — Integration Setup
 
-**Agent:** Opus (main), using claude-in-chrome
+**Agent:** Opus (main), using claude-in-chrome (preferred) or HA API (fallback)
+
+**Browser path (preferred):**
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
@@ -124,19 +160,38 @@ Derived from config: 1 location × 2 models × all enrichments.
 | 2.5 | Submit | Success message with location/model counts |
 | 2.6 | Record time from submit to success | Documented |
 
+**API fallback** (if chrome extension unavailable):
+
+| Step | Action | Pass Criteria |
+|------|--------|---------------|
+| 2.1f | `POST /api/config/config_entries/flow` with `{"handler":"njord","show_advanced_options":false}` | `flow_id` + `data_schema` returned |
+| 2.2f | `POST /api/config/config_entries/flow/<flow_id>` with `{"host":"njord","port":8081}` | `type: "create_entry"`, `state: "loaded"` |
+| 2.3f | Record `entry_id` from response (needed for S24 teardown) | Entry ID captured |
+| 2.4f | Verify `description_placeholders` shows location/model counts | Counts match config |
+
 ---
 
-## S3 — Entity Registration
+## S3 — Entity Registration + Enable All
 
-**Agent:** Opus (main), using HA REST API
+**Agent:** Opus (main), using HA REST API + websocket
+
+### S3A — Default Entity Set (what the user gets out of the box)
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
 | 3.1 | Poll `GET /api/states` until weather entities appear (interval: 5s, timeout: 120s) | At least 1 `weather.*` entity exists |
-| 3.2 | Count total entities with `njord` in device identifiers | ~47 entities (±5 tolerance) |
-| 3.3 | Verify 3 weather entities: `weather.lucerne_icon_d2`, `weather.lucerne_ecmwf_ifs025`, `weather.lucerne_consensus` | All 3 present |
-| 3.4 | Record time from integration setup (2.5) to first entities | Documented |
-| 3.5 | Record complete entity ID list | Documented for future reference |
+| 3.2 | Count njord entities in `/api/states` | ~26 entities (enabled-by-default set) |
+| 3.3 | Verify 3 weather entities: `weather.lucerne_icon_d2`, `weather.lucerne_ecmwf_ifs_0_25deg`, `weather.lucerne_consensus` | All 3 present |
+| 3.4 | Verify 14 alert sensors present (enabled by default) | All 14 in `/api/states` |
+| 3.5 | Record time from integration setup (2.5/2.2f) to first entities | Documented |
+
+### S3B — Entity Registry + Enable All (for subsequent test sections)
+
+| Step | Action | Pass Criteria |
+|------|--------|---------------|
+| 3.6 | Query entity registry via websocket (`config/entity_registry/list`), filter `platform: "njord"` | ~47 total entities (enabled + disabled) |
+| 3.7 | Enable all entities with `disabled_by: "integration"` via websocket `config/entity_registry/update` (set `disabled_by: null`) | All 21 disabled entities enabled |
+| 3.8 | Reload integration via `POST /api/config/config_entries/entry/<entry_id>/reload`, then poll `/api/states` until ~47 njord entities appear (timeout: 30s) | All entities visible |
 
 ---
 
@@ -144,16 +199,21 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 **Agent:** Haiku #1
 
+> **Note:** gRPC reflection is not enabled. All `grpcurl` calls require
+> `-import-path protos -proto njord/v2/<service>.proto`. Proto files live at
+> `protos/njord/v2/` (weather.proto, ops.proto, sensor.proto, admin.proto,
+> common.proto).
+
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 4.1 | `grpcurl -plaintext localhost:8081 njord.v2.WeatherService/GetCatalog` | Response received |
+| 4.1 | `grpcurl -plaintext -import-path protos -proto njord/v2/weather.proto localhost:8081 njord.v2.WeatherService/GetCatalog` | Response received |
 | 4.2 | Verify response `locations` array contains entry with `name: "lucerne"` | Present |
 | 4.3 | Verify location entry has `models` containing `icon_d2` and `ecmwf_ifs025` | Both present |
 | 4.4 | Verify `models` array has entries with `id`, `displayName`, `provider`, `coverageTier` | Fields populated |
 | 4.5 | Verify model `icon_d2` has `coverageTier` = `COVERAGE_TIER_REGIONAL` | Correct tier |
 | 4.6 | Verify model `ecmwf_ifs025` has `coverageTier` = `COVERAGE_TIER_GLOBAL` | Correct tier |
-| 4.7 | `timeout 30 grpcurl -plaintext -d '{"location":"lucerne"}' localhost:8081 njord.v2.WeatherService/StreamForecasts` | At least 1 `ForecastUpdate` message received before timeout |
-| 4.8 | `timeout 30 grpcurl -plaintext -d '{"location":"lucerne"}' localhost:8081 njord.v2.WeatherService/StreamEnrichments` | At least 1 `EnrichmentEvent` message received before timeout |
+| 4.7 | `timeout 30 grpcurl -plaintext -import-path protos -proto njord/v2/weather.proto -d '{"location":"lucerne"}' localhost:8081 njord.v2.WeatherService/StreamForecasts` | At least 1 `ForecastUpdate` message received before timeout |
+| 4.8 | Open `StreamEnrichments` in background, then trigger a poll via `grpcurl ... njord.v2.OpsService/TriggerPoll`, wait up to 60s for the stream to deliver at least 1 `EnrichmentEvent` (the stream only pushes events after a poll produces new enrichment data) | At least 1 `EnrichmentEvent` received |
 
 ---
 
@@ -163,11 +223,11 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 5.1 | `grpcurl -plaintext -d '{"location":"lucerne","model":"icon_d2"}' localhost:8081 njord.v2.WeatherService/GetForecast` | Response contains `hourly` array |
+| 5.1 | `grpcurl -plaintext -import-path protos -proto njord/v2/weather.proto -d '{"location":"lucerne","model":"icon_d2"}' localhost:8081 njord.v2.WeatherService/GetForecast` | Response contains `hourly` array |
 | 5.2 | Verify `hourly` entries have `temperature`, `humidity`, `windSpeed` with numeric values | All present and numeric |
 | 5.3 | Verify `hourly` timestamps (`validAt`) span at least 48 h from now (icon_d2 coverage) | Horizon coverage confirmed |
 | 5.4 | Verify `daily` entries have `temperatureMax`, `temperatureMin`, `precipitationSum` | Fields present |
-| 5.5 | `grpcurl -plaintext -d '{"location":"lucerne","model":"ecmwf_ifs025"}' localhost:8081 njord.v2.WeatherService/GetForecast` | Response has `hourly` array, timestamps span ≥ 72 h |
+| 5.5 | `grpcurl -plaintext -import-path protos -proto njord/v2/weather.proto -d '{"location":"lucerne","model":"ecmwf_ifs025"}' localhost:8081 njord.v2.WeatherService/GetForecast` | Response has `hourly` array, timestamps span ≥ 72 h |
 
 ---
 
@@ -177,7 +237,7 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 6.1 | `grpcurl -plaintext -d '{"location":"lucerne"}' localhost:8081 njord.v2.WeatherService/GetEnrichments` | Response received |
+| 6.1 | `grpcurl -plaintext -import-path protos -proto njord/v2/weather.proto -d '{"location":"lucerne"}' localhost:8081 njord.v2.WeatherService/GetEnrichments` | Response received |
 | 6.2 | Verify `alerts` field present with `alerts` array | Alerts populated |
 | 6.3 | Verify `indices` field present with `days` array containing `dayScoreSet` entries | Indices populated |
 | 6.4 | Verify `trends` field present with `parameterTrends` array | Trends populated |
@@ -209,7 +269,7 @@ Derived from config: 1 location × 2 models × all enrichments.
 | 7.7 | `GET /api/states/weather.lucerne_consensus` | State ≠ "unavailable" |
 | 7.8 | Verify attribute `agreement` is numeric, 0–100 (%) | In range |
 | 7.9 | Verify attribute `spread` is numeric, ≥ 0 (°C) | Non-negative |
-| 7.10 | Verify attribute `models_used` is integer, ≥ 2 | At least 2 models |
+| 7.10 | Verify attribute `available_models` is integer, ≥ 2 | At least 2 models |
 | 7.11 | Get icon_d2 and ecmwf_ifs025 temperatures; verify consensus temperature is within [min, max] of model temperatures | Within model range |
 
 ### Alert Sensors
@@ -218,7 +278,7 @@ Derived from config: 1 location × 2 models × all enrichments.
 |------|--------|---------------|
 | 7.12 | Verify 14 alert sensors exist (`sensor.lucerne_*_alert`) | All 14 present |
 | 7.13 | For each alert sensor: verify attribute `severity` ∈ {none, yellow, orange, red} | Valid enum |
-| 7.14 | For each alert sensor: verify attribute `confidence` is numeric 0–100 | In range |
+| 7.14 | For each alert sensor: verify attribute `confidence` is numeric 0–100 (note: `trigger_value` and `threshold` are present only when severity ≠ "none") | In range |
 | 7.15 | Verify at least 1 alert sensor has `severity` ≠ "none" (plausibility: some alert should fire for any weather) | At least one active alert |
 
 ### Index Sensors
@@ -226,9 +286,9 @@ Derived from config: 1 location × 2 models × all enrichments.
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
 | 7.16 | Verify 8 index sensors exist (`sensor.lucerne_*_index`) | All 8 present |
-| 7.17 | For each index sensor: verify state is numeric 0–10 | In range |
+| 7.17 | For each index sensor: verify state is numeric 0–100 | In range |
 | 7.18 | Verify `sensor.lucerne_vpd` state is numeric (kPa) | Numeric |
-| 7.19 | Verify `sensor.lucerne_frost_hours` state is numeric (hours) | Numeric |
+| 7.19 | Verify `sensor.lucerne_frost_hours` state is numeric or "unavailable" (requires history data from multiple cycles) | Numeric or unavailable |
 
 ### Derived, Trend, History Sensors
 
@@ -246,9 +306,9 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 8.1 | `GET /api/states/binary_sensor.forecast_stream` | State = "on" |
-| 8.2 | `GET /api/states/binary_sensor.enrichment_stream` | State = "on" |
-| 8.3 | `GET /api/states/binary_sensor.config_stream` | State = "on" |
+| 8.1 | `GET /api/states/binary_sensor.server_forecast_stream` | State = "on" |
+| 8.2 | `GET /api/states/binary_sensor.server_enrichment_stream` | State = "on" |
+| 8.3 | `GET /api/states/binary_sensor.server_config_stream` | State = "on" |
 | 8.4 | `GET /api/states/binary_sensor.lucerne_inversion` | State ∈ {"on", "off"} |
 
 ---
@@ -259,13 +319,13 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 9.1 | `GET /api/states/sensor.version` | State matches semver pattern (e.g., "0.1.0" or "0.1.0-alpha.1") |
-| 9.2 | `GET /api/states/sensor.uptime` | State is non-empty (duration string or numeric) |
-| 9.3 | `GET /api/states/sensor.monthly_usage` | State is numeric, attribute `unit_of_measurement` = "%" (percentage of monthly budget) |
-| 9.4 | `GET /api/states/sensor.daily_usage` | State is numeric, attribute `unit_of_measurement` = "%" (percentage of daily budget) |
-| 9.5 | `GET /api/states/button.trigger_poll` | Entity exists |
-| 9.6 | `GET /api/states/sensor.lucerne_icon_d2_target` | State is ISO timestamp or "unknown" |
-| 9.7 | `GET /api/states/sensor.lucerne_ecmwf_ifs025_target` | State is ISO timestamp or "unknown" |
+| 9.1 | `GET /api/states/sensor.server_version` | State matches semver pattern (e.g., "0.1.0" or "0.0.0-dev") |
+| 9.2 | `GET /api/states/sensor.server_uptime` | State is numeric (hours) |
+| 9.3 | `GET /api/states/sensor.server_monthly_usage` | State is numeric (percentage of monthly budget) |
+| 9.4 | `GET /api/states/sensor.server_daily_usage` | State is numeric (percentage of daily budget) |
+| 9.5 | `GET /api/states/button.server_trigger_poll` | Entity exists |
+| 9.6 | `GET /api/states/sensor.server_icon_d2_lucerne` | State is ISO timestamp or "unknown" |
+| 9.7 | `GET /api/states/sensor.server_ecmwf_ifs025_lucerne` | State is ISO timestamp or "unknown" |
 
 ---
 
@@ -275,13 +335,13 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 10.1 | `grpcurl -plaintext localhost:8081 njord.v2.OpsService/GetStatus` | Response contains `version` field |
+| 10.1 | `grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto localhost:8081 njord.v2.OpsService/GetStatus` | Response contains `version` field |
 | 10.2 | Verify response `version` matches semver pattern | Valid version |
 | 10.3 | Verify `models` array contains entries with `location: "lucerne"` | Present |
 | 10.4 | Verify models include `icon_d2` and `ecmwf_ifs025` | Both present |
 | 10.5 | Verify `activeEnrichments` contains all 6 feature names | All present |
 | 10.6 | Verify `budget` has `monthlyLimit`, `monthlyUsed`, `dailyLimit`, `dailyUsed`, `usagePercent` | All fields present |
-| 10.7 | `grpcurl -plaintext localhost:8081 njord.v2.OpsService/GetTargets` | Response contains `targets` array with ≥ 2 entries |
+| 10.7 | `grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto localhost:8081 njord.v2.OpsService/GetTargets` | Response contains `targets` array with ≥ 2 entries |
 | 10.8 | Verify each target has `location`, `model`, `phase`, `nextPoll` fields | Fields populated |
 
 ---
@@ -294,12 +354,12 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 11.1 | `grpcurl -plaintext -d '{"location":"nonexistent","model":"icon_d2"}' localhost:8081 njord.v2.WeatherService/GetForecast` | gRPC error (NOT_FOUND or INVALID_ARGUMENT), not a crash |
-| 11.2 | `grpcurl -plaintext -d '{"location":"lucerne","model":"invalid_model_xyz"}' localhost:8081 njord.v2.WeatherService/GetForecast` | gRPC error (NOT_FOUND or INVALID_ARGUMENT) |
-| 11.3 | `grpcurl -plaintext -d '{"location":""}' localhost:8081 njord.v2.WeatherService/GetEnrichments` | gRPC error (INVALID_ARGUMENT) |
-| 11.4 | `grpcurl -plaintext -d '{"kind":"SENSOR_KIND_UNSPECIFIED","location":"lucerne","source":"test","value":21.5}' localhost:8081 njord.v2.SensorService/Push` | Rejection: `accepted` = false or gRPC error |
-| 11.5 | `grpcurl -plaintext -d '{"locations":[]}' localhost:8081 njord.v2.AdminService/SetLocations` | Rejection: `applied` = false with `rejectionReason`, or gRPC error |
-| 11.6 | `grpcurl -plaintext -d '{"requestsPerMonth":0}' localhost:8081 njord.v2.AdminService/SetBudget` | Rejection or warning in response |
+| 11.1 | `grpcurl -plaintext -import-path protos -proto njord/v2/weather.proto -d '{"location":"nonexistent","model":"icon_d2"}' localhost:8081 njord.v2.WeatherService/GetForecast` | gRPC error (NOT_FOUND or INVALID_ARGUMENT), not a crash |
+| 11.2 | `grpcurl -plaintext -import-path protos -proto njord/v2/weather.proto -d '{"location":"lucerne","model":"invalid_model_xyz"}' localhost:8081 njord.v2.WeatherService/GetForecast` | gRPC error (NOT_FOUND or INVALID_ARGUMENT) |
+| 11.3 | `grpcurl -plaintext -import-path protos -proto njord/v2/weather.proto -d '{"location":""}' localhost:8081 njord.v2.WeatherService/GetEnrichments` | gRPC error (INVALID_ARGUMENT) |
+| 11.4 | `grpcurl -plaintext -import-path protos -proto njord/v2/sensor.proto -d '{"kind":"SENSOR_KIND_UNSPECIFIED","location":"lucerne","source":"test","value":21.5}' localhost:8081 njord.v2.SensorService/Push` | Rejection: `accepted` = false or gRPC error |
+| 11.5 | `grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"locations":[]}' localhost:8081 njord.v2.AdminService/SetLocations` | Rejection: `applied` = false with `rejectionReason`, or gRPC error |
+| 11.6 | `grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"requestsPerMonth":0}' localhost:8081 njord.v2.AdminService/SetBudget` | Rejection or warning in response |
 
 ### HA REST API Errors
 
@@ -310,38 +370,40 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 ---
 
-## S12 — HA Browser: Weather Cards
+## S12 — HA Verification: Weather Cards
 
-**Agent:** Haiku #3, using claude-in-chrome
+**Agent:** Haiku #3, using claude-in-chrome (preferred) or HA REST API (fallback)
+
+Browser: Developer Tools → States. API fallback: `GET /api/states/<entity_id>`.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 12.1 | Navigate to Developer Tools → States, filter by `weather.lucerne` | 3 weather entities visible |
-| 12.2 | Click on `weather.lucerne_icon_d2` to expand | Attributes visible: temperature (numeric), humidity (numeric), wind_speed (numeric), condition icon |
-| 12.3 | Click on `weather.lucerne_consensus` to expand | Attributes visible: agreement, spread, models_used |
+| 12.1 | Filter by `weather.lucerne` | 3 weather entities visible |
+| 12.2 | Inspect `weather.lucerne_icon_d2` | Attributes: temperature (numeric), humidity (numeric), wind_speed (numeric) |
+| 12.3 | Inspect `weather.lucerne_consensus` | Attributes: agreement (numeric), spread (numeric), available_models (integer ≥ 2) |
 
 ---
 
-## S13 — HA Browser: Enrichment Entities
+## S13 — HA Verification: Enrichment Entities
 
-**Agent:** Haiku #3, using claude-in-chrome
+**Agent:** Haiku #3, using claude-in-chrome (preferred) or HA REST API (fallback)
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 13.1 | Filter states by `sensor.lucerne_` | Enrichment entities visible (alerts, indices, derived, trends, history) |
-| 13.2 | Click on an alert sensor (e.g., `sensor.lucerne_frost_alert`) | Attributes visible: severity, confidence, trigger_value, threshold |
-| 13.3 | Click on an index sensor (e.g., `sensor.lucerne_outdoor_index`) | State is numeric 0–10 |
+| 13.1 | Filter by `sensor.lucerne_` | Enrichment entities visible (alerts, indices, derived, trends, history) |
+| 13.2 | Inspect an active alert sensor (one with severity ≠ "none", e.g. `sensor.lucerne_heavy_rain_alert`) | Attributes: severity, confidence; `trigger_value` and `threshold` present when severity ≠ "none" |
+| 13.3 | Inspect an index sensor (e.g., `sensor.lucerne_outdoor_index`) | State is numeric 0–100 |
 
 ---
 
-## S14 — HA Browser: Server Entities
+## S14 — HA Verification: Server Entities
 
-**Agent:** Haiku #3, using claude-in-chrome
+**Agent:** Haiku #3, using claude-in-chrome (preferred) or HA REST API (fallback)
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 14.1 | Filter states by `sensor.version` or `sensor.server` or `sensor.uptime` | Server entities visible |
-| 14.2 | Verify `sensor.version` displays a version string, `sensor.monthly_usage` and `sensor.daily_usage` display numeric values | Values displayed |
+| 14.1 | Filter by `sensor.server` | Server entities visible (version, uptime, monthly_usage, daily_usage, targets) |
+| 14.2 | Verify `sensor.server_version` displays a version string, `sensor.server_monthly_usage` and `sensor.server_daily_usage` display numeric values | Values displayed |
 
 ---
 
@@ -351,10 +413,10 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 15.1 | `grpcurl -plaintext -d '{"kind":"SENSOR_KIND_INDOOR_TEMPERATURE","location":"lucerne","source":"e2e-test","value":21.5,"measuredAt":"<now-ISO>"}' localhost:8081 njord.v2.SensorService/Push` | `accepted` = true |
-| 15.2 | `grpcurl -plaintext -d '{"kind":"SENSOR_KIND_INDOOR_HUMIDITY","location":"lucerne","source":"e2e-test","value":55.0,"measuredAt":"<now-ISO>"}' localhost:8081 njord.v2.SensorService/Push` | `accepted` = true |
+| 15.1 | `grpcurl -plaintext -import-path protos -proto njord/v2/sensor.proto -d '{"kind":"SENSOR_KIND_INDOOR_TEMPERATURE","location":"lucerne","source":"e2e-test","value":21.5,"measuredAt":"<now-ISO>"}' localhost:8081 njord.v2.SensorService/Push` | `accepted` = true |
+| 15.2 | `grpcurl -plaintext -import-path protos -proto njord/v2/sensor.proto -d '{"kind":"SENSOR_KIND_INDOOR_HUMIDITY","location":"lucerne","source":"e2e-test","value":55.0,"measuredAt":"<now-ISO>"}' localhost:8081 njord.v2.SensorService/Push` | `accepted` = true |
 | 15.3 | Verify both readings accepted (no `rejectionReason`) | Both accepted |
-| 15.4 | Push with unknown location: `grpcurl -plaintext -d '{"kind":"SENSOR_KIND_INDOOR_TEMPERATURE","location":"nonexistent","source":"e2e-test","value":21.5}' localhost:8081 njord.v2.SensorService/Push` | Rejection: `accepted` = false |
+| 15.4 | Push with unknown location: `grpcurl -plaintext -import-path protos -proto njord/v2/sensor.proto -d '{"kind":"SENSOR_KIND_INDOOR_TEMPERATURE","location":"nonexistent","source":"e2e-test","value":21.5}' localhost:8081 njord.v2.SensorService/Push` | Rejection: `accepted` = false |
 
 ---
 
@@ -362,13 +424,18 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 **Agent:** Opus (main)
 
+Cycle completion is tracked via `budget.dailyUsed` from gRPC `GetStatus` (and
+the matching HA sensor `sensor.server_daily_usage`). HA entity `last_updated`
+is unreliable for this purpose: HA only advances it when the state string
+actually changes, which may not happen when Open-Meteo returns identical data.
+
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 16.1 | Record `last_updated` timestamp for `sensor.lucerne_weather_trend` via `GET /api/states/sensor.lucerne_weather_trend` | Timestamp captured |
-| 16.2 | `grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll` | `triggeredCount` ≥ 2 |
-| 16.3 | Poll `GET /api/states/sensor.lucerne_weather_trend` until `last_updated` > captured timestamp (interval: 5s, timeout: 120s). Note: weather entity `last_updated` may not advance when Open-Meteo returns identical forecast data; enrichment entities always update. | Timestamp advanced |
-| 16.4 | Record new `last_updated`, trigger second poll: `grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll` | `triggeredCount` ≥ 2 |
-| 16.5 | Poll `sensor.lucerne_weather_trend` until `last_updated` advances again (timeout: 120s) | Second cycle confirmed |
+| 16.1 | Record `budget.dailyUsed` via `grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto localhost:8081 njord.v2.OpsService/GetStatus` | Baseline captured |
+| 16.2 | `grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll` | `triggeredCount` ≥ 2 |
+| 16.3 | Wait 15–20s for Open-Meteo fetch, then read `budget.dailyUsed` again via GetStatus | `dailyUsed` increased (delta = number of models × API calls per model, typically +4 per model) |
+| 16.4 | Trigger second poll: `grpcurl ... njord.v2.OpsService/TriggerPoll` | `triggeredCount` ≥ 2 |
+| 16.5 | Wait 15–20s, read `budget.dailyUsed` via GetStatus | `dailyUsed` increased again by same delta — two cycles confirmed |
 | 16.6 | Verify `weather.lucerne_icon_d2` state ≠ "unavailable" after both cycles | Weather entity still healthy |
 
 ---
@@ -379,10 +446,10 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 17.1 | Record `sensor.daily_usage` state before cycle | Usage captured |
-| 17.2 | After S16 cycles complete, read `sensor.daily_usage` again | Usage > previous value |
-| 17.3 | `grpcurl -plaintext localhost:8081 njord.v2.OpsService/GetStatus` and extract `budget.dailyUsed` | Numeric, > 0 |
-| 17.4 | Verify gRPC `dailyUsed` is consistent with HA `sensor.daily_usage` (within ±1, accounting for rounding) | Consistent |
+| 17.1 | Record `sensor.server_daily_usage` state before S16 cycles | Usage captured |
+| 17.2 | After S16 cycles complete, read `sensor.server_daily_usage` again (wait for ha-njord's 30s status poll if needed) | Usage > previous value |
+| 17.3 | Read `budget.dailyUsed` from S16's final GetStatus call | Numeric, > 0 |
+| 17.4 | Verify gRPC `dailyUsed` is consistent with HA `sensor.server_daily_usage` (HA shows percentage of daily budget = `dailyUsed / dailyLimit * 100`) | Consistent |
 
 ---
 
@@ -392,10 +459,10 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 18.1 | `grpcurl -plaintext localhost:8081 njord.v2.AdminService/GetConfig` | Response received |
+| 18.1 | `grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto localhost:8081 njord.v2.AdminService/GetConfig` | Response received |
 | 18.2 | Verify `locations` contains "lucerne" with lat 47.05, lon 8.31 | Matches Docker config |
 | 18.3 | Verify `defaultModels` contains "icon_d2" and "ecmwf_ifs025" | Matches Docker config |
-| 18.4 | Verify `horizons` = [3, 6, 12, 24, 48, 72] | Matches Docker config |
+| 18.4 | Verify `horizons` contains [3, 6, 12, 24, 48, 72] (may include duplicates from env + default merge) | All configured horizons present |
 | 18.5 | Verify `enrichment` shows all 6 features enabled (`consensus.enabled`, `alerts.enabled`, etc.) | All enabled |
 
 ---
@@ -406,9 +473,9 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 19.1 | `grpcurl -plaintext -d '{"alerts":{"enabled":false}}' localhost:8081 njord.v2.AdminService/SetEnrichment` | `applied` = true |
-| 19.2 | `grpcurl -plaintext localhost:8081 njord.v2.AdminService/GetConfig` → verify `enrichment.alerts.enabled` = false | Config updated |
-| 19.3 | `grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll` | Poll triggered |
+| 19.1 | `grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"alerts":{"enabled":false}}' localhost:8081 njord.v2.AdminService/SetEnrichment` | `applied` = true |
+| 19.2 | `grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto localhost:8081 njord.v2.AdminService/GetConfig` → verify `enrichment.alerts.enabled` = false | Config updated |
+| 19.3 | `grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll` | Poll triggered |
 
 ---
 
@@ -430,8 +497,8 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 21.1 | `grpcurl -plaintext -d '{"alerts":{"enabled":true}}' localhost:8081 njord.v2.AdminService/SetEnrichment` | `applied` = true |
-| 21.2 | `grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll` | Poll triggered |
+| 21.1 | `grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"alerts":{"enabled":true}}' localhost:8081 njord.v2.AdminService/SetEnrichment` | `applied` = true |
+| 21.2 | `grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll` | Poll triggered |
 | 21.3 | Poll `GET /api/states` until 14 alert sensors reappear with state ≠ "unavailable" (timeout: 120s) | All 14 restored |
 | 21.4 | Verify total entity count matches pre-S19 count | Count restored |
 
@@ -443,11 +510,11 @@ Derived from config: 1 location × 2 models × all enrichments.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 22.1 | `grpcurl -plaintext -d '{"horizons":[6,24]}' localhost:8081 njord.v2.AdminService/SetSettings` | `applied` = true |
-| 22.2 | `grpcurl -plaintext localhost:8081 njord.v2.AdminService/GetConfig` → verify `horizons` = [6, 24] | Config updated |
-| 22.3 | `grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll` | Poll triggered |
-| 22.4 | Wait 30s, then verify weather entity attributes reflect changed horizon set (fewer forecast detail items or updated horizon references) | Horizons changed |
-| 22.5 | Restore: `grpcurl -plaintext -d '{"horizons":[3,6,12,24,48,72]}' localhost:8081 njord.v2.AdminService/SetSettings` | `applied` = true, horizons restored |
+| 22.1 | `grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"horizons":[6,24]}' localhost:8081 njord.v2.AdminService/SetSettings` | `applied` = true |
+| 22.2 | `grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto localhost:8081 njord.v2.AdminService/GetConfig` → verify `horizons` includes 6 and 24 | Config updated |
+| 22.3 | `grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll` | Poll triggered |
+| 22.4 | Wait 15–20s, then verify GetConfig shows changed horizons | Horizons changed |
+| 22.5 | Restore: `grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"horizons":[3,6,12,24,48,72]}' localhost:8081 njord.v2.AdminService/SetSettings` | `applied` = true, horizons restored |
 
 ---
 
@@ -458,25 +525,38 @@ Derived from config: 1 location × 2 models × all enrichments.
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
 | 23.1 | `docker stop njord-e2e` | Container stopped |
-| 23.2 | Wait 60s (gRPC keepalive and `expire_after` make disconnect detection slower than 10s), then `GET /api/states/binary_sensor.forecast_stream` | State = "off" (stream lost) |
-| 23.3 | Verify `weather.lucerne_icon_d2` shows "unavailable" or stale state | Reflects downtime |
+| 23.2 | Wait 10s, then `GET /api/states/binary_sensor.server_forecast_stream` | State = "off" (stream lost) |
+| 23.3 | Verify `weather.lucerne_icon_d2` still has its last known state (HA retains the value; may not show "unavailable" until `expire_after` elapses) | State present |
 | 23.4 | `docker start njord-e2e` | Container starts |
 | 23.5 | Poll `http://localhost:8080/alive` until HTTP 200 (timeout: 60s) | njord healthy again |
-| 23.6 | Poll `GET /api/states/binary_sensor.forecast_stream` until state = "on" (timeout: 120s) | gRPC stream reconnected |
+| 23.6 | Poll `GET /api/states/binary_sensor.server_forecast_stream` until state = "on" (timeout: 120s) | gRPC stream reconnected |
 | 23.7 | Verify `weather.lucerne_icon_d2` state ≠ "unavailable" | Entity recovered |
 
 ---
 
 ## S24 — Teardown: Integration Removal
 
-**Agent:** Opus (main), using claude-in-chrome
+**Agent:** Opus (main), using claude-in-chrome (preferred) or HA API (fallback)
+
+**Browser path (preferred):**
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
 | 24.1 | Navigate to Settings → Devices & Services | Integrations page loads |
 | 24.2 | Find njord integration, click "Delete" / remove | Deletion confirmed |
+
+**API fallback** (if chrome extension unavailable):
+
+| Step | Action | Pass Criteria |
+|------|--------|---------------|
+| 24.1f | `DELETE /api/config/config_entries/entry/<entry_id>` (entry_id from S2) | `require_restart: false` |
+
+**Common:**
+
+| Step | Action | Pass Criteria |
+|------|--------|---------------|
 | 24.3 | Poll `GET /api/states` until no njord entities remain (interval: 5s, timeout: 30s) | All njord entities gone |
-| 24.4 | Verify 0 entities match `njord` device identifiers | No orphans |
+| 24.4 | Verify 0 entities match njord platform | No orphans |
 | 24.5 | `docker compose -f e2e/docker-compose.e2e.yml down -v` | Stack torn down |
 
 ---
@@ -489,7 +569,7 @@ Derived from config: 1 location × 2 models × all enrichments.
 │  S0: Docker up, health poll                                 [SEQ] │
 │  S1: Browser — onboarding, token                            [SEQ] │
 │  S2: Browser — integration setup                            [SEQ] │
-│  S3: Entity registration polling                            [SEQ] │
+│  S3: Entity registration + enable all                        [SEQ] │
 │                                                                   │
 │  ── Parallel Block A (after S3) ────────────────────────────────  │
 │  ┌───────────────────┐  ┌───────────────────┐  ┌──────────────┐  │
@@ -526,13 +606,13 @@ Each Haiku subagent receives:
 - Instruction to report PASS/FAIL per step with detail
 
 **Haiku #1 — Weather + Entities (S4–S7):**
-Verify all WeatherService RPCs (GetCatalog, GetForecast, GetEnrichments, StreamForecasts, StreamEnrichments) and deep entity attribute validation. Use grpcurl for gRPC calls and curl + HA REST API for entity checks. Report ~42 steps.
+Verify all WeatherService RPCs (GetCatalog, GetForecast, GetEnrichments, StreamForecasts, StreamEnrichments) and deep entity attribute validation. Use grpcurl with `-import-path protos -proto njord/v2/weather.proto` for gRPC calls and HA REST API for entity checks. Report ~42 steps.
 
 **Haiku #2 — Connectivity + Ops + Errors (S8–S11):**
-Verify connectivity/server entities via HA REST API, all OpsService RPCs (GetStatus, GetTargets), and error handling (invalid gRPC requests, HA REST errors). Report ~27 steps.
+Verify connectivity/server entities via HA REST API, all OpsService RPCs (GetStatus, GetTargets), and error handling (invalid gRPC requests, HA REST errors). Use `-import-path protos -proto njord/v2/<service>.proto` for all grpcurl calls. Report ~27 steps.
 
-**Haiku #3 — HA Browser (S12–S14):**
-Verify entity display in HA UI using claude-in-chrome. Navigate Developer Tools → States, filter and inspect weather, enrichment, and server entities. Report ~8 steps.
+**Haiku #3 — HA Verification (S12–S14):**
+Verify entity display using claude-in-chrome (preferred) or HA REST API (fallback). Inspect weather, enrichment, and server entities. Report ~8 steps.
 
 The main agent re-checks any FAIL before accepting it (Haiku may misinterpret API responses).
 
@@ -552,16 +632,16 @@ Applied automatically by Docker config. No grpcurl commands needed.
 
 ### Disabled-Alerts Recipe
 
-Applied in S19, restored in S21.
+Applied in S19, restored in S21. All grpcurl commands require `-import-path protos -proto njord/v2/<service>.proto`.
 
 ```bash
 # Apply
-grpcurl -plaintext -d '{"alerts":{"enabled":false}}' localhost:8081 njord.v2.AdminService/SetEnrichment
-grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
+grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"alerts":{"enabled":false}}' localhost:8081 njord.v2.AdminService/SetEnrichment
+grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
 
 # Restore
-grpcurl -plaintext -d '{"alerts":{"enabled":true}}' localhost:8081 njord.v2.AdminService/SetEnrichment
-grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
+grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"alerts":{"enabled":true}}' localhost:8081 njord.v2.AdminService/SetEnrichment
+grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
 ```
 
 - **Expected change:** -15 entities (14 alert sensors + 1 weather_alert event)
@@ -572,12 +652,12 @@ Applied in S22, restored at end of S22.
 
 ```bash
 # Apply
-grpcurl -plaintext -d '{"horizons":[6,24]}' localhost:8081 njord.v2.AdminService/SetSettings
-grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
+grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"horizons":[6,24]}' localhost:8081 njord.v2.AdminService/SetSettings
+grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
 
 # Restore
-grpcurl -plaintext -d '{"horizons":[3,6,12,24,48,72]}' localhost:8081 njord.v2.AdminService/SetSettings
-grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
+grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"horizons":[3,6,12,24,48,72]}' localhost:8081 njord.v2.AdminService/SetSettings
+grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
 ```
 
 - **Expected change:** forecast entries reflect 2 horizons instead of 6
@@ -607,10 +687,11 @@ Recorded on first run, used as reference for future runs:
 
 | Metric | Baseline | Notes |
 |--------|----------|-------|
-| Stack startup (0.2 → 0.4) | ~9s | njord instant, HA ~5s |
-| Integration → entities (2.5 → 3.1) | < 1s | gRPC fast |
-| Poll cycle (TriggerPoll → last_updated) | ~30–60s | Depends on Open-Meteo response time |
-| Config mutation settle (SetEnrichment → entities update) | ~30–60s | Entity registration after config change |
-| Restart → stream reconnect (23.4 → 23.6) | ~12s | forecast_stream off → on |
-| Teardown → entities gone (24.2 → 24.3) | < 5s | HA removes entities immediately |
-| Full run duration | ~15–20 min | Including multi-cycle waits |
+| Stack startup, cached (0.2 → 0.4) | ~2s | Both containers instant when image cached |
+| Stack startup, full build (0.2 → 0.4) | ~25s | Including Docker build |
+| Integration → entities (2.5 → 3.1) | < 5s | gRPC fast, entities appear immediately |
+| Poll cycle (TriggerPoll → budget increment) | ~10–15s | Open-Meteo fetch + processing |
+| Config mutation → entity change | < 5s | Immediate via gRPC streams |
+| Restart → stream reconnect (23.4 → 23.6) | < 5s | forecast_stream off → on |
+| Teardown → entities gone (24.2 → 24.3) | < 1s | HA removes entities immediately |
+| Full run duration | ~20 min | Including multi-cycle waits and ha-njord poll intervals |

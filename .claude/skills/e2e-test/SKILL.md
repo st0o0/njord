@@ -12,8 +12,8 @@ Run the full end-to-end test suite against the real Docker stack.
 
 - Docker running
 - ha-njord cloned at `../ha-njord` relative to this repo root
-- Chrome browser available (for claude-in-chrome)
-- grpcurl installed (for gRPC calls)
+- Chrome browser available (for claude-in-chrome) — optional, API fallback for S1/S2/S24
+- grpcurl installed (for gRPC calls; reflection is disabled, use `-import-path protos -proto njord/v2/<service>.proto`)
 
 ## Execution
 
@@ -34,58 +34,43 @@ Poll for health:
 
 Record the startup time.
 
-### S1 — HA Setup (Browser)
+### S1 — HA Setup (Browser preferred, API fallback)
 
-Load claude-in-chrome tools first:
-```
-ToolSearch with query "select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__tabs_close_mcp,mcp__claude-in-chrome__form_input"
-```
+Try claude-in-chrome first. If the extension is unavailable, fall back to the
+HA REST/websocket API (see E2E-TEST-PLAN.md S1 for both paths).
 
-#### S1A — HA Onboarding (first run only)
+**Browser path:** Load chrome tools via ToolSearch, open `http://localhost:8123`,
+complete onboarding wizard, create long-lived access token in Profile.
 
-1. Open `http://localhost:8123` in a new tab
-2. HA shows onboarding wizard on first run
-3. Create account: name "njord-e2e", username "njord", password "e2e-test-2026"
-4. Complete onboarding: set location to Lucerne, timezone Europe/Zurich
-5. Skip analytics, finish
-
-If HA shows the dashboard instead of onboarding, skip S1A (already set up from a
-previous run that didn't `down -v`).
-
-#### S1B — Create Long-Lived Access Token
-
-1. Click user menu (bottom-left) → Profile
-2. Scroll to "Long-Lived Access Tokens"
-3. Click "Create Token", name: "e2e-test"
-4. **Copy the token value immediately** — it is shown only once
-5. Store it in a variable for all subsequent REST API calls
+**API fallback:**
+1. `GET /api/onboarding` → if all steps `done: false`, onboarding needed
+2. `POST /api/onboarding/users` → creates user, returns `auth_code`
+3. Exchange auth_code via `POST /auth/token`, complete remaining onboarding steps
+4. Create long-lived token via websocket `auth/long_lived_access_token`
 
 All REST API calls use header: `Authorization: Bearer <token>`
 
-### S2 — Integration Setup (Browser)
+### S2 — Integration Setup (Browser preferred, API fallback)
 
-1. Navigate to Settings → Devices & Services
-2. Click "Add Integration"
-3. Search "njord"
-4. Enter host: `njord`, port: `8081`
-5. Submit — should show success with location/model counts
+**Browser path:** Settings → Devices & Services → Add Integration → njord → host `njord`, port `8081`.
 
-Record time from submit to success confirmation.
+**API fallback:**
+1. `POST /api/config/config_entries/flow` with `{"handler":"njord"}`
+2. `POST /api/config/config_entries/flow/<flow_id>` with `{"host":"njord","port":8081}`
+3. Record `entry_id` from response (needed for S24)
 
-### S3 — Entity Registration
+### S3 — Entity Registration + Enable All
 
-Poll HA REST API until entities appear:
+Poll HA REST API until weather entities appear (5s interval, 120s timeout).
 
-```bash
-curl -s -H "Authorization: Bearer <token>" http://localhost:8123/api/states | jq '[.[] | select(.entity_id | startswith("weather."))] | length'
-```
+**S3A — Default entity set (out-of-the-box experience):**
+- Verify ~26 entities in `/api/states` (enabled-by-default: 3 weather, 14 alerts, 4 server sensors, 3 stream binary_sensors, 1 event, 1 button)
+- Verify 3 weather entities: `weather.lucerne_icon_d2`, `weather.lucerne_ecmwf_ifs_0_25deg`, `weather.lucerne_consensus`
 
-Wait until weather entities appear (poll every 5s, timeout 120s).
-
-Then verify:
-- 3 weather entities (lucerne_icon_d2, lucerne_ecmwf_ifs025, lucerne_consensus)
-- ~47 total njord entities (±5 tolerance)
-- Record total entity count and full entity ID list
+**S3B — Enable all disabled entities (for subsequent tests):**
+- Query entity registry via websocket `config/entity_registry/list`, filter `platform: "njord"`
+- Enable all entities with `disabled_by: "integration"` (21 entities: indices, derived, trend, history, inversion, targets)
+- Reload integration, verify ~47 total entities in `/api/states`
 
 ### Parallel Block A — Spawn 3 Haiku Subagents
 
@@ -95,34 +80,37 @@ run in parallel):
 **Haiku #1 — Weather + Entity Depth (S4–S7):**
 Brief it with:
 - HA URL: `http://localhost:8123`
-- Auth token
+- Auth token (long-lived, not short-lived JWT)
 - S4 steps (GetCatalog + Streaming RPCs)
 - S5 steps (GetForecast)
 - S6 steps (GetEnrichments)
 - S7 steps (entity attribute depth + enrichment validation — 22 steps)
 - Expected entities: 3 weather, 14 alerts, 11 indices, 5 derived, 1 trend, 1 history
-- Use grpcurl for gRPC, curl for HA REST API
+- **Critical:** grpcurl needs `-import-path protos -proto njord/v2/weather.proto` (no reflection)
+- Key attribute names: consensus uses `available_models` (not `models_used`); indices are 0–100 (not 0–10); alert `trigger_value`/`threshold` only present when severity ≠ "none"
+- Use PowerShell for REST API calls (no `jq` in Git Bash)
 - Report PASS/FAIL per step with detail
 
 **Haiku #2 — Connectivity + Ops + Errors (S8–S11):**
 Brief it with:
 - HA URL: `http://localhost:8123`
-- Auth token
-- S8 steps (connectivity entities — 4 binary_sensors)
-- S9 steps (server entities — version, uptime, usage, targets)
+- Auth token (long-lived)
+- S8 steps (connectivity entities — entity IDs use `server_` prefix: `binary_sensor.server_forecast_stream` etc.)
+- S9 steps (server entities — `sensor.server_version`, `sensor.server_uptime`, targets: `sensor.server_icon_d2_lucerne`)
 - S10 steps (OpsService RPCs — GetStatus, GetTargets)
 - S11 steps (error handling — invalid gRPC + REST requests)
-- Use grpcurl for gRPC, curl for HA REST API
+- **Critical:** grpcurl needs `-import-path protos -proto njord/v2/<service>.proto`
+- Use PowerShell for REST API calls
 - Report PASS/FAIL per step with detail
 
-**Haiku #3 — HA Browser Verification (S12–S14):**
+**Haiku #3 — HA Verification (S12–S14):**
 Brief it with:
 - HA URL: `http://localhost:8123`
-- Auth token (for browser login if needed)
-- S12 steps (weather entity cards in Developer Tools)
-- S13 steps (enrichment entities in Developer Tools)
-- S14 steps (server entities in Developer Tools)
-- Use claude-in-chrome tools (load them first via ToolSearch)
+- Auth token (long-lived)
+- S12 steps (weather entities — consensus attribute: `available_models`)
+- S13 steps (enrichment entities — use active alert for attribute check, indices 0–100)
+- S14 steps (server entities — `sensor.server_version`, `sensor.server_daily_usage`)
+- Use claude-in-chrome (preferred) or HA REST API (fallback)
 - Report PASS/FAIL per step with detail
 
 Use `Agent` tool with `model: "haiku"` for all three. Wait for all to complete.
@@ -136,47 +124,51 @@ When subagents return, check each FAIL:
 
 ### S15 — SensorService (Sequential)
 
-Push sensor readings via grpcurl:
+Push sensor readings via grpcurl (all commands need `-import-path protos -proto njord/v2/sensor.proto`):
 
 ```bash
-grpcurl -plaintext -d '{"kind":"SENSOR_KIND_INDOOR_TEMPERATURE","location":"lucerne","source":"e2e-test","value":21.5}' localhost:8081 njord.v2.SensorService/Push
+grpcurl -plaintext -import-path protos -proto njord/v2/sensor.proto -d '{"kind":"SENSOR_KIND_INDOOR_TEMPERATURE","location":"lucerne","source":"e2e-test","value":21.5}' localhost:8081 njord.v2.SensorService/Push
 ```
 
 Verify `accepted` = true. Test rejection with unknown location.
 
 ### S16–S17 — Multi-Cycle + Budget
 
-1. Record `last_updated` for `weather.lucerne_icon_d2`
-2. `grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll`
-3. Poll until `last_updated` advances (5s interval, 120s timeout)
+Track cycles via `budget.dailyUsed` from gRPC GetStatus (HA `last_updated` is
+unreliable — only advances when the state string actually changes).
+
+1. Record `budget.dailyUsed` via `grpcurl ... njord.v2.OpsService/GetStatus`
+2. `grpcurl ... njord.v2.OpsService/TriggerPoll`
+3. Wait 15–20s, read `budget.dailyUsed` again — verify increment
 4. Repeat for second cycle
-5. Read `sensor.daily_usage` before and after — verify increment
-6. Compare gRPC `GetStatus` budget fields with HA sensor values
+5. Read `sensor.server_daily_usage` before and after — verify HA sensor tracks it
+6. Verify gRPC `dailyUsed` is consistent with HA sensor (HA shows % of daily budget)
 
 ### S18 — AdminService: GetConfig
 
 ```bash
-grpcurl -plaintext localhost:8081 njord.v2.AdminService/GetConfig
+grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto localhost:8081 njord.v2.AdminService/GetConfig
 ```
 
 Verify config matches Docker environment (locations, models, horizons, enrichments).
+Note: horizons may be duplicated due to env + default merge.
 
 ### S19–S21 — Config Mutation: Alerts Cycle
 
 **Disable alerts (S19):**
 ```bash
-grpcurl -plaintext -d '{"alerts":{"enabled":false}}' localhost:8081 njord.v2.AdminService/SetEnrichment
-grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
+grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"alerts":{"enabled":false}}' localhost:8081 njord.v2.AdminService/SetEnrichment
+grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
 ```
 
 **Verify removal (S20):**
-Poll until 14 alert sensors + 1 event entity become unavailable/disappear (timeout 60s).
+Poll until 14 alert sensors + 1 event entity become unavailable (timeout 60s).
 Verify entity count dropped by ~15.
 
 **Re-enable (S21):**
 ```bash
-grpcurl -plaintext -d '{"alerts":{"enabled":true}}' localhost:8081 njord.v2.AdminService/SetEnrichment
-grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
+grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"alerts":{"enabled":true}}' localhost:8081 njord.v2.AdminService/SetEnrichment
+grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
 ```
 
 Poll until all 14 alert sensors reappear (timeout 120s). Verify count restored.
@@ -184,15 +176,15 @@ Poll until all 14 alert sensors reappear (timeout 120s). Verify count restored.
 ### S22 — Config Mutation: Horizons
 
 ```bash
-grpcurl -plaintext -d '{"horizons":[6,24]}' localhost:8081 njord.v2.AdminService/SetSettings
-grpcurl -plaintext -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
+grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"horizons":[6,24]}' localhost:8081 njord.v2.AdminService/SetSettings
+grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto -d '{}' localhost:8081 njord.v2.OpsService/TriggerPoll
 ```
 
-Wait 30s, verify forecast reflects changed horizons.
+Wait 15–20s, verify GetConfig shows changed horizons.
 
 **Restore:**
 ```bash
-grpcurl -plaintext -d '{"horizons":[3,6,12,24,48,72]}' localhost:8081 njord.v2.AdminService/SetSettings
+grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"horizons":[3,6,12,24,48,72]}' localhost:8081 njord.v2.AdminService/SetSettings
 ```
 
 ### S23 — Resilience: Container Restart
@@ -201,21 +193,22 @@ grpcurl -plaintext -d '{"horizons":[3,6,12,24,48,72]}' localhost:8081 njord.v2.A
 docker stop njord-e2e
 ```
 
-1. Wait 10s, verify stream sensors show "off" and weather entities show "unavailable"
+1. Wait 10s, verify `binary_sensor.server_forecast_stream` = "off"
 2. `docker start njord-e2e`
 3. Poll `/alive` until 200 (timeout 60s)
-4. Poll `binary_sensor.forecast_stream` until "on" (timeout 120s)
-5. Verify weather entities recovered
+4. Poll `binary_sensor.server_forecast_stream` until "on" (timeout 120s)
+5. Verify weather entities recovered (state ≠ "unavailable")
 
-### S24 — Teardown: Integration Removal (Browser)
+### S24 — Teardown (Browser preferred, API fallback)
 
-1. Navigate to Settings → Devices & Services
-2. Find njord integration, delete it
-3. Poll `GET /api/states` until no njord entities remain (timeout 30s)
-4. Verify 0 orphaned njord entities
-5. `docker compose -f e2e/docker-compose.e2e.yml down -v`
+**Browser path:** Settings → Devices & Services → njord → Delete.
 
-Clean up the browser tab.
+**API fallback:** `DELETE /api/config/config_entries/entry/<entry_id>`
+
+Then:
+1. Poll `GET /api/states` until no njord entities remain (timeout 30s)
+2. Verify 0 orphaned njord entities
+3. `docker compose -f e2e/docker-compose.e2e.yml down -v`
 
 ### Write Results
 
