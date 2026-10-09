@@ -7,17 +7,18 @@ using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Tests.Shared;
+using Njord.Weather;
 using FailingRefProvider = Njord.Tests.Shared.FailingRefProvider;
 
 namespace Njord.Enrichment.Tests;
 
 [Collection("EnrichmentActor")]
-public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
+public sealed class EnrichmentActorSpec : NjordActorSpec
 {
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    protected override bool UseTestPersistence => false;
+
+    protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
         builder
             .WithActors((system, registry) =>
@@ -26,8 +27,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
                 var fakePipeline = system.ActorOf(Props.Create(() => new FakePipelineSource(mat)));
                 registry.Register<IPipelineActor>(fakePipeline);
                 registry.Register<ISensorHubActor>(system.ActorOf(Props.Empty, "sensor-hub"));
-            })
-            .AddTestTimefactor();
+            });
     }
 
     private static NjordOptions DefaultOptions() => new()
@@ -51,7 +51,7 @@ public sealed class EnrichmentActorSpec : Akka.Hosting.TestKit.TestKit
 
         IEnumerable<IEnrichmentFeature> features = [];
         var consensusFactory = new ConsensusSnapshotFactory(parameters,
-            new FakeTimeProvider(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero)));
+            TestTimeouts.AtEpoch());
 
         return Sys.ActorOf(Props.Create(() => new EnrichmentActor(
             optionsWrapped,

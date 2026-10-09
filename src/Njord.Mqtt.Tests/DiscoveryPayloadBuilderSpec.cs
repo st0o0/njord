@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 using Njord.Core.Configuration;
-using Njord.Domain.Weather;
+using Njord.Weather;
 
 namespace Njord.Mqtt.Tests;
 
@@ -167,256 +167,95 @@ public sealed class DiscoveryPayloadBuilderSpec
     }
 
     [Fact]
-    public void Alert_device_has_14_binary_sensor_components()
+    public void ToComponent_sensor_with_unit_and_device_class_emits_fields_in_wire_order()
     {
-        var payload = DiscoveryPayloadBuilder.BuildAlerts(
-            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
+        var spec = new SensorComponentSpec(
+            "wind_chill", "dev_wind_chill", "wind chill", "njord/state", "{{ value_json.wind_chill }}",
+            Unit: "°C", DeviceClass: "temperature");
 
-        Assert.Equal("njord_lucerne_alerts", (string?)json["dev"]!["ids"]![0]);
-        Assert.Equal("alerts", (string?)json["dev"]!["mdl"]);
-        Assert.Equal(14, json["cmps"]!.AsObject().Count);
-    }
+        var component = DiscoveryPayloadBuilder.ToComponent(spec, "njord/status", 7200);
 
-    [Fact]
-    public void Alert_components_are_binary_sensors_with_value_template()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildAlerts(
-            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-        var frost = json["cmps"]!["frost"]!;
-
-        Assert.Equal("binary_sensor", (string?)frost["p"]);
-        Assert.Contains("severity", (string?)frost["value_template"]);
-        Assert.Equal("njord_lucerne_alerts_frost", (string?)frost["unique_id"]);
-    }
-
-    // --- Derived device ---
-
-    [Fact]
-    public void Derived_device_id_and_model_name()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildDerived(
-            "lucerne", DefaultHorizons, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-
-        Assert.Equal("njord_lucerne_derived", (string?)json["dev"]!["ids"]![0]);
-        Assert.Equal("njord lucerne derived", (string?)json["dev"]!["name"]);
-        Assert.Equal("derived", (string?)json["dev"]!["mdl"]);
-    }
-
-    [Fact]
-    public void Derived_device_has_expected_component_count()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildDerived(
-            "lucerne", DefaultHorizons, Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-
-        // 4 horizon params × 6 horizons + 3 scalar sensors = 27
-        Assert.Equal(27, json["cmps"]!.AsObject().Count);
-    }
-
-    [Fact]
-    public void Derived_beaufort_component_per_horizon()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildDerived(
-            "lucerne", [3], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-        var component = json["cmps"]!["beaufort_h3"]!;
-
+        Assert.Equal(
+            ["p", "unique_id", "name", "state_topic", "unit_of_measurement", "device_class", "expire_after", "value_template", "availability", "availability_mode"],
+            component.Select(kv => kv.Key).ToArray());
         Assert.Equal("sensor", (string?)component["p"]);
-        Assert.Equal("njord_lucerne_derived_beaufort_h3", (string?)component["unique_id"]);
-        Assert.False(component.AsObject().ContainsKey("unit_of_measurement"));
-        Assert.False(component.AsObject().ContainsKey("device_class"));
-    }
-
-    [Fact]
-    public void Derived_wind_chill_has_temperature_device_class()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildDerived(
-            "lucerne", [3], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-        var component = json["cmps"]!["wind_chill_h3"]!;
-
         Assert.Equal("°C", (string?)component["unit_of_measurement"]);
         Assert.Equal("temperature", (string?)component["device_class"]);
+        Assert.Equal(7200, (int?)component["expire_after"]);
+        Assert.Equal("all", (string?)component["availability_mode"]);
     }
 
     [Fact]
-    public void Derived_scalar_inversion_is_binary_sensor()
+    public void ToComponent_measurement_last_places_unit_and_device_class_after_availability_mode()
     {
-        var payload = DiscoveryPayloadBuilder.BuildDerived(
-            "lucerne", [3], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-        var component = json["cmps"]!["inversion"]!;
+        var spec = new SensorComponentSpec(
+            "wind_chill", "dev_wind_chill", "wind chill", "njord/state", "{{ value_json.wind_chill }}",
+            Unit: "°C", DeviceClass: "temperature", MeasurementLast: true);
+
+        var component = DiscoveryPayloadBuilder.ToComponent(spec, "njord/status", 7200);
+
+        Assert.Equal(
+            ["p", "unique_id", "name", "state_topic", "expire_after", "value_template", "availability", "availability_mode", "unit_of_measurement", "device_class"],
+            component.Select(kv => kv.Key).ToArray());
+    }
+
+    [Fact]
+    public void ToComponent_binary_sensor_omits_unit_and_device_class()
+    {
+        var spec = new SensorComponentSpec(
+            "inversion", "dev_inversion", "inversion", "njord/state",
+            "{% if value_json.inversion == true %}ON{% else %}OFF{% endif %}",
+            Platform: "binary_sensor");
+
+        var component = DiscoveryPayloadBuilder.ToComponent(spec, "njord/status", 3600);
 
         Assert.Equal("binary_sensor", (string?)component["p"]);
-        Assert.Equal("njord_lucerne_derived_inversion", (string?)component["unique_id"]);
+        Assert.False(component.ContainsKey("unit_of_measurement"));
+        Assert.False(component.ContainsKey("device_class"));
+        Assert.False(component.ContainsKey("json_attributes_topic"));
     }
 
     [Fact]
-    public void Derived_scalar_sunshine_has_percent_unit()
+    public void ToComponent_single_availability_has_only_the_service_topic()
     {
-        var payload = DiscoveryPayloadBuilder.BuildDerived(
-            "lucerne", [3], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-        var component = json["cmps"]!["sunshine_pct"]!;
+        var spec = new SensorComponentSpec("k", "id", "n", "njord/state", "{{ value_json.k }}");
 
-        Assert.Equal("sensor", (string?)component["p"]);
-        Assert.Equal("%", (string?)component["unit_of_measurement"]);
-    }
+        var availability = DiscoveryPayloadBuilder.ToComponent(spec, "njord/status", 60)["availability"]!.AsArray();
 
-    // --- Trend device ---
-
-    [Fact]
-    public void Trend_device_id_and_model_name()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildTrends(
-            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-
-        Assert.Equal("njord_lucerne_trends", (string?)json["dev"]!["ids"]![0]);
-        Assert.Equal("njord lucerne trends", (string?)json["dev"]!["name"]);
-        Assert.Equal("trends", (string?)json["dev"]!["mdl"]);
+        var entry = Assert.Single(availability);
+        Assert.NotNull(entry);
+        Assert.Equal("njord/status", (string?)entry["topic"]);
+        Assert.False(entry.AsObject().ContainsKey("value_template"));
     }
 
     [Fact]
-    public void Trend_device_has_expected_component_count()
+    public void ToComponent_multi_entry_availability_appends_extra_entries_with_templates()
     {
-        var payload = DiscoveryPayloadBuilder.BuildTrends(
-            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
+        var spec = new SensorComponentSpec(
+            "k", "id", "n", "njord/state", "{{ value_json.k }}",
+            ExtraAvailability: [("njord/state", "{% if value_json.k is not none %}online{% else %}offline{% endif %}")]);
 
-        // 6 text sensors + 6 numeric sensors = 12
-        Assert.Equal(12, json["cmps"]!.AsObject().Count);
+        var availability = DiscoveryPayloadBuilder.ToComponent(spec, "njord/status", 60)["availability"]!.AsArray();
+
+        Assert.Equal(2, availability.Count);
+        Assert.Equal("njord/status", (string?)availability[0]!["topic"]);
+        Assert.Equal("njord/state", (string?)availability[1]!["topic"]);
+        Assert.Equal(
+            "{% if value_json.k is not none %}online{% else %}offline{% endif %}",
+            (string?)availability[1]!["value_template"]);
     }
 
     [Fact]
-    public void Trend_direction_sensors_are_text()
+    public void ToComponent_json_attributes_follow_the_value_template()
     {
-        var payload = DiscoveryPayloadBuilder.BuildTrends(
-            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-        var component = json["cmps"]!["trend_temperature_dir"]!;
+        var spec = new SensorComponentSpec(
+            "frost", "id", "frost", "njord/alerts/frost", "{{ value_json.severity }}",
+            JsonAttributesTopic: "njord/alerts/frost",
+            JsonAttributesTemplate: "{{ value_json | tojson }}");
 
-        Assert.Equal("sensor", (string?)component["p"]);
-        Assert.False(component.AsObject().ContainsKey("unit_of_measurement"));
-    }
+        var component = DiscoveryPayloadBuilder.ToComponent(spec, "njord/status", 60);
 
-    [Fact]
-    public void Trend_timing_sensors_have_hour_unit()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildTrends(
-            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-
-        Assert.Equal("h", (string?)json["cmps"]!["precip_starts"]!["unit_of_measurement"]);
-        Assert.Equal("h", (string?)json["cmps"]!["temp_max_in"]!["unit_of_measurement"]);
-        Assert.Equal("h", (string?)json["cmps"]!["reliable_hours"]!["unit_of_measurement"]);
-    }
-
-    [Fact]
-    public void Trend_decay_rate_has_correct_unit()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildTrends(
-            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-
-        Assert.Equal("°C/h", (string?)json["cmps"]!["decay_rate"]!["unit_of_measurement"]);
-    }
-
-    // --- Index device ---
-
-    [Fact]
-    public void Index_device_id_and_model_name()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildIndices(
-            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-
-        Assert.Equal("njord_lucerne_indices", (string?)json["dev"]!["ids"]![0]);
-        Assert.Equal("njord lucerne indices", (string?)json["dev"]!["name"]);
-        Assert.Equal("indices", (string?)json["dev"]!["mdl"]);
-    }
-
-    [Fact]
-    public void Index_device_has_expected_component_count()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildIndices(
-            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-
-        // 8 scores + 3 numeric (frost_hours, frost_confidence, vpd_kpa) + 1 text (vpd_category) = 12
-        Assert.Equal(12, json["cmps"]!.AsObject().Count);
-    }
-
-    [Fact]
-    public void Index_score_sensors_have_no_unit()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildIndices(
-            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-
-        Assert.False(json["cmps"]!["laundry"]!.AsObject().ContainsKey("unit_of_measurement"));
-        Assert.False(json["cmps"]!["outdoor"]!.AsObject().ContainsKey("unit_of_measurement"));
-    }
-
-    [Fact]
-    public void Index_vpd_category_is_text_sensor()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildIndices(
-            "lucerne", Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-
-        Assert.Equal("sensor", (string?)json["cmps"]!["vpd_category"]!["p"]);
-        Assert.False(json["cmps"]!["vpd_category"]!.AsObject().ContainsKey("unit_of_measurement"));
-    }
-
-    // --- History device ---
-
-    [Fact]
-    public void History_device_id_and_model_name()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildHistory(
-            "lucerne", ["icon_d2", "ecmwf_ifs025"], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-
-        Assert.Equal("njord_lucerne_history", (string?)json["dev"]!["ids"]![0]);
-        Assert.Equal("njord lucerne history", (string?)json["dev"]!["name"]);
-        Assert.Equal("history", (string?)json["dev"]!["mdl"]);
-    }
-
-    [Fact]
-    public void History_device_has_per_model_sensors()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildHistory(
-            "lucerne", ["icon_d2", "ecmwf_ifs025"], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-        var cmps = json["cmps"]!.AsObject();
-
-        Assert.True(cmps.ContainsKey("mae_7d_icon_d2"));
-        Assert.True(cmps.ContainsKey("weight_ecmwf_ifs025"));
-        Assert.True(cmps.ContainsKey("drift_icon_d2"));
-    }
-
-    [Fact]
-    public void History_anomaly_is_binary_sensor()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildHistory(
-            "lucerne", ["icon_d2"], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-
-        Assert.Equal("binary_sensor", (string?)json["cmps"]!["anomaly"]!["p"]);
-    }
-
-    [Fact]
-    public void History_weighted_temperature_has_unit()
-    {
-        var payload = DiscoveryPayloadBuilder.BuildHistory(
-            "lucerne", ["icon_d2"], Mqtt, TimeSpan.FromMinutes(60), "1.2.3-test");
-        var json = JsonNode.Parse(payload)!;
-
-        Assert.Equal("°C", (string?)json["cmps"]!["weighted_temperature"]!["unit_of_measurement"]);
-        Assert.Equal("temperature", (string?)json["cmps"]!["weighted_temperature"]!["device_class"]);
+        Assert.Equal("njord/alerts/frost", (string?)component["json_attributes_topic"]);
+        Assert.Equal("{{ value_json | tojson }}", (string?)component["json_attributes_template"]);
     }
 }

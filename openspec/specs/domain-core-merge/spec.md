@@ -13,24 +13,6 @@ All types previously in `Njord.Domain/Analysis/` SHALL reside in
 - **WHEN** inspecting `ConsensusComputer.cs` in `Njord.Core/Analysis/`
 - **THEN** its namespace is `Njord.Analysis`
 
-### Requirement: Options types SHALL live in Njord.Core/Configuration
-
-All types previously in `Njord.Domain/Options/` SHALL reside in
-`Njord.Core/Configuration/`. They already use `Njord.Configuration` namespace.
-
-#### Scenario: Options types merge cleanly
-- **WHEN** inspecting `LocationOptions.cs` in `Njord.Core/Configuration/`
-- **THEN** its namespace is `Njord.Configuration` (unchanged)
-
-### Requirement: Domain SHALL retain only Weather and Sensors
-
-`Njord.Domain` SHALL contain only `Weather/` and `Sensors/` folders — the pure
-record types referenced by `Njord.Messages`.
-
-#### Scenario: Domain contains no Analysis or Options
-- **WHEN** listing files in `Njord.Domain/`
-- **THEN** only `Weather/` and `Sensors/` subdirectories exist
-
 ### Requirement: Analysis tests SHALL live in Core.Tests
 
 Test specs for Analysis computations SHALL reside in `Njord.Core.Tests/Analysis/`.

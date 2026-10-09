@@ -3,9 +3,7 @@
 ## Purpose
 
 MQTT presentation of enrichment results: the presenter registry in `Njord.Mqtt` that turns computed enrichment results into Home Assistant discovery payloads and state messages.
-
 ## Requirements
-
 ### Requirement: Presenters own the MQTT presentation of enrichment results
 `Njord.Mqtt` SHALL define `IEnrichmentPresenter` with members `TypeName` (string), `Enabled` (bool), `DeviceId(string location)`, `BuildDiscoveryPayload(DiscoveryContext ctx, string location)` and `ToStateMessages(object result, string baseTopic, string location)`, and SHALL provide exactly one presenter per enrichment feature `TypeName` (`alerts`, `derived`, `trends`, `indices`, `history`) plus exactly one presenter for the pipeline result `consensus`. `Njord.Mqtt` SHALL contain no special-case dispatch for any `TypeName` outside the presenter registry. `Njord.Enrichment` SHALL NOT reference `Njord.Mqtt` and SHALL NOT contain Home Assistant or MQTT knowledge (topics, discovery JSON, payload JSON).
 
@@ -58,3 +56,29 @@ For identical configuration, locations and results, each presenter SHALL produce
 #### Scenario: Missing value stays an unavailable state
 - **WHEN** a result lacks a value for a configured entity
 - **THEN** the entity still exists in the discovery payload and its state is rendered as before (unavailable), not omitted
+
+### Requirement: Discovery components are built through a shared spec/builder
+Presenter implementations (`AlertPresenter`, `DerivedPresenter`, `IndexPresenter`,
+`TrendPresenter`, `HistoryPresenter`, and the model/consensus discovery builders) SHALL
+build each Home Assistant discovery component from a shared component-spec type mapped
+through one shared builder function, rather than constructing a `JsonObject` literal
+inline per component. `DiscoveryPayloadBuilder` SHALL NOT expose a `public static` method
+with no caller in production code.
+
+#### Scenario: Presenter builds components from specs
+- **WHEN** `IndexPresenter.BuildDiscoveryPayload` is called
+- **THEN** it produces a list of component specs (one per sensor) and maps them through the
+  shared builder, with no `new JsonObject { ... }` literal written directly in the
+  presenter method
+
+#### Scenario: No unused public builder methods remain
+- **WHEN** the architecture/dead-code check for `Njord.Mqtt` runs
+- **THEN** every `public static` method on `DiscoveryPayloadBuilder` has at least one caller
+  outside its own test file
+
+#### Scenario: Removing a dead method path does not change output
+- **WHEN** a presenter's component-building code is migrated from inline `JsonObject`
+  literals to the shared spec/builder
+- **THEN** its discovery payload Verify snapshot (per the existing "Presented payloads are
+  byte-identical to the pre-split output" requirement) still matches the approved baseline
+

@@ -1,8 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
+        <PackageReference Include="Akka.Hosting.TestKit" />
         <PackageReference Include="Akka.Persistence.Hosting" />
         <PackageReference Include="Microsoft.Extensions.Options" />
+        <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
         <PackageReference Include="Newtonsoft.Json" />
         <PackageReference Include="xunit.v3.extensibility.core" />
     </ItemGroup>

@@ -3,15 +3,16 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
 using Njord.Core.Configuration;
-using Njord.Domain.Weather;
 using Njord.Enrichment.Features;
 using Njord.Messages.Egress;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Enrichment.Tests.Features;
 
 public sealed class AlertEnrichmentSpec
 {
-    private static readonly DateTimeOffset T0 = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset T0 = TestTimeConstants.EnrichmentEpoch;
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
 
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
@@ -25,7 +26,7 @@ public sealed class AlertEnrichmentSpec
                 Alerts = new AlertOptions { Enabled = enabled },
             },
         };
-        return new AlertEnrichment(Options.Create(options.Enrichment), new FakeTimeProvider(T0));
+        return new AlertEnrichment(Options.Create(options.Enrichment), TestTimeouts.AtEpoch(T0));
     }
 
     private static ModelSnapshot MakeSnapshot()
@@ -44,7 +45,7 @@ public sealed class AlertEnrichmentSpec
         var feature = CreateFeature();
         var snapshot = MakeSnapshot();
 
-        var consensus = new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(snapshot, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, TestTimeouts.AtEpoch(T0)).Create(snapshot, "lucerne");
         var events = feature.Compute(consensus).ToList();
 
         var evt = Assert.Single(events);
@@ -60,7 +61,7 @@ public sealed class AlertEnrichmentSpec
         var feature = CreateFeature();
         var snapshot = MakeSnapshot();
 
-        var consensus = new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(snapshot, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, TestTimeouts.AtEpoch(T0)).Create(snapshot, "lucerne");
         var events = feature.Compute(consensus).ToList();
         Assert.Single(events);
         var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(events[0]);
@@ -84,7 +85,7 @@ public sealed class AlertEnrichmentSpec
             .Update(MakeFrostForecast("icon_d2"))
             .Update(MakeFrostForecast("ecmwf_ifs025"));
 
-        var consensus = new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(snapshot, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, TestTimeouts.AtEpoch(T0)).Create(snapshot, "lucerne");
         var events = feature.Compute(consensus).ToList();
         var update = Assert.IsType<EgressEvent.EnrichmentUpdate>(events[0]);
         var result = Assert.IsType<AlertResult>(update.Result);

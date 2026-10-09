@@ -2,9 +2,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
 using Njord.Grpc.V2;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Grpc.Tests;
 

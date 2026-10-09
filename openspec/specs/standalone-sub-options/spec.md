@@ -18,7 +18,7 @@ because the admin gRPC API mutates and persists `NjordOptions` as one unit.
 - **THEN** `IOptions<MqttOptions>.Value.Host` SHALL equal `"broker.local"`
 
 ### Requirement: GrpcOptions and SensorOptions are not nested inside NjordOptions
-`GrpcOptions` and `SensorOptions` SHALL NOT be properties of `NjordOptions`. `SensorOptions` SHALL be registered and validated by `Njord.Sensors`'s setup container, not the host.
+`GrpcOptions` and `SensorOptions` SHALL NOT be properties of `NjordOptions`. `SensorOptions` SHALL be registered and validated by `Njord.SensorHub`'s setup container, not the host.
 
 #### Scenario: NjordOptions has no Grpc or Sensors property
 - **WHEN** `NjordOptions` is resolved from DI

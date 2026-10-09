@@ -1,0 +1,9 @@
+using Njord.Weather;
+
+namespace Njord.History;
+
+public sealed record ForecastRecord(
+    DateTimeOffset Timestamp,
+    string Location,
+    IReadOnlyDictionary<WeatherModel, IReadOnlyDictionary<string, double?>> ModelValues,
+    IReadOnlyDictionary<string, double?> ConsensusValues);

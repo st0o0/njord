@@ -75,12 +75,12 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
                 var reply = await actor.Ask<object>(new StopStreams(), askTimeout);
                 if (reply is StreamsStopFailed failed)
                 {
-                    log.Warning(failed.Cause, "Failed to stop streams of {0}", name);
+                    log.Warning(failed.Cause, "Failed to stop streams of {Actor}", name);
                 }
             }
             catch (Exception ex)
             {
-                log.Warning(ex, "Failed to stop streams of {0}", name);
+                log.Warning(ex, "Failed to stop streams of {Actor}", name);
             }
         }
     }

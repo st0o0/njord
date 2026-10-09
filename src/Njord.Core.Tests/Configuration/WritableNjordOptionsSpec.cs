@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
+using Njord.Weather;
 
 namespace Njord.Core.Tests.Configuration;
 

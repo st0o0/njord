@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
-using Njord.Core.Diagnostics;
 using Njord.Core.Health;
-using Njord.Domain.Weather;
 using Njord.Health;
+using Njord.Pipeline;
+using Njord.Weather;
 using Prometheus;
 using Servus.Core.Application.Startup;
 
@@ -12,11 +12,14 @@ namespace Njord.Configuration;
 
 public sealed class CoreSetupContainer : IServiceSetupContainer
 {
+    private static readonly HashSet<string> NjordMeters =
+        ["Njord.Ingest", "Njord.Pipeline", "Njord.Mqtt", "Njord.Enrichment"];
+
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
         Metrics.ConfigureMeterAdapter(options =>
         {
-            options.InstrumentFilterPredicate = instrument => instrument.Meter.Name == "Njord";
+            options.InstrumentFilterPredicate = instrument => NjordMeters.Contains(instrument.Meter.Name);
         });
 
         services
@@ -45,10 +48,11 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
             var budget = BudgetCalculator.GetEffectiveBudget(
                 sp.GetRequiredService<IOptions<NjordOptions>>().Value);
             state.SetBudgetLimits(RequestBudget.OpenMeteoFreeTierDailyLimit, budget.RequestsPerMonth);
-            NjordMetrics.Instance.AddBudgetUsedDaily(() => state.BudgetUsedDaily);
-            NjordMetrics.Instance.AddBudgetUsedMonthly(() => state.BudgetUsedMonthly);
-            NjordMetrics.Instance.AddBudgetLimitDaily(() => state.BudgetLimitDaily);
-            NjordMetrics.Instance.AddBudgetLimitMonthly(() => state.BudgetLimitMonthly);
+            BudgetTelemetry.Observe(
+                () => state.BudgetUsedDaily,
+                () => state.BudgetUsedMonthly,
+                () => state.BudgetLimitDaily,
+                () => state.BudgetLimitMonthly);
             return state;
         });
 

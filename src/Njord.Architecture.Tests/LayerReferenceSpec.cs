@@ -13,9 +13,15 @@ public sealed class LayerReferenceSpec
             .ToArray();
 
     [Fact]
-    public void Domain_references_no_other_Njord_assembly()
+    public void Weather_references_no_other_Njord_assembly()
     {
-        Assert.Empty(NjordReferences<Njord.Domain.Weather.ModelForecast>());
+        Assert.Empty(NjordReferences<Njord.Weather.ModelForecast>());
+    }
+
+    [Fact]
+    public void Sensors_references_no_other_Njord_assembly()
+    {
+        Assert.Empty(NjordReferences<Njord.Sensors.SensorKind>());
     }
 
     [Fact]
@@ -25,24 +31,24 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Messages_references_only_Domain()
+    public void Messages_references_only_Weather_and_Sensors()
     {
-        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.WeightedTarget>().Except(["Njord.Domain"]));
+        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.WeightedTarget>().Except(["Njord.Weather", "Njord.Sensors"]));
     }
 
     [Fact]
-    public void Compute_references_only_Domain()
+    public void Compute_references_only_Weather_and_Sensors()
     {
-        Assert.Empty(NjordReferences<ConsensusSnapshot>().Except(["Njord.Domain"]));
+        Assert.Empty(NjordReferences<ConsensusSnapshot>().Except(["Njord.Weather", "Njord.Sensors"]));
     }
 
     [Fact]
-    public void Core_references_only_Domain_Messages_Persistence_and_Compute()
+    public void Core_references_only_Weather_Sensors_Messages_Persistence_and_Compute()
     {
-        Assert.Empty(NjordReferences<ISchedulerActor>().Except(["Njord.Compute", "Njord.Domain", "Njord.Messages", "Njord.Persistence"]));
+        Assert.Empty(NjordReferences<ISchedulerActor>().Except(["Njord.Compute", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"]));
     }
 
-    private static readonly string[] CoreAndBelow = ["Njord.Compute", "Njord.Core", "Njord.Domain", "Njord.Messages", "Njord.Persistence"];
+    private static readonly string[] CoreAndBelow = ["Njord.Compute", "Njord.Core", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"];
 
     [Fact]
     public void Ingest_references_only_Core_and_below()
@@ -51,9 +57,9 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Sensors_references_only_Core_and_below()
+    public void SensorHub_references_only_Core_and_below()
     {
-        Assert.Empty(NjordReferences<Njord.Sensors.SensorHubActor>().Except(CoreAndBelow));
+        Assert.Empty(NjordReferences<Njord.SensorHub.SensorHubActor>().Except(CoreAndBelow));
     }
 
     [Fact]

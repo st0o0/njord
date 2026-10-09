@@ -1,9 +1,7 @@
 ﻿{
-  "v": 1,
   "retention": 7,
   "records": [
     {
-      "v": 1,
       "ts": 639197136000000000,
       "loc": "lucerne",
       "models": {

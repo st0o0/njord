@@ -1,13 +1,14 @@
 using Newtonsoft.Json;
 using Njord.Compute.Analysis;
-using Njord.Domain.Weather;
 using Njord.Enrichment;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Persistence.Tests;
 
 public sealed class ForecastHistoryDtoSerializationSpec
 {
-    private static readonly DateTimeOffset T0 = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset T0 = TestTimeConstants.BudgetEpoch;
 
     private static ForecastRecord MakeRecord()
     {

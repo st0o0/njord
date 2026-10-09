@@ -45,6 +45,12 @@ public sealed class BudgetTrackerActor : ReceivePersistentActor
         Command<SaveSnapshotFailure>(fail =>
             Context.GetLogger()
                 .Warning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
+        Command<DeleteMessagesFailure>(fail =>
+            Context.GetLogger()
+                .Warning(fail.Cause, "Delete messages failed for {PersistenceId}", PersistenceId));
+        Command<DeleteSnapshotsFailure>(fail =>
+            Context.GetLogger()
+                .Warning(fail.Cause, "Delete snapshots failed for {PersistenceId}", PersistenceId));
         Command<DeleteMessagesSuccess>(_ => { });
         Command<DeleteSnapshotSuccess>(_ => { });
     }

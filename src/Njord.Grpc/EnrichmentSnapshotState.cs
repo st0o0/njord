@@ -26,17 +26,17 @@ public static class EnrichmentSnapshotStateExtensions
 
     public static QueryEnrichmentResponse GetEnrichment(this EnrichmentSnapshotState state, string key) =>
         state.Enrichments.TryGetValue(key, out var result)
-            ? new EnrichmentFound(result)
-            : new EnrichmentNotFound(key);
+            ? new QueryEnrichmentCompleted(result)
+            : new QueryEnrichmentNotAvailable(key);
 
-    public static QueryAllEnrichmentsResult GetAllEnrichments(this EnrichmentSnapshotState state, string location)
+    public static QueryAllEnrichmentsCompleted GetAllEnrichments(this EnrichmentSnapshotState state, string location)
     {
         var prefix = $"{location}|";
         var results = state.Enrichments
             .Where(kvp => kvp.Key.StartsWith(prefix))
             .Select(kvp => (TypeName: kvp.Key[prefix.Length..], kvp.Value))
             .ToList();
-        return new QueryAllEnrichmentsResult(results);
+        return new QueryAllEnrichmentsCompleted(results);
     }
 
     public static EnrichmentSnapshotDto GetPersistenceState(this EnrichmentSnapshotState state) =>

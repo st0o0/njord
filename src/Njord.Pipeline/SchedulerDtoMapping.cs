@@ -5,7 +5,7 @@ namespace Njord.Pipeline;
 
 public static class SchedulerDtoMapping
 {
-    public static DataChangedDto ToDto(SchedulerActor.DataChanged evt) => new()
+    public static DataChangedDto ToDto(DataChanged evt) => new()
     {
         Location = evt.Location,
         ModelId = evt.ModelId,
@@ -13,7 +13,7 @@ public static class SchedulerDtoMapping
         UtcTicks = evt.Utc.UtcTicks,
     };
 
-    public static SchedulerActor.DataChanged ToDomain(DataChangedDto dto) =>
+    public static DataChanged ToDomain(DataChangedDto dto) =>
         new(dto.Location, dto.ModelId, dto.Hash, new DateTimeOffset(dto.UtcTicks, TimeSpan.Zero));
 
     public static SchedulerSnapshotDto ToSnapshot(Dictionary<string, ModelPollState> states)

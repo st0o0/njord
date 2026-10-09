@@ -4,21 +4,17 @@ using Akka.Streams;
 using Njord.Compute.Configuration;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Messages.Egress;
 using Njord.Messages.Mqtt;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Mqtt.Tests;
 
-public sealed class MqttDiscoveryActorSpec : Akka.Hosting.TestKit.TestKit
+public sealed class MqttDiscoveryActorSpec : NjordActorSpec
 {
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
-    {
-        builder.AddTestTimefactor();
-    }
+    protected override bool UseTestPersistence => false;
 
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
     private static readonly ParameterDef WindSpeed = ParameterRegistry.GetByApiName("wind_speed_10m")!;

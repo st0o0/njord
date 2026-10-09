@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using Njord.Compute.Analysis;
-using Njord.Domain.Weather;
 using Njord.Grpc;
+using Njord.Weather;
 
 namespace Njord.Persistence.Tests;
 

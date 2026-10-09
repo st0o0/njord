@@ -4,6 +4,7 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="Akka" Version="1.5.73" />
     <PackageVersion Include="Akka.Cluster.Hosting" Version="1.5.73" />
     <PackageVersion Include="Akka.Cluster.Sharding" Version="1.5.73" />
     <PackageVersion Include="Akka.Logger.Serilog" Version="1.5.69" />

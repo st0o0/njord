@@ -2,8 +2,8 @@ using Grpc.Core;
 using Microsoft.Extensions.Options;
 using Njord.Compute.Configuration;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
 using Njord.Grpc.V2;
+using Njord.Weather;
 
 namespace Njord.Grpc;
 
@@ -39,21 +39,12 @@ public sealed class AdminGrpcService(
 
     public override Task<ConfigResponse> SetLocations(SetLocationsRequest request, ServerCallContext context)
     {
-        if (request.Locations.Count == 0)
+        if (ValidateLocations(request) is { } rejection)
         {
-            return Task.FromResult(Rejected("Cannot set empty location list"));
+            return Task.FromResult(rejection);
         }
 
-        var snapshot = writableOptions.Update(opt =>
-        {
-            opt.Locations = request.Locations.Select(l => new LocationOptions
-            {
-                Name = l.Name,
-                Latitude = l.Latitude,
-                Longitude = l.Longitude,
-                Models = l.Models.Count > 0 ? [.. l.Models] : null,
-            }).ToList();
-        });
+        var snapshot = writableOptions.Update(opt => opt.Locations = MapLocations(request));
 
         var budget = BudgetCalculator.Validate(snapshot);
         if (!budget.WithinBudget)
@@ -68,50 +59,30 @@ public sealed class AdminGrpcService(
         return Task.FromResult(Success(snapshot, budget));
     }
 
+    private static ConfigResponse? ValidateLocations(SetLocationsRequest request)
+    {
+        return request.Locations.Count == 0 ? Rejected("Cannot set empty location list") : null;
+    }
+
+    private static List<LocationOptions> MapLocations(SetLocationsRequest request)
+    {
+        return request.Locations.Select(l => new LocationOptions
+        {
+            Name = l.Name,
+            Latitude = l.Latitude,
+            Longitude = l.Longitude,
+            Models = l.Models.Count > 0 ? [.. l.Models] : null,
+        }).ToList();
+    }
+
     public override Task<ConfigResponse> SetSettings(SetSettingsRequest request, ServerCallContext context)
     {
-        if (request.HasPollIntervalSeconds && request.PollIntervalSeconds < 60)
+        if (ValidateSettings(request) is { } rejection)
         {
-            return Task.FromResult(Rejected("Poll interval must be at least 60 seconds"));
+            return Task.FromResult(rejection);
         }
 
-        if (request.HasForecastDays && request.ForecastDays is < 1 or > 16)
-        {
-            return Task.FromResult(Rejected("Forecast days must be between 1 and 16"));
-        }
-
-        var snapshot = writableOptions.Update(opt =>
-        {
-            if (request.HasPollIntervalSeconds)
-            {
-                opt.PollInterval = TimeSpan.FromSeconds(request.PollIntervalSeconds);
-            }
-
-            if (request.HasForecastDays)
-            {
-                opt.ForecastDays = request.ForecastDays;
-            }
-
-            if (request.Horizons.Count > 0)
-            {
-                opt.Horizons = [.. request.Horizons];
-            }
-
-            if (request.DefaultModels.Count > 0)
-            {
-                opt.Models = [.. request.DefaultModels];
-            }
-
-            if (request.Parameters is not null)
-            {
-                opt.Parameters = new ParameterOptions
-                {
-                    Groups = [.. request.Parameters.Groups],
-                    Extra = [.. request.Parameters.Extra],
-                    Exclude = [.. request.Parameters.Exclude],
-                };
-            }
-        });
+        var snapshot = writableOptions.Update(opt => ApplySettings(opt, request));
 
         var budget = BudgetCalculator.Validate(snapshot);
         if (!budget.WithinBudget)
@@ -121,6 +92,54 @@ public sealed class AdminGrpcService(
         }
 
         return Task.FromResult(Success(snapshot, budget));
+    }
+
+    private static ConfigResponse? ValidateSettings(SetSettingsRequest request)
+    {
+        if (request.HasPollIntervalSeconds && request.PollIntervalSeconds < 60)
+        {
+            return Rejected("Poll interval must be at least 60 seconds");
+        }
+
+        if (request.HasForecastDays && request.ForecastDays is < 1 or > 16)
+        {
+            return Rejected("Forecast days must be between 1 and 16");
+        }
+
+        return null;
+    }
+
+    private static void ApplySettings(NjordOptions opt, SetSettingsRequest request)
+    {
+        if (request.HasPollIntervalSeconds)
+        {
+            opt.PollInterval = TimeSpan.FromSeconds(request.PollIntervalSeconds);
+        }
+
+        if (request.HasForecastDays)
+        {
+            opt.ForecastDays = request.ForecastDays;
+        }
+
+        if (request.Horizons.Count > 0)
+        {
+            opt.Horizons = [.. request.Horizons];
+        }
+
+        if (request.DefaultModels.Count > 0)
+        {
+            opt.Models = [.. request.DefaultModels];
+        }
+
+        if (request.Parameters is not null)
+        {
+            opt.Parameters = new ParameterOptions
+            {
+                Groups = [.. request.Parameters.Groups],
+                Extra = [.. request.Parameters.Extra],
+                Exclude = [.. request.Parameters.Exclude],
+            };
+        }
     }
 
     public override Task<ConfigResponse> SetEnrichment(SetEnrichmentRequest request, ServerCallContext context)

@@ -1,5 +1,4 @@
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
+using Njord.Weather;
 
 namespace Njord.Messages.Pipeline;
 

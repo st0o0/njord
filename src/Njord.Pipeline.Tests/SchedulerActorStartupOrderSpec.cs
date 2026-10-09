@@ -7,16 +7,15 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Health;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Pipeline.Tests;
 
-public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKit
+public sealed class SchedulerActorStartupOrderSpec : NjordActorSpec
 {
-    private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
+    private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
@@ -35,10 +34,9 @@ public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKi
         services.AddSingleton(new NjordHealthState { ServiceStartedUtc = _time.GetUtcNow() });
     }
 
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
         builder
-            .AddTestPersistence()
             .WithActors((system, registry, resolver) =>
             {
                 registry.Register<ISchedulerActor>(
@@ -49,16 +47,15 @@ public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKi
                 var fakePipeline = system.ActorOf(
                     Props.Create(() => new FakePipelineActor()));
                 registry.Register<IPipelineActor>(fakePipeline);
-            })
-            .AddTestTimefactor();
+            });
     }
 
-    private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
+    private IActorRef Scheduler => GetActor<ISchedulerActor>();
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Scheduler_starts_when_pipeline_registered_after()
     {
-        var snapshot = await Scheduler.Ask<QueryPollStatesResult>(
+        var snapshot = await Scheduler.Ask<QueryPollStatesCompleted>(
             new QueryPollStates(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.NotNull(snapshot);
@@ -71,7 +68,7 @@ public sealed class SchedulerActorStartupOrderSpec : Akka.Hosting.TestKit.TestKi
 
         await AwaitConditionAsync(async () =>
         {
-            var snapshot = await scheduler.Ask<QueryPollStatesResult>(
+            var snapshot = await scheduler.Ask<QueryPollStatesCompleted>(
                 new QueryPollStates(), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
             return snapshot.Entries.Count > 0;
         }, TestTimeouts.AwaitAssertMax, TestContext.Current.CancellationToken);

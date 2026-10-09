@@ -1,11 +1,12 @@
-using Njord.Domain.Weather;
 using Njord.Messages.Snapshots;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Grpc.Tests;
 
 public sealed class ForecastSnapshotStateSpec
 {
-    private static readonly DateTimeOffset Anchor = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Anchor = TestTimeConstants.BudgetEpoch;
 
     private static ModelForecast CreateForecast(string model = "icon_d2")
     {
@@ -60,7 +61,7 @@ public sealed class ForecastSnapshotStateSpec
 
         var response = state.GetForecast(key);
 
-        var found = Assert.IsType<ForecastFound>(response);
+        var found = Assert.IsType<QueryForecastCompleted>(response);
         Assert.Equal("icon_d2", found.Forecast.Model.Id);
     }
 
@@ -69,7 +70,7 @@ public sealed class ForecastSnapshotStateSpec
     {
         var response = ForecastSnapshotState.Empty.GetForecast("nonexistent|key");
 
-        Assert.IsType<ForecastNotFound>(response);
+        Assert.IsType<QueryForecastNotAvailable>(response);
     }
 
     [Fact]

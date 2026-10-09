@@ -6,22 +6,18 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Messages.Egress;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Mqtt.Tests;
 
-public sealed class MqttStateActorSpec : Akka.Hosting.TestKit.TestKit
+public sealed class MqttStateActorSpec : NjordActorSpec
 {
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
-    {
-        builder.AddTestTimefactor();
-    }
+    protected override bool UseTestPersistence => false;
 
-    private static readonly DateTimeOffset Anchor = new(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Anchor = TestTimeConstants.NoonAnchor;
 
     private static NjordOptions DefaultOptions() => new()
     {
@@ -35,7 +31,7 @@ public sealed class MqttStateActorSpec : Akka.Hosting.TestKit.TestKit
         IMqttTransport? transport = null, bool withPresenters = false)
     {
         options ??= DefaultOptions();
-        timeProvider ??= new FakeTimeProvider(Anchor);
+        timeProvider ??= TestTimeouts.AtEpoch(Anchor);
         transport ??= new RecordingTransport();
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
         IEnumerable<IEnrichmentPresenter> presenters = withPresenters

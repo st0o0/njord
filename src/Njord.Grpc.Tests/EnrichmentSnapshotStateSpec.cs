@@ -51,7 +51,7 @@ public sealed class EnrichmentSnapshotStateSpec
 
         var response = state.GetEnrichment("lucerne|alerts");
 
-        var found = Assert.IsType<EnrichmentFound>(response);
+        var found = Assert.IsType<QueryEnrichmentCompleted>(response);
         Assert.Same(TestAlert, found.Result);
     }
 
@@ -62,7 +62,7 @@ public sealed class EnrichmentSnapshotStateSpec
 
         var response = state.GetEnrichment("lucerne|unknown");
 
-        Assert.IsType<EnrichmentNotFound>(response);
+        Assert.IsType<QueryEnrichmentNotAvailable>(response);
     }
 
     [Fact]

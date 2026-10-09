@@ -29,14 +29,14 @@ internal sealed class DerivedPresenter : IEnrichmentPresenter
         var availabilityTopic = TopicScheme.AvailabilityTopic(ctx.Mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * ctx.PollInterval.TotalSeconds);
 
-        var components = new JsonObject();
+        var specs = new List<SensorComponentSpec>();
 
-        var horizonParams = new (string Key, string Name, string? Unit, string? DeviceClass, string Platform)[]
+        var horizonParams = new (string Key, string Name, string? Unit, string? DeviceClass)[]
         {
-            ("beaufort", "beaufort", null, null, "sensor"),
-            ("wind_chill", "wind chill", "°C", "temperature", "sensor"),
-            ("dewpoint_comfort", "dew-point comfort", null, null, "sensor"),
-            ("wmo_description", "weather", null, null, "sensor"),
+            ("beaufort", "beaufort", null, null),
+            ("wind_chill", "wind chill", "°C", "temperature"),
+            ("dewpoint_comfort", "dew-point comfort", null, null),
+            ("wmo_description", "weather", null, null),
         };
 
         foreach (var hours in _horizons)
@@ -44,84 +44,54 @@ internal sealed class DerivedPresenter : IEnrichmentPresenter
             var horizonTopic = TopicScheme.EnrichmentSubTopic(
                 ctx.Mqtt.BaseTopic, location, TypeName, $"h{hours}");
 
-            foreach (var (key, name, unit, deviceClass, platform) in horizonParams)
+            foreach (var (key, name, unit, deviceClass) in horizonParams)
             {
-                var uniqueId = $"{deviceId}_{key}_h{hours}";
-                var component = new JsonObject
-                {
-                    ["p"] = platform,
-                    ["unique_id"] = uniqueId,
-                    ["name"] = $"{name} +{hours}h",
-                    ["state_topic"] = horizonTopic,
-                    ["expire_after"] = expireAfterSeconds,
-                    ["value_template"] = $"{{{{ value_json.{key} }}}}",
-                    ["availability"] = new JsonArray(
-                        new JsonObject { ["topic"] = availabilityTopic },
-                        new JsonObject
-                        {
-                            ["topic"] = horizonTopic,
-                            ["value_template"] = $"{{% if value_json.{key} is not none %}}online{{% else %}}offline{{% endif %}}",
-                        }),
-                    ["availability_mode"] = "all",
-                };
-
-                if (unit is not null)
-                {
-                    component["unit_of_measurement"] = unit;
-                }
-
-                if (deviceClass is not null)
-                {
-                    component["device_class"] = deviceClass;
-                }
-
-                components[$"{key}_h{hours}"] = component;
+                specs.Add(new SensorComponentSpec(
+                    $"{key}_h{hours}",
+                    $"{deviceId}_{key}_h{hours}",
+                    $"{name} +{hours}h",
+                    horizonTopic,
+                    $"{{{{ value_json.{key} }}}}",
+                    Unit: unit,
+                    DeviceClass: deviceClass,
+                    ExtraAvailability:
+                    [
+                        (horizonTopic,
+                            $"{{% if value_json.{key} is not none %}}online{{% else %}}offline{{% endif %}}"),
+                    ],
+                    MeasurementLast: true));
             }
         }
 
         var metaTopic = TopicScheme.EnrichmentSubTopic(ctx.Mqtt.BaseTopic, location, TypeName, "meta");
 
-        components["diurnal_amplitude"] = new JsonObject
-        {
-            ["p"] = "sensor",
-            ["unique_id"] = $"{deviceId}_diurnal_amplitude",
-            ["name"] = "diurnal amplitude",
-            ["state_topic"] = metaTopic,
-            ["unit_of_measurement"] = "°C",
-            ["device_class"] = "temperature",
-            ["expire_after"] = expireAfterSeconds,
-            ["value_template"] = "{{ value_json.diurnal_amplitude }}",
-            ["availability"] = new JsonArray(
-                new JsonObject { ["topic"] = availabilityTopic }),
-            ["availability_mode"] = "all",
-        };
+        specs.Add(new SensorComponentSpec(
+            "diurnal_amplitude",
+            $"{deviceId}_diurnal_amplitude",
+            "diurnal amplitude",
+            metaTopic,
+            "{{ value_json.diurnal_amplitude }}",
+            Unit: "°C",
+            DeviceClass: "temperature"));
 
-        components["sunshine_pct"] = new JsonObject
-        {
-            ["p"] = "sensor",
-            ["unique_id"] = $"{deviceId}_sunshine_pct",
-            ["name"] = "sunshine",
-            ["state_topic"] = metaTopic,
-            ["unit_of_measurement"] = "%",
-            ["expire_after"] = expireAfterSeconds,
-            ["value_template"] = "{{ value_json.sunshine_pct }}",
-            ["availability"] = new JsonArray(
-                new JsonObject { ["topic"] = availabilityTopic }),
-            ["availability_mode"] = "all",
-        };
+        specs.Add(new SensorComponentSpec(
+            "sunshine_pct",
+            $"{deviceId}_sunshine_pct",
+            "sunshine",
+            metaTopic,
+            "{{ value_json.sunshine_pct }}",
+            Unit: "%"));
 
-        components["inversion"] = new JsonObject
-        {
-            ["p"] = "binary_sensor",
-            ["unique_id"] = $"{deviceId}_inversion",
-            ["name"] = "inversion",
-            ["state_topic"] = metaTopic,
-            ["expire_after"] = expireAfterSeconds,
-            ["value_template"] = "{% if value_json.inversion == true %}ON{% else %}OFF{% endif %}",
-            ["availability"] = new JsonArray(
-                new JsonObject { ["topic"] = availabilityTopic }),
-            ["availability_mode"] = "all",
-        };
+        specs.Add(new SensorComponentSpec(
+            "inversion",
+            $"{deviceId}_inversion",
+            "inversion",
+            metaTopic,
+            "{% if value_json.inversion == true %}ON{% else %}OFF{% endif %}",
+            Platform: "binary_sensor"));
+
+        var components = new JsonObject();
+        DiscoveryPayloadBuilder.AddComponents(components, specs, availabilityTopic, expireAfterSeconds);
 
         return DiscoveryPayloadBuilder.BuildDeviceEnvelope(
             deviceId, location, TypeName, ctx.Version, components);

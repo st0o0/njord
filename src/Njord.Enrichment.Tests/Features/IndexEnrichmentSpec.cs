@@ -2,16 +2,17 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Core.Configuration;
-using Njord.Domain.Sensors;
-using Njord.Domain.Weather;
 using Njord.Enrichment.Features;
 using Njord.Messages.Egress;
+using Njord.Sensors;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Enrichment.Tests.Features;
 
 public sealed class IndexEnrichmentSpec
 {
-    private static readonly DateTimeOffset T0 = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset T0 = TestTimeConstants.EnrichmentEpoch;
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
     private static IndexEnrichment CreateFeature()
@@ -19,7 +20,7 @@ public sealed class IndexEnrichmentSpec
         var options = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
-        return new IndexEnrichment(Options.Create(options), Options.Create(options.Enrichment), new IndexComputer(parameters, new FakeTimeProvider(T0)));
+        return new IndexEnrichment(Options.Create(options), Options.Create(options.Enrichment), new IndexComputer(parameters, TestTimeouts.AtEpoch(T0)));
     }
 
     private static ModelForecast BuildForecast(string location)
@@ -49,7 +50,7 @@ public sealed class IndexEnrichmentSpec
         var feature = CreateFeature();
         var snapshot = ModelSnapshot.Empty.Update(BuildForecast("lucerne"));
 
-        var consensus = new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(snapshot, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, TestTimeouts.AtEpoch(T0)).Create(snapshot, "lucerne");
         var events = feature.Compute(consensus).ToList();
 
         var update = Assert.Single(events);
@@ -64,7 +65,7 @@ public sealed class IndexEnrichmentSpec
     {
         var feature = CreateFeature();
 
-        var consensus = new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(ModelSnapshot.Empty, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, TestTimeouts.AtEpoch(T0)).Create(ModelSnapshot.Empty, "lucerne");
         var events = feature.Compute(consensus).ToList();
 
         var update = Assert.Single(events);
@@ -101,7 +102,7 @@ public sealed class IndexEnrichmentSpec
         var snapshot = ModelSnapshot.Empty
             .Update(BuildForecast(location, "icon_d2", temp))
             .Update(BuildForecast(location, "icon_eu", temp));
-        return new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(snapshot, location);
+        return new ConsensusSnapshotFactory(Parameters, TestTimeouts.AtEpoch(T0)).Create(snapshot, location);
     }
 
     [Fact]
@@ -110,7 +111,7 @@ public sealed class IndexEnrichmentSpec
         var njordOptions = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
         njordOptions.Enrichment.Indices.Preferences.IndoorTemp = 18.0;
         var feature = new IndexEnrichment(
-            Options.Create(njordOptions), Options.Create(njordOptions.Enrichment), new IndexComputer(Parameters, new FakeTimeProvider(T0)));
+            Options.Create(njordOptions), Options.Create(njordOptions.Enrichment), new IndexComputer(Parameters, TestTimeouts.AtEpoch(T0)));
 
         var consensus = BuildTwoModelConsensus("lucerne");
 
@@ -135,7 +136,7 @@ public sealed class IndexEnrichmentSpec
         var njordOptions = new NjordOptions { Locations = [new() { Name = "lucerne" }] };
         njordOptions.Enrichment.Indices.Preferences.IndoorTemp = 18.0;
         var feature = new IndexEnrichment(
-            Options.Create(njordOptions), Options.Create(njordOptions.Enrichment), new IndexComputer(Parameters, new FakeTimeProvider(T0)));
+            Options.Create(njordOptions), Options.Create(njordOptions.Enrichment), new IndexComputer(Parameters, TestTimeouts.AtEpoch(T0)));
 
         var consensus = BuildTwoModelConsensus("lucerne", temp: 10.0);
 

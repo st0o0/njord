@@ -2,16 +2,16 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Enrichment.Features;
 using Njord.Messages.Egress;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Enrichment.Tests.Features;
 
 public sealed class DerivedEnrichmentSpec
 {
-    private static readonly DateTimeOffset T0 = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset T0 = TestTimeConstants.EnrichmentEpoch;
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
     private static DerivedEnrichment CreateFeature()
@@ -54,7 +54,7 @@ public sealed class DerivedEnrichmentSpec
         var feature = CreateFeature();
         var snapshot = ModelSnapshot.Empty.Update(BuildForecast("lucerne"));
 
-        var consensus = new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(snapshot, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, TestTimeouts.AtEpoch(T0)).Create(snapshot, "lucerne");
         var events = feature.Compute(consensus).ToList();
 
         var update = Assert.Single(events);
@@ -69,7 +69,7 @@ public sealed class DerivedEnrichmentSpec
     {
         var feature = CreateFeature();
 
-        var consensus = new ConsensusSnapshotFactory(Parameters, new FakeTimeProvider(T0)).Create(ModelSnapshot.Empty, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, TestTimeouts.AtEpoch(T0)).Create(ModelSnapshot.Empty, "lucerne");
         var events = feature.Compute(consensus).ToList();
 
         var update = Assert.Single(events);

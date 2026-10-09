@@ -5,7 +5,7 @@ using Njord.Grpc.Configuration;
 using Njord.Ingest.Configuration;
 using Njord.Mqtt.Configuration;
 using Njord.Pipeline.Configuration;
-using Njord.Sensors.Configuration;
+using Njord.SensorHub.Configuration;
 using Serilog;
 using Servus.Core.Application.Startup;
 
@@ -40,6 +40,7 @@ var runner = AppBuilder.Create(builder, b => b.Build())
     .WithSetup<PipelineSetupContainer>()
     .WithSetup<EgressSetupContainer>()
     .WithSetup<EnrichmentSetupContainer>()
+    .WithSetup<AnalysisSetupContainer>()
     .WithSetup<MqttSetupContainer>()
     .WithSetup<GrpcSetupContainer>()
     .WithSetup<AkkaSetupContainer>()

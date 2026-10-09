@@ -5,9 +5,9 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Mqtt.Presentation;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Mqtt.Tests;
 
@@ -17,8 +17,8 @@ internal static class EnrichmentGoldenMasterFixtures
     public const string BaseTopic = "njord";
     public const string Version = "1.0.0-golden";
 
-    public static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
-    public static readonly FakeTimeProvider Time = new(T0);
+    public static readonly DateTimeOffset T0 = TestTimeConstants.ForecastEpoch;
+    public static readonly FakeTimeProvider Time = TestTimeouts.AtEpoch(T0);
 
     public static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
     public static readonly ParameterDef WindSpeed = ParameterRegistry.GetByApiName("wind_speed_10m")!;

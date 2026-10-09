@@ -1,5 +1,5 @@
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
+using Njord.Weather;
 
 namespace Njord.Core.Tests.Configuration;
 
@@ -23,6 +23,25 @@ public sealed class BudgetCalculatorSpec
         Assert.Equal(23_040, result.ProjectedMonthlyCalls);
         Assert.True(result.WithinBudget);
         Assert.Empty(result.Warnings);
+    }
+
+    [Fact]
+    public void Uses_exact_month_length_for_poll_intervals_that_do_not_divide_a_day()
+    {
+        var options = new NjordOptions
+        {
+            Locations = [new LocationOptions { Name = "A", Latitude = 0, Longitude = 0 }],
+            Models = ["icon_d2"],
+            PollInterval = TimeSpan.FromMinutes(50),
+            Parameters = new ParameterOptions { Groups = ["Weather"] },
+        };
+
+        var result = BudgetCalculator.Validate(options);
+
+        // 43200 min / 50 min = 864 cycles, weight 4 => 3456 (a 28-cycles-per-day approximation gave 3360)
+        Assert.Equal(3_456, result.ProjectedMonthlyCalls);
+        Assert.Equal(1, result.TotalModelsPerCycle);
+        Assert.Equal(4, result.ApiCallWeight);
     }
 
     [Fact]

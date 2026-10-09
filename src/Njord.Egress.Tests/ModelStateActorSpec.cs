@@ -4,21 +4,17 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Messages.Egress;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Egress.Tests;
 
-public sealed class ModelStateActorSpec : Akka.Hosting.TestKit.TestKit
+public sealed class ModelStateActorSpec : NjordActorSpec
 {
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
-    {
-        builder.AddTestTimefactor();
-    }
+    protected override bool UseTestPersistence => false;
 
-    private static readonly DateTimeOffset Anchor = new(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Anchor = TestTimeConstants.NoonAnchor;
 
     private static NjordOptions DefaultOptions() => new()
     {

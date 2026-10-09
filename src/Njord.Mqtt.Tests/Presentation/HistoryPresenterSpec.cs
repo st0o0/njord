@@ -2,8 +2,8 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using Njord.Compute.Configuration;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
 using Njord.Mqtt.Presentation;
+using Njord.Weather;
 
 namespace Njord.Mqtt.Tests.Presentation;
 

@@ -1,11 +1,12 @@
 using Njord.Messages.Pipeline;
 using Njord.Persistence;
+using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;
 
 public sealed class SchedulerStateSpec
 {
-    private static readonly DateTimeOffset Now = new(2026, 7, 12, 6, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Now = TestTimeConstants.PipelineEpoch;
     private static readonly TimeSpan DiscoveryInterval = TimeSpan.FromMinutes(5);
 
     [Fact]
@@ -135,5 +136,63 @@ public sealed class SchedulerStateSpec
         state = state.SetPollState("lucerne|icon_d2", modified);
 
         Assert.Equal(Now.AddHours(2), state.States["lucerne|icon_d2"].NextPollUtc);
+    }
+
+    [Fact]
+    public void ApplyHashResult_with_new_hash_decides_changed_and_records_hash()
+    {
+        var (state, decision) = SchedulerState.Empty
+            .Apply("lucerne|icon_d2", 42, Now, DiscoveryInterval)
+            .ApplyHashResult("lucerne|icon_d2", 99, Now.AddHours(1), DiscoveryInterval);
+
+        Assert.Equal(HashDecision.Changed, decision);
+        Assert.Equal(99, state.States["lucerne|icon_d2"].LastHash);
+    }
+
+    [Fact]
+    public void ApplyHashResult_with_same_hash_decides_miss_and_counts_it()
+    {
+        var (state, decision) = SchedulerState.Empty
+            .Apply("lucerne|icon_d2", 42, Now, DiscoveryInterval)
+            .ApplyHashResult("lucerne|icon_d2", 42, Now.AddHours(1), DiscoveryInterval);
+
+        Assert.Equal(HashDecision.Miss, decision);
+        Assert.Equal(1, state.States["lucerne|icon_d2"].MissCount);
+    }
+
+    [Fact]
+    public void ApplyHashResult_for_unknown_key_decides_changed()
+    {
+        var (state, decision) = SchedulerState.Empty
+            .ApplyHashResult("lucerne|icon_d2", 7, Now, DiscoveryInterval);
+
+        Assert.Equal(HashDecision.Changed, decision);
+        Assert.Equal(7, state.States["lucerne|icon_d2"].LastHash);
+    }
+
+    [Fact]
+    public void ApplyRateLimited_raises_next_poll_to_the_minimum_delay()
+    {
+        var minDelay = TimeSpan.FromMinutes(5);
+
+        var state = SchedulerState.Empty
+            .EnsureInitialized("lucerne|icon_d2", Now)
+            .ApplyRateLimited("lucerne|icon_d2", Now, minDelay, DiscoveryInterval);
+
+        var poll = state.States["lucerne|icon_d2"];
+        Assert.Equal(Now + minDelay, poll.NextPollUtc);
+        Assert.Equal(1, poll.TransientFailureCount);
+    }
+
+    [Fact]
+    public void ApplyRateLimited_keeps_a_later_backoff_untouched()
+    {
+        var minDelay = TimeSpan.FromSeconds(30);
+
+        var state = SchedulerState.Empty
+            .EnsureInitialized("lucerne|icon_d2", Now)
+            .ApplyRateLimited("lucerne|icon_d2", Now, minDelay, DiscoveryInterval);
+
+        Assert.Equal(Now.AddMinutes(1), state.States["lucerne|icon_d2"].NextPollUtc);
     }
 }

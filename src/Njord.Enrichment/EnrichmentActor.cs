@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using Akka;
 using Akka.Actor;
 using Akka.Event;
@@ -9,20 +8,18 @@ using Microsoft.Extensions.Options;
 using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Diagnostics;
-using Njord.Domain.Sensors;
-using Njord.Domain.Weather;
 using Njord.Messages.Egress;
 using Njord.Messages.Sensors;
+using Njord.Sensors;
+using Njord.Sensors;
+using Njord.Weather;
+using Njord.Weather;
 using Servus.Akka;
 
 namespace Njord.Enrichment;
 
 public sealed class EnrichmentActor : StreamConsumerActor
 {
-    private static readonly Histogram<double> EnrichmentDuration = NjordMetrics.Instance.AddEnrichmentDuration();
-    private static readonly Gauge<double> ConsensusModelsGauge = NjordMetrics.Instance.AddConsensusModels();
-    private static readonly Gauge<double> ConsensusSpreadGauge = NjordMetrics.Instance.AddConsensusSpread();
 
     private readonly NjordOptions _options;
     private readonly EnrichmentOptions _enrichmentOptions;
@@ -158,8 +155,8 @@ public sealed class EnrichmentActor : StreamConsumerActor
         var consensusFlow = Flow.Create<ModelSnapshot>()
             .SelectMany(snapshot => ComputeConsensus(snapshot, locations, trimPercent));
 
-        var consensusInlineFlow = BuildConsensusInlineFlow(
-            consensusEgressEnabled, statelessFeatures, statefulFeatures, _sensorHub!, _log);
+        var consensusInlineFlow = ConsensusFlowFactory.Create(
+            _sensorHub!, TimeSpan.FromSeconds(1), consensusEgressEnabled, statelessFeatures, statefulFeatures, _log);
 
         var flows = new List<Flow<ModelSnapshot, EgressEvent, NotUsed>>();
 
@@ -248,63 +245,6 @@ public sealed class EnrichmentActor : StreamConsumerActor
         _broadcastHubSource = null;
     }
 
-    private static Flow<ConsensusSnapshot, EgressEvent, NotUsed> BuildConsensusInlineFlow(
-        bool consensusEgressEnabled,
-        IReadOnlyList<IStatelessEnrichment> stateless,
-        IReadOnlyList<IStatefulEnrichment> stateful,
-        IActorRef sensorHub,
-        ILoggingAdapter log)
-    {
-        return Flow.Create<ConsensusSnapshot>()
-            .Scan(
-                (Previous: (ConsensusSnapshot?)null, Current: (ConsensusSnapshot?)null),
-                (state, consensus) => (Previous: state.Current, Current: consensus))
-            .Skip(1)
-            .SelectAsync(1, async pair =>
-            {
-                var consensus = pair.Current!;
-                SensorSnapshot? sensors = null;
-                try
-                {
-                    var response = await sensorHub.Ask<QuerySensorSnapshotResponse>(
-                        new QuerySensorSnapshot(consensus.Location), TimeSpan.FromSeconds(1));
-                    if (response is SensorSnapshotFound found)
-                    {
-                        sensors = found.Snapshot;
-                    }
-                }
-                catch (AskTimeoutException)
-                {
-                    log.Warning("SensorHub Ask timed out for {Location}, proceeding without sensor data", consensus.Location);
-                }
-
-                var sw = Stopwatch.StartNew();
-                var events = ComputeAll(consensus, pair.Previous, sensors, consensusEgressEnabled, stateless, stateful).ToList();
-                sw.Stop();
-                if (events.Count > 0)
-                {
-                    var locationTag = new KeyValuePair<string, object?>("location", consensus.Location);
-                    var featureNames = events
-                        .Select(e => e is EgressEvent.EnrichmentUpdate eu ? eu.TypeName : null)
-                        .Where(t => t is not null)
-                        .Distinct()
-                        .ToList();
-                    foreach (var feature in featureNames)
-                    {
-                        EnrichmentDuration.Record(sw.Elapsed.TotalSeconds, locationTag,
-                            new KeyValuePair<string, object?>("feature", feature));
-                    }
-                    log.Info("Enrichment computed for {Location}: {Features}", consensus.Location,
-                        string.Join(", ", featureNames));
-                }
-
-                RecordConsensusQuality(consensus);
-                return events;
-            })
-            .SelectMany(events => events)
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(log)));
-    }
-
     private IEnumerable<ConsensusSnapshot> ComputeConsensus(
         ModelSnapshot snapshot,
         IReadOnlyList<string> locations,
@@ -325,59 +265,5 @@ public sealed class EnrichmentActor : StreamConsumerActor
                 _ => snap,
             })
             .Where(snap => snap.HasChanged);
-    }
-
-    private static void RecordConsensusQuality(ConsensusSnapshot consensus)
-    {
-        var locationTag = new KeyValuePair<string, object?>("location", consensus.Location);
-        var tempParam = consensus.Hourly.Parameters
-            .FirstOrDefault(p => p.Parameter.ApiName == "temperature_2m");
-        if (tempParam is null)
-        {
-            return;
-        }
-
-        var firstHorizon = tempParam.ByHorizon.Values.FirstOrDefault();
-        if (firstHorizon is null)
-        {
-            return;
-        }
-
-        ConsensusModelsGauge.Record(firstHorizon.AvailableModels.Count, locationTag);
-        if (firstHorizon.Spread.HasValue)
-        {
-            ConsensusSpreadGauge.Record(firstHorizon.Spread.Value, locationTag);
-        }
-    }
-
-    private static IEnumerable<EgressEvent> ComputeAll(
-        ConsensusSnapshot consensus,
-        ConsensusSnapshot? previous,
-        SensorSnapshot? sensors,
-        bool consensusEgressEnabled,
-        IReadOnlyList<IStatelessEnrichment> stateless,
-        IReadOnlyList<IStatefulEnrichment> stateful)
-    {
-        if (consensusEgressEnabled)
-        {
-            var result = new ConsensusResult(consensus.Hourly.Parameters, consensus.Daily.Parameters, consensus.ComputedAt);
-            yield return new EgressEvent.EnrichmentUpdate(consensus.Location, "consensus", result, consensus.ComputedAt);
-        }
-
-        foreach (var feature in stateless)
-        {
-            foreach (var evt in feature.Compute(consensus, sensors))
-            {
-                yield return evt;
-            }
-        }
-
-        foreach (var feature in stateful)
-        {
-            foreach (var evt in feature.Compute(consensus, previous))
-            {
-                yield return evt;
-            }
-        }
     }
 }

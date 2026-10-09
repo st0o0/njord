@@ -10,11 +10,10 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Health;
 using Njord.Core.Ingest;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Ingest;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
+using Njord.Weather;
 using Servus.Akka;
 
 namespace Njord.Pipeline.Tests;
@@ -179,7 +178,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
 
             var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
             var forecast = new ModelForecast(model, location.Name, cycle,
-                new ForecastSeries([new ForecastPoint(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero), new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
+                new ForecastSeries([new ForecastPoint(TestTimeConstants.PipelineEpoch, new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
                 DailyForecastSeries.Empty);
             return Task.FromResult<FetchOutcome>(new FetchOutcome.Success(forecast));
         }
@@ -200,7 +199,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             _fetchCalled.TrySetResult(location.Name);
             var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
             var forecast = new ModelForecast(model, location.Name, cycle,
-                new ForecastSeries([new ForecastPoint(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero), new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
+                new ForecastSeries([new ForecastPoint(TestTimeConstants.PipelineEpoch, new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
                 DailyForecastSeries.Empty);
             return Task.FromResult<FetchOutcome>(new FetchOutcome.Success(forecast));
         }
@@ -399,7 +398,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         {
             Receive<RecordApiCall>(_ => { });
             Receive<QueryBudgetUsage>(_ =>
-                Sender.Tell(new QueryBudgetUsageResult(0, 0), Self));
+                Sender.Tell(new QueryBudgetUsageCompleted(0, 0), Self));
         }
     }
 }

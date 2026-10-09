@@ -3,15 +3,15 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Enrichment.Features;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Enrichment.Tests.Features;
 
 public sealed class HistoryEnrichmentSpec
 {
-    private static readonly FakeTimeProvider Time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
+    private static readonly FakeTimeProvider Time = TestTimeouts.AtEpoch();
 
     private static HistoryEnrichment CreateFeature(bool enabled = true)
     {

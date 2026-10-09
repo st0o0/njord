@@ -7,7 +7,6 @@ public sealed class SchedulerDtoRoundtripSpec
     {
         var dto = new SchedulerSnapshotDto
         {
-            Version = 1,
             States = new Dictionary<string, ModelPollStateDto>
             {
                 ["lucerne/icon_d2"] = new()
@@ -25,7 +24,6 @@ public sealed class SchedulerDtoRoundtripSpec
 
         var result = PersistenceRoundtripHelper.Roundtrip(dto);
 
-        Assert.Equal(dto.Version, result.Version);
         var state = Assert.Single(result.States);
         Assert.Equal("lucerne/icon_d2", state.Key);
         Assert.Equal(42, state.Value.LastHash);
@@ -42,7 +40,6 @@ public sealed class SchedulerDtoRoundtripSpec
     {
         var dto = new DataChangedDto
         {
-            Version = 1,
             Location = "lucerne",
             ModelId = "icon_d2",
             Hash = 12345,
@@ -51,7 +48,6 @@ public sealed class SchedulerDtoRoundtripSpec
 
         var result = PersistenceRoundtripHelper.Roundtrip(dto);
 
-        Assert.Equal(dto.Version, result.Version);
         Assert.Equal(dto.Location, result.Location);
         Assert.Equal(dto.ModelId, result.ModelId);
         Assert.Equal(dto.Hash, result.Hash);

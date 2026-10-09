@@ -1,5 +1,5 @@
 using Njord.Compute.Configuration;
-using Njord.Domain.Weather;
+using Njord.Weather;
 
 namespace Njord.Compute.Analysis;
 
@@ -39,9 +39,7 @@ public sealed class HistoryComputer
             var tempParam = parameters.Get(ParameterRegistry.Temperature2m);
             if (tempParam is not null)
             {
-                var nearestPoint = currentConsensus[0].Hourly.Points
-                    .OrderBy(p => Math.Abs((p.ValidAt - now).TotalMinutes))
-                    .FirstOrDefault();
+                var nearestPoint = NearestPointFinder.Find(currentConsensus[0].Hourly.Points, now);
                 var currentTemp = nearestPoint?.Get(tempParam);
 
                 if (currentTemp.HasValue)
@@ -49,9 +47,7 @@ public sealed class HistoryComputer
                     var values = currentConsensus
                         .Select(f =>
                         {
-                            var pt = f.Hourly.Points
-                                .OrderBy(p => Math.Abs((p.ValidAt - now).TotalMinutes))
-                                .FirstOrDefault();
+                            var pt = NearestPointFinder.Find(f.Hourly.Points, now);
                             return pt?.Get(tempParam);
                         })
                         .ToList();
@@ -80,9 +76,7 @@ public sealed class HistoryComputer
                 continue;
             }
 
-            var pt = forecast.Hourly.Points
-                .OrderBy(p => Math.Abs((p.ValidAt - now).TotalMinutes))
-                .FirstOrDefault();
+            var pt = NearestPointFinder.Find(forecast.Hourly.Points, now);
             modelValues.Add((key.Model, pt?.Get(tempParam)));
         }
         if (modelValues.Count > 0)

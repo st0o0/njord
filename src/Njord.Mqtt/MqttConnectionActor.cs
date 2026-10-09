@@ -1,20 +1,15 @@
-using System.Diagnostics.Metrics;
 using Akka.Actor;
 using Akka.Event;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
-using Njord.Core.Diagnostics;
 using Njord.Core.Health;
 using Njord.Messages.Mqtt;
 using Njord.Mqtt.Transport;
 
 namespace Njord.Mqtt;
 
-public sealed record SubscribeInbound(IActorRef Listener);
-
 public sealed class MqttConnectionActor : ReceiveActor
 {
-    private static readonly Gauge<double> MqttConnectedGauge = NjordMetrics.Instance.AddMqttConnected();
 
     private readonly MqttOptions _mqttOptions;
     private readonly IMqttConnection _connection;
@@ -73,7 +68,7 @@ public sealed class MqttConnectionActor : ReceiveActor
         Receive<Disconnected>(_ =>
         {
             _healthState.SetMqttDisconnected(_timeProvider.GetUtcNow());
-            MqttConnectedGauge.Record(0);
+            Telemetry.MqttConnected.Record(0);
             _log.Warning("MQTT connection lost — reconnecting");
             ScheduleReconnect();
         });
@@ -121,7 +116,7 @@ public sealed class MqttConnectionActor : ReceiveActor
         _connectAttempts = 0;
         _log.Info("MQTT connected to {Host}:{Port}", _mqttOptions.Host, _mqttOptions.Port);
         _healthState.SetMqttConnected(_timeProvider.GetUtcNow());
-        MqttConnectedGauge.Record(1);
+        Telemetry.MqttConnected.Record(1);
 
         try
         {

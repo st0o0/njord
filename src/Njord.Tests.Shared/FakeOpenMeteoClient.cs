@@ -1,6 +1,5 @@
 using Njord.Core.Ingest;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
+using Njord.Weather;
 
 namespace Njord.Tests.Shared;
 

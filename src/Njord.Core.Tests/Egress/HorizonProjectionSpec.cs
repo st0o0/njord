@@ -1,13 +1,14 @@
 using System.Text.Json.Nodes;
 using Njord.Core.Egress;
-using Njord.Domain.Weather;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Core.Tests.Egress;
 
 public sealed class HorizonProjectionSpec
 {
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-    private static readonly DateTimeOffset Anchor = new(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Anchor = TestTimeConstants.NoonAnchor;
     private static readonly IReadOnlyList<int> Horizons = [3, 6];
     private const int ForecastDays = 2;
 
@@ -143,5 +144,68 @@ public sealed class HorizonProjectionSpec
         Assert.True(result.ContainsKey("d1"));
         Assert.False(result.ContainsKey("d2"));
         Assert.False(result.ContainsKey("d3"));
+    }
+
+    [Theory]
+    [InlineData(4, null, 4)]
+    [InlineData(4, 48, 2)]
+    [InlineData(4, 49, 3)]
+    [InlineData(2, 240, 2)]
+    public void EffectiveDays_clamps_forecast_days_to_model_coverage(int forecastDays, int? maxHours, int expected)
+    {
+        Assert.Equal(expected, HorizonProjection.EffectiveDays(forecastDays, maxHours));
+    }
+
+    [Theory]
+    [InlineData(48, null, true)]
+    [InlineData(48, 48, true)]
+    [InlineData(49, 48, false)]
+    public void IsHorizonApplicable_respects_max_forecast_hours(int hours, int? maxHours, bool expected)
+    {
+        Assert.Equal(expected, HorizonProjection.IsHorizonApplicable(hours, maxHours));
+    }
+
+    [Fact]
+    public void ToHourlyPayload_serializes_available_parameters()
+    {
+        var forecast = CreateForecast();
+        var point = forecast.Hourly.Points[0];
+
+        var payload = HorizonProjection.ToHourlyPayload(point, Parameters);
+
+        Assert.NotNull(payload);
+        Assert.Equal(20.0, JsonNode.Parse(payload)!["temperature"]!.GetValue<double>());
+    }
+
+    [Fact]
+    public void ToHourlyPayload_returns_null_when_no_parameter_has_a_value()
+    {
+        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
+        var point = new ForecastPoint(Anchor, new Dictionary<ParameterDef, double?> { [temp] = null });
+
+        Assert.Null(HorizonProjection.ToHourlyPayload(point, Parameters));
+    }
+
+    [Fact]
+    public void ToDailyPayload_serializes_numeric_daily_parameters()
+    {
+        var forecast = CreateForecast();
+        var point = forecast.Daily.Points[0];
+
+        var payload = HorizonProjection.ToDailyPayload(point, Parameters);
+
+        Assert.NotNull(payload);
+        Assert.Equal(28.0, JsonNode.Parse(payload)!["temperature_max"]!.GetValue<double>());
+    }
+
+    [Fact]
+    public void ToDailyPayload_returns_null_for_empty_daily_point()
+    {
+        var point = new DailyForecastPoint(
+            DateOnly.FromDateTime(Anchor.UtcDateTime),
+            new Dictionary<ParameterDef, double?>(),
+            new Dictionary<ParameterDef, string?>());
+
+        Assert.Null(HorizonProjection.ToDailyPayload(point, Parameters));
     }
 }

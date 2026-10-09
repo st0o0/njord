@@ -7,16 +7,15 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Health;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Pipeline.Tests;
 
-public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
+public sealed class SchedulerActorRefFailureSpec : NjordActorSpec
 {
-    private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
+    private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     private Akka.TestKit.TestProbe _offerProbe = null!;
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
@@ -33,10 +32,9 @@ public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
         services.AddSingleton(new NjordHealthState { ServiceStartedUtc = _time.GetUtcNow() });
     }
 
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
         builder
-            .AddTestPersistence()
             .WithActors((system, registry) =>
             {
                 _offerProbe = CreateTestProbe();
@@ -48,11 +46,10 @@ public sealed class SchedulerActorRefFailureSpec : Akka.Hosting.TestKit.TestKit
             {
                 registry.Register<ISchedulerActor>(
                     system.ActorOf(resolver.Props<SchedulerActor>(), "scheduler"));
-            })
-            .AddTestTimefactor();
+            });
     }
 
-    private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
+    private IActorRef Scheduler => GetActor<ISchedulerActor>();
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Recovers_after_pipeline_termination_with_new_ref()

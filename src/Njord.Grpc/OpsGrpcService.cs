@@ -43,10 +43,11 @@ public sealed class OpsGrpcService(
 
         long monthlyUsed = 0;
         long dailyUsed = 0;
+        var budgetPartial = false;
         try
         {
             var tracker = await _actorRegistry.GetAsync<IBudgetTrackerActor>();
-            var usage = await tracker.Ask<QueryBudgetUsageResult>(
+            var usage = await tracker.Ask<QueryBudgetUsageCompleted>(
                 new QueryBudgetUsage(), AskTimeout);
             monthlyUsed = usage.MonthlyUsed;
             dailyUsed = usage.DailyUsed;
@@ -54,11 +55,13 @@ public sealed class OpsGrpcService(
         catch (AskTimeoutException)
         {
             _logger.LogWarning("BudgetTrackerActor did not respond within {Timeout}s — returning status with zero usage", AskTimeout.TotalSeconds);
+            budgetPartial = true;
         }
 
         var status = new StatusResponse
         {
             Version = Version,
+            BudgetPartial = budgetPartial,
             UptimeSeconds = (long)uptime.TotalSeconds,
             ProcessStart = Timestamp.FromDateTimeOffset(ProcessStart),
             Budget = new BudgetStatus
@@ -76,33 +79,13 @@ public sealed class OpsGrpcService(
         try
         {
             var scheduler = await _actorRegistry.GetAsync<ISchedulerActor>();
-            var snapshot = await scheduler.Ask<QueryPollStatesResult>(new QueryPollStates(), AskTimeout);
-            foreach (var entry in snapshot.Entries)
-            {
-                var modelStatus = new ModelStatus
-                {
-                    Location = entry.Location,
-                    Model = entry.ModelId,
-                    Phase = entry.Phase == PollPhase.Steady ? "steady" : "discovery",
-                    NextPoll = Timestamp.FromDateTimeOffset(entry.NextPollUtc),
-                    MissCount = entry.MissCount,
-                };
-                if (entry.LastChangeUtc.HasValue)
-                {
-                    modelStatus.LastChange = Timestamp.FromDateTimeOffset(entry.LastChangeUtc.Value);
-                }
-
-                if (entry.CycleSeconds.HasValue)
-                {
-                    modelStatus.CycleSeconds = entry.CycleSeconds.Value;
-                }
-
-                status.Models.Add(modelStatus);
-            }
+            var snapshot = await scheduler.Ask<QueryPollStatesCompleted>(new QueryPollStates(), AskTimeout);
+            status.Models.AddRange(snapshot.Entries.Select(PollStatusMapper.ToModelStatus));
         }
         catch (AskTimeoutException)
         {
             _logger.LogWarning("SchedulerActor did not respond within {Timeout}s — returning status without model poll states", AskTimeout.TotalSeconds);
+            status.ModelsPartial = true;
         }
 
         var enrichment = _optionsMonitor.CurrentValue.Enrichment;
@@ -150,29 +133,8 @@ public sealed class OpsGrpcService(
         try
         {
             var scheduler = await _actorRegistry.GetAsync<ISchedulerActor>();
-            var snapshot = await scheduler.Ask<QueryPollStatesResult>(new QueryPollStates(), AskTimeout);
-            foreach (var entry in snapshot.Entries)
-            {
-                var target = new TriggerTarget
-                {
-                    Location = entry.Location,
-                    Model = entry.ModelId,
-                    Phase = entry.Phase == PollPhase.Steady ? "steady" : "discovery",
-                    NextPoll = Timestamp.FromDateTimeOffset(entry.NextPollUtc),
-                    MissCount = entry.MissCount,
-                };
-                if (entry.LastChangeUtc.HasValue)
-                {
-                    target.LastChange = Timestamp.FromDateTimeOffset(entry.LastChangeUtc.Value);
-                }
-
-                if (entry.CycleSeconds.HasValue)
-                {
-                    target.CycleSeconds = entry.CycleSeconds.Value;
-                }
-
-                response.Targets.Add(target);
-            }
+            var snapshot = await scheduler.Ask<QueryPollStatesCompleted>(new QueryPollStates(), AskTimeout);
+            response.Targets.AddRange(snapshot.Entries.Select(PollStatusMapper.ToTriggerTarget));
         }
         catch (AskTimeoutException)
         {
@@ -189,7 +151,7 @@ public sealed class OpsGrpcService(
     public override async Task<TriggerPollResponse> TriggerPoll(TriggerPollRequest request, ServerCallContext context)
     {
         var scheduler = await _actorRegistry.GetAsync<ISchedulerActor>();
-        var result = await scheduler.Ask<TriggerImmediatePollResult>(
+        var result = await scheduler.Ask<TriggerImmediatePollCompleted>(
             new TriggerImmediatePoll(request.Location, request.Model), AskTimeout);
 
         var response = new TriggerPollResponse { TriggeredCount = result.Count };

@@ -9,15 +9,12 @@ using Njord.Tests.Shared;
 
 namespace Njord.Mqtt.Tests;
 
-public sealed class MqttConnectionActorSpec : Akka.Hosting.TestKit.TestKit
+public sealed class MqttConnectionActorSpec : NjordActorSpec
 {
-    private static readonly DateTimeOffset Epoch = new(2026, 7, 12, 6, 0, 0, TimeSpan.Zero);
-    private readonly FakeTimeProvider _time = new(Epoch);
+    protected override bool UseTestPersistence => false;
 
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
-    {
-        builder.AddTestTimefactor();
-    }
+    private static readonly DateTimeOffset Epoch = TestTimeConstants.PipelineEpoch;
+    private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(Epoch);
 
     private static NjordOptions DefaultOptions() => new()
     {

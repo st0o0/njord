@@ -12,7 +12,7 @@ Types in the Ingest zone (`Njord.Ingest`) SHALL NOT depend on types in the Egres
 
 #### Scenario: Ingest depends only on the domain and shared infrastructure
 - **WHEN** the architecture tests run against the current code
-- **THEN** they pass, with `Njord.Ingest` depending only on `Njord.Domain.*`, `Njord.Configuration` and `Njord.Diagnostics`
+- **THEN** they pass, with `Njord.Ingest` depending only on `Njord.Weather`, `Njord.Configuration` and `Njord.Diagnostics`
 
 ### Requirement: Egress does not depend on Ingest
 Types in the Egress-side namespaces (`Njord.Egress`, `Njord.Mqtt`, `Njord.Grpc`) SHALL NOT depend on types in `Njord.Ingest`.
@@ -22,10 +22,10 @@ Types in the Egress-side namespaces (`Njord.Egress`, `Njord.Mqtt`, `Njord.Grpc`)
 - **THEN** the architecture test run fails and names the offending type and dependency
 
 ### Requirement: Domain is independent of the zones
-Types in `Njord.Domain.*` SHALL NOT depend on `Njord.Ingest`, `Njord.Egress`, `Njord.Mqtt` or `Njord.Grpc`.
+Types in `Njord.Weather.*` and `Njord.Sensors.*` (the foundation libraries) SHALL NOT depend on `Njord.Ingest`, `Njord.Egress`, `Njord.Mqtt`, `Njord.Grpc` or `Njord.SensorHub`.
 
 #### Scenario: Domain references a transport type
-- **WHEN** a type in `Njord.Domain.Weather`, `Njord.Domain.Sensors` or `Njord.Domain.Analysis` gains a dependency on an Ingest or Egress-side type
+- **WHEN** a type in `Njord.Weather` or `Njord.Sensors` gains a dependency on an Ingest or Egress-side type
 - **THEN** the architecture test run fails and names the offending type and dependency
 
 ### Requirement: Production classes are sealed
@@ -43,29 +43,33 @@ Every test class in every `Njord.*Tests` assembly (the per-library test projects
 - **THEN** the architecture test run fails and lists the class
 
 ### Requirement: Layer reference direction
-Foundation libraries SHALL follow this reference direction: `Domain` and `Persistence` reference no Njord assembly; `Messages` references only `Domain`; `Compute` references only `Domain`; `Core` references only `Domain`, `Messages`, `Persistence`, and `Compute`. Feature libraries reference only `Core` and below. The host references all.
+Foundation libraries SHALL follow this reference direction: `Njord.Weather`, `Njord.Sensors`, and `Persistence` reference no Njord assembly; `Messages` references only `Njord.Weather` and `Njord.Sensors`; `Compute` references only `Njord.Weather` and `Njord.Sensors`; `Core` references only `Njord.Weather`, `Njord.Sensors`, `Messages`, `Persistence`, and `Compute`. Feature libraries reference only `Core` and below. The host references all.
 
-#### Scenario: Compute references only Domain
+#### Scenario: Compute references only Weather and Sensors
 - **WHEN** `LayerReferenceSpec` checks `Njord.Compute` assembly references
-- **THEN** the only Njord reference SHALL be `Njord.Domain`
+- **THEN** the only Njord references SHALL be `Njord.Weather` and `Njord.Sensors`
 
 #### Scenario: Core references include Compute
 - **WHEN** `LayerReferenceSpec` checks `Njord.Core` assembly references
-- **THEN** the allowed Njord references SHALL be `Njord.Domain`, `Njord.Messages`, `Njord.Persistence`, and `Njord.Compute`
+- **THEN** the allowed Njord references SHALL be `Njord.Weather`, `Njord.Sensors`, `Njord.Messages`, `Njord.Persistence`, and `Njord.Compute`
 
 #### Scenario: Feature libraries reference Core and below
 - **WHEN** `LayerReferenceSpec` checks a feature library's assembly references
 - **THEN** the allowed set SHALL include `Njord.Compute` (transitively via Core and below)
 
 ### Requirement: Base library registration
-The architecture test infrastructure SHALL list `Njord.Compute` as a base library alongside `Njord.Core`, `Njord.Domain`, `Njord.Messages`, and `Njord.Persistence`.
+The architecture test infrastructure SHALL list `Njord.Compute` as a base library alongside `Njord.Core`, `Njord.Weather`, `Njord.Sensors`, and `Njord.Persistence`. It SHALL NOT list `Njord.Domain` — that assembly no longer exists.
 
 #### Scenario: BaseLibraryNames includes Compute
 - **WHEN** `NjordArchitecture.BaseLibraryNames` is inspected
 - **THEN** it SHALL contain `"Njord.Compute"`
 
+#### Scenario: BaseLibraryNames includes the split foundation libraries
+- **WHEN** `NjordArchitecture.BaseLibraryNames` is inspected
+- **THEN** it SHALL contain `"Njord.Weather"` and `"Njord.Sensors"`, and SHALL NOT contain `"Njord.Domain"`
+
 ### Requirement: Feature libraries do not reference each other
-`Njord.Pipeline`, `Njord.Egress`, `Njord.Grpc`, `Njord.Ingest` and `Njord.Sensors` SHALL depend only on `Njord.Core`, `Njord.Messages`, `Njord.Persistence` and `Njord.Domain` (never on each other, never on the `Njord` host). The reference direction SHALL be host -> feature libraries -> `Njord.Core` -> `Njord.Messages`/`Njord.Persistence` -> `Njord.Domain`.
+`Njord.Pipeline`, `Njord.Egress`, `Njord.Grpc`, `Njord.Ingest` and `Njord.SensorHub` SHALL depend only on `Njord.Core`, `Njord.Messages`, `Njord.Persistence`, `Njord.Weather` and `Njord.Sensors` (never on each other, never on the `Njord` host). The reference direction SHALL be host -> feature libraries -> `Njord.Core` -> `Njord.Messages`/`Njord.Persistence` -> `Njord.Weather`/`Njord.Sensors`.
 
 #### Scenario: Lateral reference between feature libraries
 - **WHEN** a type in one feature library gains a dependency on a type in another feature library
@@ -76,8 +80,12 @@ The architecture test infrastructure SHALL list `Njord.Compute` as a base librar
 - **THEN** the architecture test run fails; access to the pipeline goes through the `IPipelineActor` marker and the messages in `Njord.Messages`
 
 #### Scenario: Upward reference
-- **WHEN** a type in `Njord.Core`, `Njord.Messages`, `Njord.Persistence` or `Njord.Domain` gains a dependency on a feature library or the host
+- **WHEN** a type in `Njord.Core`, `Njord.Messages`, `Njord.Persistence`, `Njord.Weather` or `Njord.Sensors` gains a dependency on a feature library or the host
 - **THEN** the build or the architecture test run fails
+
+#### Scenario: SensorHub is one of the non-cross-referencing feature libraries
+- **WHEN** `LayerReferenceSpec` lists feature libraries that must not reference each other
+- **THEN** `Njord.SensorHub` is included in that list in place of the former `Njord.Sensors` feature library
 
 ### Requirement: Convention rules cover all production assemblies
 The sealed-class convention SHALL be evaluated over all `Njord.*` production assemblies in one architecture load, and the test-class convention SHALL cover every test project: `Njord.Architecture.Tests` SHALL load every `Njord.*Tests` assembly (and `Njord.Tests.Shared`) next to it.
@@ -117,7 +125,7 @@ Test methods in every test assembly (all `Njord.*Tests` projects, including `Njo
 - **THEN** they pass
 
 ### Requirement: Enrichment and Mqtt follow the library reference rules
-`Njord.Enrichment` and `Njord.Mqtt` SHALL depend only on `Njord.Core`, `Njord.Messages`, `Njord.Persistence` and `Njord.Domain` (never on each other, never on any other feature library, never on the `Njord` host). `Njord.Enrichment` SHALL NOT contain Home Assistant or MQTT knowledge.
+`Njord.Enrichment` and `Njord.Mqtt` SHALL depend only on `Njord.Core`, `Njord.Messages`, `Njord.Persistence`, `Njord.Weather` and `Njord.Sensors` (never on each other, never on any other feature library, never on the `Njord` host). `Njord.Enrichment` SHALL NOT contain Home Assistant or MQTT knowledge.
 
 #### Scenario: Enrichment does not know the egress protocol
 - **WHEN** a type in `Njord.Enrichment` gains a dependency on `Njord.Mqtt` or `Njord.Grpc`
@@ -130,3 +138,18 @@ Test methods in every test assembly (all `Njord.*Tests` projects, including `Njo
 #### Scenario: Lateral reference between feature libraries
 - **WHEN** a type in `Njord.Enrichment` or `Njord.Mqtt` gains a dependency on a type in another feature library
 - **THEN** the architecture test run fails and names the offending type, the dependency and both assemblies
+
+### Requirement: Foundation layers have no framework dependency
+Types in the foundation layers (`Njord.Weather`, `Njord.Sensors`, `Njord.Messages`,
+`Njord.Persistence`) SHALL NOT depend on any `Akka.*` namespace.
+
+#### Scenario: Foundation layer gains an Akka dependency
+- **WHEN** a type in `Njord.Weather`, `Njord.Sensors`, `Njord.Messages`, or
+  `Njord.Persistence` gains a dependency on any `Akka.*` type
+- **THEN** the architecture test run fails and names the offending type and dependency
+
+#### Scenario: Foundation layers currently pass
+- **WHEN** the architecture tests run against the current code
+- **THEN** they pass, with none of the four foundation projects referencing any `Akka.*`
+  package or namespace
+

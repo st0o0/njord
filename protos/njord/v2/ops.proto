@@ -25,6 +25,8 @@ message StatusResponse {
   BudgetStatus budget = 4;
   repeated ModelStatus models = 5;
   repeated string active_enrichments = 6;
+  bool budget_partial = 7;
+  bool models_partial = 8;
 }
 
 message BudgetStatus {

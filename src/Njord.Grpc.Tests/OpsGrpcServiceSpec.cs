@@ -4,10 +4,10 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Configuration;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
 using Njord.Grpc.V2;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Grpc.Tests;
 
@@ -107,6 +107,50 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetStatus_flags_nothing_partial_when_all_actors_respond()
+    {
+        var service = CreateService();
+
+        var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.Multiple(
+            () => Assert.False(status.BudgetPartial),
+            () => Assert.False(status.ModelsPartial));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetStatus_flags_models_partial_on_scheduler_timeout()
+    {
+        var slowScheduler = Sys.ActorOf(Props.Create(() => new SlowSchedulerActor()));
+        ActorRegistry.Register<ISchedulerActor>(slowScheduler, overwrite: true);
+        var service = CreateService();
+
+        var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.Multiple(
+            () => Assert.True(status.ModelsPartial),
+            () => Assert.False(status.BudgetPartial),
+            () => Assert.Empty(status.Models),
+            () => Assert.Equal(42, status.Budget.MonthlyUsed));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetStatus_flags_budget_partial_on_budget_tracker_timeout()
+    {
+        var slowTracker = Sys.ActorOf(Props.Create(() => new SlowBudgetTrackerActor()));
+        ActorRegistry.Register<IBudgetTrackerActor>(slowTracker, overwrite: true);
+        var service = CreateService();
+
+        var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.Multiple(
+            () => Assert.True(status.BudgetPartial),
+            () => Assert.False(status.ModelsPartial),
+            () => Assert.Equal(0, status.Budget.MonthlyUsed),
+            () => Assert.Equal(2, status.Models.Count));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetTargets_returns_all_configured_pairs_with_timestamps()
     {
         var service = CreateService();
@@ -175,18 +219,18 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
                     new("lucerne", "icon_d2", PollPhase.Steady, now.AddHours(1), now.AddHours(-2), 0, 10800),
                     new("zurich", "gfs_seamless", PollPhase.Discovery, now.AddMinutes(20), null, 2, null),
                 };
-                Sender.Tell(new QueryPollStatesResult(entries));
+                Sender.Tell(new QueryPollStatesCompleted(entries));
             });
 
             Receive<TriggerImmediatePoll>(msg =>
             {
                 if (string.IsNullOrEmpty(msg.Location) && string.IsNullOrEmpty(msg.Model))
                 {
-                    Sender.Tell(new TriggerImmediatePollResult(2, ["lucerne/icon_d2", "zurich/gfs_seamless"]));
+                    Sender.Tell(new TriggerImmediatePollCompleted(2, ["lucerne/icon_d2", "zurich/gfs_seamless"]));
                 }
                 else
                 {
-                    Sender.Tell(new TriggerImmediatePollResult(1, [$"{msg.Location}/{msg.Model}"]));
+                    Sender.Tell(new TriggerImmediatePollCompleted(1, [$"{msg.Location}/{msg.Model}"]));
                 }
             });
         }
@@ -197,7 +241,15 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         public FakeBudgetTrackerActor()
         {
             Receive<QueryBudgetUsage>(_ =>
-                Sender.Tell(new QueryBudgetUsageResult(42, 7), Self));
+                Sender.Tell(new QueryBudgetUsageCompleted(42, 7), Self));
+        }
+    }
+
+    private sealed class SlowBudgetTrackerActor : ReceiveActor
+    {
+        public SlowBudgetTrackerActor()
+        {
+            Receive<QueryBudgetUsage>(_ => { });
         }
     }
 

@@ -1,8 +1,8 @@
 using Akka;
 using Akka.Actor;
 using Akka.Streams.Dsl;
-using Njord.Domain.Weather;
 using Njord.Messages.Egress;
+using Njord.Weather;
 
 namespace Njord.Enrichment;
 

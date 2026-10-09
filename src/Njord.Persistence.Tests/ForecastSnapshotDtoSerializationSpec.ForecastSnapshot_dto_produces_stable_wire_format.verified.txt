@@ -1,5 +1,4 @@
 ﻿{
-  "v": 1,
   "forecasts": {
     "lucerne|icon_d2": {
       "model": "icon_d2",

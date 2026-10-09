@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
-using Njord.Domain.Weather;
 using Njord.Messages.Snapshots;
 using Njord.Persistence;
+using Njord.Weather;
 
 namespace Njord.Grpc;
 
@@ -27,10 +27,10 @@ public static class ForecastSnapshotStateExtensions
 
     public static QueryForecastResponse GetForecast(this ForecastSnapshotState state, string key) =>
         state.Forecasts.TryGetValue(key, out var forecast)
-            ? new ForecastFound(forecast)
-            : new ForecastNotFound(key);
+            ? new QueryForecastCompleted(forecast)
+            : new QueryForecastNotAvailable(key);
 
-    public static QueryAllForecastsResult GetAllForecasts(this ForecastSnapshotState state) =>
+    public static QueryAllForecastsCompleted GetAllForecasts(this ForecastSnapshotState state) =>
         new(state.Forecasts.ToDictionary(
             kvp => ParseKey(kvp.Key),
             kvp => kvp.Value));

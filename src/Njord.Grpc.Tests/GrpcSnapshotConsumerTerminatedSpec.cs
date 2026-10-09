@@ -8,15 +8,14 @@ using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
 
-public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.TestKit
+public sealed class GrpcSnapshotConsumerTerminatedSpec : NjordActorSpec
 {
     private Akka.TestKit.TestProbe _modelStateProbe = null!;
     private Akka.TestKit.TestProbe _enrichmentProbe = null!;
 
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
         builder
-            .AddTestPersistence()
             .WithActors((system, registry) =>
             {
                 _modelStateProbe = CreateTestProbe();
@@ -35,8 +34,7 @@ public sealed class GrpcSnapshotConsumerTerminatedSpec : Akka.Hosting.TestKit.Te
                     system.ActorOf(Props.Create(() => new ForecastSnapshotActor("test|entity"))));
                 registry.Register<IEnrichmentSnapshotRegion>(
                     system.ActorOf(Props.Create(() => new EnrichmentSnapshotActor("test|entity"))));
-            })
-            .AddTestTimefactor();
+            });
     }
 
     [Fact(Timeout = 10000)]

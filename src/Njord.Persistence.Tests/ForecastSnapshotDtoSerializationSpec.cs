@@ -1,12 +1,13 @@
 using Newtonsoft.Json;
-using Njord.Domain.Weather;
 using Njord.Grpc;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Persistence.Tests;
 
 public sealed class ForecastSnapshotDtoSerializationSpec
 {
-    private static readonly DateTimeOffset TestTime = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset TestTime = TestTimeConstants.BudgetEpoch;
 
     [Fact]
     public Task ForecastSnapshot_dto_produces_stable_wire_format()

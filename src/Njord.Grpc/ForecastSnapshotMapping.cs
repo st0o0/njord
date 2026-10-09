@@ -1,5 +1,5 @@
-using Njord.Domain.Weather;
 using Njord.Persistence;
+using Njord.Weather;
 
 namespace Njord.Grpc;
 

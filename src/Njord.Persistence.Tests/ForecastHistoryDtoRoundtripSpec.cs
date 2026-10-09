@@ -7,13 +7,11 @@ public sealed class ForecastHistoryDtoRoundtripSpec
     {
         var dto = new ForecastHistorySnapshotDto
         {
-            Version = 1,
             RetentionDays = 7,
             Records =
             [
                 new ForecastRecordDto
                 {
-                    Version = 1,
                     TimestampUtcTicks = 638_600_000_000_000_000L,
                     Location = "lucerne",
                     ModelValues = new Dictionary<string, Dictionary<string, double?>>
@@ -34,10 +32,8 @@ public sealed class ForecastHistoryDtoRoundtripSpec
 
         var result = PersistenceRoundtripHelper.Roundtrip(dto);
 
-        Assert.Equal(dto.Version, result.Version);
         Assert.Equal(7, result.RetentionDays);
         var record = Assert.Single(result.Records);
-        Assert.Equal(1, record.Version);
         Assert.Equal(dto.Records[0].TimestampUtcTicks, record.TimestampUtcTicks);
         Assert.Equal("lucerne", record.Location);
         Assert.Equal(18.5, record.ModelValues["icon_d2"]["temperature_2m"]);
@@ -49,7 +45,6 @@ public sealed class ForecastHistoryDtoRoundtripSpec
     {
         var dto = new ForecastRecordDto
         {
-            Version = 1,
             TimestampUtcTicks = 638_600_000_000_000_000L,
             Location = "zurich",
             ModelValues = new Dictionary<string, Dictionary<string, double?>>
@@ -68,7 +63,6 @@ public sealed class ForecastHistoryDtoRoundtripSpec
 
         var result = PersistenceRoundtripHelper.Roundtrip(dto);
 
-        Assert.Equal(dto.Version, result.Version);
         Assert.Equal(dto.TimestampUtcTicks, result.TimestampUtcTicks);
         Assert.Equal("zurich", result.Location);
         Assert.Equal(3.2, result.ModelValues["ecmwf_ifs025"]["wind_speed_10m"]);

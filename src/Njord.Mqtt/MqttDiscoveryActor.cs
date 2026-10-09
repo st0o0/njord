@@ -6,10 +6,10 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Domain.Weather;
 using Njord.Messages.Egress;
 using Njord.Messages.Mqtt;
 using Njord.Mqtt.Transport;
+using Njord.Weather;
 using Servus.Akka;
 
 namespace Njord.Mqtt;
@@ -71,7 +71,7 @@ public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
 
         if (!_discoveryEnabled)
         {
-            _log.Info("MQTT discovery is disabled — MqttDiscoveryActor idle");
+            _log.Debug("MQTT discovery is disabled — MqttDiscoveryActor idle");
             return;
         }
 
@@ -166,7 +166,7 @@ public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
 
     protected override void ConfigureReady()
     {
-        _log.Info("MqttDiscoveryActor ready — waiting for model capabilities");
+        _log.Debug("MqttDiscoveryActor ready — waiting for model capabilities");
         ScheduleCapabilityTimeout();
 
         Receive<CapabilityReceived>(msg =>
@@ -196,7 +196,7 @@ public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
     private void OnCapabilityLearned(EgressEvent.CapabilityLearned msg)
     {
         _capabilities[(msg.Location, msg.Model.Id)] = msg;
-        _log.Info(
+        _log.Debug(
             "Capability received for {Location}/{Model} ({Count}/{Expected})",
             msg.Location, msg.Model.Id, _capabilities.Count, _expectedModelCount);
 
@@ -230,11 +230,11 @@ public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
 
         if (isNew)
         {
-            _log.Info("Late capability for {Location}/{Model} — publishing discovery", msg.Location, msg.Model.Id);
+            _log.Debug("Late capability for {Location}/{Model} — publishing discovery", msg.Location, msg.Model.Id);
         }
         else
         {
-            _log.Info("Capability expanded for {Location}/{Model} — re-publishing discovery", msg.Location, msg.Model.Id);
+            _log.Debug("Capability expanded for {Location}/{Model} — re-publishing discovery", msg.Location, msg.Model.Id);
         }
 
         PublishDiscoveryForModel(msg);
@@ -244,7 +244,7 @@ public sealed class MqttDiscoveryActor : StreamConsumerActor, IWithTimers
     {
         if (message.Topic == _haStatusTopic && message.Payload == "online")
         {
-            _log.Info("Home Assistant is back online — re-publishing discovery");
+            _log.Debug("Home Assistant is back online — re-publishing discovery");
             PublishDiscovery();
         }
     }

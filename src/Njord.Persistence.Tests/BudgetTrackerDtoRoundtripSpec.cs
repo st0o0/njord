@@ -7,7 +7,6 @@ public sealed class BudgetTrackerDtoRoundtripSpec
     {
         var dto = new BudgetTrackerSnapshotDto
         {
-            Version = 1,
             Month = 7,
             Day = 12,
             MonthlyUsed = 4200,
@@ -16,7 +15,6 @@ public sealed class BudgetTrackerDtoRoundtripSpec
 
         var result = PersistenceRoundtripHelper.Roundtrip(dto);
 
-        Assert.Equal(dto.Version, result.Version);
         Assert.Equal(dto.Month, result.Month);
         Assert.Equal(dto.Day, result.Day);
         Assert.Equal(dto.MonthlyUsed, result.MonthlyUsed);
@@ -28,14 +26,12 @@ public sealed class BudgetTrackerDtoRoundtripSpec
     {
         var dto = new ApiCallRecordedDto
         {
-            Version = 1,
             Weight = 3,
             UtcTicks = 638_600_000_000_000_000L,
         };
 
         var result = PersistenceRoundtripHelper.Roundtrip(dto);
 
-        Assert.Equal(dto.Version, result.Version);
         Assert.Equal(dto.Weight, result.Weight);
         Assert.Equal(dto.UtcTicks, result.UtcTicks);
     }

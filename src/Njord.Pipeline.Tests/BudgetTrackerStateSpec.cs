@@ -1,8 +1,9 @@
+using Njord.Tests.Shared;
 namespace Njord.Pipeline.Tests;
 
 public sealed class BudgetTrackerStateSpec
 {
-    private static readonly DateTimeOffset T0 = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset T0 = TestTimeConstants.BudgetEpoch;
 
     private static BudgetTrackerState EmptyState() =>
         new(T0.Month, T0.DayOfYear, 0, 0, 0);
@@ -128,7 +129,7 @@ public sealed class BudgetTrackerStateSpec
     {
         var now = new DateTimeOffset(2026, 8, 1, 12, 0, 0, TimeSpan.Zero);
         var state = new BudgetTrackerState(8, now.DayOfYear, 0, 0, 0);
-        var oldEvent = new DateTimeOffset(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+        var oldEvent = TestTimeConstants.BudgetEpoch;
 
         var result = state.ApplyRecover(5, oldEvent, now);
 

@@ -3,9 +3,9 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Domain.Options;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Pipeline.Tests;
 
@@ -128,8 +128,8 @@ public sealed class BudgetThrottleStageSpec : Akka.Hosting.TestKit.TestKit
 
 public sealed class WeightedBudgetGateSpec
 {
-    private static readonly DateTimeOffset Epoch = new(2026, 7, 12, 6, 0, 0, TimeSpan.Zero);
-    private readonly FakeTimeProvider _time = new(Epoch);
+    private static readonly DateTimeOffset Epoch = TestTimeConstants.PipelineEpoch;
+    private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(Epoch);
 
     [Fact]
     public void Acquires_immediately_when_tokens_available()
@@ -227,8 +227,8 @@ public sealed class WeightedBudgetGateSpec
             Latitude = 0,
             Longitude = 0,
         };
-        return new WeightedTarget(location, new Njord.Domain.Weather.WeatherModel("test"),
-            weight, new Njord.Domain.Weather.CycleId(Epoch));
+        return new WeightedTarget(location, new Njord.Weather.WeatherModel("test"),
+            weight, new Njord.Weather.CycleId(Epoch));
     }
 
     private sealed class FakeProvider(BudgetRate rate) : IBudgetProvider

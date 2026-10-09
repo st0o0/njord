@@ -27,7 +27,7 @@ internal sealed class AlertPresenter : IEnrichmentPresenter
         var availabilityTopic = TopicScheme.AvailabilityTopic(ctx.Mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * ctx.PollInterval.TotalSeconds);
 
-        var components = new JsonObject();
+        var specs = new List<SensorComponentSpec>();
 
         foreach (var alertType in Enum.GetValues<AlertType>())
         {
@@ -35,21 +35,18 @@ internal sealed class AlertPresenter : IEnrichmentPresenter
             var topic = TopicScheme.EnrichmentSubTopic(ctx.Mqtt.BaseTopic, location, TypeName, segment);
             var uniqueId = $"{deviceId}_{segment.Replace('-', '_')}";
 
-            components[segment.Replace('-', '_')] = new JsonObject
-            {
-                ["p"] = "sensor",
-                ["unique_id"] = uniqueId,
-                ["name"] = segment,
-                ["state_topic"] = topic,
-                ["expire_after"] = expireAfterSeconds,
-                ["value_template"] = "{{ value_json.severity }}",
-                ["json_attributes_topic"] = topic,
-                ["json_attributes_template"] = "{{ value_json | tojson }}",
-                ["availability"] = new JsonArray(
-                    new JsonObject { ["topic"] = availabilityTopic }),
-                ["availability_mode"] = "all",
-            };
+            specs.Add(new SensorComponentSpec(
+                segment.Replace('-', '_'),
+                uniqueId,
+                segment,
+                topic,
+                "{{ value_json.severity }}",
+                JsonAttributesTopic: topic,
+                JsonAttributesTemplate: "{{ value_json | tojson }}"));
         }
+
+        var components = new JsonObject();
+        DiscoveryPayloadBuilder.AddComponents(components, specs, availabilityTopic, expireAfterSeconds);
 
         return DiscoveryPayloadBuilder.BuildDeviceEnvelope(
             deviceId, location, TypeName, ctx.Version, components);

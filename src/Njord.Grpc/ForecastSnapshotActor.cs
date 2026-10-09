@@ -1,10 +1,10 @@
 using Akka.Cluster.Sharding;
 using Akka.Event;
 using Akka.Persistence;
-using Njord.Domain.Weather;
 using Njord.Messages.Common;
 using Njord.Messages.Snapshots;
 using Njord.Persistence;
+using Njord.Weather;
 
 namespace Njord.Grpc;
 
@@ -56,14 +56,14 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
         {
             Sender.Tell(
                 _forecast is not null
-                    ? new ForecastFound(_forecast)
-                    : (QueryForecastResponse)new ForecastNotFound(_entityId),
+                    ? new QueryForecastCompleted(_forecast)
+                    : (QueryForecastResponse)new QueryForecastNotAvailable(_entityId),
                 Self);
         });
 
         Command<SaveSnapshotSuccess>(success =>
         {
-            _log.Debug("Forecast snapshot saved (seqNr {0}) for {1}", success.Metadata.SequenceNr, _entityId);
+            _log.Debug("Forecast snapshot saved (seqNr {SequenceNr}) for {EntityId}", success.Metadata.SequenceNr, _entityId);
             if (success.Metadata.SequenceNr > 0)
             {
                 DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
@@ -72,13 +72,13 @@ public sealed class ForecastSnapshotActor : ReceivePersistentActor
 
         Command<SaveSnapshotFailure>(failure =>
         {
-            _log.Warning("Forecast snapshot save failed for {0}: {1}", _entityId, failure.Cause.Message);
+            _log.Warning(failure.Cause, "Forecast snapshot save failed for {EntityId}", _entityId);
         });
 
         Command<DeleteSnapshotsSuccess>(_ => { });
         Command<DeleteSnapshotsFailure>(failure =>
         {
-            _log.Warning("Old snapshot cleanup failed for {0}: {1}", _entityId, failure.Cause.Message);
+            _log.Warning(failure.Cause, "Old snapshot cleanup failed for {EntityId}", _entityId);
         });
     }
 }

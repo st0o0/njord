@@ -2,11 +2,10 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Messages.Pipeline;
 using Njord.Mqtt;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Pipeline.Tests;
 
@@ -17,7 +16,7 @@ public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
         builder.AddTestTimefactor();
     }
 
-    private static readonly DateTimeOffset Epoch = new(2026, 7, 12, 6, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Epoch = TestTimeConstants.PipelineEpoch;
 
     private IMaterializer Mat => Sys.Materializer();
 

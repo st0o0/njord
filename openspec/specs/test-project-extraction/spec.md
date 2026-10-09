@@ -3,7 +3,7 @@
 ### Requirement: Each feature library SHALL have a dedicated test project
 
 Every feature library (`Njord.Mqtt`, `Njord.Enrichment`, `Njord.Ingest`,
-`Njord.Sensors`) SHALL have a corresponding `Njord.<Name>.Tests` project
+`Njord.SensorHub`) SHALL have a corresponding `Njord.<Name>.Tests` project
 containing all specs for that library.
 
 #### Scenario: Mqtt specs live in Njord.Mqtt.Tests
@@ -18,9 +18,9 @@ containing all specs for that library.
 - **WHEN** listing test files for Ingest functionality
 - **THEN** `OpenMeteoClientSpec.cs` resides in `src/Njord.Ingest.Tests/`
 
-#### Scenario: Sensors specs live in Njord.Sensors.Tests
-- **WHEN** listing test files for Sensors functionality
-- **THEN** `SensorHubActorSpec.cs` resides in `src/Njord.Sensors.Tests/`
+#### Scenario: SensorHub specs live in Njord.SensorHub.Tests
+- **WHEN** listing test files for SensorHub functionality
+- **THEN** `SensorHubActorSpec.cs` resides in `src/Njord.SensorHub.Tests/`
 
 ### Requirement: Host test project SHALL contain only host-specific tests
 
@@ -30,7 +30,7 @@ and the Actors helper.
 
 #### Scenario: Njord.Tests has no Mqtt or Enrichment specs
 - **WHEN** listing files in `src/Njord.Tests/`
-- **THEN** no `Mqtt/` or `Enrichment/` or `Ingest/` or `Sensors/` subdirectories exist
+- **THEN** no `Mqtt/` or `Enrichment/` or `Ingest/` or `SensorHub/` subdirectories exist
 
 ### Requirement: All new test projects SHALL be in the solution
 

@@ -1,6 +1,6 @@
 using Njord.Compute.Analysis;
-using Njord.Domain.Sensors;
 using Njord.Messages.Egress;
+using Njord.Sensors;
 
 namespace Njord.Enrichment;
 

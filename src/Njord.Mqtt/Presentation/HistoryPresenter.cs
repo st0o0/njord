@@ -8,6 +8,14 @@ namespace Njord.Mqtt.Presentation;
 
 internal sealed class HistoryPresenter : IEnrichmentPresenter
 {
+    private static readonly (string Prefix, string Label)[] PerModelSensors =
+    [
+        ("mae_7d", "MAE 7d"),
+        ("mae_30d", "MAE 30d"),
+        ("weight", "weight"),
+        ("drift", "drift"),
+    ];
+
     private readonly IReadOnlyList<string> _models;
     private readonly bool _enabled;
 
@@ -28,88 +36,57 @@ internal sealed class HistoryPresenter : IEnrichmentPresenter
         var deviceId = DeviceId(location);
         var availabilityTopic = TopicScheme.AvailabilityTopic(ctx.Mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * ctx.PollInterval.TotalSeconds);
-        var modelIds = _models;
 
         var historyTopic = TopicScheme.EnrichmentTopic(ctx.Mqtt.BaseTopic, location, TypeName);
 
-        var components = new JsonObject();
+        var specs = new List<SensorComponentSpec>();
 
-        foreach (var modelId in modelIds)
+        foreach (var modelId in _models)
         {
             var slug = modelId.Replace('-', '_').ToLowerInvariant();
 
-            foreach (var (prefix, label) in new[] { ("mae_7d", "MAE 7d"), ("mae_30d", "MAE 30d"), ("weight", "weight"), ("drift", "drift") })
+            foreach (var (prefix, label) in PerModelSensors)
             {
                 var key = $"{prefix}_{slug}";
-                components[key] = new JsonObject
-                {
-                    ["p"] = "sensor",
-                    ["unique_id"] = $"{deviceId}_{key}",
-                    ["name"] = $"{label} {modelId}",
-                    ["state_topic"] = historyTopic,
-                    ["expire_after"] = expireAfterSeconds,
-                    ["value_template"] = $"{{{{ value_json.{key} }}}}",
-                    ["availability"] = new JsonArray(
-                        new JsonObject { ["topic"] = availabilityTopic }),
-                    ["availability_mode"] = "all",
-                };
+                specs.Add(new SensorComponentSpec(
+                    key, $"{deviceId}_{key}", $"{label} {modelId}", historyTopic, $"{{{{ value_json.{key} }}}}"));
             }
         }
 
-        components["seasonal_best"] = new JsonObject
-        {
-            ["p"] = "sensor",
-            ["unique_id"] = $"{deviceId}_seasonal_best",
-            ["name"] = "seasonal best model",
-            ["state_topic"] = historyTopic,
-            ["expire_after"] = expireAfterSeconds,
-            ["value_template"] = "{{ value_json.seasonal_best }}",
-            ["availability"] = new JsonArray(
-                new JsonObject { ["topic"] = availabilityTopic }),
-            ["availability_mode"] = "all",
-        };
+        specs.Add(new SensorComponentSpec(
+            "seasonal_best",
+            $"{deviceId}_seasonal_best",
+            "seasonal best model",
+            historyTopic,
+            "{{ value_json.seasonal_best }}"));
 
-        components["anomaly"] = new JsonObject
-        {
-            ["p"] = "binary_sensor",
-            ["unique_id"] = $"{deviceId}_anomaly",
-            ["name"] = "anomaly",
-            ["state_topic"] = historyTopic,
-            ["expire_after"] = expireAfterSeconds,
-            ["value_template"] = "{% if value_json.anomaly == true %}ON{% else %}OFF{% endif %}",
-            ["availability"] = new JsonArray(
-                new JsonObject { ["topic"] = availabilityTopic }),
-            ["availability_mode"] = "all",
-        };
+        specs.Add(new SensorComponentSpec(
+            "anomaly",
+            $"{deviceId}_anomaly",
+            "anomaly",
+            historyTopic,
+            "{% if value_json.anomaly == true %}ON{% else %}OFF{% endif %}",
+            Platform: "binary_sensor"));
 
-        components["anomaly_deviation"] = new JsonObject
-        {
-            ["p"] = "sensor",
-            ["unique_id"] = $"{deviceId}_anomaly_deviation",
-            ["name"] = "anomaly deviation",
-            ["state_topic"] = historyTopic,
-            ["unit_of_measurement"] = "σ",
-            ["expire_after"] = expireAfterSeconds,
-            ["value_template"] = "{{ value_json.anomaly_deviation }}",
-            ["availability"] = new JsonArray(
-                new JsonObject { ["topic"] = availabilityTopic }),
-            ["availability_mode"] = "all",
-        };
+        specs.Add(new SensorComponentSpec(
+            "anomaly_deviation",
+            $"{deviceId}_anomaly_deviation",
+            "anomaly deviation",
+            historyTopic,
+            "{{ value_json.anomaly_deviation }}",
+            Unit: "σ"));
 
-        components["weighted_temperature"] = new JsonObject
-        {
-            ["p"] = "sensor",
-            ["unique_id"] = $"{deviceId}_weighted_temperature",
-            ["name"] = "weighted temperature",
-            ["state_topic"] = historyTopic,
-            ["unit_of_measurement"] = "°C",
-            ["device_class"] = "temperature",
-            ["expire_after"] = expireAfterSeconds,
-            ["value_template"] = "{{ value_json.weighted_temperature }}",
-            ["availability"] = new JsonArray(
-                new JsonObject { ["topic"] = availabilityTopic }),
-            ["availability_mode"] = "all",
-        };
+        specs.Add(new SensorComponentSpec(
+            "weighted_temperature",
+            $"{deviceId}_weighted_temperature",
+            "weighted temperature",
+            historyTopic,
+            "{{ value_json.weighted_temperature }}",
+            Unit: "°C",
+            DeviceClass: "temperature"));
+
+        var components = new JsonObject();
+        DiscoveryPayloadBuilder.AddComponents(components, specs, availabilityTopic, expireAfterSeconds);
 
         return DiscoveryPayloadBuilder.BuildDeviceEnvelope(
             deviceId, location, TypeName, ctx.Version, components);

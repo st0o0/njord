@@ -1,29 +1,24 @@
 using Akka.Actor;
+using Akka.Event;
 using Akka.Hosting;
+using Akka.Persistence;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Configuration;
-using Njord.Domain.Weather;
 using Njord.Messages.Enrichment;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Enrichment.Tests;
 
-public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
+public sealed class ForecastHistoryActorSpec : NjordActorSpec
 {
-    private static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
-    private static readonly FakeTimeProvider Time = new(T0);
+    private static readonly DateTimeOffset T0 = TestTimeConstants.ForecastEpoch;
+    private static readonly FakeTimeProvider Time = TestTimeouts.AtEpoch(T0);
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
 
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(
         ["Weather"], [], []);
-
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
-    {
-        builder
-            .AddTestPersistence()
-            .AddTestTimefactor();
-    }
 
     private static ModelSnapshot MakeSnapshot()
     {
@@ -43,7 +38,7 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
         var actor = Sys.ActorOf(Props.Create(() =>
             new ForecastHistoryActor("lucerne", Options.Create(new EnrichmentOptions()), Parameters, Time)));
 
-        var response = await actor.Ask<QueryHistoryResult>(new QueryHistory("lucerne"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var response = await actor.Ask<QueryHistoryCompleted>(new QueryHistory("lucerne"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Empty(response.History.Records);
     }
 
@@ -55,7 +50,7 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
 
         actor.Tell(new RecordSnapshot("lucerne", MakeSnapshot()));
 
-        var response = await actor.Ask<QueryHistoryResult>(new QueryHistory("lucerne"), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+        var response = await actor.Ask<QueryHistoryCompleted>(new QueryHistory("lucerne"), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         var record = Assert.Single(response.History.Records);
         Assert.Equal("lucerne", record.Location);
     }
@@ -71,7 +66,40 @@ public sealed class ForecastHistoryActorSpec : Akka.Hosting.TestKit.TestKit
             actor.Tell(new RecordSnapshot("lucerne", MakeSnapshot()));
         }
 
-        var response = await actor.Ask<QueryHistoryResult>(new QueryHistory("lucerne"), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+        var response = await actor.Ask<QueryHistoryCompleted>(new QueryHistory("lucerne"), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(5, response.History.Records.Count);
     }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task Delete_messages_failure_is_logged_as_warning()
+    {
+        var warnings = CreateTestProbe();
+        Sys.EventStream.Subscribe(warnings, typeof(Warning));
+        var actor = CreateHistoryActor();
+
+        actor.Tell(new DeleteMessagesFailure(new InvalidOperationException("boom-messages"), 5));
+
+        var warning = await warnings.FishForMessageAsync<Warning>(
+            w => w.Message.ToString()!.Contains("Delete messages failed for forecast-history-lucerne"),
+            TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal("boom-messages", warning.Cause.Message);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task Delete_snapshots_failure_is_logged_as_warning()
+    {
+        var warnings = CreateTestProbe();
+        Sys.EventStream.Subscribe(warnings, typeof(Warning));
+        var actor = CreateHistoryActor();
+
+        actor.Tell(new DeleteSnapshotsFailure(new SnapshotSelectionCriteria(4), new InvalidOperationException("boom-snapshots")));
+
+        var warning = await warnings.FishForMessageAsync<Warning>(
+            w => w.Message.ToString()!.Contains("Delete snapshots failed for forecast-history-lucerne"),
+            TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal("boom-snapshots", warning.Cause.Message);
+    }
+    private IActorRef CreateHistoryActor() =>
+        Sys.ActorOf(Props.Create(() =>
+            new ForecastHistoryActor("lucerne", Options.Create(new EnrichmentOptions()), Parameters, Time)));
 }

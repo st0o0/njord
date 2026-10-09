@@ -1,10 +1,11 @@
 using Njord.Messages.Pipeline;
+using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;
 
 public sealed class ModelPollStateSpec
 {
-    private static readonly DateTimeOffset T0 = new(2026, 7, 12, 6, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset T0 = TestTimeConstants.PipelineEpoch;
     private static readonly TimeSpan DiscoveryInterval = TimeSpan.FromMinutes(20);
 
     [Fact]

@@ -3,8 +3,8 @@ using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
 using Njord.Core.Configuration;
 using Njord.Core.Enrichment;
-using Njord.Domain.Sensors;
 using Njord.Messages.Egress;
+using Njord.Sensors;
 
 namespace Njord.Enrichment.Features;
 

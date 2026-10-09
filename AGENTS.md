@@ -85,25 +85,33 @@ src/
   Njord.slnx
 
   # /Foundation/ — shared types, messages, persistence, computation, infrastructure
-  Njord.Domain/               # Pure weather + sensor records (no Njord references)
+  Njord.Weather/               # Pure weather records (no Njord references)
+  Njord.Sensors/               # Pure sensor records (no Njord references)
   Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references)
-  Njord.Messages/             # Actor message records (-> Domain)
-  Njord.Compute/              # Pure analysis computation (-> Domain only)
+  Njord.Messages/             # Actor message records (-> Weather, Sensors)
+  Njord.Compute/              # Pure analysis computation (-> Weather, Sensors only)
     Analysis/                 # Consensus, alerts, derived, trends, indices, history computers
     Configuration/            # Compute-parameter options (AlertOptions, HistoryOptions, IndexOptions)
   Njord.Core/                 # Options validators, diagnostics, actor keys,
-                              #   StreamSupervision (-> Domain, Messages, Persistence, Compute)
+                              #   StreamSupervision (-> Weather, Sensors, Messages, Persistence, Compute)
     Configuration/            # Validators, budget calculator
     Diagnostics/              # Metrics
 
   # /Domain/ — feature libraries (each -> Core only)
   Njord.Ingest/               # Open-Meteo client, DTOs, JSON source generator
-  Njord.Sensors/              # SensorHubActor
+  Njord.SensorHub/            # SensorHubActor
   Njord.Pipeline/             # Scheduler, budget, poll pipeline
   Njord.Egress/               # EgressActor, ModelStateActor, HorizonProjection
   Njord.Enrichment/           # Enrichment actor, compute-only features, ForecastHistoryActor
   Njord.Mqtt/                 # MQTT connection, discovery, state payloads, enrichment presenters
   Njord.Grpc/                 # gRPC services, snapshot actors, protos
+
+  # /Analysis/ — per-feature analysis libraries (each -> Core only, migration in progress)
+  Njord.Alerts/               # IAlertInput, AlertAnalyzer, AlertEvaluator, AlertOptions
+  Njord.Derived/              # IDerivedInput, DerivedAnalyzer
+  Njord.Trends/               # ITrendInput, TrendAnalyzer (stateless, previous via interface)
+  Njord.Indices/              # IIndexInput, IndexAnalyzer, IndexOptions
+  Njord.History/              # IHistoryInput, HistoryTracker, ForecastHistoryActor, HistoryOptions
 
   # Host
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
@@ -111,24 +119,31 @@ src/
     Health/
 
   # /Tests/ — one test project per production project
-  Njord.Domain.Tests/         # Weather + sensor record specs
+  Njord.Weather.Tests/        # Weather record specs
+  Njord.Sensors.Tests/        # Sensor record specs
   Njord.Persistence.Tests/    # DTO wire-format specs (Verify)
   Njord.Compute.Tests/        # Pure analysis computation specs (no Akka)
   Njord.Core.Tests/           # Configuration, Diagnostics, StreamConsumerActor
   Njord.Ingest.Tests/         # OpenMeteoClient specs
-  Njord.Sensors.Tests/        # SensorHub specs
+  Njord.SensorHub.Tests/      # SensorHub specs
   Njord.Pipeline.Tests/       # Scheduler, budget, poll stage specs
   Njord.Egress.Tests/         # Egress specs
   Njord.Enrichment.Tests/     # Enrichment feature + actor specs
   Njord.Mqtt.Tests/           # MQTT discovery, connection, egress, golden masters
   Njord.Grpc.Tests/           # gRPC service specs
+  Njord.Alerts.Tests/         # AlertAnalyzer specs
+  Njord.Derived.Tests/        # DerivedAnalyzer specs
+  Njord.Trends.Tests/         # TrendAnalyzer specs
+  Njord.Indices.Tests/        # IndexAnalyzer specs
+  Njord.History.Tests/        # HistoryTracker + ForecastHistoryActor specs
   Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
 
-Reference direction: Domain/Persistence <- Messages <- Compute <- Core <- feature libs
-(Ingest, Sensors, Grpc, Pipeline, Egress, Mqtt, Enrichment) <- host. Feature libs reference only Njord.Core (and
-below, including Compute transitively), never each other and never the host; they reach each other's actors
+Reference direction: Weather/Sensors/Persistence <- Messages <- Compute <- Core <- feature libs
+(Ingest, SensorHub, Grpc, Pipeline, Egress, Mqtt, Enrichment, Alerts, Derived, Trends,
+Indices, History) <- host. Feature libs reference only Njord.Core (and below, including
+Compute transitively), never each other and never the host; they reach each other's actors
 through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs`. Registration
 stays central in the host. Enforced by project references plus `Njord.Architecture.Tests/LayerReferenceSpec.cs` and the
 lateral/upward ArchUnit rules in `Njord.Architecture.Tests/ZoneArchitectureSpec.cs`.
@@ -153,8 +168,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 817 tests (Domain 70, Persistence 22, Compute 216, Core 122, Egress 6,
-Grpc 72, Pipeline 109, Mqtt 99, Enrichment 51, Ingest 15, Sensors 6, Architecture 29).
+Current total: 850 tests (Weather 59, Sensors 11, Persistence 22, Compute 216, Core 133,
+Egress 6, Grpc 78, Pipeline 109, Mqtt 99, Enrichment 51, Ingest 15, SensorHub 6, Architecture 31,
+Alerts 4, Derived 2, Trends 3, Indices 2, History 3).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -178,20 +194,9 @@ Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
 MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
 `Njord__Mqtt__Enabled=true` + `Njord__Mqtt__Host=...`.
 
-Slopwatch (local tool `slopwatch.cmd`, pinned in `.config/dotnet-tools.json`) runs
-from the **repo root**, not `src/`; baseline is `.slopwatch/baseline.json`:
-
-```powershell
-dotnet tool restore
-dotnet slopwatch analyze -d . --fail-on warning
-```
-
-Known limits (verified with 0.4.2): SW001 (disabled tests) only inspects files whose
-name matches `*Tests.cs`, so it does not see `[Fact(Skip = ...)]`, `[Theory(Skip = ...)]`
-or `[Ignore]` in this project's `*Spec.cs` files. `DisabledTestArchitectureSpec`
-(`src/Njord.Architecture.Tests`) guards against skipped or ignored tests instead.
-SW002 (`#pragma warning disable`) and SW003 (empty `catch`) do work. Use
-`--update-baseline` only with a written justification.
+`DisabledTestArchitectureSpec` (`src/Njord.Architecture.Tests`) guards against
+skipped or ignored tests (`[Fact(Skip = ...)]`, `[Theory(Skip = ...)]`, `[Ignore]`)
+across all `*Spec.cs` test files.
 
 OpenSpec checks (run from the repo root):
 
@@ -344,17 +349,16 @@ Rules apply to production code (`src/Njord/`).
 
 Known deviations: 21 existing `!.` uses on nullable results in the test projects
 (most in `Njord.Persistence.Tests/EnrichmentResultSerializationSpec.cs`,
-`Njord.Domain.Tests/Analysis/ConsensusComputerSpec.cs` and
+`Njord.Compute.Tests/Analysis/ConsensusComputerSpec.cs` and
 `Njord.Core.Tests/Configuration/ModelCoverageRegistrySpec.cs`), not counting the allowed
 `JsonNode` indexers; new code follows the rule.
 
 ## Metrics conventions
 
-- One `Meter("Njord")` behind `Diagnostics/NjordMetrics.Instance`.
-- Instruments are created by `AddXxx` extension methods on `NjordMetrics` in
-  `Diagnostics/*MetricsExtensions.cs`; actors/clients cache them as
-  `private static readonly` fields
-  (`NjordMetrics.Instance.AddMqttDedup()`).
+- One `Meter("Njord.<Domain>")` per feature library (Ingest, Pipeline, Mqtt,
+  Enrichment), owned by an `internal static class Telemetry` in that project with
+  `internal static readonly` instrument fields (`Telemetry.MqttDedup.Add(...)`).
+  New meters are registered in `CoreSetupContainer` (`NjordMeters`).
 - Names are `njord_<area>_<name>` in snake_case; counters end in `_total`,
   time histograms in `_seconds`. Keep tag cardinality bounded.
 - Metrics are exported via prometheus-net.

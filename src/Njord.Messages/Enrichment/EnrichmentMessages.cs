@@ -1,4 +1,4 @@
-using Njord.Domain.Weather;
+using Njord.Weather;
 
 namespace Njord.Messages.Enrichment;
 

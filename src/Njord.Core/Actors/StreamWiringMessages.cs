@@ -1,7 +1,7 @@
 using Akka.Streams;
-using Njord.Domain.Weather;
 using Njord.Messages.Egress;
 using Njord.Messages.Pipeline;
+using Njord.Weather;
 
 namespace Njord.Core.Actors;
 
@@ -24,3 +24,8 @@ public sealed record ModelStateSourceFailed(long RequestId, Exception Cause);
 public sealed record RequestEnrichmentSource(long RequestId);
 public sealed record EnrichmentSourceResponse(long RequestId, ISourceRef<EgressEvent> SourceRef);
 public sealed record EnrichmentSourceFailed(long RequestId, Exception Cause);
+
+// New pipeline output wiring (replaces ModelState + Enrichment sources)
+public sealed record RequestPipelineOutput(long RequestId);
+public sealed record PipelineOutputResponse(long RequestId, ISourceRef<EgressEvent> SourceRef);
+public sealed record PipelineOutputFailed(long RequestId, Exception Cause);

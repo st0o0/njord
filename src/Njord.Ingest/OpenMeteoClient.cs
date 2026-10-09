@@ -1,15 +1,12 @@
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
-using Njord.Core.Diagnostics;
 using Njord.Core.Ingest;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
+using Njord.Weather;
 
 namespace Njord.Ingest;
 
@@ -18,8 +15,6 @@ public sealed class OpenMeteoClient(
     ResolvedParameterSet parameters,
     IOptions<NjordOptions> options) : IOpenMeteoClient
 {
-    private static readonly Counter<long> FetchTotal = NjordMetrics.Instance.AddFetchTotal();
-    private static readonly Histogram<double> FetchDuration = NjordMetrics.Instance.AddFetchDuration();
 
     private readonly string _hourlyVariables = string.Join(",", parameters.Hourly.Select(p => p.ApiName));
     private readonly string _dailyVariables = string.Join(",", parameters.Daily.Select(p => p.ApiName));
@@ -103,10 +98,10 @@ public sealed class OpenMeteoClient(
                     FetchOutcome.Failure f => f.Reason.ToString().ToLowerInvariant(),
                     _ => "unknown",
                 };
-                FetchTotal.Add(1, locationTag, modelTag, new KeyValuePair<string, object?>("outcome", outcomeLabel));
+                Telemetry.FetchTotal.Add(1, locationTag, modelTag, new KeyValuePair<string, object?>("outcome", outcomeLabel));
                 if (outcome is FetchOutcome.Success)
                 {
-                    FetchDuration.Record(sw.Elapsed.TotalSeconds, locationTag, modelTag);
+                    Telemetry.FetchDuration.Record(sw.Elapsed.TotalSeconds, locationTag, modelTag);
                 }
             }
         }

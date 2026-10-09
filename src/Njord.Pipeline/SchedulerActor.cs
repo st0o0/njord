@@ -1,16 +1,14 @@
-using System.Diagnostics.Metrics;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Persistence;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Diagnostics;
 using Njord.Core.Health;
-using Njord.Domain.Weather;
 using Njord.Messages.Common;
 using Njord.Messages.Pipeline;
 using Njord.Persistence;
+using Njord.Weather;
 using Servus.Akka;
 using Servus.Resilience;
 
@@ -18,9 +16,6 @@ namespace Njord.Pipeline;
 
 public sealed class SchedulerActor : ReceivePersistentActor
 {
-    private static readonly Histogram<double> PollCycleDurationMetric = NjordMetrics.Instance.AddPollCycleDuration();
-    private static readonly Gauge<double> PollCycleModelsMetric = NjordMetrics.Instance.AddPollCycleModels();
-    private static readonly Counter<long> DataChangedMetric = NjordMetrics.Instance.AddDataChanged();
 
     public override string PersistenceId => "scheduler";
 
@@ -35,8 +30,6 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private IActorRef? _pipeline;
     private IActorRef? _lastTerminatedPipeline;
     private int _pipelineRetryCount;
-
-    public sealed record DataChanged(string Location, string ModelId, int Hash, DateTimeOffset Utc);
 
     private sealed record PipelineResolved(IActorRef Pipeline);
     private sealed record PipelineResolveFailed(Exception Cause);
@@ -166,8 +159,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
             return null;
         }
 
-        var location = _options.Locations.FirstOrDefault(l =>
-            l.Name.Equals(poll.Location, StringComparison.OrdinalIgnoreCase));
+        var location = _options.FindLocation(poll.Location);
         if (location is null)
         {
             return null;
@@ -180,9 +172,9 @@ public sealed class SchedulerActor : ReceivePersistentActor
     private void OnTriggerImmediatePoll(TriggerImmediatePoll msg)
     {
         var targets = new List<string>();
-        var locations = string.IsNullOrEmpty(msg.Location)
+        IEnumerable<LocationOptions> locations = string.IsNullOrEmpty(msg.Location)
             ? _options.Locations
-            : _options.Locations.Where(l => l.Name.Equals(msg.Location, StringComparison.OrdinalIgnoreCase));
+            : _options.FindLocation(msg.Location) is { } found ? [found] : [];
 
         foreach (var location in locations)
         {
@@ -200,29 +192,29 @@ public sealed class SchedulerActor : ReceivePersistentActor
             }
         }
 
-        _log.Info("TriggerImmediatePoll: triggered {Count} polls", targets.Count);
-        Sender.Tell(new TriggerImmediatePollResult(targets.Count, targets));
+        _log.Debug("TriggerImmediatePoll: triggered {Count} polls", targets.Count);
+        Sender.Tell(new TriggerImmediatePollCompleted(targets.Count, targets));
     }
 
     private void OnHashResult(HashResult result)
     {
         var key = Key(result.Location, result.ModelId);
         var now = _timeProvider.GetUtcNow();
-        var currentPollState = _state.States.GetValueOrDefault(key, ModelPollState.Initial(now));
+        var (updatedState, decision) = _state.ApplyHashResult(key, result.Hash, now, _options.DiscoveryInterval);
 
-        if (currentPollState.LastHash != result.Hash)
+        if (decision == HashDecision.Changed)
         {
             var evt = new DataChanged(result.Location, result.ModelId, result.Hash, now);
             var dto = SchedulerDtoMapping.ToDto(evt);
             Persist(dto, _ =>
             {
-                _state = _state.Apply(key, evt.Hash, evt.Utc, _options.DiscoveryInterval);
+                _state = updatedState;
                 _healthState.SetLastSuccessfulPoll(now);
-                DataChangedMetric.Add(1,
+                Telemetry.DataChanged.Add(1,
                     new KeyValuePair<string, object?>("location", result.Location),
                     new KeyValuePair<string, object?>("model", result.ModelId));
                 var updated = _state.States[key];
-                _log.Info(
+                _log.Debug(
                     "Data changed for {Location}/{Model} - phase={Phase}, cycle={Cycle}",
                     result.Location, result.ModelId, updated.Phase, updated.Cycle);
                 ScheduleNext(result.Location, result.ModelId);
@@ -232,7 +224,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
         }
         else
         {
-            _state = _state.ApplyMiss(key, now, _options.DiscoveryInterval);
+            _state = updatedState;
             _healthState.SetLastSuccessfulPoll(now);
             var updated = _state.States[key];
             _log.Debug(
@@ -259,15 +251,9 @@ public sealed class SchedulerActor : ReceivePersistentActor
                 break;
 
             case FetchFailureReason.RateLimited:
-                _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
-                var rateLimitState = _state.States[key];
-                if (rateLimitState.NextPollUtc < now + RateLimitMinDelay)
-                {
-                    rateLimitState = rateLimitState with { NextPollUtc = now + RateLimitMinDelay };
-                    _state = _state.SetPollState(key, rateLimitState);
-                }
+                _state = _state.ApplyRateLimited(key, now, RateLimitMinDelay, _options.DiscoveryInterval);
                 _log.Warning("Fetch rate-limited for {Location}/{Model} - next poll at {Next}",
-                    msg.Location, msg.ModelId, rateLimitState.NextPollUtc);
+                    msg.Location, msg.ModelId, _state.States[key].NextPollUtc);
                 ScheduleNext(msg.Location, msg.ModelId);
                 break;
 
@@ -283,8 +269,7 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
     private void RecordPollCompletion(string location, bool changed)
     {
-        var matchedLocation = _options.Locations
-            .FirstOrDefault(l => l.Name.Equals(location, StringComparison.OrdinalIgnoreCase));
+        var matchedLocation = _options.FindLocation(location);
         var total = matchedLocation is null
             ? 0
             : _options.Models.Union(matchedLocation.Models ?? [], StringComparer.OrdinalIgnoreCase).Count();
@@ -308,9 +293,9 @@ public sealed class SchedulerActor : ReceivePersistentActor
         {
             var durationSeconds = (now - tracker.Start).TotalSeconds;
             var locationTag = new KeyValuePair<string, object?>("location", location);
-            PollCycleDurationMetric.Record(durationSeconds, locationTag);
-            PollCycleModelsMetric.Record(tracker.Reported, locationTag);
-            _log.Info(
+            Telemetry.PollCycleDuration.Record(durationSeconds, locationTag);
+            Telemetry.PollCycleModels.Record(tracker.Reported, locationTag);
+            _log.Debug(
                 "Poll complete for {Location}: {Changed}/{Total} models changed in {Duration}ms",
                 location, tracker.Changed, total, durationSeconds * 1000);
             _pollCycles.Remove(location);

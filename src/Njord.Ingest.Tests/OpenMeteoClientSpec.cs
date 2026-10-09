@@ -1,15 +1,14 @@
 using System.Net;
 using System.Text;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Ingest.Tests;
 
 public sealed class OpenMeteoClientSpec
 {
-    private static readonly DateTimeOffset Run = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Run = TestTimeConstants.ForecastEpoch;
     private static readonly CycleId Cycle = new(Run);
     private static readonly LocationOptions Home = new() { Name = "home", Latitude = 47.05, Longitude = 8.31 };
     private static readonly WeatherModel IconEu = new("icon_eu");

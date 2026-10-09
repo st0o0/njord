@@ -1,9 +1,11 @@
-using Njord.Domain.Weather;
+using Njord.Weather;
 
 namespace Njord.Core.Configuration;
 
 public static class BudgetCalculator
 {
+    private static readonly TimeSpan Month = TimeSpan.FromDays(30);
+
     public static RequestBudget GetEffectiveBudget(NjordOptions options) =>
         options.BudgetOverride ?? RequestBudget.OpenMeteoFreeTier;
 
@@ -12,12 +14,13 @@ public static class BudgetCalculator
         var totalModelsPerCycle = options.Locations
             .Sum(loc => options.Models.Union(loc.Models ?? [], StringComparer.OrdinalIgnoreCase).Count());
 
-        var hourlyCount = CountHourlyParameters(options.Parameters);
-        var apiCallWeight = (int)Math.Ceiling(hourlyCount / 10.0);
+        var resolved = ParameterRegistry.Resolve(
+            options.Parameters.Groups,
+            options.Parameters.Extra,
+            options.Parameters.Exclude);
 
-        var callsPerCycle = totalModelsPerCycle * apiCallWeight;
-        var cyclesPerDay = (int)(TimeSpan.FromDays(1) / options.PollInterval);
-        var projectedMonthly = (long)callsPerCycle * cyclesPerDay * 30;
+        var cyclesPerMonth = Month.TotalMinutes / options.PollInterval.TotalMinutes;
+        var projectedMonthly = (long)Math.Round(totalModelsPerCycle * cyclesPerMonth * resolved.ApiCallWeight);
 
         var budget = GetEffectiveBudget(options);
         var usagePercent = budget.RequestsPerMonth > 0
@@ -35,13 +38,9 @@ public static class BudgetCalculator
             MonthlyLimit: budget.RequestsPerMonth,
             UsagePercent: usagePercent,
             WithinBudget: usagePercent <= 100,
-            Warnings: warnings);
-    }
-
-    public static int CountHourlyParameters(ParameterOptions paramOptions)
-    {
-        var resolved = ParameterRegistry.Resolve(paramOptions.Groups, paramOptions.Extra, paramOptions.Exclude);
-        return Math.Max(1, resolved.Hourly.Count);
+            Warnings: warnings,
+            TotalModelsPerCycle: totalModelsPerCycle,
+            ApiCallWeight: resolved.ApiCallWeight);
     }
 }
 
@@ -50,4 +49,6 @@ public sealed record BudgetValidation(
     long MonthlyLimit,
     double UsagePercent,
     bool WithinBudget,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings,
+    int TotalModelsPerCycle,
+    int ApiCallWeight);

@@ -2,19 +2,20 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Core.Configuration;
-using Njord.Domain.Weather;
 using Njord.Enrichment.Features;
 using Njord.Messages.Egress;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Enrichment.Tests.Features;
 
 public sealed class TrendEnrichmentSpec
 {
-    private static readonly DateTimeOffset T0 = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset T0 = TestTimeConstants.EnrichmentEpoch;
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
 
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-    private static readonly FakeTimeProvider Time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
+    private static readonly FakeTimeProvider Time = TestTimeouts.AtEpoch();
 
     private static TrendEnrichment CreateFeature(bool enabled = true)
     {

@@ -34,7 +34,7 @@ public sealed class EnrichmentSnapshotRecoverySpec : PersistenceTestKit
 
         var response = await recovered.Ask<QueryEnrichmentResponse>(
             new QueryEnrichment("lucerne", "indices"), TimeSpan.FromSeconds(3), ct);
-        Assert.IsType<EnrichmentFound>(response);
+        Assert.IsType<QueryEnrichmentCompleted>(response);
     }
 
     [Fact(Timeout = 5000)]
@@ -54,7 +54,7 @@ public sealed class EnrichmentSnapshotRecoverySpec : PersistenceTestKit
 
         var response = await recovered.Ask<QueryEnrichmentResponse>(
             new QueryEnrichment("lucerne", "indices"), TimeSpan.FromSeconds(3), ct);
-        var found = Assert.IsType<EnrichmentFound>(response);
+        var found = Assert.IsType<QueryEnrichmentCompleted>(response);
         Assert.IsType<IndexResult>(found.Result);
     }
 

@@ -8,17 +8,16 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Health;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Messages.Common;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Pipeline.Tests;
 
-public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
+public sealed class SchedulerActorSpec : NjordActorSpec
 {
-    private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
+    private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     private Akka.TestKit.TestProbe _offerProbe = null!;
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
@@ -35,10 +34,9 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
         services.AddSingleton(new NjordHealthState { ServiceStartedUtc = _time.GetUtcNow() });
     }
 
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
         builder
-            .AddTestPersistence()
             .WithActors((system, registry) =>
             {
                 _offerProbe = CreateTestProbe();
@@ -50,11 +48,10 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
             {
                 registry.Register<ISchedulerActor>(
                     system.ActorOf(resolver.Props<SchedulerActor>(), "scheduler"));
-            })
-            .AddTestTimefactor();
+            });
     }
 
-    private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
+    private IActorRef Scheduler => GetActor<ISchedulerActor>();
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Scheduler_sends_target_to_pipeline_on_startup()
@@ -90,7 +87,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
 
         Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.Transport, "test"));
 
-        var result = await Scheduler.Ask<TriggerImmediatePollResult>(
+        var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
@@ -103,7 +100,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
 
         Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.RateLimited, "test"));
 
-        var result = await Scheduler.Ask<TriggerImmediatePollResult>(
+        var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
     }
@@ -115,7 +112,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
 
         Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.ModelUnavailable, "test"));
 
-        var result = await Scheduler.Ask<TriggerImmediatePollResult>(
+        var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
     }
@@ -127,7 +124,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
 
         Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.MalformedPayload, "test"));
 
-        var result = await Scheduler.Ask<TriggerImmediatePollResult>(
+        var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
     }
@@ -137,7 +134,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        var result = await Scheduler.Ask<TriggerImmediatePollResult>(
+        var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
             new TriggerImmediatePoll("", ""), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, result.Count);
@@ -149,7 +146,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        var result = await Scheduler.Ask<TriggerImmediatePollResult>(
+        var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
             new TriggerImmediatePoll("nonexistent", ""), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.Count);
@@ -161,7 +158,7 @@ public sealed class SchedulerActorSpec : Akka.Hosting.TestKit.TestKit
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Scheduler.Ask<TriggerImmediatePollResult>(
+        await Scheduler.Ask<TriggerImmediatePollCompleted>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var latest = await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);

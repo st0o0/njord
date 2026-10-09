@@ -315,102 +315,61 @@ public static class EnrichmentProtoMapper
     public static ConsensusUpdate MapConsensus(ConsensusResult result)
     {
         var update = new ConsensusUpdate();
-
-        foreach (var paramConsensus in result.Parameters)
-        {
-            var proto = new ProtoParameterConsensus
-            {
-                Parameter = paramConsensus.Parameter.ApiName,
-                Unit = paramConsensus.Parameter.Unit,
-            };
-
-            foreach (var (horizonKey, horizon) in paramConsensus.ByHorizon)
-            {
-                var protoHorizon = new ProtoHorizonConsensus
-                {
-                    Horizon = horizonKey,
-                    AvailableModels = horizon.AvailableModels.Count,
-                };
-
-                if (horizon.Median is { } med)
-                {
-                    protoHorizon.Median = med;
-                }
-
-                if (horizon.TrimmedMean is { } tm)
-                {
-                    protoHorizon.TrimmedMean = tm;
-                }
-
-                if (horizon.Spread is { } s)
-                {
-                    protoHorizon.Spread = s;
-                }
-
-                if (horizon.Iqr is { } iqr)
-                {
-                    protoHorizon.Iqr = iqr;
-                }
-
-                if (horizon.Agreement is { } ag)
-                {
-                    protoHorizon.Agreement = ag;
-                }
-
-                proto.ByHorizon.Add(protoHorizon);
-            }
-
-            update.HourlyParameters.Add(proto);
-        }
-
-        foreach (var paramConsensus in result.DailyParameters)
-        {
-            var proto = new ProtoParameterConsensus
-            {
-                Parameter = paramConsensus.Parameter.ApiName,
-                Unit = paramConsensus.Parameter.Unit,
-            };
-
-            foreach (var (horizonKey, horizon) in paramConsensus.ByHorizon)
-            {
-                var protoHorizon = new ProtoHorizonConsensus
-                {
-                    Horizon = horizonKey,
-                    AvailableModels = horizon.AvailableModels.Count,
-                };
-
-                if (horizon.Median is { } med)
-                {
-                    protoHorizon.Median = med;
-                }
-
-                if (horizon.TrimmedMean is { } tm)
-                {
-                    protoHorizon.TrimmedMean = tm;
-                }
-
-                if (horizon.Spread is { } s)
-                {
-                    protoHorizon.Spread = s;
-                }
-
-                if (horizon.Iqr is { } iqr)
-                {
-                    protoHorizon.Iqr = iqr;
-                }
-
-                if (horizon.Agreement is { } ag)
-                {
-                    protoHorizon.Agreement = ag;
-                }
-
-                proto.ByHorizon.Add(protoHorizon);
-            }
-
-            update.DailyParameters.Add(proto);
-        }
-
+        update.HourlyParameters.AddRange(result.Parameters.Select(MapParameterConsensus));
+        update.DailyParameters.AddRange(result.DailyParameters.Select(MapParameterConsensus));
         return update;
+    }
+
+    private static ProtoParameterConsensus MapParameterConsensus(Njord.Compute.Analysis.ParameterConsensus paramConsensus)
+    {
+        var proto = new ProtoParameterConsensus
+        {
+            Parameter = paramConsensus.Parameter.ApiName,
+            Unit = paramConsensus.Parameter.Unit,
+        };
+
+        foreach (var (horizonKey, horizon) in paramConsensus.ByHorizon)
+        {
+            proto.ByHorizon.Add(MapHorizonConsensus(horizonKey, horizon));
+        }
+
+        return proto;
+    }
+
+    private static ProtoHorizonConsensus MapHorizonConsensus(string horizonKey, Njord.Compute.Analysis.HorizonConsensus horizon)
+    {
+        var protoHorizon = new ProtoHorizonConsensus
+        {
+            Horizon = horizonKey,
+            AvailableModels = horizon.AvailableModels.Count,
+        };
+
+        if (horizon.Median is { } med)
+        {
+            protoHorizon.Median = med;
+        }
+
+        if (horizon.TrimmedMean is { } tm)
+        {
+            protoHorizon.TrimmedMean = tm;
+        }
+
+        if (horizon.Spread is { } s)
+        {
+            protoHorizon.Spread = s;
+        }
+
+        if (horizon.Iqr is { } iqr)
+        {
+            protoHorizon.Iqr = iqr;
+        }
+
+        if (horizon.Agreement is { } ag)
+        {
+            protoHorizon.Agreement = ag;
+        }
+
+        return protoHorizon;
     }
 
     public static EnrichmentEvent? MapToEvent(

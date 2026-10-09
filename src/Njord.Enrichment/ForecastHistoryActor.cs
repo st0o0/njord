@@ -1,11 +1,10 @@
 using Akka.Event;
 using Akka.Persistence;
 using Microsoft.Extensions.Options;
-using Njord.Compute.Analysis;
 using Njord.Core.Configuration;
-using Njord.Domain.Weather;
 using Njord.Messages.Enrichment;
 using Njord.Persistence;
+using Njord.Weather;
 
 namespace Njord.Enrichment;
 
@@ -50,54 +49,19 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
         Command<SaveSnapshotFailure>(fail =>
             Context.GetLogger()
                 .Warning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
+        Command<DeleteMessagesFailure>(fail =>
+            Context.GetLogger()
+                .Warning(fail.Cause, "Delete messages failed for {PersistenceId}", PersistenceId));
+        Command<DeleteSnapshotsFailure>(fail =>
+            Context.GetLogger()
+                .Warning(fail.Cause, "Delete snapshots failed for {PersistenceId}", PersistenceId));
         Command<DeleteMessagesSuccess>(_ => { });
         Command<DeleteSnapshotSuccess>(_ => { });
     }
 
     private void OnRecordSnapshot(RecordSnapshot msg)
     {
-        var snapshot = msg.Snapshot;
-        var now = _timeProvider.GetUtcNow();
-
-        var consensusValues = new Dictionary<string, double?>();
-        var modelValuesList = new List<IReadOnlyDictionary<string, double?>>();
-
-        foreach (var (key, forecast) in snapshot.Entries)
-        {
-            if (key.Location != _location)
-            {
-                continue;
-            }
-
-            var values = new Dictionary<string, double?>();
-            var nearestPoint = forecast.Hourly.Points
-                .OrderBy(p => Math.Abs((p.ValidAt - now).TotalMinutes))
-                .FirstOrDefault();
-
-            if (nearestPoint is not null)
-            {
-                foreach (var param in _parameters.Hourly)
-                {
-                    values[param.ApiName] = nearestPoint.Get(param);
-                }
-            }
-
-            modelValuesList.Add(values);
-        }
-
-        if (modelValuesList.Count > 0)
-        {
-            foreach (var param in _parameters.Hourly)
-            {
-                var vals = modelValuesList
-                    .Select(v => v.GetValueOrDefault(param.ApiName))
-                    .ToList();
-                consensusValues[param.ApiName] = ConsensusComputer.ComputeMedian(vals);
-            }
-        }
-
-        var emptyModelValues = new Dictionary<WeatherModel, IReadOnlyDictionary<string, double?>>();
-        var evt = new ForecastRecord(now, _location, emptyModelValues, consensusValues);
+        var evt = _state.ProcessSnapshot(msg.Snapshot, _location, _parameters, _timeProvider.GetUtcNow());
         var dto = ForecastHistoryDtoMapping.ToDto(evt);
         Persist(dto, _ =>
         {

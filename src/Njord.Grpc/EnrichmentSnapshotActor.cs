@@ -54,14 +54,14 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
         {
             Sender.Tell(
                 _result is not null
-                    ? new EnrichmentFound(_result)
-                    : (QueryEnrichmentResponse)new EnrichmentNotFound(_entityId),
+                    ? new QueryEnrichmentCompleted(_result)
+                    : (QueryEnrichmentResponse)new QueryEnrichmentNotAvailable(_entityId),
                 Self);
         });
 
         Command<SaveSnapshotSuccess>(success =>
         {
-            _log.Debug("Enrichment snapshot saved (seqNr {0}) for {1}", success.Metadata.SequenceNr, _entityId);
+            _log.Debug("Enrichment snapshot saved (seqNr {SequenceNr}) for {EntityId}", success.Metadata.SequenceNr, _entityId);
             if (success.Metadata.SequenceNr > 0)
             {
                 DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
@@ -70,13 +70,13 @@ public sealed class EnrichmentSnapshotActor : ReceivePersistentActor
 
         Command<SaveSnapshotFailure>(failure =>
         {
-            _log.Warning("Enrichment snapshot save failed for {0}: {1}", _entityId, failure.Cause.Message);
+            _log.Warning(failure.Cause, "Enrichment snapshot save failed for {EntityId}", _entityId);
         });
 
         Command<DeleteSnapshotsSuccess>(_ => { });
         Command<DeleteSnapshotsFailure>(failure =>
         {
-            _log.Warning("Old snapshot cleanup failed for {0}: {1}", _entityId, failure.Cause.Message);
+            _log.Warning(failure.Cause, "Old snapshot cleanup failed for {EntityId}", _entityId);
         });
     }
 }

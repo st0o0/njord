@@ -7,7 +7,6 @@ public sealed class ForecastSnapshotDtoRoundtripSpec
     {
         var dto = new ForecastSnapshotDto
         {
-            Version = 1,
             Forecasts = new Dictionary<string, ModelForecastDto>
             {
                 ["lucerne/icon_d2"] = new()
@@ -50,7 +49,6 @@ public sealed class ForecastSnapshotDtoRoundtripSpec
 
         var result = PersistenceRoundtripHelper.Roundtrip(dto);
 
-        Assert.Equal(dto.Version, result.Version);
         var forecast = Assert.Single(result.Forecasts);
         Assert.Equal("lucerne/icon_d2", forecast.Key);
         Assert.Equal("icon_d2", forecast.Value.ModelId);

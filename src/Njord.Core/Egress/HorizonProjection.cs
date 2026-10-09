@@ -1,5 +1,5 @@
 using System.Text.Json.Nodes;
-using Njord.Domain.Weather;
+using Njord.Weather;
 
 namespace Njord.Core.Egress;
 
@@ -13,16 +13,13 @@ public static class HorizonProjection
         DateTimeOffset anchorTime,
         int? maxForecastHours = null)
     {
-        var effectiveDays = maxForecastHours.HasValue
-            ? Math.Min(forecastDays, (int)Math.Ceiling(maxForecastHours.Value / 24.0))
-            : forecastDays;
-
+        var effectiveDays = EffectiveDays(forecastDays, maxForecastHours);
         var result = new Dictionary<string, string>(horizons.Count + effectiveDays);
 
         var pointsByValidAt = forecast.Hourly.Points.ToDictionary(p => p.ValidAt);
         foreach (var hours in horizons)
         {
-            if (maxForecastHours.HasValue && hours > maxForecastHours.Value)
+            if (!IsHorizonApplicable(hours, maxForecastHours))
             {
                 continue;
             }
@@ -33,19 +30,10 @@ public static class HorizonProjection
                 continue;
             }
 
-            var entry = new JsonObject();
-            foreach (var parameter in parameters.Hourly)
+            var payload = ToHourlyPayload(point, parameters);
+            if (payload is not null)
             {
-                var value = point?.Get(parameter);
-                if (value.HasValue)
-                {
-                    entry[parameter.JsonKey] = value.Value;
-                }
-            }
-
-            if (entry.Count > 0)
-            {
-                result[$"h{hours}"] = entry.ToJsonString();
+                result[$"h{hours}"] = payload;
             }
         }
 
@@ -59,33 +47,62 @@ public static class HorizonProjection
                 continue;
             }
 
-            var entry = new JsonObject();
-            foreach (var parameter in parameters.Daily)
+            var payload = ToDailyPayload(dailyPoint, parameters);
+            if (payload is not null)
             {
-                if (parameter.ValueType == ParameterValueType.TimeString)
-                {
-                    var str = dailyPoint?.GetMeta(parameter);
-                    if (str is not null)
-                    {
-                        entry[parameter.JsonKey] = JsonValue.Create(str);
-                    }
-                }
-                else
-                {
-                    var num = dailyPoint?.GetNumeric(parameter);
-                    if (num.HasValue)
-                    {
-                        entry[parameter.JsonKey] = JsonValue.Create(num.Value);
-                    }
-                }
-            }
-
-            if (entry.Count > 0)
-            {
-                result[$"d{d}"] = entry.ToJsonString();
+                result[$"d{d}"] = payload;
             }
         }
 
         return result;
+    }
+
+    public static int EffectiveDays(int forecastDays, int? maxForecastHours) =>
+        maxForecastHours.HasValue
+            ? Math.Min(forecastDays, (int)Math.Ceiling(maxForecastHours.Value / 24.0))
+            : forecastDays;
+
+    public static bool IsHorizonApplicable(int hours, int? maxForecastHours) =>
+        !maxForecastHours.HasValue || hours <= maxForecastHours.Value;
+
+    public static string? ToHourlyPayload(ForecastPoint point, ResolvedParameterSet parameters)
+    {
+        var entry = new JsonObject();
+        foreach (var parameter in parameters.Hourly)
+        {
+            var value = point.Get(parameter);
+            if (value.HasValue)
+            {
+                entry[parameter.JsonKey] = value.Value;
+            }
+        }
+
+        return entry.Count > 0 ? entry.ToJsonString() : null;
+    }
+
+    public static string? ToDailyPayload(DailyForecastPoint point, ResolvedParameterSet parameters)
+    {
+        var entry = new JsonObject();
+        foreach (var parameter in parameters.Daily)
+        {
+            if (parameter.ValueType == ParameterValueType.TimeString)
+            {
+                var str = point.GetMeta(parameter);
+                if (str is not null)
+                {
+                    entry[parameter.JsonKey] = JsonValue.Create(str);
+                }
+            }
+            else
+            {
+                var num = point.GetNumeric(parameter);
+                if (num.HasValue)
+                {
+                    entry[parameter.JsonKey] = JsonValue.Create(num.Value);
+                }
+            }
+        }
+
+        return entry.Count > 0 ? entry.ToJsonString() : null;
     }
 }

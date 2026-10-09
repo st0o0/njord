@@ -9,6 +9,12 @@ public sealed record SchedulerState(ImmutableDictionary<string, ModelPollState> 
     public static readonly SchedulerState Empty = new(ImmutableDictionary<string, ModelPollState>.Empty);
 }
 
+public enum HashDecision
+{
+    Changed,
+    Miss,
+}
+
 public static class SchedulerStateExtensions
 {
     public static SchedulerState Apply(
@@ -45,6 +51,34 @@ public static class SchedulerStateExtensions
         return state with { States = state.States.SetItem(key, updated) };
     }
 
+    public static (SchedulerState State, HashDecision Decision) ApplyHashResult(
+        this SchedulerState state,
+        string key,
+        int hash,
+        DateTimeOffset now,
+        TimeSpan discoveryInterval)
+    {
+        var pollState = state.States.GetValueOrDefault(key, ModelPollState.Initial(now));
+        return pollState.LastHash != hash
+            ? (state.Apply(key, hash, now, discoveryInterval), HashDecision.Changed)
+            : (state.ApplyMiss(key, now, discoveryInterval), HashDecision.Miss);
+    }
+
+    public static SchedulerState ApplyRateLimited(
+        this SchedulerState state,
+        string key,
+        DateTimeOffset now,
+        TimeSpan minDelay,
+        TimeSpan discoveryInterval)
+    {
+        var failed = state.ApplyTransientFailure(key, now, discoveryInterval);
+        var pollState = failed.States[key];
+        var floor = now + minDelay;
+        return pollState.NextPollUtc < floor
+            ? failed.SetPollState(key, pollState with { NextPollUtc = floor })
+            : failed;
+    }
+
     public static SchedulerState SetPollState(
         this SchedulerState state,
         string key,
@@ -64,7 +98,7 @@ public static class SchedulerStateExtensions
         return state with { States = state.States.SetItem(key, ModelPollState.Initial(now)) };
     }
 
-    public static QueryPollStatesResult GetSnapshot(this SchedulerState state)
+    public static QueryPollStatesCompleted GetSnapshot(this SchedulerState state)
     {
         var entries = state.States.Select(kvp =>
         {
@@ -80,7 +114,7 @@ public static class SchedulerStateExtensions
                 s.Cycle is not null ? (long)s.Cycle.Value.TotalSeconds : null);
         }).ToList();
 
-        return new QueryPollStatesResult(entries);
+        return new QueryPollStatesCompleted(entries);
     }
 
     public static SchedulerState ApplyRecover(

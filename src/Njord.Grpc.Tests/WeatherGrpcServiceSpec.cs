@@ -6,18 +6,17 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Grpc.V2;
 using Njord.Messages.Snapshots;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Grpc.Tests;
 
 public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 {
-    private static readonly DateTimeOffset Anchor = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
-    private readonly FakeTimeProvider _time = new(Anchor);
+    private static readonly DateTimeOffset Anchor = TestTimeConstants.BudgetEpoch;
+    private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(Anchor);
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
@@ -131,7 +130,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetEnrichments_WithConsensusResult_without_ComputedAt_falls_back_to_wall_clock()
     {
-        var timeProvider = new FakeTimeProvider(Anchor);
+        var timeProvider = TestTimeouts.AtEpoch(Anchor);
         var consensus = new ConsensusResult([]);
         IReadOnlyList<(string TypeName, object Result)> results = [("consensus", (object)consensus)];
         var actor = Sys.ActorOf(Props.Create(() => new FakeEnrichmentActor(results)));
@@ -149,8 +148,8 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     public async Task GetEnrichments_WithConsensusResult_uses_ComputedAt_not_query_time()
     {
         var computationTime = new DateTimeOffset(2026, 7, 15, 6, 0, 0, TimeSpan.Zero);
-        var queryTime = new DateTimeOffset(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
-        var timeProvider = new FakeTimeProvider(queryTime);
+        var queryTime = TestTimeConstants.BudgetEpoch;
+        var timeProvider = TestTimeouts.AtEpoch(queryTime);
         var consensus = new ConsensusResult([], [], computationTime);
         IReadOnlyList<(string TypeName, object Result)> results = [("consensus", (object)consensus)];
         var actor = Sys.ActorOf(Props.Create(() => new FakeEnrichmentActor(results)));
@@ -226,7 +225,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public EmptyForecastActor()
         {
-            Receive<QueryForecast>(msg => Sender.Tell(new ForecastNotFound(msg.Location + "|" + msg.ModelId), Self));
+            Receive<QueryForecast>(msg => Sender.Tell(new QueryForecastNotAvailable(msg.Location + "|" + msg.ModelId), Self));
         }
     }
 
@@ -234,7 +233,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakeForecastActor(ModelForecast forecast)
         {
-            Receive<QueryForecast>(_ => Sender.Tell(new ForecastFound(forecast), Self));
+            Receive<QueryForecast>(_ => Sender.Tell(new QueryForecastCompleted(forecast), Self));
         }
     }
 
@@ -242,7 +241,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public EmptyEnrichmentActor()
         {
-            Receive<QueryEnrichment>(msg => Sender.Tell(new EnrichmentNotFound(msg.Location + "|" + msg.TypeName), Self));
+            Receive<QueryEnrichment>(msg => Sender.Tell(new QueryEnrichmentNotAvailable(msg.Location + "|" + msg.TypeName), Self));
         }
     }
 
@@ -254,9 +253,9 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             Receive<QueryEnrichment>(msg =>
             {
                 if (lookup.TryGetValue(msg.TypeName, out var result))
-                    Sender.Tell(new EnrichmentFound(result), Self);
+                    Sender.Tell(new QueryEnrichmentCompleted(result), Self);
                 else
-                    Sender.Tell(new EnrichmentNotFound(msg.Location + "|" + msg.TypeName), Self);
+                    Sender.Tell(new QueryEnrichmentNotAvailable(msg.Location + "|" + msg.TypeName), Self);
             });
         }
     }

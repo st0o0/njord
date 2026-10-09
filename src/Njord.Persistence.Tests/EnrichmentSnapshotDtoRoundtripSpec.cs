@@ -7,7 +7,6 @@ public sealed class EnrichmentSnapshotDtoRoundtripSpec
     {
         var dto = new EnrichmentSnapshotDto
         {
-            Version = 1,
             Enrichments = new Dictionary<string, EnrichmentEntryDto>
             {
                 ["lucerne"] = new()
@@ -25,7 +24,6 @@ public sealed class EnrichmentSnapshotDtoRoundtripSpec
 
         var result = PersistenceRoundtripHelper.Roundtrip(dto);
 
-        Assert.Equal(dto.Version, result.Version);
         Assert.Equal(2, result.Enrichments.Count);
 
         var lucerne = result.Enrichments["lucerne"];

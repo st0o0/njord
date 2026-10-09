@@ -1,5 +1,6 @@
 using Njord.Compute.Analysis;
-using Njord.Domain.Weather;
+using Njord.Tests.Shared;
+using Njord.Weather;
 using DomainAlert = Njord.Compute.Analysis.Alert;
 using DomainAlertSeverity = Njord.Compute.Analysis.AlertSeverity;
 using DomainAlertType = Njord.Compute.Analysis.AlertType;
@@ -233,7 +234,7 @@ public sealed class EnrichmentProtoMapperSpec
             new DomainAlert(DomainAlertType.Heat, DomainAlertSeverity.Yellow, 0.75,
                 new Dictionary<string, object?>()),
         ]);
-        var updatedAt = new DateTimeOffset(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+        var updatedAt = TestTimeConstants.BudgetEpoch;
 
         var evt = EnrichmentProtoMapper.MapToEvent("lucerne", "alerts", alertResult, updatedAt);
 
@@ -297,7 +298,7 @@ public sealed class EnrichmentProtoMapperSpec
             new Dictionary<string, DomainHorizonConsensus> { ["d0"] = horizonConsensus });
 
         var result = new ConsensusResult([hourlyParam], [dailyParam]);
-        var updatedAt = new DateTimeOffset(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+        var updatedAt = TestTimeConstants.BudgetEpoch;
 
         var evt = EnrichmentProtoMapper.MapToEvent("lucerne", "consensus", result, updatedAt);
 
@@ -313,7 +314,7 @@ public sealed class EnrichmentProtoMapperSpec
     public void MapToEvent_should_return_null_for_unknown_type_name()
     {
         var result = new AlertResult("lucerne", []);
-        var evt = EnrichmentProtoMapper.MapToEvent("lucerne", "unknown", result, new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
+        var evt = EnrichmentProtoMapper.MapToEvent("lucerne", "unknown", result, TestTimeConstants.PipelineEpoch);
 
         Assert.Null(evt);
     }

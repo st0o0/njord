@@ -1,14 +1,15 @@
 using Akka.Actor;
 using Akka.Persistence.TestKit;
-using Njord.Domain.Weather;
 using Njord.Messages.Common;
 using Njord.Messages.Snapshots;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Grpc.Tests;
 
 public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
 {
-    private static readonly DateTimeOffset TestTime = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset TestTime = TestTimeConstants.BudgetEpoch;
     private const string EntityId = "lucerne|icon_d2";
 
     private IActorRef CreateActor() =>
@@ -42,7 +43,7 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
 
         var response = await recovered.Ask<QueryForecastResponse>(
             new QueryForecast("lucerne", "icon_d2"), TimeSpan.FromSeconds(3), ct);
-        Assert.IsType<ForecastFound>(response);
+        Assert.IsType<QueryForecastCompleted>(response);
     }
 
     [Fact(Timeout = 5000)]
@@ -57,7 +58,7 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
 
         var response = await recovered.Ask<QueryForecastResponse>(
             new QueryForecast("lucerne", "icon_d2"), TimeSpan.FromSeconds(3), ct);
-        Assert.IsType<ForecastNotFound>(response);
+        Assert.IsType<QueryForecastNotAvailable>(response);
     }
 
     [Fact(Timeout = 5000)]
@@ -77,7 +78,7 @@ public sealed class ForecastSnapshotRecoverySpec : PersistenceTestKit
 
         var response = await recovered.Ask<QueryForecastResponse>(
             new QueryForecast("lucerne", "icon_d2"), TimeSpan.FromSeconds(3), ct);
-        var found = Assert.IsType<ForecastFound>(response);
+        var found = Assert.IsType<QueryForecastCompleted>(response);
         Assert.Equal("icon_d2", found.Forecast.Model.Id);
     }
 

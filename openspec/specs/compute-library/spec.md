@@ -1,15 +1,13 @@
 ## Purpose
 
 Pure mathematical computation library extracted from Njord.Core, holding all weather analysis types with zero Akka/DI dependencies.
-
 ## Requirements
-
 ### Requirement: Njord.Compute is a pure computation library
-The solution SHALL contain a `Njord.Compute` class library that holds all weather analysis computation types (consensus, alerts, derived values, trends, indices, history, time-slice aggregation, preference resolution). The library SHALL reference only `Njord.Domain` — no Akka, no DI, no ASP.NET dependencies.
+The solution SHALL contain a `Njord.Compute` class library that holds all weather analysis computation types (consensus, alerts, derived values, trends, indices, history, time-slice aggregation, preference resolution). The library SHALL reference only `Njord.Weather` and `Njord.Sensors` — no Akka, no DI, no ASP.NET dependencies.
 
-#### Scenario: Compute references only Domain
+#### Scenario: Compute references only Weather and Sensors
 - **WHEN** `Njord.Compute.csproj` is inspected
-- **THEN** its only `ProjectReference` SHALL be `Njord.Domain`
+- **THEN** its only `ProjectReference`s SHALL be `Njord.Weather` and `Njord.Sensors`
 
 #### Scenario: Compute contains no Akka types
 - **WHEN** `Njord.Compute` is built
@@ -51,3 +49,24 @@ The solution SHALL contain a `Njord.Compute.Tests` executable test project with 
 #### Scenario: All Analysis specs moved
 - **WHEN** `Njord.Core.Tests` is inspected
 - **THEN** the `Analysis/` directory SHALL NOT exist
+
+### Requirement: Repeated horizon-scan and threshold-classification shapes are shared
+Alert computations in `AlertEvaluator` that scan a parameter's `ByHorizon` consensus data
+up to a maximum-hours cutoff to find an extreme median value, the earliest qualifying
+hour, and an agreement list SHALL use one shared helper for that scan instead of a
+per-alert-type copy of the loop. Alert computations that classify an extreme value against
+a 3-tier threshold list into an `AlertSeverity` SHALL use one shared classification helper
+instead of a per-alert-type copy of the switch expression.
+
+#### Scenario: New alert type reuses the shared scan and classification helpers
+- **WHEN** a new alert type is added to `AlertEvaluator`
+- **THEN** its implementation calls the shared horizon-scan helper and the shared
+  threshold-classification helper, and does not introduce a new copy of either loop/switch
+  shape
+
+#### Scenario: Existing alert results are unchanged
+- **WHEN** any existing alert type's evaluation method is migrated to use the shared
+  helpers
+- **THEN** its computed severity, confidence, and earliest-qualifying-hour for every
+  existing `Njord.Compute.Tests` case remain identical to the pre-migration result
+

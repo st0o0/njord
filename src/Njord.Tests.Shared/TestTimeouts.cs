@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Time.Testing;
+
 namespace Njord.Tests.Shared;
 
 public static class TestTimeouts
@@ -9,4 +11,7 @@ public static class TestTimeouts
 
     // Explicit upper bound for AwaitAssert/AwaitCondition in hosted specs; below Hosted.
     public static readonly TimeSpan AwaitAssertMax = TimeSpan.FromSeconds(15);
+
+    public static FakeTimeProvider AtEpoch(DateTimeOffset? offset = null)
+        => new(offset ?? TestTimeConstants.PipelineEpoch);
 }

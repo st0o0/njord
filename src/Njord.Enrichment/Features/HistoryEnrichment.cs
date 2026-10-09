@@ -1,4 +1,3 @@
-using System.Diagnostics.Metrics;
 using Akka;
 using Akka.Actor;
 using Akka.Hosting;
@@ -10,18 +9,15 @@ using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Diagnostics;
 using Njord.Core.Enrichment;
-using Njord.Domain.Weather;
 using Njord.Messages.Egress;
 using Njord.Messages.Enrichment;
+using Njord.Weather;
 
 namespace Njord.Enrichment.Features;
 
 internal sealed class HistoryEnrichment : IActorEnrichment
 {
-    private static readonly Gauge<double> HistoryMae = NjordMetrics.Instance.AddHistoryMae();
-    private static readonly Gauge<double> HistoryModelWeight = NjordMetrics.Instance.AddHistoryModelWeight();
     private readonly NjordOptions _njordOptions;
     private readonly ResolvedParameterSet _parameters;
     private readonly TimeProvider _timeProvider;
@@ -71,7 +67,7 @@ internal sealed class HistoryEnrichment : IActorEnrichment
                 var events = new List<EgressEvent>();
                 foreach (var location in locations)
                 {
-                    var response = await historyRegion.Ask<QueryHistoryResult>(
+                    var response = await historyRegion.Ask<QueryHistoryCompleted>(
                         new QueryHistory(location), TimeSpan.FromSeconds(5));
                     var result = computer.Compute(
                         response.History, snapshot, location, parameters, timeProvider, historyOptions);
@@ -91,13 +87,13 @@ internal sealed class HistoryEnrichment : IActorEnrichment
         {
             if (mae.HasValue)
             {
-                HistoryMae.Record(mae.Value, locationTag,
+                Telemetry.HistoryMae.Record(mae.Value, locationTag,
                     new KeyValuePair<string, object?>("model", model.Id));
             }
         }
         foreach (var (model, weight) in result.Weights)
         {
-            HistoryModelWeight.Record(weight, locationTag,
+            Telemetry.HistoryModelWeight.Record(weight, locationTag,
                 new KeyValuePair<string, object?>("model", model.Id));
         }
     }

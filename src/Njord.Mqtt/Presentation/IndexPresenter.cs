@@ -13,6 +13,15 @@ internal sealed class IndexPresenter : IEnrichmentPresenter
     private static readonly string[] ScoreSensors =
         ["laundry", "outdoor", "running", "cycling", "bbq", "irrigation", "solar", "night_ventilation"];
 
+    private static readonly string[] EnvelopeSuffixes = ["min", "max", "confidence"];
+
+    private static readonly (string Key, string Name, string Unit)[] NumericSensors =
+    [
+        ("frost_hours", "frost in", "h"),
+        ("frost_confidence", "frost confidence", ""),
+        ("vpd_kpa", "VPD", "kPa"),
+    ];
+
     private readonly bool _enabled;
 
     public string TypeName => EnrichmentTypeNames.Indices;
@@ -32,7 +41,7 @@ internal sealed class IndexPresenter : IEnrichmentPresenter
         var availabilityTopic = TopicScheme.AvailabilityTopic(ctx.Mqtt.BaseTopic);
         var expireAfterSeconds = (int)(2 * ctx.PollInterval.TotalSeconds);
 
-        var components = new JsonObject();
+        var specs = new List<SensorComponentSpec>();
 
         foreach (var dayOffset in DayOffsets)
         {
@@ -41,96 +50,60 @@ internal sealed class IndexPresenter : IEnrichmentPresenter
             foreach (var key in ScoreSensors)
             {
                 var compKey = $"{key}_{dayOffset}";
-                components[compKey] = new JsonObject
-                {
-                    ["p"] = "sensor",
-                    ["unique_id"] = $"{deviceId}_{compKey}",
-                    ["name"] = $"{key.Replace('_', ' ')} {dayOffset}",
-                    ["state_topic"] = dayTopic,
-                    ["expire_after"] = expireAfterSeconds,
-                    ["value_template"] = $"{{{{ value_json.{key} }}}}",
-                    ["availability"] = new JsonArray(
-                        new JsonObject { ["topic"] = availabilityTopic }),
-                    ["availability_mode"] = "all",
-                };
+                specs.Add(new SensorComponentSpec(
+                    compKey,
+                    $"{deviceId}_{compKey}",
+                    $"{key.Replace('_', ' ')} {dayOffset}",
+                    dayTopic,
+                    $"{{{{ value_json.{key} }}}}"));
             }
 
             foreach (var key in ScoreSensors)
             {
-                foreach (var suffix in new[] { "min", "max", "confidence" })
+                foreach (var suffix in EnvelopeSuffixes)
                 {
                     var envelopeKey = $"{key}_{suffix}_{dayOffset}";
-                    components[envelopeKey] = new JsonObject
-                    {
-                        ["p"] = "sensor",
-                        ["unique_id"] = $"{deviceId}_{envelopeKey}",
-                        ["name"] = $"{key.Replace('_', ' ')} {suffix} {dayOffset}",
-                        ["state_topic"] = dayTopic,
-                        ["expire_after"] = expireAfterSeconds,
-                        ["value_template"] = $"{{{{ value_json.{key}_{suffix} }}}}",
-                        ["availability"] = new JsonArray(
-                            new JsonObject { ["topic"] = availabilityTopic }),
-                        ["availability_mode"] = "all",
-                    };
+                    specs.Add(new SensorComponentSpec(
+                        envelopeKey,
+                        $"{deviceId}_{envelopeKey}",
+                        $"{key.Replace('_', ' ')} {suffix} {dayOffset}",
+                        dayTopic,
+                        $"{{{{ value_json.{key}_{suffix} }}}}"));
                 }
             }
 
             var hoursKey = $"hours_included_{dayOffset}";
-            components[hoursKey] = new JsonObject
-            {
-                ["p"] = "sensor",
-                ["unique_id"] = $"{deviceId}_{hoursKey}",
-                ["name"] = $"hours included {dayOffset}",
-                ["state_topic"] = dayTopic,
-                ["expire_after"] = expireAfterSeconds,
-                ["value_template"] = "{{ value_json.hours_included }}",
-                ["availability"] = new JsonArray(
-                    new JsonObject { ["topic"] = availabilityTopic }),
-                ["availability_mode"] = "all",
-            };
+            specs.Add(new SensorComponentSpec(
+                hoursKey,
+                $"{deviceId}_{hoursKey}",
+                $"hours included {dayOffset}",
+                dayTopic,
+                "{{ value_json.hours_included }}"));
         }
 
         var d0Topic = TopicScheme.EnrichmentSubTopic(ctx.Mqtt.BaseTopic, location, TypeName, "d0");
 
-        foreach (var (key, name, unit) in new (string, string, string)[]
-                 {
-                     ("frost_hours", "frost in", "h"),
-                     ("frost_confidence", "frost confidence", ""),
-                     ("vpd_kpa", "VPD", "kPa"),
-                 })
+        foreach (var (key, name, unit) in NumericSensors)
         {
-            var comp = new JsonObject
-            {
-                ["p"] = "sensor",
-                ["unique_id"] = $"{deviceId}_{key}",
-                ["name"] = name,
-                ["state_topic"] = d0Topic,
-                ["expire_after"] = expireAfterSeconds,
-                ["value_template"] = $"{{{{ value_json.{key} }}}}",
-                ["availability"] = new JsonArray(
-                    new JsonObject { ["topic"] = availabilityTopic }),
-                ["availability_mode"] = "all",
-            };
-            if (!string.IsNullOrEmpty(unit))
-            {
-                comp["unit_of_measurement"] = unit;
-            }
-
-            components[key] = comp;
+            specs.Add(new SensorComponentSpec(
+                key,
+                $"{deviceId}_{key}",
+                name,
+                d0Topic,
+                $"{{{{ value_json.{key} }}}}",
+                Unit: string.IsNullOrEmpty(unit) ? null : unit,
+                MeasurementLast: true));
         }
 
-        components["vpd_category"] = new JsonObject
-        {
-            ["p"] = "sensor",
-            ["unique_id"] = $"{deviceId}_vpd_category",
-            ["name"] = "VPD category",
-            ["state_topic"] = d0Topic,
-            ["expire_after"] = expireAfterSeconds,
-            ["value_template"] = "{{ value_json.vpd_category }}",
-            ["availability"] = new JsonArray(
-                new JsonObject { ["topic"] = availabilityTopic }),
-            ["availability_mode"] = "all",
-        };
+        specs.Add(new SensorComponentSpec(
+            "vpd_category",
+            $"{deviceId}_vpd_category",
+            "VPD category",
+            d0Topic,
+            "{{ value_json.vpd_category }}"));
+
+        var components = new JsonObject();
+        DiscoveryPayloadBuilder.AddComponents(components, specs, availabilityTopic, expireAfterSeconds);
 
         return DiscoveryPayloadBuilder.BuildDeviceEnvelope(
             deviceId, location, TypeName, ctx.Version, components);

@@ -1,17 +1,18 @@
 using Newtonsoft.Json;
 using Njord.Messages.Pipeline;
 using Njord.Persistence;
+using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;
 
 public sealed class SchedulerDtoSerializationSpec
 {
-    private static readonly DateTimeOffset TestTime = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset TestTime = TestTimeConstants.BudgetEpoch;
 
     [Fact]
     public Task DataChanged_dto_round_trips_through_json()
     {
-        var domain = new SchedulerActor.DataChanged("lucerne", "icon_d2", 42, TestTime);
+        var domain = new DataChanged("lucerne", "icon_d2", 42, TestTime);
         var dto = SchedulerDtoMapping.ToDto(domain);
         var json = JsonConvert.SerializeObject(dto, Formatting.Indented);
         return Verify(json);
@@ -20,7 +21,7 @@ public sealed class SchedulerDtoSerializationSpec
     [Fact]
     public void DataChanged_dto_deserializes_back_to_domain()
     {
-        var original = new SchedulerActor.DataChanged("lucerne", "icon_d2", 42, TestTime);
+        var original = new DataChanged("lucerne", "icon_d2", 42, TestTime);
         var dto = SchedulerDtoMapping.ToDto(original);
         var json = JsonConvert.SerializeObject(dto);
         var deserialized = JsonConvert.DeserializeObject<DataChangedDto>(json)!;

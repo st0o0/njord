@@ -1,5 +1,4 @@
 ﻿{
-  "v": 1,
   "loc": "lucerne",
   "model": "icon_d2",
   "hash": 42,

@@ -7,17 +7,16 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Health;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Messages.Common;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Pipeline.Tests;
 
-public sealed class SchedulerActorGetPollStatesSpec : Akka.Hosting.TestKit.TestKit
+public sealed class SchedulerActorGetPollStatesSpec : NjordActorSpec
 {
-    private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
+    private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     private Akka.TestKit.TestProbe _offerProbe = null!;
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
@@ -38,10 +37,9 @@ public sealed class SchedulerActorGetPollStatesSpec : Akka.Hosting.TestKit.TestK
         services.AddSingleton(new NjordHealthState { ServiceStartedUtc = _time.GetUtcNow() });
     }
 
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
         builder
-            .AddTestPersistence()
             .WithActors((system, registry) =>
             {
                 _offerProbe = CreateTestProbe();
@@ -53,11 +51,10 @@ public sealed class SchedulerActorGetPollStatesSpec : Akka.Hosting.TestKit.TestK
             {
                 registry.Register<ISchedulerActor>(
                     system.ActorOf(resolver.Props<SchedulerActor>(), "scheduler"));
-            })
-            .AddTestTimefactor();
+            });
     }
 
-    private IActorRef Scheduler => ActorRegistry.Get<ISchedulerActor>();
+    private IActorRef Scheduler => GetActor<ISchedulerActor>();
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Get_poll_states_returns_all_configured_models()
@@ -65,7 +62,7 @@ public sealed class SchedulerActorGetPollStatesSpec : Akka.Hosting.TestKit.TestK
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        var snapshot = await Scheduler.Ask<QueryPollStatesResult>(
+        var snapshot = await Scheduler.Ask<QueryPollStatesCompleted>(
             new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, snapshot.Entries.Count);
@@ -79,7 +76,7 @@ public sealed class SchedulerActorGetPollStatesSpec : Akka.Hosting.TestKit.TestK
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        var snapshot = await Scheduler.Ask<QueryPollStatesResult>(
+        var snapshot = await Scheduler.Ask<QueryPollStatesCompleted>(
             new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var entry = snapshot.Entries.First(e => e.Location == "lucerne");
@@ -96,7 +93,7 @@ public sealed class SchedulerActorGetPollStatesSpec : Akka.Hosting.TestKit.TestK
 
         await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
-        var snapshot = await Scheduler.Ask<QueryPollStatesResult>(
+        var snapshot = await Scheduler.Ask<QueryPollStatesCompleted>(
             new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var entry = snapshot.Entries.First(e => e.Location == "lucerne");
@@ -113,7 +110,7 @@ public sealed class SchedulerActorGetPollStatesSpec : Akka.Hosting.TestKit.TestK
         await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         await Scheduler.Ask<Ack>(new HashResult("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
-        var snapshot = await Scheduler.Ask<QueryPollStatesResult>(
+        var snapshot = await Scheduler.Ask<QueryPollStatesCompleted>(
             new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var entry = snapshot.Entries.First(e => e.Location == "lucerne");

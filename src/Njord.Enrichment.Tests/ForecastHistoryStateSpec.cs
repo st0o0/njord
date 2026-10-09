@@ -1,11 +1,12 @@
 using Njord.Compute.Analysis;
-using Njord.Domain.Weather;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Enrichment.Tests;
 
 public sealed class ForecastHistoryStateSpec
 {
-    private static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset T0 = TestTimeConstants.ForecastEpoch;
 
     private static ForecastRecord MakeRecord(DateTimeOffset? timestamp = null, string location = "lucerne") =>
         new(timestamp ?? T0, location,
@@ -80,7 +81,7 @@ public sealed class ForecastHistoryStateSpec
         state = state.Apply(MakeRecord());
 
         var snapshot = state.GetSnapshot();
-        Assert.IsType<QueryHistoryResult>(snapshot);
+        Assert.IsType<QueryHistoryCompleted>(snapshot);
         Assert.Single(snapshot.History.Records);
     }
 
@@ -109,5 +110,67 @@ public sealed class ForecastHistoryStateSpec
         Assert.Equal(state.History.Records.Count, restored.History.Records.Count);
         Assert.Equal(0, restored.EventsSinceSnapshot);
         Assert.Equal(10, restored.SnapshotInterval);
+    }
+
+    private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
+    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+
+    private static ModelForecast MakeForecast(string model, string location, double temperatureAtT0) =>
+        new(new WeatherModel(model), location, new CycleId(T0),
+            new ForecastSeries(
+            [
+                new ForecastPoint(T0, new Dictionary<ParameterDef, double?> { [Temperature] = temperatureAtT0 }),
+                new ForecastPoint(T0.AddHours(6), new Dictionary<ParameterDef, double?> { [Temperature] = 100.0 }),
+            ]),
+            DailyForecastSeries.Empty);
+
+    [Fact]
+    public void ProcessSnapshot_uses_the_point_nearest_to_now_and_the_median_across_models()
+    {
+        var snapshot = ModelSnapshot.Empty
+            .Update(MakeForecast("icon_d2", "lucerne", 10.0))
+            .Update(MakeForecast("icon_eu", "lucerne", 20.0))
+            .Update(MakeForecast("gfs_seamless", "lucerne", 40.0));
+
+        var evt = ForecastHistoryState.Create(30, 10).ProcessSnapshot(snapshot, "lucerne", Parameters, T0.AddMinutes(10));
+
+        Assert.Equal(T0.AddMinutes(10), evt.Timestamp);
+        Assert.Equal("lucerne", evt.Location);
+        Assert.Equal(20.0, evt.ConsensusValues["temperature_2m"]);
+    }
+
+    [Fact]
+    public void ProcessSnapshot_computes_the_median_from_partial_model_coverage()
+    {
+        var snapshot = ModelSnapshot.Empty
+            .Update(MakeForecast("icon_d2", "lucerne", 10.0))
+            .Update(MakeForecast("icon_eu", "lucerne", 20.0));
+
+        var evt = ForecastHistoryState.Create(30, 10).ProcessSnapshot(snapshot, "lucerne", Parameters, T0);
+
+        Assert.Equal(15.0, evt.ConsensusValues["temperature_2m"]);
+    }
+
+    [Fact]
+    public void ProcessSnapshot_ignores_entries_of_other_locations()
+    {
+        var snapshot = ModelSnapshot.Empty
+            .Update(MakeForecast("icon_d2", "lucerne", 10.0))
+            .Update(MakeForecast("icon_d2", "zurich", 30.0));
+
+        var evt = ForecastHistoryState.Create(30, 10).ProcessSnapshot(snapshot, "lucerne", Parameters, T0);
+
+        Assert.Equal(10.0, evt.ConsensusValues["temperature_2m"]);
+    }
+
+    [Fact]
+    public void ProcessSnapshot_without_matching_entries_yields_an_empty_consensus()
+    {
+        var snapshot = ModelSnapshot.Empty.Update(MakeForecast("icon_d2", "zurich", 30.0));
+
+        var evt = ForecastHistoryState.Create(30, 10).ProcessSnapshot(snapshot, "lucerne", Parameters, T0);
+
+        Assert.Equal("lucerne", evt.Location);
+        Assert.Empty(evt.ConsensusValues);
     }
 }

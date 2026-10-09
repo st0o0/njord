@@ -6,7 +6,7 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Grpc.V2;
 using Njord.Messages.Sensors;
-using DomainSensorKind = Njord.Domain.Sensors.SensorKind;
+using DomainSensorKind = Njord.Sensors.SensorKind;
 using ProtoSensorKind = Njord.Grpc.V2.SensorKind;
 
 namespace Njord.Grpc;
@@ -62,7 +62,7 @@ public sealed class SensorGrpcService(
             : new PushResponse { Accepted = false, RejectionReason = $"{rejected}/{total} readings rejected" };
     }
 
-    private (Domain.Sensors.SensorReading? Reading, string? Error) MapReading(V2.SensorReading request)
+    private (Njord.Sensors.SensorReading? Reading, string? Error) MapReading(V2.SensorReading request)
     {
         if (!TryMapKind(request.Kind, out var kind))
         {
@@ -77,7 +77,7 @@ public sealed class SensorGrpcService(
         var source = string.IsNullOrWhiteSpace(request.Source) ? "default" : request.Source;
         var measuredAt = request.MeasuredAt?.ToDateTimeOffset() ?? timeProvider.GetUtcNow();
 
-        var reading = new Domain.Sensors.SensorReading(kind, request.Location, source, request.Value, measuredAt);
+        var reading = new Njord.Sensors.SensorReading(kind, request.Location, source, request.Value, measuredAt);
         return (reading, null);
     }
 

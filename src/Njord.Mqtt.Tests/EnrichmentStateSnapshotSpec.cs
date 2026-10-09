@@ -1,5 +1,5 @@
 using Njord.Compute.Analysis;
-using Njord.Domain.Weather;
+using Njord.Weather;
 using static Njord.Mqtt.Tests.EnrichmentGoldenMasterFixtures;
 
 namespace Njord.Mqtt.Tests;

@@ -2,17 +2,17 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Core.Configuration;
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Enrichment.Features;
 using Njord.Mqtt;
 using Njord.Mqtt.Presentation;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Enrichment.Tests;
 
 public sealed class EnrichmentFeatureContractSpec
 {
-    private static readonly FakeTimeProvider Time = new(new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero));
+    private static readonly FakeTimeProvider Time = TestTimeouts.AtEpoch();
 
     private static IReadOnlyList<IEnrichmentFeature> CreateAllFeatures(
         EnrichmentOptions? enrichment = null)

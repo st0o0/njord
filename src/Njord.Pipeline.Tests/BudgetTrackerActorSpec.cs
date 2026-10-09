@@ -1,5 +1,7 @@
 using Akka.Actor;
+using Akka.Event;
 using Akka.Hosting;
+using Akka.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
@@ -9,18 +11,11 @@ using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;
 
-public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
+public sealed class BudgetTrackerActorSpec : NjordActorSpec
 {
-    private static readonly DateTimeOffset T0 = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
-    private readonly FakeTimeProvider _time = new(T0);
+    private static readonly DateTimeOffset T0 = TestTimeConstants.BudgetEpoch;
+    private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(T0);
     private readonly NjordHealthState _healthState = new() { ServiceStartedUtc = T0 };
-
-    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
-    {
-        builder
-            .AddTestPersistence()
-            .AddTestTimefactor();
-    }
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
@@ -42,7 +37,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
         actor.Tell(new RecordApiCall(1));
         actor.Tell(new RecordApiCall(1));
 
-        var usage = await actor.Ask<QueryBudgetUsageResult>(
+        var usage = await actor.Ask<QueryBudgetUsageCompleted>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, usage.MonthlyUsed);
@@ -58,7 +53,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
         actor.Tell(new RecordApiCall(2));
         actor.Tell(new RecordApiCall(1));
 
-        var usage = await actor.Ask<QueryBudgetUsageResult>(
+        var usage = await actor.Ask<QueryBudgetUsageCompleted>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(6, usage.MonthlyUsed);
@@ -72,7 +67,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         actor.Tell(new RecordApiCall(5));
 
-        var usage1 = await actor.Ask<QueryBudgetUsageResult>(
+        var usage1 = await actor.Ask<QueryBudgetUsageCompleted>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(5, usage1.DailyUsed);
 
@@ -80,7 +75,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         actor.Tell(new RecordApiCall(2));
 
-        var usage2 = await actor.Ask<QueryBudgetUsageResult>(
+        var usage2 = await actor.Ask<QueryBudgetUsageCompleted>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(7, usage2.MonthlyUsed);
@@ -94,7 +89,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         actor.Tell(new RecordApiCall(10));
 
-        var usage1 = await actor.Ask<QueryBudgetUsageResult>(
+        var usage1 = await actor.Ask<QueryBudgetUsageCompleted>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(10, usage1.MonthlyUsed);
 
@@ -102,7 +97,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         actor.Tell(new RecordApiCall(3));
 
-        var usage2 = await actor.Ask<QueryBudgetUsageResult>(
+        var usage2 = await actor.Ask<QueryBudgetUsageCompleted>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(3, usage2.MonthlyUsed);
@@ -118,7 +113,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
         actor.Tell(new RecordApiCall(4));
         actor.Tell(new RecordApiCall(3));
 
-        var usage1 = await actor.Ask<QueryBudgetUsageResult>(
+        var usage1 = await actor.Ask<QueryBudgetUsageCompleted>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(7, usage1.MonthlyUsed);
 
@@ -126,7 +121,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         var recovered = CreateActor();
 
-        var usage2 = await recovered.Ask<QueryBudgetUsageResult>(
+        var usage2 = await recovered.Ask<QueryBudgetUsageCompleted>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(7, usage2.MonthlyUsed);
@@ -141,7 +136,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         actor.Tell(new RecordApiCall(10));
 
-        var usage1 = await actor.Ask<QueryBudgetUsageResult>(
+        var usage1 = await actor.Ask<QueryBudgetUsageCompleted>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(10, usage1.MonthlyUsed);
 
@@ -151,7 +146,7 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
 
         var recovered = CreateActor();
 
-        var usage2 = await recovered.Ask<QueryBudgetUsageResult>(
+        var usage2 = await recovered.Ask<QueryBudgetUsageCompleted>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(0, usage2.MonthlyUsed);
@@ -163,10 +158,40 @@ public sealed class BudgetTrackerActorSpec : Akka.Hosting.TestKit.TestKit
     {
         var actor = CreateActor();
 
-        var usage = await actor.Ask<QueryBudgetUsageResult>(
+        var usage = await actor.Ask<QueryBudgetUsageCompleted>(
             new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.Equal(0, usage.MonthlyUsed);
         Assert.Equal(0, usage.DailyUsed);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task Delete_messages_failure_is_logged_as_warning()
+    {
+        var warnings = CreateTestProbe();
+        Sys.EventStream.Subscribe(warnings, typeof(Warning));
+        var actor = CreateActor();
+
+        actor.Tell(new DeleteMessagesFailure(new InvalidOperationException("boom-messages"), 5));
+
+        var warning = await warnings.FishForMessageAsync<Warning>(
+            w => w.Message.ToString()!.Contains("Delete messages failed for budget-tracker"),
+            TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal("boom-messages", warning.Cause.Message);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task Delete_snapshots_failure_is_logged_as_warning()
+    {
+        var warnings = CreateTestProbe();
+        Sys.EventStream.Subscribe(warnings, typeof(Warning));
+        var actor = CreateActor();
+
+        actor.Tell(new DeleteSnapshotsFailure(new SnapshotSelectionCriteria(4), new InvalidOperationException("boom-snapshots")));
+
+        var warning = await warnings.FishForMessageAsync<Warning>(
+            w => w.Message.ToString()!.Contains("Delete snapshots failed for budget-tracker"),
+            TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal("boom-snapshots", warning.Cause.Message);
     }
 }

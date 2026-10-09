@@ -1,6 +1,6 @@
-using Njord.Domain.Options;
-using Njord.Domain.Weather;
 using Njord.Messages.Pipeline;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Pipeline.Tests;
 
@@ -8,7 +8,7 @@ public sealed class WeightedTargetSpec
 {
     private static readonly LocationOptions Loc = new() { Name = "home", Latitude = 47.05, Longitude = 8.31 };
     private static readonly WeatherModel Model = new("icon_d2");
-    private static readonly CycleId Cycle = new(new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero));
+    private static readonly CycleId Cycle = new(TestTimeConstants.NoonAnchor);
 
     [Fact]
     public void Properties_are_accessible()

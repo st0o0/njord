@@ -1,5 +1,5 @@
 using Newtonsoft.Json;
-using Njord.Domain.Weather;
+using Njord.Weather;
 
 namespace Njord.Compute.Analysis;
 

@@ -2,7 +2,8 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
-using Njord.Domain.Weather;
+using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Mqtt.Tests;
 
@@ -41,7 +42,7 @@ public sealed class StatePayloadBuilderSpec
     [Fact]
     public void Returns_one_entry_per_configured_horizon()
     {
-        var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
+        var tick = TestTimeConstants.NoonAnchor;
         var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 100), SmallParams, [3, 6, 24], 4, tick);
 
         Assert.True(result.ContainsKey("h3"));
@@ -53,7 +54,7 @@ public sealed class StatePayloadBuilderSpec
     [Fact]
     public void Hourly_payload_is_flat_json_with_parameter_values()
     {
-        var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
+        var tick = TestTimeConstants.NoonAnchor;
         var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 100), SmallParams, [3], 1, tick);
         var h3 = JsonNode.Parse(result["h3"])!;
 
@@ -65,7 +66,7 @@ public sealed class StatePayloadBuilderSpec
     [Fact]
     public void Daily_payload_is_flat_json_with_parameter_values()
     {
-        var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
+        var tick = TestTimeConstants.NoonAnchor;
         var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 10), SmallParams, [3], 1, tick);
         var d0 = JsonNode.Parse(result["d0"])!;
 
@@ -76,7 +77,7 @@ public sealed class StatePayloadBuilderSpec
     [Fact]
     public void Horizons_beyond_series_are_omitted()
     {
-        var tick = new DateTimeOffset(2026, 7, 12, 12, 0, 0, TimeSpan.Zero);
+        var tick = TestTimeConstants.NoonAnchor;
         var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 10), SmallParams, [72], 1, tick);
 
         Assert.False(result.ContainsKey("h72"));
@@ -93,8 +94,8 @@ public sealed class StatePayloadBuilderSpec
         Assert.Equal(2.0, (double?)h3["temperature"]);
     }
 
-    private static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
-    private static readonly FakeTimeProvider Time = new(T0);
+    private static readonly DateTimeOffset T0 = TestTimeConstants.ForecastEpoch;
+    private static readonly FakeTimeProvider Time = TestTimeouts.AtEpoch(T0);
     private static readonly WeatherModel M1 = new("m1");
     private static readonly ParameterDef DewPoint = ParameterRegistry.GetByApiName("dew_point_2m")!;
     private static readonly ParameterDef WeatherCode = ParameterRegistry.GetByApiName("weather_code")!;
