@@ -1,4 +1,6 @@
+using Njord.Compute.Analysis;
 using Microsoft.Extensions.Options;
+using Njord.Compute.Configuration;
 using Njord.Weather;
 
 namespace Njord.History;

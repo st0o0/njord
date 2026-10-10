@@ -1,6 +1,7 @@
+using Njord.Alerts;
 using Njord.Compute.Analysis;
 
-namespace Njord.Compute.Tests.Analysis;
+namespace Njord.Alerts.Tests;
 
 public sealed class AlertResultSpec
 {

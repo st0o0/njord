@@ -1,3 +1,4 @@
+
 namespace Njord.Compute.Analysis;
 
 public static class AlertTypeExtensions

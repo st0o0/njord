@@ -1,3 +1,4 @@
+using Njord.History;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;

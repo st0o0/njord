@@ -1,7 +1,6 @@
 using Newtonsoft.Json;
+using Njord.Compute.Analysis;
 using Njord.History;
-using ForecastRecord = Njord.History.ForecastRecord;
-using ForecastHistory = Njord.History.ForecastHistory;
 using Njord.Tests.Shared;
 using Njord.Weather;
 
@@ -36,7 +35,7 @@ public sealed class ForecastHistoryDtoSerializationSpec
         var original = MakeRecord();
         var dto = ForecastHistoryDtoMapping.ToDto(original);
         var json = JsonConvert.SerializeObject(dto);
-        var deserialized = JsonConvert.DeserializeObject<ForecastRecordDto>(json)!;
+        var deserialized = JsonConvert.DeserializeObject<PersistedForecastRecord>(json)!;
         var result = ForecastHistoryDtoMapping.ToDomain(deserialized);
 
         Assert.Equal(original.Timestamp, result.Timestamp);
@@ -59,7 +58,7 @@ public sealed class ForecastHistoryDtoSerializationSpec
     public void ForecastRecord_dto_ignores_unknown_fields()
     {
         var json = """{"v":1,"ts":638899272000000000,"loc":"lucerne","models":{},"consensus":{},"new_thing":true}""";
-        var dto = JsonConvert.DeserializeObject<ForecastRecordDto>(json)!;
+        var dto = JsonConvert.DeserializeObject<PersistedForecastRecord>(json)!;
         var result = ForecastHistoryDtoMapping.ToDomain(dto);
 
         Assert.Equal("lucerne", result.Location);

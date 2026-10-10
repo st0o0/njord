@@ -6,7 +6,7 @@ namespace Njord.History;
 
 public static class ForecastHistoryDtoMapping
 {
-    public static ForecastRecordDto ToDto(ForecastRecord record) => new()
+    public static PersistedForecastRecord ToDto(ForecastRecord record) => new()
     {
         TimestampUtcTicks = record.Timestamp.UtcTicks,
         Location = record.Location,
@@ -16,7 +16,7 @@ public static class ForecastHistoryDtoMapping
         ConsensusValues = new Dictionary<string, double?>(record.ConsensusValues),
     };
 
-    public static ForecastRecord ToDomain(ForecastRecordDto dto)
+    public static ForecastRecord ToDomain(PersistedForecastRecord dto)
     {
         var modelValues = dto.ModelValues.ToDictionary(
             kvp => new WeatherModel(kvp.Key), IReadOnlyDictionary<string, double?> (kvp) => new Dictionary<string, double?>(kvp.Value));
@@ -28,13 +28,13 @@ public static class ForecastHistoryDtoMapping
             consensus);
     }
 
-    public static ForecastHistorySnapshotDto ToDto(ForecastHistory history) => new()
+    public static PersistedForecastHistory ToDto(ForecastHistory history) => new()
     {
         RetentionDays = history.RetentionDays,
         Records = [.. history.Records.Select(ToDto)],
     };
 
-    public static ForecastHistory ToDomain(ForecastHistorySnapshotDto dto)
+    public static ForecastHistory ToDomain(PersistedForecastHistory dto)
     {
         var history = new ForecastHistory(dto.RetentionDays);
         foreach (var record in dto.Records)

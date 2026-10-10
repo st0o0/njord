@@ -3,14 +3,14 @@ namespace Njord.Persistence.Tests;
 public sealed class ForecastHistoryDtoRoundtripSpec
 {
     [Fact]
-    public void ForecastHistorySnapshotDto_roundtrip()
+    public void PersistedForecastHistory_roundtrip()
     {
-        var dto = new ForecastHistorySnapshotDto
+        var dto = new PersistedForecastHistory
         {
             RetentionDays = 7,
             Records =
             [
-                new ForecastRecordDto
+                new PersistedForecastRecord
                 {
                     TimestampUtcTicks = 638_600_000_000_000_000L,
                     Location = "lucerne",
@@ -41,9 +41,9 @@ public sealed class ForecastHistoryDtoRoundtripSpec
     }
 
     [Fact]
-    public void ForecastRecordDto_roundtrip()
+    public void PersistedForecastRecord_roundtrip()
     {
-        var dto = new ForecastRecordDto
+        var dto = new PersistedForecastRecord
         {
             TimestampUtcTicks = 638_600_000_000_000_000L,
             Location = "zurich",

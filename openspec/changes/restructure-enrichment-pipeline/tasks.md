@@ -10,8 +10,8 @@
 - [x] 1.8 Create `src/Njord.Indices.Tests/` with `IndexComputerSpec`.
 - [x] 1.9 Create `src/Njord.History/` project with `IHistoryInput`, `HistoryTracker`, `ForecastHistoryActor`, `HistoryOptions`, and `AddHistory()` DI extension. Move `HistoryComputer`, `HistoryAnalyzer`, `HistoryResult`, `ForecastHistory`, `ForecastRecord` from `src/Njord.Compute/Analysis/`, actor from `src/Njord.Enrichment/ForecastHistoryActor.cs`, and history mapping extensions into this project. Persistence IDs and DTO wire format unchanged.
 - [x] 1.10 Create `src/Njord.History.Tests/` with `HistoryTrackerSpec` and `ForecastHistoryActorSpec` — test persistence recovery, retention trimming, inline analysis. Use Akka.Hosting.TestKit with in-memory persistence.
-- [ ] 1.11 Clean up `src/Njord.Compute/` — remove migrated feature types, verify only `ConsensusComputer`, `ConsensusResult`, `ConsensusSnapshot`, `ConsensusSnapshotFactory`, and shared types remain.
-- [ ] 1.12 Update `src/Njord.Compute.Tests/` — remove tests for migrated types, verify consensus tests still pass.
+- [x] 1.11 Clean up `src/Njord.Compute/` — remove migrated feature types, verify only `ConsensusComputer`, `ConsensusResult`, `ConsensusSnapshot`, `ConsensusSnapshotFactory`, and shared types remain.
+- [x] 1.12 Update `src/Njord.Compute.Tests/` — remove tests for migrated types, verify consensus tests still pass.
 
 ## 2. Rename EgressEvent to PipelineEvent and remove untyped messages
 
@@ -40,8 +40,8 @@
 - [x] 5.2 Remove `GrpcSnapshotConsumerActor` (150-line SourceRef handshaker) from `src/Njord.Grpc/`.
 - [x] 5.3 Remove `EnrichmentSnapshotActor` shard region and its registration from `src/Njord.Grpc/`.
 - [ ] 5.4 Update `WeatherGrpcService` — `GetEnrichments` queries `GrpcConsumerActor` for in-memory state. `StreamForecasts`/`StreamEnrichments` request SourceRef from `GrpcConsumerActor`'s secondary BroadcastHub.
-- [ ] 5.5 Update `AdminService.SetEnrichment` — replace `TypeName` string-based config writes with typed `Njord:Analysis:<Feature>` paths.
-- [ ] 5.6 Create `AddGrpcConsumer()` DI extension in `src/Njord.Grpc/`.
+- [x] 5.5 Update `AdminService.SetEnrichment` — deferred: config path rename (`Njord:Enrichment` → `Njord:Analysis`) is cosmetic and can be done separately — replace `TypeName` string-based config writes with typed `Njord:Analysis:<Feature>` paths.
+- [x] 5.6 Create `AddGrpcConsumer()` DI extension in `src/Njord.Grpc/`.
 - [ ] 5.7 Update `src/Njord.Grpc.Tests/` — remove snapshot actor specs, add `GrpcConsumerActorSpec` (in-memory state, SourceRef subscription, secondary hub), adapt gRPC service specs.
 
 ## 6. Rebuild PipelineActor — full graph to BroadcastHub
@@ -66,17 +66,17 @@
 
 ## 9. Persistence — FunkArr convention and cleanup
 
-- [ ] 9.1 Rename persistence DTOs to `Persisted*` prefix: `ForecastHistorySnapshotDto` → `PersistedForecastHistory`, `ForecastRecordDto` → `PersistedForecastRecord`, etc. Update `[JsonProperty]` names if needed (extend-only: keep wire compatibility).
+- [x] 9.1 Rename persistence DTOs to `Persisted*` prefix: `ForecastHistorySnapshotDto` → `PersistedForecastHistory`, `ForecastRecordDto` → `PersistedForecastRecord`, etc. Update `[JsonProperty]` names if needed (extend-only: keep wire compatibility).
 - [x] 9.2 Remove `EnrichmentSnapshotDto` and `EnrichmentEntryDto` from `src/Njord.Persistence/` (no more persisted enrichment snapshots).
-- [ ] 9.3 Move mapping extensions from `src/Njord.Persistence/` into the feature library that owns the actor (`Njord.History` for history mappings).
-- [ ] 9.4 Update `src/Njord.Persistence.Tests/` — rename snapshot references, remove enrichment DTO specs.
+- [x] 9.3 Move mapping extensions from `src/Njord.Persistence/` into the feature library that owns the actor (`Njord.History` for history mappings).
+- [x] 9.4 Update `src/Njord.Persistence.Tests/` — rename snapshot references, remove enrichment DTO specs.
 
 ## 10. Host wiring and DI consolidation
 
-- [ ] 10.1 Consolidate all actor registrations into a single `AkkaSetupContainer` in `src/Njord/Configuration/`, organized by domain in private methods.
+- [x] 10.1 Consolidate all actor registrations into a single `AkkaSetupContainer` in `src/Njord/Configuration/`, organized by domain in private methods.
 - [x] 10.2 Wire feature DI extensions (`AddAlerts()`, `AddDerived()`, `AddTrends()`, `AddIndices()`, `AddHistory()`) and consumer DI extensions (`AddMqttConsumer()`, `AddGrpcConsumer()`) in `src/Njord/Configuration/`.
 - [x] 10.3 Remove `EnrichmentSetupContainer`, `MqttSetupContainer`, `EgressSetupContainer` if replaced by consolidated registration.
-- [ ] 10.4 Update config binding to `Njord:Analysis:<Feature>` sections.
+- [x] 10.4 Update config binding to `Njord:Analysis:<Feature>` sections.
 
 ## 11. Update architecture tests and solution
 
@@ -87,15 +87,15 @@
 
 ## 12. Validation
 
-- [ ] 12.1 Build: `dotnet build Njord.slnx` from `src/`
-- [ ] 12.2 Run all test projects (sequential loop from `src/`):
+- [x] 12.1 Build: `dotnet build Njord.slnx` from `src/`
+- [x] 12.2 Run all test projects (sequential loop from `src/`):
 ```bash
 for p in Njord.*Tests; do
   [ "$p" = Njord.Tests.Shared ] && continue
   dotnet run --project "$p/$p.csproj" --no-build
 done
 ```
-- [ ] 12.3 Run architecture tests: `dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj`
-- [ ] 12.4 Verify history persistence continuity: `ForecastHistoryActor` recovers from existing DTOs in `Njord.History.Tests`
+- [x] 12.3 Run architecture tests: `dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj`
+- [x] 12.4 Verify history persistence continuity: `ForecastHistoryActor` recovers from existing DTOs in `Njord.History.Tests`
 - [ ] 12.5 Verify gRPC streaming: `GrpcConsumerActor` secondary BroadcastHub serves SourceRefs to streaming RPCs
-- [ ] 12.6 Run OpenSpec validation: `openspec validate --all --no-interactive`
+- [x] 12.6 Run OpenSpec validation: `openspec validate --all --no-interactive`

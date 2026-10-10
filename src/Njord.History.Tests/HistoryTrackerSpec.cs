@@ -1,3 +1,5 @@
+using Njord.Compute.Configuration;
+using Njord.Compute.Analysis;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.History;

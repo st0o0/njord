@@ -1,3 +1,4 @@
+using Njord.Compute.Analysis;
 using Akka.Event;
 using Akka.Persistence;
 using Microsoft.Extensions.Options;
@@ -25,7 +26,7 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
         _timeProvider = timeProvider;
         _state = ForecastHistoryState.Create(historyOptions.RetentionDays, historyOptions.SnapshotInterval);
 
-        Recover<ForecastRecordDto>(dto =>
+        Recover<PersistedForecastRecord>(dto =>
         {
             var evt = ForecastHistoryDtoMapping.ToDomain(dto);
             var cutoff = _timeProvider.GetUtcNow().AddDays(-historyOptions.RetentionDays);
@@ -33,7 +34,7 @@ public sealed class ForecastHistoryActor : ReceivePersistentActor
         });
         Recover<SnapshotOffer>(offer =>
         {
-            if (offer.Snapshot is ForecastHistorySnapshotDto saved)
+            if (offer.Snapshot is PersistedForecastHistory saved)
             {
                 _state = ForecastHistoryStateExtensions.FromPersistence(saved, historyOptions.SnapshotInterval);
             }

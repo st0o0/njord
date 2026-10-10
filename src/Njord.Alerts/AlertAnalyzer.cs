@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Compute.Analysis;
+using Njord.Compute.Configuration;
 
 namespace Njord.Alerts;
 

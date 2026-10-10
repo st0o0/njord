@@ -1,4 +1,5 @@
 using Njord.Compute.Analysis;
+using Njord.Compute.Configuration;
 using Njord.Weather;
 
 namespace Njord.Alerts;

@@ -1,3 +1,4 @@
+using Njord.Compute.Configuration;
 using Njord.Compute.Analysis;
 using Njord.Weather;
 

@@ -1,9 +1,10 @@
+using Njord.Compute.Configuration;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
-using Njord.Compute.Configuration;
+using Njord.Alerts;
 using Njord.Weather;
 
-namespace Njord.Compute.Tests.Analysis;
+namespace Njord.Alerts.Tests;
 
 public sealed class AlertEvaluatorSpec
 {

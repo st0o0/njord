@@ -88,10 +88,10 @@ public static class ForecastHistoryStateExtensions
     public static QueryHistoryCompleted GetSnapshot(this ForecastHistoryState state) =>
         new(state.History);
 
-    public static ForecastHistorySnapshotDto GetPersistenceState(this ForecastHistoryState state) =>
+    public static PersistedForecastHistory GetPersistenceState(this ForecastHistoryState state) =>
         ForecastHistoryDtoMapping.ToDto(state.History);
 
-    public static ForecastHistoryState FromPersistence(ForecastHistorySnapshotDto dto, int snapshotInterval)
+    public static ForecastHistoryState FromPersistence(PersistedForecastHistory dto, int snapshotInterval)
     {
         var history = ForecastHistoryDtoMapping.ToDomain(dto);
         return new ForecastHistoryState(history, 0, snapshotInterval);
