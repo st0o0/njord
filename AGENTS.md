@@ -95,10 +95,11 @@ src/
   Njord.Compute/              # Pure analysis computation (-> Weather, Sensors only)
     Analysis/                 # Consensus, alerts, derived, trends, indices, history computers
     Configuration/            # Compute-parameter options (AlertOptions, HistoryOptions, IndexOptions)
-  Njord.Core/                 # Options validators, diagnostics, actor keys,
+  Njord.Core/                 # Options validators, diagnostics, actor keys, IAnalysisStage,
                               #   StreamSupervision (-> Weather, Sensors, Messages, Persistence, Compute)
     Configuration/            # Validators, budget calculator
     Diagnostics/              # Metrics
+    Pipeline/                 # IAnalysisStage interface (impl in Host)
 
   # /Domain/ — feature libraries (each -> Core only)
   Njord.Ingest/               # Open-Meteo client, DTOs, JSON source generator
