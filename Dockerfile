@@ -7,33 +7,41 @@ WORKDIR /src
 
 COPY protos/ /protos/
 COPY src/global.json src/Directory.Build.props src/Directory.Packages.props src/Njord.slnx ./
-COPY src/Njord.Domain/Njord.Domain.csproj Njord.Domain/
+COPY src/Njord.Weather/Njord.Weather.csproj Njord.Weather/
+COPY src/Njord.Sensors/Njord.Sensors.csproj Njord.Sensors/
 COPY src/Njord.Persistence/Njord.Persistence.csproj Njord.Persistence/
 COPY src/Njord.Messages/Njord.Messages.csproj Njord.Messages/
 COPY src/Njord.Compute/Njord.Compute.csproj Njord.Compute/
 COPY src/Njord.Core/Njord.Core.csproj Njord.Core/
-COPY src/Njord.Sensors/Njord.Sensors.csproj Njord.Sensors/
 COPY src/Njord.Ingest/Njord.Ingest.csproj Njord.Ingest/
-COPY src/Njord.Grpc/Njord.Grpc.csproj Njord.Grpc/
+COPY src/Njord.SensorHub/Njord.SensorHub.csproj Njord.SensorHub/
 COPY src/Njord.Pipeline/Njord.Pipeline.csproj Njord.Pipeline/
-COPY src/Njord.Egress/Njord.Egress.csproj Njord.Egress/
+COPY src/Njord.Grpc/Njord.Grpc.csproj Njord.Grpc/
 COPY src/Njord.Mqtt/Njord.Mqtt.csproj Njord.Mqtt/
-COPY src/Njord.Enrichment/Njord.Enrichment.csproj Njord.Enrichment/
+COPY src/Njord.Alerts/Njord.Alerts.csproj Njord.Alerts/
+COPY src/Njord.Derived/Njord.Derived.csproj Njord.Derived/
+COPY src/Njord.Trends/Njord.Trends.csproj Njord.Trends/
+COPY src/Njord.Indices/Njord.Indices.csproj Njord.Indices/
+COPY src/Njord.History/Njord.History.csproj Njord.History/
 COPY src/Njord/Njord.csproj Njord/
 RUN dotnet restore Njord/Njord.csproj -a ${TARGETARCH}
 
-COPY src/Njord.Domain/ Njord.Domain/
+COPY src/Njord.Weather/ Njord.Weather/
+COPY src/Njord.Sensors/ Njord.Sensors/
 COPY src/Njord.Persistence/ Njord.Persistence/
 COPY src/Njord.Messages/ Njord.Messages/
 COPY src/Njord.Compute/ Njord.Compute/
 COPY src/Njord.Core/ Njord.Core/
-COPY src/Njord.Sensors/ Njord.Sensors/
 COPY src/Njord.Ingest/ Njord.Ingest/
-COPY src/Njord.Grpc/ Njord.Grpc/
+COPY src/Njord.SensorHub/ Njord.SensorHub/
 COPY src/Njord.Pipeline/ Njord.Pipeline/
-COPY src/Njord.Egress/ Njord.Egress/
+COPY src/Njord.Grpc/ Njord.Grpc/
 COPY src/Njord.Mqtt/ Njord.Mqtt/
-COPY src/Njord.Enrichment/ Njord.Enrichment/
+COPY src/Njord.Alerts/ Njord.Alerts/
+COPY src/Njord.Derived/ Njord.Derived/
+COPY src/Njord.Trends/ Njord.Trends/
+COPY src/Njord.Indices/ Njord.Indices/
+COPY src/Njord.History/ Njord.History/
 COPY src/Njord/ Njord/
 RUN dotnet publish Njord/Njord.csproj -c Release -a ${TARGETARCH} -o /app /p:Version=${VERSION} /p:ContinuousIntegrationBuild=true
 
