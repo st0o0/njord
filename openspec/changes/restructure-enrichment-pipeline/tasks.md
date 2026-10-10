@@ -31,25 +31,25 @@
 - [x] 4.1 Remove `IEnrichmentPresenter` interface and all 6 presenter implementations from `src/Njord.Mqtt/`.
 - [x] 4.2 Remove `MqttDiscoveryActor`, `DiscoveryPayloadBuilder`, `DiscoveryContext`, and all discovery-related code from `src/Njord.Mqtt/`.
 - [x] 4.3 Remove discovery-related config (`DiscoveryEnabled`, birth-message handling) from MQTT options and connection actor.
-- [ ] 4.4 Create `MqttConsumerActor` in `src/Njord.Mqtt/` — requests `SourceRef<PipelineEvent>` from `PipelineActor`, materializes its own sink that publishes state to MQTT. Create `AddMqttConsumer()` DI extension. Keep connection actor and LWT (`njord/status`).
+- [x] 4.4 Create `MqttConsumerActor` in `src/Njord.Mqtt/` — requests `SourceRef<PipelineEvent>` from `PipelineActor`, materializes its own sink that publishes state to MQTT. Create `AddMqttConsumer()` DI extension. Keep connection actor and LWT (`njord/status`).
 - [x] 4.5 Update `src/Njord.Mqtt.Tests/` — remove presenter specs, discovery specs, golden-master discovery snapshots. Add consumer specs for SourceRef subscription, typed result → state payload translation, `expire_after` and unavailable handling.
 
 ## 5. Restructure gRPC as SourceRef consumer with secondary BroadcastHub
 
-- [ ] 5.1 Create `GrpcConsumerActor` in `src/Njord.Grpc/` — requests `SourceRef<PipelineEvent>` from `PipelineActor`, holds latest state in-memory (`Dictionary<Location, LatestResults>`), provides secondary `BroadcastHub<PipelineEvent>` for streaming RPCs. Apply KeepAlive + IdleTimeout for dead gRPC client cleanup.
+- [x] 5.1 Create `GrpcConsumerActor` in `src/Njord.Grpc/` — requests `SourceRef<PipelineEvent>` from `PipelineActor`, holds latest state in-memory (`Dictionary<Location, LatestResults>`), provides secondary `BroadcastHub<PipelineEvent>` for streaming RPCs. Apply KeepAlive + IdleTimeout for dead gRPC client cleanup.
 - [x] 5.2 Remove `GrpcSnapshotConsumerActor` (150-line SourceRef handshaker) from `src/Njord.Grpc/`.
 - [x] 5.3 Remove `EnrichmentSnapshotActor` shard region and its registration from `src/Njord.Grpc/`.
-- [ ] 5.4 Update `WeatherGrpcService` — `GetEnrichments` queries `GrpcConsumerActor` for in-memory state. `StreamForecasts`/`StreamEnrichments` request SourceRef from `GrpcConsumerActor`'s secondary BroadcastHub.
+- [x] 5.4 Update `WeatherGrpcService` — `GetEnrichments` queries `GrpcConsumerActor` for in-memory state. `StreamForecasts`/`StreamEnrichments` request SourceRef from `GrpcConsumerActor`'s secondary BroadcastHub.
 - [x] 5.5 Update `AdminService.SetEnrichment` — deferred: config path rename (`Njord:Enrichment` → `Njord:Analysis`) is cosmetic and can be done separately — replace `TypeName` string-based config writes with typed `Njord:Analysis:<Feature>` paths.
 - [x] 5.6 Create `AddGrpcConsumer()` DI extension in `src/Njord.Grpc/`.
-- [ ] 5.7 Update `src/Njord.Grpc.Tests/` — remove snapshot actor specs, add `GrpcConsumerActorSpec` (in-memory state, SourceRef subscription, secondary hub), adapt gRPC service specs.
+- [x] 5.7 Update `src/Njord.Grpc.Tests/` — remove snapshot actor specs, add `GrpcConsumerActorSpec` (in-memory state, SourceRef subscription, secondary hub), adapt gRPC service specs.
 
 ## 6. Rebuild PipelineActor — full graph to BroadcastHub
 
-- [ ] 6.1 Extend `PipelineActor` in `src/Njord.Pipeline/` to own the full graph: Fetch → Consensus → Scan (previous) → Build PollContext → Broadcast → [Feature Flows via Select/SelectAsync] → Merge → KeepAlive → Buffer → IdleTimeout → `BroadcastHub<PipelineEvent>`. Include `CapabilityTracker` inline.
+- [x] 6.1 Extend `PipelineActor` in `src/Njord.Pipeline/` to own the full graph: Fetch → Consensus → Scan (previous) → Build PollContext → Broadcast → [Feature Flows via Select/SelectAsync] → Merge → KeepAlive → Buffer → IdleTimeout → `BroadcastHub<PipelineEvent>`. Include `CapabilityTracker` inline.
 - [x] 6.2 Create `PollContext` record in `src/Njord/` implementing `IAlertInput`, `ITrendInput`, `IIndexInput`, `IHistoryInput`, `IDerivedInput`. Assembled in the pipeline after consensus computation.
 - [x] 6.3 Add `RequestPipelineSource` / `PipelineSourceResponse` messages for consumers to request SourceRef.
-- [ ] 6.4 Update `src/Njord.Pipeline.Tests/` — test full graph materialization, feature invocation, BroadcastHub endpoint, KeepAlive behavior.
+- [x] 6.4 Update `src/Njord.Pipeline.Tests/` — test full graph materialization, feature invocation, BroadcastHub endpoint, KeepAlive behavior.
 
 ## 7. Dissolve Njord.Egress
 
@@ -97,5 +97,5 @@ done
 ```
 - [x] 12.3 Run architecture tests: `dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj`
 - [x] 12.4 Verify history persistence continuity: `ForecastHistoryActor` recovers from existing DTOs in `Njord.History.Tests`
-- [ ] 12.5 Verify gRPC streaming: `GrpcConsumerActor` secondary BroadcastHub serves SourceRefs to streaming RPCs
+- [x] 12.5 Verify gRPC streaming: `GrpcConsumerActor` secondary BroadcastHub serves SourceRefs to streaming RPCs
 - [x] 12.6 Run OpenSpec validation: `openspec validate --all --no-interactive`

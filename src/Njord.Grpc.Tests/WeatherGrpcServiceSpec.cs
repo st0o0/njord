@@ -44,6 +44,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         return new WeatherGrpcService(
             Options.Create(options),
             ActorRegistry,
+            Sys,
             timeProvider ?? _time);
     }
 

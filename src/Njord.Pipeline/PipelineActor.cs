@@ -6,6 +6,7 @@ using Akka.Streams.Dsl;
 using Njord.Core.Actors;
 using Njord.Core.Ingest;
 using Njord.Messages.Common;
+using Njord.Messages.Egress;
 using Njord.Messages.Pipeline;
 using Njord.Weather;
 using Servus.Akka;
@@ -21,6 +22,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     private ILoggingAdapter _log = null!;
 
     private Source<FetchOutcome, NotUsed>? _broadcastHubSource;
+    private Source<PipelineEvent, NotUsed>? _pipelineOutputSource;
     private IMaterializer? _mat;
     private ISourceQueueWithComplete<WeightedTarget>? _queue;
     private UniqueKillSwitch? _killSwitch;
@@ -73,6 +75,19 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                     {
                         _log.Error(ex, "Failed to create SourceRef");
                         return new PipelineSourceFailed(msg.RequestId, ex);
+                    });
+        });
+
+        Receive<RequestPipelineOutput>(msg =>
+        {
+            _pipelineOutputSource!
+                .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat!)
+                .PipeTo(Sender, Self,
+                    sr => new PipelineOutputResponse(msg.RequestId, sr),
+                    ex =>
+                    {
+                        _log.Error(ex, "Failed to create pipeline output SourceRef");
+                        return new PipelineOutputFailed(msg.RequestId, ex);
                     });
         });
     }
@@ -130,5 +145,15 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
         _completions = [fetchCompletion, hashCompletion];
         _queue = queue;
         _broadcastHubSource = broadcastHubSource;
+
+        var (pipelineOutputSource, pipelineOutputSink) = BroadcastHub.Sink<PipelineEvent>(bufferSize: 2)
+            .PreMaterialize(_mat);
+
+        broadcastHubSource
+            .Collect(o => o is FetchOutcome.Success, o => ((FetchOutcome.Success)o).Forecast)
+            .Select(f => (PipelineEvent)new PipelineEvent.ModelForecastUpdate(f.Location, f.Model, f))
+            .RunWith(pipelineOutputSink, _mat);
+
+        _pipelineOutputSource = pipelineOutputSource;
     }
 }

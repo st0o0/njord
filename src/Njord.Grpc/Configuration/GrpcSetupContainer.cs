@@ -30,6 +30,8 @@ public sealed class GrpcSetupContainer : IServiceSetupContainer
                     ShouldPassivateIdleEntities = true
                 });
 
+            builder.WithSingleton<IGrpcConsumerActor>("grpc-consumer",
+                (_, _, resolver) => resolver.Props<GrpcConsumerActor>());
         }
     }
 }

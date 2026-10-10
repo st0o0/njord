@@ -15,7 +15,6 @@ namespace Njord.Mqtt;
 
 public sealed class MqttStateActor : StreamConsumerActor
 {
-
     private readonly string _baseTopic;
     private readonly ResolvedParameterSet _parameters;
     private readonly IReadOnlyList<int> _horizons;
@@ -24,17 +23,12 @@ public sealed class MqttStateActor : StreamConsumerActor
     private readonly IMqttTransport _transport;
     private ILoggingAdapter _log = null!;
 
-    private IActorRef? _modelStateRef;
-    private IActorRef? _enrichmentRef;
-    private ISourceRef<PipelineEvent>? _modelStateSourceRef;
-    private ISourceRef<PipelineEvent>? _enrichmentSourceRef;
-    private long _modelStateSourceRequestId;
-    private long _enrichmentSourceRequestId;
+    private IActorRef? _pipelineRef;
+    private ISourceRef<PipelineEvent>? _pipelineSourceRef;
+    private long _pipelineSourceRequestId;
 
-    private sealed record ModelStateResolved(IActorRef Ref);
-    private sealed record EnrichmentResolved(IActorRef Ref);
-    private sealed record ModelStateResolveFailed(Exception Cause);
-    private sealed record EnrichmentResolveFailed(Exception Cause);
+    private sealed record PipelineResolved(IActorRef Ref);
+    private sealed record PipelineResolveFailed(Exception Cause);
 
     public MqttStateActor(
         IOptions<NjordOptions> options,
@@ -60,103 +54,55 @@ public sealed class MqttStateActor : StreamConsumerActor
 
     protected override void ResolveInitialDependencies()
     {
-        _modelStateRef = Context.GetActor<IModelStateActor>();
-        TrackDependency(_modelStateRef);
-
-        _enrichmentRef = Context.GetActor<IEnrichmentActor>();
-        TrackDependency(_enrichmentRef);
+        _pipelineRef = Context.GetActor<IPipelineActor>();
+        TrackDependency(_pipelineRef);
     }
 
     protected override void RequestSourceRefs()
     {
-        var modelId = NextRequestId();
-        _modelStateSourceRequestId = modelId;
-        _modelStateRef!.Tell(new RequestModelStateSource(modelId));
-
-        var enrichId = NextRequestId();
-        _enrichmentSourceRequestId = enrichId;
-        _enrichmentRef!.Tell(new RequestEnrichmentSource(enrichId));
+        var id = NextRequestId();
+        _pipelineSourceRequestId = id;
+        _pipelineRef!.Tell(new RequestPipelineOutput(id));
     }
 
     protected override void ResolveDependencies()
     {
-        Context.GetActorAsync<IModelStateActor>().PipeTo(Self, success: r => new ModelStateResolved(r), failure: ex => new ModelStateResolveFailed(ex));
-        Context.GetActorAsync<IEnrichmentActor>().PipeTo(Self, success: r => new EnrichmentResolved(r), failure: ex => new EnrichmentResolveFailed(ex));
+        Context.GetActorAsync<IPipelineActor>().PipeTo(Self,
+            success: r => new PipelineResolved(r),
+            failure: ex => new PipelineResolveFailed(ex));
     }
 
     protected override void ConfigureWaitingForRefs()
     {
-        Receive<ModelStateResolved>(msg =>
+        Receive<PipelineResolved>(msg =>
         {
             if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
             TrackDependency(msg.Ref);
             var id = NextRequestId();
-            _modelStateSourceRequestId = id;
-            msg.Ref.Tell(new RequestModelStateSource(id));
+            _pipelineSourceRequestId = id;
+            msg.Ref.Tell(new RequestPipelineOutput(id));
         });
-        Receive<EnrichmentResolved>(msg =>
+        Receive<PipelineOutputResponse>(response =>
         {
-            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
-            TrackDependency(msg.Ref);
-            var id = NextRequestId();
-            _enrichmentSourceRequestId = id;
-            msg.Ref.Tell(new RequestEnrichmentSource(id));
-        });
-        Receive<ModelStateSourceResponse>(response =>
-        {
-            if (response.RequestId != _modelStateSourceRequestId)
-            {
-                return;
-            }
-
-            _modelStateSourceRef = response.SourceRef;
-            _log.Debug("ModelState SourceRef received from {Source}", Sender.Path);
+            if (response.RequestId != _pipelineSourceRequestId) return;
+            _pipelineSourceRef = response.SourceRef;
+            _log.Debug("Pipeline SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
-        Receive<EnrichmentSourceResponse>(response =>
+        Receive<PipelineOutputFailed>(msg =>
         {
-            if (response.RequestId != _enrichmentSourceRequestId)
-            {
-                return;
-            }
-
-            _enrichmentSourceRef = response.SourceRef;
-            _log.Debug("Enrichment SourceRef received from {Source}", Sender.Path);
-            TryTransition();
-        });
-        Receive<ModelStateSourceFailed>(msg =>
-        {
-            if (msg.RequestId != _modelStateSourceRequestId)
-            {
-                return;
-            }
-
-            _log.Warning(msg.Cause, "ModelState source request failed - retrying");
+            if (msg.RequestId != _pipelineSourceRequestId) return;
+            _log.Warning(msg.Cause, "Pipeline source request failed - retrying");
             ScheduleRetryResolve();
         });
-        Receive<EnrichmentSourceFailed>(msg =>
+        Receive<PipelineResolveFailed>(msg =>
         {
-            if (msg.RequestId != _enrichmentSourceRequestId)
-            {
-                return;
-            }
-
-            _log.Warning(msg.Cause, "Enrichment source request failed - retrying");
-            ScheduleRetryResolve();
-        });
-        Receive<ModelStateResolveFailed>(msg =>
-        {
-            _log.Warning(msg.Cause, "Failed to resolve ModelStateActor - retrying");
-            ScheduleRetryResolve();
-        });
-        Receive<EnrichmentResolveFailed>(msg =>
-        {
-            _log.Warning(msg.Cause, "Failed to resolve EnrichmentActor - retrying");
+            _log.Warning(msg.Cause, "Failed to resolve PipelineActor - retrying");
             ScheduleRetryResolve();
         });
     }
 
-    protected override bool AllRefsReady() => _modelStateSourceRef is not null && _enrichmentSourceRef is not null;
+    protected override bool AllRefsReady() => _pipelineSourceRef is not null;
 
     protected override void MaterializeGraph(SharedKillSwitch killSwitch)
     {
@@ -164,8 +110,7 @@ public sealed class MqttStateActor : StreamConsumerActor
         var lastPublished = new Dictionary<string, int>();
         var transport = _transport;
 
-        _modelStateSourceRef!.Source
-            .Merge(_enrichmentSourceRef!.Source)
+        _pipelineSourceRef!.Source
             .Via(killSwitch.Flow<PipelineEvent>())
             .Log("mqtt-state-in", e => e switch
             {
@@ -173,7 +118,7 @@ public sealed class MqttStateActor : StreamConsumerActor
                 PipelineEvent.AnalysisResult u => $"enrich {u.Location}/{u.TypeName}",
                 _ => "?",
             }, _log)
-            .SelectMany(egressEvent => MapToMqttMessages(egressEvent, baseTopic, lastPublished))
+            .SelectMany(pipelineEvent => MapToMqttMessages(pipelineEvent, baseTopic, lastPublished))
             .Log("mqtt-state-out", m => $"{m.Topic} [{m.Payload.Length}B]", _log)
             .SelectAsync(1, async msg =>
             {
@@ -186,26 +131,23 @@ public sealed class MqttStateActor : StreamConsumerActor
 
     protected override void OnDependencyLost()
     {
-        _modelStateRef = null;
-        _enrichmentRef = null;
-        _modelStateSourceRef = null;
-        _enrichmentSourceRef = null;
-        _modelStateSourceRequestId = 0;
-        _enrichmentSourceRequestId = 0;
+        _pipelineRef = null;
+        _pipelineSourceRef = null;
+        _pipelineSourceRequestId = 0;
     }
 
     private IEnumerable<MqttMessage> MapToMqttMessages(
-        PipelineEvent egressEvent, string baseTopic, Dictionary<string, int> lastPublished)
+        PipelineEvent pipelineEvent, string baseTopic, Dictionary<string, int> lastPublished)
     {
-        var messages = egressEvent switch
+        var messages = pipelineEvent switch
         {
             PipelineEvent.ModelForecastUpdate e => MapPerModel(e, baseTopic),
-            // TODO: restructure-enrichment-pipeline — typed enrichment state publishing via consumer
+            // TODO: restructure-enrichment-pipeline — typed enrichment state publishing
             PipelineEvent.AnalysisResult => [],
             _ => [],
         };
 
-        var location = egressEvent switch
+        var location = pipelineEvent switch
         {
             PipelineEvent.ModelForecastUpdate u => u.Location,
             PipelineEvent.AnalysisResult u => u.Location,

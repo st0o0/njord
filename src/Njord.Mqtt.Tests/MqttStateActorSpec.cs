@@ -3,7 +3,6 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Messages.Egress;
@@ -43,55 +42,37 @@ public sealed class MqttStateActorSpec : NjordActorSpec
             transport)));
     }
 
-    private FakeSourceHub RegisterFakeModelStateHub()
+    private FakeSourceHub RegisterFakePipelineHub()
     {
         var mat = Sys.Materializer();
         var hub = new FakeSourceHub(mat);
-        ActorRegistry.Register<IModelStateActor>(hub.Actor(Sys, typeof(RequestModelStateSource)), overwrite: true);
-        return hub;
-    }
-
-    private FakeSourceHub RegisterFakeEnrichmentHub()
-    {
-        var mat = Sys.Materializer();
-        var hub = new FakeSourceHub(mat);
-        ActorRegistry.Register<IEnrichmentActor>(hub.Actor(Sys, typeof(RequestEnrichmentSource)), overwrite: true);
+        ActorRegistry.Register<IPipelineActor>(hub.Actor(Sys, typeof(RequestPipelineOutput)), overwrite: true);
         return hub;
     }
 
     [Fact(Timeout = 15000)]
-    public async Task Should_request_both_model_state_source_and_enrichment_source_on_startup()
+    public async Task Should_request_pipeline_source_on_startup()
     {
-        var modelHub = RegisterFakeModelStateHub();
-        var enrichHub = RegisterFakeEnrichmentHub();
+        var hub = RegisterFakePipelineHub();
         var transport = new RecordingTransport();
 
         CreateMqttStateActor(transport: transport);
 
-        await modelHub.WaitForQueue();
-        await enrichHub.WaitForQueue();
-
-        // Verify the graph is live by emitting an event and expecting output
-        var forecast = CreateForecast("icon_d2");
-        modelHub.Emit(new PipelineEvent.ModelForecastUpdate("lucerne", new WeatherModel("icon_d2"), forecast));
-
-        await transport.WaitForMessage(m => m.Topic.StartsWith("njord/")).WaitAsync(TestContext.Current.CancellationToken);
+        await hub.WaitForQueue().WaitAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 15000)]
     public async Task Should_publish_per_model_update_as_mqtt_messages()
     {
-        var modelHub = RegisterFakeModelStateHub();
-        var enrichHub = RegisterFakeEnrichmentHub();
+        var hub = RegisterFakePipelineHub();
         var transport = new RecordingTransport();
 
         CreateMqttStateActor(transport: transport);
 
-        await modelHub.WaitForQueue();
-        await enrichHub.WaitForQueue();
+        await hub.WaitForQueue();
 
         var forecast = CreateForecast("icon_d2");
-        modelHub.Emit(new PipelineEvent.ModelForecastUpdate("lucerne", new WeatherModel("icon_d2"), forecast));
+        hub.Emit(new PipelineEvent.ModelForecastUpdate("lucerne", new WeatherModel("icon_d2"), forecast));
 
         await transport.WaitForMessage(m => m.Topic.StartsWith("njord/")).WaitAsync(TestContext.Current.CancellationToken);
         var sent = transport.Sent;
@@ -103,128 +84,17 @@ public sealed class MqttStateActorSpec : NjordActorSpec
     [Fact(Timeout = 15000)]
     public async Task Should_publish_nothing_for_an_unknown_enrichment_type_name()
     {
-        var modelHub = RegisterFakeModelStateHub();
-        var enrichHub = RegisterFakeEnrichmentHub();
+        var hub = RegisterFakePipelineHub();
         var transport = new RecordingTransport();
 
         CreateMqttStateActor(transport: transport);
 
-        await modelHub.WaitForQueue();
-        await enrichHub.WaitForQueue();
+        await hub.WaitForQueue();
 
-        enrichHub.Emit(new PipelineEvent.AnalysisResult("lucerne", "no-such-type", new object()));
+        hub.Emit(new PipelineEvent.AnalysisResult("lucerne", "no-such-type", new object()));
 
         await Task.Delay(500, TestContext.Current.CancellationToken);
         Assert.Empty(transport.Sent);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Re_requests_model_state_source_after_failure()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var requestProbe = CreateTestProbe();
-        ActorRegistry.Register<IModelStateActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
-        ActorRegistry.Register<IEnrichmentActor>(CreateTestProbe().Ref, overwrite: true);
-
-        CreateMqttStateActor();
-
-        await requestProbe.ExpectMsgAsync<RequestModelStateSource>(cancellationToken: ct);
-        await requestProbe.ExpectMsgAsync<RequestModelStateSource>(cancellationToken: ct);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Re_requests_enrichment_source_after_failure()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var requestProbe = CreateTestProbe();
-        ActorRegistry.Register<IModelStateActor>(CreateTestProbe().Ref, overwrite: true);
-        ActorRegistry.Register<IEnrichmentActor>(Sys.ActorOf(FailingRefProvider.Props(requestProbe)), overwrite: true);
-
-        CreateMqttStateActor();
-
-        await requestProbe.ExpectMsgAsync<RequestEnrichmentSource>(cancellationToken: ct);
-        await requestProbe.ExpectMsgAsync<RequestEnrichmentSource>(cancellationToken: ct);
-    }
-
-    private static ModelForecast CreateForecast(string modelId)
-    {
-        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
-        var wind = ParameterRegistry.GetByApiName("wind_speed_10m")!;
-
-        var points = Enumerable.Range(0, 60)
-            .Select(i => new ForecastPoint(
-                Anchor.AddHours(i + 1),
-                new Dictionary<ParameterDef, double?>
-                {
-                    [temp] = 20.0 + i,
-                    [wind] = 5.0 + i * 0.1,
-                }))
-            .ToList();
-
-        return new ModelForecast(
-            new WeatherModel(modelId), "lucerne", new CycleId(Anchor),
-            new ForecastSeries(points), DailyForecastSeries.Empty);
-    }
-
-    // -- fakes ---------------------------------------------------------------
-
-    internal sealed class FakeSourceHub
-    {
-        private readonly IMaterializer _mat;
-        private ISourceQueueWithComplete<PipelineEvent>? _queue;
-        private readonly TaskCompletionSource _queueReady = new();
-
-        public FakeSourceHub(IMaterializer mat) => _mat = mat;
-
-        public IActorRef Actor(ActorSystem system, Type requestType)
-            => system.ActorOf(Props.Create(() => new FakeSourceProvider(_mat, this, requestType)));
-
-        public void Emit(PipelineEvent evt) => _queue?.OfferAsync(evt);
-
-        public Task WaitForQueue() => _queueReady.Task;
-
-        internal void SetQueue(ISourceQueueWithComplete<PipelineEvent> queue)
-        {
-            _queue = queue;
-            _queueReady.TrySetResult();
-        }
-    }
-
-    private sealed class FakeSourceProvider : ReceiveActor
-    {
-        public FakeSourceProvider(IMaterializer mat, FakeSourceHub hub, Type requestType)
-        {
-            if (requestType == typeof(RequestModelStateSource))
-            {
-                Receive<RequestModelStateSource>(msg =>
-                {
-                    var (queue, source) = Source.Queue<PipelineEvent>(32, OverflowStrategy.DropHead)
-                        .PreMaterialize(mat);
-                    hub.SetQueue(queue);
-
-                    source
-                        .RunWith(StreamRefs.SourceRef<PipelineEvent>(), mat)
-                        .PipeTo(Sender, Self,
-                            sr => new ModelStateSourceResponse(msg.RequestId, sr),
-                            _ => null!);
-                });
-            }
-            else
-            {
-                Receive<RequestEnrichmentSource>(msg =>
-                {
-                    var (queue, source) = Source.Queue<PipelineEvent>(32, OverflowStrategy.DropHead)
-                        .PreMaterialize(mat);
-                    hub.SetQueue(queue);
-
-                    source
-                        .RunWith(StreamRefs.SourceRef<PipelineEvent>(), mat)
-                        .PipeTo(Sender, Self,
-                            sr => new EnrichmentSourceResponse(msg.RequestId, sr),
-                            _ => null!);
-                });
-            }
-        }
     }
 
     internal sealed record SentMessage(string Topic, string Payload, bool Retain);
@@ -260,14 +130,64 @@ public sealed class MqttStateActorSpec : NjordActorSpec
             lock (_lock)
             {
                 if (_sent.Any(predicate))
-                {
                     return Task.CompletedTask;
-                }
 
                 var tcs = new TaskCompletionSource();
                 _waiters.Add((predicate, tcs));
                 return tcs.Task;
             }
         }
+    }
+
+    internal sealed class FakeSourceHub
+    {
+        private readonly IMaterializer _mat;
+        private ISourceQueueWithComplete<PipelineEvent>? _queue;
+        private readonly TaskCompletionSource _queueReady = new();
+
+        public FakeSourceHub(IMaterializer mat) => _mat = mat;
+
+        public IActorRef Actor(ActorSystem system, Type requestType)
+            => system.ActorOf(Props.Create(() => new FakeSourceProvider(_mat, this, requestType)));
+
+        public void Emit(PipelineEvent evt) => _queue?.OfferAsync(evt);
+
+        public Task WaitForQueue() => _queueReady.Task;
+
+        internal void SetQueue(ISourceQueueWithComplete<PipelineEvent> queue)
+        {
+            _queue = queue;
+            _queueReady.TrySetResult();
+        }
+    }
+
+    private sealed class FakeSourceProvider : ReceiveActor
+    {
+        public FakeSourceProvider(IMaterializer mat, FakeSourceHub hub, Type requestType)
+        {
+            Receive<RequestPipelineOutput>(msg =>
+            {
+                var (queue, source) = Source.Queue<PipelineEvent>(32, OverflowStrategy.DropHead)
+                    .PreMaterialize(mat);
+                hub.SetQueue(queue);
+
+                source
+                    .RunWith(StreamRefs.SourceRef<PipelineEvent>(), mat)
+                    .PipeTo(Sender, Self,
+                        sr => new PipelineOutputResponse(msg.RequestId, sr),
+                        _ => null!);
+            });
+        }
+    }
+
+    private static ModelForecast CreateForecast(string model = "icon_d2")
+    {
+        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
+        var points = new List<ForecastPoint>
+        {
+            new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 }),
+        };
+        return new ModelForecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
+            new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 }
