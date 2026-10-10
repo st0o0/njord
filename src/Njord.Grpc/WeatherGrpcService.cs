@@ -1,19 +1,15 @@
 using Akka.Actor;
 using Akka.Hosting;
-using Akka.Streams;
-using Akka.Streams.Dsl;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
 using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Enrichment;
 using Njord.Grpc.V2;
 using Njord.Messages.Egress;
 using Njord.Messages.Snapshots;
 using Njord.Weather;
-using ActorSystem = Akka.Actor.ActorSystem;
 using CoverageTier = Njord.Core.Configuration.CoverageTier;
 using GrpcStatus = Grpc.Core.Status;
 
@@ -22,7 +18,6 @@ namespace Njord.Grpc;
 public sealed class WeatherGrpcService(
     IOptions<NjordOptions> options,
     ActorRegistry actorRegistry,
-    ActorSystem actorSystem,
     TimeProvider timeProvider) : WeatherService.WeatherServiceBase
 {
     private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(5);
@@ -67,146 +62,31 @@ public sealed class WeatherGrpcService(
         };
     }
 
-    public override async Task<GetEnrichmentsResponse> GetEnrichments(GetEnrichmentsRequest request, ServerCallContext context)
+    public override Task<GetEnrichmentsResponse> GetEnrichments(GetEnrichmentsRequest request, ServerCallContext context)
     {
-        FindLocation(request.Location);
-
-        var region = await actorRegistry.GetAsync<IEnrichmentSnapshotRegion>();
-        var enrichmentTypes = new[]
-        {
-            EnrichmentTypeNames.Consensus, EnrichmentTypeNames.Alerts,
-            EnrichmentTypeNames.Derived, EnrichmentTypeNames.Trends,
-            EnrichmentTypeNames.Indices, EnrichmentTypeNames.History
-        };
-        var tasks = enrichmentTypes.Select(type =>
-            region.Ask<QueryEnrichmentResponse>(
-                new QueryEnrichment(request.Location, type), AskTimeout));
-        var responses = await Task.WhenAll(tasks);
-        var results = enrichmentTypes.Zip(responses)
-            .Where(pair => pair.Second is QueryEnrichmentCompleted)
-            .Select(pair => (pair.First, ((QueryEnrichmentCompleted)pair.Second).Result))
-            .ToList();
-        var result = new QueryAllEnrichmentsCompleted(results);
-
-        var response = new GetEnrichmentsResponse { Location = request.Location };
-
-        foreach (var (typeName, resultObj) in result.Results)
-        {
-            var updatedAt = resultObj is ConsensusResult cr && cr.ComputedAt is { } computedAt
-                ? computedAt
-                : timeProvider.GetUtcNow();
-            var evt = EnrichmentProtoMapper.MapToEvent(
-                request.Location, typeName, resultObj, updatedAt);
-            if (evt is null)
-            {
-                continue;
-            }
-
-            switch (evt.PayloadCase)
-            {
-                case EnrichmentEvent.PayloadOneofCase.Alerts: response.Alerts = evt.Alerts; break;
-                case EnrichmentEvent.PayloadOneofCase.Indices: response.Indices = evt.Indices; break;
-                case EnrichmentEvent.PayloadOneofCase.Trends: response.Trends = evt.Trends; break;
-                case EnrichmentEvent.PayloadOneofCase.Derived: response.Derived = evt.Derived; break;
-                case EnrichmentEvent.PayloadOneofCase.History: response.History = evt.History; break;
-                case EnrichmentEvent.PayloadOneofCase.Consensus:
-                    response.Consensus = evt.Consensus;
-                    response.ConsensusUpdatedAt = evt.UpdatedAt;
-                    break;
-            }
-        }
-
-        return response;
+        // TODO: restructure-enrichment-pipeline — query GrpcConsumerActor in-memory state
+        throw new RpcException(new GrpcStatus(StatusCode.Unimplemented,
+            "Enrichment queries are being restructured"));
     }
 
-    public override async Task StreamForecasts(
+    public override Task StreamForecasts(
         StreamForecastsRequest request,
         IServerStreamWriter<ForecastUpdate> responseStream,
         ServerCallContext context)
     {
-        var sourceResponse = await RequestModelStateSourceAsync(context.CancellationToken);
-
-        var mat = actorSystem.Materializer();
-
-        var killSwitch = KillSwitches.Shared($"grpc-forecast-{context.Peer}");
-        await using var ctr = context.CancellationToken.Register(() => killSwitch.Shutdown());
-
-        await sourceResponse.SourceRef.Source
-            .Collect(e => e is EgressEvent.PerModelUpdate, e => (EgressEvent.PerModelUpdate)e)
-            .Where(u => string.IsNullOrEmpty(request.Location) ||
-                        string.Equals(u.Location, request.Location, StringComparison.OrdinalIgnoreCase))
-            .Log("grpc-stream-forecast", u => $"{u.Location}/{u.Model.Id}")
-            .Via(killSwitch.Flow<EgressEvent.PerModelUpdate>())
-            .SelectAsync(1, async update =>
-            {
-                var proto = MapForecastUpdate(update, timeProvider.GetUtcNow());
-                await responseStream.WriteAsync(proto, context.CancellationToken);
-                return proto;
-            })
-            .RunWith(Sink.Ignore<ForecastUpdate>(), mat);
+        // TODO: restructure-enrichment-pipeline — request SourceRef from GrpcConsumerActor
+        throw new RpcException(new GrpcStatus(StatusCode.Unimplemented,
+            "Forecast streaming is being restructured"));
     }
 
-    public override async Task StreamEnrichments(
+    public override Task StreamEnrichments(
         StreamEnrichmentsRequest request,
         IServerStreamWriter<EnrichmentEvent> responseStream,
         ServerCallContext context)
     {
-        var sourceResponse = await RequestEnrichmentSourceAsync(context.CancellationToken);
-
-        var mat = actorSystem.Materializer();
-
-        var killSwitch = KillSwitches.Shared($"grpc-enrichment-{context.Peer}");
-        await using var ctr = context.CancellationToken.Register(() => killSwitch.Shutdown());
-
-        await sourceResponse.SourceRef.Source
-            .Collect(e => e is EgressEvent.EnrichmentUpdate, e => (EgressEvent.EnrichmentUpdate)e)
-            .Where(u => string.IsNullOrEmpty(request.Location) ||
-                        string.Equals(u.Location, request.Location, StringComparison.OrdinalIgnoreCase))
-            .Log("grpc-stream-enrichment", u => $"{u.Location}/{u.TypeName}")
-            .Via(killSwitch.Flow<EgressEvent.EnrichmentUpdate>())
-            .SelectAsync(1, async update =>
-            {
-                var updatedAt = update.UpdatedAt ?? timeProvider.GetUtcNow();
-                var evt = EnrichmentProtoMapper.MapToEvent(
-                    update.Location, update.TypeName, update.Result, updatedAt);
-                if (evt is not null)
-                {
-                    await responseStream.WriteAsync(evt, context.CancellationToken);
-                }
-
-                return evt;
-            })
-            .RunWith(Sink.Ignore<EnrichmentEvent?>(), mat);
-    }
-
-    private async Task<ModelStateSourceResponse> RequestModelStateSourceAsync(CancellationToken cancellationToken)
-    {
-        var reply = await actorRegistry.Get<IModelStateActor>()
-            .Ask<object>(new RequestModelStateSource(0), cancellationToken);
-
-        return reply switch
-        {
-            ModelStateSourceResponse response => response,
-            ModelStateSourceFailed => throw new RpcException(
-                new GrpcStatus(StatusCode.Unavailable, "Model state stream is currently unavailable")),
-            _ => throw new RpcException(
-                new GrpcStatus(StatusCode.Internal, $"Unexpected model state reply: {reply.GetType().Name}")),
-        };
-    }
-
-    private async Task<EnrichmentSourceResponse> RequestEnrichmentSourceAsync(CancellationToken cancellationToken)
-    {
-        var reply = await actorRegistry.Get<IEnrichmentActor>()
-            .Ask<object>(new RequestEnrichmentSource(0), cancellationToken);
-
-        return reply switch
-        {
-            EnrichmentSourceResponse response => response,
-            EnrichmentSourceFailed => throw new RpcException(
-                new GrpcStatus(StatusCode.Unavailable, "Enrichment stream is currently unavailable")),
-            _ => throw new RpcException(
-                new GrpcStatus(StatusCode.Internal, $"Unexpected enrichment reply: {reply.GetType().Name}")),
-        };
+        // TODO: restructure-enrichment-pipeline — request SourceRef from GrpcConsumerActor
+        throw new RpcException(new GrpcStatus(StatusCode.Unimplemented,
+            "Enrichment streaming is being restructured"));
     }
 
     private LocationOptions FindLocation(string name)

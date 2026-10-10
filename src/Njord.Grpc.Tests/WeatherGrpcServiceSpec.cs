@@ -41,13 +41,9 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
         ActorRegistry.Register<IForecastSnapshotRegion>(
             forecastActor ?? Sys.ActorOf(Props.Create(() => new EmptyForecastActor())), overwrite: true);
-        ActorRegistry.Register<IEnrichmentSnapshotRegion>(
-            enrichmentActor ?? Sys.ActorOf(Props.Create(() => new EmptyEnrichmentActor())), overwrite: true);
-
         return new WeatherGrpcService(
             Options.Create(options),
             ActorRegistry,
-            Sys,
             timeProvider ?? _time);
     }
 
@@ -127,54 +123,6 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(StatusCode.NotFound, ex.StatusCode);
     }
 
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task GetEnrichments_WithConsensusResult_without_ComputedAt_falls_back_to_wall_clock()
-    {
-        var timeProvider = TestTimeouts.AtEpoch(Anchor);
-        var consensus = new ConsensusResult([]);
-        IReadOnlyList<(string TypeName, object Result)> results = [("consensus", (object)consensus)];
-        var actor = Sys.ActorOf(Props.Create(() => new FakeEnrichmentActor(results)));
-        var service = CreateService(enrichmentActor: actor, timeProvider: timeProvider);
-
-        var response = await service.GetEnrichments(
-            new GetEnrichmentsRequest { Location = "lucerne" },
-            TestServerCallContext.Create(TestContext.Current.CancellationToken));
-
-        Assert.NotNull(response.ConsensusUpdatedAt);
-        Assert.Equal(Anchor, response.ConsensusUpdatedAt.ToDateTimeOffset());
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task GetEnrichments_WithConsensusResult_uses_ComputedAt_not_query_time()
-    {
-        var computationTime = new DateTimeOffset(2026, 7, 15, 6, 0, 0, TimeSpan.Zero);
-        var queryTime = TestTimeConstants.BudgetEpoch;
-        var timeProvider = TestTimeouts.AtEpoch(queryTime);
-        var consensus = new ConsensusResult([], [], computationTime);
-        IReadOnlyList<(string TypeName, object Result)> results = [("consensus", (object)consensus)];
-        var actor = Sys.ActorOf(Props.Create(() => new FakeEnrichmentActor(results)));
-        var service = CreateService(enrichmentActor: actor, timeProvider: timeProvider);
-
-        var response = await service.GetEnrichments(
-            new GetEnrichmentsRequest { Location = "lucerne" },
-            TestServerCallContext.Create(TestContext.Current.CancellationToken));
-
-        Assert.NotNull(response.ConsensusUpdatedAt);
-        Assert.Equal(computationTime, response.ConsensusUpdatedAt.ToDateTimeOffset());
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task GetEnrichments_WithoutConsensusResult_LeavesConsensusUpdatedAtUnset()
-    {
-        var service = CreateService();
-
-        var response = await service.GetEnrichments(
-            new GetEnrichmentsRequest { Location = "lucerne" },
-            TestServerCallContext.Create(TestContext.Current.CancellationToken));
-
-        Assert.Null(response.ConsensusUpdatedAt);
-    }
-
     private static ModelForecast CreateForecast(string model = "icon_d2")
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
@@ -184,41 +132,6 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         };
         return new ModelForecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
             new ForecastSeries(points), DailyForecastSeries.Empty);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task StreamForecasts_throws_unavailable_when_model_state_source_request_fails()
-    {
-        ActorRegistry.Register<IModelStateActor>(
-            Sys.ActorOf(FailingRefProvider.Props(CreateTestProbe())), overwrite: true);
-        var service = CreateService();
-
-        var ex = await Assert.ThrowsAsync<RpcException>(() => service.StreamForecasts(
-            new StreamForecastsRequest(), new DiscardingStreamWriter<ForecastUpdate>(),
-            TestServerCallContext.Create(TestContext.Current.CancellationToken)));
-
-        Assert.Equal(StatusCode.Unavailable, ex.StatusCode);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task StreamEnrichments_throws_unavailable_when_enrichment_source_request_fails()
-    {
-        ActorRegistry.Register<IEnrichmentActor>(
-            Sys.ActorOf(FailingRefProvider.Props(CreateTestProbe())), overwrite: true);
-        var service = CreateService();
-
-        var ex = await Assert.ThrowsAsync<RpcException>(() => service.StreamEnrichments(
-            new StreamEnrichmentsRequest(), new DiscardingStreamWriter<EnrichmentEvent>(),
-            TestServerCallContext.Create(TestContext.Current.CancellationToken)));
-
-        Assert.Equal(StatusCode.Unavailable, ex.StatusCode);
-    }
-
-    private sealed class DiscardingStreamWriter<T> : IServerStreamWriter<T>
-    {
-        public WriteOptions? WriteOptions { get; set; }
-
-        public Task WriteAsync(T message) => Task.CompletedTask;
     }
 
     private sealed class EmptyForecastActor : ReceiveActor

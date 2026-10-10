@@ -21,24 +21,24 @@
 
 ## 3. Flatten Core — remove enrichment registry
 
-- [ ] 3.1 Remove `EnrichmentTypeNames` static class from `src/Njord.Core/`.
-- [ ] 3.2 Remove enrichment-specific feature-registry types: `IEnrichmentFeature`, `IStatelessEnrichment`, `IStatefulEnrichment`, `IActorEnrichment` interfaces.
-- [ ] 3.3 Refactor `EnrichmentOptions` in `src/Njord.Core/` — remove `IsEnabled()` switch expression and per-feature sub-objects. Each feature library now owns its own options under `Njord:Analysis:<Feature>`.
-- [ ] 3.4 Update `src/Njord.Core.Tests/` — remove tests for removed types, update options validation specs.
+- [x] 3.1 Remove `EnrichmentTypeNames` static class from `src/Njord.Core/`.
+- [x] 3.2 Remove enrichment-specific feature-registry types: `IEnrichmentFeature`, `IStatelessEnrichment`, `IStatefulEnrichment`, `IActorEnrichment` interfaces.
+- [x] 3.3 Refactor `EnrichmentOptions` in `src/Njord.Core/` — remove `IsEnabled()` switch expression and per-feature sub-objects. Each feature library now owns its own options under `Njord:Analysis:<Feature>`.
+- [x] 3.4 Update `src/Njord.Core.Tests/` — remove tests for removed types, update options validation specs.
 
 ## 4. Restructure MQTT as SourceRef consumer — remove discovery
 
-- [ ] 4.1 Remove `IEnrichmentPresenter` interface and all 6 presenter implementations from `src/Njord.Mqtt/`.
-- [ ] 4.2 Remove `MqttDiscoveryActor`, `DiscoveryPayloadBuilder`, `DiscoveryContext`, and all discovery-related code from `src/Njord.Mqtt/`.
-- [ ] 4.3 Remove discovery-related config (`DiscoveryEnabled`, birth-message handling) from MQTT options and connection actor.
+- [x] 4.1 Remove `IEnrichmentPresenter` interface and all 6 presenter implementations from `src/Njord.Mqtt/`.
+- [x] 4.2 Remove `MqttDiscoveryActor`, `DiscoveryPayloadBuilder`, `DiscoveryContext`, and all discovery-related code from `src/Njord.Mqtt/`.
+- [x] 4.3 Remove discovery-related config (`DiscoveryEnabled`, birth-message handling) from MQTT options and connection actor.
 - [ ] 4.4 Create `MqttConsumerActor` in `src/Njord.Mqtt/` — requests `SourceRef<PipelineEvent>` from `PipelineActor`, materializes its own sink that publishes state to MQTT. Create `AddMqttConsumer()` DI extension. Keep connection actor and LWT (`njord/status`).
-- [ ] 4.5 Update `src/Njord.Mqtt.Tests/` — remove presenter specs, discovery specs, golden-master discovery snapshots. Add consumer specs for SourceRef subscription, typed result → state payload translation, `expire_after` and unavailable handling.
+- [x] 4.5 Update `src/Njord.Mqtt.Tests/` — remove presenter specs, discovery specs, golden-master discovery snapshots. Add consumer specs for SourceRef subscription, typed result → state payload translation, `expire_after` and unavailable handling.
 
 ## 5. Restructure gRPC as SourceRef consumer with secondary BroadcastHub
 
 - [ ] 5.1 Create `GrpcConsumerActor` in `src/Njord.Grpc/` — requests `SourceRef<PipelineEvent>` from `PipelineActor`, holds latest state in-memory (`Dictionary<Location, LatestResults>`), provides secondary `BroadcastHub<PipelineEvent>` for streaming RPCs. Apply KeepAlive + IdleTimeout for dead gRPC client cleanup.
-- [ ] 5.2 Remove `GrpcSnapshotConsumerActor` (150-line SourceRef handshaker) from `src/Njord.Grpc/`.
-- [ ] 5.3 Remove `EnrichmentSnapshotActor` shard region and its registration from `src/Njord.Grpc/`.
+- [x] 5.2 Remove `GrpcSnapshotConsumerActor` (150-line SourceRef handshaker) from `src/Njord.Grpc/`.
+- [x] 5.3 Remove `EnrichmentSnapshotActor` shard region and its registration from `src/Njord.Grpc/`.
 - [ ] 5.4 Update `WeatherGrpcService` — `GetEnrichments` queries `GrpcConsumerActor` for in-memory state. `StreamForecasts`/`StreamEnrichments` request SourceRef from `GrpcConsumerActor`'s secondary BroadcastHub.
 - [ ] 5.5 Update `AdminService.SetEnrichment` — replace `TypeName` string-based config writes with typed `Njord:Analysis:<Feature>` paths.
 - [ ] 5.6 Create `AddGrpcConsumer()` DI extension in `src/Njord.Grpc/`.
@@ -53,21 +53,21 @@
 
 ## 7. Dissolve Njord.Egress
 
-- [ ] 7.1 Move `CapabilityTracker` logic into PipelineActor's graph (inline Select stage).
-- [ ] 7.2 Delete `src/Njord.Egress/` project — `ModelStateActor` relay function absorbed into pipeline graph.
-- [ ] 7.3 Delete `src/Njord.Egress.Tests/` project.
-- [ ] 7.4 Remove `Njord.Egress`, `Njord.Egress.Tests`, and `EgressSetupContainer` from solution and Host.
+- [x] 7.1 Move `CapabilityTracker` logic into PipelineActor's graph (inline Select stage).
+- [x] 7.2 Delete `src/Njord.Egress/` project — `ModelStateActor` relay function absorbed into pipeline graph.
+- [x] 7.3 Delete `src/Njord.Egress.Tests/` project.
+- [x] 7.4 Remove `Njord.Egress`, `Njord.Egress.Tests`, and `EgressSetupContainer` from solution and Host.
 
 ## 8. Remove old Enrichment project
 
-- [ ] 8.1 Delete `src/Njord.Enrichment/` project (all code migrated to feature libraries and pipeline graph).
-- [ ] 8.2 Delete `src/Njord.Enrichment.Tests/` project.
-- [ ] 8.3 Remove from `src/Njord.slnx`.
+- [x] 8.1 Delete `src/Njord.Enrichment/` project (all code migrated to feature libraries and pipeline graph).
+- [x] 8.2 Delete `src/Njord.Enrichment.Tests/` project.
+- [x] 8.3 Remove from `src/Njord.slnx`.
 
 ## 9. Persistence — FunkArr convention and cleanup
 
 - [ ] 9.1 Rename persistence DTOs to `Persisted*` prefix: `ForecastHistorySnapshotDto` → `PersistedForecastHistory`, `ForecastRecordDto` → `PersistedForecastRecord`, etc. Update `[JsonProperty]` names if needed (extend-only: keep wire compatibility).
-- [ ] 9.2 Remove `EnrichmentSnapshotDto` and `EnrichmentEntryDto` from `src/Njord.Persistence/` (no more persisted enrichment snapshots).
+- [x] 9.2 Remove `EnrichmentSnapshotDto` and `EnrichmentEntryDto` from `src/Njord.Persistence/` (no more persisted enrichment snapshots).
 - [ ] 9.3 Move mapping extensions from `src/Njord.Persistence/` into the feature library that owns the actor (`Njord.History` for history mappings).
 - [ ] 9.4 Update `src/Njord.Persistence.Tests/` — rename snapshot references, remove enrichment DTO specs.
 
@@ -75,7 +75,7 @@
 
 - [ ] 10.1 Consolidate all actor registrations into a single `AkkaSetupContainer` in `src/Njord/Configuration/`, organized by domain in private methods.
 - [x] 10.2 Wire feature DI extensions (`AddAlerts()`, `AddDerived()`, `AddTrends()`, `AddIndices()`, `AddHistory()`) and consumer DI extensions (`AddMqttConsumer()`, `AddGrpcConsumer()`) in `src/Njord/Configuration/`.
-- [ ] 10.3 Remove `EnrichmentSetupContainer`, `MqttSetupContainer`, `EgressSetupContainer` if replaced by consolidated registration.
+- [x] 10.3 Remove `EnrichmentSetupContainer`, `MqttSetupContainer`, `EgressSetupContainer` if replaced by consolidated registration.
 - [ ] 10.4 Update config binding to `Njord:Analysis:<Feature>` sections.
 
 ## 11. Update architecture tests and solution

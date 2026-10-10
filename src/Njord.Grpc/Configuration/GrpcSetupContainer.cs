@@ -30,18 +30,6 @@ public sealed class GrpcSetupContainer : IServiceSetupContainer
                     ShouldPassivateIdleEntities = true
                 });
 
-            builder.WithShardRegion<IEnrichmentSnapshotRegion>(
-                "enrichment-snapshot",
-                (_, _, resolver) => entityId => resolver.Props<EnrichmentSnapshotActor>(entityId),
-                new NjordMessageExtractor(),
-                new ShardOptions
-                {
-                    PassivateIdleEntityAfter = TimeSpan.FromMinutes(10),
-                    ShouldPassivateIdleEntities = true
-                });
-
-            builder.WithSingleton<IGrpcSnapshotConsumerActor>("grpc-snapshot-consumer",
-                (_, _, resolver) => resolver.Props<GrpcSnapshotConsumerActor>());
         }
     }
 }

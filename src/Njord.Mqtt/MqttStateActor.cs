@@ -22,7 +22,6 @@ public sealed class MqttStateActor : StreamConsumerActor
     private readonly int _forecastDays;
     private readonly TimeProvider _timeProvider;
     private readonly IMqttTransport _transport;
-    private readonly Dictionary<string, IEnrichmentPresenter> _presentersByType;
     private ILoggingAdapter _log = null!;
 
     private IActorRef? _modelStateRef;
@@ -42,8 +41,7 @@ public sealed class MqttStateActor : StreamConsumerActor
         IOptions<MqttOptions> mqttOptions,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider,
-        IMqttTransport transport,
-        IEnumerable<IEnrichmentPresenter> presenters)
+        IMqttTransport transport)
     {
         var opts = options.Value;
         _baseTopic = mqttOptions.Value.BaseTopic;
@@ -52,7 +50,6 @@ public sealed class MqttStateActor : StreamConsumerActor
         _forecastDays = opts.ForecastDays;
         _timeProvider = timeProvider;
         _transport = transport;
-        _presentersByType = presenters.ToDictionary(p => p.TypeName);
     }
 
     protected override void PreStart()
@@ -203,8 +200,8 @@ public sealed class MqttStateActor : StreamConsumerActor
         var messages = egressEvent switch
         {
             EgressEvent.PerModelUpdate e => MapPerModel(e, baseTopic),
-            EgressEvent.EnrichmentUpdate e when _presentersByType.TryGetValue(e.TypeName, out var presenter)
-                => presenter.ToStateMessages(e.Result, baseTopic, e.Location),
+            // TODO: restructure-enrichment-pipeline — typed enrichment state publishing via consumer
+            EgressEvent.EnrichmentUpdate => [],
             _ => [],
         };
 

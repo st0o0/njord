@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Mqtt.Presentation;
 using Njord.Mqtt.Transport;
 using Servus.Core.Application.Startup;
 
@@ -21,13 +20,6 @@ public sealed class MqttSetupContainer : IServiceSetupContainer
             .AddOptions<MqttOptions>()
             .Bind(configuration.GetSection(MqttOptions.SectionName))
             .ValidateOnStart();
-
-        services.AddSingleton<IEnrichmentPresenter, ConsensusPresenter>();
-        services.AddSingleton<IEnrichmentPresenter, AlertPresenter>();
-        services.AddSingleton<IEnrichmentPresenter, DerivedPresenter>();
-        services.AddSingleton<IEnrichmentPresenter, TrendPresenter>();
-        services.AddSingleton<IEnrichmentPresenter, IndexPresenter>();
-        services.AddSingleton<IEnrichmentPresenter, HistoryPresenter>();
 
         var mqttEnabled = configuration
             .GetSection($"{NjordOptions.SectionName}:Mqtt")
@@ -55,9 +47,7 @@ public sealed class MqttSetupContainer : IServiceSetupContainer
                 .WithSingleton<IMqttConnectionActor>("mqtt-connection",
                     (_, _, resolver) => resolver.Props<MqttConnectionActor>())
                 .WithSingleton<IMqttStateActor>("mqtt-state",
-                    (_, _, resolver) => resolver.Props<MqttStateActor>())
-                .WithSingleton<IMqttDiscoveryActor>("mqtt-discovery",
-                    (_, _, resolver) => resolver.Props<MqttDiscoveryActor>());
+                    (_, _, resolver) => resolver.Props<MqttStateActor>());
         }
     }
 }

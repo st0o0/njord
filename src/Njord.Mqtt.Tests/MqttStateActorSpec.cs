@@ -28,23 +28,19 @@ public sealed class MqttStateActorSpec : NjordActorSpec
 
     private IActorRef CreateMqttStateActor(
         NjordOptions? options = null, TimeProvider? timeProvider = null,
-        IMqttTransport? transport = null, bool withPresenters = false)
+        IMqttTransport? transport = null)
     {
         options ??= DefaultOptions();
         timeProvider ??= TestTimeouts.AtEpoch(Anchor);
         transport ??= new RecordingTransport();
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        IEnumerable<IEnrichmentPresenter> presenters = withPresenters
-            ? EnrichmentGoldenMasterFixtures.Presenters(options, parameters)
-            : [];
 
         return Sys.ActorOf(Props.Create(() => new MqttStateActor(
             Microsoft.Extensions.Options.Options.Create(options),
             Microsoft.Extensions.Options.Options.Create(options.Mqtt),
             parameters,
             timeProvider,
-            transport,
-            presenters)));
+            transport)));
     }
 
     private FakeSourceHub RegisterFakeModelStateHub()
@@ -105,38 +101,13 @@ public sealed class MqttStateActorSpec : NjordActorSpec
     }
 
     [Fact(Timeout = 15000)]
-    public async Task Should_publish_enrichment_update_through_presenter()
-    {
-        var modelHub = RegisterFakeModelStateHub();
-        var enrichHub = RegisterFakeEnrichmentHub();
-        var transport = new RecordingTransport();
-
-        CreateMqttStateActor(transport: transport, withPresenters: true);
-
-        await modelHub.WaitForQueue();
-        await enrichHub.WaitForQueue();
-
-        var temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
-        var consensus = new ConsensusResult(
-        [
-            new ParameterConsensus(temperature, new Dictionary<string, HorizonConsensus>
-            {
-                ["h3"] = new(5.0, 5.0, 0.5, 0.4, 0.9, null, null, [new WeatherModel("icon_d2")]),
-            }),
-        ]);
-        enrichHub.Emit(new EgressEvent.EnrichmentUpdate("lucerne", "consensus", consensus));
-
-        await transport.WaitForMessage(m => m.Topic.StartsWith("njord/lucerne/consensus")).WaitAsync(TestContext.Current.CancellationToken);
-    }
-
-    [Fact(Timeout = 15000)]
     public async Task Should_publish_nothing_for_an_unknown_enrichment_type_name()
     {
         var modelHub = RegisterFakeModelStateHub();
         var enrichHub = RegisterFakeEnrichmentHub();
         var transport = new RecordingTransport();
 
-        CreateMqttStateActor(transport: transport, withPresenters: true);
+        CreateMqttStateActor(transport: transport);
 
         await modelHub.WaitForQueue();
         await enrichHub.WaitForQueue();

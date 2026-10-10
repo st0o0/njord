@@ -5,23 +5,6 @@ namespace Njord.Architecture.Tests;
 
 public sealed class ZoneArchitectureSpec
 {
-    [Fact]
-    public void Enrichment_does_not_depend_on_mqtt_or_grpc()
-    {
-        Types().That().Are(NjordArchitecture.TypesInLibrary("Njord.Enrichment"))
-            .Should().NotDependOnAnyTypesThat().Are(NjordArchitecture.TypesInLibrary("Njord.Mqtt"))
-            .AndShould().NotDependOnAnyTypesThat().Are(NjordArchitecture.TypesInLibrary("Njord.Grpc"))
-            .Check(NjordArchitecture.Instance);
-    }
-
-    [Fact]
-    public void Mqtt_does_not_depend_on_enrichment()
-    {
-        Types().That().Are(NjordArchitecture.TypesInLibrary("Njord.Mqtt"))
-            .Should().NotDependOnAnyTypesThat().Are(NjordArchitecture.TypesInLibrary("Njord.Enrichment"))
-            .Check(NjordArchitecture.Instance);
-    }
-
     public static TheoryData<string> FeatureLibraries => new(NjordArchitecture.FeatureLibraries);
 
     public static TheoryData<string> BaseLibraries => new(NjordArchitecture.BaseLibraries);

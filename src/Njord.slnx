@@ -23,8 +23,6 @@
     <Project Path="Njord.Ingest/Njord.Ingest.csproj" />
     <Project Path="Njord.SensorHub/Njord.SensorHub.csproj" />
     <Project Path="Njord.Pipeline/Njord.Pipeline.csproj" />
-    <Project Path="Njord.Egress/Njord.Egress.csproj" />
-    <Project Path="Njord.Enrichment/Njord.Enrichment.csproj" />
     <Project Path="Njord.Mqtt/Njord.Mqtt.csproj" />
     <Project Path="Njord.Grpc/Njord.Grpc.csproj" />
     <Project Path="Njord.Alerts/Njord.Alerts.csproj" />
@@ -43,8 +41,6 @@
     <Project Path="Njord.Ingest.Tests/Njord.Ingest.Tests.csproj" />
     <Project Path="Njord.SensorHub.Tests/Njord.SensorHub.Tests.csproj" />
     <Project Path="Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj" />
-    <Project Path="Njord.Egress.Tests/Njord.Egress.Tests.csproj" />
-    <Project Path="Njord.Enrichment.Tests/Njord.Enrichment.Tests.csproj" />
     <Project Path="Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj" />
     <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
     <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />

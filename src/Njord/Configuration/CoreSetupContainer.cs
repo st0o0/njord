@@ -13,7 +13,7 @@ namespace Njord.Configuration;
 public sealed class CoreSetupContainer : IServiceSetupContainer
 {
     private static readonly HashSet<string> NjordMeters =
-        ["Njord.Ingest", "Njord.Pipeline", "Njord.Mqtt", "Njord.Enrichment"];
+        ["Njord.Ingest", "Njord.Pipeline", "Njord.Mqtt"];
 
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {

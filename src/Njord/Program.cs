@@ -1,6 +1,4 @@
 using Njord.Configuration;
-using Njord.Egress.Configuration;
-using Njord.Enrichment.Configuration;
 using Njord.Grpc.Configuration;
 using Njord.Ingest.Configuration;
 using Njord.Mqtt.Configuration;
@@ -38,8 +36,6 @@ var runner = AppBuilder.Create(builder, b => b.Build())
     .WithSetup<IngestSetupContainer>()
     .WithSetup<SensorSetupContainer>()
     .WithSetup<PipelineSetupContainer>()
-    .WithSetup<EgressSetupContainer>()
-    .WithSetup<EnrichmentSetupContainer>()
     .WithSetup<AnalysisSetupContainer>()
     .WithSetup<MqttSetupContainer>()
     .WithSetup<GrpcSetupContainer>()

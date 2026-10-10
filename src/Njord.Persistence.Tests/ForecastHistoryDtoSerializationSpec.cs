@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
-using Njord.Compute.Analysis;
-using Njord.Enrichment;
+using Njord.History;
+using ForecastRecord = Njord.History.ForecastRecord;
+using ForecastHistory = Njord.History.ForecastHistory;
 using Njord.Tests.Shared;
 using Njord.Weather;
 

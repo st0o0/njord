@@ -18,8 +18,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Njord.Egress\Njord.Egress.csproj" />
-        <ProjectReference Include="..\Njord.Enrichment\Njord.Enrichment.csproj" />
         <ProjectReference Include="..\Njord.Mqtt\Njord.Mqtt.csproj" />
         <ProjectReference Include="..\Njord.Tests.Shared\Njord.Tests.Shared.csproj" />
     </ItemGroup>

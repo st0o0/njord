@@ -75,20 +75,38 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Egress_references_only_Core_and_below()
-    {
-        Assert.Empty(NjordReferences<Njord.Egress.ModelStateActor>().Except(CoreAndBelow));
-    }
-
-    [Fact]
     public void Mqtt_references_only_Core_and_below()
     {
         Assert.Empty(NjordReferences<Njord.Mqtt.MqttStateActor>().Except(CoreAndBelow));
     }
 
     [Fact]
-    public void Enrichment_references_only_Core_and_below()
+    public void Alerts_references_only_Core_and_below()
     {
-        Assert.Empty(NjordReferences<Njord.Enrichment.EnrichmentActor>().Except(CoreAndBelow));
+        Assert.Empty(NjordReferences<Njord.Alerts.AlertAnalyzer>().Except(CoreAndBelow));
+    }
+
+    [Fact]
+    public void Derived_references_only_Core_and_below()
+    {
+        Assert.Empty(NjordReferences<Njord.Derived.DerivedAnalyzer>().Except(CoreAndBelow));
+    }
+
+    [Fact]
+    public void Trends_references_only_Core_and_below()
+    {
+        Assert.Empty(NjordReferences<Njord.Trends.TrendAnalyzer>().Except(CoreAndBelow));
+    }
+
+    [Fact]
+    public void Indices_references_only_Core_and_below()
+    {
+        Assert.Empty(NjordReferences<Njord.Indices.IndexAnalyzer>().Except(CoreAndBelow));
+    }
+
+    [Fact]
+    public void History_references_only_Core_and_below()
+    {
+        Assert.Empty(NjordReferences<Njord.History.HistoryTracker>().Except(CoreAndBelow));
     }
 }
