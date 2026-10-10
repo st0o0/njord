@@ -1,14 +1,14 @@
 ## 1. Define IAnalysisStage and wire into PipelineActor
 
-- [ ] 1.1 Add `IAnalysisStage` interface to `src/Njord.Core/Pipeline/IAnalysisStage.cs` — single method `CreateFlow(IUntypedActorContext context)` returning `Flow<ModelForecast, IReadOnlyList<PipelineEvent>, NotUsed>`. Add `using Akka.Streams.Dsl;` and `Njord.Messages.Egress`.
-- [ ] 1.2 Update `PipelineActor` constructor in `src/Njord.Pipeline/PipelineActor.cs` to accept `IAnalysisStage`. In `MaterializePipeline`, replace the simple `Collect(Success).Select(ModelForecastUpdate)` branch with: `Collect(Success) → Select(s => s.Forecast) → Via(analysisStage.CreateFlow(Context)) → SelectMany(events => events) → RunWith(pipelineOutputSink)`.
+- [x] 1.1 Add `IAnalysisStage` interface to `src/Njord.Core/Pipeline/IAnalysisStage.cs` — single method `CreateFlow(IUntypedActorContext context)` returning `Flow<ModelForecast, IReadOnlyList<PipelineEvent>, NotUsed>`. Add `using Akka.Streams.Dsl;` and `Njord.Messages.Egress`.
+- [x] 1.2 Update `PipelineActor` constructor in `src/Njord.Pipeline/PipelineActor.cs` to accept `IAnalysisStage`. In `MaterializePipeline`, replace the simple `Collect(Success).Select(ModelForecastUpdate)` branch with: `Collect(Success) → Select(s => s.Forecast) → Via(analysisStage.CreateFlow(Context)) → SelectMany(events => events) → RunWith(pipelineOutputSink)`.
 - [ ] 1.3 Add `PipelineActorSpec` test in `src/Njord.Pipeline.Tests/` verifying that a fake `IAnalysisStage` is called with each `ModelForecast` and its returned events appear on the `BroadcastHub<PipelineEvent>` output.
 
 ## 2. Implement AnalysisStage in the Host
 
-- [ ] 2.1 Create `src/Njord/Pipeline/AnalysisStage.cs` implementing `IAnalysisStage`. Constructor takes `ConsensusSnapshotFactory`, `AlertAnalyzer`, `DerivedAnalyzer`, `TrendAnalyzer`, `IndexAnalyzer`, `HistoryTracker`, `IOptions<NjordOptions>`, `IOptions<EnrichmentOptions>`, `TimeProvider`. `CreateFlow` resolves `IForecastHistoryRegion` and `ISensorHubActor` from context.
-- [ ] 2.2 Internal flow: `Scan(ModelSnapshot.Update)` → `SelectAsync(1, async snapshot => { ask sensors, compute consensus, build PollContext with previous tracking, run all features, ask history actor, return List<PipelineEvent> })`. Use a closure-captured `ConsensusSnapshot? previous` for trend tracking (updated each cycle).
-- [ ] 2.3 Register `AnalysisStage` as `IAnalysisStage` singleton in `src/Njord/Configuration/AnalysisSetupContainer.cs`.
+- [x] 2.1 Create `src/Njord/Pipeline/AnalysisStage.cs` implementing `IAnalysisStage`. Constructor takes `ConsensusSnapshotFactory`, `AlertAnalyzer`, `DerivedAnalyzer`, `TrendAnalyzer`, `IndexAnalyzer`, `HistoryTracker`, `IOptions<NjordOptions>`, `IOptions<EnrichmentOptions>`, `TimeProvider`. `CreateFlow` resolves `IForecastHistoryRegion` and `ISensorHubActor` from context.
+- [x] 2.2 Internal flow: `Scan(ModelSnapshot.Update)` → `SelectAsync(1, async snapshot => { ask sensors, compute consensus, build PollContext with previous tracking, run all features, ask history actor, return List<PipelineEvent> })`. Use a closure-captured `ConsensusSnapshot? previous` for trend tracking (updated each cycle).
+- [x] 2.3 Register `AnalysisStage` as `IAnalysisStage` singleton in `src/Njord/Configuration/AnalysisSetupContainer.cs`.
 - [ ] 2.4 Create `src/Njord.Tests/Pipeline/AnalysisStageSpec.cs` — test with real `ConsensusSnapshotFactory`, real feature analyzers (using test fixtures), mock `ForecastHistoryActor` via TestProbe. Verify: (a) consensus computed, (b) each enabled feature produces an AnalysisResult, (c) disabled feature produces no event, (d) first cycle has no trend result.
 
 ## 3. Remove ForecastSnapshotActor and route GetForecast through GrpcConsumerActor

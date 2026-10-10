@@ -7,9 +7,11 @@ using Njord.Alerts;
 using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Core.Pipeline;
 using Njord.Derived;
 using Njord.History;
 using Njord.Indices;
+using Njord.Pipeline;
 using Njord.Trends;
 using Servus.Core.Application.Startup;
 
@@ -28,6 +30,7 @@ public sealed class AnalysisSetupContainer : IServiceSetupContainer
         services.AddSingleton<IValidateOptions<EnrichmentOptions>, IndexOptionsValidator>();
 
         services.AddSingleton<ConsensusSnapshotFactory>();
+        services.AddSingleton<IAnalysisStage, AnalysisStage>();
 
         services.AddAlerts();
         services.AddDerived();

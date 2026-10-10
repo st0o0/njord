@@ -41,7 +41,7 @@ public sealed class PipelineActorShutdownSpec : Akka.Hosting.TestKit.TestKit
         ActorRegistry.Register<ISchedulerActor>(scheduler, overwrite: true);
 
         var pipeline = Sys.ActorOf(Props.Create(() => new PipelineActor(
-            new FakeOpenMeteoClient(), new FakeTimeProvider(), new AllowAllGate())));
+            new FakeOpenMeteoClient(), new FakeTimeProvider(), new AllowAllGate(), new PassthroughAnalysisStage())));
 
         var source = await pipeline.Ask<PipelineSourceResponse>(
             new RequestPipelineSource(0), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);

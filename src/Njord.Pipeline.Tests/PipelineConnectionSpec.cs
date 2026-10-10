@@ -71,7 +71,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         ActorRegistry.Register<ISchedulerActor>(schedulerPlaceholder, overwrite: true);
 
         var pipeline = Sys.ActorOf(
-            Props.Create(() => new PipelineActor(client, time, gate)),
+            Props.Create(() => new PipelineActor(client, time, gate, new PassthroughAnalysisStage())),
             "real-pipeline");
         ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
 
@@ -120,7 +120,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         ActorRegistry.Register<ISchedulerActor>(schedulerPlaceholder, overwrite: true);
 
         var pipeline = Sys.ActorOf(
-            Props.Create(() => new PipelineActor(client, time, gate)),
+            Props.Create(() => new PipelineActor(client, time, gate, new PassthroughAnalysisStage())),
             "timing-pipeline");
         ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
 

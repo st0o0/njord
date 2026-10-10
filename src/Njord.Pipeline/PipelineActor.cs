@@ -5,6 +5,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
 using Njord.Core.Ingest;
+using Njord.Core.Pipeline;
 using Njord.Messages.Common;
 using Njord.Messages.Egress;
 using Njord.Messages.Pipeline;
@@ -18,6 +19,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;
     private readonly IBudgetGate<WeightedTarget> _budgetGate;
+    private readonly IAnalysisStage _analysisStage;
     private readonly IActorRef _scheduler;
     private ILoggingAdapter _log = null!;
 
@@ -33,11 +35,13 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     public PipelineActor(
         IOpenMeteoClient client,
         TimeProvider timeProvider,
-        IBudgetGate<WeightedTarget> budgetGate)
+        IBudgetGate<WeightedTarget> budgetGate,
+        IAnalysisStage analysisStage)
     {
         _client = client;
         _timeProvider = timeProvider;
         _budgetGate = budgetGate;
+        _analysisStage = analysisStage;
         _scheduler = Context.GetActor<ISchedulerActor>();
 
         Ready();
@@ -151,7 +155,8 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
 
         broadcastHubSource
             .Collect(o => o is FetchOutcome.Success, o => ((FetchOutcome.Success)o).Forecast)
-            .Select(f => (PipelineEvent)new PipelineEvent.ModelForecastUpdate(f.Location, f.Model, f))
+            .Via(_analysisStage.CreateFlow(Context))
+            .SelectMany(events => events)
             .RunWith(pipelineOutputSink, _mat);
 
         _pipelineOutputSource = pipelineOutputSource;
