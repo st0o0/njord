@@ -12,15 +12,13 @@ the HA host).
 ### Architecture guardrails
 
 - **Three zones that only meet in the domain model:** Ingest (Open-Meteo client,
-  DTOs, parsing) → Domain (`ModelForecast`, enrichment, consensus) → Egress (HA
-  entity definitions, topic builder, discovery payloads). Ingest and Egress never
-  reference each other.
+  DTOs, parsing) → Domain (`ModelForecast`, analysis, consensus) → Consumers
+  (MQTT state payloads, gRPC streaming). Ingest and consumers never reference
+  each other.
 - **Streams for data flow, actors for lifecycle.** The poll pipeline is
-  Akka.Streams (tick → fan-out → throttle → HTTP → aggregate → enrich → MQTT).
-  Actors own connection management and the HA birth-message subscription.
-- **Discovery and telemetry are separate flows.** Discovery (retained config
-  payloads) is lifecycle-driven: startup, HA birth on `homeassistant/status`,
-  config change. Telemetry (state topics) is tick-driven.
+  Akka.Streams (tick → fan-out → throttle → HTTP → aggregate → analyse →
+  BroadcastHub). Consumers attach via SourceRef. Actors own connection
+  management and the HA birth-message subscription.
 - **The entity set is static, derived from config** (locations × models ×
   parameters × horizons) — never from what the API happens to return. A missing
   value is an `unavailable` state, not a missing entity.
@@ -30,20 +28,25 @@ the HA host).
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow` directly.
 - **SensorHub for external sensor input.** The SensorHub actor receives readings
   via gRPC (`SensorService`), stores latest values per `SensorKind` (closed enum).
-  Enrichments pull at each poll cycle (latest-value, no reactive re-computation).
-- **Enrichment computes, Mqtt presents.** Enrichment features (`Njord.Enrichment`)
-  are compute-only; each feature's HA device id, discovery payload and state
-  messages come from an `IEnrichmentPresenter` in `Njord.Mqtt` (plus a
-  `ConsensusPresenter` for consensus), matched by `EnrichmentTypeNames`. The two
-  libraries never reference each other.
+  Analysis features pull sensor data at each poll cycle (latest-value, no
+  reactive re-computation).
+- **Each analysis feature is a self-contained library.** Feature libraries
+  (Alerts, Derived, Trends, Indices, History) define typed input interfaces,
+  compute logic, and DI extensions. The host assembles a `PollContext`
+  implementing all input interfaces and fans out to each feature in the
+  pipeline graph. No common feature interface, no string-based type names.
+- **Consumers are output adapters via SourceRef.** MQTT and gRPC consumers
+  request a `SourceRef<PipelineEvent>` from `PipelineActor` and run their own
+  sinks. No intermediate relay actors, no presenters, no discovery payloads.
 - **Zone rules are enforced by tests** in `src/Njord.Architecture.Tests/` (lateral
-  independence of the feature libraries, Domain independence, Enrichment/Mqtt
-  separation, sealed/`Spec` conventions,
+  independence of the feature libraries, Domain independence,
+  sealed/`Spec` conventions,
   `LayerReferenceSpec` for the assembly reference direction: Domain and
   Persistence reference no Njord assembly, Messages only Domain, Core only those
-  three, feature libraries (Ingest, Sensors, Grpc, Pipeline, Egress, Mqtt, Enrichment) only Core and
-  below; the host references all. Feature libraries never reference each other,
-  checked by the lateral rule in `ZoneArchitectureSpec`).
+  three, feature libraries (Ingest, SensorHub, Grpc, Pipeline, Mqtt, Alerts,
+  Derived, Trends, Indices, History) only Core and below; the host references
+  all. Feature libraries never reference each other, checked by the lateral
+  rule in `ZoneArchitectureSpec`).
 
 ### Decisions
 
@@ -58,7 +61,7 @@ the HA host).
 - Feels-like comes from the API (`apparent_temperature` per model) — no own
   Steadman computation.
 - HA device cut: per location, one device per weather model plus one device per
-  enabled enrichment feature. Enrichment features (consensus, alerts, derived,
+  enabled analysis feature. Analysis features (consensus, alerts, derived,
   trends, indices, history) are independently toggleable.
 - Entity grid per model device: one sensor per (parameter, horizon) — horizons
   configurable, default +3/+6/+12/+24/+48/+72 h. No JSON series attribute, no
@@ -100,18 +103,16 @@ src/
   # /Domain/ — feature libraries (each -> Core only)
   Njord.Ingest/               # Open-Meteo client, DTOs, JSON source generator
   Njord.SensorHub/            # SensorHubActor
-  Njord.Pipeline/             # Scheduler, budget, poll pipeline
-  Njord.Egress/               # EgressActor, ModelStateActor, HorizonProjection
-  Njord.Enrichment/           # Enrichment actor, compute-only features, ForecastHistoryActor
-  Njord.Mqtt/                 # MQTT connection, discovery, state payloads, enrichment presenters
-  Njord.Grpc/                 # gRPC services, snapshot actors, protos
+  Njord.Pipeline/             # Scheduler, budget, poll pipeline, PipelineEvent BroadcastHub
+  Njord.Mqtt/                 # MQTT connection, state payloads, SourceRef consumer
+  Njord.Grpc/                 # gRPC services, GrpcConsumerActor, protos
 
-  # /Analysis/ — per-feature analysis libraries (each -> Core only, migration in progress)
-  Njord.Alerts/               # IAlertInput, AlertAnalyzer, AlertEvaluator, AlertOptions
+  # /Analysis/ — per-feature analysis libraries (each -> Core only)
+  Njord.Alerts/               # IAlertInput, AlertAnalyzer, AlertEvaluator
   Njord.Derived/              # IDerivedInput, DerivedAnalyzer
   Njord.Trends/               # ITrendInput, TrendAnalyzer (stateless, previous via interface)
-  Njord.Indices/              # IIndexInput, IndexAnalyzer, IndexOptions
-  Njord.History/              # IHistoryInput, HistoryTracker, ForecastHistoryActor, HistoryOptions
+  Njord.Indices/              # IIndexInput, IndexAnalyzer
+  Njord.History/              # IHistoryInput, HistoryTracker, ForecastHistoryActor
 
   # Host
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
@@ -127,10 +128,8 @@ src/
   Njord.Ingest.Tests/         # OpenMeteoClient specs
   Njord.SensorHub.Tests/      # SensorHub specs
   Njord.Pipeline.Tests/       # Scheduler, budget, poll stage specs
-  Njord.Egress.Tests/         # Egress specs
-  Njord.Enrichment.Tests/     # Enrichment feature + actor specs
-  Njord.Mqtt.Tests/           # MQTT discovery, connection, egress, golden masters
-  Njord.Grpc.Tests/           # gRPC service specs
+  Njord.Mqtt.Tests/           # MQTT connection, state payload, consumer specs
+  Njord.Grpc.Tests/           # gRPC service, GrpcConsumerActor specs
   Njord.Alerts.Tests/         # AlertAnalyzer specs
   Njord.Derived.Tests/        # DerivedAnalyzer specs
   Njord.Trends.Tests/         # TrendAnalyzer specs
@@ -141,7 +140,7 @@ src/
 ```
 
 Reference direction: Weather/Sensors/Persistence <- Messages <- Compute <- Core <- feature libs
-(Ingest, SensorHub, Grpc, Pipeline, Egress, Mqtt, Enrichment, Alerts, Derived, Trends,
+(Ingest, SensorHub, Grpc, Pipeline, Mqtt, Alerts, Derived, Trends,
 Indices, History) <- host. Feature libs reference only Njord.Core (and below, including
 Compute transitively), never each other and never the host; they reach each other's actors
 through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs`. Registration
@@ -168,9 +167,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 850 tests (Weather 59, Sensors 11, Persistence 22, Compute 216, Core 133,
-Egress 6, Grpc 78, Pipeline 109, Mqtt 99, Enrichment 51, Ingest 15, SensorHub 6, Architecture 31,
-Alerts 4, Derived 2, Trends 3, Indices 2, History 3).
+Current total: 737 tests (Weather 59, Sensors 11, Persistence 13, Compute 168, Core 115,
+Grpc 75, Pipeline 117, Mqtt 37, Ingest 16, SensorHub 6, Architecture 35,
+Alerts 61, Derived 2, Trends 3, Indices 2, History 17).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -348,7 +347,7 @@ Rules apply to production code (`src/Njord/`).
   DRY in that case.
 
 Known deviations: 21 existing `!.` uses on nullable results in the test projects
-(most in `Njord.Persistence.Tests/EnrichmentResultSerializationSpec.cs`,
+(most in
 `Njord.Compute.Tests/Analysis/ConsensusComputerSpec.cs` and
 `Njord.Core.Tests/Configuration/ModelCoverageRegistrySpec.cs`), not counting the allowed
 `JsonNode` indexers; new code follows the rule.
@@ -356,7 +355,7 @@ Known deviations: 21 existing `!.` uses on nullable results in the test projects
 ## Metrics conventions
 
 - One `Meter("Njord.<Domain>")` per feature library (Ingest, Pipeline, Mqtt,
-  Enrichment), owned by an `internal static class Telemetry` in that project with
+  Pipeline), owned by an `internal static class Telemetry` in that project with
   `internal static readonly` instrument fields (`Telemetry.MqttDedup.Add(...)`).
   New meters are registered in `CoreSetupContainer` (`NjordMeters`).
 - Names are `njord_<area>_<name>` in snake_case; counters end in `_total`,
