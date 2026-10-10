@@ -10,7 +10,3 @@ public interface IWithModelKey : IWithLocation
     string ModelId { get; }
 }
 
-public interface IWithEnrichmentKey : IWithLocation
-{
-    string TypeName { get; }
-}

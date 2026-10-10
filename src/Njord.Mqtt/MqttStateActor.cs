@@ -26,8 +26,8 @@ public sealed class MqttStateActor : StreamConsumerActor
 
     private IActorRef? _modelStateRef;
     private IActorRef? _enrichmentRef;
-    private ISourceRef<EgressEvent>? _modelStateSourceRef;
-    private ISourceRef<EgressEvent>? _enrichmentSourceRef;
+    private ISourceRef<PipelineEvent>? _modelStateSourceRef;
+    private ISourceRef<PipelineEvent>? _enrichmentSourceRef;
     private long _modelStateSourceRequestId;
     private long _enrichmentSourceRequestId;
 
@@ -166,11 +166,11 @@ public sealed class MqttStateActor : StreamConsumerActor
 
         _modelStateSourceRef!.Source
             .Merge(_enrichmentSourceRef!.Source)
-            .Via(killSwitch.Flow<EgressEvent>())
+            .Via(killSwitch.Flow<PipelineEvent>())
             .Log("mqtt-state-in", e => e switch
             {
-                EgressEvent.PerModelUpdate u => $"model {u.Location}/{u.Model.Id}",
-                EgressEvent.EnrichmentUpdate u => $"enrich {u.Location}/{u.TypeName}",
+                PipelineEvent.ModelForecastUpdate u => $"model {u.Location}/{u.Model.Id}",
+                PipelineEvent.AnalysisResult u => $"enrich {u.Location}/{u.TypeName}",
                 _ => "?",
             }, _log)
             .SelectMany(egressEvent => MapToMqttMessages(egressEvent, baseTopic, lastPublished))
@@ -195,20 +195,20 @@ public sealed class MqttStateActor : StreamConsumerActor
     }
 
     private IEnumerable<MqttMessage> MapToMqttMessages(
-        EgressEvent egressEvent, string baseTopic, Dictionary<string, int> lastPublished)
+        PipelineEvent egressEvent, string baseTopic, Dictionary<string, int> lastPublished)
     {
         var messages = egressEvent switch
         {
-            EgressEvent.PerModelUpdate e => MapPerModel(e, baseTopic),
+            PipelineEvent.ModelForecastUpdate e => MapPerModel(e, baseTopic),
             // TODO: restructure-enrichment-pipeline — typed enrichment state publishing via consumer
-            EgressEvent.EnrichmentUpdate => [],
+            PipelineEvent.AnalysisResult => [],
             _ => [],
         };
 
         var location = egressEvent switch
         {
-            EgressEvent.PerModelUpdate u => u.Location,
-            EgressEvent.EnrichmentUpdate u => u.Location,
+            PipelineEvent.ModelForecastUpdate u => u.Location,
+            PipelineEvent.AnalysisResult u => u.Location,
             _ => "unknown",
         };
         var locationTag = new KeyValuePair<string, object?>("location", location);
@@ -228,7 +228,7 @@ public sealed class MqttStateActor : StreamConsumerActor
         }
     }
 
-    private IReadOnlyList<MqttMessage> MapPerModel(EgressEvent.PerModelUpdate e, string baseTopic)
+    private IReadOnlyList<MqttMessage> MapPerModel(PipelineEvent.ModelForecastUpdate e, string baseTopic)
     {
         var maxHours = ModelCoverageRegistry.Get(e.Model.Id)?.MaxForecastHours;
         var perHorizon = HorizonProjection.BuildPerHorizon(

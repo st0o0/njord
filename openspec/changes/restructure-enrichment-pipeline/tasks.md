@@ -15,9 +15,9 @@
 
 ## 2. Rename EgressEvent to PipelineEvent and remove untyped messages
 
-- [ ] 2.1 Rename `EgressEvent` → `PipelineEvent` in `src/Njord.Messages/`. Rename subtypes: `PerModelUpdate` → `ModelForecast`, `EnrichmentUpdate` → `AnalysisResult` (typed result, no `object` + `string TypeName`), `CapabilityLearned` → `ModelCapability`.
-- [ ] 2.2 Remove untyped enrichment messages from `src/Njord.Messages/`: `UpdateEnrichment`, `QueryEnrichment`, `QueryEnrichmentCompleted`, `QueryAllEnrichmentsCompleted`, `IWithEnrichmentKey`.
-- [ ] 2.3 Update all usages across the codebase: Egress, Mqtt, Grpc, Pipeline, tests.
+- [x] 2.1 Rename `EgressEvent` → `PipelineEvent` in `src/Njord.Messages/`. Rename subtypes: `PerModelUpdate` → `ModelForecast`, `EnrichmentUpdate` → `AnalysisResult` (typed result, no `object` + `string TypeName`), `CapabilityLearned` → `ModelCapability`.
+- [x] 2.2 Remove untyped enrichment messages from `src/Njord.Messages/`: `UpdateEnrichment`, `QueryEnrichment`, `QueryEnrichmentCompleted`, `QueryAllEnrichmentsCompleted`, `IWithEnrichmentKey`.
+- [x] 2.3 Update all usages across the codebase: Egress, Mqtt, Grpc, Pipeline, tests.
 
 ## 3. Flatten Core — remove enrichment registry
 

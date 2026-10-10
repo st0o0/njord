@@ -8,7 +8,6 @@ public sealed class NjordMessageExtractorSpec
     private readonly NjordMessageExtractor _extractor = new();
 
     private sealed record ModelKeyMessage(string Location, string ModelId) : IWithModelKey;
-    private sealed record EnrichmentKeyMessage(string Location, string TypeName) : IWithEnrichmentKey;
     private sealed record LocationMessage(string Location) : IWithLocation;
 
     [Fact]
@@ -16,13 +15,6 @@ public sealed class NjordMessageExtractorSpec
     {
         var id = _extractor.EntityId(new ModelKeyMessage("borken", "icon_d2"));
         Assert.Equal("borken|icon_d2", id);
-    }
-
-    [Fact]
-    public void Extracts_entity_id_for_enrichment_key_message()
-    {
-        var id = _extractor.EntityId(new EnrichmentKeyMessage("borken", "consensus"));
-        Assert.Equal("borken|consensus", id);
     }
 
     [Fact]

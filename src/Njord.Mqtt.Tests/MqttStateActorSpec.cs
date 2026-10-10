@@ -73,7 +73,7 @@ public sealed class MqttStateActorSpec : NjordActorSpec
 
         // Verify the graph is live by emitting an event and expecting output
         var forecast = CreateForecast("icon_d2");
-        modelHub.Emit(new EgressEvent.PerModelUpdate("lucerne", new WeatherModel("icon_d2"), forecast));
+        modelHub.Emit(new PipelineEvent.ModelForecastUpdate("lucerne", new WeatherModel("icon_d2"), forecast));
 
         await transport.WaitForMessage(m => m.Topic.StartsWith("njord/")).WaitAsync(TestContext.Current.CancellationToken);
     }
@@ -91,7 +91,7 @@ public sealed class MqttStateActorSpec : NjordActorSpec
         await enrichHub.WaitForQueue();
 
         var forecast = CreateForecast("icon_d2");
-        modelHub.Emit(new EgressEvent.PerModelUpdate("lucerne", new WeatherModel("icon_d2"), forecast));
+        modelHub.Emit(new PipelineEvent.ModelForecastUpdate("lucerne", new WeatherModel("icon_d2"), forecast));
 
         await transport.WaitForMessage(m => m.Topic.StartsWith("njord/")).WaitAsync(TestContext.Current.CancellationToken);
         var sent = transport.Sent;
@@ -112,7 +112,7 @@ public sealed class MqttStateActorSpec : NjordActorSpec
         await modelHub.WaitForQueue();
         await enrichHub.WaitForQueue();
 
-        enrichHub.Emit(new EgressEvent.EnrichmentUpdate("lucerne", "no-such-type", new object()));
+        enrichHub.Emit(new PipelineEvent.AnalysisResult("lucerne", "no-such-type", new object()));
 
         await Task.Delay(500, TestContext.Current.CancellationToken);
         Assert.Empty(transport.Sent);
@@ -171,7 +171,7 @@ public sealed class MqttStateActorSpec : NjordActorSpec
     internal sealed class FakeSourceHub
     {
         private readonly IMaterializer _mat;
-        private ISourceQueueWithComplete<EgressEvent>? _queue;
+        private ISourceQueueWithComplete<PipelineEvent>? _queue;
         private readonly TaskCompletionSource _queueReady = new();
 
         public FakeSourceHub(IMaterializer mat) => _mat = mat;
@@ -179,11 +179,11 @@ public sealed class MqttStateActorSpec : NjordActorSpec
         public IActorRef Actor(ActorSystem system, Type requestType)
             => system.ActorOf(Props.Create(() => new FakeSourceProvider(_mat, this, requestType)));
 
-        public void Emit(EgressEvent evt) => _queue?.OfferAsync(evt);
+        public void Emit(PipelineEvent evt) => _queue?.OfferAsync(evt);
 
         public Task WaitForQueue() => _queueReady.Task;
 
-        internal void SetQueue(ISourceQueueWithComplete<EgressEvent> queue)
+        internal void SetQueue(ISourceQueueWithComplete<PipelineEvent> queue)
         {
             _queue = queue;
             _queueReady.TrySetResult();
@@ -198,12 +198,12 @@ public sealed class MqttStateActorSpec : NjordActorSpec
             {
                 Receive<RequestModelStateSource>(msg =>
                 {
-                    var (queue, source) = Source.Queue<EgressEvent>(32, OverflowStrategy.DropHead)
+                    var (queue, source) = Source.Queue<PipelineEvent>(32, OverflowStrategy.DropHead)
                         .PreMaterialize(mat);
                     hub.SetQueue(queue);
 
                     source
-                        .RunWith(StreamRefs.SourceRef<EgressEvent>(), mat)
+                        .RunWith(StreamRefs.SourceRef<PipelineEvent>(), mat)
                         .PipeTo(Sender, Self,
                             sr => new ModelStateSourceResponse(msg.RequestId, sr),
                             _ => null!);
@@ -213,12 +213,12 @@ public sealed class MqttStateActorSpec : NjordActorSpec
             {
                 Receive<RequestEnrichmentSource>(msg =>
                 {
-                    var (queue, source) = Source.Queue<EgressEvent>(32, OverflowStrategy.DropHead)
+                    var (queue, source) = Source.Queue<PipelineEvent>(32, OverflowStrategy.DropHead)
                         .PreMaterialize(mat);
                     hub.SetQueue(queue);
 
                     source
-                        .RunWith(StreamRefs.SourceRef<EgressEvent>(), mat)
+                        .RunWith(StreamRefs.SourceRef<PipelineEvent>(), mat)
                         .PipeTo(Sender, Self,
                             sr => new EnrichmentSourceResponse(msg.RequestId, sr),
                             _ => null!);

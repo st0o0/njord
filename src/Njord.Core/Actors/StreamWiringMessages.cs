@@ -17,15 +17,15 @@ public sealed record FailureConsumerFailed(Exception Cause);
 
 // ModelState stream wiring
 public sealed record RequestModelStateSource(long RequestId);
-public sealed record ModelStateSourceResponse(long RequestId, ISourceRef<EgressEvent> SourceRef);
+public sealed record ModelStateSourceResponse(long RequestId, ISourceRef<PipelineEvent> SourceRef);
 public sealed record ModelStateSourceFailed(long RequestId, Exception Cause);
 
 // Enrichment stream wiring
 public sealed record RequestEnrichmentSource(long RequestId);
-public sealed record EnrichmentSourceResponse(long RequestId, ISourceRef<EgressEvent> SourceRef);
+public sealed record EnrichmentSourceResponse(long RequestId, ISourceRef<PipelineEvent> SourceRef);
 public sealed record EnrichmentSourceFailed(long RequestId, Exception Cause);
 
 // New pipeline output wiring (replaces ModelState + Enrichment sources)
 public sealed record RequestPipelineOutput(long RequestId);
-public sealed record PipelineOutputResponse(long RequestId, ISourceRef<EgressEvent> SourceRef);
+public sealed record PipelineOutputResponse(long RequestId, ISourceRef<PipelineEvent> SourceRef);
 public sealed record PipelineOutputFailed(long RequestId, Exception Cause);

@@ -131,7 +131,7 @@ public sealed class WeatherGrpcService(
         return response;
     }
 
-    private static ForecastUpdate MapForecastUpdate(EgressEvent.PerModelUpdate update, DateTimeOffset now)
+    private static ForecastUpdate MapForecastUpdate(PipelineEvent.ModelForecastUpdate update, DateTimeOffset now)
     {
         var proto = new ForecastUpdate
         {

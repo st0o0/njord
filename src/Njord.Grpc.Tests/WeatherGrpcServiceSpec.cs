@@ -150,26 +150,4 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         }
     }
 
-    private sealed class EmptyEnrichmentActor : ReceiveActor
-    {
-        public EmptyEnrichmentActor()
-        {
-            Receive<QueryEnrichment>(msg => Sender.Tell(new QueryEnrichmentNotAvailable(msg.Location + "|" + msg.TypeName), Self));
-        }
-    }
-
-    private sealed class FakeEnrichmentActor : ReceiveActor
-    {
-        public FakeEnrichmentActor(IReadOnlyList<(string TypeName, object Result)> results)
-        {
-            var lookup = results.ToDictionary(r => r.TypeName, r => r.Result);
-            Receive<QueryEnrichment>(msg =>
-            {
-                if (lookup.TryGetValue(msg.TypeName, out var result))
-                    Sender.Tell(new QueryEnrichmentCompleted(result), Self);
-                else
-                    Sender.Tell(new QueryEnrichmentNotAvailable(msg.Location + "|" + msg.TypeName), Self);
-            });
-        }
-    }
 }
