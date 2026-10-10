@@ -1,5 +1,4 @@
 using Akka.Cluster.Hosting;
-using Akka.Cluster.Sharding;
 using Akka.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,16 +19,6 @@ public sealed class GrpcSetupContainer : IServiceSetupContainer
     {
         public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
         {
-            builder.WithShardRegion<IForecastSnapshotRegion>(
-                "forecast-snapshot",
-                (_, _, resolver) => entityId => resolver.Props<ForecastSnapshotActor>(entityId),
-                new NjordMessageExtractor(),
-                new ShardOptions
-                {
-                    PassivateIdleEntityAfter = TimeSpan.FromMinutes(10),
-                    ShouldPassivateIdleEntities = true
-                });
-
             builder.WithSingleton<IGrpcConsumerActor>("grpc-consumer",
                 (_, _, resolver) => resolver.Props<GrpcConsumerActor>());
         }

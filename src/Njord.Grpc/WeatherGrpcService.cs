@@ -54,8 +54,8 @@ public sealed class WeatherGrpcService(
         var location = FindLocation(request.Location);
         ValidateModel(location, request.Model);
 
-        var region = await actorRegistry.GetAsync<IForecastSnapshotRegion>();
-        var result = await region.Ask<QueryForecastResponse>(
+        var consumer = await actorRegistry.GetAsync<IGrpcConsumerActor>();
+        var result = await consumer.Ask<QueryForecastResponse>(
             new QueryForecast(request.Location, request.Model), AskTimeout);
 
         return result switch

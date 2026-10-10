@@ -5,6 +5,8 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
 using Njord.Messages.Egress;
+using Njord.Messages.Snapshots;
+using Njord.Weather;
 using Servus.Akka;
 
 namespace Njord.Grpc;
@@ -24,9 +26,13 @@ public sealed class GrpcConsumerActor : StreamConsumerActor
     private sealed record PipelineResolveFailed(Exception Cause);
 
     public sealed record QueryLatestResults(string Location);
-    public sealed record LatestResults(
-        PipelineEvent.ModelForecastUpdate? LastForecast = null,
-        PipelineEvent.AnalysisResult? LastAnalysis = null);
+    public sealed record LatestResults
+    {
+        public IReadOnlyDictionary<WeatherModel, ModelForecast> Forecasts { get; init; } =
+            new Dictionary<WeatherModel, ModelForecast>();
+
+        public PipelineEvent.AnalysisResult? LastAnalysis { get; init; }
+    }
     public sealed record RequestGrpcStreamSource(long RequestId);
     public sealed record GrpcStreamSourceResponse(long RequestId, ISourceRef<PipelineEvent> SourceRef);
     public sealed record GrpcStreamSourceFailed(long RequestId, Exception Cause);
@@ -90,6 +96,7 @@ public sealed class GrpcConsumerActor : StreamConsumerActor
         {
             Sender.Tell(_state.GetValueOrDefault(msg.Location, new LatestResults()));
         });
+        Receive<QueryForecast>(HandleQueryForecast);
         Receive<RequestGrpcStreamSource>(HandleStreamSourceRequest);
     }
 
@@ -118,7 +125,25 @@ public sealed class GrpcConsumerActor : StreamConsumerActor
         {
             Sender.Tell(_state.GetValueOrDefault(msg.Location, new LatestResults()));
         });
+        Receive<QueryForecast>(HandleQueryForecast);
         Receive<RequestGrpcStreamSource>(HandleStreamSourceRequest);
+    }
+
+    private void HandleQueryForecast(QueryForecast msg)
+    {
+        if (_state.TryGetValue(msg.Location, out var latest))
+        {
+            foreach (var (model, forecast) in latest.Forecasts)
+            {
+                if (string.Equals(model.Id, msg.ModelId, StringComparison.OrdinalIgnoreCase))
+                {
+                    Sender.Tell(new QueryForecastCompleted(forecast));
+                    return;
+                }
+            }
+        }
+
+        Sender.Tell(new QueryForecastNotAvailable($"{msg.Location}|{msg.ModelId}"));
     }
 
     private void HandleStreamSourceRequest(RequestGrpcStreamSource msg)
@@ -147,7 +172,11 @@ public sealed class GrpcConsumerActor : StreamConsumerActor
         {
             case PipelineEvent.ModelForecastUpdate forecast:
                 var forecastState = _state.GetValueOrDefault(forecast.Location, new LatestResults());
-                _state[forecast.Location] = forecastState with { LastForecast = forecast };
+                var forecasts = new Dictionary<WeatherModel, ModelForecast>(forecastState.Forecasts)
+                {
+                    [forecast.Model] = forecast.Forecast
+                };
+                _state[forecast.Location] = forecastState with { Forecasts = forecasts };
                 break;
             case PipelineEvent.AnalysisResult analysis:
                 var analysisState = _state.GetValueOrDefault(analysis.Location, new LatestResults());

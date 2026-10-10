@@ -25,7 +25,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
     private WeatherGrpcService CreateService(
         NjordOptions? options = null,
-        IActorRef? forecastActor = null,
+        IActorRef? consumerActor = null,
         IActorRef? enrichmentActor = null,
         TimeProvider? timeProvider = null)
     {
@@ -39,8 +39,8 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             Models = ["icon_d2", "ecmwf_ifs025"],
         };
 
-        ActorRegistry.Register<IForecastSnapshotRegion>(
-            forecastActor ?? Sys.ActorOf(Props.Create(() => new EmptyForecastActor())), overwrite: true);
+        ActorRegistry.Register<IGrpcConsumerActor>(
+            consumerActor ?? Sys.ActorOf(Props.Create(() => new EmptyConsumerActor())), overwrite: true);
         return new WeatherGrpcService(
             Options.Create(options),
             ActorRegistry,
@@ -93,8 +93,8 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     public async Task GetForecast_returns_forecast_with_timestamps()
     {
         var forecast = CreateForecast();
-        var actor = Sys.ActorOf(Props.Create(() => new FakeForecastActor(forecast)));
-        var service = CreateService(forecastActor: actor);
+        var actor = Sys.ActorOf(Props.Create(() => new FakeConsumerActor(forecast)));
+        var service = CreateService(consumerActor: actor);
 
         var response = await service.GetForecast(
             new GetForecastRequest { Location = "lucerne", Model = "icon_d2" },
@@ -135,17 +135,17 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    private sealed class EmptyForecastActor : ReceiveActor
+    private sealed class EmptyConsumerActor : ReceiveActor
     {
-        public EmptyForecastActor()
+        public EmptyConsumerActor()
         {
             Receive<QueryForecast>(msg => Sender.Tell(new QueryForecastNotAvailable(msg.Location + "|" + msg.ModelId), Self));
         }
     }
 
-    private sealed class FakeForecastActor : ReceiveActor
+    private sealed class FakeConsumerActor : ReceiveActor
     {
-        public FakeForecastActor(ModelForecast forecast)
+        public FakeConsumerActor(ModelForecast forecast)
         {
             Receive<QueryForecast>(_ => Sender.Tell(new QueryForecastCompleted(forecast), Self));
         }
