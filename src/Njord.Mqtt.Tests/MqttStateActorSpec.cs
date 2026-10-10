@@ -3,6 +3,8 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
+using System.Text.Json.Nodes;
+using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Messages.Egress;
@@ -92,6 +94,81 @@ public sealed class MqttStateActorSpec : NjordActorSpec
         await hub.WaitForQueue();
 
         hub.Emit(new PipelineEvent.AnalysisResult("lucerne", "no-such-type", new object()));
+
+        await Task.Delay(500, TestContext.Current.CancellationToken);
+        Assert.Empty(transport.Sent);
+    }
+
+    [Fact(Timeout = 15000)]
+    public async Task Should_publish_trend_analysis_result_to_trends_topic()
+    {
+        var hub = RegisterFakePipelineHub();
+        var transport = new RecordingTransport();
+
+        CreateMqttStateActor(transport: transport);
+
+        await hub.WaitForQueue();
+
+        var trends = new TrendResult(
+            "lucerne",
+            new Dictionary<string, ParameterTrend?>(),
+            null,
+            new PrecipTimingInfo(2, 5),
+            new ExtremaTimingInfo(null, null),
+            null,
+            null);
+        hub.Emit(new PipelineEvent.AnalysisResult("lucerne", "trends", trends));
+
+        await transport.WaitForMessage(m => m.Topic == "njord/lucerne/trends").WaitAsync(TestContext.Current.CancellationToken);
+        var sent = Assert.Single(transport.Sent);
+        var payload = JsonNode.Parse(sent.Payload);
+        Assert.NotNull(payload);
+        Assert.Multiple(
+            () => Assert.True(sent.Retain),
+            () => Assert.Equal(2, payload["precip_starts"]!.GetValue<int>()),
+            () => Assert.Equal(5, payload["precip_ends"]!.GetValue<int>()));
+    }
+
+    [Fact(Timeout = 15000)]
+    public async Task Should_publish_consensus_snapshot_per_horizon_topic()
+    {
+        var hub = RegisterFakePipelineHub();
+        var transport = new RecordingTransport();
+
+        CreateMqttStateActor(transport: transport);
+
+        await hub.WaitForQueue();
+
+        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
+        var horizon = new HorizonConsensus(
+            21.5, 21.4, 1.0, 0.5, 0.9, null, null, [new WeatherModel("icon_d2"), new WeatherModel("icon_eu")]);
+        var snapshot = new ConsensusSnapshot(
+            "lucerne",
+            new HourlyConsensus([new ParameterConsensus(temp, new Dictionary<string, HorizonConsensus> { ["h3"] = horizon })], 72),
+            new DailyConsensus([], 4),
+            Anchor);
+        hub.Emit(new PipelineEvent.AnalysisResult("lucerne", "consensus", snapshot));
+
+        await transport.WaitForMessage(m => m.Topic == "njord/lucerne/consensus/h3").WaitAsync(TestContext.Current.CancellationToken);
+        var sent = Assert.Single(transport.Sent);
+        var payload = JsonNode.Parse(sent.Payload);
+        Assert.NotNull(payload);
+        Assert.Multiple(
+            () => Assert.Equal(21.5, payload[temp.JsonKey]!.GetValue<double>()),
+            () => Assert.Equal(2, payload[$"{temp.JsonKey}_models"]!.GetValue<int>()));
+    }
+
+    [Fact(Timeout = 15000)]
+    public async Task Should_publish_nothing_when_result_type_does_not_match_type_name()
+    {
+        var hub = RegisterFakePipelineHub();
+        var transport = new RecordingTransport();
+
+        CreateMqttStateActor(transport: transport);
+
+        await hub.WaitForQueue();
+
+        hub.Emit(new PipelineEvent.AnalysisResult("lucerne", "trends", new object()));
 
         await Task.Delay(500, TestContext.Current.CancellationToken);
         Assert.Empty(transport.Sent);

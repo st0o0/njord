@@ -3,6 +3,7 @@ using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
+using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Egress;
@@ -142,8 +143,7 @@ public sealed class MqttStateActor : StreamConsumerActor
         var messages = pipelineEvent switch
         {
             PipelineEvent.ModelForecastUpdate e => MapPerModel(e, baseTopic),
-            // TODO: restructure-enrichment-pipeline — typed enrichment state publishing
-            PipelineEvent.AnalysisResult => [],
+            PipelineEvent.AnalysisResult a => MapAnalysis(a, baseTopic),
             _ => [],
         };
 
@@ -169,6 +169,18 @@ public sealed class MqttStateActor : StreamConsumerActor
             yield return msg;
         }
     }
+
+    private static IReadOnlyList<MqttMessage> MapAnalysis(PipelineEvent.AnalysisResult e, string baseTopic)
+        => (e.TypeName, e.Result) switch
+        {
+            ("consensus", ConsensusSnapshot r) => StatePayloadBuilder.FromConsensus(r, baseTopic),
+            ("alerts", AlertResult r) => StatePayloadBuilder.FromAlerts(r, baseTopic),
+            ("derived", DerivedResult r) => StatePayloadBuilder.FromDerived(r, baseTopic),
+            ("trends", TrendResult r) => StatePayloadBuilder.FromTrends(r, baseTopic),
+            ("indices", IndexResult r) => StatePayloadBuilder.FromIndices(r, baseTopic),
+            ("history", HistoryResult r) => StatePayloadBuilder.FromHistory(r, baseTopic),
+            _ => [],
+        };
 
     private IReadOnlyList<MqttMessage> MapPerModel(PipelineEvent.ModelForecastUpdate e, string baseTopic)
     {
