@@ -15,7 +15,7 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Weather_references_no_other_Njord_assembly()
     {
-        Assert.Empty(NjordReferences<Njord.Weather.ModelForecast>());
+        Assert.Empty(NjordReferences<Njord.Weather.Forecast>());
     }
 
     [Fact]
@@ -69,9 +69,10 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Pipeline_references_only_Core_and_below()
+    public void Pipeline_references_only_Core_and_analysis_libraries()
     {
-        Assert.Empty(NjordReferences<Njord.Pipeline.PipelineActor>().Except(CoreAndBelow));
+        Assert.Empty(NjordReferences<Njord.Pipeline.PipelineActor>()
+            .Except([..CoreAndBelow, "Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"]));
     }
 
     [Fact]
@@ -104,9 +105,4 @@ public sealed class LayerReferenceSpec
         Assert.Empty(NjordReferences<Njord.Indices.IndexAnalyzer>().Except(CoreAndBelow));
     }
 
-    [Fact]
-    public void History_references_only_Core_and_below()
-    {
-        Assert.Empty(NjordReferences<Njord.History.HistoryTracker>().Except(CoreAndBelow));
-    }
 }

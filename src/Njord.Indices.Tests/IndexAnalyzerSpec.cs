@@ -12,15 +12,12 @@ public sealed class IndexAnalyzerSpec
     private static readonly FakeTimeProvider Time = new(T0);
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
-    private sealed record TestIndexInput(ConsensusSnapshot Consensus, Njord.Sensors.SensorSnapshot? Sensors) : IIndexInput;
-
     [Fact]
     public void Compute_returns_index_result()
     {
         var analyzer = CreateAnalyzer();
-        var input = new TestIndexInput(BuildConsensus(), null);
 
-        var result = analyzer.Compute(input);
+        var result = analyzer.Compute(BuildConsensus(), null);
 
         Assert.NotNull(result);
         Assert.Equal("lucerne", result.Location);
@@ -30,9 +27,8 @@ public sealed class IndexAnalyzerSpec
     public void Compute_returns_null_when_disabled()
     {
         var analyzer = CreateAnalyzer(enabled: false);
-        var input = new TestIndexInput(BuildConsensus(), null);
 
-        var result = analyzer.Compute(input);
+        var result = analyzer.Compute(BuildConsensus(), null);
 
         Assert.Null(result);
     }

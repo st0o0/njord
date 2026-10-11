@@ -1,8 +1,8 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
-using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -35,19 +35,18 @@ public sealed class PipelineActorShutdownSpec : Akka.Hosting.TestKit.TestKit
             TestContext.Current.CancellationToken);
     }
 
-    private async Task<IActorRef> StartReadyPipeline()
+    private Task<IActorRef> StartReadyPipeline()
     {
         var scheduler = Sys.ActorOf(Props.Create(() => new IdleActor()));
         ActorRegistry.Register<ISchedulerActor>(scheduler, overwrite: true);
 
         var pipeline = Sys.ActorOf(Props.Create(() => new PipelineActor(
-            new FakeOpenMeteoClient(), new FakeTimeProvider(), new AllowAllGate(), new PassthroughAnalysisStage())));
+            new FakeOpenMeteoClient(), new FakeTimeProvider(), new AllowAllGate(),
+            DisabledAnalyzers.Consensus(),
+            DisabledAnalyzers.Alert(), DisabledAnalyzers.Derived(),
+            DisabledAnalyzers.Trend(), DisabledAnalyzers.Index())));
 
-        var source = await pipeline.Ask<PipelineSourceResponse>(
-            new RequestPipelineSource(0), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        _ = source.SourceRef.Source.RunWith(Sink.Ignore<FetchOutcome>(), Sys.Materializer());
-
-        return pipeline;
+        return Task.FromResult(pipeline);
     }
 
     private sealed class AllowAllGate : IBudgetGate<WeightedTarget>

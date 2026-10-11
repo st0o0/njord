@@ -30,7 +30,7 @@ public sealed class AlertEvaluatorSpec
     private static ConsensusSnapshot ToConsensus(ModelSnapshot snap) =>
         new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne");
 
-    private static ModelForecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues)
+    private static Forecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues)
     {
         var points = new List<ForecastPoint>();
         for (var h = 0; h < 24; h++)
@@ -43,11 +43,11 @@ public sealed class AlertEvaluatorSpec
 
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
-        return new ModelForecast(model, "lucerne", new CycleId(T0),
+        return new Forecast(model, "lucerne", new CycleId(T0),
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    private static ModelSnapshot SnapshotWith(params ModelForecast[] forecasts)
+    private static ModelSnapshot SnapshotWith(params Forecast[] forecasts)
     {
         var snap = ModelSnapshot.Empty;
         foreach (var f in forecasts)
@@ -348,7 +348,7 @@ public sealed class AlertEvaluatorSpec
     [Fact]
     public void PressureDrop_front_approaching()
     {
-        ModelForecast MakePressureForecast(WeatherModel model)
+        Forecast MakePressureForecast(WeatherModel model)
         {
             var points = new List<ForecastPoint>();
             for (var h = 0; h < 24; h++)
@@ -357,7 +357,7 @@ public sealed class AlertEvaluatorSpec
                 points.Add(new ForecastPoint(T0.AddHours(h),
                     new Dictionary<ParameterDef, double?> { [PressureMsl] = pressure }));
             }
-            return new ModelForecast(model, "lucerne", new CycleId(T0),
+            return new Forecast(model, "lucerne", new CycleId(T0),
                 new ForecastSeries(points), DailyForecastSeries.Empty);
         }
 
@@ -385,7 +385,7 @@ public sealed class AlertEvaluatorSpec
     [Fact]
     public void PressureDrop_severe_produces_orange()
     {
-        ModelForecast MakeSeverePressureForecast(WeatherModel model)
+        Forecast MakeSeverePressureForecast(WeatherModel model)
         {
             var points = new List<ForecastPoint>();
             for (var h = 0; h < 24; h++)
@@ -394,7 +394,7 @@ public sealed class AlertEvaluatorSpec
                 points.Add(new ForecastPoint(T0.AddHours(h),
                     new Dictionary<ParameterDef, double?> { [PressureMsl] = pressure }));
             }
-            return new ModelForecast(model, "lucerne", new CycleId(T0),
+            return new Forecast(model, "lucerne", new CycleId(T0),
                 new ForecastSeries(points), DailyForecastSeries.Empty);
         }
 
@@ -734,7 +734,7 @@ public sealed class AlertEvaluatorSpec
     private static readonly ParameterDef DailyUvMax = ParameterRegistry.GetByApiName("uv_index_max")!;
     private static readonly ParameterDef DailySnowfallSum = ParameterRegistry.GetByApiName("snowfall_sum")!;
 
-    private static ModelForecast MakeForecastWithDaily(
+    private static Forecast MakeForecastWithDaily(
         WeatherModel model,
         (ParameterDef Param, double Value)[] hourlyValues,
         (ParameterDef Param, double Value)[] dailyValues)
@@ -760,7 +760,7 @@ public sealed class AlertEvaluatorSpec
 
         var dailyPoint = new DailyForecastPoint(today, numeric, new Dictionary<ParameterDef, string?>());
 
-        return new ModelForecast(model, "lucerne", new CycleId(T0),
+        return new Forecast(model, "lucerne", new CycleId(T0),
             new ForecastSeries(points), new DailyForecastSeries([dailyPoint]));
     }
 

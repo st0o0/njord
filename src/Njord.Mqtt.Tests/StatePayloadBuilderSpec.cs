@@ -1,4 +1,3 @@
-using Njord.History;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
@@ -23,7 +22,7 @@ public sealed class StatePayloadBuilderSpec
         [Temperature, WindSpeed],
         [TempMax, Sunrise]);
 
-    private static ModelForecast Forecast(DateTimeOffset tick, DateTimeOffset firstPoint, int pointCount)
+    private static Forecast Forecast(DateTimeOffset tick, DateTimeOffset firstPoint, int pointCount)
         => new(
             IconD2,
             "home",
@@ -109,17 +108,17 @@ public sealed class StatePayloadBuilderSpec
     private static readonly ParameterDef IsDay = ParameterRegistry.GetByApiName("is_day")!;
     private static readonly ResolvedParameterSet FullParams = ParameterRegistry.Resolve(["Weather", "Solar"], [], []);
 
-    private static ModelForecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues)
+    private static Forecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues)
     {
         var values = hourlyValues.ToDictionary(x => x.Param, x => (double?)x.Value);
-        return new ModelForecast(
+        return new Forecast(
             model, "lucerne", new CycleId(T0),
             new ForecastSeries(Enumerable.Range(0, 72)
                 .Select(i => new ForecastPoint(T0.AddHours(i), values))),
             new DailyForecastSeries([]));
     }
 
-    private static ModelSnapshot SnapshotWith(params ModelForecast[] forecasts)
+    private static ModelSnapshot SnapshotWith(params Forecast[] forecasts)
         => forecasts.Aggregate(ModelSnapshot.Empty, (s, f) => s.Update(f));
 
     [Fact]
@@ -151,12 +150,12 @@ public sealed class StatePayloadBuilderSpec
         var dailyParam = ParameterRegistry.GetByApiName("temperature_2m_max")!;
         var dailyForecasts = new[]
         {
-            new ModelForecast(IconD2, "lucerne", new CycleId(T0), new ForecastSeries([]),
+            new Forecast(IconD2, "lucerne", new CycleId(T0), new ForecastSeries([]),
                 new DailyForecastSeries([
                     new DailyForecastPoint(baseDate, new Dictionary<ParameterDef, double?> { [dailyParam] = 28.0 }, new Dictionary<ParameterDef, string?>()),
                     new DailyForecastPoint(baseDate.AddDays(1), new Dictionary<ParameterDef, double?> { [dailyParam] = 30.0 }, new Dictionary<ParameterDef, string?>()),
                 ])),
-            new ModelForecast(new("ecmwf_ifs025"), "lucerne", new CycleId(T0), new ForecastSeries([]),
+            new Forecast(new("ecmwf_ifs025"), "lucerne", new CycleId(T0), new ForecastSeries([]),
                 new DailyForecastSeries([
                     new DailyForecastPoint(baseDate, new Dictionary<ParameterDef, double?> { [dailyParam] = 31.0 }, new Dictionary<ParameterDef, string?>()),
                     new DailyForecastPoint(baseDate.AddDays(1), new Dictionary<ParameterDef, double?> { [dailyParam] = 33.0 }, new Dictionary<ParameterDef, string?>()),
@@ -274,16 +273,4 @@ public sealed class StatePayloadBuilderSpec
         Assert.True(payload["outdoor_min"]!.GetValue<int>() <= payload["outdoor_max"]!.GetValue<int>());
     }
 
-    [Fact]
-    public void FromHistory_produces_single_history_topic()
-    {
-        var history = new ForecastHistory(30);
-        var result = new HistoryComputer().Compute(history, ModelSnapshot.Empty, "lucerne", FullParams, Time, new HistoryOptions());
-
-        var messages = StatePayloadBuilder.FromHistory(result, "njord");
-
-        Assert.Single(messages);
-        Assert.Equal("njord/lucerne/history", messages[0].Topic);
-        Assert.True(messages[0].Retain);
-    }
 }

@@ -6,7 +6,7 @@ namespace Njord.Core.Egress;
 public static class HorizonProjection
 {
     public static Dictionary<string, string> BuildPerHorizon(
-        ModelForecast forecast,
+        Forecast forecast,
         ResolvedParameterSet parameters,
         IReadOnlyList<int> horizons,
         int forecastDays,

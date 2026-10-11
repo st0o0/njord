@@ -14,15 +14,13 @@ public sealed class AlertAnalyzerSpec
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
-    private sealed record TestAlertInput(ConsensusSnapshot Consensus) : IAlertInput;
-
     [Fact]
     public void Compute_returns_alert_result_for_normal_conditions()
     {
         var analyzer = CreateAnalyzer();
-        var input = new TestAlertInput(BuildConsensus((Temperature, 20.0)));
+        var consensus = BuildConsensus((Temperature, 20.0));
 
-        var result = analyzer.Compute(input);
+        var result = analyzer.Compute(consensus);
 
         Assert.NotNull(result);
         Assert.All(result.Alerts, a => Assert.Equal(AlertSeverity.None, a.Severity));
@@ -32,9 +30,9 @@ public sealed class AlertAnalyzerSpec
     public void Compute_returns_null_when_disabled()
     {
         var analyzer = CreateAnalyzer(enabled: false);
-        var input = new TestAlertInput(BuildConsensus((Temperature, 20.0)));
+        var consensus = BuildConsensus((Temperature, 20.0));
 
-        var result = analyzer.Compute(input);
+        var result = analyzer.Compute(consensus);
 
         Assert.Null(result);
     }
@@ -43,9 +41,9 @@ public sealed class AlertAnalyzerSpec
     public void Compute_returns_all_alert_types()
     {
         var analyzer = CreateAnalyzer();
-        var input = new TestAlertInput(BuildConsensus((Temperature, 20.0)));
+        var consensus = BuildConsensus((Temperature, 20.0));
 
-        var result = analyzer.Compute(input);
+        var result = analyzer.Compute(consensus);
 
         Assert.NotNull(result);
         Assert.Equal(14, result.Alerts.Count);
@@ -77,7 +75,7 @@ public sealed class AlertAnalyzerSpec
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
 
-        var forecast = new ModelForecast(new("m1"), "lucerne", new CycleId(T0),
+        var forecast = new Forecast(new("m1"), "lucerne", new CycleId(T0),
             new ForecastSeries(points), DailyForecastSeries.Empty);
         var snap = ModelSnapshot.Empty.Update(forecast);
         return new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne");

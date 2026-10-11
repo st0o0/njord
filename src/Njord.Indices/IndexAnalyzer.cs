@@ -23,16 +23,16 @@ public sealed class IndexAnalyzer
 
     public bool Enabled => _enabled;
 
-    public IndexResult? Compute(IIndexInput input)
+    public IndexResult? Compute(ConsensusSnapshot consensus, SensorSnapshot? sensors)
     {
         if (!Enabled)
             return null;
 
-        var prefs = input.Sensors?.Get(SensorKind.IndoorTemperature) is { } liveTemp
-            ? OverrideIndoorTemp(_resolvedPreferences, input.Consensus.Location, liveTemp)
+        var prefs = sensors?.Get(SensorKind.IndoorTemperature) is { } liveTemp
+            ? OverrideIndoorTemp(_resolvedPreferences, consensus.Location, liveTemp)
             : _resolvedPreferences;
 
-        return _indexComputer.Compute(input.Consensus, prefs);
+        return _indexComputer.Compute(consensus, prefs);
     }
 
     private static IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> OverrideIndoorTemp(

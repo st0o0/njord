@@ -2,7 +2,7 @@ using Njord.Weather;
 
 namespace Njord.Weather.Tests;
 
-public sealed class ModelForecastSpec
+public sealed class ForecastSpec
 {
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
 
@@ -13,7 +13,7 @@ public sealed class ModelForecastSpec
         var point = new ForecastPoint(cycle.Timestamp.AddHours(3), new Dictionary<ParameterDef, double?> { [Temperature] = 20.0 });
         var series = new ForecastSeries([point]);
 
-        var forecast = new ModelForecast(new WeatherModel("ecmwf_ifs025"), "home", cycle, series, DailyForecastSeries.Empty);
+        var forecast = new Forecast(new WeatherModel("ecmwf_ifs025"), "home", cycle, series, DailyForecastSeries.Empty);
 
         Assert.Equal("ecmwf_ifs025", forecast.Model.Id);
         Assert.Equal("home", forecast.Location);

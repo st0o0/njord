@@ -8,7 +8,7 @@ namespace Njord.Mqtt;
 public static class StatePayloadBuilder
 {
     public static Dictionary<string, string> BuildPerHorizon(
-        ModelForecast forecast,
+        Forecast forecast,
         ResolvedParameterSet parameters,
         IReadOnlyList<int> horizons,
         int forecastDays,
@@ -243,38 +243,5 @@ public static class StatePayloadBuilder
         payload[$"{key}_min"] = envelope.Min;
         payload[$"{key}_max"] = envelope.Max;
         payload[$"{key}_confidence"] = JsonValue.Create(envelope.Confidence);
-    }
-
-    public static IReadOnlyList<MqttMessage> FromHistory(HistoryResult result, string baseTopic)
-    {
-        var payload = new JsonObject();
-
-        foreach (var (model, mae) in result.Mae7d)
-        {
-            payload[$"mae_7d_{model.Id}"] = mae.HasValue ? JsonValue.Create(mae.Value) : null;
-        }
-
-        foreach (var (model, mae) in result.Mae30d)
-        {
-            payload[$"mae_30d_{model.Id}"] = mae.HasValue ? JsonValue.Create(mae.Value) : null;
-        }
-
-        foreach (var (model, w) in result.Weights)
-        {
-            payload[$"weight_{model.Id}"] = JsonValue.Create(w);
-        }
-
-        foreach (var (model, d) in result.Drift)
-        {
-            payload[$"drift_{model.Id}"] = d.HasValue ? JsonValue.Create(d.Value) : null;
-        }
-
-        payload["seasonal_best"] = result.SeasonalBest?.Id;
-        payload["anomaly"] = result.Anomaly?.IsAnomaly;
-        payload["anomaly_deviation"] = result.Anomaly?.DeviationSigma is { } dev ? JsonValue.Create(dev) : null;
-        payload["weighted_temperature"] = result.WeightedTemperature.HasValue ? JsonValue.Create(result.WeightedTemperature.Value) : null;
-
-        var topic = TopicScheme.EnrichmentTopic(baseTopic, result.Location, "history");
-        return [new MqttMessage(topic, payload.ToJsonString(), true)];
     }
 }

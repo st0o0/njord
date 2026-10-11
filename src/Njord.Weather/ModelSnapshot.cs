@@ -3,15 +3,15 @@ namespace Njord.Weather;
 public sealed record ModelSnapshot
 {
     public static readonly ModelSnapshot Empty = new(
-        new Dictionary<(string Location, WeatherModel Model), ModelForecast>(), false);
+        new Dictionary<(string Location, WeatherModel Model), Forecast>(), false);
 
-    public IReadOnlyDictionary<(string Location, WeatherModel Model), ModelForecast> Entries { get; }
+    public IReadOnlyDictionary<(string Location, WeatherModel Model), Forecast> Entries { get; }
     public bool HasChanged { get; }
 
-    private readonly Dictionary<(string Location, WeatherModel Model), ModelForecast> _entries;
+    private readonly Dictionary<(string Location, WeatherModel Model), Forecast> _entries;
 
     private ModelSnapshot(
-        Dictionary<(string Location, WeatherModel Model), ModelForecast> entries,
+        Dictionary<(string Location, WeatherModel Model), Forecast> entries,
         bool hasChanged)
     {
         _entries = entries;
@@ -19,7 +19,7 @@ public sealed record ModelSnapshot
         HasChanged = hasChanged;
     }
 
-    public ModelSnapshot Update(ModelForecast forecast)
+    public ModelSnapshot Update(Forecast forecast)
     {
         var key = (forecast.Location, forecast.Model);
 
@@ -28,7 +28,7 @@ public sealed record ModelSnapshot
             return new ModelSnapshot(_entries, false);
         }
 
-        var copy = new Dictionary<(string Location, WeatherModel Model), ModelForecast>(_entries)
+        var copy = new Dictionary<(string Location, WeatherModel Model), Forecast>(_entries)
         {
             [key] = forecast,
         };

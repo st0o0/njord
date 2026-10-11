@@ -8,7 +8,7 @@ public sealed class ModelSnapshotSpec
     private static readonly WeatherModel IconD2 = new("icon_d2");
     private static readonly WeatherModel Ecmwf = new("ecmwf_ifs025");
 
-    private static ModelForecast Forecast(string location, WeatherModel model, CycleId cycle)
+    private static Forecast Forecast(string location, WeatherModel model, CycleId cycle)
         => new(model, location, cycle, new ForecastSeries([]), DailyForecastSeries.Empty);
 
     [Fact]

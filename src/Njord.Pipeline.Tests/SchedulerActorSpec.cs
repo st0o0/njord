@@ -85,7 +85,7 @@ public sealed class SchedulerActorSpec : NjordActorSpec
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.Transport, "test"));
+        Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", PollFailureReason.Transport, "test"));
 
         var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
@@ -98,7 +98,7 @@ public sealed class SchedulerActorSpec : NjordActorSpec
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.RateLimited, "test"));
+        Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", PollFailureReason.RateLimited, "test"));
 
         var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
@@ -110,7 +110,7 @@ public sealed class SchedulerActorSpec : NjordActorSpec
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.ModelUnavailable, "test"));
+        Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", PollFailureReason.ModelUnavailable, "test"));
 
         var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
@@ -122,7 +122,7 @@ public sealed class SchedulerActorSpec : NjordActorSpec
     {
         await _offerProbe.ExpectMsgAsync<WeightedTarget>(cancellationToken: TestContext.Current.CancellationToken);
 
-        Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", FetchFailureReason.MalformedPayload, "test"));
+        Scheduler.Tell(new FetchFailed("lucerne", "icon_d2", PollFailureReason.MalformedPayload, "test"));
 
         var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
             new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);

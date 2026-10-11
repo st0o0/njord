@@ -20,11 +20,11 @@ public sealed class OpenMeteoClient(
     private readonly string _dailyVariables = string.Join(",", parameters.Daily.Select(p => p.ApiName));
     private readonly int _forecastDays = options.Value.ForecastDays;
 
-    public async Task<FetchOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken cancellationToken)
+    public async Task<PollOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken cancellationToken)
     {
         var uri = BuildUri(location, model);
         var sw = Stopwatch.StartNew();
-        FetchOutcome? outcome = null;
+        PollOutcome? outcome = null;
 
         try
         {
@@ -34,9 +34,9 @@ public sealed class OpenMeteoClient(
             {
                 outcome = response.StatusCode switch
                 {
-                    HttpStatusCode.TooManyRequests => new FetchOutcome.Failure(location.Name, model, FetchFailureReason.RateLimited, "HTTP 429 from the forecast endpoint"),
-                    HttpStatusCode.BadRequest => new FetchOutcome.Failure(location.Name, model, FetchFailureReason.ModelUnavailable, await ReadErrorReasonAsync(response, cancellationToken)),
-                    _ => new FetchOutcome.Failure(location.Name, model, FetchFailureReason.Transport, $"HTTP {(int)response.StatusCode} from the forecast endpoint"),
+                    HttpStatusCode.TooManyRequests => new PollOutcome.Failure(location.Name, model, PollFailureReason.RateLimited, "HTTP 429 from the forecast endpoint"),
+                    HttpStatusCode.BadRequest => new PollOutcome.Failure(location.Name, model, PollFailureReason.ModelUnavailable, await ReadErrorReasonAsync(response, cancellationToken)),
+                    _ => new PollOutcome.Failure(location.Name, model, PollFailureReason.Transport, $"HTTP {(int)response.StatusCode} from the forecast endpoint"),
                 };
                 return outcome;
             }
@@ -44,20 +44,20 @@ public sealed class OpenMeteoClient(
             var dto = await response.Content.ReadFromJsonAsync(OpenMeteoJsonContext.Default.OpenMeteoForecastResponse, cancellationToken);
             if (dto?.Hourly is null || dto.Hourly.Time.Count == 0)
             {
-                outcome = new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, "Response contained no hourly data");
+                outcome = new PollOutcome.Failure(location.Name, model, PollFailureReason.MalformedPayload, "Response contained no hourly data");
                 return outcome;
             }
 
             if (UnitMismatch(dto.HourlyUnits) is { } mismatch)
             {
-                outcome = new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, mismatch);
+                outcome = new PollOutcome.Failure(location.Name, model, PollFailureReason.MalformedPayload, mismatch);
                 return outcome;
             }
 
             var hourlyResult = MapHourly(dto.Hourly);
             if (hourlyResult is null)
             {
-                outcome = new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, "Response carried hourly timestamps but no values");
+                outcome = new PollOutcome.Failure(location.Name, model, PollFailureReason.MalformedPayload, "Response carried hourly timestamps but no values");
                 return outcome;
             }
 
@@ -65,24 +65,24 @@ public sealed class OpenMeteoClient(
                 ? MapDaily(dto.Daily)
                 : DailyForecastSeries.Empty;
 
-            outcome = new FetchOutcome.Success(new ModelForecast(
+            outcome = new PollOutcome.Success(new Forecast(
                 model, location.Name, cycle,
                 hourlyResult, daily));
             return outcome;
         }
         catch (HttpRequestException ex)
         {
-            outcome = new FetchOutcome.Failure(location.Name, model, FetchFailureReason.Transport, ex.Message);
+            outcome = new PollOutcome.Failure(location.Name, model, PollFailureReason.Transport, ex.Message);
             return outcome;
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            outcome = new FetchOutcome.Failure(location.Name, model, FetchFailureReason.Transport, "Request timed out");
+            outcome = new PollOutcome.Failure(location.Name, model, PollFailureReason.Transport, "Request timed out");
             return outcome;
         }
         catch (JsonException)
         {
-            outcome = new FetchOutcome.Failure(location.Name, model, FetchFailureReason.MalformedPayload, "Response JSON did not match the expected schema");
+            outcome = new PollOutcome.Failure(location.Name, model, PollFailureReason.MalformedPayload, "Response JSON did not match the expected schema");
             return outcome;
         }
         finally
@@ -94,12 +94,12 @@ public sealed class OpenMeteoClient(
                 var modelTag = new KeyValuePair<string, object?>("model", model.Id);
                 var outcomeLabel = outcome switch
                 {
-                    FetchOutcome.Success => "success",
-                    FetchOutcome.Failure f => f.Reason.ToString().ToLowerInvariant(),
+                    PollOutcome.Success => "success",
+                    PollOutcome.Failure f => f.Reason.ToString().ToLowerInvariant(),
                     _ => "unknown",
                 };
                 Telemetry.FetchTotal.Add(1, locationTag, modelTag, new KeyValuePair<string, object?>("outcome", outcomeLabel));
-                if (outcome is FetchOutcome.Success)
+                if (outcome is PollOutcome.Success)
                 {
                     Telemetry.FetchDuration.Record(sw.Elapsed.TotalSeconds, locationTag, modelTag);
                 }

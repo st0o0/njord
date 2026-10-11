@@ -9,7 +9,7 @@ using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Grpc.V2;
-using Njord.Messages.Egress;
+using Njord.Core.Egress;
 using Njord.Messages.Snapshots;
 using Njord.Weather;
 using ActorSystem = Akka.Actor.ActorSystem;
@@ -78,9 +78,7 @@ public sealed class WeatherGrpcService(
 
         if (result.LastAnalysis is { } analysis)
         {
-            var updatedAt = analysis.UpdatedAt ?? timeProvider.GetUtcNow();
-            var evt = EnrichmentProtoMapper.MapToEvent(
-                analysis.Location, analysis.TypeName, analysis.Result, updatedAt);
+            var evt = EnrichmentProtoMapper.MapToEvent(analysis, timeProvider.GetUtcNow());
             if (evt is not null)
             {
                 switch (evt.PayloadCase)
@@ -89,7 +87,6 @@ public sealed class WeatherGrpcService(
                     case EnrichmentEvent.PayloadOneofCase.Indices: response.Indices = evt.Indices; break;
                     case EnrichmentEvent.PayloadOneofCase.Trends: response.Trends = evt.Trends; break;
                     case EnrichmentEvent.PayloadOneofCase.Derived: response.Derived = evt.Derived; break;
-                    case EnrichmentEvent.PayloadOneofCase.History: response.History = evt.History; break;
                     case EnrichmentEvent.PayloadOneofCase.Consensus:
                         response.Consensus = evt.Consensus;
                         response.ConsensusUpdatedAt = evt.UpdatedAt;
@@ -113,10 +110,10 @@ public sealed class WeatherGrpcService(
         await using var ctr = context.CancellationToken.Register(() => killSwitch.Shutdown());
 
         await sourceRef.Source
-            .Collect(e => e is PipelineEvent.ModelForecastUpdate, e => (PipelineEvent.ModelForecastUpdate)e)
+            .Collect(e => e is PipelineEvent.ForecastReceived, e => (PipelineEvent.ForecastReceived)e)
             .Where(u => string.IsNullOrEmpty(request.Location) ||
                         string.Equals(u.Location, request.Location, StringComparison.OrdinalIgnoreCase))
-            .Via(killSwitch.Flow<PipelineEvent.ModelForecastUpdate>())
+            .Via(killSwitch.Flow<PipelineEvent.ForecastReceived>())
             .SelectAsync(1, async update =>
             {
                 var proto = MapForecastUpdate(update, timeProvider.GetUtcNow());
@@ -138,15 +135,13 @@ public sealed class WeatherGrpcService(
         await using var ctr = context.CancellationToken.Register(() => killSwitch.Shutdown());
 
         await sourceRef.Source
-            .Collect(e => e is PipelineEvent.AnalysisResult, e => (PipelineEvent.AnalysisResult)e)
-            .Where(u => string.IsNullOrEmpty(request.Location) ||
-                        string.Equals(u.Location, request.Location, StringComparison.OrdinalIgnoreCase))
-            .Via(killSwitch.Flow<PipelineEvent.AnalysisResult>())
+            .Where(e => e is PipelineEvent.ConsensusComputed or PipelineEvent.AlertComputed
+                or PipelineEvent.DerivedComputed or PipelineEvent.TrendComputed
+                or PipelineEvent.IndexComputed)
+            .Via(killSwitch.Flow<PipelineEvent>())
             .SelectAsync(1, async update =>
             {
-                var updatedAt = update.UpdatedAt ?? timeProvider.GetUtcNow();
-                var evt = EnrichmentProtoMapper.MapToEvent(
-                    update.Location, update.TypeName, update.Result, updatedAt);
+                var evt = EnrichmentProtoMapper.MapToEvent(update, timeProvider.GetUtcNow());
                 if (evt is not null)
                     await responseStream.WriteAsync(evt, context.CancellationToken);
                 return evt;
@@ -200,7 +195,7 @@ public sealed class WeatherGrpcService(
         "wind_speed_10m_max", "wind_gusts_10m_max", "sunrise", "sunset", "weather_code"
     ];
 
-    private static GetForecastResponse MapForecastResponse(ModelForecast forecast, DateTimeOffset now)
+    private static GetForecastResponse MapForecastResponse(Forecast forecast, DateTimeOffset now)
     {
         var response = new GetForecastResponse
         {
@@ -212,7 +207,7 @@ public sealed class WeatherGrpcService(
         return response;
     }
 
-    private static ForecastUpdate MapForecastUpdate(PipelineEvent.ModelForecastUpdate update, DateTimeOffset now)
+    private static ForecastUpdate MapForecastUpdate(PipelineEvent.ForecastReceived update, DateTimeOffset now)
     {
         var proto = new ForecastUpdate
         {
@@ -225,7 +220,7 @@ public sealed class WeatherGrpcService(
     }
 
     private static void MapForecastPoints(
-        ModelForecast forecast,
+        Forecast forecast,
         Google.Protobuf.Collections.RepeatedField<HourlyForecast> hourlyTarget,
         Google.Protobuf.Collections.RepeatedField<DailyForecast> dailyTarget)
     {

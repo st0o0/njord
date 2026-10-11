@@ -50,8 +50,8 @@ public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
         var results = await Source.From(targets)
             .SelectAsyncUnordered(8, async target =>
                 await client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None))
-            .Where(outcome => outcome is FetchOutcome.Success)
-            .Select(outcome => (FetchOutcome.Success)outcome)
+            .Where(outcome => outcome is PollOutcome.Success)
+            .Select(outcome => (PollOutcome.Success)outcome)
             .SelectMany(success =>
             {
                 var forecast = success.Forecast;
@@ -84,8 +84,8 @@ public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
         var results = await Source.From(targets)
             .SelectAsyncUnordered(8, async target =>
                 await client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None))
-            .Where(outcome => outcome is FetchOutcome.Success)
-            .Select(outcome => (FetchOutcome.Success)outcome)
+            .Where(outcome => outcome is PollOutcome.Success)
+            .Select(outcome => (PollOutcome.Success)outcome)
             .SelectMany(success =>
             {
                 var forecast = success.Forecast;

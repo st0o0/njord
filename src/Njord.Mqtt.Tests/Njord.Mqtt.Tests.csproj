@@ -19,7 +19,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Njord.Mqtt\Njord.Mqtt.csproj" />
-        <ProjectReference Include="..\Njord.History\Njord.History.csproj" />
         <ProjectReference Include="..\Njord.Tests.Shared\Njord.Tests.Shared.csproj" />
     </ItemGroup>
 

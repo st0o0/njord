@@ -124,14 +124,14 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(StatusCode.NotFound, ex.StatusCode);
     }
 
-    private static ModelForecast CreateForecast(string model = "icon_d2")
+    private static Forecast CreateForecast(string model = "icon_d2")
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var points = new List<ForecastPoint>
         {
             new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 }),
         };
-        return new ModelForecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
+        return new Forecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
@@ -145,7 +145,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
     private sealed class FakeConsumerActor : ReceiveActor
     {
-        public FakeConsumerActor(ModelForecast forecast)
+        public FakeConsumerActor(Forecast forecast)
         {
             Receive<QueryForecast>(_ => Sender.Tell(new QueryForecastCompleted(forecast), Self));
         }

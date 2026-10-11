@@ -14,17 +14,17 @@ public sealed class ConsensusSnapshotSpec
     private static readonly WeatherModel Ecmwf = new("ecmwf_ifs025");
     private static readonly WeatherModel Gfs = new("gfs_seamless");
 
-    private static ModelForecast MakeHourlyForecast(
+    private static Forecast MakeHourlyForecast(
         WeatherModel model, string location, DateTimeOffset baseHour, params (int Hour, double Temp)[] points)
     {
         var forecastPoints = points.Select(p =>
             new ForecastPoint(baseHour.AddHours(p.Hour),
                 new Dictionary<ParameterDef, double?> { [Temperature] = p.Temp })).ToList();
-        return new ModelForecast(model, location, new CycleId(baseHour),
+        return new Forecast(model, location, new CycleId(baseHour),
             new ForecastSeries(forecastPoints), DailyForecastSeries.Empty);
     }
 
-    private static ModelForecast MakeDailyForecast(
+    private static Forecast MakeDailyForecast(
         WeatherModel model, string location, DateOnly baseDate,
         params (ParameterDef Param, double?[] Values)[] series)
     {
@@ -42,11 +42,11 @@ public sealed class ConsensusSnapshotSpec
             points.Add(new DailyForecastPoint(baseDate.AddDays(d), numericValues, new Dictionary<ParameterDef, string?>()));
         }
 
-        return new ModelForecast(model, location, new CycleId(T0),
+        return new Forecast(model, location, new CycleId(T0),
             new ForecastSeries([]), new DailyForecastSeries(points));
     }
 
-    private static ModelForecast MakeCombinedForecast(
+    private static Forecast MakeCombinedForecast(
         WeatherModel model, string location, DateTimeOffset baseHour,
         (int Hour, double Temp)[] hourlyPoints,
         (ParameterDef Param, double?[] Values)[] dailySeries)
@@ -69,7 +69,7 @@ public sealed class ConsensusSnapshotSpec
             dailyPoints.Add(new DailyForecastPoint(baseDate.AddDays(d), numericValues, new Dictionary<ParameterDef, string?>()));
         }
 
-        return new ModelForecast(model, location, new CycleId(baseHour),
+        return new Forecast(model, location, new CycleId(baseHour),
             new ForecastSeries(forecastPoints), new DailyForecastSeries(dailyPoints));
     }
 

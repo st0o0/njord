@@ -29,7 +29,6 @@
     <Project Path="Njord.Derived/Njord.Derived.csproj" />
     <Project Path="Njord.Trends/Njord.Trends.csproj" />
     <Project Path="Njord.Indices/Njord.Indices.csproj" />
-    <Project Path="Njord.History/Njord.History.csproj" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="Njord.Tests.Shared/Njord.Tests.Shared.csproj" />
@@ -48,7 +47,6 @@
     <Project Path="Njord.Derived.Tests/Njord.Derived.Tests.csproj" />
     <Project Path="Njord.Trends.Tests/Njord.Trends.Tests.csproj" />
     <Project Path="Njord.Indices.Tests/Njord.Indices.Tests.csproj" />
-    <Project Path="Njord.History.Tests/Njord.History.Tests.csproj" />
   </Folder>
   <Project Path="Njord/Njord.csproj" />
 </Solution>

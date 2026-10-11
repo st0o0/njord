@@ -114,11 +114,6 @@ public sealed class OpsGrpcService(
             status.ActiveEnrichments.Add("indices");
         }
 
-        if (enrichment.History.Enabled)
-        {
-            status.ActiveEnrichments.Add("history");
-        }
-
         return status;
     }
 

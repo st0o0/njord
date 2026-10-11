@@ -19,7 +19,7 @@ public sealed class ForecastDataHashSpec
             [Humidity] = humidity,
         });
 
-    private static ModelForecast Forecast(IEnumerable<ForecastPoint> points) =>
+    private static Forecast Forecast(IEnumerable<ForecastPoint> points) =>
         new(new WeatherModel("icon_d2"), "lucerne", new CycleId(Now),
             new ForecastSeries(points), DailyForecastSeries.Empty);
 
@@ -52,11 +52,11 @@ public sealed class ForecastDataHashSpec
     public void Timestamp_only_change_produces_same_hash()
     {
         var a = ForecastDataHash.Compute(
-            new ModelForecast(new WeatherModel("icon_d2"), "lucerne", new CycleId(Now),
+            new Forecast(new WeatherModel("icon_d2"), "lucerne", new CycleId(Now),
                 new ForecastSeries([HourlyPoint(Tomorrow, 20.0, 65)]), DailyForecastSeries.Empty),
             Time);
         var b = ForecastDataHash.Compute(
-            new ModelForecast(new WeatherModel("icon_d2"), "lucerne", new CycleId(Now.AddMinutes(20)),
+            new Forecast(new WeatherModel("icon_d2"), "lucerne", new CycleId(Now.AddMinutes(20)),
                 new ForecastSeries([HourlyPoint(Tomorrow, 20.0, 65)]), DailyForecastSeries.Empty),
             Time);
         Assert.Equal(a, b);

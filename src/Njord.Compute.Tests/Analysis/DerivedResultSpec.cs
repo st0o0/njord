@@ -20,7 +20,7 @@ public sealed class DerivedResultSpec
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(
         ["Weather", "Solar"], [], []);
 
-    private static ModelForecast MakeForecast(
+    private static Forecast MakeForecast(
         WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues)
     {
         var points = new List<ForecastPoint>();
@@ -34,11 +34,11 @@ public sealed class DerivedResultSpec
 
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
-        return new ModelForecast(model, "lucerne", new CycleId(T0),
+        return new Forecast(model, "lucerne", new CycleId(T0),
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    private static ModelSnapshot SnapshotWith(params ModelForecast[] forecasts)
+    private static ModelSnapshot SnapshotWith(params Forecast[] forecasts)
     {
         var snap = ModelSnapshot.Empty;
         foreach (var f in forecasts)

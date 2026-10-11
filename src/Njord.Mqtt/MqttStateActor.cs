@@ -7,7 +7,7 @@ using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Egress;
-using Njord.Messages.Egress;
+using Njord.Core.Egress;
 using Njord.Mqtt.Transport;
 using Njord.Weather;
 using Servus.Akka;
@@ -115,8 +115,12 @@ public sealed class MqttStateActor : StreamConsumerActor
             .Via(killSwitch.Flow<PipelineEvent>())
             .Log("mqtt-state-in", e => e switch
             {
-                PipelineEvent.ModelForecastUpdate u => $"model {u.Location}/{u.Model.Id}",
-                PipelineEvent.AnalysisResult u => $"enrich {u.Location}/{u.TypeName}",
+                PipelineEvent.ForecastReceived u => $"model {u.Location}/{u.Model.Id}",
+                PipelineEvent.ConsensusComputed c => $"enrich {c.Consensus.Location}/consensus",
+                PipelineEvent.AlertComputed a => $"enrich {a.Result.Location}/alerts",
+                PipelineEvent.DerivedComputed d => $"enrich {d.Result.Location}/derived",
+                PipelineEvent.TrendComputed t => $"enrich {t.Result.Location}/trends",
+                PipelineEvent.IndexComputed i => $"enrich {i.Result.Location}/indices",
                 _ => "?",
             }, _log)
             .SelectMany(pipelineEvent => MapToMqttMessages(pipelineEvent, baseTopic, lastPublished))
@@ -142,15 +146,23 @@ public sealed class MqttStateActor : StreamConsumerActor
     {
         var messages = pipelineEvent switch
         {
-            PipelineEvent.ModelForecastUpdate e => MapPerModel(e, baseTopic),
-            PipelineEvent.AnalysisResult a => MapAnalysis(a, baseTopic),
+            PipelineEvent.ForecastReceived e => MapPerModel(e, baseTopic),
+            PipelineEvent.ConsensusComputed c => StatePayloadBuilder.FromConsensus(c.Consensus, baseTopic),
+            PipelineEvent.AlertComputed a => StatePayloadBuilder.FromAlerts(a.Result, baseTopic),
+            PipelineEvent.DerivedComputed d => StatePayloadBuilder.FromDerived(d.Result, baseTopic),
+            PipelineEvent.TrendComputed t => StatePayloadBuilder.FromTrends(t.Result, baseTopic),
+            PipelineEvent.IndexComputed i => StatePayloadBuilder.FromIndices(i.Result, baseTopic),
             _ => [],
         };
 
         var location = pipelineEvent switch
         {
-            PipelineEvent.ModelForecastUpdate u => u.Location,
-            PipelineEvent.AnalysisResult u => u.Location,
+            PipelineEvent.ForecastReceived u => u.Location,
+            PipelineEvent.ConsensusComputed c => c.Consensus.Location,
+            PipelineEvent.AlertComputed a => a.Result.Location,
+            PipelineEvent.DerivedComputed d => d.Result.Location,
+            PipelineEvent.TrendComputed t => t.Result.Location,
+            PipelineEvent.IndexComputed i => i.Result.Location,
             _ => "unknown",
         };
         var locationTag = new KeyValuePair<string, object?>("location", location);
@@ -170,19 +182,7 @@ public sealed class MqttStateActor : StreamConsumerActor
         }
     }
 
-    private static IReadOnlyList<MqttMessage> MapAnalysis(PipelineEvent.AnalysisResult e, string baseTopic)
-        => (e.TypeName, e.Result) switch
-        {
-            ("consensus", ConsensusSnapshot r) => StatePayloadBuilder.FromConsensus(r, baseTopic),
-            ("alerts", AlertResult r) => StatePayloadBuilder.FromAlerts(r, baseTopic),
-            ("derived", DerivedResult r) => StatePayloadBuilder.FromDerived(r, baseTopic),
-            ("trends", TrendResult r) => StatePayloadBuilder.FromTrends(r, baseTopic),
-            ("indices", IndexResult r) => StatePayloadBuilder.FromIndices(r, baseTopic),
-            ("history", HistoryResult r) => StatePayloadBuilder.FromHistory(r, baseTopic),
-            _ => [],
-        };
-
-    private IReadOnlyList<MqttMessage> MapPerModel(PipelineEvent.ModelForecastUpdate e, string baseTopic)
+    private IReadOnlyList<MqttMessage> MapPerModel(PipelineEvent.ForecastReceived e, string baseTopic)
     {
         var maxHours = ModelCoverageRegistry.Get(e.Model.Id)?.MaxForecastHours;
         var perHorizon = HorizonProjection.BuildPerHorizon(

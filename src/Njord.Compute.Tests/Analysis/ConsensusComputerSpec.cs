@@ -183,7 +183,7 @@ public sealed class ConsensusComputerSpec
         var t0 = new DateTimeOffset(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
         var temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
         var point = new ForecastPoint(t0.AddHours(3), new Dictionary<ParameterDef, double?> { [temperature] = 22.5 });
-        var forecast = new ModelForecast(IconD2, "lucerne", new CycleId(t0),
+        var forecast = new Forecast(IconD2, "lucerne", new CycleId(t0),
             new ForecastSeries([point]), DailyForecastSeries.Empty);
         var snapshot = ModelSnapshot.Empty.Update(forecast);
 
@@ -198,7 +198,7 @@ public sealed class ConsensusComputerSpec
         var t0 = new DateTimeOffset(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
         var temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
         var point = new ForecastPoint(t0.AddHours(3), new Dictionary<ParameterDef, double?> { [temperature] = 22.5 });
-        var forecast = new ModelForecast(IconD2, "lucerne", new CycleId(t0),
+        var forecast = new Forecast(IconD2, "lucerne", new CycleId(t0),
             new ForecastSeries([point]), DailyForecastSeries.Empty);
         var snapshot = ModelSnapshot.Empty.Update(forecast);
 

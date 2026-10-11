@@ -243,22 +243,22 @@ public sealed class SchedulerActor : ReceivePersistentActor
 
         switch (msg.Reason)
         {
-            case FetchFailureReason.Transport:
+            case PollFailureReason.Transport:
                 _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
                 _log.Warning("Fetch failed for {Location}/{Model} (transport) - tfc={Tfc}, details={Details}",
                     msg.Location, msg.ModelId, _state.States[key].TransientFailureCount, msg.Detail);
                 ScheduleNext(msg.Location, msg.ModelId);
                 break;
 
-            case FetchFailureReason.RateLimited:
+            case PollFailureReason.RateLimited:
                 _state = _state.ApplyRateLimited(key, now, RateLimitMinDelay, _options.DiscoveryInterval);
                 _log.Warning("Fetch rate-limited for {Location}/{Model} - next poll at {Next}",
                     msg.Location, msg.ModelId, _state.States[key].NextPollUtc);
                 ScheduleNext(msg.Location, msg.ModelId);
                 break;
 
-            case FetchFailureReason.ModelUnavailable:
-            case FetchFailureReason.MalformedPayload:
+            case PollFailureReason.ModelUnavailable:
+            case PollFailureReason.MalformedPayload:
                 _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
                 _log.Warning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - retry scheduled",
                     msg.Location, msg.ModelId, msg.Reason, msg.Detail);

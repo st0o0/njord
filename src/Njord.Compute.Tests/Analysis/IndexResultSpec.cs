@@ -21,7 +21,7 @@ public sealed class IndexResultSpec
         string location = "lucerne") =>
         PreferenceResolver.Resolve(new IndexOptions(), [location]);
 
-    private static ModelForecast MakeForecast(
+    private static Forecast MakeForecast(
         WeatherModel model, int hours, Func<int, (double temp, double hum, double wind, double cloud, double isDay)> valueFunc)
     {
         var points = new List<ForecastPoint>();
@@ -38,11 +38,11 @@ public sealed class IndexResultSpec
             };
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
-        return new ModelForecast(model, "lucerne", new CycleId(T0),
+        return new Forecast(model, "lucerne", new CycleId(T0),
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    private static ModelSnapshot SnapshotWith(params ModelForecast[] forecasts)
+    private static ModelSnapshot SnapshotWith(params Forecast[] forecasts)
     {
         var snap = ModelSnapshot.Empty;
         foreach (var f in forecasts)

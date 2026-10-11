@@ -200,13 +200,6 @@ public sealed class AdminGrpcService(
                 if (indices.HasBbqIdealWindHigh) opt.Enrichment.Indices.Preferences.BbqIdealWindHigh = indices.BbqIdealWindHigh;
             }
 
-            if (request.History is { } history)
-            {
-                if (history.HasEnabled) opt.Enrichment.History.Enabled = history.Enabled;
-                if (history.HasRetentionDays) opt.Enrichment.History.RetentionDays = history.RetentionDays;
-                if (history.HasMinSampleSize) opt.Enrichment.History.MinSampleSize = history.MinSampleSize;
-                if (history.HasSnapshotInterval) opt.Enrichment.History.SnapshotInterval = history.SnapshotInterval;
-            }
         });
 
         var budget = BudgetCalculator.Validate(snapshot);
@@ -333,13 +326,6 @@ public sealed class AdminGrpcService(
                 BbqMinTemp = enrichment.Indices.Preferences.BbqMinTemp ?? 10.0,
                 BbqIdealWindLow = enrichment.Indices.Preferences.BbqIdealWindLow ?? 1.0,
                 BbqIdealWindHigh = enrichment.Indices.Preferences.BbqIdealWindHigh ?? 3.0,
-            },
-            History = new HistoryConfig
-            {
-                Enabled = enrichment.History.Enabled,
-                RetentionDays = enrichment.History.RetentionDays,
-                MinSampleSize = enrichment.History.MinSampleSize,
-                SnapshotInterval = enrichment.History.SnapshotInterval,
             },
         };
     }

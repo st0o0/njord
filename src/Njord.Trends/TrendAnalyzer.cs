@@ -15,11 +15,11 @@ public sealed class TrendAnalyzer
 
     public bool Enabled => _enabled;
 
-    public TrendResult? Compute(ITrendInput input)
+    public TrendResult? Compute(ConsensusSnapshot consensus, ConsensusSnapshot? previous)
     {
-        if (!Enabled || input.Previous is null)
+        if (!Enabled || previous is null)
             return null;
 
-        return _computer.Compute(input.Consensus, input.Previous);
+        return _computer.Compute(consensus, previous);
     }
 }

@@ -22,7 +22,6 @@ COPY src/Njord.Alerts/Njord.Alerts.csproj Njord.Alerts/
 COPY src/Njord.Derived/Njord.Derived.csproj Njord.Derived/
 COPY src/Njord.Trends/Njord.Trends.csproj Njord.Trends/
 COPY src/Njord.Indices/Njord.Indices.csproj Njord.Indices/
-COPY src/Njord.History/Njord.History.csproj Njord.History/
 COPY src/Njord/Njord.csproj Njord/
 RUN dotnet restore Njord/Njord.csproj -a ${TARGETARCH}
 
@@ -41,7 +40,6 @@ COPY src/Njord.Alerts/ Njord.Alerts/
 COPY src/Njord.Derived/ Njord.Derived/
 COPY src/Njord.Trends/ Njord.Trends/
 COPY src/Njord.Indices/ Njord.Indices/
-COPY src/Njord.History/ Njord.History/
 COPY src/Njord/ Njord/
 RUN dotnet publish Njord/Njord.csproj -c Release -a ${TARGETARCH} -o /app /p:Version=${VERSION} /p:ContinuousIntegrationBuild=true
 

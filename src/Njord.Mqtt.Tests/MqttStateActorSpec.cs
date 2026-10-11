@@ -7,7 +7,7 @@ using System.Text.Json.Nodes;
 using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Messages.Egress;
+using Njord.Core.Egress;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
 using Njord.Weather;
@@ -74,7 +74,7 @@ public sealed class MqttStateActorSpec : NjordActorSpec
         await hub.WaitForQueue();
 
         var forecast = CreateForecast("icon_d2");
-        hub.Emit(new PipelineEvent.ModelForecastUpdate("lucerne", new WeatherModel("icon_d2"), forecast));
+        hub.Emit(new PipelineEvent.ForecastReceived("lucerne", new WeatherModel("icon_d2"), forecast));
 
         await transport.WaitForMessage(m => m.Topic.StartsWith("njord/")).WaitAsync(TestContext.Current.CancellationToken);
         var sent = transport.Sent;
@@ -93,7 +93,7 @@ public sealed class MqttStateActorSpec : NjordActorSpec
 
         await hub.WaitForQueue();
 
-        hub.Emit(new PipelineEvent.AnalysisResult("lucerne", "no-such-type", new object()));
+        hub.Emit(new PipelineEvent.ModelCapability("lucerne", new WeatherModel("test"), new HashSet<ParameterDef>(), [], []));
 
         await Task.Delay(500, TestContext.Current.CancellationToken);
         Assert.Empty(transport.Sent);
@@ -117,7 +117,7 @@ public sealed class MqttStateActorSpec : NjordActorSpec
             new ExtremaTimingInfo(null, null),
             null,
             null);
-        hub.Emit(new PipelineEvent.AnalysisResult("lucerne", "trends", trends));
+        hub.Emit(new PipelineEvent.TrendComputed(trends, Anchor));
 
         await transport.WaitForMessage(m => m.Topic == "njord/lucerne/trends").WaitAsync(TestContext.Current.CancellationToken);
         var sent = Assert.Single(transport.Sent);
@@ -147,7 +147,7 @@ public sealed class MqttStateActorSpec : NjordActorSpec
             new HourlyConsensus([new ParameterConsensus(temp, new Dictionary<string, HorizonConsensus> { ["h3"] = horizon })], 72),
             new DailyConsensus([], 4),
             Anchor);
-        hub.Emit(new PipelineEvent.AnalysisResult("lucerne", "consensus", snapshot));
+        hub.Emit(new PipelineEvent.ConsensusComputed(snapshot, Anchor));
 
         await transport.WaitForMessage(m => m.Topic == "njord/lucerne/consensus/h3").WaitAsync(TestContext.Current.CancellationToken);
         var sent = Assert.Single(transport.Sent);
@@ -156,22 +156,6 @@ public sealed class MqttStateActorSpec : NjordActorSpec
         Assert.Multiple(
             () => Assert.Equal(21.5, payload[temp.JsonKey]!.GetValue<double>()),
             () => Assert.Equal(2, payload[$"{temp.JsonKey}_models"]!.GetValue<int>()));
-    }
-
-    [Fact(Timeout = 15000)]
-    public async Task Should_publish_nothing_when_result_type_does_not_match_type_name()
-    {
-        var hub = RegisterFakePipelineHub();
-        var transport = new RecordingTransport();
-
-        CreateMqttStateActor(transport: transport);
-
-        await hub.WaitForQueue();
-
-        hub.Emit(new PipelineEvent.AnalysisResult("lucerne", "trends", new object()));
-
-        await Task.Delay(500, TestContext.Current.CancellationToken);
-        Assert.Empty(transport.Sent);
     }
 
     internal sealed record SentMessage(string Topic, string Payload, bool Retain);
@@ -257,14 +241,14 @@ public sealed class MqttStateActorSpec : NjordActorSpec
         }
     }
 
-    private static ModelForecast CreateForecast(string model = "icon_d2")
+    private static Forecast CreateForecast(string model = "icon_d2")
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var points = new List<ForecastPoint>
         {
             new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 }),
         };
-        return new ModelForecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
+        return new Forecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 }

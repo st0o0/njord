@@ -1,4 +1,5 @@
 using Njord.Compute.Analysis;
+using Njord.Core.Egress;
 using Njord.Tests.Shared;
 using Njord.Weather;
 using DomainAlert = Njord.Compute.Analysis.Alert;
@@ -160,34 +161,6 @@ public sealed class EnrichmentProtoMapperSpec
     }
 
     [Fact]
-    public void MapHistory_should_map_per_model_metrics_and_anomaly()
-    {
-        var model = new WeatherModel("icon_d2");
-        var result = new HistoryResult(
-            Location: "lucerne",
-            Mae7d: new Dictionary<WeatherModel, double?> { [model] = 1.2 },
-            Mae30d: new Dictionary<WeatherModel, double?> { [model] = 1.5 },
-            Weights: new Dictionary<WeatherModel, double> { [model] = 0.8 },
-            Drift: new Dictionary<WeatherModel, double?> { [model] = 0.3 },
-            SeasonalBest: model,
-            Anomaly: (IsAnomaly: true, DeviationSigma: 2.1),
-            WeightedTemperature: 18.5);
-
-        var update = EnrichmentProtoMapper.MapHistory(result);
-
-        Assert.Single(update.Models);
-        Assert.Equal("icon_d2", update.Models[0].Model);
-        Assert.Equal(1.2, update.Models[0].Mae7D);
-        Assert.Equal(1.5, update.Models[0].Mae30D);
-        Assert.Equal(0.8, update.Models[0].Weight);
-        Assert.Equal(0.3, update.Models[0].Drift);
-        Assert.Equal("icon_d2", update.SeasonalBest);
-        Assert.True(update.Anomaly);
-        Assert.Equal(2.1, update.AnomalyDeviation);
-        Assert.Equal(18.5, update.WeightedTemperature);
-    }
-
-    [Fact]
     public void MapConsensus_should_map_parameter_and_horizon_nesting()
     {
         var param = new ParameterDef("temperature_2m", "C", "temperature", "temperature_2m",
@@ -236,7 +209,7 @@ public sealed class EnrichmentProtoMapperSpec
         ]);
         var updatedAt = TestTimeConstants.BudgetEpoch;
 
-        var evt = EnrichmentProtoMapper.MapToEvent("lucerne", "alerts", alertResult, updatedAt);
+        var evt = EnrichmentProtoMapper.MapToEvent(new PipelineEvent.AlertComputed(alertResult, updatedAt), updatedAt);
 
         Assert.NotNull(evt);
         Assert.Equal("lucerne", evt.Location);
@@ -300,7 +273,9 @@ public sealed class EnrichmentProtoMapperSpec
         var result = new ConsensusResult([hourlyParam], [dailyParam]);
         var updatedAt = TestTimeConstants.BudgetEpoch;
 
-        var evt = EnrichmentProtoMapper.MapToEvent("lucerne", "consensus", result, updatedAt);
+        var snapshot = new ConsensusSnapshot("lucerne",
+            new HourlyConsensus([hourlyParam], 72), new DailyConsensus([dailyParam], 4), updatedAt);
+        var evt = EnrichmentProtoMapper.MapToEvent(new PipelineEvent.ConsensusComputed(snapshot, updatedAt), updatedAt);
 
         Assert.NotNull(evt);
         Assert.Equal("lucerne", evt.Location);
@@ -311,10 +286,13 @@ public sealed class EnrichmentProtoMapperSpec
     }
 
     [Fact]
-    public void MapToEvent_should_return_null_for_unknown_type_name()
+    public void MapToEvent_should_return_null_for_non_analysis_event()
     {
-        var result = new AlertResult("lucerne", []);
-        var evt = EnrichmentProtoMapper.MapToEvent("lucerne", "unknown", result, TestTimeConstants.PipelineEpoch);
+        var evt = EnrichmentProtoMapper.MapToEvent(
+            new PipelineEvent.ForecastReceived("lucerne", new WeatherModel("icon_d2"),
+                new Forecast(new WeatherModel("icon_d2"), "lucerne", default,
+                    new ForecastSeries([]), DailyForecastSeries.Empty)),
+            TestTimeConstants.PipelineEpoch);
 
         Assert.Null(evt);
     }

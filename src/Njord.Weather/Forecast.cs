@@ -1,6 +1,6 @@
 namespace Njord.Weather;
 
-public sealed record ModelForecast(
+public sealed record Forecast(
     WeatherModel Model,
     string Location,
     CycleId Cycle,

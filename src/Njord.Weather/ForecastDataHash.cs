@@ -2,7 +2,7 @@ namespace Njord.Weather;
 
 public static class ForecastDataHash
 {
-    public static int Compute(ModelForecast forecast, TimeProvider timeProvider)
+    public static int Compute(Forecast forecast, TimeProvider timeProvider)
     {
         var cutoff = timeProvider.GetUtcNow().Date.AddDays(1);
         var hash = new HashCode();

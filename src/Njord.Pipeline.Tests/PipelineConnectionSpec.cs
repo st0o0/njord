@@ -6,6 +6,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Health;
@@ -71,17 +72,11 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         ActorRegistry.Register<ISchedulerActor>(schedulerPlaceholder, overwrite: true);
 
         var pipeline = Sys.ActorOf(
-            Props.Create(() => new PipelineActor(client, time, gate, new PassthroughAnalysisStage())),
+            Props.Create(() => new PipelineActor(client, time, gate, DisabledAnalyzers.Consensus(),
+                DisabledAnalyzers.Alert(), DisabledAnalyzers.Derived(),
+                DisabledAnalyzers.Trend(), DisabledAnalyzers.Index())),
             "real-pipeline");
         ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
-
-        // Simulate other actors requesting SourceRefs (like ModelStateActor, EnrichmentActor)
-        for (var i = 0; i < 3; i++)
-        {
-            var sourceRef = await pipeline.Ask<PipelineSourceResponse>(
-                new Core.Actors.RequestPipelineSource(0), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-            _ = sourceRef.SourceRef.Source.RunWith(Sink.Ignore<FetchOutcome>(), Sys.Materializer());
-        }
 
         var scheduler = Sys.ActorOf(
             Props.Create(() => new SchedulerActor(
@@ -120,7 +115,9 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         ActorRegistry.Register<ISchedulerActor>(schedulerPlaceholder, overwrite: true);
 
         var pipeline = Sys.ActorOf(
-            Props.Create(() => new PipelineActor(client, time, gate, new PassthroughAnalysisStage())),
+            Props.Create(() => new PipelineActor(client, time, gate, DisabledAnalyzers.Consensus(),
+                DisabledAnalyzers.Alert(), DisabledAnalyzers.Derived(),
+                DisabledAnalyzers.Trend(), DisabledAnalyzers.Index())),
             "timing-pipeline");
         ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
 
@@ -168,7 +165,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             _allFetched = allFetched;
         }
 
-        public Task<FetchOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken ct)
+        public Task<PollOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken ct)
         {
             _timestamps.Add(Stopwatch.GetTimestamp());
             if (Interlocked.Increment(ref _count) >= _expectedCount)
@@ -177,10 +174,10 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             }
 
             var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
-            var forecast = new ModelForecast(model, location.Name, cycle,
+            var forecast = new Forecast(model, location.Name, cycle,
                 new ForecastSeries([new ForecastPoint(TestTimeConstants.PipelineEpoch, new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
                 DailyForecastSeries.Empty);
-            return Task.FromResult<FetchOutcome>(new FetchOutcome.Success(forecast));
+            return Task.FromResult<PollOutcome>(new PollOutcome.Success(forecast));
         }
     }
 
@@ -194,14 +191,14 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             _fetchCalled = fetchCalled;
         }
 
-        public Task<FetchOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken ct)
+        public Task<PollOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken ct)
         {
             _fetchCalled.TrySetResult(location.Name);
             var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
-            var forecast = new ModelForecast(model, location.Name, cycle,
+            var forecast = new Forecast(model, location.Name, cycle,
                 new ForecastSeries([new ForecastPoint(TestTimeConstants.PipelineEpoch, new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
                 DailyForecastSeries.Empty);
-            return Task.FromResult<FetchOutcome>(new FetchOutcome.Success(forecast));
+            return Task.FromResult<PollOutcome>(new PollOutcome.Success(forecast));
         }
     }
 

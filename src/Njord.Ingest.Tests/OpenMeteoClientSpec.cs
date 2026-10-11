@@ -40,7 +40,7 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        var success = Assert.IsType<FetchOutcome.Success>(outcome);
+        var success = Assert.IsType<PollOutcome.Success>(outcome);
         var forecast = success.Forecast;
         Assert.Equal(IconEu, forecast.Model);
         Assert.Equal("home", forecast.Location);
@@ -85,8 +85,8 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        var failure = Assert.IsType<FetchOutcome.Failure>(outcome);
-        Assert.Equal(FetchFailureReason.RateLimited, failure.Reason);
+        var failure = Assert.IsType<PollOutcome.Failure>(outcome);
+        Assert.Equal(PollFailureReason.RateLimited, failure.Reason);
     }
 
     [Fact(Timeout = 5000)]
@@ -98,8 +98,8 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        var failure = Assert.IsType<FetchOutcome.Failure>(outcome);
-        Assert.Equal(FetchFailureReason.ModelUnavailable, failure.Reason);
+        var failure = Assert.IsType<PollOutcome.Failure>(outcome);
+        Assert.Equal(PollFailureReason.ModelUnavailable, failure.Reason);
         Assert.Contains("No data is available for this location", failure.Detail);
     }
 
@@ -110,8 +110,8 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        var failure = Assert.IsType<FetchOutcome.Failure>(outcome);
-        Assert.Equal(FetchFailureReason.MalformedPayload, failure.Reason);
+        var failure = Assert.IsType<PollOutcome.Failure>(outcome);
+        Assert.Equal(PollFailureReason.MalformedPayload, failure.Reason);
     }
 
     [Fact(Timeout = 5000)]
@@ -130,8 +130,8 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        var failure = Assert.IsType<FetchOutcome.Failure>(outcome);
-        Assert.Equal(FetchFailureReason.MalformedPayload, failure.Reason);
+        var failure = Assert.IsType<PollOutcome.Failure>(outcome);
+        Assert.Equal(PollFailureReason.MalformedPayload, failure.Reason);
         Assert.Contains("km/h", failure.Detail);
     }
 
@@ -142,7 +142,7 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, new WeatherModel("icon_d2"), Cycle, TestContext.Current.CancellationToken);
 
-        var success = Assert.IsType<FetchOutcome.Success>(outcome);
+        var success = Assert.IsType<PollOutcome.Success>(outcome);
         var points = success.Forecast.Hourly.Points;
         Assert.Equal(64, points.Count);
         Assert.Equal(FixtureStart.AddHours(63), points[^1].ValidAt);
@@ -157,8 +157,8 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        var failure = Assert.IsType<FetchOutcome.Failure>(outcome);
-        Assert.Equal(FetchFailureReason.Transport, failure.Reason);
+        var failure = Assert.IsType<PollOutcome.Failure>(outcome);
+        Assert.Equal(PollFailureReason.Transport, failure.Reason);
         Assert.Single(handler.Requests);
     }
 
@@ -176,7 +176,7 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        var success = Assert.IsType<FetchOutcome.Success>(outcome);
+        var success = Assert.IsType<PollOutcome.Success>(outcome);
         var dailyPoint = Assert.Single(success.Forecast.Daily.Points);
         var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
         var sunriseVal = dailyPoint.GetMeta(sunrise);
@@ -199,7 +199,7 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        var success = Assert.IsType<FetchOutcome.Success>(outcome);
+        var success = Assert.IsType<PollOutcome.Success>(outcome);
         var dailyPoint = Assert.Single(success.Forecast.Daily.Points);
         var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
         Assert.Equal("2026-07-11T05:23", dailyPoint.GetMeta(sunrise));
@@ -219,7 +219,7 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        var success = Assert.IsType<FetchOutcome.Success>(outcome);
+        var success = Assert.IsType<PollOutcome.Success>(outcome);
         Assert.Empty(success.Forecast.Daily.Points);
     }
 
@@ -236,7 +236,7 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        var success = Assert.IsType<FetchOutcome.Success>(outcome);
+        var success = Assert.IsType<PollOutcome.Success>(outcome);
         Assert.Single(success.Forecast.Hourly.Points);
         var point = success.Forecast.Hourly.Points[0];
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
@@ -259,7 +259,7 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        Assert.IsType<FetchOutcome.Success>(outcome);
+        Assert.IsType<PollOutcome.Success>(outcome);
     }
 
     [Fact(Timeout = 5000)]
@@ -275,7 +275,7 @@ public sealed class OpenMeteoClientSpec
 
         var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
 
-        var success = Assert.IsType<FetchOutcome.Success>(outcome);
+        var success = Assert.IsType<PollOutcome.Success>(outcome);
     }
 
     [Fact(Timeout = 5000)]

@@ -12,7 +12,7 @@ public sealed class HorizonProjectionSpec
     private static readonly IReadOnlyList<int> Horizons = [3, 6];
     private const int ForecastDays = 2;
 
-    private static ModelForecast CreateForecast(int hourlyPoints = 96)
+    private static Forecast CreateForecast(int hourlyPoints = 96)
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var points = Enumerable.Range(0, hourlyPoints)
@@ -27,7 +27,7 @@ public sealed class HorizonProjectionSpec
             new DailyForecastPoint(DateOnly.FromDateTime(Anchor.AddDays(1).UtcDateTime), new Dictionary<ParameterDef, double?> { [tempMax] = 26.0 }, new Dictionary<ParameterDef, string?>()),
         ]);
 
-        return new ModelForecast(new WeatherModel("icon_eu"), "home", new CycleId(Anchor),
+        return new Forecast(new WeatherModel("icon_eu"), "home", new CycleId(Anchor),
             new ForecastSeries(points), daily);
     }
 
@@ -107,7 +107,7 @@ public sealed class HorizonProjectionSpec
         {
             new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 20.0, [wind] = null }),
         };
-        var forecast = new ModelForecast(new WeatherModel("icon_eu"), "home", new CycleId(Anchor),
+        var forecast = new Forecast(new WeatherModel("icon_eu"), "home", new CycleId(Anchor),
             new ForecastSeries(points), DailyForecastSeries.Empty);
 
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [3], 0, Anchor);
@@ -125,7 +125,7 @@ public sealed class HorizonProjectionSpec
         {
             new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = null }),
         };
-        var forecast = new ModelForecast(new WeatherModel("icon_eu"), "home", new CycleId(Anchor),
+        var forecast = new Forecast(new WeatherModel("icon_eu"), "home", new CycleId(Anchor),
             new ForecastSeries(points), DailyForecastSeries.Empty);
 
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [3], 0, Anchor);

@@ -11,16 +11,13 @@ public sealed class TrendAnalyzerSpec
     private static readonly FakeTimeProvider Time = new(T0);
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
-    private sealed record TestTrendInput(ConsensusSnapshot Consensus, ConsensusSnapshot? Previous) : ITrendInput;
-
     [Fact]
     public void Compute_returns_null_when_previous_is_null()
     {
         var computer = new TrendComputer();
         var analyzer = new TrendAnalyzer(computer);
-        var input = new TestTrendInput(BuildConsensus(), null);
 
-        var result = analyzer.Compute(input);
+        var result = analyzer.Compute(BuildConsensus(), null);
 
         Assert.Null(result);
     }
@@ -30,11 +27,8 @@ public sealed class TrendAnalyzerSpec
     {
         var computer = new TrendComputer();
         var analyzer = new TrendAnalyzer(computer);
-        var current = BuildConsensus();
-        var previous = BuildConsensus();
-        var input = new TestTrendInput(current, previous);
 
-        var result = analyzer.Compute(input);
+        var result = analyzer.Compute(BuildConsensus(), BuildConsensus());
 
         Assert.NotNull(result);
         Assert.Equal("lucerne", result.Location);
@@ -45,9 +39,8 @@ public sealed class TrendAnalyzerSpec
     {
         var computer = new TrendComputer();
         var analyzer = new TrendAnalyzer(computer, enabled: false);
-        var input = new TestTrendInput(BuildConsensus(), BuildConsensus());
 
-        var result = analyzer.Compute(input);
+        var result = analyzer.Compute(BuildConsensus(), BuildConsensus());
 
         Assert.Null(result);
     }

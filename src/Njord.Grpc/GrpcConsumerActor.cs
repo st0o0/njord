@@ -4,7 +4,7 @@ using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
-using Njord.Messages.Egress;
+using Njord.Core.Egress;
 using Njord.Messages.Snapshots;
 using Njord.Weather;
 using Servus.Akka;
@@ -28,10 +28,10 @@ public sealed class GrpcConsumerActor : StreamConsumerActor
     public sealed record QueryLatestResults(string Location);
     public sealed record LatestResults
     {
-        public IReadOnlyDictionary<WeatherModel, ModelForecast> Forecasts { get; init; } =
-            new Dictionary<WeatherModel, ModelForecast>();
+        public IReadOnlyDictionary<WeatherModel, Forecast> Forecasts { get; init; } =
+            new Dictionary<WeatherModel, Forecast>();
 
-        public PipelineEvent.AnalysisResult? LastAnalysis { get; init; }
+        public PipelineEvent? LastAnalysis { get; init; }
     }
     public sealed record RequestGrpcStreamSource(long RequestId);
     public sealed record GrpcStreamSourceResponse(long RequestId, ISourceRef<PipelineEvent> SourceRef);
@@ -170,17 +170,28 @@ public sealed class GrpcConsumerActor : StreamConsumerActor
     {
         switch (evt)
         {
-            case PipelineEvent.ModelForecastUpdate forecast:
+            case PipelineEvent.ForecastReceived forecast:
                 var forecastState = _state.GetValueOrDefault(forecast.Location, new LatestResults());
-                var forecasts = new Dictionary<WeatherModel, ModelForecast>(forecastState.Forecasts)
+                var forecasts = new Dictionary<WeatherModel, Forecast>(forecastState.Forecasts)
                 {
                     [forecast.Model] = forecast.Forecast
                 };
                 _state[forecast.Location] = forecastState with { Forecasts = forecasts };
                 break;
-            case PipelineEvent.AnalysisResult analysis:
-                var analysisState = _state.GetValueOrDefault(analysis.Location, new LatestResults());
-                _state[analysis.Location] = analysisState with { LastAnalysis = analysis };
+            case PipelineEvent.ConsensusComputed or PipelineEvent.AlertComputed
+                or PipelineEvent.DerivedComputed or PipelineEvent.TrendComputed
+                or PipelineEvent.IndexComputed:
+                var location = evt switch
+                {
+                    PipelineEvent.ConsensusComputed c => c.Consensus.Location,
+                    PipelineEvent.AlertComputed a => a.Result.Location,
+                    PipelineEvent.DerivedComputed d => d.Result.Location,
+                    PipelineEvent.TrendComputed t => t.Result.Location,
+                    PipelineEvent.IndexComputed i => i.Result.Location,
+                    _ => throw new InvalidOperationException()
+                };
+                var analysisState = _state.GetValueOrDefault(location, new LatestResults());
+                _state[location] = analysisState with { LastAnalysis = evt };
                 break;
         }
     }

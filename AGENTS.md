@@ -5,20 +5,26 @@
 njord — Multi-model weather intelligence for Home Assistant. A .NET service
 (Docker container) on Akka.NET + Akka.Streams: polls the Open-Meteo API for
 multiple weather models per location, processes forecasts through an enrichment
-pipeline (consensus, alerts, derived values, trends, indices, history),
+pipeline (consensus, alerts, derived values, trends, indices),
 and publishes Home Assistant entities via MQTT Discovery (Mosquitto broker on
 the HA host).
 
 ### Architecture guardrails
 
 - **Three zones that only meet in the domain model:** Ingest (Open-Meteo client,
-  DTOs, parsing) → Domain (`ModelForecast`, analysis, consensus) → Consumers
+  DTOs, parsing) → Domain (`Forecast`, analysis, consensus) → Consumers
   (MQTT state payloads, gRPC streaming). Ingest and consumers never reference
   each other.
-- **Streams for data flow, actors for lifecycle.** The poll pipeline is
-  Akka.Streams (tick → fan-out → throttle → HTTP → aggregate → analyse →
-  BroadcastHub). Consumers attach via SourceRef. Actors own connection
-  management and the HA birth-message subscription.
+- **Streams for data flow, actors for lifecycle.** The poll pipeline in
+  `PipelineActor` is a linear chain: `Source.Queue` → throttle → fetch →
+  scheduler feedback (passthrough `Select`) → `Collect(Success)` →
+  `ZipWith(sensors)` → `StatefulSelectMany(computeAll)` →
+  `BroadcastHub<PipelineEvent>`. Sensor data enters via a
+  `Source.ActorRef` + `ReuseLatest` side channel (`ZipWith` pairs each
+  forecast with the latest sensor reading). All analysis state
+  (`ModelSnapshot`, previous `ConsensusSnapshot`) lives inside the
+  `StatefulSelectMany` closure, not in actor fields. No `GraphDSL`,
+  `Broadcast`, or `Merge` in the pipeline. Consumers attach via SourceRef.
 - **The entity set is static, derived from config** (locations × models ×
   parameters × horizons) — never from what the API happens to return. A missing
   value is an `unavailable` state, not a missing entity.
@@ -31,10 +37,14 @@ the HA host).
   Analysis features pull sensor data at each poll cycle (latest-value, no
   reactive re-computation).
 - **Each analysis feature is a self-contained library.** Feature libraries
-  (Alerts, Derived, Trends, Indices, History) define typed input interfaces,
-  compute logic, and DI extensions. The host assembles a `PollContext`
-  implementing all input interfaces and fans out to each feature in the
-  pipeline graph. No common feature interface, no string-based type names.
+  (Alerts, Derived, Trends, Indices) define compute logic and DI extensions.
+  Each analyzer takes `ConsensusSnapshot` directly (plus per-feature extras:
+  `Previous` for Trends, `SensorSnapshot` for Indices). No input interfaces
+  or PollContext god-object. `PipelineEvent` variants are typed records
+  (`ForecastReceived`, `ConsensusComputed`, `AlertComputed`, `DerivedComputed`,
+  `TrendComputed`, `IndexComputed`) — no `object` wrapping. Pipeline
+  orchestrates all feature libraries directly (`Njord.Pipeline` references
+  analysis libraries).
 - **Consumers are output adapters via SourceRef.** MQTT and gRPC consumers
   request a `SourceRef<PipelineEvent>` from `PipelineActor` and run their own
   sinks. No intermediate relay actors, no presenters, no discovery payloads.
@@ -44,7 +54,7 @@ the HA host).
   `LayerReferenceSpec` for the assembly reference direction: Domain and
   Persistence reference no Njord assembly, Messages only Domain, Core only those
   three, feature libraries (Ingest, SensorHub, Grpc, Pipeline, Mqtt, Alerts,
-  Derived, Trends, Indices, History) only Core and below; the host references
+  Derived, Trends, Indices) only Core and below; the host references
   all. Feature libraries never reference each other, checked by the lateral
   rule in `ZoneArchitectureSpec`).
 
@@ -62,7 +72,7 @@ the HA host).
   Steadman computation.
 - HA device cut: per location, one device per weather model plus one device per
   enabled analysis feature. Analysis features (consensus, alerts, derived,
-  trends, indices, history) are independently toggleable.
+  trends, indices) are independently toggleable.
 - Entity grid per model device: one sensor per (parameter, horizon) — horizons
   configurable, default +3/+6/+12/+24/+48/+72 h. No JSON series attribute, no
   `state_class` (forecasts are not measurements). Recommend a `recorder:` exclude
@@ -93,8 +103,8 @@ src/
   Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references)
   Njord.Messages/             # Actor message records (-> Weather, Sensors)
   Njord.Compute/              # Pure analysis computation (-> Weather, Sensors only)
-    Analysis/                 # Consensus, alerts, derived, trends, indices, history computers
-    Configuration/            # Compute-parameter options (AlertOptions, HistoryOptions, IndexOptions)
+    Analysis/                 # Consensus, alerts, derived, trends, indices computers
+    Configuration/            # Compute-parameter options (AlertOptions, IndexOptions)
   Njord.Core/                 # Options validators, diagnostics, actor keys, IAnalysisStage,
                               #   StreamSupervision (-> Weather, Sensors, Messages, Persistence, Compute)
     Configuration/            # Validators, budget calculator
@@ -113,7 +123,6 @@ src/
   Njord.Derived/              # IDerivedInput, DerivedAnalyzer
   Njord.Trends/               # ITrendInput, TrendAnalyzer (stateless, previous via interface)
   Njord.Indices/              # IIndexInput, IndexAnalyzer
-  Njord.History/              # IHistoryInput, HistoryTracker, ForecastHistoryActor
 
   # Host
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
@@ -135,14 +144,13 @@ src/
   Njord.Derived.Tests/        # DerivedAnalyzer specs
   Njord.Trends.Tests/         # TrendAnalyzer specs
   Njord.Indices.Tests/        # IndexAnalyzer specs
-  Njord.History.Tests/        # HistoryTracker + ForecastHistoryActor specs
   Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
 
 Reference direction: Weather/Sensors/Persistence <- Messages <- Compute <- Core <- feature libs
 (Ingest, SensorHub, Grpc, Pipeline, Mqtt, Alerts, Derived, Trends,
-Indices, History) <- host. Feature libs reference only Njord.Core (and below, including
+Indices) <- host. Feature libs reference only Njord.Core (and below, including
 Compute transitively), never each other and never the host; they reach each other's actors
 through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs`. Registration
 stays central in the host. Enforced by project references plus `Njord.Architecture.Tests/LayerReferenceSpec.cs` and the
@@ -168,9 +176,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 737 tests (Weather 59, Sensors 11, Persistence 13, Compute 168, Core 115,
-Grpc 75, Pipeline 117, Mqtt 37, Ingest 16, SensorHub 6, Architecture 35,
-Alerts 61, Derived 2, Trends 3, Indices 2, History 17).
+Current total: 686 tests (Weather 59, Sensors 11, Persistence 4, Compute 168, Core 111,
+Grpc 56, Pipeline 117, Mqtt 38, Ingest 16, SensorHub 6, Architecture 32,
+Alerts 61, Derived 2, Trends 3, Indices 2).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and

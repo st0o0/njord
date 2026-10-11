@@ -11,5 +11,4 @@ public sealed class EnrichmentOptions
     public DerivedOptions Derived { get; set; } = new();
     public TrendOptions Trends { get; set; } = new();
     public IndexOptions Indices { get; set; } = new();
-    public HistoryOptions History { get; set; } = new();
 }

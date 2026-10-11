@@ -65,43 +65,4 @@ public sealed class EnrichmentOptionsValidationSpec
         Assert.True(result.Succeeded);
     }
 
-    // --- HistoryOptionsValidator ---
-
-    [Fact]
-    public void history_valid_options_accepted()
-    {
-        var result = new HistoryOptionsValidator().Validate(null, Default());
-        Assert.True(result.Succeeded);
-    }
-
-    [Fact]
-    public void history_zero_snapshot_interval_rejected()
-    {
-        var opts = Default();
-        opts.History.SnapshotInterval = 0;
-        var result = new HistoryOptionsValidator().Validate(null, opts);
-        Assert.True(result.Failed);
-        Assert.Contains("SnapshotInterval", result.FailureMessage);
-    }
-
-    [Fact]
-    public void history_negative_retention_days_rejected()
-    {
-        var opts = Default();
-        opts.History.RetentionDays = -1;
-        var result = new HistoryOptionsValidator().Validate(null, opts);
-        Assert.True(result.Failed);
-        Assert.Contains("RetentionDays", result.FailureMessage);
-    }
-
-    [Fact]
-    public void history_zero_min_sample_size_rejected()
-    {
-        var opts = Default();
-        opts.History.MinSampleSize = 0;
-        var result = new HistoryOptionsValidator().Validate(null, opts);
-        Assert.True(result.Failed);
-        Assert.Contains("MinSampleSize", result.FailureMessage);
-    }
-
 }

@@ -17,11 +17,11 @@ public sealed class AlertAnalyzer
 
     public bool Enabled => _options.Enabled;
 
-    public AlertResult? Compute(IAlertInput input)
+    public AlertResult? Compute(ConsensusSnapshot consensus)
     {
         if (!Enabled)
             return null;
 
-        return AlertEvaluator.EvaluateAll(input.Consensus, _options, _timeProvider);
+        return AlertEvaluator.EvaluateAll(consensus, _options, _timeProvider);
     }
 }

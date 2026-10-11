@@ -1,4 +1,5 @@
 using Njord.Compute.Analysis;
+using Njord.Core.Egress;
 using Njord.Grpc.V2;
 using DomainAlertSeverity = Njord.Compute.Analysis.AlertSeverity;
 using DomainAlertType = Njord.Compute.Analysis.AlertType;
@@ -262,56 +263,6 @@ public static class EnrichmentProtoMapper
         return update;
     }
 
-    public static HistoryUpdate MapHistory(HistoryResult result)
-    {
-        var update = new HistoryUpdate();
-
-        var allModels = result.Weights.Keys;
-        foreach (var model in allModels)
-        {
-            var metrics = new ModelMetrics
-            {
-                Model = model.Id,
-                Weight = result.Weights.GetValueOrDefault(model),
-            };
-
-            if (result.Mae7d.TryGetValue(model, out var mae7) && mae7.HasValue)
-            {
-                metrics.Mae7D = mae7.Value;
-            }
-
-            if (result.Mae30d.TryGetValue(model, out var mae30) && mae30.HasValue)
-            {
-                metrics.Mae30D = mae30.Value;
-            }
-
-            if (result.Drift.TryGetValue(model, out var drift) && drift.HasValue)
-            {
-                metrics.Drift = drift.Value;
-            }
-
-            update.Models.Add(metrics);
-        }
-
-        if (result.SeasonalBest is { } best)
-        {
-            update.SeasonalBest = best.Id;
-        }
-
-        if (result.Anomaly is { } anomaly)
-        {
-            update.Anomaly = anomaly.IsAnomaly;
-            update.AnomalyDeviation = anomaly.DeviationSigma;
-        }
-
-        if (result.WeightedTemperature is { } wt)
-        {
-            update.WeightedTemperature = wt;
-        }
-
-        return update;
-    }
-
     public static ConsensusUpdate MapConsensus(ConsensusResult result)
     {
         var update = new ConsensusUpdate();
@@ -372,58 +323,58 @@ public static class EnrichmentProtoMapper
         return protoHorizon;
     }
 
-    public static EnrichmentEvent? MapToEvent(
-        string location, string typeName, object result, DateTimeOffset updatedAt)
+    public static EnrichmentEvent? MapToEvent(PipelineEvent pipelineEvent, DateTimeOffset fallbackTimestamp)
     {
-        var timestamp = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(updatedAt);
-
-        return typeName switch
+        return pipelineEvent switch
         {
-            "alerts" when result is AlertResult ar => new EnrichmentEvent
+            PipelineEvent.AlertComputed a => new EnrichmentEvent
             {
-                Location = location,
-                TypeName = typeName,
-                UpdatedAt = timestamp,
-                Alerts = MapAlerts(ar),
+                Location = a.Result.Location,
+                TypeName = "alerts",
+                UpdatedAt = ToTimestamp(a.Timestamp),
+                Alerts = MapAlerts(a.Result),
             },
-            "indices" when result is IndexResult ir => new EnrichmentEvent
+            PipelineEvent.IndexComputed i => new EnrichmentEvent
             {
-                Location = location,
-                TypeName = typeName,
-                UpdatedAt = timestamp,
-                Indices = MapIndices(ir),
+                Location = i.Result.Location,
+                TypeName = "indices",
+                UpdatedAt = ToTimestamp(i.Timestamp),
+                Indices = MapIndices(i.Result),
             },
-            "trends" when result is TrendResult tr => new EnrichmentEvent
+            PipelineEvent.TrendComputed t => new EnrichmentEvent
             {
-                Location = location,
-                TypeName = typeName,
-                UpdatedAt = timestamp,
-                Trends = MapTrends(tr),
+                Location = t.Result.Location,
+                TypeName = "trends",
+                UpdatedAt = ToTimestamp(t.Timestamp),
+                Trends = MapTrends(t.Result),
             },
-            "derived" when result is DerivedResult dr => new EnrichmentEvent
+            PipelineEvent.DerivedComputed d => new EnrichmentEvent
             {
-                Location = location,
-                TypeName = typeName,
-                UpdatedAt = timestamp,
-                Derived = MapDerived(dr),
+                Location = d.Result.Location,
+                TypeName = "derived",
+                UpdatedAt = ToTimestamp(d.Timestamp),
+                Derived = MapDerived(d.Result),
             },
-            "history" when result is HistoryResult hr => new EnrichmentEvent
-            {
-                Location = location,
-                TypeName = typeName,
-                UpdatedAt = timestamp,
-                History = MapHistory(hr),
-            },
-            "consensus" when result is ConsensusResult cr => new EnrichmentEvent
-            {
-                Location = location,
-                TypeName = typeName,
-                UpdatedAt = timestamp,
-                Consensus = MapConsensus(cr),
-            },
+            PipelineEvent.ConsensusComputed c => MapConsensusEvent(c),
             _ => null,
         };
     }
+
+    private static EnrichmentEvent MapConsensusEvent(PipelineEvent.ConsensusComputed c)
+    {
+        var result = new ConsensusResult(
+            c.Consensus.Hourly.Parameters, c.Consensus.Daily.Parameters, c.Consensus.ComputedAt);
+        return new EnrichmentEvent
+        {
+            Location = c.Consensus.Location,
+            TypeName = "consensus",
+            UpdatedAt = ToTimestamp(c.Timestamp),
+            Consensus = MapConsensus(result),
+        };
+    }
+
+    private static Google.Protobuf.WellKnownTypes.Timestamp ToTimestamp(DateTimeOffset dt) =>
+        Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(dt);
 
     private static ProtoAlertType MapAlertType(DomainAlertType type) => type switch
     {
