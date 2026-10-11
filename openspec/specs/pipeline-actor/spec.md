@@ -7,7 +7,7 @@ Defines the PipelineActor that owns the pipeline stream graph lifecycle: actor-b
 ## Requirements
 
 ### Requirement: The pipeline graph is materialized by an actor
-A `PipelineActor` SHALL materialize the pipeline graph using `Context.Materializer()`. The pipeline graph SHALL be materialized independently — the actor SHALL NOT wait for any downstream actor before materializing. The stream lifecycle SHALL be bound to the actor — when the actor stops, the graph terminates. No `IHostedService` SHALL be used for pipeline lifecycle. The actor SHALL own a `UniqueKillSwitch` that is used only for graceful shutdown. On `StopStreams` the actor SHALL shut the switch down, wait for the graph completion, and reply `StreamsStopped` (or `StreamsStopFailed`). The fetch logic (calling `IOpenMeteoClient.FetchAsync`) SHALL be inlined in the pipeline graph as a `SelectAsyncUnordered` operator.
+A `PipelineActor` SHALL materialize the pipeline graph using `Context.Materializer()`. The pipeline graph SHALL be materialized independently — the actor SHALL NOT wait for any downstream actor before materializing. The stream lifecycle SHALL be bound to the actor — when the actor stops, the graph terminates. No `IHostedService` SHALL be used for pipeline lifecycle. The actor SHALL own a `UniqueKillSwitch` that is used only for graceful shutdown. On `StopStreams` the actor SHALL shut the switch down, complete the queue, complete the sensor ref, and reply `StreamsStopped`. The actor SHALL NOT implement `IWithStash`. The fetch logic (calling `IOpenMeteoClient.FetchAsync`) SHALL be inlined in the pipeline graph as a `SelectAsyncUnordered` operator.
 
 #### Scenario: Actor stop terminates the pipeline
 - **WHEN** the PipelineActor is stopped

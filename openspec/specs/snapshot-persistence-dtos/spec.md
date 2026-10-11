@@ -70,17 +70,6 @@ All enrichment result records serialized inside `EnrichmentEntryDto.JsonPayload`
 - **WHEN** a persisted `EnrichmentEntryDto.JsonPayload` contains JSON fields not present in the current record definition
 - **THEN** deserialization succeeds and the unknown fields are silently ignored
 
-### Requirement: Scheduler snapshot DTO preserves poll state
-The persistence layer SHALL define `SchedulerSnapshotDto` and `ModelPollStateDto` types that represent the SchedulerActor's full `_states` dictionary. `ModelPollStateDto` SHALL contain: `LastHash` (int?), `LastChangeUtcTicks` (long?), `PrevChangeUtcTicks` (long?), `NextPollUtcTicks` (long), `MissCount` (int), `CycleTicks` (long?), `Phase` (string). All `DateTimeOffset` values SHALL be stored as UTC ticks. All properties SHALL have `[JsonProperty]` attributes with stable wire names.
-
-#### Scenario: Full state dictionary round-trips through DTO
-- **WHEN** the SchedulerActor saves a snapshot with multiple model states
-- **THEN** all states are recovered with identical values after restart
-
-#### Scenario: Empty state dictionary produces valid snapshot
-- **WHEN** the SchedulerActor saves a snapshot with no model states
-- **THEN** recovery produces an empty state dictionary
-
 ### Requirement: CLAUDE.md caveat is removed
 The CLAUDE.md caveat about `EnrichmentEntryDto` inner-JSON limitation SHALL be removed once all enrichment result records are hardened.
 
