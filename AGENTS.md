@@ -105,11 +105,10 @@ src/
   Njord.Compute/              # Pure analysis computation (-> Weather, Sensors only)
     Analysis/                 # Consensus, alerts, derived, trends, indices computers
     Configuration/            # Compute-parameter options (AlertOptions, IndexOptions)
-  Njord.Core/                 # Options validators, diagnostics, actor keys, IAnalysisStage,
+  Njord.Core/                 # Options validators, diagnostics, actor keys,
                               #   StreamSupervision (-> Weather, Sensors, Messages, Persistence, Compute)
     Configuration/            # Validators, budget calculator
     Diagnostics/              # Metrics
-    Pipeline/                 # IAnalysisStage interface (impl in Host)
 
   # /Domain/ — feature libraries (each -> Core only)
   Njord.Ingest/               # Open-Meteo client, DTOs, JSON source generator
@@ -119,10 +118,10 @@ src/
   Njord.Grpc/                 # gRPC services, GrpcConsumerActor, protos
 
   # /Analysis/ — per-feature analysis libraries (each -> Core only)
-  Njord.Alerts/               # IAlertInput, AlertAnalyzer, AlertEvaluator
-  Njord.Derived/              # IDerivedInput, DerivedAnalyzer
-  Njord.Trends/               # ITrendInput, TrendAnalyzer (stateless, previous via interface)
-  Njord.Indices/              # IIndexInput, IndexAnalyzer
+  Njord.Alerts/               # AlertAnalyzer, AlertEvaluator
+  Njord.Derived/              # DerivedAnalyzer
+  Njord.Trends/               # TrendAnalyzer
+  Njord.Indices/              # IndexAnalyzer
 
   # Host
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
