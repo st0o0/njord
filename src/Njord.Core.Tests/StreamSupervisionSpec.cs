@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Njord.Core.Actors;
 using StreamDirective = Akka.Streams.Supervision.Directive;
 
-namespace Njord.Pipeline.Tests;
+namespace Njord.Core.Tests;
 
 public sealed class StreamSupervisionSpec
 {

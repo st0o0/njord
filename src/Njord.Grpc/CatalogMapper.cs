@@ -1,6 +1,6 @@
 using Njord.Core.Configuration;
-using Njord.Weather;
 using Njord.Grpc.V2;
+using Njord.Weather;
 using CoverageTier = Njord.Core.Configuration.CoverageTier;
 
 namespace Njord.Grpc;

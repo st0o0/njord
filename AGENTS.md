@@ -23,8 +23,9 @@ the HA host).
   `Source.ActorRef` + `ReuseLatest` side channel (`ZipWith` pairs each
   forecast with the latest sensor reading). All analysis state
   (`ModelSnapshot`, previous `ConsensusSnapshot`) lives inside the
-  `StatefulSelectMany` closure, not in actor fields. No `GraphDSL`,
-  `Broadcast`, or `Merge` in the pipeline. Consumers attach via SourceRef.
+  `StatefulSelectMany` closure, not in actor fields. No `Broadcast` or `Merge`
+  in the pipeline (`GraphDsl.Create` is used only for the `ZipWith` sensor
+  side-channel). Consumers attach via SourceRef.
 - **The entity set is static, derived from config** (locations × models ×
   parameters × horizons) — never from what the API happens to return. A missing
   value is an `unavailable` state, not a missing entity.
@@ -33,7 +34,7 @@ the HA host).
   arrived, plus `models_used`/spread diagnostics.
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow` directly.
 - **SensorHub for external sensor input.** The SensorHub actor receives readings
-  via gRPC (`SensorService`), stores latest values per `SensorKind` (closed enum).
+  via gRPC (`SensorGrpcService`), stores latest values per `SensorKind` (closed enum).
   Analysis features pull sensor data at each poll cycle (latest-value, no
   reactive re-computation).
 - **Each analysis feature is a self-contained library.** Feature libraries
@@ -84,7 +85,7 @@ the HA host).
   `homeassistant/device/<id>/config`), one retained state JSON per device per
   cycle, availability via LWT on `njord/status` + per-component
   `availability_template` + `expire_after` (2× poll interval). MQTTnet sits
-  behind the `IMqttPublisher` seam; the connection actor owns lifecycle, HA
+  behind the `IMqttTransport` seam; the connection actor owns lifecycle, HA
   birth handling, and tombstoning of stale retained configs.
 
 ## Language
@@ -175,8 +176,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 686 tests (Weather 59, Sensors 11, Persistence 4, Compute 168, Core 111,
-Grpc 56, Pipeline 117, Mqtt 38, Ingest 16, SensorHub 6, Architecture 32,
+Current total: 674 tests (Weather 59, Sensors 11, Persistence 2, Compute 168, Core 115,
+Grpc 56, Pipeline 104, Mqtt 37, Ingest 16, SensorHub 6, Architecture 32,
 Alerts 61, Derived 2, Trends 3, Indices 2).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
@@ -297,7 +298,7 @@ Rules apply to production code (`src/Njord/`).
 - **Actor naming:** `XxxActor`, sealed.
 - **Actors are resolved by marker interfaces** (`ISchedulerActor`, ... in
   `Njord.Core/Actors/ActorKeys.cs`), registered in the host
-  (`NjordActorSystemSetup`); never key a registry lookup by the actor class.
+  (`AkkaSetupContainer`); never key a registry lookup by the actor class.
 
 ## Test assertion conventions
 

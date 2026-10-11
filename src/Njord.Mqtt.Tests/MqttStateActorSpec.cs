@@ -1,9 +1,9 @@
+using System.Text.Json.Nodes;
 using Akka.Actor;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
-using System.Text.Json.Nodes;
 using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
@@ -81,22 +81,6 @@ public sealed class MqttStateActorSpec : NjordActorSpec
         Assert.NotEmpty(sent);
         Assert.All(sent, m => Assert.StartsWith("njord/", m.Topic));
         Assert.All(sent, m => Assert.True(m.Retain));
-    }
-
-    [Fact(Timeout = 15000)]
-    public async Task Should_publish_nothing_for_an_unknown_enrichment_type_name()
-    {
-        var hub = RegisterFakePipelineHub();
-        var transport = new RecordingTransport();
-
-        CreateMqttStateActor(transport: transport);
-
-        await hub.WaitForQueue();
-
-        hub.Emit(new PipelineEvent.ModelCapability("lucerne", new WeatherModel("test"), new HashSet<ParameterDef>(), [], []));
-
-        await Task.Delay(500, TestContext.Current.CancellationToken);
-        Assert.Empty(transport.Sent);
     }
 
     [Fact(Timeout = 15000)]

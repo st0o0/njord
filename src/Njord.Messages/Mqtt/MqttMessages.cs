@@ -6,6 +6,4 @@ public sealed record MqttConnected;
 
 public sealed record MqttInboundMessage(string Topic, string Payload);
 
-public sealed record HaBirthDetected;
-
 public sealed record SubscribeInbound(IActorRef Listener);

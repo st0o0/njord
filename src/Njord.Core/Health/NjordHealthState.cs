@@ -2,7 +2,6 @@ namespace Njord.Core.Health;
 
 public sealed class NjordHealthState
 {
-    private long _mqttConnectedSinceTicks;
     private long _mqttDisconnectedSinceTicks;
     private int _isMqttConnected;
     private long _lastSuccessfulPollTicks;
@@ -14,15 +13,6 @@ public sealed class NjordHealthState
     public DateTimeOffset ServiceStartedUtc { get; init; }
 
     public bool IsMqttConnected => Interlocked.CompareExchange(ref _isMqttConnected, 0, 0) == 1;
-
-    public DateTimeOffset? MqttConnectedSince
-    {
-        get
-        {
-            var ticks = Interlocked.Read(ref _mqttConnectedSinceTicks);
-            return ticks == 0 ? null : new DateTimeOffset(ticks, TimeSpan.Zero);
-        }
-    }
 
     public DateTimeOffset? MqttDisconnectedSince
     {
@@ -44,7 +34,6 @@ public sealed class NjordHealthState
 
     public void SetMqttConnected(DateTimeOffset utcNow)
     {
-        Interlocked.Exchange(ref _mqttConnectedSinceTicks, utcNow.UtcTicks);
         Interlocked.Exchange(ref _mqttDisconnectedSinceTicks, 0);
         Interlocked.Exchange(ref _isMqttConnected, 1);
     }

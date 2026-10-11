@@ -72,11 +72,7 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
             try
             {
                 var actor = await registry.GetAsync<TKey>();
-                var reply = await actor.Ask<object>(new StopStreams(), askTimeout);
-                if (reply is StreamsStopFailed failed)
-                {
-                    log.Warning(failed.Cause, "Failed to stop streams of {Actor}", name);
-                }
+                await actor.Ask<StreamsStopped>(new StopStreams(), askTimeout);
             }
             catch (Exception ex)
             {

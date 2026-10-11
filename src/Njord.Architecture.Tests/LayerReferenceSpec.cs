@@ -72,7 +72,7 @@ public sealed class LayerReferenceSpec
     public void Pipeline_references_only_Core_and_analysis_libraries()
     {
         Assert.Empty(NjordReferences<Njord.Pipeline.PipelineActor>()
-            .Except([..CoreAndBelow, "Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"]));
+            .Except([.. CoreAndBelow, "Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"]));
     }
 
     [Fact]

@@ -18,7 +18,7 @@ using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
 
 namespace Njord.Pipeline;
 
-public sealed class PipelineActor : ReceiveActor, IWithStash
+public sealed class PipelineActor : ReceiveActor
 {
     private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;
@@ -36,8 +36,6 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
     private ISourceQueueWithComplete<WeightedTarget>? _queue;
     private UniqueKillSwitch? _killSwitch;
     private IActorRef? _sensorRef;
-
-    public IStash Stash { get; set; } = null!;
 
     public PipelineActor(
         IOpenMeteoClient client,
@@ -189,7 +187,7 @@ public sealed class PipelineActor : ReceiveActor, IWithStash
                         events.Add(new PipelineEvent.TrendComputed(tr, now));
                     }
 
-                                    var sensors = input.sensors.Readings.Count > 0 ? input.sensors : null;
+                    var sensors = input.sensors.Readings.Count > 0 ? input.sensors : null;
                     if (indices.Compute(consensus, sensors) is { } ix)
                     {
                         events.Add(new PipelineEvent.IndexComputed(ix, now));

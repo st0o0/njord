@@ -10,13 +10,6 @@ public abstract record PipelineEvent
         WeatherModel Model,
         Forecast Forecast) : PipelineEvent;
 
-    public sealed record ModelCapability(
-        string Location,
-        WeatherModel Model,
-        IReadOnlySet<ParameterDef> SupportedParameters,
-        IReadOnlyList<int> ApplicableHorizons,
-        IReadOnlyList<int> ApplicableDayOffsets) : PipelineEvent;
-
     public sealed record ConsensusComputed(
         ConsensusSnapshot Consensus,
         DateTimeOffset Timestamp) : PipelineEvent;
