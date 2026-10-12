@@ -1,9 +1,10 @@
 namespace Njord.Core.Actors;
 
-public interface ISchedulerActor;
-public interface IBudgetTrackerActor;
-public interface IPipelineActor;
-public interface ISensorHubActor;
-public interface IGrpcConsumerActor;
-public interface IMqttConnectionActor;
-public interface IMqttStateActor;
+public interface IPollScheduler;
+public interface IBudgetTracker;
+public interface IForecastPipeline;
+public interface ISensorHub;
+public interface IGrpcConsumer;
+public interface IMqttConnection;
+public interface IMqttState;
+public interface IForecastGateway;

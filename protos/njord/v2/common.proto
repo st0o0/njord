@@ -216,26 +216,6 @@ message DerivedUpdate {
 }
 
 // ═══════════════════════════════════════
-// Enrichment: History
-// ═══════════════════════════════════════
-
-message ModelMetrics {
-  string model = 1;
-  optional double mae_7d = 2;
-  optional double mae_30d = 3;
-  double weight = 4;
-  optional double drift = 5;
-}
-
-message HistoryUpdate {
-  repeated ModelMetrics models = 1;
-  optional string seasonal_best = 2;
-  optional bool anomaly = 3;
-  optional double anomaly_deviation = 4;
-  optional double weighted_temperature = 5;
-}
-
-// ═══════════════════════════════════════
 // Enrichment: Consensus
 // ═══════════════════════════════════════
 

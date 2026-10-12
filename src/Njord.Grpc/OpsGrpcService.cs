@@ -46,7 +46,7 @@ public sealed class OpsGrpcService(
         var budgetPartial = false;
         try
         {
-            var tracker = await _actorRegistry.GetAsync<IBudgetTrackerActor>();
+            var tracker = await _actorRegistry.GetAsync<IBudgetTracker>();
             var usage = await tracker.Ask<QueryBudgetUsageCompleted>(
                 new QueryBudgetUsage(), AskTimeout);
             monthlyUsed = usage.MonthlyUsed;
@@ -54,7 +54,7 @@ public sealed class OpsGrpcService(
         }
         catch (AskTimeoutException)
         {
-            _logger.LogWarning("BudgetTrackerActor did not respond within {Timeout}s — returning status with zero usage", AskTimeout.TotalSeconds);
+            _logger.LogWarning("BudgetTracker did not respond within {Timeout}s — returning status with zero usage", AskTimeout.TotalSeconds);
             budgetPartial = true;
         }
 
@@ -78,13 +78,13 @@ public sealed class OpsGrpcService(
 
         try
         {
-            var scheduler = await _actorRegistry.GetAsync<ISchedulerActor>();
+            var scheduler = await _actorRegistry.GetAsync<IPollScheduler>();
             var snapshot = await scheduler.Ask<QueryPollStatesCompleted>(new QueryPollStates(), AskTimeout);
             status.Models.AddRange(snapshot.Entries.Select(PollStatusMapper.ToModelStatus));
         }
         catch (AskTimeoutException)
         {
-            _logger.LogWarning("SchedulerActor did not respond within {Timeout}s — returning status without model poll states", AskTimeout.TotalSeconds);
+            _logger.LogWarning("PollScheduler did not respond within {Timeout}s — returning status without model poll states", AskTimeout.TotalSeconds);
             status.ModelsPartial = true;
         }
 
@@ -127,13 +127,13 @@ public sealed class OpsGrpcService(
 
         try
         {
-            var scheduler = await _actorRegistry.GetAsync<ISchedulerActor>();
+            var scheduler = await _actorRegistry.GetAsync<IPollScheduler>();
             var snapshot = await scheduler.Ask<QueryPollStatesCompleted>(new QueryPollStates(), AskTimeout);
             response.Targets.AddRange(snapshot.Entries.Select(PollStatusMapper.ToTriggerTarget));
         }
         catch (AskTimeoutException)
         {
-            _logger.LogWarning("SchedulerActor did not respond within {Timeout}s — returning empty trigger targets", AskTimeout.TotalSeconds);
+            _logger.LogWarning("PollScheduler did not respond within {Timeout}s — returning empty trigger targets", AskTimeout.TotalSeconds);
         }
 
         return response;
@@ -145,7 +145,7 @@ public sealed class OpsGrpcService(
 
     public override async Task<TriggerPollResponse> TriggerPoll(TriggerPollRequest request, ServerCallContext context)
     {
-        var scheduler = await _actorRegistry.GetAsync<ISchedulerActor>();
+        var scheduler = await _actorRegistry.GetAsync<IPollScheduler>();
         var result = await scheduler.Ask<TriggerImmediatePollCompleted>(
             new TriggerImmediatePoll(request.Location, request.Model), AskTimeout);
 

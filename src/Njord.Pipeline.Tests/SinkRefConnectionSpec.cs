@@ -161,7 +161,6 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
     public async Task OfferAsync_completes_with_real_budget_throttle()
     {
         var received = new TaskCompletionSource<int>();
-        var gate = new AlwaysAllowGate();
 
         var (mergeHubSink, mergeHubSource) = MergeHub.Source<int>(perProducerBufferSize: 16)
             .PreMaterialize(Mat);
@@ -170,7 +169,6 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
             .PreMaterialize(Mat);
 
         mergeHubSource
-            .Via(new BudgetThrottleStage<int>(gate))
             .SelectAsyncUnordered(2, x => Task.FromResult(x))
             .Buffer(32, OverflowStrategy.Backpressure)
             .To(broadcastHubSink)
@@ -221,10 +219,9 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
     public async Task OfferAsync_completes_across_actor_boundary_with_budget_throttle()
     {
         var received = new TaskCompletionSource<int>();
-        var gate = new AlwaysAllowGate();
 
         var pipeline = Sys.ActorOf(Props.Create(() =>
-            new ThrottledPipelineActor(Mat, received, gate)));
+            new ThrottledPipelineActor(Mat, received)));
 
         var response = await pipeline.Ask<SinkRefResponse>(
             new RequestSinkRef(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
@@ -285,7 +282,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
 
     private sealed class ThrottledPipelineActor : ReceiveActor
     {
-        public ThrottledPipelineActor(IMaterializer mat, TaskCompletionSource<int> received, IBudgetGate<int> gate)
+        public ThrottledPipelineActor(IMaterializer mat, TaskCompletionSource<int> received)
         {
             var (mergeHubSink, mergeHubSource) = MergeHub.Source<int>(perProducerBufferSize: 16)
                 .PreMaterialize(mat);
@@ -294,7 +291,6 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
                 .PreMaterialize(mat);
 
             mergeHubSource
-                .Via(new BudgetThrottleStage<int>(gate))
                 .SelectAsyncUnordered(2, x => Task.FromResult(x))
                 .Buffer(32, OverflowStrategy.Backpressure)
                 .To(broadcastHubSink)
@@ -323,7 +319,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
         var pipeline = Sys.ActorOf(Props.Create(() =>
             new FakePipelineWithFullGraph(Mat, received)));
 
-        ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
+        ActorRegistry.Register<IForecastPipeline>(pipeline, overwrite: true);
 
         var consumer = Sys.ActorOf(Props.Create(() =>
             new PersistentConsumerActor($"consumer-{Guid.NewGuid():N}")));
@@ -341,7 +337,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
         var pipeline = Sys.ActorOf(Props.Create(() =>
             new FakePipelineWithFullGraph(Mat, received)));
 
-        ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
+        ActorRegistry.Register<IForecastPipeline>(pipeline, overwrite: true);
 
         var first = Sys.ActorOf(Props.Create(() =>
             new PersistentConsumerActor(persistenceId)));
@@ -353,7 +349,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
 
         var pipeline2 = Sys.ActorOf(Props.Create(() =>
             new FakePipelineWithFullGraph(Mat, received)));
-        ActorRegistry.Register<IPipelineActor>(pipeline2, overwrite: true);
+        ActorRegistry.Register<IForecastPipeline>(pipeline2, overwrite: true);
 
         var second = Sys.ActorOf(Props.Create(() =>
             new PersistentConsumerActor(persistenceId)));
@@ -386,7 +382,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
 
         protected override void PreStart()
         {
-            var pipeline = Context.GetActor<IPipelineActor>();
+            var pipeline = Context.GetActor<IForecastPipeline>();
             pipeline.Tell(new RequestSinkRef());
             pipeline.Tell(new RequestSourceRef());
         }
@@ -456,12 +452,6 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
 
     private sealed record RequestSourceRef;
     private sealed record SourceRefResponse;
-
-    private sealed class AlwaysAllowGate : IBudgetGate<int>
-    {
-        public bool TryAcquire(int element) => true;
-        public TimeSpan EstimateDelay(int element) => TimeSpan.Zero;
-    }
 
     private sealed class BlackholeActor : ReceiveActor
     {

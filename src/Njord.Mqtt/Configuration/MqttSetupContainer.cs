@@ -32,7 +32,7 @@ public sealed class MqttSetupContainer : IServiceSetupContainer
                 new MqttNetPublisher(
                     provider.GetRequiredService<IOptions<MqttOptions>>().Value,
                     provider.GetRequiredService<ILogger<MqttNetPublisher>>()));
-            services.TryAddSingleton<IMqttConnection>(static provider => provider.GetRequiredService<MqttNetPublisher>());
+            services.TryAddSingleton<Njord.Mqtt.Transport.IMqttConnection>(static provider => provider.GetRequiredService<MqttNetPublisher>());
             services.TryAddSingleton<IMqttTransport>(static provider => provider.GetRequiredService<MqttNetPublisher>());
 
             services.AddSingleton<IActorRegistration>(new MqttActorRegistration());
@@ -44,10 +44,10 @@ public sealed class MqttSetupContainer : IServiceSetupContainer
         public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
         {
             builder
-                .WithSingleton<IMqttConnectionActor>("mqtt-connection",
-                    (_, _, resolver) => resolver.Props<MqttConnectionActor>())
-                .WithSingleton<IMqttStateActor>("mqtt-state",
-                    (_, _, resolver) => resolver.Props<MqttStateActor>());
+                .WithSingleton<Njord.Core.Actors.IMqttConnection>("mqtt-connection",
+                    (_, _, resolver) => resolver.Props<MqttConnection>())
+                .WithSingleton<IMqttState>("mqtt-state",
+                    (_, _, resolver) => resolver.Props<MqttState>());
         }
     }
 }

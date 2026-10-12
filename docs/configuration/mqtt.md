@@ -13,7 +13,6 @@ MQTT settings control how njord connects to the broker and publishes discovery a
       "Username": "mqtt-user",
       "Password": "mqtt-pass",
       "DiscoveryPrefix": "homeassistant",
-      "DiscoveryEnabled": true,
       "BaseTopic": "njord"
     }
   }
@@ -29,7 +28,6 @@ MQTT settings control how njord connects to the broker and publishes discovery a
 | `Username` | `null` | no | Broker username for authentication |
 | `Password` | `null` | no | Broker password for authentication |
 | `DiscoveryPrefix` | `"homeassistant"` | no | MQTT Discovery prefix used by Home Assistant |
-| `DiscoveryEnabled` | `true` | no | Whether to publish HA MQTT Discovery config payloads |
 | `BaseTopic` | `"njord"` | no | Root topic for all njord state messages |
 
 ## Authentication
@@ -44,11 +42,9 @@ Avoid putting passwords directly in `appsettings.json`. Use an environment varia
 
 ## Discovery
 
-When `DiscoveryEnabled` is `true` (the default), njord publishes retained device configuration payloads to `{DiscoveryPrefix}/device/{deviceId}/config`. Home Assistant automatically creates devices and sensors from these payloads.
+njord publishes retained device configuration payloads to `{DiscoveryPrefix}/device/{deviceId}/config`. Home Assistant automatically creates devices and sensors from these payloads.
 
-Discovery payloads are re-published at the `DiscoveryInterval` (default 20 minutes) and on Home Assistant restart (detected via the `homeassistant/status` birth message).
-
-Set `DiscoveryEnabled` to `false` if you want to use njord's MQTT state data without Home Assistant auto-discovery, for example with Node-RED or a custom dashboard.
+Discovery payloads are re-published on Home Assistant restart (detected via the `homeassistant/status` birth message).
 
 ## Availability
 

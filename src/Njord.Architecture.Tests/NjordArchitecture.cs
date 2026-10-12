@@ -28,7 +28,7 @@ internal static class NjordArchitecture
         .Select(n => Assembly.Load(n!))
         .ToArray();
 
-    private static readonly string[] FeatureLibraryNames = ["Njord.Grpc", "Njord.Ingest", "Njord.SensorHub", "Njord.Mqtt", "Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"];
+    private static readonly string[] FeatureLibraryNames = ["Njord.Grpc", "Njord.OpenMeteo", "Njord.Budget", "Njord.SensorHub", "Njord.Mqtt", "Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"];
     private static readonly string[] BaseLibraryNames = ["Njord.Compute", "Njord.Core", "Njord.Messages", "Njord.Persistence", "Njord.Weather", "Njord.Sensors"];
 
     public static readonly ArchUnitNET.Domain.Architecture Instance =

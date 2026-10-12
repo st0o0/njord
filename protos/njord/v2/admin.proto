@@ -50,7 +50,7 @@ message DetailedEnrichmentConfig {
   DerivedConfig derived = 3;
   TrendConfig trends = 4;
   IndexConfig indices = 5;
-  HistoryConfig history = 6;
+  reserved 6;
 }
 
 message ConsensusConfig {
@@ -102,12 +102,6 @@ message IndexConfig {
   optional double bbq_ideal_wind_high = 12;
 }
 
-message HistoryConfig {
-  optional bool enabled = 1;
-  optional int32 retention_days = 2;
-  optional int32 min_sample_size = 3;
-  optional int32 snapshot_interval = 4;
-}
 
 // ═══════════════════════════════════════
 // Mutations
@@ -138,7 +132,7 @@ message SetEnrichmentRequest {
   optional DerivedConfig derived = 3;
   optional TrendConfig trends = 4;
   optional IndexConfig indices = 5;
-  optional HistoryConfig history = 6;
+  reserved 6;
 }
 
 message SetBudgetRequest {

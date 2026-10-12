@@ -19,8 +19,8 @@ public sealed class GrpcSetupContainer : IServiceSetupContainer
     {
         public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
         {
-            builder.WithSingleton<IGrpcConsumerActor>("grpc-consumer",
-                (_, _, resolver) => resolver.Props<GrpcConsumerActor>());
+            builder.WithSingleton<IGrpcConsumer>("grpc-consumer",
+                (_, _, resolver) => resolver.Props<GrpcConsumer>());
         }
     }
 }

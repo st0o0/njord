@@ -16,7 +16,5 @@ public sealed class MqttOptions
 
     public string DiscoveryPrefix { get; set; } = "homeassistant";
 
-    public bool DiscoveryEnabled { get; set; } = true;
-
     public string BaseTopic { get; set; } = "njord";
 }

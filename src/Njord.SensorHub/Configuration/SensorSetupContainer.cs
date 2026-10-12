@@ -26,8 +26,8 @@ public sealed class SensorSetupContainer : IServiceSetupContainer
     {
         public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
         {
-            builder.WithSingleton<ISensorHubActor>("sensor-hub",
-                (_, _, resolver) => resolver.Props<SensorHubActor>());
+            builder.WithSingleton<ISensorHub>("sensor-hub",
+                (_, _, resolver) => resolver.Props<SensorHub>());
         }
     }
 }

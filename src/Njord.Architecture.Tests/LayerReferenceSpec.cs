@@ -33,7 +33,7 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Messages_references_only_Weather_and_Sensors()
     {
-        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.WeightedTarget>().Except(["Njord.Weather", "Njord.Sensors"]));
+        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.ScheduledPoll>().Except(["Njord.Weather", "Njord.Sensors"]));
     }
 
     [Fact]
@@ -45,21 +45,27 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Core_references_only_Weather_Sensors_Messages_Persistence_and_Compute()
     {
-        Assert.Empty(NjordReferences<ISchedulerActor>().Except(["Njord.Compute", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"]));
+        Assert.Empty(NjordReferences<IPollScheduler>().Except(["Njord.Compute", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"]));
     }
 
     private static readonly string[] CoreAndBelow = ["Njord.Compute", "Njord.Core", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"];
 
     [Fact]
-    public void Ingest_references_only_Core_and_below()
+    public void OpenMeteo_references_only_Core_and_below()
     {
-        Assert.Empty(NjordReferences<Njord.Ingest.OpenMeteoClient>().Except(CoreAndBelow));
+        Assert.Empty(NjordReferences<Njord.OpenMeteo.OpenMeteoClient>().Except(CoreAndBelow));
+    }
+
+    [Fact]
+    public void Budget_references_only_Core_and_below()
+    {
+        Assert.Empty(NjordReferences<Njord.Budget.BudgetTracker>().Except(CoreAndBelow));
     }
 
     [Fact]
     public void SensorHub_references_only_Core_and_below()
     {
-        Assert.Empty(NjordReferences<Njord.SensorHub.SensorHubActor>().Except(CoreAndBelow));
+        Assert.Empty(NjordReferences<Njord.SensorHub.SensorHub>().Except(CoreAndBelow));
     }
 
     [Fact]
@@ -71,14 +77,14 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Pipeline_references_only_Core_and_analysis_libraries()
     {
-        Assert.Empty(NjordReferences<Njord.Pipeline.PipelineActor>()
+        Assert.Empty(NjordReferences<Njord.Pipeline.ForecastPipeline>()
             .Except([.. CoreAndBelow, "Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"]));
     }
 
     [Fact]
     public void Mqtt_references_only_Core_and_below()
     {
-        Assert.Empty(NjordReferences<Njord.Mqtt.MqttStateActor>().Except(CoreAndBelow));
+        Assert.Empty(NjordReferences<Njord.Mqtt.MqttState>().Except(CoreAndBelow));
     }
 
     [Fact]

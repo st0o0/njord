@@ -16,7 +16,6 @@ public sealed class SensorGrpcService(
     IOptions<NjordOptions> njordOptions,
     TimeProvider timeProvider) : SensorService.SensorServiceBase
 {
-    private readonly IActorRef _sensorHub = actorRegistry.Get<ISensorHubActor>();
     private readonly HashSet<string> _knownLocations = new(
         njordOptions.Value.Locations.Select(l => l.Name),
         StringComparer.OrdinalIgnoreCase);
@@ -29,7 +28,8 @@ public sealed class SensorGrpcService(
             return new PushResponse { Accepted = false, RejectionReason = error };
         }
 
-        var result = await _sensorHub.Ask<PushResult>(new UpdateReading(reading!), TimeSpan.FromSeconds(5));
+        var sensorHub = await actorRegistry.GetAsync<ISensorHub>(context.CancellationToken);
+        var result = await sensorHub.Ask<PushResult>(new UpdateReading(reading!), TimeSpan.FromSeconds(5));
         return new PushResponse { Accepted = result.Accepted, RejectionReason = result.RejectionReason ?? "" };
     }
 
@@ -37,6 +37,7 @@ public sealed class SensorGrpcService(
         IAsyncStreamReader<V2.SensorReading> requestStream,
         ServerCallContext context)
     {
+        var sensorHub = await actorRegistry.GetAsync<ISensorHub>(context.CancellationToken);
         var rejected = 0;
         var total = 0;
 
@@ -50,7 +51,7 @@ public sealed class SensorGrpcService(
                 continue;
             }
 
-            var result = await _sensorHub.Ask<PushResult>(new UpdateReading(reading!), TimeSpan.FromSeconds(5));
+            var result = await sensorHub.Ask<PushResult>(new UpdateReading(reading!), TimeSpan.FromSeconds(5));
             if (!result.Accepted)
             {
                 rejected++;

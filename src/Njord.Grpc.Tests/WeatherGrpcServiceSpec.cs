@@ -39,7 +39,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             Models = ["icon_d2", "ecmwf_ifs025"],
         };
 
-        ActorRegistry.Register<IGrpcConsumerActor>(
+        ActorRegistry.Register<IGrpcConsumer>(
             consumerActor ?? Sys.ActorOf(Props.Create(() => new EmptyConsumerActor())), overwrite: true);
         return new WeatherGrpcService(
             Options.Create(options),

@@ -2,8 +2,8 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Configuration;
-using Njord.Messages.Pipeline;
 using Njord.Mqtt;
+using Njord.OpenMeteo;
 using Njord.Tests.Shared;
 using Njord.Weather;
 
@@ -32,6 +32,8 @@ public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
         Models = [.. models],
     };
 
+    private sealed record FetchTarget(LocationOptions Location, WeatherModel Model, CycleId Cycle);
+
     [Fact(Timeout = 5000)]
     public async Task Targets_produce_MqttMessages_through_fetch_and_publish_stages()
     {
@@ -43,8 +45,8 @@ public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
         var locA = options.Locations[0];
         var targets = new[]
         {
-            new WeightedTarget(locA, new WeatherModel("A"), 1, cycle),
-            new WeightedTarget(locA, new WeatherModel("B"), 1, cycle),
+            new FetchTarget(locA, new WeatherModel("A"), cycle),
+            new FetchTarget(locA, new WeatherModel("B"), cycle),
         };
 
         var results = await Source.From(targets)
@@ -77,8 +79,8 @@ public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
         var loc = options.Locations[0];
         var targets = new[]
         {
-            new WeightedTarget(loc, new WeatherModel("A"), 1, cycle),
-            new WeightedTarget(loc, new WeatherModel("BROKEN"), 1, cycle),
+            new FetchTarget(loc, new WeatherModel("A"), cycle),
+            new FetchTarget(loc, new WeatherModel("BROKEN"), cycle),
         };
 
         var results = await Source.From(targets)

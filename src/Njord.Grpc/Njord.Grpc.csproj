@@ -18,8 +18,6 @@
 
     <ItemGroup>
       <PackageReference Include="Akka.Cluster.Hosting" />
-      <PackageReference Include="Akka.Hosting" />
-      <PackageReference Include="Akka.Persistence.Hosting" />
       <PackageReference Include="Grpc.AspNetCore" />
       <PackageReference Include="Servus.Akka" />
     </ItemGroup>

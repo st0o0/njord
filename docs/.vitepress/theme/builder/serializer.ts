@@ -183,7 +183,6 @@ export function importFromJson(json: string): Partial<NjordConfig> {
       username: n.Mqtt.Username ?? '',
       password: '',
       discoveryPrefix: n.Mqtt.DiscoveryPrefix ?? 'homeassistant',
-      discoveryEnabled: n.Mqtt.DiscoveryEnabled ?? true,
       baseTopic: n.Mqtt.BaseTopic ?? 'njord',
     }
   }

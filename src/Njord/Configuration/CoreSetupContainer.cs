@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Njord.Budget;
 using Njord.Core.Configuration;
 using Njord.Core.Health;
 using Njord.Health;
@@ -13,7 +14,7 @@ namespace Njord.Configuration;
 public sealed class CoreSetupContainer : IServiceSetupContainer
 {
     private static readonly HashSet<string> NjordMeters =
-        ["Njord.Ingest", "Njord.Pipeline", "Njord.Mqtt"];
+        ["Njord.OpenMeteo", "Njord.Budget", "Njord.Pipeline", "Njord.Mqtt"];
 
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {

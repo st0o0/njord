@@ -22,10 +22,10 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             .WithActors((system, registry) =>
             {
                 var fakeScheduler = system.ActorOf(Props.Create(() => new FakeSchedulerActor(_now)));
-                registry.Register<ISchedulerActor>(fakeScheduler);
+                registry.Register<IPollScheduler>(fakeScheduler);
 
                 var fakeBudgetTracker = system.ActorOf(Props.Create(() => new FakeBudgetTrackerActor()));
-                registry.Register<IBudgetTrackerActor>(fakeBudgetTracker);
+                registry.Register<IBudgetTracker>(fakeBudgetTracker);
             })
             .AddTestTimefactor();
     }
@@ -121,7 +121,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     public async Task GetStatus_flags_models_partial_on_scheduler_timeout()
     {
         var slowScheduler = Sys.ActorOf(Props.Create(() => new SlowSchedulerActor()));
-        ActorRegistry.Register<ISchedulerActor>(slowScheduler, overwrite: true);
+        ActorRegistry.Register<IPollScheduler>(slowScheduler, overwrite: true);
         var service = CreateService();
 
         var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
@@ -137,7 +137,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     public async Task GetStatus_flags_budget_partial_on_budget_tracker_timeout()
     {
         var slowTracker = Sys.ActorOf(Props.Create(() => new SlowBudgetTrackerActor()));
-        ActorRegistry.Register<IBudgetTrackerActor>(slowTracker, overwrite: true);
+        ActorRegistry.Register<IBudgetTracker>(slowTracker, overwrite: true);
         var service = CreateService();
 
         var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
@@ -173,7 +173,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     public async Task GetTargets_returns_empty_on_scheduler_timeout()
     {
         var slowScheduler = Sys.ActorOf(Props.Create(() => new SlowSchedulerActor()));
-        ActorRegistry.Register<ISchedulerActor>(slowScheduler, overwrite: true);
+        ActorRegistry.Register<IPollScheduler>(slowScheduler, overwrite: true);
 
         var service = CreateService();
 

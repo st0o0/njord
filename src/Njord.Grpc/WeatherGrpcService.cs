@@ -54,7 +54,7 @@ public sealed class WeatherGrpcService(
         var location = FindLocation(request.Location);
         ValidateModel(location, request.Model);
 
-        var consumer = await actorRegistry.GetAsync<IGrpcConsumerActor>();
+        var consumer = await actorRegistry.GetAsync<IGrpcConsumer>();
         var result = await consumer.Ask<QueryForecastResponse>(
             new QueryForecast(request.Location, request.Model), AskTimeout);
 
@@ -70,9 +70,9 @@ public sealed class WeatherGrpcService(
     {
         FindLocation(request.Location);
 
-        var consumer = await actorRegistry.GetAsync<IGrpcConsumerActor>();
-        var result = await consumer.Ask<GrpcConsumerActor.LatestResults>(
-            new GrpcConsumerActor.QueryLatestResults(request.Location), AskTimeout);
+        var consumer = await actorRegistry.GetAsync<IGrpcConsumer>();
+        var result = await consumer.Ask<GrpcConsumer.LatestResults>(
+            new GrpcConsumer.QueryLatestResults(request.Location), AskTimeout);
 
         var response = new GetEnrichmentsResponse { Location = request.Location };
 
@@ -151,14 +151,14 @@ public sealed class WeatherGrpcService(
 
     private async Task<ISourceRef<PipelineEvent>> RequestGrpcStreamSourceAsync(CancellationToken cancellationToken)
     {
-        var consumer = await actorRegistry.GetAsync<IGrpcConsumerActor>();
+        var consumer = await actorRegistry.GetAsync<IGrpcConsumer>();
         var reply = await consumer.Ask<object>(
-            new GrpcConsumerActor.RequestGrpcStreamSource(0), cancellationToken);
+            new GrpcConsumer.RequestGrpcStreamSource(0), cancellationToken);
 
         return reply switch
         {
-            GrpcConsumerActor.GrpcStreamSourceResponse response => response.SourceRef,
-            GrpcConsumerActor.GrpcStreamSourceFailed => throw new RpcException(
+            GrpcConsumer.GrpcStreamSourceResponse response => response.SourceRef,
+            GrpcConsumer.GrpcStreamSourceFailed => throw new RpcException(
                 new GrpcStatus(StatusCode.Unavailable, "Pipeline stream is currently unavailable")),
             _ => throw new RpcException(
                 new GrpcStatus(StatusCode.Internal, $"Unexpected reply: {reply.GetType().Name}")),

@@ -1,4 +1,4 @@
-using Njord.Core.Ingest;
+using Njord.OpenMeteo;
 using Njord.Weather;
 
 namespace Njord.Tests.Shared;

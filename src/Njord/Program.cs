@@ -1,7 +1,8 @@
+using Njord.Budget.Configuration;
 using Njord.Configuration;
 using Njord.Grpc.Configuration;
-using Njord.Ingest.Configuration;
 using Njord.Mqtt.Configuration;
+using Njord.OpenMeteo.Configuration;
 using Njord.Pipeline.Configuration;
 using Njord.SensorHub.Configuration;
 using Serilog;
@@ -33,7 +34,8 @@ builder.Configuration.AddJsonFile(
 
 var runner = AppBuilder.Create(builder, b => b.Build())
     .WithSetup<CoreSetupContainer>()
-    .WithSetup<IngestSetupContainer>()
+    .WithSetup<OpenMeteoSetupContainer>()
+    .WithSetup<BudgetSetupContainer>()
     .WithSetup<SensorSetupContainer>()
     .WithSetup<PipelineSetupContainer>()
     .WithSetup<AnalysisSetupContainer>()

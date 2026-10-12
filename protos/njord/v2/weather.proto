@@ -57,7 +57,7 @@ message GetEnrichmentsResponse {
   IndexUpdate indices = 3;
   TrendUpdate trends = 4;
   DerivedUpdate derived = 5;
-  HistoryUpdate history = 6;
+  reserved 6;
   ConsensusUpdate consensus = 7;
   google.protobuf.Timestamp consensus_updated_at = 8;
 }
@@ -91,7 +91,6 @@ message EnrichmentEvent {
     IndexUpdate indices = 11;
     TrendUpdate trends = 12;
     DerivedUpdate derived = 13;
-    HistoryUpdate history = 14;
     ConsensusUpdate consensus = 15;
   }
 }

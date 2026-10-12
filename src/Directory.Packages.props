@@ -6,8 +6,6 @@
   <ItemGroup>
     <PackageVersion Include="Akka" Version="1.5.73" />
     <PackageVersion Include="Akka.Cluster.Hosting" Version="1.5.73" />
-    <PackageVersion Include="Akka.Cluster.Sharding" Version="1.5.73" />
-    <PackageVersion Include="Akka.Logger.Serilog" Version="1.5.69" />
     <PackageVersion Include="Akka.Persistence.Hosting" Version="1.5.73" />
     <PackageVersion Include="Akka.Persistence.TestKit.Xunit" Version="1.5.73" />
     <PackageVersion Include="Akka.Remote.Hosting" Version="1.5.73" />
@@ -42,7 +40,6 @@
   <ItemGroup Label="Testing">
     <PackageVersion Include="Akka.Hosting.TestKit" Version="1.5.73" />
     <PackageVersion Include="Akka.Persistence.TestKit" Version="1.5.73" />
-    <PackageVersion Include="Akka.TestKit.Xunit" Version="1.5.73" />
     <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.1" />
     <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.1" />
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />

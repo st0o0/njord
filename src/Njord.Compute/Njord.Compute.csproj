@@ -7,7 +7,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Njord.Weather\Njord.Weather.csproj" />
-        <ProjectReference Include="..\Njord.Sensors\Njord.Sensors.csproj" />
     </ItemGroup>
 
 </Project>

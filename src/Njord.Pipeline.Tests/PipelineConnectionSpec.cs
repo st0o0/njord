@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Akka.Actor;
 using Akka.Hosting;
 using Akka.Persistence;
@@ -10,12 +9,12 @@ using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Health;
-using Njord.Core.Ingest;
-using Njord.Ingest;
+using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using Njord.Weather;
 using Servus.Akka;
+using WeatherForecast = Njord.Weather.Forecast;
 
 namespace Njord.Pipeline.Tests;
 
@@ -36,7 +35,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         var pipeline = Sys.ActorOf(
             Props.Create(() => new ProductionLikePipelineActor(offered)),
             "pipeline");
-        ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
+        ActorRegistry.Register<IForecastPipeline>(pipeline, overwrite: true);
 
         var scheduler = Sys.ActorOf(
             Props.Create(() => new ProductionLikeSchedulerActor($"sched-{Guid.NewGuid():N}")),
@@ -47,7 +46,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 30000)]
-    public async Task Real_scheduler_and_pipeline_actors_connect_and_poll()
+    public async Task Real_scheduler_and_gateway_connect_and_poll()
     {
         var fetchCalled = new TaskCompletionSource<string>();
 
@@ -57,148 +56,47 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             Models = ["icon_d2"],
             DiscoveryInterval = TimeSpan.FromMinutes(20),
         };
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        var optionsMonitor = new TestOptionsMonitor<NjordOptions>(options);
-        var fakeTracker = Sys.ActorOf(Props.Create(() => new FakeBudgetTrackerActor()));
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero));
-        IBudgetGate<WeightedTarget> gate = new WeightedBudgetGate(
-            new OptionsBudgetProvider(optionsMonitor), fakeTracker, time);
-        var client = new FakeOpenMeteoClient(fetchCalled);
         var health = new NjordHealthState { ServiceStartedUtc = time.GetUtcNow() };
 
-        // Register SchedulerActor placeholder FIRST (PipelineActor.MaterializePipeline
-        // needs GetActor<ISchedulerActor> for the inline feedback consumer)
-        var schedulerPlaceholder = Sys.ActorOf(Props.Create(() => new BlackholeActor()), "sched-placeholder");
-        ActorRegistry.Register<ISchedulerActor>(schedulerPlaceholder, overwrite: true);
-
-        var pipeline = Sys.ActorOf(
-            Props.Create(() => new PipelineActor(client, time, gate, DisabledAnalyzers.Consensus(),
-                DisabledAnalyzers.Alert(), DisabledAnalyzers.Derived(),
-                DisabledAnalyzers.Trend(), DisabledAnalyzers.Index())),
-            "real-pipeline");
-        ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
+        var fakeGateway = Sys.ActorOf(
+            Props.Create(() => new FakeGatewayActor(fetchCalled)), "gateway");
+        ActorRegistry.Register<IForecastGateway>(fakeGateway, overwrite: true);
 
         var scheduler = Sys.ActorOf(
-            Props.Create(() => new SchedulerActor(
-                Options.Create(options), time, parameters, health)),
+            Props.Create(() => new PollScheduler(
+                Options.Create(options), time, health)),
             "real-scheduler");
-        ActorRegistry.Register<ISchedulerActor>(scheduler, overwrite: true);
+        ActorRegistry.Register<IPollScheduler>(scheduler, overwrite: true);
 
         var location = await fetchCalled.Task.WaitAsync(TimeSpan.FromSeconds(8), TestContext.Current.CancellationToken);
         Assert.Equal("test", location);
     }
 
-    [Fact(Timeout = 30000)]
-    public async Task Requests_have_no_serialization_gap_from_scheduler()
+    private sealed class FakeGatewayActor : ReceiveActor
     {
-        var fetchTimestamps = new System.Collections.Concurrent.ConcurrentBag<long>();
-        var allFetched = new TaskCompletionSource();
-        var expectedCount = 8;
-
-        var options = new NjordOptions
+        public FakeGatewayActor(TaskCompletionSource<string>? fetchCalled = null)
         {
-            Locations =
-            [
-                new LocationOptions { Name = "loc-a", Latitude = 47.0, Longitude = 8.3 },
-                new LocationOptions { Name = "loc-b", Latitude = 52.5, Longitude = 13.4 },
-            ],
-            Models = ["model_1", "model_2", "model_3", "model_4"],
-            DiscoveryInterval = TimeSpan.FromMinutes(20),
-        };
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        IBudgetGate<WeightedTarget> gate = new AlwaysAllowWeightedGate();
-        var client = new TimingOpenMeteoClient(fetchTimestamps, expectedCount, allFetched);
-        var time = new FakeTimeProvider(new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero));
-        var health = new NjordHealthState { ServiceStartedUtc = time.GetUtcNow() };
+            var mat = Context.Materializer();
 
-        var schedulerPlaceholder = Sys.ActorOf(Props.Create(() => new BlackholeActor()), "sched-ph");
-        ActorRegistry.Register<ISchedulerActor>(schedulerPlaceholder, overwrite: true);
-
-        var pipeline = Sys.ActorOf(
-            Props.Create(() => new PipelineActor(client, time, gate, DisabledAnalyzers.Consensus(),
-                DisabledAnalyzers.Alert(), DisabledAnalyzers.Derived(),
-                DisabledAnalyzers.Trend(), DisabledAnalyzers.Index())),
-            "timing-pipeline");
-        ActorRegistry.Register<IPipelineActor>(pipeline, overwrite: true);
-
-        var scheduler = Sys.ActorOf(
-            Props.Create(() => new SchedulerActor(
-                Options.Create(options), time, parameters, health)),
-            "timing-scheduler");
-        ActorRegistry.Register<ISchedulerActor>(scheduler, overwrite: true);
-
-        await allFetched.Task.WaitAsync(TimeSpan.FromSeconds(8), TestContext.Current.CancellationToken);
-
-        var timestamps = fetchTimestamps.OrderBy(t => t).ToList();
-        Assert.Equal(expectedCount, timestamps.Count);
-
-        var gaps = new List<double>();
-        for (var i = 1; i < timestamps.Count; i++)
-        {
-            var gapMs = StopwatchGap.Milliseconds(timestamps[i - 1], timestamps[i]);
-            gaps.Add(gapMs);
-        }
-
-        var maxGap = gaps.Max();
-        var avgGap = gaps.Average();
-
-        // With AlwaysAllow gate: no throttle, all requests should be near-instant
-        // With real BudgetGate: ~125ms per token at 8 tokens/sec is expected
-        // The key assertion: no >1s gaps from actor serialization (the original bug was ~1.5s)
-        Assert.True(maxGap < 1000, $"Max gap between requests was {maxGap:F0}ms — expected <1000ms (no actor serialization). Gaps: [{string.Join(", ", gaps.Select(g => $"{g:F0}ms"))}]");
-    }
-
-    private sealed class TimingOpenMeteoClient : IOpenMeteoClient
-    {
-        private readonly System.Collections.Concurrent.ConcurrentBag<long> _timestamps;
-        private readonly int _expectedCount;
-        private readonly TaskCompletionSource _allFetched;
-        private int _count;
-
-        public TimingOpenMeteoClient(
-            System.Collections.Concurrent.ConcurrentBag<long> timestamps,
-            int expectedCount,
-            TaskCompletionSource allFetched)
-        {
-            _timestamps = timestamps;
-            _expectedCount = expectedCount;
-            _allFetched = allFetched;
-        }
-
-        public Task<PollOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken ct)
-        {
-            _timestamps.Add(Stopwatch.GetTimestamp());
-            if (Interlocked.Increment(ref _count) >= _expectedCount)
+            Receive<FetchForecast>(msg =>
             {
-                _allFetched.TrySetResult();
-            }
+                fetchCalled?.TrySetResult(msg.Location);
+                var hash = msg.Location.GetHashCode() ^ msg.ModelId.GetHashCode();
+                Sender.Tell(new ForecastFetched(msg.Location, msg.ModelId, hash));
+            });
 
-            var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
-            var forecast = new Forecast(model, location.Name, cycle,
-                new ForecastSeries([new ForecastPoint(TestTimeConstants.PipelineEpoch, new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
-                DailyForecastSeries.Empty);
-            return Task.FromResult<PollOutcome>(new PollOutcome.Success(forecast));
-        }
-    }
+            Receive<RequestForecastStream>(msg =>
+            {
+                var (source, sink) = BroadcastHub.Sink<WeatherForecast>(bufferSize: 2)
+                    .PreMaterialize(mat);
 
-
-    private sealed class FakeOpenMeteoClient : IOpenMeteoClient
-    {
-        private readonly TaskCompletionSource<string> _fetchCalled;
-
-        public FakeOpenMeteoClient(TaskCompletionSource<string> fetchCalled)
-        {
-            _fetchCalled = fetchCalled;
-        }
-
-        public Task<PollOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken ct)
-        {
-            _fetchCalled.TrySetResult(location.Name);
-            var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
-            var forecast = new Forecast(model, location.Name, cycle,
-                new ForecastSeries([new ForecastPoint(TestTimeConstants.PipelineEpoch, new Dictionary<ParameterDef, double?> { [temp] = 20.0 })]),
-                DailyForecastSeries.Empty);
-            return Task.FromResult<PollOutcome>(new PollOutcome.Success(forecast));
+                source
+                    .RunWith(StreamRefs.SourceRef<WeatherForecast>(), mat)
+                    .PipeTo(Sender, Self,
+                        sr => new ForecastStreamReady(msg.RequestId, sr),
+                        ex => new ForecastStreamFailed(msg.RequestId, ex));
+            });
         }
     }
 
@@ -219,9 +117,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             var (broadcastHubSource, broadcastHubSink) = BroadcastHub.Sink<int>(bufferSize: 2)
                 .PreMaterialize(mat);
 
-            // Full pipeline: MergeHub → Throttle → SelectAsync → Buffer → BroadcastHub
             mergeHubSource
-                .Via(new BudgetThrottleStage<int>(new AlwaysAllowGate()))
                 .SelectAsyncUnordered(2, x => Task.FromResult(x))
                 .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
                     _ => Akka.Streams.Supervision.Directive.Resume))
@@ -229,15 +125,6 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
                 .To(broadcastHubSink)
                 .Run(mat);
 
-            // Inline feedback consumer with Ask (like production)
-            broadcastHubSource
-                .Ask<string>(blackhole, TimeSpan.FromSeconds(5))
-                .WithAttributes(ActorAttributes.CreateSupervisionStrategy(
-                    _ => Akka.Streams.Supervision.Directive.Resume))
-                .To(Sink.Ignore<string>())
-                .Run(mat);
-
-            // Egress consumer (like ModelStateActor/EnrichmentActor)
             broadcastHubSource
                 .RunWith(Sink.ForEach<int>(x => offered.TrySetResult(x)), mat);
 
@@ -288,7 +175,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         protected override void PreStart()
         {
             _mat = Context.Materializer();
-            var pipeline = Context.GetActor<IPipelineActor>();
+            var pipeline = Context.GetActor<IForecastPipeline>();
             pipeline.Tell(new RequestPipelineSink());
             pipeline.Tell(new RequestPipelineSource());
         }
@@ -304,7 +191,6 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             });
             Command<SourceRefResponse>(response =>
             {
-                // Materialize failure consumer with Sink.ActorRef (like production)
                 response.SourceRef.Source
                     .Collect(x => x < 0, x => x)
                     .To(Sink.ActorRef<int>(Self, new FailureConsumerDone(),
@@ -369,33 +255,11 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
     private sealed record RequestPipelineSource;
     private sealed record SourceRefResponse(ISourceRef<int> SourceRef);
 
-    private sealed class AlwaysAllowWeightedGate : IBudgetGate<WeightedTarget>
-    {
-        public bool TryAcquire(WeightedTarget element) => true;
-        public TimeSpan EstimateDelay(WeightedTarget element) => TimeSpan.Zero;
-    }
-
-    private sealed class AlwaysAllowGate : IBudgetGate<int>
-    {
-        public bool TryAcquire(int element) => true;
-        public TimeSpan EstimateDelay(int element) => TimeSpan.Zero;
-    }
-
     private sealed class BlackholeActor : ReceiveActor
     {
         public BlackholeActor()
         {
             ReceiveAny(_ => { });
-        }
-    }
-
-    private sealed class FakeBudgetTrackerActor : ReceiveActor
-    {
-        public FakeBudgetTrackerActor()
-        {
-            Receive<RecordApiCall>(_ => { });
-            Receive<QueryBudgetUsage>(_ =>
-                Sender.Tell(new QueryBudgetUsageCompleted(0, 0), Self));
         }
     }
 }

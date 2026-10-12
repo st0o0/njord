@@ -7,18 +7,15 @@
     <ItemGroup>
         <ProjectReference Include="..\Njord.Compute\Njord.Compute.csproj" />
         <ProjectReference Include="..\Njord.Weather\Njord.Weather.csproj" />
-        <ProjectReference Include="..\Njord.Sensors\Njord.Sensors.csproj" />
         <ProjectReference Include="..\Njord.Messages\Njord.Messages.csproj" />
         <ProjectReference Include="..\Njord.Persistence\Njord.Persistence.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Akka.Cluster.Sharding" />
       <PackageReference Include="Akka.Hosting" />
       <PackageReference Include="Akka.Streams" />
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
       <PackageReference Include="Microsoft.Extensions.Options" />
-      <PackageReference Include="Newtonsoft.Json" />
       <PackageReference Include="Servus" />
     </ItemGroup>
 

@@ -15,17 +15,21 @@ the HA host).
   DTOs, parsing) → Domain (`Forecast`, analysis, consensus) → Consumers
   (MQTT state payloads, gRPC streaming). Ingest and consumers never reference
   each other.
-- **Streams for data flow, actors for lifecycle.** The poll pipeline in
-  `PipelineActor` is a linear chain: `Source.Queue` → throttle → fetch →
-  scheduler feedback (passthrough `Select`) → `Collect(Success)` →
-  `ZipWith(sensors)` → `StatefulSelectMany(computeAll)` →
-  `BroadcastHub<PipelineEvent>`. Sensor data enters via a
-  `Source.ActorRef` + `ReuseLatest` side channel (`ZipWith` pairs each
-  forecast with the latest sensor reading). All analysis state
-  (`ModelSnapshot`, previous `ConsensusSnapshot`) lives inside the
-  `StatefulSelectMany` closure, not in actor fields. No `Broadcast` or `Merge`
-  in the pipeline (`GraphDsl.Create` is used only for the `ZipWith` sensor
-  side-channel). Consumers attach via SourceRef.
+- **Streams for data flow, actors for lifecycle.** The data flow spans two
+  actors: `OpenMeteoGateway` (fetch) and `ForecastPipeline` (analysis),
+  connected via `SourceRef<Forecast>`.
+  **Gateway** owns: `Source.Queue<FetchTarget>` → `GatewayThrottleStage` (token
+  bucket) → `SelectAsyncUnordered(2, fetch)` → `Sink.ActorRef(Self)` for
+  correlation; successful forecasts feed a second `Source.Queue<Forecast>` →
+  `BroadcastHub<Forecast>`. The `PollScheduler` sends `FetchForecast` and
+  receives `ForecastFetched`/`ForecastFetchFailed` feedback.
+  **Pipeline** receives a `SourceRef<Forecast>` from the Gateway and owns
+  the analysis chain: `sourceRef.Source` → `ZipWith(sensors)` →
+  `StatefulSelectMany(computeAll)` → `BroadcastHub<PipelineEvent>`. Sensor data
+  enters via a `Source.ActorRef` + `ReuseLatest` side channel. All analysis
+  state (`ModelSnapshot`, previous `ConsensusSnapshot`) lives inside the
+  `StatefulSelectMany` closure, not in actor fields. Consumers attach via
+  SourceRef.
 - **The entity set is static, derived from config** (locations × models ×
   parameters × horizons) — never from what the API happens to return. A missing
   value is an `unavailable` state, not a missing entity.
@@ -47,15 +51,15 @@ the HA host).
   orchestrates all feature libraries directly (`Njord.Pipeline` references
   analysis libraries).
 - **Consumers are output adapters via SourceRef.** MQTT and gRPC consumers
-  request a `SourceRef<PipelineEvent>` from `PipelineActor` and run their own
+  request a `SourceRef<PipelineEvent>` from `ForecastPipeline` and run their own
   sinks. No intermediate relay actors, no presenters, no discovery payloads.
 - **Zone rules are enforced by tests** in `src/Njord.Architecture.Tests/` (lateral
   independence of the feature libraries, Domain independence,
   sealed/`Spec` conventions,
   `LayerReferenceSpec` for the assembly reference direction: Domain and
   Persistence reference no Njord assembly, Messages only Domain, Core only those
-  three, feature libraries (Ingest, SensorHub, Grpc, Pipeline, Mqtt, Alerts,
-  Derived, Trends, Indices) only Core and below; the host references
+  three, feature libraries (OpenMeteo, Budget, SensorHub, Grpc, Pipeline, Mqtt,
+  Alerts, Derived, Trends, Indices) only Core and below; the host references
   all. Feature libraries never reference each other, checked by the lateral
   rule in `ZoneArchitectureSpec`).
 
@@ -106,17 +110,17 @@ src/
   Njord.Compute/              # Pure analysis computation (-> Weather, Sensors only)
     Analysis/                 # Consensus, alerts, derived, trends, indices computers
     Configuration/            # Compute-parameter options (AlertOptions, IndexOptions)
-  Njord.Core/                 # Options validators, diagnostics, actor keys,
+  Njord.Core/                 # Options validators, actor keys,
                               #   StreamSupervision (-> Weather, Sensors, Messages, Persistence, Compute)
     Configuration/            # Validators, budget calculator
-    Diagnostics/              # Metrics
 
   # /Domain/ — feature libraries (each -> Core only)
-  Njord.Ingest/               # Open-Meteo client, DTOs, JSON source generator
-  Njord.SensorHub/            # SensorHubActor
-  Njord.Pipeline/             # Scheduler, budget, poll pipeline, PipelineEvent BroadcastHub
+  Njord.OpenMeteo/            # OpenMeteoGateway, OpenMeteoClient, DTOs, JSON source generator
+  Njord.Budget/               # BudgetTracker persistent actor, usage accounting
+  Njord.SensorHub/            # SensorHub
+  Njord.Pipeline/             # PollScheduler, ForecastPipeline, PipelineEvent BroadcastHub
   Njord.Mqtt/                 # MQTT connection, state payloads, SourceRef consumer
-  Njord.Grpc/                 # gRPC services, GrpcConsumerActor, protos
+  Njord.Grpc/                 # gRPC services, GrpcConsumer, protos
 
   # /Analysis/ — per-feature analysis libraries (each -> Core only)
   Njord.Alerts/               # AlertAnalyzer, AlertEvaluator
@@ -134,12 +138,13 @@ src/
   Njord.Sensors.Tests/        # Sensor record specs
   Njord.Persistence.Tests/    # DTO wire-format specs (Verify)
   Njord.Compute.Tests/        # Pure analysis computation specs (no Akka)
-  Njord.Core.Tests/           # Configuration, Diagnostics, StreamConsumerActor
-  Njord.Ingest.Tests/         # OpenMeteoClient specs
+  Njord.Core.Tests/           # Configuration, StreamConsumerActor
+  Njord.OpenMeteo.Tests/      # OpenMeteoClient, OpenMeteoGateway specs
+  Njord.Budget.Tests/         # BudgetTracker specs
   Njord.SensorHub.Tests/      # SensorHub specs
-  Njord.Pipeline.Tests/       # Scheduler, budget, poll stage specs
+  Njord.Pipeline.Tests/       # PollScheduler, ForecastPipeline specs
   Njord.Mqtt.Tests/           # MQTT connection, state payload, consumer specs
-  Njord.Grpc.Tests/           # gRPC service, GrpcConsumerActor specs
+  Njord.Grpc.Tests/           # gRPC service, GrpcConsumer specs
   Njord.Alerts.Tests/         # AlertAnalyzer specs
   Njord.Derived.Tests/        # DerivedAnalyzer specs
   Njord.Trends.Tests/         # TrendAnalyzer specs
@@ -149,7 +154,7 @@ src/
 ```
 
 Reference direction: Weather/Sensors/Persistence <- Messages <- Compute <- Core <- feature libs
-(Ingest, SensorHub, Grpc, Pipeline, Mqtt, Alerts, Derived, Trends,
+(OpenMeteo, Budget, SensorHub, Grpc, Pipeline, Mqtt, Alerts, Derived, Trends,
 Indices) <- host. Feature libs reference only Njord.Core (and below, including
 Compute transitively), never each other and never the host; they reach each other's actors
 through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs`. Registration
@@ -176,8 +181,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 674 tests (Weather 59, Sensors 11, Persistence 2, Compute 168, Core 115,
-Grpc 56, Pipeline 104, Mqtt 37, Ingest 16, SensorHub 6, Architecture 32,
+Current total: 655 tests (Weather 59, Sensors 11, Persistence 2, Compute 165, Core 115,
+Grpc 56, Pipeline 64, Mqtt 37, OpenMeteo 16, Budget 22, SensorHub 6, Architecture 34,
 Alerts 61, Derived 2, Trends 3, Indices 2).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
@@ -295,8 +300,8 @@ Rules apply to production code (`src/Njord/`).
 - **No `EventStream`** in production code. Use explicit actor references.
   TestKit probes may subscribe to `DeadLetter`/`Warning` in tests.
 - **No `IActorRef` constructor parameters** in production actors.
-- **Actor naming:** `XxxActor`, sealed.
-- **Actors are resolved by marker interfaces** (`ISchedulerActor`, ... in
+- **Actor naming:** domain-role names (e.g. `PollScheduler`, `ForecastPipeline`), sealed.
+- **Actors are resolved by marker interfaces** (`IPollScheduler`, ... in
   `Njord.Core/Actors/ActorKeys.cs`), registered in the host
   (`AkkaSetupContainer`); never key a registry lookup by the actor class.
 

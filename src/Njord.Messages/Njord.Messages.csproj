@@ -1,15 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\Njord.Weather\Njord.Weather.csproj" />
         <ProjectReference Include="..\Njord.Sensors\Njord.Sensors.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="Akka" />
+      <PackageReference Include="Akka.Streams" />
     </ItemGroup>
 
 
