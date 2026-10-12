@@ -81,10 +81,10 @@ public sealed class PollSchedulerRefFailureSpec : NjordActorSpec
         await gateway.GracefulStop(TimeSpan.FromSeconds(2));
         await ExpectTerminatedAsync(gateway, cancellationToken: ct);
 
-        var states = await Scheduler.Ask<QueryPollStatesResponse>(
+        var states = await Scheduler.Ask<PollStatesResponse>(
             new QueryPollStates(), TimeSpan.FromSeconds(2), ct);
 
-        Assert.IsAssignableFrom<QueryPollStatesResponse>(states);
+        Assert.IsAssignableFrom<PollStatesResponse>(states);
     }
 
     private sealed class FakeGatewayActor : ReceiveActor

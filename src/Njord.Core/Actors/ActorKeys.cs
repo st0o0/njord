@@ -6,5 +6,5 @@ public interface IForecastPipeline;
 public interface ISensorHub;
 public interface IGrpcConsumer;
 public interface IMqttConnection;
-public interface IMqttState;
+public interface IMqttStatePublisher;
 public interface IForecastGateway;

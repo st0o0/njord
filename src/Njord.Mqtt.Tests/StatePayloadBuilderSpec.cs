@@ -233,9 +233,9 @@ public sealed class StatePayloadBuilderSpec
 
         var messages = StatePayloadBuilder.FromTrends(result, "njord");
 
-        Assert.Single(messages);
-        Assert.Equal("njord/lucerne/trends", messages[0].Topic);
-        Assert.True(messages[0].Retain);
+        var message = Assert.Single(messages);
+        Assert.Equal("njord/lucerne/trends", message.Topic);
+        Assert.True(message.Retain);
     }
 
     [Fact]

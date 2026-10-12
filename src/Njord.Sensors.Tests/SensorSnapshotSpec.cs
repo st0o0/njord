@@ -45,7 +45,7 @@ public sealed class SensorSnapshotSpec
         {
             Assert.True(SensorKindMetadata.TryGet(kind, out var metadata), $"Missing metadata for {kind}");
             Assert.NotNull(metadata);
-            Assert.Equal(kind, metadata!.Kind);
+            Assert.Equal(kind, metadata.Kind);
         }
     }
 }

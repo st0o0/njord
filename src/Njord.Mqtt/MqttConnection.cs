@@ -19,7 +19,7 @@ public sealed class MqttConnection : ReceiveActor
     private readonly TimeProvider _timeProvider;
     private readonly string _availabilityTopic;
     private readonly string _haStatusTopic;
-    private ILoggingAdapter _log = null!;
+    private readonly ILoggingAdapter _log = Context.GetLogger();
     private int _connectAttempts;
 
     private readonly List<IActorRef> _inboundListeners = [];
@@ -52,7 +52,6 @@ public sealed class MqttConnection : ReceiveActor
 
     protected override void PreStart()
     {
-        _log = Context.GetLogger();
         Connect();
     }
 

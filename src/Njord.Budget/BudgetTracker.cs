@@ -2,7 +2,7 @@ using Akka.Event;
 using Akka.Persistence;
 using Njord.Core.Health;
 using Njord.Messages.Pipeline;
-using Njord.Persistence;
+using Njord.Persistence.Events.Budget;
 
 namespace Njord.Budget;
 
@@ -12,6 +12,7 @@ public sealed class BudgetTracker : ReceivePersistentActor
 
     public override string PersistenceId => "budget-tracker";
 
+    private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly TimeProvider _timeProvider;
     private readonly NjordHealthState _healthState;
     private BudgetTrackerState _state;
@@ -22,14 +23,14 @@ public sealed class BudgetTracker : ReceivePersistentActor
         _healthState = healthState;
         _state = BudgetTrackerState.Empty(timeProvider);
 
-        Recover<ApiCallRecordedDto>(dto =>
+        Recover<ApiCallRecorded>(dto =>
         {
-            var (weight, utc) = BudgetTrackerDtoMapping.ToDomain(dto);
+            var (weight, utc) = BudgetTrackerStateExtensions.FromPersistedEvent(dto);
             _state = _state.ApplyRecover(weight, utc, _timeProvider.GetUtcNow());
         });
         Recover<SnapshotOffer>(offer =>
         {
-            if (offer.Snapshot is BudgetTrackerSnapshotDto snapshot)
+            if (offer.Snapshot is PersistedBudgetTrackerState snapshot)
             {
                 _state = BudgetTrackerStateExtensions.FromPersistence(snapshot, _timeProvider.GetUtcNow());
             }
@@ -43,14 +44,11 @@ public sealed class BudgetTracker : ReceivePersistentActor
             DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
         });
         Command<SaveSnapshotFailure>(fail =>
-            Context.GetLogger()
-                .Warning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
+            _log.Warning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
         Command<DeleteMessagesFailure>(fail =>
-            Context.GetLogger()
-                .Warning(fail.Cause, "Delete messages failed for {PersistenceId}", PersistenceId));
+            _log.Warning(fail.Cause, "Delete messages failed for {PersistenceId}", PersistenceId));
         Command<DeleteSnapshotsFailure>(fail =>
-            Context.GetLogger()
-                .Warning(fail.Cause, "Delete snapshots failed for {PersistenceId}", PersistenceId));
+            _log.Warning(fail.Cause, "Delete snapshots failed for {PersistenceId}", PersistenceId));
         Command<DeleteMessagesSuccess>(_ => { });
         Command<DeleteSnapshotSuccess>(_ => { });
     }
@@ -58,7 +56,7 @@ public sealed class BudgetTracker : ReceivePersistentActor
     private void OnRecordApiCall(RecordApiCall cmd)
     {
         var now = _timeProvider.GetUtcNow();
-        var dto = BudgetTrackerDtoMapping.ToDto(cmd.Weight, now);
+        var dto = BudgetTrackerStateExtensions.ToPersistedEvent(cmd.Weight, now);
 
         Persist(dto, _ =>
         {

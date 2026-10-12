@@ -55,7 +55,7 @@ public sealed class PollSchedulerStartupOrderSpec : NjordActorSpec
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Scheduler_starts_when_gateway_registered_after()
     {
-        var snapshot = await Scheduler.Ask<QueryPollStatesCompleted>(
+        var snapshot = await Scheduler.Ask<PollStatesResult>(
             new QueryPollStates(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         Assert.NotNull(snapshot);
@@ -68,7 +68,7 @@ public sealed class PollSchedulerStartupOrderSpec : NjordActorSpec
 
         await AwaitConditionAsync(async () =>
         {
-            var snapshot = await scheduler.Ask<QueryPollStatesCompleted>(
+            var snapshot = await scheduler.Ask<PollStatesResult>(
                 new QueryPollStates(), TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
             return snapshot.Entries.Count > 0;
         }, TestTimeouts.AwaitAssertMax, TestContext.Current.CancellationToken);

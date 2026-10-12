@@ -12,6 +12,7 @@ public sealed class ParameterOptionsValidationSpec
         Locations = [new LocationOptions { Name = "home", Latitude = 47.05, Longitude = 8.31 }],
         Models = ["icon_d2", "icon_eu", "icon_global", "ecmwf_ifs025", "gfs_seamless", "ukmo_global_deterministic_10km", "meteoswiss_icon_ch1", "meteoswiss_icon_ch2"],
         Mqtt = new MqttOptions { Host = "broker.local" },
+        PersistencePath = Path.Combine(Path.GetTempPath(), $"njord-test-{Guid.NewGuid():N}", "journal.db"),
     };
 
     [Fact]

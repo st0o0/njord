@@ -27,7 +27,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
     private readonly DerivedAnalyzer _derived;
     private readonly TrendAnalyzer _trends;
     private readonly IndexAnalyzer _indices;
-    private ILoggingAdapter _log = null!;
+    private readonly ILoggingAdapter _log = Context.GetLogger();
 
     private Source<PipelineEvent, NotUsed>? _pipelineOutputSource;
     private IMaterializer? _mat;
@@ -66,7 +66,6 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
 
     protected override void PreStart()
     {
-        _log = Context.GetLogger();
         _mat = Context.Materializer();
 
         Context.GetActorAsync<IForecastGateway>()
@@ -98,7 +97,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                 _gateway.Tell(new RequestForecastStream(requestId));
             });
 
-            Receive<ForecastStreamReady>(msg =>
+            Receive<RequestForecastStreamCompleted>(msg =>
             {
                 _log.Info("Received forecast SourceRef from gateway — materializing analysis pipeline");
                 MaterializeAnalysisPipeline(msg.SourceRef.Source);
@@ -145,11 +144,11 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                 _pipelineOutputSource!
                     .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat!)
                     .PipeTo(Sender, Self,
-                        sr => new PipelineOutputResponse(msg.RequestId, sr),
+                        sr => new RequestPipelineOutputCompleted(msg.RequestId, sr),
                         ex =>
                         {
                             _log.Error(ex, "Failed to create pipeline output SourceRef");
-                            return new PipelineOutputFailed(msg.RequestId, ex);
+                            return new RequestPipelineOutputFailed(msg.RequestId, ex);
                         });
             });
 

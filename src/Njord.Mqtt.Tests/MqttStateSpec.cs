@@ -36,7 +36,7 @@ public sealed class MqttStateSpec : NjordActorSpec
         transport ??= new RecordingTransport();
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
 
-        return Sys.ActorOf(Props.Create(() => new MqttState(
+        return Sys.ActorOf(Props.Create(() => new MqttStatePublisher(
             Microsoft.Extensions.Options.Options.Create(options),
             Microsoft.Extensions.Options.Options.Create(options.Mqtt),
             parameters,
@@ -219,7 +219,7 @@ public sealed class MqttStateSpec : NjordActorSpec
                 source
                     .RunWith(StreamRefs.SourceRef<PipelineEvent>(), mat)
                     .PipeTo(Sender, Self,
-                        sr => new PipelineOutputResponse(msg.RequestId, sr),
+                        sr => new RequestPipelineOutputCompleted(msg.RequestId, sr),
                         _ => null!);
             });
         }

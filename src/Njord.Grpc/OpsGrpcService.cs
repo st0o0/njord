@@ -47,7 +47,7 @@ public sealed class OpsGrpcService(
         try
         {
             var tracker = await _actorRegistry.GetAsync<IBudgetTracker>();
-            var usage = await tracker.Ask<QueryBudgetUsageCompleted>(
+            var usage = await tracker.Ask<BudgetUsageResult>(
                 new QueryBudgetUsage(), AskTimeout);
             monthlyUsed = usage.MonthlyUsed;
             dailyUsed = usage.DailyUsed;
@@ -79,7 +79,7 @@ public sealed class OpsGrpcService(
         try
         {
             var scheduler = await _actorRegistry.GetAsync<IPollScheduler>();
-            var snapshot = await scheduler.Ask<QueryPollStatesCompleted>(new QueryPollStates(), AskTimeout);
+            var snapshot = await scheduler.Ask<PollStatesResult>(new QueryPollStates(), AskTimeout);
             status.Models.AddRange(snapshot.Entries.Select(PollStatusMapper.ToModelStatus));
         }
         catch (AskTimeoutException)
@@ -128,7 +128,7 @@ public sealed class OpsGrpcService(
         try
         {
             var scheduler = await _actorRegistry.GetAsync<IPollScheduler>();
-            var snapshot = await scheduler.Ask<QueryPollStatesCompleted>(new QueryPollStates(), AskTimeout);
+            var snapshot = await scheduler.Ask<PollStatesResult>(new QueryPollStates(), AskTimeout);
             response.Targets.AddRange(snapshot.Entries.Select(PollStatusMapper.ToTriggerTarget));
         }
         catch (AskTimeoutException)

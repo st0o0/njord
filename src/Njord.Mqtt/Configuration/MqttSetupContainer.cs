@@ -46,8 +46,8 @@ public sealed class MqttSetupContainer : IServiceSetupContainer
             builder
                 .WithSingleton<Njord.Core.Actors.IMqttConnection>("mqtt-connection",
                     (_, _, resolver) => resolver.Props<MqttConnection>())
-                .WithSingleton<IMqttState>("mqtt-state",
-                    (_, _, resolver) => resolver.Props<MqttState>());
+                .WithSingleton<IMqttStatePublisher>("mqtt-state",
+                    (_, _, resolver) => resolver.Props<MqttStatePublisher>());
         }
     }
 }

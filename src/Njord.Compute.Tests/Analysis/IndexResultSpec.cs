@@ -148,7 +148,7 @@ public sealed class IndexResultSpec
         var result = new IndexComputer(Parameters, time).Compute(consensus, DefaultPrefs());
 
         Assert.NotNull(result.FrostProtection);
-        Assert.Equal(10, result.FrostProtection!.HoursUntilFrost);
+        Assert.Equal(10, result.FrostProtection.HoursUntilFrost);
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public sealed class IndexResultSpec
 
         var d0 = result.Days.First(d => d.DayOffset == 0);
         Assert.NotNull(d0.OutdoorEnvelope);
-        Assert.True(d0.OutdoorEnvelope!.Min <= d0.OutdoorEnvelope.Max);
+        Assert.True(d0.OutdoorEnvelope.Min <= d0.OutdoorEnvelope.Max);
     }
 
     [Fact]

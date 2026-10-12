@@ -14,9 +14,6 @@ Prefer retrieval-led reasoning: consult these before implementing.
 
 ### Project skills (njord-specific)
 
-- `njord-persistent-actor` -- **Load before creating/modifying a persistent actor
-  or a persistence DTO.** Snapshot-only vs event+snapshot, recovery, cleanup,
-  DTO/mapping shape.
 - `njord-enrichment-feature` -- **Load before adding/changing an enrichment
   feature.** Interface choice, options toggle, registration, discovery + state
   payloads.
@@ -30,7 +27,7 @@ Requires the `akka-skills` plugin, which is not installed on every machine; rout
 - Actor state pattern: `akka-skills:actor-state` (state records, Apply/GetSnapshot, persistence)
 - Persistence separation: `akka-skills:persistence` (three-tier state model, SaveSnapshot, extend-only DTOs)
 - Project structure: `akka-skills:project-structure` (solution layout, domain isolation, ArchUnitNET)
-- Message conventions: `akka-skills:messages` (VerbNoun commands, QueryNoun queries) — this project uses Pattern B (co-located with actors)
+- Message conventions: `akka-skills:messages` (VerbNoun commands, QueryNoun queries) — this project uses Pattern A (dedicated Njord.Messages project)
 - Actor testing: `akka-skills:testing` (Classic + Hosting TestKit, async assertions, persistence testing)
 - Logging: `akka-skills:logging` (ILoggingAdapter in actors, ILogger in services, Serilog setup)
 - Setup containers: `akka-skills:setup-container` (Servus AppBuilder, DI/Actor/App composition)

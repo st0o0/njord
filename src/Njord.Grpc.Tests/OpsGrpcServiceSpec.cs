@@ -218,7 +218,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
                     new("lucerne", "icon_d2", PollPhase.Steady, now.AddHours(1), now.AddHours(-2), 0, 10800),
                     new("zurich", "gfs_seamless", PollPhase.Discovery, now.AddMinutes(20), null, 2, null),
                 };
-                Sender.Tell(new QueryPollStatesCompleted(entries));
+                Sender.Tell(new PollStatesResult(entries));
             });
 
             Receive<TriggerImmediatePoll>(msg =>
@@ -240,7 +240,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         public FakeBudgetTrackerActor()
         {
             Receive<QueryBudgetUsage>(_ =>
-                Sender.Tell(new QueryBudgetUsageCompleted(42, 7), Self));
+                Sender.Tell(new BudgetUsageResult(42, 7), Self));
         }
     }
 

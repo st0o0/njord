@@ -99,8 +99,8 @@ public sealed class BudgetCalculatorSpec
         var result = BudgetCalculator.Validate(options);
 
         Assert.True(result.WithinBudget);
-        Assert.Single(result.Warnings);
-        Assert.Contains("90%", result.Warnings[0]);
+        var warning = Assert.Single(result.Warnings);
+        Assert.Contains("90%", warning);
     }
 
     [Fact]

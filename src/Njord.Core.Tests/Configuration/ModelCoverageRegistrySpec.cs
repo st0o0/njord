@@ -7,22 +7,22 @@ public sealed class ModelCoverageRegistrySpec
     [Fact]
     public void Global_model_returns_global_tier()
     {
-        var coverage = ModelCoverageRegistry.Get("icon_global");
+        var result = ModelCoverageRegistry.Get("icon_global");
 
-        Assert.NotNull(coverage);
-        Assert.Equal(CoverageTier.Global, coverage!.Tier);
-        Assert.Null(coverage.Bounds);
+        Assert.NotNull(result);
+        Assert.Equal(CoverageTier.Global, result.Tier);
+        Assert.Null(result.Bounds);
     }
 
     [Fact]
     public void Regional_model_returns_correct_bounding_box()
     {
-        var coverage = ModelCoverageRegistry.Get("icon_d2");
+        var result = ModelCoverageRegistry.Get("icon_d2");
 
-        Assert.NotNull(coverage);
-        Assert.Equal(CoverageTier.Regional, coverage!.Tier);
-        Assert.NotNull(coverage.Bounds);
-        Assert.True(coverage.Bounds!.Contains(51.84, 13.41));
+        Assert.NotNull(result);
+        Assert.Equal(CoverageTier.Regional, result.Tier);
+        Assert.NotNull(result.Bounds);
+        Assert.True(result.Bounds.Contains(51.84, 13.41));
     }
 
     [Fact]

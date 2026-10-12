@@ -1,11 +1,13 @@
+using Njord.Persistence.Events.Budget;
+
 namespace Njord.Persistence.Tests;
 
 public sealed class BudgetTrackerDtoRoundtripSpec
 {
     [Fact]
-    public void BudgetTrackerSnapshotDto_roundtrip()
+    public void PersistedBudgetTrackerState_roundtrip()
     {
-        var dto = new BudgetTrackerSnapshotDto
+        var dto = new PersistedBudgetTrackerState
         {
             Month = 7,
             Day = 12,
@@ -22,9 +24,9 @@ public sealed class BudgetTrackerDtoRoundtripSpec
     }
 
     [Fact]
-    public void ApiCallRecordedDto_roundtrip()
+    public void ApiCallRecorded_roundtrip()
     {
-        var dto = new ApiCallRecordedDto
+        var dto = new ApiCallRecorded
         {
             Weight = 3,
             UtcTicks = 638_600_000_000_000_000L,

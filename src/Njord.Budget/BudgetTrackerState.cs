@@ -1,5 +1,5 @@
 using Njord.Messages.Pipeline;
-using Njord.Persistence;
+using Njord.Persistence.Events.Budget;
 
 namespace Njord.Budget;
 
@@ -68,13 +68,27 @@ public static class BudgetTrackerStateExtensions
         return state with { MonthlyUsed = newMonthly, DailyUsed = newDaily };
     }
 
-    public static QueryBudgetUsageCompleted GetSnapshot(this BudgetTrackerState state) =>
+    public static BudgetUsageResult GetSnapshot(this BudgetTrackerState state) =>
         new(state.MonthlyUsed, state.DailyUsed);
 
-    public static BudgetTrackerSnapshotDto GetPersistenceState(this BudgetTrackerState state) =>
-        BudgetTrackerDtoMapping.ToSnapshot(state.CurrentMonth, state.CurrentDay, state.MonthlyUsed, state.DailyUsed);
+    public static PersistedBudgetTrackerState GetPersistenceState(this BudgetTrackerState state) => new()
+    {
+        Month = state.CurrentMonth,
+        Day = state.CurrentDay,
+        MonthlyUsed = state.MonthlyUsed,
+        DailyUsed = state.DailyUsed,
+    };
 
-    public static BudgetTrackerState FromPersistence(BudgetTrackerSnapshotDto dto, DateTimeOffset now)
+    public static ApiCallRecorded ToPersistedEvent(int weight, DateTimeOffset utc) => new()
+    {
+        Weight = weight,
+        UtcTicks = utc.UtcTicks,
+    };
+
+    public static (int Weight, DateTimeOffset Utc) FromPersistedEvent(ApiCallRecorded dto) =>
+        (dto.Weight, new DateTimeOffset(dto.UtcTicks, TimeSpan.Zero));
+
+    public static BudgetTrackerState FromPersistence(PersistedBudgetTrackerState dto, DateTimeOffset now)
     {
         if (dto.Month != now.Month)
         {

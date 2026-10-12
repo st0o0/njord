@@ -83,7 +83,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             {
                 fetchCalled?.TrySetResult(msg.Location);
                 var hash = msg.Location.GetHashCode() ^ msg.ModelId.GetHashCode();
-                Sender.Tell(new ForecastFetched(msg.Location, msg.ModelId, hash));
+                Sender.Tell(new FetchForecastCompleted(msg.Location, msg.ModelId, hash));
             });
 
             Receive<RequestForecastStream>(msg =>
@@ -94,7 +94,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
                 source
                     .RunWith(StreamRefs.SourceRef<WeatherForecast>(), mat)
                     .PipeTo(Sender, Self,
-                        sr => new ForecastStreamReady(msg.RequestId, sr),
+                        sr => new RequestForecastStreamCompleted(msg.RequestId, sr),
                         ex => new ForecastStreamFailed(msg.RequestId, ex));
             });
         }

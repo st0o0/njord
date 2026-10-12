@@ -31,6 +31,9 @@ internal static class NjordArchitecture
     private static readonly string[] FeatureLibraryNames = ["Njord.Grpc", "Njord.OpenMeteo", "Njord.Budget", "Njord.SensorHub", "Njord.Mqtt", "Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"];
     private static readonly string[] BaseLibraryNames = ["Njord.Compute", "Njord.Core", "Njord.Messages", "Njord.Persistence", "Njord.Weather", "Njord.Sensors"];
 
+    internal const string PipelineLibrary = "Njord.Pipeline";
+    private static readonly string[] PipelineAllowedAnalysisLibs = ["Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"];
+
     public static readonly ArchUnitNET.Domain.Architecture Instance =
         new ArchLoader()
             .LoadAssemblies([NjordAssembly, .. LibraryAssemblies, .. TestAssemblies])
@@ -60,6 +63,20 @@ internal static class NjordArchitecture
 
     private static Assembly AssemblyByName(string name)
         => LibraryAssemblies.Single(a => a.GetName().Name == name);
+
+    public static IObjectProvider<IType> TypesInPipelineDisallowedLibrariesAndHost
+    {
+        get
+        {
+            var disallowed = FeatureLibraryNames
+                .Where(n => !PipelineAllowedAnalysisLibs.Contains(n))
+                .ToArray();
+            return Types().That().ResideInAssembly(NjordAssembly,
+                    disallowed.Select(AssemblyByName).ToArray())
+                .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage")
+                .As("non-analysis feature libraries and the host");
+        }
+    }
 
     public static IObjectProvider<IType> ProductionTypes =>
         Types().That().ResideInAssembly(NjordAssembly,

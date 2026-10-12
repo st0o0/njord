@@ -59,10 +59,10 @@ public sealed class PollSchedulerSnapshotSpec : NjordActorSpec
 
         for (var i = 0; i < 51; i++)
         {
-            await Scheduler.Ask<Ack>(new ForecastFetched("lucerne", "icon_d2", 1000 + i), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            await Scheduler.Ask<Ack>(new FetchForecastCompleted("lucerne", "icon_d2", 1000 + i), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         }
 
-        var statesBefore = await Scheduler.Ask<QueryPollStatesCompleted>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var statesBefore = await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         var entryBefore = statesBefore.Entries.Single();
         Assert.Equal(PollPhase.Steady, entryBefore.Phase);
 
@@ -75,7 +75,7 @@ public sealed class PollSchedulerSnapshotSpec : NjordActorSpec
         var recovered = Sys.ActorOf(props, "scheduler");
         ActorRegistry.Register<IPollScheduler>(recovered, overwrite: true);
 
-        var statesAfter = await recovered.Ask<QueryPollStatesCompleted>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var statesAfter = await recovered.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         var entryAfter = statesAfter.Entries.Single();
         Assert.Equal(PollPhase.Steady, entryAfter.Phase);
         Assert.NotNull(entryAfter.CycleSeconds);

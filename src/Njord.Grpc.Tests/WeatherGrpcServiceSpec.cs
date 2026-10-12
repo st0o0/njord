@@ -139,7 +139,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public EmptyConsumerActor()
         {
-            Receive<QueryForecast>(msg => Sender.Tell(new QueryForecastNotAvailable(msg.Location + "|" + msg.ModelId), Self));
+            Receive<QueryForecast>(msg => Sender.Tell(new ForecastNotAvailable(msg.Location + "|" + msg.ModelId), Self));
         }
     }
 
@@ -147,7 +147,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakeConsumerActor(Forecast forecast)
         {
-            Receive<QueryForecast>(_ => Sender.Tell(new QueryForecastCompleted(forecast), Self));
+            Receive<QueryForecast>(_ => Sender.Tell(new ForecastResult(forecast), Self));
         }
     }
 

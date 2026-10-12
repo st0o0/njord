@@ -20,7 +20,7 @@ public sealed class DisabledTestArchitectureSpec
             .Order(StringComparer.Ordinal)
             .ToList();
 
-        Assert.True(offenders.Count == 0, "Disabled tests found: " + string.Join(", ", offenders));
+        Assert.Empty(offenders);
     }
 
     private static IEnumerable<string> Disabled(Type type)

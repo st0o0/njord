@@ -97,7 +97,7 @@ public sealed class ConsensusComputerSpec
         double?[] values = [18, 19, 20, 21, 22, 23, 24, 25];
         var result = ConsensusComputer.ComputeIqr(values);
         Assert.NotNull(result);
-        Assert.Equal(3.5, result!.Value, 1);
+        Assert.Equal(3.5, result.Value, 1);
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public sealed class ConsensusComputerSpec
         };
         var result = ConsensusComputer.IdentifyOutlier(models, 21.0);
         Assert.NotNull(result);
-        Assert.Equal(Gfs, result!.Value.Model);
+        Assert.Equal(Gfs, result.Value.Model);
         Assert.Equal(14.0, result.Value.Deviation);
     }
 
@@ -154,7 +154,7 @@ public sealed class ConsensusComputerSpec
         };
         var result = ConsensusComputer.IdentifyOutlier(models, 20.0);
         Assert.NotNull(result);
-        Assert.Equal(0.0, result!.Value.Deviation);
+        Assert.Equal(0.0, result.Value.Deviation);
     }
 
     // --- ComputeConfidenceInterval ---
@@ -165,7 +165,7 @@ public sealed class ConsensusComputerSpec
         double?[] values = [18, 19, 20, 21, 22, 23, 24, 25];
         var result = ConsensusComputer.ComputeConfidenceInterval(values, 10, 90);
         Assert.NotNull(result);
-        Assert.True(result!.Value.Lower < result.Value.Upper);
+        Assert.True(result.Value.Lower < result.Value.Upper);
     }
 
     [Fact]

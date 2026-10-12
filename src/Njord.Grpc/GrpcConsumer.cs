@@ -13,7 +13,7 @@ namespace Njord.Grpc;
 
 public sealed class GrpcConsumer : StreamConsumerActor
 {
-    private ILoggingAdapter _log = null!;
+    private readonly ILoggingAdapter _log = Context.GetLogger();
 
     private IActorRef? _pipelineRef;
     private ISourceRef<PipelineEvent>? _pipelineSourceRef;
@@ -39,7 +39,6 @@ public sealed class GrpcConsumer : StreamConsumerActor
 
     protected override void PreStart()
     {
-        _log = Context.GetLogger();
         base.PreStart();
     }
 
@@ -73,14 +72,14 @@ public sealed class GrpcConsumer : StreamConsumerActor
             _pipelineSourceRequestId = id;
             msg.Ref.Tell(new RequestPipelineOutput(id));
         });
-        Receive<PipelineOutputResponse>(response =>
+        Receive<RequestPipelineOutputCompleted>(response =>
         {
             if (response.RequestId != _pipelineSourceRequestId) return;
             _pipelineSourceRef = response.SourceRef;
             _log.Debug("Pipeline SourceRef received from {Source}", Sender.Path);
             TryTransition();
         });
-        Receive<PipelineOutputFailed>(msg =>
+        Receive<RequestPipelineOutputFailed>(msg =>
         {
             if (msg.RequestId != _pipelineSourceRequestId) return;
             _log.Warning(msg.Cause, "Pipeline source request failed - retrying");
@@ -137,13 +136,13 @@ public sealed class GrpcConsumer : StreamConsumerActor
             {
                 if (string.Equals(model.Id, msg.ModelId, StringComparison.OrdinalIgnoreCase))
                 {
-                    Sender.Tell(new QueryForecastCompleted(forecast));
+                    Sender.Tell(new ForecastResult(forecast));
                     return;
                 }
             }
         }
 
-        Sender.Tell(new QueryForecastNotAvailable($"{msg.Location}|{msg.ModelId}"));
+        Sender.Tell(new ForecastNotAvailable($"{msg.Location}|{msg.ModelId}"));
     }
 
     private void HandleStreamSourceRequest(RequestGrpcStreamSource msg)

@@ -181,9 +181,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 655 tests (Weather 59, Sensors 11, Persistence 2, Compute 165, Core 115,
-Grpc 56, Pipeline 64, Mqtt 37, OpenMeteo 16, Budget 22, SensorHub 6, Architecture 34,
-Alerts 61, Derived 2, Trends 3, Indices 2).
+Current total: 666 tests (Weather 59, Sensors 11, Persistence 6, Compute 165, Core 115,
+Grpc 56, Pipeline 64, Mqtt 37, OpenMeteo 16, Budget 22, SensorHub 6, Architecture 35,
+Alerts 61, Derived 2, Trends 3, Indices 4).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -271,12 +271,13 @@ These checks run locally only; they are deliberately not part of CI.
   cannot be enforced there.
 - C#: records for messages/DTOs, value objects in the domain, `sealed` by
   default, nullable enabled.
-- Persistence DTOs (`Njord.Persistence`): extend-only. Never remove or rename
-  a `[JsonProperty]` string. New properties must be nullable or have a default.
-  Increment `Version` when semantics change. Recovery code must handle all
-  versions ≥ 1. While the project is 0.x, moving or renaming persistence DTO
-  types is allowed as a breaking change (`refactor!:`); `[JsonProperty]` names
-  and `Version` semantics stay extend-only.
+- Persistence records (`Njord.Persistence`): follow FunkArr conventions
+  (`akka-skills:persistence`). Extend-only. Never remove or rename a
+  `[JsonProperty]` string. New properties must be nullable or have a default.
+  No `Dto`/`Event` suffix — use past-tense for events (`SomethingHappened`),
+  `Persisted<Name>State` for snapshots. While the project is 0.x, moving or
+  renaming persistence record types is allowed as a breaking change
+  (`refactor!:`); `[JsonProperty]` names stay extend-only.
 
 ## C# conventions
 
@@ -301,6 +302,9 @@ Rules apply to production code (`src/Njord/`).
   TestKit probes may subscribe to `DeadLetter`/`Warning` in tests.
 - **No `IActorRef` constructor parameters** in production actors.
 - **Actor naming:** domain-role names (e.g. `PollScheduler`, `ForecastPipeline`), sealed.
+  `*State` suffix is reserved for immutable state records, never for actors.
+- **Actor logging:** `private readonly ILoggingAdapter _log = Context.GetLogger();`
+  — inline field init, `readonly`, named `_log`. Never `null!` + PreStart.
 - **Actors are resolved by marker interfaces** (`IPollScheduler`, ... in
   `Njord.Core/Actors/ActorKeys.cs`), registered in the host
   (`AkkaSetupContainer`); never key a registry lookup by the actor class.
@@ -360,11 +364,10 @@ Rules apply to production code (`src/Njord/`).
   fixture (e.g. an embedded JSON payload) — a readable failure name beats
   DRY in that case.
 
-Known deviations: 21 existing `!.` uses on nullable results in the test projects
-(most in
-`Njord.Compute.Tests/Analysis/ConsensusComputerSpec.cs` and
-`Njord.Core.Tests/Configuration/ModelCoverageRegistrySpec.cs`), not counting the allowed
-`JsonNode` indexers; new code follows the rule.
+Known deviations: 4 remaining `!.` uses on nullable results in the test projects
+(2× `ToString()!.Contains` in `BudgetTrackerSpec.cs` lambdas,
+2× `_queue!.OfferAsync` in `PipelineConnectionSpec.cs`/`SinkRefConnectionSpec.cs`
+test actors), not counting the allowed `JsonNode` indexers; new code follows the rule.
 
 ## Metrics conventions
 

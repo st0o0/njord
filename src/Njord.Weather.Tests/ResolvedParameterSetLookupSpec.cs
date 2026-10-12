@@ -13,7 +13,7 @@ public sealed class ResolvedParameterSetLookupSpec
         var result = Params.Get(ParameterRegistry.Temperature2m);
 
         Assert.NotNull(result);
-        Assert.Equal("temperature_2m", result!.ApiName);
+        Assert.Equal("temperature_2m", result.ApiName);
     }
 
     [Fact]

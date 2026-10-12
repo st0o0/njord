@@ -55,12 +55,12 @@ public sealed class WeatherGrpcService(
         ValidateModel(location, request.Model);
 
         var consumer = await actorRegistry.GetAsync<IGrpcConsumer>();
-        var result = await consumer.Ask<QueryForecastResponse>(
+        var result = await consumer.Ask<ForecastResponse>(
             new QueryForecast(request.Location, request.Model), AskTimeout);
 
         return result switch
         {
-            QueryForecastCompleted found => MapForecastResponse(found.Forecast, timeProvider.GetUtcNow()),
+            ForecastResult found => MapForecastResponse(found.Forecast, timeProvider.GetUtcNow()),
             _ => throw new RpcException(new GrpcStatus(StatusCode.NotFound,
                 $"No forecast data available yet for '{request.Location}/{request.Model}'")),
         };

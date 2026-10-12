@@ -21,7 +21,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private readonly int _weight;
     private readonly IGatewayBudgetGate _gate;
     private readonly Dictionary<string, IActorRef> _pendingRequests = new();
-    private ILoggingAdapter _log = null!;
+    private readonly ILoggingAdapter _log = Context.GetLogger();
     private IMaterializer? _mat;
     private ISourceQueueWithComplete<FetchTarget>? _fetchQueue;
     private ISourceQueueWithComplete<WeatherForecast>? _forecastQueue;
@@ -52,7 +52,6 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
     protected override void PreStart()
     {
-        _log = Context.GetLogger();
         _mat = Context.Materializer();
         MaterializeStreams();
         _log.Info("OpenMeteoGateway stream materialized");
@@ -74,7 +73,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         var location = _options.FindLocation(msg.Location);
         if (location is null)
         {
-            Sender.Tell(new ForecastFetchFailed(msg.Location, msg.ModelId,
+            Sender.Tell(new FetchForecastFailed(msg.Location, msg.ModelId,
                 PollFailureReason.ModelUnavailable, $"Location '{msg.Location}' not found in config"));
             _pendingRequests.Remove(key);
             return;
@@ -94,11 +93,11 @@ public sealed class OpenMeteoGateway : ReceiveActor
         {
             case PollOutcome.Success s:
                 var hash = ForecastDataHash.Compute(s.Forecast, _timeProvider);
-                requester.Tell(new ForecastFetched(s.Forecast.Location, s.Forecast.Model.Id, hash));
+                requester.Tell(new FetchForecastCompleted(s.Forecast.Location, s.Forecast.Model.Id, hash));
                 _forecastQueue?.OfferAsync(s.Forecast);
                 break;
             case PollOutcome.Failure f:
-                requester.Tell(new ForecastFetchFailed(f.Location, f.Model.Id, f.Reason, f.Detail));
+                requester.Tell(new FetchForecastFailed(f.Location, f.Model.Id, f.Reason, f.Detail));
                 break;
         }
     }
@@ -115,7 +114,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         _broadcastSource
             .RunWith(StreamRefs.SourceRef<WeatherForecast>(), _mat!)
             .PipeTo(Sender, Self,
-                sr => new ForecastStreamReady(msg.RequestId, sr),
+                sr => new RequestForecastStreamCompleted(msg.RequestId, sr),
                 ex => new ForecastStreamFailed(msg.RequestId, ex));
     }
 

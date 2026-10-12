@@ -8,7 +8,7 @@ using Njord.Core.Health;
 using Njord.Messages.Common;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Persistence;
+using PersistedDataChanged = Njord.Persistence.Events.Pipeline.DataChanged;
 using Njord.Weather;
 using Servus.Akka;
 using Servus.Resilience;
@@ -23,8 +23,8 @@ public sealed class PollScheduler : ReceivePersistentActor
     private readonly NjordOptions _options;
     private readonly TimeProvider _timeProvider;
     private readonly NjordHealthState _healthState;
-    private ILoggingAdapter _log = null!;
-    private SchedulerState _state = SchedulerState.Empty;
+    private readonly ILoggingAdapter _log = Context.GetLogger();
+    private PollSchedulerState _state = PollSchedulerState.Empty;
     private readonly Dictionary<string, PollCycleTracker> _pollCycles = new();
 
     private IActorRef? _gateway;
@@ -53,7 +53,7 @@ public sealed class PollScheduler : ReceivePersistentActor
         _gateway = Context.GetActor<IForecastGateway>();
         Context.Watch(_gateway);
 
-        Recover<DataChangedDto>(dto => _state = _state.ApplyRecover(dto, _options.DiscoveryInterval));
+        Recover<PersistedDataChanged>(dto => _state = _state.ApplyRecover(dto, _options.DiscoveryInterval));
         Recover<SnapshotOffer>(_ => { });
 
         Ready();
@@ -61,7 +61,6 @@ public sealed class PollScheduler : ReceivePersistentActor
 
     protected override void PreStart()
     {
-        _log = Context.GetLogger();
         InitializeStates();
         _log.Info("Gateway resolved - scheduling initial polls");
     }
@@ -107,8 +106,8 @@ public sealed class PollScheduler : ReceivePersistentActor
     private void Ready()
     {
         Command<ScheduledPoll>(OnScheduledPoll);
-        Command<ForecastFetched>(OnForecastFetched);
-        Command<ForecastFetchFailed>(OnForecastFetchFailed);
+        Command<FetchForecastCompleted>(OnFetchForecastCompleted);
+        Command<FetchForecastFailed>(OnFetchForecastFailed);
         Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
         Command<QueryPollStates>(OnQueryPollStates);
         Command<Terminated>(OnTerminated);
@@ -176,7 +175,7 @@ public sealed class PollScheduler : ReceivePersistentActor
         Sender.Tell(new TriggerImmediatePollCompleted(targets.Count, targets));
     }
 
-    private void OnForecastFetched(ForecastFetched result)
+    private void OnFetchForecastCompleted(FetchForecastCompleted result)
     {
         var key = Key(result.Location, result.ModelId);
         var now = _timeProvider.GetUtcNow();
@@ -185,7 +184,7 @@ public sealed class PollScheduler : ReceivePersistentActor
         if (decision == HashDecision.Changed)
         {
             var evt = new DataChanged(result.Location, result.ModelId, result.Hash, now);
-            var dto = SchedulerDtoMapping.ToDto(evt);
+            var dto = PollSchedulerStateExtensions.ToPersistedEvent(evt);
             Persist(dto, _ =>
             {
                 _state = updatedState;
@@ -216,7 +215,7 @@ public sealed class PollScheduler : ReceivePersistentActor
         }
     }
 
-    private void OnForecastFetchFailed(ForecastFetchFailed msg)
+    private void OnFetchForecastFailed(FetchForecastFailed msg)
     {
         var key = Key(msg.Location, msg.ModelId);
         var now = _timeProvider.GetUtcNow();

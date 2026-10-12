@@ -27,7 +27,7 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Persistence_references_no_other_Njord_assembly()
     {
-        Assert.Empty(NjordReferences<Njord.Persistence.BudgetTrackerSnapshotDto>());
+        Assert.Empty(NjordReferences<Njord.Persistence.Events.Budget.PersistedBudgetTrackerState>());
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Mqtt_references_only_Core_and_below()
     {
-        Assert.Empty(NjordReferences<Njord.Mqtt.MqttState>().Except(CoreAndBelow));
+        Assert.Empty(NjordReferences<Njord.Mqtt.MqttStatePublisher>().Except(CoreAndBelow));
     }
 
     [Fact]

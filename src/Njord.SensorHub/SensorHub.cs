@@ -14,7 +14,7 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
     private readonly Dictionary<(string Location, SensorKind Kind, string Source), SensorReading> _readings = new();
     private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _staleness;
-    private ILoggingAdapter _log = null!;
+    private readonly ILoggingAdapter _log = Context.GetLogger();
 
     private sealed record ExpireTick;
 
@@ -30,7 +30,6 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
 
     protected override void PreStart()
     {
-        _log = Context.GetLogger();
         Timers.StartPeriodicTimer("expire", new ExpireTick(), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
     }
 
@@ -79,9 +78,9 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
             }
         }
 
-        QuerySensorSnapshotResponse response = readings.Count > 0
-            ? new QuerySensorSnapshotCompleted(new SensorSnapshot(msg.Location, readings))
-            : new QuerySensorSnapshotNotAvailable(msg.Location);
+        SensorSnapshotResponse response = readings.Count > 0
+            ? new SensorSnapshotResult(new SensorSnapshot(msg.Location, readings))
+            : new SensorSnapshotNotAvailable(msg.Location);
 
         Sender.Tell(response);
     }

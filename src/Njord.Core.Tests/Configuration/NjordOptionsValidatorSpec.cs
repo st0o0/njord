@@ -15,6 +15,7 @@ public sealed class NjordOptionsValidatorSpec
             "meteoswiss_icon_ch1", "meteoswiss_icon_ch2",
         ],
         Mqtt = new MqttOptions { Host = "broker.local" },
+        PersistencePath = Path.Combine(Path.GetTempPath(), $"njord-test-{Guid.NewGuid():N}", "journal.db"),
     };
 
     private static readonly NjordOptionsValidator Validator = new();
