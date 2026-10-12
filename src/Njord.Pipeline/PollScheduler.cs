@@ -8,10 +8,10 @@ using Njord.Core.Health;
 using Njord.Messages.Common;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using PersistedDataChanged = Njord.Persistence.Events.Pipeline.DataChanged;
 using Njord.Weather;
 using Servus.Akka;
 using Servus.Resilience;
+using PersistedDataChanged = Njord.Persistence.Events.Pipeline.DataChanged;
 
 namespace Njord.Pipeline;
 

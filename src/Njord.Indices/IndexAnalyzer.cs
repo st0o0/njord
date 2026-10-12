@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
 using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
+using Njord.Core.Configuration;
 using Njord.Sensors;
 
 namespace Njord.Indices;
@@ -8,20 +10,19 @@ public sealed class IndexAnalyzer
 {
     private readonly IndexComputer _indexComputer;
     private readonly IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> _resolvedPreferences;
-    private readonly bool _enabled;
 
     public IndexAnalyzer(
         IndexComputer indexComputer,
-        IndexOptions indexOptions,
-        IEnumerable<string> locationNames,
-        bool enabled = true)
+        IOptions<IndexOptions> indexOptions,
+        IOptions<NjordOptions> njordOptions)
     {
         _indexComputer = indexComputer;
-        _enabled = enabled;
-        _resolvedPreferences = PreferenceResolver.Resolve(indexOptions, locationNames);
+        Enabled = indexOptions.Value.Enabled;
+        _resolvedPreferences = PreferenceResolver.Resolve(
+            indexOptions.Value, njordOptions.Value.Locations.Select(l => l.Name));
     }
 
-    public bool Enabled => _enabled;
+    public bool Enabled { get; }
 
     public IndexResult? Compute(ConsensusSnapshot consensus, SensorSnapshot? sensors)
     {

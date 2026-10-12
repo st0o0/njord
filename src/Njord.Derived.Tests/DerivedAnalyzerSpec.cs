@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
+using Njord.Core.Configuration;
 using Njord.Derived;
 using Njord.Weather;
 
@@ -15,8 +17,7 @@ public sealed class DerivedAnalyzerSpec
     [Fact]
     public void Compute_returns_derived_result()
     {
-        var computer = new DerivedResultComputer(Parameters);
-        var analyzer = new DerivedAnalyzer(computer, Horizons);
+        var analyzer = CreateAnalyzer();
 
         var result = analyzer.Compute(BuildConsensus());
 
@@ -27,13 +28,18 @@ public sealed class DerivedAnalyzerSpec
     [Fact]
     public void Compute_returns_null_when_disabled()
     {
-        var computer = new DerivedResultComputer(Parameters);
-        var analyzer = new DerivedAnalyzer(computer, Horizons, enabled: false);
+        var analyzer = CreateAnalyzer(enabled: false);
 
         var result = analyzer.Compute(BuildConsensus());
 
         Assert.Null(result);
     }
+
+    private static DerivedAnalyzer CreateAnalyzer(bool enabled = true) =>
+        new(
+            new DerivedResultComputer(Parameters),
+            Options.Create(new DerivedOptions { Enabled = enabled }),
+            Options.Create(new NjordOptions { Horizons = [.. Horizons] }));
 
     private static ConsensusSnapshot BuildConsensus()
     {

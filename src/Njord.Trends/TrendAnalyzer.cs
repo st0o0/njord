@@ -1,19 +1,20 @@
+using Microsoft.Extensions.Options;
 using Njord.Compute.Analysis;
+using Njord.Core.Configuration;
 
 namespace Njord.Trends;
 
 public sealed class TrendAnalyzer
 {
     private readonly TrendComputer _computer;
-    private readonly bool _enabled;
 
-    public TrendAnalyzer(TrendComputer computer, bool enabled = true)
+    public TrendAnalyzer(TrendComputer computer, IOptions<TrendOptions> options)
     {
         _computer = computer;
-        _enabled = enabled;
+        Enabled = options.Value.Enabled;
     }
 
-    public bool Enabled => _enabled;
+    public bool Enabled { get; }
 
     public TrendResult? Compute(ConsensusSnapshot consensus, ConsensusSnapshot? previous)
     {
