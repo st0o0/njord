@@ -1,6 +1,6 @@
 using Njord.Messages.Pipeline;
-using PersistedDataChanged = Njord.Persistence.Events.Pipeline.DataChanged;
 using Njord.Tests.Shared;
+using PersistedDataChanged = Njord.Persistence.Events.Pipeline.DataChanged;
 
 namespace Njord.Pipeline.Tests;
 

@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
+using Njord.Core.Configuration;
 using Njord.Indices;
 using Njord.Sensors;
 using Njord.Weather;
@@ -79,13 +81,17 @@ public sealed class IndexAnalyzerSpec
         double? indoorTemp = null)
     {
         var indexComputer = new IndexComputer(Parameters, Time);
-        var indexOptions = new IndexOptions();
+        var indexOptions = new IndexOptions { Enabled = enabled };
         if (indoorTemp.HasValue)
         {
             indexOptions.Preferences.IndoorTemp = indoorTemp.Value;
         }
 
-        return new IndexAnalyzer(indexComputer, indexOptions, ["lucerne"], enabled);
+        var njordOptions = new NjordOptions { Locations = [new LocationOptions { Name = "lucerne" }] };
+        return new IndexAnalyzer(
+            indexComputer,
+            Options.Create(indexOptions),
+            Options.Create(njordOptions));
     }
 
     private static ConsensusSnapshot BuildConsensus(string location = "lucerne")

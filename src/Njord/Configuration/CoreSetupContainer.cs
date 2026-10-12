@@ -25,7 +25,7 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
 
         services
             .AddOptions<NjordOptions>()
-            .Bind(configuration.GetSection(NjordOptions.SectionName))
+            .BindConfiguration(NjordOptions.SectionName)
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<NjordOptions>, NjordOptionsValidator>();
 
@@ -58,8 +58,8 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
         });
 
         var mqttEnabled = configuration
-            .GetSection($"{NjordOptions.SectionName}:Mqtt")
-            .GetValue("Enabled", false);
+            .GetSection(MqttOptions.SectionName)
+            .Get<MqttOptions>()?.Enabled ?? false;
 
         var healthChecks = services.AddHealthChecks()
             .AddCheck<PipelineHealthCheck>("pipeline");

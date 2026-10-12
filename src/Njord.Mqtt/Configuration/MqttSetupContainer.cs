@@ -3,8 +3,6 @@ using Akka.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Mqtt.Transport;
@@ -18,20 +16,17 @@ public sealed class MqttSetupContainer : IServiceSetupContainer
     {
         services
             .AddOptions<MqttOptions>()
-            .Bind(configuration.GetSection(MqttOptions.SectionName))
+            .BindConfiguration(MqttOptions.SectionName)
             .ValidateOnStart();
 
         var mqttEnabled = configuration
-            .GetSection($"{NjordOptions.SectionName}:Mqtt")
-            .GetValue("Enabled", false);
+            .GetSection(MqttOptions.SectionName)
+            .Get<MqttOptions>()?.Enabled ?? false;
 
         if (mqttEnabled)
         {
             services.TryAddSingleton(MqttEgressTuning.Default);
-            services.TryAddSingleton(static provider =>
-                new MqttNetPublisher(
-                    provider.GetRequiredService<IOptions<MqttOptions>>().Value,
-                    provider.GetRequiredService<ILogger<MqttNetPublisher>>()));
+            services.TryAddSingleton<MqttNetPublisher>();
             services.TryAddSingleton<Njord.Mqtt.Transport.IMqttConnection>(static provider => provider.GetRequiredService<MqttNetPublisher>());
             services.TryAddSingleton<IMqttTransport>(static provider => provider.GetRequiredService<MqttNetPublisher>());
 

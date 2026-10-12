@@ -1,13 +1,15 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Protocol;
 using Njord.Core.Configuration;
 
 namespace Njord.Mqtt.Transport;
 
-public sealed class MqttNetPublisher(MqttOptions options, ILogger<MqttNetPublisher> logger)
+public sealed class MqttNetPublisher(IOptions<MqttOptions> mqttOptions, ILogger<MqttNetPublisher> logger)
     : IMqttConnection, IMqttTransport, IDisposable
 {
+    private readonly MqttOptions _options = mqttOptions.Value;
     private readonly IMqttClient _client = new MqttClientFactory().CreateMqttClient();
     private bool _handlersAttached;
 
@@ -29,14 +31,14 @@ public sealed class MqttNetPublisher(MqttOptions options, ILogger<MqttNetPublish
         }
 
         var builder = new MqttClientOptionsBuilder()
-            .WithTcpServer(options.Host, options.Port)
-            .WithWillTopic(TopicScheme.AvailabilityTopic(options.BaseTopic))
+            .WithTcpServer(_options.Host, _options.Port)
+            .WithWillTopic(TopicScheme.AvailabilityTopic(_options.BaseTopic))
             .WithWillPayload("offline")
             .WithWillRetain()
             .WithWillQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce);
-        if (!string.IsNullOrWhiteSpace(options.Username))
+        if (!string.IsNullOrWhiteSpace(_options.Username))
         {
-            builder = builder.WithCredentials(options.Username, options.Password);
+            builder = builder.WithCredentials(_options.Username, _options.Password);
         }
 
         await _client.ConnectAsync(builder.Build(), cancellationToken);

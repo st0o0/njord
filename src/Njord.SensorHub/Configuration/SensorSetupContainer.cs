@@ -15,7 +15,7 @@ public sealed class SensorSetupContainer : IServiceSetupContainer
     {
         services
             .AddOptions<SensorOptions>()
-            .Bind(configuration.GetSection(SensorOptions.SectionName))
+            .BindConfiguration(SensorOptions.SectionName)
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<SensorOptions>, SensorOptionsValidator>();
 

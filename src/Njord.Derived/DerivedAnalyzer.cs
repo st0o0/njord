@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Options;
 using Njord.Compute.Analysis;
+using Njord.Core.Configuration;
 
 namespace Njord.Derived;
 
@@ -6,16 +8,18 @@ public sealed class DerivedAnalyzer
 {
     private readonly DerivedResultComputer _computer;
     private readonly IReadOnlyList<int> _horizons;
-    private readonly bool _enabled;
 
-    public DerivedAnalyzer(DerivedResultComputer computer, IReadOnlyList<int> horizons, bool enabled = true)
+    public DerivedAnalyzer(
+        DerivedResultComputer computer,
+        IOptions<DerivedOptions> derivedOptions,
+        IOptions<NjordOptions> njordOptions)
     {
         _computer = computer;
-        _horizons = horizons;
-        _enabled = enabled;
+        _horizons = [.. njordOptions.Value.Horizons];
+        Enabled = derivedOptions.Value.Enabled;
     }
 
-    public bool Enabled => _enabled;
+    public bool Enabled { get; }
 
     public DerivedResult? Compute(ConsensusSnapshot consensus)
     {
