@@ -210,3 +210,25 @@ Recorded during implementation; each is the smallest change that kept the plan w
     `Njord.Messages` cannot reference Compute's settings records. A "cycle" in the pipeline is one
     forecast element: the settings are zipped onto each element, so one computation never mixes
     two settings versions; the spec shows the switch on the next element.
+12. **ConfigManager wiring (group 5).** There is no `NjordActorSystemSetup`; `ConfigManager` is
+    registered through an `IActorRegistration` in the host's `CoreSetupContainer`, as a plain
+    (per-node) actor under the `IConfigManager` key. It subscribes to the hot section monitors
+    and to `NjordOptions` (for the config stream), and on every reload rebuilds the analysis
+    settings from the *startup* forecast scope plus the current analysis sections. It only sends
+    `AnalysisSettingsChanged`/`PollingChanged` when the effective values changed, so a
+    restart-required reload (locations, `Enabled` toggles) sends nothing. It also signals
+    `ConfigChangeFeed` (admin `StreamConfig`) for reloads that did not come from the writer, and
+    refreshes the monthly limit in `NjordHealthMonitor` behind the budget metrics. The writer
+    still signals the feed itself after a write, because the admin API calls it directly in this
+    change (routing it through `ConfigManager` belongs to `separate-messages-from-api`); the
+    stream drops duplicate snapshots. A reloaded but invalid file (hand-edited) is logged and not
+    applied.
+13. **What "poll interval reaches the scheduler" means here.** `PollScheduler` never read
+    `PollInterval`: its timers use the discovery interval (discovery phase) or the learned model
+    cycle (steady phase). `PollInterval` only drives the budget projection and the health check
+    (both read the current value). `PollingChanged` carries both intervals; the scheduler
+    re-plans every target waiting out a discovery-phase delay with the new `DiscoveryInterval`
+    (`next = planned - old + new`), cancelling the old timer (timers are now tracked per target,
+    so a re-plan never causes a double poll). Steady-phase targets and backoff delays are left
+    alone, so polling behavior and API usage are unchanged unless the operator changes
+    `DiscoveryInterval`.

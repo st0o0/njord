@@ -31,9 +31,9 @@ start a hosted actor system. Pure synchronous specs use a plain `[Fact]`.
 ## 5. Section writer and ConfigManager
 
 - [x] 5.1 Replace `IWritableOptions<NjordOptions>`/`WritableNjordOptions` with `IConfigWriter.UpdateAsync<T>` in `src/Njord.Core/Configuration/`, keeping the override-file mechanics; port the writable-options specs (array replacement, atomic write, concurrency, first-write creation) and add the "invalid update not persisted" spec
-- [ ] 5.2 Add `IConfigManager` to `src/Njord.Core/Actors/ActorKeys.cs` and `ConfigManager` in `src/Njord/Configuration/ConfigManager.cs`: hot `OnChange` subscriptions via `Self.Tell`, `AnalysisSettingsChanged` to the pipeline, `PollingChanged` to the scheduler; register it in `NjordActorSystemSetup`
-- [ ] 5.3 Add `src/Njord.Tests/Configuration/ConfigManagerSpec.cs` (TestKit): a hot reload reaches pipeline and scheduler probes; a restart-required reload sends nothing
-- [ ] 5.4 Make `PollScheduler` handle `PollingChanged` by re-planning its timer with the new interval; inject `IOptions<PollingOptions>` for the start value; spec in `src/Njord.Pipeline.Tests/`
+- [x] 5.2 Add `IConfigManager` to `src/Njord.Core/Actors/ActorKeys.cs` and `ConfigManager` in `src/Njord/Configuration/ConfigManager.cs`: hot `OnChange` subscriptions via `Self.Tell`, `AnalysisSettingsChanged` to the pipeline, `PollingChanged` to the scheduler; register it in `NjordActorSystemSetup`
+- [x] 5.3 Add `src/Njord.Tests/Configuration/ConfigManagerSpec.cs` (TestKit): a hot reload reaches pipeline and scheduler probes; a restart-required reload sends nothing
+- [x] 5.4 Make `PollScheduler` handle `PollingChanged` by re-planning its timer with the new interval; inject `IOptions<PollingOptions>` for the start value; spec in `src/Njord.Pipeline.Tests/`
 
 ## 6. Narrow injection everywhere else
 

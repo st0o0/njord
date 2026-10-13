@@ -1,5 +1,7 @@
+using Akka.Hosting;
 using Microsoft.Extensions.Options;
 using Njord.Budget;
+using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.Persistence;
@@ -71,6 +73,17 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
             (IConfigurationRoot)sp.GetRequiredService<IConfiguration>(),
             sp.GetRequiredService<ConfigChangeFeed>(),
             OverridePath));
+
+        services.AddSingleton<IActorRegistration>(new ConfigActorRegistration());
+    }
+
+    private sealed class ConfigActorRegistration : IActorRegistration
+    {
+        public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
+        {
+            builder.WithActors((system, registry, resolver) =>
+                registry.Register<IConfigManager>(system.ActorOf(resolver.Props<ConfigManager>(), "config-manager")));
+        }
     }
 
     private static ResolvedParameterSet ResolveParameters(IOptions<NjordOptions> options)

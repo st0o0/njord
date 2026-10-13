@@ -8,3 +8,4 @@ public interface IGrpcConsumer;
 public interface IMqttConnectionActor;
 public interface IMqttStatePublisher;
 public interface IForecastGateway;
+public interface IConfigManager;

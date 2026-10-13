@@ -29,6 +29,7 @@ public sealed class PollScheduler : ReceivePersistentActor
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private PollSchedulerState _state = PollSchedulerState.Empty;
     private readonly Dictionary<string, PollCycleTracker> _pollCycles = new();
+    private readonly Dictionary<string, ICancelable> _pendingPolls = new();
 
     private IActorRef? _gateway;
     private IActorRef? _lastTerminatedGateway;
@@ -75,6 +76,16 @@ public sealed class PollScheduler : ReceivePersistentActor
         _log.Info("Gateway resolved - scheduling initial polls");
     }
 
+    protected override void PostStop()
+    {
+        foreach (var pending in _pendingPolls.Values)
+        {
+            pending.Cancel();
+        }
+
+        base.PostStop();
+    }
+
     private void WaitingForGateway()
     {
         Command<GatewayResolved>(msg =>
@@ -110,6 +121,7 @@ public sealed class PollScheduler : ReceivePersistentActor
             Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryGatewayResolve(), Self);
         });
         Command<QueryPollStates>(OnQueryPollStates);
+        Command<PollingChanged>(OnPollingChanged);
         Command<SaveSnapshotSuccess>(_ => { });
         Command<SaveSnapshotFailure>(fail =>
             _log.Warning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
@@ -127,6 +139,7 @@ public sealed class PollScheduler : ReceivePersistentActor
         Command<FetchForecastFailed>(OnFetchForecastFailed);
         Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
         Command<QueryPollStates>(OnQueryPollStates);
+        Command<PollingChanged>(OnPollingChanged);
         Command<Terminated>(OnTerminated);
         Command<SaveSnapshotSuccess>(success =>
         {
@@ -319,6 +332,35 @@ public sealed class PollScheduler : ReceivePersistentActor
         }
     }
 
+    // A changed discovery interval re-plans every target that is waiting out a discovery-phase delay:
+    // its next poll moves to (last plan - old interval + new interval). Steady-phase targets follow their
+    // learned cycle and backoff delays stay as they are.
+    private void OnPollingChanged(PollingChanged msg)
+    {
+        var previous = _discoveryInterval;
+        _discoveryInterval = msg.DiscoveryInterval;
+        if (previous == msg.DiscoveryInterval)
+        {
+            return;
+        }
+
+        var now = _timeProvider.GetUtcNow();
+        foreach (var (key, state) in _state.States)
+        {
+            if (state is not { Phase: PollPhase.Discovery, TransientFailureCount: 0 } || state.NextPollUtc <= now)
+            {
+                continue;
+            }
+
+            var replanned = state.NextPollUtc - previous + msg.DiscoveryInterval;
+            _state = _state.SetPollState(key, state with { NextPollUtc = replanned < now ? now : replanned });
+            var parts = key.Split('|', 2);
+            ScheduleNext(parts[0], parts[1]);
+        }
+
+        _log.Info("Discovery interval changed from {Previous} to {Current}", previous, msg.DiscoveryInterval);
+    }
+
     private void OnQueryPollStates(QueryPollStates _)
     {
         Sender.Tell(_state.GetSnapshot());
@@ -343,13 +385,18 @@ public sealed class PollScheduler : ReceivePersistentActor
 
         _log.Debug("Scheduling next poll for {Location}/{Model} at {NextPoll}", location, modelId, state.NextPollUtc);
 
+        if (_pendingPolls.Remove(key, out var pending))
+        {
+            pending.Cancel();
+        }
+
         if (state.NextPollUtc <= now)
         {
             Self.Tell(msg);
         }
         else
         {
-            Context.System.Scheduler.ScheduleTellOnceCancelable(
+            _pendingPolls[key] = Context.System.Scheduler.ScheduleTellOnceCancelable(
                 state.NextPollUtc - now, Self, msg, Self);
         }
     }

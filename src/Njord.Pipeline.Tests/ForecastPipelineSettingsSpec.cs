@@ -54,7 +54,8 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
         var completed = Assert.IsType<RequestPipelineOutputCompleted>(output);
         var probe = CreateTestProbe();
         completed.SourceRef.Source
-            .Collect(e => e as PipelineEvent.AlertComputed)
+            .Where(e => e is PipelineEvent.AlertComputed)
+            .Select(e => (PipelineEvent.AlertComputed)e)
             .RunWith(Sink.ActorRef<PipelineEvent.AlertComputed>(probe.Ref, "done", ex => ex), Sys.Materializer());
         var queue = await queueReady.Task.WaitAsync(ct);
 
