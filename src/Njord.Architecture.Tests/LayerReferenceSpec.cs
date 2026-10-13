@@ -1,5 +1,6 @@
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
+using System.Runtime.CompilerServices;
 using Njord.Core.Actors;
 
 namespace Njord.Architecture.Tests;
@@ -114,4 +115,15 @@ public sealed class LayerReferenceSpec
         Assert.Empty(NjordReferences<Indices.IndexAnalyzer>().Except(CoreAndBelow));
     }
 
+
+    [Fact]
+    public void Compute_grants_internals_only_to_its_own_test_project()
+    {
+        var friends = typeof(ConsensusBuilder).Assembly
+            .GetCustomAttributes(typeof(InternalsVisibleToAttribute), inherit: false)
+            .Cast<InternalsVisibleToAttribute>()
+            .Select(a => a.AssemblyName);
+
+        Assert.Equal(["Njord.Compute.Tests"], friends);
+    }
 }

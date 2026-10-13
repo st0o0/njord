@@ -207,3 +207,18 @@ matched the code left by `typed-analysis-models` and `split-options-per-feature`
   copy was left in feature code. The only other direct horizon lookup, in
   `Njord.Mqtt/StatePayloadBuilder` (a consumer), now uses `At(horizon)` as well. The empty
   `Njord.Compute.Analysis` namespace is gone.
+- **5.1 Scope of the naming rule.** The forbidden-name rule covers `Njord.Compute` and the
+  four analysis feature libraries (Alerts, Derived, Trends, Indices), as the
+  `vertical-feature-libraries` spec scopes it. Consumer libraries (e.g.
+  `Njord.Grpc.EnrichmentProtoMapper`) and `Njord.Core` (`EnrichmentKind`,
+  `AnalysisSettingsFactory`) keep their names. The placement rule is phrased positively:
+  production `IAlertRule`/`IIndexScore` implementations reside in `Njord.Alerts` /
+  `Njord.Indices` (which implies none in Compute).
+- **5.2** is a reflection check over the built `Njord.Compute` assembly
+  (`LayerReferenceSpec.Compute_grants_internals_only_to_its_own_test_project`) rather than
+  a csproj text check.
+- **5.3 Skill rewrite.** The `njord-enrichment-feature` skill still described the removed
+  `Njord.Enrichment`/presenter design. Its feature-side content (where computation lives,
+  rules/scores, registration, specs, worked example) was rewritten for this change; the
+  skill keeps its name so the routing in `CLAUDE.md` still resolves. `CLAUDE.md` itself was
+  not touched.

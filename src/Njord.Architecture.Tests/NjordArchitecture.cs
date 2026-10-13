@@ -85,6 +85,14 @@ internal static class NjordArchitecture
         }
     }
 
+    private static readonly string[] AnalysisLibraryNames = ["Njord.Compute", .. PipelineAllowedAnalysisLibs];
+
+    public static IObjectProvider<IType> AnalysisTypes =>
+        Types().That().ResideInAssembly(AssemblyByName(AnalysisLibraryNames[0]),
+                [.. AnalysisLibraryNames.Skip(1).Select(AssemblyByName)])
+            .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage")
+            .As("Compute and the analysis feature libraries");
+
     public static IObjectProvider<IType> ProductionTypes =>
         Types().That().ResideInAssembly(NjordAssembly,
                 LibraryAssemblies)

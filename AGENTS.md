@@ -108,9 +108,12 @@ src/
   Njord.Sensors/               # Pure sensor records (no Njord references)
   Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references)
   Njord.Messages/             # Actor message records (-> Weather, Sensors)
-  Njord.Compute/              # Pure analysis computation (-> Weather, Sensors only)
-    Analysis/                 # Consensus, alerts, derived, trends, indices computers
-    Configuration/            # Compute-parameter options (AlertOptions, IndexOptions)
+  Njord.Compute/              # Shared analysis building blocks only (-> Weather, Sensors only)
+    Consensus/                # ConsensusBuilder, ConsensusStatistics, consensus records
+    Querying/                 # Query vocabulary on consensus data (ConsensusQueries,
+                              #   HorizonWindow, HorizonHit)
+    Contracts/                # Result records, SeverityThresholds, result enums
+    Settings/                 # Immutable per-feature settings records
   Njord.Core/                 # Options validators, actor keys, EnrichmentKind, PipelineEvent,
                               #   NjordHealthMonitor, StreamSupervision
                               #   (-> Weather, Sensors, Messages, Persistence, Compute)
@@ -124,11 +127,13 @@ src/
   Njord.Mqtt/                 # MQTT connection, state payloads, TopicSlug, SourceRef consumer
   Njord.Grpc/                 # gRPC services, GrpcConsumer, protos
 
-  # /Analysis/ — per-feature analysis libraries (each -> Core only)
-  Njord.Alerts/               # AlertAnalyzer, AlertEvaluator
-  Njord.Derived/              # DerivedAnalyzer
-  Njord.Trends/               # TrendAnalyzer
-  Njord.Indices/              # IndexAnalyzer
+  # /Analysis/ — per-feature analysis libraries (each -> Core only), own their computation
+  Njord.Alerts/               # AlertAnalyzer, IAlertRule, Rules/ (one rule per AlertType),
+                              #   AlertWindow
+  Njord.Derived/              # DerivedAnalyzer, DerivedFormulas
+  Njord.Trends/               # TrendAnalyzer, TrendFormulas
+  Njord.Indices/              # IndexAnalyzer, IIndexScore, Scores/ (one score per IndexKind),
+                              #   DaySlicer, FrostProtection, VaporPressureDeficit
 
   # Host
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
@@ -139,7 +144,7 @@ src/
   Njord.Weather.Tests/        # Weather record specs
   Njord.Sensors.Tests/        # Sensor record specs
   Njord.Persistence.Tests/    # DTO wire-format specs (Verify)
-  Njord.Compute.Tests/        # Pure analysis computation specs (no Akka)
+  Njord.Compute.Tests/        # Consensus, query vocabulary and contract specs (no Akka)
   Njord.Core.Tests/           # Configuration, StreamConsumerActor
   Njord.OpenMeteo.Tests/      # OpenMeteoClient, OpenMeteoGateway specs
   Njord.Budget.Tests/         # BudgetTracker specs
@@ -147,10 +152,10 @@ src/
   Njord.Pipeline.Tests/       # PollScheduler, ForecastPipeline specs
   Njord.Mqtt.Tests/           # MQTT connection, state payload, consumer specs
   Njord.Grpc.Tests/           # gRPC service, GrpcConsumer specs
-  Njord.Alerts.Tests/         # AlertAnalyzer specs
-  Njord.Derived.Tests/        # DerivedAnalyzer specs
-  Njord.Trends.Tests/         # TrendAnalyzer specs
-  Njord.Indices.Tests/        # IndexAnalyzer specs
+  Njord.Alerts.Tests/         # AlertAnalyzer specs, Rules/ (one spec per rule)
+  Njord.Derived.Tests/        # DerivedAnalyzer, DerivedFormulas specs
+  Njord.Trends.Tests/         # TrendAnalyzer, TrendFormulas specs
+  Njord.Indices.Tests/        # IndexAnalyzer, DaySlicer specs, Scores/ (one spec per score)
   Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```

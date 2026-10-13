@@ -31,9 +31,9 @@ Pure synchronous specs use a plain `[Fact]`, and specs with async or DI-host set
 
 ## 5. Enforce the structure
 
-- [ ] 5.1 Add to `src/Njord.Architecture.Tests/ConventionArchitectureSpec.cs`: no type name in Compute or feature libraries contains Enrichment/Computer/Calculator/Scorer/Evaluator/Factory; no `IAlertRule`/`IIndexScore` implementation in Compute
-- [ ] 5.2 Add a check that `Njord.Compute.csproj` has no `InternalsVisibleTo` except `Njord.Compute.Tests`
-- [ ] 5.3 Update AGENTS.md "Solution structure" (Compute contents, feature-library contents) and the `njord-enrichment-feature` skill in `.claude/` to describe rules/scores instead of presenters
+- [x] 5.1 Add to `src/Njord.Architecture.Tests/ConventionArchitectureSpec.cs`: no type name in Compute or feature libraries contains Enrichment/Computer/Calculator/Scorer/Evaluator/Factory; no `IAlertRule`/`IIndexScore` implementation in Compute
+- [x] 5.2 Add a check that `Njord.Compute.csproj` has no `InternalsVisibleTo` except `Njord.Compute.Tests`
+- [x] 5.3 Update AGENTS.md "Solution structure" (Compute contents, feature-library contents) and the `njord-enrichment-feature` skill in `.claude/` to describe rules/scores instead of presenters
 
 ## 6. Validation
 

@@ -1,5 +1,7 @@
 using ArchUnitNET.Domain;
 using ArchUnitNET.xUnitV3;
+using Njord.Alerts;
+using Njord.Indices;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 namespace Njord.Architecture.Tests;
@@ -28,6 +30,38 @@ public sealed class ConventionArchitectureSpec
             .And().FollowCustomPredicate(DeclaresTests, "declare tests")
             .Should().BeSealed()
             .AndShould().HaveNameEndingWith("Spec")
+            .Check(NjordArchitecture.Instance);
+    }
+
+    [Theory]
+    [InlineData("Enrichment")]
+    [InlineData("Computer")]
+    [InlineData("Calculator")]
+    [InlineData("Scorer")]
+    [InlineData("Evaluator")]
+    [InlineData("Factory")]
+    public void Analysis_type_names_avoid_legacy_name_parts(string namePart)
+    {
+        Types().That().Are(NjordArchitecture.AnalysisTypes)
+            .Should().NotHaveNameContaining(namePart)
+            .Check(NjordArchitecture.Instance);
+    }
+
+    [Fact]
+    public void Alert_rules_live_in_the_alerts_library()
+    {
+        Classes().That().Are(NjordArchitecture.ProductionTypes)
+            .And().ImplementInterface(typeof(IAlertRule))
+            .Should().Be(NjordArchitecture.TypesInLibrary("Njord.Alerts"))
+            .Check(NjordArchitecture.Instance);
+    }
+
+    [Fact]
+    public void Index_scores_live_in_the_indices_library()
+    {
+        Classes().That().Are(NjordArchitecture.ProductionTypes)
+            .And().ImplementInterface(typeof(IIndexScore))
+            .Should().Be(NjordArchitecture.TypesInLibrary("Njord.Indices"))
             .Check(NjordArchitecture.Instance);
     }
 }

@@ -1,70 +1,83 @@
 ---
 name: njord-enrichment-feature
-description: Use when adding or changing an enrichment feature (alerts, derived, trends, indices, history) — a compute-only IEnrichmentFeature in src/Njord.Enrichment, its IEnrichmentPresenter in src/Njord.Mqtt (device id, discovery payload, state messages), the type-name and options toggle in Njord.Core, DI registration and golden-master snapshots.
+description: Use when adding or changing an analysis feature (alerts, derived, trends, indices) — its analyzer, alert rules, index scores or formulas in the feature library (src/Njord.Alerts, Njord.Derived, Njord.Trends, Njord.Indices), the shared consensus query vocabulary and contracts in Njord.Compute, the options/settings toggle, DI registration and golden-master snapshots.
 ---
 
-# njord enrichment feature
+# njord analysis feature
 
 Rules (static entity set, `TimeProvider`, HA device cut, toggleable features) live in `AGENTS.md` — follow them. This skill is the checklist.
 
-A feature is a **pair**: the feature *computes* (library `Njord.Enrichment`, references only `Njord.Core`), the presenter *presents* (library `Njord.Mqtt`, references only `Njord.Core`). They never reference each other; they meet through the `TypeName` string (`EnrichmentTypeNames` in Core) and the result record in `Njord.Domain`. `Njord.Architecture.Tests/ZoneArchitectureSpec.cs` enforces both directions.
+## Where things live
 
-## Feature: pick the interface (`src/Njord.Enrichment/`)
+- **`Njord.Compute`** holds only what every feature shares:
+  - `Consensus/` — `ConsensusBuilder` (model snapshot → `ConsensusSnapshot`), `ConsensusStatistics` (median, spread, agreement, ...), the consensus records.
+  - `Querying/` — the query vocabulary, extension methods on consensus data: `Find`, `Within`, `Extreme`, `Hits`/`Earliest`/`Values`/`Peak`, `AgreementAbove`, `AverageAgreement`, `MaxModelCount`, `ModelsAt`, `At`/`MedianAt` (`HorizonWindow`, `HorizonHit`).
+  - `Contracts/` — result records (`AlertResult`, `IndexResult`, ...), `SeverityThresholds`, enums. `Settings/` — immutable settings records per feature.
+  - No feature logic, no DI, no `InternalsVisibleTo` except `Njord.Compute.Tests`.
+- **Feature library** (`Njord.Alerts`, `Njord.Derived`, `Njord.Trends`, `Njord.Indices`; references only `Njord.Core` and below) owns its computation:
 
-| Interface | Input | Use for | Example |
+| Library | Entry point | Units | Pure math |
 |---|---|---|---|
-| `IStatelessEnrichment` | `Compute(consensus, sensors)` | Pure function of the current consensus | `Features/AlertEnrichment.cs` |
-| `IStatefulEnrichment` | `Compute(consensus, previous, sensors)` | Needs the previous cycle's consensus (yield nothing when `previous` is null) | `Features/TrendEnrichment.cs` |
-| `IActorEnrichment` | `CreateFlow(IUntypedActorContext)` -> `Flow<ModelSnapshot, EgressEvent, NotUsed>` | Owns an actor/long history | `Features/HistoryEnrichment.cs` (`ResolveChildActor<ForecastHistoryActor>`, `StreamSupervision.LoggingDecider`) |
+| `Njord.Alerts` | `AlertAnalyzer` | 14 × `IAlertRule` in `Rules/` (`FrostRule`, ...) | `AlertWindow` (shared 24 h window) |
+| `Njord.Indices` | `IndexAnalyzer` | 8 × `IIndexScore` in `Scores/` (`RunningScore`, ...) | `Scores/ScoreFormulas`, `DaySlicer`, `FrostProtection`, `VaporPressureDeficit` |
+| `Njord.Derived` | `DerivedAnalyzer` | — | `DerivedFormulas` |
+| `Njord.Trends` | `TrendAnalyzer` | — | `TrendFormulas` |
 
-All extend `IEnrichmentFeature`, which has exactly `TypeName` and `Enabled`. A feature has no MQTT surface.
+Naming: `<Feature>Analyzer`, `<Name>Rule`, `<Name>Score`, `<Feature>Formulas`, `Consensus<Role>`. Never `Computer`, `Calculator`, `Scorer`, `Evaluator`, `Factory` or `Enrichment` in Compute or a feature library (`ConventionArchitectureSpec` enforces it).
 
-## Presenter (`src/Njord.Mqtt/`)
+## Rules and scores
 
-`IEnrichmentPresenter` (`IEnrichmentPresenter.cs`): `TypeName`, `Enabled`, `DeviceId(location)`, `BuildDiscoveryPayload(DiscoveryContext ctx, location)`, `ToStateMessages(result, baseTopic, location)`. Implementations are `internal sealed` in `Presentation/` (`AlertPresenter.cs` is the simplest). `DiscoveryActor` and `MqttEgressActor` dispatch purely over the registered presenters by `TypeName`; `ConsensusPresenter` is the one presenter without a feature (consensus is computed by the pipeline).
+- **Stateless.** `IAlertRule.Evaluate(ConsensusSnapshot, AlertSettings)` returns one `Alert` of its `Type`; `IIndexScore.Score(DaySlice, ResolvedPreferences)` returns a `ScoredIndex` (point score + confidence envelope) for its `Kind`. Thresholds and preferences come only from the arguments, so hot reload applies on the next call. A rule never reads another rule's output.
+- **Use the vocabulary**, never a private `FindParam`/lookup loop: `consensus.Hourly.Find(param)?.Next24Hours().Extreme(ScanDirection.Min)`; classify with `SeverityThresholds.Classify`. Shared constants (24 h window, day window) live once (`AlertWindow`), not per rule.
+- **Scores** pick a `DayPeriod` and a formula: `slice.Score(DayPeriod.Daylight, m => Compute(m.Temperature, ..., preferences))`; `DaySlice.Score` applies the formula to the median means and to both confidence bounds. Expose the formula as `public static int Compute(...)` so specs can call it with raw inputs.
+- **Analyzer** takes `IEnumerable<IAlertRule>`/`IEnumerable<IIndexScore>`, fails fast at construction unless every `AlertType`/`IndexKind` has exactly one, and orders the output by enum declaration order (registration order must not leak).
+- Target size ~120 lines per rule/score file.
 
 ## Checklist
 
-1. **Options + type name (Core)** — add `XxxOptions` (with `bool Enabled`) in `src/Njord.Core/Configuration/` (or `src/Njord.Domain/Options/` when the domain needs it; namespace `Njord.Configuration` either way), a property on `EnrichmentOptions` and a case in `EnrichmentOptions.IsEnabled(string typeName)` (`src/Njord.Core/Configuration/EnrichmentOptions.cs`; unknown names throw — extend `src/Njord.Core.Tests/Configuration/EnrichmentOptionsValidationSpec.cs`), and a constant in `src/Njord.Core/Enrichment/EnrichmentTypeNames.cs`.
-2. **Result type** — domain record in `src/Njord.Domain/Analysis/`; add it to the `EnrichmentTypes` map in `src/Njord.Grpc/EnrichmentSnapshotMapping.cs` so snapshots round-trip (and a case in `EnrichmentProtoMapper.MapToEvent` if gRPC exposes it), and refresh the Verify baselines (`njord-actor-spec`).
-3. **Feature class** — `internal sealed class XxxEnrichment : I...Enrichment` in `src/Njord.Enrichment/Features/`; `TypeName => EnrichmentTypeNames.Xxx`; `_enabled = options.Value.Enrichment.IsEnabled(TypeName)` in the constructor; inject `TimeProvider` if time matters.
-4. **Compute** — yield `new EgressEvent.EnrichmentUpdate(consensus.Location, TypeName, result)`.
-5. **Presenter** — `internal sealed class XxxPresenter : IEnrichmentPresenter` in `src/Njord.Mqtt/Presentation/`, same `TypeName`/`Enabled` source (`IsEnabled`). `DeviceId(location) => TopicScheme.EnrichmentDeviceId(location, TypeName)`; discovery components are built from config/enums, never from data (inject `IOptions<NjordOptions>` for horizons/parameters/preferences); `expire_after = 2 x poll interval` (`ctx.PollInterval`); availability via `TopicScheme.AvailabilityTopic`; envelope via `DiscoveryPayloadBuilder.BuildDeviceEnvelope(...)`.
-6. **State messages** — add `StatePayloadBuilder.FromXxx(result, baseTopic)` in `src/Njord.Mqtt/StatePayloadBuilder.cs` and call it from `ToStateMessages`. Topics come from `TopicScheme` (`src/Njord.Mqtt/TopicScheme.cs`).
-7. **Register both** — feature in `AddNjordEnrichment` (`src/Njord.Enrichment/EnrichmentServiceCollectionExtensions.cs`: `services.AddSingleton<IEnrichmentFeature, XxxEnrichment>();`), presenter in `AddNjordMqtt` (`src/Njord.Mqtt/MqttServiceCollectionExtensions.cs`, after `ConsensusPresenter`: registration order is the publish order). `EnrichmentActor` picks features up via `OfType<I...>().Where(f => f.Enabled)`; no host wiring.
-8. **Tests** — feature spec `src/Njord.Tests/Enrichment/Features/XxxEnrichmentSpec.cs`; presenter/golden-master specs in `src/Njord.Tests/Mqtt/`: add the type to `EnrichmentDiscoverySnapshotSpec` and `EnrichmentStateSnapshotSpec` (Verify; inputs in `EnrichmentGoldenMasterFixtures.cs`) and approve the new `.verified.txt` files (never edit existing ones: they pin the wire format). `src/Njord.Tests/Enrichment/EnrichmentFeatureContractSpec.cs` asserts the feature/presenter parity (presenter set = feature set + `consensus`), unique kebab-case type names, and that `consensus` is **not** a feature — update its counts.
+1. **Options + settings (Core/Compute)** — `XxxOptions` (with `bool Enabled`) and validator in `src/Njord.Core/Configuration/<Area>/`, a `ToSettings()` conversion there, the immutable `XxxSettings` record in `src/Njord.Compute/Settings/`, wired into `AnalysisSettings`/`AnalysisSettingsFactory` (`src/Njord.Core/Configuration/AnalysisSettingsFactory.cs`). Analyzers read only `Enabled` from options.
+2. **Result type** — record in `src/Njord.Compute/Contracts/`; new alert types/index kinds extend `AlertType`/`IndexKind` (and their wire names).
+3. **Rule / score / formula** — new class in the feature library (`Rules/` or `Scores/`), `public sealed`, parameterless, built on the query vocabulary.
+4. **Register** — in the feature's `AddXxx()` (`src/Njord.<Feature>/ServiceCollectionExtensions.cs`): `services.AddSingleton<IAlertRule, XxxRule>();` / `services.AddSingleton<IIndexScore, XxxScore>();` next to the analyzer and options. The host calls `AddXxx()` from `src/Njord/Configuration/AnalysisSetupContainer.cs`; `src/Njord.Pipeline/ForecastPipeline.cs` calls the analyzers' `Compute(...)` with the current settings.
+5. **Consumers** — MQTT state payloads in `src/Njord.Mqtt/StatePayloadBuilder.cs` (`FromXxx`), gRPC mapping in `src/Njord.Grpc/EnrichmentProtoMapper.cs` (`MapXxx`, `MapToEvent`).
+6. **Tests** — one spec per rule/score in the feature test project (`src/Njord.Alerts.Tests/Rules/<Type>RuleSpec.cs`, `src/Njord.Indices.Tests/Scores/<Kind>ScoreSpec.cs`), plain `[Fact]`s with a consensus built via `ConsensusBuilder` (see `AlertRuleFixture`). Analyzer specs cover fail-fast, ordering and the `AddXxx()` registration (`FeatureServices` in `src/Njord.Tests.Shared` builds analyzers from the real registrations). Golden masters: `StatePayloadGoldenMasterSpec` (`src/Njord.Mqtt.Tests`) and `ProtoMappingGoldenMasterSpec` (`src/Njord.Grpc.Tests`), inputs in `src/Njord.Tests.Shared/AnalysisFixture.cs`. A refactoring must keep them green **without re-approval**; approve new `.verified.txt` files only for intended output changes, never edit existing ones.
 
-## Worked example — stateless feature + presenter (from `AlertEnrichment` / `AlertPresenter`)
+## Worked example — an alert rule (from `FrostRule`)
 
 ```csharp
-// src/Njord.Enrichment/Features/AlertEnrichment.cs
-internal sealed class AlertEnrichment : IStatelessEnrichment
+// src/Njord.Alerts/Rules/FrostRule.cs
+public sealed class FrostRule : IAlertRule
 {
-    public string TypeName => EnrichmentTypeNames.Alerts;
-    public bool Enabled => _enabled;
-    // ctor: _alertOptions = options.Value.Enrichment.Alerts; _enabled = ...IsEnabled(TypeName);
+    public AlertType Type => AlertType.Frost;
 
-    public IEnumerable<EgressEvent> Compute(ConsensusSnapshot consensus, SensorSnapshot? sensors = null)
+    public Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings)
     {
-        var result = AlertEvaluator.EvaluateAll(consensus, _alertOptions, _timeProvider);
-        yield return new EgressEvent.EnrichmentUpdate(consensus.Location, TypeName, result);
+        var thresholds = settings.Frost;
+        if (consensus.Hourly.Find(ParameterRegistry.Temperature2m) is not { } temperature)
+        {
+            return Alert.None(Type);
+        }
+
+        var window = temperature.Next24Hours();
+        if (window.Extreme(ScanDirection.Min) is not { } low)
+        {
+            return Alert.None(Type);
+        }
+
+        bool Freezing(double value) => thresholds.CrossesAdvisory(value);
+        var confidence = window.Hits(Freezing).RoundedAverage();
+        var (severity, effectiveThreshold) = thresholds.Classify(low.Value);
+        // ... details, Alert(Type, severity, confidence, details, ...)
     }
 }
 
-// src/Njord.Mqtt/Presentation/AlertPresenter.cs
-internal sealed class AlertPresenter : IEnrichmentPresenter
-{
-    public string TypeName => EnrichmentTypeNames.Alerts;
-    public string DeviceId(string location) => TopicScheme.EnrichmentDeviceId(location, TypeName);
-    public IReadOnlyList<MqttMessage> ToStateMessages(object result, string baseTopic, string location)
-        => StatePayloadBuilder.FromAlerts((AlertResult)result, baseTopic);
-    // BuildDiscoveryPayload: components per AlertType, expire_after, availability (see AlertPresenter.cs)
-}
+// src/Njord.Alerts/ServiceCollectionExtensions.cs
+services.AddSingleton<IAlertRule, FrostRule>();
 ```
 
 ## Pitfalls
 
-- Consensus is deliberately **not** a feature (it is emitted by `EnrichmentActor` itself); its presentation is `ConsensusPresenter`.
+- Consensus is not a feature: `ConsensusBuilder` runs in the pipeline before the analyzers.
 - A feature's entities depend on config (`Enabled`), never on what a poll returned; missing values are `unavailable` states, not missing entities.
-- Never reference `Njord.Mqtt` from `Njord.Enrichment` or the reverse; share only through Core/Domain types.
-- Sensor input comes from the `SensorSnapshot` argument (SensorHub latest values); do not call the hub from a feature.
+- Feature libraries never reference each other; share only through Core/Compute types.
+- Sensor input comes from the `SensorSnapshot` argument (indices: live indoor temperature overrides the preference); do not call the hub from a feature.
