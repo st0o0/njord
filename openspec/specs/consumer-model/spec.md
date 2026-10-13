@@ -5,24 +5,22 @@ TBD - created by archiving change restructure-enrichment-pipeline. Update Purpos
 ## Requirements
 ### Requirement: Consumers attach via SourceRef to pipeline BroadcastHub
 
-Each consumer SHALL request a `SourceRef<PipelineEvent>` from `PipelineActor`
-and run its own sink. There is exactly one hop from pipeline to consumer — no
-intermediate relay actors, no intermediate BroadcastHubs.
+Each consumer SHALL request a `SourceRef<PipelineEvent>` from the forecast pipeline and run its own sink. There is exactly one hop from pipeline to consumer: no intermediate relay actors, no intermediate BroadcastHubs between the pipeline and a consumer.
 
 #### Scenario: MQTT consumer attaches
-- **WHEN** `MqttConsumerActor` starts
-- **THEN** it requests a `SourceRef<PipelineEvent>` from `PipelineActor` and
+- **WHEN** the MQTT state publisher starts
+- **THEN** it requests a `SourceRef<PipelineEvent>` from the forecast pipeline and
   materializes its own sink that publishes state to MQTT
 
 #### Scenario: gRPC consumer attaches
-- **WHEN** `GrpcConsumerActor` starts
-- **THEN** it requests a `SourceRef<PipelineEvent>` from `PipelineActor` and
+- **WHEN** `ForecastReadModel` starts
+- **THEN** it requests a `SourceRef<PipelineEvent>` from the forecast pipeline and
   materializes its own sink that updates in-memory state and feeds its
   secondary BroadcastHub
 
 #### Scenario: Consumer independence
 - **WHEN** any consumer project is inspected
-- **THEN** it does not reference other consumer projects — consumers are
+- **THEN** it does not reference other consumer projects; consumers are
   independent output adapters
 
 ### Requirement: Consumers are output adapters for typed results
@@ -57,23 +55,21 @@ handling, no tombstoning, no `DiscoveryPayloadBuilder`).
 
 ### Requirement: GrpcConsumerActor serves unary and streaming RPCs
 
-`GrpcConsumerActor` SHALL hold the latest pipeline results in-memory
-(`Dictionary<Location, LatestResults>`) for unary query responses, and SHALL
-provide a secondary `BroadcastHub<PipelineEvent>` for gRPC streaming RPCs.
+`ForecastReadModel`, an actor in `Njord.Pipeline` resolved by the `IForecastReadModel` marker, SHALL hold the latest pipeline results in memory per location for unary queries, and SHALL provide a secondary `BroadcastHub<PipelineEvent>` for streaming RPCs. The gRPC API project SHALL NOT contain this or any other actor.
 
 #### Scenario: Unary query
 - **WHEN** a gRPC client calls `GetEnrichments` for a location
-- **THEN** `GrpcConsumerActor` responds from its in-memory state with typed
-  analysis results — no persistence, no shard region
+- **THEN** the gRPC service asks `ForecastReadModel` and maps its typed
+  analysis results; no persistence, no shard region
 
 #### Scenario: Unary query after restart
-- **WHEN** `GrpcConsumerActor` restarts and a client queries before the first
+- **WHEN** `ForecastReadModel` restarts and a client queries before the first
   poll cycle completes
 - **THEN** the response indicates no data is available yet
 
 #### Scenario: Streaming RPC
 - **WHEN** a gRPC client calls `StreamForecasts` or `StreamEnrichments`
-- **THEN** the gRPC service requests a `SourceRef` from `GrpcConsumerActor`'s
+- **THEN** the gRPC service requests a `SourceRef` from `ForecastReadModel`'s
   secondary BroadcastHub and streams filtered `PipelineEvent` instances
 
 #### Scenario: Dead gRPC streaming client
