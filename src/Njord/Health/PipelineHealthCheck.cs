@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Core.Health;
 
@@ -8,13 +7,13 @@ namespace Njord.Health;
 internal sealed class PipelineHealthCheck(
     NjordHealthMonitor monitor,
     TimeProvider timeProvider,
-    IOptions<NjordOptions> options) : IHealthCheck
+    ConfigView config) : IHealthCheck
 {
     public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context, CancellationToken cancellationToken = default)
     {
         var now = timeProvider.GetUtcNow();
-        var interval = options.Value.PollInterval;
+        var interval = config.Polling.PollInterval;
         var lastPoll = monitor.Poll.LastSuccessfulPollUtc;
 
         if (lastPoll is null)

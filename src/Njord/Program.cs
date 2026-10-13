@@ -28,7 +28,7 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 builder.Configuration.AddJsonFile(
-    Path.Combine("data", "appsettings.Override.json"),
+    CoreSetupContainer.OverridePath,
     optional: true,
     reloadOnChange: true);
 

@@ -3,7 +3,10 @@ using Akka.Hosting;
 using Akka.Pattern;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
+using Njord.Core.Configuration.Consensus;
+using Njord.Core.Configuration.Polling;
 using Servus.Application.Startup;
 
 namespace Njord.Pipeline.Configuration;
@@ -12,6 +15,18 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
+        services
+            .AddOptions<PollingOptions>()
+            .BindConfiguration(PollingOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<PollingOptions>, PollingOptionsValidator>();
+
+        services
+            .AddOptions<ConsensusOptions>()
+            .BindConfiguration(ConsensusOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<ConsensusOptions>, ConsensusOptionsValidator>();
+
         services.AddSingleton<IActorRegistration>(new PipelineActorRegistration());
     }
 

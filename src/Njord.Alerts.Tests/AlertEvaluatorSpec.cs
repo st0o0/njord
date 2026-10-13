@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
-using Njord.Compute.Configuration;
+using Njord.Core.Configuration.Alerts;
 using Njord.Weather;
 
 namespace Njord.Alerts.Tests;

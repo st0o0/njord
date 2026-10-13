@@ -5,9 +5,9 @@ using Akka.Hosting;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Polling;
 using Njord.Core.Egress;
 using Njord.Grpc.V2;
 using Njord.Messages.Pipeline;
@@ -15,7 +15,7 @@ using Njord.Messages.Pipeline;
 namespace Njord.Grpc;
 
 public sealed class OpsGrpcService(
-    IOptionsMonitor<NjordOptions> optionsMonitor,
+    ConfigView config,
     ActorRegistry actorRegistry,
     TimeProvider timeProvider,
     ILogger<OpsGrpcService> logger) : OpsService.OpsServiceBase
@@ -28,7 +28,7 @@ public sealed class OpsGrpcService(
 
     private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(5);
 
-    private readonly IOptionsMonitor<NjordOptions> _optionsMonitor = optionsMonitor;
+    private readonly ConfigView _config = config;
     private readonly ActorRegistry _actorRegistry = actorRegistry;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly ILogger<OpsGrpcService> _logger = logger;
@@ -40,7 +40,7 @@ public sealed class OpsGrpcService(
     public override async Task<StatusResponse> GetStatus(GetStatusRequest request, ServerCallContext context)
     {
         var uptime = _timeProvider.GetUtcNow() - ProcessStart;
-        var budget = BudgetCalculator.GetEffectiveBudget(_optionsMonitor.CurrentValue);
+        var budget = BudgetCalculator.GetEffectiveBudget(_config.Polling);
 
         long monthlyUsed = 0;
         long dailyUsed = 0;
@@ -89,28 +89,27 @@ public sealed class OpsGrpcService(
             status.ModelsPartial = true;
         }
 
-        var enrichment = _optionsMonitor.CurrentValue.Enrichment;
-        if (enrichment.Consensus.Enabled)
+        if (_config.Consensus.Enabled)
         {
             status.ActiveEnrichments.Add(EnrichmentKind.Consensus.ToWireName());
         }
 
-        if (enrichment.Alerts.Enabled)
+        if (_config.Alerts.Enabled)
         {
             status.ActiveEnrichments.Add(EnrichmentKind.Alerts.ToWireName());
         }
 
-        if (enrichment.Derived.Enabled)
+        if (_config.Derived.Enabled)
         {
             status.ActiveEnrichments.Add(EnrichmentKind.Derived.ToWireName());
         }
 
-        if (enrichment.Trends.Enabled)
+        if (_config.Trends.Enabled)
         {
             status.ActiveEnrichments.Add(EnrichmentKind.Trends.ToWireName());
         }
 
-        if (enrichment.Indices.Enabled)
+        if (_config.Indices.Enabled)
         {
             status.ActiveEnrichments.Add(EnrichmentKind.Indices.ToWireName());
         }

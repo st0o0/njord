@@ -1,7 +1,7 @@
 using Akka.Actor;
 using Akka.Event;
 using Microsoft.Extensions.Options;
-using Njord.Core.Configuration;
+using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Health;
 using Njord.Messages.Mqtt;
 using Njord.Mqtt.Transport;

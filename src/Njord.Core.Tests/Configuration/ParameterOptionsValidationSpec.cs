@@ -11,8 +11,6 @@ public sealed class ParameterOptionsValidationSpec
     {
         Locations = [new LocationOptions { Name = "home", Latitude = 47.05, Longitude = 8.31 }],
         Models = ["icon_d2", "icon_eu", "icon_global", "ecmwf_ifs025", "gfs_seamless", "ukmo_global_deterministic_10km", "meteoswiss_icon_ch1", "meteoswiss_icon_ch2"],
-        Mqtt = new MqttOptions { Host = "broker.local" },
-        PersistencePath = Path.Combine(Path.GetTempPath(), $"njord-test-{Guid.NewGuid():N}", "journal.db"),
     };
 
     [Fact]
@@ -47,18 +45,6 @@ public sealed class ParameterOptionsValidationSpec
         var result = Validator.Validate(null, options);
 
         Assert.True(result.Succeeded, result.FailureMessage);
-    }
-
-    [Fact]
-    public void Budget_projection_accounts_for_call_weight()
-    {
-        var options = ValidOptions();
-        options.BudgetOverride = new RequestBudget(5_000, 600);
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Failed);
-        Assert.Contains("weight", result.FailureMessage);
     }
 
     [Fact]

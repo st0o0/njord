@@ -14,8 +14,6 @@ public sealed class NjordOptionsValidatorSpec
             "gfs_seamless", "ukmo_global_deterministic_10km",
             "meteoswiss_icon_ch1", "meteoswiss_icon_ch2",
         ],
-        Mqtt = new MqttOptions { Host = "broker.local" },
-        PersistencePath = Path.Combine(Path.GetTempPath(), $"njord-test-{Guid.NewGuid():N}", "journal.db"),
     };
 
     private static readonly NjordOptionsValidator Validator = new();
@@ -29,22 +27,15 @@ public sealed class NjordOptionsValidatorSpec
     }
 
     [Fact]
-    public void A_projection_above_the_override_budget_guard_is_rejected()
+    public void Empty_location_list_is_rejected()
     {
         var options = ValidOptions();
-        options.BudgetOverride = new RequestBudget(10_000, 600);
-        options.Locations = [.. Enumerable.Range(1, 2).Select(i => new LocationOptions
-        {
-            Name = $"loc-{i}",
-            Latitude = 47.0,
-            Longitude = 8.0,
-        })];
+        options.Locations = [];
 
         var result = Validator.Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains("8000", result.FailureMessage);
-        Assert.Contains("weight", result.FailureMessage);
+        Assert.Contains("location", result.FailureMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -68,26 +59,6 @@ public sealed class NjordOptionsValidatorSpec
         var result = Validator.Validate(null, options);
 
         Assert.True(result.Failed);
-    }
-
-    [Fact]
-    public void Poll_interval_defaults_to_sixty_minutes()
-    {
-        Assert.Equal(TimeSpan.FromMinutes(60), new NjordOptions().PollInterval);
-    }
-
-    [Fact]
-    public void Missing_mqtt_host_is_rejected_when_enabled()
-    {
-        var options = ValidOptions();
-        options.Mqtt.Enabled = true;
-        options.Mqtt.Host = "";
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Failed);
-        Assert.Contains("Mqtt", result.FailureMessage);
-        Assert.Contains("Host", result.FailureMessage);
     }
 
     [Fact]
@@ -125,34 +96,30 @@ public sealed class NjordOptionsValidatorSpec
         Assert.Contains("96", result.FailureMessage);
     }
 
-    [Fact]
-    public void Missing_mqtt_host_is_accepted_when_mqtt_is_disabled()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(17)]
+    public void Forecast_days_outside_one_to_sixteen_are_rejected(int days)
     {
         var options = ValidOptions();
-        options.Mqtt.Host = "";
-        options.Mqtt.Enabled = false;
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Succeeded, result.FailureMessage);
-    }
-
-    [Fact]
-    public void Mqtt_is_disabled_by_default()
-    {
-        Assert.False(new MqttOptions().Enabled);
-    }
-
-    [Fact]
-    public void Failure_messages_never_contain_the_mqtt_password()
-    {
-        var options = ValidOptions();
-        options.Mqtt.Password = "super-secret-broker-pass";
-        options.Models = [];
+        options.ForecastDays = days;
 
         var result = Validator.Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.DoesNotContain("super-secret-broker-pass", result.FailureMessage);
+        Assert.Contains("ForecastDays", result.FailureMessage);
+    }
+
+    [Fact]
+    public void A_model_outside_its_documented_coverage_is_rejected()
+    {
+        var options = ValidOptions();
+        options.Locations = [new LocationOptions { Name = "sydney", Latitude = -33.87, Longitude = 151.21 }];
+        options.Models = ["icon_d2"];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("icon_d2", result.FailureMessage);
     }
 }

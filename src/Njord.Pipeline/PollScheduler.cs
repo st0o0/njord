@@ -4,6 +4,7 @@ using Akka.Persistence;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Polling;
 using Njord.Core.Health;
 using Njord.Messages.Common;
 using Njord.Messages.Forecast;
@@ -22,6 +23,7 @@ public sealed class PollScheduler : ReceivePersistentActor
     public override string PersistenceId => "scheduler";
 
     private readonly NjordOptions _options;
+    private TimeSpan _discoveryInterval;
     private readonly TimeProvider _timeProvider;
     private readonly NjordHealthMonitor _healthState;
     private readonly ILoggingAdapter _log = Context.GetLogger();
@@ -44,10 +46,12 @@ public sealed class PollScheduler : ReceivePersistentActor
 
     public PollScheduler(
         IOptions<NjordOptions> options,
+        IOptions<PollingOptions> polling,
         TimeProvider timeProvider,
         NjordHealthMonitor healthState)
     {
         _options = options.Value;
+        _discoveryInterval = polling.Value.DiscoveryInterval;
         _timeProvider = timeProvider;
         _healthState = healthState;
 
@@ -55,7 +59,7 @@ public sealed class PollScheduler : ReceivePersistentActor
         Context.Watch(_gateway);
 
         Recover<PersistedDataChanged>(dto =>
-            _state = _state.ApplyRecover(dto, _options.DiscoveryInterval));
+            _state = _state.ApplyRecover(dto, _discoveryInterval));
         Recover<SnapshotOffer>(offer =>
         {
             if (offer.Snapshot is PersistedPollSchedulerState snapshot)
@@ -209,7 +213,7 @@ public sealed class PollScheduler : ReceivePersistentActor
         var key = Key(result.Location, result.ModelId);
         var now = _timeProvider.GetUtcNow();
         var evt = new DataChanged(result.Location, result.ModelId, result.Hash, now);
-        var (updatedState, decision) = _state.ApplyHashResult(evt, _options.DiscoveryInterval);
+        var (updatedState, decision) = _state.ApplyHashResult(evt, _discoveryInterval);
 
         if (decision == HashDecision.Changed)
         {
@@ -253,14 +257,14 @@ public sealed class PollScheduler : ReceivePersistentActor
         switch (msg.Reason)
         {
             case PollFailureReason.Transport:
-                _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
+                _state = _state.ApplyTransientFailure(key, now, _discoveryInterval);
                 _log.Warning("Fetch failed for {Location}/{Model} (transport) - tfc={Tfc}, details={Details}",
                     msg.Location, msg.ModelId, _state.States[key].TransientFailureCount, msg.Detail);
                 ScheduleNext(msg.Location, msg.ModelId);
                 break;
 
             case PollFailureReason.RateLimited:
-                _state = _state.ApplyRateLimited(key, now, RateLimitMinDelay, _options.DiscoveryInterval);
+                _state = _state.ApplyRateLimited(key, now, RateLimitMinDelay, _discoveryInterval);
                 _log.Warning("Fetch rate-limited for {Location}/{Model} - next poll at {Next}",
                     msg.Location, msg.ModelId, _state.States[key].NextPollUtc);
                 ScheduleNext(msg.Location, msg.ModelId);
@@ -268,7 +272,7 @@ public sealed class PollScheduler : ReceivePersistentActor
 
             case PollFailureReason.ModelUnavailable:
             case PollFailureReason.MalformedPayload:
-                _state = _state.ApplyTransientFailure(key, now, _options.DiscoveryInterval);
+                _state = _state.ApplyTransientFailure(key, now, _discoveryInterval);
                 _log.Warning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - retry scheduled",
                     msg.Location, msg.ModelId, msg.Reason, msg.Detail);
                 ScheduleNext(msg.Location, msg.ModelId);

@@ -1,4 +1,13 @@
-using Njord.Compute.Configuration;
+using Njord.Core.Configuration.Alerts;
+using Njord.Core.Configuration.Consensus;
+using Njord.Core.Configuration.Derived;
+using Njord.Core.Configuration.Indices;
+using Njord.Core.Configuration.Mqtt;
+using Njord.Core.Configuration.OpenMeteo;
+using Njord.Core.Configuration.Persistence;
+using Njord.Core.Configuration.Polling;
+using Njord.Core.Configuration.Sensors;
+using Njord.Core.Configuration.Trends;
 
 namespace Njord.Core.Configuration;
 
@@ -15,7 +24,7 @@ public static class ConfigReloadPolicy
     private static readonly Dictionary<Type, ReloadMode> TypeModes = new()
     {
         [typeof(NjordOptions)] = ReloadMode.RestartRequired,
-        [typeof(EnrichmentOptions)] = ReloadMode.Hot,
+        [typeof(PollingOptions)] = ReloadMode.Hot,
         [typeof(ConsensusOptions)] = ReloadMode.Hot,
         [typeof(AlertOptions)] = ReloadMode.Hot,
         [typeof(IndexOptions)] = ReloadMode.Hot,
@@ -24,12 +33,17 @@ public static class ConfigReloadPolicy
         [typeof(MqttOptions)] = ReloadMode.RestartRequired,
         [typeof(SensorOptions)] = ReloadMode.RestartRequired,
         [typeof(PersistenceOptions)] = ReloadMode.RestartRequired,
+        [typeof(StorageOptions)] = ReloadMode.RestartRequired,
+        [typeof(OpenMeteoOptions)] = ReloadMode.RestartRequired,
     };
 
     private static readonly Dictionary<(Type Type, string Property), ReloadMode> PropertyModes = new()
     {
-        [(typeof(NjordOptions), nameof(NjordOptions.PollInterval))] = ReloadMode.Hot,
-        [(typeof(NjordOptions), nameof(NjordOptions.BudgetOverride))] = ReloadMode.Hot,
+        [(typeof(NjordOptions), nameof(NjordOptions.Locations))] = ReloadMode.RestartRequired,
+        [(typeof(NjordOptions), nameof(NjordOptions.Models))] = ReloadMode.RestartRequired,
+        [(typeof(NjordOptions), nameof(NjordOptions.Horizons))] = ReloadMode.RestartRequired,
+        [(typeof(NjordOptions), nameof(NjordOptions.ForecastDays))] = ReloadMode.RestartRequired,
+        [(typeof(NjordOptions), nameof(NjordOptions.Parameters))] = ReloadMode.RestartRequired,
         [(typeof(ConsensusOptions), EnabledProperty)] = ReloadMode.RestartRequired,
         [(typeof(AlertOptions), EnabledProperty)] = ReloadMode.RestartRequired,
         [(typeof(IndexOptions), EnabledProperty)] = ReloadMode.RestartRequired,

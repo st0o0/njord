@@ -1,0 +1,72 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Njord.Core.Configuration;
+using Njord.Core.Configuration.Alerts;
+using Njord.Core.Configuration.Consensus;
+using Njord.Core.Configuration.Derived;
+using Njord.Core.Configuration.Indices;
+using Njord.Core.Configuration.Polling;
+using Njord.Core.Configuration.Trends;
+
+namespace Njord.Tests.Shared;
+
+// Configuration root (in-memory baseline + override file), the section options with their validators,
+// and the writer/view/feed trio, wired like the host does it.
+public sealed class ConfigHarness : IDisposable
+{
+    private readonly ServiceProvider _provider;
+
+    public ConfigHarness(IDictionary<string, string?> baseline, string overridePath)
+    {
+        OverridePath = overridePath;
+        Root = new ConfigurationBuilder()
+            .AddInMemoryCollection(baseline)
+            .AddJsonFile(Path.GetFullPath(overridePath), optional: true, reloadOnChange: false)
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(Root);
+        Add<NjordOptions, NjordOptionsValidator>(services, NjordOptions.SectionName, replaceCollections: true);
+        Add<PollingOptions, PollingOptionsValidator>(services, PollingOptions.SectionName);
+        Add<ConsensusOptions, ConsensusOptionsValidator>(services, ConsensusOptions.SectionName);
+        Add<AlertOptions, AlertOptionsValidator>(services, AlertOptions.SectionName, replaceCollections: true);
+        Add<DerivedOptions, DerivedOptionsValidator>(services, DerivedOptions.SectionName);
+        Add<TrendOptions, TrendOptionsValidator>(services, TrendOptions.SectionName);
+        Add<IndexOptions, IndexOptionsValidator>(services, IndexOptions.SectionName);
+        services.AddSingleton<ConfigView>();
+        services.AddSingleton<ConfigChangeFeed>();
+        services.AddSingleton<IConfigWriter>(sp => new ConfigWriter(
+            sp, Root, sp.GetRequiredService<ConfigChangeFeed>(), overridePath));
+        _provider = services.BuildServiceProvider();
+    }
+
+    public string OverridePath { get; }
+
+    public IConfigurationRoot Root { get; }
+
+    public IServiceProvider Services => _provider;
+
+    public ConfigView View => _provider.GetRequiredService<ConfigView>();
+
+    public IConfigWriter Writer => _provider.GetRequiredService<IConfigWriter>();
+
+    public ConfigChangeFeed Changes => _provider.GetRequiredService<ConfigChangeFeed>();
+
+    public IOptionsMonitor<T> Monitor<T>() where T : class => _provider.GetRequiredService<IOptionsMonitor<T>>();
+
+    public void Dispose() => _provider.Dispose();
+
+    private static void Add<T, TValidator>(IServiceCollection services, string section, bool replaceCollections = false)
+        where T : class
+        where TValidator : class, IValidateOptions<T>
+    {
+        var builder = services.AddOptions<T>().BindConfiguration(section);
+        if (replaceCollections)
+        {
+            builder.ReplaceCollectionDefaults();
+        }
+
+        services.AddSingleton<IValidateOptions<T>, TValidator>();
+    }
+}

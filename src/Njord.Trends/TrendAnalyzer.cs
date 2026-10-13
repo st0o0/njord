@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Compute.Analysis;
-using Njord.Core.Configuration;
+using Njord.Core.Configuration.Trends;
 
 namespace Njord.Trends;
 

@@ -37,7 +37,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         TimeProvider timeProvider,
         IOptions<NjordOptions> options,
         ResolvedParameterSet parameters,
-        IOptionsMonitor<NjordOptions> optionsMonitor)
+        IBudgetProvider budgetProvider)
     {
         _client = client;
         _timeProvider = timeProvider;
@@ -45,8 +45,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         _weight = ComputeWeight(parameters.HourlyCount, _options.ForecastDays);
 
         var budgetTracker = Context.GetActor<IBudgetTracker>();
-        var provider = new OptionsBudgetProvider(optionsMonitor);
-        _gate = new GatewayBudgetGate(provider, budgetTracker, timeProvider);
+        _gate = new GatewayBudgetGate(budgetProvider, budgetTracker, timeProvider);
 
         Ready();
     }

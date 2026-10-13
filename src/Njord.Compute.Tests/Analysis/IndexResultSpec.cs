@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
-using Njord.Compute.Configuration;
 using Njord.Weather;
 
 namespace Njord.Compute.Tests.Analysis;
@@ -19,7 +18,7 @@ public sealed class IndexResultSpec
 
     private static IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> DefaultPrefs(
         string location = "lucerne") =>
-        PreferenceResolver.Resolve(new IndexOptions(), [location]);
+        IndexKinds.All.ToDictionary(kind => (new LocationId(location), kind), _ => ResolvedPreferences.Default);
 
     private static Forecast MakeForecast(
         WeatherModel model, int hours, Func<int, (double temp, double hum, double wind, double cloud, double isDay)> valueFunc)

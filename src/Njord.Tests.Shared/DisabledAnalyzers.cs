@@ -1,8 +1,11 @@
 using Microsoft.Extensions.Options;
 using Njord.Alerts;
 using Njord.Compute.Analysis;
-using Njord.Compute.Configuration;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Alerts;
+using Njord.Core.Configuration.Derived;
+using Njord.Core.Configuration.Indices;
+using Njord.Core.Configuration.Trends;
 using Njord.Derived;
 using Njord.Indices;
 using Njord.Weather;

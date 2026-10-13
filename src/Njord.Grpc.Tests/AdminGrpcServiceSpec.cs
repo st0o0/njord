@@ -1,15 +1,12 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Njord.Core.Configuration;
 using Njord.Grpc.V2;
-using Njord.Weather;
+using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
 
 public sealed class AdminGrpcServiceSpec : IDisposable
 {
     private readonly string _tempDir = Path.Combine(Path.GetTempPath(), $"njord-test-{Guid.NewGuid():N}");
+    private readonly List<ConfigHarness> _harnesses = [];
 
     [Fact(Timeout = 5000)]
     public async Task GetConfig_returns_current_configuration()
@@ -201,7 +198,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
     [Fact(Timeout = 5000)]
     public async Task SetEnrichment_overrides_baseline_config()
     {
-        var service = CreateService(opt => opt.Enrichment.Alerts.Enabled = true);
+        var service = CreateService(alertsEnabled: true);
         var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
 
         var configBefore = await service.GetConfig(new GetConfigRequest(), ctx);
@@ -214,53 +211,189 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.False(configAfter.Enrichment.Alerts.Enabled);
     }
 
+    [Fact(Timeout = 5000)]
+    public async Task SetLocations_reports_that_the_change_takes_effect_after_a_restart()
+    {
+        var service = CreateService();
+        var request = new SetLocationsRequest
+        {
+            Locations = { new LocationInput { Name = "zurich", Latitude = 47.37, Longitude = 8.54 } },
+        };
+
+        var response = await service.SetLocations(request, TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.True(response.Applied);
+        var notice = Assert.Single(response.Warnings, w => w.StartsWith(AdminGrpcService.RestartNoticePrefix, StringComparison.Ordinal));
+        Assert.Contains("Locations", notice);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task SetEnrichment_with_only_alert_thresholds_needs_no_restart()
+    {
+        var service = CreateService();
+
+        var response = await service.SetEnrichment(
+            new SetEnrichmentRequest { Alerts = new AlertConfig { FrostThresholds = { 1, -4, -12 } } },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.True(response.Applied);
+        Assert.DoesNotContain(response.Warnings, w => w.StartsWith(AdminGrpcService.RestartNoticePrefix, StringComparison.Ordinal));
+        Assert.Equal(new[] { 1.0, -4.0, -12.0 }, response.Config.Enrichment.Alerts.FrostThresholds);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task SetEnrichment_toggle_reports_that_it_takes_effect_after_a_restart()
+    {
+        var service = CreateService();
+
+        var response = await service.SetEnrichment(
+            new SetEnrichmentRequest { Trends = new TrendConfig { Enabled = true } },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.True(response.Applied);
+        var notice = Assert.Single(response.Warnings, w => w.StartsWith(AdminGrpcService.RestartNoticePrefix, StringComparison.Ordinal));
+        Assert.Contains("Trends.Enabled", notice);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task SetEnrichment_with_non_monotonic_frost_thresholds_is_rejected_and_not_persisted()
+    {
+        var service = CreateService();
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
+        await service.SetSettings(new SetSettingsRequest { ForecastDays = 5 }, ctx);
+        var before = await File.ReadAllTextAsync(OverridePath(), TestContext.Current.CancellationToken);
+
+        var response = await service.SetEnrichment(
+            new SetEnrichmentRequest { Alerts = new AlertConfig { FrostThresholds = { 0, 5, -15 } } }, ctx);
+
+        Assert.False(response.Applied);
+        Assert.Contains("FrostThresholds", response.RejectionReason);
+        Assert.Equal(before, await File.ReadAllTextAsync(OverridePath(), TestContext.Current.CancellationToken));
+        var config = await service.GetConfig(new GetConfigRequest(), ctx);
+        Assert.Equal(new[] { 0.0, -5.0, -15.0 }, config.Enrichment.Alerts.FrostThresholds);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task SetSettings_rejects_a_poll_interval_over_the_budget_guard_and_keeps_the_previous_one()
+    {
+        var service = CreateService(budgetPerMonth: 100_000);
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
+
+        var response = await service.SetSettings(new SetSettingsRequest { PollIntervalSeconds = 60 }, ctx);
+
+        Assert.False(response.Applied);
+        Assert.Contains("budget", response.RejectionReason);
+        Assert.False(File.Exists(OverridePath()));
+        var config = await service.GetConfig(new GetConfigRequest(), ctx);
+        Assert.Equal(3600, config.PollIntervalSeconds);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task StreamConfig_sends_a_new_snapshot_after_a_mutation()
+    {
+        var service = CreateService();
+        using var streamCts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var writer = new RecordingStreamWriter();
+
+        var stream = service.StreamConfig(new StreamConfigRequest(), writer, TestServerCallContext.Create(streamCts.Token));
+        await writer.WaitForCount(1).WaitAsync(TestContext.Current.CancellationToken);
+
+        await service.SetSettings(
+            new SetSettingsRequest { PollIntervalSeconds = 1800 },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+        await writer.WaitForCount(2).WaitAsync(TestContext.Current.CancellationToken);
+
+        await streamCts.CancelAsync();
+        await stream.WaitAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(3600, writer.Messages[0].PollIntervalSeconds);
+        Assert.Equal(1800, writer.Messages[1].PollIntervalSeconds);
+    }
+
+    private sealed class RecordingStreamWriter : global::Grpc.Core.IServerStreamWriter<NjordConfig>
+    {
+        private readonly object _gate = new();
+        private readonly List<NjordConfig> _messages = [];
+        private readonly List<(int Count, TaskCompletionSource Signal)> _waiters = [];
+
+        public global::Grpc.Core.WriteOptions? WriteOptions { get; set; }
+
+        public IReadOnlyList<NjordConfig> Messages
+        {
+            get
+            {
+                lock (_gate)
+                {
+                    return [.. _messages];
+                }
+            }
+        }
+
+        public Task WriteAsync(NjordConfig message)
+        {
+            lock (_gate)
+            {
+                _messages.Add(message);
+                foreach (var waiter in _waiters.Where(w => _messages.Count >= w.Count))
+                {
+                    waiter.Signal.TrySetResult();
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public Task WaitForCount(int count)
+        {
+            lock (_gate)
+            {
+                if (_messages.Count >= count)
+                {
+                    return Task.CompletedTask;
+                }
+
+                var signal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                _waiters.Add((count, signal));
+                return signal.Task;
+            }
+        }
+    }
+
     public void Dispose()
     {
+        foreach (var harness in _harnesses)
+        {
+            harness.Dispose();
+        }
+
         if (Directory.Exists(_tempDir))
         {
             Directory.Delete(_tempDir, recursive: true);
         }
     }
 
-    private AdminGrpcService CreateService(Action<NjordOptions>? configureBaseline = null)
+    private string OverridePath() => Path.Combine(_tempDir, "appsettings.Override.json");
+
+    private AdminGrpcService CreateService(bool alertsEnabled = true, int? budgetPerMonth = null)
     {
-        var baseline = new NjordOptions
-        {
-            Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
-            Models = ["icon_d2"],
-        };
-        configureBaseline?.Invoke(baseline);
-
-        var overridePath = Path.Combine(_tempDir, "appsettings.Override.json");
-
-        var configBuilder = new ConfigurationBuilder();
         var configEntries = new Dictionary<string, string?>
         {
-            ["Njord:Locations:0:Name"] = baseline.Locations[0].Name,
-            ["Njord:Locations:0:Latitude"] = baseline.Locations[0].Latitude.ToString(),
-            ["Njord:Locations:0:Longitude"] = baseline.Locations[0].Longitude.ToString(),
-            ["Njord:Models:0"] = baseline.Models[0],
-            ["Njord:Enrichment:Alerts:Enabled"] = baseline.Enrichment.Alerts.Enabled.ToString(),
-            ["Njord:ForecastDays"] = baseline.ForecastDays.ToString(),
+            ["Njord:Locations:0:Name"] = "lucerne",
+            ["Njord:Locations:0:Latitude"] = "47.05",
+            ["Njord:Locations:0:Longitude"] = "8.31",
+            ["Njord:Models:0"] = "icon_d2",
+            ["Njord:Enrichment:Alerts:Enabled"] = alertsEnabled.ToString(),
+            ["Njord:ForecastDays"] = "4",
         };
-        if (baseline.BudgetOverride is { } bo)
+        if (budgetPerMonth is { } perMonth)
         {
-            configEntries["Njord:BudgetOverride:RequestsPerMonth"] = bo.RequestsPerMonth.ToString();
-            configEntries["Njord:BudgetOverride:RequestsPerMinute"] = bo.RequestsPerMinute.ToString();
+            configEntries["Njord:BudgetOverride:RequestsPerMonth"] = perMonth.ToString();
+            configEntries["Njord:BudgetOverride:RequestsPerMinute"] = "600";
         }
 
-        configBuilder.AddInMemoryCollection(configEntries);
+        var harness = new ConfigHarness(configEntries, OverridePath());
+        _harnesses.Add(harness);
 
-        configBuilder.AddJsonFile(overridePath, optional: true, reloadOnChange: false);
-        var configRoot = configBuilder.Build();
-
-        var services = new ServiceCollection();
-        services.AddOptions<NjordOptions>().Bind(configRoot.GetSection(NjordOptions.SectionName));
-        var sp = services.BuildServiceProvider();
-        var monitor = sp.GetRequiredService<IOptionsMonitor<NjordOptions>>();
-
-        var writable = new WritableNjordOptions(monitor, configRoot, overridePath);
-
-        return new AdminGrpcService(monitor, writable);
+        return new AdminGrpcService(harness.View, harness.Writer, harness.Changes);
     }
 }

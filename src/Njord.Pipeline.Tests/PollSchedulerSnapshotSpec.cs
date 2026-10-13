@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Polling;
 using Njord.Core.Health;
 using Njord.Messages.Common;
 using Njord.Messages.Forecast;
@@ -24,12 +25,12 @@ public sealed class PollSchedulerSnapshotSpec : NjordActorSpec
     {
         var options = new NjordOptions
         {
-            DiscoveryInterval = TimeSpan.FromMilliseconds(50),
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
             Models = ["icon_d2"],
         };
         services.AddSingleton<TimeProvider>(_time);
         services.AddSingleton(Options.Create(options));
+        services.AddSingleton(Options.Create(new PollingOptions { DiscoveryInterval = TimeSpan.FromMilliseconds(50) }));
         services.AddSingleton(new NjordHealthMonitor { ServiceStartedUtc = _time.GetUtcNow() });
     }
 

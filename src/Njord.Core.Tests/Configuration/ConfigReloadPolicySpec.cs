@@ -1,6 +1,11 @@
 using System.Reflection;
-using Njord.Compute.Configuration;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Alerts;
+using Njord.Core.Configuration.Indices;
+using Njord.Core.Configuration.Mqtt;
+using Njord.Core.Configuration.Persistence;
+using Njord.Core.Configuration.Polling;
+using Njord.Core.Configuration.Sensors;
 
 namespace Njord.Core.Tests.Configuration;
 
@@ -34,6 +39,13 @@ public sealed class ConfigReloadPolicySpec
     {
         Assert.Equal(ReloadMode.Hot, ConfigReloadPolicy.For<AlertOptions>(nameof(AlertOptions.FrostThresholds)));
         Assert.Equal(ReloadMode.Hot, ConfigReloadPolicy.For<IndexOptions>(nameof(IndexOptions.Preferences)));
+    }
+
+    [Fact]
+    public void Polling_is_hot()
+    {
+        Assert.Equal(ReloadMode.Hot, ConfigReloadPolicy.For<PollingOptions>(nameof(PollingOptions.PollInterval)));
+        Assert.Equal(ReloadMode.Hot, ConfigReloadPolicy.For<PollingOptions>(nameof(PollingOptions.BudgetOverride)));
     }
 
     [Fact]

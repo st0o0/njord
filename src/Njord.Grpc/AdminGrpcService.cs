@@ -1,19 +1,28 @@
+using System.Threading.Channels;
 using Grpc.Core;
-using Microsoft.Extensions.Options;
 using Njord.Compute.Configuration;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Alerts;
+using Njord.Core.Configuration.Consensus;
+using Njord.Core.Configuration.Derived;
+using Njord.Core.Configuration.Indices;
+using Njord.Core.Configuration.Polling;
+using Njord.Core.Configuration.Trends;
 using Njord.Grpc.V2;
 using Njord.Weather;
 
 namespace Njord.Grpc;
 
 public sealed class AdminGrpcService(
-    IOptionsMonitor<NjordOptions> optionsMonitor,
-    IWritableOptions<NjordOptions> writableOptions) : AdminService.AdminServiceBase
+    ConfigView view,
+    IConfigWriter writer,
+    ConfigChangeFeed changes) : AdminService.AdminServiceBase
 {
+    internal const string RestartNoticePrefix = "Takes effect after restart: ";
+
     public override Task<NjordConfig> GetConfig(GetConfigRequest request, ServerCallContext context)
     {
-        return Task.FromResult(MapConfig(optionsMonitor.CurrentValue));
+        return Task.FromResult(MapConfig(view));
     }
 
     public override async Task StreamConfig(
@@ -21,47 +30,46 @@ public sealed class AdminGrpcService(
         IServerStreamWriter<NjordConfig> responseStream,
         ServerCallContext context)
     {
-        await responseStream.WriteAsync(MapConfig(optionsMonitor.CurrentValue));
-
-        var tcs = new TaskCompletionSource();
-        await using var registration = context.CancellationToken.Register(() => tcs.TrySetResult());
-
-        using var onChange = optionsMonitor.OnChange(async (options, _) =>
+        var signals = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
         {
-            if (!context.CancellationToken.IsCancellationRequested)
-            {
-                await responseStream.WriteAsync(MapConfig(options));
-            }
+            FullMode = BoundedChannelFullMode.DropWrite,
         });
+        using var subscription = changes.Subscribe(() => signals.Writer.TryWrite(true));
+        await using var cancellation = context.CancellationToken.Register(() => signals.Writer.TryComplete());
 
-        await tcs.Task;
-    }
+        var last = MapConfig(view);
+        await responseStream.WriteAsync(last);
 
-    public override Task<ConfigResponse> SetLocations(SetLocationsRequest request, ServerCallContext context)
-    {
-        if (ValidateLocations(request) is { } rejection)
+        await foreach (var _ in signals.Reader.ReadAllAsync(CancellationToken.None))
         {
-            return Task.FromResult(rejection);
-        }
-
-        var snapshot = writableOptions.Update(opt => opt.Locations = MapLocations(request));
-
-        var budget = BudgetCalculator.Validate(snapshot);
-        if (!budget.WithinBudget)
-        {
-            writableOptions.Update(opt =>
+            var current = MapConfig(view);
+            if (current.Equals(last))
             {
-                opt.Locations = [.. optionsMonitor.CurrentValue.Locations];
-            });
-            return Task.FromResult(Rejected($"Would exceed budget: {budget.UsagePercent:F0}% of monthly limit"));
-        }
+                continue;
+            }
 
-        return Task.FromResult(Success(snapshot, budget));
+            last = current;
+            await responseStream.WriteAsync(current);
+        }
     }
 
-    private static ConfigResponse? ValidateLocations(SetLocationsRequest request)
+    public override async Task<ConfigResponse> SetLocations(SetLocationsRequest request, ServerCallContext context)
     {
-        return request.Locations.Count == 0 ? Rejected("Cannot set empty location list") : null;
+        if (request.Locations.Count == 0)
+        {
+            return Rejected("Cannot set empty location list");
+        }
+
+        var locations = MapLocations(request);
+        if (BudgetRejection(scope => scope.Locations = locations, view.Polling) is { } budgetRejection)
+        {
+            return budgetRejection;
+        }
+
+        var result = await writer.UpdateAsync<NjordOptions>(opt => opt.Locations = locations, context.CancellationToken);
+        return result.Applied
+            ? Success(RestartRequired(result, ""))
+            : Rejected(string.Join("; ", result.Failures));
     }
 
     private static List<LocationOptions> MapLocations(SetLocationsRequest request)
@@ -78,23 +86,47 @@ public sealed class AdminGrpcService(
         ];
     }
 
-    public override Task<ConfigResponse> SetSettings(SetSettingsRequest request, ServerCallContext context)
+    public override async Task<ConfigResponse> SetSettings(SetSettingsRequest request, ServerCallContext context)
     {
         if (ValidateSettings(request) is { } rejection)
         {
-            return Task.FromResult(rejection);
+            return rejection;
         }
 
-        var snapshot = writableOptions.Update(opt => ApplySettings(opt, request));
-
-        var budget = BudgetCalculator.Validate(snapshot);
-        if (!budget.WithinBudget)
+        var polling = ConfigWriter.DeepClone(view.Polling);
+        if (request.HasPollIntervalSeconds)
         {
-            writableOptions.Update(_ => { });
-            return Task.FromResult(Rejected($"Would exceed budget: {budget.UsagePercent:F0}% of monthly limit"));
+            polling.PollInterval = TimeSpan.FromSeconds(request.PollIntervalSeconds);
         }
 
-        return Task.FromResult(Success(snapshot, budget));
+        if (BudgetRejection(scope => ApplyScope(scope, request), polling) is { } budgetRejection)
+        {
+            return budgetRejection;
+        }
+
+        var failures = writer.Check<NjordOptions>(opt => ApplyScope(opt, request));
+        if (failures.Count > 0)
+        {
+            return Rejected(string.Join("; ", failures));
+        }
+
+        var scopeResult = await writer.UpdateAsync<NjordOptions>(opt => ApplyScope(opt, request), context.CancellationToken);
+        if (!scopeResult.Applied)
+        {
+            return Rejected(string.Join("; ", scopeResult.Failures));
+        }
+
+        if (request.HasPollIntervalSeconds)
+        {
+            var pollingResult = await writer.UpdateAsync<PollingOptions>(
+                opt => opt.PollInterval = polling.PollInterval, context.CancellationToken);
+            if (!pollingResult.Applied)
+            {
+                return Rejected(string.Join("; ", pollingResult.Failures));
+            }
+        }
+
+        return Success(RestartRequired(scopeResult, ""));
     }
 
     private static ConfigResponse? ValidateSettings(SetSettingsRequest request)
@@ -112,13 +144,8 @@ public sealed class AdminGrpcService(
         return null;
     }
 
-    private static void ApplySettings(NjordOptions opt, SetSettingsRequest request)
+    private static void ApplyScope(NjordOptions opt, SetSettingsRequest request)
     {
-        if (request.HasPollIntervalSeconds)
-        {
-            opt.PollInterval = TimeSpan.FromSeconds(request.PollIntervalSeconds);
-        }
-
         if (request.HasForecastDays)
         {
             opt.ForecastDays = request.ForecastDays;
@@ -145,82 +172,146 @@ public sealed class AdminGrpcService(
         }
     }
 
-    public override Task<ConfigResponse> SetEnrichment(SetEnrichmentRequest request, ServerCallContext context)
+    // Rejects a scope or poll interval change whose projection breaks the same 80 % guard that startup validation applies.
+    private ConfigResponse? BudgetRejection(Action<NjordOptions> applyScope, PollingOptions polling)
     {
-        var snapshot = writableOptions.Update(opt =>
+        var scope = ConfigWriter.DeepClone(view.Scope);
+        applyScope(scope);
+
+        try
         {
-            if (request.Consensus is { } consensus)
-            {
-                if (consensus.HasEnabled) opt.Enrichment.Consensus.Enabled = consensus.Enabled;
-                if (consensus.HasMethod && Enum.TryParse<ConsensusMethod>(consensus.Method, ignoreCase: true, out var method))
-                    opt.Enrichment.Consensus.Method = method;
-                if (consensus.HasTrimPercent) opt.Enrichment.Consensus.TrimPercent = consensus.TrimPercent;
-            }
-
-            if (request.Alerts is { } alerts)
-            {
-                if (alerts.HasEnabled) opt.Enrichment.Alerts.Enabled = alerts.Enabled;
-                if (alerts.FrostThresholds.Count > 0) opt.Enrichment.Alerts.FrostThresholds = [.. alerts.FrostThresholds];
-                if (alerts.HeatThresholds.Count > 0) opt.Enrichment.Alerts.HeatThresholds = [.. alerts.HeatThresholds];
-                if (alerts.StormGustThresholds.Count > 0) opt.Enrichment.Alerts.StormGustThresholds = [.. alerts.StormGustThresholds];
-                if (alerts.HasHeavyRainHourlyThreshold) opt.Enrichment.Alerts.HeavyRainHourlyThreshold = alerts.HeavyRainHourlyThreshold;
-                if (alerts.HasHeavyRainDailyThreshold) opt.Enrichment.Alerts.HeavyRainDailyThreshold = alerts.HeavyRainDailyThreshold;
-                if (alerts.HasPressureDropThreshold) opt.Enrichment.Alerts.PressureDropThreshold = alerts.PressureDropThreshold;
-                if (alerts.HasCapeThreshold) opt.Enrichment.Alerts.CapeThreshold = alerts.CapeThreshold;
-                if (alerts.HasThunderstormPrecipThreshold) opt.Enrichment.Alerts.ThunderstormPrecipThreshold = alerts.ThunderstormPrecipThreshold;
-                if (alerts.HasThunderstormGustThreshold) opt.Enrichment.Alerts.ThunderstormGustThreshold = alerts.ThunderstormGustThreshold;
-                if (alerts.HasPressureDropSevereThreshold) opt.Enrichment.Alerts.PressureDropSevereThreshold = alerts.PressureDropSevereThreshold;
-                if (alerts.HasFogPersistentHours) opt.Enrichment.Alerts.FogPersistentHours = alerts.FogPersistentHours;
-                if (alerts.HasIceThreshold) opt.Enrichment.Alerts.IceThreshold = alerts.IceThreshold;
-                if (alerts.WindChillThresholds.Count > 0) opt.Enrichment.Alerts.WindChillThresholds = [.. alerts.WindChillThresholds];
-                if (alerts.VisibilityThresholds.Count > 0) opt.Enrichment.Alerts.VisibilityThresholds = [.. alerts.VisibilityThresholds];
-                if (alerts.TropicalNightThresholds.Count > 0) opt.Enrichment.Alerts.TropicalNightThresholds = [.. alerts.TropicalNightThresholds];
-                if (alerts.HumidityThresholds.Count > 0) opt.Enrichment.Alerts.HumidityThresholds = [.. alerts.HumidityThresholds];
-            }
-
-            if (request.Derived is { HasEnabled: true } derived) opt.Enrichment.Derived.Enabled = derived.Enabled;
-
-            if (request.Trends is { HasEnabled: true } trends) opt.Enrichment.Trends.Enabled = trends.Enabled;
-
-            if (request.Indices is { } indices)
-            {
-                if (indices.HasEnabled) opt.Enrichment.Indices.Enabled = indices.Enabled;
-                if (indices.HasIndoorTemp) opt.Enrichment.Indices.Preferences.IndoorTemp = indices.IndoorTemp;
-                if (indices.HasIdealOutdoorTemp) opt.Enrichment.Indices.Preferences.IdealOutdoorTemp = indices.IdealOutdoorTemp;
-                if (indices.HasHeatSensitivity) opt.Enrichment.Indices.Preferences.HeatSensitivity = indices.HeatSensitivity;
-                if (indices.HasHumiditySensitivity) opt.Enrichment.Indices.Preferences.HumiditySensitivity = indices.HumiditySensitivity;
-                if (indices.HasWindSensitivity) opt.Enrichment.Indices.Preferences.WindSensitivity = indices.WindSensitivity;
-                if (indices.HasRainSensitivity) opt.Enrichment.Indices.Preferences.RainSensitivity = indices.RainSensitivity;
-                if (indices.HasRunningIdealTempLow) opt.Enrichment.Indices.Preferences.RunningIdealTempLow = indices.RunningIdealTempLow;
-                if (indices.HasRunningIdealTempHigh) opt.Enrichment.Indices.Preferences.RunningIdealTempHigh = indices.RunningIdealTempHigh;
-                if (indices.HasBbqMinTemp) opt.Enrichment.Indices.Preferences.BbqMinTemp = indices.BbqMinTemp;
-                if (indices.HasBbqIdealWindLow) opt.Enrichment.Indices.Preferences.BbqIdealWindLow = indices.BbqIdealWindLow;
-                if (indices.HasBbqIdealWindHigh) opt.Enrichment.Indices.Preferences.BbqIdealWindHigh = indices.BbqIdealWindHigh;
-            }
-
-        });
-
-        var budget = BudgetCalculator.Validate(snapshot);
-        return Task.FromResult(Success(snapshot, budget));
+            var projection = BudgetCalculator.Validate(scope, polling);
+            return BudgetCalculator.GuardViolation(projection, polling.PollInterval) is not null
+                ? Rejected($"Would exceed budget: {projection.UsagePercent:F0}% of monthly limit")
+                : null;
+        }
+        catch (ParameterResolutionException ex)
+        {
+            return Rejected(string.Join("; ", ex.Errors));
+        }
     }
 
-    public override Task<ConfigResponse> SetBudget(SetBudgetRequest request, ServerCallContext context)
+    public override async Task<ConfigResponse> SetEnrichment(SetEnrichmentRequest request, ServerCallContext context)
+    {
+        var failures = new List<string>();
+        if (request.Consensus is { } consensus)
+        {
+            failures.AddRange(writer.Check<ConsensusOptions>(opt => ApplyConsensus(opt, consensus)));
+        }
+
+        if (request.Alerts is { } alerts)
+        {
+            failures.AddRange(writer.Check<AlertOptions>(opt => ApplyAlerts(opt, alerts)));
+        }
+
+        if (request.Indices is { } indices)
+        {
+            failures.AddRange(writer.Check<IndexOptions>(opt => ApplyIndices(opt, indices)));
+        }
+
+        if (failures.Count > 0)
+        {
+            return Rejected(string.Join("; ", failures));
+        }
+
+        var restartRequired = new List<string>();
+        var ct = context.CancellationToken;
+
+        if (request.Consensus is { } c)
+        {
+            restartRequired.AddRange(RestartRequired(
+                await writer.UpdateAsync<ConsensusOptions>(opt => ApplyConsensus(opt, c), ct), "Enrichment.Consensus."));
+        }
+
+        if (request.Alerts is { } a)
+        {
+            restartRequired.AddRange(RestartRequired(
+                await writer.UpdateAsync<AlertOptions>(opt => ApplyAlerts(opt, a), ct), "Enrichment.Alerts."));
+        }
+
+        if (request.Derived is { HasEnabled: true } derived)
+        {
+            restartRequired.AddRange(RestartRequired(
+                await writer.UpdateAsync<DerivedOptions>(opt => opt.Enabled = derived.Enabled, ct), "Enrichment.Derived."));
+        }
+
+        if (request.Trends is { HasEnabled: true } trends)
+        {
+            restartRequired.AddRange(RestartRequired(
+                await writer.UpdateAsync<TrendOptions>(opt => opt.Enabled = trends.Enabled, ct), "Enrichment.Trends."));
+        }
+
+        if (request.Indices is { } i)
+        {
+            restartRequired.AddRange(RestartRequired(
+                await writer.UpdateAsync<IndexOptions>(opt => ApplyIndices(opt, i), ct), "Enrichment.Indices."));
+        }
+
+        return Success(restartRequired);
+    }
+
+    private static void ApplyConsensus(ConsensusOptions opt, ConsensusConfig consensus)
+    {
+        if (consensus.HasEnabled) opt.Enabled = consensus.Enabled;
+        if (consensus.HasMethod && Enum.TryParse<ConsensusMethod>(consensus.Method, ignoreCase: true, out var method))
+            opt.Method = method;
+        if (consensus.HasTrimPercent) opt.TrimPercent = consensus.TrimPercent;
+    }
+
+    private static void ApplyAlerts(AlertOptions opt, AlertConfig alerts)
+    {
+        if (alerts.HasEnabled) opt.Enabled = alerts.Enabled;
+        if (alerts.FrostThresholds.Count > 0) opt.FrostThresholds = [.. alerts.FrostThresholds];
+        if (alerts.HeatThresholds.Count > 0) opt.HeatThresholds = [.. alerts.HeatThresholds];
+        if (alerts.StormGustThresholds.Count > 0) opt.StormGustThresholds = [.. alerts.StormGustThresholds];
+        if (alerts.HasHeavyRainHourlyThreshold) opt.HeavyRainHourlyThreshold = alerts.HeavyRainHourlyThreshold;
+        if (alerts.HasHeavyRainDailyThreshold) opt.HeavyRainDailyThreshold = alerts.HeavyRainDailyThreshold;
+        if (alerts.HasPressureDropThreshold) opt.PressureDropThreshold = alerts.PressureDropThreshold;
+        if (alerts.HasCapeThreshold) opt.CapeThreshold = alerts.CapeThreshold;
+        if (alerts.HasThunderstormPrecipThreshold) opt.ThunderstormPrecipThreshold = alerts.ThunderstormPrecipThreshold;
+        if (alerts.HasThunderstormGustThreshold) opt.ThunderstormGustThreshold = alerts.ThunderstormGustThreshold;
+        if (alerts.HasPressureDropSevereThreshold) opt.PressureDropSevereThreshold = alerts.PressureDropSevereThreshold;
+        if (alerts.HasFogPersistentHours) opt.FogPersistentHours = alerts.FogPersistentHours;
+        if (alerts.HasIceThreshold) opt.IceThreshold = alerts.IceThreshold;
+        if (alerts.WindChillThresholds.Count > 0) opt.WindChillThresholds = [.. alerts.WindChillThresholds];
+        if (alerts.VisibilityThresholds.Count > 0) opt.VisibilityThresholds = [.. alerts.VisibilityThresholds];
+        if (alerts.TropicalNightThresholds.Count > 0) opt.TropicalNightThresholds = [.. alerts.TropicalNightThresholds];
+        if (alerts.HumidityThresholds.Count > 0) opt.HumidityThresholds = [.. alerts.HumidityThresholds];
+    }
+
+    private static void ApplyIndices(IndexOptions opt, IndexConfig indices)
+    {
+        if (indices.HasEnabled) opt.Enabled = indices.Enabled;
+        if (indices.HasIndoorTemp) opt.Preferences.IndoorTemp = indices.IndoorTemp;
+        if (indices.HasIdealOutdoorTemp) opt.Preferences.IdealOutdoorTemp = indices.IdealOutdoorTemp;
+        if (indices.HasHeatSensitivity) opt.Preferences.HeatSensitivity = indices.HeatSensitivity;
+        if (indices.HasHumiditySensitivity) opt.Preferences.HumiditySensitivity = indices.HumiditySensitivity;
+        if (indices.HasWindSensitivity) opt.Preferences.WindSensitivity = indices.WindSensitivity;
+        if (indices.HasRainSensitivity) opt.Preferences.RainSensitivity = indices.RainSensitivity;
+        if (indices.HasRunningIdealTempLow) opt.Preferences.RunningIdealTempLow = indices.RunningIdealTempLow;
+        if (indices.HasRunningIdealTempHigh) opt.Preferences.RunningIdealTempHigh = indices.RunningIdealTempHigh;
+        if (indices.HasBbqMinTemp) opt.Preferences.BbqMinTemp = indices.BbqMinTemp;
+        if (indices.HasBbqIdealWindLow) opt.Preferences.BbqIdealWindLow = indices.BbqIdealWindLow;
+        if (indices.HasBbqIdealWindHigh) opt.Preferences.BbqIdealWindHigh = indices.BbqIdealWindHigh;
+    }
+
+    public override async Task<ConfigResponse> SetBudget(SetBudgetRequest request, ServerCallContext context)
     {
         if (request is { HasRequestsPerMonth: true, RequestsPerMonth: <= 0 })
         {
-            return Task.FromResult(Rejected("requests_per_month must be greater than zero"));
+            return Rejected("requests_per_month must be greater than zero");
         }
 
         if (request is { HasRequestsPerMinute: true, RequestsPerMinute: <= 0 })
         {
-            return Task.FromResult(Rejected("requests_per_minute must be greater than zero"));
+            return Rejected("requests_per_minute must be greater than zero");
         }
 
-        var snapshot = writableOptions.Update(opt =>
+        var result = await writer.UpdateAsync<PollingOptions>(opt =>
         {
             if (request.HasRequestsPerMonth || request.HasRequestsPerMinute)
             {
-                var current = opt.BudgetOverride ?? BudgetCalculator.GetEffectiveBudget(opt);
+                var current = BudgetCalculator.GetEffectiveBudget(opt);
                 opt.BudgetOverride = new RequestBudget(
                     request.HasRequestsPerMonth ? request.RequestsPerMonth : current.RequestsPerMonth,
                     request.HasRequestsPerMinute ? request.RequestsPerMinute : current.RequestsPerMinute);
@@ -229,26 +320,29 @@ public sealed class AdminGrpcService(
             {
                 opt.BudgetOverride = null;
             }
-        });
+        }, context.CancellationToken);
 
-        var budget = BudgetCalculator.Validate(snapshot);
-        return Task.FromResult(Success(snapshot, budget));
+        return result.Applied
+            ? Success([])
+            : Rejected(string.Join("; ", result.Failures));
     }
 
-    internal static NjordConfig MapConfig(NjordOptions options)
+    internal static NjordConfig MapConfig(ConfigView view)
     {
-        var budget = BudgetCalculator.Validate(options);
+        var options = view.Scope;
+        var polling = view.Polling;
+        var budget = BudgetCalculator.Validate(options, polling);
 
         var config = new NjordConfig
         {
             ForecastDays = options.ForecastDays,
-            PollIntervalSeconds = (long)options.PollInterval.TotalSeconds,
+            PollIntervalSeconds = (long)polling.PollInterval.TotalSeconds,
             Parameters = new ParameterConfig(),
-            Enrichment = MapEnrichment(options.Enrichment),
+            Enrichment = MapEnrichment(view),
             BudgetProjection = MapBudgetProjection(budget),
         };
 
-        if (options.BudgetOverride is { } bo)
+        if (polling.BudgetOverride is { } bo)
         {
             config.BudgetOverride = new BudgetConfig
             {
@@ -278,52 +372,52 @@ public sealed class AdminGrpcService(
         return config;
     }
 
-    private static DetailedEnrichmentConfig MapEnrichment(EnrichmentOptions enrichment)
+    private static DetailedEnrichmentConfig MapEnrichment(ConfigView view)
     {
         return new DetailedEnrichmentConfig
         {
             Consensus = new ConsensusConfig
             {
-                Enabled = enrichment.Consensus.Enabled,
-                Method = enrichment.Consensus.Method.ToString(),
-                TrimPercent = enrichment.Consensus.TrimPercent,
+                Enabled = view.Consensus.Enabled,
+                Method = view.Consensus.Method.ToString(),
+                TrimPercent = view.Consensus.TrimPercent,
             },
             Alerts = new AlertConfig
             {
-                Enabled = enrichment.Alerts.Enabled,
-                FrostThresholds = { enrichment.Alerts.FrostThresholds },
-                HeatThresholds = { enrichment.Alerts.HeatThresholds },
-                StormGustThresholds = { enrichment.Alerts.StormGustThresholds },
-                HeavyRainHourlyThreshold = enrichment.Alerts.HeavyRainHourlyThreshold,
-                HeavyRainDailyThreshold = enrichment.Alerts.HeavyRainDailyThreshold,
-                PressureDropThreshold = enrichment.Alerts.PressureDropThreshold,
-                CapeThreshold = enrichment.Alerts.CapeThreshold,
-                ThunderstormPrecipThreshold = enrichment.Alerts.ThunderstormPrecipThreshold,
-                ThunderstormGustThreshold = enrichment.Alerts.ThunderstormGustThreshold,
-                PressureDropSevereThreshold = enrichment.Alerts.PressureDropSevereThreshold,
-                FogPersistentHours = enrichment.Alerts.FogPersistentHours,
-                IceThreshold = enrichment.Alerts.IceThreshold,
-                WindChillThresholds = { enrichment.Alerts.WindChillThresholds },
-                VisibilityThresholds = { enrichment.Alerts.VisibilityThresholds },
-                TropicalNightThresholds = { enrichment.Alerts.TropicalNightThresholds },
-                HumidityThresholds = { enrichment.Alerts.HumidityThresholds },
+                Enabled = view.Alerts.Enabled,
+                FrostThresholds = { view.Alerts.FrostThresholds },
+                HeatThresholds = { view.Alerts.HeatThresholds },
+                StormGustThresholds = { view.Alerts.StormGustThresholds },
+                HeavyRainHourlyThreshold = view.Alerts.HeavyRainHourlyThreshold,
+                HeavyRainDailyThreshold = view.Alerts.HeavyRainDailyThreshold,
+                PressureDropThreshold = view.Alerts.PressureDropThreshold,
+                CapeThreshold = view.Alerts.CapeThreshold,
+                ThunderstormPrecipThreshold = view.Alerts.ThunderstormPrecipThreshold,
+                ThunderstormGustThreshold = view.Alerts.ThunderstormGustThreshold,
+                PressureDropSevereThreshold = view.Alerts.PressureDropSevereThreshold,
+                FogPersistentHours = view.Alerts.FogPersistentHours,
+                IceThreshold = view.Alerts.IceThreshold,
+                WindChillThresholds = { view.Alerts.WindChillThresholds },
+                VisibilityThresholds = { view.Alerts.VisibilityThresholds },
+                TropicalNightThresholds = { view.Alerts.TropicalNightThresholds },
+                HumidityThresholds = { view.Alerts.HumidityThresholds },
             },
-            Derived = new DerivedConfig { Enabled = enrichment.Derived.Enabled },
-            Trends = new TrendConfig { Enabled = enrichment.Trends.Enabled },
+            Derived = new DerivedConfig { Enabled = view.Derived.Enabled },
+            Trends = new TrendConfig { Enabled = view.Trends.Enabled },
             Indices = new IndexConfig
             {
-                Enabled = enrichment.Indices.Enabled,
-                IndoorTemp = enrichment.Indices.Preferences.IndoorTemp ?? 22.0,
-                IdealOutdoorTemp = enrichment.Indices.Preferences.IdealOutdoorTemp ?? 22.0,
-                HeatSensitivity = enrichment.Indices.Preferences.HeatSensitivity ?? 1.0,
-                HumiditySensitivity = enrichment.Indices.Preferences.HumiditySensitivity ?? 1.0,
-                WindSensitivity = enrichment.Indices.Preferences.WindSensitivity ?? 1.0,
-                RainSensitivity = enrichment.Indices.Preferences.RainSensitivity ?? 1.0,
-                RunningIdealTempLow = enrichment.Indices.Preferences.RunningIdealTempLow ?? 5.0,
-                RunningIdealTempHigh = enrichment.Indices.Preferences.RunningIdealTempHigh ?? 20.0,
-                BbqMinTemp = enrichment.Indices.Preferences.BbqMinTemp ?? 10.0,
-                BbqIdealWindLow = enrichment.Indices.Preferences.BbqIdealWindLow ?? 1.0,
-                BbqIdealWindHigh = enrichment.Indices.Preferences.BbqIdealWindHigh ?? 3.0,
+                Enabled = view.Indices.Enabled,
+                IndoorTemp = view.Indices.Preferences.IndoorTemp ?? 22.0,
+                IdealOutdoorTemp = view.Indices.Preferences.IdealOutdoorTemp ?? 22.0,
+                HeatSensitivity = view.Indices.Preferences.HeatSensitivity ?? 1.0,
+                HumiditySensitivity = view.Indices.Preferences.HumiditySensitivity ?? 1.0,
+                WindSensitivity = view.Indices.Preferences.WindSensitivity ?? 1.0,
+                RainSensitivity = view.Indices.Preferences.RainSensitivity ?? 1.0,
+                RunningIdealTempLow = view.Indices.Preferences.RunningIdealTempLow ?? 5.0,
+                RunningIdealTempHigh = view.Indices.Preferences.RunningIdealTempHigh ?? 20.0,
+                BbqMinTemp = view.Indices.Preferences.BbqMinTemp ?? 10.0,
+                BbqIdealWindLow = view.Indices.Preferences.BbqIdealWindLow ?? 1.0,
+                BbqIdealWindHigh = view.Indices.Preferences.BbqIdealWindHigh ?? 3.0,
             },
         };
     }
@@ -348,15 +442,31 @@ public sealed class AdminGrpcService(
         };
     }
 
-    private static ConfigResponse Success(NjordOptions options, BudgetValidation budget)
+    private ConfigResponse Success(IEnumerable<string> restartRequired)
     {
+        var config = MapConfig(view);
         var response = new ConfigResponse
         {
             Applied = true,
-            Config = MapConfig(options),
-            BudgetProjection = MapBudgetProjection(budget),
+            Config = config,
+            BudgetProjection = config.BudgetProjection.Clone(),
         };
-        response.Warnings.AddRange(budget.Warnings);
+        response.Warnings.AddRange(BudgetCalculator.Validate(view.Scope, view.Polling).Warnings);
+
+        var pending = restartRequired.ToList();
+        if (pending.Count > 0)
+        {
+            response.Warnings.Add($"{RestartNoticePrefix}{string.Join(", ", pending)}");
+        }
+
         return response;
     }
+
+    private static IEnumerable<string> RestartRequired<T>(ConfigUpdateResult<T> result, string section)
+        where T : class =>
+        result.RequiresRestart
+            ? result.ChangedProperties
+                .Where(p => ConfigReloadPolicy.For<T>(p) == ReloadMode.RestartRequired)
+                .Select(p => $"{section}{p}")
+            : [];
 }

@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Options;
 using Njord.Budget;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Mqtt;
+using Njord.Core.Configuration.Persistence;
+using Njord.Core.Configuration.Polling;
 using Njord.Core.Health;
 using Njord.Health;
 using Njord.Weather;
@@ -11,6 +14,8 @@ namespace Njord.Configuration;
 
 public sealed class CoreSetupContainer : IServiceSetupContainer
 {
+    internal static readonly string OverridePath = Path.Combine("data", "appsettings.Override.json");
+
     private static readonly HashSet<string> NjordMeters =
         ["Njord.OpenMeteo", "Njord.Budget", "Njord.Pipeline", "Njord.Mqtt"];
 
@@ -24,37 +29,29 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
         services
             .AddOptions<NjordOptions>()
             .BindConfiguration(NjordOptions.SectionName)
+            .ReplaceCollectionDefaults()
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<NjordOptions>, NjordOptionsValidator>();
 
-        services.AddSingleton(sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<NjordOptions>>().Value;
-            return ParameterRegistry.Resolve(
-                options.Parameters.Groups,
-                options.Parameters.Extra,
-                options.Parameters.Exclude);
-        });
+        services
+            .AddOptions<PersistenceOptions>()
+            .BindConfiguration(PersistenceOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<PersistenceOptions>, PersistenceOptionsValidator>();
+
+        services
+            .AddOptions<StorageOptions>()
+            .BindConfiguration(StorageOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<StorageOptions>, StorageOptionsValidator>();
+
+        services.AddSingleton(static sp => ResolveParameters(sp.GetRequiredService<IOptions<NjordOptions>>()));
 
         services.AddSingleton(TimeProvider.System);
 
-        services.AddSingleton(sp =>
-        {
-            var monitor = new NjordHealthMonitor
-            {
-                ServiceStartedUtc = sp.GetRequiredService<TimeProvider>().GetUtcNow(),
-            };
-            var budget = BudgetCalculator.GetEffectiveBudget(
-                sp.GetRequiredService<IOptions<NjordOptions>>().Value);
-            monitor.UpdateBudget(new BudgetHealthSnapshot(
-                0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, budget.RequestsPerMonth));
-            BudgetTelemetry.Observe(
-                () => monitor.Budget.UsedDaily,
-                () => monitor.Budget.UsedMonthly,
-                () => monitor.Budget.LimitDaily,
-                () => monitor.Budget.LimitMonthly);
-            return monitor;
-        });
+        services.AddSingleton(static sp => CreateHealthMonitor(
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<IOptions<PollingOptions>>()));
 
         var mqttEnabled = configuration
             .GetSection(MqttOptions.SectionName)
@@ -67,11 +64,35 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
             healthChecks.AddCheck<MqttConnectionHealthCheck>("mqtt-connection");
         }
 
-        services.AddSingleton<IWritableOptions<NjordOptions>>(sp =>
+        services.AddSingleton<ConfigView>();
+        services.AddSingleton<ConfigChangeFeed>();
+        services.AddSingleton<IConfigWriter>(static sp => new ConfigWriter(
+            sp,
+            (IConfigurationRoot)sp.GetRequiredService<IConfiguration>(),
+            sp.GetRequiredService<ConfigChangeFeed>(),
+            OverridePath));
+    }
+
+    private static ResolvedParameterSet ResolveParameters(IOptions<NjordOptions> options)
+    {
+        var parameters = options.Value.Parameters;
+        return ParameterRegistry.Resolve(parameters.Groups, parameters.Extra, parameters.Exclude);
+    }
+
+    private static NjordHealthMonitor CreateHealthMonitor(TimeProvider timeProvider, IOptions<PollingOptions> polling)
+    {
+        var monitor = new NjordHealthMonitor
         {
-            var monitor = sp.GetRequiredService<IOptionsMonitor<NjordOptions>>();
-            var configRoot = (IConfigurationRoot)sp.GetRequiredService<IConfiguration>();
-            return new WritableNjordOptions(monitor, configRoot, Path.Combine("data", "appsettings.Override.json"));
-        });
+            ServiceStartedUtc = timeProvider.GetUtcNow(),
+        };
+        var budget = BudgetCalculator.GetEffectiveBudget(polling.Value);
+        monitor.UpdateBudget(new BudgetHealthSnapshot(
+            0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, budget.RequestsPerMonth));
+        BudgetTelemetry.Observe(
+            () => monitor.Budget.UsedDaily,
+            () => monitor.Budget.UsedMonthly,
+            () => monitor.Budget.LimitDaily,
+            () => monitor.Budget.LimitMonthly);
+        return monitor;
     }
 }

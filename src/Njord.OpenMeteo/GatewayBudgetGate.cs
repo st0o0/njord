@@ -3,23 +3,24 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Stage;
 using Microsoft.Extensions.Options;
-using Njord.Core.Configuration;
+using Njord.Core.Configuration.Polling;
 using Njord.Messages.Pipeline;
 
 namespace Njord.OpenMeteo;
 
-internal sealed record BudgetRate(int CostPerMinute, int MaxBurst);
+public sealed record BudgetRate(int CostPerMinute, int MaxBurst);
 
-internal interface IBudgetProvider
+public interface IBudgetProvider
 {
     BudgetRate GetCurrentRate();
 }
 
+// Reads the budget per call so a hot budget change reaches the gate without a subscription (design D5).
 internal sealed class OptionsBudgetProvider : IBudgetProvider
 {
-    private readonly IOptionsMonitor<NjordOptions> _options;
+    private readonly IOptionsMonitor<PollingOptions> _options;
 
-    public OptionsBudgetProvider(IOptionsMonitor<NjordOptions> options)
+    public OptionsBudgetProvider(IOptionsMonitor<PollingOptions> options)
     {
         _options = options;
     }

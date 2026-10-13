@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Njord.Compute.Analysis;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Derived;
 
 namespace Njord.Derived;
 

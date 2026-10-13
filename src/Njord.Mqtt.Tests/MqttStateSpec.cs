@@ -5,6 +5,7 @@ using Akka.Streams.Dsl;
 using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Egress;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
@@ -22,7 +23,6 @@ public sealed class MqttStateSpec : NjordActorSpec
     {
         Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
         Models = ["icon_d2"],
-        Mqtt = new MqttOptions { BaseTopic = "njord" },
     };
 
     private IActorRef CreateMqttStateActor(
@@ -36,7 +36,7 @@ public sealed class MqttStateSpec : NjordActorSpec
 
         return Sys.ActorOf(Props.Create(() => new MqttStatePublisher(
             Microsoft.Extensions.Options.Options.Create(options),
-            Microsoft.Extensions.Options.Options.Create(options.Mqtt),
+            Microsoft.Extensions.Options.Options.Create(new MqttOptions { BaseTopic = "njord" }),
             parameters,
             timeProvider,
             transport)));

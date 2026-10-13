@@ -143,3 +143,54 @@ a spec asserts that every bound options type is classified.
 No config migration: keys are unchanged. An existing `data/appsettings.Override.json` keeps
 working because its paths are the section paths. Rollback is reverting the commit; the
 override file format is unchanged.
+
+## Deviations
+
+Recorded during implementation; each is the smallest change that kept the plan workable.
+
+1. **Stale test folders not deleted (task 1.2).** Deleting `src/Njord.Tests/bin|obj`,
+   `src/Njord.Domain.Tests` and `src/Njord.Egress.Tests` was refused by the tool permission
+   layer. The new `Njord.Tests.csproj` builds over the old `bin/obj`; the two leftover folders
+   have no project file, so the test loop and the solution ignore them. They remain for a manual
+   `rm -rf`.
+2. **`NjordOptions` keeps only the forecast scope, so three more split types exist.**
+   `DiscoveryInterval` moved to `PollingOptions` (it is the scheduler's discovery-phase poll
+   delay, the only interval `PollScheduler` actually reads), `OpenMeteoBaseUrl` to
+   `OpenMeteoOptions` (section `Njord`, registered by `OpenMeteoSetupContainer`),
+   `PersistencePath` to `StorageOptions` (section `Njord`). `Persistence` became the standalone
+   `PersistenceOptions` (`Njord:Persistence`). All keys are unchanged (D1). There is no
+   `GrpcOptions`: no gRPC configuration key exists.
+3. **`BudgetCalculator`/`RequestBudget` moved to `Configuration/Polling/`.** The 80 % guard moved
+   from `NjordOptionsValidator` to `PollingOptionsValidator`, which reads the forecast scope from
+   `IConfiguration` (not `IOptions<NjordOptions>`, which would throw inside a validator when the
+   scope itself is invalid). The admin API applies the same guard as a pre-check for location,
+   model and parameter changes; it used to reject only above 100 %.
+4. **Configured collections now replace their defaults.** The configuration binder appends
+   configured items to collections that already hold defaults (`Horizons`, `Parameters.Groups`,
+   every alert threshold array). Before this change configured thresholds were silently ignored
+   (the first three, i.e. the defaults, were used) and configured horizons were merged with the
+   default ladder. The new `AlertOptionsValidator` (three monotonic values) would have failed on
+   that, so `ReplaceCollectionDefaults()` (Core) rebinds configured collections fresh after
+   binding. Behavior change for users who configured these keys: their values now apply.
+   Not fixed: index-wise merging of arrays between configuration *sources* (an override file with
+   fewer `Locations` than `appsettings.json` keeps the trailing base entries). It predates this
+   change and affects the old writer equally.
+5. **Task order: 5.1 and most of 6.3 were done in group 2.** Removing `NjordOptions.Enrichment`,
+   `PollInterval` and `BudgetOverride` (2.4) breaks the NjordOptions-wide writer, so the
+   section writer (`IConfigWriter`/`ConfigWriter`) and the admin service rewrite landed with
+   group 2. `IConfigWriter` also has `Check<T>` (validate without writing) so a multi-section
+   admin request is validated as a whole before anything is persisted.
+6. **Non-actor readers of current values use `ConfigView`.** Admin `GetConfig`, Ops `GetStatus`
+   and the pipeline health check need the persisted, current values (the admin spec expects a
+   write to be visible in the next `GetConfig`). They read them per call through `ConfigView`
+   (Core), which wraps the `IOptionsMonitor<T>` instances and never subscribes.
+   `StreamConfig` listens to `ConfigChangeFeed` instead of `IOptionsMonitor.OnChange`.
+7. **`ConsensusOptions.MinQuorum` added (default 2).** The spec scenarios use it, but it did not
+   exist; `ConsensusSnapshotFactory` hard-coded a quorum of 2. The validator rejects values
+   below 1. Default output is unchanged.
+8. **Nested value types are not section types.** `ParameterOptions` (in `NjordOptions`) and
+   `LocationOptions` (in Njord.Weather) stay nested; they carry no `SectionName` and are
+   validated by `NjordOptionsValidator`. The "no options type nested in another" rule is applied
+   to section-bound types.
+9. **Validators for toggle-only types.** `TrendOptions` and `DerivedOptions` only hold `Enabled`;
+   their validators always succeed, to keep "exactly one validator per options type".

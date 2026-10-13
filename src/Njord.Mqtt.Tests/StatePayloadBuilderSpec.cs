@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
-using Njord.Compute.Configuration;
+using Njord.Core.Configuration.Indices;
 using Njord.Tests.Shared;
 using Njord.Weather;
 

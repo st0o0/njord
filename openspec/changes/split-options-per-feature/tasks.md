@@ -10,12 +10,12 @@ start a hosted actor system. Pure synchronous specs use a plain `[Fact]`.
 
 ## 2. One options type per section
 
-- [ ] 2.1 Add `PollingOptions` (PollInterval, BudgetOverride; section `Njord`) with its validator (budget projection via `BudgetCalculator`) in `src/Njord.Core/Configuration/Polling/`; spec that `Njord__PollInterval` still binds
-- [ ] 2.2 Move `AlertOptions`, `IndexOptions`, `IndexPreferences`, `LocationIndexOverride` from `src/Njord.Compute/Configuration/` to `src/Njord.Core/Configuration/<Area>/`; give `ConsensusOptions`, `AlertOptions`, `IndexOptions`, `TrendOptions`, `DerivedOptions` a `SectionName` and one validator each (re-target `ConsensusOptionsValidator` and `IndexOptionsValidator` from `EnrichmentOptions`); move the validator specs in `src/Njord.Core.Tests/Configuration/` accordingly
-- [ ] 2.3 Give `MqttOptions` its own validator (the MQTT host check moves out of `NjordOptionsValidator`); spec in `src/Njord.Core.Tests/Configuration/`
-- [ ] 2.4 Remove `Mqtt`, `Enrichment`, `PollInterval` and `BudgetOverride` from `NjordOptions`; delete `EnrichmentOptions`; update `NjordOptionsValidator` and its spec
-- [ ] 2.5 Register each options type once, in its owning setup extension (`src/Njord.Pipeline/Configuration/PipelineSetupContainer.cs` for consensus and polling, feature `ServiceCollectionExtensions` for alerts/derived/trends/indices, `src/Njord.Mqtt/Configuration/MqttSetupContainer.cs`, `src/Njord.SensorHub/Configuration/SensorSetupContainer.cs`); remove the bindings from `src/Njord/Configuration/AnalysisSetupContainer.cs` and `CoreSetupContainer.cs`
-- [ ] 2.6 Add `src/Njord.Tests/Configuration/OptionsBindingSpec.cs`: build the host configuration from a sample config and assert every options type resolves, validates, and that no `IOptions<EnrichmentOptions>` exists
+- [x] 2.1 Add `PollingOptions` (PollInterval, BudgetOverride; section `Njord`) with its validator (budget projection via `BudgetCalculator`) in `src/Njord.Core/Configuration/Polling/`; spec that `Njord__PollInterval` still binds
+- [x] 2.2 Move `AlertOptions`, `IndexOptions`, `IndexPreferences`, `LocationIndexOverride` from `src/Njord.Compute/Configuration/` to `src/Njord.Core/Configuration/<Area>/`; give `ConsensusOptions`, `AlertOptions`, `IndexOptions`, `TrendOptions`, `DerivedOptions` a `SectionName` and one validator each (re-target `ConsensusOptionsValidator` and `IndexOptionsValidator` from `EnrichmentOptions`); move the validator specs in `src/Njord.Core.Tests/Configuration/` accordingly
+- [x] 2.3 Give `MqttOptions` its own validator (the MQTT host check moves out of `NjordOptionsValidator`); spec in `src/Njord.Core.Tests/Configuration/`
+- [x] 2.4 Remove `Mqtt`, `Enrichment`, `PollInterval` and `BudgetOverride` from `NjordOptions`; delete `EnrichmentOptions`; update `NjordOptionsValidator` and its spec
+- [x] 2.5 Register each options type once, in its owning setup extension (`src/Njord.Pipeline/Configuration/PipelineSetupContainer.cs` for consensus and polling, feature `ServiceCollectionExtensions` for alerts/derived/trends/indices, `src/Njord.Mqtt/Configuration/MqttSetupContainer.cs`, `src/Njord.SensorHub/Configuration/SensorSetupContainer.cs`); remove the bindings from `src/Njord/Configuration/AnalysisSetupContainer.cs` and `CoreSetupContainer.cs`
+- [x] 2.6 Add `src/Njord.Tests/Configuration/OptionsBindingSpec.cs`: build the host configuration from a sample config and assert every options type resolves, validates, and that no `IOptions<EnrichmentOptions>` exists
 
 ## 3. Settings records for Compute
 
@@ -30,7 +30,7 @@ start a hosted actor system. Pure synchronous specs use a plain `[Fact]`.
 
 ## 5. Section writer and ConfigManager
 
-- [ ] 5.1 Replace `IWritableOptions<NjordOptions>`/`WritableNjordOptions` with `IConfigWriter.UpdateAsync<T>` in `src/Njord.Core/Configuration/`, keeping the override-file mechanics; port the writable-options specs (array replacement, atomic write, concurrency, first-write creation) and add the "invalid update not persisted" spec
+- [x] 5.1 Replace `IWritableOptions<NjordOptions>`/`WritableNjordOptions` with `IConfigWriter.UpdateAsync<T>` in `src/Njord.Core/Configuration/`, keeping the override-file mechanics; port the writable-options specs (array replacement, atomic write, concurrency, first-write creation) and add the "invalid update not persisted" spec
 - [ ] 5.2 Add `IConfigManager` to `src/Njord.Core/Actors/ActorKeys.cs` and `ConfigManager` in `src/Njord/Configuration/ConfigManager.cs`: hot `OnChange` subscriptions via `Self.Tell`, `AnalysisSettingsChanged` to the pipeline, `PollingChanged` to the scheduler; register it in `NjordActorSystemSetup`
 - [ ] 5.3 Add `src/Njord.Tests/Configuration/ConfigManagerSpec.cs` (TestKit): a hot reload reaches pipeline and scheduler probes; a restart-required reload sends nothing
 - [ ] 5.4 Make `PollScheduler` handle `PollingChanged` by re-planning its timer with the new interval; inject `IOptions<PollingOptions>` for the start value; spec in `src/Njord.Pipeline.Tests/`
@@ -39,7 +39,7 @@ start a hosted actor system. Pure synchronous specs use a plain `[Fact]`.
 
 - [ ] 6.1 `src/Njord.OpenMeteo`: `OpenMeteoClient` and `OpenMeteoGateway` inject `IOptions<NjordOptions>` (scope) only; `GatewayBudgetGate` reads `IOptionsMonitor<PollingOptions>.CurrentValue` per call; update `src/Njord.OpenMeteo.Tests`
 - [ ] 6.2 `src/Njord.Mqtt/MqttStatePublisher.cs` drops `NjordOptions` if it only needs MQTT values; otherwise it injects the scope options alone; update `src/Njord.Mqtt.Tests`
-- [ ] 6.3 `src/Njord.Grpc/AdminGrpcService.cs` writes through `IConfigWriter` per section and adds the restart warning from `ConfigReloadPolicy`; `GetConfig`/`StreamConfig` assemble `NjordConfig` from the section options; update `src/Njord.Grpc.Tests/AdminGrpcServiceSpec.cs` (restart warning for `SetLocations`, none for alert thresholds, rejection leaves the file unchanged)
+- [x] 6.3 `src/Njord.Grpc/AdminGrpcService.cs` writes through `IConfigWriter` per section and adds the restart warning from `ConfigReloadPolicy`; `GetConfig`/`StreamConfig` assemble `NjordConfig` from the section options; update `src/Njord.Grpc.Tests/AdminGrpcServiceSpec.cs` (restart warning for `SetLocations`, none for alert thresholds, rejection leaves the file unchanged)
 - [ ] 6.4 Remove `GetRequiredService<IOptions<…>>().Value` from `src/Njord/Configuration/CoreSetupContainer.cs` and `src/Njord.OpenMeteo/Configuration/OpenMeteoSetupContainer.cs` (use factory overloads that resolve at activation); keep it only in `AkkaSetupContainer` and comment why
 - [ ] 6.5 Add an ArchUnit rule in `src/Njord.Architecture.Tests/` that no type deriving from an Akka actor base injects `IOptionsMonitor<>`, and that `IOptionsMonitor<>` is used only by `ConfigManager` and `GatewayBudgetGate`
 

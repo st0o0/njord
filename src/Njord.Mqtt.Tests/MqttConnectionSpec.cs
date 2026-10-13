@@ -1,6 +1,6 @@
 using Akka.Actor;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Core.Configuration;
+using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Health;
 using Njord.Messages.Mqtt;
 using Njord.Mqtt.Transport;
@@ -15,10 +15,8 @@ public sealed class MqttConnectionSpec : NjordActorSpec
     private static readonly DateTimeOffset Epoch = TestTimeConstants.PipelineEpoch;
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(Epoch);
 
-    private static NjordOptions DefaultOptions() => new()
-    {
-        Mqtt = new MqttOptions { Host = "localhost", BaseTopic = "njord", DiscoveryPrefix = "homeassistant" },
-    };
+    private static MqttOptions DefaultOptions() =>
+        new() { Host = "localhost", BaseTopic = "njord", DiscoveryPrefix = "homeassistant" };
 
     private IActorRef CreateActor(
         IMqttConnection connection,
@@ -26,7 +24,7 @@ public sealed class MqttConnectionSpec : NjordActorSpec
         MqttEgressTuning? tuning = null)
     {
         return Sys.ActorOf(Props.Create(() => new MqttConnection(
-            Microsoft.Extensions.Options.Options.Create(DefaultOptions().Mqtt),
+            Microsoft.Extensions.Options.Options.Create(DefaultOptions()),
             connection,
             transport,
             tuning ?? new MqttEgressTuning(TimeSpan.FromMilliseconds(50)),

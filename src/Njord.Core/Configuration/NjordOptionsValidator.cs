@@ -5,7 +5,6 @@ namespace Njord.Core.Configuration;
 
 public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
 {
-    private const double MonthlyBudgetGuardFactor = 0.8;
     private const int FetchWindowHours = 96;
 
     public ValidateOptionsResult Validate(string? name, NjordOptions options)
@@ -14,19 +13,15 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
 
         ValidateLocations(options, failures);
         ValidateModels(options, failures);
-        ValidateIntervals(options, failures);
         ValidateHorizons(options, failures);
-        ValidateConnections(options, failures);
+        ValidateForecastDays(options, failures);
 
         var parametersResolved = TryResolveParameters(options, failures);
 
-        if (parametersResolved && options.Locations.Count > 0 && options.Models.Count > 0 && options.PollInterval > TimeSpan.Zero)
+        if (parametersResolved && options.Locations.Count > 0 && options.Models.Count > 0)
         {
             ValidateModelCoverage(options, failures);
-            ValidateBudget(options, failures);
         }
-
-        ValidatePersistenceWritable(options, failures);
 
         return failures.Count > 0
             ? ValidateOptionsResult.Fail(failures)
@@ -57,19 +52,6 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
         }
     }
 
-    private static void ValidateIntervals(NjordOptions options, List<string> failures)
-    {
-        if (options.PollInterval <= TimeSpan.Zero)
-        {
-            failures.Add("PollInterval must be positive.");
-        }
-
-        if (options.DiscoveryInterval <= TimeSpan.Zero)
-        {
-            failures.Add("DiscoveryInterval must be positive.");
-        }
-    }
-
     private static void ValidateHorizons(NjordOptions options, List<string> failures)
     {
         if (options.Horizons.Count == 0)
@@ -82,17 +64,11 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
         }
     }
 
-    private static void ValidateConnections(NjordOptions options, List<string> failures)
+    private static void ValidateForecastDays(NjordOptions options, List<string> failures)
     {
-        if (options.Persistence.Provider == PersistenceProvider.PostgreSql
-            && string.IsNullOrWhiteSpace(options.Persistence.ConnectionString))
+        if (options.ForecastDays is < 1 or > 16)
         {
-            failures.Add("PostgreSQL persistence requires a connection string — set Njord:Persistence:ConnectionString.");
-        }
-
-        if (options.Mqtt.Enabled && string.IsNullOrWhiteSpace(options.Mqtt.Host))
-        {
-            failures.Add("The MQTT broker host is missing — set Njord:Mqtt:Host.");
+            failures.Add("ForecastDays must be between 1 and 16.");
         }
     }
 
@@ -133,51 +109,6 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
                 }
                 // Unknown models are allowed — forward compatible with new Open-Meteo models
             }
-        }
-    }
-
-    private static void ValidateBudget(NjordOptions options, List<string> failures)
-    {
-        var projection = BudgetCalculator.Validate(options);
-        if (projection.UsagePercent <= MonthlyBudgetGuardFactor * 100)
-        {
-            return;
-        }
-
-        var guard = (int)Math.Round(projection.MonthlyLimit * MonthlyBudgetGuardFactor);
-        failures.Add(
-            $"Projected API usage of {projection.ProjectedMonthlyCalls} effective requests/month ({projection.TotalModelsPerCycle} model-location pairs " +
-            $"every {options.PollInterval.TotalMinutes:0} min, weight {projection.ApiCallWeight}) exceeds the " +
-            $"guard of {guard} (80% of the {projection.MonthlyLimit}/month budget). " +
-            "Reduce locations/models, increase PollInterval, or exclude parameters.");
-    }
-
-    private static void ValidatePersistenceWritable(NjordOptions options, List<string> failures)
-    {
-        if (options.Persistence is not { Provider: PersistenceProvider.Sqlite, ConnectionString: null })
-        {
-            return;
-        }
-
-        var dir = Path.GetDirectoryName(options.PersistencePath);
-        if (string.IsNullOrEmpty(dir))
-        {
-            return;
-        }
-
-        try
-        {
-            Directory.CreateDirectory(dir);
-            var probe = Path.Combine(dir, ".njord-write-probe");
-            File.WriteAllBytes(probe, []);
-            File.Delete(probe);
-        }
-        catch (Exception ex)
-        {
-            var fullDir = Path.GetFullPath(dir);
-            failures.Add(
-                $"Persistence directory '{fullDir}' is not writable: {ex.Message}. " +
-                "Ensure the volume is mounted and the container user has write access.");
         }
     }
 }

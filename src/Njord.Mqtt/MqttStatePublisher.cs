@@ -5,6 +5,7 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Egress;
 using Njord.Mqtt.Transport;
 using Njord.Weather;

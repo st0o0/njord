@@ -1,9 +1,13 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Compute.Configuration;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Alerts;
+using Njord.Core.Configuration.Consensus;
+using Njord.Core.Configuration.Derived;
+using Njord.Core.Configuration.Indices;
+using Njord.Core.Configuration.Trends;
 using Njord.Grpc.V2;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -36,17 +40,15 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         {
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
             Models = ["icon_d2"],
-            Enrichment = new EnrichmentOptions
-            {
-                Consensus = new ConsensusOptions { Enabled = true },
-                Alerts = new AlertOptions { Enabled = true },
-                Derived = new DerivedOptions { Enabled = false },
-                Trends = new TrendOptions { Enabled = false },
-                Indices = new IndexOptions { Enabled = false },
-            },
         };
-        var monitor = new TestOptionsMonitor<NjordOptions>(options);
-        return new OpsGrpcService(monitor, ActorRegistry, _time,
+        var config = TestConfigView.Create(
+            options,
+            consensus: new ConsensusOptions { Enabled = true },
+            alerts: new AlertOptions { Enabled = true },
+            derived: new DerivedOptions { Enabled = false },
+            trends: new TrendOptions { Enabled = false },
+            indices: new IndexOptions { Enabled = false });
+        return new OpsGrpcService(config, ActorRegistry, _time,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<OpsGrpcService>.Instance);
     }
 

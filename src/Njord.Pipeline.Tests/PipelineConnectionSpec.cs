@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Polling;
 using Njord.Core.Health;
 using Njord.Messages.Forecast;
 using Njord.Tests.Shared;
@@ -52,7 +53,6 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         {
             Locations = [new LocationOptions { Name = "test", Latitude = 47.0, Longitude = 8.3 }],
             Models = ["icon_d2"],
-            DiscoveryInterval = TimeSpan.FromMinutes(20),
         };
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero));
         var health = new NjordHealthMonitor { ServiceStartedUtc = time.GetUtcNow() };
@@ -63,7 +63,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
 
         var scheduler = Sys.ActorOf(
             Props.Create(() => new PollScheduler(
-                Options.Create(options), time, health)),
+                Options.Create(options), Options.Create(new PollingOptions { DiscoveryInterval = TimeSpan.FromMinutes(20) }), time, health)),
             "real-scheduler");
         ActorRegistry.Register<IPollScheduler>(scheduler, overwrite: true);
 

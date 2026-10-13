@@ -5,7 +5,7 @@ using Akka.Remote.Hosting;
 using LinqToDB;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
-using Njord.Core.Configuration;
+using Njord.Core.Configuration.Persistence;
 using Servus.Akka.Startup;
 
 namespace Njord.Configuration;
@@ -16,8 +16,11 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
 
     protected override void BuildSystem(AkkaConfigurationBuilder builder, IServiceProvider serviceProvider)
     {
-        var njordOptions = serviceProvider.GetRequiredService<IOptions<NjordOptions>>().Value;
-        ConfigureInfrastructure(builder, njordOptions);
+        // The actor system configuration is built once at startup and needs plain values, so the validated
+        // options are read here; persistence settings are restart-required (ConfigReloadPolicy).
+        var persistence = serviceProvider.GetRequiredService<IOptions<PersistenceOptions>>().Value;
+        var storage = serviceProvider.GetRequiredService<IOptions<StorageOptions>>().Value;
+        ConfigureInfrastructure(builder, persistence, storage.PersistencePath);
 
         foreach (var registration in serviceProvider.GetServices<IActorRegistration>())
         {
@@ -25,13 +28,12 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
         }
     }
 
-    internal static void ConfigureInfrastructure(AkkaConfigurationBuilder builder, NjordOptions njordOptions)
+    internal static void ConfigureInfrastructure(
+        AkkaConfigurationBuilder builder, PersistenceOptions persistence, string persistencePath)
     {
-        var persistence = njordOptions.Persistence;
-
         var connectionString = persistence.ConnectionString
             ?? (persistence.Provider == PersistenceProvider.Sqlite
-                ? $"Data Source={Path.GetFullPath(njordOptions.PersistencePath)}"
+                ? $"Data Source={Path.GetFullPath(persistencePath)}"
                 : throw new InvalidOperationException(
                     "PostgreSQL persistence requires a connection string — set Njord:Persistence:ConnectionString."));
 

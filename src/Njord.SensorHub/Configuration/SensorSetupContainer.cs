@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
-using Njord.Core.Configuration;
+using Njord.Core.Configuration.Sensors;
 using Servus.Application.Startup;
 
 namespace Njord.SensorHub.Configuration;
