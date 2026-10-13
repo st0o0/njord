@@ -4,9 +4,9 @@ start a hosted actor system. Pure synchronous specs use a plain `[Fact]`.
 
 ## 1. Inventory and classification
 
-- [ ] 1.1 List every property of `src/Njord.Core/Configuration/NjordOptions.cs`, `EnrichmentOptions.cs`, `WritableNjordOptions.cs`, and every reader of each property; record the result in this change's design.md under "Context"
-- [ ] 1.2 Create the host test project `src/Njord.Tests/Njord.Tests.csproj` (it does not exist yet; only stale bin/obj folders are there): executable xUnit v3 project referencing `src/Njord/Njord.csproj` and `Njord.Tests.Shared`, added to `src/Njord.slnx`, set up like the other test projects; delete the stale bin/obj folder contents first, and remove the stale `Njord.Domain.Tests`/`Njord.Egress.Tests` leftovers (bin/obj only, untracked)
-- [ ] 1.3 Add `ConfigReloadPolicy` (Hot / RestartRequired per options type, plus per property for `NjordOptions`) in `src/Njord.Core/Configuration/ConfigReloadPolicy.cs` with `src/Njord.Core.Tests/Configuration/ConfigReloadPolicySpec.cs` asserting every bound options type is classified
+- [x] 1.1 List every property of `src/Njord.Core/Configuration/NjordOptions.cs`, `EnrichmentOptions.cs`, `WritableNjordOptions.cs`, and every reader of each property; record the result in this change's design.md under "Context"
+- [x] 1.2 Create the host test project `src/Njord.Tests/Njord.Tests.csproj` (it does not exist yet; only stale bin/obj folders are there): executable xUnit v3 project referencing `src/Njord/Njord.csproj` and `Njord.Tests.Shared`, added to `src/Njord.slnx`, set up like the other test projects; delete the stale bin/obj folder contents first, and remove the stale `Njord.Domain.Tests`/`Njord.Egress.Tests` leftovers (bin/obj only, untracked)
+- [x] 1.3 Add `ConfigReloadPolicy` (Hot / RestartRequired per options type, plus per property for `NjordOptions`) in `src/Njord.Core/Configuration/ConfigReloadPolicy.cs` with `src/Njord.Core.Tests/Configuration/ConfigReloadPolicySpec.cs` asserting every bound options type is classified
 
 ## 2. One options type per section
 

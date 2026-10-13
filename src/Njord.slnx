@@ -50,6 +50,7 @@
     <Project Path="Njord.Derived.Tests/Njord.Derived.Tests.csproj" />
     <Project Path="Njord.Trends.Tests/Njord.Trends.Tests.csproj" />
     <Project Path="Njord.Indices.Tests/Njord.Indices.Tests.csproj" />
+    <Project Path="Njord.Tests/Njord.Tests.csproj" />
   </Folder>
   <Project Path="Njord/Njord.csproj" />
 </Solution>

@@ -19,6 +19,50 @@ Note for the implementer: the full property list of `NjordOptions` and the inter
 `WritableNjordOptions` were not read while planning (a tooling restriction blocked the
 read). Task 1.1 inventories them before anything moves.
 
+#### Inventory (task 1.1)
+
+`NjordOptions` (section `Njord`), production readers per property:
+
+| Property | Key | Readers |
+|---|---|---|
+| `Locations` | `Njord:Locations` | `PollScheduler` (init, trigger, cycle totals), `OpenMeteoGateway` (`FindLocation`), `IndexAnalyzer` (location names for the preference map), `WeatherGrpcService`, `SensorGrpcService`, `AdminGrpcService`, `BudgetCalculator.Validate`, `NjordOptionsValidator` |
+| `Models` | `Njord:Models` | `PollScheduler`, `WeatherGrpcService`, `AdminGrpcService`, `BudgetCalculator.Validate`, `NjordOptionsValidator` |
+| `Horizons` | `Njord:Horizons` | `DerivedAnalyzer`, `MqttStatePublisher`, `AdminGrpcService`, `NjordOptionsValidator` |
+| `ForecastDays` | `Njord:ForecastDays` | `OpenMeteoClient` (request), `OpenMeteoGateway` (call weight), `MqttStatePublisher`, `AdminGrpcService` |
+| `Parameters` | `Njord:Parameters` | `CoreSetupContainer` (`ResolvedParameterSet` singleton), `BudgetCalculator.Validate`, `AdminGrpcService`, `NjordOptionsValidator` |
+| `PollInterval` | `Njord:PollInterval` | `BudgetCalculator.Validate` (projection only), `PipelineHealthCheck` (staleness), `AdminGrpcService`, `NjordOptionsValidator`. **Not** read by `PollScheduler` |
+| `BudgetOverride` | `Njord:BudgetOverride` | `BudgetCalculator.GetEffectiveBudget` → `OptionsBudgetProvider` (gateway budget gate, live), `OpsGrpcService.GetStatus` (live), `CoreSetupContainer` (health monitor seed), `AdminGrpcService` |
+| `DiscoveryInterval` | `Njord:DiscoveryInterval` | `PollScheduler` (discovery-phase poll delay, miss/transient fallback delay), `NjordOptionsValidator` |
+| `OpenMeteoBaseUrl` | `Njord:OpenMeteoBaseUrl` | `OpenMeteoSetupContainer` (HttpClient base address) |
+| `Persistence` (`PersistenceOptions`) | `Njord:Persistence` | `AkkaSetupContainer` (SQL persistence), `NjordOptionsValidator` (PostgreSQL connection string, writable dir) |
+| `PersistencePath` | `Njord:PersistencePath` | `AkkaSetupContainer`, `NjordOptionsValidator` (writable probe) |
+| `Mqtt` (`MqttOptions`) | `Njord:Mqtt` | `NjordOptionsValidator` (host check) only; every MQTT consumer already injects the standalone `IOptions<MqttOptions>` |
+| `Enrichment` (`EnrichmentOptions`) | `Njord:Enrichment` | `OpsGrpcService` (active enrichments), `AdminGrpcService` (map/write); analyzers use the dual-bound sub-types |
+
+`EnrichmentOptions` (`Njord:Enrichment`, also bound standalone in `AnalysisSetupContainer`
+with `ConsensusOptionsValidator` and `IndexOptionsValidator` registered against it):
+
+| Property | Readers |
+|---|---|
+| `Consensus` (`Enabled`, `Method`, `TrimPercent`) | `OpsGrpcService`, `AdminGrpcService` only. `ConsensusSnapshotFactory` uses its own default trim percent (0.1); no compute code reads consensus options |
+| `Alerts` (`AlertOptions`) | `AlertAnalyzer` → `AlertEvaluator.EvaluateAll` (via standalone binding), Ops/Admin |
+| `Derived` (`Enabled`) | `DerivedAnalyzer` (standalone binding), Ops/Admin |
+| `Trends` (`Enabled`) | `TrendAnalyzer` (standalone binding), Ops/Admin |
+| `Indices` (`IndexOptions`) | `IndexAnalyzer` → `PreferenceResolver.Resolve` (in Compute) at construction, Ops/Admin |
+
+`WritableNjordOptions` (`IWritableOptions<NjordOptions>`: `Value`, `Update(Action<T>)`),
+registered in `CoreSetupContainer` for `data/appsettings.Override.json`. `Update` takes a
+synchronous `SemaphoreSlim`, deep-clones `CurrentValue` twice via `System.Text.Json`,
+applies the mutation to one clone, computes a JSON delta (changed leaves; arrays replaced
+whole; removed keys written as `null`), merges the delta into the existing file's `Njord`
+object, writes `{"Njord": …}` to `<path>.tmp` and moves it over the file (atomic), calls
+`IConfigurationRoot.Reload()` and returns the new `CurrentValue`. No validation happens
+before the write. Its only consumer is `AdminGrpcService`.
+
+Other findings: there is no `GrpcOptions` type and no gRPC configuration key; there is no
+`NjordActorSystemSetup` (actors register through `IActorRegistration` implementations that
+`AkkaSetupContainer` applies); `AlertEvaluator` lives in `Njord.Alerts`, not Compute.
+
 ## Goals / Non-Goals
 
 **Goals:** one binding per section, narrow injection, one well-defined path for runtime
