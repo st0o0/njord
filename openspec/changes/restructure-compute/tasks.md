@@ -5,9 +5,9 @@ Pure synchronous specs use a plain `[Fact]`, and specs with async or DI-host set
 
 ## 1. Query vocabulary in Compute
 
-- [ ] 1.1 Add `src/Njord.Compute/Querying/ConsensusQueries.cs` (`Find`, `Within`, `Extreme`, `AgreementAbove`, `AverageAgreement`, `MaxModelCount`, `ModelsAt`) and `HorizonWindow`/`HorizonHit`, with `src/Njord.Compute.Tests/Querying/ConsensusQueriesSpec.cs` (port the `HorizonExtremeScannerSpec` cases)
-- [ ] 1.2 Rename `ConsensusSnapshotFactory` → `ConsensusBuilder` and `ConsensusComputer` → `ConsensusStatistics`, move them to `src/Njord.Compute/Consensus/`; rename their specs; update `src/Njord.Pipeline/ForecastPipeline.cs` and DI registration
-- [ ] 1.3 Move result and settings records to `src/Njord.Compute/Contracts/` (namespaces updated across Mqtt, Grpc, Core, Pipeline)
+- [x] 1.1 Add `src/Njord.Compute/Querying/ConsensusQueries.cs` (`Find`, `Within`, `Extreme`, `AgreementAbove`, `AverageAgreement`, `MaxModelCount`, `ModelsAt`) and `HorizonWindow`/`HorizonHit`, with `src/Njord.Compute.Tests/Querying/ConsensusQueriesSpec.cs` (port the `HorizonExtremeScannerSpec` cases)
+- [x] 1.2 Rename `ConsensusSnapshotFactory` → `ConsensusBuilder` and `ConsensusComputer` → `ConsensusStatistics`, move them to `src/Njord.Compute/Consensus/`; rename their specs; update `src/Njord.Pipeline/ForecastPipeline.cs` and DI registration
+- [x] 1.3 Move result and settings records to `src/Njord.Compute/Contracts/` (namespaces updated across Mqtt, Grpc, Core, Pipeline)
 
 ## 2. Alerts: one rule per alert type
 

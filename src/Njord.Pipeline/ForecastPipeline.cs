@@ -4,7 +4,8 @@ using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Alerts;
-using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
@@ -31,7 +32,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
     private sealed record RetryGatewayResolve;
 
     private readonly TimeProvider _timeProvider;
-    private readonly ConsensusSnapshotFactory _consensusFactory;
+    private readonly ConsensusBuilder _consensusBuilder;
     private readonly AlertAnalyzer _alerts;
     private readonly DerivedAnalyzer _derived;
     private readonly TrendAnalyzer _trends;
@@ -52,7 +53,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
 
     public ForecastPipeline(
         TimeProvider timeProvider,
-        ConsensusSnapshotFactory consensusFactory,
+        ConsensusBuilder consensusBuilder,
         AlertAnalyzer alerts,
         DerivedAnalyzer derived,
         TrendAnalyzer trends,
@@ -61,7 +62,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
     {
         _settings = startupSettings;
         _timeProvider = timeProvider;
-        _consensusFactory = consensusFactory;
+        _consensusBuilder = consensusBuilder;
         _alerts = alerts;
         _derived = derived;
         _trends = trends;
@@ -206,7 +207,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
             .Concat(settingsSourceRaw)
             .RepeatPrevious();
 
-        var consensusFactory = _consensusFactory;
+        var consensusBuilder = _consensusBuilder;
         var alerts = _alerts;
         var derived = _derived;
         var trends = _trends;
@@ -234,7 +235,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                     var now = timeProvider.GetUtcNow();
                     snapshot = snapshot.Update(input.forecast);
                     var settings = input.settings;
-                    var consensus = consensusFactory.Create(snapshot, input.forecast.Location, settings.Consensus);
+                    var consensus = consensusBuilder.Create(snapshot, input.forecast.Location, settings.Consensus);
 
                     var events = new List<PipelineEvent>
                     {

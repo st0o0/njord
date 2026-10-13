@@ -71,7 +71,7 @@ public sealed class ConfigurationArchitectureSpec
     [Fact]
     public void Compute_contains_no_options_types_and_does_not_reference_the_options_package()
     {
-        var compute = typeof(Compute.Analysis.ConsensusSnapshot).Assembly;
+        var compute = typeof(Compute.Consensus.ConsensusSnapshot).Assembly;
 
         Assert.DoesNotContain(compute.GetTypes(), t => t.Name.EndsWith("Options", StringComparison.Ordinal));
         Assert.DoesNotContain(compute.GetTypes(), t => t.Namespace == "Njord.Compute.Configuration");

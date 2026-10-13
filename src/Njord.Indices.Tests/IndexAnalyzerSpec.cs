@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Indices;
 using Njord.Sensors;
@@ -112,7 +114,7 @@ public sealed class IndexAnalyzerSpec
     private static ConsensusSnapshot BuildConsensus(string location = "lucerne")
     {
         var snap = ModelSnapshot.Empty;
-        return new ConsensusSnapshotFactory(Parameters, Time).Create(snap, location, ConsensusSettings.Default);
+        return new ConsensusBuilder(Parameters, Time).Create(snap, location, ConsensusSettings.Default);
     }
 
     private static ConsensusSnapshot BuildConsensusWithWeather(string location)
@@ -120,7 +122,7 @@ public sealed class IndexAnalyzerSpec
         var snap = ModelSnapshot.Empty
             .Update(MakeForecast(new WeatherModel("m1"), location, 24, _ => (15.0, 60.0, 3.0, 30.0, 0.0)))
             .Update(MakeForecast(new WeatherModel("m2"), location, 24, _ => (15.0, 60.0, 3.0, 30.0, 0.0)));
-        return new ConsensusSnapshotFactory(Parameters, Time).Create(snap, location, ConsensusSettings.Default);
+        return new ConsensusBuilder(Parameters, Time).Create(snap, location, ConsensusSettings.Default);
     }
 
     private static Forecast MakeForecast(

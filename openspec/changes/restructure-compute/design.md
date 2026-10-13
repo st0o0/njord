@@ -102,3 +102,30 @@ Compute to non-test assemblies".
 
 Internal only; no deployment step. Each task group leaves the solution building and the
 golden masters green, so the work can stop between groups.
+
+## Deviations
+
+Adaptations made during implementation, where the plan above or `tasks.md` no longer
+matched the code left by `typed-analysis-models` and `split-options-per-feature`:
+
+- **1.1 Query vocabulary shape.** `ConsensusQueries` provides the seven named queries plus
+  four small helpers the rules needed to replace their private loops: `Values()` (all
+  window entries with a median, as `HorizonHit`s, in series order), `Hits(qualifies)`,
+  `Earliest(qualifies)` (lowest offset), `Peak(seed)` (the confidence-interval-upper peak
+  `HorizonExtremeScanner` tracked), plus `At(horizon)` / `MedianAt(horizon)` lookups that
+  also accept a missing (`null`) series. `HorizonWindow` is a `readonly record struct`
+  over a `ParameterConsensus` and the last `Horizon` of the window; it keeps the series'
+  own entry order and filters by horizon kind, so no entry is copied. `HorizonHit` is a
+  sealed record class (`Value`, `Horizon`, `Agreement`, `ModelCount`).
+- **1.2 Consensus folder.** Besides `ConsensusBuilder` and `ConsensusStatistics`, the
+  consensus records (`ConsensusSnapshot`, `HourlyConsensus`, `DailyConsensus`,
+  `ParameterConsensus`, `HorizonConsensus`, `OutlierInfo`, `ConfidenceIntervalInfo`,
+  `ConsensusResult`) moved to `Njord.Compute/Consensus/` (namespace
+  `Njord.Compute.Consensus`). The renamed specs live in `Njord.Compute.Tests/Consensus/`
+  (`ConsensusBuilderSpec`, formerly `ConsensusSnapshotSpec`; `ConsensusStatisticsSpec`).
+  The method names on `ConsensusStatistics` (`ComputeMedian`, ...) are unchanged.
+- **1.3 Settings stay in `Settings/`.** `split-options-per-feature` already put the settings
+  records in `Njord.Compute/Settings/` (namespace `Njord.Compute.Settings`); they stay
+  there. Only the result records, `SeverityThresholds`, `ScanDirection` and the result
+  enums moved to `Njord.Compute/Contracts/` (namespace `Njord.Compute.Contracts`). The
+  specs of these contracts moved to `Njord.Compute.Tests/Contracts/`.

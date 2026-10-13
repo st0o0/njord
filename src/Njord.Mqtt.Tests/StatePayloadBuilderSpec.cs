@@ -1,6 +1,8 @@
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Indices;
 using Njord.Tests.Shared;
@@ -127,7 +129,7 @@ public sealed class StatePayloadBuilderSpec
         var snap = SnapshotWith(
             MakeForecast(IconD2, (Temperature, 20.0)),
             MakeForecast(new WeatherModel("ecmwf_ifs025"), (Temperature, 22.0)));
-        var consensus = new ConsensusSnapshotFactory(new ResolvedParameterSet([Temperature], []), Time).Create(snap, "lucerne", ConsensusSettings.Default);
+        var consensus = new ConsensusBuilder(new ResolvedParameterSet([Temperature], []), Time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new ConsensusResult(consensus.Hourly.Parameters, consensus.Daily.Parameters);
 
         var messages = StatePayloadBuilder.FromConsensus(result, "njord", "lucerne");
@@ -163,7 +165,7 @@ public sealed class StatePayloadBuilderSpec
         };
 
         var snap = dailyForecasts.Aggregate(ModelSnapshot.Empty, (s, f) => s.Update(f));
-        var consensus = new ConsensusSnapshotFactory(new ResolvedParameterSet([], [dailyParam]), Time).Create(snap, "lucerne", ConsensusSettings.Default);
+        var consensus = new ConsensusBuilder(new ResolvedParameterSet([], [dailyParam]), Time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new ConsensusResult(consensus.Hourly.Parameters, consensus.Daily.Parameters);
 
         var messages = StatePayloadBuilder.FromConsensus(result, "njord", "lucerne");
@@ -224,7 +226,7 @@ public sealed class StatePayloadBuilderSpec
                 (Temperature, 5.0), (WindSpeed, 8.0), (DewPoint, 3.0),
                 (WeatherCode, 0.0), (PressureMsl, 1020.0), (SurfacePressure, 1015.0),
                 (SunshineDuration, 3600.0), (IsDay, 1.0)));
-        var consensus = new ConsensusSnapshotFactory(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
+        var consensus = new ConsensusBuilder(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new DerivedResultComputer(FullParams).Compute(consensus, new DerivedSettings([3]));
 
         var messages = StatePayloadBuilder.FromDerived(result, "njord");
@@ -242,7 +244,7 @@ public sealed class StatePayloadBuilderSpec
         var snap = SnapshotWith(
             MakeForecast(M1, (Temperature, 20.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)));
-        var consensus = new ConsensusSnapshotFactory(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
+        var consensus = new ConsensusBuilder(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new TrendComputer().Compute(consensus, null);
 
         var messages = StatePayloadBuilder.FromTrends(result, "njord");
@@ -258,7 +260,7 @@ public sealed class StatePayloadBuilderSpec
         var snap = SnapshotWith(
             MakeForecast(M1, (Temperature, 20.0), (Humidity, 55.0), (WindSpeed, 2.0), (CloudCover, 30.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 21.0), (Humidity, 56.0), (WindSpeed, 2.5), (CloudCover, 32.0)));
-        var consensus = new ConsensusSnapshotFactory(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
+        var consensus = new ConsensusBuilder(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new IndexComputer(FullParams, Time).Compute(consensus, DefaultPrefs());
 
         var messages = StatePayloadBuilder.FromIndices(result, "njord");
@@ -274,7 +276,7 @@ public sealed class StatePayloadBuilderSpec
         var snap = SnapshotWith(
             MakeForecast(IconD2, (Temperature, 22.0), (Humidity, 50.0), (WindSpeed, 3.0), (CloudCover, 20.0)),
             MakeForecast(new WeatherModel("ecmwf_ifs025"), (Temperature, 10.0), (Humidity, 90.0), (WindSpeed, 15.0), (CloudCover, 95.0)));
-        var consensus = new ConsensusSnapshotFactory(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
+        var consensus = new ConsensusBuilder(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new IndexComputer(FullParams, Time).Compute(consensus, DefaultPrefs());
 
         var messages = StatePayloadBuilder.FromIndices(result, "njord");

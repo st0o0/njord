@@ -1,3 +1,5 @@
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Weather;
 

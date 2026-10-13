@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts;
 using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Indices;
@@ -129,7 +131,7 @@ public sealed class AnalysisFixture
             }
         }
 
-        var factory = new ConsensusSnapshotFactory(Parameters, time);
+        var factory = new ConsensusBuilder(Parameters, time);
         var indexSettings = IndexOptions.ToSettings(Locations);
         var derivedSettings = new DerivedSettings(Horizons);
         var alertSettings = new AlertOptions().ToSettings();

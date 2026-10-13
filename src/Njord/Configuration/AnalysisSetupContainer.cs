@@ -1,5 +1,6 @@
 using Njord.Alerts;
-using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Derived;
 using Njord.Indices;
 using Njord.Trends;
@@ -11,7 +12,7 @@ public sealed class AnalysisSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton<ConsensusSnapshotFactory>();
+        services.AddSingleton<ConsensusBuilder>();
 
         services.AddAlerts();
         services.AddDerived();

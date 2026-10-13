@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Options;
 using Njord.Alerts;
 using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Derived;
 using Njord.Core.Configuration.Indices;
@@ -31,6 +33,6 @@ public static class DisabledAnalyzers
         new(new IndexComputer(EmptyParameters, TimeProvider.System),
             Options.Create(new IndexOptions { Enabled = false }));
 
-    public static ConsensusSnapshotFactory Consensus() =>
+    public static ConsensusBuilder Consensus() =>
         new(EmptyParameters, TimeProvider.System);
 }

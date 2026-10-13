@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Nodes;
-using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Tests.Shared;
 using static VerifyXunit.Verifier;
 

@@ -1,4 +1,6 @@
 using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Weather;
 
@@ -970,6 +972,6 @@ public static class AlertEvaluator
             return 0;
         }
 
-        return ConsensusComputer.ComputeMedian([.. values.Select(v => (double?)v)]) ?? 0;
+        return ConsensusStatistics.ComputeMedian([.. values.Select(v => (double?)v)]) ?? 0;
     }
 }

@@ -3,7 +3,8 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Alerts;
-using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
@@ -43,7 +44,7 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
 
         var pipeline = Sys.ActorOf(Props.Create(() => new ForecastPipeline(
             fixture.Time,
-            new ConsensusSnapshotFactory(AnalysisFixture.Parameters, fixture.Time),
+            new ConsensusBuilder(AnalysisFixture.Parameters, fixture.Time),
             new AlertAnalyzer(Options.Create(new AlertOptions()), fixture.Time),
             DisabledAnalyzers.Derived(),
             DisabledAnalyzers.Trend(),

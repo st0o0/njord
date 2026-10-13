@@ -1,4 +1,6 @@
 using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 
 namespace Njord.Compute.Tests.Analysis;
 

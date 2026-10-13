@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Weather;
 
@@ -51,7 +53,7 @@ public sealed class TimeSliceAggregatorSpec
 
         var snap = ModelSnapshot.Empty.Update(m1).Update(m2);
         var time = new FakeTimeProvider(now);
-        return new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
+        return new ConsensusBuilder(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
     }
 
     [Fact]
@@ -159,7 +161,7 @@ public sealed class TimeSliceAggregatorSpec
 
         var snap = ModelSnapshot.Empty.Update(m1).Update(m2);
         var time = new FakeTimeProvider(now);
-        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
+        var consensus = new ConsensusBuilder(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
 
         var slices = TimeSliceAggregator.AggregateDaySlices(consensus, Parameters, time);
 

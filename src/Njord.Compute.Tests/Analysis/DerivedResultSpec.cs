@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Weather;
 
@@ -63,7 +65,7 @@ public sealed class DerivedResultSpec
                 (WeatherCode, 3.0), (PressureMsl, 1021.0), (SurfacePressure, 1016.0),
                 (SunshineDuration, 3600.0), (IsDay, 1.0)));
 
-        var consensus = new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne", ConsensusSettings.Default);
+        var consensus = new ConsensusBuilder(Parameters, Time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new DerivedResultComputer(Parameters).Compute(consensus, new DerivedSettings([3, 6]));
 
         Assert.Equal(new LocationId("lucerne"), result.Location);

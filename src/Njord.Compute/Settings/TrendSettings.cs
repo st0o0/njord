@@ -1,3 +1,5 @@
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 namespace Njord.Compute.Settings;
 
 // Trend computation has no tunable parameters yet; the record keeps the per-computation shape uniform.

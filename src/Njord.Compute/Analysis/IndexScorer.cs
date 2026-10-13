@@ -1,3 +1,5 @@
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 namespace Njord.Compute.Analysis;
 
 public static class IndexScorer

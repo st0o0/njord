@@ -1,4 +1,5 @@
-using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Core.Actors;
 
 namespace Njord.Architecture.Tests;

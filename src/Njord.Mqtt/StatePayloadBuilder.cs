@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
-using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Core.Egress;
 using Njord.Weather;
 

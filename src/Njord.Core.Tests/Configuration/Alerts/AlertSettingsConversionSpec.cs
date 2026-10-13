@@ -1,4 +1,5 @@
-using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Core.Configuration.Alerts;
 
 namespace Njord.Core.Tests.Configuration.Alerts;

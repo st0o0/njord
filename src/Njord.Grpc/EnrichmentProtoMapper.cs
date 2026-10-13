@@ -1,8 +1,9 @@
-using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Core.Egress;
 using Njord.Grpc.V2;
-using DomainAlertSeverity = Njord.Compute.Analysis.AlertSeverity;
-using DomainAlertType = Njord.Compute.Analysis.AlertType;
+using DomainAlertSeverity = Njord.Compute.Contracts.AlertSeverity;
+using DomainAlertType = Njord.Compute.Contracts.AlertType;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
 using ProtoAlertType = Njord.Grpc.V2.AlertType;
 using ProtoHorizonConsensus = Njord.Grpc.V2.HorizonConsensus;
@@ -10,7 +11,7 @@ using ProtoHorizonDerived = Njord.Grpc.V2.HorizonDerived;
 using ProtoParameterConsensus = Njord.Grpc.V2.ParameterConsensus;
 using ProtoParameterTrend = Njord.Grpc.V2.ParameterTrend;
 using ProtoScalarDerived = Njord.Grpc.V2.ScalarDerived;
-using ScoreEnvelope = Njord.Compute.Analysis.ScoreEnvelope;
+using ScoreEnvelope = Njord.Compute.Contracts.ScoreEnvelope;
 
 namespace Njord.Grpc;
 
@@ -271,7 +272,7 @@ public static class EnrichmentProtoMapper
         return update;
     }
 
-    private static ProtoParameterConsensus MapParameterConsensus(Compute.Analysis.ParameterConsensus paramConsensus)
+    private static ProtoParameterConsensus MapParameterConsensus(Compute.Consensus.ParameterConsensus paramConsensus)
     {
         var proto = new ProtoParameterConsensus
         {
@@ -287,7 +288,7 @@ public static class EnrichmentProtoMapper
         return proto;
     }
 
-    private static ProtoHorizonConsensus MapHorizonConsensus(Weather.Horizon horizonKey, Compute.Analysis.HorizonConsensus horizon)
+    private static ProtoHorizonConsensus MapHorizonConsensus(Weather.Horizon horizonKey, Compute.Consensus.HorizonConsensus horizon)
     {
         var protoHorizon = new ProtoHorizonConsensus
         {

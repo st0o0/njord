@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Options;
 using Njord.Compute.Analysis;
+using Njord.Compute.Consensus;
+using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Derived;
 
