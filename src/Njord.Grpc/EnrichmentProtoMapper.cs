@@ -271,7 +271,7 @@ public static class EnrichmentProtoMapper
         return update;
     }
 
-    private static ProtoParameterConsensus MapParameterConsensus(Njord.Compute.Analysis.ParameterConsensus paramConsensus)
+    private static ProtoParameterConsensus MapParameterConsensus(Compute.Analysis.ParameterConsensus paramConsensus)
     {
         var proto = new ProtoParameterConsensus
         {
@@ -287,7 +287,7 @@ public static class EnrichmentProtoMapper
         return proto;
     }
 
-    private static ProtoHorizonConsensus MapHorizonConsensus(string horizonKey, Njord.Compute.Analysis.HorizonConsensus horizon)
+    private static ProtoHorizonConsensus MapHorizonConsensus(string horizonKey, Compute.Analysis.HorizonConsensus horizon)
     {
         var protoHorizon = new ProtoHorizonConsensus
         {

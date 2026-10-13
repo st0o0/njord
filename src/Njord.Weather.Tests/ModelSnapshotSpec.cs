@@ -1,5 +1,3 @@
-using Njord.Weather;
-
 namespace Njord.Weather.Tests;
 
 public sealed class ModelSnapshotSpec

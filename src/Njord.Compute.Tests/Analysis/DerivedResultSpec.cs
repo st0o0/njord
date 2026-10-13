@@ -53,11 +53,11 @@ public sealed class DerivedResultSpec
     public void Compute_produces_horizon_and_scalar_results()
     {
         var snap = SnapshotWith(
-            MakeForecast(new("m1"),
+            MakeForecast(new WeatherModel("m1"),
                 (Temperature, 5.0), (WindSpeed, 8.0), (DewPoint, 3.0),
                 (WeatherCode, 3.0), (PressureMsl, 1020.0), (SurfacePressure, 1015.0),
                 (SunshineDuration, 3600.0), (IsDay, 1.0)),
-            MakeForecast(new("m2"),
+            MakeForecast(new WeatherModel("m2"),
                 (Temperature, 7.0), (WindSpeed, 10.0), (DewPoint, 4.0),
                 (WeatherCode, 3.0), (PressureMsl, 1021.0), (SurfacePressure, 1016.0),
                 (SunshineDuration, 3600.0), (IsDay, 1.0)));

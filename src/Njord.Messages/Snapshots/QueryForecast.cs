@@ -1,4 +1,3 @@
-using Njord.Weather;
 using WeatherForecast = Njord.Weather.Forecast;
 
 namespace Njord.Messages.Snapshots;

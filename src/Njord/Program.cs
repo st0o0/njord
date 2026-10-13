@@ -6,7 +6,7 @@ using Njord.OpenMeteo.Configuration;
 using Njord.Pipeline.Configuration;
 using Njord.SensorHub.Configuration;
 using Serilog;
-using Servus.Core.Application.Startup;
+using Servus.Application.Startup;
 
 var builder = WebApplication.CreateBuilder(args);
 

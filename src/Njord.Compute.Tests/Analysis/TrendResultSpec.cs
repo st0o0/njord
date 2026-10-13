@@ -50,7 +50,7 @@ public sealed class TrendResultSpec
     public void Compute_with_no_previous_produces_null_trends()
     {
         var snap = SnapshotWith(
-            MakeForecast(new("m1"), (Temperature, 20.0), (WindSpeed, 5.0),
+            MakeForecast(new WeatherModel("m1"), (Temperature, 20.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 3.0)));
 
         var consensus = new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne");
@@ -66,14 +66,14 @@ public sealed class TrendResultSpec
     public void Compute_with_previous_detects_rising_temperature()
     {
         var prev = SnapshotWith(
-            MakeForecast(new("m1"), (Temperature, 18.0), (WindSpeed, 5.0),
+            MakeForecast(new WeatherModel("m1"), (Temperature, 18.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)),
-            MakeForecast(new("m2"), (Temperature, 18.0), (WindSpeed, 5.0),
+            MakeForecast(new WeatherModel("m2"), (Temperature, 18.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)));
         var curr = SnapshotWith(
-            MakeForecast(new("m1"), (Temperature, 22.0), (WindSpeed, 5.0),
+            MakeForecast(new WeatherModel("m1"), (Temperature, 22.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)),
-            MakeForecast(new("m2"), (Temperature, 22.0), (WindSpeed, 5.0),
+            MakeForecast(new WeatherModel("m2"), (Temperature, 22.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)));
 
         var prevConsensus = new ConsensusSnapshotFactory(Parameters, Time).Create(prev, "lucerne");
@@ -90,11 +90,11 @@ public sealed class TrendResultSpec
     public void Compute_detects_weather_change()
     {
         var prev = SnapshotWith(
-            MakeForecast(new("m1"), (Temperature, 20.0), (WeatherCode, 1.0)),
-            MakeForecast(new("m2"), (Temperature, 20.0), (WeatherCode, 1.0)));
+            MakeForecast(new WeatherModel("m1"), (Temperature, 20.0), (WeatherCode, 1.0)),
+            MakeForecast(new WeatherModel("m2"), (Temperature, 20.0), (WeatherCode, 1.0)));
         var curr = SnapshotWith(
-            MakeForecast(new("m1"), (Temperature, 20.0), (WeatherCode, 63.0)),
-            MakeForecast(new("m2"), (Temperature, 20.0), (WeatherCode, 63.0)));
+            MakeForecast(new WeatherModel("m1"), (Temperature, 20.0), (WeatherCode, 63.0)),
+            MakeForecast(new WeatherModel("m2"), (Temperature, 20.0), (WeatherCode, 63.0)));
 
         var prevConsensus = new ConsensusSnapshotFactory(Parameters, Time).Create(prev, "lucerne");
         var currConsensus = new ConsensusSnapshotFactory(Parameters, Time).Create(curr, "lucerne");

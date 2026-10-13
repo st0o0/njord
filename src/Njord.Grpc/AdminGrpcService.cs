@@ -51,7 +51,7 @@ public sealed class AdminGrpcService(
         {
             writableOptions.Update(opt =>
             {
-                opt.Locations = optionsMonitor.CurrentValue.Locations.ToList();
+                opt.Locations = [.. optionsMonitor.CurrentValue.Locations];
             });
             return Task.FromResult(Rejected($"Would exceed budget: {budget.UsagePercent:F0}% of monthly limit"));
         }
@@ -66,13 +66,16 @@ public sealed class AdminGrpcService(
 
     private static List<LocationOptions> MapLocations(SetLocationsRequest request)
     {
-        return request.Locations.Select(l => new LocationOptions
-        {
-            Name = l.Name,
-            Latitude = l.Latitude,
-            Longitude = l.Longitude,
-            Models = l.Models.Count > 0 ? [.. l.Models] : null,
-        }).ToList();
+        return
+        [
+            .. request.Locations.Select(l => new LocationOptions
+            {
+                Name = l.Name,
+                Latitude = l.Latitude,
+                Longitude = l.Longitude,
+                Models = l.Models.Count > 0 ? [.. l.Models] : null,
+            })
+        ];
     }
 
     public override Task<ConfigResponse> SetSettings(SetSettingsRequest request, ServerCallContext context)

@@ -15,14 +15,6 @@ public static class ParameterRegistry
             ByName.TryAdd(p.ApiName, p);
         }
 
-        static ParameterDef Require(string apiName) =>
-            ByName.GetValueOrDefault(apiName)
-            ?? throw new InvalidOperationException($"Required parameter '{apiName}' not found in registry");
-
-        static ParameterDef RequireDaily(string apiName) =>
-            AllList.FirstOrDefault(p => p.ApiName == apiName && p.Granularity == ParameterGranularity.Daily)
-            ?? throw new InvalidOperationException($"Required daily parameter '{apiName}' not found in registry");
-
         Temperature2m = Require("temperature_2m");
         ApparentTemperature = Require("apparent_temperature");
         RelativeHumidity2m = Require("relative_humidity_2m");
@@ -57,6 +49,15 @@ public static class ParameterRegistry
         Sunrise = RequireDaily("sunrise");
         Sunset = RequireDaily("sunset");
         DailyWeatherCode = RequireDaily("weather_code");
+        return;
+
+        static ParameterDef Require(string apiName) =>
+            ByName.GetValueOrDefault(apiName)
+            ?? throw new InvalidOperationException($"Required parameter '{apiName}' not found in registry");
+
+        static ParameterDef RequireDaily(string apiName) =>
+            AllList.FirstOrDefault(p => p.ApiName == apiName && p.Granularity == ParameterGranularity.Daily)
+            ?? throw new InvalidOperationException($"Required daily parameter '{apiName}' not found in registry");
     }
 
     public static ParameterDef Temperature2m { get; }
@@ -97,7 +98,7 @@ public static class ParameterRegistry
     public static IReadOnlyCollection<ParameterDef> All => AllList;
 
     public static IReadOnlyList<ParameterDef> GetByGroup(ParameterGroup group)
-        => AllList.Where(p => p.Group == group).ToList();
+        => [.. AllList.Where(p => p.Group == group)];
 
     public static ParameterDef? GetByApiName(string name)
         => ByName.GetValueOrDefault(name);
@@ -166,8 +167,8 @@ public static class ParameterRegistry
         }
 
         return new ResolvedParameterSet(
-            resolved.Where(p => p.Granularity == ParameterGranularity.Hourly).ToList(),
-            resolved.Where(p => p.Granularity == ParameterGranularity.Daily).ToList());
+            [.. resolved.Where(p => p.Granularity == ParameterGranularity.Hourly)],
+            [.. resolved.Where(p => p.Granularity == ParameterGranularity.Daily)]);
     }
 
     private static List<ParameterDef> BuildAll()

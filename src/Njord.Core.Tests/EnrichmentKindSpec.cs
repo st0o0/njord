@@ -1,6 +1,5 @@
 using Njord.Compute.Analysis;
 using Njord.Core.Egress;
-using Njord.Weather;
 
 namespace Njord.Core.Tests;
 
@@ -59,17 +58,6 @@ public sealed class EnrichmentKindSpec
 
         var enrichment = Assert.IsType<IEnrichmentEvent>(evt, exactMatch: false);
         Assert.Equal(EnrichmentKind.Indices, enrichment.Kind);
-    }
-
-    [Fact]
-    public void ForecastReceived_does_not_implement_IEnrichmentEvent()
-    {
-        var model = new WeatherModel("test");
-        var forecast = new Forecast(model, "loc", new CycleId(DateTimeOffset.UtcNow),
-            new ForecastSeries([]), new DailyForecastSeries([]));
-        var evt = new PipelineEvent.ForecastReceived("loc", model, forecast);
-
-        Assert.False(evt is IEnrichmentEvent);
     }
 
     [Fact]

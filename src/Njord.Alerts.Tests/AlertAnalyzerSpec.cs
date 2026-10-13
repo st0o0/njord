@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Alerts;
 using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
 using Njord.Weather;
@@ -75,7 +74,7 @@ public sealed class AlertAnalyzerSpec
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
 
-        var forecast = new Forecast(new("m1"), "lucerne", new CycleId(T0),
+        var forecast = new Forecast(new WeatherModel("m1"), "lucerne", new CycleId(T0),
             new ForecastSeries(points), DailyForecastSeries.Empty);
         var snap = ModelSnapshot.Empty.Update(forecast);
         return new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne");

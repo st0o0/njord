@@ -20,7 +20,7 @@ public sealed class SensorGrpcService(
         njordOptions.Value.Locations.Select(l => l.Name),
         StringComparer.OrdinalIgnoreCase);
 
-    public override async Task<PushResponse> Push(V2.SensorReading request, ServerCallContext context)
+    public override async Task<PushResponse> Push(SensorReading request, ServerCallContext context)
     {
         var (reading, error) = MapReading(request);
         if (error is not null)
@@ -34,7 +34,7 @@ public sealed class SensorGrpcService(
     }
 
     public override async Task<PushResponse> StreamPush(
-        IAsyncStreamReader<V2.SensorReading> requestStream,
+        IAsyncStreamReader<SensorReading> requestStream,
         ServerCallContext context)
     {
         var sensorHub = await actorRegistry.GetAsync<ISensorHub>(context.CancellationToken);
@@ -63,7 +63,7 @@ public sealed class SensorGrpcService(
             : new PushResponse { Accepted = false, RejectionReason = $"{rejected}/{total} readings rejected" };
     }
 
-    private (Njord.Sensors.SensorReading? Reading, string? Error) MapReading(V2.SensorReading request)
+    private (Njord.Sensors.SensorReading? Reading, string? Error) MapReading(SensorReading request)
     {
         if (!TryMapKind(request.Kind, out var kind))
         {

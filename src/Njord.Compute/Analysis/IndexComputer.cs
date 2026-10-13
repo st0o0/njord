@@ -8,11 +8,6 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
         ConsensusSnapshot consensus,
         IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> resolvedPreferences)
     {
-        ResolvedPreferences PrefsFor(string score) =>
-            resolvedPreferences.TryGetValue((consensus.Location, score), out var p)
-                ? p
-                : ResolvedPreferences.Default;
-
         var slices = TimeSliceAggregator.AggregateDaySlices(consensus, parameters, timeProvider);
         var days = new List<DayScoreSet>();
 
@@ -88,6 +83,11 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
             Get(d0FullMeans, parameters.Get(ParameterRegistry.RelativeHumidity2m)));
 
         return new IndexResult(consensus.Location, days, frost, vpd);
+
+        ResolvedPreferences PrefsFor(string score) =>
+            resolvedPreferences.TryGetValue((consensus.Location, score), out var p)
+                ? p
+                : ResolvedPreferences.Default;
     }
 
     private static double? Get(IReadOnlyDictionary<ParameterDef, double?> means, ParameterDef? param)
@@ -205,11 +205,6 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
             tempParam, humidityParam, windParam, precipProbParam, cloudParam, radiationParam, etParam,
             allHours, pessimistic: false);
 
-        ResolvedPreferences PrefsFor(string score) =>
-            resolvedPreferences.TryGetValue((consensus.Location, score), out var p)
-                ? p
-                : ResolvedPreferences.Default;
-
         var avgAgreement = ComputeAverageAgreement(
             tempParam, humidityParam, windParam, precipProbParam, cloudParam, radiationParam, allHours);
 
@@ -241,6 +236,11 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
             BuildEnvelopeFromBounds(pessIrrigation, optIrrigation, avgAgreement),
             BuildEnvelopeFromBounds(pessSolar, optSolar, avgAgreement),
             BuildEnvelopeFromBounds(pessNightVent, optNightVent, avgAgreement));
+
+        ResolvedPreferences PrefsFor(string score) =>
+            resolvedPreferences.TryGetValue((consensus.Location, score), out var p)
+                ? p
+                : ResolvedPreferences.Default;
     }
 
     private record struct MeanSet(

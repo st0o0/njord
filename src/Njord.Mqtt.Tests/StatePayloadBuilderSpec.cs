@@ -126,7 +126,7 @@ public sealed class StatePayloadBuilderSpec
     {
         var snap = SnapshotWith(
             MakeForecast(IconD2, (Temperature, 20.0)),
-            MakeForecast(new("ecmwf_ifs025"), (Temperature, 22.0)));
+            MakeForecast(new WeatherModel("ecmwf_ifs025"), (Temperature, 22.0)));
         var consensus = new ConsensusSnapshotFactory(new ResolvedParameterSet([Temperature], []), Time).Create(snap, "lucerne");
         var result = new ConsensusResult(consensus.Hourly.Parameters, consensus.Daily.Parameters);
 
@@ -155,7 +155,7 @@ public sealed class StatePayloadBuilderSpec
                     new DailyForecastPoint(baseDate, new Dictionary<ParameterDef, double?> { [dailyParam] = 28.0 }, new Dictionary<ParameterDef, string?>()),
                     new DailyForecastPoint(baseDate.AddDays(1), new Dictionary<ParameterDef, double?> { [dailyParam] = 30.0 }, new Dictionary<ParameterDef, string?>()),
                 ])),
-            new Forecast(new("ecmwf_ifs025"), "lucerne", new CycleId(T0), new ForecastSeries([]),
+            new Forecast(new WeatherModel("ecmwf_ifs025"), "lucerne", new CycleId(T0), new ForecastSeries([]),
                 new DailyForecastSeries([
                     new DailyForecastPoint(baseDate, new Dictionary<ParameterDef, double?> { [dailyParam] = 31.0 }, new Dictionary<ParameterDef, string?>()),
                     new DailyForecastPoint(baseDate.AddDays(1), new Dictionary<ParameterDef, double?> { [dailyParam] = 33.0 }, new Dictionary<ParameterDef, string?>()),
@@ -206,7 +206,7 @@ public sealed class StatePayloadBuilderSpec
                 (Temperature, 5.0), (WindSpeed, 8.0), (DewPoint, 3.0),
                 (WeatherCode, 0.0), (PressureMsl, 1020.0), (SurfacePressure, 1015.0),
                 (SunshineDuration, 3600.0), (IsDay, 1.0)),
-            MakeForecast(new("m2"),
+            MakeForecast(new WeatherModel("m2"),
                 (Temperature, 5.0), (WindSpeed, 8.0), (DewPoint, 3.0),
                 (WeatherCode, 0.0), (PressureMsl, 1020.0), (SurfacePressure, 1015.0),
                 (SunshineDuration, 3600.0), (IsDay, 1.0)));
@@ -243,7 +243,7 @@ public sealed class StatePayloadBuilderSpec
     {
         var snap = SnapshotWith(
             MakeForecast(M1, (Temperature, 20.0), (Humidity, 55.0), (WindSpeed, 2.0), (CloudCover, 30.0)),
-            MakeForecast(new("m2"), (Temperature, 21.0), (Humidity, 56.0), (WindSpeed, 2.5), (CloudCover, 32.0)));
+            MakeForecast(new WeatherModel("m2"), (Temperature, 21.0), (Humidity, 56.0), (WindSpeed, 2.5), (CloudCover, 32.0)));
         var consensus = new ConsensusSnapshotFactory(FullParams, Time).Create(snap, "lucerne");
         var result = new IndexComputer(FullParams, Time).Compute(consensus, DefaultPrefs());
 
@@ -259,7 +259,7 @@ public sealed class StatePayloadBuilderSpec
     {
         var snap = SnapshotWith(
             MakeForecast(IconD2, (Temperature, 22.0), (Humidity, 50.0), (WindSpeed, 3.0), (CloudCover, 20.0)),
-            MakeForecast(new("ecmwf_ifs025"), (Temperature, 10.0), (Humidity, 90.0), (WindSpeed, 15.0), (CloudCover, 95.0)));
+            MakeForecast(new WeatherModel("ecmwf_ifs025"), (Temperature, 10.0), (Humidity, 90.0), (WindSpeed, 15.0), (CloudCover, 95.0)));
         var consensus = new ConsensusSnapshotFactory(FullParams, Time).Create(snap, "lucerne");
         var result = new IndexComputer(FullParams, Time).Compute(consensus, DefaultPrefs());
 

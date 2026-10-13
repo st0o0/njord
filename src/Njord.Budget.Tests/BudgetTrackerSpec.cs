@@ -1,6 +1,5 @@
 using Akka.Actor;
 using Akka.Event;
-using Akka.Hosting;
 using Akka.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

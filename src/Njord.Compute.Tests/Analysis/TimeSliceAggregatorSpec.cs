@@ -43,9 +43,9 @@ public sealed class TimeSliceAggregatorSpec
             points2.Add(new ForecastPoint(now.AddHours(h), values));
         }
 
-        var m1 = new Forecast(new("m1"), "lucerne", new CycleId(now),
+        var m1 = new Forecast(new WeatherModel("m1"), "lucerne", new CycleId(now),
             new ForecastSeries(points), DailyForecastSeries.Empty);
-        var m2 = new Forecast(new("m2"), "lucerne", new CycleId(now),
+        var m2 = new Forecast(new WeatherModel("m2"), "lucerne", new CycleId(now),
             new ForecastSeries(points2), DailyForecastSeries.Empty);
 
         var snap = ModelSnapshot.Empty.Update(m1).Update(m2);
@@ -151,9 +151,9 @@ public sealed class TimeSliceAggregatorSpec
             points2.Add(new ForecastPoint(now.AddHours(h), values));
         }
 
-        var m1 = new Forecast(new("m1"), "lucerne", new CycleId(now),
+        var m1 = new Forecast(new WeatherModel("m1"), "lucerne", new CycleId(now),
             new ForecastSeries(points), DailyForecastSeries.Empty);
-        var m2 = new Forecast(new("m2"), "lucerne", new CycleId(now),
+        var m2 = new Forecast(new WeatherModel("m2"), "lucerne", new CycleId(now),
             new ForecastSeries(points2), DailyForecastSeries.Empty);
 
         var snap = ModelSnapshot.Empty.Update(m1).Update(m2);

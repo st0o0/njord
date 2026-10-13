@@ -24,8 +24,8 @@ public sealed record SensorKindMetadata(
 
     private static readonly Dictionary<SensorKind, SensorKindMetadata> Registry = new()
     {
-        [SensorKind.IndoorTemperature] = new(SensorKind.IndoorTemperature, "°C", -10, 60, AggregationStrategy.Average),
-        [SensorKind.IndoorHumidity] = new(SensorKind.IndoorHumidity, "%", 0, 100, AggregationStrategy.Average),
+        [SensorKind.IndoorTemperature] = new SensorKindMetadata(SensorKind.IndoorTemperature, "°C", -10, 60, AggregationStrategy.Average),
+        [SensorKind.IndoorHumidity] = new SensorKindMetadata(SensorKind.IndoorHumidity, "%", 0, 100, AggregationStrategy.Average),
     };
 
     public static SensorKindMetadata Get(SensorKind kind) => Registry[kind];

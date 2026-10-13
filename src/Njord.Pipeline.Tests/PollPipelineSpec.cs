@@ -3,7 +3,6 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Configuration;
 using Njord.Mqtt;
-using Njord.OpenMeteo;
 using Njord.Tests.Shared;
 using Njord.Weather;
 

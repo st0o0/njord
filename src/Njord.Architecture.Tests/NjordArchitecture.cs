@@ -7,26 +7,31 @@ namespace Njord.Architecture.Tests;
 
 internal static class NjordArchitecture
 {
-    private static readonly Assembly NjordAssembly = typeof(Njord.Configuration.CoreSetupContainer).Assembly;
+    private static readonly Assembly NjordAssembly = typeof(Configuration.CoreSetupContainer).Assembly;
 
     // Every test assembly copied next to this one by the project references (Njord.*Tests plus Shared, this one included).
-    public static readonly Assembly[] TestAssemblies = Directory
-        .GetFiles(AppContext.BaseDirectory, "Njord.*.dll")
-        .Select(Path.GetFileNameWithoutExtension)
-        .Where(n => n!.EndsWith("Tests", StringComparison.Ordinal) || n == "Njord.Tests.Shared")
-        .Order(StringComparer.Ordinal)
-        .Select(n => Assembly.Load(n!))
-        .ToArray();
+    public static readonly Assembly[] TestAssemblies =
+    [
+        .. Directory
+            .GetFiles(AppContext.BaseDirectory, "Njord.*.dll")
+            .Select(Path.GetFileNameWithoutExtension)
+            .Where(n => n!.EndsWith("Tests", StringComparison.Ordinal) || n == "Njord.Tests.Shared")
+            .Order(StringComparer.Ordinal)
+            .Select(n => Assembly.Load(n!))
+    ];
 
     // Production libraries: every Njord.* assembly next to this one that is not a test assembly
     // (the host may reference a library only transitively, so its referenced assemblies are not enough).
-    private static readonly Assembly[] LibraryAssemblies = Directory
-        .GetFiles(AppContext.BaseDirectory, "Njord.*.dll")
-        .Select(Path.GetFileNameWithoutExtension)
-        .Where(n => !n!.StartsWith("Njord.Tests", StringComparison.Ordinal) && !n.EndsWith("Tests", StringComparison.Ordinal))
-        .Order(StringComparer.Ordinal)
-        .Select(n => Assembly.Load(n!))
-        .ToArray();
+    private static readonly Assembly[] LibraryAssemblies =
+    [
+        .. Directory
+            .GetFiles(AppContext.BaseDirectory, "Njord.*.dll")
+            .Select(Path.GetFileNameWithoutExtension)
+            .Where(n => !n!.StartsWith("Njord.Tests", StringComparison.Ordinal) &&
+                        !n.EndsWith("Tests", StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal)
+            .Select(n => Assembly.Load(n!))
+    ];
 
     private static readonly string[] FeatureLibraryNames = ["Njord.Grpc", "Njord.OpenMeteo", "Njord.Budget", "Njord.SensorHub", "Njord.Mqtt", "Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"];
     private static readonly string[] BaseLibraryNames = ["Njord.Compute", "Njord.Core", "Njord.Messages", "Njord.Persistence", "Njord.Weather", "Njord.Sensors"];
@@ -51,13 +56,13 @@ internal static class NjordArchitecture
     public static IObjectProvider<IType> TypesInOtherLibrariesAndHost(string name)
         => Types().That().ResideInAssembly(NjordAssembly)
             .Or().ResideInAssembly(AssemblyByName(FeatureLibraryNames.First(n => n != name)),
-                FeatureLibraryNames.Where(n => n != name).Skip(1).Select(AssemblyByName).ToArray())
+                [.. FeatureLibraryNames.Where(n => n != name).Skip(1).Select(AssemblyByName)])
             .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage")
             .As("other feature libraries and the host");
 
     public static IObjectProvider<IType> FeatureLibrariesAndHost =>
         Types().That().ResideInAssembly(NjordAssembly,
-                FeatureLibraryNames.Select(AssemblyByName).ToArray())
+                [.. FeatureLibraryNames.Select(AssemblyByName)])
             .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage")
             .As("feature libraries and the host");
 
@@ -72,7 +77,7 @@ internal static class NjordArchitecture
                 .Where(n => !PipelineAllowedAnalysisLibs.Contains(n))
                 .ToArray();
             return Types().That().ResideInAssembly(NjordAssembly,
-                    disallowed.Select(AssemblyByName).ToArray())
+                    [.. disallowed.Select(AssemblyByName)])
                 .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage")
                 .As("non-analysis feature libraries and the host");
         }
@@ -84,5 +89,5 @@ internal static class NjordArchitecture
             .As("Njord types");
 
     public static IObjectProvider<IType> TestTypes =>
-        Types().That().ResideInAssembly(TestAssemblies[0], TestAssemblies.Skip(1).ToArray()).As("Njord test types");
+        Types().That().ResideInAssembly(TestAssemblies[0], [.. TestAssemblies.Skip(1)]).As("Njord test types");
 }

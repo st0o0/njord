@@ -1,4 +1,3 @@
-using Njord.Alerts;
 using Njord.Compute.Analysis;
 
 namespace Njord.Alerts.Tests;

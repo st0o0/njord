@@ -57,13 +57,13 @@ public sealed class IndexResultSpec
     public void Compute_produces_multiple_day_slices()
     {
         var snap = SnapshotWith(
-            MakeForecast(new("m1"), 72, h =>
+            MakeForecast(new WeatherModel("m1"), 72, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
                 var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
                 return (22.0, 50.0, 3.0, 20.0, isDay);
             }),
-            MakeForecast(new("m2"), 72, h =>
+            MakeForecast(new WeatherModel("m2"), 72, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
                 var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
@@ -84,14 +84,14 @@ public sealed class IndexResultSpec
     public void Activity_scores_use_daylight_means_only()
     {
         var snap = SnapshotWith(
-            MakeForecast(new("m1"), 48, h =>
+            MakeForecast(new WeatherModel("m1"), 48, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
                 var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
                 var temp = isDay > 0.5 ? 25.0 : 8.0;
                 return (temp, 50.0, 3.0, 20.0, isDay);
             }),
-            MakeForecast(new("m2"), 48, h =>
+            MakeForecast(new WeatherModel("m2"), 48, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
                 var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
@@ -111,14 +111,14 @@ public sealed class IndexResultSpec
     public void NightVentilation_uses_nighttime_means()
     {
         var snap = SnapshotWith(
-            MakeForecast(new("m1"), 48, h =>
+            MakeForecast(new WeatherModel("m1"), 48, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
                 var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
                 var temp = isDay > 0.5 ? 30.0 : 16.0;
                 return (temp, 50.0, 3.0, 20.0, isDay);
             }),
-            MakeForecast(new("m2"), 48, h =>
+            MakeForecast(new WeatherModel("m2"), 48, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
                 var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
@@ -138,9 +138,9 @@ public sealed class IndexResultSpec
     public void Frost_protection_computed_once_not_per_day()
     {
         var snap = SnapshotWith(
-            MakeForecast(new("m1"), 48, h =>
+            MakeForecast(new WeatherModel("m1"), 48, h =>
                 (h == 10 ? -2.0 : 15.0, 50.0, 3.0, 20.0, 1.0)),
-            MakeForecast(new("m2"), 48, h =>
+            MakeForecast(new WeatherModel("m2"), 48, h =>
                 (h == 10 ? -1.0 : 14.0, 52.0, 3.5, 22.0, 1.0)));
 
         var time = new FakeTimeProvider(T0);
@@ -155,8 +155,8 @@ public sealed class IndexResultSpec
     public void Vpd_computed_once()
     {
         var snap = SnapshotWith(
-            MakeForecast(new("m1"), 48, h => (25.0, 60.0, 3.0, 20.0, 1.0)),
-            MakeForecast(new("m2"), 48, h => (24.0, 62.0, 3.5, 22.0, 1.0)));
+            MakeForecast(new WeatherModel("m1"), 48, h => (25.0, 60.0, 3.0, 20.0, 1.0)),
+            MakeForecast(new WeatherModel("m2"), 48, h => (24.0, 62.0, 3.5, 22.0, 1.0)));
 
         var time = new FakeTimeProvider(T0);
         var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne");
@@ -169,9 +169,9 @@ public sealed class IndexResultSpec
     public void Multi_model_produces_envelopes_per_day()
     {
         var snap = SnapshotWith(
-            MakeForecast(new("m1"), 48, h => (22.0, 50.0, 3.0, 20.0, 1.0)),
-            MakeForecast(new("m2"), 48, h => (10.0, 90.0, 15.0, 95.0, 1.0)),
-            MakeForecast(new("m3"), 48, h => (20.0, 55.0, 4.0, 30.0, 1.0)));
+            MakeForecast(new WeatherModel("m1"), 48, h => (22.0, 50.0, 3.0, 20.0, 1.0)),
+            MakeForecast(new WeatherModel("m2"), 48, h => (10.0, 90.0, 15.0, 95.0, 1.0)),
+            MakeForecast(new WeatherModel("m3"), 48, h => (20.0, 55.0, 4.0, 30.0, 1.0)));
 
         var time = new FakeTimeProvider(T0);
         var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne");
@@ -186,13 +186,13 @@ public sealed class IndexResultSpec
     public void Hours_included_reflects_daylight_or_night_count()
     {
         var snap = SnapshotWith(
-            MakeForecast(new("m1"), 48, h =>
+            MakeForecast(new WeatherModel("m1"), 48, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
                 var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
                 return (20.0, 50.0, 3.0, 20.0, isDay);
             }),
-            MakeForecast(new("m2"), 48, h =>
+            MakeForecast(new WeatherModel("m2"), 48, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
                 var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;

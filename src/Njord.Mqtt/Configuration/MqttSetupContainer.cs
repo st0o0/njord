@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Mqtt.Transport;
-using Servus.Core.Application.Startup;
+using Servus.Application.Startup;
 
 namespace Njord.Mqtt.Configuration;
 
@@ -27,7 +27,7 @@ public sealed class MqttSetupContainer : IServiceSetupContainer
         {
             services.TryAddSingleton(MqttEgressTuning.Default);
             services.TryAddSingleton<MqttNetPublisher>();
-            services.TryAddSingleton<Njord.Mqtt.Transport.IMqttConnection>(static provider => provider.GetRequiredService<MqttNetPublisher>());
+            services.TryAddSingleton<IMqttConnection>(static provider => provider.GetRequiredService<MqttNetPublisher>());
             services.TryAddSingleton<IMqttTransport>(static provider => provider.GetRequiredService<MqttNetPublisher>());
 
             services.AddSingleton<IActorRegistration>(new MqttActorRegistration());
@@ -39,7 +39,7 @@ public sealed class MqttSetupContainer : IServiceSetupContainer
         public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
         {
             builder
-                .WithSingleton<Njord.Core.Actors.IMqttConnectionActor>("mqtt-connection",
+                .WithSingleton<IMqttConnectionActor>("mqtt-connection",
                     (_, _, resolver) => resolver.Props<MqttConnection>())
                 .WithSingleton<IMqttStatePublisher>("mqtt-state",
                     (_, _, resolver) => resolver.Props<MqttStatePublisher>());

@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Time.Testing;
-using Njord.Weather;
 
 namespace Njord.Weather.Tests;
 

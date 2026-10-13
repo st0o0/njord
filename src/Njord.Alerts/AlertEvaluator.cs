@@ -1035,6 +1035,6 @@ public static class AlertEvaluator
             return 0;
         }
 
-        return ConsensusComputer.ComputeMedian(values.Select(v => (double?)v).ToList()) ?? 0;
+        return ConsensusComputer.ComputeMedian([.. values.Select(v => (double?)v)]) ?? 0;
     }
 }

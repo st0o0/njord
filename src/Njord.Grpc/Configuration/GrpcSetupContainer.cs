@@ -3,7 +3,7 @@ using Akka.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Njord.Core.Actors;
-using Servus.Core.Application.Startup;
+using Servus.Application.Startup;
 
 namespace Njord.Grpc.Configuration;
 

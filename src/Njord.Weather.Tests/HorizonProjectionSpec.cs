@@ -1,6 +1,5 @@
 using System.Text.Json.Nodes;
 using Njord.Tests.Shared;
-using Njord.Weather;
 
 namespace Njord.Weather.Tests;
 

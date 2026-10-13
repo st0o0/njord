@@ -1,5 +1,3 @@
-using Njord.Sensors;
-
 namespace Njord.Sensors.Tests;
 
 public sealed class SensorSnapshotSpec

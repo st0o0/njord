@@ -1,5 +1,3 @@
-using Njord.Core.Configuration;
-using Njord.Grpc.V2;
 using Njord.Weather;
 
 namespace Njord.Grpc.Tests;
@@ -34,16 +32,16 @@ public sealed class CatalogMapperSpec
             () => Assert.Equal("", info.DisplayName),
             () => Assert.Equal("", info.Provider),
             () => Assert.Equal("", info.Region),
-            () => Assert.Equal(Njord.Grpc.V2.CoverageTier.Unspecified, info.CoverageTier));
+            () => Assert.Equal(V2.CoverageTier.Unspecified, info.CoverageTier));
     }
 
     [Theory]
-    [InlineData("ecmwf_ifs025", Njord.Weather.CoverageTier.Global, Njord.Grpc.V2.CoverageTier.Global)]
-    [InlineData("icon_eu", Njord.Weather.CoverageTier.Continental, Njord.Grpc.V2.CoverageTier.Continental)]
-    [InlineData("icon_d2", Njord.Weather.CoverageTier.Regional, Njord.Grpc.V2.CoverageTier.Regional)]
+    [InlineData("ecmwf_ifs025", CoverageTier.Global, V2.CoverageTier.Global)]
+    [InlineData("icon_eu", CoverageTier.Continental, V2.CoverageTier.Continental)]
+    [InlineData("icon_d2", CoverageTier.Regional, V2.CoverageTier.Regional)]
     public void ToModelInfo_should_map_coverage_tier(
         string modelId,
-        Njord.Weather.CoverageTier domainTier,
+        CoverageTier domainTier,
         Njord.Grpc.V2.CoverageTier expected)
     {
         var coverage = ModelCoverageRegistry.Get(modelId);

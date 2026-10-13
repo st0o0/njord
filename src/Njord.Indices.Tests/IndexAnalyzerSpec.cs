@@ -3,7 +3,6 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
 using Njord.Core.Configuration;
-using Njord.Indices;
 using Njord.Sensors;
 using Njord.Weather;
 

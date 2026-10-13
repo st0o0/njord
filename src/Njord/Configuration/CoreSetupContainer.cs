@@ -1,13 +1,11 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Njord.Budget;
 using Njord.Core.Configuration;
 using Njord.Core.Health;
 using Njord.Health;
-using Njord.Pipeline;
 using Njord.Weather;
 using Prometheus;
-using Servus.Core.Application.Startup;
+using Servus.Application.Startup;
 
 namespace Njord.Configuration;
 

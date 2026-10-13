@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Njord.Alerts;
 using Njord.Compute.Analysis;
@@ -7,7 +6,7 @@ using Njord.Core.Configuration;
 using Njord.Derived;
 using Njord.Indices;
 using Njord.Trends;
-using Servus.Core.Application.Startup;
+using Servus.Application.Startup;
 
 namespace Njord.Configuration;
 

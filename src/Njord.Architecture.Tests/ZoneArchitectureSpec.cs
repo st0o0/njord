@@ -5,9 +5,9 @@ namespace Njord.Architecture.Tests;
 
 public sealed class ZoneArchitectureSpec
 {
-    public static TheoryData<string> FeatureLibraries => new(NjordArchitecture.FeatureLibraries);
+    public static TheoryData<string> FeatureLibraries => [.. NjordArchitecture.FeatureLibraries];
 
-    public static TheoryData<string> BaseLibraries => new(NjordArchitecture.BaseLibraries);
+    public static TheoryData<string> BaseLibraries => [.. NjordArchitecture.BaseLibraries];
 
     [Theory]
     [MemberData(nameof(FeatureLibraries))]

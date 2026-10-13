@@ -1,9 +1,7 @@
 using System.Text.Json.Nodes;
 using Akka.Actor;
-using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;

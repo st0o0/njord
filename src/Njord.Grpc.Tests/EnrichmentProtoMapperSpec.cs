@@ -30,12 +30,12 @@ public sealed class EnrichmentProtoMapperSpec
 
         Assert.Equal(2, update.Alerts.Count);
 
-        Assert.Equal(Njord.Grpc.V2.AlertType.Frost, update.Alerts[0].Type);
-        Assert.Equal(Njord.Grpc.V2.AlertSeverity.Orange, update.Alerts[0].Severity);
+        Assert.Equal(V2.AlertType.Frost, update.Alerts[0].Type);
+        Assert.Equal(V2.AlertSeverity.Orange, update.Alerts[0].Severity);
         Assert.Equal(0.85, update.Alerts[0].Confidence);
 
-        Assert.Equal(Njord.Grpc.V2.AlertType.Storm, update.Alerts[1].Type);
-        Assert.Equal(Njord.Grpc.V2.AlertSeverity.Red, update.Alerts[1].Severity);
+        Assert.Equal(V2.AlertType.Storm, update.Alerts[1].Type);
+        Assert.Equal(V2.AlertSeverity.Red, update.Alerts[1].Severity);
         Assert.Equal(0.92, update.Alerts[1].Confidence);
     }
 

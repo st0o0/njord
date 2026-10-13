@@ -5,7 +5,6 @@ using Akka.Streams.Dsl;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Options;
-using Njord.Compute.Analysis;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Egress;
@@ -13,7 +12,6 @@ using Njord.Grpc.V2;
 using Njord.Messages.Snapshots;
 using Njord.Weather;
 using ActorSystem = Akka.Actor.ActorSystem;
-using CoverageTier = Njord.Weather.CoverageTier;
 using GrpcStatus = Grpc.Core.Status;
 
 namespace Njord.Grpc;

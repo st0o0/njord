@@ -187,9 +187,11 @@ public sealed class PollScheduler : ReceivePersistentActor
             var resolved = _options.Models.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase).ToList();
             var models = string.IsNullOrEmpty(msg.Model)
                 ? resolved
-                : resolved
-                    .Where(m => m.Equals(msg.Model, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
+                :
+                [
+                    .. resolved
+                        .Where(m => m.Equals(msg.Model, StringComparison.OrdinalIgnoreCase))
+                ];
 
             foreach (var modelId in models)
             {
