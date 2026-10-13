@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Njord.Messages.Pipeline;
+using Njord.Persistence.Events.Pipeline;
 using PersistedDataChanged = Njord.Persistence.Events.Pipeline.DataChanged;
 
 namespace Njord.Pipeline;
@@ -7,6 +8,35 @@ namespace Njord.Pipeline;
 public sealed record PollSchedulerState(ImmutableDictionary<string, ModelPollState> States)
 {
     public static readonly PollSchedulerState Empty = new(ImmutableDictionary<string, ModelPollState>.Empty);
+
+    public static PollSchedulerState FromPersistence(PersistedPollSchedulerState dto, DateTimeOffset now)
+    {
+        var builder = ImmutableDictionary.CreateBuilder<string, ModelPollState>();
+        foreach (var entry in dto.Entries)
+        {
+            var lastChange = entry.LastChangeUtcTicks is not null
+                ? new DateTimeOffset(entry.LastChangeUtcTicks.Value, TimeSpan.Zero)
+                : (DateTimeOffset?)null;
+            var prevChange = entry.PrevChangeUtcTicks is not null
+                ? new DateTimeOffset(entry.PrevChangeUtcTicks.Value, TimeSpan.Zero)
+                : (DateTimeOffset?)null;
+            var cycle = entry.CycleTicks is not null
+                ? TimeSpan.FromTicks(entry.CycleTicks.Value)
+                : (TimeSpan?)null;
+
+            builder[entry.Key] = new ModelPollState(
+                entry.LastHash,
+                lastChange,
+                prevChange,
+                now,
+                entry.MissCount,
+                (PollPhase)entry.Phase,
+                cycle,
+                entry.TransientFailureCount);
+        }
+
+        return new PollSchedulerState(builder.ToImmutable());
+    }
 }
 
 public enum HashDecision
@@ -97,6 +127,25 @@ public static class PollSchedulerStateExtensions
 
         return state with { States = state.States.SetItem(key, ModelPollState.Initial(now)) };
     }
+
+    public static PersistedPollSchedulerState GetPersistenceState(this PollSchedulerState state) => new()
+    {
+        Entries = state.States.Select(kvp =>
+        {
+            var s = kvp.Value;
+            return new PersistedModelPollEntry
+            {
+                Key = kvp.Key,
+                LastHash = s.LastHash,
+                LastChangeUtcTicks = s.LastChangeUtc?.UtcTicks,
+                PrevChangeUtcTicks = s.PrevChangeUtc?.UtcTicks,
+                MissCount = s.MissCount,
+                Phase = (int)s.Phase,
+                CycleTicks = s.Cycle?.Ticks,
+                TransientFailureCount = s.TransientFailureCount,
+            };
+        }).ToArray(),
+    };
 
     public static PollStatesResult GetSnapshot(this PollSchedulerState state)
     {

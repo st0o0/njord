@@ -1,4 +1,6 @@
 using Njord.Budget;
+using Njord.Messages.Pipeline;
+using Njord.Persistence.Events.Budget;
 using Njord.Tests.Shared;
 namespace Njord.Budget.Tests;
 
@@ -7,7 +9,7 @@ public sealed class BudgetTrackerStateSpec
     private static readonly DateTimeOffset T0 = TestTimeConstants.BudgetEpoch;
 
     private static BudgetTrackerState EmptyState() =>
-        new(T0.Month, T0.DayOfYear, 0, 0, 0);
+        BudgetTrackerState.Empty with { CurrentMonth = T0.Month, CurrentDay = T0.DayOfYear };
 
     [Fact]
     public void Apply_increments_monthly_and_daily_usage()
@@ -90,7 +92,7 @@ public sealed class BudgetTrackerStateSpec
             .Apply(2, T0);
 
         var dto = state.GetPersistenceState();
-        var restored = BudgetTrackerStateExtensions.FromPersistence(dto, T0);
+        var restored = BudgetTrackerState.FromPersistence(dto, T0);
 
         Assert.Equal(state.CurrentMonth, restored.CurrentMonth);
         Assert.Equal(state.CurrentDay, restored.CurrentDay);
@@ -105,7 +107,7 @@ public sealed class BudgetTrackerStateSpec
         var dto = state.GetPersistenceState();
         var nextMonth = new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero);
 
-        var restored = BudgetTrackerStateExtensions.FromPersistence(dto, nextMonth);
+        var restored = BudgetTrackerState.FromPersistence(dto, nextMonth);
 
         Assert.Equal(0, restored.MonthlyUsed);
         Assert.Equal(0, restored.DailyUsed);
@@ -119,7 +121,7 @@ public sealed class BudgetTrackerStateSpec
         var dto = state.GetPersistenceState();
         var nextDay = T0.AddDays(1);
 
-        var restored = BudgetTrackerStateExtensions.FromPersistence(dto, nextDay);
+        var restored = BudgetTrackerState.FromPersistence(dto, nextDay);
 
         Assert.Equal(10, restored.MonthlyUsed);
         Assert.Equal(0, restored.DailyUsed);
@@ -165,10 +167,44 @@ public sealed class BudgetTrackerStateSpec
     [Fact]
     public void Empty_state_has_zero_counters()
     {
-        var state = EmptyState();
+        var state = BudgetTrackerState.Empty;
 
-        Assert.Equal(0, state.MonthlyUsed);
-        Assert.Equal(0, state.DailyUsed);
-        Assert.Equal(0, state.EventsSinceSnapshot);
+        Assert.Multiple(
+            () => Assert.Equal(0, state.CurrentMonth),
+            () => Assert.Equal(0, state.CurrentDay),
+            () => Assert.Equal(0, state.MonthlyUsed),
+            () => Assert.Equal(0, state.DailyUsed),
+            () => Assert.Equal(0, state.EventsSinceSnapshot));
+    }
+
+    [Fact]
+    public void ProcessCommand_returns_new_state_and_persistence_event()
+    {
+        var state = EmptyState();
+        var cmd = new RecordApiCall(3);
+
+        var (newState, evt) = state.ProcessCommand(cmd, T0);
+
+        Assert.Multiple(
+            () => Assert.Equal(3, newState.MonthlyUsed),
+            () => Assert.Equal(3, newState.DailyUsed),
+            () => Assert.Equal(1, newState.EventsSinceSnapshot),
+            () => Assert.Equal(3, evt.Weight),
+            () => Assert.Equal(T0.UtcTicks, evt.UtcTicks));
+    }
+
+    [Fact]
+    public void ProcessCommand_handles_month_boundary()
+    {
+        var state = EmptyState().Apply(10, T0);
+        var nextMonth = new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero);
+
+        var (newState, evt) = state.ProcessCommand(new RecordApiCall(2), nextMonth);
+
+        Assert.Multiple(
+            () => Assert.Equal(2, newState.MonthlyUsed),
+            () => Assert.Equal(2, newState.DailyUsed),
+            () => Assert.Equal(8, newState.CurrentMonth),
+            () => Assert.Equal(2, evt.Weight));
     }
 }

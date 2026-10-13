@@ -195,4 +195,45 @@ public sealed class PollSchedulerStateSpec
 
         Assert.Equal(Now.AddMinutes(1), state.States["lucerne|icon_d2"].NextPollUtc);
     }
+
+    [Fact]
+    public void GetPersistenceState_and_FromPersistence_roundtrip()
+    {
+        var state = PollSchedulerState.Empty
+            .Apply("lucerne|icon_d2", 42, Now, DiscoveryInterval)
+            .Apply("lucerne|ecmwf_ifs025", 99, Now.AddHours(1), DiscoveryInterval);
+
+        var dto = state.GetPersistenceState();
+        var restored = PollSchedulerState.FromPersistence(dto, Now.AddHours(2));
+
+        Assert.Equal(state.States.Count, restored.States.Count);
+
+        foreach (var key in state.States.Keys)
+        {
+            var original = state.States[key];
+            var recovered = restored.States[key];
+
+            Assert.Multiple(
+                () => Assert.Equal(original.LastHash, recovered.LastHash),
+                () => Assert.Equal(original.LastChangeUtc, recovered.LastChangeUtc),
+                () => Assert.Equal(original.PrevChangeUtc, recovered.PrevChangeUtc),
+                () => Assert.Equal(original.MissCount, recovered.MissCount),
+                () => Assert.Equal(original.Phase, recovered.Phase),
+                () => Assert.Equal(original.Cycle, recovered.Cycle),
+                () => Assert.Equal(original.TransientFailureCount, recovered.TransientFailureCount));
+        }
+    }
+
+    [Fact]
+    public void FromPersistence_sets_NextPollUtc_to_now()
+    {
+        var state = PollSchedulerState.Empty
+            .Apply("lucerne|icon_d2", 42, Now, DiscoveryInterval);
+
+        var dto = state.GetPersistenceState();
+        var restoreTime = Now.AddHours(5);
+        var restored = PollSchedulerState.FromPersistence(dto, restoreTime);
+
+        Assert.Equal(restoreTime, restored.States["lucerne|icon_d2"].NextPollUtc);
+    }
 }

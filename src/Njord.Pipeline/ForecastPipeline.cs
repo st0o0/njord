@@ -21,30 +21,30 @@ namespace Njord.Pipeline;
 
 public sealed class ForecastPipeline : ReceiveActor, IWithStash
 {
+    private static readonly BackoffPolicy GatewayRetryPolicy =
+        Backoff.Create(TimeSpan.FromSeconds(1), maxDelay: TimeSpan.FromSeconds(30));
+
+    private sealed record GatewayResolved(IActorRef Gateway);
+    private sealed record GatewayResolveFailed(Exception Cause);
+    private sealed record RetryGatewayResolve;
+
     private readonly TimeProvider _timeProvider;
     private readonly ConsensusSnapshotFactory _consensusFactory;
     private readonly AlertAnalyzer _alerts;
     private readonly DerivedAnalyzer _derived;
     private readonly TrendAnalyzer _trends;
     private readonly IndexAnalyzer _indices;
-    private readonly ILoggingAdapter _log = Context.GetLogger();
 
     private Source<PipelineEvent, NotUsed>? _pipelineOutputSource;
     private IMaterializer? _mat;
     private IActorRef? _sensorRef;
-
-    public IStash Stash { get; set; } = null!;
-
     private IActorRef? _gateway;
     private IActorRef? _lastTerminatedGateway;
     private int _gatewayRetryCount;
 
-    private sealed record GatewayResolved(IActorRef Gateway);
-    private sealed record GatewayResolveFailed(Exception Cause);
-    private sealed record RetryGatewayResolve;
+    public IStash Stash { get; set; } = null!;
 
-    private static readonly BackoffPolicy GatewayRetryPolicy =
-        Backoff.Create(TimeSpan.FromSeconds(1), maxDelay: TimeSpan.FromSeconds(30));
+    private readonly ILoggingAdapter _log = Context.GetLogger();
 
     public ForecastPipeline(
         TimeProvider timeProvider,

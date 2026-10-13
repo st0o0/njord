@@ -11,12 +11,14 @@ using Njord.Messages.Pipeline;
 using Njord.Weather;
 using Servus.Akka;
 using Servus.Resilience;
+using Njord.Persistence.Events.Pipeline;
 using PersistedDataChanged = Njord.Persistence.Events.Pipeline.DataChanged;
 
 namespace Njord.Pipeline;
 
 public sealed class PollScheduler : ReceivePersistentActor
 {
+    private const int SnapshotInterval = 50;
 
     public override string PersistenceId => "scheduler";
 
@@ -26,6 +28,7 @@ public sealed class PollScheduler : ReceivePersistentActor
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private PollSchedulerState _state = PollSchedulerState.Empty;
     private readonly Dictionary<string, PollCycleTracker> _pollCycles = new();
+    private int _eventsSinceSnapshot;
 
     private IActorRef? _gateway;
     private IActorRef? _lastTerminatedGateway;
@@ -53,8 +56,19 @@ public sealed class PollScheduler : ReceivePersistentActor
         _gateway = Context.GetActor<IForecastGateway>();
         Context.Watch(_gateway);
 
-        Recover<PersistedDataChanged>(dto => _state = _state.ApplyRecover(dto, _options.DiscoveryInterval));
-        Recover<SnapshotOffer>(_ => { });
+        Recover<PersistedDataChanged>(dto =>
+        {
+            _state = _state.ApplyRecover(dto, _options.DiscoveryInterval);
+            _eventsSinceSnapshot++;
+        });
+        Recover<SnapshotOffer>(offer =>
+        {
+            if (offer.Snapshot is PersistedPollSchedulerState snapshot)
+            {
+                _state = PollSchedulerState.FromPersistence(snapshot, _timeProvider.GetUtcNow());
+                _eventsSinceSnapshot = 0;
+            }
+        });
 
         Ready();
     }
@@ -100,6 +114,13 @@ public sealed class PollScheduler : ReceivePersistentActor
             Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryGatewayResolve(), Self);
         });
         Command<QueryPollStates>(OnQueryPollStates);
+        Command<SaveSnapshotSuccess>(_ => { });
+        Command<SaveSnapshotFailure>(fail =>
+            _log.Warning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
+        Command<DeleteMessagesSuccess>(_ => { });
+        Command<DeleteSnapshotSuccess>(_ => { });
+        Command<DeleteMessagesFailure>(_ => { });
+        Command<DeleteSnapshotsFailure>(_ => { });
         CommandAny(_ => Stash.Stash());
     }
 
@@ -111,6 +132,19 @@ public sealed class PollScheduler : ReceivePersistentActor
         Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
         Command<QueryPollStates>(OnQueryPollStates);
         Command<Terminated>(OnTerminated);
+        Command<SaveSnapshotSuccess>(success =>
+        {
+            DeleteMessages(success.Metadata.SequenceNr);
+            DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
+        });
+        Command<SaveSnapshotFailure>(fail =>
+            _log.Warning(fail.Cause, "Snapshot save failed for {PersistenceId}", PersistenceId));
+        Command<DeleteMessagesFailure>(fail =>
+            _log.Warning(fail.Cause, "Delete messages failed for {PersistenceId}", PersistenceId));
+        Command<DeleteSnapshotsFailure>(fail =>
+            _log.Warning(fail.Cause, "Delete snapshots failed for {PersistenceId}", PersistenceId));
+        Command<DeleteMessagesSuccess>(_ => { });
+        Command<DeleteSnapshotSuccess>(_ => { });
     }
 
     private void OnTerminated(Terminated msg)
@@ -199,6 +233,13 @@ public sealed class PollScheduler : ReceivePersistentActor
                 ScheduleNext(result.Location, result.ModelId);
                 Sender.Tell(new Ack());
                 RecordPollCompletion(result.Location, changed: true);
+
+                _eventsSinceSnapshot++;
+                if (_eventsSinceSnapshot >= SnapshotInterval)
+                {
+                    SaveSnapshot(_state.GetPersistenceState());
+                    _eventsSinceSnapshot = 0;
+                }
             });
         }
         else

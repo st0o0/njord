@@ -3,20 +3,19 @@ using Akka.Event;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Messages.Sensors;
-using Njord.Sensors;
 
 namespace Njord.SensorHub;
 
 public sealed class SensorHub : ReceiveActor, IWithTimers
 {
+    private sealed record ExpireTick;
+
     public ITimerScheduler Timers { get; set; } = null!;
 
-    private readonly Dictionary<(string Location, SensorKind Kind, string Source), SensorReading> _readings = new();
     private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _staleness;
     private readonly ILoggingAdapter _log = Context.GetLogger();
-
-    private sealed record ExpireTick;
+    private SensorHubState _state = SensorHubState.Empty;
 
     public SensorHub(IOptions<SensorOptions> sensorOptions, TimeProvider timeProvider)
     {
@@ -25,7 +24,7 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
 
         Receive<UpdateReading>(Handle);
         Receive<QuerySensorSnapshot>(Handle);
-        Receive<ExpireTick>(_ => Expire());
+        Receive<ExpireTick>(_ => HandleExpire());
     }
 
     protected override void PreStart()
@@ -35,92 +34,34 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
 
     private void Handle(UpdateReading msg)
     {
-        var reading = msg.Reading;
-
-        if (!SensorKindMetadata.TryGet(reading.Kind, out var metadata) || metadata is null)
+        var validation = _state.Validate(msg.Reading);
+        if (!validation.Accepted)
         {
-            _log.Warning("Rejected reading: unknown SensorKind {Kind}", reading.Kind);
-            Sender.Tell(new PushResult(false, $"Unknown SensorKind: {reading.Kind}"));
+            _log.Warning("Rejected reading: {Reason}", validation.RejectionReason);
+            Sender.Tell(new PushResult(false, validation.RejectionReason));
             return;
         }
 
-        if (!metadata.IsPlausible(reading.Value))
-        {
-            _log.Warning("Rejected reading: {Kind} value {Value} outside range [{Min}, {Max}]",
-                reading.Kind, reading.Value, metadata.Min, metadata.Max);
-            Sender.Tell(new PushResult(false,
-                $"Value {reading.Value} outside plausible range [{metadata.Min}, {metadata.Max}] for {reading.Kind}"));
-            return;
-        }
-
-        var key = (reading.Location, reading.Kind, reading.Source);
-        _readings[key] = reading;
+        _state = _state.Apply(msg.Reading);
         Sender.Tell(new PushResult(true, null));
     }
 
     private void Handle(QuerySensorSnapshot msg)
     {
         var now = _timeProvider.GetUtcNow();
-        var readings = new Dictionary<SensorKind, AggregatedReading>();
-
-        var byKind = _readings
-            .Where(kvp => kvp.Key.Location == msg.Location && !IsExpired(kvp.Value, now))
-            .GroupBy(kvp => kvp.Key.Kind);
-
-        foreach (var group in byKind)
-        {
-            var metadata = SensorKindMetadata.Get(group.Key);
-            var values = group.Select(kvp => kvp.Value).ToList();
-            var aggregated = Aggregate(values, metadata.Aggregation);
-            if (aggregated is not null)
-            {
-                readings[group.Key] = aggregated;
-            }
-        }
-
-        SensorSnapshotResponse response = readings.Count > 0
-            ? new SensorSnapshotResult(new SensorSnapshot(msg.Location, readings))
-            : new SensorSnapshotNotAvailable(msg.Location);
-
-        Sender.Tell(response);
+        Sender.Tell(_state.GetSnapshot(msg.Location, now, _staleness));
     }
 
-    private static AggregatedReading? Aggregate(List<SensorReading> values, AggregationStrategy strategy)
-    {
-        if (values.Count == 0)
-        {
-            return null;
-        }
-
-        var newest = values.Max(v => v.MeasuredAt);
-        var count = values.Count;
-
-        var aggregatedValue = strategy switch
-        {
-            AggregationStrategy.Average => values.Average(v => v.Value),
-            AggregationStrategy.Sum => values.Sum(v => v.Value),
-            AggregationStrategy.Latest => values.OrderByDescending(v => v.MeasuredAt).First().Value,
-            _ => values.Average(v => v.Value),
-        };
-
-        return new AggregatedReading(aggregatedValue, count, newest);
-    }
-
-    private bool IsExpired(SensorReading reading, DateTimeOffset now)
-        => now - reading.MeasuredAt > _staleness;
-
-    private void Expire()
+    private void HandleExpire()
     {
         var now = _timeProvider.GetUtcNow();
-        var expired = _readings.Where(kvp => IsExpired(kvp.Value, now)).Select(kvp => kvp.Key).ToList();
-        foreach (var key in expired)
-        {
-            _readings.Remove(key);
-        }
+        var before = _state.Readings.Count;
+        _state = _state.Expire(now, _staleness);
+        var expired = before - _state.Readings.Count;
 
-        if (expired.Count > 0)
+        if (expired > 0)
         {
-            _log.Debug("Expired {Count} stale sensor readings", expired.Count);
+            _log.Debug("Expired {Count} stale sensor readings", expired);
         }
     }
 }

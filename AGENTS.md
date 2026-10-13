@@ -181,8 +181,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 666 tests (Weather 59, Sensors 11, Persistence 6, Compute 165, Core 115,
-Grpc 56, Pipeline 64, Mqtt 37, OpenMeteo 16, Budget 22, SensorHub 6, Architecture 35,
+Current total: 680 tests (Weather 59, Sensors 11, Persistence 7, Compute 165, Core 115,
+Grpc 56, Pipeline 64, Mqtt 37, OpenMeteo 16, Budget 24, SensorHub 21, Architecture 35,
 Alerts 61, Derived 2, Trends 3, Indices 4).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small

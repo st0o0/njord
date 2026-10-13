@@ -10,15 +10,38 @@ public sealed record BudgetTrackerState(
     long DailyUsed,
     int EventsSinceSnapshot)
 {
-    public static BudgetTrackerState Empty(TimeProvider timeProvider)
+    public static readonly BudgetTrackerState Empty = new(0, 0, 0, 0, 0);
+
+    public static BudgetTrackerState FromPersistence(PersistedBudgetTrackerState dto, DateTimeOffset now)
     {
-        var now = timeProvider.GetUtcNow();
-        return new BudgetTrackerState(now.Month, now.DayOfYear, 0, 0, 0);
+        if (dto.Month != now.Month)
+        {
+            return new BudgetTrackerState(now.Month, now.DayOfYear, 0, 0, 0);
+        }
+
+        if (dto.Day != now.DayOfYear)
+        {
+            return new BudgetTrackerState(now.Month, now.DayOfYear, dto.MonthlyUsed, 0, 0);
+        }
+
+        return new BudgetTrackerState(now.Month, now.DayOfYear, dto.MonthlyUsed, dto.DailyUsed, 0);
     }
 }
 
 public static class BudgetTrackerStateExtensions
 {
+    public static (BudgetTrackerState State, ApiCallRecorded Event) ProcessCommand(
+        this BudgetTrackerState state, RecordApiCall cmd, DateTimeOffset now)
+    {
+        var evt = new ApiCallRecorded
+        {
+            Weight = cmd.Weight,
+            UtcTicks = now.UtcTicks,
+        };
+        var newState = state.Apply(cmd.Weight, now);
+        return (newState, evt);
+    }
+
     public static BudgetTrackerState Apply(this BudgetTrackerState state, int weight, DateTimeOffset now)
     {
         if (now.Month != state.CurrentMonth)
@@ -79,27 +102,6 @@ public static class BudgetTrackerStateExtensions
         DailyUsed = state.DailyUsed,
     };
 
-    public static ApiCallRecorded ToPersistedEvent(int weight, DateTimeOffset utc) => new()
-    {
-        Weight = weight,
-        UtcTicks = utc.UtcTicks,
-    };
-
     public static (int Weight, DateTimeOffset Utc) FromPersistedEvent(ApiCallRecorded dto) =>
         (dto.Weight, new DateTimeOffset(dto.UtcTicks, TimeSpan.Zero));
-
-    public static BudgetTrackerState FromPersistence(PersistedBudgetTrackerState dto, DateTimeOffset now)
-    {
-        if (dto.Month != now.Month)
-        {
-            return new BudgetTrackerState(now.Month, now.DayOfYear, 0, 0, 0);
-        }
-
-        if (dto.Day != now.DayOfYear)
-        {
-            return new BudgetTrackerState(now.Month, now.DayOfYear, dto.MonthlyUsed, 0, 0);
-        }
-
-        return new BudgetTrackerState(now.Month, now.DayOfYear, dto.MonthlyUsed, dto.DailyUsed, 0);
-    }
 }

@@ -12,16 +12,18 @@ public sealed class BudgetTracker : ReceivePersistentActor
 
     public override string PersistenceId => "budget-tracker";
 
-    private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly TimeProvider _timeProvider;
     private readonly NjordHealthState _healthState;
+    private readonly ILoggingAdapter _log = Context.GetLogger();
     private BudgetTrackerState _state;
 
     public BudgetTracker(TimeProvider timeProvider, NjordHealthState healthState)
     {
         _timeProvider = timeProvider;
         _healthState = healthState;
-        _state = BudgetTrackerState.Empty(timeProvider);
+
+        var now = timeProvider.GetUtcNow();
+        _state = BudgetTrackerState.Empty with { CurrentMonth = now.Month, CurrentDay = now.DayOfYear };
 
         Recover<ApiCallRecorded>(dto =>
         {
@@ -32,7 +34,7 @@ public sealed class BudgetTracker : ReceivePersistentActor
         {
             if (offer.Snapshot is PersistedBudgetTrackerState snapshot)
             {
-                _state = BudgetTrackerStateExtensions.FromPersistence(snapshot, _timeProvider.GetUtcNow());
+                _state = BudgetTrackerState.FromPersistence(snapshot, _timeProvider.GetUtcNow());
             }
         });
 
@@ -56,11 +58,11 @@ public sealed class BudgetTracker : ReceivePersistentActor
     private void OnRecordApiCall(RecordApiCall cmd)
     {
         var now = _timeProvider.GetUtcNow();
-        var dto = BudgetTrackerStateExtensions.ToPersistedEvent(cmd.Weight, now);
+        var (newState, evt) = _state.ProcessCommand(cmd, now);
 
-        Persist(dto, _ =>
+        Persist(evt, _ =>
         {
-            _state = _state.Apply(cmd.Weight, now);
+            _state = newState;
             _healthState.SetBudgetUsage(_state.DailyUsed, _state.MonthlyUsed);
 
             if (_state.EventsSinceSnapshot >= SnapshotInterval)

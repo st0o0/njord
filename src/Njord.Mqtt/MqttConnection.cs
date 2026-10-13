@@ -10,6 +10,11 @@ namespace Njord.Mqtt;
 
 public sealed class MqttConnection : ReceiveActor
 {
+    private sealed record Connected;
+    private sealed record ConnectFailed(Exception Cause);
+    private sealed record Disconnected;
+    private sealed record Reconnect;
+    private sealed record Inbound(string Topic, string Payload);
 
     private readonly MqttOptions _mqttOptions;
     private readonly IMqttConnection _connection;
@@ -17,18 +22,12 @@ public sealed class MqttConnection : ReceiveActor
     private readonly MqttEgressTuning _tuning;
     private readonly NjordHealthState _healthState;
     private readonly TimeProvider _timeProvider;
+
     private readonly string _availabilityTopic;
     private readonly string _haStatusTopic;
-    private readonly ILoggingAdapter _log = Context.GetLogger();
     private int _connectAttempts;
-
     private readonly List<IActorRef> _inboundListeners = [];
-
-    private sealed record Connected;
-    private sealed record ConnectFailed(Exception Cause);
-    private sealed record Disconnected;
-    private sealed record Reconnect;
-    private sealed record Inbound(string Topic, string Payload);
+    private readonly ILoggingAdapter _log = Context.GetLogger();
 
     public MqttConnection(
         IOptions<MqttOptions> mqttOptions,

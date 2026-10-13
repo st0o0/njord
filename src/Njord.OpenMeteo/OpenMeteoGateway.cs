@@ -15,21 +15,22 @@ namespace Njord.OpenMeteo;
 
 public sealed class OpenMeteoGateway : ReceiveActor
 {
+    internal sealed record FetchTarget(LocationOptions Location, WeatherModel Model, CycleId Cycle, int Weight);
+    private sealed record FetchResult(PollOutcome Outcome, string Key);
+    private sealed record StreamCompleted;
+
     private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;
     private readonly NjordOptions _options;
     private readonly int _weight;
     private readonly IGatewayBudgetGate _gate;
+
     private readonly Dictionary<string, IActorRef> _pendingRequests = new();
-    private readonly ILoggingAdapter _log = Context.GetLogger();
     private IMaterializer? _mat;
     private ISourceQueueWithComplete<FetchTarget>? _fetchQueue;
     private ISourceQueueWithComplete<WeatherForecast>? _forecastQueue;
     private Source<WeatherForecast, NotUsed>? _broadcastSource;
-
-    internal sealed record FetchTarget(LocationOptions Location, WeatherModel Model, CycleId Cycle, int Weight);
-    private sealed record FetchResult(PollOutcome Outcome, string Key);
-    private sealed record StreamCompleted;
+    private readonly ILoggingAdapter _log = Context.GetLogger();
 
     public OpenMeteoGateway(
         IOpenMeteoClient client,

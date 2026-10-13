@@ -5,17 +5,16 @@
 Persistent actor for tracking API call budget usage across restarts. Uses Akka.Persistence to journal call events, snapshot state periodically, and handle day/month boundary resets so budget counters survive process restarts.
 ## Requirements
 ### Requirement: BudgetTrackerActor persists API call events
-`BudgetTrackerActor` SHALL be a `ReceivePersistentActor` with `PersistenceId` `"budget-tracker"`. When it receives a `RecordApiCall(int Weight)` command, it SHALL persist an `ApiCallRecordedDto` event and update its in-memory monthly and daily usage counters.
+`BudgetTracker` SHALL be a `ReceivePersistentActor` with `PersistenceId` `"budget-tracker"`. When it receives a `RecordApiCall(int Weight)` command, it SHALL use the `ProcessCommand` extension method on its state to produce both the new state and the persistence event, then call `Persist` with the event.
 
 #### Scenario: Recording a single API call
 - **WHEN** the actor receives `RecordApiCall(Weight: 1)`
-- **THEN** it SHALL persist an `ApiCallRecordedDto` with weight 1 and the current UTC timestamp
-- **AND** increment `MonthlyUsed` and `DailyUsed` by 1
+- **THEN** it SHALL call `_state.ProcessCommand(cmd, now)` to get the new state and `ApiCallRecorded` event
+- **AND** persist the event and update `_state` in the persist callback
 
 #### Scenario: Recording a weighted API call
 - **WHEN** the actor receives `RecordApiCall(Weight: 4)`
-- **THEN** it SHALL persist an `ApiCallRecordedDto` with weight 4
-- **AND** increment `MonthlyUsed` and `DailyUsed` by 4
+- **THEN** it SHALL persist an `ApiCallRecorded` with weight 4 via the ProcessCommand pattern
 
 ### Requirement: BudgetTrackerActor responds to usage queries
 When the actor receives a `QueryBudgetUsage` command, it SHALL reply with a `BudgetUsageResult(long MonthlyUsed, long DailyUsed)` message reflecting current counters.
@@ -25,7 +24,7 @@ When the actor receives a `QueryBudgetUsage` command, it SHALL reply with a `Bud
 - **THEN** it SHALL reply with `BudgetUsageResult(MonthlyUsed: 10, DailyUsed: 10)`
 
 ### Requirement: BudgetTrackerActor recovers state from persisted events
-On recovery, the actor SHALL replay persisted `ApiCallRecordedDto` events to rebuild its monthly and daily counters. Events whose timestamp falls in a month earlier than the current UTC month SHALL be skipped during recovery.
+On recovery, the actor SHALL replay persisted `ApiCallRecorded` events to rebuild its monthly and daily counters. Events whose timestamp falls in a month earlier than the current UTC month SHALL be skipped during recovery. The initial state SHALL be constructed from `BudgetTrackerState.Empty` (a static readonly field with zeroed counters) plus an initialization step that sets the current month/day from TimeProvider.
 
 #### Scenario: Recovery after restart within same month
 - **WHEN** the actor recovers and the journal contains 25 events all from the current month
@@ -49,7 +48,7 @@ The actor SHALL save a `BudgetTrackerSnapshotDto` snapshot every 50 persisted ev
 - **AND** call `DeleteSnapshots` for all snapshots before the current one
 
 ### Requirement: BudgetTrackerActor recovers from snapshots
-When a `SnapshotOffer` is received during recovery, the actor SHALL restore its state from the `BudgetTrackerSnapshotDto`. If the snapshot's stored month differs from the current UTC month, the actor SHALL reset both counters to zero. If only the day differs, it SHALL reset `DailyUsed` to zero.
+When a `SnapshotOffer` is received during recovery, the actor SHALL restore its state from the `PersistedBudgetTrackerState` using `BudgetTrackerState.FromPersistence(dto, now)` — a static method on the record, not an extension method. If the snapshot's stored month differs from the current UTC month, it SHALL reset both counters to zero. If only the day differs, it SHALL reset `DailyUsed` to zero.
 
 #### Scenario: Snapshot recovery same month same day
 - **WHEN** a snapshot offers month=7, day=209, monthly=500, daily=30 and the current UTC is also month 7 day 209
