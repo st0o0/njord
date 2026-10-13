@@ -282,12 +282,12 @@ These checks run locally only; they are deliberately not part of CI.
   `GetByApiName` is for deserialization only — never call it with a string
   literal.
 - Persistence records (`Njord.Persistence`): follow FunkArr conventions
-  (`akka-skills:persistence`). Extend-only. Never remove or rename a
-  `[JsonProperty]` string. New properties must be nullable or have a default.
-  No `Dto`/`Event` suffix — use past-tense for events (`SomethingHappened`),
-  `Persisted<Name>State` for snapshots. While the project is 0.x, moving or
-  renaming persistence record types is allowed as a breaking change
-  (`refactor!:`); `[JsonProperty]` names stay extend-only.
+  (`akka-skills:persistence`). Positional records (no `[JsonProperty]`,
+  no init-properties). `DateTimeOffset` for timestamps, `TimeSpan` for
+  durations — never `long` ticks. No `Dto`/`Event` suffix — use past-tense
+  for events (`SomethingHappened`), `Persisted<Name>State` for snapshots.
+  New properties must be nullable or have a default. While the project is 0.x,
+  breaking persistence changes are allowed (`refactor!:`).
 - Persistent actors use `LastSequenceNr % SnapshotInterval == 0` for snapshot
   scheduling (FunkArr pattern). No counters on domain state records.
 - Journal cleanup after snapshot: `DeleteMessages(seqNr)` +

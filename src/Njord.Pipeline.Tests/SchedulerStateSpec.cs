@@ -118,13 +118,7 @@ public sealed class PollSchedulerStateSpec
     [Fact]
     public void ApplyRecover_restores_state_from_dto()
     {
-        var dto = new PersistedDataChanged
-        {
-            Location = "lucerne",
-            ModelId = "icon_d2",
-            Hash = 42,
-            UtcTicks = Now.UtcTicks,
-        };
+        var dto = new PersistedDataChanged("lucerne", "icon_d2", 42, Now);
 
         var state = PollSchedulerState.Empty.ApplyRecover(dto, DiscoveryInterval);
 

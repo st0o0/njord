@@ -7,13 +7,7 @@ public sealed class BudgetTrackerDtoRoundtripSpec
     [Fact]
     public void PersistedBudgetTrackerState_roundtrip()
     {
-        var dto = new PersistedBudgetTrackerState
-        {
-            Month = 7,
-            Day = 12,
-            MonthlyUsed = 4200,
-            DailyUsed = 150,
-        };
+        var dto = new PersistedBudgetTrackerState(7, 12, 4200, 150);
 
         var result = PersistenceRoundtripHelper.Roundtrip(dto);
 
@@ -26,15 +20,11 @@ public sealed class BudgetTrackerDtoRoundtripSpec
     [Fact]
     public void ApiCallRecorded_roundtrip()
     {
-        var dto = new ApiCallRecorded
-        {
-            Weight = 3,
-            UtcTicks = 638_600_000_000_000_000L,
-        };
+        var dto = new ApiCallRecorded(3, new DateTimeOffset(2024, 8, 15, 0, 0, 0, TimeSpan.Zero));
 
         var result = PersistenceRoundtripHelper.Roundtrip(dto);
 
         Assert.Equal(dto.Weight, result.Weight);
-        Assert.Equal(dto.UtcTicks, result.UtcTicks);
+        Assert.Equal(dto.Utc, result.Utc);
     }
 }

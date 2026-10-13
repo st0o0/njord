@@ -1,7 +1,7 @@
-using Njord.Budget;
 using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Budget;
 using Njord.Tests.Shared;
+
 namespace Njord.Budget.Tests;
 
 public sealed class BudgetTrackerStateSpec
@@ -12,7 +12,7 @@ public sealed class BudgetTrackerStateSpec
         BudgetTrackerState.Empty with { CurrentMonth = T0.Month, CurrentDay = T0.DayOfYear };
 
     private static ApiCallRecorded Evt(int weight, DateTimeOffset utc) =>
-        new() { Weight = weight, UtcTicks = utc.UtcTicks };
+        new(weight, utc);
 
     [Fact]
     public void Apply_increments_monthly_and_daily_usage()
@@ -189,7 +189,7 @@ public sealed class BudgetTrackerStateSpec
             () => Assert.Equal(3, newState.MonthlyUsed),
             () => Assert.Equal(3, newState.DailyUsed),
             () => Assert.Equal(3, evt.Weight),
-            () => Assert.Equal(T0.UtcTicks, evt.UtcTicks));
+            () => Assert.Equal(T0, evt.Utc));
     }
 
     [Fact]

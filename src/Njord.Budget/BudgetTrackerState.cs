@@ -32,11 +32,7 @@ public static class BudgetTrackerStateExtensions
     public static (BudgetTrackerState State, ApiCallRecorded Event) ProcessCommand(
         this BudgetTrackerState state, RecordApiCall cmd, DateTimeOffset now)
     {
-        var evt = new ApiCallRecorded
-        {
-            Weight = cmd.Weight,
-            UtcTicks = now.UtcTicks,
-        };
+        var evt = new ApiCallRecorded(cmd.Weight, now);
         var newState = state.Apply(evt, now);
         return (newState, evt);
     }
@@ -92,14 +88,9 @@ public static class BudgetTrackerStateExtensions
     public static BudgetUsageResult GetSnapshot(this BudgetTrackerState state) =>
         new(state.MonthlyUsed, state.DailyUsed);
 
-    public static PersistedBudgetTrackerState GetPersistenceState(this BudgetTrackerState state) => new()
-    {
-        Month = state.CurrentMonth,
-        Day = state.CurrentDay,
-        MonthlyUsed = state.MonthlyUsed,
-        DailyUsed = state.DailyUsed,
-    };
+    public static PersistedBudgetTrackerState GetPersistenceState(this BudgetTrackerState state) =>
+        new(state.CurrentMonth, state.CurrentDay, state.MonthlyUsed, state.DailyUsed);
 
     public static (int Weight, DateTimeOffset Utc) FromPersistedEvent(ApiCallRecorded dto) =>
-        (dto.Weight, new DateTimeOffset(dto.UtcTicks, TimeSpan.Zero));
+        (dto.Weight, dto.Utc);
 }

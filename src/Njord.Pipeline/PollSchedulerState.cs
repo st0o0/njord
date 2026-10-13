@@ -13,24 +13,14 @@ public sealed record PollSchedulerState(ImmutableDictionary<string, ModelPollSta
         var builder = ImmutableDictionary.CreateBuilder<string, ModelPollState>();
         foreach (var entry in dto.Entries)
         {
-            var lastChange = entry.LastChangeUtcTicks is not null
-                ? new DateTimeOffset(entry.LastChangeUtcTicks.Value, TimeSpan.Zero)
-                : (DateTimeOffset?)null;
-            var prevChange = entry.PrevChangeUtcTicks is not null
-                ? new DateTimeOffset(entry.PrevChangeUtcTicks.Value, TimeSpan.Zero)
-                : (DateTimeOffset?)null;
-            var cycle = entry.CycleTicks is not null
-                ? TimeSpan.FromTicks(entry.CycleTicks.Value)
-                : (TimeSpan?)null;
-
             builder[entry.Key] = new ModelPollState(
                 entry.LastHash,
-                lastChange,
-                prevChange,
+                entry.LastChangeUtc,
+                entry.PrevChangeUtc,
                 now,
                 entry.MissCount,
                 (PollPhase)entry.Phase,
-                cycle,
+                entry.Cycle,
                 entry.TransientFailureCount);
         }
 
@@ -54,7 +44,7 @@ public static class PollSchedulerStateExtensions
         var key = $"{evt.Location}|{evt.ModelId}";
         var pollState = state.States.GetValueOrDefault(key, ModelPollState.Initial(evt.Utc));
         var updated = pollState.WithDataChange(evt.Hash, evt.Utc, discoveryInterval);
-        return state with { States = state.States.SetItem(key, updated) };
+        return new PollSchedulerState(States: state.States.SetItem(key, updated));
     }
 
     public static PollSchedulerState ApplyMiss(
@@ -65,7 +55,7 @@ public static class PollSchedulerStateExtensions
     {
         var pollState = state.States.GetValueOrDefault(key, ModelPollState.Initial(now));
         var updated = pollState.WithMiss(now, discoveryInterval);
-        return state with { States = state.States.SetItem(key, updated) };
+        return new PollSchedulerState(States: state.States.SetItem(key, updated));
     }
 
     public static PollSchedulerState ApplyTransientFailure(
@@ -76,7 +66,7 @@ public static class PollSchedulerStateExtensions
     {
         var pollState = state.States.GetValueOrDefault(key, ModelPollState.Initial(now));
         var updated = pollState.WithTransientFailure(now, discoveryInterval);
-        return state with { States = state.States.SetItem(key, updated) };
+        return new PollSchedulerState(States: state.States.SetItem(key, updated));
     }
 
     public static (PollSchedulerState State, HashDecision Decision) ApplyHashResult(
@@ -106,11 +96,8 @@ public static class PollSchedulerStateExtensions
             : failed;
     }
 
-    public static PollSchedulerState SetPollState(
-        this PollSchedulerState state,
-        string key,
-        ModelPollState pollState) =>
-        state with { States = state.States.SetItem(key, pollState) };
+    public static PollSchedulerState SetPollState(this PollSchedulerState state, string key,
+        ModelPollState pollState) => new(States: state.States.SetItem(key, pollState));
 
     public static PollSchedulerState EnsureInitialized(
         this PollSchedulerState state,
@@ -122,27 +109,24 @@ public static class PollSchedulerStateExtensions
             return state;
         }
 
-        return state with { States = state.States.SetItem(key, ModelPollState.Initial(now)) };
+        return new PollSchedulerState(States: state.States.SetItem(key, ModelPollState.Initial(now)));
     }
 
-    public static PersistedPollSchedulerState GetPersistenceState(this PollSchedulerState state) => new()
-    {
-        Entries = state.States.Select(kvp =>
+    public static PersistedPollSchedulerState GetPersistenceState(this PollSchedulerState state) => new([
+        .. state.States.Select(kvp =>
         {
             var s = kvp.Value;
-            return new PersistedModelPollEntry
-            {
-                Key = kvp.Key,
-                LastHash = s.LastHash,
-                LastChangeUtcTicks = s.LastChangeUtc?.UtcTicks,
-                PrevChangeUtcTicks = s.PrevChangeUtc?.UtcTicks,
-                MissCount = s.MissCount,
-                Phase = (int)s.Phase,
-                CycleTicks = s.Cycle?.Ticks,
-                TransientFailureCount = s.TransientFailureCount,
-            };
-        }).ToArray(),
-    };
+            return new PersistedModelPollEntry(
+                kvp.Key,
+                s.LastHash,
+                s.LastChangeUtc,
+                s.PrevChangeUtc,
+                s.MissCount,
+                (int)s.Phase,
+                s.Cycle,
+                s.TransientFailureCount);
+        })
+    ]);
 
     public static PollStatesResult GetSnapshot(this PollSchedulerState state)
     {
@@ -172,14 +156,9 @@ public static class PollSchedulerStateExtensions
         return state.Apply(evt, discoveryInterval);
     }
 
-    public static PersistedDataChanged ToPersistedEvent(DataChanged evt) => new()
-    {
-        Location = evt.Location,
-        ModelId = evt.ModelId,
-        Hash = evt.Hash,
-        UtcTicks = evt.Utc.UtcTicks,
-    };
+    public static PersistedDataChanged ToPersistedEvent(DataChanged evt) =>
+        new(evt.Location, evt.ModelId, evt.Hash, evt.Utc);
 
     public static DataChanged FromPersistedEvent(PersistedDataChanged dto) =>
-        new(dto.Location, dto.ModelId, dto.Hash, new DateTimeOffset(dto.UtcTicks, TimeSpan.Zero));
+        new(dto.Location, dto.ModelId, dto.Hash, dto.Utc);
 }
