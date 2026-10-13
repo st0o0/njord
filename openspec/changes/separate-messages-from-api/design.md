@@ -199,3 +199,9 @@ Adaptations made during implementation, where the code differed from what the ta
 - CLAUDE.md already routes message conventions to "Pattern A (dedicated Njord.Messages
   project)", so its skill routing needed no change. AGENTS.md got the new guardrails, the
   structure, the reference direction and current test totals.
+
+### Group 6 (validation)
+- 6.7 is open: the e2e stack needs `../ha-njord` (not cloned on this machine) and `grpcurl`
+  (not installed), and the skill runs its sections through parallel subagents. As a substitute
+  the host was started in Development: it served `/alive` and logged no errors. The RPC
+  response shapes are covered by the golden masters and the unchanged service specs.

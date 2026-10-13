@@ -38,11 +38,11 @@ service specs must pass without re-approval after every group.
 
 ## 6. Validation
 
-- [ ] 6.1 `cd src && dotnet build Njord.slnx` with no new warnings
-- [ ] 6.2 `dotnet run --project Njord.Grpc.Tests/Njord.Grpc.Tests.csproj --no-build` (golden masters and service specs unchanged)
-- [ ] 6.3 `dotnet run --project Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj --no-build` and `dotnet run --project Njord.Budget.Tests/Njord.Budget.Tests.csproj --no-build`
-- [ ] 6.4 `dotnet run --project Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj --no-build` and `dotnet run --project Njord.Tests/Njord.Tests.csproj --no-build`
-- [ ] 6.5 `dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj --no-build`
-- [ ] 6.6 Full loop over all `Njord.*Tests` projects (AGENTS.md "Build & test")
+- [x] 6.1 `cd src && dotnet build Njord.slnx` with no new warnings
+- [x] 6.2 `dotnet run --project Njord.Grpc.Tests/Njord.Grpc.Tests.csproj --no-build` (golden masters and service specs unchanged)
+- [x] 6.3 `dotnet run --project Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj --no-build` and `dotnet run --project Njord.Budget.Tests/Njord.Budget.Tests.csproj --no-build`
+- [x] 6.4 `dotnet run --project Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj --no-build` and `dotnet run --project Njord.Tests/Njord.Tests.csproj --no-build`
+- [x] 6.5 `dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj --no-build`
+- [x] 6.6 Full loop over all `Njord.*Tests` projects (AGENTS.md "Build & test")
 - [ ] 6.7 Run the `e2e-test` skill's gRPC sections against the Docker stack to confirm the RPC responses are unchanged
-- [ ] 6.8 From the repo root: `openspec validate separate-messages-from-api --strict` and `openspec validate --all --no-interactive`
+- [x] 6.8 From the repo root: `openspec validate separate-messages-from-api --strict` and `openspec validate --all --no-interactive`
