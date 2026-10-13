@@ -41,7 +41,7 @@ public static class DerivedComputer
         return Math.Round(13.12 + 0.6215 * t - 11.37 * vPow + 0.3965 * t * vPow, 1);
     }
 
-    public static string? DewPointComfort(double? dewPointC)
+    public static DewPointComfort? Comfort(double? dewPointC)
     {
         if (dewPointC is not { } dp)
         {
@@ -50,11 +50,11 @@ public static class DerivedComputer
 
         return dp switch
         {
-            < 10.0 => "dry",
-            < 16.0 => "comfortable",
-            < 19.0 => "sticky",
-            < 22.0 => "oppressive",
-            _ => "dangerous",
+            < 10.0 => DewPointComfort.Dry,
+            < 16.0 => DewPointComfort.Comfortable,
+            < 19.0 => DewPointComfort.Sticky,
+            < 22.0 => DewPointComfort.Oppressive,
+            _ => DewPointComfort.Dangerous,
         };
     }
 
@@ -134,15 +134,8 @@ public static class DerivedComputer
         return Math.Round(totalSunshineSec / daylightSec * 100.0, 1);
     }
 
-    public static string? WmoDescription(int? weatherCode)
-    {
-        if (weatherCode is not { } code)
-        {
-            return null;
-        }
-
-        return WmoTable.GetValueOrDefault(code);
-    }
+    public static WeatherCondition? Condition(int? weatherCode) =>
+        WeatherConditions.FromWmoCode(weatherCode);
 
     public static bool? InversionDetected(
         double? pressureMsl, double? surfacePressure, double? temp2m, double? dewPoint)
@@ -157,36 +150,4 @@ public static class DerivedComputer
 
         return (msl - sp) > 3.0 && (t - dp) < 3.0;
     }
-
-    private static readonly Dictionary<int, string> WmoTable = new()
-    {
-        [0] = "Clear sky",
-        [1] = "Mainly clear",
-        [2] = "Partly cloudy",
-        [3] = "Overcast",
-        [45] = "Fog",
-        [48] = "Depositing rime fog",
-        [51] = "Drizzle: light",
-        [53] = "Drizzle: moderate",
-        [55] = "Drizzle: dense",
-        [56] = "Freezing drizzle: light",
-        [57] = "Freezing drizzle: dense",
-        [61] = "Rain: slight",
-        [63] = "Rain: moderate",
-        [65] = "Rain: heavy",
-        [66] = "Freezing rain: light",
-        [67] = "Freezing rain: heavy",
-        [71] = "Snow fall: slight",
-        [73] = "Snow fall: moderate",
-        [75] = "Snow fall: heavy",
-        [77] = "Snow grains",
-        [80] = "Rain showers: slight",
-        [81] = "Rain showers: moderate",
-        [82] = "Rain showers: violent",
-        [85] = "Snow showers: slight",
-        [86] = "Snow showers: heavy",
-        [95] = "Thunderstorm: slight or moderate",
-        [96] = "Thunderstorm with slight hail",
-        [99] = "Thunderstorm with heavy hail",
-    };
 }

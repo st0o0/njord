@@ -44,7 +44,7 @@ public sealed class TrendComputer
             var prevMedian = prevParam?.ByHorizon.GetValueOrDefault(referenceKey)?.Median;
             var threshold = Thresholds.GetValueOrDefault(paramDef, 0.5);
 
-            var trend = TrendCalculator.TrendDirection(prevMedian, currMedian, threshold);
+            var trend = TrendCalculator.Direction(prevMedian, currMedian, threshold);
             paramTrends[paramDef.ApiName] = trend is { } t ? new ParameterTrend(t.Direction, t.Delta) : null;
         }
 
@@ -72,7 +72,7 @@ public sealed class TrendComputer
             var currIqr = currTempParam?.ByHorizon.GetValueOrDefault(referenceKey)?.Iqr;
             var prevIqr = prevTempParam?.ByHorizon.GetValueOrDefault(referenceKey)?.Iqr;
             var stabilityResult = TrendCalculator.ConsensusStability(prevIqr, currIqr);
-            stability = stabilityResult is { } s ? new StabilityInfo(s.Label, s.Ratio) : null;
+            stability = stabilityResult is { } s ? new StabilityInfo(s.Stability, s.Ratio) : null;
         }
 
         var decay = ComputeDecay(current);

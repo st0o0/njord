@@ -82,7 +82,7 @@ public sealed class TrendResultSpec
 
         var tempTrend = result.ParameterTrends["temperature_2m"];
         Assert.NotNull(tempTrend);
-        Assert.Equal("rising", tempTrend.Direction);
+        Assert.Equal(TrendDirection.Rising, tempTrend.Direction);
         Assert.Equal(4.0, tempTrend.Delta);
     }
 
@@ -101,8 +101,8 @@ public sealed class TrendResultSpec
         var result = new TrendComputer().Compute(currConsensus, prevConsensus);
 
         Assert.NotNull(result.WeatherChange);
-        Assert.Equal("clear", result.WeatherChange.FromCategory);
-        Assert.Equal("rain", result.WeatherChange.ToCategory);
+        Assert.Equal(WeatherCategory.Clear, result.WeatherChange.From);
+        Assert.Equal(WeatherCategory.Rain, result.WeatherChange.To);
     }
 
 }

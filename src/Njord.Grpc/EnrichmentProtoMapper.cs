@@ -163,14 +163,14 @@ public static class EnrichmentProtoMapper
             update.ParameterTrends.Add(new ProtoParameterTrend
             {
                 Parameter = param,
-                Direction = trend.Direction,
+                Direction = trend.Direction.ToWireName(),
                 Delta = trend.Delta,
             });
         }
 
         if (result.WeatherChange is { } wc)
         {
-            update.WeatherChangeDescription = wc.Description;
+            update.WeatherChangeDescription = wc.ToDescription();
         }
 
         if (result.PrecipTiming.StartsInHours is { } precipStart)
@@ -195,7 +195,7 @@ public static class EnrichmentProtoMapper
 
         if (result.Stability is { } stability)
         {
-            update.StabilityLabel = stability.Label;
+            update.StabilityLabel = stability.Stability.ToWireName();
             update.StabilityRatio = stability.Ratio;
         }
 
@@ -231,12 +231,12 @@ public static class EnrichmentProtoMapper
 
             if (derived.DewPointComfort is { } dpc)
             {
-                proto.DewpointComfort = dpc;
+                proto.DewpointComfort = dpc.ToWireName();
             }
 
-            if (derived.WmoDescription is { } wmo)
+            if (derived.Condition is { } wmo)
             {
-                proto.WmoDescription = wmo;
+                proto.WmoDescription = wmo.ToDescription();
             }
 
             update.ByHorizon.Add(proto);

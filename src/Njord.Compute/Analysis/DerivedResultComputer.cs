@@ -35,8 +35,8 @@ public sealed class DerivedResultComputer(ResolvedParameterSet parameters)
             byHorizon[horizonKey] = new HorizonDerived(
                 DerivedComputer.Beaufort(windMedian),
                 DerivedComputer.WindChill(tempMedian, windMedian),
-                DerivedComputer.DewPointComfort(dpMedian),
-                DerivedComputer.WmoDescription(codeMedian.HasValue ? (int)Math.Round(codeMedian.Value) : null));
+                DerivedComputer.Comfort(dpMedian),
+                DerivedComputer.Condition(codeMedian.HasValue ? (int)Math.Round(codeMedian.Value) : null));
         }
 
         var scalarAmplitude = ComputeScalarAmplitude(consensus, temperature);

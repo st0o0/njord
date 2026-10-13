@@ -21,9 +21,9 @@ use a plain `[Fact]` (AGENTS.md: a timeout cannot be enforced there).
 
 ## 3. Typed categorical values
 
-- [ ] 3.1 Add `TrendDirection`, `Stability`, `WeatherCategory` enums with `ToWireName()` in `src/Njord.Compute/Analysis/`; switch `TrendCalculator`, `TrendComputer`, `ParameterTrend`, `StabilityInfo`, `WeatherChangeResult`; update `TrendCalculatorSpec`/`TrendResultSpec`
-- [ ] 3.2 Add `DewPointComfort` and `WeatherCondition` (with `ToWireName()`/`ToDescription()`, WMO table moved from `DerivedComputer`); switch `DerivedComputer`, `HorizonDerived`, `ScalarDerived`; update `DerivedComputerSpec`/`DerivedResultSpec`
-- [ ] 3.3 Format all of these at the edge in `StatePayloadBuilder` and `EnrichmentProtoMapper`; golden masters stay green
+- [x] 3.1 Add `TrendDirection`, `Stability`, `WeatherCategory` enums with `ToWireName()` in `src/Njord.Compute/Analysis/`; switch `TrendCalculator`, `TrendComputer`, `ParameterTrend`, `StabilityInfo`, `WeatherChangeResult`; update `TrendCalculatorSpec`/`TrendResultSpec`
+- [x] 3.2 Add `DewPointComfort` and `WeatherCondition` (with `ToWireName()`/`ToDescription()`, WMO table moved from `DerivedComputer`); switch `DerivedComputer`, `HorizonDerived`, `ScalarDerived`; update `DerivedComputerSpec`/`DerivedResultSpec`
+- [x] 3.3 Format all of these at the edge in `StatePayloadBuilder` and `EnrichmentProtoMapper`; golden masters stay green
 
 ## 4. Typed index kinds and locations
 

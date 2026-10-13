@@ -130,8 +130,8 @@ public static class StatePayloadBuilder
             {
                 ["beaufort"] = hd.Beaufort.HasValue ? JsonValue.Create(hd.Beaufort.Value) : null,
                 ["wind_chill"] = hd.WindChill.HasValue ? JsonValue.Create(Math.Round(hd.WindChill.Value, 1)) : null,
-                ["dewpoint_comfort"] = hd.DewPointComfort is { } dc ? JsonValue.Create(dc) : null,
-                ["wmo_description"] = hd.WmoDescription is { } wd ? JsonValue.Create(wd) : null,
+                ["dewpoint_comfort"] = hd.DewPointComfort is { } dc ? JsonValue.Create(dc.ToWireName()) : null,
+                ["wmo_description"] = hd.Condition is { } wd ? JsonValue.Create(wd.ToDescription()) : null,
             };
 
             var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location, EnrichmentKind.Derived.ToWireName(), horizon.ToWireKey());
@@ -164,11 +164,11 @@ public static class StatePayloadBuilder
         foreach (var (apiName, trend) in result.ParameterTrends)
         {
             var key = $"trend_{apiName.Replace("_2m", "").Replace("_10m", "")}";
-            payload[$"{key}_dir"] = trend?.Direction;
+            payload[$"{key}_dir"] = trend?.Direction.ToWireName();
             payload[$"{key}_delta"] = trend is { } t ? JsonValue.Create(t.Delta) : null;
         }
 
-        payload["weather_change"] = result.WeatherChange?.Description;
+        payload["weather_change"] = result.WeatherChange?.ToDescription();
 
         payload["precip_starts"] = result.PrecipTiming.StartsInHours.HasValue
             ? JsonValue.Create(result.PrecipTiming.StartsInHours.Value) : null;
@@ -180,7 +180,7 @@ public static class StatePayloadBuilder
         payload["temp_min_in"] = result.ExtremaTiming.MinInHours.HasValue
             ? JsonValue.Create(result.ExtremaTiming.MinInHours.Value) : null;
 
-        payload["stability"] = result.Stability?.Label;
+        payload["stability"] = result.Stability?.Stability.ToWireName();
         payload["stability_ratio"] = result.Stability is { } s ? JsonValue.Create(s.Ratio) : null;
 
         payload["decay_rate"] = result.Decay is { } d ? JsonValue.Create(d.DecayRate) : null;

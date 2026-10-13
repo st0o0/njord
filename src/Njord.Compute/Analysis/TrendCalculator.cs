@@ -4,7 +4,7 @@ namespace Njord.Compute.Analysis;
 
 public static class TrendCalculator
 {
-    public static (string Direction, double Delta)? TrendDirection(
+    public static (TrendDirection Direction, double Delta)? Direction(
         double? prevMedian, double? currMedian, double threshold)
     {
         if (prevMedian is not { } prev || currMedian is not { } curr)
@@ -13,9 +13,9 @@ public static class TrendCalculator
         }
 
         var delta = curr - prev;
-        var direction = delta > threshold ? "rising"
-            : delta < -threshold ? "falling"
-            : "stable";
+        var direction = delta > threshold ? TrendDirection.Rising
+            : delta < -threshold ? TrendDirection.Falling
+            : TrendDirection.Stable;
         return (direction, Math.Round(delta, 2));
     }
 
@@ -26,14 +26,14 @@ public static class TrendCalculator
             return null;
         }
 
-        var fromCat = WmoCategory(prev);
-        var toCat = WmoCategory(curr);
+        var fromCat = WeatherCategoryExtensions.FromWmoCode(prev);
+        var toCat = WeatherCategoryExtensions.FromWmoCode(curr);
         if (fromCat == toCat)
         {
             return null;
         }
 
-        return new WeatherChangeResult(fromCat, toCat, $"{fromCat} → {toCat}");
+        return new WeatherChangeResult(fromCat, toCat);
     }
 
     public static (int? StartsInHours, int? EndsInHours) PrecipitationTiming(
@@ -102,7 +102,7 @@ public static class TrendCalculator
         return count < 2 ? (null, null) : (maxHours, minHours);
     }
 
-    public static (string Label, double Ratio)? ConsensusStability(
+    public static (Stability Stability, double Ratio)? ConsensusStability(
         double? prevIqr, double? currIqr)
     {
         if (prevIqr is not { } prev || currIqr is not { } curr)
@@ -116,10 +116,10 @@ public static class TrendCalculator
         }
 
         var ratio = Math.Round(curr / prev, 2);
-        var label = ratio < 0.8 ? "converging"
-            : ratio > 1.2 ? "diverging"
-            : "stable";
-        return (label, ratio);
+        var stability = ratio < 0.8 ? Stability.Converging
+            : ratio > 1.2 ? Stability.Diverging
+            : Stability.Stable;
+        return (stability, ratio);
     }
 
     public static (double DecayRate, int? ReliableHours)? PredictabilityDecay(
@@ -150,18 +150,6 @@ public static class TrendCalculator
         var slope = LinearRegressionSlope(points);
         return (Math.Round(slope, 4), reliableHours);
     }
-
-    private static string WmoCategory(int code) => code switch
-    {
-        >= 0 and <= 3 => "clear",
-        >= 45 and <= 48 => "fog",
-        >= 51 and <= 57 => "drizzle",
-        >= 61 and <= 67 => "rain",
-        >= 71 and <= 77 => "snow",
-        >= 80 and <= 86 => "showers",
-        >= 95 and <= 99 => "thunderstorm",
-        _ => "unknown",
-    };
 
     private static double LinearRegressionSlope(List<(double X, double Y)> points)
     {

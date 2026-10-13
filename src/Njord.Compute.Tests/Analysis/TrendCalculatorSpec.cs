@@ -14,37 +14,37 @@ public sealed class TrendCalculatorSpec
     [Fact]
     public void TrendDirection_rising()
     {
-        var result = TrendCalculator.TrendDirection(18.0, 22.0, 0.5);
+        var result = TrendCalculator.Direction(18.0, 22.0, 0.5);
         Assert.NotNull(result);
-        Assert.Equal("rising", result.Value.Direction);
+        Assert.Equal(TrendDirection.Rising, result.Value.Direction);
         Assert.Equal(4.0, result.Value.Delta);
     }
 
     [Fact]
     public void TrendDirection_falling()
     {
-        var result = TrendCalculator.TrendDirection(22.0, 18.0, 0.5);
+        var result = TrendCalculator.Direction(22.0, 18.0, 0.5);
         Assert.NotNull(result);
-        Assert.Equal("falling", result.Value.Direction);
+        Assert.Equal(TrendDirection.Falling, result.Value.Direction);
         Assert.Equal(-4.0, result.Value.Delta);
     }
 
     [Fact]
     public void TrendDirection_stable_within_deadband()
     {
-        var result = TrendCalculator.TrendDirection(20.0, 20.3, 0.5);
+        var result = TrendCalculator.Direction(20.0, 20.3, 0.5);
         Assert.NotNull(result);
-        Assert.Equal("stable", result.Value.Direction);
+        Assert.Equal(TrendDirection.Stable, result.Value.Direction);
         Assert.Equal(0.3, result.Value.Delta);
     }
 
     [Fact]
     public void TrendDirection_null_previous() =>
-        Assert.Null(TrendCalculator.TrendDirection(null, 20.0, 0.5));
+        Assert.Null(TrendCalculator.Direction(null, 20.0, 0.5));
 
     [Fact]
     public void TrendDirection_null_current() =>
-        Assert.Null(TrendCalculator.TrendDirection(20.0, null, 0.5));
+        Assert.Null(TrendCalculator.Direction(20.0, null, 0.5));
 
     // --- WeatherChange ---
 
@@ -53,9 +53,9 @@ public sealed class TrendCalculatorSpec
     {
         var result = TrendCalculator.WeatherChange(1, 63);
         Assert.NotNull(result);
-        Assert.Equal("clear", result.FromCategory);
-        Assert.Equal("rain", result.ToCategory);
-        Assert.Equal("clear → rain", result.Description);
+        Assert.Equal(WeatherCategory.Clear, result.From);
+        Assert.Equal(WeatherCategory.Rain, result.To);
+        Assert.Equal("clear → rain", result.ToDescription());
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public sealed class TrendCalculatorSpec
     {
         var result = TrendCalculator.ConsensusStability(5.0, 3.0);
         Assert.NotNull(result);
-        Assert.Equal("converging", result.Value.Label);
+        Assert.Equal(Stability.Converging, result.Value.Stability);
         Assert.Equal(0.6, result.Value.Ratio);
     }
 
@@ -157,7 +157,7 @@ public sealed class TrendCalculatorSpec
     {
         var result = TrendCalculator.ConsensusStability(3.0, 5.0);
         Assert.NotNull(result);
-        Assert.Equal("diverging", result.Value.Label);
+        Assert.Equal(Stability.Diverging, result.Value.Stability);
         Assert.InRange(result.Value.Ratio, 1.66, 1.68);
     }
 
@@ -166,7 +166,7 @@ public sealed class TrendCalculatorSpec
     {
         var result = TrendCalculator.ConsensusStability(4.0, 4.2);
         Assert.NotNull(result);
-        Assert.Equal("stable", result.Value.Label);
+        Assert.Equal(Stability.Stable, result.Value.Stability);
         Assert.Equal(1.05, result.Value.Ratio);
     }
 

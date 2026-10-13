@@ -72,8 +72,8 @@ public sealed class DerivedResultSpec
 
         var h3 = result.ByHorizon[Horizon.Hours(3)];
         Assert.NotNull(h3.Beaufort);
-        Assert.Equal("Overcast", h3.WmoDescription);
-        Assert.Equal("dry", h3.DewPointComfort);
+        Assert.Equal(WeatherCondition.Overcast, h3.Condition);
+        Assert.Equal(DewPointComfort.Dry, h3.DewPointComfort);
     }
 
 }

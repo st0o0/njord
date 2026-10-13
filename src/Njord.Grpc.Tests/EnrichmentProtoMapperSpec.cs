@@ -108,16 +108,16 @@ public sealed class EnrichmentProtoMapperSpec
     {
         var trends = new Dictionary<string, DomainParameterTrend?>
         {
-            ["temperature_2m"] = new DomainParameterTrend("rising", 1.5),
+            ["temperature_2m"] = new DomainParameterTrend(TrendDirection.Rising, 1.5),
             ["wind_speed_10m"] = null,
         };
         var result = new TrendResult(
             Location: "lucerne",
             ParameterTrends: trends,
-            WeatherChange: new WeatherChangeResult("Clear", "Rain", "Clear -> Rain"),
+            WeatherChange: new WeatherChangeResult(WeatherCategory.Clear, WeatherCategory.Rain),
             PrecipTiming: new PrecipTimingInfo(StartsInHours: 3, EndsInHours: 8),
             ExtremaTiming: new ExtremaTimingInfo(MaxInHours: 6, MinInHours: 18),
-            Stability: new StabilityInfo(Label: "stable", Ratio: 0.9),
+            Stability: new StabilityInfo(Stability: Stability.Stable, Ratio: 0.9),
             Decay: new DecayInfo(DecayRate: 0.15, ReliableHours: 24));
 
         var update = EnrichmentProtoMapper.MapTrends(result);
@@ -126,7 +126,7 @@ public sealed class EnrichmentProtoMapperSpec
         Assert.Equal("temperature_2m", update.ParameterTrends[0].Parameter);
         Assert.Equal("rising", update.ParameterTrends[0].Direction);
         Assert.Equal(1.5, update.ParameterTrends[0].Delta);
-        Assert.Equal("Clear -> Rain", update.WeatherChangeDescription);
+        Assert.Equal("clear → rain", update.WeatherChangeDescription);
         Assert.Equal(3, update.PrecipStartsInHours);
         Assert.Equal(8, update.PrecipEndsInHours);
         Assert.Equal(6, update.TempMaxInHours);
@@ -142,7 +142,7 @@ public sealed class EnrichmentProtoMapperSpec
     {
         var byHorizon = new Dictionary<Horizon, DomainHorizonDerived>
         {
-            [Horizon.Hours(3)] = new DomainHorizonDerived(Beaufort: 4, WindChill: -2.5, DewPointComfort: "comfortable", WmoDescription: "Partly cloudy"),
+            [Horizon.Hours(3)] = new DomainHorizonDerived(Beaufort: 4, WindChill: -2.5, DewPointComfort: DewPointComfort.Comfortable, Condition: WeatherCondition.PartlyCloudy),
         };
         var scalars = new DomainScalarDerived(DiurnalAmplitude: 12.3, SunshinePct: 65.0, Inversion: true);
         var result = new DerivedResult("lucerne", byHorizon, scalars);

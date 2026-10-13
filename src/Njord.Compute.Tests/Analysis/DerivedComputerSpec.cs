@@ -61,31 +61,31 @@ public sealed class DerivedComputerSpec
 
     [Fact]
     public void DewPointComfort_dry() =>
-        Assert.Equal("dry", DerivedComputer.DewPointComfort(5.0));
+        Assert.Equal(DewPointComfort.Dry, DerivedComputer.Comfort(5.0));
 
     [Fact]
     public void DewPointComfort_comfortable() =>
-        Assert.Equal("comfortable", DerivedComputer.DewPointComfort(12.0));
+        Assert.Equal(DewPointComfort.Comfortable, DerivedComputer.Comfort(12.0));
 
     [Fact]
     public void DewPointComfort_sticky() =>
-        Assert.Equal("sticky", DerivedComputer.DewPointComfort(17.0));
+        Assert.Equal(DewPointComfort.Sticky, DerivedComputer.Comfort(17.0));
 
     [Fact]
     public void DewPointComfort_oppressive() =>
-        Assert.Equal("oppressive", DerivedComputer.DewPointComfort(20.0));
+        Assert.Equal(DewPointComfort.Oppressive, DerivedComputer.Comfort(20.0));
 
     [Fact]
     public void DewPointComfort_dangerous() =>
-        Assert.Equal("dangerous", DerivedComputer.DewPointComfort(23.0));
+        Assert.Equal(DewPointComfort.Dangerous, DerivedComputer.Comfort(23.0));
 
     [Fact]
     public void DewPointComfort_boundary_at_10() =>
-        Assert.Equal("comfortable", DerivedComputer.DewPointComfort(10.0));
+        Assert.Equal(DewPointComfort.Comfortable, DerivedComputer.Comfort(10.0));
 
     [Fact]
     public void DewPointComfort_null_returns_null() =>
-        Assert.Null(DerivedComputer.DewPointComfort(null));
+        Assert.Null(DerivedComputer.Comfort(null));
 
     // --- DiurnalAmplitude ---
 
@@ -171,31 +171,31 @@ public sealed class DerivedComputerSpec
         Assert.Null(DerivedComputer.SunshinePercent(series, SunshineDuration, IsDay, T0));
     }
 
-    // --- WmoDescription ---
+    // --- Condition ---
 
     [Fact]
     public void WmoDescription_clear_sky() =>
-        Assert.Equal("Clear sky", DerivedComputer.WmoDescription(0));
+        Assert.Equal(WeatherCondition.ClearSky, DerivedComputer.Condition(0));
 
     [Fact]
     public void WmoDescription_mainly_clear() =>
-        Assert.Equal("Mainly clear", DerivedComputer.WmoDescription(1));
+        Assert.Equal(WeatherCondition.MainlyClear, DerivedComputer.Condition(1));
 
     [Fact]
     public void WmoDescription_rain_slight() =>
-        Assert.Equal("Rain: slight", DerivedComputer.WmoDescription(61));
+        Assert.Equal(WeatherCondition.RainSlight, DerivedComputer.Condition(61));
 
     [Fact]
     public void WmoDescription_thunderstorm_heavy_hail() =>
-        Assert.Equal("Thunderstorm with heavy hail", DerivedComputer.WmoDescription(99));
+        Assert.Equal(WeatherCondition.ThunderstormHeavyHail, DerivedComputer.Condition(99));
 
     [Fact]
     public void WmoDescription_unknown_code() =>
-        Assert.Null(DerivedComputer.WmoDescription(150));
+        Assert.Null(DerivedComputer.Condition(150));
 
     [Fact]
     public void WmoDescription_null_returns_null() =>
-        Assert.Null(DerivedComputer.WmoDescription(null));
+        Assert.Null(DerivedComputer.Condition(null));
 
     // --- InversionDetected ---
 
