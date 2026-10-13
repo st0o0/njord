@@ -1,7 +1,9 @@
+using Njord.Weather;
+
 namespace Njord.Messages.Pipeline;
 
 public sealed record PollStateEntry(
-    string Location,
+    LocationId Location,
     string ModelId,
     PollPhase Phase,
     DateTimeOffset NextPollUtc,

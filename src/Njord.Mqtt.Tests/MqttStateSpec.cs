@@ -7,7 +7,7 @@ using Njord.Compute.Contracts;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
-using Njord.Core.Egress;
+using Njord.Messages.Pipeline;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
 using Njord.Weather;
@@ -73,7 +73,7 @@ public sealed class MqttStateSpec : NjordActorSpec
         await hub.WaitForQueue();
 
         var forecast = CreateForecast("icon_d2");
-        hub.Emit(new PipelineEvent.ForecastReceived("lucerne", new WeatherModel("icon_d2"), forecast));
+        hub.Emit(new PipelineEvent.ForecastReceived(new LocationId("lucerne"), new WeatherModel("icon_d2"), forecast));
 
         await transport.WaitForMessage(m => m.Topic.StartsWith("njord/")).WaitAsync(TestContext.Current.CancellationToken);
         var sent = transport.Sent;

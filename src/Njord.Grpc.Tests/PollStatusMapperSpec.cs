@@ -1,4 +1,5 @@
 using Google.Protobuf.WellKnownTypes;
+using Njord.Weather;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Grpc.Tests;
@@ -11,7 +12,7 @@ public sealed class PollStatusMapperSpec
     [Fact]
     public void ToModelStatus_should_map_all_fields_when_optionals_present()
     {
-        var entry = new PollStateEntry("lucerne", "icon_d2", PollPhase.Steady, NextPoll, LastChange, 2, 3600);
+        var entry = new PollStateEntry(new LocationId("lucerne"), "icon_d2", PollPhase.Steady, NextPoll, LastChange, 2, 3600);
 
         var status = PollStatusMapper.ToModelStatus(entry);
 
@@ -28,7 +29,7 @@ public sealed class PollStatusMapperSpec
     [Fact]
     public void ToModelStatus_should_leave_optionals_unset_when_absent()
     {
-        var entry = new PollStateEntry("lucerne", "icon_d2", PollPhase.Discovery, NextPoll, null, 0, null);
+        var entry = new PollStateEntry(new LocationId("lucerne"), "icon_d2", PollPhase.Discovery, NextPoll, null, 0, null);
 
         var status = PollStatusMapper.ToModelStatus(entry);
 
@@ -41,7 +42,7 @@ public sealed class PollStatusMapperSpec
     [Fact]
     public void ToTriggerTarget_should_map_all_fields_when_optionals_present()
     {
-        var entry = new PollStateEntry("zurich", "ecmwf_ifs025", PollPhase.Steady, NextPoll, LastChange, 1, 7200);
+        var entry = new PollStateEntry(new LocationId("zurich"), "ecmwf_ifs025", PollPhase.Steady, NextPoll, LastChange, 1, 7200);
 
         var target = PollStatusMapper.ToTriggerTarget(entry);
 
@@ -58,7 +59,7 @@ public sealed class PollStatusMapperSpec
     [Fact]
     public void ToTriggerTarget_should_leave_optionals_unset_when_absent()
     {
-        var entry = new PollStateEntry("zurich", "ecmwf_ifs025", PollPhase.Discovery, NextPoll, null, 0, null);
+        var entry = new PollStateEntry(new LocationId("zurich"), "ecmwf_ifs025", PollPhase.Discovery, NextPoll, null, 0, null);
 
         var target = PollStatusMapper.ToTriggerTarget(entry);
 

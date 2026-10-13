@@ -60,7 +60,7 @@ public sealed class PollSchedulerSnapshotSpec : NjordActorSpec
 
         for (var i = 0; i < 51; i++)
         {
-            await Scheduler.Ask<Ack>(new FetchForecastCompleted("lucerne", "icon_d2", 1000 + i), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 1000 + i), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         }
 
         var statesBefore = await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);

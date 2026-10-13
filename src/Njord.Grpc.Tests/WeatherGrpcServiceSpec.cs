@@ -6,7 +6,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Grpc.V2;
-using Njord.Messages.Snapshots;
+using Njord.Messages.Forecast;
 using Njord.Tests.Shared;
 using Njord.Weather;
 

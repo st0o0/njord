@@ -70,7 +70,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         var key = $"{msg.Location}|{msg.ModelId}";
         _pendingRequests[key] = Sender;
 
-        var location = _options.FindLocation(msg.Location);
+        var location = _options.FindLocation(msg.Location.Name);
         if (location is null)
         {
             Sender.Tell(new FetchForecastFailed(msg.Location, msg.ModelId,
@@ -93,11 +93,11 @@ public sealed class OpenMeteoGateway : ReceiveActor
         {
             case PollOutcome.Success s:
                 var hash = ForecastDataHash.Compute(s.Forecast, _timeProvider);
-                requester.Tell(new FetchForecastCompleted(s.Forecast.Location, s.Forecast.Model.Id, hash));
+                requester.Tell(new FetchForecastCompleted(new LocationId(s.Forecast.Location), s.Forecast.Model.Id, hash));
                 _forecastQueue?.OfferAsync(s.Forecast);
                 break;
             case PollOutcome.Failure f:
-                requester.Tell(new FetchForecastFailed(f.Location, f.Model.Id, f.Reason, f.Detail));
+                requester.Tell(new FetchForecastFailed(new LocationId(f.Location), f.Model.Id, f.Reason, f.Detail));
                 break;
         }
     }

@@ -3,6 +3,7 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Stage;
 using Microsoft.Extensions.Options;
+using Njord.Messages.Budget;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Pipeline;
 

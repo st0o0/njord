@@ -10,7 +10,7 @@ public static class PollStatusMapper
     {
         var status = new ModelStatus
         {
-            Location = entry.Location,
+            Location = entry.Location.Name,
             Model = entry.ModelId,
             Phase = PhaseName(entry.Phase),
             NextPoll = Timestamp.FromDateTimeOffset(entry.NextPollUtc),
@@ -33,7 +33,7 @@ public static class PollStatusMapper
     {
         var target = new TriggerTarget
         {
-            Location = entry.Location,
+            Location = entry.Location.Name,
             Model = entry.ModelId,
             Phase = PhaseName(entry.Phase),
             NextPoll = Timestamp.FromDateTimeOffset(entry.NextPollUtc),

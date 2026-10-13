@@ -1,4 +1,4 @@
-namespace Njord.Messages.Pipeline;
+namespace Njord.Messages.Budget;
 
 public sealed record QueryBudgetUsage;
 

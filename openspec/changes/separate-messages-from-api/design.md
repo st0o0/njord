@@ -91,3 +91,21 @@ the existing mapper specs and golden masters move along.
 ## Migration Plan
 
 Internal only; no proto, config or persistence change. Roll back by reverting.
+
+## Deviations
+
+Adaptations made during implementation, where the code differed from what the tasks assumed.
+
+### Group 1 (contract project)
+- `SubscribeInbound` carried an `IActorRef Listener`. To keep it in `Messages/Mqtt/` without an
+  Akka type it is now a parameterless record; `MqttConnection` registers the `Sender` as the
+  inbound listener.
+- `EnrichmentKind` (with `ToWireName`) moved with `PipelineEvent` to `Messages/Pipeline/`, since
+  `IEnrichmentEvent.Kind` needs it. `Njord.Core/Egress/` no longer exists.
+- `LocationId` replaces the raw location string in `FetchForecast*`, `DataChanged`,
+  `PollStateEntry`, `ScheduledPoll`, `TriggerImmediatePoll`, `QuerySensorSnapshot`,
+  `SensorSnapshotNotAvailable`, `QueryForecast` and `PipelineEvent.ForecastReceived`.
+  `TriggerImmediatePoll.Location` is `LocationId?` (null = all locations, which the empty
+  string meant before), and its `Targets` became `IReadOnlyList<string>`. Model ids stay
+  strings. Domain records outside Messages (`Forecast.Location`, `SensorReading.Location`) and
+  persistence DTOs keep strings; actors convert at their edges (`.Name` / `new LocationId(...)`).

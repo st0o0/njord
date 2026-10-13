@@ -53,7 +53,7 @@ public sealed class PollSchedulerPollingChangedSpec : NjordActorSpec
     private async Task CompleteFirstPollAsync(CancellationToken ct)
     {
         await _fetchProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: ct);
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(9), ct);
+        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(9), ct);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

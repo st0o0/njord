@@ -1,8 +1,9 @@
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Weather;
+using WeatherForecast = Njord.Weather.Forecast;
 
-namespace Njord.Core.Egress;
+namespace Njord.Messages.Pipeline;
 
 public interface IEnrichmentEvent
 {
@@ -12,9 +13,9 @@ public interface IEnrichmentEvent
 public abstract record PipelineEvent
 {
     public sealed record ForecastReceived(
-        string Location,
+        LocationId Location,
         WeatherModel Model,
-        Forecast Forecast) : PipelineEvent;
+        WeatherForecast Forecast) : PipelineEvent;
 
     public sealed record ConsensusComputed(
         ConsensusSnapshot Consensus,

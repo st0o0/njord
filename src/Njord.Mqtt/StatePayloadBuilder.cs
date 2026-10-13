@@ -2,7 +2,7 @@ using System.Text.Json.Nodes;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Querying;
-using Njord.Core.Egress;
+using Njord.Messages.Pipeline;
 using Njord.Weather;
 
 namespace Njord.Mqtt;

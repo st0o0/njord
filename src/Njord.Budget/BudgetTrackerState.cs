@@ -1,3 +1,4 @@
+using Njord.Messages.Budget;
 using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Budget;
 

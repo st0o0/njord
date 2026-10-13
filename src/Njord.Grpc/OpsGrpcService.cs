@@ -5,12 +5,13 @@ using Akka.Hosting;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
+using Njord.Messages.Budget;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Egress;
 using Njord.Grpc.V2;
 using Njord.Messages.Pipeline;
+using Njord.Weather;
 
 namespace Njord.Grpc;
 
@@ -147,7 +148,8 @@ public sealed class OpsGrpcService(
     {
         var scheduler = await _actorRegistry.GetAsync<IPollScheduler>();
         var result = await scheduler.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll(request.Location, request.Model), AskTimeout);
+            new TriggerImmediatePoll(
+                string.IsNullOrEmpty(request.Location) ? null : new LocationId(request.Location), request.Model), AskTimeout);
 
         var response = new TriggerPollResponse { TriggeredCount = result.Count };
         response.Targets.AddRange(result.Targets);

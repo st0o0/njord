@@ -3,12 +3,7 @@
     <ItemGroup>
         <ProjectReference Include="..\Njord.Weather\Njord.Weather.csproj" />
         <ProjectReference Include="..\Njord.Sensors\Njord.Sensors.csproj" />
+        <ProjectReference Include="..\Njord.Compute\Njord.Compute.csproj" />
     </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="Akka" />
-      <PackageReference Include="Akka.Streams" />
-    </ItemGroup>
-
 
 </Project>

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Njord.Weather;
 using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Pipeline;
 
@@ -41,7 +42,7 @@ public static class PollSchedulerStateExtensions
         DataChanged evt,
         TimeSpan discoveryInterval)
     {
-        var key = $"{evt.Location}|{evt.ModelId}";
+        var key = $"{evt.Location.Name}|{evt.ModelId}";
         var pollState = state.States.GetValueOrDefault(key, ModelPollState.Initial(evt.Utc));
         var updated = pollState.WithDataChange(evt.Hash, evt.Utc, discoveryInterval);
         return new PollSchedulerState(States: state.States.SetItem(key, updated));
@@ -74,7 +75,7 @@ public static class PollSchedulerStateExtensions
         DataChanged evt,
         TimeSpan discoveryInterval)
     {
-        var key = $"{evt.Location}|{evt.ModelId}";
+        var key = $"{evt.Location.Name}|{evt.ModelId}";
         var pollState = state.States.GetValueOrDefault(key, ModelPollState.Initial(evt.Utc));
         return pollState.LastHash != evt.Hash
             ? (state.Apply(evt, discoveryInterval), HashDecision.Changed)
@@ -135,7 +136,7 @@ public static class PollSchedulerStateExtensions
             var parts = kvp.Key.Split('|', 2);
             var s = kvp.Value;
             return new PollStateEntry(
-                parts[0],
+                new LocationId(parts[0]),
                 parts[1],
                 s.Phase,
                 s.NextPollUtc,
@@ -157,8 +158,8 @@ public static class PollSchedulerStateExtensions
     }
 
     public static PersistedDataChanged ToPersistedEvent(DataChanged evt) =>
-        new(evt.Location, evt.ModelId, evt.Hash, evt.Utc);
+        new(evt.Location.Name, evt.ModelId, evt.Hash, evt.Utc);
 
     public static DataChanged FromPersistedEvent(PersistedDataChanged dto) =>
-        new(dto.Location, dto.ModelId, dto.Hash, dto.Utc);
+        new(new LocationId(dto.Location), dto.ModelId, dto.Hash, dto.Utc);
 }

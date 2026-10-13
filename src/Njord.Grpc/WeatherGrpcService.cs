@@ -7,9 +7,9 @@ using Grpc.Core;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Egress;
+using Njord.Messages.Pipeline;
 using Njord.Grpc.V2;
-using Njord.Messages.Snapshots;
+using Njord.Messages.Forecast;
 using Njord.Weather;
 using ActorSystem = Akka.Actor.ActorSystem;
 using GrpcStatus = Grpc.Core.Status;
@@ -54,7 +54,7 @@ public sealed class WeatherGrpcService(
 
         var consumer = await actorRegistry.GetAsync<IGrpcConsumer>();
         var result = await consumer.Ask<ForecastResponse>(
-            new QueryForecast(request.Location, request.Model), AskTimeout);
+            new QueryForecast(new LocationId(request.Location), request.Model), AskTimeout);
 
         return result switch
         {
@@ -110,7 +110,7 @@ public sealed class WeatherGrpcService(
         await sourceRef.Source
             .Collect(e => e is PipelineEvent.ForecastReceived, e => (PipelineEvent.ForecastReceived)e)
             .Where(u => string.IsNullOrEmpty(request.Location) ||
-                        string.Equals(u.Location, request.Location, StringComparison.OrdinalIgnoreCase))
+                        string.Equals(u.Location.Name, request.Location, StringComparison.OrdinalIgnoreCase))
             .Via(killSwitch.Flow<PipelineEvent.ForecastReceived>())
             .SelectAsync(1, async update =>
             {
@@ -209,7 +209,7 @@ public sealed class WeatherGrpcService(
     {
         var proto = new ForecastUpdate
         {
-            Location = update.Location,
+            Location = update.Location.Name,
             Model = update.Model.Id,
             UpdatedAt = Timestamp.FromDateTimeOffset(now),
         };

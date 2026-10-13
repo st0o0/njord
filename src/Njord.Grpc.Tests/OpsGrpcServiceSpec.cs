@@ -1,6 +1,7 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Messages.Budget;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
@@ -217,15 +218,15 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             {
                 var entries = new List<PollStateEntry>
                 {
-                    new("lucerne", "icon_d2", PollPhase.Steady, now.AddHours(1), now.AddHours(-2), 0, 10800),
-                    new("zurich", "gfs_seamless", PollPhase.Discovery, now.AddMinutes(20), null, 2, null),
+                    new(new LocationId("lucerne"), "icon_d2", PollPhase.Steady, now.AddHours(1), now.AddHours(-2), 0, 10800),
+                    new(new LocationId("zurich"), "gfs_seamless", PollPhase.Discovery, now.AddMinutes(20), null, 2, null),
                 };
                 Sender.Tell(new PollStatesResult(entries));
             });
 
             Receive<TriggerImmediatePoll>(msg =>
             {
-                if (string.IsNullOrEmpty(msg.Location) && string.IsNullOrEmpty(msg.Model))
+                if (msg.Location is null && string.IsNullOrEmpty(msg.Model))
                 {
                     Sender.Tell(new TriggerImmediatePollCompleted(2, ["lucerne/icon_d2", "zurich/gfs_seamless"]));
                 }

@@ -1,3 +1,4 @@
+using Njord.Weather;
 using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Pipeline;
 using Njord.Tests.Shared;
@@ -12,7 +13,7 @@ public sealed class PollSchedulerStateSpec
     private static DataChanged Evt(string key, int hash, DateTimeOffset utc)
     {
         var parts = key.Split('|', 2);
-        return new DataChanged(parts[0], parts[1], hash, utc);
+        return new DataChanged(new LocationId(parts[0]), parts[1], hash, utc);
     }
 
     [Fact]
@@ -104,8 +105,8 @@ public sealed class PollSchedulerStateSpec
         var snapshot = state.GetSnapshot();
 
         Assert.Equal(2, snapshot.Entries.Count);
-        Assert.Contains(snapshot.Entries, e => e is { Location: "lucerne", ModelId: "icon_d2" });
-        Assert.Contains(snapshot.Entries, e => e is { Location: "zurich", ModelId: "gfs" });
+        Assert.Contains(snapshot.Entries, e => e is { Location.Name: "lucerne", ModelId: "icon_d2" });
+        Assert.Contains(snapshot.Entries, e => e is { Location.Name: "zurich", ModelId: "gfs" });
     }
 
     [Fact]

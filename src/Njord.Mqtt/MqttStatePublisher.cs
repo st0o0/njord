@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
-using Njord.Core.Egress;
+using Njord.Messages.Pipeline;
 using Njord.Mqtt.Transport;
 using Njord.Weather;
 using Servus.Akka;
@@ -155,7 +155,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
 
         var location = pipelineEvent switch
         {
-            PipelineEvent.ForecastReceived u => u.Location,
+            PipelineEvent.ForecastReceived u => u.Location.Name,
             PipelineEvent.ConsensusComputed c => c.Consensus.Location.Name,
             PipelineEvent.AlertComputed a => a.Result.Location.Name,
             PipelineEvent.DerivedComputed d => d.Result.Location.Name,
@@ -189,7 +189,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         var messages = new List<MqttMessage>(perHorizon.Count);
         foreach (var (horizon, payload) in perHorizon)
         {
-            var topic = TopicScheme.HorizonTopic(baseTopic, e.Location, e.Model, horizon.ToWireKey());
+            var topic = TopicScheme.HorizonTopic(baseTopic, e.Location.Name, e.Model, horizon.ToWireKey());
             messages.Add(new MqttMessage(topic, payload, true));
         }
         return messages;

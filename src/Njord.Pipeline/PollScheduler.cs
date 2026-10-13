@@ -195,9 +195,9 @@ public sealed class PollScheduler : ReceivePersistentActor
     private void OnTriggerImmediatePoll(TriggerImmediatePoll msg)
     {
         var targets = new List<string>();
-        IEnumerable<LocationOptions> locations = string.IsNullOrEmpty(msg.Location)
+        IEnumerable<LocationOptions> locations = msg.Location is not { } requested
             ? _options.Locations
-            : _options.FindLocation(msg.Location) is { } found ? [found] : [];
+            : _options.FindLocation(requested.Name) is { } found ? [found] : [];
 
         foreach (var location in locations)
         {
@@ -212,7 +212,7 @@ public sealed class PollScheduler : ReceivePersistentActor
 
             foreach (var modelId in models)
             {
-                Self.Tell(new ScheduledPoll(location.Name, modelId));
+                Self.Tell(new ScheduledPoll(new LocationId(location.Name), modelId));
                 targets.Add($"{location.Name}/{modelId}");
             }
         }
@@ -223,7 +223,7 @@ public sealed class PollScheduler : ReceivePersistentActor
 
     private void OnFetchForecastCompleted(FetchForecastCompleted result)
     {
-        var key = Key(result.Location, result.ModelId);
+        var key = Key(result.Location.Name, result.ModelId);
         var now = _timeProvider.GetUtcNow();
         var evt = new DataChanged(result.Location, result.ModelId, result.Hash, now);
         var (updatedState, decision) = _state.ApplyHashResult(evt, _discoveryInterval);
@@ -236,15 +236,15 @@ public sealed class PollScheduler : ReceivePersistentActor
                 _state = updatedState;
                 _healthState.UpdatePoll(new PollHealthSnapshot(now));
                 Telemetry.DataChanged.Add(1,
-                    new KeyValuePair<string, object?>("location", result.Location),
+                    new KeyValuePair<string, object?>("location", result.Location.Name),
                     new KeyValuePair<string, object?>("model", result.ModelId));
                 var updated = _state.States[key];
                 _log.Debug(
                     "Data changed for {Location}/{Model} - phase={Phase}, cycle={Cycle}",
                     result.Location, result.ModelId, updated.Phase, updated.Cycle);
-                ScheduleNext(result.Location, result.ModelId);
+                ScheduleNext(result.Location.Name, result.ModelId);
                 Sender.Tell(new Ack());
-                RecordPollCompletion(result.Location, changed: true);
+                RecordPollCompletion(result.Location.Name, changed: true);
                 MaybeSnapshot();
             });
         }
@@ -256,15 +256,15 @@ public sealed class PollScheduler : ReceivePersistentActor
             _log.Debug(
                 "Hash unchanged for {Location}/{Model} - miss={Miss}, phase={Phase}",
                 result.Location, result.ModelId, updated.MissCount, updated.Phase);
-            ScheduleNext(result.Location, result.ModelId);
+            ScheduleNext(result.Location.Name, result.ModelId);
             Sender.Tell(new Ack());
-            RecordPollCompletion(result.Location, changed: false);
+            RecordPollCompletion(result.Location.Name, changed: false);
         }
     }
 
     private void OnFetchForecastFailed(FetchForecastFailed msg)
     {
-        var key = Key(msg.Location, msg.ModelId);
+        var key = Key(msg.Location.Name, msg.ModelId);
         var now = _timeProvider.GetUtcNow();
 
         switch (msg.Reason)
@@ -273,14 +273,14 @@ public sealed class PollScheduler : ReceivePersistentActor
                 _state = _state.ApplyTransientFailure(key, now, _discoveryInterval);
                 _log.Warning("Fetch failed for {Location}/{Model} (transport) - tfc={Tfc}, details={Details}",
                     msg.Location, msg.ModelId, _state.States[key].TransientFailureCount, msg.Detail);
-                ScheduleNext(msg.Location, msg.ModelId);
+                ScheduleNext(msg.Location.Name, msg.ModelId);
                 break;
 
             case PollFailureReason.RateLimited:
                 _state = _state.ApplyRateLimited(key, now, RateLimitMinDelay, _discoveryInterval);
                 _log.Warning("Fetch rate-limited for {Location}/{Model} - next poll at {Next}",
                     msg.Location, msg.ModelId, _state.States[key].NextPollUtc);
-                ScheduleNext(msg.Location, msg.ModelId);
+                ScheduleNext(msg.Location.Name, msg.ModelId);
                 break;
 
             case PollFailureReason.ModelUnavailable:
@@ -288,7 +288,7 @@ public sealed class PollScheduler : ReceivePersistentActor
                 _state = _state.ApplyTransientFailure(key, now, _discoveryInterval);
                 _log.Warning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - retry scheduled",
                     msg.Location, msg.ModelId, msg.Reason, msg.Detail);
-                ScheduleNext(msg.Location, msg.ModelId);
+                ScheduleNext(msg.Location.Name, msg.ModelId);
                 break;
         }
     }
@@ -381,7 +381,7 @@ public sealed class PollScheduler : ReceivePersistentActor
         }
 
         var now = _timeProvider.GetUtcNow();
-        var msg = new ScheduledPoll(location, modelId);
+        var msg = new ScheduledPoll(new LocationId(location), modelId);
 
         _log.Debug("Scheduling next poll for {Location}/{Model} at {NextPoll}", location, modelId, state.NextPollUtc);
 

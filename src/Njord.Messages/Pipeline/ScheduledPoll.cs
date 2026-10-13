@@ -1,3 +1,5 @@
+using Njord.Weather;
+
 namespace Njord.Messages.Pipeline;
 
-public sealed record ScheduledPoll(string Location, string ModelId);
+public sealed record ScheduledPoll(LocationId Location, string ModelId);

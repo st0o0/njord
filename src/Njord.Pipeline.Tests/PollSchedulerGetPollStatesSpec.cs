@@ -67,8 +67,8 @@ public sealed class PollSchedulerGetPollStatesSpec : NjordActorSpec
             new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, snapshot.Entries.Count);
-        Assert.Contains(snapshot.Entries, e => e is { Location: "lucerne", ModelId: "icon_d2" });
-        Assert.Contains(snapshot.Entries, e => e is { Location: "zurich", ModelId: "icon_d2" });
+        Assert.Contains(snapshot.Entries, e => e is { Location.Name: "lucerne", ModelId: "icon_d2" });
+        Assert.Contains(snapshot.Entries, e => e is { Location.Name: "zurich", ModelId: "icon_d2" });
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -80,7 +80,7 @@ public sealed class PollSchedulerGetPollStatesSpec : NjordActorSpec
         var snapshot = await Scheduler.Ask<PollStatesResult>(
             new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
-        var entry = snapshot.Entries.First(e => e.Location == "lucerne");
+        var entry = snapshot.Entries.First(e => e.Location.Name == "lucerne");
         Assert.Equal(PollPhase.Discovery, entry.Phase);
         Assert.Null(entry.CycleSeconds);
         Assert.Null(entry.LastChangeUtc);
@@ -92,12 +92,12 @@ public sealed class PollSchedulerGetPollStatesSpec : NjordActorSpec
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var snapshot = await Scheduler.Ask<PollStatesResult>(
             new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
-        var entry = snapshot.Entries.First(e => e.Location == "lucerne");
+        var entry = snapshot.Entries.First(e => e.Location.Name == "lucerne");
         Assert.Equal(0, entry.MissCount);
         Assert.NotNull(entry.LastChangeUtc);
     }
@@ -108,13 +108,13 @@ public sealed class PollSchedulerGetPollStatesSpec : NjordActorSpec
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var snapshot = await Scheduler.Ask<PollStatesResult>(
             new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
-        var entry = snapshot.Entries.First(e => e.Location == "lucerne");
+        var entry = snapshot.Entries.First(e => e.Location.Name == "lucerne");
         Assert.Equal(1, entry.MissCount);
     }
 

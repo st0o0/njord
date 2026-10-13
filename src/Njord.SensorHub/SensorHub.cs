@@ -49,7 +49,7 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
     private void Handle(QuerySensorSnapshot msg)
     {
         var now = _timeProvider.GetUtcNow();
-        Sender.Tell(_state.GetSnapshot(msg.Location, now, _staleness));
+        Sender.Tell(_state.GetSnapshot(msg.Location.Name, now, _staleness));
     }
 
     private void HandleExpire()

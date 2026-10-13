@@ -5,10 +5,10 @@ service specs must pass without re-approval after every group.
 
 ## 1. Messages becomes the Akka-free contract project
 
-- [ ] 1.1 Move `RequestForecastStream` and its responses from `src/Njord.Messages/Forecast/RequestForecastStream.cs` to `src/Njord.Core/Actors/StreamWiringMessages.cs`; update the gateway and pipeline
-- [ ] 1.2 Remove the `Akka` and `Akka.Streams` package references from `src/Njord.Messages/Njord.Messages.csproj`, add the `Njord.Compute` project reference; update `src/Njord.Architecture.Tests/LayerReferenceSpec.cs` (Messages → Weather, Sensors, Compute; no Akka)
-- [ ] 1.3 Move `PipelineEvent`/`IEnrichmentEvent` from `src/Njord.Core/Egress/PipelineEvent.cs` to `src/Njord.Messages/Pipeline/PipelineEvent.cs` (and `EnrichmentKind` alongside if Messages needs it); update namespaces in Pipeline, Mqtt, Grpc
-- [ ] 1.4 Move `QueryForecast` from `Snapshots/` to `Forecast/`, `QueryBudgetUsage`/`RecordApiCall` to `Budget/`; switch location strings in messages to `LocationId`; update all senders and receivers and their specs
+- [x] 1.1 Move `RequestForecastStream` and its responses from `src/Njord.Messages/Forecast/RequestForecastStream.cs` to `src/Njord.Core/Actors/StreamWiringMessages.cs`; update the gateway and pipeline
+- [x] 1.2 Remove the `Akka` and `Akka.Streams` package references from `src/Njord.Messages/Njord.Messages.csproj`, add the `Njord.Compute` project reference; update `src/Njord.Architecture.Tests/LayerReferenceSpec.cs` (Messages → Weather, Sensors, Compute; no Akka)
+- [x] 1.3 Move `PipelineEvent`/`IEnrichmentEvent` from `src/Njord.Core/Egress/PipelineEvent.cs` to `src/Njord.Messages/Pipeline/PipelineEvent.cs` (and `EnrichmentKind` alongside if Messages needs it); update namespaces in Pipeline, Mqtt, Grpc
+- [x] 1.4 Move `QueryForecast` from `Snapshots/` to `Forecast/`, `QueryBudgetUsage`/`RecordApiCall` to `Budget/`; switch location strings in messages to `LocationId`; update all senders and receivers and their specs
 
 ## 2. Read model out of the API project
 

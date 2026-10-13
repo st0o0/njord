@@ -4,8 +4,8 @@ using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
-using Njord.Core.Egress;
-using Njord.Messages.Snapshots;
+using Njord.Messages.Pipeline;
+using Njord.Messages.Forecast;
 using Njord.Weather;
 using Servus.Akka;
 
@@ -130,7 +130,7 @@ public sealed class GrpcConsumer : StreamConsumerActor
 
     private void HandleQueryForecast(QueryForecast msg)
     {
-        if (_state.TryGetValue(msg.Location, out var latest))
+        if (_state.TryGetValue(msg.Location.Name, out var latest))
         {
             foreach (var (model, forecast) in latest.Forecasts)
             {
@@ -170,12 +170,12 @@ public sealed class GrpcConsumer : StreamConsumerActor
         switch (evt)
         {
             case PipelineEvent.ForecastReceived forecast:
-                var forecastState = _state.GetValueOrDefault(forecast.Location, new LatestResults());
+                var forecastState = _state.GetValueOrDefault(forecast.Location.Name, new LatestResults());
                 var forecasts = new Dictionary<WeatherModel, Forecast>(forecastState.Forecasts)
                 {
                     [forecast.Model] = forecast.Forecast
                 };
-                _state[forecast.Location] = forecastState with { Forecasts = forecasts };
+                _state[forecast.Location.Name] = forecastState with { Forecasts = forecasts };
                 break;
             case PipelineEvent.ConsensusComputed or PipelineEvent.AlertComputed
                 or PipelineEvent.DerivedComputed or PipelineEvent.TrendComputed

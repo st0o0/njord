@@ -68,7 +68,7 @@ public sealed class PollSchedulerRefFailureSpec : NjordActorSpec
         ActorRegistry.Register<IForecastGateway>(newGateway, overwrite: true);
 
         var msg = await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: ct);
-        Assert.Equal("lucerne", msg.Location);
+        Assert.Equal("lucerne", msg.Location.Name);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

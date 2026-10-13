@@ -1,4 +1,4 @@
-namespace Njord.Core.Egress;
+namespace Njord.Messages.Pipeline;
 
 public enum EnrichmentKind
 {

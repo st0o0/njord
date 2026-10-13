@@ -1,6 +1,6 @@
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
-using Njord.Core.Egress;
+using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using Njord.Weather;
 using DomainAlert = Njord.Compute.Contracts.Alert;
@@ -290,7 +290,7 @@ public sealed class EnrichmentProtoMapperSpec
     public void MapToEvent_should_return_null_for_non_analysis_event()
     {
         var evt = EnrichmentProtoMapper.MapToEvent(
-            new PipelineEvent.ForecastReceived("lucerne", new WeatherModel("icon_d2"),
+            new PipelineEvent.ForecastReceived(new LocationId("lucerne"), new WeatherModel("icon_d2"),
                 new Forecast(new WeatherModel("icon_d2"), "lucerne", default,
                     new ForecastSeries([]), DailyForecastSeries.Empty)),
             TestTimeConstants.PipelineEpoch);

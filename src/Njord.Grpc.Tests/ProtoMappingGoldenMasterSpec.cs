@@ -1,6 +1,7 @@
 using System.Text;
 using Google.Protobuf;
-using Njord.Core.Egress;
+using Njord.Weather;
+using Njord.Messages.Pipeline;
 using Njord.Grpc.V2;
 using Njord.Tests.Shared;
 using static VerifyXunit.Verifier;
@@ -57,7 +58,7 @@ public sealed class ProtoMappingGoldenMasterSpec
         foreach (var forecast in Fixture.Forecasts.Where(f => f.Model == AnalysisFixture.Gfs))
         {
             var update = WeatherGrpcService.MapForecastUpdate(
-                new PipelineEvent.ForecastReceived(forecast.Location, forecast.Model, forecast),
+                new PipelineEvent.ForecastReceived(new LocationId(forecast.Location), forecast.Model, forecast),
                 AnalysisFixture.Now);
             text.AppendLine($"## {update.Location} {update.Model} {update.UpdatedAt}");
             foreach (var hourly in update.Hourly)

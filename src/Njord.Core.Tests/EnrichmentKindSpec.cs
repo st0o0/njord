@@ -1,6 +1,6 @@
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
-using Njord.Core.Egress;
+using Njord.Messages.Pipeline;
 using Njord.Weather;
 
 namespace Njord.Core.Tests;

@@ -58,7 +58,7 @@ public sealed class PollSchedulerSpec : NjordActorSpec
     public async Task Scheduler_sends_fetch_to_gateway_on_startup()
     {
         var msg = await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("lucerne", msg.Location);
+        Assert.Equal("lucerne", msg.Location.Name);
         Assert.Equal("icon_d2", msg.ModelId);
     }
 
@@ -67,7 +67,7 @@ public sealed class PollSchedulerSpec : NjordActorSpec
     {
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -75,8 +75,8 @@ public sealed class PollSchedulerSpec : NjordActorSpec
     {
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted("lucerne", "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -84,10 +84,10 @@ public sealed class PollSchedulerSpec : NjordActorSpec
     {
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
-        Scheduler.Tell(new FetchForecastFailed("lucerne", "icon_d2", PollFailureReason.Transport, "test"));
+        Scheduler.Tell(new FetchForecastFailed(new LocationId("lucerne"), "icon_d2", PollFailureReason.Transport, "test"));
 
         var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            new TriggerImmediatePoll(new LocationId("lucerne"), "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
     }
@@ -97,10 +97,10 @@ public sealed class PollSchedulerSpec : NjordActorSpec
     {
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
-        Scheduler.Tell(new FetchForecastFailed("lucerne", "icon_d2", PollFailureReason.RateLimited, "test"));
+        Scheduler.Tell(new FetchForecastFailed(new LocationId("lucerne"), "icon_d2", PollFailureReason.RateLimited, "test"));
 
         var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            new TriggerImmediatePoll(new LocationId("lucerne"), "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
     }
 
@@ -109,10 +109,10 @@ public sealed class PollSchedulerSpec : NjordActorSpec
     {
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
-        Scheduler.Tell(new FetchForecastFailed("lucerne", "icon_d2", PollFailureReason.ModelUnavailable, "test"));
+        Scheduler.Tell(new FetchForecastFailed(new LocationId("lucerne"), "icon_d2", PollFailureReason.ModelUnavailable, "test"));
 
         var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            new TriggerImmediatePoll(new LocationId("lucerne"), "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
     }
 
@@ -121,10 +121,10 @@ public sealed class PollSchedulerSpec : NjordActorSpec
     {
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
-        Scheduler.Tell(new FetchForecastFailed("lucerne", "icon_d2", PollFailureReason.MalformedPayload, "test"));
+        Scheduler.Tell(new FetchForecastFailed(new LocationId("lucerne"), "icon_d2", PollFailureReason.MalformedPayload, "test"));
 
         var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            new TriggerImmediatePoll(new LocationId("lucerne"), "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal(1, result.Count);
     }
 
@@ -134,7 +134,7 @@ public sealed class PollSchedulerSpec : NjordActorSpec
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
         var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll("", ""), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            new TriggerImmediatePoll(null, ""), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, result.Count);
         Assert.Contains("lucerne/icon_d2", result.Targets);
@@ -146,7 +146,7 @@ public sealed class PollSchedulerSpec : NjordActorSpec
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
         var result = await Scheduler.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll("nonexistent", ""), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            new TriggerImmediatePoll(new LocationId("nonexistent"), ""), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.Count);
         Assert.Empty(result.Targets);
@@ -158,10 +158,10 @@ public sealed class PollSchedulerSpec : NjordActorSpec
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
         await Scheduler.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll("lucerne", "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            new TriggerImmediatePoll(new LocationId("lucerne"), "icon_d2"), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var latest = await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("lucerne", latest.Location);
+        Assert.Equal("lucerne", latest.Location.Name);
         Assert.Equal("icon_d2", latest.ModelId);
     }
 

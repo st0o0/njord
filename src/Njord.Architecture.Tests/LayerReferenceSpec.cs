@@ -35,9 +35,19 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Messages_references_only_Weather_and_Sensors()
+    public void Messages_references_only_Weather_Sensors_and_Compute()
     {
-        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.ScheduledPoll>().Except(["Njord.Weather", "Njord.Sensors"]));
+        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.ScheduledPoll>().Except(["Njord.Weather", "Njord.Sensors", "Njord.Compute"]));
+    }
+
+    [Fact]
+    public void Messages_has_no_Akka_dependency()
+    {
+        var akka = typeof(Njord.Messages.Pipeline.ScheduledPoll).Assembly.GetReferencedAssemblies()
+            .Select(a => a.Name!)
+            .Where(n => n.StartsWith("Akka", StringComparison.Ordinal));
+
+        Assert.Empty(akka);
     }
 
     [Fact]

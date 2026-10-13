@@ -9,10 +9,9 @@ using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Egress;
+using Njord.Messages.Pipeline;
 using Njord.Derived;
 using Njord.Indices;
-using Njord.Messages.Forecast;
 using Njord.Sensors;
 using Njord.Weather;
 using Servus.Akka;
@@ -239,7 +238,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
 
                     var events = new List<PipelineEvent>
                     {
-                        new PipelineEvent.ForecastReceived(input.forecast.Location, input.forecast.Model, input.forecast),
+                        new PipelineEvent.ForecastReceived(new LocationId(input.forecast.Location), input.forecast.Model, input.forecast),
                         new PipelineEvent.ConsensusComputed(consensus, now)
                     };
 

@@ -106,7 +106,7 @@ public sealed class MqttConnectionSpec : NjordActorSpec
         await transport.WaitForMessage(m => m is { Topic: "njord/status", Payload: "online" }).WaitAsync(TestContext.Current.CancellationToken);
 
         var inbox = Inbox.Create(Sys);
-        actor.Tell(new SubscribeInbound(inbox.Receiver));
+        inbox.Send(actor, new SubscribeInbound());
 
         connection.SimulateInbound("homeassistant/status", "online");
 

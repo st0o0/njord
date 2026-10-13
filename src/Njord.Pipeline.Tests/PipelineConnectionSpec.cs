@@ -79,7 +79,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
 
             Receive<FetchForecast>(msg =>
             {
-                fetchCalled?.TrySetResult(msg.Location);
+                fetchCalled?.TrySetResult(msg.Location.Name);
                 var hash = msg.Location.GetHashCode() ^ msg.ModelId.GetHashCode();
                 Sender.Tell(new FetchForecastCompleted(msg.Location, msg.ModelId, hash));
             });

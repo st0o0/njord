@@ -72,10 +72,10 @@ public sealed class MqttConnection : ReceiveActor
         });
         Receive<Reconnect>(_ => Connect());
         Receive<Inbound>(OnInbound);
-        Receive<SubscribeInbound>(msg =>
+        Receive<SubscribeInbound>(_ =>
         {
-            _inboundListeners.Add(msg.Listener);
-            Context.Watch(msg.Listener);
+            _inboundListeners.Add(Sender);
+            Context.Watch(Sender);
         });
         Receive<Terminated>(msg =>
         {

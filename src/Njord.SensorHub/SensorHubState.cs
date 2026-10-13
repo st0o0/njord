@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Njord.Weather;
 using Njord.Messages.Sensors;
 using Njord.Sensors;
 
@@ -52,7 +53,7 @@ public static class SensorHubStateExtensions
 
         return readings.Count > 0
             ? new SensorSnapshotResult(new SensorSnapshot(location, readings))
-            : new SensorSnapshotNotAvailable(location);
+            : new SensorSnapshotNotAvailable(new LocationId(location));
     }
 
     public static SensorHubState Expire(this SensorHubState state, DateTimeOffset now, TimeSpan staleness)
