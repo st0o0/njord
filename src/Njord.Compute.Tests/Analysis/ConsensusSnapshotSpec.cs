@@ -93,7 +93,7 @@ public sealed class ConsensusSnapshotSpec
 
         var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
 
-        Assert.Equal("lucerne", result.Location);
+        Assert.Equal(new LocationId("lucerne"), result.Location);
         Assert.NotEmpty(result.Hourly.Parameters);
         Assert.NotEmpty(result.Daily.Parameters);
         Assert.Equal(T0, result.ComputedAt);
@@ -108,7 +108,7 @@ public sealed class ConsensusSnapshotSpec
 
         var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "zurich");
 
-        Assert.Equal("zurich", result.Location);
+        Assert.Equal(new LocationId("zurich"), result.Location);
         Assert.Empty(result.Hourly.Parameters);
         Assert.Equal(-1, result.Hourly.CutoffHour);
         Assert.Empty(result.Daily.Parameters);

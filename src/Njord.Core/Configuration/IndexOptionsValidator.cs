@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
@@ -7,16 +6,6 @@ namespace Njord.Core.Configuration;
 
 public sealed class IndexOptionsValidator : IValidateOptions<EnrichmentOptions>
 {
-    private static readonly HashSet<string> ValidScoreNames =
-        new(PreferenceResolver.ScoreNames, StringComparer.OrdinalIgnoreCase);
-
-    private readonly ILogger<IndexOptionsValidator> _logger;
-
-    public IndexOptionsValidator(ILogger<IndexOptionsValidator> logger)
-    {
-        _logger = logger;
-    }
-
     public ValidateOptionsResult Validate(string? name, EnrichmentOptions options)
     {
         var idx = options.Indices;
@@ -26,10 +15,7 @@ public sealed class IndexOptionsValidator : IValidateOptions<EnrichmentOptions>
 
         foreach (var (scoreName, prefs) in idx.ScoreOverrides)
         {
-            if (!ValidScoreNames.Contains(scoreName))
-            {
-                _logger.LogWarning("Indices.ScoreOverrides contains unknown score name '{ScoreName}', ignoring", scoreName);
-            }
+            ValidateScoreName(scoreName, "Indices.ScoreOverrides", errors);
 
             ValidatePreferences(prefs, $"Indices.ScoreOverrides[{scoreName}]", errors);
         }
@@ -39,12 +25,7 @@ public sealed class IndexOptionsValidator : IValidateOptions<EnrichmentOptions>
             ValidatePreferences(loc.Preferences, $"Indices.LocationOverrides[{loc.Location}]", errors);
             foreach (var (scoreName, prefs) in loc.ScoreOverrides)
             {
-                if (!ValidScoreNames.Contains(scoreName))
-                {
-                    _logger.LogWarning(
-                        "Indices.LocationOverrides[{Location}].ScoreOverrides contains unknown score name '{ScoreName}', ignoring",
-                        loc.Location, scoreName);
-                }
+                ValidateScoreName(scoreName, $"Indices.LocationOverrides[{loc.Location}].ScoreOverrides", errors);
 
                 ValidatePreferences(prefs, $"Indices.LocationOverrides[{loc.Location}].ScoreOverrides[{scoreName}]", errors);
             }
@@ -53,6 +34,15 @@ public sealed class IndexOptionsValidator : IValidateOptions<EnrichmentOptions>
         return errors.Count > 0
             ? ValidateOptionsResult.Fail(errors)
             : ValidateOptionsResult.Success;
+    }
+
+    private static void ValidateScoreName(string scoreName, string path, List<string> errors)
+    {
+        if (!IndexKinds.TryParse(scoreName, out _))
+        {
+            var known = string.Join(", ", IndexKinds.All.Select(k => k.ToConfigName()));
+            errors.Add($"{path} contains unknown score name '{scoreName}'; expected one of: {known}");
+        }
     }
 
     private static void ValidatePreferences(IndexPreferences prefs, string path, List<string> errors)

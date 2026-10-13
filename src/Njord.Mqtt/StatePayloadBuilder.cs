@@ -30,7 +30,7 @@ public static class StatePayloadBuilder
         ConsensusSnapshot snapshot, string baseTopic)
         => FromConsensus(
             new ConsensusResult(snapshot.Hourly.Parameters, snapshot.Daily.Parameters, snapshot.ComputedAt),
-            baseTopic, snapshot.Location);
+            baseTopic, snapshot.Location.Name);
 
     private static void EmitConsensusMessages(
         IReadOnlyList<ParameterConsensus> parameters,
@@ -114,7 +114,7 @@ public static class StatePayloadBuilder
                 };
             }
 
-            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location, EnrichmentKind.Alerts.ToWireName(), alert.Type.ToTopicSegment());
+            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location.Name, EnrichmentKind.Alerts.ToWireName(), alert.Type.ToTopicSegment());
             messages.Add(new MqttMessage(topic, payload.ToJsonString(), true));
         }
         return messages;
@@ -134,7 +134,7 @@ public static class StatePayloadBuilder
                 ["wmo_description"] = hd.Condition is { } wd ? JsonValue.Create(wd.ToDescription()) : null,
             };
 
-            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location, EnrichmentKind.Derived.ToWireName(), horizon.ToWireKey());
+            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location.Name, EnrichmentKind.Derived.ToWireName(), horizon.ToWireKey());
             messages.Add(new MqttMessage(topic, payload.ToJsonString(), true));
         }
 
@@ -151,7 +151,7 @@ public static class StatePayloadBuilder
                 : null,
         };
 
-        var metaTopic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location, EnrichmentKind.Derived.ToWireName(), "meta");
+        var metaTopic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location.Name, EnrichmentKind.Derived.ToWireName(), "meta");
         messages.Add(new MqttMessage(metaTopic, meta.ToJsonString(), true));
 
         return messages;
@@ -186,7 +186,7 @@ public static class StatePayloadBuilder
         payload["decay_rate"] = result.Decay is { } d ? JsonValue.Create(d.DecayRate) : null;
         payload["reliable_hours"] = result.Decay?.ReliableHours is { } rh ? JsonValue.Create(rh) : null;
 
-        var topic = TopicScheme.EnrichmentTopic(baseTopic, result.Location, EnrichmentKind.Trends.ToWireName());
+        var topic = TopicScheme.EnrichmentTopic(baseTopic, result.Location.Name, EnrichmentKind.Trends.ToWireName());
         return [new MqttMessage(topic, payload.ToJsonString(), true)];
     }
 
@@ -226,7 +226,7 @@ public static class StatePayloadBuilder
             AddEnvelope(payload, "solar", day.SolarEnvelope);
             AddEnvelope(payload, "night_ventilation", day.NightVentilationEnvelope);
 
-            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location, EnrichmentKind.Indices.ToWireName(), Horizon.Days(day.DayOffset).ToWireKey());
+            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location.Name, EnrichmentKind.Indices.ToWireName(), Horizon.Days(day.DayOffset).ToWireKey());
             messages.Add(new MqttMessage(topic, payload.ToJsonString(), true));
         }
 

@@ -31,7 +31,7 @@ public sealed class ConsensusSnapshotFactory(ResolvedParameterSet parameters, Ti
             FilterParameterList(dailyResults, minModels: 2),
             cutoffDay);
 
-        return new ConsensusSnapshot(location, hourly, daily, now);
+        return new ConsensusSnapshot(new LocationId(location), hourly, daily, now);
     }
 
     private static int ComputeCutoffHour(ModelSnapshot snapshot, string location, DateTimeOffset now)

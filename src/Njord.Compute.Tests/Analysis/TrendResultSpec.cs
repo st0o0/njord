@@ -56,7 +56,7 @@ public sealed class TrendResultSpec
         var consensus = new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne");
         var result = new TrendComputer().Compute(consensus, null);
 
-        Assert.Equal("lucerne", result.Location);
+        Assert.Equal(new LocationId("lucerne"), result.Location);
         Assert.All(result.ParameterTrends.Values, v => Assert.Null(v));
         Assert.Null(result.WeatherChange);
         Assert.Null(result.Stability);

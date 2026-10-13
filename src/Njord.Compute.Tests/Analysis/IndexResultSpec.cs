@@ -17,7 +17,7 @@ public sealed class IndexResultSpec
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(
         ["Weather", "Solar"], [], []);
 
-    private static IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> DefaultPrefs(
+    private static IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> DefaultPrefs(
         string location = "lucerne") =>
         PreferenceResolver.Resolve(new IndexOptions(), [location]);
 
@@ -74,7 +74,7 @@ public sealed class IndexResultSpec
         var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne");
         var result = new IndexComputer(Parameters, time).Compute(consensus, DefaultPrefs());
 
-        Assert.Equal("lucerne", result.Location);
+        Assert.Equal(new LocationId("lucerne"), result.Location);
         Assert.True(result.Days.Count >= 2);
         Assert.Equal(0, result.Days[0].DayOffset);
         Assert.Equal(1, result.Days[1].DayOffset);

@@ -182,11 +182,11 @@ public sealed class GrpcConsumer : StreamConsumerActor
                 or PipelineEvent.IndexComputed:
                 var location = evt switch
                 {
-                    PipelineEvent.ConsensusComputed c => c.Consensus.Location,
-                    PipelineEvent.AlertComputed a => a.Result.Location,
-                    PipelineEvent.DerivedComputed d => d.Result.Location,
-                    PipelineEvent.TrendComputed t => t.Result.Location,
-                    PipelineEvent.IndexComputed i => i.Result.Location,
+                    PipelineEvent.ConsensusComputed c => c.Consensus.Location.Name,
+                    PipelineEvent.AlertComputed a => a.Result.Location.Name,
+                    PipelineEvent.DerivedComputed d => d.Result.Location.Name,
+                    PipelineEvent.TrendComputed t => t.Result.Location.Name,
+                    PipelineEvent.IndexComputed i => i.Result.Location.Name,
                     _ => throw new InvalidOperationException()
                 };
                 var analysisState = _state.GetValueOrDefault(location, new LatestResults());

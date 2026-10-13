@@ -46,7 +46,7 @@ public sealed class AlertAnalyzerSpec
 
         Assert.NotNull(result);
         Assert.Equal(14, result.Alerts.Count);
-        Assert.Equal("lucerne", result.Location);
+        Assert.Equal(new LocationId("lucerne"), result.Location);
     }
 
     [Fact]

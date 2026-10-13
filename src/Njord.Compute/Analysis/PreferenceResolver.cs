@@ -1,39 +1,36 @@
 using Njord.Compute.Configuration;
+using Njord.Weather;
 
 namespace Njord.Compute.Analysis;
 
 public static class PreferenceResolver
 {
-    public static readonly IReadOnlyList<string> ScoreNames =
-        ["Laundry", "Outdoor", "Running", "Cycling", "Bbq", "Irrigation", "Solar", "NightVentilation"];
-
-    public static IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> Resolve(
+    public static IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> Resolve(
         IndexOptions options, IEnumerable<string> locationNames)
     {
-        var result = new Dictionary<(string, string), ResolvedPreferences>();
+        var result = new Dictionary<(LocationId, IndexKind), ResolvedPreferences>();
 
         foreach (var location in locationNames)
         {
             var locationOverride = FindLocationOverride(options, location);
 
-            foreach (var score in ScoreNames)
+            foreach (var kind in IndexKinds.All)
             {
-                var resolved = ResolveForLocationAndScore(options, locationOverride, score);
-                result[(location, score)] = resolved;
+                result[(new LocationId(location), kind)] = ResolveForLocationAndKind(options, locationOverride, kind);
             }
         }
 
         return result;
     }
 
-    public static ResolvedPreferences ResolveForLocationAndScore(
-        IndexOptions options, LocationIndexOverride? locationOverride, string score)
+    public static ResolvedPreferences ResolveForLocationAndKind(
+        IndexOptions options, LocationIndexOverride? locationOverride, IndexKind kind)
     {
         var locationScorePrefs = locationOverride != null
-            ? FindScoreOverride(locationOverride.ScoreOverrides, score)
+            ? FindScoreOverride(locationOverride.ScoreOverrides, kind)
             : null;
         var locationGlobalPrefs = locationOverride?.Preferences;
-        var scorePrefs = FindScoreOverride(options.ScoreOverrides, score);
+        var scorePrefs = FindScoreOverride(options.ScoreOverrides, kind);
         var globalPrefs = options.Preferences;
 
         return new ResolvedPreferences(
@@ -109,8 +106,18 @@ public static class PreferenceResolver
         options.LocationOverrides.FirstOrDefault(
             o => string.Equals(o.Location, location, StringComparison.OrdinalIgnoreCase));
 
-    private static IndexPreferences? FindScoreOverride(IDictionary<string, IndexPreferences> overrides, string score) =>
-        overrides.TryGetValue(score, out var prefs) ? prefs : null;
+    private static IndexPreferences? FindScoreOverride(IDictionary<string, IndexPreferences> overrides, IndexKind kind)
+    {
+        foreach (var (key, prefs) in overrides)
+        {
+            if (IndexKinds.TryParse(key, out var parsed) && parsed == kind)
+            {
+                return prefs;
+            }
+        }
+
+        return null;
+    }
 
     private static double Cascade(double? l1, double? l2, double? l3, double? l4, double fallback) =>
         l1 ?? l2 ?? l3 ?? l4 ?? fallback;

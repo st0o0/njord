@@ -18,7 +18,7 @@ public sealed class EnrichmentProtoMapperSpec
     [Fact]
     public void MapAlerts_should_map_alert_type_and_severity_enums()
     {
-        var result = new AlertResult("lucerne",
+        var result = new AlertResult(new LocationId("lucerne"),
         [
             new DomainAlert(DomainAlertType.Frost, DomainAlertSeverity.Orange, 0.85,
                 new Dictionary<string, object?>()),
@@ -43,7 +43,7 @@ public sealed class EnrichmentProtoMapperSpec
     public void MapIndices_should_map_daily_scores_frost_and_vpd()
     {
         var result = new IndexResult(
-            Location: "lucerne",
+            Location: new LocationId("lucerne"),
             Days: [new DayScoreSet(0, Laundry: 80, Outdoor: 70, Running: 65, Cycling: 75,
                 Bbq: 90, Irrigation: 30, Solar: 85, NightVentilation: 60, HoursIncluded: 14)],
             FrostProtection: new FrostProtectionInfo(HoursUntilFrost: 8, Confidence: 0.7),
@@ -74,7 +74,7 @@ public sealed class EnrichmentProtoMapperSpec
     [Fact]
     public void MapIndices_should_omit_frost_when_null()
     {
-        var result = new IndexResult("lucerne",
+        var result = new IndexResult(new LocationId("lucerne"),
             [new DayScoreSet(0, 50, 50, 50, 50, 50, 50, 50, 50, HoursIncluded: 14)],
             null, null);
 
@@ -88,7 +88,7 @@ public sealed class EnrichmentProtoMapperSpec
     public void MapIndices_should_map_envelopes_when_present()
     {
         var envelope = new ScoreEnvelope(65, 80, 0.9);
-        var result = new IndexResult("lucerne",
+        var result = new IndexResult(new LocationId("lucerne"),
             [new DayScoreSet(0, 70, 70, 70, 70, 70, 70, 70, 70, HoursIncluded: 14,
                 OutdoorEnvelope: envelope)],
             null, null);
@@ -112,7 +112,7 @@ public sealed class EnrichmentProtoMapperSpec
             ["wind_speed_10m"] = null,
         };
         var result = new TrendResult(
-            Location: "lucerne",
+            Location: new LocationId("lucerne"),
             ParameterTrends: trends,
             WeatherChange: new WeatherChangeResult(WeatherCategory.Clear, WeatherCategory.Rain),
             PrecipTiming: new PrecipTimingInfo(StartsInHours: 3, EndsInHours: 8),
@@ -145,7 +145,7 @@ public sealed class EnrichmentProtoMapperSpec
             [Horizon.Hours(3)] = new DomainHorizonDerived(Beaufort: 4, WindChill: -2.5, DewPointComfort: DewPointComfort.Comfortable, Condition: WeatherCondition.PartlyCloudy),
         };
         var scalars = new DomainScalarDerived(DiurnalAmplitude: 12.3, SunshinePct: 65.0, Inversion: true);
-        var result = new DerivedResult("lucerne", byHorizon, scalars);
+        var result = new DerivedResult(new LocationId("lucerne"), byHorizon, scalars);
 
         var update = EnrichmentProtoMapper.MapDerived(result);
 
@@ -202,7 +202,7 @@ public sealed class EnrichmentProtoMapperSpec
     [Fact]
     public void MapToEvent_should_wrap_alert_result_in_enrichment_event()
     {
-        var alertResult = new AlertResult("lucerne",
+        var alertResult = new AlertResult(new LocationId("lucerne"),
         [
             new DomainAlert(DomainAlertType.Heat, DomainAlertSeverity.Yellow, 0.75,
                 new Dictionary<string, object?>()),
@@ -273,7 +273,7 @@ public sealed class EnrichmentProtoMapperSpec
         var result = new ConsensusResult([hourlyParam], [dailyParam]);
         var updatedAt = TestTimeConstants.BudgetEpoch;
 
-        var snapshot = new ConsensusSnapshot("lucerne",
+        var snapshot = new ConsensusSnapshot(new LocationId("lucerne"),
             new HourlyConsensus([hourlyParam], 72), new DailyConsensus([dailyParam], 4), updatedAt);
         var evt = EnrichmentProtoMapper.MapToEvent(new PipelineEvent.ConsensusComputed(snapshot, updatedAt), updatedAt);
 

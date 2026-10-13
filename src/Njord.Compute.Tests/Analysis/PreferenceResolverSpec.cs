@@ -1,5 +1,6 @@
 using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
+using Njord.Weather;
 
 namespace Njord.Compute.Tests.Analysis;
 
@@ -11,7 +12,7 @@ public sealed class PreferenceResolverSpec
     public void Default_options_resolve_to_default_preferences()
     {
         var resolved = PreferenceResolver.Resolve(DefaultOptions(), ["Lucerne"]);
-        var prefs = resolved[("Lucerne", "Outdoor")];
+        var prefs = resolved[(new LocationId("Lucerne"), IndexKind.Outdoor)];
 
         Assert.Equal(ResolvedPreferences.Default, prefs);
     }
@@ -25,7 +26,7 @@ public sealed class PreferenceResolverSpec
         };
 
         var resolved = PreferenceResolver.Resolve(options, ["Lucerne"]);
-        var prefs = resolved[("Lucerne", "Outdoor")];
+        var prefs = resolved[(new LocationId("Lucerne"), IndexKind.Outdoor)];
 
         Assert.Equal(26.0, prefs.IdealTemp);
         Assert.Equal(1.0, prefs.HeatSensitivity);
@@ -45,8 +46,8 @@ public sealed class PreferenceResolverSpec
 
         var resolved = PreferenceResolver.Resolve(options, ["Lucerne"]);
 
-        Assert.Equal(1.5, resolved[("Lucerne", "Outdoor")].HeatSensitivity);
-        Assert.Equal(1.0, resolved[("Lucerne", "Running")].HeatSensitivity);
+        Assert.Equal(1.5, resolved[(new LocationId("Lucerne"), IndexKind.Outdoor)].HeatSensitivity);
+        Assert.Equal(1.0, resolved[(new LocationId("Lucerne"), IndexKind.Running)].HeatSensitivity);
     }
 
     [Fact]
@@ -70,7 +71,7 @@ public sealed class PreferenceResolverSpec
 
         var resolved = PreferenceResolver.Resolve(options, ["Lucerne"]);
 
-        Assert.Equal(0.5, resolved[("Lucerne", "Outdoor")].HeatSensitivity);
+        Assert.Equal(0.5, resolved[(new LocationId("Lucerne"), IndexKind.Outdoor)].HeatSensitivity);
     }
 
     [Fact]
@@ -99,7 +100,7 @@ public sealed class PreferenceResolverSpec
 
         var resolved = PreferenceResolver.Resolve(options, ["Lucerne"]);
 
-        Assert.Equal(2.0, resolved[("Lucerne", "Outdoor")].HeatSensitivity);
+        Assert.Equal(2.0, resolved[(new LocationId("Lucerne"), IndexKind.Outdoor)].HeatSensitivity);
     }
 
     [Fact]
@@ -122,7 +123,7 @@ public sealed class PreferenceResolverSpec
         };
 
         var resolved = PreferenceResolver.Resolve(options, ["Lucerne"]);
-        var prefs = resolved[("Lucerne", "Outdoor")];
+        var prefs = resolved[(new LocationId("Lucerne"), IndexKind.Outdoor)];
 
         Assert.Equal(1.3, prefs.HeatSensitivity);
         Assert.Equal(0.8, prefs.WindSensitivity);
@@ -145,7 +146,7 @@ public sealed class PreferenceResolverSpec
 
         var resolved = PreferenceResolver.Resolve(options, ["Lucerne"]);
 
-        Assert.Equal(25.0, resolved[("Lucerne", "Outdoor")].IdealTemp);
+        Assert.Equal(25.0, resolved[(new LocationId("Lucerne"), IndexKind.Outdoor)].IdealTemp);
     }
 
     [Fact]
@@ -157,7 +158,7 @@ public sealed class PreferenceResolverSpec
         };
 
         var resolved = PreferenceResolver.Resolve(options, ["Lucerne"]);
-        var prefs = resolved[("Lucerne", "Outdoor")];
+        var prefs = resolved[(new LocationId("Lucerne"), IndexKind.Outdoor)];
 
         Assert.Equal(5.0, prefs.HeatSensitivity);
         Assert.Equal(0.0, prefs.WindSensitivity);
@@ -176,14 +177,41 @@ public sealed class PreferenceResolverSpec
 
         var resolved = PreferenceResolver.Resolve(options, ["Lucerne"]);
 
-        Assert.Equal(1.5, resolved[("Lucerne", "NightVentilation")].HumiditySensitivity);
+        Assert.Equal(1.5, resolved[(new LocationId("Lucerne"), IndexKind.NightVentilation)].HumiditySensitivity);
     }
 
     [Fact]
-    public void ScoreNames_does_not_contain_Ventilation()
+    public void Resolution_covers_every_index_kind_per_location()
     {
-        Assert.DoesNotContain("Ventilation", PreferenceResolver.ScoreNames);
-        Assert.Contains("NightVentilation", PreferenceResolver.ScoreNames);
+        var resolved = PreferenceResolver.Resolve(DefaultOptions(), ["Lucerne", "Bern"]);
+
+        Assert.Equal(16, resolved.Count);
+        Assert.True(resolved.ContainsKey((new LocationId("Lucerne"), IndexKind.NightVentilation)));
+    }
+
+    [Fact]
+    public void Lowercase_score_key_applies_to_its_index_kind()
+    {
+        var options = new IndexOptions
+        {
+            ScoreOverrides = new Dictionary<string, IndexPreferences>
+            {
+                ["running"] = new IndexPreferences { RunningIdealTempLow = 8.0 }
+            }
+        };
+
+        var resolved = PreferenceResolver.Resolve(options, ["Lucerne"]);
+
+        Assert.Equal(8.0, resolved[(new LocationId("Lucerne"), IndexKind.Running)].IdealTempLow);
+        Assert.Equal(5.0, resolved[(new LocationId("Lucerne"), IndexKind.Cycling)].IdealTempLow);
+    }
+
+    [Fact]
+    public void Location_key_is_case_insensitive()
+    {
+        var resolved = PreferenceResolver.Resolve(DefaultOptions(), ["Lucerne"]);
+
+        Assert.True(resolved.ContainsKey((new LocationId("lucerne"), IndexKind.Outdoor)));
     }
 
     [Fact]
@@ -204,7 +232,7 @@ public sealed class PreferenceResolverSpec
 
         var resolved = PreferenceResolver.Resolve(options, ["Lucerne", "Zurich"]);
 
-        Assert.Equal(24.0, resolved[("Lucerne", "Outdoor")].IdealTemp);
-        Assert.Equal(22.0, resolved[("Zurich", "Outdoor")].IdealTemp);
+        Assert.Equal(24.0, resolved[(new LocationId("Lucerne"), IndexKind.Outdoor)].IdealTemp);
+        Assert.Equal(22.0, resolved[(new LocationId("Zurich"), IndexKind.Outdoor)].IdealTemp);
     }
 }

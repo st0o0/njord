@@ -65,7 +65,7 @@ public sealed class DerivedResultSpec
         var consensus = new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne");
         var result = new DerivedResultComputer(Parameters).Compute(consensus, [3, 6]);
 
-        Assert.Equal("lucerne", result.Location);
+        Assert.Equal(new LocationId("lucerne"), result.Location);
         Assert.Equal(2, result.ByHorizon.Count);
         Assert.Contains(Horizon.Hours(3), result.ByHorizon.Keys);
         Assert.Contains(Horizon.Hours(6), result.ByHorizon.Keys);

@@ -6,7 +6,7 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
 {
     public IndexResult Compute(
         ConsensusSnapshot consensus,
-        IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> resolvedPreferences)
+        IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> resolvedPreferences)
     {
         var slices = TimeSliceAggregator.AggregateDaySlices(consensus, parameters, timeProvider);
         var days = new List<DayScoreSet>();
@@ -30,36 +30,36 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
             var outdoor = IndexScorer.OutdoorScore(
                 Get(dayMeans, temp), Get(dayMeans, humidity),
                 Get(dayMeans, rainProb), Get(dayMeans, wind),
-                Get(dayMeans, cloud), PrefsFor("Outdoor"));
+                Get(dayMeans, cloud), PrefsFor(IndexKind.Outdoor));
 
             var running = IndexScorer.RunningComfort(
                 Get(dayMeans, temp), Get(dayMeans, humidity),
-                Get(dayMeans, wind), Get(dayMeans, rainProb), PrefsFor("Running"));
+                Get(dayMeans, wind), Get(dayMeans, rainProb), PrefsFor(IndexKind.Running));
 
             var cycling = IndexScorer.CyclingComfort(
                 Get(dayMeans, temp), Get(dayMeans, humidity),
-                Get(dayMeans, wind), Get(dayMeans, rainProb), PrefsFor("Cycling"));
+                Get(dayMeans, wind), Get(dayMeans, rainProb), PrefsFor(IndexKind.Cycling));
 
             var bbq = IndexScorer.BbqWeather(
                 Get(dayMeans, temp), Get(dayMeans, humidity),
-                Get(dayMeans, wind), Get(dayMeans, rainProb), PrefsFor("Bbq"));
+                Get(dayMeans, wind), Get(dayMeans, rainProb), PrefsFor(IndexKind.Bbq));
 
             var solar = IndexScorer.SolarYield(
                 Get(dayMeans, radiation), Get(dayMeans, cloud),
-                Get(dayMeans, temp), PrefsFor("Solar"));
+                Get(dayMeans, temp), PrefsFor(IndexKind.Solar));
 
             var laundry = IndexScorer.LaundryDrying(
                 Get(fullMeans, temp), Get(fullMeans, humidity),
                 Get(fullMeans, wind), Get(fullMeans, rainProb),
-                sunshinePct, PrefsFor("Laundry"));
+                sunshinePct, PrefsFor(IndexKind.Laundry));
 
             var irrigation = IndexScorer.IrrigationNeed(
                 Get(fullMeans, rainProb), Get(fullMeans, temp),
-                Get(fullMeans, humidity), Get(fullMeans, et), PrefsFor("Irrigation"));
+                Get(fullMeans, humidity), Get(fullMeans, et), PrefsFor(IndexKind.Irrigation));
 
             var nightVent = IndexScorer.NightVentilation(
                 Get(nightMeans, temp), Get(nightMeans, humidity),
-                Get(nightMeans, wind), Get(nightMeans, rainProb), PrefsFor("NightVentilation"));
+                Get(nightMeans, wind), Get(nightMeans, rainProb), PrefsFor(IndexKind.NightVentilation));
 
             var hoursIncluded = Math.Max(slice.DaylightHoursCount, slice.NighttimeHoursCount);
 
@@ -83,8 +83,8 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
 
         return new IndexResult(consensus.Location, days, frost, vpd);
 
-        ResolvedPreferences PrefsFor(string score) =>
-            resolvedPreferences.TryGetValue((consensus.Location, score), out var p)
+        ResolvedPreferences PrefsFor(IndexKind kind) =>
+            resolvedPreferences.TryGetValue((consensus.Location, kind), out var p)
                 ? p
                 : ResolvedPreferences.Default;
     }
@@ -140,7 +140,7 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
 
     private EnvelopeSet ComputeDayEnvelopes(
         ConsensusSnapshot consensus, DaySlice slice,
-        IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> resolvedPreferences)
+        IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> resolvedPreferences)
     {
         var tempParam = FindParam(consensus.Hourly.Parameters, parameters.Get(ParameterRegistry.Temperature2m));
         if (tempParam is null || !tempParam.ByHorizon.Values.Any(hc => hc.AvailableModels.Count >= 2))
@@ -207,24 +207,24 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
         var avgAgreement = ComputeAverageAgreement(
             tempParam, humidityParam, windParam, precipProbParam, cloudParam, radiationParam, allHours);
 
-        var pessOutdoor = IndexScorer.OutdoorScore(pessDayMeans.Temp, pessDayMeans.Humidity, pessDayMeans.RainProb, pessDayMeans.Wind, pessDayMeans.Cloud, PrefsFor("Outdoor"));
-        var optOutdoor = IndexScorer.OutdoorScore(optDayMeans.Temp, optDayMeans.Humidity, optDayMeans.RainProb, optDayMeans.Wind, optDayMeans.Cloud, PrefsFor("Outdoor"));
-        var pessRunning = IndexScorer.RunningComfort(pessDayMeans.Temp, pessDayMeans.Humidity, pessDayMeans.Wind, pessDayMeans.RainProb, PrefsFor("Running"));
-        var optRunning = IndexScorer.RunningComfort(optDayMeans.Temp, optDayMeans.Humidity, optDayMeans.Wind, optDayMeans.RainProb, PrefsFor("Running"));
-        var pessCycling = IndexScorer.CyclingComfort(pessDayMeans.Temp, pessDayMeans.Humidity, pessDayMeans.Wind, pessDayMeans.RainProb, PrefsFor("Cycling"));
-        var optCycling = IndexScorer.CyclingComfort(optDayMeans.Temp, optDayMeans.Humidity, optDayMeans.Wind, optDayMeans.RainProb, PrefsFor("Cycling"));
-        var pessBbq = IndexScorer.BbqWeather(pessDayMeans.Temp, pessDayMeans.Humidity, pessDayMeans.Wind, pessDayMeans.RainProb, PrefsFor("Bbq"));
-        var optBbq = IndexScorer.BbqWeather(optDayMeans.Temp, optDayMeans.Humidity, optDayMeans.Wind, optDayMeans.RainProb, PrefsFor("Bbq"));
-        var pessSolar = IndexScorer.SolarYield(pessDayMeans.Radiation, pessDayMeans.Cloud, pessDayMeans.Temp, PrefsFor("Solar"));
-        var optSolar = IndexScorer.SolarYield(optDayMeans.Radiation, optDayMeans.Cloud, optDayMeans.Temp, PrefsFor("Solar"));
+        var pessOutdoor = IndexScorer.OutdoorScore(pessDayMeans.Temp, pessDayMeans.Humidity, pessDayMeans.RainProb, pessDayMeans.Wind, pessDayMeans.Cloud, PrefsFor(IndexKind.Outdoor));
+        var optOutdoor = IndexScorer.OutdoorScore(optDayMeans.Temp, optDayMeans.Humidity, optDayMeans.RainProb, optDayMeans.Wind, optDayMeans.Cloud, PrefsFor(IndexKind.Outdoor));
+        var pessRunning = IndexScorer.RunningComfort(pessDayMeans.Temp, pessDayMeans.Humidity, pessDayMeans.Wind, pessDayMeans.RainProb, PrefsFor(IndexKind.Running));
+        var optRunning = IndexScorer.RunningComfort(optDayMeans.Temp, optDayMeans.Humidity, optDayMeans.Wind, optDayMeans.RainProb, PrefsFor(IndexKind.Running));
+        var pessCycling = IndexScorer.CyclingComfort(pessDayMeans.Temp, pessDayMeans.Humidity, pessDayMeans.Wind, pessDayMeans.RainProb, PrefsFor(IndexKind.Cycling));
+        var optCycling = IndexScorer.CyclingComfort(optDayMeans.Temp, optDayMeans.Humidity, optDayMeans.Wind, optDayMeans.RainProb, PrefsFor(IndexKind.Cycling));
+        var pessBbq = IndexScorer.BbqWeather(pessDayMeans.Temp, pessDayMeans.Humidity, pessDayMeans.Wind, pessDayMeans.RainProb, PrefsFor(IndexKind.Bbq));
+        var optBbq = IndexScorer.BbqWeather(optDayMeans.Temp, optDayMeans.Humidity, optDayMeans.Wind, optDayMeans.RainProb, PrefsFor(IndexKind.Bbq));
+        var pessSolar = IndexScorer.SolarYield(pessDayMeans.Radiation, pessDayMeans.Cloud, pessDayMeans.Temp, PrefsFor(IndexKind.Solar));
+        var optSolar = IndexScorer.SolarYield(optDayMeans.Radiation, optDayMeans.Cloud, optDayMeans.Temp, PrefsFor(IndexKind.Solar));
 
-        var pessLaundry = IndexScorer.LaundryDrying(pessFullMeans.Temp, pessFullMeans.Humidity, pessFullMeans.Wind, pessFullMeans.RainProb, null, PrefsFor("Laundry"));
-        var optLaundry = IndexScorer.LaundryDrying(optFullMeans.Temp, optFullMeans.Humidity, optFullMeans.Wind, optFullMeans.RainProb, null, PrefsFor("Laundry"));
-        var pessIrrigation = IndexScorer.IrrigationNeed(pessFullMeans.RainProb, pessFullMeans.Temp, pessFullMeans.Humidity, pessFullMeans.Et, PrefsFor("Irrigation"));
-        var optIrrigation = IndexScorer.IrrigationNeed(optFullMeans.RainProb, optFullMeans.Temp, optFullMeans.Humidity, optFullMeans.Et, PrefsFor("Irrigation"));
+        var pessLaundry = IndexScorer.LaundryDrying(pessFullMeans.Temp, pessFullMeans.Humidity, pessFullMeans.Wind, pessFullMeans.RainProb, null, PrefsFor(IndexKind.Laundry));
+        var optLaundry = IndexScorer.LaundryDrying(optFullMeans.Temp, optFullMeans.Humidity, optFullMeans.Wind, optFullMeans.RainProb, null, PrefsFor(IndexKind.Laundry));
+        var pessIrrigation = IndexScorer.IrrigationNeed(pessFullMeans.RainProb, pessFullMeans.Temp, pessFullMeans.Humidity, pessFullMeans.Et, PrefsFor(IndexKind.Irrigation));
+        var optIrrigation = IndexScorer.IrrigationNeed(optFullMeans.RainProb, optFullMeans.Temp, optFullMeans.Humidity, optFullMeans.Et, PrefsFor(IndexKind.Irrigation));
 
-        var pessNightVent = IndexScorer.NightVentilation(pessNightMeans.Temp, pessNightMeans.Humidity, pessNightMeans.Wind, pessNightMeans.RainProb, PrefsFor("NightVentilation"));
-        var optNightVent = IndexScorer.NightVentilation(optNightMeans.Temp, optNightMeans.Humidity, optNightMeans.Wind, optNightMeans.RainProb, PrefsFor("NightVentilation"));
+        var pessNightVent = IndexScorer.NightVentilation(pessNightMeans.Temp, pessNightMeans.Humidity, pessNightMeans.Wind, pessNightMeans.RainProb, PrefsFor(IndexKind.NightVentilation));
+        var optNightVent = IndexScorer.NightVentilation(optNightMeans.Temp, optNightMeans.Humidity, optNightMeans.Wind, optNightMeans.RainProb, PrefsFor(IndexKind.NightVentilation));
 
         return new EnvelopeSet(
             BuildEnvelopeFromBounds(pessLaundry, optLaundry, avgAgreement),
@@ -236,8 +236,8 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
             BuildEnvelopeFromBounds(pessSolar, optSolar, avgAgreement),
             BuildEnvelopeFromBounds(pessNightVent, optNightVent, avgAgreement));
 
-        ResolvedPreferences PrefsFor(string score) =>
-            resolvedPreferences.TryGetValue((consensus.Location, score), out var p)
+        ResolvedPreferences PrefsFor(IndexKind kind) =>
+            resolvedPreferences.TryGetValue((consensus.Location, kind), out var p)
                 ? p
                 : ResolvedPreferences.Default;
     }

@@ -32,7 +32,7 @@ public sealed class TrendAnalyzerSpec
         var result = analyzer.Compute(BuildConsensus(), BuildConsensus());
 
         Assert.NotNull(result);
-        Assert.Equal("lucerne", result.Location);
+        Assert.Equal(new LocationId("lucerne"), result.Location);
     }
 
     [Fact]

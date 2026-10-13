@@ -9,7 +9,7 @@ namespace Njord.Mqtt.Tests;
 
 public sealed class StatePayloadBuilderSpec
 {
-    private static IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> DefaultPrefs(
+    private static IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> DefaultPrefs(
         string location = "lucerne") =>
         PreferenceResolver.Resolve(new IndexOptions(), [location]);
     private static readonly WeatherModel IconD2 = new("icon_d2");
@@ -185,7 +185,7 @@ public sealed class StatePayloadBuilderSpec
             new(AlertType.Frost, AlertSeverity.Yellow, 0.75, new Dictionary<string, object?> { ["expected_low"] = -2.1 }),
             Alert.None(AlertType.Heat),
         };
-        var result = new AlertResult("lucerne", alerts);
+        var result = new AlertResult(new LocationId("lucerne"), alerts);
 
         var messages = StatePayloadBuilder.FromAlerts(result, "njord");
 

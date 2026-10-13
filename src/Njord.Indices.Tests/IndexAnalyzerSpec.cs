@@ -27,7 +27,7 @@ public sealed class IndexAnalyzerSpec
         var result = analyzer.Compute(BuildConsensus(), null);
 
         Assert.NotNull(result);
-        Assert.Equal("lucerne", result.Location);
+        Assert.Equal(new LocationId("lucerne"), result.Location);
     }
 
     [Fact]

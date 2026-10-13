@@ -3,13 +3,14 @@ using Njord.Compute.Analysis;
 using Njord.Compute.Configuration;
 using Njord.Core.Configuration;
 using Njord.Sensors;
+using Njord.Weather;
 
 namespace Njord.Indices;
 
 public sealed class IndexAnalyzer
 {
     private readonly IndexComputer _indexComputer;
-    private readonly IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> _resolvedPreferences;
+    private readonly IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> _resolvedPreferences;
 
     public IndexAnalyzer(
         IndexComputer indexComputer,
@@ -36,12 +37,12 @@ public sealed class IndexAnalyzer
         return _indexComputer.Compute(consensus, prefs);
     }
 
-    private static IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> OverrideIndoorTemp(
-        IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences> source,
-        string location,
+    private static IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> OverrideIndoorTemp(
+        IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> source,
+        LocationId location,
         double indoorTemp)
     {
-        var result = new Dictionary<(string, string), ResolvedPreferences>(source);
+        var result = new Dictionary<(LocationId, IndexKind), ResolvedPreferences>(source);
         foreach (var key in source.Keys.Where(k => k.Location == location))
         {
             result[key] = source[key] with { IndoorTemp = indoorTemp };

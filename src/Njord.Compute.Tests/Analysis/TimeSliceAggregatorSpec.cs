@@ -213,7 +213,7 @@ public sealed class TimeSliceAggregatorSpec
     public void Empty_consensus_returns_empty_list()
     {
         var now = new DateTimeOffset(2026, 8, 4, 6, 0, 0, TimeSpan.Zero);
-        var consensus = new ConsensusSnapshot("lucerne",
+        var consensus = new ConsensusSnapshot(new LocationId("lucerne"),
             new HourlyConsensus([], -1),
             new DailyConsensus([], 0),
             now);

@@ -92,7 +92,7 @@ public sealed class MqttStateSpec : NjordActorSpec
         await hub.WaitForQueue();
 
         var trends = new TrendResult(
-            "lucerne",
+            new LocationId("lucerne"),
             new Dictionary<string, ParameterTrend?>(),
             null,
             new PrecipTimingInfo(2, 5),
@@ -125,7 +125,7 @@ public sealed class MqttStateSpec : NjordActorSpec
         var horizon = new HorizonConsensus(
             21.5, 21.4, 1.0, 0.5, 0.9, null, null, [new WeatherModel("icon_d2"), new WeatherModel("icon_eu")]);
         var snapshot = new ConsensusSnapshot(
-            "lucerne",
+            new LocationId("lucerne"),
             new HourlyConsensus([new ParameterConsensus(temp, new Dictionary<Horizon, HorizonConsensus> { [Horizon.Hours(3)] = horizon })], 72),
             new DailyConsensus([], 4),
             Anchor);

@@ -20,7 +20,7 @@ public sealed class EnrichmentKindSpec
     public void AlertComputed_implements_IEnrichmentEvent_with_correct_kind()
     {
         var evt = new PipelineEvent.AlertComputed(
-            new AlertResult("loc", []), DateTimeOffset.UtcNow);
+            new AlertResult(new LocationId("loc"), []), DateTimeOffset.UtcNow);
 
         var enrichment = Assert.IsType<IEnrichmentEvent>(evt, exactMatch: false);
         Assert.Equal(EnrichmentKind.Alerts, enrichment.Kind);
@@ -30,7 +30,7 @@ public sealed class EnrichmentKindSpec
     public void DerivedComputed_implements_IEnrichmentEvent_with_correct_kind()
     {
         var evt = new PipelineEvent.DerivedComputed(
-            new DerivedResult("loc", new Dictionary<Horizon, HorizonDerived>(), new ScalarDerived(null, null, null)),
+            new DerivedResult(new LocationId("loc"), new Dictionary<Horizon, HorizonDerived>(), new ScalarDerived(null, null, null)),
             DateTimeOffset.UtcNow);
 
         var enrichment = Assert.IsType<IEnrichmentEvent>(evt, exactMatch: false);
@@ -41,7 +41,7 @@ public sealed class EnrichmentKindSpec
     public void TrendComputed_implements_IEnrichmentEvent_with_correct_kind()
     {
         var evt = new PipelineEvent.TrendComputed(
-            new TrendResult("loc", new Dictionary<string, ParameterTrend?>(), null,
+            new TrendResult(new LocationId("loc"), new Dictionary<string, ParameterTrend?>(), null,
                 new PrecipTimingInfo(null, null),
                 new ExtremaTimingInfo(null, null),
                 null, null),
@@ -55,7 +55,7 @@ public sealed class EnrichmentKindSpec
     public void IndexComputed_implements_IEnrichmentEvent_with_correct_kind()
     {
         var evt = new PipelineEvent.IndexComputed(
-            new IndexResult("loc", [], null, null), DateTimeOffset.UtcNow);
+            new IndexResult(new LocationId("loc"), [], null, null), DateTimeOffset.UtcNow);
 
         var enrichment = Assert.IsType<IEnrichmentEvent>(evt, exactMatch: false);
         Assert.Equal(EnrichmentKind.Indices, enrichment.Kind);
@@ -72,5 +72,5 @@ public sealed class EnrichmentKindSpec
     }
 
     private static ConsensusSnapshot CreateConsensusSnapshot() =>
-        new("loc", new HourlyConsensus([], 0), new DailyConsensus([], 0), DateTimeOffset.UtcNow);
+        new(new LocationId("loc"), new HourlyConsensus([], 0), new DailyConsensus([], 0), DateTimeOffset.UtcNow);
 }

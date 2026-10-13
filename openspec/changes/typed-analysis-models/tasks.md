@@ -27,10 +27,10 @@ use a plain `[Fact]` (AGENTS.md: a timeout cannot be enforced there).
 
 ## 4. Typed index kinds and locations
 
-- [ ] 4.1 Add `IndexKind` enum with `ToWireName()` and case-insensitive `TryParse` from config keys, plus `LocationId` (case-insensitive equality) in `src/Njord.Weather/LocationId.cs`, each with a spec
-- [ ] 4.2 Switch `PreferenceResolver`/`ResolvedPreferences` key to `(LocationId, IndexKind)` and remove `PrefsFor("…")` literals from `IndexComputer`; update `PreferenceResolverSpec`/`IndexResultSpec`
-- [ ] 4.3 Reject unknown `ScoreOverrides` keys in `src/Njord.Core/Configuration/IndexOptionsValidator.cs` (global and per-location) with a spec in `src/Njord.Core.Tests/Configuration/`
-- [ ] 4.4 Use `LocationId` in the analysis result records and `ConsensusSnapshot`; convert to text in the mappers; update `src/Njord.Indices`, `src/Njord.Pipeline/ForecastPipeline.cs` and the affected specs
+- [x] 4.1 Add `IndexKind` enum with `ToWireName()` and case-insensitive `TryParse` from config keys, plus `LocationId` (case-insensitive equality) in `src/Njord.Weather/LocationId.cs`, each with a spec
+- [x] 4.2 Switch `PreferenceResolver`/`ResolvedPreferences` key to `(LocationId, IndexKind)` and remove `PrefsFor("…")` literals from `IndexComputer`; update `PreferenceResolverSpec`/`IndexResultSpec`
+- [x] 4.3 Reject unknown `ScoreOverrides` keys in `src/Njord.Core/Configuration/IndexOptionsValidator.cs` (global and per-location) with a spec in `src/Njord.Core.Tests/Configuration/`
+- [x] 4.4 Use `LocationId` in the analysis result records and `ConsensusSnapshot`; convert to text in the mappers; update `src/Njord.Indices`, `src/Njord.Pipeline/ForecastPipeline.cs` and the affected specs
 
 ## 5. Typed alert details and thresholds
 

@@ -21,7 +21,7 @@ public sealed class DerivedAnalyzerSpec
         var result = analyzer.Compute(BuildConsensus());
 
         Assert.NotNull(result);
-        Assert.Equal("lucerne", result.Location);
+        Assert.Equal(new LocationId("lucerne"), result.Location);
     }
 
     [Fact]
