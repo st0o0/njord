@@ -125,3 +125,32 @@ Adaptations made during implementation, where the code differed from what the ta
   scenario is covered by cancelling one streaming client and asserting that another one still
   receives events (the hub removes cancelled subscribers); it does not wait for a real idle
   timeout.
+
+### Group 3 (config and budget through messages)
+- The options-to-contract mapping is `Njord.Core/Configuration/ConfigSnapshotMapping.cs`
+  (`ToSnapshot`, `ToCatalog`), used by `ConfigManager` and by test fakes. Core already references
+  Messages, so the options types stay out of Messages.
+- `ConfigSnapshot` has `Scope` (locations with own and resolved models, default models,
+  horizons, forecast days, parameters), `Polling` (intervals, override, effective budget, daily
+  limit), `BudgetProjection` (including its warnings) and `Analysis` (all five sections, with the
+  index score and location overrides).
+- Update commands answer `<Command>Completed(ConfigSnapshot Config, IReadOnlyList<string>
+  RestartRequired)`. The budget projection and its warnings travel inside `Config`; the
+  restart-required properties travel as data, and the API formats the existing
+  "Takes effect after restart: " notice. `UpdateLocations` carries `LocationInput` with a raw
+  `string Name`, because client input is validated by `ConfigManager` (an empty name must be a
+  rejection, not a `LocationId` exception).
+- Validation moved with the commands into `ConfigManager`, in the previous order and with the
+  previous rejection texts (validate-before-persist, the 80 % budget guard, `Check<T>` over all
+  touched analysis sections before any write). Commands run in `ReceiveAsync`, so writes are
+  serialized.
+- `QueryCatalog` is answered from the startup scope (`IOptions<NjordOptions>`), as the weather
+  and sensor services read it before; locations and models are restart-required, so this is
+  what the running service serves. `QueryConfig` reads the current (persisted) values.
+- `RequestConfigStream` gives each subscriber `Source.Single(current).Concat(hub)`; the
+  `BroadcastHub<ConfigSnapshot>` is fed on every reload and drained by an always-attached
+  `Sink.Ignore`.
+- `QueryBudgetStatus` is answered by `BudgetTracker` with usage plus the limits from the
+  `NjordHealthMonitor` budget snapshot. `ConfigManager` already keeps that snapshot at the
+  effective monthly budget on every reload, so the tracker needs no options access (actors
+  other than `ConfigManager` must not inject an options monitor). `QueryBudgetUsage` stays.

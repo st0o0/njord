@@ -45,6 +45,20 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task Budget_status_reports_usage_with_the_effective_limits()
+    {
+        _healthState.UpdateBudget(new BudgetHealthSnapshot(0, 0, 10_000, 250_000));
+        var actor = CreateActor();
+
+        actor.Tell(new RecordApiCall(2));
+
+        var status = await actor.Ask<BudgetStatusResponse>(
+            new QueryBudgetStatus(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+
+        Assert.Equal(new BudgetStatusResult(MonthlyUsed: 2, DailyUsed: 2, MonthlyLimit: 250_000, DailyLimit: 10_000), status);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Weighted_calls_accumulate_correctly()
     {
         var actor = CreateActor();

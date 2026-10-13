@@ -41,6 +41,7 @@ public sealed class BudgetTracker : ReceivePersistentActor
 
         Command<RecordApiCall>(OnRecordApiCall);
         Command<QueryBudgetUsage>(_ => Sender.Tell(_state.GetSnapshot(), Self));
+        Command<QueryBudgetStatus>(_ => Sender.Tell(GetStatus(), Self));
         Command<SaveSnapshotSuccess>(success =>
         {
             _log.Debug("Snapshot saved at sequence {SequenceNr}, cleaning journal", success.Metadata.SequenceNr);
@@ -55,6 +56,13 @@ public sealed class BudgetTracker : ReceivePersistentActor
             _log.Warning(fail.Cause, "Delete snapshots failed for {PersistenceId}", PersistenceId));
         Command<DeleteMessagesSuccess>(_ => { });
         Command<DeleteSnapshotSuccess>(_ => { });
+    }
+
+    // The limits are the health snapshot's, which the configuration manager keeps at the effective budget.
+    private BudgetStatusResult GetStatus()
+    {
+        var limits = _healthState.Budget;
+        return new BudgetStatusResult(_state.MonthlyUsed, _state.DailyUsed, limits.LimitMonthly, limits.LimitDaily);
     }
 
     private void MaybeSnapshot()

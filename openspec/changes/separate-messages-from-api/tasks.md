@@ -17,9 +17,9 @@ service specs must pass without re-approval after every group.
 
 ## 3. Config and budget through messages
 
-- [ ] 3.1 Add `src/Njord.Messages/Config/` contracts: `ConfigSnapshot` tree, `QueryConfig`, `QueryCatalog` (with model coverage), `UpdateLocations`, `UpdateSettings`, `UpdateAnalysisConfig`, `UpdateBudget`, each with a `Completed`/`Rejected`/`Failed` hierarchy carrying budget projection and warnings
-- [ ] 3.2 Extend `src/Njord/Configuration/ConfigManager.cs`: answer the queries (snapshot built from options; catalog from scope options plus `ModelCoverageRegistry`), apply update commands through the section writer with `ConfigReloadPolicy` warnings, and expose `RequestConfigStream` (`BroadcastHub<ConfigSnapshot>`); specs in `src/Njord.Tests/Configuration/ConfigManagerSpec.cs`, including "every options value reaches the snapshot"
-- [ ] 3.3 Add `QueryBudgetStatus` (usage plus effective budget) to `src/Njord.Messages/Budget/`, answered by `src/Njord.Budget/BudgetTracker`; spec in `src/Njord.Budget.Tests/`
+- [x] 3.1 Add `src/Njord.Messages/Config/` contracts: `ConfigSnapshot` tree, `QueryConfig`, `QueryCatalog` (with model coverage), `UpdateLocations`, `UpdateSettings`, `UpdateAnalysisConfig`, `UpdateBudget`, each with a `Completed`/`Rejected`/`Failed` hierarchy carrying budget projection and warnings
+- [x] 3.2 Extend `src/Njord/Configuration/ConfigManager.cs`: answer the queries (snapshot built from options; catalog from scope options plus `ModelCoverageRegistry`), apply update commands through the section writer with `ConfigReloadPolicy` warnings, and expose `RequestConfigStream` (`BroadcastHub<ConfigSnapshot>`); specs in `src/Njord.Tests/Configuration/ConfigManagerSpec.cs`, including "every options value reaches the snapshot"
+- [x] 3.3 Add `QueryBudgetStatus` (usage plus effective budget) to `src/Njord.Messages/Budget/`, answered by `src/Njord.Budget/BudgetTracker`; spec in `src/Njord.Budget.Tests/`
 
 ## 4. gRPC as a pure adapter
 
