@@ -1,0 +1,66 @@
+﻿{
+  "location": "Lucerne",
+  "typeName": "trends",
+  "updatedAt": "2026-07-14T12:00:00Z",
+  "trends": {
+    "parameterTrends": [
+      {
+        "parameter": "temperature_2m",
+        "direction": "rising",
+        "delta": 3
+      },
+      {
+        "parameter": "wind_speed_10m",
+        "direction": "falling",
+        "delta": -2
+      },
+      {
+        "parameter": "precipitation",
+        "direction": "stable",
+        "delta": 0
+      }
+    ],
+    "weatherChangeDescription": "clear → rain",
+    "precipStartsInHours": 5,
+    "precipEndsInHours": 6,
+    "tempMaxInHours": 4,
+    "tempMinInHours": 2,
+    "stabilityLabel": "converging",
+    "stabilityRatio": 0.49,
+    "decayRate": 0.069,
+    "reliableHours": 25
+  }
+}
+{
+  "location": "Bern",
+  "typeName": "trends",
+  "updatedAt": "2026-07-14T12:00:00Z",
+  "trends": {
+    "parameterTrends": [
+      {
+        "parameter": "temperature_2m",
+        "direction": "stable",
+        "delta": 0
+      },
+      {
+        "parameter": "wind_speed_10m",
+        "direction": "stable",
+        "delta": 0
+      },
+      {
+        "parameter": "precipitation",
+        "direction": "stable",
+        "delta": 0
+      },
+      {
+        "parameter": "cloud_cover",
+        "direction": "stable",
+        "delta": 0
+      }
+    ],
+    "tempMaxInHours": 0,
+    "tempMinInHours": 8,
+    "decayRate": 0.0379,
+    "reliableHours": 25
+  }
+}

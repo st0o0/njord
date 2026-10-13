@@ -1,0 +1,219 @@
+﻿{
+  "location": "Lucerne",
+  "typeName": "alerts",
+  "updatedAt": "2026-07-14T12:00:00Z",
+  "alerts": {
+    "alerts": [
+      {
+        "type": "ALERT_TYPE_FROST",
+        "severity": "ALERT_SEVERITY_ORANGE",
+        "confidence": 1,
+        "triggerValue": -6,
+        "threshold": -5,
+        "hoursUntil": 2
+      },
+      {
+        "type": "ALERT_TYPE_HEAT",
+        "severity": "ALERT_SEVERITY_ORANGE",
+        "confidence": 1,
+        "triggerValue": 36,
+        "threshold": 35,
+        "peakValue": 36.4
+      },
+      {
+        "type": "ALERT_TYPE_STORM",
+        "severity": "ALERT_SEVERITY_ORANGE",
+        "confidence": 1,
+        "triggerValue": 26,
+        "threshold": 25,
+        "peakValue": 26.2
+      },
+      {
+        "type": "ALERT_TYPE_HEAVY_RAIN",
+        "severity": "ALERT_SEVERITY_RED",
+        "confidence": 1,
+        "triggerValue": 12,
+        "threshold": 10
+      },
+      {
+        "type": "ALERT_TYPE_UV",
+        "severity": "ALERT_SEVERITY_ORANGE",
+        "confidence": 1,
+        "triggerValue": 7,
+        "threshold": 6
+      },
+      {
+        "type": "ALERT_TYPE_FOG",
+        "severity": "ALERT_SEVERITY_ORANGE",
+        "confidence": 1,
+        "triggerValue": 4,
+        "threshold": 1,
+        "durationHours": 4
+      },
+      {
+        "type": "ALERT_TYPE_SNOW",
+        "severity": "ALERT_SEVERITY_YELLOW",
+        "confidence": 1,
+        "triggerValue": 2,
+        "threshold": 0
+      },
+      {
+        "type": "ALERT_TYPE_PRESSURE_DROP",
+        "severity": "ALERT_SEVERITY_ORANGE",
+        "confidence": 1,
+        "triggerValue": 12,
+        "threshold": 10
+      },
+      {
+        "type": "ALERT_TYPE_THUNDERSTORM",
+        "severity": "ALERT_SEVERITY_YELLOW",
+        "confidence": 0.04,
+        "triggerValue": 1500,
+        "threshold": 1000
+      },
+      {
+        "type": "ALERT_TYPE_ICE",
+        "severity": "ALERT_SEVERITY_RED",
+        "confidence": 1,
+        "triggerValue": -6,
+        "threshold": 2
+      },
+      {
+        "type": "ALERT_TYPE_WIND_CHILL",
+        "severity": "ALERT_SEVERITY_ORANGE",
+        "confidence": 1,
+        "triggerValue": -22,
+        "threshold": -20
+      },
+      {
+        "type": "ALERT_TYPE_VISIBILITY",
+        "severity": "ALERT_SEVERITY_ORANGE",
+        "confidence": 0.04,
+        "triggerValue": 150,
+        "threshold": 200
+      },
+      {
+        "type": "ALERT_TYPE_TROPICAL_NIGHT",
+        "severity": "ALERT_SEVERITY_ORANGE",
+        "confidence": 1,
+        "triggerValue": 24,
+        "threshold": 23
+      },
+      {
+        "type": "ALERT_TYPE_HUMIDITY",
+        "severity": "ALERT_SEVERITY_ORANGE",
+        "confidence": 1,
+        "triggerValue": 22,
+        "threshold": 21
+      }
+    ]
+  }
+}
+{
+  "location": "Bern",
+  "typeName": "alerts",
+  "updatedAt": "2026-07-14T12:00:00Z",
+  "alerts": {
+    "alerts": [
+      {
+        "type": "ALERT_TYPE_FROST",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 0,
+        "triggerValue": 18,
+        "threshold": 0
+      },
+      {
+        "type": "ALERT_TYPE_HEAT",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 0,
+        "triggerValue": 0,
+        "threshold": 0
+      },
+      {
+        "type": "ALERT_TYPE_STORM",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 0,
+        "triggerValue": 6,
+        "threshold": 17,
+        "peakValue": 6.2
+      },
+      {
+        "type": "ALERT_TYPE_HEAVY_RAIN",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 0,
+        "triggerValue": 0,
+        "threshold": 25
+      },
+      {
+        "type": "ALERT_TYPE_UV",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 1,
+        "triggerValue": 2,
+        "threshold": 0
+      },
+      {
+        "type": "ALERT_TYPE_FOG",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 0,
+        "triggerValue": 0,
+        "threshold": 0
+      },
+      {
+        "type": "ALERT_TYPE_SNOW",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 0,
+        "triggerValue": 0,
+        "threshold": 0
+      },
+      {
+        "type": "ALERT_TYPE_PRESSURE_DROP",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 0,
+        "triggerValue": 0,
+        "threshold": 5
+      },
+      {
+        "type": "ALERT_TYPE_THUNDERSTORM",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 0,
+        "triggerValue": 50,
+        "threshold": 1000
+      },
+      {
+        "type": "ALERT_TYPE_ICE",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 0,
+        "triggerValue": 0,
+        "threshold": 0
+      },
+      {
+        "type": "ALERT_TYPE_WIND_CHILL",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 0,
+        "triggerValue": 18,
+        "threshold": -10
+      },
+      {
+        "type": "ALERT_TYPE_VISIBILITY",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 0,
+        "triggerValue": 30000,
+        "threshold": 1000
+      },
+      {
+        "type": "ALERT_TYPE_TROPICAL_NIGHT",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 0,
+        "triggerValue": 18,
+        "threshold": 20
+      },
+      {
+        "type": "ALERT_TYPE_HUMIDITY",
+        "severity": "ALERT_SEVERITY_NONE",
+        "confidence": 0,
+        "triggerValue": 0,
+        "threshold": 0
+      }
+    ]
+  }
+}

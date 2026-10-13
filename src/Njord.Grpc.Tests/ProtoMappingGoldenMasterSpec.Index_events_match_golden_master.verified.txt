@@ -1,0 +1,342 @@
+﻿{
+  "location": "Lucerne",
+  "typeName": "indices",
+  "updatedAt": "2026-07-14T12:00:00Z",
+  "indices": {
+    "days": [
+      {
+        "dayOffset": 0,
+        "laundry": 60,
+        "outdoor": 67,
+        "running": 59,
+        "cycling": 58,
+        "bbq": 44,
+        "irrigation": 45,
+        "solar": 64,
+        "nightVentilation": 42,
+        "hoursIncluded": 8,
+        "laundryEnvelope": {
+          "min": 57,
+          "max": 59,
+          "confidence": 1
+        },
+        "outdoorEnvelope": {
+          "min": 65,
+          "max": 69,
+          "confidence": 1
+        },
+        "runningEnvelope": {
+          "min": 58,
+          "max": 60,
+          "confidence": 1
+        },
+        "cyclingEnvelope": {
+          "min": 58,
+          "max": 59,
+          "confidence": 1
+        },
+        "bbqEnvelope": {
+          "min": 42,
+          "max": 45,
+          "confidence": 1
+        },
+        "irrigationEnvelope": {
+          "min": 43,
+          "max": 46,
+          "confidence": 1
+        },
+        "solarEnvelope": {
+          "min": 63,
+          "max": 64,
+          "confidence": 1
+        },
+        "nightVentilationEnvelope": {
+          "min": 42,
+          "max": 42,
+          "confidence": 1
+        }
+      },
+      {
+        "dayOffset": 1,
+        "laundry": 65,
+        "outdoor": 74,
+        "running": 64,
+        "cycling": 65,
+        "bbq": 67,
+        "irrigation": 52,
+        "solar": 66,
+        "nightVentilation": 50,
+        "hoursIncluded": 14,
+        "laundryEnvelope": {
+          "min": 61,
+          "max": 65,
+          "confidence": 0.997
+        },
+        "outdoorEnvelope": {
+          "min": 71,
+          "max": 75,
+          "confidence": 0.997
+        },
+        "runningEnvelope": {
+          "min": 64,
+          "max": 65,
+          "confidence": 0.997
+        },
+        "cyclingEnvelope": {
+          "min": 66,
+          "max": 71,
+          "confidence": 0.997
+        },
+        "bbqEnvelope": {
+          "min": 63,
+          "max": 70,
+          "confidence": 0.997
+        },
+        "irrigationEnvelope": {
+          "min": 49,
+          "max": 54,
+          "confidence": 0.997
+        },
+        "solarEnvelope": {
+          "min": 65,
+          "max": 67,
+          "confidence": 0.997
+        },
+        "nightVentilationEnvelope": {
+          "min": 48,
+          "max": 52,
+          "confidence": 0.997
+        }
+      },
+      {
+        "dayOffset": 2,
+        "laundry": 62,
+        "outdoor": 73,
+        "running": 67,
+        "cycling": 68,
+        "bbq": 63,
+        "irrigation": 48,
+        "solar": 66,
+        "nightVentilation": 76,
+        "hoursIncluded": 14,
+        "laundryEnvelope": {
+          "min": 57,
+          "max": 64,
+          "confidence": 0.929
+        },
+        "outdoorEnvelope": {
+          "min": 69,
+          "max": 75,
+          "confidence": 0.929
+        },
+        "runningEnvelope": {
+          "min": 64,
+          "max": 65,
+          "confidence": 0.929
+        },
+        "cyclingEnvelope": {
+          "min": 69,
+          "max": 72,
+          "confidence": 0.929
+        },
+        "bbqEnvelope": {
+          "min": 59,
+          "max": 68,
+          "confidence": 0.929
+        },
+        "irrigationEnvelope": {
+          "min": 46,
+          "max": 52,
+          "confidence": 0.929
+        },
+        "solarEnvelope": {
+          "min": 66,
+          "max": 67,
+          "confidence": 0.929
+        },
+        "nightVentilationEnvelope": {
+          "min": 71,
+          "max": 79,
+          "confidence": 0.929
+        }
+      }
+    ],
+    "frost": {
+      "hoursUntilFrost": 2,
+      "confidence": 1
+    },
+    "vpd": {
+      "kpa": 0.82,
+      "category": "optimal"
+    }
+  }
+}
+{
+  "location": "Bern",
+  "typeName": "indices",
+  "updatedAt": "2026-07-14T12:00:00Z",
+  "indices": {
+    "days": [
+      {
+        "dayOffset": 0,
+        "laundry": 59,
+        "outdoor": 76,
+        "running": 62,
+        "cycling": 62,
+        "bbq": 75,
+        "irrigation": 55,
+        "solar": 64,
+        "nightVentilation": 61,
+        "hoursIncluded": 8,
+        "laundryEnvelope": {
+          "min": 55,
+          "max": 56,
+          "confidence": 1
+        },
+        "outdoorEnvelope": {
+          "min": 75,
+          "max": 78,
+          "confidence": 1
+        },
+        "runningEnvelope": {
+          "min": 61,
+          "max": 63,
+          "confidence": 1
+        },
+        "cyclingEnvelope": {
+          "min": 61,
+          "max": 69,
+          "confidence": 1
+        },
+        "bbqEnvelope": {
+          "min": 74,
+          "max": 77,
+          "confidence": 1
+        },
+        "irrigationEnvelope": {
+          "min": 53,
+          "max": 56,
+          "confidence": 1
+        },
+        "solarEnvelope": {
+          "min": 64,
+          "max": 64,
+          "confidence": 1
+        },
+        "nightVentilationEnvelope": {
+          "min": 60,
+          "max": 61,
+          "confidence": 1
+        }
+      },
+      {
+        "dayOffset": 1,
+        "laundry": 59,
+        "outdoor": 76,
+        "running": 62,
+        "cycling": 62,
+        "bbq": 75,
+        "irrigation": 54,
+        "solar": 64,
+        "nightVentilation": 61,
+        "hoursIncluded": 14,
+        "laundryEnvelope": {
+          "min": 53,
+          "max": 57,
+          "confidence": 0.995
+        },
+        "outdoorEnvelope": {
+          "min": 74,
+          "max": 78,
+          "confidence": 0.995
+        },
+        "runningEnvelope": {
+          "min": 62,
+          "max": 63,
+          "confidence": 0.995
+        },
+        "cyclingEnvelope": {
+          "min": 63,
+          "max": 68,
+          "confidence": 0.995
+        },
+        "bbqEnvelope": {
+          "min": 73,
+          "max": 78,
+          "confidence": 0.995
+        },
+        "irrigationEnvelope": {
+          "min": 52,
+          "max": 57,
+          "confidence": 0.995
+        },
+        "solarEnvelope": {
+          "min": 64,
+          "max": 64,
+          "confidence": 0.995
+        },
+        "nightVentilationEnvelope": {
+          "min": 59,
+          "max": 63,
+          "confidence": 0.995
+        }
+      },
+      {
+        "dayOffset": 2,
+        "laundry": 58,
+        "outdoor": 76,
+        "running": 64,
+        "cycling": 63,
+        "bbq": 74,
+        "irrigation": 54,
+        "solar": 64,
+        "nightVentilation": 63,
+        "hoursIncluded": 14,
+        "laundryEnvelope": {
+          "min": 52,
+          "max": 57,
+          "confidence": 0.94
+        },
+        "outdoorEnvelope": {
+          "min": 74,
+          "max": 78,
+          "confidence": 0.94
+        },
+        "runningEnvelope": {
+          "min": 61,
+          "max": 62,
+          "confidence": 0.94
+        },
+        "cyclingEnvelope": {
+          "min": 65,
+          "max": 69,
+          "confidence": 0.94
+        },
+        "bbqEnvelope": {
+          "min": 71,
+          "max": 77,
+          "confidence": 0.94
+        },
+        "irrigationEnvelope": {
+          "min": 51,
+          "max": 56,
+          "confidence": 0.94
+        },
+        "solarEnvelope": {
+          "min": 64,
+          "max": 65,
+          "confidence": 0.94
+        },
+        "nightVentilationEnvelope": {
+          "min": 59,
+          "max": 67,
+          "confidence": 0.94
+        }
+      }
+    ],
+    "vpd": {
+      "kpa": 0.9,
+      "category": "optimal"
+    }
+  }
+}

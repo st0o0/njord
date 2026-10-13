@@ -1,0 +1,4 @@
+﻿njord/lucerne/trends retain=True
+{"trend_temperature_dir":"rising","trend_temperature_delta":3,"trend_wind_speed_dir":"falling","trend_wind_speed_delta":-2,"trend_precipitation_dir":"stable","trend_precipitation_delta":0,"trend_cloud_cover_dir":null,"trend_cloud_cover_delta":null,"weather_change":"clear \u2192 rain","precip_starts":5,"precip_ends":6,"temp_max_in":4,"temp_min_in":2,"stability":"converging","stability_ratio":0.49,"decay_rate":0.069,"reliable_hours":25}
+njord/bern/trends retain=True
+{"trend_temperature_dir":"stable","trend_temperature_delta":0,"trend_wind_speed_dir":"stable","trend_wind_speed_delta":0,"trend_precipitation_dir":"stable","trend_precipitation_delta":0,"trend_cloud_cover_dir":"stable","trend_cloud_cover_delta":0,"weather_change":null,"precip_starts":null,"precip_ends":null,"temp_max_in":0,"temp_min_in":8,"stability":null,"stability_ratio":null,"decay_rate":0.0379,"reliable_hours":25}
