@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Each sub-option has its own SectionName
-Every options type SHALL be a standalone class with a `public const string SectionName` field and SHALL be bound exactly once, to that section, with startup validation. This SHALL include at least `NjordOptions` (forecast scope), `PollingOptions`, `MqttOptions`, `GrpcOptions`, `SensorOptions`, `PersistenceOptions`, `ConsensusOptions`, `AlertOptions`, `DerivedOptions`, `TrendOptions` and `IndexOptions`. Configuration keys and environment variable names SHALL be unchanged; two options types MAY bind the same section when each reads a disjoint set of keys (e.g. `NjordOptions` and `PollingOptions` both bind `Njord`).
+Every options type SHALL be a standalone class with a `public const string SectionName` field and SHALL be bound exactly once, to that section, with startup validation. This SHALL include at least `NjordOptions` (forecast scope), `PollingOptions`, `OpenMeteoOptions`, `StorageOptions`, `MqttOptions`, `SensorOptions`, `PersistenceOptions`, `ConsensusOptions`, `AlertOptions`, `DerivedOptions`, `TrendOptions` and `IndexOptions`. Configuration keys and environment variable names SHALL be unchanged; two options types MAY bind the same section when each reads a disjoint set of keys (e.g. `NjordOptions` and `PollingOptions` both bind `Njord`).
 
 #### Scenario: MqttOptions binds to Njord:Mqtt section
 - **WHEN** configuration contains `Njord:Mqtt:Host = "broker.local"`

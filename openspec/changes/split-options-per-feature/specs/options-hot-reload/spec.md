@@ -18,9 +18,14 @@ after the next start.
 - **WHEN** the frost thresholds are changed at runtime and the next poll cycle completes
 - **THEN** the published frost alert is evaluated against the new thresholds
 
-#### Scenario: Poll interval applies without restart
+#### Scenario: Polling cadence applies without restart
+- **WHEN** the discovery interval is changed at runtime
+- **THEN** pending discovery-phase polls are re-planned with the new interval, without a
+  restart and without a double poll for any target
+
+#### Scenario: Poll interval reaches budget projection without restart
 - **WHEN** the poll interval is changed at runtime from 60 to 30 minutes
-- **THEN** the scheduler's next poll is planned with the 30-minute interval
+- **THEN** the budget projection and the health check use the 30-minute interval
 
 #### Scenario: Location change waits for restart
 - **WHEN** the locations are changed at runtime
@@ -53,7 +58,7 @@ reach any running component.
 #### Scenario: Poll interval over budget
 - **WHEN** a runtime update sets a poll interval whose projected monthly usage exceeds 80 %
   of the effective monthly budget
-- **THEN** the update is rejected and the scheduler keeps the previous interval
+- **THEN** the update is rejected and the previous polling settings stay in effect
 
 ### Requirement: One component observes configuration changes
 Exactly one component SHALL subscribe to configuration change notifications. It SHALL
