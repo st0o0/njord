@@ -1,7 +1,5 @@
-using Newtonsoft.Json;
-
 namespace Njord.Compute.Analysis;
 
 public sealed record PrecipTimingInfo(
-    [property: JsonProperty("startsInHours")] int? StartsInHours,
-    [property: JsonProperty("endsInHours")] int? EndsInHours);
+    int? StartsInHours,
+    int? EndsInHours);

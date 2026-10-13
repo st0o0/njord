@@ -1,9 +1,7 @@
-using Newtonsoft.Json;
-
 namespace Njord.Compute.Analysis;
 
 public sealed record HorizonDerived(
-    [property: JsonProperty("beaufort")] int? Beaufort,
-    [property: JsonProperty("windChill")] double? WindChill,
-    [property: JsonProperty("dewPointComfort")] DewPointComfort? DewPointComfort,
-    [property: JsonProperty("condition")] WeatherCondition? Condition);
+    int? Beaufort,
+    double? WindChill,
+    DewPointComfort? DewPointComfort,
+    WeatherCondition? Condition);

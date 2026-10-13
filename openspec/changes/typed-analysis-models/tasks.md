@@ -41,8 +41,8 @@ use a plain `[Fact]` (AGENTS.md: a timeout cannot be enforced there).
 
 ## 6. Remove dead serialization annotations
 
-- [ ] 6.1 Remove `[JsonProperty]` and `using Newtonsoft.Json` from all `src/Njord.Compute/Analysis/*` records and from `src/Njord.Weather/ParameterDef.cs` / `WeatherModel.cs`
-- [ ] 6.2 Remove the Newtonsoft package reference from `Njord.Weather.csproj` if nothing else in the project uses it; keep it otherwise and note why
+- [x] 6.1 Remove `[JsonProperty]` and `using Newtonsoft.Json` from all `src/Njord.Compute/Analysis/*` records and from `src/Njord.Weather/ParameterDef.cs` / `WeatherModel.cs`
+- [x] 6.2 Remove the Newtonsoft package reference from `Njord.Weather.csproj` if nothing else in the project uses it; keep it otherwise and note why
 
 ## 7. Validation
 

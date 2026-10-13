@@ -1,7 +1,5 @@
-using Newtonsoft.Json;
-
 namespace Njord.Compute.Analysis;
 
 public sealed record ExtremaTimingInfo(
-    [property: JsonProperty("maxInHours")] int? MaxInHours,
-    [property: JsonProperty("minInHours")] int? MinInHours);
+    int? MaxInHours,
+    int? MinInHours);

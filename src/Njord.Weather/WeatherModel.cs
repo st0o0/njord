@@ -1,13 +1,11 @@
 using System.ComponentModel;
 using System.Globalization;
-using Newtonsoft.Json;
 
 namespace Njord.Weather;
 
 [TypeConverter(typeof(WeatherModelTypeConverter))]
 public sealed record WeatherModel
 {
-    [JsonProperty("id")]
     public string Id { get; }
 
     public WeatherModel(string id)
