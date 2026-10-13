@@ -37,11 +37,11 @@ start a hosted actor system. Pure synchronous specs use a plain `[Fact]`.
 
 ## 6. Narrow injection everywhere else
 
-- [ ] 6.1 `src/Njord.OpenMeteo`: `OpenMeteoClient` and `OpenMeteoGateway` inject `IOptions<NjordOptions>` (scope) only; `GatewayBudgetGate` reads `IOptionsMonitor<PollingOptions>.CurrentValue` per call; update `src/Njord.OpenMeteo.Tests`
-- [ ] 6.2 `src/Njord.Mqtt/MqttStatePublisher.cs` drops `NjordOptions` if it only needs MQTT values; otherwise it injects the scope options alone; update `src/Njord.Mqtt.Tests`
+- [x] 6.1 `src/Njord.OpenMeteo`: `OpenMeteoClient` and `OpenMeteoGateway` inject `IOptions<NjordOptions>` (scope) only; `GatewayBudgetGate` reads `IOptionsMonitor<PollingOptions>.CurrentValue` per call; update `src/Njord.OpenMeteo.Tests`
+- [x] 6.2 `src/Njord.Mqtt/MqttStatePublisher.cs` drops `NjordOptions` if it only needs MQTT values; otherwise it injects the scope options alone; update `src/Njord.Mqtt.Tests`
 - [x] 6.3 `src/Njord.Grpc/AdminGrpcService.cs` writes through `IConfigWriter` per section and adds the restart warning from `ConfigReloadPolicy`; `GetConfig`/`StreamConfig` assemble `NjordConfig` from the section options; update `src/Njord.Grpc.Tests/AdminGrpcServiceSpec.cs` (restart warning for `SetLocations`, none for alert thresholds, rejection leaves the file unchanged)
-- [ ] 6.4 Remove `GetRequiredService<IOptions<…>>().Value` from `src/Njord/Configuration/CoreSetupContainer.cs` and `src/Njord.OpenMeteo/Configuration/OpenMeteoSetupContainer.cs` (use factory overloads that resolve at activation); keep it only in `AkkaSetupContainer` and comment why
-- [ ] 6.5 Add an ArchUnit rule in `src/Njord.Architecture.Tests/` that no type deriving from an Akka actor base injects `IOptionsMonitor<>`, and that `IOptionsMonitor<>` is used only by `ConfigManager` and `GatewayBudgetGate`
+- [x] 6.4 Remove `GetRequiredService<IOptions<…>>().Value` from `src/Njord/Configuration/CoreSetupContainer.cs` and `src/Njord.OpenMeteo/Configuration/OpenMeteoSetupContainer.cs` (use factory overloads that resolve at activation); keep it only in `AkkaSetupContainer` and comment why
+- [x] 6.5 Add an ArchUnit rule in `src/Njord.Architecture.Tests/` that no type deriving from an Akka actor base injects `IOptionsMonitor<>`, and that `IOptionsMonitor<>` is used only by `ConfigManager` and `GatewayBudgetGate`
 
 ## 7. Validation
 

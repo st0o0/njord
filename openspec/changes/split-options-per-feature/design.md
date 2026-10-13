@@ -232,3 +232,19 @@ Recorded during implementation; each is the smallest change that kept the plan w
     so a re-plan never causes a double poll). Steady-phase targets and backoff delays are left
     alone, so polling behavior and API usage are unchanged unless the operator changes
     `DiscoveryInterval`.
+14. **Group 6 notes.** 6.1: the gateway takes an injected `IBudgetProvider`
+    (`OptionsBudgetProvider`, a DI singleton) instead of building one from an
+    `IOptionsMonitor<NjordOptions>` it injected itself; the budget gate still refreshes its rate
+    from the provider every 5 s. 6.2: `MqttStatePublisher` needs horizons and forecast days
+    (scope) plus the MQTT base topic, and already injected exactly `IOptions<NjordOptions>` and
+    `IOptions<MqttOptions>`; no change. 6.4: the remaining `GetRequiredService<IOptions<…>>().Value`
+    calls outside `AkkaSetupContainer` all sit inside factory lambdas that run at activation. The
+    registration-time read of `Njord:Mqtt:Enabled` in `CoreSetupContainer`/`MqttSetupContainer`
+    stays: it decides which services are registered at all. 6.5: the rule is a reflection spec
+    (`ConfigurationArchitectureSpec`) over constructor parameters and fields, with compiler-generated
+    state machines folded into their declaring type. The allow list has four entries, not two:
+    `ConfigManager` (only subscriber), `OptionsBudgetProvider` (the gate's per-call read, D5),
+    `ConfigView` (deviation 6) and `ConfigWriter` (D6 clones the current value). The same spec
+    checks "Compute has no options", "one validator next to each section type" and "no nested
+    section types". `Njord.Architecture.Tests` now also references `Njord.Tests`, which the
+    `Njord.*.Tests` glob did not match.

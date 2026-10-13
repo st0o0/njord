@@ -46,6 +46,8 @@ internal static class NjordArchitecture
 
     public static IEnumerable<string> FeatureLibraries => FeatureLibraryNames;
 
+    public static IEnumerable<Assembly> ProductionAssemblies => [NjordAssembly, .. LibraryAssemblies];
+
     public static IEnumerable<string> BaseLibraries => BaseLibraryNames;
 
     public static IObjectProvider<IType> TypesInLibrary(string name)
