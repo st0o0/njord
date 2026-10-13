@@ -53,7 +53,7 @@ case-insensitive, matching how configured location names are compared today.
 
 ### Requirement: Categorical results are typed
 Trend direction (rising, falling, stable), stability (converging, diverging, stable),
-weather category (clear, fog, drizzle, rain, snow, showers, thunderstorm), dew-point comfort
+weather category (clear, fog, drizzle, rain, snow, showers, thunderstorm, unknown), dew-point comfort
 (dry, comfortable, sticky, oppressive, dangerous) and WMO weather condition SHALL be
 closed typed values. Their lowercase wire text and English WMO descriptions SHALL be
 produced at the output edge and SHALL equal today's text.

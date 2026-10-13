@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines metric naming hygiene: every instrument follows the `njord_<area>_<name>` convention with standard suffixes, and unused metric instruments are removed.
+
+## Requirements
 
 ### Requirement: All metrics follow njord_area_name convention
 

@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines cleanup after the refactoring: removal of ghost directories of deleted projects and version alignment of all Akka packages.
+
+## Requirements
 
 ### Requirement: No ghost directories from previous refactoring
 

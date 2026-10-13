@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines how actors declare their logger: a single inline-initialized, readonly `ILoggingAdapter _log` field instead of PreStart assignment or inline `Context.GetLogger()` calls.
+
+## Requirements
 
 ### Requirement: Actor logging uses inline readonly field initialization
 

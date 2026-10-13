@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines how actors handle failures when resolving dependent actors: warn and retry with backoff during runtime recovery, and crash on a missing registry key at startup so the supervisor can restart them.
+
+## Requirements
 
 ### Requirement: Resolve failures SHALL be logged and retried
 

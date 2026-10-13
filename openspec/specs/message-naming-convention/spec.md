@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines the FunkArr naming convention for actor responses: query responses drop the Query prefix, and command response variants match the command name.
+
+## Requirements
 
 ### Requirement: Query responses drop the Query prefix
 

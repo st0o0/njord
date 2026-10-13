@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines how Njord.Persistence aligns with FunkArr conventions: record naming, domain-scoped folder layout, and roundtrip plus Verify wire-format tests for every persistence record.
+
+## Requirements
 
 ### Requirement: Persistence records follow FunkArr naming
 

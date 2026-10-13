@@ -1,4 +1,8 @@
-## MODIFIED Requirements
+## Purpose
+
+Defines consistent naming for response records: query responses drop the Query prefix and use Result/Failed, command responses use Completed/Failed matching the command name.
+
+## Requirements
 
 ### Requirement: Response types use Completed/Failed naming
 Query response records SHALL follow FunkArr naming: drop the `Query` prefix,

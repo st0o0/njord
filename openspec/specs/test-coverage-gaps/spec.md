@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines test coverage gaps to close: IndexAnalyzer sensor-override tests with real sensor data, and the requirement that tests pass reliably without flakiness.
+
+## Requirements
 
 ### Requirement: IndexAnalyzer sensor-override is tested with real sensor data
 

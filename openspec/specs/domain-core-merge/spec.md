@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines the placement of the Analysis types and their tests in Njord.Core and Njord.Core.Tests after merging them out of Njord.Domain, including the Newtonsoft.Json dependency they need.
+
+## Requirements
 
 ### Requirement: Analysis types SHALL live in Njord.Core
 

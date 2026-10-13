@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines further assertion hygiene rules for tests: no Assert.True for equality, no vacuous assertions after typed receives, captured Assert.Single values and Assert.NotNull over null-forgiving.
+
+## Requirements
 
 ### Requirement: No Assert.True for equality checks
 

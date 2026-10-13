@@ -1,3 +1,7 @@
+## Purpose
+
+Defines how entity actors are hosted as ShardRegions: routing marker interfaces, EntityId extraction, idle passivation and per-entity PersistenceIds.
+
 ## Requirements
 
 ### Requirement: Entity actors registered as ShardRegions

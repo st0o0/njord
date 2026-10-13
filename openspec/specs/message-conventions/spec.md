@@ -1,4 +1,8 @@
-## MODIFIED Requirements
+## Purpose
+
+Defines the conventions for actor messages: response hierarchies with typed success and Failed subtypes, and the organization of Njord.Messages into domain namespaces with one file per command or query.
+
+## Requirements
 
 ### Requirement: Response hierarchies with Completed and Failed
 Actor query and command responses SHALL use abstract base records with typed
@@ -54,9 +58,3 @@ own file, snapshot query in own file), `Snapshots/` (forecast queries), and
 #### Scenario: SensorHub messages in separate files
 - **WHEN** inspecting `Njord.Messages/Sensors/`
 - **THEN** `UpdateReading` and `QuerySensorSnapshot` (with its response hierarchy) are each in their own file
-
-## REMOVED Requirements
-
-### Requirement: Messages targeting ShardRegion entities implement routing marker interfaces
-**Reason**: ShardRegion entities were removed during the pipeline refactor.
-**Migration**: No routing marker interfaces needed — actors are resolved via ActorKeys.

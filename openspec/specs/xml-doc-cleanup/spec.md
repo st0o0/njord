@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines the removal of XML doc comments from production and test code, following the project convention that code speaks through naming.
+
+## Requirements
 
 ### Requirement: Production and test code SHALL NOT contain XML doc comments
 

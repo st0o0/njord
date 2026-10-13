@@ -1,3 +1,7 @@
+## Purpose
+
+Defines the producer broadcast pattern: each producer actor owns a BroadcastHub, consumers subscribe to producers directly via SourceRefs, and no central hub actor routes data.
+
 ## Requirements
 
 ### Requirement: Producer actors own their broadcast output

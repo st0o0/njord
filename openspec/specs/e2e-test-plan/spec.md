@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines the E2E test plan document: its sequential phases, config-derived entity expectations, results document format and the orchestration model of main agent and subagents.
+
+## Requirements
 
 ### Requirement: Test plan document defines all E2E phases
 

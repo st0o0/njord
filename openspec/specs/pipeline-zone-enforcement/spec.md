@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines how Njord.Pipeline is covered by zone architecture tests that allow only the analysis libraries as feature-library dependencies.
+
+## Requirements
 
 ### Requirement: Pipeline is covered by zone architecture tests
 

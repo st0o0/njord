@@ -25,11 +25,11 @@ Trend analysis SHALL accept `ConsensusSnapshot` and `ConsensusSnapshot?` previou
 - **THEN** that horizon's trend is null
 
 ### Requirement: Weather-change detection compares WMO code categories
-Weather-change detection SHALL accept an `int?` previous WMO code and an `int?` current WMO code. It SHALL classify each code into a typed weather category: Clear (0-3), Fog (45-48), Drizzle (51-57), Rain (61-67), Snow (71-77), Showers (80-86), Thunderstorm (95-99). If the category changed, it SHALL return a weather-change result with the typed `From` and `To` categories. The published text SHALL be unchanged: lowercase category names and the description "<from> -> <to>" (e.g. "clear -> rain"), produced at the output edge. If the category did not change or either code is `null`, the result SHALL be `null`.
+Weather-change detection SHALL accept an `int?` previous WMO code and an `int?` current WMO code. It SHALL classify each code into a typed weather category: Clear (0-3), Fog (45-48), Drizzle (51-57), Rain (61-67), Snow (71-77), Showers (80-86), Thunderstorm (95-99), and Unknown for any other code (published as "unknown"). If the category changed, it SHALL return a weather-change result with the typed `From` and `To` categories. The published text SHALL be unchanged: lowercase category names and the description "<from> → <to>" (e.g. "clear → rain"), produced at the output edge. If the category did not change or either code is `null`, the result SHALL be `null`.
 
 #### Scenario: Clear to rain
 - **WHEN** previous WMO code is 1 (mainly clear) and current is 63 (moderate rain)
-- **THEN** the result has From=Clear and To=Rain, published as "clear", "rain" and "clear -> rain"
+- **THEN** the result has From=Clear and To=Rain, published as "clear", "rain" and "clear → rain"
 
 #### Scenario: Same category
 - **WHEN** previous WMO code is 61 (slight rain) and current is 65 (heavy rain)

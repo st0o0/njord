@@ -1,3 +1,7 @@
+## Purpose
+
+Defines the Claude Code skill that runs the E2E test against the Docker stack: Docker lifecycle, browser and REST validation, parallel subagents, results document and cross-repo sync.
+
 ## Requirements
 
 ### Requirement: Claude Code skill to execute E2E tests

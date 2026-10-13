@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines assertion and test-method hygiene rules for the test projects: explicit timeouts, captured Assert.Single values, count guards, Assert.NotNull, cancellation tokens and properties on fakes.
+
+## Requirements
 
 ### Requirement: Async test methods SHALL have explicit timeouts
 

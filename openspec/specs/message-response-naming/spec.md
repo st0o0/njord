@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines response hierarchy naming for query messages (QueryNounResponse with Result and Failed subtypes) and for commands that return a result (VerbNounResponse).
+
+## Requirements
 
 ### Requirement: Query responses SHALL follow QueryNounResponse naming
 

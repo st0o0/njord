@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines the extraction of feature-library specs into dedicated test projects, leaving only host-specific tests in Njord.Tests, with all test projects included in the solution.
+
+## Requirements
 
 ### Requirement: Each feature library SHALL have a dedicated test project
 

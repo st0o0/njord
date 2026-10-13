@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines naming rules for actor state records and actor classes, and the one-file-per-command-or-query layout for message files in Njord.Messages.
+
+## Requirements
 
 ### Requirement: State records match actor name
 

@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines that persistence conversion logic lives in each actor's StateExtensions class instead of separate `*DtoMapping` static classes.
+
+## Requirements
 
 ### Requirement: No separate DtoMapping classes
 

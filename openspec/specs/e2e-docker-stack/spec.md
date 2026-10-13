@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Defines the Docker Compose stack (njord plus Home Assistant with ha-njord) used for end-to-end tests, its clean-slate startup and its minimal but fully enriched configuration.
+
+## Requirements
 
 ### Requirement: Docker Compose E2E stack definition
 

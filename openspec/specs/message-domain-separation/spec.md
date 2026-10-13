@@ -1,3 +1,7 @@
+## Purpose
+
+Defines which messages belong in the shared Njord.Messages API (Mqtt and Enrichment namespaces) and which stream wiring and shutdown records stay actor-internal, keeping Akka.Streams types out of shared messages.
+
 ## Requirements
 
 ### Requirement: No Akka.Streams types in shared messages
