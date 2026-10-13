@@ -1,13 +1,12 @@
 using Microsoft.Extensions.Time.Testing;
-using Njord.Compute.Analysis;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Weather;
 
-namespace Njord.Compute.Tests.Analysis;
+namespace Njord.Indices.Tests;
 
-public sealed class TimeSliceAggregatorSpec
+public sealed class DaySlicerSpec
 {
     private static readonly ParameterDef Temperature = ParameterRegistry.Temperature2m;
     private static readonly ParameterDef Humidity = ParameterRegistry.RelativeHumidity2m;
@@ -68,7 +67,7 @@ public sealed class TimeSliceAggregatorSpec
         });
 
         var time = new FakeTimeProvider(now);
-        var slices = TimeSliceAggregator.AggregateDaySlices(consensus, Parameters, time);
+        var slices = DaySlicer.Slice(consensus, time.GetUtcNow());
 
         Assert.Equal(3, slices.Count);
         Assert.Equal(0, slices[0].DayOffset);
@@ -88,7 +87,7 @@ public sealed class TimeSliceAggregatorSpec
         });
 
         var time = new FakeTimeProvider(now);
-        var slices = TimeSliceAggregator.AggregateDaySlices(consensus, Parameters, time);
+        var slices = DaySlicer.Slice(consensus, time.GetUtcNow());
 
         var d0 = slices.First(s => s.DayOffset == 0);
         Assert.Equal(14, d0.DaylightHoursCount);
@@ -107,7 +106,7 @@ public sealed class TimeSliceAggregatorSpec
         });
 
         var time = new FakeTimeProvider(now);
-        var slices = TimeSliceAggregator.AggregateDaySlices(consensus, Parameters, time);
+        var slices = DaySlicer.Slice(consensus, time.GetUtcNow());
 
         var d0 = slices.First(s => s.DayOffset == 0);
         Assert.Equal(2, d0.DaylightHoursCount);
@@ -122,7 +121,7 @@ public sealed class TimeSliceAggregatorSpec
             (18.0, 50.0, 0.0));
 
         var time = new FakeTimeProvider(now);
-        var slices = TimeSliceAggregator.AggregateDaySlices(consensus, Parameters, time);
+        var slices = DaySlicer.Slice(consensus, time.GetUtcNow());
 
         var d0 = slices.First(s => s.DayOffset == 0);
         Assert.Equal(2, d0.NighttimeHoursCount + d0.DaylightHoursCount);
@@ -163,7 +162,7 @@ public sealed class TimeSliceAggregatorSpec
         var time = new FakeTimeProvider(now);
         var consensus = new ConsensusBuilder(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
 
-        var slices = TimeSliceAggregator.AggregateDaySlices(consensus, Parameters, time);
+        var slices = DaySlicer.Slice(consensus, time.GetUtcNow());
 
         var d0 = slices.First(s => s.DayOffset == 0);
         Assert.Equal(24, d0.DaylightHoursCount);
@@ -182,7 +181,7 @@ public sealed class TimeSliceAggregatorSpec
         });
 
         var time = new FakeTimeProvider(now);
-        var slices = TimeSliceAggregator.AggregateDaySlices(consensus, Parameters, time);
+        var slices = DaySlicer.Slice(consensus, time.GetUtcNow());
 
         Assert.Equal(2, slices.Count);
         Assert.DoesNotContain(slices, s => s.DayOffset == 2);
@@ -200,7 +199,7 @@ public sealed class TimeSliceAggregatorSpec
         });
 
         var time = new FakeTimeProvider(now);
-        var slices = TimeSliceAggregator.AggregateDaySlices(consensus, Parameters, time);
+        var slices = DaySlicer.Slice(consensus, time.GetUtcNow());
 
         var d0 = slices.First(s => s.DayOffset == 0);
         var dayTemp = d0.DayMeans[Temperature];
@@ -222,8 +221,67 @@ public sealed class TimeSliceAggregatorSpec
             now);
 
         var time = new FakeTimeProvider(now);
-        var slices = TimeSliceAggregator.AggregateDaySlices(consensus, Parameters, time);
+        var slices = DaySlicer.Slice(consensus, time.GetUtcNow());
 
         Assert.Empty(slices);
+    }
+
+    [Fact]
+    public void Sunshine_percent_is_the_daylight_sunshine_share()
+    {
+        var now = new DateTimeOffset(2026, 8, 4, 0, 0, 0, TimeSpan.Zero);
+        var points = new List<ForecastPoint>();
+        for (var h = 0; h < 24; h++)
+        {
+            var isDay = h is >= 6 and < 20 ? 1.0 : 0.0;
+            points.Add(new ForecastPoint(now.AddHours(h), new Dictionary<ParameterDef, double?>
+            {
+                [Temperature] = 20.0,
+                [IsDay] = isDay,
+                [ParameterRegistry.SunshineDuration] = isDay > 0.5 ? 1800.0 : 0.0,
+            }));
+        }
+
+        var forecast = new Forecast(new WeatherModel("m1"), "lucerne", new CycleId(now),
+            new ForecastSeries(points), DailyForecastSeries.Empty);
+        var snap = ModelSnapshot.Empty.Update(forecast).Update(forecast with { Model = new WeatherModel("m2") });
+        var consensus = new ConsensusBuilder(Parameters, new FakeTimeProvider(now)).Create(snap, "lucerne", ConsensusSettings.Default);
+
+        var d0 = DaySlicer.Slice(consensus, now).First(s => s.DayOffset == 0);
+
+        Assert.Equal(50.0, d0.SunshinePercent);
+    }
+
+    [Fact]
+    public void Single_model_slices_carry_no_confidence_bounds()
+    {
+        var now = new DateTimeOffset(2026, 8, 4, 0, 0, 0, TimeSpan.Zero);
+        Forecast Single(string model, ParameterDef parameter) => new(new WeatherModel(model), "lucerne", new CycleId(now),
+            new ForecastSeries(Enumerable.Range(0, 24).Select(h => new ForecastPoint(now.AddHours(h),
+                new Dictionary<ParameterDef, double?> { [parameter] = 20.0 }))),
+            DailyForecastSeries.Empty);
+        var snap = ModelSnapshot.Empty.Update(Single("m1", Temperature)).Update(Single("m2", Humidity));
+        var consensus = new ConsensusBuilder(Parameters, new FakeTimeProvider(now))
+            .Create(snap, "lucerne", ConsensusSettings.Default with { MinQuorum = 1 });
+
+        var slices = DaySlicer.Slice(consensus, now);
+
+        Assert.NotEmpty(slices);
+        Assert.All(slices, s => Assert.Null(s.Bounds));
+    }
+
+    [Fact]
+    public void Multi_model_slices_carry_pessimistic_and_optimistic_means()
+    {
+        var now = new DateTimeOffset(2026, 8, 4, 0, 0, 0, TimeSpan.Zero);
+        var consensus = BuildConsensus(now, 24, h => (20.0, 50.0, 1.0));
+
+        var d0 = DaySlicer.Slice(consensus, now).First(s => s.DayOffset == 0);
+
+        Assert.NotNull(d0.Bounds);
+        var pessimistic = d0.Bounds.Pessimistic.For(DayPeriod.Daylight);
+        var optimistic = d0.Bounds.Optimistic.For(DayPeriod.Daylight);
+        Assert.True(pessimistic[Temperature] < optimistic[Temperature]);
+        Assert.True(pessimistic[Humidity] > optimistic[Humidity]);
     }
 }

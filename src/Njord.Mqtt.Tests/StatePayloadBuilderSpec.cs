@@ -6,6 +6,7 @@ using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Indices;
 using Njord.Tests.Shared;
+using Njord.Indices;
 using Njord.Weather;
 
 namespace Njord.Mqtt.Tests;
@@ -261,7 +262,8 @@ public sealed class StatePayloadBuilderSpec
             MakeForecast(M1, (Temperature, 20.0), (Humidity, 55.0), (WindSpeed, 2.0), (CloudCover, 30.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 21.0), (Humidity, 56.0), (WindSpeed, 2.5), (CloudCover, 32.0)));
         var consensus = new ConsensusBuilder(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
-        var result = new IndexComputer(FullParams, Time).Compute(consensus, DefaultPrefs());
+        var result = FeatureServices.Indices(Time).Compute(consensus, null, DefaultPrefs());
+        Assert.NotNull(result);
 
         var messages = StatePayloadBuilder.FromIndices(result, "njord");
 
@@ -277,7 +279,8 @@ public sealed class StatePayloadBuilderSpec
             MakeForecast(IconD2, (Temperature, 22.0), (Humidity, 50.0), (WindSpeed, 3.0), (CloudCover, 20.0)),
             MakeForecast(new WeatherModel("ecmwf_ifs025"), (Temperature, 10.0), (Humidity, 90.0), (WindSpeed, 15.0), (CloudCover, 95.0)));
         var consensus = new ConsensusBuilder(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
-        var result = new IndexComputer(FullParams, Time).Compute(consensus, DefaultPrefs());
+        var result = FeatureServices.Indices(Time).Compute(consensus, null, DefaultPrefs());
+        Assert.NotNull(result);
 
         var messages = StatePayloadBuilder.FromIndices(result, "njord");
         var d0Message = messages.First(m => m.Topic.Contains("/d0"));

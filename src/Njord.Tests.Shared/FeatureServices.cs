@@ -2,6 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Njord.Alerts;
 using Njord.Core.Configuration.Alerts;
+using Njord.Core.Configuration.Indices;
+using Njord.Indices;
 
 namespace Njord.Tests.Shared;
 
@@ -21,4 +23,10 @@ public static class FeatureServices
                 .AddAlerts()
                 .Configure<AlertOptions>(options => options.Enabled = enabled))
             .GetRequiredService<AlertAnalyzer>();
+
+    public static IndexAnalyzer Indices(TimeProvider time, bool enabled = true) =>
+        Build(time, services => services
+                .AddIndices()
+                .Configure<IndexOptions>(options => options.Enabled = enabled))
+            .GetRequiredService<IndexAnalyzer>();
 }

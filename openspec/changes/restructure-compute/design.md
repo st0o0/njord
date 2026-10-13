@@ -155,3 +155,38 @@ matched the code left by `typed-analysis-models` and `split-options-per-feature`
   scenarios (rule in isolation, changed threshold on the next evaluation).
 - **2.5 `ThresholdClassifier`** no longer existed (replaced by `SeverityThresholds` in
   `typed-analysis-models`); only `HorizonExtremeScanner` and its spec were deleted.
+- **3.x Order of the index split.** To check every score against the golden masters, the
+  index code first moved unchanged into `Njord.Indices` (Compute cannot reference a
+  feature library), then `DaySlicer` replaced `TimeSliceAggregator`, then the scores were
+  swapped into the old `IndexComputer` one at a time with a golden-master run after each,
+  and finally `IndexAnalyzer` replaced `IndexComputer`.
+- **3.1 `DaySlice` carries everything a score needs.** Besides the daylight/night/full-day
+  median means (`PeriodMeans`, with `DayMeans`/`NightMeans`/`FullDayMeans` kept as
+  accessors), a slice carries the sunshine share (`SunshinePercent`) and, when at least one
+  temperature horizon has two models, the pessimistic/optimistic confidence-bound means and
+  their average agreement (`ConfidenceBounds`). These were recomputed inside
+  `IndexComputer` before. `DaySlicer.Slice(consensus, now)` takes the current time instead
+  of a `TimeProvider`; `IndexAnalyzer` reads `TimeProvider.GetUtcNow()` once per analysis
+  (the old code read it three times per call, which only differs across an hour boundary
+  within one call).
+- **3.1/3.3 No `ResolvedParameterSet` dependency.** `IndexComputer` looked parameters up via
+  `ResolvedParameterSet.Get(...)` before searching the consensus. The hourly consensus only
+  contains resolved hourly parameters, so looking up the registry definition directly is
+  equivalent; `IndexAnalyzer` no longer needs the parameter set.
+- **3.1 Frost-protection and VPD specs.** `VaporPressureDeficitSpec` holds the three ported
+  `VpdCategory` cases. Frost protection had no direct spec before (only
+  `IndexResultSpec.Frost_protection_computed_once_not_per_day`, now in
+  `IndexAnalyzerSpec`); `FrostProtectionSpec` adds three direct cases.
+- **3.2 Score shape.** `IIndexScore.Score(DaySlice, ResolvedPreferences)` returns
+  `ScoredIndex(int Value, ScoreEnvelope? Envelope)` instead of only a `ScoreEnvelope`:
+  `DayScoreSet` needs both the point score and the envelope. `DaySlice.Score(period,
+  formula)` applies one formula to the median means (point score) and to both bound means
+  (envelope), so the confidence-envelope logic exists once. Each score exposes its formula
+  as `public static int Compute(...)`, which the ported `IndexScorerSpec` cases call with
+  their original inputs (the `BreezeScore` cases call `OutdoorScore.Breeze`). Formula parts
+  shared by several scores live in `Scores/ScoreFormulas.cs`.
+- **3.3 Analyzer.** `IndexAnalyzer(IEnumerable<IIndexScore>, IOptions<IndexOptions>,
+  TimeProvider)` checks for exactly one score per `IndexKind` (fail fast), evaluates them in
+  `IndexKind` order and maps them into the fixed `DayScoreSet` fields. `IndexResultSpec`
+  cases were ported into `IndexAnalyzerSpec` with their own inputs (`ResultT0`,
+  `ResultParameters`).

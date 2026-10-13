@@ -19,9 +19,9 @@ Pure synchronous specs use a plain `[Fact]`, and specs with async or DI-host set
 
 ## 3. Indices: one score per index kind
 
-- [ ] 3.1 Move `TimeSliceAggregator`/`DaySlice` to `src/Njord.Indices/DaySlicer.cs` (+ `DaySlice`), and the frost-protection and VPD computations out of `IndexComputer` into `FrostProtection.cs`/`VaporPressureDeficit.cs`; move their specs to `src/Njord.Indices.Tests/`
-- [ ] 3.2 Add `IIndexScore` and extract the 8 scores from `IndexScorer` into `src/Njord.Indices/Scores/<Kind>Score.cs`, including the confidence-envelope logic; port `IndexScorerSpec` cases into `src/Njord.Indices.Tests/Scores/<Kind>ScoreSpec.cs`
-- [ ] 3.3 Rebuild `src/Njord.Indices/IndexAnalyzer.cs` as the orchestrator (slices → scores ordered by `IndexKind` → `IndexResult`); delete `IndexComputer`/`IndexScorer`; port `IndexResultSpec` to `src/Njord.Indices.Tests/IndexAnalyzerSpec.cs`
+- [x] 3.1 Move `TimeSliceAggregator`/`DaySlice` to `src/Njord.Indices/DaySlicer.cs` (+ `DaySlice`), and the frost-protection and VPD computations out of `IndexComputer` into `FrostProtection.cs`/`VaporPressureDeficit.cs`; move their specs to `src/Njord.Indices.Tests/`
+- [x] 3.2 Add `IIndexScore` and extract the 8 scores from `IndexScorer` into `src/Njord.Indices/Scores/<Kind>Score.cs`, including the confidence-envelope logic; port `IndexScorerSpec` cases into `src/Njord.Indices.Tests/Scores/<Kind>ScoreSpec.cs`
+- [x] 3.3 Rebuild `src/Njord.Indices/IndexAnalyzer.cs` as the orchestrator (slices → scores ordered by `IndexKind` → `IndexResult`); delete `IndexComputer`/`IndexScorer`; port `IndexResultSpec` to `src/Njord.Indices.Tests/IndexAnalyzerSpec.cs`
 
 ## 4. Derived and Trends
 

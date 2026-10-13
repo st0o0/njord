@@ -1,9 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Njord.Compute.Analysis;
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
 using Njord.Core.Configuration.Indices;
+using Njord.Indices.Scores;
 
 namespace Njord.Indices;
 
@@ -17,7 +15,15 @@ public static class ServiceCollectionExtensions
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<IndexOptions>, IndexOptionsValidator>();
 
-        services.AddSingleton<IndexComputer>();
+        services.AddSingleton<IIndexScore, LaundryScore>();
+        services.AddSingleton<IIndexScore, OutdoorScore>();
+        services.AddSingleton<IIndexScore, RunningScore>();
+        services.AddSingleton<IIndexScore, CyclingScore>();
+        services.AddSingleton<IIndexScore, BbqScore>();
+        services.AddSingleton<IIndexScore, IrrigationScore>();
+        services.AddSingleton<IIndexScore, SolarScore>();
+        services.AddSingleton<IIndexScore, NightVentilationScore>();
+
         services.AddSingleton<IndexAnalyzer>();
         return services;
     }
