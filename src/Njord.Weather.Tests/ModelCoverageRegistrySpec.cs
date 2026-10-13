@@ -1,6 +1,4 @@
-using Njord.Core.Configuration;
-
-namespace Njord.Core.Tests.Configuration;
+namespace Njord.Weather.Tests;
 
 public sealed class ModelCoverageRegistrySpec
 {

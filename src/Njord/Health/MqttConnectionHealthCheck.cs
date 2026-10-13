@@ -3,19 +3,20 @@ using Njord.Core.Health;
 
 namespace Njord.Health;
 
-internal sealed class MqttConnectionHealthCheck(NjordHealthState state, TimeProvider timeProvider) : IHealthCheck
+internal sealed class MqttConnectionHealthCheck(NjordHealthMonitor monitor, TimeProvider timeProvider) : IHealthCheck
 {
     private static readonly TimeSpan UnhealthyThreshold = TimeSpan.FromMinutes(2);
 
     public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        if (state.IsMqttConnected)
+        var mqtt = monitor.Mqtt;
+        if (mqtt.IsConnected)
         {
             return Task.FromResult(HealthCheckResult.Healthy("MQTT connected"));
         }
 
-        var disconnectedSince = state.MqttDisconnectedSince;
+        var disconnectedSince = mqtt.DisconnectedSince;
         if (disconnectedSince is null)
         {
             return Task.FromResult(HealthCheckResult.Degraded("MQTT not yet connected"));

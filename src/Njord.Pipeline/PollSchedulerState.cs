@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Pipeline;
-using PersistedDataChanged = Njord.Persistence.Events.Pipeline.DataChanged;
 
 namespace Njord.Pipeline;
 
@@ -49,13 +48,12 @@ public static class PollSchedulerStateExtensions
 {
     public static PollSchedulerState Apply(
         this PollSchedulerState state,
-        string key,
-        int hash,
-        DateTimeOffset utc,
+        DataChanged evt,
         TimeSpan discoveryInterval)
     {
-        var pollState = state.States.GetValueOrDefault(key, ModelPollState.Initial(utc));
-        var updated = pollState.WithDataChange(hash, utc, discoveryInterval);
+        var key = $"{evt.Location}|{evt.ModelId}";
+        var pollState = state.States.GetValueOrDefault(key, ModelPollState.Initial(evt.Utc));
+        var updated = pollState.WithDataChange(evt.Hash, evt.Utc, discoveryInterval);
         return state with { States = state.States.SetItem(key, updated) };
     }
 
@@ -83,15 +81,14 @@ public static class PollSchedulerStateExtensions
 
     public static (PollSchedulerState State, HashDecision Decision) ApplyHashResult(
         this PollSchedulerState state,
-        string key,
-        int hash,
-        DateTimeOffset now,
+        DataChanged evt,
         TimeSpan discoveryInterval)
     {
-        var pollState = state.States.GetValueOrDefault(key, ModelPollState.Initial(now));
-        return pollState.LastHash != hash
-            ? (state.Apply(key, hash, now, discoveryInterval), HashDecision.Changed)
-            : (state.ApplyMiss(key, now, discoveryInterval), HashDecision.Miss);
+        var key = $"{evt.Location}|{evt.ModelId}";
+        var pollState = state.States.GetValueOrDefault(key, ModelPollState.Initial(evt.Utc));
+        return pollState.LastHash != evt.Hash
+            ? (state.Apply(evt, discoveryInterval), HashDecision.Changed)
+            : (state.ApplyMiss(key, evt.Utc, discoveryInterval), HashDecision.Miss);
     }
 
     public static PollSchedulerState ApplyRateLimited(
@@ -172,8 +169,7 @@ public static class PollSchedulerStateExtensions
         TimeSpan discoveryInterval)
     {
         var evt = FromPersistedEvent(dto);
-        var key = $"{evt.Location}|{evt.ModelId}";
-        return state.Apply(key, evt.Hash, evt.Utc, discoveryInterval);
+        return state.Apply(evt, discoveryInterval);
     }
 
     public static PersistedDataChanged ToPersistedEvent(DataChanged evt) => new()

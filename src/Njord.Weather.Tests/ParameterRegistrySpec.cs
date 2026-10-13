@@ -131,4 +131,57 @@ public sealed class ParameterRegistrySpec
         Assert.Equal(ParameterValueType.TimeString, sunrise.ValueType);
         Assert.Equal(ParameterValueType.TimeString, sunset.ValueType);
     }
+
+    [Fact]
+    public void Hourly_typed_properties_resolve_correct_parameters()
+    {
+        Assert.Multiple(
+            () => Assert.Equal("rain", ParameterRegistry.Rain.ApiName),
+            () => Assert.Equal("soil_temperature_0cm", ParameterRegistry.SoilTemperature0cm.ApiName),
+            () => Assert.Equal("visibility", ParameterRegistry.Visibility.ApiName),
+            () => Assert.Equal("wind_direction_10m", ParameterRegistry.WindDirection10m.ApiName),
+            () => Assert.Equal(ParameterGranularity.Hourly, ParameterRegistry.Rain.Granularity),
+            () => Assert.Equal(ParameterGranularity.Hourly, ParameterRegistry.SoilTemperature0cm.Granularity),
+            () => Assert.Equal(ParameterGranularity.Hourly, ParameterRegistry.Visibility.Granularity),
+            () => Assert.Equal(ParameterGranularity.Hourly, ParameterRegistry.WindDirection10m.Granularity));
+    }
+
+    [Fact]
+    public void Daily_typed_properties_resolve_correct_parameters()
+    {
+        Assert.Multiple(
+            () => Assert.Equal("precipitation_sum", ParameterRegistry.PrecipitationSum.ApiName),
+            () => Assert.Equal("uv_index_max", ParameterRegistry.UvIndexMax.ApiName),
+            () => Assert.Equal("snowfall_sum", ParameterRegistry.SnowfallSum.ApiName),
+            () => Assert.Equal("temperature_2m_max", ParameterRegistry.Temperature2mMax.ApiName),
+            () => Assert.Equal("temperature_2m_min", ParameterRegistry.Temperature2mMin.ApiName),
+            () => Assert.Equal("wind_speed_10m_max", ParameterRegistry.WindSpeed10mMax.ApiName),
+            () => Assert.Equal("wind_gusts_10m_max", ParameterRegistry.WindGusts10mMax.ApiName),
+            () => Assert.Equal("sunrise", ParameterRegistry.Sunrise.ApiName),
+            () => Assert.Equal("sunset", ParameterRegistry.Sunset.ApiName),
+            () => Assert.Equal("weather_code", ParameterRegistry.DailyWeatherCode.ApiName));
+    }
+
+    [Fact]
+    public void Daily_typed_properties_are_daily_granularity()
+    {
+        var dailyParams = new[]
+        {
+            ParameterRegistry.PrecipitationSum, ParameterRegistry.UvIndexMax,
+            ParameterRegistry.SnowfallSum, ParameterRegistry.Temperature2mMax,
+            ParameterRegistry.Temperature2mMin, ParameterRegistry.WindSpeed10mMax,
+            ParameterRegistry.WindGusts10mMax, ParameterRegistry.Sunrise,
+            ParameterRegistry.Sunset, ParameterRegistry.DailyWeatherCode,
+        };
+
+        Assert.All(dailyParams, p => Assert.Equal(ParameterGranularity.Daily, p.Granularity));
+    }
+
+    [Fact]
+    public void Sunrise_and_sunset_typed_properties_are_time_string_type()
+    {
+        Assert.Multiple(
+            () => Assert.Equal(ParameterValueType.TimeString, ParameterRegistry.Sunrise.ValueType),
+            () => Assert.Equal(ParameterValueType.TimeString, ParameterRegistry.Sunset.ValueType));
+    }
 }

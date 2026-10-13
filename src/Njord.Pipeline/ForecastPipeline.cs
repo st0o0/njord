@@ -105,7 +105,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                 Stash.UnstashAll();
             });
 
-            Receive<ForecastStreamFailed>(msg =>
+            Receive<RequestForecastStreamFailed>(msg =>
             {
                 _log.Warning(msg.Cause, "Failed to get forecast stream from gateway — retrying");
                 var delay = GatewayRetryPolicy.DelayWithJitter(_gatewayRetryCount);

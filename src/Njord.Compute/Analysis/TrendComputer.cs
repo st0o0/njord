@@ -44,7 +44,7 @@ public sealed class TrendComputer
             var prevMedian = prevParam?.ByHorizon.GetValueOrDefault(referenceKey)?.Median;
             var threshold = Thresholds.GetValueOrDefault(paramDef, 0.5);
 
-            var trend = TrendAnalyzer.TrendDirection(prevMedian, currMedian, threshold);
+            var trend = TrendCalculator.TrendDirection(prevMedian, currMedian, threshold);
             paramTrends[paramDef.ApiName] = trend is { } t ? new ParameterTrend(t.Direction, t.Delta) : null;
         }
 
@@ -56,7 +56,7 @@ public sealed class TrendComputer
             var currCode = currWeatherCode?.ByHorizon.GetValueOrDefault(referenceKey)?.Median;
             var prevCode = prevWeatherCode?.ByHorizon.GetValueOrDefault(referenceKey)?.Median;
 
-            weatherChange = TrendAnalyzer.WeatherChange(
+            weatherChange = TrendCalculator.WeatherChange(
                 prevCode.HasValue ? (int)Math.Round(prevCode.Value) : null,
                 currCode.HasValue ? (int)Math.Round(currCode.Value) : null);
         }
@@ -71,7 +71,7 @@ public sealed class TrendComputer
 
             var currIqr = currTempParam?.ByHorizon.GetValueOrDefault(referenceKey)?.Iqr;
             var prevIqr = prevTempParam?.ByHorizon.GetValueOrDefault(referenceKey)?.Iqr;
-            var stabilityResult = TrendAnalyzer.ConsensusStability(prevIqr, currIqr);
+            var stabilityResult = TrendCalculator.ConsensusStability(prevIqr, currIqr);
             stability = stabilityResult is { } s ? new StabilityInfo(s.Label, s.Ratio) : null;
         }
 
@@ -179,7 +179,7 @@ public sealed class TrendComputer
         }
 
         spreads.Sort((a, b) => a.Item1.CompareTo(b.Item1));
-        var decayResult = TrendAnalyzer.PredictabilityDecay(spreads);
+        var decayResult = TrendCalculator.PredictabilityDecay(spreads);
         return decayResult is { } d ? new DecayInfo(d.DecayRate, d.ReliableHours) : null;
     }
 

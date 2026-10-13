@@ -19,6 +19,10 @@ public static class ParameterRegistry
             ByName.GetValueOrDefault(apiName)
             ?? throw new InvalidOperationException($"Required parameter '{apiName}' not found in registry");
 
+        static ParameterDef RequireDaily(string apiName) =>
+            AllList.FirstOrDefault(p => p.ApiName == apiName && p.Granularity == ParameterGranularity.Daily)
+            ?? throw new InvalidOperationException($"Required daily parameter '{apiName}' not found in registry");
+
         Temperature2m = Require("temperature_2m");
         ApparentTemperature = Require("apparent_temperature");
         RelativeHumidity2m = Require("relative_humidity_2m");
@@ -39,6 +43,20 @@ public static class ParameterRegistry
         Cape = Require("cape");
         WeatherCode = Require("weather_code");
         Et0FaoEvapotranspiration = Require("et0_fao_evapotranspiration");
+        Rain = Require("rain");
+        SoilTemperature0cm = Require("soil_temperature_0cm");
+        Visibility = Require("visibility");
+        WindDirection10m = Require("wind_direction_10m");
+        PrecipitationSum = RequireDaily("precipitation_sum");
+        UvIndexMax = RequireDaily("uv_index_max");
+        SnowfallSum = RequireDaily("snowfall_sum");
+        Temperature2mMax = RequireDaily("temperature_2m_max");
+        Temperature2mMin = RequireDaily("temperature_2m_min");
+        WindSpeed10mMax = RequireDaily("wind_speed_10m_max");
+        WindGusts10mMax = RequireDaily("wind_gusts_10m_max");
+        Sunrise = RequireDaily("sunrise");
+        Sunset = RequireDaily("sunset");
+        DailyWeatherCode = RequireDaily("weather_code");
     }
 
     public static ParameterDef Temperature2m { get; }
@@ -61,6 +79,20 @@ public static class ParameterRegistry
     public static ParameterDef Cape { get; }
     public static ParameterDef WeatherCode { get; }
     public static ParameterDef Et0FaoEvapotranspiration { get; }
+    public static ParameterDef Rain { get; }
+    public static ParameterDef SoilTemperature0cm { get; }
+    public static ParameterDef Visibility { get; }
+    public static ParameterDef WindDirection10m { get; }
+    public static ParameterDef PrecipitationSum { get; }
+    public static ParameterDef UvIndexMax { get; }
+    public static ParameterDef SnowfallSum { get; }
+    public static ParameterDef Temperature2mMax { get; }
+    public static ParameterDef Temperature2mMin { get; }
+    public static ParameterDef WindSpeed10mMax { get; }
+    public static ParameterDef WindGusts10mMax { get; }
+    public static ParameterDef Sunrise { get; }
+    public static ParameterDef Sunset { get; }
+    public static ParameterDef DailyWeatherCode { get; }
 
     public static IReadOnlyCollection<ParameterDef> All => AllList;
 

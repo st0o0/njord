@@ -13,7 +13,7 @@ using Njord.Grpc.V2;
 using Njord.Messages.Snapshots;
 using Njord.Weather;
 using ActorSystem = Akka.Actor.ActorSystem;
-using CoverageTier = Njord.Core.Configuration.CoverageTier;
+using CoverageTier = Njord.Weather.CoverageTier;
 using GrpcStatus = Grpc.Core.Status;
 
 namespace Njord.Grpc;
@@ -237,7 +237,7 @@ public sealed class WeatherGrpcService(
         SetOptional(point, ParameterRegistry.RelativeHumidity2m, v => hourly.Humidity = v);
         SetOptional(point, ParameterRegistry.WindSpeed10m, v => hourly.WindSpeed = v);
         SetOptional(point, ParameterRegistry.WindGusts10m, v => hourly.WindGusts = v);
-        var windDir = point.Get(ParameterRegistry.GetByApiName("wind_direction_10m")!);
+        var windDir = point.Get(ParameterRegistry.WindDirection10m);
         if (windDir.HasValue)
         {
             hourly.WindBearing = windDir.Value;
@@ -251,7 +251,7 @@ public sealed class WeatherGrpcService(
         }
 
         SetOptional(point, ParameterRegistry.IsDay, v => hourly.IsDay = v > 0);
-        var rain = point.Get(ParameterRegistry.GetByApiName("rain")!);
+        var rain = point.Get(ParameterRegistry.Rain);
         if (rain.HasValue)
         {
             hourly.Rain = rain.Value;
@@ -275,39 +275,39 @@ public sealed class WeatherGrpcService(
     internal static DailyForecast ToDailyForecast(DailyForecastPoint point)
     {
         var daily = new DailyForecast { Date = point.Date.ToString("O") };
-        var tempMax = point.GetNumeric(ParameterRegistry.GetByApiName("temperature_2m_max")!);
+        var tempMax = point.GetNumeric(ParameterRegistry.Temperature2mMax);
         if (tempMax.HasValue)
         {
             daily.TemperatureMax = tempMax.Value;
         }
 
-        var tempMin = point.GetNumeric(ParameterRegistry.GetByApiName("temperature_2m_min")!);
+        var tempMin = point.GetNumeric(ParameterRegistry.Temperature2mMin);
         if (tempMin.HasValue)
         {
             daily.TemperatureMin = tempMin.Value;
         }
 
-        var precipSum = point.GetNumeric(ParameterRegistry.GetByApiName("precipitation_sum")!);
+        var precipSum = point.GetNumeric(ParameterRegistry.PrecipitationSum);
         if (precipSum.HasValue)
         {
             daily.PrecipitationSum = precipSum.Value;
         }
 
-        var windMax = point.GetNumeric(ParameterRegistry.GetByApiName("wind_speed_10m_max")!);
+        var windMax = point.GetNumeric(ParameterRegistry.WindSpeed10mMax);
         if (windMax.HasValue)
         {
             daily.WindSpeedMax = windMax.Value;
         }
 
-        var gustMax = point.GetNumeric(ParameterRegistry.GetByApiName("wind_gusts_10m_max")!);
+        var gustMax = point.GetNumeric(ParameterRegistry.WindGusts10mMax);
         if (gustMax.HasValue)
         {
             daily.WindGustsMax = gustMax.Value;
         }
 
-        daily.Sunrise = point.GetMeta(ParameterRegistry.GetByApiName("sunrise")!) ?? "";
-        daily.Sunset = point.GetMeta(ParameterRegistry.GetByApiName("sunset")!) ?? "";
-        var wc = point.GetNumeric(ParameterRegistry.GetByApiName("weather_code")!);
+        daily.Sunrise = point.GetMeta(ParameterRegistry.Sunrise) ?? "";
+        daily.Sunset = point.GetMeta(ParameterRegistry.Sunset) ?? "";
+        var wc = point.GetNumeric(ParameterRegistry.DailyWeatherCode);
         if (wc.HasValue)
         {
             daily.WeatherCode = (int)wc.Value;

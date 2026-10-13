@@ -7,24 +7,23 @@ public sealed record BudgetTrackerState(
     int CurrentMonth,
     int CurrentDay,
     long MonthlyUsed,
-    long DailyUsed,
-    int EventsSinceSnapshot)
+    long DailyUsed)
 {
-    public static readonly BudgetTrackerState Empty = new(0, 0, 0, 0, 0);
+    public static readonly BudgetTrackerState Empty = new(0, 0, 0, 0);
 
     public static BudgetTrackerState FromPersistence(PersistedBudgetTrackerState dto, DateTimeOffset now)
     {
         if (dto.Month != now.Month)
         {
-            return new BudgetTrackerState(now.Month, now.DayOfYear, 0, 0, 0);
+            return new BudgetTrackerState(now.Month, now.DayOfYear, 0, 0);
         }
 
         if (dto.Day != now.DayOfYear)
         {
-            return new BudgetTrackerState(now.Month, now.DayOfYear, dto.MonthlyUsed, 0, 0);
+            return new BudgetTrackerState(now.Month, now.DayOfYear, dto.MonthlyUsed, 0);
         }
 
-        return new BudgetTrackerState(now.Month, now.DayOfYear, dto.MonthlyUsed, dto.DailyUsed, 0);
+        return new BudgetTrackerState(now.Month, now.DayOfYear, dto.MonthlyUsed, dto.DailyUsed);
     }
 }
 
@@ -38,12 +37,14 @@ public static class BudgetTrackerStateExtensions
             Weight = cmd.Weight,
             UtcTicks = now.UtcTicks,
         };
-        var newState = state.Apply(cmd.Weight, now);
+        var newState = state.Apply(evt, now);
         return (newState, evt);
     }
 
-    public static BudgetTrackerState Apply(this BudgetTrackerState state, int weight, DateTimeOffset now)
+    public static BudgetTrackerState Apply(this BudgetTrackerState state, ApiCallRecorded evt, DateTimeOffset now)
     {
+        var weight = evt.Weight;
+
         if (now.Month != state.CurrentMonth)
         {
             return state with
@@ -52,7 +53,6 @@ public static class BudgetTrackerStateExtensions
                 CurrentDay = now.DayOfYear,
                 MonthlyUsed = weight,
                 DailyUsed = weight,
-                EventsSinceSnapshot = state.EventsSinceSnapshot + 1,
             };
         }
 
@@ -63,7 +63,6 @@ public static class BudgetTrackerStateExtensions
                 CurrentDay = now.DayOfYear,
                 MonthlyUsed = state.MonthlyUsed + weight,
                 DailyUsed = weight,
-                EventsSinceSnapshot = state.EventsSinceSnapshot + 1,
             };
         }
 
@@ -71,7 +70,6 @@ public static class BudgetTrackerStateExtensions
         {
             MonthlyUsed = state.MonthlyUsed + weight,
             DailyUsed = state.DailyUsed + weight,
-            EventsSinceSnapshot = state.EventsSinceSnapshot + 1,
         };
     }
 

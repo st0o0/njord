@@ -11,36 +11,37 @@ public sealed class BudgetTrackerStateSpec
     private static BudgetTrackerState EmptyState() =>
         BudgetTrackerState.Empty with { CurrentMonth = T0.Month, CurrentDay = T0.DayOfYear };
 
+    private static ApiCallRecorded Evt(int weight, DateTimeOffset utc) =>
+        new() { Weight = weight, UtcTicks = utc.UtcTicks };
+
     [Fact]
     public void Apply_increments_monthly_and_daily_usage()
     {
-        var state = EmptyState().Apply(3, T0);
+        var state = EmptyState().Apply(Evt(3, T0), T0);
 
         Assert.Equal(3, state.MonthlyUsed);
         Assert.Equal(3, state.DailyUsed);
-        Assert.Equal(1, state.EventsSinceSnapshot);
     }
 
     [Fact]
     public void Apply_accumulates_multiple_calls()
     {
         var state = EmptyState()
-            .Apply(3, T0)
-            .Apply(2, T0)
-            .Apply(1, T0);
+            .Apply(Evt(3, T0), T0)
+            .Apply(Evt(2, T0), T0)
+            .Apply(Evt(1, T0), T0);
 
         Assert.Equal(6, state.MonthlyUsed);
         Assert.Equal(6, state.DailyUsed);
-        Assert.Equal(3, state.EventsSinceSnapshot);
     }
 
     [Fact]
     public void Apply_resets_daily_on_new_day()
     {
-        var state = EmptyState().Apply(5, T0);
+        var state = EmptyState().Apply(Evt(5, T0), T0);
         var nextDay = T0.AddDays(1);
 
-        var updated = state.Apply(2, nextDay);
+        var updated = state.Apply(Evt(2, nextDay), nextDay);
 
         Assert.Equal(7, updated.MonthlyUsed);
         Assert.Equal(2, updated.DailyUsed);
@@ -50,10 +51,10 @@ public sealed class BudgetTrackerStateSpec
     [Fact]
     public void Apply_resets_both_on_new_month()
     {
-        var state = EmptyState().Apply(10, T0);
+        var state = EmptyState().Apply(Evt(10, T0), T0);
         var nextMonth = new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero);
 
-        var updated = state.Apply(3, nextMonth);
+        var updated = state.Apply(Evt(3, nextMonth), nextMonth);
 
         Assert.Equal(3, updated.MonthlyUsed);
         Assert.Equal(3, updated.DailyUsed);
@@ -63,7 +64,7 @@ public sealed class BudgetTrackerStateSpec
     [Fact]
     public void GetSnapshot_returns_current_usage()
     {
-        var state = EmptyState().Apply(4, T0).Apply(2, T0);
+        var state = EmptyState().Apply(Evt(4, T0), T0).Apply(Evt(2, T0), T0);
 
         var snapshot = state.GetSnapshot();
 
@@ -74,7 +75,7 @@ public sealed class BudgetTrackerStateSpec
     [Fact]
     public void GetPersistenceState_returns_valid_dto()
     {
-        var state = EmptyState().Apply(5, T0);
+        var state = EmptyState().Apply(Evt(5, T0), T0);
 
         var dto = state.GetPersistenceState();
 
@@ -88,8 +89,8 @@ public sealed class BudgetTrackerStateSpec
     public void FromPersistence_roundtrip_preserves_state()
     {
         var state = EmptyState()
-            .Apply(3, T0)
-            .Apply(2, T0);
+            .Apply(Evt(3, T0), T0)
+            .Apply(Evt(2, T0), T0);
 
         var dto = state.GetPersistenceState();
         var restored = BudgetTrackerState.FromPersistence(dto, T0);
@@ -103,7 +104,7 @@ public sealed class BudgetTrackerStateSpec
     [Fact]
     public void FromPersistence_resets_when_month_differs()
     {
-        var state = EmptyState().Apply(10, T0);
+        var state = EmptyState().Apply(Evt(10, T0), T0);
         var dto = state.GetPersistenceState();
         var nextMonth = new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -117,7 +118,7 @@ public sealed class BudgetTrackerStateSpec
     [Fact]
     public void FromPersistence_resets_daily_when_day_differs()
     {
-        var state = EmptyState().Apply(10, T0);
+        var state = EmptyState().Apply(Evt(10, T0), T0);
         var dto = state.GetPersistenceState();
         var nextDay = T0.AddDays(1);
 
@@ -131,7 +132,7 @@ public sealed class BudgetTrackerStateSpec
     public void ApplyRecover_skips_events_from_old_months()
     {
         var now = new DateTimeOffset(2026, 8, 1, 12, 0, 0, TimeSpan.Zero);
-        var state = new BudgetTrackerState(8, now.DayOfYear, 0, 0, 0);
+        var state = new BudgetTrackerState(8, now.DayOfYear, 0, 0);
         var oldEvent = TestTimeConstants.BudgetEpoch;
 
         var result = state.ApplyRecover(5, oldEvent, now);
@@ -143,7 +144,7 @@ public sealed class BudgetTrackerStateSpec
     [Fact]
     public void ApplyRecover_adds_weight_for_current_month_events()
     {
-        var state = new BudgetTrackerState(7, T0.DayOfYear, 0, 0, 0);
+        var state = new BudgetTrackerState(7, T0.DayOfYear, 0, 0);
 
         var result = state.ApplyRecover(5, T0, T0);
 
@@ -156,7 +157,7 @@ public sealed class BudgetTrackerStateSpec
     {
         var now = T0;
         var eventUtc = T0.AddDays(-1);
-        var state = new BudgetTrackerState(T0.Month, T0.DayOfYear, 0, 0, 0);
+        var state = new BudgetTrackerState(T0.Month, T0.DayOfYear, 0, 0);
 
         var result = state.ApplyRecover(3, eventUtc, now);
 
@@ -173,8 +174,7 @@ public sealed class BudgetTrackerStateSpec
             () => Assert.Equal(0, state.CurrentMonth),
             () => Assert.Equal(0, state.CurrentDay),
             () => Assert.Equal(0, state.MonthlyUsed),
-            () => Assert.Equal(0, state.DailyUsed),
-            () => Assert.Equal(0, state.EventsSinceSnapshot));
+            () => Assert.Equal(0, state.DailyUsed));
     }
 
     [Fact]
@@ -188,7 +188,6 @@ public sealed class BudgetTrackerStateSpec
         Assert.Multiple(
             () => Assert.Equal(3, newState.MonthlyUsed),
             () => Assert.Equal(3, newState.DailyUsed),
-            () => Assert.Equal(1, newState.EventsSinceSnapshot),
             () => Assert.Equal(3, evt.Weight),
             () => Assert.Equal(T0.UtcTicks, evt.UtcTicks));
     }
@@ -196,7 +195,7 @@ public sealed class BudgetTrackerStateSpec
     [Fact]
     public void ProcessCommand_handles_month_boundary()
     {
-        var state = EmptyState().Apply(10, T0);
+        var state = EmptyState().Apply(Evt(10, T0), T0);
         var nextMonth = new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero);
 
         var (newState, evt) = state.ProcessCommand(new RecordApiCall(2), nextMonth);

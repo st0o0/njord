@@ -42,19 +42,20 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
 
         services.AddSingleton(sp =>
         {
-            var state = new NjordHealthState
+            var monitor = new NjordHealthMonitor
             {
                 ServiceStartedUtc = sp.GetRequiredService<TimeProvider>().GetUtcNow(),
             };
             var budget = BudgetCalculator.GetEffectiveBudget(
                 sp.GetRequiredService<IOptions<NjordOptions>>().Value);
-            state.SetBudgetLimits(RequestBudget.OpenMeteoFreeTierDailyLimit, budget.RequestsPerMonth);
+            monitor.UpdateBudget(new BudgetHealthSnapshot(
+                0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, budget.RequestsPerMonth));
             BudgetTelemetry.Observe(
-                () => state.BudgetUsedDaily,
-                () => state.BudgetUsedMonthly,
-                () => state.BudgetLimitDaily,
-                () => state.BudgetLimitMonthly);
-            return state;
+                () => monitor.Budget.UsedDaily,
+                () => monitor.Budget.UsedMonthly,
+                () => monitor.Budget.LimitDaily,
+                () => monitor.Budget.LimitMonthly);
+            return monitor;
         });
 
         var mqttEnabled = configuration

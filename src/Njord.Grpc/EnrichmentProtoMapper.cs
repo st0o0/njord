@@ -330,28 +330,28 @@ public static class EnrichmentProtoMapper
             PipelineEvent.AlertComputed a => new EnrichmentEvent
             {
                 Location = a.Result.Location,
-                TypeName = "alerts",
+                TypeName = a.Kind.ToWireName(),
                 UpdatedAt = ToTimestamp(a.Timestamp),
                 Alerts = MapAlerts(a.Result),
             },
             PipelineEvent.IndexComputed i => new EnrichmentEvent
             {
                 Location = i.Result.Location,
-                TypeName = "indices",
+                TypeName = i.Kind.ToWireName(),
                 UpdatedAt = ToTimestamp(i.Timestamp),
                 Indices = MapIndices(i.Result),
             },
             PipelineEvent.TrendComputed t => new EnrichmentEvent
             {
                 Location = t.Result.Location,
-                TypeName = "trends",
+                TypeName = t.Kind.ToWireName(),
                 UpdatedAt = ToTimestamp(t.Timestamp),
                 Trends = MapTrends(t.Result),
             },
             PipelineEvent.DerivedComputed d => new EnrichmentEvent
             {
                 Location = d.Result.Location,
-                TypeName = "derived",
+                TypeName = d.Kind.ToWireName(),
                 UpdatedAt = ToTimestamp(d.Timestamp),
                 Derived = MapDerived(d.Result),
             },
@@ -367,7 +367,7 @@ public static class EnrichmentProtoMapper
         return new EnrichmentEvent
         {
             Location = c.Consensus.Location,
-            TypeName = "consensus",
+            TypeName = c.Kind.ToWireName(),
             UpdatedAt = ToTimestamp(c.Timestamp),
             Consensus = MapConsensus(result),
         };

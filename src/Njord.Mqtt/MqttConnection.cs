@@ -20,7 +20,7 @@ public sealed class MqttConnection : ReceiveActor
     private readonly IMqttConnection _connection;
     private readonly IMqttTransport _transport;
     private readonly MqttEgressTuning _tuning;
-    private readonly NjordHealthState _healthState;
+    private readonly NjordHealthMonitor _healthState;
     private readonly TimeProvider _timeProvider;
 
     private readonly string _availabilityTopic;
@@ -34,7 +34,7 @@ public sealed class MqttConnection : ReceiveActor
         IMqttConnection connection,
         IMqttTransport transport,
         MqttEgressTuning tuning,
-        NjordHealthState healthState,
+        NjordHealthMonitor healthState,
         TimeProvider timeProvider)
     {
         _mqttOptions = mqttOptions.Value;
@@ -65,7 +65,7 @@ public sealed class MqttConnection : ReceiveActor
         });
         Receive<Disconnected>(_ =>
         {
-            _healthState.SetMqttDisconnected(_timeProvider.GetUtcNow());
+            _healthState.UpdateMqtt(new MqttHealthSnapshot(false, _timeProvider.GetUtcNow()));
             Telemetry.MqttConnected.Record(0);
             _log.Warning("MQTT connection lost — reconnecting");
             ScheduleReconnect();
@@ -113,7 +113,7 @@ public sealed class MqttConnection : ReceiveActor
     {
         _connectAttempts = 0;
         _log.Info("MQTT connected to {Host}:{Port}", _mqttOptions.Host, _mqttOptions.Port);
-        _healthState.SetMqttConnected(_timeProvider.GetUtcNow());
+        _healthState.UpdateMqtt(new MqttHealthSnapshot(true, null));
         Telemetry.MqttConnected.Record(1);
 
         try

@@ -16,6 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\Njord.Tests.Shared\Njord.Tests.Shared.csproj" />
         <ProjectReference Include="..\Njord.Weather\Njord.Weather.csproj" />
     </ItemGroup>
 

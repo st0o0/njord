@@ -1,6 +1,6 @@
 using Njord.Messages.Pipeline;
+using Njord.Persistence.Events.Pipeline;
 using Njord.Tests.Shared;
-using PersistedDataChanged = Njord.Persistence.Events.Pipeline.DataChanged;
 
 namespace Njord.Pipeline.Tests;
 
@@ -8,6 +8,12 @@ public sealed class PollSchedulerStateSpec
 {
     private static readonly DateTimeOffset Now = TestTimeConstants.PipelineEpoch;
     private static readonly TimeSpan DiscoveryInterval = TimeSpan.FromMinutes(5);
+
+    private static DataChanged Evt(string key, int hash, DateTimeOffset utc)
+    {
+        var parts = key.Split('|', 2);
+        return new DataChanged(parts[0], parts[1], hash, utc);
+    }
 
     [Fact]
     public void Empty_state_has_no_entries()
@@ -20,7 +26,7 @@ public sealed class PollSchedulerStateSpec
     public void Apply_adds_poll_state_for_new_key()
     {
         var state = PollSchedulerState.Empty
-            .Apply("lucerne|icon_d2", 42, Now, DiscoveryInterval);
+            .Apply(Evt("lucerne|icon_d2", 42, Now), DiscoveryInterval);
 
         Assert.Single(state.States);
         Assert.Equal(42, state.States["lucerne|icon_d2"].LastHash);
@@ -30,8 +36,8 @@ public sealed class PollSchedulerStateSpec
     public void Apply_updates_existing_entry_with_new_hash()
     {
         var state = PollSchedulerState.Empty
-            .Apply("lucerne|icon_d2", 42, Now, DiscoveryInterval)
-            .Apply("lucerne|icon_d2", 99, Now.AddHours(1), DiscoveryInterval);
+            .Apply(Evt("lucerne|icon_d2", 42, Now), DiscoveryInterval)
+            .Apply(Evt("lucerne|icon_d2", 99, Now.AddHours(1)), DiscoveryInterval);
 
         Assert.Single(state.States);
         Assert.Equal(99, state.States["lucerne|icon_d2"].LastHash);
@@ -42,8 +48,8 @@ public sealed class PollSchedulerStateSpec
     public void Apply_tracks_multiple_models()
     {
         var state = PollSchedulerState.Empty
-            .Apply("lucerne|icon_d2", 1, Now, DiscoveryInterval)
-            .Apply("zurich|gfs", 2, Now, DiscoveryInterval);
+            .Apply(Evt("lucerne|icon_d2", 1, Now), DiscoveryInterval)
+            .Apply(Evt("zurich|gfs", 2, Now), DiscoveryInterval);
 
         Assert.Equal(2, state.States.Count);
     }
@@ -52,7 +58,7 @@ public sealed class PollSchedulerStateSpec
     public void ApplyMiss_increments_miss_count()
     {
         var state = PollSchedulerState.Empty
-            .Apply("lucerne|icon_d2", 42, Now, DiscoveryInterval)
+            .Apply(Evt("lucerne|icon_d2", 42, Now), DiscoveryInterval)
             .ApplyMiss("lucerne|icon_d2", Now.AddMinutes(10), DiscoveryInterval);
 
         Assert.Equal(1, state.States["lucerne|icon_d2"].MissCount);
@@ -72,7 +78,7 @@ public sealed class PollSchedulerStateSpec
     public void EnsureInitialized_does_not_overwrite_existing()
     {
         var state = PollSchedulerState.Empty
-            .Apply("lucerne|icon_d2", 42, Now, DiscoveryInterval)
+            .Apply(Evt("lucerne|icon_d2", 42, Now), DiscoveryInterval)
             .EnsureInitialized("lucerne|icon_d2", Now.AddHours(1));
 
         Assert.Equal(42, state.States["lucerne|icon_d2"].LastHash);
@@ -92,8 +98,8 @@ public sealed class PollSchedulerStateSpec
     public void GetSnapshot_returns_all_entries_as_poll_state_entries()
     {
         var state = PollSchedulerState.Empty
-            .Apply("lucerne|icon_d2", 42, Now, DiscoveryInterval)
-            .Apply("zurich|gfs", 7, Now, DiscoveryInterval);
+            .Apply(Evt("lucerne|icon_d2", 42, Now), DiscoveryInterval)
+            .Apply(Evt("zurich|gfs", 7, Now), DiscoveryInterval);
 
         var snapshot = state.GetSnapshot();
 
@@ -142,8 +148,8 @@ public sealed class PollSchedulerStateSpec
     public void ApplyHashResult_with_new_hash_decides_changed_and_records_hash()
     {
         var (state, decision) = PollSchedulerState.Empty
-            .Apply("lucerne|icon_d2", 42, Now, DiscoveryInterval)
-            .ApplyHashResult("lucerne|icon_d2", 99, Now.AddHours(1), DiscoveryInterval);
+            .Apply(Evt("lucerne|icon_d2", 42, Now), DiscoveryInterval)
+            .ApplyHashResult(Evt("lucerne|icon_d2", 99, Now.AddHours(1)), DiscoveryInterval);
 
         Assert.Equal(HashDecision.Changed, decision);
         Assert.Equal(99, state.States["lucerne|icon_d2"].LastHash);
@@ -153,8 +159,8 @@ public sealed class PollSchedulerStateSpec
     public void ApplyHashResult_with_same_hash_decides_miss_and_counts_it()
     {
         var (state, decision) = PollSchedulerState.Empty
-            .Apply("lucerne|icon_d2", 42, Now, DiscoveryInterval)
-            .ApplyHashResult("lucerne|icon_d2", 42, Now.AddHours(1), DiscoveryInterval);
+            .Apply(Evt("lucerne|icon_d2", 42, Now), DiscoveryInterval)
+            .ApplyHashResult(Evt("lucerne|icon_d2", 42, Now.AddHours(1)), DiscoveryInterval);
 
         Assert.Equal(HashDecision.Miss, decision);
         Assert.Equal(1, state.States["lucerne|icon_d2"].MissCount);
@@ -164,7 +170,7 @@ public sealed class PollSchedulerStateSpec
     public void ApplyHashResult_for_unknown_key_decides_changed()
     {
         var (state, decision) = PollSchedulerState.Empty
-            .ApplyHashResult("lucerne|icon_d2", 7, Now, DiscoveryInterval);
+            .ApplyHashResult(Evt("lucerne|icon_d2", 7, Now), DiscoveryInterval);
 
         Assert.Equal(HashDecision.Changed, decision);
         Assert.Equal(7, state.States["lucerne|icon_d2"].LastHash);
@@ -200,8 +206,8 @@ public sealed class PollSchedulerStateSpec
     public void GetPersistenceState_and_FromPersistence_roundtrip()
     {
         var state = PollSchedulerState.Empty
-            .Apply("lucerne|icon_d2", 42, Now, DiscoveryInterval)
-            .Apply("lucerne|ecmwf_ifs025", 99, Now.AddHours(1), DiscoveryInterval);
+            .Apply(Evt("lucerne|icon_d2", 42, Now), DiscoveryInterval)
+            .Apply(Evt("lucerne|ecmwf_ifs025", 99, Now.AddHours(1)), DiscoveryInterval);
 
         var dto = state.GetPersistenceState();
         var restored = PollSchedulerState.FromPersistence(dto, Now.AddHours(2));
@@ -228,7 +234,7 @@ public sealed class PollSchedulerStateSpec
     public void FromPersistence_sets_NextPollUtc_to_now()
     {
         var state = PollSchedulerState.Empty
-            .Apply("lucerne|icon_d2", 42, Now, DiscoveryInterval);
+            .Apply(Evt("lucerne|icon_d2", 42, Now), DiscoveryInterval);
 
         var dto = state.GetPersistenceState();
         var restoreTime = Now.AddHours(5);

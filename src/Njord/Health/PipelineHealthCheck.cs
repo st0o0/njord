@@ -7,7 +7,7 @@ using Njord.Core.Health;
 namespace Njord.Health;
 
 internal sealed class PipelineHealthCheck(
-    NjordHealthState state,
+    NjordHealthMonitor monitor,
     TimeProvider timeProvider,
     IOptions<NjordOptions> options) : IHealthCheck
 {
@@ -16,11 +16,11 @@ internal sealed class PipelineHealthCheck(
     {
         var now = timeProvider.GetUtcNow();
         var interval = options.Value.PollInterval;
-        var lastPoll = state.LastSuccessfulPollUtc;
+        var lastPoll = monitor.Poll.LastSuccessfulPollUtc;
 
         if (lastPoll is null)
         {
-            var uptime = now - state.ServiceStartedUtc;
+            var uptime = now - monitor.ServiceStartedUtc;
             return uptime < interval * 2
                 ? Task.FromResult(HealthCheckResult.Healthy("Waiting for first poll"))
                 : Task.FromResult(HealthCheckResult.Unhealthy("No poll completed since startup"));

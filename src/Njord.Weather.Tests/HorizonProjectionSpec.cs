@@ -1,9 +1,8 @@
 using System.Text.Json.Nodes;
-using Njord.Core.Egress;
 using Njord.Tests.Shared;
 using Njord.Weather;
 
-namespace Njord.Core.Tests.Egress;
+namespace Njord.Weather.Tests;
 
 public sealed class HorizonProjectionSpec
 {

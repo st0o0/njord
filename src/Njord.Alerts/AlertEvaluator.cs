@@ -21,13 +21,13 @@ public static class AlertEvaluator
     private static readonly ParameterDef FreezingLevel = ParameterRegistry.FreezingLevelHeight;
     private static readonly ParameterDef PressureMsl = ParameterRegistry.PressureMsl;
     private static readonly ParameterDef Cape = ParameterRegistry.Cape;
-    private static readonly ParameterDef? Rain = ParameterRegistry.GetByApiName("rain");
-    private static readonly ParameterDef? SoilTemp0cm = ParameterRegistry.GetByApiName("soil_temperature_0cm");
-    private static readonly ParameterDef? VisibilityParam = ParameterRegistry.GetByApiName("visibility");
+    private static readonly ParameterDef Rain = ParameterRegistry.Rain;
+    private static readonly ParameterDef SoilTemp0cm = ParameterRegistry.SoilTemperature0cm;
+    private static readonly ParameterDef VisibilityParam = ParameterRegistry.Visibility;
     private static readonly ParameterDef IsDay = ParameterRegistry.IsDay;
-    private static readonly ParameterDef? DailyPrecipSum = ParameterRegistry.GetByApiName("precipitation_sum");
-    private static readonly ParameterDef? DailyUvMax = ParameterRegistry.GetByApiName("uv_index_max");
-    private static readonly ParameterDef? DailySnowfallSum = ParameterRegistry.GetByApiName("snowfall_sum");
+    private static readonly ParameterDef DailyPrecipSum = ParameterRegistry.PrecipitationSum;
+    private static readonly ParameterDef DailyUvMax = ParameterRegistry.UvIndexMax;
+    private static readonly ParameterDef DailySnowfallSum = ParameterRegistry.SnowfallSum;
 
     public static AlertResult EvaluateAll(
         ConsensusSnapshot consensus, AlertOptions options, TimeProvider timeProvider)

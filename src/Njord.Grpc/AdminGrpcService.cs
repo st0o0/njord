@@ -149,7 +149,8 @@ public sealed class AdminGrpcService(
             if (request.Consensus is { } consensus)
             {
                 if (consensus.HasEnabled) opt.Enrichment.Consensus.Enabled = consensus.Enabled;
-                if (consensus.HasMethod) opt.Enrichment.Consensus.Method = consensus.Method;
+                if (consensus.HasMethod && Enum.TryParse<ConsensusMethod>(consensus.Method, ignoreCase: true, out var method))
+                    opt.Enrichment.Consensus.Method = method;
                 if (consensus.HasTrimPercent) opt.Enrichment.Consensus.TrimPercent = consensus.TrimPercent;
             }
 
@@ -287,7 +288,7 @@ public sealed class AdminGrpcService(
             Consensus = new ConsensusConfig
             {
                 Enabled = enrichment.Consensus.Enabled,
-                Method = enrichment.Consensus.Method,
+                Method = enrichment.Consensus.Method.ToString(),
                 TrimPercent = enrichment.Consensus.TrimPercent,
             },
             Alerts = new AlertConfig

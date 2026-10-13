@@ -3,7 +3,7 @@ using Njord.Weather;
 
 namespace Njord.Compute.Tests.Analysis;
 
-public sealed class TrendAnalyzerSpec
+public sealed class TrendCalculatorSpec
 {
     private static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
@@ -14,7 +14,7 @@ public sealed class TrendAnalyzerSpec
     [Fact]
     public void TrendDirection_rising()
     {
-        var result = TrendAnalyzer.TrendDirection(18.0, 22.0, 0.5);
+        var result = TrendCalculator.TrendDirection(18.0, 22.0, 0.5);
         Assert.NotNull(result);
         Assert.Equal("rising", result.Value.Direction);
         Assert.Equal(4.0, result.Value.Delta);
@@ -23,7 +23,7 @@ public sealed class TrendAnalyzerSpec
     [Fact]
     public void TrendDirection_falling()
     {
-        var result = TrendAnalyzer.TrendDirection(22.0, 18.0, 0.5);
+        var result = TrendCalculator.TrendDirection(22.0, 18.0, 0.5);
         Assert.NotNull(result);
         Assert.Equal("falling", result.Value.Direction);
         Assert.Equal(-4.0, result.Value.Delta);
@@ -32,7 +32,7 @@ public sealed class TrendAnalyzerSpec
     [Fact]
     public void TrendDirection_stable_within_deadband()
     {
-        var result = TrendAnalyzer.TrendDirection(20.0, 20.3, 0.5);
+        var result = TrendCalculator.TrendDirection(20.0, 20.3, 0.5);
         Assert.NotNull(result);
         Assert.Equal("stable", result.Value.Direction);
         Assert.Equal(0.3, result.Value.Delta);
@@ -40,18 +40,18 @@ public sealed class TrendAnalyzerSpec
 
     [Fact]
     public void TrendDirection_null_previous() =>
-        Assert.Null(TrendAnalyzer.TrendDirection(null, 20.0, 0.5));
+        Assert.Null(TrendCalculator.TrendDirection(null, 20.0, 0.5));
 
     [Fact]
     public void TrendDirection_null_current() =>
-        Assert.Null(TrendAnalyzer.TrendDirection(20.0, null, 0.5));
+        Assert.Null(TrendCalculator.TrendDirection(20.0, null, 0.5));
 
     // --- WeatherChange ---
 
     [Fact]
     public void WeatherChange_clear_to_rain()
     {
-        var result = TrendAnalyzer.WeatherChange(1, 63);
+        var result = TrendCalculator.WeatherChange(1, 63);
         Assert.NotNull(result);
         Assert.Equal("clear", result.FromCategory);
         Assert.Equal("rain", result.ToCategory);
@@ -60,11 +60,11 @@ public sealed class TrendAnalyzerSpec
 
     [Fact]
     public void WeatherChange_same_category_returns_null() =>
-        Assert.Null(TrendAnalyzer.WeatherChange(61, 65));
+        Assert.Null(TrendCalculator.WeatherChange(61, 65));
 
     [Fact]
     public void WeatherChange_null_codes() =>
-        Assert.Null(TrendAnalyzer.WeatherChange(null, 63));
+        Assert.Null(TrendCalculator.WeatherChange(null, 63));
 
     // --- PrecipitationTiming ---
 
@@ -78,7 +78,7 @@ public sealed class TrendAnalyzerSpec
             })).ToList();
         var series = new ForecastSeries(points);
 
-        var (starts, ends) = TrendAnalyzer.PrecipitationTiming(series, Precipitation, T0);
+        var (starts, ends) = TrendCalculator.PrecipitationTiming(series, Precipitation, T0);
         Assert.Equal(3, starts);
         Assert.Equal(8, ends);
     }
@@ -93,7 +93,7 @@ public sealed class TrendAnalyzerSpec
             })).ToList();
         var series = new ForecastSeries(points);
 
-        var (starts, ends) = TrendAnalyzer.PrecipitationTiming(series, Precipitation, T0);
+        var (starts, ends) = TrendCalculator.PrecipitationTiming(series, Precipitation, T0);
         Assert.Null(starts);
         Assert.Null(ends);
     }
@@ -108,7 +108,7 @@ public sealed class TrendAnalyzerSpec
             })).ToList();
         var series = new ForecastSeries(points);
 
-        var (starts, ends) = TrendAnalyzer.PrecipitationTiming(series, Precipitation, T0);
+        var (starts, ends) = TrendCalculator.PrecipitationTiming(series, Precipitation, T0);
         Assert.Equal(0, starts);
         Assert.Equal(12, ends);
     }
@@ -125,7 +125,7 @@ public sealed class TrendAnalyzerSpec
             })).ToList();
         var series = new ForecastSeries(points);
 
-        var (maxH, minH) = TrendAnalyzer.ExtremaTiming(series, Temperature, T0);
+        var (maxH, minH) = TrendCalculator.ExtremaTiming(series, Temperature, T0);
         Assert.Equal(6, maxH);
         Assert.Equal(18, minH);
     }
@@ -136,7 +136,7 @@ public sealed class TrendAnalyzerSpec
         var points = new[] { new ForecastPoint(T0, new Dictionary<ParameterDef, double?> { [Temperature] = 20.0 }) };
         var series = new ForecastSeries(points);
 
-        var (maxH, minH) = TrendAnalyzer.ExtremaTiming(series, Temperature, T0);
+        var (maxH, minH) = TrendCalculator.ExtremaTiming(series, Temperature, T0);
         Assert.Null(maxH);
         Assert.Null(minH);
     }
@@ -146,7 +146,7 @@ public sealed class TrendAnalyzerSpec
     [Fact]
     public void ConsensusStability_converging()
     {
-        var result = TrendAnalyzer.ConsensusStability(5.0, 3.0);
+        var result = TrendCalculator.ConsensusStability(5.0, 3.0);
         Assert.NotNull(result);
         Assert.Equal("converging", result.Value.Label);
         Assert.Equal(0.6, result.Value.Ratio);
@@ -155,7 +155,7 @@ public sealed class TrendAnalyzerSpec
     [Fact]
     public void ConsensusStability_diverging()
     {
-        var result = TrendAnalyzer.ConsensusStability(3.0, 5.0);
+        var result = TrendCalculator.ConsensusStability(3.0, 5.0);
         Assert.NotNull(result);
         Assert.Equal("diverging", result.Value.Label);
         Assert.InRange(result.Value.Ratio, 1.66, 1.68);
@@ -164,7 +164,7 @@ public sealed class TrendAnalyzerSpec
     [Fact]
     public void ConsensusStability_stable()
     {
-        var result = TrendAnalyzer.ConsensusStability(4.0, 4.2);
+        var result = TrendCalculator.ConsensusStability(4.0, 4.2);
         Assert.NotNull(result);
         Assert.Equal("stable", result.Value.Label);
         Assert.Equal(1.05, result.Value.Ratio);
@@ -172,11 +172,11 @@ public sealed class TrendAnalyzerSpec
 
     [Fact]
     public void ConsensusStability_null_iqr() =>
-        Assert.Null(TrendAnalyzer.ConsensusStability(null, 3.0));
+        Assert.Null(TrendCalculator.ConsensusStability(null, 3.0));
 
     [Fact]
     public void ConsensusStability_zero_previous() =>
-        Assert.Null(TrendAnalyzer.ConsensusStability(0.0, 3.0));
+        Assert.Null(TrendCalculator.ConsensusStability(0.0, 3.0));
 
     // --- PredictabilityDecay ---
 
@@ -186,7 +186,7 @@ public sealed class TrendAnalyzerSpec
         var spreads = new (int, double?)[]
             { (3, 1.0), (6, 1.5), (12, 2.5), (24, 4.0), (48, 7.0), (72, 10.0) };
 
-        var result = TrendAnalyzer.PredictabilityDecay(spreads);
+        var result = TrendCalculator.PredictabilityDecay(spreads);
         Assert.NotNull(result);
         Assert.True(result.Value.DecayRate > 0);
         Assert.Equal(24, result.Value.ReliableHours);
@@ -198,7 +198,7 @@ public sealed class TrendAnalyzerSpec
         var spreads = new (int, double?)[]
             { (3, 2.0), (6, 2.1), (12, 2.0), (24, 2.2) };
 
-        var result = TrendAnalyzer.PredictabilityDecay(spreads);
+        var result = TrendCalculator.PredictabilityDecay(spreads);
         Assert.NotNull(result);
         Assert.InRange(result.Value.DecayRate, -0.01, 0.02);
         Assert.Null(result.Value.ReliableHours);
@@ -206,5 +206,5 @@ public sealed class TrendAnalyzerSpec
 
     [Fact]
     public void PredictabilityDecay_insufficient_data() =>
-        Assert.Null(TrendAnalyzer.PredictabilityDecay([(3, 1.0)]));
+        Assert.Null(TrendCalculator.PredictabilityDecay([(3, 1.0)]));
 }

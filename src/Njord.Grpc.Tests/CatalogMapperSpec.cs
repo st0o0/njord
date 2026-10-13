@@ -38,12 +38,12 @@ public sealed class CatalogMapperSpec
     }
 
     [Theory]
-    [InlineData("ecmwf_ifs025", Njord.Core.Configuration.CoverageTier.Global, Njord.Grpc.V2.CoverageTier.Global)]
-    [InlineData("icon_eu", Njord.Core.Configuration.CoverageTier.Continental, Njord.Grpc.V2.CoverageTier.Continental)]
-    [InlineData("icon_d2", Njord.Core.Configuration.CoverageTier.Regional, Njord.Grpc.V2.CoverageTier.Regional)]
+    [InlineData("ecmwf_ifs025", Njord.Weather.CoverageTier.Global, Njord.Grpc.V2.CoverageTier.Global)]
+    [InlineData("icon_eu", Njord.Weather.CoverageTier.Continental, Njord.Grpc.V2.CoverageTier.Continental)]
+    [InlineData("icon_d2", Njord.Weather.CoverageTier.Regional, Njord.Grpc.V2.CoverageTier.Regional)]
     public void ToModelInfo_should_map_coverage_tier(
         string modelId,
-        Njord.Core.Configuration.CoverageTier domainTier,
+        Njord.Weather.CoverageTier domainTier,
         Njord.Grpc.V2.CoverageTier expected)
     {
         var coverage = ModelCoverageRegistry.Get(modelId);

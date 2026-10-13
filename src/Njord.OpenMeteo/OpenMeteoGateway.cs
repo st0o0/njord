@@ -107,7 +107,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
     {
         if (_broadcastSource is null)
         {
-            Sender.Tell(new ForecastStreamFailed(msg.RequestId,
+            Sender.Tell(new RequestForecastStreamFailed(msg.RequestId,
                 new InvalidOperationException("Gateway stream not materialized")));
             return;
         }
@@ -116,7 +116,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
             .RunWith(StreamRefs.SourceRef<WeatherForecast>(), _mat!)
             .PipeTo(Sender, Self,
                 sr => new RequestForecastStreamCompleted(msg.RequestId, sr),
-                ex => new ForecastStreamFailed(msg.RequestId, ex));
+                ex => new RequestForecastStreamFailed(msg.RequestId, ex));
     }
 
     private void MaterializeStreams()

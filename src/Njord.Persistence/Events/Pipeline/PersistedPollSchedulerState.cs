@@ -2,10 +2,7 @@ using Newtonsoft.Json;
 
 namespace Njord.Persistence.Events.Pipeline;
 
-public sealed record PersistedPollSchedulerState
-{
-    [JsonProperty("entries")] public PersistedModelPollEntry[] Entries { get; init; } = [];
-}
+public sealed record PersistedPollSchedulerState(PersistedModelPollEntry[] Entries);
 
 public sealed record PersistedModelPollEntry
 {

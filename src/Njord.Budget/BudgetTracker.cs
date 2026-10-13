@@ -13,11 +13,11 @@ public sealed class BudgetTracker : ReceivePersistentActor
     public override string PersistenceId => "budget-tracker";
 
     private readonly TimeProvider _timeProvider;
-    private readonly NjordHealthState _healthState;
+    private readonly NjordHealthMonitor _healthState;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private BudgetTrackerState _state;
 
-    public BudgetTracker(TimeProvider timeProvider, NjordHealthState healthState)
+    public BudgetTracker(TimeProvider timeProvider, NjordHealthMonitor healthState)
     {
         _timeProvider = timeProvider;
         _healthState = healthState;
@@ -42,6 +42,7 @@ public sealed class BudgetTracker : ReceivePersistentActor
         Command<QueryBudgetUsage>(_ => Sender.Tell(_state.GetSnapshot(), Self));
         Command<SaveSnapshotSuccess>(success =>
         {
+            _log.Debug("Snapshot saved at sequence {SequenceNr}, cleaning journal", success.Metadata.SequenceNr);
             DeleteMessages(success.Metadata.SequenceNr);
             DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
         });
@@ -55,6 +56,12 @@ public sealed class BudgetTracker : ReceivePersistentActor
         Command<DeleteSnapshotSuccess>(_ => { });
     }
 
+    private void MaybeSnapshot()
+    {
+        if (LastSequenceNr % SnapshotInterval == 0)
+            SaveSnapshot(_state.GetPersistenceState());
+    }
+
     private void OnRecordApiCall(RecordApiCall cmd)
     {
         var now = _timeProvider.GetUtcNow();
@@ -63,13 +70,12 @@ public sealed class BudgetTracker : ReceivePersistentActor
         Persist(evt, _ =>
         {
             _state = newState;
-            _healthState.SetBudgetUsage(_state.DailyUsed, _state.MonthlyUsed);
+            var limits = _healthState.Budget;
+            _healthState.UpdateBudget(new BudgetHealthSnapshot(
+                _state.DailyUsed, _state.MonthlyUsed,
+                limits.LimitDaily, limits.LimitMonthly));
 
-            if (_state.EventsSinceSnapshot >= SnapshotInterval)
-            {
-                SaveSnapshot(_state.GetPersistenceState());
-                _state = _state with { EventsSinceSnapshot = 0 };
-            }
+            MaybeSnapshot();
         });
     }
 }

@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 using Njord.Persistence.Events.Budget;
-using PersistedDataChanged = Njord.Persistence.Events.Pipeline.DataChanged;
+using Njord.Persistence.Events.Pipeline;
 
 namespace Njord.Persistence.Tests;
 

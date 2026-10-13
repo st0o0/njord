@@ -12,7 +12,6 @@ using Njord.Weather;
 using Servus.Akka;
 using Servus.Resilience;
 using Njord.Persistence.Events.Pipeline;
-using PersistedDataChanged = Njord.Persistence.Events.Pipeline.DataChanged;
 
 namespace Njord.Pipeline;
 
@@ -24,11 +23,10 @@ public sealed class PollScheduler : ReceivePersistentActor
 
     private readonly NjordOptions _options;
     private readonly TimeProvider _timeProvider;
-    private readonly NjordHealthState _healthState;
+    private readonly NjordHealthMonitor _healthState;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private PollSchedulerState _state = PollSchedulerState.Empty;
     private readonly Dictionary<string, PollCycleTracker> _pollCycles = new();
-    private int _eventsSinceSnapshot;
 
     private IActorRef? _gateway;
     private IActorRef? _lastTerminatedGateway;
@@ -47,7 +45,7 @@ public sealed class PollScheduler : ReceivePersistentActor
     public PollScheduler(
         IOptions<NjordOptions> options,
         TimeProvider timeProvider,
-        NjordHealthState healthState)
+        NjordHealthMonitor healthState)
     {
         _options = options.Value;
         _timeProvider = timeProvider;
@@ -57,17 +55,11 @@ public sealed class PollScheduler : ReceivePersistentActor
         Context.Watch(_gateway);
 
         Recover<PersistedDataChanged>(dto =>
-        {
-            _state = _state.ApplyRecover(dto, _options.DiscoveryInterval);
-            _eventsSinceSnapshot++;
-        });
+            _state = _state.ApplyRecover(dto, _options.DiscoveryInterval));
         Recover<SnapshotOffer>(offer =>
         {
             if (offer.Snapshot is PersistedPollSchedulerState snapshot)
-            {
                 _state = PollSchedulerState.FromPersistence(snapshot, _timeProvider.GetUtcNow());
-                _eventsSinceSnapshot = 0;
-            }
         });
 
         Ready();
@@ -134,6 +126,7 @@ public sealed class PollScheduler : ReceivePersistentActor
         Command<Terminated>(OnTerminated);
         Command<SaveSnapshotSuccess>(success =>
         {
+            _log.Debug("Snapshot saved at sequence {SequenceNr}, cleaning journal", success.Metadata.SequenceNr);
             DeleteMessages(success.Metadata.SequenceNr);
             DeleteSnapshots(new SnapshotSelectionCriteria(success.Metadata.SequenceNr - 1));
         });
@@ -213,16 +206,16 @@ public sealed class PollScheduler : ReceivePersistentActor
     {
         var key = Key(result.Location, result.ModelId);
         var now = _timeProvider.GetUtcNow();
-        var (updatedState, decision) = _state.ApplyHashResult(key, result.Hash, now, _options.DiscoveryInterval);
+        var evt = new DataChanged(result.Location, result.ModelId, result.Hash, now);
+        var (updatedState, decision) = _state.ApplyHashResult(evt, _options.DiscoveryInterval);
 
         if (decision == HashDecision.Changed)
         {
-            var evt = new DataChanged(result.Location, result.ModelId, result.Hash, now);
             var dto = PollSchedulerStateExtensions.ToPersistedEvent(evt);
             Persist(dto, _ =>
             {
                 _state = updatedState;
-                _healthState.SetLastSuccessfulPoll(now);
+                _healthState.UpdatePoll(new PollHealthSnapshot(now));
                 Telemetry.DataChanged.Add(1,
                     new KeyValuePair<string, object?>("location", result.Location),
                     new KeyValuePair<string, object?>("model", result.ModelId));
@@ -233,19 +226,13 @@ public sealed class PollScheduler : ReceivePersistentActor
                 ScheduleNext(result.Location, result.ModelId);
                 Sender.Tell(new Ack());
                 RecordPollCompletion(result.Location, changed: true);
-
-                _eventsSinceSnapshot++;
-                if (_eventsSinceSnapshot >= SnapshotInterval)
-                {
-                    SaveSnapshot(_state.GetPersistenceState());
-                    _eventsSinceSnapshot = 0;
-                }
+                MaybeSnapshot();
             });
         }
         else
         {
             _state = updatedState;
-            _healthState.SetLastSuccessfulPoll(now);
+            _healthState.UpdatePoll(new PollHealthSnapshot(now));
             var updated = _state.States[key];
             _log.Debug(
                 "Hash unchanged for {Location}/{Model} - miss={Miss}, phase={Phase}",
@@ -329,6 +316,12 @@ public sealed class PollScheduler : ReceivePersistentActor
     private void OnQueryPollStates(QueryPollStates _)
     {
         Sender.Tell(_state.GetSnapshot());
+    }
+
+    private void MaybeSnapshot()
+    {
+        if (LastSequenceNr % SnapshotInterval == 0)
+            SaveSnapshot(_state.GetPersistenceState());
     }
 
     private void ScheduleNext(string location, string modelId)

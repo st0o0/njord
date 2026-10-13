@@ -1,24 +1,21 @@
 using Microsoft.Extensions.Options;
+using Njord.Compute.Configuration;
 
 namespace Njord.Core.Configuration;
 
 public sealed class ConsensusOptionsValidator : IValidateOptions<EnrichmentOptions>
 {
-    private static readonly HashSet<string> ValidMethods = new(StringComparer.OrdinalIgnoreCase)
-        { "Mean", "Median", "TrimmedMean" };
-
     public ValidateOptionsResult Validate(string? name, EnrichmentOptions options)
     {
         var c = options.Consensus;
 
-        if (!ValidMethods.Contains(c.Method))
+        if (!Enum.IsDefined(c.Method))
         {
             return ValidateOptionsResult.Fail(
-                $"Consensus.Method '{c.Method}' is invalid. Valid values: {string.Join(", ", ValidMethods)}");
+                $"Consensus.Method '{c.Method}' is invalid. Valid values: {string.Join(", ", Enum.GetNames<ConsensusMethod>())}");
         }
 
-        if (string.Equals(c.Method, "TrimmedMean", StringComparison.OrdinalIgnoreCase)
-            && c.TrimPercent is <= 0 or >= 0.5)
+        if (c.Method is ConsensusMethod.TrimmedMean && c.TrimPercent is <= 0 or >= 0.5)
         {
             return ValidateOptionsResult.Fail(
                 $"Consensus.TrimPercent must be between 0 and 0.5 (exclusive) when Method is TrimmedMean, got {c.TrimPercent}");

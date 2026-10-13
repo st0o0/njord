@@ -39,7 +39,7 @@ public sealed class MqttSetupContainer : IServiceSetupContainer
         public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
         {
             builder
-                .WithSingleton<Njord.Core.Actors.IMqttConnection>("mqtt-connection",
+                .WithSingleton<Njord.Core.Actors.IMqttConnectionActor>("mqtt-connection",
                     (_, _, resolver) => resolver.Props<MqttConnection>())
                 .WithSingleton<IMqttStatePublisher>("mqtt-state",
                     (_, _, resolver) => resolver.Props<MqttStatePublisher>());

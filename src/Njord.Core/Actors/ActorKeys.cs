@@ -5,6 +5,6 @@ public interface IBudgetTracker;
 public interface IForecastPipeline;
 public interface ISensorHub;
 public interface IGrpcConsumer;
-public interface IMqttConnection;
+public interface IMqttConnectionActor;
 public interface IMqttStatePublisher;
 public interface IForecastGateway;

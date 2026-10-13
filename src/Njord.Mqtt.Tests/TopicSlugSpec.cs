@@ -1,6 +1,4 @@
-using Njord.Core.Egress;
-
-namespace Njord.Core.Tests.Egress;
+namespace Njord.Mqtt.Tests;
 
 public sealed class TopicSlugSpec
 {

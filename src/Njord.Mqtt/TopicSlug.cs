@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Njord.Core.Egress;
+namespace Njord.Mqtt;
 
 public static class TopicSlug
 {

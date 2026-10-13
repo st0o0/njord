@@ -57,7 +57,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             DiscoveryInterval = TimeSpan.FromMinutes(20),
         };
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero));
-        var health = new NjordHealthState { ServiceStartedUtc = time.GetUtcNow() };
+        var health = new NjordHealthMonitor { ServiceStartedUtc = time.GetUtcNow() };
 
         var fakeGateway = Sys.ActorOf(
             Props.Create(() => new FakeGatewayActor(fetchCalled)), "gateway");
@@ -95,7 +95,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
                     .RunWith(StreamRefs.SourceRef<WeatherForecast>(), mat)
                     .PipeTo(Sender, Self,
                         sr => new RequestForecastStreamCompleted(msg.RequestId, sr),
-                        ex => new ForecastStreamFailed(msg.RequestId, ex));
+                        ex => new RequestForecastStreamFailed(msg.RequestId, ex));
             });
         }
     }

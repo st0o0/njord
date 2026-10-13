@@ -80,17 +80,17 @@ public sealed class ForecastPointMappingSpec
     {
         var numeric = new Dictionary<ParameterDef, double?>
         {
-            [ParameterRegistry.GetByApiName("temperature_2m_max")!] = 28.0,
-            [ParameterRegistry.GetByApiName("temperature_2m_min")!] = 14.0,
-            [ParameterRegistry.GetByApiName("precipitation_sum")!] = 1.5,
-            [ParameterRegistry.GetByApiName("wind_speed_10m_max")!] = 7.0,
-            [ParameterRegistry.GetByApiName("wind_gusts_10m_max")!] = 12.0,
-            [ParameterRegistry.GetByApiName("weather_code")!] = 61,
+            [ParameterRegistry.Temperature2mMax] = 28.0,
+            [ParameterRegistry.Temperature2mMin] = 14.0,
+            [ParameterRegistry.PrecipitationSum] = 1.5,
+            [ParameterRegistry.WindSpeed10mMax] = 7.0,
+            [ParameterRegistry.WindGusts10mMax] = 12.0,
+            [ParameterRegistry.DailyWeatherCode] = 61,
         };
         var meta = new Dictionary<ParameterDef, string?>
         {
-            [ParameterRegistry.GetByApiName("sunrise")!] = "2026-07-15T05:40",
-            [ParameterRegistry.GetByApiName("sunset")!] = "2026-07-15T21:10",
+            [ParameterRegistry.Sunrise] = "2026-07-15T05:40",
+            [ParameterRegistry.Sunset] = "2026-07-15T21:10",
         };
 
         var daily = WeatherGrpcService.ToDailyForecast(

@@ -1,4 +1,3 @@
-using Njord.Core.Egress;
 using Njord.Weather;
 
 namespace Njord.Mqtt;

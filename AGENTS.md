@@ -103,23 +103,25 @@ src/
   Njord.slnx
 
   # /Foundation/ — shared types, messages, persistence, computation, infrastructure
-  Njord.Weather/               # Pure weather records (no Njord references)
+  Njord.Weather/               # Pure weather records, ModelCoverageRegistry, HorizonProjection,
+                              #   ParameterRegistry (no Njord references)
   Njord.Sensors/               # Pure sensor records (no Njord references)
   Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references)
   Njord.Messages/             # Actor message records (-> Weather, Sensors)
   Njord.Compute/              # Pure analysis computation (-> Weather, Sensors only)
     Analysis/                 # Consensus, alerts, derived, trends, indices computers
     Configuration/            # Compute-parameter options (AlertOptions, IndexOptions)
-  Njord.Core/                 # Options validators, actor keys,
-                              #   StreamSupervision (-> Weather, Sensors, Messages, Persistence, Compute)
-    Configuration/            # Validators, budget calculator
+  Njord.Core/                 # Options validators, actor keys, EnrichmentKind, PipelineEvent,
+                              #   NjordHealthMonitor, StreamSupervision
+                              #   (-> Weather, Sensors, Messages, Persistence, Compute)
+    Configuration/            # Validators, budget calculator, ConsensusMethod enum
 
   # /Domain/ — feature libraries (each -> Core only)
   Njord.OpenMeteo/            # OpenMeteoGateway, OpenMeteoClient, DTOs, JSON source generator
   Njord.Budget/               # BudgetTracker persistent actor, usage accounting
   Njord.SensorHub/            # SensorHub
   Njord.Pipeline/             # PollScheduler, ForecastPipeline, PipelineEvent BroadcastHub
-  Njord.Mqtt/                 # MQTT connection, state payloads, SourceRef consumer
+  Njord.Mqtt/                 # MQTT connection, state payloads, TopicSlug, SourceRef consumer
   Njord.Grpc/                 # gRPC services, GrpcConsumer, protos
 
   # /Analysis/ — per-feature analysis libraries (each -> Core only)
@@ -181,8 +183,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 680 tests (Weather 59, Sensors 11, Persistence 7, Compute 165, Core 115,
-Grpc 56, Pipeline 64, Mqtt 37, OpenMeteo 16, Budget 24, SensorHub 21, Architecture 35,
+Current total: 691 tests (Weather 94, Sensors 11, Persistence 7, Compute 165, Core 86,
+Grpc 56, Pipeline 64, Mqtt 42, OpenMeteo 16, Budget 24, SensorHub 21, Architecture 35,
 Alerts 61, Derived 2, Trends 3, Indices 4).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
@@ -271,6 +273,14 @@ These checks run locally only; they are deliberately not part of CI.
   cannot be enforced there.
 - C#: records for messages/DTOs, value objects in the domain, `sealed` by
   default, nullable enabled.
+- Enrichment types use `EnrichmentKind` enum (`Njord.Core.Egress`), never bare
+  strings. Enrichment `PipelineEvent` variants implement `IEnrichmentEvent`.
+- Consensus method is `ConsensusMethod` enum (`Njord.Compute.Configuration`),
+  not a string.
+- `ParameterRegistry` (`Njord.Weather`): use typed static properties
+  (`ParameterRegistry.Rain`, `.PrecipitationSum`, etc.) in production code.
+  `GetByApiName` is for deserialization only — never call it with a string
+  literal.
 - Persistence records (`Njord.Persistence`): follow FunkArr conventions
   (`akka-skills:persistence`). Extend-only. Never remove or rename a
   `[JsonProperty]` string. New properties must be nullable or have a default.
@@ -278,6 +288,15 @@ These checks run locally only; they are deliberately not part of CI.
   `Persisted<Name>State` for snapshots. While the project is 0.x, moving or
   renaming persistence record types is allowed as a breaking change
   (`refactor!:`); `[JsonProperty]` names stay extend-only.
+- Persistent actors use `LastSequenceNr % SnapshotInterval == 0` for snapshot
+  scheduling (FunkArr pattern). No counters on domain state records.
+- Journal cleanup after snapshot: `DeleteMessages(seqNr)` +
+  `DeleteSnapshots(seqNr - 1)` in `SaveSnapshotSuccess` handler.
+- `Apply` methods on state take the event record directly (e.g.
+  `Apply(ApiCallRecorded evt, ...)`), not decomposed primitive values.
+- `NjordHealthMonitor` (`Njord.Core.Health`) provides health state via atomic
+  immutable snapshot records (`MqttHealthSnapshot`, `PollHealthSnapshot`,
+  `BudgetHealthSnapshot`). Not `*State` — no mutable fields.
 
 ## C# conventions
 
@@ -305,9 +324,10 @@ Rules apply to production code (`src/Njord/`).
   `*State` suffix is reserved for immutable state records, never for actors.
 - **Actor logging:** `private readonly ILoggingAdapter _log = Context.GetLogger();`
   — inline field init, `readonly`, named `_log`. Never `null!` + PreStart.
-- **Actors are resolved by marker interfaces** (`IPollScheduler`, ... in
-  `Njord.Core/Actors/ActorKeys.cs`), registered in the host
-  (`AkkaSetupContainer`); never key a registry lookup by the actor class.
+- **Actors are resolved by marker interfaces** (`IPollScheduler`,
+  `IMqttConnectionActor`, ... in `Njord.Core/Actors/ActorKeys.cs`), registered
+  in the host (`AkkaSetupContainer`); never key a registry lookup by the actor
+  class.
 
 ## Test assertion conventions
 

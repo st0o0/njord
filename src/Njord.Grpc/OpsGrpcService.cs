@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Core.Egress;
 using Njord.Grpc.V2;
 using Njord.Messages.Pipeline;
 
@@ -91,27 +92,27 @@ public sealed class OpsGrpcService(
         var enrichment = _optionsMonitor.CurrentValue.Enrichment;
         if (enrichment.Consensus.Enabled)
         {
-            status.ActiveEnrichments.Add("consensus");
+            status.ActiveEnrichments.Add(EnrichmentKind.Consensus.ToWireName());
         }
 
         if (enrichment.Alerts.Enabled)
         {
-            status.ActiveEnrichments.Add("alerts");
+            status.ActiveEnrichments.Add(EnrichmentKind.Alerts.ToWireName());
         }
 
         if (enrichment.Derived.Enabled)
         {
-            status.ActiveEnrichments.Add("derived");
+            status.ActiveEnrichments.Add(EnrichmentKind.Derived.ToWireName());
         }
 
         if (enrichment.Trends.Enabled)
         {
-            status.ActiveEnrichments.Add("trends");
+            status.ActiveEnrichments.Add(EnrichmentKind.Trends.ToWireName());
         }
 
         if (enrichment.Indices.Enabled)
         {
-            status.ActiveEnrichments.Add("indices");
+            status.ActiveEnrichments.Add(EnrichmentKind.Indices.ToWireName());
         }
 
         return status;

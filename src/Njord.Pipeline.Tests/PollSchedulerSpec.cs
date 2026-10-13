@@ -31,7 +31,7 @@ public sealed class PollSchedulerSpec : NjordActorSpec
         };
         services.AddSingleton<TimeProvider>(_time);
         services.AddSingleton(Options.Create(options));
-        services.AddSingleton(new NjordHealthState { ServiceStartedUtc = _time.GetUtcNow() });
+        services.AddSingleton(new NjordHealthMonitor { ServiceStartedUtc = _time.GetUtcNow() });
     }
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider)

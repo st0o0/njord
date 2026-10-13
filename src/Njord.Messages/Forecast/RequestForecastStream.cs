@@ -10,5 +10,5 @@ public abstract record RequestForecastStreamResponse(Guid RequestId);
 public sealed record RequestForecastStreamCompleted(Guid RequestId, ISourceRef<WeatherForecast> SourceRef)
     : RequestForecastStreamResponse(RequestId);
 
-public sealed record ForecastStreamFailed(Guid RequestId, Exception Cause)
+public sealed record RequestForecastStreamFailed(Guid RequestId, Exception Cause)
     : RequestForecastStreamResponse(RequestId);

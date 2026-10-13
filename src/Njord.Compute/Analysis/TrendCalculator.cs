@@ -2,7 +2,7 @@ using Njord.Weather;
 
 namespace Njord.Compute.Analysis;
 
-public static class TrendAnalyzer
+public static class TrendCalculator
 {
     public static (string Direction, double Delta)? TrendDirection(
         double? prevMedian, double? currMedian, double threshold)
