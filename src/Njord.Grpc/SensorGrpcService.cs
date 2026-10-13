@@ -1,57 +1,50 @@
-using Akka.Actor;
 using Akka.Hosting;
 using Grpc.Core;
-using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
-using Njord.Core.Configuration;
+using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
+using Njord.Messages.Config;
 using Njord.Messages.Sensors;
-using DomainSensorKind = Njord.Sensors.SensorKind;
-using ProtoSensorKind = Njord.Grpc.V2.SensorKind;
+using SensorReading = Njord.Grpc.V2.SensorReading;
 
 namespace Njord.Grpc;
 
 public sealed class SensorGrpcService(
     ActorRegistry actorRegistry,
-    IOptions<NjordOptions> njordOptions,
     TimeProvider timeProvider) : SensorService.SensorServiceBase
 {
-    private readonly HashSet<string> _knownLocations = new(
-        njordOptions.Value.Locations.Select(l => l.Name),
-        StringComparer.OrdinalIgnoreCase);
-
     public override async Task<PushResponse> Push(SensorReading request, ServerCallContext context)
     {
-        var (reading, error) = MapReading(request);
-        if (error is not null)
+        var catalog = await AskCatalogAsync(context);
+        var (command, rejection) = request.ToCommand(catalog, timeProvider.GetUtcNow());
+        if (command is null)
         {
-            return new PushResponse { Accepted = false, RejectionReason = error };
+            return new PushResponse { Accepted = false, RejectionReason = rejection };
         }
 
-        var sensorHub = await actorRegistry.GetAsync<ISensorHub>(context.CancellationToken);
-        var result = await sensorHub.Ask<PushResult>(new UpdateReading(reading!), TimeSpan.FromSeconds(5));
-        return new PushResponse { Accepted = result.Accepted, RejectionReason = result.RejectionReason ?? "" };
+        var result = await actorRegistry.AskAsync<ISensorHub, PushResult>(command, context);
+        return result.ToProto();
     }
 
     public override async Task<PushResponse> StreamPush(
         IAsyncStreamReader<SensorReading> requestStream,
         ServerCallContext context)
     {
-        var sensorHub = await actorRegistry.GetAsync<ISensorHub>(context.CancellationToken);
+        var catalog = await AskCatalogAsync(context);
         var rejected = 0;
         var total = 0;
 
         await foreach (var request in requestStream.ReadAllAsync(context.CancellationToken))
         {
             total++;
-            var (reading, error) = MapReading(request);
-            if (error is not null)
+            var (command, _) = request.ToCommand(catalog, timeProvider.GetUtcNow());
+            if (command is null)
             {
                 rejected++;
                 continue;
             }
 
-            var result = await sensorHub.Ask<PushResult>(new UpdateReading(reading!), TimeSpan.FromSeconds(5));
+            var result = await actorRegistry.AskAsync<ISensorHub, PushResult>(command, context);
             if (!result.Accepted)
             {
                 rejected++;
@@ -63,33 +56,6 @@ public sealed class SensorGrpcService(
             : new PushResponse { Accepted = false, RejectionReason = $"{rejected}/{total} readings rejected" };
     }
 
-    private (Njord.Sensors.SensorReading? Reading, string? Error) MapReading(SensorReading request)
-    {
-        if (!TryMapKind(request.Kind, out var kind))
-        {
-            return (null, $"Unknown or unspecified SensorKind: {request.Kind}");
-        }
-
-        if (!_knownLocations.Contains(request.Location))
-        {
-            return (null, $"Unknown location: {request.Location}");
-        }
-
-        var source = string.IsNullOrWhiteSpace(request.Source) ? "default" : request.Source;
-        var measuredAt = request.MeasuredAt?.ToDateTimeOffset() ?? timeProvider.GetUtcNow();
-
-        var reading = new Njord.Sensors.SensorReading(kind, request.Location, source, request.Value, measuredAt);
-        return (reading, null);
-    }
-
-    private static bool TryMapKind(ProtoSensorKind protoKind, out DomainSensorKind kind)
-    {
-        kind = protoKind switch
-        {
-            ProtoSensorKind.IndoorTemperature => DomainSensorKind.IndoorTemperature,
-            ProtoSensorKind.IndoorHumidity => DomainSensorKind.IndoorHumidity,
-            _ => default,
-        };
-        return protoKind != ProtoSensorKind.Unspecified;
-    }
+    private async Task<CatalogResult> AskCatalogAsync(ServerCallContext context) =>
+        (await actorRegistry.AskAsync<IConfigManager, CatalogResponse>(new QueryCatalog(), context)).ToResult();
 }

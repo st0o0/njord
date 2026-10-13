@@ -10,7 +10,6 @@ namespace Njord.Core.Configuration;
 public sealed class ConfigWriter(
     IServiceProvider services,
     IConfigurationRoot configurationRoot,
-    ConfigChangeFeed changes,
     string overridePath) : IConfigWriter
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
@@ -46,7 +45,6 @@ public sealed class ConfigWriter(
 
             await PersistAsync(ConfigSections.PathOf<T>(), delta, cancellationToken);
             configurationRoot.Reload();
-            changes.Publish();
 
             return new ConfigUpdateResult<T>(true, monitor.CurrentValue, [.. delta.Select(p => p.Key)], []);
         }

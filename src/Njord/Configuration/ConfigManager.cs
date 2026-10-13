@@ -428,14 +428,14 @@ public sealed class ConfigManager : ReceiveActor
         return new UpdateAnalysisConfigCompleted(CurrentSnapshot(), restartRequired);
     }
 
-    private static void ApplyConsensus(ConsensusOptions opt, ConsensusUpdate update)
+    private static void ApplyConsensus(ConsensusOptions opt, ConsensusConfigUpdate update)
     {
         if (update.Enabled is { } enabled) opt.Enabled = enabled;
         if (update.Method is { } method) opt.Method = method;
         if (update.TrimPercent is { } trimPercent) opt.TrimPercent = trimPercent;
     }
 
-    private static void ApplyAlerts(AlertOptions opt, AlertUpdate update)
+    private static void ApplyAlerts(AlertOptions opt, AlertConfigUpdate update)
     {
         if (update.Enabled is { } enabled) opt.Enabled = enabled;
         if (update.FrostThresholds is { } frost) opt.FrostThresholds = [.. frost];
@@ -456,7 +456,7 @@ public sealed class ConfigManager : ReceiveActor
         if (update.HumidityThresholds is { } humidity) opt.HumidityThresholds = [.. humidity];
     }
 
-    private static void ApplyIndices(IndexOptions opt, IndexUpdate update)
+    private static void ApplyIndices(IndexOptions opt, IndexConfigUpdate update)
     {
         if (update.Enabled is { } enabled) opt.Enabled = enabled;
         if (update.IndoorTemp is { } indoor) opt.Preferences.IndoorTemp = indoor;

@@ -1,22 +1,22 @@
 using System.Diagnostics;
 using System.Reflection;
-using Akka.Actor;
+using System.Runtime.ExceptionServices;
 using Akka.Hosting;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
-using Njord.Messages.Budget;
 using Njord.Core.Actors;
-using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
+using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
+using Njord.Messages.Budget;
+using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
 using Njord.Weather;
+using ConfigResponse = Njord.Messages.Config.ConfigResponse;
 
 namespace Njord.Grpc;
 
 public sealed class OpsGrpcService(
-    ConfigView config,
     ActorRegistry actorRegistry,
     TimeProvider timeProvider,
     ILogger<OpsGrpcService> logger) : OpsService.OpsServiceBase
@@ -27,36 +27,33 @@ public sealed class OpsGrpcService(
 
     private static readonly DateTimeOffset ProcessStart = Process.GetCurrentProcess().StartTime.ToUniversalTime();
 
-    private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(5);
-
-    private readonly ConfigView _config = config;
-    private readonly ActorRegistry _actorRegistry = actorRegistry;
-    private readonly TimeProvider _timeProvider = timeProvider;
-    private readonly ILogger<OpsGrpcService> _logger = logger;
-
     // ═══════════════════════════════════════
     // Status
     // ═══════════════════════════════════════
 
     public override async Task<StatusResponse> GetStatus(GetStatusRequest request, ServerCallContext context)
     {
-        var uptime = _timeProvider.GetUtcNow() - ProcessStart;
-        var budget = BudgetCalculator.GetEffectiveBudget(_config.Polling);
+        var uptime = timeProvider.GetUtcNow() - ProcessStart;
+        var config = await AskConfigAsync(context);
 
-        long monthlyUsed = 0;
-        long dailyUsed = 0;
+        // Without an answer from the tracker the status reports zero usage against the configured budget.
+        var budget = new BudgetStatusResult(0, 0, config.Polling.EffectiveBudget.RequestsPerMonth, config.Polling.DailyLimit);
         var budgetPartial = false;
         try
         {
-            var tracker = await _actorRegistry.GetAsync<IBudgetTracker>();
-            var usage = await tracker.Ask<BudgetUsageResult>(
-                new QueryBudgetUsage(), AskTimeout);
-            monthlyUsed = usage.MonthlyUsed;
-            dailyUsed = usage.DailyUsed;
+            var response = await actorRegistry.AskAsync<IBudgetTracker, BudgetStatusResponse>(new QueryBudgetStatus(), context);
+            if (response is BudgetStatusResult result)
+            {
+                budget = result;
+            }
+            else
+            {
+                budgetPartial = true;
+            }
         }
-        catch (AskTimeoutException)
+        catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded)
         {
-            _logger.LogWarning("BudgetTracker did not respond within {Timeout}s — returning status with zero usage", AskTimeout.TotalSeconds);
+            logger.LogWarning("BudgetTracker did not respond in time — returning status with zero usage");
             budgetPartial = true;
         }
 
@@ -66,55 +63,20 @@ public sealed class OpsGrpcService(
             BudgetPartial = budgetPartial,
             UptimeSeconds = (long)uptime.TotalSeconds,
             ProcessStart = Timestamp.FromDateTimeOffset(ProcessStart),
-            Budget = new BudgetStatus
-            {
-                MonthlyLimit = budget.RequestsPerMonth,
-                MonthlyUsed = monthlyUsed,
-                DailyLimit = RequestBudget.OpenMeteoFreeTierDailyLimit,
-                DailyUsed = dailyUsed,
-                UsagePercent = budget.RequestsPerMonth > 0
-                    ? (double)monthlyUsed / budget.RequestsPerMonth * 100
-                    : 0,
-            },
+            Budget = budget.ToProto(),
         };
 
-        try
+        if (await AskPollStatesAsync(context) is { } entries)
         {
-            var scheduler = await _actorRegistry.GetAsync<IPollScheduler>();
-            var snapshot = await scheduler.Ask<PollStatesResult>(new QueryPollStates(), AskTimeout);
-            status.Models.AddRange(snapshot.Entries.Select(PollStatusMapper.ToModelStatus));
+            status.Models.AddRange(entries.Select(e => e.ToModelStatus()));
         }
-        catch (AskTimeoutException)
+        else
         {
-            _logger.LogWarning("PollScheduler did not respond within {Timeout}s — returning status without model poll states", AskTimeout.TotalSeconds);
+            logger.LogWarning("PollScheduler did not respond in time — returning status without model poll states");
             status.ModelsPartial = true;
         }
 
-        if (_config.Consensus.Enabled)
-        {
-            status.ActiveEnrichments.Add(EnrichmentKind.Consensus.ToWireName());
-        }
-
-        if (_config.Alerts.Enabled)
-        {
-            status.ActiveEnrichments.Add(EnrichmentKind.Alerts.ToWireName());
-        }
-
-        if (_config.Derived.Enabled)
-        {
-            status.ActiveEnrichments.Add(EnrichmentKind.Derived.ToWireName());
-        }
-
-        if (_config.Trends.Enabled)
-        {
-            status.ActiveEnrichments.Add(EnrichmentKind.Trends.ToWireName());
-        }
-
-        if (_config.Indices.Enabled)
-        {
-            status.ActiveEnrichments.Add(EnrichmentKind.Indices.ToWireName());
-        }
-
+        status.ActiveEnrichments.AddRange(config.Analysis.ActiveAnalyses());
         return status;
     }
 
@@ -126,15 +88,13 @@ public sealed class OpsGrpcService(
     {
         var response = new GetTargetsResponse();
 
-        try
+        if (await AskPollStatesAsync(context) is { } entries)
         {
-            var scheduler = await _actorRegistry.GetAsync<IPollScheduler>();
-            var snapshot = await scheduler.Ask<PollStatesResult>(new QueryPollStates(), AskTimeout);
-            response.Targets.AddRange(snapshot.Entries.Select(PollStatusMapper.ToTriggerTarget));
+            response.Targets.AddRange(entries.Select(e => e.ToTriggerTarget()));
         }
-        catch (AskTimeoutException)
+        else
         {
-            _logger.LogWarning("PollScheduler did not respond within {Timeout}s — returning empty trigger targets", AskTimeout.TotalSeconds);
+            logger.LogWarning("PollScheduler did not respond in time — returning empty trigger targets");
         }
 
         return response;
@@ -146,13 +106,48 @@ public sealed class OpsGrpcService(
 
     public override async Task<TriggerPollResponse> TriggerPoll(TriggerPollRequest request, ServerCallContext context)
     {
-        var scheduler = await _actorRegistry.GetAsync<IPollScheduler>();
-        var result = await scheduler.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll(
-                string.IsNullOrEmpty(request.Location) ? null : new LocationId(request.Location), request.Model), AskTimeout);
+        var location = string.IsNullOrEmpty(request.Location) ? (LocationId?)null : new LocationId(request.Location);
+        var response = await actorRegistry.AskAsync<IPollScheduler, TriggerImmediatePollResponse>(
+            new TriggerImmediatePoll(location, request.Model), context);
 
-        var response = new TriggerPollResponse { TriggeredCount = result.Count };
-        response.Targets.AddRange(result.Targets);
-        return response;
+        switch (response)
+        {
+            case TriggerImmediatePollCompleted completed:
+                return completed.ToProto();
+            case TriggerImmediatePollFailed failed:
+                ExceptionDispatchInfo.Capture(failed.Cause).Throw();
+                break;
+        }
+
+        throw new RpcException(new Status(StatusCode.Internal, $"Unexpected reply: {response.GetType().Name}"));
+    }
+
+    private async Task<ConfigSnapshot> AskConfigAsync(ServerCallContext context)
+    {
+        var response = await actorRegistry.AskAsync<IConfigManager, ConfigResponse>(new QueryConfig(), context);
+        switch (response)
+        {
+            case ConfigResult result:
+                return result.Config;
+            case ConfigFailed failed:
+                ExceptionDispatchInfo.Capture(failed.Cause).Throw();
+                break;
+        }
+
+        throw new RpcException(new Status(StatusCode.Internal, $"Unexpected reply: {response.GetType().Name}"));
+    }
+
+    // Null when the scheduler did not answer in time or could not report its states.
+    private async Task<IReadOnlyList<PollStateEntry>?> AskPollStatesAsync(ServerCallContext context)
+    {
+        try
+        {
+            var response = await actorRegistry.AskAsync<IPollScheduler, PollStatesResponse>(new QueryPollStates(), context);
+            return response is PollStatesResult result ? result.Entries : null;
+        }
+        catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded)
+        {
+            return null;
+        }
     }
 }

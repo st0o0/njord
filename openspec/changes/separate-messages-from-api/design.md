@@ -154,3 +154,37 @@ Adaptations made during implementation, where the code differed from what the ta
   `NjordHealthMonitor` budget snapshot. `ConfigManager` already keeps that snapshot at the
   effective monthly budget on every reload, so the tracker needs no options access (actors
   other than `ConfigManager` must not inject an options monitor). `QueryBudgetUsage` stays.
+
+### Group 4 (gRPC as a pure adapter)
+- `ActorAsk.AskAsync<TKey, TResponse>` resolves with `ActorRegistry.TryGet` (no waiting): an
+  unregistered marker fails with `Unavailable`, an ask timeout (default 5 s) with
+  `DeadlineExceeded`. Before, `GetAsync` waited for registration without a bound.
+- `OpsGrpcService.GetStatus`/`GetTargets` keep their partial flags for a timeout
+  (`DeadlineExceeded`) and also for a `*Failed` answer; an unresolvable tracker or scheduler
+  now fails the RPC with `Unavailable`. On a budget timeout the reported limits come from the
+  config snapshot's effective budget, as before. `OpsGrpcService` keeps its `ILogger` for those
+  warnings (logging, not system access).
+- A `*Failed` answer from `ConfigManager` (or `TriggerImmediatePollFailed`) rethrows its cause
+  in the RPC, so a failing configuration write surfaces exactly as when the API wrote the
+  configuration itself.
+- Mapping lives in `Njord.Grpc/Mapping/` (`Forecast`, `Analysis`, `Config`, `Catalog`, `Ops`,
+  `Sensor` `ProtoMappings`, all `internal static`). The shared `ModelStatus`/`TriggerTarget`
+  fields are mapped once. Sensor request shaping takes the catalog result as input for the
+  location check. `AdminGrpcService.RestartNoticePrefix` stays (the spec uses it) and points
+  to `ConfigProtoMappings.RestartNoticePrefix`.
+- Spec renames: `EnrichmentProtoMapperSpec` → `AnalysisProtoMappingsSpec`, `CatalogMapperSpec`
+  → `CatalogProtoMappingsSpec`, `PollStatusMapperSpec` → `OpsProtoMappingsSpec`,
+  `ForecastPointMappingSpec` → `ForecastProtoMappingsSpec`. `ProtoMappingGoldenMasterSpec`
+  keeps its name, because Verify derives the `.verified.txt` file names from the class name
+  and those files must not change; it now calls the new mappings.
+- The gRPC service specs keep their expectations. Their setup changed: services get a
+  `FakeConfigManager` (answers from options through the production `ConfigSnapshotMapping`),
+  and `AdminGrpcServiceSpec` hosts the real `ConfigManager` over a `ConfigHarness`, so
+  `Njord.Grpc.Tests` now references the host project. Those specs moved to
+  `TestTimeouts.Hosted`, since they start an actor system.
+- `StreamConfig` deduplicates by proto equality as before, now over the config stream instead
+  of change signals. `ConfigChangeFeed` had no remaining user and was removed (with its
+  `ConfigWriter` parameter and its one `ConfigWriterSpec` case); the
+  "reload from outside the writer" case is covered through `RequestConfigStream` in
+  `ConfigManagerSpec`.
+- `Njord.Grpc` no longer references `Akka.Cluster.Hosting` or `Servus.Akka`.

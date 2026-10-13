@@ -1,5 +1,6 @@
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
+using Njord.Grpc.Mapping;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using Njord.Weather;
@@ -14,7 +15,7 @@ using DomainScalarDerived = Njord.Compute.Contracts.ScalarDerived;
 
 namespace Njord.Grpc.Tests;
 
-public sealed class EnrichmentProtoMapperSpec
+public sealed class AnalysisProtoMappingsSpec
 {
     [Fact]
     public void MapAlerts_should_map_alert_type_and_severity_enums()
@@ -27,7 +28,7 @@ public sealed class EnrichmentProtoMapperSpec
                 NoDetails.Instance),
         ]);
 
-        var update = EnrichmentProtoMapper.MapAlerts(result);
+        var update = AnalysisProtoMappings.ToProto(result);
 
         Assert.Equal(2, update.Alerts.Count);
 
@@ -50,7 +51,7 @@ public sealed class EnrichmentProtoMapperSpec
             FrostProtection: new FrostProtectionInfo(HoursUntilFrost: 8, Confidence: 0.7),
             Vpd: new VpdInfo(Category: "optimal", Vpd: 1.2));
 
-        var update = EnrichmentProtoMapper.MapIndices(result);
+        var update = AnalysisProtoMappings.ToProto(result);
 
         Assert.Single(update.Days);
         var d0 = update.Days[0];
@@ -79,7 +80,7 @@ public sealed class EnrichmentProtoMapperSpec
             [new DayScoreSet(0, 50, 50, 50, 50, 50, 50, 50, 50, HoursIncluded: 14)],
             null, null);
 
-        var update = EnrichmentProtoMapper.MapIndices(result);
+        var update = AnalysisProtoMappings.ToProto(result);
 
         Assert.Null(update.Frost);
         Assert.Null(update.Vpd);
@@ -94,7 +95,7 @@ public sealed class EnrichmentProtoMapperSpec
                 OutdoorEnvelope: envelope)],
             null, null);
 
-        var update = EnrichmentProtoMapper.MapIndices(result);
+        var update = AnalysisProtoMappings.ToProto(result);
 
         var d0 = update.Days[0];
         Assert.NotNull(d0.OutdoorEnvelope);
@@ -121,7 +122,7 @@ public sealed class EnrichmentProtoMapperSpec
             Stability: new StabilityInfo(Stability: Stability.Stable, Ratio: 0.9),
             Decay: new DecayInfo(DecayRate: 0.15, ReliableHours: 24));
 
-        var update = EnrichmentProtoMapper.MapTrends(result);
+        var update = AnalysisProtoMappings.ToProto(result);
 
         Assert.Single(update.ParameterTrends);
         Assert.Equal("temperature_2m", update.ParameterTrends[0].Parameter);
@@ -148,7 +149,7 @@ public sealed class EnrichmentProtoMapperSpec
         var scalars = new DomainScalarDerived(DiurnalAmplitude: 12.3, SunshinePct: 65.0, Inversion: true);
         var result = new DerivedResult(new LocationId("lucerne"), byHorizon, scalars);
 
-        var update = EnrichmentProtoMapper.MapDerived(result);
+        var update = AnalysisProtoMappings.ToProto(result);
 
         Assert.Single(update.ByHorizon);
         Assert.Equal("h3", update.ByHorizon[0].Horizon);
@@ -183,7 +184,7 @@ public sealed class EnrichmentProtoMapperSpec
 
         var result = new ConsensusResult([paramConsensus]);
 
-        var update = EnrichmentProtoMapper.MapConsensus(result);
+        var update = AnalysisProtoMappings.ToProto(result);
 
         Assert.Single(update.HourlyParameters);
         Assert.Equal("temperature_2m", update.HourlyParameters[0].Parameter);
@@ -201,7 +202,7 @@ public sealed class EnrichmentProtoMapperSpec
     }
 
     [Fact]
-    public void MapToEvent_should_wrap_alert_result_in_enrichment_event()
+    public void ToEnrichmentEvent_should_wrap_alert_result_in_enrichment_event()
     {
         var alertResult = new AlertResult(new LocationId("lucerne"),
         [
@@ -210,7 +211,7 @@ public sealed class EnrichmentProtoMapperSpec
         ]);
         var updatedAt = TestTimeConstants.BudgetEpoch;
 
-        var evt = EnrichmentProtoMapper.MapToEvent(new PipelineEvent.AlertComputed(alertResult, updatedAt), updatedAt);
+        var evt = AnalysisProtoMappings.ToEnrichmentEvent(new PipelineEvent.AlertComputed(alertResult, updatedAt));
 
         Assert.NotNull(evt);
         Assert.Equal("lucerne", evt.Location);
@@ -234,7 +235,7 @@ public sealed class EnrichmentProtoMapperSpec
         };
         var result = new ConsensusResult([], (IReadOnlyList<DomainParameterConsensus>)dailyParams);
 
-        var update = EnrichmentProtoMapper.MapConsensus(result);
+        var update = AnalysisProtoMappings.ToProto(result);
 
         Assert.Single(update.DailyParameters);
         var proto = update.DailyParameters[0];
@@ -250,13 +251,13 @@ public sealed class EnrichmentProtoMapperSpec
     {
         var result = new ConsensusResult([]);
 
-        var update = EnrichmentProtoMapper.MapConsensus(result);
+        var update = AnalysisProtoMappings.ToProto(result);
 
         Assert.Empty(update.DailyParameters);
     }
 
     [Fact]
-    public void MapToEvent_should_wrap_consensus_result_in_enrichment_event()
+    public void ToEnrichmentEvent_should_wrap_consensus_result_in_enrichment_event()
     {
         var param = new ParameterDef("temperature_2m", "C", "temperature", "temperature_2m",
             ParameterGroup.Weather, ParameterGranularity.Hourly);
@@ -276,7 +277,7 @@ public sealed class EnrichmentProtoMapperSpec
 
         var snapshot = new ConsensusSnapshot(new LocationId("lucerne"),
             new HourlyConsensus([hourlyParam], 72), new DailyConsensus([dailyParam], 4), updatedAt);
-        var evt = EnrichmentProtoMapper.MapToEvent(new PipelineEvent.ConsensusComputed(snapshot, updatedAt), updatedAt);
+        var evt = AnalysisProtoMappings.ToEnrichmentEvent(new PipelineEvent.ConsensusComputed(snapshot, updatedAt));
 
         Assert.NotNull(evt);
         Assert.Equal("lucerne", evt.Location);
@@ -287,13 +288,12 @@ public sealed class EnrichmentProtoMapperSpec
     }
 
     [Fact]
-    public void MapToEvent_should_return_null_for_non_analysis_event()
+    public void ToEnrichmentEvent_should_return_null_for_non_analysis_event()
     {
-        var evt = EnrichmentProtoMapper.MapToEvent(
+        var evt = AnalysisProtoMappings.ToEnrichmentEvent(
             new PipelineEvent.ForecastReceived(new LocationId("lucerne"), new WeatherModel("icon_d2"),
                 new Forecast(new WeatherModel("icon_d2"), "lucerne", default,
-                    new ForecastSeries([]), DailyForecastSeries.Empty)),
-            TestTimeConstants.PipelineEpoch);
+                    new ForecastSeries([]), DailyForecastSeries.Empty)));
 
         Assert.Null(evt);
     }

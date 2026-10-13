@@ -23,12 +23,12 @@ service specs must pass without re-approval after every group.
 
 ## 4. gRPC as a pure adapter
 
-- [ ] 4.1 Add `src/Njord.Grpc/ActorAsk.cs` (resolve marker, ask with timeout, map to `Unavailable`/`DeadlineExceeded`); spec in `src/Njord.Grpc.Tests/ActorAskSpec.cs`
-- [ ] 4.2 Add `src/Njord.Grpc/Mapping/*ProtoMappings.cs` per domain; move the logic from `CatalogMapper`, `PollStatusMapper`, `EnrichmentProtoMapper` and the inline mappings; move their specs and the golden-master spec to the new names
-- [ ] 4.3 Rewrite `WeatherGrpcService` and `SensorGrpcService` to ask/map only (catalog via `QueryCatalog`, location/model validation via the catalog result or the target actor's rejection)
-- [ ] 4.4 Rewrite `OpsGrpcService` to ask/map only (budget via `QueryBudgetStatus`, toggles via `QueryConfig`)
-- [ ] 4.5 Rewrite `AdminGrpcService` to ask/map only (`GetConfig`/`Set*` via ConfigManager messages, `StreamConfig` via `RequestConfigStream`); keep `src/Njord.Grpc.Tests/AdminGrpcServiceSpec.cs` expectations unchanged
-- [ ] 4.6 Remove `Microsoft.Extensions.Options` usage and any reference to `BudgetCalculator`/`ModelCoverageRegistry` from `src/Njord.Grpc`; delete `GrpcConsumer`, `CatalogMapper`, `PollStatusMapper`, `EnrichmentProtoMapper`
+- [x] 4.1 Add `src/Njord.Grpc/ActorAsk.cs` (resolve marker, ask with timeout, map to `Unavailable`/`DeadlineExceeded`); spec in `src/Njord.Grpc.Tests/ActorAskSpec.cs`
+- [x] 4.2 Add `src/Njord.Grpc/Mapping/*ProtoMappings.cs` per domain; move the logic from `CatalogMapper`, `PollStatusMapper`, `EnrichmentProtoMapper` and the inline mappings; move their specs and the golden-master spec to the new names
+- [x] 4.3 Rewrite `WeatherGrpcService` and `SensorGrpcService` to ask/map only (catalog via `QueryCatalog`, location/model validation via the catalog result or the target actor's rejection)
+- [x] 4.4 Rewrite `OpsGrpcService` to ask/map only (budget via `QueryBudgetStatus`, toggles via `QueryConfig`)
+- [x] 4.5 Rewrite `AdminGrpcService` to ask/map only (`GetConfig`/`Set*` via ConfigManager messages, `StreamConfig` via `RequestConfigStream`); keep `src/Njord.Grpc.Tests/AdminGrpcServiceSpec.cs` expectations unchanged
+- [x] 4.6 Remove `Microsoft.Extensions.Options` usage and any reference to `BudgetCalculator`/`ModelCoverageRegistry` from `src/Njord.Grpc`; delete `GrpcConsumer`, `CatalogMapper`, `PollStatusMapper`, `EnrichmentProtoMapper`
 
 ## 5. Enforce and document
 

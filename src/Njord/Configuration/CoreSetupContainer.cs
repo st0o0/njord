@@ -67,11 +67,9 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
         }
 
         services.AddSingleton<ConfigView>();
-        services.AddSingleton<ConfigChangeFeed>();
         services.AddSingleton<IConfigWriter>(static sp => new ConfigWriter(
             sp,
             (IConfigurationRoot)sp.GetRequiredService<IConfiguration>(),
-            sp.GetRequiredService<ConfigChangeFeed>(),
             OverridePath));
 
         services.AddSingleton<IActorRegistration>(new ConfigActorRegistration());

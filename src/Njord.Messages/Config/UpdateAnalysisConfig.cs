@@ -4,15 +4,15 @@ namespace Njord.Messages.Config;
 
 // A null section or value leaves the current setting unchanged.
 public sealed record UpdateAnalysisConfig(
-    ConsensusUpdate? Consensus,
-    AlertUpdate? Alerts,
+    ConsensusConfigUpdate? Consensus,
+    AlertConfigUpdate? Alerts,
     bool? DerivedEnabled,
     bool? TrendsEnabled,
-    IndexUpdate? Indices);
+    IndexConfigUpdate? Indices);
 
-public sealed record ConsensusUpdate(bool? Enabled, ConsensusMethod? Method, double? TrimPercent);
+public sealed record ConsensusConfigUpdate(bool? Enabled, ConsensusMethod? Method, double? TrimPercent);
 
-public sealed record AlertUpdate(
+public sealed record AlertConfigUpdate(
     bool? Enabled,
     IReadOnlyList<double>? FrostThresholds,
     IReadOnlyList<double>? HeatThresholds,
@@ -31,7 +31,7 @@ public sealed record AlertUpdate(
     IReadOnlyList<double>? TropicalNightThresholds,
     IReadOnlyList<double>? HumidityThresholds);
 
-public sealed record IndexUpdate(
+public sealed record IndexConfigUpdate(
     bool? Enabled,
     double? IndoorTemp,
     double? IdealOutdoorTemp,

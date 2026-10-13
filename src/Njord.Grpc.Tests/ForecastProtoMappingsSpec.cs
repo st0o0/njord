@@ -1,8 +1,9 @@
+using Njord.Grpc.Mapping;
 using Njord.Weather;
 
 namespace Njord.Grpc.Tests;
 
-public sealed class ForecastPointMappingSpec
+public sealed class ForecastProtoMappingsSpec
 {
     private static readonly DateTimeOffset ValidAt = new(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
 
@@ -25,7 +26,7 @@ public sealed class ForecastPointMappingSpec
             [ParameterRegistry.PressureMsl] = 1015.2,
         };
 
-        var hourly = WeatherGrpcService.ToHourlyForecast(new ForecastPoint(ValidAt, values));
+        var hourly = ForecastProtoMappings.ToProto(new ForecastPoint(ValidAt, values));
 
         Assert.Multiple(
             () => Assert.Equal(ValidAt, hourly.ValidAt.ToDateTimeOffset()),
@@ -47,7 +48,7 @@ public sealed class ForecastPointMappingSpec
     [Fact]
     public void ToHourlyForecast_should_leave_optional_fields_unset_when_absent()
     {
-        var hourly = WeatherGrpcService.ToHourlyForecast(
+        var hourly = ForecastProtoMappings.ToProto(
             new ForecastPoint(ValidAt, new Dictionary<ParameterDef, double?>()));
 
         Assert.Multiple(
@@ -68,7 +69,7 @@ public sealed class ForecastPointMappingSpec
             [ParameterRegistry.Cape] = null,
         };
 
-        var hourly = WeatherGrpcService.ToHourlyForecast(new ForecastPoint(ValidAt, values));
+        var hourly = ForecastProtoMappings.ToProto(new ForecastPoint(ValidAt, values));
 
         var extra = Assert.Single(hourly.Extra);
         Assert.Equal(ParameterRegistry.UvIndex.ApiName, extra.Name);
@@ -93,7 +94,7 @@ public sealed class ForecastPointMappingSpec
             [ParameterRegistry.Sunset] = "2026-07-15T21:10",
         };
 
-        var daily = WeatherGrpcService.ToDailyForecast(
+        var daily = ForecastProtoMappings.ToProto(
             new DailyForecastPoint(new DateOnly(2026, 7, 15), numeric, meta));
 
         Assert.Multiple(
@@ -112,7 +113,7 @@ public sealed class ForecastPointMappingSpec
     [Fact]
     public void ToDailyForecast_should_default_sunrise_sunset_and_leave_numerics_unset_when_absent()
     {
-        var daily = WeatherGrpcService.ToDailyForecast(new DailyForecastPoint(
+        var daily = ForecastProtoMappings.ToProto(new DailyForecastPoint(
             new DateOnly(2026, 7, 15),
             new Dictionary<ParameterDef, double?>(),
             new Dictionary<ParameterDef, string?>()));
@@ -131,7 +132,7 @@ public sealed class ForecastPointMappingSpec
         var numeric = new Dictionary<ParameterDef, double?> { [ParameterRegistry.UvIndex] = 6.0 };
         var meta = new Dictionary<ParameterDef, string?> { [ParameterRegistry.Cape] = "high" };
 
-        var daily = WeatherGrpcService.ToDailyForecast(
+        var daily = ForecastProtoMappings.ToProto(
             new DailyForecastPoint(new DateOnly(2026, 7, 15), numeric, meta));
 
         Assert.Equal(2, daily.Extra.Count);

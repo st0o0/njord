@@ -2,6 +2,7 @@ using System.Text;
 using Google.Protobuf;
 using Njord.Weather;
 using Njord.Messages.Pipeline;
+using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Tests.Shared;
 using static VerifyXunit.Verifier;
@@ -24,8 +25,8 @@ public sealed class ProtoMappingGoldenMasterSpec
         var text = new StringBuilder();
         foreach (var analysis in Fixture.Analyses)
         {
-            var mapped = EnrichmentProtoMapper.MapToEvent(
-                new PipelineEvent.ConsensusComputed(analysis.Consensus, AnalysisFixture.Now), AnalysisFixture.Now);
+            var mapped = AnalysisProtoMappings.ToEnrichmentEvent(
+                new PipelineEvent.ConsensusComputed(analysis.Consensus, AnalysisFixture.Now));
             Assert.NotNull(mapped);
             text.AppendLine($"## {mapped.Location} {mapped.TypeName} {mapped.UpdatedAt}");
             AppendParameters("hourly", mapped.Consensus.HourlyParameters, text);
@@ -57,7 +58,7 @@ public sealed class ProtoMappingGoldenMasterSpec
         var text = new StringBuilder();
         foreach (var forecast in Fixture.Forecasts.Where(f => f.Model == AnalysisFixture.Gfs))
         {
-            var update = WeatherGrpcService.MapForecastUpdate(
+            var update = ForecastProtoMappings.ToProto(
                 new PipelineEvent.ForecastReceived(new LocationId(forecast.Location), forecast.Model, forecast),
                 AnalysisFixture.Now);
             text.AppendLine($"## {update.Location} {update.Model} {update.UpdatedAt}");
@@ -79,7 +80,7 @@ public sealed class ProtoMappingGoldenMasterSpec
     public void Fixture_maps_every_alert_type_into_the_alert_events()
     {
         var lucerne = Fixture.For(AnalysisFixture.Lucerne);
-        var mapped = EnrichmentProtoMapper.MapAlerts(lucerne.Alerts);
+        var mapped = AnalysisProtoMappings.ToProto(lucerne.Alerts);
 
         var types = mapped.Alerts.Select(a => a.Type).ToHashSet();
         var expected = Enum.GetValues<AlertType>().Where(t => t != AlertType.Unspecified);
@@ -90,7 +91,7 @@ public sealed class ProtoMappingGoldenMasterSpec
     [Fact]
     public void Fixture_maps_every_index_kind_with_an_envelope()
     {
-        var days = Fixture.Analyses.SelectMany(a => EnrichmentProtoMapper.MapIndices(a.Indices).Days).ToList();
+        var days = Fixture.Analyses.SelectMany(a => AnalysisProtoMappings.ToProto(a.Indices).Days).ToList();
 
         Assert.NotEmpty(days);
         Assert.All(days, d => Assert.Multiple(
@@ -122,7 +123,7 @@ public sealed class ProtoMappingGoldenMasterSpec
         var text = new StringBuilder();
         foreach (var analysis in Fixture.Analyses)
         {
-            var mapped = EnrichmentProtoMapper.MapToEvent(build(analysis), AnalysisFixture.Now);
+            var mapped = AnalysisProtoMappings.ToEnrichmentEvent(build(analysis));
             Assert.NotNull(mapped);
             text.AppendLine(Formatter.Format(mapped));
         }

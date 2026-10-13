@@ -1,12 +1,12 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Grpc.Core;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Grpc.V2;
 using Njord.Messages.Forecast;
+using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using Njord.Weather;
 
@@ -38,10 +38,12 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             Models = ["icon_d2", "ecmwf_ifs025"],
         };
 
+        var config = TestConfigView.Create(options);
+        ActorRegistry.Register<IConfigManager>(
+            Sys.ActorOf(Props.Create(() => new FakeConfigManager(config))), overwrite: true);
         ActorRegistry.Register<IForecastReadModel>(
             consumerActor ?? Sys.ActorOf(Props.Create(() => new EmptyConsumerActor())), overwrite: true);
         return new WeatherGrpcService(
-            Options.Create(options),
             ActorRegistry,
             Sys,
             timeProvider ?? _time);
@@ -123,6 +125,37 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(StatusCode.NotFound, ex.StatusCode);
     }
 
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetForecast_fails_with_unavailable_before_the_read_model_is_resolvable()
+    {
+        var config = TestConfigView.Create(new NjordOptions
+        {
+            Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
+            Models = ["icon_d2"],
+        });
+        ActorRegistry.Register<IConfigManager>(Sys.ActorOf(Props.Create(() => new FakeConfigManager(config))));
+        var service = new WeatherGrpcService(ActorRegistry, Sys, _time);
+
+        var ex = await Assert.ThrowsAsync<RpcException>(() =>
+            service.GetForecast(
+                new GetForecastRequest { Location = "lucerne", Model = "icon_d2" },
+                TestServerCallContext.Create(TestContext.Current.CancellationToken)));
+
+        Assert.Equal(StatusCode.Unavailable, ex.StatusCode);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetEnrichments_returns_only_the_location_before_the_first_analysis()
+    {
+        var service = CreateService();
+
+        var response = await service.GetEnrichments(
+            new GetEnrichmentsRequest { Location = "lucerne" },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.Equal(new GetEnrichmentsResponse { Location = "lucerne" }, response);
+    }
+
     private static Forecast CreateForecast(string model = "icon_d2")
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
@@ -139,6 +172,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         public EmptyConsumerActor()
         {
             Receive<QueryForecast>(msg => Sender.Tell(new ForecastNotAvailable(msg.Location.Name + "|" + msg.ModelId), Self));
+            Receive<QueryLatestAnalysis>(msg => Sender.Tell(new LatestAnalysisNotAvailable(msg.Location), Self));
         }
     }
 

@@ -49,7 +49,8 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             derived: new DerivedOptions { Enabled = false },
             trends: new TrendOptions { Enabled = false },
             indices: new IndexOptions { Enabled = false });
-        return new OpsGrpcService(config, ActorRegistry, _time,
+        ActorRegistry.Register<IConfigManager>(Sys.ActorOf(Props.Create(() => new FakeConfigManager(config))), overwrite: true);
+        return new OpsGrpcService(ActorRegistry, _time,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<OpsGrpcService>.Instance);
     }
 
@@ -242,8 +243,8 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakeBudgetTrackerActor()
         {
-            Receive<QueryBudgetUsage>(_ =>
-                Sender.Tell(new BudgetUsageResult(42, 7), Self));
+            Receive<QueryBudgetStatus>(_ =>
+                Sender.Tell(new BudgetStatusResult(42, 7, 300_000, 10_000), Self));
         }
     }
 
@@ -251,7 +252,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public SlowBudgetTrackerActor()
         {
-            Receive<QueryBudgetUsage>(_ => { });
+            Receive<QueryBudgetStatus>(_ => { });
         }
     }
 

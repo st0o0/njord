@@ -194,19 +194,6 @@ public sealed class ConfigWriterSpec : IDisposable
         Assert.False(threshold.RequiresRestart);
     }
 
-    [Fact(Timeout = 5000)]
-    public async Task A_successful_write_signals_the_change_feed()
-    {
-        var feed = new ConfigChangeFeed();
-        var signals = 0;
-        using var _ = feed.Subscribe(() => Interlocked.Increment(ref signals));
-        var (writer, _) = CreateWriter(feed: feed);
-
-        await writer.UpdateAsync<NjordOptions>(opt => opt.ForecastDays = 7, TestContext.Current.CancellationToken);
-
-        Assert.Equal(1, signals);
-    }
-
     public void Dispose()
     {
         if (Directory.Exists(_tempDir))
@@ -217,7 +204,7 @@ public sealed class ConfigWriterSpec : IDisposable
 
     private JsonNode ReadOverride() => JsonNode.Parse(File.ReadAllText(OverridePath))!;
 
-    private (ConfigWriter Writer, ServiceProvider Provider) CreateWriter(bool alertsEnabled = true, ConfigChangeFeed? feed = null)
+    private (ConfigWriter Writer, ServiceProvider Provider) CreateWriter(bool alertsEnabled = true)
     {
         var configRoot = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -243,6 +230,6 @@ public sealed class ConfigWriterSpec : IDisposable
         services.AddSingleton<IValidateOptions<ConsensusOptions>, ConsensusOptionsValidator>();
         var provider = services.BuildServiceProvider();
 
-        return (new ConfigWriter(provider, configRoot, feed ?? new ConfigChangeFeed(), OverridePath), provider);
+        return (new ConfigWriter(provider, configRoot, OverridePath), provider);
     }
 }

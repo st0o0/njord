@@ -1,10 +1,11 @@
 using Google.Protobuf.WellKnownTypes;
 using Njord.Weather;
+using Njord.Grpc.Mapping;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Grpc.Tests;
 
-public sealed class PollStatusMapperSpec
+public sealed class OpsProtoMappingsSpec
 {
     private static readonly DateTimeOffset NextPoll = new(2026, 7, 15, 13, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset LastChange = new(2026, 7, 15, 11, 0, 0, TimeSpan.Zero);
@@ -14,7 +15,7 @@ public sealed class PollStatusMapperSpec
     {
         var entry = new PollStateEntry(new LocationId("lucerne"), "icon_d2", PollPhase.Steady, NextPoll, LastChange, 2, 3600);
 
-        var status = PollStatusMapper.ToModelStatus(entry);
+        var status = OpsProtoMappings.ToModelStatus(entry);
 
         Assert.Multiple(
             () => Assert.Equal("lucerne", status.Location),
@@ -31,7 +32,7 @@ public sealed class PollStatusMapperSpec
     {
         var entry = new PollStateEntry(new LocationId("lucerne"), "icon_d2", PollPhase.Discovery, NextPoll, null, 0, null);
 
-        var status = PollStatusMapper.ToModelStatus(entry);
+        var status = OpsProtoMappings.ToModelStatus(entry);
 
         Assert.Multiple(
             () => Assert.Equal("discovery", status.Phase),
@@ -44,7 +45,7 @@ public sealed class PollStatusMapperSpec
     {
         var entry = new PollStateEntry(new LocationId("zurich"), "ecmwf_ifs025", PollPhase.Steady, NextPoll, LastChange, 1, 7200);
 
-        var target = PollStatusMapper.ToTriggerTarget(entry);
+        var target = OpsProtoMappings.ToTriggerTarget(entry);
 
         Assert.Multiple(
             () => Assert.Equal("zurich", target.Location),
@@ -61,7 +62,7 @@ public sealed class PollStatusMapperSpec
     {
         var entry = new PollStateEntry(new LocationId("zurich"), "ecmwf_ifs025", PollPhase.Discovery, NextPoll, null, 0, null);
 
-        var target = PollStatusMapper.ToTriggerTarget(entry);
+        var target = OpsProtoMappings.ToTriggerTarget(entry);
 
         Assert.Multiple(
             () => Assert.Equal("discovery", target.Phase),

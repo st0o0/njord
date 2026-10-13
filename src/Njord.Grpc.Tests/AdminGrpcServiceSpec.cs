@@ -1,14 +1,27 @@
+using Akka.Actor;
+using Akka.Hosting;
+using Microsoft.Extensions.Options;
+using Njord.Configuration;
+using Njord.Core.Actors;
+using Njord.Core.Configuration;
+using Njord.Core.Configuration.Alerts;
+using Njord.Core.Configuration.Consensus;
+using Njord.Core.Configuration.Derived;
+using Njord.Core.Configuration.Indices;
+using Njord.Core.Configuration.Polling;
+using Njord.Core.Configuration.Trends;
+using Njord.Core.Health;
 using Njord.Grpc.V2;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
 
-public sealed class AdminGrpcServiceSpec : IDisposable
+public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 {
     private readonly string _tempDir = Path.Combine(Path.GetTempPath(), $"njord-test-{Guid.NewGuid():N}");
     private readonly List<ConfigHarness> _harnesses = [];
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetConfig_returns_current_configuration()
     {
         var service = CreateService();
@@ -27,7 +40,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Equal(3600, config.PollIntervalSeconds);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetLocations_replaces_all_locations()
     {
         var service = CreateService();
@@ -51,7 +64,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Equal(new[] { "icon_d2", "gfs_seamless" }, bern.Models);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetLocations_rejects_empty_list()
     {
         var service = CreateService();
@@ -63,7 +76,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Null(response.Config);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetSettings_applies_partial_update()
     {
         var service = CreateService();
@@ -81,7 +94,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Single(response.Config.Locations);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetSettings_rejects_poll_interval_below_minimum()
     {
         var service = CreateService();
@@ -94,7 +107,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Equal("Poll interval must be at least 60 seconds", response.RejectionReason);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetBudget_sets_override()
     {
         var service = CreateService();
@@ -110,7 +123,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Equal(500_000, response.BudgetProjection.MonthlyLimit);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetBudget_clears_override_when_empty()
     {
         var service = CreateService();
@@ -127,7 +140,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.True(config.BudgetProjection.WithinBudget);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetBudget_rejects_zero_monthly_budget()
     {
         var service = CreateService();
@@ -140,7 +153,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Contains("must be greater than zero", response.RejectionReason);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetBudget_rejects_negative_monthly_budget()
     {
         var service = CreateService();
@@ -153,7 +166,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Contains("must be greater than zero", response.RejectionReason);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetBudget_rejects_zero_per_minute_budget()
     {
         var service = CreateService();
@@ -166,7 +179,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Contains("must be greater than zero", response.RejectionReason);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetBudget_rejects_when_valid_monthly_but_zero_per_minute()
     {
         var service = CreateService();
@@ -179,7 +192,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Contains("must be greater than zero", response.RejectionReason);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetEnrichment_disable_alerts_is_reflected_in_GetConfig()
     {
         var service = CreateService();
@@ -195,7 +208,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.False(config.Enrichment.Alerts.Enabled);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetEnrichment_overrides_baseline_config()
     {
         var service = CreateService(alertsEnabled: true);
@@ -211,7 +224,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.False(configAfter.Enrichment.Alerts.Enabled);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetLocations_reports_that_the_change_takes_effect_after_a_restart()
     {
         var service = CreateService();
@@ -227,7 +240,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Contains("Locations", notice);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetEnrichment_with_only_alert_thresholds_needs_no_restart()
     {
         var service = CreateService();
@@ -241,7 +254,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Equal(new[] { 1.0, -4.0, -12.0 }, response.Config.Enrichment.Alerts.FrostThresholds);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetEnrichment_toggle_reports_that_it_takes_effect_after_a_restart()
     {
         var service = CreateService();
@@ -255,7 +268,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Contains("Trends.Enabled", notice);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetEnrichment_with_non_monotonic_frost_thresholds_is_rejected_and_not_persisted()
     {
         var service = CreateService();
@@ -273,7 +286,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Equal(new[] { 0.0, -5.0, -15.0 }, config.Enrichment.Alerts.FrostThresholds);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetSettings_rejects_a_poll_interval_over_the_budget_guard_and_keeps_the_previous_one()
     {
         var service = CreateService(budgetPerMonth: 100_000);
@@ -288,7 +301,7 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         Assert.Equal(3600, config.PollIntervalSeconds);
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task StreamConfig_sends_a_new_snapshot_after_a_mutation()
     {
         var service = CreateService();
@@ -359,8 +372,14 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         }
     }
 
-    public void Dispose()
+    protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
     {
+        builder.AddTestTimefactor();
+    }
+
+    protected override async Task AfterAllAsync()
+    {
+        await base.AfterAllAsync();
         foreach (var harness in _harnesses)
         {
             harness.Dispose();
@@ -394,6 +413,32 @@ public sealed class AdminGrpcServiceSpec : IDisposable
         var harness = new ConfigHarness(configEntries, OverridePath());
         _harnesses.Add(harness);
 
-        return new AdminGrpcService(harness.View, harness.Writer, harness.Changes);
+        ActorRegistry.Register<IConfigManager>(StartConfigManager(harness), overwrite: true);
+        return new AdminGrpcService(ActorRegistry, Sys);
+    }
+
+    private IActorRef StartConfigManager(ConfigHarness h)
+    {
+        var startup = AnalysisSettingsFactory.Create(
+            h.Monitor<NjordOptions>().CurrentValue,
+            h.Monitor<ConsensusOptions>().CurrentValue,
+            h.Monitor<AlertOptions>().CurrentValue,
+            h.Monitor<IndexOptions>().CurrentValue,
+            h.Monitor<TrendOptions>().CurrentValue,
+            h.Monitor<DerivedOptions>().CurrentValue);
+
+        return Sys.ActorOf(Props.Create(() => new ConfigManager(
+            Options.Create(h.Monitor<NjordOptions>().CurrentValue),
+            startup,
+            Options.Create(h.Monitor<PollingOptions>().CurrentValue),
+            h.Monitor<NjordOptions>(),
+            h.Monitor<PollingOptions>(),
+            h.Monitor<ConsensusOptions>(),
+            h.Monitor<AlertOptions>(),
+            h.Monitor<IndexOptions>(),
+            h.Monitor<TrendOptions>(),
+            h.Monitor<DerivedOptions>(),
+            h.Writer,
+            new NjordHealthMonitor())), $"config-manager-{Guid.NewGuid():N}");
     }
 }

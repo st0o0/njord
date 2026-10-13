@@ -13,11 +13,11 @@ using ProtoParameterTrend = Njord.Grpc.V2.ParameterTrend;
 using ProtoScalarDerived = Njord.Grpc.V2.ScalarDerived;
 using ScoreEnvelope = Njord.Compute.Contracts.ScoreEnvelope;
 
-namespace Njord.Grpc;
+namespace Njord.Grpc.Mapping;
 
-public static class EnrichmentProtoMapper
+internal static class AnalysisProtoMappings
 {
-    public static AlertUpdate MapAlerts(AlertResult result)
+    public static AlertUpdate ToProto(this AlertResult result)
     {
         var update = new AlertUpdate();
         foreach (var alert in result.Alerts)
@@ -51,7 +51,7 @@ public static class EnrichmentProtoMapper
         return update;
     }
 
-    public static IndexUpdate MapIndices(IndexResult result)
+    public static IndexUpdate ToProto(this IndexResult result)
     {
         var update = new IndexUpdate();
 
@@ -150,7 +150,7 @@ public static class EnrichmentProtoMapper
         };
     }
 
-    public static TrendUpdate MapTrends(TrendResult result)
+    public static TrendUpdate ToProto(this TrendResult result)
     {
         var update = new TrendUpdate();
 
@@ -212,7 +212,7 @@ public static class EnrichmentProtoMapper
         return update;
     }
 
-    public static DerivedUpdate MapDerived(DerivedResult result)
+    public static DerivedUpdate ToProto(this DerivedResult result)
     {
         var update = new DerivedUpdate();
 
@@ -264,7 +264,7 @@ public static class EnrichmentProtoMapper
         return update;
     }
 
-    public static ConsensusUpdate MapConsensus(ConsensusResult result)
+    public static ConsensusUpdate ToProto(this ConsensusResult result)
     {
         var update = new ConsensusUpdate();
         update.HourlyParameters.AddRange(result.Parameters.Select(MapParameterConsensus));
@@ -324,7 +324,7 @@ public static class EnrichmentProtoMapper
         return protoHorizon;
     }
 
-    public static EnrichmentEvent? MapToEvent(PipelineEvent pipelineEvent, DateTimeOffset fallbackTimestamp)
+    public static EnrichmentEvent? ToEnrichmentEvent(this PipelineEvent pipelineEvent)
     {
         return pipelineEvent switch
         {
@@ -333,32 +333,62 @@ public static class EnrichmentProtoMapper
                 Location = a.Result.Location.Name,
                 TypeName = a.Kind.ToWireName(),
                 UpdatedAt = ToTimestamp(a.Timestamp),
-                Alerts = MapAlerts(a.Result),
+                Alerts = a.Result.ToProto(),
             },
             PipelineEvent.IndexComputed i => new EnrichmentEvent
             {
                 Location = i.Result.Location.Name,
                 TypeName = i.Kind.ToWireName(),
                 UpdatedAt = ToTimestamp(i.Timestamp),
-                Indices = MapIndices(i.Result),
+                Indices = i.Result.ToProto(),
             },
             PipelineEvent.TrendComputed t => new EnrichmentEvent
             {
                 Location = t.Result.Location.Name,
                 TypeName = t.Kind.ToWireName(),
                 UpdatedAt = ToTimestamp(t.Timestamp),
-                Trends = MapTrends(t.Result),
+                Trends = t.Result.ToProto(),
             },
             PipelineEvent.DerivedComputed d => new EnrichmentEvent
             {
                 Location = d.Result.Location.Name,
                 TypeName = d.Kind.ToWireName(),
                 UpdatedAt = ToTimestamp(d.Timestamp),
-                Derived = MapDerived(d.Result),
+                Derived = d.Result.ToProto(),
             },
             PipelineEvent.ConsensusComputed c => MapConsensusEvent(c),
             _ => null,
         };
+    }
+
+    public static GetEnrichmentsResponse ToProto(this LatestAnalysisResponse response)
+    {
+        var (location, analysis) = response switch
+        {
+            LatestAnalysisResult found => (found.Location, found.Analysis),
+            LatestAnalysisNotAvailable missing => (missing.Location, null),
+            _ => throw new ArgumentOutOfRangeException(nameof(response), response.GetType().Name, "Unknown analysis response"),
+        };
+
+        var proto = new GetEnrichmentsResponse { Location = location.Name };
+        if (analysis?.ToEnrichmentEvent() is not { } evt)
+        {
+            return proto;
+        }
+
+        switch (evt.PayloadCase)
+        {
+            case EnrichmentEvent.PayloadOneofCase.Alerts: proto.Alerts = evt.Alerts; break;
+            case EnrichmentEvent.PayloadOneofCase.Indices: proto.Indices = evt.Indices; break;
+            case EnrichmentEvent.PayloadOneofCase.Trends: proto.Trends = evt.Trends; break;
+            case EnrichmentEvent.PayloadOneofCase.Derived: proto.Derived = evt.Derived; break;
+            case EnrichmentEvent.PayloadOneofCase.Consensus:
+                proto.Consensus = evt.Consensus;
+                proto.ConsensusUpdatedAt = evt.UpdatedAt;
+                break;
+        }
+
+        return proto;
     }
 
     private static EnrichmentEvent MapConsensusEvent(PipelineEvent.ConsensusComputed c)
@@ -370,7 +400,7 @@ public static class EnrichmentProtoMapper
             Location = c.Consensus.Location.Name,
             TypeName = c.Kind.ToWireName(),
             UpdatedAt = ToTimestamp(c.Timestamp),
-            Consensus = MapConsensus(result),
+            Consensus = result.ToProto(),
         };
     }
 

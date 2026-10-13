@@ -355,11 +355,11 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         var (manager, _, _) = await StartManagerAsync();
-        var alerts = new AlertUpdate(null, [0, 5, -15], null, null, null, null, null, null, null, null, null, null,
+        var alerts = new AlertConfigUpdate(null, [0, 5, -15], null, null, null, null, null, null, null, null, null, null,
             null, null, null, null, null);
 
         var response = await manager.Ask<UpdateAnalysisConfigResponse>(
-            new UpdateAnalysisConfig(new ConsensusUpdate(false, null, null), alerts, null, null, null), AskTimeout, ct);
+            new UpdateAnalysisConfig(new ConsensusConfigUpdate(false, null, null), alerts, null, null, null), AskTimeout, ct);
 
         var rejected = Assert.IsType<UpdateAnalysisConfigRejected>(response);
         Assert.Contains("FrostThresholds", rejected.Reason);

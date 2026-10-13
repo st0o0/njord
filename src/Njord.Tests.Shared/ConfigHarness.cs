@@ -12,7 +12,7 @@ using Njord.Core.Configuration.Trends;
 namespace Njord.Tests.Shared;
 
 // Configuration root (in-memory baseline + override file), the section options with their validators,
-// and the writer/view/feed trio, wired like the host does it.
+// and the writer and view, wired like the host does it.
 public sealed class ConfigHarness : IDisposable
 {
     private readonly ServiceProvider _provider;
@@ -35,9 +35,8 @@ public sealed class ConfigHarness : IDisposable
         Add<TrendOptions, TrendOptionsValidator>(services, TrendOptions.SectionName);
         Add<IndexOptions, IndexOptionsValidator>(services, IndexOptions.SectionName);
         services.AddSingleton<ConfigView>();
-        services.AddSingleton<ConfigChangeFeed>();
         services.AddSingleton<IConfigWriter>(sp => new ConfigWriter(
-            sp, Root, sp.GetRequiredService<ConfigChangeFeed>(), overridePath));
+            sp, Root, overridePath));
         _provider = services.BuildServiceProvider();
     }
 
@@ -50,8 +49,6 @@ public sealed class ConfigHarness : IDisposable
     public ConfigView View => _provider.GetRequiredService<ConfigView>();
 
     public IConfigWriter Writer => _provider.GetRequiredService<IConfigWriter>();
-
-    public ConfigChangeFeed Changes => _provider.GetRequiredService<ConfigChangeFeed>();
 
     public IOptionsMonitor<T> Monitor<T>() where T : class => _provider.GetRequiredService<IOptionsMonitor<T>>();
 
