@@ -46,11 +46,11 @@ use a plain `[Fact]` (AGENTS.md: a timeout cannot be enforced there).
 
 ## 7. Validation
 
-- [ ] 7.1 `cd src && dotnet build Njord.slnx` with no new warnings
-- [ ] 7.2 `dotnet run --project Njord.Weather.Tests/Njord.Weather.Tests.csproj --no-build`
-- [ ] 7.3 `dotnet run --project Njord.Compute.Tests/Njord.Compute.Tests.csproj --no-build`
-- [ ] 7.4 `dotnet run --project Njord.Alerts.Tests/Njord.Alerts.Tests.csproj --no-build`, plus `Njord.Derived.Tests`, `Njord.Trends.Tests`, `Njord.Indices.Tests`
-- [ ] 7.5 `dotnet run --project Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj --no-build` and `dotnet run --project Njord.Grpc.Tests/Njord.Grpc.Tests.csproj --no-build` (golden masters unchanged since 1.2/1.3)
-- [ ] 7.6 Full loop over all `Njord.*Tests` projects (AGENTS.md "Build & test")
-- [ ] 7.7 `grep -rnE '\$"[hd]\{' src --include=*.cs` finds nothing outside `Horizon.cs`
-- [ ] 7.8 From the repo root: `openspec validate typed-analysis-models --strict`
+- [x] 7.1 `cd src && dotnet build Njord.slnx` with no new warnings
+- [x] 7.2 `dotnet run --project Njord.Weather.Tests/Njord.Weather.Tests.csproj --no-build`
+- [x] 7.3 `dotnet run --project Njord.Compute.Tests/Njord.Compute.Tests.csproj --no-build`
+- [x] 7.4 `dotnet run --project Njord.Alerts.Tests/Njord.Alerts.Tests.csproj --no-build`, plus `Njord.Derived.Tests`, `Njord.Trends.Tests`, `Njord.Indices.Tests`
+- [x] 7.5 `dotnet run --project Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj --no-build` and `dotnet run --project Njord.Grpc.Tests/Njord.Grpc.Tests.csproj --no-build` (golden masters unchanged since 1.2/1.3)
+- [x] 7.6 Full loop over all `Njord.*Tests` projects (AGENTS.md "Build & test")
+- [x] 7.7 `grep -rnE '\$"[hd]\{' src --include=*.cs` finds nothing outside `Horizon.cs`
+- [x] 7.8 From the repo root: `openspec validate typed-analysis-models --strict`
