@@ -18,7 +18,7 @@ Every options type SHALL be a standalone class with a `public const string Secti
 ### Requirement: GrpcOptions and SensorOptions are not nested inside NjordOptions
 No options type SHALL be a property of another options type. `NjordOptions` SHALL contain only the forecast scope: locations, default models, horizons, forecast days and the requested parameter set. `SensorOptions` SHALL be registered and validated by `Njord.SensorHub`'s setup container, not the host.
 
-#### Scenario: NjordOptions has no nested sections
+#### Scenario: NjordOptions has no Grpc or Sensors property
 - **WHEN** `NjordOptions` is resolved from DI
 - **THEN** it SHALL NOT contain properties for `Grpc`, `Sensors`, `Mqtt`, `Enrichment`, `PollInterval` or `BudgetOverride`
 
@@ -26,7 +26,19 @@ No options type SHALL be a property of another options type. `NjordOptions` SHAL
 - **WHEN** `SensorHubActor` is constructed
 - **THEN** it SHALL receive `IOptions<SensorOptions>` for sensor fallback configuration
 
+## REMOVED Requirements
+
 ### Requirement: Sub-option validators are co-located with their options class, except Mqtt
+**Reason**: The Mqtt exception existed only because Mqtt was nested in NjordOptions; with no nested options there is no exception left.
+**Migration**: Each options type, including MqttOptions, has its own validator next to it (see the added requirement).
+
+### Requirement: MqttOptions and EnrichmentOptions stay nested in NjordOptions, dual-bound
+**Reason**: The dual binding existed because the admin API mutated and persisted `NjordOptions` as one unit. Section-scoped writing (`writable-options`) removes that need, and the dual binding created two sources of truth.
+**Migration**: Consumers inject `IOptions<MqttOptions>` or the specific enrichment options type. The admin API writes the affected section through the section writer.
+
+## ADDED Requirements
+
+### Requirement: Every options type has exactly one co-located validator
 Every options type SHALL have exactly one `IValidateOptions<T>` validator for that type, defined next to the options class and registered by the same setup extension that binds it. No validator SHALL validate a different options type than the one it is registered for.
 
 #### Scenario: Consensus validator validates ConsensusOptions
@@ -36,9 +48,3 @@ Every options type SHALL have exactly one `IValidateOptions<T>` validator for th
 #### Scenario: Mqtt validator validates MqttOptions
 - **WHEN** `Njord:Mqtt:Enabled` is `true` and `Njord:Mqtt:Host` is missing
 - **THEN** the MQTT validator SHALL fail startup validation of `MqttOptions` naming the missing host
-
-## REMOVED Requirements
-
-### Requirement: MqttOptions and EnrichmentOptions stay nested in NjordOptions, dual-bound
-**Reason**: The dual binding existed because the admin API mutated and persisted `NjordOptions` as one unit. Section-scoped writing (`writable-options`) removes that need, and the dual binding created two sources of truth.
-**Migration**: Consumers inject `IOptions<MqttOptions>` or the specific enrichment options type. The admin API writes the affected section through the section writer.

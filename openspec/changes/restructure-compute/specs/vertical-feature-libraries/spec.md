@@ -24,13 +24,17 @@ Each feature library SHALL expose an `IServiceCollection` extension method (e.g.
 - **WHEN** the Host calls `services.AddAlerts()`
 - **THEN** the `AlertAnalyzer` and all 14 alert rules are registered and available for injection
 
-#### Scenario: Feature options are bound by the feature
+#### Scenario: Feature options are library-owned
 - **WHEN** a feature has configurable options (e.g. alert thresholds)
 - **THEN** the feature's DI extension binds and validates them; the options type itself lives in `Njord.Core/Configuration/`
 
 ### Requirement: Feature types use clean names
 
 Analysis types SHALL follow one naming scheme: `<Feature>Analyzer` for a feature's entry point, `<Name>Rule` for a single alert rule, `<Name>Score` for a single index score, `<Feature>Formulas` for pure static math, `Consensus<Role>` for consensus types. No analysis type name SHALL contain "Enrichment", "Computer", "Calculator", "Scorer", "Evaluator" or "Factory".
+
+#### Scenario: No enrichment naming
+- **WHEN** any type in a feature library is inspected
+- **THEN** its name does not contain "Enrichment"
 
 #### Scenario: No legacy naming
 - **WHEN** any type in Compute or a feature library is inspected

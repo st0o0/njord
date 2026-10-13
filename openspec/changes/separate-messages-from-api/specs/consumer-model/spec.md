@@ -9,7 +9,7 @@ Each consumer SHALL request a `SourceRef<PipelineEvent>` from the forecast pipel
 - **THEN** it requests a `SourceRef<PipelineEvent>` from the forecast pipeline and
   materializes its own sink that publishes state to MQTT
 
-#### Scenario: Forecast read model attaches
+#### Scenario: gRPC consumer attaches
 - **WHEN** `ForecastReadModel` starts
 - **THEN** it requests a `SourceRef<PipelineEvent>` from the forecast pipeline and
   materializes its own sink that updates in-memory state and feeds its
