@@ -1,12 +1,13 @@
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Compute.Analysis;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Indices;
 using Njord.Tests.Shared;
 using Njord.Indices;
+using Njord.Derived;
+using Njord.Trends;
 using Njord.Weather;
 
 namespace Njord.Mqtt.Tests;
@@ -228,7 +229,7 @@ public sealed class StatePayloadBuilderSpec
                 (WeatherCode, 0.0), (PressureMsl, 1020.0), (SurfacePressure, 1015.0),
                 (SunshineDuration, 3600.0), (IsDay, 1.0)));
         var consensus = new ConsensusBuilder(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
-        var result = new DerivedResultComputer(FullParams).Compute(consensus, new DerivedSettings([3]));
+        var result = DerivedAnalyzer.Analyze(consensus, new DerivedSettings([3]));
 
         var messages = StatePayloadBuilder.FromDerived(result, "njord");
 
@@ -246,7 +247,7 @@ public sealed class StatePayloadBuilderSpec
             MakeForecast(M1, (Temperature, 20.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)));
         var consensus = new ConsensusBuilder(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
-        var result = new TrendComputer().Compute(consensus, null);
+        var result = TrendAnalyzer.Analyze(consensus, null);
 
         var messages = StatePayloadBuilder.FromTrends(result, "njord");
 

@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
+using Njord.Compute.Querying;
 using Njord.Core.Egress;
 using Njord.Weather;
 
@@ -59,7 +60,7 @@ public static class StatePayloadBuilder
 
         foreach (var (horizon, payload) in horizonPayloads)
         {
-            var firstParam = parameters.FirstOrDefault()?.ByHorizon.GetValueOrDefault(horizon);
+            var firstParam = parameters.FirstOrDefault().At(horizon);
             if (firstParam is not null)
             {
                 payload["_spread"] = firstParam.Spread.HasValue

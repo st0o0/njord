@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Compute.Analysis;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
@@ -49,9 +48,7 @@ public sealed class DerivedAnalyzerSpec
     }
 
     private static DerivedAnalyzer CreateAnalyzer(bool enabled = true) =>
-        new(
-            new DerivedResultComputer(Parameters),
-            Options.Create(new DerivedOptions { Enabled = enabled }));
+        new(Options.Create(new DerivedOptions { Enabled = enabled }));
 
     private static ConsensusSnapshot BuildConsensus()
     {

@@ -1,11 +1,10 @@
-using Njord.Compute.Analysis;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Weather;
 
-namespace Njord.Compute.Tests.Analysis;
+namespace Njord.Derived.Tests;
 
-public sealed class DerivedComputerSpec
+public sealed class DerivedFormulasSpec
 {
     private static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
@@ -16,78 +15,78 @@ public sealed class DerivedComputerSpec
 
     [Fact]
     public void Beaufort_calm_wind() =>
-        Assert.Equal(0, DerivedComputer.Beaufort(0.2));
+        Assert.Equal(0, DerivedFormulas.Beaufort(0.2));
 
     [Fact]
     public void Beaufort_light_breeze() =>
-        Assert.Equal(2, DerivedComputer.Beaufort(2.5));
+        Assert.Equal(2, DerivedFormulas.Beaufort(2.5));
 
     [Fact]
     public void Beaufort_strong_gale() =>
-        Assert.Equal(9, DerivedComputer.Beaufort(22.0));
+        Assert.Equal(9, DerivedFormulas.Beaufort(22.0));
 
     [Fact]
     public void Beaufort_hurricane_force() =>
-        Assert.Equal(12, DerivedComputer.Beaufort(35.0));
+        Assert.Equal(12, DerivedFormulas.Beaufort(35.0));
 
     [Fact]
     public void Beaufort_null_returns_null() =>
-        Assert.Null(DerivedComputer.Beaufort(null));
+        Assert.Null(DerivedFormulas.Beaufort(null));
 
     // --- WindChill ---
 
     [Fact]
     public void WindChill_cold_and_windy()
     {
-        var result = DerivedComputer.WindChill(-5.0, 5.0);
+        var result = DerivedFormulas.WindChill(-5.0, 5.0);
         Assert.NotNull(result);
         Assert.InRange(result.Value, -12.0, -10.0);
     }
 
     [Fact]
     public void WindChill_mild_temperature_returns_null() =>
-        Assert.Null(DerivedComputer.WindChill(15.0, 5.0));
+        Assert.Null(DerivedFormulas.WindChill(15.0, 5.0));
 
     [Fact]
     public void WindChill_calm_wind_returns_null() =>
-        Assert.Null(DerivedComputer.WindChill(-5.0, 1.0));
+        Assert.Null(DerivedFormulas.WindChill(-5.0, 1.0));
 
     [Fact]
     public void WindChill_null_inputs_returns_null()
     {
-        Assert.Null(DerivedComputer.WindChill(null, 5.0));
-        Assert.Null(DerivedComputer.WindChill(-5.0, null));
+        Assert.Null(DerivedFormulas.WindChill(null, 5.0));
+        Assert.Null(DerivedFormulas.WindChill(-5.0, null));
     }
 
     // --- DewPointComfort ---
 
     [Fact]
     public void DewPointComfort_dry() =>
-        Assert.Equal(DewPointComfort.Dry, DerivedComputer.Comfort(5.0));
+        Assert.Equal(DewPointComfort.Dry, DerivedFormulas.Comfort(5.0));
 
     [Fact]
     public void DewPointComfort_comfortable() =>
-        Assert.Equal(DewPointComfort.Comfortable, DerivedComputer.Comfort(12.0));
+        Assert.Equal(DewPointComfort.Comfortable, DerivedFormulas.Comfort(12.0));
 
     [Fact]
     public void DewPointComfort_sticky() =>
-        Assert.Equal(DewPointComfort.Sticky, DerivedComputer.Comfort(17.0));
+        Assert.Equal(DewPointComfort.Sticky, DerivedFormulas.Comfort(17.0));
 
     [Fact]
     public void DewPointComfort_oppressive() =>
-        Assert.Equal(DewPointComfort.Oppressive, DerivedComputer.Comfort(20.0));
+        Assert.Equal(DewPointComfort.Oppressive, DerivedFormulas.Comfort(20.0));
 
     [Fact]
     public void DewPointComfort_dangerous() =>
-        Assert.Equal(DewPointComfort.Dangerous, DerivedComputer.Comfort(23.0));
+        Assert.Equal(DewPointComfort.Dangerous, DerivedFormulas.Comfort(23.0));
 
     [Fact]
     public void DewPointComfort_boundary_at_10() =>
-        Assert.Equal(DewPointComfort.Comfortable, DerivedComputer.Comfort(10.0));
+        Assert.Equal(DewPointComfort.Comfortable, DerivedFormulas.Comfort(10.0));
 
     [Fact]
     public void DewPointComfort_null_returns_null() =>
-        Assert.Null(DerivedComputer.Comfort(null));
+        Assert.Null(DerivedFormulas.Comfort(null));
 
     // --- DiurnalAmplitude ---
 
@@ -101,7 +100,7 @@ public sealed class DerivedComputerSpec
             })).ToList();
         var series = new ForecastSeries(points);
 
-        var result = DerivedComputer.DiurnalAmplitude(series, Temperature, T0);
+        var result = DerivedFormulas.DiurnalAmplitude(series, Temperature, T0);
         Assert.Equal(12.0, result);
     }
 
@@ -111,7 +110,7 @@ public sealed class DerivedComputerSpec
         var points = new[] { new ForecastPoint(T0, new Dictionary<ParameterDef, double?> { [Temperature] = 10.0 }) };
         var series = new ForecastSeries(points);
 
-        Assert.Null(DerivedComputer.DiurnalAmplitude(series, Temperature, T0));
+        Assert.Null(DerivedFormulas.DiurnalAmplitude(series, Temperature, T0));
     }
 
     // --- SunshinePercent ---
@@ -127,7 +126,7 @@ public sealed class DerivedComputerSpec
             })).ToList();
         var series = new ForecastSeries(points);
 
-        var result = DerivedComputer.SunshinePercent(series, SunshineDuration, IsDay, T0);
+        var result = DerivedFormulas.SunshinePercent(series, SunshineDuration, IsDay, T0);
         Assert.Equal(100.0, result);
     }
 
@@ -142,7 +141,7 @@ public sealed class DerivedComputerSpec
             })).ToList();
         var series = new ForecastSeries(points);
 
-        var result = DerivedComputer.SunshinePercent(series, SunshineDuration, IsDay, T0);
+        var result = DerivedFormulas.SunshinePercent(series, SunshineDuration, IsDay, T0);
         Assert.Equal(50.0, result);
     }
 
@@ -156,7 +155,7 @@ public sealed class DerivedComputerSpec
             })).ToList();
         var series = new ForecastSeries(points);
 
-        Assert.Null(DerivedComputer.SunshinePercent(series, SunshineDuration, IsDay, T0));
+        Assert.Null(DerivedFormulas.SunshinePercent(series, SunshineDuration, IsDay, T0));
     }
 
     [Fact]
@@ -170,55 +169,55 @@ public sealed class DerivedComputerSpec
             })).ToList();
         var series = new ForecastSeries(points);
 
-        Assert.Null(DerivedComputer.SunshinePercent(series, SunshineDuration, IsDay, T0));
+        Assert.Null(DerivedFormulas.SunshinePercent(series, SunshineDuration, IsDay, T0));
     }
 
     // --- Condition ---
 
     [Fact]
     public void WmoDescription_clear_sky() =>
-        Assert.Equal(WeatherCondition.ClearSky, DerivedComputer.Condition(0));
+        Assert.Equal(WeatherCondition.ClearSky, DerivedFormulas.Condition(0));
 
     [Fact]
     public void WmoDescription_mainly_clear() =>
-        Assert.Equal(WeatherCondition.MainlyClear, DerivedComputer.Condition(1));
+        Assert.Equal(WeatherCondition.MainlyClear, DerivedFormulas.Condition(1));
 
     [Fact]
     public void WmoDescription_rain_slight() =>
-        Assert.Equal(WeatherCondition.RainSlight, DerivedComputer.Condition(61));
+        Assert.Equal(WeatherCondition.RainSlight, DerivedFormulas.Condition(61));
 
     [Fact]
     public void WmoDescription_thunderstorm_heavy_hail() =>
-        Assert.Equal(WeatherCondition.ThunderstormHeavyHail, DerivedComputer.Condition(99));
+        Assert.Equal(WeatherCondition.ThunderstormHeavyHail, DerivedFormulas.Condition(99));
 
     [Fact]
     public void WmoDescription_unknown_code() =>
-        Assert.Null(DerivedComputer.Condition(150));
+        Assert.Null(DerivedFormulas.Condition(150));
 
     [Fact]
     public void WmoDescription_null_returns_null() =>
-        Assert.Null(DerivedComputer.Condition(null));
+        Assert.Null(DerivedFormulas.Condition(null));
 
     // --- InversionDetected ---
 
     [Fact]
     public void Inversion_conditions_met() =>
-        Assert.True(DerivedComputer.InversionDetected(1020, 1015, 2.0, 1.0));
+        Assert.True(DerivedFormulas.InversionDetected(1020, 1015, 2.0, 1.0));
 
     [Fact]
     public void Inversion_dry_air_no_inversion() =>
-        Assert.False(DerivedComputer.InversionDetected(1020, 1015, 10.0, 2.0));
+        Assert.False(DerivedFormulas.InversionDetected(1020, 1015, 10.0, 2.0));
 
     [Fact]
     public void Inversion_low_pressure_gap_no_inversion() =>
-        Assert.False(DerivedComputer.InversionDetected(1016, 1015, 2.0, 1.0));
+        Assert.False(DerivedFormulas.InversionDetected(1016, 1015, 2.0, 1.0));
 
     [Fact]
     public void Inversion_null_inputs_returns_null()
     {
-        Assert.Null(DerivedComputer.InversionDetected(null, 1015, 2.0, 1.0));
-        Assert.Null(DerivedComputer.InversionDetected(1020, null, 2.0, 1.0));
-        Assert.Null(DerivedComputer.InversionDetected(1020, 1015, null, 1.0));
-        Assert.Null(DerivedComputer.InversionDetected(1020, 1015, 2.0, null));
+        Assert.Null(DerivedFormulas.InversionDetected(null, 1015, 2.0, 1.0));
+        Assert.Null(DerivedFormulas.InversionDetected(1020, null, 2.0, 1.0));
+        Assert.Null(DerivedFormulas.InversionDetected(1020, 1015, null, 1.0));
+        Assert.Null(DerivedFormulas.InversionDetected(1020, 1015, 2.0, null));
     }
 }

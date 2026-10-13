@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Compute.Analysis;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
@@ -18,8 +17,7 @@ public sealed class TrendAnalyzerSpec
     [Fact]
     public void Compute_returns_null_when_previous_is_null()
     {
-        var computer = new TrendComputer();
-        var analyzer = new TrendAnalyzer(computer, Options.Create(new TrendOptions { Enabled = true }));
+        var analyzer = new TrendAnalyzer(Options.Create(new TrendOptions { Enabled = true }));
 
         var result = analyzer.Compute(BuildConsensus(), null, TrendSettings.Default);
 
@@ -29,8 +27,7 @@ public sealed class TrendAnalyzerSpec
     [Fact]
     public void Compute_returns_trend_result_with_previous()
     {
-        var computer = new TrendComputer();
-        var analyzer = new TrendAnalyzer(computer, Options.Create(new TrendOptions { Enabled = true }));
+        var analyzer = new TrendAnalyzer(Options.Create(new TrendOptions { Enabled = true }));
 
         var result = analyzer.Compute(BuildConsensus(), BuildConsensus(), TrendSettings.Default);
 
@@ -41,8 +38,7 @@ public sealed class TrendAnalyzerSpec
     [Fact]
     public void Compute_returns_null_when_disabled()
     {
-        var computer = new TrendComputer();
-        var analyzer = new TrendAnalyzer(computer, Options.Create(new TrendOptions { Enabled = false }));
+        var analyzer = new TrendAnalyzer(Options.Create(new TrendOptions { Enabled = false }));
 
         var result = analyzer.Compute(BuildConsensus(), BuildConsensus(), TrendSettings.Default);
 

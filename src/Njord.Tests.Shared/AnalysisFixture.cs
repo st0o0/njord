@@ -1,12 +1,13 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts;
-using Njord.Compute.Analysis;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Indices;
 using Njord.Indices;
+using Njord.Derived;
+using Njord.Trends;
 using Njord.Weather;
 
 namespace Njord.Tests.Shared;
@@ -137,9 +138,7 @@ public sealed class AnalysisFixture
         var indexSettings = IndexOptions.ToSettings(Locations);
         var derivedSettings = new DerivedSettings(Horizons);
         var alertSettings = new AlertOptions().ToSettings();
-        var derivedComputer = new DerivedResultComputer(Parameters);
         var indices = FeatureServices.Indices(time);
-        var trendComputer = new TrendComputer();
 
         var analyses = new List<LocationAnalysis>();
         foreach (var location in Locations)
@@ -152,8 +151,8 @@ public sealed class AnalysisFixture
                 consensus,
                 previousConsensus,
                 alerts.Compute(consensus, alertSettings) ?? throw new InvalidOperationException("Alerts are disabled."),
-                derivedComputer.Compute(consensus, derivedSettings),
-                trendComputer.Compute(consensus, previousConsensus),
+                DerivedAnalyzer.Analyze(consensus, derivedSettings),
+                TrendAnalyzer.Analyze(consensus, previousConsensus),
                 indices.Compute(consensus, null, indexSettings) ?? throw new InvalidOperationException("Indices are disabled.")));
         }
 

@@ -2,9 +2,9 @@ using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Weather;
 
-namespace Njord.Compute.Analysis;
+namespace Njord.Derived;
 
-public static class DerivedComputer
+public static class DerivedFormulas
 {
     private static readonly double[] BeaufortUpperBounds =
         [0.5, 1.5, 3.3, 5.5, 7.9, 10.7, 13.8, 17.1, 20.7, 24.4, 28.4, 32.6];

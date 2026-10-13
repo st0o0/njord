@@ -2,9 +2,9 @@ using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Weather;
 
-namespace Njord.Compute.Analysis;
+namespace Njord.Trends;
 
-public static class TrendCalculator
+public static class TrendFormulas
 {
     public static (TrendDirection Direction, double Delta)? Direction(
         double? prevMedian, double? currMedian, double threshold)

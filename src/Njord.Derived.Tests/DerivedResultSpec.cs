@@ -1,11 +1,10 @@
 using Microsoft.Extensions.Time.Testing;
-using Njord.Compute.Analysis;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Weather;
 
-namespace Njord.Compute.Tests.Analysis;
+namespace Njord.Derived.Tests;
 
 public sealed class DerivedResultSpec
 {
@@ -66,7 +65,7 @@ public sealed class DerivedResultSpec
                 (SunshineDuration, 3600.0), (IsDay, 1.0)));
 
         var consensus = new ConsensusBuilder(Parameters, Time).Create(snap, "lucerne", ConsensusSettings.Default);
-        var result = new DerivedResultComputer(Parameters).Compute(consensus, new DerivedSettings([3, 6]));
+        var result = DerivedAnalyzer.Analyze(consensus, new DerivedSettings([3, 6]));
 
         Assert.Equal(new LocationId("lucerne"), result.Location);
         Assert.Equal(2, result.ByHorizon.Count);

@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Njord.Compute.Analysis;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Core.Configuration.Trends;
@@ -17,7 +16,6 @@ public static class ServiceCollectionExtensions
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<TrendOptions>, TrendOptionsValidator>();
 
-        services.AddSingleton<TrendComputer>();
         services.AddSingleton<TrendAnalyzer>();
         return services;
     }

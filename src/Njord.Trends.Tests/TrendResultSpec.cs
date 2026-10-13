@@ -1,11 +1,10 @@
 using Microsoft.Extensions.Time.Testing;
-using Njord.Compute.Analysis;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Weather;
 
-namespace Njord.Compute.Tests.Analysis;
+namespace Njord.Trends.Tests;
 
 public sealed class TrendResultSpec
 {
@@ -57,7 +56,7 @@ public sealed class TrendResultSpec
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 3.0)));
 
         var consensus = new ConsensusBuilder(Parameters, Time).Create(snap, "lucerne", ConsensusSettings.Default);
-        var result = new TrendComputer().Compute(consensus, null);
+        var result = TrendAnalyzer.Analyze(consensus, null);
 
         Assert.Equal(new LocationId("lucerne"), result.Location);
         Assert.All(result.ParameterTrends.Values, v => Assert.Null(v));
@@ -81,7 +80,7 @@ public sealed class TrendResultSpec
 
         var prevConsensus = new ConsensusBuilder(Parameters, Time).Create(prev, "lucerne", ConsensusSettings.Default);
         var currConsensus = new ConsensusBuilder(Parameters, Time).Create(curr, "lucerne", ConsensusSettings.Default);
-        var result = new TrendComputer().Compute(currConsensus, prevConsensus);
+        var result = TrendAnalyzer.Analyze(currConsensus, prevConsensus);
 
         var tempTrend = result.ParameterTrends["temperature_2m"];
         Assert.NotNull(tempTrend);
@@ -101,7 +100,7 @@ public sealed class TrendResultSpec
 
         var prevConsensus = new ConsensusBuilder(Parameters, Time).Create(prev, "lucerne", ConsensusSettings.Default);
         var currConsensus = new ConsensusBuilder(Parameters, Time).Create(curr, "lucerne", ConsensusSettings.Default);
-        var result = new TrendComputer().Compute(currConsensus, prevConsensus);
+        var result = TrendAnalyzer.Analyze(currConsensus, prevConsensus);
 
         Assert.NotNull(result.WeatherChange);
         Assert.Equal(WeatherCategory.Clear, result.WeatherChange.From);

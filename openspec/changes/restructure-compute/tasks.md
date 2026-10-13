@@ -25,9 +25,9 @@ Pure synchronous specs use a plain `[Fact]`, and specs with async or DI-host set
 
 ## 4. Derived and Trends
 
-- [ ] 4.1 Move `DerivedComputer` → `src/Njord.Derived/DerivedFormulas.cs` and the assembling part of `DerivedResultComputer` into `DerivedAnalyzer`; move `DerivedComputerSpec`/`DerivedResultSpec` to `src/Njord.Derived.Tests/`
-- [ ] 4.2 Move `TrendCalculator` → `src/Njord.Trends/TrendFormulas.cs` and `TrendComputer` into `TrendAnalyzer`; move `TrendCalculatorSpec`/`TrendResultSpec` to `src/Njord.Trends.Tests/`
-- [ ] 4.3 Replace every remaining private `FindParam`/`Get(means, param)` copy with the query vocabulary
+- [x] 4.1 Move `DerivedComputer` → `src/Njord.Derived/DerivedFormulas.cs` and the assembling part of `DerivedResultComputer` into `DerivedAnalyzer`; move `DerivedComputerSpec`/`DerivedResultSpec` to `src/Njord.Derived.Tests/`
+- [x] 4.2 Move `TrendCalculator` → `src/Njord.Trends/TrendFormulas.cs` and `TrendComputer` into `TrendAnalyzer`; move `TrendCalculatorSpec`/`TrendResultSpec` to `src/Njord.Trends.Tests/`
+- [x] 4.3 Replace every remaining private `FindParam`/`Get(means, param)` copy with the query vocabulary
 
 ## 5. Enforce the structure
 

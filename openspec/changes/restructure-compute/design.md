@@ -190,3 +190,20 @@ matched the code left by `typed-analysis-models` and `split-options-per-feature`
   `IndexKind` order and maps them into the fixed `DayScoreSet` fields. `IndexResultSpec`
   cases were ported into `IndexAnalyzerSpec` with their own inputs (`ResultT0`,
   `ResultParameters`).
+- **4.1/4.2 Static `Analyze`.** `DerivedAnalyzer` and `TrendAnalyzer` keep their gated
+  instance `Compute(...)` (options toggle; for trends also "no previous snapshot") and gain
+  a `public static Analyze(...)` that assembles the result. The golden-master fixture and
+  `StatePayloadBuilderSpec` call it directly; the trend payload spec needs a result without
+  a previous snapshot, which the gated `Compute` never returns. Both analyzers no longer
+  take a computer or a `ResolvedParameterSet` (same equivalence as for indices).
+  `DerivedFormulas` keeps `DiurnalAmplitude` and `SunshinePercent` (series-based, used only
+  by their specs) unchanged. The specs moved as `DerivedFormulasSpec`/`DerivedResultSpec`
+  and `TrendFormulasSpec`/`TrendResultSpec` into the feature test projects.
+- **4.2 Unbounded hourly window.** Precipitation timing and predictability decay read every
+  hourly horizon of the series; `TrendAnalyzer` expresses that as
+  `series.Within(Horizon.Hours(int.MaxValue))` behind one private `AllHours` helper instead
+  of adding a further query to the vocabulary.
+- **4.3 Remaining lookups.** After groups 2-4 no private `FindParam`/`Get(means, param)`
+  copy was left in feature code. The only other direct horizon lookup, in
+  `Njord.Mqtt/StatePayloadBuilder` (a consumer), now uses `At(horizon)` as well. The empty
+  `Njord.Compute.Analysis` namespace is gone.
