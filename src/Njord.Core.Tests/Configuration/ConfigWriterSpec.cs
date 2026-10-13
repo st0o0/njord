@@ -145,7 +145,7 @@ public sealed class ConfigWriterSpec : IDisposable
         var result = await writer.UpdateAsync<ConsensusOptions>(
             opt =>
             {
-                opt.Method = Compute.Configuration.ConsensusMethod.TrimmedMean;
+                opt.Method = Compute.Settings.ConsensusMethod.TrimmedMean;
                 opt.TrimPercent = 0.7;
             },
             TestContext.Current.CancellationToken);

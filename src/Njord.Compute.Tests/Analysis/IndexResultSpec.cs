@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
+using Njord.Compute.Settings;
 using Njord.Weather;
 
 namespace Njord.Compute.Tests.Analysis;
@@ -16,9 +17,8 @@ public sealed class IndexResultSpec
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(
         ["Weather", "Solar"], [], []);
 
-    private static IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> DefaultPrefs(
-        string location = "lucerne") =>
-        IndexKinds.All.ToDictionary(kind => (new LocationId(location), kind), _ => ResolvedPreferences.Default);
+    private static IndexSettings DefaultPrefs(string location = "lucerne") =>
+        new(IndexKinds.All.ToDictionary(kind => (new LocationId(location), kind), _ => ResolvedPreferences.Default));
 
     private static Forecast MakeForecast(
         WeatherModel model, int hours, Func<int, (double temp, double hum, double wind, double cloud, double isDay)> valueFunc)
@@ -70,7 +70,7 @@ public sealed class IndexResultSpec
             }));
 
         var time = new FakeTimeProvider(T0);
-        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new IndexComputer(Parameters, time).Compute(consensus, DefaultPrefs());
 
         Assert.Equal(new LocationId("lucerne"), result.Location);
@@ -99,7 +99,7 @@ public sealed class IndexResultSpec
             }));
 
         var time = new FakeTimeProvider(T0);
-        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new IndexComputer(Parameters, time).Compute(consensus, DefaultPrefs());
 
         var d0 = result.Days.First(d => d.DayOffset == 0);
@@ -126,7 +126,7 @@ public sealed class IndexResultSpec
             }));
 
         var time = new FakeTimeProvider(T0);
-        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new IndexComputer(Parameters, time).Compute(consensus, DefaultPrefs());
 
         var d0 = result.Days.First(d => d.DayOffset == 0);
@@ -143,7 +143,7 @@ public sealed class IndexResultSpec
                 (h == 10 ? -1.0 : 14.0, 52.0, 3.5, 22.0, 1.0)));
 
         var time = new FakeTimeProvider(T0);
-        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new IndexComputer(Parameters, time).Compute(consensus, DefaultPrefs());
 
         Assert.NotNull(result.FrostProtection);
@@ -158,7 +158,7 @@ public sealed class IndexResultSpec
             MakeForecast(new WeatherModel("m2"), 48, h => (24.0, 62.0, 3.5, 22.0, 1.0)));
 
         var time = new FakeTimeProvider(T0);
-        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new IndexComputer(Parameters, time).Compute(consensus, DefaultPrefs());
 
         Assert.NotNull(result.Vpd);
@@ -173,7 +173,7 @@ public sealed class IndexResultSpec
             MakeForecast(new WeatherModel("m3"), 48, h => (20.0, 55.0, 4.0, 30.0, 1.0)));
 
         var time = new FakeTimeProvider(T0);
-        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new IndexComputer(Parameters, time).Compute(consensus, DefaultPrefs());
 
         var d0 = result.Days.First(d => d.DayOffset == 0);
@@ -199,7 +199,7 @@ public sealed class IndexResultSpec
             }));
 
         var time = new FakeTimeProvider(T0);
-        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne");
+        var consensus = new ConsensusSnapshotFactory(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new IndexComputer(Parameters, time).Compute(consensus, DefaultPrefs());
 
         var d0 = result.Days.First(d => d.DayOffset == 0);

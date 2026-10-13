@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts;
 using Njord.Compute.Analysis;
+using Njord.Compute.Settings;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Indices;
 using Njord.Weather;
@@ -129,7 +130,9 @@ public sealed class AnalysisFixture
         }
 
         var factory = new ConsensusSnapshotFactory(Parameters, time);
-        var preferences = PreferenceResolver.Resolve(IndexOptions, Locations);
+        var indexSettings = IndexOptions.ToSettings(Locations);
+        var derivedSettings = new DerivedSettings(Horizons);
+        var alertSettings = new AlertOptions().ToSettings();
         var derivedComputer = new DerivedResultComputer(Parameters);
         var indexComputer = new IndexComputer(Parameters, time);
         var trendComputer = new TrendComputer();
@@ -137,17 +140,17 @@ public sealed class AnalysisFixture
         var analyses = new List<LocationAnalysis>();
         foreach (var location in Locations)
         {
-            var consensus = factory.Create(current, location);
-            var previousConsensus = factory.Create(previous, location);
+            var consensus = factory.Create(current, location, ConsensusSettings.Default);
+            var previousConsensus = factory.Create(previous, location, ConsensusSettings.Default);
 
             analyses.Add(new LocationAnalysis(
                 location,
                 consensus,
                 previousConsensus,
-                AlertEvaluator.EvaluateAll(consensus, new AlertOptions(), time),
-                derivedComputer.Compute(consensus, Horizons),
+                AlertEvaluator.EvaluateAll(consensus, alertSettings, time),
+                derivedComputer.Compute(consensus, derivedSettings),
                 trendComputer.Compute(consensus, previousConsensus),
-                indexComputer.Compute(consensus, preferences)));
+                indexComputer.Compute(consensus, indexSettings)));
         }
 
         return new AnalysisFixture(time, forecasts, analyses);

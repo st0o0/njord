@@ -1,3 +1,4 @@
+using Njord.Compute.Settings;
 using Njord.Weather;
 
 namespace Njord.Compute.Analysis;
@@ -6,8 +7,9 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
 {
     public IndexResult Compute(
         ConsensusSnapshot consensus,
-        IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> resolvedPreferences)
+        IndexSettings settings)
     {
+        var resolvedPreferences = settings.Preferences;
         var slices = TimeSliceAggregator.AggregateDaySlices(consensus, parameters, timeProvider);
         var days = new List<DayScoreSet>();
 

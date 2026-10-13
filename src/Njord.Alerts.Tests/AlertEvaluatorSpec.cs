@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
+using Njord.Compute.Settings;
 using Njord.Core.Configuration.Alerts;
 using Njord.Weather;
 
@@ -34,7 +35,7 @@ public sealed class AlertEvaluatorSpec
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather", "Solar", "Soil"], [], []);
 
     private static ConsensusSnapshot ToConsensus(ModelSnapshot snap) =>
-        new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne");
+        new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne", ConsensusSettings.Default);
 
     private static Forecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues)
     {
@@ -823,7 +824,7 @@ public sealed class AlertEvaluatorSpec
         var snap = SnapshotWith(MakeForecast(new WeatherModel("m1"), (Temperature, 15.0)));
         var options = new AlertOptions();
 
-        var result = AlertEvaluator.EvaluateAll(ToConsensus(snap), options, Time);
+        var result = AlertEvaluator.EvaluateAll(ToConsensus(snap), options.ToSettings(), Time);
 
         Assert.Equal(14, result.Alerts.Count);
     }

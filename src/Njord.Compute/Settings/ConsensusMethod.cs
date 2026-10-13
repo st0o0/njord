@@ -1,4 +1,4 @@
-namespace Njord.Compute.Configuration;
+namespace Njord.Compute.Settings;
 
 public enum ConsensusMethod
 {

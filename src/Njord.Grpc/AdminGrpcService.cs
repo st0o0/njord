@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 using Grpc.Core;
-using Njord.Compute.Configuration;
+using Njord.Compute.Settings;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Consensus;

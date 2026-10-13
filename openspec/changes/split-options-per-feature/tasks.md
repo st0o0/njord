@@ -19,9 +19,9 @@ start a hosted actor system. Pure synchronous specs use a plain `[Fact]`.
 
 ## 3. Settings records for Compute
 
-- [ ] 3.1 Add immutable settings records in `src/Njord.Compute/Settings/` (`AlertSettings` using `SeverityThresholds`, `IndexSettings` with the `(LocationId, IndexKind)` preference map, `ConsensusSettings`, `TrendSettings`, `DerivedSettings`, aggregated as `AnalysisSettings`)
-- [ ] 3.2 Add `ToSettings()` conversions in `src/Njord.Core/Configuration/<Area>/` with specs (array → `SeverityThresholds`, preference cascade resolved once)
-- [ ] 3.3 Remove `Microsoft.Extensions.Options` and every `*Options` type from `src/Njord.Compute`; `AlertEvaluator.EvaluateAll` and the computers take settings records; update `src/Njord.Compute.Tests` and `src/Njord.Alerts.Tests`
+- [x] 3.1 Add immutable settings records in `src/Njord.Compute/Settings/` (`AlertSettings` using `SeverityThresholds`, `IndexSettings` with the `(LocationId, IndexKind)` preference map, `ConsensusSettings`, `TrendSettings`, `DerivedSettings`, aggregated as `AnalysisSettings`)
+- [x] 3.2 Add `ToSettings()` conversions in `src/Njord.Core/Configuration/<Area>/` with specs (array → `SeverityThresholds`, preference cascade resolved once)
+- [x] 3.3 Remove `Microsoft.Extensions.Options` and every `*Options` type from `src/Njord.Compute`; `AlertEvaluator.EvaluateAll` and the computers take settings records; update `src/Njord.Compute.Tests` and `src/Njord.Alerts.Tests`
 
 ## 4. Analyzers take settings per computation
 

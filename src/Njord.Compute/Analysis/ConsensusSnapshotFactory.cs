@@ -1,3 +1,4 @@
+using Njord.Compute.Settings;
 using Njord.Weather;
 
 namespace Njord.Compute.Analysis;
@@ -7,9 +8,10 @@ public sealed class ConsensusSnapshotFactory(ResolvedParameterSet parameters, Ti
     public ConsensusSnapshot Create(
         ModelSnapshot snapshot,
         string location,
-        double trimPercent = 0.1,
-        double agreementTolerance = 2.0)
+        ConsensusSettings settings)
     {
+        const double agreementTolerance = 2.0;
+        var trimPercent = settings.TrimPercent;
         var now = timeProvider.GetUtcNow();
 
         var cutoffHour = ComputeCutoffHour(snapshot, location, now);
@@ -24,11 +26,11 @@ public sealed class ConsensusSnapshotFactory(ResolvedParameterSet parameters, Ti
             : [];
 
         var hourly = new HourlyConsensus(
-            FilterParameterList(hourlyResults, minModels: 2),
+            FilterParameterList(hourlyResults, settings.MinQuorum),
             cutoffHour);
 
         var daily = new DailyConsensus(
-            FilterParameterList(dailyResults, minModels: 2),
+            FilterParameterList(dailyResults, settings.MinQuorum),
             cutoffDay);
 
         return new ConsensusSnapshot(new LocationId(location), hourly, daily, now);

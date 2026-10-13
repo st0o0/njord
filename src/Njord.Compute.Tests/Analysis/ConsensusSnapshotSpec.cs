@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
+using Njord.Compute.Settings;
 using Njord.Weather;
 
 namespace Njord.Compute.Tests.Analysis;
@@ -91,7 +92,7 @@ public sealed class ConsensusSnapshotSpec
         var parameters = new ResolvedParameterSet([Temperature], [TempMax]);
         var timeProvider = new FakeTimeProvider(T0);
 
-        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
+        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne", ConsensusSettings.Default);
 
         Assert.Equal(new LocationId("lucerne"), result.Location);
         Assert.NotEmpty(result.Hourly.Parameters);
@@ -106,7 +107,7 @@ public sealed class ConsensusSnapshotSpec
         var parameters = new ResolvedParameterSet([Temperature], [TempMax]);
         var timeProvider = new FakeTimeProvider(T0);
 
-        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "zurich");
+        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "zurich", ConsensusSettings.Default);
 
         Assert.Equal(new LocationId("zurich"), result.Location);
         Assert.Empty(result.Hourly.Parameters);
@@ -126,7 +127,7 @@ public sealed class ConsensusSnapshotSpec
         var parameters = new ResolvedParameterSet([Temperature], []);
         var timeProvider = new FakeTimeProvider(T0);
 
-        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
+        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne", ConsensusSettings.Default);
 
         Assert.Equal(72, result.Hourly.CutoffHour);
     }
@@ -140,7 +141,7 @@ public sealed class ConsensusSnapshotSpec
         var parameters = new ResolvedParameterSet([Temperature], []);
         var timeProvider = new FakeTimeProvider(T0);
 
-        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
+        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne", ConsensusSettings.Default);
 
         Assert.Equal(-1, result.Hourly.CutoffHour);
         Assert.Empty(result.Hourly.Parameters);
@@ -158,7 +159,7 @@ public sealed class ConsensusSnapshotSpec
         var parameters = new ResolvedParameterSet([], [TempMax]);
         var timeProvider = new FakeTimeProvider(T0);
 
-        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
+        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne", ConsensusSettings.Default);
 
         Assert.Equal(5, result.Daily.CutoffDay);
     }
@@ -173,7 +174,7 @@ public sealed class ConsensusSnapshotSpec
         var parameters = new ResolvedParameterSet([Temperature], []);
         var timeProvider = new FakeTimeProvider(T0);
 
-        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
+        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne", ConsensusSettings.Default);
 
         var hourlyParam = Assert.Single(result.Hourly.Parameters);
         var byHorizon = hourlyParam.ByHorizon;
@@ -193,7 +194,7 @@ public sealed class ConsensusSnapshotSpec
         var parameters = new ResolvedParameterSet([Temperature], []);
         var timeProvider = new FakeTimeProvider(T0);
 
-        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
+        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne", ConsensusSettings.Default);
 
         var hourlyParam = Assert.Single(result.Hourly.Parameters);
         var h3 = hourlyParam.ByHorizon[Horizon.Hours(3)];
@@ -214,7 +215,7 @@ public sealed class ConsensusSnapshotSpec
         var parameters = new ResolvedParameterSet([], [TempMax]);
         var timeProvider = new FakeTimeProvider(T0);
 
-        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
+        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne", ConsensusSettings.Default);
 
         var dailyParam = Assert.Single(result.Daily.Parameters);
         var d0 = dailyParam.ByHorizon[Horizon.Days(0)];
@@ -233,7 +234,7 @@ public sealed class ConsensusSnapshotSpec
         var parameters = new ResolvedParameterSet([], [TempMax]);
         var timeProvider = new FakeTimeProvider(T0);
 
-        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
+        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne", ConsensusSettings.Default);
 
         var dailyParam = Assert.Single(result.Daily.Parameters);
         var byHorizon = dailyParam.ByHorizon;
@@ -253,7 +254,7 @@ public sealed class ConsensusSnapshotSpec
         var parameters = new ResolvedParameterSet([Temperature], []);
         var timeProvider = new FakeTimeProvider(anchorTime);
 
-        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne");
+        var result = new ConsensusSnapshotFactory(parameters, timeProvider).Create(snapshot, "lucerne", ConsensusSettings.Default);
 
         Assert.Equal(anchorTime, result.ComputedAt);
     }

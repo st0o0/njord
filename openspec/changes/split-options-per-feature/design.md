@@ -194,3 +194,12 @@ Recorded during implementation; each is the smallest change that kept the plan w
    to section-bound types.
 9. **Validators for toggle-only types.** `TrendOptions` and `DerivedOptions` only hold `Enabled`;
    their validators always succeed, to keep "exactly one validator per options type".
+10. **Settings details (group 3).** `ConsensusMethod` moved to `Njord.Compute/Settings/` (it is
+    part of `ConsensusSettings`), so Compute has no `Configuration/` folder. `PreferenceResolver`
+    moved to `Njord.Core/Configuration/Indices/` in group 2 because it reads `IndexOptions`; its
+    spec moved to `Njord.Core.Tests`. `TrendSettings` has no members (trend computation has no
+    parameters); `TrendComputer` does not take it, only `TrendAnalyzer` does.
+    `ConsensusSnapshotFactory.Create` now takes `ConsensusSettings` and uses its `TrimPercent`
+    and `MinQuorum` (before: hard-coded 0.1 and 2, i.e. the configured `TrimPercent` was ignored).
+    Defaults are identical, so the golden masters are unchanged. `IndexComputer.Compute` takes
+    `IndexSettings` and `DerivedResultComputer.Compute` takes `DerivedSettings`.

@@ -5,6 +5,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Alerts;
 using Njord.Compute.Analysis;
+using Njord.Compute.Settings;
 using Njord.Core.Actors;
 using Njord.Core.Egress;
 using Njord.Derived;
@@ -209,7 +210,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                 {
                     var now = timeProvider.GetUtcNow();
                     snapshot = snapshot.Update(input.forecast);
-                    var consensus = consensusFactory.Create(snapshot, input.forecast.Location);
+                    var consensus = consensusFactory.Create(snapshot, input.forecast.Location, ConsensusSettings.Default);
 
                     var events = new List<PipelineEvent>
                     {

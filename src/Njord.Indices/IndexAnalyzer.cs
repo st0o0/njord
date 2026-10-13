@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Compute.Analysis;
+using Njord.Compute.Settings;
 using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration;
 using Njord.Sensors;
@@ -10,7 +11,7 @@ namespace Njord.Indices;
 public sealed class IndexAnalyzer
 {
     private readonly IndexComputer _indexComputer;
-    private readonly IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> _resolvedPreferences;
+    private readonly IndexSettings _settings;
 
     public IndexAnalyzer(
         IndexComputer indexComputer,
@@ -19,8 +20,7 @@ public sealed class IndexAnalyzer
     {
         _indexComputer = indexComputer;
         Enabled = indexOptions.Value.Enabled;
-        _resolvedPreferences = PreferenceResolver.Resolve(
-            indexOptions.Value, njordOptions.Value.Locations.Select(l => l.Name));
+        _settings = indexOptions.Value.ToSettings(njordOptions.Value.Locations.Select(l => l.Name));
     }
 
     public bool Enabled { get; }
@@ -30,11 +30,11 @@ public sealed class IndexAnalyzer
         if (!Enabled)
             return null;
 
-        var prefs = sensors?.Get(SensorKind.IndoorTemperature) is { } liveTemp
-            ? OverrideIndoorTemp(_resolvedPreferences, consensus.Location, liveTemp)
-            : _resolvedPreferences;
+        var settings = sensors?.Get(SensorKind.IndoorTemperature) is { } liveTemp
+            ? new IndexSettings(OverrideIndoorTemp(_settings.Preferences, consensus.Location, liveTemp))
+            : _settings;
 
-        return _indexComputer.Compute(consensus, prefs);
+        return _indexComputer.Compute(consensus, settings);
     }
 
     private static IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> OverrideIndoorTemp(

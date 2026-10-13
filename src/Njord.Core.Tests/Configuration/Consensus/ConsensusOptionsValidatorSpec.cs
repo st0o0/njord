@@ -1,4 +1,4 @@
-using Njord.Compute.Configuration;
+using Njord.Compute.Settings;
 using Njord.Core.Configuration.Consensus;
 
 namespace Njord.Core.Tests.Configuration.Consensus;

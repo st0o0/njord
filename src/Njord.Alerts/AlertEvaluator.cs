@@ -1,5 +1,5 @@
 using Njord.Compute.Analysis;
-using Njord.Core.Configuration.Alerts;
+using Njord.Compute.Settings;
 using Njord.Weather;
 
 namespace Njord.Alerts;
@@ -30,33 +30,27 @@ public static class AlertEvaluator
     private static readonly ParameterDef DailySnowfallSum = ParameterRegistry.SnowfallSum;
 
     public static AlertResult EvaluateAll(
-        ConsensusSnapshot consensus, AlertOptions options, TimeProvider timeProvider)
+        ConsensusSnapshot consensus, AlertSettings settings, TimeProvider timeProvider)
     {
         var alerts = new List<Alert>
         {
-            WithThresholds(options.FrostThresholds, ScanDirection.Min, AlertType.Frost, t => EvaluateFrost(consensus, t)),
-            WithThresholds(options.HeatThresholds, ScanDirection.Max, AlertType.Heat, t => EvaluateHeat(consensus, t)),
-            WithThresholds(options.StormGustThresholds, ScanDirection.Max, AlertType.Storm, t => EvaluateStorm(consensus, t)),
-            EvaluateHeavyRain(consensus, options.HeavyRainHourlyThreshold, options.HeavyRainDailyThreshold),
+            EvaluateFrost(consensus, settings.Frost),
+            EvaluateHeat(consensus, settings.Heat),
+            EvaluateStorm(consensus, settings.StormGust),
+            EvaluateHeavyRain(consensus, settings.HeavyRainHourlyThreshold, settings.HeavyRainDailyThreshold),
             EvaluateUv(consensus),
-            EvaluateFog(consensus, options.FogPersistentHours),
+            EvaluateFog(consensus, settings.FogPersistentHours),
             EvaluateSnow(consensus),
-            EvaluatePressureDrop(consensus, options.PressureDropThreshold, options.PressureDropSevereThreshold),
-            EvaluateThunderstorm(consensus, options.CapeThreshold, options.ThunderstormPrecipThreshold, options.ThunderstormGustThreshold),
-            EvaluateIce(consensus, options.IceThreshold),
-            WithThresholds(options.WindChillThresholds, ScanDirection.Min, AlertType.WindChill, t => EvaluateWindChill(consensus, t)),
-            WithThresholds(options.VisibilityThresholds, ScanDirection.Min, AlertType.Visibility, t => EvaluateVisibility(consensus, t)),
-            WithThresholds(options.TropicalNightThresholds, ScanDirection.Max, AlertType.TropicalNight, t => EvaluateTropicalNight(consensus, t)),
-            WithThresholds(options.HumidityThresholds, ScanDirection.Max, AlertType.Humidity, t => EvaluateHumidity(consensus, t)),
+            EvaluatePressureDrop(consensus, settings.PressureDropThreshold, settings.PressureDropSevereThreshold),
+            EvaluateThunderstorm(consensus, settings.CapeThreshold, settings.ThunderstormPrecipThreshold, settings.ThunderstormGustThreshold),
+            EvaluateIce(consensus, settings.IceThreshold),
+            EvaluateWindChill(consensus, settings.WindChill),
+            EvaluateVisibility(consensus, settings.Visibility),
+            EvaluateTropicalNight(consensus, settings.TropicalNight),
+            EvaluateHumidity(consensus, settings.Humidity),
         };
         return new AlertResult(consensus.Location, alerts);
     }
-
-    private static Alert WithThresholds(
-        double[] values, ScanDirection direction, AlertType type, Func<SeverityThresholds, Alert> evaluate) =>
-        SeverityThresholds.TryCreate(values, direction, out var thresholds)
-            ? evaluate(thresholds)
-            : Alert.None(type);
 
     public static Alert EvaluateFrost(
         ConsensusSnapshot consensus, SeverityThresholds thresholds)

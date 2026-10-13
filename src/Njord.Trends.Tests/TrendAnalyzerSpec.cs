@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
+using Njord.Compute.Settings;
 using Njord.Core.Configuration.Trends;
 using Njord.Weather;
 
@@ -49,6 +50,6 @@ public sealed class TrendAnalyzerSpec
     private static ConsensusSnapshot BuildConsensus()
     {
         var snap = ModelSnapshot.Empty;
-        return new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne");
+        return new ConsensusSnapshotFactory(Parameters, Time).Create(snap, "lucerne", ConsensusSettings.Default);
     }
 }

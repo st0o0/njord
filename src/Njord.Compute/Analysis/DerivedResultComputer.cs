@@ -1,3 +1,4 @@
+using Njord.Compute.Settings;
 using Njord.Weather;
 
 namespace Njord.Compute.Analysis;
@@ -6,8 +7,9 @@ public sealed class DerivedResultComputer(ResolvedParameterSet parameters)
 {
     public DerivedResult Compute(
         ConsensusSnapshot consensus,
-        IReadOnlyList<int> horizons)
+        DerivedSettings settings)
     {
+        var horizons = settings.Horizons;
         var windSpeed = parameters.Get(ParameterRegistry.WindSpeed10m);
         var temperature = parameters.Get(ParameterRegistry.Temperature2m);
         var dewPoint = parameters.Get(ParameterRegistry.DewPoint2m);
