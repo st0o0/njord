@@ -32,9 +32,9 @@ service specs must pass without re-approval after every group.
 
 ## 5. Enforce and document
 
-- [ ] 5.1 Add ArchUnit rules in `src/Njord.Architecture.Tests/ZoneArchitectureSpec.cs`: no `ActorBase` subtype in `Njord.Grpc`; `Njord.Grpc` does not depend on `IOptions*`, `IConfigWriter`, `BudgetCalculator`, `ModelCoverageRegistry`; no public record nested in an actor class in production assemblies
+- [x] 5.1 Add ArchUnit rules in `src/Njord.Architecture.Tests/ZoneArchitectureSpec.cs`: no `ActorBase` subtype in `Njord.Grpc`; `Njord.Grpc` does not depend on `IOptions*`, `IConfigWriter`, `BudgetCalculator`, `ModelCoverageRegistry`; no public record nested in an actor class in production assemblies
 - [x] 5.2 (done 2026-10-13 in the main-spec format repair) Repair the main specs `openspec/specs/message-conventions/spec.md` and `openspec/specs/message-domain-separation/spec.md` (they currently fail `openspec validate`: missing `## Purpose`/`## Requirements` structure) so this change's deltas can be merged on archive
-- [ ] 5.3 Update AGENTS.md (solution structure, reference direction Messages → Weather/Sensors/Compute, consumers section) and CLAUDE.md skill routing if affected
+- [x] 5.3 Update AGENTS.md (solution structure, reference direction Messages → Weather/Sensors/Compute, consumers section) and CLAUDE.md skill routing if affected
 
 ## 6. Validation
 

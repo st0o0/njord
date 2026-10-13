@@ -1,4 +1,9 @@
+using System.Reflection;
+using Akka.Actor;
 using ArchUnitNET.xUnitV3;
+using Njord.Core.Configuration;
+using Njord.Core.Configuration.Polling;
+using Njord.Weather;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 namespace Njord.Architecture.Tests;
@@ -34,4 +39,44 @@ public sealed class ZoneArchitectureSpec
             .Should().NotDependOnAnyTypesThat().Are(NjordArchitecture.FeatureLibrariesAndHost)
             .Check(NjordArchitecture.Instance);
     }
+
+    [Fact]
+    public void Grpc_contains_no_actors()
+    {
+        var actors = typeof(Grpc.WeatherGrpcService).Assembly.GetTypes()
+            .Where(t => typeof(ActorBase).IsAssignableFrom(t))
+            .Select(t => t.FullName);
+
+        Assert.Empty(actors);
+    }
+
+    [Fact]
+    public void Grpc_reads_no_options_and_calls_no_configuration_writer_calculator_or_registry()
+    {
+        Types().That().Are(NjordArchitecture.TypesInLibrary("Njord.Grpc"))
+            .Should().NotDependOnAnyTypesThat().HaveFullNameMatching(@"^Microsoft\.Extensions\.Options\.IOptions")
+            .AndShould().NotDependOnAny(
+                typeof(IConfigWriter),
+                typeof(ConfigView),
+                typeof(BudgetCalculator),
+                typeof(ModelCoverageRegistry))
+            .Check(NjordArchitecture.Instance);
+    }
+
+    [Fact]
+    public void No_actor_in_a_production_assembly_declares_a_public_nested_record()
+    {
+        var nested = NjordArchitecture.ProductionAssemblies
+            .SelectMany(a => a.GetTypes())
+            .Where(t => typeof(ActorBase).IsAssignableFrom(t))
+            .SelectMany(t => t.GetNestedTypes(BindingFlags.Public))
+            .Where(IsRecord)
+            .Select(t => t.FullName);
+
+        Assert.Empty(nested);
+    }
+
+    // Record classes and record structs both get a compiler-generated PrintMembers method.
+    private static bool IsRecord(Type type) =>
+        type.GetMethod("PrintMembers", BindingFlags.NonPublic | BindingFlags.Instance, [typeof(System.Text.StringBuilder)]) is not null;
 }

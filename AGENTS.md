@@ -50,18 +50,35 @@ the HA host).
   `TrendComputed`, `IndexComputed`) — no `object` wrapping. Pipeline
   orchestrates all feature libraries directly (`Njord.Pipeline` references
   analysis libraries).
-- **Consumers are output adapters via SourceRef.** MQTT and gRPC consumers
-  request a `SourceRef<PipelineEvent>` from `ForecastPipeline` and run their own
-  sinks. No intermediate relay actors, no presenters, no discovery payloads.
+- **Consumers are output adapters via SourceRef.** The MQTT state publisher and
+  the API's read model (`ForecastReadModel` in `Njord.Pipeline`, marker
+  `IForecastReadModel`) request a `SourceRef<PipelineEvent>` from `ForecastPipeline`
+  and run their own sinks. No intermediate relay actors, no presenters, no discovery
+  payloads.
+- **The gRPC API is a pure adapter.** `Njord.Grpc` holds no actors and reads no
+  options: every RPC resolves an actor marker, asks with a message from
+  `Njord.Messages` through `ActorAsk` (`Unavailable` when the actor is not resolvable,
+  `DeadlineExceeded` on timeout) and maps the result with the per-domain `ToProto()`
+  extensions in `Njord.Grpc/Mapping/`. Configuration is read and written through
+  `ConfigManager` (`QueryConfig`, `QueryCatalog`, `Update*` commands,
+  `RequestConfigStream`), budget status through `BudgetTracker` (`QueryBudgetStatus`).
+- **`Njord.Messages` is the Akka-free contract project.** Every public command, query,
+  result and event lives there, one file per command or query, in domain folders
+  (`Budget/`, `Config/`, `Forecast/`, `Mqtt/`, `Pipeline/`, `Sensors/`, `Common/`).
+  Records that carry Akka types (stream handshakes with `ISourceRef`) live in
+  `Njord.Core/Actors/StreamWiringMessages.cs`; actor-internal records stay private.
 - **Zone rules are enforced by tests** in `src/Njord.Architecture.Tests/` (lateral
   independence of the feature libraries, Domain independence,
   sealed/`Spec` conventions,
-  `LayerReferenceSpec` for the assembly reference direction: Domain and
-  Persistence reference no Njord assembly, Messages only Domain, Core only those
-  three, feature libraries (OpenMeteo, Budget, SensorHub, Grpc, Pipeline, Mqtt,
+  `LayerReferenceSpec` for the assembly reference direction: Weather, Sensors and
+  Persistence reference no Njord assembly, Compute only Weather and Sensors,
+  Messages only Weather, Sensors and Compute (and no Akka package), Core only those,
+  feature libraries (OpenMeteo, Budget, SensorHub, Grpc, Pipeline, Mqtt,
   Alerts, Derived, Trends, Indices) only Core and below; the host references
   all. Feature libraries never reference each other, checked by the lateral
-  rule in `ZoneArchitectureSpec`).
+  rule in `ZoneArchitectureSpec`, which also keeps actors, options, the config
+  writer, `BudgetCalculator` and `ModelCoverageRegistry` out of `Njord.Grpc` and
+  public nested records out of every actor).
 
 ### Decisions
 
@@ -107,25 +124,32 @@ src/
                               #   ParameterRegistry (no Njord references)
   Njord.Sensors/               # Pure sensor records (no Njord references)
   Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references)
-  Njord.Messages/             # Actor message records (-> Weather, Sensors)
+  Njord.Messages/             # Commands, queries, results, PipelineEvent; no Akka
+                              #   (-> Weather, Sensors, Compute)
+    Budget/ Config/ Forecast/ Mqtt/ Pipeline/ Sensors/ Common/
   Njord.Compute/              # Shared analysis building blocks only (-> Weather, Sensors only)
     Consensus/                # ConsensusBuilder, ConsensusStatistics, consensus records
     Querying/                 # Query vocabulary on consensus data (ConsensusQueries,
                               #   HorizonWindow, HorizonHit)
     Contracts/                # Result records, SeverityThresholds, result enums
     Settings/                 # Immutable per-feature settings records
-  Njord.Core/                 # Options validators, actor keys, EnrichmentKind, PipelineEvent,
-                              #   NjordHealthMonitor, StreamSupervision
+  Njord.Core/                 # Options, actor keys, NjordHealthMonitor, StreamSupervision
                               #   (-> Weather, Sensors, Messages, Persistence, Compute)
-    Configuration/            # Validators, budget calculator, ConsensusMethod enum
+    Actors/                   # Marker interfaces, StreamConsumerActor, stream handshakes
+                              #   (StreamWiringMessages: pipeline output, forecast,
+                              #   read-model and config streams)
+    Configuration/            # Options and validators, budget calculator, ConfigWriter,
+                              #   ConfigSnapshotMapping (options -> Messages/Config contracts)
 
   # /Domain/ — feature libraries (each -> Core only)
   Njord.OpenMeteo/            # OpenMeteoGateway, OpenMeteoClient, DTOs, JSON source generator
   Njord.Budget/               # BudgetTracker persistent actor, usage accounting
   Njord.SensorHub/            # SensorHub
-  Njord.Pipeline/             # PollScheduler, ForecastPipeline, PipelineEvent BroadcastHub
+  Njord.Pipeline/             # PollScheduler, ForecastPipeline, PipelineEvent BroadcastHub,
+                              #   ForecastReadModel (API read model)
   Njord.Mqtt/                 # MQTT connection, state payloads, TopicSlug, SourceRef consumer
-  Njord.Grpc/                 # gRPC services, GrpcConsumer, protos
+  Njord.Grpc/                 # gRPC services (ask and map only), ActorAsk, protos
+    Mapping/                  # <Domain>ProtoMappings: ToProto()/ToCommand() extensions
 
   # /Analysis/ — per-feature analysis libraries (each -> Core only), own their computation
   Njord.Alerts/               # AlertAnalyzer, IAlertRule, Rules/ (one rule per AlertType),
@@ -137,7 +161,7 @@ src/
 
   # Host
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
-    Configuration/            # Host setup (service, actor system, application)
+    Configuration/            # Host setup, ConfigManager (config queries, commands, stream)
     Health/
 
   # /Tests/ — one test project per production project
@@ -149,18 +173,19 @@ src/
   Njord.OpenMeteo.Tests/      # OpenMeteoClient, OpenMeteoGateway specs
   Njord.Budget.Tests/         # BudgetTracker specs
   Njord.SensorHub.Tests/      # SensorHub specs
-  Njord.Pipeline.Tests/       # PollScheduler, ForecastPipeline specs
+  Njord.Pipeline.Tests/       # PollScheduler, ForecastPipeline, ForecastReadModel specs
   Njord.Mqtt.Tests/           # MQTT connection, state payload, consumer specs
-  Njord.Grpc.Tests/           # gRPC service, GrpcConsumer specs
+  Njord.Grpc.Tests/           # gRPC service, ActorAsk and mapping specs, golden masters
   Njord.Alerts.Tests/         # AlertAnalyzer specs, Rules/ (one spec per rule)
   Njord.Derived.Tests/        # DerivedAnalyzer, DerivedFormulas specs
   Njord.Trends.Tests/         # TrendAnalyzer, TrendFormulas specs
   Njord.Indices.Tests/        # IndexAnalyzer, DaySlicer specs, Scores/ (one spec per score)
+  Njord.Tests/                # Host specs: ConfigManager, options binding
   Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
 
-Reference direction: Weather/Sensors/Persistence <- Messages <- Compute <- Core <- feature libs
+Reference direction: Weather/Sensors <- Compute <- Messages; Weather/Sensors/Compute/Messages/Persistence <- Core <- feature libs
 (OpenMeteo, Budget, SensorHub, Grpc, Pipeline, Mqtt, Alerts, Derived, Trends,
 Indices) <- host. Feature libs reference only Njord.Core (and below, including
 Compute transitively), never each other and never the host; they reach each other's actors
@@ -188,9 +213,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 691 tests (Weather 94, Sensors 11, Persistence 7, Compute 165, Core 86,
-Grpc 56, Pipeline 64, Mqtt 42, OpenMeteo 16, Budget 24, SensorHub 21, Architecture 35,
-Alerts 61, Derived 2, Trends 3, Indices 4).
+Current total: 971 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 153,
+Grpc 75, Pipeline 75, Mqtt 52, OpenMeteo 18, Budget 25, SensorHub 21, Architecture 53,
+Alerts 67, Derived 36, Trends 27, Indices 61, host `Njord.Tests` 23).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and

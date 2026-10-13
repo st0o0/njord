@@ -188,3 +188,14 @@ Adaptations made during implementation, where the code differed from what the ta
   "reload from outside the writer" case is covered through `RequestConfigStream` in
   `ConfigManagerSpec`.
 - `Njord.Grpc` no longer references `Akka.Cluster.Hosting` or `Servus.Akka`.
+
+### Group 5 (enforce and document)
+- The new rules are in `ZoneArchitectureSpec`: `Grpc_contains_no_actors` and
+  `No_actor_in_a_production_assembly_declares_a_public_nested_record` use reflection;
+  `Grpc_reads_no_options_and_calls_no_configuration_writer_calculator_or_registry` is an
+  ArchUnit rule that also forbids `ConfigView`. Both of these rules were checked against a
+  deliberate violation before they were committed. "Messages has no Akka dependency" lives in
+  `LayerReferenceSpec` (group 1).
+- CLAUDE.md already routes message conventions to "Pattern A (dedicated Njord.Messages
+  project)", so its skill routing needed no change. AGENTS.md got the new guardrails, the
+  structure, the reference direction and current test totals.
