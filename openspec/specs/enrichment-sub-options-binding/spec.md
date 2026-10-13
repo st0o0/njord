@@ -5,17 +5,16 @@
 Binds nested EnrichmentOptions sub-types (AlertOptions, IndexOptions,
 DerivedOptions, TrendOptions, ConsensusOptions) individually in DI so that
 `IOptions<T>` resolves to config-populated instances, not empty defaults.
-
 ## Requirements
-
 ### Requirement: Each EnrichmentOptions sub-type is individually bound in DI
 
 `AlertOptions`, `IndexOptions`, `DerivedOptions`, `TrendOptions`, and
-`ConsensusOptions` SHALL each be registered via
-`AddOptions<T>().Bind(enrichmentSection.GetSection("<name>"))` so that
-`IOptions<T>` resolves to config-populated instances, not empty defaults.
-The binding section path follows the nesting:
-`Njord:Enrichment:Alerts`, `Njord:Enrichment:Indices`, etc.
+`ConsensusOptions` SHALL each be registered exactly once via
+`AddOptions<T>().BindConfiguration(T.SectionName).ValidateOnStart()` so that
+`IOptions<T>` resolves to config-populated, validated instances. The section paths
+are unchanged: `Njord:Enrichment:Alerts`, `Njord:Enrichment:Indices`,
+`Njord:Enrichment:Derived`, `Njord:Enrichment:Trends`, `Njord:Enrichment:Consensus`.
+No aggregate `EnrichmentOptions` type SHALL be bound.
 
 #### Scenario: AlertOptions resolves from config
 
@@ -42,14 +41,8 @@ The binding section path follows the nesting:
 - **WHEN** configuration contains `Njord:Enrichment:Consensus:MinQuorum = 3`
 - **THEN** `IOptions<ConsensusOptions>.Value.MinQuorum` SHALL equal `3`
 
-### Requirement: Sub-option bindings coexist with parent EnrichmentOptions binding
+#### Scenario: No aggregate binding
 
-The individual bindings SHALL NOT interfere with the existing
-`IOptions<EnrichmentOptions>` binding. Both resolution paths — the parent
-object and each sub-type — SHALL reflect the same config values.
+- **WHEN** the service provider is inspected
+- **THEN** no `IOptions<EnrichmentOptions>` registration exists
 
-#### Scenario: Dual resolution returns consistent values
-
-- **WHEN** `Njord:Enrichment:Alerts:Enabled` is set to `true` in config
-- **THEN** `IOptions<AlertOptions>.Value.Enabled` SHALL equal `true`
-  AND `IOptions<EnrichmentOptions>.Value.Alerts.Enabled` SHALL equal `true`

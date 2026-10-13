@@ -7,49 +7,41 @@ mutation API bind, validate, and inject independently of `NjordOptions`,
 instead of forcing every consumer to depend on the full monolithic options
 object. `Mqtt` and `Enrichment` are the deliberate exception, kept nested
 because the admin gRPC API mutates and persists `NjordOptions` as one unit.
-
 ## Requirements
-
 ### Requirement: Each sub-option has its own SectionName
-`MqttOptions`, `GrpcOptions`, `SensorOptions`, `EnrichmentOptions`, and `PersistenceOptions` SHALL each be a standalone class with a `public const string SectionName` field (e.g., `"Njord:Mqtt"`).
+Every options type SHALL be a standalone class with a `public const string SectionName` field and SHALL be bound exactly once, to that section, with startup validation. This SHALL include at least `NjordOptions` (forecast scope), `PollingOptions`, `OpenMeteoOptions`, `StorageOptions`, `MqttOptions`, `SensorOptions`, `PersistenceOptions`, `ConsensusOptions`, `AlertOptions`, `DerivedOptions`, `TrendOptions` and `IndexOptions`. Configuration keys and environment variable names SHALL be unchanged; two options types MAY bind the same section when each reads a disjoint set of keys (e.g. `NjordOptions` and `PollingOptions` both bind `Njord`).
 
 #### Scenario: MqttOptions binds to Njord:Mqtt section
 - **WHEN** configuration contains `Njord:Mqtt:Host = "broker.local"`
 - **THEN** `IOptions<MqttOptions>.Value.Host` SHALL equal `"broker.local"`
 
+#### Scenario: Poll interval keeps its key
+- **WHEN** environment variable `Njord__PollInterval=00:30:00` is set
+- **THEN** `IOptions<PollingOptions>.Value.PollInterval` SHALL equal 30 minutes
+
+#### Scenario: Consumers inject only what they read
+- **WHEN** any production class outside configuration setup is inspected
+- **THEN** it injects only the options types whose values it reads
+
 ### Requirement: GrpcOptions and SensorOptions are not nested inside NjordOptions
-`GrpcOptions` and `SensorOptions` SHALL NOT be properties of `NjordOptions`. `SensorOptions` SHALL be registered and validated by `Njord.SensorHub`'s setup container, not the host.
+No options type SHALL be a property of another options type. `NjordOptions` SHALL contain only the forecast scope: locations, default models, horizons, forecast days and the requested parameter set. `SensorOptions` SHALL be registered and validated by `Njord.SensorHub`'s setup container, not the host.
 
 #### Scenario: NjordOptions has no Grpc or Sensors property
 - **WHEN** `NjordOptions` is resolved from DI
-- **THEN** it SHALL NOT contain properties for `Grpc` or `Sensors`
+- **THEN** it SHALL NOT contain properties for `Grpc`, `Sensors`, `Mqtt`, `Enrichment`, `PollInterval` or `BudgetOverride`
 
 #### Scenario: SensorHubActor uses IOptions of SensorOptions
 - **WHEN** `SensorHubActor` is constructed
 - **THEN** it SHALL receive `IOptions<SensorOptions>` for sensor fallback configuration
 
-### Requirement: MqttOptions and EnrichmentOptions stay nested in NjordOptions, dual-bound
-`MqttOptions` and `EnrichmentOptions` SHALL remain properties of `NjordOptions` *and* SHALL also be independently bindable via their own `SectionName`, because `AdminGrpcService` reads, mutates, and persists the whole `NjordOptions` object as one unit (`IOptionsMonitor<NjordOptions>` + `ConfigPersistence.SaveAsync(NjordOptions)`) for every admin `Set*` RPC, including `SetEnrichment*`. Feature-local consumers (actors, enrichment features, validators) SHALL use the standalone binding; the admin mutation/persistence path SHALL keep using the nested one.
+### Requirement: Every options type has exactly one co-located validator
+Every options type SHALL have exactly one `IValidateOptions<T>` validator for that type, defined next to the options class and registered by the same setup extension that binds it. No validator SHALL validate a different options type than the one it is registered for.
 
-#### Scenario: AddNjordMqtt registers standalone MqttOptions
-- **WHEN** `Njord.Mqtt`'s setup container runs
-- **THEN** `MqttOptions` SHALL be resolvable from the service provider via `IOptions<MqttOptions>`, bound from the same `Njord:Mqtt` section as `NjordOptions.Mqtt`
-
-#### Scenario: MqttConnectionActor uses IOptions of MqttOptions
-- **WHEN** `MqttConnectionActor` is constructed
-- **THEN** it SHALL receive `IOptions<MqttOptions>`, not `IOptions<NjordOptions>`
-
-#### Scenario: AdminGrpcService still mutates NjordOptions.Enrichment
-- **WHEN** `SetEnrichmentAlerts` or another `SetEnrichment*` admin RPC is handled
-- **THEN** it SHALL clone, mutate, and persist `NjordOptions` (including its nested `Enrichment` property) as today — this is intentionally unchanged by this capability
-
-### Requirement: Sub-option validators are co-located with their options class, except Mqtt
-Each sub-option class that is fully extracted (not dual-bound) SHALL have its own `IValidateOptions<SubOptions>` validator registered alongside it, not in the host. `MqttOptions` validation SHALL remain on `NjordOptionsValidator` because `Mqtt` stays nested in `NjordOptions`.
-
-#### Scenario: ConsensusOptionsValidator validates EnrichmentOptions
+#### Scenario: Consensus validator validates ConsensusOptions
 - **WHEN** invalid consensus settings are provided (e.g., quorum < 1)
-- **THEN** the `ConsensusOptionsValidator` SHALL produce a validation failure on `EnrichmentOptions` (via its standalone binding), not only on `NjordOptions`
+- **THEN** the consensus validator SHALL fail startup validation of `ConsensusOptions`
 
-#### Scenario: NjordOptionsValidator still validates Mqtt
-- **WHEN** `NjordOptions.Mqtt.Enabled` is `true` and `Mqtt.Host` is missing
-- **THEN** `NjordOptionsValidator` SHALL fail startup validation naming the missing MQTT host
+#### Scenario: Mqtt validator validates MqttOptions
+- **WHEN** `Njord:Mqtt:Enabled` is `true` and `Njord:Mqtt:Host` is missing
+- **THEN** the MQTT validator SHALL fail startup validation of `MqttOptions` naming the missing host
+
