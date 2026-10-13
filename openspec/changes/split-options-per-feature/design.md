@@ -248,3 +248,14 @@ Recorded during implementation; each is the smallest change that kept the plan w
     checks "Compute has no options", "one validator next to each section type" and "no nested
     section types". `Njord.Architecture.Tests` now also references `Njord.Tests`, which the
     `Njord.*.Tests` glob did not match.
+15. **Service run (7.7).** `src/Njord` has no `launchSettings.json`, so a plain `dotnet run`
+    starts in the Production environment without locations and correctly fails startup
+    validation ("At least one location … is required"). The run was repeated with
+    `ASPNETCORE_ENVIRONMENT=Development`: all sections bound and validated, and the host started.
+    A second run used a scratch content root holding the two appsettings files and an
+    old-format `data/appsettings.Override.json` (`Njord`-wrapped: `PollInterval`,
+    `BudgetOverride`, `Horizons`, `Enrichment.Alerts`, a numeric consensus `Method`, index
+    preferences). It started cleanly, and a `ForecastDays: 99` added to that file made startup
+    fail on `ForecastDays`, which shows the file is read. The repeated
+    `ClusterSingletonProxy failed to find an associated singleton` warnings also appear when the
+    pre-change commit (`493573a`) is run the same way; they are not caused by this change.

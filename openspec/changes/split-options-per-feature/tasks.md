@@ -45,11 +45,11 @@ start a hosted actor system. Pure synchronous specs use a plain `[Fact]`.
 
 ## 7. Validation
 
-- [ ] 7.1 `cd src && dotnet build Njord.slnx` with no new warnings
-- [ ] 7.2 `dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj --no-build`
-- [ ] 7.3 `dotnet run --project Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj --no-build` and `dotnet run --project Njord.OpenMeteo.Tests/Njord.OpenMeteo.Tests.csproj --no-build`
-- [ ] 7.4 `dotnet run --project Njord.Grpc.Tests/Njord.Grpc.Tests.csproj --no-build` and `dotnet run --project Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj --no-build` (golden masters from `typed-analysis-models` unchanged)
-- [ ] 7.5 `dotnet run --project Njord.Tests/Njord.Tests.csproj --no-build` and `dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj --no-build`
-- [ ] 7.6 Full loop over all `Njord.*Tests` projects (AGENTS.md "Build & test")
-- [ ] 7.7 Run the service once with `src/Njord/appsettings.Development.json` and an existing `data/appsettings.Override.json` to confirm unchanged keys still bind
-- [ ] 7.8 From the repo root: `openspec validate split-options-per-feature --strict`
+- [x] 7.1 `cd src && dotnet build Njord.slnx` with no new warnings
+- [x] 7.2 `dotnet run --project Njord.Core.Tests/Njord.Core.Tests.csproj --no-build`
+- [x] 7.3 `dotnet run --project Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj --no-build` and `dotnet run --project Njord.OpenMeteo.Tests/Njord.OpenMeteo.Tests.csproj --no-build`
+- [x] 7.4 `dotnet run --project Njord.Grpc.Tests/Njord.Grpc.Tests.csproj --no-build` and `dotnet run --project Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj --no-build` (golden masters from `typed-analysis-models` unchanged)
+- [x] 7.5 `dotnet run --project Njord.Tests/Njord.Tests.csproj --no-build` and `dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj --no-build`
+- [x] 7.6 Full loop over all `Njord.*Tests` projects (AGENTS.md "Build & test")
+- [x] 7.7 Run the service once with `src/Njord/appsettings.Development.json` and an existing `data/appsettings.Override.json` to confirm unchanged keys still bind
+- [x] 7.8 From the repo root: `openspec validate split-options-per-feature --strict`
