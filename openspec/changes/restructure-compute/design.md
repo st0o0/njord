@@ -129,3 +129,29 @@ matched the code left by `typed-analysis-models` and `split-options-per-feature`
   there. Only the result records, `SeverityThresholds`, `ScanDirection` and the result
   enums moved to `Njord.Compute/Contracts/` (namespace `Njord.Compute.Contracts`). The
   specs of these contracts moved to `Njord.Compute.Tests/Contracts/`.
+- **2.1 Analyzer signature.** `AlertAnalyzer(IEnumerable<IAlertRule>, IOptions<AlertOptions>)`
+  no longer takes a `TimeProvider`: the old one was passed to `EvaluateAll` but never read.
+  The completeness check also rejects a duplicated alert type, not only a missing one.
+  While the rules were extracted one at a time, a transitional `EvaluatorRule` adapter
+  registered the not-yet-extracted `AlertEvaluator` methods, so the golden masters ran
+  through `AlertAnalyzer` and DI after every single rule; the adapter was deleted in 2.5.
+- **2.1 Test wiring.** `Njord.Tests.Shared/FeatureServices` builds analyzers from the real
+  `AddXxx()` registrations (empty `IConfiguration`, given `TimeProvider`). `AnalysisFixture`
+  (the golden-master input), `DisabledAnalyzers` and `ForecastPipelineSettingsSpec` use it,
+  so the golden masters exercise the registered rules and scores.
+- **2.2-2.4 Shared alert window.** The 24 h horizon and the one-day daily window live once
+  in `Njord.Alerts/AlertWindow.cs` (`Hours`, `LastHour`, `LastDay`, `Next24Hours()`,
+  `HourlyHorizons`, `DaytimeHours()`/`NighttimeHours()` for the `is_day` split,
+  `DailyMax()`, `RoundedAverage()`), not in `AlertSettings`: these values are not
+  configurable today, and adding them to the settings would change the options surface.
+  Rules that align several parameters per hour (fog, thunderstorm, ice, tropical night,
+  humidity) keep an explicit loop over `HourlyHorizons` with `At(horizon)`, because the
+  vocabulary scans one series at a time.
+- **2.2-2.4 Rule specs.** The `AlertEvaluatorSpec` cases were ported unchanged into
+  `Njord.Alerts.Tests/Rules/<Type>RuleSpec.cs`. Where a case passed explicit thresholds,
+  they equal the `AlertOptions` defaults, so the specs pass `AlertOptions` defaults and
+  override only the values that differed (`FogPersistentHours = 25`,
+  `PressureDropSevereThreshold = 15`). `FrostRuleSpec` adds the two `analysis-rules`
+  scenarios (rule in isolation, changed threshold on the next evaluation).
+- **2.5 `ThresholdClassifier`** no longer existed (replaced by `SeverityThresholds` in
+  `typed-analysis-models`); only `HorizonExtremeScanner` and its spec were deleted.

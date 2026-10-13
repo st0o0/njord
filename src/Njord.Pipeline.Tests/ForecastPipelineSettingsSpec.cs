@@ -45,7 +45,7 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
         var pipeline = Sys.ActorOf(Props.Create(() => new ForecastPipeline(
             fixture.Time,
             new ConsensusBuilder(AnalysisFixture.Parameters, fixture.Time),
-            new AlertAnalyzer(Options.Create(new AlertOptions()), fixture.Time),
+            FeatureServices.Alerts(fixture.Time),
             DisabledAnalyzers.Derived(),
             DisabledAnalyzers.Trend(),
             DisabledAnalyzers.Index(),

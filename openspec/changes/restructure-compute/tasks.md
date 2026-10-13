@@ -11,11 +11,11 @@ Pure synchronous specs use a plain `[Fact]`, and specs with async or DI-host set
 
 ## 2. Alerts: one rule per alert type
 
-- [ ] 2.1 Add `IAlertRule` and the completeness check plus ordered output in `src/Njord.Alerts/AlertAnalyzer.cs`; spec `src/Njord.Alerts.Tests/AlertAnalyzerSpec.cs` (missing rule fails fast; reverse registration keeps order)
-- [ ] 2.2 Extract `FrostRule`, `HeatRule`, `StormRule`, `HeavyRainRule`, `UvRule` into `src/Njord.Alerts/Rules/` using the query vocabulary; port their cases from `AlertEvaluatorSpec` into `src/Njord.Alerts.Tests/Rules/<Type>RuleSpec.cs`
-- [ ] 2.3 Extract `FogRule`, `SnowRule`, `PressureDropRule`, `ThunderstormRule`, `IceRule` the same way, with specs
-- [ ] 2.4 Extract `WindChillRule`, `VisibilityRule`, `TropicalNightRule`, `HumidityRule` the same way, with specs
-- [ ] 2.5 Delete `AlertEvaluator.cs`, `AlertEvaluatorSpec.cs`, `HorizonExtremeScanner`, `ThresholdClassifier` (if fully replaced by `SeverityThresholds`) and the `InternalsVisibleTo("Njord.Alerts")` in `src/Njord.Compute/Njord.Compute.csproj`; register all rules in `src/Njord.Alerts/ServiceCollectionExtensions.cs`
+- [x] 2.1 Add `IAlertRule` and the completeness check plus ordered output in `src/Njord.Alerts/AlertAnalyzer.cs`; spec `src/Njord.Alerts.Tests/AlertAnalyzerSpec.cs` (missing rule fails fast; reverse registration keeps order)
+- [x] 2.2 Extract `FrostRule`, `HeatRule`, `StormRule`, `HeavyRainRule`, `UvRule` into `src/Njord.Alerts/Rules/` using the query vocabulary; port their cases from `AlertEvaluatorSpec` into `src/Njord.Alerts.Tests/Rules/<Type>RuleSpec.cs`
+- [x] 2.3 Extract `FogRule`, `SnowRule`, `PressureDropRule`, `ThunderstormRule`, `IceRule` the same way, with specs
+- [x] 2.4 Extract `WindChillRule`, `VisibilityRule`, `TropicalNightRule`, `HumidityRule` the same way, with specs
+- [x] 2.5 Delete `AlertEvaluator.cs`, `AlertEvaluatorSpec.cs`, `HorizonExtremeScanner`, `ThresholdClassifier` (if fully replaced by `SeverityThresholds`) and the `InternalsVisibleTo("Njord.Alerts")` in `src/Njord.Compute/Njord.Compute.csproj`; register all rules in `src/Njord.Alerts/ServiceCollectionExtensions.cs`
 
 ## 3. Indices: one score per index kind
 

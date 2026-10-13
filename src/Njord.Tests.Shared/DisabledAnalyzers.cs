@@ -19,8 +19,7 @@ public static class DisabledAnalyzers
     private static readonly ResolvedParameterSet EmptyParameters =
         ParameterRegistry.Resolve(["Weather"], [], []);
 
-    public static AlertAnalyzer Alert() =>
-        new(Options.Create(new AlertOptions { Enabled = false }), TimeProvider.System);
+    public static AlertAnalyzer Alert() => FeatureServices.Alerts(TimeProvider.System, enabled: false);
 
     public static DerivedAnalyzer Derived() =>
         new(new DerivedResultComputer(EmptyParameters),

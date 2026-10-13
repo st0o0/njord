@@ -2,7 +2,6 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Njord.Compute.Tests" />
-        <InternalsVisibleTo Include="Njord.Alerts" />
     </ItemGroup>
 
     <ItemGroup>

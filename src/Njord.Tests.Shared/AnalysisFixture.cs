@@ -132,6 +132,7 @@ public sealed class AnalysisFixture
         }
 
         var factory = new ConsensusBuilder(Parameters, time);
+        var alerts = FeatureServices.Alerts(time);
         var indexSettings = IndexOptions.ToSettings(Locations);
         var derivedSettings = new DerivedSettings(Horizons);
         var alertSettings = new AlertOptions().ToSettings();
@@ -149,7 +150,7 @@ public sealed class AnalysisFixture
                 location,
                 consensus,
                 previousConsensus,
-                AlertEvaluator.EvaluateAll(consensus, alertSettings, time),
+                alerts.Compute(consensus, alertSettings) ?? throw new InvalidOperationException("Alerts are disabled."),
                 derivedComputer.Compute(consensus, derivedSettings),
                 trendComputer.Compute(consensus, previousConsensus),
                 indexComputer.Compute(consensus, indexSettings)));
