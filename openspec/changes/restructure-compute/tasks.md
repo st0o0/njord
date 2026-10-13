@@ -37,11 +37,11 @@ Pure synchronous specs use a plain `[Fact]`, and specs with async or DI-host set
 
 ## 6. Validation
 
-- [ ] 6.1 `cd src && dotnet build Njord.slnx` with no new warnings
-- [ ] 6.2 `dotnet run --project Njord.Compute.Tests/Njord.Compute.Tests.csproj --no-build`
-- [ ] 6.3 `dotnet run --project Njord.Alerts.Tests/Njord.Alerts.Tests.csproj --no-build`, `dotnet run --project Njord.Indices.Tests/Njord.Indices.Tests.csproj --no-build`, `dotnet run --project Njord.Derived.Tests/Njord.Derived.Tests.csproj --no-build`, `dotnet run --project Njord.Trends.Tests/Njord.Trends.Tests.csproj --no-build`
-- [ ] 6.4 `dotnet run --project Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj --no-build` and `dotnet run --project Njord.Grpc.Tests/Njord.Grpc.Tests.csproj --no-build` (golden masters unchanged)
-- [ ] 6.5 `dotnet run --project Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj --no-build` and `dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj --no-build`
-- [ ] 6.6 Full loop over all `Njord.*Tests` projects (AGENTS.md "Build & test")
-- [ ] 6.7 Check that no file in `src/Njord.Alerts/Rules/` or `src/Njord.Indices/Scores/` exceeds ~120 lines; split or simplify any that do
-- [ ] 6.8 From the repo root: `openspec validate restructure-compute --strict`
+- [x] 6.1 `cd src && dotnet build Njord.slnx` with no new warnings
+- [x] 6.2 `dotnet run --project Njord.Compute.Tests/Njord.Compute.Tests.csproj --no-build`
+- [x] 6.3 `dotnet run --project Njord.Alerts.Tests/Njord.Alerts.Tests.csproj --no-build`, `dotnet run --project Njord.Indices.Tests/Njord.Indices.Tests.csproj --no-build`, `dotnet run --project Njord.Derived.Tests/Njord.Derived.Tests.csproj --no-build`, `dotnet run --project Njord.Trends.Tests/Njord.Trends.Tests.csproj --no-build`
+- [x] 6.4 `dotnet run --project Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj --no-build` and `dotnet run --project Njord.Grpc.Tests/Njord.Grpc.Tests.csproj --no-build` (golden masters unchanged)
+- [x] 6.5 `dotnet run --project Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj --no-build` and `dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj --no-build`
+- [x] 6.6 Full loop over all `Njord.*Tests` projects (AGENTS.md "Build & test")
+- [x] 6.7 Check that no file in `src/Njord.Alerts/Rules/` or `src/Njord.Indices/Scores/` exceeds ~120 lines; split or simplify any that do
+- [x] 6.8 From the repo root: `openspec validate restructure-compute --strict`
