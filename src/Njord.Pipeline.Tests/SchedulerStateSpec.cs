@@ -104,8 +104,8 @@ public sealed class PollSchedulerStateSpec
         var snapshot = state.GetSnapshot();
 
         Assert.Equal(2, snapshot.Entries.Count);
-        Assert.Contains(snapshot.Entries, e => e.Location == "lucerne" && e.ModelId == "icon_d2");
-        Assert.Contains(snapshot.Entries, e => e.Location == "zurich" && e.ModelId == "gfs");
+        Assert.Contains(snapshot.Entries, e => e is { Location: "lucerne", ModelId: "icon_d2" });
+        Assert.Contains(snapshot.Entries, e => e is { Location: "zurich", ModelId: "gfs" });
     }
 
     [Fact]

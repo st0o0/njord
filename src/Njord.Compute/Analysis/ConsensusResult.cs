@@ -9,5 +9,5 @@ public sealed record ConsensusResult(
     [property: JsonProperty("computedAt")] DateTimeOffset? ComputedAt = null)
 {
     public ConsensusResult(IReadOnlyList<ParameterConsensus> parameters)
-        : this(parameters, [], null) { }
+        : this(parameters, []) { }
 }

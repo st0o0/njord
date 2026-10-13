@@ -60,7 +60,7 @@ public sealed class TimeSliceAggregatorSpec
         var consensus = BuildConsensus(now, 72, h =>
         {
             var absHour = (now.AddHours(h).UtcDateTime.Hour);
-            var isDay = absHour >= 6 && absHour < 20 ? 1.0 : 0.0;
+            var isDay = absHour is >= 6 and < 20 ? 1.0 : 0.0;
             return (20.0, 50.0, isDay);
         });
 
@@ -80,7 +80,7 @@ public sealed class TimeSliceAggregatorSpec
         var consensus = BuildConsensus(now, 48, h =>
         {
             var absHour = (now.AddHours(h).UtcDateTime.Hour);
-            var isDay = absHour >= 6 && absHour < 20 ? 1.0 : 0.0;
+            var isDay = absHour is >= 6 and < 20 ? 1.0 : 0.0;
             return (20.0, 50.0, isDay);
         });
 
@@ -99,7 +99,7 @@ public sealed class TimeSliceAggregatorSpec
         var consensus = BuildConsensus(now, 48, h =>
         {
             var absHour = (now.AddHours(h).UtcDateTime.Hour);
-            var isDay = absHour >= 6 && absHour < 20 ? 1.0 : 0.0;
+            var isDay = absHour is >= 6 and < 20 ? 1.0 : 0.0;
             return (22.0, 55.0, isDay);
         });
 
@@ -174,7 +174,7 @@ public sealed class TimeSliceAggregatorSpec
         var consensus = BuildConsensus(now, 30, h =>
         {
             var absHour = (now.AddHours(h).UtcDateTime.Hour);
-            var isDay = absHour >= 6 && absHour < 20 ? 1.0 : 0.0;
+            var isDay = absHour is >= 6 and < 20 ? 1.0 : 0.0;
             return (20.0, 50.0, isDay);
         });
 
@@ -191,7 +191,7 @@ public sealed class TimeSliceAggregatorSpec
         var now = new DateTimeOffset(2026, 8, 4, 0, 0, 0, TimeSpan.Zero);
         var consensus = BuildConsensus(now, 24, h =>
         {
-            var isDay = h >= 6 && h < 20 ? 1.0 : 0.0;
+            var isDay = h is >= 6 and < 20 ? 1.0 : 0.0;
             var temp = isDay > 0.5 ? 25.0 : 12.0;
             return (temp, 50.0, isDay);
         });

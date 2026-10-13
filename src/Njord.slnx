@@ -5,6 +5,7 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Items/">
+    <File Path="../Dockerfile" />
     <File Path="../README.md" />
     <File Path=".editorconfig" />
     <File Path="Directory.Build.props" />

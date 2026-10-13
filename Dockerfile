@@ -7,13 +7,14 @@ WORKDIR /src
 
 COPY protos/ /protos/
 COPY src/global.json src/Directory.Build.props src/Directory.Packages.props src/Njord.slnx ./
+COPY src/Njord.Budget/Njord.Budget.csproj Njord.Budget/
 COPY src/Njord.Weather/Njord.Weather.csproj Njord.Weather/
 COPY src/Njord.Sensors/Njord.Sensors.csproj Njord.Sensors/
 COPY src/Njord.Persistence/Njord.Persistence.csproj Njord.Persistence/
 COPY src/Njord.Messages/Njord.Messages.csproj Njord.Messages/
 COPY src/Njord.Compute/Njord.Compute.csproj Njord.Compute/
 COPY src/Njord.Core/Njord.Core.csproj Njord.Core/
-COPY src/Njord.Ingest/Njord.Ingest.csproj Njord.Ingest/
+COPY src/Njord.OpenMeteo/Njord.OpenMeteo.csproj Njord.OpenMeteo/
 COPY src/Njord.SensorHub/Njord.SensorHub.csproj Njord.SensorHub/
 COPY src/Njord.Pipeline/Njord.Pipeline.csproj Njord.Pipeline/
 COPY src/Njord.Grpc/Njord.Grpc.csproj Njord.Grpc/
@@ -26,12 +27,13 @@ COPY src/Njord/Njord.csproj Njord/
 RUN dotnet restore Njord/Njord.csproj -a ${TARGETARCH}
 
 COPY src/Njord.Weather/ Njord.Weather/
+COPY src/Njord.Budget/ Njord.Budget/
 COPY src/Njord.Sensors/ Njord.Sensors/
 COPY src/Njord.Persistence/ Njord.Persistence/
 COPY src/Njord.Messages/ Njord.Messages/
 COPY src/Njord.Compute/ Njord.Compute/
 COPY src/Njord.Core/ Njord.Core/
-COPY src/Njord.Ingest/ Njord.Ingest/
+COPY src/Njord.OpenMeteo/ Njord.OpenMeteo/
 COPY src/Njord.SensorHub/ Njord.SensorHub/
 COPY src/Njord.Pipeline/ Njord.Pipeline/
 COPY src/Njord.Grpc/ Njord.Grpc/

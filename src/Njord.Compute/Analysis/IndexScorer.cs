@@ -45,7 +45,7 @@ public static class IndexScorer
         }
 
         double raw;
-        if (w >= 2 && w <= 4)
+        if (w is >= 2 and <= 4)
         {
             raw = 100;
         }
@@ -158,7 +158,7 @@ public static class IndexScorer
     {
         var radScore = radiation is { } r ? Math.Clamp(r / 1000 * 100, 0, 100) : 50;
         var cloudInverse = CloudScore(cloudCover);
-        var tempEff = temp is { } t && t > 25
+        var tempEff = temp is { } t and > 25
             ? Penalize(Math.Clamp(100 - (t - 25) * 4, 0, 100), prefs.HeatSensitivity)
             : 100.0;
         return Clamp(0.5 * radScore + 0.3 * cloudInverse + 0.2 * tempEff);
@@ -174,7 +174,7 @@ public static class IndexScorer
         double windScore;
         if (wind is { } w)
         {
-            var windRaw = w >= 2 && w <= 5 ? 100 : w < 2 ? w / 2 * 100 : Math.Clamp(100 - (w - 5) * 15, 0, 100);
+            var windRaw = w is >= 2 and <= 5 ? 100 : w < 2 ? w / 2 * 100 : Math.Clamp(100 - (w - 5) * 15, 0, 100);
             windScore = Penalize(windRaw, prefs.WindSensitivity);
         }
         else

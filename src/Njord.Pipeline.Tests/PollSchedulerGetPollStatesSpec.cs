@@ -66,8 +66,8 @@ public sealed class PollSchedulerGetPollStatesSpec : NjordActorSpec
             new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, snapshot.Entries.Count);
-        Assert.Contains(snapshot.Entries, e => e.Location == "lucerne" && e.ModelId == "icon_d2");
-        Assert.Contains(snapshot.Entries, e => e.Location == "zurich" && e.ModelId == "icon_d2");
+        Assert.Contains(snapshot.Entries, e => e is { Location: "lucerne", ModelId: "icon_d2" });
+        Assert.Contains(snapshot.Entries, e => e is { Location: "zurich", ModelId: "icon_d2" });
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

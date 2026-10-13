@@ -99,12 +99,12 @@ public sealed class AdminGrpcService(
 
     private static ConfigResponse? ValidateSettings(SetSettingsRequest request)
     {
-        if (request.HasPollIntervalSeconds && request.PollIntervalSeconds < 60)
+        if (request is { HasPollIntervalSeconds: true, PollIntervalSeconds: < 60 })
         {
             return Rejected("Poll interval must be at least 60 seconds");
         }
 
-        if (request.HasForecastDays && request.ForecastDays is < 1 or > 16)
+        if (request is { HasForecastDays: true, ForecastDays: < 1 or > 16 })
         {
             return Rejected("Forecast days must be between 1 and 16");
         }
@@ -178,15 +178,9 @@ public sealed class AdminGrpcService(
                 if (alerts.HumidityThresholds.Count > 0) opt.Enrichment.Alerts.HumidityThresholds = [.. alerts.HumidityThresholds];
             }
 
-            if (request.Derived is { } derived)
-            {
-                if (derived.HasEnabled) opt.Enrichment.Derived.Enabled = derived.Enabled;
-            }
+            if (request.Derived is { HasEnabled: true } derived) opt.Enrichment.Derived.Enabled = derived.Enabled;
 
-            if (request.Trends is { } trends)
-            {
-                if (trends.HasEnabled) opt.Enrichment.Trends.Enabled = trends.Enabled;
-            }
+            if (request.Trends is { HasEnabled: true } trends) opt.Enrichment.Trends.Enabled = trends.Enabled;
 
             if (request.Indices is { } indices)
             {
@@ -212,12 +206,12 @@ public sealed class AdminGrpcService(
 
     public override Task<ConfigResponse> SetBudget(SetBudgetRequest request, ServerCallContext context)
     {
-        if (request.HasRequestsPerMonth && request.RequestsPerMonth <= 0)
+        if (request is { HasRequestsPerMonth: true, RequestsPerMonth: <= 0 })
         {
             return Task.FromResult(Rejected("requests_per_month must be greater than zero"));
         }
 
-        if (request.HasRequestsPerMinute && request.RequestsPerMinute <= 0)
+        if (request is { HasRequestsPerMinute: true, RequestsPerMinute: <= 0 })
         {
             return Task.FromResult(Rejected("requests_per_minute must be greater than zero"));
         }

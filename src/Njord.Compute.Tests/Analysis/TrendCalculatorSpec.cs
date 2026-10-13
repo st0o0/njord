@@ -74,7 +74,7 @@ public sealed class TrendCalculatorSpec
         var points = Enumerable.Range(0, 24).Select(h =>
             new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
             {
-                [Precipitation] = h >= 3 && h <= 8 ? 2.5 : 0.0,
+                [Precipitation] = h is >= 3 and <= 8 ? 2.5 : 0.0,
             })).ToList();
         var series = new ForecastSeries(points);
 

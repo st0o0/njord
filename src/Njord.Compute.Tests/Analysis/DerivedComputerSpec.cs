@@ -120,8 +120,8 @@ public sealed class DerivedComputerSpec
         var points = Enumerable.Range(0, 24).Select(h =>
             new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
             {
-                [IsDay] = h >= 5 && h < 19 ? 1.0 : 0.0,
-                [SunshineDuration] = h >= 5 && h < 19 ? 3600.0 : 0.0,
+                [IsDay] = h is >= 5 and < 19 ? 1.0 : 0.0,
+                [SunshineDuration] = h is >= 5 and < 19 ? 3600.0 : 0.0,
             })).ToList();
         var series = new ForecastSeries(points);
 
@@ -135,8 +135,8 @@ public sealed class DerivedComputerSpec
         var points = Enumerable.Range(0, 24).Select(h =>
             new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
             {
-                [IsDay] = h >= 5 && h < 19 ? 1.0 : 0.0,
-                [SunshineDuration] = h >= 5 && h < 12 ? 3600.0 : 0.0,
+                [IsDay] = h is >= 5 and < 19 ? 1.0 : 0.0,
+                [SunshineDuration] = h is >= 5 and < 12 ? 3600.0 : 0.0,
             })).ToList();
         var series = new ForecastSeries(points);
 

@@ -41,9 +41,9 @@ public sealed class MqttConnectionSpec : NjordActorSpec
         var connection = new FakeConnection();
         _ = CreateActor(connection, transport);
 
-        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online").WaitAsync(TestContext.Current.CancellationToken);
+        await transport.WaitForMessage(m => m is { Topic: "njord/status", Payload: "online" }).WaitAsync(TestContext.Current.CancellationToken);
 
-        Assert.Contains(transport.Sent, m => m.Topic == "njord/status" && m.Payload == "online");
+        Assert.Contains(transport.Sent, m => m is { Topic: "njord/status", Payload: "online" });
     }
 
     [Fact(Timeout = 15000)]
@@ -53,11 +53,11 @@ public sealed class MqttConnectionSpec : NjordActorSpec
         var connection = new FakeConnection { FailConnectCount = 1 };
         _ = CreateActor(connection, transport);
 
-        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online").WaitAsync(TestContext.Current.CancellationToken);
+        await transport.WaitForMessage(m => m is { Topic: "njord/status", Payload: "online" }).WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.True(connection.ConnectCallCount >= 2,
             $"Expected at least 2 connect attempts, got {connection.ConnectCallCount}");
-        Assert.Contains(transport.Sent, m => m.Topic == "njord/status" && m.Payload == "online");
+        Assert.Contains(transport.Sent, m => m is { Topic: "njord/status", Payload: "online" });
     }
 
     [Fact(Timeout = 15000)]
@@ -67,7 +67,7 @@ public sealed class MqttConnectionSpec : NjordActorSpec
         var connection = new FakeConnection { CancelConnectCount = 1 };
         _ = CreateActor(connection, transport);
 
-        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online").WaitAsync(TestContext.Current.CancellationToken);
+        await transport.WaitForMessage(m => m is { Topic: "njord/status", Payload: "online" }).WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.True(connection.ConnectCallCount >= 2,
             $"Expected at least 2 connect attempts, got {connection.ConnectCallCount}");
@@ -80,7 +80,7 @@ public sealed class MqttConnectionSpec : NjordActorSpec
         var connection = new FakeConnection { FailConnectCount = 2 };
         _ = CreateActor(connection, transport);
 
-        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online").WaitAsync(TestContext.Current.CancellationToken);
+        await transport.WaitForMessage(m => m is { Topic: "njord/status", Payload: "online" }).WaitAsync(TestContext.Current.CancellationToken);
 
         Assert.True(connection.ConnectCallCount >= 3,
             $"Expected at least 3 connect attempts, got {connection.ConnectCallCount}");
@@ -93,7 +93,7 @@ public sealed class MqttConnectionSpec : NjordActorSpec
         var connection = new FakeConnection();
         var actor = CreateActor(connection, transport);
 
-        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online").WaitAsync(TestContext.Current.CancellationToken);
+        await transport.WaitForMessage(m => m is { Topic: "njord/status", Payload: "online" }).WaitAsync(TestContext.Current.CancellationToken);
 
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
     }
@@ -105,7 +105,7 @@ public sealed class MqttConnectionSpec : NjordActorSpec
         var connection = new FakeConnection();
         var actor = CreateActor(connection, transport);
 
-        await transport.WaitForMessage(m => m.Topic == "njord/status" && m.Payload == "online").WaitAsync(TestContext.Current.CancellationToken);
+        await transport.WaitForMessage(m => m is { Topic: "njord/status", Payload: "online" }).WaitAsync(TestContext.Current.CancellationToken);
 
         var inbox = Inbox.Create(Sys);
         actor.Tell(new SubscribeInbound(inbox.Receiver));

@@ -658,7 +658,7 @@ public static class AlertEvaluator
                 continue;
             }
 
-            if (rainHc.Median is { } rainVal && rainVal > 0
+            if (rainHc.Median is { } and > 0
                 && tempHc.Median is { } tempVal && tempVal <= iceThreshold)
             {
                 rainHours++;
@@ -672,7 +672,7 @@ public static class AlertEvaluator
                     iceAgreements.Add(agreement);
                 }
 
-                if (soilConsensus?.ByHorizon.GetValueOrDefault(key)?.Median is { } soilVal && soilVal <= 0)
+                if (soilConsensus?.ByHorizon.GetValueOrDefault(key)?.Median is { } and <= 0)
                 {
                     soilFrozen = true;
                 }

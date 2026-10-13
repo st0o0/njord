@@ -24,9 +24,8 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
             var cloud = parameters.Get(ParameterRegistry.CloudCover);
             var radiation = parameters.Get(ParameterRegistry.ShortwaveRadiation);
             var et = parameters.Get(ParameterRegistry.Et0FaoEvapotranspiration);
-            var sunshineDuration = parameters.Get(ParameterRegistry.SunshineDuration);
 
-            double? sunshinePct = ComputeSunshinePct(consensus, slice);
+            var sunshinePct = ComputeSunshinePct(consensus, slice);
 
             var outdoor = IndexScorer.OutdoorScore(
                 Get(dayMeans, temp), Get(dayMeans, humidity),
@@ -287,7 +286,7 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
             {
                 val = lower ? ci.Lower : ci.Upper;
             }
-            else if (hc.Median.HasValue && hc.Spread.HasValue)
+            else if (hc is { Median: not null, Spread: not null })
             {
                 val = lower ? hc.Median.Value - hc.Spread.Value / 2 : hc.Median.Value + hc.Spread.Value / 2;
             }

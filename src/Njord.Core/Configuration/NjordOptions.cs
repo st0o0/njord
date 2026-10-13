@@ -30,5 +30,5 @@ public sealed class NjordOptions
 
     public PersistenceOptions Persistence { get; set; } = new();
 
-    public string PersistencePath { get; set; } = "data/njord-journal.db";
+    public string PersistencePath { get; set; } = "data/njord.db";
 }

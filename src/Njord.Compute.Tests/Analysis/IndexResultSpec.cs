@@ -60,13 +60,13 @@ public sealed class IndexResultSpec
             MakeForecast(new WeatherModel("m1"), 72, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
-                var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
+                var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 return (22.0, 50.0, 3.0, 20.0, isDay);
             }),
             MakeForecast(new WeatherModel("m2"), 72, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
-                var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
+                var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 return (21.0, 52.0, 3.5, 22.0, isDay);
             }));
 
@@ -87,14 +87,14 @@ public sealed class IndexResultSpec
             MakeForecast(new WeatherModel("m1"), 48, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
-                var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
+                var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 var temp = isDay > 0.5 ? 25.0 : 8.0;
                 return (temp, 50.0, 3.0, 20.0, isDay);
             }),
             MakeForecast(new WeatherModel("m2"), 48, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
-                var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
+                var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 var temp = isDay > 0.5 ? 24.0 : 7.0;
                 return (temp, 52.0, 3.5, 22.0, isDay);
             }));
@@ -114,14 +114,14 @@ public sealed class IndexResultSpec
             MakeForecast(new WeatherModel("m1"), 48, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
-                var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
+                var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 var temp = isDay > 0.5 ? 30.0 : 16.0;
                 return (temp, 50.0, 3.0, 20.0, isDay);
             }),
             MakeForecast(new WeatherModel("m2"), 48, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
-                var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
+                var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 var temp = isDay > 0.5 ? 31.0 : 17.0;
                 return (temp, 52.0, 3.5, 22.0, isDay);
             }));
@@ -189,13 +189,13 @@ public sealed class IndexResultSpec
             MakeForecast(new WeatherModel("m1"), 48, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
-                var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
+                var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 return (20.0, 50.0, 3.0, 20.0, isDay);
             }),
             MakeForecast(new WeatherModel("m2"), 48, h =>
             {
                 var hour = (T0.AddHours(h).UtcDateTime.Hour);
-                var isDay = hour >= 6 && hour < 20 ? 1.0 : 0.0;
+                var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 return (21.0, 52.0, 3.5, 22.0, isDay);
             }));
 
