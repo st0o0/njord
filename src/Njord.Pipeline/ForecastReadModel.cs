@@ -4,14 +4,17 @@ using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
-using Njord.Messages.Pipeline;
 using Njord.Messages.Forecast;
+using Njord.Messages.Pipeline;
 using Njord.Weather;
 using Servus.Akka;
+using WeatherForecast = Njord.Weather.Forecast;
 
-namespace Njord.Grpc;
+namespace Njord.Pipeline;
 
-public sealed class GrpcConsumer : StreamConsumerActor
+// In-memory projection of the pipeline output for the API: the latest forecast per location and model,
+// the latest analysis event per location, and a secondary hub for streaming clients.
+public sealed class ForecastReadModel : StreamConsumerActor
 {
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
@@ -20,26 +23,19 @@ public sealed class GrpcConsumer : StreamConsumerActor
     private long _pipelineSourceRequestId;
 
     private Source<PipelineEvent, NotUsed>? _secondaryHubSource;
+
+    // Keyed by the location name as the pipeline reports it (ordinal), as the read model always was.
     private readonly Dictionary<string, LatestResults> _state = new();
 
     private sealed record PipelineResolved(IActorRef Ref);
     private sealed record PipelineResolveFailed(Exception Cause);
 
-    public sealed record QueryLatestResults(string Location);
-    public sealed record LatestResults
+    private sealed record LatestResults
     {
-        public IReadOnlyDictionary<WeatherModel, Forecast> Forecasts { get; init; } =
-            new Dictionary<WeatherModel, Forecast>();
+        public IReadOnlyDictionary<WeatherModel, WeatherForecast> Forecasts { get; init; } =
+            new Dictionary<WeatherModel, WeatherForecast>();
 
         public PipelineEvent? LastAnalysis { get; init; }
-    }
-    public sealed record RequestGrpcStreamSource(long RequestId);
-    public sealed record GrpcStreamSourceResponse(long RequestId, ISourceRef<PipelineEvent> SourceRef);
-    public sealed record GrpcStreamSourceFailed(long RequestId, Exception Cause);
-
-    protected override void PreStart()
-    {
-        base.PreStart();
     }
 
     protected override void ResolveInitialDependencies()
@@ -91,12 +87,7 @@ public sealed class GrpcConsumer : StreamConsumerActor
             ScheduleRetryResolve();
         });
 
-        Receive<QueryLatestResults>(msg =>
-        {
-            Sender.Tell(_state.GetValueOrDefault(msg.Location, new LatestResults()));
-        });
-        Receive<QueryForecast>(HandleQueryForecast);
-        Receive<RequestGrpcStreamSource>(HandleStreamSourceRequest);
+        ConfigureQueries();
     }
 
     protected override bool AllRefsReady() => _pipelineSourceRef is not null;
@@ -118,14 +109,13 @@ public sealed class GrpcConsumer : StreamConsumerActor
         _secondaryHubSource = hubSource;
     }
 
-    protected override void ConfigureReady()
+    protected override void ConfigureReady() => ConfigureQueries();
+
+    private void ConfigureQueries()
     {
-        Receive<QueryLatestResults>(msg =>
-        {
-            Sender.Tell(_state.GetValueOrDefault(msg.Location, new LatestResults()));
-        });
         Receive<QueryForecast>(HandleQueryForecast);
-        Receive<RequestGrpcStreamSource>(HandleStreamSourceRequest);
+        Receive<QueryLatestAnalysis>(HandleQueryLatestAnalysis);
+        Receive<RequestReadModelStream>(HandleStreamRequest);
     }
 
     private void HandleQueryForecast(QueryForecast msg)
@@ -142,14 +132,21 @@ public sealed class GrpcConsumer : StreamConsumerActor
             }
         }
 
-        Sender.Tell(new ForecastNotAvailable($"{msg.Location}|{msg.ModelId}"));
+        Sender.Tell(new ForecastNotAvailable($"{msg.Location.Name}|{msg.ModelId}"));
     }
 
-    private void HandleStreamSourceRequest(RequestGrpcStreamSource msg)
+    private void HandleQueryLatestAnalysis(QueryLatestAnalysis msg)
+    {
+        Sender.Tell(_state.TryGetValue(msg.Location.Name, out var latest) && latest.LastAnalysis is { } analysis
+            ? new LatestAnalysisResult(msg.Location, analysis)
+            : new LatestAnalysisNotAvailable(msg.Location));
+    }
+
+    private void HandleStreamRequest(RequestReadModelStream msg)
     {
         if (_secondaryHubSource is null)
         {
-            Sender.Tell(new GrpcStreamSourceFailed(msg.RequestId,
+            Sender.Tell(new RequestReadModelStreamFailed(msg.RequestId,
                 new InvalidOperationException("Pipeline not materialized yet")));
             return;
         }
@@ -157,11 +154,11 @@ public sealed class GrpcConsumer : StreamConsumerActor
         _secondaryHubSource
             .RunWith(StreamRefs.SourceRef<PipelineEvent>(), Mat)
             .PipeTo(Sender, Self,
-                sr => new GrpcStreamSourceResponse(msg.RequestId, sr),
+                sr => new RequestReadModelStreamCompleted(msg.RequestId, sr),
                 ex =>
                 {
-                    _log.Error(ex, "Failed to create gRPC stream SourceRef");
-                    return new GrpcStreamSourceFailed(msg.RequestId, ex);
+                    _log.Error(ex, "Failed to create read model stream SourceRef");
+                    return new RequestReadModelStreamFailed(msg.RequestId, ex);
                 });
     }
 
@@ -171,7 +168,7 @@ public sealed class GrpcConsumer : StreamConsumerActor
         {
             case PipelineEvent.ForecastReceived forecast:
                 var forecastState = _state.GetValueOrDefault(forecast.Location.Name, new LatestResults());
-                var forecasts = new Dictionary<WeatherModel, Forecast>(forecastState.Forecasts)
+                var forecasts = new Dictionary<WeatherModel, WeatherForecast>(forecastState.Forecasts)
                 {
                     [forecast.Model] = forecast.Forecast
                 };

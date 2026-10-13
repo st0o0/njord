@@ -12,8 +12,8 @@ service specs must pass without re-approval after every group.
 
 ## 2. Read model out of the API project
 
-- [ ] 2.1 Add `IForecastReadModel` to `src/Njord.Core/Actors/ActorKeys.cs` and the handshake `RequestReadModelStream` to `StreamWiringMessages.cs`; add `QueryLatestAnalysis` (+ result hierarchy) to `src/Njord.Messages/Pipeline/`
-- [ ] 2.2 Move `src/Njord.Grpc/GrpcConsumer.cs` to `src/Njord.Pipeline/ForecastReadModel.cs` with no public nested records; register it in `NjordActorSystemSetup`; port its specs to `src/Njord.Pipeline.Tests/ForecastReadModelSpec.cs` (unary query, no data after restart, streaming hub, dead-client idle timeout)
+- [x] 2.1 Add `IForecastReadModel` to `src/Njord.Core/Actors/ActorKeys.cs` and the handshake `RequestReadModelStream` to `StreamWiringMessages.cs`; add `QueryLatestAnalysis` (+ result hierarchy) to `src/Njord.Messages/Pipeline/`
+- [x] 2.2 Move `src/Njord.Grpc/GrpcConsumer.cs` to `src/Njord.Pipeline/ForecastReadModel.cs` with no public nested records; register it in `NjordActorSystemSetup`; port its specs to `src/Njord.Pipeline.Tests/ForecastReadModelSpec.cs` (unary query, no data after restart, streaming hub, dead-client idle timeout)
 
 ## 3. Config and budget through messages
 

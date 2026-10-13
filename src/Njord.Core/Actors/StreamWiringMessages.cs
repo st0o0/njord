@@ -19,3 +19,11 @@ public sealed record RequestForecastStreamCompleted(Guid RequestId, ISourceRef<W
     : RequestForecastStreamResponse(RequestId);
 public sealed record RequestForecastStreamFailed(Guid RequestId, Exception Cause)
     : RequestForecastStreamResponse(RequestId);
+
+public sealed record RequestReadModelStream(long RequestId);
+
+public abstract record RequestReadModelStreamResponse(long RequestId);
+public sealed record RequestReadModelStreamCompleted(long RequestId, ISourceRef<PipelineEvent> SourceRef)
+    : RequestReadModelStreamResponse(RequestId);
+public sealed record RequestReadModelStreamFailed(long RequestId, Exception Cause)
+    : RequestReadModelStreamResponse(RequestId);

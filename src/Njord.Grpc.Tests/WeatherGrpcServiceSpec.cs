@@ -38,7 +38,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             Models = ["icon_d2", "ecmwf_ifs025"],
         };
 
-        ActorRegistry.Register<IGrpcConsumer>(
+        ActorRegistry.Register<IForecastReadModel>(
             consumerActor ?? Sys.ActorOf(Props.Create(() => new EmptyConsumerActor())), overwrite: true);
         return new WeatherGrpcService(
             Options.Create(options),
@@ -138,7 +138,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         public EmptyConsumerActor()
         {
-            Receive<QueryForecast>(msg => Sender.Tell(new ForecastNotAvailable(msg.Location + "|" + msg.ModelId), Self));
+            Receive<QueryForecast>(msg => Sender.Tell(new ForecastNotAvailable(msg.Location.Name + "|" + msg.ModelId), Self));
         }
     }
 

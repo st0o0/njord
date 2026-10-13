@@ -109,3 +109,19 @@ Adaptations made during implementation, where the code differed from what the ta
   string meant before), and its `Targets` became `IReadOnlyList<string>`. Model ids stay
   strings. Domain records outside Messages (`Forecast.Location`, `SensorReading.Location`) and
   persistence DTOs keep strings; actors convert at their edges (`.Name` / `new LocationId(...)`).
+
+### Group 2 (read model)
+- `NjordActorSystemSetup` does not exist. `ForecastReadModel` is registered as a singleton under
+  `IForecastReadModel` by the existing `IActorRegistration` in `PipelineSetupContainer`; the
+  gRPC setup container no longer registers an actor. `IGrpcConsumer` is replaced by
+  `IForecastReadModel`.
+- The analysis query is `QueryLatestAnalysis` → `LatestAnalysisResult(Location, Analysis)` or
+  `LatestAnalysisNotAvailable(Location)` (the "no data yet" case), following the existing
+  `ForecastResponse` shape. `QueryForecast` stays answered with `ForecastResult` /
+  `ForecastNotAvailable`.
+- The read model keeps its state keyed by the location name as the pipeline reports it
+  (ordinal), as `GrpcConsumer` did, so lookups behave exactly as before.
+- There were no `GrpcConsumer` specs to port; `ForecastReadModelSpec` is new. The dead-client
+  scenario is covered by cancelling one streaming client and asserting that another one still
+  receives events (the hub removes cancelled subscribers); it does not wait for a real idle
+  timeout.

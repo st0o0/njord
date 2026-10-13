@@ -58,7 +58,9 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
                         Backoff.OnFailure(resolver.Props<PollScheduler>(), "scheduler",
                             MinBackoff, MaxBackoff, RandomFactor, maxNrOfRetries: -1)))
                 .WithSingleton<IForecastPipeline>("pipeline",
-                    (_, _, resolver) => resolver.Props<ForecastPipeline>());
+                    (_, _, resolver) => resolver.Props<ForecastPipeline>())
+                .WithSingleton<IForecastReadModel>("forecast-read-model",
+                    (_, _, resolver) => resolver.Props<ForecastReadModel>());
         }
     }
 }
