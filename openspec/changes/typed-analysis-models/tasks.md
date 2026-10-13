@@ -12,12 +12,12 @@ use a plain `[Fact]` (AGENTS.md: a timeout cannot be enforced there).
 
 ## 2. Typed horizon
 
-- [ ] 2.1 Add `Horizon` (`readonly record struct`, `Hours(int)`, `Days(int)`, `ToWireKey()`, `TryParseWireKey`) in `src/Njord.Weather/Horizon.cs` with `src/Njord.Weather.Tests/HorizonSpec.cs` (wire keys, equality, hourly vs. daily distinct, parse round-trip)
-- [ ] 2.2 Switch `src/Njord.Weather/HorizonProjection.cs` output keys to `Horizon`; update `src/Njord.Weather.Tests`
-- [ ] 2.3 Switch `ParameterConsensus.ByHorizon` and `ConsensusSnapshotFactory` (`src/Njord.Compute/Analysis/`) to `Horizon` keys; update `src/Njord.Compute.Tests/Analysis/ConsensusSnapshotSpec.cs`
-- [ ] 2.4 Switch `HorizonExtremeScanner`, `TimeSliceAggregator`, `DerivedResultComputer`, `IndexComputer`, `TrendComputer` and `HorizonDerived` keys to `Horizon`; update their specs in `src/Njord.Compute.Tests/Analysis/`
-- [ ] 2.5 Switch `src/Njord.Alerts/AlertEvaluator.cs` horizon lookups (`CountModelsAtPeak`, `CountModelsAtHorizon`) to `Horizon`; update `src/Njord.Alerts.Tests/AlertEvaluatorSpec.cs`
-- [ ] 2.6 Use `Horizon.ToWireKey()` in `src/Njord.Mqtt/StatePayloadBuilder.cs` and `src/Njord.Grpc/EnrichmentProtoMapper.cs`; golden masters stay green without re-approval
+- [x] 2.1 Add `Horizon` (`readonly record struct`, `Hours(int)`, `Days(int)`, `ToWireKey()`, `TryParseWireKey`) in `src/Njord.Weather/Horizon.cs` with `src/Njord.Weather.Tests/HorizonSpec.cs` (wire keys, equality, hourly vs. daily distinct, parse round-trip)
+- [x] 2.2 Switch `src/Njord.Weather/HorizonProjection.cs` output keys to `Horizon`; update `src/Njord.Weather.Tests`
+- [x] 2.3 Switch `ParameterConsensus.ByHorizon` and `ConsensusSnapshotFactory` (`src/Njord.Compute/Analysis/`) to `Horizon` keys; update `src/Njord.Compute.Tests/Analysis/ConsensusSnapshotSpec.cs`
+- [x] 2.4 Switch `HorizonExtremeScanner`, `TimeSliceAggregator`, `DerivedResultComputer`, `IndexComputer`, `TrendComputer` and `HorizonDerived` keys to `Horizon`; update their specs in `src/Njord.Compute.Tests/Analysis/`
+- [x] 2.5 Switch `src/Njord.Alerts/AlertEvaluator.cs` horizon lookups (`CountModelsAtPeak`, `CountModelsAtHorizon`) to `Horizon`; update `src/Njord.Alerts.Tests/AlertEvaluatorSpec.cs`
+- [x] 2.6 Use `Horizon.ToWireKey()` in `src/Njord.Mqtt/StatePayloadBuilder.cs` and `src/Njord.Grpc/EnrichmentProtoMapper.cs`; golden masters stay green without re-approval
 
 ## 3. Typed categorical values
 

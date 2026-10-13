@@ -27,7 +27,7 @@ public sealed class TrendComputer
         WeatherChangeResult? weatherChange = null;
         StabilityInfo? stability = null;
 
-        const string referenceKey = "h3";
+        var referenceKey = Horizon.Hours(3);
 
         foreach (var paramDef in TrendParamDefs)
         {
@@ -92,22 +92,20 @@ public sealed class TrendComputer
 
         foreach (var (key, hc) in precipParam.ByHorizon)
         {
-            if (!key.StartsWith('h') || hc.Median is not { } median || median <= 0)
+            if (!key.IsHourly || hc.Median is not { } median || median <= 0)
             {
                 continue;
             }
 
-            if (int.TryParse(key.AsSpan(1), out var hours))
+            var hours = key.Offset;
+            if (first is null || hours < first)
             {
-                if (first is null || hours < first)
-                {
-                    first = hours;
-                }
+                first = hours;
+            }
 
-                if (last is null || hours > last)
-                {
-                    last = hours;
-                }
+            if (last is null || hours > last)
+            {
+                last = hours;
             }
         }
 
@@ -128,15 +126,12 @@ public sealed class TrendComputer
 
         foreach (var (key, hc) in tempParam.ByHorizon)
         {
-            if (!key.StartsWith('h') || hc.Median is not { } median)
+            if (!key.IsHourly || hc.Median is not { } median || key.Offset > 24)
             {
                 continue;
             }
 
-            if (!int.TryParse(key.AsSpan(1), out var hours) || hours > 24)
-            {
-                continue;
-            }
+            var hours = key.Offset;
 
             count++;
             if (maxVal is null || median > maxVal)
@@ -165,12 +160,12 @@ public sealed class TrendComputer
         var spreads = new List<(int, double?)>();
         foreach (var (key, hc) in tempParam.ByHorizon)
         {
-            if (!key.StartsWith('h') || !int.TryParse(key.AsSpan(1), out var hours))
+            if (!key.IsHourly)
             {
                 continue;
             }
 
-            spreads.Add((hours, hc.Spread));
+            spreads.Add((key.Offset, hc.Spread));
         }
 
         if (spreads.Count == 0)

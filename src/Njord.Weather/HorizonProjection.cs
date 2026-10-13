@@ -4,7 +4,7 @@ namespace Njord.Weather;
 
 public static class HorizonProjection
 {
-    public static Dictionary<string, string> BuildPerHorizon(
+    public static Dictionary<Horizon, string> BuildPerHorizon(
         Forecast forecast,
         ResolvedParameterSet parameters,
         IReadOnlyList<int> horizons,
@@ -13,7 +13,7 @@ public static class HorizonProjection
         int? maxForecastHours = null)
     {
         var effectiveDays = EffectiveDays(forecastDays, maxForecastHours);
-        var result = new Dictionary<string, string>(horizons.Count + effectiveDays);
+        var result = new Dictionary<Horizon, string>(horizons.Count + effectiveDays);
 
         var pointsByValidAt = forecast.Hourly.Points.ToDictionary(p => p.ValidAt);
         foreach (var hours in horizons)
@@ -32,7 +32,7 @@ public static class HorizonProjection
             var payload = ToHourlyPayload(point, parameters);
             if (payload is not null)
             {
-                result[$"h{hours}"] = payload;
+                result[Horizon.Hours(hours)] = payload;
             }
         }
 
@@ -49,7 +49,7 @@ public static class HorizonProjection
             var payload = ToDailyPayload(dailyPoint, parameters);
             if (payload is not null)
             {
-                result[$"d{d}"] = payload;
+                result[Horizon.Days(d)] = payload;
             }
         }
 

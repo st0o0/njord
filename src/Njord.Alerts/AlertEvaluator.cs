@@ -351,7 +351,7 @@ public static class AlertEvaluator
 
         for (var h = 0; h <= MaxHorizonHours; h++)
         {
-            var key = $"h{h}";
+            var key = Horizon.Hours(h);
             if (!tempConsensus.ByHorizon.TryGetValue(key, out var tempHc)
                 || !dewConsensus.ByHorizon.TryGetValue(key, out var dewHc)
                 || !windConsensus.ByHorizon.TryGetValue(key, out var windHc)
@@ -574,7 +574,7 @@ public static class AlertEvaluator
 
         for (var h = 0; h <= MaxHorizonHours; h++)
         {
-            var key = $"h{h}";
+            var key = Horizon.Hours(h);
             if (!capeConsensus.ByHorizon.TryGetValue(key, out var capeHc)
                 || !precipConsensus.ByHorizon.TryGetValue(key, out var precipHc)
                 || !gustConsensus.ByHorizon.TryGetValue(key, out var gustHc))
@@ -651,7 +651,7 @@ public static class AlertEvaluator
 
         for (var h = 0; h <= MaxHorizonHours; h++)
         {
-            var key = $"h{h}";
+            var key = Horizon.Hours(h);
             if (!rainConsensus.ByHorizon.TryGetValue(key, out var rainHc)
                 || !tempConsensus.ByHorizon.TryGetValue(key, out var tempHc))
             {
@@ -731,8 +731,8 @@ public static class AlertEvaluator
 
         var minApparent = scan.ExtremeValue;
         var windFactor = 0.0;
-        if (scan.ExtremeHorizonKey is { } extremeKey
-            && tempConsensus?.ByHorizon.GetValueOrDefault(extremeKey)?.Median is { } tempVal)
+        if (scan.ExtremeHorizon is { } extremeHorizon
+            && tempConsensus?.ByHorizon.GetValueOrDefault(extremeHorizon)?.Median is { } tempVal)
         {
             windFactor = Math.Round(tempVal - minApparent, 1);
         }
@@ -830,7 +830,7 @@ public static class AlertEvaluator
 
         for (var h = 0; h <= MaxHorizonHours; h++)
         {
-            var key = $"h{h}";
+            var key = Horizon.Hours(h);
             var isDayHc = isDayConsensus.ByHorizon.GetValueOrDefault(key);
             if (isDayHc?.Median is not { } isDayVal || isDayVal > 0.5)
             {
@@ -909,7 +909,7 @@ public static class AlertEvaluator
 
         for (var h = 0; h <= MaxHorizonHours; h++)
         {
-            var key = $"h{h}";
+            var key = Horizon.Hours(h);
             var isDayHc = isDayConsensus.ByHorizon.GetValueOrDefault(key);
             if (isDayHc?.Median is not { } isDayVal || isDayVal <= 0.5)
             {
@@ -983,7 +983,7 @@ public static class AlertEvaluator
         }
 
         var scan = HorizonExtremeScanner.FindExtreme(
-            daily.ByHorizon, MaxHorizonDays, ScanDirection.Max, prefix: 'd');
+            daily.ByHorizon, MaxHorizonDays, ScanDirection.Max, kind: HorizonKind.Daily);
         return scan.Found ? scan.ExtremeValue : null;
     }
 
@@ -997,7 +997,7 @@ public static class AlertEvaluator
             return 0;
         }
 
-        var key = $"h{targetHour.Value}";
+        var key = Horizon.Hours(targetHour.Value);
         return param.ByHorizon.TryGetValue(key, out var hc) ? hc.AvailableModels.Count : 0;
     }
 
@@ -1009,7 +1009,7 @@ public static class AlertEvaluator
 
     private static int CountModelsAtHorizon(ParameterConsensus param, int hour)
     {
-        var key = $"h{hour}";
+        var key = Horizon.Hours(hour);
         return param.ByHorizon.TryGetValue(key, out var hc) ? hc.AvailableModels.Count : 0;
     }
 

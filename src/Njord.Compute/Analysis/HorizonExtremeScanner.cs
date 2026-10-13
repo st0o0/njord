@@ -1,9 +1,11 @@
+using Njord.Weather;
+
 namespace Njord.Compute.Analysis;
 
 public sealed record HorizonExtremeResult(
     bool Found,
     double ExtremeValue,
-    string? ExtremeHorizonKey,
+    Horizon? ExtremeHorizon,
     int? EarliestQualifyingHour,
     IReadOnlyList<double> Agreements,
     double Peak,
@@ -14,16 +16,16 @@ public sealed record HorizonExtremeResult(
 public static class HorizonExtremeScanner
 {
     public static HorizonExtremeResult FindExtreme(
-        IReadOnlyDictionary<string, HorizonConsensus> byHorizon,
+        IReadOnlyDictionary<Horizon, HorizonConsensus> byHorizon,
         int maxHours,
         ScanDirection direction,
         Func<double, bool>? qualifies = null,
-        char prefix = 'h',
+        HorizonKind kind = HorizonKind.Hourly,
         double peakSeed = double.MinValue)
     {
         var found = false;
         var extreme = 0.0;
-        string? extremeKey = null;
+        Horizon? extremeHorizon = null;
         int? earliest = null;
         var agreements = new List<double>();
         var peak = peakSeed;
@@ -31,7 +33,7 @@ public static class HorizonExtremeScanner
         var count = 0;
         var qualifyingCount = 0;
 
-        foreach (var (index, key, hc, value) in WithMedian(byHorizon, maxHours, prefix))
+        foreach (var (index, horizon, hc, value) in WithMedian(byHorizon, maxHours, kind))
         {
             count++;
             sum += value;
@@ -42,7 +44,7 @@ public static class HorizonExtremeScanner
             {
                 found = true;
                 extreme = value;
-                extremeKey = key;
+                extremeHorizon = horizon;
             }
 
             if (hc.ConfidenceInterval is { Upper: var upper } && upper > peak)
@@ -70,43 +72,32 @@ public static class HorizonExtremeScanner
         }
 
         return new HorizonExtremeResult(
-            found, extreme, extremeKey, earliest, agreements, peak, sum, count, qualifyingCount);
+            found, extreme, extremeHorizon, earliest, agreements, peak, sum, count, qualifyingCount);
     }
 
-    internal static IEnumerable<(int Index, string Key, HorizonConsensus Consensus)> InWindow(
-        IReadOnlyDictionary<string, HorizonConsensus> byHorizon, int maxIndex, char prefix = 'h')
+    internal static IEnumerable<(int Index, Horizon Horizon, HorizonConsensus Consensus)> InWindow(
+        IReadOnlyDictionary<Horizon, HorizonConsensus> byHorizon, int maxIndex, HorizonKind kind = HorizonKind.Hourly)
     {
-        foreach (var (key, hc) in byHorizon)
+        foreach (var (horizon, hc) in byHorizon)
         {
-            var index = ParseIndex(key, prefix);
-            if (index is null || index > maxIndex)
+            if (horizon.Kind != kind || horizon.Offset > maxIndex)
             {
                 continue;
             }
 
-            yield return (index.Value, key, hc);
+            yield return (horizon.Offset, horizon, hc);
         }
     }
 
-    internal static IEnumerable<(int Index, string Key, HorizonConsensus Consensus, double Value)> WithMedian(
-        IReadOnlyDictionary<string, HorizonConsensus> byHorizon, int maxIndex, char prefix = 'h')
+    internal static IEnumerable<(int Index, Horizon Horizon, HorizonConsensus Consensus, double Value)> WithMedian(
+        IReadOnlyDictionary<Horizon, HorizonConsensus> byHorizon, int maxIndex, HorizonKind kind = HorizonKind.Hourly)
     {
-        foreach (var (index, key, hc) in InWindow(byHorizon, maxIndex, prefix))
+        foreach (var (index, horizon, hc) in InWindow(byHorizon, maxIndex, kind))
         {
             if (hc.Median is { } value)
             {
-                yield return (index, key, hc, value);
+                yield return (index, horizon, hc, value);
             }
         }
-    }
-
-    private static int? ParseIndex(string horizonKey, char prefix)
-    {
-        if (horizonKey.Length > 1 && horizonKey[0] == prefix && int.TryParse(horizonKey.AsSpan(1), out var index))
-        {
-            return index;
-        }
-
-        return null;
     }
 }

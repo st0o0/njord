@@ -188,7 +188,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         var messages = new List<MqttMessage>(perHorizon.Count);
         foreach (var (horizon, payload) in perHorizon)
         {
-            var topic = TopicScheme.HorizonTopic(baseTopic, e.Location, e.Model, horizon);
+            var topic = TopicScheme.HorizonTopic(baseTopic, e.Location, e.Model, horizon.ToWireKey());
             messages.Add(new MqttMessage(topic, payload, true));
         }
         return messages;

@@ -17,11 +17,11 @@ public sealed class DerivedResultComputer(ResolvedParameterSet parameters)
         var sunshineDuration = parameters.Get(ParameterRegistry.SunshineDuration);
         var isDay = parameters.Get(ParameterRegistry.IsDay);
 
-        var byHorizon = new Dictionary<string, HorizonDerived>();
+        var byHorizon = new Dictionary<Horizon, HorizonDerived>();
 
         foreach (var hours in horizons)
         {
-            var horizonKey = $"h{hours}";
+            var horizonKey = Horizon.Hours(hours);
 
             var windMedian = FindParam(consensus.Hourly.Parameters, windSpeed)
                 ?.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
@@ -70,7 +70,7 @@ public sealed class DerivedResultComputer(ResolvedParameterSet parameters)
 
         for (var h = 0; h <= maxHours; h++)
         {
-            var horizonKey = $"h{h}";
+            var horizonKey = Horizon.Hours(h);
             var median = tempConsensus.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
             if (median is not { } v)
             {
@@ -114,7 +114,7 @@ public sealed class DerivedResultComputer(ResolvedParameterSet parameters)
 
         for (var h = 0; h <= maxHours; h++)
         {
-            var horizonKey = $"h{h}";
+            var horizonKey = Horizon.Hours(h);
             var isDayMedian = isDayConsensus.ByHorizon.GetValueOrDefault(horizonKey)?.Median;
             if (isDayMedian is 1.0)
             {
@@ -147,7 +147,7 @@ public sealed class DerivedResultComputer(ResolvedParameterSet parameters)
             return null;
         }
 
-        const string horizonKey = "h0";
+        var horizonKey = Horizon.Hours(0);
 
         var mslMedian = FindParam(consensus.Hourly.Parameters, pressureMsl)
             ?.ByHorizon.GetValueOrDefault(horizonKey)?.Median;

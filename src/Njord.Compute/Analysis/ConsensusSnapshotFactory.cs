@@ -116,12 +116,12 @@ public sealed class ConsensusSnapshotFactory(ResolvedParameterSet parameters, Ti
 
         foreach (var parameter in hourlyParams)
         {
-            var byHorizon = new Dictionary<string, HorizonConsensus>();
+            var byHorizon = new Dictionary<Horizon, HorizonConsensus>();
 
             for (var hours = 0; hours <= cutoffHour; hours++)
             {
                 var targetTime = TimeAnchor.AtHorizon(now, hours);
-                var horizonKey = $"h{hours}";
+                var horizonKey = Horizon.Hours(hours);
 
                 var modelValues = new List<(WeatherModel Model, double? Value)>();
                 foreach (var (key, _) in snapshot.Entries)
@@ -159,12 +159,12 @@ public sealed class ConsensusSnapshotFactory(ResolvedParameterSet parameters, Ti
 
         foreach (var parameter in dailyParams)
         {
-            var byHorizon = new Dictionary<string, HorizonConsensus>();
+            var byHorizon = new Dictionary<Horizon, HorizonConsensus>();
 
             for (var day = 0; day < maxDays; day++)
             {
                 var targetDate = today.AddDays(day);
-                var horizonKey = $"d{day}";
+                var horizonKey = Horizon.Days(day);
 
                 var modelValues = new List<(WeatherModel Model, double? Value)>();
                 foreach (var (key, forecast) in snapshot.Entries)
@@ -228,7 +228,7 @@ public sealed class ConsensusSnapshotFactory(ResolvedParameterSet parameters, Ti
 
         foreach (var pc in parameters)
         {
-            var filteredHorizons = new Dictionary<string, HorizonConsensus>();
+            var filteredHorizons = new Dictionary<Horizon, HorizonConsensus>();
             foreach (var (key, hc) in pc.ByHorizon)
             {
                 if (hc.AvailableModels.Count >= minModels)

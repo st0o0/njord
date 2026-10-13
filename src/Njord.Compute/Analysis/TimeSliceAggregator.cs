@@ -51,7 +51,7 @@ public static class TimeSliceAggregator
 
             foreach (var h in hours)
             {
-                var isDayValue = isDayParam?.ByHorizon.GetValueOrDefault($"h{h}")?.Median;
+                var isDayValue = isDayParam?.ByHorizon.GetValueOrDefault(Horizon.Hours(h))?.Median;
                 if (isDayParam is null || isDayValue is > 0.5)
                 {
                     dayHours.Add(h);
@@ -85,7 +85,7 @@ public static class TimeSliceAggregator
 
             foreach (var h in hours)
             {
-                var median = param.ByHorizon.GetValueOrDefault($"h{h}")?.Median;
+                var median = param.ByHorizon.GetValueOrDefault(Horizon.Hours(h))?.Median;
                 if (median is { } v)
                 {
                     sum += v;

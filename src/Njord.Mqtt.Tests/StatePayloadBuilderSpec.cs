@@ -45,10 +45,10 @@ public sealed class StatePayloadBuilderSpec
         var tick = TestTimeConstants.NoonAnchor;
         var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 100), SmallParams, [3, 6, 24], 4, tick);
 
-        Assert.True(result.ContainsKey("h3"));
-        Assert.True(result.ContainsKey("h6"));
-        Assert.True(result.ContainsKey("h24"));
-        Assert.True(result.ContainsKey("d0"));
+        Assert.True(result.ContainsKey(Horizon.Hours(3)));
+        Assert.True(result.ContainsKey(Horizon.Hours(6)));
+        Assert.True(result.ContainsKey(Horizon.Hours(24)));
+        Assert.True(result.ContainsKey(Horizon.Days(0)));
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed class StatePayloadBuilderSpec
     {
         var tick = TestTimeConstants.NoonAnchor;
         var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 100), SmallParams, [3], 1, tick);
-        var h3 = JsonNode.Parse(result["h3"])!;
+        var h3 = JsonNode.Parse(result[Horizon.Hours(3)])!;
 
         Assert.Equal(3.0, (double?)h3["temperature"]);
         Assert.InRange((double)h3["wind_speed_10m"]!, 0.29, 0.31);
@@ -68,7 +68,7 @@ public sealed class StatePayloadBuilderSpec
     {
         var tick = TestTimeConstants.NoonAnchor;
         var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 10), SmallParams, [3], 1, tick);
-        var d0 = JsonNode.Parse(result["d0"])!;
+        var d0 = JsonNode.Parse(result[Horizon.Days(0)])!;
 
         Assert.Equal(28.5, (double?)d0["temperature_max"]);
         Assert.Equal("05:31", (string?)d0["sunrise"]);
@@ -80,7 +80,7 @@ public sealed class StatePayloadBuilderSpec
         var tick = TestTimeConstants.NoonAnchor;
         var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, tick, 10), SmallParams, [72], 1, tick);
 
-        Assert.False(result.ContainsKey("h72"));
+        Assert.False(result.ContainsKey(Horizon.Hours(72)));
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public sealed class StatePayloadBuilderSpec
         var tick = new DateTimeOffset(2026, 7, 12, 19, 31, 0, TimeSpan.Zero);
         var firstPoint = new DateTimeOffset(2026, 7, 12, 20, 0, 0, TimeSpan.Zero);
         var result = StatePayloadBuilder.BuildPerHorizon(Forecast(tick, firstPoint, 100), SmallParams, [3], 1, tick);
-        var h3 = JsonNode.Parse(result["h3"])!;
+        var h3 = JsonNode.Parse(result[Horizon.Hours(3)])!;
 
         Assert.Equal(2.0, (double?)h3["temperature"]);
     }

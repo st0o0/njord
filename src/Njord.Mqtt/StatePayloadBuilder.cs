@@ -7,7 +7,7 @@ namespace Njord.Mqtt;
 
 public static class StatePayloadBuilder
 {
-    public static Dictionary<string, string> BuildPerHorizon(
+    public static Dictionary<Horizon, string> BuildPerHorizon(
         Forecast forecast,
         ResolvedParameterSet parameters,
         IReadOnlyList<int> horizons,
@@ -37,7 +37,7 @@ public static class StatePayloadBuilder
         string baseTopic, string location,
         List<MqttMessage> messages)
     {
-        var horizonPayloads = new Dictionary<string, JsonObject>();
+        var horizonPayloads = new Dictionary<Horizon, JsonObject>();
 
         foreach (var pc in parameters)
         {
@@ -69,7 +69,7 @@ public static class StatePayloadBuilder
                     : null;
             }
 
-            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, location, EnrichmentKind.Consensus.ToWireName(), horizon);
+            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, location, EnrichmentKind.Consensus.ToWireName(), horizon.ToWireKey());
             messages.Add(new MqttMessage(topic, payload.ToJsonString(), true));
         }
     }
@@ -134,7 +134,7 @@ public static class StatePayloadBuilder
                 ["wmo_description"] = hd.WmoDescription is { } wd ? JsonValue.Create(wd) : null,
             };
 
-            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location, EnrichmentKind.Derived.ToWireName(), horizon);
+            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location, EnrichmentKind.Derived.ToWireName(), horizon.ToWireKey());
             messages.Add(new MqttMessage(topic, payload.ToJsonString(), true));
         }
 
@@ -226,7 +226,7 @@ public static class StatePayloadBuilder
             AddEnvelope(payload, "solar", day.SolarEnvelope);
             AddEnvelope(payload, "night_ventilation", day.NightVentilationEnvelope);
 
-            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location, EnrichmentKind.Indices.ToWireName(), $"d{day.DayOffset}");
+            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location, EnrichmentKind.Indices.ToWireName(), Horizon.Days(day.DayOffset).ToWireKey());
             messages.Add(new MqttMessage(topic, payload.ToJsonString(), true));
         }
 

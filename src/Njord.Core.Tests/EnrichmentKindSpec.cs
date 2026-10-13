@@ -1,5 +1,6 @@
 using Njord.Compute.Analysis;
 using Njord.Core.Egress;
+using Njord.Weather;
 
 namespace Njord.Core.Tests;
 
@@ -29,7 +30,7 @@ public sealed class EnrichmentKindSpec
     public void DerivedComputed_implements_IEnrichmentEvent_with_correct_kind()
     {
         var evt = new PipelineEvent.DerivedComputed(
-            new DerivedResult("loc", new Dictionary<string, HorizonDerived>(), new ScalarDerived(null, null, null)),
+            new DerivedResult("loc", new Dictionary<Horizon, HorizonDerived>(), new ScalarDerived(null, null, null)),
             DateTimeOffset.UtcNow);
 
         var enrichment = Assert.IsType<IEnrichmentEvent>(evt, exactMatch: false);

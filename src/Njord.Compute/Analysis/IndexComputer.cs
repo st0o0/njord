@@ -121,7 +121,7 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
                 continue;
             }
 
-            var key = $"h{h}";
+            var key = Horizon.Hours(h);
             var sunMedian = sunshineDurationParam.ByHorizon.GetValueOrDefault(key)?.Median;
             var dayMedian = isDayParam.ByHorizon.GetValueOrDefault(key)?.Median;
             if (sunMedian.HasValue && dayMedian is > 0.5)
@@ -167,7 +167,7 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
             }
 
             allHours.Add(h);
-            var isDayValue = isDayParam?.ByHorizon.GetValueOrDefault($"h{h}")?.Median;
+            var isDayValue = isDayParam?.ByHorizon.GetValueOrDefault(Horizon.Hours(h))?.Median;
             if (isDayParam is null || isDayValue is > 0.5)
             {
                 dayHours.Add(h);
@@ -275,7 +275,7 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
 
         foreach (var h in hours)
         {
-            var hc = param.ByHorizon.GetValueOrDefault($"h{h}");
+            var hc = param.ByHorizon.GetValueOrDefault(Horizon.Hours(h));
             if (hc is null)
             {
                 continue;
@@ -324,7 +324,7 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
 
             foreach (var h in hours)
             {
-                var agreement = param.ByHorizon.GetValueOrDefault($"h{h}")?.Agreement;
+                var agreement = param.ByHorizon.GetValueOrDefault(Horizon.Hours(h))?.Agreement;
                 if (agreement.HasValue)
                 {
                     totalAgreement += agreement.Value;
@@ -358,7 +358,7 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
 
         for (var h = 0; h <= maxHour; h++)
         {
-            var hc = tempParam.ByHorizon.GetValueOrDefault($"h{h}");
+            var hc = tempParam.ByHorizon.GetValueOrDefault(Horizon.Hours(h));
             if (hc?.Median is not { } median)
             {
                 continue;
@@ -377,7 +377,7 @@ public sealed class IndexComputer(ResolvedParameterSet parameters, TimeProvider 
             return null;
         }
 
-        var h3Hc = tempParam.ByHorizon.GetValueOrDefault("h3");
+        var h3Hc = tempParam.ByHorizon.GetValueOrDefault(Horizon.Hours(3));
         var confidence = h3Hc?.Agreement ?? (totalHours > 0 ? 1.0 : 0.0);
         return new FrostProtectionInfo(firstFrostHours.Value, Math.Round(confidence, 2));
     }

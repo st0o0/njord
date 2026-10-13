@@ -217,7 +217,7 @@ public static class EnrichmentProtoMapper
 
         foreach (var (horizonKey, derived) in result.ByHorizon)
         {
-            var proto = new ProtoHorizonDerived { Horizon = horizonKey };
+            var proto = new ProtoHorizonDerived { Horizon = horizonKey.ToWireKey() };
 
             if (derived.Beaufort is { } b)
             {
@@ -287,11 +287,11 @@ public static class EnrichmentProtoMapper
         return proto;
     }
 
-    private static ProtoHorizonConsensus MapHorizonConsensus(string horizonKey, Compute.Analysis.HorizonConsensus horizon)
+    private static ProtoHorizonConsensus MapHorizonConsensus(Weather.Horizon horizonKey, Compute.Analysis.HorizonConsensus horizon)
     {
         var protoHorizon = new ProtoHorizonConsensus
         {
-            Horizon = horizonKey,
+            Horizon = horizonKey.ToWireKey(),
             AvailableModels = horizon.AvailableModels.Count,
         };
 

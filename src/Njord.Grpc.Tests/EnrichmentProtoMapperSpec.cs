@@ -140,9 +140,9 @@ public sealed class EnrichmentProtoMapperSpec
     [Fact]
     public void MapDerived_should_map_horizon_entries_and_scalars()
     {
-        var byHorizon = new Dictionary<string, DomainHorizonDerived>
+        var byHorizon = new Dictionary<Horizon, DomainHorizonDerived>
         {
-            ["h3"] = new DomainHorizonDerived(Beaufort: 4, WindChill: -2.5, DewPointComfort: "comfortable", WmoDescription: "Partly cloudy"),
+            [Horizon.Hours(3)] = new DomainHorizonDerived(Beaufort: 4, WindChill: -2.5, DewPointComfort: "comfortable", WmoDescription: "Partly cloudy"),
         };
         var scalars = new DomainScalarDerived(DiurnalAmplitude: 12.3, SunshinePct: 65.0, Inversion: true);
         var result = new DerivedResult("lucerne", byHorizon, scalars);
@@ -178,7 +178,7 @@ public sealed class EnrichmentProtoMapperSpec
 
         var paramConsensus = new DomainParameterConsensus(
             param,
-            new Dictionary<string, DomainHorizonConsensus> { ["h3"] = horizonConsensus });
+            new Dictionary<Horizon, DomainHorizonConsensus> { [Horizon.Hours(3)] = horizonConsensus });
 
         var result = new ConsensusResult([paramConsensus]);
 
@@ -225,9 +225,9 @@ public sealed class EnrichmentProtoMapperSpec
         var tempMax = ParameterRegistry.GetByApiName("temperature_2m_max")!;
         var dailyParams = new List<DomainParameterConsensus>
         {
-            new(tempMax, new Dictionary<string, DomainHorizonConsensus>
+            new(tempMax, new Dictionary<Horizon, DomainHorizonConsensus>
             {
-                ["d0"] = new(29.5, 29.3, 3.0, 1.5, 0.83, null, null,
+                [Horizon.Days(0)] = new(29.5, 29.3, 3.0, 1.5, 0.83, null, null,
                     [new WeatherModel("icon_d2"), new WeatherModel("ecmwf_ifs025"), new WeatherModel("gfs_seamless")]),
             }),
         };
@@ -264,11 +264,11 @@ public sealed class EnrichmentProtoMapperSpec
             Outlier: null, ConfidenceInterval: null,
             AvailableModels: [new WeatherModel("icon_d2"), new WeatherModel("ecmwf_ifs025")]);
         var hourlyParam = new DomainParameterConsensus(param,
-            new Dictionary<string, DomainHorizonConsensus> { ["h3"] = horizonConsensus });
+            new Dictionary<Horizon, DomainHorizonConsensus> { [Horizon.Hours(3)] = horizonConsensus });
 
         var dailyParam = new DomainParameterConsensus(
             ParameterRegistry.GetByApiName("temperature_2m_max")!,
-            new Dictionary<string, DomainHorizonConsensus> { ["d0"] = horizonConsensus });
+            new Dictionary<Horizon, DomainHorizonConsensus> { [Horizon.Days(0)] = horizonConsensus });
 
         var result = new ConsensusResult([hourlyParam], [dailyParam]);
         var updatedAt = TestTimeConstants.BudgetEpoch;

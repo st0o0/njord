@@ -58,7 +58,7 @@ public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
                 var forecast = success.Forecast;
                 var perHorizon = StatePayloadBuilder.BuildPerHorizon(forecast, parameters, [.. options.Horizons], options.ForecastDays, cycle.Timestamp);
                 return perHorizon.Select(kvp =>
-                    new MqttMessage(TopicScheme.HorizonTopic(options.Mqtt.BaseTopic, forecast.Location, forecast.Model, kvp.Key), kvp.Value, true));
+                    new MqttMessage(TopicScheme.HorizonTopic(options.Mqtt.BaseTopic, forecast.Location, forecast.Model, kvp.Key.ToWireKey()), kvp.Value, true));
             })
             .RunWith(Sink.Seq<MqttMessage>(), Mat)
             .WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
@@ -92,7 +92,7 @@ public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
                 var forecast = success.Forecast;
                 var perHorizon = StatePayloadBuilder.BuildPerHorizon(forecast, parameters, [.. options.Horizons], options.ForecastDays, cycle.Timestamp);
                 return perHorizon.Select(kvp =>
-                    new MqttMessage(TopicScheme.HorizonTopic(options.Mqtt.BaseTopic, forecast.Location, forecast.Model, kvp.Key), kvp.Value, true));
+                    new MqttMessage(TopicScheme.HorizonTopic(options.Mqtt.BaseTopic, forecast.Location, forecast.Model, kvp.Key.ToWireKey()), kvp.Value, true));
             })
             .RunWith(Sink.Seq<MqttMessage>(), Mat)
             .WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);

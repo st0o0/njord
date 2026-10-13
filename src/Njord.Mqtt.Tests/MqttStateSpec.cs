@@ -126,7 +126,7 @@ public sealed class MqttStateSpec : NjordActorSpec
             21.5, 21.4, 1.0, 0.5, 0.9, null, null, [new WeatherModel("icon_d2"), new WeatherModel("icon_eu")]);
         var snapshot = new ConsensusSnapshot(
             "lucerne",
-            new HourlyConsensus([new ParameterConsensus(temp, new Dictionary<string, HorizonConsensus> { ["h3"] = horizon })], 72),
+            new HourlyConsensus([new ParameterConsensus(temp, new Dictionary<Horizon, HorizonConsensus> { [Horizon.Hours(3)] = horizon })], 72),
             new DailyConsensus([], 4),
             Anchor);
         hub.Emit(new PipelineEvent.ConsensusComputed(snapshot, Anchor));

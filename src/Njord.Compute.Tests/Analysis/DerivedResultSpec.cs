@@ -67,10 +67,10 @@ public sealed class DerivedResultSpec
 
         Assert.Equal("lucerne", result.Location);
         Assert.Equal(2, result.ByHorizon.Count);
-        Assert.Contains("h3", result.ByHorizon.Keys);
-        Assert.Contains("h6", result.ByHorizon.Keys);
+        Assert.Contains(Horizon.Hours(3), result.ByHorizon.Keys);
+        Assert.Contains(Horizon.Hours(6), result.ByHorizon.Keys);
 
-        var h3 = result.ByHorizon["h3"];
+        var h3 = result.ByHorizon[Horizon.Hours(3)];
         Assert.NotNull(h3.Beaufort);
         Assert.Equal("Overcast", h3.WmoDescription);
         Assert.Equal("dry", h3.DewPointComfort);

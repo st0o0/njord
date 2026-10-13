@@ -37,10 +37,10 @@ public sealed class HorizonProjectionSpec
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, Horizons, ForecastDays, Anchor);
 
         Assert.Equal(Horizons.Count + ForecastDays, result.Count);
-        Assert.True(result.ContainsKey("h3"));
-        Assert.True(result.ContainsKey("h6"));
-        Assert.True(result.ContainsKey("d0"));
-        Assert.True(result.ContainsKey("d1"));
+        Assert.True(result.ContainsKey(Horizon.Hours(3)));
+        Assert.True(result.ContainsKey(Horizon.Hours(6)));
+        Assert.True(result.ContainsKey(Horizon.Days(0)));
+        Assert.True(result.ContainsKey(Horizon.Days(1)));
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public sealed class HorizonProjectionSpec
 
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, Horizons, ForecastDays, Anchor);
 
-        var h3 = JsonNode.Parse(result["h3"])!;
+        var h3 = JsonNode.Parse(result[Horizon.Hours(3)])!;
         Assert.NotNull(h3["temperature"]);
     }
 
@@ -61,7 +61,7 @@ public sealed class HorizonProjectionSpec
 
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [24], ForecastDays, Anchor);
 
-        Assert.False(result.ContainsKey("h24"));
+        Assert.False(result.ContainsKey(Horizon.Hours(24)));
     }
 
     [Fact]
@@ -71,9 +71,9 @@ public sealed class HorizonProjectionSpec
 
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [3, 6, 12, 24, 48, 72], ForecastDays, Anchor, maxForecastHours: 48);
 
-        Assert.True(result.ContainsKey("h3"));
-        Assert.True(result.ContainsKey("h6"));
-        Assert.False(result.ContainsKey("h72"));
+        Assert.True(result.ContainsKey(Horizon.Hours(3)));
+        Assert.True(result.ContainsKey(Horizon.Hours(6)));
+        Assert.False(result.ContainsKey(Horizon.Hours(72)));
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed class HorizonProjectionSpec
 
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [3], 0, Anchor);
 
-        var json = JsonNode.Parse(result["h3"])!;
+        var json = JsonNode.Parse(result[Horizon.Hours(3)])!;
         Assert.NotNull(json["temperature"]);
         Assert.Null(json["wind_speed"]);
     }
@@ -128,7 +128,7 @@ public sealed class HorizonProjectionSpec
 
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [3], 0, Anchor);
 
-        Assert.False(result.ContainsKey("h3"));
+        Assert.False(result.ContainsKey(Horizon.Hours(3)));
     }
 
     [Fact]
@@ -138,10 +138,10 @@ public sealed class HorizonProjectionSpec
 
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [3], 4, Anchor, maxForecastHours: 48);
 
-        Assert.True(result.ContainsKey("d0"));
-        Assert.True(result.ContainsKey("d1"));
-        Assert.False(result.ContainsKey("d2"));
-        Assert.False(result.ContainsKey("d3"));
+        Assert.True(result.ContainsKey(Horizon.Days(0)));
+        Assert.True(result.ContainsKey(Horizon.Days(1)));
+        Assert.False(result.ContainsKey(Horizon.Days(2)));
+        Assert.False(result.ContainsKey(Horizon.Days(3)));
     }
 
     [Theory]

@@ -47,7 +47,7 @@ public sealed class StatePayloadGoldenMasterSpec
                 AnalysisFixture.ForecastDays, AnalysisFixture.Now);
             foreach (var (horizon, payload) in perHorizon)
             {
-                text.AppendLine(TopicScheme.HorizonTopic(BaseTopic, forecast.Location, forecast.Model, horizon));
+                text.AppendLine(TopicScheme.HorizonTopic(BaseTopic, forecast.Location, forecast.Model, horizon.ToWireKey()));
                 text.AppendLine(payload);
             }
         }
