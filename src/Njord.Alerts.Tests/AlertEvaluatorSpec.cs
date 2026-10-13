@@ -24,6 +24,13 @@ public sealed class AlertEvaluatorSpec
     private static readonly ParameterDef SoilTemp0cm = ParameterRegistry.GetByApiName("soil_temperature_0cm")!;
     private static readonly ParameterDef VisibilityParam = ParameterRegistry.GetByApiName("visibility")!;
     private static readonly ParameterDef IsDayParam = ParameterRegistry.GetByApiName("is_day")!;
+    private static readonly SeverityThresholds FrostThresholds = new(0, -5, -15, ScanDirection.Min);
+    private static readonly SeverityThresholds HeatThresholds = new(30, 35, 40, ScanDirection.Max);
+    private static readonly SeverityThresholds StormThresholds = new(17, 25, 33, ScanDirection.Max);
+    private static readonly SeverityThresholds WindChillThresholds = new(-10, -20, -30, ScanDirection.Min);
+    private static readonly SeverityThresholds VisibilityThresholds = new(1000, 200, 50, ScanDirection.Min);
+    private static readonly SeverityThresholds TropicalNightThresholds = new(20, 23, 25, ScanDirection.Max);
+    private static readonly SeverityThresholds HumidityThresholds = new(16, 21, 24, ScanDirection.Max);
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather", "Solar", "Soil"], [], []);
 
     private static ConsensusSnapshot ToConsensus(ModelSnapshot snap) =>
@@ -65,7 +72,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m2"), (Temperature, -1.0)),
             MakeForecast(new WeatherModel("m3"), (Temperature, -3.0)));
 
-        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), [0, -5, -15]);
+        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), FrostThresholds);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.Equal(1.0, alert.Confidence);
@@ -78,7 +85,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (Temperature, 5.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 3.0)));
 
-        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), [0, -5, -15]);
+        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), FrostThresholds);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
         Assert.Equal(0.0, alert.Confidence);
@@ -93,7 +100,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m3"), (Temperature, 1.0)),
             MakeForecast(new WeatherModel("m4"), (Temperature, 5.0)));
 
-        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), [0, -5, -15]);
+        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), FrostThresholds);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.Equal(0.5, alert.Confidence);
@@ -106,7 +113,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (Temperature, -8.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, -7.0)));
 
-        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), [0, -5, -15]);
+        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), FrostThresholds);
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
@@ -118,7 +125,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (Temperature, -18.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, -16.0)));
 
-        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), [0, -5, -15]);
+        var alert = AlertEvaluator.EvaluateFrost(ToConsensus(snap), FrostThresholds);
 
         Assert.Equal(AlertSeverity.Red, alert.Severity);
     }
@@ -133,7 +140,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m2"), (ApparentTemp, 41.0)),
             MakeForecast(new WeatherModel("m3"), (ApparentTemp, 28.0)));
 
-        var alert = AlertEvaluator.EvaluateHeat(ToConsensus(snap), [30, 35, 40]);
+        var alert = AlertEvaluator.EvaluateHeat(ToConsensus(snap), HeatThresholds);
 
         Assert.Equal(AlertSeverity.Red, alert.Severity);
         Assert.True(alert.Confidence > 0.5);
@@ -146,7 +153,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (ApparentTemp, 32.0)),
             MakeForecast(new WeatherModel("m2"), (ApparentTemp, 31.0)));
 
-        var alert = AlertEvaluator.EvaluateHeat(ToConsensus(snap), [30, 35, 40]);
+        var alert = AlertEvaluator.EvaluateHeat(ToConsensus(snap), HeatThresholds);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.Equal(1.0, alert.Confidence);
@@ -159,12 +166,12 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (ApparentTemp, 28.0), (Temperature, 27.0)),
             MakeForecast(new WeatherModel("m2"), (ApparentTemp, 27.0), (Temperature, 26.0)));
 
-        var alert = AlertEvaluator.EvaluateHeat(ToConsensus(snap), [30, 35, 40]);
+        var alert = AlertEvaluator.EvaluateHeat(ToConsensus(snap), HeatThresholds);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
         Assert.Equal(0.0, alert.TriggerValue);
         Assert.Equal(0.0, alert.Threshold);
-        Assert.Empty(alert.Attributes);
+        Assert.Same(NoDetails.Instance, alert.Details);
     }
 
     [Fact]
@@ -174,7 +181,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (ApparentTemp, 28.0), (Temperature, 32.0)),
             MakeForecast(new WeatherModel("m2"), (ApparentTemp, 27.0), (Temperature, 31.0)));
 
-        var alert = AlertEvaluator.EvaluateHeat(ToConsensus(snap), [30, 35, 40]);
+        var alert = AlertEvaluator.EvaluateHeat(ToConsensus(snap), HeatThresholds);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.Equal(31.5, alert.TriggerValue);
@@ -203,7 +210,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m2"), (WindGusts, 18.0)),
             MakeForecast(new WeatherModel("m3"), (WindGusts, 10.0)));
 
-        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), [17, 25, 33]);
+        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), StormThresholds);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
         Assert.True(alert.Confidence > 0.6);
@@ -216,7 +223,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (WindGusts, 10.0)),
             MakeForecast(new WeatherModel("m2"), (WindGusts, 8.0)));
 
-        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), [17, 25, 33]);
+        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), StormThresholds);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
@@ -228,7 +235,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (WindGusts, 28.0)),
             MakeForecast(new WeatherModel("m2"), (WindGusts, 26.0)));
 
-        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), [17, 25, 33]);
+        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), StormThresholds);
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
@@ -240,7 +247,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (WindGusts, 36.0)),
             MakeForecast(new WeatherModel("m2"), (WindGusts, 34.0)));
 
-        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), [17, 25, 33]);
+        var alert = AlertEvaluator.EvaluateStorm(ToConsensus(snap), StormThresholds);
 
         Assert.Equal(AlertSeverity.Red, alert.Severity);
     }
@@ -271,7 +278,7 @@ public sealed class AlertEvaluatorSpec
         var alert = AlertEvaluator.EvaluateUv(ToConsensus(snap));
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
-        Assert.Equal("high", alert.Attributes["uv_level"]);
+        Assert.Equal(UvLevel.High, Assert.IsType<UvDetails>(alert.Details).Level);
     }
 
     [Fact]
@@ -284,7 +291,7 @@ public sealed class AlertEvaluatorSpec
         var alert = AlertEvaluator.EvaluateUv(ToConsensus(snap));
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
-        Assert.Equal("low", alert.Attributes["uv_level"]);
+        Assert.Equal(UvLevel.Low, Assert.IsType<UvDetails>(alert.Details).Level);
     }
 
     // --- Fog ---
@@ -465,7 +472,7 @@ public sealed class AlertEvaluatorSpec
         var alert = AlertEvaluator.EvaluateIce(ToConsensus(snap), 2.0);
 
         Assert.Equal(AlertSeverity.Red, alert.Severity);
-        Assert.Equal(true, alert.Attributes["soil_frozen"]);
+        Assert.True(Assert.IsType<IceDetails>(alert.Details).SoilFrozen);
     }
 
     [Fact]
@@ -490,7 +497,7 @@ public sealed class AlertEvaluatorSpec
         var alert = AlertEvaluator.EvaluateIce(ToConsensus(snap), 2.0);
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
-        Assert.Equal(false, alert.Attributes["soil_frozen"]);
+        Assert.False(Assert.IsType<IceDetails>(alert.Details).SoilFrozen);
     }
 
     [Fact]
@@ -500,10 +507,10 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (ApparentTemp, -12.0), (Temperature, -5.0)),
             MakeForecast(new WeatherModel("m2"), (ApparentTemp, -11.0), (Temperature, -4.0)));
 
-        var alert = AlertEvaluator.EvaluateWindChill(ToConsensus(snap), [-10, -20, -30]);
+        var alert = AlertEvaluator.EvaluateWindChill(ToConsensus(snap), WindChillThresholds);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
-        Assert.True((double)alert.Attributes["wind_factor"]! > 5.0);
+        Assert.True(Assert.IsType<WindChillDetails>(alert.Details).WindFactor > 5.0);
     }
 
     [Fact]
@@ -513,10 +520,10 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (ApparentTemp, -22.0), (Temperature, -10.0)),
             MakeForecast(new WeatherModel("m2"), (ApparentTemp, -21.0), (Temperature, -9.0)));
 
-        var alert = AlertEvaluator.EvaluateWindChill(ToConsensus(snap), [-10, -20, -30]);
+        var alert = AlertEvaluator.EvaluateWindChill(ToConsensus(snap), WindChillThresholds);
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
-        Assert.Equal("frostbite_30min", alert.Attributes["exposure_risk"]);
+        Assert.Equal(ExposureRisk.Frostbite30Min, Assert.IsType<WindChillDetails>(alert.Details).ExposureRisk);
     }
 
     [Fact]
@@ -526,10 +533,10 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (ApparentTemp, -35.0), (Temperature, -20.0)),
             MakeForecast(new WeatherModel("m2"), (ApparentTemp, -33.0), (Temperature, -18.0)));
 
-        var alert = AlertEvaluator.EvaluateWindChill(ToConsensus(snap), [-10, -20, -30]);
+        var alert = AlertEvaluator.EvaluateWindChill(ToConsensus(snap), WindChillThresholds);
 
         Assert.Equal(AlertSeverity.Red, alert.Severity);
-        Assert.Equal("frostbite_10min", alert.Attributes["exposure_risk"]);
+        Assert.Equal(ExposureRisk.Frostbite10Min, Assert.IsType<WindChillDetails>(alert.Details).ExposureRisk);
     }
 
     [Fact]
@@ -539,7 +546,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (ApparentTemp, -5.0), (Temperature, -2.0)),
             MakeForecast(new WeatherModel("m2"), (ApparentTemp, -4.0), (Temperature, -1.0)));
 
-        var alert = AlertEvaluator.EvaluateWindChill(ToConsensus(snap), [-10, -20, -30]);
+        var alert = AlertEvaluator.EvaluateWindChill(ToConsensus(snap), WindChillThresholds);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
@@ -551,7 +558,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (VisibilityParam, 800.0)),
             MakeForecast(new WeatherModel("m2"), (VisibilityParam, 900.0)));
 
-        var alert = AlertEvaluator.EvaluateVisibility(ToConsensus(snap), [1000, 200, 50]);
+        var alert = AlertEvaluator.EvaluateVisibility(ToConsensus(snap), VisibilityThresholds);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
     }
@@ -563,7 +570,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (VisibilityParam, 150.0)),
             MakeForecast(new WeatherModel("m2"), (VisibilityParam, 180.0)));
 
-        var alert = AlertEvaluator.EvaluateVisibility(ToConsensus(snap), [1000, 200, 50]);
+        var alert = AlertEvaluator.EvaluateVisibility(ToConsensus(snap), VisibilityThresholds);
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
@@ -575,7 +582,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (VisibilityParam, 30.0)),
             MakeForecast(new WeatherModel("m2"), (VisibilityParam, 40.0)));
 
-        var alert = AlertEvaluator.EvaluateVisibility(ToConsensus(snap), [1000, 200, 50]);
+        var alert = AlertEvaluator.EvaluateVisibility(ToConsensus(snap), VisibilityThresholds);
 
         Assert.Equal(AlertSeverity.Red, alert.Severity);
     }
@@ -587,7 +594,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (VisibilityParam, 5000.0)),
             MakeForecast(new WeatherModel("m2"), (VisibilityParam, 8000.0)));
 
-        var alert = AlertEvaluator.EvaluateVisibility(ToConsensus(snap), [1000, 200, 50]);
+        var alert = AlertEvaluator.EvaluateVisibility(ToConsensus(snap), VisibilityThresholds);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
@@ -599,7 +606,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (Temperature, 21.0), (IsDayParam, 0.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 22.0), (IsDayParam, 0.0)));
 
-        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), [20, 23, 25]);
+        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), TropicalNightThresholds);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
     }
@@ -611,7 +618,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (Temperature, 24.0), (IsDayParam, 0.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 24.5), (IsDayParam, 0.0)));
 
-        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), [20, 23, 25]);
+        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), TropicalNightThresholds);
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
     }
@@ -623,7 +630,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (Temperature, 26.0), (IsDayParam, 0.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 27.0), (IsDayParam, 0.0)));
 
-        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), [20, 23, 25]);
+        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), TropicalNightThresholds);
 
         Assert.Equal(AlertSeverity.Red, alert.Severity);
     }
@@ -635,7 +642,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (Temperature, 15.0), (IsDayParam, 0.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 14.0), (IsDayParam, 0.0)));
 
-        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), [20, 23, 25]);
+        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), TropicalNightThresholds);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
@@ -647,7 +654,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (Temperature, 25.0), (IsDayParam, 1.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 26.0), (IsDayParam, 1.0)));
 
-        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), [20, 23, 25]);
+        var alert = AlertEvaluator.EvaluateTropicalNight(ToConsensus(snap), TropicalNightThresholds);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
@@ -659,10 +666,10 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (DewpointParam, 18.0), (IsDayParam, 1.0)),
             MakeForecast(new WeatherModel("m2"), (DewpointParam, 17.0), (IsDayParam, 1.0)));
 
-        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), [16, 21, 24]);
+        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), HumidityThresholds);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
-        Assert.Equal("muggy", alert.Attributes["comfort_level"]);
+        Assert.Equal(HumidityComfort.Muggy, Assert.IsType<HumidityDetails>(alert.Details).ComfortLevel);
     }
 
     [Fact]
@@ -672,10 +679,10 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (DewpointParam, 22.0), (IsDayParam, 1.0)),
             MakeForecast(new WeatherModel("m2"), (DewpointParam, 23.0), (IsDayParam, 1.0)));
 
-        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), [16, 21, 24]);
+        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), HumidityThresholds);
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
-        Assert.Equal("oppressive", alert.Attributes["comfort_level"]);
+        Assert.Equal(HumidityComfort.Oppressive, Assert.IsType<HumidityDetails>(alert.Details).ComfortLevel);
     }
 
     [Fact]
@@ -685,10 +692,10 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (DewpointParam, 25.0), (IsDayParam, 1.0)),
             MakeForecast(new WeatherModel("m2"), (DewpointParam, 26.0), (IsDayParam, 1.0)));
 
-        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), [16, 21, 24]);
+        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), HumidityThresholds);
 
         Assert.Equal(AlertSeverity.Red, alert.Severity);
-        Assert.Equal("tropical", alert.Attributes["comfort_level"]);
+        Assert.Equal(HumidityComfort.Tropical, Assert.IsType<HumidityDetails>(alert.Details).ComfortLevel);
     }
 
     [Fact]
@@ -698,7 +705,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (DewpointParam, 12.0), (IsDayParam, 1.0)),
             MakeForecast(new WeatherModel("m2"), (DewpointParam, 10.0), (IsDayParam, 1.0)));
 
-        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), [16, 21, 24]);
+        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), HumidityThresholds);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
@@ -710,7 +717,7 @@ public sealed class AlertEvaluatorSpec
             MakeForecast(new WeatherModel("m1"), (DewpointParam, 25.0), (IsDayParam, 0.0)),
             MakeForecast(new WeatherModel("m2"), (DewpointParam, 26.0), (IsDayParam, 0.0)));
 
-        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), [16, 21, 24]);
+        var alert = AlertEvaluator.EvaluateHumidity(ToConsensus(snap), HumidityThresholds);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
@@ -779,7 +786,7 @@ public sealed class AlertEvaluatorSpec
         var alert = AlertEvaluator.EvaluateUv(ToConsensus(snap));
 
         Assert.Equal(AlertSeverity.Red, alert.Severity);
-        Assert.Equal("very_high", alert.Attributes["uv_level"]);
+        Assert.Equal(UvLevel.VeryHigh, Assert.IsType<UvDetails>(alert.Details).Level);
     }
 
     [Fact]

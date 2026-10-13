@@ -10,7 +10,7 @@ public sealed class AlertResultSpec
         var alert = Alert.None(AlertType.Frost);
         Assert.Equal(AlertSeverity.None, alert.Severity);
         Assert.Equal(0.0, alert.Confidence);
-        Assert.Empty(alert.Attributes);
+        Assert.Same(NoDetails.Instance, alert.Details);
     }
 
     [Fact]

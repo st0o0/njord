@@ -34,10 +34,10 @@ use a plain `[Fact]` (AGENTS.md: a timeout cannot be enforced there).
 
 ## 5. Typed alert details and thresholds
 
-- [ ] 5.1 Add `AlertDetails` (abstract) with one sealed record per alert type plus `NoDetails`, and replace `Alert.Attributes`; spec `src/Njord.Compute.Tests/Analysis/AlertDetailsSpec.cs`
-- [ ] 5.2 Add `SeverityThresholds` (advisory/warning/severe + `ScanDirection`, `Classify(value)`) replacing `ThresholdClassifier`'s array API; update `ThresholdClassifierSpec`
-- [ ] 5.3 Make every `Evaluate*` in `src/Njord.Alerts/AlertEvaluator.cs` produce typed details and take `SeverityThresholds` (built from the option arrays in `EvaluateAll`); update `src/Njord.Alerts.Tests/AlertEvaluatorSpec.cs`
-- [ ] 5.4 Map details to the existing attribute keys in `StatePayloadBuilder.FromAlerts` and in `EnrichmentProtoMapper`; golden masters stay green
+- [x] 5.1 Add `AlertDetails` (abstract) with one sealed record per alert type plus `NoDetails`, and replace `Alert.Attributes`; spec `src/Njord.Compute.Tests/Analysis/AlertDetailsSpec.cs`
+- [x] 5.2 Add `SeverityThresholds` (advisory/warning/severe + `ScanDirection`, `Classify(value)`) replacing `ThresholdClassifier`'s array API; update `ThresholdClassifierSpec`
+- [x] 5.3 Make every `Evaluate*` in `src/Njord.Alerts/AlertEvaluator.cs` produce typed details and take `SeverityThresholds` (built from the option arrays in `EvaluateAll`); update `src/Njord.Alerts.Tests/AlertEvaluatorSpec.cs`
+- [x] 5.4 Map details to the existing attribute keys in `StatePayloadBuilder.FromAlerts` and in `EnrichmentProtoMapper`; golden masters stay green
 
 ## 6. Remove dead serialization annotations
 

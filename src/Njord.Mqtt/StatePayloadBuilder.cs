@@ -102,22 +102,80 @@ public static class StatePayloadBuilder
                 payload["duration_hours"] = JsonValue.Create(dh);
             }
 
-            foreach (var (attrKey, attrValue) in alert.Attributes)
-            {
-                payload[attrKey] = attrValue switch
-                {
-                    double d => JsonValue.Create(d),
-                    int i => JsonValue.Create(i),
-                    string s => JsonValue.Create(s),
-                    null => null,
-                    _ => JsonValue.Create(attrValue.ToString()),
-                };
-            }
+            AddAlertDetails(payload, alert.Details);
 
             var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location.Name, EnrichmentKind.Alerts.ToWireName(), alert.Type.ToTopicSegment());
             messages.Add(new MqttMessage(topic, payload.ToJsonString(), true));
         }
         return messages;
+    }
+
+    private static void AddAlertDetails(JsonObject payload, AlertDetails details)
+    {
+        switch (details)
+        {
+            case FrostDetails d:
+                payload["expected_low"] = d.ExpectedLow;
+                payload["earliest_frost"] = d.EarliestFrost is { } earliest
+                    ? JsonValue.Create($"+{earliest.Offset}h")
+                    : null;
+                payload["models_agreeing"] = d.ModelsAgreeing;
+                break;
+            case HeatDetails d:
+                payload["expected_max"] = d.ExpectedMax;
+                payload["models_agreeing"] = d.ModelsAgreeing;
+                break;
+            case StormDetails d:
+                payload["expected_max_gust"] = d.ExpectedMaxGust;
+                payload["models_agreeing"] = d.ModelsAgreeing;
+                break;
+            case HeavyRainDetails d:
+                payload["hourly_exceed_models"] = d.HourlyExceedModels;
+                payload["daily_exceed_models"] = d.DailyExceedModels;
+                break;
+            case UvDetails d:
+                payload["uv_level"] = d.Level.ToWireName();
+                payload["uv_index"] = d.UvIndex;
+                break;
+            case FogDetails d:
+                payload["fog_hours"] = d.FogHours;
+                payload["models_agreeing"] = d.ModelsAgreeing;
+                break;
+            case SnowDetails d:
+                payload["expected_accumulation"] = d.ExpectedAccumulation;
+                payload["freezing_level"] = d.FreezingLevel is { } level ? JsonValue.Create(level) : null;
+                payload["models_agreeing"] = d.ModelsAgreeing;
+                break;
+            case PressureDropDetails d:
+                payload["max_drop"] = d.MaxDrop;
+                payload["models_agreeing"] = d.ModelsAgreeing;
+                break;
+            case ThunderstormDetails d:
+                payload["models_agreeing"] = d.ModelsAgreeing;
+                break;
+            case IceDetails d:
+                payload["expected_low"] = d.ExpectedLow;
+                payload["rain_hours"] = d.RainHours;
+                payload["soil_frozen"] = d.SoilFrozen ? "True" : "False";
+                break;
+            case WindChillDetails d:
+                payload["felt_temperature"] = d.FeltTemperature;
+                payload["wind_factor"] = d.WindFactor;
+                payload["exposure_risk"] = d.ExposureRisk?.ToWireName();
+                break;
+            case VisibilityDetails d:
+                payload["min_visibility"] = d.MinVisibility;
+                payload["hours_below_1000m"] = d.HoursBelow1000m;
+                break;
+            case TropicalNightDetails d:
+                payload["night_minimum"] = d.NightMinimum;
+                payload["hours_above_20"] = d.HoursAbove20;
+                break;
+            case HumidityDetails d:
+                payload["max_dewpoint"] = d.MaxDewpoint;
+                payload["comfort_level"] = d.ComfortLevel?.ToWireName();
+                break;
+        }
     }
 
     public static IReadOnlyList<MqttMessage> FromDerived(DerivedResult result, string baseTopic)

@@ -21,9 +21,9 @@ public sealed class EnrichmentProtoMapperSpec
         var result = new AlertResult(new LocationId("lucerne"),
         [
             new DomainAlert(DomainAlertType.Frost, DomainAlertSeverity.Orange, 0.85,
-                new Dictionary<string, object?>()),
+                NoDetails.Instance),
             new DomainAlert(DomainAlertType.Storm, DomainAlertSeverity.Red, 0.92,
-                new Dictionary<string, object?>()),
+                NoDetails.Instance),
         ]);
 
         var update = EnrichmentProtoMapper.MapAlerts(result);
@@ -205,7 +205,7 @@ public sealed class EnrichmentProtoMapperSpec
         var alertResult = new AlertResult(new LocationId("lucerne"),
         [
             new DomainAlert(DomainAlertType.Heat, DomainAlertSeverity.Yellow, 0.75,
-                new Dictionary<string, object?>()),
+                NoDetails.Instance),
         ]);
         var updatedAt = TestTimeConstants.BudgetEpoch;
 

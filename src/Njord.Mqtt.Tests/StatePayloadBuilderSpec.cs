@@ -182,7 +182,7 @@ public sealed class StatePayloadBuilderSpec
     {
         var alerts = new List<Alert>
         {
-            new(AlertType.Frost, AlertSeverity.Yellow, 0.75, new Dictionary<string, object?> { ["expected_low"] = -2.1 }),
+            new(AlertType.Frost, AlertSeverity.Yellow, 0.75, new FrostDetails(-2.1, Horizon.Hours(4), 3)),
             Alert.None(AlertType.Heat),
         };
         var result = new AlertResult(new LocationId("lucerne"), alerts);
@@ -196,6 +196,20 @@ public sealed class StatePayloadBuilderSpec
         var payload = JsonNode.Parse(messages[0].Payload)!;
         Assert.Equal("yellow", (string?)payload["severity"]);
         Assert.Equal(0.75, (double?)payload["confidence"]);
+    }
+
+    [Fact]
+    public void FromAlerts_writes_frost_details_as_snake_case_attributes()
+    {
+        var alert = new Alert(AlertType.Frost, AlertSeverity.Yellow, 0.75, new FrostDetails(-2.1, Horizon.Hours(4), 3));
+
+        var message = Assert.Single(StatePayloadBuilder.FromAlerts(
+            new AlertResult(new LocationId("lucerne"), [alert]), "njord"));
+
+        Assert.Equal(
+            "{\"severity\":\"yellow\",\"confidence\":0.75,\"trigger_value\":0,\"threshold\":0,"
+            + "\"expected_low\":-2.1,\"earliest_frost\":\"\\u002B4h\",\"models_agreeing\":3}",
+            message.Payload);
     }
 
     [Fact]
