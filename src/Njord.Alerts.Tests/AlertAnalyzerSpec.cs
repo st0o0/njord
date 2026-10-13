@@ -3,6 +3,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Alerts;
+using Njord.Tests.Shared;
 using Njord.Weather;
 
 namespace Njord.Alerts.Tests;
@@ -20,7 +21,7 @@ public sealed class AlertAnalyzerSpec
         var analyzer = CreateAnalyzer();
         var consensus = BuildConsensus((Temperature, 20.0));
 
-        var result = analyzer.Compute(consensus);
+        var result = analyzer.Compute(consensus, DefaultSettings);
 
         Assert.NotNull(result);
         Assert.All(result.Alerts, a => Assert.Equal(AlertSeverity.None, a.Severity));
@@ -32,7 +33,7 @@ public sealed class AlertAnalyzerSpec
         var analyzer = CreateAnalyzer(enabled: false);
         var consensus = BuildConsensus((Temperature, 20.0));
 
-        var result = analyzer.Compute(consensus);
+        var result = analyzer.Compute(consensus, DefaultSettings);
 
         Assert.Null(result);
     }
@@ -43,7 +44,7 @@ public sealed class AlertAnalyzerSpec
         var analyzer = CreateAnalyzer();
         var consensus = BuildConsensus((Temperature, 20.0));
 
-        var result = analyzer.Compute(consensus);
+        var result = analyzer.Compute(consensus, DefaultSettings);
 
         Assert.NotNull(result);
         Assert.Equal(14, result.Alerts.Count);
@@ -57,6 +58,24 @@ public sealed class AlertAnalyzerSpec
             () => Assert.True(CreateAnalyzer(enabled: true).Enabled),
             () => Assert.False(CreateAnalyzer(enabled: false).Enabled));
     }
+
+    [Fact]
+    public void Compute_uses_the_settings_passed_with_each_computation()
+    {
+        var analyzer = CreateAnalyzer();
+        var consensus = AnalysisFixture.Create().For(AnalysisFixture.Lucerne).Consensus;
+        var lenient = new AlertOptions { FrostThresholds = [-50, -60, -70] }.ToSettings();
+
+        var before = analyzer.Compute(consensus, DefaultSettings);
+        var after = analyzer.Compute(consensus, lenient);
+
+        Assert.NotNull(before);
+        Assert.NotNull(after);
+        Assert.NotEqual(AlertSeverity.None, before.Alerts.Single(a => a.Type == AlertType.Frost).Severity);
+        Assert.Equal(AlertSeverity.None, after.Alerts.Single(a => a.Type == AlertType.Frost).Severity);
+    }
+
+    private static readonly AlertSettings DefaultSettings = new AlertOptions().ToSettings();
 
     private static AlertAnalyzer CreateAnalyzer(bool enabled = true)
     {

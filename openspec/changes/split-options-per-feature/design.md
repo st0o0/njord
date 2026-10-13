@@ -203,3 +203,10 @@ Recorded during implementation; each is the smallest change that kept the plan w
     and `MinQuorum` (before: hard-coded 0.1 and 2, i.e. the configured `TrimPercent` was ignored).
     Defaults are identical, so the golden masters are unchanged. `IndexComputer.Compute` takes
     `IndexSettings` and `DerivedResultComputer.Compute` takes `DerivedSettings`.
+11. **Pipeline seed and messages (group 4).** The startup `AnalysisSettings` is a DI singleton
+    built by `PipelineSetupContainer` from the validated options (`AnalysisSettingsFactory`);
+    `ForecastPipeline` takes it as a constructor argument. `AnalysisSettingsChanged` and
+    `PollingChanged` live in `Njord.Core/Configuration/ConfigChangeMessages.cs`, because
+    `Njord.Messages` cannot reference Compute's settings records. A "cycle" in the pipeline is one
+    forecast element: the settings are zipped onto each element, so one computation never mixes
+    two settings versions; the spec shows the switch on the next element.

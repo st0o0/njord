@@ -5,8 +5,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
+using Njord.Core.Configuration;
+using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Consensus;
+using Njord.Core.Configuration.Derived;
+using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Polling;
+using Njord.Core.Configuration.Trends;
 using Servus.Application.Startup;
 
 namespace Njord.Pipeline.Configuration;
@@ -26,6 +31,15 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
             .BindConfiguration(ConsensusOptions.SectionName)
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<ConsensusOptions>, ConsensusOptionsValidator>();
+
+        // The settings the pipeline starts with; later changes arrive as AnalysisSettingsChanged messages.
+        services.AddSingleton(static sp => AnalysisSettingsFactory.Create(
+            sp.GetRequiredService<IOptions<NjordOptions>>().Value,
+            sp.GetRequiredService<IOptions<ConsensusOptions>>().Value,
+            sp.GetRequiredService<IOptions<AlertOptions>>().Value,
+            sp.GetRequiredService<IOptions<IndexOptions>>().Value,
+            sp.GetRequiredService<IOptions<TrendOptions>>().Value,
+            sp.GetRequiredService<IOptions<DerivedOptions>>().Value));
 
         services.AddSingleton<IActorRegistration>(new PipelineActorRegistration());
     }

@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Compute.Settings;
-using Njord.Core.Configuration;
 using Njord.Core.Configuration.Derived;
 using Njord.Weather;
 
@@ -20,7 +19,7 @@ public sealed class DerivedAnalyzerSpec
     {
         var analyzer = CreateAnalyzer();
 
-        var result = analyzer.Compute(BuildConsensus());
+        var result = analyzer.Compute(BuildConsensus(), new DerivedSettings([.. Horizons]));
 
         Assert.NotNull(result);
         Assert.Equal(new LocationId("lucerne"), result.Location);
@@ -31,16 +30,26 @@ public sealed class DerivedAnalyzerSpec
     {
         var analyzer = CreateAnalyzer(enabled: false);
 
-        var result = analyzer.Compute(BuildConsensus());
+        var result = analyzer.Compute(BuildConsensus(), new DerivedSettings([.. Horizons]));
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void Compute_reads_the_horizons_from_the_settings()
+    {
+        var analyzer = CreateAnalyzer();
+
+        var result = analyzer.Compute(BuildConsensus(), new DerivedSettings([6]));
+
+        Assert.NotNull(result);
+        Assert.Equal([Horizon.Hours(6)], result.ByHorizon.Keys);
     }
 
     private static DerivedAnalyzer CreateAnalyzer(bool enabled = true) =>
         new(
             new DerivedResultComputer(Parameters),
-            Options.Create(new DerivedOptions { Enabled = enabled }),
-            Options.Create(new NjordOptions { Horizons = [.. Horizons] }));
+            Options.Create(new DerivedOptions { Enabled = enabled }));
 
     private static ConsensusSnapshot BuildConsensus()
     {

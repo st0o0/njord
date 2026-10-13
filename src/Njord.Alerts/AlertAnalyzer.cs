@@ -7,23 +7,21 @@ namespace Njord.Alerts;
 
 public sealed class AlertAnalyzer
 {
-    private readonly AlertSettings _settings;
     private readonly TimeProvider _timeProvider;
 
     public AlertAnalyzer(IOptions<AlertOptions> options, TimeProvider timeProvider)
     {
         Enabled = options.Value.Enabled;
-        _settings = options.Value.ToSettings();
         _timeProvider = timeProvider;
     }
 
     public bool Enabled { get; }
 
-    public AlertResult? Compute(ConsensusSnapshot consensus)
+    public AlertResult? Compute(ConsensusSnapshot consensus, AlertSettings settings)
     {
         if (!Enabled)
             return null;
 
-        return AlertEvaluator.EvaluateAll(consensus, _settings, _timeProvider);
+        return AlertEvaluator.EvaluateAll(consensus, settings, _timeProvider);
     }
 }

@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Analysis;
 using Njord.Compute.Settings;
-using Njord.Core.Configuration;
 using Njord.Core.Configuration.Indices;
 using Njord.Sensors;
 using Njord.Weather;
@@ -24,8 +23,9 @@ public sealed class IndexAnalyzerSpec
     public void Compute_returns_index_result()
     {
         var analyzer = CreateAnalyzer();
+        var settings = Settings();
 
-        var result = analyzer.Compute(BuildConsensus(), null);
+        var result = analyzer.Compute(BuildConsensus(), null, settings);
 
         Assert.NotNull(result);
         Assert.Equal(new LocationId("lucerne"), result.Location);
@@ -35,8 +35,9 @@ public sealed class IndexAnalyzerSpec
     public void Compute_returns_null_when_disabled()
     {
         var analyzer = CreateAnalyzer(enabled: false);
+        var settings = Settings();
 
-        var result = analyzer.Compute(BuildConsensus(), null);
+        var result = analyzer.Compute(BuildConsensus(), null, settings);
 
         Assert.Null(result);
     }
@@ -44,12 +45,13 @@ public sealed class IndexAnalyzerSpec
     [Fact]
     public void Compute_with_sensor_overrides_indoor_temp()
     {
-        var analyzer = CreateAnalyzer(indoorTemp: 28.0);
+        var analyzer = CreateAnalyzer();
+        var settings = Settings(indoorTemp: 28.0);
         var consensus = BuildConsensusWithWeather("lucerne");
         var sensors = BuildSensorSnapshot("lucerne", 18.0);
 
-        var withSensor = analyzer.Compute(consensus, sensors);
-        var withoutSensor = analyzer.Compute(consensus, null);
+        var withSensor = analyzer.Compute(consensus, sensors, settings);
+        var withoutSensor = analyzer.Compute(consensus, null, settings);
 
         Assert.NotNull(withSensor);
         Assert.NotNull(withoutSensor);
@@ -61,13 +63,14 @@ public sealed class IndexAnalyzerSpec
     [Fact]
     public void Sensor_override_does_not_persist_across_calls()
     {
-        var analyzer = CreateAnalyzer(indoorTemp: 28.0);
+        var analyzer = CreateAnalyzer();
+        var settings = Settings(indoorTemp: 28.0);
         var consensus = BuildConsensusWithWeather("lucerne");
         var sensors = BuildSensorSnapshot("lucerne", 18.0);
 
-        _ = analyzer.Compute(consensus, sensors);
-        var afterSensorCall = analyzer.Compute(consensus, null);
-        var fresh = analyzer.Compute(consensus, null);
+        _ = analyzer.Compute(consensus, sensors, settings);
+        var afterSensorCall = analyzer.Compute(consensus, null, settings);
+        var fresh = analyzer.Compute(consensus, null, settings);
 
         Assert.NotNull(afterSensorCall);
         Assert.NotNull(fresh);
@@ -76,22 +79,34 @@ public sealed class IndexAnalyzerSpec
         Assert.Equal(fresh.Days[0].NightVentilation, afterSensorCall.Days[0].NightVentilation);
     }
 
-    private static IndexAnalyzer CreateAnalyzer(
-        bool enabled = true,
-        double? indoorTemp = null)
+    [Fact]
+    public void Compute_uses_the_preferences_passed_with_each_computation()
     {
-        var indexComputer = new IndexComputer(Parameters, Time);
-        var indexOptions = new IndexOptions { Enabled = enabled };
+        var analyzer = CreateAnalyzer();
+        var consensus = BuildConsensusWithWeather("lucerne");
+
+        var warm = analyzer.Compute(consensus, null, Settings(indoorTemp: 28.0));
+        var cool = analyzer.Compute(consensus, null, Settings(indoorTemp: 18.0));
+
+        Assert.NotNull(warm);
+        Assert.NotNull(cool);
+        Assert.NotEmpty(warm.Days);
+        Assert.NotEmpty(cool.Days);
+        Assert.NotEqual(warm.Days[0].NightVentilation, cool.Days[0].NightVentilation);
+    }
+
+    private static IndexAnalyzer CreateAnalyzer(bool enabled = true) =>
+        new(new IndexComputer(Parameters, Time), Options.Create(new IndexOptions { Enabled = enabled }));
+
+    private static IndexSettings Settings(double? indoorTemp = null)
+    {
+        var options = new IndexOptions();
         if (indoorTemp.HasValue)
         {
-            indexOptions.Preferences.IndoorTemp = indoorTemp.Value;
+            options.Preferences.IndoorTemp = indoorTemp.Value;
         }
 
-        var njordOptions = new NjordOptions { Locations = [new LocationOptions { Name = "lucerne" }] };
-        return new IndexAnalyzer(
-            indexComputer,
-            Options.Create(indexOptions),
-            Options.Create(njordOptions));
+        return options.ToSettings(["lucerne"]);
     }
 
     private static ConsensusSnapshot BuildConsensus(string location = "lucerne")

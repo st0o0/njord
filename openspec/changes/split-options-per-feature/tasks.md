@@ -25,8 +25,8 @@ start a hosted actor system. Pure synchronous specs use a plain `[Fact]`.
 
 ## 4. Analyzers take settings per computation
 
-- [ ] 4.1 Change `AlertAnalyzer`, `DerivedAnalyzer`, `TrendAnalyzer`, `IndexAnalyzer` to read only `Enabled` from `IOptions<T>` and take the current settings in `Compute(...)`; remove `IOptions<NjordOptions>` from them; update `Njord.Alerts.Tests`, `Njord.Derived.Tests`, `Njord.Trends.Tests`, `Njord.Indices.Tests`
-- [ ] 4.2 Add the analysis-settings side channel to `src/Njord.Pipeline/ForecastPipeline.cs` (seeded with startup settings, `AnalysisSettingsChanged` pushes the latest); spec in `src/Njord.Pipeline.Tests/` showing a settings change applies on the next cycle and not mid-cycle
+- [x] 4.1 Change `AlertAnalyzer`, `DerivedAnalyzer`, `TrendAnalyzer`, `IndexAnalyzer` to read only `Enabled` from `IOptions<T>` and take the current settings in `Compute(...)`; remove `IOptions<NjordOptions>` from them; update `Njord.Alerts.Tests`, `Njord.Derived.Tests`, `Njord.Trends.Tests`, `Njord.Indices.Tests`
+- [x] 4.2 Add the analysis-settings side channel to `src/Njord.Pipeline/ForecastPipeline.cs` (seeded with startup settings, `AnalysisSettingsChanged` pushes the latest); spec in `src/Njord.Pipeline.Tests/` showing a settings change applies on the next cycle and not mid-cycle
 
 ## 5. Section writer and ConfigManager
 

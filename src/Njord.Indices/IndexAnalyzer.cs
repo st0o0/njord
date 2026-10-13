@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 using Njord.Compute.Analysis;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Indices;
-using Njord.Core.Configuration;
 using Njord.Sensors;
 using Njord.Weather;
 
@@ -11,30 +10,25 @@ namespace Njord.Indices;
 public sealed class IndexAnalyzer
 {
     private readonly IndexComputer _indexComputer;
-    private readonly IndexSettings _settings;
 
-    public IndexAnalyzer(
-        IndexComputer indexComputer,
-        IOptions<IndexOptions> indexOptions,
-        IOptions<NjordOptions> njordOptions)
+    public IndexAnalyzer(IndexComputer indexComputer, IOptions<IndexOptions> options)
     {
         _indexComputer = indexComputer;
-        Enabled = indexOptions.Value.Enabled;
-        _settings = indexOptions.Value.ToSettings(njordOptions.Value.Locations.Select(l => l.Name));
+        Enabled = options.Value.Enabled;
     }
 
     public bool Enabled { get; }
 
-    public IndexResult? Compute(ConsensusSnapshot consensus, SensorSnapshot? sensors)
+    public IndexResult? Compute(ConsensusSnapshot consensus, SensorSnapshot? sensors, IndexSettings settings)
     {
         if (!Enabled)
             return null;
 
-        var settings = sensors?.Get(SensorKind.IndoorTemperature) is { } liveTemp
-            ? new IndexSettings(OverrideIndoorTemp(_settings.Preferences, consensus.Location, liveTemp))
-            : _settings;
+        var effective = sensors?.Get(SensorKind.IndoorTemperature) is { } liveTemp
+            ? new IndexSettings(OverrideIndoorTemp(settings.Preferences, consensus.Location, liveTemp))
+            : settings;
 
-        return _indexComputer.Compute(consensus, settings);
+        return _indexComputer.Compute(consensus, effective);
     }
 
     private static IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> OverrideIndoorTemp(

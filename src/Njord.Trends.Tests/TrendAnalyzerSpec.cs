@@ -19,7 +19,7 @@ public sealed class TrendAnalyzerSpec
         var computer = new TrendComputer();
         var analyzer = new TrendAnalyzer(computer, Options.Create(new TrendOptions { Enabled = true }));
 
-        var result = analyzer.Compute(BuildConsensus(), null);
+        var result = analyzer.Compute(BuildConsensus(), null, TrendSettings.Default);
 
         Assert.Null(result);
     }
@@ -30,7 +30,7 @@ public sealed class TrendAnalyzerSpec
         var computer = new TrendComputer();
         var analyzer = new TrendAnalyzer(computer, Options.Create(new TrendOptions { Enabled = true }));
 
-        var result = analyzer.Compute(BuildConsensus(), BuildConsensus());
+        var result = analyzer.Compute(BuildConsensus(), BuildConsensus(), TrendSettings.Default);
 
         Assert.NotNull(result);
         Assert.Equal(new LocationId("lucerne"), result.Location);
@@ -42,7 +42,7 @@ public sealed class TrendAnalyzerSpec
         var computer = new TrendComputer();
         var analyzer = new TrendAnalyzer(computer, Options.Create(new TrendOptions { Enabled = false }));
 
-        var result = analyzer.Compute(BuildConsensus(), BuildConsensus());
+        var result = analyzer.Compute(BuildConsensus(), BuildConsensus(), TrendSettings.Default);
 
         Assert.Null(result);
     }

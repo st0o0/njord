@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Options;
 using Njord.Alerts;
 using Njord.Compute.Analysis;
-using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Derived;
 using Njord.Core.Configuration.Indices;
@@ -23,16 +22,14 @@ public static class DisabledAnalyzers
 
     public static DerivedAnalyzer Derived() =>
         new(new DerivedResultComputer(EmptyParameters),
-            Options.Create(new DerivedOptions { Enabled = false }),
-            Options.Create(new NjordOptions()));
+            Options.Create(new DerivedOptions { Enabled = false }));
 
     public static TrendAnalyzer Trend() =>
         new(new TrendComputer(), Options.Create(new TrendOptions { Enabled = false }));
 
     public static IndexAnalyzer Index() =>
         new(new IndexComputer(EmptyParameters, TimeProvider.System),
-            Options.Create(new IndexOptions { Enabled = false }),
-            Options.Create(new NjordOptions()));
+            Options.Create(new IndexOptions { Enabled = false }));
 
     public static ConsensusSnapshotFactory Consensus() =>
         new(EmptyParameters, TimeProvider.System);

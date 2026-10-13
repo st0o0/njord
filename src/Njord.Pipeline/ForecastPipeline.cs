@@ -7,6 +7,7 @@ using Njord.Alerts;
 using Njord.Compute.Analysis;
 using Njord.Compute.Settings;
 using Njord.Core.Actors;
+using Njord.Core.Configuration;
 using Njord.Core.Egress;
 using Njord.Derived;
 using Njord.Indices;
@@ -39,6 +40,8 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
     private Source<PipelineEvent, NotUsed>? _pipelineOutputSource;
     private IMaterializer? _mat;
     private IActorRef? _sensorRef;
+    private IActorRef? _settingsRef;
+    private AnalysisSettings _settings;
     private IActorRef? _gateway;
     private IActorRef? _lastTerminatedGateway;
     private int _gatewayRetryCount;
@@ -53,8 +56,10 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
         AlertAnalyzer alerts,
         DerivedAnalyzer derived,
         TrendAnalyzer trends,
-        IndexAnalyzer indices)
+        IndexAnalyzer indices,
+        AnalysisSettings startupSettings)
     {
+        _settings = startupSettings;
         _timeProvider = timeProvider;
         _consensusFactory = consensusFactory;
         _alerts = alerts;
@@ -128,6 +133,8 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                 Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryGatewayResolve(), Self);
             });
 
+            Receive<AnalysisSettingsChanged>(msg => _settings = msg.Settings);
+
             Receive<Terminated>(OnTerminated);
 
             ReceiveAny(_ => Stash.Stash());
@@ -139,6 +146,12 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
         Become(() =>
         {
             Receive<SensorSnapshot>(snapshot => _sensorRef?.Tell(snapshot));
+
+            Receive<AnalysisSettingsChanged>(msg =>
+            {
+                _settings = msg.Settings;
+                _settingsRef?.Tell(msg.Settings);
+            });
 
             Receive<RequestPipelineOutput>(msg =>
             {
@@ -185,6 +198,14 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
             .Concat(sensorSourceRaw)
             .RepeatPrevious();
 
+        // Same side-channel shape as the sensors: the latest settings are zipped onto every forecast, so a
+        // change applies from the next forecast on and never in the middle of one computation.
+        var (settingsRef, settingsSourceRaw) = Source.ActorRef<AnalysisSettings>(10, OverflowStrategy.DropHead)
+            .PreMaterialize(_mat);
+        var settingsSource = Source.Single(_settings)
+            .Concat(settingsSourceRaw)
+            .RepeatPrevious();
+
         var consensusFactory = _consensusFactory;
         var alerts = _alerts;
         var derived = _derived;
@@ -195,13 +216,15 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
         forecastSource
             .Via(Flow.FromGraph(GraphDsl.Create(builder =>
             {
-                var zip = builder.Add(ZipWith.Apply<WeatherForecast, SensorSnapshot, (WeatherForecast, SensorSnapshot)>(
-                    (forecast, sensors) => (forecast, sensors)));
+                var zip = builder.Add(ZipWith.Apply<WeatherForecast, SensorSnapshot, AnalysisSettings, (WeatherForecast, SensorSnapshot, AnalysisSettings)>(
+                    (forecast, sensors, settings) => (forecast, sensors, settings)));
                 var sensor = builder.Add(sensorSource);
+                var settings = builder.Add(settingsSource);
                 builder.From(sensor).To(zip.In1);
-                return new FlowShape<WeatherForecast, (WeatherForecast, SensorSnapshot)>(zip.In0, zip.Out);
+                builder.From(settings).To(zip.In2);
+                return new FlowShape<WeatherForecast, (WeatherForecast, SensorSnapshot, AnalysisSettings)>(zip.In0, zip.Out);
             })))
-            .StatefulSelectMany<(WeatherForecast forecast, SensorSnapshot sensors), PipelineEvent, NotUsed>(() =>
+            .StatefulSelectMany<(WeatherForecast forecast, SensorSnapshot sensors, AnalysisSettings settings), PipelineEvent, NotUsed>(() =>
             {
                 var snapshot = ModelSnapshot.Empty;
                 ConsensusSnapshot? previous = null;
@@ -210,7 +233,8 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                 {
                     var now = timeProvider.GetUtcNow();
                     snapshot = snapshot.Update(input.forecast);
-                    var consensus = consensusFactory.Create(snapshot, input.forecast.Location, ConsensusSettings.Default);
+                    var settings = input.settings;
+                    var consensus = consensusFactory.Create(snapshot, input.forecast.Location, settings.Consensus);
 
                     var events = new List<PipelineEvent>
                     {
@@ -218,17 +242,17 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                         new PipelineEvent.ConsensusComputed(consensus, now)
                     };
 
-                    if (alerts.Compute(consensus) is { } a)
+                    if (alerts.Compute(consensus, settings.Alerts) is { } a)
                         events.Add(new PipelineEvent.AlertComputed(a, now));
 
-                    if (derived.Compute(consensus) is { } d)
+                    if (derived.Compute(consensus, settings.Derived) is { } d)
                         events.Add(new PipelineEvent.DerivedComputed(d, now));
 
-                    if (trends.Compute(consensus, previous) is { } tr)
+                    if (trends.Compute(consensus, previous, settings.Trends) is { } tr)
                         events.Add(new PipelineEvent.TrendComputed(tr, now));
 
                     var sensors = input.sensors.Readings.Count > 0 ? input.sensors : null;
-                    if (indices.Compute(consensus, sensors) is { } ix)
+                    if (indices.Compute(consensus, sensors, settings.Indices) is { } ix)
                         events.Add(new PipelineEvent.IndexComputed(ix, now));
 
                     previous = consensus;
@@ -241,5 +265,6 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
 
         _pipelineOutputSource = pipelineOutputSource;
         _sensorRef = sensorRef;
+        _settingsRef = settingsRef;
     }
 }
