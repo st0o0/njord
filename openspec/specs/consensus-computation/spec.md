@@ -3,9 +3,7 @@
 ## Purpose
 
 Pure statistical computations over multi-model forecast data: median, trimmed mean, spread, IQR, agreement score, outlier identification, confidence interval, and model availability matrix. All functions are static and side-effect-free — input in, result out.
-
 ## Requirements
-
 ### Requirement: Median consensus over non-null model values
 `ConsensusComputer.ComputeMedian` SHALL accept an `IReadOnlyList<double?>` and return the median of the non-null values. For an even count, the median SHALL be the average of the two middle values. If fewer than 1 non-null value exists, the result SHALL be `null`.
 
@@ -207,9 +205,3 @@ The consensus MQTT state payload SHALL include a `{parameter_key}_models` intege
 - **WHEN** a consensus MQTT payload is published
 - **THEN** the payload SHALL NOT contain a `_models_used` field
 
-### Requirement: ConsensusResult serialization with pinned wire names
-`ConsensusResult`, `ParameterConsensus`, and `HorizonConsensus` records SHALL have `[property: JsonProperty("...")]` on all positional parameters. Value tuple properties on `HorizonConsensus` (`Outlier`, `ConfidenceInterval`) SHALL be replaced with named records (`OutlierInfo`, `ConfidenceIntervalInfo`) carrying `[JsonProperty]` attributes. `WeatherModel` and `ParameterDef` domain types referenced in these records SHALL also have `[property: JsonProperty]` on their serialized properties.
-
-#### Scenario: ConsensusResult with hourly and daily parameters round-trips through JSON
-- **WHEN** a `ConsensusResult` with parameter consensus entries containing horizon consensus data (including outlier and confidence interval) is serialized and deserialized
-- **THEN** all properties round-trip correctly with camelCase wire names, including the replaced tuple fields and nested domain type properties

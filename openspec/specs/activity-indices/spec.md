@@ -3,9 +3,7 @@
 ## Purpose
 
 Activity and environmental index scores computed from forecast data: lifestyle scores (laundry drying, outdoor, running, cycling, BBQ, irrigation, night ventilation, solar yield), frost protection, VPD plant stress, and a unified DaySliceIndexResult that serializes all indices to MQTT with per-day slicing (d0/d1/d2). Activity scores use daylight-only means, utility scores use full-day means, and NightVentilation uses nighttime-only means. All scorer methods accept `ResolvedPreferences` for configurable sensitivity multipliers and ideal points.
-
 ## Requirements
-
 ### Requirement: Laundry drying score from temperature, humidity, wind, rain, sunshine
 `IndexScorer.LaundryDrying` SHALL accept mean temperature (°C), mean relative humidity (%), mean wind speed (m/s), mean precipitation probability (%), sunshine percentage (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. The formula SHALL weight: temperature 0.3, humidity 0.25, wind 0.2, rain probability 0.15, sunshine 0.1. Penalty terms SHALL be scaled by the corresponding sensitivity multipliers from `ResolvedPreferences`. Null inputs SHALL use neutral sub-score 50.
 
@@ -270,13 +268,3 @@ Each `DayScoreSet` SHALL contain: `DayOffset` (int, 0/1/2), `Laundry` (int), `Ou
 - **WHEN** index messages are published
 - **THEN** `frost_hours`, `frost_confidence`, `vpd_category`, `vpd_kpa` SHALL appear only in the d0 payload
 
-### Requirement: DaySliceIndexResult serialization with pinned wire names
-`DaySliceIndexResult` and `DayScoreSet` records SHALL have `[property: JsonProperty("...")]` on all positional parameters. The `ventilation` wire name SHALL be replaced by `night_ventilation`. Persistence DTO version SHALL be incremented.
-
-#### Scenario: DaySliceIndexResult round-trips through JSON
-- **WHEN** a `DaySliceIndexResult` with 3 day score sets is serialized and deserialized
-- **THEN** all properties round-trip correctly including day offsets, scores, envelopes, frost, and VPD
-
-#### Scenario: No ventilation key in JSON
-- **WHEN** a `DayScoreSet` is serialized
-- **THEN** JSON SHALL NOT contain a `"ventilation"` key; it SHALL contain `"night_ventilation"`

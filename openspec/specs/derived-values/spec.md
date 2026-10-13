@@ -3,9 +3,7 @@
 ## Purpose
 
 Pure-function derived weather values computed from model forecast data: Beaufort scale, wind chill, dew-point comfort category, diurnal temperature amplitude, sunshine percentage, WMO weather description, and inversion detection. Results are aggregated in a DerivedResult record that serializes to MQTT messages.
-
 ## Requirements
-
 ### Requirement: Beaufort scale from wind speed
 `DerivedComputer.Beaufort` SHALL accept a `double?` wind speed in m/s and return an `int?` Beaufort number (0–12). If the input is `null`, the result SHALL be `null`. The conversion SHALL follow the standard Beaufort scale boundaries.
 
@@ -49,35 +47,39 @@ Pure-function derived weather values computed from model forecast data: Beaufort
 - **THEN** the result is null
 
 ### Requirement: Dew-point comfort category
-`DerivedComputer.DewPointComfort` SHALL accept a `double?` dew-point temperature in °C and return a `string?` comfort category. Categories SHALL be: "dry" (< 10 °C), "comfortable" (10–15 °C), "sticky" (16–18 °C), "oppressive" (19–21 °C), "dangerous" (> 21 °C). If the input is `null`, the result SHALL be `null`.
+The dew-point comfort computation SHALL accept a `double?` dew-point temperature in °C and return a nullable typed comfort category. Categories SHALL be: Dry (< 10 °C), Comfortable (10–15 °C), Sticky (16–18 °C), Oppressive (19–21 °C), Dangerous (> 21 °C). If the input is `null`, the result SHALL be `null`. The published text of each category SHALL be its lowercase name ("dry", "comfortable", "sticky", "oppressive", "dangerous"), unchanged from before.
 
 #### Scenario: Dry air
 - **WHEN** dew point is 5.0 °C
-- **THEN** the comfort category is "dry"
+- **THEN** the comfort category is Dry
 
 #### Scenario: Comfortable
 - **WHEN** dew point is 12.0 °C
-- **THEN** the comfort category is "comfortable"
+- **THEN** the comfort category is Comfortable
 
 #### Scenario: Sticky
 - **WHEN** dew point is 17.0 °C
-- **THEN** the comfort category is "sticky"
+- **THEN** the comfort category is Sticky
 
 #### Scenario: Oppressive
 - **WHEN** dew point is 20.0 °C
-- **THEN** the comfort category is "oppressive"
+- **THEN** the comfort category is Oppressive
 
 #### Scenario: Dangerous
 - **WHEN** dew point is 23.0 °C
-- **THEN** the comfort category is "dangerous"
+- **THEN** the comfort category is Dangerous
 
 #### Scenario: Boundary at 10
 - **WHEN** dew point is 10.0 °C
-- **THEN** the comfort category is "comfortable"
+- **THEN** the comfort category is Comfortable
 
 #### Scenario: Null input
 - **WHEN** dew point is null
 - **THEN** the result is null
+
+#### Scenario: Published text unchanged
+- **WHEN** a Sticky comfort category is published via MQTT
+- **THEN** the payload value is `sticky`
 
 ### Requirement: Diurnal temperature amplitude
 `DerivedComputer.DiurnalAmplitude` SHALL accept a `ForecastSeries` and a `DateTimeOffset` (now) and return `double?` — the difference between the maximum and minimum `temperature_2m` in the next 24 hours. If fewer than 2 non-null temperature points exist in the window, the result SHALL be `null`.
@@ -110,23 +112,23 @@ Pure-function derived weather values computed from model forecast data: Beaufort
 - **THEN** the result is null
 
 ### Requirement: WMO weather description from weather code
-`DerivedComputer.WmoDescription` SHALL accept an `int?` WMO 4677 weather code and return a `string?` English description. The mapping SHALL cover codes 0–99. Unknown codes SHALL return `null`. A `null` input SHALL return `null`.
+The WMO computation SHALL accept an `int?` WMO 4677 weather code and return a nullable typed weather condition. The mapping SHALL cover codes 0–99. Unknown codes SHALL return `null`. A `null` input SHALL return `null`. The English description of each condition SHALL be produced at the output edge and SHALL equal the description published before this change.
 
 #### Scenario: Clear sky
 - **WHEN** weather code is 0
-- **THEN** the description is "Clear sky"
+- **THEN** the condition's description is "Clear sky"
 
 #### Scenario: Mainly clear
 - **WHEN** weather code is 1
-- **THEN** the description is "Mainly clear"
+- **THEN** the condition's description is "Mainly clear"
 
 #### Scenario: Rain slight
 - **WHEN** weather code is 61
-- **THEN** the description is "Rain: slight"
+- **THEN** the condition's description is "Rain: slight"
 
 #### Scenario: Thunderstorm with heavy hail
 - **WHEN** weather code is 99
-- **THEN** the description is "Thunderstorm with heavy hail"
+- **THEN** the condition's description is "Thunderstorm with heavy hail"
 
 #### Scenario: Unknown code
 - **WHEN** weather code is 150
@@ -171,9 +173,3 @@ Pure-function derived weather values computed from model forecast data: Beaufort
 - **WHEN** a consensus median is null for a parameter at a horizon
 - **THEN** the derived value for that parameter is null in the JSON payload
 
-### Requirement: DerivedResult serialization with pinned wire names
-`DerivedResult`, `HorizonDerived`, and `ScalarDerived` records SHALL have `[property: JsonProperty("...")]` on all positional parameters producing camelCase wire names.
-
-#### Scenario: DerivedResult round-trips through JSON
-- **WHEN** a `DerivedResult` with horizon-derived values and scalar-derived values is serialized and deserialized
-- **THEN** all properties (including nested HorizonDerived and ScalarDerived fields) round-trip correctly with camelCase wire names

@@ -7,7 +7,7 @@ A `ResolvedPreferences` record SHALL be produced per (location, index kind) pair
 - **WHEN** the night-ventilation scorer is called
 - **THEN** it receives a `ResolvedPreferences` with `IndoorTemp`, `HeatSensitivity`, `HumiditySensitivity`, `WindSensitivity`, `RainSensitivity` fully resolved
 
-#### Scenario: Resolution key uses the NightVentilation kind
+#### Scenario: Resolution key uses NightVentilation
 - **WHEN** preferences are resolved for the ventilation scorer
 - **THEN** the key SHALL be (Lucerne, NightVentilation)
 

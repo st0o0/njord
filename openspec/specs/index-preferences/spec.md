@@ -3,9 +3,7 @@
 ## Purpose
 
 Cascading configuration model for index scoring preferences. Allows users to tune sensitivity multipliers and ideal-point parameters at three levels: global defaults, per-score overrides, and per-location overrides. Provides a resolved preferences type that scorers consume without knowing about the cascade.
-
 ## Requirements
-
 ### Requirement: IndexPreferences config section with sensitivity multipliers and ideal points
 `IndexOptions` SHALL contain a `Preferences` property of type `IndexPreferences`. `IndexPreferences` SHALL expose: `IdealOutdoorTemp` (double, default 22.0), `RunningIdealTempLow` (double, default 5.0), `RunningIdealTempHigh` (double, default 20.0), `BbqMinTemp` (double, default 10.0), `BbqIdealWindLow` (double, default 1.0), `BbqIdealWindHigh` (double, default 3.0), `IndoorTemp` (double, default 22.0), `HeatSensitivity` (double, default 1.0), `HumiditySensitivity` (double, default 1.0), `WindSensitivity` (double, default 1.0), `RainSensitivity` (double, default 1.0). All sensitivity multipliers SHALL be clamped to the range [0.0, 5.0] at validation time.
 
@@ -75,19 +73,19 @@ For any (location, score, property) tuple, resolution SHALL proceed in order: (1
 - **THEN** resolved value is 1.0 (hardcoded default)
 
 ### Requirement: ResolvedPreferences record for scorer consumption
-A `ResolvedPreferences` record SHALL be produced per (location, score) pair. It SHALL contain all preference properties as non-nullable doubles with fully resolved values. `IndexScorer` methods SHALL accept `ResolvedPreferences` instead of raw config values. The score name `NightVentilation` SHALL be used in the resolution key instead of `Ventilation`.
+A `ResolvedPreferences` record SHALL be produced per (location, index kind) pair, where the location is a typed location identity and the index kind is a typed index kind. It SHALL contain all preference properties as non-nullable doubles with fully resolved values. Scorers SHALL accept `ResolvedPreferences` instead of raw config values. No scorer or index computation SHALL look up preferences by a string score name.
 
 #### Scenario: Scorer receives resolved values
-- **WHEN** `IndexScorer.NightVentilation` is called
+- **WHEN** the night-ventilation scorer is called
 - **THEN** it receives a `ResolvedPreferences` with `IndoorTemp`, `HeatSensitivity`, `HumiditySensitivity`, `WindSensitivity`, `RainSensitivity` fully resolved
 
 #### Scenario: Resolution key uses NightVentilation
 - **WHEN** preferences are resolved for the ventilation scorer
-- **THEN** the key SHALL be `("Lucerne", "NightVentilation")`, not `("Lucerne", "Ventilation")`
+- **THEN** the key SHALL be (Lucerne, NightVentilation)
 
 #### Scenario: Resolution happens once at config load
 - **WHEN** configuration is loaded or reloaded
-- **THEN** a `IReadOnlyDictionary<(string Location, string Score), ResolvedPreferences>` SHALL be computed and reused for all subsequent poll cycles until the next config change
+- **THEN** a preference map keyed by (location, index kind) SHALL be computed and reused for all subsequent poll cycles until the next config change
 
 ### Requirement: IndexOptions removes HeatingBaseTemp and CoolingBaseTemp
 `IndexOptions` SHALL NOT contain `HeatingBaseTemp` or `CoolingBaseTemp` properties. These were used exclusively by the removed HDD/CDD scoring.
@@ -95,3 +93,4 @@ A `ResolvedPreferences` record SHALL be produced per (location, score) pair. It 
 #### Scenario: Old config with HeatingBaseTemp
 - **WHEN** a config file contains `Indices.HeatingBaseTemp: 18.0`
 - **THEN** the property SHALL be silently ignored (no binding target)
+

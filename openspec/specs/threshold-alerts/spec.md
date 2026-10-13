@@ -3,19 +3,21 @@
 ## Purpose
 
 Pure evaluation functions that assess multi-model forecast data against configurable thresholds and produce typed alerts with confidence scores, severity levels, and diagnostic attributes. Published as binary/enum sensors per alert type per location.
-
 ## Requirements
-
 ### Requirement: Alert is a typed record with confidence and severity
-An `Alert` SHALL be a record carrying `AlertType` (enum), `Severity` (enum: None/Yellow/Orange/Red), `Confidence` (0.0-1.0, fraction of models agreeing the threshold is crossed), and an `IReadOnlyDictionary<string, object?>` of diagnostic attributes (e.g. expected value, earliest time, worst model). `AlertType` SHALL enumerate: Frost, Heat, Storm, HeavyRain, Uv, Fog, Snow, PressureDrop, Thunderstorm, Ice, WindChill, Visibility, TropicalNight, Humidity.
+An `Alert` SHALL be a record carrying `AlertType` (enum), `Severity` (enum: None/Yellow/Orange/Red), `Confidence` (0.0-1.0, fraction of models agreeing the threshold is crossed), and typed diagnostic details specific to its alert type (e.g. a frost alert carries expected low, earliest frost horizon and models agreeing). Diagnostics SHALL NOT be a string-keyed dictionary. The snake_case attribute keys published via MQTT (the gRPC `Alert` message carries no attributes) (e.g. `expected_low`, `earliest_frost`, `models_agreeing`) SHALL be produced from the typed details by the output mappers and SHALL be identical to the keys and values published before this change. `AlertType` SHALL enumerate: Frost, Heat, Storm, HeavyRain, Uv, Fog, Snow, PressureDrop, Thunderstorm, Ice, WindChill, Visibility, TropicalNight, Humidity.
 
 #### Scenario: Alert carries all fields
-- **WHEN** a frost alert is created with severity Yellow, confidence 0.75, and attributes {expected_low: -2.1, earliest: "2026-07-14T04:00Z"}
-- **THEN** the record exposes Type=Frost, Severity=Yellow, Confidence=0.75, and the attributes dictionary
+- **WHEN** a frost alert is created with severity Yellow, confidence 0.75, expected low -2.1 and earliest frost at +4 h
+- **THEN** the record exposes Type=Frost, Severity=Yellow, Confidence=0.75 and typed frost details with ExpectedLow=-2.1 and EarliestFrost=+4 h
 
 #### Scenario: New alert type carries all fields
-- **WHEN** an ice alert is created with severity Orange, confidence 0.9, and attributes {expected_low: -1.0, rain_hours: 4, soil_frozen: true}
-- **THEN** the record exposes Type=Ice, Severity=Orange, Confidence=0.9, and the attributes dictionary
+- **WHEN** an ice alert is created with severity Orange, confidence 0.9, expected low -1.0, 4 rain hours and frozen soil
+- **THEN** the record exposes Type=Ice, Severity=Orange, Confidence=0.9 and typed ice details with those values
+
+#### Scenario: Published attribute keys unchanged
+- **WHEN** a frost alert with details is published via MQTT
+- **THEN** its attributes JSON contains `expected_low`, `earliest_frost` and `models_agreeing` with the same values and formatting as before this change
 
 ### Requirement: Frost warning evaluates minimum temperature across models
 
@@ -185,13 +187,3 @@ When `DiscoveryEnabled` is `true` and alerts are enabled, one retained device-ba
 - **WHEN** the frost alert has severity Yellow
 - **THEN** the binary_sensor value template evaluates to "ON"
 
-### Requirement: Alert record serialization
-`AlertResult` and `Alert` records SHALL have `[property: JsonProperty("...")]` on all positional parameters producing camelCase wire names. The `Alert` record's `Attributes` dictionary property SHALL retain its `IReadOnlyDictionary<string, object?>` type with a pinned wire name. New AlertType enum values SHALL serialize as their string names.
-
-#### Scenario: AlertResult round-trips through JSON with pinned wire names
-- **WHEN** an `AlertResult` with all 14 alerts is serialized to JSON and deserialized back
-- **THEN** all properties round-trip correctly with camelCase wire names including new alert types
-
-#### Scenario: Old snapshot without new alert types
-- **WHEN** a persisted snapshot contains only 9 alert types (pre-expansion)
-- **THEN** deserialization succeeds and the missing 5 types are filled with `Alert.None`
