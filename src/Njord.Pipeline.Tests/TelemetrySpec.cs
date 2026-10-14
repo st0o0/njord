@@ -10,6 +10,8 @@ public sealed class TelemetrySpec
             () => Assert.Equal("s", Telemetry.PollCycleDuration.Unit),
             () => Assert.Equal("njord_poll_cycle_models", Telemetry.PollCycleModels.Name),
             () => Assert.Equal("{model}", Telemetry.PollCycleModels.Unit),
+            () => Assert.Equal("njord_poll_cycle_failed_models", Telemetry.PollCycleFailedModels.Name),
+            () => Assert.Equal("{model}", Telemetry.PollCycleFailedModels.Unit),
             () => Assert.Equal("njord_pipeline_data_changed_total", Telemetry.DataChanged.Name),
             () => Assert.Equal("{change}", Telemetry.DataChanged.Unit),
             () => Assert.Equal("Njord.Pipeline", Telemetry.Meter.Name));

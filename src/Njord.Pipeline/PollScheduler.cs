@@ -28,7 +28,7 @@ public sealed class PollScheduler : ReceivePersistentActor
     private readonly NjordHealthMonitor _healthState;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private PollSchedulerState _state = PollSchedulerState.Empty;
-    private readonly Dictionary<string, PollCycleTracker> _pollCycles = new();
+    private readonly PollCycleTracker _pollCycles = new();
     private readonly Dictionary<string, ICancelable> _pendingPolls = new();
 
     private IActorRef? _gateway;
@@ -38,7 +38,6 @@ public sealed class PollScheduler : ReceivePersistentActor
     private sealed record GatewayResolved(IActorRef Gateway);
     private sealed record GatewayResolveFailed(Exception Cause);
     private sealed record RetryGatewayResolve;
-    private sealed record PollCycleTracker(DateTimeOffset Start, int Changed, int Reported);
 
     private static readonly BackoffPolicy GatewayRetryPolicy =
         Backoff.Create(TimeSpan.FromSeconds(1), maxDelay: TimeSpan.FromSeconds(30));
@@ -244,7 +243,7 @@ public sealed class PollScheduler : ReceivePersistentActor
                     result.Location, result.ModelId, updated.Phase, updated.Cycle);
                 ScheduleNext(result.Location.Name, result.ModelId);
                 Sender.Tell(new Ack());
-                RecordPollCompletion(result.Location.Name, changed: true);
+                RecordPollOutcome(result.Location.Name, result.ModelId, PollCycleOutcome.Changed);
                 MaybeSnapshot();
             });
         }
@@ -258,7 +257,7 @@ public sealed class PollScheduler : ReceivePersistentActor
                 result.Location, result.ModelId, updated.MissCount, updated.Phase);
             ScheduleNext(result.Location.Name, result.ModelId);
             Sender.Tell(new Ack());
-            RecordPollCompletion(result.Location.Name, changed: false);
+            RecordPollOutcome(result.Location.Name, result.ModelId, PollCycleOutcome.Unchanged);
         }
     }
 
@@ -291,45 +290,30 @@ public sealed class PollScheduler : ReceivePersistentActor
                 ScheduleNext(msg.Location.Name, msg.ModelId);
                 break;
         }
+
+        RecordPollOutcome(msg.Location.Name, msg.ModelId, PollCycleOutcome.Failed);
     }
 
-    private void RecordPollCompletion(string location, bool changed)
+    private void RecordPollOutcome(string location, string modelId, PollCycleOutcome outcome)
     {
-        var matchedLocation = _options.FindLocation(location);
-        var total = matchedLocation is null
-            ? 0
-            : _options.Models.Union(matchedLocation.Models ?? [], StringComparer.OrdinalIgnoreCase).Count();
-        if (total == 0)
+        if (_options.FindLocation(location) is not { } matchedLocation)
         {
             return;
         }
 
-        var now = _timeProvider.GetUtcNow();
-        var tracker = _pollCycles.TryGetValue(location, out var existing)
-            ? existing
-            : new PollCycleTracker(now, 0, 0);
-
-        tracker = tracker with
+        var resolved = _options.Models.Union(matchedLocation.Models ?? [], StringComparer.OrdinalIgnoreCase).ToList();
+        if (_pollCycles.Record(matchedLocation.Name, modelId, resolved, outcome, _timeProvider.GetUtcNow()) is not { } summary)
         {
-            Changed = tracker.Changed + (changed ? 1 : 0),
-            Reported = tracker.Reported + 1,
-        };
-
-        if (tracker.Reported >= total)
-        {
-            var durationSeconds = (now - tracker.Start).TotalSeconds;
-            var locationTag = new KeyValuePair<string, object?>("location", location);
-            Telemetry.PollCycleDuration.Record(durationSeconds, locationTag);
-            Telemetry.PollCycleModels.Record(tracker.Reported, locationTag);
-            _log.Debug(
-                "Poll complete for {Location}: {Changed}/{Total} models changed in {Duration}ms",
-                location, tracker.Changed, total, durationSeconds * 1000);
-            _pollCycles.Remove(location);
+            return;
         }
-        else
-        {
-            _pollCycles[location] = tracker;
-        }
+
+        var locationTag = new KeyValuePair<string, object?>("location", summary.Location);
+        Telemetry.PollCycleDuration.Record(summary.Duration.TotalSeconds, locationTag);
+        Telemetry.PollCycleModels.Record(summary.Total, locationTag);
+        Telemetry.PollCycleFailedModels.Record(summary.Failed, locationTag);
+        _log.Debug(
+            "Poll complete for {Location}: {Changed}/{Total} models changed, {Failed} failed in {Duration}ms",
+            summary.Location, summary.Changed, summary.Total, summary.Failed, summary.Duration.TotalMilliseconds);
     }
 
     // A changed discovery interval re-plans every target that is waiting out a discovery-phase delay:

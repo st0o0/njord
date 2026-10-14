@@ -17,7 +17,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
 {
     internal sealed record FetchTarget(LocationOptions Location, WeatherModel Model, CycleId Cycle, int Weight);
     private sealed record FetchResult(PollOutcome Outcome, string Key);
-    private sealed record StreamCompleted;
+    private sealed record FetchStreamStopped(int Generation);
 
     private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;
@@ -25,8 +25,11 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private readonly int _weight;
     private readonly IGatewayBudgetGate _gate;
 
-    private readonly Dictionary<string, IActorRef> _pendingRequests = new();
+    private sealed record PendingRequest(IActorRef Requester, LocationId Location, string ModelId);
+
+    private readonly Dictionary<string, PendingRequest> _pendingRequests = new();
     private IMaterializer? _mat;
+    private int _fetchStreamGeneration;
     private ISourceQueueWithComplete<FetchTarget>? _fetchQueue;
     private ISourceQueueWithComplete<WeatherForecast>? _forecastQueue;
     private Source<WeatherForecast, NotUsed>? _broadcastSource;
@@ -62,13 +65,13 @@ public sealed class OpenMeteoGateway : ReceiveActor
         Receive<FetchForecast>(OnFetchForecast);
         Receive<FetchResult>(OnFetchResult);
         Receive<RequestForecastStream>(OnRequestForecastStream);
-        Receive<StreamCompleted>(_ => _log.Warning("Gateway fetch stream completed unexpectedly"));
+        Receive<FetchStreamStopped>(OnFetchStreamStopped);
     }
 
     private void OnFetchForecast(FetchForecast msg)
     {
         var key = $"{msg.Location}|{msg.ModelId}";
-        _pendingRequests[key] = Sender;
+        _pendingRequests[key] = new PendingRequest(Sender, msg.Location, msg.ModelId);
 
         var location = _options.FindLocation(msg.Location.Name);
         if (location is null)
@@ -86,8 +89,10 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
     private void OnFetchResult(FetchResult msg)
     {
-        if (!_pendingRequests.Remove(msg.Key, out var requester))
+        if (!_pendingRequests.Remove(msg.Key, out var pending))
             return;
+
+        var requester = pending.Requester;
 
         switch (msg.Outcome)
         {
@@ -118,22 +123,32 @@ public sealed class OpenMeteoGateway : ReceiveActor
                 ex => new RequestForecastStreamFailed(msg.RequestId, ex));
     }
 
+    // A stopped fetch stream would leave every requester unanswered and drop later offers silently.
+    // Re-materializing only the fetch stream keeps the forecast hub (and its SourceRefs) and the
+    // budget gate; the lost requests come back to the scheduler as ordinary transport failures.
+    private void OnFetchStreamStopped(FetchStreamStopped msg)
+    {
+        if (msg.Generation != _fetchStreamGeneration)
+        {
+            return;
+        }
+
+        _log.Warning("Gateway fetch stream stopped - failing {Count} in-flight requests and re-materializing",
+            _pendingRequests.Count);
+
+        foreach (var pending in _pendingRequests.Values)
+        {
+            pending.Requester.Tell(new FetchForecastFailed(pending.Location, pending.ModelId,
+                PollFailureReason.Transport, "Gateway fetch stream stopped"));
+        }
+
+        _pendingRequests.Clear();
+        MaterializeFetchStream();
+    }
+
     private void MaterializeStreams()
     {
-        var (fetchQueue, fetchQueueSource) = Source.Queue<FetchTarget>(16, OverflowStrategy.Backpressure)
-            .PreMaterialize(_mat);
-
-        fetchQueueSource
-            .Via(new GatewayThrottleStage(_gate))
-            .SelectAsyncUnordered(2, async target =>
-            {
-                var outcome = await _client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None);
-                var key = $"{target.Location.Name}|{target.Model.Id}";
-                return new FetchResult(outcome, key);
-            })
-            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
-            .To(Sink.ActorRef<FetchResult>(Self, new StreamCompleted(), ex => new StreamCompleted()))
-            .Run(_mat);
+        MaterializeFetchStream();
 
         var (forecastQueue, forecastQueueSource) = Source.Queue<WeatherForecast>(16, OverflowStrategy.DropHead)
             .PreMaterialize(_mat);
@@ -143,9 +158,43 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
         forecastQueueSource.To(broadcastSink).Run(_mat);
 
-        _fetchQueue = fetchQueue;
         _forecastQueue = forecastQueue;
         _broadcastSource = broadcastSource;
+    }
+
+    private void MaterializeFetchStream()
+    {
+        var generation = ++_fetchStreamGeneration;
+        var (fetchQueue, fetchQueueSource) = Source.Queue<FetchTarget>(16, OverflowStrategy.Backpressure)
+            .PreMaterialize(_mat);
+
+        fetchQueueSource
+            .Via(new GatewayThrottleStage(_gate))
+            .SelectAsyncUnordered(2, FetchAsync)
+            .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
+            .To(Sink.ActorRef<FetchResult>(Self, new FetchStreamStopped(generation), _ => new FetchStreamStopped(generation)))
+            .Run(_mat);
+
+        _fetchQueue = fetchQueue;
+    }
+
+    // A client that throws instead of returning a PollOutcome still has to answer its requester,
+    // otherwise the scheduler never re-schedules that target.
+    private async Task<FetchResult> FetchAsync(FetchTarget target)
+    {
+        var key = $"{target.Location.Name}|{target.Model.Id}";
+        try
+        {
+            var outcome = await _client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None);
+            return new FetchResult(outcome, key);
+        }
+        catch (Exception ex)
+        {
+            _log.Warning(ex, "Fetch for {Location}/{Model} threw {ExceptionType}", target.Location.Name, target.Model.Id, ex.GetType().Name);
+            var failure = new PollOutcome.Failure(target.Location.Name, target.Model, PollFailureReason.Transport,
+                $"Fetch threw {ex.GetType().Name}: {ex.Message}");
+            return new FetchResult(failure, key);
+        }
     }
 
     internal static int ComputeWeight(int hourlyVariableCount, int forecastDays) =>

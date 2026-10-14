@@ -10,17 +10,30 @@ public static class StreamSupervision
 {
     public static StreamDecider LoggingDecider(ILoggingAdapter log) => ex =>
     {
-        var directive = Classify(ex);
-        log.Warning(ex, "Stream supervision: {Directive} for {ExceptionType}", directive, ex.GetType().Name);
+        var cause = Unwrap(ex);
+        var directive = Classify(cause);
+        log.Warning(cause, "Stream supervision: {Directive} for {ExceptionType}", directive, cause.GetType().Name);
         return directive;
     };
 
     public static StreamDecider LoggingDecider(ILogger logger) => ex =>
     {
-        var directive = Classify(ex);
-        logger.LogWarning(ex, "Stream supervision: {Directive} for {ExceptionType}", directive, ex.GetType().Name);
+        var cause = Unwrap(ex);
+        var directive = Classify(cause);
+        logger.LogWarning(cause, "Stream supervision: {Directive} for {ExceptionType}", directive, cause.GetType().Name);
         return directive;
     };
+
+    // SelectAsync/SelectAsyncUnordered hand an already-faulted task's exception over as an AggregateException.
+    private static Exception Unwrap(Exception ex)
+    {
+        while (ex is AggregateException { InnerExceptions.Count: 1 } aggregate)
+        {
+            ex = aggregate.InnerExceptions[0];
+        }
+
+        return ex;
+    }
 
     private static StreamDirective Classify(Exception ex) => ex switch
     {
