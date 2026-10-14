@@ -185,6 +185,13 @@ public sealed class PollManager : ReceiveActor, IWithTimers
             return;
         }
 
+        // The shard region hands off (stops) every worker when the node shuts down.
+        if (CoordinatedShutdown.Get(Context.System).ShutdownReason is not null)
+        {
+            _log.Debug("Poll worker {TargetId} stopped during shutdown", targetId);
+            return;
+        }
+
         var attempts = _restartAttempts.GetValueOrDefault(targetId);
         _restartAttempts[targetId] = attempts + 1;
         var delay = RetryPolicy.DelayWithJitter(attempts);

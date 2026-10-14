@@ -226,7 +226,7 @@ The poll manager (a non-persistent cluster singleton behind a backoff-on-failure
 The poll manager SHALL:
 - send `StartPolling` with the new discovery interval to every target when `PollingChanged` carries a discovery interval different from the current one; a worker in Discovery phase without transient failures whose next poll is still ahead SHALL move its next poll to (planned time - old interval + new interval), never earlier than now, while steady and backoff delays stay as they are;
 - after start, ask the poll shard region for its running entities and send `StopPolling` to every worker whose target is not configured; a stopped worker persists that it stopped, stops polling and stops, and its journal is kept;
-- watch every worker that reports, and when a worker of a configured target terminates, send it `StartPolling` again after a jittered backoff (1 s up to 30 s), so a worker that stopped on a persistence failure resumes.
+- watch every worker that reports, and when a worker of a configured target terminates, send it `StartPolling` again after a jittered backoff (1 s up to 30 s), so a worker that stopped on a persistence failure resumes; a worker that stops while the node shuts down (the shard region hands off every entity) is not restarted.
 
 #### Scenario: A shorter discovery interval replans the pending poll
 - **WHEN** a target in Discovery waits for its next poll and `PollingChanged` shortens the discovery interval to 100 ms
@@ -247,6 +247,10 @@ The poll manager SHALL:
 #### Scenario: Terminated worker is restarted
 - **WHEN** the worker of a configured target terminates
 - **THEN** the manager sends `StartPolling` for that target again and polling resumes from the persisted state
+
+#### Scenario: Workers stopped by a shutdown are not restarted
+- **WHEN** the node shuts down and the shard region stops every worker
+- **THEN** the manager logs each stop at Debug and sends no `StartPolling`
 
 ### Requirement: The poll manager forwards TriggerImmediatePoll to the workers
 The poll manager SHALL handle `TriggerImmediatePoll(LocationId? Location, string Model)` by sending `TriggerTargetPoll` to the worker of each matching configured target and replying `TriggerImmediatePollCompleted(Count, Targets)`, where each target is `"{location}/{model}"` in the configured spelling. Location and model SHALL match case-insensitively. A null `Location` or an empty `Model` SHALL expand to every configured location or model; an unknown location SHALL yield zero targets. A worker that receives a trigger while it is started and has no request in flight SHALL poll immediately. The reply SHALL NOT wait for the fetches. When the shard region is not available yet the manager SHALL reply `TriggerImmediatePollFailed`.
