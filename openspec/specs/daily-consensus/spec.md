@@ -3,9 +3,7 @@
 ## Purpose
 
 Multi-model consensus aggregation for daily forecast parameters: computes Median, TrimmedMean, Spread, IQR, Agreement, Outlier, ConfidenceInterval, and AvailableModels per daily parameter per day-horizon (d0–dN). Extends the consensus device with daily components and state messages.
-
 ## Requirements
-
 ### Requirement: Daily consensus computes multi-model statistics per daily parameter per day-horizon
 
 Daily consensus SHALL be computed as part of `ConsensusSnapshot.Compute`, producing the `DailyConsensus` facet. It uses daily model parameters (`temperature_2m_max`, `temperature_2m_min`, `precipitation_sum`, `weather_code`, etc.) directly from `DailyForecastSeries`. It SHALL NOT use hourly->daily rollups.
@@ -38,14 +36,6 @@ The system SHALL compute d0 as the UTC date of the consensus cycle timestamp. Su
 - **WHEN** the consensus cycle runs at 2026-07-19T14:00Z
 - **THEN** d0 corresponds to 2026-07-19, d1 to 2026-07-20, etc.
 
-### Requirement: Discovery emits daily consensus components on the consensus device
-
-The consensus device discovery payload SHALL include one sensor component per (daily parameter, day offset) pair.
-
-#### Scenario: Discovery payload includes daily UV max
-- **WHEN** discovery runs and `uv_index_max` is a daily parameter
-- **THEN** the consensus device includes components `uv_index_max_d0`, `uv_index_max_d1`, etc.
-
 ### Requirement: State messages emit one JSON per daily horizon
 
 The consensus egress SHALL publish one retained MQTT message per daily horizon to `{baseTopic}/{location}/consensus/d{N}`.
@@ -53,3 +43,4 @@ The consensus egress SHALL publish one retained MQTT message per daily horizon t
 #### Scenario: Daily state message content
 - **WHEN** consensus egress processes `Daily.Parameters`
 - **THEN** one retained MQTT message per day horizon is published to `{baseTopic}/{location}/consensus/d{N}` with parameter medians and model counts
+

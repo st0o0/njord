@@ -3,9 +3,7 @@
 ## Purpose
 
 Domain-specific Servus `IServiceSetupContainer` implementations with an `IActorRegistration` DI pattern so each domain assembly declares its own services and actors.
-
 ## Requirements
-
 ### Requirement: IActorRegistration interface for domain actor declarations
 The system SHALL define an `IActorRegistration` interface with a method that accepts an `AkkaConfigurationBuilder` and `IServiceProvider`. Domain setup containers SHALL register `IActorRegistration` implementations in DI during their `SetupServices` call. The central `AkkaSetupContainer` SHALL resolve all `IActorRegistration` instances from the service provider and invoke them during `BuildSystem`.
 
@@ -22,72 +20,26 @@ The system SHALL define an `IActorRegistration` interface with a method that acc
 - **THEN** they SHALL be invoked in the order they were registered in DI (matching the container chain order in Program.cs)
 
 ### Requirement: CoreSetupContainer registers shared services
-The system SHALL provide a `CoreSetupContainer` implementing `IServiceSetupContainer` that registers `NjordOptions` binding and validation, `SensorOptions` binding and validation, `ParameterRegistry`, `TimeProvider.System`, `NjordHealthState`, budget metrics, `ConfigPersistence`, and the Prometheus meter adapter.
+The host's `CoreSetupContainer` (src/Njord/Configuration/CoreSetupContainer.cs) SHALL bind and validate (`ValidateOnStart`) `NjordOptions`, `PersistenceOptions` and `StorageOptions` with their validators, and SHALL register the `ResolvedParameterSet`, `TimeProvider.System`, the `NjordHealthMonitor` (including the budget observable gauges), the health checks (`pipeline` always, `mqtt-connection` only when MQTT is enabled), `ConfigView`, the `IConfigWriter` that writes `data/appsettings.Override.json`, the Prometheus meter adapter limited to the `Njord.*` meters, and an `IActorRegistration` that creates the `ConfigManager` actor under the `IConfigManager` marker.
 
 #### Scenario: Options are bound and validated
 - **WHEN** `CoreSetupContainer.SetupServices` is called
-- **THEN** `NjordOptions` and `SensorOptions` SHALL be bound with `ValidateOnStart` enabled
+- **THEN** `NjordOptions`, `PersistenceOptions` and `StorageOptions` are bound with `ValidateOnStart` enabled
 
 #### Scenario: TimeProvider is registered exactly once
-- **WHEN** `CoreSetupContainer.SetupServices` is called
-- **THEN** `TimeProvider.System` SHALL be registered via `TryAddSingleton` (no duplicate)
-
-### Requirement: IngestSetupContainer registers ingest services
-The system SHALL provide an `IngestSetupContainer` implementing `IServiceSetupContainer` that registers `IOpenMeteoClient` with its HTTP client configuration.
-
-#### Scenario: OpenMeteoClient is resolvable
-- **WHEN** `IngestSetupContainer.SetupServices` is called
-- **THEN** `IOpenMeteoClient` SHALL be resolvable from the service provider with IPv4-forced socket handling
-
-### Requirement: PipelineSetupContainer registers pipeline services and actors
-The system SHALL provide a `PipelineSetupContainer` implementing `IServiceSetupContainer` that registers pipeline DI services (`IBudgetProvider`, `IBudgetGate`) and an `IActorRegistration` for `SchedulerActor` (BackoffSupervisor singleton), `BudgetTrackerActor` (BackoffSupervisor singleton), `PipelineActor` (singleton), and the `CoordinatedShutdown` stream-stop task.
-
-#### Scenario: Pipeline actors are declared via IActorRegistration
-- **WHEN** `PipelineSetupContainer.SetupServices` is called
-- **THEN** it SHALL register an `IActorRegistration` that configures `SchedulerActor`, `BudgetTrackerActor`, `PipelineActor`, and the shutdown task
-
-#### Scenario: Pipeline health check is registered
-- **WHEN** `PipelineSetupContainer.SetupServices` is called
-- **THEN** `PipelineHealthCheck` SHALL be registered
-
-### Requirement: EgressSetupContainer registers egress actors
-The system SHALL provide an `EgressSetupContainer` implementing `IServiceSetupContainer` that registers an `IActorRegistration` for `ModelStateActor` (singleton) and `ForecastSnapshotActor` (ShardRegion via `IForecastSnapshotRegion`).
-
-#### Scenario: ForecastSnapshotActor is registered as ShardRegion
-- **WHEN** `EgressSetupContainer`'s `IActorRegistration` is invoked
-- **THEN** `ForecastSnapshotActor` SHALL be registered as a ShardRegion under `IForecastSnapshotRegion` with passivation timeout
-
-### Requirement: EnrichmentSetupContainer registers enrichment services and actors
-The system SHALL provide an `EnrichmentSetupContainer` implementing `IServiceSetupContainer` that registers enrichment options, validators, computers, `IEnrichmentFeature` implementations, and an `IActorRegistration` for `EnrichmentActor` (singleton), `EnrichmentSnapshotActor` (ShardRegion via `IEnrichmentSnapshotRegion`), and `ForecastHistoryActor` (ShardRegion via `IForecastHistoryRegion`).
-
-#### Scenario: EnrichmentSnapshotActor is registered as ShardRegion
-- **WHEN** `EnrichmentSetupContainer`'s `IActorRegistration` is invoked
-- **THEN** `EnrichmentSnapshotActor` SHALL be registered as a ShardRegion under `IEnrichmentSnapshotRegion` with passivation timeout
+- **WHEN** the host's services are built
+- **THEN** exactly one `TimeProvider` registration exists, `TimeProvider.System`, added by `CoreSetupContainer`
 
 ### Requirement: MqttSetupContainer registers MQTT services and actors conditionally
-The system SHALL provide an `MqttSetupContainer` implementing `IServiceSetupContainer` that registers `MqttOptions` binding, `IEnrichmentPresenter` implementations, and conditionally (when MQTT is enabled) the MQTT transport services and an `IActorRegistration` for `MqttConnectionActor`, `MqttStateActor`, and `MqttDiscoveryActor`.
+`MqttSetupContainer` SHALL bind and validate `MqttOptions` and, only when `Njord:Mqtt:Enabled` is `true`, register `MqttEgressTuning`, `MqttNetPublisher` (also as `IMqttConnection` and `IMqttTransport`) and an `IActorRegistration` that creates the `MqttConnection` (`IMqttConnectionActor`) and `MqttStatePublisher` (`IMqttStatePublisher`) singletons.
 
 #### Scenario: MQTT actors are only registered when enabled
 - **WHEN** `MqttSetupContainer.SetupServices` is called with MQTT disabled
-- **THEN** no `IActorRegistration` for MQTT actors SHALL be registered
+- **THEN** no `IActorRegistration` for MQTT actors is registered
 
 #### Scenario: MQTT health check is conditional
-- **WHEN** `MqttSetupContainer.SetupServices` is called with MQTT enabled
-- **THEN** `MqttConnectionHealthCheck` SHALL be registered
-
-### Requirement: GrpcSetupContainer registers gRPC services and actors
-The system SHALL provide a `GrpcSetupContainer` implementing `IServiceSetupContainer` that registers gRPC framework services and an `IActorRegistration` for `GrpcSnapshotConsumerActor` (singleton).
-
-#### Scenario: GrpcSnapshotConsumerActor is declared via IActorRegistration
-- **WHEN** `GrpcSetupContainer.SetupServices` is called
-- **THEN** it SHALL register an `IActorRegistration` that configures `GrpcSnapshotConsumerActor`
-
-### Requirement: SensorSetupContainer registers sensor services and actors
-The system SHALL provide a `SensorSetupContainer` implementing `IServiceSetupContainer` that registers an `IActorRegistration` for `SensorHubActor` (singleton).
-
-#### Scenario: SensorHubActor is declared via IActorRegistration
-- **WHEN** `SensorSetupContainer.SetupServices` is called
-- **THEN** it SHALL register an `IActorRegistration` that configures `SensorHubActor`
+- **WHEN** the host starts with MQTT enabled
+- **THEN** `CoreSetupContainer` registers the `mqtt-connection` health check (`MqttConnectionHealthCheck`), and it is absent when MQTT is disabled
 
 ### Requirement: AkkaSetupContainer configures only infrastructure
 The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupContainer` that configures logging, persistence (SQLite/PostgreSQL), remoting, and clustering. It SHALL resolve all `IActorRegistration` instances from DI and invoke them. It SHALL NOT directly register any domain actors.
@@ -95,3 +47,54 @@ The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupCont
 #### Scenario: No domain actors in AkkaSetupContainer
 - **WHEN** `AkkaSetupContainer.BuildSystem` is called
 - **THEN** it SHALL contain no direct `WithClusterSingleton`, `WithShardRegion`, or `WithResolvableActors` calls for domain actors — only `IActorRegistration` invocations
+
+### Requirement: OpenMeteoSetupContainer registers the client and the gateway
+`OpenMeteoSetupContainer` (src/Njord.OpenMeteo/Configuration) SHALL bind and validate `OpenMeteoOptions`, register `IBudgetProvider` (`OptionsBudgetProvider`), register `IOpenMeteoClient` as a typed `HttpClient` whose base address comes from `OpenMeteoOptions.OpenMeteoBaseUrl`, with a 30-second timeout and an IPv4-only socket connect callback, and register an `IActorRegistration` that creates `OpenMeteoGateway` as a cluster singleton under `IForecastGateway`, wrapped in a backoff-on-failure supervisor (3 s to 30 s, unlimited retries).
+
+#### Scenario: OpenMeteoClient is resolvable
+- **WHEN** `OpenMeteoSetupContainer.SetupServices` is called
+- **THEN** `IOpenMeteoClient` is resolvable from the service provider with IPv4-forced socket handling
+
+#### Scenario: Gateway is a supervised singleton
+- **WHEN** the actor system starts
+- **THEN** `OpenMeteoGateway` runs as a singleton resolvable through `IForecastGateway`
+
+### Requirement: PipelineSetupContainer registers scheduling, pipeline and read-model actors
+`PipelineSetupContainer` (src/Njord.Pipeline/Configuration) SHALL bind and validate `PollingOptions` and `ConsensusOptions`, register the startup `AnalysisSettings` built by `AnalysisSettingsFactory` from the validated options, and register an `IActorRegistration` that creates three cluster singletons: `PollScheduler` under `IPollScheduler` (inside a `BackoffSupervisor`, 3 s to 30 s, unlimited retries), `ForecastPipeline` under `IForecastPipeline` and `ForecastReadModel` under `IForecastReadModel`. It SHALL NOT register a CoordinatedShutdown stream-stop task.
+
+#### Scenario: Pipeline actors are declared via IActorRegistration
+- **WHEN** `PipelineSetupContainer.SetupServices` is called
+- **THEN** it registers an `IActorRegistration` that configures `PollScheduler`, `ForecastPipeline` and `ForecastReadModel`
+
+#### Scenario: Startup analysis settings are registered
+- **WHEN** `ForecastPipeline` is created
+- **THEN** it receives the `AnalysisSettings` built from the validated analysis options
+
+### Requirement: BudgetSetupContainer registers the budget tracker
+`BudgetSetupContainer` (src/Njord.Budget/Configuration) SHALL register an `IActorRegistration` that creates `BudgetTracker` as a cluster singleton under `IBudgetTracker`, wrapped in a backoff-on-failure supervisor (3 s to 30 s, unlimited retries).
+
+#### Scenario: Budget tracker is a supervised singleton
+- **WHEN** the actor system starts
+- **THEN** `BudgetTracker` runs as a singleton resolvable through `IBudgetTracker`
+
+### Requirement: AnalysisSetupContainer registers the analysis libraries
+The host's `AnalysisSetupContainer` SHALL register `ConsensusBuilder` and call `AddAlerts()`, `AddDerived()`, `AddTrends()` and `AddIndices()`. It SHALL register no actors.
+
+#### Scenario: Analyzers are resolvable
+- **WHEN** the host's services are built
+- **THEN** `AlertAnalyzer`, `DerivedAnalyzer`, `TrendAnalyzer`, `IndexAnalyzer` and `ConsensusBuilder` are resolvable for `ForecastPipeline`
+
+### Requirement: GrpcSetupContainer registers only gRPC framework services
+`GrpcSetupContainer` (src/Njord.Grpc/Configuration) SHALL call `AddGrpc()` and SHALL register no actors; the gRPC services resolve actors through the `ActorRegistry` markers.
+
+#### Scenario: No actor registration in the gRPC library
+- **WHEN** `GrpcSetupContainer.SetupServices` is called
+- **THEN** it registers no `IActorRegistration`
+
+### Requirement: SensorSetupContainer registers sensor options and the SensorHub actor
+`SensorSetupContainer` (src/Njord.SensorHub/Configuration) SHALL bind and validate `SensorOptions` and register an `IActorRegistration` that creates `SensorHub` as a cluster singleton under `ISensorHub`.
+
+#### Scenario: SensorHub is declared via IActorRegistration
+- **WHEN** `SensorSetupContainer.SetupServices` is called
+- **THEN** it registers an `IActorRegistration` that configures `SensorHub`
+

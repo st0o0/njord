@@ -3,15 +3,13 @@
 ## Purpose
 
 gRPC service for ingesting external sensor readings into the SensorHub. Defines the SensorService proto with Push (unary) and StreamPush (client-streaming) RPCs, input validation, and source defaulting.
-
 ## Requirements
-
 ### Requirement: SensorService proto definition
 The system SHALL define a `SensorService` gRPC service in `protos/njord/v2/sensor.proto` with two RPCs: `Push` (unary, accepts a single `SensorReading`, returns `PushResponse`) and `StreamPush` (client-streaming, accepts a stream of `SensorReading`, returns `PushResponse`).
 
 #### Scenario: Proto defines SensorKind enum
 - **WHEN** the proto file is compiled
-- **THEN** a `SensorKind` enum SHALL exist with values: `SENSOR_KIND_UNSPECIFIED (0)`, `SENSOR_KIND_INDOOR_TEMPERATURE (1)`, `SENSOR_KIND_INDOOR_HUMIDITY (2)`, `SENSOR_KIND_HEAT_PUMP_FLOW_TEMP (3)`, `SENSOR_KIND_SOLAR_PANEL_POWER (4)`, `SENSOR_KIND_BATTERY_STATE_OF_CHARGE (5)`, `SENSOR_KIND_HEAT_PUMP_POWER (6)`
+- **THEN** a `SensorKind` enum SHALL exist with values: `SENSOR_KIND_UNSPECIFIED (0)`, `SENSOR_KIND_INDOOR_TEMPERATURE (1)`, `SENSOR_KIND_INDOOR_HUMIDITY (2)` and no others, matching the closed domain `SensorKind`
 
 #### Scenario: Proto defines SensorReading message
 - **WHEN** the proto file is compiled
@@ -55,3 +53,4 @@ The `SensorGrpcService` SHALL treat an empty or whitespace-only `source` field a
 #### Scenario: Empty source normalized
 - **WHEN** a reading with `source=""` is received
 - **THEN** it SHALL be stored with source `"default"`
+

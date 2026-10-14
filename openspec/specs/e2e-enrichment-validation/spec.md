@@ -2,10 +2,9 @@
 
 ## Purpose
 
-Defines how the E2E run validates consensus, alert, index, trend, derived and history entities against the forecast data.
+Defines how the E2E run validates consensus, alert, index, trend and derived entities against the forecast data.
 
 ## Requirements
-
 ### Requirement: Consensus computation validation
 
 The E2E test plan SHALL verify consensus weather entity attributes reflect multi-model agreement.
@@ -82,10 +81,3 @@ The E2E test plan SHALL verify derived sensors compute correct values from forec
 - **WHEN** `sensor.lucerne_wind_chill` is inspected
 - **THEN** the state is a numeric temperature value in °C
 
-### Requirement: History sensor validation
-
-The E2E test plan SHALL verify the model performance history sensor produces data.
-
-#### Scenario: Model performance has state after first poll
-- **WHEN** `sensor.lucerne_model_performance` is inspected after the first poll cycle
-- **THEN** the state is not "unavailable" (history data may be limited on first run but the sensor exists and has a state)

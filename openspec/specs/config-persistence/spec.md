@@ -6,9 +6,7 @@ Atomic file-based persistence for runtime config mutations. User overrides are
 stored in `data/appsettings.Override.json`, loaded as the last configuration
 source (highest priority), and propagated to all subscribers via
 `IConfigurationRoot.Reload()`.
-
 ## Requirements
-
 ### Requirement: Config mutations persist to override file
 All config mutations SHALL persist user overrides to `data/appsettings.Override.json`. The file SHALL be written atomically (write to temp file, then rename). The content SHALL be wrapped in a `{"Njord": {...}}` section to match the `NjordOptions.SectionName` configuration binding. On startup, njord SHALL load the override file as the last configuration source, giving it higher priority than environment variables.
 
@@ -29,12 +27,12 @@ Because the override file is loaded as the last configuration source, its values
 
 #### Scenario: Mutation overrides env var
 - **WHEN** environment variable `Njord__Enrichment__Alerts__Enabled=true` is set
-- **AND** a mutation sets `Enrichment.Alerts.Enabled = false`
-- **THEN** `IOptionsMonitor<NjordOptions>.CurrentValue.Enrichment.Alerts.Enabled` SHALL be `false`
+- **AND** a mutation sets `Njord:Enrichment:Alerts:Enabled = false`
+- **THEN** the reloaded `AlertOptions.Enabled` SHALL be `false`
 - **AND** `GetConfig` SHALL return `alerts.enabled = false`
 
 ### Requirement: Config mutations trigger IOptionsMonitor change notification
-After persisting, `IConfigurationRoot.Reload()` SHALL be called to trigger `IOptionsMonitor<NjordOptions>.OnChange`, propagating the new config to all subscribers including `StreamConfig` and actor-level consumers.
+After persisting, `IConfigurationRoot.Reload()` SHALL be called. `ConfigManager`, the only `IOptionsMonitor<T>.OnChange` subscriber, SHALL pick up the change, forward hot changes to the running actors as typed messages (`AnalysisSettingsChanged`, `PollingChanged`) and push a new snapshot to the `StreamConfig` subscribers.
 
 #### Scenario: StreamConfig receives update after mutation
 - **WHEN** a config mutation persists and reloads
@@ -46,3 +44,4 @@ Config mutations SHALL be serialized via a `SemaphoreSlim(1)` to prevent concurr
 #### Scenario: Two concurrent mutations are ordered
 - **WHEN** two clients call mutation RPCs simultaneously
 - **THEN** the mutations SHALL be applied sequentially and each response SHALL reflect the state after its own mutation
+

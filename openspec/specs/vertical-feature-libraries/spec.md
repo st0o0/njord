@@ -1,7 +1,9 @@
 # vertical-feature-libraries Specification
 
 ## Purpose
-TBD - created by archiving change restructure-enrichment-pipeline. Update Purpose after archive.
+
+Each analysis feature (alerts, derived values, trends, indices) is a self-contained library with its own analyzer, a DI extension method and clean type names, orchestrated by the `ForecastPipeline`.
+
 ## Requirements
 ### Requirement: Each analysis feature is a self-contained library
 

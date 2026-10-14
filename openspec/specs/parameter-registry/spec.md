@@ -3,9 +3,7 @@
 ## Purpose
 
 Static catalog of all known Open-Meteo forecast variables with metadata (API name, unit, HA device class, JSON key, group, granularity, value type) and group-based configuration resolution logic.
-
 ## Requirements
-
 ### Requirement: A static registry catalogs all known Open-Meteo forecast variables
 The system SHALL maintain a static registry of all known Open-Meteo `/v1/forecast`
 hourly and daily variables. Each entry SHALL carry: the API name (e.g.
@@ -68,11 +66,19 @@ The registry SHALL resolve the active parameter set from a configuration of grou
 - **WHEN** configuration excludes all parameters from all enabled groups
 - **THEN** resolution fails with a validation error
 
-### Requirement: All parameters have typed static properties
-`ParameterRegistry` SHALL expose typed static properties for every parameter
-used in production code. No production code SHALL call `GetByApiName` with a
-string literal — string-based lookup is reserved for deserialization paths
-where the name comes from external data.
+### Requirement: Parameters support a value-type discriminator
+Each registry entry SHALL declare whether its values are numeric (`double?`) or time-string (`string?`). The discriminator SHALL be used by the domain and egress layers to handle sunrise/sunset and similar ISO-time daily values.
+
+#### Scenario: Sunrise is a time-string parameter
+- **WHEN** the registry entry for `sunrise` is queried
+- **THEN** it reports value type `TimeString`
+
+#### Scenario: Temperature is numeric
+- **WHEN** the registry entry for `temperature_2m` is queried
+- **THEN** it reports value type `Numeric`
+
+### Requirement: Production code uses typed parameter properties
+`ParameterRegistry` SHALL expose typed static properties for every parameter used in production code. No production code SHALL call `GetByApiName` with a string literal — string-based lookup is reserved for deserialization and configuration resolution paths where the name comes from external data.
 
 #### Scenario: Hourly parameters have typed properties
 - **GIVEN** the hourly parameters `rain`, `soil_temperature_0cm`, `visibility`, `wind_direction_10m`
@@ -84,23 +90,13 @@ where the name comes from external data.
 - **WHEN** accessed via `ParameterRegistry`
 - **THEN** typed properties exist for each and return the correct `ParameterDef`
 
-#### Scenario: AlertEvaluator uses typed properties
-- **GIVEN** `AlertEvaluator` checking rain thresholds
+#### Scenario: Alert rules use typed properties
+- **GIVEN** `IceRule` checking rain
 - **WHEN** it accesses the rain parameter
 - **THEN** it uses `ParameterRegistry.Rain` (not `GetByApiName("rain")`)
 
-#### Scenario: WeatherGrpcService uses typed properties
-- **GIVEN** `WeatherGrpcService` building a response with daily forecast data
+#### Scenario: gRPC forecast mapping uses typed properties
+- **GIVEN** `ForecastProtoMappings` building a response with daily forecast data
 - **WHEN** it accesses `precipitation_sum`
 - **THEN** it uses `ParameterRegistry.PrecipitationSum` (not `GetByApiName("precipitation_sum")`)
 
-### Requirement: Parameters support a value-type discriminator
-Each registry entry SHALL declare whether its values are numeric (`double?`) or time-string (`string?`). The discriminator SHALL be used by the domain and egress layers to handle sunrise/sunset and similar ISO-time daily values.
-
-#### Scenario: Sunrise is a time-string parameter
-- **WHEN** the registry entry for `sunrise` is queried
-- **THEN** it reports value type `TimeString`
-
-#### Scenario: Temperature is numeric
-- **WHEN** the registry entry for `temperature_2m` is queried
-- **THEN** it reports value type `Numeric`

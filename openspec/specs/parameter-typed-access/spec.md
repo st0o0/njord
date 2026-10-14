@@ -3,9 +3,7 @@
 ## Purpose
 
 Typed parameter access layer: static `ParameterRegistry` properties, O(1) lookup on `ResolvedParameterSet`, time-window filtering and aggregation on `ForecastSeries`, and elimination of string-based parameter lookups from domain Compute methods.
-
 ## Requirements
-
 ### Requirement: ParameterRegistry provides static typed properties
 The `ParameterRegistry` SHALL expose static `ParameterDef` properties for
 each parameter referenced in domain Compute methods. These properties SHALL
@@ -94,49 +92,28 @@ of non-null `double` values for the parameter within the time window.
   having values 5.0, null, 7.0
 - **THEN** it SHALL return `[5.0, 7.0]`
 
-### Requirement: No string-based parameter lookups in domain Compute methods
-All domain Compute methods (`IndexResult.Compute`,
-`DerivedResult.Compute`, `TrendResult.Compute`, `ConsensusResult.Compute`,
-`HistoryResult.Compute`, `AlertEvaluator.EvaluateAll`) SHALL resolve
-parameters via `ParameterRegistry` static properties and
-`ResolvedParameterSet.Get(ParameterDef)`. No Compute method SHALL contain
-`FirstOrDefault(p => p.ApiName == ...)` or string-literal parameter names.
-
-#### Scenario: IndexResult uses typed access
-- **WHEN** `IndexResult.Compute` resolves the temperature parameter
-- **THEN** it SHALL use `parameters.Get(ParameterRegistry.Temperature2m)`,
-  not `parameters.Hourly.FirstOrDefault(p => p.ApiName == "temperature_2m")`
-
-#### Scenario: AlertEvaluator uses typed access
-- **WHEN** `AlertEvaluator` resolves the temperature parameter
-- **THEN** it SHALL use `ParameterRegistry.Temperature2m`, not
-  `ParameterRegistry.GetByApiName("temperature_2m")`
-
-### Requirement: TrendResult uses ParameterDef keys, not strings
-The `TrendResult` SHALL define trend parameters as `ParameterDef[]` (using
-`ParameterRegistry` static properties) and thresholds as
-`Dictionary<ParameterDef, double>`. It SHALL NOT use `string[]` or
-`Dictionary<string, double>` for parameter identification.
-
-#### Scenario: TrendParams uses typed array
-- **WHEN** `TrendResult` defines its tracked parameters
-- **THEN** it SHALL use `ParameterDef[]` referencing `ParameterRegistry`
-  properties
-
-### Requirement: HistoryAnalyzer uses ParameterDef, not strings
-The `HistoryAnalyzer` API SHALL accept `ParameterDef` parameters instead of
-`string paramApiName`. `ForecastHistory` SHALL store data keyed by
-`ParameterDef` instead of `string`.
-
-#### Scenario: ComputeBias takes ParameterDef
-- **WHEN** `HistoryAnalyzer.ComputeBias` is called
-- **THEN** its parameter type SHALL be `ParameterDef`, not `string`
-
 ### Requirement: Mean24h is not duplicated
-There SHALL be exactly one implementation of 24-hour mean computation.
-`IndexResult` SHALL use `ForecastSeries.Mean` or a shared
-helper instead of containing its own private `Mean24h` method.
+There SHALL be no private 24-hour mean helper in the analysis libraries. Index scoring SHALL use the period means computed once by `DaySlicer`, and series means SHALL use `ForecastSeries.Mean` or the consensus query vocabulary.
 
 #### Scenario: No private Mean24h methods
-- **WHEN** `IndexResult.cs` is inspected
-- **THEN** it SHALL NOT contain a private `Mean24h` method
+- **WHEN** the index library (`src/Njord.Indices`) is inspected
+- **THEN** it contains no private `Mean24h` method
+
+### Requirement: No string-based parameter lookups in analysis code
+All analysis code — `ConsensusBuilder`, the alert rules, the index scores and `DaySlicer`, `DerivedAnalyzer` and `TrendAnalyzer` — SHALL resolve parameters via `ParameterRegistry` static properties (and `ResolvedParameterSet.Get(ParameterDef)` where the active set matters). No analysis code SHALL contain `FirstOrDefault(p => p.ApiName == ...)` or string-literal parameter names.
+
+#### Scenario: Index slicing uses typed access
+- **WHEN** `DaySlicer` resolves the `is_day` parameter
+- **THEN** it uses `ParameterRegistry.IsDay`, not a string literal
+
+#### Scenario: Alert rules use typed access
+- **WHEN** `FrostRule` resolves the temperature parameter
+- **THEN** it uses `ParameterRegistry.Temperature2m`, not `ParameterRegistry.GetByApiName("temperature_2m")`
+
+### Requirement: Trend analysis uses ParameterDef keys, not strings
+`TrendAnalyzer` SHALL define its tracked parameters as a `ParameterDef[]` and its per-parameter trend thresholds (`TrendThresholds`) as a dictionary keyed by `ParameterDef`, both using `ParameterRegistry` static properties. It SHALL NOT use `string[]` or `Dictionary<string, double>` for parameter identification.
+
+#### Scenario: TrendParams uses typed array
+- **WHEN** `TrendAnalyzer` defines its tracked parameters
+- **THEN** it uses a `ParameterDef[]` referencing `ParameterRegistry` properties
+

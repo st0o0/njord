@@ -3,9 +3,7 @@
 ## Purpose
 
 Presents njord as a complete system (service + Home Assistant integration) rather than service-only documentation, with dedicated Home Assistant, Development, and Reference sections.
-
 ## Requirements
-
 ### Requirement: Landing page presents full njord concept
 
 The `docs/index.md` hero and features section SHALL present njord as a complete system: a .NET weather service plus a native Home Assistant integration. It SHALL mention that the integration lives in a separate repo (`ha-njord`).
@@ -26,7 +24,7 @@ The sidebar SHALL include a "Home Assistant" group with pages for installation, 
 
 ### Requirement: Entity reference page
 
-A `docs/home-assistant/entities.md` page SHALL document all entity platforms (weather, sensor, binary_sensor, event, button), the enrichment-based sensors (alerts, indices, trends, derived, history), and the server diagnostic sensors.
+A `docs/home-assistant/entities.md` page SHALL document all entity platforms (weather, sensor, binary_sensor, event, button), the analysis-based sensors (alerts, indices, trends, derived), and the server diagnostic sensors.
 
 #### Scenario: Entity page lists all platforms
 
@@ -68,3 +66,4 @@ The architecture page SHALL describe data flow from Open-Meteo through the servi
 
 - **WHEN** a visitor reads the architecture page
 - **THEN** the diagram and text show the complete path: API → service → gRPC → HA integration → HA entities
+

@@ -1,17 +1,16 @@
 # persistence-record-hygiene Specification
 
 ## Purpose
-TBD - created by archiving change persistence-messages-cleanup. Update Purpose after archive.
+
+Conventions for the persistence records in `Njord.Persistence`: sealed immutable positional records, no dead versioning infrastructure, one file per type in domain subdirectories.
+
 ## Requirements
 ### Requirement: Persistence DTOs are sealed immutable records
-All persistence DTOs in `Njord.Persistence` SHALL be `sealed record` types with
-`{ get; init; }` properties (for Newtonsoft.Json deserialization compatibility), not
-mutable classes with public setters.
+All persistence records in `Njord.Persistence` SHALL be `sealed` positional records (values set only through the constructor, which Newtonsoft.Json uses for deserialization), not mutable classes with public setters.
 
 #### Scenario: DTO immutability after deserialization
 - **WHEN** a persistence DTO is deserialized from the journal or a snapshot
-- **THEN** its properties cannot be modified after construction — no public setter allows
-  accidental post-deserialization mutation
+- **THEN** its properties cannot be modified after construction — no public setter allows accidental post-deserialization mutation
 
 ### Requirement: No dead versioning infrastructure
 Persistence DTOs SHALL NOT carry a `Version` property unless recovery code in the
@@ -25,11 +24,9 @@ code.
   mapping contains an explicit `switch`/`if` on the version value
 
 ### Requirement: File-per-type and domain subdirectories
-Each root-level persistence DTO SHALL live in its own file. Files SHALL be organized into
-domain subdirectories (e.g. `Pipeline/`, `Enrichment/`, `Grpc/`).
+Each root-level persistence record SHALL live in its own file named after it; a record that only exists as an element of another (such as `PersistedModelPollEntry` inside `PersistedPollSchedulerState`) MAY share that file. Files SHALL be organized into domain subdirectories under `Events/` (`Events/Budget/`, `Events/Pipeline/`).
 
 #### Scenario: DTO discoverability
-- **WHEN** looking for a specific DTO (e.g. `BudgetTrackerSnapshotDto`)
-- **THEN** it lives in a file named `BudgetTrackerSnapshotDto.cs` inside a
-  domain-specific subdirectory, not in a multi-type `BudgetTrackerDtos.cs`
+- **WHEN** looking for a specific record (e.g. `PersistedBudgetTrackerState`)
+- **THEN** it lives in `Events/Budget/PersistedBudgetTrackerState.cs`, not in a multi-type file
 

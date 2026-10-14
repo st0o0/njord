@@ -3,9 +3,7 @@
 ## Purpose
 
 Shared TestKit configuration and conventions ensuring all actor and stream tests are 100% deterministic — no wall-clock dependencies, timing races, or non-reproducible timestamps.
-
 ## Requirements
-
 ### Requirement: TestKit timefactor configuration
 All Akka TestKit-derived test classes SHALL configure `akka.test.timefactor = 3` so that all default TestKit timeouts (ExpectMsg, FishForMessage, Within, AwaitCondition) scale automatically for slower CI environments.
 
@@ -21,7 +19,7 @@ All Akka TestKit-derived test classes SHALL configure `akka.test.timefactor = 3`
 All test code SHALL use `Microsoft.Extensions.Time.Testing.FakeTimeProvider` with a fixed seed timestamp instead of `TimeProvider.System`. The standard fixed epoch SHALL be `new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero)`.
 
 #### Scenario: Token bucket refill test uses FakeTimeProvider
-- **WHEN** a test needs to verify time-based token refill in `WeightedBudgetGate`
+- **WHEN** a test needs to verify time-based token refill in `GatewayBudgetGate`
 - **THEN** it SHALL use `FakeTimeProvider.Advance()` instead of `Thread.Sleep`
 
 #### Scenario: No custom FakeTimeProvider shims
@@ -56,3 +54,4 @@ Tests SHALL NOT use `Task.Delay` or `Task.WhenAny` with real-time delays for ass
 #### Scenario: No sub-500ms ExpectNoMsgAsync
 - **WHEN** a test asserts that no message arrives within a time window
 - **THEN** the window SHALL be at least 500ms (before timefactor scaling)
+

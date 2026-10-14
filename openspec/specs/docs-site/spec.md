@@ -3,18 +3,16 @@
 ## Purpose
 
 A VitePress static documentation site at njord.st0o0.net providing getting-started guides, configuration reference, model catalog, MQTT topic reference, and Home Assistant integration guide.
-
 ## Requirements
-
 ### Requirement: Site is built with VitePress and served as static files
-The documentation site SHALL be a VitePress project at `docs/` in the repo root.
+The documentation site SHALL be a VitePress project at `docs/` (pnpm, `docs/package.json`).
 It SHALL build to static HTML/CSS/JS with no server-side runtime. It SHALL be
 deployable to GitHub Pages at `njord.st0o0.net`. The VitePress config SHALL use
 `withLikeC4()` from `@leberkas-org/vitepress-likec4` to wrap the config, and
 SHALL set `themeConfig.logo` to `/logo.svg`.
 
 #### Scenario: VitePress builds successfully
-- **WHEN** `npm run docs:build` is executed in the repo root (or `docs/`)
+- **WHEN** `pnpm build` is executed in `docs/`
 - **THEN** a `docs/.vitepress/dist/` directory is produced with static HTML files
 
 #### Scenario: Site is accessible at custom domain
@@ -33,21 +31,21 @@ The site SHALL include a `/getting-started/` page explaining how to run njord vi
 - **THEN** they find a copy-pasteable minimal `appsettings.json` and `docker run` command
 
 ### Requirement: Configuration reference documents all options
-The site SHALL include a `/configuration/` section with sub-pages for each configuration area: locations, models, horizons, parameters, enrichment (with each feature), MQTT, persistence, and budget. Each option SHALL list its type, default value, and validation constraints.
+The site SHALL include a `/configuration/` section with sub-pages for each configuration area: locations, models, horizons, parameters, analysis features (enrichment), MQTT, persistence, and budget. Each option SHALL list its type, default value, and validation constraints, and SHALL match an existing options property.
 
 #### Scenario: Enrichment feature documentation
 - **WHEN** a user navigates to the enrichment configuration page
-- **THEN** each feature (consensus, alerts, derived, trends, indices, history) is documented with its options and defaults
+- **THEN** each feature (consensus, alerts, derived, trends, indices) is documented with its options and defaults, and no removed feature (such as history) is listed
 
 ### Requirement: Model catalog lists all known models
 The site SHALL include a `/models/` page listing all models from `ModelCoverageRegistry` with: model ID, coverage tier, region description, geographic bounds, maximum forecast hours, and temporal resolution notes.
 
 #### Scenario: Model detail shows coverage and horizon
 - **WHEN** a user looks up `icon_d2` in the model catalog
-- **THEN** they see: Regional, DE/CH/AT, bounds 43-57°N 1-18°E, max 48h, 1h resolution
+- **THEN** they see: Regional, DE/CH/AT, bounds 43-57°N 1-18°E, max 60h, 1h resolution
 
 ### Requirement: MQTT reference documents topic scheme and payloads
-The site SHALL include an `/mqtt-reference/` page documenting the topic structure (`{baseTopic}/{location}/{model}/{horizon}`), payload JSON format, discovery config structure, and availability topic.
+The site SHALL include an `/mqtt-reference/` page documenting the topic structure (`{baseTopic}/{location}/{model}/{horizon}` and `{baseTopic}/{location}/{feature}[/{sub}]`), the state payload JSON format, and the availability topic. It SHALL NOT document MQTT Discovery payloads, because njord publishes none.
 
 #### Scenario: Topic scheme documented
 - **WHEN** a user reads the MQTT reference
@@ -59,13 +57,6 @@ The site SHALL include a `/home-assistant/` page covering: how njord entities ap
 #### Scenario: Recorder exclude documented
 - **WHEN** a user reads the HA guide
 - **THEN** they find a copy-pasteable `recorder:` YAML snippet
-
-### Requirement: GitHub Actions deploys the site
-A GitHub Actions workflow SHALL build the VitePress site on push to main and deploy to GitHub Pages. The workflow SHALL be at `.github/workflows/docs.yml`.
-
-#### Scenario: Push triggers deployment
-- **WHEN** a commit is pushed to main that changes files in `docs/`
-- **THEN** the GitHub Actions workflow builds and deploys the updated site
 
 ### Requirement: Architecture page in sidebar navigation
 The VitePress sidebar SHALL include an "Architecture" link under the "Guide"
@@ -91,3 +82,11 @@ brand colors with the njord blue palette.
 - **WHEN** the docs site is loaded
 - **THEN** all VitePress brand-colored elements (links, buttons, accents) use
   blue tones instead of default purple
+
+### Requirement: Releases deploy the documentation site
+The `docs` job of `.github/workflows/release.yml` SHALL build and deploy the VitePress site to GitHub Pages through the shared `st0o0/github-workflows` `docs.yml` workflow whenever release-please creates a release.
+
+#### Scenario: Release triggers deployment
+- **WHEN** a push to main makes release-please create a release
+- **THEN** the `docs` job builds and deploys the site to GitHub Pages
+

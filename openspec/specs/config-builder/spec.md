@@ -3,9 +3,7 @@
 ## Purpose
 
 An interactive Vue-based configuration builder embedded in the VitePress documentation site that lets users visually assemble their njord configuration, see live budget impact, and export the result as appsettings.json or environment variables. Supports importing existing configs.
-
 ## Requirements
-
 ### Requirement: Location picker allows adding and removing locations
 The builder SHALL provide a form to add locations with name, latitude, and longitude. Users SHALL be able to add per-location models (merged with global). Locations SHALL be removable. At least one location is required.
 
@@ -47,7 +45,7 @@ The builder SHALL allow selecting parameter groups (Weather, Solar, Soil) and sh
 - **THEN** the variable count changes from 30 to 39 and weight from 3 to 4
 
 ### Requirement: Live budget calculator validates configuration
-The builder SHALL compute and display projected monthly API usage using the same formula as `NjordOptionsValidator`: `totalModelsPerCycle × cyclesPerMonth × apiCallWeight`. It SHALL show the projection against the budget (default 300k or override), display a percentage bar, and warn when exceeding the 80% guard.
+The builder SHALL compute and display projected monthly API usage using the same formula as `BudgetCalculator` (applied at startup by `PollingOptionsValidator`): `totalModelsPerCycle × cyclesPerMonth × apiCallWeight`. It SHALL show the projection against the budget (default 300k or override), display a percentage bar, and warn when exceeding the 80% guard.
 
 #### Scenario: Budget bar updates on model change
 - **WHEN** a user adds a new model to all locations
@@ -105,11 +103,11 @@ The builder SHALL accept pasted docker-compose YAML containing an `environment:`
 - **THEN** only `Njord__ForecastDays=4` is imported; `TZ` is ignored
 
 ### Requirement: Enrichment toggles with per-feature settings
-The builder SHALL show toggles for each enrichment feature (consensus, alerts, derived, trends, indices, history). When expanded, each feature SHALL show its configurable settings with defaults pre-filled.
+The builder SHALL show toggles for each enrichment feature (consensus, alerts, derived, trends, indices). When expanded, each feature SHALL show its configurable settings with defaults pre-filled.
 
 #### Scenario: Enrichment feature toggles
 - **WHEN** a user opens the enrichment section and expands a feature
-- **THEN** toggles exist for consensus, alerts, derived, trends, indices and history, and the expanded feature shows its configurable settings pre-filled with defaults
+- **THEN** toggles exist for consensus, alerts, derived, trends and indices (no history toggle), and the expanded feature shows its configurable settings pre-filled with defaults
 
 ### Requirement: Builder state persists in URL hash
 The builder SHALL encode its current state in the URL fragment (hash) so that configurations can be shared via link. Loading a URL with a hash SHALL restore the builder state.
@@ -117,3 +115,4 @@ The builder SHALL encode its current state in the URL fragment (hash) so that co
 #### Scenario: Shareable link
 - **WHEN** a user configures 2 locations and 3 models
 - **THEN** the URL hash updates and sharing that URL restores the same configuration
+

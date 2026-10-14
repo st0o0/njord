@@ -1,14 +1,11 @@
 ## Purpose
 
 Defines the FunkArr naming convention for actor responses: query responses drop the Query prefix, and command response variants match the command name.
-
 ## Requirements
-
 ### Requirement: Query responses drop the Query prefix
-
 Query response types SHALL drop the `Query` prefix per FunkArr convention.
 The response base is `<Noun>Response`, the success variant is `<Noun>Result`,
-the failure variant is `<Noun>Failed`.
+and the non-success variant is `<Noun>Failed` or, for lookups that can find no data, `<Noun>NotAvailable`.
 
 #### Scenario: Budget usage query
 - **WHEN** `QueryBudgetUsage` is sent
@@ -42,3 +39,4 @@ Command response variants SHALL be named `<VerbNoun>Completed` and
 #### Scenario: RequestPipelineOutput responses
 - **WHEN** `RequestPipelineOutput` command completes
 - **THEN** the success type SHALL be `RequestPipelineOutputCompleted` and failure `RequestPipelineOutputFailed`
+

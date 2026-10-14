@@ -3,9 +3,7 @@
 ## Purpose
 
 Shared proto types for the v2 gRPC API — LocationInfo, ModelInfo, CoverageTier, forecast points with Timestamp fields, and all enrichment payload messages.
-
 ## Requirements
-
 ### Requirement: common.proto defines shared types in njord.v2 package
 `protos/njord/v2/common.proto` SHALL define all shared message types used across services. The package SHALL be `njord.v2` with `csharp_namespace = "Njord.Grpc.V2"`. It SHALL import `google/protobuf/timestamp.proto`.
 
@@ -92,7 +90,7 @@ Shared proto types for the v2 gRPC API — LocationInfo, ModelInfo, CoverageTier
 - **THEN** `VpdInfo` SHALL have `kpa = 1.27` and `category = "high"`
 
 ### Requirement: Enrichment payload messages
-`common.proto` SHALL define all enrichment payload messages: `AlertUpdate`, `Alert`, `AlertType`, `AlertSeverity`, `IndexUpdate`, `DayScoreSet`, `ScoreEnvelope`, `FrostInfo`, `VpdInfo`, `ParameterTrend`, `TrendUpdate`, `HorizonDerived`, `ScalarDerived`, `DerivedUpdate`, `ModelMetrics`, `HistoryUpdate`, `HorizonConsensus`, `ParameterConsensus`, `ConsensusUpdate`.
+`common.proto` SHALL define all enrichment payload messages: `AlertUpdate`, `Alert`, `AlertType`, `AlertSeverity`, `IndexUpdate`, `DayScoreSet`, `ScoreEnvelope`, `FrostInfo`, `VpdInfo`, `ParameterTrend`, `TrendUpdate`, `HorizonDerived`, `ScalarDerived`, `DerivedUpdate`, `HorizonConsensus`, `ParameterConsensus`, `ConsensusUpdate`.
 
 `IndexUpdate` SHALL contain: `repeated DayScoreSet days`, `optional FrostInfo frost`, `optional VpdInfo vpd`. It SHALL NOT contain flat score fields (`laundry`, `outdoor`, etc.), `ventilation`, `hdd`, `cdd`, `frost_hours`, `frost_confidence`, `vpd_kpa`, `vpd_category`, or any `reserved` statements.
 
@@ -110,3 +108,4 @@ Shared proto types for the v2 gRPC API — LocationInfo, ModelInfo, CoverageTier
 
 - **WHEN** `common.proto` is inspected
 - **THEN** it SHALL contain zero `reserved` statements and zero energy-removal comments
+

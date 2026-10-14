@@ -5,7 +5,7 @@
 Pure statistical computations over multi-model forecast data: median, trimmed mean, spread, IQR, agreement score, outlier identification, confidence interval, and model availability matrix. All functions are static and side-effect-free — input in, result out.
 ## Requirements
 ### Requirement: Median consensus over non-null model values
-`ConsensusComputer.ComputeMedian` SHALL accept an `IReadOnlyList<double?>` and return the median of the non-null values. For an even count, the median SHALL be the average of the two middle values. If fewer than 1 non-null value exists, the result SHALL be `null`.
+`ConsensusStatistics.ComputeMedian` SHALL accept an `IReadOnlyList<double?>` and return the median of the non-null values. For an even count, the median SHALL be the average of the two middle values. If fewer than 1 non-null value exists, the result SHALL be `null`.
 
 #### Scenario: Odd number of values
 - **WHEN** values are [20.0, 22.0, 21.0, null, 23.0, 19.0]
@@ -24,7 +24,7 @@ Pure statistical computations over multi-model forecast data: median, trimmed me
 - **THEN** the median is 42.0
 
 ### Requirement: Trimmed mean over non-null model values
-`ConsensusComputer.ComputeTrimmedMean` SHALL accept an `IReadOnlyList<double?>` and a `trimPercent` (0.0–0.5). It SHALL sort non-null values, remove the lowest and highest `trimPercent` fraction (rounding down the count to trim), and return the arithmetic mean of the remaining values. If fewer than 3 non-null values exist, it SHALL fall back to the simple mean.
+`ConsensusStatistics.ComputeTrimmedMean` SHALL accept an `IReadOnlyList<double?>` and a `trimPercent` (0.0–0.5). It SHALL sort non-null values, remove the lowest and highest `trimPercent` fraction (rounding down the count to trim), and return the arithmetic mean of the remaining values. If fewer than 3 non-null values exist, it SHALL fall back to the simple mean.
 
 #### Scenario: 10% trim on 8 values
 - **WHEN** 8 non-null values are provided with `trimPercent` = 0.1
@@ -39,7 +39,7 @@ Pure statistical computations over multi-model forecast data: median, trimmed me
 - **THEN** the result is 21.0 regardless of trimPercent
 
 ### Requirement: Spread across model values
-`ConsensusComputer.ComputeSpread` SHALL return the difference between the maximum and minimum non-null values. If fewer than 2 non-null values exist, the result SHALL be `null`.
+`ConsensusStatistics.ComputeSpread` SHALL return the difference between the maximum and minimum non-null values. If fewer than 2 non-null values exist, the result SHALL be `null`.
 
 #### Scenario: Normal spread
 - **WHEN** values are [18.0, 22.0, 20.0, null, 25.0]
@@ -50,7 +50,7 @@ Pure statistical computations over multi-model forecast data: median, trimmed me
 - **THEN** the spread is null
 
 ### Requirement: Interquartile range
-`ConsensusComputer.ComputeIqr` SHALL return P75 − P25 of the non-null values using linear interpolation. If fewer than 4 non-null values exist, the result SHALL be `null`.
+`ConsensusStatistics.ComputeIqr` SHALL return P75 − P25 of the non-null values using linear interpolation. If fewer than 4 non-null values exist, the result SHALL be `null`.
 
 #### Scenario: 8 values
 - **WHEN** 8 sorted non-null values are [18, 19, 20, 21, 22, 23, 24, 25]
@@ -61,7 +61,7 @@ Pure statistical computations over multi-model forecast data: median, trimmed me
 - **THEN** the IQR is null
 
 ### Requirement: Agreement score
-`ConsensusComputer.ComputeAgreement` SHALL accept values, a reference value (typically the median), and a tolerance. It SHALL return the fraction (0.0–1.0) of non-null values within `tolerance` of the reference. If no non-null values exist, the result SHALL be `null`.
+`ConsensusStatistics.ComputeAgreement` SHALL accept values, a reference value (typically the median), and a tolerance. It SHALL return the fraction (0.0–1.0) of non-null values within `tolerance` of the reference. If no non-null values exist, the result SHALL be `null`.
 
 #### Scenario: High agreement
 - **WHEN** values are [20.0, 20.5, 19.5, 20.2], median is 20.1, tolerance is 1.0
@@ -72,7 +72,7 @@ Pure statistical computations over multi-model forecast data: median, trimmed me
 - **THEN** agreement is 0.5 (20.0 and 25.0 are within ±3.0; 19.0 and 30.0 are not)
 
 ### Requirement: Outlier identification
-`ConsensusComputer.IdentifyOutlier` SHALL accept a list of (model, value) pairs and a reference value. It SHALL return the model with the largest absolute deviation from the reference, along with the deviation value. If no values exist, the result SHALL be `null`.
+`ConsensusStatistics.IdentifyOutlier` SHALL accept a list of (model, value) pairs and a reference value. It SHALL return the model with the largest absolute deviation from the reference, along with the deviation value. If no values exist, the result SHALL be `null`.
 
 #### Scenario: Clear outlier
 - **WHEN** models are [(icon_d2, 20.0), (ecmwf, 21.0), (gfs, 35.0)] and reference is 21.0
@@ -83,7 +83,7 @@ Pure statistical computations over multi-model forecast data: median, trimmed me
 - **THEN** the outlier has deviation 0.0
 
 ### Requirement: Confidence interval via percentiles
-`ConsensusComputer.ComputeConfidenceInterval` SHALL accept values and two percentile bounds (e.g. 10, 90). It SHALL return the values at those percentiles using linear interpolation. If fewer than 2 non-null values exist, the result SHALL be `null`.
+`ConsensusStatistics.ComputeConfidenceInterval` SHALL accept values and two percentile bounds (e.g. 10, 90). It SHALL return the values at those percentiles using linear interpolation. If fewer than 2 non-null values exist, the result SHALL be `null`.
 
 #### Scenario: P10/P90 on 8 values
 - **WHEN** 8 sorted non-null values span [18..25] and percentiles are (10, 90)
@@ -94,7 +94,7 @@ Pure statistical computations over multi-model forecast data: median, trimmed me
 - **THEN** the confidence interval is null
 
 ### Requirement: Model availability matrix
-`ConsensusComputer.BuildAvailabilityMatrix` SHALL accept a `ModelSnapshot` and a target `DateTimeOffset`. For each model in the snapshot, it SHALL report whether the model's forecast series contains a non-null value at or near that time point. The result SHALL be a dictionary of `WeatherModel → bool`.
+`ConsensusStatistics.BuildAvailabilityMatrix` SHALL accept a `ModelSnapshot` and a target `DateTimeOffset`. For each model in the snapshot, it SHALL report whether the model's forecast series contains a non-null value at or near that time point. The result SHALL be a dictionary of `WeatherModel → bool`.
 
 #### Scenario: Model with data at horizon
 - **WHEN** icon_d2's forecast has a point at +3h with non-null temperature
@@ -139,22 +139,22 @@ Pure statistical computations over multi-model forecast data: median, trimmed me
 - **THEN** the implementation SHALL build a single dictionary per forecast and perform O(1) lookups per horizon (not a linear scan per horizon)
 
 ### Requirement: ConsensusResult holds both hourly and daily parameter consensus
-`ConsensusResult` SHALL be a record with two collections: `Parameters` (hourly, existing) and `DailyParameters` (daily, new). Both are `IReadOnlyList<ParameterConsensus>`. The `Compute` static method SHALL accept the full `ResolvedParameterSet` and iterate both `.Hourly` and `.Daily` lists, producing separate collections in the result. The hourly computation SHALL use exact `ValidAt` lookup (not fuzzy ±30-minute tolerance) after computing the floor-anchored target time via `TimeAnchor.AtHorizon`.
+`ConsensusBuilder.Create(snapshot, location, settings)` SHALL iterate both the `.Hourly` and the `.Daily` lists of the `ResolvedParameterSet` and produce a `ConsensusSnapshot` with separate `Hourly` and `Daily` parameter consensus (filtered by `MinQuorum`). `ConsensusResult` SHALL be a record with two collections, `Parameters` (hourly) and `DailyParameters` (daily), both `IReadOnlyList<ParameterConsensus>`, plus the optional `ComputedAt`; it is built from a snapshot for output mapping. The hourly computation SHALL use exact `ValidAt` lookup (not fuzzy ±30-minute tolerance) after computing the floor-anchored target time via `TimeAnchor.AtHorizon`.
 
 #### Scenario: Compute produces both hourly and daily results
-- **WHEN** `ConsensusResult.Compute` is called with a ResolvedParameterSet containing 30 hourly and 16 daily parameters
-- **THEN** the result contains up to 30 entries in `Parameters` and up to 16 entries in `DailyParameters`
+- **WHEN** `ConsensusBuilder.Create` is called with a ResolvedParameterSet containing 30 hourly and 16 daily parameters
+- **THEN** the snapshot contains up to 30 entries in `Hourly.Parameters` and up to 16 entries in `Daily.Parameters`
 
 #### Scenario: Empty daily parameter set
 - **WHEN** the ResolvedParameterSet has an empty `Daily` list
-- **THEN** `DailyParameters` is an empty list (no error)
+- **THEN** `Daily.Parameters` is an empty list (no error)
 
 #### Scenario: Hourly point lookup uses exact match
 - **WHEN** computing hourly consensus for temperature_2m at h0 with tick at 14:25 UTC
 - **THEN** the implementation SHALL look for data points with ValidAt = 14:00 UTC (floor-anchored), not 15:00 UTC (ceiling), and SHALL use an exact dictionary lookup (not ±30-minute fuzzy search)
 
 ### Requirement: Daily parameter consensus uses DailyForecastSeries for value lookup
-For daily parameters, the Compute method SHALL look up values in `ModelForecast.Daily` (the `DailyForecastSeries`) by matching the `DateOnly` corresponding to the day-horizon offset. It SHALL NOT attempt to look up daily parameters in the hourly series.
+For daily parameters, `ConsensusBuilder` SHALL look up values in `Forecast.Daily` (the `DailyForecastSeries`) by matching the `DateOnly` corresponding to the day-horizon offset. It SHALL NOT attempt to look up daily parameters in the hourly series.
 
 #### Scenario: Daily value lookup
 - **WHEN** computing consensus for `temperature_2m_max` at day-horizon d1 (= 2026-07-20)
@@ -165,7 +165,7 @@ For daily parameters, the Compute method SHALL look up values in `ModelForecast.
 - **THEN** that model contributes null for that (parameter, day-horizon) and is excluded from AvailableModels
 
 ### Requirement: ConsensusResult is a pure data record without MQTT serialization
-`ConsensusResult` SHALL be a record in `Njord.Domain.Analysis` holding location, per-horizon consensus metrics (median, trimmed mean, spread, IQR, agreement, outliers, confidence interval, model availability). It SHALL NOT contain `ToMqttMessages()` or reference `MqttMessage`, `TopicScheme`, or any type from `Njord.Mqtt`. MQTT serialization of `ConsensusResult` SHALL be the responsibility of `StatePayloadBuilder` in `Njord.Mqtt`.
+`ConsensusResult` SHALL be a record in `Njord.Compute.Consensus` holding the hourly and daily `ParameterConsensus` lists (per-horizon median, trimmed mean, spread, IQR, agreement, outliers, confidence interval, model availability) and the computation time. It SHALL NOT contain `ToMqttMessages()` or reference `MqttMessage`, `TopicScheme`, or any type from `Njord.Mqtt`. MQTT serialization SHALL be the responsibility of `StatePayloadBuilder` in `Njord.Mqtt`.
 
 #### Scenario: ConsensusResult has no MQTT dependency
 - **WHEN** `ConsensusResult` is instantiated
@@ -174,21 +174,6 @@ For daily parameters, the Compute method SHALL look up values in `ModelForecast.
 #### Scenario: MQTT serialization lives in StatePayloadBuilder
 - **WHEN** a `ConsensusResult` needs to be published via MQTT
 - **THEN** `StatePayloadBuilder.FromConsensus(result, baseTopic, location)` produces the `MqttMessage` instances
-
-### Requirement: Consensus topic scheme
-The consensus pseudo-model SHALL use topic pattern `{baseTopic}/{location}/consensus/{horizon}`. The device id SHALL be `njord_{location}_consensus`. Discovery SHALL produce a device payload with the same horizons and parameters as model devices, plus additional diagnostic attributes (spread, agreement, models_used) as sensor attributes on each component.
-
-#### Scenario: Consensus topic
-- **WHEN** baseTopic is "njord", location is "lucerne", horizon is "h3"
-- **THEN** the topic is "njord/lucerne/consensus/h3"
-
-#### Scenario: Consensus device id
-- **WHEN** location is "lucerne"
-- **THEN** the device id is "njord_lucerne_consensus"
-
-#### Scenario: Discovery payload includes diagnostic attributes
-- **WHEN** the consensus discovery payload is built
-- **THEN** each sensor component includes `spread`, `agreement`, and `models_used` as JSON attributes in the value template
 
 ### Requirement: Consensus MQTT payload carries per-parameter model counts
 The consensus MQTT state payload SHALL include a `{parameter_key}_models` integer field for each parameter, indicating how many models contributed a non-null value for that parameter at that horizon. The global `_models_used` field SHALL be removed.
@@ -204,4 +189,15 @@ The consensus MQTT state payload SHALL include a `{parameter_key}_models` intege
 #### Scenario: Global _models_used removed
 - **WHEN** a consensus MQTT payload is published
 - **THEN** the payload SHALL NOT contain a `_models_used` field
+
+### Requirement: Consensus state topics and device id
+The consensus pseudo-model SHALL publish its state on the topic pattern `{baseTopic}/{location}/consensus/{horizon}` (`TopicScheme.EnrichmentSubTopic`), and `TopicScheme.EnrichmentDeviceId` SHALL name the consensus device `njord_{location}_consensus`. No discovery payload is published.
+
+#### Scenario: Consensus topic
+- **WHEN** baseTopic is "njord", location is "lucerne", horizon is "h3"
+- **THEN** the topic is "njord/lucerne/consensus/h3"
+
+#### Scenario: Consensus device id
+- **WHEN** location is "lucerne"
+- **THEN** the device id is "njord_lucerne_consensus"
 

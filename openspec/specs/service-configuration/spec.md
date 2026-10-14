@@ -3,65 +3,7 @@
 ## Purpose
 
 Configuration and startup validation for the service: Open-Meteo free-tier request budget defaults with an optional override, monthly budget projection guards, minimal viable configuration defaults, validated MQTT connection settings, and configurable forecast horizons.
-
 ## Requirements
-
-### Requirement: The host is a WebApplication
-The service SHALL use `WebApplication.CreateBuilder` as its host builder,
-providing Kestrel and the ASP.NET middleware pipeline. DI registrations and
-Akka.NET actor system configuration SHALL be delegated to Servus
-`IServiceSetupContainer` implementations called from `Program.cs`. The
-health-check endpoint at `/healthz` and liveness endpoint at `/alive` SHALL
-be configured in the application setup. Serilog SHALL be configured directly
-in `Program.cs`. There SHALL be no dependency on a separate `ServiceDefaults`
-project.
-
-#### Scenario: Health middleware is registered
-- **WHEN** the service starts
-- **THEN** the middleware pipeline includes the health-check endpoint at
-  `/healthz` and the liveness endpoint at `/alive`
-
-#### Scenario: Actor registration uses WithResolvableActors
-- **WHEN** the service starts
-- **THEN** `PipelineActor`, `SchedulerActor`, and
-  `EnrichmentActor` are registered in the Akka actor system via
-  `WithResolvableActors`, plus MQTT actors when `Mqtt.Enabled` is true
-
-#### Scenario: Serilog is configured without ServiceDefaults
-- **WHEN** the service starts
-- **THEN** Serilog is configured directly in `Program.cs` without referencing
-  a `ServiceDefaults` project
-
-### Requirement: Actors resolve peers via typed extensions
-Actors that need references to other actors SHALL use
-`Context.GetActor<T>()` from Servus.Akka instead of injecting and
-querying `ActorRegistry` directly. The `ActorRegistry` constructor
-parameter SHALL be removed from all actors.
-
-#### Scenario: PipelineActor resolves SchedulerActor
-- **WHEN** `PipelineActor` needs the scheduler actor reference
-- **THEN** it calls `Context.GetActor<SchedulerActor>()`
-
-#### Scenario: MqttEgressActor resolves PipelineActor
-- **WHEN** `MqttEgressActor` needs the pipeline actor reference
-- **THEN** it calls `Context.GetActor<PipelineActor>()`
-
-#### Scenario: EnrichmentActor resolves peers
-- **WHEN** `EnrichmentActor` needs pipeline and egress actor references
-- **THEN** it calls `Context.GetActor<PipelineActor>()` and
-  `Context.GetActor<MqttEgressActor>()`
-
-### Requirement: Child actors use DI-aware creation
-Child actors created by other actors SHALL use
-`Context.ResolveChildActor<T>(name, args)` from Servus.Akka instead of
-`Props.Create(() => new T(...))`, so that DI services are available to the
-child actor.
-
-#### Scenario: ForecastHistoryActor created via ResolveChildActor
-- **WHEN** `EnrichmentActor` creates a `ForecastHistoryActor` for a location
-- **THEN** it uses `Context.ResolveChildActor<ForecastHistoryActor>(name, location)`
-  and the actor receives DI-resolved services plus the location argument
-
 ### Requirement: Request budget defaults to the Open-Meteo free tier
 The system SHALL resolve a request budget of 300,000 requests/month and
 600 requests/minute (Open-Meteo free-tier soft limits) when no explicit
@@ -203,19 +145,8 @@ fetched forecast window (96 h).
 - **WHEN** a horizon of 120 hours is configured
 - **THEN** startup validation fails naming the 96 h fetch window
 
-### Requirement: Persistence options section is part of NjordOptions
-`NjordOptions` SHALL include a `Persistence` property of type `PersistenceOptions` with defaults (`Provider = Sqlite`, `ConnectionString = null`). The existing `PersistencePath` property SHALL remain as the convenience default for SQLite file path.
-
-#### Scenario: Default persistence options
-- **WHEN** no `Persistence` section is configured
-- **THEN** `NjordOptions.Persistence.Provider` is `Sqlite` and `Persistence.ConnectionString` is null
-
-#### Scenario: PersistencePath coexists with Persistence section
-- **WHEN** both `PersistencePath` and `Persistence:Provider` are configured
-- **THEN** both values are available; `PersistencePath` is used as fallback only when provider is `Sqlite` and no explicit `ConnectionString` is set
-
 ### Requirement: Startup validates configuration
-`NjordOptionsValidator` SHALL validate all location entries at startup. Validation SHALL check that each location has a non-empty `Name`, valid `Latitude` (-90 to 90), and valid `Longitude` (-180 to 180). Timezone validation SHALL NOT be performed — the timezone is derived from the API response, not from configuration.
+`NjordOptionsValidator` SHALL validate the forecast scope at startup: at least one location, a non-empty `Name` for every location, at least one non-empty model id, horizons within 1–96 hours, `ForecastDays` within 1–16, resolvable parameter groups and variables, and model coverage per location. Timezone validation SHALL NOT be performed — all timestamps are UTC and `LocationOptions` has no timezone property.
 
 #### Scenario: Valid location without timezone passes validation
 - **WHEN** a location has `Name: "Lucerne"`, `Latitude: 47.05`, `Longitude: 8.31` and no `Timezone` property
@@ -223,10 +154,10 @@ fetched forecast window (96 h).
 
 #### Scenario: Location with leftover Timezone property passes validation
 - **WHEN** a location config still contains a `Timezone` property from a previous configuration format
-- **THEN** validation SHALL succeed — the property is ignored by the binder since it no longer exists on `LocationOptions`
+- **THEN** validation SHALL succeed — the property is ignored by the binder since it does not exist on `LocationOptions`
 
 ### Requirement: Startup validation covers persistence configuration
-The `NjordOptionsValidator` SHALL validate the persistence configuration: `Provider` must be a valid `PersistenceProvider` enum value, and `PostgreSql` provider SHALL require a non-empty `ConnectionString`. Validation failure messages SHALL name the specific problem and suggest corrective action.
+`PersistenceOptionsValidator` SHALL validate the persistence configuration at startup: the `PostgreSql` provider SHALL require a non-empty `ConnectionString`. The failure message SHALL name the problem and the setting to fix.
 
 #### Scenario: Valid SQLite config passes validation
 - **WHEN** provider is `Sqlite` with default settings
@@ -239,20 +170,6 @@ The `NjordOptionsValidator` SHALL validate the persistence configuration: `Provi
 #### Scenario: Valid PostgreSQL config passes validation
 - **WHEN** provider is `PostgreSql` and `ConnectionString` is non-empty
 - **THEN** validation succeeds
-
-### Requirement: Validators implement IValidateOptions of their own sub-option, except cross-cutting and Mqtt
-
-`NjordOptionsValidator` SHALL implement `IValidateOptions<NjordOptions>` and validate only cross-cutting concerns (locations, models, horizons, persistence, and `Mqtt` — see `standalone-sub-options` for why Mqtt stays here). `ConsensusOptionsValidator`, `HistoryOptionsValidator`, and `IndexOptionsValidator` SHALL implement `IValidateOptions<EnrichmentOptions>` and access config via `options.*` (not `options.Enrichment.*`). `SensorOptionsValidator` SHALL implement `IValidateOptions<SensorOptions>`.
-
-#### Scenario: IndexOptionsValidator validates through EnrichmentOptions
-
-- **WHEN** `IndexOptionsValidator` validates index preferences
-- **THEN** it SHALL receive `EnrichmentOptions` directly and access `.Indices` without injecting `IOptions<NjordOptions>`
-
-#### Scenario: SensorOptionsValidator validates through SensorOptions
-
-- **WHEN** `SensorOptionsValidator` validates sensor configuration
-- **THEN** it SHALL receive `SensorOptions` directly, not `NjordOptions`
 
 ### Requirement: IndexOptionsValidator does not mutate options
 
@@ -272,18 +189,8 @@ Options types SHALL contain only properties with defaults. Computed properties (
 - **WHEN** `NjordOptions` is inspected
 - **THEN** it SHALL NOT have an `EffectiveBudget` property or any methods
 
-### Requirement: One type per configuration file
-
-Each `.cs` file in the `Configuration/` directory SHALL contain exactly one public or internal type. File names SHALL match the type name.
-
-#### Scenario: EnrichmentOptions in own file
-
-- **WHEN** `EnrichmentOptions.cs` is inspected
-- **THEN** it SHALL contain only the `EnrichmentOptions` class
-
 ### Requirement: AlertThresholdOptions renamed to AlertOptions
-
-The type `AlertThresholdOptions` SHALL be renamed to `AlertOptions`. The property name on `EnrichmentOptions` remains `Alerts`. The config JSON key remains `Alerts`.
+The alert options type SHALL be named `AlertOptions` (not `AlertThresholdOptions`) and SHALL bind the `Njord:Enrichment:Alerts` section.
 
 #### Scenario: AlertOptions type name
 
@@ -291,13 +198,12 @@ The type `AlertThresholdOptions` SHALL be renamed to `AlertOptions`. The propert
 - **THEN** the type SHALL be `AlertOptions`, not `AlertThresholdOptions`
 
 ### Requirement: BudgetValidator renamed to BudgetCalculator
-
-The static class `BudgetValidator` SHALL be renamed to `BudgetCalculator`. It SHALL additionally expose a `GetEffectiveBudget(NjordOptions)` method that returns the resolved `RequestBudget` (override ?? free-tier default).
+The static class that projects and resolves the request budget SHALL be named `BudgetCalculator` (not `BudgetValidator`). It SHALL expose `GetEffectiveBudget(PollingOptions)` returning the resolved `RequestBudget` (`BudgetOverride` ?? free-tier default).
 
 #### Scenario: BudgetCalculator provides effective budget
 
 - **WHEN** the system needs the effective request budget
-- **THEN** it SHALL call `BudgetCalculator.GetEffectiveBudget(options)` instead of accessing `options.EffectiveBudget`
+- **THEN** it SHALL call `BudgetCalculator.GetEffectiveBudget(pollingOptions)`; no options type exposes an `EffectiveBudget` property
 
 ### Requirement: PersistenceOptions is a class
 
@@ -307,3 +213,63 @@ The static class `BudgetValidator` SHALL be renamed to `BudgetCalculator`. It SH
 
 - **WHEN** `PersistenceOptions` is inspected
 - **THEN** it SHALL be declared as `sealed class`, not `sealed record`
+
+### Requirement: The host is a WebApplication composed of setup containers
+The service SHALL use `WebApplication.CreateBuilder` as its host builder, providing Kestrel and the ASP.NET middleware pipeline. DI registrations and Akka.NET actor system configuration SHALL be delegated to Servus setup containers chained in `Program.cs`. The health-check endpoint at `/healthz`, the liveness endpoint at `/alive`, the Prometheus metrics endpoint and the gRPC services SHALL be mapped in `NjordApplicationSetup`. Serilog SHALL be configured directly in `Program.cs`. There SHALL be no dependency on a separate `ServiceDefaults` project.
+
+#### Scenario: Health middleware is registered
+- **WHEN** the service starts
+- **THEN** the middleware pipeline includes the health-check endpoint at `/healthz` and the liveness endpoint at `/alive`
+
+#### Scenario: Actors are registered through setup containers
+- **WHEN** the service starts
+- **THEN** `PollScheduler`, `ForecastPipeline`, `ForecastReadModel`, `OpenMeteoGateway`, `BudgetTracker`, `SensorHub` and `ConfigManager` are created through the setup containers' `IActorRegistration`s, plus the MQTT actors when `Njord:Mqtt:Enabled` is true
+
+#### Scenario: Serilog is configured without ServiceDefaults
+- **WHEN** the service starts
+- **THEN** Serilog is configured directly in `Program.cs` without referencing a `ServiceDefaults` project
+
+### Requirement: Actors resolve peers via marker interfaces
+Actors that need references to other actors SHALL resolve them through the Servus.Akka extensions keyed by the marker interfaces in `Njord.Core/Actors/ActorKeys.cs` — `Context.GetActor<TMarker>()` synchronously or `Context.GetActorAsync<TMarker>()` piped to `Self` — instead of injecting `ActorRegistry` or `IActorRef` constructor parameters. A registry lookup SHALL never be keyed by an actor class.
+
+#### Scenario: PollScheduler resolves the gateway
+- **WHEN** `PollScheduler` is constructed
+- **THEN** it calls `Context.GetActor<IForecastGateway>()`
+
+#### Scenario: MqttStatePublisher resolves the pipeline
+- **WHEN** `MqttStatePublisher` starts
+- **THEN** it calls `Context.GetActor<IForecastPipeline>()`
+
+#### Scenario: ForecastPipeline resolves the gateway asynchronously
+- **WHEN** `ForecastPipeline` starts or loses the gateway
+- **THEN** it calls `Context.GetActorAsync<IForecastGateway>()` and pipes the result to itself
+
+### Requirement: Persistence options are their own configuration sections
+Persistence settings SHALL NOT be part of `NjordOptions`. `PersistenceOptions` SHALL bind the `Njord:Persistence` section (`Provider` default `Sqlite`, `ConnectionString` default null) and `StorageOptions` SHALL bind `PersistencePath` (default `data/njord.db`) from the `Njord` section; both are registered by `CoreSetupContainer`.
+
+#### Scenario: Default persistence options
+- **WHEN** no `Persistence` section is configured
+- **THEN** `PersistenceOptions.Provider` is `Sqlite` and `PersistenceOptions.ConnectionString` is null
+
+#### Scenario: PersistencePath coexists with Persistence section
+- **WHEN** both `Njord:PersistencePath` and `Njord:Persistence:Provider` are configured
+- **THEN** both values are available; `PersistencePath` is used only when the provider is `Sqlite` and no explicit `ConnectionString` is set
+
+### Requirement: Each options type has its own validator
+Every options type SHALL have exactly one validator implementing `IValidateOptions<T>` for that type, in the same folder: `NjordOptionsValidator` (forecast scope), `PollingOptionsValidator`, `PersistenceOptionsValidator`, `StorageOptionsValidator`, `OpenMeteoOptionsValidator`, `MqttOptionsValidator`, `SensorOptionsValidator`, `ConsensusOptionsValidator`, `AlertOptionsValidator`, `DerivedOptionsValidator`, `TrendOptionsValidator` and `IndexOptionsValidator`. No validator SHALL validate another type's options through `NjordOptions`.
+
+#### Scenario: IndexOptionsValidator validates IndexOptions
+- **WHEN** `IndexOptionsValidator` validates index preferences
+- **THEN** it implements `IValidateOptions<IndexOptions>` and receives `IndexOptions` directly
+
+#### Scenario: SensorOptionsValidator validates through SensorOptions
+- **WHEN** `SensorOptionsValidator` validates sensor configuration
+- **THEN** it receives `SensorOptions` directly, not `NjordOptions`
+
+### Requirement: Each options type and its validator live in their own file
+Each `*Options` type and each `*OptionsValidator` in `Njord.Core/Configuration/` SHALL live in its own file named after the type.
+
+#### Scenario: AlertOptions in own file
+- **WHEN** `Alerts/AlertOptions.cs` is inspected
+- **THEN** it contains only the `AlertOptions` class, and `AlertOptionsValidator` lives in `Alerts/AlertOptionsValidator.cs`
+

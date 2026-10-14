@@ -1,125 +1,85 @@
 # pipeline-composition Specification
 
 ## Purpose
-TBD - created by archiving change restructure-enrichment-pipeline. Update Purpose after archive.
-## Requirements
-### Requirement: PipelineActor owns the full stream graph
 
-`PipelineActor` SHALL materialize the complete stream graph from fetch through
-feature fan-out to a `BroadcastHub<PipelineEvent>` endpoint. No intermediate
-relay actors (`ModelStateActor`, `EnrichmentActor`), no intermediate
-BroadcastHubs, no `ConsensusFlowFactory`.
+The `ForecastPipeline` analysis stream: it consumes the gateway's `SourceRef<Forecast>`, combines each forecast with the sensor and settings side channels, computes consensus and all enabled analysis features in one stateful stage (including trends against the previous consensus), supervises the stream, and vends typed `PipelineEvent` output via SourceRef.
+
+## Requirements
+### Requirement: ForecastPipeline owns the analysis stream
+`ForecastPipeline` (src/Njord.Pipeline/ForecastPipeline.cs, marker `IForecastPipeline`) SHALL request a `SourceRef<Forecast>` from the gateway (`IForecastGateway`) with `RequestForecastStream` and, on `RequestForecastStreamCompleted`, SHALL materialize exactly one analysis graph with `Context.Materializer()`: `sourceRef.Source → ZipWith(sensor side channel, settings side channel) → StatefulSelectMany(compute all) → BroadcastHub<PipelineEvent>`. The graph SHALL contain no fetch, throttle or hashing logic, no intermediate relay actor and no second hub. Until the forecast stream is materialized the actor SHALL stash every message except the gateway handshake, `AnalysisSettingsChanged` and `Terminated`. When the gateway terminates or the handshake fails, the actor SHALL re-resolve the gateway with jittered exponential backoff (1 s up to 30 s) and request a new stream.
 
 #### Scenario: Pipeline graph structure
-- **WHEN** `PipelineActor` materializes the graph
-- **THEN** the graph follows: Fetch → Consensus → Scan (previous) →
-  Build PollContext → Broadcast → [Feature Flows] → Merge → KeepAlive →
-  Buffer → IdleTimeout → BroadcastHub
+- **WHEN** `ForecastPipeline` receives `RequestForecastStreamCompleted`
+- **THEN** it materializes `sourceRef.Source → ZipWith(sensors, settings) → StatefulSelectMany → BroadcastHub<PipelineEvent>` and enters its ready behavior
 
-#### Scenario: Feature invocation in pipeline
-- **WHEN** the pipeline invokes a stateless feature (Alerts, Derived, Trends, Indices)
-- **THEN** it calls the feature's compute method via `Flow.Select()` with the
-  `PollContext` typed as that feature's input interface
+#### Scenario: No fetch logic in the pipeline
+- **WHEN** `ForecastPipeline` is inspected
+- **THEN** it has no dependency on `IOpenMeteoClient`, the gateway throttle or `ForecastDataHash`
 
-#### Scenario: History invocation in pipeline
-- **WHEN** the pipeline invokes the History feature
-- **THEN** it uses `Flow.SelectAsync()` with an Ask to the
-  `ForecastHistoryActor` for record + query + compute
+#### Scenario: Messages before the stream exists are stashed
+- **WHEN** a `RequestPipelineOutput` arrives before the forecast stream is materialized
+- **THEN** it is stashed and answered after the graph is materialized
 
-#### Scenario: PipelineActor is a lifecycle owner only
-- **WHEN** the `PipelineActor` is inspected
-- **THEN** it contains no business logic and no state beyond graph lifecycle
-  management (materialize, keep alive, restart on failure)
+#### Scenario: Gateway loss triggers re-resolve
+- **WHEN** the watched gateway actor terminates
+- **THEN** `ForecastPipeline` re-resolves `IForecastGateway` with backoff and requests a new forecast stream
 
-### Requirement: PollContext implements all feature input interfaces
+### Requirement: One stateful stage computes all analysis per forecast
+For every forecast the `StatefulSelectMany` stage SHALL update a `ModelSnapshot` held in the stage closure, build a `ConsensusSnapshot` with `ConsensusBuilder.Create(snapshot, location, settings.Consensus)`, and emit, in this order: `PipelineEvent.ForecastReceived`, `PipelineEvent.ConsensusComputed`, then `AlertComputed`, `DerivedComputed`, `TrendComputed` and `IndexComputed` for each analyzer that returns a result. Each analyzer SHALL take the `ConsensusSnapshot` directly plus its own extras and the current settings record: `AlertAnalyzer.Compute(consensus, settings.Alerts)`, `DerivedAnalyzer.Compute(consensus, settings.Derived)`, `TrendAnalyzer.Compute(consensus, previous, settings.Trends)`, `IndexAnalyzer.Compute(consensus, sensors, settings.Indices)`. There SHALL be no `PollContext` record and no per-feature input interfaces. An analyzer whose feature is disabled SHALL return `null`, and no event SHALL be emitted for it. All analysis state SHALL live in the stage closure, not in actor fields.
 
-The Host SHALL define a `PollContext` record that implements every feature's
-input interface (`IAlertInput`, `ITrendInput`, `IIndexInput`, `IHistoryInput`,
-`IDerivedInput`). The `PollContext` is assembled after consensus computation
-and contains all data any feature might need.
+#### Scenario: Events per forecast
+- **WHEN** a forecast arrives and alerts, derived, trends and indices are enabled and a previous consensus exists
+- **THEN** the stage emits `ForecastReceived`, `ConsensusComputed`, `AlertComputed`, `DerivedComputed`, `TrendComputed` and `IndexComputed`
 
-#### Scenario: PollContext construction
-- **WHEN** a poll cycle produces a consensus snapshot
-- **THEN** the pipeline assembles a `PollContext` with the consensus snapshot,
-  sensor data, previous snapshot, and model snapshots
+#### Scenario: Disabled feature emits nothing
+- **WHEN** the alerts feature is disabled
+- **THEN** `AlertAnalyzer.Compute` returns `null` and no `AlertComputed` event is emitted
 
-#### Scenario: PollContext interface conformance
-- **WHEN** a feature's compute method is called
-- **THEN** it receives the `PollContext` typed as its own input interface and
-  can access only the data it declared
+#### Scenario: Analyzer signatures
+- **WHEN** an analyzer is invoked by the pipeline
+- **THEN** it receives a `ConsensusSnapshot` (plus `previous` for trends and an optional `SensorSnapshot` for indices) and its settings record, never a context object
 
-### Requirement: Trends previous-state via Scan operator
-
-The previous `ConsensusSnapshot` for trend analysis SHALL be maintained by a
-`Scan` operator in the pipeline graph. The `TrendAnalyzer` itself is
-stateless — it receives current and previous via `ITrendInput`.
+### Requirement: Trends compare against the previous consensus held in the stage
+The previous `ConsensusSnapshot` for trend analysis SHALL be kept in the `StatefulSelectMany` closure and replaced by the current consensus after each forecast. `TrendAnalyzer` itself SHALL be stateless and SHALL return `null` when no previous consensus exists.
 
 #### Scenario: First poll cycle
-- **WHEN** the first poll cycle runs
-- **THEN** `ITrendInput.Previous` is `null` and the trend analyzer produces no
-  trend result
+- **WHEN** the first forecast after materialization is processed
+- **THEN** the previous consensus is `null`, `TrendAnalyzer.Compute` returns `null` and no `TrendComputed` event is emitted
 
 #### Scenario: Subsequent poll cycles
-- **WHEN** a poll cycle follows a successful previous cycle
-- **THEN** `ITrendInput.Previous` contains the previous cycle's consensus
-  snapshot
+- **WHEN** a later forecast is processed
+- **THEN** `TrendAnalyzer.Compute` receives the consensus computed for the preceding forecast as `previous`
 
-### Requirement: History runs inline in the pipeline
+### Requirement: ForecastPipeline vends its output via SourceRef
+The analysis graph SHALL end in a `BroadcastHub.Sink<PipelineEvent>` with `bufferSize: 2`. On `RequestPipelineOutput(RequestId)` the actor SHALL run the hub source into `StreamRefs.SourceRef<PipelineEvent>()` and reply `RequestPipelineOutputCompleted(RequestId, SourceRef)`, or `RequestPipelineOutputFailed(RequestId, Cause)` when materializing the SourceRef fails. These handshake records SHALL live in `Njord.Core/Actors/StreamWiringMessages.cs`. The hub SHALL NOT use KeepAlive, Buffer or IdleTimeout stages.
 
-The `ForecastHistoryActor` SHALL be invoked as part of the pipeline flow (not as
-a separate stream branch). Per poll cycle: record the snapshot, query the full
-history, compute analysis — all inline before results reach the BroadcastHub.
+#### Scenario: Consumer receives a SourceRef
+- **WHEN** a consumer sends `RequestPipelineOutput(7)`
+- **THEN** `ForecastPipeline` replies `RequestPipelineOutputCompleted(7, sourceRef)`
 
-#### Scenario: History inline execution
-- **WHEN** a poll cycle reaches the history stage
-- **THEN** the pipeline sends `RecordSnapshot` to the actor, awaits the query
-  response, runs `HistoryTracker.Analyze()`, and includes the result in the
-  merged output
+#### Scenario: SourceRef failure is reported
+- **WHEN** materializing the SourceRef fails
+- **THEN** the requester receives `RequestPipelineOutputFailed` carrying the request id and the exception
 
-### Requirement: BroadcastHub with KeepAlive pattern
+#### Scenario: Several consumers share the hub
+- **WHEN** the MQTT state publisher and `ForecastReadModel` both hold a SourceRef
+- **THEN** each receives every `PipelineEvent` emitted after it attached
 
-The pipeline's `BroadcastHub` SHALL use the KeepAlive + Buffer + IdleTimeout
-pattern to handle dead consumers without affecting healthy ones. KeepAlive
-sends heartbeats during idle periods (between 60-minute poll cycles), the
-buffer decouples consumer backpressure from the producer, and IdleTimeout
-detects unresponsive consumers.
+### Requirement: Sensor and settings side channels
+`ForecastPipeline` SHALL feed sensor data and analysis settings into the graph through two `Source.ActorRef` side channels (buffer 10, `DropHead`), each started with an initial element and repeated with `RepeatPrevious`, so every forecast is zipped with the latest `SensorSnapshot` and the latest `AnalysisSettings`. The sensor channel SHALL start with an empty `SensorSnapshot`; an empty snapshot SHALL be passed to `IndexAnalyzer` as `null`. In the ready behavior the actor SHALL forward received `SensorSnapshot` messages to the sensor channel, and on `AnalysisSettingsChanged` it SHALL store the settings and forward them to the settings channel, so a change applies from the next forecast on and never in the middle of one computation.
 
-#### Scenario: Consumer dies
-- **WHEN** a consumer (MQTT or gRPC) becomes unresponsive
-- **THEN** IdleTimeout detects the dead consumer and cleans up its subscription
-  without affecting other consumers
+#### Scenario: Settings change applies to the next forecast
+- **WHEN** `ConfigManager` sends `AnalysisSettingsChanged` with new alert thresholds
+- **THEN** the next forecast is analyzed with the new thresholds and a computation already running is not affected
 
-#### Scenario: Idle period between polls
-- **WHEN** no poll cycle runs for up to 60 minutes
-- **THEN** KeepAlive sends periodic heartbeats to keep the BroadcastHub alive
-  and consumer health detection active
+#### Scenario: No sensor data yet
+- **WHEN** no `SensorSnapshot` was received
+- **THEN** `IndexAnalyzer.Compute` receives `null` for the sensors and uses configured or default indoor values
 
-### Requirement: Centralized actor registration
+### Requirement: Analysis stream supervision
+The analysis stage SHALL use `StreamSupervision.LoggingDecider` with the actor's logging adapter as its supervision strategy.
 
-All actors (including `ForecastHistoryActor` from `Njord.History`,
-`MqttConsumerActor`, `GrpcConsumerActor`) SHALL be registered in a single
-`AkkaSetupContainer` in the Host. Feature libraries define actors; the Host
-registers them.
-
-#### Scenario: Actor registration location
-- **WHEN** the Host's actor setup is inspected
-- **THEN** all actor registrations are in one setup container, organized by
-  domain in private methods
-
-### Requirement: Njord.Egress is dissolved
-
-`ModelStateActor`, `EgressSetupContainer`, and the `Njord.Egress` project
-SHALL be removed. `ModelStateActor`'s function (extracting per-model forecasts
-and capabilities from `FetchOutcome`) SHALL be absorbed into the pipeline graph
-as inline `Select` stages. `CapabilityTracker` SHALL move to the pipeline.
-
-#### Scenario: No ModelStateActor
-- **WHEN** the pipeline produces per-model forecast data
-- **THEN** it is emitted as `PipelineEvent.ModelForecast` directly from the
-  graph — no `ModelStateActor` relay
-
-#### Scenario: Capability tracking
-- **WHEN** the pipeline processes a fetch outcome
-- **THEN** model capabilities are extracted inline and emitted as
-  `PipelineEvent.ModelCapability`
+#### Scenario: Analyzer exception is logged
+- **WHEN** an analyzer throws while processing one forecast
+- **THEN** the exception is logged through the actor's logger and handled by the shared decider
 

@@ -3,9 +3,7 @@
 ## Purpose
 
 Unique type names across the project — no two public types in the transitive dependency chain share an unqualified name.
-
 ## Requirements
-
 ### Requirement: Persistence event DataChanged has unique name
 The persistence event record for poll-scheduler data changes SHALL be named
 `PersistedDataChanged` to avoid collision with the actor message
@@ -27,12 +25,11 @@ The actor-key marker interface for the MQTT connection actor SHALL be named
 - **WHEN** it resolves the MQTT actor key
 - **THEN** it uses `IMqttConnectionActor` without disambiguation
 
-### Requirement: Compute-layer trend functions have unique name
-The static compute-function class for trend analysis SHALL be named
-`TrendComputer` (consistent with `ConsensusComputer`, `AlertComputer`) to
-avoid collision with the DI-injected `Njord.Trends.TrendAnalyzer`.
+### Requirement: Trend math class name does not collide with the analyzer
+The static class holding pure trend math SHALL be named `TrendFormulas` (following the `<Feature>Formulas` scheme) and live next to the DI-registered `TrendAnalyzer` in `Njord.Trends`, so no two public types share the name `TrendAnalyzer`.
 
-#### Scenario: Pipeline references both Compute and Trends without ambiguity
-- **GIVEN** `Njord.Pipeline` imports both `Njord.Compute.Analysis` and `Njord.Trends`
+#### Scenario: Pipeline references the analyzer without ambiguity
+- **GIVEN** `Njord.Pipeline` references `Njord.Compute` and `Njord.Trends`
 - **WHEN** it references `TrendAnalyzer`
-- **THEN** the compiler resolves to `Njord.Trends.TrendAnalyzer` without disambiguation
+- **THEN** exactly one public type named `TrendAnalyzer` exists, `Njord.Trends.TrendAnalyzer`
+

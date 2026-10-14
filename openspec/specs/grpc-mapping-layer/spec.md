@@ -1,7 +1,9 @@
 # grpc-mapping-layer Specification
 
 ## Purpose
-TBD - created by archiving change grpc-thin-adapters. Update Purpose after archive.
+
+Keeps the gRPC services thin: every mapping from domain results and messages to proto messages lives in pure `ToProto()`/`ToCommand()` extension functions in `Njord.Grpc/Mapping/`.
+
 ## Requirements
 ### Requirement: gRPC services delegate mapping to pure functions
 Each gRPC service implementation in `Njord.Grpc` SHALL delegate response shaping to pure `ToProto()` extension methods over message results, grouped per domain (forecast, analysis, config, catalog, ops, sensors), rather than inlining field-by-field construction in an RPC method body. Request shaping SHALL likewise use pure `ToMessage()`/`ToCommand()` mappings. An RPC method SHALL read as: map the request, ask an actor resolved by marker, map the result, return it. Mappers SHALL take only message results and request protos as input; they SHALL NOT read options or domain registries.

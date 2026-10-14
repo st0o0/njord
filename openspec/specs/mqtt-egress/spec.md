@@ -2,34 +2,21 @@
 
 ## Purpose
 
-MQTT egress to Home Assistant: an actor-owned broker connection lifecycle with a Last Will availability topic, device-based MQTT Discovery (gated by `DiscoveryEnabled`) for the static config-derived entity grid, per-horizon retained telemetry state topics with flat JSON payloads, and declarative mapping of missing values to `unavailable` so entities never disappear or go stale.
+MQTT state payload rules: values a model does not deliver are omitted from the flat JSON state payloads rather than published as placeholders.
+
 ## Requirements
-### Requirement: Missing values surface as unavailable, never as stale data
-Every component SHALL become unavailable when (a) the service availability
-topic reads `offline`, or (b) its value is absent in the state JSON, or
-(c) no state update arrived within twice the poll interval (`expire_after`).
-With discovery removed, the MQTT consumer SHALL publish `unavailable` state
-when a feature produces no result for a poll cycle.
+### Requirement: Missing values are omitted from state payloads
+State payloads SHALL never carry placeholder values for missing data: a parameter whose value is null SHALL be omitted from its horizon's JSON, a horizon without any value or beyond the model's `MaxForecastHours` SHALL not be published, and an analysis feature that produces no result for a forecast (disabled, or trends without a previous consensus) SHALL publish nothing. njord SHALL NOT publish `unavailable` states or `expire_after` settings itself; with MQTT Discovery removed, how consumers treat missing or old values is up to them. Availability SHALL be signalled only through the retained `online`/`offline` service status topic.
 
-#### Scenario: Unsupported parameter has no sensor
-- **WHEN** `icon_d2` does not support `precipitation_probability`
-- **THEN** no sensor component for `precipitation_probability` exists in the state payload for icon_d2
+#### Scenario: Unsupported parameter has no key
+- **WHEN** `icon_d2` returns no value for `precipitation_probability`
+- **THEN** the icon_d2 horizon payloads contain no `precipitation_probability` key
 
-#### Scenario: Out-of-range horizon has no sensor
-- **WHEN** `icon_d2` has MaxForecastHours=48
-- **THEN** no sensor components for horizon h72 exist in the state payload for icon_d2
+#### Scenario: Out-of-range horizon is not published
+- **WHEN** a model's MaxForecastHours is 48 and h72 is configured
+- **THEN** no h72 state message is published for that model
 
-#### Scenario: Silent model expires
-- **WHEN** a device receives no state update for two poll intervals
-- **THEN** its components become unavailable without any explicit publish
-
-#### Scenario: Feature produces no result
-- **WHEN** a poll cycle completes but a feature produces no result (e.g. trends
-  on the first cycle)
-- **THEN** the MQTT consumer publishes an `unavailable` state for that feature's
-  entities
-
-#### Scenario: Stale state expiry
-- **WHEN** no poll cycle completes within 2× the poll interval
-- **THEN** Home Assistant marks the entities as unavailable via `expire_after`
+#### Scenario: Feature without a result publishes nothing
+- **WHEN** a forecast is processed on the first cycle and trends have no previous consensus
+- **THEN** no trends state message is published for that forecast
 

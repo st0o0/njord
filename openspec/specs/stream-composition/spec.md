@@ -2,38 +2,9 @@
 
 ## Purpose
 
-Defines the structural requirements for the Akka.Streams pipeline graph: single materialization, MergeHub entry point with SinkRef-based producer access, weighted throttle, BroadcastHub fan-out for egress and feedback consumers, independently testable stages, stream supervision, graceful shutdown, and observability.
+Structural requirements for the Akka.Streams graphs: each stream-owning actor (`OpenMeteoGateway`, `ForecastPipeline`, consumers) materializes its graph once and binds its lifecycle to the actor, the gateway throttles to the global API budget and publishes fetch outcomes directly, streams use a logging supervision decider, metrics are recorded per fetch outcome, and ref requesters handle typed handshake failures.
+
 ## Requirements
-### Requirement: The pipeline is a single materialized graph
-The pipeline SHALL be materialized exactly once by the `PipelineActor` using `Context.Materializer()` (actor-bound lifecycle). The PipelineActor SHALL materialize the pipeline graph independently -- it SHALL NOT wait for the EgressActor or SchedulerActor before materializing. The BroadcastHub buffers until consumers connect. No stage within the graph SHALL materialize a sub-stream via `RunWith` or equivalent, except for the BroadcastHub consumer graphs and the SinkRef/SourceRef materializations which are part of the actor's setup. The graph SHALL remain materialized for the lifetime of the actor incarnation. No `IHostedService` or manual `KillSwitch` SHALL be used.
-
-#### Scenario: No per-cycle materialization
-- **WHEN** 10 targets are processed
-- **THEN** zero additional stream materializations occur beyond the initial actor-bound materialization and consumer setup
-
-#### Scenario: Actor stop terminates graph
-- **WHEN** the PipelineActor stops
-- **THEN** the pipeline graph and all BroadcastHub consumers complete without requiring explicit KillSwitch shutdown
-
-#### Scenario: Pipeline materializes without waiting for consumers
-- **WHEN** the PipelineActor starts
-- **THEN** the pipeline graph (MergeHub -> flow -> BroadcastHub) is materialized immediately, without waiting for EgressActor or SchedulerActor readiness
-
-### Requirement: MergeHub accepts targets from producers via SinkRef
-The pipeline entry point SHALL be a `MergeHub.Source<WeightedTarget>` that producers connect to via a `SinkRef<WeightedTarget>` obtained from the PipelineActor. The PipelineActor SHALL vend the SinkRef on request. Producers SHALL NOT receive a raw queue handle.
-
-#### Scenario: SchedulerActor connects via SinkRef
-- **WHEN** the SchedulerActor sends a `RequestPipelineSink` message
-- **THEN** the PipelineActor responds with a `PipelineSinkResponse` containing a `SinkRef<WeightedTarget>` connected to the MergeHub
-
-#### Scenario: No raw queue handle crosses actor boundaries
-- **WHEN** the pipeline is materialized
-- **THEN** no `ISourceQueueWithComplete` is exposed to any external actor
-
-#### Scenario: MergeHub provides per-producer buffering
-- **WHEN** a producer sends elements faster than the throttle drains them
-- **THEN** backpressure propagates to the producer through the SinkRef
-
 ### Requirement: Weighted throttle enforces the global API budget
 The pipeline SHALL throttle fetch requests using a cost-weighted throttle set to 80% of the Open-Meteo per-minute rate limit. Each element's cost SHALL be its pre-calculated API weight. The throttle SHALL use shaping mode (delay, not drop).
 
@@ -45,52 +16,23 @@ The pipeline SHALL throttle fetch requests using a cost-weighted throttle set to
 - **WHEN** 500 weight-1 targets enter the throttle with budget ceiling 480/min
 - **THEN** the first 480 pass within the first minute; the remaining 20 are delayed into the next minute window
 
-### Requirement: BroadcastHub fans out fetch outcomes to multiple consumers
-After the filter stage (successful fetch outcomes only), the pipeline SHALL terminate with a `BroadcastHub.Sink<FetchOutcome.Success>`. The BroadcastHub SHALL provide a `Source` that multiple consumers can materialize independently. Each consumer SHALL receive every element and run with independent backpressure.
-
-#### Scenario: Two consumers receive the same element
-- **WHEN** a `FetchOutcome.Success` enters the BroadcastHub
-- **THEN** both the egress consumer and the feedback consumer receive it
-
-#### Scenario: Slow consumer does not lose elements
-- **WHEN** the feedback consumer is slower than the egress consumer
-- **THEN** the BroadcastHub buffers elements for the slow consumer; no elements are dropped
-
 ### Requirement: Fetch outcomes publish directly without aggregation
-Each successful `FetchOutcome` SHALL be delivered to the BroadcastHub. The egress consumer (not the pipeline itself) SHALL map outcomes to `MqttMessage`(s) and deliver them to the MQTT transport. Failed outcomes SHALL NOT reach the BroadcastHub; they are logged and filtered in the pipeline flow.
+Each successful fetch SHALL deliver its `Forecast` to the gateway's BroadcastHub individually, without waiting for other models of the same cycle. Downstream consumers (not the gateway) SHALL turn forecasts into analysis results and MQTT messages. Failed outcomes SHALL NOT reach the BroadcastHub; they are reported to the requester as `FetchForecastFailed`.
 
 #### Scenario: Successful fetch reaches BroadcastHub
 - **WHEN** a fetch for (lucerne, icon_d2) succeeds
-- **THEN** the `FetchOutcome.Success` is emitted into the BroadcastHub
+- **THEN** its `Forecast` is offered to the gateway's BroadcastHub
 
 #### Scenario: Failed fetch does not reach BroadcastHub
 - **WHEN** a fetch fails
 - **THEN** no element is emitted into the BroadcastHub for that target
 
-### Requirement: Hash and schedule feedback is a BroadcastHub consumer
-The PipelineActor SHALL materialize a local BroadcastHub consumer that computes a data hash over each `FetchOutcome.Success` and sends it to the SchedulerActor via the built-in Akka.Streams `Ask<Ack>` flow. The terminal sink is `Sink.Ignore`. This consumer SHALL be materialized by the PipelineActor, not the SchedulerActor.
-
-#### Scenario: Hash is computed and sent via Ask
-- **WHEN** a `FetchOutcome.Success` is received by the feedback consumer
-- **THEN** a `HashResult` is computed and sent to the SchedulerActor via Ask; the consumer waits for `Ack`
-
-#### Scenario: Ask backpressure propagates through BroadcastHub
-- **WHEN** the SchedulerActor is slow to respond to a HashResult Ask
-- **THEN** the feedback consumer slows down, and the BroadcastHub propagates backpressure to the pipeline flow
-
-### Requirement: Pipeline stages are independently testable flows
-Each processing stage (throttle+fetch, filter, hash, ask) SHALL be implemented as a standalone `Flow<TIn, TOut>` or `Sink<TIn>` factory method. Tests SHALL be able to wire a `TestSource` to any stage without materializing the full pipeline.
-
-#### Scenario: Fetch stage is testable with a mock client
-- **WHEN** a test wires `TestSource<WeightedTarget> -> FetchStage(mockClient) -> TestSink`
-- **THEN** fetch behavior (parallelism, error handling) can be verified in isolation
-
 ### Requirement: Stream supervision uses a logging decider
-All stream graphs in the system SHALL use the shared `StreamSupervision.LoggingDecider` instead of a blanket `_ => Directive.Resume`. Each call site SHALL pass its own `ILogger` instance so that log entries identify the originating actor or component.
+The gateway fetch graph, the `ForecastPipeline` analysis stage and the `MqttStatePublisher` publish graph SHALL use the shared `StreamSupervision.LoggingDecider` instead of a blanket `_ => Directive.Resume`. Each call site SHALL pass its own `ILoggingAdapter` (or `ILogger`) so that log entries identify the originating actor or component. The decider SHALL resume on `AskTimeoutException`, `TaskCanceledException`, `OperationCanceledException`, `TimeoutException` and `HttpRequestException`, and stop on every other exception.
 
 #### Scenario: Stream exception is logged with actor context
-- **WHEN** a stream exception occurs in any graph
-- **THEN** the exception is logged at Warning level via the actor's ILogger
+- **WHEN** a stream exception occurs in one of these graphs
+- **THEN** the exception is logged at Warning level through the owning actor's logger
 
 #### Scenario: Transient errors do not terminate the stream
 - **WHEN** an AskTimeoutException occurs in a stream graph
@@ -100,61 +42,55 @@ All stream graphs in the system SHALL use the shared `StreamSupervision.LoggingD
 - **WHEN** a NullReferenceException occurs in a stream graph
 - **THEN** the stream stage stops, triggering actor supervision
 
-### Requirement: Clean shutdown via actor lifecycle
-The pipeline and egress hub graphs SHALL terminate cleanly on service shutdown. A CoordinatedShutdown task in phase `before-service-unbind` SHALL ask the PipelineActor and then the EgressActor to stop their streams (`StopStreams`), each bounded by a timeout; a timeout or failure SHALL be logged as a warning and SHALL NOT block shutdown. In-flight fetches SHALL complete (or time out) before the graph finalizes. The actor-owned kill switch SHALL be used only for this shutdown path; the graphs SHALL still be bound to the actor via `Context.Materializer()`.
+### Requirement: Each stream-owning actor materializes its graph once
+`OpenMeteoGateway` SHALL materialize its fetch graph and its forecast hub once, in `PreStart`, without waiting for any other actor. `ForecastPipeline` SHALL materialize its analysis graph once per received forecast stream. Both SHALL use `Context.Materializer()`, so a graph lives exactly as long as the actor incarnation that owns it. No stage SHALL materialize a sub-stream per element; the only additional materializations SHALL be the SourceRefs vended to consumers. No `IHostedService` SHALL own a stream.
 
-#### Scenario: Graceful shutdown completes in-flight work
-- **WHEN** the actor is stopped while 3 fetches are in progress
-- **THEN** those fetches complete (or timeout) and the graph terminates
+#### Scenario: No per-cycle materialization
+- **WHEN** 10 fetch requests are processed
+- **THEN** no stream materialization happens beyond the gateway's initial graphs and the SourceRefs vended on request
 
-#### Scenario: SIGTERM produces no stream errors
-- **WHEN** the service receives SIGTERM during normal operation
-- **THEN** no `AbruptTerminationException` is logged for `egress-hub`, `pipeline-fetch-in` or `pipeline-fetch-out`
+#### Scenario: Actor stop terminates graph
+- **WHEN** the gateway or `ForecastPipeline` stops
+- **THEN** its graphs terminate with the actor-scoped materializer
 
-#### Scenario: Unresponsive actor does not block shutdown
-- **WHEN** an actor does not answer `StopStreams` within the timeout
-- **THEN** a warning is logged and CoordinatedShutdown proceeds
+#### Scenario: Gateway materializes without waiting for consumers
+- **WHEN** `OpenMeteoGateway` starts
+- **THEN** its fetch graph and forecast hub are materialized immediately, before any consumer requests a SourceRef
 
-### Requirement: Observability via structured logging per outcome
-The pipeline SHALL emit one structured log entry per fetch outcome (success or failure) containing location, model, duration, and result status.
+### Requirement: Stream lifecycle is bound to the owning actor
+Stream graphs SHALL terminate through the lifecycle of the actor that owns them (`Context.Materializer()`); `StreamConsumerActor` subclasses SHALL additionally route their graph through a `SharedKillSwitch` that the base shuts down when a tracked dependency terminates. There SHALL be no `StopStreams`/`StreamsStopped` messages and no CoordinatedShutdown stream task.
 
-#### Scenario: Each fetch logs its outcome
-- **WHEN** a fetch for (lucerne, icon_d2) completes in 1200ms
-- **THEN** a structured log entry is emitted with location="lucerne", model="icon_d2", duration=1200ms, status="success"
+#### Scenario: Actor stop ends the stream
+- **WHEN** an actor that owns a stream graph stops
+- **THEN** the graph terminates with the actor-scoped materializer
 
-### Requirement: The EnrichmentActor is a BroadcastHub consumer via SourceRef
-The `EnrichmentActor` SHALL request a `SourceRef<FetchOutcome>` from the `PipelineActor` using the existing `RequestPipelineSource` / `PipelineSourceResponse` protocol. This makes the EnrichmentActor a third consumer of the pipeline's BroadcastHub, alongside the EgressActor's consumer graph and the PipelineActor's local feedback consumer. The PipelineActor SHALL NOT require any changes to support this — the existing SourceRef vending mechanism supports multiple consumers.
+#### Scenario: Dependency loss ends the consumer stream
+- **WHEN** `ForecastPipeline` terminates while `MqttStatePublisher` consumes its output
+- **THEN** `MqttStatePublisher` shuts down its kill switch before re-resolving the pipeline
 
-#### Scenario: Three consumers receive the same fetch outcome
-- **WHEN** a `FetchOutcome.Success` enters the BroadcastHub
-- **THEN** the egress consumer, the feedback consumer, and the EnrichmentActor's consumer all receive it
+### Requirement: Observability via metrics per fetch outcome
+`OpenMeteoClient` SHALL record every fetch in the `njord_openmeteo_fetch_total` counter tagged with `location`, `model` and `outcome` (`success` or the lower-case failure reason), and SHALL record the duration of successful fetches in the `njord_openmeteo_fetch_duration_seconds` histogram tagged with `location` and `model`.
 
-#### Scenario: EnrichmentActor connects independently
-- **WHEN** the EnrichmentActor starts and requests a SourceRef
-- **THEN** the PipelineActor vends a SourceRef without any protocol changes
+#### Scenario: Each fetch counts its outcome
+- **WHEN** a fetch for (lucerne, icon_d2) succeeds in 1.2 s
+- **THEN** `njord_openmeteo_fetch_total{location="lucerne",model="icon_d2",outcome="success"}` increases by 1 and 1.2 s is recorded in the duration histogram
 
-#### Scenario: EnrichmentActor failure does not affect other consumers
-- **WHEN** the EnrichmentActor's consumer stream fails
-- **THEN** the egress consumer and feedback consumer continue operating; the EnrichmentActor restarts and re-requests a SourceRef
+#### Scenario: Failures are counted by reason
+- **WHEN** a fetch is answered with HTTP 429
+- **THEN** the counter increases with `outcome="ratelimited"` and no duration is recorded
 
-### Requirement: Ref requesters handle typed request failures with backoff
-Every actor that requests a SinkRef or SourceRef (`RequestEgressSink`, `RequestEgressSource`, `RequestMqttSink`, `RequestPipelineSink`, `RequestPipelineSource`) SHALL handle the matching project-owned failure message (`EgressSinkFailed`, `EgressSourceFailed`, `MqttSinkFailed`, `PipelineSinkFailed`, `PipelineSourceFailed`, each carrying the originating `RequestId` and the `Exception` cause; a failure whose `RequestId` is not the actor's current request SHALL be ignored). On a failure message the requester SHALL log at Warning level and re-request the ref after a capped exponential backoff, reusing the existing re-resolve/backoff mechanism of its base class or owner. A failure message SHALL NOT be left unhandled.
-
-Request/failure messages SHALL be project-owned records; the system SHALL NOT use Akka's `Status.Failure` as a reply or `Status.Success`/`Status.Failure` as stream-termination messages.
+### Requirement: Ref requesters handle typed handshake failures
+Every actor or service that requests a SourceRef SHALL handle the matching project-owned failure record from `Njord.Core/Actors/StreamWiringMessages.cs`, each carrying the originating `RequestId` and the `Exception` cause: `ForecastPipeline` handles `RequestForecastStreamFailed` by logging a warning and re-resolving the gateway after jittered backoff; `StreamConsumerActor` subclasses handle `RequestPipelineOutputFailed` (ignoring a reply whose `RequestId` is not their current one) by logging a warning and scheduling a re-resolve through the base backoff; the gRPC services treat `RequestReadModelStreamFailed` and `RequestConfigStreamFailed` as `Unavailable`. The system SHALL NOT use Akka's `Status.Failure`/`Status.Success` as replies or stream-termination messages.
 
 #### Scenario: Stream consumer retries after a failed ref request
-- **WHEN** a StreamConsumerActor subclass receives a failure message for a ref it requested
+- **WHEN** a `StreamConsumerActor` subclass receives `RequestPipelineOutputFailed` for its current request id
 - **THEN** it logs a warning and re-requests the ref after the next backoff delay
 
-#### Scenario: Scheduler retries after a failed pipeline ref request
-- **WHEN** the SchedulerActor receives PipelineSinkFailed or PipelineSourceFailed while waiting for refs
-- **THEN** it logs a warning and re-resolves the pipeline and re-requests both refs after the next backoff delay
+#### Scenario: Pipeline retries after a failed forecast stream request
+- **WHEN** `ForecastPipeline` receives `RequestForecastStreamFailed`
+- **THEN** it logs a warning and re-resolves the gateway after the next backoff delay
 
 #### Scenario: gRPC stream call fails with Unavailable
-- **WHEN** WeatherGrpcService requests an EgressSource for StreamForecasts or StreamEnrichments and receives EgressSourceFailed
+- **WHEN** `StreamForecasts` or `StreamEnrichments` asks `ForecastReadModel` for a stream and does not get `RequestReadModelStreamCompleted`
 - **THEN** the call ends with `RpcException` status `Unavailable`
-
-#### Scenario: Failure-consumer termination uses project-owned messages
-- **WHEN** the SchedulerActor's failure-consumer `Sink.ActorRef` completes or fails
-- **THEN** the SchedulerActor receives `FailureConsumerCompleted` or `FailureConsumerFailed(Exception Cause)` and handles it (log; a failure triggers the same re-resolve path as loss of the pipeline source)
 

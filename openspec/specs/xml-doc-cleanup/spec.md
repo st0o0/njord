@@ -1,9 +1,7 @@
 ## Purpose
 
 Defines the removal of XML doc comments from production and test code, following the project convention that code speaks through naming.
-
 ## Requirements
-
 ### Requirement: Production and test code SHALL NOT contain XML doc comments
 
 Per the project convention "no XML docs — code speaks through naming", all
@@ -15,9 +13,10 @@ and test code.
 - **THEN** no `///` XML doc comments exist on the class or its properties
 
 #### Scenario: Domain records have no XML docs
-- **WHEN** inspecting domain records like `CycleId`, `WeatherModel`, `ForecastSeries`, `FetchOutcome`
+- **WHEN** inspecting domain records like `CycleId`, `WeatherModel`, `ForecastSeries`, `PollOutcome`
 - **THEN** no `///` XML doc comments exist
 
 #### Scenario: Test helpers have no XML docs
-- **WHEN** inspecting test helper classes like `FailingRefProvider`
+- **WHEN** inspecting test helper classes like `FakeOpenMeteoClient`
 - **THEN** no `///` XML doc comments exist
+

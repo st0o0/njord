@@ -3,9 +3,7 @@
 ## Purpose
 
 A polished GitHub README presenting njord's identity, capabilities, quick-start instructions, and architecture at a glance.
-
 ## Requirements
-
 ### Requirement: README has centered logo and title
 The README SHALL display the njord logo centered above a centered `<h1>` title
 and a one-line tagline.
@@ -25,8 +23,10 @@ type, .NET version, and a link to the documentation site.
 
 ### Requirement: README has feature highlights
 The README SHALL include a concise feature section (4-6 bullet points)
-summarizing njord's key capabilities: multi-model forecasts, multiple
-locations, enrichment features, MQTT auto-discovery, and low resource usage.
+summarizing njord's key capabilities as they exist: multi-model forecasts, multiple
+locations, the analysis features (consensus, alerts, derived values, trends, indices),
+gRPC for Home Assistant with optional MQTT state output, external sensor input, and low resource usage.
+It SHALL NOT advertise removed features such as MQTT auto-discovery or forecast accuracy tracking.
 
 #### Scenario: Features section is scannable
 - **WHEN** a user reads the README
@@ -64,3 +64,4 @@ Open-Meteo (CC BY 4.0 data license).
 #### Scenario: Open-Meteo attribution present
 - **WHEN** a user reads the README footer
 - **THEN** they see the Open-Meteo data license attribution
+

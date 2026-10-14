@@ -2,10 +2,9 @@
 
 ## Purpose
 
-Daily aggregate forecast variables as HA sensors with day-offset horizons, fetched alongside hourly data from the Open-Meteo API and published via MQTT Discovery.
+Daily aggregate forecast variables fetched alongside the hourly data from the Open-Meteo API, identified by date, carried in the `Forecast` record without affecting the API call weight, and published as day-offset (`d{N}`) state topics.
 
 ## Requirements
-
 ### Requirement: Daily forecast values are fetched alongside hourly
 The client SHALL request `daily` variables from the Open-Meteo API in addition to `hourly` variables when the active parameter set includes daily parameters. The `daily` query parameter SHALL list only the active daily variables.
 
@@ -28,20 +27,21 @@ A daily forecast point SHALL be identified by `DateOnly` (the forecast date) rat
 - **WHEN** the API returns `sunrise` as `"2026-07-12T05:31"` for a date
 - **THEN** the daily point for that date carries the sunrise value as a string
 
-### Requirement: Daily sensors use day-offset horizons in HA
-Daily parameters SHALL be exposed as HA sensors with day-offset horizons (`d0` = today, `d1` = tomorrow, etc.) derived from `forecast_days`. Their `unique_id` SHALL follow the pattern `njord_{location}_{model}_{param}_d{offset}`.
-
-#### Scenario: Day-offset entity naming
-- **WHEN** `forecast_days=4` and `temperature_2m_max` is active
-- **THEN** discovery includes components with unique_ids ending in `_temperature_2m_max_d0`, `_temperature_2m_max_d1`, `_temperature_2m_max_d2`, `_temperature_2m_max_d3`
-
-#### Scenario: Daily values appear in state JSON under day keys
-- **WHEN** a cycle completes and a model delivered daily data
-- **THEN** the state JSON contains keys `d0`, `d1`, etc. alongside the hourly `h3`, `h6`, etc.
-
 ### Requirement: Daily parameter count does not affect API call weight
 Only hourly variable count SHALL determine the API call weight (`ceil(hourly_count / 10)`). Daily variables do not contribute to the weight calculation as per Open-Meteo documentation.
 
 #### Scenario: Adding daily variables does not increase weight
 - **WHEN** 15 hourly and 10 daily variables are active
 - **THEN** the computed API call weight is `ceil(15/10) = 2`, not `ceil(25/10) = 3`
+
+### Requirement: Daily values are published on day-offset topics
+Daily parameters SHALL be exposed with day-offset horizons (`d0` = today, `d1` = tomorrow, etc.) derived from the effective forecast days of the model. `MqttStatePublisher` SHALL publish one retained state message per day offset to `{baseTopic}/{location}/{model}/d{offset}`, next to the hourly `h{N}` topics. `TopicScheme.DailyUniqueId` SHALL name a daily value `njord_{location}_{model}_{param}_d{offset}` for consumers that build entity ids.
+
+#### Scenario: Day-offset topics
+- **WHEN** `forecast_days=4`, `temperature_2m_max` is active and the model delivers 4 days
+- **THEN** state messages are published to `.../{model}/d0` through `.../{model}/d3`, each containing `temperature_2m_max`
+
+#### Scenario: Day-offset unique id
+- **WHEN** `TopicScheme.DailyUniqueId("lucerne", icon_d2, temperature_2m_max, 1)` is called
+- **THEN** it returns `njord_lucerne_icon_d2_temperature_2m_max_d1`
+

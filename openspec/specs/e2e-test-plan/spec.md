@@ -1,9 +1,7 @@
 ## Purpose
 
 Defines the E2E test plan document: its sequential phases, config-derived entity expectations, results document format and the orchestration model of main agent and subagents.
-
 ## Requirements
-
 ### Requirement: Test plan document defines all E2E phases
 
 The E2E test plan (`e2e/E2E-TEST-PLAN.md`) SHALL define ~25 sections covering the full gRPC path from njord through ha-njord to Home Assistant entities, plus exhaustive gRPC API validation, entity attribute depth, enrichment computation verification, error handling, multi-poll-cycle testing, configuration scenarios, HA browser verification, and teardown.
@@ -65,7 +63,7 @@ The E2E test plan (`e2e/E2E-TEST-PLAN.md`) SHALL define ~25 sections covering th
 The test plan SHALL derive expected entity IDs from the Docker Compose configuration (locations × models × enrichment features) rather than hardcoding them.
 
 #### Scenario: Config-driven entity count
-- **WHEN** the Docker Compose config has 1 location, 2 models, and all 6 enrichments enabled
+- **WHEN** the Docker Compose config has 1 location, 2 models, and all 5 analysis features enabled
 - **THEN** the test plan expects approximately 47 entities: 3 weather, 38 sensors, 4 binary_sensors, 1 event, 1 button
 
 #### Scenario: Entity ID pattern
@@ -115,3 +113,4 @@ The test plan SHALL define named setup recipes for deterministic test scenarios.
 #### Scenario: State reset between scenarios
 - **WHEN** a config scenario test modifies the running config
 - **THEN** the test plan documents how to restore the default config before proceeding to the next scenario
+

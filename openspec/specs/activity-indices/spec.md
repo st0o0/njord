@@ -2,10 +2,11 @@
 
 ## Purpose
 
-Activity and environmental index scores computed from forecast data: lifestyle scores (laundry drying, outdoor, running, cycling, BBQ, irrigation, night ventilation, solar yield), frost protection, VPD plant stress, and a unified DaySliceIndexResult that serializes all indices to MQTT with per-day slicing (d0/d1/d2). Activity scores use daylight-only means, utility scores use full-day means, and NightVentilation uses nighttime-only means. All scorer methods accept `ResolvedPreferences` for configurable sensitivity multipliers and ideal points.
+Activity and environmental index scores computed by the `Njord.Indices` library from the consensus: one `IIndexScore` class per lifestyle score (laundry drying, outdoor, running, cycling, BBQ, irrigation, solar yield, night ventilation), frost protection and VPD plant stress, aggregated by `IndexAnalyzer` into an `IndexResult` with per-day slices from `DaySlicer` (d0/d1/d2), resolved preferences and score envelopes, and published as per-day MQTT state topics.
+
 ## Requirements
 ### Requirement: Laundry drying score from temperature, humidity, wind, rain, sunshine
-`IndexScorer.LaundryDrying` SHALL accept mean temperature (°C), mean relative humidity (%), mean wind speed (m/s), mean precipitation probability (%), sunshine percentage (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. The formula SHALL weight: temperature 0.3, humidity 0.25, wind 0.2, rain probability 0.15, sunshine 0.1. Penalty terms SHALL be scaled by the corresponding sensitivity multipliers from `ResolvedPreferences`. Null inputs SHALL use neutral sub-score 50.
+`LaundryScore.Compute` SHALL accept mean temperature (°C), mean relative humidity (%), mean wind speed (m/s), mean precipitation probability (%), sunshine percentage (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. The formula SHALL weight: temperature 0.3, humidity 0.25, wind 0.2, rain probability 0.15, sunshine 0.1. Penalty terms SHALL be scaled by the corresponding sensitivity multipliers from `ResolvedPreferences`. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Perfect drying day
 - **WHEN** temp is 28°C, humidity 35%, wind 5 m/s, rain prob 0%, sunshine 100%, all sensitivities 1.0
@@ -20,7 +21,7 @@ Activity and environmental index scores computed from forecast data: lifestyle s
 - **THEN** the score is lower than with HumiditySensitivity 1.0
 
 ### Requirement: Outdoor score from temperature comfort, rain, wind, cloud cover
-`IndexScorer.OutdoorScore` SHALL accept mean temperature (°C), mean relative humidity (%), mean precipitation probability (%), mean wind speed (m/s), mean cloud cover (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100.
+`OutdoorScore.Compute` SHALL accept mean temperature (°C), mean relative humidity (%), mean precipitation probability (%), mean wind speed (m/s), mean cloud cover (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100.
 
 Temperature comfort SHALL use a bell curve peaking at `ResolvedPreferences.IdealTemp` (default 22°C). The penalty term SHALL be scaled by `ResolvedPreferences.HeatSensitivity`.
 
@@ -53,7 +54,7 @@ Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (br
 - **THEN** the score is ≥ 85
 
 ### Requirement: Running comfort with optimal temperature range
-`IndexScorer.RunningComfort` SHALL accept mean temperature (°C), mean humidity (%), mean wind speed (m/s), mean precipitation probability (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. Optimal temperature range SHALL be `ResolvedPreferences.IdealTempLow` to `ResolvedPreferences.IdealTempHigh` (defaults 5–20°C). Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
+`RunningScore.Compute` SHALL accept mean temperature (°C), mean humidity (%), mean wind speed (m/s), mean precipitation probability (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. Optimal temperature range SHALL be `ResolvedPreferences.IdealTempLow` to `ResolvedPreferences.IdealTempHigh` (defaults 5–20°C). Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Ideal running weather
 - **WHEN** temp is 12°C, humidity 45%, wind 2 m/s, rain prob 0%, all sensitivities 1.0, IdealTempLow 5, IdealTempHigh 20
@@ -68,7 +69,7 @@ Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (br
 - **THEN** the score is higher than with default range (5–20°C)
 
 ### Requirement: Cycling comfort penalizes wind more heavily
-`IndexScorer.CyclingComfort` SHALL accept mean temperature (°C), mean humidity (%), mean wind speed (m/s), mean precipitation probability (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. Wind SHALL be weighted 0.3 (vs 0.2 for running). Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
+`CyclingScore.Compute` SHALL accept mean temperature (°C), mean humidity (%), mean wind speed (m/s), mean precipitation probability (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. Wind SHALL be weighted 0.3 (vs 0.2 for running). Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Calm warm day
 - **WHEN** temp is 18°C, humidity 50%, wind 1.5 m/s, rain prob 0%, all sensitivities 1.0
@@ -79,7 +80,7 @@ Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (br
 - **THEN** the score is ≤ 40
 
 ### Requirement: BBQ weather from warmth, dryness, light wind
-`IndexScorer.BbqWeather` SHALL accept mean temperature (°C), mean humidity (%), mean wind speed (m/s), mean precipitation probability (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. Minimum temperature SHALL be `ResolvedPreferences.MinTemp` (default 10°C). Wind ideal range SHALL be `ResolvedPreferences.IdealWindLow` to `ResolvedPreferences.IdealWindHigh` (defaults 1–3 m/s). Rain probability SHALL be weighted 0.35 (critical). Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
+`BbqScore.Compute` SHALL accept mean temperature (°C), mean humidity (%), mean wind speed (m/s), mean precipitation probability (%), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. Minimum temperature SHALL be `ResolvedPreferences.MinTemp` (default 10°C). Wind ideal range SHALL be `ResolvedPreferences.IdealWindLow` to `ResolvedPreferences.IdealWindHigh` (defaults 1–3 m/s). Rain probability SHALL be weighted 0.35 (critical). Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Perfect BBQ
 - **WHEN** temp is 26°C, humidity 40%, wind 2 m/s, rain prob 0%, all sensitivities 1.0
@@ -94,7 +95,7 @@ Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (br
 - **THEN** the score is lower than with MinTemp 10.0
 
 ### Requirement: Irrigation need from rain absence, heat, dryness, evapotranspiration
-`IndexScorer.IrrigationNeed` SHALL accept mean precipitation probability (%), mean temperature (°C), mean humidity (%), mean evapotranspiration (mm), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. High score = water your garden. Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
+`IrrigationScore.Compute` SHALL accept mean precipitation probability (%), mean temperature (°C), mean humidity (%), mean evapotranspiration (mm), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. High score = water your garden. Penalty terms SHALL be scaled by the corresponding sensitivity multipliers. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Hot dry day
 - **WHEN** rain prob 0%, temp 32°C, humidity 30%, ET 6.0 mm, all sensitivities 1.0
@@ -105,7 +106,7 @@ Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (br
 - **THEN** the score is ≤ 15
 
 ### Requirement: Solar yield score from radiation, cloud cover, temperature
-`IndexScorer.SolarYield` SHALL accept mean shortwave radiation (W/m²), mean cloud cover (%), and mean temperature (°C), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. Temperature efficiency SHALL decrease above 25°C, scaled by `ResolvedPreferences.HeatSensitivity`. Null inputs SHALL use neutral sub-score 50.
+`SolarScore.Compute` SHALL accept mean shortwave radiation (W/m²), mean cloud cover (%), and mean temperature (°C), and a `ResolvedPreferences`. It SHALL return an `int` score 0–100. Temperature efficiency SHALL decrease above 25°C, scaled by `ResolvedPreferences.HeatSensitivity`. Null inputs SHALL use neutral sub-score 50.
 
 #### Scenario: Clear cool day
 - **WHEN** radiation 800 W/m², cloud cover 10%, temp 18°C, all sensitivities 1.0
@@ -116,7 +117,7 @@ Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (br
 - **THEN** the score is ≤ 20
 
 ### Requirement: Frost protection hours and confidence
-`IndexScorer.FrostProtection` SHALL scan the next 48h of consensus temperature data for frost (≤ 0°C). It does not accept `ResolvedPreferences`.
+`FrostProtection.Compute` SHALL scan the next 48h of consensus temperature data for frost (≤ 0°C). It does not accept `ResolvedPreferences`.
 
 #### Scenario: Frost in 8 hours
 - **WHEN** the consensus shows temp ≤ 0 at T0+8h
@@ -127,7 +128,7 @@ Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (br
 - **THEN** the result is null
 
 ### Requirement: VPD plant stress category
-`IndexScorer.VpdCategory` SHALL compute VPD using the Magnus formula. It does not accept `ResolvedPreferences`.
+`VaporPressureDeficit.Categorize` SHALL compute VPD using the Magnus formula. It does not accept `ResolvedPreferences`.
 
 #### Scenario: Optimal greenhouse
 - **WHEN** temp is 25°C and humidity is 60%
@@ -137,19 +138,12 @@ Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (br
 - **WHEN** temperature or humidity is null
 - **THEN** the result is null
 
-### Requirement: IndexResult excludes HDD and CDD
-`DaySliceIndexResult` SHALL NOT contain `Hdd` or `Cdd` properties.
-
-#### Scenario: DaySliceIndexResult without degree days
-- **WHEN** `DaySliceIndexResult.Compute` is called
-- **THEN** the result does not contain `Hdd` or `Cdd` properties
-
 ### Requirement: IndexResult passes resolved preferences to scorers
-`DaySliceIndexResult.Compute` SHALL accept a resolver function or dictionary to obtain `ResolvedPreferences` for the current location and score. Each scorer call SHALL use the preferences resolved for its specific (location, score) pair.
+`IndexAnalyzer` SHALL resolve the `ResolvedPreferences` for each (location, `IndexKind`) pair from the current `IndexSettings.Preferences`, falling back to `ResolvedPreferences.Default`, and SHALL pass them to the matching `IIndexScore.Score(slice, preferences)` for every day slice. When a live indoor temperature is available from the sensor snapshot, it SHALL override the indoor temperature of the location's preferences for that computation.
 
 #### Scenario: Per-score preferences used across day slices
 - **WHEN** Running has `HeatSensitivity: 0.7` and Outdoor has `HeatSensitivity: 1.5`
-- **THEN** `RunningComfort` receives 0.7 and `OutdoorScore` receives 1.5 for all day slices
+- **THEN** `RunningScore` receives 0.7 and `OutdoorScore` receives 1.5 for all day slices
 
 ### Requirement: IndexResult includes per-day envelope for each activity score
 Each `DayScoreSet` SHALL include, for each numeric score field (Laundry, Outdoor, Running, Cycling, Bbq, Irrigation, Solar, NightVentilation): a `ScoreEnvelope` with `Min` (int), `Max` (int), and `Confidence` (double, 0.0–1.0). Envelope computation SHALL use the same time-filtered consensus bounds as the main score computation.
@@ -163,14 +157,13 @@ Each `DayScoreSet` SHALL include, for each numeric score field (Laundry, Outdoor
 - **THEN** d2 confidence SHALL generally be lower than d0 confidence (reflecting forecast uncertainty)
 
 ### Requirement: Index computation uses day-filtered means instead of rolling 24h
+`IndexAnalyzer` SHALL use `DaySlicer.Slice(consensus, now)` to split the consensus into up to three UTC day slices (d0, d1, d2) and SHALL score each slice with every registered `IIndexScore`, using the slice's period means:
 
-`DaySliceIndexResult.Compute` SHALL accept a `ConsensusSnapshot`, `ResolvedParameterSet`, `TimeProvider`, and resolved preferences. It SHALL use `TimeSliceAggregator` to split consensus into day slices, then compute scores per slice:
+- **Activity scores** (Outdoor, Running, Cycling, BBQ, Solar): computed from the daylight means (`DaySlice.DayMeans`).
+- **Utility scores** (Laundry, Irrigation): computed from the full-day means (`DaySlice.FullDayMeans`).
+- **NightVentilation**: computed from the nighttime means (`DaySlice.NightMeans`).
 
-- **Activity scores** (Outdoor, Running, Cycling, BBQ, Solar): computed from `DaySlice.DayMeans` (daylight hours only).
-- **Utility scores** (Laundry, Irrigation): computed from `DaySlice.FullDayMeans` (all hours).
-- **NightVentilation**: computed from `DaySlice.NightMeans` (nighttime hours only).
-
-FrostProtection and VPD SHALL be computed once (not per day), unchanged from current logic.
+FrostProtection SHALL be computed once over the consensus and VPD once from the d0 full-day means (not per day).
 
 #### Scenario: Outdoor score uses daylight means only
 - **WHEN** d1 has 16 daylight hours with mean temp 24°C and 8 nighttime hours with mean temp 14°C
@@ -186,30 +179,18 @@ FrostProtection and VPD SHALL be computed once (not per day), unchanged from cur
 
 #### Scenario: Day slice with zero daylight hours
 - **WHEN** d0 has 0 remaining daylight hours (late evening)
-- **THEN** activity scores for d0 SHALL use neutral fallback (50) and `HoursIncluded` SHALL be 0
-
-### Requirement: Ventilation replaced by NightVentilation in score set
-`DayScoreSet` SHALL contain `NightVentilation` (int) instead of `Ventilation`. The `IndexScorer.Ventilation` method SHALL be renamed to `NightVentilation`. All discovery components, state payload keys, and preference resolution SHALL use `night_ventilation` / `NightVentilation` instead of `ventilation` / `Ventilation`.
-
-#### Scenario: Wire format uses night_ventilation
-- **WHEN** index result is serialized to state payload
-- **THEN** the JSON key SHALL be `"night_ventilation"`, not `"ventilation"`
-
-#### Scenario: Discovery uses night_ventilation component name
-- **WHEN** discovery payload is built for indices
-- **THEN** components SHALL include `night_ventilation_d0`, `night_ventilation_d1`, `night_ventilation_d2`
-- **AND** components SHALL NOT include `ventilation`
+- **THEN** activity scores for d0 use the neutral fallback (50) and `HoursIncluded` equals the remaining nighttime hours
 
 ### Requirement: State payload includes hours_included per day
-Each day-offset state JSON SHALL include an `hours_included` field (int) indicating how many hours contributed to the scores in that slice. For activity scores, this is the daylight hour count; the field communicates the "today shrinks" behavior to HA templates.
+Each day-offset state JSON SHALL include an `hours_included` field (int) taken from `DaySlice.HoursIncluded`, the larger of the slice's daylight and nighttime hour counts; it communicates the "today shrinks" behavior to consumers.
 
 #### Scenario: Full day
-- **WHEN** d1 has 16 daylight hours
+- **WHEN** d1 has 16 daylight hours and 8 nighttime hours
 - **THEN** the d1 state payload SHALL contain `"hours_included": 16`
 
 #### Scenario: Late today
-- **WHEN** d0 has 3 remaining daylight hours at poll time
-- **THEN** the d0 state payload SHALL contain `"hours_included": 3`
+- **WHEN** d0 has 3 remaining daylight hours and 6 remaining nighttime hours at poll time
+- **THEN** the d0 state payload SHALL contain `"hours_included": 6`
 
 ### Requirement: MQTT state topics include day offset
 Index state messages SHALL be published to `<baseTopic>/<location>/indices/d0`, `<baseTopic>/<location>/indices/d1`, `<baseTopic>/<location>/indices/d2` instead of the former single `<baseTopic>/<location>/indices` topic.
@@ -232,29 +213,10 @@ Each day-offset state JSON SHALL include `_min`, `_max`, `_confidence` variants 
 - **WHEN** index result is serialized for d1
 - **THEN** JSON contains `{"outdoor": 72, "outdoor_min": 65, "outdoor_max": 80, "outdoor_confidence": 0.8, ...}` without `hdd`/`cdd`
 
-### Requirement: Discovery excludes HDD and CDD components
-The indices presenter's `BuildDiscoveryPayload` SHALL NOT register sensor components for `hdd` or `cdd`.
-
-#### Scenario: Discovery without degree day sensors
-- **WHEN** discovery payload is built for indices
-- **THEN** components do not include `hdd` or `cdd`
-
-### Requirement: Discovery components include day offset dimension
-Discovery SHALL register sensor components with day-offset suffixes: `outdoor_d0`, `outdoor_d1`, `outdoor_d2`, etc. Each component SHALL reference its day-offset state topic. Envelope components follow the same pattern: `outdoor_min_d0`, `outdoor_max_d1`, etc.
-
-#### Scenario: Discovery component count per location
-- **WHEN** discovery payload is built for indices with 3 day slices
-- **THEN** the device SHALL have (8 scores x 3 days x 4 fields) + frost (2) + VPD (2) = 100 components
-
-#### Scenario: Component references day-offset topic
-- **WHEN** the discovery payload for location "lucerne" includes `outdoor_d1`
-- **THEN** the component SHALL have `"state_topic": "njord/lucerne/indices/d1"` and `"value_template": "{{ value_json.outdoor }}"`
-
 ### Requirement: IndexResult aggregates all indices and serializes to MQTT
+`IndexResult` (src/Njord.Compute/Contracts/IndexResult.cs) SHALL be the output of index computation. It SHALL contain a `Location` (`LocationId`), a `Days` list of `DayScoreSet` (one per computed day, up to 3), `FrostProtection` (`FrostProtectionInfo?`), and `Vpd` (`VpdInfo?`).
 
-`DaySliceIndexResult` SHALL replace `IndexResult` as the output of index computation. It SHALL contain a `Location` (string), a `Days` list of `DayScoreSet` (one per computed day, up to 3), `FrostProtection` (`FrostProtectionInfo?`), and `Vpd` (`VpdInfo?`).
-
-Each `DayScoreSet` SHALL contain: `DayOffset` (int, 0/1/2), `Laundry` (int), `Outdoor` (int), `Running` (int), `Cycling` (int), `Bbq` (int), `Irrigation` (int), `Solar` (int), `NightVentilation` (int), `HoursIncluded` (int), envelope fields for each score, and derive its location from `ConsensusSnapshot.Location`.
+Each `DayScoreSet` SHALL contain: `DayOffset` (int, 0/1/2), `Laundry` (int), `Outdoor` (int), `Running` (int), `Cycling` (int), `Bbq` (int), `Irrigation` (int), `Solar` (int), `NightVentilation` (int), `HoursIncluded` (int), and an optional envelope for each score. The location SHALL come from `ConsensusSnapshot.Location`. `StatePayloadBuilder.FromIndices` SHALL serialize the result.
 
 #### Scenario: Index message content with daily slices
 - **WHEN** indices are serialized to MQTT
@@ -267,4 +229,18 @@ Each `DayScoreSet` SHALL contain: `DayOffset` (int, 0/1/2), `Laundry` (int), `Ou
 #### Scenario: Frost and VPD on d0 only
 - **WHEN** index messages are published
 - **THEN** `frost_hours`, `frost_confidence`, `vpd_category`, `vpd_kpa` SHALL appear only in the d0 payload
+
+### Requirement: The index result has no degree-day fields
+`IndexResult` and `DayScoreSet` SHALL NOT contain `Hdd` or `Cdd` properties.
+
+#### Scenario: IndexResult without degree days
+- **WHEN** `IndexAnalyzer` computes an `IndexResult`
+- **THEN** neither the result nor its `DayScoreSet`s contain `Hdd` or `Cdd` properties
+
+### Requirement: NightVentilation replaces Ventilation in the score set
+`DayScoreSet` SHALL contain `NightVentilation` (int) instead of `Ventilation`, scored by `NightVentilationScore` (`IndexKind.NightVentilation`). State payload keys and preference resolution SHALL use `night_ventilation` / `NightVentilation` instead of `ventilation` / `Ventilation`.
+
+#### Scenario: Wire format uses night_ventilation
+- **WHEN** index result is serialized to state payload
+- **THEN** the JSON key SHALL be `"night_ventilation"`, not `"ventilation"`
 

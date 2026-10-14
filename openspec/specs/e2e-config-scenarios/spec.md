@@ -3,16 +3,14 @@
 ## Purpose
 
 Defines the deterministic setup recipes, AdminService hot-reload checks and config-driven entity set verification of the E2E run.
-
 ## Requirements
-
 ### Requirement: Setup recipes for deterministic test scenarios
 
 The E2E test plan SHALL define named setup recipes that configure the stack in specific states for targeted testing.
 
 #### Scenario: Default recipe (baseline)
 - **WHEN** the "default" recipe is used
-- **THEN** the stack runs with 1 location (lucerne), 2 models (icon_d2, ecmwf_ifs025), all 6 enrichments enabled, default horizons (+3/+6/+12/+24/+48/+72h)
+- **THEN** the stack runs with 1 location (lucerne), 2 models (icon_d2, ecmwf_ifs025), all 5 analysis features enabled, default horizons (+3/+6/+12/+24/+48/+72h)
 
 #### Scenario: Single-model recipe
 - **WHEN** the "single-model" recipe is applied via `AdminService/SetLocations` or Docker environment override
@@ -20,7 +18,7 @@ The E2E test plan SHALL define named setup recipes that configure the stack in s
 
 #### Scenario: Disabled-enrichments recipe
 - **WHEN** the "no-enrichments" recipe is applied via `AdminService/SetEnrichment` disabling all enrichment features
-- **THEN** alert, index, trend, derived, and history sensors are absent or unavailable; weather entities remain functional
+- **THEN** alert, index, trend and derived sensors are absent or unavailable; weather entities remain functional
 
 ### Requirement: Hot-reload via AdminService
 
@@ -49,3 +47,4 @@ The E2E test plan SHALL verify that the entity set adjusts to configuration chan
 #### Scenario: Entity count matches config
 - **WHEN** the configuration is changed (models added/removed, enrichments toggled)
 - **THEN** the total entity count in HA adjusts to match the new config within 2 poll cycles
+

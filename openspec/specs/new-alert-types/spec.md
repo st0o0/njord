@@ -3,12 +3,10 @@
 ## Purpose
 
 Five additional alert evaluators (Ice, WindChill, Visibility, TropicalNight, Humidity) that extend the alert system beyond the original nine threshold-based alerts, along with the enum values, topic segment mappings, and configuration entries they require.
-
 ## Requirements
-
 ### Requirement: Ice alert evaluates freezing rain risk from rain at near-freezing temperatures
 
-`AlertEvaluator.EvaluateIce` SHALL scan `rain` and `temperature_2m` consensus medians over the next 24 hours. Ice conditions exist when `rain` median > 0 mm AND `temperature_2m` median <= ice threshold (default 2.0 C). Soil temperature (`soil_temperature_0cm`) SHALL escalate severity when available and <= 0 C.
+`IceRule.Evaluate` SHALL scan `rain` and `temperature_2m` consensus medians over the next 24 hours. Ice conditions exist when `rain` median > 0 mm AND `temperature_2m` median <= ice threshold (default 2.0 C). Soil temperature (`soil_temperature_0cm`) SHALL escalate severity when available and <= 0 C.
 
 Severity:
 - Yellow: temp 0-2 C AND rain > 0 (glaze risk)
@@ -45,7 +43,7 @@ If `rain` parameter is not in the resolved parameter set, the evaluator SHALL re
 
 ### Requirement: WindChill alert evaluates extreme apparent temperature driven by wind
 
-`AlertEvaluator.EvaluateWindChill` SHALL scan `apparent_temperature` consensus medians over the next 24 hours. WindChill conditions exist when the minimum apparent temperature median falls below configured thresholds (default [-10, -20, -30] C).
+`WindChillRule.Evaluate` SHALL scan `apparent_temperature` consensus medians over the next 24 hours. WindChill conditions exist when the minimum apparent temperature median falls below configured thresholds (default [-10, -20, -30] C).
 
 Severity SHALL be determined by the lowest threshold crossed (highest index in the array = Red).
 
@@ -73,7 +71,7 @@ Confidence SHALL be the average agreement at horizons where apparent temperature
 
 ### Requirement: Visibility alert evaluates direct visibility parameter against safety thresholds
 
-`AlertEvaluator.EvaluateVisibility` SHALL scan `visibility` consensus medians over the next 24 hours. Severity SHALL be determined by the minimum visibility median against configured thresholds (default [1000, 200, 50] meters, where values below the first = Yellow, below the second = Orange, below the third = Red).
+`VisibilityRule.Evaluate` SHALL scan `visibility` consensus medians over the next 24 hours. Severity SHALL be determined by the minimum visibility median against configured thresholds (default [1000, 200, 50] meters, where values below the first = Yellow, below the second = Orange, below the third = Red).
 
 Confidence SHALL be the average agreement at horizons where visibility is below the Yellow threshold. Attributes SHALL include `min_visibility` (minimum visibility median in meters) and `hours_below_1000m` (count of horizons with visibility median < 1000m).
 
@@ -99,7 +97,7 @@ Confidence SHALL be the average agreement at horizons where visibility is below 
 
 ### Requirement: TropicalNight alert evaluates overnight minimum temperature
 
-`AlertEvaluator.EvaluateTropicalNight` SHALL scan `temperature_2m` consensus medians at night hours (determined by `is_day == 0`) over the next 24 hours. The minimum night temperature median SHALL be compared against configured thresholds (default [20, 23, 25] C).
+`TropicalNightRule.Evaluate` SHALL scan `temperature_2m` consensus medians at night hours (determined by `is_day == 0`) over the next 24 hours. The minimum night temperature median SHALL be compared against configured thresholds (default [20, 23, 25] C).
 
 Severity SHALL be determined by the lowest threshold exceeded (highest index = Red). Confidence SHALL be the average agreement at night horizons where temperature exceeds the Yellow threshold. Attributes SHALL include `night_minimum` (minimum night temperature median) and `hours_above_20` (count of night hours with median > 20 C).
 
@@ -127,7 +125,7 @@ If no night hours exist in the 24h window (polar day), the evaluator SHALL retur
 
 ### Requirement: Humidity alert evaluates dewpoint for oppressive mugginess
 
-`AlertEvaluator.EvaluateHumidity` SHALL scan `dew_point_2m` consensus medians at daytime hours (determined by `is_day > 0`) over the next 24 hours. The maximum daytime dewpoint median SHALL be compared against configured thresholds (default [16, 21, 24] C).
+`HumidityRule.Evaluate` SHALL scan `dew_point_2m` consensus medians at daytime hours (determined by `is_day > 0`) over the next 24 hours. The maximum daytime dewpoint median SHALL be compared against configured thresholds (default [16, 21, 24] C).
 
 Severity SHALL be determined by the highest threshold exceeded. Confidence SHALL be the average agreement at daytime horizons where dewpoint exceeds the Yellow threshold. Attributes SHALL include `max_dewpoint` (maximum daytime dewpoint median) and `comfort_level` ("muggy" for Yellow, "oppressive" for Orange, "tropical" for Red).
 
@@ -182,3 +180,4 @@ Severity SHALL be determined by the highest threshold exceeded. Confidence SHALL
 #### Scenario: Default wind chill thresholds
 - **WHEN** no override is configured for WindChillThresholds
 - **THEN** the evaluator uses [-10, -20, -30] C
+

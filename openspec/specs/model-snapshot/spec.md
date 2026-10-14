@@ -3,11 +3,9 @@
 ## Purpose
 
 Running state of the latest model forecast data per (location, model), updated on every successful fetch. Provides change detection so downstream consumers only recompute when data actually changed.
-
 ## Requirements
-
 ### Requirement: ModelSnapshot holds the latest forecast per location and model
-The `ModelSnapshot` SHALL be an immutable record holding an `IReadOnlyDictionary<(string Location, WeatherModel Model), ModelForecast>`. Construction from an empty state SHALL yield `ModelSnapshot.Empty` with an empty dictionary. The snapshot SHALL expose the dictionary as `Entries`.
+The `ModelSnapshot` SHALL be an immutable record holding an `IReadOnlyDictionary<(string Location, WeatherModel Model), Forecast>`. Construction from an empty state SHALL yield `ModelSnapshot.Empty` with an empty dictionary. The snapshot SHALL expose the dictionary as `Entries`.
 
 #### Scenario: Empty snapshot has no entries
 - **WHEN** `ModelSnapshot.Empty` is accessed
@@ -18,7 +16,7 @@ The `ModelSnapshot` SHALL be an immutable record holding an `IReadOnlyDictionary
 - **THEN** `Entries.Count` is 2 and both keys are retrievable
 
 ### Requirement: Update returns a new snapshot with the forecast replaced
-The `ModelSnapshot` SHALL expose an `Update(ModelForecast)` method that returns a new `ModelSnapshot` with the forecast for the given (location, model) replaced. If no entry existed for that key, it SHALL be added. The original snapshot SHALL remain unchanged.
+The `ModelSnapshot` SHALL expose an `Update(Forecast)` method that returns a new `ModelSnapshot` with the forecast for the given (location, model) replaced. If no entry existed for that key, it SHALL be added. The original snapshot SHALL remain unchanged.
 
 #### Scenario: First forecast for a model is added
 - **WHEN** `ModelSnapshot.Empty.Update(forecast)` is called with a forecast for (lucerne, icon_d2)
@@ -34,7 +32,7 @@ The `ModelSnapshot` SHALL expose an `Update(ModelForecast)` method that returns 
 - **THEN** the returned snapshot has 2 entries
 
 ### Requirement: Change detection flags whether an update modified data
-The `ModelSnapshot` SHALL expose a `HasChanged` boolean property. `ModelSnapshot.Empty` SHALL have `HasChanged` = `false`. A snapshot returned by `Update` SHALL have `HasChanged` = `true` when the forecast data differs from what was previously stored for that key (or the key was new). If the update is a no-op (identical forecast data), `HasChanged` SHALL be `false`.
+The `ModelSnapshot` SHALL expose a `HasChanged` boolean property. `ModelSnapshot.Empty` SHALL have `HasChanged` = `false`. A snapshot returned by `Update` SHALL have `HasChanged` = `true` when the stored forecast for that key has a different `CycleId` (or the key was new). If the stored forecast has the same `CycleId`, the snapshot SHALL be returned unchanged with `HasChanged` = `false`.
 
 #### Scenario: New entry sets HasChanged
 - **WHEN** an empty snapshot is updated with a new forecast
@@ -59,3 +57,4 @@ The `ModelSnapshot` SHALL expose a method `ModelsFor(string location)` returning
 #### Scenario: Unknown location returns empty
 - **WHEN** `ModelsFor("unknown")` is called
 - **THEN** the result is empty
+

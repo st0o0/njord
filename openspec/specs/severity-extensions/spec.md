@@ -3,12 +3,10 @@
 ## Purpose
 
 Upgrades existing alert evaluators (Frost, Storm, Fog, PressureDrop) from single-threshold Yellow-only severity to tiered multi-threshold severity (Yellow/Orange/Red), adding graduated response levels to the original alert types.
-
 ## Requirements
-
 ### Requirement: Frost alert uses tiered severity thresholds
 
-`AlertEvaluator.EvaluateFrost` SHALL accept `double[] thresholds` (default [0, -5, -15] C) instead of a single threshold. Severity SHALL be determined by the minimum temperature median: at or below thresholds[0] = Yellow, at or below thresholds[1] = Orange, at or below thresholds[2] = Red. Confidence SHALL remain the average agreement at horizons where temperature is at or below the Yellow threshold.
+`FrostRule.Evaluate` SHALL classify against the frost `SeverityThresholds` from `AlertSettings` (configured as `FrostThresholds`, default [0, -5, -15] C) instead of a single threshold. Severity SHALL be determined by the minimum temperature median: at or below thresholds[0] = Yellow, at or below thresholds[1] = Orange, at or below thresholds[2] = Red. Confidence SHALL remain the average agreement at horizons where temperature is at or below the Yellow threshold.
 
 #### Scenario: Light frost
 - **WHEN** minimum consensus median temperature is -2 C with thresholds [0, -5, -15]
@@ -32,7 +30,7 @@ Upgrades existing alert evaluators (Frost, Storm, Fog, PressureDrop) from single
 
 ### Requirement: Storm alert uses tiered gust thresholds
 
-`AlertEvaluator.EvaluateStorm` SHALL accept `double[] thresholds` (default [17, 25, 33] m/s) instead of a single threshold. Severity SHALL be determined by the maximum gust median: at or above thresholds[0] = Yellow, at or above thresholds[1] = Orange, at or above thresholds[2] = Red.
+`StormRule.Evaluate` SHALL classify against the storm `SeverityThresholds` from `AlertSettings` (configured as `StormGustThresholds`, default [17, 25, 33] m/s) instead of a single threshold. Severity SHALL be determined by the maximum gust median: at or above thresholds[0] = Yellow, at or above thresholds[1] = Orange, at or above thresholds[2] = Red.
 
 #### Scenario: Storm-force gusts
 - **WHEN** maximum consensus median gust is 20 m/s with thresholds [17, 25, 33]
@@ -52,7 +50,7 @@ Upgrades existing alert evaluators (Frost, Storm, Fog, PressureDrop) from single
 
 ### Requirement: Fog alert escalates to Orange for persistent fog
 
-`AlertEvaluator.EvaluateFog` SHALL produce Orange severity when fog conditions persist for >= a configurable number of hours (default 4). Yellow remains for shorter fog durations (1 to fogPersistentHours - 1).
+`FogRule.Evaluate` SHALL produce Orange severity when fog conditions persist for >= a configurable number of hours (default 4). Yellow remains for shorter fog durations (1 to fogPersistentHours - 1).
 
 #### Scenario: Brief fog
 - **WHEN** fog conditions are met for 2 hours with persistent threshold 4
@@ -68,7 +66,7 @@ Upgrades existing alert evaluators (Frost, Storm, Fog, PressureDrop) from single
 
 ### Requirement: PressureDrop alert escalates to Orange for severe drops
 
-`AlertEvaluator.EvaluatePressureDrop` SHALL produce Orange severity when the maximum 3-hour pressure drop exceeds a severe threshold (default 10.0 hPa). Yellow remains for drops between the base threshold (5 hPa) and the severe threshold.
+`PressureDropRule.Evaluate` SHALL produce Orange severity when the maximum 3-hour pressure drop exceeds a severe threshold (default 10.0 hPa). Yellow remains for drops between the base threshold (5 hPa) and the severe threshold.
 
 #### Scenario: Moderate pressure drop
 - **WHEN** maximum 3-hour pressure drop is 7 hPa with thresholds 5/10
@@ -81,3 +79,4 @@ Upgrades existing alert evaluators (Frost, Storm, Fog, PressureDrop) from single
 #### Scenario: Below threshold
 - **WHEN** maximum 3-hour pressure drop is 3 hPa with thresholds 5/10
 - **THEN** severity is None
+

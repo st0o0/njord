@@ -1,7 +1,9 @@
 # options-validation-hygiene Specification
 
 ## Purpose
-TBD - created by archiving change options-validator-cleanup. Update Purpose after archive.
+
+Keeps options validators lean: they reuse authoritative calculations (such as `BudgetCalculator`) instead of recomputing them, and share a helper for repeated range checks.
+
 ## Requirements
 ### Requirement: Validators reuse authoritative calculations instead of recomputing them
 When an `IValidateOptions<T>` implementation needs a projected value that another

@@ -1,9 +1,7 @@
 ## Purpose
 
 Defines the Claude Code skill that runs the E2E test against the Docker stack: Docker lifecycle, browser and REST validation, parallel subagents, results document and cross-repo sync.
-
 ## Requirements
-
 ### Requirement: Claude Code skill to execute E2E tests
 
 A Claude Code skill SHALL exist that, when invoked, orchestrates the full E2E test run against the Docker stack, covering ~25 sections with ~150+ test steps.
@@ -61,8 +59,7 @@ The skill SHALL produce a structured results document after each run.
 - **THEN** the total step count matches the test plan (no steps omitted or skipped)
 
 ### Requirement: Cross-repo sync
-
-The E2E infrastructure SHALL be maintained in njord (leading repo) and synced to ha-njord.
+The E2E infrastructure SHALL be maintained in njord (leading repo) and synced to ha-njord. Paths SHALL be given relative to the njord repository root, with ha-njord cloned as a sibling directory (`../ha-njord`).
 
 #### Scenario: Leading repo
 - **WHEN** changes are made to `e2e/` files
@@ -70,7 +67,7 @@ The E2E infrastructure SHALL be maintained in njord (leading repo) and synced to
 
 #### Scenario: Sync to ha-njord
 - **WHEN** the E2E infrastructure is updated in njord
-- **THEN** the identical `e2e/` directory (test plan, compose file) is copied to ha-njord at `D:\GIT\ha-njord\e2e\`
+- **THEN** the identical `e2e/` directory (test plan, compose file) is copied to `../ha-njord/e2e/`
 
 #### Scenario: Skill availability
 - **WHEN** the E2E skill is defined
@@ -91,3 +88,4 @@ The skill SHALL execute config-mutation, multi-cycle, browser, resilience, and t
 #### Scenario: Teardown as final phase
 - **WHEN** all other phases complete
 - **THEN** the skill removes the njord integration from HA, verifies entity cleanup, and runs `docker compose down -v`
+

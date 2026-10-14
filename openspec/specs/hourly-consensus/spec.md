@@ -2,40 +2,11 @@
 
 ## Purpose
 
-Unified consensus enrichment that computes per-hour consensus across all weather models with sufficient coverage. Replaces any prior split between horizon-based and hourly consensus with a single `ConsensusEnrichment` (TypeName `"consensus"`).
+Hourly consensus as a facet of the `ConsensusSnapshot` built by `ConsensusBuilder` for every forecast: it covers every hour with sufficient model coverage, is exposed through the `ConsensusUpdate` proto message, is toggled for consumers by `ConsensusOptions.Enabled`, and is published per horizon to MQTT.
 
 ## Requirements
-
-### Requirement: HourlyConsensusEnrichment computes consensus for every hour with sufficient model coverage
-
-Hourly consensus SHALL be computed as part of `ConsensusSnapshot.Compute`, producing the `HourlyConsensus` facet. It SHALL NOT be an `IEnrichmentFeature`. The computation logic (iterating hourly parameters, collecting model values per horizon via exact point lookup, calling `ConsensusComputer`) is unchanged.
-
-#### Scenario: Hourly consensus across models with different horizons
-- **WHEN** `ConsensusSnapshot.Compute` is called with 3 models having horizons 48h, 72h, and 120h
-- **THEN** `Hourly.Parameters` SHALL contain consensus for hours 0 through 72 (cutoff = second-to-last)
-
-#### Scenario: Single model remaining stops consensus
-- **WHEN** only 1 model has hourly data for a location
-- **THEN** `Hourly.CutoffHour` SHALL be -1 and `Hourly.Parameters` SHALL be empty
-
-#### Scenario: 3-hourly models contribute at their native hours only
-- **WHEN** a model provides data at 3-hour intervals (h0, h3, h6...)
-- **THEN** that model contributes only at those hours; other hours have one fewer contributing model
-
-### Requirement: HourlyConsensusEnrichment is independently toggleable
-
-The consensus pipeline stage SHALL always compute `ConsensusSnapshot` regardless of the `ConsensusOptions.Enabled` flag, because enrichments depend on it. The `Enabled` flag SHALL control only whether consensus egress (MQTT/gRPC output) is produced.
-
-#### Scenario: Consensus always computed for enrichments
-- **WHEN** `ConsensusOptions.Enabled` is false
-- **THEN** `ConsensusSnapshot` is still computed and fed to enrichments, but no consensus egress events are emitted
-
-#### Scenario: Consensus egress controlled by Enabled flag
-- **WHEN** `ConsensusOptions.Enabled` is true
-- **THEN** consensus egress events (`EgressEvent.ConsensusUpdate`) are emitted to the `EgressActor`
-
 ### Requirement: gRPC output uses existing ConsensusUpdate proto message
-The consensus SHALL be mapped to a `ConsensusUpdate` proto message and exposed via the `consensus` field in `GetEnrichmentsResponse` (field 8) and `EnrichmentEvent` (field 16). There is no separate `hourly_consensus` field.
+The consensus SHALL be mapped to a `ConsensusUpdate` proto message and exposed via the `consensus` field of `GetEnrichmentsResponse` (field 7) and of the `EnrichmentEvent` payload oneof (field 15). There is no separate `hourly_consensus` field.
 
 #### Scenario: GetEnrichments returns consensus
 - **WHEN** a gRPC client calls `GetEnrichments` for a location with consensus enabled
@@ -45,14 +16,36 @@ The consensus SHALL be mapped to a `ConsensusUpdate` proto message and exposed v
 - **WHEN** consensus is computed after a poll cycle
 - **THEN** an `EnrichmentEvent` with `type_name = "consensus"` and `consensus` payload SHALL be emitted
 
-### Requirement: MQTT output publishes one topic per hour
+### Requirement: Hourly consensus covers every hour with sufficient model coverage
+Hourly consensus SHALL be computed by `ConsensusBuilder.Create` as the `HourlyConsensus` facet of the `ConsensusSnapshot`; it SHALL NOT be a separate analysis feature. The computation iterates the hourly parameters, collects model values per horizon via exact point lookup and calls `ConsensusStatistics`.
 
-The consensus egress SHALL publish one retained MQTT message per hourly horizon to `{baseTopic}/{location}/consensus/h{N}`.
+#### Scenario: Hourly consensus across models with different horizons
+- **WHEN** `ConsensusBuilder.Create` is called with 3 models having horizons 48h, 72h, and 120h
+- **THEN** `Hourly.Parameters` contains consensus for hours 0 through 72 (cutoff = second-to-last)
+
+#### Scenario: Single model remaining stops consensus
+- **WHEN** only 1 model has hourly data for a location
+- **THEN** `Hourly.CutoffHour` is -1 and `Hourly.Parameters` is empty
+
+#### Scenario: 3-hourly models contribute at their native hours only
+- **WHEN** a model provides data at 3-hour intervals (h0, h3, h6...)
+- **THEN** that model contributes only at those hours; other hours have one fewer contributing model
+
+### Requirement: Consensus output is independently toggleable
+`ForecastPipeline` SHALL always compute the `ConsensusSnapshot`, regardless of `ConsensusOptions.Enabled`, because all analyzers depend on it. The `Enabled` flag SHALL control only whether `PipelineEvent.ConsensusComputed` is emitted to the consumers (MQTT state and gRPC).
+
+#### Scenario: Consensus always computed for analysis
+- **WHEN** `ConsensusOptions.Enabled` is false
+- **THEN** the `ConsensusSnapshot` is still computed and passed to the analyzers, but no `ConsensusComputed` event is emitted
+
+#### Scenario: Consensus output controlled by Enabled flag
+- **WHEN** `ConsensusOptions.Enabled` is true
+- **THEN** a `PipelineEvent.ConsensusComputed` is emitted for every forecast
+
+### Requirement: Consensus state is published per horizon
+`MqttStatePublisher` SHALL publish one retained MQTT message per hourly horizon to `{baseTopic}/{location}/consensus/h{N}` and one per daily horizon to `{baseTopic}/{location}/consensus/d{N}`, built by `StatePayloadBuilder.FromConsensus`.
 
 #### Scenario: MQTT topics for consensus
-- **WHEN** consensus egress processes a `ConsensusSnapshot` with `Hourly.Parameters`
+- **WHEN** a `ConsensusComputed` event with `Hourly.Parameters` reaches the MQTT publisher
 - **THEN** one retained MQTT message per hour horizon is published to `{baseTopic}/{location}/consensus/h{N}`
 
-#### Scenario: MQTT Discovery registers consensus device
-- **WHEN** discovery runs for a location
-- **THEN** a consensus device is registered with one sensor component per (hourly parameter, hour) pair

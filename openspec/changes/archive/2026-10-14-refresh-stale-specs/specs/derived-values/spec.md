@@ -1,0 +1,108 @@
+## MODIFIED Requirements
+
+### Requirement: Beaufort scale from wind speed
+`DerivedFormulas.Beaufort` SHALL accept a `double?` wind speed in m/s and return an `int?` Beaufort number (0–12). If the input is `null`, the result SHALL be `null`. The conversion SHALL follow the standard Beaufort scale boundaries.
+
+#### Scenario: Calm wind
+- **WHEN** wind speed is 0.2 m/s
+- **THEN** the Beaufort number is 0
+
+#### Scenario: Light breeze
+- **WHEN** wind speed is 2.5 m/s
+- **THEN** the Beaufort number is 2
+
+#### Scenario: Strong gale
+- **WHEN** wind speed is 22.0 m/s
+- **THEN** the Beaufort number is 9
+
+#### Scenario: Hurricane force
+- **WHEN** wind speed is 35.0 m/s
+- **THEN** the Beaufort number is 12
+
+#### Scenario: Null input
+- **WHEN** wind speed is null
+- **THEN** the result is null
+
+### Requirement: Wind chill from temperature and wind speed
+`DerivedFormulas.WindChill` SHALL accept `double?` temperature in °C and `double?` wind speed in m/s. It SHALL return the wind chill in °C using the North American formula (T in °C, V in km/h): `13.12 + 0.6215T − 11.37V^0.16 + 0.3965TV^0.16`. Wind speed SHALL be converted from m/s to km/h internally (×3.6). If temperature > 10 °C, wind speed ≤ 4.8 km/h (≤ ~1.33 m/s), or either input is `null`, the result SHALL be `null`.
+
+#### Scenario: Cold and windy
+- **WHEN** temperature is −5.0 °C and wind speed is 5.0 m/s (18.0 km/h)
+- **THEN** the wind chill is approximately −11.0 °C (within ±0.5 °C)
+
+#### Scenario: Mild temperature
+- **WHEN** temperature is 15.0 °C and wind speed is 5.0 m/s
+- **THEN** the result is null (T > 10 °C)
+
+#### Scenario: Calm wind
+- **WHEN** temperature is −5.0 °C and wind speed is 1.0 m/s (3.6 km/h)
+- **THEN** the result is null (V ≤ 4.8 km/h)
+
+#### Scenario: Null inputs
+- **WHEN** temperature is null or wind speed is null
+- **THEN** the result is null
+
+### Requirement: Diurnal temperature amplitude
+`DerivedFormulas.DiurnalAmplitude` SHALL accept a `ForecastSeries` and a `DateTimeOffset` (now) and return `double?` — the difference between the maximum and minimum `temperature_2m` in the next 24 hours. If fewer than 2 non-null temperature points exist in the window, the result SHALL be `null`.
+
+#### Scenario: Normal diurnal range
+- **WHEN** the series has hourly points for the next 24h with min 8.0 °C and max 22.0 °C
+- **THEN** the amplitude is 14.0
+
+#### Scenario: Insufficient data
+- **WHEN** the series has fewer than 2 non-null temperature values in the next 24h
+- **THEN** the result is null
+
+### Requirement: Sunshine percentage
+`DerivedFormulas.SunshinePercent` SHALL accept a `ForecastSeries` and a `DateTimeOffset` (now) and return `double?` (0.0–100.0). It SHALL compute the ratio of `sunshine_duration` sum to total daylight seconds in the next 24 h. Daylight hours SHALL be determined by counting points where `is_day` = 1. If `sunshine_duration` is not available, the result SHALL be `null`. If no daylight hours exist, the result SHALL be `null`.
+
+#### Scenario: Full sunshine
+- **WHEN** the series shows 14h of daylight and sunshine_duration sums to 50400s (14h)
+- **THEN** the sunshine percentage is 100.0
+
+#### Scenario: Partial sunshine
+- **WHEN** the series shows 14h of daylight and sunshine_duration sums to 25200s (7h)
+- **THEN** the sunshine percentage is 50.0
+
+#### Scenario: No sunshine data
+- **WHEN** sunshine_duration is null for all points
+- **THEN** the result is null
+
+#### Scenario: No daylight
+- **WHEN** all points have is_day = 0 (polar night scenario)
+- **THEN** the result is null
+
+### Requirement: Inversion detection heuristic
+`DerivedFormulas.InversionDetected` SHALL accept `double?` pressure_msl (hPa), `double?` surface_pressure (hPa), `double?` temperature_2m (°C), and `double?` dew_point_2m (°C). It SHALL return `bool?`. An inversion is detected when `pressure_msl − surface_pressure > 3` AND `temperature_2m − dew_point_2m < 3`. If any input is `null`, the result SHALL be `null`.
+
+#### Scenario: Inversion conditions met
+- **WHEN** pressure_msl is 1020, surface_pressure is 1015, temperature is 2.0, dew_point is 1.0
+- **THEN** the result is true (gap 5 > 3, spread 1.0 < 3)
+
+#### Scenario: No inversion — dry air
+- **WHEN** pressure_msl is 1020, surface_pressure is 1015, temperature is 10.0, dew_point is 2.0
+- **THEN** the result is false (temperature − dew_point = 8.0 ≥ 3)
+
+#### Scenario: No inversion — low pressure gap
+- **WHEN** pressure_msl is 1016, surface_pressure is 1015, temperature is 2.0, dew_point is 1.0
+- **THEN** the result is false (gap 1 ≤ 3)
+
+#### Scenario: Null inputs
+- **WHEN** any of the four inputs is null
+- **THEN** the result is null
+
+### Requirement: DerivedResult aggregates all derived values and serializes to MQTT
+
+`DerivedAnalyzer.Compute(consensus, settings)` SHALL take a `ConsensusSnapshot` (not a `ModelSnapshot`) and the current `DerivedSettings`, and return a `DerivedResult` or `null` when the feature is disabled. Beaufort, wind chill, dew-point comfort, WMO description, diurnal amplitude, sunshine percentage, and inversion detection SHALL all be computed from consensus median values at configured horizons.
+
+#### Scenario: Horizon message content
+- **WHEN** derived values are computed from `ConsensusSnapshot.Hourly` medians at horizon h6
+- **THEN** the MQTT message for h6 contains beaufort, wind_chill, dewpoint_comfort, and wmo_description
+
+#### Scenario: Meta message content
+- **WHEN** derived scalar values are computed from `ConsensusSnapshot.Hourly`
+- **THEN** the meta MQTT message contains diurnal_amplitude, sunshine_pct, and inversion
+
+#### Scenario: Null values serialize as JSON null
+- **WHEN** a consensus median is null for a parameter at a horizon
+- **THEN** the derived value for that parameter is null in the JSON payload

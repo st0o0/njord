@@ -2,50 +2,43 @@
 
 ## Purpose
 
-Routing of `FetchOutcome.Failure` messages from the pipeline BroadcastHub to the SchedulerActor, with reason-based retry logic (backoff for transport errors, minimum delay for rate limiting, no retry for permanent failures).
+Routing of failed fetches from the `OpenMeteoGateway` back to the `PollScheduler`: failures carry their location and model, and the scheduler retries every failure reason with transient backoff.
 
 ## Requirements
-
-### Requirement: FetchOutcome.Failure carries location and model context
-Each `FetchOutcome.Failure` SHALL carry the `Location` (string) and `Model`
-(`WeatherModel`) of the failed fetch so downstream consumers can identify
-which (location, model) pair failed.
+### Requirement: Fetch failures carry location and model context
+Each `PollOutcome.Failure` returned by `IOpenMeteoClient.FetchAsync` SHALL carry the `Location` (string), `Model` (`WeatherModel`), `Reason` (`PollFailureReason`) and a `Detail` text of the failed fetch. The gateway SHALL forward it to the requester as `FetchForecastFailed(LocationId Location, string ModelId, PollFailureReason Reason, string? Detail)`, so the scheduler can identify which (location, model) pair failed.
 
 #### Scenario: Transport failure carries target identity
 - **WHEN** a fetch for (lucerne, icon_d2) returns HTTP 500
-- **THEN** the `FetchOutcome.Failure` carries `Location = "lucerne"` and `Model.Id = "icon_d2"`
+- **THEN** `PollScheduler` receives `FetchForecastFailed` with location `lucerne`, model id `icon_d2` and reason `Transport`
 
 #### Scenario: Rate-limited failure carries target identity
 - **WHEN** a fetch for (zurich, ecmwf_ifs025) returns HTTP 429
-- **THEN** the `FetchOutcome.Failure` carries `Location = "zurich"` and `Model.Id = "ecmwf_ifs025"`
+- **THEN** `PollScheduler` receives `FetchForecastFailed` with location `zurich`, model id `ecmwf_ifs025` and reason `RateLimited`
 
-### Requirement: The scheduler consumes failures and retries by reason
-The SchedulerActor SHALL consume `FetchOutcome.Failure` from the BroadcastHub
-and decide retry behavior based on `FetchFailureReason`:
+### Requirement: The scheduler retries failed fetches by reason
+`PollScheduler` SHALL handle `FetchForecastFailed` by reason, without touching `MissCount`, `Phase` or the learned `Cycle`:
 
-- **Transport**: treat as a miss -- increment `missCount`, schedule retry with
-  the existing exponential backoff (1m, 2m, 4m... capped at 15m).
-- **RateLimited**: schedule retry at `max(5 minutes, normal backoff)` and log
-  a warning.
-- **ModelUnavailable** or **MalformedPayload**: no retry this cycle -- log a
-  warning, wait for the next regular scheduled poll.
+- **Transport**, **ModelUnavailable** and **MalformedPayload**: record a transient failure (`TransientFailureCount + 1`) and schedule a retry after the transient backoff (1 min, 2 min, 4 min, 8 min; from the fifth consecutive transient failure on, the discovery interval), logging a warning.
+- **RateLimited**: record a transient failure and schedule the retry no earlier than 5 minutes from now, logging a warning.
 
 #### Scenario: Transport failure triggers backoff retry
-- **WHEN** a `Failure(Transport)` arrives for (lucerne, icon_d2) with current missCount = 0
-- **THEN** missCount becomes 1 and the next retry is scheduled in 1 minute
+- **WHEN** a `Transport` failure arrives for (lucerne, icon_d2) with `TransientFailureCount = 0`
+- **THEN** `TransientFailureCount` becomes 1 and the next retry is scheduled in 1 minute
 
 #### Scenario: Second transport failure doubles backoff
-- **WHEN** a `Failure(Transport)` arrives for (lucerne, icon_d2) with current missCount = 1
-- **THEN** missCount becomes 2 and the next retry is scheduled in 2 minutes
+- **WHEN** a `Transport` failure arrives for (lucerne, icon_d2) with `TransientFailureCount = 1`
+- **THEN** `TransientFailureCount` becomes 2 and the next retry is scheduled in 2 minutes
 
 #### Scenario: Rate-limited failure enforces minimum 5-minute delay
-- **WHEN** a `Failure(RateLimited)` arrives for (lucerne, icon_d2) with current missCount = 0
+- **WHEN** a `RateLimited` failure arrives for (lucerne, icon_d2) with `TransientFailureCount = 0`
 - **THEN** the next retry is scheduled in 5 minutes (not 1 minute)
 
-#### Scenario: ModelUnavailable does not trigger retry
-- **WHEN** a `Failure(ModelUnavailable)` arrives for (lucerne, icon_d2)
-- **THEN** no immediate retry is scheduled; the next poll occurs at the regular scheduled time
+#### Scenario: ModelUnavailable is retried with transient backoff
+- **WHEN** a `ModelUnavailable` failure arrives for (lucerne, icon_d2)
+- **THEN** a warning is logged and a retry is scheduled with the transient backoff
 
-#### Scenario: MalformedPayload does not trigger retry
-- **WHEN** a `Failure(MalformedPayload)` arrives for (lucerne, icon_d2)
-- **THEN** no immediate retry is scheduled; the next poll occurs at the regular scheduled time
+#### Scenario: Learned cycle survives failures
+- **WHEN** a model in Steady phase receives any failure reason
+- **THEN** its `Phase`, `Cycle` and `MissCount` are unchanged
+

@@ -45,14 +45,6 @@ AdminService gRPC service for configuration management. Replaces v1's ConfigServ
 - **WHEN** a client sends `SetSettings` with `poll_interval_seconds = 30`
 - **THEN** the RPC SHALL return `ConfigResponse` with `applied = false`
 
-### Requirement: DetailedEnrichmentConfig message
-
-`DetailedEnrichmentConfig` SHALL contain fields: `ConsensusConfig consensus`, `AlertConfig alerts`, `DerivedConfig derived`, `TrendConfig trends`, `IndexConfig indices`, `HistoryConfig history`. It SHALL NOT contain any `reserved` statements or energy-related fields. Field numbers SHALL be sequential.
-
-#### Scenario: No energy config field
-- **WHEN** `DetailedEnrichmentConfig` is inspected
-- **THEN** it SHALL have exactly 6 config fields with no gaps or reserved entries
-
 ### Requirement: IndexConfig message
 
 `IndexConfig` SHALL contain fields: `optional bool enabled`, `optional double indoor_temp`, `optional double ideal_outdoor_temp`, `optional double heat_sensitivity`, `optional double humidity_sensitivity`, `optional double wind_sensitivity`, `optional double rain_sensitivity`, `optional double running_ideal_temp_low`, `optional double running_ideal_temp_high`, `optional double bbq_min_temp`, `optional double bbq_ideal_wind_low`, `optional double bbq_ideal_wind_high`. It SHALL NOT contain `heating_base_temp`, `cooling_base_temp`, or any `reserved` statements. Field numbers SHALL be sequential starting from 1.
@@ -60,17 +52,6 @@ AdminService gRPC service for configuration management. Replaces v1's ConfigServ
 #### Scenario: IndexConfig without degree-day fields
 - **WHEN** `IndexConfig` is inspected
 - **THEN** it SHALL have 12 fields with sequential numbering and no reserved entries
-
-### Requirement: SetEnrichment updates enrichment configuration
-`AdminService.SetEnrichment` SHALL accept a `SetEnrichmentRequest` with optional fields for each enrichment type (ConsensusConfig, AlertConfig, DerivedConfig, TrendConfig, IndexConfig, HistoryConfig). It SHALL NOT contain any `reserved` statements or energy-related fields. Field numbers SHALL be sequential. Only provided sub-messages SHALL be updated; within each sub-message, only provided fields SHALL be applied.
-
-#### Scenario: Enable single enrichment
-- **WHEN** a client sends `SetEnrichment` with only `consensus: { enabled: true }`
-- **THEN** consensus SHALL be enabled; all other enrichment settings SHALL remain unchanged
-
-#### Scenario: No energy field in mutation request
-- **WHEN** `SetEnrichmentRequest` is inspected
-- **THEN** it SHALL have exactly 6 optional config fields with no gaps
 
 ### Requirement: SetBudget updates budget override
 `AdminService.SetBudget` SHALL accept a `SetBudgetRequest` with optional `int32 requests_per_month` and `int32 requests_per_minute`. When both are omitted, it SHALL clear the budget override and revert to free-tier defaults. When `requests_per_month` is provided and is ≤ 0, the RPC SHALL return `ConfigResponse` with `applied = false` and a rejection reason. When `requests_per_minute` is provided and is ≤ 0, the RPC SHALL return `ConfigResponse` with `applied = false` and a rejection reason.
@@ -119,14 +100,6 @@ All mutation RPCs SHALL return a `ConfigResponse` with `bool applied`, `NjordCon
 - **WHEN** a mutation is applied and the projected monthly API usage is above 80% and at most 100% of the monthly budget
 - **THEN** `applied` SHALL be true and `warnings` SHALL contain a message stating the projected usage percentage
 
-### Requirement: Mutation methods use WritableOptions pattern
-All mutation RPCs (`SetLocations`, `SetSettings`, `SetEnrichment`, `SetBudget`) SHALL use `IWritableOptions<NjordOptions>.Update(Action<NjordOptions>)` to apply changes. The `Update` call SHALL handle cloning, persistence, and reload. AdminService SHALL NOT manually clone options or call a separate persistence service.
-
-#### Scenario: SetEnrichment uses Update
-- **WHEN** a client calls `SetEnrichment` with `alerts.enabled = false`
-- **THEN** the service SHALL call `IWritableOptions.Update(opt => opt.Enrichment.Alerts.Enabled = false)`
-- **AND** the mutation SHALL be persisted and reloaded atomically
-
 ### Requirement: SetLocations replaces the whole location list
 `AdminService.SetLocations` SHALL accept a `SetLocationsRequest` with `repeated LocationInput locations`. Each `LocationInput` SHALL have `string name`, `double latitude`, `double longitude`, `repeated string models` (empty = use defaults). The RPC SHALL replace the entire location list atomically. It SHALL validate the resulting budget and reject if it exceeds limits.
 
@@ -146,4 +119,33 @@ All mutation RPCs (`SetLocations`, `SetSettings`, `SetEnrichment`, `SetBudget`) 
 #### Scenario: Empty list rejected
 - **WHEN** a client sends `SetLocations` with an empty list
 - **THEN** the RPC SHALL return `ConfigResponse` with `applied = false` and a rejection reason
+
+### Requirement: DetailedEnrichmentConfig carries one config per analysis feature
+`DetailedEnrichmentConfig` SHALL contain exactly the fields `ConsensusConfig consensus = 1`, `AlertConfig alerts = 2`, `DerivedConfig derived = 3`, `TrendConfig trends = 4` and `IndexConfig indices = 5`, and SHALL mark field number 6 (the removed history config) as `reserved`. It SHALL NOT contain energy-related fields.
+
+#### Scenario: No history or energy config field
+- **WHEN** `DetailedEnrichmentConfig` is inspected
+- **THEN** it has the five feature configs numbered 1–5 and `reserved 6`
+
+### Requirement: SetEnrichment updates analysis configuration
+`AdminService.SetEnrichment` SHALL accept a `SetEnrichmentRequest` with optional `ConsensusConfig consensus = 1`, `AlertConfig alerts = 2`, `DerivedConfig derived = 3`, `TrendConfig trends = 4` and `IndexConfig indices = 5`, with field number 6 `reserved`. Only provided sub-messages SHALL be updated; within each sub-message, only provided fields SHALL be applied.
+
+#### Scenario: Enable single enrichment
+- **WHEN** a client sends `SetEnrichment` with only `consensus: { enabled: true }`
+- **THEN** consensus is enabled; all other analysis settings remain unchanged
+
+#### Scenario: No history field in mutation request
+- **WHEN** `SetEnrichmentRequest` is inspected
+- **THEN** it has five optional config fields numbered 1–5 and `reserved 6`
+
+### Requirement: Mutation RPCs delegate to ConfigManager
+All mutation RPCs SHALL map their request with a `ToCommand()` extension to a `Njord.Messages` command (`SetLocations` → `UpdateLocations`, `SetSettings` → `UpdateSettings`, `SetEnrichment` → `UpdateAnalysisConfig`, `SetBudget` → `UpdateBudget`), ask the `ConfigManager` actor (`IConfigManager`) through `ActorAsk`, and map the `*Completed`/`*Rejected`/`*Failed` reply to `ConfigResponse`. `ConfigManager` SHALL validate and persist the change through `IConfigWriter.UpdateAsync` per options section. `AdminGrpcService` SHALL NOT read, clone or write options itself.
+
+#### Scenario: SetEnrichment is handled by ConfigManager
+- **WHEN** a client calls `SetEnrichment` with `alerts.enabled = false`
+- **THEN** the service asks `ConfigManager` with an `UpdateAnalysisConfig` command, and `ConfigManager` persists `Njord:Enrichment:Alerts:Enabled = false` through `IConfigWriter`
+
+#### Scenario: Rejection is mapped to the response
+- **WHEN** `ConfigManager` answers `UpdateSettingsRejected("Poll interval must be at least 60 seconds")`
+- **THEN** the RPC returns `ConfigResponse` with `applied = false` and that `rejection_reason`
 

@@ -2,67 +2,63 @@
 
 ## Purpose
 
-Polling pipeline that receives individual fetch targets from producers via MergeHub (connected by SinkRef), throttles to the request budget, fans out successful outcomes via BroadcastHub to egress and feedback consumers, and logs per-outcome structured summaries.
+The `OpenMeteoGateway` fetch stream: `FetchForecast` targets enter a source queue, are throttled to the per-minute budget, fetched with bounded parallelism, reported back to the `PollScheduler`, and successful forecasts fan out via a BroadcastHub to the `ForecastPipeline`.
 
 ## Requirements
+### Requirement: Fetch requests arrive at the gateway as FetchForecast
+`OpenMeteoGateway` (src/Njord.OpenMeteo/OpenMeteoGateway.cs, marker `IForecastGateway`) SHALL accept `FetchForecast(LocationId Location, string ModelId)` from `PollScheduler`. On receipt it SHALL remember the sender under the key `"{location}|{modelId}"`, resolve the location from `NjordOptions`, create an internal `FetchTarget` carrying the location, the model, a `CycleId` stamped with the gateway's `TimeProvider` at receipt, and the pre-computed API weight, and offer it into an internal `Source.Queue<FetchTarget>` (buffer 16, backpressure). There SHALL be no MergeHub, no SinkRef and no tick source; all poll timing is owned by `PollScheduler`. A request for a location that is not configured SHALL be answered immediately with `FetchForecastFailed(..., ModelUnavailable, ...)`.
 
-### Requirement: Targets arrive via MergeHub from producers connected by SinkRef
-The pipeline SHALL receive `WeightedTarget` elements via a `MergeHub.Source<WeightedTarget>` that producers connect to through a `SinkRef<WeightedTarget>` obtained from the PipelineActor. Each `WeightedTarget` SHALL carry a `CycleId` assigned by the producing actor. There is no tick source -- all poll timing is owned by the SchedulerActor.
-
-#### Scenario: Targets arrive from the SchedulerActor via SinkRef
-- **WHEN** the SchedulerActor's timer fires for (lucerne, icon_d2)
-- **THEN** a `WeightedTarget` for that pair is offered into the SchedulerActor's local queue, which drains through the SinkRef into the pipeline's MergeHub
+#### Scenario: Request is queued and its sender remembered
+- **WHEN** `PollScheduler` sends `FetchForecast(lucerne, "icon_d2")`
+- **THEN** the gateway stores the sender for `lucerne|icon_d2` and offers a `FetchTarget` into its queue
 
 #### Scenario: No raw queue handle crosses actor boundaries
-- **WHEN** the SchedulerActor connects to the pipeline
-- **THEN** it uses a `SinkRef<WeightedTarget>`, not a raw `ISourceQueueWithComplete`
+- **WHEN** the gateway materializes its streams
+- **THEN** no `ISourceQueueWithComplete` and no SinkRef is exposed to another actor
 
-#### Scenario: CycleId is assigned before entering the pipeline
-- **WHEN** the SchedulerActor creates a `WeightedTarget`
-- **THEN** the target carries a `CycleId` with the timestamp from when the scheduler decided to poll
+#### Scenario: CycleId is assigned when the request arrives
+- **WHEN** the gateway receives `FetchForecast` at 12:00:00 UTC
+- **THEN** the `FetchTarget` carries a `CycleId` with timestamp 12:00:00 UTC
 
-### Requirement: Outbound requests respect the per-minute budget
-The pipeline SHALL throttle outbound fetch requests using a `BudgetThrottleStage` that derives its rate from `IBudgetProvider.GetCurrentRate()`. The stage SHALL implement weighted token-bucket throttling based on the effective budget (default: 80% of `RequestsPerMinute`). The stage SHALL adapt to budget changes at runtime without re-materializing the graph. The fetch call SHALL use `SelectAsyncUnordered(2)` to limit concurrent connections to Open-Meteo to 2. Between the `SelectAsyncUnordered` output and the `BroadcastHub` sink, the pipeline SHALL include a `Buffer(32, OverflowStrategy.Backpressure)` stage to decouple HTTP fetch throughput from downstream processing speed.
+#### Scenario: Unknown location fails fast
+- **WHEN** `FetchForecast` names a location that is not configured
+- **THEN** the sender receives `FetchForecastFailed` with reason `ModelUnavailable` and nothing is queued
+
+### Requirement: Gateway fetches respect the per-minute budget
+The gateway's fetch stream SHALL be `Source.Queue<FetchTarget> → GatewayThrottleStage → SelectAsyncUnordered(2, IOpenMeteoClient.FetchAsync) → Sink.ActorRef(Self)`. `GatewayThrottleStage` SHALL release targets according to a weighted token bucket whose rate comes from `IBudgetProvider.GetCurrentRate()` (80 % of the effective `RequestsPerMinute`) and is refreshed at most every 5 seconds, so budget changes apply without re-materializing the stream. `SelectAsyncUnordered(2)` SHALL limit concurrent Open-Meteo connections to 2. The fetch stream SHALL use `StreamSupervision.LoggingDecider`.
 
 #### Scenario: Throttle rate derived from budget
 - **WHEN** the effective budget is 600 req/min (free tier)
-- **THEN** the stage SHALL throttle at 480 weighted cost-units per minute (80% politeness margin)
+- **THEN** the throttle releases at most 480 weighted cost-units per minute (80 % politeness margin)
 
 #### Scenario: Budget override changes throttle rate at runtime
-- **WHEN** the user sets a `BudgetOverride` of 60 req/min via gRPC
-- **THEN** the stage SHALL adapt to 48 cost-units per minute within 5 seconds
+- **WHEN** the budget override is set to 60 req/min via gRPC `SetBudget`
+- **THEN** the throttle adapts to 48 cost-units per minute within 5 seconds, without re-materializing the stream
 
 #### Scenario: Maximum 2 concurrent HTTP calls
-- **WHEN** the throttle releases 2 targets within the same second
-- **THEN** `SelectAsyncUnordered(2)` processes both concurrently but does not start a third until one completes
+- **WHEN** the throttle releases 3 targets within the same second
+- **THEN** `SelectAsyncUnordered(2)` runs two fetches concurrently and starts the third only when one completes
 
-#### Scenario: Fetch is inlined in the pipeline graph
-- **WHEN** the PipelineActor materializes the pipeline
-- **THEN** the fetch logic is a direct `SelectAsyncUnordered` call to `IOpenMeteoClient.FetchAsync`, not a separate `FetchStage.Create()` flow
+### Requirement: Successful forecasts fan out via BroadcastHub and every fetch reports back
+Each fetch result SHALL come back to the gateway actor, which SHALL look up the remembered sender for its key and reply: on `PollOutcome.Success` with `FetchForecastCompleted(location, modelId, hash)`, where `hash` is `ForecastDataHash.Compute(forecast, timeProvider)`, and on `PollOutcome.Failure` with `FetchForecastFailed(location, modelId, reason, detail)`. Every successful `Forecast` SHALL then be offered into a second `Source.Queue<Forecast>` (buffer 16, `DropHead`) that feeds a `BroadcastHub<Forecast>` (buffer size 2); failures SHALL NOT reach the hub. The gateway SHALL NOT deduplicate by hash: unchanged forecasts still reach the hub. On `RequestForecastStream(RequestId)` the gateway SHALL reply `RequestForecastStreamCompleted(RequestId, SourceRef<Forecast>)`, or `RequestForecastStreamFailed` when the hub is not materialized or the SourceRef cannot be created. A slow or absent consumer (for example the MQTT broker being down) MUST NOT stall fetching.
 
-#### Scenario: Buffer decouples fetch from downstream processing
-- **WHEN** downstream consumers are slow to process fetch results
-- **THEN** the Buffer(32) accepts completed results without backpressuring the SelectAsync slots, allowing HTTP requests to continue at the token-bucket rate
-
-#### Scenario: Buffer applies backpressure when full
-- **WHEN** 32 fetch results are buffered and downstream has not consumed any
-- **THEN** the pipeline backpressures the fetch stage until at least one result is consumed
-
-### Requirement: Fetch outcomes fan out via BroadcastHub to egress and feedback consumers
-The pipeline SHALL broadcast each `FetchOutcome` via a `BroadcastHub` with `bufferSize: 2`. The EgressActor SHALL consume the BroadcastHub via a `SourceRef` and map outcomes to `MqttMessage`(s) for MQTT publish. The PipelineActor SHALL materialize a local feedback consumer that computes a data hash and sends it to the SchedulerActor via Ask. Egress unavailability (broker down) MUST NOT fail or stall the fetch pipeline -- the BroadcastHub decouples the two paths.
-
-#### Scenario: Egress receives outcome via BroadcastHub SourceRef
+#### Scenario: Success reaches the hub and the requester
 - **WHEN** a fetch for (lucerne, icon_d2) succeeds
-- **THEN** the `FetchOutcome.Success` is broadcast via BroadcastHub and received by the EgressActor's consumer graph
+- **THEN** the requester receives `FetchForecastCompleted` with the forecast data hash and the forecast is offered to the `BroadcastHub<Forecast>`
 
-#### Scenario: Feedback consumer computes hash and asks scheduler
-- **WHEN** a fetch for (lucerne, icon_d2) succeeds
-- **THEN** the feedback consumer computes a `HashResult` and sends it to the SchedulerActor via Ask
+#### Scenario: Failure reaches only the requester
+- **WHEN** a fetch for (lucerne, icon_d2) fails with `Transport`
+- **THEN** the requester receives `FetchForecastFailed` with reason `Transport` and nothing is offered to the hub
 
-#### Scenario: Ask flow provides backpressure via BroadcastHub
-- **WHEN** the SchedulerActor is processing a previous HashResult
-- **THEN** the feedback consumer waits for Ack; BroadcastHub propagates this as backpressure to the pipeline
+#### Scenario: Unchanged forecast still reaches the pipeline
+- **WHEN** two consecutive fetches return identical data
+- **THEN** both forecasts are offered to the hub
+
+#### Scenario: Pipeline requests the forecast stream
+- **WHEN** `ForecastPipeline` sends `RequestForecastStream(id)`
+- **THEN** the gateway replies `RequestForecastStreamCompleted(id, sourceRef)`
 
 #### Scenario: Broker outage does not stall fetching
 - **WHEN** the MQTT broker is unreachable
-- **THEN** the pipeline continues fetching; the egress consumer handles the failure independently
+- **THEN** the gateway keeps fetching; downstream consumers handle the failure independently
+

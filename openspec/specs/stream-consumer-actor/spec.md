@@ -3,28 +3,7 @@
 ## Purpose
 
 Base class for actors that resolve upstream dependencies via `GetActorAsync`, watch them, request StreamRefs, materialize a stream graph, and re-resolve on `Terminated`. Encapsulates dead-ref detection, exponential backoff retry, request-id correlation for stale-response filtering, dependency-only Terminated filtering, and `SharedKillSwitch`-based stream graph lifecycle.
-
 ## Requirements
-
-### Requirement: StreamConsumerActor provides a dependency-resolution state machine
-The `StreamConsumerActor` base class SHALL implement a two-phase state machine: `WaitingForRefs` and `Ready`. On initial startup, `ResolveDependencies()` SHALL resolve all dependencies **synchronously** via `Context.GetActor<T>()` in the constructor, call `MaterializeGraph(killSwitch)`, and enter `Ready` directly — no `WaitingForRefs` phase on first start. The `WaitingForRefs` state SHALL only be entered on **runtime recovery** after a `Terminated` event (re-resolve after a dependency crashes). In `WaitingForRefs`, the base SHALL handle `RetryResolve`, `Terminated`, and stash unrecognized messages via `ReceiveAny`. The subclass SHALL register its typed `*Resolved` and `*Response` handlers by overriding `ConfigureWaitingForRefs()`. In `Ready`, the base SHALL handle `Terminated` and the subclass MAY register additional handlers by overriding `ConfigureReady()`. The base SHALL only track SourceRef dependencies — subclasses SHALL NOT request or track SinkRefs. The `AllRefsReady()` check SHALL only verify SourceRef availability.
-
-#### Scenario: Actor starts in Ready after sync resolution
-- **WHEN** the actor starts
-- **THEN** it calls `ResolveDependencies()` synchronously, calls `MaterializeGraph`, and enters `Ready`
-
-#### Scenario: No WaitingForRefs phase on initial startup
-- **WHEN** the actor starts for the first time
-- **THEN** it does NOT enter `WaitingForRefs` and does NOT stash messages
-
-#### Scenario: Terminated triggers async re-resolve via WaitingForRefs
-- **WHEN** a tracked dependency sends `Terminated` during `Ready`
-- **THEN** the actor enters `WaitingForRefs` and resolves dependencies asynchronously (GetActorAsync + PipeTo)
-
-#### Scenario: Messages stashed during WaitingForRefs
-- **WHEN** an unrecognized message arrives during `WaitingForRefs` (runtime recovery)
-- **THEN** it is stashed and replayed on transition to `Ready`
-
 ### Requirement: StreamConsumerActor tracks watched dependencies explicitly
 The base SHALL maintain a `HashSet<IActorRef>` of explicitly tracked dependencies. The subclass SHALL call `TrackDependency(IActorRef)` in its `*Resolved` handlers. `TrackDependency` SHALL add the ref to the set and call `Context.Watch(ref)`. In `HandleTerminated`, the base SHALL ignore any `Terminated` message whose `ActorRef` is NOT in the tracked set. This prevents StreamSupervisor child termination or other internal actor deaths from triggering dependency re-resolution.
 
@@ -82,30 +61,30 @@ The base SHALL create a `SharedKillSwitch` (via `KillSwitches.Shared`) and pass 
 - **THEN** the StreamSupervisor child actors terminate gracefully and the parent actor remains alive
 
 ### Requirement: StreamConsumerActor HandleTerminated flow
-On `Terminated` for a tracked dependency, the base SHALL execute in order: (1) remove the ref from `_watchedDeps`, (2) shutdown the current `_killSwitch`, (3) create a new `SharedKillSwitch`, (4) set `_lastTerminatedRef`, (5) reset `_retryCount` to 0, (6) increment the request-id counter (invalidating in-flight ids), (7) call virtual `OnDependencyLost()` for subclass cleanup, (8) call `ResolveDependencies()`, (9) transition to `WaitingForRefs`.
+On `Terminated` for a tracked dependency, the base SHALL execute in order: (1) remove the ref from the tracked set, (2) shut down the current `SharedKillSwitch`, (3) create a new `SharedKillSwitch`, (4) remember the ref as the last terminated ref, (5) reset the retry count to 0, (6) increment the request-id counter (invalidating in-flight ids), and (7) send itself an internal recovery message. Handling that message SHALL (8) call the virtual `OnDependencyLost()` for subclass cleanup, (9) enter `WaitingForRefs` if the actor was `Ready`, and (10) call `ResolveDependencies()`.
 
 #### Scenario: Full HandleTerminated sequence
 - **WHEN** `HandleTerminated` fires for a tracked dependency
-- **THEN** it executes steps 1–9 in order and the actor is in `WaitingForRefs`
+- **THEN** it executes steps 1–7, and after the recovery message steps 8–10, leaving the actor in `WaitingForRefs`
 
 #### Scenario: Request-id counter incremented in HandleTerminated
 - **WHEN** `HandleTerminated` fires
-- **THEN** the request-id counter is incremented before `ResolveDependencies` (step 6 before step 8)
+- **THEN** the request-id counter is incremented before `ResolveDependencies` runs
 
 #### Scenario: OnDependencyLost hook called
 - **WHEN** `HandleTerminated` fires
 - **THEN** the subclass's `OnDependencyLost()` runs before re-resolution
 
 ### Requirement: StreamConsumerActor request/response messages carry a correlation RequestId
-All `Request*` messages sent by `StreamConsumerActor` subclasses to upstream actors SHALL carry a `long RequestId` field. The corresponding `*Response` messages SHALL echo the same `RequestId` back. The affected message pairs are: `RequestPipelineSource`/`PipelineSourceResponse`, `RequestModelStateSource`/`ModelStateSourceResponse`, `RequestEnrichmentSource`/`EnrichmentSourceResponse`. SinkRef request/response pairs (`RequestPipelineSink`, `RequestEgressSink`, `RequestMqttSink` and their responses) are removed — the base class SHALL NOT send or handle SinkRef requests.
+Every handshake request a `StreamConsumerActor` subclass sends upstream SHALL carry a `long RequestId`, and the replies SHALL echo it. Today the only such pair is `RequestPipelineOutput(long RequestId)` answered by `RequestPipelineOutputCompleted(RequestId, SourceRef)` or `RequestPipelineOutputFailed(RequestId, Cause)` (src/Njord.Core/Actors/StreamWiringMessages.cs), used by `MqttStatePublisher` and `ForecastReadModel` towards `ForecastPipeline`. The base class SHALL NOT send or handle SinkRef requests.
 
 #### Scenario: Request carries RequestId
-- **WHEN** a subclass sends `RequestPipelineSource` to `PipelineActor`
+- **WHEN** a subclass sends `RequestPipelineOutput` to `ForecastPipeline`
 - **THEN** the message contains a `long RequestId` generated by `NextRequestId()`
 
 #### Scenario: Response echoes RequestId
-- **WHEN** `PipelineActor` receives `RequestPipelineSource(RequestId: 42)`
-- **THEN** it responds with `PipelineSourceResponse(RequestId: 42, SourceRef: ...)`
+- **WHEN** `ForecastPipeline` receives `RequestPipelineOutput(42)`
+- **THEN** it responds with `RequestPipelineOutputCompleted(42, sourceRef)`
 
 ### Requirement: StreamConsumerActor base class provides NextRequestId
 The base class SHALL expose a `protected long NextRequestId()` method that returns a monotonically incrementing value. `HandleTerminated` SHALL increment the counter, which invalidates all request ids that are currently in-flight.
@@ -119,23 +98,39 @@ The base class SHALL expose a `protected long NextRequestId()` method that retur
 - **THEN** any subsequent response carrying the old id will not match the subclass's stored id
 
 ### Requirement: StreamConsumerActor subclasses filter stale responses by RequestId
-Each subclass SHALL store the `long` request id it sent per request type in a private field. In the `*Response` handler, the subclass SHALL compare `response.RequestId` against the stored id and silently return if they differ. Only SourceRef responses are relevant — SinkRef response filtering is removed.
+Each subclass SHALL store the `long` request id it sent per request type in a private field. In the handshake reply handlers, the subclass SHALL compare the reply's `RequestId` with the stored id and silently return if they differ.
 
 #### Scenario: Stale SourceRef response with wrong RequestId is dropped
-- **WHEN** a `PipelineSourceResponse(RequestId: 1)` arrives but the subclass sent `RequestPipelineSource(RequestId: 2)`
-- **THEN** the handler silently returns without setting `_sourceRef` or calling `TryTransition`
+- **WHEN** a `RequestPipelineOutputCompleted(1, ...)` arrives but the subclass sent `RequestPipelineOutput(2)`
+- **THEN** the handler silently returns without storing the SourceRef or calling `TryTransition`
 
 #### Scenario: Fresh response with matching RequestId is accepted
-- **WHEN** a `PipelineSourceResponse(RequestId: 2)` arrives and the subclass sent `RequestPipelineSource(RequestId: 2)`
-- **THEN** the handler sets `_sourceRef` and calls `TryTransition`
+- **WHEN** a `RequestPipelineOutputCompleted(2, ...)` arrives and the subclass sent `RequestPipelineOutput(2)`
+- **THEN** the handler stores the SourceRef and calls `TryTransition`
 
 ### Requirement: StreamConsumerActor subclasses resolve initial dependencies synchronously
-Subclasses SHALL override a sync resolution method that returns actor refs resolved via `Context.GetActor<T>()`. This method SHALL be called once during construction. The async `ResolveDependencies()` path (GetActorAsync + PipeTo) SHALL only be used during runtime recovery after `Terminated`.
+Subclasses SHALL override `ResolveInitialDependencies()` to resolve their upstream actors with `Context.GetActor<T>()` and call `TrackDependency` for each. The base SHALL call it exactly once, in `PreStart`, before `RequestSourceRefs()`. The async `ResolveDependencies()` path (`GetActorAsync` + `PipeTo`) SHALL only be used during runtime recovery after `Terminated`.
 
 #### Scenario: Subclass provides sync refs at construction
-- **WHEN** the base class constructs
-- **THEN** the subclass's sync resolution method is called and returns all required actor refs
+- **WHEN** the actor starts
+- **THEN** `ResolveInitialDependencies()` runs once and resolves all required actor refs synchronously
 
 #### Scenario: Missing registry key at startup crashes the actor
-- **WHEN** `Context.GetActor<T>()` throws `MissingActorRegistryEntryException` during construction
-- **THEN** the actor fails to start (constructor exception) and the supervisor handles the restart
+- **WHEN** `Context.GetActor<T>()` throws `MissingActorRegistryEntryException` during start
+- **THEN** the actor fails to start and its supervisor handles the restart
+
+### Requirement: StreamConsumerActor runs a WaitingForRefs/Ready state machine from the start
+The `StreamConsumerActor` base class (src/Njord.Core/Actors/StreamConsumerActor.cs) SHALL implement a two-phase state machine, `WaitingForRefs` and `Ready`. In `PreStart` it SHALL create the actor-scoped materializer, call the subclass's `ResolveInitialDependencies()` (synchronous `Context.GetActor<T>()`), enter `WaitingForRefs` and call `RequestSourceRefs()`. The actor SHALL stay in `WaitingForRefs`, stashing unrecognized messages, until `TryTransition()` finds all SourceRefs ready, materializes the graph and enters `Ready`. `WaitingForRefs` SHALL also be re-entered on runtime recovery after a tracked dependency terminates; then dependencies are resolved asynchronously through `ResolveDependencies()` (`GetActorAsync` + `PipeTo`). In `WaitingForRefs` the base SHALL handle `RetryResolve`, `Terminated` and its internal recovery message and the subclass SHALL register its `*Resolved` and handshake handlers through `ConfigureWaitingForRefs()`; in `Ready` the base SHALL handle `Terminated` and the subclass MAY add handlers through `ConfigureReady()`. The base SHALL only track SourceRef dependencies; subclasses SHALL NOT request SinkRefs.
+
+#### Scenario: Startup waits for the first SourceRef
+- **WHEN** the actor starts
+- **THEN** it resolves its dependencies synchronously, requests its SourceRefs and stays in `WaitingForRefs` until they arrive
+
+#### Scenario: Messages stashed until the graph is materialized
+- **WHEN** a query arrives before the first SourceRef is received
+- **THEN** it is stashed and replayed on the transition to `Ready`
+
+#### Scenario: Terminated triggers async re-resolve via WaitingForRefs
+- **WHEN** a tracked dependency sends `Terminated` during `Ready`
+- **THEN** the actor enters `WaitingForRefs` and resolves dependencies asynchronously (`GetActorAsync` + `PipeTo`)
+

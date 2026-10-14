@@ -1,16 +1,14 @@
 ## Purpose
 
 Defines the Docker Compose stack (njord plus Home Assistant with ha-njord) used for end-to-end tests, its clean-slate startup and its minimal but fully enriched configuration.
-
 ## Requirements
-
 ### Requirement: Docker Compose E2E stack definition
 
 `e2e/docker-compose.e2e.yml` SHALL define a two-service stack: njord (built from the repo's Dockerfile) and Home Assistant (official stable image with ha-njord mounted).
 
 #### Scenario: njord service
 - **WHEN** the stack starts
-- **THEN** njord is built from the repo root Dockerfile, exposes ports 8080 (HTTP) and 8081 (gRPC), and is configured with 1 location (lucerne, 47.05/8.31), 2 models (icon_d2 + ecmwf_ifs025), and all 6 enrichments enabled
+- **THEN** njord is built from the repo root Dockerfile, exposes ports 8080 (HTTP) and 8081 (gRPC), and is configured with 1 location (lucerne, 47.05/8.31), 2 models (icon_d2 + ecmwf_ifs025), and all 5 analysis features enabled
 
 #### Scenario: Home Assistant service
 - **WHEN** the stack starts
@@ -38,8 +36,9 @@ The njord configuration in the E2E stack SHALL be minimal (1 location, 2 models)
 
 #### Scenario: Enrichment features
 - **WHEN** njord starts in the E2E stack
-- **THEN** consensus, alerts, derived, trends, indices, and history enrichments are all enabled
+- **THEN** consensus, alerts, derived, trends and indices are all enabled (njord has no history feature)
 
 #### Scenario: Real Open-Meteo
 - **WHEN** njord polls for forecast data
 - **THEN** it hits the real Open-Meteo API (no mock server), consuming approximately 2 API requests per poll cycle
+

@@ -1,7 +1,9 @@
 # test-shared-infrastructure Specification
 
 ## Purpose
-TBD - created by archiving change test-infrastructure-dedup. Update Purpose after archive.
+
+Shared test infrastructure in `Njord.Tests.Shared`: a common base class for actor specs, shared time constants and a `FakeTimeProvider` factory.
+
 ## Requirements
 ### Requirement: Actor specs share a base class for common setup
 Actor test specs (`*Spec` classes that extend `Akka.Hosting.TestKit.TestKit`) SHALL extend

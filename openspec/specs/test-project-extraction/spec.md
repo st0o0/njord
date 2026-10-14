@@ -1,46 +1,33 @@
 ## Purpose
 
 Defines the extraction of feature-library specs into dedicated test projects, leaving only host-specific tests in Njord.Tests, with all test projects included in the solution.
-
 ## Requirements
-
-### Requirement: Each feature library SHALL have a dedicated test project
-
-Every feature library (`Njord.Mqtt`, `Njord.Enrichment`, `Njord.Ingest`,
-`Njord.SensorHub`) SHALL have a corresponding `Njord.<Name>.Tests` project
-containing all specs for that library.
-
-#### Scenario: Mqtt specs live in Njord.Mqtt.Tests
-- **WHEN** listing test files for Mqtt functionality
-- **THEN** all Mqtt specs (11 files + 12 Verify snapshots + 1 Presentation subfolder) reside in `src/Njord.Mqtt.Tests/`
-
-#### Scenario: Enrichment specs live in Njord.Enrichment.Tests
-- **WHEN** listing test files for Enrichment functionality
-- **THEN** all Enrichment specs (10 files including Features subfolder) reside in `src/Njord.Enrichment.Tests/`
-
-#### Scenario: Ingest specs live in Njord.Ingest.Tests
-- **WHEN** listing test files for Ingest functionality
-- **THEN** `OpenMeteoClientSpec.cs` resides in `src/Njord.Ingest.Tests/`
-
-#### Scenario: SensorHub specs live in Njord.SensorHub.Tests
-- **WHEN** listing test files for SensorHub functionality
-- **THEN** `SensorHubActorSpec.cs` resides in `src/Njord.SensorHub.Tests/`
-
 ### Requirement: Host test project SHALL contain only host-specific tests
-
-`Njord.Tests` SHALL contain only tests that exercise host-level concerns:
-Configuration, Health, Pipeline integration, Persistence golden masters,
-and the Actors helper.
+`Njord.Tests` SHALL contain only tests that exercise host-level concerns: the `ConfigManager` actor and the binding of the host's options configuration.
 
 #### Scenario: Njord.Tests has no Mqtt or Enrichment specs
 - **WHEN** listing files in `src/Njord.Tests/`
-- **THEN** no `Mqtt/` or `Enrichment/` or `Ingest/` or `SensorHub/` subdirectories exist
+- **THEN** they live under `Configuration/` and no `Mqtt/`, `Pipeline/`, `Grpc/` or analysis subdirectories exist
 
-### Requirement: All new test projects SHALL be in the solution
+### Requirement: Each production library SHALL have a dedicated test project
+Every production library (`Njord.Weather`, `Njord.Sensors`, `Njord.Persistence`, `Njord.Compute`, `Njord.Core`, `Njord.OpenMeteo`, `Njord.Budget`, `Njord.SensorHub`, `Njord.Pipeline`, `Njord.Mqtt`, `Njord.Grpc`, `Njord.Alerts`, `Njord.Derived`, `Njord.Trends`, `Njord.Indices`) except the contract-only `Njord.Messages` SHALL have a corresponding `Njord.<Name>.Tests` project containing the specs for that library.
 
-Every new test project SHALL be added to `Njord.slnx` and picked up by the
-`Njord.*.Tests` wildcard in architecture test references.
+#### Scenario: Mqtt specs live in Njord.Mqtt.Tests
+- **WHEN** listing test files for MQTT functionality
+- **THEN** they reside in `src/Njord.Mqtt.Tests/`
+
+#### Scenario: OpenMeteo specs live in Njord.OpenMeteo.Tests
+- **WHEN** listing test files for the Open-Meteo client
+- **THEN** `OpenMeteoClientSpec.cs` resides in `src/Njord.OpenMeteo.Tests/`
+
+#### Scenario: SensorHub specs live in Njord.SensorHub.Tests
+- **WHEN** listing test files for SensorHub functionality
+- **THEN** they reside in `src/Njord.SensorHub.Tests/`
+
+### Requirement: All test projects SHALL be in the solution
+Every test project SHALL be added to `Njord.slnx` and picked up by the `Njord.*.Tests` wildcard in the architecture test references.
 
 #### Scenario: Solution includes all test projects
 - **WHEN** running `dotnet build src/Njord.slnx`
-- **THEN** all four new test projects build successfully
+- **THEN** every `Njord.*Tests` project builds successfully
+

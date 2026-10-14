@@ -68,13 +68,6 @@ The system SHALL define a `SensorSnapshot` record containing the aggregated sens
 - **WHEN** a `SensorService.Push` or `StreamPush` gRPC request includes a `MeasuredAt` field
 - **THEN** the service SHALL use the provided timestamp, ignoring `TimeProvider`
 
-### Requirement: HistoryAnalyzer TimeProvider is non-optional
-`HistoryAnalyzer.ModelAccuracy` SHALL require a non-null `TimeProvider` parameter. It SHALL NOT fall back to `TimeProvider.System` when the parameter is null.
-
-#### Scenario: Null TimeProvider is a compile error
-- **WHEN** a caller invokes `HistoryAnalyzer.ModelAccuracy` without a `TimeProvider`
-- **THEN** the code SHALL fail to compile (non-nullable parameter)
-
 ### Requirement: SensorOptions configuration
 The system SHALL define a `SensorOptions` configuration class with `Enabled` (default: true) and `StalenessSeconds` (default: 7200). Validation SHALL ensure `StalenessSeconds` is positive.
 
@@ -87,20 +80,20 @@ The system SHALL define a `SensorOptions` configuration class with `Enabled` (de
 - **THEN** startup validation SHALL fail with an appropriate error message
 
 ### Requirement: SensorHub actor stores and aggregates the latest readings
-The SensorHub actor SHALL store the most recent `SensorReading` per unique key of (Location, SensorKind, Source). It SHALL accept `UpdateReading` messages to store new readings and `QuerySensorSnapshot` messages to return the current aggregated state for a location as `SensorSnapshotFound`, or `SensorSnapshotNotFound` when the location has no readings.
+The SensorHub actor SHALL store the most recent `SensorReading` per unique key of (Location, SensorKind, Source). It SHALL accept `UpdateReading` messages to store new readings and `QuerySensorSnapshot` messages to return the current aggregated state for a location as `SensorSnapshotResult`, or `SensorSnapshotNotAvailable` when the location has no readings.
 
 #### Scenario: Store and retrieve a single reading
 - **WHEN** a reading `(Location="Luzern", Kind=IndoorTemperature, Source="wohnzimmer", Value=23.5)` is stored
 - **AND** a `QuerySensorSnapshot("Luzern")` is requested
-- **THEN** the reply SHALL be `SensorSnapshotFound` containing `IndoorTemperature` with value `23.5` and source count `1`
+- **THEN** the reply SHALL be `SensorSnapshotResult` containing `IndoorTemperature` with value `23.5` and source count `1`
 
 #### Scenario: Multiple sources aggregated by Average
 - **WHEN** readings `(Luzern, IndoorTemperature, "wohnzimmer", 23.5)` and `(Luzern, IndoorTemperature, "schlafzimmer", 21.0)` are stored
 - **AND** a `QuerySensorSnapshot("Luzern")` is requested
-- **THEN** the reply SHALL be `SensorSnapshotFound` containing `IndoorTemperature` with value `22.25` and source count `2`
+- **THEN** the reply SHALL be `SensorSnapshotResult` containing `IndoorTemperature` with value `22.25` and source count `2`
 
 #### Scenario: QuerySensorSnapshot for location with no readings
 - **WHEN** a `QuerySensorSnapshot("Unknown")` is requested
 - **AND** no readings exist for that location
-- **THEN** the reply SHALL be `SensorSnapshotNotFound`
+- **THEN** the reply SHALL be `SensorSnapshotNotAvailable`
 

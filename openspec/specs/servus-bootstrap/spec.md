@@ -3,22 +3,27 @@
 ## Purpose
 
 Structured startup using Servus setup containers: service DI registrations and Akka.NET actor system configuration are encapsulated in domain-specific container classes, keeping Program.cs minimal.
-
 ## Requirements
-
 ### Requirement: Service setup container registers all non-actor DI services
-The system SHALL distribute DI registrations across domain-specific `IServiceSetupContainer` implementations instead of a single `NjordServiceSetup`. Each domain container SHALL own its options binding, service registrations, and health checks. The monolithic `NjordServiceSetup` SHALL be removed.
+The system SHALL distribute DI registrations across domain-specific `IServiceSetupContainer` implementations instead of a single `NjordServiceSetup`. Each container SHALL own its options binding and service registrations. The monolithic `NjordServiceSetup` SHALL be removed.
 
 #### Scenario: Options are bound through domain containers
 - **WHEN** the application starts
-- **THEN** `NjordOptions` and `SensorOptions` are bound via `CoreSetupContainer`, and `EnrichmentOptions` via `EnrichmentSetupContainer`, each with `ValidateOnStart` enabled
+- **THEN** `NjordOptions` is bound by `CoreSetupContainer`, `PollingOptions` and `ConsensusOptions` by `PipelineSetupContainer`, `SensorOptions` by `SensorSetupContainer`, and the alert, derived, trend and index options by the feature libraries' `Add*()` extensions, each with `ValidateOnStart` enabled
 
 #### Scenario: Ingest and egress registrations are present
 - **WHEN** the application starts
-- **THEN** `IOpenMeteoClient` is resolvable (via `IngestSetupContainer`), and `IMqttConnection`/`IMqttTransport` are resolvable when MQTT is enabled (via `MqttSetupContainer`)
+- **THEN** `IOpenMeteoClient` is resolvable (via `OpenMeteoSetupContainer`), and `IMqttConnection`/`IMqttTransport` are resolvable when MQTT is enabled (via `MqttSetupContainer`)
 
-### Requirement: Actor system setup container configures Akka.NET
-The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupContainer` that configures persistence, cluster formation, remoting, and logging infrastructure. Domain actors SHALL be registered via `IActorRegistration` instances resolved from DI, not directly in this container.
+### Requirement: Program.cs delegates to setup containers
+The `Program.cs` entry point SHALL chain domain-specific setup containers via `AppBuilder.WithSetup<T>()`. It SHALL NOT contain a monolithic `NjordServiceSetup`.
+
+#### Scenario: Domain containers in Program.cs
+- **WHEN** the application is started
+- **THEN** `Program.cs` chains `CoreSetupContainer`, `OpenMeteoSetupContainer`, `BudgetSetupContainer`, `SensorSetupContainer`, `PipelineSetupContainer`, `AnalysisSetupContainer`, `MqttSetupContainer`, `GrpcSetupContainer`, `AkkaSetupContainer`, and `NjordApplicationSetup`, in this order
+
+### Requirement: AkkaSetupContainer configures the actor system infrastructure
+The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupContainer` that names the actor system `njord` and configures logging, SQL persistence, remoting and cluster formation. Domain actors SHALL be registered via `IActorRegistration` instances resolved from DI, not directly in this container.
 
 #### Scenario: Actor system name is "njord"
 - **WHEN** the actor system setup container builds the system
@@ -26,11 +31,11 @@ The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupCont
 
 #### Scenario: All top-level actors are registered via IActorRegistration
 - **WHEN** the actor system is started
-- **THEN** all actors previously registered in `NjordActorSystemSetup` SHALL be registered through `IActorRegistration` implementations from domain containers
+- **THEN** every top-level actor is registered through an `IActorRegistration` from a setup container
 
-#### Scenario: Persistence HOCON is applied
+#### Scenario: Persistence is configured from the persistence options
 - **WHEN** the actor system setup container builds the system
-- **THEN** the journal and snapshot-store plugins are configured with the persistence path from `NjordOptions`
+- **THEN** `WithSqlPersistence` uses `PersistenceOptions.ConnectionString`, or for SQLite without a connection string `Data Source=` the full path of `StorageOptions.PersistencePath`, with the provider from `PersistenceOptions.Provider`
 
 #### Scenario: Cluster forms via SeedNodes before singletons start
 - **WHEN** the actor system setup container builds the system
@@ -44,20 +49,10 @@ The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupCont
 - **WHEN** the actor system is started
 - **THEN** there is no `cluster.Join(selfAddress)` call in a `WithActors` callback — the `SeedNodes` configuration handles cluster formation
 
-#### Scenario: Stream shutdown task is registered independently
-- **WHEN** the actor system setup container registers actors
-- **THEN** `AddStreamShutdownTask` is registered via the `PipelineSetupContainer`'s `IActorRegistration`, not directly in the `AkkaSetupContainer`
-
-### Requirement: Program.cs delegates to setup containers
-The `Program.cs` entry point SHALL chain domain-specific setup containers via `AppBuilder.WithSetup<T>()`. It SHALL NOT contain a monolithic `NjordServiceSetup`.
-
-#### Scenario: Domain containers in Program.cs
-- **WHEN** the application is started
-- **THEN** `Program.cs` chains `CoreSetupContainer`, `IngestSetupContainer`, `SensorSetupContainer`, `PipelineSetupContainer`, `EgressSetupContainer`, `EnrichmentSetupContainer`, `MqttSetupContainer`, `GrpcSetupContainer`, `AkkaSetupContainer`, and `NjordApplicationSetup`
-
-### Requirement: Top-level actors use WithResolvableActors
-All singleton actors SHALL be registered via `WithResolvableActors` or `WithClusterSingleton` within their domain's `IActorRegistration`. ShardRegion actors SHALL be registered via `WithShardRegion`.
+### Requirement: Top-level actors are cluster singletons registered per feature
+Every long-lived domain actor SHALL be registered as a cluster singleton with `WithSingleton<TMarker>` inside its feature's `IActorRegistration`; `ConfigManager` is the one exception and SHALL be created with `WithActors` and registered in the `ActorRegistry` under `IConfigManager`. No actor SHALL be registered as a ShardRegion.
 
 #### Scenario: Actor names are preserved
-- **WHEN** actors are registered via domain `IActorRegistration` implementations
-- **THEN** the actor paths SHALL remain unchanged from their current values
+- **WHEN** actors are registered via feature `IActorRegistration` implementations
+- **THEN** they use the singleton names `scheduler-supervisor`, `pipeline`, `forecast-read-model`, `gateway-supervisor`, `budget-tracker-supervisor`, `sensor-hub`, `mqtt-connection` and `mqtt-state`, and `ConfigManager` is named `config-manager`
+

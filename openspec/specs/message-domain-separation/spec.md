@@ -25,29 +25,12 @@ The Njord.Messages project SHALL NOT have a package reference to any Akka packag
 Messages related to MQTT connection lifecycle SHALL be defined in the `Njord.Messages.Mqtt` namespace within the Njord.Messages project. This SHALL include connection state notifications and inbound subscription management.
 
 #### Scenario: MQTT connected notification is a shared message
-- **WHEN** MqttConnectionActor establishes a broker connection
+- **WHEN** MqttConnection establishes a broker connection
 - **THEN** it SHALL notify listeners using a message type defined in Njord.Messages.Mqtt
 
 #### Scenario: Inbound subscription is a shared message
-- **WHEN** an actor wants to receive inbound MQTT messages from MqttConnectionActor
+- **WHEN** an actor wants to receive inbound MQTT messages from MqttConnection
 - **THEN** it SHALL send a subscription message defined in Njord.Messages.Mqtt
-
-### Requirement: Stream shutdown messages are actor-internal
-
-`StopStreams` and `StreamsStopped` SHALL be defined in `Njord.Core.Actors` as
-shared internal records for coordinated shutdown. `StreamsStopFailed` SHALL NOT
-exist — PipelineActor always replies `StreamsStopped` synchronously, and the
-`StopStreamsOf` helper in `PipelineSetupContainer` SHALL use
-`Ask<StreamsStopped>` instead of `Ask<object>` with a type check.
-
-#### Scenario: Stream shutdown messages not in shared messages
-- **WHEN** the Njord.Messages project is inspected
-- **THEN** it SHALL NOT contain StopStreams or StreamsStopped record definitions
-
-#### Scenario: Coordinated shutdown uses typed Ask
-- **WHEN** the actor system initiates coordinated shutdown
-- **THEN** `StopStreamsOf` SHALL use `Ask<StreamsStopped>` and not check for a
-  `StreamsStopFailed` variant
 
 ### Requirement: Stream wiring records stay out of shared messages
 

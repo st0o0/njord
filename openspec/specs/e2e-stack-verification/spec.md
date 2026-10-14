@@ -3,11 +3,9 @@
 ## Purpose
 
 Verifies the full njord + ha-njord + Home Assistant stack actually works together end-to-end — something unit and actor tests can't reach — via an agent-orchestrated run against real Docker containers and a real Home Assistant instance, rather than a simulated MQTT subscriber.
-
 ## Requirements
-
 ### Requirement: The e2e-test skill runs the real stack via Docker Compose
-The `e2e-test` Claude Code skill SHALL start njord, ha-njord, Home Assistant, and a Mosquitto broker via `e2e/docker-compose.e2e.yml`, and poll both njord's `/alive` and Home Assistant's root endpoint until healthy before proceeding.
+The `e2e-test` Claude Code skill SHALL start njord and Home Assistant (with the ha-njord integration mounted from the sibling `../ha-njord` checkout) via `e2e/docker-compose.e2e.yml`, and poll both njord's `/alive` and Home Assistant's root endpoint until healthy before proceeding. The stack has no MQTT broker; Home Assistant talks to njord over gRPC.
 
 #### Scenario: Stack comes up healthy
 - **WHEN** the skill runs Phase 0 (Stack Setup)
@@ -21,11 +19,11 @@ The skill SHALL complete Home Assistant onboarding (or skip if already onboarded
 - **THEN** Home Assistant SHALL report success with location/model counts, and weather entities SHALL appear in `/api/states` within 120s
 
 ### Requirement: Verification runs in parallel subagents with a FAIL re-check pass
-The skill SHALL spawn two subagents in parallel to verify different entity groups against the HA REST API, then re-run any reported FAIL itself before accepting it, to distinguish a subagent misinterpretation from a real bug.
+The skill SHALL spawn three subagents in parallel (in a single message) to verify different groups against the HA REST API and the gRPC API, then re-run any reported FAIL itself before accepting it, to distinguish a subagent misinterpretation from a real bug.
 
 #### Scenario: Parallel verification covers forecast, enrichment, connectivity, and gRPC
 - **WHEN** entities have registered
-- **THEN** one subagent verifies forecast + enrichment entities and another verifies connectivity/server-diagnostic entities + direct gRPC calls, both reporting PASS/FAIL per step
+- **THEN** subagent #1 verifies forecast and enrichment entities, #2 verifies connectivity/server-diagnostic entities and the gRPC API, and #3 verifies error handling, each reporting PASS/FAIL per step
 
 #### Scenario: Reported FAIL is independently re-checked
 - **WHEN** a subagent reports a FAIL
@@ -55,3 +53,4 @@ This skill SHALL NOT provide byte-exact MQTT discovery/state payload regression 
 #### Scenario: No MQTT payload snapshot regression detection
 - **WHEN** a code change alters an MQTT discovery or state payload's exact shape
 - **THEN** the `e2e-test` skill does not fail on this — only real HA entity-state behavior is checked
+

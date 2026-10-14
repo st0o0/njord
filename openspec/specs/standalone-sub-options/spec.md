@@ -2,11 +2,8 @@
 
 ## Purpose
 
-Lets configuration sub-sections that don't need to flow through the admin
-mutation API bind, validate, and inject independently of `NjordOptions`,
-instead of forcing every consumer to depend on the full monolithic options
-object. `Mqtt` and `Enrichment` are the deliberate exception, kept nested
-because the admin gRPC API mutates and persists `NjordOptions` as one unit.
+Lets every configuration section bind, validate and inject independently: each options type declares its own `SectionName`, has exactly one co-located validator, and is not nested inside `NjordOptions`.
+
 ## Requirements
 ### Requirement: Each sub-option has its own SectionName
 Every options type SHALL be a standalone class with a `public const string SectionName` field and SHALL be bound exactly once, to that section, with startup validation. This SHALL include at least `NjordOptions` (forecast scope), `PollingOptions`, `OpenMeteoOptions`, `StorageOptions`, `MqttOptions`, `SensorOptions`, `PersistenceOptions`, `ConsensusOptions`, `AlertOptions`, `DerivedOptions`, `TrendOptions` and `IndexOptions`. Configuration keys and environment variable names SHALL be unchanged; two options types MAY bind the same section when each reads a disjoint set of keys (e.g. `NjordOptions` and `PollingOptions` both bind `Njord`).
@@ -23,17 +20,6 @@ Every options type SHALL be a standalone class with a `public const string Secti
 - **WHEN** any production class outside configuration setup is inspected
 - **THEN** it injects only the options types whose values it reads
 
-### Requirement: GrpcOptions and SensorOptions are not nested inside NjordOptions
-No options type SHALL be a property of another options type. `NjordOptions` SHALL contain only the forecast scope: locations, default models, horizons, forecast days and the requested parameter set. `SensorOptions` SHALL be registered and validated by `Njord.SensorHub`'s setup container, not the host.
-
-#### Scenario: NjordOptions has no Grpc or Sensors property
-- **WHEN** `NjordOptions` is resolved from DI
-- **THEN** it SHALL NOT contain properties for `Grpc`, `Sensors`, `Mqtt`, `Enrichment`, `PollInterval` or `BudgetOverride`
-
-#### Scenario: SensorHubActor uses IOptions of SensorOptions
-- **WHEN** `SensorHubActor` is constructed
-- **THEN** it SHALL receive `IOptions<SensorOptions>` for sensor fallback configuration
-
 ### Requirement: Every options type has exactly one co-located validator
 Every options type SHALL have exactly one `IValidateOptions<T>` validator for that type, defined next to the options class and registered by the same setup extension that binds it. No validator SHALL validate a different options type than the one it is registered for.
 
@@ -44,4 +30,15 @@ Every options type SHALL have exactly one `IValidateOptions<T>` validator for th
 #### Scenario: Mqtt validator validates MqttOptions
 - **WHEN** `Njord:Mqtt:Enabled` is `true` and `Njord:Mqtt:Host` is missing
 - **THEN** the MQTT validator SHALL fail startup validation of `MqttOptions` naming the missing host
+
+### Requirement: Options types are not nested inside NjordOptions
+No options type SHALL be a property of another options type. `NjordOptions` SHALL contain only the forecast scope: locations, default models, horizons, forecast days and the requested parameter set. `SensorOptions` SHALL be registered and validated by `Njord.SensorHub`'s setup container, not the host. There is no `GrpcOptions` type.
+
+#### Scenario: NjordOptions has no nested sections
+- **WHEN** `NjordOptions` is resolved from DI
+- **THEN** it SHALL NOT contain properties for `Grpc`, `Sensors`, `Mqtt`, `Enrichment`, `Persistence`, `PollInterval` or `BudgetOverride`
+
+#### Scenario: SensorHub uses IOptions of SensorOptions
+- **WHEN** the `SensorHub` actor is constructed
+- **THEN** it receives `IOptions<SensorOptions>` for its staleness configuration
 

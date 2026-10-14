@@ -2,12 +2,11 @@
 
 ## Purpose
 
-Typed command protocol for the poll pipeline. Defines the sealed command hierarchy that drives refresh operations. Commands are sent to the SchedulerActor, which resolves them to weighted fetch targets and offers them into the pipeline's Source.Queue.
+Fetch command protocol between the `PollScheduler` and the `OpenMeteoGateway`: the gateway assigns each `FetchForecast` its API weight and a `CycleId` before it enters the fetch stream.
 
 ## Requirements
-
-### Requirement: Each expanded target carries a pre-calculated API weight
-The expand logic SHALL assign each `WeightedTarget` an integer weight computed as `ceil(hourlyVariableCount / 10) x ceil(forecastDays / 14)` based on the current configuration. Each `WeightedTarget` SHALL also carry a `CycleId` assigned at creation time by the SchedulerActor. All targets produced by a single timer fire or manual refresh SHALL share the same `CycleId`.
+### Requirement: The gateway assigns each fetch an API weight and a CycleId
+`OpenMeteoGateway` SHALL compute one integer API weight at construction as `ceil(hourlyVariableCount / 10) x ceil(forecastDays / 14)` from the resolved parameter set and `NjordOptions.ForecastDays`, and SHALL attach it to every internal `FetchTarget`. Each `FetchTarget` SHALL also carry a `CycleId` stamped when the gateway receives the `FetchForecast`. `PollScheduler` SHALL send only the location and model (`FetchForecast(LocationId, string ModelId)`); there is no `WeightedTarget` and no `RefreshLocation` command.
 
 #### Scenario: Default configuration yields weight 1
 - **WHEN** the configuration has 9 hourly variables and 4 forecast days
@@ -21,11 +20,7 @@ The expand logic SHALL assign each `WeightedTarget` an integer weight computed a
 - **WHEN** the configuration has 9 hourly variables and 16 forecast days
 - **THEN** each target's weight is `ceil(9/10) x ceil(16/14)` = 2
 
-#### Scenario: All targets from a scheduled poll share the same CycleId
-- **WHEN** a scheduled poll fires for (lucerne, icon_d2) at 12:00:00 UTC
-- **THEN** the offered `WeightedTarget` carries a `CycleId` with timestamp 12:00:00 UTC
-
-#### Scenario: All targets from a RefreshLocation share the same CycleId
-- **WHEN** a `RefreshLocation("lucerne")` is received with 8 models configured
-- **THEN** all 8 `WeightedTarget` elements carry the same `CycleId` timestamp
+#### Scenario: CycleId reflects the time of the request
+- **WHEN** a scheduled poll for (lucerne, icon_d2) reaches the gateway at 12:00:00 UTC
+- **THEN** the `FetchTarget` carries a `CycleId` with timestamp 12:00:00 UTC
 

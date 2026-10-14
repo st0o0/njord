@@ -3,9 +3,7 @@
 ## Purpose
 
 A single shared `IOptionsMonitor<T>` test fake, so specs that need to simulate runtime config changes don't each hand-roll their own mutable monitor.
-
 ## Requirements
-
 ### Requirement: Shared TestOptionsMonitor in Njord.Tests.Shared
 A generic `TestOptionsMonitor<T>` class SHALL exist in `Njord.Tests.Shared` that implements `IOptionsMonitor<T>`. It SHALL support an `Update(T newValue)` method that sets the current value and notifies all registered `OnChange` listeners.
 
@@ -21,9 +19,10 @@ A generic `TestOptionsMonitor<T>` class SHALL exist in `Njord.Tests.Shared` that
 - **WHEN** `Get(name)` is called
 - **THEN** it SHALL return `CurrentValue` regardless of the name
 
-### Requirement: Duplicated MutableOptionsMonitor fakes are replaced
-All duplicated `MutableOptionsMonitor` or `FakeOptionsMonitor` implementations in test files SHALL be replaced with `TestOptionsMonitor<T>` from `Njord.Tests.Shared`.
+### Requirement: Tests use the shared TestOptionsMonitor
+Tests that need an `IOptionsMonitor<T>` SHALL use `TestOptionsMonitor<T>` from `Njord.Tests.Shared`; no test project SHALL define its own `MutableOptionsMonitor` or `FakeOptionsMonitor`.
 
-#### Scenario: OpsGrpcServiceSpec uses shared fake
-- **WHEN** `OpsGrpcServiceSpec` needs an `IOptionsMonitor<NjordOptions>`
-- **THEN** it SHALL use `TestOptionsMonitor<NjordOptions>` from `Njord.Tests.Shared`
+#### Scenario: Budget provider spec uses the shared fake
+- **WHEN** `OptionsBudgetProviderSpec` needs an `IOptionsMonitor<PollingOptions>`
+- **THEN** it uses `TestOptionsMonitor<PollingOptions>` from `Njord.Tests.Shared`
+

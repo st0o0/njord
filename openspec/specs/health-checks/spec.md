@@ -5,60 +5,48 @@
 Health check implementations for the njord service: shared health state
 written by actors and read by ASP.NET health checks, MQTT connection check,
 and pipeline freshness check. All checks use `TimeProvider` for testability.
-
 ## Requirements
-
 ### Requirement: Shared health state is writable by actors
-A `NjordHealthState` class SHALL be registered as a DI singleton. Actors
-SHALL write to it using thread-safe operations. Health check classes SHALL
-read from it. No health check SHALL send messages to actors.
+A `NjordHealthMonitor` (src/Njord.Core/Health/NjordHealthMonitor.cs) SHALL be registered as a DI singleton. Actors SHALL write to it by replacing whole immutable snapshots (`UpdateMqtt`, `UpdatePoll`, `UpdateBudget`); health check classes SHALL read from it. No health check SHALL send messages to actors.
 
-`NjordHealthState` SHALL track: `IsMqttConnected` (bool),
-`MqttDisconnectedSince` (DateTimeOffset?), `LastSuccessfulPollUtc`
-(DateTimeOffset?), `ServiceStartedUtc`, budget usage, and budget limits.
+`NjordHealthMonitor` SHALL expose `Mqtt` (`MqttHealthSnapshot(IsConnected, DisconnectedSince)`), `Poll` (`PollHealthSnapshot(LastSuccessfulPollUtc)`), `Budget` (`BudgetHealthSnapshot(UsedDaily, UsedMonthly, LimitDaily, LimitMonthly)`) and `ServiceStartedUtc`.
 
-`SetMqttConnected` SHALL set `IsMqttConnected` to true and clear
-`MqttDisconnectedSince`. It SHALL NOT track a connected-since timestamp.
+On connect, `MqttConnection` SHALL write `MqttHealthSnapshot(true, null)`. There SHALL be no connected-since timestamp.
 
 #### Scenario: Actor updates health state
-- **WHEN** MqttConnectionActor connects successfully
-- **THEN** `NjordHealthState.IsMqttConnected` is set to `true` and
-  `MqttDisconnectedSince` is cleared
+- **WHEN** `MqttConnection` connects successfully
+- **THEN** `NjordHealthMonitor.Mqtt.IsConnected` is `true` and `DisconnectedSince` is null
 
 #### Scenario: Health check reads shared state
 - **WHEN** a health check executes
-- **THEN** it reads from `NjordHealthState` without sending any actor message
+- **THEN** it reads from `NjordHealthMonitor` without sending any actor message
 
 #### Scenario: No MqttConnectedSince property exists
-- **WHEN** the `NjordHealthState` API is inspected
-- **THEN** there SHALL be no `MqttConnectedSince` property or backing field
+- **WHEN** the `NjordHealthMonitor` API is inspected
+- **THEN** there SHALL be no connected-since property or field
 
 ### Requirement: MQTT connection health check
-An `MqttConnectionHealthCheck` SHALL be registered only when `Mqtt.Enabled` is
-`true`. When registered, it SHALL report health based on the MQTT connection state
-and disconnect duration:
+An `MqttConnectionHealthCheck` SHALL be registered (as `mqtt-connection`) only when `Njord:Mqtt:Enabled` is `true`. When registered, it SHALL report health based on `NjordHealthMonitor.Mqtt`:
 - `Healthy` when connected.
-- `Degraded` when disconnected for less than 2 minutes.
+- `Degraded` when not connected yet (no disconnect timestamp) or disconnected for less than 2 minutes.
 - `Unhealthy` when disconnected for 2 minutes or more.
 
-When `Mqtt.Enabled` is `false`, no MQTT health check SHALL be registered.
+When MQTT is disabled, no MQTT health check SHALL be registered.
 
 #### Scenario: Connected reports Healthy
-- **WHEN** MQTT is enabled and `NjordHealthState.IsMqttConnected` is `true`
+- **WHEN** MQTT is enabled and `NjordHealthMonitor.Mqtt.IsConnected` is `true`
 - **THEN** the health check returns `Healthy`
 
 #### Scenario: Recently disconnected reports Degraded
-- **WHEN** MQTT is enabled and `NjordHealthState.IsMqttConnected` is `false` and the disconnect
-  duration is 90 seconds
+- **WHEN** MQTT is enabled, `IsConnected` is `false` and the disconnect duration is 90 seconds
 - **THEN** the health check returns `Degraded`
 
 #### Scenario: Long disconnect reports Unhealthy
-- **WHEN** MQTT is enabled and `NjordHealthState.IsMqttConnected` is `false` and the disconnect
-  duration is 3 minutes
+- **WHEN** MQTT is enabled, `IsConnected` is `false` and the disconnect duration is 3 minutes
 - **THEN** the health check returns `Unhealthy`
 
 #### Scenario: No MQTT health check when disabled
-- **WHEN** `Mqtt.Enabled` is `false`
+- **WHEN** `Njord:Mqtt:Enabled` is `false`
 - **THEN** no `MqttConnectionHealthCheck` is registered and `/healthz` does not report MQTT status
 
 ### Requirement: Pipeline health check
@@ -99,3 +87,4 @@ never `DateTime.UtcNow` directly.
 #### Scenario: TimeProvider is used for elapsed time
 - **WHEN** a health check computes elapsed time since last poll
 - **THEN** it uses `TimeProvider.GetUtcNow()` as the reference time
+

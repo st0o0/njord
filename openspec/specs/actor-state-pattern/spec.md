@@ -70,13 +70,6 @@ Every persistent actor SHALL implement `GetPersistenceState()` and use it in `Sa
 - **WHEN** PollScheduler receives a `SnapshotOffer` during recovery
 - **THEN** it SHALL restore state via `PollSchedulerState.FromPersistence()` instead of ignoring the snapshot
 
-### Requirement: Transient state stays on actor
-For actors with transient runtime state (queue refs, Become phase, retry counters), those fields SHALL remain as mutable fields on the actor class. Only persistent state moves to the state record.
-
-#### Scenario: SchedulerActor transient fields
-- **WHEN** SchedulerActor is refactored
-- **THEN** the queue reference, pipeline ref, retry count, and Become phase remain as mutable actor fields while the poll-state dictionary moves to the state record
-
 ### Requirement: State-only unit tests
 Each state record SHALL have dedicated unit tests that verify `Apply()`, `GetSnapshot()`, `GetPersistenceState()`, and `FromPersistence()` as pure functions without any actor infrastructure.
 
@@ -92,7 +85,14 @@ that log a warning, in addition to the existing `DeleteMessagesSuccess`/
 
 #### Scenario: Journal cleanup failure is logged, not dropped
 - **WHEN** a `DeleteMessagesFailure` or `DeleteSnapshotsFailure` message is received by
-  `BudgetTrackerActor` or `ForecastHistoryActor`
+  `BudgetTracker`, or by `PollScheduler` in its ready behavior
 - **THEN** the actor logs a warning including the failure cause instead of letting the
   message reach dead letters unhandled
+
+### Requirement: Transient runtime state stays on the actor
+For actors with transient runtime state (actor refs, Become phase, retry counters, pending timers), those fields SHALL remain as mutable fields on the actor class. Only persistent domain state moves to the state record.
+
+#### Scenario: PollScheduler transient fields
+- **WHEN** `PollScheduler` is inspected
+- **THEN** the gateway ref, the retry count, the pending poll timers and the per-location poll-cycle trackers are mutable actor fields, while the poll-state dictionary lives in `PollSchedulerState`
 

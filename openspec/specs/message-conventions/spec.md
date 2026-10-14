@@ -4,9 +4,8 @@ Defines the conventions for actor messages: response hierarchies with typed succ
 ## Requirements
 ### Requirement: Response hierarchies with Completed and Failed
 Actor query and command responses SHALL use abstract base records with typed
-subtypes. Each response hierarchy SHALL have a `Failed` subtype. Query response
-types SHALL drop the `Query` prefix: base is `<Noun>Response`, success is
-`<Noun>Result`, failure is `<Noun>Failed`. Command response types match the
+subtypes. Query response types SHALL drop the `Query` prefix: base is `<Noun>Response`, success is
+`<Noun>Result`, and the non-success case is `<Noun>Failed(Exception Cause)` when the handler can fail, or `<Noun>NotAvailable` when the answer is that no data exists yet (read-model and sensor lookups). Command response types match the
 command name: `<VerbNoun>Response`, `<VerbNoun>Completed`, `<VerbNoun>Failed`.
 A command that can be refused for a validation reason SHALL also have a
 `<VerbNoun>Rejected(string Reason)` subtype.

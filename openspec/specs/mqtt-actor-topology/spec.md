@@ -2,89 +2,54 @@
 
 ## Purpose
 
-Actor topology for MQTT concerns: MqttConnectionActor owns the physical broker connection and internal MergeHub, MqttStateActor maps EgressEvent to MqttMessages, MqttDiscoveryActor handles HA discovery config publishing. All live in `Njord.Mqtt`.
+Actor topology for MQTT in `Njord.Mqtt`: `MqttConnection` owns the broker connection, reconnects and availability, and `MqttStatePublisher` consumes the pipeline output via SourceRef and maps each `PipelineEvent` to MQTT state messages.
 
 ## Requirements
-
-### Requirement: MqttConnectionActor owns the broker connection and MergeHub
-The `MqttConnectionActor` SHALL be registered in the actor system only when `Mqtt.Enabled` is `true`. When registered, it SHALL own the `IMqttConnection` and `IMqttTransport` instances. It SHALL materialize a MergeHub sink for its own internal outbound `MqttMessage` flow (availability messages, internally-queued discovery tombstones). It SHALL handle connect, reconnect with exponential backoff, LWT (online/offline on the availability topic), and disconnection recovery. It SHALL NOT vend `SinkRef<MqttMessage>` to external requestors — the `RequestMqttSink`/`MqttSinkResponse` protocol is removed. Downstream actors (MqttStateActor, MqttDiscoveryActor) SHALL call `IMqttTransport.SendAsync` directly via DI-injected transport.
+### Requirement: MqttConnection owns the broker connection
+The `MqttConnection` actor (src/Njord.Mqtt/MqttConnection.cs, marker `IMqttConnectionActor`) SHALL be registered as a singleton only when `Njord:Mqtt:Enabled` is `true`. It SHALL use the DI-provided `IMqttConnection` and `IMqttTransport` (both `MqttNetPublisher`) and SHALL NOT materialize any stream or MergeHub. It SHALL connect in `PreStart`; the connection SHALL carry a retained Last Will of `offline` on `{BaseTopic}/status`. After a successful connect it SHALL reset its attempt counter, mark MQTT as connected in `NjordHealthMonitor`, subscribe to `{DiscoveryPrefix}/status`, publish a retained `online` on `{BaseTopic}/status` and send `MqttConnected` to every inbound listener. On a failed connect or a lost connection it SHALL reconnect after `MqttEgressTuning.ReconnectDelay` (default 5 s) doubled per attempt, capped at a factor of 64. Actors that register with `SubscribeInbound` SHALL receive every inbound message as `MqttInboundMessage` until they terminate. Downstream actors SHALL publish by calling `IMqttTransport.SendAsync` directly; no SinkRef is vended.
 
 The actor SHALL use the injected `TimeProvider` for all timestamp operations (health state transitions). It SHALL NOT use `DateTimeOffset.UtcNow` directly.
 
 #### Scenario: Connection established
 - **WHEN** the actor connects to the broker
-- **THEN** it publishes "online" on the availability topic
+- **THEN** it publishes a retained `online` on the availability topic
 
 #### Scenario: Actor not registered when MQTT disabled
-- **WHEN** Mqtt.Enabled is false
+- **WHEN** `Njord:Mqtt:Enabled` is false
 - **THEN** the actor is not registered in the actor system
 
 #### Scenario: Connection lost and reconnected
 - **WHEN** the broker connection is lost
-- **THEN** the actor reconnects with exponential backoff
-
-#### Scenario: No SinkRef vended to external actors
-- **WHEN** any actor sends a request for a SinkRef
-- **THEN** MqttConnectionActor does not handle it — the SinkRef API is removed
+- **THEN** the actor marks MQTT as disconnected and reconnects with exponential backoff
 
 #### Scenario: Health timestamps use TimeProvider
-- **WHEN** the actor records a connect or disconnect timestamp
+- **WHEN** the actor records a disconnect timestamp
 - **THEN** it uses `TimeProvider.GetUtcNow()` instead of `DateTimeOffset.UtcNow`
 
 #### Scenario: Graceful shutdown publishes offline
 - **WHEN** the actor stops
-- **THEN** it publishes "offline" on the availability topic
+- **THEN** it publishes a retained `offline` on the availability topic
 
-### Requirement: MqttStateActor maps EgressEvent to MQTT messages
-The `MqttStateActor` (renamed from `MqttEgressActor`) SHALL inherit from `StreamConsumerActor`. It SHALL resolve `ModelStateActor` and `EnrichmentActor` via `GetActorAsync` in its `ResolveDependencies()` override to obtain SourceRefs from both producers. It SHALL NOT resolve `EgressActor` (eliminated) or `MqttConnectionActor` (no SinkRef needed). In its `*Resolved` handlers it SHALL call `TrackDependency()` and check `IsDeadRef()`. It SHALL wire the base-provided `SharedKillSwitch.Flow<EgressEvent>()` into its stream graph in `MaterializeGraph()`. It SHALL merge the two SourceRef inputs, map all `EgressEvent` variants to `MqttMessage` instances via presenters and `TopicScheme`, deduplicate by topic hash, and call `IMqttTransport.SendAsync` directly in a `SelectAsync(1)` stage. The HandleTerminated behavior is fully managed by the `StreamConsumerActor` base.
+### Requirement: MqttStatePublisher maps PipelineEvent to MQTT messages
+`MqttStatePublisher` (src/Njord.Mqtt/MqttStatePublisher.cs, marker `IMqttStatePublisher`) SHALL inherit from `StreamConsumerActor` and be registered only when MQTT is enabled. It SHALL resolve `IForecastPipeline`, request a `SourceRef<PipelineEvent>` with `RequestPipelineOutput`, and in `MaterializeGraph` wire the base-provided `SharedKillSwitch` into a graph that maps every `PipelineEvent` variant to retained `MqttMessage` instances (`ForecastReceived` via `HorizonProjection.BuildPerHorizon` and `TopicScheme.HorizonTopic`; the analysis variants via `StatePayloadBuilder`), skips messages whose payload hash equals the last one published on the same topic, and calls `IMqttTransport.SendAsync` directly in a `SelectAsync(1)` stage. It SHALL NOT resolve `IMqttConnectionActor`.
 
-#### Scenario: MqttStateActor subscribes to ModelStateActor and EnrichmentActor
-- **WHEN** MqttStateActor starts
-- **THEN** it requests SourceRefs from both ModelStateActor and EnrichmentActor
+#### Scenario: Publisher subscribes to the pipeline
+- **WHEN** `MqttStatePublisher` starts
+- **THEN** it requests a `SourceRef<PipelineEvent>` from `ForecastPipeline`
 
-#### Scenario: MqttStateActor maps PerModelUpdate to MQTT messages
-- **WHEN** MQTT is enabled and `MqttStateActor` receives an `EgressEvent.PerModelUpdate`
-- **THEN** it SHALL create one retained `MqttMessage` per horizon entry using `TopicScheme.HorizonTopic` and send via `IMqttTransport.SendAsync`
-
-#### Scenario: Actor not registered when MQTT disabled
-- **WHEN** `Mqtt.Enabled` is `false`
-- **THEN** `MqttStateActor` is not registered in the actor system
-
-#### Scenario: MqttStateActor deduplicates by topic
-- **WHEN** `MqttStateActor` maps an `EgressEvent` to an `MqttMessage` whose topic+payload hash is identical to the last published message on that topic
-- **THEN** it SHALL skip publishing that message
-
-#### Scenario: MqttStateActor calls transport directly
-- **WHEN** `MqttStateActor` has a message to publish
-- **THEN** it calls `IMqttTransport.SendAsync` directly, not through a SinkRef to MqttConnectionActor
-
-### Requirement: MqttDiscoveryActor publishes HA discovery configs
-The `MqttDiscoveryActor` (renamed from `DiscoveryActor`) SHALL inherit from `StreamConsumerActor`. It SHALL resolve `ModelStateActor` via `GetActorAsync` in its `ResolveDependencies()` override to obtain a SourceRef for `CapabilityLearned` events. It SHALL NOT resolve `EgressActor` (eliminated) or `MqttConnectionActor` (no SinkRef needed). It SHALL subscribe to `MqttConnectionActor` for inbound HA birth messages via `SubscribeInbound`. It SHALL call `IMqttTransport.SendAsync` directly for discovery payload publishing. All discovery business logic (deferred publishing, HA birth re-publish, capability learning, capability timeout) is unchanged.
-
-#### Scenario: MqttDiscoveryActor subscribes to ModelStateActor
-- **WHEN** the actor starts
-- **THEN** it requests a SourceRef from ModelStateActor for CapabilityLearned events
-
-#### Scenario: Discovery deferred until capabilities learned
-- **WHEN** the actor starts
-- **THEN** it waits for capability events before publishing discovery
-
-#### Scenario: All capabilities received triggers discovery
-- **WHEN** all expected location/model pairs report capabilities
-- **THEN** retained discovery config payloads are published via `IMqttTransport.SendAsync`
-
-#### Scenario: Discovery re-published on HA birth
-- **WHEN** "online" is received on the HA status topic via `MqttInboundMessage`
-- **THEN** all discovery config payloads are re-published
+#### Scenario: ForecastReceived becomes one message per horizon
+- **WHEN** MQTT is enabled and a `ForecastReceived` arrives
+- **THEN** one retained message per horizon with values is published on `{baseTopic}/{location}/{model}/{horizon}`
 
 #### Scenario: Actor not registered when MQTT disabled
-- **WHEN** Mqtt.Enabled is false
-- **THEN** the actor is not registered
+- **WHEN** `Njord:Mqtt:Enabled` is `false`
+- **THEN** `MqttStatePublisher` is not registered in the actor system
 
-#### Scenario: Timeout triggers partial discovery
-- **WHEN** the capability timeout expires with incomplete reports
-- **THEN** discovery is published for the capabilities received so far
+#### Scenario: Publisher deduplicates by topic
+- **WHEN** a mapped message has the same payload hash as the last message published on its topic
+- **THEN** it is skipped
 
-#### Scenario: MqttDiscoveryActor calls transport directly
-- **WHEN** MqttDiscoveryActor publishes a discovery payload
-- **THEN** it calls `IMqttTransport.SendAsync` directly, not through a SinkRef
+#### Scenario: Publisher calls transport directly
+- **WHEN** `MqttStatePublisher` has a message to publish
+- **THEN** it calls `IMqttTransport.SendAsync` directly
+

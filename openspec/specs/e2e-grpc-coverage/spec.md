@@ -3,9 +3,7 @@
 ## Purpose
 
 Defines the E2E coverage of every WeatherService, OpsService, AdminService and SensorService RPC.
-
 ## Requirements
-
 ### Requirement: WeatherService RPC coverage
 
 The E2E test plan SHALL exercise every RPC in `njord.v2.WeatherService`.
@@ -20,7 +18,7 @@ The E2E test plan SHALL exercise every RPC in `njord.v2.WeatherService`.
 
 #### Scenario: GetEnrichments returns enrichment results for a location
 - **WHEN** `GetEnrichments` is called with location "lucerne"
-- **THEN** the response contains enrichment results for each enabled feature (consensus, alerts, derived, trends, indices, history)
+- **THEN** the response contains enrichment results for each enabled feature (consensus, alerts, derived, trends, indices)
 
 #### Scenario: StreamForecasts delivers forecast updates
 - **WHEN** `StreamForecasts` is opened and a poll cycle completes (triggered via TriggerPoll)
@@ -85,3 +83,4 @@ The E2E test plan SHALL exercise every RPC in `njord.v2.SensorService`.
 #### Scenario: StreamPush sends a batch of sensor readings
 - **WHEN** `SensorService/StreamPush` is opened and multiple SensorReading messages are sent
 - **THEN** the response indicates success after the stream closes
+

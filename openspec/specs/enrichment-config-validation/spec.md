@@ -2,40 +2,25 @@
 
 ## Purpose
 
-Startup validation for enrichment configuration options (ConsensusOptions, HistoryOptions) using `IValidateOptions<T>`.
+Startup validation of the consensus configuration (`ConsensusOptions` method and trim percentage) through `IValidateOptions<T>`.
 
 ## Requirements
-
 ### Requirement: ConsensusOptions validates Method and TrimPercent at startup
-The system SHALL validate `ConsensusOptions.Method` is one of "Mean", "Median", or "TrimmedMean". When Method is "TrimmedMean", `TrimPercent` SHALL be in the range (0, 0.5) exclusive. Invalid values SHALL cause a startup failure with a descriptive error message via `IValidateOptions<ConsensusOptions>`.
+`ConsensusOptionsValidator` (`IValidateOptions<ConsensusOptions>`) SHALL validate that `ConsensusOptions.Method` is a defined `ConsensusMethod` value (`Mean`, `Median`, `TrimmedMean`), that `TrimPercent` is in the range (0, 0.5) exclusive when Method is `TrimmedMean`, and that `MinQuorum` is at least 1. Invalid values SHALL cause a startup failure with a descriptive error message.
 
 #### Scenario: Valid Method accepted
-- **WHEN** ConsensusOptions.Method is "Median"
+- **WHEN** ConsensusOptions.Method is `Median`
 - **THEN** validation succeeds
 
 #### Scenario: Invalid Method rejected
-- **WHEN** ConsensusOptions.Method is "InvalidMethod"
+- **WHEN** ConsensusOptions.Method holds a value that is not a defined `ConsensusMethod`
 - **THEN** validation fails with a message listing the valid methods
 
 #### Scenario: TrimPercent validated for TrimmedMean
-- **WHEN** ConsensusOptions.Method is "TrimmedMean" and TrimPercent is 0.6
+- **WHEN** ConsensusOptions.Method is `TrimmedMean` and TrimPercent is 0.6
 - **THEN** validation fails with a message indicating TrimPercent must be between 0 and 0.5
 
 #### Scenario: TrimPercent ignored for non-TrimmedMean methods
-- **WHEN** ConsensusOptions.Method is "Median" and TrimPercent is 0.9
+- **WHEN** ConsensusOptions.Method is `Median` and TrimPercent is 0.9
 - **THEN** validation succeeds (TrimPercent is irrelevant)
 
-### Requirement: HistoryOptions validates SnapshotInterval, RetentionDays, and MinSampleSize at startup
-The system SHALL validate that `HistoryOptions.SnapshotInterval`, `RetentionDays`, and `MinSampleSize` are all greater than 0. Invalid values SHALL cause a startup failure with a descriptive error message via `IValidateOptions<HistoryOptions>`.
-
-#### Scenario: Valid HistoryOptions accepted
-- **WHEN** SnapshotInterval is 100, RetentionDays is 30, MinSampleSize is 48
-- **THEN** validation succeeds
-
-#### Scenario: Zero SnapshotInterval rejected
-- **WHEN** HistoryOptions.SnapshotInterval is 0
-- **THEN** validation fails with a message indicating SnapshotInterval must be positive
-
-#### Scenario: Negative RetentionDays rejected
-- **WHEN** HistoryOptions.RetentionDays is -1
-- **THEN** validation fails with a message indicating RetentionDays must be positive

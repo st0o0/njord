@@ -1,7 +1,9 @@
 # structured-logging-hygiene Specification
 
 ## Purpose
-TBD - created by archiving change logging-hygiene. Update Purpose after archive.
+
+Logging conventions: all log templates use named placeholders, and routine operations log at Debug level.
+
 ## Requirements
 ### Requirement: All log templates use named placeholders
 Log message templates SHALL use named placeholders (`{Location}`, `{ModelId}`) instead of

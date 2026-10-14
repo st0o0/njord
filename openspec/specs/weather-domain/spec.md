@@ -3,9 +3,7 @@
 ## Purpose
 
 Core weather domain model: registry-driven open parameter set, value-wrapped weather model ids, ordered forecast series tolerant of missing values, daily forecast series, and fully identified model forecasts.
-
 ## Requirements
-
 ### Requirement: The weather parameter set is registry-driven and open
 The domain SHALL represent weather parameters via string-keyed `ParameterDef` references from the parameter registry. The active parameter set SHALL be determined at startup from configuration and remain fixed for the process lifetime. Code MUST NOT assume a specific closed set of parameters.
 
@@ -44,16 +42,17 @@ Points whose values are all absent MAY be trimmed from the end of the series.
 - **THEN** the resulting series is ascending by valid-at
 
 ### Requirement: A model forecast carries both hourly and daily series
-A `ModelForecast` SHALL carry the weather model, the location, the poll cycle id, an hourly `ForecastSeries`, and a daily `DailyForecastSeries`. Either series MAY be empty (but not both). The record SHALL NOT carry a separate `RetrievedAt` timestamp — the `CycleId` is the authoritative time reference for when the data was collected.
+A `Forecast` SHALL carry the weather model, the location, the poll cycle id, an hourly `ForecastSeries`, and a daily `DailyForecastSeries`. Either series MAY be empty (but not both). The record SHALL NOT carry a separate `RetrievedAt` timestamp — the `CycleId` is the authoritative time reference for when the data was collected.
 
 #### Scenario: Forecast with hourly only
 - **WHEN** no daily parameters are active
-- **THEN** the `ModelForecast` carries an hourly series and an empty daily series
+- **THEN** the `Forecast` carries an hourly series and an empty daily series
 
 #### Scenario: Forecast with both
 - **WHEN** hourly and daily parameters are active and the model returns both
-- **THEN** the `ModelForecast` carries both series populated
+- **THEN** the `Forecast` carries both series populated
 
 #### Scenario: No RetrievedAt field exists
-- **WHEN** a `ModelForecast` is constructed
+- **WHEN** a `Forecast` is constructed
 - **THEN** it carries `Model`, `Location`, `Cycle`, `Hourly`, and `Daily` — no `RetrievedAt`
+

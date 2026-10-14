@@ -3,9 +3,7 @@
 ## Purpose
 
 Reference docker-compose example file documenting all configurable options for production deployment of njord.
-
 ## Requirements
-
 ### Requirement: docker-compose.example.yml replaces docker-compose.yml
 The repository SHALL contain `docker-compose.example.yml` (renamed from `docker-compose.yml`). The original `docker-compose.yml` SHALL no longer exist.
 
@@ -15,7 +13,7 @@ The repository SHALL contain `docker-compose.example.yml` (renamed from `docker-
 - **AND** `docker-compose.yml` does not exist
 
 ### Requirement: All configurable options documented
-The `docker-compose.example.yml` SHALL contain every configurable environment variable from `NjordOptions`, `MqttOptions`, `PersistenceOptions`, `EnrichmentOptions`, `ParameterOptions`, and `RequestBudget` as environment variable entries. Required values SHALL be uncommented; optional values SHALL be commented with their default values.
+The `docker-compose.example.yml` SHALL contain every configurable environment variable of the bound options types — `NjordOptions` (with `ParameterOptions`), `PollingOptions` (including `BudgetOverride`), `OpenMeteoOptions`, `StorageOptions`, `PersistenceOptions`, `MqttOptions`, `SensorOptions`, `ConsensusOptions`, `AlertOptions`, `DerivedOptions`, `TrendOptions` and `IndexOptions` — as environment variable entries, using the property names those types declare. Required values SHALL be uncommented; optional values SHALL be commented with their default values.
 
 #### Scenario: Required MQTT host is uncommented
 - **WHEN** the example compose file is read
@@ -27,7 +25,7 @@ The `docker-compose.example.yml` SHALL contain every configurable environment va
 
 #### Scenario: All enrichment toggles are listed
 - **WHEN** the example compose file is read
-- **THEN** every enrichment sub-feature (Consensus, Alerts, Derived, Trends, History, Indices) has its `Enabled` toggle listed
+- **THEN** every analysis feature (Consensus, Alerts, Derived, Trends, Indices) has its `Enabled` toggle listed, and no removed feature (History) appears
 
 ### Requirement: Environment variables grouped by section
 The environment variables SHALL be organized into named groups using YAML comments: MQTT, Locations, Polling & Models, Parameters, Persistence, Budget, Enrichment.
@@ -49,3 +47,4 @@ The compose file SHALL show at least two location entries -- one uncommented (de
 #### Scenario: Second location is shown
 - **WHEN** the compose file is read
 - **THEN** a commented `Njord__Locations__1__Name` entry exists demonstrating how to add a second location
+

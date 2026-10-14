@@ -2,12 +2,9 @@
 
 ## Purpose
 
-Serilog logging infrastructure for the njord service. Wires Serilog as the
-ILogger provider (including Akka internal logs) and centralises logging and
-health-check setup in the ServiceDefaults project.
+Serilog logging infrastructure for the njord service: Serilog is the `ILogger` provider, writes human-readable console output with context enrichers, and receives the Akka internal logs.
 
 ## Requirements
-
 ### Requirement: Serilog is the logging provider
 The service SHALL use Serilog as the `Microsoft.Extensions.Logging` provider
 via `Serilog.Extensions.Hosting`. All `ILogger<T>` output SHALL flow through
@@ -35,20 +32,9 @@ The Serilog pipeline SHALL enrich log entries with machine name and thread id.
 - **THEN** the log entry properties include `MachineName` and `ThreadId`
 
 ### Requirement: Akka internal logs flow through Serilog
-The Akka.NET actor system SHALL be configured with `Akka.Logger.Serilog` via
-`AddLoggerFactory()` so that internal Akka events (dead letters, supervision
-failures, persistence errors) are routed through the Serilog pipeline.
+The Akka.NET actor system SHALL be configured with `ClearLoggers()` and `AddLoggerFactory()` (Akka.Hosting) so that actor logs and internal Akka events (dead letters, supervision failures, persistence errors) are routed through `Microsoft.Extensions.Logging` into the Serilog pipeline.
 
 #### Scenario: Dead letter is visible in logs
 - **WHEN** a message is delivered to a dead letter
 - **THEN** a log entry for the dead letter appears in the Serilog console sink
 
-### Requirement: ServiceDefaults project centralises wiring
-A `Njord.ServiceDefaults` project SHALL provide extension methods to configure
-Serilog and health checks. The main service project and the Aspire AppHost
-SHALL reference this project.
-
-#### Scenario: Service uses ServiceDefaults
-- **WHEN** the service starts
-- **THEN** Serilog and health checks are configured via `Njord.ServiceDefaults`
-  extension methods

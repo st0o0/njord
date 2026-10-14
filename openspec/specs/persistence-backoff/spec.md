@@ -3,11 +3,9 @@
 ## Purpose
 
 Ensures all persistent actors are supervised with exponential backoff to handle journal failures gracefully.
-
 ## Requirements
-
 ### Requirement: Persistent actors are supervised with exponential backoff
-All `ReceivePersistentActor` instances (SchedulerActor, ForecastHistoryActor, BudgetTrackerActor, ForecastSnapshotActor, EnrichmentSnapshotActor) SHALL be wrapped in a `BackoffSupervisor` using `Backoff.OnFailure` with min backoff 3 seconds, max backoff 30 seconds, and random factor 0.2. The BackoffSupervisor SHALL be the actor registered in the `ActorRegistry`, not the raw persistent actor.
+Both `ReceivePersistentActor` instances, `PollScheduler` and `BudgetTracker`, SHALL be wrapped in a backoff-on-failure supervisor with min backoff 3 seconds, max backoff 30 seconds, random factor 0.2 and unlimited retries (`PollScheduler` through `BackoffSupervisor.Props(Backoff.OnFailure(...))`, `BudgetTracker` through `BackoffOnFailure`). The supervisor SHALL be the actor registered as the cluster singleton in the `ActorRegistry`, not the raw persistent actor.
 
 #### Scenario: Persistent actor recovers from journal failure
 - **WHEN** a persistent actor's journal write throws an exception
@@ -20,3 +18,4 @@ All `ReceivePersistentActor` instances (SchedulerActor, ForecastHistoryActor, Bu
 #### Scenario: Actor registry resolves BackoffSupervisor
 - **WHEN** another actor resolves a persistent actor via GetActorAsync
 - **THEN** it receives the BackoffSupervisor ref which forwards messages to the child
+

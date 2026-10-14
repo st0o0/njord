@@ -3,7 +3,7 @@
 Organization of test projects, their dependency boundaries, shared infrastructure, and which test types belong where.
 ## Requirements
 ### Requirement: Shared test infrastructure project
-The solution SHALL contain a `Njord.Tests.Shared` class library project that holds JSON fixture files, reusable test fakes (`FakeOpenMeteoClient`, `FailingRefProvider`), Akka configuration helpers (`TestPersistenceConfig`, `TestTimefactorConfig`), timeout constants (`TestTimeouts`), and `TestOptionsMonitor<T>`. This project SHALL NOT be a test project and SHALL NOT contain any test classes. Every file SHALL be used by at least two test projects.
+The solution SHALL contain a `Njord.Tests.Shared` class library project that holds JSON fixture files, reusable test fakes (`FakeOpenMeteoClient`, `TestConfigView`, `ConfigHarness`), actor-spec support (`NjordActorSpec`, `FeatureServices`, `DisabledAnalyzers`, `AnalysisFixture`), Akka configuration helpers (`TestPersistenceConfig`, `TestTimefactorConfig`), timeout constants (`TestTimeouts`, `TestTimeConstants`), and `TestOptionsMonitor<T>`. This project SHALL NOT be a test project and SHALL NOT contain any test classes. Every file SHALL be used by at least two test projects.
 
 #### Scenario: Shared project provides fixture files
 - **WHEN** a test project references `Njord.Tests.Shared`
@@ -12,13 +12,6 @@ The solution SHALL contain a `Njord.Tests.Shared` class library project that hol
 #### Scenario: Shared project provides FakeOpenMeteoClient
 - **WHEN** a test project needs a fake Open-Meteo client for non-container tests
 - **THEN** it SHALL use `FakeOpenMeteoClient` from `Njord.Tests.Shared`
-
-### Requirement: Persistence roundtrip tests live alongside their Verify shape tests
-`Njord.Persistence.Tests` SHALL contain `PersistenceRoundtripHelper.cs` (a static `AssertRoundtrip<T>(T dto)` helper) and a `*DtoRoundtripSpec.cs` file per persistence DTO, alongside the existing `*DtoSerializationSpec.cs` (Verify shape) files. The helper is NOT in `Njord.Tests.Shared`, because it is used only by `Njord.Persistence.Tests` and the shared-infrastructure rule above requires at least two consumers.
-
-#### Scenario: Roundtrip spec sits next to its shape spec
-- **WHEN** `Njord.Persistence.Tests` is inspected
-- **THEN** every persistence DTO has both a `*DtoSerializationSpec.cs` (Verify shape) and a `*DtoRoundtripSpec.cs` (field-level roundtrip) file
 
 ### Requirement: End-to-end stack verification is a skill, not a dotnet test project
 Full-stack, cross-repo (njord + ha-njord + Home Assistant) end-to-end verification SHALL be the `e2e-test` Claude Code skill (`.claude/skills/e2e-test/SKILL.md` + `e2e/E2E-TEST-PLAN.md`), driving a real Docker Compose stack and browser automation — not a `Njord.E2E.Tests` dotnet test project. The solution SHALL NOT contain a `Njord.E2E.Tests` project.
@@ -59,14 +52,14 @@ use custom collector classes when TestProbe provides equivalent functionality.
 - **THEN** zero tests fail due to timing or thread starvation
 
 ### Requirement: All test projects in the solution
-The `Njord.slnx` solution file SHALL include all test projects (`Njord.Architecture.Tests`, `Njord.Compute.Tests`, `Njord.Core.Tests`, `Njord.Weather.Tests`, `Njord.Sensors.Tests`, `Njord.Egress.Tests`, `Njord.Enrichment.Tests`, `Njord.Grpc.Tests`, `Njord.Ingest.Tests`, `Njord.Mqtt.Tests`, `Njord.Persistence.Tests`, `Njord.Pipeline.Tests`, `Njord.SensorHub.Tests`) and `Njord.Tests.Shared`, so `dotnet build Njord.slnx` compiles everything. There is no `Njord.Domain.Tests`, `Njord.IntegrationTests` or `Njord.E2E.Tests` project — `Njord.Domain.Tests` is split into `Njord.Weather.Tests` and `Njord.Sensors.Tests`; see `persistence-roundtrip-tests` and `e2e-stack-verification` for where integration/E2E coverage lives instead.
+The `Njord.slnx` solution file SHALL include all test projects (`Njord.Weather.Tests`, `Njord.Sensors.Tests`, `Njord.Persistence.Tests`, `Njord.Compute.Tests`, `Njord.Core.Tests`, `Njord.OpenMeteo.Tests`, `Njord.Budget.Tests`, `Njord.SensorHub.Tests`, `Njord.Pipeline.Tests`, `Njord.Mqtt.Tests`, `Njord.Grpc.Tests`, `Njord.Alerts.Tests`, `Njord.Derived.Tests`, `Njord.Trends.Tests`, `Njord.Indices.Tests`, the host project `Njord.Tests` and `Njord.Architecture.Tests`) and `Njord.Tests.Shared`, so `dotnet build Njord.slnx` compiles everything. There is no `Njord.Domain.Tests`, `Njord.IntegrationTests` or `Njord.E2E.Tests` project.
 
 #### Scenario: Solution builds all test projects
 - **WHEN** `dotnet build Njord.slnx` is executed
 - **THEN** every `Njord.*Tests` project and `Njord.Tests.Shared` SHALL compile successfully
 
 ### Requirement: Unit and actor tests in per-library test projects
-Tests SHALL live in per-library test projects named `Njord.<Name>.Tests`, next to the library they test, plus `Njord.IntegrationTests` for tests that boot the real host or require `NjordFixture`. Each per-library test project is its own executable and SHALL contain only unit tests and actor lifecycle tests that require no Docker containers and no network I/O. No per-library test project SHALL declare a package reference to `Testcontainers`, `WireMock.Net.Testcontainers`, or `MQTTnet`.
+Tests SHALL live in per-library test projects named `Njord.<Name>.Tests`, next to the library they test, plus the host project `Njord.Tests` for host-level specs (`ConfigManager`, options binding). Each test project is its own executable and SHALL contain only unit tests and actor lifecycle tests that require no Docker containers and no network I/O. No test project SHALL declare a package reference to `Testcontainers`, `WireMock.Net.Testcontainers`, or `MQTTnet`.
 
 #### Scenario: Unit tests run without Docker
 - **WHEN** `dotnet run --project <Project>/<Project>.csproj` is executed without a Docker daemon
@@ -95,4 +88,11 @@ Tests SHALL live in per-library test projects named `Njord.<Name>.Tests`, next t
 #### Scenario: No manual ActorSystem lifecycle management
 - **WHEN** a test spec inherits from `Akka.Hosting.TestKit.TestKit` or `PersistenceTestKit`
 - **THEN** it SHALL NOT implement `IDisposable` or `IAsyncDisposable` for ActorSystem cleanup — the base class handles shutdown
+
+### Requirement: Persistence tests keep their helpers local
+`Njord.Persistence.Tests` SHALL contain `PersistenceRoundtripHelper.cs` (a static `Roundtrip<T>(T record)` helper using `TypeNameHandling.All`), one roundtrip spec per persistence area (`BudgetTrackerDtoRoundtripSpec`, `DataChangedRoundtripSpec`, `PollSchedulerDtoRoundtripSpec`) and `WireFormatSpec` with inline expected JSON. The helper is NOT in `Njord.Tests.Shared`, because it is used only by `Njord.Persistence.Tests` and the shared-infrastructure rule above requires at least two consumers.
+
+#### Scenario: Roundtrip and wire-format specs sit together
+- **WHEN** `Njord.Persistence.Tests` is inspected
+- **THEN** it contains the roundtrip specs, `WireFormatSpec` and `PersistenceRoundtripHelper`, and `Njord.Tests.Shared` contains no persistence helper
 
