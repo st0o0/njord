@@ -1,6 +1,7 @@
 using Akka;
 using Akka.Actor;
 using Akka.Event;
+using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Alerts;
@@ -10,6 +11,7 @@ using Njord.Compute.Settings;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Sensors;
 using Njord.Derived;
 using Njord.Indices;
 using Njord.Sensors;
@@ -26,6 +28,8 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
     private static readonly BackoffPolicy GatewayRetryPolicy =
         Backoff.Create(TimeSpan.FromSeconds(1), maxDelay: TimeSpan.FromSeconds(30));
 
+    internal static readonly TimeSpan SensorLookupTimeout = TimeSpan.FromSeconds(2);
+
     private sealed record GatewayResolved(IActorRef Gateway);
     private sealed record GatewayResolveFailed(Exception Cause);
     private sealed record RetryGatewayResolve;
@@ -39,7 +43,6 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
 
     private Source<PipelineEvent, NotUsed>? _pipelineOutputSource;
     private IMaterializer? _mat;
-    private IActorRef? _sensorRef;
     private IActorRef? _settingsRef;
     private AnalysisSettings _settings;
     private IActorRef? _gateway;
@@ -145,8 +148,6 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
     {
         Become(() =>
         {
-            Receive<SensorSnapshot>(snapshot => _sensorRef?.Tell(snapshot));
-
             Receive<AnalysisSettingsChanged>(msg =>
             {
                 _settings = msg.Settings;
@@ -191,15 +192,8 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
         var (pipelineOutputSource, pipelineOutputSink) = BroadcastHub.Sink<PipelineEvent>(bufferSize: 2)
             .PreMaterialize(_mat);
 
-        var emptySensors = new SensorSnapshot("", new Dictionary<SensorKind, AggregatedReading>());
-        var (sensorRef, sensorSourceRaw) = Source.ActorRef<SensorSnapshot>(10, OverflowStrategy.DropHead)
-            .PreMaterialize(_mat);
-        var sensorSource = Source.Single(emptySensors)
-            .Concat(sensorSourceRaw)
-            .RepeatPrevious();
-
-        // Same side-channel shape as the sensors: the latest settings are zipped onto every forecast, so a
-        // change applies from the next forecast on and never in the middle of one computation.
+        // The latest settings are zipped onto every forecast, so a change applies from the next forecast on
+        // and never in the middle of one computation.
         var (settingsRef, settingsSourceRaw) = Source.ActorRef<AnalysisSettings>(10, OverflowStrategy.DropHead)
             .PreMaterialize(_mat);
         var settingsSource = Source.Single(_settings)
@@ -212,19 +206,23 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
         var trends = _trends;
         var indices = _indices;
         var timeProvider = _timeProvider;
+        var registry = ActorRegistry.For(Context.System);
+        var log = _log;
 
         forecastSource
             .Via(Flow.FromGraph(GraphDsl.Create(builder =>
             {
-                var zip = builder.Add(ZipWith.Apply<WeatherForecast, SensorSnapshot, AnalysisSettings, (WeatherForecast, SensorSnapshot, AnalysisSettings)>(
-                    (forecast, sensors, settings) => (forecast, sensors, settings)));
-                var sensor = builder.Add(sensorSource);
+                var zip = builder.Add(ZipWith.Apply<WeatherForecast, AnalysisSettings, (WeatherForecast, AnalysisSettings)>(
+                    (forecast, settings) => (forecast, settings)));
                 var settings = builder.Add(settingsSource);
-                builder.From(sensor).To(zip.In1);
-                builder.From(settings).To(zip.In2);
-                return new FlowShape<WeatherForecast, (WeatherForecast, SensorSnapshot, AnalysisSettings)>(zip.In0, zip.Out);
+                builder.From(settings).To(zip.In1);
+                return new FlowShape<WeatherForecast, (WeatherForecast, AnalysisSettings)>(zip.In0, zip.Out);
             })))
-            .StatefulSelectMany<(WeatherForecast forecast, SensorSnapshot sensors, AnalysisSettings settings), PipelineEvent, NotUsed>(() =>
+            // One lookup per forecast, in arrival order: the sensors of the forecast's own location, read at
+            // analysis time so the SensorHub's staleness window applies.
+            .SelectAsync(1, async ((WeatherForecast forecast, AnalysisSettings settings) input) =>
+                (input.forecast, sensors: await LookupSensorsAsync(registry, input.forecast.Location, log), input.settings))
+            .StatefulSelectMany<(WeatherForecast forecast, SensorSnapshot? sensors, AnalysisSettings settings), PipelineEvent, NotUsed>(() =>
             {
                 var snapshot = ModelSnapshot.Empty;
                 ConsensusSnapshot? previous = null;
@@ -251,8 +249,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                     if (trends.Compute(consensus, previous, settings.Trends) is { } tr)
                         events.Add(new PipelineEvent.TrendComputed(tr, now));
 
-                    var sensors = input.sensors.Readings.Count > 0 ? input.sensors : null;
-                    if (indices.Compute(consensus, sensors, settings.Indices) is { } ix)
+                    if (indices.Compute(consensus, input.sensors, settings.Indices) is { } ix)
                         events.Add(new PipelineEvent.IndexComputed(ix, now));
 
                     previous = consensus;
@@ -264,7 +261,35 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
             .Run(_mat);
 
         _pipelineOutputSource = pipelineOutputSource;
-        _sensorRef = sensorRef;
         _settingsRef = settingsRef;
+    }
+
+    // Never throws: any miss, timeout or failure means "no live sensors", so the indices fall back to the
+    // configured values and the forecast is still analyzed.
+    private static async Task<SensorSnapshot?> LookupSensorsAsync(ActorRegistry registry, string location, ILoggingAdapter log)
+    {
+        if (!registry.TryGet<ISensorHub>(out var sensorHub))
+        {
+            log.Debug("SensorHub not registered — analyzing {0} without live sensors", location);
+            return null;
+        }
+
+        try
+        {
+            var response = await sensorHub.Ask<SensorSnapshotResponse>(
+                new QuerySensorSnapshot(new LocationId(location)), SensorLookupTimeout);
+            if (response is SensorSnapshotResult result)
+            {
+                return result.Snapshot;
+            }
+
+            log.Debug("No live sensor readings for {0}", location);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            log.Warning(ex, "Sensor lookup for {0} failed — analyzing without live sensors", location);
+            return null;
+        }
     }
 }

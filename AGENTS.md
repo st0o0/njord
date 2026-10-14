@@ -24,9 +24,12 @@ the HA host).
   `BroadcastHub<Forecast>`. The `PollScheduler` sends `FetchForecast` and
   receives `ForecastFetched`/`ForecastFetchFailed` feedback.
   **Pipeline** receives a `SourceRef<Forecast>` from the Gateway and owns
-  the analysis chain: `sourceRef.Source` → `ZipWith(sensors)` →
-  `StatefulSelectMany(computeAll)` → `BroadcastHub<PipelineEvent>`. Sensor data
-  enters via a `Source.ActorRef` + `ReuseLatest` side channel. All analysis
+  the analysis chain: `sourceRef.Source` → `ZipWith(settings)` →
+  `SelectAsync(1, sensor lookup)` → `StatefulSelectMany(computeAll)` →
+  `BroadcastHub<PipelineEvent>`. Settings enter via a `Source.ActorRef` +
+  `RepeatPrevious` side channel; sensor data is pulled per forecast by asking
+  `ISensorHub` (resolved from the `ActorRegistry`) for the forecast's location
+  (`QuerySensorSnapshot`, 2 s timeout, `null` on any miss). All analysis
   state (`ModelSnapshot`, previous `ConsensusSnapshot`) lives inside the
   `StatefulSelectMany` closure, not in actor fields. Consumers attach via
   SourceRef.
@@ -38,9 +41,11 @@ the HA host).
   arrived, plus `models_used`/spread diagnostics.
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow` directly.
 - **SensorHub for external sensor input.** The SensorHub actor receives readings
-  via gRPC (`SensorGrpcService`), stores latest values per `SensorKind` (closed enum).
-  Analysis features pull sensor data at each poll cycle (latest-value, no
-  reactive re-computation).
+  via gRPC (`SensorGrpcService`, stored under the configured location spelling),
+  stores latest values per `SensorKind` (closed enum). The pipeline pulls the
+  snapshot of the forecast's location for every analyzed forecast (latest-value,
+  no reactive re-computation); a missing, stale or unanswered lookup falls back
+  to configured values.
 - **Each analysis feature is a self-contained library.** Feature libraries
   (Alerts, Derived, Trends, Indices) define compute logic and DI extensions.
   Each analyzer takes `ConsensusSnapshot` directly (plus per-feature extras:
@@ -215,8 +220,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 974 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 153,
-Grpc 75, Pipeline 78, Mqtt 52, OpenMeteo 18, Budget 25, SensorHub 21, Architecture 53,
+Current total: 979 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 153,
+Grpc 76, Pipeline 82, Mqtt 52, OpenMeteo 18, Budget 25, SensorHub 21, Architecture 53,
 Alerts 67, Derived 36, Trends 27, Indices 61, host `Njord.Tests` 23).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small

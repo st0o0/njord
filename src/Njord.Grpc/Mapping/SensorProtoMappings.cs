@@ -19,7 +19,10 @@ internal static class SensorProtoMappings
             return (null, $"Unknown or unspecified SensorKind: {request.Kind}");
         }
 
-        if (!catalog.Locations.Any(l => string.Equals(l.Id.Name, request.Location, StringComparison.OrdinalIgnoreCase)))
+        // Forward the configured spelling: the SensorHub matches locations ordinally against Forecast.Location.
+        var location = catalog.Locations.FirstOrDefault(
+            l => string.Equals(l.Id.Name, request.Location, StringComparison.OrdinalIgnoreCase));
+        if (location is null)
         {
             return (null, $"Unknown location: {request.Location}");
         }
@@ -27,7 +30,7 @@ internal static class SensorProtoMappings
         var source = string.IsNullOrWhiteSpace(request.Source) ? "default" : request.Source;
         var measuredAt = request.MeasuredAt?.ToDateTimeOffset() ?? now;
 
-        return (new UpdateReading(new DomainSensorReading(kind, request.Location, source, request.Value, measuredAt)), null);
+        return (new UpdateReading(new DomainSensorReading(kind, location.Id.Name, source, request.Value, measuredAt)), null);
     }
 
     public static PushResponse ToProto(this PushResult result) =>
