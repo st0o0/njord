@@ -13,7 +13,7 @@ All messages destined for the broker SHALL be expressed as `MqttMessage(string T
 - **THEN** the transport publishes to topic `njord/home/icon_d2/state` with the given payload and retain=true
 
 ### Requirement: Availability is published directly on connect and stop
-`MqttConnection` SHALL publish a retained `online` on `{BaseTopic}/status` after every successful connect and a retained `offline` when it stops, by calling `IMqttTransport.SendAsync` directly. No queue or MergeHub SHALL be involved. The broker-side Last Will (`offline`, retained) SHALL cover connection loss.
+`MqttConnection` SHALL publish a retained `online` on `{BaseTopic}/status` after every successful connect (retried on the same connection until it succeeds, see `mqtt-actor-topology`) and a best-effort retained `offline` when it stops, by calling `IMqttTransport.SendAsync` directly. No queue or MergeHub SHALL be involved. The broker-side Last Will (`offline`, retained) SHALL cover connection loss.
 
 #### Scenario: Online on connect
 - **WHEN** the broker connection succeeds

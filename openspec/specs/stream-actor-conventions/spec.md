@@ -20,7 +20,7 @@ All actor classes SHALL order their fields in a consistent sequence: (1) constan
 Private message records used within an actor SHALL be declared as nested sealed records grouped together at the top of the class body, before the constructor.
 
 #### Scenario: MqttConnection private messages
-- **WHEN** inspecting `MqttConnection`'s private message records (`Connected`, `ConnectFailed`, `Disconnected`, `Reconnect`, `Inbound`)
+- **WHEN** inspecting `MqttConnection`'s private message records (`Connected`, `ConnectFailed`, `Disconnected`, `Reconnect`, `Inbound`, `StatusSubscribed`, `StatusSubscribeFailed`, `PublishOnline`, `OnlinePublished`, `OnlinePublishFailed`)
 - **THEN** they SHALL be grouped together at the top of the class body
 
 #### Scenario: ForecastPipeline private messages
@@ -37,7 +37,7 @@ Actor methods that define a Become phase SHALL be named after the actor's lifecy
 
 #### Scenario: MqttConnection phases
 - **WHEN** inspecting `MqttConnection`'s message handling
-- **THEN** the single-phase `Ready` method SHALL register all message handlers
+- **THEN** `Connecting`, `WaitingToReconnect` and `ConnectedState` SHALL each register all handlers of their phase (handlers shared by every phase come from one common method)
 
 ### Requirement: Stream materialization in a dedicated method
 
