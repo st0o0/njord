@@ -18,8 +18,8 @@ All `.Log()` stages SHALL emit element events at Debug level (the Akka.Streams d
 - **THEN** no `.Log()` stage element messages appear in console output
 
 #### Scenario: Log stage output visible at Debug level
-- **WHEN** the minimum log level for the relevant namespace is Debug
-- **THEN** `.Log()` stage element messages appear in console output with the stage name as context
+- **WHEN** the minimum log level for the owning actor's category (or a namespace above it) is Debug
+- **THEN** `.Log()` stage element messages appear in console output under that actor's category, each message naming its stage
 
 ### Requirement: The MQTT state graph has log stages
 The `MqttStatePublisher` graph SHALL include a `.Log()` stage on the incoming `PipelineEvent`s and one on the mapped `MqttMessage`s before `SendAsync`. The gateway fetch graph, the `ForecastPipeline` analysis graph and the gRPC streaming graphs currently have no `.Log()` stage.
@@ -47,10 +47,10 @@ Each `.Log()` stage SHALL provide an extractor function that returns a compact o
 - **THEN** the extracted string contains the topic and the payload size (`[512B]`)
 
 ### Requirement: Stream tracing is activated through configuration
-Stream log tracing SHALL be activatable by lowering the Serilog minimum level for the owning actor's log source to Debug in `appsettings*.json`, without code changes or recompilation.
+Stream log tracing SHALL be activatable by lowering the Serilog minimum level for the owning actor's log category (its full type name, e.g. `Njord.Mqtt.MqttStatePublisher`) to Debug in `appsettings*.json`, without code changes or recompilation.
 
 #### Scenario: Enable MQTT state tracing
-- **WHEN** the configuration lowers the minimum level for the `MqttStatePublisher` log source to Debug
+- **WHEN** the configuration sets the override `"Njord.Mqtt.MqttStatePublisher": "Debug"`
 - **THEN** elements passing through `mqtt-state-in` and `mqtt-state-out` appear in console output
 
 #### Scenario: Disable all tracing in production
