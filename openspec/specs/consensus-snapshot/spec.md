@@ -66,7 +66,7 @@ Horizons where fewer than `ConsensusSettings.MinQuorum` (default 2) models have 
 
 #### Scenario: One consensus per forecast
 - **WHEN** a forecast for location "Lucerne" arrives while the snapshot also holds forecasts for "Zurich"
-- **THEN** exactly one `ConsensusSnapshot`, for "Lucerne", is built and emitted as `ConsensusComputed`
+- **THEN** exactly one `ConsensusSnapshot`, for "Lucerne", is built and, while consensus is enabled, emitted as `ConsensusComputed`
 
 #### Scenario: Pure transformation with no side effects
 - **WHEN** `ConsensusBuilder.Create` processes a `ModelSnapshot`
