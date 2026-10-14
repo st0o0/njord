@@ -54,6 +54,8 @@ sends, and records the hash after success. With parallelism 1 the dictionary is 
 sequentially, and since a failed send leaves the previous hash untouched, the next cycle re-sends.
 The `published` dedup decision is counted after the successful send; failures go to
 `njord_mqtt_publish_failures_total{location}` (bounded cardinality, same `location` label).
+The `mqtt-state-out` log stage stays between mapping and the publish step, so at Debug it now also
+traces messages the publish step will skip as unchanged.
 
 ### Bounded publish timeout
 Each send gets a `CancellationTokenSource(MqttEgressTuning.PublishTimeout)` passed to `SendAsync`

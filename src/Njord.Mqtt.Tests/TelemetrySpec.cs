@@ -9,6 +9,9 @@ public sealed class TelemetrySpec
             () => Assert.Equal("njord_mqtt_dedup_total", Telemetry.MqttDedup.Name),
             () => Assert.Equal("{message}", Telemetry.MqttDedup.Unit),
             () => Assert.Equal("Njord.Mqtt", Telemetry.MqttDedup.Meter.Name),
+            () => Assert.Equal("njord_mqtt_publish_failures_total", Telemetry.MqttPublishFailures.Name),
+            () => Assert.Equal("{message}", Telemetry.MqttPublishFailures.Unit),
+            () => Assert.Equal("Njord.Mqtt", Telemetry.MqttPublishFailures.Meter.Name),
             () => Assert.Equal("njord_mqtt_connected", Telemetry.MqttConnected.Name),
             () => Assert.Equal("1", Telemetry.MqttConnected.Unit),
             () => Assert.Equal("Njord.Mqtt", Telemetry.MqttConnected.Meter.Name));

@@ -40,7 +40,8 @@ public sealed class MqttStateSpec : NjordActorSpec
             Microsoft.Extensions.Options.Options.Create(new MqttOptions { BaseTopic = "njord" }),
             parameters,
             timeProvider,
-            transport)));
+            transport,
+            MqttEgressTuning.Default)));
     }
 
     private FakeSourceHub RegisterFakePipelineHub()
@@ -197,6 +198,8 @@ public sealed class MqttStateSpec : NjordActorSpec
         public void Emit(PipelineEvent evt) => _queue?.OfferAsync(evt);
 
         public Task WaitForQueue() => _queueReady.Task;
+
+        public Task Completion => _queue?.WatchCompletionAsync() ?? Task.CompletedTask;
 
         internal void SetQueue(ISourceQueueWithComplete<PipelineEvent> queue)
         {

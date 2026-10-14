@@ -1,3 +1,4 @@
+using Akka;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
@@ -21,6 +22,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
     private readonly int _forecastDays;
     private readonly TimeProvider _timeProvider;
     private readonly IMqttTransport _transport;
+    private readonly TimeSpan _publishTimeout;
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
     private IActorRef? _pipelineRef;
@@ -29,13 +31,15 @@ public sealed class MqttStatePublisher : StreamConsumerActor
 
     private sealed record PipelineResolved(IActorRef Ref);
     private sealed record PipelineResolveFailed(Exception Cause);
+    private sealed record OutgoingMessage(MqttMessage Message, string Location);
 
     public MqttStatePublisher(
         IOptions<NjordOptions> options,
         IOptions<MqttOptions> mqttOptions,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider,
-        IMqttTransport transport)
+        IMqttTransport transport,
+        MqttEgressTuning tuning)
     {
         var opts = options.Value;
         _baseTopic = mqttOptions.Value.BaseTopic;
@@ -44,6 +48,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         _forecastDays = opts.ForecastDays;
         _timeProvider = timeProvider;
         _transport = transport;
+        _publishTimeout = tuning.PublishTimeout;
     }
 
     protected override void PreStart()
@@ -108,6 +113,8 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         var baseTopic = _baseTopic;
         var lastPublished = new Dictionary<string, int>();
         var transport = _transport;
+        var publishTimeout = _publishTimeout;
+        var log = _log;
 
         _pipelineSourceRef!.Source
             .Via(killSwitch.Flow<PipelineEvent>())
@@ -121,15 +128,46 @@ public sealed class MqttStatePublisher : StreamConsumerActor
                 PipelineEvent.IndexComputed i => $"enrich {i.Result.Location}/indices",
                 _ => "?",
             }, _log)
-            .SelectMany(pipelineEvent => MapToMqttMessages(pipelineEvent, baseTopic, lastPublished))
-            .Log("mqtt-state-out", m => $"{m.Topic} [{m.Payload.Length}B]", _log)
-            .SelectAsync(1, async msg =>
-            {
-                await transport.SendAsync(msg.Topic, msg.Payload, msg.Retain, CancellationToken.None);
-                return msg;
-            })
+            .SelectMany(pipelineEvent => MapToMqttMessages(pipelineEvent, baseTopic))
+            .Log("mqtt-state-out", m => $"{m.Message.Topic} [{m.Message.Payload.Length}B]", _log)
+            .SelectAsync(1, outgoing => PublishChangedAsync(outgoing, lastPublished, transport, publishTimeout, log))
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
-            .RunWith(Sink.Ignore<MqttMessage>(), Mat);
+            .RunWith(Sink.Ignore<NotUsed>(), Mat);
+    }
+
+    // Runs strictly sequentially (SelectAsync(1)), so the dedup cache needs no locking. The hash is
+    // recorded only after the broker accepted the message: a failed payload is sent again next cycle.
+    private static async Task<NotUsed> PublishChangedAsync(
+        OutgoingMessage outgoing,
+        Dictionary<string, int> lastPublished,
+        IMqttTransport transport,
+        TimeSpan publishTimeout,
+        ILoggingAdapter log)
+    {
+        var (msg, location) = outgoing;
+        var locationTag = new KeyValuePair<string, object?>("location", location);
+        var hash = msg.Payload.GetHashCode();
+        if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == hash)
+        {
+            Telemetry.MqttDedup.Add(1, locationTag, new KeyValuePair<string, object?>("decision", "skipped"));
+            return NotUsed.Instance;
+        }
+
+        try
+        {
+            using var timeout = new CancellationTokenSource(publishTimeout);
+            await transport.SendAsync(msg.Topic, msg.Payload, msg.Retain, timeout.Token).WaitAsync(timeout.Token);
+        }
+        catch (Exception ex)
+        {
+            Telemetry.MqttPublishFailures.Add(1, locationTag);
+            log.Warning(ex, "MQTT publish to {Topic} failed - it is sent again with the next cycle", msg.Topic);
+            return NotUsed.Instance;
+        }
+
+        lastPublished[msg.Topic] = hash;
+        Telemetry.MqttDedup.Add(1, locationTag, new KeyValuePair<string, object?>("decision", "published"));
+        return NotUsed.Instance;
     }
 
     protected override void OnDependencyLost()
@@ -139,8 +177,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         _pipelineSourceRequestId = 0;
     }
 
-    private IEnumerable<MqttMessage> MapToMqttMessages(
-        PipelineEvent pipelineEvent, string baseTopic, Dictionary<string, int> lastPublished)
+    private IEnumerable<OutgoingMessage> MapToMqttMessages(PipelineEvent pipelineEvent, string baseTopic)
     {
         var messages = pipelineEvent switch
         {
@@ -163,21 +200,8 @@ public sealed class MqttStatePublisher : StreamConsumerActor
             PipelineEvent.IndexComputed i => i.Result.Location.Name,
             _ => "unknown",
         };
-        var locationTag = new KeyValuePair<string, object?>("location", location);
 
-        foreach (var msg in messages)
-        {
-            var hash = msg.Payload.GetHashCode();
-            if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == hash)
-            {
-                Telemetry.MqttDedup.Add(1, locationTag, new KeyValuePair<string, object?>("decision", "skipped"));
-                continue;
-            }
-
-            lastPublished[msg.Topic] = hash;
-            Telemetry.MqttDedup.Add(1, locationTag, new KeyValuePair<string, object?>("decision", "published"));
-            yield return msg;
-        }
+        return messages.Select(msg => new OutgoingMessage(msg, location));
     }
 
     private IReadOnlyList<MqttMessage> MapPerModel(PipelineEvent.ForecastReceived e, string baseTopic)
