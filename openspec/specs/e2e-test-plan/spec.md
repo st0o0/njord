@@ -6,7 +6,7 @@ Defines the E2E test plan document: its sequential phases, config-derived entity
 
 ### Requirement: Test plan document defines all E2E phases
 
-The E2E test plan (`e2e/E2E-TEST-PLAN.md`) SHALL define 8 sequential phases covering the full gRPC path from njord through ha-njord to Home Assistant entities.
+The E2E test plan (`e2e/E2E-TEST-PLAN.md`) SHALL define ~25 sections covering the full gRPC path from njord through ha-njord to Home Assistant entities, plus exhaustive gRPC API validation, entity attribute depth, enrichment computation verification, error handling, multi-poll-cycle testing, configuration scenarios, HA browser verification, and teardown.
 
 #### Scenario: Phase 0 — Stack setup
 - **WHEN** the E2E test starts
@@ -14,35 +14,51 @@ The E2E test plan (`e2e/E2E-TEST-PLAN.md`) SHALL define 8 sequential phases cove
 
 #### Scenario: Phase 1 — HA integration setup via browser
 - **WHEN** both services are healthy
-- **THEN** the plan instructs: open HA in browser (claude-in-chrome), navigate to Settings → Integrations → Add Integration, search "njord", enter host=`njord` and port=`8081`, submit the config flow
+- **THEN** the plan instructs: open HA in browser (claude-in-chrome), complete onboarding, create long-lived access token, navigate to Settings → Integrations → Add Integration, search "njord", enter host=`njord` and port=`8081`, submit the config flow
 
 #### Scenario: Phase 2 — Entity registration
 - **WHEN** the integration is configured
-- **THEN** the plan instructs: poll HA REST API (`GET /api/states`) until weather entities appear, document the time from setup to first entities, record all entity IDs
+- **THEN** the plan instructs: poll HA REST API (`GET /api/states`) until weather entities appear, verify ~47 entities exist, document the time from setup to first entities, record all entity IDs
 
 #### Scenario: Phase 3 — Forecast data validation
 - **WHEN** weather entities exist
-- **THEN** the plan instructs: verify `weather.<loc>_<model>` entities have non-null temperature, verify `native_wind_speed_unit` is `m/s` (HA may convert the display `wind_speed_unit` to the user's unit system), verify hourly forecast service returns entries with temperature/humidity/wind_speed, verify consensus entity has agreement and spread attributes
+- **THEN** the plan instructs: verify weather entity states are valid conditions, verify attributes include temperature/humidity/pressure/wind_speed/wind_bearing with correct units (°C, m/s), verify hourly forecast service returns entries, verify consensus entity has agreement/spread/models_used attributes
 
-#### Scenario: Phase 4 — Enrichment entity validation
+#### Scenario: Phase 4 — Enrichment entity validation with depth
 - **WHEN** enrichment entities exist
-- **THEN** the plan instructs: verify 14 alert sensors, 11 index sensors, trend sensor, 5 derived sensors, and history sensor exist with correct device_class and attributes (severity, confidence for alerts; numeric values for indices)
+- **THEN** the plan instructs: verify 14 alert sensors with severity (none/low/medium/high/extreme) and confidence (0–100), verify 11 index sensors with values in range (0–10 for standard, documented ranges for VPD/frost), verify trend sensor has descriptive state, verify 5 derived sensors with correct values and units, verify history sensor has state
 
 #### Scenario: Phase 5 — Connectivity and server entities
 - **WHEN** the system is running
-- **THEN** the plan instructs: verify 3 gRPC stream binary_sensors are `on`, verify server sensors (version, uptime, monthly_usage, daily_usage) have non-empty numeric values with correct units (version: no unit, uptime: no unit, monthly_usage: `%`, daily_usage: `%`), verify `button.trigger_poll` exists
+- **THEN** the plan instructs: verify 3 gRPC stream binary_sensors are `on`, verify server sensors have correct values and units (version matches semver, usage in requests, uptime as duration), verify target sensors exist
 
-#### Scenario: Phase 6 — Direct gRPC validation
+#### Scenario: Phases 6–9 — Exhaustive gRPC API validation
 - **WHEN** njord is running
-- **THEN** the plan instructs: call `OpsService.GetStatus` and verify response contains version, locations, and models matching the Docker Compose config
+- **THEN** the plan instructs: test all 16 RPCs across WeatherService (GetCatalog, GetForecast, GetEnrichments, StreamForecasts, StreamEnrichments), OpsService (GetStatus, GetTargets, TriggerPoll), AdminService (GetConfig, StreamConfig, SetLocations, SetSettings, SetEnrichment, SetBudget), SensorService (Push, StreamPush)
 
-#### Scenario: Phase 7 — Resilience
+#### Scenario: Phases 10–11 — Error handling
+- **WHEN** error scenarios are tested
+- **THEN** the plan instructs: send invalid gRPC requests (unknown location, invalid model, bad sensor kind, empty location list) and verify appropriate gRPC error codes; verify HA REST API error responses for non-existent entities and invalid service calls
+
+#### Scenario: Phases 12–13 — Multi-poll-cycle validation
+- **WHEN** multiple poll cycles are triggered
+- **THEN** the plan instructs: trigger a second poll cycle, verify timestamps update, verify usage counters increment, verify budget tracking consistency between gRPC and HA entities
+
+#### Scenario: Phases 14–16 — Configuration scenarios
+- **WHEN** config mutations are applied
+- **THEN** the plan instructs: disable/re-enable enrichment features via AdminService, verify entity set adjusts; modify settings via AdminService, verify GetConfig and StreamConfig reflect changes
+
+#### Scenario: Phase 17 — HA browser verification
+- **WHEN** browser verification is needed
+- **THEN** the plan instructs: verify weather cards display temperature/humidity/wind, verify entity attributes in Developer Tools, verify entity filter works, trigger poll via button in HA UI
+
+#### Scenario: Phase 18 — Resilience
 - **WHEN** njord is restarted (`docker restart njord`)
-- **THEN** the plan instructs: poll njord `/alive` until healthy, wait up to 60 s and then poll HA until `binary_sensor.forecast_stream` returns to `on`, verify weather entities remain non-unavailable. The disconnect detection timeout exceeds 10 s due to gRPC keepalive and `expire_after` settings.
+- **THEN** the plan instructs: poll njord `/alive` until healthy, poll HA until streams reconnect, verify entities return to non-unavailable states, verify entity states during downtime show unavailable
 
-#### Scenario: Phase 8 — Trigger poll via browser
-- **WHEN** `button.trigger_poll` is pressed in the HA UI
-- **THEN** the plan instructs: verify enrichment entity timestamps (`last_updated` on a sensor such as `sensor.lucerne_weather_trend`) advance after the triggered poll. Weather entity `last_updated` may not advance if the Open-Meteo API returns identical forecast data.
+#### Scenario: Phase 19 — Teardown
+- **WHEN** teardown is tested
+- **THEN** the plan instructs: remove njord integration via HA, verify all entities are cleaned up, run `docker compose down -v`, verify clean shutdown
 
 ### Requirement: Entity expectations are derived from config
 
@@ -70,16 +86,32 @@ Each E2E test run SHALL produce `e2e/results/E2E-TEST-RESULTS-<YYYY-MM-DD>.md` w
 
 ### Requirement: Orchestration model
 
-The test plan SHALL define an orchestration model using Opus as main agent with parallel Haiku subagents.
+The test plan SHALL define an orchestration model using Opus as main agent with three parallel Haiku subagents.
 
 #### Scenario: Sequential phases
 - **WHEN** the test begins
 - **THEN** Opus executes Phase 0, 1, 2 sequentially (each depends on the previous)
 
-#### Scenario: Parallel validation
+#### Scenario: Parallel validation with three subagents
 - **WHEN** Phase 2 completes (entities registered)
-- **THEN** Haiku subagent #1 executes Phase 3+4, Haiku subagent #2 executes Phase 5+6, in parallel
+- **THEN** three Haiku subagents are spawned in a single message: #1 for forecast/enrichment validation, #2 for connectivity/server/gRPC API, #3 for error handling
+
+#### Scenario: Sequential post-parallel phases
+- **WHEN** all parallel subagents complete
+- **THEN** Opus executes multi-cycle, config scenarios, HA browser, resilience, and teardown phases sequentially
 
 #### Scenario: Haiku FAIL verification
 - **WHEN** a Haiku subagent reports a FAIL
 - **THEN** the Opus main agent re-checks the failed step before accepting it as FAIL in the final results
+
+### Requirement: Setup recipes
+
+The test plan SHALL define named setup recipes for deterministic test scenarios.
+
+#### Scenario: Recipe documentation
+- **WHEN** a test section requires a specific configuration state
+- **THEN** the test plan documents the setup recipe (AdminService calls or Docker config overrides) needed to reach that state
+
+#### Scenario: State reset between scenarios
+- **WHEN** a config scenario test modifies the running config
+- **THEN** the test plan documents how to restore the default config before proceeding to the next scenario

@@ -100,6 +100,8 @@ The test plan SHALL define an orchestration model using Opus as main agent with 
 - **WHEN** a Haiku subagent reports a FAIL
 - **THEN** the Opus main agent re-checks the failed step before accepting it as FAIL in the final results
 
+## ADDED Requirements
+
 ### Requirement: Setup recipes
 
 The test plan SHALL define named setup recipes for deterministic test scenarios.

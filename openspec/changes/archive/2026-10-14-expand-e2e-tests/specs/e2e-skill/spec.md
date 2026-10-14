@@ -40,22 +40,6 @@ The skill SHALL spawn three Haiku subagents for independent validation phases af
 - **WHEN** subagents return results with FAILs
 - **THEN** the main agent re-checks each FAIL before accepting it into the final results
 
-### Requirement: Sequential post-parallel phases
-
-The skill SHALL execute config-mutation, multi-cycle, browser, resilience, and teardown phases sequentially after parallel validation completes.
-
-#### Scenario: Config scenario execution
-- **WHEN** parallel validation phases complete
-- **THEN** Opus executes config scenario tests (AdminService mutations, entity set verification) sequentially, restoring default config between scenarios
-
-#### Scenario: Multi-cycle execution
-- **WHEN** config scenarios complete with config restored to default
-- **THEN** Opus triggers additional poll cycles and verifies data freshness, usage counters, and budget tracking
-
-#### Scenario: Teardown as final phase
-- **WHEN** all other phases complete
-- **THEN** the skill removes the njord integration from HA, verifies entity cleanup, and runs `docker compose down -v`
-
 ### Requirement: Results document generation
 
 The skill SHALL produce a structured results document after each run.
@@ -87,3 +71,21 @@ The E2E infrastructure SHALL be maintained in njord (leading repo) and synced to
 #### Scenario: Skill availability
 - **WHEN** the E2E skill is defined
 - **THEN** it is available in both repos (njord and ha-njord) so the test can be triggered from either working directory
+
+## ADDED Requirements
+
+### Requirement: Sequential post-parallel phases
+
+The skill SHALL execute config-mutation, multi-cycle, browser, resilience, and teardown phases sequentially after parallel validation completes.
+
+#### Scenario: Config scenario execution
+- **WHEN** parallel validation phases complete
+- **THEN** Opus executes config scenario tests (AdminService mutations, entity set verification) sequentially, restoring default config between scenarios
+
+#### Scenario: Multi-cycle execution
+- **WHEN** config scenarios complete with config restored to default
+- **THEN** Opus triggers additional poll cycles and verifies data freshness, usage counters, and budget tracking
+
+#### Scenario: Teardown as final phase
+- **WHEN** all other phases complete
+- **THEN** the skill removes the njord integration from HA, verifies entity cleanup, and runs `docker compose down -v`
