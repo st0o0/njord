@@ -1,0 +1,53 @@
+## MODIFIED Requirements
+
+### Requirement: The scheduler retries failed fetches by reason
+`PollScheduler` SHALL handle `FetchForecastFailed` and `FetchForecastRejected` by reason, without touching `MissCount`, `Phase` or the learned `Cycle`:
+
+- **Transport**, **ModelUnavailable** and **MalformedPayload** failures: record a transient failure (`TransientFailureCount + 1`) and schedule a retry after the transient backoff (1 min, 2 min, 4 min, 8 min; from the fifth consecutive transient failure on, the discovery interval), logging a warning.
+- **RateLimited** failures and **Budget** rejections: record a transient failure and schedule the retry no earlier than 5 minutes from now, logging a warning.
+- **QueueFull**, **PipelineUnavailable** and **Expired** rejections: record a transient failure and schedule a retry after the transient backoff, logging a warning.
+
+A fetch request the gateway does not answer within the scheduler's fetch reply timeout SHALL be handled as a `Transport` failure, so every request ends in a reply or a retry.
+
+#### Scenario: Transport failure triggers backoff retry
+- **WHEN** a `Transport` failure arrives for (lucerne, icon_d2) with `TransientFailureCount = 0`
+- **THEN** `TransientFailureCount` becomes 1 and the next retry is scheduled in 1 minute
+
+#### Scenario: Second transport failure doubles backoff
+- **WHEN** a `Transport` failure arrives for (lucerne, icon_d2) with `TransientFailureCount = 1`
+- **THEN** `TransientFailureCount` becomes 2 and the next retry is scheduled in 2 minutes
+
+#### Scenario: Rate-limited failure enforces minimum 5-minute delay
+- **WHEN** a `RateLimited` failure arrives for (lucerne, icon_d2) with `TransientFailureCount = 0`
+- **THEN** the next retry is scheduled in 5 minutes (not 1 minute)
+
+#### Scenario: ModelUnavailable is retried with transient backoff
+- **WHEN** a `ModelUnavailable` failure arrives for (lucerne, icon_d2)
+- **THEN** a warning is logged and a retry is scheduled with the transient backoff
+
+#### Scenario: Learned cycle survives failures
+- **WHEN** a model in Steady phase receives any failure reason
+- **THEN** its `Phase`, `Cycle` and `MissCount` are unchanged
+
+#### Scenario: Budget rejection backs off at least 5 minutes
+- **WHEN** a `Budget` rejection arrives for (lucerne, icon_d2) with `TransientFailureCount = 0`
+- **THEN** the next poll is scheduled no earlier than 5 minutes from now
+
+#### Scenario: Queue-full rejection is retried with transient backoff
+- **WHEN** a `QueueFull` rejection arrives for (lucerne, icon_d2) with `TransientFailureCount = 0`
+- **THEN** the next retry is scheduled in 1 minute
+
+#### Scenario: Unanswered request is retried
+- **WHEN** the gateway does not answer a fetch request within the fetch reply timeout
+- **THEN** the scheduler records a transient failure for the target and schedules a backoff retry
+
+### Requirement: Fetch replies are attributed to the configured target
+`PollScheduler` SHALL attribute every `FetchForecastCompleted`, `FetchForecastFailed` and `FetchForecastRejected` to the configured target whose location and model match the reply case-insensitively, and SHALL update, persist and schedule that target under its configured spelling. A reply that matches no configured target SHALL be logged at Warning and SHALL NOT create, update or schedule any target.
+
+#### Scenario: Reply spelled differently updates the configured target
+- **WHEN** `lucerne` with model `icon_d2` is configured and `FetchForecastCompleted(LUCERNE, "ICON_D2", hash)` arrives
+- **THEN** the poll state of (lucerne, icon_d2) is updated and no second target appears in the poll states
+
+#### Scenario: Reply for an unknown target is ignored
+- **WHEN** `FetchForecastFailed(atlantis, "icon_d2", Transport, ...)` arrives and `atlantis` is not configured
+- **THEN** a warning is logged and the poll states are unchanged
