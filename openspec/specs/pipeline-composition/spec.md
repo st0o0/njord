@@ -2,39 +2,8 @@
 
 ## Purpose
 
-The `ForecastPipeline` analysis stream: it consumes the gateway's `SourceRef<Forecast>`, combines each forecast with the settings side channel and the live sensor snapshot of its location, computes consensus and all enabled analysis features in one stateful stage (including trends against the previous consensus), supervises the stream, and vends typed `PipelineEvent` output via SourceRef.
+The `ForecastPipeline` analysis stream: it owns a MergeHub input that producers attach to via SinkRef, materialized once per incarnation, combines each forecast with the settings side channel and the pushed sensor snapshot of its location, computes consensus and all enabled analysis features in one stateful stage (including trends against the previous consensus), supervises the stream, and vends typed `PipelineEvent` output via SourceRef.
 ## Requirements
-### Requirement: ForecastPipeline owns the analysis stream
-`ForecastPipeline` (src/Njord.Pipeline/ForecastPipeline.cs, marker `IForecastPipeline`) SHALL request a `SourceRef<Forecast>` from the gateway (`IForecastGateway`) with `RequestForecastStream` and, on the `RequestForecastStreamCompleted` that answers its current request id, SHALL materialize exactly one analysis graph with `Context.Materializer()`: `sourceRef.Source → ZipWith(settings side channel) → SelectAsync(1, sensor lookup) → StatefulSelectMany(compute all) → BroadcastHub<PipelineEvent>`. Handshake replies carrying an older request id SHALL be ignored. The graph SHALL contain no fetch, throttle or hashing logic, no intermediate relay actor and no second hub. Until the forecast stream is materialized the actor SHALL stash every message except the gateway handshake, `AnalysisSettingsChanged` and `Terminated`. When the gateway terminates or the handshake fails, the actor SHALL re-resolve the gateway with jittered exponential backoff (1 s up to 30 s) and request a new stream. When the analysis graph completes or fails while the gateway is still alive (the forecast SourceRef ends or fails, or a stage stops), the actor SHALL log a Warning, increment `njord_pipeline_stream_rewires_total`, return to waiting for the gateway and request a new forecast stream after a jittered exponential backoff delay that grows with consecutive graph losses (1 s up to 30 s) and resets once a graph has stayed up for a stability window. The completion of a graph replaced after a gateway loss SHALL be ignored. Consumers that held a SourceRef to the old output hub see it end and rewire on their own.
-
-#### Scenario: Pipeline graph structure
-- **WHEN** `ForecastPipeline` receives `RequestForecastStreamCompleted`
-- **THEN** it materializes `sourceRef.Source → ZipWith(settings) → SelectAsync(1, sensor lookup) → StatefulSelectMany → BroadcastHub<PipelineEvent>` and enters its ready behavior
-
-#### Scenario: No fetch logic in the pipeline
-- **WHEN** `ForecastPipeline` is inspected
-- **THEN** it has no dependency on `IOpenMeteoClient`, the gateway throttle or `ForecastDataHash`
-
-#### Scenario: Messages before the stream exists are stashed
-- **WHEN** a `RequestPipelineOutput` arrives before the forecast stream is materialized
-- **THEN** it is stashed and answered after the graph is materialized
-
-#### Scenario: Gateway loss triggers re-resolve
-- **WHEN** the watched gateway actor terminates
-- **THEN** `ForecastPipeline` re-resolves `IForecastGateway` with backoff and requests a new forecast stream
-
-#### Scenario: A failed forecast stream is requested again
-- **WHEN** the forecast SourceRef from a gateway that is still alive fails
-- **THEN** `ForecastPipeline` logs a Warning, requests a new forecast stream after the backoff delay, and a consumer that requests the pipeline output afterwards receives the events of forecasts offered to the new stream
-
-#### Scenario: A completed forecast stream is requested again
-- **WHEN** the forecast SourceRef from a gateway that is still alive completes
-- **THEN** `ForecastPipeline` requests a new forecast stream after the backoff delay
-
-#### Scenario: Stale handshake reply is ignored
-- **WHEN** a `RequestForecastStreamCompleted` arrives whose request id is not the pipeline's current one
-- **THEN** no analysis graph is materialized from it
-
 ### Requirement: One stateful stage computes all analysis per forecast
 For every forecast the `StatefulSelectMany` stage SHALL update a `ModelSnapshot` held in the stage closure, build a `ConsensusSnapshot` with `ConsensusBuilder.Create(snapshot, location, settings.Consensus)`, and emit, in this order: `PipelineEvent.ForecastReceived`, `PipelineEvent.ConsensusComputed` (only while `ConsensusOptions.Enabled` is true; the snapshot is built either way), then `AlertComputed`, `DerivedComputed`, `TrendComputed` and `IndexComputed` for each analyzer that returns a result. Each analyzer SHALL take the `ConsensusSnapshot` directly plus its own extras and the current settings record: `AlertAnalyzer.Compute(consensus, settings.Alerts)`, `DerivedAnalyzer.Compute(consensus, settings.Derived)`, `TrendAnalyzer.Compute(consensus, previous, settings.Trends)`, `IndexAnalyzer.Compute(consensus, sensors, settings.Indices)`. There SHALL be no `PollContext` record and no per-feature input interfaces. An analyzer whose feature is disabled SHALL return `null`, and no event SHALL be emitted for it. All analysis state SHALL live in the stage closure, not in actor fields.
 
@@ -51,18 +20,22 @@ For every forecast the `StatefulSelectMany` stage SHALL update a `ModelSnapshot`
 - **THEN** it receives a `ConsensusSnapshot` (plus `previous` for trends and an optional `SensorSnapshot` for indices) and its settings record, never a context object
 
 ### Requirement: Trends compare against the previous consensus held in the stage
-The previous `ConsensusSnapshot` for trend analysis SHALL be kept in the `StatefulSelectMany` closure and replaced by the current consensus after each forecast. `TrendAnalyzer` itself SHALL be stateless and SHALL return `null` when no previous consensus exists.
+The previous `ConsensusSnapshot` for trend analysis SHALL be kept in the `StatefulSelectMany` closure and replaced by the current consensus after each forecast. `TrendAnalyzer` itself SHALL be stateless and SHALL return `null` when no previous consensus exists. Because the analysis graph lives as long as the pipeline incarnation, the previous consensus SHALL survive producers detaching and re-attaching.
 
 #### Scenario: First poll cycle
-- **WHEN** the first forecast after materialization is processed
+- **WHEN** the first forecast after the pipeline started is processed
 - **THEN** the previous consensus is `null`, `TrendAnalyzer.Compute` returns `null` and no `TrendComputed` event is emitted
 
 #### Scenario: Subsequent poll cycles
 - **WHEN** a later forecast is processed
 - **THEN** `TrendAnalyzer.Compute` receives the consensus computed for the preceding forecast as `previous`
 
+#### Scenario: Previous consensus survives a producer change
+- **WHEN** a forecast arrives through one producer, that producer ends, and the next forecast arrives through a new producer
+- **THEN** `TrendAnalyzer.Compute` receives the consensus of the first forecast as `previous` and a `TrendComputed` event is emitted
+
 ### Requirement: ForecastPipeline vends its output via SourceRef
-The analysis graph SHALL end in a `BroadcastHub.Sink<PipelineEvent>` with `bufferSize: 2`. On `RequestPipelineOutput(RequestId)` the actor SHALL run the hub source into `StreamRefs.SourceRef<PipelineEvent>()` and reply `RequestPipelineOutputCompleted(RequestId, SourceRef)`, or `RequestPipelineOutputFailed(RequestId, Cause)` when materializing the SourceRef fails. These handshake records SHALL live in `Njord.Core/Actors/StreamWiringMessages.cs`. The hub SHALL NOT use KeepAlive, Buffer or IdleTimeout stages.
+The analysis graph SHALL end in a `BroadcastHub.Sink<PipelineEvent>` with `bufferSize: 2`, materialized once per pipeline incarnation. On `RequestPipelineOutput(RequestId)` the actor SHALL run the hub source into `StreamRefs.SourceRef<PipelineEvent>()` and reply `RequestPipelineOutputCompleted(RequestId, SourceRef)`, or `RequestPipelineOutputFailed(RequestId, Cause)` when materializing the SourceRef fails. These handshake records SHALL live in `Njord.Core/Actors/StreamWiringMessages.cs`. The hub SHALL NOT use KeepAlive, Buffer or IdleTimeout stages. A consumer's SourceRef SHALL stay alive while producers detach and re-attach.
 
 #### Scenario: Consumer receives a SourceRef
 - **WHEN** a consumer sends `RequestPipelineOutput(7)`
@@ -77,7 +50,7 @@ The analysis graph SHALL end in a `BroadcastHub.Sink<PipelineEvent>` with `buffe
 - **THEN** each receives every `PipelineEvent` emitted after it attached
 
 ### Requirement: Analysis stream supervision
-The analysis stage SHALL use `StreamSupervision.LoggingDecider` with the actor's logging adapter as its supervision strategy.
+The analysis stage SHALL use `StreamSupervision.LoggingDecider` with the actor's logging adapter as its supervision strategy. An exception the decider stops on ends the analysis graph, which restarts the pipeline (see "ForecastPipeline owns a stable analysis stream").
 
 #### Scenario: Analyzer exception is logged
 - **WHEN** an analyzer throws while processing one forecast
@@ -91,25 +64,63 @@ The analysis stage SHALL use `StreamSupervision.LoggingDecider` with the actor's
 - **THEN** the next forecast is analyzed with the new thresholds and a computation already running is not affected
 
 ### Requirement: Live sensor snapshot per forecast
-For every forecast, `ForecastPipeline` SHALL ask the SensorHub (`ISensorHub`) with `QuerySensorSnapshot` for the forecast's location before analyzing it, one forecast at a time and in arrival order, and SHALL pass the snapshot of a `SensorSnapshotResult` to `IndexAnalyzer`. It SHALL pass `null` when the reply is `SensorSnapshotNotAvailable`, when the SensorHub is not registered, or when no reply arrives within a bounded timeout. A failed or missing sensor lookup SHALL NOT drop, delay beyond that timeout or fail the analysis of the forecast. The pipeline SHALL NOT accept pushed `SensorSnapshot` messages.
+`ForecastPipeline` SHALL accept `SensorSnapshots` messages (an immutable map from `LocationId` to `SensorSnapshot`, pushed by the SensorHub) and feed each into a sensor side channel (`Source.ActorRef`, buffer 10, `DropHead`, started with an empty map and repeated with `RepeatPrevious`) that is zipped onto every forecast, so every forecast is analyzed with the latest pushed map and a new map never applies in the middle of one computation. For each forecast the stage SHALL pass the map's entry for the forecast's location (matched case-insensitively) to `IndexAnalyzer`, or `null` when the map has no entry for it. The pipeline SHALL NOT ask the SensorHub per forecast, and a missing or late push SHALL NOT drop, delay or fail the analysis of a forecast.
 
 #### Scenario: Live indoor temperature reaches the indices
-- **WHEN** the SensorHub holds a fresh `IndoorTemperature` reading of 24.5 for location "Luzern" and a forecast for "Luzern" is analyzed
+- **WHEN** the latest pushed map holds `IndoorTemperature = 24.5` for location "Luzern" and a forecast for "Luzern" is analyzed
 - **THEN** `IndexAnalyzer.Compute` receives a snapshot with `IndoorTemperature = 24.5` and the index result reflects it instead of the configured indoor temperature
 
 #### Scenario: Readings are matched to the forecast's location
-- **WHEN** the SensorHub holds readings for "Luzern" only and a forecast for "Borken" is analyzed
-- **THEN** `IndexAnalyzer.Compute` receives `null` for "Borken"
+- **WHEN** the latest pushed map holds readings for "Bern" only and a forecast for "Lucerne" is analyzed
+- **THEN** `IndexAnalyzer.Compute` receives `null` for "Lucerne"
 
 #### Scenario: No sensor data yet
-- **WHEN** the SensorHub has no fresh reading for the forecast's location
+- **WHEN** no map has been pushed yet, or the map has no entry for the forecast's location
 - **THEN** `IndexAnalyzer.Compute` receives `null` for the sensors and uses configured or default indoor values
 
 #### Scenario: SensorHub unavailable
-- **WHEN** the SensorHub is not registered or does not reply within the timeout
+- **WHEN** no SensorHub is registered and nothing is pushed
 - **THEN** the forecast is analyzed with `null` sensors and all its pipeline events are emitted
 
 #### Scenario: Stale readings are not used
-- **WHEN** the only reading for the location is older than the configured staleness window
-- **THEN** `IndexAnalyzer.Compute` receives `null` for that location
+- **WHEN** the only reading for the location is older than the configured staleness window when the SensorHub pushes its map
+- **THEN** the pushed map has no entry for that location and `IndexAnalyzer.Compute` receives `null` for it
+
+#### Scenario: Location keys match case-insensitively
+- **WHEN** the latest pushed map holds a snapshot keyed "LUCERNE" and a forecast for "lucerne" is analyzed
+- **THEN** `IndexAnalyzer.Compute` receives that snapshot
+
+### Requirement: ForecastPipeline owns a stable analysis stream
+`ForecastPipeline` (src/Njord.Pipeline/ForecastPipeline.cs, marker `IForecastPipeline`) SHALL materialize, once per actor incarnation when it starts and with `Context.Materializer()`, exactly one analysis graph: `MergeHub<Forecast>` (per-producer buffer 16) → `ZipWith(sensor snapshot side channel, settings side channel)` → `StatefulSelectMany(compute all)` → `BroadcastHub<PipelineEvent>`. The graph SHALL contain no fetch, throttle or hashing logic, no intermediate relay actor and no other hub. The pipeline SHALL NOT resolve, watch or message the gateway, and SHALL NOT stash messages: its hubs exist from the start, so `RequestForecastSink` and `RequestPipelineOutput` are answered at any time. Producers and consumers coming and going SHALL NOT rebuild the graph. When the analysis graph completes or fails, the pipeline SHALL log an Error and fail, so its backoff-on-failure supervisor restarts it with fresh hubs; producers and consumers re-attach on their own.
+
+#### Scenario: Pipeline graph structure
+- **WHEN** `ForecastPipeline` starts
+- **THEN** it materializes `MergeHub<Forecast> → ZipWith(sensors, settings) → StatefulSelectMany → BroadcastHub<PipelineEvent>` before any producer or consumer attaches
+
+#### Scenario: No fetch logic in the pipeline
+- **WHEN** `ForecastPipeline` is inspected
+- **THEN** it has no dependency on `IOpenMeteoClient`, the gateway throttle, `ForecastDataHash` or `IForecastGateway`
+
+#### Scenario: Output is available before any producer
+- **WHEN** a `RequestPipelineOutput` arrives before any producer has attached
+- **THEN** it is answered immediately with `RequestPipelineOutputCompleted`
+
+#### Scenario: An ended analysis graph restarts the pipeline
+- **WHEN** a stage of the analysis graph stops the graph
+- **THEN** the pipeline fails and is restarted by its supervisor with fresh hubs
+
+### Requirement: Producers attach to the pipeline input via SinkRef
+On `RequestForecastSink(RequestId)` the pipeline SHALL materialize a `StreamRefs.SinkRef<Forecast>()` source into its MergeHub and reply `RequestForecastSinkCompleted(RequestId, SinkRef)` to the sender, or `RequestForecastSinkFailed(RequestId, Cause)` when the SinkRef cannot be materialized. These handshake records SHALL live in `Njord.Core/Actors/StreamWiringMessages.cs`. Any number of producers SHALL be able to hold a SinkRef at the same time. A producer's stream that completes or fails SHALL end only that producer's input: the MergeHub, the analysis state and every consumer SourceRef SHALL stay alive.
+
+#### Scenario: Producer receives a SinkRef
+- **WHEN** a producer sends `RequestForecastSink(5)`
+- **THEN** `ForecastPipeline` replies `RequestForecastSinkCompleted(5, sinkRef)` and forecasts sent into the SinkRef are analyzed
+
+#### Scenario: A second producer can attach
+- **WHEN** two producers each hold a SinkRef and each sends a forecast
+- **THEN** both forecasts are analyzed and their events reach the same consumer
+
+#### Scenario: A producer that ends does not end the hub
+- **WHEN** a producer's stream completes or fails and another producer sends a forecast afterwards
+- **THEN** that forecast is analyzed and a consumer attached before the first producer ended receives its events on the same SourceRef
 

@@ -229,21 +229,6 @@ The service SHALL use `WebApplication.CreateBuilder` as its host builder, provid
 - **WHEN** the service starts
 - **THEN** Serilog is configured directly in `Program.cs` without referencing a `ServiceDefaults` project
 
-### Requirement: Actors resolve peers via marker interfaces
-Actors that need references to other actors SHALL resolve them through the Servus.Akka extensions keyed by the marker interfaces in `Njord.Core/Actors/ActorKeys.cs` — `Context.GetActor<TMarker>()` synchronously or `Context.GetActorAsync<TMarker>()` piped to `Self` — instead of injecting `ActorRegistry` or `IActorRef` constructor parameters. A registry lookup SHALL never be keyed by an actor class.
-
-#### Scenario: PollScheduler resolves the gateway
-- **WHEN** `PollScheduler` is constructed
-- **THEN** it calls `Context.GetActor<IForecastGateway>()`
-
-#### Scenario: MqttStatePublisher resolves the pipeline
-- **WHEN** `MqttStatePublisher` starts
-- **THEN** it calls `Context.GetActor<IForecastPipeline>()`
-
-#### Scenario: ForecastPipeline resolves the gateway asynchronously
-- **WHEN** `ForecastPipeline` starts or loses the gateway
-- **THEN** it calls `Context.GetActorAsync<IForecastGateway>()` and pipes the result to itself
-
 ### Requirement: Persistence options are their own configuration sections
 Persistence settings SHALL NOT be part of `NjordOptions`. `PersistenceOptions` SHALL bind the `Njord:Persistence` section (`Provider` default `Sqlite`, `ConnectionString` default null) and `StorageOptions` SHALL bind `PersistencePath` (default `data/njord.db`) from the `Njord` section; both are registered by `CoreSetupContainer`.
 
@@ -272,4 +257,23 @@ Each `*Options` type and each `*OptionsValidator` in `Njord.Core/Configuration/`
 #### Scenario: AlertOptions in own file
 - **WHEN** `Alerts/AlertOptions.cs` is inspected
 - **THEN** it contains only the `AlertOptions` class, and `AlertOptionsValidator` lives in `Alerts/AlertOptionsValidator.cs`
+
+### Requirement: Actors resolve peers through marker interfaces
+Actors that need references to other actors SHALL resolve them through the Servus.Akka extensions keyed by the marker interfaces in `Njord.Core/Actors/ActorKeys.cs` — `Context.GetActor<TMarker>()` or `Context.TryGetActor<TMarker>(out ...)` synchronously, or `Context.GetActorAsync<TMarker>()` piped to `Self` — instead of injecting `ActorRegistry` or `IActorRef` constructor parameters. A registry lookup SHALL never be keyed by an actor class. `ForecastPipeline` SHALL resolve no peer: producers and consumers come to it.
+
+#### Scenario: PollScheduler resolves the gateway
+- **WHEN** `PollScheduler` is constructed
+- **THEN** it calls `Context.GetActor<IForecastGateway>()`
+
+#### Scenario: MqttStatePublisher resolves the pipeline
+- **WHEN** `MqttStatePublisher` starts
+- **THEN** it calls `Context.GetActor<IForecastPipeline>()`
+
+#### Scenario: The gateway resolves the pipeline asynchronously
+- **WHEN** `OpenMeteoGateway` starts or loses its pipeline attachment
+- **THEN** it calls `Context.GetActorAsync<IForecastPipeline>()` and pipes the result to itself
+
+#### Scenario: The SensorHub pushes to the pipeline marker
+- **WHEN** the SensorHub pushes a snapshot map
+- **THEN** it resolves the pipeline through `IForecastPipeline` and skips the push while none is registered
 

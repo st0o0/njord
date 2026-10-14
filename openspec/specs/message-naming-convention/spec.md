@@ -23,18 +23,16 @@ and the non-success variant is `<Noun>Failed` or, for lookups that can find no d
 - **WHEN** `QueryForecast` is sent
 - **THEN** the response base SHALL be `ForecastResponse`, success `ForecastResult`, unavailable `ForecastNotAvailable`
 
-### Requirement: Completed variants match command name
-
-Command response variants SHALL be named `<VerbNoun>Completed` and
-`<VerbNoun>Failed`, matching the command record name.
+### Requirement: Command response variants match the command name
+Command response variants SHALL be named `<VerbNoun>Completed`, `<VerbNoun>Failed` and, when the command can be refused, `<VerbNoun>Rejected`, matching the command record name.
 
 #### Scenario: FetchForecast responses
-- **WHEN** `FetchForecast` command completes
-- **THEN** the success type SHALL be `FetchForecastCompleted` and the failure type `FetchForecastFailed`
+- **WHEN** `FetchForecast` command is answered
+- **THEN** the success type SHALL be `FetchForecastCompleted`, the failure type `FetchForecastFailed` and the refusal type `FetchForecastRejected`
 
-#### Scenario: RequestForecastStream responses
-- **WHEN** `RequestForecastStream` command completes
-- **THEN** the success type SHALL be `RequestForecastStreamCompleted`
+#### Scenario: RequestForecastSink responses
+- **WHEN** `RequestForecastSink` command completes
+- **THEN** the success type SHALL be `RequestForecastSinkCompleted` and failure `RequestForecastSinkFailed`
 
 #### Scenario: RequestPipelineOutput responses
 - **WHEN** `RequestPipelineOutput` command completes

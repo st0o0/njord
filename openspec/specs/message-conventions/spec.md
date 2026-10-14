@@ -8,7 +8,7 @@ subtypes. Query response types SHALL drop the `Query` prefix: base is `<Noun>Res
 `<Noun>Result`, and the non-success case is `<Noun>Failed(Exception Cause)` when the handler can fail, or `<Noun>NotAvailable` when the answer is that no data exists yet (read-model and sensor lookups). Command response types match the
 command name: `<VerbNoun>Response`, `<VerbNoun>Completed`, `<VerbNoun>Failed`.
 A command that can be refused for a validation reason SHALL also have a
-`<VerbNoun>Rejected(string Reason)` subtype.
+`<VerbNoun>Rejected(string Reason)` subtype; a command whose requester reacts differently per refusal reason SHALL carry a typed reason enum instead of a string.
 
 #### Scenario: Budget response hierarchy
 - **WHEN** BudgetTracker responds to `QueryBudgetStatus`
@@ -32,7 +32,7 @@ A command that can be refused for a validation reason SHALL also have a
 
 #### Scenario: FetchForecast command hierarchy
 - **WHEN** OpenMeteoGateway responds to `FetchForecast`
-- **THEN** the response is `FetchForecastCompleted(...)` or `FetchForecastFailed(...)` under abstract `FetchForecastResponse`
+- **THEN** the response is `FetchForecastCompleted(...)`, `FetchForecastFailed(...)` or `FetchForecastRejected(Location, ModelId, FetchRejectionReason Reason)` under abstract `FetchForecastResponse`, where the reason is one of `QueueFull`, `Budget`, `PipelineUnavailable` and `Expired`
 
 #### Scenario: RequestPipelineOutput command hierarchy
 - **WHEN** ForecastPipeline responds to `RequestPipelineOutput`
@@ -47,7 +47,7 @@ A command that can be refused for a validation reason SHALL also have a
 - **THEN** it responds with the domain's `*Failed` record containing the caught `Exception` as `Cause`
 
 ### Requirement: Njord.Messages organizes messages by domain namespace
-The `Njord.Messages` project SHALL hold every public actor command, query, result and event, with one file per command or query (including its response hierarchy), organized into domain namespaces: `Budget/` (usage recording and status), `Config/` (config snapshot contracts, config and catalog queries, update commands), `Forecast/` (fetch, forecast queries), `Mqtt/` (connection events, inbound messages, subscribe), `Pipeline/` (`PipelineEvent`, scheduling, poll state), `Sensors/` (readings, snapshot query), and `Common/` (shared types like Ack). No production library other than `Njord.Messages` SHALL declare a public message record; actor-private records stay `private` inside the actor.
+The `Njord.Messages` project SHALL hold every public actor command, query, result and event, with one file per command or query (including its response hierarchy), organized into domain namespaces: `Budget/` (usage recording and status), `Config/` (config snapshot contracts, config and catalog queries, update commands), `Forecast/` (fetch, fetch replies and rejection reasons, forecast queries), `Mqtt/` (connection events, inbound messages, subscribe), `Pipeline/` (`PipelineEvent`, scheduling, poll state), `Sensors/` (readings, snapshot query, pushed snapshot maps), and `Common/` (shared types like Ack). No production library other than `Njord.Messages` SHALL declare a public message record; actor-private records stay `private` inside the actor.
 
 #### Scenario: Mqtt messages in separate files
 - **WHEN** inspecting `Njord.Messages/Mqtt/`
@@ -55,7 +55,7 @@ The `Njord.Messages` project SHALL hold every public actor command, query, resul
 
 #### Scenario: SensorHub messages in separate files
 - **WHEN** inspecting `Njord.Messages/Sensors/`
-- **THEN** `UpdateReading` and `QuerySensorSnapshot` (with its response hierarchy) are each in their own file
+- **THEN** `UpdateReading`, `QuerySensorSnapshot` (with its response hierarchy) and `SensorSnapshots` are each in their own file
 
 #### Scenario: No public messages nested in actors
 - **WHEN** any actor class in a feature library is inspected
