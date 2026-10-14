@@ -19,7 +19,9 @@ namespace Njord.OpenMeteo;
 // pipeline's SinkRef, which is the only part re-attached when the pipeline goes away.
 public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
 {
-    private const int FetchQueueSize = 16;
+    // Holds a full startup round of targets; 64 queued at ~1.5 s per fetch over 2 connections drain within the
+    // 60 s admission window.
+    private const int FetchQueueSize = 64;
     private const int ForecastBranchSize = 16;
     private const string AttachTimeoutTimer = "attach-timeout";
     private const string AttachRetryTimer = "attach-retry";

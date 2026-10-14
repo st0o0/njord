@@ -161,6 +161,7 @@ public sealed class ForecastPipeline : ReceiveActor
         var trends = _trends;
         var indices = _indices;
         var timeProvider = _timeProvider;
+        var log = _log;
 
         forecastSource
             .Via(Flow.FromGraph(GraphDsl.Create(builder =>
@@ -207,6 +208,8 @@ public sealed class ForecastPipeline : ReceiveActor
                         events.Add(new PipelineEvent.IndexComputed(ix, now));
 
                     previous = consensus;
+                    log.Debug("Analyzed {0}/{1}: {2} events, live sensors {3}",
+                        location, input.forecast.Model.Id, events.Count, input.sensors.For(location) is null ? "absent" : "present");
                     return events;
                 };
             })

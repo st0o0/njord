@@ -141,13 +141,13 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_burst_beyond_the_fetch_queue_is_answered_exactly_once_with_queue_full_for_the_overflow()
     {
-        const int requests = 48;
+        const int requests = 100;
         await AttachedAsync();
         _client.Hold();
 
         for (var i = 0; i < requests; i++)
         {
-            Gateway.Tell(Fetch($"m{i:D2}"));
+            Gateway.Tell(Fetch($"m{i:D3}"));
         }
 
         // Offers to the full queue are refused at once, while the held fetches cannot answer yet.

@@ -24,7 +24,7 @@ Constraints: `Njord.OpenMeteo` and `Njord.Pipeline` must not reference each othe
 ## Decisions
 
 ### D1 Gateway private stream (FunkArr pattern)
-`Source.Queue<FetchTarget>(16, DropNew)` → `GatewayThrottleStage` → `SelectAsyncUnordered(2, try/catch)` →
+`Source.Queue<FetchTarget>(64, DropNew)` → `GatewayThrottleStage` → `SelectAsyncUnordered(2, try/catch)` →
 `Sink.ActorRef(Self)`, materialized in `PreStart` with `Context.Materializer()`. `DropNew` accepts concurrent
 offers (a backpressured queue faults on a second pending offer), so each request is offered directly and its
 `IQueueOfferResult` comes back via `PipeTo`; anything but `Enqueued` answers `Rejected(QueueFull)` (a failed
