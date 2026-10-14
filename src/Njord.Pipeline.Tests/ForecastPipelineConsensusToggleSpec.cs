@@ -120,12 +120,6 @@ public sealed class ForecastPipelineConsensusToggleSpec : NjordActorSpec
         StartPipelineAsync(bool consensusEnabled, CancellationToken ct)
     {
         var fixture = AnalysisFixture.Create();
-        var queueReady = new TaskCompletionSource<ISourceQueueWithComplete<WeatherForecast>>(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-        ActorRegistry.Register<IForecastGateway>(
-            Sys.ActorOf(Props.Create(() => new FakeGateway(queueReady)), $"gateway-{Guid.NewGuid():N}"),
-            overwrite: true);
-
         var pipeline = Sys.ActorOf(Props.Create(() => new ForecastPipeline(
             fixture.Time,
             new ConsensusBuilder(AnalysisFixture.Parameters, fixture.Time),
@@ -141,7 +135,7 @@ public sealed class ForecastPipelineConsensusToggleSpec : NjordActorSpec
         var completed = Assert.IsType<RequestPipelineOutputCompleted>(output);
         var events = Channel.CreateUnbounded<PipelineEvent>();
         completed.SourceRef.Source.To(Sink.ForEach<PipelineEvent>(e => events.Writer.TryWrite(e))).Run(Sys.Materializer());
-        var queue = await queueReady.Task.WaitAsync(TestTimeouts.RealTimeWaitMax, ct);
+        var queue = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
 
         var forecasts = fixture.Forecasts.Where(f => f.Location == AnalysisFixture.Lucerne).ToList();
         return (forecasts, pipeline, queue, events.Reader);
@@ -170,23 +164,5 @@ public sealed class ForecastPipelineConsensusToggleSpec : NjordActorSpec
         }
 
         return received;
-    }
-
-    private sealed class FakeGateway : ReceiveActor
-    {
-        public FakeGateway(TaskCompletionSource<ISourceQueueWithComplete<WeatherForecast>> queueReady)
-        {
-            var mat = Context.Materializer();
-
-            Receive<RequestForecastStream>(msg =>
-            {
-                var (queue, source) = Source.Queue<WeatherForecast>(16, OverflowStrategy.Backpressure).PreMaterialize(mat);
-                queueReady.TrySetResult(queue);
-                source.RunWith(StreamRefs.SourceRef<WeatherForecast>(), mat)
-                    .PipeTo(Sender,
-                        success: sourceRef => new RequestForecastStreamCompleted(msg.RequestId, sourceRef),
-                        failure: ex => new RequestForecastStreamFailed(msg.RequestId, ex));
-            });
-        }
     }
 }

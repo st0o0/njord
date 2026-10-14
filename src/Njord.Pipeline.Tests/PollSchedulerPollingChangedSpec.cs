@@ -25,6 +25,7 @@ public sealed class PollSchedulerPollingChangedSpec : NjordActorSpec
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
+        services.AddSingleton(FetchTimeouts.Default);
         services.AddSingleton<TimeProvider>(_time);
         services.AddSingleton(Options.Create(new NjordOptions
         {
@@ -53,7 +54,8 @@ public sealed class PollSchedulerPollingChangedSpec : NjordActorSpec
     private async Task CompleteFirstPollAsync(CancellationToken ct)
     {
         await _fetchProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: ct);
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(9), ct);
+        Scheduler.Tell(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42));
+        await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(9), ct);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

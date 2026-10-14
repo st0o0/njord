@@ -21,6 +21,7 @@ public sealed class PollSchedulerStartupOrderSpec : NjordActorSpec
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
+        services.AddSingleton(FetchTimeouts.Default);
         var options = new NjordOptions
         {
             Locations =

@@ -12,6 +12,7 @@ using Njord.Core.Configuration.Polling;
 using Njord.Core.Health;
 using Njord.Messages.Common;
 using Njord.Messages.Forecast;
+using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using Njord.Weather;
 
@@ -51,6 +52,7 @@ public sealed class PollSchedulerCycleSpec : NjordActorSpec
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
+        services.AddSingleton(FetchTimeouts.Default);
         var options = new NjordOptions
         {
             Locations = [new LocationOptions { Name = _location, Latitude = 47.05, Longitude = 8.31 }],
@@ -95,6 +97,21 @@ public sealed class PollSchedulerCycleSpec : NjordActorSpec
             Assert.Equal([3.0], Values("njord_poll_cycle_models"));
             Assert.Equal([1.0], Values("njord_poll_cycle_failed_models"));
             Assert.Single(Values("njord_poll_cycle_duration_seconds"));
+        }, TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_rejected_model_counts_as_failed_in_its_cycle()
+    {
+        using var listener = ListenToPipelineMeter();
+        Completed("icon_d2", 1);
+        Completed("ecmwf_ifs025", 2);
+        Scheduler.Tell(new FetchForecastRejected(new LocationId(_location), "gfs_seamless", FetchRejectionReason.QueueFull));
+
+        await AwaitAssertAsync(() =>
+        {
+            Assert.Equal([3.0], Values("njord_poll_cycle_models"));
+            Assert.Equal([1.0], Values("njord_poll_cycle_failed_models"));
         }, TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
     }
 

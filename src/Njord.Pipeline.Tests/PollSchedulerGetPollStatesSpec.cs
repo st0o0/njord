@@ -23,6 +23,7 @@ public sealed class PollSchedulerGetPollStatesSpec : NjordActorSpec
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
+        services.AddSingleton(FetchTimeouts.Default);
         var options = new NjordOptions
         {
             Locations =
@@ -92,7 +93,9 @@ public sealed class PollSchedulerGetPollStatesSpec : NjordActorSpec
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        Scheduler.Tell(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42));
+
+        await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var snapshot = await Scheduler.Ask<PollStatesResult>(
             new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
@@ -108,8 +111,11 @@ public sealed class PollSchedulerGetPollStatesSpec : NjordActorSpec
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        Scheduler.Tell(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42));
+
+        await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        Scheduler.Tell(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42));
+        await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         var snapshot = await Scheduler.Ask<PollStatesResult>(
             new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);

@@ -6,7 +6,6 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Health;
-using Njord.Messages.Common;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Weather;
@@ -26,6 +25,7 @@ public sealed class PollScheduler : ReceivePersistentActor
     private TimeSpan _discoveryInterval;
     private readonly TimeProvider _timeProvider;
     private readonly NjordHealthMonitor _healthState;
+    private readonly FetchTimeouts _fetchTimeouts;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private PollSchedulerState _state = PollSchedulerState.Empty;
     private readonly PollCycleTracker _pollCycles = new();
@@ -48,12 +48,14 @@ public sealed class PollScheduler : ReceivePersistentActor
         IOptions<NjordOptions> options,
         IOptions<PollingOptions> polling,
         TimeProvider timeProvider,
-        NjordHealthMonitor healthState)
+        NjordHealthMonitor healthState,
+        FetchTimeouts fetchTimeouts)
     {
         _options = options.Value;
         _discoveryInterval = polling.Value.DiscoveryInterval;
         _timeProvider = timeProvider;
         _healthState = healthState;
+        _fetchTimeouts = fetchTimeouts;
 
         _gateway = Context.GetActor<IForecastGateway>();
         Context.Watch(_gateway);
@@ -136,6 +138,7 @@ public sealed class PollScheduler : ReceivePersistentActor
         Command<ScheduledPoll>(OnScheduledPoll);
         Command<FetchForecastCompleted>(OnFetchForecastCompleted);
         Command<FetchForecastFailed>(OnFetchForecastFailed);
+        Command<FetchForecastRejected>(OnFetchForecastRejected);
         Command<TriggerImmediatePoll>(OnTriggerImmediatePoll);
         Command<QueryPollStates>(OnQueryPollStates);
         Command<PollingChanged>(OnPollingChanged);
@@ -188,7 +191,18 @@ public sealed class PollScheduler : ReceivePersistentActor
         if (_gateway is null)
             return;
 
-        _gateway.Tell(new FetchForecast(poll.Location, poll.ModelId));
+        // Every poll ends in exactly one reply to Self: the gateway's answer, or a transport failure when it does
+        // not answer within the reply timeout (which covers its queue, throttle admission and HTTP timeout).
+        var location = poll.Location;
+        var modelId = poll.ModelId;
+        var timeout = _fetchTimeouts.Reply;
+        _gateway.Ask<FetchForecastResponse>(new FetchForecast(location, modelId), timeout)
+            .PipeTo(Self,
+                success: reply => reply,
+                failure: ex => new FetchForecastFailed(location, modelId, PollFailureReason.Transport,
+                    ex is AskTimeoutException
+                        ? $"Gateway did not answer within {timeout}"
+                        : $"Gateway request failed ({ex.GetType().Name}: {ex.Message})"));
     }
 
     private void OnTriggerImmediatePoll(TriggerImmediatePoll msg)
@@ -224,7 +238,6 @@ public sealed class PollScheduler : ReceivePersistentActor
     {
         if (!TryResolveTarget(result.Location, result.ModelId, out var location, out var modelId))
         {
-            Sender.Tell(new Ack());
             return;
         }
 
@@ -248,7 +261,6 @@ public sealed class PollScheduler : ReceivePersistentActor
                     "Data changed for {Location}/{Model} - phase={Phase}, cycle={Cycle}",
                     location, modelId, updated.Phase, updated.Cycle);
                 ScheduleNext(location, modelId);
-                Sender.Tell(new Ack());
                 RecordPollOutcome(location, modelId, PollCycleOutcome.Changed);
                 MaybeSnapshot();
             });
@@ -262,7 +274,6 @@ public sealed class PollScheduler : ReceivePersistentActor
                 "Hash unchanged for {Location}/{Model} - miss={Miss}, phase={Phase}",
                 location, modelId, updated.MissCount, updated.Phase);
             ScheduleNext(location, modelId);
-            Sender.Tell(new Ack());
             RecordPollOutcome(location, modelId, PollCycleOutcome.Unchanged);
         }
     }
@@ -302,6 +313,25 @@ public sealed class PollScheduler : ReceivePersistentActor
                 break;
         }
 
+        RecordPollOutcome(location, modelId, PollCycleOutcome.Failed);
+    }
+
+    // A rejected request was never fetched. Budget backs off like a rate limit; the other reasons are transient.
+    private void OnFetchForecastRejected(FetchForecastRejected msg)
+    {
+        if (!TryResolveTarget(msg.Location, msg.ModelId, out var location, out var modelId))
+        {
+            return;
+        }
+
+        var key = Key(location, modelId);
+        var now = _timeProvider.GetUtcNow();
+        _state = msg.Reason == FetchRejectionReason.Budget
+            ? _state.ApplyRateLimited(key, now, RateLimitMinDelay, _discoveryInterval)
+            : _state.ApplyTransientFailure(key, now, _discoveryInterval);
+        _log.Warning("Fetch rejected for {Location}/{Model} ({Reason}) - next poll at {Next}",
+            location, modelId, msg.Reason, _state.States[key].NextPollUtc);
+        ScheduleNext(location, modelId);
         RecordPollOutcome(location, modelId, PollCycleOutcome.Failed);
     }
 

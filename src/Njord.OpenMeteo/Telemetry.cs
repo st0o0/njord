@@ -14,4 +14,7 @@ internal static class Telemetry
 
     internal static readonly Histogram<double> ThrottleWait =
         Meter.CreateHistogram<double>("njord_gateway_throttle_wait_seconds", "s");
+
+    internal static readonly Counter<long> PipelineReattaches =
+        Meter.CreateCounter<long>("njord_openmeteo_pipeline_reattaches_total", "{reattach}");
 }

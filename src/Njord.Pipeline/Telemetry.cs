@@ -17,7 +17,4 @@ internal static class Telemetry
 
     internal static readonly Counter<long> DataChanged =
         Meter.CreateCounter<long>("njord_pipeline_data_changed_total", "{change}");
-
-    internal static readonly Counter<long> StreamRewires =
-        Meter.CreateCounter<long>("njord_pipeline_stream_rewires_total", "{rewire}");
 }

@@ -63,7 +63,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
 
         var scheduler = Sys.ActorOf(
             Props.Create(() => new PollScheduler(
-                Options.Create(options), Options.Create(new PollingOptions { DiscoveryInterval = TimeSpan.FromMinutes(20) }), time, health)),
+                Options.Create(options), Options.Create(new PollingOptions { DiscoveryInterval = TimeSpan.FromMinutes(20) }), time, health, FetchTimeouts.Default)),
             "real-scheduler");
         ActorRegistry.Register<IPollScheduler>(scheduler, overwrite: true);
 
@@ -75,8 +75,6 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakeGatewayActor(TaskCompletionSource<string>? fetchCalled = null)
         {
-            var mat = Context.Materializer();
-
             Receive<FetchForecast>(msg =>
             {
                 fetchCalled?.TrySetResult(msg.Location.Name);
@@ -84,17 +82,6 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
                 Sender.Tell(new FetchForecastCompleted(msg.Location, msg.ModelId, hash));
             });
 
-            Receive<RequestForecastStream>(msg =>
-            {
-                var (source, sink) = BroadcastHub.Sink<WeatherForecast>(bufferSize: 2)
-                    .PreMaterialize(mat);
-
-                source
-                    .RunWith(StreamRefs.SourceRef<WeatherForecast>(), mat)
-                    .PipeTo(Sender, Self,
-                        sr => new RequestForecastStreamCompleted(msg.RequestId, sr),
-                        ex => new RequestForecastStreamFailed(msg.RequestId, ex));
-            });
         }
     }
 

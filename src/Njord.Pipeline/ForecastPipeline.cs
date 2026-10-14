@@ -1,46 +1,37 @@
 using Akka;
 using Akka.Actor;
 using Akka.Event;
-using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Alerts;
 using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Consensus;
-using Njord.Messages.Pipeline;
-using Njord.Messages.Sensors;
 using Njord.Derived;
 using Njord.Indices;
-using Njord.Sensors;
+using Njord.Messages.Pipeline;
+using Njord.Messages.Sensors;
 using Njord.Weather;
-using Servus.Akka;
-using Servus.Resilience;
 using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
 using WeatherForecast = Njord.Weather.Forecast;
 
 namespace Njord.Pipeline;
 
-public sealed class ForecastPipeline : ReceiveActor, IWithStash
+// Owns the long-lived hubs: producers attach to the MergeHub input via SinkRef, consumers to the
+// BroadcastHub output via SourceRef. Both live as long as this incarnation; producers and consumers
+// coming and going never rebuild them, so the analysis state in the stage closure survives them.
+public sealed class ForecastPipeline : ReceiveActor
 {
-    private static readonly BackoffPolicy GatewayRetryPolicy =
-        Backoff.Create(TimeSpan.FromSeconds(1), maxDelay: TimeSpan.FromSeconds(30));
+    private const int PerProducerBufferSize = 16;
 
-    internal static readonly TimeSpan SensorLookupTimeout = TimeSpan.FromSeconds(2);
+    // Unique across incarnations: a restarted pipeline keeps its ActorRef, and the end of the previous
+    // incarnation's graph must not fail the new one.
+    private static long _lastGraphId;
 
-    // Twice the backoff cap: an analysis graph that survived this long counts as healthy again.
-    private static readonly TimeSpan GraphStableAfter = TimeSpan.FromSeconds(60);
-
-    private sealed record GatewayResolved(IActorRef Gateway);
-    private sealed record GatewayResolveFailed(Exception Cause);
-    private sealed record RetryGatewayResolve;
-    private sealed record AnalysisGraphCompleted(long Generation);
-    private sealed record AnalysisGraphFailed(long Generation, Exception Cause);
-    private sealed record AnalysisGraphStable(long Generation);
+    private sealed record AnalysisGraphEnded(long GraphId, Exception? Cause) : IDeadLetterSuppression;
 
     private readonly TimeProvider _timeProvider;
     private readonly ConsensusBuilder _consensusBuilder;
@@ -49,19 +40,14 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
     private readonly DerivedAnalyzer _derived;
     private readonly TrendAnalyzer _trends;
     private readonly IndexAnalyzer _indices;
+    private readonly AnalysisSettings _startupSettings;
 
-    private Source<PipelineEvent, NotUsed>? _pipelineOutputSource;
     private IMaterializer? _mat;
+    private long _graphId;
+    private Sink<WeatherForecast, NotUsed>? _mergeSink;
+    private Source<PipelineEvent, NotUsed>? _pipelineOutputSource;
+    private IActorRef? _sensorRef;
     private IActorRef? _settingsRef;
-    private AnalysisSettings _settings;
-    private IActorRef? _gateway;
-    private IActorRef? _lastTerminatedGateway;
-    private int _gatewayRetryCount;
-    private Guid _forecastStreamRequestId;
-    private long _graphGeneration;
-    private int _graphLossCount;
-
-    public IStash Stash { get; set; } = null!;
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
@@ -75,7 +61,6 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
         IndexAnalyzer indices,
         AnalysisSettings startupSettings)
     {
-        _settings = startupSettings;
         _timeProvider = timeProvider;
         _consensusBuilder = consensusBuilder;
         _consensusEnabled = consensusOptions.Value.Enabled;
@@ -83,198 +68,90 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
         _derived = derived;
         _trends = trends;
         _indices = indices;
+        _startupSettings = startupSettings;
 
-        ReceiveAny(_ => Stash.Stash());
+        Receive<RequestForecastSink>(OnRequestForecastSink);
+        Receive<RequestPipelineOutput>(OnRequestPipelineOutput);
+        Receive<AnalysisSettingsChanged>(msg => _settingsRef!.Tell(msg.Settings));
+        Receive<SensorSnapshots>(msg => _sensorRef!.Tell(msg));
+        Receive<AnalysisGraphEnded>(OnAnalysisGraphEnded);
     }
 
     protected override void PreStart()
     {
         _mat = Context.Materializer();
-
-        Context.GetActorAsync<IForecastGateway>()
-            .PipeTo(Self, success: r => new GatewayResolved(r), failure: ex => new GatewayResolveFailed(ex));
-
-        WaitingForGateway();
+        MaterializeAnalysisPipeline();
+        _log.Info("Forecast pipeline materialized - waiting for producers and consumers");
     }
 
-    private void WaitingForGateway()
+    private void OnRequestForecastSink(RequestForecastSink msg)
     {
-        Become(() =>
-        {
-            Receive<GatewayResolved>(msg =>
+        // A producer's failure must never end the MergeHub. Akka.NET 1.5.73 already drops a failed producer
+        // (logging an error) although the MergeHub docs say it fails the hub; ending each producer's stream as a
+        // completion keeps the hub safe either way and logs the loss as a warning.
+        var log = _log;
+        StreamRefs.SinkRef<WeatherForecast>()
+            .Via(Flow.Create<WeatherForecast>().RecoverWithRetries(ex =>
             {
-                if (Equals(msg.Gateway, _lastTerminatedGateway))
+                log.Warning(ex, "Forecast producer stream failed - detaching it from the pipeline input");
+                return Source.Empty<WeatherForecast>();
+            }, 1))
+            .To(_mergeSink!)
+            .Run(_mat!)
+            .PipeTo(Sender, Self,
+                sinkRef => new RequestForecastSinkCompleted(msg.RequestId, sinkRef),
+                ex =>
                 {
-                    var delay = GatewayRetryPolicy.DelayWithJitter(_gatewayRetryCount);
-                    _gatewayRetryCount++;
-                    Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryGatewayResolve(), Self);
-                    return;
-                }
+                    _log.Error(ex, "Failed to create forecast input SinkRef");
+                    return new RequestForecastSinkFailed(msg.RequestId, ex);
+                });
+    }
 
-                _lastTerminatedGateway = null;
-                _gateway = msg.Gateway;
-                Context.Watch(_gateway);
-                _gatewayRetryCount = 0;
-
-                _forecastStreamRequestId = Guid.NewGuid();
-                _gateway.Tell(new RequestForecastStream(_forecastStreamRequestId));
-            });
-
-            Receive<RequestForecastStreamCompleted>(msg =>
-            {
-                if (msg.RequestId != _forecastStreamRequestId)
+    private void OnRequestPipelineOutput(RequestPipelineOutput msg)
+    {
+        _pipelineOutputSource!
+            .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat!)
+            .PipeTo(Sender, Self,
+                sourceRef => new RequestPipelineOutputCompleted(msg.RequestId, sourceRef),
+                ex =>
                 {
-                    return;
-                }
-
-                _log.Info("Received forecast SourceRef from gateway — materializing analysis pipeline");
-                var generation = ++_graphGeneration;
-                MaterializeAnalysisPipeline(msg.SourceRef.Source).PipeTo(Self,
-                    success: () => new AnalysisGraphCompleted(generation),
-                    failure: ex => new AnalysisGraphFailed(generation, ex));
-                Context.System.Scheduler.ScheduleTellOnceCancelable(
-                    GraphStableAfter, Self, new AnalysisGraphStable(generation), Self);
-                EnterReady();
-                Stash.UnstashAll();
-            });
-
-            Receive<RequestForecastStreamFailed>(msg =>
-            {
-                if (msg.RequestId != _forecastStreamRequestId)
-                {
-                    return;
-                }
-
-                _log.Warning(msg.Cause, "Failed to get forecast stream from gateway — retrying");
-                var delay = GatewayRetryPolicy.DelayWithJitter(_gatewayRetryCount);
-                _gatewayRetryCount++;
-                Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryGatewayResolve(), Self);
-            });
-
-            Receive<RetryGatewayResolve>(_ =>
-            {
-                Context.GetActorAsync<IForecastGateway>()
-                    .PipeTo(Self, success: r => new GatewayResolved(r), failure: ex => new GatewayResolveFailed(ex));
-            });
-
-            Receive<GatewayResolveFailed>(msg =>
-            {
-                _log.Warning(msg.Cause, "Failed to resolve gateway — retrying");
-                var delay = GatewayRetryPolicy.DelayWithJitter(_gatewayRetryCount);
-                _gatewayRetryCount++;
-                Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryGatewayResolve(), Self);
-            });
-
-            Receive<AnalysisSettingsChanged>(msg => _settings = msg.Settings);
-
-            Receive<Terminated>(OnTerminated);
-
-            ReceiveAnalysisGraphLifecycle();
-
-            ReceiveAny(_ => Stash.Stash());
-        });
+                    _log.Error(ex, "Failed to create pipeline output SourceRef");
+                    return new RequestPipelineOutputFailed(msg.RequestId, ex);
+                });
     }
 
-    private void EnterReady()
+    // The hubs are gone with the graph: fail, so the supervisor restarts the pipeline with fresh hubs and every
+    // producer and consumer re-attaches.
+    private void OnAnalysisGraphEnded(AnalysisGraphEnded msg)
     {
-        Become(() =>
-        {
-            Receive<AnalysisSettingsChanged>(msg =>
-            {
-                _settings = msg.Settings;
-                _settingsRef?.Tell(msg.Settings);
-            });
-
-            Receive<RequestPipelineOutput>(msg =>
-            {
-                _pipelineOutputSource!
-                    .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat!)
-                    .PipeTo(Sender, Self,
-                        sr => new RequestPipelineOutputCompleted(msg.RequestId, sr),
-                        ex =>
-                        {
-                            _log.Error(ex, "Failed to create pipeline output SourceRef");
-                            return new RequestPipelineOutputFailed(msg.RequestId, ex);
-                        });
-            });
-
-            Receive<Terminated>(OnTerminated);
-
-            ReceiveAnalysisGraphLifecycle();
-        });
-    }
-
-    // Only the graph of the current generation counts: one replaced after a gateway loss is stale.
-    private void ReceiveAnalysisGraphLifecycle()
-    {
-        Receive<AnalysisGraphCompleted>(msg => OnAnalysisGraphEnded(msg.Generation, null));
-        Receive<AnalysisGraphFailed>(msg => OnAnalysisGraphEnded(msg.Generation, msg.Cause));
-        Receive<AnalysisGraphStable>(msg =>
-        {
-            if (msg.Generation == _graphGeneration)
-            {
-                _graphLossCount = 0;
-            }
-        });
-    }
-
-    // The forecast stream or a stage ended while the gateway lives: request a new forecast stream. Consumers of
-    // the old output hub see it end and rewire themselves.
-    private void OnAnalysisGraphEnded(long generation, Exception? cause)
-    {
-        if (generation != _graphGeneration)
+        if (msg.GraphId != _graphId)
         {
             return;
         }
 
-        var delay = GatewayRetryPolicy.DelayWithJitter(_graphLossCount);
-        _graphLossCount++;
-        if (cause is null)
-        {
-            _log.Warning("Analysis stream completed unexpectedly — requesting a new forecast stream in {0}", delay);
-        }
-        else
-        {
-            _log.Warning(cause, "Analysis stream failed — requesting a new forecast stream in {0}", delay);
-        }
-
-        Telemetry.StreamRewires.Add(1);
-        _graphGeneration++;
-        _pipelineOutputSource = null;
-        _forecastStreamRequestId = Guid.Empty;
-        Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryGatewayResolve(), Self);
-        WaitingForGateway();
+        throw new InvalidOperationException("Forecast analysis graph ended unexpectedly", msg.Cause);
     }
 
-    private void OnTerminated(Terminated msg)
+    private void MaterializeAnalysisPipeline()
     {
-        if (!Equals(msg.ActorRef, _gateway))
-            return;
+        var graphId = _graphId = Interlocked.Increment(ref _lastGraphId);
+        var (mergeSink, forecastSource) = MergeHub.Source<WeatherForecast>(PerProducerBufferSize).PreMaterialize(_mat);
 
-        _log.Warning("Gateway terminated — re-resolving");
-        _graphGeneration++;
-        _forecastStreamRequestId = Guid.Empty;
-        _lastTerminatedGateway = msg.ActorRef;
-        _gateway = null;
-        _gatewayRetryCount = 0;
-
-        Context.GetActorAsync<IForecastGateway>()
-            .PipeTo(Self, success: r => new GatewayResolved(r), failure: ex => new GatewayResolveFailed(ex));
-
-        WaitingForGateway();
-    }
-
-    private Task MaterializeAnalysisPipeline(Source<WeatherForecast, NotUsed> forecastSource)
-    {
         var (pipelineOutputSource, pipelineOutputSink) = BroadcastHub.Sink<PipelineEvent>(bufferSize: 2)
             .PreMaterialize(_mat);
 
-        // The latest settings are zipped onto every forecast, so a change applies from the next forecast on
-        // and never in the middle of one computation.
+        // The latest settings and sensor snapshots are zipped onto every forecast, so a change applies from the
+        // next forecast on and never in the middle of one computation.
         var (settingsRef, settingsSourceRaw) = Source.ActorRef<AnalysisSettings>(10, OverflowStrategy.DropHead)
             .PreMaterialize(_mat);
-        var settingsSource = Source.Single(_settings)
+        var settingsSource = Source.Single(_startupSettings)
             .Concat(settingsSourceRaw)
+            .RepeatPrevious();
+
+        var (sensorRef, sensorSourceRaw) = Source.ActorRef<SensorSnapshots>(10, OverflowStrategy.DropHead)
+            .PreMaterialize(_mat);
+        var sensorSource = Source.Single(SensorSnapshots.Empty)
+            .Concat(sensorSourceRaw)
             .RepeatPrevious();
 
         var consensusBuilder = _consensusBuilder;
@@ -284,23 +161,18 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
         var trends = _trends;
         var indices = _indices;
         var timeProvider = _timeProvider;
-        var registry = ActorRegistry.For(Context.System);
-        var log = _log;
 
-        var completion = forecastSource
+        forecastSource
             .Via(Flow.FromGraph(GraphDsl.Create(builder =>
             {
-                var zip = builder.Add(ZipWith.Apply<WeatherForecast, AnalysisSettings, (WeatherForecast, AnalysisSettings)>(
-                    (forecast, settings) => (forecast, settings)));
-                var settings = builder.Add(settingsSource);
-                builder.From(settings).To(zip.In1);
-                return new FlowShape<WeatherForecast, (WeatherForecast, AnalysisSettings)>(zip.In0, zip.Out);
+                var zip = builder.Add(ZipWith.Apply<WeatherForecast, SensorSnapshots, AnalysisSettings,
+                    (WeatherForecast, SensorSnapshots, AnalysisSettings)>(
+                    (forecast, sensors, settings) => (forecast, sensors, settings)));
+                builder.From(builder.Add(sensorSource)).To(zip.In1);
+                builder.From(builder.Add(settingsSource)).To(zip.In2);
+                return new FlowShape<WeatherForecast, (WeatherForecast, SensorSnapshots, AnalysisSettings)>(zip.In0, zip.Out);
             })))
-            // One lookup per forecast, in arrival order: the sensors of the forecast's own location, read at
-            // analysis time so the SensorHub's staleness window applies.
-            .SelectAsync(1, async ((WeatherForecast forecast, AnalysisSettings settings) input) =>
-                (input.forecast, sensors: await LookupSensorsAsync(registry, input.forecast.Location, log), input.settings))
-            .StatefulSelectMany<(WeatherForecast forecast, SensorSnapshot? sensors, AnalysisSettings settings), PipelineEvent, NotUsed>(() =>
+            .StatefulSelectMany<(WeatherForecast forecast, SensorSnapshots sensors, AnalysisSettings settings), PipelineEvent, NotUsed>(() =>
             {
                 var snapshot = ModelSnapshot.Empty;
                 ConsensusSnapshot? previous = null;
@@ -308,6 +180,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                 return input =>
                 {
                     var now = timeProvider.GetUtcNow();
+                    var location = new LocationId(input.forecast.Location);
                     snapshot = snapshot.Update(input.forecast);
                     var settings = input.settings;
                     // The snapshot feeds every analysis, so it is built even when its own output is switched off.
@@ -315,7 +188,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
 
                     var events = new List<PipelineEvent>
                     {
-                        new PipelineEvent.ForecastReceived(new LocationId(input.forecast.Location), input.forecast.Model, input.forecast),
+                        new PipelineEvent.ForecastReceived(location, input.forecast.Model, input.forecast),
                     };
 
                     if (consensusEnabled)
@@ -330,7 +203,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                     if (trends.Compute(consensus, previous, settings.Trends) is { } tr)
                         events.Add(new PipelineEvent.TrendComputed(tr, now));
 
-                    if (indices.Compute(consensus, input.sensors, settings.Indices) is { } ix)
+                    if (indices.Compute(consensus, input.sensors.For(location), settings.Indices) is { } ix)
                         events.Add(new PipelineEvent.IndexComputed(ix, now));
 
                     previous = consensus;
@@ -340,39 +213,14 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
             .WatchTermination(Keep.Right)
             .To(pipelineOutputSink)
-            .Run(_mat);
+            .Run(_mat)
+            .PipeTo(Self,
+                success: () => new AnalysisGraphEnded(graphId, null),
+                failure: ex => new AnalysisGraphEnded(graphId, ex));
 
+        _mergeSink = mergeSink;
         _pipelineOutputSource = pipelineOutputSource;
         _settingsRef = settingsRef;
-        return completion;
-    }
-
-    // Never throws: any miss, timeout or failure means "no live sensors", so the indices fall back to the
-    // configured values and the forecast is still analyzed.
-    private static async Task<SensorSnapshot?> LookupSensorsAsync(ActorRegistry registry, string location, ILoggingAdapter log)
-    {
-        if (!registry.TryGet<ISensorHub>(out var sensorHub))
-        {
-            log.Debug("SensorHub not registered — analyzing {0} without live sensors", location);
-            return null;
-        }
-
-        try
-        {
-            var response = await sensorHub.Ask<SensorSnapshotResponse>(
-                new QuerySensorSnapshot(new LocationId(location)), SensorLookupTimeout);
-            if (response is SensorSnapshotResult result)
-            {
-                return result.Snapshot;
-            }
-
-            log.Debug("No live sensor readings for {0}", location);
-            return null;
-        }
-        catch (Exception ex)
-        {
-            log.Warning(ex, "Sensor lookup for {0} failed — analyzing without live sensors", location);
-            return null;
-        }
+        _sensorRef = sensorRef;
     }
 }

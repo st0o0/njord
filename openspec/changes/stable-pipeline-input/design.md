@@ -74,9 +74,10 @@ branch; the fetch stream is untouched.
 `ZipWith(forecast, sensor map, settings)` (both side channels `Source.ActorRef(10, DropHead)` with an initial
 element and `RepeatPrevious`) → `StatefulSelectMany` → `WatchTermination` → `BroadcastHub.Sink(2)`. On
 `RequestForecastSink` the pipeline runs `StreamRefs.SinkRef<Forecast>()` → `RecoverWithRetries(_ =>
-Source.Empty, 1)` → merge sink and replies with the request id. The recovery matters: Akka.NET's MergeHub
-fails the whole hub when one producer fails (documented on `MergeHub.Source`), and a SinkRef source fails
-when its remote partner dies; a completed producer never completes the hub. The analysis graph ending
+Source.Empty, 1)` → merge sink and replies with the request id. A SinkRef source fails when its remote partner
+dies. The `MergeHub.Source` docs say a failed producer fails the whole hub; Akka.NET 1.5.73 in fact only drops
+the failed producer (verified by a spec run without the recovery), so the recovery is a guard against the
+documented behavior and turns the stage error log into a warning. A completed producer never completes the hub. The analysis graph ending
 (completed or failed) makes the pipeline throw; it is registered behind BackoffOnFailure, so a restart builds
 fresh hubs and producers/consumers re-attach (the only case they do). The pipeline drops its gateway
 resolution, watch, stash, backoff, rewire logic and the rewire counter.

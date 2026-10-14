@@ -10,6 +10,9 @@ public sealed class FakeOpenMeteoClient : IOpenMeteoClient
     public HashSet<string> ThrowingModels { get; } = [];
 
     private volatile TaskCompletionSource _release = CompletedRelease();
+    private int _calls;
+
+    public int Calls => Volatile.Read(ref _calls);
 
     // Holds every fetch that starts from now on until Release is called.
     public void Hold() => _release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -19,6 +22,7 @@ public sealed class FakeOpenMeteoClient : IOpenMeteoClient
     public async Task<PollOutcome> FetchAsync(
         LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken cancellationToken)
     {
+        Interlocked.Increment(ref _calls);
         await _release.Task.WaitAsync(cancellationToken);
         return await FetchNowAsync(location, model, cycle);
     }

@@ -13,13 +13,13 @@ public sealed record RequestPipelineOutputCompleted(long RequestId, ISourceRef<P
 public sealed record RequestPipelineOutputFailed(long RequestId, Exception Cause)
     : RequestPipelineOutputResponse(RequestId);
 
-public sealed record RequestForecastStream(Guid RequestId);
+public sealed record RequestForecastSink(long RequestId);
 
-public abstract record RequestForecastStreamResponse(Guid RequestId);
-public sealed record RequestForecastStreamCompleted(Guid RequestId, ISourceRef<WeatherForecast> SourceRef)
-    : RequestForecastStreamResponse(RequestId);
-public sealed record RequestForecastStreamFailed(Guid RequestId, Exception Cause)
-    : RequestForecastStreamResponse(RequestId);
+public abstract record RequestForecastSinkResponse(long RequestId);
+public sealed record RequestForecastSinkCompleted(long RequestId, ISinkRef<WeatherForecast> SinkRef)
+    : RequestForecastSinkResponse(RequestId);
+public sealed record RequestForecastSinkFailed(long RequestId, Exception Cause)
+    : RequestForecastSinkResponse(RequestId);
 
 public sealed record RequestReadModelStream(long RequestId);
 

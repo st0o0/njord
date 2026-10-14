@@ -24,6 +24,7 @@ public sealed class PollSchedulerSpec : NjordActorSpec
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
+        services.AddSingleton(FetchTimeouts.Default);
         var options = new NjordOptions
         {
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
@@ -67,7 +68,9 @@ public sealed class PollSchedulerSpec : NjordActorSpec
     {
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        Scheduler.Tell(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42));
+
+        await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -75,8 +78,11 @@ public sealed class PollSchedulerSpec : NjordActorSpec
     {
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        Scheduler.Tell(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42));
+
+        await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        Scheduler.Tell(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 42));
+        await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -84,7 +90,9 @@ public sealed class PollSchedulerSpec : NjordActorSpec
     {
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
 
-        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("LUCERNE"), "ICON_D2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        Scheduler.Tell(new FetchForecastCompleted(new LocationId("LUCERNE"), "ICON_D2", 42));
+
+        await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Scheduler.Tell(new FetchForecastFailed(new LocationId("Lucerne"), "Icon_D2", PollFailureReason.Transport, "test"));
 
         var states = await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);

@@ -1,4 +1,3 @@
-using Akka;
 using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
@@ -6,45 +5,73 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Polling;
 using Njord.Messages.Forecast;
 using Njord.Weather;
 using Servus.Akka;
+using Servus.Resilience;
 using WeatherForecast = Njord.Weather.Forecast;
 
 namespace Njord.OpenMeteo;
 
-public sealed class OpenMeteoGateway : ReceiveActor
+// Request/response gateway: every FetchForecast ends with exactly one Completed, Failed or Rejected reply.
+// The fetch stream is private to this actor and dies with it; forecasts leave through a small branch into the
+// pipeline's SinkRef, which is the only part re-attached when the pipeline goes away.
+public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
 {
-    // Requests that do not fit the fetch queue yet wait here; beyond this bound they are answered at once.
-    internal const int MaxWaitingRequests = 1024;
+    private const int FetchQueueSize = 16;
+    private const int ForecastBranchSize = 16;
+    private const string AttachTimeoutTimer = "attach-timeout";
+    private const string AttachRetryTimer = "attach-retry";
 
-    internal sealed record FetchTarget(long RequestId, LocationOptions Location, WeatherModel Model, CycleId Cycle, int Weight);
-    private sealed record FetchResult(PollOutcome Outcome, long RequestId);
-    private sealed record FetchStreamStopped(int Generation);
-    private sealed record OfferCompleted(long RequestId, int Generation, IQueueOfferResult Result);
-    private sealed record OfferFailed(long RequestId, int Generation, Exception Cause);
+    // Ids are unique across incarnations: a restarted gateway keeps its ActorRef, so late offer results, stream
+    // signals and branch completions of the previous incarnation must never match anything of the current one.
+    private static long _lastId;
+
+    private static readonly BackoffPolicy AttachRetryPolicy =
+        Backoff.Create(TimeSpan.FromSeconds(1), maxDelay: TimeSpan.FromSeconds(30));
+
+    internal sealed record FetchTarget(
+        long RequestId, LocationOptions Location, WeatherModel Model, CycleId Cycle, int Weight, DateTimeOffset Deadline);
+
+    internal sealed record Admission(FetchTarget Target, FetchRejectionReason? Rejection);
+
+    private abstract record FetchStreamResult(long RequestId);
+    private sealed record FetchDone(long RequestId, PollOutcome Outcome) : FetchStreamResult(RequestId);
+    private sealed record FetchRefused(long RequestId, FetchRejectionReason Reason) : FetchStreamResult(RequestId);
+    // Stream signals also arrive when the actor stops on purpose; they are not worth a dead-letter warning then.
+    private sealed record FetchStreamStopped(long StreamId, Exception? Cause) : IDeadLetterSuppression;
+    private sealed record OfferCompleted(long RequestId, IQueueOfferResult Result);
+    private sealed record OfferFailed(long RequestId, Exception Cause);
+    private sealed record BranchOffered(long RequestId, int Hash, IQueueOfferResult Result);
+    private sealed record BranchOfferFailed(long RequestId, Exception Cause);
+    private sealed record BranchEnded(long BranchId, Exception? Cause) : IDeadLetterSuppression;
+    private sealed record PipelineResolved(IActorRef Pipeline);
+    private sealed record PipelineResolveFailed(Exception Cause);
+    private sealed record AttachTimedOut(long RequestId);
+    private sealed record RetryAttach;
+
+    // Location and model as the requester spelled them: replies echo them so the requester can correlate.
+    private sealed record PendingRequest(IActorRef Requester, LocationId Location, string ModelId);
 
     private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;
     private readonly NjordOptions _options;
+    private readonly FetchTimeouts _timeouts;
     private readonly int _weight;
     private readonly IGatewayBudgetGate _gate;
-
-    // Location and model as the requester spelled them: replies echo them so the requester can correlate.
-    private sealed record PendingRequest(IActorRef Requester, LocationId Location, string ModelId, FetchTarget Target)
-    {
-        public bool Offered { get; set; }
-    }
-
     private readonly Dictionary<long, PendingRequest> _pendingRequests = new();
-    private readonly Queue<long> _waiting = new();
-    private long _nextRequestId;
-    private long? _offering;
+
     private IMaterializer? _mat;
-    private int _fetchStreamGeneration;
     private ISourceQueueWithComplete<FetchTarget>? _fetchQueue;
     private ISourceQueueWithComplete<WeatherForecast>? _forecastQueue;
-    private Source<WeatherForecast, NotUsed>? _broadcastSource;
+    private IActorRef? _pipeline;
+    private long _fetchStreamId;
+    private long _attachRequestId;
+    private long _branchId;
+    private int _attachRetries;
+    private bool _attachedOnce;
+
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
     public OpenMeteoGateway(
@@ -52,34 +79,46 @@ public sealed class OpenMeteoGateway : ReceiveActor
         TimeProvider timeProvider,
         IOptions<NjordOptions> options,
         ResolvedParameterSet parameters,
-        IBudgetProvider budgetProvider)
+        IBudgetProvider budgetProvider,
+        FetchTimeouts timeouts)
     {
         _client = client;
         _timeProvider = timeProvider;
         _options = options.Value;
+        _timeouts = timeouts;
         _weight = ComputeWeight(parameters.HourlyCount, _options.ForecastDays);
 
         var budgetTracker = Context.GetActor<IBudgetTracker>();
         _gate = new GatewayBudgetGate(budgetProvider, budgetTracker, timeProvider);
 
-        Ready();
+        Receive<FetchForecast>(OnFetchForecast);
+        Receive<OfferCompleted>(OnOfferCompleted);
+        Receive<OfferFailed>(msg => FailRequest(msg.RequestId,
+            $"Gateway could not enqueue the request ({msg.Cause.GetType().Name}: {msg.Cause.Message})"));
+        Receive<FetchDone>(OnFetchDone);
+        Receive<FetchRefused>(msg => Reject(msg.RequestId, msg.Reason));
+        Receive<BranchOffered>(OnBranchOffered);
+        Receive<BranchOfferFailed>(msg => Reject(msg.RequestId, FetchRejectionReason.PipelineUnavailable));
+        Receive<FetchStreamStopped>(OnFetchStreamStopped);
+
+        Receive<PipelineResolved>(OnPipelineResolved);
+        Receive<PipelineResolveFailed>(msg => ScheduleAttachRetry("the pipeline could not be resolved", msg.Cause));
+        Receive<RequestForecastSinkCompleted>(OnSinkCompleted);
+        Receive<RequestForecastSinkFailed>(OnSinkFailed);
+        Receive<AttachTimedOut>(OnAttachTimedOut);
+        Receive<RetryAttach>(_ => RequestAttach());
+        Receive<BranchEnded>(OnBranchEnded);
+        Receive<Terminated>(OnTerminated);
     }
+
+    public ITimerScheduler Timers { get; set; } = null!;
 
     protected override void PreStart()
     {
         _mat = Context.Materializer();
-        MaterializeStreams();
-        _log.Info("OpenMeteoGateway stream materialized");
-    }
-
-    private void Ready()
-    {
-        Receive<FetchForecast>(OnFetchForecast);
-        Receive<OfferCompleted>(OnOfferCompleted);
-        Receive<OfferFailed>(OnOfferFailed);
-        Receive<FetchResult>(OnFetchResult);
-        Receive<RequestForecastStream>(OnRequestForecastStream);
-        Receive<FetchStreamStopped>(OnFetchStreamStopped);
+        MaterializeFetchStream();
+        _log.Info("OpenMeteoGateway fetch stream materialized - attaching to the pipeline input");
+        RequestAttach();
     }
 
     private void OnFetchForecast(FetchForecast msg)
@@ -92,105 +131,135 @@ public sealed class OpenMeteoGateway : ReceiveActor
             return;
         }
 
-        if (_waiting.Count >= MaxWaitingRequests)
+        // Without a pipeline input the forecast would be lost, so the request is not even fetched.
+        if (_forecastQueue is null || _fetchQueue is null)
         {
-            _log.Warning("Gateway request backlog is full ({Count}) - rejecting {Location}/{Model}",
-                _waiting.Count, msg.Location, msg.ModelId);
-            Sender.Tell(new FetchForecastFailed(msg.Location, msg.ModelId,
-                PollFailureReason.Transport, $"Gateway request backlog is full ({MaxWaitingRequests} waiting)"));
+            Sender.Tell(new FetchForecastRejected(msg.Location, msg.ModelId, FetchRejectionReason.PipelineUnavailable));
             return;
         }
 
-        var id = ++_nextRequestId;
-        var cycle = new CycleId(_timeProvider.GetUtcNow());
-        var target = new FetchTarget(id, location, new WeatherModel(ResolveModel(location, msg.ModelId)), cycle, _weight);
-        _pendingRequests[id] = new PendingRequest(Sender, msg.Location, msg.ModelId, target);
-        _waiting.Enqueue(id);
-        OfferNext();
-    }
+        var id = NextId();
+        var now = _timeProvider.GetUtcNow();
+        var target = new FetchTarget(id, location, new WeatherModel(ResolveModel(location, msg.ModelId)),
+            new CycleId(now), _weight, now + _timeouts.Admission);
+        _pendingRequests[id] = new PendingRequest(Sender, msg.Location, msg.ModelId);
 
-    // A backpressured queue accepts only one pending offer: further offers fault, so requests are
-    // handed over one at a time and each offer result comes back as a message.
-    private void OfferNext()
-    {
-        while (_offering is null && _fetchQueue is { } queue && _waiting.TryDequeue(out var id))
+        Task<IQueueOfferResult> offer;
+        try
         {
-            if (!_pendingRequests.TryGetValue(id, out var pending))
-            {
-                continue;
-            }
-
-            pending.Offered = true;
-            _offering = id;
-            var generation = _fetchStreamGeneration;
-            Task<IQueueOfferResult> offer;
-            try
-            {
-                offer = queue.OfferAsync(pending.Target);
-            }
-            catch (Exception ex)
-            {
-                offer = Task.FromException<IQueueOfferResult>(ex);
-            }
-
-            offer.PipeTo(Self,
-                success: result => new OfferCompleted(id, generation, result),
-                failure: ex => new OfferFailed(id, generation, ex));
+            offer = _fetchQueue.OfferAsync(target);
         }
+        catch (Exception ex)
+        {
+            offer = Task.FromException<IQueueOfferResult>(ex);
+        }
+
+        offer.PipeTo(Self,
+            success: result => new OfferCompleted(id, result),
+            failure: ex => new OfferFailed(id, ex));
     }
 
     private void OnOfferCompleted(OfferCompleted msg)
     {
-        if (!IsCurrentOffer(msg.RequestId, msg.Generation))
+        switch (msg.Result)
+        {
+            case QueueOfferResult.Enqueued:
+                return;
+            case QueueOfferResult.Failure failure:
+                FailRequest(msg.RequestId,
+                    $"Gateway could not enqueue the request ({failure.Cause.GetType().Name}: {failure.Cause.Message})");
+                return;
+            default:
+                Reject(msg.RequestId, FetchRejectionReason.QueueFull);
+                return;
+        }
+    }
+
+    private void OnFetchDone(FetchDone msg)
+    {
+        switch (msg.Outcome)
+        {
+            case PollOutcome.Success s:
+                var hash = ForecastDataHash.Compute(s.Forecast, _timeProvider);
+                if (_forecastQueue is not { } branch)
+                {
+                    Reject(msg.RequestId, FetchRejectionReason.PipelineUnavailable);
+                    return;
+                }
+
+                // The requester learns the hash only once the forecast is on its way to the pipeline, so it never
+                // records data the pipeline did not get.
+                Task<IQueueOfferResult> offer;
+                try
+                {
+                    offer = branch.OfferAsync(s.Forecast);
+                }
+                catch (Exception ex)
+                {
+                    offer = Task.FromException<IQueueOfferResult>(ex);
+                }
+
+                offer.PipeTo(Self,
+                    success: result => new BranchOffered(msg.RequestId, hash, result),
+                    failure: ex => new BranchOfferFailed(msg.RequestId, ex));
+                break;
+            case PollOutcome.Failure f:
+                Reply(msg.RequestId, p => new FetchForecastFailed(p.Location, p.ModelId, f.Reason, f.Detail));
+                break;
+        }
+    }
+
+    private void OnBranchOffered(BranchOffered msg)
+    {
+        if (msg.Result is QueueOfferResult.Enqueued)
+        {
+            Reply(msg.RequestId, p => new FetchForecastCompleted(p.Location, p.ModelId, msg.Hash));
+            return;
+        }
+
+        Reject(msg.RequestId, FetchRejectionReason.PipelineUnavailable);
+    }
+
+    // The private stream is gone: answer everything still open, then fail so the supervisor restarts the
+    // gateway with a fresh stream (FunkArr pattern).
+    private void OnFetchStreamStopped(FetchStreamStopped msg)
+    {
+        if (msg.StreamId != _fetchStreamId)
         {
             return;
         }
 
-        if (msg.Result is not QueueOfferResult.Enqueued)
+        _log.Warning(msg.Cause, "Gateway fetch stream stopped - failing {0} open requests and restarting", _pendingRequests.Count);
+        foreach (var id in _pendingRequests.Keys.ToList())
         {
-            var detail = msg.Result is QueueOfferResult.Failure failure
-                ? $"{failure.GetType().Name}: {failure.Cause.Message}"
-                : msg.Result.GetType().Name;
-            FailRequest(msg.RequestId, $"Gateway could not enqueue the request ({detail})");
+            Reply(id, p => new FetchForecastFailed(p.Location, p.ModelId,
+                PollFailureReason.Transport, "Gateway fetch stream stopped"));
         }
 
-        OfferNext();
-    }
-
-    private void OnOfferFailed(OfferFailed msg)
-    {
-        if (!IsCurrentOffer(msg.RequestId, msg.Generation))
-        {
-            return;
-        }
-
-        FailRequest(msg.RequestId,
-            $"Gateway could not enqueue the request ({msg.Cause.GetType().Name}: {msg.Cause.Message})");
-        OfferNext();
-    }
-
-    private bool IsCurrentOffer(long requestId, int generation)
-    {
-        if (generation != _fetchStreamGeneration || _offering != requestId)
-        {
-            return false;
-        }
-
-        _offering = null;
-        return true;
+        throw new InvalidOperationException("Gateway fetch stream stopped unexpectedly", msg.Cause);
     }
 
     private void FailRequest(long requestId, string detail)
     {
         if (_pendingRequests.TryGetValue(requestId, out var pending))
         {
-            _log.Warning("Fetch request for {Location}/{Model} failed: {Detail}", pending.Location, pending.ModelId, detail);
+            _log.Warning("Fetch request for {0}/{1} failed: {2}", pending.Location, pending.ModelId, detail);
         }
 
         Reply(requestId, p => new FetchForecastFailed(p.Location, p.ModelId, PollFailureReason.Transport, detail));
     }
 
-    // The only way a requester is answered: the request is forgotten first, so it is answered at most once.
+    private void Reject(long requestId, FetchRejectionReason reason)
+    {
+        if (_pendingRequests.TryGetValue(requestId, out var pending))
+        {
+            _log.Warning("Fetch request for {0}/{1} rejected: {2}", pending.Location, pending.ModelId, reason);
+        }
+
+        Reply(requestId, p => new FetchForecastRejected(p.Location, p.ModelId, reason));
+    }
+
+    // The only way a queued request is answered: the request is forgotten first, so it is answered at most once.
     private void Reply(long requestId, Func<PendingRequest, FetchForecastResponse> reply)
     {
         if (_pendingRequests.Remove(requestId, out var pending))
@@ -199,116 +268,164 @@ public sealed class OpenMeteoGateway : ReceiveActor
         }
     }
 
-    private string ResolveModel(LocationOptions location, string modelId) =>
-        _options.Models.Concat(location.Models ?? [])
-            .FirstOrDefault(m => m.Equals(modelId, StringComparison.OrdinalIgnoreCase)) ?? modelId;
+    private void RequestAttach() =>
+        Context.GetActorAsync<IForecastPipeline>().PipeTo(Self,
+            success: pipeline => new PipelineResolved(pipeline),
+            failure: ex => new PipelineResolveFailed(ex));
 
-    private void OnFetchResult(FetchResult msg)
+    private void OnPipelineResolved(PipelineResolved msg)
     {
-        switch (msg.Outcome)
-        {
-            case PollOutcome.Success s:
-                var hash = ForecastDataHash.Compute(s.Forecast, _timeProvider);
-                Reply(msg.RequestId, p => new FetchForecastCompleted(p.Location, p.ModelId, hash));
-                _forecastQueue?.OfferAsync(s.Forecast);
-                break;
-            case PollOutcome.Failure f:
-                Reply(msg.RequestId, p => new FetchForecastFailed(p.Location, p.ModelId, f.Reason, f.Detail));
-                break;
-        }
+        _attachRequestId = NextId();
+        msg.Pipeline.Tell(new RequestForecastSink(_attachRequestId), Self);
+        Timers.StartSingleTimer(AttachTimeoutTimer, new AttachTimedOut(_attachRequestId), _timeouts.Admission);
     }
 
-    private void OnRequestForecastStream(RequestForecastStream msg)
+    private void OnSinkCompleted(RequestForecastSinkCompleted msg)
     {
-        if (_broadcastSource is null)
+        if (msg.RequestId != _attachRequestId)
         {
-            Sender.Tell(new RequestForecastStreamFailed(msg.RequestId,
-                new InvalidOperationException("Gateway stream not materialized")));
+            _log.Debug("Ignoring forecast SinkRef of request {0}", msg.RequestId);
             return;
         }
 
-        _broadcastSource
-            .RunWith(StreamRefs.SourceRef<WeatherForecast>(), _mat!)
-            .PipeTo(Sender, Self,
-                sr => new RequestForecastStreamCompleted(msg.RequestId, sr),
-                ex => new RequestForecastStreamFailed(msg.RequestId, ex));
+        _attachRequestId = 0;
+        Timers.Cancel(AttachTimeoutTimer);
+        _pipeline = Sender;
+        Context.Watch(_pipeline);
+        AttachForecastBranch(msg.SinkRef);
+        _attachRetries = 0;
+        if (_attachedOnce)
+        {
+            Telemetry.PipelineReattaches.Add(1);
+        }
+
+        _attachedOnce = true;
+        _log.Info("Attached to the pipeline input");
     }
 
-    // A stopped fetch stream would leave every requester unanswered and drop later offers silently.
-    // Re-materializing only the fetch stream keeps the forecast hub (and its SourceRefs) and the
-    // budget gate; the requests the stopped stream held come back to the scheduler as ordinary
-    // transport failures, requests still waiting are offered to the new stream.
-    private void OnFetchStreamStopped(FetchStreamStopped msg)
+    private void OnSinkFailed(RequestForecastSinkFailed msg)
     {
-        if (msg.Generation != _fetchStreamGeneration)
+        if (msg.RequestId != _attachRequestId)
         {
             return;
         }
 
-        var lost = _pendingRequests.Where(p => p.Value.Offered).Select(p => p.Key).ToList();
-        _log.Warning("Gateway fetch stream stopped - failing {Count} in-flight requests and re-materializing",
-            lost.Count);
-
-        foreach (var id in lost)
-        {
-            Reply(id, p => new FetchForecastFailed(p.Location, p.ModelId,
-                PollFailureReason.Transport, "Gateway fetch stream stopped"));
-        }
-
-        _offering = null;
-        MaterializeFetchStream();
-        OfferNext();
+        _attachRequestId = 0;
+        Timers.Cancel(AttachTimeoutTimer);
+        ScheduleAttachRetry("the pipeline could not create a SinkRef", msg.Cause);
     }
 
-    private void MaterializeStreams()
+    private void OnAttachTimedOut(AttachTimedOut msg)
     {
-        MaterializeFetchStream();
+        if (msg.RequestId != _attachRequestId)
+        {
+            return;
+        }
 
-        var (forecastQueue, forecastQueueSource) = Source.Queue<WeatherForecast>(16, OverflowStrategy.DropHead)
-            .PreMaterialize(_mat);
+        _attachRequestId = 0;
+        ScheduleAttachRetry("the pipeline did not answer the SinkRef request", null);
+    }
 
-        var (broadcastSource, broadcastSink) = BroadcastHub.Sink<WeatherForecast>(bufferSize: 2)
-            .PreMaterialize(_mat);
+    private void OnBranchEnded(BranchEnded msg)
+    {
+        if (msg.BranchId != _branchId)
+        {
+            return;
+        }
 
-        forecastQueueSource.To(broadcastSink).Run(_mat);
+        DetachBranch();
+        ScheduleAttachRetry("the forecast branch to the pipeline ended", msg.Cause);
+    }
 
-        _forecastQueue = forecastQueue;
-        _broadcastSource = broadcastSource;
+    private void OnTerminated(Terminated msg)
+    {
+        if (!Equals(msg.ActorRef, _pipeline))
+        {
+            return;
+        }
+
+        DetachBranch();
+        ScheduleAttachRetry("the pipeline terminated", null);
+    }
+
+    private void DetachBranch()
+    {
+        _branchId = 0;
+        if (_pipeline is not null)
+        {
+            Context.Unwatch(_pipeline);
+            _pipeline = null;
+        }
+
+        try
+        {
+            _forecastQueue?.Complete();
+        }
+        catch (Exception ex)
+        {
+            _log.Debug("Completing the old forecast branch failed: {0}", ex.Message);
+        }
+
+        _forecastQueue = null;
+    }
+
+    private void ScheduleAttachRetry(string reason, Exception? cause)
+    {
+        var delay = AttachRetryPolicy.DelayWithJitter(_attachRetries);
+        _attachRetries++;
+        _log.Warning(cause, "Not attached to the pipeline input: {0} - retrying in {1}", reason, delay);
+        Timers.StartSingleTimer(AttachRetryTimer, new RetryAttach(), delay);
+    }
+
+    private void AttachForecastBranch(ISinkRef<WeatherForecast> sinkRef)
+    {
+        var branchId = _branchId = NextId();
+        var (queue, done) = Source.Queue<WeatherForecast>(ForecastBranchSize, OverflowStrategy.DropHead)
+            .WatchTermination(Keep.Both)
+            .To(sinkRef.Sink)
+            .Run(_mat!);
+
+        done.PipeTo(Self,
+            success: () => new BranchEnded(branchId, null),
+            failure: ex => new BranchEnded(branchId, ex));
+        _forecastQueue = queue;
     }
 
     private void MaterializeFetchStream()
     {
-        var generation = ++_fetchStreamGeneration;
-        var (fetchQueue, fetchQueueSource) = Source.Queue<FetchTarget>(16, OverflowStrategy.Backpressure)
-            .PreMaterialize(_mat);
-
-        fetchQueueSource
-            .Via(new GatewayThrottleStage(_gate))
-            .SelectAsyncUnordered(2, FetchAsync)
+        var streamId = _fetchStreamId = NextId();
+        _fetchQueue = Source.Queue<FetchTarget>(FetchQueueSize, OverflowStrategy.DropNew)
+            .Via(new GatewayThrottleStage(_gate, _timeProvider))
+            .SelectAsyncUnordered(2, admission => admission.Rejection is { } reason
+                ? Task.FromResult<FetchStreamResult>(new FetchRefused(admission.Target.RequestId, reason))
+                : FetchAsync(admission.Target))
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
-            .To(Sink.ActorRef<FetchResult>(Self, new FetchStreamStopped(generation), _ => new FetchStreamStopped(generation)))
-            .Run(_mat);
-
-        _fetchQueue = fetchQueue;
+            .To(Sink.ActorRef<FetchStreamResult>(Self, new FetchStreamStopped(streamId, null), ex => new FetchStreamStopped(streamId, ex)))
+            .Run(_mat!);
     }
 
-    // A client that throws instead of returning a PollOutcome still has to answer its requester,
-    // otherwise the scheduler never re-schedules that target.
-    private async Task<FetchResult> FetchAsync(FetchTarget target)
+    private string ResolveModel(LocationOptions location, string modelId) =>
+        _options.Models.Concat(location.Models ?? [])
+            .FirstOrDefault(m => m.Equals(modelId, StringComparison.OrdinalIgnoreCase)) ?? modelId;
+
+    // A client that throws instead of returning a PollOutcome still has to answer its requester.
+    private async Task<FetchStreamResult> FetchAsync(FetchTarget target)
     {
         try
         {
             var outcome = await _client.FetchAsync(target.Location, target.Model, target.Cycle, CancellationToken.None);
-            return new FetchResult(outcome, target.RequestId);
+            return new FetchDone(target.RequestId, outcome);
         }
         catch (Exception ex)
         {
-            _log.Warning(ex, "Fetch for {Location}/{Model} threw {ExceptionType}", target.Location.Name, target.Model.Id, ex.GetType().Name);
+            _log.Warning(ex, "Fetch for {0}/{1} threw {2}", target.Location.Name, target.Model.Id, ex.GetType().Name);
             var failure = new PollOutcome.Failure(target.Location.Name, target.Model, PollFailureReason.Transport,
                 $"Fetch threw {ex.GetType().Name}: {ex.Message}");
-            return new FetchResult(failure, target.RequestId);
+            return new FetchDone(target.RequestId, failure);
         }
     }
+
+    private static long NextId() => Interlocked.Increment(ref _lastId);
 
     internal static int ComputeWeight(int hourlyVariableCount, int forecastDays) =>
         (int)Math.Ceiling(hourlyVariableCount / 10.0) * (int)Math.Ceiling(forecastDays / 14.0);

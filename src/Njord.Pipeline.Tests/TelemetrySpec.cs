@@ -14,8 +14,6 @@ public sealed class TelemetrySpec
             () => Assert.Equal("{model}", Telemetry.PollCycleFailedModels.Unit),
             () => Assert.Equal("njord_pipeline_data_changed_total", Telemetry.DataChanged.Name),
             () => Assert.Equal("{change}", Telemetry.DataChanged.Unit),
-            () => Assert.Equal("njord_pipeline_stream_rewires_total", Telemetry.StreamRewires.Name),
-            () => Assert.Equal("{rewire}", Telemetry.StreamRewires.Unit),
             () => Assert.Equal("Njord.Pipeline", Telemetry.Meter.Name));
     }
 }

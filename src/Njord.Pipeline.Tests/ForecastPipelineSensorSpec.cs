@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using System.Collections.Immutable;
 using System.Threading.Channels;
 using Akka.Actor;
 using Akka.Streams;
@@ -30,8 +30,8 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
     private const double LiveIndoorTemperature = 24.5;
     private const int EventsPerForecast = 4;
 
-    // The pipeline's sensor lookup timeout plus a bounded margin for the analysis itself.
-    private static readonly TimeSpan EventWait = ForecastPipeline.SensorLookupTimeout + TimeSpan.FromSeconds(5);
+    // Bound for one batch of forecasts inside an AwaitAssert retry; the analysis itself takes milliseconds.
+    private static readonly TimeSpan EventWait = TimeSpan.FromSeconds(5);
 
     protected override bool UseTestPersistence => false;
 
@@ -43,161 +43,133 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
         new ConsensusOptions(), new AlertOptions(), new IndexOptions { Enabled = true }, new TrendOptions(), new DerivedOptions());
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_live_indoor_temperature_of_the_forecast_location_reaches_the_indices()
+    public async Task A_pushed_indoor_temperature_of_the_forecast_location_reaches_the_indices()
     {
         var ct = TestContext.Current.CancellationToken;
-        var hub = RegisterSensorHub(new Dictionary<string, SensorSnapshot>
+        var (fixture, pipeline, queue, events) = await StartPipelineAsync(ct);
+
+        pipeline.Tell(Push(new LocationId(AnalysisFixture.Lucerne)));
+
+        var expectedLive = 0;
+        var expectedConfigured = 0;
+        var actual = 0;
+        await AwaitAssertAsync(async () =>
         {
-            [AnalysisFixture.Lucerne] = IndoorTemperatureSnapshot(AnalysisFixture.Lucerne, LiveIndoorTemperature),
-        });
-        var (fixture, queue, events) = await StartPipelineAsync(ct);
+            var (consensus, index) = await AnalyzeAsync(fixture, queue, events, AnalysisFixture.Lucerne, ct);
+            expectedLive = ExpectedNightVentilation(fixture, consensus, AnalysisFixture.Lucerne, LiveIndoorTemperature);
+            expectedConfigured = ExpectedNightVentilation(fixture, consensus, AnalysisFixture.Lucerne, ConfiguredIndoorTemp(AnalysisFixture.Lucerne));
+            actual = index.Days[0].NightVentilation;
+            Assert.Equal(expectedLive, actual);
+        }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(100), cancellationToken: ct);
 
-        var forecasts = LucerneForecasts(fixture);
-        foreach (var forecast in forecasts)
-        {
-            await queue.OfferAsync(forecast, ct);
-        }
-
-        var received = await ReceiveEventsAsync(events, EventsPerForecast * forecasts.Count, ct);
-
-        // The last forecast completes the model set, so its consensus has a scorable day.
-        var consensus = received.OfType<PipelineEvent.ConsensusComputed>().Last().Consensus;
-        var index = received.OfType<PipelineEvent.IndexComputed>().Last().Result;
-        Assert.NotEmpty(index.Days);
-        var configuredIndoorTemp = NightVentilationPreferences().IndoorTemp;
-        var expectedLive = ExpectedNightVentilation(fixture, consensus, LiveIndoorTemperature);
-        var expectedConfigured = ExpectedNightVentilation(fixture, consensus, configuredIndoorTemp);
-        Assert.Multiple(
-            () => Assert.NotEqual(expectedConfigured, expectedLive),
-            () => Assert.Equal(expectedLive, index.Days[0].NightVentilation),
-            () => Assert.Equal(Enumerable.Repeat(new LocationId(AnalysisFixture.Lucerne), forecasts.Count), hub.Queries));
+        Assert.NotEqual(expectedConfigured, expectedLive);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Sensor_readings_of_another_location_are_not_used()
     {
         var ct = TestContext.Current.CancellationToken;
-        RegisterSensorHub(new Dictionary<string, SensorSnapshot>
+        var (fixture, pipeline, queue, events) = await StartPipelineAsync(ct);
+
+        pipeline.Tell(Push(new LocationId(AnalysisFixture.Bern)));
+
+        // Bern's index reflecting the live value proves the pushed map is in effect.
+        await AwaitAssertAsync(async () =>
         {
-            [AnalysisFixture.Bern] = IndoorTemperatureSnapshot(AnalysisFixture.Bern, LiveIndoorTemperature),
-        });
-        var (fixture, queue, events) = await StartPipelineAsync(ct);
+            var (bernConsensus, bernIndex) = await AnalyzeAsync(fixture, queue, events, AnalysisFixture.Bern, ct);
+            Assert.Equal(
+                ExpectedNightVentilation(fixture, bernConsensus, AnalysisFixture.Bern, LiveIndoorTemperature),
+                bernIndex.Days[0].NightVentilation);
+        }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(100), cancellationToken: ct);
 
-        var forecasts = LucerneForecasts(fixture);
-        foreach (var forecast in forecasts)
-        {
-            await queue.OfferAsync(forecast, ct);
-        }
+        var (consensus, index) = await AnalyzeAsync(fixture, queue, events, AnalysisFixture.Lucerne, ct);
+        Assert.Equal(
+            ExpectedNightVentilation(fixture, consensus, AnalysisFixture.Lucerne, ConfiguredIndoorTemp(AnalysisFixture.Lucerne)),
+            index.Days[0].NightVentilation);
+    }
 
-        var received = await ReceiveEventsAsync(events, EventsPerForecast * forecasts.Count, ct);
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_forecast_is_analyzed_with_configured_values_before_any_push()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (fixture, _, queue, events) = await StartPipelineAsync(ct);
 
-        // The last forecast completes the model set, so its consensus has a scorable day.
+        var received = await ReceiveAsync(fixture, queue, events, AnalysisFixture.Lucerne, ct);
+
         var consensus = received.OfType<PipelineEvent.ConsensusComputed>().Last().Consensus;
         var index = received.OfType<PipelineEvent.IndexComputed>().Last().Result;
-        Assert.NotEmpty(index.Days);
-        var expectedConfigured = ExpectedNightVentilation(fixture, consensus, NightVentilationPreferences().IndoorTemp);
-        Assert.Equal(expectedConfigured, index.Days[0].NightVentilation);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_forecast_is_analyzed_when_no_sensor_hub_is_registered()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var (fixture, queue, events) = await StartPipelineAsync(ct);
-
-        await queue.OfferAsync(LucerneForecast(fixture), ct);
-        var received = await ReceiveEventsAsync(events, EventsPerForecast, ct);
-
-        AssertAllEventsOfOneForecast(received);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_forecast_is_analyzed_when_the_sensor_hub_does_not_reply()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var hub = RegisterSensorHub(snapshots: null);
-        var (fixture, queue, events) = await StartPipelineAsync(ct);
-
-        var stopwatch = Stopwatch.StartNew();
-        await queue.OfferAsync(LucerneForecast(fixture), ct);
-        var received = await ReceiveEventsAsync(events, EventsPerForecast, ct);
-        stopwatch.Stop();
-
-        AssertAllEventsOfOneForecast(received);
-        Assert.True(stopwatch.Elapsed < EventWait,
-            $"The forecast took {stopwatch.Elapsed} to analyze, more than the lookup timeout plus margin ({EventWait}).");
-        Assert.Equal([new LocationId(AnalysisFixture.Lucerne)], hub.Queries);
-    }
-
-    private static void AssertAllEventsOfOneForecast(IReadOnlyList<PipelineEvent> received) =>
+        var forecasts = LocationForecasts(fixture, AnalysisFixture.Lucerne).Count;
         Assert.Multiple(
-            () => Assert.Single(received.OfType<PipelineEvent.ForecastReceived>()),
-            () => Assert.Single(received.OfType<PipelineEvent.ConsensusComputed>()),
-            () => Assert.Single(received.OfType<PipelineEvent.AlertComputed>()),
-            () => Assert.Single(received.OfType<PipelineEvent.IndexComputed>()));
+            () => Assert.Equal(forecasts, received.OfType<PipelineEvent.ForecastReceived>().Count()),
+            () => Assert.Equal(forecasts, received.OfType<PipelineEvent.AlertComputed>().Count()),
+            () => Assert.Equal(forecasts, received.OfType<PipelineEvent.IndexComputed>().Count()),
+            () => Assert.Equal(
+                ExpectedNightVentilation(fixture, consensus, AnalysisFixture.Lucerne, ConfiguredIndoorTemp(AnalysisFixture.Lucerne)),
+                index.Days[0].NightVentilation));
+    }
 
-    private static WeatherForecast LucerneForecast(AnalysisFixture fixture) => LucerneForecasts(fixture)[0];
-
-    private static List<WeatherForecast> LucerneForecasts(AnalysisFixture fixture) =>
-        fixture.Forecasts.Where(f => f.Location == AnalysisFixture.Lucerne).ToList();
-
-    private static ResolvedPreferences NightVentilationPreferences() =>
-        Settings.Indices.Preferences[(new LocationId(AnalysisFixture.Lucerne), IndexKind.NightVentilation)];
-
-    private static int ExpectedNightVentilation(AnalysisFixture fixture, ConsensusSnapshot consensus, double indoorTemp)
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_pushed_location_key_matches_the_forecast_location_case_insensitively()
     {
-        var preferences = NightVentilationPreferences() with { IndoorTemp = indoorTemp };
+        var ct = TestContext.Current.CancellationToken;
+        var (fixture, pipeline, queue, events) = await StartPipelineAsync(ct);
+
+        pipeline.Tell(Push(new LocationId(AnalysisFixture.Lucerne.ToUpperInvariant())));
+
+        await AwaitAssertAsync(async () =>
+        {
+            var (consensus, index) = await AnalyzeAsync(fixture, queue, events, AnalysisFixture.Lucerne, ct);
+            Assert.Equal(
+                ExpectedNightVentilation(fixture, consensus, AnalysisFixture.Lucerne, LiveIndoorTemperature),
+                index.Days[0].NightVentilation);
+        }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(100), cancellationToken: ct);
+    }
+
+    private static SensorSnapshots Push(LocationId location) =>
+        new(ImmutableDictionary<LocationId, SensorSnapshot>.Empty.Add(location, new SensorSnapshot(
+            location.Name,
+            new Dictionary<SensorKind, AggregatedReading>
+            {
+                [SensorKind.IndoorTemperature] = new(LiveIndoorTemperature, 1, AnalysisFixture.Now),
+            })));
+
+    private static List<WeatherForecast> LocationForecasts(AnalysisFixture fixture, string location) =>
+        fixture.Forecasts.Where(f => f.Location == location).ToList();
+
+    private static double ConfiguredIndoorTemp(string location) =>
+        Settings.Indices.Preferences[(new LocationId(location), IndexKind.NightVentilation)].IndoorTemp;
+
+    private static int ExpectedNightVentilation(AnalysisFixture fixture, ConsensusSnapshot consensus, string location, double indoorTemp)
+    {
+        var preferences = Settings.Indices.Preferences[(new LocationId(location), IndexKind.NightVentilation)] with { IndoorTemp = indoorTemp };
         var today = DaySlicer.Slice(consensus, fixture.Time.GetUtcNow()).First();
         var night = ScoreInputs.From(today.NightMeans, today.SunshinePercent);
         return NightVentilationScore.Compute(night.Temperature, night.Humidity, night.Wind, night.RainProbability, preferences);
     }
 
-    private static SensorSnapshot IndoorTemperatureSnapshot(string location, double value) =>
-        new(location, new Dictionary<SensorKind, AggregatedReading>
+    // Offers every forecast of the location; the last one completes the model set, so its consensus has a scorable day.
+    private static async Task<(ConsensusSnapshot Consensus, IndexResult Index)> AnalyzeAsync(
+        AnalysisFixture fixture, ISourceQueueWithComplete<WeatherForecast> queue, ChannelReader<PipelineEvent> events,
+        string location, CancellationToken ct)
+    {
+        var received = await ReceiveAsync(fixture, queue, events, location, ct);
+        var consensus = received.OfType<PipelineEvent.ConsensusComputed>().Last().Consensus;
+        var index = received.OfType<PipelineEvent.IndexComputed>().Last().Result;
+        Assert.NotEmpty(index.Days);
+        return (consensus, index);
+    }
+
+    private static async Task<IReadOnlyList<PipelineEvent>> ReceiveAsync(
+        AnalysisFixture fixture, ISourceQueueWithComplete<WeatherForecast> queue, ChannelReader<PipelineEvent> events,
+        string location, CancellationToken ct)
+    {
+        var forecasts = LocationForecasts(fixture, location);
+        foreach (var forecast in forecasts)
         {
-            [SensorKind.IndoorTemperature] = new(value, 1, AnalysisFixture.Now),
-        });
+            await queue.OfferAsync(forecast, ct);
+        }
 
-    private FakeSensorHub RegisterSensorHub(IReadOnlyDictionary<string, SensorSnapshot>? snapshots)
-    {
-        var hub = new FakeSensorHub(snapshots);
-        ActorRegistry.Register<ISensorHub>(
-            Sys.ActorOf(Props.Create(() => new FakeSensorHubActor(hub)), $"sensor-hub-{Guid.NewGuid():N}"),
-            overwrite: true);
-        return hub;
-    }
-
-    private async Task<(AnalysisFixture Fixture, ISourceQueueWithComplete<WeatherForecast> Queue, ChannelReader<PipelineEvent> Events)>
-        StartPipelineAsync(CancellationToken ct)
-    {
-        var fixture = AnalysisFixture.Create();
-        var queueReady = new TaskCompletionSource<ISourceQueueWithComplete<WeatherForecast>>(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-        ActorRegistry.Register<IForecastGateway>(
-            Sys.ActorOf(Props.Create(() => new FakeGateway(queueReady)), $"gateway-{Guid.NewGuid():N}"),
-            overwrite: true);
-
-        var pipeline = Sys.ActorOf(Props.Create(() => new ForecastPipeline(
-            fixture.Time,
-            new ConsensusBuilder(AnalysisFixture.Parameters, fixture.Time),
-            Options.Create(new ConsensusOptions()),
-            FeatureServices.Alerts(fixture.Time),
-            DisabledAnalyzers.Derived(),
-            DisabledAnalyzers.Trend(),
-            FeatureServices.Indices(fixture.Time),
-            Settings)), $"pipeline-{Guid.NewGuid():N}");
-
-        var output = await pipeline.Ask<RequestPipelineOutputResponse>(new RequestPipelineOutput(1), TimeSpan.FromSeconds(9), ct);
-        var completed = Assert.IsType<RequestPipelineOutputCompleted>(output);
-        var events = Channel.CreateUnbounded<PipelineEvent>();
-        completed.SourceRef.Source.To(Sink.ForEach<PipelineEvent>(e => events.Writer.TryWrite(e))).Run(Sys.Materializer());
-        var queue = await queueReady.Task.WaitAsync(TimeSpan.FromSeconds(9), ct);
-        return (fixture, queue, events.Reader);
-    }
-
-    private static async Task<IReadOnlyList<PipelineEvent>> ReceiveEventsAsync(
-        ChannelReader<PipelineEvent> events, int count, CancellationToken ct)
-    {
+        var count = EventsPerForecast * forecasts.Count;
         var received = new List<PipelineEvent>();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
         deadline.CancelAfter(EventWait);
@@ -218,67 +190,25 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
         return received;
     }
 
-    private sealed class FakeSensorHub(IReadOnlyDictionary<string, SensorSnapshot>? snapshots)
+    private async Task<(AnalysisFixture Fixture, IActorRef Pipeline, ISourceQueueWithComplete<WeatherForecast> Queue, ChannelReader<PipelineEvent> Events)>
+        StartPipelineAsync(CancellationToken ct)
     {
-        private readonly List<LocationId> _queries = [];
+        var fixture = AnalysisFixture.Create();
+        var pipeline = Sys.ActorOf(Props.Create(() => new ForecastPipeline(
+            fixture.Time,
+            new ConsensusBuilder(AnalysisFixture.Parameters, fixture.Time),
+            Options.Create(new ConsensusOptions()),
+            FeatureServices.Alerts(fixture.Time),
+            DisabledAnalyzers.Derived(),
+            DisabledAnalyzers.Trend(),
+            FeatureServices.Indices(fixture.Time),
+            Settings)), $"pipeline-{Guid.NewGuid():N}");
 
-        public IReadOnlyDictionary<string, SensorSnapshot>? Snapshots { get; } = snapshots;
-
-        public IReadOnlyList<LocationId> Queries
-        {
-            get
-            {
-                lock (_queries)
-                {
-                    return [.. _queries];
-                }
-            }
-        }
-
-        public void Record(LocationId location)
-        {
-            lock (_queries)
-            {
-                _queries.Add(location);
-            }
-        }
-    }
-
-    // Answers per location; a hub without snapshots never replies.
-    private sealed class FakeSensorHubActor : ReceiveActor
-    {
-        public FakeSensorHubActor(FakeSensorHub hub)
-        {
-            Receive<QuerySensorSnapshot>(msg =>
-            {
-                hub.Record(msg.Location);
-                if (hub.Snapshots is null)
-                {
-                    return;
-                }
-
-                Sender.Tell(hub.Snapshots.TryGetValue(msg.Location.Name, out var snapshot)
-                    ? new SensorSnapshotResult(snapshot)
-                    : new SensorSnapshotNotAvailable(msg.Location));
-            });
-        }
-    }
-
-    private sealed class FakeGateway : ReceiveActor
-    {
-        public FakeGateway(TaskCompletionSource<ISourceQueueWithComplete<WeatherForecast>> queueReady)
-        {
-            var mat = Context.Materializer();
-
-            Receive<RequestForecastStream>(msg =>
-            {
-                var (queue, source) = Source.Queue<WeatherForecast>(16, OverflowStrategy.Backpressure).PreMaterialize(mat);
-                queueReady.TrySetResult(queue);
-                source.RunWith(StreamRefs.SourceRef<WeatherForecast>(), mat)
-                    .PipeTo(Sender,
-                        success: sourceRef => new RequestForecastStreamCompleted(msg.RequestId, sourceRef),
-                        failure: ex => new RequestForecastStreamFailed(msg.RequestId, ex));
-            });
-        }
+        var output = await pipeline.Ask<RequestPipelineOutputResponse>(new RequestPipelineOutput(1), TestTimeouts.RealTimeWaitMax, ct);
+        var completed = Assert.IsType<RequestPipelineOutputCompleted>(output);
+        var events = Channel.CreateUnbounded<PipelineEvent>();
+        completed.SourceRef.Source.To(Sink.ForEach<PipelineEvent>(e => events.Writer.TryWrite(e))).Run(Sys.Materializer());
+        var queue = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
+        return (fixture, pipeline, queue, events.Reader);
     }
 }

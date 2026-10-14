@@ -23,6 +23,7 @@ public sealed class PollSchedulerSnapshotSpec : NjordActorSpec
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
+        services.AddSingleton(FetchTimeouts.Default);
         var options = new NjordOptions
         {
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
@@ -60,7 +61,8 @@ public sealed class PollSchedulerSnapshotSpec : NjordActorSpec
 
         for (var i = 0; i < 51; i++)
         {
-            await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 1000 + i), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            Scheduler.Tell(new FetchForecastCompleted(new LocationId("lucerne"), "icon_d2", 1000 + i));
+            await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         }
 
         var statesBefore = await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);

@@ -5,6 +5,7 @@ using Akka.Streams.Stage;
 using Microsoft.Extensions.Options;
 using Njord.Messages.Budget;
 using Njord.Core.Configuration.Polling;
+using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.OpenMeteo;
@@ -115,19 +116,23 @@ internal sealed class GatewayBudgetGate : IGatewayBudgetGate
     }
 }
 
-internal sealed class GatewayThrottleStage : GraphStage<FlowShape<OpenMeteoGateway.FetchTarget, OpenMeteoGateway.FetchTarget>>
+// Smooths short bursts, but never holds a target past its admission deadline: a target the budget cannot
+// admit in time leaves as a rejection, so its requester is answered instead of waiting.
+internal sealed class GatewayThrottleStage : GraphStage<FlowShape<OpenMeteoGateway.FetchTarget, OpenMeteoGateway.Admission>>
 {
     private readonly IGatewayBudgetGate _gate;
+    private readonly TimeProvider _timeProvider;
 
-    public GatewayThrottleStage(IGatewayBudgetGate gate)
+    public GatewayThrottleStage(IGatewayBudgetGate gate, TimeProvider timeProvider)
     {
         _gate = gate;
-        Shape = new FlowShape<OpenMeteoGateway.FetchTarget, OpenMeteoGateway.FetchTarget>(In, Out);
+        _timeProvider = timeProvider;
+        Shape = new FlowShape<OpenMeteoGateway.FetchTarget, OpenMeteoGateway.Admission>(In, Out);
     }
 
     public Inlet<OpenMeteoGateway.FetchTarget> In { get; } = new("GatewayThrottle.in");
-    public Outlet<OpenMeteoGateway.FetchTarget> Out { get; } = new("GatewayThrottle.out");
-    public override FlowShape<OpenMeteoGateway.FetchTarget, OpenMeteoGateway.FetchTarget> Shape { get; }
+    public Outlet<OpenMeteoGateway.Admission> Out { get; } = new("GatewayThrottle.out");
+    public override FlowShape<OpenMeteoGateway.FetchTarget, OpenMeteoGateway.Admission> Shape { get; }
 
     protected override GraphStageLogic CreateLogic(Attributes inheritedAttributes)
         => new Logic(this);
@@ -138,7 +143,6 @@ internal sealed class GatewayThrottleStage : GraphStage<FlowShape<OpenMeteoGatew
 
         private readonly GatewayThrottleStage _stage;
         private OpenMeteoGateway.FetchTarget? _pending;
-        private bool _hasPending;
         private bool _upstreamFinished;
         private long _parkedAt;
 
@@ -146,9 +150,9 @@ internal sealed class GatewayThrottleStage : GraphStage<FlowShape<OpenMeteoGatew
         {
             _stage = stage;
 
-            SetHandler(stage.In, onPush: OnPush, onUpstreamFinish: () =>
+            SetHandler(stage.In, onPush: () => Decide(Grab(_stage.In)), onUpstreamFinish: () =>
             {
-                if (!_hasPending)
+                if (_pending is null)
                     CompleteStage();
                 else
                     _upstreamFinished = true;
@@ -156,53 +160,67 @@ internal sealed class GatewayThrottleStage : GraphStage<FlowShape<OpenMeteoGatew
 
             SetHandler(stage.Out, onPull: () =>
             {
-                if (!_hasPending && !_upstreamFinished)
+                if (_pending is null && !_upstreamFinished)
                     Pull(stage.In);
             });
         }
 
-        private void OnPush()
+        private void Decide(OpenMeteoGateway.FetchTarget target)
         {
-            var element = Grab(_stage.In);
+            var now = _stage._timeProvider.GetUtcNow();
+            if (now > target.Deadline)
+            {
+                Push(_stage.Out, new OpenMeteoGateway.Admission(target, FetchRejectionReason.Expired));
+                return;
+            }
 
-            if (_stage._gate.TryAcquire(element.Weight))
+            if (_stage._gate.TryAcquire(target.Weight))
             {
-                Push(_stage.Out, element);
+                Push(_stage.Out, new OpenMeteoGateway.Admission(target, null));
+                return;
             }
-            else
+
+            var delay = _stage._gate.EstimateDelay(target.Weight);
+            if (now + delay > target.Deadline)
             {
-                _pending = element;
-                _hasPending = true;
-                _parkedAt = Stopwatch.GetTimestamp();
-                ScheduleOnce(EmitTimerKey, _stage._gate.EstimateDelay(element.Weight));
+                Push(_stage.Out, new OpenMeteoGateway.Admission(target, FetchRejectionReason.Budget));
+                return;
             }
+
+            _pending = target;
+            _parkedAt = Stopwatch.GetTimestamp();
+            ScheduleOnce(EmitTimerKey, delay);
         }
 
         protected override void OnTimer(object timerKey)
         {
-            if (!_hasPending)
+            if (_pending is not { } target)
                 return;
 
-            if (_stage._gate.TryAcquire(_pending!.Weight))
+            if (_stage._gate.TryAcquire(target.Weight))
             {
                 Telemetry.ThrottleWait.Record(Stopwatch.GetElapsedTime(_parkedAt).TotalSeconds);
-                Push(_stage.Out, _pending!);
-                _pending = null;
-                _hasPending = false;
-
-                if (_upstreamFinished)
-                {
-                    CompleteStage();
-                    return;
-                }
-
-                if (IsAvailable(_stage.Out))
-                    Pull(_stage.In);
+                Release(new OpenMeteoGateway.Admission(target, null));
+                return;
             }
-            else
+
+            var delay = _stage._gate.EstimateDelay(target.Weight);
+            if (_stage._timeProvider.GetUtcNow() + delay > target.Deadline)
             {
-                ScheduleOnce(EmitTimerKey, _stage._gate.EstimateDelay(_pending!.Weight));
+                Release(new OpenMeteoGateway.Admission(target, FetchRejectionReason.Budget));
+                return;
             }
+
+            ScheduleOnce(EmitTimerKey, delay);
+        }
+
+        // A parked target is only ever held while downstream has pulled, so the outlet is available here.
+        private void Release(OpenMeteoGateway.Admission admission)
+        {
+            _pending = null;
+            Push(_stage.Out, admission);
+            if (_upstreamFinished)
+                CompleteStage();
         }
     }
 }

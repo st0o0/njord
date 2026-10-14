@@ -3,6 +3,7 @@ using Akka.Hosting;
 using Akka.Pattern;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
@@ -12,6 +13,7 @@ using Njord.Core.Configuration.Derived;
 using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Configuration.Trends;
+using Servus.Akka;
 using Servus.Application.Startup;
 
 namespace Njord.Pipeline.Configuration;
@@ -41,6 +43,8 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
             sp.GetRequiredService<IOptions<TrendOptions>>().Value,
             sp.GetRequiredService<IOptions<DerivedOptions>>().Value));
 
+        services.TryAddSingleton(FetchTimeouts.Default);
+
         services.AddSingleton<IActorRegistration>(new PipelineActorRegistration());
     }
 
@@ -58,7 +62,8 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
                         Backoff.OnFailure(resolver.Props<PollScheduler>(), "scheduler",
                             MinBackoff, MaxBackoff, RandomFactor, maxNrOfRetries: -1)))
                 .WithSingleton<IForecastPipeline>("pipeline",
-                    (_, _, resolver) => resolver.Props<ForecastPipeline>())
+                    (_, _, resolver) => resolver.Props<ForecastPipeline>().BackoffOnFailure("pipeline",
+                        MinBackoff, MaxBackoff, RandomFactor, config => config.WithMaxNrOfRetries(-1)))
                 .WithSingleton<IForecastReadModel>("forecast-read-model",
                     (_, _, resolver) => resolver.Props<ForecastReadModel>());
         }
