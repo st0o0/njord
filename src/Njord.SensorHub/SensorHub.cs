@@ -1,35 +1,51 @@
 using Akka.Actor;
 using Akka.Event;
 using Microsoft.Extensions.Options;
+using Njord.Core.Actors;
 using Njord.Core.Configuration.Sensors;
 using Njord.Messages.Sensors;
+using Servus.Akka;
 
 namespace Njord.SensorHub;
 
+// Pushes the snapshots of every location with fresh readings to the pipeline, which zips the latest map onto
+// each forecast; the pipeline never asks.
 public sealed class SensorHub : ReceiveActor, IWithTimers
 {
+    private static readonly TimeSpan DefaultExpiryInterval = TimeSpan.FromSeconds(60);
+
     private sealed record ExpireTick;
+    private sealed record PipelineResolved;
+    private sealed record PipelineResolveFailed(Exception Cause);
 
     public ITimerScheduler Timers { get; set; } = null!;
 
     private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _staleness;
+    private readonly TimeSpan _expiryInterval;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private SensorHubState _state = SensorHubState.Empty;
 
-    public SensorHub(IOptions<SensorOptions> sensorOptions, TimeProvider timeProvider)
+    public SensorHub(IOptions<SensorOptions> sensorOptions, TimeProvider timeProvider, TimeSpan? expiryInterval = null)
     {
+        _expiryInterval = expiryInterval ?? DefaultExpiryInterval;
         _timeProvider = timeProvider;
         _staleness = TimeSpan.FromSeconds(sensorOptions.Value.StalenessSeconds);
 
         Receive<UpdateReading>(Handle);
         Receive<QuerySensorSnapshot>(Handle);
         Receive<ExpireTick>(_ => HandleExpire());
+        Receive<PipelineResolved>(_ => PushSnapshots());
+        Receive<PipelineResolveFailed>(msg => _log.Warning(msg.Cause, "Could not resolve the pipeline for sensor pushes"));
     }
 
     protected override void PreStart()
     {
-        Timers.StartPeriodicTimer("expire", new ExpireTick(), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
+        Timers.StartPeriodicTimer("expire", new ExpireTick(), _expiryInterval, _expiryInterval);
+        // Waits for the pipeline's registration, so the pipeline gets the current map as soon as it exists.
+        Context.GetActorAsync<IForecastPipeline>().PipeTo(Self,
+            success: _ => new PipelineResolved(),
+            failure: ex => new PipelineResolveFailed(ex));
     }
 
     private void Handle(UpdateReading msg)
@@ -44,6 +60,7 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
 
         _state = _state.Apply(msg.Reading);
         Sender.Tell(new PushResult(true, null));
+        PushSnapshots();
     }
 
     private void Handle(QuerySensorSnapshot msg)
@@ -63,5 +80,17 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
         {
             _log.Debug("Expired {Count} stale sensor readings", expired);
         }
+
+        PushSnapshots();
+    }
+
+    private void PushSnapshots()
+    {
+        if (!Context.TryGetActor<IForecastPipeline>(out var pipeline))
+        {
+            return;
+        }
+
+        pipeline.Tell(_state.GetSnapshots(_timeProvider.GetUtcNow(), _staleness));
     }
 }

@@ -34,26 +34,47 @@ public static class SensorHubStateExtensions
     public static SensorSnapshotResponse GetSnapshot(
         this SensorHubState state, string location, DateTimeOffset now, TimeSpan staleness)
     {
-        var readings = new Dictionary<SensorKind, AggregatedReading>();
-
-        var byKind = state.Readings
+        var fresh = state.Readings
             .Where(kvp => kvp.Key.Location == location && !IsExpired(kvp.Value, now, staleness))
-            .GroupBy(kvp => kvp.Key.Kind);
+            .Select(kvp => kvp.Value);
 
-        foreach (var group in byKind)
+        return Aggregate(location, fresh) is { } snapshot
+            ? new SensorSnapshotResult(snapshot)
+            : new SensorSnapshotNotAvailable(new LocationId(location));
+    }
+
+    private static SensorSnapshot? Aggregate(string location, IEnumerable<SensorReading> fresh)
+    {
+        var readings = new Dictionary<SensorKind, AggregatedReading>();
+        foreach (var group in fresh.GroupBy(r => r.Kind))
         {
             var metadata = SensorKindMetadata.Get(group.Key);
-            var values = group.Select(kvp => kvp.Value).ToList();
-            var aggregated = Aggregate(values, metadata.Aggregation);
-            if (aggregated is not null)
+            if (Aggregate(group.ToList(), metadata.Aggregation) is { } aggregated)
             {
                 readings[group.Key] = aggregated;
             }
         }
 
-        return readings.Count > 0
-            ? new SensorSnapshotResult(new SensorSnapshot(location, readings))
-            : new SensorSnapshotNotAvailable(new LocationId(location));
+        return readings.Count > 0 ? new SensorSnapshot(location, readings) : null;
+    }
+
+    // Every location with at least one fresh reading; spellings of one location are aggregated together.
+    public static SensorSnapshots GetSnapshots(this SensorHubState state, DateTimeOffset now, TimeSpan staleness)
+    {
+        var snapshots = ImmutableDictionary<LocationId, SensorSnapshot>.Empty;
+        var byLocation = state.Readings
+            .Where(kvp => !IsExpired(kvp.Value, now, staleness))
+            .GroupBy(kvp => new LocationId(kvp.Key.Location));
+
+        foreach (var location in byLocation)
+        {
+            if (Aggregate(location.Key.Name, location.Select(kvp => kvp.Value)) is { } snapshot)
+            {
+                snapshots = snapshots.SetItem(location.Key, snapshot);
+            }
+        }
+
+        return new SensorSnapshots(snapshots);
     }
 
     public static SensorHubState Expire(this SensorHubState state, DateTimeOffset now, TimeSpan staleness)

@@ -22,7 +22,7 @@ public sealed class SensorHubSpec : Akka.Hosting.TestKit.TestKit
     {
         var options = Microsoft.Extensions.Options.Options.Create(
             new SensorOptions { StalenessSeconds = stalenessSeconds });
-        return Sys.ActorOf(Props.Create(() => new SensorHub(options, _time)));
+        return Sys.ActorOf(Props.Create(() => new SensorHub(options, _time, null)));
     }
 
     private SensorReading Reading(
@@ -98,6 +98,19 @@ public sealed class SensorHubSpec : Akka.Hosting.TestKit.TestKit
         var reading = response.Snapshot.Readings[SensorKind.IndoorTemperature];
         Assert.Equal(24.0, reading.Value);
         Assert.Equal(1, reading.SourceCount);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task accepts_readings_and_keeps_answering_while_no_pipeline_is_registered()
+    {
+        var hub = CreateHub();
+        hub.Tell(new UpdateReading(Reading()), TestActor);
+        var push = await ExpectMsgAsync<PushResult>(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(new PushResult(true, null), push);
+
+        hub.Tell(new QuerySensorSnapshot(new LocationId("Luzern")), TestActor);
+        var response = await ExpectMsgAsync<SensorSnapshotResult>(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(23.5, response.Snapshot.Get(SensorKind.IndoorTemperature));
     }
 
     [Fact(Timeout = 5000)]

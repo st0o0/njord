@@ -1,7 +1,7 @@
 ## 1. Contracts
 
 - [x] 1.1 Add `FetchForecastRejected(LocationId Location, string ModelId, FetchRejectionReason Reason)` and the `FetchRejectionReason` enum (`QueueFull`, `Budget`, `PipelineUnavailable`, `Expired`) to `src/Njord.Messages/Forecast/` (one file each)
-- [ ] 1.2 Add `SensorSnapshots(ImmutableDictionary<LocationId, SensorSnapshot> Snapshots)` to `src/Njord.Messages/Sensors/SensorSnapshots.cs`
+- [x] 1.2 Add `SensorSnapshots(ImmutableDictionary<LocationId, SensorSnapshot> Snapshots)` to `src/Njord.Messages/Sensors/SensorSnapshots.cs`
 - [x] 1.3 Replace the `RequestForecastStream*` records with `RequestForecastSink(long RequestId)`, `RequestForecastSinkCompleted(RequestId, ISinkRef<Forecast>)` and `RequestForecastSinkFailed(RequestId, Exception)` in `src/Njord.Core/Actors/StreamWiringMessages.cs`
 - [x] 1.4 Add `FetchTimeouts(Admission, Http, Reply)` with `Default` (20 s / 30 s / 60 s) to `src/Njord.Core/Configuration/Polling/FetchTimeouts.cs`; register it with `TryAddSingleton` in `OpenMeteoSetupContainer` and `PipelineSetupContainer`, use `Http` for the typed client; spec `src/Njord.Core.Tests/.../FetchTimeoutsSpec.cs` pins `Reply > Admission + Http`
 
@@ -17,8 +17,8 @@
 
 - [x] 3.1 Rewrite `src/Njord.Pipeline.Tests/ForecastPipelineSensorSpec.cs` for pushed maps: live value of the forecast's location used, other location not used, no push → configured values, case-insensitive key; see them fail
 - [x] 3.2 Pipeline: `SensorSnapshots` handler feeds the sensor side channel (initial empty map, `RepeatPrevious`); stage looks up the forecast's location
-- [ ] 3.3 Failing specs in `src/Njord.SensorHub.Tests/SensorHubSpec.cs`: accepted reading pushes the map, map covers all fresh locations, stale reading excluded, rejected reading pushes nothing, no pipeline registered keeps running; plus `SensorHubStateSpec` for the map builder
-- [ ] 3.4 `SensorHub` (`src/Njord.SensorHub/SensorHub.cs`) pushes on accepted readings, every expiry tick and once when `GetActorAsync<IForecastPipeline>` resolves; `SensorHubState.GetSnapshots` builds the map
+- [x] 3.3 Failing specs in `src/Njord.SensorHub.Tests/SensorHubSpec.cs`: accepted reading pushes the map, map covers all fresh locations, stale reading excluded, rejected reading pushes nothing, no pipeline registered keeps running; plus `SensorHubStateSpec` for the map builder
+- [x] 3.4 `SensorHub` (`src/Njord.SensorHub/SensorHub.cs`) pushes on accepted readings, every expiry tick and once when `GetActorAsync<IForecastPipeline>` resolves; `SensorHubState.GetSnapshots` builds the map
 
 ## 4. Gateway request/response (TDD)
 

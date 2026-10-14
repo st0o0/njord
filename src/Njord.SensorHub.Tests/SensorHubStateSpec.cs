@@ -1,5 +1,6 @@
 using Njord.Messages.Sensors;
 using Njord.Sensors;
+using Njord.Weather;
 
 namespace Njord.SensorHub.Tests;
 
@@ -174,5 +175,44 @@ public sealed class SensorHubStateSpec
         var result = state.Expire(Now, Staleness);
 
         Assert.Same(state, result);
+    }
+
+    [Fact]
+    public void GetSnapshots_maps_every_location_with_fresh_readings()
+    {
+        var state = SensorHubState.Empty
+            .Apply(Reading(location: "lucerne", value: 22.0))
+            .Apply(Reading(location: "bern", value: 19.0))
+            .Apply(Reading(location: "zurich", value: 18.0, measuredAt: Now - TimeSpan.FromMinutes(20)));
+
+        var snapshots = state.GetSnapshots(Now, Staleness);
+
+        Assert.Multiple(
+            () => Assert.Equal(2, snapshots.Snapshots.Count),
+            () => Assert.Equal(22.0, snapshots.For(new LocationId("lucerne"))?.Get(SensorKind.IndoorTemperature)),
+            () => Assert.Equal(19.0, snapshots.For(new LocationId("bern"))?.Get(SensorKind.IndoorTemperature)),
+            () => Assert.Null(snapshots.For(new LocationId("zurich"))));
+    }
+
+    [Fact]
+    public void GetSnapshots_aggregates_readings_whose_location_differs_only_in_case()
+    {
+        var state = SensorHubState.Empty
+            .Apply(Reading(location: "lucerne", source: "a", value: 20.0))
+            .Apply(Reading(location: "LUCERNE", source: "b", value: 24.0));
+
+        var snapshots = state.GetSnapshots(Now, Staleness);
+
+        var snapshot = Assert.Single(snapshots.Snapshots).Value;
+        var reading = snapshot.Readings[SensorKind.IndoorTemperature];
+        Assert.Multiple(
+            () => Assert.Equal(22.0, reading.Value),
+            () => Assert.Equal(2, reading.SourceCount));
+    }
+
+    [Fact]
+    public void GetSnapshots_is_empty_for_an_empty_state()
+    {
+        Assert.Empty(SensorHubState.Empty.GetSnapshots(Now, Staleness).Snapshots);
     }
 }
