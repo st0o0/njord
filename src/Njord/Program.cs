@@ -27,10 +27,9 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MinResponseDataRate = null;
 });
 
-builder.Configuration.AddJsonFile(
-    CoreSetupContainer.OverridePath,
-    optional: true,
-    reloadOnChange: true);
+// A corrupt or unreadable override file never stops startup; see ResilientJsonConfigurationSource.
+var overrideFile = builder.Configuration.AddResilientJsonFile(CoreSetupContainer.OverridePath, reloadOnChange: true);
+builder.Services.AddSingleton(overrideFile);
 
 var runner = AppBuilder.Create(builder, b => b.Build())
     .WithSetup<CoreSetupContainer>()

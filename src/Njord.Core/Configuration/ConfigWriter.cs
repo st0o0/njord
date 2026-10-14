@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -10,12 +11,20 @@ namespace Njord.Core.Configuration;
 public sealed class ConfigWriter(
     IServiceProvider services,
     IConfigurationRoot configurationRoot,
-    string overridePath) : IConfigWriter
+    ConfigOverrideFile overrideFile,
+    TimeProvider timeProvider) : IConfigWriter
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         WriteIndented = true,
         Converters = { new JsonStringEnumConverter() },
+    };
+
+    // The leniency of the JSON configuration loader, so every file njord loads can also be updated.
+    private static readonly JsonDocumentOptions ReadOptions = new()
+    {
+        CommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true,
     };
 
     private readonly SemaphoreSlim _lock = new(1, 1);
@@ -100,22 +109,46 @@ public sealed class ConfigWriter(
 
         MergeInto(target, delta);
 
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(overridePath))!);
-        var tempPath = overridePath + ".tmp";
-        await File.WriteAllTextAsync(tempPath, root.ToJsonString(SerializerOptions), cancellationToken);
-        File.Move(tempPath, overridePath, overwrite: true);
+        var path = overrideFile.Path;
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var tempPath = path + ".tmp";
+        await using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            await JsonSerializer.SerializeAsync(stream, root, SerializerOptions, cancellationToken);
+            stream.Flush(flushToDisk: true);
+        }
+
+        File.Move(tempPath, path, overwrite: true);
     }
 
+    // A corrupt file is never merged into or overwritten: it is moved aside and the new file starts from the
+    // last good content the configuration loaded, so the persisted overrides match the running configuration.
     private async Task<JsonObject> ReadExistingAsync(CancellationToken cancellationToken)
     {
-        if (!File.Exists(overridePath))
+        var path = overrideFile.Path;
+        if (!File.Exists(path))
         {
             return new JsonObject();
         }
 
-        var text = await File.ReadAllTextAsync(overridePath, cancellationToken);
-        return JsonNode.Parse(text)?.AsObject() ?? new JsonObject();
+        var text = await File.ReadAllTextAsync(path, cancellationToken);
+        try
+        {
+            return ParseObject(text);
+        }
+        catch (JsonException ex)
+        {
+            var stamp = timeProvider.GetUtcNow().ToString("yyyyMMdd'T'HHmmssfff'Z'", CultureInfo.InvariantCulture);
+            var corruptPath = $"{path}.corrupt-{stamp}";
+            File.Move(path, corruptPath, overwrite: false);
+            overrideFile.RecordMovedAside(corruptPath, ex);
+            return overrideFile.LastGoodContent is { } lastGood ? ParseObject(lastGood) : new JsonObject();
+        }
     }
+
+    private static JsonObject ParseObject(string text) =>
+        JsonNode.Parse(text, documentOptions: ReadOptions) as JsonObject
+        ?? throw new JsonException("The top-level JSON element is not an object.");
 
     internal static JsonObject ComputeDelta(JsonObject before, JsonObject after)
     {

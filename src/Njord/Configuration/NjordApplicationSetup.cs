@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Njord.Core.Configuration;
 using Njord.Grpc;
 using Prometheus;
 using Servus.Application.Startup;
@@ -10,6 +11,11 @@ public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplica
 {
     protected override void SetupApplication(WebApplication app)
     {
+        // Override-file problems found while the configuration was built (before logging existed) are
+        // logged now; later ones are logged as they happen.
+        app.Services.GetRequiredService<ConfigOverrideFile>()
+            .AttachLogger(app.Services.GetRequiredService<ILogger<ConfigOverrideFile>>());
+
         app.MapHealthChecks("/healthz", new HealthCheckOptions
         {
             ResultStatusCodes =

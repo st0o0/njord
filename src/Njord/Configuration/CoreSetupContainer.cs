@@ -1,4 +1,5 @@
 using Akka.Hosting;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Njord.Budget;
 using Njord.Core.Actors;
@@ -67,10 +68,14 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
         }
 
         services.AddSingleton<ConfigView>();
+        // Program.cs registers the instance its configuration source reports to; this default only
+        // serves hosts that build the configuration without the override source (tests).
+        services.TryAddSingleton(static _ => new ConfigOverrideFile(OverridePath));
         services.AddSingleton<IConfigWriter>(static sp => new ConfigWriter(
             sp,
             (IConfigurationRoot)sp.GetRequiredService<IConfiguration>(),
-            OverridePath));
+            sp.GetRequiredService<ConfigOverrideFile>(),
+            sp.GetRequiredService<TimeProvider>()));
 
         services.AddSingleton<IActorRegistration>(new ConfigActorRegistration());
     }

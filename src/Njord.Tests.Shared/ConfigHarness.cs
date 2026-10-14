@@ -36,7 +36,7 @@ public sealed class ConfigHarness : IDisposable
         Add<IndexOptions, IndexOptionsValidator>(services, IndexOptions.SectionName);
         services.AddSingleton<ConfigView>();
         services.AddSingleton<IConfigWriter>(sp => new ConfigWriter(
-            sp, Root, overridePath));
+            sp, Root, new ConfigOverrideFile(overridePath), TimeProvider.System));
         _provider = services.BuildServiceProvider();
     }
 

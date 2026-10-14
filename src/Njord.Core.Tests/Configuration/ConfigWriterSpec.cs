@@ -6,6 +6,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Consensus;
 using Njord.Core.Configuration.Polling;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration;
 
@@ -13,7 +14,15 @@ public sealed class ConfigWriterSpec : IDisposable
 {
     private readonly string _tempDir = Path.Combine(Path.GetTempPath(), $"njord-writer-{Guid.NewGuid():N}");
 
+    private static readonly DateTimeOffset Now = new(2026, 10, 14, 12, 0, 0, 123, TimeSpan.Zero);
+
     private string OverridePath => Path.Combine(_tempDir, "appsettings.Override.json");
+
+    private readonly ConfigOverrideFile _overrideFile;
+
+    public ConfigWriterSpec() => _overrideFile = new ConfigOverrideFile(OverridePath);
+
+    private string CorruptPath => OverridePath + ".corrupt-20261014T120000123Z";
 
     [Fact(Timeout = 5000)]
     public async Task Update_persists_the_change_under_the_section_path()
@@ -194,6 +203,98 @@ public sealed class ConfigWriterSpec : IDisposable
         Assert.False(threshold.RequiresRestart);
     }
 
+    [Fact(Timeout = 5000)]
+    public async Task A_corrupt_override_file_is_moved_aside_with_its_original_bytes_before_the_write()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (writer, provider) = CreateWriter();
+        await File.WriteAllTextAsync(OverridePath, """{"Njord": {"Horizons": [6, 2""", ct);
+
+        var result = await writer.UpdateAsync<NjordOptions>(opt => opt.ForecastDays = 7, ct);
+
+        Assert.True(result.Applied);
+        Assert.Equal("""{"Njord": {"Horizons": [6, 2""", await File.ReadAllTextAsync(CorruptPath, ct));
+        var njord = ReadOverride()["Njord"]!.AsObject();
+        Assert.Multiple(
+            () => Assert.Equal(["ForecastDays"], njord.Select(p => p.Key)),
+            () => Assert.Equal(7, njord["ForecastDays"]!.GetValue<int>()),
+            () => Assert.Equal(7, provider.GetRequiredService<IOptionsMonitor<NjordOptions>>().CurrentValue.ForecastDays));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Moving_a_corrupt_override_file_aside_is_logged_as_an_error()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var logger = new RecordingLogger();
+        var (writer, _) = CreateWriter(logger: logger);
+        await File.WriteAllTextAsync(OverridePath, "", ct);
+
+        await writer.UpdateAsync<NjordOptions>(opt => opt.ForecastDays = 7, ct);
+
+        var entry = Assert.Single(logger.Errors);
+        Assert.Multiple(
+            () => Assert.Contains(Path.GetFullPath(OverridePath), entry.Message),
+            () => Assert.Contains(Path.GetFullPath(CorruptPath), entry.Message));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task A_rewrite_over_a_corrupt_file_keeps_the_last_good_overrides()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        const string lastGood = """{"Njord": {"Horizons": [6, 24]}}""";
+        Directory.CreateDirectory(_tempDir);
+        await File.WriteAllTextAsync(OverridePath, lastGood, ct);
+        var (writer, provider) = CreateWriter();
+        _overrideFile.RecordLoaded(lastGood);
+        await File.WriteAllTextAsync(OverridePath, "[1]", ct);
+
+        await writer.UpdateAsync<NjordOptions>(opt => opt.ForecastDays = 7, ct);
+
+        var njord = ReadOverride()["Njord"]!;
+        var options = provider.GetRequiredService<IOptionsMonitor<NjordOptions>>().CurrentValue;
+        Assert.Multiple(
+            () => Assert.Equal([6, 24], njord["Horizons"]!.AsArray().Select(h => h!.GetValue<int>())),
+            () => Assert.Equal(7, njord["ForecastDays"]!.GetValue<int>()),
+            () => Assert.Equal([6, 24], options.Horizons),
+            () => Assert.Equal(7, options.ForecastDays),
+            () => Assert.Equal("[1]", File.ReadAllText(CorruptPath)));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task A_hand_edited_override_with_comments_and_trailing_commas_is_updated()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        Directory.CreateDirectory(_tempDir);
+        await File.WriteAllTextAsync(OverridePath, """
+            {
+              // set by hand
+              "Njord": { "ForecastDays": 7, },
+            }
+            """, ct);
+        var (writer, _) = CreateWriter();
+
+        var result = await writer.UpdateAsync<PollingOptions>(opt => opt.PollInterval = TimeSpan.FromMinutes(30), ct);
+
+        var njord = ReadOverride()["Njord"]!;
+        Assert.Multiple(
+            () => Assert.True(result.Applied),
+            () => Assert.Equal(7, njord["ForecastDays"]!.GetValue<int>()),
+            () => Assert.Equal("00:30:00", njord["PollInterval"]!.GetValue<string>()),
+            () => Assert.False(File.Exists(CorruptPath)));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task A_successful_write_leaves_only_the_override_file_in_the_directory()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (writer, _) = CreateWriter();
+
+        await writer.UpdateAsync<NjordOptions>(opt => opt.ForecastDays = 7, ct);
+        await writer.UpdateAsync<NjordOptions>(opt => opt.ForecastDays = 8, ct);
+
+        Assert.Equal([Path.GetFullPath(OverridePath)], Directory.GetFiles(_tempDir).Select(Path.GetFullPath));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDir))
@@ -204,8 +305,11 @@ public sealed class ConfigWriterSpec : IDisposable
 
     private JsonNode ReadOverride() => JsonNode.Parse(File.ReadAllText(OverridePath))!;
 
-    private (ConfigWriter Writer, ServiceProvider Provider) CreateWriter(bool alertsEnabled = true)
+    private (ConfigWriter Writer, ServiceProvider Provider) CreateWriter(
+        bool alertsEnabled = true, RecordingLogger? logger = null)
     {
+        Directory.CreateDirectory(_tempDir);
+        _overrideFile.AttachLogger(logger ?? new RecordingLogger());
         var configRoot = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -230,6 +334,6 @@ public sealed class ConfigWriterSpec : IDisposable
         services.AddSingleton<IValidateOptions<ConsensusOptions>, ConsensusOptionsValidator>();
         var provider = services.BuildServiceProvider();
 
-        return (new ConfigWriter(provider, configRoot, OverridePath), provider);
+        return (new ConfigWriter(provider, configRoot, _overrideFile, TestTimeouts.AtEpoch(Now)), provider);
     }
 }
