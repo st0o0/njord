@@ -5,7 +5,8 @@
 
 - **Transport**, **ModelUnavailable** and **MalformedPayload** failures: record a transient failure (`TransientFailureCount + 1`) and schedule a retry after the transient backoff (1 min, 2 min, 4 min, 8 min; from the fifth consecutive transient failure on, the discovery interval), logging a warning.
 - **RateLimited** failures and **Budget** rejections: record a transient failure and schedule the retry no earlier than 5 minutes from now, logging a warning.
-- **QueueFull**, **PipelineUnavailable** and **Expired** rejections: record a transient failure and schedule a retry after the transient backoff, logging a warning.
+- **QueueFull** and **Expired** rejections: record a transient failure and schedule a retry after the transient backoff, logging a warning.
+- **PipelineUnavailable** rejections (the gateway is still attaching to the pipeline input, e.g. right after startup): schedule a retry 5 seconds from now without recording a transient failure, logging a warning.
 
 A fetch request the gateway does not answer within the scheduler's fetch reply timeout SHALL be handled as a `Transport` failure, so every request ends in a reply or a retry.
 
@@ -36,6 +37,10 @@ A fetch request the gateway does not answer within the scheduler's fetch reply t
 #### Scenario: Queue-full rejection is retried with transient backoff
 - **WHEN** a `QueueFull` rejection arrives for (lucerne, icon_d2) with `TransientFailureCount = 0`
 - **THEN** the next retry is scheduled in 1 minute
+
+#### Scenario: Pipeline-unavailable rejection retries soon
+- **WHEN** a `PipelineUnavailable` rejection arrives for (lucerne, icon_d2) with `TransientFailureCount = 1`
+- **THEN** the next poll is scheduled 5 seconds from now and `TransientFailureCount` stays 1
 
 #### Scenario: Unanswered request is retried
 - **WHEN** the gateway does not answer a fetch request within the fetch reply timeout

@@ -96,7 +96,10 @@ it puts an ask with a timeout inside the analysis stream, the seam pattern the c
 ### D7 Scheduler Ask (transitional)
 `OnScheduledPoll` asks the gateway with `FetchTimeouts.Reply` and pipes the `FetchForecastResponse` to `Self`;
 a failed Ask becomes `FetchForecastFailed(Transport, "no reply within …")`. `FetchForecastRejected` maps to
-`ApplyRateLimited` (≥ 5 min) for `Budget` and to `ApplyTransientFailure` for every other reason, and counts
+`ApplyRateLimited` (≥ 5 min) for `Budget`, to a 5-second retry without a transient failure for
+`PipelineUnavailable` (the manual run showed every startup poll racing the gateway's first attach through the
+singleton proxy; a 1-minute transient backoff would delay the first fetch of every target), and to
+`ApplyTransientFailure` for `QueueFull`/`Expired`, and counts
 as a failed outcome for `PollCycleTracker`. The `Ack` replies are dropped: piped replies have no sender, so an
 `Ack` would only reach dead letters.
 

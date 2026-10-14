@@ -44,6 +44,8 @@ public sealed class PollScheduler : ReceivePersistentActor
 
     private static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
 
+    internal static readonly TimeSpan PipelineUnavailableRetry = TimeSpan.FromSeconds(5);
+
     public PollScheduler(
         IOptions<NjordOptions> options,
         IOptions<PollingOptions> polling,
@@ -316,7 +318,8 @@ public sealed class PollScheduler : ReceivePersistentActor
         RecordPollOutcome(location, modelId, PollCycleOutcome.Failed);
     }
 
-    // A rejected request was never fetched. Budget backs off like a rate limit; the other reasons are transient.
+    // A rejected request was never fetched. Budget backs off like a rate limit, PipelineUnavailable retries soon,
+    // the other reasons are transient failures.
     private void OnFetchForecastRejected(FetchForecastRejected msg)
     {
         if (!TryResolveTarget(msg.Location, msg.ModelId, out var location, out var modelId))
@@ -326,9 +329,15 @@ public sealed class PollScheduler : ReceivePersistentActor
 
         var key = Key(location, modelId);
         var now = _timeProvider.GetUtcNow();
-        _state = msg.Reason == FetchRejectionReason.Budget
-            ? _state.ApplyRateLimited(key, now, RateLimitMinDelay, _discoveryInterval)
-            : _state.ApplyTransientFailure(key, now, _discoveryInterval);
+        _state = msg.Reason switch
+        {
+            FetchRejectionReason.Budget => _state.ApplyRateLimited(key, now, RateLimitMinDelay, _discoveryInterval),
+            // The gateway is (re-)attaching to the pipeline, e.g. right after startup: nothing was fetched and
+            // nothing failed, so the target is asked again soon without growing its transient backoff.
+            FetchRejectionReason.PipelineUnavailable => _state.SetPollState(key,
+                _state.States[key] with { NextPollUtc = now + PipelineUnavailableRetry }),
+            _ => _state.ApplyTransientFailure(key, now, _discoveryInterval),
+        };
         _log.Warning("Fetch rejected for {Location}/{Model} ({Reason}) - next poll at {Next}",
             location, modelId, msg.Reason, _state.States[key].NextPollUtc);
         ScheduleNext(location, modelId);

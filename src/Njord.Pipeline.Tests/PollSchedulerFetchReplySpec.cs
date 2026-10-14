@@ -92,6 +92,25 @@ public sealed class PollSchedulerFetchReplySpec : NjordActorSpec
         await AssertNextPollAsync(_time.GetUtcNow() + TimeSpan.FromMinutes(2), ct);
     }
 
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_pipeline_unavailable_rejection_retries_soon_without_growing_the_backoff()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await _requests.ExpectMsgAsync<FetchForecast>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await AssertNextPollAsync(_time.GetUtcNow() + TimeSpan.FromMinutes(1), ct);
+        _script.Reply = FetchRejectionReason.PipelineUnavailable;
+
+        await Scheduler.Ask<TriggerImmediatePollCompleted>(
+            new TriggerImmediatePoll(new LocationId("lucerne"), "icon_d2"), TestTimeouts.RealTimeWaitMax, ct);
+        await AssertNextPollAsync(_time.GetUtcNow() + PollScheduler.PipelineUnavailableRetry, ct);
+
+        // The next transient failure still continues the backoff from one failure, not from two.
+        _script.Reply = FetchRejectionReason.QueueFull;
+        await Scheduler.Ask<TriggerImmediatePollCompleted>(
+            new TriggerImmediatePoll(new LocationId("lucerne"), "icon_d2"), TestTimeouts.RealTimeWaitMax, ct);
+        await AssertNextPollAsync(_time.GetUtcNow() + TimeSpan.FromMinutes(2), ct);
+    }
+
     private async Task AssertNextPollAsync(DateTimeOffset expected, CancellationToken ct) =>
         await AwaitAssertAsync(async () =>
         {
