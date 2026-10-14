@@ -58,11 +58,7 @@ const copied = reactive({ show: false })
 
 const budget = computed(() => computeBudget(config, models))
 const memoryTip = computed(() => {
-  const locs = config.locations.length
-  const history = isEnrichmentEnabled('History')
   const models = config.models.length + config.locations.reduce((s, l) => s + l.models.length, 0)
-  if (locs >= 3 && history) return 'With 3+ locations and History enabled, consider 384M or more.'
-  if (locs >= 2 && history) return 'With multiple locations and History, consider 256M or more.'
   if (models > 8) return 'With many models, consider 256M.'
   return ''
 })
@@ -372,7 +368,7 @@ onMounted(() => {
       <div class="general-row">
         <label>Poll Interval <input v-model="config.pollInterval" placeholder="01:00:00" /></label>
         <label>Forecast Days <input v-model.number="config.forecastDays" type="number" min="1" max="16" /></label>
-        <label>Discovery Interval <input v-model="config.discoveryInterval" placeholder="00:20:00" /></label>
+        <label title="Poll interval for a model whose update cycle is not learned yet">Discovery Poll Interval <input v-model="config.discoveryInterval" placeholder="00:20:00" /></label>
       </div>
     </div>
 

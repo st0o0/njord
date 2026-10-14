@@ -3,13 +3,15 @@ services:
     image: ghcr.io/st0o0/njord:latest@sha256:6f03fba66ca630683af2e11f6c11d3ef35f284bec5ef82f0b353636fbed25124
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8080:8080"   # HTTP: health and metrics
+      - "8081:8081"   # gRPC: Home Assistant (ha-njord) and sensor push
     volumes:
       - njord-data:/app/data
     environment:
-      # ── MQTT (disabled by default) ─────────────────────────────
-      # Both Enabled=true and Host are required for HA integration.
-      # Omit both to run in gRPC-only mode.
+      # ── MQTT (optional state publishing, disabled by default) ─
+      # Home Assistant connects over gRPC (ha-njord), not MQTT.
+      # Enabled=true and Host publish retained state topics to a broker;
+      # omit both to run in gRPC-only mode.
       - Njord__Mqtt__Enabled=true
       - Njord__Mqtt__Host=192.168.1.x
       #- Njord__Mqtt__Port=1883
@@ -29,7 +31,11 @@ services:
       # ── Polling & Models ──────────────────────────────────────
       #- Njord__PollInterval=01:00:00
       #- Njord__ForecastDays=4
+      # Poll interval of a model whose update cycle is not learned yet:
       #- Njord__DiscoveryInterval=00:20:00
+      #- Njord__OpenMeteoBaseUrl=https://api.open-meteo.com/
+      ## Per-location models (in addition to Njord__Models):
+      #- Njord__Locations__0__Models__0=icon_d2
       #- Njord__Models__0=icon_d2
       #- Njord__Models__1=icon_eu
       #- Njord__Models__2=icon_global
@@ -52,7 +58,7 @@ services:
 
       # ── Persistence ───────────────────────────────────────────
       #- Njord__Persistence__Provider=Sqlite
-      #- Njord__PersistencePath=data/njord-journal.db
+      #- Njord__PersistencePath=data/njord.db
       ## For PostgreSQL:
       #- Njord__Persistence__Provider=PostgreSql
       #- Njord__Persistence__ConnectionString=Host=db;Database=njord;Username=njord;Password=secret
@@ -69,31 +75,57 @@ services:
       #- Njord__Enrichment__Consensus__Enabled=true
       #- Njord__Enrichment__Consensus__Method=Median
       #- Njord__Enrichment__Consensus__TrimPercent=0.1
+      #- Njord__Enrichment__Consensus__MinQuorum=2
       #- Njord__Enrichment__Alerts__Enabled=true
-      #- Njord__Enrichment__Alerts__FrostThreshold=0
+      #- Njord__Enrichment__Alerts__FrostThresholds__0=0
+      #- Njord__Enrichment__Alerts__FrostThresholds__1=-5
+      #- Njord__Enrichment__Alerts__FrostThresholds__2=-15
       #- Njord__Enrichment__Alerts__HeatThresholds__0=30
       #- Njord__Enrichment__Alerts__HeatThresholds__1=35
       #- Njord__Enrichment__Alerts__HeatThresholds__2=40
-      #- Njord__Enrichment__Alerts__StormGustThreshold=16.7
+      #- Njord__Enrichment__Alerts__StormGustThresholds__0=17
+      #- Njord__Enrichment__Alerts__StormGustThresholds__1=25
+      #- Njord__Enrichment__Alerts__StormGustThresholds__2=33
       #- Njord__Enrichment__Alerts__HeavyRainHourlyThreshold=10
       #- Njord__Enrichment__Alerts__HeavyRainDailyThreshold=25
       #- Njord__Enrichment__Alerts__PressureDropThreshold=5
+      #- Njord__Enrichment__Alerts__PressureDropSevereThreshold=10
+      #- Njord__Enrichment__Alerts__FogPersistentHours=4
       #- Njord__Enrichment__Alerts__CapeThreshold=1000
       #- Njord__Enrichment__Alerts__ThunderstormPrecipThreshold=5
       #- Njord__Enrichment__Alerts__ThunderstormGustThreshold=15
+      #- Njord__Enrichment__Alerts__IceThreshold=2
+      #- Njord__Enrichment__Alerts__WindChillThresholds__0=-10
+      #- Njord__Enrichment__Alerts__WindChillThresholds__1=-20
+      #- Njord__Enrichment__Alerts__WindChillThresholds__2=-30
+      #- Njord__Enrichment__Alerts__VisibilityThresholds__0=1000
+      #- Njord__Enrichment__Alerts__VisibilityThresholds__1=200
+      #- Njord__Enrichment__Alerts__VisibilityThresholds__2=50
+      #- Njord__Enrichment__Alerts__TropicalNightThresholds__0=20
+      #- Njord__Enrichment__Alerts__TropicalNightThresholds__1=23
+      #- Njord__Enrichment__Alerts__TropicalNightThresholds__2=25
+      #- Njord__Enrichment__Alerts__HumidityThresholds__0=16
+      #- Njord__Enrichment__Alerts__HumidityThresholds__1=21
+      #- Njord__Enrichment__Alerts__HumidityThresholds__2=24
       #- Njord__Enrichment__Derived__Enabled=true
       #- Njord__Enrichment__Trends__Enabled=false
       #- Njord__Enrichment__Indices__Enabled=false
-      #- Njord__Enrichment__Indices__Preferences__IndoorTemp=22
       #- Njord__Enrichment__Indices__Preferences__IdealOutdoorTemp=22
+      #- Njord__Enrichment__Indices__Preferences__RunningIdealTempLow=5
+      #- Njord__Enrichment__Indices__Preferences__RunningIdealTempHigh=20
+      #- Njord__Enrichment__Indices__Preferences__BbqMinTemp=10
+      #- Njord__Enrichment__Indices__Preferences__BbqIdealWindLow=1
+      #- Njord__Enrichment__Indices__Preferences__BbqIdealWindHigh=3
+      #- Njord__Enrichment__Indices__Preferences__IndoorTemp=22
       #- Njord__Enrichment__Indices__Preferences__HeatSensitivity=1.0
       #- Njord__Enrichment__Indices__Preferences__HumiditySensitivity=1.0
       #- Njord__Enrichment__Indices__Preferences__WindSensitivity=1.0
       #- Njord__Enrichment__Indices__Preferences__RainSensitivity=1.0
-      #- Njord__Enrichment__History__Enabled=false
-      #- Njord__Enrichment__History__RetentionDays=30
-      #- Njord__Enrichment__History__MinSampleSize=48
-      #- Njord__Enrichment__History__SnapshotInterval=100
+      ## Per-score and per-location overrides (same preference keys):
+      #- Njord__Enrichment__Indices__ScoreOverrides__Running__IdealOutdoorTemp=15
+      #- Njord__Enrichment__Indices__LocationOverrides__0__Location=home
+      #- Njord__Enrichment__Indices__LocationOverrides__0__Preferences__IndoorTemp=21
+      #- Njord__Enrichment__Indices__LocationOverrides__0__ScoreOverrides__Bbq__BbqMinTemp=12
 
 volumes:
   njord-data:

@@ -35,8 +35,6 @@ Each location/model combination creates a weather entity. An additional consensu
 | `model_resolution_km` | Grid resolution in km |
 | `model_max_forecast_hours` | Maximum forecast horizon |
 
-When the history enrichment is active, per-model entities also carry `model_mae_7d`, `model_mae_30d`, `model_weight`, and `model_drift`.
-
 **Consensus extra attributes:**
 
 | Attribute | Description |

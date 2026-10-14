@@ -33,7 +33,7 @@ volumes:
 docker compose up -d
 ```
 
-The `/app/data` volume stores the SQLite journal used for persistence (forecast history, scheduler state). Keep it mounted so data survives container restarts.
+The `/app/data` volume stores the SQLite journal used for persistence (poll scheduler state, API budget usage). Keep it mounted so data survives container restarts.
 
 ::: tip
 For complex setups with multiple locations, per-location models, and enrichment features, use the [Config Builder](/builder) to generate your configuration interactively.

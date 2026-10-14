@@ -1,14 +1,14 @@
 # MQTT Reference
 
 ::: info
-MQTT is an **optional** egress path, disabled by default. The primary way to connect njord to Home Assistant is the [included custom integration](/home-assistant), which uses gRPC streaming for real-time updates. Enable MQTT only if you need to consume njord data from non-HA systems such as Node-RED, Grafana, or custom dashboards. See [MQTT configuration](/configuration/mqtt) to enable it.
+MQTT is an **optional** egress path, disabled by default. The primary way to connect njord to Home Assistant is the [included custom integration](/home-assistant/), which uses gRPC streaming for real-time updates. Enable MQTT only if you need to consume njord data from non-HA systems such as Node-RED, Grafana, or custom dashboards. See [MQTT configuration](/configuration/mqtt) to enable it.
 :::
 
-This page documents the complete MQTT topic scheme, payload format, and availability mechanism used by njord.
+This page documents the MQTT state topics, payload format, and availability mechanism used by njord. njord publishes state only; it does not publish MQTT Discovery payloads, so Home Assistant does not create entities from these topics.
 
 ## Topic scheme
 
-All topics use the configured `BaseTopic` (default: `njord`) and `DiscoveryPrefix` (default: `homeassistant`).
+All topics use the configured `BaseTopic` (default: `njord`). Locations appear as a slug of the configured name.
 
 ### Status (LWT)
 
@@ -48,32 +48,17 @@ njord/berlin/icon_eu/d15    # 15 days out
 
 Daily offsets range from `d0` (today) to `d{ForecastDays - 1}`.
 
-### Device discovery
-
-```
-{discoveryPrefix}/device/{deviceId}/config
-```
-
-Examples:
-```
-homeassistant/device/njord_berlin_icon_d2/config
-homeassistant/device/njord_berlin_consensus/config
-```
-
-Device ID format: `njord_{slug(location)}_{modelId}` (or `_{enrichmentType}` for enrichment devices).
-
 ### Enrichment topics
 
-Enrichment features publish to their own sub-topics under the location:
+Analysis features publish to their own sub-topics under the location:
 
 | Feature | Topic pattern | Example |
 |---------|---------------|---------|
-| Consensus | `{baseTopic}/{location}/consensus/h{N}` | `njord/berlin/consensus/h3` |
-| Alerts | `{baseTopic}/{location}/alerts` | `njord/berlin/alerts` |
-| Derived | `{baseTopic}/{location}/derived/h{N}` | `njord/berlin/derived/h3` |
+| Consensus | `{baseTopic}/{location}/consensus/h{N}` and `/d{offset}` | `njord/berlin/consensus/h3` |
+| Alerts | `{baseTopic}/{location}/alerts/{alertType}` (one topic per active alert) | `njord/berlin/alerts/frost` |
+| Derived | `{baseTopic}/{location}/derived/h{N}` and `/meta` | `njord/berlin/derived/h3` |
 | Trends | `{baseTopic}/{location}/trends` | `njord/berlin/trends` |
-| Indices | `{baseTopic}/{location}/indices` | `njord/berlin/indices` |
-| History | `{baseTopic}/{location}/history` | `njord/berlin/history` |
+| Indices | `{baseTopic}/{location}/indices/d{offset}` | `njord/berlin/indices/d0` |
 
 ## Payload format
 
@@ -120,45 +105,48 @@ Only parameters that have a value for the given model and horizon are included. 
 
 ### Consensus payload
 
+Each parameter carries its median and the number of models that contributed; `_spread` and `_agreement` describe the first parameter of the topic:
+
 ```json
 {
   "temperature_2m": 18.3,
-  "temperature_2m_spread": 2.1,
-  "temperature_2m_agreement": 0.85,
-  "temperature_2m_models_used": 5,
+  "temperature_2m_models": 5,
   "wind_speed_10m": 4.0,
-  "wind_speed_10m_spread": 1.8,
-  "wind_speed_10m_agreement": 0.72,
-  "wind_speed_10m_models_used": 5
+  "wind_speed_10m_models": 5,
+  "_spread": 2.1,
+  "_agreement": 0.85
 }
 ```
 
 ### Alert payload
 
+One retained payload per active alert type (here `njord/berlin/alerts/frost`):
+
 ```json
 {
-  "frost": "ON",
-  "frost_severity": "Yellow",
-  "frost_confidence": 0.8,
-  "frost_expected_low": -1.2,
-  "frost_earliest": "2026-07-16T04:00",
-  "heat": "OFF",
-  "storm": "OFF"
+  "severity": "yellow",
+  "confidence": 0.8,
+  "trigger_value": -1.2,
+  "threshold": 0,
+  "hours_until": 9,
+  "expected_low": -1.2,
+  "earliest_frost": "+9h",
+  "models_agreeing": 4
 }
 ```
 
 ## Availability
 
-njord uses a dual availability mechanism:
+njord publishes its availability on `{baseTopic}/status` (retained):
 
-1. **LWT topic** (`{baseTopic}/status`): the broker publishes `offline` if njord disconnects unexpectedly
-2. **expire_after**: set to 2x the poll interval on every sensor. If no update arrives within that window, Home Assistant marks the sensor as unavailable
+- `online`: published after every successful connect
+- `offline`: registered as Last Will and Testament, so the broker publishes it if njord disconnects unexpectedly; njord also publishes it when the connection actor stops
 
-Both conditions must be met for a sensor to show as available (availability mode `"all"`).
+State topics carry no expiry. Consumers should combine the status topic with the age of the last state message.
 
 ## Retained messages
 
-All state and discovery payloads are published as **retained**. This means:
+All state payloads are published as **retained**. This means:
 - New MQTT subscribers immediately receive the last known state
-- Home Assistant gets device configs and current values on restart
-- Stale retained configs are tombstoned (empty payload) when the configuration changes
+- A payload is only re-published when its content changed since the last publish
+- Retained topics of removed locations or models stay on the broker until cleared manually

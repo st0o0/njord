@@ -11,7 +11,6 @@ Enrichment features compute derived data from the raw model forecasts. Each feat
 | [Derived](#derived) | enabled | Beaufort scale, wind chill, comfort index, WMO descriptions |
 | [Trends](#trends) | disabled | Temperature/wind/precipitation trend directions and timing |
 | [Indices](#indices) | disabled | Activity scores, degree days, VPD |
-| [History](#history) | disabled | Forecast accuracy tracking and model weighting |
 
 ## Consensus
 
@@ -220,36 +219,3 @@ For any (location, score, property), the first non-null value wins:
 - Score envelopes: min, max, confidence for each activity score
 - Frost: hours-until-frost, confidence
 - VPD: vapour pressure deficit value (kPa) and category
-
-## History
-
-Tracks forecast accuracy over time by comparing past predictions against observations. Requires [persistence](./persistence) to be configured.
-
-```json
-{
-  "Enrichment": {
-    "History": {
-      "Enabled": false,
-      "RetentionDays": 30,
-      "MinSampleSize": 48,
-      "SnapshotInterval": 100
-    }
-  }
-}
-```
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `RetentionDays` | `30` | How many days of history to keep |
-| `MinSampleSize` | `48` | Minimum data points before publishing accuracy metrics |
-| `SnapshotInterval` | `100` | Events between persistence snapshots |
-
-**Published values:**
-- Per-model: MAE (7-day and 30-day), weight, drift
-- Seasonal best model
-- Anomaly detection (boolean + deviation in sigma)
-- Accuracy-weighted temperature
-
-::: warning
-History enrichment depends on Akka.Persistence. Make sure a [persistence provider](./persistence) is configured and the data volume is mounted.
-:::

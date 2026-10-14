@@ -11,7 +11,7 @@ views {
       njord,
       njord.ingest,
       njord.domain,
-      njord.egress,
+      njord.consumers,
       njord.persistence,
       openMeteo,
       mqttBroker,
@@ -20,12 +20,13 @@ views {
   }
 
   view pipeline {
-    title 'Akka.Streams poll pipeline'
+    title 'Akka.Streams data flow'
     include
       njord.pipeline,
       njord.pipeline.*,
       openMeteo,
-      mqttBroker
+      mqttBroker,
+      homeAssistant
     autoLayout LeftRight
   }
 }

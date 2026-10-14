@@ -8,110 +8,134 @@ model {
 
     ingest = container 'Ingest' {
       #ingest
-      description 'Open-Meteo client, response parsing, DTO mapping'
+      description 'Open-Meteo gateway and HTTP client'
 
+      openMeteoGateway = component 'OpenMeteoGateway' {
+        #ingest
+        description 'Fetch stream — budget throttle, two parallel fetches, forecast broadcast hub'
+      }
       openMeteoClient = component 'OpenMeteoClient' {
         #ingest
-        description 'HTTP client — builds requests, deserializes JSON responses'
-      }
-      responseParser = component 'ResponseParser' {
-        #ingest
-        description 'Maps raw API responses to domain ModelForecast objects'
+        description 'HTTP client — builds requests, parses JSON into Forecast records'
       }
     }
 
     domain = container 'Domain' {
       #domain
-      description 'Forecast model, enrichment, analysis'
+      description 'Poll scheduling, forecast pipeline, analysis libraries'
 
-      forecastModel = component 'ModelForecast' {
+      pollScheduler = component 'PollScheduler' {
         #domain
-        description 'Per-model forecast data — hourly and daily series'
+        description 'Decides when each location/model target is fetched'
       }
-      enrichment = component 'Enrichment' {
+      forecastPipeline = component 'ForecastPipeline' {
         #domain
-        description 'Consensus, alerts, trends, derived values, indices'
+        description 'Analysis stream — consensus per forecast, then all enabled features'
+      }
+      analysis = component 'Analysis libraries' {
+        #domain
+        description 'Consensus, alerts, derived values, trends, indices'
+      }
+      budgetTracker = component 'BudgetTracker' {
+        #domain
+        description 'Persistent request budget usage per minute, day and month'
+      }
+      sensorHub = component 'SensorHub' {
+        #domain
+        description 'Latest indoor sensor readings pushed over gRPC'
       }
     }
 
-    egress = container 'Egress' {
+    consumers = container 'Consumers' {
       #egress
-      description 'MQTT publishing, HA discovery payloads'
+      description 'Output adapters attached to the pipeline via SourceRef'
 
-      discoveryBuilder = component 'DiscoveryPayloadBuilder' {
+      readModel = component 'ForecastReadModel' {
         #egress
-        description 'Builds retained device config payloads for HA MQTT Discovery'
+        description 'Latest forecasts and analysis results per location'
       }
-      statePublisher = component 'StatePublisher' {
+      grpcApi = component 'gRPC API' {
         #egress
-        description 'Publishes forecast state JSON per device per horizon'
+        description 'Weather, Admin, Ops and Sensor services on port 8081'
+      }
+      mqttStatePublisher = component 'MqttStatePublisher' {
+        #egress
+        description 'Optional — retained state JSON per model, horizon and feature'
       }
     }
 
     pipeline = container 'Pipeline' {
       #pipeline
-      description 'Akka.Streams graph — tick to MQTT'
+      description 'Akka.Streams data flow — fetch to consumers'
 
-      tickSource = component 'TickSource' {
+      fetchQueue = component 'Fetch queue' {
         #pipeline
-        description 'Periodic timer based on PollInterval'
+        description 'FetchForecast targets from the PollScheduler'
       }
-      fanOut = component 'FanOut' {
+      throttle = component 'GatewayThrottleStage' {
         #pipeline
-        description 'Expands tick into per-location-model request pairs'
+        description 'Token bucket that keeps requests within the API budget'
       }
-      throttle = component 'Throttle' {
+      httpStage = component 'Fetch' {
         #pipeline
-        description 'Rate-limits requests to stay within API budget'
+        description 'SelectAsyncUnordered(2) calls to OpenMeteoClient'
       }
-      httpStage = component 'HTTP' {
+      forecastHub = component 'Forecast hub' {
         #pipeline
-        description 'Executes Open-Meteo API calls via OpenMeteoClient'
+        description 'BroadcastHub of successful forecasts, handed out as SourceRef'
       }
-      aggregate = component 'Aggregate' {
+      analyze = component 'Analyze' {
         #pipeline
-        description 'Groups responses by poll cycle with timeout and quorum'
+        description 'ZipWith sensor snapshot, StatefulSelectMany over all analysis features'
       }
-      enrichStage = component 'Enrich' {
+      eventHub = component 'PipelineEvent hub' {
         #pipeline
-        description 'Runs enrichment pipeline on aggregated forecasts'
-      }
-      mqttSink = component 'MQTT Sink' {
-        #pipeline
-        description 'Publishes state and discovery payloads to broker'
+        description 'BroadcastHub of typed PipelineEvents for consumers'
       }
     }
 
     persistence = dataStore 'SQLite' {
-      description 'Journal for forecast history and scheduler state'
+      description 'Journal and snapshots for budget usage and poll scheduler state'
     }
   }
 
   mqttBroker = dataStore 'MQTT Broker' {
-    description 'Mosquitto — retained state and discovery topics'
+    description 'Optional — retained state and availability topics'
   }
 
   homeAssistant = externalSystem 'Home Assistant' {
-    description 'Discovers njord devices and sensors via MQTT'
+    description 'ha-njord custom integration, connected over gRPC'
   }
 
   // System-level relationships
   openMeteo -> njord 'forecast data'
-  njord -> mqttBroker 'state + discovery'
-  mqttBroker -> homeAssistant 'MQTT Discovery'
+  njord -> homeAssistant 'gRPC streams (ha-njord)'
+  njord -> mqttBroker 'optional state JSON'
 
   // Internal relationships
+  pollScheduler -> openMeteoGateway 'FetchForecast'
+  openMeteoGateway -> openMeteoClient 'fetch'
   openMeteoClient -> openMeteo 'HTTP GET /v1/forecast'
-  openMeteoClient -> responseParser 'raw JSON'
-  responseParser -> forecastModel 'ModelForecast'
-  forecastModel -> enrichment 'per-cycle data'
-  enrichment -> discoveryBuilder 'enriched results'
-  enrichment -> statePublisher 'enriched results'
-  discoveryBuilder -> mqttBroker 'retained config'
-  statePublisher -> mqttBroker 'state JSON'
+  openMeteoGateway -> forecastPipeline 'SourceRef<Forecast>'
+  sensorHub -> forecastPipeline 'sensor snapshot'
+  forecastPipeline -> analysis 'ConsensusSnapshot'
+  forecastPipeline -> readModel 'SourceRef<PipelineEvent>'
+  forecastPipeline -> mqttStatePublisher 'SourceRef<PipelineEvent>'
+  grpcApi -> readModel 'queries + streams'
+  grpcApi -> sensorHub 'sensor readings'
+  grpcApi -> homeAssistant 'gRPC streams'
+  mqttStatePublisher -> mqttBroker 'state JSON'
+  pollScheduler -> persistence 'scheduler state'
+  openMeteoGateway -> budgetTracker 'recorded calls'
+  budgetTracker -> persistence 'budget usage'
 
   // Pipeline flow
-  tickSource -> fanOut 'tick'  fanOut -> throttle 'request pairs'  throttle -> httpStage 'throttled requests'  httpStage -> aggregate 'responses'  aggregate -> enrichStage 'cycle batch'  enrichStage -> mqttSink 'publish commands'
-  // Persistence
-  enrichment -> persistence 'history read/write'
+  fetchQueue -> throttle 'targets'
+  throttle -> httpStage 'throttled targets'
+  httpStage -> openMeteo 'HTTP GET'
+  httpStage -> forecastHub 'Forecast'
+  forecastHub -> analyze 'SourceRef<Forecast>'
+  analyze -> eventHub 'PipelineEvent'
+  eventHub -> homeAssistant 'gRPC via ForecastReadModel'
+  eventHub -> mqttBroker 'via MqttStatePublisher'
 }

@@ -26,8 +26,8 @@ njord is configured via `appsettings.json` or environment variables. All setting
 |---------|---------|-------------|
 | `PollInterval` | `01:00:00` (60 min) | How often njord polls Open-Meteo for new forecasts |
 | `ForecastDays` | `4` | Number of days to request from the API (1 to 16) |
-| `DiscoveryInterval` | `00:20:00` (20 min) | How often HA MQTT discovery payloads are re-published |
-| `PersistencePath` | `data/njord-journal.db` | Path to the SQLite journal file |
+| `DiscoveryInterval` | `00:20:00` (20 min) | Poll interval for a model whose update cycle is not learned yet (discovery phase); once the cycle is known, polls follow it |
+| `PersistencePath` | `data/njord.db` | Path to the SQLite database file |
 
 ## Environment variable overrides
 

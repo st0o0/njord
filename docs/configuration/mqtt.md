@@ -1,6 +1,6 @@
 # MQTT
 
-MQTT settings control how njord connects to the broker and publishes discovery and state payloads.
+MQTT settings control how njord connects to the broker and publishes state payloads. njord does not publish MQTT Discovery payloads; Home Assistant connects through the [custom integration](/home-assistant/) over gRPC.
 
 ## Configuration
 
@@ -27,7 +27,7 @@ MQTT settings control how njord connects to the broker and publishes discovery a
 | `Port` | `1883` | no | MQTT broker port |
 | `Username` | `null` | no | Broker username for authentication |
 | `Password` | `null` | no | Broker password for authentication |
-| `DiscoveryPrefix` | `"homeassistant"` | no | MQTT Discovery prefix used by Home Assistant |
+| `DiscoveryPrefix` | `"homeassistant"` | no | Prefix of the Home Assistant status topic njord subscribes to (`{DiscoveryPrefix}/status`); no discovery payloads are published |
 | `BaseTopic` | `"njord"` | no | Root topic for all njord state messages |
 
 ## Authentication
@@ -40,19 +40,11 @@ Avoid putting passwords directly in `appsettings.json`. Use an environment varia
 ```
 :::
 
-## Discovery
-
-njord publishes retained device configuration payloads to `{DiscoveryPrefix}/device/{deviceId}/config`. Home Assistant automatically creates devices and sensors from these payloads.
-
-Discovery payloads are re-published on Home Assistant restart (detected via the `homeassistant/status` birth message).
-
 ## Availability
 
 njord uses a Last Will and Testament (LWT) message on `{BaseTopic}/status`:
 - `online`: published on connect
 - `offline`: published by the broker if njord disconnects unexpectedly
-
-Sensors also use `expire_after` set to 2x the poll interval. If no update arrives within that window, Home Assistant marks the sensor as unavailable.
 
 ## Topic reference
 

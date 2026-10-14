@@ -16,7 +16,7 @@ The [ha-njord](https://github.com/st0o0/ha-njord) custom integration connects to
 
 ### Alternative: MQTT
 
-MQTT egress is disabled by default and intended for non-HA consumers such as Node-RED, custom dashboards, or other MQTT subscribers. When enabled, njord publishes forecast state and HA MQTT Discovery payloads to the configured broker. See the [MQTT reference](/mqtt-reference) for topic scheme and payload format.
+MQTT egress is disabled by default and intended for non-HA consumers such as Node-RED, custom dashboards, or other MQTT subscribers. When enabled, njord publishes retained forecast and analysis state to the configured broker; it does not publish MQTT Discovery payloads. See the [MQTT reference](/mqtt-reference) for topic scheme and payload format.
 
 ## Three-Zone Design
 
@@ -24,11 +24,11 @@ The codebase is organized into three zones that only meet in the domain model:
 
 <likec4-view view-id="internals"></likec4-view>
 
-- **Ingest**: the Open-Meteo HTTP client, response parsing, and DTO mapping. Knows how to talk to the API but nothing about gRPC, MQTT, or Home Assistant.
-- **Domain**: forecast models, enrichment features (consensus, alerts, trends, derived values, indices, history), and analysis logic. Pure domain, no I/O concerns.
-- **Egress**: gRPC services, MQTT publishing, Home Assistant discovery payload construction, topic scheme, and availability management. Knows how to serve data but nothing about Open-Meteo.
+- **Ingest**: the `OpenMeteoGateway` fetch stream and the `OpenMeteoClient` (request building, response parsing, DTO mapping). Knows how to talk to the API but nothing about gRPC, MQTT, or Home Assistant.
+- **Domain**: the `PollScheduler`, the `ForecastPipeline` analysis stream, the `BudgetTracker`, the `SensorHub`, and the analysis libraries (consensus, alerts, derived values, trends, indices).
+- **Consumers**: output adapters that attach to the pipeline via SourceRef: the `ForecastReadModel` behind the gRPC API and the optional `MqttStatePublisher` (state topics and availability). They know how to serve data but nothing about Open-Meteo.
 
-Ingest and Egress never reference each other. All data flows through the domain model.
+Ingest and consumers never reference each other. All data flows through the domain model.
 
 ## gRPC Services
 
@@ -45,19 +45,18 @@ The HA integration uses `StreamForecasts`, `StreamEnrichments`, and `StreamConfi
 
 ## Streaming Pipeline
 
-The poll pipeline is an Akka.Streams graph that runs on each tick:
+The data flow spans two actors, `OpenMeteoGateway` (fetch) and `ForecastPipeline` (analysis), connected by a `SourceRef<Forecast>`:
 
 <likec4-view view-id="pipeline"></likec4-view>
 
-1. **TickSource** fires at the configured `PollInterval` (default: 60 minutes)
-2. **FanOut** expands the tick into one request per location/model pair
-3. **Throttle** rate-limits requests to stay within the Open-Meteo API budget
-4. **HTTP** executes the API calls via `OpenMeteoClient`
-5. **Aggregate** groups responses by poll cycle with timeout and quorum
-6. **Enrich** runs the enrichment pipeline (consensus, alerts, etc.)
-7. **gRPC + MQTT** publishes results to connected gRPC streams and optionally to MQTT
+1. **PollScheduler** decides per location/model target when it is due (default `PollInterval`: 60 minutes) and sends `FetchForecast` to the gateway
+2. **GatewayThrottleStage** rate-limits the queued targets with a token bucket to stay within the Open-Meteo API budget
+3. **Fetch** runs up to two `OpenMeteoClient` calls in parallel and reports each outcome back to the scheduler
+4. **Forecast hub** broadcasts every successful `Forecast` to the `ForecastPipeline`
+5. **Analyze** combines each forecast with the latest sensor snapshot and computes consensus, then every enabled analysis feature (alerts, derived values, trends, indices)
+6. **PipelineEvent hub** broadcasts typed events to the consumers: the `ForecastReadModel` (gRPC API) and, when enabled, the `MqttStatePublisher`
 
-Actors own connection lifecycle (gRPC stream management, MQTT connect/disconnect, Home Assistant birth-message handling) while streams handle the data flow. This separation keeps the pipeline testable and the lifecycle management isolated.
+Actors own lifecycle (stream materialization, SourceRef handshakes, MQTT connect/reconnect and availability) while streams handle the data flow. This separation keeps the pipeline testable and the lifecycle management isolated.
 
 ## External Sensor Input
 

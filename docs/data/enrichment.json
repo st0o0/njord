@@ -48,14 +48,5 @@
       { "name": "Preferences:BbqIdealWindLow", "type": "number", "default": 1.0, "description": "Lower bound of ideal BBQ wind range (m/s)" },
       { "name": "Preferences:BbqIdealWindHigh", "type": "number", "default": 3.0, "description": "Upper bound of ideal BBQ wind range (m/s)" }
     ]
-  },
-  {
-    "name": "History",
-    "enabledByDefault": false,
-    "options": [
-      { "name": "RetentionDays", "type": "number", "default": 30 },
-      { "name": "MinSampleSize", "type": "number", "default": 48 },
-      { "name": "SnapshotInterval", "type": "number", "default": 100 }
-    ]
   }
 ]

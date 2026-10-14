@@ -24,9 +24,9 @@ features:
   - title: 14 weather alerts
     details: Frost, heat, storm, heavy rain, UV, fog, snow, pressure drop, thunderstorm, ice, wind chill, visibility, tropical night, and humidity alerts with severity levels, confidence scores, and event notifications.
   - title: Enrichment pipeline
-    details: Consensus forecasts, derived values (Beaufort, wind chill, dewpoint comfort), trend analysis, 8 activity indices (outdoor, running, cycling, BBQ, and more), VPD, and forecast accuracy tracking.
+    details: Consensus forecasts, derived values (Beaufort, wind chill, dewpoint comfort), trend analysis, 8 activity indices (outdoor, running, cycling, BBQ, and more), and VPD.
   - title: Low resource usage
     details: Runs as a single .NET container on any Docker host. SQLite persistence by default, no external database needed. Respects Open-Meteo free-tier rate limits out of the box.
   - title: MQTT alternative
-    details: Optional MQTT egress publishes forecasts and enrichments via MQTT Discovery for Node-RED, custom dashboards, or other consumers. Disabled by default.
+    details: Optional MQTT egress publishes retained forecast and enrichment state for Node-RED, custom dashboards, or other consumers. Disabled by default.
 ---

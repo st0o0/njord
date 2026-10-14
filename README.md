@@ -32,7 +32,7 @@ entities, alert sensors, activity indices, and more.
 
 - **50+ weather models.** ICON, ECMWF, GFS, UKMO, MeteoSwiss, and regional models from Open-Meteo.
 - **Multiple locations.** Configure as many locations as you need, each with its own model selection.
-- **Enrichment pipeline.** Consensus forecasts, weather alerts, derived values (Beaufort, wind chill, comfort), trend analysis, activity indices, and forecast accuracy tracking.
+- **Enrichment pipeline.** Consensus forecasts, weather alerts, derived values (Beaufort, wind chill, comfort), trend analysis, and activity indices.
 - **Hourly and daily forecasts.** Configurable horizons for hourly data, plus daily min/max, precipitation sums, sunrise/sunset.
 - **External sensor input.** Feed indoor temperature/humidity from Home Assistant sensors via gRPC to improve index calculations.
 - **Single container.** Runs on any Docker host with SQLite persistence by default, no external database needed.

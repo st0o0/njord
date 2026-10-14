@@ -1,6 +1,6 @@
 # Persistence
 
-njord uses Akka.Persistence to store scheduler state and forecast history. Two storage providers are supported.
+njord uses Akka.Persistence to store poll scheduler state and request budget usage. Two storage providers are supported.
 
 ## Configuration
 
@@ -10,7 +10,7 @@ njord uses Akka.Persistence to store scheduler state and forecast history. Two s
     "Persistence": {
       "Provider": "Sqlite"
     },
-    "PersistencePath": "data/njord-journal.db"
+    "PersistencePath": "data/njord.db"
   }
 }
 ```
@@ -24,7 +24,7 @@ The default provider stores data in a local SQLite file. No external database re
 | Option | Default | Description |
 |--------|---------|-------------|
 | `Provider` | `"Sqlite"` | Storage provider |
-| `PersistencePath` | `"data/njord-journal.db"` | Path to the SQLite database file (relative to working directory) |
+| `PersistencePath` | `"data/njord.db"` | Path to the SQLite database file (relative to working directory) |
 
 In Docker, mount a volume at `/app/data` to persist the database across container restarts:
 
@@ -59,7 +59,5 @@ When using PostgreSQL, the `ConnectionString` is required. njord will refuse to 
 ## When is persistence needed?
 
 Persistence is required for:
-- **History enrichment**: tracking forecast accuracy over time
 - **Scheduler state**: remembering poll cycle progress across restarts
-
-If you disable the History enrichment and do not need restart resilience, persistence is optional but still recommended.
+- **Budget usage**: keeping the recorded API calls (and the usage counted from them) across restarts
