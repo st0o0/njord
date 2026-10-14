@@ -30,7 +30,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Integration tests (`Njord.IntegrationTests`) require Docker for Testcontainers (Mosquitto). They are skipped automatically when Docker is unavailable.
+There is one test project per library (`Njord.Weather.Tests`, `Njord.Core.Tests`, `Njord.Pipeline.Tests`, ...) plus the host project `Njord.Tests` and the architecture rules in `Njord.Architecture.Tests`. Each test project is its own executable and runs with `dotnet run --project`; none of them needs Docker. Shared fakes and fixtures live in `Njord.Tests.Shared` (not a test project).
+
+End-to-end checks of the full stack (njord, ha-njord and Home Assistant in Docker Compose) are the `e2e-test` skill (`.claude/skills/e2e-test/SKILL.md`), not a test project.
 
 ## Run the service
 
@@ -38,15 +40,7 @@ Integration tests (`Njord.IntegrationTests`) require Docker for Testcontainers (
 dotnet run --project Njord/Njord.csproj
 ```
 
-Uses `appsettings.Development.json` automatically (`ASPNETCORE_ENVIRONMENT=Development`). MQTT is disabled by default.
-
-## Quality gates
-
-```bash
-# From the repo root (not src/)
-dotnet tool restore
-dotnet slopwatch analyze -d . --fail-on warning
-```
+`dotnet run` picks the `Development` environment from `Njord/Properties/launchSettings.json` (`ASPNETCORE_ENVIRONMENT=Development`), so `appsettings.Development.json` is loaded. The Kestrel endpoints (8080 HTTP, 8081 gRPC) come from `appsettings.json`. MQTT is disabled by default.
 
 ## Architecture
 

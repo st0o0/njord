@@ -52,7 +52,6 @@ services:
       - Njord__Enrichment__Derived__Enabled=true
       - Njord__Enrichment__Trends__Enabled=true
       - Njord__Enrichment__Indices__Enabled=true
-      - Njord__Enrichment__History__Enabled=true
 
 volumes:
   ha-config:

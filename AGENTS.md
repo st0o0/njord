@@ -167,10 +167,10 @@ src/
   # /Tests/ — one test project per production project
   Njord.Weather.Tests/        # Weather record specs
   Njord.Sensors.Tests/        # Sensor record specs
-  Njord.Persistence.Tests/    # DTO wire-format specs (Verify)
+  Njord.Persistence.Tests/    # Persistence roundtrip and inline wire-format specs (no Verify)
   Njord.Compute.Tests/        # Consensus, query vocabulary and contract specs (no Akka)
   Njord.Core.Tests/           # Configuration, StreamConsumerActor
-  Njord.OpenMeteo.Tests/      # OpenMeteoClient, OpenMeteoGateway specs
+  Njord.OpenMeteo.Tests/      # OpenMeteoClient, OptionsBudgetProvider specs
   Njord.Budget.Tests/         # BudgetTracker specs
   Njord.SensorHub.Tests/      # SensorHub specs
   Njord.Pipeline.Tests/       # PollScheduler, ForecastPipeline, ForecastReadModel specs
@@ -303,9 +303,9 @@ These checks run locally only; they are deliberately not part of CI.
   cannot be enforced there.
 - C#: records for messages/DTOs, value objects in the domain, `sealed` by
   default, nullable enabled.
-- Enrichment types use `EnrichmentKind` enum (`Njord.Core.Egress`), never bare
+- Enrichment types use `EnrichmentKind` enum (`Njord.Messages.Pipeline`), never bare
   strings. Enrichment `PipelineEvent` variants implement `IEnrichmentEvent`.
-- Consensus method is `ConsensusMethod` enum (`Njord.Compute.Configuration`),
+- Consensus method is `ConsensusMethod` enum (`Njord.Compute.Settings`),
   not a string.
 - `ParameterRegistry` (`Njord.Weather`): use typed static properties
   (`ParameterRegistry.Rain`, `.PrecipitationSum`, etc.) in production code.
