@@ -68,14 +68,19 @@ with optional MQTT state publishing.
   the API's read model (`ForecastReadModel` in `Njord.Pipeline`, marker
   `IForecastReadModel`) request a `SourceRef<PipelineEvent>` from `ForecastPipeline`
   and run their own sinks. No intermediate relay actors, no presenters, no discovery
-  payloads. The read model's streaming hub has a permanent `Sink.Ignore` drain and each
-  gRPC streaming client gets a bounded drop-oldest buffer (256 events), so streaming
-  clients never hold up the read model, the pipeline or MQTT. `StreamConsumerActor`
-  (their base) watches the completion task `MaterializeGraph` returns: a graph that
-  completes or fails while the actor lives is rewired (new SourceRef after capped
-  backoff, Warning, `njord_stream_consumer_rewires_total`); the read model keeps its
-  latest values and its streaming hub (fed by a `MergeHub`) across a rewire, MQTT
-  republishes once. `ForecastPipeline` does the same for the gateway's forecast stream.
+  payloads. Their base `StreamConsumerActor` attaches when the consumer starts (request
+  id, 10 s reply timeout, capped backoff), watches the pipeline incarnation that
+  answered and re-attaches only when that incarnation terminates or the consumer's own
+  graph completes or fails (Warning, `njord_stream_consumer_rewires_total`); there is no
+  waiting phase or stash, so queries are answered at any time. No consumer slows the
+  pipeline hub: the read model builds its streaming hub (`MergeHub` → `BroadcastHub` with
+  a permanent `Sink.Ignore` drain) once at start, keeps its latest values and its hub
+  across a re-attach and gives each gRPC streaming client a bounded drop-oldest buffer
+  (256 events); the MQTT publisher runs events → `Buffer(256, DropHead)` → payloads →
+  `Sink.ForEachAsync(1, dedup + publish)`, so a slow broker drops its own oldest events,
+  and republishes every topic once per new subscription. A started (or restarted)
+  pipeline asks the `ConfigManager` (`QueryAnalysisSettings`) and the `SensorHub`
+  (`RequestSensorSnapshots`) for the current inputs.
 - **The gRPC API is a pure adapter.** `Njord.Grpc` holds no actors and reads no
   options: every RPC resolves an actor marker, asks with a message from
   `Njord.Messages` through `ActorAsk` (`Unavailable` when the actor is not resolvable,
@@ -85,7 +90,7 @@ with optional MQTT state publishing.
   `RequestConfigStream`), budget status through `BudgetTracker` (`QueryBudgetStatus`).
 - **`Njord.Messages` is the Akka-free contract project.** Every public command, query,
   result and event lives there, one file per command or query, in domain folders
-  (`Budget/`, `Config/`, `Forecast/`, `Mqtt/`, `Pipeline/`, `Sensors/`, `Common/`).
+  (`Budget/`, `Config/`, `Forecast/`, `Mqtt/`, `Pipeline/`, `Sensors/`).
   Records that carry Akka types (stream handshakes with `ISourceRef`) live in
   `Njord.Core/Actors/StreamWiringMessages.cs`; actor-internal records stay private.
 - **Zone rules are enforced by tests** in `src/Njord.Architecture.Tests/` (lateral
@@ -146,7 +151,7 @@ src/
   Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references)
   Njord.Messages/             # Commands, queries, results, PipelineEvent; no Akka
                               #   (-> Weather, Sensors, Compute)
-    Budget/ Config/ Forecast/ Mqtt/ Pipeline/ Sensors/ Common/
+    Budget/ Config/ Forecast/ Mqtt/ Pipeline/ Sensors/
   Njord.Compute/              # Shared analysis building blocks only (-> Weather, Sensors only)
     Consensus/                # ConsensusBuilder, ConsensusStatistics, consensus records
     Querying/                 # Query vocabulary on consensus data (ConsensusQueries,
@@ -233,9 +238,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1136 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 181,
-Grpc 86, Pipeline 116, Mqtt 73, OpenMeteo 37, Budget 25, SensorHub 31, Architecture 53,
-Alerts 67, Derived 36, Trends 27, Indices 61, host `Njord.Tests` 58).
+Current total: 1149 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 186,
+Grpc 86, Pipeline 121, Mqtt 74, OpenMeteo 37, Budget 25, SensorHub 32, Architecture 53,
+Alerts 67, Derived 36, Trends 27, Indices 61, host `Njord.Tests` 59).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and

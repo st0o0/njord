@@ -10,7 +10,6 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Health;
-using Njord.Messages.Common;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
