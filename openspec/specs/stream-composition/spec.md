@@ -3,7 +3,6 @@
 ## Purpose
 
 Structural requirements for the Akka.Streams graphs: each stream-owning actor (`OpenMeteoGateway`, `ForecastPipeline`, consumers) materializes its graph once and binds its lifecycle to the actor, the gateway throttles to the global API budget and publishes fetch outcomes directly, streams use a logging supervision decider, metrics are recorded per fetch outcome, and ref requesters handle typed handshake failures.
-
 ## Requirements
 ### Requirement: Weighted throttle enforces the global API budget
 The pipeline SHALL throttle fetch requests using a cost-weighted throttle set to 80% of the Open-Meteo per-minute rate limit. Each element's cost SHALL be its pre-calculated API weight. The throttle SHALL use shaping mode (delay, not drop).
@@ -28,7 +27,7 @@ Each successful fetch SHALL deliver its `Forecast` to the gateway's BroadcastHub
 - **THEN** no element is emitted into the BroadcastHub for that target
 
 ### Requirement: Stream supervision uses a logging decider
-The gateway fetch graph, the `ForecastPipeline` analysis stage and the `MqttStatePublisher` publish graph SHALL use the shared `StreamSupervision.LoggingDecider` instead of a blanket `_ => Directive.Resume`. Each call site SHALL pass its own `ILoggingAdapter` (or `ILogger`) so that log entries identify the originating actor or component. The decider SHALL resume on `AskTimeoutException`, `TaskCanceledException`, `OperationCanceledException`, `TimeoutException` and `HttpRequestException`, and stop on every other exception.
+The gateway fetch graph, the `ForecastPipeline` analysis stage and the `MqttStatePublisher` publish graph SHALL use the shared `StreamSupervision.LoggingDecider` instead of a blanket `_ => Directive.Resume`. Each call site SHALL pass its own `ILoggingAdapter` (or `ILogger`) so that log entries identify the originating actor or component. The decider SHALL resume on `AskTimeoutException`, `TaskCanceledException`, `OperationCanceledException`, `TimeoutException` and `HttpRequestException`, and stop on every other exception. A stopped stage ends its graph; the owning actor SHALL notice the ended graph and rebuild it (the gateway re-materializes its fetch stream, `ForecastPipeline` requests a new forecast stream, `StreamConsumerActor` subclasses rewire). The owning actor itself SHALL NOT be restarted by a stopped stage.
 
 #### Scenario: Stream exception is logged with actor context
 - **WHEN** a stream exception occurs in one of these graphs
@@ -40,7 +39,7 @@ The gateway fetch graph, the `ForecastPipeline` analysis stage and the `MqttStat
 
 #### Scenario: Unexpected errors stop the stream stage
 - **WHEN** a NullReferenceException occurs in a stream graph
-- **THEN** the stream stage stops, triggering actor supervision
+- **THEN** the stream stage stops, the graph ends, and the owning actor rebuilds the graph without being restarted
 
 ### Requirement: Each stream-owning actor materializes its graph once
 `OpenMeteoGateway` SHALL materialize its fetch graph and its forecast hub once, in `PreStart`, without waiting for any other actor. `ForecastPipeline` SHALL materialize its analysis graph once per received forecast stream. Both SHALL use `Context.Materializer()`, so a graph lives exactly as long as the actor incarnation that owns it. No stage SHALL materialize a sub-stream per element; the only additional materializations SHALL be the SourceRefs vended to consumers. No `IHostedService` SHALL own a stream.
@@ -58,7 +57,7 @@ The gateway fetch graph, the `ForecastPipeline` analysis stage and the `MqttStat
 - **THEN** its fetch graph and forecast hub are materialized immediately, before any consumer requests a SourceRef
 
 ### Requirement: Stream lifecycle is bound to the owning actor
-Stream graphs SHALL terminate through the lifecycle of the actor that owns them (`Context.Materializer()`); `StreamConsumerActor` subclasses SHALL additionally route their graph through a `SharedKillSwitch` that the base shuts down when a tracked dependency terminates. There SHALL be no `StopStreams`/`StreamsStopped` messages and no CoordinatedShutdown stream task.
+Stream graphs SHALL terminate through the lifecycle of the actor that owns them (`Context.Materializer()`); `StreamConsumerActor` subclasses SHALL additionally route their graph through a `SharedKillSwitch` that the base shuts down when a tracked dependency terminates or before it rewires a graph that ended. A graph that ends while its owning actor keeps running SHALL be rebuilt by that actor; a graph that ends because the actor stops or replaced it SHALL NOT be rebuilt. There SHALL be no `StopStreams`/`StreamsStopped` messages and no CoordinatedShutdown stream task.
 
 #### Scenario: Actor stop ends the stream
 - **WHEN** an actor that owns a stream graph stops
@@ -67,6 +66,10 @@ Stream graphs SHALL terminate through the lifecycle of the actor that owns them 
 #### Scenario: Dependency loss ends the consumer stream
 - **WHEN** `ForecastPipeline` terminates while `MqttStatePublisher` consumes its output
 - **THEN** `MqttStatePublisher` shuts down its kill switch before re-resolving the pipeline
+
+#### Scenario: An ended graph of a running actor is rebuilt
+- **WHEN** the pipeline output hub that `MqttStatePublisher` consumes completes while both actors keep running
+- **THEN** `MqttStatePublisher` requests a new SourceRef and publishes the events of the new subscription
 
 ### Requirement: Observability via metrics per fetch outcome
 `OpenMeteoClient` SHALL record every fetch in the `njord_openmeteo_fetch_total` counter tagged with `location`, `model` and `outcome` (`success` or the lower-case failure reason), and SHALL record the duration of successful fetches in the `njord_openmeteo_fetch_duration_seconds` histogram tagged with `location` and `model`.

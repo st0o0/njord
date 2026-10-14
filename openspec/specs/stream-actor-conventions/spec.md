@@ -24,7 +24,7 @@ Private message records used within an actor SHALL be declared as nested sealed 
 - **THEN** they SHALL be grouped together at the top of the class body
 
 #### Scenario: ForecastPipeline private messages
-- **WHEN** inspecting `ForecastPipeline`'s private message records (`GatewayResolved`, `GatewayResolveFailed`, `RetryGatewayResolve`)
+- **WHEN** inspecting `ForecastPipeline`'s private message records (`GatewayResolved`, `GatewayResolveFailed`, `RetryGatewayResolve`, `AnalysisGraphCompleted`, `AnalysisGraphFailed`, `AnalysisGraphStable`)
 - **THEN** they SHALL be grouped together at the top of the class body
 
 ### Requirement: Become-phase methods are named for the phase
