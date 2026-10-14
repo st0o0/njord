@@ -36,7 +36,7 @@
 
 ## 6. Docs and validation
 
-- [ ] 6.1 Rewrite the data-flow guardrail in `AGENTS.md`; update the test totals
-- [ ] 6.2 From `src/`: `dotnet build Njord.slnx` (0 warnings), then `dotnet run --project Njord.OpenMeteo.Tests/Njord.OpenMeteo.Tests.csproj`, `dotnet run --project Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj`, `dotnet run --project Njord.SensorHub.Tests/Njord.SensorHub.Tests.csproj` three times each, `dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj`, then the full test loop
-- [ ] 6.3 Manual run `cd src/Njord && timeout -s INT 60 dotnet run` with `src/Njord/data` backed up and restored: forecasts fetched and analyzed, no njord dead letters or unhandled messages
-- [ ] 6.4 `openspec validate --all --no-interactive`
+- [x] 6.1 Rewrite the data-flow guardrail in `AGENTS.md`; update the test totals
+- [x] 6.2 From `src/`: `dotnet build Njord.slnx` (0 warnings), then `dotnet run --project Njord.OpenMeteo.Tests/Njord.OpenMeteo.Tests.csproj`, `dotnet run --project Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj`, `dotnet run --project Njord.SensorHub.Tests/Njord.SensorHub.Tests.csproj` three times each, `dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj`, then the full test loop
+- [x] 6.3 Manual run `cd src/Njord && timeout -s INT 60 dotnet run` with `src/Njord/data` backed up and restored: forecasts fetched and analyzed, no njord dead letters or unhandled messages
+- [x] 6.4 `openspec validate --all --no-interactive`

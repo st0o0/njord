@@ -15,24 +15,32 @@ with optional MQTT state publishing.
   DTOs, parsing) → Domain (`Forecast`, analysis, consensus) → Consumers
   (MQTT state payloads, gRPC streaming). Ingest and consumers never reference
   each other.
-- **Streams for data flow, actors for lifecycle.** The data flow spans two
-  actors: `OpenMeteoGateway` (fetch) and `ForecastPipeline` (analysis),
-  connected via `SourceRef<Forecast>`.
-  **Gateway** owns: `Source.Queue<FetchTarget>` → `GatewayThrottleStage` (token
-  bucket) → `SelectAsyncUnordered(2, fetch)` → `Sink.ActorRef(Self)` for
-  correlation; successful forecasts feed a second `Source.Queue<Forecast>` →
-  `BroadcastHub<Forecast>`. The `PollScheduler` sends `FetchForecast` and
-  receives `ForecastFetched`/`ForecastFetchFailed` feedback.
-  **Pipeline** receives a `SourceRef<Forecast>` from the Gateway and owns
-  the analysis chain: `sourceRef.Source` → `ZipWith(settings)` →
-  `SelectAsync(1, sensor lookup)` → `StatefulSelectMany(computeAll)` →
-  `BroadcastHub<PipelineEvent>`. Settings enter via a `Source.ActorRef` +
-  `RepeatPrevious` side channel; sensor data is pulled per forecast by asking
-  `ISensorHub` (resolved from the `ActorRegistry`) for the forecast's location
-  (`QuerySensorSnapshot`, 2 s timeout, `null` on any miss). All analysis
-  state (`ModelSnapshot`, previous `ConsensusSnapshot`) lives inside the
-  `StatefulSelectMany` closure, not in actor fields. Consumers attach via
-  SourceRef.
+- **Streams for data flow, actors for lifecycle; the stable side owns the hubs.**
+  Forecast data and pipeline events travel through Akka.Streams (stream refs
+  between actors); requests, outcomes and scheduling travel as messages.
+  **Gateway** (`OpenMeteoGateway`) is request/response: `PollScheduler` asks
+  `FetchForecast` (named reply timeout, `FetchTimeouts`) and gets exactly one
+  `FetchForecastCompleted` (hash only, no data), `FetchForecastFailed` or
+  `FetchForecastRejected` (`QueueFull`, `Budget`, `PipelineUnavailable`,
+  `Expired`). Its private stream `Source.Queue<FetchTarget>(DropNew)` →
+  `GatewayThrottleStage` (token bucket; rejects instead of holding a request
+  past its admission window) → `SelectAsyncUnordered(2, fetch)` →
+  `Sink.ActorRef(Self)` dies with the actor; an ended stream answers open
+  requests and restarts the gateway (BackoffOnFailure). Successful forecasts go
+  into a small branch (`Source.Queue<Forecast>` → the pipeline's
+  `SinkRef<Forecast>`, `RequestForecastSink` handshake); only this branch is
+  re-attached (with backoff) when the pipeline terminates or the branch ends.
+  **Pipeline** (`ForecastPipeline`) owns both hubs, materialized once per
+  incarnation in `PreStart`: `MergeHub<Forecast>` (one SinkRef per producer; a
+  producer ending never ends the hub) → `ZipWith(sensor map, settings)` →
+  `StatefulSelectMany(computeAll)` → `BroadcastHub<PipelineEvent>`. It depends
+  on no other actor; an ended analysis graph restarts it (BackoffOnFailure).
+  Settings (`AnalysisSettingsChanged`) and sensor snapshot maps enter via
+  `Source.ActorRef` + `RepeatPrevious` side channels; the **SensorHub pushes**
+  `SensorSnapshots` (all locations with fresh readings) on every accepted
+  reading and expiry tick. All analysis state (`ModelSnapshot`, previous
+  `ConsensusSnapshot`) lives inside the `StatefulSelectMany` closure, so a
+  gateway restart never loses it. Consumers attach via SourceRef.
 - **The entity set is static, derived from config** (locations × models ×
   parameters × horizons) — never from what the API happens to return. A missing
   value is an `unavailable` state, not a missing entity.
@@ -42,10 +50,11 @@ with optional MQTT state publishing.
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow` directly.
 - **SensorHub for external sensor input.** The SensorHub actor receives readings
   via gRPC (`SensorGrpcService`, stored under the configured location spelling),
-  stores latest values per `SensorKind` (closed enum). The pipeline pulls the
-  snapshot of the forecast's location for every analyzed forecast (latest-value,
-  no reactive re-computation); a missing, stale or unanswered lookup falls back
-  to configured values.
+  stores latest values per `SensorKind` (closed enum) and pushes a
+  `SensorSnapshots` map (every location with fresh readings) to the pipeline on
+  each accepted reading and expiry tick. The pipeline uses the latest map's
+  entry for the forecast's location (latest-value, no reactive re-computation);
+  a missing or stale entry falls back to configured values.
 - **Each analysis feature is a self-contained library.** Feature libraries
   (Alerts, Derived, Trends, Indices) define compute logic and DI extensions.
   Each analyzer takes `ConsensusSnapshot` directly (plus per-feature extras:
@@ -224,8 +233,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1109 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 180,
-Grpc 86, Pipeline 109, Mqtt 73, OpenMeteo 28, Budget 25, SensorHub 21, Architecture 53,
+Current total: 1136 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 181,
+Grpc 86, Pipeline 116, Mqtt 73, OpenMeteo 37, Budget 25, SensorHub 31, Architecture 53,
 Alerts 67, Derived 36, Trends 27, Indices 61, host `Njord.Tests` 58).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
