@@ -196,6 +196,29 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_request_that_waited_past_its_admission_deadline_is_rejected_as_expired_without_a_fetch()
+    {
+        await AttachedAsync();
+        _client.Hold();
+        Gateway.Tell(Fetch("m00"));
+        Gateway.Tell(Fetch("m01"));
+        Gateway.Tell(Fetch("m02"));
+        await AwaitConditionAsync(() => Task.FromResult(_client.Calls == 2), TestTimeouts.AwaitAssertMax,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        // Two fetches hold both slots, the third waits in the queue while its admission window passes.
+        _time.Advance(FetchTimeouts.Default.Admission + TimeSpan.FromSeconds(1));
+        _client.Release();
+
+        var answered = await ReceiveRepliesAsync(3);
+        var expired = Assert.IsType<FetchForecastRejected>(Assert.Single(answered, r => r.ModelId == "m02").Reply);
+        Assert.Multiple(
+            () => Assert.Equal(FetchRejectionReason.Expired, expired.Reason),
+            () => Assert.Equal(2, answered.Count(r => r.Reply is FetchForecastCompleted)),
+            () => Assert.Equal(2, _client.Calls));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_request_whose_location_differs_in_case_is_answered_in_the_requested_spelling()
     {
         await AttachedAsync();

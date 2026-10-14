@@ -183,7 +183,7 @@ internal sealed class GatewayThrottleStage : GraphStage<FlowShape<OpenMeteoGatew
             var delay = _stage._gate.EstimateDelay(target.Weight);
             if (now + delay > target.Deadline)
             {
-                Push(_stage.Out, new OpenMeteoGateway.Admission(target, FetchRejectionReason.Budget));
+                Push(_stage.Out, new OpenMeteoGateway.Admission(target, MissedDeadline(target, delay)));
                 return;
             }
 
@@ -207,12 +207,17 @@ internal sealed class GatewayThrottleStage : GraphStage<FlowShape<OpenMeteoGatew
             var delay = _stage._gate.EstimateDelay(target.Weight);
             if (_stage._timeProvider.GetUtcNow() + delay > target.Deadline)
             {
-                Release(new OpenMeteoGateway.Admission(target, FetchRejectionReason.Budget));
+                Release(new OpenMeteoGateway.Admission(target, MissedDeadline(target, delay)));
                 return;
             }
 
             ScheduleOnce(EmitTimerKey, delay);
         }
+
+        // Budget only when the token wait alone would not fit the window counted from receipt; a target whose window
+        // ran out while it queued behind slow fetches has expired.
+        private static FetchRejectionReason MissedDeadline(OpenMeteoGateway.FetchTarget target, TimeSpan delay) =>
+            target.Cycle.Timestamp + delay > target.Deadline ? FetchRejectionReason.Budget : FetchRejectionReason.Expired;
 
         // A parked target is only ever held while downstream has pulled, so the outlet is available here.
         private void Release(OpenMeteoGateway.Admission admission)

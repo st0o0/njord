@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: OpenMeteoSetupContainer registers the client and the gateway
-`OpenMeteoSetupContainer` (src/Njord.OpenMeteo/Configuration) SHALL bind and validate `OpenMeteoOptions`, register `IBudgetProvider` (`OptionsBudgetProvider`), register the fetch timeouts (admission 20 s, HTTP 30 s, reply 60 s) unless already registered, register `IOpenMeteoClient` as a typed `HttpClient` whose base address comes from `OpenMeteoOptions.OpenMeteoBaseUrl`, with the HTTP fetch timeout (30 seconds) and an IPv4-only socket connect callback, and register an `IActorRegistration` that creates `OpenMeteoGateway` as a cluster singleton under `IForecastGateway`, wrapped in a backoff-on-failure supervisor (3 s to 30 s, unlimited retries).
+`OpenMeteoSetupContainer` (src/Njord.OpenMeteo/Configuration) SHALL bind and validate `OpenMeteoOptions`, register `IBudgetProvider` (`OptionsBudgetProvider`), register the fetch timeouts (admission 60 s, HTTP 30 s, reply 120 s) unless already registered, register `IOpenMeteoClient` as a typed `HttpClient` whose base address comes from `OpenMeteoOptions.OpenMeteoBaseUrl`, with the HTTP fetch timeout (30 seconds) and an IPv4-only socket connect callback, and register an `IActorRegistration` that creates `OpenMeteoGateway` as a cluster singleton under `IForecastGateway`, wrapped in a backoff-on-failure supervisor (3 s to 30 s, unlimited retries).
 
 #### Scenario: OpenMeteoClient is resolvable
 - **WHEN** `OpenMeteoSetupContainer.SetupServices` is called

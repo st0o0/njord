@@ -3,7 +3,7 @@
 - [x] 1.1 Add `FetchForecastRejected(LocationId Location, string ModelId, FetchRejectionReason Reason)` and the `FetchRejectionReason` enum (`QueueFull`, `Budget`, `PipelineUnavailable`, `Expired`) to `src/Njord.Messages/Forecast/` (one file each)
 - [x] 1.2 Add `SensorSnapshots(ImmutableDictionary<LocationId, SensorSnapshot> Snapshots)` to `src/Njord.Messages/Sensors/SensorSnapshots.cs`
 - [x] 1.3 Replace the `RequestForecastStream*` records with `RequestForecastSink(long RequestId)`, `RequestForecastSinkCompleted(RequestId, ISinkRef<Forecast>)` and `RequestForecastSinkFailed(RequestId, Exception)` in `src/Njord.Core/Actors/StreamWiringMessages.cs`
-- [x] 1.4 Add `FetchTimeouts(Admission, Http, Reply)` with `Default` (20 s / 30 s / 60 s) to `src/Njord.Core/Configuration/Polling/FetchTimeouts.cs`; register it with `TryAddSingleton` in `OpenMeteoSetupContainer` and `PipelineSetupContainer`, use `Http` for the typed client; spec `src/Njord.Core.Tests/.../FetchTimeoutsSpec.cs` pins `Reply > Admission + Http`
+- [x] 1.4 Add `FetchTimeouts(Admission, Http, Reply)` with `Default` (60 s / 30 s / 120 s) to `src/Njord.Core/Configuration/Polling/FetchTimeouts.cs`; register it with `TryAddSingleton` in `OpenMeteoSetupContainer` and `PipelineSetupContainer`, use `Http` for the typed client; spec `src/Njord.Core.Tests/.../FetchTimeoutsSpec.cs` pins `Reply > Admission + Http`
 
 ## 2. Pipeline input hub (TDD)
 

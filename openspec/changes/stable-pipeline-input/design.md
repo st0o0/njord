@@ -36,11 +36,14 @@ the complexity the concept removes); Backpressure queue + waiting list (rejected
 
 ### D2 Budget rejection instead of unbounded waiting
 `FetchTarget` carries an admission deadline = receipt time (`TimeProvider`) + `FetchTimeouts.Admission`
-(20 s). The throttle stage pushes an `Admission` (admitted target or rejection) instead of the bare target:
+(60 s). The throttle stage pushes an `Admission` (admitted target or rejection) instead of the bare target:
 - tokens available → admitted (and `RecordApiCall`, unchanged accounting);
 - no tokens and `now + EstimateDelay(weight) ≤ deadline` → park and retry on the timer (burst smoothing);
-- otherwise → `Rejected(Budget)` without consuming tokens; a target that reaches the stage already past its
-  deadline → `Rejected(Expired)`.
+- otherwise → rejected without consuming tokens: `Budget` when the token wait alone would not fit the window
+  counted from receipt, `Expired` when the window ran out while the target queued behind slow fetches (also for
+  a target that reaches the stage already past its deadline).
+The first manual run had 20 s / 60 s: 19 startup targets with ~1.5 s fetches (16 forecast days, weight 6) queued
+longer than 20 s and were mislabelled `Budget`, backing off 5 minutes; hence 60 s / 120 s and the split reason.
 Rejections flow through `SelectAsyncUnordered` as completed tasks, so every request still produces exactly one
 element towards `Self`. With the free tier (480 cost-units/min, 8/s) a weight-1 request waits at most ~125 ms,
 so `Budget` rejections only occur with a very low `BudgetOverride` or an exhausted burst bucket. The stage
@@ -48,7 +51,7 @@ gets the `TimeProvider` for the deadline check; it still contains no token-bucke
 Alternative: a pre-check in the actor (rejected — the gate's state is owned by the stream thread).
 
 ### D3 Named timeouts, one place
-`FetchTimeouts(Admission = 20 s, Http = 30 s, Reply = 60 s)` (`Njord.Core.Configuration.Polling`) is a DI
+`FetchTimeouts(Admission = 60 s, Http = 30 s, Reply = 120 s)` (`Njord.Core.Configuration.Polling`) is a DI
 singleton (`TryAddSingleton(FetchTimeouts.Default)` in the OpenMeteo and Pipeline setup containers). The
 gateway uses `Admission`, the typed `HttpClient` uses `Http`, the scheduler's Ask uses `Reply`, and a spec
 pins `Reply > Admission + Http`, so a reply always arrives before the requester gives up. Tests register short
@@ -112,7 +115,7 @@ as a failed outcome for `PollCycleTracker`. The `Ack` replies are dropped: piped
   permanent drain.
 - [Pipeline restart drops the sensor map for up to one expiry tick] → indices fall back to configured values
   for at most 60 s.
-- [In-flight replies after the requester's Ask timed out reach dead letters] → `Reply` (60 s) exceeds
+- [In-flight replies after the requester's Ask timed out reach dead letters] → `Reply` (120 s) exceeds
   admission + HTTP timeout, so this only happens if the client hangs past its own timeout.
 
 ## Migration Plan

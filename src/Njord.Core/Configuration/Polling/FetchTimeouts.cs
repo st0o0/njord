@@ -6,5 +6,5 @@ namespace Njord.Core.Configuration.Polling;
 public sealed record FetchTimeouts(TimeSpan Admission, TimeSpan Http, TimeSpan Reply)
 {
     public static readonly FetchTimeouts Default =
-        new(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(60));
+        new(TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(120));
 }
