@@ -9,8 +9,28 @@ public sealed class FakeOpenMeteoClient : IOpenMeteoClient
 
     public HashSet<string> ThrowingModels { get; } = [];
 
-    public Task<PollOutcome> FetchAsync(
+    private volatile TaskCompletionSource _release = CompletedRelease();
+
+    // Holds every fetch that starts from now on until Release is called.
+    public void Hold() => _release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public void Release() => _release.TrySetResult();
+
+    public async Task<PollOutcome> FetchAsync(
         LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken cancellationToken)
+    {
+        await _release.Task.WaitAsync(cancellationToken);
+        return await FetchNowAsync(location, model, cycle);
+    }
+
+    private static TaskCompletionSource CompletedRelease()
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        release.SetResult();
+        return release;
+    }
+
+    private Task<PollOutcome> FetchNowAsync(LocationOptions location, WeatherModel model, CycleId cycle)
     {
         if (ThrowingModels.Contains(model.Id))
         {

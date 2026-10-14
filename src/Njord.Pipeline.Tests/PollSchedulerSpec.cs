@@ -80,6 +80,35 @@ public sealed class PollSchedulerSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_reply_spelled_differently_updates_the_configured_target_instead_of_adding_one()
+    {
+        await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
+
+        await Scheduler.Ask<Ack>(new FetchForecastCompleted(new LocationId("LUCERNE"), "ICON_D2", 42), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        Scheduler.Tell(new FetchForecastFailed(new LocationId("Lucerne"), "Icon_D2", PollFailureReason.Transport, "test"));
+
+        var states = await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var entry = Assert.Single(states.Entries);
+        Assert.Multiple(
+            () => Assert.Equal("lucerne", entry.Location.Name),
+            () => Assert.Equal("icon_d2", entry.ModelId),
+            () => Assert.NotNull(entry.LastChangeUtc));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_reply_for_an_unknown_target_leaves_the_poll_states_unchanged()
+    {
+        await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);
+
+        Scheduler.Tell(new FetchForecastFailed(new LocationId("atlantis"), "icon_d2", PollFailureReason.Transport, "test"));
+
+        var states = await Scheduler.Ask<PollStatesResult>(new QueryPollStates(), TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var entry = Assert.Single(states.Entries);
+        Assert.Equal("lucerne", entry.Location.Name);
+        await _offerProbe.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Transport_failure_does_not_crash_and_allows_immediate_repoll()
     {
         await _offerProbe.ExpectMsgAsync<FetchForecast>(cancellationToken: TestContext.Current.CancellationToken);

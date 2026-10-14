@@ -28,16 +28,16 @@ public sealed class WeatherGrpcService(
     public override async Task<GetForecastResponse> GetForecast(GetForecastRequest request, ServerCallContext context)
     {
         var location = FindLocation(await AskCatalogAsync(context), request.Location);
-        ValidateModel(location, request.Model);
+        var model = FindModel(location, request.Model);
 
         var result = await actorRegistry.AskAsync<IForecastReadModel, ForecastResponse>(
-            new QueryForecast(new LocationId(request.Location), request.Model), context);
+            new QueryForecast(location.Id, model), context);
 
         return result switch
         {
             ForecastResult found => found.ToProto(timeProvider.GetUtcNow()),
             _ => throw new RpcException(new GrpcStatus(StatusCode.NotFound,
-                $"No forecast data available yet for '{request.Location}/{request.Model}'")),
+                $"No forecast data available yet for '{location.Id.Name}/{model}'")),
         };
     }
 
@@ -125,12 +125,9 @@ public sealed class WeatherGrpcService(
         catalog.Locations.FirstOrDefault(l => string.Equals(l.Id.Name, name, StringComparison.OrdinalIgnoreCase))
         ?? throw new RpcException(new GrpcStatus(StatusCode.NotFound, $"Location '{name}' not found"));
 
-    private static void ValidateModel(CatalogLocation location, string modelId)
-    {
-        if (!location.Models.Contains(modelId, StringComparer.OrdinalIgnoreCase))
-        {
-            throw new RpcException(new GrpcStatus(StatusCode.NotFound,
-                $"Model '{modelId}' not configured for '{location.Id.Name}'"));
-        }
-    }
+    // The configured spelling of the model: the read model and the pipeline only know that one.
+    private static string FindModel(CatalogLocation location, string modelId) =>
+        location.Models.FirstOrDefault(m => string.Equals(m, modelId, StringComparison.OrdinalIgnoreCase))
+        ?? throw new RpcException(new GrpcStatus(StatusCode.NotFound,
+            $"Model '{modelId}' not configured for '{location.Id.Name}'"));
 }

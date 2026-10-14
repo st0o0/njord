@@ -28,9 +28,9 @@ public sealed class ForecastReadModel : StreamConsumerActor
 
     private Source<PipelineEvent, NotUsed>? _secondaryHubSource;
 
-    // Keyed by the location name as the pipeline reports it (ordinal), as the read model always was.
+    // Keyed by LocationId, whose equality ignores case, so a query matches whatever spelling it uses.
     // Written only by the materialized stream and read by the actor: an immutable map swapped as a whole.
-    private volatile ImmutableDictionary<string, LatestResults> _state = ImmutableDictionary<string, LatestResults>.Empty;
+    private volatile ImmutableDictionary<LocationId, LatestResults> _state = ImmutableDictionary<LocationId, LatestResults>.Empty;
 
     private sealed record PipelineResolved(IActorRef Ref);
     private sealed record PipelineResolveFailed(Exception Cause);
@@ -129,7 +129,7 @@ public sealed class ForecastReadModel : StreamConsumerActor
 
     private void HandleQueryForecast(QueryForecast msg)
     {
-        if (_state.TryGetValue(msg.Location.Name, out var latest))
+        if (_state.TryGetValue(msg.Location, out var latest))
         {
             foreach (var (model, forecast) in latest.Forecasts)
             {
@@ -146,7 +146,7 @@ public sealed class ForecastReadModel : StreamConsumerActor
 
     private void HandleQueryLatestAnalysis(QueryLatestAnalysis msg)
     {
-        Sender.Tell(_state.TryGetValue(msg.Location.Name, out var latest) && latest.Analysis is { } analysis
+        Sender.Tell(_state.TryGetValue(msg.Location, out var latest) && latest.Analysis is { } analysis
             ? analysis
             : new LatestAnalysisNotAvailable(msg.Location));
     }
@@ -177,18 +177,18 @@ public sealed class ForecastReadModel : StreamConsumerActor
         switch (evt)
         {
             case PipelineEvent.ForecastReceived forecast:
-                var forecastState = _state.GetValueOrDefault(forecast.Location.Name, new LatestResults());
+                var forecastState = _state.GetValueOrDefault(forecast.Location, new LatestResults());
                 var forecasts = new Dictionary<WeatherModel, WeatherForecast>(forecastState.Forecasts)
                 {
                     [forecast.Model] = forecast.Forecast
                 };
-                _state = _state.SetItem(forecast.Location.Name, forecastState with { Forecasts = forecasts });
+                _state = _state.SetItem(forecast.Location, forecastState with { Forecasts = forecasts });
                 break;
             case IEnrichmentEvent enrichment:
                 var location = enrichment.Location;
-                var analysisState = _state.GetValueOrDefault(location.Name, new LatestResults());
+                var analysisState = _state.GetValueOrDefault(location, new LatestResults());
                 var analysis = analysisState.Analysis ?? new LatestAnalysisResult(location, null, null, null, null, null);
-                _state = _state.SetItem(location.Name, analysisState with { Analysis = WithLatest(analysis, evt) });
+                _state = _state.SetItem(location, analysisState with { Analysis = WithLatest(analysis, evt) });
                 break;
         }
     }

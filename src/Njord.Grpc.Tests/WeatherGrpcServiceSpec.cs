@@ -116,6 +116,22 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetForecast_queries_the_configured_location_and_model_when_the_request_differs_in_case()
+    {
+        var forecast = CreateForecast();
+        var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new OrdinalForecastReadModel(forecast))));
+
+        var response = await service.GetForecast(
+            new GetForecastRequest { Location = "LUCERNE", Model = "ICON_D2" },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.Multiple(
+            () => Assert.Equal("lucerne", response.Location),
+            () => Assert.Equal("icon_d2", response.Model),
+            () => Assert.Single(response.Hourly));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetForecast_throws_not_found_for_unknown_location()
     {
         var service = CreateService();
@@ -319,7 +335,21 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         }
     }
 
-    // Keyed by the configured location name (ordinal), as the production read model is.
+    // Answers only the configured spelling (ordinal), so a raw request spelling finds nothing.
+    private sealed class OrdinalForecastReadModel : ReceiveActor
+    {
+        public OrdinalForecastReadModel(Forecast forecast)
+        {
+            Receive<QueryForecast>(msg => Sender.Tell(
+                string.Equals(msg.Location.Name, forecast.Location, StringComparison.Ordinal)
+                && string.Equals(msg.ModelId, forecast.Model.Id, StringComparison.Ordinal)
+                    ? new ForecastResult(forecast)
+                    : new ForecastNotAvailable($"{msg.Location.Name}|{msg.ModelId}"),
+                Self));
+        }
+    }
+
+    // Answers only the configured spelling (ordinal), so a spec proves the service queries with it.
     private sealed class FakeReadModel : ReceiveActor
     {
         public FakeReadModel(LatestAnalysisResult? analysis, IReadOnlyList<PipelineEvent> streamEvents)

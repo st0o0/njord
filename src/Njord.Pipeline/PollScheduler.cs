@@ -222,9 +222,15 @@ public sealed class PollScheduler : ReceivePersistentActor
 
     private void OnFetchForecastCompleted(FetchForecastCompleted result)
     {
-        var key = Key(result.Location.Name, result.ModelId);
+        if (!TryResolveTarget(result.Location, result.ModelId, out var location, out var modelId))
+        {
+            Sender.Tell(new Ack());
+            return;
+        }
+
+        var key = Key(location, modelId);
         var now = _timeProvider.GetUtcNow();
-        var evt = new DataChanged(result.Location, result.ModelId, result.Hash, now);
+        var evt = new DataChanged(new LocationId(location), modelId, result.Hash, now);
         var (updatedState, decision) = _state.ApplyHashResult(evt, _discoveryInterval);
 
         if (decision == HashDecision.Changed)
@@ -235,15 +241,15 @@ public sealed class PollScheduler : ReceivePersistentActor
                 _state = updatedState;
                 _healthState.UpdatePoll(new PollHealthSnapshot(now));
                 Telemetry.DataChanged.Add(1,
-                    new KeyValuePair<string, object?>("location", result.Location.Name),
-                    new KeyValuePair<string, object?>("model", result.ModelId));
+                    new KeyValuePair<string, object?>("location", location),
+                    new KeyValuePair<string, object?>("model", modelId));
                 var updated = _state.States[key];
                 _log.Debug(
                     "Data changed for {Location}/{Model} - phase={Phase}, cycle={Cycle}",
-                    result.Location, result.ModelId, updated.Phase, updated.Cycle);
-                ScheduleNext(result.Location.Name, result.ModelId);
+                    location, modelId, updated.Phase, updated.Cycle);
+                ScheduleNext(location, modelId);
                 Sender.Tell(new Ack());
-                RecordPollOutcome(result.Location.Name, result.ModelId, PollCycleOutcome.Changed);
+                RecordPollOutcome(location, modelId, PollCycleOutcome.Changed);
                 MaybeSnapshot();
             });
         }
@@ -254,16 +260,21 @@ public sealed class PollScheduler : ReceivePersistentActor
             var updated = _state.States[key];
             _log.Debug(
                 "Hash unchanged for {Location}/{Model} - miss={Miss}, phase={Phase}",
-                result.Location, result.ModelId, updated.MissCount, updated.Phase);
-            ScheduleNext(result.Location.Name, result.ModelId);
+                location, modelId, updated.MissCount, updated.Phase);
+            ScheduleNext(location, modelId);
             Sender.Tell(new Ack());
-            RecordPollOutcome(result.Location.Name, result.ModelId, PollCycleOutcome.Unchanged);
+            RecordPollOutcome(location, modelId, PollCycleOutcome.Unchanged);
         }
     }
 
     private void OnFetchForecastFailed(FetchForecastFailed msg)
     {
-        var key = Key(msg.Location.Name, msg.ModelId);
+        if (!TryResolveTarget(msg.Location, msg.ModelId, out var location, out var modelId))
+        {
+            return;
+        }
+
+        var key = Key(location, modelId);
         var now = _timeProvider.GetUtcNow();
 
         switch (msg.Reason)
@@ -271,27 +282,46 @@ public sealed class PollScheduler : ReceivePersistentActor
             case PollFailureReason.Transport:
                 _state = _state.ApplyTransientFailure(key, now, _discoveryInterval);
                 _log.Warning("Fetch failed for {Location}/{Model} (transport) - tfc={Tfc}, details={Details}",
-                    msg.Location, msg.ModelId, _state.States[key].TransientFailureCount, msg.Detail);
-                ScheduleNext(msg.Location.Name, msg.ModelId);
+                    location, modelId, _state.States[key].TransientFailureCount, msg.Detail);
+                ScheduleNext(location, modelId);
                 break;
 
             case PollFailureReason.RateLimited:
                 _state = _state.ApplyRateLimited(key, now, RateLimitMinDelay, _discoveryInterval);
                 _log.Warning("Fetch rate-limited for {Location}/{Model} - next poll at {Next}",
-                    msg.Location, msg.ModelId, _state.States[key].NextPollUtc);
-                ScheduleNext(msg.Location.Name, msg.ModelId);
+                    location, modelId, _state.States[key].NextPollUtc);
+                ScheduleNext(location, modelId);
                 break;
 
             case PollFailureReason.ModelUnavailable:
             case PollFailureReason.MalformedPayload:
                 _state = _state.ApplyTransientFailure(key, now, _discoveryInterval);
                 _log.Warning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - retry scheduled",
-                    msg.Location, msg.ModelId, msg.Reason, msg.Detail);
-                ScheduleNext(msg.Location.Name, msg.ModelId);
+                    location, modelId, msg.Reason, msg.Detail);
+                ScheduleNext(location, modelId);
                 break;
         }
 
-        RecordPollOutcome(msg.Location.Name, msg.ModelId, PollCycleOutcome.Failed);
+        RecordPollOutcome(location, modelId, PollCycleOutcome.Failed);
+    }
+
+    // Replies may spell the target differently from the configuration; poll states are keyed by the
+    // configured spelling, so a reply is mapped onto its configured target or ignored.
+    private bool TryResolveTarget(LocationId location, string modelId, out string configuredLocation, out string configuredModel)
+    {
+        configuredLocation = string.Empty;
+        configuredModel = string.Empty;
+        if (_options.FindLocation(location.Name) is not { } matched
+            || _options.Models.Union(matched.Models ?? [], StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault(m => m.Equals(modelId, StringComparison.OrdinalIgnoreCase)) is not { } model)
+        {
+            _log.Warning("Ignoring fetch reply for unknown target {Location}/{Model}", location, modelId);
+            return false;
+        }
+
+        configuredLocation = matched.Name;
+        configuredModel = model;
+        return true;
     }
 
     private void RecordPollOutcome(string location, string modelId, PollCycleOutcome outcome)

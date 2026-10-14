@@ -56,6 +56,27 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task Queries_match_the_location_regardless_of_case()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (readModel, pipeline) = await StartAsync();
+        var forecast = CreateForecast("icon_d2");
+        var alerts = EnrichmentEvents.Alerts(Lucerne, Anchor);
+
+        await pipeline.OfferAsync(new PipelineEvent.ForecastReceived(Lucerne, forecast.Model, forecast), ct);
+        await pipeline.OfferAsync(alerts, ct);
+
+        var shouted = new LocationId("LUCERNE");
+        await AwaitAssertAsync(async () =>
+        {
+            var response = await readModel.Ask<ForecastResponse>(new QueryForecast(shouted, "icon_d2"), AskTimeout, ct);
+            Assert.Same(forecast, Assert.IsType<ForecastResult>(response).Forecast);
+        }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var analysis = await AwaitAnalysisAsync(readModel, shouted, r => Equals(r.Alerts, alerts), ct);
+        Assert.Equal(alerts, analysis.Alerts);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_latest_analysis_query_returns_the_last_event_of_a_kind()
     {
         var ct = TestContext.Current.CancellationToken;
