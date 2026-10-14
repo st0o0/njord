@@ -190,6 +190,27 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_stream_requested_before_the_first_subscription_is_answered_at_once()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var pipeline = CreateTestProbe();
+        ActorRegistry.Register<IForecastPipeline>(pipeline, overwrite: true);
+        var readModel = Sys.ActorOf(Props.Create(() => new ForecastReadModel()), $"read-model-{Guid.NewGuid():N}");
+        var request = await pipeline.ExpectMsgAsync<RequestPipelineOutput>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+
+        var response = await readModel.Ask<RequestReadModelStreamResponse>(new RequestReadModelStream(7), AskTimeout, ct);
+
+        var completed = Assert.IsType<RequestReadModelStreamCompleted>(response);
+        Assert.Equal(7, completed.RequestId);
+        var client = new EventCollector();
+        _ = completed.SourceRef.Source.RunWith(client.AsSink(), Sys.Materializer());
+        var (queue, source) = Source.Queue<PipelineEvent>(16, OverflowStrategy.Backpressure).PreMaterialize(Sys.Materializer());
+        var sourceRef = await source.RunWith(StreamRefs.SourceRef<PipelineEvent>(), Sys.Materializer());
+        readModel.Tell(new RequestPipelineOutputCompleted(request.RequestId, sourceRef), pipeline.Ref);
+        await WarmUpAsync(queue, client, ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_disconnected_streaming_client_does_not_affect_other_clients()
     {
         var ct = TestContext.Current.CancellationToken;

@@ -10,7 +10,6 @@ using Njord.Core.Configuration.Mqtt;
 using Njord.Messages.Pipeline;
 using Njord.Mqtt.Transport;
 using Njord.Weather;
-using Servus.Akka;
 
 namespace Njord.Mqtt;
 
@@ -23,14 +22,9 @@ public sealed class MqttStatePublisher : StreamConsumerActor
     private readonly TimeProvider _timeProvider;
     private readonly IMqttTransport _transport;
     private readonly TimeSpan _publishTimeout;
+    private readonly int _eventBufferSize;
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
-    private IActorRef? _pipelineRef;
-    private ISourceRef<PipelineEvent>? _pipelineSourceRef;
-    private long _pipelineSourceRequestId;
-
-    private sealed record PipelineResolved(IActorRef Ref);
-    private sealed record PipelineResolveFailed(Exception Cause);
     private sealed record OutgoingMessage(MqttMessage Message, string Location);
 
     public MqttStatePublisher(
@@ -49,71 +43,22 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         _timeProvider = timeProvider;
         _transport = transport;
         _publishTimeout = tuning.PublishTimeout;
+        _eventBufferSize = tuning.EventBufferSize;
     }
 
-    protected override void ResolveInitialDependencies()
-    {
-        _pipelineRef = Context.GetActor<IForecastPipeline>();
-        TrackDependency(_pipelineRef);
-    }
-
-    protected override void RequestSourceRefs()
-    {
-        var id = NextRequestId();
-        _pipelineSourceRequestId = id;
-        _pipelineRef!.Tell(new RequestPipelineOutput(id));
-    }
-
-    protected override void ResolveDependencies()
-    {
-        Context.GetActorAsync<IForecastPipeline>().PipeTo(Self,
-            success: r => new PipelineResolved(r),
-            failure: ex => new PipelineResolveFailed(ex));
-    }
-
-    protected override void ConfigureWaitingForRefs()
-    {
-        Receive<PipelineResolved>(msg =>
-        {
-            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
-            TrackDependency(msg.Ref);
-            var id = NextRequestId();
-            _pipelineSourceRequestId = id;
-            msg.Ref.Tell(new RequestPipelineOutput(id));
-        });
-        Receive<RequestPipelineOutputCompleted>(response =>
-        {
-            if (response.RequestId != _pipelineSourceRequestId) return;
-            _pipelineSourceRef = response.SourceRef;
-            _log.Debug("Pipeline SourceRef received from {Source}", Sender.Path);
-            TryTransition();
-        });
-        Receive<RequestPipelineOutputFailed>(msg =>
-        {
-            if (msg.RequestId != _pipelineSourceRequestId) return;
-            _log.Warning(msg.Cause, "Pipeline source request failed - retrying");
-            ScheduleRetryResolve();
-        });
-        Receive<PipelineResolveFailed>(msg =>
-        {
-            _log.Warning(msg.Cause, "Failed to resolve ForecastPipeline - retrying");
-            ScheduleRetryResolve();
-        });
-    }
-
-    protected override bool AllRefsReady() => _pipelineSourceRef is not null;
-
-    protected override Task MaterializeGraph(SharedKillSwitch killSwitch)
+    protected override Task MaterializeGraph(Source<PipelineEvent, NotUsed> events)
     {
         var baseTopic = _baseTopic;
-        // Per materialization on purpose: after a rewire every state topic is published once again.
+        // Per subscription on purpose: after a re-attach every state topic is published once again.
         var lastPublished = new Dictionary<string, int>();
         var transport = _transport;
         var publishTimeout = _publishTimeout;
         var log = _log;
 
-        return _pipelineSourceRef!.Source
-            .Via(killSwitch.Flow<PipelineEvent>())
+        // The buffer always pulls from the pipeline and drops its oldest events while the broker lags behind, so a
+        // slow or stuck broker never back-pressures the pipeline output that the other consumers share.
+        return events
+            .Buffer(_eventBufferSize, OverflowStrategy.DropHead)
             .Log("mqtt-state-in", e => e switch
             {
                 PipelineEvent.ForecastReceived u => $"model {u.Location}/{u.Model.Id}",
@@ -126,14 +71,16 @@ public sealed class MqttStatePublisher : StreamConsumerActor
             }, _log)
             .SelectMany(pipelineEvent => MapToMqttMessages(pipelineEvent, baseTopic))
             .Log("mqtt-state-out", m => $"{m.Message.Topic} [{m.Message.Payload.Length}B]", _log)
-            .SelectAsync(1, outgoing => PublishChangedAsync(outgoing, lastPublished, transport, publishTimeout, log))
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
-            .RunWith(Sink.Ignore<NotUsed>(), Mat);
+            .RunWith(Sink.ForEachAsync<OutgoingMessage>(1,
+                outgoing => PublishChangedAsync(outgoing, lastPublished, transport, publishTimeout, log)), Mat);
     }
 
-    // Runs strictly sequentially (SelectAsync(1)), so the dedup cache needs no locking. The hash is
-    // recorded only after the broker accepted the message: a failed payload is sent again next cycle.
-    private static async Task<NotUsed> PublishChangedAsync(
+    // Dedup check and publish in one step, strictly sequential (ForEachAsync(1)): the cache needs no locking and a
+    // message is checked only after the previous publish recorded its hash. The hash is recorded only after the
+    // broker accepted the message, so a failed payload is sent again next cycle. Never throws: a failed publish
+    // must not end the subscription.
+    private static async Task PublishChangedAsync(
         OutgoingMessage outgoing,
         Dictionary<string, int> lastPublished,
         IMqttTransport transport,
@@ -146,7 +93,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == hash)
         {
             Telemetry.MqttDedup.Add(1, locationTag, new KeyValuePair<string, object?>("decision", "skipped"));
-            return NotUsed.Instance;
+            return;
         }
 
         try
@@ -158,25 +105,11 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         {
             Telemetry.MqttPublishFailures.Add(1, locationTag);
             log.Warning(ex, "MQTT publish to {Topic} failed - it is sent again with the next cycle", msg.Topic);
-            return NotUsed.Instance;
+            return;
         }
 
         lastPublished[msg.Topic] = hash;
         Telemetry.MqttDedup.Add(1, locationTag, new KeyValuePair<string, object?>("decision", "published"));
-        return NotUsed.Instance;
-    }
-
-    protected override void OnDependencyLost()
-    {
-        _pipelineRef = null;
-        _pipelineSourceRef = null;
-        _pipelineSourceRequestId = 0;
-    }
-
-    protected override void OnStreamLost()
-    {
-        _pipelineSourceRef = null;
-        _pipelineSourceRequestId = 0;
     }
 
     private IEnumerable<OutgoingMessage> MapToMqttMessages(PipelineEvent pipelineEvent, string baseTopic)

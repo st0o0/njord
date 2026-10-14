@@ -9,7 +9,6 @@ using Njord.Core.Actors;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Weather;
-using Servus.Akka;
 using WeatherForecast = Njord.Weather.Forecast;
 
 namespace Njord.Pipeline;
@@ -23,19 +22,12 @@ public sealed class ForecastReadModel : StreamConsumerActor
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
-    private IActorRef? _pipelineRef;
-    private ISourceRef<PipelineEvent>? _pipelineSourceRef;
-    private long _pipelineSourceRequestId;
-
-    private Sink<PipelineEvent, NotUsed>? _clientHubSink;
-    private Source<PipelineEvent, NotUsed>? _secondaryHubSource;
+    private Sink<PipelineEvent, NotUsed> _clientHubSink = null!;
+    private Source<PipelineEvent, NotUsed> _clientHubSource = null!;
 
     // Keyed by LocationId, whose equality ignores case, so a query matches whatever spelling it uses.
     // Written only by the materialized stream and read by the actor: an immutable map swapped as a whole.
     private volatile ImmutableDictionary<LocationId, LatestResults> _state = ImmutableDictionary<LocationId, LatestResults>.Empty;
-
-    private sealed record PipelineResolved(IActorRef Ref);
-    private sealed record PipelineResolveFailed(Exception Cause);
 
     private sealed record LatestResults
     {
@@ -45,82 +37,22 @@ public sealed class ForecastReadModel : StreamConsumerActor
         public LatestAnalysisResult? Analysis { get; init; }
     }
 
-    protected override void ResolveInitialDependencies()
+    public ForecastReadModel()
     {
-        _pipelineRef = Context.GetActor<IForecastPipeline>();
-        TrackDependency(_pipelineRef);
+        Receive<QueryForecast>(HandleQueryForecast);
+        Receive<QueryLatestAnalysis>(HandleQueryLatestAnalysis);
+        Receive<RequestReadModelStream>(HandleStreamRequest);
     }
 
-    protected override void RequestSourceRefs()
+    protected override void PreStart()
     {
-        var id = NextRequestId();
-        _pipelineSourceRequestId = id;
-        _pipelineRef!.Tell(new RequestPipelineOutput(id));
+        base.PreStart();
+        MaterializeClientHub();
     }
 
-    protected override void ResolveDependencies()
-    {
-        Context.GetActorAsync<IForecastPipeline>().PipeTo(Self,
-            success: r => new PipelineResolved(r),
-            failure: ex => new PipelineResolveFailed(ex));
-    }
-
-    protected override void ConfigureWaitingForRefs()
-    {
-        Receive<PipelineResolved>(msg =>
-        {
-            if (IsDeadRef(msg.Ref)) { ScheduleRetryResolve(); return; }
-            TrackDependency(msg.Ref);
-            var id = NextRequestId();
-            _pipelineSourceRequestId = id;
-            msg.Ref.Tell(new RequestPipelineOutput(id));
-        });
-        Receive<RequestPipelineOutputCompleted>(response =>
-        {
-            if (response.RequestId != _pipelineSourceRequestId) return;
-            _pipelineSourceRef = response.SourceRef;
-            _log.Debug("Pipeline SourceRef received from {Source}", Sender.Path);
-            TryTransition();
-        });
-        Receive<RequestPipelineOutputFailed>(msg =>
-        {
-            if (msg.RequestId != _pipelineSourceRequestId) return;
-            _log.Warning(msg.Cause, "Pipeline source request failed - retrying");
-            ScheduleRetryResolve();
-        });
-        Receive<PipelineResolveFailed>(msg =>
-        {
-            _log.Warning(msg.Cause, "Failed to resolve ForecastPipeline - retrying");
-            ScheduleRetryResolve();
-        });
-
-        ConfigureQueries();
-    }
-
-    protected override bool AllRefsReady() => _pipelineSourceRef is not null;
-
-    protected override Task MaterializeGraph(SharedKillSwitch killSwitch)
-    {
-        var clientHubSink = _clientHubSink ?? MaterializeClientHub();
-
-        return _pipelineSourceRef!.Source
-            .Via(killSwitch.Flow<PipelineEvent>())
-            .Select(evt =>
-            {
-                UpdateState(evt);
-                return evt;
-            })
-            .WatchTermination(Keep.Right)
-            // The termination above already reports a failed subscription to the base class; it must not fail the
-            // MergeHub, which outlives the subscription so streaming clients keep their streams across a rewire.
-            .Recover(_ => Option<PipelineEvent>.None)
-            .To(clientHubSink)
-            .Run(Mat);
-    }
-
-    // Once per actor incarnation: every pipeline subscription feeds the same MergeHub, so the secondary hub (and
-    // the SourceRefs of streaming clients) survives a rewire and a pipeline restart.
-    private Sink<PipelineEvent, NotUsed> MaterializeClientHub()
+    // Once per actor incarnation, before the first subscription: streaming clients can attach at any time, and every
+    // pipeline subscription feeds the same MergeHub, so their streams survive a re-attach.
+    private void MaterializeClientHub()
     {
         var (mergeSink, mergeSource) = MergeHub.Source<PipelineEvent>(perProducerBufferSize: 16).PreMaterialize(Mat);
         var hubSource = mergeSource.RunWith(BroadcastHub.Sink<PipelineEvent>(bufferSize: 2), Mat);
@@ -130,18 +62,22 @@ public sealed class ForecastReadModel : StreamConsumerActor
         hubSource.RunWith(Sink.Ignore<PipelineEvent>(), Mat);
 
         _clientHubSink = mergeSink;
-        _secondaryHubSource = hubSource;
-        return mergeSink;
+        _clientHubSource = hubSource;
     }
 
-    protected override void ConfigureReady() => ConfigureQueries();
-
-    private void ConfigureQueries()
-    {
-        Receive<QueryForecast>(HandleQueryForecast);
-        Receive<QueryLatestAnalysis>(HandleQueryLatestAnalysis);
-        Receive<RequestReadModelStream>(HandleStreamRequest);
-    }
+    protected override Task MaterializeGraph(Source<PipelineEvent, NotUsed> events) =>
+        events
+            .Select(evt =>
+            {
+                UpdateState(evt);
+                return evt;
+            })
+            .WatchTermination(Keep.Right)
+            // The termination above already reports a failed subscription to the base class; it must not fail the
+            // MergeHub, which outlives the subscription.
+            .Recover(_ => Option<PipelineEvent>.None)
+            .To(_clientHubSink)
+            .Run(Mat);
 
     private void HandleQueryForecast(QueryForecast msg)
     {
@@ -169,14 +105,7 @@ public sealed class ForecastReadModel : StreamConsumerActor
 
     private void HandleStreamRequest(RequestReadModelStream msg)
     {
-        if (_secondaryHubSource is null)
-        {
-            Sender.Tell(new RequestReadModelStreamFailed(msg.RequestId,
-                new InvalidOperationException("Pipeline not materialized yet")));
-            return;
-        }
-
-        _secondaryHubSource
+        _clientHubSource
             .Buffer(StreamClientBufferSize, OverflowStrategy.DropHead)
             .RunWith(StreamRefs.SourceRef<PipelineEvent>(), Mat)
             .PipeTo(Sender, Self,
@@ -218,18 +147,4 @@ public sealed class ForecastReadModel : StreamConsumerActor
         PipelineEvent.IndexComputed indices => analysis with { Indices = indices },
         _ => analysis,
     };
-
-    // The latest values and the secondary hub are kept: queries and streaming clients ride out the gap.
-    protected override void OnDependencyLost()
-    {
-        _pipelineRef = null;
-        _pipelineSourceRef = null;
-        _pipelineSourceRequestId = 0;
-    }
-
-    protected override void OnStreamLost()
-    {
-        _pipelineSourceRef = null;
-        _pipelineSourceRequestId = 0;
-    }
 }

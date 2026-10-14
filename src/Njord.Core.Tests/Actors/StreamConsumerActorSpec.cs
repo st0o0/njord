@@ -1,388 +1,418 @@
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
+using Akka;
 using Akka.Actor;
-using Akka.Event;
 using Akka.Hosting;
 using Akka.Hosting.TestKit;
 using Akka.Streams;
+using Akka.Streams.Dsl;
+using Akka.TestKit;
 using Njord.Core.Actors;
+using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
-using Servus.Akka;
+using Njord.Weather;
+using Servus.Resilience;
 
 namespace Njord.Core.Tests.Actors;
 
+// The spec plays the pipeline itself: a probe registered as IForecastPipeline stands for the singleton proxy, and
+// each reply is sent with an "incarnation" probe as sender, like the real pipeline child behind the proxy.
 public sealed class StreamConsumerActorSpec : TestKit
 {
+    private static readonly BackoffPolicy FastPolicy =
+        Backoff.Create(TimeSpan.FromMilliseconds(50), maxDelay: TimeSpan.FromMilliseconds(400));
+
+    private static readonly TimeSpan ReplyTimeout = TimeSpan.FromMilliseconds(300);
+    private static readonly DateTimeOffset Anchor = TestTimeConstants.NoonAnchor;
+
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
         => builder.AddTestTimefactor();
 
-    private sealed class DepAKey;
+    private sealed record Ping;
 
-    private sealed class DepBKey;
+    private sealed record Pong;
 
-    private sealed record DepAResolved(IActorRef Ref);
+    private sealed record Materialized(int Count);
 
-    private sealed record DepBResolved(IActorRef Ref);
-
-    private sealed class TestStreamConsumer : StreamConsumerActor
+    // Forwards every event to the reporter; its graph ends when the subscription ends.
+    private sealed class TestConsumer : StreamConsumerActor
     {
-        private IActorRef? _depA;
-        private IActorRef? _depB;
+        private readonly IActorRef _reporter;
+        private readonly string _name;
+        private int _materializations;
 
-        private readonly TaskCompletionSource _graphMaterialized;
-        private int _materializeCount;
-
-        public TestStreamConsumer(TaskCompletionSource graphMaterialized)
+        public TestConsumer(IActorRef reporter, string name, BackoffPolicy policy, TimeSpan? stableAfter)
+            : base(policy, ReplyTimeout, stableAfter)
         {
-            _graphMaterialized = graphMaterialized;
+            _reporter = reporter;
+            _name = name;
+            Receive<Ping>(_ => Sender.Tell(new Pong()));
         }
 
-        public static Props CreateProps(TaskCompletionSource graphMaterialized)
-            => Props.Create(() => new TestStreamConsumer(graphMaterialized));
+        protected override string ConsumerName => _name;
 
-        protected override void ResolveInitialDependencies()
+        protected override Task MaterializeGraph(Source<PipelineEvent, NotUsed> events)
         {
-            _depA = Context.GetActor<DepAKey>();
-            TrackDependency(_depA);
-            _depB = Context.GetActor<DepBKey>();
-            TrackDependency(_depB);
-        }
-
-        protected override void RequestSourceRefs()
-        {
-            TryTransition();
-        }
-
-        protected override void ResolveDependencies()
-        {
-            Context.GetActorAsync<DepAKey>().PipeTo(Self, success: r => new DepAResolved(r));
-            Context.GetActorAsync<DepBKey>().PipeTo(Self, success: r => new DepBResolved(r));
-        }
-
-        protected override void ConfigureWaitingForRefs()
-        {
-            Receive<DepAResolved>(msg =>
-            {
-                if (IsDeadRef(msg.Ref))
-                {
-                    ScheduleRetryResolve();
-                    return;
-                }
-
-                TrackDependency(msg.Ref);
-                _depA = msg.Ref;
-                TryTransition();
-            });
-            Receive<DepBResolved>(msg =>
-            {
-                if (IsDeadRef(msg.Ref))
-                {
-                    ScheduleRetryResolve();
-                    return;
-                }
-
-                TrackDependency(msg.Ref);
-                _depB = msg.Ref;
-                TryTransition();
-            });
-        }
-
-        protected override bool AllRefsReady() => _depA is not null && _depB is not null;
-
-        protected override Task MaterializeGraph(SharedKillSwitch killSwitch)
-        {
-            _materializeCount++;
-            _graphMaterialized.TrySetResult();
-            return new TaskCompletionSource().Task;
-        }
-
-        protected override void OnDependencyLost()
-        {
-            _depA = null;
-            _depB = null;
+            _materializations++;
+            _reporter.Tell(new Materialized(_materializations));
+            var reporter = _reporter;
+            return events
+                .WatchTermination(Keep.Right)
+                .To(Sink.ForEach<PipelineEvent>(e => reporter.Tell(e)))
+                .Run(Mat);
         }
     }
 
-    private sealed class ResettableTestStreamConsumer : StreamConsumerActor
+    private sealed record Subscription(ISourceQueueWithComplete<PipelineEvent> Queue, long RequestId);
+
+    private readonly string _consumerName = $"consumer-{Guid.NewGuid():N}";
+
+    private (IActorRef Consumer, TestProbe Reporter, TestProbe Proxy) Start(
+        BackoffPolicy? policy = null, TimeSpan? stableAfter = null, bool register = true)
     {
-        private IActorRef? _depA;
-        private IActorRef? _depB;
-        private int _materializeCount;
-
-        public sealed record SetGraphTcs(TaskCompletionSource Tcs);
-
-        public sealed record GetMaterializeCount;
-
-        private TaskCompletionSource _graphMaterialized;
-
-        public ResettableTestStreamConsumer(TaskCompletionSource graphMaterialized)
+        var proxy = CreateTestProbe();
+        if (register)
         {
-            _graphMaterialized = graphMaterialized;
+            ActorRegistry.Register<IForecastPipeline>(proxy, overwrite: true);
         }
 
-        public static Props CreateProps(TaskCompletionSource graphMaterialized)
-            => Props.Create(() => new ResettableTestStreamConsumer(graphMaterialized));
-
-        protected override void ResolveInitialDependencies()
-        {
-            _depA = Context.GetActor<DepAKey>();
-            TrackDependency(_depA);
-            _depB = Context.GetActor<DepBKey>();
-            TrackDependency(_depB);
-        }
-
-        protected override void RequestSourceRefs()
-        {
-            TryTransition();
-        }
-
-        protected override void ResolveDependencies()
-        {
-            Context.GetActorAsync<DepAKey>().PipeTo(Self, success: r => new DepAResolved(r));
-            Context.GetActorAsync<DepBKey>().PipeTo(Self, success: r => new DepBResolved(r));
-        }
-
-        protected override void ConfigureWaitingForRefs()
-        {
-            Receive<DepAResolved>(msg =>
-            {
-                if (IsDeadRef(msg.Ref))
-                {
-                    ScheduleRetryResolve();
-                    return;
-                }
-
-                TrackDependency(msg.Ref);
-                _depA = msg.Ref;
-                TryTransition();
-            });
-            Receive<DepBResolved>(msg =>
-            {
-                if (IsDeadRef(msg.Ref))
-                {
-                    ScheduleRetryResolve();
-                    return;
-                }
-
-                TrackDependency(msg.Ref);
-                _depB = msg.Ref;
-                TryTransition();
-            });
-            Receive<SetGraphTcs>(msg => _graphMaterialized = msg.Tcs);
-            Receive<GetMaterializeCount>(_ => Sender.Tell(_materializeCount));
-        }
-
-        protected override void ConfigureReady()
-        {
-            Receive<SetGraphTcs>(msg => _graphMaterialized = msg.Tcs);
-            Receive<GetMaterializeCount>(_ => Sender.Tell(_materializeCount));
-        }
-
-        protected override bool AllRefsReady() => _depA is not null && _depB is not null;
-
-        protected override Task MaterializeGraph(SharedKillSwitch killSwitch)
-        {
-            _materializeCount++;
-            _graphMaterialized.TrySetResult();
-            return new TaskCompletionSource().Task;
-        }
-
-        protected override void OnDependencyLost()
-        {
-            _depA = null;
-            _depB = null;
-        }
-    }
-
-    // -- helpers --
-
-    private (IActorRef DepA, IActorRef DepB) RegisterDeps()
-    {
-        var depA = CreateTestProbe();
-        var depB = CreateTestProbe();
-        ActorRegistry.Register<DepAKey>(depA, overwrite: true);
-        ActorRegistry.Register<DepBKey>(depB, overwrite: true);
-        return (depA, depB);
-    }
-
-    private async Task CreateAndWaitForReady(TaskCompletionSource graphTcs, IActorRef? depA = null,
-        IActorRef? depB = null)
-    {
-        if (depA is not null)
-        {
-            ActorRegistry.Register<DepAKey>(depA, overwrite: true);
-        }
-
-        if (depB is not null)
-        {
-            ActorRegistry.Register<DepBKey>(depB, overwrite: true);
-        }
-
-        Sys.ActorOf(TestStreamConsumer.CreateProps(graphTcs));
-        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Dead_ref_detection_schedules_retry_instead_of_watching()
-    {
-        // Arrange: register deps and wait for initial graph materialization
-        var (depA, depB) = RegisterDeps();
-        var graphTcs = new TaskCompletionSource();
-        await CreateAndWaitForReady(graphTcs, depA, depB);
-
-        // Subscribe to DeadLetters to count tight-loop messages
-        var deadLetterProbe = CreateTestProbe();
-        Sys.EventStream.Subscribe(deadLetterProbe, typeof(DeadLetter));
-
-        // Act: stop depA. The consumer sees Terminated, re-resolves, gets
-        // the same (dead) ref back from registry, and should schedule a retry
-        // rather than spinning in a tight loop.
-        await depA.GracefulStop(TimeSpan.FromSeconds(2));
-
-        // Wait long enough to detect a tight loop if one existed.
-        // We use Task.Delay intentionally: the Akka scheduler is wall-clock based,
-        // so we need real-time waiting to observe retry behavior.
-        await Task.Delay(500, TestContext.Current.CancellationToken);
-
-        // Drain whatever dead letters accumulated in that window
-        var deadLetterCount = 0;
-        while (deadLetterProbe.HasMessages)
-        {
-            await deadLetterProbe.ReceiveOneAsync(TimeSpan.FromMilliseconds(50), TestContext.Current.CancellationToken);
-            deadLetterCount++;
-        }
-
-        Assert.True(deadLetterCount <= 10,
-            $"Expected at most 10 dead letters but got {deadLetterCount} — possible tight loop");
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Stale_response_does_not_trigger_premature_ready()
-    {
-        // Arrange: register deps and wait for initial graph materialization
-        var (depA, _) = RegisterDeps();
-        var graphTcs = new TaskCompletionSource();
+        var reporter = CreateTestProbe();
+        var name = _consumerName;
         var consumer = Sys.ActorOf(
-            ResettableTestStreamConsumer.CreateProps(graphTcs));
+            Props.Create(() => new TestConsumer(reporter.Ref, name, policy ?? FastPolicy, stableAfter)),
+            $"consumer-{Guid.NewGuid():N}");
+        return (consumer, reporter, proxy);
+    }
 
-        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+    private async Task<RequestPipelineOutput> ExpectRequestAsync(TestProbe proxy, CancellationToken ct) =>
+        await proxy.ExpectMsgAsync<RequestPipelineOutput>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-        // Prepare a second TCS to detect a second MaterializeGraph call
-        var secondGraphTcs = new TaskCompletionSource();
-        consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(secondGraphTcs));
-        await ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
+    // Answers the next SourceRef request with a fresh queue-backed SourceRef. The SourceRef runs on the system
+    // materializer, so it outlives the incarnation that "sent" it: only the consumer's own handling ends it.
+    private async Task<Subscription> AnswerAsync(TestProbe proxy, IActorRef incarnation, CancellationToken ct)
+    {
+        var request = await ExpectRequestAsync(proxy, ct);
+        var consumer = proxy.LastSender;
+        return await ReplyAsync(consumer, request.RequestId, incarnation);
+    }
 
-        // Act: stop depA so the consumer enters WaitingForRefs.
-        // The dead ref is detected on the first re-resolve and a retry is
-        // scheduled (1 s delay = 2^0). Within that window the stale DepB
-        // response must NOT cause a premature transition.
-        await depA.GracefulStop(TimeSpan.FromSeconds(2));
+    private async Task<Subscription> ReplyAsync(IActorRef consumer, long requestId, IActorRef incarnation)
+    {
+        var (queue, source) = Source.Queue<PipelineEvent>(16, OverflowStrategy.Backpressure).PreMaterialize(Sys.Materializer());
+        var sourceRef = await source.RunWith(StreamRefs.SourceRef<PipelineEvent>(), Sys.Materializer());
+        consumer.Tell(new RequestPipelineOutputCompleted(requestId, sourceRef), incarnation);
+        return new Subscription(queue, requestId);
+    }
 
-        // Assert: MaterializeGraph should NOT have been called a second time
-        // while the retry is still pending and the dep is dead.
-        // Wait 500ms real time (inside the 1s Akka scheduler retry window).
-        // We use Task.Delay here intentionally: the Akka scheduler is wall-clock
-        // based, so we need a real-time wait to stay inside the retry window.
-        await Task.Delay(500, TestContext.Current.CancellationToken);
-        Assert.False(secondGraphTcs.Task.IsCompleted,
-            "MaterializeGraph should not have been called while retry is pending and dep is dead");
+    private static PipelineEvent Event(int hour) => EnrichmentEvents.Alerts(new LocationId("lucerne"), Anchor.AddHours(hour));
+
+    private static async Task ExpectFlowAsync(Subscription subscription, TestProbe reporter, int hour, CancellationToken ct)
+    {
+        var expected = Event(hour);
+        await subscription.Queue.OfferAsync(expected, ct);
+        var received = await reporter.FishForMessageAsync(m => m is PipelineEvent, TestTimeouts.AwaitAssertMax,
+            cancellationToken: ct);
+        Assert.Equal(expected, received);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Untracked_terminated_is_ignored()
+    public async Task A_consumer_attaches_on_start_and_consumes_its_subscription()
     {
-        // Arrange: register deps and wait for initial graph materialization
-        RegisterDeps();
-        var graphTcs = new TaskCompletionSource();
-        var consumer = Sys.ActorOf(
-            ResettableTestStreamConsumer.CreateProps(graphTcs));
-        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        var ct = TestContext.Current.CancellationToken;
+        var (_, reporter, proxy) = Start();
 
-        // Create an untracked actor and stop it so a Terminated is delivered
-        var untracked = Sys.ActorOf(Props.Create(() => new BlackHoleActor()));
-        // Manually watch the untracked actor from a probe, then stop it —
-        // but the consumer never tracked it, so its Terminated should be ignored.
-        await WatchAsync(untracked);
-        Sys.Stop(untracked);
-        await ExpectTerminatedAsync(untracked, cancellationToken: TestContext.Current.CancellationToken);
+        var subscription = await AnswerAsync(proxy, CreateTestProbe(), ct);
 
-        // Assert: the consumer is still alive and in Ready (responds to queries)
-        // The Ask itself verifies the actor is responsive — no artificial delay needed.
-        var count = await consumer.Ask<int>(
-            new ResettableTestStreamConsumer.GetMaterializeCount(),
-            TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
-        Assert.Equal(1, count);
+        await reporter.ExpectMsgAsync<Materialized>(m => Assert.Equal(1, m.Count), TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await ExpectFlowAsync(subscription, reporter, 1, ct);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Retry_count_resets_on_successful_transition()
+    public async Task A_consumer_answers_its_own_messages_before_the_first_source_ref()
     {
-        // Arrange: register deps and wait for initial graph
-        var depA = CreateTestProbe();
-        var depB = CreateTestProbe();
-        ActorRegistry.Register<DepAKey>(depA, overwrite: true);
-        ActorRegistry.Register<DepBKey>(depB, overwrite: true);
+        var ct = TestContext.Current.CancellationToken;
+        var (consumer, _, proxy) = Start();
+        await ExpectRequestAsync(proxy, ct);
 
-        var graphTcs = new TaskCompletionSource();
-        var consumer = Sys.ActorOf(
-            ResettableTestStreamConsumer.CreateProps(graphTcs));
-        await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        var pong = await consumer.Ask<Pong>(new Ping(), TestTimeouts.RealTimeWaitMax, ct);
 
-        // First failure: stop depA
-        await WatchAsync(depA);
-        await depA.GracefulStop(TimeSpan.FromSeconds(2));
-        await ExpectTerminatedAsync(depA, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(new Pong(), pong);
+    }
 
-        // Register a new depA so the retry resolves successfully
-        var newDepA = CreateTestProbe();
-        ActorRegistry.Register<DepAKey>(newDepA, overwrite: true);
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_consumer_attaches_once_the_pipeline_is_registered_late()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (consumer, reporter, proxy) = Start(register: false);
+        await reporter.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(400), ct);
 
-        // Wait for recovery (retry delay is 1s for _retryCount=0)
-        var secondGraphTcs = new TaskCompletionSource();
-        consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(secondGraphTcs));
-        await secondGraphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        ActorRegistry.Register<IForecastPipeline>(proxy, overwrite: true);
+        var subscription = await AnswerAsync(proxy, CreateTestProbe(), ct);
 
-        // Second failure: stop newDepA
-        await WatchAsync(newDepA);
-        await newDepA.GracefulStop(TimeSpan.FromSeconds(2));
-        await ExpectTerminatedAsync(newDepA, cancellationToken: TestContext.Current.CancellationToken);
+        await reporter.ExpectMsgAsync<Materialized>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await ExpectFlowAsync(subscription, reporter, 1, ct);
+        Assert.Equal(new Pong(), await consumer.Ask<Pong>(new Ping(), TestTimeouts.RealTimeWaitMax, ct));
+    }
 
-        // Set the TCS before registering the new dep so the consumer uses it
-        // even if recovery completes instantly (no retry delay when the resolved
-        // ref is already alive).
-        var thirdGraphTcs = new TaskCompletionSource();
-        consumer.Tell(new ResettableTestStreamConsumer.SetGraphTcs(thirdGraphTcs));
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_unanswered_request_is_retried_with_a_new_request_id()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (_, reporter, proxy) = Start();
+        var first = await ExpectRequestAsync(proxy, ct);
 
-        // Register yet another depA
-        var thirdDepA = CreateTestProbe();
-        ActorRegistry.Register<DepAKey>(thirdDepA, overwrite: true);
-        await AwaitConditionAsync(async () =>
+        var second = await ExpectRequestAsync(proxy, ct);
+        Assert.True(second.RequestId > first.RequestId,
+            $"expected a new request id, got {first.RequestId} then {second.RequestId}");
+
+        await ReplyAsync(proxy.LastSender, second.RequestId, CreateTestProbe());
+        await reporter.ExpectMsgAsync<Materialized>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_failed_request_is_retried()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (_, reporter, proxy) = Start();
+        var first = await ExpectRequestAsync(proxy, ct);
+        proxy.LastSender.Tell(new RequestPipelineOutputFailed(first.RequestId, new InvalidOperationException("no hub")), proxy.Ref);
+
+        var subscription = await AnswerAsync(proxy, CreateTestProbe(), ct);
+
+        await reporter.ExpectMsgAsync<Materialized>(m => Assert.Equal(1, m.Count), TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await ExpectFlowAsync(subscription, reporter, 1, ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_stale_reply_is_ignored()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (_, reporter, proxy) = Start();
+        var first = await ExpectRequestAsync(proxy, ct);
+        var second = await ExpectRequestAsync(proxy, ct);
+        var consumer = proxy.LastSender;
+
+        var stale = await ReplyAsync(consumer, first.RequestId, CreateTestProbe());
+        var current = await ReplyAsync(consumer, second.RequestId, CreateTestProbe());
+
+        await reporter.ExpectMsgAsync<Materialized>(m => Assert.Equal(1, m.Count), TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await stale.Queue.OfferAsync(Event(2), ct);
+        await ExpectFlowAsync(current, reporter, 1, ct);
+        await reporter.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_consumer_re_attaches_when_the_pipeline_incarnation_terminates()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (_, reporter, proxy) = Start();
+        var incarnation = CreateTestProbe();
+        var old = await AnswerAsync(proxy, incarnation, ct);
+        await ExpectFlowAsync(old, reporter, 1, ct);
+
+        Sys.Stop(incarnation.Ref);
+
+        var renewed = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        await ExpectFlowAsync(renewed, reporter, 2, ct);
+        await old.Queue.WatchCompletionAsync().WaitAsync(TestTimeouts.RealTimeWaitMax, ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task The_termination_of_an_earlier_incarnation_is_ignored()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (_, reporter, proxy) = Start();
+        var earlier = CreateTestProbe();
+        var first = await AnswerAsync(proxy, earlier, ct);
+        first.Queue.Fail(new InvalidOperationException("stage stopped"));
+        var current = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        await ExpectFlowAsync(current, reporter, 1, ct);
+
+        Sys.Stop(earlier.Ref);
+
+        await proxy.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(400), ct);
+        await ExpectFlowAsync(current, reporter, 2, ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_failed_graph_is_re_attached_with_a_new_source_request()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (_, reporter, proxy) = Start();
+        var first = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        await ExpectFlowAsync(first, reporter, 1, ct);
+
+        first.Queue.Fail(new InvalidOperationException("stage stopped"));
+
+        var second = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        await ExpectFlowAsync(second, reporter, 2, ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_completed_graph_is_re_attached_with_a_new_source_request()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (_, reporter, proxy) = Start();
+        var first = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        await ExpectFlowAsync(first, reporter, 1, ct);
+
+        first.Queue.Complete();
+
+        var second = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        await ExpectFlowAsync(second, reporter, 2, ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task The_completion_of_a_graph_replaced_after_a_pipeline_termination_is_ignored()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (_, reporter, proxy) = Start();
+        var incarnation = CreateTestProbe();
+        var replaced = await AnswerAsync(proxy, incarnation, ct);
+        Sys.Stop(incarnation.Ref);
+        var current = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        await ExpectFlowAsync(current, reporter, 1, ct);
+
+        replaced.Queue.Complete();
+
+        await proxy.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(400), ct);
+        current.Queue.Fail(new InvalidOperationException("stage stopped"));
+        var third = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        await ExpectFlowAsync(third, reporter, 2, ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_stopped_consumer_does_not_re_attach()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (consumer, _, proxy) = Start();
+        var first = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        await WatchAsync(consumer);
+
+        Sys.Stop(consumer);
+        await ExpectTerminatedAsync(consumer, cancellationToken: ct);
+
+        await first.Queue.WatchCompletionAsync().WaitAsync(TestTimeouts.RealTimeWaitMax, ct);
+        await proxy.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(400), ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task The_re_attach_delay_grows_when_every_new_graph_fails_at_once()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var policy = Backoff.Create(TimeSpan.FromMilliseconds(200), maxDelay: TimeSpan.FromSeconds(5));
+        var (_, _, proxy) = Start(policy);
+        var subscription = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        var gaps = new List<TimeSpan>();
+
+        for (var i = 0; i < 4; i++)
         {
-            await Task.Yield();
-            return thirdGraphTcs.Task.IsCompleted;
-        }, TestTimeouts.AwaitAssertMax, TestContext.Current.CancellationToken);
-        Assert.True(thirdGraphTcs.Task.IsCompletedSuccessfully);
+            var clock = Stopwatch.StartNew();
+            subscription.Queue.Fail(new InvalidOperationException("stage stopped"));
+            subscription = await AnswerAsync(proxy, CreateTestProbe(), ct);
+            gaps.Add(clock.Elapsed);
+        }
+
+        // Delays are 200, 400, 800 and 1600 ms, each with +-25 % jitter.
+        Assert.True(gaps[3] > gaps[0] * 3,
+            $"expected the fourth delay to exceed three times the first; gaps: {string.Join(", ", gaps.Select(g => g.TotalMilliseconds))} ms");
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task The_re_attach_delay_starts_over_after_a_subscription_stayed_up_for_the_stability_window()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var policy = Backoff.Create(TimeSpan.FromMilliseconds(300), maxDelay: TimeSpan.FromSeconds(5));
+        var (_, reporter, proxy) = Start(policy, stableAfter: TimeSpan.FromMilliseconds(500));
+        var first = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        first.Queue.Fail(new InvalidOperationException("stage stopped"));
+        var second = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        second.Queue.Fail(new InvalidOperationException("stage stopped"));
+        var stable = await AnswerAsync(proxy, CreateTestProbe(), ct);
+
+        // Dilated to 900 ms of real time, beyond the 500 ms stability window.
+        await reporter.FishForMessageAsync(m => m is Materialized { Count: 3 }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await reporter.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
+        var clock = Stopwatch.StartNew();
+        stable.Queue.Fail(new InvalidOperationException("stage stopped"));
+        await AnswerAsync(proxy, CreateTestProbe(), ct);
+
+        // Without the reset this third loss would wait 1200 ms +-25 %; after it, 300 ms +-25 %.
+        Assert.True(clock.Elapsed < TimeSpan.FromMilliseconds(700),
+            $"expected the delay to start over at the initial delay, took {clock.Elapsed.TotalMilliseconds} ms");
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_lost_subscription_is_counted_once_with_the_consumer_name()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var rewires = new RewireCounter(_consumerName);
+        var (_, reporter, proxy) = Start();
+        var incarnation = CreateTestProbe();
+        var first = await AnswerAsync(proxy, incarnation, ct);
+        await ExpectFlowAsync(first, reporter, 1, ct);
+
+        // Both signals of a pipeline restart: the incarnation terminates and its SourceRef fails.
+        Sys.Stop(incarnation.Ref);
+        first.Queue.Fail(new InvalidOperationException("pipeline gone"));
+
+        var second = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        await ExpectFlowAsync(second, reporter, 2, ct);
+        await proxy.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
+        Assert.Equal(1, rewires.Value);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task The_first_attach_and_failed_attempts_are_not_counted()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var rewires = new RewireCounter(_consumerName);
+        var (_, reporter, proxy) = Start();
+        await ExpectRequestAsync(proxy, ct);
+
+        var subscription = await AnswerAsync(proxy, CreateTestProbe(), ct);
+
+        await ExpectFlowAsync(subscription, reporter, 1, ct);
+        Assert.Equal(0, rewires.Value);
     }
 
     [Fact]
-    public void Exponential_backoff_caps_at_30_seconds()
+    public void The_default_retry_policy_caps_at_thirty_seconds()
     {
-        // Unit-level verification of the backoff formula used in ScheduleRetryResolve.
-        // The formula is: delay = min(2^retryCount, 30)
-        var expected = new[] { 1, 2, 4, 8, 16, 30, 30, 30 };
-
-        for (var i = 0; i < expected.Length; i++)
-        {
-            var delay = Math.Min(Math.Pow(2, i), 30);
-            Assert.Equal(expected[i], (int)delay);
-        }
+        Assert.Multiple(
+            () => Assert.Equal(TimeSpan.FromSeconds(1), StreamConsumerActor.DefaultRetryPolicy.Delay(0)),
+            () => Assert.Equal(TimeSpan.FromSeconds(30), StreamConsumerActor.DefaultRetryPolicy.Delay(10)));
     }
 
-    // -- inner fakes --
-
-    private sealed class BlackHoleActor : ReceiveActor
+    private sealed class RewireCounter : IDisposable
     {
-        public BlackHoleActor()
+        private readonly MeterListener _listener = new();
+        private long _value;
+
+        public RewireCounter(string consumer)
         {
-            ReceiveAny(_ => { });
+            _listener.InstrumentPublished = (instrument, l) =>
+            {
+                if (instrument.Meter.Name == "Njord.Core" && instrument.Name == "njord_stream_consumer_rewires_total")
+                {
+                    l.EnableMeasurementEvents(instrument);
+                }
+            };
+            _listener.SetMeasurementEventCallback<long>((_, value, tags, _) =>
+            {
+                foreach (var tag in tags)
+                {
+                    if (tag.Key == "consumer" && Equals(tag.Value, consumer))
+                    {
+                        Interlocked.Add(ref _value, value);
+                    }
+                }
+            });
+            _listener.Start();
         }
+
+        public long Value => Interlocked.Read(ref _value);
+
+        public void Dispose() => _listener.Dispose();
     }
 }
