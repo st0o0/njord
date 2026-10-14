@@ -2,8 +2,7 @@
 
 ## Purpose
 
-Routing of failed fetches from the `OpenMeteoGateway` back to the `PollScheduler`: failures carry their location and model, and the scheduler retries every failure reason with transient backoff.
-
+Routing of failed fetches from the `OpenMeteoGateway` back to the `PollScheduler`: failures carry their location and model, the scheduler attributes every reply to its configured target regardless of spelling, and it retries every failure reason with transient backoff.
 ## Requirements
 ### Requirement: Fetch failures carry location and model context
 Each `PollOutcome.Failure` returned by `IOpenMeteoClient.FetchAsync` SHALL carry the `Location` (string), `Model` (`WeatherModel`), `Reason` (`PollFailureReason`) and a `Detail` text of the failed fetch. The gateway SHALL forward it to the requester as `FetchForecastFailed(LocationId Location, string ModelId, PollFailureReason Reason, string? Detail)`, so the scheduler can identify which (location, model) pair failed.
@@ -41,4 +40,15 @@ Each `PollOutcome.Failure` returned by `IOpenMeteoClient.FetchAsync` SHALL carry
 #### Scenario: Learned cycle survives failures
 - **WHEN** a model in Steady phase receives any failure reason
 - **THEN** its `Phase`, `Cycle` and `MissCount` are unchanged
+
+### Requirement: Fetch replies are attributed to the configured target
+`PollScheduler` SHALL attribute every `FetchForecastCompleted` and `FetchForecastFailed` to the configured target whose location and model match the reply case-insensitively, and SHALL update, persist and schedule that target under its configured spelling. A reply that matches no configured target SHALL be logged at Warning and SHALL NOT create, update or schedule any target.
+
+#### Scenario: Reply spelled differently updates the configured target
+- **WHEN** `lucerne` with model `icon_d2` is configured and `FetchForecastCompleted(LUCERNE, "ICON_D2", hash)` arrives
+- **THEN** the poll state of (lucerne, icon_d2) is updated and no second target appears in the poll states
+
+#### Scenario: Reply for an unknown target is ignored
+- **WHEN** `FetchForecastFailed(atlantis, "icon_d2", Transport, ...)` arrives and `atlantis` is not configured
+- **THEN** a warning is logged and the poll states are unchanged
 
