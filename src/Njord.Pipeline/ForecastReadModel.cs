@@ -16,6 +16,9 @@ namespace Njord.Pipeline;
 // the latest analysis event per location, and a secondary hub for streaming clients.
 public sealed class ForecastReadModel : StreamConsumerActor
 {
+    // Per streaming client; a client that falls behind loses its oldest events instead of holding up the hub.
+    private const int StreamClientBufferSize = 256;
+
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
     private IActorRef? _pipelineRef;
@@ -106,6 +109,10 @@ public sealed class ForecastReadModel : StreamConsumerActor
             })
             .RunWith(hubSink, Mat);
 
+        // A BroadcastHub without a consumer backpressures instead of dropping: this permanent drain keeps the
+        // read model (and with it the pipeline and MQTT) consuming while no streaming client is attached.
+        hubSource.RunWith(Sink.Ignore<PipelineEvent>(), Mat);
+
         _secondaryHubSource = hubSource;
     }
 
@@ -152,6 +159,7 @@ public sealed class ForecastReadModel : StreamConsumerActor
         }
 
         _secondaryHubSource
+            .Buffer(StreamClientBufferSize, OverflowStrategy.DropHead)
             .RunWith(StreamRefs.SourceRef<PipelineEvent>(), Mat)
             .PipeTo(Sender, Self,
                 sr => new RequestReadModelStreamCompleted(msg.RequestId, sr),

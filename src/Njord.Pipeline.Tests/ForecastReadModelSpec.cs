@@ -21,15 +21,20 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
 
     private async Task<(IActorRef ReadModel, ISourceQueueWithComplete<PipelineEvent> Pipeline)> StartAsync()
     {
-        var ready = new TaskCompletionSource<ISourceQueueWithComplete<PipelineEvent>>(
-            TaskCreationOptions.RunContinuationsAsynchronously);
+        var (readModel, pipeline) = await StartWithPipelineHubAsync();
+        return (readModel, pipeline.Queue);
+    }
+
+    private async Task<(IActorRef ReadModel, TestPipeline Pipeline)> StartWithPipelineHubAsync()
+    {
+        var ready = new TaskCompletionSource<TestPipeline>(TaskCreationOptions.RunContinuationsAsynchronously);
         var pipeline = Sys.ActorOf(Props.Create(() => new FakePipeline(Sys.Materializer(), ready)),
             $"pipeline-{Guid.NewGuid():N}");
         ActorRegistry.Register<IForecastPipeline>(pipeline, overwrite: true);
 
         var readModel = Sys.ActorOf(Props.Create(() => new ForecastReadModel()), $"read-model-{Guid.NewGuid():N}");
-        var queue = await ready.Task.WaitAsync(TestTimeouts.AwaitAssertMax, TestContext.Current.CancellationToken);
-        return (readModel, queue);
+        var testPipeline = await ready.Task.WaitAsync(TestTimeouts.AwaitAssertMax, TestContext.Current.CancellationToken);
+        return (readModel, testPipeline);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -124,6 +129,201 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
     }
 
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task The_read_model_keeps_consuming_when_no_streaming_client_is_attached()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (readModel, pipeline) = await StartWithPipelineHubAsync();
+        var otherConsumer = await AttachOtherConsumerAsync(readModel, pipeline, ct);
+        var events = CreateAlerts(50);
+
+        await OfferAllAsync(pipeline.Queue, events, ct);
+
+        await AssertReadModelAndOtherConsumerReceivedAllAsync(readModel, otherConsumer, events, ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_streaming_client_that_does_not_pull_never_holds_up_the_read_model()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (readModel, pipeline) = await StartWithPipelineHubAsync();
+        var otherConsumer = await AttachOtherConsumerAsync(readModel, pipeline, ct);
+        var idleClient = await RequestStreamAsync(readModel, ct);
+        var events = CreateAlerts(300);
+
+        await OfferAllAsync(pipeline.Queue, events, ct);
+
+        await AssertReadModelAndOtherConsumerReceivedAllAsync(readModel, otherConsumer, events, ct);
+
+        var client = new EventCollector();
+        _ = idleClient.RunWith(client.AsSink(), Sys.Materializer());
+        var received = await client.WaitUntilAsync(
+            r => r.Count > 0 && Equals(r[^1], events[^1]), "the idle client to receive the last event", ct);
+
+        Assert.Multiple(
+            () => Assert.InRange(received.Count, 1, 256),
+            () => Assert.Equal(events.TakeLast(received.Count), received));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_streaming_client_that_keeps_up_receives_every_event_in_order()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (readModel, pipeline) = await StartWithPipelineHubAsync();
+        var client = new EventCollector();
+        var clientSource = await RequestStreamAsync(readModel, ct);
+        _ = clientSource.RunWith(client.AsSink(), Sys.Materializer());
+        await WarmUpAsync(pipeline.Queue, client, ct);
+        var events = CreateAlerts(50);
+
+        await OfferAllAsync(pipeline.Queue, events, ct);
+
+        var received = await client.WaitUntilAsync(r => r.Count >= events.Count, "50 events at the client", ct);
+        Assert.Equal(events, received);
+    }
+
+    private static readonly PipelineEvent WarmUp =
+        new PipelineEvent.AlertComputed(new AlertResult(Lucerne, []), Anchor.AddDays(-1));
+
+    private static List<PipelineEvent> CreateAlerts(int count) =>
+        Enumerable.Range(1, count)
+            .Select(i => (PipelineEvent)new PipelineEvent.AlertComputed(new AlertResult(Lucerne, []), Anchor.AddMinutes(i)))
+            .ToList();
+
+    // Attaches a second consumer to the test pipeline hub next to the read model, and proves with a warm-up
+    // event that both are attached before the spec offers its events.
+    private async Task<EventCollector> AttachOtherConsumerAsync(
+        IActorRef readModel, TestPipeline pipeline, CancellationToken ct)
+    {
+        var collector = new EventCollector();
+        _ = pipeline.HubSource.RunWith(collector.AsSink(), Sys.Materializer());
+        await WarmUpAsync(pipeline.Queue, collector, ct);
+        await AwaitAssertAsync(async () =>
+        {
+            var response = await readModel.Ask<LatestAnalysisResponse>(new QueryLatestAnalysis(Lucerne), AskTimeout, ct);
+            var result = Assert.IsType<LatestAnalysisResult>(response);
+            Assert.Equal(WarmUp, result.Analysis);
+        }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        return collector;
+    }
+
+    // A consumer attaches to a hub asynchronously: offer warm-up events until the consumer sees one.
+    private async Task WarmUpAsync(
+        ISourceQueueWithComplete<PipelineEvent> queue, EventCollector consumer, CancellationToken ct)
+    {
+        await AwaitAssertAsync(async () =>
+        {
+            await queue.OfferAsync(WarmUp, ct);
+            await consumer.WarmUpSeen.WaitAsync(TimeSpan.FromMilliseconds(500), ct);
+        }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+    }
+
+    private static async Task OfferAllAsync(
+        ISourceQueueWithComplete<PipelineEvent> queue, IReadOnlyList<PipelineEvent> events, CancellationToken ct)
+    {
+        var offered = 0;
+
+        async Task OfferInOrder()
+        {
+            foreach (var evt in events)
+            {
+                var result = await queue.OfferAsync(evt, ct);
+                Assert.IsType<QueueOfferResult.Enqueued>(result);
+                Interlocked.Increment(ref offered);
+            }
+        }
+
+        // A stalled pipeline backpressures the queue; fail with a bounded wait instead of hanging.
+        try
+        {
+            await OfferInOrder().WaitAsync(TestTimeouts.AwaitAssertMax, ct);
+        }
+        catch (TimeoutException)
+        {
+            Assert.Fail($"The pipeline stalled: only {Volatile.Read(ref offered)} of {events.Count} events " +
+                        $"were accepted within {TestTimeouts.AwaitAssertMax}");
+        }
+    }
+
+    private async Task AssertReadModelAndOtherConsumerReceivedAllAsync(
+        IActorRef readModel, EventCollector otherConsumer, IReadOnlyList<PipelineEvent> events, CancellationToken ct)
+    {
+        var received = await otherConsumer.WaitUntilAsync(
+            r => r.Count >= events.Count, $"{events.Count} events at the other pipeline consumer", ct);
+        Assert.Equal(events, received);
+
+        var response = await readModel.Ask<LatestAnalysisResponse>(new QueryLatestAnalysis(Lucerne), AskTimeout, ct);
+        var result = Assert.IsType<LatestAnalysisResult>(response);
+        Assert.Equal(events[^1], result.Analysis);
+    }
+
+    // Records every non-warm-up event a stream delivers and lets a spec wait, bounded, for a condition on them.
+    private sealed class EventCollector
+    {
+        private readonly Lock _gate = new();
+        private readonly List<PipelineEvent> _events = [];
+        private readonly TaskCompletionSource _warmUpSeen = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private Func<IReadOnlyList<PipelineEvent>, bool>? _condition;
+        private TaskCompletionSource? _conditionMet;
+
+        public Sink<PipelineEvent, Task<Akka.Done>> AsSink() => Sink.ForEach<PipelineEvent>(Add);
+
+        public Task WarmUpSeen => _warmUpSeen.Task;
+
+        public async Task<IReadOnlyList<PipelineEvent>> WaitUntilAsync(
+            Func<IReadOnlyList<PipelineEvent>, bool> condition, string description, CancellationToken ct)
+        {
+            var met = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            lock (_gate)
+            {
+                _condition = condition;
+                _conditionMet = met;
+                if (condition(_events))
+                {
+                    met.TrySetResult();
+                }
+            }
+
+            try
+            {
+                await met.Task.WaitAsync(TestTimeouts.AwaitAssertMax, ct);
+            }
+            catch (TimeoutException)
+            {
+                Assert.Fail($"Timed out after {TestTimeouts.AwaitAssertMax} waiting for {description}; " +
+                            $"received {Snapshot().Count} events");
+            }
+
+            return Snapshot();
+        }
+
+        private void Add(PipelineEvent evt)
+        {
+            if (Equals(evt, WarmUp))
+            {
+                _warmUpSeen.TrySetResult();
+                return;
+            }
+
+            lock (_gate)
+            {
+                _events.Add(evt);
+                if (_condition is not null && _condition(_events))
+                {
+                    _conditionMet?.TrySetResult();
+                }
+            }
+        }
+
+        private List<PipelineEvent> Snapshot()
+        {
+            lock (_gate)
+            {
+                return [.. _events];
+            }
+        }
+    }
+
     private static async Task<Source<PipelineEvent, Akka.NotUsed>> RequestStreamAsync(IActorRef readModel, CancellationToken ct)
     {
         RequestReadModelStreamResponse? response = null;
@@ -151,19 +351,29 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
+    private sealed record TestPipeline(
+        ISourceQueueWithComplete<PipelineEvent> Queue,
+        Source<PipelineEvent, Akka.NotUsed> HubSource);
+
+    // Mirrors ForecastPipeline's output: a BroadcastHub (buffer size 2) that every consumer reads from,
+    // so a stalled read model holds up the other consumers of the hub as it would in production.
     private sealed class FakePipeline : ReceiveActor
     {
-        public FakePipeline(IMaterializer mat, TaskCompletionSource<ISourceQueueWithComplete<PipelineEvent>> ready)
+        public FakePipeline(IMaterializer mat, TaskCompletionSource<TestPipeline> ready)
         {
+            var (queue, hubSource) = Source.Queue<PipelineEvent>(32, OverflowStrategy.Backpressure)
+                .ToMaterialized(BroadcastHub.Sink<PipelineEvent>(bufferSize: 2), Keep.Both)
+                .Run(mat);
+            var pipeline = new TestPipeline(queue, hubSource);
+
             Receive<RequestPipelineOutput>(msg =>
             {
-                var (queue, source) = Source.Queue<PipelineEvent>(32, OverflowStrategy.DropHead).PreMaterialize(mat);
-                ready.TrySetResult(queue);
-                source
+                hubSource
                     .RunWith(StreamRefs.SourceRef<PipelineEvent>(), mat)
                     .PipeTo(Sender, Self,
                         sr => new RequestPipelineOutputCompleted(msg.RequestId, sr),
                         ex => new RequestPipelineOutputFailed(msg.RequestId, ex));
+                ready.TrySetResult(pipeline);
             });
         }
     }

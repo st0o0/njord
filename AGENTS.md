@@ -54,7 +54,9 @@ the HA host).
   the API's read model (`ForecastReadModel` in `Njord.Pipeline`, marker
   `IForecastReadModel`) request a `SourceRef<PipelineEvent>` from `ForecastPipeline`
   and run their own sinks. No intermediate relay actors, no presenters, no discovery
-  payloads.
+  payloads. The read model's streaming hub has a permanent `Sink.Ignore` drain and each
+  gRPC streaming client gets a bounded drop-oldest buffer (256 events), so streaming
+  clients never hold up the read model, the pipeline or MQTT.
 - **The gRPC API is a pure adapter.** `Njord.Grpc` holds no actors and reads no
   options: every RPC resolves an actor marker, asks with a message from
   `Njord.Messages` through `ActorAsk` (`Unavailable` when the actor is not resolvable,
@@ -213,8 +215,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 971 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 153,
-Grpc 75, Pipeline 75, Mqtt 52, OpenMeteo 18, Budget 25, SensorHub 21, Architecture 53,
+Current total: 974 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 153,
+Grpc 75, Pipeline 78, Mqtt 52, OpenMeteo 18, Budget 25, SensorHub 21, Architecture 53,
 Alerts 67, Derived 36, Trends 27, Indices 61, host `Njord.Tests` 23).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
