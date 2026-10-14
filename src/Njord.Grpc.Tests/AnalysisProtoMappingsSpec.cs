@@ -297,4 +297,51 @@ public sealed class AnalysisProtoMappingsSpec
 
         Assert.Null(evt);
     }
+
+    [Fact]
+    public void LatestAnalysisResult_should_fill_every_available_enrichment_field()
+    {
+        var lucerne = new LocationId("lucerne");
+        var computedAt = TestTimeConstants.BudgetEpoch;
+        var result = new LatestAnalysisResult(lucerne,
+            Consensus: EnrichmentEvents.Consensus(lucerne, computedAt),
+            Alerts: EnrichmentEvents.Alerts(lucerne, computedAt.AddMinutes(1)),
+            Derived: EnrichmentEvents.Derived(lucerne, computedAt.AddMinutes(2)),
+            Trends: EnrichmentEvents.Trends(lucerne, computedAt.AddMinutes(3)),
+            Indices: EnrichmentEvents.Indices(lucerne, computedAt.AddMinutes(4)));
+
+        var proto = AnalysisProtoMappings.ToProto((LatestAnalysisResponse)result);
+
+        Assert.Multiple(
+            () => Assert.Equal("lucerne", proto.Location),
+            () => Assert.Equal(new V2.ConsensusUpdate(), proto.Consensus),
+            () => Assert.Equal(computedAt, proto.ConsensusUpdatedAt?.ToDateTimeOffset()),
+            () => Assert.Equal(new V2.AlertUpdate(), proto.Alerts),
+            () => Assert.Equal(4.5, proto.Derived?.Scalars.DiurnalAmplitude),
+            () => Assert.Equal(3, proto.Trends?.PrecipStartsInHours),
+            () => Assert.Equal(14, proto.Indices?.Frost.HoursUntilFrost));
+    }
+
+    [Fact]
+    public void LatestAnalysisResult_should_leave_missing_enrichment_fields_unset()
+    {
+        var lucerne = new LocationId("lucerne");
+        var computedAt = TestTimeConstants.BudgetEpoch;
+        var result = new LatestAnalysisResult(lucerne,
+            Consensus: null,
+            Alerts: EnrichmentEvents.Alerts(lucerne, computedAt),
+            Derived: null,
+            Trends: EnrichmentEvents.Trends(lucerne, computedAt),
+            Indices: null);
+
+        var proto = AnalysisProtoMappings.ToProto((LatestAnalysisResponse)result);
+
+        Assert.Multiple(
+            () => Assert.NotNull(proto.Alerts),
+            () => Assert.Equal(3, proto.Trends?.PrecipStartsInHours),
+            () => Assert.Null(proto.Consensus),
+            () => Assert.Null(proto.ConsensusUpdatedAt),
+            () => Assert.Null(proto.Derived),
+            () => Assert.Null(proto.Indices));
+    }
 }

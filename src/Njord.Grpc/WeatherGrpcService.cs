@@ -43,10 +43,10 @@ public sealed class WeatherGrpcService(
 
     public override async Task<GetEnrichmentsResponse> GetEnrichments(GetEnrichmentsRequest request, ServerCallContext context)
     {
-        FindLocation(await AskCatalogAsync(context), request.Location);
+        var location = FindLocation(await AskCatalogAsync(context), request.Location);
 
         var result = await actorRegistry.AskAsync<IForecastReadModel, LatestAnalysisResponse>(
-            new QueryLatestAnalysis(new LocationId(request.Location)), context);
+            new QueryLatestAnalysis(location.Id), context);
 
         return result.ToProto();
     }
@@ -56,6 +56,7 @@ public sealed class WeatherGrpcService(
         IServerStreamWriter<ForecastUpdate> responseStream,
         ServerCallContext context)
     {
+        var location = await ResolveStreamLocationAsync(request.Location, context);
         var sourceRef = await RequestReadModelStreamAsync(context);
 
         var mat = actorSystem.Materializer();
@@ -64,8 +65,7 @@ public sealed class WeatherGrpcService(
 
         await sourceRef.Source
             .Collect(e => e is PipelineEvent.ForecastReceived, e => (PipelineEvent.ForecastReceived)e)
-            .Where(u => string.IsNullOrEmpty(request.Location) ||
-                        string.Equals(u.Location.Name, request.Location, StringComparison.OrdinalIgnoreCase))
+            .Where(u => location is not { } wanted || u.Location == wanted)
             .Via(killSwitch.Flow<PipelineEvent.ForecastReceived>())
             .SelectAsync(1, async update =>
             {
@@ -81,6 +81,7 @@ public sealed class WeatherGrpcService(
         IServerStreamWriter<EnrichmentEvent> responseStream,
         ServerCallContext context)
     {
+        var location = await ResolveStreamLocationAsync(request.Location, context);
         var sourceRef = await RequestReadModelStreamAsync(context);
 
         var mat = actorSystem.Materializer();
@@ -88,9 +89,7 @@ public sealed class WeatherGrpcService(
         await using var ctr = context.CancellationToken.Register(() => killSwitch.Shutdown());
 
         await sourceRef.Source
-            .Where(e => e is PipelineEvent.ConsensusComputed or PipelineEvent.AlertComputed
-                or PipelineEvent.DerivedComputed or PipelineEvent.TrendComputed
-                or PipelineEvent.IndexComputed)
+            .Where(e => e is IEnrichmentEvent enrichment && (location is not { } wanted || enrichment.Location == wanted))
             .Via(killSwitch.Flow<PipelineEvent>())
             .SelectAsync(1, async update =>
             {
@@ -104,6 +103,10 @@ public sealed class WeatherGrpcService(
 
     private async Task<CatalogResult> AskCatalogAsync(ServerCallContext context) =>
         (await actorRegistry.AskAsync<IConfigManager, CatalogResponse>(new QueryCatalog(), context)).ToResult();
+
+    // An empty location streams every location; a non-empty one must be configured.
+    private async Task<LocationId?> ResolveStreamLocationAsync(string location, ServerCallContext context) =>
+        string.IsNullOrEmpty(location) ? null : FindLocation(await AskCatalogAsync(context), location).Id;
 
     private async Task<ISourceRef<PipelineEvent>> RequestReadModelStreamAsync(ServerCallContext context)
     {

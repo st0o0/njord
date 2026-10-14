@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Akka;
 using Akka.Actor;
 using Akka.Event;
@@ -13,7 +14,7 @@ using WeatherForecast = Njord.Weather.Forecast;
 namespace Njord.Pipeline;
 
 // In-memory projection of the pipeline output for the API: the latest forecast per location and model,
-// the latest analysis event per location, and a secondary hub for streaming clients.
+// the latest event of each analysis kind per location, and a secondary hub for streaming clients.
 public sealed class ForecastReadModel : StreamConsumerActor
 {
     // Per streaming client; a client that falls behind loses its oldest events instead of holding up the hub.
@@ -28,7 +29,8 @@ public sealed class ForecastReadModel : StreamConsumerActor
     private Source<PipelineEvent, NotUsed>? _secondaryHubSource;
 
     // Keyed by the location name as the pipeline reports it (ordinal), as the read model always was.
-    private readonly Dictionary<string, LatestResults> _state = new();
+    // Written only by the materialized stream and read by the actor: an immutable map swapped as a whole.
+    private volatile ImmutableDictionary<string, LatestResults> _state = ImmutableDictionary<string, LatestResults>.Empty;
 
     private sealed record PipelineResolved(IActorRef Ref);
     private sealed record PipelineResolveFailed(Exception Cause);
@@ -38,7 +40,7 @@ public sealed class ForecastReadModel : StreamConsumerActor
         public IReadOnlyDictionary<WeatherModel, WeatherForecast> Forecasts { get; init; } =
             new Dictionary<WeatherModel, WeatherForecast>();
 
-        public PipelineEvent? LastAnalysis { get; init; }
+        public LatestAnalysisResult? Analysis { get; init; }
     }
 
     protected override void ResolveInitialDependencies()
@@ -144,8 +146,8 @@ public sealed class ForecastReadModel : StreamConsumerActor
 
     private void HandleQueryLatestAnalysis(QueryLatestAnalysis msg)
     {
-        Sender.Tell(_state.TryGetValue(msg.Location.Name, out var latest) && latest.LastAnalysis is { } analysis
-            ? new LatestAnalysisResult(msg.Location, analysis)
+        Sender.Tell(_state.TryGetValue(msg.Location.Name, out var latest) && latest.Analysis is { } analysis
+            ? analysis
             : new LatestAnalysisNotAvailable(msg.Location));
     }
 
@@ -180,25 +182,26 @@ public sealed class ForecastReadModel : StreamConsumerActor
                 {
                     [forecast.Model] = forecast.Forecast
                 };
-                _state[forecast.Location.Name] = forecastState with { Forecasts = forecasts };
+                _state = _state.SetItem(forecast.Location.Name, forecastState with { Forecasts = forecasts });
                 break;
-            case PipelineEvent.ConsensusComputed or PipelineEvent.AlertComputed
-                or PipelineEvent.DerivedComputed or PipelineEvent.TrendComputed
-                or PipelineEvent.IndexComputed:
-                var location = evt switch
-                {
-                    PipelineEvent.ConsensusComputed c => c.Consensus.Location.Name,
-                    PipelineEvent.AlertComputed a => a.Result.Location.Name,
-                    PipelineEvent.DerivedComputed d => d.Result.Location.Name,
-                    PipelineEvent.TrendComputed t => t.Result.Location.Name,
-                    PipelineEvent.IndexComputed i => i.Result.Location.Name,
-                    _ => throw new InvalidOperationException()
-                };
-                var analysisState = _state.GetValueOrDefault(location, new LatestResults());
-                _state[location] = analysisState with { LastAnalysis = evt };
+            case IEnrichmentEvent enrichment:
+                var location = enrichment.Location;
+                var analysisState = _state.GetValueOrDefault(location.Name, new LatestResults());
+                var analysis = analysisState.Analysis ?? new LatestAnalysisResult(location, null, null, null, null, null);
+                _state = _state.SetItem(location.Name, analysisState with { Analysis = WithLatest(analysis, evt) });
                 break;
         }
     }
+
+    private static LatestAnalysisResult WithLatest(LatestAnalysisResult analysis, PipelineEvent evt) => evt switch
+    {
+        PipelineEvent.ConsensusComputed consensus => analysis with { Consensus = consensus },
+        PipelineEvent.AlertComputed alerts => analysis with { Alerts = alerts },
+        PipelineEvent.DerivedComputed derived => analysis with { Derived = derived },
+        PipelineEvent.TrendComputed trends => analysis with { Trends = trends },
+        PipelineEvent.IndexComputed indices => analysis with { Indices = indices },
+        _ => analysis,
+    };
 
     protected override void OnDependencyLost()
     {

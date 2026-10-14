@@ -363,46 +363,55 @@ internal static class AnalysisProtoMappings
 
     public static GetEnrichmentsResponse ToProto(this LatestAnalysisResponse response)
     {
-        var (location, analysis) = response switch
+        switch (response)
         {
-            LatestAnalysisResult found => (found.Location, found.Analysis),
-            LatestAnalysisNotAvailable missing => (missing.Location, null),
-            _ => throw new ArgumentOutOfRangeException(nameof(response), response.GetType().Name, "Unknown analysis response"),
-        };
+            case LatestAnalysisNotAvailable missing:
+                return new GetEnrichmentsResponse { Location = missing.Location.Name };
+            case LatestAnalysisResult found:
+                var proto = new GetEnrichmentsResponse { Location = found.Location.Name };
+                if (found.Consensus is { } consensus)
+                {
+                    proto.Consensus = consensus.ToConsensusResult().ToProto();
+                    proto.ConsensusUpdatedAt = ToTimestamp(consensus.Timestamp);
+                }
 
-        var proto = new GetEnrichmentsResponse { Location = location.Name };
-        if (analysis?.ToEnrichmentEvent() is not { } evt)
-        {
-            return proto;
+                if (found.Alerts is { } alerts)
+                {
+                    proto.Alerts = alerts.Result.ToProto();
+                }
+
+                if (found.Derived is { } derived)
+                {
+                    proto.Derived = derived.Result.ToProto();
+                }
+
+                if (found.Trends is { } trends)
+                {
+                    proto.Trends = trends.Result.ToProto();
+                }
+
+                if (found.Indices is { } indices)
+                {
+                    proto.Indices = indices.Result.ToProto();
+                }
+
+                return proto;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(response), response.GetType().Name, "Unknown analysis response");
         }
-
-        switch (evt.PayloadCase)
-        {
-            case EnrichmentEvent.PayloadOneofCase.Alerts: proto.Alerts = evt.Alerts; break;
-            case EnrichmentEvent.PayloadOneofCase.Indices: proto.Indices = evt.Indices; break;
-            case EnrichmentEvent.PayloadOneofCase.Trends: proto.Trends = evt.Trends; break;
-            case EnrichmentEvent.PayloadOneofCase.Derived: proto.Derived = evt.Derived; break;
-            case EnrichmentEvent.PayloadOneofCase.Consensus:
-                proto.Consensus = evt.Consensus;
-                proto.ConsensusUpdatedAt = evt.UpdatedAt;
-                break;
-        }
-
-        return proto;
     }
 
-    private static EnrichmentEvent MapConsensusEvent(PipelineEvent.ConsensusComputed c)
-    {
-        var result = new ConsensusResult(
-            c.Consensus.Hourly.Parameters, c.Consensus.Daily.Parameters, c.Consensus.ComputedAt);
-        return new EnrichmentEvent
+    private static EnrichmentEvent MapConsensusEvent(PipelineEvent.ConsensusComputed c) =>
+        new()
         {
             Location = c.Consensus.Location.Name,
             TypeName = c.Kind.ToWireName(),
             UpdatedAt = ToTimestamp(c.Timestamp),
-            Consensus = result.ToProto(),
+            Consensus = c.ToConsensusResult().ToProto(),
         };
-    }
+
+    private static ConsensusResult ToConsensusResult(this PipelineEvent.ConsensusComputed c) =>
+        new(c.Consensus.Hourly.Parameters, c.Consensus.Daily.Parameters, c.Consensus.ComputedAt);
 
     private static Google.Protobuf.WellKnownTypes.Timestamp ToTimestamp(DateTimeOffset dt) =>
         Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(dt);

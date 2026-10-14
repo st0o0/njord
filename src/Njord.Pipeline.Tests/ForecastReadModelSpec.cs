@@ -16,6 +16,7 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
     private static readonly DateTimeOffset Anchor = TestTimeConstants.NoonAnchor;
     private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
     private static readonly LocationId Lucerne = new("lucerne");
+    private static readonly LocationId Zurich = new("zurich");
 
     protected override bool UseTestPersistence => false;
 
@@ -55,22 +56,85 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_latest_analysis_query_returns_the_last_analysis_event_of_the_location()
+    public async Task A_latest_analysis_query_returns_the_last_event_of_a_kind()
     {
         var ct = TestContext.Current.CancellationToken;
         var (readModel, pipeline) = await StartAsync();
-        var first = new PipelineEvent.AlertComputed(new AlertResult(Lucerne, []), Anchor);
-        var last = new PipelineEvent.AlertComputed(new AlertResult(Lucerne, []), Anchor.AddHours(1));
+        var first = EnrichmentEvents.Alerts(Lucerne, Anchor);
+        var last = EnrichmentEvents.Alerts(Lucerne, Anchor.AddHours(1));
 
         await pipeline.OfferAsync(first, ct);
         await pipeline.OfferAsync(last, ct);
 
-        await AwaitAssertAsync(async () =>
+        var result = await AwaitAnalysisAsync(readModel, Lucerne, r => Equals(r.Alerts, last), ct);
+        Assert.Equal(last, result.Alerts);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_latest_analysis_query_returns_the_latest_event_of_every_kind()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (readModel, pipeline) = await StartAsync();
+        var consensus = EnrichmentEvents.Consensus(Lucerne, Anchor);
+        var alerts = EnrichmentEvents.Alerts(Lucerne, Anchor);
+        var derived = EnrichmentEvents.Derived(Lucerne, Anchor);
+        var trends = EnrichmentEvents.Trends(Lucerne, Anchor);
+        var indices = EnrichmentEvents.Indices(Lucerne, Anchor);
+
+        foreach (PipelineEvent evt in new PipelineEvent[] { consensus, alerts, derived, trends, indices })
         {
-            var response = await readModel.Ask<LatestAnalysisResponse>(new QueryLatestAnalysis(Lucerne), AskTimeout, ct);
-            var result = Assert.IsType<LatestAnalysisResult>(response);
-            Assert.Equal(last, result.Analysis);
-        }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+            await pipeline.OfferAsync(evt, ct);
+        }
+
+        var result = await AwaitAnalysisAsync(readModel, Lucerne, r => r.Indices is not null, ct);
+        Assert.Multiple(
+            () => Assert.Equal(Lucerne, result.Location),
+            () => Assert.Equal(consensus, result.Consensus),
+            () => Assert.Equal(alerts, result.Alerts),
+            () => Assert.Equal(derived, result.Derived),
+            () => Assert.Equal(trends, result.Trends),
+            () => Assert.Equal(indices, result.Indices));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_newer_event_replaces_only_the_event_of_its_own_kind()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (readModel, pipeline) = await StartAsync();
+        var trends = EnrichmentEvents.Trends(Lucerne, Anchor);
+        var newerAlerts = EnrichmentEvents.Alerts(Lucerne, Anchor.AddHours(1));
+
+        await pipeline.OfferAsync(EnrichmentEvents.Alerts(Lucerne, Anchor), ct);
+        await pipeline.OfferAsync(trends, ct);
+        await pipeline.OfferAsync(newerAlerts, ct);
+
+        var result = await AwaitAnalysisAsync(readModel, Lucerne, r => Equals(r.Alerts, newerAlerts), ct);
+        Assert.Multiple(
+            () => Assert.Equal(newerAlerts, result.Alerts),
+            () => Assert.Equal(trends, result.Trends),
+            () => Assert.Null(result.Consensus),
+            () => Assert.Null(result.Derived),
+            () => Assert.Null(result.Indices));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task Analysis_kinds_are_kept_per_location()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (readModel, pipeline) = await StartAsync();
+        var lucerneAlerts = EnrichmentEvents.Alerts(Lucerne, Anchor);
+        var zurichTrends = EnrichmentEvents.Trends(Zurich, Anchor);
+
+        await pipeline.OfferAsync(lucerneAlerts, ct);
+        await pipeline.OfferAsync(zurichTrends, ct);
+
+        var zurich = await AwaitAnalysisAsync(readModel, Zurich, r => r.Trends is not null, ct);
+        var lucerne = await AwaitAnalysisAsync(readModel, Lucerne, r => r.Alerts is not null, ct);
+        Assert.Multiple(
+            () => Assert.Equal(lucerneAlerts, lucerne.Alerts),
+            () => Assert.Null(lucerne.Trends),
+            () => Assert.Equal(zurichTrends, zurich.Trends),
+            () => Assert.Null(zurich.Alerts));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -182,6 +246,27 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
         Assert.Equal(events, received);
     }
 
+    // Polls the read model in real time (not dilated by the TestKit timefactor) until the condition holds.
+    private static async Task<LatestAnalysisResult> AwaitAnalysisAsync(
+        IActorRef readModel, LocationId location, Func<LatestAnalysisResult, bool> condition, CancellationToken ct)
+    {
+        var deadline = DateTimeOffset.UtcNow + TestTimeouts.AwaitAssertMax;
+        LatestAnalysisResponse? last = null;
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            last = await readModel.Ask<LatestAnalysisResponse>(new QueryLatestAnalysis(location), AskTimeout, ct);
+            if (last is LatestAnalysisResult result && condition(result))
+            {
+                return result;
+            }
+
+            await Task.Delay(20, ct);
+        }
+
+        Assert.Fail($"Timed out after {TestTimeouts.AwaitAssertMax} waiting for the analysis of {location}; last reply: {last}");
+        throw new System.Diagnostics.UnreachableException();
+    }
+
     private static readonly PipelineEvent WarmUp =
         new PipelineEvent.AlertComputed(new AlertResult(Lucerne, []), Anchor.AddDays(-1));
 
@@ -202,7 +287,7 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
         {
             var response = await readModel.Ask<LatestAnalysisResponse>(new QueryLatestAnalysis(Lucerne), AskTimeout, ct);
             var result = Assert.IsType<LatestAnalysisResult>(response);
-            Assert.Equal(WarmUp, result.Analysis);
+            Assert.Equal(WarmUp, result.Alerts);
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         return collector;
     }
@@ -254,7 +339,7 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
 
         var response = await readModel.Ask<LatestAnalysisResponse>(new QueryLatestAnalysis(Lucerne), AskTimeout, ct);
         var result = Assert.IsType<LatestAnalysisResult>(response);
-        Assert.Equal(events[^1], result.Analysis);
+        Assert.Equal(events[^1], result.Alerts);
     }
 
     // Records every non-warm-up event a stream delivers and lets a spec wait, bounded, for a condition on them.

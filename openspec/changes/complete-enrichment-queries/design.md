@@ -42,7 +42,9 @@ DerivedComputed? Derived, TrendComputed? Trends, IndexComputed? Indices)`.
   "no data yet" keeps its current wire behaviour (only the location set).
 
 The read model's per-location state holds the `LatestAnalysisResult` itself and updates one slot with a
-`with` expression per event, so the query answer is the stored record.
+`with` expression per event, so the query answer is the stored record. The state is written by the
+materialized stream stage and read by the actor's query handlers, so it becomes an immutable map that the
+stream swaps as a whole (a `volatile` reference) instead of a `Dictionary` mutated from two threads.
 
 ### `IEnrichmentEvent.Location`
 

@@ -8,6 +8,8 @@ namespace Njord.Messages.Pipeline;
 public interface IEnrichmentEvent
 {
     EnrichmentKind Kind { get; }
+
+    LocationId Location { get; }
 }
 
 public abstract record PipelineEvent
@@ -22,6 +24,8 @@ public abstract record PipelineEvent
         DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
     {
         public EnrichmentKind Kind => EnrichmentKind.Consensus;
+
+        public LocationId Location => Consensus.Location;
     }
 
     public sealed record AlertComputed(
@@ -29,6 +33,8 @@ public abstract record PipelineEvent
         DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
     {
         public EnrichmentKind Kind => EnrichmentKind.Alerts;
+
+        public LocationId Location => Result.Location;
     }
 
     public sealed record DerivedComputed(
@@ -36,6 +42,8 @@ public abstract record PipelineEvent
         DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
     {
         public EnrichmentKind Kind => EnrichmentKind.Derived;
+
+        public LocationId Location => Result.Location;
     }
 
     public sealed record TrendComputed(
@@ -43,6 +51,8 @@ public abstract record PipelineEvent
         DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
     {
         public EnrichmentKind Kind => EnrichmentKind.Trends;
+
+        public LocationId Location => Result.Location;
     }
 
     public sealed record IndexComputed(
@@ -50,5 +60,7 @@ public abstract record PipelineEvent
         DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
     {
         public EnrichmentKind Kind => EnrichmentKind.Indices;
+
+        public LocationId Location => Result.Location;
     }
 }
