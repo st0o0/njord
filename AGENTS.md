@@ -6,8 +6,8 @@ njord — Multi-model weather intelligence for Home Assistant. A .NET service
 (Docker container) on Akka.NET + Akka.Streams: polls the Open-Meteo API for
 multiple weather models per location, processes forecasts through an enrichment
 pipeline (consensus, alerts, derived values, trends, indices),
-and publishes Home Assistant entities via MQTT Discovery (Mosquitto broker on
-the HA host).
+and serves the results to Home Assistant over gRPC (the ha-njord integration),
+with optional MQTT state publishing.
 
 ### Architecture guardrails
 
@@ -109,12 +109,11 @@ the HA host).
 - Sensor fallback chain: live sensor reading (SensorHub via gRPC) → config value
   → hardcoded default. `SensorKind` is closed: `IndoorTemperature`,
   `IndoorHumidity`.
-- MQTT egress: device-based discovery (one retained config per device,
-  `homeassistant/device/<id>/config`), one retained state JSON per device per
-  cycle, availability via LWT on `njord/status` + per-component
-  `availability_template` + `expire_after` (2× poll interval). MQTTnet sits
-  behind the `IMqttTransport` seam; the connection actor owns lifecycle, HA
-  birth handling, and tombstoning of stale retained configs.
+- MQTT egress (optional, `Mqtt:Enabled`): state only, no MQTT Discovery. One
+  retained flat state JSON per device per cycle, values a model does not deliver
+  are omitted (no `unavailable`, no `expire_after`); availability only via the
+  retained `online`/`offline` service status topic (LWT). MQTTnet sits behind the
+  `IMqttTransport` seam; the connection actor owns the connection lifecycle.
 
 ## Language
 
@@ -446,4 +445,3 @@ test actors), not counting the allowed `JsonNode` indexers; new code follows the
 ## References
 
 - Open-Meteo API: https://open-meteo.com/en/docs (endpoint: `https://api.open-meteo.com/v1/forecast`)
-- HA MQTT Discovery: https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery
