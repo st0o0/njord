@@ -39,7 +39,6 @@ services:
       - Njord__Enrichment__Derived__Enabled=true
       - Njord__Enrichment__Trends__Enabled=true
       - Njord__Enrichment__Indices__Enabled=true
-      - Njord__Enrichment__History__Enabled=true
 
   homeassistant:
     image: ghcr.io/home-assistant/home-assistant:stable@sha256:130241f28d01fa80dfa3b44f7d89781c188d8642ecab9024f079f19f9f82baa0

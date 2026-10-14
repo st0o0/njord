@@ -13,7 +13,7 @@ gRPC path only (no MQTT). Real Open-Meteo API.
 | S3 | Entity Registration + Enable All | 8 | Opus |
 | S4 | WeatherService: GetCatalog + Streaming | 8 | Haiku #1 (gRPC) |
 | S5 | WeatherService: GetForecast | 5 | Haiku #1 (gRPC) |
-| S6 | WeatherService: GetEnrichments | 7 | Haiku #1 (gRPC) |
+| S6 | WeatherService: GetEnrichments | 6 | Haiku #1 (gRPC) |
 | S7 | Entity Attribute Depth + Enrichment Validation | 22 | Haiku #1 (REST) |
 | S8 | Connectivity Entities | 4 | Haiku #2 (REST) |
 | S9 | Server Entities | 7 | Haiku #2 (REST) |
@@ -32,7 +32,7 @@ gRPC path only (no MQTT). Real Open-Meteo API.
 | S22 | Config Mutation: Change Horizons | 5 | Opus |
 | S23 | Resilience: Container Restart | 7 | Opus |
 | S24 | Teardown: Integration Removal | 5 | Opus |
-| | **Total** | **~151** | |
+| | **Total** | **~150** | |
 
 ---
 
@@ -47,7 +47,7 @@ gRPC path only (no MQTT). Real Open-Meteo API.
 
 - **Location:** lucerne (47.05, 8.31)
 - **Models:** icon_d2, ecmwf_ifs025
-- **Enrichments:** consensus, alerts, derived, trends, indices, history (all enabled)
+- **Enrichments:** consensus, alerts, derived, trends, indices (all enabled)
 - **Horizons:** +3, +6, +12, +24, +48, +72 h
 - **Poll interval:** 3600 s (default)
 - **Forecast days:** 4
@@ -242,8 +242,7 @@ Chrome is unavailable. Both paths produce the same long-lived access token.
 | 6.3 | Verify `indices` field present with `days` array containing `dayScoreSet` entries | Indices populated |
 | 6.4 | Verify `trends` field present with `parameterTrends` array | Trends populated |
 | 6.5 | Verify `derived` field present with `byHorizon` and `scalars` | Derived populated |
-| 6.6 | Verify `history` field present with `models` array | History populated |
-| 6.7 | Verify `consensus` field present with `hourlyParameters` array | Consensus populated |
+| 6.6 | Verify `consensus` field present with `hourlyParameters` array | Consensus populated |
 
 ---
 

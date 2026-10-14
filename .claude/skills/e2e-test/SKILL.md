@@ -1,12 +1,12 @@
 ---
 name: e2e-test
-description: Run the agent-orchestrated E2E test against a real Docker stack (njord + Home Assistant with ha-njord). Executes ~151 test steps across 25 sections with 3 parallel Haiku subagents. Covers gRPC API (all 16 RPCs), entity attribute validation, enrichment computation, error handling, multi-poll-cycle, config hot-reload, HA browser verification, and teardown. Produces a PASS/FAIL results document.
+description: Run the agent-orchestrated E2E test against a real Docker stack (njord + Home Assistant with ha-njord). Executes ~150 test steps across 25 sections with 3 parallel Haiku subagents. Covers gRPC API (all 16 RPCs), entity attribute validation, enrichment computation, error handling, multi-poll-cycle, config hot-reload, HA browser verification, and teardown. Produces a PASS/FAIL results document.
 ---
 
 # E2E Test — njord + ha-njord
 
 Run the full end-to-end test suite against the real Docker stack.
-~151 steps across 25 sections (S0–S24), 3 parallel Haiku subagents.
+~150 steps across 25 sections (S0–S24), 3 parallel Haiku subagents.
 
 ## Prerequisites
 
@@ -215,7 +215,7 @@ Then:
 Create `e2e/results/E2E-TEST-RESULTS-<YYYY-MM-DD>.md` with:
 
 1. **Summary table** — Section / Step / Result (PASS/FAIL) / Detail
-   - ~151 rows covering all sections S0–S24
+   - ~150 rows covering all sections S0–S24
 2. **Timing baselines** — startup, integration→entities, poll cycle, config settle,
    reconnect, teardown, full run duration
 3. **Entity list** — all entity IDs observed
