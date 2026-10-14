@@ -3,10 +3,9 @@
 ## Purpose
 
 Delta publishing in `MqttStatePublisher`: a state payload is only published when it differs from the last payload published on the same topic, so unchanged horizons cause no broker traffic.
-
 ## Requirements
 ### Requirement: Only changed state payloads are published
-`MqttStatePublisher` SHALL keep, per MQTT topic, the hash of the last published payload for the lifetime of its stream graph, and SHALL skip every mapped message whose payload hash equals the cached one, counting the decision in the `njord_mqtt_dedup_total` counter. For `ForecastReceived` it SHALL build payloads with `HorizonProjection.BuildPerHorizon`, which SHALL omit parameter keys whose value is null and SHALL exclude horizons without any non-null value.
+`MqttStatePublisher` SHALL keep, per MQTT topic, the hash of the last successfully published payload for the lifetime of its stream graph, and SHALL skip every mapped message whose payload hash equals the cached one, counting the decision in the `njord_mqtt_dedup_total` counter. The cache SHALL be updated only after the publish of a message succeeded; a message whose publish failed SHALL leave the cache unchanged, so the same payload is published again on the next cycle. For `ForecastReceived` it SHALL build payloads with `HorizonProjection.BuildPerHorizon`, which SHALL omit parameter keys whose value is null and SHALL exclude horizons without any non-null value.
 
 #### Scenario: First cycle publishes all horizons
 - **WHEN** the cache is empty (first cycle or after a restart of the graph)
@@ -27,6 +26,10 @@ Delta publishing in `MqttStatePublisher`: a state payload is only published when
 #### Scenario: All-null horizon excluded entirely
 - **WHEN** a horizon's forecast point has no non-null parameter values
 - **THEN** no entry for that horizon appears in the result dictionary
+
+#### Scenario: Failed payload is published again on the next cycle
+- **WHEN** the publish of a payload fails and the next cycle maps the identical payload for the same topic
+- **THEN** the payload is published again instead of being skipped as unchanged
 
 ### Requirement: One ForecastReceived produces one message per changed horizon
 For each `PipelineEvent.ForecastReceived`, `MqttStatePublisher` SHALL publish one retained `MqttMessage` per horizon whose payload changed. The number of messages ranges from 0 (all horizons unchanged) to the number of applicable horizons (first cycle or all values changed).

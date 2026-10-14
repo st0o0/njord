@@ -3,7 +3,6 @@
 ## Purpose
 
 Actor topology for MQTT in `Njord.Mqtt`: `MqttConnection` owns the broker connection, reconnects and availability, and `MqttStatePublisher` consumes the pipeline output via SourceRef and maps each `PipelineEvent` to MQTT state messages.
-
 ## Requirements
 ### Requirement: MqttConnection owns the broker connection
 The `MqttConnection` actor (src/Njord.Mqtt/MqttConnection.cs, marker `IMqttConnectionActor`) SHALL be registered as a singleton only when `Njord:Mqtt:Enabled` is `true`. It SHALL use the DI-provided `IMqttConnection` and `IMqttTransport` (both `MqttNetPublisher`) and SHALL NOT materialize any stream or MergeHub. It SHALL connect in `PreStart`; the connection SHALL carry a retained Last Will of `offline` on `{BaseTopic}/status`. After a successful connect it SHALL reset its attempt counter, mark MQTT as connected in `NjordHealthMonitor`, subscribe to `{DiscoveryPrefix}/status`, publish a retained `online` on `{BaseTopic}/status` and send `MqttConnected` to every inbound listener. On a failed connect or a lost connection it SHALL reconnect after `MqttEgressTuning.ReconnectDelay` (default 5 s) doubled per attempt, capped at a factor of 64. Actors that register with `SubscribeInbound` SHALL receive every inbound message as `MqttInboundMessage` until they terminate. Downstream actors SHALL publish by calling `IMqttTransport.SendAsync` directly; no SinkRef is vended.
@@ -33,6 +32,8 @@ The actor SHALL use the injected `TimeProvider` for all timestamp operations (he
 ### Requirement: MqttStatePublisher maps PipelineEvent to MQTT messages
 `MqttStatePublisher` (src/Njord.Mqtt/MqttStatePublisher.cs, marker `IMqttStatePublisher`) SHALL inherit from `StreamConsumerActor` and be registered only when MQTT is enabled. It SHALL resolve `IForecastPipeline`, request a `SourceRef<PipelineEvent>` with `RequestPipelineOutput`, and in `MaterializeGraph` wire the base-provided `SharedKillSwitch` into a graph that maps every `PipelineEvent` variant to retained `MqttMessage` instances (`ForecastReceived` via `HorizonProjection.BuildPerHorizon` and `TopicScheme.HorizonTopic`; the analysis variants via `StatePayloadBuilder`), skips messages whose payload hash equals the last one published on the same topic, and calls `IMqttTransport.SendAsync` directly in a `SelectAsync(1)` stage. It SHALL NOT resolve `IMqttConnectionActor`.
 
+A failed publish SHALL affect only the message being published: when `IMqttTransport.SendAsync` throws, faults, or does not complete within `MqttEgressTuning.PublishTimeout` (default 10 s), the publisher SHALL log a Warning naming the topic, count the failure in `njord_mqtt_publish_failures_total`, drop that message and continue with the next one. A failed publish SHALL NOT fail the graph, SHALL NOT cancel the pipeline subscription and SHALL NOT back-pressure the pipeline beyond the publish timeout.
+
 #### Scenario: Publisher subscribes to the pipeline
 - **WHEN** `MqttStatePublisher` starts
 - **THEN** it requests a `SourceRef<PipelineEvent>` from `ForecastPipeline`
@@ -52,4 +53,17 @@ The actor SHALL use the injected `TimeProvider` for all timestamp operations (he
 #### Scenario: Publisher calls transport directly
 - **WHEN** `MqttStatePublisher` has a message to publish
 - **THEN** it calls `IMqttTransport.SendAsync` directly
+
+#### Scenario: Later events are published after a failed publish
+- **WHEN** a publish fails (e.g. the broker is not connected) and a later `PipelineEvent` arrives once the transport works again
+- **THEN** the later event's messages are published
+- **AND** a Warning naming the failed topic is logged
+
+#### Scenario: Failed publish keeps the pipeline subscription
+- **WHEN** a publish fails
+- **THEN** the `SourceRef<PipelineEvent>` subscription stays open and the pipeline output is not cancelled
+
+#### Scenario: Hung publish times out
+- **WHEN** `IMqttTransport.SendAsync` does not complete within the publish timeout
+- **THEN** the publish counts as failed and the next message is published
 
