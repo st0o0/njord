@@ -25,6 +25,9 @@
         <Content Include="..\xunit.runner.json" Link="xunit.runner.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        <Content Include="..\Njord\appsettings.json" Link="Samples\appsettings.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
         <Content Include="..\Njord\appsettings.Example.json" Link="Samples\appsettings.Example.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>

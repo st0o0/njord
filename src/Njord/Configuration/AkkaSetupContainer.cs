@@ -20,6 +20,7 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
         // options are read here; persistence settings are restart-required (ConfigReloadPolicy).
         var persistence = serviceProvider.GetRequiredService<IOptions<PersistenceOptions>>().Value;
         var storage = serviceProvider.GetRequiredService<IOptions<StorageOptions>>().Value;
+        ConfigureLogging(builder, serviceProvider.GetRequiredService<IConfiguration>());
         ConfigureInfrastructure(builder, persistence, storage.PersistencePath);
 
         foreach (var registration in serviceProvider.GetServices<IActorRegistration>())
@@ -27,6 +28,14 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
             registration.Configure(builder, serviceProvider);
         }
     }
+
+    internal static AkkaConfigurationBuilder ConfigureLogging(AkkaConfigurationBuilder builder, IConfiguration configuration) =>
+        builder.ConfigureLoggers(loggers =>
+        {
+            loggers.LogLevel = AkkaLogLevel.From(configuration);
+            loggers.ClearLoggers();
+            loggers.AddLogger<ActorCategoryLogger>();
+        });
 
     internal static void ConfigureInfrastructure(
         AkkaConfigurationBuilder builder, PersistenceOptions persistence, string persistencePath)
@@ -45,11 +54,6 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
         };
 
         builder
-            .ConfigureLoggers(loggers =>
-            {
-                loggers.ClearLoggers();
-                loggers.AddLoggerFactory();
-            })
             .WithSqlPersistence(connectionString, providerName, autoInitialize: true)
             .WithRemoting(new RemoteOptions { HostName = "localhost", Port = 2552 })
             .WithClustering(new ClusterOptions

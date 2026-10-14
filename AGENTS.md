@@ -224,9 +224,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1088 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 180,
+Current total: 1109 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 180,
 Grpc 86, Pipeline 109, Mqtt 73, OpenMeteo 28, Budget 25, SensorHub 21, Architecture 53,
-Alerts 67, Derived 36, Trends 27, Indices 61, host `Njord.Tests` 37).
+Alerts 67, Derived 36, Trends 27, Indices 61, host `Njord.Tests` 58).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -372,6 +372,9 @@ Rules apply to production code (`src/Njord/`).
   `*State` suffix is reserved for immutable state records, never for actors.
 - **Actor logging:** `private readonly ILoggingAdapter _log = Context.GetLogger();`
   — inline field init, `readonly`, named `_log`. Never `null!` + PreStart.
+  The host's `ActorCategoryLogger` (registered in `AkkaSetupContainer.ConfigureLogging`) writes
+  each event with the logging class's full type name as category (`Njord.Pipeline.PollScheduler`,
+  Akka internals keep `Akka.*`); `akka.loglevel` follows the lowest `Serilog:MinimumLevel` value.
 - **Actors are resolved by marker interfaces** (`IPollScheduler`,
   `IMqttConnectionActor`, ... in `Njord.Core/Actors/ActorKeys.cs`), registered
   in the host (`AkkaSetupContainer`); never key a registry lookup by the actor
