@@ -12,9 +12,11 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Consensus;
 using Njord.Derived;
 using Njord.Indices;
+using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
 using Njord.Messages.Sensors;
 using Njord.Weather;
+using Servus.Akka;
 using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
 using WeatherForecast = Njord.Weather.Forecast;
 
@@ -73,6 +75,7 @@ public sealed class ForecastPipeline : ReceiveActor
         Receive<RequestForecastSink>(OnRequestForecastSink);
         Receive<RequestPipelineOutput>(OnRequestPipelineOutput);
         Receive<AnalysisSettingsChanged>(msg => _settingsRef!.Tell(msg.Settings));
+        Receive<AnalysisSettingsResult>(msg => _settingsRef!.Tell(msg.Settings));
         Receive<SensorSnapshots>(msg => _sensorRef!.Tell(msg));
         Receive<AnalysisGraphEnded>(OnAnalysisGraphEnded);
     }
@@ -82,6 +85,30 @@ public sealed class ForecastPipeline : ReceiveActor
         _mat = Context.Materializer();
         MaterializeAnalysisPipeline();
         _log.Info("Forecast pipeline materialized - waiting for producers and consumers");
+        RequestCurrentInputs();
+    }
+
+    // A restarted pipeline would otherwise analyze with the startup settings and an empty sensor map until the next
+    // settings change or sensor push. Neither answer is awaited: until it arrives, the seeds of the side channels apply.
+    private void RequestCurrentInputs()
+    {
+        if (Context.TryGetActor<IConfigManager>(out var configManager))
+        {
+            configManager.Tell(new QueryAnalysisSettings());
+        }
+        else
+        {
+            _log.Debug("No config manager registered - analyzing with the startup settings");
+        }
+
+        if (Context.TryGetActor<ISensorHub>(out var sensorHub))
+        {
+            sensorHub.Tell(new RequestSensorSnapshots());
+        }
+        else
+        {
+            _log.Debug("No sensor hub registered - analyzing without live sensor readings until one pushes");
+        }
     }
 
     private void OnRequestForecastSink(RequestForecastSink msg)

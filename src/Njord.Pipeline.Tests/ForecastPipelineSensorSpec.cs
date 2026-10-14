@@ -66,6 +66,25 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_started_pipeline_asks_the_sensor_hub_for_the_current_map()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var current = Push(new LocationId(AnalysisFixture.Lucerne));
+        ActorRegistry.Register<ISensorHub>(
+            Sys.ActorOf(Props.Create(() => new FakeSensorHub(current)), $"sensor-hub-{Guid.NewGuid():N}"), overwrite: true);
+        var (fixture, _, queue, events) = await StartPipelineAsync(ct);
+
+        // Nothing is pushed: only the answer to the pipeline's start request carries the live reading.
+        await AwaitAssertAsync(async () =>
+        {
+            var (consensus, index) = await AnalyzeAsync(fixture, queue, events, AnalysisFixture.Lucerne, ct);
+            Assert.Equal(
+                ExpectedNightVentilation(fixture, consensus, AnalysisFixture.Lucerne, LiveIndoorTemperature),
+                index.Days[0].NightVentilation);
+        }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(100), cancellationToken: ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Sensor_readings_of_another_location_are_not_used()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -123,6 +142,14 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
                 ExpectedNightVentilation(fixture, consensus, AnalysisFixture.Lucerne, LiveIndoorTemperature),
                 index.Days[0].NightVentilation);
         }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(100), cancellationToken: ct);
+    }
+
+    private sealed class FakeSensorHub : ReceiveActor
+    {
+        public FakeSensorHub(SensorSnapshots current)
+        {
+            Receive<RequestSensorSnapshots>(_ => Sender.Tell(current));
+        }
     }
 
     private static SensorSnapshots Push(LocationId location) =>

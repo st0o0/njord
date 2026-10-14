@@ -34,6 +34,7 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
 
         Receive<UpdateReading>(Handle);
         Receive<QuerySensorSnapshot>(Handle);
+        Receive<RequestSensorSnapshots>(_ => Sender.Tell(CurrentSnapshots()));
         Receive<ExpireTick>(_ => HandleExpire());
         Receive<PipelineResolved>(_ => PushSnapshots());
         Receive<PipelineResolveFailed>(msg => _log.Warning(msg.Cause, "Could not resolve the pipeline for sensor pushes"));
@@ -91,6 +92,8 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
             return;
         }
 
-        pipeline.Tell(_state.GetSnapshots(_timeProvider.GetUtcNow(), _staleness));
+        pipeline.Tell(CurrentSnapshots());
     }
+
+    private SensorSnapshots CurrentSnapshots() => _state.GetSnapshots(_timeProvider.GetUtcNow(), _staleness);
 }

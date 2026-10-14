@@ -101,6 +101,20 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_analysis_settings_query_answers_the_current_settings_after_a_reload()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (manager, pipeline, _) = await StartManagerAsync();
+        await _harness.Writer.UpdateAsync<AlertOptions>(opt => opt.FrostThresholds = [2, -3, -9], ct);
+        await pipeline.ExpectMsgAsync<AnalysisSettingsChanged>(cancellationToken: ct);
+
+        var response = await manager.Ask<AnalysisSettingsResponse>(new QueryAnalysisSettings(), AskTimeout, ct);
+
+        var result = Assert.IsType<AnalysisSettingsResult>(response);
+        Assert.Equal(new SeverityThresholds(2, -3, -9, ScanDirection.Min), result.Settings.Alerts.Frost);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_poll_interval_reload_reaches_the_scheduler()
     {
         var ct = TestContext.Current.CancellationToken;

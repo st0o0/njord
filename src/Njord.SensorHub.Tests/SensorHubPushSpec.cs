@@ -57,6 +57,23 @@ public sealed class SensorHubPushSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_snapshot_request_is_answered_to_the_sender_with_the_current_map()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (hub, _) = CreateHubWithPipeline();
+        await UpdateAsync(hub, Reading(location: "Luzern", value: 21.0), ct);
+        var requester = CreateTestProbe();
+
+        hub.Tell(new RequestSensorSnapshots(), requester.Ref);
+
+        var reply = await requester.ExpectMsgAsync<SensorSnapshots>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var snapshot = Assert.Single(reply.Snapshots);
+        Assert.Multiple(
+            () => Assert.Equal(new LocationId("Luzern"), snapshot.Key),
+            () => Assert.Equal(21.0, snapshot.Value.Get(SensorKind.IndoorTemperature)));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task An_accepted_reading_is_pushed_to_the_pipeline()
     {
         var ct = TestContext.Current.CancellationToken;

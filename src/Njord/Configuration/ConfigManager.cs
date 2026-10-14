@@ -80,6 +80,7 @@ public sealed class ConfigManager : ReceiveActor
 
         Receive<ConfigReloaded>(_ => OnReloaded());
         Receive<QueryConfig>(_ => OnQueryConfig());
+        Receive<QueryAnalysisSettings>(_ => Sender.Tell(new AnalysisSettingsResult(_analysis)));
         Receive<QueryCatalog>(_ => OnQueryCatalog());
         Receive<RequestConfigStream>(OnRequestConfigStream);
         ReceiveAsync<UpdateLocations>(OnUpdateLocations);
