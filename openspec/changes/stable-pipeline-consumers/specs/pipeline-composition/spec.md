@@ -9,7 +9,7 @@
 
 #### Scenario: A started pipeline uses the current settings
 - **WHEN** the config manager holds settings that differ from the startup settings and the pipeline starts (or restarts)
-- **THEN** the first forecast the pipeline analyzes uses the config manager's current settings
+- **THEN** the pipeline analyzes forecasts with the config manager's current settings from the next forecast on, as after an `AnalysisSettingsChanged`, although no change was sent
 
 #### Scenario: No config manager registered
 - **WHEN** the pipeline starts and no config manager is registered
@@ -44,7 +44,7 @@
 
 #### Scenario: A started pipeline asks for the current sensor map
 - **WHEN** the SensorHub holds a fresh `IndoorTemperature` reading for "Luzern" and the pipeline starts (or restarts)
-- **THEN** the first forecast for "Luzern" the pipeline analyzes receives that reading, without a new reading or an expiry tick in between
+- **THEN** the pipeline's forecasts for "Luzern" receive that reading from the next forecast on, as after a push, without a new reading or an expiry tick in between
 
 #### Scenario: SensorHub answers a snapshot request
 - **WHEN** the SensorHub receives `RequestSensorSnapshots`

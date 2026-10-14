@@ -18,7 +18,7 @@ time decisions (none are added here; the actor timers are scheduler-based like t
 **Goals:**
 - One attach path for both consumers, in the base, with every request ending (reply, failure or timeout).
 - No consumer can slow the pipeline hub.
-- A restarted pipeline analyzes its first forecast with the current settings and sensor map.
+- A restarted pipeline analyzes with the current settings and sensor map from its next forecast on, not with the startup values until the next change or expiry tick.
 
 **Non-Goals:**
 - Changing the pipeline's hubs, the gateway, or the read model's query semantics.
@@ -138,6 +138,12 @@ the namespace without using it.
   per subscription, so a dropped event's topic is republished with the next cycle's payload.
 - [A `RequestPipelineOutput` sent to the proxy while the pipeline restarts goes to dead letters] → the reply timer
   retries with backoff; the pipeline backoff (3-30 s) and the consumer backoff (1-30 s) converge within seconds.
+- [The first forecast after a restart can still see the startup settings and the empty map] → the zip of the side
+  channels holds one element per channel from its first pull, so - exactly as for `AnalysisSettingsChanged` and a
+  sensor push today - a new value applies from the next forecast on. Before this change the startup values applied
+  until the next change or expiry tick; now at most one forecast is affected. Seeding nothing and waiting for the
+  answers (with a fallback timer) would remove that forecast too, but would delay every forecast after a start and
+  contradict "a late push never delays a forecast"; not worth it for a restart, which only a bug causes.
 - [A pushed sensor map in flight can arrive after the start reply] → both describe the same readings; at worst a
   reading that turned stale in between stays until the next expiry tick (≤ 60 s).
 
