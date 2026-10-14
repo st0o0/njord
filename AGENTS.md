@@ -61,7 +61,12 @@ with optional MQTT state publishing.
   and run their own sinks. No intermediate relay actors, no presenters, no discovery
   payloads. The read model's streaming hub has a permanent `Sink.Ignore` drain and each
   gRPC streaming client gets a bounded drop-oldest buffer (256 events), so streaming
-  clients never hold up the read model, the pipeline or MQTT.
+  clients never hold up the read model, the pipeline or MQTT. `StreamConsumerActor`
+  (their base) watches the completion task `MaterializeGraph` returns: a graph that
+  completes or fails while the actor lives is rewired (new SourceRef after capped
+  backoff, Warning, `njord_stream_consumer_rewires_total`); the read model keeps its
+  latest values and its streaming hub (fed by a `MergeHub`) across a rewire, MQTT
+  republishes once. `ForecastPipeline` does the same for the gateway's forecast stream.
 - **The gRPC API is a pure adapter.** `Njord.Grpc` holds no actors and reads no
   options: every RPC resolves an actor marker, asks with a message from
   `Njord.Messages` through `ActorAsk` (`Unavailable` when the actor is not resolvable,
@@ -219,8 +224,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1069 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 172,
-Grpc 86, Pipeline 102, Mqtt 69, OpenMeteo 28, Budget 25, SensorHub 21, Architecture 53,
+Current total: 1088 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 180,
+Grpc 86, Pipeline 109, Mqtt 73, OpenMeteo 28, Budget 25, SensorHub 21, Architecture 53,
 Alerts 67, Derived 36, Trends 27, Indices 61, host `Njord.Tests` 37).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
@@ -434,8 +439,8 @@ test actors), not counting the allowed `JsonNode` indexers; new code follows the
 
 ## Metrics conventions
 
-- One `Meter("Njord.<Domain>")` per feature library (Ingest, Pipeline, Mqtt,
-  Pipeline), owned by an `internal static class Telemetry` in that project with
+- One `Meter("Njord.<Domain>")` per feature library (OpenMeteo, Budget, Pipeline,
+  Mqtt; plus `Njord.Core` for its shared base classes), owned by an `internal static class Telemetry` in that project with
   `internal static readonly` instrument fields (`Telemetry.MqttDedup.Add(...)`).
   New meters are registered in `CoreSetupContainer` (`NjordMeters`).
 - Names are `njord_<area>_<name>` in snake_case; counters end in `_total`,

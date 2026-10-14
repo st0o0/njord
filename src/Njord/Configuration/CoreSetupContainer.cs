@@ -20,7 +20,7 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
     internal static readonly string OverridePath = Path.Combine("data", "appsettings.Override.json");
 
     private static readonly HashSet<string> NjordMeters =
-        ["Njord.OpenMeteo", "Njord.Budget", "Njord.Pipeline", "Njord.Mqtt"];
+        ["Njord.Core", "Njord.OpenMeteo", "Njord.Budget", "Njord.Pipeline", "Njord.Mqtt"];
 
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {

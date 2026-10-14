@@ -4,6 +4,7 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Akka.Util;
 using Njord.Core.Actors;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
@@ -26,6 +27,7 @@ public sealed class ForecastReadModel : StreamConsumerActor
     private ISourceRef<PipelineEvent>? _pipelineSourceRef;
     private long _pipelineSourceRequestId;
 
+    private Sink<PipelineEvent, NotUsed>? _clientHubSink;
     private Source<PipelineEvent, NotUsed>? _secondaryHubSource;
 
     // Keyed by LocationId, whose equality ignores case, so a query matches whatever spelling it uses.
@@ -97,25 +99,39 @@ public sealed class ForecastReadModel : StreamConsumerActor
 
     protected override bool AllRefsReady() => _pipelineSourceRef is not null;
 
-    protected override void MaterializeGraph(SharedKillSwitch killSwitch)
+    protected override Task MaterializeGraph(SharedKillSwitch killSwitch)
     {
-        var (hubSource, hubSink) = BroadcastHub.Sink<PipelineEvent>(bufferSize: 2)
-            .PreMaterialize(Mat);
+        var clientHubSink = _clientHubSink ?? MaterializeClientHub();
 
-        _pipelineSourceRef!.Source
+        return _pipelineSourceRef!.Source
             .Via(killSwitch.Flow<PipelineEvent>())
             .Select(evt =>
             {
                 UpdateState(evt);
                 return evt;
             })
-            .RunWith(hubSink, Mat);
+            .WatchTermination(Keep.Right)
+            // The termination above already reports a failed subscription to the base class; it must not fail the
+            // MergeHub, which outlives the subscription so streaming clients keep their streams across a rewire.
+            .Recover(_ => Option<PipelineEvent>.None)
+            .To(clientHubSink)
+            .Run(Mat);
+    }
+
+    // Once per actor incarnation: every pipeline subscription feeds the same MergeHub, so the secondary hub (and
+    // the SourceRefs of streaming clients) survives a rewire and a pipeline restart.
+    private Sink<PipelineEvent, NotUsed> MaterializeClientHub()
+    {
+        var (mergeSink, mergeSource) = MergeHub.Source<PipelineEvent>(perProducerBufferSize: 16).PreMaterialize(Mat);
+        var hubSource = mergeSource.RunWith(BroadcastHub.Sink<PipelineEvent>(bufferSize: 2), Mat);
 
         // A BroadcastHub without a consumer backpressures instead of dropping: this permanent drain keeps the
         // read model (and with it the pipeline and MQTT) consuming while no streaming client is attached.
         hubSource.RunWith(Sink.Ignore<PipelineEvent>(), Mat);
 
+        _clientHubSink = mergeSink;
         _secondaryHubSource = hubSource;
+        return mergeSink;
     }
 
     protected override void ConfigureReady() => ConfigureQueries();
@@ -203,11 +219,17 @@ public sealed class ForecastReadModel : StreamConsumerActor
         _ => analysis,
     };
 
+    // The latest values and the secondary hub are kept: queries and streaming clients ride out the gap.
     protected override void OnDependencyLost()
     {
         _pipelineRef = null;
         _pipelineSourceRef = null;
         _pipelineSourceRequestId = 0;
-        _secondaryHubSource = null;
+    }
+
+    protected override void OnStreamLost()
+    {
+        _pipelineSourceRef = null;
+        _pipelineSourceRequestId = 0;
     }
 }

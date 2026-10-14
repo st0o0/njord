@@ -87,10 +87,11 @@ public sealed class StreamConsumerActorSpec : TestKit
 
         protected override bool AllRefsReady() => _depA is not null && _depB is not null;
 
-        protected override void MaterializeGraph(SharedKillSwitch killSwitch)
+        protected override Task MaterializeGraph(SharedKillSwitch killSwitch)
         {
             _materializeCount++;
             _graphMaterialized.TrySetResult();
+            return new TaskCompletionSource().Task;
         }
 
         protected override void OnDependencyLost()
@@ -177,10 +178,11 @@ public sealed class StreamConsumerActorSpec : TestKit
 
         protected override bool AllRefsReady() => _depA is not null && _depB is not null;
 
-        protected override void MaterializeGraph(SharedKillSwitch killSwitch)
+        protected override Task MaterializeGraph(SharedKillSwitch killSwitch)
         {
             _materializeCount++;
             _graphMaterialized.TrySetResult();
+            return new TaskCompletionSource().Task;
         }
 
         protected override void OnDependencyLost()

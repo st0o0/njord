@@ -32,9 +32,15 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
 
     internal static readonly TimeSpan SensorLookupTimeout = TimeSpan.FromSeconds(2);
 
+    // Twice the backoff cap: an analysis graph that survived this long counts as healthy again.
+    private static readonly TimeSpan GraphStableAfter = TimeSpan.FromSeconds(60);
+
     private sealed record GatewayResolved(IActorRef Gateway);
     private sealed record GatewayResolveFailed(Exception Cause);
     private sealed record RetryGatewayResolve;
+    private sealed record AnalysisGraphCompleted(long Generation);
+    private sealed record AnalysisGraphFailed(long Generation, Exception Cause);
+    private sealed record AnalysisGraphStable(long Generation);
 
     private readonly TimeProvider _timeProvider;
     private readonly ConsensusBuilder _consensusBuilder;
@@ -51,6 +57,9 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
     private IActorRef? _gateway;
     private IActorRef? _lastTerminatedGateway;
     private int _gatewayRetryCount;
+    private Guid _forecastStreamRequestId;
+    private long _graphGeneration;
+    private int _graphLossCount;
 
     public IStash Stash { get; set; } = null!;
 
@@ -107,20 +116,35 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                 Context.Watch(_gateway);
                 _gatewayRetryCount = 0;
 
-                var requestId = Guid.NewGuid();
-                _gateway.Tell(new RequestForecastStream(requestId));
+                _forecastStreamRequestId = Guid.NewGuid();
+                _gateway.Tell(new RequestForecastStream(_forecastStreamRequestId));
             });
 
             Receive<RequestForecastStreamCompleted>(msg =>
             {
+                if (msg.RequestId != _forecastStreamRequestId)
+                {
+                    return;
+                }
+
                 _log.Info("Received forecast SourceRef from gateway — materializing analysis pipeline");
-                MaterializeAnalysisPipeline(msg.SourceRef.Source);
+                var generation = ++_graphGeneration;
+                MaterializeAnalysisPipeline(msg.SourceRef.Source).PipeTo(Self,
+                    success: () => new AnalysisGraphCompleted(generation),
+                    failure: ex => new AnalysisGraphFailed(generation, ex));
+                Context.System.Scheduler.ScheduleTellOnceCancelable(
+                    GraphStableAfter, Self, new AnalysisGraphStable(generation), Self);
                 EnterReady();
                 Stash.UnstashAll();
             });
 
             Receive<RequestForecastStreamFailed>(msg =>
             {
+                if (msg.RequestId != _forecastStreamRequestId)
+                {
+                    return;
+                }
+
                 _log.Warning(msg.Cause, "Failed to get forecast stream from gateway — retrying");
                 var delay = GatewayRetryPolicy.DelayWithJitter(_gatewayRetryCount);
                 _gatewayRetryCount++;
@@ -144,6 +168,8 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
             Receive<AnalysisSettingsChanged>(msg => _settings = msg.Settings);
 
             Receive<Terminated>(OnTerminated);
+
+            ReceiveAnalysisGraphLifecycle();
 
             ReceiveAny(_ => Stash.Stash());
         });
@@ -173,7 +199,51 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
             });
 
             Receive<Terminated>(OnTerminated);
+
+            ReceiveAnalysisGraphLifecycle();
         });
+    }
+
+    // Only the graph of the current generation counts: one replaced after a gateway loss is stale.
+    private void ReceiveAnalysisGraphLifecycle()
+    {
+        Receive<AnalysisGraphCompleted>(msg => OnAnalysisGraphEnded(msg.Generation, null));
+        Receive<AnalysisGraphFailed>(msg => OnAnalysisGraphEnded(msg.Generation, msg.Cause));
+        Receive<AnalysisGraphStable>(msg =>
+        {
+            if (msg.Generation == _graphGeneration)
+            {
+                _graphLossCount = 0;
+            }
+        });
+    }
+
+    // The forecast stream or a stage ended while the gateway lives: request a new forecast stream. Consumers of
+    // the old output hub see it end and rewire themselves.
+    private void OnAnalysisGraphEnded(long generation, Exception? cause)
+    {
+        if (generation != _graphGeneration)
+        {
+            return;
+        }
+
+        var delay = GatewayRetryPolicy.DelayWithJitter(_graphLossCount);
+        _graphLossCount++;
+        if (cause is null)
+        {
+            _log.Warning("Analysis stream completed unexpectedly — requesting a new forecast stream in {0}", delay);
+        }
+        else
+        {
+            _log.Warning(cause, "Analysis stream failed — requesting a new forecast stream in {0}", delay);
+        }
+
+        Telemetry.StreamRewires.Add(1);
+        _graphGeneration++;
+        _pipelineOutputSource = null;
+        _forecastStreamRequestId = Guid.Empty;
+        Context.System.Scheduler.ScheduleTellOnceCancelable(delay, Self, new RetryGatewayResolve(), Self);
+        WaitingForGateway();
     }
 
     private void OnTerminated(Terminated msg)
@@ -182,6 +252,8 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
             return;
 
         _log.Warning("Gateway terminated — re-resolving");
+        _graphGeneration++;
+        _forecastStreamRequestId = Guid.Empty;
         _lastTerminatedGateway = msg.ActorRef;
         _gateway = null;
         _gatewayRetryCount = 0;
@@ -192,7 +264,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
         WaitingForGateway();
     }
 
-    private void MaterializeAnalysisPipeline(Source<WeatherForecast, NotUsed> forecastSource)
+    private Task MaterializeAnalysisPipeline(Source<WeatherForecast, NotUsed> forecastSource)
     {
         var (pipelineOutputSource, pipelineOutputSink) = BroadcastHub.Sink<PipelineEvent>(bufferSize: 2)
             .PreMaterialize(_mat);
@@ -215,7 +287,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
         var registry = ActorRegistry.For(Context.System);
         var log = _log;
 
-        forecastSource
+        var completion = forecastSource
             .Via(Flow.FromGraph(GraphDsl.Create(builder =>
             {
                 var zip = builder.Add(ZipWith.Apply<WeatherForecast, AnalysisSettings, (WeatherForecast, AnalysisSettings)>(
@@ -266,11 +338,13 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                 };
             })
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
+            .WatchTermination(Keep.Right)
             .To(pipelineOutputSink)
             .Run(_mat);
 
         _pipelineOutputSource = pipelineOutputSource;
         _settingsRef = settingsRef;
+        return completion;
     }
 
     // Never throws: any miss, timeout or failure means "no live sensors", so the indices fall back to the

@@ -51,11 +51,6 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         _publishTimeout = tuning.PublishTimeout;
     }
 
-    protected override void PreStart()
-    {
-        base.PreStart();
-    }
-
     protected override void ResolveInitialDependencies()
     {
         _pipelineRef = Context.GetActor<IForecastPipeline>();
@@ -108,15 +103,16 @@ public sealed class MqttStatePublisher : StreamConsumerActor
 
     protected override bool AllRefsReady() => _pipelineSourceRef is not null;
 
-    protected override void MaterializeGraph(SharedKillSwitch killSwitch)
+    protected override Task MaterializeGraph(SharedKillSwitch killSwitch)
     {
         var baseTopic = _baseTopic;
+        // Per materialization on purpose: after a rewire every state topic is published once again.
         var lastPublished = new Dictionary<string, int>();
         var transport = _transport;
         var publishTimeout = _publishTimeout;
         var log = _log;
 
-        _pipelineSourceRef!.Source
+        return _pipelineSourceRef!.Source
             .Via(killSwitch.Flow<PipelineEvent>())
             .Log("mqtt-state-in", e => e switch
             {
@@ -173,6 +169,12 @@ public sealed class MqttStatePublisher : StreamConsumerActor
     protected override void OnDependencyLost()
     {
         _pipelineRef = null;
+        _pipelineSourceRef = null;
+        _pipelineSourceRequestId = 0;
+    }
+
+    protected override void OnStreamLost()
+    {
         _pipelineSourceRef = null;
         _pipelineSourceRequestId = 0;
     }
