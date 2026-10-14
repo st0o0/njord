@@ -22,9 +22,13 @@ public sealed class MqttNetPublisher(IOptions<MqttOptions> mqttOptions, ILogger<
                 onMessage(e.ApplicationMessage.Topic, e.ApplicationMessage.ConvertPayloadToString() ?? string.Empty);
                 return Task.CompletedTask;
             };
-            _client.DisconnectedAsync += _ =>
+            _client.DisconnectedAsync += e =>
             {
-                onDisconnected();
+                if (IsLostConnection(e))
+                {
+                    onDisconnected();
+                }
+
                 return Task.CompletedTask;
             };
             _handlersAttached = true;
@@ -41,8 +45,20 @@ public sealed class MqttNetPublisher(IOptions<MqttOptions> mqttOptions, ILogger<
             builder = builder.WithCredentials(_options.Username, _options.Password);
         }
 
-        await _client.ConnectAsync(builder.Build(), cancellationToken);
+        var result = await _client.ConnectAsync(builder.Build(), cancellationToken);
+        EnsureAccepted(result);
     }
+
+    internal static void EnsureAccepted(MqttClientConnectResult result)
+    {
+        if (result.ResultCode != MqttClientConnectResultCode.Success)
+        {
+            throw new InvalidOperationException(
+                $"MQTT broker refused the connection: {result.ResultCode} ({result.ReasonString})");
+        }
+    }
+
+    internal static bool IsLostConnection(MqttClientDisconnectedEventArgs args) => args.ClientWasConnected;
 
     public Task SendAsync(string topic, string payload, bool retain, CancellationToken cancellationToken)
         => _client.PublishAsync(
