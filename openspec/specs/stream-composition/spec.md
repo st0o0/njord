@@ -46,7 +46,7 @@ The gateway fetch graph, the `ForecastPipeline` analysis stage and the `MqttStat
 - **THEN** its fetch graph is materialized immediately, before the pipeline answers its SinkRef request
 
 ### Requirement: Stream lifecycle is bound to the owning actor
-Stream graphs SHALL terminate through the lifecycle of the actor that owns them (`Context.Materializer()`); `StreamConsumerActor` subclasses SHALL additionally route their graph through a `SharedKillSwitch` that the base shuts down when a tracked dependency terminates or before it rewires a graph that ended. A consumer graph that ends while its owning actor keeps running SHALL be rebuilt by that actor; the gateway's forecast branch that ends SHALL be re-attached by the gateway; the gateway's fetch graph and the pipeline's analysis graph that end SHALL restart their actor. A graph that ends because the actor stops or replaced it SHALL NOT be rebuilt. There SHALL be no `StopStreams`/`StreamsStopped` messages and no CoordinatedShutdown stream task.
+Stream graphs SHALL terminate through the lifecycle of the actor that owns them (`Context.Materializer()`); `StreamConsumerActor` subclasses SHALL additionally run each pipeline subscription through a `SharedKillSwitch` that the base shuts down when the pipeline incarnation it is attached to terminates, before it re-attaches after the subscription ended, and when the actor stops. A consumer graph that ends while its owning actor keeps running SHALL be rebuilt by that actor on a new SourceRef; the gateway's forecast branch that ends SHALL be re-attached by the gateway; the gateway's fetch graph and the pipeline's analysis graph that end SHALL restart their actor. A graph that ends because the actor stops or replaced it SHALL NOT be rebuilt. There SHALL be no `StopStreams`/`StreamsStopped` messages and no CoordinatedShutdown stream task.
 
 #### Scenario: Actor stop ends the stream
 - **WHEN** an actor that owns a stream graph stops
@@ -54,7 +54,7 @@ Stream graphs SHALL terminate through the lifecycle of the actor that owns them 
 
 #### Scenario: Dependency loss ends the consumer stream
 - **WHEN** `ForecastPipeline` terminates while `MqttStatePublisher` consumes its output
-- **THEN** `MqttStatePublisher` shuts down its kill switch before re-resolving the pipeline
+- **THEN** `MqttStatePublisher` shuts down its kill switch before attaching to the pipeline again
 
 #### Scenario: An ended graph of a running actor is rebuilt
 - **WHEN** the pipeline output hub that `MqttStatePublisher` consumes completes while both actors keep running
@@ -83,7 +83,7 @@ Each successful fetch SHALL deliver its `Forecast` to the pipeline's input indiv
 - **THEN** no element is sent into the pipeline's SinkRef for that target
 
 ### Requirement: Stream-ref requesters handle typed handshake failures
-Every actor or service that requests a SinkRef or SourceRef SHALL handle the matching project-owned failure record from `Njord.Core/Actors/StreamWiringMessages.cs`, each carrying the originating `RequestId` and the `Exception` cause, and SHALL ignore a reply whose `RequestId` is not its current one: `OpenMeteoGateway` handles `RequestForecastSinkFailed` (and a missing reply) by logging a warning and requesting a new SinkRef after jittered backoff; `StreamConsumerActor` subclasses handle `RequestPipelineOutputFailed` by logging a warning and scheduling a re-resolve through the base backoff; the gRPC services treat `RequestReadModelStreamFailed` and `RequestConfigStreamFailed` as `Unavailable`. The system SHALL NOT use Akka's `Status.Failure`/`Status.Success` as replies or stream-termination messages.
+Every actor or service that requests a SinkRef or SourceRef SHALL handle the matching project-owned failure record from `Njord.Core/Actors/StreamWiringMessages.cs`, each carrying the originating `RequestId` and the `Exception` cause, and SHALL ignore a reply whose `RequestId` is not its current one: `OpenMeteoGateway` handles `RequestForecastSinkFailed` (and a missing reply) by logging a warning and requesting a new SinkRef after jittered backoff; the `StreamConsumerActor` base handles `RequestPipelineOutputFailed` (and a missing reply) for its subclasses by logging a warning and requesting a new SourceRef after jittered backoff; the gRPC services treat `RequestReadModelStreamFailed` and `RequestConfigStreamFailed` as `Unavailable`. The system SHALL NOT use Akka's `Status.Failure`/`Status.Success` as replies or stream-termination messages.
 
 #### Scenario: Stream consumer retries after a failed ref request
 - **WHEN** a `StreamConsumerActor` subclass receives `RequestPipelineOutputFailed` for its current request id

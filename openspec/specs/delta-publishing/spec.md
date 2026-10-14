@@ -5,10 +5,10 @@
 Delta publishing in `MqttStatePublisher`: a state payload is only published when it differs from the last payload published on the same topic, so unchanged horizons cause no broker traffic.
 ## Requirements
 ### Requirement: Only changed state payloads are published
-`MqttStatePublisher` SHALL keep, per MQTT topic, the hash of the last successfully published payload for the lifetime of its stream graph, and SHALL skip every mapped message whose payload hash equals the cached one, counting the decision in the `njord_mqtt_dedup_total` counter. The cache SHALL be updated only after the publish of a message succeeded; a message whose publish failed SHALL leave the cache unchanged, so the same payload is published again on the next cycle. For `ForecastReceived` it SHALL build payloads with `HorizonProjection.BuildPerHorizon`, which SHALL omit parameter keys whose value is null and SHALL exclude horizons without any non-null value.
+`MqttStatePublisher` SHALL keep, per MQTT topic, the hash of the last successfully published payload for the lifetime of one pipeline subscription (a new subscription after a re-attach starts with an empty cache), and SHALL skip every mapped message whose payload hash equals the cached one, counting the decision in the `njord_mqtt_dedup_total` counter. The cache SHALL be updated only after the publish of a message succeeded; a message whose publish failed SHALL leave the cache unchanged, so the same payload is published again on the next cycle. For `ForecastReceived` it SHALL build payloads with `HorizonProjection.BuildPerHorizon`, which SHALL omit parameter keys whose value is null and SHALL exclude horizons without any non-null value.
 
 #### Scenario: First cycle publishes all horizons
-- **WHEN** the cache is empty (first cycle or after a restart of the graph)
+- **WHEN** the cache is empty (first cycle, or the first cycle of a new subscription)
 - **THEN** all horizons with values are published
 
 #### Scenario: Unchanged horizon is skipped

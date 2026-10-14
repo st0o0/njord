@@ -64,9 +64,9 @@ The actor SHALL use the injected `TimeProvider` for all timestamp operations (he
 - **THEN** the actor stops and the failure is logged
 
 ### Requirement: MqttStatePublisher maps PipelineEvent to MQTT messages
-`MqttStatePublisher` (src/Njord.Mqtt/MqttStatePublisher.cs, marker `IMqttStatePublisher`) SHALL inherit from `StreamConsumerActor` and be registered only when MQTT is enabled. It SHALL resolve `IForecastPipeline`, request a `SourceRef<PipelineEvent>` with `RequestPipelineOutput`, and in `MaterializeGraph` wire the base-provided `SharedKillSwitch` into a graph that maps every `PipelineEvent` variant to retained `MqttMessage` instances (`ForecastReceived` via `HorizonProjection.BuildPerHorizon` and `TopicScheme.HorizonTopic`; the analysis variants via `StatePayloadBuilder`), skips messages whose payload hash equals the last one published on the same topic, and calls `IMqttTransport.SendAsync` directly in a `SelectAsync(1)` stage. It SHALL NOT resolve `IMqttConnectionActor`.
+`MqttStatePublisher` (src/Njord.Mqtt/MqttStatePublisher.cs, marker `IMqttStatePublisher`) SHALL inherit from `StreamConsumerActor` and be registered only when MQTT is enabled. Its subscription to the pipeline output (see `stream-consumer-actor`) SHALL run a private graph that first passes every `PipelineEvent` through a bounded buffer of `MqttEgressTuning.EventBufferSize` events (default 256) that drops the oldest buffered event when full, then maps every `PipelineEvent` variant to retained `MqttMessage` instances (`ForecastReceived` via `HorizonProjection.BuildPerHorizon` and `TopicScheme.HorizonTopic`; the analysis variants via `StatePayloadBuilder`), and finally publishes one message at a time (`Sink.ForEachAsync` with parallelism 1): a message whose payload hash equals the last one published on the same topic is skipped, every other message is sent with `IMqttTransport.SendAsync` directly. It SHALL NOT resolve `IMqttConnectionActor`. A slow or stuck broker SHALL never back-pressure the pipeline output: while publishing lags behind, the publisher keeps pulling events and drops its own oldest buffered ones.
 
-A failed publish SHALL affect only the message being published: when `IMqttTransport.SendAsync` throws, faults, or does not complete within `MqttEgressTuning.PublishTimeout` (default 10 s), the publisher SHALL log a Warning naming the topic, count the failure in `njord_mqtt_publish_failures_total`, drop that message and continue with the next one. A failed publish SHALL NOT fail the graph, SHALL NOT cancel the pipeline subscription and SHALL NOT back-pressure the pipeline beyond the publish timeout.
+A failed publish SHALL affect only the message being published: when `IMqttTransport.SendAsync` throws, faults, or does not complete within `MqttEgressTuning.PublishTimeout` (default 10 s), the publisher SHALL log a Warning naming the topic, count the failure in `njord_mqtt_publish_failures_total`, drop that message and continue with the next one. A failed publish SHALL NOT fail the graph and SHALL NOT cancel the pipeline subscription.
 
 #### Scenario: Publisher subscribes to the pipeline
 - **WHEN** `MqttStatePublisher` starts
@@ -100,4 +100,8 @@ A failed publish SHALL affect only the message being published: when `IMqttTrans
 #### Scenario: Hung publish times out
 - **WHEN** `IMqttTransport.SendAsync` does not complete within the publish timeout
 - **THEN** the publish counts as failed and the next message is published
+
+#### Scenario: A stuck broker does not back-pressure the pipeline
+- **WHEN** a publish never completes within the test and the pipeline output emits many more events than the publisher's buffer holds
+- **THEN** another consumer of the same pipeline output receives every event, and the publisher keeps only its most recent buffered events
 

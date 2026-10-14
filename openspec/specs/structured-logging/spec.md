@@ -101,7 +101,7 @@ Static mapping and computation helpers (`StatePayloadBuilder`, `HorizonProjectio
 - **THEN** the builder emits no log events; the actor's `.Log()` stages and logger do
 
 ### Requirement: SourceRef handshake logs at Debug level
-`StreamConsumerActor` subclasses SHALL log the receipt of a SourceRef at Debug level, including the source actor path. Materializing the analysis pipeline in `ForecastPipeline` is a lifecycle transition and SHALL be logged at Information level.
+The `StreamConsumerActor` base SHALL log the receipt of a SourceRef for its subclass at Debug level, including the source actor path. Materializing the analysis pipeline in `ForecastPipeline` is a lifecycle transition and SHALL be logged at Information level.
 
 #### Scenario: SourceRef received not visible at Information level
 - **WHEN** `MqttStatePublisher` receives `RequestPipelineOutputCompleted` and the minimum log level is Information
