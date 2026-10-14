@@ -1,11 +1,14 @@
 using System.Reflection;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
+using Njord.Core.Configuration.Consensus;
+using Njord.Core.Configuration.Derived;
 using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.Persistence;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Configuration.Sensors;
+using Njord.Core.Configuration.Trends;
 
 namespace Njord.Core.Tests.Configuration;
 
@@ -53,6 +56,9 @@ public sealed class ConfigReloadPolicySpec
     {
         Assert.Equal(ReloadMode.RestartRequired, ConfigReloadPolicy.For<AlertOptions>(nameof(AlertOptions.Enabled)));
         Assert.Equal(ReloadMode.RestartRequired, ConfigReloadPolicy.For<IndexOptions>(nameof(IndexOptions.Enabled)));
+        Assert.Equal(ReloadMode.RestartRequired, ConfigReloadPolicy.For<ConsensusOptions>(nameof(ConsensusOptions.Enabled)));
+        Assert.Equal(ReloadMode.RestartRequired, ConfigReloadPolicy.For<TrendOptions>(nameof(TrendOptions.Enabled)));
+        Assert.Equal(ReloadMode.RestartRequired, ConfigReloadPolicy.For<DerivedOptions>(nameof(DerivedOptions.Enabled)));
     }
 
     [Fact]

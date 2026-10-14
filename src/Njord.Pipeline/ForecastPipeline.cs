@@ -4,12 +4,14 @@ using Akka.Event;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Microsoft.Extensions.Options;
 using Njord.Alerts;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Consensus;
 using Njord.Messages.Pipeline;
 using Njord.Messages.Sensors;
 using Njord.Derived;
@@ -36,6 +38,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
 
     private readonly TimeProvider _timeProvider;
     private readonly ConsensusBuilder _consensusBuilder;
+    private readonly bool _consensusEnabled;
     private readonly AlertAnalyzer _alerts;
     private readonly DerivedAnalyzer _derived;
     private readonly TrendAnalyzer _trends;
@@ -56,6 +59,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
     public ForecastPipeline(
         TimeProvider timeProvider,
         ConsensusBuilder consensusBuilder,
+        IOptions<ConsensusOptions> consensusOptions,
         AlertAnalyzer alerts,
         DerivedAnalyzer derived,
         TrendAnalyzer trends,
@@ -65,6 +69,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
         _settings = startupSettings;
         _timeProvider = timeProvider;
         _consensusBuilder = consensusBuilder;
+        _consensusEnabled = consensusOptions.Value.Enabled;
         _alerts = alerts;
         _derived = derived;
         _trends = trends;
@@ -201,6 +206,7 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
             .RepeatPrevious();
 
         var consensusBuilder = _consensusBuilder;
+        var consensusEnabled = _consensusEnabled;
         var alerts = _alerts;
         var derived = _derived;
         var trends = _trends;
@@ -232,13 +238,16 @@ public sealed class ForecastPipeline : ReceiveActor, IWithStash
                     var now = timeProvider.GetUtcNow();
                     snapshot = snapshot.Update(input.forecast);
                     var settings = input.settings;
+                    // The snapshot feeds every analysis, so it is built even when its own output is switched off.
                     var consensus = consensusBuilder.Create(snapshot, input.forecast.Location, settings.Consensus);
 
                     var events = new List<PipelineEvent>
                     {
                         new PipelineEvent.ForecastReceived(new LocationId(input.forecast.Location), input.forecast.Model, input.forecast),
-                        new PipelineEvent.ConsensusComputed(consensus, now)
                     };
+
+                    if (consensusEnabled)
+                        events.Add(new PipelineEvent.ConsensusComputed(consensus, now));
 
                     if (alerts.Compute(consensus, settings.Alerts) is { } a)
                         events.Add(new PipelineEvent.AlertComputed(a, now));

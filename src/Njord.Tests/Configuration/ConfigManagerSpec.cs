@@ -381,6 +381,20 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_consensus_toggle_is_applied_and_reported_as_restart_required()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (manager, _, _) = await StartManagerAsync();
+
+        var response = await manager.Ask<UpdateAnalysisConfigResponse>(
+            new UpdateAnalysisConfig(new ConsensusConfigUpdate(false, null, null), null, null, null, null), AskTimeout, ct);
+
+        var completed = Assert.IsType<UpdateAnalysisConfigCompleted>(response);
+        Assert.False(completed.Config.Analysis.Consensus.Enabled);
+        Assert.Equal(["Enrichment.Consensus.Enabled"], completed.RestartRequired);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_budget_update_sets_the_override_and_keeps_the_current_per_minute_limit()
     {
         var ct = TestContext.Current.CancellationToken;
