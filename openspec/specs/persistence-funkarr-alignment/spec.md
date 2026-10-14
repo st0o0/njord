@@ -7,7 +7,7 @@ All persistence records in `Njord.Persistence` SHALL use FunkArr naming
 conventions: snapshot records named `Persisted<Name>State`, event records
 named in past tense without a `Dto` or `Event` suffix. An event whose plain
 name would collide with a message in `Njord.Messages` SHALL carry the
-`Persisted` prefix (`PersistedDataChanged`).
+`Persisted` prefix.
 
 #### Scenario: Snapshot record naming
 - **WHEN** a persistence snapshot record exists
@@ -15,7 +15,7 @@ name would collide with a message in `Njord.Messages` SHALL carry the
 
 #### Scenario: Event record naming
 - **WHEN** a persistence event record exists
-- **THEN** it SHALL use past-tense naming without suffix (e.g. `ApiCallRecorded`, `PersistedDataChanged`)
+- **THEN** it SHALL use past-tense naming without suffix (e.g. `ApiCallRecorded`, `ForecastChanged`, `PollingStarted`)
 
 #### Scenario: Wire format preserved after rename
 - **WHEN** a persistence record is renamed or reshaped
@@ -30,20 +30,20 @@ within `Njord.Persistence`, matching the FunkArr convention.
 - **WHEN** looking up budget persistence records
 - **THEN** they SHALL be at `Njord.Persistence/Events/Budget/`
 
-#### Scenario: Pipeline domain records
-- **WHEN** looking up pipeline persistence records
-- **THEN** they SHALL be at `Njord.Persistence/Events/Pipeline/`
+#### Scenario: Polling domain records
+- **WHEN** looking up the poll workers' persistence records
+- **THEN** they SHALL be at `Njord.Persistence/Events/Polling/`
 
 ### Requirement: Every persistence record has a roundtrip test
 Every persistence record SHALL have a test that serializes and deserializes
 it, verifying all fields survive the roundtrip.
 
-#### Scenario: DataChanged roundtrip
-- **WHEN** a `PersistedDataChanged` record is serialized and deserialized
+#### Scenario: Poll worker event roundtrip
+- **WHEN** a `ForecastChanged` record is serialized and deserialized
 - **THEN** all property values SHALL match the original
 
 ### Requirement: Persistence records have wire-format tests
-`Njord.Persistence.Tests/WireFormatSpec.cs` SHALL pin the serialized JSON of the journal events and the budget snapshot (`ApiCallRecorded`, `PersistedDataChanged`, `PersistedBudgetTrackerState`) as inline expected strings, guarding against accidental wire-format changes.
+`Njord.Persistence.Tests/WireFormatSpec.cs` SHALL pin the serialized JSON of the budget records (`ApiCallRecorded`, `PersistedBudgetTrackerState`) as inline expected strings, and `PollWorkerRecordsSpec` SHALL pin the poll worker events and `PersistedPollWorkerState` as Verify baselines, guarding against accidental wire-format changes.
 
 #### Scenario: Wire-format change is caught
 - **WHEN** a pinned record's serialized form changes

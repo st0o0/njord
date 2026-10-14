@@ -1,9 +1,7 @@
 ## Purpose
 
 Defines that persistence conversion logic lives in each actor's StateExtensions class instead of separate `*DtoMapping` static classes.
-
 ## Requirements
-
 ### Requirement: No separate DtoMapping classes
 
 Persistence conversion logic SHALL live directly in the actor's
@@ -17,10 +15,11 @@ StateExtensions class. Separate `*DtoMapping` static classes SHALL NOT exist.
 - **WHEN** an `ApiCallRecorded` event needs to be created or parsed
 - **THEN** the conversion methods SHALL be extensions on `BudgetTrackerState` in `BudgetTrackerStateExtensions`
 
-#### Scenario: PollScheduler persistence conversion
-- **WHEN** a `DataChanged` persistence record needs to be created or parsed
-- **THEN** the conversion methods SHALL be extensions on `PollSchedulerState` in `PollSchedulerStateExtensions`
+#### Scenario: PollWorker persistence conversion
+- **WHEN** the poll worker's snapshot record `PersistedPollWorkerState` needs to be created or parsed
+- **THEN** the conversion methods SHALL be `PollWorkerState.FromPersistence` and the `GetPersistenceState` extension in `PollWorkerStateExtensions`
 
 #### Scenario: Mapping files deleted
 - **WHEN** the codebase is inspected
 - **THEN** neither `BudgetTrackerDtoMapping.cs` nor `SchedulerDtoMapping.cs` SHALL exist
+

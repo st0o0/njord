@@ -7,7 +7,7 @@ LikeC4 architecture diagrams embedded in the documentation site, providing inter
 ### Requirement: LikeC4 model defines njord architecture
 A LikeC4 C4 model SHALL exist at `docs/likec4/` containing at minimum:
 - `specification.c4` defining element kinds and visual styles
-- `model.c4` defining architectural elements (Open-Meteo API; the njord service with its ingest zone (`OpenMeteoGateway`, `OpenMeteoClient`), domain zone (`PollScheduler`, `ForecastPipeline` with the analysis libraries) and consumer zone (`MqttStatePublisher`, `ForecastReadModel` with the gRPC API); Home Assistant with ha-njord; the optional MQTT broker)
+- `model.c4` defining architectural elements (Open-Meteo API; the njord service with its ingest zone (`OpenMeteoGateway`, `OpenMeteoClient`), domain zone (`PollManager`, `PollWorker`, `ForecastPipeline` with the analysis libraries) and consumer zone (`MqttStatePublisher`, `ForecastReadModel` with the gRPC API); Home Assistant with ha-njord; the optional MQTT broker)
 - `views.c4` defining diagram views
 
 Element names SHALL refer to types and projects that exist in `src/`.
@@ -31,7 +31,7 @@ The LikeC4 model SHALL include an `internals` view showing njord's three zones â
 - **THEN** Ingest (gateway and client), Domain (scheduler, pipeline, analysis) and Consumers (MQTT state publisher, read model and gRPC API) appear as separate containers within njord
 
 ### Requirement: Pipeline view shows Akka.Streams flow
-The LikeC4 model SHALL include a `pipeline` view showing the Akka.Streams processing stages from the scheduler's poll timer to the consumers.
+The LikeC4 model SHALL include a `pipeline` view showing the Akka.Streams processing stages from a poll worker's timer to the consumers.
 
 #### Scenario: Pipeline view shows sequential stages
 - **WHEN** the `pipeline` view is rendered

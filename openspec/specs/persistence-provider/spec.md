@@ -53,6 +53,6 @@ The actor system setup SHALL configure journal and snapshot store using `WithSql
 - **THEN** `WithSqlPersistence` is called with `LinqToDB.ProviderName.PostgreSQL` and the resolved connection string
 
 #### Scenario: Actor persistence is provider-agnostic
-- **WHEN** `PollScheduler` or `BudgetTracker` persists and recovers events
+- **WHEN** a `PollWorker` or `BudgetTracker` persists and recovers events
 - **THEN** behavior is identical regardless of whether SQLite or PostgreSQL is the configured provider
 

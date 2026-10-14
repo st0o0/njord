@@ -22,11 +22,15 @@ For every persistence record in `Njord.Persistence`, a test in `Njord.Persistenc
 - **WHEN** an `ApiCallRecorded` with representative field values is serialized and deserialized
 - **THEN** all fields have identical values after the roundtrip
 
-#### Scenario: PersistedPollSchedulerState roundtrip
-- **WHEN** a `PersistedPollSchedulerState` with populated `PersistedModelPollEntry` entries is serialized and deserialized
-- **THEN** all fields including the nested entries have identical values
-
-#### Scenario: PersistedDataChanged roundtrip
-- **WHEN** a `PersistedDataChanged` is serialized and deserialized
+#### Scenario: PersistedPollWorkerState roundtrip
+- **WHEN** a `PersistedPollWorkerState` with every field populated is serialized and deserialized
 - **THEN** all fields have identical values after the roundtrip
+
+#### Scenario: Poll worker events roundtrip
+- **WHEN** each poll worker event (`PollingStarted`, `PollingStopped`, `ForecastChanged`, `ForecastUnchanged`, `PollFailed`, `PollDeferred`) is serialized and deserialized
+- **THEN** all fields have identical values after the roundtrip
+
+#### Scenario: Poll worker records have wire-format snapshots
+- **WHEN** the poll worker snapshot and events are serialized with indented Newtonsoft JSON
+- **THEN** the output matches its approved Verify baseline
 

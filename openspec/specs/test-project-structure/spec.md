@@ -90,7 +90,7 @@ Tests SHALL live in per-library test projects named `Njord.<Name>.Tests`, next t
 - **THEN** it SHALL NOT implement `IDisposable` or `IAsyncDisposable` for ActorSystem cleanup — the base class handles shutdown
 
 ### Requirement: Persistence tests keep their helpers local
-`Njord.Persistence.Tests` SHALL contain `PersistenceRoundtripHelper.cs` (a static `Roundtrip<T>(T record)` helper using `TypeNameHandling.All`), one roundtrip spec per persistence area (`BudgetTrackerDtoRoundtripSpec`, `DataChangedRoundtripSpec`, `PollSchedulerDtoRoundtripSpec`) and `WireFormatSpec` with inline expected JSON. The helper is NOT in `Njord.Tests.Shared`, because it is used only by `Njord.Persistence.Tests` and the shared-infrastructure rule above requires at least two consumers.
+`Njord.Persistence.Tests` SHALL contain `PersistenceRoundtripHelper.cs` (a static `Roundtrip<T>(T record)` helper using `TypeNameHandling.All`), one roundtrip spec per persistence area (`BudgetTrackerDtoRoundtripSpec`, `PollWorkerRecordsSpec` with its Verify wire-format baselines) and `WireFormatSpec` with inline expected JSON for the budget records. The helper is NOT in `Njord.Tests.Shared`, because it is used only by `Njord.Persistence.Tests` and the shared-infrastructure rule above requires at least two consumers.
 
 #### Scenario: Roundtrip and wire-format specs sit together
 - **WHEN** `Njord.Persistence.Tests` is inspected

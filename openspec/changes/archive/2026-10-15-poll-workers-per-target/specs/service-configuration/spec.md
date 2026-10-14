@@ -29,3 +29,7 @@ Actors that need references to other actors SHALL resolve them through the Servu
 #### Scenario: The gateway resolves the pipeline asynchronously
 - **WHEN** `OpenMeteoGateway` starts or loses its pipeline attachment
 - **THEN** it calls `Context.GetActorAsync<IForecastPipeline>()` and pipes the result to itself
+
+#### Scenario: The SensorHub pushes to the pipeline marker
+- **WHEN** the SensorHub pushes a snapshot map
+- **THEN** it resolves the pipeline through `IForecastPipeline` and skips the push while none is registered

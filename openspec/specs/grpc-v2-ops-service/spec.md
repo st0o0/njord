@@ -12,7 +12,7 @@ OpsService gRPC service for operational queries and actions — server status, t
 - **THEN** gRPC stubs SHALL be generated for all 3 OpsService RPCs without errors
 
 ### Requirement: GetStatus returns server status with Timestamps
-`OpsService.GetStatus` SHALL return a `StatusResponse` containing `string version`, `int64 uptime_seconds`, `google.protobuf.Timestamp process_start`, `BudgetStatus budget`, `repeated ModelStatus models`, `repeated string active_enrichments`, and the flags `bool budget_partial` and `bool models_partial`. `ModelStatus` SHALL use `google.protobuf.Timestamp` for `next_poll` and `optional last_change` (replacing v1's int64 fields). The service SHALL read the configuration from `ConfigManager` (`QueryConfig`), the budget from `BudgetTracker` (`QueryBudgetStatus`) and the poll states from `PollScheduler` (`QueryPollStates`), each through `ActorAsk` with its 5-second default timeout.
+`OpsService.GetStatus` SHALL return a `StatusResponse` containing `string version`, `int64 uptime_seconds`, `google.protobuf.Timestamp process_start`, `BudgetStatus budget`, `repeated ModelStatus models`, `repeated string active_enrichments`, and the flags `bool budget_partial` and `bool models_partial`. `ModelStatus` SHALL use `google.protobuf.Timestamp` for `next_poll` and `optional last_change` (replacing v1's int64 fields). The service SHALL read the configuration from `ConfigManager` (`QueryConfig`), the budget from `BudgetTracker` (`QueryBudgetStatus`) and the poll states from the poll manager (`IPollManager`, `QueryPollStates`), each through `ActorAsk` with its 5-second default timeout.
 
 #### Scenario: Status includes model poll states
 - **WHEN** a client calls `GetStatus` after polls have run
@@ -23,8 +23,8 @@ OpsService gRPC service for operational queries and actions — server status, t
 - **WHEN** a client calls `GetStatus`
 - **THEN** `BudgetStatus` SHALL contain monthly/daily limits and usage counts
 
-#### Scenario: Scheduler timeout returns status without models
-- **WHEN** `PollScheduler` does not respond within 5 seconds
+#### Scenario: Poll manager timeout returns status without models
+- **WHEN** the poll manager does not respond within 5 seconds
 - **THEN** the response contains an empty `models` list and `models_partial = true`, but still includes version, uptime, budget, and enrichments
 
 #### Scenario: Budget tracker timeout returns zero usage
@@ -36,23 +36,23 @@ OpsService gRPC service for operational queries and actions — server status, t
 - **THEN** `active_enrichments` SHALL contain the names of the enabled enrichment features and no others
 
 ### Requirement: GetTargets returns trigger target list
-`OpsService.GetTargets` SHALL return a `GetTargetsResponse` with `repeated TriggerTarget targets` built from `PollScheduler`'s `PollStatesResult`. Each `TriggerTarget` SHALL contain `string location`, `string model`, `string phase`, `google.protobuf.Timestamp next_poll`, `optional google.protobuf.Timestamp last_change`, `int32 miss_count`, `optional int64 cycle_seconds`.
+`OpsService.GetTargets` SHALL return a `GetTargetsResponse` with `repeated TriggerTarget targets` built from the poll manager's `PollStatesResult`. Each `TriggerTarget` SHALL contain `string location`, `string model`, `string phase`, `google.protobuf.Timestamp next_poll`, `optional google.protobuf.Timestamp last_change`, `int32 miss_count`, `optional int64 cycle_seconds`.
 
 #### Scenario: Returns all configured pairs
 - **WHEN** a client calls `GetTargets` with 2 locations and 3 models each
 - **THEN** the response SHALL contain 6 `TriggerTarget` entries
 
-#### Scenario: Scheduler timeout returns empty list
-- **WHEN** `PollScheduler` does not respond within 5 seconds
+#### Scenario: Poll manager timeout returns empty list
+- **WHEN** the poll manager does not respond within 5 seconds
 - **THEN** the response contains an empty `targets` list without error and a warning is logged
 
 #### Scenario: Each target carries its poll state
 - **WHEN** a client calls `GetTargets` after polls have run
 - **THEN** each `TriggerTarget` SHALL have `phase` "steady" or "discovery", a `next_poll` Timestamp and a `miss_count`
-- **AND** `last_change` SHALL be set if the model has received data at least once and `cycle_seconds` SHALL be set if the scheduler has computed a cycle duration
+- **AND** `last_change` SHALL be set if the model has received data at least once and `cycle_seconds` SHALL be set if the target's poll worker has learned a cycle duration
 
 ### Requirement: TriggerPoll triggers immediate polls
-`OpsService.TriggerPoll` SHALL accept `TriggerPollRequest` with optional `string location` and `string model` (empty = wildcard). It SHALL return `TriggerPollResponse` with `int32 triggered_count` and `repeated string targets` (format `"{location}/{model}"`).
+`OpsService.TriggerPoll` SHALL accept `TriggerPollRequest` with optional `string location` and `string model` (empty = wildcard), ask the poll manager (`IPollManager`) with `TriggerImmediatePoll` and return `TriggerPollResponse` with `int32 triggered_count` and `repeated string targets` (format `"{location}/{model}"`).
 
 #### Scenario: Trigger specific model
 - **WHEN** a client calls `TriggerPoll` with `location = "Lucerne"` and `model = "icon_d2"`

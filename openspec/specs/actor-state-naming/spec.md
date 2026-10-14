@@ -1,17 +1,15 @@
 ## Purpose
 
 Defines naming rules for actor state records and actor classes, and the one-file-per-command-or-query layout for message files in Njord.Messages.
-
 ## Requirements
-
 ### Requirement: State records match actor name
 
 An actor's state record SHALL be named `<ActorName>State` and its extensions
 `<ActorName>StateExtensions`.
 
-#### Scenario: PollScheduler state
-- **WHEN** looking up PollScheduler's state record
-- **THEN** it SHALL be named `PollSchedulerState` with extensions in `PollSchedulerStateExtensions`
+#### Scenario: PollWorker state
+- **WHEN** looking up the state record of the persistent poll actor, `PollWorker`
+- **THEN** it SHALL be named `PollWorkerState` with extensions in `PollWorkerStateExtensions`
 
 ### Requirement: Actor classes do not use State suffix
 
@@ -33,3 +31,4 @@ Each command or query SHALL have its own file in `Njord.Messages/<Domain>/`.
 #### Scenario: SensorHub messages
 - **WHEN** inspecting sensor hub message files
 - **THEN** `UpdateReading` and `QuerySensorSnapshot` (with its response hierarchy) SHALL each be in separate files
+

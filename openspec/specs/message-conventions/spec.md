@@ -15,7 +15,7 @@ A command that can be refused for a validation reason SHALL also have a
 - **THEN** the response is `BudgetStatusResult(...)` (usage and effective budget) or `BudgetStatusFailed(Exception Cause)` under abstract `BudgetStatusResponse`
 
 #### Scenario: Poll states response hierarchy
-- **WHEN** PollScheduler responds to `QueryPollStates`
+- **WHEN** PollManager responds to `QueryPollStates`
 - **THEN** the response is `PollStatesResult(...)` or `PollStatesFailed(Exception Cause)` under abstract `PollStatesResponse`
 
 #### Scenario: Sensor snapshot response hierarchy
@@ -39,7 +39,7 @@ A command that can be refused for a validation reason SHALL also have a
 - **THEN** the response is `RequestPipelineOutputCompleted(...)` or `RequestPipelineOutputFailed(...)` under abstract `RequestPipelineOutputResponse`
 
 #### Scenario: TriggerImmediatePoll has Failed variant
-- **WHEN** PollScheduler fails to handle `TriggerImmediatePoll`
+- **WHEN** PollManager cannot handle `TriggerImmediatePoll` (the poll region is not available yet)
 - **THEN** a `TriggerImmediatePollFailed(Exception Cause)` response is available in the hierarchy
 
 #### Scenario: Failed carries exception

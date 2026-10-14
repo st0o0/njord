@@ -58,7 +58,7 @@ When `IOpenMeteoClient.FetchAsync` throws instead of returning a `PollOutcome`, 
 - **THEN** the requester receives `FetchForecastFailed` for (lucerne, broken) with reason `Transport` and a detail containing `InvalidOperationException`
 
 #### Scenario: The next fetch still works after a throwing fetch
-- **WHEN** a fetch for (lucerne, broken) has thrown and the scheduler then sends `FetchForecast(lucerne, icon_d2)`
+- **WHEN** a fetch for (lucerne, broken) has thrown and a requester then sends `FetchForecast(lucerne, icon_d2)`
 - **THEN** the requester receives `FetchForecastCompleted` for (lucerne, icon_d2)
 
 ### Requirement: Successful forecasts flow into the pipeline input and every fetch reports back

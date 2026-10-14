@@ -4,17 +4,6 @@
 
 Unique type names across the project — no two public types in the transitive dependency chain share an unqualified name.
 ## Requirements
-### Requirement: Persistence event DataChanged has unique name
-The persistence event record for poll-scheduler data changes SHALL be named
-`PersistedDataChanged` to avoid collision with the actor message
-`Njord.Messages.Pipeline.DataChanged`. Wire-format `[JsonProperty]` names
-SHALL remain unchanged.
-
-#### Scenario: No ambiguity in projects referencing both Messages and Persistence
-- **GIVEN** a project that transitively references both `Njord.Messages` and `Njord.Persistence`
-- **WHEN** it uses `DataChanged`
-- **THEN** the compiler resolves to `Njord.Messages.Pipeline.DataChanged` without a `using` alias
-
 ### Requirement: Actor key for MQTT connection is unambiguous
 The actor-key marker interface for the MQTT connection actor SHALL be named
 `IMqttConnectionActor` to avoid collision with the transport interface
@@ -32,4 +21,15 @@ The static class holding pure trend math SHALL be named `TrendFormulas` (followi
 - **GIVEN** `Njord.Pipeline` references `Njord.Compute` and `Njord.Trends`
 - **WHEN** it references `TrendAnalyzer`
 - **THEN** exactly one public type named `TrendAnalyzer` exists, `Njord.Trends.TrendAnalyzer`
+
+### Requirement: Poll worker persistence records have unique names
+The poll worker's persistence records (`PollingStarted`, `PollingStopped`, `ForecastChanged`, `ForecastUnchanged`,
+`PollFailed`, `PollDeferred`, `PersistedPollWorkerState`) SHALL have names that no public type in `Njord.Messages`,
+`Njord.Core` or `Njord.Pipeline` uses, so code referencing both the messages and the persistence records needs no
+`using` alias.
+
+#### Scenario: No ambiguity in projects referencing both Messages and Persistence
+- **GIVEN** `Njord.Pipeline` references both `Njord.Messages` and `Njord.Persistence`
+- **WHEN** it uses the poll worker's events and the polling messages (`StartPolling`, `StopPolling`, `TriggerTargetPoll`, `PollWorkerReport`)
+- **THEN** every name resolves without a `using` alias
 

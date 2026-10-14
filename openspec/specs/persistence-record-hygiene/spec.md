@@ -24,7 +24,7 @@ code.
   mapping contains an explicit `switch`/`if` on the version value
 
 ### Requirement: File-per-type and domain subdirectories
-Each root-level persistence record SHALL live in its own file named after it; a record that only exists as an element of another (such as `PersistedModelPollEntry` inside `PersistedPollSchedulerState`) MAY share that file. Files SHALL be organized into domain subdirectories under `Events/` (`Events/Budget/`, `Events/Pipeline/`).
+Each root-level persistence record SHALL live in its own file named after it; a record that only exists as an element of another (an element record nested in a snapshot) MAY share that file. Files SHALL be organized into domain subdirectories under `Events/` (`Events/Budget/`, `Events/Polling/`).
 
 #### Scenario: DTO discoverability
 - **WHEN** looking for a specific record (e.g. `PersistedBudgetTrackerState`)
