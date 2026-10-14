@@ -34,7 +34,7 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
         ActorRegistry.Register<IForecastPipeline>(pipeline, overwrite: true);
 
         var readModel = Sys.ActorOf(Props.Create(() => new ForecastReadModel()), $"read-model-{Guid.NewGuid():N}");
-        var testPipeline = await ready.Task.WaitAsync(TestTimeouts.AwaitAssertMax, TestContext.Current.CancellationToken);
+        var testPipeline = await ready.Task.WaitAsync(TestTimeouts.RealTimeWaitMax, TestContext.Current.CancellationToken);
         return (readModel, testPipeline);
     }
 
@@ -250,7 +250,7 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
     private static async Task<LatestAnalysisResult> AwaitAnalysisAsync(
         IActorRef readModel, LocationId location, Func<LatestAnalysisResult, bool> condition, CancellationToken ct)
     {
-        var deadline = DateTimeOffset.UtcNow + TestTimeouts.AwaitAssertMax;
+        var deadline = DateTimeOffset.UtcNow + TestTimeouts.RealTimeWaitMax;
         LatestAnalysisResponse? last = null;
         while (DateTimeOffset.UtcNow < deadline)
         {
@@ -263,7 +263,7 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
             await Task.Delay(20, ct);
         }
 
-        Assert.Fail($"Timed out after {TestTimeouts.AwaitAssertMax} waiting for the analysis of {location}; last reply: {last}");
+        Assert.Fail($"Timed out after {TestTimeouts.RealTimeWaitMax} waiting for the analysis of {location}; last reply: {last}");
         throw new System.Diagnostics.UnreachableException();
     }
 
@@ -321,12 +321,12 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
         // A stalled pipeline backpressures the queue; fail with a bounded wait instead of hanging.
         try
         {
-            await OfferInOrder().WaitAsync(TestTimeouts.AwaitAssertMax, ct);
+            await OfferInOrder().WaitAsync(TestTimeouts.RealTimeWaitMax, ct);
         }
         catch (TimeoutException)
         {
             Assert.Fail($"The pipeline stalled: only {Volatile.Read(ref offered)} of {events.Count} events " +
-                        $"were accepted within {TestTimeouts.AwaitAssertMax}");
+                        $"were accepted within {TestTimeouts.RealTimeWaitMax}");
         }
     }
 
@@ -371,11 +371,11 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
 
             try
             {
-                await met.Task.WaitAsync(TestTimeouts.AwaitAssertMax, ct);
+                await met.Task.WaitAsync(TestTimeouts.RealTimeWaitMax, ct);
             }
             catch (TimeoutException)
             {
-                Assert.Fail($"Timed out after {TestTimeouts.AwaitAssertMax} waiting for {description}; " +
+                Assert.Fail($"Timed out after {TestTimeouts.RealTimeWaitMax} waiting for {description}; " +
                             $"received {Snapshot().Count} events");
             }
 

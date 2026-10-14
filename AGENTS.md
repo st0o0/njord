@@ -220,7 +220,7 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 991 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 153,
+Current total: 996 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 158,
 Grpc 85, Pipeline 85, Mqtt 52, OpenMeteo 18, Budget 25, SensorHub 21, Architecture 53,
 Alerts 67, Derived 36, Trends 27, Indices 61, host `Njord.Tests` 23).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
@@ -299,10 +299,17 @@ These checks run locally only; they are deliberately not part of CI.
   actor tests carry an explicit `[Fact(Timeout = ...)]` and pass
   `TestContext.Current.CancellationToken` to awaited calls (xUnit1069 is an
   error). The xUnit timeout is an outer safety net and must exceed every Akka
-  wait it wraps: TestKit waits dilate by `akka.test.timefactor = 3` (3 s
-  default becomes 9 s). Specs that start a hosted actor system or host use
-  `TestTimeouts.Hosted` (`Njord.Tests.Shared`) and bound `AwaitAssert` /
-  `AwaitCondition` explicitly (`TestTimeouts.AwaitAssertMax`); plain
+  wait it wraps: TestKit waits dilate by `akka.test.timefactor = 3`
+  (`TestTimeouts.TimeFactor`), and the dilation applies to explicit durations
+  too, not just the defaults (3 s default becomes 9 s, an explicit 5 s becomes
+  15 s). Specs that start a hosted actor system or host use
+  `TestTimeouts.Hosted` (`Njord.Tests.Shared`, 30 s) and bound `AwaitAssert` /
+  `AwaitCondition` / `ExpectMsg` explicitly with `TestTimeouts.AwaitAssertMax`,
+  an un-dilated 5 s that TestKit stretches to 15 s; waits TestKit does not
+  dilate (`Task.WaitAsync`, manual deadlines) use `TestTimeouts.RealTimeWaitMax`
+  (15 s). Never pass a raw `TimeSpan` whose dilated value comes within 10 s of
+  the xUnit timeout. `TestTimeoutsSpec` (`Njord.Core.Tests`) enforces this
+  margin for the shared constants. Plain
   `Timeout = 5000` is only for specs that make no dilated Akka wait. Never
   reuse an actor name after `GracefulStop` (name release lags `Terminated`):
   use a unique name. Retry-backoff specs set `AddFastRetryBackoff()` instead of

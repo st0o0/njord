@@ -218,7 +218,7 @@ public sealed class StreamConsumerActorSpec : TestKit
         await graphTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
     }
 
-    [Fact(Timeout = 30000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Dead_ref_detection_schedules_retry_instead_of_watching()
     {
         // Arrange: register deps and wait for initial graph materialization
@@ -252,7 +252,7 @@ public sealed class StreamConsumerActorSpec : TestKit
             $"Expected at most 10 dead letters but got {deadLetterCount} — possible tight loop");
     }
 
-    [Fact(Timeout = 30000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Stale_response_does_not_trigger_premature_ready()
     {
         // Arrange: register deps and wait for initial graph materialization
@@ -284,7 +284,7 @@ public sealed class StreamConsumerActorSpec : TestKit
             "MaterializeGraph should not have been called while retry is pending and dep is dead");
     }
 
-    [Fact(Timeout = 5000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Untracked_terminated_is_ignored()
     {
         // Arrange: register deps and wait for initial graph materialization
@@ -310,7 +310,7 @@ public sealed class StreamConsumerActorSpec : TestKit
         Assert.Equal(1, count);
     }
 
-    [Fact(Timeout = 60000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Retry_count_resets_on_successful_transition()
     {
         // Arrange: register deps and wait for initial graph
@@ -356,7 +356,7 @@ public sealed class StreamConsumerActorSpec : TestKit
         {
             await Task.Yield();
             return thirdGraphTcs.Task.IsCompleted;
-        }, TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        }, TestTimeouts.AwaitAssertMax, TestContext.Current.CancellationToken);
         Assert.True(thirdGraphTcs.Task.IsCompletedSuccessfully);
     }
 

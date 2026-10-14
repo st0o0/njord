@@ -178,7 +178,7 @@ public sealed class PollSchedulerSpec : NjordActorSpec
         await gateway.GracefulStop(TimeSpan.FromSeconds(2));
         await ExpectTerminatedAsync(gateway, cancellationToken: TestContext.Current.CancellationToken);
 
-        await AwaitConditionAsync(() => warningProbe.HasMessages, TimeSpan.FromSeconds(5), TimeSpan.FromMilliseconds(100), cancellationToken: TestContext.Current.CancellationToken);
+        await AwaitConditionAsync(() => warningProbe.HasMessages, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(100), cancellationToken: TestContext.Current.CancellationToken);
 
         var terminatedWarnings = 0;
         while (warningProbe.HasMessages)

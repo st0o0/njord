@@ -5,7 +5,7 @@ description: Use when writing or changing tests for actors, enrichment features 
 
 # njord actor spec
 
-Test rules (`Spec` suffix, `sealed`, `[Fact(Timeout = ...)]` as outer safety net above the dilated TestKit waits (`TestTimeouts.Hosted` for hosted specs), BDD-style names, assertion conventions) live in `AGENTS.md` — follow them. Run tests with `dotnet run`, never `dotnet test`:
+Test rules (`Spec` suffix, `sealed`, `[Fact(Timeout = ...)]` as outer safety net above the dilated TestKit waits (`TestTimeouts.Hosted` for hosted specs; TestKit dilates explicit durations too, so pass the un-dilated `TestTimeouts.AwaitAssertMax` to `AwaitAssert`/`AwaitCondition`/`ExpectMsg` and use `TestTimeouts.RealTimeWaitMax` for `Task.WaitAsync`), BDD-style names, assertion conventions) live in `AGENTS.md` — follow them. Run tests with `dotnet run`, never `dotnet test`:
 
 ```powershell
 dotnet run --project Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj -- -class "Njord.Pipeline.Tests.BudgetTrackerActorSpec"
