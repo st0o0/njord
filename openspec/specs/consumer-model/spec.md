@@ -3,7 +3,6 @@
 ## Purpose
 
 Consumers of the analysis pipeline: output adapters (the `ForecastReadModel` behind the gRPC API and the state-only `MqttStatePublisher`) attach to the `ForecastPipeline` BroadcastHub via SourceRef, consume typed `PipelineEvent` variants, and are registered through their setup containers.
-
 ## Requirements
 ### Requirement: Consumers attach via SourceRef to pipeline BroadcastHub
 
@@ -54,6 +53,8 @@ handling, no tombstoning, no `DiscoveryPayloadBuilder`).
 ### Requirement: ForecastReadModel serves unary and streaming RPCs
 `ForecastReadModel`, an actor in `Njord.Pipeline` resolved by the `IForecastReadModel` marker, SHALL hold in memory, per location, the latest forecast per model and the most recent analysis event, and SHALL answer `QueryForecast` with `ForecastResult` or `ForecastNotAvailable` and `QueryLatestAnalysis` with `LatestAnalysisResult` or `LatestAnalysisNotAvailable`. It SHALL feed every received event into a secondary `BroadcastHub<PipelineEvent>` (buffer size 2) and SHALL answer `RequestReadModelStream(RequestId)` with `RequestReadModelStreamCompleted` carrying a `SourceRef<PipelineEvent>`, or `RequestReadModelStreamFailed` while the hub is not materialized. The gRPC API project SHALL NOT contain this or any other actor.
 
+The secondary hub SHALL never slow down the read model: it SHALL keep a permanent consumer that discards every event, so the read model keeps consuming the pipeline output whether or not a streaming client is attached. Each streaming client SHALL receive its events through its own bounded buffer of 256 events that drops the oldest buffered event when full, so a client that consumes slowly or not at all loses events for itself only and never holds up the read model, the pipeline or any other consumer.
+
 #### Scenario: Unary query
 - **WHEN** a gRPC client calls `GetEnrichments` for a location
 - **THEN** the gRPC service asks `ForecastReadModel` with `QueryLatestAnalysis` and maps the typed reply; no persistence, no shard region
@@ -69,6 +70,18 @@ handling, no tombstoning, no `DiscoveryPayloadBuilder`).
 #### Scenario: gRPC streaming client disconnects
 - **WHEN** a gRPC streaming client cancels its call
 - **THEN** the call's cancellation token shuts down the shared kill switch of that call's stream, and other streaming clients are not affected
+
+#### Scenario: No streaming client attached
+- **WHEN** no gRPC streaming client is attached and the pipeline emits many more events than the secondary hub buffers
+- **THEN** `ForecastReadModel` answers queries with the latest of those events, and every other pipeline consumer (such as the MQTT state publisher) receives all of them
+
+#### Scenario: Streaming client that does not consume
+- **WHEN** a streaming client holds a SourceRef from `RequestReadModelStream` but does not pull, and the pipeline emits more events than its buffer holds
+- **THEN** `ForecastReadModel` and every other pipeline consumer keep receiving all events, and when the client starts pulling it receives at most the 256 most recent events it missed, oldest dropped first
+
+#### Scenario: Streaming client that keeps up
+- **WHEN** a streaming client pulls at least as fast as the pipeline emits
+- **THEN** it receives every event emitted after it attached, in order, with none dropped
 
 ### Requirement: Consumer registration via setup containers
 Each consumer SHALL be registered by the setup container of the library that owns it: `MqttSetupContainer` registers the MQTT transport services and, through an `IActorRegistration`, the `MqttConnection` and `MqttStatePublisher` singletons only when `Njord:Mqtt:Enabled` is `true`; `PipelineSetupContainer` registers the `ForecastReadModel` singleton. There SHALL be no `AddMqttConsumer()` or `AddGrpcConsumer()` extension methods.
