@@ -72,7 +72,7 @@ public sealed class OpsGrpcService(
         }
         else
         {
-            logger.LogWarning("PollScheduler did not respond in time — returning status without model poll states");
+            logger.LogWarning("PollManager did not respond in time — returning status without model poll states");
             status.ModelsPartial = true;
         }
 
@@ -94,7 +94,7 @@ public sealed class OpsGrpcService(
         }
         else
         {
-            logger.LogWarning("PollScheduler did not respond in time — returning empty trigger targets");
+            logger.LogWarning("PollManager did not respond in time — returning empty trigger targets");
         }
 
         return response;
@@ -107,7 +107,7 @@ public sealed class OpsGrpcService(
     public override async Task<TriggerPollResponse> TriggerPoll(TriggerPollRequest request, ServerCallContext context)
     {
         var location = string.IsNullOrEmpty(request.Location) ? (LocationId?)null : new LocationId(request.Location);
-        var response = await actorRegistry.AskAsync<IPollScheduler, TriggerImmediatePollResponse>(
+        var response = await actorRegistry.AskAsync<IPollManager, TriggerImmediatePollResponse>(
             new TriggerImmediatePoll(location, request.Model), context);
 
         switch (response)
@@ -137,12 +137,12 @@ public sealed class OpsGrpcService(
         throw new RpcException(new Status(StatusCode.Internal, $"Unexpected reply: {response.GetType().Name}"));
     }
 
-    // Null when the scheduler did not answer in time or could not report its states.
+    // Null when the poll manager did not answer in time or could not report its states.
     private async Task<IReadOnlyList<PollStateEntry>?> AskPollStatesAsync(ServerCallContext context)
     {
         try
         {
-            var response = await actorRegistry.AskAsync<IPollScheduler, PollStatesResponse>(new QueryPollStates(), context);
+            var response = await actorRegistry.AskAsync<IPollManager, PollStatesResponse>(new QueryPollStates(), context);
             return response is PollStatesResult result ? result.Entries : null;
         }
         catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded)

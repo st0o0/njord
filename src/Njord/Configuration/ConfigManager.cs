@@ -556,7 +556,7 @@ public sealed class ConfigManager : ReceiveActor
         }
 
         _pollingState = next;
-        Send<IPollScheduler>(next);
+        Send<IPollManager>(next);
         _log.Info("Polling reloaded: poll interval {PollInterval}, discovery interval {DiscoveryInterval}",
             next.PollInterval, next.DiscoveryInterval);
     }

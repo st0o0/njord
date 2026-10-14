@@ -1,6 +1,5 @@
 namespace Njord.Core.Actors;
 
-public interface IPollScheduler;
 public interface IPollManager;
 public interface IPollRegion;
 public interface IBudgetTracker;

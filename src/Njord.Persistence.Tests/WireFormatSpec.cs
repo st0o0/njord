@@ -1,6 +1,5 @@
 using Newtonsoft.Json;
 using Njord.Persistence.Events.Budget;
-using Njord.Persistence.Events.Pipeline;
 
 namespace Njord.Persistence.Tests;
 
@@ -40,25 +39,6 @@ public sealed class WireFormatSpec
 {
   "Weight": 3,
   "Utc": "2024-08-15T00:00:00+00:00"
-}
-""".TrimEnd();
-        Assert.Equal(expected.ReplaceLineEndings(), json.ReplaceLineEndings());
-    }
-
-    [Fact]
-    public void DataChanged_wire_format()
-    {
-        var dto = new PersistedDataChanged(
-            "lucerne", "icon_d2", 42, new DateTimeOffset(2024, 7, 15, 10, 0, 0, TimeSpan.Zero));
-
-        var json = JsonConvert.SerializeObject(dto, Settings);
-
-        var expected = """
-{
-  "Location": "lucerne",
-  "ModelId": "icon_d2",
-  "Hash": 42,
-  "Utc": "2024-07-15T10:00:00+00:00"
 }
 """.TrimEnd();
         Assert.Equal(expected.ReplaceLineEndings(), json.ReplaceLineEndings());

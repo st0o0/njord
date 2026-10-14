@@ -25,7 +25,7 @@ The codebase is organized into three zones that only meet in the domain model:
 <likec4-view view-id="internals"></likec4-view>
 
 - **Ingest**: the `OpenMeteoGateway` fetch stream and the `OpenMeteoClient` (request building, response parsing, DTO mapping). Knows how to talk to the API but nothing about gRPC, MQTT, or Home Assistant.
-- **Domain**: the `PollScheduler`, the `ForecastPipeline` analysis stream, the `BudgetTracker`, the `SensorHub`, and the analysis libraries (consensus, alerts, derived values, trends, indices).
+- **Domain**: the `PollManager` with one persistent `PollWorker` per location/model target (cluster sharding), the `ForecastPipeline` analysis stream, the `BudgetTracker`, the `SensorHub`, and the analysis libraries (consensus, alerts, derived values, trends, indices).
 - **Consumers**: output adapters that attach to the pipeline via SourceRef: the `ForecastReadModel` behind the gRPC API and the optional `MqttStatePublisher` (state topics and availability). They know how to serve data but nothing about Open-Meteo.
 
 Ingest and consumers never reference each other. All data flows through the domain model.
@@ -49,9 +49,9 @@ The data flow spans two actors, `OpenMeteoGateway` (fetch) and `ForecastPipeline
 
 <likec4-view view-id="pipeline"></likec4-view>
 
-1. **PollScheduler** decides per location/model target when it is due (default `PollInterval`: 60 minutes) and sends `FetchForecast` to the gateway
+1. **PollWorker** (one per location/model target, started by the `PollManager`) decides when its target is due and asks the gateway with `FetchForecast`; at most one request per target is in flight
 2. **GatewayThrottleStage** rate-limits the queued targets with a token bucket to stay within the Open-Meteo API budget
-3. **Fetch** runs up to two `OpenMeteoClient` calls in parallel and reports each outcome back to the scheduler
+3. **Fetch** runs up to two `OpenMeteoClient` calls in parallel and answers each request to the poll worker that asked
 4. **Forecast hub** broadcasts every successful `Forecast` to the `ForecastPipeline`
 5. **Analyze** combines each forecast with the latest sensor snapshot and computes consensus, then every enabled analysis feature (alerts, derived values, trends, indices)
 6. **PipelineEvent hub** broadcasts typed events to the consumers: the `ForecastReadModel` (gRPC API) and, when enabled, the `MqttStatePublisher`

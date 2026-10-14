@@ -37,13 +37,13 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Messages_references_only_Weather_Sensors_and_Compute()
     {
-        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.ScheduledPoll>().Except(["Njord.Weather", "Njord.Sensors", "Njord.Compute"]));
+        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.QueryPollStates>().Except(["Njord.Weather", "Njord.Sensors", "Njord.Compute"]));
     }
 
     [Fact]
     public void Messages_has_no_Akka_dependency()
     {
-        var akka = typeof(Njord.Messages.Pipeline.ScheduledPoll).Assembly.GetReferencedAssemblies()
+        var akka = typeof(Njord.Messages.Pipeline.QueryPollStates).Assembly.GetReferencedAssemblies()
             .Select(a => a.Name!)
             .Where(n => n.StartsWith("Akka", StringComparison.Ordinal));
 
@@ -59,7 +59,7 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Core_references_only_Weather_Sensors_Messages_Persistence_and_Compute()
     {
-        Assert.Empty(NjordReferences<IPollScheduler>().Except(["Njord.Compute", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"]));
+        Assert.Empty(NjordReferences<IPollManager>().Except(["Njord.Compute", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"]));
     }
 
     private static readonly string[] CoreAndBelow = ["Njord.Compute", "Njord.Core", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"];

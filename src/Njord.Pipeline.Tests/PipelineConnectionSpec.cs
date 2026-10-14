@@ -10,6 +10,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Health;
 using Njord.Messages.Forecast;
+using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using Njord.Weather;
 using Servus.Akka;
@@ -45,7 +46,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 30000)]
-    public async Task Real_scheduler_and_gateway_connect_and_poll()
+    public async Task Real_poll_worker_and_gateway_connect_and_poll()
     {
         var fetchCalled = new TaskCompletionSource<string>();
 
@@ -55,17 +56,16 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             Models = ["icon_d2"],
         };
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero));
-        var health = new NjordHealthMonitor { ServiceStartedUtc = time.GetUtcNow() };
 
         var fakeGateway = Sys.ActorOf(
             Props.Create(() => new FakeGatewayActor(fetchCalled)), "gateway");
         ActorRegistry.Register<IForecastGateway>(fakeGateway, overwrite: true);
 
-        var scheduler = Sys.ActorOf(
-            Props.Create(() => new PollScheduler(
-                Options.Create(options), Options.Create(new PollingOptions { DiscoveryInterval = TimeSpan.FromMinutes(20) }), time, health, FetchTimeouts.Default)),
-            "real-scheduler");
-        ActorRegistry.Register<IPollScheduler>(scheduler, overwrite: true);
+        var target = new PollTarget(new LocationId(options.Locations[0].Name), options.Models[0]);
+        var worker = Sys.ActorOf(
+            Props.Create(() => new PollWorker(time, FetchTimeouts.Default, target.Id)),
+            "real-worker");
+        worker.Tell(new StartPolling(target, TimeSpan.FromMinutes(20)));
 
         var location = await fetchCalled.Task.WaitAsync(TimeSpan.FromSeconds(8), TestContext.Current.CancellationToken);
         Assert.Equal("test", location);

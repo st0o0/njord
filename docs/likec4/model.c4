@@ -24,9 +24,13 @@ model {
       #domain
       description 'Poll scheduling, forecast pipeline, analysis libraries'
 
-      pollScheduler = component 'PollScheduler' {
+      pollManager = component 'PollManager' {
         #domain
-        description 'Decides when each location/model target is fetched'
+        description 'Cluster singleton: starts one poll worker per configured target, answers poll-state queries'
+      }
+      pollWorker = component 'PollWorker' {
+        #domain
+        description 'Persistent shard entity per location/model target: decides when it is fetched'
       }
       forecastPipeline = component 'ForecastPipeline' {
         #domain
@@ -70,7 +74,7 @@ model {
 
       fetchQueue = component 'Fetch queue' {
         #pipeline
-        description 'FetchForecast targets from the PollScheduler'
+        description 'FetchForecast requests from the poll workers'
       }
       throttle = component 'GatewayThrottleStage' {
         #pipeline
@@ -95,7 +99,7 @@ model {
     }
 
     persistence = dataStore 'SQLite' {
-      description 'Journal and snapshots for budget usage and poll scheduler state'
+      description 'Journal and snapshots for budget usage and the poll workers' state'
     }
   }
 
@@ -113,7 +117,9 @@ model {
   njord -> mqttBroker 'optional state JSON'
 
   // Internal relationships
-  pollScheduler -> openMeteoGateway 'FetchForecast'
+  pollManager -> pollWorker 'StartPolling / TriggerTargetPoll'
+  pollWorker -> pollManager 'PollWorkerReport'
+  pollWorker -> openMeteoGateway 'FetchForecast'
   openMeteoGateway -> openMeteoClient 'fetch'
   openMeteoClient -> openMeteo 'HTTP GET /v1/forecast'
   openMeteoGateway -> forecastPipeline 'SourceRef<Forecast>'
@@ -125,7 +131,7 @@ model {
   grpcApi -> sensorHub 'sensor readings'
   grpcApi -> homeAssistant 'gRPC streams'
   mqttStatePublisher -> mqttBroker 'state JSON'
-  pollScheduler -> persistence 'scheduler state'
+  pollWorker -> persistence 'poll state per target'
   openMeteoGateway -> budgetTracker 'recorded calls'
   budgetTracker -> persistence 'budget usage'
 

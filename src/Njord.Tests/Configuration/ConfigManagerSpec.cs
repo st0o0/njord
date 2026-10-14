@@ -52,13 +52,13 @@ public sealed class ConfigManagerSpec : NjordActorSpec
         return harness;
     }
 
-    private async Task<(IActorRef Manager, TestProbe Pipeline, TestProbe Scheduler)> StartManagerAsync(ConfigHarness? harness = null)
+    private async Task<(IActorRef Manager, TestProbe Pipeline, TestProbe PollManager)> StartManagerAsync(ConfigHarness? harness = null)
     {
         var h = harness ?? _harness;
         var pipeline = CreateTestProbe();
-        var scheduler = CreateTestProbe();
+        var pollManager = CreateTestProbe();
         ActorRegistry.Register<IForecastPipeline>(pipeline.Ref, overwrite: true);
-        ActorRegistry.Register<IPollScheduler>(scheduler.Ref, overwrite: true);
+        ActorRegistry.Register<IPollManager>(pollManager.Ref, overwrite: true);
 
         var startup = AnalysisSettingsFactory.Create(
             h.Monitor<NjordOptions>().CurrentValue,
@@ -84,20 +84,20 @@ public sealed class ConfigManagerSpec : NjordActorSpec
 
         // PreStart (where the change subscriptions are made) has run once the actor answers.
         await manager.Ask<ActorIdentity>(new Identify(1), AskTimeout, TestContext.Current.CancellationToken);
-        return (manager, pipeline, scheduler);
+        return (manager, pipeline, pollManager);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task An_alert_threshold_reload_reaches_the_pipeline()
     {
         var ct = TestContext.Current.CancellationToken;
-        var (_, pipeline, scheduler) = await StartManagerAsync();
+        var (_, pipeline, pollManager) = await StartManagerAsync();
 
         await _harness.Writer.UpdateAsync<AlertOptions>(opt => opt.FrostThresholds = [1, -4, -12], ct);
 
         var changed = await pipeline.ExpectMsgAsync<AnalysisSettingsChanged>(cancellationToken: ct);
         Assert.Equal(new SeverityThresholds(1, -4, -12, ScanDirection.Min), changed.Settings.Alerts.Frost);
-        await scheduler.ExpectNoMsgAsync(Quiet, ct);
+        await pollManager.ExpectNoMsgAsync(Quiet, ct);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -115,24 +115,24 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_poll_interval_reload_reaches_the_scheduler()
+    public async Task A_poll_interval_reload_reaches_the_poll_manager()
     {
         var ct = TestContext.Current.CancellationToken;
-        var (_, pipeline, scheduler) = await StartManagerAsync();
+        var (_, pipeline, pollManager) = await StartManagerAsync();
 
         await _harness.Writer.UpdateAsync<PollingOptions>(opt => opt.PollInterval = TimeSpan.FromMinutes(30), ct);
 
-        var changed = await scheduler.ExpectMsgAsync<PollingChanged>(cancellationToken: ct);
+        var changed = await pollManager.ExpectMsgAsync<PollingChanged>(cancellationToken: ct);
         Assert.Equal(TimeSpan.FromMinutes(30), changed.PollInterval);
         await pipeline.ExpectNoMsgAsync(Quiet, ct);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_budget_reload_updates_the_reported_limit_without_messaging_the_scheduler()
+    public async Task A_budget_reload_updates_the_reported_limit_without_messaging_the_poll_manager()
     {
         var ct = TestContext.Current.CancellationToken;
         _health.UpdateBudget(new BudgetHealthSnapshot(5, 50, RequestBudget.OpenMeteoFreeTierDailyLimit, 300_000));
-        var (_, _, scheduler) = await StartManagerAsync();
+        var (_, _, pollManager) = await StartManagerAsync();
 
         await _harness.Writer.UpdateAsync<PollingOptions>(opt => opt.BudgetOverride = new RequestBudget(200_000, 600), ct);
 
@@ -141,21 +141,21 @@ public sealed class ConfigManagerSpec : NjordActorSpec
             Assert.Equal(200_000, _health.Budget.LimitMonthly);
             Assert.Equal(50, _health.Budget.UsedMonthly);
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        await scheduler.ExpectNoMsgAsync(Quiet, ct);
+        await pollManager.ExpectNoMsgAsync(Quiet, ct);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_restart_required_reload_sends_nothing()
     {
         var ct = TestContext.Current.CancellationToken;
-        var (_, pipeline, scheduler) = await StartManagerAsync();
+        var (_, pipeline, pollManager) = await StartManagerAsync();
 
         await _harness.Writer.UpdateAsync<NjordOptions>(
             opt => opt.Locations = [new LocationOptions { Name = "zurich", Latitude = 47.37, Longitude = 8.54 }], ct);
         await _harness.Writer.UpdateAsync<AlertOptions>(opt => opt.Enabled = false, ct);
 
         await pipeline.ExpectNoMsgAsync(Quiet, ct);
-        await scheduler.ExpectNoMsgAsync(Quiet, ct);
+        await pollManager.ExpectNoMsgAsync(Quiet, ct);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

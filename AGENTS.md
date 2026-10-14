@@ -18,7 +18,21 @@ with optional MQTT state publishing.
 - **Streams for data flow, actors for lifecycle; the stable side owns the hubs.**
   Forecast data and pipeline events travel through Akka.Streams (stream refs
   between actors); requests, outcomes and scheduling travel as messages.
-  **Gateway** (`OpenMeteoGateway`) is request/response: `PollScheduler` asks
+  **Polling** is one persistent `PollWorker` per (location, model) target in the
+  `poll-worker` shard region (`IPollRegion`; entity id `"{location}|{model}"`,
+  messages implement `IWithTargetId`, routed by `ShardMessageExtractor` in Core;
+  no passivation, no remember-entities). A worker owns its poll state
+  (`PollWorkerState`: phase, learned cycle, next poll, miss/failure counts, last
+  hash; every transition persisted as an event, snapshot every 50), its timer
+  and at most one request in flight, and reports every start and outcome
+  (`PollWorkerReport`) to `PollManager` (`IPollManager`, a non-persistent cluster
+  singleton with BackoffOnFailure). The manager derives the target set from the
+  startup config, sends `StartPolling` on start and on a changed discovery
+  interval, `StopPolling` to running workers of removed targets, restarts
+  terminated workers, forwards `TriggerImmediatePoll`, and answers
+  `QueryPollStates`, the poll-cycle summaries/metrics and the poll health from
+  the reports.
+  **Gateway** (`OpenMeteoGateway`) is request/response: each `PollWorker` asks
   `FetchForecast` (named reply timeout, `FetchTimeouts`) and gets exactly one
   `FetchForecastCompleted` (hash only, no data), `FetchForecastFailed` or
   `FetchForecastRejected` (`QueueFull`, `Budget`, `PipelineUnavailable`,
@@ -148,7 +162,7 @@ src/
   Njord.Weather/               # Pure weather records, ModelCoverageRegistry, HorizonProjection,
                               #   ParameterRegistry (no Njord references)
   Njord.Sensors/               # Pure sensor records (no Njord references)
-  Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references)
+  Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references): Events/Budget, Events/Polling
   Njord.Messages/             # Commands, queries, results, PipelineEvent; no Akka
                               #   (-> Weather, Sensors, Compute)
     Budget/ Config/ Forecast/ Mqtt/ Pipeline/ Sensors/
@@ -160,7 +174,7 @@ src/
     Settings/                 # Immutable per-feature settings records
   Njord.Core/                 # Options, actor keys, NjordHealthMonitor, StreamSupervision
                               #   (-> Weather, Sensors, Messages, Persistence, Compute)
-    Actors/                   # Marker interfaces, StreamConsumerActor, stream handshakes
+    Actors/                   # Marker interfaces, ShardMessageExtractor, StreamConsumerActor, stream handshakes
                               #   (StreamWiringMessages: pipeline output, forecast,
                               #   read-model and config streams)
     Configuration/            # Options and validators, budget calculator, ConfigWriter,
@@ -170,7 +184,8 @@ src/
   Njord.OpenMeteo/            # OpenMeteoGateway, OpenMeteoClient, DTOs, JSON source generator
   Njord.Budget/               # BudgetTracker persistent actor, usage accounting
   Njord.SensorHub/            # SensorHub
-  Njord.Pipeline/             # PollScheduler, ForecastPipeline, PipelineEvent BroadcastHub,
+  Njord.Pipeline/             # PollManager, PollWorker (+ PollWorkerState), ForecastPipeline,
+                              #   PipelineEvent BroadcastHub,
                               #   ForecastReadModel (API read model)
   Njord.Mqtt/                 # MQTT connection, state payloads, TopicSlug, SourceRef consumer
   Njord.Grpc/                 # gRPC services (ask and map only), ActorAsk, protos
@@ -198,7 +213,8 @@ src/
   Njord.OpenMeteo.Tests/      # OpenMeteoClient, OptionsBudgetProvider specs
   Njord.Budget.Tests/         # BudgetTracker specs
   Njord.SensorHub.Tests/      # SensorHub specs
-  Njord.Pipeline.Tests/       # PollScheduler, ForecastPipeline, ForecastReadModel specs
+  Njord.Pipeline.Tests/       # PollWorker, PollManager, polling cluster, ForecastPipeline,
+                              #   ForecastReadModel specs
   Njord.Mqtt.Tests/           # MQTT connection, state payload, consumer specs
   Njord.Grpc.Tests/           # gRPC service, ActorAsk and mapping specs, golden masters
   Njord.Alerts.Tests/         # AlertAnalyzer specs, Rules/ (one spec per rule)
@@ -238,8 +254,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1149 tests (Weather 117, Sensors 11, Persistence 7, Compute 150, Core 186,
-Grpc 86, Pipeline 121, Mqtt 74, OpenMeteo 37, Budget 25, SensorHub 32, Architecture 53,
+Current total: 1182 tests (Weather 117, Sensors 11, Persistence 14, Compute 150, Core 190,
+Grpc 86, Pipeline 143, Mqtt 74, OpenMeteo 37, Budget 25, SensorHub 32, Architecture 53,
 Alerts 67, Derived 36, Trends 27, Indices 61, host `Njord.Tests` 59).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
@@ -382,14 +398,14 @@ Rules apply to production code (`src/Njord/`).
 - **No `EventStream`** in production code. Use explicit actor references.
   TestKit probes may subscribe to `DeadLetter`/`Warning` in tests.
 - **No `IActorRef` constructor parameters** in production actors.
-- **Actor naming:** domain-role names (e.g. `PollScheduler`, `ForecastPipeline`), sealed.
+- **Actor naming:** domain-role names (e.g. `PollManager`, `PollWorker`, `ForecastPipeline`), sealed.
   `*State` suffix is reserved for immutable state records, never for actors.
 - **Actor logging:** `private readonly ILoggingAdapter _log = Context.GetLogger();`
   — inline field init, `readonly`, named `_log`. Never `null!` + PreStart.
   The host's `ActorCategoryLogger` (registered in `AkkaSetupContainer.ConfigureLogging`) writes
-  each event with the logging class's full type name as category (`Njord.Pipeline.PollScheduler`,
+  each event with the logging class's full type name as category (`Njord.Pipeline.PollWorker`,
   Akka internals keep `Akka.*`); `akka.loglevel` follows the lowest `Serilog:MinimumLevel` value.
-- **Actors are resolved by marker interfaces** (`IPollScheduler`,
+- **Actors are resolved by marker interfaces** (`IPollManager`, `IPollRegion`,
   `IMqttConnectionActor`, ... in `Njord.Core/Actors/ActorKeys.cs`), registered
   in the host (`AkkaSetupContainer`); never key a registry lookup by the actor
   class.

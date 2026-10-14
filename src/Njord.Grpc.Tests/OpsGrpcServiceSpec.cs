@@ -26,8 +26,8 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         builder
             .WithActors((system, registry) =>
             {
-                var fakeScheduler = system.ActorOf(Props.Create(() => new FakeSchedulerActor(_now)));
-                registry.Register<IPollScheduler>(fakeScheduler);
+                var fakePollManager = system.ActorOf(Props.Create(() => new FakePollManagerActor(_now)));
+                registry.Register<IPollManager>(fakePollManager);
 
                 var fakeBudgetTracker = system.ActorOf(Props.Create(() => new FakeBudgetTrackerActor()));
                 registry.Register<IBudgetTracker>(fakeBudgetTracker);
@@ -122,10 +122,10 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task GetStatus_flags_models_partial_on_scheduler_timeout()
+    public async Task GetStatus_flags_models_partial_on_poll_manager_timeout()
     {
-        var slowScheduler = Sys.ActorOf(Props.Create(() => new SlowSchedulerActor()));
-        ActorRegistry.Register<IPollScheduler>(slowScheduler, overwrite: true);
+        var slowPollManager = Sys.ActorOf(Props.Create(() => new SlowPollManagerActor()));
+        ActorRegistry.Register<IPollManager>(slowPollManager, overwrite: true);
         var service = CreateService();
 
         var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
@@ -174,10 +174,10 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task GetTargets_returns_empty_on_scheduler_timeout()
+    public async Task GetTargets_returns_empty_on_poll_manager_timeout()
     {
-        var slowScheduler = Sys.ActorOf(Props.Create(() => new SlowSchedulerActor()));
-        ActorRegistry.Register<IPollScheduler>(slowScheduler, overwrite: true);
+        var slowPollManager = Sys.ActorOf(Props.Create(() => new SlowPollManagerActor()));
+        ActorRegistry.Register<IPollManager>(slowPollManager, overwrite: true);
 
         var service = CreateService();
 
@@ -211,9 +211,9 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
 
-    private sealed class FakeSchedulerActor : ReceiveActor
+    private sealed class FakePollManagerActor : ReceiveActor
     {
-        public FakeSchedulerActor(DateTimeOffset now)
+        public FakePollManagerActor(DateTimeOffset now)
         {
             Receive<QueryPollStates>(_ =>
             {
@@ -256,9 +256,9 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         }
     }
 
-    private sealed class SlowSchedulerActor : ReceiveActor
+    private sealed class SlowPollManagerActor : ReceiveActor
     {
-        public SlowSchedulerActor()
+        public SlowPollManagerActor()
         {
             Receive<QueryPollStates>(_ => { });
         }

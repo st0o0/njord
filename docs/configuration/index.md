@@ -74,7 +74,7 @@ Comments and trailing commas are accepted when you edit the file by hand, but nj
 
 ## Logging
 
-Log levels live in the `Serilog` section, outside `Njord`. Every log line shows its category, the full type name of the class that wrote it: njord's actors and services log as their class (`[Njord.Pipeline.PollScheduler]`), Akka.NET's internals as `Akka.*` types. The shipped `"Akka": "Warning"` override therefore only quiets Akka itself. An override key matches its category and every category below it:
+Log levels live in the `Serilog` section, outside `Njord`. Every log line shows its category, the full type name of the class that wrote it: njord's actors and services log as their class (`[Njord.Pipeline.PollWorker]`), Akka.NET's internals as `Akka.*` types. The shipped `"Akka": "Warning"` override therefore only quiets Akka itself. An override key matches its category and every category below it:
 
 ```json
 {
@@ -91,7 +91,7 @@ Log levels live in the `Serilog` section, outside `Njord`. Every log line shows 
 }
 ```
 
-`Njord.Pipeline` shows the Debug logs of the poll scheduler and the analysis pipeline; `Njord.Mqtt.MqttStatePublisher` adds element-level tracing of the MQTT state stream (its `mqtt-state-in` and `mqtt-state-out` stages). Environment variables work as well: `Serilog__MinimumLevel__Override__Njord.Pipeline=Debug`.
+`Njord.Pipeline` shows the Debug logs of the poll manager, the poll workers and the analysis pipeline; `Njord.Mqtt.MqttStatePublisher` adds element-level tracing of the MQTT state stream (its `mqtt-state-in` and `mqtt-state-out` stages). Environment variables work as well: `Serilog__MinimumLevel__Override__Njord.Pipeline=Debug`.
 
 The actor system creates log events only down to the lowest level configured in `MinimumLevel` (`Default` and every override), read once at startup; `Information` is the floor when nothing lower is set. Serilog level switches (`LevelSwitches`, `ControlledBy`) are not taken into account for that floor. Changing log levels needs a restart.
 
