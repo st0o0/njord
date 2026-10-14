@@ -16,7 +16,7 @@ The system SHALL define a `SensorService` gRPC service in `protos/njord/v2/senso
 - **THEN** a `SensorReading` message SHALL exist with fields: `kind` (SensorKind), `location` (string), `source` (string), `value` (double), `measured_at` (google.protobuf.Timestamp)
 
 ### Requirement: Push RPC accepts single reading
-The `Push` RPC SHALL validate the reading (known SensorKind, known location, plausible value) and forward it to the SensorHub actor. It SHALL return a `PushResponse` with `accepted = true` on success or `accepted = false` with `rejection_reason` on failure.
+The `Push` RPC SHALL validate the reading (known SensorKind, known location, plausible value) and forward it to the SensorHub actor. The location SHALL be matched against the configured locations case-insensitively, and the forwarded reading SHALL carry the configured spelling of the location name, so readings and forecasts of one location always share the same name. It SHALL return a `PushResponse` with `accepted = true` on success or `accepted = false` with `rejection_reason` on failure.
 
 #### Scenario: Valid reading accepted
 - **WHEN** a `Push` request with `kind=INDOOR_TEMPERATURE, location="Luzern", source="wohnzimmer", value=23.5` is received
@@ -35,6 +35,11 @@ The `Push` RPC SHALL validate the reading (known SensorKind, known location, pla
 #### Scenario: Value outside plausibility range rejected
 - **WHEN** a `Push` request with `kind=INDOOR_TEMPERATURE, value=85.0` is received
 - **THEN** the response SHALL have `accepted = false` and `rejection_reason` SHALL indicate the valid range
+
+#### Scenario: Location stored under its configured spelling
+- **WHEN** a `Push` request with `location="luzern"` is received
+- **AND** "Luzern" is a configured location
+- **THEN** the response SHALL have `accepted = true` and the reading forwarded to the SensorHub SHALL carry the location "Luzern"
 
 ### Requirement: StreamPush RPC accepts reading stream
 The `StreamPush` RPC SHALL accept a client-streaming sequence of `SensorReading` messages, validate and forward each to the SensorHub actor, and return a single `PushResponse` when the stream completes. The response SHALL indicate whether all readings were accepted.

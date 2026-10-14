@@ -2,15 +2,14 @@
 
 ## Purpose
 
-The `ForecastPipeline` analysis stream: it consumes the gateway's `SourceRef<Forecast>`, combines each forecast with the sensor and settings side channels, computes consensus and all enabled analysis features in one stateful stage (including trends against the previous consensus), supervises the stream, and vends typed `PipelineEvent` output via SourceRef.
-
+The `ForecastPipeline` analysis stream: it consumes the gateway's `SourceRef<Forecast>`, combines each forecast with the settings side channel and the live sensor snapshot of its location, computes consensus and all enabled analysis features in one stateful stage (including trends against the previous consensus), supervises the stream, and vends typed `PipelineEvent` output via SourceRef.
 ## Requirements
 ### Requirement: ForecastPipeline owns the analysis stream
-`ForecastPipeline` (src/Njord.Pipeline/ForecastPipeline.cs, marker `IForecastPipeline`) SHALL request a `SourceRef<Forecast>` from the gateway (`IForecastGateway`) with `RequestForecastStream` and, on `RequestForecastStreamCompleted`, SHALL materialize exactly one analysis graph with `Context.Materializer()`: `sourceRef.Source → ZipWith(sensor side channel, settings side channel) → StatefulSelectMany(compute all) → BroadcastHub<PipelineEvent>`. The graph SHALL contain no fetch, throttle or hashing logic, no intermediate relay actor and no second hub. Until the forecast stream is materialized the actor SHALL stash every message except the gateway handshake, `AnalysisSettingsChanged` and `Terminated`. When the gateway terminates or the handshake fails, the actor SHALL re-resolve the gateway with jittered exponential backoff (1 s up to 30 s) and request a new stream.
+`ForecastPipeline` (src/Njord.Pipeline/ForecastPipeline.cs, marker `IForecastPipeline`) SHALL request a `SourceRef<Forecast>` from the gateway (`IForecastGateway`) with `RequestForecastStream` and, on `RequestForecastStreamCompleted`, SHALL materialize exactly one analysis graph with `Context.Materializer()`: `sourceRef.Source → ZipWith(settings side channel) → SelectAsync(1, sensor lookup) → StatefulSelectMany(compute all) → BroadcastHub<PipelineEvent>`. The graph SHALL contain no fetch, throttle or hashing logic, no intermediate relay actor and no second hub. Until the forecast stream is materialized the actor SHALL stash every message except the gateway handshake, `AnalysisSettingsChanged` and `Terminated`. When the gateway terminates or the handshake fails, the actor SHALL re-resolve the gateway with jittered exponential backoff (1 s up to 30 s) and request a new stream.
 
 #### Scenario: Pipeline graph structure
 - **WHEN** `ForecastPipeline` receives `RequestForecastStreamCompleted`
-- **THEN** it materializes `sourceRef.Source → ZipWith(sensors, settings) → StatefulSelectMany → BroadcastHub<PipelineEvent>` and enters its ready behavior
+- **THEN** it materializes `sourceRef.Source → ZipWith(settings) → SelectAsync(1, sensor lookup) → StatefulSelectMany → BroadcastHub<PipelineEvent>` and enters its ready behavior
 
 #### Scenario: No fetch logic in the pipeline
 - **WHEN** `ForecastPipeline` is inspected
@@ -65,21 +64,40 @@ The analysis graph SHALL end in a `BroadcastHub.Sink<PipelineEvent>` with `buffe
 - **WHEN** the MQTT state publisher and `ForecastReadModel` both hold a SourceRef
 - **THEN** each receives every `PipelineEvent` emitted after it attached
 
-### Requirement: Sensor and settings side channels
-`ForecastPipeline` SHALL feed sensor data and analysis settings into the graph through two `Source.ActorRef` side channels (buffer 10, `DropHead`), each started with an initial element and repeated with `RepeatPrevious`, so every forecast is zipped with the latest `SensorSnapshot` and the latest `AnalysisSettings`. The sensor channel SHALL start with an empty `SensorSnapshot`; an empty snapshot SHALL be passed to `IndexAnalyzer` as `null`. In the ready behavior the actor SHALL forward received `SensorSnapshot` messages to the sensor channel, and on `AnalysisSettingsChanged` it SHALL store the settings and forward them to the settings channel, so a change applies from the next forecast on and never in the middle of one computation.
-
-#### Scenario: Settings change applies to the next forecast
-- **WHEN** `ConfigManager` sends `AnalysisSettingsChanged` with new alert thresholds
-- **THEN** the next forecast is analyzed with the new thresholds and a computation already running is not affected
-
-#### Scenario: No sensor data yet
-- **WHEN** no `SensorSnapshot` was received
-- **THEN** `IndexAnalyzer.Compute` receives `null` for the sensors and uses configured or default indoor values
-
 ### Requirement: Analysis stream supervision
 The analysis stage SHALL use `StreamSupervision.LoggingDecider` with the actor's logging adapter as its supervision strategy.
 
 #### Scenario: Analyzer exception is logged
 - **WHEN** an analyzer throws while processing one forecast
 - **THEN** the exception is logged through the actor's logger and handled by the shared decider
+
+### Requirement: Settings side channel
+`ForecastPipeline` SHALL feed analysis settings into the graph through a `Source.ActorRef` side channel (buffer 10, `DropHead`), started with the startup settings and repeated with `RepeatPrevious`, so every forecast is analyzed with the latest `AnalysisSettings`. On `AnalysisSettingsChanged` the actor SHALL store the settings and forward them to the side channel, so a change applies from the next forecast on and never in the middle of one computation.
+
+#### Scenario: Settings change applies to the next forecast
+- **WHEN** `ConfigManager` sends `AnalysisSettingsChanged` with new alert thresholds
+- **THEN** the next forecast is analyzed with the new thresholds and a computation already running is not affected
+
+### Requirement: Live sensor snapshot per forecast
+For every forecast, `ForecastPipeline` SHALL ask the SensorHub (`ISensorHub`) with `QuerySensorSnapshot` for the forecast's location before analyzing it, one forecast at a time and in arrival order, and SHALL pass the snapshot of a `SensorSnapshotResult` to `IndexAnalyzer`. It SHALL pass `null` when the reply is `SensorSnapshotNotAvailable`, when the SensorHub is not registered, or when no reply arrives within a bounded timeout. A failed or missing sensor lookup SHALL NOT drop, delay beyond that timeout or fail the analysis of the forecast. The pipeline SHALL NOT accept pushed `SensorSnapshot` messages.
+
+#### Scenario: Live indoor temperature reaches the indices
+- **WHEN** the SensorHub holds a fresh `IndoorTemperature` reading of 24.5 for location "Luzern" and a forecast for "Luzern" is analyzed
+- **THEN** `IndexAnalyzer.Compute` receives a snapshot with `IndoorTemperature = 24.5` and the index result reflects it instead of the configured indoor temperature
+
+#### Scenario: Readings are matched to the forecast's location
+- **WHEN** the SensorHub holds readings for "Luzern" only and a forecast for "Borken" is analyzed
+- **THEN** `IndexAnalyzer.Compute` receives `null` for "Borken"
+
+#### Scenario: No sensor data yet
+- **WHEN** the SensorHub has no fresh reading for the forecast's location
+- **THEN** `IndexAnalyzer.Compute` receives `null` for the sensors and uses configured or default indoor values
+
+#### Scenario: SensorHub unavailable
+- **WHEN** the SensorHub is not registered or does not reply within the timeout
+- **THEN** the forecast is analyzed with `null` sensors and all its pipeline events are emitted
+
+#### Scenario: Stale readings are not used
+- **WHEN** the only reading for the location is older than the configured staleness window
+- **THEN** `IndexAnalyzer.Compute` receives `null` for that location
 

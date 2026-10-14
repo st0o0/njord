@@ -28,4 +28,4 @@ Conventions: sealed `Spec` classes, BDD names, `[Fact(Timeout = TestTimeouts.Hos
 - [x] 4.3 From `src/`: `dotnet run --project Njord.Grpc.Tests/Njord.Grpc.Tests.csproj --no-build`, `dotnet run --project Njord.SensorHub.Tests/Njord.SensorHub.Tests.csproj --no-build` and `dotnet run --project Njord.Architecture.Tests/Njord.Architecture.Tests.csproj --no-build` pass
 - [x] 4.4 From `src/`: run the full loop (`for p in Njord.*Tests; do [ "$p" = Njord.Tests.Shared ] && continue; dotnet run --project "$p/$p.csproj" --no-build; done`); all tests pass. Update "Current total" in `AGENTS.md`
 - [x] 4.5 `git diff --stat` shows no `*.verified.*` change
-- [ ] 4.6 From the repo root: `openspec validate --all --no-interactive` passes
+- [x] 4.6 From the repo root: `openspec validate --all --no-interactive` passes
