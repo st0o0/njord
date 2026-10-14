@@ -3,7 +3,6 @@
 ## Purpose
 
 Runtime configuration mutations through `IConfigWriter`/`ConfigWriter`: validated, section-scoped read-modify-write of `data/appsettings.Override.json` with section-wrapped JSON, lazy file creation, atomic and serialized writes, and `IConfigurationRoot.Reload()` propagation to the configuration manager.
-
 ## Requirements
 ### Requirement: Override file uses section-wrapped JSON
 The override file SHALL wrap all persisted options under the `"Njord"` section key, matching the `NjordOptions.SectionName` binding. This ensures the persisted keys align with `IConfiguration` section binding and override environment variables (which bind to the same `Njord:*` key path). The override file configuration source SHALL have higher priority than environment variables so that array properties (e.g. `Horizons`, threshold lists) are fully replaced rather than merged by index.
@@ -37,11 +36,15 @@ The override file SHALL NOT be created on application startup. It SHALL be creat
 - **THEN** `data/appsettings.Override.json` SHALL be created with the mutated options
 
 ### Requirement: Atomic file write
-The override file SHALL be written atomically: write to a temporary file in the same directory, then rename/move to the target path. This prevents partial reads by the file watcher.
+The override file SHALL be written atomically: write to a temporary file in the same directory, flush it to disk, then rename/move it to the target path. This prevents partial reads by the file watcher and ensures njord itself never leaves a half-written override file behind.
 
 #### Scenario: Crash during write does not corrupt config
 - **WHEN** the process crashes during a write operation
 - **THEN** the previous override file (or absence of one) SHALL remain intact
+
+#### Scenario: Successful write leaves no temporary file
+- **WHEN** a mutation is persisted
+- **THEN** only `data/appsettings.Override.json` SHALL hold the new content and no temporary file SHALL remain in `data/`
 
 ### Requirement: Concurrent mutations are serialized
 Concurrent calls to `IConfigWriter.UpdateAsync` SHALL be serialized via a `SemaphoreSlim(1)` to prevent lost updates from interleaved read-modify-write cycles.
@@ -72,4 +75,12 @@ The system SHALL provide `IConfigWriter` (implemented by `ConfigWriter` in `Njor
 #### Scenario: Invalid update is not persisted
 - **WHEN** a caller invokes `UpdateAsync<ConsensusOptions>(opt => opt.MinQuorum = 0, ct)`
 - **THEN** the result is not applied, carries the validation failure, and `data/appsettings.Override.json` is unchanged
+
+### Requirement: Writer reads every file the configuration loader accepts
+The writer SHALL read the existing override file with the same JSON leniency as the configuration loader (comments and trailing commas are accepted), so a hand-edited file that njord loads can also be updated by a mutation. Comments are not preserved when the file is rewritten.
+
+#### Scenario: Hand-edited file with comments is updated
+- **WHEN** the override file contains a `//` comment and a trailing comma and sets `ForecastDays = 7`
+- **AND** a mutation sets `PollInterval = 1800s`
+- **THEN** the mutation SHALL be applied and the new file SHALL contain both `ForecastDays = 7` and `PollInterval = 1800s`
 
