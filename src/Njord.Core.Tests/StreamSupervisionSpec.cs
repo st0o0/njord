@@ -1,7 +1,7 @@
 using Akka.Actor;
-using Microsoft.Extensions.Logging;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Microsoft.Extensions.Logging;
 using Njord.Core.Actors;
 using Njord.Tests.Shared;
 using StreamDirective = Akka.Streams.Supervision.Directive;

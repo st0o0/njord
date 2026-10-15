@@ -1,11 +1,11 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Weather;
 using Njord.Core.Configuration.Sensors;
 using Njord.Messages.Sensors;
 using Njord.Sensors;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.SensorHub.Tests;
 

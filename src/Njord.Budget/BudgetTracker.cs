@@ -1,7 +1,7 @@
 using Akka.Event;
 using Akka.Persistence;
-using Njord.Messages.Budget;
 using Njord.Core.Health;
+using Njord.Messages.Budget;
 using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Budget;
 

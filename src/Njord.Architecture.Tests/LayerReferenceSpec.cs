@@ -1,6 +1,6 @@
+using System.Runtime.CompilerServices;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
-using System.Runtime.CompilerServices;
 using Njord.Core.Actors;
 
 namespace Njord.Architecture.Tests;

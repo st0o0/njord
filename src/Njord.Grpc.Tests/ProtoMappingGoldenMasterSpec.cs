@@ -1,10 +1,10 @@
 using System.Text;
 using Google.Protobuf;
-using Njord.Weather;
-using Njord.Messages.Pipeline;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
+using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
+using Njord.Weather;
 using static VerifyXunit.Verifier;
 
 namespace Njord.Grpc.Tests;

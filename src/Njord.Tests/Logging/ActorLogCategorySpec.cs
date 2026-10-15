@@ -8,13 +8,13 @@ using Microsoft.Extensions.Logging;
 using Njord.Configuration;
 using Njord.Tests.Shared;
 using Serilog;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
 using Serilog.Core;
 using Serilog.Events;
-using AkkaLogging = Akka.Event.Logging;
 using Serilog.Extensions.Logging;
-using SerilogEvent = Serilog.Events.LogEvent;
+using AkkaLogging = Akka.Event.Logging;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 using MelLogLevel = Microsoft.Extensions.Logging.LogLevel;
+using SerilogEvent = Serilog.Events.LogEvent;
 
 namespace Njord.Tests.Logging;
 

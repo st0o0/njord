@@ -4,9 +4,9 @@ using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Indices;
-using Njord.Tests.Shared;
-using Njord.Indices;
 using Njord.Derived;
+using Njord.Indices;
+using Njord.Tests.Shared;
 using Njord.Trends;
 using Njord.Weather;
 

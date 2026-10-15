@@ -5,8 +5,8 @@ using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Indices;
-using Njord.Indices;
 using Njord.Derived;
+using Njord.Indices;
 using Njord.Trends;
 using Njord.Weather;
 

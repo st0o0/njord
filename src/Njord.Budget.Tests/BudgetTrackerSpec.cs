@@ -4,8 +4,8 @@ using Akka.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Messages.Budget;
 using Njord.Core.Health;
+using Njord.Messages.Budget;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 

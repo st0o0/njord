@@ -1,7 +1,7 @@
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
-using Njord.Messages.Pipeline;
 using Njord.Grpc.V2;
+using Njord.Messages.Pipeline;
 using DomainAlertSeverity = Njord.Compute.Contracts.AlertSeverity;
 using DomainAlertType = Njord.Compute.Contracts.AlertType;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;

@@ -28,7 +28,7 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
 
     // Ids are unique across incarnations: a restarted gateway keeps its ActorRef, so late offer results, stream
     // signals and branch completions of the previous incarnation must never match anything of the current one.
-    private static long _lastId;
+    private static long LastId;
 
     private static readonly BackoffPolicy AttachRetryPolicy =
         Backoff.Create(TimeSpan.FromSeconds(1), maxDelay: TimeSpan.FromSeconds(30));
@@ -427,7 +427,7 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
         }
     }
 
-    private static long NextId() => Interlocked.Increment(ref _lastId);
+    private static long NextId() => Interlocked.Increment(ref LastId);
 
     internal static int ComputeWeight(int hourlyVariableCount, int forecastDays) =>
         (int)Math.Ceiling(hourlyVariableCount / 10.0) * (int)Math.Ceiling(forecastDays / 14.0);

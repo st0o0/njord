@@ -1,10 +1,10 @@
 using Akka;
 using Akka.Actor;
 using Akka.Event;
+using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Messages.Pipeline;
-using Akka.Hosting;
 using Servus.Resilience;
 
 namespace Njord.Core.Actors;

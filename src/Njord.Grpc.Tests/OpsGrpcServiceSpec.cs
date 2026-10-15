@@ -1,7 +1,6 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Messages.Budget;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
@@ -10,6 +9,7 @@ using Njord.Core.Configuration.Derived;
 using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Trends;
 using Njord.Grpc.V2;
+using Njord.Messages.Budget;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using Njord.Weather;

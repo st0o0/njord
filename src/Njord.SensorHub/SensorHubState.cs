@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
-using Njord.Weather;
 using Njord.Messages.Sensors;
 using Njord.Sensors;
+using Njord.Weather;
 
 namespace Njord.SensorHub;
 

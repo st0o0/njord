@@ -130,18 +130,18 @@ public static class PollWorkerStateExtensions
     // The event a fetch reply leads to, and how the outcome counts for the location's poll cycle.
     public static (object Event, PollWorkerOutcome Outcome) ToEvent(
         this PollWorkerState state, FetchForecastResponse reply, DateTimeOffset now) => reply switch
-    {
-        FetchForecastCompleted completed when completed.Hash != state.LastHash =>
-            (new ForecastChanged(completed.Hash, now), PollWorkerOutcome.Changed),
-        FetchForecastCompleted => (new ForecastUnchanged(now), PollWorkerOutcome.Unchanged),
-        FetchForecastFailed { Reason: PollFailureReason.RateLimited } =>
-            (new PollFailed(now, PollWorkerState.RateLimitMinDelay), PollWorkerOutcome.Failed),
-        FetchForecastRejected { Reason: FetchRejectionReason.Budget } =>
-            (new PollFailed(now, PollWorkerState.RateLimitMinDelay), PollWorkerOutcome.Failed),
-        FetchForecastRejected { Reason: FetchRejectionReason.PipelineUnavailable } =>
-            (new PollDeferred(now, PollWorkerState.PipelineUnavailableRetry), PollWorkerOutcome.Failed),
-        _ => (new PollFailed(now, TimeSpan.Zero), PollWorkerOutcome.Failed),
-    };
+        {
+            FetchForecastCompleted completed when completed.Hash != state.LastHash =>
+                (new ForecastChanged(completed.Hash, now), PollWorkerOutcome.Changed),
+            FetchForecastCompleted => (new ForecastUnchanged(now), PollWorkerOutcome.Unchanged),
+            FetchForecastFailed { Reason: PollFailureReason.RateLimited } =>
+                (new PollFailed(now, PollWorkerState.RateLimitMinDelay), PollWorkerOutcome.Failed),
+            FetchForecastRejected { Reason: FetchRejectionReason.Budget } =>
+                (new PollFailed(now, PollWorkerState.RateLimitMinDelay), PollWorkerOutcome.Failed),
+            FetchForecastRejected { Reason: FetchRejectionReason.PipelineUnavailable } =>
+                (new PollDeferred(now, PollWorkerState.PipelineUnavailableRetry), PollWorkerOutcome.Failed),
+            _ => (new PollFailed(now, TimeSpan.Zero), PollWorkerOutcome.Failed),
+        };
 
     public static PollWorkerState Apply(this PollWorkerState state, object evt) => evt switch
     {

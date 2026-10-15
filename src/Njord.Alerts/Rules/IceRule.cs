@@ -61,8 +61,8 @@ public sealed class IceRule : IAlertRule
         var confidence = iceAgreements.Count > 0 ? Math.Round(iceAgreements.Average(), 3) : 0.0;
         var severity = (minTemp, soilFrozen) switch
         {
-            (<= 0, true) => AlertSeverity.Red,
-            (<= 0, false) => AlertSeverity.Orange,
+            ( <= 0, true) => AlertSeverity.Red,
+            ( <= 0, false) => AlertSeverity.Orange,
             _ => AlertSeverity.Yellow,
         };
 

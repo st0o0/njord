@@ -31,7 +31,7 @@ public sealed class ForecastPipeline : ReceiveActor
 
     // Unique across incarnations: a restarted pipeline keeps its ActorRef, and the end of the previous
     // incarnation's graph must not fail the new one.
-    private static long _lastGraphId;
+    private static long LastGraphId;
 
     private sealed record AnalysisGraphEnded(long GraphId, Exception? Cause) : IDeadLetterSuppression;
 
@@ -161,7 +161,7 @@ public sealed class ForecastPipeline : ReceiveActor
 
     private void MaterializeAnalysisPipeline()
     {
-        var graphId = _graphId = Interlocked.Increment(ref _lastGraphId);
+        var graphId = _graphId = Interlocked.Increment(ref LastGraphId);
         var (mergeSink, forecastSource) = MergeHub.Source<WeatherForecast>(PerProducerBufferSize).PreMaterialize(_mat);
 
         var (pipelineOutputSource, pipelineOutputSink) = BroadcastHub.Sink<PipelineEvent>(bufferSize: 2)
