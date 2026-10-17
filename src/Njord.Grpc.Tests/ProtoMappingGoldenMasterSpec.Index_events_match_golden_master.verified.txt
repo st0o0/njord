@@ -167,7 +167,7 @@
     },
     "vpd": {
       "kpa": 0.82,
-      "category": "optimal"
+      "category": "VPD_CATEGORY_OPTIMAL"
     }
   }
 }
@@ -336,7 +336,7 @@
     ],
     "vpd": {
       "kpa": 0.9,
-      "category": "optimal"
+      "category": "VPD_CATEGORY_OPTIMAL"
     }
   }
 }

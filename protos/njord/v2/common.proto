@@ -137,9 +137,18 @@ message FrostInfo {
   double confidence = 2;
 }
 
+enum VpdCategory {
+  VPD_CATEGORY_UNSPECIFIED = 0;
+  VPD_CATEGORY_LOW = 1;
+  VPD_CATEGORY_OPTIMAL = 2;
+  VPD_CATEGORY_HIGH = 3;
+  VPD_CATEGORY_CRITICAL = 4;
+}
+
 message VpdInfo {
   double kpa = 1;
-  string category = 2;
+  reserved 2;
+  VpdCategory category = 3;
 }
 
 message DayScoreSet {
@@ -173,10 +182,25 @@ message IndexUpdate {
 // Enrichment: Trends
 // ═══════════════════════════════════════
 
+enum TrendDirection {
+  TREND_DIRECTION_UNSPECIFIED = 0;
+  TREND_DIRECTION_RISING = 1;
+  TREND_DIRECTION_FALLING = 2;
+  TREND_DIRECTION_STABLE = 3;
+}
+
+enum Stability {
+  STABILITY_UNSPECIFIED = 0;
+  STABILITY_CONVERGING = 1;
+  STABILITY_DIVERGING = 2;
+  STABILITY_STABLE = 3;
+}
+
 message ParameterTrend {
   string parameter = 1;
-  string direction = 2;
+  reserved 2;
   double delta = 3;
+  TrendDirection direction = 4;
 }
 
 message TrendUpdate {
@@ -186,22 +210,33 @@ message TrendUpdate {
   optional int32 precip_ends_in_hours = 4;
   optional int32 temp_max_in_hours = 5;
   optional int32 temp_min_in_hours = 6;
-  optional string stability_label = 7;
+  reserved 7;
   optional double stability_ratio = 8;
   optional double decay_rate = 9;
   optional int32 reliable_hours = 10;
+  optional Stability stability_label = 11;
 }
 
 // ═══════════════════════════════════════
 // Enrichment: Derived
 // ═══════════════════════════════════════
 
+enum DewPointComfort {
+  DEW_POINT_COMFORT_UNSPECIFIED = 0;
+  DEW_POINT_COMFORT_DRY = 1;
+  DEW_POINT_COMFORT_COMFORTABLE = 2;
+  DEW_POINT_COMFORT_STICKY = 3;
+  DEW_POINT_COMFORT_OPPRESSIVE = 4;
+  DEW_POINT_COMFORT_DANGEROUS = 5;
+}
+
 message HorizonDerived {
   string horizon = 1;
   optional int32 beaufort = 2;
   optional double wind_chill = 3;
-  optional string dewpoint_comfort = 4;
+  reserved 4;
   optional string wmo_description = 5;
+  optional DewPointComfort dewpoint_comfort = 6;
 }
 
 message ScalarDerived {

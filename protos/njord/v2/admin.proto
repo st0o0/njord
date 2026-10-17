@@ -53,10 +53,18 @@ message DetailedEnrichmentConfig {
   reserved 6;
 }
 
+enum ConsensusMethod {
+  CONSENSUS_METHOD_UNSPECIFIED = 0;
+  CONSENSUS_METHOD_MEAN = 1;
+  CONSENSUS_METHOD_MEDIAN = 2;
+  CONSENSUS_METHOD_TRIMMED_MEAN = 3;
+}
+
 message ConsensusConfig {
   optional bool enabled = 1;
-  optional string method = 2;
+  reserved 2;
   optional double trim_percent = 3;
+  optional ConsensusMethod method = 4;
 }
 
 message AlertConfig {
@@ -133,6 +141,17 @@ message SetEnrichmentRequest {
   optional TrendConfig trends = 4;
   optional IndexConfig indices = 5;
   reserved 6;
+  repeated EnrichmentSection reset = 7;
+  bool dry_run = 8;
+}
+
+enum EnrichmentSection {
+  ENRICHMENT_SECTION_UNSPECIFIED = 0;
+  ENRICHMENT_SECTION_CONSENSUS = 1;
+  ENRICHMENT_SECTION_ALERTS = 2;
+  ENRICHMENT_SECTION_DERIVED = 3;
+  ENRICHMENT_SECTION_TRENDS = 4;
+  ENRICHMENT_SECTION_INDICES = 5;
 }
 
 message SetBudgetRequest {
@@ -155,6 +174,14 @@ message ConfigResponse {
   repeated string warnings = 3;
   bool applied = 4;
   string rejection_reason = 5;
+  repeated ConfigIssue issues = 6;
+  repeated string restart_required = 7;
+  bool dry_run = 8;
+}
+
+message ConfigIssue {
+  EnrichmentSection section = 1;
+  string message = 2;
 }
 
 message BudgetProjection {

@@ -16,10 +16,10 @@ public static class VaporPressureDeficit
 
         var category = vpd switch
         {
-            < 0.4 => "low",
-            < 1.2 => "optimal",
-            < 2.0 => "high",
-            _ => "critical",
+            < 0.4 => VpdCategory.Low,
+            < 1.2 => VpdCategory.Optimal,
+            < 2.0 => VpdCategory.High,
+            _ => VpdCategory.Critical,
         };
         return new VpdInfo(category, vpd);
     }

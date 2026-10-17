@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Consensus;
@@ -293,6 +294,181 @@ public sealed class ConfigWriterSpec : IDisposable
         await writer.UpdateAsync<NjordOptions>(opt => opt.ForecastDays = 8, ct);
 
         Assert.Equal([Path.GetFullPath(OverridePath)], Directory.GetFiles(_tempDir).Select(Path.GetFullPath));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Update_many_persists_all_sections_with_one_reload()
+    {
+        var (writer, provider) = CreateWriter();
+        var root = provider.GetRequiredService<IConfiguration>();
+        var reloads = 0;
+        using var subscription = ChangeToken.OnChange(root.GetReloadToken, () => reloads++);
+        await writer.UpdateAsync<NjordOptions>(opt => opt.ForecastDays = 6, TestContext.Current.CancellationToken);
+        var reloadsPerWrite = reloads;
+        reloads = 0;
+
+        var result = await writer.UpdateManyAsync(
+            [
+                SectionUpdate.For<AlertOptions>(opt => opt.CapeThreshold = 1800),
+                SectionUpdate.For<ConsensusOptions>(opt => opt.TrimPercent = 0.2),
+            ],
+            dryRun: false,
+            TestContext.Current.CancellationToken);
+
+        var enrichment = ReadOverride()["Njord"]!["Enrichment"]!;
+        Assert.Multiple(
+            () => Assert.True(result.Applied),
+            () => Assert.Equal(reloadsPerWrite, reloads),
+            () => Assert.Equal(1800, enrichment["Alerts"]!["CapeThreshold"]!.GetValue<double>()),
+            () => Assert.Equal(0.2, enrichment["Consensus"]!["TrimPercent"]!.GetValue<double>()),
+            () => Assert.Equal(["CapeThreshold"], result.Sections[0].ChangedProperties),
+            () => Assert.Equal(1800, provider.GetRequiredService<IOptionsMonitor<AlertOptions>>().CurrentValue.CapeThreshold),
+            () => Assert.Equal(0.2, provider.GetRequiredService<IOptionsMonitor<ConsensusOptions>>().CurrentValue.TrimPercent));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Update_many_persists_nothing_when_one_section_is_invalid()
+    {
+        var (writer, provider) = CreateWriter();
+        var root = provider.GetRequiredService<IConfiguration>();
+        var reloads = 0;
+        using var subscription = ChangeToken.OnChange(root.GetReloadToken, () => reloads++);
+
+        var result = await writer.UpdateManyAsync(
+            [
+                SectionUpdate.For<ConsensusOptions>(opt => opt.TrimPercent = 0.2),
+                SectionUpdate.For<AlertOptions>(opt => opt.FrostThresholds = [0, 5, -15]),
+            ],
+            dryRun: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.Multiple(
+            () => Assert.False(result.Applied),
+            () => Assert.False(result.Valid),
+            () => Assert.Empty(result.Sections[0].Failures),
+            () => Assert.Contains(result.Sections[1].Failures, f => f.Contains("FrostThresholds")),
+            () => Assert.Equal(typeof(AlertOptions), result.Sections[1].OptionsType),
+            () => Assert.False(File.Exists(OverridePath)),
+            () => Assert.Equal(0, reloads),
+            () => Assert.Equal(0.1, provider.GetRequiredService<IOptionsMonitor<ConsensusOptions>>().CurrentValue.TrimPercent));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Update_many_dry_run_validates_without_persisting()
+    {
+        var (writer, provider) = CreateWriter();
+
+        var valid = await writer.UpdateManyAsync(
+            [SectionUpdate.For<ConsensusOptions>(opt => opt.TrimPercent = 0.2)], dryRun: true, TestContext.Current.CancellationToken);
+        var invalid = await writer.UpdateManyAsync(
+            [SectionUpdate.For<ConsensusOptions>(opt =>
+            {
+                opt.Method = Compute.Settings.ConsensusMethod.TrimmedMean;
+                opt.TrimPercent = 0.7;
+            })],
+            dryRun: true,
+            TestContext.Current.CancellationToken);
+
+        Assert.Multiple(
+            () => Assert.True(valid.Valid),
+            () => Assert.False(valid.Applied),
+            () => Assert.Equal(["TrimPercent"], valid.Sections[0].ChangedProperties),
+            () => Assert.False(invalid.Valid),
+            () => Assert.Contains(invalid.Sections[0].Failures, f => f.Contains("TrimPercent")),
+            () => Assert.False(File.Exists(OverridePath)),
+            () => Assert.Equal(0.1, provider.GetRequiredService<IOptionsMonitor<ConsensusOptions>>().CurrentValue.TrimPercent));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Reset_removes_the_section_override_so_the_base_configuration_applies_again()
+    {
+        var (writer, provider) = CreateWriter(alertsEnabled: true);
+        var ct = TestContext.Current.CancellationToken;
+        await writer.UpdateAsync<AlertOptions>(opt =>
+        {
+            opt.Enabled = false;
+            opt.HeatThresholds = [31, 36, 41];
+        }, ct);
+        await writer.UpdateAsync<NjordOptions>(opt => opt.ForecastDays = 6, ct);
+        var defaultHeat = new AlertOptions().HeatThresholds;
+        var monitor = provider.GetRequiredService<IOptionsMonitor<AlertOptions>>();
+        Assert.False(monitor.CurrentValue.Enabled);
+
+        var result = await writer.UpdateManyAsync(
+            [SectionUpdate.For<AlertOptions>(_ => { }, reset: true)], dryRun: false, ct);
+
+        var njord = ReadOverride()["Njord"]!.AsObject();
+        Assert.Multiple(
+            () => Assert.True(result.Applied),
+            () => Assert.Equal(["Enabled", "HeatThresholds"], result.Sections[0].ChangedProperties.Order()),
+            () => Assert.Equal(["Enabled"], result.Sections[0].RestartRequiredProperties),
+            () => Assert.False(njord.ContainsKey("Enrichment")),
+            () => Assert.Equal(6, njord["ForecastDays"]!.GetValue<int>()),
+            () => Assert.True(monitor.CurrentValue.Enabled),
+            () => Assert.Equal(defaultHeat, monitor.CurrentValue.HeatThresholds));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Reset_keeps_sibling_sections_of_the_override()
+    {
+        var (writer, provider) = CreateWriter();
+        var ct = TestContext.Current.CancellationToken;
+        await writer.UpdateAsync<AlertOptions>(opt => opt.CapeThreshold = 1800, ct);
+        await writer.UpdateAsync<ConsensusOptions>(opt => opt.TrimPercent = 0.2, ct);
+
+        await writer.UpdateManyAsync([SectionUpdate.For<AlertOptions>(_ => { }, reset: true)], dryRun: false, ct);
+
+        var enrichment = ReadOverride()["Njord"]!["Enrichment"]!.AsObject();
+        Assert.Multiple(
+            () => Assert.False(enrichment.ContainsKey("Alerts")),
+            () => Assert.Equal(0.2, enrichment["Consensus"]!["TrimPercent"]!.GetValue<double>()),
+            () => Assert.Equal(0.2, provider.GetRequiredService<IOptionsMonitor<ConsensusOptions>>().CurrentValue.TrimPercent));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Reset_then_update_applies_the_change_on_top_of_the_base_configuration()
+    {
+        var (writer, provider) = CreateWriter(alertsEnabled: true);
+        var ct = TestContext.Current.CancellationToken;
+        await writer.UpdateAsync<AlertOptions>(opt => opt.CapeThreshold = 1800, ct);
+
+        var result = await writer.UpdateManyAsync(
+            [SectionUpdate.For<AlertOptions>(opt => opt.Enabled = false, reset: true)], dryRun: false, ct);
+
+        var alerts = ReadOverride()["Njord"]!["Enrichment"]!["Alerts"]!.AsObject();
+        var current = provider.GetRequiredService<IOptionsMonitor<AlertOptions>>().CurrentValue;
+        Assert.Multiple(
+            () => Assert.True(result.Applied),
+            () => Assert.Equal(["Enabled"], alerts.Select(p => p.Key)),
+            () => Assert.False(current.Enabled),
+            () => Assert.Equal(new AlertOptions().CapeThreshold, current.CapeThreshold));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Reset_without_an_override_file_succeeds_and_changes_nothing()
+    {
+        var (writer, provider) = CreateWriter(alertsEnabled: false);
+
+        var result = await writer.UpdateManyAsync(
+            [SectionUpdate.For<AlertOptions>(_ => { }, reset: true)], dryRun: false, TestContext.Current.CancellationToken);
+
+        Assert.Multiple(
+            () => Assert.True(result.Applied),
+            () => Assert.Empty(result.Sections[0].ChangedProperties),
+            () => Assert.False(provider.GetRequiredService<IOptionsMonitor<AlertOptions>>().CurrentValue.Enabled));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Update_many_rejects_the_same_section_twice()
+    {
+        var (writer, _) = CreateWriter();
+
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => writer.UpdateManyAsync(
+            [SectionUpdate.For<AlertOptions>(_ => { }), SectionUpdate.For<AlertOptions>(_ => { })],
+            dryRun: false,
+            TestContext.Current.CancellationToken));
+
+        Assert.Equal("updates", ex.ParamName);
     }
 
     public void Dispose()

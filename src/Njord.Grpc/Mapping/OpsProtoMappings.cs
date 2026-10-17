@@ -3,6 +3,7 @@ using Njord.Grpc.V2;
 using Njord.Messages.Budget;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
+using PollPhase = Njord.Grpc.V2.PollPhase;
 
 namespace Njord.Grpc.Mapping;
 
@@ -107,7 +108,7 @@ internal static class OpsProtoMappings
     private sealed record PollFields(
         string Location,
         string Model,
-        string Phase,
+        PollPhase Phase,
         Timestamp NextPoll,
         int MissCount,
         Timestamp? LastChange,
@@ -117,7 +118,7 @@ internal static class OpsProtoMappings
             new(
                 entry.Location.Name,
                 entry.ModelId,
-                entry.Phase == PollPhase.Steady ? "steady" : "discovery",
+                entry.Phase.ToProto(),
                 Timestamp.FromDateTimeOffset(entry.NextPollUtc),
                 entry.MissCount,
                 entry.LastChangeUtc is { } lastChange ? Timestamp.FromDateTimeOffset(lastChange) : null,

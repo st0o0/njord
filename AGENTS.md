@@ -130,6 +130,12 @@ with optional MQTT state publishing.
 - Poll interval and request budget are config values (default 60 min). Any change
   that adds or alters polling needs a budget estimate against the free-tier soft
   limits (300k/month, 10k/day) — and politeness toward a free service.
+- gRPC closed sets are proto enums with `*_UNSPECIFIED = 0` (poll phase, trend
+  direction, stability, dew point comfort, VPD category, consensus method), mapped
+  by exhaustive switches with a throwing default (`WireEnumMappings`). Clients treat
+  unknown enum numbers as `UNSPECIFIED`, so adding a member is not a breaking change.
+  MQTT and metric text comes from `ToWireName()` / `FetchOutcomeTag`, never from
+  `ToString()`.
 - Feels-like comes from the API (`apparent_temperature` per model) — no own
   Steadman computation.
 - HA device cut: per location, one device per weather model plus one device per

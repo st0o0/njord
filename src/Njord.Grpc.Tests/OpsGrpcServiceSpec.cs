@@ -9,6 +9,7 @@ using Njord.Core.Configuration.Derived;
 using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Trends;
 using Njord.Grpc.V2;
+using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 using Njord.Messages.Budget;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -65,13 +66,13 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
         var lucerne = status.Models.First(m => m.Location == "lucerne");
         Assert.Equal("icon_d2", lucerne.Model);
-        Assert.Equal("steady", lucerne.Phase);
+        Assert.Equal(Njord.Grpc.V2.PollPhase.Steady, lucerne.Phase);
         Assert.Equal(_now.AddHours(1), lucerne.NextPoll.ToDateTimeOffset());
         Assert.Equal(_now.AddHours(-2), lucerne.LastChange.ToDateTimeOffset());
         Assert.Equal(10800, lucerne.CycleSeconds);
 
         var zurich = status.Models.First(m => m.Location == "zurich");
-        Assert.Equal("discovery", zurich.Phase);
+        Assert.Equal(Njord.Grpc.V2.PollPhase.Discovery, zurich.Phase);
         Assert.Null(zurich.LastChange);
     }
 
@@ -164,7 +165,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
         var lucerne = response.Targets.First(t => t.Location == "lucerne");
         Assert.Equal("icon_d2", lucerne.Model);
-        Assert.Equal("steady", lucerne.Phase);
+        Assert.Equal(Njord.Grpc.V2.PollPhase.Steady, lucerne.Phase);
         Assert.Equal(_now.AddHours(1), lucerne.NextPoll.ToDateTimeOffset());
         Assert.Equal(_now.AddHours(-2), lucerne.LastChange.ToDateTimeOffset());
 
@@ -219,8 +220,8 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             {
                 var entries = new List<PollStateEntry>
                 {
-                    new(new LocationId("lucerne"), "icon_d2", PollPhase.Steady, now.AddHours(1), now.AddHours(-2), 0, 10800),
-                    new(new LocationId("zurich"), "gfs_seamless", PollPhase.Discovery, now.AddMinutes(20), null, 2, null),
+                    new(new LocationId("lucerne"), "icon_d2", DomainPollPhase.Steady, now.AddHours(1), now.AddHours(-2), 0, 10800),
+                    new(new LocationId("zurich"), "gfs_seamless", DomainPollPhase.Discovery, now.AddMinutes(20), null, 2, null),
                 };
                 Sender.Tell(new PollStatesResult(entries));
             });

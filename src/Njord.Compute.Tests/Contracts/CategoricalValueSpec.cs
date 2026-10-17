@@ -49,6 +49,38 @@ public sealed class CategoricalValueSpec
         Assert.Equal(expected, comfort.ToWireName());
 
     [Theory]
+    [InlineData(VpdCategory.Low, "low")]
+    [InlineData(VpdCategory.Optimal, "optimal")]
+    [InlineData(VpdCategory.High, "high")]
+    [InlineData(VpdCategory.Critical, "critical")]
+    public void Vpd_category_wire_name_is_lowercase(VpdCategory category, string expected) =>
+        Assert.Equal(expected, category.ToWireName());
+
+    [Fact]
+    public void Undefined_vpd_category_has_no_wire_name()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => ((VpdCategory)99).ToWireName());
+
+        Assert.Equal("category", ex.ParamName);
+    }
+
+    [Theory]
+    [InlineData(AlertSeverity.None, "none")]
+    [InlineData(AlertSeverity.Yellow, "yellow")]
+    [InlineData(AlertSeverity.Orange, "orange")]
+    [InlineData(AlertSeverity.Red, "red")]
+    public void Alert_severity_wire_name_is_lowercase(AlertSeverity severity, string expected) =>
+        Assert.Equal(expected, severity.ToWireName());
+
+    [Fact]
+    public void Undefined_alert_severity_has_no_wire_name()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => ((AlertSeverity)99).ToWireName());
+
+        Assert.Equal("severity", ex.ParamName);
+    }
+
+    [Theory]
     [InlineData(0, "Clear sky")]
     [InlineData(1, "Mainly clear")]
     [InlineData(2, "Partly cloudy")]

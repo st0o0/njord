@@ -36,4 +36,22 @@ public sealed class SensorProtoMappingsSpec
             () => Assert.Equal(23.5, command.Reading.Value),
             () => Assert.Equal(Now, command.Reading.MeasuredAt));
     }
+
+    [Fact]
+    public void A_reading_without_source_uses_the_default_source()
+    {
+        var request = new SensorReading
+        {
+            Kind = SensorKind.IndoorTemperature,
+            Location = "luzern",
+            Value = 21.0,
+        };
+
+        var (command, rejection) = request.ToCommand(Catalog, Now);
+
+        Assert.Null(rejection);
+        Assert.NotNull(command);
+        Assert.Equal(SensorProtoMappings.DefaultSource, command.Reading.Source);
+        Assert.Equal("default", SensorProtoMappings.DefaultSource);
+    }
 }

@@ -7,39 +7,39 @@
       {
         "horizon": "h3",
         "beaufort": 3,
-        "dewpointComfort": "dangerous",
-        "wmoDescription": "Rain: moderate"
+        "wmoDescription": "Rain: moderate",
+        "dewpointComfort": "DEW_POINT_COMFORT_DANGEROUS"
       },
       {
         "horizon": "h6",
         "beaufort": 3,
-        "dewpointComfort": "comfortable",
-        "wmoDescription": "Rain showers: moderate"
+        "wmoDescription": "Rain showers: moderate",
+        "dewpointComfort": "DEW_POINT_COMFORT_COMFORTABLE"
       },
       {
         "horizon": "h12",
         "beaufort": 2,
-        "dewpointComfort": "dangerous",
-        "wmoDescription": "Fog"
+        "wmoDescription": "Fog",
+        "dewpointComfort": "DEW_POINT_COMFORT_DANGEROUS"
       },
       {
         "horizon": "h24",
         "beaufort": 3,
-        "dewpointComfort": "comfortable",
-        "wmoDescription": "Overcast"
+        "wmoDescription": "Overcast",
+        "dewpointComfort": "DEW_POINT_COMFORT_COMFORTABLE"
       },
       {
         "horizon": "h48",
         "beaufort": 3,
         "windChill": 1.3,
-        "dewpointComfort": "dry",
-        "wmoDescription": "Snow fall: slight"
+        "wmoDescription": "Snow fall: slight",
+        "dewpointComfort": "DEW_POINT_COMFORT_DRY"
       },
       {
         "horizon": "h72",
         "beaufort": 3,
-        "dewpointComfort": "comfortable",
-        "wmoDescription": "Clear sky"
+        "wmoDescription": "Clear sky",
+        "dewpointComfort": "DEW_POINT_COMFORT_COMFORTABLE"
       }
     ],
     "scalars": {

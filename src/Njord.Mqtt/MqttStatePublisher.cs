@@ -15,6 +15,8 @@ namespace Njord.Mqtt;
 
 public sealed class MqttStatePublisher : StreamConsumerActor
 {
+    internal const string UnknownLocation = "unknown";
+
     private readonly string _baseTopic;
     private readonly ResolvedParameterSet _parameters;
     private readonly IReadOnlyList<int> _horizons;
@@ -133,7 +135,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
             PipelineEvent.DerivedComputed d => d.Result.Location.Name,
             PipelineEvent.TrendComputed t => t.Result.Location.Name,
             PipelineEvent.IndexComputed i => i.Result.Location.Name,
-            _ => "unknown",
+            _ => UnknownLocation,
         };
 
         return messages.Select(msg => new OutgoingMessage(msg, location));

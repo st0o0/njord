@@ -381,6 +381,145 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_rejected_analysis_update_names_the_failing_section()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (manager, _, _) = await StartManagerAsync();
+        var alerts = new AlertConfigUpdate(null, [0, 5, -15], null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null);
+
+        var response = await manager.Ask<UpdateAnalysisConfigResponse>(
+            new UpdateAnalysisConfig(new ConsensusConfigUpdate(null, null, 0.2), alerts, null, null, null), AskTimeout, ct);
+
+        var rejected = Assert.IsType<UpdateAnalysisConfigRejected>(response);
+        var issue = Assert.Single(rejected.Issues);
+        Assert.Multiple(
+            () => Assert.Equal(EnrichmentSection.Alerts, issue.Section),
+            () => Assert.Contains("FrostThresholds", issue.Message),
+            () => Assert.Equal(issue.Message, rejected.Reason),
+            () => Assert.False(rejected.DryRun),
+            () => Assert.Equal(0.1, _harness.Monitor<ConsensusOptions>().CurrentValue.TrimPercent));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_analysis_update_without_any_section_is_rejected()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (manager, _, _) = await StartManagerAsync();
+
+        var response = await manager.Ask<UpdateAnalysisConfigResponse>(
+            new UpdateAnalysisConfig(null, null, null, null, null), AskTimeout, ct);
+
+        var rejected = Assert.IsType<UpdateAnalysisConfigRejected>(response);
+        var issue = Assert.Single(rejected.Issues);
+        Assert.Multiple(
+            () => Assert.Null(issue.Section),
+            () => Assert.Equal("At least one section or reset is required", issue.Message),
+            () => Assert.False(File.Exists(_harness.OverridePath)));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_analysis_update_of_several_sections_is_applied_together()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (manager, _, _) = await StartManagerAsync();
+        var alerts = new AlertConfigUpdate(null, null, null, null, null, null, null, 1800, null, null, null, null,
+            null, null, null, null, null);
+
+        var response = await manager.Ask<UpdateAnalysisConfigResponse>(
+            new UpdateAnalysisConfig(new ConsensusConfigUpdate(null, null, 0.2), alerts, null, null, null), AskTimeout, ct);
+
+        var completed = Assert.IsType<UpdateAnalysisConfigCompleted>(response);
+        Assert.Multiple(
+            () => Assert.Equal(0.2, completed.Config.Analysis.Consensus.TrimPercent),
+            () => Assert.Equal(1800, completed.Config.Analysis.Alerts.CapeThreshold),
+            () => Assert.Empty(completed.RestartRequired),
+            () => Assert.Equal(0.2, _harness.Monitor<ConsensusOptions>().CurrentValue.TrimPercent),
+            () => Assert.Equal(1800, _harness.Monitor<AlertOptions>().CurrentValue.CapeThreshold));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_analysis_dry_run_validates_without_persisting()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (manager, _, _) = await StartManagerAsync();
+        var badAlerts = new AlertConfigUpdate(null, [0, 5, -15], null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null);
+
+        var valid = await manager.Ask<UpdateAnalysisConfigResponse>(
+            new UpdateAnalysisConfig(new ConsensusConfigUpdate(false, null, 0.2), null, null, null, null, null, DryRun: true),
+            AskTimeout, ct);
+        var invalid = await manager.Ask<UpdateAnalysisConfigResponse>(
+            new UpdateAnalysisConfig(null, badAlerts, null, null, null, null, DryRun: true), AskTimeout, ct);
+
+        var validated = Assert.IsType<UpdateAnalysisConfigValidated>(valid);
+        var rejected = Assert.IsType<UpdateAnalysisConfigRejected>(invalid);
+        Assert.Multiple(
+            () => Assert.Equal(["Enrichment.Consensus.Enabled"], validated.RestartRequired),
+            () => Assert.True(validated.Config.Analysis.Consensus.Enabled),
+            () => Assert.True(rejected.DryRun),
+            () => Assert.Equal(EnrichmentSection.Alerts, Assert.Single(rejected.Issues).Section),
+            () => Assert.False(File.Exists(_harness.OverridePath)));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_empty_analysis_dry_run_is_rejected_as_dry_run()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (manager, _, _) = await StartManagerAsync();
+
+        var response = await manager.Ask<UpdateAnalysisConfigResponse>(
+            new UpdateAnalysisConfig(null, null, null, null, null, null, DryRun: true), AskTimeout, ct);
+
+        var rejected = Assert.IsType<UpdateAnalysisConfigRejected>(response);
+        Assert.True(rejected.DryRun);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_reset_section_falls_back_to_the_base_configuration_before_its_update_is_applied()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (manager, _, _) = await StartManagerAsync();
+        var capeAndHeat = new AlertConfigUpdate(null, null, [31, 36, 41], null, null, null, null, 1800, null, null, null, null,
+            null, null, null, null, null);
+        var disable = new AlertConfigUpdate(false, null, null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null);
+        await manager.Ask<UpdateAnalysisConfigResponse>(
+            new UpdateAnalysisConfig(null, capeAndHeat, null, null, null), AskTimeout, ct);
+
+        var response = await manager.Ask<UpdateAnalysisConfigResponse>(
+            new UpdateAnalysisConfig(null, disable, null, null, null, [EnrichmentSection.Alerts]), AskTimeout, ct);
+
+        var completed = Assert.IsType<UpdateAnalysisConfigCompleted>(response);
+        var alerts = completed.Config.Analysis.Alerts;
+        var defaults = new AlertOptions();
+        Assert.Multiple(
+            () => Assert.False(alerts.Enabled),
+            () => Assert.Equal(defaults.CapeThreshold, alerts.CapeThreshold),
+            () => Assert.Equal(defaults.HeatThresholds, alerts.HeatThresholds),
+            () => Assert.Equal(["Enrichment.Alerts.Enabled"], completed.RestartRequired));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_reset_alone_removes_the_override_of_the_listed_sections()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (manager, _, _) = await StartManagerAsync();
+        await manager.Ask<UpdateAnalysisConfigResponse>(
+            new UpdateAnalysisConfig(new ConsensusConfigUpdate(null, null, 0.2), null, false, null, null), AskTimeout, ct);
+
+        var response = await manager.Ask<UpdateAnalysisConfigResponse>(
+            new UpdateAnalysisConfig(null, null, null, null, null, [EnrichmentSection.Consensus, EnrichmentSection.Derived]),
+            AskTimeout, ct);
+
+        var completed = Assert.IsType<UpdateAnalysisConfigCompleted>(response);
+        Assert.Multiple(
+            () => Assert.Equal(0.1, completed.Config.Analysis.Consensus.TrimPercent),
+            () => Assert.True(completed.Config.Analysis.Derived.Enabled),
+            () => Assert.Equal(["Enrichment.Derived.Enabled"], completed.RestartRequired));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task An_analysis_toggle_is_applied_and_reported_as_restart_required()
     {
         var ct = TestContext.Current.CancellationToken;

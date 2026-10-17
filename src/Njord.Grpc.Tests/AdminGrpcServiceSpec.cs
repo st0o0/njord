@@ -209,6 +209,52 @@ public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task SetEnrichment_with_trimmed_mean_sets_the_method()
+    {
+        var service = CreateService();
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
+
+        var response = await service.SetEnrichment(
+            new SetEnrichmentRequest { Consensus = new ConsensusConfig { Method = ConsensusMethod.TrimmedMean } }, ctx);
+
+        Assert.True(response.Applied);
+        Assert.Equal(ConsensusMethod.TrimmedMean, response.Config.Enrichment.Consensus.Method);
+        var config = await service.GetConfig(new GetConfigRequest(), ctx);
+        Assert.Equal(ConsensusMethod.TrimmedMean, config.Enrichment.Consensus.Method);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task SetEnrichment_with_unspecified_method_leaves_the_method_unchanged()
+    {
+        var service = CreateService();
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
+        var before = await service.GetConfig(new GetConfigRequest(), ctx);
+
+        var response = await service.SetEnrichment(
+            new SetEnrichmentRequest { Consensus = new ConsensusConfig { Method = ConsensusMethod.Unspecified } }, ctx);
+
+        Assert.True(response.Applied);
+        Assert.Equal(before.Enrichment.Consensus.Method, response.Config.Enrichment.Consensus.Method);
+        Assert.NotEqual(ConsensusMethod.Unspecified, response.Config.Enrichment.Consensus.Method);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task SetEnrichment_with_an_undefined_method_is_rejected_and_changes_nothing()
+    {
+        var service = CreateService();
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
+        var before = await service.GetConfig(new GetConfigRequest(), ctx);
+
+        var response = await service.SetEnrichment(
+            new SetEnrichmentRequest { Consensus = new ConsensusConfig { Method = (ConsensusMethod)42 } }, ctx);
+
+        Assert.False(response.Applied);
+        Assert.Equal("Unknown consensus method: 42", response.RejectionReason);
+        var after = await service.GetConfig(new GetConfigRequest(), ctx);
+        Assert.Equal(before.Enrichment.Consensus, after.Enrichment.Consensus);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task SetEnrichment_overrides_baseline_config()
     {
         var service = CreateService(alertsEnabled: true);
@@ -236,8 +282,9 @@ public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         var response = await service.SetLocations(request, TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.True(response.Applied);
-        var notice = Assert.Single(response.Warnings, w => w.StartsWith(AdminGrpcService.RestartNoticePrefix, StringComparison.Ordinal));
+        var notice = Assert.Single(response.RestartRequired);
         Assert.Contains("Locations", notice);
+        Assert.Empty(response.Warnings);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -250,7 +297,7 @@ public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.True(response.Applied);
-        Assert.DoesNotContain(response.Warnings, w => w.StartsWith(AdminGrpcService.RestartNoticePrefix, StringComparison.Ordinal));
+        Assert.Empty(response.RestartRequired);
         Assert.Equal(new[] { 1.0, -4.0, -12.0 }, response.Config.Enrichment.Alerts.FrostThresholds);
     }
 
@@ -264,8 +311,8 @@ public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.True(response.Applied);
-        var notice = Assert.Single(response.Warnings, w => w.StartsWith(AdminGrpcService.RestartNoticePrefix, StringComparison.Ordinal));
-        Assert.Contains("Trends.Enabled", notice);
+        Assert.Equal(new[] { "Enrichment.Trends.Enabled" }, response.RestartRequired);
+        Assert.DoesNotContain(response.Warnings, w => w.Contains("restart", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -284,6 +331,128 @@ public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(before, await File.ReadAllTextAsync(OverridePath(), TestContext.Current.CancellationToken));
         var config = await service.GetConfig(new GetConfigRequest(), ctx);
         Assert.Equal(new[] { 0.0, -5.0, -15.0 }, config.Enrichment.Alerts.FrostThresholds);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task SetEnrichment_rejection_carries_a_structured_issue_with_the_section()
+    {
+        var service = CreateService();
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
+
+        var response = await service.SetEnrichment(
+            new SetEnrichmentRequest { Alerts = new AlertConfig { FrostThresholds = { 0, 5, -15 } } }, ctx);
+
+        var issue = Assert.Single(response.Issues);
+        Assert.Multiple(
+            () => Assert.False(response.Applied),
+            () => Assert.False(response.DryRun),
+            () => Assert.Equal(EnrichmentSection.Alerts, issue.Section),
+            () => Assert.Contains("FrostThresholds", issue.Message),
+            () => Assert.Equal(issue.Message, response.RejectionReason));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task SetEnrichment_without_any_section_is_rejected()
+    {
+        var service = CreateService();
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
+
+        var response = await service.SetEnrichment(new SetEnrichmentRequest(), ctx);
+
+        var issue = Assert.Single(response.Issues);
+        Assert.Multiple(
+            () => Assert.False(response.Applied),
+            () => Assert.Equal(EnrichmentSection.Unspecified, issue.Section),
+            () => Assert.Equal("At least one section or reset is required", issue.Message),
+            () => Assert.Equal(issue.Message, response.RejectionReason),
+            () => Assert.False(File.Exists(OverridePath())));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task SetEnrichment_dry_run_validates_without_persisting()
+    {
+        var service = CreateService();
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
+
+        var valid = await service.SetEnrichment(
+            new SetEnrichmentRequest { Trends = new TrendConfig { Enabled = true }, DryRun = true }, ctx);
+        var invalid = await service.SetEnrichment(
+            new SetEnrichmentRequest { Alerts = new AlertConfig { FrostThresholds = { 0, 5, -15 } }, DryRun = true }, ctx);
+
+        Assert.Multiple(
+            () => Assert.False(valid.Applied),
+            () => Assert.True(valid.DryRun),
+            () => Assert.Empty(valid.Issues),
+            () => Assert.Empty(valid.RejectionReason),
+            () => Assert.Equal(new[] { "Enrichment.Trends.Enabled" }, valid.RestartRequired),
+            () => Assert.False(valid.Config.Enrichment.Trends.Enabled),
+            () => Assert.False(invalid.Applied),
+            () => Assert.True(invalid.DryRun),
+            () => Assert.Equal(EnrichmentSection.Alerts, Assert.Single(invalid.Issues).Section),
+            () => Assert.False(File.Exists(OverridePath())));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task SetEnrichment_with_an_unspecified_reset_section_is_reported_as_an_issue()
+    {
+        var service = CreateService();
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
+
+        var response = await service.SetEnrichment(
+            new SetEnrichmentRequest
+            {
+                Alerts = new AlertConfig { Enabled = false },
+                Reset = { EnrichmentSection.Unspecified, (EnrichmentSection)42 },
+                DryRun = true,
+            },
+            ctx);
+
+        Assert.Multiple(
+            () => Assert.False(response.Applied),
+            () => Assert.True(response.DryRun),
+            () => Assert.Equal(
+                new[] { "Unknown or unspecified section in reset: 0", "Unknown or unspecified section in reset: 42" },
+                response.Issues.Select(i => i.Message)),
+            () => Assert.All(response.Issues, i => Assert.Equal(EnrichmentSection.Unspecified, i.Section)),
+            () => Assert.False(File.Exists(OverridePath())));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task SetEnrichment_reset_restores_the_base_configuration_and_applies_the_update_on_top()
+    {
+        var service = CreateService(alertsEnabled: true);
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
+        await service.SetEnrichment(
+            new SetEnrichmentRequest { Alerts = new AlertConfig { CapeThreshold = 1800, HeatThresholds = { 31, 36, 41 } } }, ctx);
+        var defaults = new AlertOptions();
+
+        var reset = await service.SetEnrichment(new SetEnrichmentRequest { Reset = { EnrichmentSection.Alerts } }, ctx);
+        var resetAndDisable = await service.SetEnrichment(
+            new SetEnrichmentRequest { Alerts = new AlertConfig { Enabled = false }, Reset = { EnrichmentSection.Alerts } }, ctx);
+
+        Assert.Multiple(
+            () => Assert.True(reset.Applied),
+            () => Assert.Equal(defaults.CapeThreshold, reset.Config.Enrichment.Alerts.CapeThreshold),
+            () => Assert.Equal(defaults.HeatThresholds, reset.Config.Enrichment.Alerts.HeatThresholds),
+            () => Assert.True(reset.Config.Enrichment.Alerts.Enabled),
+            () => Assert.True(resetAndDisable.Applied),
+            () => Assert.False(resetAndDisable.Config.Enrichment.Alerts.Enabled),
+            () => Assert.Equal(new[] { "Enrichment.Alerts.Enabled" }, resetAndDisable.RestartRequired));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task SetEnrichment_with_an_undefined_method_is_reported_as_a_consensus_issue()
+    {
+        var service = CreateService();
+        var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
+
+        var response = await service.SetEnrichment(
+            new SetEnrichmentRequest { Consensus = new ConsensusConfig { Method = (ConsensusMethod)42 } }, ctx);
+
+        var issue = Assert.Single(response.Issues);
+        Assert.Multiple(
+            () => Assert.Equal(EnrichmentSection.Consensus, issue.Section),
+            () => Assert.Equal("Unknown consensus method: 42", issue.Message));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

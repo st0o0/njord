@@ -128,7 +128,7 @@ internal static class AnalysisProtoMappings
             update.Vpd = new V2.VpdInfo
             {
                 Kpa = vpd.Vpd,
-                Category = vpd.Category,
+                Category = vpd.Category.ToProto(),
             };
         }
 
@@ -164,7 +164,7 @@ internal static class AnalysisProtoMappings
             update.ParameterTrends.Add(new ProtoParameterTrend
             {
                 Parameter = param,
-                Direction = trend.Direction.ToWireName(),
+                Direction = trend.Direction.ToProto(),
                 Delta = trend.Delta,
             });
         }
@@ -196,7 +196,7 @@ internal static class AnalysisProtoMappings
 
         if (result.Stability is { } stability)
         {
-            update.StabilityLabel = stability.Stability.ToWireName();
+            update.StabilityLabel = stability.Stability.ToProto();
             update.StabilityRatio = stability.Ratio;
         }
 
@@ -232,7 +232,7 @@ internal static class AnalysisProtoMappings
 
             if (derived.DewPointComfort is { } dpc)
             {
-                proto.DewpointComfort = dpc.ToWireName();
+                proto.DewpointComfort = dpc.ToProto();
             }
 
             if (derived.Condition is { } wmo)

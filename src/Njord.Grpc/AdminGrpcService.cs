@@ -16,8 +16,6 @@ public sealed class AdminGrpcService(
     ActorRegistry actorRegistry,
     ActorSystem actorSystem) : AdminService.AdminServiceBase
 {
-    internal const string RestartNoticePrefix = ConfigProtoMappings.RestartNoticePrefix;
-
     public override async Task<NjordConfig> GetConfig(GetConfigRequest request, ServerCallContext context)
     {
         var response = await actorRegistry.AskAsync<IConfigManager, QueryConfigResponse>(new QueryConfig(), context);
@@ -72,6 +70,11 @@ public sealed class AdminGrpcService(
 
     public override async Task<ConfigResponse> SetEnrichment(SetEnrichmentRequest request, ServerCallContext context)
     {
+        if (request.RejectUnknownValues() is { } rejection)
+        {
+            return rejection;
+        }
+
         var response = await actorRegistry.AskAsync<IConfigManager, UpdateAnalysisConfigResponse>(request.ToCommand(), context);
         return response.ToProto();
     }

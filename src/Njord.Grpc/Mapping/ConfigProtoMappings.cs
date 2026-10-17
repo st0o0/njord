@@ -2,13 +2,13 @@ using System.Runtime.ExceptionServices;
 using Njord.Compute.Settings;
 using Njord.Grpc.V2;
 using Contracts = Njord.Messages.Config;
+using DomainSection = Njord.Messages.Config.EnrichmentSection;
+using ProtoSection = Njord.Grpc.V2.EnrichmentSection;
 
 namespace Njord.Grpc.Mapping;
 
 internal static class ConfigProtoMappings
 {
-    public const string RestartNoticePrefix = "Takes effect after restart: ";
-
     public static NjordConfig ToProto(this Contracts.ConfigSnapshot snapshot)
     {
         var scope = snapshot.Scope;
@@ -82,7 +82,48 @@ internal static class ConfigProtoMappings
             request.Alerts?.ToCommand(),
             request.Derived is { HasEnabled: true } derived ? derived.Enabled : null,
             request.Trends is { HasEnabled: true } trends ? trends.Enabled : null,
-            request.Indices?.ToCommand());
+            request.Indices?.ToCommand(),
+            [.. request.Reset.Select(section => section.ToDomain())],
+            request.DryRun);
+
+    // Wire values the command cannot express are reported as issues before the configuration manager is asked.
+    public static ConfigResponse? RejectUnknownValues(this SetEnrichmentRequest request)
+    {
+        List<Contracts.ConfigIssue> issues = [];
+        if (request.Consensus is { HasMethod: true } consensus && !Enum.IsDefined(consensus.Method))
+        {
+            issues.Add(new Contracts.ConfigIssue(
+                DomainSection.Consensus, $"Unknown consensus method: {(int)consensus.Method}"));
+        }
+
+        issues.AddRange(request.Reset
+            .Where(section => section == ProtoSection.Unspecified || !Enum.IsDefined(section))
+            .Select(section => new Contracts.ConfigIssue(
+                null, $"Unknown or unspecified section in reset: {(int)section}")));
+
+        return issues.Count > 0 ? Rejected(issues, request.DryRun) : null;
+    }
+
+    public static ProtoSection ToProto(this DomainSection? section) => section switch
+    {
+        null => ProtoSection.Unspecified,
+        DomainSection.Consensus => ProtoSection.Consensus,
+        DomainSection.Alerts => ProtoSection.Alerts,
+        DomainSection.Derived => ProtoSection.Derived,
+        DomainSection.Trends => ProtoSection.Trends,
+        DomainSection.Indices => ProtoSection.Indices,
+        _ => throw new ArgumentOutOfRangeException(nameof(section), section, null),
+    };
+
+    public static DomainSection ToDomain(this ProtoSection section) => section switch
+    {
+        ProtoSection.Consensus => DomainSection.Consensus,
+        ProtoSection.Alerts => DomainSection.Alerts,
+        ProtoSection.Derived => DomainSection.Derived,
+        ProtoSection.Trends => DomainSection.Trends,
+        ProtoSection.Indices => DomainSection.Indices,
+        _ => throw new ArgumentOutOfRangeException(nameof(section), section, null),
+    };
 
     public static Contracts.UpdateBudget ToCommand(this SetBudgetRequest request) =>
         new(
@@ -111,7 +152,8 @@ internal static class ConfigProtoMappings
         response switch
         {
             Contracts.UpdateAnalysisConfigCompleted completed => Applied(completed.Config, completed.RestartRequired),
-            Contracts.UpdateAnalysisConfigRejected rejected => Rejected(rejected.Reason),
+            Contracts.UpdateAnalysisConfigValidated validated => Validated(validated.Config, validated.RestartRequired),
+            Contracts.UpdateAnalysisConfigRejected rejected => Rejected(rejected.Issues, rejected.DryRun),
             Contracts.UpdateAnalysisConfigFailed failed => Rethrow<ConfigResponse>(failed.Cause),
             _ => throw Unknown(response),
         };
@@ -128,9 +170,7 @@ internal static class ConfigProtoMappings
     private static Contracts.ConsensusConfigUpdate ToCommand(this ConsensusConfig consensus) =>
         new(
             consensus.HasEnabled ? consensus.Enabled : null,
-            consensus.HasMethod && Enum.TryParse<ConsensusMethod>(consensus.Method, ignoreCase: true, out var method)
-                ? method
-                : null,
+            consensus.HasMethod ? consensus.Method.ToDomain() : null,
             consensus.HasTrimPercent ? consensus.TrimPercent : null);
 
     private static Contracts.AlertConfigUpdate ToCommand(this AlertConfig alerts) =>
@@ -180,7 +220,7 @@ internal static class ConfigProtoMappings
             Consensus = new ConsensusConfig
             {
                 Enabled = analysis.Consensus.Enabled,
-                Method = analysis.Consensus.Method.ToString(),
+                Method = analysis.Consensus.Method.ToProto(),
                 TrimPercent = analysis.Consensus.TrimPercent,
             },
             Alerts = new AlertConfig
@@ -242,12 +282,27 @@ internal static class ConfigProtoMappings
             BudgetProjection = config.BudgetProjection.Clone(),
         };
         response.Warnings.AddRange(snapshot.BudgetProjection.Warnings);
+        response.RestartRequired.AddRange(restartRequired);
+        return response;
+    }
 
-        if (restartRequired.Count > 0)
+    private static ConfigResponse Validated(Contracts.ConfigSnapshot snapshot, IReadOnlyList<string> restartRequired)
+    {
+        var response = Applied(snapshot, restartRequired);
+        response.Applied = false;
+        response.DryRun = true;
+        return response;
+    }
+
+    private static ConfigResponse Rejected(IReadOnlyList<Contracts.ConfigIssue> issues, bool dryRun)
+    {
+        var response = Rejected(string.Join("; ", issues.Select(i => i.Message)));
+        response.DryRun = dryRun;
+        response.Issues.AddRange(issues.Select(i => new ConfigIssue
         {
-            response.Warnings.Add($"{RestartNoticePrefix}{string.Join(", ", restartRequired)}");
-        }
-
+            Section = i.Section.ToProto(),
+            Message = i.Message,
+        }));
         return response;
     }
 

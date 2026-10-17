@@ -10,6 +10,8 @@ namespace Njord.Grpc.Mapping;
 
 internal static class SensorProtoMappings
 {
+    internal const string DefaultSource = "default";
+
     // The command for a valid reading, or the rejection reason: the kind is checked before the location.
     public static (UpdateReading? Command, string? Rejection) ToCommand(
         this ProtoSensorReading request, CatalogResult catalog, DateTimeOffset now)
@@ -27,7 +29,7 @@ internal static class SensorProtoMappings
             return (null, $"Unknown location: {request.Location}");
         }
 
-        var source = string.IsNullOrWhiteSpace(request.Source) ? "default" : request.Source;
+        var source = string.IsNullOrWhiteSpace(request.Source) ? DefaultSource : request.Source;
         var measuredAt = request.MeasuredAt?.ToDateTimeOffset() ?? now;
 
         return (new UpdateReading(new DomainSensorReading(kind, location.Id.Name, source, request.Value, measuredAt)), null);

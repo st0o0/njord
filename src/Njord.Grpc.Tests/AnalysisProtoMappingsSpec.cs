@@ -49,7 +49,7 @@ public sealed class AnalysisProtoMappingsSpec
             Days: [new DayScoreSet(0, Laundry: 80, Outdoor: 70, Running: 65, Cycling: 75,
                 Bbq: 90, Irrigation: 30, Solar: 85, NightVentilation: 60, HoursIncluded: 14)],
             FrostProtection: new FrostProtectionInfo(HoursUntilFrost: 8, Confidence: 0.7),
-            Vpd: new VpdInfo(Category: "optimal", Vpd: 1.2));
+            Vpd: new VpdInfo(Category: VpdCategory.Optimal, Vpd: 1.2));
 
         var update = AnalysisProtoMappings.ToProto(result);
 
@@ -70,7 +70,7 @@ public sealed class AnalysisProtoMappingsSpec
         Assert.Equal(0.7, update.Frost.Confidence);
         Assert.NotNull(update.Vpd);
         Assert.Equal(1.2, update.Vpd.Kpa);
-        Assert.Equal("optimal", update.Vpd.Category);
+        Assert.Equal(Njord.Grpc.V2.VpdCategory.Optimal, update.Vpd.Category);
     }
 
     [Fact]
@@ -126,14 +126,14 @@ public sealed class AnalysisProtoMappingsSpec
 
         Assert.Single(update.ParameterTrends);
         Assert.Equal("temperature_2m", update.ParameterTrends[0].Parameter);
-        Assert.Equal("rising", update.ParameterTrends[0].Direction);
+        Assert.Equal(Njord.Grpc.V2.TrendDirection.Rising, update.ParameterTrends[0].Direction);
         Assert.Equal(1.5, update.ParameterTrends[0].Delta);
         Assert.Equal("clear → rain", update.WeatherChangeDescription);
         Assert.Equal(3, update.PrecipStartsInHours);
         Assert.Equal(8, update.PrecipEndsInHours);
         Assert.Equal(6, update.TempMaxInHours);
         Assert.Equal(18, update.TempMinInHours);
-        Assert.Equal("stable", update.StabilityLabel);
+        Assert.Equal(Njord.Grpc.V2.Stability.Stable, update.StabilityLabel);
         Assert.Equal(0.9, update.StabilityRatio);
         Assert.Equal(0.15, update.DecayRate);
         Assert.Equal(24, update.ReliableHours);
@@ -155,7 +155,7 @@ public sealed class AnalysisProtoMappingsSpec
         Assert.Equal("h3", update.ByHorizon[0].Horizon);
         Assert.Equal(4, update.ByHorizon[0].Beaufort);
         Assert.Equal(-2.5, update.ByHorizon[0].WindChill);
-        Assert.Equal("comfortable", update.ByHorizon[0].DewpointComfort);
+        Assert.Equal(Njord.Grpc.V2.DewPointComfort.Comfortable, update.ByHorizon[0].DewpointComfort);
         Assert.Equal("Partly cloudy", update.ByHorizon[0].WmoDescription);
         Assert.Equal(12.3, update.Scalars.DiurnalAmplitude);
         Assert.Equal(65.0, update.Scalars.SunshinePct);

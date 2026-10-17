@@ -369,64 +369,59 @@ public sealed class ConfigManager : ReceiveActor
         }
     }
 
-    // Every touched section is validated before any of them is written.
+    // Every touched section is validated before any of them is written; one write persists them all.
     private async Task<UpdateAnalysisConfigResponse> UpdateAnalysisConfigAsync(UpdateAnalysisConfig cmd)
     {
-        var failures = new List<string>();
-        if (cmd.Consensus is { } consensus)
+        var reset = cmd.Reset ?? [];
+        var updates = BuildAnalysisUpdates(cmd, reset);
+        if (updates.Count == 0)
         {
-            failures.AddRange(_writer.Check<ConsensusOptions>(opt => ApplyConsensus(opt, consensus)));
+            return new UpdateAnalysisConfigRejected(
+                [new ConfigIssue(null, "At least one section or reset is required")], cmd.DryRun);
         }
 
-        if (cmd.Alerts is { } alerts)
+        var result = await _writer.UpdateManyAsync([.. updates.Select(u => u.Update)], cmd.DryRun, _lifetime.Token);
+        if (!result.Valid)
         {
-            failures.AddRange(_writer.Check<AlertOptions>(opt => ApplyAlerts(opt, alerts)));
+            return new UpdateAnalysisConfigRejected(
+                [.. updates.Zip(result.Sections, (update, outcome) => (Update: update, Outcome: outcome)).SelectMany(pair =>
+                    pair.Outcome.Failures.Select(message => new ConfigIssue(pair.Update.Section, message)))],
+                cmd.DryRun);
         }
 
-        if (cmd.Indices is { } indices)
+        var restartRequired = updates.Zip(result.Sections, (update, outcome) => (Update: update, Outcome: outcome)).SelectMany(pair =>
+            pair.Outcome.RestartRequiredProperties.Select(p => $"{pair.Update.Prefix}{p}")).ToList();
+
+        return cmd.DryRun
+            ? new UpdateAnalysisConfigValidated(CurrentSnapshot(), restartRequired)
+            : new UpdateAnalysisConfigCompleted(CurrentSnapshot(), restartRequired);
+    }
+
+    private sealed record AnalysisUpdate(EnrichmentSection Section, string Prefix, SectionUpdate Update);
+
+    private static List<AnalysisUpdate> BuildAnalysisUpdates(UpdateAnalysisConfig cmd, IReadOnlyList<EnrichmentSection> reset)
+    {
+        var updates = new List<AnalysisUpdate>();
+        Add(EnrichmentSection.Consensus, cmd.Consensus is not null,
+            s => SectionUpdate.For<ConsensusOptions>(opt => { if (cmd.Consensus is { } c) ApplyConsensus(opt, c); }, s));
+        Add(EnrichmentSection.Alerts, cmd.Alerts is not null,
+            s => SectionUpdate.For<AlertOptions>(opt => { if (cmd.Alerts is { } a) ApplyAlerts(opt, a); }, s));
+        Add(EnrichmentSection.Derived, cmd.DerivedEnabled is not null,
+            s => SectionUpdate.For<DerivedOptions>(opt => { if (cmd.DerivedEnabled is { } d) opt.Enabled = d; }, s));
+        Add(EnrichmentSection.Trends, cmd.TrendsEnabled is not null,
+            s => SectionUpdate.For<TrendOptions>(opt => { if (cmd.TrendsEnabled is { } t) opt.Enabled = t; }, s));
+        Add(EnrichmentSection.Indices, cmd.Indices is not null,
+            s => SectionUpdate.For<IndexOptions>(opt => { if (cmd.Indices is { } i) ApplyIndices(opt, i); }, s));
+        return updates;
+
+        void Add(EnrichmentSection section, bool hasChange, Func<bool, SectionUpdate> create)
         {
-            failures.AddRange(_writer.Check<IndexOptions>(opt => ApplyIndices(opt, indices)));
+            var isReset = reset.Contains(section);
+            if (hasChange || isReset)
+            {
+                updates.Add(new AnalysisUpdate(section, $"Enrichment.{section}.", create(isReset)));
+            }
         }
-
-        if (failures.Count > 0)
-        {
-            return new UpdateAnalysisConfigRejected(string.Join("; ", failures));
-        }
-
-        var restartRequired = new List<string>();
-        var ct = _lifetime.Token;
-
-        if (cmd.Consensus is { } c)
-        {
-            restartRequired.AddRange(RestartRequired(
-                await _writer.UpdateAsync<ConsensusOptions>(opt => ApplyConsensus(opt, c), ct), "Enrichment.Consensus."));
-        }
-
-        if (cmd.Alerts is { } a)
-        {
-            restartRequired.AddRange(RestartRequired(
-                await _writer.UpdateAsync<AlertOptions>(opt => ApplyAlerts(opt, a), ct), "Enrichment.Alerts."));
-        }
-
-        if (cmd.DerivedEnabled is { } derived)
-        {
-            restartRequired.AddRange(RestartRequired(
-                await _writer.UpdateAsync<DerivedOptions>(opt => opt.Enabled = derived, ct), "Enrichment.Derived."));
-        }
-
-        if (cmd.TrendsEnabled is { } trends)
-        {
-            restartRequired.AddRange(RestartRequired(
-                await _writer.UpdateAsync<TrendOptions>(opt => opt.Enabled = trends, ct), "Enrichment.Trends."));
-        }
-
-        if (cmd.Indices is { } i)
-        {
-            restartRequired.AddRange(RestartRequired(
-                await _writer.UpdateAsync<IndexOptions>(opt => ApplyIndices(opt, i), ct), "Enrichment.Indices."));
-        }
-
-        return new UpdateAnalysisConfigCompleted(CurrentSnapshot(), restartRequired);
     }
 
     private static void ApplyConsensus(ConsensusOptions opt, ConsensusConfigUpdate update)

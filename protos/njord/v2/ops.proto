@@ -37,14 +37,21 @@ message BudgetStatus {
   double usage_percent = 5;
 }
 
+enum PollPhase {
+  POLL_PHASE_UNSPECIFIED = 0;
+  POLL_PHASE_DISCOVERY = 1;
+  POLL_PHASE_STEADY = 2;
+}
+
 message ModelStatus {
   string location = 1;
   string model = 2;
-  string phase = 3;
+  reserved 3;
   google.protobuf.Timestamp next_poll = 4;
   optional google.protobuf.Timestamp last_change = 5;
   int32 miss_count = 6;
   optional int64 cycle_seconds = 7;
+  PollPhase phase = 8;
 }
 
 // ═══════════════════════════════════════
@@ -60,11 +67,12 @@ message GetTargetsResponse {
 message TriggerTarget {
   string location = 1;
   string model = 2;
-  string phase = 3;
+  reserved 3;
   google.protobuf.Timestamp next_poll = 4;
   optional google.protobuf.Timestamp last_change = 5;
   int32 miss_count = 6;
   optional int64 cycle_seconds = 7;
+  PollPhase phase = 8;
 }
 
 // ═══════════════════════════════════════

@@ -83,7 +83,7 @@ public static class StatePayloadBuilder
         {
             var payload = new JsonObject
             {
-                ["severity"] = alert.Severity.ToString().ToLowerInvariant(),
+                ["severity"] = alert.Severity.ToWireName(),
                 ["confidence"] = alert.Confidence,
                 ["trigger_value"] = JsonValue.Create(alert.TriggerValue),
                 ["threshold"] = JsonValue.Create(alert.Threshold),
@@ -273,7 +273,7 @@ public static class StatePayloadBuilder
             {
                 payload["frost_hours"] = result.FrostProtection?.HoursUntilFrost is { } fh ? JsonValue.Create(fh) : null;
                 payload["frost_confidence"] = result.FrostProtection?.Confidence is { } fc ? JsonValue.Create(fc) : null;
-                payload["vpd_category"] = result.Vpd?.Category;
+                payload["vpd_category"] = result.Vpd?.Category.ToWireName();
                 payload["vpd_kpa"] = result.Vpd?.Vpd is { } v ? JsonValue.Create(v) : null;
             }
 

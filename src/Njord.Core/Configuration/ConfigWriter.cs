@@ -52,7 +52,7 @@ public sealed class ConfigWriter(
                 return new ConfigUpdateResult<T>(true, after, [], []);
             }
 
-            await PersistAsync(ConfigSections.PathOf<T>(), delta, cancellationToken);
+            await PersistAsync([new PersistOperation(ConfigSections.PathOf<T>(), false, delta)], cancellationToken);
             configurationRoot.Reload();
 
             return new ConfigUpdateResult<T>(true, monitor.CurrentValue, [.. delta.Select(p => p.Key)], []);
@@ -68,6 +68,97 @@ public sealed class ConfigWriter(
         var candidate = DeepClone(services.GetRequiredService<IOptionsMonitor<T>>().CurrentValue);
         applyChanges(candidate);
         return Validate(candidate);
+    }
+
+    public async Task<ConfigBatchResult> UpdateManyAsync(
+        IReadOnlyList<SectionUpdate> updates, bool dryRun, CancellationToken cancellationToken)
+    {
+        if (updates.Select(u => u.OptionsType).Distinct().Count() != updates.Count)
+        {
+            throw new ArgumentException("A section can be updated only once per batch.", nameof(updates));
+        }
+
+        await _lock.WaitAsync(cancellationToken);
+        try
+        {
+            var plans = updates.Select(u => u.Plan(this)).ToList();
+            var outcomes = plans.Select(p => p.Outcome).ToList();
+            if (dryRun || outcomes.Any(o => o.Failures.Count > 0))
+            {
+                return new ConfigBatchResult(false, outcomes);
+            }
+
+            var operations = plans.Where(p => p.Operation is not null).Select(p => p.Operation!).ToList();
+            if (operations.Count > 0)
+            {
+                await PersistAsync(operations, cancellationToken);
+                configurationRoot.Reload();
+            }
+
+            return new ConfigBatchResult(true, outcomes);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    internal SectionPlan Plan<T>(Action<T> applyChanges, bool reset) where T : class, new()
+    {
+        var before = DeepClone(services.GetRequiredService<IOptionsMonitor<T>>().CurrentValue);
+        var start = reset ? BindBase<T>() : before;
+        var after = DeepClone(start);
+        applyChanges(after);
+
+        var failures = Validate(after);
+        if (failures.Count > 0)
+        {
+            return new SectionPlan(new SectionOutcome(typeof(T), [], failures), null);
+        }
+
+        var changed = ComputeDelta(Serialize(before), Serialize(after));
+        var delta = reset ? ComputeDelta(Serialize(start), Serialize(after)) : changed;
+        var operation = reset || delta.Count > 0 ? new PersistOperation(ConfigSections.PathOf<T>(), reset, delta) : null;
+        return new SectionPlan(new SectionOutcome(typeof(T), [.. changed.Select(p => p.Key)], []), operation);
+    }
+
+    // The section as the configuration would bind it without the override file: appsettings, environment, ...
+    private T BindBase<T>() where T : class, new()
+    {
+        var data = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var provider in configurationRoot.Providers.Where(p => !IsOverrideProvider(p)))
+        {
+            Collect(provider, null, data);
+        }
+
+        var section = new ConfigurationBuilder().AddInMemoryCollection(data).Build()
+            .GetSection(ConfigSections.PathOf<T>());
+        var value = new T();
+        section.Bind(value);
+        CollectionDefaults.Replace(value, section);
+        return value;
+    }
+
+    private bool IsOverrideProvider(IConfigurationProvider provider) =>
+        provider is FileConfigurationProvider { Source: { } source }
+        && source.FileProvider?.GetFileInfo(source.Path ?? string.Empty).PhysicalPath is { } physical
+        && string.Equals(
+            Path.GetFullPath(physical),
+            overrideFile.Path,
+            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+
+    private static void Collect(IConfigurationProvider provider, string? parentPath, Dictionary<string, string?> data)
+    {
+        foreach (var key in provider.GetChildKeys([], parentPath).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var path = parentPath is null ? key : $"{parentPath}:{key}";
+            if (provider.TryGet(path, out var value))
+            {
+                data[path] = value;
+            }
+
+            Collect(provider, path, data);
+        }
     }
 
     public static T DeepClone<T>(T source) where T : class =>
@@ -91,23 +182,37 @@ public sealed class ConfigWriter(
     private static JsonObject Serialize<T>(T value) =>
         JsonSerializer.SerializeToNode(value, SerializerOptions)!.AsObject();
 
-    private async Task PersistAsync(string sectionPath, JsonObject delta, CancellationToken cancellationToken)
+    private async Task PersistAsync(IReadOnlyList<PersistOperation> operations, CancellationToken cancellationToken)
     {
         var root = await ReadExistingAsync(cancellationToken);
 
-        var target = root;
-        foreach (var segment in sectionPath.Split(':'))
+        foreach (var operation in operations)
         {
-            if (target[segment] is not JsonObject child)
+            var segments = operation.SectionPath.Split(':');
+            if (operation.Remove)
             {
-                child = new JsonObject();
-                target[segment] = child;
+                RemovePath(root, segments);
             }
 
-            target = child;
-        }
+            if (operation.Delta.Count == 0)
+            {
+                continue;
+            }
 
-        MergeInto(target, delta);
+            var target = root;
+            foreach (var segment in segments)
+            {
+                if (target[segment] is not JsonObject child)
+                {
+                    child = new JsonObject();
+                    target[segment] = child;
+                }
+
+                target = child;
+            }
+
+            MergeInto(target, operation.Delta);
+        }
 
         var path = overrideFile.Path;
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -149,6 +254,30 @@ public sealed class ConfigWriter(
     private static JsonObject ParseObject(string text) =>
         JsonNode.Parse(text, documentOptions: ReadOptions) as JsonObject
         ?? throw new JsonException("The top-level JSON element is not an object.");
+
+    private static void RemovePath(JsonObject root, string[] segments)
+    {
+        var chain = new List<JsonObject> { root };
+        foreach (var segment in segments[..^1])
+        {
+            if (chain[^1][segment] is not JsonObject child)
+            {
+                return;
+            }
+
+            chain.Add(child);
+        }
+
+        chain[^1].Remove(segments[^1]);
+        for (var i = chain.Count - 1; i > 0 && chain[i].Count == 0; i--)
+        {
+            chain[i - 1].Remove(segments[i - 1]);
+        }
+    }
+
+    internal sealed record PersistOperation(string SectionPath, bool Remove, JsonObject Delta);
+
+    internal sealed record SectionPlan(SectionOutcome Outcome, PersistOperation? Operation);
 
     internal static JsonObject ComputeDelta(JsonObject before, JsonObject after)
     {

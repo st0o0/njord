@@ -20,7 +20,7 @@ public sealed class OpsProtoMappingsSpec
         Assert.Multiple(
             () => Assert.Equal("lucerne", status.Location),
             () => Assert.Equal("icon_d2", status.Model),
-            () => Assert.Equal("steady", status.Phase),
+            () => Assert.Equal(Njord.Grpc.V2.PollPhase.Steady, status.Phase),
             () => Assert.Equal(Timestamp.FromDateTimeOffset(NextPoll), status.NextPoll),
             () => Assert.Equal(2, status.MissCount),
             () => Assert.Equal(Timestamp.FromDateTimeOffset(LastChange), status.LastChange),
@@ -35,7 +35,7 @@ public sealed class OpsProtoMappingsSpec
         var status = OpsProtoMappings.ToModelStatus(entry);
 
         Assert.Multiple(
-            () => Assert.Equal("discovery", status.Phase),
+            () => Assert.Equal(Njord.Grpc.V2.PollPhase.Discovery, status.Phase),
             () => Assert.Null(status.LastChange),
             () => Assert.Equal(0, status.CycleSeconds));
     }
@@ -50,7 +50,7 @@ public sealed class OpsProtoMappingsSpec
         Assert.Multiple(
             () => Assert.Equal("zurich", target.Location),
             () => Assert.Equal("ecmwf_ifs025", target.Model),
-            () => Assert.Equal("steady", target.Phase),
+            () => Assert.Equal(Njord.Grpc.V2.PollPhase.Steady, target.Phase),
             () => Assert.Equal(Timestamp.FromDateTimeOffset(NextPoll), target.NextPoll),
             () => Assert.Equal(1, target.MissCount),
             () => Assert.Equal(Timestamp.FromDateTimeOffset(LastChange), target.LastChange),
@@ -65,7 +65,7 @@ public sealed class OpsProtoMappingsSpec
         var target = OpsProtoMappings.ToTriggerTarget(entry);
 
         Assert.Multiple(
-            () => Assert.Equal("discovery", target.Phase),
+            () => Assert.Equal(Njord.Grpc.V2.PollPhase.Discovery, target.Phase),
             () => Assert.Null(target.LastChange),
             () => Assert.Equal(0, target.CycleSeconds));
     }

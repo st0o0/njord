@@ -6,18 +6,18 @@
     "parameterTrends": [
       {
         "parameter": "temperature_2m",
-        "direction": "rising",
-        "delta": 3
+        "delta": 3,
+        "direction": "TREND_DIRECTION_RISING"
       },
       {
         "parameter": "wind_speed_10m",
-        "direction": "falling",
-        "delta": -2
+        "delta": -2,
+        "direction": "TREND_DIRECTION_FALLING"
       },
       {
         "parameter": "precipitation",
-        "direction": "stable",
-        "delta": 0
+        "delta": 0,
+        "direction": "TREND_DIRECTION_STABLE"
       }
     ],
     "weatherChangeDescription": "clear → rain",
@@ -25,10 +25,10 @@
     "precipEndsInHours": 6,
     "tempMaxInHours": 4,
     "tempMinInHours": 2,
-    "stabilityLabel": "converging",
     "stabilityRatio": 0.49,
     "decayRate": 0.069,
-    "reliableHours": 25
+    "reliableHours": 25,
+    "stabilityLabel": "STABILITY_CONVERGING"
   }
 }
 {
@@ -39,23 +39,23 @@
     "parameterTrends": [
       {
         "parameter": "temperature_2m",
-        "direction": "stable",
-        "delta": 0
+        "delta": 0,
+        "direction": "TREND_DIRECTION_STABLE"
       },
       {
         "parameter": "wind_speed_10m",
-        "direction": "stable",
-        "delta": 0
+        "delta": 0,
+        "direction": "TREND_DIRECTION_STABLE"
       },
       {
         "parameter": "precipitation",
-        "direction": "stable",
-        "delta": 0
+        "delta": 0,
+        "direction": "TREND_DIRECTION_STABLE"
       },
       {
         "parameter": "cloud_cover",
-        "direction": "stable",
-        "delta": 0
+        "delta": 0,
+        "direction": "TREND_DIRECTION_STABLE"
       }
     ],
     "tempMaxInHours": 0,

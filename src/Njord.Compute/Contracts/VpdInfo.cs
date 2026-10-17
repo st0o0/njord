@@ -1,5 +1,5 @@
 namespace Njord.Compute.Contracts;
 
 public sealed record VpdInfo(
-    string Category,
+    VpdCategory Category,
     double Vpd);

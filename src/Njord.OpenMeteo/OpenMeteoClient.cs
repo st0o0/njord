@@ -91,12 +91,7 @@ public sealed class OpenMeteoClient(
                 sw.Stop();
                 var locationTag = new KeyValuePair<string, object?>("location", location.Name);
                 var modelTag = new KeyValuePair<string, object?>("model", model.Id);
-                var outcomeLabel = outcome switch
-                {
-                    PollOutcome.Success => "success",
-                    PollOutcome.Failure f => f.Reason.ToString().ToLowerInvariant(),
-                    _ => "unknown",
-                };
+                var outcomeLabel = FetchOutcomeTag.For(outcome);
                 Telemetry.FetchTotal.Add(1, locationTag, modelTag, new KeyValuePair<string, object?>("outcome", outcomeLabel));
                 if (outcome is PollOutcome.Success)
                 {
