@@ -1,3 +1,4 @@
+using Njord.Mqtt.Topics;
 using Njord.Weather;
 
 namespace Njord.Mqtt.Tests;

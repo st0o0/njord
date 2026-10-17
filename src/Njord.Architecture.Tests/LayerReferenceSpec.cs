@@ -98,7 +98,7 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Mqtt_references_only_Core_and_below()
     {
-        Assert.Empty(NjordReferences<Mqtt.MqttStatePublisher>().Except(CoreAndBelow));
+        Assert.Empty(NjordReferences<Mqtt.Actors.MqttStatePublisher>().Except(CoreAndBelow));
     }
 
     [Fact]

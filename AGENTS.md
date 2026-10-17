@@ -104,9 +104,16 @@ with optional MQTT state publishing.
   `RequestConfigStream`), budget status through `BudgetTracker` (`QueryBudgetStatus`).
 - **`Njord.Messages` is the Akka-free contract project.** Every public command, query,
   result and event lives there, one file per command or query, in domain folders
-  (`Budget/`, `Config/`, `Forecast/`, `Mqtt/`, `Pipeline/`, `Sensors/`).
+  (`Budget/`, `Config/`, `Forecast/`, `Pipeline/`, `Sensors/`; nothing MQTT-specific, see the MQTT boundary rule).
   Records that carry Akka types (stream handshakes with `ISourceRef`) live in
   `Njord.Core/Actors/StreamWiringMessages.cs`; actor-internal records stay private.
+- **MQTT-specific code lives only in `Njord.Mqtt`.** Any type with `Mqtt` in its name or
+  namespace (actors, their messages, transport, topics, health check, telemetry, later the payload
+  records) is declared there; the egress stays an optional adapter that can change without touching
+  domain projects. Allow-list in `Njord.Core`, because the host options, the actor registry and the
+  health monitor must name MQTT: `MqttOptions`, `MqttOptionsValidator`, the `MqttOptions` entry in
+  `ConfigReloadPolicy`, `IMqttConnectionActor`, `IMqttStatePublisher`, `MqttHealthSnapshot`.
+  Enforced by `MqttBoundarySpec`.
 - **Zone rules are enforced by tests** in `src/Njord.Architecture.Tests/` (lateral
   independence of the feature libraries, Domain independence,
   sealed/`Spec` conventions,
@@ -171,7 +178,7 @@ src/
   Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references): Events/Budget, Events/Polling
   Njord.Messages/             # Commands, queries, results, PipelineEvent; no Akka
                               #   (-> Weather, Sensors, Compute)
-    Budget/ Config/ Forecast/ Mqtt/ Pipeline/ Sensors/
+    Budget/ Config/ Forecast/ Pipeline/ Sensors/
   Njord.Compute/              # Shared analysis building blocks only (-> Weather, Sensors only)
     Consensus/                # ConsensusBuilder, ConsensusStatistics, consensus records
     Querying/                 # Query vocabulary on consensus data (ConsensusQueries,
@@ -193,7 +200,13 @@ src/
   Njord.Pipeline/             # PollManager, PollWorker (+ PollWorkerState), ForecastPipeline,
                               #   PipelineEvent BroadcastHub,
                               #   ForecastReadModel (API read model)
-  Njord.Mqtt/                 # MQTT connection, state payloads, TopicSlug, SourceRef consumer
+  Njord.Mqtt/                 # Everything MQTT-specific (boundary rule below); namespaces follow folders
+    Actors/                   # MqttConnection, MqttStatePublisher, internal actor messages
+    Topics/                   # TopicScheme, TopicSlug
+    Health/                   # MqttConnectionHealthCheck (registered by MqttSetupContainer)
+    Transport/                # IMqttConnection, IMqttTransport, MQTTnet publisher
+    Configuration/            # MqttSetupContainer
+                              #   (root: StatePayloadBuilder, MqttMessage, MqttEgressTuning, Telemetry)
   Njord.Grpc/                 # gRPC services (ask and map only), ActorAsk, protos
     Mapping/                  # <Domain>ProtoMappings: ToProto()/ToCommand() extensions
 
@@ -260,9 +273,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1182 tests (Weather 117, Sensors 11, Persistence 14, Compute 150, Core 190,
-Grpc 86, Pipeline 143, Mqtt 74, OpenMeteo 37, Budget 25, SensorHub 32, Architecture 53,
-Alerts 67, Derived 36, Trends 27, Indices 61, host `Njord.Tests` 59).
+Current total: 1285 tests (Weather 117, Sensors 11, Persistence 14, Compute 176, Core 204,
+Grpc 129, Pipeline 143, Mqtt 74, OpenMeteo 44, Budget 25, SensorHub 32, Architecture 57,
+Alerts 67, Derived 36, Trends 27, Indices 63, host `Njord.Tests` 66).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -357,6 +370,12 @@ These checks run locally only; they are deliberately not part of CI.
   cannot be enforced there.
 - C#: records for messages/DTOs, value objects in the domain, `sealed` by
   default, nullable enabled.
+- Enum to wire text or to another enum is an extension method with an explicit
+  `switch` expression, one arm per member and a default that throws
+  `ArgumentOutOfRangeException` (`ToWireName()`, `ToTopicSegment()`, `ToProto()`). No casts
+  between enum types, `Enum.Parse`/`TryParse` or `ToString().ToLower*()` for wire values;
+  `EnumConversionArchitectureSpec` scans production code, allow-list: `ParameterRegistry`
+  (user-written configuration text). Each conversion has a spec pinning every member.
 - Enrichment types use `EnrichmentKind` enum (`Njord.Messages.Pipeline`), never bare
   strings. Enrichment `PipelineEvent` variants implement `IEnrichmentEvent`.
 - Consensus method is `ConsensusMethod` enum (`Njord.Compute.Settings`),

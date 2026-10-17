@@ -4,7 +4,7 @@ using Microsoft.Extensions.Time.Testing;
 using MQTTnet.Exceptions;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Health;
-using Njord.Messages.Mqtt;
+using Njord.Mqtt.Actors;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
 

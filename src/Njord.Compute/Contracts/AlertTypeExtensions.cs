@@ -18,6 +18,6 @@ public static class AlertTypeExtensions
         AlertType.Visibility => "visibility",
         AlertType.TropicalNight => "tropical-night",
         AlertType.Humidity => "humidity",
-        _ => type.ToString().ToLowerInvariant(),
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 }

@@ -11,6 +11,13 @@ public enum EnrichmentKind
 
 public static class EnrichmentKindExtensions
 {
-    public static string ToWireName(this EnrichmentKind kind) =>
-        kind.ToString().ToLowerInvariant();
+    public static string ToWireName(this EnrichmentKind kind) => kind switch
+    {
+        EnrichmentKind.Consensus => "consensus",
+        EnrichmentKind.Alerts => "alerts",
+        EnrichmentKind.Derived => "derived",
+        EnrichmentKind.Trends => "trends",
+        EnrichmentKind.Indices => "indices",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+    };
 }

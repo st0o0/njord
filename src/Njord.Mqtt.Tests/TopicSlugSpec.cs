@@ -1,3 +1,4 @@
+using Njord.Mqtt.Topics;
 namespace Njord.Mqtt.Tests;
 
 public sealed class TopicSlugSpec

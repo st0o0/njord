@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Njord.Core.Health;
 
-namespace Njord.Health;
+namespace Njord.Mqtt.Health;
 
 internal sealed class MqttConnectionHealthCheck(NjordHealthMonitor monitor, TimeProvider timeProvider) : IHealthCheck
 {

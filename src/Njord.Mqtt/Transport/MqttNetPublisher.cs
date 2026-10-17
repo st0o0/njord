@@ -1,3 +1,4 @@
+using Njord.Mqtt.Topics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;

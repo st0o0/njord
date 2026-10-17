@@ -3,10 +3,10 @@ using Akka.Event;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Health;
-using Njord.Messages.Mqtt;
+using Njord.Mqtt.Topics;
 using Njord.Mqtt.Transport;
 
-namespace Njord.Mqtt;
+namespace Njord.Mqtt.Actors;
 
 public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedStash
 {

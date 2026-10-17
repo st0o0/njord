@@ -62,14 +62,32 @@ public sealed class EnrichmentKindSpec
         Assert.Equal(EnrichmentKind.Indices, enrichment.Kind);
     }
 
-    [Fact]
-    public void ToWireName_returns_lowercase()
+    [Theory]
+    [InlineData(EnrichmentKind.Consensus, "consensus")]
+    [InlineData(EnrichmentKind.Alerts, "alerts")]
+    [InlineData(EnrichmentKind.Derived, "derived")]
+    [InlineData(EnrichmentKind.Trends, "trends")]
+    [InlineData(EnrichmentKind.Indices, "indices")]
+    public void ToWireName_returns_the_documented_name(EnrichmentKind kind, string expected)
     {
-        Assert.Equal("consensus", EnrichmentKind.Consensus.ToWireName());
-        Assert.Equal("alerts", EnrichmentKind.Alerts.ToWireName());
-        Assert.Equal("derived", EnrichmentKind.Derived.ToWireName());
-        Assert.Equal("trends", EnrichmentKind.Trends.ToWireName());
-        Assert.Equal("indices", EnrichmentKind.Indices.ToWireName());
+        Assert.Equal(expected, kind.ToWireName());
+    }
+
+    [Fact]
+    public void ToWireName_is_pinned_for_every_EnrichmentKind_member()
+    {
+        var names = Enum.GetValues<EnrichmentKind>().Select(k => k.ToWireName()).ToList();
+
+        Assert.Equal(["consensus", "alerts", "derived", "trends", "indices"], names);
+    }
+
+    [Fact]
+    public void ToWireName_throws_for_an_undefined_value()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => ((EnrichmentKind)999).ToWireName());
+
+        Assert.Equal("kind", ex.ParamName);
+        Assert.Equal((EnrichmentKind)999, ex.ActualValue);
     }
 
     private static ConsensusSnapshot CreateConsensusSnapshot() =>

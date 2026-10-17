@@ -1,6 +1,6 @@
 using Njord.Weather;
 
-namespace Njord.Mqtt;
+namespace Njord.Mqtt.Topics;
 
 public static class TopicScheme
 {

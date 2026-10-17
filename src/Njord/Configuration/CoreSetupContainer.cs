@@ -4,7 +4,6 @@ using Microsoft.Extensions.Options;
 using Njord.Budget;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.Persistence;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Health;
@@ -56,16 +55,8 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
             sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<IOptions<PollingOptions>>()));
 
-        var mqttEnabled = configuration
-            .GetSection(MqttOptions.SectionName)
-            .Get<MqttOptions>()?.Enabled ?? false;
-
-        var healthChecks = services.AddHealthChecks()
+        services.AddHealthChecks()
             .AddCheck<PipelineHealthCheck>("pipeline");
-        if (mqttEnabled)
-        {
-            healthChecks.AddCheck<MqttConnectionHealthCheck>("mqtt-connection");
-        }
 
         services.AddSingleton<ConfigView>();
         // Program.cs registers the instance its configuration source reports to; this default only

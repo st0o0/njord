@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration.Mqtt;
+using Njord.Mqtt.Actors;
+using Njord.Mqtt.Health;
 using Njord.Mqtt.Transport;
 using Servus.Application.Startup;
 
@@ -31,6 +33,8 @@ public sealed class MqttSetupContainer : IServiceSetupContainer
             services.TryAddSingleton<MqttNetPublisher>();
             services.TryAddSingleton<IMqttConnection>(static provider => provider.GetRequiredService<MqttNetPublisher>());
             services.TryAddSingleton<IMqttTransport>(static provider => provider.GetRequiredService<MqttNetPublisher>());
+
+            services.AddHealthChecks().AddCheck<MqttConnectionHealthCheck>("mqtt-connection");
 
             services.AddSingleton<IActorRegistration>(new MqttActorRegistration());
         }

@@ -8,10 +8,11 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Messages.Pipeline;
+using Njord.Mqtt.Topics;
 using Njord.Mqtt.Transport;
 using Njord.Weather;
 
-namespace Njord.Mqtt;
+namespace Njord.Mqtt.Actors;
 
 public sealed class MqttStatePublisher : StreamConsumerActor
 {
