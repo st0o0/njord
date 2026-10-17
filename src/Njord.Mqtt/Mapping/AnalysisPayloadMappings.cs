@@ -23,7 +23,7 @@ internal static class AnalysisPayloadMappings
             SnowDetails d => new SnowAlertPayload(d.ExpectedAccumulation, d.FreezingLevel, d.ModelsAgreeing),
             PressureDropDetails d => new PressureDropAlertPayload(d.MaxDrop, d.ModelsAgreeing),
             ThunderstormDetails d => new ThunderstormAlertPayload(d.ModelsAgreeing),
-            IceDetails d => new IceAlertPayload(d.ExpectedLow, d.RainHours, d.SoilFrozen ? "True" : "False"),
+            IceDetails d => new IceAlertPayload(d.ExpectedLow, d.RainHours, d.SoilFrozen),
             WindChillDetails d => new WindChillAlertPayload(d.FeltTemperature, d.WindFactor, d.ExposureRisk),
             VisibilityDetails d => new VisibilityAlertPayload(d.MinVisibility, d.HoursBelow1000m),
             TropicalNightDetails d => new TropicalNightAlertPayload(d.NightMinimum, d.HoursAbove20),

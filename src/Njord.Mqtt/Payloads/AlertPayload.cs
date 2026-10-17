@@ -34,15 +34,12 @@ public abstract record AlertPayload
     [JsonPropertyOrder(-4)]
     public double Threshold { get; init; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyOrder(-3)]
     public double? PeakValue { get; init; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyOrder(-2)]
     public int? HoursUntil { get; init; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyOrder(-1)]
     public int? DurationHours { get; init; }
 }

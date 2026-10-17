@@ -86,7 +86,7 @@ Each hourly state topic (`h{N}`) contains a JSON object with all configured para
 }
 ```
 
-Only parameters that have a value for the given model and horizon are included. Missing values are omitted (not null).
+Only parameters that have a value for the given model and horizon are included. Missing values are omitted (not null). This applies to the forecast (per-model and daily) payloads only; the consensus, alert, derived, trend and index payloads below write a member that is known but has no value as an explicit `null`.
 
 ### Daily forecast payload
 
@@ -128,12 +128,16 @@ One retained payload per active alert type (here `njord/berlin/alerts/frost`):
   "confidence": 0.8,
   "trigger_value": -1.2,
   "threshold": 0,
+  "peak_value": null,
   "hours_until": 9,
+  "duration_hours": null,
   "expected_low": -1.2,
   "earliest_frost": "+9h",
   "models_agreeing": 4
 }
 ```
+
+Every alert payload starts with `severity`, `confidence`, `trigger_value`, `threshold`, `peak_value`, `hours_until` and `duration_hours`, followed by the members of the alert type. `peak_value`, `hours_until` and `duration_hours` (and any other member without a value, such as `earliest_frost`, `freezing_level`, `exposure_risk` or `comfort_level`) are `null` when absent. In the ice alert, `soil_frozen` is a JSON boolean (`true` or `false`), `earliest_frost` in the frost alert stays text (`"+9h"`).
 
 ## Availability
 

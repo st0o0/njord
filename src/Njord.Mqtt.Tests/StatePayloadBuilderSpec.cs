@@ -212,6 +212,7 @@ public sealed class StatePayloadBuilderSpec
 
         Assert.Equal(
             "{\"severity\":\"yellow\",\"confidence\":0.75,\"trigger_value\":0,\"threshold\":0,"
+            + "\"peak_value\":null,\"hours_until\":null,\"duration_hours\":null,"
             + "\"expected_low\":-2.1,\"earliest_frost\":\"\\u002B4h\",\"models_agreeing\":3}",
             message.Payload);
     }

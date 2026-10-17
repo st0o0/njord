@@ -11,7 +11,7 @@ public sealed class MqttPayloadJsonContextSpec
         JsonSerializer.Serialize(payload, MqttPayloadJsonContext.Default.AlertPayload);
 
     [Fact]
-    public void Alert_members_follow_the_common_members_and_omit_absent_timing()
+    public void Alert_members_follow_the_common_members_and_write_absent_timing_as_null()
     {
         var payload = new FrostAlertPayload(-2.1, "+4h", 3)
         {
@@ -21,7 +21,7 @@ public sealed class MqttPayloadJsonContextSpec
 
         Assert.Equal(
             "{\"severity\":\"yellow\",\"confidence\":0.75,\"trigger_value\":0,\"threshold\":0,"
-            + "\"expected_low\":-2.1,\"earliest_frost\":\"\\u002B4h\",\"models_agreeing\":3}",
+            + "\"peak_value\":null,\"hours_until\":null,\"duration_hours\":null,\"expected_low\":-2.1,\"earliest_frost\":\"\\u002B4h\",\"models_agreeing\":3}",
             Json(payload));
     }
 
@@ -46,11 +46,12 @@ public sealed class MqttPayloadJsonContextSpec
     }
 
     [Fact]
-    public void Alert_without_details_writes_only_the_common_members()
+    public void Alert_without_details_writes_the_common_and_timing_members()
     {
         var payload = new NoDetailsAlertPayload { Severity = AlertSeverity.None };
 
-        Assert.Equal("{\"severity\":\"none\",\"confidence\":0,\"trigger_value\":0,\"threshold\":0}", Json(payload));
+        Assert.Equal("{\"severity\":\"none\",\"confidence\":0,\"trigger_value\":0,\"threshold\":0,"
+            + "\"peak_value\":null,\"hours_until\":null,\"duration_hours\":null}", Json(payload));
     }
 
     [Fact]

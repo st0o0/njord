@@ -160,6 +160,13 @@ with optional MQTT state publishing.
   are omitted (no `unavailable`, no `expire_after`); availability only via the
   retained `online`/`offline` service status topic (LWT). MQTTnet sits behind the
   `IMqttTransport` seam; the connection actor owns the connection lifecycle.
+- MQTT payloads are typed records (`Njord.Mqtt/Payloads`), built by mappers in
+  `Mapping/` and written by one source-generated serializer context
+  (`MqttPayloadJsonContext`, converters in `Serialization/`); no `JsonObject`.
+  Null rule: forecast horizon payloads omit absent values; enrichment payloads
+  (alerts, derived, trends, indices, consensus) write a known member without a
+  value as explicit `null` (alerts always carry `peak_value`, `hours_until`,
+  `duration_hours`). `soil_frozen` (ice alert) is a JSON boolean.
 
 ## Language
 

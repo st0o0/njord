@@ -156,9 +156,9 @@ public sealed class AnalysisPayloadMappingsSpec
     }
 
     [Theory]
-    [InlineData(true, "True")]
-    [InlineData(false, "False")]
-    public void Ice_alert_maps_its_members(bool soilFrozen, string expectedText)
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Ice_alert_maps_its_members(bool soilFrozen)
     {
         var payload = Assert.IsType<IceAlertPayload>(AlertWith(AlertType.Ice, new IceDetails(-1.5, 2, soilFrozen)).ToPayload());
 
@@ -166,7 +166,7 @@ public sealed class AnalysisPayloadMappingsSpec
         Assert.Multiple(
             () => Assert.Equal(-1.5, payload.ExpectedLow),
             () => Assert.Equal(2, payload.RainHours),
-            () => Assert.Equal(expectedText, payload.SoilFrozen));
+            () => Assert.Equal(soilFrozen, payload.SoilFrozen));
     }
 
     [Fact]

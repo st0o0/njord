@@ -85,6 +85,8 @@ State is `None` when no alert data is available. The trigger value (e.g. -2.1 °
 | `hours_until` | int | Hours until the condition occurs (only when set) |
 | `duration_hours` | int | Expected duration in hours (only when set) |
 
+These attributes come from the gRPC API. On the optional MQTT output the same members are always present in the alert payload and are `null` when not set; the ice alert's `soil_frozen` is a JSON boolean (see the [MQTT reference](../mqtt-reference.md)).
+
 ---
 
 ## Activity indices (`sensor.*_index`)
