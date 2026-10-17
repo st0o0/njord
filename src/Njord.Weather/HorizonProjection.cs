@@ -1,10 +1,8 @@
-using System.Text.Json.Nodes;
-
 namespace Njord.Weather;
 
 public static class HorizonProjection
 {
-    public static Dictionary<Horizon, string> BuildPerHorizon(
+    public static Dictionary<Horizon, IReadOnlyList<HorizonValue>> BuildPerHorizon(
         Forecast forecast,
         ResolvedParameterSet parameters,
         IReadOnlyList<int> horizons,
@@ -13,7 +11,7 @@ public static class HorizonProjection
         int? maxForecastHours = null)
     {
         var effectiveDays = EffectiveDays(forecastDays, maxForecastHours);
-        var result = new Dictionary<Horizon, string>(horizons.Count + effectiveDays);
+        var result = new Dictionary<Horizon, IReadOnlyList<HorizonValue>>(horizons.Count + effectiveDays);
 
         var pointsByValidAt = forecast.Hourly.Points.ToDictionary(p => p.ValidAt);
         foreach (var hours in horizons)
@@ -29,10 +27,10 @@ public static class HorizonProjection
                 continue;
             }
 
-            var payload = ToHourlyPayload(point, parameters);
-            if (payload is not null)
+            var values = ToHourlyValues(point, parameters);
+            if (values.Count > 0)
             {
-                result[Horizon.Hours(hours)] = payload;
+                result[Horizon.Hours(hours)] = values;
             }
         }
 
@@ -46,10 +44,10 @@ public static class HorizonProjection
                 continue;
             }
 
-            var payload = ToDailyPayload(dailyPoint, parameters);
-            if (payload is not null)
+            var values = ToDailyValues(dailyPoint, parameters);
+            if (values.Count > 0)
             {
-                result[Horizon.Days(d)] = payload;
+                result[Horizon.Days(d)] = values;
             }
         }
 
@@ -64,44 +62,38 @@ public static class HorizonProjection
     public static bool IsHorizonApplicable(int hours, int? maxForecastHours) =>
         !maxForecastHours.HasValue || hours <= maxForecastHours.Value;
 
-    public static string? ToHourlyPayload(ForecastPoint point, ResolvedParameterSet parameters)
+    public static IReadOnlyList<HorizonValue> ToHourlyValues(ForecastPoint point, ResolvedParameterSet parameters)
     {
-        var entry = new JsonObject();
+        var values = new List<HorizonValue>();
         foreach (var parameter in parameters.Hourly)
         {
-            var value = point.Get(parameter);
-            if (value.HasValue)
+            if (point.Get(parameter) is { } number)
             {
-                entry[parameter.JsonKey] = value.Value;
+                values.Add(new HorizonValue(parameter, number, null));
             }
         }
 
-        return entry.Count > 0 ? entry.ToJsonString() : null;
+        return values;
     }
 
-    public static string? ToDailyPayload(DailyForecastPoint point, ResolvedParameterSet parameters)
+    public static IReadOnlyList<HorizonValue> ToDailyValues(DailyForecastPoint point, ResolvedParameterSet parameters)
     {
-        var entry = new JsonObject();
+        var values = new List<HorizonValue>();
         foreach (var parameter in parameters.Daily)
         {
             if (parameter.ValueType == ParameterValueType.TimeString)
             {
-                var str = point.GetMeta(parameter);
-                if (str is not null)
+                if (point.GetMeta(parameter) is { } text)
                 {
-                    entry[parameter.JsonKey] = JsonValue.Create(str);
+                    values.Add(new HorizonValue(parameter, null, text));
                 }
             }
-            else
+            else if (point.GetNumeric(parameter) is { } number)
             {
-                var num = point.GetNumeric(parameter);
-                if (num.HasValue)
-                {
-                    entry[parameter.JsonKey] = JsonValue.Create(num.Value);
-                }
+                values.Add(new HorizonValue(parameter, number, null));
             }
         }
 
-        return entry.Count > 0 ? entry.ToJsonString() : null;
+        return values;
     }
 }

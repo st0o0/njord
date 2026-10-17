@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using Njord.Tests.Shared;
 
 namespace Njord.Weather.Tests;
@@ -44,14 +43,20 @@ public sealed class HorizonProjectionSpec
     }
 
     [Fact]
-    public void Horizon_entries_contain_valid_json_with_parameter_keys()
+    public void Horizon_entries_carry_the_typed_parameter_values()
     {
         var forecast = CreateForecast();
 
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, Horizons, ForecastDays, Anchor);
 
-        var h3 = JsonNode.Parse(result[Horizon.Hours(3)])!;
-        Assert.NotNull(h3["temperature"]);
+        var h3 = Assert.Single(result[Horizon.Hours(3)]);
+        var d0 = Assert.Single(result[Horizon.Days(0)]);
+        Assert.Multiple(
+            () => Assert.Equal(ParameterRegistry.Temperature2m, h3.Parameter),
+            () => Assert.Equal(22.0, h3.Number),
+            () => Assert.Null(h3.Text),
+            () => Assert.Equal(ParameterRegistry.GetByApiName("temperature_2m_max"), d0.Parameter),
+            () => Assert.Equal(28.0, d0.Number));
     }
 
     [Fact]
@@ -97,7 +102,7 @@ public sealed class HorizonProjectionSpec
     }
 
     [Fact]
-    public void Null_parameter_keys_are_omitted_from_json()
+    public void Null_parameter_values_are_omitted_from_the_entries()
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var wind = ParameterRegistry.GetByApiName("wind_speed_10m")!;
@@ -110,9 +115,9 @@ public sealed class HorizonProjectionSpec
 
         var result = HorizonProjection.BuildPerHorizon(forecast, Parameters, [3], 0, Anchor);
 
-        var json = JsonNode.Parse(result[Horizon.Hours(3)])!;
-        Assert.NotNull(json["temperature"]);
-        Assert.Null(json["wind_speed"]);
+        var entry = Assert.Single(result[Horizon.Hours(3)]);
+        Assert.Equal(ParameterRegistry.Temperature2m, entry.Parameter);
+        Assert.Equal(20.0, entry.Number);
     }
 
     [Fact]
@@ -164,46 +169,59 @@ public sealed class HorizonProjectionSpec
     }
 
     [Fact]
-    public void ToHourlyPayload_serializes_available_parameters()
+    public void ToHourlyValues_returns_the_available_parameters_in_resolved_order()
     {
         var forecast = CreateForecast();
         var point = forecast.Hourly.Points[0];
 
-        var payload = HorizonProjection.ToHourlyPayload(point, Parameters);
+        var values = HorizonProjection.ToHourlyValues(point, Parameters);
 
-        Assert.NotNull(payload);
-        Assert.Equal(20.0, JsonNode.Parse(payload)!["temperature"]!.GetValue<double>());
+        var value = Assert.Single(values);
+        Assert.Multiple(
+            () => Assert.Equal(ParameterRegistry.Temperature2m, value.Parameter),
+            () => Assert.Equal(20.0, value.Number),
+            () => Assert.Null(value.Text));
     }
 
     [Fact]
-    public void ToHourlyPayload_returns_null_when_no_parameter_has_a_value()
+    public void ToHourlyValues_is_empty_when_no_parameter_has_a_value()
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var point = new ForecastPoint(Anchor, new Dictionary<ParameterDef, double?> { [temp] = null });
 
-        Assert.Null(HorizonProjection.ToHourlyPayload(point, Parameters));
+        Assert.Empty(HorizonProjection.ToHourlyValues(point, Parameters));
     }
 
     [Fact]
-    public void ToDailyPayload_serializes_numeric_daily_parameters()
+    public void ToDailyValues_returns_numeric_and_text_daily_parameters()
     {
-        var forecast = CreateForecast();
-        var point = forecast.Daily.Points[0];
+        var tempMax = ParameterRegistry.GetByApiName("temperature_2m_max")!;
+        var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
+        var point = new DailyForecastPoint(
+            DateOnly.FromDateTime(Anchor.UtcDateTime),
+            new Dictionary<ParameterDef, double?> { [tempMax] = 28.0 },
+            new Dictionary<ParameterDef, string?> { [sunrise] = "05:31" });
 
-        var payload = HorizonProjection.ToDailyPayload(point, Parameters);
+        var values = HorizonProjection.ToDailyValues(point, Parameters);
 
-        Assert.NotNull(payload);
-        Assert.Equal(28.0, JsonNode.Parse(payload)!["temperature_max"]!.GetValue<double>());
+        Assert.Equal(2, values.Count);
+        var number = Assert.Single(values, v => v.Parameter == tempMax);
+        var text = Assert.Single(values, v => v.Parameter == sunrise);
+        Assert.Multiple(
+            () => Assert.Equal(28.0, number.Number),
+            () => Assert.Null(number.Text),
+            () => Assert.Null(text.Number),
+            () => Assert.Equal("05:31", text.Text));
     }
 
     [Fact]
-    public void ToDailyPayload_returns_null_for_empty_daily_point()
+    public void ToDailyValues_is_empty_for_empty_daily_point()
     {
         var point = new DailyForecastPoint(
             DateOnly.FromDateTime(Anchor.UtcDateTime),
             new Dictionary<ParameterDef, double?>(),
             new Dictionary<ParameterDef, string?>());
 
-        Assert.Null(HorizonProjection.ToDailyPayload(point, Parameters));
+        Assert.Empty(HorizonProjection.ToDailyValues(point, Parameters));
     }
 }

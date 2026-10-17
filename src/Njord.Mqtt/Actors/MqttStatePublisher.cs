@@ -145,7 +145,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
     private IReadOnlyList<MqttMessage> MapPerModel(PipelineEvent.ForecastReceived e, string baseTopic)
     {
         var maxHours = ModelCoverageRegistry.Get(e.Model.Id)?.MaxForecastHours;
-        var perHorizon = HorizonProjection.BuildPerHorizon(
+        var perHorizon = StatePayloadBuilder.BuildPerHorizon(
             e.Forecast, _parameters, _horizons, _forecastDays, _timeProvider.GetUtcNow(), maxHours);
 
         var messages = new List<MqttMessage>(perHorizon.Count);

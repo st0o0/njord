@@ -9,20 +9,20 @@
 
 ## 1. Foundation for typed payloads (no wire change)
 
-- [ ] 1.1 Spike in `src/Njord.Mqtt`: prove the source-generated `MqttPayloadJsonContext` handles (a) a base record with `[JsonDerivedType]` derived members written after base members, (b) a custom converter for registry-driven ordered entries, (c) enum members written via `ToWireName()`; decide fallback per design decision 4 and record the result in design.md
-- [ ] 1.2 `Njord.Mqtt.csproj`: `InternalsVisibleTo` for `Njord.Mqtt.Tests` (already present, verify); shared serializer options in `Serialization/`
-- [ ] 1.3 `Njord.Architecture.Tests`: sealed records, no `JsonObject`/`JsonNode` in `Njord.Mqtt`, no `System.Text.Json.Nodes` for payloads in `Njord.Weather`/`Njord.Messages`/`Njord.Pipeline`
+- [x] 1.1 Spike in `src/Njord.Mqtt`: prove the source-generated `MqttPayloadJsonContext` handles (a) a base record with `[JsonDerivedType]` derived members written after base members, (b) a custom converter for registry-driven ordered entries, (c) enum members written via `ToWireName()`; decide fallback per design decision 4 and record the result in design.md
+- [x] 1.2 `Njord.Mqtt.csproj`: `InternalsVisibleTo` for `Njord.Mqtt.Tests` (already present, verify); shared serializer options in `Serialization/`
+- [x] 1.3 `Njord.Architecture.Tests`: sealed records, no `JsonObject`/`JsonNode` in `Njord.Mqtt`, no `System.Text.Json.Nodes` for payloads in `Njord.Weather`/`Njord.Messages`/`Njord.Pipeline`
 
 ## 2. Typed payloads, one kind at a time (golden masters must stay byte-identical)
 
-- [ ] 2.1 Alerts: `AlertPayload` + derived detail records in `Payloads/`, `ToPayload()` in `Mapping/AnalysisPayloadMappings.cs`; mapper spec checks every member for all 14 alert types; `FromAlerts` uses it
-- [ ] 2.2 Derived: `DerivedHorizonPayload`, `DerivedMetaPayload`, mappers (rounding 1 digit), specs; `FromDerived` uses them
-- [ ] 2.3 Indices: `IndexDayPayload` with score envelopes and the day-0 frost/VPD members, mapper spec, `FromIndices`
-- [ ] 2.4 Trends: `TrendPayload` with `TrendKey` derivation in one place (replaces inline `Replace`), converter for the parameter entries, mapper spec incl. all trend parameters
-- [ ] 2.5 Consensus: `ConsensusHorizonPayload` with ordered parameter entries (`JsonKey`, `{JsonKey}_models`) then `_spread`/`_agreement`, converter, mapper spec (rounding 2 and 3 digits)
-- [ ] 2.6 Forecast horizon: `HorizonProjection` in `Njord.Weather` returns typed entries (no `System.Text.Json.Nodes`), `ForecastHorizonPayload` + converter in `Njord.Mqtt`; adapt `StatePayloadBuilder.BuildPerHorizon`, `MqttStatePublisher`, `Njord.Weather.Tests/HorizonProjectionSpec.cs`, `Njord.Pipeline.Tests/PollPipelineSpec.cs`
-- [ ] 2.7 `StatePayloadBuilder` is only mapper + serialize + topic; delete the `JsonObject` code
-- [ ] 2.8 Proof: run `Njord.Mqtt.Tests`, `Njord.Weather.Tests`, `Njord.Pipeline.Tests` — all six golden masters unchanged (`git diff` shows none of the `*.verified.txt` modified)
+- [x] 2.1 Alerts: `AlertPayload` + derived detail records in `Payloads/`, `ToPayload()` in `Mapping/AnalysisPayloadMappings.cs`; mapper spec checks every member for all 14 alert types; `FromAlerts` uses it
+- [x] 2.2 Derived: `DerivedHorizonPayload`, `DerivedMetaPayload`, mappers (rounding 1 digit), specs; `FromDerived` uses them
+- [x] 2.3 Indices: `IndexDayPayload` with score envelopes and the day-0 frost/VPD members, mapper spec, `FromIndices`
+- [x] 2.4 Trends: `TrendPayload` with `TrendKey` derivation in one place (replaces inline `Replace`), converter for the parameter entries, mapper spec incl. all trend parameters
+- [x] 2.5 Consensus: `ConsensusHorizonPayload` with ordered parameter entries (`JsonKey`, `{JsonKey}_models`) then `_spread`/`_agreement`, converter, mapper spec (rounding 2 and 3 digits)
+- [x] 2.6 Forecast horizon: `HorizonProjection` in `Njord.Weather` returns typed entries (no `System.Text.Json.Nodes`), `ForecastHorizonPayload` + converter in `Njord.Mqtt`; adapt `StatePayloadBuilder.BuildPerHorizon`, `MqttStatePublisher`, `Njord.Weather.Tests/HorizonProjectionSpec.cs`, `Njord.Pipeline.Tests/PollPipelineSpec.cs`
+- [x] 2.7 `StatePayloadBuilder` is only mapper + serialize + topic; delete the `JsonObject` code
+- [x] 2.8 Proof: run `Njord.Mqtt.Tests`, `Njord.Weather.Tests`, `Njord.Pipeline.Tests` — all six golden masters unchanged (`git diff` shows none of the `*.verified.txt` modified)
 
 ## 3. Intentional wire corrections (BREAKING)
 
