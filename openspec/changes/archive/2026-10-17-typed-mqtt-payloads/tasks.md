@@ -26,20 +26,20 @@
 
 ## 3. Intentional wire corrections (BREAKING)
 
-- [ ] 3.1 Null policy: enrichment payload members that can be absent serialize as explicit `null` (alerts gain `peak_value`, `hours_until`, `duration_hours` as null; check every nullable alert detail member); forecast horizon keeps omission; specs first
-- [ ] 3.2 `soil_frozen` as JSON boolean in the ice alert payload; specs first
-- [ ] 3.3 Update only the affected golden masters (alert snapshot), review each diff line by line
-- [ ] 3.4 Add Verify snapshots per payload type and a roundtrip/shape spec (serialize then parse, assert member names and types)
+- [x] 3.1 Null policy: enrichment payload members that can be absent serialize as explicit `null` (alerts gain `peak_value`, `hours_until`, `duration_hours` as null; check every nullable alert detail member); forecast horizon keeps omission; specs first
+- [x] 3.2 `soil_frozen` as JSON boolean in the ice alert payload; specs first
+- [x] 3.3 Update only the affected golden masters (alert snapshot), review each diff line by line
+- [x] 3.4 Add Verify snapshots per payload type and a roundtrip/shape spec (serialize then parse, assert member names and types)
 
 ## 4. Docs
 
-- [ ] 4.1 `docs/mqtt-reference.md` and `docs/home-assistant/entities.md`: `soil_frozen` boolean, null rule per payload kind
-- [ ] 4.2 `AGENTS.md` Decisions: MQTT payloads are typed records; null rule (forecast omits, enrichment explicit null)
-- [ ] 4.3 Re-check that `D:\GIT\ha-njord` and `e2e/` do not read the changed MQTT fields (grep `soil_frozen`, alert timing fields)
+- [x] 4.1 `docs/mqtt-reference.md` and `docs/home-assistant/entities.md`: `soil_frozen` boolean, null rule per payload kind
+- [x] 4.2 `AGENTS.md` Decisions: MQTT payloads are typed records; null rule (forecast omits, enrichment explicit null)
+- [x] 4.3 Re-check that `D:\GIT\ha-njord` and `e2e/` do not read the changed MQTT fields (grep `soil_frozen`, alert timing fields)
 
 ## 5. Validation
 
-- [ ] 5.1 `dotnet build Njord.slnx` and the sequential test loop from `AGENTS.md` (all projects)
-- [ ] 5.2 `dotnet format` whitespace check and slopwatch
-- [ ] 5.3 `openspec validate --all --no-interactive` and `bash scripts/check-openspec-root.sh`
-- [ ] 5.4 Commit as `feat!:` (step 0 as its own `refactor:` commit first); the `Release-As: 0.5.0` footer is already on the release commits, do not add another
+- [x] 5.1 `dotnet build Njord.slnx` and the sequential test loop from `AGENTS.md` (all projects)
+- [x] 5.2 `dotnet format` whitespace check and slopwatch
+- [x] 5.3 `openspec validate --all --no-interactive` and `bash scripts/check-openspec-root.sh`
+- [x] 5.4 Commit as `feat!:` (step 0 as its own `refactor:` commit first); the `Release-As: 0.5.0` footer is already on the release commits, do not add another
