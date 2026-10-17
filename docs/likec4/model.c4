@@ -1,6 +1,6 @@
 model {
   openMeteo = externalSystem 'Open-Meteo API' {
-    description 'Free weather forecast API — ICON, ECMWF, GFS, UKMO, and 50+ models'
+    description 'Free weather forecast API, ICON, ECMWF, GFS, UKMO, and 50+ models'
   }
 
   njord = system 'njord' {
@@ -12,11 +12,11 @@ model {
 
       openMeteoGateway = component 'OpenMeteoGateway' {
         #ingest
-        description 'Fetch stream — budget throttle, two parallel fetches, forecast broadcast hub'
+        description 'Fetch stream, budget throttle, two parallel fetches, forecast broadcast hub'
       }
       openMeteoClient = component 'OpenMeteoClient' {
         #ingest
-        description 'HTTP client — builds requests, parses JSON into Forecast records'
+        description 'HTTP client, builds requests, parses JSON into Forecast records'
       }
     }
 
@@ -34,7 +34,7 @@ model {
       }
       forecastPipeline = component 'ForecastPipeline' {
         #domain
-        description 'Analysis stream — consensus per forecast, then all enabled features'
+        description 'Analysis stream, consensus per forecast, then all enabled features'
       }
       analysis = component 'Analysis libraries' {
         #domain
@@ -64,13 +64,13 @@ model {
       }
       mqttStatePublisher = component 'MqttStatePublisher' {
         #egress
-        description 'Optional — retained state JSON per model, horizon and feature'
+        description 'Optional, retained state JSON per model, horizon and feature'
       }
     }
 
     pipeline = container 'Pipeline' {
       #pipeline
-      description 'Akka.Streams data flow — fetch to consumers'
+      description 'Akka.Streams data flow, fetch to consumers'
 
       fetchQueue = component 'Fetch queue' {
         #pipeline
@@ -104,7 +104,7 @@ model {
   }
 
   mqttBroker = dataStore 'MQTT Broker' {
-    description 'Optional — retained state and availability topics'
+    description 'Optional, retained state and availability topics'
   }
 
   homeAssistant = externalSystem 'Home Assistant' {

@@ -19,8 +19,8 @@ protos/njord/v2/
 
 | Repo | Language | Stub generation |
 |------|----------|-----------------|
-| njord | C# | `Grpc.Tools` MSBuild integration — stubs are generated at build time from `protos/` |
-| ha-njord | Python | `make proto` — runs `grpc_tools.protoc` via Docker, writes stubs to `custom_components/njord/proto/` |
+| njord | C# | `Grpc.Tools` MSBuild integration, stubs are generated at build time from `protos/` |
+| ha-njord | Python | `make proto` runs `grpc_tools.protoc` via Docker, writes stubs to `custom_components/njord/proto/` |
 
 ## Sync workflow
 
@@ -44,4 +44,4 @@ When a njord release is created, the release workflow dispatches a `proto-sync` 
 
 ### Setup
 
-The njord repo needs a `HA_NJORD_PAT` secret — a GitHub Personal Access Token with `repo` scope for `st0o0/ha-njord`. Create the token under **Settings > Developer settings > Personal access tokens** and add it as a repository secret in the njord repo under **Settings > Secrets and variables > Actions**.
+The njord repo needs a `HA_NJORD_PAT` secret: a GitHub Personal Access Token with `repo` scope for `st0o0/ha-njord`. Create the token under **Settings > Developer settings > Personal access tokens** and add it as a repository secret in the njord repo under **Settings > Secrets and variables > Actions**.

@@ -111,7 +111,7 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
         {
             _healthState.UpdateMqtt(new MqttHealthSnapshot(false, _timeProvider.GetUtcNow()));
             Telemetry.MqttConnected.Record(0);
-            _log.Warning("MQTT connection lost — reconnecting");
+            _log.Warning("MQTT connection lost, reconnecting");
             Timers.Cancel(OnlineRetryTimer);
             Become(WaitingToReconnect);
             ScheduleReconnect();

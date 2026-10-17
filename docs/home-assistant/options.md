@@ -27,7 +27,7 @@ Changing only the poll interval does not trigger a reload of the integration.
 
 ## Sensor push
 
-The second options step (Sensors) lets you configure sensor push — feeding indoor sensor readings from Home Assistant entities back to njord via gRPC.
+The second options step (Sensors) lets you configure sensor push, feeding indoor sensor readings from Home Assistant entities back to njord via gRPC.
 
 | Field | Description |
 |-------|-------------|

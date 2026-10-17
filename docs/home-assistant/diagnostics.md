@@ -19,6 +19,6 @@ The diagnostics file contains:
 | `forecasts` | Current forecast data per location/model (timestamps, update status) |
 | `enrichments` | Current enrichment data per location (alerts, indices, trends, derived, consensus) |
 | `active_enrichments` | Which enrichment features are currently enabled on the server |
-| `server` | Server status (version, uptime, phase, budget usage) — only if the status coordinator is active |
+| `server` | Server status (version, uptime, phase, budget usage), only if the status coordinator is active |
 
 **Sensitive data**: The njord server host address is redacted automatically. No API keys or credentials are included (njord doesn't use any).

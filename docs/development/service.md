@@ -2,7 +2,7 @@
 
 The njord service is a .NET 10 application using Akka.NET and Akka.Streams.
 
-**Repository:** [st0o0/njord](https://github.com/st0o0/njord) — `src/` directory
+**Repository:** [st0o0/njord](https://github.com/st0o0/njord), `src/` directory
 
 ## Build
 
@@ -14,7 +14,7 @@ dotnet build Njord.slnx
 
 ## Run tests
 
-Tests are xUnit v3 on Microsoft.Testing.Platform — use `dotnet run`, not `dotnet test`:
+Tests are xUnit v3 on Microsoft.Testing.Platform, use `dotnet run`, not `dotnet test`:
 
 ```bash
 # Single test project

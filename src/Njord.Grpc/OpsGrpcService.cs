@@ -53,7 +53,7 @@ public sealed class OpsGrpcService(
         }
         catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded)
         {
-            logger.LogWarning("BudgetTracker did not respond in time — returning status with zero usage");
+            logger.LogWarning("BudgetTracker did not respond in time, returning status with zero usage");
             budgetPartial = true;
         }
 
@@ -72,7 +72,7 @@ public sealed class OpsGrpcService(
         }
         else
         {
-            logger.LogWarning("PollManager did not respond in time — returning status without model poll states");
+            logger.LogWarning("PollManager did not respond in time, returning status without model poll states");
             status.ModelsPartial = true;
         }
 
@@ -94,7 +94,7 @@ public sealed class OpsGrpcService(
         }
         else
         {
-            logger.LogWarning("PollManager did not respond in time — returning empty trigger targets");
+            logger.LogWarning("PollManager did not respond in time, returning empty trigger targets");
         }
 
         return response;

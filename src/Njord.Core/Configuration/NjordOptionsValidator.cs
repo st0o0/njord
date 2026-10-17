@@ -102,12 +102,12 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
                     var coverage = ModelCoverageRegistry.Get(modelId);
                     failures.Add(
                         $"Model '{modelId}' may not cover location '{location.Name}' " +
-                        $"({location.Latitude:F2}°N, {location.Longitude:F2}°E) — " +
+                        $"({location.Latitude:F2}°N, {location.Longitude:F2}°E): " +
                         $"documented coverage: {coverage!.Region}" +
                         (coverage.Bounds is { } b ? $" ({b.MinLat}–{b.MaxLat}°N, {b.MinLon}–{b.MaxLon}°E)" : "") +
                         ". Remove this model from the location or global list if it does not return data.");
                 }
-                // Unknown models are allowed — forward compatible with new Open-Meteo models
+                // Unknown models are allowed: forward compatible with new Open-Meteo models
             }
         }
     }

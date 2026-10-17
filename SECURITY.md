@@ -26,10 +26,10 @@ You can expect an initial response within **72 hours**. Once confirmed, a fix wi
 
 This project employs the following automated security practices:
 
-- **Dependency scanning** — Weekly Trivy scans on dependencies and Docker image (see `.github/workflows/security.yml`)
-- **Dependabot** — Automated dependency updates for NuGet and GitHub Actions
-- **Container hardening** — Non-root runtime user, minimal base image (`mcr.microsoft.com/dotnet/aspnet`)
-- **No secrets in code** — Configuration via environment variables; MQTT credentials are never committed
+- **Dependency scanning**: Weekly Trivy scans on dependencies and Docker image (see `.github/workflows/security.yml`)
+- **Dependabot**: Automated dependency updates for NuGet and GitHub Actions
+- **Container hardening**: Non-root runtime user, minimal base image (`mcr.microsoft.com/dotnet/aspnet`)
+- **No secrets in code**: Configuration via environment variables; MQTT credentials are never committed
 
 ## Scope
 

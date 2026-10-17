@@ -56,7 +56,7 @@ public sealed class BudgetCalculatorSpec
         var result = BudgetCalculator.Validate(options, new PollingOptions { PollInterval = TimeSpan.FromMinutes(60), BudgetOverride = new RequestBudget(100, 600) });
 
         // 1 model, ceil(31/10)=4, 4 calls/cycle, 24/day, 4*24*30=2880
-        // 2880/100 = 2880% — over 100, so no 80% warning, just not within budget
+        // 2880/100 = 2880%: over 100, so no 80% warning, just not within budget
         Assert.False(result.WithinBudget);
     }
 

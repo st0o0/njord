@@ -175,7 +175,7 @@ public static class ParameterRegistry
     {
         return
         [
-            // === Weather group — Hourly ===
+            // === Weather group: Hourly ===
             H("temperature_2m", "°C", "temperature", "temperature", ParameterGroup.Weather),
             H("apparent_temperature", "°C", "temperature", "apparent_temperature", ParameterGroup.Weather),
             H("relative_humidity_2m", "%", "humidity", "relative_humidity", ParameterGroup.Weather),
@@ -208,7 +208,7 @@ public static class ParameterRegistry
             H("freezing_level_height", "m", null, "freezing_level_height", ParameterGroup.Weather),
             H("vapour_pressure_deficit", "kPa", null, "vapour_pressure_deficit", ParameterGroup.Weather),
 
-            // === Weather group — Daily ===
+            // === Weather group: Daily ===
             D("temperature_2m_max", "°C", "temperature", "temperature_max", ParameterGroup.Weather),
             D("temperature_2m_min", "°C", "temperature", "temperature_min", ParameterGroup.Weather),
             D("apparent_temperature_max", "°C", "temperature", "apparent_temperature_max", ParameterGroup.Weather),
@@ -227,7 +227,7 @@ public static class ParameterRegistry
             D("sunset", "", "timestamp", "sunset", ParameterGroup.Weather, ParameterValueType.TimeString),
             D("daylight_duration", "s", "duration", "daylight_duration", ParameterGroup.Weather),
 
-            // === Solar group — Hourly ===
+            // === Solar group: Hourly ===
             H("shortwave_radiation", "W/m²", "irradiance", "shortwave_radiation", ParameterGroup.Solar),
             H("direct_radiation", "W/m²", "irradiance", "direct_radiation", ParameterGroup.Solar),
             H("diffuse_radiation", "W/m²", "irradiance", "diffuse_radiation", ParameterGroup.Solar),
@@ -238,13 +238,13 @@ public static class ParameterRegistry
             H("uv_index", "", null, "uv_index", ParameterGroup.Solar),
             H("uv_index_clear_sky", "", null, "uv_index_clear_sky", ParameterGroup.Solar),
 
-            // === Solar group — Daily ===
+            // === Solar group: Daily ===
             D("shortwave_radiation_sum", "MJ/m²", null, "shortwave_radiation_sum", ParameterGroup.Solar),
             D("sunshine_duration", "s", null, "sunshine_duration_daily", ParameterGroup.Solar),
             D("uv_index_max", "", null, "uv_index_max", ParameterGroup.Solar),
             D("uv_index_clear_sky_max", "", null, "uv_index_clear_sky_max", ParameterGroup.Solar),
 
-            // === Soil group — Hourly ===
+            // === Soil group: Hourly ===
             H("soil_temperature_0cm", "°C", "temperature", "soil_temperature_0cm", ParameterGroup.Soil),
             H("soil_temperature_6cm", "°C", "temperature", "soil_temperature_6cm", ParameterGroup.Soil),
             H("soil_temperature_18cm", "°C", "temperature", "soil_temperature_18cm", ParameterGroup.Soil),
@@ -257,7 +257,7 @@ public static class ParameterRegistry
             H("evapotranspiration", "mm", null, "evapotranspiration", ParameterGroup.Soil),
             H("et0_fao_evapotranspiration", "mm", null, "et0_fao_evapotranspiration", ParameterGroup.Soil),
 
-            // === Soil group — Daily ===
+            // === Soil group: Daily ===
             D("et0_fao_evapotranspiration", "mm", null, "et0_fao_evapotranspiration_daily", ParameterGroup.Soil),
         ];
 

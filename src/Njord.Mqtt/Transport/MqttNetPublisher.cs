@@ -81,7 +81,7 @@ public sealed class MqttNetPublisher(IOptions<MqttOptions> mqttOptions, ILogger<
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "Clean MQTT disconnect failed — the Last Will covers this path");
+            logger.LogDebug(ex, "Clean MQTT disconnect failed: the Last Will covers this path");
         }
 
         _client.Dispose();

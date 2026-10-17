@@ -44,7 +44,7 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
             ?? (persistence.Provider == PersistenceProvider.Sqlite
                 ? $"Data Source={Path.GetFullPath(persistencePath)}"
                 : throw new InvalidOperationException(
-                    "PostgreSQL persistence requires a connection string — set Njord:Persistence:ConnectionString."));
+                    "PostgreSQL persistence requires a connection string: set Njord:Persistence:ConnectionString."));
 
         var providerName = persistence.Provider switch
         {

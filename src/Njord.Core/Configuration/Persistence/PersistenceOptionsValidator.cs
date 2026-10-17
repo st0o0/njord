@@ -9,7 +9,7 @@ public sealed class PersistenceOptionsValidator : IValidateOptions<PersistenceOp
         if (options.Provider == PersistenceProvider.PostgreSql && string.IsNullOrWhiteSpace(options.ConnectionString))
         {
             return ValidateOptionsResult.Fail(
-                "PostgreSQL persistence requires a connection string — set Njord:Persistence:ConnectionString.");
+                "PostgreSQL persistence requires a connection string: set Njord:Persistence:ConnectionString.");
         }
 
         return ValidateOptionsResult.Success;

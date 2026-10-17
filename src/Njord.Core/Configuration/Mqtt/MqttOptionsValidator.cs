@@ -10,7 +10,7 @@ public sealed class MqttOptionsValidator : IValidateOptions<MqttOptions>
 
         if (options.Enabled && string.IsNullOrWhiteSpace(options.Host))
         {
-            failures.Add("The MQTT broker host is missing — set Njord:Mqtt:Host.");
+            failures.Add("The MQTT broker host is missing: set Njord:Mqtt:Host.");
         }
 
         if (options.Port is < 1 or > 65535)

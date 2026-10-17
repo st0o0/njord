@@ -1,6 +1,6 @@
 # Dev Setup
 
-This guide gets a complete development environment running: the njord service, Home Assistant, and the custom integration — all connected.
+This guide gets a complete development environment running: the njord service, Home Assistant, and the custom integration, all connected.
 
 ## Prerequisites
 
@@ -73,7 +73,7 @@ Then start the stack:
 docker compose up -d
 ```
 
-Home Assistant will be available at `http://localhost:8123`. The njord integration code is mounted read-only from your `ha-njord` checkout — changes to the Python code are reflected on HA restart.
+Home Assistant will be available at `http://localhost:8123`. The njord integration code is mounted read-only from your `ha-njord` checkout, so changes to the Python code are reflected on HA restart.
 
 ## Running without Docker
 

@@ -138,7 +138,7 @@
 
 * adapt egress layer to ConsensusSnapshot ([593ef87](https://github.com/st0o0/njord/commit/593ef87a66493db818311e966cb884bfcb8a6bf2))
 * change enrichment interfaces to ConsensusSnapshot input ([10fbfac](https://github.com/st0o0/njord/commit/10fbfacb8dc127c6188fa726a4fdd6cf28376111))
-* clean up options layer — single root, file-per-type, renames ([11692a9](https://github.com/st0o0/njord/commit/11692a98b2545ab7365d8d339ea5795b70a2fa94))
+* clean up options layer: single root, file-per-type, renames ([11692a9](https://github.com/st0o0/njord/commit/11692a98b2545ab7365d8d339ea5795b70a2fa94))
 * enforce file-per-type and extract Compute into DI services ([c19f666](https://github.com/st0o0/njord/commit/c19f66638534c71aa4d46c35bf0c62edde7af40b))
 * enrichments consume ConsensusSnapshot instead of ModelSnapshot ([d8f4a05](https://github.com/st0o0/njord/commit/d8f4a05cdf906510c9545292cec105d0ee7bdac1))
 * introduce ConsensusSnapshot as core domain type ([a22bb1a](https://github.com/st0o0/njord/commit/a22bb1ada3d91aeaee33aae210547f2de4ce35c8))
@@ -378,7 +378,7 @@
 
 ### Refactoring
 
-* clean domain boundaries — typed daily values, move actor messages ([bc8a788](https://github.com/st0o0/njord/commit/bc8a7880d7f4749b4543f8b9c41f2e9e75f5b09a))
+* clean domain boundaries: typed daily values, move actor messages ([bc8a788](https://github.com/st0o0/njord/commit/bc8a7880d7f4749b4543f8b9c41f2e9e75f5b09a))
 * create Njord.Mqtt namespace for MQTT-specific code ([c7cf1b1](https://github.com/st0o0/njord/commit/c7cf1b15f9a9839c35311b0f5508ff8de2d7427d))
 * decouple capability tracking from MQTT via EgressEvent hub ([dcfca58](https://github.com/st0o0/njord/commit/dcfca58ec08d2273dd9528f223632741df041890))
 * egress actor with stream graph, transport seam, and device-based discovery ([72f5a0c](https://github.com/st0o0/njord/commit/72f5a0c76363ad0d938eda727fe5b68f67338854))
