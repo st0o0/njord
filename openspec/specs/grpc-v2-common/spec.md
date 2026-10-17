@@ -82,12 +82,12 @@ Shared proto types for the v2 gRPC API — LocationInfo, ModelInfo, CoverageTier
 
 ### Requirement: VpdInfo sub-message
 
-`common.proto` SHALL define a `VpdInfo` message with fields: `double kpa`, `string category`.
+`common.proto` SHALL define a `VpdInfo` message with fields: `double kpa`, `VpdCategory category`. `VpdCategory` SHALL be an enum with `VPD_CATEGORY_UNSPECIFIED = 0`, `LOW`, `OPTIMAL`, `HIGH` and `CRITICAL`.
 
 #### Scenario: VpdInfo carries category and value
 
-- **WHEN** VPD is 1.27 kPa (category "high")
-- **THEN** `VpdInfo` SHALL have `kpa = 1.27` and `category = "high"`
+- **WHEN** VPD is 1.27 kPa (category high)
+- **THEN** `VpdInfo` SHALL have `kpa = 1.27` and `category = HIGH`
 
 ### Requirement: Enrichment payload messages
 `common.proto` SHALL define all enrichment payload messages: `AlertUpdate`, `Alert`, `AlertType`, `AlertSeverity`, `IndexUpdate`, `DayScoreSet`, `ScoreEnvelope`, `FrostInfo`, `VpdInfo`, `ParameterTrend`, `TrendUpdate`, `HorizonDerived`, `ScalarDerived`, `DerivedUpdate`, `HorizonConsensus`, `ParameterConsensus`, `ConsensusUpdate`.
