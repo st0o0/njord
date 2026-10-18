@@ -54,3 +54,6 @@ docs/package-lock.json
 
 # Node (commitlint)
 node_modules/
+
+# Mutation testing
+StrykerOutput/

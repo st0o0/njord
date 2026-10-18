@@ -61,6 +61,7 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
         items: [
           { text: 'Dev Setup', link: '/development/setup' },
           { text: 'Service (.NET)', link: '/development/service' },
+          { text: 'Mutation Testing', link: '/development/mutation-testing' },
           { text: 'Integration (Python)', link: '/development/integration' },
           { text: 'Proto Management', link: '/development/protos' },
         ],

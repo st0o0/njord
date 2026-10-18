@@ -383,6 +383,13 @@ MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
 skipped or ignored tests (`[Fact(Skip = ...)]`, `[Theory(Skip = ...)]`, `[Ignore]`)
 across all `*Spec.cs` test files.
 
+Mutation testing (Stryker.NET 5, MTP runner, per-test coverage; pure-logic projects only: Weather,
+Consensus, Alerts, Derived, Trends, Indices and parts of Core): `bash scripts/run-mutation.sh <Project>`
+from the repo root (runs in the .NET SDK container; `--local` where the SDK's MSBuild resolves, as in CI).
+Config in `src/stryker-config.json`, tool pinned in `.config/dotnet-tools.json`, weekly and manual run in
+`.github/workflows/mutation.yml` (report only, never a required check). Scores and exclusions:
+`docs/development/mutation-testing.md`.
+
 OpenSpec checks (run from the repo root):
 
 ```bash
