@@ -258,4 +258,170 @@ public sealed class ConsensusBuilderSpec
 
         Assert.Equal(anchorTime, result.ComputedAt);
     }
+
+    private static Forecast MakePointForecast(
+        WeatherModel model, string location, DateTimeOffset baseHour, int hour, Dictionary<ParameterDef, double?> values) =>
+        new(model, location, new CycleId(baseHour),
+            new ForecastSeries([new ForecastPoint(baseHour.AddHours(hour), values)]), DailyForecastSeries.Empty);
+
+    [Fact]
+    public void CutoffHour_ignores_a_model_whose_last_point_is_now()
+    {
+        var forecasts = ModelForecasts.Empty
+            .Update(MakeHourlyForecast(IconD2, "lucerne", T0, (0, 20.0), (48, 21.0)))
+            .Update(MakeHourlyForecast(Ecmwf, "lucerne", T0, (0, 22.0)));
+
+        var result = new ConsensusBuilder(new ResolvedParameterSet([Temperature], []), new FakeTimeProvider(T0))
+            .Create(forecasts, "lucerne", ConsensusSettings.Default);
+
+        Assert.Equal(-1, result.Hourly.CutoffHour);
+        Assert.Empty(result.Hourly.Parameters);
+    }
+
+    [Fact]
+    public void CutoffHour_sorts_the_model_horizons_before_picking_the_second_largest()
+    {
+        var forecasts = ModelForecasts.Empty
+            .Update(MakeHourlyForecast(IconD2, "lucerne", T0, (0, 20.0), (72, 21.0)))
+            .Update(MakeHourlyForecast(Ecmwf, "lucerne", T0, (0, 22.0), (120, 23.0)))
+            .Update(MakeHourlyForecast(Gfs, "lucerne", T0, (0, 21.0), (48, 22.0)));
+
+        var result = new ConsensusBuilder(new ResolvedParameterSet([Temperature], []), new FakeTimeProvider(T0))
+            .Create(forecasts, "lucerne", ConsensusSettings.Default);
+
+        Assert.Equal(72, result.Hourly.CutoffHour);
+    }
+
+    [Fact]
+    public void CutoffHour_only_considers_models_of_the_requested_location()
+    {
+        var forecasts = ModelForecasts.Empty
+            .Update(MakeHourlyForecast(IconD2, "lucerne", T0, (0, 20.0), (24, 21.0)))
+            .Update(MakeHourlyForecast(Ecmwf, "zurich", T0, (0, 22.0), (96, 23.0)))
+            .Update(MakeHourlyForecast(Gfs, "lucerne", T0, (0, 21.0), (48, 22.0)));
+
+        var result = new ConsensusBuilder(new ResolvedParameterSet([Temperature], []), new FakeTimeProvider(T0))
+            .Create(forecasts, "lucerne", ConsensusSettings.Default);
+
+        Assert.Equal(24, result.Hourly.CutoffHour);
+    }
+
+    [Fact]
+    public void CutoffDay_sorts_the_model_day_counts_before_picking_the_second_largest()
+    {
+        var baseDate = DateOnly.FromDateTime(T0.UtcDateTime);
+        var forecasts = ModelForecasts.Empty
+            .Update(MakeDailyForecast(IconD2, "lucerne", baseDate, (TempMax, [1.0, 2.0, 3.0])))
+            .Update(MakeDailyForecast(Ecmwf, "lucerne", baseDate, (TempMax, [1.0, 2.0, 3.0, 4.0, 5.0])))
+            .Update(MakeDailyForecast(Gfs, "lucerne", baseDate, (TempMax, [1.0, 2.0])));
+
+        var result = new ConsensusBuilder(new ResolvedParameterSet([], [TempMax]), new FakeTimeProvider(T0))
+            .Create(forecasts, "lucerne", ConsensusSettings.Default);
+
+        Assert.Equal(3, result.Daily.CutoffDay);
+    }
+
+    [Fact]
+    public void CutoffDay_only_considers_models_of_the_requested_location()
+    {
+        var baseDate = DateOnly.FromDateTime(T0.UtcDateTime);
+        var forecasts = ModelForecasts.Empty
+            .Update(MakeDailyForecast(IconD2, "lucerne", baseDate, (TempMax, [1.0, 2.0])))
+            .Update(MakeDailyForecast(Ecmwf, "zurich", baseDate, (TempMax, [1.0, 2.0, 3.0, 4.0, 5.0])))
+            .Update(MakeDailyForecast(Gfs, "lucerne", baseDate, (TempMax, [1.0, 2.0, 3.0])));
+
+        var result = new ConsensusBuilder(new ResolvedParameterSet([], [TempMax]), new FakeTimeProvider(T0))
+            .Create(forecasts, "lucerne", ConsensusSettings.Default);
+
+        Assert.Equal(2, result.Daily.CutoffDay);
+    }
+
+    [Fact]
+    public void Daily_horizons_stop_before_the_cutoff_day()
+    {
+        var baseDate = DateOnly.FromDateTime(T0.UtcDateTime);
+        var forecasts = ModelForecasts.Empty
+            .Update(MakeDailyForecast(IconD2, "lucerne", baseDate, (TempMax, [1.0, 2.0, 3.0, 4.0, 5.0])))
+            .Update(MakeDailyForecast(Ecmwf, "lucerne", baseDate, (TempMax, [1.0, 2.0, 3.0])));
+
+        var result = new ConsensusBuilder(new ResolvedParameterSet([], [TempMax]), new FakeTimeProvider(T0))
+            .Create(forecasts, "lucerne", new ConsensusSettings(ConsensusMethod.Median, 0.1, 1));
+
+        var parameter = Assert.Single(result.Daily.Parameters);
+        Assert.Equal(3, result.Daily.CutoffDay);
+        Assert.Equal([Horizon.Days(0), Horizon.Days(1), Horizon.Days(2)], parameter.ByHorizon.Keys.OrderBy(h => h.Offset));
+    }
+
+    [Fact]
+    public void Daily_consensus_skips_forecasts_of_other_locations()
+    {
+        var baseDate = DateOnly.FromDateTime(T0.UtcDateTime);
+        var forecasts = ModelForecasts.Empty
+            .Update(MakeDailyForecast(IconD2, "lucerne", baseDate, (TempMax, [10.0, 11.0])))
+            .Update(MakeDailyForecast(Ecmwf, "zurich", baseDate, (TempMax, [50.0, 51.0])))
+            .Update(MakeDailyForecast(Gfs, "lucerne", baseDate, (TempMax, [12.0, 13.0])));
+
+        var result = new ConsensusBuilder(new ResolvedParameterSet([], [TempMax]), new FakeTimeProvider(T0))
+            .Create(forecasts, "lucerne", ConsensusSettings.Default);
+
+        var day0 = Assert.Single(result.Daily.Parameters).ByHorizon[Horizon.Days(0)];
+        Assert.Equal(11.0, day0.Median);
+        Assert.Equal([IconD2, Gfs], day0.AvailableModels);
+    }
+
+    [Fact]
+    public void Hourly_consensus_skips_forecasts_of_other_locations()
+    {
+        var forecasts = ModelForecasts.Empty
+            .Update(MakeHourlyForecast(IconD2, "lucerne", T0, (3, 10.0)))
+            .Update(MakeHourlyForecast(Ecmwf, "zurich", T0, (3, 50.0)))
+            .Update(MakeHourlyForecast(Gfs, "lucerne", T0, (3, 12.0)));
+
+        var result = new ConsensusBuilder(new ResolvedParameterSet([Temperature], []), new FakeTimeProvider(T0))
+            .Create(forecasts, "lucerne", ConsensusSettings.Default);
+
+        var h3 = Assert.Single(result.Hourly.Parameters).ByHorizon[Horizon.Hours(3)];
+        Assert.Equal(11.0, h3.Median);
+        Assert.Equal([IconD2, Gfs], h3.AvailableModels);
+    }
+
+    [Fact]
+    public void Horizon_consensus_carries_agreement_outlier_and_confidence_interval()
+    {
+        var forecasts = ModelForecasts.Empty
+            .Update(MakeHourlyForecast(IconD2, "lucerne", T0, (3, 20.0)))
+            .Update(MakeHourlyForecast(Ecmwf, "lucerne", T0, (3, 21.0)))
+            .Update(MakeHourlyForecast(Gfs, "lucerne", T0, (3, 30.0)));
+
+        var result = new ConsensusBuilder(new ResolvedParameterSet([Temperature], []), new FakeTimeProvider(T0))
+            .Create(forecasts, "lucerne", ConsensusSettings.Default);
+
+        var h3 = Assert.Single(result.Hourly.Parameters).ByHorizon[Horizon.Hours(3)];
+        Assert.Equal(21.0, h3.Median);
+        Assert.Equal(2.0 / 3.0, h3.Agreement);
+        Assert.Equal(10.0, h3.Spread);
+        Assert.NotNull(h3.Outlier);
+        Assert.Equal(Gfs, h3.Outlier.Model);
+        Assert.Equal(9.0, h3.Outlier.Deviation);
+        Assert.NotNull(h3.ConfidenceInterval);
+        Assert.Equal(20.2, h3.ConfidenceInterval.Lower, 10);
+        Assert.Equal(28.2, h3.ConfidenceInterval.Upper, 10);
+    }
+
+    [Fact]
+    public void Parameter_without_a_quorum_at_any_horizon_is_left_out()
+    {
+        var humidity = ParameterRegistry.RelativeHumidity2m;
+        var forecasts = ModelForecasts.Empty
+            .Update(MakePointForecast(IconD2, "lucerne", T0, 3,
+                new Dictionary<ParameterDef, double?> { [Temperature] = 20.0, [humidity] = 60.0 }))
+            .Update(MakePointForecast(Ecmwf, "lucerne", T0, 3,
+                new Dictionary<ParameterDef, double?> { [Temperature] = 22.0 }));
+
+        var result = new ConsensusBuilder(new ResolvedParameterSet([Temperature, humidity], []), new FakeTimeProvider(T0))
+            .Create(forecasts, "lucerne", ConsensusSettings.Default);
+
+        var kept = Assert.Single(result.Hourly.Parameters);
+        Assert.Equal(Temperature, kept.Parameter);
+    }
 }

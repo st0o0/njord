@@ -72,4 +72,21 @@ public sealed class IceRuleSpec
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
         Assert.False(Assert.IsType<IceDetails>(alert.Details).SoilFrozen);
     }
+
+    [Fact]
+    public void Ice_considers_the_hour_exactly_24_hours_ahead()
+    {
+        static (ParameterDef, double)[] Hourly(int h) =>
+            h == 24 ? [(RainParam, 1.0), (Temperature, -1.0)] : [(RainParam, 0.0), (Temperature, 10.0)];
+        var consensus = ConsensusOf(
+            MakeForecastOver(new WeatherModel("m1"), 25, Hourly),
+            MakeForecastOver(new WeatherModel("m2"), 25, Hourly));
+
+        var alert = Rule.Evaluate(consensus, Settings);
+
+        Assert.Multiple(
+            () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
+            () => Assert.Equal(1.0, alert.Confidence),
+            () => Assert.Equal(new IceDetails(-1.0, 1, false), alert.Details));
+    }
 }

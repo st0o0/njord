@@ -29,3 +29,25 @@ First run, before any test was added:
 | Trends | 60.3 % |
 | Indices | 73.2 % |
 | Core (selected files) | 80.8 % |
+
+After closing surviving mutants in the alert rules and the consensus statistics:
+
+| Project | Before | After |
+|---------|--------|-------|
+| Alerts | 47.1 % | 92.2 % |
+| Consensus | 75.9 % | 94.5 % |
+
+Stryker does not score mutants that fail to compile, so the Fog, Humidity, Ice, Thunderstorm and TropicalNight rules (all mutants are compile errors) do not count; their specs still run. No `break` threshold is set for any project: the score is a trend to watch weekly, not a PR gate. Derived (39 %), Trends (60 %), Weather (58 %) and Indices (73 %) are the next candidates.
+
+## Justified exclusions (equivalent mutants)
+
+These survive because the mutation does not change observable behavior:
+
+- `HeatRule`: `??` operand swap on the temperature fallback (only null-ness of both is tested); `found = true` (without a hit `Classify` returns None anyway); `peak > MinValue` (always true once an extreme exists).
+- `StormRule`: `peak > MinValue`, same reason.
+- `PressureDropRule`: `j < i` to `j <= i` (a pair of span 0 fails the `>= 3` check).
+- `SnowRule`: `> 0` to `>= 0` (a total of 0 means confidence 0, severity None either way).
+- `VisibilityRule`: `totalHorizons > 0` (the Extreme early return guarantees a hit); `hoursBelow >= 0` (0 / N = 0).
+- `ConsensusBuilder`: `cutoffHour >= 0` and `cutoffDay` (-1 or 0 give an empty loop); `count > 0` (a 0 does not change the second-largest value); the location `continue` in the hourly loop (the other location yields null and drops out).
+- `ConsensusStatistics.Percentile`: the exact-rank branch (interpolation gives the same value).
+- `ConsensusQueries.Earliest`: `<` to `<=` (offsets in a window are unique).

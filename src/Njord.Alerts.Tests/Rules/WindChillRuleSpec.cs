@@ -59,4 +59,19 @@ public sealed class WindChillRuleSpec
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
+
+    [Fact]
+    public void WindChill_classifies_the_coldest_apparent_hour_not_the_warmest()
+    {
+        var consensus = Identical(2, h => [(ApparentTemp, h < 12 ? -25.0 : -5.0), (Temperature, -10.0)]);
+
+        var alert = Rule.Evaluate(consensus, Defaults);
+
+        Assert.Multiple(
+            () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
+            () => Assert.Equal(-25.0, alert.TriggerValue),
+            () => Assert.Equal(-20.0, alert.Threshold),
+            () => Assert.Equal(1.0, alert.Confidence),
+            () => Assert.Equal(new WindChillDetails(-25.0, 15.0, ExposureRisk.Frostbite30Min), alert.Details));
+    }
 }

@@ -106,4 +106,19 @@ public sealed class FrostRuleSpec
         Assert.Equal(AlertSeverity.Orange, before.Severity);
         Assert.Equal(AlertSeverity.Yellow, after.Severity);
     }
+
+    [Fact]
+    public void Frost_reports_earliest_hour_and_agreeing_models()
+    {
+        var consensus = Identical(2, _ => [(Temperature, -3.0)]);
+
+        var alert = Rule.Evaluate(consensus, Defaults);
+
+        var details = Assert.IsType<FrostDetails>(alert.Details);
+        Assert.Multiple(
+            () => Assert.Equal(Horizon.Hours(0), details.EarliestFrost),
+            () => Assert.Equal(2, details.ModelsAgreeing),
+            () => Assert.Equal(0, alert.HoursUntil),
+            () => Assert.Equal(0.0, alert.Threshold));
+    }
 }

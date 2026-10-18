@@ -302,9 +302,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1726 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
+Current total: 1796 tests (Weather 124, Sensors 11, Persistence 16, Consensus 75, Messages 126,
 Core 167, Grpc 157, Pipeline 176, Mqtt 171, OpenMeteo 72, Budget 36, SensorHub 32, Architecture 155,
-Alerts 75, Derived 38, Trends 29, Indices 85, host `Njord.Tests` 184, IntegrationTests 22).
+Alerts 120, Derived 38, Trends 29, Indices 85, host `Njord.Tests` 184, IntegrationTests 22).
 The count is one test per `[Fact]` and one per data row of a `[Theory]`; `DocumentationArchitectureSpec`
 fails with the discovered numbers when this line is stale.
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.

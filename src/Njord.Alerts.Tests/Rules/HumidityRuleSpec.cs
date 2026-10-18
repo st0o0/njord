@@ -71,4 +71,16 @@ public sealed class HumidityRuleSpec
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
+
+    [Fact]
+    public void Humidity_hours_with_a_day_night_tie_do_not_count_as_daytime()
+    {
+        var consensus = ConsensusOf(
+            MakeForecast(new WeatherModel("m1"), (DewpointParam, 18.0), (IsDayParam, 1.0)),
+            MakeForecast(new WeatherModel("m2"), (DewpointParam, 18.0), (IsDayParam, 0.0)));
+
+        var alert = Rule.Evaluate(consensus, Defaults);
+
+        Assert.Equal(Alert.None(AlertType.Humidity), alert);
+    }
 }

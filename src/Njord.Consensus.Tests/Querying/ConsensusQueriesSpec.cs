@@ -229,4 +229,26 @@ public sealed class ConsensusQueriesSpec
             () => Assert.Same(temperature, hourly.Find(ParameterRegistry.Temperature2m)),
             () => Assert.Null(daily.Find(ParameterRegistry.Temperature2m)));
     }
+
+    [Fact]
+    public void Min_scan_keeps_the_first_of_equal_medians()
+    {
+        var series = Series((Horizon.Hours(0), Hc(-2)), (Horizon.Hours(1), Hc(-2)), (Horizon.Hours(2), Hc(4)));
+
+        var hit = series.Within(Day).Extreme(ScanDirection.Min);
+
+        Assert.NotNull(hit);
+        Assert.Equal(Horizon.Hours(0), hit.Horizon);
+    }
+
+    [Fact]
+    public void Max_scan_keeps_the_first_of_equal_medians()
+    {
+        var series = Series((Horizon.Hours(0), Hc(9)), (Horizon.Hours(1), Hc(9)), (Horizon.Hours(2), Hc(4)));
+
+        var hit = series.Within(Day).Extreme(ScanDirection.Max);
+
+        Assert.NotNull(hit);
+        Assert.Equal(Horizon.Hours(0), hit.Horizon);
+    }
 }

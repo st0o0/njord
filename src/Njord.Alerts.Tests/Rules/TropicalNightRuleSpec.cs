@@ -68,4 +68,19 @@ public sealed class TropicalNightRuleSpec
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
+
+    [Fact]
+    public void TropicalNight_hours_with_a_day_night_tie_count_as_night()
+    {
+        var consensus = ConsensusOf(
+            MakeForecast(new WeatherModel("m1"), (Temperature, 22.0), (IsDayParam, 1.0)),
+            MakeForecast(new WeatherModel("m2"), (Temperature, 22.0), (IsDayParam, 0.0)));
+
+        var alert = Rule.Evaluate(consensus, Defaults);
+
+        Assert.Multiple(
+            () => Assert.Equal(AlertSeverity.Yellow, alert.Severity),
+            () => Assert.Equal(1.0, alert.Confidence),
+            () => Assert.Equal(new TropicalNightDetails(22.0, 24), alert.Details));
+    }
 }

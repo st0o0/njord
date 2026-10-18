@@ -56,4 +56,47 @@ public sealed class VisibilityRuleSpec
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }
+
+    [Fact]
+    public void Visibility_classifies_the_24h_minimum_not_the_maximum()
+    {
+        var consensus = Identical(2, h => [(VisibilityParam, h < 12 ? 5000.0 : 150.0)]);
+
+        var alert = Rule.Evaluate(consensus, Defaults);
+
+        Assert.Multiple(
+            () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
+            () => Assert.Equal(150.0, alert.TriggerValue),
+            () => Assert.Equal(200.0, alert.Threshold),
+            () => Assert.Equal(0.5, alert.Confidence),
+            () => Assert.Equal(new VisibilityDetails(150.0, 12), alert.Details));
+    }
+
+    [Fact]
+    public void Visibility_confidence_is_the_share_of_hours_below_the_advisory_threshold()
+    {
+        var consensus = Identical(2, h => [(VisibilityParam, h < 8 ? 500.0 : 5000.0)]);
+
+        var alert = Rule.Evaluate(consensus, Defaults);
+
+        Assert.Multiple(
+            () => Assert.Equal(AlertSeverity.Yellow, alert.Severity),
+            () => Assert.Equal(0.333, alert.Confidence),
+            () => Assert.Equal(new VisibilityDetails(500.0, 8), alert.Details));
+    }
+
+    [Fact]
+    public void Visibility_exactly_at_the_advisory_threshold_is_not_reduced()
+    {
+        var consensus = Identical(2, _ => [(VisibilityParam, 1000.0)]);
+
+        var alert = Rule.Evaluate(consensus, Defaults);
+
+        Assert.Multiple(
+            () => Assert.Equal(AlertSeverity.None, alert.Severity),
+            () => Assert.Equal(0.0, alert.Confidence),
+            () => Assert.Equal(1000.0, alert.TriggerValue),
+            () => Assert.Equal(1000.0, alert.Threshold),
+            () => Assert.Equal(new VisibilityDetails(1000.0, 0), alert.Details));
+    }
 }
