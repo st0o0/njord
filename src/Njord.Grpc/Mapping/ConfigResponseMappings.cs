@@ -109,7 +109,7 @@ internal static class ConfigResponseMappings
 
     private static DetailedEnrichmentConfig ToProto(this Contracts.AnalysisSections analysis)
     {
-        var alerts = analysis.Alerts;
+        var t = analysis.Alerts.Thresholds;
         var preferences = analysis.Indices.Preferences;
         return new DetailedEnrichmentConfig
         {
@@ -121,23 +121,23 @@ internal static class ConfigResponseMappings
             },
             Alerts = new AlertConfig
             {
-                Enabled = alerts.Enabled,
-                FrostThresholds = { alerts.FrostThresholds },
-                HeatThresholds = { alerts.HeatThresholds },
-                StormGustThresholds = { alerts.StormGustThresholds },
-                HeavyRainHourlyThreshold = alerts.HeavyRainHourlyThreshold,
-                HeavyRainDailyThreshold = alerts.HeavyRainDailyThreshold,
-                PressureDropThreshold = alerts.PressureDropThreshold,
-                CapeThreshold = alerts.CapeThreshold,
-                ThunderstormPrecipThreshold = alerts.ThunderstormPrecipThreshold,
-                ThunderstormGustThreshold = alerts.ThunderstormGustThreshold,
-                PressureDropSevereThreshold = alerts.PressureDropSevereThreshold,
-                FogPersistentHours = alerts.FogPersistentHours,
-                IceThreshold = alerts.IceThreshold,
-                WindChillThresholds = { alerts.WindChillThresholds },
-                VisibilityThresholds = { alerts.VisibilityThresholds },
-                TropicalNightThresholds = { alerts.TropicalNightThresholds },
-                HumidityThresholds = { alerts.HumidityThresholds },
+                Enabled = analysis.Alerts.Enabled,
+                FrostThresholds = { t.FrostThresholds },
+                HeatThresholds = { t.HeatThresholds },
+                StormGustThresholds = { t.StormGustThresholds },
+                HeavyRainHourlyThreshold = t.HeavyRainHourlyThreshold,
+                HeavyRainDailyThreshold = t.HeavyRainDailyThreshold,
+                PressureDropThreshold = t.PressureDropThreshold,
+                CapeThreshold = t.CapeThreshold,
+                ThunderstormPrecipThreshold = t.ThunderstormPrecipThreshold,
+                ThunderstormGustThreshold = t.ThunderstormGustThreshold,
+                PressureDropSevereThreshold = t.PressureDropSevereThreshold,
+                FogPersistentHours = t.FogPersistentHours,
+                IceThreshold = t.IceThreshold,
+                WindChillThresholds = { t.WindChillThresholds },
+                VisibilityThresholds = { t.VisibilityThresholds },
+                TropicalNightThresholds = { t.TropicalNightThresholds },
+                HumidityThresholds = { t.HumidityThresholds },
             },
             Derived = new DerivedConfig { Enabled = analysis.Derived.Enabled },
             Trends = new TrendConfig { Enabled = analysis.Trends.Enabled },

@@ -5,6 +5,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Derived.Configuration;
 using Njord.Indices.Configuration;
+using Njord.Messages.Alerts;
 using Njord.Messages.Config;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
@@ -43,7 +44,7 @@ public sealed class ConfigUpdateMappingsSpec
             null,
             true,
             null,
-            new IndexConfigUpdate(true, null, null, null, null, null, null, null, null, null, null, null));
+            new IndexConfigUpdate(true, null));
 
         var updates = command.ToAnalysisUpdates();
 
@@ -86,8 +87,8 @@ public sealed class ConfigUpdateMappingsSpec
     {
         var options = AppSettingsDefaults.Options<AlertOptions>();
 
-        new AlertConfigUpdate(
-            false, [1], [2], [3], 4, 5, 6, 7, 8, 9, 10, 11, 12, [13], [14], [15], [16]).ApplyTo(options);
+        new AlertConfigUpdate(false, new AlertThresholdOverrides(
+            [1], [2], [3], 4, 5, 6, 7, 8, 9, 10, 11, 12, [13], [14], [15], [16])).ApplyTo(options);
 
         Assert.Multiple(
             () => Assert.False(options.Enabled),
@@ -97,11 +98,11 @@ public sealed class ConfigUpdateMappingsSpec
             () => Assert.Equal(4, options.HeavyRainHourlyThreshold),
             () => Assert.Equal(5, options.HeavyRainDailyThreshold),
             () => Assert.Equal(6, options.PressureDropThreshold),
-            () => Assert.Equal(7, options.CapeThreshold),
-            () => Assert.Equal(8, options.ThunderstormPrecipThreshold),
-            () => Assert.Equal(9, options.ThunderstormGustThreshold),
-            () => Assert.Equal(10, options.PressureDropSevereThreshold),
-            () => Assert.Equal(11, options.FogPersistentHours),
+            () => Assert.Equal(7, options.PressureDropSevereThreshold),
+            () => Assert.Equal(8, options.FogPersistentHours),
+            () => Assert.Equal(9, options.CapeThreshold),
+            () => Assert.Equal(10, options.ThunderstormPrecipThreshold),
+            () => Assert.Equal(11, options.ThunderstormGustThreshold),
             () => Assert.Equal(12, options.IceThreshold),
             () => Assert.Equal([13], options.WindChillThresholds),
             () => Assert.Equal([14], options.VisibilityThresholds),
@@ -114,8 +115,7 @@ public sealed class ConfigUpdateMappingsSpec
     {
         var options = AppSettingsDefaults.Options<AlertOptions>();
 
-        new AlertConfigUpdate(
-            null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null).ApplyTo(options);
+        new AlertConfigUpdate(null, null).ApplyTo(options);
 
         Assert.Equal(AppSettingsDefaults.Options<AlertOptions>().FrostThresholds, options.FrostThresholds);
         Assert.Equal(AppSettingsDefaults.Options<AlertOptions>().IceThreshold, options.IceThreshold);
@@ -126,7 +126,12 @@ public sealed class ConfigUpdateMappingsSpec
     {
         var options = AppSettingsDefaults.Options<IndexOptions>();
 
-        new IndexConfigUpdate(true, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11).ApplyTo(options);
+        var prefs = new IndexPreferenceValues(
+            IdealOutdoorTemp: 2, RunningIdealTempLow: 7, RunningIdealTempHigh: 8,
+            BbqMinTemp: 9, BbqIdealWindLow: 10, BbqIdealWindHigh: 11,
+            IndoorTemp: 1, HeatSensitivity: 3, HumiditySensitivity: 4,
+            WindSensitivity: 5, RainSensitivity: 6);
+        new IndexConfigUpdate(true, prefs).ApplyTo(options);
 
         var preferences = options.Preferences;
         Assert.Multiple(

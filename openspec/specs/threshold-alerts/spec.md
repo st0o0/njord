@@ -153,8 +153,8 @@ UV warning SHALL use daily UV max from `LocationConsensus.Daily`.
 - **WHEN** `AlertAnalyzer.Compute` runs with alerts enabled
 - **THEN** the result contains exactly 14 alerts, one for each AlertType value
 
-### Requirement: Alert thresholds are configurable
-All alert thresholds SHALL be configurable via `AlertOptions` bound from the `Njord:Enrichment:Alerts` section and converted to `AlertSettings` (with `SeverityThresholds`) for the rules. Defaults: frost [0, -5, -15] C, heat [30, 35, 40] C, storm [17, 25, 33] m/s, heavy rain hourly 10 mm / daily 25 mm, pressure drop 5 / 10 hPa, ice 2.0 C, wind chill [-10, -20, -30] C, visibility [1000, 200, 50] m, tropical night [20, 23, 25] C, humidity [16, 21, 24] C, fog persistent hours 4. An `Enabled` flag (default `true`) SHALL gate the entire alert feature.
+### Requirement: Alert thresholds are configurable per alert type
+All alert thresholds SHALL be configurable via `AlertOptions` bound from the `Njord:Enrichment:Alerts` section. Each alert rule SHALL read its thresholds from `AlertSettings`, which is produced by converting `AlertThresholdValues` (the shared config-layer record) through `AlertSettingsConversion.ToSettings()`. The conversion SHALL transform `IReadOnlyList<double>` multi-tier thresholds into `SeverityThresholds` value objects and pass scalar thresholds through unchanged. `AlertSettings` retains its current 16-parameter shape with `SeverityThresholds` for multi-tier fields. Defaults: frost [0, -5, -15] C, heat [30, 35, 40] C, storm [17, 25, 33] m/s, heavy rain hourly 10 mm / daily 25 mm, pressure drop 5 / 10 hPa, ice 2.0 C, wind chill [-10, -20, -30] C, visibility [1000, 200, 50] m, tropical night [20, 23, 25] C, humidity [16, 21, 24] C, fog persistent hours 4. An `Enabled` flag (default `true`) SHALL gate the entire alert feature.
 
 #### Scenario: Custom frost thresholds
 - **WHEN** `AlertOptions.FrostThresholds` is set to [2, 0, -10]
@@ -163,6 +163,18 @@ All alert thresholds SHALL be configurable via `AlertOptions` bound from the `Nj
 #### Scenario: Alerts disabled
 - **WHEN** `AlertOptions.Enabled` is `false`
 - **THEN** `AlertAnalyzer.Compute` returns `null` and the pipeline emits no `AlertComputed` event
+
+#### Scenario: AlertSettings produced from shared threshold values
+- **WHEN** `AlertThresholdValues` carries frost thresholds `[0, -5, -15]`
+- **THEN** `AlertSettings.Frost` SHALL be a `SeverityThresholds` with Yellow=0, Orange=-5, Red=-15
+
+#### Scenario: Scalar thresholds pass through
+- **WHEN** `AlertThresholdValues` carries `HeavyRainHourlyThreshold = 10.0`
+- **THEN** `AlertSettings.HeavyRainHourlyThreshold` SHALL be `10.0`
+
+#### Scenario: All alert rules continue to receive their thresholds
+- **WHEN** the pipeline computes alerts
+- **THEN** every alert rule SHALL receive the same threshold values as before, regardless of whether they came through `AlertThresholdValues` or directly from options
 
 ### Requirement: Alert topics use the alerts segment
 Alert topics SHALL follow the pattern `{baseTopic}/{location}/alerts/{alert_type}` where `alert_type` is the kebab-case alert type name (e.g. `frost`, `heavy-rain`, `thunderstorm`). The device id SHALL be `njord_{location}_alerts`.

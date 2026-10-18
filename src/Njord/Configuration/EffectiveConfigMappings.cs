@@ -94,24 +94,7 @@ public static class EffectiveConfigMappings
             validation.WithinBudget, [.. validation.Warnings]);
 
     public static AlertSection ToSection(this AlertOptions a) =>
-        new(
-            a.Enabled,
-            [.. a.FrostThresholds],
-            [.. a.HeatThresholds],
-            [.. a.StormGustThresholds],
-            a.HeavyRainHourlyThreshold,
-            a.HeavyRainDailyThreshold,
-            a.PressureDropThreshold,
-            a.PressureDropSevereThreshold,
-            a.FogPersistentHours,
-            a.CapeThreshold,
-            a.ThunderstormPrecipThreshold,
-            a.ThunderstormGustThreshold,
-            a.IceThreshold,
-            [.. a.WindChillThresholds],
-            [.. a.VisibilityThresholds],
-            [.. a.TropicalNightThresholds],
-            [.. a.HumidityThresholds]);
+        new(a.Enabled, a.ToThresholdValues());
 
     public static IndexSection ToSection(this IndexOptions indices) =>
         new(

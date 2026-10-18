@@ -5,6 +5,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Derived.Configuration;
 using Njord.Indices.Configuration;
+using Njord.Messages.Alerts;
 using Njord.Messages.Config;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
@@ -63,10 +64,9 @@ public sealed class EffectiveConfigMappingsSpec
 
         var section = options.ToSection();
 
-        Assert.Equal(
-            new AlertSection(false, [1, 2], [3, 4], [5, 6], 7, 8, 9, 10, 11, 12, 13, 14, 15, [16], [17], [18], [19]),
-            section,
-            new AlertSectionComparer());
+        var expected = new AlertSection(false, new AlertThresholdValues(
+            [1, 2], [3, 4], [5, 6], 7, 8, 9, 10, 11, 12, 13, 14, 15, [16], [17], [18], [19]));
+        Assert.Equal(expected, section, new AlertSectionComparer());
     }
 
     [Fact]
@@ -261,22 +261,22 @@ public sealed class EffectiveConfigMappingsSpec
         public bool Equals(AlertSection? x, AlertSection? y) =>
             x is not null && y is not null
             && x.Enabled == y.Enabled
-            && x.FrostThresholds.SequenceEqual(y.FrostThresholds)
-            && x.HeatThresholds.SequenceEqual(y.HeatThresholds)
-            && x.StormGustThresholds.SequenceEqual(y.StormGustThresholds)
-            && x.HeavyRainHourlyThreshold == y.HeavyRainHourlyThreshold
-            && x.HeavyRainDailyThreshold == y.HeavyRainDailyThreshold
-            && x.PressureDropThreshold == y.PressureDropThreshold
-            && x.PressureDropSevereThreshold == y.PressureDropSevereThreshold
-            && x.FogPersistentHours == y.FogPersistentHours
-            && x.CapeThreshold == y.CapeThreshold
-            && x.ThunderstormPrecipThreshold == y.ThunderstormPrecipThreshold
-            && x.ThunderstormGustThreshold == y.ThunderstormGustThreshold
-            && x.IceThreshold == y.IceThreshold
-            && x.WindChillThresholds.SequenceEqual(y.WindChillThresholds)
-            && x.VisibilityThresholds.SequenceEqual(y.VisibilityThresholds)
-            && x.TropicalNightThresholds.SequenceEqual(y.TropicalNightThresholds)
-            && x.HumidityThresholds.SequenceEqual(y.HumidityThresholds);
+            && x.Thresholds.FrostThresholds.SequenceEqual(y.Thresholds.FrostThresholds)
+            && x.Thresholds.HeatThresholds.SequenceEqual(y.Thresholds.HeatThresholds)
+            && x.Thresholds.StormGustThresholds.SequenceEqual(y.Thresholds.StormGustThresholds)
+            && x.Thresholds.HeavyRainHourlyThreshold == y.Thresholds.HeavyRainHourlyThreshold
+            && x.Thresholds.HeavyRainDailyThreshold == y.Thresholds.HeavyRainDailyThreshold
+            && x.Thresholds.PressureDropThreshold == y.Thresholds.PressureDropThreshold
+            && x.Thresholds.PressureDropSevereThreshold == y.Thresholds.PressureDropSevereThreshold
+            && x.Thresholds.FogPersistentHours == y.Thresholds.FogPersistentHours
+            && x.Thresholds.CapeThreshold == y.Thresholds.CapeThreshold
+            && x.Thresholds.ThunderstormPrecipThreshold == y.Thresholds.ThunderstormPrecipThreshold
+            && x.Thresholds.ThunderstormGustThreshold == y.Thresholds.ThunderstormGustThreshold
+            && x.Thresholds.IceThreshold == y.Thresholds.IceThreshold
+            && x.Thresholds.WindChillThresholds.SequenceEqual(y.Thresholds.WindChillThresholds)
+            && x.Thresholds.VisibilityThresholds.SequenceEqual(y.Thresholds.VisibilityThresholds)
+            && x.Thresholds.TropicalNightThresholds.SequenceEqual(y.Thresholds.TropicalNightThresholds)
+            && x.Thresholds.HumidityThresholds.SequenceEqual(y.Thresholds.HumidityThresholds);
 
         public int GetHashCode(AlertSection obj) => obj.Enabled.GetHashCode();
     }

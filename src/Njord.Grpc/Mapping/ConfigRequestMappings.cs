@@ -1,4 +1,5 @@
 using Njord.Grpc.V2;
+using Njord.Messages.Alerts;
 using Contracts = Njord.Messages.Config;
 using DomainSection = Njord.Messages.Config.EnrichmentSection;
 using ProtoSection = Njord.Grpc.V2.EnrichmentSection;
@@ -56,37 +57,41 @@ internal static class ConfigRequestMappings
     private static Contracts.AlertConfigUpdate ToCommand(this AlertConfig alerts) =>
         new(
             alerts.HasEnabled ? alerts.Enabled : null,
-            NullIfEmpty(alerts.FrostThresholds),
-            NullIfEmpty(alerts.HeatThresholds),
-            NullIfEmpty(alerts.StormGustThresholds),
-            alerts.HasHeavyRainHourlyThreshold ? alerts.HeavyRainHourlyThreshold : null,
-            alerts.HasHeavyRainDailyThreshold ? alerts.HeavyRainDailyThreshold : null,
-            alerts.HasPressureDropThreshold ? alerts.PressureDropThreshold : null,
-            alerts.HasCapeThreshold ? alerts.CapeThreshold : null,
-            alerts.HasThunderstormPrecipThreshold ? alerts.ThunderstormPrecipThreshold : null,
-            alerts.HasThunderstormGustThreshold ? alerts.ThunderstormGustThreshold : null,
-            alerts.HasPressureDropSevereThreshold ? alerts.PressureDropSevereThreshold : null,
-            alerts.HasFogPersistentHours ? alerts.FogPersistentHours : null,
-            alerts.HasIceThreshold ? alerts.IceThreshold : null,
-            NullIfEmpty(alerts.WindChillThresholds),
-            NullIfEmpty(alerts.VisibilityThresholds),
-            NullIfEmpty(alerts.TropicalNightThresholds),
-            NullIfEmpty(alerts.HumidityThresholds));
+            new AlertThresholdOverrides(
+                NullIfEmpty(alerts.FrostThresholds),
+                NullIfEmpty(alerts.HeatThresholds),
+                NullIfEmpty(alerts.StormGustThresholds),
+                alerts.HasHeavyRainHourlyThreshold ? alerts.HeavyRainHourlyThreshold : null,
+                alerts.HasHeavyRainDailyThreshold ? alerts.HeavyRainDailyThreshold : null,
+                alerts.HasPressureDropThreshold ? alerts.PressureDropThreshold : null,
+                alerts.HasPressureDropSevereThreshold ? alerts.PressureDropSevereThreshold : null,
+                alerts.HasFogPersistentHours ? alerts.FogPersistentHours : null,
+                alerts.HasCapeThreshold ? alerts.CapeThreshold : null,
+                alerts.HasThunderstormPrecipThreshold ? alerts.ThunderstormPrecipThreshold : null,
+                alerts.HasThunderstormGustThreshold ? alerts.ThunderstormGustThreshold : null,
+                alerts.HasIceThreshold ? alerts.IceThreshold : null,
+                NullIfEmpty(alerts.WindChillThresholds),
+                NullIfEmpty(alerts.VisibilityThresholds),
+                NullIfEmpty(alerts.TropicalNightThresholds),
+                NullIfEmpty(alerts.HumidityThresholds)));
 
-    private static Contracts.IndexConfigUpdate ToCommand(this IndexConfig indices) =>
-        new(
-            indices.HasEnabled ? indices.Enabled : null,
-            indices.HasIndoorTemp ? indices.IndoorTemp : null,
+    private static Contracts.IndexConfigUpdate ToCommand(this IndexConfig indices)
+    {
+        var preferences = new Contracts.IndexPreferenceValues(
             indices.HasIdealOutdoorTemp ? indices.IdealOutdoorTemp : null,
-            indices.HasHeatSensitivity ? indices.HeatSensitivity : null,
-            indices.HasHumiditySensitivity ? indices.HumiditySensitivity : null,
-            indices.HasWindSensitivity ? indices.WindSensitivity : null,
-            indices.HasRainSensitivity ? indices.RainSensitivity : null,
             indices.HasRunningIdealTempLow ? indices.RunningIdealTempLow : null,
             indices.HasRunningIdealTempHigh ? indices.RunningIdealTempHigh : null,
             indices.HasBbqMinTemp ? indices.BbqMinTemp : null,
             indices.HasBbqIdealWindLow ? indices.BbqIdealWindLow : null,
-            indices.HasBbqIdealWindHigh ? indices.BbqIdealWindHigh : null);
+            indices.HasBbqIdealWindHigh ? indices.BbqIdealWindHigh : null,
+            indices.HasIndoorTemp ? indices.IndoorTemp : null,
+            indices.HasHeatSensitivity ? indices.HeatSensitivity : null,
+            indices.HasHumiditySensitivity ? indices.HumiditySensitivity : null,
+            indices.HasWindSensitivity ? indices.WindSensitivity : null,
+            indices.HasRainSensitivity ? indices.RainSensitivity : null);
+
+        return new(indices.HasEnabled ? indices.Enabled : null, preferences);
+    }
 
     private static List<double>? NullIfEmpty(IReadOnlyCollection<double> values) =>
         values.Count > 0 ? [.. values] : null;

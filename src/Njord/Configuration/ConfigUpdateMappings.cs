@@ -50,38 +50,42 @@ public static class ConfigUpdateMappings
     public static void ApplyTo(this AlertConfigUpdate update, AlertOptions opt)
     {
         if (update.Enabled is { } enabled) opt.Enabled = enabled;
-        if (update.FrostThresholds is { } frost) opt.FrostThresholds = [.. frost];
-        if (update.HeatThresholds is { } heat) opt.HeatThresholds = [.. heat];
-        if (update.StormGustThresholds is { } storm) opt.StormGustThresholds = [.. storm];
-        if (update.HeavyRainHourlyThreshold is { } rainHourly) opt.HeavyRainHourlyThreshold = rainHourly;
-        if (update.HeavyRainDailyThreshold is { } rainDaily) opt.HeavyRainDailyThreshold = rainDaily;
-        if (update.PressureDropThreshold is { } pressureDrop) opt.PressureDropThreshold = pressureDrop;
-        if (update.CapeThreshold is { } cape) opt.CapeThreshold = cape;
-        if (update.ThunderstormPrecipThreshold is { } stormPrecip) opt.ThunderstormPrecipThreshold = stormPrecip;
-        if (update.ThunderstormGustThreshold is { } stormGust) opt.ThunderstormGustThreshold = stormGust;
-        if (update.PressureDropSevereThreshold is { } pressureSevere) opt.PressureDropSevereThreshold = pressureSevere;
-        if (update.FogPersistentHours is { } fog) opt.FogPersistentHours = fog;
-        if (update.IceThreshold is { } ice) opt.IceThreshold = ice;
-        if (update.WindChillThresholds is { } windChill) opt.WindChillThresholds = [.. windChill];
-        if (update.VisibilityThresholds is { } visibility) opt.VisibilityThresholds = [.. visibility];
-        if (update.TropicalNightThresholds is { } tropical) opt.TropicalNightThresholds = [.. tropical];
-        if (update.HumidityThresholds is { } humidity) opt.HumidityThresholds = [.. humidity];
+        if (update.Thresholds is { } t)
+        {
+            if (t.FrostThresholds is { } frost) opt.FrostThresholds = [.. frost];
+            if (t.HeatThresholds is { } heat) opt.HeatThresholds = [.. heat];
+            if (t.StormGustThresholds is { } storm) opt.StormGustThresholds = [.. storm];
+            if (t.HeavyRainHourlyThreshold is { } rainHourly) opt.HeavyRainHourlyThreshold = rainHourly;
+            if (t.HeavyRainDailyThreshold is { } rainDaily) opt.HeavyRainDailyThreshold = rainDaily;
+            if (t.PressureDropThreshold is { } pressureDrop) opt.PressureDropThreshold = pressureDrop;
+            if (t.PressureDropSevereThreshold is { } pressureSevere) opt.PressureDropSevereThreshold = pressureSevere;
+            if (t.FogPersistentHours is { } fog) opt.FogPersistentHours = fog;
+            if (t.CapeThreshold is { } cape) opt.CapeThreshold = cape;
+            if (t.ThunderstormPrecipThreshold is { } stormPrecip) opt.ThunderstormPrecipThreshold = stormPrecip;
+            if (t.ThunderstormGustThreshold is { } stormGust) opt.ThunderstormGustThreshold = stormGust;
+            if (t.IceThreshold is { } ice) opt.IceThreshold = ice;
+            if (t.WindChillThresholds is { } windChill) opt.WindChillThresholds = [.. windChill];
+            if (t.VisibilityThresholds is { } visibility) opt.VisibilityThresholds = [.. visibility];
+            if (t.TropicalNightThresholds is { } tropical) opt.TropicalNightThresholds = [.. tropical];
+            if (t.HumidityThresholds is { } humidity) opt.HumidityThresholds = [.. humidity];
+        }
     }
 
     public static void ApplyTo(this IndexConfigUpdate update, IndexOptions opt)
     {
         if (update.Enabled is { } enabled) opt.Enabled = enabled;
-        if (update.IndoorTemp is { } indoor) opt.Preferences.IndoorTemp = indoor;
-        if (update.IdealOutdoorTemp is { } outdoor) opt.Preferences.IdealOutdoorTemp = outdoor;
-        if (update.HeatSensitivity is { } heat) opt.Preferences.HeatSensitivity = heat;
-        if (update.HumiditySensitivity is { } humidity) opt.Preferences.HumiditySensitivity = humidity;
-        if (update.WindSensitivity is { } wind) opt.Preferences.WindSensitivity = wind;
-        if (update.RainSensitivity is { } rain) opt.Preferences.RainSensitivity = rain;
-        if (update.RunningIdealTempLow is { } runningLow) opt.Preferences.RunningIdealTempLow = runningLow;
-        if (update.RunningIdealTempHigh is { } runningHigh) opt.Preferences.RunningIdealTempHigh = runningHigh;
-        if (update.BbqMinTemp is { } bbqMin) opt.Preferences.BbqMinTemp = bbqMin;
-        if (update.BbqIdealWindLow is { } bbqWindLow) opt.Preferences.BbqIdealWindLow = bbqWindLow;
-        if (update.BbqIdealWindHigh is { } bbqWindHigh) opt.Preferences.BbqIdealWindHigh = bbqWindHigh;
+        if (update.Preferences is not { } prefs) return;
+        if (prefs.IndoorTemp is { } indoor) opt.Preferences.IndoorTemp = indoor;
+        if (prefs.IdealOutdoorTemp is { } outdoor) opt.Preferences.IdealOutdoorTemp = outdoor;
+        if (prefs.HeatSensitivity is { } heat) opt.Preferences.HeatSensitivity = heat;
+        if (prefs.HumiditySensitivity is { } humidity) opt.Preferences.HumiditySensitivity = humidity;
+        if (prefs.WindSensitivity is { } wind) opt.Preferences.WindSensitivity = wind;
+        if (prefs.RainSensitivity is { } rain) opt.Preferences.RainSensitivity = rain;
+        if (prefs.RunningIdealTempLow is { } runningLow) opt.Preferences.RunningIdealTempLow = runningLow;
+        if (prefs.RunningIdealTempHigh is { } runningHigh) opt.Preferences.RunningIdealTempHigh = runningHigh;
+        if (prefs.BbqMinTemp is { } bbqMin) opt.Preferences.BbqMinTemp = bbqMin;
+        if (prefs.BbqIdealWindLow is { } bbqWindLow) opt.Preferences.BbqIdealWindLow = bbqWindLow;
+        if (prefs.BbqIdealWindHigh is { } bbqWindHigh) opt.Preferences.BbqIdealWindHigh = bbqWindHigh;
     }
 
     public static void ApplyTo(this UpdateSettings cmd, NjordOptions opt)

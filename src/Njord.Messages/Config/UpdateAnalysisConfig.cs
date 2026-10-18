@@ -1,4 +1,5 @@
 using Njord.Consensus.Settings;
+using Njord.Messages.Alerts;
 
 namespace Njord.Messages.Config;
 
@@ -15,38 +16,9 @@ public sealed record UpdateAnalysisConfig(
 
 public sealed record ConsensusConfigUpdate(bool? Enabled, ConsensusMethod? Method, double? TrimPercent);
 
-public sealed record AlertConfigUpdate(
-    bool? Enabled,
-    IReadOnlyList<double>? FrostThresholds,
-    IReadOnlyList<double>? HeatThresholds,
-    IReadOnlyList<double>? StormGustThresholds,
-    double? HeavyRainHourlyThreshold,
-    double? HeavyRainDailyThreshold,
-    double? PressureDropThreshold,
-    double? CapeThreshold,
-    double? ThunderstormPrecipThreshold,
-    double? ThunderstormGustThreshold,
-    double? PressureDropSevereThreshold,
-    int? FogPersistentHours,
-    double? IceThreshold,
-    IReadOnlyList<double>? WindChillThresholds,
-    IReadOnlyList<double>? VisibilityThresholds,
-    IReadOnlyList<double>? TropicalNightThresholds,
-    IReadOnlyList<double>? HumidityThresholds);
+public sealed record AlertConfigUpdate(bool? Enabled, AlertThresholdOverrides? Thresholds);
 
-public sealed record IndexConfigUpdate(
-    bool? Enabled,
-    double? IndoorTemp,
-    double? IdealOutdoorTemp,
-    double? HeatSensitivity,
-    double? HumiditySensitivity,
-    double? WindSensitivity,
-    double? RainSensitivity,
-    double? RunningIdealTempLow,
-    double? RunningIdealTempHigh,
-    double? BbqMinTemp,
-    double? BbqIdealWindLow,
-    double? BbqIdealWindHigh);
+public sealed record IndexConfigUpdate(bool? Enabled, IndexPreferenceValues? Preferences);
 
 public abstract record UpdateAnalysisConfigResponse;
 public sealed record UpdateAnalysisConfigCompleted(EffectiveConfig Config, IReadOnlyList<string> RestartRequired)

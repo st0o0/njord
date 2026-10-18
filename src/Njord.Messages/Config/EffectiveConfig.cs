@@ -1,5 +1,6 @@
 using Njord.Consensus.Settings;
 using Njord.Forecast;
+using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.Messages.Config;
@@ -56,24 +57,7 @@ public sealed record AnalysisSections(
 
 public sealed record ConsensusSection(bool Enabled, ConsensusMethod Method, double TrimPercent, int MinQuorum);
 
-public sealed record AlertSection(
-    bool Enabled,
-    IReadOnlyList<double> FrostThresholds,
-    IReadOnlyList<double> HeatThresholds,
-    IReadOnlyList<double> StormGustThresholds,
-    double HeavyRainHourlyThreshold,
-    double HeavyRainDailyThreshold,
-    double PressureDropThreshold,
-    double PressureDropSevereThreshold,
-    int FogPersistentHours,
-    double CapeThreshold,
-    double ThunderstormPrecipThreshold,
-    double ThunderstormGustThreshold,
-    double IceThreshold,
-    IReadOnlyList<double> WindChillThresholds,
-    IReadOnlyList<double> VisibilityThresholds,
-    IReadOnlyList<double> TropicalNightThresholds,
-    IReadOnlyList<double> HumidityThresholds);
+public sealed record AlertSection(bool Enabled, AlertThresholdValues Thresholds);
 
 public sealed record DerivedSection(bool Enabled);
 

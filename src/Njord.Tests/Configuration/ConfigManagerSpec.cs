@@ -209,24 +209,25 @@ public sealed class ConfigManagerSpec : NjordActorSpec
         Assert.Equal(new ConsensusSection(false, ConsensusMethod.TrimmedMean, 0.2, 3), consensus);
 
         var alerts = config.Analysis.Alerts;
+        var t = alerts.Thresholds;
         Assert.Multiple(
             () => Assert.False(alerts.Enabled),
-            () => Assert.Equal([1.0, -4.0, -14.0], alerts.FrostThresholds),
-            () => Assert.Equal([31.0, 36.0, 41.0], alerts.HeatThresholds),
-            () => Assert.Equal([18.0, 26.0, 34.0], alerts.StormGustThresholds),
-            () => Assert.Equal(11.0, alerts.HeavyRainHourlyThreshold),
-            () => Assert.Equal(26.0, alerts.HeavyRainDailyThreshold),
-            () => Assert.Equal(6.0, alerts.PressureDropThreshold),
-            () => Assert.Equal(11.5, alerts.PressureDropSevereThreshold),
-            () => Assert.Equal(5, alerts.FogPersistentHours),
-            () => Assert.Equal(1100.0, alerts.CapeThreshold),
-            () => Assert.Equal(6.0, alerts.ThunderstormPrecipThreshold),
-            () => Assert.Equal(16.0, alerts.ThunderstormGustThreshold),
-            () => Assert.Equal(3.0, alerts.IceThreshold),
-            () => Assert.Equal([-11.0, -21.0, -31.0], alerts.WindChillThresholds),
-            () => Assert.Equal([900.0, 150.0, 40.0], alerts.VisibilityThresholds),
-            () => Assert.Equal([21.0, 24.0, 26.0], alerts.TropicalNightThresholds),
-            () => Assert.Equal([17.0, 22.0, 25.0], alerts.HumidityThresholds));
+            () => Assert.Equal([1.0, -4.0, -14.0], t.FrostThresholds),
+            () => Assert.Equal([31.0, 36.0, 41.0], t.HeatThresholds),
+            () => Assert.Equal([18.0, 26.0, 34.0], t.StormGustThresholds),
+            () => Assert.Equal(11.0, t.HeavyRainHourlyThreshold),
+            () => Assert.Equal(26.0, t.HeavyRainDailyThreshold),
+            () => Assert.Equal(6.0, t.PressureDropThreshold),
+            () => Assert.Equal(11.5, t.PressureDropSevereThreshold),
+            () => Assert.Equal(5, t.FogPersistentHours),
+            () => Assert.Equal(1100.0, t.CapeThreshold),
+            () => Assert.Equal(6.0, t.ThunderstormPrecipThreshold),
+            () => Assert.Equal(16.0, t.ThunderstormGustThreshold),
+            () => Assert.Equal(3.0, t.IceThreshold),
+            () => Assert.Equal([-11.0, -21.0, -31.0], t.WindChillThresholds),
+            () => Assert.Equal([900.0, 150.0, 40.0], t.VisibilityThresholds),
+            () => Assert.Equal([21.0, 24.0, 26.0], t.TropicalNightThresholds),
+            () => Assert.Equal([17.0, 22.0, 25.0], t.HumidityThresholds));
 
         Assert.False(config.Analysis.Derived.Enabled);
         Assert.True(config.Analysis.Trends.Enabled);
@@ -364,8 +365,8 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         var (manager, _, _) = await StartManagerAsync();
-        var alerts = new AlertConfigUpdate(null, [0, 5, -15], null, null, null, null, null, null, null, null, null, null,
-            null, null, null, null, null);
+        var alerts = new AlertConfigUpdate(null, new AlertThresholdOverrides(
+            FrostThresholds: [0, 5, -15], null, null, null, null, null, null, null, null, null, null, null, null, null, null, null));
 
         var response = await manager.Ask<UpdateAnalysisConfigResponse>(
             new UpdateAnalysisConfig(new ConsensusConfigUpdate(false, null, null), alerts, null, null, null), AskTimeout, ct);
@@ -380,8 +381,8 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         var (manager, _, _) = await StartManagerAsync();
-        var alerts = new AlertConfigUpdate(null, [0, 5, -15], null, null, null, null, null, null, null, null, null, null,
-            null, null, null, null, null);
+        var alerts = new AlertConfigUpdate(null, new AlertThresholdOverrides(
+            FrostThresholds: [0, 5, -15], null, null, null, null, null, null, null, null, null, null, null, null, null, null, null));
 
         var response = await manager.Ask<UpdateAnalysisConfigResponse>(
             new UpdateAnalysisConfig(new ConsensusConfigUpdate(null, null, 0.2), alerts, null, null, null), AskTimeout, ct);
@@ -418,8 +419,8 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         var (manager, _, _) = await StartManagerAsync();
-        var alerts = new AlertConfigUpdate(null, null, null, null, null, null, null, 1800, null, null, null, null,
-            null, null, null, null, null);
+        var alerts = new AlertConfigUpdate(null, new AlertThresholdOverrides(
+            null, null, null, null, null, null, null, null, CapeThreshold: 1800, null, null, null, null, null, null, null));
 
         var response = await manager.Ask<UpdateAnalysisConfigResponse>(
             new UpdateAnalysisConfig(new ConsensusConfigUpdate(null, null, 0.2), alerts, null, null, null), AskTimeout, ct);
@@ -427,7 +428,7 @@ public sealed class ConfigManagerSpec : NjordActorSpec
         var completed = Assert.IsType<UpdateAnalysisConfigCompleted>(response);
         Assert.Multiple(
             () => Assert.Equal(0.2, completed.Config.Analysis.Consensus.TrimPercent),
-            () => Assert.Equal(1800, completed.Config.Analysis.Alerts.CapeThreshold),
+            () => Assert.Equal(1800, completed.Config.Analysis.Alerts.Thresholds.CapeThreshold),
             () => Assert.Empty(completed.RestartRequired),
             () => Assert.Equal(0.2, _harness.Monitor<ConsensusOptions>().CurrentValue.TrimPercent),
             () => Assert.Equal(1800, _harness.Monitor<AlertOptions>().CurrentValue.CapeThreshold));
@@ -438,8 +439,8 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         var (manager, _, _) = await StartManagerAsync();
-        var badAlerts = new AlertConfigUpdate(null, [0, 5, -15], null, null, null, null, null, null, null, null, null, null,
-            null, null, null, null, null);
+        var badAlerts = new AlertConfigUpdate(null, new AlertThresholdOverrides(
+            FrostThresholds: [0, 5, -15], null, null, null, null, null, null, null, null, null, null, null, null, null, null, null));
 
         var valid = await manager.Ask<UpdateAnalysisConfigResponse>(
             new UpdateAnalysisConfig(new ConsensusConfigUpdate(false, null, 0.2), null, null, null, null, null, DryRun: true),
@@ -475,10 +476,9 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         var (manager, _, _) = await StartManagerAsync();
-        var capeAndHeat = new AlertConfigUpdate(null, null, [31, 36, 41], null, null, null, null, 1800, null, null, null, null,
-            null, null, null, null, null);
-        var disable = new AlertConfigUpdate(false, null, null, null, null, null, null, null, null, null, null, null,
-            null, null, null, null, null);
+        var capeAndHeat = new AlertConfigUpdate(null, new AlertThresholdOverrides(
+            null, HeatThresholds: [31, 36, 41], null, null, null, null, null, null, CapeThreshold: 1800, null, null, null, null, null, null, null));
+        var disable = new AlertConfigUpdate(false, null);
         await manager.Ask<UpdateAnalysisConfigResponse>(
             new UpdateAnalysisConfig(null, capeAndHeat, null, null, null), AskTimeout, ct);
 
@@ -490,8 +490,8 @@ public sealed class ConfigManagerSpec : NjordActorSpec
         var defaults = AppSettingsDefaults.Options<AlertOptions>();
         Assert.Multiple(
             () => Assert.False(alerts.Enabled),
-            () => Assert.Equal(defaults.CapeThreshold, alerts.CapeThreshold),
-            () => Assert.Equal(defaults.HeatThresholds, alerts.HeatThresholds),
+            () => Assert.Equal(defaults.CapeThreshold, alerts.Thresholds.CapeThreshold),
+            () => Assert.Equal<IEnumerable<double>>(defaults.HeatThresholds, alerts.Thresholds.HeatThresholds),
             () => Assert.Equal(["Enrichment.Alerts.Enabled"], completed.RestartRequired));
     }
 
