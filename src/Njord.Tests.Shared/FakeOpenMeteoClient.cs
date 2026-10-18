@@ -1,5 +1,8 @@
+using Njord.Core.Configuration;
 using Njord.OpenMeteo;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Tests.Shared;
 
@@ -48,10 +51,10 @@ public sealed class FakeOpenMeteoClient : IOpenMeteoClient
                 new PollOutcome.Failure(location.Name, model, PollFailureReason.Transport, "simulated"));
         }
 
-        return Task.FromResult<PollOutcome>(new PollOutcome.Success(new Forecast(
+        return Task.FromResult<PollOutcome>(new PollOutcome.Success(new WeatherForecast(
             model, location.Name, cycle,
             new ForecastSeries([new ForecastPoint(cycle.Timestamp.AddHours(3),
-                new Dictionary<ParameterDef, double?> { [ParameterRegistry.GetByApiName("temperature_2m")!] = 20.0 })]),
+                new Dictionary<ParameterDef, ForecastValue> { [ParameterRegistry.GetByApiName("temperature_2m")!] = 20.0 })]),
             DailyForecastSeries.Empty)));
     }
 }

@@ -81,36 +81,6 @@ The dew-point comfort computation SHALL accept a `double?` dew-point temperature
 - **WHEN** a Sticky comfort category is published via MQTT
 - **THEN** the payload value is `sticky`
 
-### Requirement: Diurnal temperature amplitude
-`DerivedFormulas.DiurnalAmplitude` SHALL accept a `ForecastSeries` and a `DateTimeOffset` (now) and return `double?` — the difference between the maximum and minimum `temperature_2m` in the next 24 hours. If fewer than 2 non-null temperature points exist in the window, the result SHALL be `null`.
-
-#### Scenario: Normal diurnal range
-- **WHEN** the series has hourly points for the next 24h with min 8.0 °C and max 22.0 °C
-- **THEN** the amplitude is 14.0
-
-#### Scenario: Insufficient data
-- **WHEN** the series has fewer than 2 non-null temperature values in the next 24h
-- **THEN** the result is null
-
-### Requirement: Sunshine percentage
-`DerivedFormulas.SunshinePercent` SHALL accept a `ForecastSeries` and a `DateTimeOffset` (now) and return `double?` (0.0–100.0). It SHALL compute the ratio of `sunshine_duration` sum to total daylight seconds in the next 24 h. Daylight hours SHALL be determined by counting points where `is_day` = 1. If `sunshine_duration` is not available, the result SHALL be `null`. If no daylight hours exist, the result SHALL be `null`.
-
-#### Scenario: Full sunshine
-- **WHEN** the series shows 14h of daylight and sunshine_duration sums to 50400s (14h)
-- **THEN** the sunshine percentage is 100.0
-
-#### Scenario: Partial sunshine
-- **WHEN** the series shows 14h of daylight and sunshine_duration sums to 25200s (7h)
-- **THEN** the sunshine percentage is 50.0
-
-#### Scenario: No sunshine data
-- **WHEN** sunshine_duration is null for all points
-- **THEN** the result is null
-
-#### Scenario: No daylight
-- **WHEN** all points have is_day = 0 (polar night scenario)
-- **THEN** the result is null
-
 ### Requirement: WMO weather description from weather code
 The WMO computation SHALL accept an `int?` WMO 4677 weather code and return a nullable typed weather condition. The mapping SHALL cover codes 0–99. Unknown codes SHALL return `null`. A `null` input SHALL return `null`. The English description of each condition SHALL be produced at the output edge and SHALL equal the description published before this change.
 

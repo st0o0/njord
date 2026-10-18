@@ -4,7 +4,7 @@ using ArchUnitNET.xUnitV3;
 using Njord.Configuration;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Weather;
+using Njord.Model;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 namespace Njord.Architecture.Tests;

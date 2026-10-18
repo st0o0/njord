@@ -1,7 +1,7 @@
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Config;
-using Njord.Weather;
+using Njord.Model;
 using DomainSensorKind = Njord.Sensors.SensorKind;
 
 namespace Njord.Grpc.Tests;

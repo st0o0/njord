@@ -1,7 +1,7 @@
 using Njord.Consensus;
 using Njord.Consensus.Querying;
 using Njord.Messages.Indices;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Indices;
 

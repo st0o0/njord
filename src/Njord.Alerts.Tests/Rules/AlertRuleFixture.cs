@@ -5,7 +5,9 @@ using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
 using Njord.Messages.Alerts;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Alerts.Tests.Rules;
 
@@ -39,17 +41,17 @@ internal static class AlertRuleFixture
     public static LocationConsensus ToConsensus(ModelForecasts snap) =>
         new ConsensusBuilder(Parameters, Time).Create(snap, "lucerne", ConsensusSettings.Default);
 
-    public static LocationConsensus ConsensusOf(params Forecast[] forecasts) => ToConsensus(ForecastsWith(forecasts));
+    public static LocationConsensus ConsensusOf(params WeatherForecast[] forecasts) => ToConsensus(ForecastsWith(forecasts));
 
-    public static Forecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues) =>
+    public static WeatherForecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues) =>
         MakeForecast(model, _ => hourlyValues);
 
-    public static Forecast MakeForecast(WeatherModel model, Func<int, (ParameterDef Param, double Value)[]> hourlyValues)
+    public static WeatherForecast MakeForecast(WeatherModel model, Func<int, (ParameterDef Param, double Value)[]> hourlyValues)
     {
         var points = new List<ForecastPoint>();
         for (var h = 0; h < 24; h++)
         {
-            var values = new Dictionary<ParameterDef, double?>();
+            var values = new Dictionary<ParameterDef, ForecastValue>();
             foreach (var (param, value) in hourlyValues(h))
             {
                 values[param] = value;
@@ -58,20 +60,20 @@ internal static class AlertRuleFixture
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
 
-        return new Forecast(model, "lucerne", new CycleId(T0),
+        return new WeatherForecast(model, "lucerne", new CycleId(T0),
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
     public static LocationConsensus Identical(int models, Func<int, (ParameterDef Param, double Value)[]> hourlyValues) =>
         ConsensusOf([.. Enumerable.Range(0, models).Select(i => MakeForecast(new WeatherModel($"m{i}"), hourlyValues))]);
 
-    public static Forecast MakeForecastOver(
+    public static WeatherForecast MakeForecastOver(
         WeatherModel model, int hours, Func<int, (ParameterDef Param, double Value)[]> hourlyValues)
     {
         var points = new List<ForecastPoint>();
         for (var h = 0; h < hours; h++)
         {
-            var values = new Dictionary<ParameterDef, double?>();
+            var values = new Dictionary<ParameterDef, ForecastValue>();
             foreach (var (param, value) in hourlyValues(h))
             {
                 values[param] = value;
@@ -80,11 +82,11 @@ internal static class AlertRuleFixture
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
 
-        return new Forecast(model, "lucerne", new CycleId(T0),
+        return new WeatherForecast(model, "lucerne", new CycleId(T0),
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    public static Forecast MakeForecastWithDailySeries(
+    public static WeatherForecast MakeForecastWithDailySeries(
         WeatherModel model,
         (ParameterDef Param, double[] Values)[] dailySeries)
     {
@@ -93,13 +95,12 @@ internal static class AlertRuleFixture
         var points = Enumerable.Range(0, days).Select(day =>
             new DailyForecastPoint(
                 today.AddDays(day),
-                dailySeries.ToDictionary(series => series.Param, series => (double?)series.Values[day]),
-                new Dictionary<ParameterDef, string?>())).ToList();
+                dailySeries.ToDictionary(series => series.Param, series => (ForecastValue)series.Values[day]))).ToList();
 
         return MakeForecast(model) with { Daily = new DailyForecastSeries(points) };
     }
 
-    public static Forecast MakeForecastWithDaily(
+    public static WeatherForecast MakeForecastWithDaily(
         WeatherModel model,
         (ParameterDef Param, double Value)[] hourlyValues,
         (ParameterDef Param, double Value)[] dailyValues)
@@ -107,17 +108,17 @@ internal static class AlertRuleFixture
         var today = DateOnly.FromDateTime(T0.UtcDateTime);
         var hourly = MakeForecast(model, hourlyValues);
 
-        var numeric = new Dictionary<ParameterDef, double?>();
+        var numeric = new Dictionary<ParameterDef, ForecastValue>();
         foreach (var (param, value) in dailyValues)
         {
             numeric[param] = value;
         }
 
-        var dailyPoint = new DailyForecastPoint(today, numeric, new Dictionary<ParameterDef, string?>());
+        var dailyPoint = new DailyForecastPoint(today, numeric);
         return hourly with { Daily = new DailyForecastSeries([dailyPoint]) };
     }
 
-    public static ModelForecasts ForecastsWith(params Forecast[] forecasts)
+    public static ModelForecasts ForecastsWith(params WeatherForecast[] forecasts)
     {
         var snap = ModelForecasts.Empty;
         foreach (var f in forecasts)

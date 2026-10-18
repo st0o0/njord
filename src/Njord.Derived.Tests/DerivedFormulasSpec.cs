@@ -1,15 +1,10 @@
-using Njord.Consensus;
 using Njord.Messages.Derived;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Derived.Tests;
 
 public sealed class DerivedFormulasSpec
 {
-    private static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
-    private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
-    private static readonly ParameterDef SunshineDuration = ParameterRegistry.GetByApiName("sunshine_duration")!;
-    private static readonly ParameterDef IsDay = ParameterRegistry.GetByApiName("is_day")!;
 
     // --- Beaufort ---
 
@@ -87,90 +82,6 @@ public sealed class DerivedFormulasSpec
     [Fact]
     public void DewPointComfort_null_returns_null() =>
         Assert.Null(DerivedFormulas.Comfort(null));
-
-    // --- DiurnalAmplitude ---
-
-    [Fact]
-    public void DiurnalAmplitude_normal_range()
-    {
-        var points = Enumerable.Range(0, 24).Select(h =>
-            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
-            {
-                [Temperature] = 8.0 + (h < 12 ? h : 24 - h),
-            })).ToList();
-        var series = new ForecastSeries(points);
-
-        var result = DerivedFormulas.DiurnalAmplitude(series, Temperature, T0);
-        Assert.Equal(12.0, result);
-    }
-
-    [Fact]
-    public void DiurnalAmplitude_insufficient_data()
-    {
-        var points = new[] { new ForecastPoint(T0, new Dictionary<ParameterDef, double?> { [Temperature] = 10.0 }) };
-        var series = new ForecastSeries(points);
-
-        Assert.Null(DerivedFormulas.DiurnalAmplitude(series, Temperature, T0));
-    }
-
-    // --- SunshinePercent ---
-
-    [Fact]
-    public void SunshinePercent_full_sunshine()
-    {
-        var points = Enumerable.Range(0, 24).Select(h =>
-            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
-            {
-                [IsDay] = h is >= 5 and < 19 ? 1.0 : 0.0,
-                [SunshineDuration] = h is >= 5 and < 19 ? 3600.0 : 0.0,
-            })).ToList();
-        var series = new ForecastSeries(points);
-
-        var result = DerivedFormulas.SunshinePercent(series, SunshineDuration, IsDay, T0);
-        Assert.Equal(100.0, result);
-    }
-
-    [Fact]
-    public void SunshinePercent_partial_sunshine()
-    {
-        var points = Enumerable.Range(0, 24).Select(h =>
-            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
-            {
-                [IsDay] = h is >= 5 and < 19 ? 1.0 : 0.0,
-                [SunshineDuration] = h is >= 5 and < 12 ? 3600.0 : 0.0,
-            })).ToList();
-        var series = new ForecastSeries(points);
-
-        var result = DerivedFormulas.SunshinePercent(series, SunshineDuration, IsDay, T0);
-        Assert.Equal(50.0, result);
-    }
-
-    [Fact]
-    public void SunshinePercent_no_sunshine_data()
-    {
-        var points = Enumerable.Range(0, 24).Select(h =>
-            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
-            {
-                [IsDay] = 1.0,
-            })).ToList();
-        var series = new ForecastSeries(points);
-
-        Assert.Null(DerivedFormulas.SunshinePercent(series, SunshineDuration, IsDay, T0));
-    }
-
-    [Fact]
-    public void SunshinePercent_no_daylight()
-    {
-        var points = Enumerable.Range(0, 24).Select(h =>
-            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
-            {
-                [IsDay] = 0.0,
-                [SunshineDuration] = 0.0,
-            })).ToList();
-        var series = new ForecastSeries(points);
-
-        Assert.Null(DerivedFormulas.SunshinePercent(series, SunshineDuration, IsDay, T0));
-    }
 
     // --- Condition ---
 

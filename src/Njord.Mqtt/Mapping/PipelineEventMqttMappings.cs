@@ -1,6 +1,7 @@
 using Njord.Messages.Pipeline;
 using Njord.Mqtt.Topics;
-using Njord.Weather;
+using Njord.Forecast;
+using Njord.Model;
 
 namespace Njord.Mqtt.Mapping;
 

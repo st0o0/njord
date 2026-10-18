@@ -4,7 +4,7 @@ using Njord.Messages.Indices;
 using Njord.Messages.Trends;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Payloads;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Mqtt.Tests.Mapping;
 

@@ -7,10 +7,11 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Forecast;
-using Njord.Weather;
+using Njord.Forecast;
+using Njord.Model;
 using Servus.Akka;
 using Servus.Resilience;
-using WeatherForecast = Njord.Weather.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.OpenMeteo;
 

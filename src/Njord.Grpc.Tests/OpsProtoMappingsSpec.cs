@@ -1,7 +1,7 @@
 using Google.Protobuf.WellKnownTypes;
 using Njord.Grpc.Mapping;
 using Njord.Messages.Pipeline;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Grpc.Tests;
 

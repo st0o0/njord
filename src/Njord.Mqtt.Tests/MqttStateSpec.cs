@@ -13,7 +13,9 @@ using Njord.Mqtt.Health;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Mqtt.Tests;
 
@@ -189,14 +191,14 @@ public sealed class MqttStateSpec : NjordActorSpec
         }
     }
 
-    private static Forecast CreateForecast(string model = "icon_d2")
+    private static WeatherForecast CreateForecast(string model = "icon_d2")
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var points = new List<ForecastPoint>
         {
-            new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 }),
+            new(Anchor.AddHours(3), new Dictionary<ParameterDef, ForecastValue> { [temp] = 28.8 }),
         };
-        return new Forecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
+        return new WeatherForecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 }

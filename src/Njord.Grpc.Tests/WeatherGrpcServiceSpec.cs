@@ -11,7 +11,9 @@ using Njord.Grpc.V2;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Grpc.Tests;
 
@@ -307,14 +309,14 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         return Sys.ActorOf(Props.Create(() => new FakeReadModel(null, events)));
     }
 
-    private static Forecast CreateForecast(string model = "icon_d2", string location = "lucerne")
+    private static WeatherForecast CreateForecast(string model = "icon_d2", string location = "lucerne")
     {
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var points = new List<ForecastPoint>
         {
-            new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 }),
+            new(Anchor.AddHours(3), new Dictionary<ParameterDef, ForecastValue> { [temp] = 28.8 }),
         };
-        return new Forecast(new WeatherModel(model), location, new CycleId(Anchor),
+        return new WeatherForecast(new WeatherModel(model), location, new CycleId(Anchor),
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
@@ -329,7 +331,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
     private sealed class FakeConsumerActor : ReceiveActor
     {
-        public FakeConsumerActor(Forecast forecast)
+        public FakeConsumerActor(WeatherForecast forecast)
         {
             Receive<QueryForecast>(_ => Sender.Tell(new ForecastResult(forecast), Self));
         }
@@ -338,7 +340,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     // Answers only the configured spelling (ordinal), so a raw request spelling finds nothing.
     private sealed class OrdinalForecastReadModel : ReceiveActor
     {
-        public OrdinalForecastReadModel(Forecast forecast)
+        public OrdinalForecastReadModel(WeatherForecast forecast)
         {
             Receive<QueryForecast>(msg => Sender.Tell(
                 string.Equals(msg.Location.Name, forecast.Location, StringComparison.Ordinal)

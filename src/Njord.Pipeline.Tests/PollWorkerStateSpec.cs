@@ -2,7 +2,8 @@ using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Polling;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
 
 namespace Njord.Pipeline.Tests;
 

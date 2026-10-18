@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Core.Configuration;
 

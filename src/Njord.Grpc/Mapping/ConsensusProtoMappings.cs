@@ -31,7 +31,7 @@ internal static class ConsensusProtoMappings
         return proto;
     }
 
-    private static ProtoHorizonConsensus ToProto(this Njord.Consensus.HorizonConsensus horizon, Weather.Horizon horizonKey)
+    private static ProtoHorizonConsensus ToProto(this Njord.Consensus.HorizonConsensus horizon, Njord.Model.Horizon horizonKey)
     {
         var protoHorizon = new ProtoHorizonConsensus
         {

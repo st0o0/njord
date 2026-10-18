@@ -3,7 +3,9 @@ using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
 using Njord.Messages.Derived;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Derived.Tests;
 
@@ -23,13 +25,13 @@ public sealed class DerivedResultSpec
     private static readonly ResolvedParameterSet Parameters = ParameterSelection.Resolve(
         ["Weather", "Solar"], [], []);
 
-    private static Forecast MakeForecast(
+    private static WeatherForecast MakeForecast(
         WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues)
     {
         var points = new List<ForecastPoint>();
         for (var h = 0; h < 72; h++)
         {
-            var values = new Dictionary<ParameterDef, double?>();
+            var values = new Dictionary<ParameterDef, ForecastValue>();
             foreach (var (param, value) in hourlyValues)
             {
                 values[param] = value;
@@ -37,11 +39,11 @@ public sealed class DerivedResultSpec
 
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
-        return new Forecast(model, "lucerne", new CycleId(T0),
+        return new WeatherForecast(model, "lucerne", new CycleId(T0),
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    private static ModelForecasts ForecastsWith(params Forecast[] forecasts)
+    private static ModelForecasts ForecastsWith(params WeatherForecast[] forecasts)
     {
         var snap = ModelForecasts.Empty;
         foreach (var f in forecasts)

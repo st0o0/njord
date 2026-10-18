@@ -1,5 +1,5 @@
 using Njord.Mqtt.Mapping;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Mqtt.Tests.Mapping;
 

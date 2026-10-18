@@ -10,9 +10,9 @@ public sealed class TestSourceConventionArchitectureSpec
 
     private static readonly (string Rule, string Key, string Reason)[] AllowList =
     [
-        (EqualityRule, "Njord.Weather.Tests/CycleIdSpec.cs", OperatorReason),
-        (EqualityRule, "Njord.Weather.Tests/HorizonSpec.cs", OperatorReason),
-        (EqualityRule, "Njord.Weather.Tests/LocationIdSpec.cs", OperatorReason),
+        (EqualityRule, "Njord.Model.Tests/CycleIdSpec.cs", OperatorReason),
+        (EqualityRule, "Njord.Model.Tests/HorizonSpec.cs", OperatorReason),
+        (EqualityRule, "Njord.Model.Tests/LocationIdSpec.cs", OperatorReason),
     ];
 
     public static TheoryData<string> RuleNames()

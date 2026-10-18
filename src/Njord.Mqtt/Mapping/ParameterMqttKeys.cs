@@ -1,5 +1,5 @@
 using System.Collections.Frozen;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Mqtt.Mapping;
 

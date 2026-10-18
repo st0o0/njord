@@ -1,6 +1,5 @@
-using Njord.Consensus;
 using Njord.Messages.Derived;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Derived;
 
@@ -58,82 +57,6 @@ public static class DerivedFormulas
             < 22.0 => DewPointComfort.Oppressive,
             _ => DewPointComfort.Dangerous,
         };
-    }
-
-    public static double? DiurnalAmplitude(
-        ForecastSeries series, ParameterDef tempParam, DateTimeOffset now)
-    {
-        var cutoff = now.AddHours(24);
-        double? min = null, max = null;
-        var count = 0;
-
-        foreach (var point in series.Points)
-        {
-            if (point.ValidAt < now || point.ValidAt > cutoff)
-            {
-                continue;
-            }
-
-            var val = point.Get(tempParam);
-            if (val is not { } v)
-            {
-                continue;
-            }
-
-            count++;
-            if (min is null || v < min)
-            {
-                min = v;
-            }
-
-            if (max is null || v > max)
-            {
-                max = v;
-            }
-        }
-
-        return count < 2 ? null : max!.Value - min!.Value;
-    }
-
-    public static double? SunshinePercent(
-        ForecastSeries series,
-        ParameterDef sunshineDurationParam,
-        ParameterDef isDayParam,
-        DateTimeOffset now)
-    {
-        var cutoff = now.AddHours(24);
-        double totalSunshineSec = 0;
-        var daylightHours = 0;
-        var hasSunshine = false;
-
-        foreach (var point in series.Points)
-        {
-            if (point.ValidAt < now || point.ValidAt > cutoff)
-            {
-                continue;
-            }
-
-            var isDay = point.Get(isDayParam);
-            if (isDay is 1.0)
-            {
-                daylightHours++;
-            }
-
-            var sunshine = point.Get(sunshineDurationParam);
-            if (sunshine is { } s)
-            {
-                hasSunshine = true;
-                totalSunshineSec += s;
-            }
-        }
-
-        if (!hasSunshine || daylightHours == 0)
-        {
-            return null;
-        }
-
-        var daylightSec = daylightHours * 3600.0;
-        return Math.Round(totalSunshineSec / daylightSec * 100.0, 1);
     }
 
     public static WeatherCondition? Condition(int? weatherCode) =>

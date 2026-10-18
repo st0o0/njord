@@ -1,7 +1,7 @@
 using System.Runtime.ExceptionServices;
 using Njord.Grpc.V2;
 using Njord.Messages.Config;
-using CoverageTier = Njord.Weather.CoverageTier;
+using CoverageTier = Njord.Model.CoverageTier;
 
 namespace Njord.Grpc.Mapping;
 

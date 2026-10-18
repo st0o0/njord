@@ -1,5 +1,6 @@
 using System.Text.Json;
-using Njord.Weather;
+using Njord.Forecast;
+using Njord.Model;
 
 namespace Njord.OpenMeteo.Mapping;
 
@@ -20,7 +21,7 @@ internal static class OpenMeteoSeriesMappings
         var points = new List<ForecastPoint>(times.Count);
         for (var i = 0; i < times.Count; i++)
         {
-            var dict = new Dictionary<ParameterDef, double?>(parameters.Hourly.Count);
+            var dict = new Dictionary<ParameterDef, ForecastValue>(parameters.Hourly.Count);
             foreach (var param in parameters.Hourly)
             {
                 dict[param] = paramArrays[param][i];
@@ -49,28 +50,28 @@ internal static class OpenMeteoSeriesMappings
         for (var i = 0; i < times.Count; i++)
         {
             var date = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(times[i]).UtcDateTime);
-            var numeric = new Dictionary<ParameterDef, double?>();
-            var meta = new Dictionary<ParameterDef, string?>();
+            var values = new Dictionary<ParameterDef, ForecastValue>();
 
             foreach (var param in parameters.Daily)
             {
                 var raw = i < paramArrays[param].Count ? paramArrays[param][i] : null;
                 if (param.ValueType == ParameterValueType.TimeString)
                 {
-                    meta[param] = raw switch
+                    string? text = raw switch
                     {
                         string s => s,
                         double d => DateTimeOffset.FromUnixTimeSeconds((long)d).ToString("O"),
                         _ => null,
                     };
+                    values[param] = new ForecastValue(null, text);
                 }
                 else
                 {
-                    numeric[param] = raw as double?;
+                    values[param] = new ForecastValue(raw as double?, null);
                 }
             }
 
-            var point = new DailyForecastPoint(date, numeric, meta);
+            var point = new DailyForecastPoint(date, values);
             if (point.HasAnyValue)
             {
                 points.Add(point);

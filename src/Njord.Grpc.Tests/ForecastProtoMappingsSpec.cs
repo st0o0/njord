@@ -1,5 +1,6 @@
 using Njord.Grpc.Mapping;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
 
 namespace Njord.Grpc.Tests;
 
@@ -10,7 +11,7 @@ public sealed class ForecastProtoMappingsSpec
     [Fact]
     public void ToHourlyForecast_should_map_all_fixed_fields_when_present()
     {
-        var values = new Dictionary<ParameterDef, double?>
+        var values = new Dictionary<ParameterDef, ForecastValue>
         {
             [ParameterRegistry.Temperature2m] = 21.5,
             [ParameterRegistry.ApparentTemperature] = 20.0,
@@ -49,7 +50,7 @@ public sealed class ForecastProtoMappingsSpec
     public void ToHourlyForecast_should_leave_optional_fields_unset_when_absent()
     {
         var hourly = ForecastProtoMappings.ToProto(
-            new ForecastPoint(ValidAt, new Dictionary<ParameterDef, double?>()));
+            new ForecastPoint(ValidAt, new Dictionary<ParameterDef, ForecastValue>()));
 
         Assert.Multiple(
             () => Assert.False(hourly.HasTemperature),
@@ -63,10 +64,10 @@ public sealed class ForecastProtoMappingsSpec
     [Fact]
     public void ToHourlyForecast_should_put_non_fixed_parameters_into_extra_and_skip_nulls()
     {
-        var values = new Dictionary<ParameterDef, double?>
+        var values = new Dictionary<ParameterDef, ForecastValue>
         {
             [ParameterRegistry.UvIndex] = 5.5,
-            [ParameterRegistry.Cape] = null,
+            [ParameterRegistry.Cape] = default,
         };
 
         var hourly = ForecastProtoMappings.ToProto(new ForecastPoint(ValidAt, values));
@@ -79,7 +80,7 @@ public sealed class ForecastProtoMappingsSpec
     [Fact]
     public void ToDailyForecast_should_map_fixed_fields_and_extras()
     {
-        var numeric = new Dictionary<ParameterDef, double?>
+        var values = new Dictionary<ParameterDef, ForecastValue>
         {
             [ParameterRegistry.Temperature2mMax] = 28.0,
             [ParameterRegistry.Temperature2mMin] = 14.0,
@@ -87,15 +88,12 @@ public sealed class ForecastProtoMappingsSpec
             [ParameterRegistry.WindSpeed10mMax] = 7.0,
             [ParameterRegistry.WindGusts10mMax] = 12.0,
             [ParameterRegistry.DailyWeatherCode] = 61,
-        };
-        var meta = new Dictionary<ParameterDef, string?>
-        {
-            [ParameterRegistry.Sunrise] = "2026-07-15T05:40",
-            [ParameterRegistry.Sunset] = "2026-07-15T21:10",
+            [ParameterRegistry.Sunrise] = new ForecastValue(null, "2026-07-15T05:40"),
+            [ParameterRegistry.Sunset] = new ForecastValue(null, "2026-07-15T21:10"),
         };
 
         var daily = ForecastProtoMappings.ToProto(
-            new DailyForecastPoint(new DateOnly(2026, 7, 15), numeric, meta));
+            new DailyForecastPoint(new DateOnly(2026, 7, 15), values));
 
         Assert.Multiple(
             () => Assert.Equal(new DateOnly(2026, 7, 15).ToString("O"), daily.Date),
@@ -115,8 +113,7 @@ public sealed class ForecastProtoMappingsSpec
     {
         var daily = ForecastProtoMappings.ToProto(new DailyForecastPoint(
             new DateOnly(2026, 7, 15),
-            new Dictionary<ParameterDef, double?>(),
-            new Dictionary<ParameterDef, string?>()));
+            new Dictionary<ParameterDef, ForecastValue>()));
 
         Assert.Multiple(
             () => Assert.Equal("", daily.Sunrise),
@@ -129,11 +126,14 @@ public sealed class ForecastProtoMappingsSpec
     [Fact]
     public void ToDailyForecast_should_put_non_fixed_numeric_and_text_parameters_into_extra()
     {
-        var numeric = new Dictionary<ParameterDef, double?> { [ParameterRegistry.UvIndex] = 6.0 };
-        var meta = new Dictionary<ParameterDef, string?> { [ParameterRegistry.Cape] = "high" };
+        var values = new Dictionary<ParameterDef, ForecastValue>
+        {
+            [ParameterRegistry.UvIndex] = 6.0,
+            [ParameterRegistry.Cape] = new ForecastValue(null, "high"),
+        };
 
         var daily = ForecastProtoMappings.ToProto(
-            new DailyForecastPoint(new DateOnly(2026, 7, 15), numeric, meta));
+            new DailyForecastPoint(new DateOnly(2026, 7, 15), values));
 
         Assert.Equal(2, daily.Extra.Count);
         var numericExtra = Assert.Single(daily.Extra, e => e.Name == ParameterRegistry.UvIndex.ApiName);

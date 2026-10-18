@@ -14,7 +14,8 @@ using Njord.OpenMeteo;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
 using Njord.Trends.Configuration;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
 using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
 
 namespace Njord.Pipeline.Tests;

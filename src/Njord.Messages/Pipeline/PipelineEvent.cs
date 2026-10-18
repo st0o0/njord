@@ -3,8 +3,9 @@ using Njord.Messages.Alerts;
 using Njord.Messages.Derived;
 using Njord.Messages.Indices;
 using Njord.Messages.Trends;
-using Njord.Weather;
-using WeatherForecast = Njord.Weather.Forecast;
+using Njord.Forecast;
+using Njord.Model;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Messages.Pipeline;
 

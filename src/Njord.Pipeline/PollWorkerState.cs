@@ -1,7 +1,8 @@
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Polling;
-using Njord.Weather;
+using Njord.Forecast;
+using Njord.Model;
 
 namespace Njord.Pipeline;
 

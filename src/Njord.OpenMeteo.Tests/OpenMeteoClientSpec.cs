@@ -2,7 +2,8 @@ using System.Net;
 using System.Text;
 using Njord.Core.Configuration;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
 
 namespace Njord.OpenMeteo.Tests;
 
@@ -49,9 +50,9 @@ public sealed class OpenMeteoClientSpec
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var first = forecast.Hourly.Points[0]; // Count asserted above (96)
         Assert.Equal(FixtureStart, first.ValidAt);
-        Assert.Equal(20.2, first.Get(temp));
+        Assert.Equal(20.2, first.Get(temp).Number);
         var pressureMsl = ParameterRegistry.GetByApiName("pressure_msl")!;
-        Assert.Equal(1014.8, first.Get(pressureMsl));
+        Assert.Equal(1014.8, first.Get(pressureMsl).Number);
     }
 
     [Fact(Timeout = 5000)]
@@ -147,7 +148,7 @@ public sealed class OpenMeteoClientSpec
         Assert.Equal(64, points.Count);
         Assert.Equal(FixtureStart.AddHours(63), points[^1].ValidAt);
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
-        Assert.Equal(31.6, points[^1].Get(temp));
+        Assert.Equal(31.6, points[^1].Get(temp).Number);
     }
 
     [Fact(Timeout = 5000)]
@@ -179,7 +180,7 @@ public sealed class OpenMeteoClientSpec
         var success = Assert.IsType<PollOutcome.Success>(outcome);
         var dailyPoint = Assert.Single(success.Forecast.Daily.Points);
         var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
-        var sunriseVal = dailyPoint.GetMeta(sunrise);
+        var sunriseVal = dailyPoint.Get(sunrise).Text;
         Assert.NotNull(sunriseVal);
         Assert.Contains("2026-07-11T", sunriseVal);
         Assert.EndsWith("+00:00", sunriseVal);
@@ -202,7 +203,7 @@ public sealed class OpenMeteoClientSpec
         var success = Assert.IsType<PollOutcome.Success>(outcome);
         var dailyPoint = Assert.Single(success.Forecast.Daily.Points);
         var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
-        Assert.Equal("2026-07-11T05:23", dailyPoint.GetMeta(sunrise));
+        Assert.Equal("2026-07-11T05:23", dailyPoint.Get(sunrise).Text);
     }
 
     [Fact(Timeout = 5000)]
@@ -241,8 +242,8 @@ public sealed class OpenMeteoClientSpec
         var point = success.Forecast.Hourly.Points[0];
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var windSpeed = ParameterRegistry.GetByApiName("wind_speed_10m")!;
-        Assert.Equal(20.2, point.Get(temp));
-        Assert.Null(point.Get(windSpeed));
+        Assert.Equal(20.2, point.Get(temp).Number);
+        Assert.False(point.Get(windSpeed).HasValue);
     }
 
     [Fact(Timeout = 5000)]

@@ -2,7 +2,9 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Indices.Tests;
 
@@ -23,7 +25,7 @@ public sealed class DaySlicerSpec
         for (var h = 0; h < hours; h++)
         {
             var (temp, hum, isD) = hourValues(h);
-            var values = new Dictionary<ParameterDef, double?>
+            var values = new Dictionary<ParameterDef, ForecastValue>
             {
                 [Temperature] = temp,
                 [Humidity] = hum,
@@ -36,7 +38,7 @@ public sealed class DaySlicerSpec
         for (var h = 0; h < hours; h++)
         {
             var (temp, hum, isD) = hourValues(h);
-            var values = new Dictionary<ParameterDef, double?>
+            var values = new Dictionary<ParameterDef, ForecastValue>
             {
                 [Temperature] = temp + 1,
                 [Humidity] = hum + 1,
@@ -45,9 +47,9 @@ public sealed class DaySlicerSpec
             points2.Add(new ForecastPoint(now.AddHours(h), values));
         }
 
-        var m1 = new Forecast(new WeatherModel("m1"), "lucerne", new CycleId(now),
+        var m1 = new WeatherForecast(new WeatherModel("m1"), "lucerne", new CycleId(now),
             new ForecastSeries(points), DailyForecastSeries.Empty);
-        var m2 = new Forecast(new WeatherModel("m2"), "lucerne", new CycleId(now),
+        var m2 = new WeatherForecast(new WeatherModel("m2"), "lucerne", new CycleId(now),
             new ForecastSeries(points2), DailyForecastSeries.Empty);
 
         var snap = ModelForecasts.Empty.Update(m1).Update(m2);
@@ -134,7 +136,7 @@ public sealed class DaySlicerSpec
         var points = new List<ForecastPoint>();
         for (var h = 0; h < 48; h++)
         {
-            var values = new Dictionary<ParameterDef, double?>
+            var values = new Dictionary<ParameterDef, ForecastValue>
             {
                 [Temperature] = 20.0,
                 [Humidity] = 50.0,
@@ -145,7 +147,7 @@ public sealed class DaySlicerSpec
         var points2 = new List<ForecastPoint>();
         for (var h = 0; h < 48; h++)
         {
-            var values = new Dictionary<ParameterDef, double?>
+            var values = new Dictionary<ParameterDef, ForecastValue>
             {
                 [Temperature] = 21.0,
                 [Humidity] = 51.0,
@@ -153,9 +155,9 @@ public sealed class DaySlicerSpec
             points2.Add(new ForecastPoint(now.AddHours(h), values));
         }
 
-        var m1 = new Forecast(new WeatherModel("m1"), "lucerne", new CycleId(now),
+        var m1 = new WeatherForecast(new WeatherModel("m1"), "lucerne", new CycleId(now),
             new ForecastSeries(points), DailyForecastSeries.Empty);
-        var m2 = new Forecast(new WeatherModel("m2"), "lucerne", new CycleId(now),
+        var m2 = new WeatherForecast(new WeatherModel("m2"), "lucerne", new CycleId(now),
             new ForecastSeries(points2), DailyForecastSeries.Empty);
 
         var snap = ModelForecasts.Empty.Update(m1).Update(m2);
@@ -234,7 +236,7 @@ public sealed class DaySlicerSpec
         for (var h = 0; h < 24; h++)
         {
             var isDay = h is >= 6 and < 20 ? 1.0 : 0.0;
-            points.Add(new ForecastPoint(now.AddHours(h), new Dictionary<ParameterDef, double?>
+            points.Add(new ForecastPoint(now.AddHours(h), new Dictionary<ParameterDef, ForecastValue>
             {
                 [Temperature] = 20.0,
                 [IsDay] = isDay,
@@ -242,7 +244,7 @@ public sealed class DaySlicerSpec
             }));
         }
 
-        var forecast = new Forecast(new WeatherModel("m1"), "lucerne", new CycleId(now),
+        var forecast = new WeatherForecast(new WeatherModel("m1"), "lucerne", new CycleId(now),
             new ForecastSeries(points), DailyForecastSeries.Empty);
         var snap = ModelForecasts.Empty.Update(forecast).Update(forecast with { Model = new WeatherModel("m2") });
         var consensus = new ConsensusBuilder(Parameters, new FakeTimeProvider(now)).Create(snap, "lucerne", ConsensusSettings.Default);
@@ -256,9 +258,9 @@ public sealed class DaySlicerSpec
     public void Single_model_slices_carry_no_confidence_bounds()
     {
         var now = new DateTimeOffset(2026, 8, 4, 0, 0, 0, TimeSpan.Zero);
-        Forecast Single(string model, ParameterDef parameter) => new(new WeatherModel(model), "lucerne", new CycleId(now),
+        WeatherForecast Single(string model, ParameterDef parameter) => new(new WeatherModel(model), "lucerne", new CycleId(now),
             new ForecastSeries(Enumerable.Range(0, 24).Select(h => new ForecastPoint(now.AddHours(h),
-                new Dictionary<ParameterDef, double?> { [parameter] = 20.0 }))),
+                new Dictionary<ParameterDef, ForecastValue> { [parameter] = 20.0 }))),
             DailyForecastSeries.Empty);
         var snap = ModelForecasts.Empty.Update(Single("m1", Temperature)).Update(Single("m2", Humidity));
         var consensus = new ConsensusBuilder(Parameters, new FakeTimeProvider(now))

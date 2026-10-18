@@ -6,8 +6,9 @@ using Njord.Messages.Alerts;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
-using Njord.Weather;
-using WeatherForecast = Njord.Weather.Forecast;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Pipeline.Tests;
 
@@ -463,7 +464,7 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var points = new List<ForecastPoint>
         {
-            new(Anchor.AddHours(3), new Dictionary<ParameterDef, double?> { [temp] = 28.8 }),
+            new(Anchor.AddHours(3), new Dictionary<ParameterDef, ForecastValue> { [temp] = 28.8 }),
         };
         return new WeatherForecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
             new ForecastSeries(points), DailyForecastSeries.Empty);

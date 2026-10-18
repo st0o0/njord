@@ -1,4 +1,5 @@
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
 
 namespace Njord.OpenMeteo.Tests;
 

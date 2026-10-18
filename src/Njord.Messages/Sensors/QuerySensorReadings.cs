@@ -1,5 +1,5 @@
 using Njord.Sensors;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Messages.Sensors;
 

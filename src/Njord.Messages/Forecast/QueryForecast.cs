@@ -1,5 +1,6 @@
-using Njord.Weather;
-using WeatherForecast = Njord.Weather.Forecast;
+using Njord.Forecast;
+using Njord.Model;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Messages.Forecast;
 

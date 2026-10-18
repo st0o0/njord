@@ -14,7 +14,7 @@ using Njord.Core.Configuration.Polling;
 using Njord.Messages.Pipeline;
 using Njord.Pipeline.Health;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Pipeline.Tests;
 

@@ -10,7 +10,7 @@ using Akka.TestKit;
 using Njord.Core.Actors;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
 using Servus.Resilience;
 
 namespace Njord.Core.Tests.Actors;

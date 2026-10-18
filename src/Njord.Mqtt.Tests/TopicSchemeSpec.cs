@@ -1,5 +1,5 @@
 using Njord.Mqtt.Topics;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Mqtt.Tests;
 

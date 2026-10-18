@@ -1,6 +1,6 @@
 using Njord.Messages.Sensors;
 using Njord.Sensors;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.SensorHub.Tests;
 

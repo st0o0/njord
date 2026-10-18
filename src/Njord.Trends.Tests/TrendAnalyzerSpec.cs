@@ -6,7 +6,8 @@ using Njord.Core.Configuration;
 using Njord.Messages.Trends;
 using Njord.Tests.Shared;
 using Njord.Trends.Configuration;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
 
 namespace Njord.Trends.Tests;
 

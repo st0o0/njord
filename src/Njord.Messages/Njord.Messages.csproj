@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-        <ProjectReference Include="..\Njord.Weather\Njord.Weather.csproj" />
+        <ProjectReference Include="..\Njord.Model\Njord.Model.csproj" />
+        <ProjectReference Include="..\Njord.Forecast\Njord.Forecast.csproj" />
         <ProjectReference Include="..\Njord.Sensors\Njord.Sensors.csproj" />
         <ProjectReference Include="..\Njord.Consensus\Njord.Consensus.csproj" />
     </ItemGroup>

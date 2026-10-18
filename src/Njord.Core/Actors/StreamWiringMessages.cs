@@ -1,7 +1,7 @@
 using Akka.Streams;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
-using WeatherForecast = Njord.Weather.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Core.Actors;
 

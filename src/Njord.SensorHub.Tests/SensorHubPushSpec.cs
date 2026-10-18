@@ -6,7 +6,7 @@ using Njord.Core.Configuration.Sensors;
 using Njord.Messages.Sensors;
 using Njord.Sensors;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.SensorHub.Tests;
 

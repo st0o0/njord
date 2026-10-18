@@ -3,7 +3,7 @@ using Njord.Grpc.Mapping;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
 using DomainAlert = Njord.Messages.Alerts.Alert;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainAlertType = Njord.Messages.Alerts.AlertType;

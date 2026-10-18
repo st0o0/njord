@@ -11,8 +11,9 @@ using Njord.Core.Configuration.Polling;
 using Njord.Messages.Budget;
 using Njord.Messages.Forecast;
 using Njord.Tests.Shared;
-using Njord.Weather;
-using WeatherForecast = Njord.Weather.Forecast;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.OpenMeteo.Tests;
 

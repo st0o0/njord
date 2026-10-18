@@ -5,7 +5,9 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.OpenMeteo.Mapping;
-using Njord.Weather;
+using Njord.Forecast;
+using Njord.Model;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.OpenMeteo;
 
@@ -64,7 +66,7 @@ public sealed class OpenMeteoClient(
                 ? dto.Daily.ToDailySeries(parameters)
                 : DailyForecastSeries.Empty;
 
-            outcome = new PollOutcome.Success(new Forecast(
+            outcome = new PollOutcome.Success(new WeatherForecast(
                 model, location.Name, cycle,
                 hourlyResult, daily));
             return outcome;

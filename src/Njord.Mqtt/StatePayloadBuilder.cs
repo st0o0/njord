@@ -9,14 +9,16 @@ using Njord.Messages.Trends;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Serialization;
 using Njord.Mqtt.Topics;
-using Njord.Weather;
+using Njord.Forecast;
+using Njord.Model;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Mqtt;
 
 public static class StatePayloadBuilder
 {
     public static Dictionary<Horizon, string> BuildPerHorizon(
-        Forecast forecast,
+        WeatherForecast forecast,
         ResolvedParameterSet parameters,
         IReadOnlyList<int> horizons,
         int forecastDays,

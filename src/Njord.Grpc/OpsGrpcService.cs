@@ -11,7 +11,7 @@ using Njord.Grpc.V2;
 using Njord.Messages.Budget;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
-using Njord.Weather;
+using Njord.Model;
 using ConfigResponse = Njord.Messages.Config.ConfigResponse;
 
 namespace Njord.Grpc;

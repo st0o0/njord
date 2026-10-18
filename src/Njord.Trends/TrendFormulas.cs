@@ -1,6 +1,6 @@
 using Njord.Consensus;
 using Njord.Messages.Trends;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Trends;
 
@@ -36,72 +36,6 @@ public static class TrendFormulas
         }
 
         return new WeatherChangeResult(fromCat, toCat);
-    }
-
-    public static (int? StartsInHours, int? EndsInHours) PrecipitationTiming(
-        ForecastSeries series, ParameterDef precipParam, DateTimeOffset now)
-    {
-        var cutoff = now.AddHours(24);
-        int? first = null, last = null;
-
-        foreach (var point in series.Points)
-        {
-            if (point.ValidAt < now || point.ValidAt > cutoff)
-            {
-                continue;
-            }
-
-            var val = point.Get(precipParam);
-            if (val is not { } v || v <= 0)
-            {
-                continue;
-            }
-
-            var hours = (int)Math.Round((point.ValidAt - now).TotalHours);
-            first ??= hours;
-            last = hours;
-        }
-
-        return (first, last);
-    }
-
-    public static (int? MaxInHours, int? MinInHours) ExtremaTiming(
-        ForecastSeries series, ParameterDef tempParam, DateTimeOffset now)
-    {
-        var cutoff = now.AddHours(24);
-        double? maxVal = null, minVal = null;
-        int? maxHours = null, minHours = null;
-        var count = 0;
-
-        foreach (var point in series.Points)
-        {
-            if (point.ValidAt < now || point.ValidAt > cutoff)
-            {
-                continue;
-            }
-
-            var val = point.Get(tempParam);
-            if (val is not { } v)
-            {
-                continue;
-            }
-
-            count++;
-            var hours = (int)Math.Round((point.ValidAt - now).TotalHours);
-
-            if (maxVal is null || v > maxVal)
-            {
-                maxVal = v;
-                maxHours = hours;
-            }
-            if (minVal is null || v < minVal)
-            {
-                minVal = v;
-                minHours = hours;
-            }
-        }
-
-        return count < 2 ? (null, null) : (maxHours, minHours);
     }
 
     public static (Stability Stability, double Ratio)? ConsensusStability(

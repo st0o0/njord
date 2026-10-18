@@ -16,9 +16,15 @@ public sealed class LayerReferenceSpec
         ];
 
     [Fact]
-    public void Weather_references_no_other_Njord_assembly()
+    public void Model_references_no_other_Njord_assembly()
     {
-        Assert.Empty(NjordReferences<Weather.Forecast>());
+        Assert.Empty(NjordReferences<Model.ParameterDef>());
+    }
+
+    [Fact]
+    public void Forecast_references_only_Model()
+    {
+        Assert.Empty(NjordReferences<Forecast.Forecast>().Except(["Njord.Model"]));
     }
 
     [Fact]
@@ -34,9 +40,9 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Messages_references_only_Weather_Sensors_and_Consensus()
+    public void Messages_references_only_Model_Forecast_Sensors_and_Consensus()
     {
-        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.QueryPollStates>().Except(["Njord.Weather", "Njord.Sensors", "Njord.Consensus"]));
+        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.QueryPollStates>().Except(["Njord.Consensus", "Njord.Forecast", "Njord.Model", "Njord.Sensors"]));
     }
 
     [Fact]
@@ -50,18 +56,18 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Consensus_references_only_Weather_and_Sensors()
+    public void Consensus_references_only_Model_and_Forecast()
     {
-        Assert.Empty(NjordReferences<LocationConsensus>().Except(["Njord.Weather", "Njord.Sensors"]));
+        Assert.Empty(NjordReferences<LocationConsensus>().Except(["Njord.Forecast", "Njord.Model"]));
     }
 
     [Fact]
-    public void Core_references_only_Weather_Sensors_Messages_Persistence_and_Consensus()
+    public void Core_references_only_Model_Forecast_Sensors_Messages_Persistence_and_Consensus()
     {
-        Assert.Empty(NjordReferences<IPollManager>().Except(["Njord.Consensus", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"]));
+        Assert.Empty(NjordReferences<IPollManager>().Except(["Njord.Consensus", "Njord.Forecast", "Njord.Model", "Njord.Messages", "Njord.Persistence", "Njord.Sensors"]));
     }
 
-    private static readonly string[] CoreAndBelow = ["Njord.Consensus", "Njord.Core", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"];
+    private static readonly string[] CoreAndBelow = ["Njord.Consensus", "Njord.Core", "Njord.Forecast", "Njord.Model", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"];
 
     [Fact]
     public void OpenMeteo_references_only_Core_and_below()
@@ -123,7 +129,6 @@ public sealed class LayerReferenceSpec
     {
         Assert.Empty(NjordReferences<Indices.IndexAnalyzer>().Except(CoreAndBelow));
     }
-
 
     [Fact]
     public void Consensus_has_no_Akka_dependency()

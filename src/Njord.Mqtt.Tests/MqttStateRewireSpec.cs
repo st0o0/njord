@@ -8,7 +8,7 @@ using Njord.Messages.Trends;
 using Njord.Mqtt.Actors;
 using Njord.Mqtt.Health;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Mqtt.Tests;
 

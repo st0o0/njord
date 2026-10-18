@@ -34,7 +34,7 @@ internal static class NjordArchitecture
     ];
 
     private static readonly string[] FeatureLibraryNames = ["Njord.Grpc", "Njord.OpenMeteo", "Njord.Budget", "Njord.SensorHub", "Njord.Mqtt", "Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"];
-    private static readonly string[] BaseLibraryNames = ["Njord.Consensus", "Njord.Core", "Njord.Messages", "Njord.Persistence", "Njord.Weather", "Njord.Sensors"];
+    private static readonly string[] BaseLibraryNames = ["Njord.Consensus", "Njord.Core", "Njord.Forecast", "Njord.Messages", "Njord.Model", "Njord.Persistence", "Njord.Sensors"];
 
     internal const string PipelineLibrary = "Njord.Pipeline";
     private static readonly string[] PipelineAllowedAnalysisLibs = ["Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"];

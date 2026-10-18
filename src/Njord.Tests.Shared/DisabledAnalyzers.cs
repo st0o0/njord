@@ -9,7 +9,7 @@ using Njord.Indices;
 using Njord.Indices.Configuration;
 using Njord.Messages.Alerts;
 using Njord.Trends.Configuration;
-using Njord.Weather;
+using Njord.Model;
 using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
 
 namespace Njord.Tests.Shared;

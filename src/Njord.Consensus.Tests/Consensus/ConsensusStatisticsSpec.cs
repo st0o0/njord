@@ -1,5 +1,7 @@
 using Njord.Consensus;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Consensus.Tests.Consensus;
 
@@ -182,8 +184,8 @@ public sealed class ConsensusStatisticsSpec
     {
         var t0 = new DateTimeOffset(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
         var temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
-        var point = new ForecastPoint(t0.AddHours(3), new Dictionary<ParameterDef, double?> { [temperature] = 22.5 });
-        var forecast = new Forecast(IconD2, "lucerne", new CycleId(t0),
+        var point = new ForecastPoint(t0.AddHours(3), new Dictionary<ParameterDef, ForecastValue> { [temperature] = 22.5 });
+        var forecast = new WeatherForecast(IconD2, "lucerne", new CycleId(t0),
             new ForecastSeries([point]), DailyForecastSeries.Empty);
         var forecasts = ModelForecasts.Empty.Update(forecast);
 
@@ -197,8 +199,8 @@ public sealed class ConsensusStatisticsSpec
     {
         var t0 = new DateTimeOffset(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
         var temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
-        var point = new ForecastPoint(t0.AddHours(3), new Dictionary<ParameterDef, double?> { [temperature] = 22.5 });
-        var forecast = new Forecast(IconD2, "lucerne", new CycleId(t0),
+        var point = new ForecastPoint(t0.AddHours(3), new Dictionary<ParameterDef, ForecastValue> { [temperature] = 22.5 });
+        var forecast = new WeatherForecast(IconD2, "lucerne", new CycleId(t0),
             new ForecastSeries([point]), DailyForecastSeries.Empty);
         var forecasts = ModelForecasts.Empty.Update(forecast);
 
@@ -290,8 +292,8 @@ public sealed class ConsensusStatisticsSpec
     {
         var t0 = new DateTimeOffset(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
         var temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
-        Forecast At(WeatherModel model, string location) => new(model, location, new CycleId(t0),
-            new ForecastSeries([new ForecastPoint(t0, new Dictionary<ParameterDef, double?> { [temperature] = 1.0 })]),
+        WeatherForecast At(WeatherModel model, string location) => new(model, location, new CycleId(t0),
+            new ForecastSeries([new ForecastPoint(t0, new Dictionary<ParameterDef, ForecastValue> { [temperature] = 1.0 })]),
             DailyForecastSeries.Empty);
         var forecasts = ModelForecasts.Empty.Update(At(IconD2, "lucerne")).Update(At(Ecmwf, "zurich"));
 
@@ -307,8 +309,8 @@ public sealed class ConsensusStatisticsSpec
     {
         var t0 = new DateTimeOffset(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
         var temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
-        var values = new Dictionary<ParameterDef, double?> { [temperature] = 1.0 };
-        var forecast = new Forecast(IconD2, "lucerne", new CycleId(t0),
+        var values = new Dictionary<ParameterDef, ForecastValue> { [temperature] = 1.0 };
+        var forecast = new WeatherForecast(IconD2, "lucerne", new CycleId(t0),
             new ForecastSeries([new ForecastPoint(t0, values), new ForecastPoint(t0.AddHours(5), values)]),
             DailyForecastSeries.Empty);
         var forecasts = ModelForecasts.Empty.Update(forecast);
@@ -323,8 +325,8 @@ public sealed class ConsensusStatisticsSpec
     {
         var t0 = new DateTimeOffset(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
         var temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
-        var point = new ForecastPoint(t0.AddMinutes(30), new Dictionary<ParameterDef, double?> { [temperature] = 1.0 });
-        var forecast = new Forecast(IconD2, "lucerne", new CycleId(t0),
+        var point = new ForecastPoint(t0.AddMinutes(30), new Dictionary<ParameterDef, ForecastValue> { [temperature] = 1.0 });
+        var forecast = new WeatherForecast(IconD2, "lucerne", new CycleId(t0),
             new ForecastSeries([point]), DailyForecastSeries.Empty);
         var forecasts = ModelForecasts.Empty.Update(forecast);
 

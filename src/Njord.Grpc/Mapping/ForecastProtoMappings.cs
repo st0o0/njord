@@ -2,8 +2,9 @@ using Google.Protobuf.WellKnownTypes;
 using Njord.Grpc.V2;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Weather;
-using WeatherForecast = Njord.Weather.Forecast;
+using Njord.Forecast;
+using Njord.Model;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Grpc.Mapping;
 
@@ -65,21 +66,21 @@ internal static class ForecastProtoMappings
         SetOptional(point, ParameterRegistry.RelativeHumidity2m, v => hourly.Humidity = v);
         SetOptional(point, ParameterRegistry.WindSpeed10m, v => hourly.WindSpeed = v);
         SetOptional(point, ParameterRegistry.WindGusts10m, v => hourly.WindGusts = v);
-        var windDir = point.Get(ParameterRegistry.WindDirection10m);
+        var windDir = point.Get(ParameterRegistry.WindDirection10m).Number;
         if (windDir.HasValue)
         {
             hourly.WindBearing = windDir.Value;
         }
 
         SetOptional(point, ParameterRegistry.CloudCover, v => hourly.CloudCover = v);
-        var weatherCode = point.Get(ParameterRegistry.WeatherCode);
+        var weatherCode = point.Get(ParameterRegistry.WeatherCode).Number;
         if (weatherCode.HasValue)
         {
             hourly.WeatherCode = (int)weatherCode.Value;
         }
 
         SetOptional(point, ParameterRegistry.IsDay, v => hourly.IsDay = v > 0);
-        var rain = point.Get(ParameterRegistry.Rain);
+        var rain = point.Get(ParameterRegistry.Rain).Number;
         if (rain.HasValue)
         {
             hourly.Rain = rain.Value;
@@ -89,12 +90,12 @@ internal static class ForecastProtoMappings
 
         foreach (var (param, value) in point.Values)
         {
-            if (value is null || HourlyFixedFields.Contains(param.ApiName))
+            if (!value.Number.HasValue || HourlyFixedFields.Contains(param.ApiName))
             {
                 continue;
             }
 
-            hourly.Extra.Add(new ParameterValue { Name = param.ApiName, Numeric = value.Value });
+            hourly.Extra.Add(new ParameterValue { Name = param.ApiName, Numeric = value.Number.Value });
         }
 
         return hourly;
@@ -103,62 +104,59 @@ internal static class ForecastProtoMappings
     public static DailyForecast ToProto(this DailyForecastPoint point)
     {
         var daily = new DailyForecast { Date = point.Date.ToString("O") };
-        var tempMax = point.GetNumeric(ParameterRegistry.Temperature2mMax);
+        var tempMax = point.Get(ParameterRegistry.Temperature2mMax).Number;
         if (tempMax.HasValue)
         {
             daily.TemperatureMax = tempMax.Value;
         }
 
-        var tempMin = point.GetNumeric(ParameterRegistry.Temperature2mMin);
+        var tempMin = point.Get(ParameterRegistry.Temperature2mMin).Number;
         if (tempMin.HasValue)
         {
             daily.TemperatureMin = tempMin.Value;
         }
 
-        var precipSum = point.GetNumeric(ParameterRegistry.PrecipitationSum);
+        var precipSum = point.Get(ParameterRegistry.PrecipitationSum).Number;
         if (precipSum.HasValue)
         {
             daily.PrecipitationSum = precipSum.Value;
         }
 
-        var windMax = point.GetNumeric(ParameterRegistry.WindSpeed10mMax);
+        var windMax = point.Get(ParameterRegistry.WindSpeed10mMax).Number;
         if (windMax.HasValue)
         {
             daily.WindSpeedMax = windMax.Value;
         }
 
-        var gustMax = point.GetNumeric(ParameterRegistry.WindGusts10mMax);
+        var gustMax = point.Get(ParameterRegistry.WindGusts10mMax).Number;
         if (gustMax.HasValue)
         {
             daily.WindGustsMax = gustMax.Value;
         }
 
-        daily.Sunrise = point.GetMeta(ParameterRegistry.Sunrise) ?? "";
-        daily.Sunset = point.GetMeta(ParameterRegistry.Sunset) ?? "";
-        var wc = point.GetNumeric(ParameterRegistry.DailyWeatherCode);
+        daily.Sunrise = point.Get(ParameterRegistry.Sunrise).Text ?? "";
+        daily.Sunset = point.Get(ParameterRegistry.Sunset).Text ?? "";
+        var wc = point.Get(ParameterRegistry.DailyWeatherCode).Number;
         if (wc.HasValue)
         {
             daily.WeatherCode = (int)wc.Value;
         }
 
-        foreach (var (param, value) in point.NumericValues)
+        foreach (var (param, value) in point.Values)
         {
-            if (value is null || DailyFixedFields.Contains(param.ApiName))
+            if (DailyFixedFields.Contains(param.ApiName))
             {
                 continue;
             }
 
-            daily.Extra.Add(new ParameterValue { Name = param.ApiName, Numeric = value.Value });
-        }
-
-        foreach (var (param, value) in point.MetaValues)
-        {
-            if (value is null || DailyFixedFields.Contains(param.ApiName))
+            if (value.Number.HasValue)
             {
-                continue;
+                daily.Extra.Add(new ParameterValue { Name = param.ApiName, Numeric = value.Number.Value });
             }
-
-            daily.Extra.Add(new ParameterValue { Name = param.ApiName, Text = value });
+            else if (value.Text is not null)
+            {
+                daily.Extra.Add(new ParameterValue { Name = param.ApiName, Text = value.Text });
+            }
         }
 
         return daily;
@@ -166,7 +164,7 @@ internal static class ForecastProtoMappings
 
     private static void SetOptional(ForecastPoint point, ParameterDef param, Action<double> setter)
     {
-        var value = point.Get(param);
+        var value = point.Get(param).Number;
         if (value.HasValue)
         {
             setter(value.Value);

@@ -6,7 +6,7 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Messages.Pipeline;
 using Njord.Pipeline.Health;
-using Njord.Weather;
+using Njord.Model;
 using Servus.Akka;
 using Servus.Resilience;
 

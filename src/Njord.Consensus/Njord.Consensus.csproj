@@ -5,7 +5,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Njord.Weather\Njord.Weather.csproj" />
+        <ProjectReference Include="..\Njord.Model\Njord.Model.csproj" />
+        <ProjectReference Include="..\Njord.Forecast\Njord.Forecast.csproj" />
     </ItemGroup>
 
 </Project>

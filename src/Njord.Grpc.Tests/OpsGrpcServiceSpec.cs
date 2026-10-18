@@ -12,7 +12,7 @@ using Njord.Messages.Pipeline;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
 using Njord.Trends.Configuration;
-using Njord.Weather;
+using Njord.Model;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 
 namespace Njord.Grpc.Tests;

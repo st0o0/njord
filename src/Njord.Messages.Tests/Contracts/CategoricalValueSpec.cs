@@ -2,7 +2,7 @@ using Njord.Consensus;
 using Njord.Messages.Alerts;
 using Njord.Messages.Derived;
 using Njord.Messages.Trends;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Messages.Tests.Contracts;
 

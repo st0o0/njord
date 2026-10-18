@@ -12,46 +12,60 @@
     <File Path="Directory.Packages.props" />
     <File Path="global.json" />
   </Folder>
-  <Folder Name="/Foundation/">
-    <Project Path="Njord.Consensus/Njord.Consensus.csproj" />
-    <Project Path="Njord.Core/Njord.Core.csproj" />
-    <Project Path="Njord.Weather/Njord.Weather.csproj" />
+  <Folder Name="/Model/">
+    <Project Path="Njord.Model/Njord.Model.csproj" />
     <Project Path="Njord.Sensors/Njord.Sensors.csproj" />
-    <Project Path="Njord.Messages/Njord.Messages.csproj" />
-    <Project Path="Njord.Persistence/Njord.Persistence.csproj" />
   </Folder>
-  <Folder Name="/Domain/">
+  <Folder Name="/Forecast/">
+    <Project Path="Njord.Forecast/Njord.Forecast.csproj" />
+  </Folder>
+  <Folder Name="/Contracts/">
+    <Project Path="Njord.Consensus/Njord.Consensus.csproj" />
+    <Project Path="Njord.Messages/Njord.Messages.csproj" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="Njord.Persistence/Njord.Persistence.csproj" />
+    <Project Path="Njord.Core/Njord.Core.csproj" />
+  </Folder>
+  <Folder Name="/Ingest/">
     <Project Path="Njord.OpenMeteo/Njord.OpenMeteo.csproj" />
     <Project Path="Njord.SensorHub/Njord.SensorHub.csproj" />
     <Project Path="Njord.Budget/Njord.Budget.csproj" />
-    <Project Path="Njord.Pipeline/Njord.Pipeline.csproj" />
-    <Project Path="Njord.Mqtt/Njord.Mqtt.csproj" />
-    <Project Path="Njord.Grpc/Njord.Grpc.csproj" />
+  </Folder>
+  <Folder Name="/Analysis/">
     <Project Path="Njord.Alerts/Njord.Alerts.csproj" />
     <Project Path="Njord.Derived/Njord.Derived.csproj" />
     <Project Path="Njord.Trends/Njord.Trends.csproj" />
     <Project Path="Njord.Indices/Njord.Indices.csproj" />
   </Folder>
+  <Folder Name="/Processing/">
+    <Project Path="Njord.Pipeline/Njord.Pipeline.csproj" />
+  </Folder>
+  <Folder Name="/Egress/">
+    <Project Path="Njord.Mqtt/Njord.Mqtt.csproj" />
+    <Project Path="Njord.Grpc/Njord.Grpc.csproj" />
+  </Folder>
   <Folder Name="/Tests/">
     <Project Path="Njord.Tests.Shared/Njord.Tests.Shared.csproj" />
+    <Project Path="Njord.Model.Tests/Njord.Model.Tests.csproj" />
+    <Project Path="Njord.Forecast.Tests/Njord.Forecast.Tests.csproj" />
+    <Project Path="Njord.Sensors.Tests/Njord.Sensors.Tests.csproj" />
+    <Project Path="Njord.Persistence.Tests/Njord.Persistence.Tests.csproj" />
     <Project Path="Njord.Consensus.Tests/Njord.Consensus.Tests.csproj" />
     <Project Path="Njord.Messages.Tests/Njord.Messages.Tests.csproj" />
     <Project Path="Njord.Core.Tests/Njord.Core.Tests.csproj" />
-    <Project Path="Njord.Weather.Tests/Njord.Weather.Tests.csproj" />
-    <Project Path="Njord.Sensors.Tests/Njord.Sensors.Tests.csproj" />
-    <Project Path="Njord.Persistence.Tests/Njord.Persistence.Tests.csproj" />
     <Project Path="Njord.OpenMeteo.Tests/Njord.OpenMeteo.Tests.csproj" />
     <Project Path="Njord.SensorHub.Tests/Njord.SensorHub.Tests.csproj" />
     <Project Path="Njord.Budget.Tests/Njord.Budget.Tests.csproj" />
     <Project Path="Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj" />
     <Project Path="Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj" />
     <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
-    <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />
     <Project Path="Njord.Alerts.Tests/Njord.Alerts.Tests.csproj" />
-    <Project Path="Njord.IntegrationTests/Njord.IntegrationTests.csproj" />
     <Project Path="Njord.Derived.Tests/Njord.Derived.Tests.csproj" />
     <Project Path="Njord.Trends.Tests/Njord.Trends.Tests.csproj" />
     <Project Path="Njord.Indices.Tests/Njord.Indices.Tests.csproj" />
+    <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />
+    <Project Path="Njord.IntegrationTests/Njord.IntegrationTests.csproj" />
     <Project Path="Njord.Tests/Njord.Tests.csproj" />
   </Folder>
   <Project Path="Njord/Njord.csproj" />

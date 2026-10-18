@@ -5,7 +5,7 @@ using Njord.Indices.Configuration;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
 using Njord.Trends.Configuration;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Pipeline.Tests.Configuration;
 

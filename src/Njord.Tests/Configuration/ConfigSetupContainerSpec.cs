@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Persistence;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Tests.Configuration;
 

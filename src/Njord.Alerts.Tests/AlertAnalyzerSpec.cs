@@ -7,7 +7,9 @@ using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
 using Njord.Messages.Alerts;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Alerts.Tests;
 
@@ -138,13 +140,13 @@ public sealed class AlertAnalyzerSpec
         var points = new List<ForecastPoint>();
         for (var h = 0; h < 24; h++)
         {
-            var values = new Dictionary<ParameterDef, double?>();
+            var values = new Dictionary<ParameterDef, ForecastValue>();
             foreach (var (param, value) in hourlyValues)
                 values[param] = value;
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
 
-        var forecast = new Forecast(new WeatherModel("m1"), "lucerne", new CycleId(T0),
+        var forecast = new WeatherForecast(new WeatherModel("m1"), "lucerne", new CycleId(T0),
             new ForecastSeries(points), DailyForecastSeries.Empty);
         var snap = ModelForecasts.Empty.Update(forecast);
         return new ConsensusBuilder(Parameters, Time).Create(snap, "lucerne", ConsensusSettings.Default);

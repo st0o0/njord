@@ -1,7 +1,7 @@
 using Njord.Alerts.Rules;
 using Njord.Consensus.Querying;
 using Njord.Messages.Alerts;
-using Njord.Weather;
+using Njord.Model;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
 namespace Njord.Alerts.Tests.Rules;

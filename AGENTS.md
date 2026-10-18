@@ -116,9 +116,9 @@ with optional MQTT state publishing.
 - **Zone rules are enforced by tests** in `src/Njord.Architecture.Tests/` (lateral
   independence of the feature libraries, Domain independence,
   sealed/`Spec` conventions,
-  `LayerReferenceSpec` for the assembly reference direction: Weather, Sensors and
-  Persistence reference no Njord assembly, Consensus only Weather and Sensors,
-  Messages only Weather, Sensors and Consensus (and no Akka package, no `*Analyzer`/`*Rule`/`*Formulas` type), Core only those,
+  `LayerReferenceSpec` for the assembly reference direction: Model, Sensors and
+  Persistence reference no Njord assembly, Forecast only Model, Consensus only Model and Forecast,
+  Messages only Model, Sensors, Consensus and Forecast (and no Akka package, no `*Analyzer`/`*Rule`/`*Formulas` type), Core only those,
   feature libraries (OpenMeteo, Budget, SensorHub, Grpc, Pipeline, Mqtt,
   Alerts, Derived, Trends, Indices) only Core and below; the host references
   all. Feature libraries never reference each other, checked by the lateral
@@ -177,32 +177,43 @@ All code, specs, docs, and communication in English.
 src/
   Njord.slnx
 
-  # /Foundation/ — shared types, messages, persistence, computation, infrastructure
-  Njord.Weather/               # Pure weather records, ModelCoverageRegistry, HorizonProjection,
-                              #   ParameterRegistry (one typed field per parameter, identity only), ResolvedParameterSet (no Njord references)
+  # /Model/ — vocabulary types (zero Njord dependencies)
+  Njord.Model/                # ParameterDef, ParameterRegistry, WeatherModel, LocationId,
+                              #   Horizon, CycleId, WeatherCondition, ResolvedParameterSet,
+                              #   ForecastValue, ModelCoverageRegistry (no Njord references)
   Njord.Sensors/               # Pure sensor records (no Njord references)
-  Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references): Events/Budget, Events/Polling
-  Njord.Consensus/            # Shared consensus building blocks only (-> Weather, Sensors only):
+
+  # /Forecast/ — time-series data (-> Model only)
+  Njord.Forecast/             # Forecast, ForecastSeries, ForecastPoint, DailyForecast*,
+                              #   ModelForecasts, HorizonProjection, TimeAnchor, ForecastDataHash,
+                              #   PollOutcome, HorizonValue (-> Model only)
+
+  # /Contracts/ — consensus computation and message contracts
+  Njord.Consensus/            # Shared consensus building blocks (-> Model, Forecast):
                               #   ConsensusBuilder, ConsensusStatistics, consensus records
     Querying/                 # Query vocabulary on consensus data (ConsensusQueries,
                               #   HorizonWindow, HorizonHit, ScanDirection)
     Settings/                 # ConsensusSettings, ConsensusMethod
   Njord.Messages/             # Commands, queries, results, PipelineEvent and the analysis
                               #   contracts (result records, enums, per-feature settings); no Akka
-                              #   (-> Weather, Sensors, Consensus)
+                              #   (-> Model, Sensors, Consensus, Forecast)
     Budget/ Config/ Forecast/ Pipeline/ Sensors/
     Alerts/ Derived/ Trends/ Indices/   # one folder per analysis feature, contracts only
+
+  # /Infrastructure/ — persistence and framework plumbing
+  Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references): Events/Budget, Events/Polling
   Njord.Core/                 # Options, actor keys, StreamSupervision
-                              #   (-> Weather, Sensors, Messages, Persistence, Consensus)
+                              #   (-> Model, Forecast, Messages, Persistence, Consensus)
     Actors/                   # Marker interfaces, ShardMessageExtractor, StreamConsumerActor, stream handshakes
                               #   (StreamWiringMessages: pipeline output, forecast,
                               #   read-model and config streams)
     Configuration/            # Cross-cutting options and validators (scope, polling, OpenMeteo, storage,
-                              #   persistence, MQTT, sensors), budget calculator, ConfigView (scope + polling),
-                              #   ConfigOverrideFile, AddNjordOptions, ParameterOptions.Resolve(),
-                              #   PollingOptions.ToBudgetAllowance(); no analysis feature options
+                              #   persistence, MQTT, sensors, LocationOptions), budget calculator,
+                              #   ConfigView (scope + polling), ConfigOverrideFile, AddNjordOptions,
+                              #   ParameterOptions.Resolve(), PollingOptions.ToBudgetAllowance();
+                              #   no analysis feature options
 
-  # /Domain/ — feature libraries (each -> Core only)
+  # /Ingest/ — data acquisition (each -> Core only)
   Njord.OpenMeteo/            # OpenMeteoGateway, OpenMeteoClient (HTTP, status handling, outcomes), DTOs,
                               #   JSON source generator
     Mapping/                  # OpenMeteoSeriesMappings (ToForecastSeries, ToDailySeries),
@@ -229,7 +240,7 @@ src/
                               #   ConfigRequestMappings (ToCommand), ConfigResponseMappings (ToProto) with the
                               #   ConfigResponses helper, WireEnumMappings: extension methods only
 
-  # /Analysis/ — per-feature analysis libraries (each -> Core only), own their computation
+  # /Analysis/ — per-feature analysis libraries (each -> Core only; never Forecast directly), own their computation
   Njord.Alerts/               # AlertAnalyzer, IAlertRule, Rules/ (one rule per AlertType),
                               #   AlertWindow, Configuration/ (AlertOptions, validator, conversion)
   Njord.Derived/              # DerivedAnalyzer, DerivedFormulas,
@@ -251,7 +262,8 @@ src/
     Health/
 
   # /Tests/ — one test project per production project
-  Njord.Weather.Tests/        # Weather record specs
+  Njord.Model.Tests/          # Vocabulary type specs (ParameterRegistry, Horizon, WeatherModel, etc.)
+  Njord.Forecast.Tests/       # Time-series specs (ForecastPoint, HorizonProjection, ForecastDataHash, etc.)
   Njord.Sensors.Tests/        # Sensor record specs
   Njord.Persistence.Tests/    # Persistence roundtrip and wire-format specs (Verify for the poll worker records)
   Njord.Consensus.Tests/      # Consensus and query vocabulary specs (no Akka)
@@ -274,10 +286,10 @@ src/
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
 
-Reference direction: Weather/Sensors <- Consensus <- Messages; Weather/Sensors/Consensus/Messages/Persistence <- Core <- feature libs
+Reference direction: Model/Sensors <- Forecast <- Consensus <- Messages; Model/Sensors/Forecast/Consensus/Messages/Persistence <- Core <- feature libs
 (OpenMeteo, Budget, SensorHub, Grpc, Pipeline, Mqtt, Alerts, Derived, Trends,
 Indices) <- host. Feature libs reference only Njord.Core (and below, including
-Consensus transitively), never each other and never the host; they reach each other's actors
+Model and Forecast transitively), never each other and never the host; they reach each other's actors
 through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs`. Registration
 stays central in the host. Enforced by project references plus `Njord.Architecture.Tests/LayerReferenceSpec.cs` and the
 lateral/upward ArchUnit rules in `Njord.Architecture.Tests/ZoneArchitectureSpec.cs`.
@@ -302,9 +314,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1796 tests (Weather 124, Sensors 11, Persistence 16, Consensus 75, Messages 126,
-Core 167, Grpc 157, Pipeline 176, Mqtt 171, OpenMeteo 72, Budget 36, SensorHub 32, Architecture 155,
-Alerts 120, Derived 38, Trends 29, Indices 85, host `Njord.Tests` 184, IntegrationTests 22).
+Current total: 1794 tests (Model 81, Forecast 50, Sensors 11, Persistence 16, Consensus 75, Messages 126,
+Core 167, Grpc 157, Pipeline 176, Mqtt 171, OpenMeteo 72, Budget 36, SensorHub 32, Architecture 157,
+Alerts 120, Derived 32, Trends 24, Indices 85, host `Njord.Tests` 184, IntegrationTests 22).
 The count is one test per `[Fact]` and one per data row of a `[Theory]`; `DocumentationArchitectureSpec`
 fails with the discovered numbers when this line is stale.
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
@@ -383,7 +395,7 @@ MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
 skipped or ignored tests (`[Fact(Skip = ...)]`, `[Theory(Skip = ...)]`, `[Ignore]`)
 across all `*Spec.cs` test files.
 
-Mutation testing (Stryker.NET 5, MTP runner, per-test coverage; pure-logic projects only: Weather,
+Mutation testing (Stryker.NET 5, MTP runner, per-test coverage; pure-logic projects only: Model, Forecast,
 Consensus, Alerts, Derived, Trends, Indices and parts of Core): `bash scripts/run-mutation.sh <Project>`
 from the repo root (runs in the .NET SDK container; `--local` where the SDK's MSBuild resolves, as in CI).
 Config in `src/stryker-config.json`, tool pinned in `.config/dotnet-tools.json`, weekly and manual run in
@@ -486,7 +498,7 @@ These checks run locally only; they are deliberately not part of CI.
   strings. Enrichment `PipelineEvent` variants implement `IEnrichmentEvent`.
 - Consensus method is `ConsensusMethod` enum (`Njord.Consensus.Settings`),
   not a string.
-- `ParameterRegistry` (`Njord.Weather`): one `static readonly ParameterDef` field per
+- `ParameterRegistry` (`Njord.Model`): one `static readonly ParameterDef` field per
   parameter (declared once, registered into the catalog; daily variants of a shared API name
   are `DailyWeatherCode`, `DailySunshineDuration`, `DailyEt0FaoEvapotranspiration`). Use the
   fields (`ParameterRegistry.Rain`, `.PrecipitationSum`, etc.) in production code.

@@ -1,5 +1,6 @@
 using Njord.OpenMeteo.Mapping;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
 
 namespace Njord.OpenMeteo.Tests;
 
@@ -33,10 +34,10 @@ public sealed class OpenMeteoSeriesMappingsSpec
         Assert.Equal(2, mapped.Points.Count);
         Assert.Equal(Start, mapped.Points[0].ValidAt);
         Assert.Equal(Start.AddHours(1), mapped.Points[1].ValidAt);
-        Assert.Equal(20.2, mapped.Points[0].Get(Temperature));
-        Assert.Equal(3.4, mapped.Points[0].Get(WindSpeed));
-        Assert.Equal(21.5, mapped.Points[1].Get(Temperature));
-        Assert.Equal(4.1, mapped.Points[1].Get(WindSpeed));
+        Assert.Equal(20.2, mapped.Points[0].Get(Temperature).Number);
+        Assert.Equal(3.4, mapped.Points[0].Get(WindSpeed).Number);
+        Assert.Equal(21.5, mapped.Points[1].Get(Temperature).Number);
+        Assert.Equal(4.1, mapped.Points[1].Get(WindSpeed).Number);
     }
 
     [Fact]
@@ -48,8 +49,8 @@ public sealed class OpenMeteoSeriesMappingsSpec
 
         Assert.NotNull(mapped);
         Assert.Single(mapped.Points);
-        Assert.Equal(20.2, mapped.Points[0].Get(Temperature));
-        Assert.Null(mapped.Points[0].Get(WindSpeed));
+        Assert.Equal(20.2, mapped.Points[0].Get(Temperature).Number);
+        Assert.False(mapped.Points[0].Get(WindSpeed).HasValue);
     }
 
     [Fact]
@@ -61,8 +62,8 @@ public sealed class OpenMeteoSeriesMappingsSpec
 
         Assert.NotNull(mapped);
         Assert.Equal(3, mapped.Points.Count);
-        Assert.Null(mapped.Points[1].Get(Temperature));
-        Assert.Equal(3.0, mapped.Points[2].Get(Temperature));
+        Assert.False(mapped.Points[1].Get(Temperature).HasValue);
+        Assert.Equal(3.0, mapped.Points[2].Get(Temperature).Number);
     }
 
     [Fact]
@@ -82,8 +83,8 @@ public sealed class OpenMeteoSeriesMappingsSpec
 
         var point = Assert.Single(mapped.Points);
         Assert.Equal(new DateOnly(2026, 7, 11), point.Date);
-        Assert.Equal(25.5, point.GetNumeric(TempMax));
-        Assert.Equal("2026-07-11T05:23", point.GetMeta(Sunrise));
+        Assert.Equal(25.5, point.Get(TempMax).Number);
+        Assert.Equal("2026-07-11T05:23", point.Get(Sunrise).Text);
     }
 
     [Fact]
@@ -94,8 +95,8 @@ public sealed class OpenMeteoSeriesMappingsSpec
         var mapped = series.ToDailySeries(Parameters);
 
         var point = Assert.Single(mapped.Points);
-        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1783746180).ToString("O"), point.GetMeta(Sunrise));
-        Assert.Null(point.GetNumeric(TempMax));
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1783746180).ToString("O"), point.Get(Sunrise).Text);
+        Assert.Null(point.Get(TempMax).Number);
     }
 
     [Fact]
@@ -107,6 +108,6 @@ public sealed class OpenMeteoSeriesMappingsSpec
 
         var point = Assert.Single(mapped.Points);
         Assert.Equal(new DateOnly(2026, 7, 12), point.Date);
-        Assert.Equal(22.0, point.GetNumeric(TempMax));
+        Assert.Equal(22.0, point.Get(TempMax).Number);
     }
 }

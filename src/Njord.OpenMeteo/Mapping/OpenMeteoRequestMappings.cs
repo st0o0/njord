@@ -1,6 +1,6 @@
 using System.Globalization;
 using Njord.Core.Configuration;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.OpenMeteo.Mapping;
 

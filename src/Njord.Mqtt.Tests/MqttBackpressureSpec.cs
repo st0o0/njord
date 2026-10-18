@@ -11,7 +11,7 @@ using Njord.Mqtt.Actors;
 using Njord.Mqtt.Health;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Mqtt.Tests;
 

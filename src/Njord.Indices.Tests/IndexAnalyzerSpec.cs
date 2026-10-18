@@ -8,7 +8,9 @@ using Njord.Indices.Configuration;
 using Njord.Messages.Indices;
 using Njord.Sensors;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Indices.Tests;
 
@@ -126,7 +128,7 @@ public sealed class IndexAnalyzerSpec
         return new ConsensusBuilder(Parameters, Time).Create(snap, location, ConsensusSettings.Default);
     }
 
-    private static Forecast MakeForecast(
+    private static WeatherForecast MakeForecast(
         WeatherModel model, string location, int hours,
         Func<int, (double temp, double hum, double wind, double cloud, double isDay)> valueFunc)
     {
@@ -134,7 +136,7 @@ public sealed class IndexAnalyzerSpec
         for (var h = 0; h < hours; h++)
         {
             var (temp, hum, wind, cloud, isD) = valueFunc(h);
-            var values = new Dictionary<ParameterDef, double?>
+            var values = new Dictionary<ParameterDef, ForecastValue>
             {
                 [Temperature] = temp,
                 [Humidity] = hum,
@@ -144,7 +146,7 @@ public sealed class IndexAnalyzerSpec
             };
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
-        return new Forecast(model, location, new CycleId(T0),
+        return new WeatherForecast(model, location, new CycleId(T0),
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
@@ -231,14 +233,14 @@ public sealed class IndexAnalyzerSpec
     private static IndexSettings ResultPrefs(string location = "lucerne") =>
         new(IndexKinds.All.ToDictionary(kind => (new LocationId(location), kind), _ => ResolvedPreferences.Default));
 
-    private static Forecast MakeResultForecast(
+    private static WeatherForecast MakeResultForecast(
         WeatherModel model, int hours, Func<int, (double temp, double hum, double wind, double cloud, double isDay)> valueFunc)
     {
         var points = new List<ForecastPoint>();
         for (var h = 0; h < hours; h++)
         {
             var (temp, hum, wind, cloud, isD) = valueFunc(h);
-            var values = new Dictionary<ParameterDef, double?>
+            var values = new Dictionary<ParameterDef, ForecastValue>
             {
                 [Temperature] = temp,
                 [Humidity] = hum,
@@ -248,11 +250,11 @@ public sealed class IndexAnalyzerSpec
             };
             points.Add(new ForecastPoint(ResultT0.AddHours(h), values));
         }
-        return new Forecast(model, "lucerne", new CycleId(ResultT0),
+        return new WeatherForecast(model, "lucerne", new CycleId(ResultT0),
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    private static ModelForecasts ResultForecastsWith(params Forecast[] forecasts)
+    private static ModelForecasts ResultForecastsWith(params WeatherForecast[] forecasts)
     {
         var snap = ModelForecasts.Empty;
         foreach (var f in forecasts)

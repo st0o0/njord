@@ -1,6 +1,6 @@
 using Njord.Grpc.Mapping;
 using Njord.Messages.Config;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Grpc.Tests;
 

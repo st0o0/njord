@@ -1,5 +1,6 @@
 using Njord.Mqtt.Mapping;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
 
 namespace Njord.Mqtt.Tests.Mapping;
 
@@ -11,9 +12,9 @@ public sealed class ForecastPayloadMappingsSpec
         var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
         IReadOnlyList<HorizonValue> values =
         [
-            new(ParameterRegistry.Temperature2m, 21.5, null),
-            new(sunrise, null, "05:31"),
-            new(ParameterRegistry.WindSpeed10m, 3.0, null),
+            new(ParameterRegistry.Temperature2m, new ForecastValue(21.5, null)),
+            new(sunrise, new ForecastValue(null, "05:31")),
+            new(ParameterRegistry.WindSpeed10m, new ForecastValue(3.0, null)),
         ];
 
         var payload = values.ToPayload();

@@ -11,7 +11,9 @@ using Njord.Messages.Derived;
 using Njord.Messages.Indices;
 using Njord.Messages.Trends;
 using Njord.Trends;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Tests.Shared;
 
@@ -87,7 +89,7 @@ public sealed class AnalysisFixture
 
     private AnalysisFixture(
         FakeTimeProvider time,
-        IReadOnlyList<Forecast> forecasts,
+        IReadOnlyList<WeatherForecast> forecasts,
         IReadOnlyList<LocationAnalysis> analyses)
     {
         Time = time;
@@ -97,7 +99,7 @@ public sealed class AnalysisFixture
 
     public FakeTimeProvider Time { get; }
 
-    public IReadOnlyList<Forecast> Forecasts { get; }
+    public IReadOnlyList<WeatherForecast> Forecasts { get; }
 
     public IReadOnlyList<LocationAnalysis> Analyses { get; }
 
@@ -121,7 +123,7 @@ public sealed class AnalysisFixture
     public static AnalysisFixture Create()
     {
         var time = new FakeTimeProvider(Now);
-        var forecasts = new List<Forecast>();
+        var forecasts = new List<WeatherForecast>();
         var current = ModelForecasts.Empty;
         var previous = ModelForecasts.Empty;
 
@@ -165,13 +167,13 @@ public sealed class AnalysisFixture
     public LocationAnalysis For(string location) =>
         Analyses.Single(a => a.Location == location);
 
-    private static Forecast BuildForecast(string location, WeatherModel model, bool isPrevious)
+    private static WeatherForecast BuildForecast(string location, WeatherModel model, bool isPrevious)
     {
         var lastHour = model == IconD2 ? IconD2LastHour : LastHour;
         var hourly = new List<ForecastPoint>();
         for (var h = 0; h <= lastHour; h++)
         {
-            var values = new Dictionary<ParameterDef, double?>();
+            var values = new Dictionary<ParameterDef, ForecastValue>();
             foreach (var parameter in Parameters.Hourly)
             {
                 values[parameter] = HourlyValue(location, parameter, h, model, isPrevious);
@@ -185,25 +187,24 @@ public sealed class AnalysisFixture
         var daily = new List<DailyForecastPoint>();
         for (var d = 0; d < days; d++)
         {
-            var numeric = new Dictionary<ParameterDef, double?>();
-            var meta = new Dictionary<ParameterDef, string?>();
+            var values = new Dictionary<ParameterDef, ForecastValue>();
             foreach (var parameter in Parameters.Daily)
             {
                 if (parameter.ValueType == ParameterValueType.TimeString)
                 {
-                    meta[parameter] = DailyMeta(parameter, today.AddDays(d), location, model);
+                    values[parameter] = new ForecastValue(null, DailyMeta(parameter, today.AddDays(d), location, model));
                 }
                 else
                 {
-                    numeric[parameter] = DailyValue(location, parameter, d, model);
+                    values[parameter] = DailyValue(location, parameter, d, model);
                 }
             }
 
-            daily.Add(new DailyForecastPoint(today.AddDays(d), numeric, meta));
+            daily.Add(new DailyForecastPoint(today.AddDays(d), values));
         }
 
         var cycle = new CycleId(isPrevious ? Now.AddHours(-1) : Now);
-        return new Forecast(model, location, cycle, new ForecastSeries(hourly), new DailyForecastSeries(daily));
+        return new WeatherForecast(model, location, cycle, new ForecastSeries(hourly), new DailyForecastSeries(daily));
     }
 
     private static bool IsDay(int h)

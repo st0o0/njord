@@ -3,7 +3,7 @@ using Njord.Consensus;
 using Njord.Consensus.Querying;
 using Njord.Derived.Configuration;
 using Njord.Messages.Derived;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Derived;
 

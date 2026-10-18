@@ -1,6 +1,6 @@
 using Njord.Consensus;
 using Njord.Consensus.Querying;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Consensus.Tests.Querying;
 

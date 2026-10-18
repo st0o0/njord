@@ -1,9 +1,10 @@
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Core.Configuration;
 using Njord.Messages.Forecast;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.OpenMeteo.Tests;
 

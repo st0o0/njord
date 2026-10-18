@@ -14,10 +14,11 @@ using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
 using Njord.Messages.Sensors;
 using Njord.Pipeline.Configuration;
-using Njord.Weather;
+using Njord.Forecast;
+using Njord.Model;
 using Servus.Akka;
 using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
-using WeatherForecast = Njord.Weather.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Pipeline;
 

@@ -1,14 +1,9 @@
-using Njord.Consensus;
 using Njord.Messages.Trends;
-using Njord.Weather;
 
 namespace Njord.Trends.Tests;
 
 public sealed class TrendFormulasSpec
 {
-    private static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
-    private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
-    private static readonly ParameterDef Precipitation = ParameterRegistry.GetByApiName("precipitation")!;
 
     // --- TrendDirection ---
 
@@ -66,81 +61,6 @@ public sealed class TrendFormulasSpec
     [Fact]
     public void WeatherChange_null_codes() =>
         Assert.Null(TrendFormulas.WeatherChange(null, 63));
-
-    // --- PrecipitationTiming ---
-
-    [Fact]
-    public void PrecipitationTiming_rain_window()
-    {
-        var points = Enumerable.Range(0, 24).Select(h =>
-            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
-            {
-                [Precipitation] = h is >= 3 and <= 8 ? 2.5 : 0.0,
-            })).ToList();
-        var series = new ForecastSeries(points);
-
-        var (starts, ends) = TrendFormulas.PrecipitationTiming(series, Precipitation, T0);
-        Assert.Equal(3, starts);
-        Assert.Equal(8, ends);
-    }
-
-    [Fact]
-    public void PrecipitationTiming_no_precipitation()
-    {
-        var points = Enumerable.Range(0, 24).Select(h =>
-            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
-            {
-                [Precipitation] = 0.0,
-            })).ToList();
-        var series = new ForecastSeries(points);
-
-        var (starts, ends) = TrendFormulas.PrecipitationTiming(series, Precipitation, T0);
-        Assert.Null(starts);
-        Assert.Null(ends);
-    }
-
-    [Fact]
-    public void PrecipitationTiming_from_start()
-    {
-        var points = Enumerable.Range(0, 24).Select(h =>
-            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
-            {
-                [Precipitation] = h <= 12 ? 1.0 : 0.0,
-            })).ToList();
-        var series = new ForecastSeries(points);
-
-        var (starts, ends) = TrendFormulas.PrecipitationTiming(series, Precipitation, T0);
-        Assert.Equal(0, starts);
-        Assert.Equal(12, ends);
-    }
-
-    // --- ExtremaTiming ---
-
-    [Fact]
-    public void ExtremaTiming_peak_and_low()
-    {
-        var points = Enumerable.Range(0, 24).Select(h =>
-            new ForecastPoint(T0.AddHours(h), new Dictionary<ParameterDef, double?>
-            {
-                [Temperature] = h == 6 ? 28.0 : h == 18 ? 12.0 : 20.0,
-            })).ToList();
-        var series = new ForecastSeries(points);
-
-        var (maxH, minH) = TrendFormulas.ExtremaTiming(series, Temperature, T0);
-        Assert.Equal(6, maxH);
-        Assert.Equal(18, minH);
-    }
-
-    [Fact]
-    public void ExtremaTiming_insufficient_data()
-    {
-        var points = new[] { new ForecastPoint(T0, new Dictionary<ParameterDef, double?> { [Temperature] = 20.0 }) };
-        var series = new ForecastSeries(points);
-
-        var (maxH, minH) = TrendFormulas.ExtremaTiming(series, Temperature, T0);
-        Assert.Null(maxH);
-        Assert.Null(minH);
-    }
 
     // --- ConsensusStability ---
 

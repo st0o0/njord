@@ -1,7 +1,7 @@
 using Njord.Consensus;
 using Njord.Consensus.Querying;
 using Njord.Mqtt.Payloads;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Mqtt.Mapping;
 

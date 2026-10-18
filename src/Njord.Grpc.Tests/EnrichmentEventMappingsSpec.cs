@@ -3,7 +3,9 @@ using Njord.Grpc.Mapping;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 using DomainAlert = Njord.Messages.Alerts.Alert;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainAlertType = Njord.Messages.Alerts.AlertType;
@@ -72,7 +74,7 @@ public sealed class EnrichmentEventMappingsSpec
     {
         var evt = EnrichmentEventMappings.ToEnrichmentEvent(
             new PipelineEvent.ForecastReceived(new LocationId("lucerne"), new WeatherModel("icon_d2"),
-                new Forecast(new WeatherModel("icon_d2"), "lucerne", default,
+                new WeatherForecast(new WeatherModel("icon_d2"), "lucerne", default,
                     new ForecastSeries([]), DailyForecastSeries.Empty)));
 
         Assert.Null(evt);

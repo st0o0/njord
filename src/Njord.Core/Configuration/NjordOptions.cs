@@ -1,5 +1,3 @@
-using Njord.Weather;
-
 namespace Njord.Core.Configuration;
 
 public sealed class NjordOptions

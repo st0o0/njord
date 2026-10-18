@@ -1,5 +1,5 @@
 using Njord.Consensus;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Messages.Indices;
 

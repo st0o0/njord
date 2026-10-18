@@ -3,7 +3,7 @@ using Njord.Consensus;
 using Njord.Consensus.Querying;
 using Njord.Messages.Trends;
 using Njord.Trends.Configuration;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Trends;
 

@@ -18,7 +18,7 @@ using Njord.Messages.Config;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
 using Njord.Trends.Configuration;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Tests.Configuration;
 

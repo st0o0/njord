@@ -2,7 +2,7 @@ using Njord.Messages.Pipeline;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Topics;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Mqtt.Tests;
 

@@ -5,7 +5,8 @@ using Njord.Core.Configuration;
 using Njord.Mqtt;
 using Njord.Mqtt.Topics;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
 
 namespace Njord.Pipeline.Tests;
 

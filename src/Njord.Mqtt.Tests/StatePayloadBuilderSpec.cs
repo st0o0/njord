@@ -11,7 +11,9 @@ using Njord.Messages.Derived;
 using Njord.Messages.Indices;
 using Njord.Tests.Shared;
 using Njord.Trends;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Mqtt.Tests;
 
@@ -29,21 +31,20 @@ public sealed class StatePayloadBuilderSpec
         [Temperature, WindSpeed],
         [TempMax, Sunrise]);
 
-    private static Forecast Forecast(DateTimeOffset tick, DateTimeOffset firstPoint, int pointCount)
+    private static WeatherForecast Forecast(DateTimeOffset tick, DateTimeOffset firstPoint, int pointCount)
         => new(
             IconD2,
             "home",
             new CycleId(tick),
             new ForecastSeries(Enumerable.Range(0, pointCount)
-                .Select(i => new ForecastPoint(firstPoint.AddHours(i), new Dictionary<ParameterDef, double?>
+                .Select(i => new ForecastPoint(firstPoint.AddHours(i), new Dictionary<ParameterDef, ForecastValue>
                 {
                     [Temperature] = i,
                     [WindSpeed] = i * 0.1,
                 }))),
             new DailyForecastSeries([
                 new DailyForecastPoint(DateOnly.FromDateTime(tick.UtcDateTime),
-                    new Dictionary<ParameterDef, double?> { [TempMax] = 28.5 },
-                    new Dictionary<ParameterDef, string?> { [Sunrise] = "05:31" }),
+                    new Dictionary<ParameterDef, ForecastValue> { [TempMax] = 28.5, [Sunrise] = new ForecastValue(null, "05:31") }),
             ]));
 
     [Fact]
@@ -115,17 +116,17 @@ public sealed class StatePayloadBuilderSpec
     private static readonly ParameterDef IsDay = ParameterRegistry.GetByApiName("is_day")!;
     private static readonly ResolvedParameterSet FullParams = ParameterSelection.Resolve(["Weather", "Solar"], [], []);
 
-    private static Forecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues)
+    private static WeatherForecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues)
     {
-        var values = hourlyValues.ToDictionary(x => x.Param, x => (double?)x.Value);
-        return new Forecast(
+        var values = hourlyValues.ToDictionary(x => x.Param, x => (ForecastValue)x.Value);
+        return new WeatherForecast(
             model, "lucerne", new CycleId(T0),
             new ForecastSeries(Enumerable.Range(0, 72)
                 .Select(i => new ForecastPoint(T0.AddHours(i), values))),
             new DailyForecastSeries([]));
     }
 
-    private static ModelForecasts ForecastsWith(params Forecast[] forecasts)
+    private static ModelForecasts ForecastsWith(params WeatherForecast[] forecasts)
         => forecasts.Aggregate(ModelForecasts.Empty, (s, f) => s.Update(f));
 
     [Fact]
@@ -157,15 +158,15 @@ public sealed class StatePayloadBuilderSpec
         var dailyParam = ParameterRegistry.GetByApiName("temperature_2m_max")!;
         var dailyForecasts = new[]
         {
-            new Forecast(IconD2, "lucerne", new CycleId(T0), new ForecastSeries([]),
+            new WeatherForecast(IconD2, "lucerne", new CycleId(T0), new ForecastSeries([]),
                 new DailyForecastSeries([
-                    new DailyForecastPoint(baseDate, new Dictionary<ParameterDef, double?> { [dailyParam] = 28.0 }, new Dictionary<ParameterDef, string?>()),
-                    new DailyForecastPoint(baseDate.AddDays(1), new Dictionary<ParameterDef, double?> { [dailyParam] = 30.0 }, new Dictionary<ParameterDef, string?>()),
+                    new DailyForecastPoint(baseDate, new Dictionary<ParameterDef, ForecastValue> { [dailyParam] = 28.0 }),
+                    new DailyForecastPoint(baseDate.AddDays(1), new Dictionary<ParameterDef, ForecastValue> { [dailyParam] = 30.0 }),
                 ])),
-            new Forecast(new WeatherModel("ecmwf_ifs025"), "lucerne", new CycleId(T0), new ForecastSeries([]),
+            new WeatherForecast(new WeatherModel("ecmwf_ifs025"), "lucerne", new CycleId(T0), new ForecastSeries([]),
                 new DailyForecastSeries([
-                    new DailyForecastPoint(baseDate, new Dictionary<ParameterDef, double?> { [dailyParam] = 31.0 }, new Dictionary<ParameterDef, string?>()),
-                    new DailyForecastPoint(baseDate.AddDays(1), new Dictionary<ParameterDef, double?> { [dailyParam] = 33.0 }, new Dictionary<ParameterDef, string?>()),
+                    new DailyForecastPoint(baseDate, new Dictionary<ParameterDef, ForecastValue> { [dailyParam] = 31.0 }),
+                    new DailyForecastPoint(baseDate.AddDays(1), new Dictionary<ParameterDef, ForecastValue> { [dailyParam] = 33.0 }),
                 ])),
         };
 

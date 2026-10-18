@@ -4,7 +4,7 @@ using Njord.Messages.Derived;
 using Njord.Messages.Indices;
 using Njord.Messages.Pipeline;
 using Njord.Messages.Trends;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Tests.Shared;
 

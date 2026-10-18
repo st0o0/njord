@@ -1,6 +1,6 @@
 using Njord.Core.Actors;
 using Njord.Messages.Pipeline;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Core.Tests.Actors;
 

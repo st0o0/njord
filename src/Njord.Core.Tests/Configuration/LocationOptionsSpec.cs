@@ -1,4 +1,5 @@
-using Njord.Weather;
+using Njord.Core.Configuration;
+using Njord.Model;
 
 namespace Njord.Core.Tests.Configuration;
 

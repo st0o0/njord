@@ -1,5 +1,6 @@
 using Njord.Consensus.Settings;
-using Njord.Weather;
+using Njord.Forecast;
+using Njord.Model;
 
 namespace Njord.Consensus;
 
@@ -136,7 +137,7 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
                     pointIndex.TryGetValue(key, out var pointsByValidAt);
                     ForecastPoint? point = null;
                     pointsByValidAt?.TryGetValue(targetTime, out point);
-                    modelValues.Add((key.Model, point?.Get(parameter)));
+                    modelValues.Add((key.Model, point?.Get(parameter).Number));
                 }
 
                 byHorizon[horizonKey] = ComputeHorizon(modelValues, trimPercent, agreementTolerance);
@@ -177,7 +178,7 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
                     }
 
                     var point = forecast.Daily.Points.FirstOrDefault(p => p.Date == targetDate);
-                    modelValues.Add((key.Model, point?.GetNumeric(parameter)));
+                    modelValues.Add((key.Model, point?.Get(parameter).Number));
                 }
 
                 byHorizon[horizonKey] = ComputeHorizon(modelValues, trimPercent, agreementTolerance);

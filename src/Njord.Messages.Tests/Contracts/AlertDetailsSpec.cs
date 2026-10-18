@@ -1,6 +1,6 @@
 using Njord.Consensus;
 using Njord.Messages.Alerts;
-using Njord.Weather;
+using Njord.Model;
 
 namespace Njord.Messages.Tests.Contracts;
 

@@ -2,7 +2,7 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
-using WeatherForecast = Njord.Weather.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Tests.Shared;
 

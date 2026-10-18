@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Consensus;
 using Njord.Consensus.Settings;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Consensus.Tests.Consensus;
 
@@ -15,17 +17,17 @@ public sealed class ConsensusBuilderSpec
     private static readonly WeatherModel Ecmwf = new("ecmwf_ifs025");
     private static readonly WeatherModel Gfs = new("gfs_seamless");
 
-    private static Forecast MakeHourlyForecast(
+    private static WeatherForecast MakeHourlyForecast(
         WeatherModel model, string location, DateTimeOffset baseHour, params (int Hour, double Temp)[] points)
     {
         var forecastPoints = points.Select(p =>
             new ForecastPoint(baseHour.AddHours(p.Hour),
-                new Dictionary<ParameterDef, double?> { [Temperature] = p.Temp })).ToList();
-        return new Forecast(model, location, new CycleId(baseHour),
+                new Dictionary<ParameterDef, ForecastValue> { [Temperature] = p.Temp })).ToList();
+        return new WeatherForecast(model, location, new CycleId(baseHour),
             new ForecastSeries(forecastPoints), DailyForecastSeries.Empty);
     }
 
-    private static Forecast MakeDailyForecast(
+    private static WeatherForecast MakeDailyForecast(
         WeatherModel model, string location, DateOnly baseDate,
         params (ParameterDef Param, double?[] Values)[] series)
     {
@@ -34,43 +36,43 @@ public sealed class ConsensusBuilderSpec
 
         for (var d = 0; d < dayCount; d++)
         {
-            var numericValues = new Dictionary<ParameterDef, double?>();
+            var numericValues = new Dictionary<ParameterDef, ForecastValue>();
             foreach (var (param, values) in series)
             {
                 numericValues[param] = values[d];
             }
 
-            points.Add(new DailyForecastPoint(baseDate.AddDays(d), numericValues, new Dictionary<ParameterDef, string?>()));
+            points.Add(new DailyForecastPoint(baseDate.AddDays(d), numericValues));
         }
 
-        return new Forecast(model, location, new CycleId(T0),
+        return new WeatherForecast(model, location, new CycleId(T0),
             new ForecastSeries([]), new DailyForecastSeries(points));
     }
 
-    private static Forecast MakeCombinedForecast(
+    private static WeatherForecast MakeCombinedForecast(
         WeatherModel model, string location, DateTimeOffset baseHour,
         (int Hour, double Temp)[] hourlyPoints,
         (ParameterDef Param, double?[] Values)[] dailySeries)
     {
         var forecastPoints = hourlyPoints.Select(p =>
             new ForecastPoint(baseHour.AddHours(p.Hour),
-                new Dictionary<ParameterDef, double?> { [Temperature] = p.Temp })).ToList();
+                new Dictionary<ParameterDef, ForecastValue> { [Temperature] = p.Temp })).ToList();
 
         var baseDate = DateOnly.FromDateTime(baseHour.UtcDateTime);
         var dailyPoints = new List<DailyForecastPoint>();
         var dayCount = dailySeries.Length > 0 ? dailySeries[0].Values.Length : 0;
         for (var d = 0; d < dayCount; d++)
         {
-            var numericValues = new Dictionary<ParameterDef, double?>();
+            var numericValues = new Dictionary<ParameterDef, ForecastValue>();
             foreach (var (param, values) in dailySeries)
             {
                 numericValues[param] = values[d];
             }
 
-            dailyPoints.Add(new DailyForecastPoint(baseDate.AddDays(d), numericValues, new Dictionary<ParameterDef, string?>()));
+            dailyPoints.Add(new DailyForecastPoint(baseDate.AddDays(d), numericValues));
         }
 
-        return new Forecast(model, location, new CycleId(baseHour),
+        return new WeatherForecast(model, location, new CycleId(baseHour),
             new ForecastSeries(forecastPoints), new DailyForecastSeries(dailyPoints));
     }
 
@@ -259,8 +261,8 @@ public sealed class ConsensusBuilderSpec
         Assert.Equal(anchorTime, result.ComputedAt);
     }
 
-    private static Forecast MakePointForecast(
-        WeatherModel model, string location, DateTimeOffset baseHour, int hour, Dictionary<ParameterDef, double?> values) =>
+    private static WeatherForecast MakePointForecast(
+        WeatherModel model, string location, DateTimeOffset baseHour, int hour, Dictionary<ParameterDef, ForecastValue> values) =>
         new(model, location, new CycleId(baseHour),
             new ForecastSeries([new ForecastPoint(baseHour.AddHours(hour), values)]), DailyForecastSeries.Empty);
 
@@ -414,9 +416,9 @@ public sealed class ConsensusBuilderSpec
         var humidity = ParameterRegistry.RelativeHumidity2m;
         var forecasts = ModelForecasts.Empty
             .Update(MakePointForecast(IconD2, "lucerne", T0, 3,
-                new Dictionary<ParameterDef, double?> { [Temperature] = 20.0, [humidity] = 60.0 }))
+                new Dictionary<ParameterDef, ForecastValue> { [Temperature] = 20.0, [humidity] = 60.0 }))
             .Update(MakePointForecast(Ecmwf, "lucerne", T0, 3,
-                new Dictionary<ParameterDef, double?> { [Temperature] = 22.0 }));
+                new Dictionary<ParameterDef, ForecastValue> { [Temperature] = 22.0 }));
 
         var result = new ConsensusBuilder(new ResolvedParameterSet([Temperature, humidity], []), new FakeTimeProvider(T0))
             .Create(forecasts, "lucerne", ConsensusSettings.Default);

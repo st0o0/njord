@@ -6,7 +6,8 @@ using Njord.Core.Configuration;
 using Njord.Derived.Configuration;
 using Njord.Messages.Derived;
 using Njord.Tests.Shared;
-using Njord.Weather;
+using Njord.Model;
+using Njord.Forecast;
 
 namespace Njord.Derived.Tests;
 
