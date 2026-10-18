@@ -64,7 +64,7 @@ The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupCont
 - **THEN** `OpenMeteoGateway` runs as a singleton resolvable through `IForecastGateway`
 
 ### Requirement: PipelineSetupContainer registers scheduling, pipeline and read-model actors
-`PipelineSetupContainer` (src/Njord.Pipeline/Configuration) SHALL bind and validate `PollingOptions` and `ConsensusOptions`, register the fetch timeouts unless already registered, and register an `IActorRegistration` that creates the poll shard region `poll-worker` of `PollWorker` entities under `IPollRegion` (shared `ShardMessageExtractor`, no passivation, no remember-entities) before three cluster singletons: `PollManager` under `IPollManager` (singleton name `poll-manager`, inside a backoff-on-failure supervisor, 3 s to 30 s, unlimited retries), `ForecastPipeline` under `IForecastPipeline` (inside a backoff-on-failure supervisor, 3 s to 30 s, unlimited retries) and `ForecastReadModel` under `IForecastReadModel`. It SHALL NOT register a CoordinatedShutdown stream-stop task and SHALL NOT register a startup `AnalysisSettings`; the analysis settings come from `ConfigManager`.
+`PipelineSetupContainer` (src/Njord.Pipeline/Configuration) SHALL bind and validate `PollingOptions` and `ConsensusOptions`, register the `AnalysisSettings` the pipeline starts with (built by `AnalysisSettingsFactory` from the bound options), register the fetch timeouts unless already registered, and register an `IActorRegistration` that creates the poll shard region `poll-worker` of `PollWorker` entities under `IPollRegion` (shared `ShardMessageExtractor`, no passivation, no remember-entities) before three cluster singletons: `PollManager` under `IPollManager` (singleton name `poll-manager`, inside a backoff-on-failure supervisor, 3 s to 30 s, unlimited retries), `ForecastPipeline` under `IForecastPipeline` (inside a backoff-on-failure supervisor, 3 s to 30 s, unlimited retries) and `ForecastReadModel` under `IForecastReadModel`. It SHALL NOT register a CoordinatedShutdown stream-stop task.
 
 #### Scenario: Pipeline actors are declared via IActorRegistration
 - **WHEN** `PipelineSetupContainer.SetupServices` is called
@@ -72,7 +72,7 @@ The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupCont
 
 #### Scenario: Startup analysis settings are registered
 - **WHEN** `ForecastPipeline` starts
-- **THEN** it asks `ConfigManager` for the current analysis settings and no `AnalysisSettings` singleton is registered
+- **THEN** it analyzes with the registered startup `AnalysisSettings` until its request to `ConfigManager` for the current analysis settings is answered, and every constructor dependency of the actor is resolvable from the host's registrations
 
 #### Scenario: Pipeline is a supervised singleton
 - **WHEN** the analysis graph of `ForecastPipeline` ends and the pipeline fails
