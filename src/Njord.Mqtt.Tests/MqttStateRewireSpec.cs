@@ -17,11 +17,11 @@ public sealed class MqttStateRewireSpec : NjordActorSpec
 
     private static readonly DateTimeOffset Anchor = TestTimeConstants.NoonAnchor;
 
-    private (FakePipelineOutput Pipeline, MqttStateSpec.RecordingTransport Transport) Start()
+    private (FakePipelineOutput Pipeline, RecordingTransport Transport) Start()
     {
         var pipeline = new FakePipelineOutput(Sys);
         ActorRegistry.Register<IForecastPipeline>(pipeline.Actor, overwrite: true);
-        var transport = new MqttStateSpec.RecordingTransport();
+        var transport = new RecordingTransport();
         var options = new NjordOptions
         {
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
@@ -52,7 +52,7 @@ public sealed class MqttStateRewireSpec : NjordActorSpec
             null),
         Anchor);
 
-    private static async Task WaitForTrendAsync(MqttStateSpec.RecordingTransport transport, int precipStarts, CancellationToken ct)
+    private static async Task WaitForTrendAsync(RecordingTransport transport, int precipStarts, CancellationToken ct)
     {
         try
         {
@@ -66,7 +66,7 @@ public sealed class MqttStateRewireSpec : NjordActorSpec
         }
     }
 
-    private static int? PrecipStarts(MqttStateSpec.SentMessage message) =>
+    private static int? PrecipStarts(SentMessage message) =>
         JsonNode.Parse(message.Payload)?["precip_starts"]?.GetValue<int>();
 
     [Fact(Timeout = TestTimeouts.Hosted)]

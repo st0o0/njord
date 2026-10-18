@@ -184,15 +184,15 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
     internal sealed class ScriptedTransport : IMqttTransport
     {
         private readonly Queue<Func<CancellationToken, Task>> _script = new();
-        private readonly List<MqttStateSpec.SentMessage> _sent = [];
+        private readonly List<SentMessage> _sent = [];
         private readonly List<(Func<int, bool> Predicate, TaskCompletionSource Tcs)> _attemptWaiters = [];
-        private readonly List<(Func<MqttStateSpec.SentMessage, bool> Predicate, TaskCompletionSource Tcs)> _sentWaiters = [];
+        private readonly List<(Func<SentMessage, bool> Predicate, TaskCompletionSource Tcs)> _sentWaiters = [];
         private readonly object _lock = new();
         private int _attempts;
 
         public int Attempts { get { lock (_lock) { return _attempts; } } }
 
-        public IReadOnlyList<MqttStateSpec.SentMessage> Sent { get { lock (_lock) { return [.. _sent]; } } }
+        public IReadOnlyList<SentMessage> Sent { get { lock (_lock) { return [.. _sent]; } } }
 
         public void FailNext(Exception cause)
         {
@@ -214,7 +214,7 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
                 _script.TryDequeue(out step);
                 if (step is null)
                 {
-                    var msg = new MqttStateSpec.SentMessage(topic, payload, retain);
+                    var msg = new SentMessage(topic, payload, retain);
                     _sent.Add(msg);
                     Notify(_sentWaiters, msg);
                 }
@@ -231,7 +231,7 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
             }
         }
 
-        public Task WaitForSent(Func<MqttStateSpec.SentMessage, bool> predicate)
+        public Task WaitForSent(Func<SentMessage, bool> predicate)
         {
             lock (_lock)
             {

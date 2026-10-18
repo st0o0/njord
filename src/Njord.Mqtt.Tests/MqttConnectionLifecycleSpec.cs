@@ -192,8 +192,6 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
 
     private sealed record ConnectAttempted(int Attempt);
 
-    internal sealed record SentMessage(string Topic, string Payload, bool Retain);
-
     // Mirrors MqttClient: a connect while connected is rejected, and a failed connect also raises the
     // disconnected event (MQTTnet raises DisconnectedAsync with ClientWasConnected = false).
     private sealed class ScriptedConnection(IActorRef? attempts = null) : IMqttConnection
