@@ -3,7 +3,6 @@ using Njord.Grpc.V2;
 using Njord.Messages.Budget;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
-using PollPhase = Njord.Grpc.V2.PollPhase;
 
 namespace Njord.Grpc.Mapping;
 
@@ -11,21 +10,20 @@ internal static class OpsProtoMappings
 {
     public static ModelStatus ToModelStatus(this PollStateEntry entry)
     {
-        var fields = PollFields.From(entry);
         var status = new ModelStatus
         {
-            Location = fields.Location,
-            Model = fields.Model,
-            Phase = fields.Phase,
-            NextPoll = fields.NextPoll,
-            MissCount = fields.MissCount,
+            Location = entry.Location.Name,
+            Model = entry.ModelId,
+            Phase = entry.Phase.ToProto(),
+            NextPoll = entry.NextPollUtc.ToTimestamp(),
+            MissCount = entry.MissCount,
         };
-        if (fields.LastChange is { } lastChange)
+        if (entry.LastChangeUtc is { } lastChange)
         {
-            status.LastChange = lastChange;
+            status.LastChange = lastChange.ToTimestamp();
         }
 
-        if (fields.CycleSeconds is { } cycleSeconds)
+        if (entry.CycleSeconds is { } cycleSeconds)
         {
             status.CycleSeconds = cycleSeconds;
         }
@@ -35,21 +33,20 @@ internal static class OpsProtoMappings
 
     public static TriggerTarget ToTriggerTarget(this PollStateEntry entry)
     {
-        var fields = PollFields.From(entry);
         var target = new TriggerTarget
         {
-            Location = fields.Location,
-            Model = fields.Model,
-            Phase = fields.Phase,
-            NextPoll = fields.NextPoll,
-            MissCount = fields.MissCount,
+            Location = entry.Location.Name,
+            Model = entry.ModelId,
+            Phase = entry.Phase.ToProto(),
+            NextPoll = entry.NextPollUtc.ToTimestamp(),
+            MissCount = entry.MissCount,
         };
-        if (fields.LastChange is { } lastChange)
+        if (entry.LastChangeUtc is { } lastChange)
         {
-            target.LastChange = lastChange;
+            target.LastChange = lastChange.ToTimestamp();
         }
 
-        if (fields.CycleSeconds is { } cycleSeconds)
+        if (entry.CycleSeconds is { } cycleSeconds)
         {
             target.CycleSeconds = cycleSeconds;
         }
@@ -102,26 +99,5 @@ internal static class OpsProtoMappings
         {
             yield return EnrichmentKind.Indices.ToWireName();
         }
-    }
-
-    // The fields ModelStatus and TriggerTarget share, mapped once.
-    private sealed record PollFields(
-        string Location,
-        string Model,
-        PollPhase Phase,
-        Timestamp NextPoll,
-        int MissCount,
-        Timestamp? LastChange,
-        long? CycleSeconds)
-    {
-        public static PollFields From(PollStateEntry entry) =>
-            new(
-                entry.Location.Name,
-                entry.ModelId,
-                entry.Phase.ToProto(),
-                Timestamp.FromDateTimeOffset(entry.NextPollUtc),
-                entry.MissCount,
-                entry.LastChangeUtc is { } lastChange ? Timestamp.FromDateTimeOffset(lastChange) : null,
-                entry.CycleSeconds);
     }
 }

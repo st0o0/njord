@@ -24,6 +24,8 @@ internal static class HostConfiguration
         IServiceSetupContainer[] containers =
         [
             new CoreSetupContainer(),
+            new ConfigSetupContainer(),
+            new HealthSetupContainer(),
             new OpenMeteoSetupContainer(),
             new BudgetSetupContainer(),
             new SensorSetupContainer(),

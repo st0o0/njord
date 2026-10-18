@@ -23,7 +23,7 @@ public sealed class PollManagerLateRegionSpec : NjordActorSpec
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton(new NjordHealthMonitor());
+        services.AddSingleton(new NjordHealthMonitor(default, new BudgetHealthSnapshot(0, 0, 0, 0)));
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],

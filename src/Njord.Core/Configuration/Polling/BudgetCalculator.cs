@@ -16,10 +16,7 @@ public static class BudgetCalculator
         var totalModelsPerCycle = scope.Locations
             .Sum(loc => scope.Models.Union(loc.Models ?? [], StringComparer.OrdinalIgnoreCase).Count());
 
-        var resolved = ParameterRegistry.Resolve(
-            scope.Parameters.Groups,
-            scope.Parameters.Extra,
-            scope.Parameters.Exclude);
+        var resolved = scope.Parameters.Resolve();
 
         var cyclesPerMonth = Month.TotalMinutes / polling.PollInterval.TotalMinutes;
         var projectedMonthly = (long)Math.Round(totalModelsPerCycle * cyclesPerMonth * resolved.ApiCallWeight);

@@ -18,7 +18,7 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
 
     private static readonly DateTimeOffset Epoch = TestTimeConstants.PipelineEpoch;
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(Epoch);
-    private readonly NjordHealthMonitor _health = new() { ServiceStartedUtc = Epoch };
+    private readonly NjordHealthMonitor _health = new(Epoch, new BudgetHealthSnapshot(0, 0, 0, 0));
 
     private static readonly MqttEgressTuning FastTuning =
         new MqttEgressTuning(TimeSpan.FromMilliseconds(50)) { PublishTimeout = TimeSpan.FromMilliseconds(200) };

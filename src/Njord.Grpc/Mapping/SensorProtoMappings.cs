@@ -16,7 +16,7 @@ internal static class SensorProtoMappings
     public static (UpdateReading? Command, string? Rejection) ToCommand(
         this ProtoSensorReading request, CatalogResult catalog, DateTimeOffset now)
     {
-        if (!TryMapKind(request.Kind, out var kind))
+        if (!TryToDomain(request.Kind, out var kind))
         {
             return (null, $"Unknown or unspecified SensorKind: {request.Kind}");
         }
@@ -38,7 +38,7 @@ internal static class SensorProtoMappings
     public static PushResponse ToProto(this PushResult result) =>
         new() { Accepted = result.Accepted, RejectionReason = result.RejectionReason ?? "" };
 
-    private static bool TryMapKind(ProtoSensorKind protoKind, out DomainSensorKind kind)
+    private static bool TryToDomain(ProtoSensorKind protoKind, out DomainSensorKind kind)
     {
         kind = protoKind switch
         {

@@ -28,7 +28,7 @@ public sealed class MqttConnectionSpec : NjordActorSpec
             connection,
             transport,
             tuning ?? new MqttEgressTuning(TimeSpan.FromMilliseconds(50)),
-            new NjordHealthMonitor { ServiceStartedUtc = Epoch },
+            new NjordHealthMonitor(Epoch, new BudgetHealthSnapshot(0, 0, 0, 0)),
             _time)));
     }
 

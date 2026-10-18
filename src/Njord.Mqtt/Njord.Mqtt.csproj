@@ -5,6 +5,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="Njord" />
         <InternalsVisibleTo Include="Njord.Mqtt.Tests" />
         <InternalsVisibleTo Include="Njord.Tests" />
     </ItemGroup>

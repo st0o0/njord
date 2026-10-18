@@ -198,7 +198,9 @@ src/
                               #   (StreamWiringMessages: pipeline output, forecast,
                               #   read-model and config streams)
     Configuration/            # Options and validators, budget calculator, ConfigWriter,
-                              #   ConfigSnapshotMapping (options -> Messages/Config contracts)
+                              #   ConfigSnapshotMappings (options -> Messages/Config contracts),
+                              #   ConfigUpdateMappings (commands -> options, options -> messages),
+                              #   ParameterOptions.Resolve(), PollingOptions.ToInitialBudgetSnapshot()
 
   # /Domain/ — feature libraries (each -> Core only)
   Njord.OpenMeteo/            # OpenMeteoGateway, OpenMeteoClient, DTOs, JSON source generator
@@ -215,7 +217,10 @@ src/
     Configuration/            # MqttSetupContainer
                               #   (root: StatePayloadBuilder, MqttMessage, MqttEgressTuning, Telemetry)
   Njord.Grpc/                 # gRPC services (ask and map only), ActorAsk, protos
-    Mapping/                  # <Domain>ProtoMappings: ToProto()/ToCommand() extensions
+    Mapping/                  # One <Domain>ProtoMappings class per domain (Alert, Index, Trend,
+                              #   Derived, Consensus, Forecast, Sensor, Ops, Catalog), EnrichmentEventMappings,
+                              #   ConfigRequestMappings (ToCommand), ConfigResponseMappings (ToProto) with the
+                              #   ConfigResponses helper, WireEnumMappings: extension methods only
 
   # /Analysis/ — per-feature analysis libraries (each -> Core only), own their computation
   Njord.Alerts/               # AlertAnalyzer, IAlertRule, Rules/ (one rule per AlertType),
@@ -227,7 +232,10 @@ src/
 
   # Host
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
-    Configuration/            # Host setup, ConfigManager (config queries, commands, stream)
+    Configuration/            # Host setup, ConfigManager (config queries, commands, stream);
+                              #   containers in Program.cs order: CoreSetupContainer (TimeProvider, meter
+                              #   allow-list), ConfigSetupContainer (options, writer, ConfigManager),
+                              #   HealthSetupContainer (monitor, health check), then the feature containers
     Health/
 
   # /Tests/ — one test project per production project
@@ -280,9 +288,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1285 tests (Weather 117, Sensors 11, Persistence 14, Compute 176, Core 204,
-Grpc 129, Pipeline 143, Mqtt 74, OpenMeteo 44, Budget 25, SensorHub 32, Architecture 57,
-Alerts 67, Derived 36, Trends 27, Indices 63, host `Njord.Tests` 66).
+Current total: 1427 tests (Weather 117, Sensors 11, Persistence 14, Compute 176, Core 233,
+Grpc 150, Pipeline 144, Mqtt 143, OpenMeteo 45, Budget 28, SensorHub 32, Architecture 67,
+Alerts 67, Derived 36, Trends 27, Indices 63, host `Njord.Tests` 74).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -383,6 +391,13 @@ These checks run locally only; they are deliberately not part of CI.
   between enum types, `Enum.Parse`/`TryParse` or `ToString().ToLower*()` for wire values;
   `EnumConversionArchitectureSpec` scans production code, allow-list: `ParameterRegistry`
   (user-written configuration text). Each conversion has a spec pinning every member.
+- Mappings (domain to proto, request to command, options to message) are public extension methods in
+  `internal static` classes named `<Domain><Target>Mappings`, one per domain; no state, no options, no
+  registry lookups, never inside actors or services. Names follow the direction: `ToProto`, `ToCommand`,
+  `ToDomain`, `ToMessage`, never `Map*`. `DateTimeOffset` to protobuf uses Google.Protobuf's
+  `ToTimestamp()`. `ConfigSnapshotMappings` and `ConfigUpdateMappings` (Njord.Core) stay `public`
+  because the host consumes them without `InternalsVisibleTo`. `MappingConventionArchitectureSpec`
+  enforces this; each mapping class has a spec pinning every field.
 - Enrichment types use `EnrichmentKind` enum (`Njord.Messages.Pipeline`), never bare
   strings. Enrichment `PipelineEvent` variants implement `IEnrichmentEvent`.
 - Consensus method is `ConsensusMethod` enum (`Njord.Compute.Settings`),
@@ -507,7 +522,9 @@ test actors), not counting the allowed `JsonNode` indexers; new code follows the
 - One `Meter("Njord.<Domain>")` per feature library (OpenMeteo, Budget, Pipeline,
   Mqtt; plus `Njord.Core` for its shared base classes), owned by an `internal static class Telemetry` in that project with
   `internal static readonly` instrument fields (`Telemetry.MqttDedup.Add(...)`).
-  New meters are registered in `CoreSetupContainer` (`NjordMeters`).
+  Each `Telemetry` exposes `MeterName`; `CoreSetupContainer.NjordMeters` is built from these constants
+  (hence `InternalsVisibleTo Njord` on those libraries), so a new meter is added to that list.
+  `BudgetSetupContainer` registers the budget gauges (hosted service over the `NjordHealthMonitor`).
 - Names are `njord_<area>_<name>` in snake_case; counters end in `_total`,
   time histograms in `_seconds`. Keep tag cardinality bounded.
 - Metrics are exported via prometheus-net.

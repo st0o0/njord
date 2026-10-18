@@ -6,13 +6,13 @@ public sealed record PollHealthSnapshot(DateTimeOffset? LastSuccessfulPollUtc);
 
 public sealed record BudgetHealthSnapshot(long UsedDaily, long UsedMonthly, long LimitDaily, long LimitMonthly);
 
-public sealed class NjordHealthMonitor
+public sealed class NjordHealthMonitor(DateTimeOffset serviceStartedUtc, BudgetHealthSnapshot initialBudget)
 {
     private MqttHealthSnapshot _mqtt = new(false, null);
     private PollHealthSnapshot _poll = new(null);
-    private BudgetHealthSnapshot _budget = new(0, 0, 0, 0);
+    private BudgetHealthSnapshot _budget = initialBudget;
 
-    public DateTimeOffset ServiceStartedUtc { get; init; }
+    public DateTimeOffset ServiceStartedUtc { get; } = serviceStartedUtc;
 
     public MqttHealthSnapshot Mqtt => Volatile.Read(ref _mqtt);
     public PollHealthSnapshot Poll => Volatile.Read(ref _poll);

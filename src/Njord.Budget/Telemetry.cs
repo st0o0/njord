@@ -4,5 +4,7 @@ namespace Njord.Budget;
 
 internal static class Telemetry
 {
-    internal static readonly Meter Meter = new("Njord.Budget");
+    public const string MeterName = "Njord.Budget";
+
+    internal static readonly Meter Meter = new(MeterName);
 }

@@ -16,4 +16,12 @@ public sealed class TelemetrySpec
             () => Assert.Equal("{reattach}", Telemetry.PipelineReattaches.Unit),
             () => Assert.Equal("Njord.OpenMeteo", Telemetry.PipelineReattaches.Meter.Name));
     }
+
+    [Fact]
+    public void The_meter_name_constant_matches_the_meter()
+    {
+        Assert.Multiple(
+            () => Assert.Equal("Njord.OpenMeteo", Telemetry.MeterName),
+            () => Assert.Equal(Telemetry.MeterName, Telemetry.FetchTotal.Meter.Name));
+    }
 }

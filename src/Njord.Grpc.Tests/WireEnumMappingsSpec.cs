@@ -1,7 +1,11 @@
 using Njord.Compute.Contracts;
 using Njord.Grpc.Mapping;
+using DomainAlertSeverity = Njord.Compute.Contracts.AlertSeverity;
+using DomainAlertType = Njord.Compute.Contracts.AlertType;
 using DomainConsensusMethod = Njord.Compute.Settings.ConsensusMethod;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
+using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
+using ProtoAlertType = Njord.Grpc.V2.AlertType;
 using ProtoConsensusMethod = Njord.Grpc.V2.ConsensusMethod;
 using ProtoDewPointComfort = Njord.Grpc.V2.DewPointComfort;
 using ProtoPollPhase = Njord.Grpc.V2.PollPhase;
@@ -63,6 +67,46 @@ public sealed class WireEnumMappingsSpec
     [Fact]
     public void Unspecified_consensus_method_means_unchanged() =>
         Assert.Null(ProtoConsensusMethod.Unspecified.ToDomain());
+
+    [Theory]
+    [InlineData(DomainAlertType.Frost, ProtoAlertType.Frost)]
+    [InlineData(DomainAlertType.Heat, ProtoAlertType.Heat)]
+    [InlineData(DomainAlertType.Storm, ProtoAlertType.Storm)]
+    [InlineData(DomainAlertType.HeavyRain, ProtoAlertType.HeavyRain)]
+    [InlineData(DomainAlertType.Uv, ProtoAlertType.Uv)]
+    [InlineData(DomainAlertType.Fog, ProtoAlertType.Fog)]
+    [InlineData(DomainAlertType.Snow, ProtoAlertType.Snow)]
+    [InlineData(DomainAlertType.PressureDrop, ProtoAlertType.PressureDrop)]
+    [InlineData(DomainAlertType.Thunderstorm, ProtoAlertType.Thunderstorm)]
+    [InlineData(DomainAlertType.Ice, ProtoAlertType.Ice)]
+    [InlineData(DomainAlertType.WindChill, ProtoAlertType.WindChill)]
+    [InlineData(DomainAlertType.Visibility, ProtoAlertType.Visibility)]
+    [InlineData(DomainAlertType.TropicalNight, ProtoAlertType.TropicalNight)]
+    [InlineData(DomainAlertType.Humidity, ProtoAlertType.Humidity)]
+    public void Alert_type_maps_to_its_proto_member(DomainAlertType type, ProtoAlertType expected) =>
+        Assert.Equal(expected, type.ToProto());
+
+    [Theory]
+    [InlineData(DomainAlertSeverity.None, ProtoAlertSeverity.None)]
+    [InlineData(DomainAlertSeverity.Yellow, ProtoAlertSeverity.Yellow)]
+    [InlineData(DomainAlertSeverity.Orange, ProtoAlertSeverity.Orange)]
+    [InlineData(DomainAlertSeverity.Red, ProtoAlertSeverity.Red)]
+    public void Alert_severity_maps_to_its_proto_member(DomainAlertSeverity severity, ProtoAlertSeverity expected) =>
+        Assert.Equal(expected, severity.ToProto());
+
+    [Fact]
+    public void Every_alert_type_has_a_mapping()
+    {
+        Assert.All(Enum.GetValues<DomainAlertType>(), v => Assert.NotEqual(ProtoAlertType.Unspecified, v.ToProto()));
+    }
+
+    [Fact]
+    public void Undefined_alert_values_throw()
+    {
+        Assert.Multiple(
+            () => Assert.Equal("type", Assert.Throws<ArgumentOutOfRangeException>(() => ((DomainAlertType)99).ToProto()).ParamName),
+            () => Assert.Equal("severity", Assert.Throws<ArgumentOutOfRangeException>(() => ((DomainAlertSeverity)99).ToProto()).ParamName));
+    }
 
     [Fact]
     public void Every_domain_member_has_a_proto_mapping()

@@ -1,6 +1,6 @@
 namespace Njord.Budget;
 
-public static class BudgetTelemetry
+internal static class BudgetTelemetry
 {
     public static void Observe(
         Func<long> usedDaily,

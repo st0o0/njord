@@ -25,7 +25,7 @@ public sealed class ProtoMappingGoldenMasterSpec
         var text = new StringBuilder();
         foreach (var analysis in Fixture.Analyses)
         {
-            var mapped = AnalysisProtoMappings.ToEnrichmentEvent(
+            var mapped = EnrichmentEventMappings.ToEnrichmentEvent(
                 new PipelineEvent.ConsensusComputed(analysis.Consensus, AnalysisFixture.Now));
             Assert.NotNull(mapped);
             text.AppendLine($"## {mapped.Location} {mapped.TypeName} {mapped.UpdatedAt}");
@@ -80,7 +80,7 @@ public sealed class ProtoMappingGoldenMasterSpec
     public void Fixture_maps_every_alert_type_into_the_alert_events()
     {
         var lucerne = Fixture.For(AnalysisFixture.Lucerne);
-        var mapped = AnalysisProtoMappings.ToProto(lucerne.Alerts);
+        var mapped = AlertProtoMappings.ToProto(lucerne.Alerts);
 
         var types = mapped.Alerts.Select(a => a.Type).ToHashSet();
         var expected = Enum.GetValues<AlertType>().Where(t => t != AlertType.Unspecified);
@@ -91,7 +91,7 @@ public sealed class ProtoMappingGoldenMasterSpec
     [Fact]
     public void Fixture_maps_every_index_kind_with_an_envelope()
     {
-        var days = Fixture.Analyses.SelectMany(a => AnalysisProtoMappings.ToProto(a.Indices).Days).ToList();
+        var days = Fixture.Analyses.SelectMany(a => IndexProtoMappings.ToProto(a.Indices).Days).ToList();
 
         Assert.NotEmpty(days);
         Assert.All(days, d => Assert.Multiple(
@@ -123,7 +123,7 @@ public sealed class ProtoMappingGoldenMasterSpec
         var text = new StringBuilder();
         foreach (var analysis in Fixture.Analyses)
         {
-            var mapped = AnalysisProtoMappings.ToEnrichmentEvent(build(analysis));
+            var mapped = EnrichmentEventMappings.ToEnrichmentEvent(build(analysis));
             Assert.NotNull(mapped);
             text.AppendLine(Formatter.Format(mapped));
         }

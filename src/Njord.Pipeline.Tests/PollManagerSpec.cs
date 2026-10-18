@@ -24,7 +24,7 @@ public sealed class PollManagerSpec : NjordActorSpec
     private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
 
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
-    private readonly NjordHealthMonitor _health = new();
+    private readonly NjordHealthMonitor _health = new(default, new BudgetHealthSnapshot(0, 0, 0, 0));
     private TestProbe _region = null!;
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)

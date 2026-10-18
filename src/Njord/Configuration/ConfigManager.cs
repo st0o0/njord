@@ -66,7 +66,7 @@ public sealed class ConfigManager : ReceiveActor
     {
         _startupScope = startupScope.Value;
         _analysis = startupSettings;
-        _pollingState = ToMessage(startupPolling.Value);
+        _pollingState = startupPolling.Value.ToMessage();
         _budget = BudgetCalculator.GetEffectiveBudget(startupPolling.Value);
         _scope = scope;
         _polling = polling;
@@ -143,7 +143,7 @@ public sealed class ConfigManager : ReceiveActor
                 _indices.CurrentValue,
                 _trends.CurrentValue,
                 _derived.CurrentValue));
-            ApplyPolling(ToMessage(_polling.CurrentValue));
+            ApplyPolling(_polling.CurrentValue.ToMessage());
             ApplyBudget(BudgetCalculator.GetEffectiveBudget(_polling.CurrentValue));
             _streamQueue?.OfferAsync(CurrentSnapshot());
         }
@@ -279,18 +279,18 @@ public sealed class ConfigManager : ReceiveActor
             polling.PollInterval = interval;
         }
 
-        if (BudgetRejection(scope => ApplyScope(scope, cmd), polling) is { } budgetRejection)
+        if (BudgetRejection(scope => cmd.ApplyTo(scope), polling) is { } budgetRejection)
         {
             return new UpdateSettingsRejected(budgetRejection);
         }
 
-        var failures = _writer.Check<NjordOptions>(opt => ApplyScope(opt, cmd));
+        var failures = _writer.Check<NjordOptions>(opt => cmd.ApplyTo(opt));
         if (failures.Count > 0)
         {
             return new UpdateSettingsRejected(string.Join("; ", failures));
         }
 
-        var scopeResult = await _writer.UpdateAsync<NjordOptions>(opt => ApplyScope(opt, cmd), _lifetime.Token);
+        var scopeResult = await _writer.UpdateAsync<NjordOptions>(opt => cmd.ApplyTo(opt), _lifetime.Token);
         if (!scopeResult.Applied)
         {
             return new UpdateSettingsRejected(string.Join("; ", scopeResult.Failures));
@@ -307,34 +307,6 @@ public sealed class ConfigManager : ReceiveActor
         }
 
         return new UpdateSettingsCompleted(CurrentSnapshot(), [.. RestartRequired(scopeResult, "")]);
-    }
-
-    private static void ApplyScope(NjordOptions opt, UpdateSettings cmd)
-    {
-        if (cmd.ForecastDays is { } days)
-        {
-            opt.ForecastDays = days;
-        }
-
-        if (cmd.Horizons.Count > 0)
-        {
-            opt.Horizons = [.. cmd.Horizons];
-        }
-
-        if (cmd.DefaultModels.Count > 0)
-        {
-            opt.Models = [.. cmd.DefaultModels];
-        }
-
-        if (cmd.Parameters is { } parameters)
-        {
-            opt.Parameters = new ParameterOptions
-            {
-                Groups = [.. parameters.Groups],
-                Extra = [.. parameters.Extra],
-                Exclude = [.. parameters.Exclude],
-            };
-        }
     }
 
     // Rejects a scope or poll interval change whose projection breaks the same 80 % guard that startup validation applies.
@@ -372,8 +344,7 @@ public sealed class ConfigManager : ReceiveActor
     // Every touched section is validated before any of them is written; one write persists them all.
     private async Task<UpdateAnalysisConfigResponse> UpdateAnalysisConfigAsync(UpdateAnalysisConfig cmd)
     {
-        var reset = cmd.Reset ?? [];
-        var updates = BuildAnalysisUpdates(cmd, reset);
+        var updates = cmd.ToAnalysisUpdates();
         if (updates.Count == 0)
         {
             return new UpdateAnalysisConfigRejected(
@@ -395,77 +366,6 @@ public sealed class ConfigManager : ReceiveActor
         return cmd.DryRun
             ? new UpdateAnalysisConfigValidated(CurrentSnapshot(), restartRequired)
             : new UpdateAnalysisConfigCompleted(CurrentSnapshot(), restartRequired);
-    }
-
-    private sealed record AnalysisUpdate(EnrichmentSection Section, string Prefix, SectionUpdate Update);
-
-    private static List<AnalysisUpdate> BuildAnalysisUpdates(UpdateAnalysisConfig cmd, IReadOnlyList<EnrichmentSection> reset)
-    {
-        var updates = new List<AnalysisUpdate>();
-        Add(EnrichmentSection.Consensus, cmd.Consensus is not null,
-            s => SectionUpdate.For<ConsensusOptions>(opt => { if (cmd.Consensus is { } c) ApplyConsensus(opt, c); }, s));
-        Add(EnrichmentSection.Alerts, cmd.Alerts is not null,
-            s => SectionUpdate.For<AlertOptions>(opt => { if (cmd.Alerts is { } a) ApplyAlerts(opt, a); }, s));
-        Add(EnrichmentSection.Derived, cmd.DerivedEnabled is not null,
-            s => SectionUpdate.For<DerivedOptions>(opt => { if (cmd.DerivedEnabled is { } d) opt.Enabled = d; }, s));
-        Add(EnrichmentSection.Trends, cmd.TrendsEnabled is not null,
-            s => SectionUpdate.For<TrendOptions>(opt => { if (cmd.TrendsEnabled is { } t) opt.Enabled = t; }, s));
-        Add(EnrichmentSection.Indices, cmd.Indices is not null,
-            s => SectionUpdate.For<IndexOptions>(opt => { if (cmd.Indices is { } i) ApplyIndices(opt, i); }, s));
-        return updates;
-
-        void Add(EnrichmentSection section, bool hasChange, Func<bool, SectionUpdate> create)
-        {
-            var isReset = reset.Contains(section);
-            if (hasChange || isReset)
-            {
-                updates.Add(new AnalysisUpdate(section, $"Enrichment.{section}.", create(isReset)));
-            }
-        }
-    }
-
-    private static void ApplyConsensus(ConsensusOptions opt, ConsensusConfigUpdate update)
-    {
-        if (update.Enabled is { } enabled) opt.Enabled = enabled;
-        if (update.Method is { } method) opt.Method = method;
-        if (update.TrimPercent is { } trimPercent) opt.TrimPercent = trimPercent;
-    }
-
-    private static void ApplyAlerts(AlertOptions opt, AlertConfigUpdate update)
-    {
-        if (update.Enabled is { } enabled) opt.Enabled = enabled;
-        if (update.FrostThresholds is { } frost) opt.FrostThresholds = [.. frost];
-        if (update.HeatThresholds is { } heat) opt.HeatThresholds = [.. heat];
-        if (update.StormGustThresholds is { } storm) opt.StormGustThresholds = [.. storm];
-        if (update.HeavyRainHourlyThreshold is { } rainHourly) opt.HeavyRainHourlyThreshold = rainHourly;
-        if (update.HeavyRainDailyThreshold is { } rainDaily) opt.HeavyRainDailyThreshold = rainDaily;
-        if (update.PressureDropThreshold is { } pressureDrop) opt.PressureDropThreshold = pressureDrop;
-        if (update.CapeThreshold is { } cape) opt.CapeThreshold = cape;
-        if (update.ThunderstormPrecipThreshold is { } stormPrecip) opt.ThunderstormPrecipThreshold = stormPrecip;
-        if (update.ThunderstormGustThreshold is { } stormGust) opt.ThunderstormGustThreshold = stormGust;
-        if (update.PressureDropSevereThreshold is { } pressureSevere) opt.PressureDropSevereThreshold = pressureSevere;
-        if (update.FogPersistentHours is { } fog) opt.FogPersistentHours = fog;
-        if (update.IceThreshold is { } ice) opt.IceThreshold = ice;
-        if (update.WindChillThresholds is { } windChill) opt.WindChillThresholds = [.. windChill];
-        if (update.VisibilityThresholds is { } visibility) opt.VisibilityThresholds = [.. visibility];
-        if (update.TropicalNightThresholds is { } tropical) opt.TropicalNightThresholds = [.. tropical];
-        if (update.HumidityThresholds is { } humidity) opt.HumidityThresholds = [.. humidity];
-    }
-
-    private static void ApplyIndices(IndexOptions opt, IndexConfigUpdate update)
-    {
-        if (update.Enabled is { } enabled) opt.Enabled = enabled;
-        if (update.IndoorTemp is { } indoor) opt.Preferences.IndoorTemp = indoor;
-        if (update.IdealOutdoorTemp is { } outdoor) opt.Preferences.IdealOutdoorTemp = outdoor;
-        if (update.HeatSensitivity is { } heat) opt.Preferences.HeatSensitivity = heat;
-        if (update.HumiditySensitivity is { } humidity) opt.Preferences.HumiditySensitivity = humidity;
-        if (update.WindSensitivity is { } wind) opt.Preferences.WindSensitivity = wind;
-        if (update.RainSensitivity is { } rain) opt.Preferences.RainSensitivity = rain;
-        if (update.RunningIdealTempLow is { } runningLow) opt.Preferences.RunningIdealTempLow = runningLow;
-        if (update.RunningIdealTempHigh is { } runningHigh) opt.Preferences.RunningIdealTempHigh = runningHigh;
-        if (update.BbqMinTemp is { } bbqMin) opt.Preferences.BbqMinTemp = bbqMin;
-        if (update.BbqIdealWindLow is { } bbqWindLow) opt.Preferences.BbqIdealWindLow = bbqWindLow;
-        if (update.BbqIdealWindHigh is { } bbqWindHigh) opt.Preferences.BbqIdealWindHigh = bbqWindHigh;
     }
 
     private async Task OnUpdateBudget(UpdateBudget cmd)
@@ -514,7 +414,7 @@ public sealed class ConfigManager : ReceiveActor
     }
 
     private ConfigSnapshot CurrentSnapshot() =>
-        ConfigSnapshotMapping.ToSnapshot(
+        ConfigSnapshotMappings.ToSnapshot(
             _scope.CurrentValue,
             _polling.CurrentValue,
             _consensus.CurrentValue,
@@ -581,9 +481,6 @@ public sealed class ConfigManager : ReceiveActor
             _log.Warning("{Target} is not registered; {Message} was not delivered", typeof(TKey).Name, message.GetType().Name);
         }
     }
-
-    private static PollingChanged ToMessage(PollingOptions polling) =>
-        new(polling.PollInterval, polling.DiscoveryInterval);
 
     private static bool Equivalent(AnalysisSettings a, AnalysisSettings b) =>
         a.Consensus == b.Consensus

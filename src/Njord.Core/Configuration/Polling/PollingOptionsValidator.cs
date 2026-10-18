@@ -49,7 +49,7 @@ public sealed class PollingOptionsValidator(IConfiguration configuration) : IVal
 
         try
         {
-            ParameterRegistry.Resolve(scope.Parameters.Groups, scope.Parameters.Extra, scope.Parameters.Exclude);
+            scope.Parameters.Resolve();
             return scope;
         }
         catch (ParameterResolutionException)

@@ -28,11 +28,13 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 // A corrupt or unreadable override file never stops startup; see ResilientJsonConfigurationSource.
-var overrideFile = builder.Configuration.AddResilientJsonFile(CoreSetupContainer.OverridePath, reloadOnChange: true);
+var overrideFile = builder.Configuration.AddResilientJsonFile(ConfigSetupContainer.OverridePath, reloadOnChange: true);
 builder.Services.AddSingleton(overrideFile);
 
 var runner = AppBuilder.Create(builder, b => b.Build())
     .WithSetup<CoreSetupContainer>()
+    .WithSetup<ConfigSetupContainer>()
+    .WithSetup<HealthSetupContainer>()
     .WithSetup<OpenMeteoSetupContainer>()
     .WithSetup<BudgetSetupContainer>()
     .WithSetup<SensorSetupContainer>()

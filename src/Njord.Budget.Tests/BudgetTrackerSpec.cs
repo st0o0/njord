@@ -15,7 +15,7 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
 {
     private static readonly DateTimeOffset T0 = TestTimeConstants.BudgetEpoch;
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(T0);
-    private readonly NjordHealthMonitor _healthState = new() { ServiceStartedUtc = T0 };
+    private readonly NjordHealthMonitor _healthState = new(T0, new BudgetHealthSnapshot(0, 0, 0, 0));
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {

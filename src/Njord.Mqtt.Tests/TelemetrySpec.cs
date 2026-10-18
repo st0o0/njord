@@ -16,4 +16,12 @@ public sealed class TelemetrySpec
             () => Assert.Equal("1", Telemetry.MqttConnected.Unit),
             () => Assert.Equal("Njord.Mqtt", Telemetry.MqttConnected.Meter.Name));
     }
+
+    [Fact]
+    public void The_meter_name_constant_matches_the_meter()
+    {
+        Assert.Multiple(
+            () => Assert.Equal("Njord.Mqtt", Telemetry.MeterName),
+            () => Assert.Equal(Telemetry.MeterName, Telemetry.MqttDedup.Meter.Name));
+    }
 }

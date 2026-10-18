@@ -608,6 +608,6 @@ public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             h.Monitor<TrendOptions>(),
             h.Monitor<DerivedOptions>(),
             h.Writer,
-            new NjordHealthMonitor())), $"config-manager-{Guid.NewGuid():N}");
+            new NjordHealthMonitor(default, new BudgetHealthSnapshot(0, 0, 0, 0)))), $"config-manager-{Guid.NewGuid():N}");
     }
 }

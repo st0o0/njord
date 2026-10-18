@@ -16,4 +16,12 @@ public sealed class TelemetrySpec
             () => Assert.Equal("{change}", Telemetry.DataChanged.Unit),
             () => Assert.Equal("Njord.Pipeline", Telemetry.Meter.Name));
     }
+
+    [Fact]
+    public void The_meter_name_constant_matches_the_meter()
+    {
+        Assert.Multiple(
+            () => Assert.Equal("Njord.Pipeline", Telemetry.MeterName),
+            () => Assert.Equal(Telemetry.MeterName, Telemetry.Meter.Name));
+    }
 }

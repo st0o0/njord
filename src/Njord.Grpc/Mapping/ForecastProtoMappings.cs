@@ -29,9 +29,9 @@ internal static class ForecastProtoMappings
         {
             Location = forecast.Location,
             Model = forecast.Model.Id,
-            UpdatedAt = Timestamp.FromDateTimeOffset(now),
+            UpdatedAt = now.ToTimestamp(),
         };
-        MapForecastPoints(forecast, response.Hourly, response.Daily);
+        AddPointsTo(forecast, response.Hourly, response.Daily);
         return response;
     }
 
@@ -41,13 +41,13 @@ internal static class ForecastProtoMappings
         {
             Location = update.Location.Name,
             Model = update.Model.Id,
-            UpdatedAt = Timestamp.FromDateTimeOffset(now),
+            UpdatedAt = now.ToTimestamp(),
         };
-        MapForecastPoints(update.Forecast, proto.Hourly, proto.Daily);
+        AddPointsTo(update.Forecast, proto.Hourly, proto.Daily);
         return proto;
     }
 
-    private static void MapForecastPoints(
+    private static void AddPointsTo(
         WeatherForecast forecast,
         Google.Protobuf.Collections.RepeatedField<HourlyForecast> hourlyTarget,
         Google.Protobuf.Collections.RepeatedField<DailyForecast> dailyTarget)
@@ -58,7 +58,7 @@ internal static class ForecastProtoMappings
 
     public static HourlyForecast ToProto(this ForecastPoint point)
     {
-        var hourly = new HourlyForecast { ValidAt = Timestamp.FromDateTimeOffset(point.ValidAt) };
+        var hourly = new HourlyForecast { ValidAt = point.ValidAt.ToTimestamp() };
         SetOptional(point, ParameterRegistry.Temperature2m, v => hourly.Temperature = v);
         SetOptional(point, ParameterRegistry.ApparentTemperature, v => hourly.ApparentTemperature = v);
         SetOptional(point, ParameterRegistry.Precipitation, v => hourly.Precipitation = v);

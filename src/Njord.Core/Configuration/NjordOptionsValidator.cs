@@ -76,10 +76,7 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
     {
         try
         {
-            ParameterRegistry.Resolve(
-                options.Parameters.Groups,
-                options.Parameters.Extra,
-                options.Parameters.Exclude);
+            options.Parameters.Resolve();
             return true;
         }
         catch (ParameterResolutionException ex)

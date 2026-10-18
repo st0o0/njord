@@ -2,6 +2,7 @@ using Akka.Cluster.Hosting;
 using Akka.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Njord.Core.Actors;
 using Servus.Akka;
 using Servus.Application.Startup;
@@ -13,6 +14,7 @@ public sealed class BudgetSetupContainer : IServiceSetupContainer
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IActorRegistration>(new BudgetActorRegistration());
+        services.AddHostedService<BudgetGaugeRegistration>();
     }
 
     private sealed class BudgetActorRegistration : IActorRegistration

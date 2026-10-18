@@ -10,7 +10,7 @@ using Njord.Weather;
 namespace Njord.Core.Configuration;
 
 // The one mapping point from options objects to the configuration contracts in Njord.Messages.
-public static class ConfigSnapshotMapping
+public static class ConfigSnapshotMappings
 {
     public static ConfigSnapshot ToSnapshot(
         NjordOptions scope,
@@ -21,15 +21,15 @@ public static class ConfigSnapshotMapping
         TrendOptions trends,
         IndexOptions indices) =>
         new(
-            ToScope(scope),
-            ToPolling(polling),
-            ToProjection(BudgetCalculator.Validate(scope, polling)),
+            scope.ToScope(),
+            polling.ToSection(),
+            BudgetCalculator.Validate(scope, polling).ToProjection(),
             new AnalysisSections(
-                new ConsensusSection(consensus.Enabled, consensus.Method, consensus.TrimPercent, consensus.MinQuorum),
-                ToAlerts(alerts),
-                new DerivedSection(derived.Enabled),
-                new TrendSection(trends.Enabled),
-                ToIndices(indices)));
+                consensus.ToSection(),
+                alerts.ToSection(),
+                derived.ToSection(),
+                trends.ToSection(),
+                indices.ToSection()));
 
     public static ConfigSnapshot ToSnapshot(this ConfigView view) =>
         ToSnapshot(view.Scope, view.Polling, view.Consensus, view.Alerts, view.Derived, view.Trends, view.Indices);
@@ -55,7 +55,14 @@ public static class ConfigSnapshotMapping
         return new CatalogResult(locations, models);
     }
 
-    private static ForecastScope ToScope(NjordOptions scope) =>
+    public static ConsensusSection ToSection(this ConsensusOptions consensus) =>
+        new(consensus.Enabled, consensus.Method, consensus.TrimPercent, consensus.MinQuorum);
+
+    public static DerivedSection ToSection(this DerivedOptions derived) => new(derived.Enabled);
+
+    public static TrendSection ToSection(this TrendOptions trends) => new(trends.Enabled);
+
+    public static ForecastScope ToScope(this NjordOptions scope) =>
         new(
             [
                 .. scope.Locations.Select(l => new LocationEntry(
@@ -69,7 +76,7 @@ public static class ConfigSnapshotMapping
     private static List<string> ResolveModels(NjordOptions scope, LocationOptions location) =>
         [.. scope.Models.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase)];
 
-    private static PollingSection ToPolling(PollingOptions polling)
+    public static PollingSection ToSection(this PollingOptions polling)
     {
         var effective = BudgetCalculator.GetEffectiveBudget(polling);
         return new PollingSection(
@@ -80,11 +87,11 @@ public static class ConfigSnapshotMapping
             RequestBudget.OpenMeteoFreeTierDailyLimit);
     }
 
-    private static BudgetProjection ToProjection(BudgetValidation validation) =>
+    public static BudgetProjection ToProjection(this BudgetValidation validation) =>
         new(validation.ProjectedMonthlyCalls, validation.MonthlyLimit, validation.UsagePercent,
             validation.WithinBudget, [.. validation.Warnings]);
 
-    private static AlertSection ToAlerts(AlertOptions a) =>
+    public static AlertSection ToSection(this AlertOptions a) =>
         new(
             a.Enabled,
             [.. a.FrostThresholds],
@@ -104,20 +111,20 @@ public static class ConfigSnapshotMapping
             [.. a.TropicalNightThresholds],
             [.. a.HumidityThresholds]);
 
-    private static IndexSection ToIndices(IndexOptions indices) =>
+    public static IndexSection ToSection(this IndexOptions indices) =>
         new(
             indices.Enabled,
-            ToValues(indices.Preferences),
-            ToValues(indices.ScoreOverrides),
+            indices.Preferences.ToValues(),
+            indices.ScoreOverrides.ToValues(),
             [
                 .. indices.LocationOverrides.Select(o => new LocationIndexPreferences(
-                    o.Location, ToValues(o.Preferences), ToValues(o.ScoreOverrides)))
+                    o.Location, o.Preferences.ToValues(), o.ScoreOverrides.ToValues()))
             ]);
 
-    private static Dictionary<string, IndexPreferenceValues> ToValues(IDictionary<string, IndexPreferences> overrides) =>
-        overrides.ToDictionary(p => p.Key, p => ToValues(p.Value), StringComparer.OrdinalIgnoreCase);
+    public static Dictionary<string, IndexPreferenceValues> ToValues(this IDictionary<string, IndexPreferences> overrides) =>
+        overrides.ToDictionary(p => p.Key, p => p.Value.ToValues(), StringComparer.OrdinalIgnoreCase);
 
-    private static IndexPreferenceValues ToValues(IndexPreferences p) =>
+    public static IndexPreferenceValues ToValues(this IndexPreferences p) =>
         new(
             p.IdealOutdoorTemp,
             p.RunningIdealTempLow,

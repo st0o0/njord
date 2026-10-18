@@ -1,25 +1,23 @@
-using Akka.Hosting;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
-using Njord.Budget;
-using Njord.Core.Actors;
-using Njord.Core.Configuration;
-using Njord.Core.Configuration.Persistence;
-using Njord.Core.Configuration.Polling;
-using Njord.Core.Health;
-using Njord.Health;
-using Njord.Weather;
 using Prometheus;
 using Servus.Application.Startup;
+using BudgetTelemetry = Njord.Budget.Telemetry;
+using CoreTelemetry = Njord.Core.Telemetry;
+using MqttTelemetry = Njord.Mqtt.Telemetry;
+using OpenMeteoTelemetry = Njord.OpenMeteo.Telemetry;
+using PipelineTelemetry = Njord.Pipeline.Telemetry;
 
 namespace Njord.Configuration;
 
 public sealed class CoreSetupContainer : IServiceSetupContainer
 {
-    internal static readonly string OverridePath = Path.Combine("data", "appsettings.Override.json");
-
-    private static readonly HashSet<string> NjordMeters =
-        ["Njord.Core", "Njord.OpenMeteo", "Njord.Budget", "Njord.Pipeline", "Njord.Mqtt"];
+    internal static readonly IReadOnlySet<string> NjordMeters = new HashSet<string>
+    {
+        CoreTelemetry.MeterName,
+        OpenMeteoTelemetry.MeterName,
+        BudgetTelemetry.MeterName,
+        PipelineTelemetry.MeterName,
+        MqttTelemetry.MeterName,
+    };
 
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
@@ -28,78 +26,6 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
             options.InstrumentFilterPredicate = instrument => NjordMeters.Contains(instrument.Meter.Name);
         });
 
-        services
-            .AddOptions<NjordOptions>()
-            .BindConfiguration(NjordOptions.SectionName)
-            .ReplaceCollectionDefaults()
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<NjordOptions>, NjordOptionsValidator>();
-
-        services
-            .AddOptions<PersistenceOptions>()
-            .BindConfiguration(PersistenceOptions.SectionName)
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<PersistenceOptions>, PersistenceOptionsValidator>();
-
-        services
-            .AddOptions<StorageOptions>()
-            .BindConfiguration(StorageOptions.SectionName)
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<StorageOptions>, StorageOptionsValidator>();
-
-        services.AddSingleton(static sp => ResolveParameters(sp.GetRequiredService<IOptions<NjordOptions>>()));
-
         services.AddSingleton(TimeProvider.System);
-
-        services.AddSingleton(static sp => CreateHealthMonitor(
-            sp.GetRequiredService<TimeProvider>(),
-            sp.GetRequiredService<IOptions<PollingOptions>>()));
-
-        services.AddHealthChecks()
-            .AddCheck<PipelineHealthCheck>("pipeline");
-
-        services.AddSingleton<ConfigView>();
-        // Program.cs registers the instance its configuration source reports to; this default only
-        // serves hosts that build the configuration without the override source (tests).
-        services.TryAddSingleton(static _ => new ConfigOverrideFile(OverridePath));
-        services.AddSingleton<IConfigWriter>(static sp => new ConfigWriter(
-            sp,
-            (IConfigurationRoot)sp.GetRequiredService<IConfiguration>(),
-            sp.GetRequiredService<ConfigOverrideFile>(),
-            sp.GetRequiredService<TimeProvider>()));
-
-        services.AddSingleton<IActorRegistration>(new ConfigActorRegistration());
-    }
-
-    private sealed class ConfigActorRegistration : IActorRegistration
-    {
-        public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
-        {
-            builder.WithActors((system, registry, resolver) =>
-                registry.Register<IConfigManager>(system.ActorOf(resolver.Props<ConfigManager>(), "config-manager")));
-        }
-    }
-
-    private static ResolvedParameterSet ResolveParameters(IOptions<NjordOptions> options)
-    {
-        var parameters = options.Value.Parameters;
-        return ParameterRegistry.Resolve(parameters.Groups, parameters.Extra, parameters.Exclude);
-    }
-
-    private static NjordHealthMonitor CreateHealthMonitor(TimeProvider timeProvider, IOptions<PollingOptions> polling)
-    {
-        var monitor = new NjordHealthMonitor
-        {
-            ServiceStartedUtc = timeProvider.GetUtcNow(),
-        };
-        var budget = BudgetCalculator.GetEffectiveBudget(polling.Value);
-        monitor.UpdateBudget(new BudgetHealthSnapshot(
-            0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, budget.RequestsPerMonth));
-        BudgetTelemetry.Observe(
-            () => monitor.Budget.UsedDaily,
-            () => monitor.Budget.UsedMonthly,
-            () => monitor.Budget.LimitDaily,
-            () => monitor.Budget.LimitMonthly);
-        return monitor;
     }
 }

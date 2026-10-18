@@ -30,7 +30,7 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     private readonly string _tempDir = Path.Combine(Path.GetTempPath(), $"njord-config-manager-{Guid.NewGuid():N}");
     private readonly List<ConfigHarness> _harnesses = [];
     private readonly ConfigHarness _harness;
-    private readonly NjordHealthMonitor _health = new();
+    private readonly NjordHealthMonitor _health = new(default, new BudgetHealthSnapshot(0, 0, 0, 0));
 
     protected override bool UseTestPersistence => false;
 

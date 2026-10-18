@@ -62,7 +62,7 @@ public sealed class OpsGrpcService(
             Version = Version,
             BudgetPartial = budgetPartial,
             UptimeSeconds = (long)uptime.TotalSeconds,
-            ProcessStart = Timestamp.FromDateTimeOffset(ProcessStart),
+            ProcessStart = ProcessStart.ToTimestamp(),
             Budget = budget.ToProto(),
         };
 

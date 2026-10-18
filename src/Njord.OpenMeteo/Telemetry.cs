@@ -4,7 +4,9 @@ namespace Njord.OpenMeteo;
 
 internal static class Telemetry
 {
-    internal static readonly Meter Meter = new("Njord.OpenMeteo");
+    public const string MeterName = "Njord.OpenMeteo";
+
+    internal static readonly Meter Meter = new(MeterName);
 
     internal static readonly Counter<long> FetchTotal =
         Meter.CreateCounter<long>("njord_openmeteo_fetch_total", "{request}");

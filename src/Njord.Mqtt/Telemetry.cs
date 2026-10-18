@@ -4,7 +4,9 @@ namespace Njord.Mqtt;
 
 internal static class Telemetry
 {
-    private static readonly Meter Meter = new("Njord.Mqtt");
+    public const string MeterName = "Njord.Mqtt";
+
+    private static readonly Meter Meter = new(MeterName);
 
     internal static readonly Counter<long> MqttDedup =
         Meter.CreateCounter<long>("njord_mqtt_dedup_total", "{message}");

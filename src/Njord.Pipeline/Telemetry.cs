@@ -4,7 +4,9 @@ namespace Njord.Pipeline;
 
 internal static class Telemetry
 {
-    internal static readonly Meter Meter = new("Njord.Pipeline");
+    public const string MeterName = "Njord.Pipeline";
+
+    internal static readonly Meter Meter = new(MeterName);
 
     internal static readonly Histogram<double> PollCycleDuration =
         Meter.CreateHistogram<double>("njord_poll_cycle_duration_seconds", "s");
