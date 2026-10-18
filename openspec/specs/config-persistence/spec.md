@@ -78,3 +78,15 @@ When a config mutation is applied while the override file on disk cannot be pars
 - **WHEN** the override file set `Horizons = [6, 24]`, then turned corrupt at runtime, and a mutation sets `ForecastDays = 7`
 - **THEN** the new override file SHALL contain both `Horizons = [6, 24]` and `ForecastDays = 7`
 
+### Requirement: Config write logic lives in a dedicated handler class
+
+The system SHALL provide a `ConfigUpdateHandler` class that owns `IConfigWriter` and the validation + persistence logic for config updates. `ConfigManager` SHALL delegate `UpdateLocations`, `UpdateSettings`, `UpdateAnalysisConfig`, and `UpdateBudget` messages to this handler. The handler SHALL be a plain sealed class, not an actor.
+
+#### Scenario: Write delegation preserves behavior
+- **WHEN** `ConfigManager` receives an `UpdateLocations` message
+- **THEN** it SHALL delegate to `ConfigUpdateHandler` which validates and writes, and the response SHALL be identical to the current behavior
+
+#### Scenario: Reload triggers automatically after write
+- **WHEN** `ConfigUpdateHandler` writes an override via `IConfigWriter`
+- **THEN** `IOptionsMonitor` change callbacks SHALL fire automatically, and `ConfigManager` SHALL re-read and propagate without explicit notification from the handler
+

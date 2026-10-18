@@ -14,8 +14,6 @@ using Njord.Indices.Configuration;
 using Njord.Messages.Config;
 using Njord.Pipeline.Configuration;
 using Njord.Trends.Configuration;
-using Njord.Forecast;
-using Njord.Model;
 
 namespace Njord.Configuration;
 
@@ -36,7 +34,7 @@ public sealed class ConfigManager : ReceiveActor
     private readonly IOptionsMonitor<IndexOptions> _indices;
     private readonly IOptionsMonitor<TrendOptions> _trends;
     private readonly IOptionsMonitor<DerivedOptions> _derived;
-    private readonly IConfigWriter _writer;
+    private readonly ConfigUpdateHandler _updates;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly List<IDisposable> _subscriptions = [];
     private readonly CancellationTokenSource _lifetime = new();
@@ -71,7 +69,7 @@ public sealed class ConfigManager : ReceiveActor
         _indices = indices;
         _trends = trends;
         _derived = derived;
-        _writer = writer;
+        _updates = new ConfigUpdateHandler(writer);
 
         Receive<ConfigReloaded>(_ => OnReloaded());
         Receive<QueryConfig>(_ => OnQueryConfig());
@@ -206,7 +204,8 @@ public sealed class ConfigManager : ReceiveActor
         var sender = Sender;
         try
         {
-            sender.Tell(await UpdateLocationsAsync(cmd));
+            sender.Tell(await _updates.UpdateLocationsAsync(
+                cmd, _scope.CurrentValue, _polling.CurrentValue, CurrentConfig, _lifetime.Token));
         }
         catch (Exception ex)
         {
@@ -214,112 +213,17 @@ public sealed class ConfigManager : ReceiveActor
         }
     }
 
-    private async Task<UpdateLocationsResponse> UpdateLocationsAsync(UpdateLocations cmd)
-    {
-        if (cmd.Locations.Count == 0)
-        {
-            return new UpdateLocationsRejected("Cannot set empty location list");
-        }
-
-        List<LocationOptions> locations =
-        [
-            .. cmd.Locations.Select(l => new LocationOptions
-            {
-                Name = l.Name,
-                Latitude = l.Latitude,
-                Longitude = l.Longitude,
-                Models = l.Models.Count > 0 ? [.. l.Models] : null,
-            })
-        ];
-
-        if (BudgetRejection(scope => scope.Locations = locations, _polling.CurrentValue) is { } budgetRejection)
-        {
-            return new UpdateLocationsRejected(budgetRejection);
-        }
-
-        var result = await _writer.UpdateAsync<NjordOptions>(opt => opt.Locations = locations, _lifetime.Token);
-        return result.Applied
-            ? new UpdateLocationsCompleted(CurrentConfig(), [.. RestartRequired(result, "")])
-            : new UpdateLocationsRejected(string.Join("; ", result.Failures));
-    }
-
     private async Task OnUpdateSettings(UpdateSettings cmd)
     {
         var sender = Sender;
         try
         {
-            sender.Tell(await UpdateSettingsAsync(cmd));
+            sender.Tell(await _updates.UpdateSettingsAsync(
+                cmd, _scope.CurrentValue, _polling.CurrentValue, CurrentConfig, _lifetime.Token));
         }
         catch (Exception ex)
         {
             sender.Tell(new UpdateSettingsFailed(ex));
-        }
-    }
-
-    private async Task<UpdateSettingsResponse> UpdateSettingsAsync(UpdateSettings cmd)
-    {
-        if (cmd.PollInterval < TimeSpan.FromSeconds(60))
-        {
-            return new UpdateSettingsRejected("Poll interval must be at least 60 seconds");
-        }
-
-        if (cmd.ForecastDays is < 1 or > 16)
-        {
-            return new UpdateSettingsRejected("Forecast days must be between 1 and 16");
-        }
-
-        var polling = ConfigWriter.DeepClone(_polling.CurrentValue);
-        if (cmd.PollInterval is { } interval)
-        {
-            polling.PollInterval = interval;
-        }
-
-        if (BudgetRejection(scope => cmd.ApplyTo(scope), polling) is { } budgetRejection)
-        {
-            return new UpdateSettingsRejected(budgetRejection);
-        }
-
-        var failures = _writer.Check<NjordOptions>(opt => cmd.ApplyTo(opt));
-        if (failures.Count > 0)
-        {
-            return new UpdateSettingsRejected(string.Join("; ", failures));
-        }
-
-        var scopeResult = await _writer.UpdateAsync<NjordOptions>(opt => cmd.ApplyTo(opt), _lifetime.Token);
-        if (!scopeResult.Applied)
-        {
-            return new UpdateSettingsRejected(string.Join("; ", scopeResult.Failures));
-        }
-
-        if (cmd.PollInterval is not null)
-        {
-            var pollingResult = await _writer.UpdateAsync<PollingOptions>(
-                opt => opt.PollInterval = polling.PollInterval, _lifetime.Token);
-            if (!pollingResult.Applied)
-            {
-                return new UpdateSettingsRejected(string.Join("; ", pollingResult.Failures));
-            }
-        }
-
-        return new UpdateSettingsCompleted(CurrentConfig(), [.. RestartRequired(scopeResult, "")]);
-    }
-
-    // Rejects a scope or poll interval change whose projection breaks the same 80 % guard that startup validation applies.
-    private string? BudgetRejection(Action<NjordOptions> applyScope, PollingOptions polling)
-    {
-        var scope = ConfigWriter.DeepClone(_scope.CurrentValue);
-        applyScope(scope);
-
-        try
-        {
-            var projection = BudgetCalculator.Validate(scope, polling);
-            return BudgetCalculator.GuardViolation(projection, polling.PollInterval) is not null
-                ? $"Would exceed budget: {projection.UsagePercent:F0}% of monthly limit"
-                : null;
-        }
-        catch (ParameterResolutionException ex)
-        {
-            return string.Join("; ", ex.Errors);
         }
     }
 
@@ -328,7 +232,7 @@ public sealed class ConfigManager : ReceiveActor
         var sender = Sender;
         try
         {
-            sender.Tell(await UpdateAnalysisConfigAsync(cmd));
+            sender.Tell(await _updates.UpdateAnalysisConfigAsync(cmd, CurrentConfig, _lifetime.Token));
         }
         catch (Exception ex)
         {
@@ -336,76 +240,17 @@ public sealed class ConfigManager : ReceiveActor
         }
     }
 
-    // Every touched section is validated before any of them is written; one write persists them all.
-    private async Task<UpdateAnalysisConfigResponse> UpdateAnalysisConfigAsync(UpdateAnalysisConfig cmd)
-    {
-        var updates = cmd.ToAnalysisUpdates();
-        if (updates.Count == 0)
-        {
-            return new UpdateAnalysisConfigRejected(
-                [new ConfigIssue(null, "At least one section or reset is required")], cmd.DryRun);
-        }
-
-        var result = await _writer.UpdateManyAsync([.. updates.Select(u => u.Update)], cmd.DryRun, _lifetime.Token);
-        if (!result.Valid)
-        {
-            return new UpdateAnalysisConfigRejected(
-                [.. updates.Zip(result.Sections, (update, outcome) => (Update: update, Outcome: outcome)).SelectMany(pair =>
-                    pair.Outcome.Failures.Select(message => new ConfigIssue(pair.Update.Section, message)))],
-                cmd.DryRun);
-        }
-
-        var restartRequired = updates.Zip(result.Sections, (update, outcome) => (Update: update, Outcome: outcome)).SelectMany(pair =>
-            pair.Outcome.RestartRequiredProperties.Select(p => $"{pair.Update.Prefix}{p}")).ToList();
-
-        return cmd.DryRun
-            ? new UpdateAnalysisConfigValidated(CurrentConfig(), restartRequired)
-            : new UpdateAnalysisConfigCompleted(CurrentConfig(), restartRequired);
-    }
-
     private async Task OnUpdateBudget(UpdateBudget cmd)
     {
         var sender = Sender;
         try
         {
-            sender.Tell(await UpdateBudgetAsync(cmd));
+            sender.Tell(await _updates.UpdateBudgetAsync(cmd, CurrentConfig, _lifetime.Token));
         }
         catch (Exception ex)
         {
             sender.Tell(new UpdateBudgetFailed(ex));
         }
-    }
-
-    private async Task<UpdateBudgetResponse> UpdateBudgetAsync(UpdateBudget cmd)
-    {
-        if (cmd.RequestsPerMonth is <= 0)
-        {
-            return new UpdateBudgetRejected("requests_per_month must be greater than zero");
-        }
-
-        if (cmd.RequestsPerMinute is <= 0)
-        {
-            return new UpdateBudgetRejected("requests_per_minute must be greater than zero");
-        }
-
-        var result = await _writer.UpdateAsync<PollingOptions>(opt =>
-        {
-            if (cmd.RequestsPerMonth is not null || cmd.RequestsPerMinute is not null)
-            {
-                var current = BudgetCalculator.GetEffectiveBudget(opt);
-                opt.BudgetOverride = new RequestBudget(
-                    cmd.RequestsPerMonth ?? current.RequestsPerMonth,
-                    cmd.RequestsPerMinute ?? current.RequestsPerMinute);
-            }
-            else
-            {
-                opt.BudgetOverride = null;
-            }
-        }, _lifetime.Token);
-
-        return result.Applied
-            ? new UpdateBudgetCompleted(CurrentConfig(), [])
-            : new UpdateBudgetRejected(string.Join("; ", result.Failures));
     }
 
     private EffectiveConfig CurrentConfig() =>
@@ -417,14 +262,6 @@ public sealed class ConfigManager : ReceiveActor
             _derived.CurrentValue,
             _trends.CurrentValue,
             _indices.CurrentValue);
-
-    private static IEnumerable<string> RestartRequired<T>(ConfigUpdateResult<T> result, string section)
-        where T : class =>
-        result.RequiresRestart
-            ? result.ChangedProperties
-                .Where(p => ConfigReloadPolicy.For<T>(p) == ReloadMode.RestartRequired)
-                .Select(p => $"{section}{p}")
-            : [];
 
     private void ApplyAnalysis(AnalysisSettings next)
     {
