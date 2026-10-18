@@ -1,18 +1,18 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Options;
+using Njord.Alerts.Configuration;
 using Njord.Configuration;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Alerts;
-using Njord.Core.Configuration.Consensus;
-using Njord.Core.Configuration.Derived;
-using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Configuration.Trends;
 using Njord.Core.Health;
+using Njord.Derived.Configuration;
 using Njord.Grpc.V2;
+using Njord.Indices.Configuration;
+using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
+using Njord.Trends.Configuration;
 
 namespace Njord.Grpc.Tests;
 
@@ -588,17 +588,8 @@ public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
     private IActorRef StartConfigManager(ConfigHarness h)
     {
-        var startup = AnalysisSettingsFactory.Create(
-            h.Monitor<NjordOptions>().CurrentValue,
-            h.Monitor<ConsensusOptions>().CurrentValue,
-            h.Monitor<AlertOptions>().CurrentValue,
-            h.Monitor<IndexOptions>().CurrentValue,
-            h.Monitor<TrendOptions>().CurrentValue,
-            h.Monitor<DerivedOptions>().CurrentValue);
-
         return Sys.ActorOf(Props.Create(() => new ConfigManager(
             Options.Create(h.Monitor<NjordOptions>().CurrentValue),
-            startup,
             h.Monitor<NjordOptions>(),
             h.Monitor<PollingOptions>(),
             h.Monitor<ConsensusOptions>(),

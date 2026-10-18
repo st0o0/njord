@@ -1,13 +1,14 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Njord.Alerts.Configuration;
+using Njord.Configuration;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Alerts;
-using Njord.Core.Configuration.Consensus;
-using Njord.Core.Configuration.Derived;
-using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Configuration.Trends;
+using Njord.Derived.Configuration;
+using Njord.Indices.Configuration;
+using Njord.Pipeline.Configuration;
+using Njord.Trends.Configuration;
 
 namespace Njord.Tests.Shared;
 
@@ -36,6 +37,7 @@ public sealed class ConfigHarness : IDisposable
         Add<TrendOptions, TrendOptionsValidator>(services, TrendOptions.SectionName);
         Add<IndexOptions, IndexOptionsValidator>(services, IndexOptions.SectionName);
         services.AddSingleton<ConfigView>();
+        services.AddSingleton<AnalysisConfigView>();
         services.AddSingleton<IConfigWriter>(sp => new ConfigWriter(
             sp, Root, new ConfigOverrideFile(overridePath), TimeProvider.System));
         _provider = services.BuildServiceProvider();
@@ -48,6 +50,8 @@ public sealed class ConfigHarness : IDisposable
     public IServiceProvider Services => _provider;
 
     public ConfigView View => _provider.GetRequiredService<ConfigView>();
+
+    public AnalysisConfigView Analysis => _provider.GetRequiredService<AnalysisConfigView>();
 
     public IConfigWriter Writer => _provider.GetRequiredService<IConfigWriter>();
 

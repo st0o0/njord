@@ -1,19 +1,19 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Alerts.Configuration;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Alerts;
-using Njord.Core.Configuration.Consensus;
-using Njord.Core.Configuration.Derived;
-using Njord.Core.Configuration.Indices;
-using Njord.Core.Configuration.Trends;
+using Njord.Derived.Configuration;
 using Njord.Grpc.V2;
-using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
+using Njord.Indices.Configuration;
 using Njord.Messages.Budget;
 using Njord.Messages.Pipeline;
+using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
+using Njord.Trends.Configuration;
 using Njord.Weather;
+using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 
 namespace Njord.Grpc.Tests;
 
@@ -43,14 +43,14 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
             Models = ["icon_d2"],
         };
-        var config = TestConfigView.Create(
-            options,
+        var config = TestConfigView.Create(options);
+        var analysis = TestAnalysisConfigView.Create(
             consensus: AppSettingsDefaults.Options<ConsensusOptions>(o => o.Enabled = true),
             alerts: AppSettingsDefaults.Options<AlertOptions>(o => o.Enabled = true),
             derived: AppSettingsDefaults.Options<DerivedOptions>(o => o.Enabled = false),
             trends: AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = false),
             indices: AppSettingsDefaults.Options<IndexOptions>(o => o.Enabled = false));
-        ActorRegistry.Register<IConfigManager>(Sys.ActorOf(Props.Create(() => new FakeConfigManager(config))), overwrite: true);
+        ActorRegistry.Register<IConfigManager>(Sys.ActorOf(Props.Create(() => new FakeConfigManager(config, analysis))), overwrite: true);
         return new OpsGrpcService(ActorRegistry, _time,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<OpsGrpcService>.Instance);
     }

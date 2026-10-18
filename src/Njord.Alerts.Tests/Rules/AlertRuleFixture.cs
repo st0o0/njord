@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Time.Testing;
+using Njord.Alerts.Configuration;
 using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Alerts;
 using Njord.Messages.Alerts;
 using Njord.Tests.Shared;
 using Njord.Weather;

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Derived;
+using Njord.Derived.Configuration;
 using Njord.Messages.Derived;
 using Njord.Tests.Shared;
 using Njord.Weather;

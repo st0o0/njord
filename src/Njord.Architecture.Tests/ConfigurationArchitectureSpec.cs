@@ -1,6 +1,7 @@
 using System.Reflection;
 using Akka.Actor;
 using Microsoft.Extensions.Options;
+using Njord.Configuration;
 using Njord.Core.Configuration;
 
 namespace Njord.Architecture.Tests;
@@ -15,7 +16,8 @@ public sealed class ConfigurationArchitectureSpec
         "Njord.Configuration.ConfigManager",
         "Njord.OpenMeteo.OptionsBudgetProvider",
         "Njord.Core.Configuration.ConfigView",
-        "Njord.Core.Configuration.ConfigWriter",
+        "Njord.Configuration.AnalysisConfigView",
+        "Njord.Configuration.ConfigWriter",
     ];
 
     private static IEnumerable<Type> ProductionTypes() =>
@@ -66,6 +68,30 @@ public sealed class ConfigurationArchitectureSpec
             .ToList();
 
         Assert.Equal(OptionsMonitorUsers.Order(StringComparer.Ordinal), users);
+    }
+
+    [Fact]
+    public void Every_options_type_has_a_reload_classification()
+    {
+        var unclassified = ProductionTypes()
+            .Where(t => t.GetField("SectionName", BindingFlags.Public | BindingFlags.Static) is { IsLiteral: true })
+            .Where(t => !ConfigReloadPolicy.IsClassified(t))
+            .Select(t => t.FullName);
+
+        Assert.Empty(unclassified);
+    }
+
+    [Theory]
+    [InlineData("AlertOptions")]
+    [InlineData("DerivedOptions")]
+    [InlineData("TrendOptions")]
+    [InlineData("IndexOptions")]
+    [InlineData("ConsensusOptions")]
+    public void Core_declares_no_analysis_feature_options(string name)
+    {
+        var core = typeof(NjordOptions).Assembly;
+
+        Assert.DoesNotContain(core.GetTypes(), t => t.Name == name);
     }
 
     [Fact]

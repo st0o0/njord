@@ -198,10 +198,10 @@ src/
     Actors/                   # Marker interfaces, ShardMessageExtractor, StreamConsumerActor, stream handshakes
                               #   (StreamWiringMessages: pipeline output, forecast,
                               #   read-model and config streams)
-    Configuration/            # Options and validators, budget calculator, ConfigWriter,
-                              #   EffectiveConfigMappings (options -> Messages/Config contracts),
-                              #   ConfigUpdateMappings (commands -> options, options -> messages),
-                              #   ParameterOptions.Resolve(), PollingOptions.ToInitialBudgetHealth()
+    Configuration/            # Cross-cutting options and validators (scope, polling, OpenMeteo, storage,
+                              #   persistence, MQTT, sensors), budget calculator, ConfigView (scope + polling),
+                              #   ConfigOverrideFile, AddNjordOptions, ParameterOptions.Resolve(),
+                              #   PollingOptions.ToInitialBudgetHealth(); no analysis feature options
 
   # /Domain/ — feature libraries (each -> Core only)
   Njord.OpenMeteo/            # OpenMeteoGateway, OpenMeteoClient (HTTP, status handling, outcomes), DTOs,
@@ -213,6 +213,8 @@ src/
   Njord.Pipeline/             # PollManager, PollWorker (+ PollWorkerState), ForecastPipeline,
                               #   PipelineEvent BroadcastHub,
                               #   ForecastReadModel (API read model)
+    Configuration/            # PipelineSetupContainer, ConsensusOptions (+ validator, conversion),
+                              #   AnalysisSettingsFactory
   Njord.Mqtt/                 # Everything MQTT-specific (boundary rule below); namespaces follow folders
     Actors/                   # MqttConnection, MqttStatePublisher, internal actor messages
     Topics/                   # TopicScheme, TopicSlug
@@ -230,15 +232,20 @@ src/
 
   # /Analysis/ — per-feature analysis libraries (each -> Core only), own their computation
   Njord.Alerts/               # AlertAnalyzer, IAlertRule, Rules/ (one rule per AlertType),
-                              #   AlertWindow
-  Njord.Derived/              # DerivedAnalyzer, DerivedFormulas
-  Njord.Trends/               # TrendAnalyzer, TrendFormulas
+                              #   AlertWindow, Configuration/ (AlertOptions, validator, conversion)
+  Njord.Derived/              # DerivedAnalyzer, DerivedFormulas,
+                              #   Configuration/ (DerivedOptions, validator, conversion)
+  Njord.Trends/               # TrendAnalyzer, TrendFormulas,
+                              #   Configuration/ (TrendOptions, validator, conversion)
   Njord.Indices/              # IndexAnalyzer, IIndexScore, Scores/ (one score per IndexKind),
-                              #   DaySlicer, FrostProtection, VaporPressureDeficit
+                              #   DaySlicer, FrostProtection, VaporPressureDeficit,
+                              #   Configuration/ (IndexOptions, preferences, PreferenceResolver, conversion)
 
   # Host
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
-    Configuration/            # Host setup, ConfigManager (config queries, commands, stream);
+    Configuration/            # Host setup, ConfigManager (config queries, commands, stream),
+                              #   ConfigReloadPolicy, ConfigWriter, AnalysisConfigView (the analysis sections),
+                              #   EffectiveConfigMappings, ConfigUpdateMappings;
                               #   containers in Program.cs order: CoreSetupContainer (TimeProvider, meter
                               #   allow-list), ConfigSetupContainer (options, writer, ConfigManager),
                               #   HealthSetupContainer (monitor, health check), then the feature containers
@@ -295,9 +302,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1565 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
-Core 268, Grpc 150, Pipeline 153, Mqtt 155, OpenMeteo 63, Budget 29, SensorHub 32, Architecture 99,
-Alerts 67, Derived 36, Trends 27, Indices 63, host `Njord.Tests` 96).
+Current total: 1571 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
+Core 163, Grpc 150, Pipeline 169, Mqtt 155, OpenMeteo 63, Budget 29, SensorHub 32, Architecture 105,
+Alerts 75, Derived 36, Trends 27, Indices 85, host `Njord.Tests` 155).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -341,7 +348,8 @@ the section, lets a configured list replace its default, registers `<T>Validator
 `T`'s namespace, `ValidateOnStart`); setup containers do not repeat those steps.
 
 Reading rule (`OptionsAccessArchitectureSpec`, constructor parameters): options that
-`ConfigReloadPolicy` marks `Hot` are read through `IOptionsMonitor<T>` or `ConfigView` at the
+`ConfigReloadPolicy` marks `Hot` are read through `IOptionsMonitor<T>` or `ConfigView` (scope and polling;
+`AnalysisConfigView` in the host holds the analysis sections) at the
 moment of use, never `IOptions<T>`; `RestartRequired` options are read through `IOptions<T>`,
 never a monitor. Actors cannot inject a monitor (`ConfigurationArchitectureSpec`), so an
 actor that needs a hot value at (re)start takes `ConfigView` (`PollManager`). The spec holds
@@ -450,8 +458,8 @@ These checks run locally only; they are deliberately not part of CI.
   `internal static` classes named `<Domain><Target>Mappings`, one per domain; no state, no options, no
   registry lookups, never inside actors or services. Names follow the direction: `ToProto`, `ToCommand`,
   `ToDomain`, `ToMessage`, never `Map*`. `DateTimeOffset` to protobuf uses Google.Protobuf's
-  `ToTimestamp()`. `EffectiveConfigMappings` and `ConfigUpdateMappings` (Njord.Core) stay `public`
-  because the host consumes them without `InternalsVisibleTo`. `MappingConventionArchitectureSpec`
+  `ToTimestamp()`. `EffectiveConfigMappings` and `ConfigUpdateMappings` (host) stay `public`
+  because the test projects consume them without `InternalsVisibleTo`. `MappingConventionArchitectureSpec`
   enforces this; each mapping class has a spec pinning every field. Actors and services declare no
   methods named `Map*`, `Parse*Array` or `Build*Uri` (the same spec; allow-list: `MapNjordGrpc`, the
   ASP.NET `Map*` endpoint idiom): event-to-MQTT, Open-Meteo series/URI and log-level conversions live in

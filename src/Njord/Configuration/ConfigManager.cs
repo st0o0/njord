@@ -5,16 +5,16 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
+using Njord.Alerts.Configuration;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Alerts;
-using Njord.Core.Configuration.Consensus;
-using Njord.Core.Configuration.Derived;
-using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Configuration.Trends;
 using Njord.Core.Health;
+using Njord.Derived.Configuration;
+using Njord.Indices.Configuration;
 using Njord.Messages.Config;
+using Njord.Pipeline.Configuration;
+using Njord.Trends.Configuration;
 using Njord.Weather;
 
 namespace Njord.Configuration;
@@ -51,7 +51,6 @@ public sealed class ConfigManager : ReceiveActor
 
     public ConfigManager(
         IOptions<NjordOptions> startupScope,
-        AnalysisSettings startupSettings,
         IOptionsMonitor<NjordOptions> scope,
         IOptionsMonitor<PollingOptions> polling,
         IOptionsMonitor<ConsensusOptions> consensus,
@@ -63,7 +62,8 @@ public sealed class ConfigManager : ReceiveActor
         NjordHealthMonitor health)
     {
         _startupScope = startupScope.Value;
-        _analysis = startupSettings;
+        _analysis = AnalysisSettingsFactory.Create(
+            _startupScope, consensus.CurrentValue, alerts.CurrentValue, indices.CurrentValue, trends.CurrentValue, derived.CurrentValue);
         _pollingState = polling.CurrentValue.ToMessage();
         _budget = BudgetCalculator.GetEffectiveBudget(polling.CurrentValue);
         _scope = scope;

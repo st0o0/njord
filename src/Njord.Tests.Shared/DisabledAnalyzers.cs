@@ -1,14 +1,14 @@
 using Microsoft.Extensions.Options;
 using Njord.Alerts;
+using Njord.Alerts.Configuration;
 using Njord.Consensus;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Alerts;
-using Njord.Core.Configuration.Derived;
-using Njord.Core.Configuration.Indices;
-using Njord.Core.Configuration.Trends;
 using Njord.Derived;
+using Njord.Derived.Configuration;
 using Njord.Indices;
+using Njord.Indices.Configuration;
 using Njord.Messages.Alerts;
+using Njord.Trends.Configuration;
 using Njord.Weather;
 using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
 

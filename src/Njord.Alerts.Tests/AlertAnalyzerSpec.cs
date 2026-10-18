@@ -1,10 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Alerts.Configuration;
 using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Alerts;
 using Njord.Messages.Alerts;
 using Njord.Tests.Shared;
 using Njord.Weather;
@@ -118,7 +118,7 @@ public sealed class AlertAnalyzerSpec
     [Fact]
     public void Add_alerts_registers_the_analyzer_and_one_rule_per_alert_type()
     {
-        using var provider = FeatureServices.Build(Time, services => services.AddAlerts());
+        using var provider = FeatureServices.Build(Time, services => services.AddAlerts(AppSettingsDefaults.Configuration()));
 
         var rules = provider.GetServices<IAlertRule>().ToList();
         var analyzer = provider.GetRequiredService<AlertAnalyzer>();

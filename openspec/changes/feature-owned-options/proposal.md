@@ -1,25 +1,27 @@
 ## Why
 
-After `analysis-contracts-per-feature`, each analysis feature owns its contracts and logic, but its configuration still lives in `Njord.Core`: `Njord.Core/Configuration/{Alerts,Consensus,Derived,Indices,Trends}` hold the options, validators, preference resolver and options-to-settings conversions, and Core's `ConfigView`, `ConfigReloadPolicy`, `AnalysisSettingsFactory`, `ConfigSnapshotMappings` and `ConfigUpdateMappings` name every feature's options. Adding or changing a feature therefore touches Core, Compute-level settings and the feature. FunkArr keeps options next to the code that uses them; the feature libraries should own theirs.
+After `contracts-as-folders`, each analysis feature owns its contracts (in `Njord.Messages`) and its logic, but its configuration still lives in `Njord.Core`: `Njord.Core/Configuration/{Alerts,Consensus,Derived,Indices,Trends}` hold the options, validators, preference resolver and options-to-settings conversions, and Core's `ConfigView`, `ConfigReloadPolicy`, `AnalysisSettingsFactory`, `EffectiveConfigMappings`, `ConfigUpdateMappings` and `ConfigWriter` name every feature's options. Adding or changing a feature therefore touches Core and the feature. FunkArr keeps options next to the code that uses them; the feature libraries should own theirs. A second defect sits in the same code: `ConfigManager` is seeded with an `AnalysisSettings` singleton built once from `IOptions`, so a restarted `ConfigManager` would hand out the startup values instead of the persisted configuration.
 
 ## What Changes
 
-- Options, validators, `*SettingsConversion` and (for indices) `IndexPreferences`, `LocationIndexOverride` and `PreferenceResolver` move from `Njord.Core/Configuration/<Feature>` into `Njord.Alerts`, `Njord.Derived`, `Njord.Trends`, `Njord.Indices`; consensus options move to `Njord.Consensus` (or stay in Core if the consensus project must stay options-free, decided in design).
-- Each feature registers its own options through its `ServiceCollectionExtensions` (`AddNjordOptions<T>` from `options-parity-with-funkarr`).
-- The configuration orchestration that needs every feature's options moves out of Core into the host's `Configuration` folder next to `ConfigManager`: `ConfigView`, `ConfigReloadPolicy`, `EffectiveConfigMappings`, `ConfigUpdateMappings`, `ConfigWriter` and `IConfigWriter`; `AnalysisSettingsFactory` moves to `Njord.Pipeline`, which already references all four feature libraries and builds the analysis settings.
-- `Njord.Core` keeps only options that are cross-cutting (`NjordOptions` scope, polling, OpenMeteo, storage, persistence, MQTT allow-list, sensors) and generic configuration infrastructure (`ConfigOverrideFile`, `CollectionDefaults`, `ConfigSections`, `AddNjordOptions`).
-- Tests move with their types: feature options specs to the feature test projects, orchestration specs to `Njord.Tests`.
+- Options, validators, `*SettingsConversion` and (for indices) `IndexPreferences`, `LocationIndexOverride` and `PreferenceResolver` move from `Njord.Core/Configuration/<Feature>` into `Njord.Alerts`, `Njord.Derived`, `Njord.Trends`, `Njord.Indices` (folder and namespace `Configuration`). Consensus options move to `Njord.Pipeline`, which runs the consensus; `Njord.Consensus` stays options-free.
+- Each feature registers its own options: `AddAlerts`, `AddDerived`, `AddTrends`, `AddIndices` take an `IConfiguration` and call `AddNjordOptions<T>`.
+- `AnalysisSettingsFactory` moves to `Njord.Pipeline`. The orchestration that names every feature's options moves to the host (`Njord.Configuration`): `ConfigReloadPolicy`, `ConfigWriter`, `IConfigWriter`, `EffectiveConfigMappings`, `ConfigUpdateMappings`, `AnalysisUpdate`, plus a new `AnalysisConfigView`.
+- `ConfigView` in Core keeps only the forecast scope and the polling options (what `PollManager` and the health check read); the five analysis sections are read through the host's `AnalysisConfigView`.
+- `ConfigManager` computes its starting analysis settings from the current option values; the startup `AnalysisSettings` singleton is removed.
+- Tests move with their types: feature options specs to the feature test projects, orchestration specs and the default-options golden master to `Njord.Tests`; `Njord.Tests.Shared` references the host so shared harnesses can build the real writer and views.
 
 ## Capabilities
 
 ### New Capabilities
-<!-- covered by requirements added to analysis-feature-projects -->
+<!-- none -->
 
 ### Modified Capabilities
-- `analysis-feature-projects`: features also own their options, validators and settings conversion.
+- `vertical-feature-libraries`: features also own their options, validators and settings conversion; Core is feature-free.
+- `domain-setup-containers`: the pipeline container no longer registers a startup `AnalysisSettings`; the analysis container passes the configuration to the feature registrations.
 
 ## Impact
 
-- `Njord.Core/Configuration/*` (about 25 files move), `Njord/Configuration/*` (receives the orchestration), `Njord.Pipeline/Configuration/PipelineSetupContainer.cs`, feature `ServiceCollectionExtensions`, project references (host references features already), architecture specs (`ZoneArchitectureSpec`, `LayerReferenceSpec`, `ConfigReloadPolicy` coverage), tests and `AGENTS.md`.
-- No configuration keys, wire formats, MQTT payloads or persisted data change; operators notice nothing.
-- Not breaking; commit type `refactor:`. Applies after `analysis-contracts-per-feature` and `options-parity-with-funkarr`.
+- About 25 files move out of `Njord.Core/Configuration`; `Njord/Configuration` receives the orchestration; feature `ServiceCollectionExtensions` change signature (`IConfiguration` parameter); test projects and `Njord.Tests.Shared` helpers (`TestConfigView`, new `TestAnalysisConfigView`, `ConfigHarness`) change.
+- No configuration keys, wire formats, MQTT payloads or persisted data change; operators notice nothing. Commit type `refactor:`.
+- Follows `contracts-as-folders` and `options-parity-with-funkarr`.

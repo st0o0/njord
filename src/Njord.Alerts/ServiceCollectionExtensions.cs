@@ -1,12 +1,17 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Njord.Alerts.Configuration;
 using Njord.Alerts.Rules;
+using Njord.Core.Configuration;
 
 namespace Njord.Alerts;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddAlerts(this IServiceCollection services)
+    public static IServiceCollection AddAlerts(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddNjordOptions<AlertOptions>(configuration);
+
         services.AddSingleton<IAlertRule, FrostRule>();
         services.AddSingleton<IAlertRule, HeatRule>();
         services.AddSingleton<IAlertRule, StormRule>();

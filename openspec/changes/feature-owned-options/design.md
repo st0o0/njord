@@ -1,28 +1,29 @@
 ## Context
 
-Options of the five analysis features, their validators and the `*SettingsConversion` extensions sit in `Njord.Core/Configuration/<Feature>`. Core's remaining files that name feature options: `ConfigView`, `ConfigReloadPolicy`, `AnalysisSettingsFactory`, `ConfigSnapshotMappings`/`EffectiveConfigMappings`, `ConfigUpdateMappings`, and `ConfigWriter` (through the reload policy). Users of those types are the host (`ConfigManager`, setup containers), `Njord.Pipeline` (`AnalysisSettingsFactory` only) and tests. `Njord.Pipeline` already references the four feature libraries; the host references everything.
+Options of the five analysis features, their validators and the `*SettingsConversion` extensions sit in `Njord.Core/Configuration/<Feature>`. Core files that name feature options: `ConfigView`, `ConfigReloadPolicy`, `AnalysisSettingsFactory`, `EffectiveConfigMappings`, `ConfigUpdateMappings` and `ConfigWriter` (through the reload policy). `Njord.Pipeline` references the four feature libraries and `PollManager` reads `ConfigView`; the host references everything and `Njord.Grpc.Tests` already references the host.
 
 ## Goals / Non-Goals
 
-**Goals:** a feature is one folder of code plus one contracts project; Core is feature-free; no behaviour change.
-
-**Non-Goals:** changing option shapes, keys or reload modes; moving `NjordOptions`, `PollingOptions` or other cross-cutting options out of Core.
+**Goals:** a feature is its logic, its options and its contracts folder; Core is feature-free; no behaviour change; fix the stale startup settings.
+**Non-Goals:** changing option shapes, keys or reload modes; moving cross-cutting options (`NjordOptions`, polling, OpenMeteo, storage, persistence, MQTT, sensors) out of Core.
 
 ## Decisions
 
-1. **Orchestration to the host, not to a new project.** The host already owns `ConfigManager`, the only writer-side consumer, and references all features. A separate `Njord.Configuration` project would add a layer with a single consumer. Types stay `internal` to the host where possible; the specs for them move into `Njord.Tests`.
-2. **`AnalysisSettingsFactory` to `Njord.Pipeline`.** The pipeline builds `AnalysisSettings` from the features' options; it is the one library allowed to reference all features. The host's `ConfigManager` calls it through the Pipeline project reference it already has.
-3. **Consensus options.** Consensus is a shared base used by every feature, so `Njord.Consensus` stays free of options and Akka. `ConsensusOptions`, its validator and conversion therefore move to the host's configuration folder next to the orchestration types, not into the library; this is the one options type not owned by its subject, recorded in the spec's scenario.
-4. **Indices preference resolution.** `PreferenceResolver`, `IndexPreferences` and `LocationIndexOverride` are index domain logic over options; they move with `IndexOptions` into `Njord.Indices`, and `EffectiveConfigMappings` reads them from there.
-5. **Reload policy coverage by architecture spec.** `ConfigReloadPolicy` stays an explicit table (types and property overrides); a spec reflects over all options types (those with a `SectionName` constant) in the host and feature libraries and fails when one has no entry, replacing today's implicit reliance on Core owning every type.
-6. **Order within the change:** (a) move the pure feature pieces (options, validator, conversion) per feature with their specs, (b) switch registration to the feature extensions, (c) move orchestration types to the host and `AnalysisSettingsFactory` to Pipeline, (d) remove Core's feature folders and references, (e) tighten the architecture specs.
+1. **Orchestration to the host, not to a new project.** The host owns `ConfigManager`, the only writer-side consumer, and references all features. A separate configuration project would add a layer with a single consumer.
+2. **`ConfigView` is split.** `PollManager` (Pipeline) needs the scope and polling options and cannot reference the host, so `ConfigView` stays in Core with exactly those two. The analysis sections move to the host's `AnalysisConfigView`, consumed by `EffectiveConfigMappings.ToEffectiveConfig(view, analysis)`.
+3. **`AnalysisSettingsFactory` and consensus options to `Njord.Pipeline`.** Pipeline is the one library allowed to reference all features and it runs the consensus (`ConsensusBuilder`). `ConsensusOptions`, its validator and conversion therefore live there; `Njord.Consensus` stays free of options and Akka.
+4. **Indices preference resolution** (`PreferenceResolver`, `IndexPreferences`, `LocationIndexOverride`) is index domain logic over options and moves with `IndexOptions`.
+5. **Features register their own options.** `AddAlerts(services, configuration)` and its siblings call `AddNjordOptions<T>`; the host's `AnalysisSetupContainer` only passes the configuration. The conventional validator lookup (`<T>Validator` in the namespace of `T`) works unchanged in the feature assemblies.
+6. **Reload policy coverage by architecture spec.** `ConfigReloadPolicy` stays an explicit table in the host; a spec reflects over all production types with a `SectionName` constant and fails when one has no entry. A second spec asserts Core declares none of the five feature options types.
+7. **Startup staleness fix.** `ConfigManager` builds its initial `AnalysisSettings` from the monitors' current values and the running scope. The `AnalysisSettings` singleton in `PipelineSetupContainer` is removed, so a restarted `ConfigManager` reports the persisted configuration.
+8. **Tests.** `Njord.Tests.Shared` references the host so `ConfigHarness` (real `ConfigWriter`) and `TestAnalysisConfigView` can be shared by `Njord.Tests` and `Njord.Grpc.Tests`. The default-options golden master moves to `Njord.Tests`, which gains `Verify.XunitV3`.
 
 ## Risks / Trade-offs
 
-- Tests that currently live in `Njord.Core.Tests` and reference feature options must relocate to avoid a Core.Tests to feature references; the shared `AppSettingsDefaults` helper keeps working because it binds by section path.
 - The host grows by about ten files; accepted since it already composes the whole system and these types have no other consumer.
-- `ConfigWriter` moving to the host removes its use from other libraries; none use it today (only the host and tests).
+- `Njord.Tests.Shared` now depends on the host project; both consumers of the harness already did.
+- `ConfigView` loses five properties; their only reader was the effective-config mapping.
 
 ## Migration Plan
 
-No operator impact. Each step leaves the suite green; the default-options golden master and the config gRPC golden masters are the proof of unchanged behaviour.
+No operator impact. The default-options and config gRPC golden masters prove unchanged behaviour; the suite stays green after the move.

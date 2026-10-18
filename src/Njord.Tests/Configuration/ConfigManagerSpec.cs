@@ -4,21 +4,21 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Akka.TestKit;
 using Microsoft.Extensions.Options;
+using Njord.Alerts.Configuration;
 using Njord.Configuration;
 using Njord.Consensus.Querying;
 using Njord.Consensus.Settings;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Alerts;
-using Njord.Core.Configuration.Consensus;
-using Njord.Core.Configuration.Derived;
-using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Configuration.Trends;
 using Njord.Core.Health;
+using Njord.Derived.Configuration;
+using Njord.Indices.Configuration;
 using Njord.Messages.Alerts;
 using Njord.Messages.Config;
+using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
+using Njord.Trends.Configuration;
 using Njord.Weather;
 
 namespace Njord.Tests.Configuration;
@@ -61,17 +61,8 @@ public sealed class ConfigManagerSpec : NjordActorSpec
         ActorRegistry.Register<IForecastPipeline>(pipeline.Ref, overwrite: true);
         ActorRegistry.Register<IPollManager>(pollManager.Ref, overwrite: true);
 
-        var startup = AnalysisSettingsFactory.Create(
-            h.Monitor<NjordOptions>().CurrentValue,
-            h.Monitor<ConsensusOptions>().CurrentValue,
-            h.Monitor<AlertOptions>().CurrentValue,
-            h.Monitor<IndexOptions>().CurrentValue,
-            h.Monitor<TrendOptions>().CurrentValue,
-            h.Monitor<DerivedOptions>().CurrentValue);
-
         var manager = Sys.ActorOf(Props.Create(() => new ConfigManager(
             Options.Create(h.Monitor<NjordOptions>().CurrentValue),
-            startup,
             h.Monitor<NjordOptions>(),
             h.Monitor<PollingOptions>(),
             h.Monitor<ConsensusOptions>(),

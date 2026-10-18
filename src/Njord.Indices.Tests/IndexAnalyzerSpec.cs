@@ -4,7 +4,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Indices;
+using Njord.Indices.Configuration;
 using Njord.Messages.Indices;
 using Njord.Sensors;
 using Njord.Tests.Shared;

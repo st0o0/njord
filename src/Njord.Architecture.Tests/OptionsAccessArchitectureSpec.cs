@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.Extensions.Options;
+using Njord.Configuration;
 using Njord.Core.Configuration;
 
 namespace Njord.Architecture.Tests;

@@ -1,16 +1,16 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Njord.Alerts.Configuration;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Alerts;
-using Njord.Core.Configuration.Consensus;
-using Njord.Core.Configuration.Derived;
-using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Persistence;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Configuration.Trends;
+using Njord.Derived.Configuration;
+using Njord.Indices.Configuration;
+using Njord.Pipeline.Configuration;
+using Njord.Trends.Configuration;
 
 namespace Njord.Tests.Configuration;
 

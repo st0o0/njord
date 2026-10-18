@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Njord.Consensus;
 using Njord.Consensus.Querying;
-using Njord.Core.Configuration.Derived;
+using Njord.Derived.Configuration;
 using Njord.Messages.Derived;
 using Njord.Weather;
 

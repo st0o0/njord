@@ -1,19 +1,19 @@
 using Akka.Actor;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Alerts.Configuration;
 using Njord.Consensus;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Alerts;
-using Njord.Core.Configuration.Consensus;
-using Njord.Core.Configuration.Derived;
-using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Configuration.Trends;
+using Njord.Derived.Configuration;
+using Njord.Indices.Configuration;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.OpenMeteo;
+using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
+using Njord.Trends.Configuration;
 using Njord.Weather;
 using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
 
