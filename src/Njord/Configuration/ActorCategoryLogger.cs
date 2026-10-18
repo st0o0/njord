@@ -3,7 +3,6 @@ using Akka.Configuration;
 using Akka.Dispatch;
 using Akka.Event;
 using Akka.Hosting.Logging;
-using MelLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Njord.Configuration;
 
@@ -54,7 +53,7 @@ public sealed class ActorCategoryLogger : ActorBase, IRequiresMessageQueue<ILogg
     private void Log(LogEvent log)
     {
         var logger = LoggerFor(log.LogClass);
-        var level = ToLevel(log.LogLevel());
+        var level = log.LogLevel().ToLogLevel();
         if (!logger.IsEnabled(level))
         {
             return;
@@ -119,12 +118,4 @@ public sealed class ActorCategoryLogger : ActorBase, IRequiresMessageQueue<ILogg
                 : "Malformed log message.";
         }
     }
-
-    private static MelLogLevel ToLevel(Akka.Event.LogLevel level) => level switch
-    {
-        Akka.Event.LogLevel.DebugLevel => MelLogLevel.Debug,
-        Akka.Event.LogLevel.InfoLevel => MelLogLevel.Information,
-        Akka.Event.LogLevel.WarningLevel => MelLogLevel.Warning,
-        _ => MelLogLevel.Error,
-    };
 }

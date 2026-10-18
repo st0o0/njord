@@ -203,7 +203,10 @@ src/
                               #   ParameterOptions.Resolve(), PollingOptions.ToInitialBudgetSnapshot()
 
   # /Domain/ — feature libraries (each -> Core only)
-  Njord.OpenMeteo/            # OpenMeteoGateway, OpenMeteoClient, DTOs, JSON source generator
+  Njord.OpenMeteo/            # OpenMeteoGateway, OpenMeteoClient (HTTP, status handling, outcomes), DTOs,
+                              #   JSON source generator
+    Mapping/                  # OpenMeteoSeriesMappings (ToForecastSeries, ToDailySeries),
+                              #   OpenMeteoRequestMappings (ToRequestUri), OpenMeteoUnitCheck
   Njord.Budget/               # BudgetTracker persistent actor, usage accounting
   Njord.SensorHub/            # SensorHub
   Njord.Pipeline/             # PollManager, PollWorker (+ PollWorkerState), ForecastPipeline,
@@ -212,6 +215,8 @@ src/
   Njord.Mqtt/                 # Everything MQTT-specific (boundary rule below); namespaces follow folders
     Actors/                   # MqttConnection, MqttStatePublisher, internal actor messages
     Topics/                   # TopicScheme, TopicSlug
+    Mapping/                  # PipelineEventMqttMappings (ToMqttMessages with MqttPublishContext,
+                              #   ToLocationName), payload mappings (Forecast, Analysis, Consensus)
     Health/                   # MqttConnectionHealthCheck (registered by MqttSetupContainer)
     Transport/                # IMqttConnection, IMqttTransport, MQTTnet publisher
     Configuration/            # MqttSetupContainer
@@ -288,9 +293,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1432 tests (Weather 117, Sensors 11, Persistence 14, Compute 176, Core 236,
-Grpc 150, Pipeline 144, Mqtt 143, OpenMeteo 45, Budget 28, SensorHub 32, Architecture 67,
-Alerts 67, Derived 36, Trends 27, Indices 63, host `Njord.Tests` 76).
+Current total: 1474 tests (Weather 117, Sensors 11, Persistence 14, Compute 176, Core 236,
+Grpc 150, Pipeline 144, Mqtt 151, OpenMeteo 62, Budget 28, SensorHub 32, Architecture 79,
+Alerts 67, Derived 36, Trends 27, Indices 63, host `Njord.Tests` 81).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -411,7 +416,11 @@ These checks run locally only; they are deliberately not part of CI.
   `ToDomain`, `ToMessage`, never `Map*`. `DateTimeOffset` to protobuf uses Google.Protobuf's
   `ToTimestamp()`. `ConfigSnapshotMappings` and `ConfigUpdateMappings` (Njord.Core) stay `public`
   because the host consumes them without `InternalsVisibleTo`. `MappingConventionArchitectureSpec`
-  enforces this; each mapping class has a spec pinning every field.
+  enforces this; each mapping class has a spec pinning every field. Actors and services declare no
+  methods named `Map*`, `Parse*Array` or `Build*Uri` (the same spec; allow-list: `MapNjordGrpc`, the
+  ASP.NET `Map*` endpoint idiom): event-to-MQTT, Open-Meteo series/URI and log-level conversions live in
+  `Mapping/` extensions that take settings as arguments or a small context record
+  (`MqttPublishContext`).
 - Enrichment types use `EnrichmentKind` enum (`Njord.Messages.Pipeline`), never bare
   strings. Enrichment `PipelineEvent` variants implement `IEnrichmentEvent`.
 - Consensus method is `ConsensusMethod` enum (`Njord.Compute.Settings`),

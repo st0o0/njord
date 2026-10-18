@@ -1,10 +1,10 @@
 using System.Diagnostics;
-using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
+using Njord.OpenMeteo.Mapping;
 using Njord.Weather;
 
 namespace Njord.OpenMeteo;
@@ -21,7 +21,7 @@ public sealed class OpenMeteoClient(
 
     public async Task<PollOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken cancellationToken)
     {
-        var uri = BuildUri(location, model);
+        var uri = location.ToRequestUri(model, _forecastDays, _hourlyVariables, _dailyVariables);
         var sw = Stopwatch.StartNew();
         PollOutcome? outcome = null;
 
@@ -47,13 +47,13 @@ public sealed class OpenMeteoClient(
                 return outcome;
             }
 
-            if (UnitMismatch(dto.HourlyUnits) is { } mismatch)
+            if (OpenMeteoUnitCheck.Mismatch(dto.HourlyUnits, parameters) is { } mismatch)
             {
                 outcome = new PollOutcome.Failure(location.Name, model, PollFailureReason.MalformedPayload, mismatch);
                 return outcome;
             }
 
-            var hourlyResult = MapHourly(dto.Hourly);
+            var hourlyResult = dto.Hourly.ToForecastSeries(parameters);
             if (hourlyResult is null)
             {
                 outcome = new PollOutcome.Failure(location.Name, model, PollFailureReason.MalformedPayload, "Response carried hourly timestamps but no values");
@@ -61,7 +61,7 @@ public sealed class OpenMeteoClient(
             }
 
             var daily = dto.Daily is { Time.Count: > 0 }
-                ? MapDaily(dto.Daily)
+                ? dto.Daily.ToDailySeries(parameters)
                 : DailyForecastSeries.Empty;
 
             outcome = new PollOutcome.Success(new Forecast(
@@ -99,171 +99,6 @@ public sealed class OpenMeteoClient(
                 }
             }
         }
-    }
-
-    private string BuildUri(LocationOptions location, WeatherModel model)
-    {
-        var effectiveDays = ModelCoverageRegistry.EffectiveForecastDays(model.Id, _forecastDays);
-        var uri = string.Create(
-            CultureInfo.InvariantCulture,
-            $"v1/forecast?latitude={location.Latitude}&longitude={location.Longitude}" +
-            $"&models={Uri.EscapeDataString(model.Id)}&hourly={_hourlyVariables}" +
-            $"&wind_speed_unit=ms&timeformat=unixtime&timezone=UTC&forecast_days={effectiveDays}");
-
-        if (_dailyVariables.Length > 0)
-        {
-            uri += $"&daily={_dailyVariables}";
-        }
-
-        return uri;
-    }
-
-    private ForecastSeries? MapHourly(OpenMeteoTimeSeries series)
-    {
-        var times = series.Time;
-        var paramArrays = new Dictionary<ParameterDef, IReadOnlyList<double?>>(parameters.Hourly.Count);
-
-        foreach (var param in parameters.Hourly)
-        {
-            paramArrays[param] = series.Variables.TryGetValue(param.ApiName, out var element)
-                ? ParseNumberArray(element, times.Count)
-                : NullArray(times.Count);
-        }
-
-        var points = new List<ForecastPoint>(times.Count);
-        for (var i = 0; i < times.Count; i++)
-        {
-            var dict = new Dictionary<ParameterDef, double?>(parameters.Hourly.Count);
-            foreach (var param in parameters.Hourly)
-            {
-                dict[param] = paramArrays[param][i];
-            }
-
-            points.Add(new ForecastPoint(DateTimeOffset.FromUnixTimeSeconds(times[i]), dict));
-        }
-
-        var lastValued = points.FindLastIndex(p => p.HasAnyValue);
-        return lastValued < 0 ? null : new ForecastSeries(points.Take(lastValued + 1));
-    }
-
-    private DailyForecastSeries MapDaily(OpenMeteoTimeSeries series)
-    {
-        var times = series.Time;
-        var paramArrays = new Dictionary<ParameterDef, IReadOnlyList<object?>>(parameters.Daily.Count);
-
-        foreach (var param in parameters.Daily)
-        {
-            paramArrays[param] = series.Variables.TryGetValue(param.ApiName, out var element)
-                ? ParseMixedArray(element, times.Count)
-                : NullObjectArray(times.Count);
-        }
-
-        var points = new List<DailyForecastPoint>(times.Count);
-        for (var i = 0; i < times.Count; i++)
-        {
-            var date = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(times[i]).UtcDateTime);
-            var numeric = new Dictionary<ParameterDef, double?>();
-            var meta = new Dictionary<ParameterDef, string?>();
-
-            foreach (var param in parameters.Daily)
-            {
-                var raw = i < paramArrays[param].Count ? paramArrays[param][i] : null;
-                if (param.ValueType == ParameterValueType.TimeString)
-                {
-                    meta[param] = raw switch
-                    {
-                        string s => s,
-                        double d => DateTimeOffset.FromUnixTimeSeconds((long)d).ToString("O"),
-                        _ => null,
-                    };
-                }
-                else
-                {
-                    numeric[param] = raw as double?;
-                }
-            }
-
-            var point = new DailyForecastPoint(date, numeric, meta);
-            if (point.HasAnyValue)
-            {
-                points.Add(point);
-            }
-        }
-
-        return new DailyForecastSeries(points);
-    }
-
-    private string? UnitMismatch(Dictionary<string, string>? units)
-    {
-        if (units is null || units.Count == 0)
-        {
-            return "Response carried no hourly_units";
-        }
-
-        if (units.TryGetValue("time", out var timeUnit) && timeUnit != "unixtime")
-        {
-            return $"Unexpected unit '{timeUnit}' for time (expected 'unixtime')";
-        }
-
-        foreach (var param in parameters.Hourly)
-        {
-            var expected = param switch
-            {
-                { Unit: "°C", DeviceClass: "temperature" } => "°C",
-                { Unit: "m/s", DeviceClass: "wind_speed" } => "m/s",
-                { Unit: "hPa", DeviceClass: "atmospheric_pressure" } => "hPa",
-                _ => null,
-            };
-
-            if (expected is null)
-            {
-                continue;
-            }
-
-            if (units.TryGetValue(param.ApiName, out var actual) && actual != expected && actual != "undefined")
-            {
-                return $"Unexpected unit '{actual}' for {param.ApiName} (expected '{expected}')";
-            }
-        }
-
-        return null;
-    }
-
-    private static IReadOnlyList<double?> ParseNumberArray(JsonElement element, int expectedLength)
-    {
-        var result = new List<double?>(expectedLength);
-        foreach (var item in element.EnumerateArray())
-        {
-            result.Add(item.ValueKind == JsonValueKind.Null ? null : item.GetDouble());
-        }
-
-        return result;
-    }
-
-    private static IReadOnlyList<object?> ParseMixedArray(JsonElement element, int expectedLength)
-    {
-        var result = new List<object?>(expectedLength);
-        foreach (var item in element.EnumerateArray())
-        {
-            result.Add(item.ValueKind switch
-            {
-                JsonValueKind.Null => null,
-                JsonValueKind.Number => item.GetDouble(),
-                JsonValueKind.String => item.GetString(),
-                _ => null,
-            });
-        }
-        return result;
-    }
-
-    private static double?[] NullArray(int count)
-    {
-        return new double?[count];
-    }
-
-    private static object?[] NullObjectArray(int count)
-    {
-        return new object?[count];
     }
 
     private static async Task<string> ReadErrorReasonAsync(HttpResponseMessage response, CancellationToken cancellationToken)

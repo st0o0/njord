@@ -21,6 +21,13 @@ public sealed class MappingConventionArchitectureSpec
         "Njord.Compute.Contracts",
     ];
 
+    // Legitimate leftovers that match a mapping method name but are not contract-to-contract transformations:
+    // MapNjordGrpc follows the ASP.NET Core "Map*" endpoint-registration idiom (MapGrpcService, MapGet).
+    private static readonly HashSet<string> MappingMethodAllowList = new(StringComparer.Ordinal)
+    {
+        "Njord.Grpc.GrpcEndpointExtensions.MapNjordGrpc",
+    };
+
     private const BindingFlags AllDeclared =
         BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
@@ -111,6 +118,65 @@ public sealed class MappingConventionArchitectureSpec
         Assert.True(method is { IsStatic: true, IsPrivate: true } && ReturnsContractType(method.ReturnType));
     }
 
+    [Fact]
+    public void Actors_and_services_declare_no_mapping_methods()
+    {
+        var offenders = ProductionTypes()
+            .Where(t => !IsMappingHolder(t))
+            .SelectMany(t => t.GetMethods(AllDeclared)
+                .Where(m => IsMappingMethodName(m.Name))
+                .Select(m => $"{t.FullName}.{m.Name}"))
+            .Where(name => !MappingMethodAllowList.Contains(name))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.Empty(offenders);
+    }
+
+    [Fact]
+    public void The_mapping_method_allow_list_names_existing_methods()
+    {
+        var existing = ProductionTypes()
+            .SelectMany(t => t.GetMethods(AllDeclared).Select(m => $"{t.FullName}.{m.Name}"))
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.All(MappingMethodAllowList, name => Assert.Contains(name, existing));
+    }
+
+    [Theory]
+    [InlineData("MapThing", true)]
+    [InlineData("MapToMqttMessages", true)]
+    [InlineData("ParseNumberArray", true)]
+    [InlineData("ParseMixedArray", true)]
+    [InlineData("BuildUri", true)]
+    [InlineData("BuildRequestUri", true)]
+    [InlineData("ParseNumber", false)]
+    [InlineData("BuildPayload", false)]
+    [InlineData("ToRequestUri", false)]
+    public void The_mapping_method_name_rule_matches_the_documented_patterns(string name, bool expected)
+    {
+        Assert.Equal(expected, IsMappingMethodName(name));
+    }
+
+    [Fact]
+    public void The_convention_detects_a_mapping_method_in_a_service()
+    {
+        var offenders = typeof(OffendingService).GetMethods(AllDeclared)
+            .Where(m => IsMappingMethodName(m.Name))
+            .Select(m => m.Name)
+            .Order(StringComparer.Ordinal);
+
+        Assert.Equal(["BuildUri", "MapThing", "ParseNumberArray"], offenders);
+    }
+
+    private static bool IsMappingHolder(Type type) =>
+        type.Name.EndsWith("Mappings", StringComparison.Ordinal) || type.Name.EndsWith("Check", StringComparison.Ordinal);
+
+    private static bool IsMappingMethodName(string name) =>
+        name.StartsWith("Map", StringComparison.Ordinal)
+        || (name.StartsWith("Parse", StringComparison.Ordinal) && name.EndsWith("Array", StringComparison.Ordinal))
+        || (name.StartsWith("Build", StringComparison.Ordinal) && name.EndsWith("Uri", StringComparison.Ordinal));
+
     private static bool IsInstanceOrMutable(MemberInfo member) => member switch
     {
         FieldInfo field => !field.IsStatic || !(field.IsInitOnly || field.IsLiteral),
@@ -125,6 +191,15 @@ public sealed class MappingConventionArchitectureSpec
         var inspected = Nullable.GetUnderlyingType(type) ?? type;
         var ns = inspected.Namespace ?? string.Empty;
         return ContractNamespaces.Any(c => ns == c || ns.StartsWith(c + ".", StringComparison.Ordinal));
+    }
+
+    private sealed class OffendingService
+    {
+        public static string BuildUri() => "x";
+
+        public static int MapThing() => 1;
+
+        public static int[] ParseNumberArray() => [];
     }
 
     private static class OffendingMapper

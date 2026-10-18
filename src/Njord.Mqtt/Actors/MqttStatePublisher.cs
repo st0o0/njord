@@ -8,7 +8,7 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Messages.Pipeline;
-using Njord.Mqtt.Topics;
+using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Transport;
 using Njord.Weather;
 
@@ -16,8 +16,6 @@ namespace Njord.Mqtt.Actors;
 
 public sealed class MqttStatePublisher : StreamConsumerActor
 {
-    internal const string UnknownLocation = "unknown";
-
     private readonly string _baseTopic;
     private readonly ResolvedParameterSet _parameters;
     private readonly IReadOnlyList<int> _horizons;
@@ -52,6 +50,10 @@ public sealed class MqttStatePublisher : StreamConsumerActor
     protected override Task MaterializeGraph(Source<PipelineEvent, NotUsed> events)
     {
         var baseTopic = _baseTopic;
+        var parameters = _parameters;
+        var horizons = _horizons;
+        var forecastDays = _forecastDays;
+        var timeProvider = _timeProvider;
         // Per subscription on purpose: after a re-attach every state topic is published once again.
         var lastPublished = new Dictionary<string, int>();
         var transport = _transport;
@@ -72,7 +74,12 @@ public sealed class MqttStatePublisher : StreamConsumerActor
                 PipelineEvent.IndexComputed i => $"enrich {i.Result.Location}/indices",
                 _ => "?",
             }, _log)
-            .SelectMany(pipelineEvent => MapToMqttMessages(pipelineEvent, baseTopic))
+            .SelectMany(pipelineEvent =>
+            {
+                var context = new MqttPublishContext(baseTopic, parameters, horizons, forecastDays, timeProvider.GetUtcNow());
+                var location = pipelineEvent.ToLocationName();
+                return pipelineEvent.ToMqttMessages(context).Select(message => new OutgoingMessage(message, location));
+            })
             .Log("mqtt-state-out", m => $"{m.Message.Topic} [{m.Message.Payload.Length}B]", _log)
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
             .RunWith(Sink.ForEachAsync<OutgoingMessage>(1,
@@ -113,47 +120,5 @@ public sealed class MqttStatePublisher : StreamConsumerActor
 
         lastPublished[msg.Topic] = hash;
         Telemetry.MqttDedup.Add(1, locationTag, new KeyValuePair<string, object?>("decision", "published"));
-    }
-
-    private IEnumerable<OutgoingMessage> MapToMqttMessages(PipelineEvent pipelineEvent, string baseTopic)
-    {
-        var messages = pipelineEvent switch
-        {
-            PipelineEvent.ForecastReceived e => MapPerModel(e, baseTopic),
-            PipelineEvent.ConsensusComputed c => StatePayloadBuilder.FromConsensus(c.Consensus, baseTopic),
-            PipelineEvent.AlertComputed a => StatePayloadBuilder.FromAlerts(a.Result, baseTopic),
-            PipelineEvent.DerivedComputed d => StatePayloadBuilder.FromDerived(d.Result, baseTopic),
-            PipelineEvent.TrendComputed t => StatePayloadBuilder.FromTrends(t.Result, baseTopic),
-            PipelineEvent.IndexComputed i => StatePayloadBuilder.FromIndices(i.Result, baseTopic),
-            _ => [],
-        };
-
-        var location = pipelineEvent switch
-        {
-            PipelineEvent.ForecastReceived u => u.Location.Name,
-            PipelineEvent.ConsensusComputed c => c.Consensus.Location.Name,
-            PipelineEvent.AlertComputed a => a.Result.Location.Name,
-            PipelineEvent.DerivedComputed d => d.Result.Location.Name,
-            PipelineEvent.TrendComputed t => t.Result.Location.Name,
-            PipelineEvent.IndexComputed i => i.Result.Location.Name,
-            _ => UnknownLocation,
-        };
-
-        return messages.Select(msg => new OutgoingMessage(msg, location));
-    }
-
-    private IReadOnlyList<MqttMessage> MapPerModel(PipelineEvent.ForecastReceived e, string baseTopic)
-    {
-        var maxHours = ModelCoverageRegistry.Get(e.Model.Id)?.MaxForecastHours;
-        var perHorizon = StatePayloadBuilder.BuildPerHorizon(
-            e.Forecast, _parameters, _horizons, _forecastDays, _timeProvider.GetUtcNow(), maxHours);
-
-        var messages = new List<MqttMessage>(perHorizon.Count);
-        foreach (var (horizon, payload) in perHorizon)
-        {
-            var topic = TopicScheme.HorizonTopic(baseTopic, e.Location.Name, e.Model, horizon.ToWireKey());
-            messages.Add(new MqttMessage(topic, payload, true));
-        }
-        return messages;
     }
 }
