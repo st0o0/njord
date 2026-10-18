@@ -15,7 +15,7 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
 {
     private static readonly DateTimeOffset T0 = TestTimeConstants.BudgetEpoch;
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(T0);
-    private readonly NjordHealthMonitor _healthState = new(T0, new BudgetHealthSnapshot(0, 0, 0, 0));
+    private readonly NjordHealthMonitor _healthState = new(T0, new BudgetHealth(0, 0, 0, 0));
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
@@ -47,7 +47,7 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Budget_status_reports_usage_with_the_effective_limits()
     {
-        _healthState.UpdateBudget(new BudgetHealthSnapshot(0, 0, 10_000, 250_000));
+        _healthState.UpdateBudget(new BudgetHealth(0, 0, 10_000, 250_000));
         var actor = CreateActor();
 
         actor.Tell(new RecordApiCall(2));

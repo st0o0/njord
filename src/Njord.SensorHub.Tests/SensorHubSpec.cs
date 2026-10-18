@@ -41,17 +41,17 @@ public sealed class SensorHubSpec : Akka.Hosting.TestKit.TestKit
         var push = await ExpectMsgAsync<PushResult>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(push.Accepted);
 
-        hub.Tell(new QuerySensorSnapshot(new LocationId("Luzern")), TestActor);
-        var response = await ExpectMsgAsync<SensorSnapshotResult>(cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(23.5, response.Snapshot.Get(SensorKind.IndoorTemperature));
+        hub.Tell(new QuerySensorReadings(new LocationId("Luzern")), TestActor);
+        var response = await ExpectMsgAsync<SensorReadingsResult>(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(23.5, response.Sensors.Get(SensorKind.IndoorTemperature));
     }
 
     [Fact(Timeout = 5000)]
     public async Task returns_not_found_for_unknown_location()
     {
         var hub = CreateHub();
-        hub.Tell(new QuerySensorSnapshot(new LocationId("Atlantis")), TestActor);
-        await ExpectMsgAsync<SensorSnapshotNotAvailable>(cancellationToken: TestContext.Current.CancellationToken);
+        hub.Tell(new QuerySensorReadings(new LocationId("Atlantis")), TestActor);
+        await ExpectMsgAsync<SensorReadingsNotAvailable>(cancellationToken: TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = 5000)]
@@ -63,10 +63,10 @@ public sealed class SensorHubSpec : Akka.Hosting.TestKit.TestKit
         hub.Tell(new UpdateReading(Reading(source: "schlafzimmer", value: 21.0)), TestActor);
         await ExpectMsgAsync<PushResult>(cancellationToken: TestContext.Current.CancellationToken);
 
-        hub.Tell(new QuerySensorSnapshot(new LocationId("Luzern")), TestActor);
-        var response = await ExpectMsgAsync<SensorSnapshotResult>(cancellationToken: TestContext.Current.CancellationToken);
+        hub.Tell(new QuerySensorReadings(new LocationId("Luzern")), TestActor);
+        var response = await ExpectMsgAsync<SensorReadingsResult>(cancellationToken: TestContext.Current.CancellationToken);
 
-        var reading = response.Snapshot.Readings[SensorKind.IndoorTemperature];
+        var reading = response.Sensors.Readings[SensorKind.IndoorTemperature];
         Assert.Equal(22.25, reading.Value);
         Assert.Equal(2, reading.SourceCount);
     }
@@ -82,7 +82,7 @@ public sealed class SensorHubSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = 5000)]
-    public async Task excludes_stale_readings_from_snapshot()
+    public async Task excludes_stale_readings_from_readings()
     {
         var hub = CreateHub(stalenessSeconds: 3600);
 
@@ -93,9 +93,9 @@ public sealed class SensorHubSpec : Akka.Hosting.TestKit.TestKit
         hub.Tell(new UpdateReading(Reading(source: "fresh", value: 24.0)), TestActor);
         await ExpectMsgAsync<PushResult>(cancellationToken: TestContext.Current.CancellationToken);
 
-        hub.Tell(new QuerySensorSnapshot(new LocationId("Luzern")), TestActor);
-        var response = await ExpectMsgAsync<SensorSnapshotResult>(cancellationToken: TestContext.Current.CancellationToken);
-        var reading = response.Snapshot.Readings[SensorKind.IndoorTemperature];
+        hub.Tell(new QuerySensorReadings(new LocationId("Luzern")), TestActor);
+        var response = await ExpectMsgAsync<SensorReadingsResult>(cancellationToken: TestContext.Current.CancellationToken);
+        var reading = response.Sensors.Readings[SensorKind.IndoorTemperature];
         Assert.Equal(24.0, reading.Value);
         Assert.Equal(1, reading.SourceCount);
     }
@@ -108,9 +108,9 @@ public sealed class SensorHubSpec : Akka.Hosting.TestKit.TestKit
         var push = await ExpectMsgAsync<PushResult>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(new PushResult(true, null), push);
 
-        hub.Tell(new QuerySensorSnapshot(new LocationId("Luzern")), TestActor);
-        var response = await ExpectMsgAsync<SensorSnapshotResult>(cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(23.5, response.Snapshot.Get(SensorKind.IndoorTemperature));
+        hub.Tell(new QuerySensorReadings(new LocationId("Luzern")), TestActor);
+        var response = await ExpectMsgAsync<SensorReadingsResult>(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(23.5, response.Sensors.Get(SensorKind.IndoorTemperature));
     }
 
     [Fact(Timeout = 5000)]
@@ -122,8 +122,8 @@ public sealed class SensorHubSpec : Akka.Hosting.TestKit.TestKit
         hub.Tell(new UpdateReading(Reading(value: 25.0)), TestActor);
         await ExpectMsgAsync<PushResult>(cancellationToken: TestContext.Current.CancellationToken);
 
-        hub.Tell(new QuerySensorSnapshot(new LocationId("Luzern")), TestActor);
-        var response = await ExpectMsgAsync<SensorSnapshotResult>(cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(25.0, response.Snapshot.Get(SensorKind.IndoorTemperature));
+        hub.Tell(new QuerySensorReadings(new LocationId("Luzern")), TestActor);
+        var response = await ExpectMsgAsync<SensorReadingsResult>(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(25.0, response.Sensors.Get(SensorKind.IndoorTemperature));
     }
 }

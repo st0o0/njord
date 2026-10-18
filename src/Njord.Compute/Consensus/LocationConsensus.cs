@@ -2,7 +2,7 @@ using Njord.Weather;
 
 namespace Njord.Compute.Consensus;
 
-public sealed record ConsensusSnapshot(
+public sealed record LocationConsensus(
     LocationId Location,
     HourlyConsensus Hourly,
     DailyConsensus Daily,

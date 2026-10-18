@@ -21,7 +21,7 @@ using Njord.Weather;
 namespace Njord.Configuration;
 
 // The only subscriber to configuration change notifications and the only writer of runtime configuration.
-// A reload is turned into typed messages for the actors that consume hot settings and a new snapshot on the
+// A reload is turned into typed messages for the actors that consume hot settings and a new effective config on the
 // config stream; queries and update commands from the API are answered with configuration contracts.
 public sealed class ConfigManager : ReceiveActor
 {
@@ -47,8 +47,8 @@ public sealed class ConfigManager : ReceiveActor
     private PollingChanged _pollingState;
     private RequestBudget _budget;
     private IMaterializer? _mat;
-    private ISourceQueueWithComplete<ConfigSnapshot>? _streamQueue;
-    private Source<ConfigSnapshot, NotUsed>? _streamSource;
+    private ISourceQueueWithComplete<EffectiveConfig>? _streamQueue;
+    private Source<EffectiveConfig, NotUsed>? _streamSource;
 
     public ConfigManager(
         IOptions<NjordOptions> startupScope,
@@ -101,10 +101,10 @@ public sealed class ConfigManager : ReceiveActor
 
         // The drain keeps the hub moving while no StreamConfig client is attached.
         _mat = Context.Materializer();
-        var (queue, source) = Source.Queue<ConfigSnapshot>(StreamBufferSize, OverflowStrategy.DropHead)
-            .ToMaterialized(BroadcastHub.Sink<ConfigSnapshot>(StreamBufferSize), Keep.Both)
+        var (queue, source) = Source.Queue<EffectiveConfig>(StreamBufferSize, OverflowStrategy.DropHead)
+            .ToMaterialized(BroadcastHub.Sink<EffectiveConfig>(StreamBufferSize), Keep.Both)
             .Run(_mat);
-        source.RunWith(Sink.Ignore<ConfigSnapshot>(), _mat);
+        source.RunWith(Sink.Ignore<EffectiveConfig>(), _mat);
         _streamQueue = queue;
         _streamSource = source;
     }
@@ -144,7 +144,7 @@ public sealed class ConfigManager : ReceiveActor
                 _derived.CurrentValue));
             ApplyPolling(_polling.CurrentValue.ToMessage());
             ApplyBudget(BudgetCalculator.GetEffectiveBudget(_polling.CurrentValue));
-            _streamQueue?.OfferAsync(CurrentSnapshot());
+            _streamQueue?.OfferAsync(CurrentConfig());
         }
         catch (OptionsValidationException ex)
         {
@@ -161,7 +161,7 @@ public sealed class ConfigManager : ReceiveActor
     {
         try
         {
-            Sender.Tell(new ConfigResult(CurrentSnapshot()));
+            Sender.Tell(new ConfigResult(CurrentConfig()));
         }
         catch (Exception ex)
         {
@@ -182,14 +182,14 @@ public sealed class ConfigManager : ReceiveActor
         }
     }
 
-    // Each subscriber starts with the current snapshot; later snapshots come from the hub, which the
+    // Each subscriber starts with the current config; later configs come from the hub, which the
     // subscriber joins here, in the same turn, so no reload between the two is lost.
     private void OnRequestConfigStream(RequestConfigStream msg)
     {
-        ConfigSnapshot current;
+        EffectiveConfig current;
         try
         {
-            current = CurrentSnapshot();
+            current = CurrentConfig();
         }
         catch (Exception ex)
         {
@@ -199,7 +199,7 @@ public sealed class ConfigManager : ReceiveActor
 
         Source.Single(current)
             .Concat(_streamSource!)
-            .RunWith(StreamRefs.SourceRef<ConfigSnapshot>(), _mat!)
+            .RunWith(StreamRefs.SourceRef<EffectiveConfig>(), _mat!)
             .PipeTo(Sender, Self,
                 success: sourceRef => new RequestConfigStreamCompleted(msg.RequestId, sourceRef),
                 failure: ex => new RequestConfigStreamFailed(msg.RequestId, ex));
@@ -243,7 +243,7 @@ public sealed class ConfigManager : ReceiveActor
 
         var result = await _writer.UpdateAsync<NjordOptions>(opt => opt.Locations = locations, _lifetime.Token);
         return result.Applied
-            ? new UpdateLocationsCompleted(CurrentSnapshot(), [.. RestartRequired(result, "")])
+            ? new UpdateLocationsCompleted(CurrentConfig(), [.. RestartRequired(result, "")])
             : new UpdateLocationsRejected(string.Join("; ", result.Failures));
     }
 
@@ -305,7 +305,7 @@ public sealed class ConfigManager : ReceiveActor
             }
         }
 
-        return new UpdateSettingsCompleted(CurrentSnapshot(), [.. RestartRequired(scopeResult, "")]);
+        return new UpdateSettingsCompleted(CurrentConfig(), [.. RestartRequired(scopeResult, "")]);
     }
 
     // Rejects a scope or poll interval change whose projection breaks the same 80 % guard that startup validation applies.
@@ -363,8 +363,8 @@ public sealed class ConfigManager : ReceiveActor
             pair.Outcome.RestartRequiredProperties.Select(p => $"{pair.Update.Prefix}{p}")).ToList();
 
         return cmd.DryRun
-            ? new UpdateAnalysisConfigValidated(CurrentSnapshot(), restartRequired)
-            : new UpdateAnalysisConfigCompleted(CurrentSnapshot(), restartRequired);
+            ? new UpdateAnalysisConfigValidated(CurrentConfig(), restartRequired)
+            : new UpdateAnalysisConfigCompleted(CurrentConfig(), restartRequired);
     }
 
     private async Task OnUpdateBudget(UpdateBudget cmd)
@@ -408,12 +408,12 @@ public sealed class ConfigManager : ReceiveActor
         }, _lifetime.Token);
 
         return result.Applied
-            ? new UpdateBudgetCompleted(CurrentSnapshot(), [])
+            ? new UpdateBudgetCompleted(CurrentConfig(), [])
             : new UpdateBudgetRejected(string.Join("; ", result.Failures));
     }
 
-    private ConfigSnapshot CurrentSnapshot() =>
-        ConfigSnapshotMappings.ToSnapshot(
+    private EffectiveConfig CurrentConfig() =>
+        EffectiveConfigMappings.ToEffectiveConfig(
             _scope.CurrentValue,
             _polling.CurrentValue,
             _consensus.CurrentValue,
@@ -455,7 +455,7 @@ public sealed class ConfigManager : ReceiveActor
             next.PollInterval, next.DiscoveryInterval);
     }
 
-    // The gateway's budget gate reads the budget per call; the health snapshot behind the budget metrics
+    // The gateway's budget gate reads the budget per call; the health record behind the budget metrics
     // (and the budget tracker's status answer) is refreshed here so the reported limit matches.
     private void ApplyBudget(RequestBudget next)
     {

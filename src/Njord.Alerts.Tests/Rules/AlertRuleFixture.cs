@@ -35,10 +35,10 @@ internal static class AlertRuleFixture
     private static readonly FakeTimeProvider Time = new(T0);
     private static readonly ResolvedParameterSet Parameters = ParameterSelection.Resolve(["Weather", "Solar", "Soil"], [], []);
 
-    public static ConsensusSnapshot ToConsensus(ModelSnapshot snap) =>
+    public static LocationConsensus ToConsensus(ModelForecasts snap) =>
         new ConsensusBuilder(Parameters, Time).Create(snap, "lucerne", ConsensusSettings.Default);
 
-    public static ConsensusSnapshot Consensus(params Forecast[] forecasts) => ToConsensus(SnapshotWith(forecasts));
+    public static LocationConsensus Consensus(params Forecast[] forecasts) => ToConsensus(ForecastsWith(forecasts));
 
     public static Forecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues) =>
         MakeForecast(model, _ => hourlyValues);
@@ -79,9 +79,9 @@ internal static class AlertRuleFixture
         return hourly with { Daily = new DailyForecastSeries([dailyPoint]) };
     }
 
-    public static ModelSnapshot SnapshotWith(params Forecast[] forecasts)
+    public static ModelForecasts ForecastsWith(params Forecast[] forecasts)
     {
-        var snap = ModelSnapshot.Empty;
+        var snap = ModelForecasts.Empty;
         foreach (var f in forecasts)
         {
             snap = snap.Update(f);

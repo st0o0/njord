@@ -81,64 +81,64 @@ public sealed class SensorHubStateSpec
     }
 
     [Fact]
-    public void GetSnapshot_aggregates_fresh_readings()
+    public void GetReadings_aggregates_fresh_readings()
     {
         var state = SensorHubState.Empty
             .Apply(Reading(source: "s1", value: 20.0))
             .Apply(Reading(source: "s2", value: 24.0));
 
-        var response = state.GetSnapshot("lucerne", Now, Staleness);
-        var result = Assert.IsType<SensorSnapshotResult>(response, exactMatch: false);
+        var response = state.GetReadings("lucerne", Now, Staleness);
+        var result = Assert.IsType<SensorReadingsResult>(response, exactMatch: false);
 
-        Assert.Equal(22.0, result.Snapshot.Readings[SensorKind.IndoorTemperature].Value);
-        Assert.Equal(2, result.Snapshot.Readings[SensorKind.IndoorTemperature].SourceCount);
+        Assert.Equal(22.0, result.Sensors.Readings[SensorKind.IndoorTemperature].Value);
+        Assert.Equal(2, result.Sensors.Readings[SensorKind.IndoorTemperature].SourceCount);
     }
 
     [Fact]
-    public void GetSnapshot_excludes_expired_readings()
+    public void GetReadings_excludes_expired_readings()
     {
         var expired = Now - Staleness - TimeSpan.FromSeconds(1);
         var state = SensorHubState.Empty
             .Apply(Reading(source: "s1", value: 20.0, measuredAt: expired))
             .Apply(Reading(source: "s2", value: 24.0, measuredAt: Now));
 
-        var response = state.GetSnapshot("lucerne", Now, Staleness);
-        var result = Assert.IsType<SensorSnapshotResult>(response, exactMatch: false);
+        var response = state.GetReadings("lucerne", Now, Staleness);
+        var result = Assert.IsType<SensorReadingsResult>(response, exactMatch: false);
 
-        Assert.Equal(24.0, result.Snapshot.Readings[SensorKind.IndoorTemperature].Value);
-        Assert.Equal(1, result.Snapshot.Readings[SensorKind.IndoorTemperature].SourceCount);
+        Assert.Equal(24.0, result.Sensors.Readings[SensorKind.IndoorTemperature].Value);
+        Assert.Equal(1, result.Sensors.Readings[SensorKind.IndoorTemperature].SourceCount);
     }
 
     [Fact]
-    public void GetSnapshot_returns_not_available_when_all_expired()
+    public void GetReadings_returns_not_available_when_all_expired()
     {
         var expired = Now - Staleness - TimeSpan.FromSeconds(1);
         var state = SensorHubState.Empty
             .Apply(Reading(measuredAt: expired));
 
-        var response = state.GetSnapshot("lucerne", Now, Staleness);
-        Assert.IsType<SensorSnapshotNotAvailable>(response, exactMatch: false);
+        var response = state.GetReadings("lucerne", Now, Staleness);
+        Assert.IsType<SensorReadingsNotAvailable>(response, exactMatch: false);
     }
 
     [Fact]
-    public void GetSnapshot_returns_not_available_for_empty_state()
+    public void GetReadings_returns_not_available_for_empty_state()
     {
-        var response = SensorHubState.Empty.GetSnapshot("lucerne", Now, Staleness);
-        Assert.IsType<SensorSnapshotNotAvailable>(response, exactMatch: false);
+        var response = SensorHubState.Empty.GetReadings("lucerne", Now, Staleness);
+        Assert.IsType<SensorReadingsNotAvailable>(response, exactMatch: false);
     }
 
     [Fact]
-    public void GetSnapshot_filters_by_location()
+    public void GetReadings_filters_by_location()
     {
         var state = SensorHubState.Empty
             .Apply(Reading(location: "lucerne"))
             .Apply(Reading(location: "zurich"));
 
-        var response = state.GetSnapshot("lucerne", Now, Staleness);
-        var result = Assert.IsType<SensorSnapshotResult>(response, exactMatch: false);
+        var response = state.GetReadings("lucerne", Now, Staleness);
+        var result = Assert.IsType<SensorReadingsResult>(response, exactMatch: false);
 
-        Assert.Equal("lucerne", result.Snapshot.Location);
-        Assert.Single(result.Snapshot.Readings);
+        Assert.Equal("lucerne", result.Sensors.Location);
+        Assert.Single(result.Sensors.Readings);
     }
 
     [Fact]
@@ -178,41 +178,41 @@ public sealed class SensorHubStateSpec
     }
 
     [Fact]
-    public void GetSnapshots_maps_every_location_with_fresh_readings()
+    public void GetLocationReadings_maps_every_location_with_fresh_readings()
     {
         var state = SensorHubState.Empty
             .Apply(Reading(location: "lucerne", value: 22.0))
             .Apply(Reading(location: "bern", value: 19.0))
             .Apply(Reading(location: "zurich", value: 18.0, measuredAt: Now - TimeSpan.FromMinutes(20)));
 
-        var snapshots = state.GetSnapshots(Now, Staleness);
+        var readings = state.GetLocationReadings(Now, Staleness);
 
         Assert.Multiple(
-            () => Assert.Equal(2, snapshots.Snapshots.Count),
-            () => Assert.Equal(22.0, snapshots.For(new LocationId("lucerne"))?.Get(SensorKind.IndoorTemperature)),
-            () => Assert.Equal(19.0, snapshots.For(new LocationId("bern"))?.Get(SensorKind.IndoorTemperature)),
-            () => Assert.Null(snapshots.For(new LocationId("zurich"))));
+            () => Assert.Equal(2, readings.ByLocation.Count),
+            () => Assert.Equal(22.0, readings.For(new LocationId("lucerne"))?.Get(SensorKind.IndoorTemperature)),
+            () => Assert.Equal(19.0, readings.For(new LocationId("bern"))?.Get(SensorKind.IndoorTemperature)),
+            () => Assert.Null(readings.For(new LocationId("zurich"))));
     }
 
     [Fact]
-    public void GetSnapshots_aggregates_readings_whose_location_differs_only_in_case()
+    public void GetLocationReadings_aggregates_readings_whose_location_differs_only_in_case()
     {
         var state = SensorHubState.Empty
             .Apply(Reading(location: "lucerne", source: "a", value: 20.0))
             .Apply(Reading(location: "LUCERNE", source: "b", value: 24.0));
 
-        var snapshots = state.GetSnapshots(Now, Staleness);
+        var readings = state.GetLocationReadings(Now, Staleness);
 
-        var snapshot = Assert.Single(snapshots.Snapshots).Value;
-        var reading = snapshot.Readings[SensorKind.IndoorTemperature];
+        var entry = Assert.Single(readings.ByLocation).Value;
+        var reading = entry.Readings[SensorKind.IndoorTemperature];
         Assert.Multiple(
             () => Assert.Equal(22.0, reading.Value),
             () => Assert.Equal(2, reading.SourceCount));
     }
 
     [Fact]
-    public void GetSnapshots_is_empty_for_an_empty_state()
+    public void GetLocationReadings_is_empty_for_an_empty_state()
     {
-        Assert.Empty(SensorHubState.Empty.GetSnapshots(Now, Staleness).Snapshots);
+        Assert.Empty(SensorHubState.Empty.GetLocationReadings(Now, Staleness).ByLocation);
     }
 }

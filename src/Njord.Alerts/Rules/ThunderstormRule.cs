@@ -10,7 +10,7 @@ public sealed class ThunderstormRule : IAlertRule
 {
     public AlertType Type => AlertType.Thunderstorm;
 
-    public Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings)
+    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
     {
         var cape = consensus.Hourly.Find(ParameterRegistry.Cape);
         var precipitation = consensus.Hourly.Find(ParameterRegistry.Precipitation);

@@ -12,7 +12,7 @@ public sealed class HealthSetupContainer : IServiceSetupContainer
     {
         services.AddSingleton(static sp => new NjordHealthMonitor(
             sp.GetRequiredService<TimeProvider>().GetUtcNow(),
-            sp.GetRequiredService<IOptionsMonitor<PollingOptions>>().CurrentValue.ToInitialBudgetSnapshot()));
+            sp.GetRequiredService<IOptionsMonitor<PollingOptions>>().CurrentValue.ToInitialBudgetHealth()));
 
         services.AddHealthChecks()
             .AddCheck<PipelineHealthCheck>("pipeline");

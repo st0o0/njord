@@ -133,7 +133,7 @@ public sealed class AlertAnalyzerSpec
 
     private static AlertAnalyzer CreateAnalyzer(bool enabled = true) => FeatureServices.Alerts(Time, enabled);
 
-    private static ConsensusSnapshot BuildConsensus(params (ParameterDef Param, double Value)[] hourlyValues)
+    private static LocationConsensus BuildConsensus(params (ParameterDef Param, double Value)[] hourlyValues)
     {
         var points = new List<ForecastPoint>();
         for (var h = 0; h < 24; h++)
@@ -146,7 +146,7 @@ public sealed class AlertAnalyzerSpec
 
         var forecast = new Forecast(new WeatherModel("m1"), "lucerne", new CycleId(T0),
             new ForecastSeries(points), DailyForecastSeries.Empty);
-        var snap = ModelSnapshot.Empty.Update(forecast);
+        var snap = ModelForecasts.Empty.Update(forecast);
         return new ConsensusBuilder(Parameters, Time).Create(snap, "lucerne", ConsensusSettings.Default);
     }
 
@@ -154,6 +154,6 @@ public sealed class AlertAnalyzerSpec
     {
         public AlertType Type => type;
 
-        public Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings) => Alert.None(type);
+        public Alert Evaluate(LocationConsensus consensus, AlertSettings settings) => Alert.None(type);
     }
 }

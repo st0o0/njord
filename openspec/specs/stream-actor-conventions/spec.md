@@ -32,7 +32,7 @@ Actor methods that define a Become phase SHALL be named after the actor's lifecy
 
 #### Scenario: ForecastPipeline phases
 - **WHEN** inspecting `ForecastPipeline`'s message handling
-- **THEN** it has a single operational phase whose handlers (`RequestForecastSink`, `RequestPipelineOutput`, `AnalysisSettingsChanged`, `AnalysisSettingsResult`, `SensorSnapshots`, graph end) are registered in one place, and no waiting phase
+- **THEN** it has a single operational phase whose handlers (`RequestForecastSink`, `RequestPipelineOutput`, `AnalysisSettingsChanged`, `AnalysisSettingsResult`, `LocationSensorReadings`, graph end) are registered in one place, and no waiting phase
 
 #### Scenario: MqttConnection phases
 - **WHEN** inspecting `MqttConnection`'s message handling

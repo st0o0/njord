@@ -9,7 +9,7 @@ namespace Njord.Tests.Shared;
 public static class EnrichmentEvents
 {
     public static PipelineEvent.ConsensusComputed Consensus(LocationId location, DateTimeOffset at) =>
-        new(new ConsensusSnapshot(location, new HourlyConsensus([], 72), new DailyConsensus([], 4), at), at);
+        new(new LocationConsensus(location, new HourlyConsensus([], 72), new DailyConsensus([], 4), at), at);
 
     public static PipelineEvent.AlertComputed Alerts(LocationId location, DateTimeOffset at) =>
         new(new AlertResult(location, []), at);

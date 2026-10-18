@@ -76,7 +76,7 @@ public sealed class ForecastPipeline : ReceiveActor
         Receive<RequestPipelineOutput>(OnRequestPipelineOutput);
         Receive<AnalysisSettingsChanged>(msg => _settingsRef!.Tell(msg.Settings));
         Receive<AnalysisSettingsResult>(msg => _settingsRef!.Tell(msg.Settings));
-        Receive<SensorSnapshots>(msg => _sensorRef!.Tell(msg));
+        Receive<LocationSensorReadings>(msg => _sensorRef!.Tell(msg));
         Receive<AnalysisGraphEnded>(OnAnalysisGraphEnded);
     }
 
@@ -103,7 +103,7 @@ public sealed class ForecastPipeline : ReceiveActor
 
         if (Context.TryGetActor<ISensorHub>(out var sensorHub))
         {
-            sensorHub.Tell(new RequestSensorSnapshots());
+            sensorHub.Tell(new RequestSensorReadings());
         }
         else
         {
@@ -167,7 +167,7 @@ public sealed class ForecastPipeline : ReceiveActor
         var (pipelineOutputSource, pipelineOutputSink) = BroadcastHub.Sink<PipelineEvent>(bufferSize: 2)
             .PreMaterialize(_mat);
 
-        // The latest settings and sensor snapshots are zipped onto every forecast, so a change applies from the
+        // The latest settings and sensor readings are zipped onto every forecast, so a change applies from the
         // next forecast on and never in the middle of one computation.
         var (settingsRef, settingsSourceRaw) = Source.ActorRef<AnalysisSettings>(10, OverflowStrategy.DropHead)
             .PreMaterialize(_mat);
@@ -175,9 +175,9 @@ public sealed class ForecastPipeline : ReceiveActor
             .Concat(settingsSourceRaw)
             .RepeatPrevious();
 
-        var (sensorRef, sensorSourceRaw) = Source.ActorRef<SensorSnapshots>(10, OverflowStrategy.DropHead)
+        var (sensorRef, sensorSourceRaw) = Source.ActorRef<LocationSensorReadings>(10, OverflowStrategy.DropHead)
             .PreMaterialize(_mat);
-        var sensorSource = Source.Single(SensorSnapshots.Empty)
+        var sensorSource = Source.Single(LocationSensorReadings.Empty)
             .Concat(sensorSourceRaw)
             .RepeatPrevious();
 
@@ -193,26 +193,26 @@ public sealed class ForecastPipeline : ReceiveActor
         forecastSource
             .Via(Flow.FromGraph(GraphDsl.Create(builder =>
             {
-                var zip = builder.Add(ZipWith.Apply<WeatherForecast, SensorSnapshots, AnalysisSettings,
-                    (WeatherForecast, SensorSnapshots, AnalysisSettings)>(
+                var zip = builder.Add(ZipWith.Apply<WeatherForecast, LocationSensorReadings, AnalysisSettings,
+                    (WeatherForecast, LocationSensorReadings, AnalysisSettings)>(
                     (forecast, sensors, settings) => (forecast, sensors, settings)));
                 builder.From(builder.Add(sensorSource)).To(zip.In1);
                 builder.From(builder.Add(settingsSource)).To(zip.In2);
-                return new FlowShape<WeatherForecast, (WeatherForecast, SensorSnapshots, AnalysisSettings)>(zip.In0, zip.Out);
+                return new FlowShape<WeatherForecast, (WeatherForecast, LocationSensorReadings, AnalysisSettings)>(zip.In0, zip.Out);
             })))
-            .StatefulSelectMany<(WeatherForecast forecast, SensorSnapshots sensors, AnalysisSettings settings), PipelineEvent, NotUsed>(() =>
+            .StatefulSelectMany<(WeatherForecast forecast, LocationSensorReadings sensors, AnalysisSettings settings), PipelineEvent, NotUsed>(() =>
             {
-                var snapshot = ModelSnapshot.Empty;
-                ConsensusSnapshot? previous = null;
+                var forecasts = ModelForecasts.Empty;
+                LocationConsensus? previous = null;
 
                 return input =>
                 {
                     var now = timeProvider.GetUtcNow();
                     var location = new LocationId(input.forecast.Location);
-                    snapshot = snapshot.Update(input.forecast);
+                    forecasts = forecasts.Update(input.forecast);
                     var settings = input.settings;
-                    // The snapshot feeds every analysis, so it is built even when its own output is switched off.
-                    var consensus = consensusBuilder.Create(snapshot, input.forecast.Location, settings.Consensus);
+                    // The forecasts feed every analysis, so it is built even when its own output is switched off.
+                    var consensus = consensusBuilder.Create(forecasts, input.forecast.Location, settings.Consensus);
 
                     var events = new List<PipelineEvent>
                     {

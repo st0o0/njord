@@ -52,7 +52,7 @@ public sealed class IndexAnalyzerSpec
         var analyzer = CreateAnalyzer();
         var settings = Settings(indoorTemp: 28.0);
         var consensus = BuildConsensusWithWeather("lucerne");
-        var sensors = BuildSensorSnapshot("lucerne", 18.0);
+        var sensors = BuildSensorReadings("lucerne", 18.0);
 
         var withSensor = analyzer.Compute(consensus, sensors, settings);
         var withoutSensor = analyzer.Compute(consensus, null, settings);
@@ -70,7 +70,7 @@ public sealed class IndexAnalyzerSpec
         var analyzer = CreateAnalyzer();
         var settings = Settings(indoorTemp: 28.0);
         var consensus = BuildConsensusWithWeather("lucerne");
-        var sensors = BuildSensorSnapshot("lucerne", 18.0);
+        var sensors = BuildSensorReadings("lucerne", 18.0);
 
         _ = analyzer.Compute(consensus, sensors, settings);
         var afterSensorCall = analyzer.Compute(consensus, null, settings);
@@ -112,15 +112,15 @@ public sealed class IndexAnalyzerSpec
         return options.ToSettings(["lucerne"]);
     }
 
-    private static ConsensusSnapshot BuildConsensus(string location = "lucerne")
+    private static LocationConsensus BuildConsensus(string location = "lucerne")
     {
-        var snap = ModelSnapshot.Empty;
+        var snap = ModelForecasts.Empty;
         return new ConsensusBuilder(Parameters, Time).Create(snap, location, ConsensusSettings.Default);
     }
 
-    private static ConsensusSnapshot BuildConsensusWithWeather(string location)
+    private static LocationConsensus BuildConsensusWithWeather(string location)
     {
-        var snap = ModelSnapshot.Empty
+        var snap = ModelForecasts.Empty
             .Update(MakeForecast(new WeatherModel("m1"), location, 24, _ => (15.0, 60.0, 3.0, 30.0, 0.0)))
             .Update(MakeForecast(new WeatherModel("m2"), location, 24, _ => (15.0, 60.0, 3.0, 30.0, 0.0)));
         return new ConsensusBuilder(Parameters, Time).Create(snap, location, ConsensusSettings.Default);
@@ -148,13 +148,13 @@ public sealed class IndexAnalyzerSpec
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    private static SensorSnapshot BuildSensorSnapshot(string location, double indoorTemp)
+    private static SensorReadings BuildSensorReadings(string location, double indoorTemp)
     {
         var readings = new Dictionary<SensorKind, AggregatedReading>
         {
             [SensorKind.IndoorTemperature] = new(indoorTemp, 1, T0),
         };
-        return new SensorSnapshot(location, readings);
+        return new SensorReadings(location, readings);
     }
 
     [Fact]
@@ -216,7 +216,7 @@ public sealed class IndexAnalyzerSpec
 
     // Ported from Njord.Compute.Tests IndexResultSpec (formerly via IndexComputer).
 
-    private static IndexResult Analyze(FakeTimeProvider time, ConsensusSnapshot consensus)
+    private static IndexResult Analyze(FakeTimeProvider time, LocationConsensus consensus)
     {
         var result = FeatureServices.Indices(time).Compute(consensus, null, ResultPrefs());
         Assert.NotNull(result);
@@ -252,9 +252,9 @@ public sealed class IndexAnalyzerSpec
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    private static ModelSnapshot ResultSnapshotWith(params Forecast[] forecasts)
+    private static ModelForecasts ResultForecastsWith(params Forecast[] forecasts)
     {
-        var snap = ModelSnapshot.Empty;
+        var snap = ModelForecasts.Empty;
         foreach (var f in forecasts)
         {
             snap = snap.Update(f);

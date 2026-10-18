@@ -1,24 +1,24 @@
 namespace Njord.Sensors.Tests;
 
-public sealed class SensorSnapshotSpec
+public sealed class SensorReadingsSpec
 {
     [Fact]
     public void get_returns_value_for_existing_kind()
     {
-        var snapshot = new SensorSnapshot("Luzern", new Dictionary<SensorKind, AggregatedReading>
+        var readings = new SensorReadings("Luzern", new Dictionary<SensorKind, AggregatedReading>
         {
             [SensorKind.IndoorTemperature] = new(22.5, 1, new DateTimeOffset(2026, 7, 12, 6, 0, 0, TimeSpan.Zero)),
         });
 
-        Assert.Equal(22.5, snapshot.Get(SensorKind.IndoorTemperature));
+        Assert.Equal(22.5, readings.Get(SensorKind.IndoorTemperature));
     }
 
     [Fact]
     public void get_returns_null_for_missing_kind()
     {
-        var snapshot = new SensorSnapshot("Luzern", new Dictionary<SensorKind, AggregatedReading>());
+        var readings = new SensorReadings("Luzern", new Dictionary<SensorKind, AggregatedReading>());
 
-        Assert.Null(snapshot.Get(SensorKind.IndoorHumidity));
+        Assert.Null(readings.Get(SensorKind.IndoorHumidity));
     }
 
     [Theory]

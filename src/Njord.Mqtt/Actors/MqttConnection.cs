@@ -109,7 +109,7 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
     {
         Receive<Disconnected>(_ =>
         {
-            _healthState.UpdateMqtt(new MqttHealthSnapshot(false, _timeProvider.GetUtcNow()));
+            _healthState.UpdateMqtt(new MqttHealth(false, _timeProvider.GetUtcNow()));
             Telemetry.MqttConnected.Record(0);
             _log.Warning("MQTT connection lost, reconnecting");
             Timers.Cancel(OnlineRetryTimer);
@@ -188,7 +188,7 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
         _connectAttempts = 0;
         _onlineAttempts = 0;
         _log.Info("MQTT connected to {Host}:{Port}", _mqttOptions.Host, _mqttOptions.Port);
-        _healthState.UpdateMqtt(new MqttHealthSnapshot(true, null));
+        _healthState.UpdateMqtt(new MqttHealth(true, null));
         Telemetry.MqttConnected.Record(1);
 
         foreach (var listener in _inboundListeners)

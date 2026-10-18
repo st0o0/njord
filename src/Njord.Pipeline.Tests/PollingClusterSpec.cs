@@ -36,7 +36,7 @@ public sealed class PollingClusterSpec : NjordActorSpec
     {
         services.AddSingleton<TimeProvider>(_time);
         services.AddSingleton(FetchTimeouts.Default);
-        services.AddSingleton(new NjordHealthMonitor(default, new BudgetHealthSnapshot(0, 0, 0, 0)));
+        services.AddSingleton(new NjordHealthMonitor(default, new BudgetHealth(0, 0, 0, 0)));
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations =

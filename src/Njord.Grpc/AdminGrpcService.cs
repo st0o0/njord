@@ -41,10 +41,10 @@ public sealed class AdminGrpcService(
 
         NjordConfig? last = null;
         await sourceRef.Source
-            .Via(killSwitch.Flow<ConfigSnapshot>())
-            .SelectAsync(1, async snapshot =>
+            .Via(killSwitch.Flow<EffectiveConfig>())
+            .SelectAsync(1, async effective =>
             {
-                var current = snapshot.ToProto();
+                var current = effective.ToProto();
                 if (!current.Equals(last))
                 {
                     last = current;

@@ -30,7 +30,7 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     private readonly string _tempDir = Path.Combine(Path.GetTempPath(), $"njord-config-manager-{Guid.NewGuid():N}");
     private readonly List<ConfigHarness> _harnesses = [];
     private readonly ConfigHarness _harness;
-    private readonly NjordHealthMonitor _health = new(default, new BudgetHealthSnapshot(0, 0, 0, 0));
+    private readonly NjordHealthMonitor _health = new(default, new BudgetHealth(0, 0, 0, 0));
 
     protected override bool UseTestPersistence => false;
 
@@ -130,7 +130,7 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     public async Task A_budget_reload_updates_the_reported_limit_without_messaging_the_poll_manager()
     {
         var ct = TestContext.Current.CancellationToken;
-        _health.UpdateBudget(new BudgetHealthSnapshot(5, 50, RequestBudget.OpenMeteoFreeTierDailyLimit, 300_000));
+        _health.UpdateBudget(new BudgetHealth(5, 50, RequestBudget.OpenMeteoFreeTierDailyLimit, 300_000));
         var (_, _, pollManager) = await StartManagerAsync();
 
         await _harness.Writer.UpdateAsync<PollingOptions>(opt => opt.BudgetOverride = new RequestBudget(200_000, 600), ct);
@@ -163,7 +163,7 @@ public sealed class ConfigManagerSpec : NjordActorSpec
         var ct = TestContext.Current.CancellationToken;
         var (manager, pipeline, _) = await StartManagerAsync();
         var stream = await OpenConfigStreamAsync(manager, ct);
-        var initial = await stream.ExpectMsgAsync<ConfigSnapshot>(cancellationToken: ct);
+        var initial = await stream.ExpectMsgAsync<EffectiveConfig>(cancellationToken: ct);
         Assert.Null(initial.Analysis.Indices.Preferences.IndoorTemp);
 
         Directory.CreateDirectory(_tempDir);
@@ -173,14 +173,14 @@ public sealed class ConfigManagerSpec : NjordActorSpec
             ct);
         _harness.Root.Reload();
 
-        await stream.FishForMessageAsync<ConfigSnapshot>(
+        await stream.FishForMessageAsync<EffectiveConfig>(
             s => s.Analysis.Indices.Preferences.IndoorTemp == 19.5, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         var changed = await pipeline.ExpectMsgAsync<AnalysisSettingsChanged>(cancellationToken: ct);
         Assert.All(changed.Settings.Indices.Preferences.Values, p => Assert.Equal(19.5, p.IndoorTemp));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Every_options_value_reaches_the_config_snapshot()
+    public async Task Every_options_value_reaches_the_effective_config()
     {
         var ct = TestContext.Current.CancellationToken;
         var harness = CreateHarness(FullBaseline());
@@ -246,9 +246,9 @@ public sealed class ConfigManagerSpec : NjordActorSpec
             () => Assert.Equal(17.0, indices.LocationOverrides[0].ScoreOverrides["Bbq"].IndoorTemp));
     }
 
-    // Adding an options property must come with a snapshot field: this guard fails until both specs are updated.
+    // Adding an options property must come with an effective-config field: this guard fails until both specs are updated.
     [Fact]
-    public void The_snapshot_spec_covers_every_options_property()
+    public void The_effective_config_spec_covers_every_options_property()
     {
         Assert.Multiple(
             () => AssertProperties<NjordOptions>("Locations", "Models", "Horizons", "ForecastDays", "Parameters"),
@@ -562,18 +562,18 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task The_config_stream_starts_with_the_current_snapshot_and_follows_updates()
+    public async Task The_config_stream_starts_with_the_current_config_and_follows_updates()
     {
         var ct = TestContext.Current.CancellationToken;
         var (manager, _, _) = await StartManagerAsync();
         var stream = await OpenConfigStreamAsync(manager, ct);
 
-        var initial = await stream.ExpectMsgAsync<ConfigSnapshot>(cancellationToken: ct);
+        var initial = await stream.ExpectMsgAsync<EffectiveConfig>(cancellationToken: ct);
         await manager.Ask<UpdateSettingsResponse>(
             new UpdateSettings(null, [], [], null, TimeSpan.FromMinutes(30)), AskTimeout, ct);
 
         Assert.Equal(TimeSpan.FromMinutes(60), initial.Polling.PollInterval);
-        await stream.FishForMessageAsync<ConfigSnapshot>(
+        await stream.FishForMessageAsync<EffectiveConfig>(
             s => s.Polling.PollInterval == TimeSpan.FromMinutes(30), TestTimeouts.AwaitAssertMax, cancellationToken: ct);
     }
 
@@ -582,7 +582,7 @@ public sealed class ConfigManagerSpec : NjordActorSpec
         var response = await manager.Ask<RequestConfigStreamResponse>(new RequestConfigStream(1), AskTimeout, ct);
         var completed = Assert.IsType<RequestConfigStreamCompleted>(response);
         var probe = CreateTestProbe();
-        completed.SourceRef.Source.RunWith(Sink.ActorRef<ConfigSnapshot>(probe.Ref, "done", _ => "failed"), Sys.Materializer());
+        completed.SourceRef.Source.RunWith(Sink.ActorRef<EffectiveConfig>(probe.Ref, "done", _ => "failed"), Sys.Materializer());
         return probe;
     }
 

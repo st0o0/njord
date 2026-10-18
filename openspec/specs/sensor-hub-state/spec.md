@@ -47,16 +47,16 @@ SensorHub SHALL hold its domain state (sensor readings, expiry logic, aggregatio
 - **WHEN** `Validate` is called with a reading whose value exceeds the plausible range
 - **THEN** it SHALL return a failure result with a message describing the range violation
 
-### Requirement: SensorHubState exposes snapshot query
+### Requirement: SensorHubState exposes readings query
 
-`SensorHubStateExtensions` SHALL provide a `GetSnapshot` method that accepts a location and the current time, filters out expired readings, aggregates by `SensorKind`, and returns a `SensorSnapshot` or indicates no data is available.
+`SensorHubStateExtensions` SHALL provide a `GetReadings` method that accepts a location and the current time, filters out expired readings, aggregates by `SensorKind`, and returns a `SensorReadings` or indicates no data is available.
 
-#### Scenario: Snapshot aggregates non-expired readings
-- **WHEN** `GetSnapshot` is called with a location that has fresh readings
-- **THEN** it SHALL return a `SensorSnapshot` with aggregated values per `SensorKind`
+#### Scenario: GetReadings aggregates non-expired readings
+- **WHEN** `GetReadings` is called with a location that has fresh readings
+- **THEN** it SHALL return a `SensorReadings` with aggregated values per `SensorKind`
 
-#### Scenario: Snapshot excludes expired readings
-- **WHEN** `GetSnapshot` is called and some readings are older than the staleness threshold
+#### Scenario: GetReadings excludes expired readings
+- **WHEN** `GetReadings` is called and some readings are older than the staleness threshold
 - **THEN** those readings SHALL be excluded from the aggregation
 
 ### Requirement: SensorHubState exposes expiry as a pure function
@@ -73,8 +73,8 @@ SensorHub SHALL hold its domain state (sensor readings, expiry logic, aggregatio
 
 ### Requirement: State-only unit tests for SensorHubState
 
-`SensorHubState` SHALL have dedicated unit tests that verify `Apply`, `Validate`, `GetSnapshot`, and `Expire` as pure functions without any actor infrastructure.
+`SensorHubState` SHALL have dedicated unit tests that verify `Apply`, `Validate`, `GetReadings`, and `Expire` as pure functions without any actor infrastructure.
 
 #### Scenario: Pure function test coverage
 - **WHEN** the test suite runs
-- **THEN** SensorHubState SHALL have tests covering: empty state, applying readings, validation pass/fail, snapshot aggregation with mixed fresh/expired readings, expiry, and multiple sources for the same sensor kind
+- **THEN** SensorHubState SHALL have tests covering: empty state, applying readings, validation pass/fail, readings aggregation with mixed fresh/expired readings, expiry, and multiple sources for the same sensor kind

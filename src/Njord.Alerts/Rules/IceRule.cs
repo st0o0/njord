@@ -10,7 +10,7 @@ public sealed class IceRule : IAlertRule
 {
     public AlertType Type => AlertType.Ice;
 
-    public Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings)
+    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
     {
         var rain = consensus.Hourly.Find(ParameterRegistry.Rain);
         var temperature = consensus.Hourly.Find(ParameterRegistry.Temperature2m);

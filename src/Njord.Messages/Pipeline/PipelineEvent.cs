@@ -20,7 +20,7 @@ public abstract record PipelineEvent
         WeatherForecast Forecast) : PipelineEvent;
 
     public sealed record ConsensusComputed(
-        ConsensusSnapshot Consensus,
+        LocationConsensus Consensus,
         DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
     {
         public EnrichmentKind Kind => EnrichmentKind.Consensus;

@@ -90,7 +90,7 @@ model {
       }
       analyze = component 'Analyze' {
         #pipeline
-        description 'ZipWith sensor snapshot, StatefulSelectMany over all analysis features'
+        description 'ZipWith sensor readings, StatefulSelectMany over all analysis features'
       }
       eventHub = component 'PipelineEvent hub' {
         #pipeline
@@ -123,8 +123,8 @@ model {
   openMeteoGateway -> openMeteoClient 'fetch'
   openMeteoClient -> openMeteo 'HTTP GET /v1/forecast'
   openMeteoGateway -> forecastPipeline 'SourceRef<Forecast>'
-  sensorHub -> forecastPipeline 'sensor snapshot'
-  forecastPipeline -> analysis 'ConsensusSnapshot'
+  sensorHub -> forecastPipeline 'sensor readings'
+  forecastPipeline -> analysis 'LocationConsensus'
   forecastPipeline -> readModel 'SourceRef<PipelineEvent>'
   forecastPipeline -> mqttStatePublisher 'SourceRef<PipelineEvent>'
   grpcApi -> readModel 'queries + streams'

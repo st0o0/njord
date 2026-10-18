@@ -9,7 +9,7 @@ public sealed class MappingConventionArchitectureSpec
     // configuration mapping classes stay public.
     private static readonly string[] PublicMappingClasses =
     [
-        "Njord.Core.Configuration.ConfigSnapshotMappings",
+        "Njord.Core.Configuration.EffectiveConfigMappings",
         "Njord.Core.Configuration.ConfigUpdateMappings",
     ];
 

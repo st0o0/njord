@@ -40,10 +40,10 @@ public sealed class SensorHubPushSpec : Akka.Hosting.TestKit.TestKit
         return await ExpectMsgAsync<PushResult>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
     }
 
-    private static async Task<SensorSnapshots> NextPushAsync(
-        Akka.TestKit.TestProbe pipeline, Func<SensorSnapshots, bool> matches, CancellationToken ct) =>
-        (SensorSnapshots)await pipeline.FishForMessageAsync(
-            m => m is SensorSnapshots s && matches(s), TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+    private static async Task<LocationSensorReadings> NextPushAsync(
+        Akka.TestKit.TestProbe pipeline, Func<LocationSensorReadings, bool> matches, CancellationToken ct) =>
+        (LocationSensorReadings)await pipeline.FishForMessageAsync(
+            m => m is LocationSensorReadings s && matches(s), TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task The_hub_pushes_its_map_once_the_pipeline_is_resolved()
@@ -51,26 +51,26 @@ public sealed class SensorHubPushSpec : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var (_, pipeline) = CreateHubWithPipeline();
 
-        var push = await pipeline.ExpectMsgAsync<SensorSnapshots>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var push = await pipeline.ExpectMsgAsync<LocationSensorReadings>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-        Assert.Empty(push.Snapshots);
+        Assert.Empty(push.ByLocation);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_snapshot_request_is_answered_to_the_sender_with_the_current_map()
+    public async Task A_readings_request_is_answered_to_the_sender_with_the_current_map()
     {
         var ct = TestContext.Current.CancellationToken;
         var (hub, _) = CreateHubWithPipeline();
         await UpdateAsync(hub, Reading(location: "Luzern", value: 21.0), ct);
         var requester = CreateTestProbe();
 
-        hub.Tell(new RequestSensorSnapshots(), requester.Ref);
+        hub.Tell(new RequestSensorReadings(), requester.Ref);
 
-        var reply = await requester.ExpectMsgAsync<SensorSnapshots>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        var snapshot = Assert.Single(reply.Snapshots);
+        var reply = await requester.ExpectMsgAsync<LocationSensorReadings>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var reading = Assert.Single(reply.ByLocation);
         Assert.Multiple(
-            () => Assert.Equal(new LocationId("Luzern"), snapshot.Key),
-            () => Assert.Equal(21.0, snapshot.Value.Get(SensorKind.IndoorTemperature)));
+            () => Assert.Equal(new LocationId("Luzern"), reading.Key),
+            () => Assert.Equal(21.0, reading.Value.Get(SensorKind.IndoorTemperature)));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -81,11 +81,11 @@ public sealed class SensorHubPushSpec : Akka.Hosting.TestKit.TestKit
 
         Assert.True((await UpdateAsync(hub, Reading(), ct)).Accepted);
 
-        var push = await NextPushAsync(pipeline, s => s.Snapshots.Count > 0, ct);
-        var snapshot = Assert.Single(push.Snapshots);
+        var push = await NextPushAsync(pipeline, s => s.ByLocation.Count > 0, ct);
+        var reading = Assert.Single(push.ByLocation);
         Assert.Multiple(
-            () => Assert.Equal(new LocationId("Luzern"), snapshot.Key),
-            () => Assert.Equal(23.5, snapshot.Value.Get(SensorKind.IndoorTemperature)));
+            () => Assert.Equal(new LocationId("Luzern"), reading.Key),
+            () => Assert.Equal(23.5, reading.Value.Get(SensorKind.IndoorTemperature)));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -97,7 +97,7 @@ public sealed class SensorHubPushSpec : Akka.Hosting.TestKit.TestKit
         await UpdateAsync(hub, Reading(location: "Luzern", value: 23.5), ct);
         await UpdateAsync(hub, Reading(location: "Bern", value: 21.0), ct);
 
-        var push = await NextPushAsync(pipeline, s => s.Snapshots.Count == 2, ct);
+        var push = await NextPushAsync(pipeline, s => s.ByLocation.Count == 2, ct);
         Assert.Multiple(
             () => Assert.Equal(23.5, push.For(new LocationId("luzern"))?.Get(SensorKind.IndoorTemperature)),
             () => Assert.Equal(21.0, push.For(new LocationId("Bern"))?.Get(SensorKind.IndoorTemperature)));
@@ -108,14 +108,14 @@ public sealed class SensorHubPushSpec : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (hub, pipeline) = CreateHubWithPipeline(stalenessSeconds: 3600);
-        await pipeline.ExpectMsgAsync<SensorSnapshots>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await pipeline.ExpectMsgAsync<LocationSensorReadings>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
         await UpdateAsync(hub, Reading(location: "Luzern", measuredAt: _time.GetUtcNow().AddHours(-2)), ct);
         await UpdateAsync(hub, Reading(location: "Bern", value: 21.0), ct);
 
-        var push = await NextPushAsync(pipeline, s => s.Snapshots.Count > 0, ct);
-        var snapshot = Assert.Single(push.Snapshots);
-        Assert.Equal(new LocationId("Bern"), snapshot.Key);
+        var push = await NextPushAsync(pipeline, s => s.ByLocation.Count > 0, ct);
+        var reading = Assert.Single(push.ByLocation);
+        Assert.Equal(new LocationId("Bern"), reading.Key);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -124,12 +124,12 @@ public sealed class SensorHubPushSpec : Akka.Hosting.TestKit.TestKit
         var ct = TestContext.Current.CancellationToken;
         var (hub, pipeline) = CreateHubWithPipeline(stalenessSeconds: 3600, expiryInterval: TimeSpan.FromMilliseconds(200));
         await UpdateAsync(hub, Reading(location: "Luzern"), ct);
-        await NextPushAsync(pipeline, s => s.Snapshots.Count == 1, ct);
+        await NextPushAsync(pipeline, s => s.ByLocation.Count == 1, ct);
 
         _time.Advance(TimeSpan.FromHours(2));
 
-        var push = await NextPushAsync(pipeline, s => s.Snapshots.Count == 0, ct);
-        Assert.Empty(push.Snapshots);
+        var push = await NextPushAsync(pipeline, s => s.ByLocation.Count == 0, ct);
+        Assert.Empty(push.ByLocation);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -137,7 +137,7 @@ public sealed class SensorHubPushSpec : Akka.Hosting.TestKit.TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (hub, pipeline) = CreateHubWithPipeline();
-        await pipeline.ExpectMsgAsync<SensorSnapshots>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await pipeline.ExpectMsgAsync<LocationSensorReadings>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
         var result = await UpdateAsync(hub, Reading(value: 85.0), ct);
 

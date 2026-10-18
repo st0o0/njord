@@ -27,7 +27,7 @@ Bounding boxes SHALL be intentionally generous (1-2 degree padding beyond docume
 - **THEN** validation SHALL pass (no failure)
 
 ### Requirement: Effective models per location are the union of global and location models
-The effective model list of a location SHALL be the case-insensitive union of the global `NjordOptions.Models` list followed by the location's own `Models` list, preserving first occurrence order. If the location has no `Models`, the effective list SHALL equal the global list. `PollManager`, `NjordOptionsValidator`, `BudgetCalculator` and `ConfigSnapshotMapping` SHALL all resolve models this way; `LocationOptions` itself SHALL stay a plain options class without a resolve method.
+The effective model list of a location SHALL be the case-insensitive union of the global `NjordOptions.Models` list followed by the location's own `Models` list, preserving first occurrence order. If the location has no `Models`, the effective list SHALL equal the global list. `PollManager`, `NjordOptionsValidator`, `BudgetCalculator` and `EffectiveConfigMapping` SHALL all resolve models this way; `LocationOptions` itself SHALL stay a plain options class without a resolve method.
 
 #### Scenario: Location with additional models merges with global
 - **WHEN** global Models is `["icon_global", "icon_eu"]` and location Models is `["icon_d2"]`

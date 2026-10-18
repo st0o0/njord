@@ -18,9 +18,9 @@ A command that can be refused for a validation reason SHALL also have a
 - **WHEN** PollManager responds to `QueryPollStates`
 - **THEN** the response is `PollStatesResult(...)` or `PollStatesFailed(Exception Cause)` under abstract `PollStatesResponse`
 
-#### Scenario: Sensor snapshot response hierarchy
-- **WHEN** SensorHub responds to `QuerySensorSnapshot`
-- **THEN** the response is `SensorSnapshotResult(...)` or `SensorSnapshotNotAvailable` under abstract `SensorSnapshotResponse`
+#### Scenario: Sensor readings response hierarchy
+- **WHEN** SensorHub responds to `QuerySensorReadings`
+- **THEN** the response is `SensorReadingsResult(...)` or `SensorReadingsNotAvailable` under abstract `SensorReadingsResponse`
 
 #### Scenario: Forecast query response hierarchy
 - **WHEN** ForecastReadModel responds to `QueryForecast`
@@ -47,7 +47,7 @@ A command that can be refused for a validation reason SHALL also have a
 - **THEN** it responds with the domain's `*Failed` record containing the caught `Exception` as `Cause`
 
 ### Requirement: Njord.Messages organizes messages by domain namespace
-The `Njord.Messages` project SHALL hold every public actor command, query, result and event, with one file per command or query (including its response hierarchy), organized into domain namespaces: `Budget/` (usage recording and status), `Config/` (config snapshot contracts, config, catalog and analysis-settings queries, update commands), `Forecast/` (fetch, fetch replies and rejection reasons, forecast queries), `Mqtt/` (connection events, inbound messages, subscribe), `Pipeline/` (`PipelineEvent`, scheduling, poll state), and `Sensors/` (readings, snapshot query, pushed snapshot maps and the request to push one). There SHALL be no generic acknowledgement message: a requester that needs an answer gets a typed reply from the domain's response hierarchy. No production library other than `Njord.Messages` SHALL declare a public message record; actor-private records stay `private` inside the actor.
+The `Njord.Messages` project SHALL hold every public actor command, query, result and event, with one file per command or query (including its response hierarchy), organized into domain namespaces: `Budget/` (usage recording and status), `Config/` (effective config contracts, config, catalog and analysis-settings queries, update commands), `Forecast/` (fetch, fetch replies and rejection reasons, forecast queries), `Mqtt/` (connection events, inbound messages, subscribe), `Pipeline/` (`PipelineEvent`, scheduling, poll state), and `Sensors/` (readings, readings query, pushed readings maps and the request to push one). There SHALL be no generic acknowledgement message: a requester that needs an answer gets a typed reply from the domain's response hierarchy. No production library other than `Njord.Messages` SHALL declare a public message record; actor-private records stay `private` inside the actor.
 
 #### Scenario: Mqtt messages in separate files
 - **WHEN** inspecting `Njord.Messages/Mqtt/`
@@ -55,7 +55,7 @@ The `Njord.Messages` project SHALL hold every public actor command, query, resul
 
 #### Scenario: SensorHub messages in separate files
 - **WHEN** inspecting `Njord.Messages/Sensors/`
-- **THEN** `UpdateReading`, `QuerySensorSnapshot` (with its response hierarchy), `SensorSnapshots` and `RequestSensorSnapshots` are each in their own file
+- **THEN** `UpdateReading`, `QuerySensorReadings` (with its response hierarchy), `LocationSensorReadings` and `RequestSensorReadings` are each in their own file
 
 #### Scenario: No public messages nested in actors
 - **WHEN** any actor class in a feature library is inspected

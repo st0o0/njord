@@ -10,7 +10,7 @@ public sealed class FrostRule : IAlertRule
 {
     public AlertType Type => AlertType.Frost;
 
-    public Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings)
+    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
     {
         var thresholds = settings.Frost;
         if (consensus.Hourly.Find(ParameterRegistry.Temperature2m) is not { } temperature)

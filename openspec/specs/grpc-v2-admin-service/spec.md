@@ -24,7 +24,7 @@ AdminService gRPC service for configuration management. Replaces v1's ConfigServ
 - **THEN** `GetConfig` SHALL return `alerts.enabled = false`
 
 ### Requirement: StreamConfig pushes config changes
-`AdminService.StreamConfig` SHALL be a server-streaming RPC. It SHALL send a full `NjordConfig` immediately on subscription and push a new snapshot on every configuration change.
+`AdminService.StreamConfig` SHALL be a server-streaming RPC. It SHALL send a full `NjordConfig` immediately on subscription and push a new `NjordConfig` on every configuration change.
 
 #### Scenario: Initial config sent on subscribe
 - **WHEN** a client calls `StreamConfig`
@@ -32,7 +32,7 @@ AdminService gRPC service for configuration management. Replaces v1's ConfigServ
 
 #### Scenario: Config change triggers push
 - **WHEN** the configuration changes
-- **THEN** all `StreamConfig` subscribers SHALL receive a new `NjordConfig` snapshot
+- **THEN** all `StreamConfig` subscribers SHALL receive a new `NjordConfig`
 
 ### Requirement: SetSettings consolidates forecast settings
 `AdminService.SetSettings` SHALL accept a `SetSettingsRequest` with optional fields: `int64 poll_interval_seconds`, `repeated int32 horizons`, `int32 forecast_days`, `ParameterConfig parameters`, `repeated string default_models`. Only provided fields SHALL be updated. It SHALL validate the resulting budget.
@@ -88,7 +88,7 @@ All mutation RPCs SHALL return a `ConfigResponse` with `bool applied`, `NjordCon
 - **THEN** `applied` SHALL be true and `config` SHALL reflect the new state
 
 #### Scenario: Response config matches GetConfig
-- **WHEN** a mutation returns `applied = true` with a `config` snapshot
+- **WHEN** a mutation returns `applied = true` with a `config`
 - **AND** the client immediately calls `GetConfig`
 - **THEN** the `GetConfig` response SHALL match the mutation response's `config`
 

@@ -29,7 +29,7 @@ public sealed class HealthSetupContainerSpec : IDisposable
         Assert.Multiple(
             () => Assert.Equal(Now, monitor.ServiceStartedUtc),
             () => Assert.Equal(
-                new BudgetHealthSnapshot(0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, 120_000),
+                new BudgetHealth(0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, 120_000),
                 monitor.Budget));
     }
 

@@ -418,10 +418,10 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
             catch (TimeoutException)
             {
                 Assert.Fail($"Timed out after {TestTimeouts.RealTimeWaitMax} waiting for {description}; " +
-                            $"received {Snapshot().Count} events");
+                            $"received {ReceivedEvents().Count} events");
             }
 
-            return Snapshot();
+            return ReceivedEvents();
         }
 
         private void Add(PipelineEvent evt)
@@ -442,7 +442,7 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
             }
         }
 
-        private List<PipelineEvent> Snapshot()
+        private List<PipelineEvent> ReceivedEvents()
         {
             lock (_gate)
             {

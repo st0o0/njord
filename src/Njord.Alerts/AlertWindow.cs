@@ -22,7 +22,7 @@ internal static class AlertWindow
 
     public static HorizonWindow Next24Hours(this ParameterConsensus series) => series.Within(LastHour);
 
-    public static double? DailyMax(this ConsensusSnapshot consensus, ParameterDef parameter) =>
+    public static double? DailyMax(this LocationConsensus consensus, ParameterDef parameter) =>
         consensus.Daily.Find(parameter)?.Within(LastDay).Extreme(ScanDirection.Max)?.Value;
 
     public static double RoundedAverage(this IEnumerable<double?> agreements)

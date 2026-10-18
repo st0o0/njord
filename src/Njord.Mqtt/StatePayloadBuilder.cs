@@ -44,10 +44,10 @@ public static class StatePayloadBuilder
     }
 
     public static IReadOnlyList<MqttMessage> FromConsensus(
-        ConsensusSnapshot snapshot, string baseTopic)
+        LocationConsensus consensus, string baseTopic)
         => FromConsensus(
-            new ConsensusResult(snapshot.Hourly.Parameters, snapshot.Daily.Parameters, snapshot.ComputedAt),
-            baseTopic, snapshot.Location.Name);
+            new ConsensusResult(consensus.Hourly.Parameters, consensus.Daily.Parameters, consensus.ComputedAt),
+            baseTopic, consensus.Location.Name);
 
     private static void EmitConsensusMessages(
         IReadOnlyList<ParameterConsensus> parameters,

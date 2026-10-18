@@ -10,7 +10,7 @@ public sealed class HeatRule : IAlertRule
 {
     public AlertType Type => AlertType.Heat;
 
-    public Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings)
+    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
     {
         var apparent = consensus.Hourly.Find(ParameterRegistry.ApparentTemperature);
         var temperature = consensus.Hourly.Find(ParameterRegistry.Temperature2m);

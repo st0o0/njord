@@ -40,11 +40,11 @@ Because the override file is loaded as the last configuration source, its values
 - **AND** `GetConfig` SHALL return `alerts.enabled = false`
 
 ### Requirement: Config mutations trigger IOptionsMonitor change notification
-After persisting, `IConfigurationRoot.Reload()` SHALL be called. `ConfigManager`, the only `IOptionsMonitor<T>.OnChange` subscriber, SHALL pick up the change, forward hot changes to the running actors as typed messages (`AnalysisSettingsChanged`, `PollingChanged`) and push a new snapshot to the `StreamConfig` subscribers.
+After persisting, `IConfigurationRoot.Reload()` SHALL be called. `ConfigManager`, the only `IOptionsMonitor<T>.OnChange` subscriber, SHALL pick up the change, forward hot changes to the running actors as typed messages (`AnalysisSettingsChanged`, `PollingChanged`) and push a new effective config to the `StreamConfig` subscribers.
 
 #### Scenario: StreamConfig receives update after mutation
 - **WHEN** a config mutation persists and reloads
-- **THEN** all `StreamConfig` subscribers SHALL receive a new `NjordConfig` snapshot
+- **THEN** all `StreamConfig` subscribers SHALL receive a new `NjordConfig`
 
 ### Requirement: Concurrent mutations are serialized
 Config mutations SHALL be serialized via a `SemaphoreSlim(1)` to prevent concurrent writes to the override file.

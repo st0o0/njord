@@ -18,7 +18,7 @@ internal static class ConfigRequestMappings
             [.. request.Horizons],
             [.. request.DefaultModels],
             request.Parameters is { } parameters
-                ? new Contracts.ParameterSelection([.. parameters.Groups], [.. parameters.Extra], [.. parameters.Exclude])
+                ? new Contracts.ParameterScope([.. parameters.Groups], [.. parameters.Extra], [.. parameters.Exclude])
                 : null,
             request.HasPollIntervalSeconds ? TimeSpan.FromSeconds(request.PollIntervalSeconds) : null);
 

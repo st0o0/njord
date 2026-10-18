@@ -7,7 +7,7 @@ predictable order.
 ## Requirements
 ### Requirement: Each alert type is evaluated by its own rule
 Each alert type SHALL be evaluated by exactly one stateless rule that takes the consensus
-snapshot and the current alert settings and returns one alert of that type. A rule SHALL NOT
+location consensus and the current alert settings and returns one alert of that type. A rule SHALL NOT
 depend on another rule's output.
 
 #### Scenario: One rule per alert type
@@ -15,7 +15,7 @@ depend on another rule's output.
 - **THEN** there is exactly one rule for each of the 14 alert types
 
 #### Scenario: Rule tested in isolation
-- **WHEN** the frost rule is called with a consensus snapshot whose minimum temperature in
+- **WHEN** the frost rule is called with a location consensus whose minimum temperature in
   the next 24 h is -3 °C, with full model agreement, and frost thresholds (0, -2, -5)
 - **THEN** it returns a frost alert with the severity that the thresholds classify -3 °C
   into and expected low -3 °C, without any other rule running
@@ -43,7 +43,7 @@ Rules and scores SHALL read thresholds and preferences only from the settings pa
 evaluation call.
 
 #### Scenario: Changed threshold applies on the next evaluation
-- **WHEN** the same consensus snapshot is evaluated twice, the second time with a lower
+- **WHEN** the same location consensus is evaluated twice, the second time with a lower
   frost warning threshold
 - **THEN** the second frost alert reflects the new threshold
 

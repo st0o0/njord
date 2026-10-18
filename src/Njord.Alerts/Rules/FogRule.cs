@@ -10,7 +10,7 @@ public sealed class FogRule : IAlertRule
 {
     public AlertType Type => AlertType.Fog;
 
-    public Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings)
+    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
     {
         var temperature = consensus.Hourly.Find(ParameterRegistry.Temperature2m);
         var dewPoint = consensus.Hourly.Find(ParameterRegistry.DewPoint2m);

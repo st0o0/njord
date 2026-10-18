@@ -139,7 +139,7 @@ Sub-score weights SHALL be: temperature 0.25, humidity 0.25, rain 0.15, wind (br
 - **THEN** the result is null
 
 ### Requirement: IndexResult passes resolved preferences to scorers
-`IndexAnalyzer` SHALL resolve the `ResolvedPreferences` for each (location, `IndexKind`) pair from the current `IndexSettings.Preferences`, falling back to `ResolvedPreferences.Default`, and SHALL pass them to the matching `IIndexScore.Score(slice, preferences)` for every day slice. When a live indoor temperature is available from the sensor snapshot, it SHALL override the indoor temperature of the location's preferences for that computation.
+`IndexAnalyzer` SHALL resolve the `ResolvedPreferences` for each (location, `IndexKind`) pair from the current `IndexSettings.Preferences`, falling back to `ResolvedPreferences.Default`, and SHALL pass them to the matching `IIndexScore.Score(slice, preferences)` for every day slice. When a live indoor temperature is available from the sensor readings, it SHALL override the indoor temperature of the location's preferences for that computation.
 
 #### Scenario: Per-score preferences used across day slices
 - **WHEN** Running has `HeatSensitivity: 0.7` and Outdoor has `HeatSensitivity: 1.5`
@@ -216,7 +216,7 @@ Each day-offset state JSON SHALL include `_min`, `_max`, `_confidence` variants 
 ### Requirement: IndexResult aggregates all indices and serializes to MQTT
 `IndexResult` (src/Njord.Compute/Contracts/IndexResult.cs) SHALL be the output of index computation. It SHALL contain a `Location` (`LocationId`), a `Days` list of `DayScoreSet` (one per computed day, up to 3), `FrostProtection` (`FrostProtectionInfo?`), and `Vpd` (`VpdInfo?`).
 
-Each `DayScoreSet` SHALL contain: `DayOffset` (int, 0/1/2), `Laundry` (int), `Outdoor` (int), `Running` (int), `Cycling` (int), `Bbq` (int), `Irrigation` (int), `Solar` (int), `NightVentilation` (int), `HoursIncluded` (int), and an optional envelope for each score. The location SHALL come from `ConsensusSnapshot.Location`. `StatePayloadBuilder.FromIndices` SHALL serialize the result.
+Each `DayScoreSet` SHALL contain: `DayOffset` (int, 0/1/2), `Laundry` (int), `Outdoor` (int), `Running` (int), `Cycling` (int), `Bbq` (int), `Irrigation` (int), `Solar` (int), `NightVentilation` (int), `HoursIncluded` (int), and an optional envelope for each score. The location SHALL come from `LocationConsensus.Location`. `StatePayloadBuilder.FromIndices` SHALL serialize the result.
 
 #### Scenario: Index message content with daily slices
 - **WHEN** indices are serialized to MQTT

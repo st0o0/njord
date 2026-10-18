@@ -116,7 +116,7 @@ public sealed class MqttStateSpec : NjordActorSpec
     }
 
     [Fact(Timeout = 15000)]
-    public async Task Should_publish_consensus_snapshot_per_horizon_topic()
+    public async Task Should_publish_consensus_per_horizon_topic()
     {
         var hub = RegisterFakePipelineHub();
         var transport = new RecordingTransport();
@@ -128,12 +128,12 @@ public sealed class MqttStateSpec : NjordActorSpec
         var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
         var horizon = new HorizonConsensus(
             21.5, 21.4, 1.0, 0.5, 0.9, null, null, [new WeatherModel("icon_d2"), new WeatherModel("icon_eu")]);
-        var snapshot = new ConsensusSnapshot(
+        var consensus = new LocationConsensus(
             new LocationId("lucerne"),
             new HourlyConsensus([new ParameterConsensus(temp, new Dictionary<Horizon, HorizonConsensus> { [Horizon.Hours(3)] = horizon })], 72),
             new DailyConsensus([], 4),
             Anchor);
-        hub.Emit(new PipelineEvent.ConsensusComputed(snapshot, Anchor));
+        hub.Emit(new PipelineEvent.ConsensusComputed(consensus, Anchor));
 
         await transport.WaitForMessage(m => m.Topic == "njord/lucerne/consensus/h3").WaitAsync(TestContext.Current.CancellationToken);
         var sent = Assert.Single(transport.Sent);

@@ -2,7 +2,7 @@ namespace Njord.Sensors;
 
 public sealed record AggregatedReading(double Value, int SourceCount, DateTimeOffset NewestMeasuredAt);
 
-public sealed record SensorSnapshot(
+public sealed record SensorReadings(
     string Location,
     IReadOnlyDictionary<SensorKind, AggregatedReading> Readings)
 {

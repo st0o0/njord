@@ -26,23 +26,23 @@ internal static class ConfigResponses
         return issues.Count > 0 ? Rejected(issues, request.DryRun) : null;
     }
 
-    public static ConfigResponse Applied(Contracts.ConfigSnapshot snapshot, IReadOnlyList<string> restartRequired)
+    public static ConfigResponse Applied(Contracts.EffectiveConfig effective, IReadOnlyList<string> restartRequired)
     {
-        var config = snapshot.ToProto();
+        var config = effective.ToProto();
         var response = new ConfigResponse
         {
             Applied = true,
             Config = config,
             BudgetProjection = config.BudgetProjection.Clone(),
         };
-        response.Warnings.AddRange(snapshot.BudgetProjection.Warnings);
+        response.Warnings.AddRange(effective.BudgetProjection.Warnings);
         response.RestartRequired.AddRange(restartRequired);
         return response;
     }
 
-    public static ConfigResponse Validated(Contracts.ConfigSnapshot snapshot, IReadOnlyList<string> restartRequired)
+    public static ConfigResponse Validated(Contracts.EffectiveConfig effective, IReadOnlyList<string> restartRequired)
     {
-        var response = Applied(snapshot, restartRequired);
+        var response = Applied(effective, restartRequired);
         response.Applied = false;
         response.DryRun = true;
         return response;

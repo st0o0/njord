@@ -49,9 +49,9 @@ public sealed record IndexConfigUpdate(
     double? BbqIdealWindHigh);
 
 public abstract record UpdateAnalysisConfigResponse;
-public sealed record UpdateAnalysisConfigCompleted(ConfigSnapshot Config, IReadOnlyList<string> RestartRequired)
+public sealed record UpdateAnalysisConfigCompleted(EffectiveConfig Config, IReadOnlyList<string> RestartRequired)
     : UpdateAnalysisConfigResponse;
-public sealed record UpdateAnalysisConfigValidated(ConfigSnapshot Config, IReadOnlyList<string> RestartRequired)
+public sealed record UpdateAnalysisConfigValidated(EffectiveConfig Config, IReadOnlyList<string> RestartRequired)
     : UpdateAnalysisConfigResponse;
 public sealed record UpdateAnalysisConfigRejected(IReadOnlyList<ConfigIssue> Issues, bool DryRun = false)
     : UpdateAnalysisConfigResponse

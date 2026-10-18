@@ -32,10 +32,10 @@ public sealed class TrendAnalyzer(IOptions<TrendOptions> options)
 
     public bool Enabled { get; } = options.Value.Enabled;
 
-    public TrendResult? Compute(ConsensusSnapshot consensus, ConsensusSnapshot? previous, TrendSettings settings) =>
+    public TrendResult? Compute(LocationConsensus consensus, LocationConsensus? previous, TrendSettings settings) =>
         Enabled && previous is not null ? Analyze(consensus, previous) : null;
 
-    public static TrendResult Analyze(ConsensusSnapshot current, ConsensusSnapshot? previous)
+    public static TrendResult Analyze(LocationConsensus current, LocationConsensus? previous)
     {
         var parameterTrends = TrendParameters.ToDictionary(
             p => p.ApiName,
@@ -60,7 +60,7 @@ public sealed class TrendAnalyzer(IOptions<TrendOptions> options)
             PrecipitationTiming(current), ExtremaTiming(current), stability, Decay(current));
     }
 
-    private static ParameterTrend? ParameterTrend(ConsensusSnapshot current, ConsensusSnapshot previous, ParameterDef parameter)
+    private static ParameterTrend? ParameterTrend(LocationConsensus current, LocationConsensus previous, ParameterDef parameter)
     {
         var trend = TrendFormulas.Direction(
             previous.Hourly.Find(parameter).MedianAt(Reference),
@@ -69,15 +69,15 @@ public sealed class TrendAnalyzer(IOptions<TrendOptions> options)
         return trend is { } t ? new ParameterTrend(t.Direction, t.Delta) : null;
     }
 
-    private static int? WeatherCodeAt(ConsensusSnapshot snapshot) =>
-        snapshot.Hourly.Find(ParameterRegistry.WeatherCode).MedianAt(Reference) is { } code ? (int)Math.Round(code) : null;
+    private static int? WeatherCodeAt(LocationConsensus consensus) =>
+        consensus.Hourly.Find(ParameterRegistry.WeatherCode).MedianAt(Reference) is { } code ? (int)Math.Round(code) : null;
 
     // Precipitation timing and decay look at every hourly horizon of the series.
     private static HorizonWindow AllHours(ParameterConsensus series) => series.Within(Horizon.Hours(int.MaxValue));
 
-    private static PrecipTimingInfo PrecipitationTiming(ConsensusSnapshot snapshot)
+    private static PrecipTimingInfo PrecipitationTiming(LocationConsensus consensus)
     {
-        if (snapshot.Hourly.Find(ParameterRegistry.Precipitation) is not { } precipitation)
+        if (consensus.Hourly.Find(ParameterRegistry.Precipitation) is not { } precipitation)
         {
             return new PrecipTimingInfo(null, null);
         }
@@ -100,9 +100,9 @@ public sealed class TrendAnalyzer(IOptions<TrendOptions> options)
         return new PrecipTimingInfo(first, last);
     }
 
-    private static ExtremaTimingInfo ExtremaTiming(ConsensusSnapshot snapshot)
+    private static ExtremaTimingInfo ExtremaTiming(LocationConsensus consensus)
     {
-        if (snapshot.Hourly.Find(ParameterRegistry.Temperature2m) is not { } temperature)
+        if (consensus.Hourly.Find(ParameterRegistry.Temperature2m) is not { } temperature)
         {
             return new ExtremaTimingInfo(null, null);
         }
@@ -118,9 +118,9 @@ public sealed class TrendAnalyzer(IOptions<TrendOptions> options)
             window.Extreme(ScanDirection.Min)?.Horizon.Offset);
     }
 
-    private static DecayInfo? Decay(ConsensusSnapshot snapshot)
+    private static DecayInfo? Decay(LocationConsensus consensus)
     {
-        if (snapshot.Hourly.Find(ParameterRegistry.Temperature2m) is not { } temperature)
+        if (consensus.Hourly.Find(ParameterRegistry.Temperature2m) is not { } temperature)
         {
             return null;
         }

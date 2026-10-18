@@ -9,27 +9,27 @@ public sealed class NjordHealthMonitorSpec
     [Fact]
     public void The_constructor_sets_the_start_time_and_the_initial_budget()
     {
-        var monitor = new NjordHealthMonitor(Started, new BudgetHealthSnapshot(0, 0, 10_000, 300_000));
+        var monitor = new NjordHealthMonitor(Started, new BudgetHealth(0, 0, 10_000, 300_000));
 
         Assert.Multiple(
             () => Assert.Equal(Started, monitor.ServiceStartedUtc),
-            () => Assert.Equal(new BudgetHealthSnapshot(0, 0, 10_000, 300_000), monitor.Budget),
-            () => Assert.Equal(new MqttHealthSnapshot(false, null), monitor.Mqtt),
-            () => Assert.Equal(new PollHealthSnapshot(null), monitor.Poll));
+            () => Assert.Equal(new BudgetHealth(0, 0, 10_000, 300_000), monitor.Budget),
+            () => Assert.Equal(new MqttHealth(false, null), monitor.Mqtt),
+            () => Assert.Equal(new PollHealth(null), monitor.Poll));
     }
 
     [Fact]
-    public void Updates_replace_the_snapshots()
+    public void Updates_replace_the_health_records()
     {
-        var monitor = new NjordHealthMonitor(Started, new BudgetHealthSnapshot(0, 0, 0, 0));
+        var monitor = new NjordHealthMonitor(Started, new BudgetHealth(0, 0, 0, 0));
 
-        monitor.UpdateMqtt(new MqttHealthSnapshot(true, null));
-        monitor.UpdatePoll(new PollHealthSnapshot(Started));
-        monitor.UpdateBudget(new BudgetHealthSnapshot(1, 2, 3, 4));
+        monitor.UpdateMqtt(new MqttHealth(true, null));
+        monitor.UpdatePoll(new PollHealth(Started));
+        monitor.UpdateBudget(new BudgetHealth(1, 2, 3, 4));
 
         Assert.Multiple(
-            () => Assert.Equal(new MqttHealthSnapshot(true, null), monitor.Mqtt),
-            () => Assert.Equal(new PollHealthSnapshot(Started), monitor.Poll),
-            () => Assert.Equal(new BudgetHealthSnapshot(1, 2, 3, 4), monitor.Budget));
+            () => Assert.Equal(new MqttHealth(true, null), monitor.Mqtt),
+            () => Assert.Equal(new PollHealth(Started), monitor.Poll),
+            () => Assert.Equal(new BudgetHealth(1, 2, 3, 4), monitor.Budget));
     }
 }

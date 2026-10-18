@@ -14,8 +14,8 @@ namespace Njord.Tests.Shared;
 
 public sealed record LocationAnalysis(
     string Location,
-    ConsensusSnapshot Consensus,
-    ConsensusSnapshot PreviousConsensus,
+    LocationConsensus Consensus,
+    LocationConsensus PreviousConsensus,
     AlertResult Alerts,
     DerivedResult Derived,
     TrendResult Trends,
@@ -119,8 +119,8 @@ public sealed class AnalysisFixture
     {
         var time = new FakeTimeProvider(Now);
         var forecasts = new List<Forecast>();
-        var current = ModelSnapshot.Empty;
-        var previous = ModelSnapshot.Empty;
+        var current = ModelForecasts.Empty;
+        var previous = ModelForecasts.Empty;
 
         foreach (var location in Locations)
         {

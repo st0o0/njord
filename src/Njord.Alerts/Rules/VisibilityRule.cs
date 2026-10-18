@@ -10,7 +10,7 @@ public sealed class VisibilityRule : IAlertRule
 {
     public AlertType Type => AlertType.Visibility;
 
-    public Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings)
+    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
     {
         var thresholds = settings.Visibility;
         if (consensus.Hourly.Find(ParameterRegistry.Visibility) is not { } visibility)

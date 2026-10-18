@@ -8,7 +8,7 @@ using Servus.Akka;
 
 namespace Njord.SensorHub;
 
-// Pushes the snapshots of every location with fresh readings to the pipeline, which zips the latest map onto
+// Pushes the readings of every location with fresh readings to the pipeline, which zips the latest map onto
 // each forecast; the pipeline never asks.
 public sealed class SensorHub : ReceiveActor, IWithTimers
 {
@@ -33,10 +33,10 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
         _staleness = TimeSpan.FromSeconds(sensorOptions.Value.StalenessSeconds);
 
         Receive<UpdateReading>(Handle);
-        Receive<QuerySensorSnapshot>(Handle);
-        Receive<RequestSensorSnapshots>(_ => Sender.Tell(CurrentSnapshots()));
+        Receive<QuerySensorReadings>(Handle);
+        Receive<RequestSensorReadings>(_ => Sender.Tell(CurrentReadings()));
         Receive<ExpireTick>(_ => HandleExpire());
-        Receive<PipelineResolved>(_ => PushSnapshots());
+        Receive<PipelineResolved>(_ => PushReadings());
         Receive<PipelineResolveFailed>(msg => _log.Warning(msg.Cause, "Could not resolve the pipeline for sensor pushes"));
     }
 
@@ -61,13 +61,13 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
 
         _state = _state.Apply(msg.Reading);
         Sender.Tell(new PushResult(true, null));
-        PushSnapshots();
+        PushReadings();
     }
 
-    private void Handle(QuerySensorSnapshot msg)
+    private void Handle(QuerySensorReadings msg)
     {
         var now = _timeProvider.GetUtcNow();
-        Sender.Tell(_state.GetSnapshot(msg.Location.Name, now, _staleness));
+        Sender.Tell(_state.GetReadings(msg.Location.Name, now, _staleness));
     }
 
     private void HandleExpire()
@@ -82,18 +82,18 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
             _log.Debug("Expired {Count} stale sensor readings", expired);
         }
 
-        PushSnapshots();
+        PushReadings();
     }
 
-    private void PushSnapshots()
+    private void PushReadings()
     {
         if (!Context.TryGetActor<IForecastPipeline>(out var pipeline))
         {
             return;
         }
 
-        pipeline.Tell(CurrentSnapshots());
+        pipeline.Tell(CurrentReadings());
     }
 
-    private SensorSnapshots CurrentSnapshots() => _state.GetSnapshots(_timeProvider.GetUtcNow(), _staleness);
+    private LocationSensorReadings CurrentReadings() => _state.GetLocationReadings(_timeProvider.GetUtcNow(), _staleness);
 }

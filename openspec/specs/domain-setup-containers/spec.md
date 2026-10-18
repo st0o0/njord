@@ -118,7 +118,7 @@ The host's `AnalysisSetupContainer` SHALL register `ConsensusBuilder` and call `
 - **THEN** `NjordOptions`, `PersistenceOptions` and `StorageOptions` are bound with `ValidateOnStart` enabled
 
 ### Requirement: HealthSetupContainer registers the monitor and the health checks
-`HealthSetupContainer` SHALL register the `NjordHealthMonitor` created with the service start time and the initial budget snapshot from `PollingOptions.ToInitialBudgetSnapshot()`, and the `pipeline` health check. It SHALL NOT register telemetry gauges.
+`HealthSetupContainer` SHALL register the `NjordHealthMonitor` created with the service start time and the initial budget health from `PollingOptions.ToInitialBudgetHealth()`, and the `pipeline` health check. It SHALL NOT register telemetry gauges.
 
 #### Scenario: Monitor starts with the configured budget
 - **WHEN** the monitor is resolved
@@ -128,6 +128,6 @@ The host's `AnalysisSetupContainer` SHALL register `ConsensusBuilder` and call `
 `BudgetSetupContainer` SHALL register the observable budget gauges, reading their values from the `NjordHealthMonitor` it resolves from DI.
 
 #### Scenario: Gauge follows the monitor
-- **WHEN** the monitor receives a new budget snapshot
-- **THEN** the gauges report the snapshot's daily and monthly used and limit values
+- **WHEN** the monitor receives a new budget health
+- **THEN** the gauges report the health record's daily and monthly used and limit values
 

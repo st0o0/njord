@@ -1,8 +1,8 @@
 namespace Njord.Weather;
 
-public sealed record ModelSnapshot
+public sealed record ModelForecasts
 {
-    public static readonly ModelSnapshot Empty = new(
+    public static readonly ModelForecasts Empty = new(
         new Dictionary<(string Location, WeatherModel Model), Forecast>(), false);
 
     public IReadOnlyDictionary<(string Location, WeatherModel Model), Forecast> Entries { get; }
@@ -10,7 +10,7 @@ public sealed record ModelSnapshot
 
     private readonly Dictionary<(string Location, WeatherModel Model), Forecast> _entries;
 
-    private ModelSnapshot(
+    private ModelForecasts(
         Dictionary<(string Location, WeatherModel Model), Forecast> entries,
         bool hasChanged)
     {
@@ -19,20 +19,20 @@ public sealed record ModelSnapshot
         HasChanged = hasChanged;
     }
 
-    public ModelSnapshot Update(Forecast forecast)
+    public ModelForecasts Update(Forecast forecast)
     {
         var key = (forecast.Location, forecast.Model);
 
         if (_entries.TryGetValue(key, out var existing) && existing.Cycle == forecast.Cycle)
         {
-            return new ModelSnapshot(_entries, false);
+            return new ModelForecasts(_entries, false);
         }
 
         var copy = new Dictionary<(string Location, WeatherModel Model), Forecast>(_entries)
         {
             [key] = forecast,
         };
-        return new ModelSnapshot(copy, true);
+        return new ModelForecasts(copy, true);
     }
 
     public IReadOnlyList<WeatherModel> ModelsFor(string location)

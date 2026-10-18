@@ -10,7 +10,7 @@ public static class FrostProtection
     private const int MaxHours = 48;
     private static readonly Horizon ConfidenceHorizon = Horizon.Hours(3);
 
-    public static FrostProtectionInfo? Compute(ConsensusSnapshot consensus)
+    public static FrostProtectionInfo? Compute(LocationConsensus consensus)
     {
         if (consensus.Hourly.Find(ParameterRegistry.Temperature2m) is not { } temperature)
         {

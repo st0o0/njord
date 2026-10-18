@@ -123,13 +123,13 @@ public sealed class StatePayloadBuilderSpec
             new DailyForecastSeries([]));
     }
 
-    private static ModelSnapshot SnapshotWith(params Forecast[] forecasts)
-        => forecasts.Aggregate(ModelSnapshot.Empty, (s, f) => s.Update(f));
+    private static ModelForecasts ForecastsWith(params Forecast[] forecasts)
+        => forecasts.Aggregate(ModelForecasts.Empty, (s, f) => s.Update(f));
 
     [Fact]
     public void FromConsensus_produces_one_message_per_horizon()
     {
-        var snap = SnapshotWith(
+        var snap = ForecastsWith(
             MakeForecast(IconD2, (Temperature, 20.0)),
             MakeForecast(new WeatherModel("ecmwf_ifs025"), (Temperature, 22.0)));
         var consensus = new ConsensusBuilder(new ResolvedParameterSet([Temperature], []), Time).Create(snap, "lucerne", ConsensusSettings.Default);
@@ -167,7 +167,7 @@ public sealed class StatePayloadBuilderSpec
                 ])),
         };
 
-        var snap = dailyForecasts.Aggregate(ModelSnapshot.Empty, (s, f) => s.Update(f));
+        var snap = dailyForecasts.Aggregate(ModelForecasts.Empty, (s, f) => s.Update(f));
         var consensus = new ConsensusBuilder(new ResolvedParameterSet([], [dailyParam]), Time).Create(snap, "lucerne", ConsensusSettings.Default);
         var result = new ConsensusResult(consensus.Hourly.Parameters, consensus.Daily.Parameters);
 
@@ -221,7 +221,7 @@ public sealed class StatePayloadBuilderSpec
     [Fact]
     public void FromDerived_produces_horizon_and_meta_messages()
     {
-        var snap = SnapshotWith(
+        var snap = ForecastsWith(
             MakeForecast(M1,
                 (Temperature, 5.0), (WindSpeed, 8.0), (DewPoint, 3.0),
                 (WeatherCode, 0.0), (PressureMsl, 1020.0), (SurfacePressure, 1015.0),
@@ -245,7 +245,7 @@ public sealed class StatePayloadBuilderSpec
     [Fact]
     public void FromTrends_produces_single_trend_topic()
     {
-        var snap = SnapshotWith(
+        var snap = ForecastsWith(
             MakeForecast(M1, (Temperature, 20.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)));
         var consensus = new ConsensusBuilder(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
@@ -261,7 +261,7 @@ public sealed class StatePayloadBuilderSpec
     [Fact]
     public void FromIndices_produces_per_day_topics()
     {
-        var snap = SnapshotWith(
+        var snap = ForecastsWith(
             MakeForecast(M1, (Temperature, 20.0), (Humidity, 55.0), (WindSpeed, 2.0), (CloudCover, 30.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 21.0), (Humidity, 56.0), (WindSpeed, 2.5), (CloudCover, 32.0)));
         var consensus = new ConsensusBuilder(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);
@@ -278,7 +278,7 @@ public sealed class StatePayloadBuilderSpec
     [Fact]
     public void FromIndices_includes_envelope_fields_when_multiple_models()
     {
-        var snap = SnapshotWith(
+        var snap = ForecastsWith(
             MakeForecast(IconD2, (Temperature, 22.0), (Humidity, 50.0), (WindSpeed, 3.0), (CloudCover, 20.0)),
             MakeForecast(new WeatherModel("ecmwf_ifs025"), (Temperature, 10.0), (Humidity, 90.0), (WindSpeed, 15.0), (CloudCover, 95.0)));
         var consensus = new ConsensusBuilder(FullParams, Time).Create(snap, "lucerne", ConsensusSettings.Default);

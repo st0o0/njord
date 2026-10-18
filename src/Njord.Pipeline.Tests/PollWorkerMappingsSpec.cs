@@ -19,9 +19,9 @@ public sealed class PollWorkerMappingsSpec
         Started().Apply(new ForecastChanged(1, T0)).Apply(new ForecastChanged(2, T0.AddHours(3)));
 
     [Fact]
-    public void GetSnapshot_describes_the_target_and_its_poll_state()
+    public void ToPollStateEntry_describes_the_target_and_its_poll_state()
     {
-        var entry = Steady().GetSnapshot();
+        var entry = Steady().ToPollStateEntry();
 
         Assert.Multiple(
             () => Assert.Equal(Lucerne, entry.Location),
@@ -34,9 +34,9 @@ public sealed class PollWorkerMappingsSpec
     }
 
     [Fact]
-    public void GetSnapshot_reports_a_null_cycle_in_discovery()
+    public void ToPollStateEntry_reports_a_null_cycle_in_discovery()
     {
-        var entry = Started().GetSnapshot();
+        var entry = Started().ToPollStateEntry();
 
         Assert.Multiple(
             () => Assert.Equal(PollPhase.Discovery, entry.Phase),
@@ -45,9 +45,9 @@ public sealed class PollWorkerMappingsSpec
     }
 
     [Fact]
-    public void GetSnapshot_without_a_target_throws()
+    public void ToPollStateEntry_without_a_target_throws()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => PollWorkerState.Empty.GetSnapshot());
+        var ex = Assert.Throws<InvalidOperationException>(() => PollWorkerState.Empty.ToPollStateEntry());
 
         Assert.Equal("A poll worker without a target has no poll state", ex.Message);
     }

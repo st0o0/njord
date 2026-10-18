@@ -53,7 +53,7 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Compute_references_only_Weather_and_Sensors()
     {
-        Assert.Empty(NjordReferences<ConsensusSnapshot>().Except(["Njord.Weather", "Njord.Sensors"]));
+        Assert.Empty(NjordReferences<LocationConsensus>().Except(["Njord.Weather", "Njord.Sensors"]));
     }
 
     [Fact]

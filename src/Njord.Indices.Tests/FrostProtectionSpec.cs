@@ -8,7 +8,7 @@ public sealed class FrostProtectionSpec
     private static HorizonConsensus Hc(double? median, double? agreement = null) =>
         new(median, null, null, null, agreement, null, null, []);
 
-    private static ConsensusSnapshot Consensus(int cutoffHour, params (int Hour, HorizonConsensus Hc)[] temperatures) =>
+    private static LocationConsensus Consensus(int cutoffHour, params (int Hour, HorizonConsensus Hc)[] temperatures) =>
         new(new LocationId("lucerne"),
             new HourlyConsensus(
                 [new ParameterConsensus(ParameterRegistry.Temperature2m, temperatures.ToDictionary(t => Horizon.Hours(t.Hour), t => t.Hc))],

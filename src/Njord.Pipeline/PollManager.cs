@@ -143,14 +143,14 @@ public sealed class PollManager : ReceiveActor, IWithTimers
         switch (report.Outcome)
         {
             case PollWorkerOutcome.Changed:
-                _health.UpdatePoll(new PollHealthSnapshot(now));
+                _health.UpdatePoll(new PollHealth(now));
                 Telemetry.DataChanged.Add(1,
                     new KeyValuePair<string, object?>("location", target.Location.Name),
                     new KeyValuePair<string, object?>("model", target.ModelId));
                 RecordCycle(target, PollCycleOutcome.Changed, now);
                 break;
             case PollWorkerOutcome.Unchanged:
-                _health.UpdatePoll(new PollHealthSnapshot(now));
+                _health.UpdatePoll(new PollHealth(now));
                 RecordCycle(target, PollCycleOutcome.Unchanged, now);
                 break;
             case PollWorkerOutcome.Failed:

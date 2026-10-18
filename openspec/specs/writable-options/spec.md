@@ -58,7 +58,7 @@ After writing the override file, the writer SHALL call `IConfigurationRoot.Reloa
 
 #### Scenario: StreamConfig receives update after mutation
 - **WHEN** a mutation is persisted and reloaded
-- **THEN** all `StreamConfig` subscribers SHALL receive a new `NjordConfig` snapshot reflecting the mutation
+- **THEN** all `StreamConfig` subscribers SHALL receive a new `NjordConfig` reflecting the mutation
 
 #### Scenario: Hot change reaches the pipeline
 - **WHEN** an alert threshold mutation is persisted and reloaded

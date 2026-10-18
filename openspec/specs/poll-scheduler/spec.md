@@ -125,7 +125,7 @@ The poll worker SHALL handle `FetchForecastCompleted(Location, ModelId, Hash)` b
 
 #### Scenario: A successful poll updates the poll health
 - **WHEN** the manager receives a changed or unchanged report
-- **THEN** the poll health snapshot's last successful poll is the manager's current time
+- **THEN** the poll health's last successful poll is the manager's current time
 
 ### Requirement: Each configured target is polled by its own poll worker
 Every configured (location, model) target SHALL be polled by its own poll worker, a persistent cluster-sharding entity in the poll shard region (marker `IPollRegion`) whose entity id is `"{location}|{model}"` in the configured spelling. Every message for a worker SHALL carry the target id (`IWithTargetId`) and be routed by the shared shard message extractor. Each worker SHALL keep its own timer, replacing a pending timer whenever it reschedules; a next poll time that is not in the future SHALL poll at once. A worker that starts with no persisted state SHALL poll immediately - there is no stagger delay; the gateway's throttle is the only rate-limiting gate. Workers SHALL NOT be passivated when idle and the region SHALL NOT remember entities: the poll manager starts the configured set.

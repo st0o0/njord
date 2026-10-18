@@ -146,14 +146,14 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
 
     private sealed class FakeSensorHub : ReceiveActor
     {
-        public FakeSensorHub(SensorSnapshots current)
+        public FakeSensorHub(LocationSensorReadings current)
         {
-            Receive<RequestSensorSnapshots>(_ => Sender.Tell(current));
+            Receive<RequestSensorReadings>(_ => Sender.Tell(current));
         }
     }
 
-    private static SensorSnapshots Push(LocationId location) =>
-        new(ImmutableDictionary<LocationId, SensorSnapshot>.Empty.Add(location, new SensorSnapshot(
+    private static LocationSensorReadings Push(LocationId location) =>
+        new(ImmutableDictionary<LocationId, SensorReadings>.Empty.Add(location, new SensorReadings(
             location.Name,
             new Dictionary<SensorKind, AggregatedReading>
             {
@@ -166,7 +166,7 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
     private static double ConfiguredIndoorTemp(string location) =>
         Settings.Indices.Preferences[(new LocationId(location), IndexKind.NightVentilation)].IndoorTemp;
 
-    private static int ExpectedNightVentilation(AnalysisFixture fixture, ConsensusSnapshot consensus, string location, double indoorTemp)
+    private static int ExpectedNightVentilation(AnalysisFixture fixture, LocationConsensus consensus, string location, double indoorTemp)
     {
         var preferences = Settings.Indices.Preferences[(new LocationId(location), IndexKind.NightVentilation)] with { IndoorTemp = indoorTemp };
         var today = DaySlicer.Slice(consensus, fixture.Time.GetUtcNow()).First();
@@ -175,7 +175,7 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
     }
 
     // Offers every forecast of the location; the last one completes the model set, so its consensus has a scorable day.
-    private static async Task<(ConsensusSnapshot Consensus, IndexResult Index)> AnalyzeAsync(
+    private static async Task<(LocationConsensus Consensus, IndexResult Index)> AnalyzeAsync(
         AnalysisFixture fixture, ISourceQueueWithComplete<WeatherForecast> queue, ChannelReader<PipelineEvent> events,
         string location, CancellationToken ct)
     {

@@ -49,11 +49,11 @@ with optional MQTT state publishing.
   producer ending never ends the hub) → `ZipWith(sensor map, settings)` →
   `StatefulSelectMany(computeAll)` → `BroadcastHub<PipelineEvent>`. It depends
   on no other actor; an ended analysis graph restarts it (BackoffOnFailure).
-  Settings (`AnalysisSettingsChanged`) and sensor snapshot maps enter via
+  Settings (`AnalysisSettingsChanged`) and sensor readings maps enter via
   `Source.ActorRef` + `RepeatPrevious` side channels; the **SensorHub pushes**
-  `SensorSnapshots` (all locations with fresh readings) on every accepted
-  reading and expiry tick. All analysis state (`ModelSnapshot`, previous
-  `ConsensusSnapshot`) lives inside the `StatefulSelectMany` closure, so a
+  `LocationSensorReadings` (all locations with fresh readings) on every accepted
+  reading and expiry tick. All analysis state (`ModelForecasts`, previous
+  `LocationConsensus`) lives inside the `StatefulSelectMany` closure, so a
   gateway restart never loses it. Consumers attach via SourceRef.
 - **The entity set is static, derived from config** (locations × models ×
   parameters × horizons) — never from what the API happens to return. A missing
@@ -65,14 +65,14 @@ with optional MQTT state publishing.
 - **SensorHub for external sensor input.** The SensorHub actor receives readings
   via gRPC (`SensorGrpcService`, stored under the configured location spelling),
   stores latest values per `SensorKind` (closed enum) and pushes a
-  `SensorSnapshots` map (every location with fresh readings) to the pipeline on
+  `LocationSensorReadings` map (every location with fresh readings) to the pipeline on
   each accepted reading and expiry tick. The pipeline uses the latest map's
   entry for the forecast's location (latest-value, no reactive re-computation);
   a missing or stale entry falls back to configured values.
 - **Each analysis feature is a self-contained library.** Feature libraries
   (Alerts, Derived, Trends, Indices) define compute logic and DI extensions.
-  Each analyzer takes `ConsensusSnapshot` directly (plus per-feature extras:
-  `Previous` for Trends, `SensorSnapshot` for Indices). No input interfaces
+  Each analyzer takes `LocationConsensus` directly (plus per-feature extras:
+  `Previous` for Trends, `SensorReadings` for Indices). No input interfaces
   or PollContext god-object. `PipelineEvent` variants are typed records
   (`ForecastReceived`, `ConsensusComputed`, `AlertComputed`, `DerivedComputed`,
   `TrendComputed`, `IndexComputed`) — no `object` wrapping. Pipeline
@@ -94,7 +94,7 @@ with optional MQTT state publishing.
   `Sink.ForEachAsync(1, dedup + publish)`, so a slow broker drops its own oldest events,
   and republishes every topic once per new subscription. A started (or restarted)
   pipeline asks the `ConfigManager` (`QueryAnalysisSettings`) and the `SensorHub`
-  (`RequestSensorSnapshots`) for the current inputs.
+  (`RequestSensorReadings`) for the current inputs.
 - **The gRPC API is a pure adapter.** `Njord.Grpc` holds no actors and reads no
   options: every RPC resolves an actor marker, asks with a message from
   `Njord.Messages` through `ActorAsk` (`Unavailable` when the actor is not resolvable,
@@ -112,7 +112,7 @@ with optional MQTT state publishing.
   records) is declared there; the egress stays an optional adapter that can change without touching
   domain projects. Allow-list in `Njord.Core`, because the host options, the actor registry and the
   health monitor must name MQTT: `MqttOptions`, `MqttOptionsValidator`, the `MqttOptions` entry in
-  `ConfigReloadPolicy`, `IMqttConnectionActor`, `IMqttStatePublisher`, `MqttHealthSnapshot`.
+  `ConfigReloadPolicy`, `IMqttConnectionActor`, `IMqttStatePublisher`, `MqttHealth`.
   Enforced by `MqttBoundarySpec`.
 - **Zone rules are enforced by tests** in `src/Njord.Architecture.Tests/` (lateral
   independence of the feature libraries, Domain independence,
@@ -198,9 +198,9 @@ src/
                               #   (StreamWiringMessages: pipeline output, forecast,
                               #   read-model and config streams)
     Configuration/            # Options and validators, budget calculator, ConfigWriter,
-                              #   ConfigSnapshotMappings (options -> Messages/Config contracts),
+                              #   EffectiveConfigMappings (options -> Messages/Config contracts),
                               #   ConfigUpdateMappings (commands -> options, options -> messages),
-                              #   ParameterOptions.Resolve(), PollingOptions.ToInitialBudgetSnapshot()
+                              #   ParameterOptions.Resolve(), PollingOptions.ToInitialBudgetHealth()
 
   # /Domain/ — feature libraries (each -> Core only)
   Njord.OpenMeteo/            # OpenMeteoGateway, OpenMeteoClient (HTTP, status handling, outcomes), DTOs,
@@ -448,13 +448,21 @@ These checks run locally only; they are deliberately not part of CI.
   `internal static` classes named `<Domain><Target>Mappings`, one per domain; no state, no options, no
   registry lookups, never inside actors or services. Names follow the direction: `ToProto`, `ToCommand`,
   `ToDomain`, `ToMessage`, never `Map*`. `DateTimeOffset` to protobuf uses Google.Protobuf's
-  `ToTimestamp()`. `ConfigSnapshotMappings` and `ConfigUpdateMappings` (Njord.Core) stay `public`
+  `ToTimestamp()`. `EffectiveConfigMappings` and `ConfigUpdateMappings` (Njord.Core) stay `public`
   because the host consumes them without `InternalsVisibleTo`. `MappingConventionArchitectureSpec`
   enforces this; each mapping class has a spec pinning every field. Actors and services declare no
   methods named `Map*`, `Parse*Array` or `Build*Uri` (the same spec; allow-list: `MapNjordGrpc`, the
   ASP.NET `Map*` endpoint idiom): event-to-MQTT, Open-Meteo series/URI and log-level conversions live in
   `Mapping/` extensions that take settings as arguments or a small context record
   (`MqttPublishContext`).
+- **"Snapshot" is reserved for persisted actor state.** No production type name contains
+  `Snapshot`; the persisted state of a persistent actor is `Persisted<Name>State`, and the Akka
+  members (`SaveSnapshot`, `SnapshotOffer`, `SaveSnapshotSuccess`, `SnapshotInterval`) keep their
+  names. Contract types are named for what they are: `ModelForecasts`, `LocationConsensus`,
+  `SensorReadings` / `LocationSensorReadings`, `EffectiveConfig`, `MqttHealth` / `PollHealth` /
+  `BudgetHealth`. A type name used in `Njord.Messages` is not reused in another production
+  namespace (`ParameterScope` is the configuration DTO, `ParameterSelection` the resolver in
+  `Njord.Core.Configuration`). Enforced by `NamingArchitectureSpec`.
 - Enrichment types use `EnrichmentKind` enum (`Njord.Messages.Pipeline`), never bare
   strings. Enrichment `PipelineEvent` variants implement `IEnrichmentEvent`.
 - Consensus method is `ConsensusMethod` enum (`Njord.Compute.Settings`),
@@ -482,7 +490,7 @@ These checks run locally only; they are deliberately not part of CI.
   and persisted records lives in `<Owner>PersistenceMappings` (`GetPersistenceState`,
   `FromPersistence`, `FromPersistedEvent`, `ToPersistence()`/`ToDomain()` for
   enums) in the owning project, never in the state file; state to message contract
-  (`GetSnapshot`) lives in `<Owner>MessageMappings`.
+  (`ToPollStateEntry()`, `ToBudgetUsage()`) lives in `<Owner>MessageMappings`.
 - Persistent actors use `LastSequenceNr % SnapshotInterval == 0` for snapshot
   scheduling (FunkArr pattern). No counters on domain state records.
 - Journal cleanup after snapshot: `DeleteMessages(seqNr)` +
@@ -490,8 +498,8 @@ These checks run locally only; they are deliberately not part of CI.
 - `Apply` methods on state take the event record directly (e.g.
   `Apply(ApiCallRecorded evt, ...)`), not decomposed primitive values.
 - `NjordHealthMonitor` (`Njord.Core.Health`) provides health state via atomic
-  immutable snapshot records (`MqttHealthSnapshot`, `PollHealthSnapshot`,
-  `BudgetHealthSnapshot`). Not `*State` — no mutable fields.
+  immutable records (`MqttHealth`, `PollHealth`,
+  `BudgetHealth`). Not `*State` — no mutable fields.
 
 ## C# conventions
 

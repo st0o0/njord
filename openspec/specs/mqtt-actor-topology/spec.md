@@ -57,7 +57,7 @@ The actor SHALL use the injected `TimeProvider` for all timestamp operations (he
 
 #### Scenario: Disconnect timestamp survives failed reconnects
 - **WHEN** an established connection is lost and the following reconnect attempts fail
-- **THEN** the MQTT health snapshot keeps the time of the loss as its disconnect timestamp
+- **THEN** the MQTT health keeps the time of the loss as its disconnect timestamp
 
 #### Scenario: Failed offline publish does not block the stop
 - **WHEN** the actor stops and the `offline` publish fails

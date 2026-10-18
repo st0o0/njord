@@ -33,7 +33,7 @@ public sealed class BudgetGaugeRegistrationSpec
     [Fact(Timeout = 15_000)]
     public async Task Gauges_follow_the_monitor_updates()
     {
-        var monitor = new NjordHealthMonitor(Started, new BudgetHealthSnapshot(0, 0, 10_000, 300_000));
+        var monitor = new NjordHealthMonitor(Started, new BudgetHealth(0, 0, 10_000, 300_000));
         var services = new ServiceCollection();
         services.AddSingleton(monitor);
         new BudgetSetupContainer().SetupServices(services, new ConfigurationBuilder().Build());
@@ -58,7 +58,7 @@ public sealed class BudgetGaugeRegistrationSpec
         listener.RecordObservableInstruments();
         var initial = new Dictionary<string, long>(measurements);
 
-        monitor.UpdateBudget(new BudgetHealthSnapshot(5, 50, 10_000, 250_000));
+        monitor.UpdateBudget(new BudgetHealth(5, 50, 10_000, 250_000));
         listener.RecordObservableInstruments();
 
         Assert.Multiple(

@@ -10,7 +10,7 @@ Rules (static entity set, `TimeProvider`, HA device cut, toggleable features) li
 ## Where things live
 
 - **`Njord.Compute`** holds only what every feature shares:
-  - `Consensus/` — `ConsensusBuilder` (model snapshot → `ConsensusSnapshot`), `ConsensusStatistics` (median, spread, agreement, ...), the consensus records.
+  - `Consensus/` — `ConsensusBuilder` (`ModelForecasts` → `LocationConsensus`), `ConsensusStatistics` (median, spread, agreement, ...), the consensus records.
   - `Querying/` — the query vocabulary, extension methods on consensus data: `Find`, `Within`, `Extreme`, `Hits`/`Earliest`/`Values`/`Peak`, `AgreementAbove`, `AverageAgreement`, `MaxModelCount`, `ModelsAt`, `At`/`MedianAt` (`HorizonWindow`, `HorizonHit`).
   - `Contracts/` — result records (`AlertResult`, `IndexResult`, ...), `SeverityThresholds`, enums. `Settings/` — immutable settings records per feature.
   - No feature logic, no DI, no `InternalsVisibleTo` except `Njord.Compute.Tests`.
@@ -27,7 +27,7 @@ Naming: `<Feature>Analyzer`, `<Name>Rule`, `<Name>Score`, `<Feature>Formulas`, `
 
 ## Rules and scores
 
-- **Stateless.** `IAlertRule.Evaluate(ConsensusSnapshot, AlertSettings)` returns one `Alert` of its `Type`; `IIndexScore.Score(DaySlice, ResolvedPreferences)` returns a `ScoredIndex` (point score + confidence envelope) for its `Kind`. Thresholds and preferences come only from the arguments, so hot reload applies on the next call. A rule never reads another rule's output.
+- **Stateless.** `IAlertRule.Evaluate(LocationConsensus, AlertSettings)` returns one `Alert` of its `Type`; `IIndexScore.Score(DaySlice, ResolvedPreferences)` returns a `ScoredIndex` (point score + confidence envelope) for its `Kind`. Thresholds and preferences come only from the arguments, so hot reload applies on the next call. A rule never reads another rule's output.
 - **Use the vocabulary**, never a private `FindParam`/lookup loop: `consensus.Hourly.Find(param)?.Next24Hours().Extreme(ScanDirection.Min)`; classify with `SeverityThresholds.Classify`. Shared constants (24 h window, day window) live once (`AlertWindow`), not per rule.
 - **Scores** pick a `DayPeriod` and a formula: `slice.Score(DayPeriod.Daylight, m => Compute(m.Temperature, ..., preferences))`; `DaySlice.Score` applies the formula to the median means and to both confidence bounds. Expose the formula as `public static int Compute(...)` so specs can call it with raw inputs.
 - **Analyzer** takes `IEnumerable<IAlertRule>`/`IEnumerable<IIndexScore>`, fails fast at construction unless every `AlertType`/`IndexKind` has exactly one, and orders the output by enum declaration order (registration order must not leak).
@@ -50,7 +50,7 @@ public sealed class FrostRule : IAlertRule
 {
     public AlertType Type => AlertType.Frost;
 
-    public Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings)
+    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
     {
         var thresholds = settings.Frost;
         if (consensus.Hourly.Find(ParameterRegistry.Temperature2m) is not { } temperature)
@@ -80,4 +80,4 @@ services.AddSingleton<IAlertRule, FrostRule>();
 - Consensus is not a feature: `ConsensusBuilder` runs in the pipeline before the analyzers.
 - A feature's entities depend on config (`Enabled`), never on what a poll returned; missing values are `unavailable` states, not missing entities.
 - Feature libraries never reference each other; share only through Core/Compute types.
-- Sensor input comes from the `SensorSnapshot` argument (indices: live indoor temperature overrides the preference); do not call the hub from a feature.
+- Sensor input comes from the `SensorReadings` argument (indices: live indoor temperature overrides the preference); do not call the hub from a feature.

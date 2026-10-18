@@ -21,7 +21,7 @@ An `Alert` SHALL be a record carrying `AlertType` (enum), `Severity` (enum: None
 
 ### Requirement: Frost warning evaluates minimum temperature across models
 
-Frost warning SHALL evaluate temperature from `ConsensusSnapshot.Hourly` consensus medians instead of iterating raw model data. Confidence SHALL be derived from the consensus agreement score.
+Frost warning SHALL evaluate temperature from `LocationConsensus.Hourly` consensus medians instead of iterating raw model data. Confidence SHALL be derived from the consensus agreement score.
 
 #### Scenario: All models predict frost
 - **WHEN** consensus median temperature is <= 0 degrees C with agreement >= 0.8
@@ -37,7 +37,7 @@ Frost warning SHALL evaluate temperature from `ConsensusSnapshot.Hourly` consens
 
 ### Requirement: Heat warning evaluates apparent temperature max with tiered severity
 
-Heat warning SHALL use consensus median apparent temperature from `ConsensusSnapshot.Hourly`.
+Heat warning SHALL use consensus median apparent temperature from `LocationConsensus.Hourly`.
 
 #### Scenario: Extreme heat
 - **WHEN** consensus median apparent temperature exceeds the extreme threshold
@@ -60,7 +60,7 @@ Heat warning SHALL use consensus median apparent temperature from `ConsensusSnap
 
 ### Requirement: Heavy rain warning evaluates hourly and daily precipitation
 
-Heavy rain warning SHALL use hourly precipitation from `ConsensusSnapshot.Hourly` and daily precipitation sum from `ConsensusSnapshot.Daily`.
+Heavy rain warning SHALL use hourly precipitation from `LocationConsensus.Hourly` and daily precipitation sum from `LocationConsensus.Daily`.
 
 #### Scenario: Hourly heavy rain
 - **WHEN** consensus median hourly precipitation exceeds the threshold
@@ -71,12 +71,12 @@ Heavy rain warning SHALL use hourly precipitation from `ConsensusSnapshot.Hourly
 - **THEN** a heavy rain alert is produced with daily severity
 
 #### Scenario: Daily sum from DailyConsensus
-- **WHEN** `ConsensusSnapshot.Daily` contains `precipitation_sum` consensus
+- **WHEN** `LocationConsensus.Daily` contains `precipitation_sum` consensus
 - **THEN** the daily heavy rain evaluation uses that median value directly
 
 ### Requirement: UV warning evaluates UV index at WHO levels
 
-UV warning SHALL use daily UV max from `ConsensusSnapshot.Daily`.
+UV warning SHALL use daily UV max from `LocationConsensus.Daily`.
 
 #### Scenario: High UV
 - **WHEN** consensus median daily `uv_index_max` exceeds the threshold
@@ -139,7 +139,7 @@ UV warning SHALL use daily UV max from `ConsensusSnapshot.Daily`.
 - **THEN** severity is None and confidence is 0.0
 
 ### Requirement: AlertResult aggregates all alerts for a location
-`AlertAnalyzer.Compute(consensus, settings)` SHALL evaluate every registered `IAlertRule` against the `ConsensusSnapshot` and return an `AlertResult` whose location is `ConsensusSnapshot.Location` and which contains exactly 14 alerts (one per `AlertType`), or `null` when alerts are disabled.
+`AlertAnalyzer.Compute(consensus, settings)` SHALL evaluate every registered `IAlertRule` against the `LocationConsensus` and return an `AlertResult` whose location is `LocationConsensus.Location` and which contains exactly 14 alerts (one per `AlertType`), or `null` when alerts are disabled.
 
 #### Scenario: Serialization to MQTT messages
 - **WHEN** alerts are serialized

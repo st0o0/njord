@@ -41,9 +41,9 @@ public sealed class DerivedResultSpec
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    private static ModelSnapshot SnapshotWith(params Forecast[] forecasts)
+    private static ModelForecasts ForecastsWith(params Forecast[] forecasts)
     {
-        var snap = ModelSnapshot.Empty;
+        var snap = ModelForecasts.Empty;
         foreach (var f in forecasts)
         {
             snap = snap.Update(f);
@@ -55,7 +55,7 @@ public sealed class DerivedResultSpec
     [Fact]
     public void Compute_produces_horizon_and_scalar_results()
     {
-        var snap = SnapshotWith(
+        var snap = ForecastsWith(
             MakeForecast(new WeatherModel("m1"),
                 (Temperature, 5.0), (WindSpeed, 8.0), (DewPoint, 3.0),
                 (WeatherCode, 3.0), (PressureMsl, 1020.0), (SurfacePressure, 1015.0),

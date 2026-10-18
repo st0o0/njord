@@ -7,11 +7,11 @@ Defines test coverage gaps to close: IndexAnalyzer sensor-override tests with re
 ### Requirement: IndexAnalyzer sensor-override is tested with real sensor data
 
 `IndexAnalyzer.OverrideIndoorTemp` SHALL be tested with non-null sensor
-snapshots to verify the sensor fallback chain (live reading → config →
+readings to verify the sensor fallback chain (live reading → config →
 hardcoded default).
 
 #### Scenario: Sensor override applies indoor temperature
-- **WHEN** IndexAnalyzer runs with a sensor snapshot containing an indoor temperature reading
+- **WHEN** IndexAnalyzer runs with sensor readings containing an indoor temperature reading
 - **THEN** the indoor temperature in the computation SHALL use the sensor value instead of the config default
 
 #### Scenario: Sensor override filters by location

@@ -11,7 +11,7 @@ public sealed class EnrichmentKindSpec
     public void ConsensusComputed_implements_IEnrichmentEvent_with_correct_kind()
     {
         var evt = new PipelineEvent.ConsensusComputed(
-            CreateConsensusSnapshot(), DateTimeOffset.UtcNow);
+            CreateLocationConsensus(), DateTimeOffset.UtcNow);
 
         var enrichment = Assert.IsType<IEnrichmentEvent>(evt, exactMatch: false);
         Assert.Equal(EnrichmentKind.Consensus, enrichment.Kind);
@@ -90,6 +90,6 @@ public sealed class EnrichmentKindSpec
         Assert.Equal((EnrichmentKind)999, ex.ActualValue);
     }
 
-    private static ConsensusSnapshot CreateConsensusSnapshot() =>
+    private static LocationConsensus CreateLocationConsensus() =>
         new(new LocationId("loc"), new HourlyConsensus([], 0), new DailyConsensus([], 0), DateTimeOffset.UtcNow);
 }

@@ -261,7 +261,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
         if (Context.TryGetActor<IPollManager>(out var manager))
         {
-            manager.Tell(new PollWorkerReport(target, outcome, _state.GetSnapshot()));
+            manager.Tell(new PollWorkerReport(target, outcome, _state.ToPollStateEntry()));
         }
         else
         {

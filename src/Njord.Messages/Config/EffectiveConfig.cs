@@ -4,7 +4,7 @@ using Njord.Weather;
 namespace Njord.Messages.Config;
 
 // The persisted configuration as one immutable contract tree, built by the configuration manager.
-public sealed record ConfigSnapshot(
+public sealed record EffectiveConfig(
     ForecastScope Scope,
     PollingSection Polling,
     BudgetProjection BudgetProjection,
@@ -15,7 +15,7 @@ public sealed record ForecastScope(
     IReadOnlyList<string> Models,
     IReadOnlyList<int> Horizons,
     int ForecastDays,
-    ParameterSelection Parameters);
+    ParameterScope Parameters);
 
 // Models are the location's own models; ResolvedModels are the default models plus the location's own.
 public sealed record LocationEntry(
@@ -25,7 +25,7 @@ public sealed record LocationEntry(
     IReadOnlyList<string> Models,
     IReadOnlyList<string> ResolvedModels);
 
-public sealed record ParameterSelection(
+public sealed record ParameterScope(
     IReadOnlyList<string> Groups,
     IReadOnlyList<string> Extra,
     IReadOnlyList<string> Exclude);

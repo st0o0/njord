@@ -53,11 +53,11 @@ The data flow spans two actors, `OpenMeteoGateway` (fetch) and `ForecastPipeline
 2. **GatewayThrottleStage** rate-limits the queued targets with a token bucket to stay within the Open-Meteo API budget
 3. **Fetch** runs up to two `OpenMeteoClient` calls in parallel and answers each request to the poll worker that asked
 4. **Forecast hub** broadcasts every successful `Forecast` to the `ForecastPipeline`
-5. **Analyze** combines each forecast with the latest sensor snapshot and computes consensus, then every enabled analysis feature (alerts, derived values, trends, indices)
+5. **Analyze** combines each forecast with the latest sensor readings and computes consensus, then every enabled analysis feature (alerts, derived values, trends, indices)
 6. **PipelineEvent hub** broadcasts typed events to the consumers: the `ForecastReadModel` (gRPC API) and, when enabled, the `MqttStatePublisher`
 
 Actors own lifecycle (stream materialization, SourceRef handshakes, MQTT connect/reconnect and availability) while streams handle the data flow. This separation keeps the pipeline testable and the lifecycle management isolated.
 
 ## External Sensor Input
 
-The **SensorHub** actor accepts external sensor readings (e.g. indoor temperature, indoor humidity) via the gRPC `SensorService`. Readings are stored as latest values per sensor kind. During each poll cycle, enrichments (e.g. index scoring) pull the current snapshot from SensorHub. There is no reactive re-computation on sensor updates. If no sensor data is available, the enrichment falls back to the configured value or a hardcoded default.
+The **SensorHub** actor accepts external sensor readings (e.g. indoor temperature, indoor humidity) via the gRPC `SensorService`. Readings are stored as latest values per sensor kind. During each poll cycle, enrichments (e.g. index scoring) pull the current sensor readings from SensorHub. There is no reactive re-computation on sensor updates. If no sensor data is available, the enrichment falls back to the configured value or a hardcoded default.

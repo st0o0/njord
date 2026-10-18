@@ -1,6 +1,6 @@
 ## Purpose
 
-Defines the immutable state record pattern for persistent actors: thin-shell actors, Apply() extensions, three-tier persistence (Internal State → Snapshot → Persisted DTO), and state-only unit tests.
+Defines the immutable state record pattern for persistent actors: thin-shell actors, Apply() extensions, three-tier persistence (Internal State → caller-facing view → Persisted DTO), and state-only unit tests.
 ## Requirements
 ### Requirement: Immutable state records for persistent actors
 Each persistent actor SHALL have a companion immutable `record` holding its full internal state. The actor SHALL NOT hold mutable fields for persistent state — all persistent state SHALL live in the state record. Business decisions derived from that state SHALL be made by named methods on the state record, not by comparisons or computations written inline in the actor's command handlers.
@@ -42,19 +42,19 @@ For persistent actors, command processing SHALL follow the `ProcessCommand` tupl
 - **WHEN** `BudgetTrackerState.ProcessCommand(RecordApiCall)` is called
 - **THEN** it SHALL return a tuple of (new state, `ApiCallRecorded` persistence event)
 
-### Requirement: GetSnapshot for caller-facing state
-Each state record SHALL expose a `GetSnapshot()` extension method that returns a caller-facing view (the response record sent to query senders). This separates internal state shape from the published query response.
+### Requirement: Caller-facing views of state
+Each state record SHALL expose a mapping extension method (`ToBudgetUsage()`, `ToPollStateEntry()`) that returns a caller-facing view (the response record sent to query senders). This separates internal state shape from the published query response.
 
-#### Scenario: GetSnapshot produces query response
-- **WHEN** `BudgetTrackerState.GetSnapshot()` is called
+#### Scenario: ToBudgetUsage produces query response
+- **WHEN** `BudgetTrackerState.ToBudgetUsage()` is called
 - **THEN** it returns a `BudgetUsageResult` record suitable for sending to the query sender
 
 ### Requirement: State-only unit tests
-Each state record SHALL have dedicated unit tests that verify `Apply()`, `GetSnapshot()`, `GetPersistenceState()`, and `FromPersistence()` as pure functions without any actor infrastructure.
+Each state record SHALL have dedicated unit tests that verify `Apply()`, the caller-facing mapping, `GetPersistenceState()`, and `FromPersistence()` as pure functions without any actor infrastructure.
 
 #### Scenario: Pure function test coverage
 - **WHEN** the test suite runs
-- **THEN** each state record has tests covering: initial state, applying each event type, snapshot production, persistence roundtrip, and edge cases (month rollover for budget, empty dict for snapshots)
+- **THEN** each state record has tests covering: initial state, applying each event type, caller-facing view production, persistence roundtrip, and edge cases (month rollover for budget, empty dict for readings)
 
 ### Requirement: Persistence delete-failures are logged
 Persistent actors that call `DeleteMessages`/`DeleteSnapshots` as part of their snapshot
@@ -69,7 +69,7 @@ that log a warning, in addition to the existing `DeleteMessagesSuccess`/
   message reach dead letters unhandled
 
 ### Requirement: Three-tier persistence model for every persistent actor
-Each persistent actor SHALL maintain three distinct state tiers: Internal State (the immutable state record with full domain logic), Snapshot (caller-facing view via `GetSnapshot()`), and Persisted (journal DTO via `GetPersistenceState()`). The `GetPersistenceState()` method SHALL produce the extend-only DTO type.
+Each persistent actor SHALL maintain three distinct state tiers: Internal State (the immutable state record with full domain logic), Caller-facing view (via `ToBudgetUsage()` or `ToPollStateEntry()`), and Persisted (journal DTO via `GetPersistenceState()`). The `GetPersistenceState()` method SHALL produce the extend-only DTO type.
 
 Every persistent actor SHALL implement `GetPersistenceState()` and use it in `SaveSnapshot`. Every persistent actor SHALL implement `FromPersistence()` and use it in the `Recover<SnapshotOffer>` handler. No-op snapshot recovery handlers are not permitted.
 
@@ -89,9 +89,9 @@ Every persistent actor SHALL implement `GetPersistenceState()` and use it in `Sa
 - **WHEN** a `PollWorker` receives a `SnapshotOffer` during recovery
 - **THEN** it SHALL restore state via `PollWorkerState.FromPersistence()`, including the next poll time, instead of ignoring the snapshot
 
-#### Scenario: PollWorker snapshot answers the manager
+#### Scenario: PollWorker state view answers the manager
 - **WHEN** a `PollWorker` reports to the manager
-- **THEN** the report carries `PollWorkerState.GetSnapshot(target)`, a `PollStateEntry`, never the state record itself
+- **THEN** the report carries `PollWorkerState.ToPollStateEntry()`, a `PollStateEntry`, never the state record itself
 
 ### Requirement: Transient runtime state stays on the actor class
 For actors with transient runtime state (actor refs, request in flight, retry counters, pending timers, aggregated views of other actors), those fields SHALL remain as mutable fields on the actor class. Only persistent domain state moves to the state record.

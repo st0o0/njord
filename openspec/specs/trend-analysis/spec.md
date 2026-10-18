@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Trend analysis compares consecutive poll snapshots to detect directional changes in weather parameters, weather-code category transitions, precipitation and extrema timing, model consensus stability, and predictability decay across horizons. Results are aggregated into a TrendResult and published as a single retained MQTT message per location.
+Trend analysis compares consecutive poll cycles to detect directional changes in weather parameters, weather-code category transitions, precipitation and extrema timing, model consensus stability, and predictability decay across horizons. Results are aggregated into a TrendResult and published as a single retained MQTT message per location.
 ## Requirements
-### Requirement: Trend direction compares consensus median between snapshots
+### Requirement: Trend direction compares consensus median between polls
 
-Trend analysis SHALL accept `ConsensusSnapshot` and `ConsensusSnapshot?` previous instead of `ModelSnapshot`. Trend direction compares consensus medians at the same horizon between two consecutive snapshots and SHALL be a typed direction (Rising, Falling, Stable). Its published text SHALL be "rising", "falling" or "stable", unchanged from before.
+Trend analysis SHALL accept `LocationConsensus` and `LocationConsensus?` previous instead of `ModelForecasts`. Trend direction compares consensus medians at the same horizon between two consecutive polls and SHALL be a typed direction (Rising, Falling, Stable). Its published text SHALL be "rising", "falling" or "stable", unchanged from before.
 
 #### Scenario: Rising trend
 - **WHEN** current consensus median temperature at +3 h is 22 degrees C and previous was 19 degrees C
@@ -69,9 +69,9 @@ Weather-change detection SHALL accept an `int?` previous WMO code and an `int?` 
 - **WHEN** the series has fewer than 2 non-null temperature values in the next 24h
 - **THEN** both are null
 
-### Requirement: Consensus stability compares IQR between snapshots
+### Requirement: Consensus stability compares IQR between polls
 
-Stability SHALL compare IQR values from `ConsensusSnapshot.Hourly` between current and previous and SHALL be a typed stability (Converging, Diverging, Stable), published as "converging", "diverging" or "stable".
+Stability SHALL compare IQR values from `LocationConsensus.Hourly` between current and previous and SHALL be a typed stability (Converging, Diverging, Stable), published as "converging", "diverging" or "stable".
 
 #### Scenario: Converging models
 - **WHEN** current IQR is smaller than previous IQR
@@ -87,7 +87,7 @@ Stability SHALL compare IQR values from `ConsensusSnapshot.Hourly` between curre
 
 ### Requirement: Predictability decay measures spread growth across horizons
 
-Decay SHALL use spread values from `ConsensusSnapshot.Hourly.Parameters`.
+Decay SHALL use spread values from `LocationConsensus.Hourly.Parameters`.
 
 #### Scenario: Gradual decay
 - **WHEN** spread increases from h0 to h24
@@ -103,14 +103,14 @@ Decay SHALL use spread values from `ConsensusSnapshot.Hourly.Parameters`.
 
 ### Requirement: TrendResult aggregates all trend analysis and serializes to MQTT
 
-`TrendResult` SHALL be computed from `ConsensusSnapshot` pairs. Location comes from `ConsensusSnapshot.Location`.
+`TrendResult` SHALL be computed from `LocationConsensus` pairs. Location comes from `LocationConsensus.Location`.
 
 #### Scenario: Trend message content
 - **WHEN** trends are serialized to MQTT
 - **THEN** one retained message is published with direction, timing, stability, and decay
 
-#### Scenario: No previous snapshot
-- **WHEN** previous `ConsensusSnapshot` is null
+#### Scenario: No previous consensus
+- **WHEN** previous `LocationConsensus` is null
 - **THEN** no trend message is emitted
 
 #### Scenario: Retained message

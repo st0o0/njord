@@ -10,7 +10,7 @@ public sealed class TropicalNightRule : IAlertRule
 {
     public AlertType Type => AlertType.TropicalNight;
 
-    public Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings)
+    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
     {
         var thresholds = settings.TropicalNight;
         var temperature = consensus.Hourly.Find(ParameterRegistry.Temperature2m);

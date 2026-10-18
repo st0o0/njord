@@ -10,7 +10,7 @@ public sealed class MqttBoundarySpec
         "Njord.Core.Configuration.Mqtt.MqttOptionsValidator",
         "Njord.Core.Actors.IMqttConnectionActor",
         "Njord.Core.Actors.IMqttStatePublisher",
-        "Njord.Core.Health.MqttHealthSnapshot",
+        "Njord.Core.Health.MqttHealth",
     ];
 
     [Fact]

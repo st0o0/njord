@@ -28,7 +28,7 @@ public sealed class PollManagerCycleSpec : NjordActorSpec
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton(new NjordHealthMonitor(default, new BudgetHealthSnapshot(0, 0, 0, 0)));
+        services.AddSingleton(new NjordHealthMonitor(default, new BudgetHealth(0, 0, 0, 0)));
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations = [new LocationOptions { Name = _location, Latitude = 47.05, Longitude = 8.31 }],

@@ -22,7 +22,7 @@ public static class DaySlicer
 
     private static readonly ParameterDef[] AgreementParameters = BoundParameters[..^1];
 
-    public static IReadOnlyList<DaySlice> Slice(ConsensusSnapshot consensus, DateTimeOffset now)
+    public static IReadOnlyList<DaySlice> Slice(LocationConsensus consensus, DateTimeOffset now)
     {
         var hourly = consensus.Hourly;
         if (hourly.CutoffHour < 0)

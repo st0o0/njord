@@ -10,9 +10,9 @@ using Njord.Weather;
 namespace Njord.Core.Configuration;
 
 // The one mapping point from options objects to the configuration contracts in Njord.Messages.
-public static class ConfigSnapshotMappings
+public static class EffectiveConfigMappings
 {
-    public static ConfigSnapshot ToSnapshot(
+    public static EffectiveConfig ToEffectiveConfig(
         NjordOptions scope,
         PollingOptions polling,
         ConsensusOptions consensus,
@@ -31,8 +31,8 @@ public static class ConfigSnapshotMappings
                 trends.ToSection(),
                 indices.ToSection()));
 
-    public static ConfigSnapshot ToSnapshot(this ConfigView view) =>
-        ToSnapshot(view.Scope, view.Polling, view.Consensus, view.Alerts, view.Derived, view.Trends, view.Indices);
+    public static EffectiveConfig ToEffectiveConfig(this ConfigView view) =>
+        ToEffectiveConfig(view.Scope, view.Polling, view.Consensus, view.Alerts, view.Derived, view.Trends, view.Indices);
 
     // Locations in configuration order; models deduplicated in first-seen order with their coverage.
     public static CatalogResult ToCatalog(this NjordOptions scope)
@@ -71,7 +71,7 @@ public static class ConfigSnapshotMappings
             [.. scope.Models],
             [.. scope.Horizons],
             scope.ForecastDays,
-            new Njord.Messages.Config.ParameterSelection([.. scope.Parameters.Groups], [.. scope.Parameters.Extra], [.. scope.Parameters.Exclude]));
+            new ParameterScope([.. scope.Parameters.Groups], [.. scope.Parameters.Extra], [.. scope.Parameters.Exclude]));
 
     private static List<string> ResolveModels(NjordOptions scope, LocationOptions location) =>
         [.. scope.Models.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase)];

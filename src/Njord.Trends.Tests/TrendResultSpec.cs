@@ -38,9 +38,9 @@ public sealed class TrendResultSpec
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    private static ModelSnapshot SnapshotWith(params Forecast[] forecasts)
+    private static ModelForecasts ForecastsWith(params Forecast[] forecasts)
     {
-        var snap = ModelSnapshot.Empty;
+        var snap = ModelForecasts.Empty;
         foreach (var f in forecasts)
         {
             snap = snap.Update(f);
@@ -52,7 +52,7 @@ public sealed class TrendResultSpec
     [Fact]
     public void Compute_with_no_previous_produces_null_trends()
     {
-        var snap = SnapshotWith(
+        var snap = ForecastsWith(
             MakeForecast(new WeatherModel("m1"), (Temperature, 20.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 3.0)));
 
@@ -68,12 +68,12 @@ public sealed class TrendResultSpec
     [Fact]
     public void Compute_with_previous_detects_rising_temperature()
     {
-        var prev = SnapshotWith(
+        var prev = ForecastsWith(
             MakeForecast(new WeatherModel("m1"), (Temperature, 18.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 18.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)));
-        var curr = SnapshotWith(
+        var curr = ForecastsWith(
             MakeForecast(new WeatherModel("m1"), (Temperature, 22.0), (WindSpeed, 5.0),
                 (Precipitation, 0.0), (CloudCover, 50.0), (WeatherCode, 1.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 22.0), (WindSpeed, 5.0),
@@ -92,10 +92,10 @@ public sealed class TrendResultSpec
     [Fact]
     public void Compute_detects_weather_change()
     {
-        var prev = SnapshotWith(
+        var prev = ForecastsWith(
             MakeForecast(new WeatherModel("m1"), (Temperature, 20.0), (WeatherCode, 1.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 20.0), (WeatherCode, 1.0)));
-        var curr = SnapshotWith(
+        var curr = ForecastsWith(
             MakeForecast(new WeatherModel("m1"), (Temperature, 20.0), (WeatherCode, 63.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 20.0), (WeatherCode, 63.0)));
 

@@ -10,7 +10,7 @@ public sealed class WindChillRule : IAlertRule
 {
     public AlertType Type => AlertType.WindChill;
 
-    public Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings)
+    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
     {
         var thresholds = settings.WindChill;
         if (consensus.Hourly.Find(ParameterRegistry.ApparentTemperature) is not { } apparent)

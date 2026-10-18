@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Domain model and actor for receiving, validating, aggregating, and expiring external sensor readings. Defines SensorKind metadata, plausibility ranges, aggregation strategies, staleness expiry, the SensorSnapshot query model, the snapshot-map push to the pipeline, and SensorOptions configuration.
+Domain model and actor for receiving, validating, aggregating, and expiring external sensor readings. Defines SensorKind metadata, plausibility ranges, aggregation strategies, staleness expiry, the SensorReadings query model, the readings-map push to the pipeline, and SensorOptions configuration.
 ## Requirements
 ### Requirement: SensorKind domain enum
 The system SHALL define a closed `SensorKind` enum representing physical quantities that enrichments can consume from external sensors. Each kind SHALL have associated metadata: unit of measurement, plausibility range (min/max), and aggregation strategy (Average, Sum, or Latest).
@@ -27,33 +27,33 @@ The SensorHub SHALL reject readings whose value falls outside the plausibility r
 - **THEN** the reading SHALL be rejected with reason indicating the valid range is -10..60
 
 ### Requirement: Staleness expiry
-The SensorHub SHALL expire readings whose `MeasuredAt` timestamp is older than the configured staleness TTL. Expired readings SHALL be excluded from aggregation and snapshot responses. The SensorHub SHALL run a periodic cleanup timer.
+The SensorHub SHALL expire readings whose `MeasuredAt` timestamp is older than the configured staleness TTL. Expired readings SHALL be excluded from aggregation and readings responses. The SensorHub SHALL run a periodic cleanup timer.
 
-#### Scenario: Fresh reading included in snapshot
+#### Scenario: Fresh reading included in readings
 - **WHEN** a reading was stored 30 seconds ago
 - **AND** the staleness TTL is 7200 seconds
-- **THEN** the reading SHALL be included in the snapshot
+- **THEN** the reading SHALL be included in the `SensorReadings`
 
-#### Scenario: Stale reading excluded from snapshot
+#### Scenario: Stale reading excluded from readings
 - **WHEN** a reading was stored 8000 seconds ago
 - **AND** the staleness TTL is 7200 seconds
-- **THEN** the reading SHALL NOT be included in the snapshot
+- **THEN** the reading SHALL NOT be included in the `SensorReadings`
 
 #### Scenario: Partial staleness with multiple sources
 - **WHEN** source "wohnzimmer" has a fresh reading (23.5) and source "schlafzimmer" has an expired reading (21.0)
 - **AND** the kind uses Average aggregation
-- **THEN** the snapshot SHALL contain value `23.5` with source count `1`
+- **THEN** the `SensorReadings` SHALL contain value `23.5` with source count `1`
 
-### Requirement: SensorSnapshot domain record
-The system SHALL define a `SensorSnapshot` record containing the aggregated sensor state for a single location. It SHALL provide a `Get(SensorKind)` method returning the aggregated value as `double?` (null if no readings exist for that kind).
+### Requirement: SensorReadings domain record
+The system SHALL define a `SensorReadings` record containing the aggregated sensor state for a single location. It SHALL provide a `Get(SensorKind)` method returning the aggregated value as `double?` (null if no readings exist for that kind).
 
 #### Scenario: Get existing kind
-- **WHEN** a snapshot contains `IndoorTemperature = 22.5`
+- **WHEN** a `SensorReadings` contains `IndoorTemperature = 22.5`
 - **AND** `Get(SensorKind.IndoorTemperature)` is called
 - **THEN** the result SHALL be `22.5`
 
 #### Scenario: Get missing kind
-- **WHEN** a snapshot does not contain `IndoorHumidity`
+- **WHEN** a `SensorReadings` does not contain `IndoorHumidity`
 - **AND** `Get(SensorKind.IndoorHumidity)` is called
 - **THEN** the result SHALL be `null`
 
@@ -80,29 +80,29 @@ The system SHALL define a `SensorOptions` configuration class with `Enabled` (de
 - **THEN** startup validation SHALL fail with an appropriate error message
 
 ### Requirement: SensorHub actor stores and aggregates the latest readings
-The SensorHub actor SHALL store the most recent `SensorReading` per unique key of (Location, SensorKind, Source). It SHALL accept `UpdateReading` messages to store new readings and `QuerySensorSnapshot` messages to return the current aggregated state for a location as `SensorSnapshotResult`, or `SensorSnapshotNotAvailable` when the location has no readings.
+The SensorHub actor SHALL store the most recent `SensorReading` per unique key of (Location, SensorKind, Source). It SHALL accept `UpdateReading` messages to store new readings and `QuerySensorReadings` messages to return the current aggregated state for a location as `SensorReadingsResult`, or `SensorReadingsNotAvailable` when the location has no readings.
 
 #### Scenario: Store and retrieve a single reading
 - **WHEN** a reading `(Location="Luzern", Kind=IndoorTemperature, Source="wohnzimmer", Value=23.5)` is stored
-- **AND** a `QuerySensorSnapshot("Luzern")` is requested
-- **THEN** the reply SHALL be `SensorSnapshotResult` containing `IndoorTemperature` with value `23.5` and source count `1`
+- **AND** a `QuerySensorReadings("Luzern")` is requested
+- **THEN** the reply SHALL be `SensorReadingsResult` containing `IndoorTemperature` with value `23.5` and source count `1`
 
 #### Scenario: Multiple sources aggregated by Average
 - **WHEN** readings `(Luzern, IndoorTemperature, "wohnzimmer", 23.5)` and `(Luzern, IndoorTemperature, "schlafzimmer", 21.0)` are stored
-- **AND** a `QuerySensorSnapshot("Luzern")` is requested
-- **THEN** the reply SHALL be `SensorSnapshotResult` containing `IndoorTemperature` with value `22.25` and source count `2`
+- **AND** a `QuerySensorReadings("Luzern")` is requested
+- **THEN** the reply SHALL be `SensorReadingsResult` containing `IndoorTemperature` with value `22.25` and source count `2`
 
-#### Scenario: QuerySensorSnapshot for location with no readings
-- **WHEN** a `QuerySensorSnapshot("Unknown")` is requested
+#### Scenario: QuerySensorReadings for location with no readings
+- **WHEN** a `QuerySensorReadings("Unknown")` is requested
 - **AND** no readings exist for that location
-- **THEN** the reply SHALL be `SensorSnapshotNotAvailable`
+- **THEN** the reply SHALL be `SensorReadingsNotAvailable`
 
-### Requirement: SensorHub pushes snapshot maps to the pipeline
-The SensorHub SHALL push `SensorSnapshots` — an immutable map from `LocationId` to the aggregated `SensorSnapshot` of every location that has at least one fresh reading, with the staleness window applied at push time — to the pipeline resolved through the `IForecastPipeline` marker: after every accepted `UpdateReading`, on every expiry tick (every 60 seconds, also when nothing expired), and once when the pipeline is first resolved after the SensorHub started. While no pipeline is registered the SensorHub SHALL skip the push without failing; a rejected reading SHALL NOT trigger a push.
+### Requirement: SensorHub pushes readings maps to the pipeline
+The SensorHub SHALL push `LocationSensorReadings` — an immutable map from `LocationId` to the aggregated `SensorReadings` of every location that has at least one fresh reading, with the staleness window applied at push time — to the pipeline resolved through the `IForecastPipeline` marker: after every accepted `UpdateReading`, on every expiry tick (every 60 seconds, also when nothing expired), and once when the pipeline is first resolved after the SensorHub started. While no pipeline is registered the SensorHub SHALL skip the push without failing; a rejected reading SHALL NOT trigger a push.
 
 #### Scenario: Accepted reading is pushed
 - **WHEN** the pipeline is registered and a reading `(Luzern, IndoorTemperature, "wohnzimmer", 23.5)` is accepted
-- **THEN** the pipeline receives `SensorSnapshots` whose entry for "Luzern" holds `IndoorTemperature = 23.5`
+- **THEN** the pipeline receives `LocationSensorReadings` whose entry for "Luzern" holds `IndoorTemperature = 23.5`
 
 #### Scenario: Map covers every location with fresh readings
 - **WHEN** fresh readings exist for "Luzern" and "Bern" and another reading is accepted
@@ -114,7 +114,7 @@ The SensorHub SHALL push `SensorSnapshots` — an immutable map from `LocationId
 
 #### Scenario: Rejected reading pushes nothing
 - **WHEN** a reading outside its plausibility range is rejected
-- **THEN** no `SensorSnapshots` is pushed for it
+- **THEN** no `LocationSensorReadings` is pushed for it
 
 #### Scenario: No pipeline registered
 - **WHEN** a reading is accepted while no pipeline is registered

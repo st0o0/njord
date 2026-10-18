@@ -30,5 +30,5 @@ Each command or query SHALL have its own file in `Njord.Messages/<Domain>/`.
 
 #### Scenario: SensorHub messages
 - **WHEN** inspecting sensor hub message files
-- **THEN** `UpdateReading` and `QuerySensorSnapshot` (with its response hierarchy) SHALL each be in separate files
+- **THEN** `UpdateReading` and `QuerySensorReadings` (with its response hierarchy) SHALL each be in separate files
 

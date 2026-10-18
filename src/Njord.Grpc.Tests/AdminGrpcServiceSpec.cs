@@ -471,7 +471,7 @@ public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task StreamConfig_sends_a_new_snapshot_after_a_mutation()
+    public async Task StreamConfig_sends_a_new_config_after_a_mutation()
     {
         var service = CreateService();
         using var streamCts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
@@ -607,6 +607,6 @@ public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             h.Monitor<TrendOptions>(),
             h.Monitor<DerivedOptions>(),
             h.Writer,
-            new NjordHealthMonitor(default, new BudgetHealthSnapshot(0, 0, 0, 0)))), $"config-manager-{Guid.NewGuid():N}");
+            new NjordHealthMonitor(default, new BudgetHealth(0, 0, 0, 0)))), $"config-manager-{Guid.NewGuid():N}");
     }
 }

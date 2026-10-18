@@ -40,7 +40,7 @@ public sealed class BudgetTracker : ReceivePersistentActor
         });
 
         Command<RecordApiCall>(OnRecordApiCall);
-        Command<QueryBudgetUsage>(_ => Sender.Tell(_state.GetSnapshot(), Self));
+        Command<QueryBudgetUsage>(_ => Sender.Tell(_state.ToBudgetUsage(), Self));
         Command<QueryBudgetStatus>(_ => Sender.Tell(GetStatus(), Self));
         Command<SaveSnapshotSuccess>(success =>
         {
@@ -58,7 +58,7 @@ public sealed class BudgetTracker : ReceivePersistentActor
         Command<DeleteSnapshotSuccess>(_ => { });
     }
 
-    // The limits are the health snapshot's, which the configuration manager keeps at the effective budget.
+    // The limits are the budget health's, which the configuration manager keeps at the effective budget.
     private BudgetStatusResult GetStatus()
     {
         var limits = _healthState.Budget;
@@ -80,7 +80,7 @@ public sealed class BudgetTracker : ReceivePersistentActor
         {
             _state = newState;
             var limits = _healthState.Budget;
-            _healthState.UpdateBudget(new BudgetHealthSnapshot(
+            _healthState.UpdateBudget(new BudgetHealth(
                 _state.DailyUsed, _state.MonthlyUsed,
                 limits.LimitDaily, limits.LimitMonthly));
 

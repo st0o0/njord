@@ -12,15 +12,15 @@ public sealed class BudgetMappingsSpec
         .Apply(new ApiCallRecorded(weight, T0), T0);
 
     [Fact]
-    public void GetSnapshot_returns_current_usage()
+    public void ToBudgetUsage_returns_current_usage()
     {
         var state = StateWith(4).Apply(new ApiCallRecorded(2, T0), T0);
 
-        var snapshot = state.GetSnapshot();
+        var usage = state.ToBudgetUsage();
 
         Assert.Multiple(
-            () => Assert.Equal(6, snapshot.MonthlyUsed),
-            () => Assert.Equal(6, snapshot.DailyUsed));
+            () => Assert.Equal(6, usage.MonthlyUsed),
+            () => Assert.Equal(6, usage.DailyUsed));
     }
 
     [Fact]

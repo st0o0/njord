@@ -47,9 +47,9 @@ public sealed class TrendAnalyzerSpec
         Assert.Null(result);
     }
 
-    private static ConsensusSnapshot BuildConsensus()
+    private static LocationConsensus BuildConsensus()
     {
-        var snap = ModelSnapshot.Empty;
+        var snap = ModelForecasts.Empty;
         return new ConsensusBuilder(Parameters, Time).Create(snap, "lucerne", ConsensusSettings.Default);
     }
 }

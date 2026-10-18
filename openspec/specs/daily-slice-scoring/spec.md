@@ -53,7 +53,7 @@ For each parameter in the consensus, the mean within a time window (day/night/fu
 - **THEN** the parameter mean SHALL be null
 
 ### Requirement: DaySlicer splits consensus hours into calendar-day slices
-`DaySlicer.Slice(ConsensusSnapshot consensus, DateTimeOffset now)` (src/Njord.Indices/DaySlicer.cs) SHALL return an `IReadOnlyList<DaySlice>` with up to 3 entries (d0, d1, d2), or an empty list when the consensus has no hourly cutoff. Each `DaySlice` SHALL expose its `DayOffset` (0, 1, or 2), `DayMeans` (parameter means from daylight hours), `NightMeans` (parameter means from nighttime hours), `FullDayMeans` (parameter means from all hours), `DaylightHoursCount`, and `NighttimeHoursCount`.
+`DaySlicer.Slice(LocationConsensus consensus, DateTimeOffset now)` (src/Njord.Indices/DaySlicer.cs) SHALL return an `IReadOnlyList<DaySlice>` with up to 3 entries (d0, d1, d2), or an empty list when the consensus has no hourly cutoff. Each `DaySlice` SHALL expose its `DayOffset` (0, 1, or 2), `DayMeans` (parameter means from daylight hours), `NightMeans` (parameter means from nighttime hours), `FullDayMeans` (parameter means from all hours), `DaylightHoursCount`, and `NighttimeHoursCount`.
 
 #### Scenario: Three full days available
 - **WHEN** consensus has hourly data from h0 to h72 and `now` is `2026-08-04T06:00:00Z`

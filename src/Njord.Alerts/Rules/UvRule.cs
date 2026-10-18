@@ -10,7 +10,7 @@ public sealed class UvRule : IAlertRule
 {
     public AlertType Type => AlertType.Uv;
 
-    public Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings)
+    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
     {
         var maxUv = 0.0;
         if (consensus.Hourly.Find(ParameterRegistry.UvIndex)?.Next24Hours().Extreme(ScanDirection.Max) is { } high)

@@ -10,7 +10,7 @@ public sealed class HumidityRule : IAlertRule
 {
     public AlertType Type => AlertType.Humidity;
 
-    public Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings)
+    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
     {
         var thresholds = settings.Humidity;
         var dewPoint = consensus.Hourly.Find(ParameterRegistry.DewPoint2m);

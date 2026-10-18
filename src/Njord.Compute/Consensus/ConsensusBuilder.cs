@@ -5,8 +5,8 @@ namespace Njord.Compute.Consensus;
 
 public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvider timeProvider)
 {
-    public ConsensusSnapshot Create(
-        ModelSnapshot snapshot,
+    public LocationConsensus Create(
+        ModelForecasts forecasts,
         string location,
         ConsensusSettings settings)
     {
@@ -14,15 +14,15 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
         var trimPercent = settings.TrimPercent;
         var now = timeProvider.GetUtcNow();
 
-        var cutoffHour = ComputeCutoffHour(snapshot, location, now);
+        var cutoffHour = ComputeCutoffHour(forecasts, location, now);
         var hourlyResults = cutoffHour >= 0
-            ? ComputeHourly(snapshot, parameters.Hourly, cutoffHour, location, now, trimPercent, agreementTolerance)
+            ? ComputeHourly(forecasts, parameters.Hourly, cutoffHour, location, now, trimPercent, agreementTolerance)
             : [];
 
         var today = DateOnly.FromDateTime(now.UtcDateTime);
-        var cutoffDay = ComputeDailyCutoff(snapshot, location);
+        var cutoffDay = ComputeDailyCutoff(forecasts, location);
         var dailyResults = cutoffDay > 0
-            ? ComputeDaily(snapshot, parameters.Daily, cutoffDay, location, today, trimPercent, agreementTolerance)
+            ? ComputeDaily(forecasts, parameters.Daily, cutoffDay, location, today, trimPercent, agreementTolerance)
             : [];
 
         var hourly = new HourlyConsensus(
@@ -33,14 +33,14 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
             FilterParameterList(dailyResults, settings.MinQuorum),
             cutoffDay);
 
-        return new ConsensusSnapshot(new LocationId(location), hourly, daily, now);
+        return new LocationConsensus(new LocationId(location), hourly, daily, now);
     }
 
-    private static int ComputeCutoffHour(ModelSnapshot snapshot, string location, DateTimeOffset now)
+    private static int ComputeCutoffHour(ModelForecasts forecasts, string location, DateTimeOffset now)
     {
         var maxHours = new List<int>();
 
-        foreach (var (key, forecast) in snapshot.Entries)
+        foreach (var (key, forecast) in forecasts.Entries)
         {
             if (key.Location != location)
             {
@@ -69,11 +69,11 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
         return maxHours[^2];
     }
 
-    private static int ComputeDailyCutoff(ModelSnapshot snapshot, string location)
+    private static int ComputeDailyCutoff(ModelForecasts forecasts, string location)
     {
         var dayCounts = new List<int>();
 
-        foreach (var (key, forecast) in snapshot.Entries)
+        foreach (var (key, forecast) in forecasts.Entries)
         {
             if (key.Location != location)
             {
@@ -97,7 +97,7 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
     }
 
     private static List<ParameterConsensus> ComputeHourly(
-        ModelSnapshot snapshot,
+        ModelForecasts forecasts,
         IReadOnlyList<ParameterDef> hourlyParams,
         int cutoffHour,
         string location,
@@ -106,7 +106,7 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
         double agreementTolerance)
     {
         var pointIndex = new Dictionary<(string Location, WeatherModel Model), Dictionary<DateTimeOffset, ForecastPoint>>();
-        foreach (var (key, forecast) in snapshot.Entries)
+        foreach (var (key, forecast) in forecasts.Entries)
         {
             if (key.Location == location)
             {
@@ -126,7 +126,7 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
                 var horizonKey = Horizon.Hours(hours);
 
                 var modelValues = new List<(WeatherModel Model, double? Value)>();
-                foreach (var (key, _) in snapshot.Entries)
+                foreach (var (key, _) in forecasts.Entries)
                 {
                     if (key.Location != location)
                     {
@@ -149,7 +149,7 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
     }
 
     private static List<ParameterConsensus> ComputeDaily(
-        ModelSnapshot snapshot,
+        ModelForecasts forecasts,
         IReadOnlyList<ParameterDef> dailyParams,
         int maxDays,
         string location,
@@ -169,7 +169,7 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
                 var horizonKey = Horizon.Days(day);
 
                 var modelValues = new List<(WeatherModel Model, double? Value)>();
-                foreach (var (key, forecast) in snapshot.Entries)
+                foreach (var (key, forecast) in forecasts.Entries)
                 {
                     if (key.Location != location)
                     {

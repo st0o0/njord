@@ -29,7 +29,7 @@ Domain-to-proto mappings SHALL be named `ToProto`, request-to-command mappings `
 - **THEN** each returns its documented proto member and an undefined value throws `ArgumentOutOfRangeException`
 
 ### Requirement: Option-derived values are produced by one extension
-`ParametersOptions.Resolve()` SHALL produce the `ResolvedParameterSet` and be the only call site of `ParameterRegistry.Resolve` for options. `PollingOptions.ToInitialBudgetSnapshot()` SHALL produce the starting `BudgetHealthSnapshot`.
+`ParametersOptions.Resolve()` SHALL produce the `ResolvedParameterSet` and be the only call site of `ParameterRegistry.Resolve` for options. `PollingOptions.ToInitialBudgetHealth()` SHALL produce the starting `BudgetHealth`.
 
 #### Scenario: Validator and container agree
 - **WHEN** the options validator and the container resolve the same `ParametersOptions`

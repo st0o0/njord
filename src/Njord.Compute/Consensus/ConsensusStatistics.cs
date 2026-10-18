@@ -104,10 +104,10 @@ public static class ConsensusStatistics
     }
 
     public static Dictionary<WeatherModel, bool> BuildAvailabilityMatrix(
-        ModelSnapshot snapshot, DateTimeOffset targetTime, string location)
+        ModelForecasts forecasts, DateTimeOffset targetTime, string location)
     {
         var result = new Dictionary<WeatherModel, bool>();
-        foreach (var (key, forecast) in snapshot.Entries)
+        foreach (var (key, forecast) in forecasts.Entries)
         {
             if (key.Location != location)
             {

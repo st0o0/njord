@@ -122,7 +122,7 @@ public sealed class OpsGrpcService(
         throw new RpcException(new Status(StatusCode.Internal, $"Unexpected reply: {response.GetType().Name}"));
     }
 
-    private async Task<ConfigSnapshot> AskConfigAsync(ServerCallContext context)
+    private async Task<EffectiveConfig> AskConfigAsync(ServerCallContext context)
     {
         var response = await actorRegistry.AskAsync<IConfigManager, ConfigResponse>(new QueryConfig(), context);
         switch (response)

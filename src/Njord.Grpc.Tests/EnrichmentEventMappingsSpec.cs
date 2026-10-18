@@ -55,9 +55,9 @@ public sealed class EnrichmentEventMappingsSpec
         var result = new ConsensusResult([hourlyParam], [dailyParam]);
         var updatedAt = TestTimeConstants.BudgetEpoch;
 
-        var snapshot = new ConsensusSnapshot(new LocationId("lucerne"),
+        var consensus = new LocationConsensus(new LocationId("lucerne"),
             new HourlyConsensus([hourlyParam], 72), new DailyConsensus([dailyParam], 4), updatedAt);
-        var evt = EnrichmentEventMappings.ToEnrichmentEvent(new PipelineEvent.ConsensusComputed(snapshot, updatedAt));
+        var evt = EnrichmentEventMappings.ToEnrichmentEvent(new PipelineEvent.ConsensusComputed(consensus, updatedAt));
 
         Assert.NotNull(evt);
         Assert.Equal("lucerne", evt.Location);

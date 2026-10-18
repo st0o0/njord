@@ -159,14 +159,14 @@ The WMO computation SHALL accept an `int?` WMO 4677 weather code and return a nu
 
 ### Requirement: DerivedResult aggregates all derived values and serializes to MQTT
 
-`DerivedAnalyzer.Compute(consensus, settings)` SHALL take a `ConsensusSnapshot` (not a `ModelSnapshot`) and the current `DerivedSettings`, and return a `DerivedResult` or `null` when the feature is disabled. Beaufort, wind chill, dew-point comfort, WMO description, diurnal amplitude, sunshine percentage, and inversion detection SHALL all be computed from consensus median values at configured horizons.
+`DerivedAnalyzer.Compute(consensus, settings)` SHALL take a `LocationConsensus` (not a `ModelForecasts`) and the current `DerivedSettings`, and return a `DerivedResult` or `null` when the feature is disabled. Beaufort, wind chill, dew-point comfort, WMO description, diurnal amplitude, sunshine percentage, and inversion detection SHALL all be computed from consensus median values at configured horizons.
 
 #### Scenario: Horizon message content
-- **WHEN** derived values are computed from `ConsensusSnapshot.Hourly` medians at horizon h6
+- **WHEN** derived values are computed from `LocationConsensus.Hourly` medians at horizon h6
 - **THEN** the MQTT message for h6 contains beaufort, wind_chill, dewpoint_comfort, and wmo_description
 
 #### Scenario: Meta message content
-- **WHEN** derived scalar values are computed from `ConsensusSnapshot.Hourly`
+- **WHEN** derived scalar values are computed from `LocationConsensus.Hourly`
 - **THEN** the meta MQTT message contains diurnal_amplitude, sunshine_pct, and inversion
 
 #### Scenario: Null values serialize as JSON null

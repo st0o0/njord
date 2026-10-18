@@ -4,7 +4,7 @@
 TBD - created by archiving change typed-mqtt-payloads. Update Purpose after archive.
 ## Requirements
 ### Requirement: MQTT-specific code lives in Njord.Mqtt
-Every type that is MQTT-specific (name or namespace contains `Mqtt`, or that exists only to serve the MQTT egress: transport, connection and publisher actors, their actor messages, payload models and mappers, topic scheme, serializer, health check, telemetry) SHALL be declared in `Njord.Mqtt`. The only exceptions SHALL be an explicit allow-list in `Njord.Core`: `MqttOptions`, `MqttOptionsValidator`, the `MqttOptions` entry in `ConfigReloadPolicy`, the marker interfaces `IMqttConnectionActor` and `IMqttStatePublisher`, and `MqttHealthSnapshot` with its slot in `NjordHealthMonitor`.
+Every type that is MQTT-specific (name or namespace contains `Mqtt`, or that exists only to serve the MQTT egress: transport, connection and publisher actors, their actor messages, payload models and mappers, topic scheme, serializer, health check, telemetry) SHALL be declared in `Njord.Mqtt`. The only exceptions SHALL be an explicit allow-list in `Njord.Core`: `MqttOptions`, `MqttOptionsValidator`, the `MqttOptions` entry in `ConfigReloadPolicy`, the marker interfaces `IMqttConnectionActor` and `IMqttStatePublisher`, and `MqttHealth` with its slot in `NjordHealthMonitor`.
 
 #### Scenario: Actor messages are internal to the adapter
 - **WHEN** the solution is inspected

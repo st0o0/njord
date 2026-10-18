@@ -94,7 +94,7 @@ Pure statistical computations over multi-model forecast data: median, trimmed me
 - **THEN** the confidence interval is null
 
 ### Requirement: Model availability matrix
-`ConsensusStatistics.BuildAvailabilityMatrix` SHALL accept a `ModelSnapshot` and a target `DateTimeOffset`. For each model in the snapshot, it SHALL report whether the model's forecast series contains a non-null value at or near that time point. The result SHALL be a dictionary of `WeatherModel → bool`.
+`ConsensusStatistics.BuildAvailabilityMatrix` SHALL accept a `ModelForecasts` and a target `DateTimeOffset`. For each model in the `ModelForecasts`, it SHALL report whether the model's forecast series contains a non-null value at or near that time point. The result SHALL be a dictionary of `WeatherModel → bool`.
 
 #### Scenario: Model with data at horizon
 - **WHEN** icon_d2's forecast has a point at +3h with non-null temperature
@@ -139,11 +139,11 @@ Pure statistical computations over multi-model forecast data: median, trimmed me
 - **THEN** the implementation SHALL build a single dictionary per forecast and perform O(1) lookups per horizon (not a linear scan per horizon)
 
 ### Requirement: ConsensusResult holds both hourly and daily parameter consensus
-`ConsensusBuilder.Create(snapshot, location, settings)` SHALL iterate both the `.Hourly` and the `.Daily` lists of the `ResolvedParameterSet` and produce a `ConsensusSnapshot` with separate `Hourly` and `Daily` parameter consensus (filtered by `MinQuorum`). `ConsensusResult` SHALL be a record with two collections, `Parameters` (hourly) and `DailyParameters` (daily), both `IReadOnlyList<ParameterConsensus>`, plus the optional `ComputedAt`; it is built from a snapshot for output mapping. The hourly computation SHALL use exact `ValidAt` lookup (not fuzzy ±30-minute tolerance) after computing the floor-anchored target time via `TimeAnchor.AtHorizon`.
+`ConsensusBuilder.Create(forecasts, location, settings)` SHALL iterate both the `.Hourly` and the `.Daily` lists of the `ResolvedParameterSet` and produce a `LocationConsensus` with separate `Hourly` and `Daily` parameter consensus (filtered by `MinQuorum`). `ConsensusResult` SHALL be a record with two collections, `Parameters` (hourly) and `DailyParameters` (daily), both `IReadOnlyList<ParameterConsensus>`, plus the optional `ComputedAt`; it is built from the model forecasts for output mapping. The hourly computation SHALL use exact `ValidAt` lookup (not fuzzy ±30-minute tolerance) after computing the floor-anchored target time via `TimeAnchor.AtHorizon`.
 
 #### Scenario: Compute produces both hourly and daily results
 - **WHEN** `ConsensusBuilder.Create` is called with a ResolvedParameterSet containing 30 hourly and 16 daily parameters
-- **THEN** the snapshot contains up to 30 entries in `Hourly.Parameters` and up to 16 entries in `Daily.Parameters`
+- **THEN** the consensus contains up to 30 entries in `Hourly.Parameters` and up to 16 entries in `Daily.Parameters`
 
 #### Scenario: Empty daily parameter set
 - **WHEN** the ResolvedParameterSet has an empty `Daily` list

@@ -274,6 +274,6 @@ Actors that need references to other actors SHALL resolve them through the Servu
 - **THEN** it calls `Context.GetActorAsync<IForecastPipeline>()` and pipes the result to itself
 
 #### Scenario: The SensorHub pushes to the pipeline marker
-- **WHEN** the SensorHub pushes a snapshot map
+- **WHEN** the SensorHub pushes a readings map
 - **THEN** it resolves the pipeline through `IForecastPipeline` and skips the push while none is registered
 

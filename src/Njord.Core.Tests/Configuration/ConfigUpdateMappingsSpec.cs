@@ -1,6 +1,5 @@
 using Njord.Compute.Settings;
 using Njord.Core.Configuration;
-using ParameterSelection = Njord.Messages.Config.ParameterSelection;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Consensus;
 using Njord.Core.Configuration.Derived;
@@ -149,7 +148,7 @@ public sealed class ConfigUpdateMappingsSpec
     {
         var options = AppSettingsDefaults.Options<NjordOptions>(o => o.Models = ["icon_d2"]);
 
-        new UpdateSettings(7, [6, 12], ["icon_eu"], new ParameterSelection(["Weather"], ["uv_index"], ["snowfall"]), null)
+        new UpdateSettings(7, [6, 12], ["icon_eu"], new ParameterScope(["Weather"], ["uv_index"], ["snowfall"]), null)
             .ApplyTo(options);
 
         Assert.Multiple(

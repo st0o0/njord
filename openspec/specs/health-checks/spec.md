@@ -7,11 +7,11 @@ written by actors and read by ASP.NET health checks, MQTT connection check,
 and pipeline freshness check. All checks use `TimeProvider` for testability.
 ## Requirements
 ### Requirement: Shared health state is writable by actors
-A `NjordHealthMonitor` (src/Njord.Core/Health/NjordHealthMonitor.cs) SHALL be registered as a DI singleton. Actors SHALL write to it by replacing whole immutable snapshots (`UpdateMqtt`, `UpdatePoll`, `UpdateBudget`); health check classes SHALL read from it. No health check SHALL send messages to actors.
+A `NjordHealthMonitor` (src/Njord.Core/Health/NjordHealthMonitor.cs) SHALL be registered as a DI singleton. Actors SHALL write to it by replacing whole immutable health records (`UpdateMqtt`, `UpdatePoll`, `UpdateBudget`); health check classes SHALL read from it. No health check SHALL send messages to actors.
 
-`NjordHealthMonitor` SHALL expose `Mqtt` (`MqttHealthSnapshot(IsConnected, DisconnectedSince)`), `Poll` (`PollHealthSnapshot(LastSuccessfulPollUtc)`), `Budget` (`BudgetHealthSnapshot(UsedDaily, UsedMonthly, LimitDaily, LimitMonthly)`) and `ServiceStartedUtc`.
+`NjordHealthMonitor` SHALL expose `Mqtt` (`MqttHealth(IsConnected, DisconnectedSince)`), `Poll` (`PollHealth(LastSuccessfulPollUtc)`), `Budget` (`BudgetHealth(UsedDaily, UsedMonthly, LimitDaily, LimitMonthly)`) and `ServiceStartedUtc`.
 
-On connect, `MqttConnection` SHALL write `MqttHealthSnapshot(true, null)`. There SHALL be no connected-since timestamp.
+On connect, `MqttConnection` SHALL write `MqttHealth(true, null)`. There SHALL be no connected-since timestamp.
 
 #### Scenario: Actor updates health state
 - **WHEN** `MqttConnection` connects successfully

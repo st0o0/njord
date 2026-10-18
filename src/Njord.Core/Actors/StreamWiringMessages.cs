@@ -32,7 +32,7 @@ public sealed record RequestReadModelStreamFailed(long RequestId, Exception Caus
 public sealed record RequestConfigStream(long RequestId);
 
 public abstract record RequestConfigStreamResponse(long RequestId);
-public sealed record RequestConfigStreamCompleted(long RequestId, ISourceRef<ConfigSnapshot> SourceRef)
+public sealed record RequestConfigStreamCompleted(long RequestId, ISourceRef<EffectiveConfig> SourceRef)
     : RequestConfigStreamResponse(RequestId);
 public sealed record RequestConfigStreamFailed(long RequestId, Exception Cause)
     : RequestConfigStreamResponse(RequestId);

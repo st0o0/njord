@@ -18,7 +18,7 @@ public sealed class AlertAnalyzer
 
     public bool Enabled { get; }
 
-    public AlertResult? Compute(ConsensusSnapshot consensus, AlertSettings settings)
+    public AlertResult? Compute(LocationConsensus consensus, AlertSettings settings)
     {
         if (!Enabled)
             return null;

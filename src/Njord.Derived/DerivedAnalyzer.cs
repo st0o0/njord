@@ -16,10 +16,10 @@ public sealed class DerivedAnalyzer(IOptions<DerivedOptions> options)
 
     public bool Enabled { get; } = options.Value.Enabled;
 
-    public DerivedResult? Compute(ConsensusSnapshot consensus, DerivedSettings settings) =>
+    public DerivedResult? Compute(LocationConsensus consensus, DerivedSettings settings) =>
         Enabled ? Analyze(consensus, settings) : null;
 
-    public static DerivedResult Analyze(ConsensusSnapshot consensus, DerivedSettings settings)
+    public static DerivedResult Analyze(LocationConsensus consensus, DerivedSettings settings)
     {
         var hourly = consensus.Hourly;
         var wind = hourly.Find(ParameterRegistry.WindSpeed10m);

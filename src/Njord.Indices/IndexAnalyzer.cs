@@ -22,7 +22,7 @@ public sealed class IndexAnalyzer
 
     public bool Enabled { get; }
 
-    public IndexResult? Compute(ConsensusSnapshot consensus, SensorSnapshot? sensors, IndexSettings settings)
+    public IndexResult? Compute(LocationConsensus consensus, SensorReadings? sensors, IndexSettings settings)
     {
         if (!Enabled)
             return null;
@@ -34,7 +34,7 @@ public sealed class IndexAnalyzer
         return Analyze(consensus, effective);
     }
 
-    private IndexResult Analyze(ConsensusSnapshot consensus, IndexSettings settings)
+    private IndexResult Analyze(LocationConsensus consensus, IndexSettings settings)
     {
         var slices = DaySlicer.Slice(consensus, _timeProvider.GetUtcNow());
         var days = slices.Select(slice => ScoreDay(slice, consensus.Location, settings)).ToList();

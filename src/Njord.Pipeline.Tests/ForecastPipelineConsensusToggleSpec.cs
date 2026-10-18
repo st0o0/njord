@@ -57,7 +57,7 @@ public sealed class ForecastPipelineConsensusToggleSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Disabled_consensus_still_feeds_trends_the_previous_snapshot()
+    public async Task Disabled_consensus_still_feeds_trends_the_previous_consensus()
     {
         var ct = TestContext.Current.CancellationToken;
         var (forecasts, _, queue, events) = await StartPipelineAsync(consensusEnabled: false, ct);

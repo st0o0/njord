@@ -1,6 +1,5 @@
 using Njord.Compute.Settings;
 using Njord.Core.Configuration;
-using ParameterSelection = Njord.Messages.Config.ParameterSelection;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Consensus;
 using Njord.Core.Configuration.Derived;
@@ -13,7 +12,7 @@ using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration;
 
-public sealed class ConfigSnapshotMappingsSpec
+public sealed class EffectiveConfigMappingsSpec
 {
     [Fact]
     public void Consensus_options_map_to_their_section()
@@ -190,7 +189,7 @@ public sealed class ConfigSnapshotMappingsSpec
             () => Assert.Equal(["icon_eu", "icon_global"], mapped.Models),
             () => Assert.Equal([3, 6], mapped.Horizons),
             () => Assert.Equal(5, mapped.ForecastDays),
-            () => Assert.Equal(new ParameterSelection(["Weather"], ["uv_index"], ["snowfall"]), mapped.Parameters, new ParameterSelectionComparer()));
+            () => Assert.Equal(new ParameterScope(["Weather"], ["uv_index"], ["snowfall"]), mapped.Parameters, new ParameterScopeComparer()));
     }
 
     [Fact]
@@ -209,7 +208,7 @@ public sealed class ConfigSnapshotMappingsSpec
     }
 
     [Fact]
-    public void A_snapshot_combines_every_section()
+    public void An_effective_config_combines_every_section()
     {
         var scope = new NjordOptions
         {
@@ -217,7 +216,7 @@ public sealed class ConfigSnapshotMappingsSpec
             Models = ["icon_d2"],
         };
 
-        var snapshot = ConfigSnapshotMappings.ToSnapshot(
+        var config = EffectiveConfigMappings.ToEffectiveConfig(
             scope,
             AppSettingsDefaults.Options<PollingOptions>(),
             AppSettingsDefaults.Options<ConsensusOptions>(o => o.MinQuorum = 4),
@@ -227,11 +226,11 @@ public sealed class ConfigSnapshotMappingsSpec
             AppSettingsDefaults.Options<IndexOptions>(o => o.Enabled = true));
 
         Assert.Multiple(
-            () => Assert.Equal(new LocationId("Lucerne"), Assert.Single(snapshot.Scope.Locations).Id),
-            () => Assert.Equal(TimeSpan.FromMinutes(60), snapshot.Polling.PollInterval),
-            () => Assert.Equal(300_000, snapshot.BudgetProjection.MonthlyLimit),
-            () => Assert.Equal(4, snapshot.Analysis.Consensus.MinQuorum),
-            () => Assert.True(snapshot.Analysis.Indices.Enabled));
+            () => Assert.Equal(new LocationId("Lucerne"), Assert.Single(config.Scope.Locations).Id),
+            () => Assert.Equal(TimeSpan.FromMinutes(60), config.Polling.PollInterval),
+            () => Assert.Equal(300_000, config.BudgetProjection.MonthlyLimit),
+            () => Assert.Equal(4, config.Analysis.Consensus.MinQuorum),
+            () => Assert.True(config.Analysis.Indices.Enabled));
     }
 
     [Fact]
@@ -281,14 +280,14 @@ public sealed class ConfigSnapshotMappingsSpec
         public int GetHashCode(AlertSection obj) => obj.Enabled.GetHashCode();
     }
 
-    private sealed class ParameterSelectionComparer : IEqualityComparer<ParameterSelection>
+    private sealed class ParameterScopeComparer : IEqualityComparer<ParameterScope>
     {
-        public bool Equals(ParameterSelection? x, ParameterSelection? y) =>
+        public bool Equals(ParameterScope? x, ParameterScope? y) =>
             x is not null && y is not null
             && x.Groups.SequenceEqual(y.Groups)
             && x.Extra.SequenceEqual(y.Extra)
             && x.Exclude.SequenceEqual(y.Exclude);
 
-        public int GetHashCode(ParameterSelection obj) => obj.Groups.Count;
+        public int GetHashCode(ParameterScope obj) => obj.Groups.Count;
     }
 }

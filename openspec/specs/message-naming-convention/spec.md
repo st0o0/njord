@@ -15,9 +15,9 @@ and the non-success variant is `<Noun>Failed` or, for lookups that can find no d
 - **WHEN** `QueryPollStates` is sent
 - **THEN** the response base SHALL be `PollStatesResponse`, success `PollStatesResult`, failure `PollStatesFailed`
 
-#### Scenario: Sensor snapshot query
-- **WHEN** `QuerySensorSnapshot` is sent
-- **THEN** the response base SHALL be `SensorSnapshotResponse`, success `SensorSnapshotResult`, unavailable `SensorSnapshotNotAvailable`
+#### Scenario: Sensor readings query
+- **WHEN** `QuerySensorReadings` is sent
+- **THEN** the response base SHALL be `SensorReadingsResponse`, success `SensorReadingsResult`, unavailable `SensorReadingsNotAvailable`
 
 #### Scenario: Forecast query
 - **WHEN** `QueryForecast` is sent

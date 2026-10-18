@@ -4,7 +4,7 @@ namespace Njord.Pipeline;
 
 internal static class PollWorkerMessageMappings
 {
-    public static PollStateEntry GetSnapshot(this PollWorkerState state)
+    public static PollStateEntry ToPollStateEntry(this PollWorkerState state)
     {
         var target = state.Target ?? throw new InvalidOperationException("A poll worker without a target has no poll state");
         return new PollStateEntry(

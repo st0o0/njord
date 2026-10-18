@@ -6,7 +6,7 @@ Multi-model consensus aggregation for daily forecast parameters: computes Median
 ## Requirements
 ### Requirement: Daily consensus computes multi-model statistics per daily parameter per day-horizon
 
-Daily consensus SHALL be computed as part of `ConsensusSnapshot.Compute`, producing the `DailyConsensus` facet. It uses daily model parameters (`temperature_2m_max`, `temperature_2m_min`, `precipitation_sum`, `weather_code`, etc.) directly from `DailyForecastSeries`. It SHALL NOT use hourly->daily rollups.
+Daily consensus SHALL be computed as part of `LocationConsensus.Compute`, producing the `DailyConsensus` facet. It uses daily model parameters (`temperature_2m_max`, `temperature_2m_min`, `precipitation_sum`, `weather_code`, etc.) directly from `DailyForecastSeries`. It SHALL NOT use hourly->daily rollups.
 
 #### Scenario: Three models with daily temperature_2m_max
 - **WHEN** 3 models provide `temperature_2m_max` values of 24.0, 25.5, 26.0 for d0
@@ -22,10 +22,10 @@ Daily consensus SHALL be computed as part of `ConsensusSnapshot.Compute`, produc
 
 ### Requirement: Daily consensus results are stored in the DailyConsensus facet
 
-The `DailyConsensus` facet of `ConsensusSnapshot` SHALL contain `Parameters` (list of `ParameterConsensus` with `dN` horizon keys) and `CutoffDay`.
+The `DailyConsensus` facet of `LocationConsensus` SHALL contain `Parameters` (list of `ParameterConsensus` with `dN` horizon keys) and `CutoffDay`.
 
 #### Scenario: Result structure separates hourly and daily
-- **WHEN** `ConsensusSnapshot.Compute` produces a result
+- **WHEN** `LocationConsensus.Compute` produces a result
 - **THEN** `Hourly.Parameters` contains hourly data with `hN` keys and `Daily.Parameters` contains daily data with `dN` keys
 
 ### Requirement: Day offset is computed from UTC date of the cycle

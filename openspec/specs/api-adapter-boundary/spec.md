@@ -14,7 +14,7 @@ write configuration, call domain calculators or registries, or host actors.
 #### Scenario: Config read goes through the configuration manager
 - **WHEN** a client calls `AdminService/GetConfig`
 - **THEN** the service asks the configuration manager with a config query and maps the
-  returned config snapshot to `NjordConfig`
+  returned effective config to `NjordConfig`
 
 #### Scenario: Budget status goes through the budget tracker
 - **WHEN** a client calls the ops RPC that reports budget usage

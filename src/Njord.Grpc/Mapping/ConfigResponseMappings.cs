@@ -7,18 +7,18 @@ namespace Njord.Grpc.Mapping;
 
 internal static class ConfigResponseMappings
 {
-    public static NjordConfig ToProto(this Contracts.ConfigSnapshot snapshot)
+    public static NjordConfig ToProto(this Contracts.EffectiveConfig effective)
     {
-        var scope = snapshot.Scope;
-        var polling = snapshot.Polling;
+        var scope = effective.Scope;
+        var polling = effective.Polling;
 
         var config = new NjordConfig
         {
             ForecastDays = scope.ForecastDays,
             PollIntervalSeconds = (long)polling.PollInterval.TotalSeconds,
             Parameters = new ParameterConfig(),
-            Enrichment = snapshot.Analysis.ToProto(),
-            BudgetProjection = snapshot.BudgetProjection.ToProto(),
+            Enrichment = effective.Analysis.ToProto(),
+            BudgetProjection = effective.BudgetProjection.ToProto(),
         };
 
         if (polling.BudgetOverride is { } budgetOverride)

@@ -186,9 +186,9 @@ public sealed class ConsensusStatisticsSpec
         var point = new ForecastPoint(t0.AddHours(3), new Dictionary<ParameterDef, double?> { [temperature] = 22.5 });
         var forecast = new Forecast(IconD2, "lucerne", new CycleId(t0),
             new ForecastSeries([point]), DailyForecastSeries.Empty);
-        var snapshot = ModelSnapshot.Empty.Update(forecast);
+        var forecasts = ModelForecasts.Empty.Update(forecast);
 
-        var matrix = ConsensusStatistics.BuildAvailabilityMatrix(snapshot, t0.AddHours(3), "lucerne");
+        var matrix = ConsensusStatistics.BuildAvailabilityMatrix(forecasts, t0.AddHours(3), "lucerne");
 
         Assert.True(matrix[IconD2]);
     }
@@ -201,9 +201,9 @@ public sealed class ConsensusStatisticsSpec
         var point = new ForecastPoint(t0.AddHours(3), new Dictionary<ParameterDef, double?> { [temperature] = 22.5 });
         var forecast = new Forecast(IconD2, "lucerne", new CycleId(t0),
             new ForecastSeries([point]), DailyForecastSeries.Empty);
-        var snapshot = ModelSnapshot.Empty.Update(forecast);
+        var forecasts = ModelForecasts.Empty.Update(forecast);
 
-        var matrix = ConsensusStatistics.BuildAvailabilityMatrix(snapshot, t0.AddHours(72), "lucerne");
+        var matrix = ConsensusStatistics.BuildAvailabilityMatrix(forecasts, t0.AddHours(72), "lucerne");
 
         Assert.False(matrix[IconD2]);
     }

@@ -33,18 +33,18 @@ public sealed class OptionsDerivedValuesSpec
     }
 
     [Fact]
-    public void The_initial_budget_snapshot_starts_at_zero_with_the_free_tier_limits()
+    public void The_initial_budget_health_starts_at_zero_with_the_free_tier_limits()
     {
-        var snapshot = AppSettingsDefaults.Options<PollingOptions>().ToInitialBudgetSnapshot();
+        var health = AppSettingsDefaults.Options<PollingOptions>().ToInitialBudgetHealth();
 
-        Assert.Equal(new BudgetHealthSnapshot(0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, 300_000), snapshot);
+        Assert.Equal(new BudgetHealth(0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, 300_000), health);
     }
 
     [Fact]
-    public void The_initial_budget_snapshot_follows_a_budget_override()
+    public void The_initial_budget_health_follows_a_budget_override()
     {
-        var snapshot = AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(50_000, 60)).ToInitialBudgetSnapshot();
+        var health = AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(50_000, 60)).ToInitialBudgetHealth();
 
-        Assert.Equal(new BudgetHealthSnapshot(0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, 50_000), snapshot);
+        Assert.Equal(new BudgetHealth(0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, 50_000), health);
     }
 }

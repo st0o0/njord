@@ -8,5 +8,5 @@ public interface IAlertRule
 {
     AlertType Type { get; }
 
-    Alert Evaluate(ConsensusSnapshot consensus, AlertSettings settings);
+    Alert Evaluate(LocationConsensus consensus, AlertSettings settings);
 }

@@ -16,7 +16,7 @@ public sealed class DaySlicerSpec
     private static readonly ResolvedParameterSet Parameters = ParameterSelection.Resolve(
         ["Weather", "Solar"], [], []);
 
-    private static ConsensusSnapshot BuildConsensus(
+    private static LocationConsensus BuildConsensus(
         DateTimeOffset now, int hours,
         Func<int, (double temp, double humidity, double isDay)> hourValues)
     {
@@ -51,7 +51,7 @@ public sealed class DaySlicerSpec
         var m2 = new Forecast(new WeatherModel("m2"), "lucerne", new CycleId(now),
             new ForecastSeries(points2), DailyForecastSeries.Empty);
 
-        var snap = ModelSnapshot.Empty.Update(m1).Update(m2);
+        var snap = ModelForecasts.Empty.Update(m1).Update(m2);
         var time = new FakeTimeProvider(now);
         return new ConsensusBuilder(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
     }
@@ -159,7 +159,7 @@ public sealed class DaySlicerSpec
         var m2 = new Forecast(new WeatherModel("m2"), "lucerne", new CycleId(now),
             new ForecastSeries(points2), DailyForecastSeries.Empty);
 
-        var snap = ModelSnapshot.Empty.Update(m1).Update(m2);
+        var snap = ModelForecasts.Empty.Update(m1).Update(m2);
         var time = new FakeTimeProvider(now);
         var consensus = new ConsensusBuilder(Parameters, time).Create(snap, "lucerne", ConsensusSettings.Default);
 
@@ -216,7 +216,7 @@ public sealed class DaySlicerSpec
     public void Empty_consensus_returns_empty_list()
     {
         var now = new DateTimeOffset(2026, 8, 4, 6, 0, 0, TimeSpan.Zero);
-        var consensus = new ConsensusSnapshot(new LocationId("lucerne"),
+        var consensus = new LocationConsensus(new LocationId("lucerne"),
             new HourlyConsensus([], -1),
             new DailyConsensus([], 0),
             now);
@@ -245,7 +245,7 @@ public sealed class DaySlicerSpec
 
         var forecast = new Forecast(new WeatherModel("m1"), "lucerne", new CycleId(now),
             new ForecastSeries(points), DailyForecastSeries.Empty);
-        var snap = ModelSnapshot.Empty.Update(forecast).Update(forecast with { Model = new WeatherModel("m2") });
+        var snap = ModelForecasts.Empty.Update(forecast).Update(forecast with { Model = new WeatherModel("m2") });
         var consensus = new ConsensusBuilder(Parameters, new FakeTimeProvider(now)).Create(snap, "lucerne", ConsensusSettings.Default);
 
         var d0 = DaySlicer.Slice(consensus, now).First(s => s.DayOffset == 0);
@@ -261,7 +261,7 @@ public sealed class DaySlicerSpec
             new ForecastSeries(Enumerable.Range(0, 24).Select(h => new ForecastPoint(now.AddHours(h),
                 new Dictionary<ParameterDef, double?> { [parameter] = 20.0 }))),
             DailyForecastSeries.Empty);
-        var snap = ModelSnapshot.Empty.Update(Single("m1", Temperature)).Update(Single("m2", Humidity));
+        var snap = ModelForecasts.Empty.Update(Single("m1", Temperature)).Update(Single("m2", Humidity));
         var consensus = new ConsensusBuilder(Parameters, new FakeTimeProvider(now))
             .Create(snap, "lucerne", ConsensusSettings.Default with { MinQuorum = 1 });
 
