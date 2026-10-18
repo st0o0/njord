@@ -14,24 +14,9 @@ public sealed class ConfigSetupContainer : IServiceSetupContainer
 
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services
-            .AddOptions<NjordOptions>()
-            .BindConfiguration(NjordOptions.SectionName)
-            .ReplaceCollectionDefaults()
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<NjordOptions>, NjordOptionsValidator>();
-
-        services
-            .AddOptions<PersistenceOptions>()
-            .BindConfiguration(PersistenceOptions.SectionName)
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<PersistenceOptions>, PersistenceOptionsValidator>();
-
-        services
-            .AddOptions<StorageOptions>()
-            .BindConfiguration(StorageOptions.SectionName)
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<StorageOptions>, StorageOptionsValidator>();
+        services.AddNjordOptions<NjordOptions>(configuration);
+        services.AddNjordOptions<PersistenceOptions>(configuration);
+        services.AddNjordOptions<StorageOptions>(configuration);
 
         services.AddSingleton(static sp => sp.GetRequiredService<IOptions<NjordOptions>>().Value.Parameters.Resolve());
 

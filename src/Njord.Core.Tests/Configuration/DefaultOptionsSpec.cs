@@ -51,7 +51,7 @@ public sealed class DefaultOptionsSpec
             .AddJsonFile(AppSettingsDefaults.ShippedPath, optional: false)
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Njord:PollInterval"] = "00:30:00",
+                ["Njord:Polling:PollInterval"] = "00:30:00",
                 ["Njord:Horizons:0"] = "6",
                 ["Njord:Horizons:1"] = "24",
             })
@@ -83,7 +83,7 @@ public sealed class DefaultOptionsSpec
 
         var results = new Dictionary<string, ValidateOptionsResult>
         {
-            [nameof(NjordOptions)] = new NjordOptionsValidator().Validate(null, AppSettingsDefaults.Options<NjordOptions>(configuration)),
+            [nameof(NjordOptions)] = new NjordOptionsValidator(configuration).Validate(null, AppSettingsDefaults.Options<NjordOptions>(configuration)),
             [nameof(PollingOptions)] = new PollingOptionsValidator(configuration).Validate(null, AppSettingsDefaults.Options<PollingOptions>(configuration)),
             [nameof(OpenMeteoOptions)] = new OpenMeteoOptionsValidator().Validate(null, AppSettingsDefaults.Options<OpenMeteoOptions>(configuration)),
             [nameof(StorageOptions)] = new StorageOptionsValidator(configuration).Validate(null, AppSettingsDefaults.Options<StorageOptions>(configuration)),

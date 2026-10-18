@@ -19,9 +19,9 @@ public sealed class OpenMeteoOptionsValidatorSpec
     [InlineData("ftp://api.open-meteo.com/")]
     public void A_non_http_or_relative_url_is_rejected(string url)
     {
-        var result = Validator.Validate(null, AppSettingsDefaults.Options<OpenMeteoOptions>(o => o.OpenMeteoBaseUrl = url));
+        var result = Validator.Validate(null, AppSettingsDefaults.Options<OpenMeteoOptions>(o => o.BaseUrl = url));
 
         Assert.True(result.Failed);
-        Assert.Contains("OpenMeteoBaseUrl", result.FailureMessage);
+        Assert.Contains("OpenMeteo:BaseUrl", result.FailureMessage);
     }
 }

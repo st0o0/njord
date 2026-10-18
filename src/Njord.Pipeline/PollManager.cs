@@ -4,7 +4,6 @@ using Akka.Event;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
 using Njord.Core.Health;
 using Njord.Messages.Pipeline;
 using Njord.Weather;
@@ -48,13 +47,13 @@ public sealed class PollManager : ReceiveActor, IWithTimers
 
     public PollManager(
         IOptions<NjordOptions> options,
-        IOptions<PollingOptions> polling,
+        ConfigView config,
         TimeProvider timeProvider,
         NjordHealthMonitor health)
     {
         _timeProvider = timeProvider;
         _health = health;
-        _discoveryInterval = polling.Value.DiscoveryInterval;
+        _discoveryInterval = config.Polling.DiscoveryInterval;
 
         var now = timeProvider.GetUtcNow();
         foreach (var location in options.Value.Locations)

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Core.Configuration;
@@ -67,6 +68,82 @@ public sealed class ResilientJsonConfigurationSourceSpec : IDisposable
 
         Assert.Equal("7", root["Njord:ForecastDays"]);
         Assert.Equal(content, file.LastGoodContent);
+    }
+
+    [Fact]
+    public void An_old_override_file_is_read_from_the_new_sections_and_warns_once()
+    {
+        File.WriteAllText(
+            OverridePath,
+            """{"Njord": {"PollInterval": "00:45:00", "BudgetOverride": {"RequestsPerMonth": 100000}, "ForecastDays": 7}}""");
+
+        var (root, file) = Build();
+        file.AttachLogger(_logger);
+        root.Reload();
+
+        Assert.Multiple(
+            () => Assert.Equal("00:45:00", root["Njord:Polling:PollInterval"]),
+            () => Assert.Equal("100000", root["Njord:Polling:BudgetOverride:RequestsPerMonth"]),
+            () => Assert.Equal("7", root["Njord:ForecastDays"]),
+            () => Assert.Null(root["Njord:PollInterval"]),
+            () => Assert.Null(root["Njord:BudgetOverride:RequestsPerMonth"]),
+            () => Assert.Empty(_logger.Errors));
+        var warning = Assert.Single(_logger.Entries, e => e.Level == LogLevel.Warning);
+        Assert.Contains("Njord:PollInterval, Njord:BudgetOverride", warning.Message);
+        Assert.Contains(OverridePath, warning.Message);
+    }
+
+    [Fact]
+    public void An_old_override_file_is_remembered_in_the_new_shape()
+    {
+        File.WriteAllText(OverridePath, """{"Njord": {"PollInterval": "00:45:00"}}""");
+
+        var (_, file) = Build();
+
+        Assert.Equal("""{"Njord":{"Polling":{"PollInterval":"00:45:00"}}}""", file.LastGoodContent);
+    }
+
+    [Fact]
+    public void A_new_override_file_is_read_unchanged_and_does_not_warn()
+    {
+        const string content = """{"Njord": {"Polling": {"PollInterval": "00:45:00"}}}""";
+        File.WriteAllText(OverridePath, content);
+
+        var (root, file) = Build();
+        file.AttachLogger(_logger);
+
+        Assert.Multiple(
+            () => Assert.Equal("00:45:00", root["Njord:Polling:PollInterval"]),
+            () => Assert.Equal(content, file.LastGoodContent),
+            () => Assert.Empty(_logger.Entries));
+    }
+
+    [Fact]
+    public void A_mixed_override_file_prefers_the_new_key()
+    {
+        File.WriteAllText(
+            OverridePath,
+            """{"Njord": {"PollInterval": "00:45:00", "Polling": {"PollInterval": "02:00:00"}}}""");
+
+        var (root, _) = Build();
+
+        Assert.Equal("02:00:00", root["Njord:Polling:PollInterval"]);
+    }
+
+    [Fact]
+    public void A_corrupt_file_with_old_keys_is_still_reported_as_corrupt()
+    {
+        const string content = """{"Njord": {"PollInterval": "00:45:00" """;
+        File.WriteAllText(OverridePath, content);
+
+        var (root, file) = Build();
+
+        file.AttachLogger(_logger);
+        Assert.Multiple(
+            () => Assert.Null(root["Njord:Polling:PollInterval"]),
+            () => Assert.Null(file.LastGoodContent),
+            () => Assert.Contains(OverridePath, Assert.Single(_logger.Errors).Message),
+            () => Assert.DoesNotContain(_logger.Entries, e => e.Level == LogLevel.Warning));
     }
 
     [Fact]
@@ -173,7 +250,7 @@ public sealed class ResilientJsonConfigurationSourceSpec : IDisposable
             .AddJsonFile(Path.Combine(AppContext.BaseDirectory, "Samples", "appsettings.Example.json"), optional: false)
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Njord:PersistencePath"] = Path.Combine(_tempDir, "njord.db"),
+                ["Njord:Storage:PersistencePath"] = Path.Combine(_tempDir, "njord.db"),
             });
         builder.AddResilientJsonFile(OverridePath, reloadOnChange: false);
         return HostConfiguration.Services(builder.Build()).BuildServiceProvider();

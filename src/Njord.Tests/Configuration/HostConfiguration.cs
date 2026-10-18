@@ -48,7 +48,7 @@ internal static class HostConfiguration
             .AddJsonFile(Path.Combine(AppContext.BaseDirectory, "Samples", "appsettings.Example.json"), optional: false)
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Njord:PersistencePath"] = Path.Combine(tempDir, "njord.db"),
+                ["Njord:Storage:PersistencePath"] = Path.Combine(tempDir, "njord.db"),
             })
             .AddInMemoryCollection(overrides ?? new Dictionary<string, string?>())
             .Build();

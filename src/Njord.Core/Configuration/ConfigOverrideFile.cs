@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace Njord.Core.Configuration;
@@ -8,10 +9,18 @@ namespace Njord.Core.Configuration;
 // are buffered until the host attaches a logger.
 public sealed class ConfigOverrideFile(string path)
 {
+    // The leniency of the JSON configuration loader, so every file njord loads can also be updated.
+    public static readonly JsonDocumentOptions ReadOptions = new()
+    {
+        CommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true,
+    };
+
     private readonly Lock _gate = new();
     private readonly List<Action<ILogger>> _pending = [];
     private ILogger? _logger;
     private string? _lastGoodContent;
+    private bool _migrationReported;
 
     public string Path { get; } = System.IO.Path.GetFullPath(path);
 
@@ -51,6 +60,26 @@ public sealed class ConfigOverrideFile(string path)
             Path,
             error.Message,
             corruptPath));
+
+    // Reported once per process, however often the file is reloaded before the writer persists the new shape.
+    public void RecordMigrated(IReadOnlyList<string> oldKeys)
+    {
+        lock (_gate)
+        {
+            if (_migrationReported)
+            {
+                return;
+            }
+
+            _migrationReported = true;
+        }
+
+        Report(logger => logger.LogWarning(
+            "Configuration override file {OverridePath} uses keys removed in 0.5.0 ({OldKeys}); they are read from "
+            + "their new sections and the file is rewritten with the new keys on the next configuration change",
+            Path,
+            string.Join(", ", oldKeys)));
+    }
 
     public void AttachLogger(ILogger logger)
     {

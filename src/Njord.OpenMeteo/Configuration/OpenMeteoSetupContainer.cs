@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
+using Njord.Core.Configuration;
 using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Polling;
 using Servus.Akka;
@@ -17,11 +18,7 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services
-            .AddOptions<OpenMeteoOptions>()
-            .BindConfiguration(OpenMeteoOptions.SectionName)
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<OpenMeteoOptions>, OpenMeteoOptionsValidator>();
+        services.AddNjordOptions<OpenMeteoOptions>(configuration);
 
         services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
         services.TryAddSingleton(FetchTimeouts.Default);
@@ -30,7 +27,7 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
             {
                 // Runs when the typed client is activated, not at registration.
                 var options = sp.GetRequiredService<IOptions<OpenMeteoOptions>>().Value;
-                client.BaseAddress = new Uri(options.OpenMeteoBaseUrl);
+                client.BaseAddress = new Uri(options.BaseUrl);
                 client.Timeout = sp.GetRequiredService<FetchTimeouts>().Http;
             })
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler

@@ -10,7 +10,9 @@ njord uses Akka.Persistence to store each poll target's learned schedule and the
     "Persistence": {
       "Provider": "Sqlite"
     },
-    "PersistencePath": "data/njord.db"
+    "Storage": {
+      "PersistencePath": "data/njord.db"
+    }
   }
 }
 ```
@@ -24,7 +26,7 @@ The default provider stores data in a local SQLite file. No external database re
 | Option | Default | Description |
 |--------|---------|-------------|
 | `Provider` | `"Sqlite"` | Storage provider |
-| `PersistencePath` | `"data/njord.db"` | Path to the SQLite database file (relative to working directory) |
+| `Storage:PersistencePath` | `"data/njord.db"` | Path to the SQLite database file (relative to working directory) |
 
 In Docker, mount a volume at `/app/data` to persist the database across container restarts:
 

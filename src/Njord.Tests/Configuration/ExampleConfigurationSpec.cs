@@ -30,7 +30,7 @@ public sealed class ExampleConfigurationSpec
         var shipped = Leaves("appsettings.json");
 
         Assert.Multiple(
-            () => Assert.Equal("01:00:00", shipped["Njord:PollInterval"]),
+            () => Assert.Equal("01:00:00", shipped["Njord:Polling:PollInterval"]),
             () => Assert.Equal("4", shipped["Njord:ForecastDays"]),
             () => Assert.Equal("1883", shipped["Njord:Mqtt:Port"]),
             () => Assert.Equal("Median", shipped["Njord:Enrichment:Consensus:Method"]));

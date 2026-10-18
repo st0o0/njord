@@ -5,9 +5,14 @@ export function exportAsJson(config: NjordConfig): string {
   const out: Record<string, unknown> = { Njord: {} }
   const n = out.Njord as Record<string, unknown>
 
-  n.PollInterval = config.pollInterval
+  const defaults = defaultConfig()
+  const polling: Record<string, unknown> = { PollInterval: config.pollInterval }
+  if (config.discoveryInterval !== defaults.discoveryInterval) polling.DiscoveryInterval = config.discoveryInterval
+  if (config.budgetOverride) polling.BudgetOverride = config.budgetOverride
+  n.Polling = polling
   n.ForecastDays = config.forecastDays
-  if (config.discoveryInterval !== '00:20:00') n.DiscoveryInterval = config.discoveryInterval
+  if (config.openMeteoBaseUrl !== defaults.openMeteoBaseUrl) n.OpenMeteo = { BaseUrl: config.openMeteoBaseUrl }
+  if (config.persistencePath !== defaults.persistencePath) n.Storage = { PersistencePath: config.persistencePath }
   n.Horizons = config.horizons
   if (config.models.length) n.Models = config.models
   if (config.locations.length) {
@@ -17,7 +22,6 @@ export function exportAsJson(config: NjordConfig): string {
       return loc
     })
   }
-  const defaults = defaultConfig()
   if (JSON.stringify(config.parameters) !== JSON.stringify(defaults.parameters)) {
     n.Parameters = { Groups: config.parameters.groups }
     if (config.parameters.extra.length) (n.Parameters as Record<string, unknown>).Extra = config.parameters.extra
@@ -56,9 +60,8 @@ export function exportAsJson(config: NjordConfig): string {
     }
     n.Enrichment = enrichment
   }
-  if (config.budgetOverride) n.BudgetOverride = config.budgetOverride
   if (config.persistence.provider !== 'Sqlite') {
-    n.Persistence = { Provider: config.persistence.provider, ConnectionString: config.persistence.connectionString }
+    n.Persistence ={ Provider: config.persistence.provider, ConnectionString: config.persistence.connectionString }
   }
 
   return JSON.stringify(out, null, 2)
@@ -68,7 +71,8 @@ export function exportAsEnvVars(config: NjordConfig): string {
   const lines: string[] = []
   const add = (key: string, value: string) => lines.push(`${key}=${value}`)
 
-  add('Njord__PollInterval', config.pollInterval)
+  const defaults = defaultConfig()
+  add('Njord__Polling__PollInterval', config.pollInterval)
   add('Njord__ForecastDays', String(config.forecastDays))
   config.horizons.forEach((h, i) => add(`Njord__Horizons__${i}`, String(h)))
   config.models.forEach((m, i) => add(`Njord__Models__${i}`, m))
@@ -101,8 +105,8 @@ export function exportAsEnvVars(config: NjordConfig): string {
   }
 
   if (config.budgetOverride) {
-    add('Njord__BudgetOverride__RequestsPerMonth', String(config.budgetOverride.requestsPerMonth))
-    add('Njord__BudgetOverride__RequestsPerMinute', String(config.budgetOverride.requestsPerMinute))
+    add('Njord__Polling__BudgetOverride__RequestsPerMonth', String(config.budgetOverride.requestsPerMonth))
+    add('Njord__Polling__BudgetOverride__RequestsPerMinute', String(config.budgetOverride.requestsPerMinute))
   }
 
   if (config.persistence.provider !== 'Sqlite') {
@@ -110,9 +114,11 @@ export function exportAsEnvVars(config: NjordConfig): string {
     if (config.persistence.connectionString) add('Njord__Persistence__ConnectionString', config.persistence.connectionString)
   }
 
-  if (config.discoveryInterval !== '00:20:00') {
-    add('Njord__DiscoveryInterval', config.discoveryInterval)
+  if (config.discoveryInterval !== defaults.discoveryInterval) {
+    add('Njord__Polling__DiscoveryInterval', config.discoveryInterval)
   }
+  if (config.openMeteoBaseUrl !== defaults.openMeteoBaseUrl) add('Njord__OpenMeteo__BaseUrl', config.openMeteoBaseUrl)
+  if (config.persistencePath !== defaults.persistencePath) add('Njord__Storage__PersistencePath', config.persistencePath)
 
   return lines.join('\n')
 }
@@ -149,9 +155,18 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   const n = parsed.Njord ?? parsed
   const config: Partial<NjordConfig> = {}
 
-  if (n.PollInterval) config.pollInterval = n.PollInterval
+  // Root-level keys of versions before 0.5.0 are still read (the export writes the new keys); the
+  // import reports them through findOutdatedKeys.
+  const pollInterval = n.Polling?.PollInterval ?? n.PollInterval
+  const discoveryInterval = n.Polling?.DiscoveryInterval ?? n.DiscoveryInterval
+  const budgetOverride = n.Polling?.BudgetOverride ?? n.BudgetOverride
+  const baseUrl = n.OpenMeteo?.BaseUrl ?? n.OpenMeteoBaseUrl
+  const persistencePath = n.Storage?.PersistencePath ?? n.PersistencePath
+  if (pollInterval) config.pollInterval = pollInterval
   if (n.ForecastDays) config.forecastDays = n.ForecastDays
-  if (n.DiscoveryInterval) config.discoveryInterval = n.DiscoveryInterval
+  if (discoveryInterval) config.discoveryInterval = discoveryInterval
+  if (baseUrl) config.openMeteoBaseUrl = baseUrl
+  if (persistencePath) config.persistencePath = persistencePath
   if (n.Horizons) config.horizons = n.Horizons
   if (n.Models) config.models = n.Models
   if (n.Locations) {
@@ -187,7 +202,7 @@ export function importFromJson(json: string): Partial<NjordConfig> {
     }
   }
   if (n.Enrichment) config.enrichment = n.Enrichment
-  if (n.BudgetOverride) config.budgetOverride = n.BudgetOverride
+  if (budgetOverride) config.budgetOverride = budgetOverride
   if (n.Persistence) config.persistence = { provider: n.Persistence.Provider ?? 'Sqlite', connectionString: n.Persistence.ConnectionString ?? '' }
 
   return config
@@ -204,7 +219,18 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     const value = line.substring(eq + 1).trim()
     const parts = key.split('__').slice(1)
 
-    if (parts[0] === 'PollInterval') config.pollInterval = value
+    // Root-level keys of versions before 0.5.0 are still read; findOutdatedKeys reports them.
+    if (parts[0] === 'Polling' && parts[1] === 'PollInterval' || parts[0] === 'PollInterval') config.pollInterval = value
+    else if (parts[0] === 'Polling' && parts[1] === 'DiscoveryInterval' || parts[0] === 'DiscoveryInterval') config.discoveryInterval = value
+    else if (parts[0] === 'Polling' && parts[1] === 'BudgetOverride' || parts[0] === 'BudgetOverride') {
+      const budgetParts = parts[0] === 'Polling' ? parts.slice(2) : parts.slice(1)
+      const budget = config.budgetOverride ?? { requestsPerMonth: 0, requestsPerMinute: 0 }
+      if (budgetParts[0] === 'RequestsPerMonth') budget.requestsPerMonth = parseInt(value) || 0
+      else if (budgetParts[0] === 'RequestsPerMinute') budget.requestsPerMinute = parseInt(value) || 0
+      config.budgetOverride = budget
+    }
+    else if (parts[0] === 'OpenMeteo' && parts[1] === 'BaseUrl' || parts[0] === 'OpenMeteoBaseUrl') config.openMeteoBaseUrl = value
+    else if (parts[0] === 'Storage' && parts[1] === 'PersistencePath' || parts[0] === 'PersistencePath') config.persistencePath = value
     else if (parts[0] === 'ForecastDays') config.forecastDays = parseInt(value) || 4
     else if (parts[0] === 'Horizons') config.horizons[parseInt(parts[1]) || 0] = parseInt(value)
     else if (parts[0] === 'Models' && parts.length === 2) {
@@ -248,7 +274,6 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     else if (parts[0] === 'Mqtt' && parts[1] === 'Enabled') {
       config.mqtt.enabled = value === 'true'
     }
-    else if (parts[0] === 'DiscoveryInterval') config.discoveryInterval = value
     else if (parts[0] === 'Persistence') {
       if (parts[1] === 'Provider') config.persistence.provider = value
       else if (parts[1] === 'ConnectionString') config.persistence.connectionString = value
@@ -280,6 +305,40 @@ export function importFromCompose(text: string): Partial<NjordConfig> {
   }
 
   return config
+}
+
+// Root-level keys that moved in 0.5.0. njord refuses to start while one of them is configured.
+const OUTDATED_KEYS: { old: string; current: string }[] = [
+  { old: 'PollInterval', current: 'Polling__PollInterval' },
+  { old: 'DiscoveryInterval', current: 'Polling__DiscoveryInterval' },
+  { old: 'BudgetOverride', current: 'Polling__BudgetOverride' },
+  { old: 'OpenMeteoBaseUrl', current: 'OpenMeteo__BaseUrl' },
+  { old: 'PersistencePath', current: 'Storage__PersistencePath' },
+]
+
+export function findOutdatedKeys(text: string): string[] {
+  const trimmed = text.trim()
+  const present = new Set<string>()
+  if (trimmed.startsWith('{')) {
+    let parsed: Record<string, Record<string, unknown>> | null = null
+    try {
+      parsed = JSON.parse(trimmed)
+    } catch {
+      return []
+    }
+    const n = (parsed?.Njord ?? parsed) as Record<string, unknown>
+    for (const key of OUTDATED_KEYS) if (n && key.old in n) present.add(key.old)
+  } else {
+    for (const line of trimmed.split('\n')) {
+      const name = line.replace(/^\s*-\s+/, '').split('=')[0].trim()
+      for (const key of OUTDATED_KEYS) {
+        if (name === `Njord__${key.old}` || name.startsWith(`Njord__${key.old}__`)) present.add(key.old)
+      }
+    }
+  }
+  return OUTDATED_KEYS
+    .filter(key => present.has(key.old))
+    .map(key => `Njord__${key.old} is outdated since 0.5.0, use Njord__${key.current} (JSON: Njord:${key.current.replace('__', ':')})`)
 }
 
 export function autoImport(text: string): Partial<NjordConfig> {

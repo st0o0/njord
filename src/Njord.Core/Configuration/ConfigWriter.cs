@@ -20,13 +20,6 @@ public sealed class ConfigWriter(
         Converters = { new JsonStringEnumConverter() },
     };
 
-    // The leniency of the JSON configuration loader, so every file njord loads can also be updated.
-    private static readonly JsonDocumentOptions ReadOptions = new()
-    {
-        CommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true,
-    };
-
     private readonly SemaphoreSlim _lock = new(1, 1);
 
     public async Task<ConfigUpdateResult<T>> UpdateAsync<T>(Action<T> applyChanges, CancellationToken cancellationToken)
@@ -251,9 +244,13 @@ public sealed class ConfigWriter(
         }
     }
 
-    private static JsonObject ParseObject(string text) =>
-        JsonNode.Parse(text, documentOptions: ReadOptions) as JsonObject
-        ?? throw new JsonException("The top-level JSON element is not an object.");
+    private static JsonObject ParseObject(string text)
+    {
+        var root = JsonNode.Parse(text, documentOptions: ConfigOverrideFile.ReadOptions) as JsonObject
+            ?? throw new JsonException("The top-level JSON element is not an object.");
+        LegacyConfigKeys.Migrate(root);
+        return root;
+    }
 
     private static void RemovePath(JsonObject root, string[] segments)
     {

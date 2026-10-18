@@ -46,6 +46,7 @@ export interface NjordConfig {
   budgetOverride: { requestsPerMonth: number; requestsPerMinute: number } | null
   persistence: { provider: string; connectionString: string }
   persistencePath: string
+  openMeteoBaseUrl: string
   deploy: { limits: DeployLimits }
 }
 
@@ -66,6 +67,7 @@ export function defaultConfig(): NjordConfig {
     budgetOverride: null,
     persistence: { provider: 'Sqlite', connectionString: '' },
     persistencePath: 'data/njord.db',
+    openMeteoBaseUrl: 'https://api.open-meteo.com/',
     deploy: { limits: { cpus: '', memory: '' } },
   }
 }

@@ -18,8 +18,8 @@ public sealed class HealthSetupContainerSpec : IDisposable
     {
         var services = HostConfiguration.Services(HostConfiguration.Sample(_tempDir, new Dictionary<string, string?>
         {
-            ["Njord:BudgetOverride:RequestsPerMonth"] = "120000",
-            ["Njord:BudgetOverride:RequestsPerMinute"] = "60",
+            ["Njord:Polling:BudgetOverride:RequestsPerMonth"] = "120000",
+            ["Njord:Polling:BudgetOverride:RequestsPerMinute"] = "60",
         }));
         services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
         using var provider = services.BuildServiceProvider();

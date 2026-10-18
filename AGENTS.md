@@ -131,7 +131,7 @@ with optional MQTT state publishing.
 
 - Open-Meteo free tier (non-commercial) is the assumed plan: the request budget
   defaults to its soft limits (300k/month, 600/min) with an optional
-  `BudgetOverride` for self-throttling. Startup validates projected usage
+  `Polling:BudgetOverride` for self-throttling. Startup validates projected usage
   against 80 % of the resolved monthly budget. Commercial use would need the
   paid tier (out of scope).
 - Poll interval and request budget are config values (default 60 min). Any change
@@ -325,6 +325,40 @@ Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
 - Environment variables — Docker-compose / `docker run` (`Njord__Mqtt__Host`, etc.).
 - `appsettings.Example.json` — copy-in template with deployment-specific keys only; a spec
   fails when it repeats a default of `appsettings.json`.
+- `docker-compose.example.yml` — the commented variables show each option's default; a spec
+  (`ComposeExampleSpec`) fails when one differs from the value bound from `appsettings.json`
+  (list defaults: the code default). A comment containing "Alternative" starts a block of
+  values that are not defaults and are skipped until the next blank line.
+
+Sections: one options class per concern, each with its own `SectionName` (no two share one,
+`OptionsAccessArchitectureSpec`): `Njord` (forecast scope: `Locations`, `Models`, `Horizons`,
+`ForecastDays`, `Parameters`), `Njord:Polling`, `Njord:OpenMeteo`, `Njord:Storage`,
+`Njord:Persistence`, `Njord:Mqtt`, `Njord:Sensors`, `Njord:Enrichment:<Feature>`. Every
+options type is registered with `AddNjordOptions<T>(configuration)` (`Njord.Core`: binds
+the section, lets a configured list replace its default, registers `<T>Validator` from
+`T`'s namespace, `ValidateOnStart`); setup containers do not repeat those steps.
+
+Reading rule (`OptionsAccessArchitectureSpec`, constructor parameters): options that
+`ConfigReloadPolicy` marks `Hot` are read through `IOptionsMonitor<T>` or `ConfigView` at the
+moment of use, never `IOptions<T>`; `RestartRequired` options are read through `IOptions<T>`,
+never a monitor. Actors cannot inject a monitor (`ConfigurationArchitectureSpec`), so an
+actor that needs a hot value at (re)start takes `ConfigView` (`PollManager`). The spec holds
+an explicit allow-list with a reason per entry (the analysis features and `ForecastPipeline`
+read only their restart-required `Enabled`; `ConfigView`/`ConfigManager` monitor
+`NjordOptions`); an entry that is no longer needed fails the spec. Setup containers resolve
+options from the service provider and are outside the rule.
+
+0.5.0 key mapping (operator-breaking; startup fails with the old and the new key named when
+an old key is present in configuration or the environment; the override file is migrated by
+`ResilientJsonConfigurationSource`/`ConfigWriter` through `LegacyConfigKeys`, one release only):
+
+| Before 0.5.0 | From 0.5.0 | Environment variable |
+|--------------|------------|----------------------|
+| `Njord:PollInterval` | `Njord:Polling:PollInterval` | `Njord__Polling__PollInterval` |
+| `Njord:DiscoveryInterval` | `Njord:Polling:DiscoveryInterval` | `Njord__Polling__DiscoveryInterval` |
+| `Njord:BudgetOverride` | `Njord:Polling:BudgetOverride` | `Njord__Polling__BudgetOverride__RequestsPerMonth` / `__RequestsPerMinute` |
+| `Njord:OpenMeteoBaseUrl` | `Njord:OpenMeteo:BaseUrl` | `Njord__OpenMeteo__BaseUrl` |
+| `Njord:PersistencePath` | `Njord:Storage:PersistencePath` | `Njord__Storage__PersistencePath` |
 
 Tests obtain default options through `AppSettingsDefaults` (`Njord.Tests.Shared`, binds the
 shipped `appsettings.json`) instead of `new XOptions()`; `DefaultOptionsSpec` pins the bound

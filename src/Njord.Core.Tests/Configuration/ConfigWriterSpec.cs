@@ -110,7 +110,7 @@ public sealed class ConfigWriterSpec : IDisposable
         var njord = ReadOverride()["Njord"]!;
         Assert.Equal(2, njord["Horizons"]!.AsArray().Count);
         Assert.False(njord["Enrichment"]!["Alerts"]!["Enabled"]!.GetValue<bool>());
-        Assert.Equal("00:30:00", njord["PollInterval"]!.GetValue<string>());
+        Assert.Equal("00:30:00", njord["Polling"]!["PollInterval"]!.GetValue<string>());
     }
 
     [Fact(Timeout = 5000)]
@@ -262,6 +262,27 @@ public sealed class ConfigWriterSpec : IDisposable
     }
 
     [Fact(Timeout = 5000)]
+    public async Task A_write_persists_the_new_shape_of_an_override_file_with_old_keys()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        Directory.CreateDirectory(_tempDir);
+        await File.WriteAllTextAsync(OverridePath, """
+            { "Njord": { "PollInterval": "00:45:00", "BudgetOverride": { "RequestsPerMonth": 100000, "RequestsPerMinute": 200 } } }
+            """, ct);
+        var (writer, _) = CreateWriter();
+
+        await writer.UpdateAsync<PollingOptions>(opt => opt.DiscoveryInterval = TimeSpan.FromMinutes(5), ct);
+
+        var njord = ReadOverride()["Njord"]!.AsObject();
+        Assert.Multiple(
+            () => Assert.False(njord.ContainsKey("PollInterval")),
+            () => Assert.False(njord.ContainsKey("BudgetOverride")),
+            () => Assert.Equal("00:45:00", njord["Polling"]!["PollInterval"]!.GetValue<string>()),
+            () => Assert.Equal(100000, njord["Polling"]!["BudgetOverride"]!["RequestsPerMonth"]!.GetValue<int>()),
+            () => Assert.Equal("00:05:00", njord["Polling"]!["DiscoveryInterval"]!.GetValue<string>()));
+    }
+
+    [Fact(Timeout = 5000)]
     public async Task A_hand_edited_override_with_comments_and_trailing_commas_is_updated()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -280,7 +301,7 @@ public sealed class ConfigWriterSpec : IDisposable
         Assert.Multiple(
             () => Assert.True(result.Applied),
             () => Assert.Equal(7, njord["ForecastDays"]!.GetValue<int>()),
-            () => Assert.Equal("00:30:00", njord["PollInterval"]!.GetValue<string>()),
+            () => Assert.Equal("00:30:00", njord["Polling"]!["PollInterval"]!.GetValue<string>()),
             () => Assert.False(File.Exists(CorruptPath)));
     }
 

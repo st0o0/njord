@@ -575,8 +575,8 @@ public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         };
         if (budgetPerMonth is { } perMonth)
         {
-            configEntries["Njord:BudgetOverride:RequestsPerMonth"] = perMonth.ToString();
-            configEntries["Njord:BudgetOverride:RequestsPerMinute"] = "600";
+            configEntries["Njord:Polling:BudgetOverride:RequestsPerMonth"] = perMonth.ToString();
+            configEntries["Njord:Polling:BudgetOverride:RequestsPerMinute"] = "600";
         }
 
         var harness = new ConfigHarness(configEntries, OverridePath());
@@ -599,7 +599,6 @@ public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         return Sys.ActorOf(Props.Create(() => new ConfigManager(
             Options.Create(h.Monitor<NjordOptions>().CurrentValue),
             startup,
-            Options.Create(h.Monitor<PollingOptions>().CurrentValue),
             h.Monitor<NjordOptions>(),
             h.Monitor<PollingOptions>(),
             h.Monitor<ConsensusOptions>(),

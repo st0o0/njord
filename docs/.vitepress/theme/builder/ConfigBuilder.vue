@@ -2,7 +2,7 @@
 import { reactive, ref, computed, watch, onMounted } from 'vue'
 import { defaultConfig, type NjordConfig, type LocationConfig, type ModelInfo, type EnrichmentFeature } from './types'
 import { computeBudget, checkCoverage } from './budget'
-import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, encodeHash, decodeHash } from './serializer'
+import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, findOutdatedKeys, encodeHash, decodeHash } from './serializer'
 import modelsData from '../../../data/models.json'
 import enrichmentData from '../../../data/enrichment.json'
 
@@ -53,7 +53,7 @@ const HORIZON_PRESETS: Record<string, number[]> = {
 
 const horizonPreset = reactive({ active: 'standard', custom: '' })
 const exportMode = reactive({ format: 'json' as 'json' | 'env' | 'compose' })
-const importText = reactive({ value: '', error: '' })
+const importText = reactive({ value: '', error: '', outdated: [] as string[] })
 const copied = reactive({ show: false })
 
 const budget = computed(() => computeBudget(config, models))
@@ -155,7 +155,9 @@ function copyExport() {
 
 function doImport() {
   importText.error = ''
+  importText.outdated = []
   try {
+    importText.outdated = findOutdatedKeys(importText.value)
     const partial = autoImport(importText.value)
     Object.assign(config, { ...defaultConfig(), ...partial })
     importText.value = ''
@@ -199,6 +201,7 @@ onMounted(() => {
         <textarea v-model="importText.value" placeholder="Paste appsettings.json, env vars, or docker-compose environment block here..." rows="4" />
         <button @click="doImport" :disabled="!importText.value.trim()">Import</button>
         <p v-if="importText.error" class="error">{{ importText.error }}</p>
+        <p v-for="key in importText.outdated" :key="key" class="error">{{ key }}</p>
       </div>
     </details>
 

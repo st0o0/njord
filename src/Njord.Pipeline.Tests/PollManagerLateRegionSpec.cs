@@ -7,7 +7,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
 using Njord.Core.Health;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -29,7 +28,7 @@ public sealed class PollManagerLateRegionSpec : NjordActorSpec
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
             Models = ["icon_d2"],
         }));
-        services.AddSingleton(Options.Create(AppSettingsDefaults.Options<PollingOptions>()));
+        services.AddSingleton(TestConfigView.Create());
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

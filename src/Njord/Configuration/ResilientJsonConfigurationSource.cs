@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.Primitives;
 using Njord.Core.Configuration;
@@ -78,7 +80,7 @@ public sealed class ResilientJsonConfigurationProvider : JsonConfigurationProvid
         try
         {
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            content = reader.ReadToEnd();
+            content = MigrateLegacyKeys(reader.ReadToEnd());
             base.Load(new MemoryStream(Encoding.UTF8.GetBytes(content)));
         }
         catch (Exception ex) when (ex is FormatException or IOException or UnauthorizedAccessException)
@@ -88,6 +90,35 @@ public sealed class ResilientJsonConfigurationProvider : JsonConfigurationProvid
         }
 
         _overrideFile.RecordLoaded(content);
+    }
+
+    // Files written before 0.5.0 carry the polling, base URL and storage keys at the Njord root. A file that
+    // does not parse is passed on unchanged, so the base class reports it like any other corrupt file.
+    private string MigrateLegacyKeys(string content)
+    {
+        JsonObject root;
+        try
+        {
+            if (JsonNode.Parse(content, documentOptions: ConfigOverrideFile.ReadOptions) is not JsonObject parsed)
+            {
+                return content;
+            }
+
+            root = parsed;
+        }
+        catch (Exception ex) when (ex is JsonException or ArgumentException)
+        {
+            return content;
+        }
+
+        var migrated = LegacyConfigKeys.Migrate(root);
+        if (migrated.Count == 0)
+        {
+            return content;
+        }
+
+        _overrideFile.RecordMigrated(migrated);
+        return root.ToJsonString();
     }
 
     protected override void Dispose(bool disposing)

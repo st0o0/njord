@@ -53,7 +53,6 @@ public sealed class ConfigManager : ReceiveActor
     public ConfigManager(
         IOptions<NjordOptions> startupScope,
         AnalysisSettings startupSettings,
-        IOptions<PollingOptions> startupPolling,
         IOptionsMonitor<NjordOptions> scope,
         IOptionsMonitor<PollingOptions> polling,
         IOptionsMonitor<ConsensusOptions> consensus,
@@ -66,8 +65,8 @@ public sealed class ConfigManager : ReceiveActor
     {
         _startupScope = startupScope.Value;
         _analysis = startupSettings;
-        _pollingState = startupPolling.Value.ToMessage();
-        _budget = BudgetCalculator.GetEffectiveBudget(startupPolling.Value);
+        _pollingState = polling.CurrentValue.ToMessage();
+        _budget = BudgetCalculator.GetEffectiveBudget(polling.CurrentValue);
         _scope = scope;
         _polling = polling;
         _consensus = consensus;

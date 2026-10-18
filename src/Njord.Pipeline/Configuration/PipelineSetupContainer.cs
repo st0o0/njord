@@ -21,17 +21,8 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services
-            .AddOptions<PollingOptions>()
-            .BindConfiguration(PollingOptions.SectionName)
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<PollingOptions>, PollingOptionsValidator>();
-
-        services
-            .AddOptions<ConsensusOptions>()
-            .BindConfiguration(ConsensusOptions.SectionName)
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<ConsensusOptions>, ConsensusOptionsValidator>();
+        services.AddNjordOptions<PollingOptions>(configuration);
+        services.AddNjordOptions<ConsensusOptions>(configuration);
 
         // The settings the pipeline starts with; later changes arrive as AnalysisSettingsChanged messages.
         services.AddSingleton(static sp => AnalysisSettingsFactory.Create(

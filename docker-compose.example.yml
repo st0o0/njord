@@ -29,11 +29,11 @@ services:
       #- Njord__Locations__1__Longitude=8.54
 
       # ── Polling & Models ──────────────────────────────────────
-      #- Njord__PollInterval=01:00:00
+      #- Njord__Polling__PollInterval=01:00:00
       #- Njord__ForecastDays=4
       # Poll interval of a model whose update cycle is not learned yet:
-      #- Njord__DiscoveryInterval=00:20:00
-      #- Njord__OpenMeteoBaseUrl=https://api.open-meteo.com/
+      #- Njord__Polling__DiscoveryInterval=00:20:00
+      #- Njord__OpenMeteo__BaseUrl=https://api.open-meteo.com/
       ## Per-location models (in addition to Njord__Models):
       #- Njord__Locations__0__Models__0=icon_d2
       #- Njord__Models__0=icon_d2
@@ -58,14 +58,14 @@ services:
 
       # ── Persistence ───────────────────────────────────────────
       #- Njord__Persistence__Provider=Sqlite
-      #- Njord__PersistencePath=data/njord.db
-      ## For PostgreSQL:
+      #- Njord__Storage__PersistencePath=data/njord.db
+      ## Alternative for PostgreSQL (not defaults):
       #- Njord__Persistence__Provider=PostgreSql
       #- Njord__Persistence__ConnectionString=Host=db;Database=njord;Username=njord;Password=secret
 
       # ── Budget (self-throttle below Open-Meteo free tier) ─────
-      #- Njord__BudgetOverride__RequestsPerMonth=300000
-      #- Njord__BudgetOverride__RequestsPerMinute=600
+      #- Njord__Polling__BudgetOverride__RequestsPerMonth=300000
+      #- Njord__Polling__BudgetOverride__RequestsPerMinute=600
 
       # ── Sensors (gRPC input for indoor readings) ──────────────
       #- Njord__Sensors__Enabled=true

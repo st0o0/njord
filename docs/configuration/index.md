@@ -7,27 +7,47 @@ njord is configured via `appsettings.json` or environment variables. All setting
 ```json
 {
   "Njord": {
-    "PollInterval": "01:00:00",
     "ForecastDays": 4,
     "Horizons": [3, 6, 12, 24, 48, 72],
     "Locations": [ ... ],
     "Models": [ ... ],
     "Parameters": { ... },
-    "Mqtt": { ... },
-    "Enrichment": { ... },
+    "Polling": {
+      "PollInterval": "01:00:00",
+      "DiscoveryInterval": "00:20:00",
+      "BudgetOverride": null
+    },
+    "OpenMeteo": { "BaseUrl": "https://api.open-meteo.com/" },
+    "Storage": { "PersistencePath": "data/njord.db" },
     "Persistence": { ... },
-    "BudgetOverride": null,
-    "DiscoveryInterval": "00:20:00"
+    "Mqtt": { ... },
+    "Sensors": { ... },
+    "Enrichment": { ... }
   }
 }
 ```
 
+Each concern has its own section. `Njord` itself holds the forecast scope (`Locations`, `Models`, `Horizons`, `ForecastDays`, `Parameters`).
+
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `PollInterval` | `01:00:00` (60 min) | How often njord polls Open-Meteo for new forecasts |
+| `Polling:PollInterval` | `01:00:00` (60 min) | How often njord polls Open-Meteo for new forecasts |
 | `ForecastDays` | `4` | Number of days to request from the API (1 to 16) |
-| `DiscoveryInterval` | `00:20:00` (20 min) | Poll interval for a model whose update cycle is not learned yet (discovery phase); once the cycle is known, polls follow it |
-| `PersistencePath` | `data/njord.db` | Path to the SQLite database file |
+| `Polling:DiscoveryInterval` | `00:20:00` (20 min) | Poll interval for a model whose update cycle is not learned yet (discovery phase); once the cycle is known, polls follow it |
+| `OpenMeteo:BaseUrl` | `https://api.open-meteo.com/` | Open-Meteo endpoint (for a self-hosted instance or a test double) |
+| `Storage:PersistencePath` | `data/njord.db` | Path to the SQLite database file |
+
+## Upgrading to 0.5.0: moved keys
+
+Version 0.5.0 moves five root-level keys into their own sections. njord refuses to start while an old key is present in `appsettings*.json` or the environment, and the error names the new key. The override file (`data/appsettings.Override.json`) written by earlier versions is migrated automatically when it is loaded, and rewritten with the new keys on the next configuration change.
+
+| Before 0.5.0 | From 0.5.0 | Environment variable |
+|--------------|------------|----------------------|
+| `Njord:PollInterval` | `Njord:Polling:PollInterval` | `Njord__Polling__PollInterval` |
+| `Njord:DiscoveryInterval` | `Njord:Polling:DiscoveryInterval` | `Njord__Polling__DiscoveryInterval` |
+| `Njord:BudgetOverride` | `Njord:Polling:BudgetOverride` | `Njord__Polling__BudgetOverride__RequestsPerMonth` |
+| `Njord:OpenMeteoBaseUrl` | `Njord:OpenMeteo:BaseUrl` | `Njord__OpenMeteo__BaseUrl` |
+| `Njord:PersistencePath` | `Njord:Storage:PersistencePath` | `Njord__Storage__PersistencePath` |
 
 ## Defaults
 
@@ -42,7 +62,7 @@ Resetting a setting to its default means removing your override key (from your c
 Every setting can be overridden via environment variables using double-underscore notation:
 
 ```
-Njord__PollInterval=00:30:00
+Njord__Polling__PollInterval=00:30:00
 Njord__Mqtt__Host=192.168.1.100
 Njord__Locations__0__Name=Home
 Njord__Locations__0__Latitude=47.05

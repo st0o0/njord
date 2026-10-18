@@ -2,7 +2,7 @@ namespace Njord.Core.Configuration.OpenMeteo;
 
 public sealed class OpenMeteoOptions
 {
-    public const string SectionName = "Njord";
+    public const string SectionName = "Njord:OpenMeteo";
 
-    public string OpenMeteoBaseUrl { get; set; } = string.Empty;
+    public string BaseUrl { get; set; } = string.Empty;
 }

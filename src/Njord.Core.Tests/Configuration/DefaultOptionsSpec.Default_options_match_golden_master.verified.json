@@ -25,7 +25,7 @@
     "BudgetOverride": null
   },
   "OpenMeteo": {
-    "OpenMeteoBaseUrl": "https://api.open-meteo.com/"
+    "BaseUrl": "https://api.open-meteo.com/"
   },
   "Storage": {
     "PersistencePath": "data/njord.db"

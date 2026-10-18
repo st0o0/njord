@@ -35,8 +35,8 @@ public sealed class PollingOptionsSpec
     public void The_poll_interval_environment_variable_still_binds()
     {
         var prefix = $"NJORD_SPEC_{Guid.NewGuid():N}_";
-        Environment.SetEnvironmentVariable($"{prefix}Njord__PollInterval", "00:30:00");
-        Environment.SetEnvironmentVariable($"{prefix}Njord__DiscoveryInterval", "00:10:00");
+        Environment.SetEnvironmentVariable($"{prefix}Njord__Polling__PollInterval", "00:30:00");
+        Environment.SetEnvironmentVariable($"{prefix}Njord__Polling__DiscoveryInterval", "00:10:00");
         try
         {
             var configuration = new ConfigurationBuilder().AddEnvironmentVariables(prefix).Build();
@@ -52,8 +52,8 @@ public sealed class PollingOptionsSpec
         }
         finally
         {
-            Environment.SetEnvironmentVariable($"{prefix}Njord__PollInterval", null);
-            Environment.SetEnvironmentVariable($"{prefix}Njord__DiscoveryInterval", null);
+            Environment.SetEnvironmentVariable($"{prefix}Njord__Polling__PollInterval", null);
+            Environment.SetEnvironmentVariable($"{prefix}Njord__Polling__DiscoveryInterval", null);
         }
     }
 }

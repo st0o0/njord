@@ -71,7 +71,6 @@ public sealed class ConfigManagerSpec : NjordActorSpec
         var manager = Sys.ActorOf(Props.Create(() => new ConfigManager(
             Options.Create(h.Monitor<NjordOptions>().CurrentValue),
             startup,
-            Options.Create(h.Monitor<PollingOptions>().CurrentValue),
             h.Monitor<NjordOptions>(),
             h.Monitor<PollingOptions>(),
             h.Monitor<ConsensusOptions>(),
@@ -335,8 +334,8 @@ public sealed class ConfigManagerSpec : NjordActorSpec
             ["Njord:Locations:0:Latitude"] = "47.05",
             ["Njord:Locations:0:Longitude"] = "8.31",
             ["Njord:Models:0"] = "icon_d2",
-            ["Njord:BudgetOverride:RequestsPerMonth"] = "100000",
-            ["Njord:BudgetOverride:RequestsPerMinute"] = "600",
+            ["Njord:Polling:BudgetOverride:RequestsPerMonth"] = "100000",
+            ["Njord:Polling:BudgetOverride:RequestsPerMinute"] = "600",
         });
         var (manager, _, _) = await StartManagerAsync(harness);
 
@@ -606,10 +605,10 @@ public sealed class ConfigManagerSpec : NjordActorSpec
             ["Njord:Parameters:Groups:1"] = "Soil",
             ["Njord:Parameters:Extra:0"] = "uv_index",
             ["Njord:Parameters:Exclude:0"] = "rain",
-            ["Njord:PollInterval"] = "01:30:00",
-            ["Njord:DiscoveryInterval"] = "00:25:00",
-            ["Njord:BudgetOverride:RequestsPerMonth"] = "400000",
-            ["Njord:BudgetOverride:RequestsPerMinute"] = "500",
+            ["Njord:Polling:PollInterval"] = "01:30:00",
+            ["Njord:Polling:DiscoveryInterval"] = "00:25:00",
+            ["Njord:Polling:BudgetOverride:RequestsPerMonth"] = "400000",
+            ["Njord:Polling:BudgetOverride:RequestsPerMinute"] = "500",
             ["Njord:Enrichment:Consensus:Enabled"] = "false",
             ["Njord:Enrichment:Consensus:Method"] = "TrimmedMean",
             ["Njord:Enrichment:Consensus:TrimPercent"] = "0.2",

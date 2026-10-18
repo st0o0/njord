@@ -7,6 +7,8 @@ using Njord.Core.Configuration.Consensus;
 using Njord.Core.Configuration.Derived;
 using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Mqtt;
+using Njord.Core.Configuration.OpenMeteo;
+using Njord.Core.Configuration.Persistence;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Configuration.Trends;
 
@@ -75,7 +77,7 @@ public sealed class OptionsBindingSpec : IDisposable
     {
         using var provider = BuildHost(new Dictionary<string, string?>
         {
-            ["Njord:PollInterval"] = "00:30:00",
+            ["Njord:Polling:PollInterval"] = "00:30:00",
             ["Njord:Mqtt:Host"] = "broker.local",
             ["Njord:Enrichment:Alerts:Enabled"] = "false",
             ["Njord:Enrichment:Indices:Enabled"] = "true",
@@ -91,6 +93,42 @@ public sealed class OptionsBindingSpec : IDisposable
         Assert.False(provider.GetRequiredService<IOptions<TrendOptions>>().Value.Enabled);
         Assert.True(provider.GetRequiredService<IOptions<DerivedOptions>>().Value.Enabled);
         Assert.Equal(3, provider.GetRequiredService<IOptions<ConsensusOptions>>().Value.MinQuorum);
+    }
+
+    [Fact]
+    public void The_per_concern_keys_bind_to_their_own_sections()
+    {
+        using var provider = BuildHost(new Dictionary<string, string?>
+        {
+            ["Njord:Polling:DiscoveryInterval"] = "00:10:00",
+            ["Njord:Polling:BudgetOverride:RequestsPerMonth"] = "100000",
+            ["Njord:Polling:BudgetOverride:RequestsPerMinute"] = "200",
+            ["Njord:OpenMeteo:BaseUrl"] = "http://localhost:8080",
+            ["Njord:Storage:PersistencePath"] = "data/other.db",
+        });
+
+        var polling = provider.GetRequiredService<IOptions<PollingOptions>>().Value;
+        Assert.Multiple(
+            () => Assert.Equal(TimeSpan.FromMinutes(10), polling.DiscoveryInterval),
+            () => Assert.Equal(new RequestBudget(100_000, 200), polling.BudgetOverride),
+            () => Assert.Equal("http://localhost:8080", provider.GetRequiredService<IOptions<OpenMeteoOptions>>().Value.BaseUrl),
+            () => Assert.Equal("data/other.db", provider.GetRequiredService<IOptions<StorageOptions>>().Value.PersistencePath));
+    }
+
+    [Theory]
+    [InlineData("Njord:PollInterval", "00:30:00")]
+    [InlineData("Njord:DiscoveryInterval", "00:10:00")]
+    [InlineData("Njord:BudgetOverride:RequestsPerMonth", "100000")]
+    [InlineData("Njord:OpenMeteoBaseUrl", "http://localhost:8080")]
+    [InlineData("Njord:PersistencePath", "data/other.db")]
+    public void A_removed_root_level_key_fails_startup_validation(string key, string value)
+    {
+        using var provider = BuildHost(new Dictionary<string, string?> { [key] = value });
+
+        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IStartupValidator>().Validate());
+
+        var oldKey = string.Join(':', key.Split(':').Take(2));
+        Assert.Contains($"'{oldKey}' was removed in 0.5.0", ex.Message);
     }
 
     [Fact]

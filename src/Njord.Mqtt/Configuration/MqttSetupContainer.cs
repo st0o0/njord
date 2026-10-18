@@ -3,8 +3,8 @@ using Akka.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
+using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Mqtt.Actors;
 using Njord.Mqtt.Health;
@@ -17,11 +17,7 @@ public sealed class MqttSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services
-            .AddOptions<MqttOptions>()
-            .BindConfiguration(MqttOptions.SectionName)
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<MqttOptions>, MqttOptionsValidator>();
+        services.AddNjordOptions<MqttOptions>(configuration);
 
         var mqttEnabled = configuration
             .GetSection(MqttOptions.SectionName)

@@ -50,21 +50,23 @@ guard               = 300,000 x 0.8 = 240,000
 
 With many locations, models, or all parameter groups enabled, projected usage can approach the limit. Options to reduce it:
 
-- **Increase `PollInterval`**: polling every 2 hours halves the request count
+- **Increase `Polling:PollInterval`**: polling every 2 hours halves the request count
 - **Reduce models**: fewer models per location means fewer API calls
 - **Use `Exclude`**: removing hourly parameters can lower the API call weight
 - **Cap `ForecastDays`**: requesting fewer days slightly reduces API weight for large variable counts
 
-## BudgetOverride
+## Polling:BudgetOverride
 
 If you have a commercial Open-Meteo plan or want to self-throttle below the free tier, override the budget:
 
 ```json
 {
   "Njord": {
-    "BudgetOverride": {
-      "RequestsPerMonth": 500000,
-      "RequestsPerMinute": 1000
+    "Polling": {
+      "BudgetOverride": {
+        "RequestsPerMonth": 500000,
+        "RequestsPerMinute": 1000
+      }
     }
   }
 }
