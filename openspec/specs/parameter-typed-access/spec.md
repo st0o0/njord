@@ -5,25 +5,19 @@
 Typed parameter access layer: static `ParameterRegistry` properties, O(1) lookup on `ResolvedParameterSet`, time-window filtering and aggregation on `ForecastSeries`, and elimination of string-based parameter lookups from domain Compute methods.
 ## Requirements
 ### Requirement: ParameterRegistry provides static typed properties
-The `ParameterRegistry` SHALL expose static `ParameterDef` properties for
-each parameter referenced in domain Compute methods. These properties SHALL
-be non-nullable. If a property's `ApiName` is not found in the built
-parameter list, the static constructor SHALL throw.
+The `ParameterRegistry` SHALL expose a static, non-nullable `ParameterDef` member for each parameter, declared once as a typed `static readonly` field whose initializer registers the entry in the catalog. A parameter SHALL NOT be looked up by a string at type initialization.
 
 #### Scenario: Typed property returns correct ParameterDef
 - **WHEN** `ParameterRegistry.Temperature2m` is accessed
 - **THEN** it SHALL return a `ParameterDef` with `ApiName == "temperature_2m"`
 
 #### Scenario: All domain-referenced parameters have typed properties
-- **WHEN** all static properties are accessed
-- **THEN** each SHALL return a non-null `ParameterDef` matching the
-  corresponding API name
+- **WHEN** all static members are accessed
+- **THEN** each SHALL return a non-null `ParameterDef` that is part of the catalog
 
 #### Scenario: Missing parameter fails at startup
-- **WHEN** the static constructor cannot find a parameter's `ApiName` in the
-  built list
-- **THEN** it SHALL throw an exception, preventing the application from
-  starting
+- **WHEN** two declarations share the same API name and granularity
+- **THEN** the catalog specification fails, and a duplicate cannot reach production because the uniqueness spec runs in CI
 
 ### Requirement: ResolvedParameterSet provides O(1) lookup by ParameterDef
 The `ResolvedParameterSet` SHALL provide a `Get(ParameterDef param)` method
