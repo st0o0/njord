@@ -4,7 +4,7 @@ Defines which messages belong in the shared Njord.Messages API (Mqtt and Enrichm
 ## Requirements
 ### Requirement: No Akka.Streams types in shared messages
 
-The Njord.Messages project SHALL NOT have a package reference to any Akka package (including Akka and Akka.Streams). Its only project references SHALL be `Njord.Weather`, `Njord.Sensors` and `Njord.Compute`. No record in Njord.Messages SHALL reference `IActorRef`, `ISinkRef`, `ISourceRef` or any other Akka type. Records that carry such types SHALL live in `Njord.Core/Actors/` (shared stream handshakes) or privately inside the actor that uses them.
+The Njord.Messages project SHALL NOT have a package reference to any Akka package (including Akka and Akka.Streams). Its only project references SHALL be `Njord.Weather`, `Njord.Sensors` and `Njord.Consensus`. No record in Njord.Messages SHALL reference `IActorRef`, `ISinkRef`, `ISourceRef` or any other Akka type. Records that carry such types SHALL live in `Njord.Core/Actors/` (shared stream handshakes) or privately inside the actor that uses them.
 
 #### Scenario: Messages project has no Akka.Streams dependency
 - **WHEN** the Njord.Messages.csproj is inspected
@@ -45,4 +45,19 @@ Request/Response records for stream handshakes (requesting and providing SinkRef
 - **WHEN** an MQTT actor requests a connection to the MQTT connection actor
 - **THEN** the request and response record types SHALL be defined within Njord.Mqtt
 - **AND** they SHALL NOT appear in Njord.Messages
+
+### Requirement: Analysis contracts live in domain folders of Njord.Messages
+The result records, result enums and per-feature settings records of the Alerts, Derived, Trends and Indices features SHALL be declared in `Njord.Messages` under `Alerts/`, `Derived/`, `Trends/` and `Indices/` with namespaces that follow the folders. No separate contracts assembly SHALL exist per feature. `Njord.Messages` SHALL contain no analyzer, rule, formula or score logic and no Akka reference; the feature libraries SHALL reach the contracts through `Njord.Core` and below.
+
+#### Scenario: Contract type location
+- **WHEN** `AlertResult` is inspected
+- **THEN** its namespace is `Njord.Messages.Alerts` and its assembly is `Njord.Messages`
+
+#### Scenario: No per-feature contracts assembly
+- **WHEN** the solution is inspected
+- **THEN** no project named `Njord.<Feature>.Contracts` exists
+
+#### Scenario: Messages stays logic-free
+- **WHEN** the types of `Njord.Messages` are scanned
+- **THEN** none is named `*Analyzer`, `*Rule` or `*Formulas` and the assembly references no Akka package
 
