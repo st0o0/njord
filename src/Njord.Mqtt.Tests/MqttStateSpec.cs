@@ -9,6 +9,7 @@ using Njord.Core.Configuration.Mqtt;
 using Njord.Messages.Pipeline;
 using Njord.Messages.Trends;
 using Njord.Mqtt.Actors;
+using Njord.Mqtt.Health;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
@@ -30,7 +31,7 @@ public sealed class MqttStateSpec : NjordActorSpec
 
     private IActorRef CreateMqttStateActor(
         NjordOptions? options = null, TimeProvider? timeProvider = null,
-        IMqttTransport? transport = null)
+        IMqttTransport? transport = null, MqttConnectionState? connection = null)
     {
         options ??= DefaultOptions();
         timeProvider ??= TestTimeouts.AtEpoch(Anchor);
@@ -43,7 +44,8 @@ public sealed class MqttStateSpec : NjordActorSpec
             parameters,
             timeProvider,
             transport,
-            MqttEgressTuning.Default)));
+            MqttEgressTuning.Default,
+            connection ?? new MqttConnectionState())));
     }
 
     private FakeSourceHub RegisterFakePipelineHub()

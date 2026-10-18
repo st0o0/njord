@@ -6,6 +6,7 @@ using Njord.Core.Configuration.Mqtt;
 using Njord.Messages.Pipeline;
 using Njord.Messages.Trends;
 using Njord.Mqtt.Actors;
+using Njord.Mqtt.Health;
 using Njord.Tests.Shared;
 using Njord.Weather;
 
@@ -16,6 +17,8 @@ public sealed class MqttStateRewireSpec : NjordActorSpec
     protected override bool UseTestPersistence => false;
 
     private static readonly DateTimeOffset Anchor = TestTimeConstants.NoonAnchor;
+
+    private readonly MqttConnectionState _connection = new();
 
     private (FakePipelineOutput Pipeline, RecordingTransport Transport) Start()
     {
@@ -37,7 +40,8 @@ public sealed class MqttStateRewireSpec : NjordActorSpec
             parameters,
             timeProvider,
             transport,
-            MqttEgressTuning.Default)), $"mqtt-state-{Guid.NewGuid():N}");
+            MqttEgressTuning.Default,
+            _connection)), $"mqtt-state-{Guid.NewGuid():N}");
         return (pipeline, transport);
     }
 
@@ -68,6 +72,38 @@ public sealed class MqttStateRewireSpec : NjordActorSpec
 
     private static int? PrecipStarts(SentMessage message) =>
         JsonNode.Parse(message.Payload)?["precip_starts"]?.GetValue<int>();
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_unchanged_payload_is_not_published_again_on_the_same_broker_connection()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (pipeline, transport) = Start();
+        var subscription = await pipeline.NextSubscriptionAsync("the subscription", ct);
+
+        await subscription.OfferAsync(Trend(1), ct);
+        await subscription.OfferAsync(Trend(1), ct);
+        await subscription.OfferAsync(Trend(2), ct);
+        await WaitForTrendAsync(transport, 2, ct);
+
+        Assert.Single(transport.Sent, m => PrecipStarts(m) == 1);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_unchanged_payload_is_published_again_after_the_broker_connection_was_re_established()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (pipeline, transport) = Start();
+        var subscription = await pipeline.NextSubscriptionAsync("the subscription", ct);
+        await subscription.OfferAsync(Trend(1), ct);
+        await WaitForTrendAsync(transport, 1, ct);
+
+        _connection.Connected();
+        await subscription.OfferAsync(Trend(1), ct);
+
+        await AwaitAssertAsync(
+            () => Assert.Equal(2, transport.Sent.Count(m => PrecipStarts(m) == 1)),
+            TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+    }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Events_are_published_again_after_the_pipeline_subscription_failed()

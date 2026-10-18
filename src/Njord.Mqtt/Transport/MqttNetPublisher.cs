@@ -39,10 +39,15 @@ public sealed class MqttNetPublisher(IOptions<MqttOptions> mqttOptions, ILogger<
         EnsureAccepted(result);
     }
 
+    // MQTTnet waits 100 s for a broker answer by default; a broker that accepts the connection and never answers
+    // (crashed host, black-holing firewall) would stall every reconnect attempt that long.
+    internal static readonly TimeSpan BrokerTimeout = TimeSpan.FromSeconds(10);
+
     internal static MqttClientOptions BuildClientOptions(MqttOptions options)
     {
         var builder = new MqttClientOptionsBuilder()
             .WithTcpServer(options.Host, options.Port)
+            .WithTimeout(BrokerTimeout)
             .WithWillTopic(TopicScheme.AvailabilityTopic(options.BaseTopic))
             .WithWillPayload("offline")
             .WithWillRetain()

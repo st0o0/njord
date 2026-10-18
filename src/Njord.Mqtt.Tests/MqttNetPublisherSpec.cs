@@ -70,6 +70,14 @@ public sealed class MqttNetPublisherSpec
     }
 
     [Fact]
+    public void Client_options_bound_every_broker_exchange_to_ten_seconds()
+    {
+        var client = MqttNetPublisher.BuildClientOptions(Options());
+
+        Assert.Equal(TimeSpan.FromSeconds(10), client.Timeout);
+    }
+
+    [Fact]
     public void Client_options_carry_a_retained_offline_last_will_on_the_status_topic()
     {
         var client = MqttNetPublisher.BuildClientOptions(Options());

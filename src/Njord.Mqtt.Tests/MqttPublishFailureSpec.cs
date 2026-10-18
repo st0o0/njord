@@ -10,6 +10,7 @@ using Njord.Core.Configuration.Mqtt;
 using Njord.Messages.Pipeline;
 using Njord.Messages.Trends;
 using Njord.Mqtt.Actors;
+using Njord.Mqtt.Health;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
 using Njord.Weather;
@@ -42,7 +43,8 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
             parameters,
             timeProvider,
             transport,
-            FastTimeout)), $"mqtt-state-{Guid.NewGuid():N}");
+            FastTimeout,
+            new MqttConnectionState())), $"mqtt-state-{Guid.NewGuid():N}");
     }
 
     private async Task<MqttStateSpec.FakeSourceHub> StartPublisherAsync(IMqttTransport transport)

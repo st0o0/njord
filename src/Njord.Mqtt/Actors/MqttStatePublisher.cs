@@ -8,6 +8,7 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Messages.Pipeline;
+using Njord.Mqtt.Health;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Transport;
 using Njord.Weather;
@@ -24,6 +25,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
     private readonly IMqttTransport _transport;
     private readonly TimeSpan _publishTimeout;
     private readonly int _eventBufferSize;
+    private readonly MqttConnectionState _connection;
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
     private sealed record OutgoingMessage(MqttMessage Message, string Location);
@@ -34,7 +36,8 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         ResolvedParameterSet parameters,
         TimeProvider timeProvider,
         IMqttTransport transport,
-        MqttEgressTuning tuning)
+        MqttEgressTuning tuning,
+        MqttConnectionState connection)
     {
         var opts = options.Value;
         _baseTopic = mqttOptions.Value.BaseTopic;
@@ -45,6 +48,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         _transport = transport;
         _publishTimeout = tuning.PublishTimeout;
         _eventBufferSize = tuning.EventBufferSize;
+        _connection = connection;
     }
 
     protected override Task MaterializeGraph(Source<PipelineEvent, NotUsed> events)
@@ -54,8 +58,9 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         var horizons = _horizons;
         var forecastDays = _forecastDays;
         var timeProvider = _timeProvider;
-        // Per subscription on purpose: after a re-attach every state topic is published once again.
-        var lastPublished = new Dictionary<string, int>();
+        // Per subscription and per broker connection on purpose: after a re-attach and after a reconnect (a broker
+        // restart may have dropped the retained messages) every state topic is published once again.
+        var lastPublished = new PublishedPayloads(_connection);
         var transport = _transport;
         var publishTimeout = _publishTimeout;
         var log = _log;
@@ -92,7 +97,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
     // must not end the subscription.
     private static async Task PublishChangedAsync(
         OutgoingMessage outgoing,
-        Dictionary<string, int> lastPublished,
+        PublishedPayloads lastPublished,
         IMqttTransport transport,
         TimeSpan publishTimeout,
         ILoggingAdapter log)
@@ -100,7 +105,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         var (msg, location) = outgoing;
         var locationTag = new KeyValuePair<string, object?>("location", location);
         var hash = msg.Payload.GetHashCode();
-        if (lastPublished.TryGetValue(msg.Topic, out var cached) && cached == hash)
+        if (lastPublished.IsCurrent(msg.Topic, hash))
         {
             Telemetry.MqttDedup.Add(1, locationTag, new KeyValuePair<string, object?>("decision", "skipped"));
             return;
@@ -118,7 +123,28 @@ public sealed class MqttStatePublisher : StreamConsumerActor
             return;
         }
 
-        lastPublished[msg.Topic] = hash;
+        lastPublished.Record(msg.Topic, hash);
         Telemetry.MqttDedup.Add(1, locationTag, new KeyValuePair<string, object?>("decision", "published"));
+    }
+
+    // The payload hash last accepted by the broker per topic. Used by one sink at a time, so it needs no locking.
+    private sealed class PublishedPayloads(MqttConnectionState connection)
+    {
+        private readonly Dictionary<string, int> _hashes = [];
+        private int _session = connection.Session;
+
+        public bool IsCurrent(string topic, int hash)
+        {
+            var session = connection.Session;
+            if (session != _session)
+            {
+                _hashes.Clear();
+                _session = session;
+            }
+
+            return _hashes.TryGetValue(topic, out var cached) && cached == hash;
+        }
+
+        public void Record(string topic, int hash) => _hashes[topic] = hash;
     }
 }
