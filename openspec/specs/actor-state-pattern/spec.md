@@ -7,7 +7,7 @@ Each persistent actor SHALL have a companion immutable `record` holding its full
 
 The state record SHALL expose an `Empty` value as a `static readonly` field, not as a method or factory. If the state's initial value depends on runtime context (e.g., current time), the actor SHALL construct the initial state from `Empty` plus an `Apply` call in its constructor rather than parameterizing `Empty`.
 
-`FromPersistence` SHALL be a `static` method on the state record itself (not an extension method), since it is a factory that constructs state from a persisted snapshot.
+`FromPersistence` and `GetPersistenceState` SHALL be extension methods in a `*PersistenceMappings` class next to the state record (not members of the state record), so the state file holds only state and transitions.
 
 #### Scenario: State record is immutable
 - **WHEN** a persistent actor processes a command that changes state
@@ -22,8 +22,8 @@ The state record SHALL expose an `Empty` value as a `static readonly` field, not
 - **THEN** it SHALL be `public static readonly <Name>State Empty = new(...)` with compile-time-constant defaults
 
 #### Scenario: FromPersistence is a static method on the record
-- **WHEN** inspecting a state record's `FromPersistence` member
-- **THEN** it SHALL be `public static <Name>State FromPersistence(Persisted<Name>State dto, ...)` on the record, not an extension method
+- **WHEN** inspecting how a persisted state is converted to a state record
+- **THEN** `FromPersistence` SHALL be an extension method on `Persisted<Name>State` in the `*PersistenceMappings` class, not a member of the state record
 
 ### Requirement: Apply extension methods for state transitions
 Each state record SHALL have `Apply()` extension methods that accept domain events or commands and return a new state record instance. These methods SHALL be pure functions with no side effects.
