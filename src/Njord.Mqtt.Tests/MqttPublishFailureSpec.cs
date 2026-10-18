@@ -1,6 +1,7 @@
 using System.Diagnostics.Metrics;
 using System.Text.Json.Nodes;
 using Akka.Actor;
+using Akka.Event;
 using Akka.Streams;
 using MQTTnet.Exceptions;
 using Njord.Core.Actors;
@@ -81,6 +82,23 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
         var payload = JsonNode.Parse(sent.Payload);
         Assert.NotNull(payload);
         Assert.Equal(2, payload["precip_starts"]!.GetValue<int>());
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_failed_publish_is_logged_as_a_warning_naming_the_topic()
+    {
+        var warnings = CreateTestProbe();
+        Sys.EventStream.Subscribe(warnings, typeof(Warning));
+        var transport = new ScriptedTransport();
+        transport.FailNext(new MqttCommunicationException("broker went away"));
+        var hub = await StartPublisherAsync(transport);
+
+        hub.Emit(Trend("lucerne", 4));
+
+        var warning = await warnings.FishForMessageAsync<Warning>(
+            w => w.Message.ToString()!.Contains("MQTT publish to njord/lucerne/trends failed"),
+            TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal("broker went away", Assert.IsType<MqttCommunicationException>(warning.Cause).Message);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

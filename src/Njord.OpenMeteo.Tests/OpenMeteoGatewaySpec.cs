@@ -1,4 +1,5 @@
 using Akka.Actor;
+using Akka.Event;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
@@ -181,6 +182,8 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
         _budget.MaxBurst = weight;
         _time.Advance(TimeSpan.FromSeconds(6));
 
+        var warnings = CreateTestProbe();
+        Sys.EventStream.Subscribe(warnings, typeof(Warning));
         Gateway.Tell(Fetch("icon_d2"));
         await ExpectMsgAsync<FetchForecastCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Gateway.Tell(Fetch("icon_d2"));
@@ -190,6 +193,10 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
             () => Assert.Equal("icon_d2", rejected.ModelId),
             () => Assert.Equal(FetchRejectionReason.Budget, rejected.Reason),
             () => Assert.Equal(1, _client.Calls));
+        var warning = await warnings.FishForMessageAsync<Warning>(
+            w => w.Message.ToString()!.Contains("rejected: Budget"),
+            TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Contains("icon_d2", warning.Message.ToString());
         var recorded = await _apiCalls.ExpectMsgAsync<RecordApiCall>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(weight, recorded.Weight);
         await _apiCalls.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
