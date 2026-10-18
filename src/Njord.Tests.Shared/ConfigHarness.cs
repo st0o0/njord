@@ -18,8 +18,9 @@ public sealed class ConfigHarness : IDisposable
 {
     private readonly ServiceProvider _provider;
 
-    public ConfigHarness(IDictionary<string, string?> baseline, string overridePath)
+    public ConfigHarness(IDictionary<string, string?> baseline, string overridePath, TimeProvider? time = null)
     {
+        var clock = time ?? TestTimeouts.AtEpoch();
         OverridePath = overridePath;
         Root = new ConfigurationBuilder()
             .AddJsonFile(AppSettingsDefaults.ShippedPath, optional: false, reloadOnChange: false)
@@ -39,7 +40,7 @@ public sealed class ConfigHarness : IDisposable
         services.AddSingleton<ConfigView>();
         services.AddSingleton<AnalysisConfigView>();
         services.AddSingleton<IConfigWriter>(sp => new ConfigWriter(
-            sp, Root, new ConfigOverrideFile(overridePath), TimeProvider.System));
+            sp, Root, new ConfigOverrideFile(overridePath), clock));
         _provider = services.BuildServiceProvider();
     }
 

@@ -87,18 +87,16 @@ public sealed class ForecastReadModelRewireSpec : NjordActorSpec
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
     }
 
-    private static async Task<Source<PipelineEvent, Akka.NotUsed>> RequestStreamAsync(IActorRef readModel, CancellationToken ct)
+    private async Task<Source<PipelineEvent, Akka.NotUsed>> RequestStreamAsync(IActorRef readModel, CancellationToken ct)
     {
-        RequestReadModelStreamResponse? response = null;
-        for (var attempt = 0; attempt < 50 && response is not RequestReadModelStreamCompleted; attempt++)
+        RequestReadModelStreamCompleted? completed = null;
+        var attempt = 0;
+        await AwaitAssertAsync(async () =>
         {
-            response = await readModel.Ask<RequestReadModelStreamResponse>(new RequestReadModelStream(attempt), AskTimeout, ct);
-            if (response is RequestReadModelStreamFailed)
-            {
-                await Task.Delay(100, ct);
-            }
-        }
+            var response = await readModel.Ask<RequestReadModelStreamResponse>(new RequestReadModelStream(attempt++), AskTimeout, ct);
+            completed = Assert.IsType<RequestReadModelStreamCompleted>(response);
+        }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-        return Assert.IsType<RequestReadModelStreamCompleted>(response).SourceRef.Source;
+        return Assert.IsType<RequestReadModelStreamCompleted>(completed).SourceRef.Source;
     }
 }

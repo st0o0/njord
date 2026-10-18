@@ -288,25 +288,19 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
         Assert.Equal(events, received);
     }
 
-    // Polls the read model in real time (not dilated by the TestKit timefactor) until the condition holds.
-    private static async Task<LatestAnalysisResult> AwaitAnalysisAsync(
+    private async Task<LatestAnalysisResult> AwaitAnalysisAsync(
         IActorRef readModel, LocationId location, Func<LatestAnalysisResult, bool> condition, CancellationToken ct)
     {
-        var deadline = DateTimeOffset.UtcNow + TestTimeouts.RealTimeWaitMax;
-        LatestAnalysisResponse? last = null;
-        while (DateTimeOffset.UtcNow < deadline)
+        LatestAnalysisResult? matched = null;
+        await AwaitAssertAsync(async () =>
         {
-            last = await readModel.Ask<LatestAnalysisResponse>(new QueryLatestAnalysis(location), AskTimeout, ct);
-            if (last is LatestAnalysisResult result && condition(result))
-            {
-                return result;
-            }
+            var reply = await readModel.Ask<LatestAnalysisResponse>(new QueryLatestAnalysis(location), AskTimeout, ct);
+            var result = Assert.IsType<LatestAnalysisResult>(reply);
+            Assert.True(condition(result), $"The analysis of {location} does not satisfy the condition yet: {result}");
+            matched = result;
+        }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-            await Task.Delay(20, ct);
-        }
-
-        Assert.Fail($"Timed out after {TestTimeouts.RealTimeWaitMax} waiting for the analysis of {location}; last reply: {last}");
-        throw new System.Diagnostics.UnreachableException();
+        return Assert.IsType<LatestAnalysisResult>(matched);
     }
 
     private static readonly PipelineEvent WarmUp =
@@ -451,20 +445,17 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
         }
     }
 
-    private static async Task<Source<PipelineEvent, Akka.NotUsed>> RequestStreamAsync(IActorRef readModel, CancellationToken ct)
+    private async Task<Source<PipelineEvent, Akka.NotUsed>> RequestStreamAsync(IActorRef readModel, CancellationToken ct)
     {
-        RequestReadModelStreamResponse? response = null;
-        for (var attempt = 0; attempt < 50 && response is not RequestReadModelStreamCompleted; attempt++)
+        RequestReadModelStreamCompleted? completed = null;
+        var attempt = 0;
+        await AwaitAssertAsync(async () =>
         {
-            response = await readModel.Ask<RequestReadModelStreamResponse>(new RequestReadModelStream(attempt), AskTimeout, ct);
-            if (response is RequestReadModelStreamFailed)
-            {
-                await Task.Delay(100, ct);
-            }
-        }
+            var response = await readModel.Ask<RequestReadModelStreamResponse>(new RequestReadModelStream(attempt++), AskTimeout, ct);
+            completed = Assert.IsType<RequestReadModelStreamCompleted>(response);
+        }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-        var completed = Assert.IsType<RequestReadModelStreamCompleted>(response);
-        return completed.SourceRef.Source;
+        return Assert.IsType<RequestReadModelStreamCompleted>(completed).SourceRef.Source;
     }
 
     private static WeatherForecast CreateForecast(string model)

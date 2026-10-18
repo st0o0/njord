@@ -10,11 +10,13 @@ namespace Njord.Core.Tests;
 
 public sealed class EnrichmentKindSpec
 {
+    private static readonly DateTimeOffset At = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
+
     [Fact]
     public void ConsensusComputed_implements_IEnrichmentEvent_with_correct_kind()
     {
         var evt = new PipelineEvent.ConsensusComputed(
-            CreateLocationConsensus(), DateTimeOffset.UtcNow);
+            CreateLocationConsensus(), At);
 
         var enrichment = Assert.IsType<IEnrichmentEvent>(evt, exactMatch: false);
         Assert.Equal(EnrichmentKind.Consensus, enrichment.Kind);
@@ -24,7 +26,7 @@ public sealed class EnrichmentKindSpec
     public void AlertComputed_implements_IEnrichmentEvent_with_correct_kind()
     {
         var evt = new PipelineEvent.AlertComputed(
-            new AlertResult(new LocationId("loc"), []), DateTimeOffset.UtcNow);
+            new AlertResult(new LocationId("loc"), []), At);
 
         var enrichment = Assert.IsType<IEnrichmentEvent>(evt, exactMatch: false);
         Assert.Equal(EnrichmentKind.Alerts, enrichment.Kind);
@@ -35,7 +37,7 @@ public sealed class EnrichmentKindSpec
     {
         var evt = new PipelineEvent.DerivedComputed(
             new DerivedResult(new LocationId("loc"), new Dictionary<Horizon, HorizonDerived>(), new ScalarDerived(null, null, null)),
-            DateTimeOffset.UtcNow);
+            At);
 
         var enrichment = Assert.IsType<IEnrichmentEvent>(evt, exactMatch: false);
         Assert.Equal(EnrichmentKind.Derived, enrichment.Kind);
@@ -49,7 +51,7 @@ public sealed class EnrichmentKindSpec
                 new PrecipTimingInfo(null, null),
                 new ExtremaTimingInfo(null, null),
                 null, null),
-            DateTimeOffset.UtcNow);
+            At);
 
         var enrichment = Assert.IsType<IEnrichmentEvent>(evt, exactMatch: false);
         Assert.Equal(EnrichmentKind.Trends, enrichment.Kind);
@@ -59,7 +61,7 @@ public sealed class EnrichmentKindSpec
     public void IndexComputed_implements_IEnrichmentEvent_with_correct_kind()
     {
         var evt = new PipelineEvent.IndexComputed(
-            new IndexResult(new LocationId("loc"), [], null, null), DateTimeOffset.UtcNow);
+            new IndexResult(new LocationId("loc"), [], null, null), At);
 
         var enrichment = Assert.IsType<IEnrichmentEvent>(evt, exactMatch: false);
         Assert.Equal(EnrichmentKind.Indices, enrichment.Kind);
@@ -94,5 +96,5 @@ public sealed class EnrichmentKindSpec
     }
 
     private static LocationConsensus CreateLocationConsensus() =>
-        new(new LocationId("loc"), new HourlyConsensus([], 0), new DailyConsensus([], 0), DateTimeOffset.UtcNow);
+        new(new LocationId("loc"), new HourlyConsensus([], 0), new DailyConsensus([], 0), At);
 }
