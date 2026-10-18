@@ -8,6 +8,7 @@ using Njord.Core.Configuration.Polling;
 using Njord.Core.Configuration.Trends;
 using Njord.Messages.Config;
 using Njord.Weather;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration;
 
@@ -69,7 +70,7 @@ public sealed class ConfigUpdateMappingsSpec
     [Fact]
     public void Consensus_update_changes_only_the_given_values()
     {
-        var options = new ConsensusOptions();
+        var options = AppSettingsDefaults.Options<ConsensusOptions>();
 
         new ConsensusConfigUpdate(false, ConsensusMethod.Mean, null).ApplyTo(options);
 
@@ -82,7 +83,7 @@ public sealed class ConfigUpdateMappingsSpec
     [Fact]
     public void Alert_update_applies_every_given_value_and_leaves_the_rest()
     {
-        var options = new AlertOptions();
+        var options = AppSettingsDefaults.Options<AlertOptions>();
 
         new AlertConfigUpdate(
             false, [1], [2], [3], 4, 5, 6, 7, 8, 9, 10, 11, 12, [13], [14], [15], [16]).ApplyTo(options);
@@ -110,19 +111,19 @@ public sealed class ConfigUpdateMappingsSpec
     [Fact]
     public void An_empty_alert_update_leaves_the_options_unchanged()
     {
-        var options = new AlertOptions();
+        var options = AppSettingsDefaults.Options<AlertOptions>();
 
         new AlertConfigUpdate(
             null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null).ApplyTo(options);
 
-        Assert.Equal(new AlertOptions().FrostThresholds, options.FrostThresholds);
-        Assert.Equal(new AlertOptions().IceThreshold, options.IceThreshold);
+        Assert.Equal(AppSettingsDefaults.Options<AlertOptions>().FrostThresholds, options.FrostThresholds);
+        Assert.Equal(AppSettingsDefaults.Options<AlertOptions>().IceThreshold, options.IceThreshold);
     }
 
     [Fact]
     public void Index_update_applies_every_given_value()
     {
-        var options = new IndexOptions();
+        var options = AppSettingsDefaults.Options<IndexOptions>();
 
         new IndexConfigUpdate(true, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11).ApplyTo(options);
 
@@ -145,7 +146,7 @@ public sealed class ConfigUpdateMappingsSpec
     [Fact]
     public void Settings_command_applies_days_horizons_models_and_parameters()
     {
-        var options = new NjordOptions { Models = ["icon_d2"] };
+        var options = AppSettingsDefaults.Options<NjordOptions>(o => o.Models = ["icon_d2"]);
 
         new UpdateSettings(7, [6, 12], ["icon_eu"], new ParameterSelection(["Weather"], ["uv_index"], ["snowfall"]), null)
             .ApplyTo(options);

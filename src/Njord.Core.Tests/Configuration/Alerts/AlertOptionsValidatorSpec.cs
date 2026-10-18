@@ -1,4 +1,5 @@
 using Njord.Core.Configuration.Alerts;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Alerts;
 
@@ -9,7 +10,7 @@ public sealed class AlertOptionsValidatorSpec
     [Fact]
     public void Default_thresholds_are_valid()
     {
-        var result = Validator.Validate(null, new AlertOptions());
+        var result = Validator.Validate(null, AppSettingsDefaults.Options<AlertOptions>());
 
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -17,7 +18,7 @@ public sealed class AlertOptionsValidatorSpec
     [Fact]
     public void Frost_thresholds_that_do_not_fall_are_rejected()
     {
-        var result = Validator.Validate(null, new AlertOptions { FrostThresholds = [0, 5, -15] });
+        var result = Validator.Validate(null, AppSettingsDefaults.Options<AlertOptions>(o => o.FrostThresholds = [0, 5, -15]));
 
         Assert.True(result.Failed);
         Assert.Contains("FrostThresholds", result.FailureMessage);
@@ -26,7 +27,7 @@ public sealed class AlertOptionsValidatorSpec
     [Fact]
     public void Heat_thresholds_that_do_not_rise_are_rejected()
     {
-        var result = Validator.Validate(null, new AlertOptions { HeatThresholds = [35, 30, 40] });
+        var result = Validator.Validate(null, AppSettingsDefaults.Options<AlertOptions>(o => o.HeatThresholds = [35, 30, 40]));
 
         Assert.True(result.Failed);
         Assert.Contains("HeatThresholds", result.FailureMessage);
@@ -35,7 +36,7 @@ public sealed class AlertOptionsValidatorSpec
     [Fact]
     public void Threshold_arrays_need_three_values()
     {
-        var result = Validator.Validate(null, new AlertOptions { StormGustThresholds = [17, 25] });
+        var result = Validator.Validate(null, AppSettingsDefaults.Options<AlertOptions>(o => o.StormGustThresholds = [17, 25]));
 
         Assert.True(result.Failed);
         Assert.Contains("StormGustThresholds", result.FailureMessage);
@@ -45,7 +46,7 @@ public sealed class AlertOptionsValidatorSpec
     [Fact]
     public void Equal_neighbouring_levels_are_accepted()
     {
-        var result = Validator.Validate(null, new AlertOptions { VisibilityThresholds = [1000, 1000, 50] });
+        var result = Validator.Validate(null, AppSettingsDefaults.Options<AlertOptions>(o => o.VisibilityThresholds = [1000, 1000, 50]));
 
         Assert.True(result.Succeeded, result.FailureMessage);
     }

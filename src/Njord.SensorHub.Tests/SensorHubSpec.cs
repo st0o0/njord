@@ -21,7 +21,7 @@ public sealed class SensorHubSpec : Akka.Hosting.TestKit.TestKit
     private IActorRef CreateHub(int stalenessSeconds = 7200)
     {
         var options = Microsoft.Extensions.Options.Options.Create(
-            new SensorOptions { StalenessSeconds = stalenessSeconds });
+            AppSettingsDefaults.Options<SensorOptions>(o => o.StalenessSeconds = stalenessSeconds));
         return Sys.ActorOf(Props.Create(() => new SensorHub(options, _time, null)));
     }
 

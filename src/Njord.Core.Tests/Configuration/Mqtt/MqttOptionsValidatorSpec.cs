@@ -1,4 +1,5 @@
 using Njord.Core.Configuration.Mqtt;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Mqtt;
 
@@ -9,13 +10,13 @@ public sealed class MqttOptionsValidatorSpec
     [Fact]
     public void Mqtt_is_disabled_by_default()
     {
-        Assert.False(new MqttOptions().Enabled);
+        Assert.False(AppSettingsDefaults.Options<MqttOptions>().Enabled);
     }
 
     [Fact]
     public void Mqtt_defaults_are_broker_friendly()
     {
-        var options = new MqttOptions();
+        var options = AppSettingsDefaults.Options<MqttOptions>();
 
         Assert.Equal(string.Empty, options.Host);
         Assert.Equal(1883, options.Port);
@@ -36,7 +37,7 @@ public sealed class MqttOptionsValidatorSpec
     [Fact]
     public void Missing_host_is_accepted_when_disabled()
     {
-        var result = Validator.Validate(null, new MqttOptions { Enabled = false, Host = "" });
+        var result = Validator.Validate(null, AppSettingsDefaults.Options<MqttOptions>(o => { o.Enabled = false; o.Host = ""; }));
 
         Assert.True(result.Succeeded, result.FailureMessage);
     }

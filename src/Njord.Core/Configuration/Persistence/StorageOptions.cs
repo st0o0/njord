@@ -4,5 +4,5 @@ public sealed class StorageOptions
 {
     public const string SectionName = "Njord";
 
-    public string PersistencePath { get; set; } = "data/njord.db";
+    public string PersistencePath { get; set; } = string.Empty;
 }

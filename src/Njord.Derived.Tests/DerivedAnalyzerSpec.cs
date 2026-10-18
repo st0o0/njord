@@ -5,6 +5,7 @@ using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Derived;
 using Njord.Weather;
+using Njord.Tests.Shared;
 
 namespace Njord.Derived.Tests;
 
@@ -48,7 +49,7 @@ public sealed class DerivedAnalyzerSpec
     }
 
     private static DerivedAnalyzer CreateAnalyzer(bool enabled = true) =>
-        new(Options.Create(new DerivedOptions { Enabled = enabled }));
+        new(Options.Create(AppSettingsDefaults.Options<DerivedOptions>(o => o.Enabled = enabled)));
 
     private static ConsensusSnapshot BuildConsensus()
     {

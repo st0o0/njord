@@ -1,4 +1,5 @@
 using Njord.Core.Configuration.Polling;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Polling;
 
@@ -37,7 +38,7 @@ public sealed class RequestBudgetSpec
     [Fact]
     public void Effective_budget_returns_free_tier_when_no_override()
     {
-        var options = new PollingOptions();
+        var options = AppSettingsDefaults.Options<PollingOptions>();
 
         Assert.Equal(RequestBudget.OpenMeteoFreeTier, BudgetCalculator.GetEffectiveBudget(options));
     }

@@ -3,13 +3,14 @@ using Njord.Compute.Consensus;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Alerts;
 using Njord.Weather;
+using Njord.Tests.Shared;
 
 namespace Njord.Alerts.Tests.Rules;
 
 internal static class AlertRuleFixture
 {
     public static readonly DateTimeOffset T0 = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
-    public static readonly AlertSettings Defaults = new AlertOptions().ToSettings();
+    public static readonly AlertSettings Defaults = AppSettingsDefaults.Options<AlertOptions>().ToSettings();
 
     public static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
     public static readonly ParameterDef ApparentTemp = ParameterRegistry.GetByApiName("apparent_temperature")!;

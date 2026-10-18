@@ -127,12 +127,12 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     private IActorRef StartPipeline()
     {
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-        var settings = AnalysisSettingsFactory.Create(Options, new ConsensusOptions(), new AlertOptions(), new IndexOptions(),
-            new TrendOptions { Enabled = true }, new DerivedOptions());
+        var settings = AnalysisSettingsFactory.Create(Options, AppSettingsDefaults.Options<ConsensusOptions>(), AppSettingsDefaults.Options<AlertOptions>(), AppSettingsDefaults.Options<IndexOptions>(),
+            AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = true), AppSettingsDefaults.Options<DerivedOptions>());
         return Sys.ActorOf(Props.Create(() => new ForecastPipeline(
             _time,
             new ConsensusBuilder(parameters, _time),
-            Microsoft.Extensions.Options.Options.Create(new ConsensusOptions()),
+            Microsoft.Extensions.Options.Options.Create(AppSettingsDefaults.Options<ConsensusOptions>()),
             DisabledAnalyzers.Alert(),
             DisabledAnalyzers.Derived(),
             new TrendAnalyzer(Microsoft.Extensions.Options.Options.Create(new TrendOptions { Enabled = true })),

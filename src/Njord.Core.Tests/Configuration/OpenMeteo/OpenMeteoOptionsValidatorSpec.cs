@@ -1,4 +1,5 @@
 using Njord.Core.Configuration.OpenMeteo;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.OpenMeteo;
 
@@ -9,7 +10,7 @@ public sealed class OpenMeteoOptionsValidatorSpec
     [Fact]
     public void The_default_endpoint_is_valid()
     {
-        Assert.True(Validator.Validate(null, new OpenMeteoOptions()).Succeeded);
+        Assert.True(Validator.Validate(null, AppSettingsDefaults.Options<OpenMeteoOptions>()).Succeeded);
     }
 
     [Theory]
@@ -18,7 +19,7 @@ public sealed class OpenMeteoOptionsValidatorSpec
     [InlineData("ftp://api.open-meteo.com/")]
     public void A_non_http_or_relative_url_is_rejected(string url)
     {
-        var result = Validator.Validate(null, new OpenMeteoOptions { OpenMeteoBaseUrl = url });
+        var result = Validator.Validate(null, AppSettingsDefaults.Options<OpenMeteoOptions>(o => o.OpenMeteoBaseUrl = url));
 
         Assert.True(result.Failed);
         Assert.Contains("OpenMeteoBaseUrl", result.FailureMessage);

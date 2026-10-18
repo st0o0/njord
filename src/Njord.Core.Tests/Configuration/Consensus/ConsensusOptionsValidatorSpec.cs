@@ -1,11 +1,12 @@
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Consensus;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Consensus;
 
 public sealed class ConsensusOptionsValidatorSpec
 {
-    private static ConsensusOptions Default() => new();
+    private static ConsensusOptions Default() => AppSettingsDefaults.Options<ConsensusOptions>();
 
     [Theory]
     [InlineData(ConsensusMethod.Mean)]

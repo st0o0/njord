@@ -4,9 +4,9 @@ public sealed class PollingOptions
 {
     public const string SectionName = "Njord";
 
-    public TimeSpan PollInterval { get; set; } = TimeSpan.FromMinutes(60);
+    public TimeSpan PollInterval { get; set; }
 
-    public TimeSpan DiscoveryInterval { get; set; } = TimeSpan.FromMinutes(20);
+    public TimeSpan DiscoveryInterval { get; set; }
 
     public RequestBudget? BudgetOverride { get; set; }
 }

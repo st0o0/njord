@@ -29,11 +29,11 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
 
     private IActorRef StartGateway()
     {
-        var options = Options.Create(new NjordOptions
+        var options = Options.Create(AppSettingsDefaults.Options<NjordOptions>(o =>
         {
-            Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
-            Models = ["icon_d2"],
-        });
+            o.Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }];
+            o.Models = ["icon_d2"];
+        }));
         var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
         return Sys.ActorOf(
             Props.Create(() => new OpenMeteoGateway(_client, _time, options, parameters, _budget, FetchTimeouts.Default)),

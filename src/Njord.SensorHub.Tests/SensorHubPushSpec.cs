@@ -24,7 +24,7 @@ public sealed class SensorHubPushSpec : Akka.Hosting.TestKit.TestKit
     {
         var pipeline = CreateTestProbe();
         ActorRegistry.Register<IForecastPipeline>(pipeline.Ref, overwrite: true);
-        var options = Microsoft.Extensions.Options.Options.Create(new SensorOptions { StalenessSeconds = stalenessSeconds });
+        var options = Microsoft.Extensions.Options.Options.Create(AppSettingsDefaults.Options<SensorOptions>(o => o.StalenessSeconds = stalenessSeconds));
         var interval = expiryInterval ?? TimeSpan.FromMinutes(10);
         var hub = Sys.ActorOf(Props.Create(() => new SensorHub(options, _time, (TimeSpan?)interval)), $"sensor-hub-{Guid.NewGuid():N}");
         return (hub, pipeline);

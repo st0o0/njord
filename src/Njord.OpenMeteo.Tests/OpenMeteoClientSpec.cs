@@ -27,7 +27,7 @@ public sealed class OpenMeteoClientSpec
         var handler = new RecordingHandler(respond);
         var http = new HttpClient(handler) { BaseAddress = new Uri(baseUrl ?? "https://api.open-meteo.com/") };
         return (new OpenMeteoClient(http, parameters ?? DefaultParameters,
-            Microsoft.Extensions.Options.Options.Create(new NjordOptions())), handler);
+            Microsoft.Extensions.Options.Options.Create(AppSettingsDefaults.Options<NjordOptions>())), handler);
     }
 
     private static HttpResponseMessage Json(HttpStatusCode status, string body)

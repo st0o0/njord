@@ -37,11 +37,11 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
             registry.Register<IBudgetTracker>(system.ActorOf(Props.Create(() => new ForwardingActor(_apiCalls.Ref)), "budget"));
             registry.Register<IForecastPipeline>(system.ActorOf(
                 Props.Create(() => new FakePipeline(_attached.Ref, _forecasts.Ref)), "pipeline"));
-            var options = Options.Create(new NjordOptions
+            var options = Options.Create(AppSettingsDefaults.Options<NjordOptions>(o =>
             {
-                Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
-                Models = ["icon_d2", "broken"],
-            });
+                o.Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }];
+                o.Models = ["icon_d2", "broken"];
+            }));
             var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
             registry.Register<IForecastGateway>(system.ActorOf(
                 Props.Create(() => new OpenMeteoGateway(_client, _time, options, parameters, _budget, FetchTimeouts.Default)),
@@ -176,7 +176,7 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     {
         await AttachedAsync();
         // The bucket holds exactly one request's weight and refills at one cost-unit per minute.
-        var weight = OpenMeteoGateway.ComputeWeight(ParameterRegistry.Resolve(["Weather"], [], []).HourlyCount, new NjordOptions().ForecastDays);
+        var weight = OpenMeteoGateway.ComputeWeight(ParameterRegistry.Resolve(["Weather"], [], []).HourlyCount, AppSettingsDefaults.Options<NjordOptions>().ForecastDays);
         _budget.CostPerMinute = 1;
         _budget.MaxBurst = weight;
         _time.Advance(TimeSpan.FromSeconds(6));

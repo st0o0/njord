@@ -49,6 +49,8 @@ export interface NjordConfig {
   deploy: { limits: DeployLimits }
 }
 
+// Mirrors the defaults of src/Njord/appsettings.json (scalars) and the option classes (lists);
+// the builder omits every value that equals its default, so keep these in sync with the shipped file.
 export function defaultConfig(): NjordConfig {
   return {
     pollInterval: '01:00:00',

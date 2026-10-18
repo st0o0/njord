@@ -1,6 +1,7 @@
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Weather;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Polling;
 
@@ -16,7 +17,7 @@ public sealed class BudgetCalculatorSpec
             Parameters = new ParameterOptions { Groups = ["Weather"] },
         };
 
-        var result = BudgetCalculator.Validate(options, new PollingOptions { PollInterval = TimeSpan.FromMinutes(60) });
+        var result = BudgetCalculator.Validate(options, AppSettingsDefaults.Options<PollingOptions>(o => o.PollInterval = TimeSpan.FromMinutes(60)));
 
         // 8 models, Weather group = 31 params, ceil(31/10) = 4 weight
         // 8 * 4 = 32 calls/cycle, 24 cycles/day, 32 * 24 * 30 = 23040/month
@@ -35,7 +36,7 @@ public sealed class BudgetCalculatorSpec
             Parameters = new ParameterOptions { Groups = ["Weather"] },
         };
 
-        var result = BudgetCalculator.Validate(options, new PollingOptions { PollInterval = TimeSpan.FromMinutes(50) });
+        var result = BudgetCalculator.Validate(options, AppSettingsDefaults.Options<PollingOptions>(o => o.PollInterval = TimeSpan.FromMinutes(50)));
 
         // 43200 min / 50 min = 864 cycles, weight 4 => 3456 (a 28-cycles-per-day approximation gave 3360)
         Assert.Equal(3_456, result.ProjectedMonthlyCalls);

@@ -21,6 +21,7 @@ public sealed class ConfigHarness : IDisposable
     {
         OverridePath = overridePath;
         Root = new ConfigurationBuilder()
+            .AddJsonFile(AppSettingsDefaults.ShippedPath, optional: false, reloadOnChange: false)
             .AddInMemoryCollection(baseline)
             .AddJsonFile(Path.GetFullPath(overridePath), optional: true, reloadOnChange: false)
             .Build();

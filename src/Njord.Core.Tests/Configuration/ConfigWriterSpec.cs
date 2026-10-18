@@ -390,7 +390,7 @@ public sealed class ConfigWriterSpec : IDisposable
             opt.HeatThresholds = [31, 36, 41];
         }, ct);
         await writer.UpdateAsync<NjordOptions>(opt => opt.ForecastDays = 6, ct);
-        var defaultHeat = new AlertOptions().HeatThresholds;
+        var defaultHeat = AppSettingsDefaults.Options<AlertOptions>().HeatThresholds;
         var monitor = provider.GetRequiredService<IOptionsMonitor<AlertOptions>>();
         Assert.False(monitor.CurrentValue.Enabled);
 
@@ -441,7 +441,7 @@ public sealed class ConfigWriterSpec : IDisposable
             () => Assert.True(result.Applied),
             () => Assert.Equal(["Enabled"], alerts.Select(p => p.Key)),
             () => Assert.False(current.Enabled),
-            () => Assert.Equal(new AlertOptions().CapeThreshold, current.CapeThreshold));
+            () => Assert.Equal(AppSettingsDefaults.Options<AlertOptions>().CapeThreshold, current.CapeThreshold));
     }
 
     [Fact(Timeout = 5000)]
@@ -486,7 +486,7 @@ public sealed class ConfigWriterSpec : IDisposable
     {
         Directory.CreateDirectory(_tempDir);
         _overrideFile.AttachLogger(logger ?? new RecordingLogger());
-        var configRoot = new ConfigurationBuilder()
+        var configRoot = AppSettingsDefaults.Builder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Njord:Locations:0:Name"] = "lucerne",

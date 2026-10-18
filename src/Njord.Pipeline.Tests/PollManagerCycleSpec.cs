@@ -34,7 +34,7 @@ public sealed class PollManagerCycleSpec : NjordActorSpec
             Locations = [new LocationOptions { Name = _location, Latitude = 47.05, Longitude = 8.31 }],
             Models = ["icon_d2", "ecmwf_ifs025", "gfs_seamless"],
         }));
-        services.AddSingleton(Options.Create(new PollingOptions { DiscoveryInterval = TimeSpan.FromHours(1) }));
+        services.AddSingleton(Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = TimeSpan.FromHours(1))));
     }
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider) =>

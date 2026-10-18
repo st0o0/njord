@@ -1,4 +1,5 @@
 using Njord.Core.Configuration.Persistence;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Persistence;
 
@@ -9,7 +10,7 @@ public sealed class PersistenceOptionsValidatorSpec
     [Fact]
     public void Sqlite_default_without_connection_string_passes()
     {
-        var result = Validator.Validate(null, new PersistenceOptions());
+        var result = Validator.Validate(null, AppSettingsDefaults.Options<PersistenceOptions>());
 
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -45,7 +46,7 @@ public sealed class PersistenceOptionsValidatorSpec
     [Fact]
     public void PostgreSql_without_connection_string_fails()
     {
-        var result = Validator.Validate(null, new PersistenceOptions { Provider = PersistenceProvider.PostgreSql });
+        var result = Validator.Validate(null, AppSettingsDefaults.Options<PersistenceOptions>(o => o.Provider = PersistenceProvider.PostgreSql));
 
         Assert.True(result.Failed);
         Assert.Contains("PostgreSQL", result.FailureMessage);

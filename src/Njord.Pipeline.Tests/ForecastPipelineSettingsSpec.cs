@@ -28,7 +28,7 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
     private static AnalysisSettings SettingsWith(AlertOptions alerts) =>
         AnalysisSettingsFactory.Create(
             new NjordOptions { Locations = [new LocationOptions { Name = AnalysisFixture.Lucerne }] },
-            new ConsensusOptions(), alerts, new IndexOptions(), new TrendOptions(), new DerivedOptions());
+            AppSettingsDefaults.Options<ConsensusOptions>(), alerts, AppSettingsDefaults.Options<IndexOptions>(), AppSettingsDefaults.Options<TrendOptions>(), AppSettingsDefaults.Options<DerivedOptions>());
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_settings_change_applies_from_the_next_forecast_on()
@@ -39,12 +39,12 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
         var pipeline = Sys.ActorOf(Props.Create(() => new ForecastPipeline(
             fixture.Time,
             new ConsensusBuilder(AnalysisFixture.Parameters, fixture.Time),
-            Options.Create(new ConsensusOptions()),
+            Options.Create(AppSettingsDefaults.Options<ConsensusOptions>()),
             FeatureServices.Alerts(fixture.Time),
             DisabledAnalyzers.Derived(),
             DisabledAnalyzers.Trend(),
             DisabledAnalyzers.Index(),
-            SettingsWith(new AlertOptions()))), $"pipeline-{Guid.NewGuid():N}");
+            SettingsWith(AppSettingsDefaults.Options<AlertOptions>()))), $"pipeline-{Guid.NewGuid():N}");
 
         var output = await pipeline.Ask<RequestPipelineOutputResponse>(new RequestPipelineOutput(1), TimeSpan.FromSeconds(9), ct);
         var completed = Assert.IsType<RequestPipelineOutputCompleted>(output);
@@ -61,7 +61,7 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
         var beforeChange = await probe.ExpectMsgAsync<PipelineEvent.AlertComputed>(cancellationToken: ct);
         Assert.NotEqual(AlertSeverity.None, FrostSeverity(beforeChange));
 
-        pipeline.Tell(new AnalysisSettingsChanged(SettingsWith(new AlertOptions { FrostThresholds = [-50, -60, -70] })));
+        pipeline.Tell(new AnalysisSettingsChanged(SettingsWith(AppSettingsDefaults.Options<AlertOptions>(o => o.FrostThresholds = [-50, -60, -70]))));
 
         await AwaitAssertAsync(async () =>
         {
@@ -76,7 +76,7 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         // Every forecast is far below these thresholds; the startup thresholds (0, -5, -15) never reach red.
-        var current = SettingsWith(new AlertOptions { FrostThresholds = [60, 55, 50] });
+        var current = SettingsWith(AppSettingsDefaults.Options<AlertOptions>(o => o.FrostThresholds = [60, 55, 50]));
         ActorRegistry.Register<IConfigManager>(
             Sys.ActorOf(Props.Create(() => new FakeConfigManager(current)), $"config-{Guid.NewGuid():N}"), overwrite: true);
         var (forecasts, queue, alerts) = await StartAsync(ct);
@@ -113,12 +113,12 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
         var pipeline = Sys.ActorOf(Props.Create(() => new ForecastPipeline(
             fixture.Time,
             new ConsensusBuilder(AnalysisFixture.Parameters, fixture.Time),
-            Options.Create(new ConsensusOptions()),
+            Options.Create(AppSettingsDefaults.Options<ConsensusOptions>()),
             FeatureServices.Alerts(fixture.Time),
             DisabledAnalyzers.Derived(),
             DisabledAnalyzers.Trend(),
             DisabledAnalyzers.Index(),
-            SettingsWith(new AlertOptions()))), $"pipeline-{Guid.NewGuid():N}");
+            SettingsWith(AppSettingsDefaults.Options<AlertOptions>()))), $"pipeline-{Guid.NewGuid():N}");
 
         var output = await pipeline.Ask<RequestPipelineOutputResponse>(new RequestPipelineOutput(1), TimeSpan.FromSeconds(9), ct);
         var completed = Assert.IsType<RequestPipelineOutputCompleted>(output);

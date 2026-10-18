@@ -12,7 +12,7 @@ public static class FeatureServices
     public static ServiceProvider Build(TimeProvider time, Action<IServiceCollection> configure)
     {
         var services = new ServiceCollection();
-        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+        services.AddSingleton<IConfiguration>(AppSettingsDefaults.Configuration());
         services.AddSingleton(time);
         configure(services);
         return services.BuildServiceProvider();

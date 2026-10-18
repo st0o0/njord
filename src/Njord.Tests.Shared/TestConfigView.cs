@@ -19,11 +19,11 @@ public static class TestConfigView
         TrendOptions? trends = null,
         IndexOptions? indices = null) =>
         new(
-            new TestOptionsMonitor<NjordOptions>(scope ?? new NjordOptions()),
-            new TestOptionsMonitor<PollingOptions>(polling ?? new PollingOptions()),
-            new TestOptionsMonitor<ConsensusOptions>(consensus ?? new ConsensusOptions()),
-            new TestOptionsMonitor<AlertOptions>(alerts ?? new AlertOptions()),
-            new TestOptionsMonitor<DerivedOptions>(derived ?? new DerivedOptions()),
-            new TestOptionsMonitor<TrendOptions>(trends ?? new TrendOptions()),
-            new TestOptionsMonitor<IndexOptions>(indices ?? new IndexOptions()));
+            new TestOptionsMonitor<NjordOptions>(scope ?? AppSettingsDefaults.Options<NjordOptions>()),
+            new TestOptionsMonitor<PollingOptions>(polling ?? AppSettingsDefaults.Options<PollingOptions>()),
+            new TestOptionsMonitor<ConsensusOptions>(consensus ?? AppSettingsDefaults.Options<ConsensusOptions>()),
+            new TestOptionsMonitor<AlertOptions>(alerts ?? AppSettingsDefaults.Options<AlertOptions>()),
+            new TestOptionsMonitor<DerivedOptions>(derived ?? AppSettingsDefaults.Options<DerivedOptions>()),
+            new TestOptionsMonitor<TrendOptions>(trends ?? AppSettingsDefaults.Options<TrendOptions>()),
+            new TestOptionsMonitor<IndexOptions>(indices ?? AppSettingsDefaults.Options<IndexOptions>()));
 }

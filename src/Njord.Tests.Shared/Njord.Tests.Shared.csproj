@@ -25,6 +25,9 @@
         <Content Include="Fixtures\openmeteo-icon_d2-96h.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        <Content Include="..\Njord\appsettings.json" Link="shipped\appsettings.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
 </Project>

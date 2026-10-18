@@ -5,6 +5,7 @@ using Njord.Core.Configuration.Derived;
 using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Trends;
 using Njord.Weather;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration;
 
@@ -20,8 +21,8 @@ public sealed class AnalysisSettingsFactorySpec
         };
 
         var settings = AnalysisSettingsFactory.Create(
-            scope, new ConsensusOptions { MinQuorum = 3 }, new AlertOptions { CapeThreshold = 900 },
-            new IndexOptions(), new TrendOptions(), new DerivedOptions());
+            scope, AppSettingsDefaults.Options<ConsensusOptions>(o => o.MinQuorum = 3), new AlertOptions { CapeThreshold = 900 },
+            AppSettingsDefaults.Options<IndexOptions>(), AppSettingsDefaults.Options<TrendOptions>(), AppSettingsDefaults.Options<DerivedOptions>());
 
         Assert.Equal(3, settings.Consensus.MinQuorum);
         Assert.Equal(900, settings.Alerts.CapeThreshold);

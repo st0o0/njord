@@ -21,10 +21,10 @@ public static class DisabledAnalyzers
     public static AlertAnalyzer Alert() => FeatureServices.Alerts(TimeProvider.System, enabled: false);
 
     public static DerivedAnalyzer Derived() =>
-        new(Options.Create(new DerivedOptions { Enabled = false }));
+        new(Options.Create(AppSettingsDefaults.Options<DerivedOptions>(o => o.Enabled = false)));
 
     public static TrendAnalyzer Trend() =>
-        new(Options.Create(new TrendOptions { Enabled = false }));
+        new(Options.Create(AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = false)));
 
     public static IndexAnalyzer Index() => FeatureServices.Indices(TimeProvider.System, enabled: false);
 

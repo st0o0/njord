@@ -1,4 +1,5 @@
 using Njord.Core.Configuration;
+using Njord.Tests.Shared;
 using Njord.Weather;
 
 namespace Njord.Core.Tests.Configuration;
@@ -7,11 +8,11 @@ public sealed class ParameterOptionsValidationSpec
 {
     private static readonly NjordOptionsValidator Validator = new();
 
-    private static NjordOptions ValidOptions() => new()
+    private static NjordOptions ValidOptions() => AppSettingsDefaults.Options<NjordOptions>(o =>
     {
-        Locations = [new LocationOptions { Name = "home", Latitude = 47.05, Longitude = 8.31 }],
-        Models = ["icon_d2", "icon_eu", "icon_global", "ecmwf_ifs025", "gfs_seamless", "ukmo_global_deterministic_10km", "meteoswiss_icon_ch1", "meteoswiss_icon_ch2"],
-    };
+        o.Locations = [new LocationOptions { Name = "home", Latitude = 47.05, Longitude = 8.31 }];
+        o.Models = ["icon_d2", "icon_eu", "icon_global", "ecmwf_ifs025", "gfs_seamless", "ukmo_global_deterministic_10km", "meteoswiss_icon_ch1", "meteoswiss_icon_ch2"];
+    });
 
     [Fact]
     public void Unknown_group_is_rejected()

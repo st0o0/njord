@@ -4,5 +4,5 @@ public sealed class OpenMeteoOptions
 {
     public const string SectionName = "Njord";
 
-    public string OpenMeteoBaseUrl { get; set; } = "https://api.open-meteo.com/";
+    public string OpenMeteoBaseUrl { get; set; } = string.Empty;
 }

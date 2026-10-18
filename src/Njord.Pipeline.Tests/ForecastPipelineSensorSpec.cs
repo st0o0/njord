@@ -40,7 +40,7 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
         {
             Locations = [new LocationOptions { Name = AnalysisFixture.Lucerne }, new LocationOptions { Name = AnalysisFixture.Bern }],
         },
-        new ConsensusOptions(), new AlertOptions(), new IndexOptions { Enabled = true }, new TrendOptions(), new DerivedOptions());
+        AppSettingsDefaults.Options<ConsensusOptions>(), AppSettingsDefaults.Options<AlertOptions>(), AppSettingsDefaults.Options<IndexOptions>(o => o.Enabled = true), AppSettingsDefaults.Options<TrendOptions>(), AppSettingsDefaults.Options<DerivedOptions>());
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_pushed_indoor_temperature_of_the_forecast_location_reaches_the_indices()
@@ -224,7 +224,7 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
         var pipeline = Sys.ActorOf(Props.Create(() => new ForecastPipeline(
             fixture.Time,
             new ConsensusBuilder(AnalysisFixture.Parameters, fixture.Time),
-            Options.Create(new ConsensusOptions()),
+            Options.Create(AppSettingsDefaults.Options<ConsensusOptions>()),
             FeatureServices.Alerts(fixture.Time),
             DisabledAnalyzers.Derived(),
             DisabledAnalyzers.Trend(),

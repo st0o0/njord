@@ -1,5 +1,6 @@
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Consensus;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Consensus;
 
@@ -8,7 +9,7 @@ public sealed class ConsensusSettingsConversionSpec
     [Fact]
     public void Defaults_match_the_compute_defaults()
     {
-        Assert.Equal(ConsensusSettings.Default, new ConsensusOptions().ToSettings());
+        Assert.Equal(ConsensusSettings.Default, AppSettingsDefaults.Options<ConsensusOptions>().ToSettings());
     }
 
     [Fact]

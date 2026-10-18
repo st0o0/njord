@@ -29,6 +29,14 @@ njord is configured via `appsettings.json` or environment variables. All setting
 | `DiscoveryInterval` | `00:20:00` (20 min) | Poll interval for a model whose update cycle is not learned yet (discovery phase); once the cycle is known, polls follow it |
 | `PersistencePath` | `data/njord.db` | Path to the SQLite database file |
 
+## Defaults
+
+The `appsettings.json` shipped in the image (`src/Njord/appsettings.json`) is the single source of the default values: every scalar, flag, enum and duration setting has its default in its `Njord` section. The defaults in this documentation repeat that file; if they ever differ, the file wins. [`appsettings.Example.json`](https://github.com/st0o0/njord/blob/main/src/Njord/appsettings.Example.json) only holds deployment-specific keys (locations, models, MQTT broker) and does not repeat defaults.
+
+List-valued defaults (`Horizons`, `Parameters.Groups`, the alert threshold arrays) are built into njord instead of the file. A list you configure replaces the built-in list completely; it is never merged by position.
+
+Resetting a setting to its default means removing your override key (from your configuration file, environment, or `data/appsettings.Override.json`); the value then comes from the shipped `appsettings.json` again, or from the built-in list for list settings. A reset through the Home Assistant integration does exactly that.
+
 ## Environment variable overrides
 
 Every setting can be overridden via environment variables using double-underscore notation:

@@ -12,7 +12,7 @@ public sealed class NjordOptions
 
     public IList<int> Horizons { get; set; } = [3, 6, 12, 24, 48, 72];
 
-    public int ForecastDays { get; set; } = 4;
+    public int ForecastDays { get; set; }
 
     public ParameterOptions Parameters { get; set; } = new();
 }

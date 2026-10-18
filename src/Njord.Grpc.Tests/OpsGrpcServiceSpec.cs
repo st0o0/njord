@@ -45,11 +45,11 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         };
         var config = TestConfigView.Create(
             options,
-            consensus: new ConsensusOptions { Enabled = true },
-            alerts: new AlertOptions { Enabled = true },
-            derived: new DerivedOptions { Enabled = false },
-            trends: new TrendOptions { Enabled = false },
-            indices: new IndexOptions { Enabled = false });
+            consensus: AppSettingsDefaults.Options<ConsensusOptions>(o => o.Enabled = true),
+            alerts: AppSettingsDefaults.Options<AlertOptions>(o => o.Enabled = true),
+            derived: AppSettingsDefaults.Options<DerivedOptions>(o => o.Enabled = false),
+            trends: AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = false),
+            indices: AppSettingsDefaults.Options<IndexOptions>(o => o.Enabled = false));
         ActorRegistry.Register<IConfigManager>(Sys.ActorOf(Props.Create(() => new FakeConfigManager(config))), overwrite: true);
         return new OpsGrpcService(ActorRegistry, _time,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<OpsGrpcService>.Instance);

@@ -40,7 +40,7 @@ public sealed class PollManagerSpec : NjordActorSpec
             ],
             Models = ["icon_d2", "ICON_D2", "gfs_seamless"],
         }));
-        services.AddSingleton(Options.Create(new PollingOptions { DiscoveryInterval = Discovery }));
+        services.AddSingleton(Options.Create(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = Discovery)));
     }
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider) =>

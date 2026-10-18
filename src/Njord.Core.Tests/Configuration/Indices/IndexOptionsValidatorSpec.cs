@@ -1,4 +1,5 @@
 using Njord.Core.Configuration.Indices;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Indices;
 
@@ -6,7 +7,7 @@ public sealed class IndexOptionsValidatorSpec
 {
     private static IndexOptions WithScoreOverride(string key)
     {
-        var options = new IndexOptions();
+        var options = AppSettingsDefaults.Options<IndexOptions>();
         options.ScoreOverrides[key] = new IndexPreferences { HeatSensitivity = 1.5 };
         return options;
     }
@@ -14,7 +15,7 @@ public sealed class IndexOptionsValidatorSpec
     [Fact]
     public void Default_options_are_valid()
     {
-        var result = new IndexOptionsValidator().Validate(null, new IndexOptions());
+        var result = new IndexOptionsValidator().Validate(null, AppSettingsDefaults.Options<IndexOptions>());
 
         Assert.True(result.Succeeded);
     }
@@ -43,7 +44,7 @@ public sealed class IndexOptionsValidatorSpec
     [Fact]
     public void Unknown_location_score_override_key_fails_naming_location_and_key()
     {
-        var options = new IndexOptions();
+        var options = AppSettingsDefaults.Options<IndexOptions>();
         options.LocationOverrides.Add(new LocationIndexOverride
         {
             Location = "Lucerne",
@@ -63,7 +64,7 @@ public sealed class IndexOptionsValidatorSpec
     [Fact]
     public void Out_of_range_sensitivity_still_fails()
     {
-        var options = new IndexOptions();
+        var options = AppSettingsDefaults.Options<IndexOptions>();
         options.Preferences.WindSensitivity = 6.0;
 
         var result = new IndexOptionsValidator().Validate(null, options);

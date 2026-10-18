@@ -46,7 +46,7 @@ public sealed class PollingClusterSpec : NjordActorSpec
             ],
             Models = ["icon_d2", "ecmwf_ifs025"],
         }));
-        services.AddSingleton(Options.Create(new PollingOptions()));
+        services.AddSingleton(Options.Create(AppSettingsDefaults.Options<PollingOptions>()));
     }
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider)

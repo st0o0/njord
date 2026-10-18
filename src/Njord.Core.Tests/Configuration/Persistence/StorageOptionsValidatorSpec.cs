@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Njord.Core.Configuration.Persistence;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Persistence;
 
@@ -13,7 +14,7 @@ public sealed class StorageOptionsValidatorSpec : IDisposable
     [Fact]
     public void A_writable_sqlite_directory_passes_and_is_created()
     {
-        var options = new StorageOptions { PersistencePath = Path.Combine(_tempDir, "journal.db") };
+        var options = AppSettingsDefaults.Options<StorageOptions>(o => o.PersistencePath = Path.Combine(_tempDir, "journal.db"));
 
         var result = ValidatorWith([]).Validate(null, options);
 
@@ -24,7 +25,7 @@ public sealed class StorageOptionsValidatorSpec : IDisposable
     [Fact]
     public void An_explicit_connection_string_skips_the_directory_probe()
     {
-        var options = new StorageOptions { PersistencePath = Path.Combine(_tempDir, "journal.db") };
+        var options = AppSettingsDefaults.Options<StorageOptions>(o => o.PersistencePath = Path.Combine(_tempDir, "journal.db"));
 
         var result = ValidatorWith(new() { ["Njord:Persistence:ConnectionString"] = "Data Source=custom.db" })
             .Validate(null, options);

@@ -5,6 +5,7 @@ using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
 using Njord.Core.Configuration.Trends;
 using Njord.Weather;
+using Njord.Tests.Shared;
 
 namespace Njord.Trends.Tests;
 
@@ -17,7 +18,7 @@ public sealed class TrendAnalyzerSpec
     [Fact]
     public void Compute_returns_null_when_previous_is_null()
     {
-        var analyzer = new TrendAnalyzer(Options.Create(new TrendOptions { Enabled = true }));
+        var analyzer = new TrendAnalyzer(Options.Create(AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = true)));
 
         var result = analyzer.Compute(BuildConsensus(), null, TrendSettings.Default);
 
@@ -27,7 +28,7 @@ public sealed class TrendAnalyzerSpec
     [Fact]
     public void Compute_returns_trend_result_with_previous()
     {
-        var analyzer = new TrendAnalyzer(Options.Create(new TrendOptions { Enabled = true }));
+        var analyzer = new TrendAnalyzer(Options.Create(AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = true)));
 
         var result = analyzer.Compute(BuildConsensus(), BuildConsensus(), TrendSettings.Default);
 
@@ -38,7 +39,7 @@ public sealed class TrendAnalyzerSpec
     [Fact]
     public void Compute_returns_null_when_disabled()
     {
-        var analyzer = new TrendAnalyzer(Options.Create(new TrendOptions { Enabled = false }));
+        var analyzer = new TrendAnalyzer(Options.Create(AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = false)));
 
         var result = analyzer.Compute(BuildConsensus(), BuildConsensus(), TrendSettings.Default);
 

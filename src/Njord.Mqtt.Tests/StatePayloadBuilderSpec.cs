@@ -15,7 +15,7 @@ namespace Njord.Mqtt.Tests;
 public sealed class StatePayloadBuilderSpec
 {
     private static IndexSettings DefaultPrefs(string location = "lucerne") =>
-        new IndexOptions().ToSettings([location]);
+        AppSettingsDefaults.Options<IndexOptions>().ToSettings([location]);
     private static readonly WeatherModel IconD2 = new("icon_d2");
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
     private static readonly ParameterDef WindSpeed = ParameterRegistry.GetByApiName("wind_speed_10m")!;

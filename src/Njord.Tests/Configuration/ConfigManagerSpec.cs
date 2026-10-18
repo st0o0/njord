@@ -492,7 +492,7 @@ public sealed class ConfigManagerSpec : NjordActorSpec
 
         var completed = Assert.IsType<UpdateAnalysisConfigCompleted>(response);
         var alerts = completed.Config.Analysis.Alerts;
-        var defaults = new AlertOptions();
+        var defaults = AppSettingsDefaults.Options<AlertOptions>();
         Assert.Multiple(
             () => Assert.False(alerts.Enabled),
             () => Assert.Equal(defaults.CapeThreshold, alerts.CapeThreshold),

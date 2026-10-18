@@ -424,7 +424,7 @@ public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         var ctx = TestServerCallContext.Create(TestContext.Current.CancellationToken);
         await service.SetEnrichment(
             new SetEnrichmentRequest { Alerts = new AlertConfig { CapeThreshold = 1800, HeatThresholds = { 31, 36, 41 } } }, ctx);
-        var defaults = new AlertOptions();
+        var defaults = AppSettingsDefaults.Options<AlertOptions>();
 
         var reset = await service.SetEnrichment(new SetEnrichmentRequest { Reset = { EnrichmentSection.Alerts } }, ctx);
         var resetAndDisable = await service.SetEnrichment(

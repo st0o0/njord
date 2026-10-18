@@ -32,8 +32,8 @@ public sealed class ForecastPipelineConsensusToggleSpec : NjordActorSpec
                 Locations = [new LocationOptions { Name = AnalysisFixture.Lucerne }],
                 Horizons = [.. AnalysisFixture.Horizons],
             },
-            new ConsensusOptions(), alerts ?? new AlertOptions(), AnalysisFixture.IndexOptions,
-            new TrendOptions { Enabled = true }, new DerivedOptions { Enabled = true });
+            AppSettingsDefaults.Options<ConsensusOptions>(), alerts ?? AppSettingsDefaults.Options<AlertOptions>(), AnalysisFixture.IndexOptions,
+            AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = true), new DerivedOptions { Enabled = true });
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Disabled_consensus_emits_no_consensus_but_every_other_analysis()
@@ -101,7 +101,7 @@ public sealed class ForecastPipelineConsensusToggleSpec : NjordActorSpec
         await queue.OfferAsync(forecasts[0], ct);
         var beforeChange = await ReceiveUntilIndicesAsync(events, 1, ct);
 
-        pipeline.Tell(new AnalysisSettingsChanged(Settings(new AlertOptions { FrostThresholds = [-50, -60, -70] })));
+        pipeline.Tell(new AnalysisSettingsChanged(Settings(AppSettingsDefaults.Options<AlertOptions>(o => o.FrostThresholds = [-50, -60, -70]))));
         for (var i = 1; i < forecasts.Count; i++)
         {
             await queue.OfferAsync(forecasts[i], ct);

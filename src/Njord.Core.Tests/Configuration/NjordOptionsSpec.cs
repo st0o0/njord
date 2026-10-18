@@ -1,5 +1,6 @@
 using Njord.Core.Configuration;
 using Njord.Weather;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration;
 
@@ -8,7 +9,7 @@ public sealed class NjordOptionsSpec
     [Fact]
     public void Horizons_default_to_the_six_step_ladder()
     {
-        Assert.Equal([3, 6, 12, 24, 48, 72], new NjordOptions().Horizons);
+        Assert.Equal([3, 6, 12, 24, 48, 72], AppSettingsDefaults.Options<NjordOptions>().Horizons);
     }
 
     [Fact]

@@ -2,6 +2,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Health;
 using Njord.Weather;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration;
 
@@ -34,7 +35,7 @@ public sealed class OptionsDerivedValuesSpec
     [Fact]
     public void The_initial_budget_snapshot_starts_at_zero_with_the_free_tier_limits()
     {
-        var snapshot = new PollingOptions().ToInitialBudgetSnapshot();
+        var snapshot = AppSettingsDefaults.Options<PollingOptions>().ToInitialBudgetSnapshot();
 
         Assert.Equal(new BudgetHealthSnapshot(0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, 300_000), snapshot);
     }
@@ -42,7 +43,7 @@ public sealed class OptionsDerivedValuesSpec
     [Fact]
     public void The_initial_budget_snapshot_follows_a_budget_override()
     {
-        var snapshot = new PollingOptions { BudgetOverride = new RequestBudget(50_000, 60) }.ToInitialBudgetSnapshot();
+        var snapshot = AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(50_000, 60)).ToInitialBudgetSnapshot();
 
         Assert.Equal(new BudgetHealthSnapshot(0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, 50_000), snapshot);
     }

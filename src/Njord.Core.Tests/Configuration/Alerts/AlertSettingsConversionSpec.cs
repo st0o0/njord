@@ -1,6 +1,7 @@
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Core.Configuration.Alerts;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Alerts;
 
@@ -9,7 +10,7 @@ public sealed class AlertSettingsConversionSpec
     [Fact]
     public void Threshold_arrays_become_typed_severity_thresholds()
     {
-        var settings = new AlertOptions { FrostThresholds = [1, -4, -12] }.ToSettings();
+        var settings = AppSettingsDefaults.Options<AlertOptions>(o => o.FrostThresholds = [1, -4, -12]).ToSettings();
 
         Assert.Equal(new SeverityThresholds(1, -4, -12, ScanDirection.Min), settings.Frost);
         Assert.Equal(new SeverityThresholds(30, 35, 40, ScanDirection.Max), settings.Heat);
@@ -36,6 +37,6 @@ public sealed class AlertSettingsConversionSpec
     [Fact]
     public void Invalid_threshold_arrays_cannot_be_converted()
     {
-        Assert.Throws<InvalidOperationException>(() => new AlertOptions { HeatThresholds = [30] }.ToSettings());
+        Assert.Throws<InvalidOperationException>(() => AppSettingsDefaults.Options<AlertOptions>(o => o.HeatThresholds = [30]).ToSettings());
     }
 }

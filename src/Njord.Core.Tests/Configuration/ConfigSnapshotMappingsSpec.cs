@@ -8,6 +8,7 @@ using Njord.Core.Configuration.Polling;
 using Njord.Core.Configuration.Trends;
 using Njord.Messages.Config;
 using Njord.Weather;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration;
 
@@ -31,8 +32,8 @@ public sealed class ConfigSnapshotMappingsSpec
     public void Derived_and_trend_options_map_their_enabled_flag()
     {
         Assert.Multiple(
-            () => Assert.Equal(new DerivedSection(false), new DerivedOptions { Enabled = false }.ToSection()),
-            () => Assert.Equal(new TrendSection(false), new TrendOptions { Enabled = false }.ToSection()));
+            () => Assert.Equal(new DerivedSection(false), AppSettingsDefaults.Options<DerivedOptions>(o => o.Enabled = false).ToSection()),
+            () => Assert.Equal(new TrendSection(false), AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = false).ToSection()));
     }
 
     [Fact]
@@ -151,7 +152,7 @@ public sealed class ConfigSnapshotMappingsSpec
     [Fact]
     public void Polling_options_without_override_report_the_free_tier_as_effective_budget()
     {
-        var section = new PollingOptions().ToSection();
+        var section = AppSettingsDefaults.Options<PollingOptions>().ToSection();
 
         Assert.Multiple(
             () => Assert.Null(section.BudgetOverride),
@@ -217,12 +218,12 @@ public sealed class ConfigSnapshotMappingsSpec
 
         var snapshot = ConfigSnapshotMappings.ToSnapshot(
             scope,
-            new PollingOptions(),
-            new ConsensusOptions { MinQuorum = 4 },
-            new AlertOptions(),
-            new DerivedOptions(),
-            new TrendOptions(),
-            new IndexOptions { Enabled = true });
+            AppSettingsDefaults.Options<PollingOptions>(),
+            AppSettingsDefaults.Options<ConsensusOptions>(o => o.MinQuorum = 4),
+            AppSettingsDefaults.Options<AlertOptions>(),
+            AppSettingsDefaults.Options<DerivedOptions>(),
+            AppSettingsDefaults.Options<TrendOptions>(),
+            AppSettingsDefaults.Options<IndexOptions>(o => o.Enabled = true));
 
         Assert.Multiple(
             () => Assert.Equal(new LocationId("Lucerne"), Assert.Single(snapshot.Scope.Locations).Id),

@@ -2,6 +2,7 @@ using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Core.Configuration.Indices;
 using Njord.Weather;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Indices;
 
@@ -10,7 +11,7 @@ public sealed class IndexSettingsConversionSpec
     [Fact]
     public void Preferences_are_resolved_once_for_every_location_and_index()
     {
-        var settings = new IndexOptions().ToSettings(["Lucerne", "Bern"]);
+        var settings = AppSettingsDefaults.Options<IndexOptions>().ToSettings(["Lucerne", "Bern"]);
 
         Assert.Equal(2 * IndexKinds.All.Count, settings.Preferences.Count);
         Assert.All(settings.Preferences.Values, p => Assert.Equal(ResolvedPreferences.Default, p));

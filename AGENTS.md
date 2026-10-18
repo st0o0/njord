@@ -288,9 +288,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1427 tests (Weather 117, Sensors 11, Persistence 14, Compute 176, Core 233,
+Current total: 1432 tests (Weather 117, Sensors 11, Persistence 14, Compute 176, Core 236,
 Grpc 150, Pipeline 144, Mqtt 143, OpenMeteo 45, Budget 28, SensorHub 32, Architecture 67,
-Alerts 67, Derived 36, Trends 27, Indices 63, host `Njord.Tests` 74).
+Alerts 67, Derived 36, Trends 27, Indices 63, host `Njord.Tests` 76).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -305,11 +305,25 @@ via Docker Compose + browser automation) is the `e2e-test` skill, not a
 `e2e/E2E-TEST-PLAN.md`.
 
 Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
-- `appsettings.json` — production logging only (no `Njord:` section).
+- `appsettings.json` — logging and Kestrel plus the `Njord` section with the default of
+  every scalar, flag, enum and duration option (the single source of those defaults;
+  option classes carry no initializer for them). List-valued defaults (`Horizons`,
+  `Parameters.Groups`, threshold arrays) and structural initializers (dictionaries with a
+  comparer, nested `new()`) stay in code, because configuration merges arrays by index;
+  `ReplaceCollectionDefaults` makes a configured list replace its default. A new scalar
+  option gets its default in this file, not as a property initializer.
 - `appsettings.Development.json` — dev overrides (locations, models, MQTT
   disabled). Loaded automatically by `dotnet run` (`ASPNETCORE_ENVIRONMENT=Development`).
-- `data/njord-config.json` — optional runtime override (Docker volume mount).
+- `data/appsettings.Override.json` — runtime override written by `ConfigWriter` (Docker
+  volume mount), loaded last. "Reset to defaults" removes the override keys, so the value
+  falls back to `appsettings.json` (or the code default of a list).
 - Environment variables — Docker-compose / `docker run` (`Njord__Mqtt__Host`, etc.).
+- `appsettings.Example.json` — copy-in template with deployment-specific keys only; a spec
+  fails when it repeats a default of `appsettings.json`.
+
+Tests obtain default options through `AppSettingsDefaults` (`Njord.Tests.Shared`, binds the
+shipped `appsettings.json`) instead of `new XOptions()`; `DefaultOptionsSpec` pins the bound
+defaults with a Verify golden master and validates them with every validator.
 
 MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
 `Njord__Mqtt__Enabled=true` + `Njord__Mqtt__Host=...`.

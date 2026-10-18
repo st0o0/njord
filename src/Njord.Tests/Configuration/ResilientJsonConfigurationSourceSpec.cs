@@ -169,6 +169,7 @@ public sealed class ResilientJsonConfigurationSourceSpec : IDisposable
     private ServiceProvider BuildHost()
     {
         var builder = new ConfigurationBuilder()
+            .AddJsonFile(Path.Combine(AppContext.BaseDirectory, "Samples", "appsettings.json"), optional: false)
             .AddJsonFile(Path.Combine(AppContext.BaseDirectory, "Samples", "appsettings.Example.json"), optional: false)
             .AddInMemoryCollection(new Dictionary<string, string?>
             {

@@ -16,7 +16,7 @@ public sealed class AlertAnalyzerSpec
     private static readonly FakeTimeProvider Time = new(T0);
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
     private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
-    private static readonly AlertSettings DefaultSettings = new AlertOptions().ToSettings();
+    private static readonly AlertSettings DefaultSettings = AppSettingsDefaults.Options<AlertOptions>().ToSettings();
 
     [Fact]
     public void Compute_returns_alert_result_for_normal_conditions()
@@ -67,7 +67,7 @@ public sealed class AlertAnalyzerSpec
     {
         var analyzer = CreateAnalyzer();
         var consensus = AnalysisFixture.Create().For(AnalysisFixture.Lucerne).Consensus;
-        var lenient = new AlertOptions { FrostThresholds = [-50, -60, -70] }.ToSettings();
+        var lenient = AppSettingsDefaults.Options<AlertOptions>(o => o.FrostThresholds = [-50, -60, -70]).ToSettings();
 
         var before = analyzer.Compute(consensus, DefaultSettings);
         var after = analyzer.Compute(consensus, lenient);
@@ -126,7 +126,7 @@ public sealed class AlertAnalyzerSpec
         Assert.True(analyzer.Enabled);
     }
 
-    private static readonly IOptions<AlertOptions> EnabledOptions = Options.Create(new AlertOptions());
+    private static readonly IOptions<AlertOptions> EnabledOptions = Options.Create(AppSettingsDefaults.Options<AlertOptions>());
 
     private static AlertType[] AllTypes() => Enum.GetValues<AlertType>();
 

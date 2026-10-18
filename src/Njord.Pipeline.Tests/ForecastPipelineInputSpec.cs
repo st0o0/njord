@@ -29,12 +29,12 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
     {
         var settings = AnalysisSettingsFactory.Create(
             new NjordOptions { Locations = [new LocationOptions { Name = AnalysisFixture.Lucerne }, new LocationOptions { Name = AnalysisFixture.Bern }] },
-            new ConsensusOptions(), new AlertOptions(), new IndexOptions(), new TrendOptions { Enabled = true }, new DerivedOptions());
+            AppSettingsDefaults.Options<ConsensusOptions>(), AppSettingsDefaults.Options<AlertOptions>(), AppSettingsDefaults.Options<IndexOptions>(), AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = true), AppSettingsDefaults.Options<DerivedOptions>());
 
         return Sys.ActorOf(Props.Create(() => new ForecastPipeline(
             _fixture.Time,
             new ConsensusBuilder(AnalysisFixture.Parameters, _fixture.Time),
-            Options.Create(new ConsensusOptions()),
+            Options.Create(AppSettingsDefaults.Options<ConsensusOptions>()),
             DisabledAnalyzers.Alert(),
             DisabledAnalyzers.Derived(),
             new TrendAnalyzer(Options.Create(new TrendOptions { Enabled = true })),

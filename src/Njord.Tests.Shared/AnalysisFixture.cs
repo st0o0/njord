@@ -137,7 +137,7 @@ public sealed class AnalysisFixture
         var alerts = FeatureServices.Alerts(time);
         var indexSettings = IndexOptions.ToSettings(Locations);
         var derivedSettings = new DerivedSettings(Horizons);
-        var alertSettings = new AlertOptions().ToSettings();
+        var alertSettings = AppSettingsDefaults.Options<AlertOptions>().ToSettings();
         var indices = FeatureServices.Indices(time);
 
         var analyses = new List<LocationAnalysis>();

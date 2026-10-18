@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Njord.Core.Configuration.Polling;
+using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Polling;
 
@@ -20,7 +21,7 @@ public sealed class PollingOptionsValidatorSpec
             entries[$"Njord:Models:{i}"] = models[i];
         }
 
-        return new PollingOptionsValidator(new ConfigurationBuilder().AddInMemoryCollection(entries).Build());
+        return new PollingOptionsValidator(AppSettingsDefaults.Builder().AddInMemoryCollection(entries).Build());
     }
 
     private static readonly string[] EightModels =
@@ -33,7 +34,7 @@ public sealed class PollingOptionsValidatorSpec
     [Fact]
     public void Defaults_pass_for_one_location_with_eight_models()
     {
-        var result = ValidatorFor(1, EightModels).Validate(null, new PollingOptions());
+        var result = ValidatorFor(1, EightModels).Validate(null, AppSettingsDefaults.Options<PollingOptions>());
 
         Assert.True(result.Succeeded, result.FailureMessage);
     }
@@ -41,7 +42,7 @@ public sealed class PollingOptionsValidatorSpec
     [Fact]
     public void A_projection_above_the_override_budget_guard_is_rejected()
     {
-        var polling = new PollingOptions { BudgetOverride = new RequestBudget(10_000, 600) };
+        var polling = AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(10_000, 600));
 
         var result = ValidatorFor(2, EightModels).Validate(null, polling);
 
@@ -53,7 +54,7 @@ public sealed class PollingOptionsValidatorSpec
     [Fact]
     public void A_poll_interval_whose_projection_exceeds_the_guard_is_rejected()
     {
-        var polling = new PollingOptions { PollInterval = TimeSpan.FromMinutes(1) };
+        var polling = AppSettingsDefaults.Options<PollingOptions>(o => o.PollInterval = TimeSpan.FromMinutes(1));
 
         var result = ValidatorFor(1, EightModels).Validate(null, polling);
 
@@ -66,11 +67,11 @@ public sealed class PollingOptionsValidatorSpec
     [InlineData(-1)]
     public void Non_positive_intervals_are_rejected(int minutes)
     {
-        var polling = new PollingOptions
+        var polling = AppSettingsDefaults.Options<PollingOptions>(o =>
         {
-            PollInterval = TimeSpan.FromMinutes(minutes),
-            DiscoveryInterval = TimeSpan.FromMinutes(minutes),
-        };
+            o.PollInterval = TimeSpan.FromMinutes(minutes);
+            o.DiscoveryInterval = TimeSpan.FromMinutes(minutes);
+        });
 
         var result = ValidatorFor(1, "icon_d2").Validate(null, polling);
 
@@ -82,7 +83,7 @@ public sealed class PollingOptionsValidatorSpec
     [Fact]
     public void A_non_positive_budget_override_is_rejected()
     {
-        var polling = new PollingOptions { BudgetOverride = new RequestBudget(0, 600) };
+        var polling = AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(0, 600));
 
         var result = ValidatorFor(1, "icon_d2").Validate(null, polling);
 
@@ -93,7 +94,7 @@ public sealed class PollingOptionsValidatorSpec
     [Fact]
     public void Without_a_forecast_scope_the_budget_projection_is_skipped()
     {
-        var polling = new PollingOptions { BudgetOverride = new RequestBudget(1, 1) };
+        var polling = AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(1, 1));
 
         var result = ValidatorFor(0).Validate(null, polling);
 
@@ -103,7 +104,7 @@ public sealed class PollingOptionsValidatorSpec
     [Fact]
     public void All_parameter_groups_still_pass_on_the_default_budget()
     {
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        var configuration = AppSettingsDefaults.Builder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Njord:Locations:0:Name"] = "home",
             ["Njord:Locations:0:Latitude"] = "47.05",
@@ -114,7 +115,7 @@ public sealed class PollingOptionsValidatorSpec
             ["Njord:Parameters:Groups:2"] = "Soil",
         }).Build();
 
-        var result = new PollingOptionsValidator(configuration).Validate(null, new PollingOptions());
+        var result = new PollingOptionsValidator(configuration).Validate(null, AppSettingsDefaults.Options<PollingOptions>());
 
         Assert.True(result.Succeeded, result.FailureMessage);
     }
