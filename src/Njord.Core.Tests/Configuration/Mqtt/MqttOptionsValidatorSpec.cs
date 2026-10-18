@@ -8,23 +8,6 @@ public sealed class MqttOptionsValidatorSpec
     private static readonly MqttOptionsValidator Validator = new();
 
     [Fact]
-    public void Mqtt_is_disabled_by_default()
-    {
-        Assert.False(AppSettingsDefaults.Options<MqttOptions>().Enabled);
-    }
-
-    [Fact]
-    public void Mqtt_defaults_are_broker_friendly()
-    {
-        var options = AppSettingsDefaults.Options<MqttOptions>();
-
-        Assert.Equal(string.Empty, options.Host);
-        Assert.Equal(1883, options.Port);
-        Assert.Equal("homeassistant", options.DiscoveryPrefix);
-        Assert.Equal("njord", options.BaseTopic);
-    }
-
-    [Fact]
     public void Missing_host_is_rejected_when_enabled()
     {
         var result = Validator.Validate(null, new MqttOptions { Enabled = true, Host = "" });

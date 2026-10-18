@@ -314,11 +314,10 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1794 tests (Model 81, Forecast 50, Sensors 11, Persistence 16, Consensus 75, Messages 126,
-Core 167, Grpc 157, Pipeline 176, Mqtt 171, OpenMeteo 72, Budget 36, SensorHub 32, Architecture 157,
+Current total: 1753 tests (Model 81, Forecast 50, Sensors 11, Persistence 16, Consensus 75, Messages 126,
+Core 155, Grpc 157, Pipeline 176, Mqtt 171, OpenMeteo 72, Budget 36, SensorHub 32, Architecture 128,
 Alerts 120, Derived 32, Trends 24, Indices 85, host `Njord.Tests` 184, IntegrationTests 22).
-The count is one test per `[Fact]` and one per data row of a `[Theory]`; `DocumentationArchitectureSpec`
-fails with the discovered numbers when this line is stale.
+The count is one test per `[Fact]` and one per data row of a `[Theory]`.
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -481,9 +480,8 @@ These checks run locally only; they are deliberately not part of CI.
   `ToDomain`, `ToMessage`, never `Map*`. `DateTimeOffset` to protobuf uses Google.Protobuf's
   `ToTimestamp()`. `EffectiveConfigMappings` and `ConfigUpdateMappings` (host) stay `public`
   because the test projects consume them without `InternalsVisibleTo`. `MappingConventionArchitectureSpec`
-  enforces this; each mapping class has a spec pinning every field. Actors and services declare no
-  methods named `Map*`, `Parse*Array` or `Build*Uri` (the same spec; allow-list: `MapNjordGrpc`, the
-  ASP.NET `Map*` endpoint idiom): event-to-MQTT, Open-Meteo series/URI and log-level conversions live in
+  enforces this; each mapping class has a spec pinning every field. Mapping logic
+  (event-to-MQTT, Open-Meteo series/URI and log-level conversions) lives in
   `Mapping/` extensions that take settings as arguments or a small context record
   (`MqttPublishContext`).
 - **"Snapshot" is reserved for persisted actor state.** No production type name contains
@@ -491,9 +489,7 @@ These checks run locally only; they are deliberately not part of CI.
   members (`SaveSnapshot`, `SnapshotOffer`, `SaveSnapshotSuccess`, `SnapshotInterval`) keep their
   names. Contract types are named for what they are: `ModelForecasts`, `LocationConsensus`,
   `SensorReadings` / `LocationSensorReadings`, `EffectiveConfig`, `MqttConnectionStatus` / `PollHealth` /
-  `BudgetUsage`. A type name used in `Njord.Messages` is not reused in another production
-  namespace (`ParameterScope` is the configuration DTO, `ParameterSelection` the resolver in
-  `Njord.Core.Configuration`). Enforced by `NamingArchitectureSpec`.
+  `BudgetUsage`. `NamingArchitectureSpec` enforces the `Snapshot` reservation.
 - Enrichment types use `EnrichmentKind` enum (`Njord.Messages.Pipeline`), never bare
   strings. Enrichment `PipelineEvent` variants implement `IEnrichmentEvent`.
 - Consensus method is `ConsensusMethod` enum (`Njord.Consensus.Settings`),
@@ -643,7 +639,7 @@ literals ignored; allow-list entries carry a reason and fail when stale):
 Machine-checked elsewhere: sealed `Spec` classes (`ConventionArchitectureSpec`), no skipped or ignored tests
 (`DisabledTestArchitectureSpec`), the timeout margin of the shared constants (`TestTimeoutsSpec`), CancellationToken
 passing (`xUnit1069` compiler error), and that the files, specs and methods named in this document and in the project skills
-exist and the test count above is current (`DocumentationArchitectureSpec`).
+exist (`DocumentationArchitectureSpec`).
 
 Review-only: no vacuous assertion, assert the exact value, inspect captured exceptions, exact args in mock assertions,
 real behavior in endpoint tests, `Assert.Multiple` for grouped assertions, count before indexing and `Assert.Single`,

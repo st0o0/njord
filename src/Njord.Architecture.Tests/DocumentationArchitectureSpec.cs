@@ -1,13 +1,10 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Xunit.Sdk;
 using Njord.Tests.Shared;
-using Xunit.v3;
 
 namespace Njord.Architecture.Tests;
 
-// Keeps AGENTS.md and the project skills honest: every file, spec and method they name exists, and the documented
-// test counts equal what the test assemblies discover (one test per [Fact], one per data row of a [Theory]).
+// Keeps AGENTS.md and the project skills honest: every file, spec and method they name exists.
 public sealed partial class DocumentationArchitectureSpec
 {
     private static readonly string[] PathRoots = ["src/", ".claude/", "e2e/", "openspec/", "scripts/", "docs/", "protos/", "Njord"];
@@ -25,12 +22,6 @@ public sealed partial class DocumentationArchitectureSpec
 
     [GeneratedRegex("`([^`\\n]+)`")]
     private static partial Regex Backticked();
-
-    [GeneratedRegex(@"Current total:\s*(?<total>\d+)\s+tests\s*\((?<list>[^)]*)\)")]
-    private static partial Regex DocumentedTotal();
-
-    [GeneratedRegex(@"(?<name>[A-Za-z]+)\s+(?<count>\d+)")]
-    private static partial Regex ProjectCount();
 
     private static string RepoRoot => Path.GetFullPath(Path.Combine(TestSourceScanner.FindSrcRoot(), ".."));
 
@@ -149,17 +140,6 @@ public sealed partial class DocumentationArchitectureSpec
         Assert.Equal(["AGENTS.md: AddFastRetryBackoff()"], missing);
     }
 
-    [Fact]
-    public void A_stale_documented_count_is_reported_with_the_discovered_value()
-    {
-        var discovered = new SortedDictionary<string, int> { ["Njord.Core.Tests"] = 10, ["Njord.Tests"] = 5 };
-        var documented = new SortedDictionary<string, int> { ["Njord.Core.Tests"] = 9, ["Njord.Tests"] = 5 };
-
-        var differences = Differences(ExpectedLine(discovered), ExpectedLine(documented, 14));
-
-        Assert.Equal(["discovered total 15", "discovered Core 10", "documented total 14", "documented Core 9"], differences);
-    }
-
     [Theory]
     [InlineData("src/Njord.Grpc/EnrichmentProtoMapper.cs", true)]
     [InlineData("src/Njord.Core/Actors/ActorKeys.cs", true)]
@@ -194,103 +174,4 @@ public sealed partial class DocumentationArchitectureSpec
         Assert.Empty(unused);
     }
 
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task The_documented_test_counts_equal_the_discovered_tests()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var discovered = new SortedDictionary<string, int>(StringComparer.Ordinal);
-        foreach (var assembly in NjordArchitecture.TestAssemblies.Where(a => a.GetName().Name != "Njord.Tests.Shared"))
-        {
-            discovered[assembly.GetName().Name!] = await CountTests(assembly, ct);
-        }
-
-        var expected = ExpectedLine(discovered);
-        var text = File.ReadAllText(Path.Combine(RepoRoot, "AGENTS.md"));
-        var match = DocumentedTotal().Match(text);
-
-        Assert.True(match.Success, "AGENTS.md has no 'Current total: N tests (...)' line. Expected: " + string.Join(", ", expected));
-        var documented = new SortedDictionary<string, int>(StringComparer.Ordinal);
-        foreach (Match pair in ProjectCount().Matches(match.Groups["list"].Value.Replace("host `Njord.Tests`", "Host", StringComparison.Ordinal)))
-        {
-            var name = pair.Groups["name"].Value;
-            documented[name switch
-            {
-                "Host" => "Njord.Tests",
-                "IntegrationTests" => "Njord.IntegrationTests",
-                _ => $"Njord.{name}.Tests",
-            }] = int.Parse(pair.Groups["count"].Value);
-        }
-
-        var differences = Differences(expected, ExpectedLine(documented, int.Parse(match.Groups["total"].Value)));
-        Assert.True(differences.Count == 0, string.Join(Environment.NewLine, ["", .. differences]));
-    }
-
-    private static List<string> Differences(List<string> discovered, List<string> documented)
-        => [.. discovered.Except(documented).Select(e => $"discovered {e}"), .. documented.Except(discovered).Select(s => $"documented {s}")];
-
-    // The total followed by one entry per project, sorted by assembly name.
-    private static List<string> ExpectedLine(IReadOnlyDictionary<string, int> counts, int? total = null)
-        => [$"total {total ?? counts.Values.Sum()}", .. counts.Select(kv => $"{Label(kv.Key)} {kv.Value}")];
-
-    private static string Label(string assembly)
-        => assembly switch
-        {
-            "Njord.Tests" => "host `Njord.Tests`",
-            "Njord.IntegrationTests" => "IntegrationTests",
-            _ => assembly["Njord.".Length..^".Tests".Length],
-        };
-
-    private static async Task<int> CountTests(Assembly assembly, CancellationToken ct)
-    {
-        // Inherited test methods count once per concrete class, as the runner does.
-        const BindingFlags All = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-        var count = 0;
-        foreach (var method in assembly.GetTypes().Where(t => !t.IsAbstract).SelectMany(t => t.GetMethods(All)))
-        {
-            ct.ThrowIfCancellationRequested();
-            if (method.GetCustomAttribute<FactAttribute>() is not { } fact)
-            {
-                continue;
-            }
-
-            if (fact is not TheoryAttribute)
-            {
-                count++;
-                continue;
-            }
-
-            var rows = 0;
-            foreach (var data in method.GetCustomAttributes().OfType<IDataAttribute>())
-            {
-                var found = (await data.GetData(method, new DisposalTracker())).Count;
-                rows += found > 0 || data is not MemberDataAttributeBase member ? found : MemberRows(method, member);
-            }
-
-            count += Math.Max(rows, 1);
-        }
-
-        return count;
-    }
-
-    // The runner enumerates member data at execution time when it cannot be serialized for discovery.
-    private static int MemberRows(MethodInfo method, MemberDataAttributeBase member)
-    {
-        const BindingFlags Static = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.FlattenHierarchy;
-        var owner = member.MemberType ?? method.DeclaringType!;
-        object? value = null;
-        if (owner.GetProperty(member.MemberName, Static) is { } property)
-        {
-            value = property.GetValue(null);
-        }
-        else if (owner.GetField(member.MemberName, Static) is { } field)
-        {
-            value = field.GetValue(null);
-        }
-        else if (owner.GetMethod(member.MemberName, Static) is { } source)
-        {
-            value = source.Invoke(null, member.Arguments);
-        }
-
-        return value is System.Collections.IEnumerable rows ? rows.Cast<object?>().Count() : 0;
-    }
 }

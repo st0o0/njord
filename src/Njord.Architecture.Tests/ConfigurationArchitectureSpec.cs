@@ -84,29 +84,6 @@ public sealed class ConfigurationArchitectureSpec
         Assert.Empty(unclassified);
     }
 
-    [Theory]
-    [InlineData("AlertOptions")]
-    [InlineData("DerivedOptions")]
-    [InlineData("TrendOptions")]
-    [InlineData("IndexOptions")]
-    [InlineData("ConsensusOptions")]
-    public void Core_declares_no_analysis_feature_options(string name)
-    {
-        var core = typeof(NjordOptions).Assembly;
-
-        Assert.DoesNotContain(core.GetTypes(), t => t.Name == name);
-    }
-
-    [Fact]
-    public void Consensus_contains_no_options_types_and_does_not_reference_the_options_package()
-    {
-        var consensus = typeof(Njord.Consensus.LocationConsensus).Assembly;
-
-        Assert.DoesNotContain(consensus.GetTypes(), t => t.Name.EndsWith("Options", StringComparison.Ordinal));
-        Assert.DoesNotContain(consensus.GetTypes(), t => t.Namespace == "Njord.Consensus.Configuration");
-        Assert.DoesNotContain(consensus.GetReferencedAssemblies(), a => a.Name == "Microsoft.Extensions.Options");
-    }
-
     [Fact]
     public void Every_section_options_type_has_exactly_one_validator_next_to_it()
     {

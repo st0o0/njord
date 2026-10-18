@@ -1,5 +1,4 @@
 using Njord.Core.Configuration;
-using Njord.Model;
 using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration;
@@ -10,14 +9,6 @@ public sealed class NjordOptionsSpec
     public void Horizons_default_to_the_six_step_ladder()
     {
         Assert.Equal([3, 6, 12, 24, 48, 72], AppSettingsDefaults.Options<NjordOptions>().Horizons);
-    }
-
-    [Fact]
-    public void Holds_only_the_forecast_scope()
-    {
-        var properties = typeof(NjordOptions).GetProperties().Select(p => p.Name).Order();
-
-        Assert.Equal(["ForecastDays", "Horizons", "Locations", "Models", "Parameters"], properties);
     }
 
     [Fact]

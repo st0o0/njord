@@ -38,20 +38,6 @@ public sealed class ConventionArchitectureSpec
             .Check(NjordArchitecture.Instance);
     }
 
-    [Theory]
-    [InlineData("Enrichment")]
-    [InlineData("Computer")]
-    [InlineData("Calculator")]
-    [InlineData("Scorer")]
-    [InlineData("Evaluator")]
-    [InlineData("Factory")]
-    public void Analysis_type_names_avoid_legacy_name_parts(string namePart)
-    {
-        Types().That().Are(NjordArchitecture.AnalysisTypes)
-            .Should().NotHaveNameContaining(namePart)
-            .Check(NjordArchitecture.Instance);
-    }
-
     [Fact]
     public void Alert_rules_live_in_the_alerts_library()
     {

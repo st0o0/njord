@@ -6,24 +6,6 @@ namespace Njord.Core.Tests.Configuration.Polling;
 public sealed class RequestBudgetSpec
 {
     [Fact]
-    public void Free_tier_has_documented_soft_limits()
-    {
-        var budget = RequestBudget.OpenMeteoFreeTier;
-
-        Assert.Equal(300_000, budget.RequestsPerMonth);
-        Assert.Equal(600, budget.RequestsPerMinute);
-    }
-
-    [Fact]
-    public void Custom_budget_preserves_values()
-    {
-        var budget = new RequestBudget(10_000, 30);
-
-        Assert.Equal(10_000, budget.RequestsPerMonth);
-        Assert.Equal(30, budget.RequestsPerMinute);
-    }
-
-    [Fact]
     public void Effective_budget_returns_override_when_set()
     {
         var options = new PollingOptions

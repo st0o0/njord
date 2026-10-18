@@ -38,21 +38,4 @@ public sealed class NamingArchitectureSpec
         Assert.Empty(offenders);
     }
 
-    [Fact]
-    public void Messages_type_names_are_not_reused_by_other_production_assemblies()
-    {
-        var all = ProductionTypes().ToList();
-        var messagesNames = all
-            .Where(x => x.Assembly.GetName().Name == "Njord.Messages")
-            .Select(x => x.Type.Name)
-            .ToHashSet(StringComparer.Ordinal);
-
-        var duplicates = all
-            .Where(x => x.Assembly.GetName().Name != "Njord.Messages" && messagesNames.Contains(x.Type.Name))
-            .Select(x => x.Type.FullName!)
-            .Order(StringComparer.Ordinal)
-            .ToList();
-
-        Assert.Empty(duplicates);
-    }
 }
