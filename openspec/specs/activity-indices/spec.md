@@ -214,7 +214,7 @@ Each day-offset state JSON SHALL include `_min`, `_max`, `_confidence` variants 
 - **THEN** JSON contains `{"outdoor": 72, "outdoor_min": 65, "outdoor_max": 80, "outdoor_confidence": 0.8, ...}` without `hdd`/`cdd`
 
 ### Requirement: IndexResult aggregates all indices and serializes to MQTT
-`IndexResult` (src/Njord.Compute/Contracts/IndexResult.cs) SHALL be the output of index computation. It SHALL contain a `Location` (`LocationId`), a `Days` list of `DayScoreSet` (one per computed day, up to 3), `FrostProtection` (`FrostProtectionInfo?`), and `Vpd` (`VpdInfo?`).
+`IndexResult` (src/Njord.Messages/Indices/IndexResult.cs) SHALL be the output of index computation. It SHALL contain a `Location` (`LocationId`), a `Days` list of `DayScoreSet` (one per computed day, up to 3), `FrostProtection` (`FrostProtectionInfo?`), and `Vpd` (`VpdInfo?`).
 
 Each `DayScoreSet` SHALL contain: `DayOffset` (int, 0/1/2), `Laundry` (int), `Outdoor` (int), `Running` (int), `Cycling` (int), `Bbq` (int), `Irrigation` (int), `Solar` (int), `NightVentilation` (int), `HoursIncluded` (int), and an optional envelope for each score. The location SHALL come from `LocationConsensus.Location`. `StatePayloadBuilder.FromIndices` SHALL serialize the result.
 

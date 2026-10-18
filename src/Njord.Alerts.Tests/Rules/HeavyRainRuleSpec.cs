@@ -1,5 +1,5 @@
 using Njord.Alerts.Rules;
-using Njord.Compute.Contracts;
+using Njord.Messages.Alerts;
 using Njord.Weather;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
@@ -12,7 +12,7 @@ public sealed class HeavyRainRuleSpec
     [Fact]
     public void HeavyRain_below_threshold_preserves_trigger_value()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Precipitation, 0.5)),
             MakeForecast(new WeatherModel("m2"), (Precipitation, 0.3)));
 
@@ -25,7 +25,7 @@ public sealed class HeavyRainRuleSpec
     [Fact]
     public void HeavyRain_hourly_and_daily_both_exceeded()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Precipitation, 12.0)),
             MakeForecast(new WeatherModel("m2"), (Precipitation, 11.0)));
 
@@ -37,7 +37,7 @@ public sealed class HeavyRainRuleSpec
     [Fact]
     public void HeavyRain_daily_sum_from_daily_series_triggers_alert()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecastWithDaily(new WeatherModel("m1"),
                 [(Precipitation, 1.0)],
                 [(DailyPrecipSum, 35.0)]),

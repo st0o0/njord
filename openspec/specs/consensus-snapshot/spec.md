@@ -5,7 +5,7 @@
 LocationConsensus is the core domain type produced by the consensus pipeline stage. It wraps hourly and daily consensus facets computed from a ModelForecasts via a pure `Compute` factory method, and serves as the input for all downstream enrichments.
 ## Requirements
 ### Requirement: LocationConsensus is the core domain type produced by the consensus pipeline stage
-The system SHALL produce a `LocationConsensus` record from a `ModelForecasts` with `ConsensusBuilder.Create(forecasts, location, settings)` (src/Njord.Compute/Consensus/ConsensusBuilder.cs), a pure computation over its injected `ResolvedParameterSet` and `TimeProvider`. `LocationConsensus` SHALL contain a `Location` (`LocationId`), an `HourlyConsensus` facet, a `DailyConsensus` facet and `ComputedAt`.
+The system SHALL produce a `LocationConsensus` record from a `ModelForecasts` with `ConsensusBuilder.Create(forecasts, location, settings)` (src/Njord.Consensus/ConsensusBuilder.cs), a pure computation over its injected `ResolvedParameterSet` and `TimeProvider`. `LocationConsensus` SHALL contain a `Location` (`LocationId`), an `HourlyConsensus` facet, a `DailyConsensus` facet and `ComputedAt`.
 
 #### Scenario: Compute produces a LocationConsensus with hourly and daily facets
 - **WHEN** `ConsensusBuilder.Create` is called with a `ModelForecasts` containing 3 models with hourly and daily data for location "Lucerne"

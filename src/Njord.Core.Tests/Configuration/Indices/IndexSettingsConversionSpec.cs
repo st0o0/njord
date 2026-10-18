@@ -1,8 +1,8 @@
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
+using Njord.Consensus;
 using Njord.Core.Configuration.Indices;
-using Njord.Weather;
+using Njord.Messages.Indices;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Core.Tests.Configuration.Indices;
 

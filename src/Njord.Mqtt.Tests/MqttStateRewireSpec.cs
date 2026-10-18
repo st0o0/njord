@@ -1,11 +1,11 @@
-using Njord.Mqtt.Actors;
 using System.Text.Json.Nodes;
 using Akka.Actor;
-using Njord.Compute.Contracts;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Trends;
+using Njord.Mqtt.Actors;
 using Njord.Tests.Shared;
 using Njord.Weather;
 

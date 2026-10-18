@@ -1,5 +1,5 @@
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
+using Njord.Consensus;
+using Njord.Messages.Trends;
 using Njord.Weather;
 
 namespace Njord.Trends.Tests;

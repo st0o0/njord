@@ -1,5 +1,5 @@
 using Google.Protobuf.WellKnownTypes;
-using Njord.Compute.Consensus;
+using Njord.Consensus;
 using Njord.Grpc.V2;
 using Njord.Messages.Pipeline;
 

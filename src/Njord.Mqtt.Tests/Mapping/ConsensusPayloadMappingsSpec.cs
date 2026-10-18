@@ -1,4 +1,4 @@
-using Njord.Compute.Consensus;
+using Njord.Consensus;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Payloads;
 using Njord.Weather;

@@ -1,6 +1,5 @@
 using Njord.Alerts;
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
+using Njord.Consensus;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Derived;

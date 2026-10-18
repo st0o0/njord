@@ -69,13 +69,13 @@ public sealed class ConfigurationArchitectureSpec
     }
 
     [Fact]
-    public void Compute_contains_no_options_types_and_does_not_reference_the_options_package()
+    public void Consensus_contains_no_options_types_and_does_not_reference_the_options_package()
     {
-        var compute = typeof(Compute.Consensus.LocationConsensus).Assembly;
+        var consensus = typeof(Njord.Consensus.LocationConsensus).Assembly;
 
-        Assert.DoesNotContain(compute.GetTypes(), t => t.Name.EndsWith("Options", StringComparison.Ordinal));
-        Assert.DoesNotContain(compute.GetTypes(), t => t.Namespace == "Njord.Compute.Configuration");
-        Assert.DoesNotContain(compute.GetReferencedAssemblies(), a => a.Name == "Microsoft.Extensions.Options");
+        Assert.DoesNotContain(consensus.GetTypes(), t => t.Name.EndsWith("Options", StringComparison.Ordinal));
+        Assert.DoesNotContain(consensus.GetTypes(), t => t.Namespace == "Njord.Consensus.Configuration");
+        Assert.DoesNotContain(consensus.GetReferencedAssemblies(), a => a.Name == "Microsoft.Extensions.Options");
     }
 
     [Fact]

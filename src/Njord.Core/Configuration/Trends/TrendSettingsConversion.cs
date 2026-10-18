@@ -1,4 +1,4 @@
-using Njord.Compute.Settings;
+using Njord.Messages.Trends;
 
 namespace Njord.Core.Configuration.Trends;
 

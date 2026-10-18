@@ -10,12 +10,12 @@
 ## Decisions
 
 1. **Folders in `Njord.Messages`** (`Alerts/`, `Derived/`, `Trends/`, `Indices/`). Alternatives rejected: a `Contracts` project per feature (four small assemblies and test projects for 8 to 12 types each), one shared `Njord.Analysis.Contracts` project (an extra assembly for the same content). Shared enums go to the feature that produces them: `AlertSeverity`, `AlertType`, `SeverityThresholds` to Alerts; `DewPointComfort`, `VpdCategory` to Derived; `TrendDirection`, `Stability` to Trends; `IndexKind`, `ScoreEnvelope`, `DayScoreSet`, `ResolvedPreferences` to Indices.
-2. **`WeatherCondition`/`WeatherCategory` move to `Njord.Weather`.** They classify weather and are used by derived formulas and results, so they belong to the domain vocabulary.
+2. **`WeatherCondition` moves to `Njord.Weather`; `WeatherCategory` stays with the trends contracts.** `WeatherCondition` classifies weather for the derived formulas and results, while `WeatherCategory` only describes a `WeatherChangeResult`.
 3. **`AnalysisSettings`** moves to `Njord.Messages/Config` next to `AnalysisSettingsChanged`; the feature settings records move with their feature folder.
 4. **`Njord.Consensus` replaces `Njord.Compute`** by rename of project, namespace and test project; `ScanDirection` and the query vocabulary stay with the data they query. Messages references Consensus for `LocationConsensus`.
 5. **Guard rule** in `Njord.Architecture.Tests`: Messages declares no type whose name ends in `Analyzer`, `Rule` or `Formulas` and has no Akka reference, so compute logic cannot drift into the contract project.
 6. **Tests follow types.** Contract specs move to `Njord.Messages.Tests` (picked up by the run loop automatically); consensus specs stay in the renamed `Njord.Consensus.Tests`.
-7. **Move order**: (a) spec reconciliation and failing layer rules, (b) move one feature at a time (derived, trends, alerts, indices) with namespace changes and `using` updates, build green after each, (c) move `WeatherCondition`/`WeatherCategory` and `AnalysisSettings`, (d) rename Compute to Consensus, (e) update architecture specs, Dockerfile, CI, docs.
+7. **Move order**: (a) spec reconciliation and failing layer rules, (b) move one feature at a time (derived, trends, alerts, indices) with namespace changes and `using` updates, build green after each, (c) move `WeatherCondition` and `AnalysisSettings`, (d) rename Compute to Consensus, (e) update architecture specs, Dockerfile, CI, docs.
 8. **Foreign edits**: six files carry the user's uncommitted style edits (`FogRule`, `HeavyRainRule`, `DerivedFormulas`, `DaySlicerSpec`, `IndexAnalyzerSpec`, `StopwatchGapSpec`); the apply step edits them minimally and stages only its own hunks.
 
 ## Risks / Trade-offs

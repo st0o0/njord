@@ -1,5 +1,5 @@
 using Njord.Alerts.Rules;
-using Njord.Compute.Contracts;
+using Njord.Messages.Alerts;
 using Njord.Weather;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
@@ -12,7 +12,7 @@ public sealed class VisibilityRuleSpec
     [Fact]
     public void Visibility_reduced_produces_yellow()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (VisibilityParam, 800.0)),
             MakeForecast(new WeatherModel("m2"), (VisibilityParam, 900.0)));
 
@@ -24,7 +24,7 @@ public sealed class VisibilityRuleSpec
     [Fact]
     public void Visibility_dense_fog_produces_orange()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (VisibilityParam, 150.0)),
             MakeForecast(new WeatherModel("m2"), (VisibilityParam, 180.0)));
 
@@ -36,7 +36,7 @@ public sealed class VisibilityRuleSpec
     [Fact]
     public void Visibility_near_zero_produces_red()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (VisibilityParam, 30.0)),
             MakeForecast(new WeatherModel("m2"), (VisibilityParam, 40.0)));
 
@@ -48,7 +48,7 @@ public sealed class VisibilityRuleSpec
     [Fact]
     public void Visibility_good_produces_none()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (VisibilityParam, 5000.0)),
             MakeForecast(new WeatherModel("m2"), (VisibilityParam, 8000.0)));
 

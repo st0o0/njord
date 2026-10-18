@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Time.Testing;
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
-using Njord.Compute.Settings;
+using Njord.Consensus;
+using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
+using Njord.Messages.Derived;
 using Njord.Weather;
 
 namespace Njord.Derived.Tests;

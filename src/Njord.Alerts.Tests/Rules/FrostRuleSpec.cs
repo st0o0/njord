@@ -1,5 +1,6 @@
 using Njord.Alerts.Rules;
-using Njord.Compute.Contracts;
+using Njord.Consensus.Querying;
+using Njord.Messages.Alerts;
 using Njord.Weather;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
@@ -12,7 +13,7 @@ public sealed class FrostRuleSpec
     [Fact]
     public void Frost_all_models_agree()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, -2.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, -1.0)),
             MakeForecast(new WeatherModel("m3"), (Temperature, -3.0)));
@@ -26,7 +27,7 @@ public sealed class FrostRuleSpec
     [Fact]
     public void Frost_no_model_agrees()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, 5.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 3.0)));
 
@@ -39,7 +40,7 @@ public sealed class FrostRuleSpec
     [Fact]
     public void Frost_partial_agreement()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, -3.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, -1.0)),
             MakeForecast(new WeatherModel("m3"), (Temperature, 1.0)),
@@ -54,7 +55,7 @@ public sealed class FrostRuleSpec
     [Fact]
     public void Frost_moderate_produces_orange()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, -8.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, -7.0)));
 
@@ -66,7 +67,7 @@ public sealed class FrostRuleSpec
     [Fact]
     public void Frost_severe_produces_red()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, -18.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, -16.0)));
 
@@ -78,7 +79,7 @@ public sealed class FrostRuleSpec
     [Fact]
     public void Frost_rule_classifies_the_24h_minimum_against_the_passed_thresholds()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, -3.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, -3.0)));
         var settings = Defaults with { Frost = new SeverityThresholds(0, -2, -5, ScanDirection.Min) };
@@ -93,7 +94,7 @@ public sealed class FrostRuleSpec
     [Fact]
     public void Lower_warning_threshold_applies_on_the_next_evaluation()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, -3.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, -3.0)));
         var first = Defaults with { Frost = new SeverityThresholds(0, -2, -5, ScanDirection.Min) };

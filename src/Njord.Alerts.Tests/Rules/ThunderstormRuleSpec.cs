@@ -1,6 +1,5 @@
 using Njord.Alerts.Rules;
-using Njord.Compute.Contracts;
-using Njord.Compute.Settings;
+using Njord.Messages.Alerts;
 using Njord.Weather;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
@@ -20,7 +19,7 @@ public sealed class ThunderstormRuleSpec
     [Fact]
     public void Thunderstorm_likely()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Cape, 1500.0), (Precipitation, 10.0), (WindGusts, 20.0)),
             MakeForecast(new WeatherModel("m2"), (Cape, 1200.0), (Precipitation, 8.0), (WindGusts, 18.0)));
 
@@ -33,7 +32,7 @@ public sealed class ThunderstormRuleSpec
     [Fact]
     public void Thunderstorm_none()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Cape, 200.0), (Precipitation, 1.0), (WindGusts, 5.0)));
 
         var alert = Rule.Evaluate(consensus, Settings);

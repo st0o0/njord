@@ -1,6 +1,6 @@
 ---
 name: njord-enrichment-feature
-description: Use when adding or changing an analysis feature (alerts, derived, trends, indices) — its analyzer, alert rules, index scores or formulas in the feature library (src/Njord.Alerts, Njord.Derived, Njord.Trends, Njord.Indices), the shared consensus query vocabulary and contracts in Njord.Compute, the options/settings toggle, DI registration and golden-master snapshots.
+description: Use when adding or changing an analysis feature (alerts, derived, trends, indices) — its analyzer, alert rules, index scores or formulas in the feature library (src/Njord.Alerts, Njord.Derived, Njord.Trends, Njord.Indices), the shared consensus query vocabulary in Njord.Consensus and the result/settings contracts in Njord.Messages, the options/settings toggle, DI registration and golden-master snapshots.
 ---
 
 # njord analysis feature
@@ -9,11 +9,11 @@ Rules (static entity set, `TimeProvider`, HA device cut, toggleable features) li
 
 ## Where things live
 
-- **`Njord.Compute`** holds only what every feature shares:
-  - `Consensus/` — `ConsensusBuilder` (`ModelForecasts` → `LocationConsensus`), `ConsensusStatistics` (median, spread, agreement, ...), the consensus records.
-  - `Querying/` — the query vocabulary, extension methods on consensus data: `Find`, `Within`, `Extreme`, `Hits`/`Earliest`/`Values`/`Peak`, `AgreementAbove`, `AverageAgreement`, `MaxModelCount`, `ModelsAt`, `At`/`MedianAt` (`HorizonWindow`, `HorizonHit`).
-  - `Contracts/` — result records (`AlertResult`, `IndexResult`, ...), `SeverityThresholds`, enums. `Settings/` — immutable settings records per feature.
-  - No feature logic, no DI, no `InternalsVisibleTo` except `Njord.Compute.Tests`.
+- **`Njord.Consensus`** holds only what every feature shares:
+  - `ConsensusBuilder` (`ModelForecasts` → `LocationConsensus`), `ConsensusStatistics` (median, spread, agreement, ...), the consensus records, `Settings/` (`ConsensusSettings`, `ConsensusMethod`).
+  - `Querying/` — the query vocabulary, extension methods on consensus data: `Find`, `Within`, `Extreme`, `Hits`/`Earliest`/`Values`/`Peak`, `AgreementAbove`, `AverageAgreement`, `MaxModelCount`, `ModelsAt`, `At`/`MedianAt` (`HorizonWindow`, `HorizonHit`, `ScanDirection`).
+  - No feature logic, no DI, no `InternalsVisibleTo` except `Njord.Consensus.Tests`.
+- **`Njord.Messages`** holds each feature's contracts in a domain folder (`Alerts/`, `Derived/`, `Trends/`, `Indices/`): result records (`AlertResult`, `IndexResult`, ...), enums, `SeverityThresholds` and the immutable `XxxSettings` record. No analyzer, rule or formula (`ZoneArchitectureSpec`).
 - **Feature library** (`Njord.Alerts`, `Njord.Derived`, `Njord.Trends`, `Njord.Indices`; references only `Njord.Core` and below) owns its computation:
 
 | Library | Entry point | Units | Pure math |
@@ -23,7 +23,7 @@ Rules (static entity set, `TimeProvider`, HA device cut, toggleable features) li
 | `Njord.Derived` | `DerivedAnalyzer` | — | `DerivedFormulas` |
 | `Njord.Trends` | `TrendAnalyzer` | — | `TrendFormulas` |
 
-Naming: `<Feature>Analyzer`, `<Name>Rule`, `<Name>Score`, `<Feature>Formulas`, `Consensus<Role>`. Never `Computer`, `Calculator`, `Scorer`, `Evaluator`, `Factory` or `Enrichment` in Compute or a feature library (`ConventionArchitectureSpec` enforces it).
+Naming: `<Feature>Analyzer`, `<Name>Rule`, `<Name>Score`, `<Feature>Formulas`, `Consensus<Role>`. Never `Computer`, `Calculator`, `Scorer`, `Evaluator`, `Factory` or `Enrichment` in Consensus, Messages or a feature library (`ConventionArchitectureSpec` enforces it).
 
 ## Rules and scores
 
@@ -35,8 +35,8 @@ Naming: `<Feature>Analyzer`, `<Name>Rule`, `<Name>Score`, `<Feature>Formulas`, `
 
 ## Checklist
 
-1. **Options + settings (Core/Compute)** — `XxxOptions` (with `bool Enabled`) and validator in `src/Njord.Core/Configuration/<Area>/`, a `ToSettings()` conversion there, the immutable `XxxSettings` record in `src/Njord.Compute/Settings/`, wired into `AnalysisSettings`/`AnalysisSettingsFactory` (`src/Njord.Core/Configuration/AnalysisSettingsFactory.cs`). Analyzers read only `Enabled` from options.
-2. **Result type** — record in `src/Njord.Compute/Contracts/`; new alert types/index kinds extend `AlertType`/`IndexKind` (and their wire names).
+1. **Options + settings (Core/Messages)** — `XxxOptions` (with `bool Enabled`) and validator in `src/Njord.Core/Configuration/<Area>/`, a `ToSettings()` conversion there, the immutable `XxxSettings` record in `src/Njord.Messages/<Feature>/`, wired into `AnalysisSettings`/`AnalysisSettingsFactory` (`src/Njord.Core/Configuration/AnalysisSettingsFactory.cs`). Analyzers read only `Enabled` from options.
+2. **Result type** — record in `src/Njord.Messages/<Feature>/`; new alert types/index kinds extend `AlertType`/`IndexKind` (and their wire names).
 3. **Rule / score / formula** — new class in the feature library (`Rules/` or `Scores/`), `public sealed`, parameterless, built on the query vocabulary.
 4. **Register** — in the feature's `AddXxx()` (`src/Njord.<Feature>/ServiceCollectionExtensions.cs`): `services.AddSingleton<IAlertRule, XxxRule>();` / `services.AddSingleton<IIndexScore, XxxScore>();` next to the analyzer and options. The host calls `AddXxx()` from `src/Njord/Configuration/AnalysisSetupContainer.cs`; `src/Njord.Pipeline/ForecastPipeline.cs` calls the analyzers' `Compute(...)` with the current settings.
 5. **Consumers** — MQTT state payloads in `src/Njord.Mqtt/StatePayloadBuilder.cs` (`FromXxx`), gRPC mapping in `src/Njord.Grpc/EnrichmentProtoMapper.cs` (`MapXxx`, `MapToEvent`).
@@ -79,5 +79,5 @@ services.AddSingleton<IAlertRule, FrostRule>();
 
 - Consensus is not a feature: `ConsensusBuilder` runs in the pipeline before the analyzers.
 - A feature's entities depend on config (`Enabled`), never on what a poll returned; missing values are `unavailable` states, not missing entities.
-- Feature libraries never reference each other; share only through Core/Compute types.
+- Feature libraries never reference each other; share only through Core/Messages/Consensus types.
 - Sensor input comes from the `SensorReadings` argument (indices: live indoor temperature overrides the preference); do not call the hub from a feature.

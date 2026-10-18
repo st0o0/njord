@@ -12,7 +12,7 @@ COPY src/Njord.Weather/Njord.Weather.csproj Njord.Weather/
 COPY src/Njord.Sensors/Njord.Sensors.csproj Njord.Sensors/
 COPY src/Njord.Persistence/Njord.Persistence.csproj Njord.Persistence/
 COPY src/Njord.Messages/Njord.Messages.csproj Njord.Messages/
-COPY src/Njord.Compute/Njord.Compute.csproj Njord.Compute/
+COPY src/Njord.Consensus/Njord.Consensus.csproj Njord.Consensus/
 COPY src/Njord.Core/Njord.Core.csproj Njord.Core/
 COPY src/Njord.OpenMeteo/Njord.OpenMeteo.csproj Njord.OpenMeteo/
 COPY src/Njord.SensorHub/Njord.SensorHub.csproj Njord.SensorHub/
@@ -31,7 +31,7 @@ COPY src/Njord.Budget/ Njord.Budget/
 COPY src/Njord.Sensors/ Njord.Sensors/
 COPY src/Njord.Persistence/ Njord.Persistence/
 COPY src/Njord.Messages/ Njord.Messages/
-COPY src/Njord.Compute/ Njord.Compute/
+COPY src/Njord.Consensus/ Njord.Consensus/
 COPY src/Njord.Core/ Njord.Core/
 COPY src/Njord.OpenMeteo/ Njord.OpenMeteo/
 COPY src/Njord.SensorHub/ Njord.SensorHub/

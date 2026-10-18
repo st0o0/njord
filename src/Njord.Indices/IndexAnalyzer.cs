@@ -1,8 +1,7 @@
 using Microsoft.Extensions.Options;
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
-using Njord.Compute.Settings;
+using Njord.Consensus;
 using Njord.Core.Configuration.Indices;
+using Njord.Messages.Indices;
 using Njord.Sensors;
 using Njord.Weather;
 

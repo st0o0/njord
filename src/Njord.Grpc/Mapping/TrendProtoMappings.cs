@@ -1,5 +1,5 @@
-using Njord.Compute.Contracts;
 using Njord.Grpc.V2;
+using Njord.Messages.Trends;
 using ProtoParameterTrend = Njord.Grpc.V2.ParameterTrend;
 
 namespace Njord.Grpc.Mapping;

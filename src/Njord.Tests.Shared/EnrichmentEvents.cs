@@ -1,6 +1,9 @@
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
+using Njord.Consensus;
+using Njord.Messages.Alerts;
+using Njord.Messages.Derived;
+using Njord.Messages.Indices;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Trends;
 using Njord.Weather;
 
 namespace Njord.Tests.Shared;

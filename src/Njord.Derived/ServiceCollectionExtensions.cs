@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
+using Njord.Consensus;
 
 namespace Njord.Derived;
 

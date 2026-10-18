@@ -1,4 +1,4 @@
-using Njord.Compute.Settings;
+using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Consensus;
@@ -7,8 +7,8 @@ using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Configuration.Trends;
 using Njord.Messages.Config;
-using Njord.Weather;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Core.Tests.Configuration;
 

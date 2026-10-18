@@ -1,11 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
-using Njord.Compute.Settings;
+using Njord.Consensus;
+using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
+using Njord.Messages.Alerts;
 using Njord.Tests.Shared;
 using Njord.Weather;
 

@@ -34,7 +34,7 @@ internal static class NjordArchitecture
     ];
 
     private static readonly string[] FeatureLibraryNames = ["Njord.Grpc", "Njord.OpenMeteo", "Njord.Budget", "Njord.SensorHub", "Njord.Mqtt", "Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"];
-    private static readonly string[] BaseLibraryNames = ["Njord.Compute", "Njord.Core", "Njord.Messages", "Njord.Persistence", "Njord.Weather", "Njord.Sensors"];
+    private static readonly string[] BaseLibraryNames = ["Njord.Consensus", "Njord.Core", "Njord.Messages", "Njord.Persistence", "Njord.Weather", "Njord.Sensors"];
 
     internal const string PipelineLibrary = "Njord.Pipeline";
     private static readonly string[] PipelineAllowedAnalysisLibs = ["Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"];
@@ -85,13 +85,13 @@ internal static class NjordArchitecture
         }
     }
 
-    private static readonly string[] AnalysisLibraryNames = ["Njord.Compute", .. PipelineAllowedAnalysisLibs];
+    private static readonly string[] AnalysisLibraryNames = ["Njord.Consensus", .. PipelineAllowedAnalysisLibs];
 
     public static IObjectProvider<IType> AnalysisTypes =>
         Types().That().ResideInAssembly(AssemblyByName(AnalysisLibraryNames[0]),
                 [.. AnalysisLibraryNames.Skip(1).Select(AssemblyByName)])
             .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage")
-            .As("Compute and the analysis feature libraries");
+            .As("Consensus and the analysis feature libraries");
 
     public static IObjectProvider<IType> ProductionTypes =>
         Types().That().ResideInAssembly(NjordAssembly,

@@ -1,5 +1,5 @@
 using Njord.Alerts.Rules;
-using Njord.Compute.Contracts;
+using Njord.Messages.Alerts;
 using Njord.Weather;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
@@ -12,7 +12,7 @@ public sealed class UvRuleSpec
     [Fact]
     public void Uv_high()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (UvIndexParam, 7.5)),
             MakeForecast(new WeatherModel("m2"), (UvIndexParam, 8.0)));
 
@@ -25,7 +25,7 @@ public sealed class UvRuleSpec
     [Fact]
     public void Uv_low()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (UvIndexParam, 2.0)),
             MakeForecast(new WeatherModel("m2"), (UvIndexParam, 1.5)));
 
@@ -38,7 +38,7 @@ public sealed class UvRuleSpec
     [Fact]
     public void Uv_daily_max_higher_than_hourly_peak()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecastWithDaily(new WeatherModel("m1"),
                 [(UvIndexParam, 5.0)],
                 [(DailyUvMax, 9.0)]),
@@ -55,7 +55,7 @@ public sealed class UvRuleSpec
     [Fact]
     public void Uv_daily_not_available_falls_back_to_hourly()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (UvIndexParam, 7.0)),
             MakeForecast(new WeatherModel("m2"), (UvIndexParam, 6.5)));
 

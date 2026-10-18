@@ -18,7 +18,6 @@ public sealed class MappingConventionArchitectureSpec
         "Njord.Grpc.V2",
         "Njord.Messages",
         "Njord.Mqtt.Payloads",
-        "Njord.Compute.Contracts",
     ];
 
     // Legitimate leftovers that match a mapping method name but are not contract-to-contract transformations:

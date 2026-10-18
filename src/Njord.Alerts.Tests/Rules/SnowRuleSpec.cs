@@ -1,5 +1,5 @@
 using Njord.Alerts.Rules;
-using Njord.Compute.Contracts;
+using Njord.Messages.Alerts;
 using Njord.Weather;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
@@ -12,7 +12,7 @@ public sealed class SnowRuleSpec
     [Fact]
     public void Snow_light()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Snowfall, 0.1)),
             MakeForecast(new WeatherModel("m2"), (Snowfall, 0.0)));
 
@@ -25,7 +25,7 @@ public sealed class SnowRuleSpec
     [Fact]
     public void Snow_daily_sum_increases_severity()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecastWithDaily(new WeatherModel("m1"),
                 [(Snowfall, 0.1)],
                 [(DailySnowfallSum, 8.0)]),

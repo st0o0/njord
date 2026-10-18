@@ -1,4 +1,5 @@
-using Njord.Compute.Contracts;
+using Njord.Messages.Derived;
+using Njord.Messages.Indices;
 
 namespace Njord.Indices;
 

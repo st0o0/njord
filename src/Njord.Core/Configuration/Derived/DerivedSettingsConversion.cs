@@ -1,4 +1,4 @@
-using Njord.Compute.Settings;
+using Njord.Messages.Derived;
 
 namespace Njord.Core.Configuration.Derived;
 

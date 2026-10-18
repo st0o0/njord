@@ -155,7 +155,7 @@ public sealed class ConfigWriterSpec : IDisposable
         var result = await writer.UpdateAsync<ConsensusOptions>(
             opt =>
             {
-                opt.Method = Compute.Settings.ConsensusMethod.TrimmedMean;
+                opt.Method = Njord.Consensus.Settings.ConsensusMethod.TrimmedMean;
                 opt.TrimPercent = 0.7;
             },
             TestContext.Current.CancellationToken);
@@ -384,7 +384,7 @@ public sealed class ConfigWriterSpec : IDisposable
         var invalid = await writer.UpdateManyAsync(
             [SectionUpdate.For<ConsensusOptions>(opt =>
             {
-                opt.Method = Compute.Settings.ConsensusMethod.TrimmedMean;
+                opt.Method = Njord.Consensus.Settings.ConsensusMethod.TrimmedMean;
                 opt.TrimPercent = 0.7;
             })],
             dryRun: true,

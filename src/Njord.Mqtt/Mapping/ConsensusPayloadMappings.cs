@@ -1,5 +1,5 @@
-using Njord.Compute.Consensus;
-using Njord.Compute.Querying;
+using Njord.Consensus;
+using Njord.Consensus.Querying;
 using Njord.Mqtt.Payloads;
 using Njord.Weather;
 

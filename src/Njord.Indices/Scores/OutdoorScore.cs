@@ -1,4 +1,4 @@
-using Njord.Compute.Contracts;
+using Njord.Messages.Indices;
 using static Njord.Indices.Scores.ScoreFormulas;
 
 namespace Njord.Indices.Scores;

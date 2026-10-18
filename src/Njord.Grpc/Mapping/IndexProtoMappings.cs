@@ -1,6 +1,6 @@
-using Njord.Compute.Contracts;
 using Njord.Grpc.V2;
-using ScoreEnvelope = Njord.Compute.Contracts.ScoreEnvelope;
+using Njord.Messages.Indices;
+using ScoreEnvelope = Njord.Messages.Indices.ScoreEnvelope;
 
 namespace Njord.Grpc.Mapping;
 

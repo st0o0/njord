@@ -1,8 +1,9 @@
-using Njord.Compute.Contracts;
 using Njord.Grpc.Mapping;
-using DomainAlertSeverity = Njord.Compute.Contracts.AlertSeverity;
-using DomainAlertType = Njord.Compute.Contracts.AlertType;
-using DomainConsensusMethod = Njord.Compute.Settings.ConsensusMethod;
+using Njord.Messages.Derived;
+using Njord.Messages.Trends;
+using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
+using DomainAlertType = Njord.Messages.Alerts.AlertType;
+using DomainConsensusMethod = Njord.Consensus.Settings.ConsensusMethod;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
 using ProtoAlertType = Njord.Grpc.V2.AlertType;

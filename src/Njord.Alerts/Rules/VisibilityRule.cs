@@ -1,7 +1,6 @@
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
-using Njord.Compute.Querying;
-using Njord.Compute.Settings;
+using Njord.Consensus;
+using Njord.Consensus.Querying;
+using Njord.Messages.Alerts;
 using Njord.Weather;
 
 namespace Njord.Alerts.Rules;

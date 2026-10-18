@@ -10,7 +10,7 @@ Defines the extraction of feature-library specs into dedicated test projects, le
 - **THEN** they live under `Configuration/` and no `Mqtt/`, `Pipeline/`, `Grpc/` or analysis subdirectories exist
 
 ### Requirement: Each production library SHALL have a dedicated test project
-Every production library (`Njord.Weather`, `Njord.Sensors`, `Njord.Persistence`, `Njord.Compute`, `Njord.Core`, `Njord.OpenMeteo`, `Njord.Budget`, `Njord.SensorHub`, `Njord.Pipeline`, `Njord.Mqtt`, `Njord.Grpc`, `Njord.Alerts`, `Njord.Derived`, `Njord.Trends`, `Njord.Indices`) except the contract-only `Njord.Messages` SHALL have a corresponding `Njord.<Name>.Tests` project containing the specs for that library.
+Every production library (`Njord.Weather`, `Njord.Sensors`, `Njord.Persistence`, `Njord.Consensus`, `Njord.Messages`, `Njord.Core`, `Njord.OpenMeteo`, `Njord.Budget`, `Njord.SensorHub`, `Njord.Pipeline`, `Njord.Mqtt`, `Njord.Grpc`, `Njord.Alerts`, `Njord.Derived`, `Njord.Trends`, `Njord.Indices`) SHALL have a corresponding `Njord.<Name>.Tests` project containing the specs for that library.
 
 #### Scenario: Mqtt specs live in Njord.Mqtt.Tests
 - **WHEN** listing test files for MQTT functionality

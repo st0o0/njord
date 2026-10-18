@@ -1,5 +1,5 @@
-using Njord.Compute.Contracts;
 using Njord.Grpc.V2;
+using Njord.Messages.Alerts;
 
 namespace Njord.Grpc.Mapping;
 

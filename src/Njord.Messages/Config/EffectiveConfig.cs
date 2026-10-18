@@ -1,4 +1,4 @@
-using Njord.Compute.Settings;
+using Njord.Consensus.Settings;
 using Njord.Weather;
 
 namespace Njord.Messages.Config;

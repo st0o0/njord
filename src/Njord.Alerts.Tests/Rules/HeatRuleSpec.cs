@@ -1,5 +1,5 @@
 using Njord.Alerts.Rules;
-using Njord.Compute.Contracts;
+using Njord.Messages.Alerts;
 using Njord.Weather;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
@@ -12,7 +12,7 @@ public sealed class HeatRuleSpec
     [Fact]
     public void Heat_extreme()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (ApparentTemp, 42.0)),
             MakeForecast(new WeatherModel("m2"), (ApparentTemp, 41.0)),
             MakeForecast(new WeatherModel("m3"), (ApparentTemp, 28.0)));
@@ -26,7 +26,7 @@ public sealed class HeatRuleSpec
     [Fact]
     public void Heat_moderate()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (ApparentTemp, 32.0)),
             MakeForecast(new WeatherModel("m2"), (ApparentTemp, 31.0)));
 
@@ -39,7 +39,7 @@ public sealed class HeatRuleSpec
     [Fact]
     public void Heat_below_threshold_returns_none_alert()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (ApparentTemp, 28.0), (Temperature, 27.0)),
             MakeForecast(new WeatherModel("m2"), (ApparentTemp, 27.0), (Temperature, 26.0)));
 
@@ -54,7 +54,7 @@ public sealed class HeatRuleSpec
     [Fact]
     public void Heat_fires_when_raw_temp_exceeds_threshold_but_apparent_does_not()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (ApparentTemp, 28.0), (Temperature, 32.0)),
             MakeForecast(new WeatherModel("m2"), (ApparentTemp, 27.0), (Temperature, 31.0)));
 

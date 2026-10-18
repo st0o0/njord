@@ -165,7 +165,7 @@ For daily parameters, `ConsensusBuilder` SHALL look up values in `Forecast.Daily
 - **THEN** that model contributes null for that (parameter, day-horizon) and is excluded from AvailableModels
 
 ### Requirement: ConsensusResult is a pure data record without MQTT serialization
-`ConsensusResult` SHALL be a record in `Njord.Compute.Consensus` holding the hourly and daily `ParameterConsensus` lists (per-horizon median, trimmed mean, spread, IQR, agreement, outliers, confidence interval, model availability) and the computation time. It SHALL NOT contain `ToMqttMessages()` or reference `MqttMessage`, `TopicScheme`, or any type from `Njord.Mqtt`. MQTT serialization SHALL be the responsibility of `StatePayloadBuilder` in `Njord.Mqtt`.
+`ConsensusResult` SHALL be a record in `Njord.Consensus` holding the hourly and daily `ParameterConsensus` lists (per-horizon median, trimmed mean, spread, IQR, agreement, outliers, confidence interval, model availability) and the computation time. It SHALL NOT contain `ToMqttMessages()` or reference `MqttMessage`, `TopicScheme`, or any type from `Njord.Mqtt`. MQTT serialization SHALL be the responsibility of `StatePayloadBuilder` in `Njord.Mqtt`.
 
 #### Scenario: ConsensusResult has no MQTT dependency
 - **WHEN** `ConsensusResult` is instantiated

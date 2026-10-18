@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using Njord.Compute.Contracts;
+using Njord.Messages.Derived;
 using Njord.Mqtt.Serialization;
 
 namespace Njord.Mqtt.Payloads;

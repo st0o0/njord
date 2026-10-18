@@ -1,4 +1,4 @@
-using Njord.Compute.Consensus;
+using Njord.Consensus;
 using Njord.Weather;
 
 namespace Njord.Indices.Tests;

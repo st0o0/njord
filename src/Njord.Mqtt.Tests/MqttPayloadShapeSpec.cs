@@ -1,5 +1,6 @@
 using System.Text.Json;
-using Njord.Compute.Contracts;
+using Njord.Messages.Alerts;
+using Njord.Messages.Indices;
 using Njord.Mqtt.Payloads;
 using Njord.Mqtt.Serialization;
 

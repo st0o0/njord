@@ -1,5 +1,5 @@
 using Njord.Alerts.Rules;
-using Njord.Compute.Contracts;
+using Njord.Messages.Alerts;
 using Njord.Weather;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
@@ -12,7 +12,7 @@ public sealed class TropicalNightRuleSpec
     [Fact]
     public void TropicalNight_warm_night_produces_yellow()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, 21.0), (IsDayParam, 0.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 22.0), (IsDayParam, 0.0)));
 
@@ -24,7 +24,7 @@ public sealed class TropicalNightRuleSpec
     [Fact]
     public void TropicalNight_severe_produces_orange()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, 24.0), (IsDayParam, 0.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 24.5), (IsDayParam, 0.0)));
 
@@ -36,7 +36,7 @@ public sealed class TropicalNightRuleSpec
     [Fact]
     public void TropicalNight_extreme_produces_red()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, 26.0), (IsDayParam, 0.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 27.0), (IsDayParam, 0.0)));
 
@@ -48,7 +48,7 @@ public sealed class TropicalNightRuleSpec
     [Fact]
     public void TropicalNight_cool_night_produces_none()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, 15.0), (IsDayParam, 0.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 14.0), (IsDayParam, 0.0)));
 
@@ -60,7 +60,7 @@ public sealed class TropicalNightRuleSpec
     [Fact]
     public void TropicalNight_all_daytime_produces_none()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, 25.0), (IsDayParam, 1.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 26.0), (IsDayParam, 1.0)));
 

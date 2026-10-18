@@ -1,6 +1,7 @@
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
+using Njord.Consensus;
+using Njord.Consensus.Querying;
 using Njord.Core.Configuration.Alerts;
+using Njord.Messages.Alerts;
 using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Alerts;

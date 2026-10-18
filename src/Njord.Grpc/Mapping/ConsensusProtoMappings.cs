@@ -1,4 +1,4 @@
-using Njord.Compute.Consensus;
+using Njord.Consensus;
 using Njord.Grpc.V2;
 using ProtoHorizonConsensus = Njord.Grpc.V2.HorizonConsensus;
 using ProtoParameterConsensus = Njord.Grpc.V2.ParameterConsensus;
@@ -15,7 +15,7 @@ internal static class ConsensusProtoMappings
         return update;
     }
 
-    private static ProtoParameterConsensus ToProto(this Compute.Consensus.ParameterConsensus paramConsensus)
+    private static ProtoParameterConsensus ToProto(this Njord.Consensus.ParameterConsensus paramConsensus)
     {
         var proto = new ProtoParameterConsensus
         {
@@ -31,7 +31,7 @@ internal static class ConsensusProtoMappings
         return proto;
     }
 
-    private static ProtoHorizonConsensus ToProto(this Compute.Consensus.HorizonConsensus horizon, Weather.Horizon horizonKey)
+    private static ProtoHorizonConsensus ToProto(this Njord.Consensus.HorizonConsensus horizon, Weather.Horizon horizonKey)
     {
         var protoHorizon = new ProtoHorizonConsensus
         {

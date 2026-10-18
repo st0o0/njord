@@ -1,8 +1,8 @@
 using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Njord.Compute.Contracts;
 using Njord.Core.Actors;
+using Njord.Messages.Alerts;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;

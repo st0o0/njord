@@ -40,6 +40,19 @@ public sealed class ZoneArchitectureSpec
             .Check(NjordArchitecture.Instance);
     }
 
+    [Theory]
+    [InlineData("Analyzer")]
+    [InlineData("Rule")]
+    [InlineData("Formulas")]
+    public void Messages_declares_no_compute_logic(string suffix)
+    {
+        var offenders = typeof(Njord.Messages.Pipeline.QueryPollStates).Assembly.GetTypes()
+            .Where(t => t.Name.EndsWith(suffix, StringComparison.Ordinal))
+            .Select(t => t.FullName);
+
+        Assert.Empty(offenders);
+    }
+
     [Fact]
     public void Grpc_contains_no_actors()
     {

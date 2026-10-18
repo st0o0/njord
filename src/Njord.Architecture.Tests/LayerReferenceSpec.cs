@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
+using Njord.Consensus;
 using Njord.Core.Actors;
 
 namespace Njord.Architecture.Tests;
@@ -35,9 +34,9 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Messages_references_only_Weather_Sensors_and_Compute()
+    public void Messages_references_only_Weather_Sensors_and_Consensus()
     {
-        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.QueryPollStates>().Except(["Njord.Weather", "Njord.Sensors", "Njord.Compute"]));
+        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.QueryPollStates>().Except(["Njord.Weather", "Njord.Sensors", "Njord.Consensus"]));
     }
 
     [Fact]
@@ -51,18 +50,18 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Compute_references_only_Weather_and_Sensors()
+    public void Consensus_references_only_Weather_and_Sensors()
     {
         Assert.Empty(NjordReferences<LocationConsensus>().Except(["Njord.Weather", "Njord.Sensors"]));
     }
 
     [Fact]
-    public void Core_references_only_Weather_Sensors_Messages_Persistence_and_Compute()
+    public void Core_references_only_Weather_Sensors_Messages_Persistence_and_Consensus()
     {
-        Assert.Empty(NjordReferences<IPollManager>().Except(["Njord.Compute", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"]));
+        Assert.Empty(NjordReferences<IPollManager>().Except(["Njord.Consensus", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"]));
     }
 
-    private static readonly string[] CoreAndBelow = ["Njord.Compute", "Njord.Core", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"];
+    private static readonly string[] CoreAndBelow = ["Njord.Consensus", "Njord.Core", "Njord.Weather", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"];
 
     [Fact]
     public void OpenMeteo_references_only_Core_and_below()
@@ -127,13 +126,23 @@ public sealed class LayerReferenceSpec
 
 
     [Fact]
-    public void Compute_grants_internals_only_to_its_own_test_project()
+    public void Consensus_has_no_Akka_dependency()
+    {
+        var akka = typeof(ConsensusBuilder).Assembly.GetReferencedAssemblies()
+            .Select(a => a.Name!)
+            .Where(n => n.StartsWith("Akka", StringComparison.Ordinal));
+
+        Assert.Empty(akka);
+    }
+
+    [Fact]
+    public void Consensus_grants_internals_only_to_its_own_test_project()
     {
         var friends = typeof(ConsensusBuilder).Assembly
             .GetCustomAttributes(typeof(InternalsVisibleToAttribute), inherit: false)
             .Cast<InternalsVisibleToAttribute>()
             .Select(a => a.AssemblyName);
 
-        Assert.Equal(["Njord.Compute.Tests"], friends);
+        Assert.Equal(["Njord.Consensus.Tests"], friends);
     }
 }

@@ -1,4 +1,4 @@
-using Njord.Compute.Settings;
+using Njord.Messages.Indices;
 
 namespace Njord.Core.Configuration.Indices;
 

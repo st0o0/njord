@@ -1,10 +1,11 @@
 using Microsoft.Extensions.Time.Testing;
-using Njord.Compute.Consensus;
-using Njord.Compute.Settings;
+using Njord.Consensus;
+using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
-using Njord.Weather;
+using Njord.Messages.Alerts;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Alerts.Tests.Rules;
 
@@ -38,7 +39,7 @@ internal static class AlertRuleFixture
     public static LocationConsensus ToConsensus(ModelForecasts snap) =>
         new ConsensusBuilder(Parameters, Time).Create(snap, "lucerne", ConsensusSettings.Default);
 
-    public static LocationConsensus Consensus(params Forecast[] forecasts) => ToConsensus(ForecastsWith(forecasts));
+    public static LocationConsensus ConsensusOf(params Forecast[] forecasts) => ToConsensus(ForecastsWith(forecasts));
 
     public static Forecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues) =>
         MakeForecast(model, _ => hourlyValues);

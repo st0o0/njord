@@ -1,9 +1,9 @@
-using Njord.Compute.Settings;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Consensus;
 using Njord.Core.Configuration.Derived;
 using Njord.Core.Configuration.Indices;
 using Njord.Core.Configuration.Trends;
+using Njord.Messages.Config;
 
 namespace Njord.Core.Configuration;
 

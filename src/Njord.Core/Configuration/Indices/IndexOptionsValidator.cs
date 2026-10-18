@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
+using Njord.Consensus;
+using Njord.Messages.Indices;
 
 namespace Njord.Core.Configuration.Indices;
 

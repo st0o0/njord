@@ -1,9 +1,8 @@
 using Microsoft.Extensions.Options;
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
-using Njord.Compute.Querying;
-using Njord.Compute.Settings;
+using Njord.Consensus;
+using Njord.Consensus.Querying;
 using Njord.Core.Configuration.Trends;
+using Njord.Messages.Trends;
 using Njord.Weather;
 
 namespace Njord.Trends;

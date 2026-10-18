@@ -1,12 +1,15 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts;
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
-using Njord.Compute.Settings;
+using Njord.Consensus;
+using Njord.Consensus.Settings;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Indices;
 using Njord.Derived;
 using Njord.Indices;
+using Njord.Messages.Alerts;
+using Njord.Messages.Derived;
+using Njord.Messages.Indices;
+using Njord.Messages.Trends;
 using Njord.Trends;
 using Njord.Weather;
 

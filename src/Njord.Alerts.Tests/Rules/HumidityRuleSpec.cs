@@ -1,5 +1,5 @@
 using Njord.Alerts.Rules;
-using Njord.Compute.Contracts;
+using Njord.Messages.Alerts;
 using Njord.Weather;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
@@ -12,7 +12,7 @@ public sealed class HumidityRuleSpec
     [Fact]
     public void Humidity_muggy_produces_yellow()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (DewpointParam, 18.0), (IsDayParam, 1.0)),
             MakeForecast(new WeatherModel("m2"), (DewpointParam, 17.0), (IsDayParam, 1.0)));
 
@@ -25,7 +25,7 @@ public sealed class HumidityRuleSpec
     [Fact]
     public void Humidity_oppressive_produces_orange()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (DewpointParam, 22.0), (IsDayParam, 1.0)),
             MakeForecast(new WeatherModel("m2"), (DewpointParam, 23.0), (IsDayParam, 1.0)));
 
@@ -38,7 +38,7 @@ public sealed class HumidityRuleSpec
     [Fact]
     public void Humidity_tropical_produces_red()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (DewpointParam, 25.0), (IsDayParam, 1.0)),
             MakeForecast(new WeatherModel("m2"), (DewpointParam, 26.0), (IsDayParam, 1.0)));
 
@@ -51,7 +51,7 @@ public sealed class HumidityRuleSpec
     [Fact]
     public void Humidity_comfortable_produces_none()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (DewpointParam, 12.0), (IsDayParam, 1.0)),
             MakeForecast(new WeatherModel("m2"), (DewpointParam, 10.0), (IsDayParam, 1.0)));
 
@@ -63,7 +63,7 @@ public sealed class HumidityRuleSpec
     [Fact]
     public void Humidity_all_nighttime_produces_none()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (DewpointParam, 25.0), (IsDayParam, 0.0)),
             MakeForecast(new WeatherModel("m2"), (DewpointParam, 26.0), (IsDayParam, 0.0)));
 

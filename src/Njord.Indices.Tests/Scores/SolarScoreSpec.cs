@@ -1,5 +1,5 @@
-using Njord.Compute.Contracts;
 using Njord.Indices.Scores;
+using Njord.Messages.Indices;
 
 namespace Njord.Indices.Tests.Scores;
 

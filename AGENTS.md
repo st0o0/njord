@@ -118,8 +118,8 @@ with optional MQTT state publishing.
   independence of the feature libraries, Domain independence,
   sealed/`Spec` conventions,
   `LayerReferenceSpec` for the assembly reference direction: Weather, Sensors and
-  Persistence reference no Njord assembly, Compute only Weather and Sensors,
-  Messages only Weather, Sensors and Compute (and no Akka package), Core only those,
+  Persistence reference no Njord assembly, Consensus only Weather and Sensors,
+  Messages only Weather, Sensors and Consensus (and no Akka package, no `*Analyzer`/`*Rule`/`*Formulas` type), Core only those,
   feature libraries (OpenMeteo, Budget, SensorHub, Grpc, Pipeline, Mqtt,
   Alerts, Derived, Trends, Indices) only Core and below; the host references
   all. Feature libraries never reference each other, checked by the lateral
@@ -183,17 +183,18 @@ src/
                               #   ParameterRegistry (one typed field per parameter, identity only), ResolvedParameterSet (no Njord references)
   Njord.Sensors/               # Pure sensor records (no Njord references)
   Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references): Events/Budget, Events/Polling
-  Njord.Messages/             # Commands, queries, results, PipelineEvent; no Akka
-                              #   (-> Weather, Sensors, Compute)
-    Budget/ Config/ Forecast/ Pipeline/ Sensors/
-  Njord.Compute/              # Shared analysis building blocks only (-> Weather, Sensors only)
-    Consensus/                # ConsensusBuilder, ConsensusStatistics, consensus records
+  Njord.Consensus/            # Shared consensus building blocks only (-> Weather, Sensors only):
+                              #   ConsensusBuilder, ConsensusStatistics, consensus records
     Querying/                 # Query vocabulary on consensus data (ConsensusQueries,
-                              #   HorizonWindow, HorizonHit)
-    Contracts/                # Result records, SeverityThresholds, result enums
-    Settings/                 # Immutable per-feature settings records
+                              #   HorizonWindow, HorizonHit, ScanDirection)
+    Settings/                 # ConsensusSettings, ConsensusMethod
+  Njord.Messages/             # Commands, queries, results, PipelineEvent and the analysis
+                              #   contracts (result records, enums, per-feature settings); no Akka
+                              #   (-> Weather, Sensors, Consensus)
+    Budget/ Config/ Forecast/ Pipeline/ Sensors/
+    Alerts/ Derived/ Trends/ Indices/   # one folder per analysis feature, contracts only
   Njord.Core/                 # Options, actor keys, NjordHealthMonitor, StreamSupervision
-                              #   (-> Weather, Sensors, Messages, Persistence, Compute)
+                              #   (-> Weather, Sensors, Messages, Persistence, Consensus)
     Actors/                   # Marker interfaces, ShardMessageExtractor, StreamConsumerActor, stream handshakes
                               #   (StreamWiringMessages: pipeline output, forecast,
                               #   read-model and config streams)
@@ -247,7 +248,8 @@ src/
   Njord.Weather.Tests/        # Weather record specs
   Njord.Sensors.Tests/        # Sensor record specs
   Njord.Persistence.Tests/    # Persistence roundtrip and inline wire-format specs (no Verify)
-  Njord.Compute.Tests/        # Consensus, query vocabulary and contract specs (no Akka)
+  Njord.Consensus.Tests/      # Consensus and query vocabulary specs (no Akka)
+  Njord.Messages.Tests/       # Analysis contract specs (enums, thresholds, details)
   Njord.Core.Tests/           # Configuration, StreamConsumerActor
   Njord.OpenMeteo.Tests/      # OpenMeteoClient, OptionsBudgetProvider specs
   Njord.Budget.Tests/         # BudgetTracker specs
@@ -265,10 +267,10 @@ src/
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
 
-Reference direction: Weather/Sensors <- Compute <- Messages; Weather/Sensors/Compute/Messages/Persistence <- Core <- feature libs
+Reference direction: Weather/Sensors <- Consensus <- Messages; Weather/Sensors/Consensus/Messages/Persistence <- Core <- feature libs
 (OpenMeteo, Budget, SensorHub, Grpc, Pipeline, Mqtt, Alerts, Derived, Trends,
 Indices) <- host. Feature libs reference only Njord.Core (and below, including
-Compute transitively), never each other and never the host; they reach each other's actors
+Consensus transitively), never each other and never the host; they reach each other's actors
 through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs`. Registration
 stays central in the host. Enforced by project references plus `Njord.Architecture.Tests/LayerReferenceSpec.cs` and the
 lateral/upward ArchUnit rules in `Njord.Architecture.Tests/ZoneArchitectureSpec.cs`.
@@ -293,9 +295,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1515 tests (Weather 124, Sensors 11, Persistence 16, Compute 176, Core 247,
-Grpc 150, Pipeline 152, Mqtt 155, OpenMeteo 63, Budget 29, SensorHub 32, Architecture 86,
-Alerts 67, Derived 36, Trends 27, Indices 63, host `Njord.Tests` 81).
+Current total: 1565 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
+Core 268, Grpc 150, Pipeline 153, Mqtt 155, OpenMeteo 63, Budget 29, SensorHub 32, Architecture 99,
+Alerts 67, Derived 36, Trends 27, Indices 63, host `Njord.Tests` 96).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -465,7 +467,7 @@ These checks run locally only; they are deliberately not part of CI.
   `Njord.Core.Configuration`). Enforced by `NamingArchitectureSpec`.
 - Enrichment types use `EnrichmentKind` enum (`Njord.Messages.Pipeline`), never bare
   strings. Enrichment `PipelineEvent` variants implement `IEnrichmentEvent`.
-- Consensus method is `ConsensusMethod` enum (`Njord.Compute.Settings`),
+- Consensus method is `ConsensusMethod` enum (`Njord.Consensus.Settings`),
   not a string.
 - `ParameterRegistry` (`Njord.Weather`): one `static readonly ParameterDef` field per
   parameter (declared once, registered into the catalog; daily variants of a shared API name

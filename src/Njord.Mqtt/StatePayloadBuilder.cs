@@ -1,8 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
+using Njord.Consensus;
+using Njord.Messages.Alerts;
+using Njord.Messages.Derived;
+using Njord.Messages.Indices;
 using Njord.Messages.Pipeline;
+using Njord.Messages.Trends;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Serialization;
 using Njord.Mqtt.Topics;

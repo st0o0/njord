@@ -1,5 +1,5 @@
 using Njord.Alerts.Rules;
-using Njord.Compute.Contracts;
+using Njord.Messages.Alerts;
 using Njord.Weather;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
@@ -12,7 +12,7 @@ public sealed class StormRuleSpec
     [Fact]
     public void Storm_detected()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (WindGusts, 20.0)),
             MakeForecast(new WeatherModel("m2"), (WindGusts, 18.0)),
             MakeForecast(new WeatherModel("m3"), (WindGusts, 10.0)));
@@ -26,7 +26,7 @@ public sealed class StormRuleSpec
     [Fact]
     public void Storm_not_detected()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (WindGusts, 10.0)),
             MakeForecast(new WeatherModel("m2"), (WindGusts, 8.0)));
 
@@ -38,7 +38,7 @@ public sealed class StormRuleSpec
     [Fact]
     public void Storm_severe_produces_orange()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (WindGusts, 28.0)),
             MakeForecast(new WeatherModel("m2"), (WindGusts, 26.0)));
 
@@ -50,7 +50,7 @@ public sealed class StormRuleSpec
     [Fact]
     public void Storm_hurricane_produces_red()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (WindGusts, 36.0)),
             MakeForecast(new WeatherModel("m2"), (WindGusts, 34.0)));
 

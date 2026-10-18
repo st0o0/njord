@@ -1,5 +1,3 @@
-using Njord.Compute.Settings;
-
 namespace Njord.Messages.Config;
 
 public sealed record QueryAnalysisSettings;

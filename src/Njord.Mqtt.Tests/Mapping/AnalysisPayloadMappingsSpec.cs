@@ -1,4 +1,7 @@
-using Njord.Compute.Contracts;
+using Njord.Messages.Alerts;
+using Njord.Messages.Derived;
+using Njord.Messages.Indices;
+using Njord.Messages.Trends;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Payloads;
 using Njord.Weather;

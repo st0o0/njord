@@ -1,17 +1,17 @@
-using Njord.Compute.Consensus;
-using Njord.Compute.Contracts;
+using Njord.Consensus;
 using Njord.Grpc.Mapping;
+using Njord.Messages.Derived;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using Njord.Weather;
-using DomainAlert = Njord.Compute.Contracts.Alert;
-using DomainAlertSeverity = Njord.Compute.Contracts.AlertSeverity;
-using DomainAlertType = Njord.Compute.Contracts.AlertType;
-using DomainHorizonConsensus = Njord.Compute.Consensus.HorizonConsensus;
-using DomainHorizonDerived = Njord.Compute.Contracts.HorizonDerived;
-using DomainParameterConsensus = Njord.Compute.Consensus.ParameterConsensus;
-using DomainParameterTrend = Njord.Compute.Contracts.ParameterTrend;
-using DomainScalarDerived = Njord.Compute.Contracts.ScalarDerived;
+using DomainAlert = Njord.Messages.Alerts.Alert;
+using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
+using DomainAlertType = Njord.Messages.Alerts.AlertType;
+using DomainHorizonConsensus = Njord.Consensus.HorizonConsensus;
+using DomainHorizonDerived = Njord.Messages.Derived.HorizonDerived;
+using DomainParameterConsensus = Njord.Consensus.ParameterConsensus;
+using DomainParameterTrend = Njord.Messages.Trends.ParameterTrend;
+using DomainScalarDerived = Njord.Messages.Derived.ScalarDerived;
 
 namespace Njord.Grpc.Tests;
 

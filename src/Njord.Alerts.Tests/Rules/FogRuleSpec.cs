@@ -1,5 +1,5 @@
 using Njord.Alerts.Rules;
-using Njord.Compute.Contracts;
+using Njord.Messages.Alerts;
 using Njord.Weather;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
@@ -12,7 +12,7 @@ public sealed class FogRuleSpec
     [Fact]
     public void Fog_likely()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, 5.0), (DewpointParam, 4.5), (WindSpeed, 1.0), (HumidityParam, 95.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 5.0), (DewpointParam, 4.0), (WindSpeed, 2.0), (HumidityParam, 92.0)));
 
@@ -25,7 +25,7 @@ public sealed class FogRuleSpec
     [Fact]
     public void Fog_not_likely()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, 20.0), (DewpointParam, 10.0), (WindSpeed, 5.0), (HumidityParam, 60.0)));
 
         var alert = Rule.Evaluate(consensus, Defaults);
@@ -36,7 +36,7 @@ public sealed class FogRuleSpec
     [Fact]
     public void Fog_persistent_produces_orange()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (Temperature, 5.0), (DewpointParam, 4.5), (WindSpeed, 1.0), (HumidityParam, 95.0)),
             MakeForecast(new WeatherModel("m2"), (Temperature, 5.0), (DewpointParam, 4.0), (WindSpeed, 2.0), (HumidityParam, 92.0)));
 

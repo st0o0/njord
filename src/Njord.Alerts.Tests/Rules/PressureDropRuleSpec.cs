@@ -1,5 +1,5 @@
 using Njord.Alerts.Rules;
-using Njord.Compute.Contracts;
+using Njord.Messages.Alerts;
 using Njord.Weather;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
@@ -13,7 +13,7 @@ public sealed class PressureDropRuleSpec
     public void PressureDrop_front_approaching()
     {
         static (ParameterDef, double)[] Pressure(int h) => [(PressureMsl, 1020.0 - (h < 6 ? h * 2.5 : 0))];
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), Pressure),
             MakeForecast(new WeatherModel("m2"), Pressure));
 
@@ -26,7 +26,7 @@ public sealed class PressureDropRuleSpec
     [Fact]
     public void PressureDrop_stable()
     {
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), (PressureMsl, 1015.0)));
 
         var alert = Rule.Evaluate(consensus, Defaults with { PressureDropThreshold = 5.0 });
@@ -38,7 +38,7 @@ public sealed class PressureDropRuleSpec
     public void PressureDrop_severe_produces_orange()
     {
         static (ParameterDef, double)[] Pressure(int h) => [(PressureMsl, 1020.0 - (h < 4 ? h * 4.0 : 0))];
-        var consensus = Consensus(
+        var consensus = ConsensusOf(
             MakeForecast(new WeatherModel("m1"), Pressure),
             MakeForecast(new WeatherModel("m2"), Pressure));
 

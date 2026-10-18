@@ -1,4 +1,4 @@
-using Njord.Compute.Contracts;
+using Njord.Messages.Trends;
 
 namespace Njord.Mqtt.Payloads;
 

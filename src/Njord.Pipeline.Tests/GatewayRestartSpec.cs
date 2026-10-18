@@ -1,7 +1,7 @@
 using Akka.Actor;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Compute.Consensus;
+using Njord.Consensus;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;

@@ -1,5 +1,6 @@
-using Njord.Compute.Contracts;
 using Njord.Grpc.V2;
+using Njord.Messages.Derived;
+using Njord.Weather;
 using ProtoHorizonDerived = Njord.Grpc.V2.HorizonDerived;
 using ProtoScalarDerived = Njord.Grpc.V2.ScalarDerived;
 
