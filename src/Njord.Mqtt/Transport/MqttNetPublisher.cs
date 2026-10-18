@@ -35,19 +35,24 @@ public sealed class MqttNetPublisher(IOptions<MqttOptions> mqttOptions, ILogger<
             _handlersAttached = true;
         }
 
+        var result = await _client.ConnectAsync(BuildClientOptions(_options), cancellationToken);
+        EnsureAccepted(result);
+    }
+
+    internal static MqttClientOptions BuildClientOptions(MqttOptions options)
+    {
         var builder = new MqttClientOptionsBuilder()
-            .WithTcpServer(_options.Host, _options.Port)
-            .WithWillTopic(TopicScheme.AvailabilityTopic(_options.BaseTopic))
+            .WithTcpServer(options.Host, options.Port)
+            .WithWillTopic(TopicScheme.AvailabilityTopic(options.BaseTopic))
             .WithWillPayload("offline")
             .WithWillRetain()
             .WithWillQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce);
-        if (!string.IsNullOrWhiteSpace(_options.Username))
+        if (!string.IsNullOrWhiteSpace(options.Username))
         {
-            builder = builder.WithCredentials(_options.Username, _options.Password);
+            builder = builder.WithCredentials(options.Username, options.Password);
         }
 
-        var result = await _client.ConnectAsync(builder.Build(), cancellationToken);
-        EnsureAccepted(result);
+        return builder.Build();
     }
 
     internal static void EnsureAccepted(MqttClientConnectResult result)

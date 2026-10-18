@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Njord.Core.Configuration.Persistence;
 using Njord.Health;
+using Njord.Tests.Shared;
 
 namespace Njord.Tests.Health;
 
@@ -32,7 +33,7 @@ public sealed class JournalHealthCheckSpec
     public void The_sqlite_directory_comes_from_the_storage_path()
     {
         var directory = JournalHealthCheck.SqliteDirectory(
-            new PersistenceOptions(), new StorageOptions { PersistencePath = Path.Combine("data", "njord.db") });
+            AppSettingsDefaults.Options<PersistenceOptions>(), new StorageOptions { PersistencePath = Path.Combine("data", "njord.db") });
 
         Assert.Equal(Path.GetFullPath("data"), directory);
     }

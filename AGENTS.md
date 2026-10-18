@@ -253,7 +253,7 @@ src/
   # /Tests/ — one test project per production project
   Njord.Weather.Tests/        # Weather record specs
   Njord.Sensors.Tests/        # Sensor record specs
-  Njord.Persistence.Tests/    # Persistence roundtrip and inline wire-format specs (no Verify)
+  Njord.Persistence.Tests/    # Persistence roundtrip and wire-format specs (Verify for the poll worker records)
   Njord.Consensus.Tests/      # Consensus and query vocabulary specs (no Akka)
   Njord.Messages.Tests/       # Analysis contract specs (enums, thresholds, details)
   Njord.Core.Tests/           # Configuration, StreamConsumerActor
@@ -301,9 +301,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1614 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
-Core 167, Grpc 150, Pipeline 176, Mqtt 161, OpenMeteo 63, Budget 36, SensorHub 32, Architecture 105,
-Alerts 75, Derived 36, Trends 27, Indices 85, host `Njord.Tests` 174).
+Current total: 1639 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
+Core 167, Grpc 157, Pipeline 176, Mqtt 161, OpenMeteo 72, Budget 36, SensorHub 32, Architecture 105,
+Alerts 75, Derived 38, Trends 29, Indices 85, host `Njord.Tests` 179).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -442,7 +442,7 @@ These checks run locally only; they are deliberately not part of CI.
   margin for the shared constants. Plain
   `Timeout = 5000` is only for specs that make no dilated Akka wait. Never
   reuse an actor name after `GracefulStop` (name release lags `Terminated`):
-  use a unique name. Retry-backoff specs set `AddFastRetryBackoff()` instead of
+  use a unique name. Retry-backoff specs pass a short `BackoffPolicy` (`Backoff.Create(50 ms, maxDelay: 400 ms)`) instead of
   waiting real seconds. Pure synchronous specs use a plain `[Fact]`, a timeout
   cannot be enforced there.
 - C#: records for messages/DTOs, value objects in the domain, `sealed` by
