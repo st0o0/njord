@@ -25,19 +25,6 @@ public sealed record PollWorkerState(
 
     // The gateway is (re-)attaching to the pipeline: nothing was fetched and nothing failed.
     public static readonly TimeSpan PipelineUnavailableRetry = TimeSpan.FromSeconds(5);
-
-    public static PollWorkerState FromPersistence(PersistedPollWorkerState dto) => new(
-        dto is { Location: { } location, ModelId: { } model } ? new PollTarget(new LocationId(location), model) : null,
-        dto.Active,
-        dto.DiscoveryInterval,
-        dto.LastHash,
-        dto.LastChangeUtc,
-        dto.PrevChangeUtc,
-        dto.NextPollUtc,
-        dto.MissCount,
-        (PollPhase)dto.Phase,
-        dto.Cycle,
-        dto.TransientFailureCount);
 }
 
 public static class PollWorkerStateExtensions
@@ -153,33 +140,6 @@ public static class PollWorkerStateExtensions
         PollDeferred e => state.Apply(e),
         _ => throw new ArgumentException($"Unknown poll worker event: {evt.GetType().Name}", nameof(evt)),
     };
-
-    public static PollStateEntry GetSnapshot(this PollWorkerState state)
-    {
-        var target = state.Target ?? throw new InvalidOperationException("A poll worker without a target has no poll state");
-        return new PollStateEntry(
-            target.Location,
-            target.ModelId,
-            state.Phase,
-            state.NextPollUtc,
-            state.LastChangeUtc,
-            state.MissCount,
-            state.Cycle is { } cycle ? (long)cycle.TotalSeconds : null);
-    }
-
-    public static PersistedPollWorkerState GetPersistenceState(this PollWorkerState state) => new(
-        state.Target?.Location.Name,
-        state.Target?.ModelId,
-        state.Active,
-        state.DiscoveryInterval,
-        state.LastHash,
-        state.LastChangeUtc,
-        state.PrevChangeUtc,
-        state.NextPollUtc,
-        state.MissCount,
-        (int)state.Phase,
-        state.Cycle,
-        state.TransientFailureCount);
 
     private static TimeSpan RetryBackoff(int count)
     {

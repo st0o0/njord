@@ -10,7 +10,7 @@ public sealed class PollWorkerRecordsSpec
 
     private static readonly PersistedPollWorkerState Snapshot = new(
         "lucerne", "icon_d2", true, TimeSpan.FromMinutes(20), 42, Utc, Utc.AddHours(-3), Utc.AddHours(3).AddMinutes(1),
-        2, 1, TimeSpan.FromHours(3), 1);
+        2, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 1);
 
     public static TheoryData<object> Events() =>
     [
@@ -33,11 +33,45 @@ public sealed class PollWorkerRecordsSpec
     [Fact]
     public void An_unstarted_PersistedPollWorkerState_roundtrip()
     {
-        var empty = new PersistedPollWorkerState(null, null, false, TimeSpan.Zero, null, null, null, DateTimeOffset.MinValue, 0, 0, null, 0);
+        var empty = new PersistedPollWorkerState(null, null, false, TimeSpan.Zero, null, null, null, DateTimeOffset.MinValue, 0, PersistedPollPhase.Discovery, null, 0);
 
         var result = PersistenceRoundtripHelper.Roundtrip(empty);
 
         Assert.Equal(empty, result);
+    }
+
+    [Fact]
+    public void An_old_format_document_with_a_numeric_phase_deserializes_into_the_same_state()
+    {
+        const string oldFormat = """
+{
+  "Location": "lucerne",
+  "ModelId": "icon_d2",
+  "Active": true,
+  "DiscoveryInterval": "00:20:00",
+  "LastHash": 42,
+  "LastChangeUtc": "2026-07-15T10:00:00+00:00",
+  "PrevChangeUtc": "2026-07-15T07:00:00+00:00",
+  "NextPollUtc": "2026-07-15T13:01:00+00:00",
+  "MissCount": 2,
+  "Phase": 1,
+  "Cycle": "03:00:00",
+  "TransientFailureCount": 1
+}
+""";
+
+        var result = JsonConvert.DeserializeObject<PersistedPollWorkerState>(oldFormat);
+
+        Assert.Equal(Snapshot, result);
+    }
+
+    [Fact]
+    public void Persisted_poll_phases_keep_their_stored_numbers()
+    {
+        Assert.Multiple(
+            () => Assert.Equal(0, Convert.ToInt32(PersistedPollPhase.Discovery)),
+            () => Assert.Equal(1, Convert.ToInt32(PersistedPollPhase.Steady)),
+            () => Assert.Equal(2, Enum.GetValues<PersistedPollPhase>().Length));
     }
 
     [Theory]

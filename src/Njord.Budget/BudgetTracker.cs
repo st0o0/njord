@@ -28,14 +28,14 @@ public sealed class BudgetTracker : ReceivePersistentActor
 
         Recover<ApiCallRecorded>(dto =>
         {
-            var (weight, utc) = BudgetTrackerStateExtensions.FromPersistedEvent(dto);
+            var (weight, utc) = dto.FromPersistedEvent();
             _state = _state.ApplyRecover(weight, utc, _timeProvider.GetUtcNow());
         });
         Recover<SnapshotOffer>(offer =>
         {
             if (offer.Snapshot is PersistedBudgetTrackerState snapshot)
             {
-                _state = BudgetTrackerState.FromPersistence(snapshot, _timeProvider.GetUtcNow());
+                _state = snapshot.FromPersistence(_timeProvider.GetUtcNow());
             }
         });
 

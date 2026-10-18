@@ -51,7 +51,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         {
             if (offer.Snapshot is PersistedPollWorkerState snapshot)
             {
-                _state = PollWorkerState.FromPersistence(snapshot);
+                _state = snapshot.FromPersistence();
             }
         });
         Recover<RecoveryCompleted>(_ => OnRecovered());

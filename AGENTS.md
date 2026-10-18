@@ -293,8 +293,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1497 tests (Weather 124, Sensors 11, Persistence 14, Compute 176, Core 247,
-Grpc 150, Pipeline 144, Mqtt 155, OpenMeteo 63, Budget 28, SensorHub 32, Architecture 79,
+Current total: 1515 tests (Weather 124, Sensors 11, Persistence 16, Compute 176, Core 247,
+Grpc 150, Pipeline 152, Mqtt 155, OpenMeteo 63, Budget 29, SensorHub 32, Architecture 86,
 Alerts 67, Derived 36, Trends 27, Indices 63, host `Njord.Tests` 81).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
@@ -442,6 +442,13 @@ These checks run locally only; they are deliberately not part of CI.
   for events (`SomethingHappened`), `Persisted<Name>State` for snapshots.
   New properties must be nullable or have a default. While the project is 0.x,
   breaking persistence changes are allowed (`refactor!:`).
+  Closed sets in a persisted record are `Persisted*` enums with explicit numeric
+  values (`PersistedPollPhase`); `Njord.Persistence` types reference only `System`
+  and `Njord.Persistence` types (`PersistenceBoundarySpec`). Mapping between state
+  and persisted records lives in `<Owner>PersistenceMappings` (`GetPersistenceState`,
+  `FromPersistence`, `FromPersistedEvent`, `ToPersistence()`/`ToDomain()` for
+  enums) in the owning project, never in the state file; state to message contract
+  (`GetSnapshot`) lives in `<Owner>MessageMappings`.
 - Persistent actors use `LastSequenceNr % SnapshotInterval == 0` for snapshot
   scheduling (FunkArr pattern). No counters on domain state records.
 - Journal cleanup after snapshot: `DeleteMessages(seqNr)` +

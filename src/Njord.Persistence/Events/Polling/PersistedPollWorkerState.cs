@@ -10,6 +10,6 @@ public sealed record PersistedPollWorkerState(
     DateTimeOffset? PrevChangeUtc,
     DateTimeOffset NextPollUtc,
     int MissCount,
-    int Phase,
+    PersistedPollPhase Phase,
     TimeSpan? Cycle,
     int TransientFailureCount);

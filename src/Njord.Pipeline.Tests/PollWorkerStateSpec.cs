@@ -399,48 +399,4 @@ public sealed class PollWorkerStateSpec
             () => Assert.Equal(new PollDeferred(T0, TimeSpan.FromSeconds(5)), evt),
             () => Assert.Equal(PollWorkerOutcome.Failed, outcome));
     }
-
-    [Fact]
-    public void GetSnapshot_describes_the_target_and_its_poll_state()
-    {
-        var entry = Steady().GetSnapshot();
-
-        Assert.Multiple(
-            () => Assert.Equal(Lucerne, entry.Location),
-            () => Assert.Equal("icon_d2", entry.ModelId),
-            () => Assert.Equal(PollPhase.Steady, entry.Phase),
-            () => Assert.Equal(T0.AddHours(6).AddMinutes(1), entry.NextPollUtc),
-            () => Assert.Equal(T0.AddHours(3), entry.LastChangeUtc),
-            () => Assert.Equal(0, entry.MissCount),
-            () => Assert.Equal(10800L, entry.CycleSeconds));
-    }
-
-    [Fact]
-    public void GetSnapshot_reports_a_null_cycle_in_discovery()
-    {
-        var entry = Started().GetSnapshot();
-
-        Assert.Multiple(
-            () => Assert.Equal(PollPhase.Discovery, entry.Phase),
-            () => Assert.Null(entry.CycleSeconds),
-            () => Assert.Null(entry.LastChangeUtc));
-    }
-
-    [Fact]
-    public void GetPersistenceState_and_FromPersistence_roundtrip()
-    {
-        var state = Steady().Apply(new ForecastUnchanged(T0.AddHours(6))).Apply(new PollFailed(T0.AddHours(7), TimeSpan.Zero));
-
-        var restored = PollWorkerState.FromPersistence(state.GetPersistenceState());
-
-        Assert.Equal(state, restored);
-    }
-
-    [Fact]
-    public void An_empty_state_survives_the_persistence_roundtrip()
-    {
-        var restored = PollWorkerState.FromPersistence(PollWorkerState.Empty.GetPersistenceState());
-
-        Assert.Equal(PollWorkerState.Empty, restored);
-    }
 }

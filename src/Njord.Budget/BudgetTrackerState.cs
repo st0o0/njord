@@ -11,21 +11,6 @@ public sealed record BudgetTrackerState(
     long DailyUsed)
 {
     public static readonly BudgetTrackerState Empty = new(0, 0, 0, 0);
-
-    public static BudgetTrackerState FromPersistence(PersistedBudgetTrackerState dto, DateTimeOffset now)
-    {
-        if (dto.Month != now.Month)
-        {
-            return new BudgetTrackerState(now.Month, now.DayOfYear, 0, 0);
-        }
-
-        if (dto.Day != now.DayOfYear)
-        {
-            return new BudgetTrackerState(now.Month, now.DayOfYear, dto.MonthlyUsed, 0);
-        }
-
-        return new BudgetTrackerState(now.Month, now.DayOfYear, dto.MonthlyUsed, dto.DailyUsed);
-    }
 }
 
 public static class BudgetTrackerStateExtensions
@@ -85,13 +70,4 @@ public static class BudgetTrackerStateExtensions
 
         return state with { MonthlyUsed = newMonthly, DailyUsed = newDaily };
     }
-
-    public static BudgetUsageResult GetSnapshot(this BudgetTrackerState state) =>
-        new(state.MonthlyUsed, state.DailyUsed);
-
-    public static PersistedBudgetTrackerState GetPersistenceState(this BudgetTrackerState state) =>
-        new(state.CurrentMonth, state.CurrentDay, state.MonthlyUsed, state.DailyUsed);
-
-    public static (int Weight, DateTimeOffset Utc) FromPersistedEvent(ApiCallRecorded dto) =>
-        (dto.Weight, dto.Utc);
 }
