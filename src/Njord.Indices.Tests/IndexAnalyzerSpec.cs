@@ -63,7 +63,7 @@ public sealed class IndexAnalyzerSpec
         Assert.NotNull(withoutSensor);
         Assert.NotEmpty(withSensor.Days);
         Assert.NotEmpty(withoutSensor.Days);
-        Assert.NotEqual(withoutSensor.Days[0].NightVentilation, withSensor.Days[0].NightVentilation);
+        Assert.NotEqual(withoutSensor.Days[0].Scores[IndexKind.NightVentilation].Value, withSensor.Days[0].Scores[IndexKind.NightVentilation].Value);
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed class IndexAnalyzerSpec
         Assert.NotNull(fresh);
         Assert.NotEmpty(afterSensorCall.Days);
         Assert.NotEmpty(fresh.Days);
-        Assert.Equal(fresh.Days[0].NightVentilation, afterSensorCall.Days[0].NightVentilation);
+        Assert.Equal(fresh.Days[0].Scores[IndexKind.NightVentilation].Value, afterSensorCall.Days[0].Scores[IndexKind.NightVentilation].Value);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class IndexAnalyzerSpec
         Assert.NotNull(cool);
         Assert.NotEmpty(warm.Days);
         Assert.NotEmpty(cool.Days);
-        Assert.NotEqual(warm.Days[0].NightVentilation, cool.Days[0].NightVentilation);
+        Assert.NotEqual(warm.Days[0].Scores[IndexKind.NightVentilation].Value, cool.Days[0].Scores[IndexKind.NightVentilation].Value);
     }
 
     private static IndexAnalyzer CreateAnalyzer(bool enabled = true) => FeatureServices.Indices(Time, enabled);
@@ -193,7 +193,19 @@ public sealed class IndexAnalyzerSpec
 
         Assert.NotNull(forwardResult);
         Assert.NotNull(reverseResult);
-        Assert.Equal(forwardResult.Days, reverseResult.Days);
+        Assert.Equal(forwardResult.Days.Count, reverseResult.Days.Count);
+        for (var i = 0; i < forwardResult.Days.Count; i++)
+        {
+            var fwd = forwardResult.Days[i];
+            var rev = reverseResult.Days[i];
+            Assert.Equal(fwd.DayOffset, rev.DayOffset);
+            Assert.Equal(fwd.HoursIncluded, rev.HoursIncluded);
+            foreach (var kind in Enum.GetValues<IndexKind>())
+            {
+                Assert.Equal(fwd.Scores[kind].Value, rev.Scores[kind].Value);
+                Assert.Equal(fwd.Scores[kind].Envelope, rev.Scores[kind].Envelope);
+            }
+        }
     }
 
     [Fact]
@@ -316,7 +328,7 @@ public sealed class IndexAnalyzerSpec
         var result = Analyze(time, consensus);
 
         var d0 = result.Days.First(d => d.DayOffset == 0);
-        Assert.InRange(d0.Outdoor, 50, 100);
+        Assert.InRange(d0.Scores[IndexKind.Outdoor].Value, 50, 100);
     }
 
     [Fact]
@@ -343,7 +355,7 @@ public sealed class IndexAnalyzerSpec
         var result = Analyze(time, consensus);
 
         var d0 = result.Days.First(d => d.DayOffset == 0);
-        Assert.InRange(d0.NightVentilation, 50, 100);
+        Assert.InRange(d0.Scores[IndexKind.NightVentilation].Value, 50, 100);
     }
 
     [Fact]
@@ -390,8 +402,9 @@ public sealed class IndexAnalyzerSpec
         var result = Analyze(time, consensus);
 
         var d0 = result.Days.First(d => d.DayOffset == 0);
-        Assert.NotNull(d0.OutdoorEnvelope);
-        Assert.True(d0.OutdoorEnvelope.Min <= d0.OutdoorEnvelope.Max);
+        var outdoor = d0.Scores[IndexKind.Outdoor];
+        Assert.NotNull(outdoor.Envelope);
+        Assert.True(outdoor.Envelope.Min <= outdoor.Envelope.Max);
     }
 
     [Fact]

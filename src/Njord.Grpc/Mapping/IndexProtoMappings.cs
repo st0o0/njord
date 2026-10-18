@@ -15,55 +15,12 @@ internal static class IndexProtoMappings
             var proto = new V2.DayScoreSet
             {
                 DayOffset = day.DayOffset,
-                Laundry = day.Laundry,
-                Outdoor = day.Outdoor,
-                Running = day.Running,
-                Cycling = day.Cycling,
-                Bbq = day.Bbq,
-                Irrigation = day.Irrigation,
-                Solar = day.Solar,
-                NightVentilation = day.NightVentilation,
                 HoursIncluded = day.HoursIncluded,
             };
 
-            if (day.LaundryEnvelope.ToProto() is { } le)
+            foreach (var (kind, scored) in day.Scores)
             {
-                proto.LaundryEnvelope = le;
-            }
-
-            if (day.OutdoorEnvelope.ToProto() is { } oe)
-            {
-                proto.OutdoorEnvelope = oe;
-            }
-
-            if (day.RunningEnvelope.ToProto() is { } re)
-            {
-                proto.RunningEnvelope = re;
-            }
-
-            if (day.CyclingEnvelope.ToProto() is { } ce)
-            {
-                proto.CyclingEnvelope = ce;
-            }
-
-            if (day.BbqEnvelope.ToProto() is { } be)
-            {
-                proto.BbqEnvelope = be;
-            }
-
-            if (day.IrrigationEnvelope.ToProto() is { } ie)
-            {
-                proto.IrrigationEnvelope = ie;
-            }
-
-            if (day.SolarEnvelope.ToProto() is { } se)
-            {
-                proto.SolarEnvelope = se;
-            }
-
-            if (day.NightVentilationEnvelope.ToProto() is { } nve)
-            {
-                proto.NightVentilationEnvelope = nve;
+                SetScore(proto, kind, scored);
             }
 
             update.Days.Add(proto);
@@ -88,6 +45,47 @@ internal static class IndexProtoMappings
         }
 
         return update;
+    }
+
+    private static void SetScore(V2.DayScoreSet proto, IndexKind kind, ScoredIndex scored)
+    {
+        switch (kind)
+        {
+            case IndexKind.Laundry:
+                proto.Laundry = scored.Value;
+                if (scored.Envelope.ToProto() is { } le) proto.LaundryEnvelope = le;
+                break;
+            case IndexKind.Outdoor:
+                proto.Outdoor = scored.Value;
+                if (scored.Envelope.ToProto() is { } oe) proto.OutdoorEnvelope = oe;
+                break;
+            case IndexKind.Running:
+                proto.Running = scored.Value;
+                if (scored.Envelope.ToProto() is { } re) proto.RunningEnvelope = re;
+                break;
+            case IndexKind.Cycling:
+                proto.Cycling = scored.Value;
+                if (scored.Envelope.ToProto() is { } ce) proto.CyclingEnvelope = ce;
+                break;
+            case IndexKind.Bbq:
+                proto.Bbq = scored.Value;
+                if (scored.Envelope.ToProto() is { } be) proto.BbqEnvelope = be;
+                break;
+            case IndexKind.Irrigation:
+                proto.Irrigation = scored.Value;
+                if (scored.Envelope.ToProto() is { } ie) proto.IrrigationEnvelope = ie;
+                break;
+            case IndexKind.Solar:
+                proto.Solar = scored.Value;
+                if (scored.Envelope.ToProto() is { } se) proto.SolarEnvelope = se;
+                break;
+            case IndexKind.NightVentilation:
+                proto.NightVentilation = scored.Value;
+                if (scored.Envelope.ToProto() is { } nve) proto.NightVentilationEnvelope = nve;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
+        }
     }
 
     private static V2.ScoreEnvelope? ToProto(this ScoreEnvelope? envelope)

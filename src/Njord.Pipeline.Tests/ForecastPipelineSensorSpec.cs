@@ -58,7 +58,7 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
             var (consensus, index) = await AnalyzeAsync(fixture, queue, events, AnalysisFixture.Lucerne, ct);
             expectedLive = ExpectedNightVentilation(fixture, consensus, AnalysisFixture.Lucerne, LiveIndoorTemperature);
             expectedConfigured = ExpectedNightVentilation(fixture, consensus, AnalysisFixture.Lucerne, ConfiguredIndoorTemp(AnalysisFixture.Lucerne));
-            actual = index.Days[0].NightVentilation;
+            actual = index.Days[0].Scores[IndexKind.NightVentilation].Value;
             Assert.Equal(expectedLive, actual);
         }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(100), cancellationToken: ct);
 
@@ -80,7 +80,7 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
             var (consensus, index) = await AnalyzeAsync(fixture, queue, events, AnalysisFixture.Lucerne, ct);
             Assert.Equal(
                 ExpectedNightVentilation(fixture, consensus, AnalysisFixture.Lucerne, LiveIndoorTemperature),
-                index.Days[0].NightVentilation);
+                index.Days[0].Scores[IndexKind.NightVentilation].Value);
         }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(100), cancellationToken: ct);
     }
 
@@ -98,13 +98,13 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
             var (bernConsensus, bernIndex) = await AnalyzeAsync(fixture, queue, events, AnalysisFixture.Bern, ct);
             Assert.Equal(
                 ExpectedNightVentilation(fixture, bernConsensus, AnalysisFixture.Bern, LiveIndoorTemperature),
-                bernIndex.Days[0].NightVentilation);
+                bernIndex.Days[0].Scores[IndexKind.NightVentilation].Value);
         }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(100), cancellationToken: ct);
 
         var (consensus, index) = await AnalyzeAsync(fixture, queue, events, AnalysisFixture.Lucerne, ct);
         Assert.Equal(
             ExpectedNightVentilation(fixture, consensus, AnalysisFixture.Lucerne, ConfiguredIndoorTemp(AnalysisFixture.Lucerne)),
-            index.Days[0].NightVentilation);
+            index.Days[0].Scores[IndexKind.NightVentilation].Value);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -124,7 +124,7 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
             () => Assert.Equal(forecasts, received.OfType<PipelineEvent.IndexComputed>().Count()),
             () => Assert.Equal(
                 ExpectedNightVentilation(fixture, consensus, AnalysisFixture.Lucerne, ConfiguredIndoorTemp(AnalysisFixture.Lucerne)),
-                index.Days[0].NightVentilation));
+                index.Days[0].Scores[IndexKind.NightVentilation].Value));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -140,7 +140,7 @@ public sealed class ForecastPipelineSensorSpec : NjordActorSpec
             var (consensus, index) = await AnalyzeAsync(fixture, queue, events, AnalysisFixture.Lucerne, ct);
             Assert.Equal(
                 ExpectedNightVentilation(fixture, consensus, AnalysisFixture.Lucerne, LiveIndoorTemperature),
-                index.Days[0].NightVentilation);
+                index.Days[0].Scores[IndexKind.NightVentilation].Value);
         }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(100), cancellationToken: ct);
     }
 

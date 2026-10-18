@@ -21,10 +21,10 @@ public sealed class IndexProtoMappingsSpec
     [Fact]
     public void Indices_should_map_daily_scores_frost_and_vpd()
     {
+        var scores = AllScores(80, 70, 65, 75, 90, 30, 85, 60);
         var result = new IndexResult(
             Location: new LocationId("lucerne"),
-            Days: [new DayScoreSet(0, Laundry: 80, Outdoor: 70, Running: 65, Cycling: 75,
-                Bbq: 90, Irrigation: 30, Solar: 85, NightVentilation: 60, HoursIncluded: 14)],
+            Days: [new DayScoreSet(0, scores, 14)],
             FrostProtection: new FrostProtectionInfo(HoursUntilFrost: 8, Confidence: 0.7),
             Vpd: new VpdInfo(Category: VpdCategory.Optimal, Vpd: 1.2));
 
@@ -54,7 +54,7 @@ public sealed class IndexProtoMappingsSpec
     public void Indices_should_omit_frost_when_null()
     {
         var result = new IndexResult(new LocationId("lucerne"),
-            [new DayScoreSet(0, 50, 50, 50, 50, 50, 50, 50, 50, HoursIncluded: 14)],
+            [new DayScoreSet(0, AllScores(50), 14)],
             null, null);
 
         var update = IndexProtoMappings.ToProto(result);
@@ -67,9 +67,10 @@ public sealed class IndexProtoMappingsSpec
     public void Indices_should_map_envelopes_when_present()
     {
         var envelope = new ScoreEnvelope(65, 80, 0.9);
+        var scores = AllScores(70);
+        scores[IndexKind.Outdoor] = new ScoredIndex(70, envelope);
         var result = new IndexResult(new LocationId("lucerne"),
-            [new DayScoreSet(0, 70, 70, 70, 70, 70, 70, 70, 70, HoursIncluded: 14,
-                OutdoorEnvelope: envelope)],
+            [new DayScoreSet(0, scores, 14)],
             null, null);
 
         var update = IndexProtoMappings.ToProto(result);
@@ -81,4 +82,22 @@ public sealed class IndexProtoMappingsSpec
         Assert.Equal(0.9, d0.OutdoorEnvelope.Confidence);
         Assert.Null(d0.LaundryEnvelope);
     }
+
+    private static Dictionary<IndexKind, ScoredIndex> AllScores(int defaultValue)
+        => Enum.GetValues<IndexKind>().ToDictionary(k => k, k => new ScoredIndex(defaultValue, null));
+
+    private static Dictionary<IndexKind, ScoredIndex> AllScores(
+        int laundry, int outdoor, int running, int cycling,
+        int bbq, int irrigation, int solar, int nightVentilation)
+        => new()
+        {
+            [IndexKind.Laundry] = new(laundry, null),
+            [IndexKind.Outdoor] = new(outdoor, null),
+            [IndexKind.Running] = new(running, null),
+            [IndexKind.Cycling] = new(cycling, null),
+            [IndexKind.Bbq] = new(bbq, null),
+            [IndexKind.Irrigation] = new(irrigation, null),
+            [IndexKind.Solar] = new(solar, null),
+            [IndexKind.NightVentilation] = new(nightVentilation, null),
+        };
 }

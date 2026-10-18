@@ -50,15 +50,7 @@ public sealed class IndexAnalyzer
     {
         var scored = _scores.ToDictionary(score => score.Kind, score => score.Score(slice, PreferencesFor(score.Kind)));
 
-        return new DayScoreSet(
-            slice.DayOffset,
-            scored[IndexKind.Laundry].Value, scored[IndexKind.Outdoor].Value, scored[IndexKind.Running].Value,
-            scored[IndexKind.Cycling].Value, scored[IndexKind.Bbq].Value, scored[IndexKind.Irrigation].Value,
-            scored[IndexKind.Solar].Value, scored[IndexKind.NightVentilation].Value,
-            slice.HoursIncluded,
-            scored[IndexKind.Laundry].Envelope, scored[IndexKind.Outdoor].Envelope, scored[IndexKind.Running].Envelope,
-            scored[IndexKind.Cycling].Envelope, scored[IndexKind.Bbq].Envelope, scored[IndexKind.Irrigation].Envelope,
-            scored[IndexKind.Solar].Envelope, scored[IndexKind.NightVentilation].Envelope);
+        return new DayScoreSet(slice.DayOffset, scored, slice.HoursIncluded);
 
         ResolvedPreferences PreferencesFor(IndexKind kind) =>
             settings.Preferences.TryGetValue((location, kind), out var preferences) ? preferences : ResolvedPreferences.Default;

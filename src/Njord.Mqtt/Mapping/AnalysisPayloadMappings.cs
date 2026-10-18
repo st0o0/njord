@@ -77,16 +77,12 @@ internal static class AnalysisPayloadMappings
 
     public static IndexDayPayload ToPayload(this DayScoreSet day, IndexResult result)
         => new(
-            [
-                Score(IndexKind.Laundry, day.Laundry, day.LaundryEnvelope),
-                Score(IndexKind.Outdoor, day.Outdoor, day.OutdoorEnvelope),
-                Score(IndexKind.Running, day.Running, day.RunningEnvelope),
-                Score(IndexKind.Cycling, day.Cycling, day.CyclingEnvelope),
-                Score(IndexKind.Bbq, day.Bbq, day.BbqEnvelope),
-                Score(IndexKind.Irrigation, day.Irrigation, day.IrrigationEnvelope),
-                Score(IndexKind.Solar, day.Solar, day.SolarEnvelope),
-                Score(IndexKind.NightVentilation, day.NightVentilation, day.NightVentilationEnvelope),
-            ],
+            [.. Enum.GetValues<IndexKind>().Select(kind =>
+            {
+                var scored = day.Scores[kind];
+                return new IndexScorePayload(kind, scored.Value,
+                    scored.Envelope is { } e ? new ScoreEnvelopePayload(e.Min, e.Max, e.Confidence) : null);
+            })],
             day.HoursIncluded,
             day.DayOffset == 0
                 ? new IndexTodayPayload(
@@ -95,9 +91,6 @@ internal static class AnalysisPayloadMappings
                     result.Vpd?.Category,
                     result.Vpd?.Vpd)
                 : null);
-
-    private static IndexScorePayload Score(IndexKind kind, int score, ScoreEnvelope? envelope)
-        => new(kind, score, envelope is null ? null : new ScoreEnvelopePayload(envelope.Min, envelope.Max, envelope.Confidence));
 
     private static double? Round(double? value, int digits)
         => value is { } number ? Math.Round(number, digits) : null;

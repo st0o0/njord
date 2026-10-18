@@ -300,12 +300,22 @@ public sealed class AnalysisPayloadMappingsSpec
 
     private static readonly ScoreEnvelope Envelope = new(10, 40, 0.65);
 
-    private static DayScoreSet Day(int offset, bool withEnvelopes) => new(
-        offset, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-        withEnvelopes ? Envelope : null,
-        withEnvelopes ? Envelope : null,
-        null, null, null, null, null,
-        withEnvelopes ? Envelope : null);
+    private static DayScoreSet Day(int offset, bool withEnvelopes)
+    {
+        var env = withEnvelopes ? Envelope : null;
+        var scores = new Dictionary<IndexKind, ScoredIndex>
+        {
+            [IndexKind.Laundry] = new(1, env),
+            [IndexKind.Outdoor] = new(2, env),
+            [IndexKind.Running] = new(3, null),
+            [IndexKind.Cycling] = new(4, null),
+            [IndexKind.Bbq] = new(5, null),
+            [IndexKind.Irrigation] = new(6, null),
+            [IndexKind.Solar] = new(7, null),
+            [IndexKind.NightVentilation] = new(8, withEnvelopes ? Envelope : null),
+        };
+        return new DayScoreSet(offset, scores, 9);
+    }
 
     private static IndexResult IndexResultWith(params DayScoreSet[] days) => new(
         new LocationId("lucerne"),
