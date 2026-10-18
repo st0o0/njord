@@ -1,24 +1,24 @@
-## 1. Spec reconciliation
+## 1. Guards first
 
-- [ ] 1.1 After `analysis-contracts-per-feature` is archived, write MODIFIED/REMOVED deltas for the main specs it changed (`vertical-feature-libraries`, `architecture-zone-enforcement`, `compute-library`) so none names a `Njord.<Feature>.Contracts` project; `openspec validate contracts-as-folders` passes
+- [ ] 1.1 Extend `LayerReferenceSpec` and `ZoneArchitectureSpec` with the rules for `Njord.Consensus` and the Messages guard (no `*Analyzer`, `*Rule`, `*Formulas`, no Akka), failing first
 
-## 2. Move contracts into Messages
+## 2. Move contracts into Messages folders (build, tests and golden masters green after each)
 
-- [ ] 2.1 Derived: move result records, enums and settings into `Njord.Messages/Derived` (namespace `Njord.Messages.Derived`), update usings, build green
-- [ ] 2.2 Trends: same into `Njord.Messages/Trends`
-- [ ] 2.3 Alerts: same into `Njord.Messages/Alerts`
-- [ ] 2.4 Indices: same into `Njord.Messages/Indices`
-- [ ] 2.5 Decide consensus result records (stay in `Njord.Consensus` or move to `Messages/Consensus`) and record the decision
+- [ ] 2.1 Derived: result records, `DewPointComfort`, `VpdCategory`, `DerivedSettings` into `Njord.Messages/Derived`
+- [ ] 2.2 Trends: `TrendResult`, `ParameterTrend`, `TrendDirection`, `Stability`, `StabilityInfo`, `TrendSettings` into `Njord.Messages/Trends`
+- [ ] 2.3 Alerts: `Alert*`, `SeverityThresholds`, `AlertTypeExtensions`, `AlertSettings` into `Njord.Messages/Alerts`
+- [ ] 2.4 Indices: `Index*`, `DayScoreSet`, `ScoreEnvelope`, `ResolvedPreferences`, `IndexSettings` into `Njord.Messages/Indices`
+- [ ] 2.5 Move `WeatherCondition`, `WeatherCategory` to `Njord.Weather` and `AnalysisSettings` to `Njord.Messages/Config`
 
-## 3. Remove the contracts projects
+## 3. Rename Compute to Consensus
 
-- [ ] 3.1 Delete the four `Njord.<Feature>.Contracts` projects from `Njord.slnx`, project references, `Dockerfile` and CI; move their specs to `Njord.Messages.Tests` and drop the contracts test projects
+- [ ] 3.1 Rename project, namespace and test project to `Njord.Consensus` / `Njord.Consensus.Tests`; remove the empty `Njord.Compute`
+- [ ] 3.2 Move contract specs to the new `Njord.Messages.Tests`; add it to `Njord.slnx`
 
-## 4. Rules and docs
+## 4. Enforcement and docs
 
-- [ ] 4.1 Update `LayerReferenceSpec`; add the Messages guard rule (no `*Analyzer`, `*Rule`, `*Formulas`, no Akka) with a spec
-- [ ] 4.2 Update `AGENTS.md` (solution structure, reference direction, test totals) and docs
+- [ ] 4.1 Make the new rules pass; update `Dockerfile` `COPY` lines, CI paths, `AGENTS.md` (solution structure, reference direction, test totals) and `docs/`
 
 ## 5. Verification
 
-- [ ] 5.1 `dotnet format whitespace`, build `Njord.slnx` with 0 warnings, run every test project, `openspec validate --all --no-interactive`, `scripts/check-openspec-root.sh`
+- [ ] 5.1 `dotnet format whitespace`, build `Njord.slnx` with 0 warnings, run every test project (golden masters unchanged), `openspec validate --all --no-interactive`, `scripts/check-openspec-root.sh`
