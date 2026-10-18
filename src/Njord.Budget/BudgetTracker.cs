@@ -4,7 +4,6 @@ using Njord.Budget.Health;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Budget;
-using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Budget;
 
 namespace Njord.Budget;

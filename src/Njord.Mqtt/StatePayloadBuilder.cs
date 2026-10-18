@@ -103,7 +103,7 @@ public static class StatePayloadBuilder
     {
         var messages = new List<MqttMessage>();
 
-        foreach (var day in result.Days ?? [])
+        foreach (var day in result.Days)
         {
             var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location.Name, EnrichmentKind.Indices.ToWireName(), Horizon.Days(day.DayOffset).ToWireKey());
             messages.Add(new MqttMessage(topic, Serialize(day.ToPayload(result), MqttPayloadJsonContext.Default.IndexDayPayload), true));

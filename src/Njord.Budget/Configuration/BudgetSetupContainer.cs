@@ -3,7 +3,6 @@ using Akka.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Hosting;
 using Njord.Budget.Health;
 using Njord.Core.Actors;
 using Servus.Akka;

@@ -62,7 +62,7 @@ public sealed class WeatherGrpcService(
 
         var mat = actorSystem.Materializer();
         var killSwitch = KillSwitches.Shared($"grpc-forecast-{context.Peer}");
-        await using var ctr = context.CancellationToken.Register(() => killSwitch.Shutdown());
+        await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown);
 
         await sourceRef.Source
             .Collect(e => e is PipelineEvent.ForecastReceived, e => (PipelineEvent.ForecastReceived)e)
@@ -87,7 +87,7 @@ public sealed class WeatherGrpcService(
 
         var mat = actorSystem.Materializer();
         var killSwitch = KillSwitches.Shared($"grpc-enrichment-{context.Peer}");
-        await using var ctr = context.CancellationToken.Register(() => killSwitch.Shutdown());
+        await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown);
 
         await sourceRef.Source
             .Where(e => e is IEnrichmentEvent enrichment && (location is not { } wanted || enrichment.Location == wanted))
@@ -96,7 +96,10 @@ public sealed class WeatherGrpcService(
             {
                 var evt = update.ToEnrichmentEvent();
                 if (evt is not null)
+                {
                     await responseStream.WriteAsync(evt, context.CancellationToken);
+                }
+
                 return evt;
             })
             .RunWith(Sink.Ignore<EnrichmentEvent?>(), mat);

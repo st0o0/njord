@@ -1,5 +1,4 @@
 using Njord.Messages.Budget;
-using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Budget;
 
 namespace Njord.Budget;
@@ -29,13 +28,7 @@ public static class BudgetTrackerStateExtensions
 
         if (now.Month != state.CurrentMonth)
         {
-            return state with
-            {
-                CurrentMonth = now.Month,
-                CurrentDay = now.DayOfYear,
-                MonthlyUsed = weight,
-                DailyUsed = weight,
-            };
+            return new BudgetTrackerState(CurrentMonth: now.Month, CurrentDay: now.DayOfYear, MonthlyUsed: weight, DailyUsed: weight);
         }
 
         if (now.DayOfYear != state.CurrentDay)

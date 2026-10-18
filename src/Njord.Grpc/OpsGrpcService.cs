@@ -27,21 +27,19 @@ public sealed class OpsGrpcService(
 
     private static readonly DateTimeOffset ProcessStart = Process.GetCurrentProcess().StartTime.ToUniversalTime();
 
-    // ═══════════════════════════════════════
-    // Status
-    // ═══════════════════════════════════════
-
     public override async Task<StatusResponse> GetStatus(GetStatusRequest request, ServerCallContext context)
     {
         var uptime = timeProvider.GetUtcNow() - ProcessStart;
         var config = await AskConfigAsync(context);
 
         // Without an answer from the tracker the status reports zero usage against the configured budget.
-        var budget = new BudgetStatusResult(0, 0, config.Polling.EffectiveBudget.RequestsPerMonth, config.Polling.DailyLimit);
+        var budget = new BudgetStatusResult(0, 0, config.Polling.EffectiveBudget.RequestsPerMonth,
+            config.Polling.DailyLimit);
         var budgetPartial = false;
         try
         {
-            var response = await actorRegistry.AskAsync<IBudgetTracker, BudgetStatusResponse>(new QueryBudgetStatus(), context);
+            var response =
+                await actorRegistry.AskAsync<IBudgetTracker, BudgetStatusResponse>(new QueryBudgetStatus(), context);
             if (response is BudgetStatusResult result)
             {
                 budget = result;
@@ -80,10 +78,6 @@ public sealed class OpsGrpcService(
         return status;
     }
 
-    // ═══════════════════════════════════════
-    // Targets
-    // ═══════════════════════════════════════
-
     public override async Task<GetTargetsResponse> GetTargets(GetTargetsRequest request, ServerCallContext context)
     {
         var response = new GetTargetsResponse();
@@ -99,10 +93,6 @@ public sealed class OpsGrpcService(
 
         return response;
     }
-
-    // ═══════════════════════════════════════
-    // Trigger
-    // ═══════════════════════════════════════
 
     public override async Task<TriggerPollResponse> TriggerPoll(TriggerPollRequest request, ServerCallContext context)
     {
@@ -137,12 +127,12 @@ public sealed class OpsGrpcService(
         throw new RpcException(new Status(StatusCode.Internal, $"Unexpected reply: {response.GetType().Name}"));
     }
 
-    // Null when the poll manager did not answer in time or could not report its states.
     private async Task<IReadOnlyList<PollStateEntry>?> AskPollStatesAsync(ServerCallContext context)
     {
         try
         {
-            var response = await actorRegistry.AskAsync<IPollManager, PollStatesResponse>(new QueryPollStates(), context);
+            var response =
+                await actorRegistry.AskAsync<IPollManager, PollStatesResponse>(new QueryPollStates(), context);
             return response is PollStatesResult result ? result.Entries : null;
         }
         catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded)
