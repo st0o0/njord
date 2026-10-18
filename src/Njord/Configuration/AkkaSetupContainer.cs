@@ -2,7 +2,6 @@ using Akka.Cluster.Hosting;
 using Akka.Hosting;
 using Akka.Persistence.Sql.Hosting;
 using Akka.Remote.Hosting;
-using LinqToDB;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration.Persistence;
@@ -40,21 +39,10 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
     internal static void ConfigureInfrastructure(
         AkkaConfigurationBuilder builder, PersistenceOptions persistence, string persistencePath)
     {
-        var connectionString = persistence.ConnectionString
-            ?? (persistence.Provider == PersistenceProvider.Sqlite
-                ? $"Data Source={Path.GetFullPath(persistencePath)}"
-                : throw new InvalidOperationException(
-                    "PostgreSQL persistence requires a connection string: set Njord:Persistence:ConnectionString."));
-
-        var providerName = persistence.Provider switch
-        {
-            PersistenceProvider.Sqlite => ProviderName.SQLiteMS,
-            PersistenceProvider.PostgreSql => ProviderName.PostgreSQL,
-            _ => throw new InvalidOperationException($"Unsupported persistence provider: {persistence.Provider}"),
-        };
+        var selection = PersistenceSelection.From(persistence, persistencePath);
 
         builder
-            .WithSqlPersistence(connectionString, providerName, autoInitialize: true)
+            .WithSqlPersistence(selection.ConnectionString, selection.ProviderName, autoInitialize: true)
             .WithRemoting(new RemoteOptions { HostName = "localhost", Port = 2552 })
             .WithClustering(new ClusterOptions
             {
