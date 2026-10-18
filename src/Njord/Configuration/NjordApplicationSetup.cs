@@ -9,6 +9,8 @@ namespace Njord.Configuration;
 
 public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplication>
 {
+    internal static readonly TimeSpan HealthCheckTimeout = TimeSpan.FromSeconds(5);
+
     protected override void SetupApplication(WebApplication app)
     {
         // Override-file problems found while the configuration was built (before logging existed) are
@@ -16,7 +18,16 @@ public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplica
         app.Services.GetRequiredService<ConfigOverrideFile>()
             .AttachLogger(app.Services.GetRequiredService<ILogger<ConfigOverrideFile>>());
 
-        app.MapHealthChecks("/healthz", new HealthCheckOptions
+        app.UseRequestTimeouts();
+        ExposeHealthEndpoints(app);
+        app.UseHttpMetrics();
+        app.MapMetrics();
+        app.MapNjordGrpc();
+    }
+
+    internal static void ExposeHealthEndpoints(IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapHealthChecks("/healthz", new HealthCheckOptions
         {
             ResultStatusCodes =
             {
@@ -24,10 +35,7 @@ public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplica
                 [HealthStatus.Degraded] = 200,
                 [HealthStatus.Unhealthy] = 503,
             },
-        });
-        app.MapGet("/alive", () => Results.Ok("Alive"));
-        app.UseHttpMetrics();
-        app.MapMetrics();
-        app.MapNjordGrpc();
+        }).WithRequestTimeout(HealthCheckTimeout);
+        endpoints.MapGet("/alive", () => Results.Ok("Alive"));
     }
 }

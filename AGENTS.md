@@ -110,9 +110,8 @@ with optional MQTT state publishing.
 - **MQTT-specific code lives only in `Njord.Mqtt`.** Any type with `Mqtt` in its name or
   namespace (actors, their messages, transport, topics, health check, telemetry, later the payload
   records) is declared there; the egress stays an optional adapter that can change without touching
-  domain projects. Allow-list in `Njord.Core`, because the host options, the actor registry and the
-  health monitor must name MQTT: `MqttOptions`, `MqttOptionsValidator`, the `MqttOptions` entry in
-  `ConfigReloadPolicy`, `IMqttConnectionActor`, `IMqttStatePublisher`, `MqttHealth`.
+  domain projects. Allow-list in `Njord.Core`, because the host options and the actor registry
+  must name MQTT: `MqttOptions`, `MqttOptionsValidator`, `IMqttConnectionActor`, `IMqttStatePublisher`.
   Enforced by `MqttBoundarySpec`.
 - **Zone rules are enforced by tests** in `src/Njord.Architecture.Tests/` (lateral
   independence of the feature libraries, Domain independence,
@@ -193,7 +192,7 @@ src/
                               #   (-> Weather, Sensors, Consensus)
     Budget/ Config/ Forecast/ Pipeline/ Sensors/
     Alerts/ Derived/ Trends/ Indices/   # one folder per analysis feature, contracts only
-  Njord.Core/                 # Options, actor keys, NjordHealthMonitor, StreamSupervision
+  Njord.Core/                 # Options, actor keys, StreamSupervision
                               #   (-> Weather, Sensors, Messages, Persistence, Consensus)
     Actors/                   # Marker interfaces, ShardMessageExtractor, StreamConsumerActor, stream handshakes
                               #   (StreamWiringMessages: pipeline output, forecast,
@@ -201,7 +200,7 @@ src/
     Configuration/            # Cross-cutting options and validators (scope, polling, OpenMeteo, storage,
                               #   persistence, MQTT, sensors), budget calculator, ConfigView (scope + polling),
                               #   ConfigOverrideFile, AddNjordOptions, ParameterOptions.Resolve(),
-                              #   PollingOptions.ToInitialBudgetHealth(); no analysis feature options
+                              #   PollingOptions.ToBudgetAllowance(); no analysis feature options
 
   # /Domain/ — feature libraries (each -> Core only)
   Njord.OpenMeteo/            # OpenMeteoGateway, OpenMeteoClient (HTTP, status handling, outcomes), DTOs,
@@ -248,7 +247,7 @@ src/
                               #   EffectiveConfigMappings, ConfigUpdateMappings;
                               #   containers in Program.cs order: CoreSetupContainer (TimeProvider, meter
                               #   allow-list), ConfigSetupContainer (options, writer, ConfigManager),
-                              #   HealthSetupContainer (monitor, health check), then the feature containers
+                              #   HealthSetupContainer (health options, journal and data-directory checks), then the feature containers
     Health/
 
   # /Tests/ — one test project per production project
@@ -302,9 +301,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1571 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
-Core 163, Grpc 150, Pipeline 169, Mqtt 155, OpenMeteo 63, Budget 29, SensorHub 32, Architecture 105,
-Alerts 75, Derived 36, Trends 27, Indices 85, host `Njord.Tests` 155).
+Current total: 1614 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
+Core 167, Grpc 150, Pipeline 176, Mqtt 161, OpenMeteo 63, Budget 36, SensorHub 32, Architecture 105,
+Alerts 75, Derived 36, Trends 27, Indices 85, host `Njord.Tests` 174).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -342,7 +341,7 @@ Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
 Sections: one options class per concern, each with its own `SectionName` (no two share one,
 `OptionsAccessArchitectureSpec`): `Njord` (forecast scope: `Locations`, `Models`, `Horizons`,
 `ForecastDays`, `Parameters`), `Njord:Polling`, `Njord:OpenMeteo`, `Njord:Storage`,
-`Njord:Persistence`, `Njord:Mqtt`, `Njord:Sensors`, `Njord:Enrichment:<Feature>`. Every
+`Njord:Persistence`, `Njord:Health`, `Njord:Mqtt`, `Njord:Sensors`, `Njord:Enrichment:<Feature>`. Every
 options type is registered with `AddNjordOptions<T>(configuration)` (`Njord.Core`: binds
 the section, lets a configured list replace its default, registers `<T>Validator` from
 `T`'s namespace, `ValidateOnStart`); setup containers do not repeat those steps.
@@ -469,8 +468,8 @@ These checks run locally only; they are deliberately not part of CI.
   `Snapshot`; the persisted state of a persistent actor is `Persisted<Name>State`, and the Akka
   members (`SaveSnapshot`, `SnapshotOffer`, `SaveSnapshotSuccess`, `SnapshotInterval`) keep their
   names. Contract types are named for what they are: `ModelForecasts`, `LocationConsensus`,
-  `SensorReadings` / `LocationSensorReadings`, `EffectiveConfig`, `MqttHealth` / `PollHealth` /
-  `BudgetHealth`. A type name used in `Njord.Messages` is not reused in another production
+  `SensorReadings` / `LocationSensorReadings`, `EffectiveConfig`, `MqttConnectionStatus` / `PollHealth` /
+  `BudgetUsage`. A type name used in `Njord.Messages` is not reused in another production
   namespace (`ParameterScope` is the configuration DTO, `ParameterSelection` the resolver in
   `Njord.Core.Configuration`). Enforced by `NamingArchitectureSpec`.
 - Enrichment types use `EnrichmentKind` enum (`Njord.Messages.Pipeline`), never bare
@@ -507,9 +506,15 @@ These checks run locally only; they are deliberately not part of CI.
   `DeleteSnapshots(seqNr - 1)` in `SaveSnapshotSuccess` handler.
 - `Apply` methods on state take the event record directly (e.g.
   `Apply(ApiCallRecorded evt, ...)`), not decomposed primitive values.
-- `NjordHealthMonitor` (`Njord.Core.Health`) provides health state via atomic
-  immutable records (`MqttHealth`, `PollHealth`,
-  `BudgetHealth`). Not `*State` — no mutable fields.
+- Health is feature-owned (FunkArr shape): `PollHealthState` (Pipeline), `MqttConnectionState` (Mqtt)
+  and `BudgetUsageState` (Budget) are written only by their actor, as one atomic swap of an immutable
+  record (`PollHealth`, `MqttConnectionStatus`, `BudgetUsage`), and read only by the feature's own check.
+  Each check is a sealed `IHealthCheck` over an `internal static Evaluate(...)` that takes plain values
+  and is registered by the owning container with an explicit `failureStatus` (`pipeline`, `budget`,
+  `mqtt-connection`; the host adds `journal` and `data-directory`). Checks never ask actors. Thresholds
+  are `Njord:Health` options (`PollOverdueFactor`, `PollStalledFactor`, `MqttUnhealthyAfter`,
+  `BudgetDegradedBelowPercent`, defaults in `appsettings.json`). `/healthz` answers 200 for Healthy and
+  Degraded and 503 for Unhealthy within a 5 s request timeout; `/alive` is unconditional.
 
 ## C# conventions
 
@@ -612,7 +617,7 @@ test actors), not counting the allowed `JsonNode` indexers; new code follows the
   `internal static readonly` instrument fields (`Telemetry.MqttDedup.Add(...)`).
   Each `Telemetry` exposes `MeterName`; `CoreSetupContainer.NjordMeters` is built from these constants
   (hence `InternalsVisibleTo Njord` on those libraries), so a new meter is added to that list.
-  `BudgetSetupContainer` registers the budget gauges (hosted service over the `NjordHealthMonitor`).
+  `BudgetSetupContainer` registers the budget gauges (hosted service over `BudgetUsageState` and the effective budget from `ConfigView`).
 - Names are `njord_<area>_<name>` in snake_case; counters end in `_total`,
   time histograms in `_seconds`. Keep tag cardinality bounded.
 - Metrics are exported via prometheus-net.

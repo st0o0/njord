@@ -1,8 +1,8 @@
 using Akka.Actor;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Configuration.Mqtt;
-using Njord.Core.Health;
 using Njord.Mqtt.Actors;
+using Njord.Mqtt.Health;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
 
@@ -28,7 +28,7 @@ public sealed class MqttConnectionSpec : NjordActorSpec
             connection,
             transport,
             tuning ?? new MqttEgressTuning(TimeSpan.FromMilliseconds(50)),
-            new NjordHealthMonitor(Epoch, new BudgetHealth(0, 0, 0, 0)),
+            new MqttConnectionState(),
             _time)));
     }
 

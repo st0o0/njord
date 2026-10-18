@@ -24,6 +24,12 @@
     "DiscoveryInterval": "00:20:00",
     "BudgetOverride": null
   },
+  "Health": {
+    "PollOverdueFactor": 2,
+    "PollStalledFactor": 3,
+    "MqttUnhealthyAfter": "00:02:00",
+    "BudgetDegradedBelowPercent": 5
+  },
   "OpenMeteo": {
     "BaseUrl": "https://api.open-meteo.com/"
   },

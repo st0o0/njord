@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Njord.Configuration;
 using Njord.Alerts.Configuration;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Health;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Persistence;
@@ -33,6 +34,7 @@ public sealed class DefaultOptionsSpec
         {
             Njord = AppSettingsDefaults.Options<NjordOptions>(),
             Polling = AppSettingsDefaults.Options<PollingOptions>(),
+            Health = AppSettingsDefaults.Options<HealthOptions>(),
             OpenMeteo = AppSettingsDefaults.Options<OpenMeteoOptions>(),
             Storage = AppSettingsDefaults.Options<StorageOptions>(),
             Persistence = AppSettingsDefaults.Options<PersistenceOptions>(),
@@ -86,6 +88,7 @@ public sealed class DefaultOptionsSpec
         {
             [nameof(NjordOptions)] = new NjordOptionsValidator(configuration).Validate(null, AppSettingsDefaults.Options<NjordOptions>(configuration)),
             [nameof(PollingOptions)] = new PollingOptionsValidator(configuration).Validate(null, AppSettingsDefaults.Options<PollingOptions>(configuration)),
+            [nameof(HealthOptions)] = new HealthOptionsValidator().Validate(null, AppSettingsDefaults.Options<HealthOptions>(configuration)),
             [nameof(OpenMeteoOptions)] = new OpenMeteoOptionsValidator().Validate(null, AppSettingsDefaults.Options<OpenMeteoOptions>(configuration)),
             [nameof(StorageOptions)] = new StorageOptionsValidator(configuration).Validate(null, AppSettingsDefaults.Options<StorageOptions>(configuration)),
             [nameof(PersistenceOptions)] = new PersistenceOptionsValidator().Validate(null, AppSettingsDefaults.Options<PersistenceOptions>(configuration)),

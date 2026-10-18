@@ -11,7 +11,6 @@ using Njord.Consensus.Settings;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Health;
 using Njord.Derived.Configuration;
 using Njord.Indices.Configuration;
 using Njord.Messages.Alerts;
@@ -31,7 +30,6 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     private readonly string _tempDir = Path.Combine(Path.GetTempPath(), $"njord-config-manager-{Guid.NewGuid():N}");
     private readonly List<ConfigHarness> _harnesses = [];
     private readonly ConfigHarness _harness;
-    private readonly NjordHealthMonitor _health = new(default, new BudgetHealth(0, 0, 0, 0));
 
     protected override bool UseTestPersistence => false;
 
@@ -70,8 +68,7 @@ public sealed class ConfigManagerSpec : NjordActorSpec
             h.Monitor<IndexOptions>(),
             h.Monitor<TrendOptions>(),
             h.Monitor<DerivedOptions>(),
-            h.Writer,
-            _health)), $"config-manager-{Guid.NewGuid():N}");
+            h.Writer)), $"config-manager-{Guid.NewGuid():N}");
 
         // PreStart (where the change subscriptions are made) has run once the actor answers.
         await manager.Ask<ActorIdentity>(new Identify(1), AskTimeout, TestContext.Current.CancellationToken);
@@ -106,6 +103,19 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_restarted_manager_answers_the_persisted_settings_not_the_startup_settings()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await _harness.Writer.UpdateAsync<AlertOptions>(opt => opt.FrostThresholds = [2, -3, -9], ct);
+
+        var (manager, _, _) = await StartManagerAsync();
+        var response = await manager.Ask<AnalysisSettingsResponse>(new QueryAnalysisSettings(), AskTimeout, ct);
+
+        var result = Assert.IsType<AnalysisSettingsResult>(response);
+        Assert.Equal(new SeverityThresholds(2, -3, -9, ScanDirection.Min), result.Settings.Alerts.Frost);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_poll_interval_reload_reaches_the_poll_manager()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -119,19 +129,13 @@ public sealed class ConfigManagerSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_budget_reload_updates_the_reported_limit_without_messaging_the_poll_manager()
+    public async Task A_budget_reload_does_not_message_the_poll_manager()
     {
         var ct = TestContext.Current.CancellationToken;
-        _health.UpdateBudget(new BudgetHealth(5, 50, RequestBudget.OpenMeteoFreeTierDailyLimit, 300_000));
         var (_, _, pollManager) = await StartManagerAsync();
 
         await _harness.Writer.UpdateAsync<PollingOptions>(opt => opt.BudgetOverride = new RequestBudget(200_000, 600), ct);
 
-        await AwaitAssertAsync(() =>
-        {
-            Assert.Equal(200_000, _health.Budget.LimitMonthly);
-            Assert.Equal(50, _health.Budget.UsedMonthly);
-        }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         await pollManager.ExpectNoMsgAsync(Quiet, ct);
     }
 

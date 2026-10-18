@@ -9,7 +9,6 @@ using Njord.Alerts.Configuration;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Health;
 using Njord.Derived.Configuration;
 using Njord.Indices.Configuration;
 using Njord.Messages.Config;
@@ -37,7 +36,6 @@ public sealed class ConfigManager : ReceiveActor
     private readonly IOptionsMonitor<TrendOptions> _trends;
     private readonly IOptionsMonitor<DerivedOptions> _derived;
     private readonly IConfigWriter _writer;
-    private readonly NjordHealthMonitor _health;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly List<IDisposable> _subscriptions = [];
     private readonly CancellationTokenSource _lifetime = new();
@@ -58,8 +56,7 @@ public sealed class ConfigManager : ReceiveActor
         IOptionsMonitor<IndexOptions> indices,
         IOptionsMonitor<TrendOptions> trends,
         IOptionsMonitor<DerivedOptions> derived,
-        IConfigWriter writer,
-        NjordHealthMonitor health)
+        IConfigWriter writer)
     {
         _startupScope = startupScope.Value;
         _analysis = AnalysisSettingsFactory.Create(
@@ -74,7 +71,6 @@ public sealed class ConfigManager : ReceiveActor
         _trends = trends;
         _derived = derived;
         _writer = writer;
-        _health = health;
 
         Receive<ConfigReloaded>(_ => OnReloaded());
         Receive<QueryConfig>(_ => OnQueryConfig());
@@ -454,8 +450,7 @@ public sealed class ConfigManager : ReceiveActor
             next.PollInterval, next.DiscoveryInterval);
     }
 
-    // The gateway's budget gate reads the budget per call; the health record behind the budget metrics
-    // (and the budget tracker's status answer) is refreshed here so the reported limit matches.
+    // The gateway's budget gate, the budget tracker's status answer and the budget metrics read the budget per call.
     private void ApplyBudget(RequestBudget next)
     {
         if (next == _budget)
@@ -464,7 +459,6 @@ public sealed class ConfigManager : ReceiveActor
         }
 
         _budget = next;
-        _health.UpdateBudget(_health.Budget with { LimitMonthly = next.RequestsPerMonth });
         _log.Info("Request budget reloaded: {PerMonth}/month, {PerMinute}/min", next.RequestsPerMonth, next.RequestsPerMinute);
     }
 

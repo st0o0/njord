@@ -3,6 +3,7 @@ using Akka.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Njord.Alerts.Configuration;
 using Njord.Core.Actors;
@@ -11,6 +12,7 @@ using Njord.Core.Configuration.Polling;
 using Njord.Derived.Configuration;
 using Njord.Indices.Configuration;
 using Njord.Pipeline.Configuration;
+using Njord.Pipeline.Health;
 using Njord.Trends.Configuration;
 using Servus.Akka;
 using Servus.Application.Startup;
@@ -25,6 +27,9 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
         services.AddNjordOptions<ConsensusOptions>(configuration);
 
         services.TryAddSingleton(FetchTimeouts.Default);
+
+        services.AddSingleton<PollHealthState>();
+        services.AddHealthChecks().AddCheck<PipelineHealthCheck>("pipeline", failureStatus: HealthStatus.Unhealthy);
 
         services.AddSingleton<IActorRegistration>(new PipelineActorRegistration());
     }

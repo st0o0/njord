@@ -10,8 +10,8 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Health;
 using Njord.Messages.Pipeline;
+using Njord.Pipeline.Health;
 using Njord.Tests.Shared;
 using Njord.Weather;
 
@@ -28,7 +28,7 @@ public sealed class PollManagerCycleSpec : NjordActorSpec
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton(new NjordHealthMonitor(default, new BudgetHealth(0, 0, 0, 0)));
+        services.AddSingleton(new PollHealthState(TimeProvider.System));
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations = [new LocationOptions { Name = _location, Latitude = 47.05, Longitude = 8.31 }],

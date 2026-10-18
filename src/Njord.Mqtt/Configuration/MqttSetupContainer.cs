@@ -3,6 +3,7 @@ using Akka.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
@@ -30,7 +31,8 @@ public sealed class MqttSetupContainer : IServiceSetupContainer
             services.TryAddSingleton<IMqttConnection>(static provider => provider.GetRequiredService<MqttNetPublisher>());
             services.TryAddSingleton<IMqttTransport>(static provider => provider.GetRequiredService<MqttNetPublisher>());
 
-            services.AddHealthChecks().AddCheck<MqttConnectionHealthCheck>("mqtt-connection");
+            services.TryAddSingleton<MqttConnectionState>();
+            services.AddHealthChecks().AddCheck<MqttConnectionHealthCheck>("mqtt-connection", failureStatus: HealthStatus.Degraded);
 
             services.AddSingleton<IActorRegistration>(new MqttActorRegistration());
         }

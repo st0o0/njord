@@ -11,10 +11,10 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Health;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Pipeline.Configuration;
+using Njord.Pipeline.Health;
 using Njord.Tests.Shared;
 using Njord.Weather;
 
@@ -36,7 +36,7 @@ public sealed class PollingClusterSpec : NjordActorSpec
     {
         services.AddSingleton<TimeProvider>(_time);
         services.AddSingleton(FetchTimeouts.Default);
-        services.AddSingleton(new NjordHealthMonitor(default, new BudgetHealth(0, 0, 0, 0)));
+        services.AddSingleton(new PollHealthState(TimeProvider.System));
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations =

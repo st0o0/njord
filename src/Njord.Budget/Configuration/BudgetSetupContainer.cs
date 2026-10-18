@@ -2,7 +2,9 @@ using Akka.Cluster.Hosting;
 using Akka.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
+using Njord.Budget.Health;
 using Njord.Core.Actors;
 using Servus.Akka;
 using Servus.Application.Startup;
@@ -14,7 +16,9 @@ public sealed class BudgetSetupContainer : IServiceSetupContainer
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IActorRegistration>(new BudgetActorRegistration());
+        services.AddSingleton<BudgetUsageState>();
         services.AddHostedService<BudgetGaugeRegistration>();
+        services.AddHealthChecks().AddCheck<BudgetHealthCheck>("budget", failureStatus: HealthStatus.Unhealthy);
     }
 
     private sealed class BudgetActorRegistration : IActorRegistration

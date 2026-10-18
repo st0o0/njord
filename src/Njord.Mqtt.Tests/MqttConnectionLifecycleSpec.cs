@@ -1,10 +1,10 @@
 using Akka.Actor;
 using Akka.TestKit;
-using Microsoft.Extensions.Time.Testing;
 using MQTTnet.Exceptions;
+using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Configuration.Mqtt;
-using Njord.Core.Health;
 using Njord.Mqtt.Actors;
+using Njord.Mqtt.Health;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
 
@@ -18,7 +18,7 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
 
     private static readonly DateTimeOffset Epoch = TestTimeConstants.PipelineEpoch;
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(Epoch);
-    private readonly NjordHealthMonitor _health = new(Epoch, new BudgetHealth(0, 0, 0, 0));
+    private readonly MqttConnectionState _health = new();
 
     private static readonly MqttEgressTuning FastTuning =
         new MqttEgressTuning(TimeSpan.FromMilliseconds(50)) { PublishTimeout = TimeSpan.FromMilliseconds(200) };
@@ -53,7 +53,7 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
             () => Assert.Equal(0, connection.RejectedWhileConnected),
             () => Assert.Equal(2, transport.OnlineAttempts),
             () => Assert.DoesNotContain(transport.Sent, m => m.Payload == "offline"),
-            () => Assert.True(_health.Mqtt.IsConnected));
+            () => Assert.True(_health.Current.IsConnected));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -115,7 +115,7 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
         Assert.Multiple(
             () => Assert.Equal(1, connection.ConnectCalls),
             () => Assert.Equal(1, connection.SubscribeCalls),
-            () => Assert.True(_health.Mqtt.IsConnected));
+            () => Assert.True(_health.Current.IsConnected));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -155,7 +155,7 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
         attempts.ExpectMsg<ConnectAttempted>(m => m.Attempt == 3, TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         attempts.ExpectMsg<ConnectAttempted>(m => m.Attempt == 4, TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
 
-        var mqtt = _health.Mqtt;
+        var mqtt = _health.Current;
         Assert.Multiple(
             () => Assert.False(mqtt.IsConnected),
             () => Assert.Equal(Epoch, mqtt.DisconnectedSince));

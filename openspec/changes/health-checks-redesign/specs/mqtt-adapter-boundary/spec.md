@@ -1,0 +1,16 @@
+## MODIFIED Requirements
+
+### Requirement: MQTT-specific code lives in Njord.Mqtt
+Every type that is MQTT-specific (name or namespace contains `Mqtt`, or that exists only to serve the MQTT egress: transport, connection and publisher actors, their actor messages, payload models and mappers, topic scheme, serializer, health check, telemetry) SHALL be declared in `Njord.Mqtt`. The only exceptions SHALL be an explicit allow-list in `Njord.Core`: `MqttOptions`, `MqttOptionsValidator` and the marker interfaces `IMqttConnectionActor` and `IMqttStatePublisher`.
+
+#### Scenario: Actor messages are internal to the adapter
+- **WHEN** the solution is inspected
+- **THEN** `Njord.Messages` has no `Mqtt` folder and the connection actor messages are declared in `Njord.Mqtt`
+
+#### Scenario: Health check belongs to the adapter
+- **WHEN** MQTT is enabled
+- **THEN** the `mqtt-connection` health check is registered by `MqttSetupContainer`, not by the host's core setup
+
+#### Scenario: New MQTT type in the wrong project
+- **WHEN** a type with `Mqtt` in its name is added to a project other than `Njord.Mqtt` and is not on the allow-list
+- **THEN** an architecture spec fails

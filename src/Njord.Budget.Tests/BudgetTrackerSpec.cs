@@ -4,7 +4,9 @@ using Akka.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Core.Health;
+using Njord.Budget.Health;
+using Njord.Core.Configuration;
+using Njord.Core.Configuration.Polling;
 using Njord.Messages.Budget;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
@@ -15,7 +17,8 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
 {
     private static readonly DateTimeOffset T0 = TestTimeConstants.BudgetEpoch;
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(T0);
-    private readonly NjordHealthMonitor _healthState = new(T0, new BudgetHealth(0, 0, 0, 0));
+    private readonly BudgetUsageState _usage = new();
+    private ConfigView _config = TestConfigView.Create();
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
@@ -25,7 +28,7 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
     private IActorRef CreateActor(string? name = null)
     {
         return Sys.ActorOf(
-            Props.Create(() => new BudgetTracker(_time, _healthState)),
+            Props.Create(() => new BudgetTracker(_time, _usage, _config)),
             name ?? $"budget-tracker-{Guid.NewGuid():N}");
     }
 
@@ -42,12 +45,13 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
 
         Assert.Equal(2, usage.MonthlyUsed);
         Assert.Equal(2, usage.DailyUsed);
+        Assert.Equal(new BudgetUsage(2, 2), _usage.Current);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Budget_status_reports_usage_with_the_effective_limits()
     {
-        _healthState.UpdateBudget(new BudgetHealth(0, 0, 10_000, 250_000));
+        _config = TestConfigView.Create(polling: AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(250_000, 60)));
         var actor = CreateActor();
 
         actor.Tell(new RecordApiCall(2));
@@ -133,6 +137,7 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
 
         await actor.GracefulStop(TimeSpan.FromSeconds(3));
 
+        _usage.Update(0, 0);
         var recovered = CreateActor();
 
         var usage2 = await recovered.Ask<BudgetUsageResult>(
@@ -140,6 +145,7 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
 
         Assert.Equal(7, usage2.MonthlyUsed);
         Assert.Equal(7, usage2.DailyUsed);
+        Assert.Equal(new BudgetUsage(7, 7), _usage.Current);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

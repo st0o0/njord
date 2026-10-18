@@ -3,14 +3,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Njord.Budget.Configuration;
-using Njord.Core.Health;
+using Njord.Budget.Health;
+using Njord.Core.Configuration.Polling;
+using Njord.Tests.Shared;
 
 namespace Njord.Budget.Tests;
 
 public sealed class BudgetGaugeRegistrationSpec
 {
-    private static readonly DateTimeOffset Started = new(2026, 7, 15, 8, 0, 0, TimeSpan.Zero);
-
     [Fact]
     public void The_meter_name_constant_matches_the_budget_meter()
     {
@@ -31,11 +31,12 @@ public sealed class BudgetGaugeRegistrationSpec
     }
 
     [Fact(Timeout = 15_000)]
-    public async Task Gauges_follow_the_monitor_updates()
+    public async Task Gauges_follow_the_usage_and_the_configured_budget()
     {
-        var monitor = new NjordHealthMonitor(Started, new BudgetHealth(0, 0, 10_000, 300_000));
+        var polling = new TestOptionsMonitor<PollingOptions>(AppSettingsDefaults.Options<PollingOptions>());
         var services = new ServiceCollection();
-        services.AddSingleton(monitor);
+        services.AddLogging();
+        services.AddSingleton(TestConfigView.Create(pollingMonitor: polling));
         new BudgetSetupContainer().SetupServices(services, new ConfigurationBuilder().Build());
         await using var provider = services.BuildServiceProvider();
         var hosted = Assert.Single(provider.GetServices<IHostedService>().OfType<BudgetGaugeRegistration>());
@@ -58,7 +59,8 @@ public sealed class BudgetGaugeRegistrationSpec
         listener.RecordObservableInstruments();
         var initial = new Dictionary<string, long>(measurements);
 
-        monitor.UpdateBudget(new BudgetHealth(5, 50, 10_000, 250_000));
+        provider.GetRequiredService<BudgetUsageState>().Update(5, 50);
+        polling.Update(AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(250_000, 60)));
         listener.RecordObservableInstruments();
 
         Assert.Multiple(

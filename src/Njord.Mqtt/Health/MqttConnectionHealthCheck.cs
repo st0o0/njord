@@ -1,31 +1,34 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Njord.Core.Health;
+using Microsoft.Extensions.Options;
+using Njord.Core.Configuration.Health;
 
 namespace Njord.Mqtt.Health;
 
-internal sealed class MqttConnectionHealthCheck(NjordHealthMonitor monitor, TimeProvider timeProvider) : IHealthCheck
+internal sealed class MqttConnectionHealthCheck(
+    MqttConnectionState state,
+    TimeProvider timeProvider,
+    IOptionsMonitor<HealthOptions> options) : IHealthCheck
 {
-    private static readonly TimeSpan UnhealthyThreshold = TimeSpan.FromMinutes(2);
-
     public Task<HealthCheckResult> CheckHealthAsync(
-        HealthCheckContext context, CancellationToken cancellationToken = default)
+        HealthCheckContext context, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Evaluate(state.Current, timeProvider.GetUtcNow(), options.CurrentValue.MqttUnhealthyAfter));
+
+    internal static HealthCheckResult Evaluate(MqttConnectionStatus status, DateTimeOffset now, TimeSpan unhealthyAfter)
     {
-        var mqtt = monitor.Mqtt;
-        if (mqtt.IsConnected)
+        if (status.IsConnected)
         {
-            return Task.FromResult(HealthCheckResult.Healthy("MQTT connected"));
+            return HealthCheckResult.Healthy("MQTT connected");
         }
 
-        var disconnectedSince = mqtt.DisconnectedSince;
-        if (disconnectedSince is null)
+        if (status.DisconnectedSince is not { } since)
         {
-            return Task.FromResult(HealthCheckResult.Degraded("MQTT not yet connected"));
+            return HealthCheckResult.Degraded("MQTT not yet connected");
         }
 
-        var elapsed = timeProvider.GetUtcNow() - disconnectedSince.Value;
+        var elapsed = now - since;
 
-        return elapsed >= UnhealthyThreshold
-            ? Task.FromResult(HealthCheckResult.Unhealthy($"MQTT disconnected for {elapsed.TotalSeconds:F0}s"))
-            : Task.FromResult(HealthCheckResult.Degraded($"MQTT disconnected for {elapsed.TotalSeconds:F0}s"));
+        return elapsed >= unhealthyAfter
+            ? HealthCheckResult.Unhealthy($"MQTT disconnected for {elapsed.TotalSeconds:F0}s")
+            : HealthCheckResult.Degraded($"MQTT disconnected for {elapsed.TotalSeconds:F0}s");
     }
 }

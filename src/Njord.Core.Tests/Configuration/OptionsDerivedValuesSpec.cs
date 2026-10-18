@@ -1,8 +1,7 @@
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Health;
-using Njord.Weather;
 using Njord.Tests.Shared;
+using Njord.Weather;
 
 namespace Njord.Core.Tests.Configuration;
 
@@ -33,18 +32,18 @@ public sealed class OptionsDerivedValuesSpec
     }
 
     [Fact]
-    public void The_initial_budget_health_starts_at_zero_with_the_free_tier_limits()
+    public void The_budget_allowance_is_the_free_tier_limits_by_default()
     {
-        var health = AppSettingsDefaults.Options<PollingOptions>().ToInitialBudgetHealth();
+        var allowance = AppSettingsDefaults.Options<PollingOptions>().ToBudgetAllowance();
 
-        Assert.Equal(new BudgetHealth(0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, 300_000), health);
+        Assert.Equal(new BudgetAllowance(RequestBudget.OpenMeteoFreeTierDailyLimit, 300_000), allowance);
     }
 
     [Fact]
-    public void The_initial_budget_health_follows_a_budget_override()
+    public void The_budget_allowance_follows_a_budget_override()
     {
-        var health = AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(50_000, 60)).ToInitialBudgetHealth();
+        var allowance = AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(50_000, 60)).ToBudgetAllowance();
 
-        Assert.Equal(new BudgetHealth(0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, 50_000), health);
+        Assert.Equal(new BudgetAllowance(RequestBudget.OpenMeteoFreeTierDailyLimit, 50_000), allowance);
     }
 }

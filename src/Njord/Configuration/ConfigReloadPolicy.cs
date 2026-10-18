@@ -1,5 +1,6 @@
 using Njord.Alerts.Configuration;
 using Njord.Core.Configuration;
+using Njord.Core.Configuration.Health;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Persistence;
@@ -26,6 +27,7 @@ public static class ConfigReloadPolicy
     {
         [typeof(NjordOptions)] = ReloadMode.RestartRequired,
         [typeof(PollingOptions)] = ReloadMode.Hot,
+        [typeof(HealthOptions)] = ReloadMode.Hot,
         [typeof(ConsensusOptions)] = ReloadMode.Hot,
         [typeof(AlertOptions)] = ReloadMode.Hot,
         [typeof(IndexOptions)] = ReloadMode.Hot,

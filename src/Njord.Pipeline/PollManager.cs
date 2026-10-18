@@ -4,8 +4,8 @@ using Akka.Event;
 using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Health;
 using Njord.Messages.Pipeline;
+using Njord.Pipeline.Health;
 using Njord.Weather;
 using Servus.Akka;
 using Servus.Resilience;
@@ -30,7 +30,7 @@ public sealed class PollManager : ReceiveActor, IWithTimers
     private static readonly TimeSpan RegionStateTimeout = TimeSpan.FromSeconds(10);
 
     private readonly TimeProvider _timeProvider;
-    private readonly NjordHealthMonitor _health;
+    private readonly PollHealthState _health;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly List<PollTarget> _targets = [];
     private readonly Dictionary<string, PollTarget> _targetsById = new(StringComparer.Ordinal);
@@ -49,7 +49,7 @@ public sealed class PollManager : ReceiveActor, IWithTimers
         IOptions<NjordOptions> options,
         ConfigView config,
         TimeProvider timeProvider,
-        NjordHealthMonitor health)
+        PollHealthState health)
     {
         _timeProvider = timeProvider;
         _health = health;
@@ -143,14 +143,14 @@ public sealed class PollManager : ReceiveActor, IWithTimers
         switch (report.Outcome)
         {
             case PollWorkerOutcome.Changed:
-                _health.UpdatePoll(new PollHealth(now));
+                _health.RecordSuccessfulPoll(now);
                 Telemetry.DataChanged.Add(1,
                     new KeyValuePair<string, object?>("location", target.Location.Name),
                     new KeyValuePair<string, object?>("model", target.ModelId));
                 RecordCycle(target, PollCycleOutcome.Changed, now);
                 break;
             case PollWorkerOutcome.Unchanged:
-                _health.UpdatePoll(new PollHealth(now));
+                _health.RecordSuccessfulPoll(now);
                 RecordCycle(target, PollCycleOutcome.Unchanged, now);
                 break;
             case PollWorkerOutcome.Failed:

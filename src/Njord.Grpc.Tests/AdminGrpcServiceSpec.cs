@@ -6,7 +6,6 @@ using Njord.Configuration;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Health;
 using Njord.Derived.Configuration;
 using Njord.Grpc.V2;
 using Njord.Indices.Configuration;
@@ -597,7 +596,6 @@ public sealed class AdminGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             h.Monitor<IndexOptions>(),
             h.Monitor<TrendOptions>(),
             h.Monitor<DerivedOptions>(),
-            h.Writer,
-            new NjordHealthMonitor(default, new BudgetHealth(0, 0, 0, 0)))), $"config-manager-{Guid.NewGuid():N}");
+            h.Writer)), $"config-manager-{Guid.NewGuid():N}");
     }
 }

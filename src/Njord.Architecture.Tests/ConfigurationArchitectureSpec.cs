@@ -17,6 +17,9 @@ public sealed class ConfigurationArchitectureSpec
         "Njord.OpenMeteo.OptionsBudgetProvider",
         "Njord.Core.Configuration.ConfigView",
         "Njord.Configuration.AnalysisConfigView",
+        "Njord.Budget.Health.BudgetHealthCheck",
+        "Njord.Mqtt.Health.MqttConnectionHealthCheck",
+        "Njord.Pipeline.Health.PipelineHealthCheck",
         "Njord.Configuration.ConfigWriter",
     ];
 

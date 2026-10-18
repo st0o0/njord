@@ -11,8 +11,8 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Health;
 using Njord.Messages.Pipeline;
+using Njord.Pipeline.Health;
 using Njord.Tests.Shared;
 using Njord.Weather;
 
@@ -24,7 +24,7 @@ public sealed class PollManagerSpec : NjordActorSpec
     private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
 
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
-    private readonly NjordHealthMonitor _health = new(default, new BudgetHealth(0, 0, 0, 0));
+    private readonly PollHealthState _health = new(TimeProvider.System);
     private readonly TestOptionsMonitor<PollingOptions> _polling =
         new(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = Discovery));
     private TestProbe _region = null!;
@@ -302,7 +302,7 @@ public sealed class PollManagerSpec : NjordActorSpec
 
         manager.Tell(new PollWorkerReport(Targets[0], PollWorkerOutcome.Failed, Entry(Targets[0])));
         await QueryAsync(manager, ct);
-        var afterFailure = _health.Poll.LastSuccessfulPollUtc;
+        var afterFailure = _health.Current.LastSuccessfulPollUtc;
 
         _time.Advance(TimeSpan.FromMinutes(1));
         manager.Tell(new PollWorkerReport(Targets[0], PollWorkerOutcome.Unchanged, Entry(Targets[0])));
@@ -310,6 +310,6 @@ public sealed class PollManagerSpec : NjordActorSpec
 
         Assert.Multiple(
             () => Assert.Null(afterFailure),
-            () => Assert.Equal(_time.GetUtcNow(), _health.Poll.LastSuccessfulPollUtc));
+            () => Assert.Equal(_time.GetUtcNow(), _health.Current.LastSuccessfulPollUtc));
     }
 }

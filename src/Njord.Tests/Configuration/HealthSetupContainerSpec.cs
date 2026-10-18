@@ -1,50 +1,89 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Time.Testing;
-using Njord.Core.Configuration.Polling;
-using Njord.Core.Health;
+using Njord.Budget.Health;
+using Njord.Core.Configuration.Health;
+using Njord.Mqtt.Health;
+using Njord.Pipeline.Health;
 
 namespace Njord.Tests.Configuration;
 
 public sealed class HealthSetupContainerSpec : IDisposable
 {
-    private static readonly DateTimeOffset Now = new(2026, 7, 15, 8, 0, 0, TimeSpan.Zero);
-
     private readonly string _tempDir = Path.Combine(Path.GetTempPath(), $"njord-health-container-{Guid.NewGuid():N}");
 
+    private static HealthCheckRegistration[] Registrations(ServiceProvider provider) =>
+        [.. provider.GetRequiredService<IOptions<HealthCheckServiceOptions>>().Value.Registrations];
+
     [Fact]
-    public void The_monitor_starts_at_the_service_start_time_with_the_configured_budget()
+    public void The_checks_of_the_core_features_are_registered_with_their_failure_status()
     {
-        var services = HostConfiguration.Services(HostConfiguration.Sample(_tempDir, new Dictionary<string, string?>
+        using var provider = HostConfiguration.Services(HostConfiguration.Sample(_tempDir, new Dictionary<string, string?>
         {
-            ["Njord:Polling:BudgetOverride:RequestsPerMonth"] = "120000",
-            ["Njord:Polling:BudgetOverride:RequestsPerMinute"] = "60",
-        }));
-        services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
-        using var provider = services.BuildServiceProvider();
+            ["Njord:Mqtt:Enabled"] = "false",
+        })).BuildServiceProvider();
 
-        var monitor = provider.GetRequiredService<NjordHealthMonitor>();
+        var registrations = Registrations(provider).ToDictionary(r => r.Name, r => r.FailureStatus);
 
-        Assert.Multiple(
-            () => Assert.Equal(Now, monitor.ServiceStartedUtc),
-            () => Assert.Equal(
-                new BudgetHealth(0, 0, RequestBudget.OpenMeteoFreeTierDailyLimit, 120_000),
-                monitor.Budget));
+        Assert.Equal(
+            new Dictionary<string, HealthStatus>
+            {
+                ["pipeline"] = HealthStatus.Unhealthy,
+                ["budget"] = HealthStatus.Unhealthy,
+                ["journal"] = HealthStatus.Unhealthy,
+                ["data-directory"] = HealthStatus.Degraded,
+            }.OrderBy(p => p.Key),
+            registrations.OrderBy(p => p.Key));
     }
 
     [Fact]
-    public void The_pipeline_health_check_is_registered_and_the_monitor_is_a_singleton()
+    public void The_mqtt_check_is_registered_only_when_mqtt_is_enabled()
+    {
+        using var provider = HostConfiguration.Services(HostConfiguration.Sample(_tempDir, new Dictionary<string, string?>
+        {
+            ["Njord:Mqtt:Enabled"] = "true",
+            ["Njord:Mqtt:Host"] = "broker",
+        })).BuildServiceProvider();
+
+        var registration = Assert.Single(Registrations(provider), r => r.Name == "mqtt-connection");
+
+        Assert.Equal(HealthStatus.Degraded, registration.FailureStatus);
+    }
+
+    [Fact]
+    public void The_feature_health_states_are_singletons()
     {
         using var provider = HostConfiguration.Services(HostConfiguration.Sample(_tempDir)).BuildServiceProvider();
 
-        var registrations = provider.GetRequiredService<IOptions<HealthCheckServiceOptions>>().Value.Registrations;
+        Assert.Multiple(
+            () => Assert.Same(provider.GetRequiredService<PollHealthState>(), provider.GetRequiredService<PollHealthState>()),
+            () => Assert.Same(provider.GetRequiredService<BudgetUsageState>(), provider.GetRequiredService<BudgetUsageState>()));
+    }
+
+    [Fact]
+    public void The_mqtt_state_is_registered_when_mqtt_is_enabled()
+    {
+        using var provider = HostConfiguration.Services(HostConfiguration.Sample(_tempDir, new Dictionary<string, string?>
+        {
+            ["Njord:Mqtt:Enabled"] = "true",
+            ["Njord:Mqtt:Host"] = "broker",
+        })).BuildServiceProvider();
+
+        Assert.Same(provider.GetRequiredService<MqttConnectionState>(), provider.GetRequiredService<MqttConnectionState>());
+    }
+
+    [Fact]
+    public void The_health_thresholds_bind_from_the_shipped_defaults()
+    {
+        using var provider = HostConfiguration.Services(HostConfiguration.Sample(_tempDir)).BuildServiceProvider();
+
+        var options = provider.GetRequiredService<IOptions<HealthOptions>>().Value;
 
         Assert.Multiple(
-            () => Assert.Contains(registrations, r => r.Name == "pipeline"),
-            () => Assert.Same(
-                provider.GetRequiredService<NjordHealthMonitor>(),
-                provider.GetRequiredService<NjordHealthMonitor>()));
+            () => Assert.Equal(2.0, options.PollOverdueFactor),
+            () => Assert.Equal(3.0, options.PollStalledFactor),
+            () => Assert.Equal(TimeSpan.FromMinutes(2), options.MqttUnhealthyAfter),
+            () => Assert.Equal(5.0, options.BudgetDegradedBelowPercent));
     }
 
     public void Dispose()

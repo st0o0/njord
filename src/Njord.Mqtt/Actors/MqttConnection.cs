@@ -2,7 +2,7 @@ using Akka.Actor;
 using Akka.Event;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration.Mqtt;
-using Njord.Core.Health;
+using Njord.Mqtt.Health;
 using Njord.Mqtt.Topics;
 using Njord.Mqtt.Transport;
 
@@ -29,7 +29,7 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
     private readonly IMqttConnection _connection;
     private readonly IMqttTransport _transport;
     private readonly MqttEgressTuning _tuning;
-    private readonly NjordHealthMonitor _healthState;
+    private readonly MqttConnectionState _healthState;
     private readonly TimeProvider _timeProvider;
 
     private readonly string _availabilityTopic;
@@ -49,7 +49,7 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
         IMqttConnection connection,
         IMqttTransport transport,
         MqttEgressTuning tuning,
-        NjordHealthMonitor healthState,
+        MqttConnectionState healthState,
         TimeProvider timeProvider)
     {
         _mqttOptions = mqttOptions.Value;
@@ -109,7 +109,7 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
     {
         Receive<Disconnected>(_ =>
         {
-            _healthState.UpdateMqtt(new MqttHealth(false, _timeProvider.GetUtcNow()));
+            _healthState.Disconnected(_timeProvider.GetUtcNow());
             Telemetry.MqttConnected.Record(0);
             _log.Warning("MQTT connection lost, reconnecting");
             Timers.Cancel(OnlineRetryTimer);
@@ -188,7 +188,7 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
         _connectAttempts = 0;
         _onlineAttempts = 0;
         _log.Info("MQTT connected to {Host}:{Port}", _mqttOptions.Host, _mqttOptions.Port);
-        _healthState.UpdateMqtt(new MqttHealth(true, null));
+        _healthState.Connected();
         Telemetry.MqttConnected.Record(1);
 
         foreach (var listener in _inboundListeners)

@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
         <InternalsVisibleTo Include="Njord" />
         <InternalsVisibleTo Include="Njord.Budget.Tests" />
     </ItemGroup>

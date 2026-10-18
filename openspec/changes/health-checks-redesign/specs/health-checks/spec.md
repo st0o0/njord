@@ -92,6 +92,10 @@ A `PipelineHealthCheck` in `Njord.Pipeline` SHALL read `PollHealthState` and the
 - **WHEN** no poll has ever completed and the service started 30 minutes ago with a 60-minute poll interval
 - **THEN** the health check returns `Healthy`
 
+#### Scenario: No poll after the grace period
+- **WHEN** no poll has ever completed and the service started 2 hours ago with a 60-minute poll interval
+- **THEN** the health check returns `Unhealthy`
+
 ## REMOVED Requirements
 
 ### Requirement: Shared health state is writable by actors
