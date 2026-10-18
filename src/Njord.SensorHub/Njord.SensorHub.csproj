@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
+        <InternalsVisibleTo Include="Njord" />
+        <InternalsVisibleTo Include="Njord.SensorHub.Tests" />
     </ItemGroup>
 
     <ItemGroup>

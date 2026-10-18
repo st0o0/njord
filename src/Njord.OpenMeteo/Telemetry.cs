@@ -19,4 +19,10 @@ internal static class Telemetry
 
     internal static readonly Counter<long> PipelineReattaches =
         Meter.CreateCounter<long>("njord_openmeteo_pipeline_reattaches_total", "{reattach}");
+
+    internal static readonly Counter<long> HttpRequests =
+        Meter.CreateCounter<long>("njord_openmeteo_http_requests_total", "{request}");
+
+    internal static readonly Histogram<double> HttpDuration =
+        Meter.CreateHistogram<double>("njord_openmeteo_http_duration_seconds", "s");
 }

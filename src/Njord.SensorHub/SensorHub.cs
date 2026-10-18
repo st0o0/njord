@@ -55,11 +55,19 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
         if (!validation.Accepted)
         {
             _log.Warning("Rejected reading: {Reason}", validation.RejectionReason);
+            Telemetry.Readings.Add(1,
+                new KeyValuePair<string, object?>("location", msg.Reading.Location),
+                new KeyValuePair<string, object?>("kind", msg.Reading.Kind.ToString()),
+                new KeyValuePair<string, object?>("outcome", "rejected"));
             Sender.Tell(new PushResult(false, validation.RejectionReason));
             return;
         }
 
         _state = _state.Apply(msg.Reading);
+        Telemetry.Readings.Add(1,
+            new KeyValuePair<string, object?>("location", msg.Reading.Location),
+            new KeyValuePair<string, object?>("kind", msg.Reading.Kind.ToString()),
+            new KeyValuePair<string, object?>("outcome", "accepted"));
         Sender.Tell(new PushResult(true, null));
         PushReadings();
     }
@@ -79,6 +87,7 @@ public sealed class SensorHub : ReceiveActor, IWithTimers
 
         if (expired > 0)
         {
+            Telemetry.Readings.Add(expired, new KeyValuePair<string, object?>("outcome", "expired"));
             _log.Debug("Expired {Count} stale sensor readings", expired);
         }
 

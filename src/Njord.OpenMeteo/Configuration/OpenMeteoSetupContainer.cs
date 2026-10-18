@@ -30,6 +30,7 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
                 client.BaseAddress = new Uri(options.BaseUrl);
                 client.Timeout = sp.GetRequiredService<FetchTimeouts>().Http;
             })
+            .AddHttpMessageHandler(() => new HttpMetricsHandler())
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
             {
                 ConnectCallback = async (context, ct) =>
