@@ -99,7 +99,7 @@ public sealed class MqttBackpressureSpec : NjordActorSpec
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
             Models = ["icon_d2"],
         };
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        var parameters = ParameterSelection.Resolve(["Weather"], [], []);
         var timeProvider = TestTimeouts.AtEpoch(Anchor);
         var tuning = MqttEgressTuning.Default with { PublishTimeout = TimeSpan.FromHours(1), EventBufferSize = 4 };
 

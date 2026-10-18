@@ -1,9 +1,11 @@
+using Njord.Core.Configuration;
+
 namespace Njord.Weather.Tests;
 
 public sealed class ResolvedParameterSetLookupSpec
 {
     private static readonly ResolvedParameterSet Params =
-        ParameterRegistry.Resolve(["Weather"], [], []);
+        ParameterSelection.Resolve(["Weather"], [], []);
 
     [Fact]
     public void Get_returns_non_null_for_included_parameter()
@@ -17,7 +19,7 @@ public sealed class ResolvedParameterSetLookupSpec
     [Fact]
     public void Get_returns_null_for_excluded_parameter()
     {
-        var paramsWithExclusion = ParameterRegistry.Resolve(["Weather"], [], ["temperature_2m"]);
+        var paramsWithExclusion = ParameterSelection.Resolve(["Weather"], [], ["temperature_2m"]);
 
         Assert.Null(paramsWithExclusion.Get(ParameterRegistry.Temperature2m));
     }
@@ -31,7 +33,7 @@ public sealed class ResolvedParameterSetLookupSpec
     [Fact]
     public void Contains_returns_false_for_excluded_parameter()
     {
-        var paramsWithExclusion = ParameterRegistry.Resolve(["Weather"], [], ["wind_speed_10m"]);
+        var paramsWithExclusion = ParameterSelection.Resolve(["Weather"], [], ["wind_speed_10m"]);
 
         Assert.False(paramsWithExclusion.Contains(ParameterRegistry.WindSpeed10m));
     }

@@ -42,7 +42,7 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
                 o.Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }];
                 o.Models = ["icon_d2", "broken"];
             }));
-            var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+            var parameters = ParameterSelection.Resolve(["Weather"], [], []);
             registry.Register<IForecastGateway>(system.ActorOf(
                 Props.Create(() => new OpenMeteoGateway(_client, _time, options, parameters, _budget, FetchTimeouts.Default)),
                 "gateway"));
@@ -176,7 +176,7 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     {
         await AttachedAsync();
         // The bucket holds exactly one request's weight and refills at one cost-unit per minute.
-        var weight = OpenMeteoGateway.ComputeWeight(ParameterRegistry.Resolve(["Weather"], [], []).HourlyCount, AppSettingsDefaults.Options<NjordOptions>().ForecastDays);
+        var weight = OpenMeteoGateway.ComputeWeight(ParameterSelection.Resolve(["Weather"], [], []).HourlyCount, AppSettingsDefaults.Options<NjordOptions>().ForecastDays);
         _budget.CostPerMinute = 1;
         _budget.MaxBurst = weight;
         _time.Advance(TimeSpan.FromSeconds(6));

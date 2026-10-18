@@ -119,14 +119,14 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     private IActorRef StartGateway()
     {
         var options = Microsoft.Extensions.Options.Options.Create(Options);
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        var parameters = ParameterSelection.Resolve(["Weather"], [], []);
         return Sys.ActorOf(Props.Create(() => new OpenMeteoGateway(_client, _time, options, parameters, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 
     private IActorRef StartPipeline()
     {
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        var parameters = ParameterSelection.Resolve(["Weather"], [], []);
         var settings = AnalysisSettingsFactory.Create(Options, AppSettingsDefaults.Options<ConsensusOptions>(), AppSettingsDefaults.Options<AlertOptions>(), AppSettingsDefaults.Options<IndexOptions>(),
             AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = true), AppSettingsDefaults.Options<DerivedOptions>());
         return Sys.ActorOf(Props.Create(() => new ForecastPipeline(

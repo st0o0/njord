@@ -14,7 +14,7 @@ public sealed class OptionsDerivedValuesSpec
         var parameters = new ParameterOptions { Groups = ["Weather"], Extra = [], Exclude = ["snowfall"] };
 
         var resolved = parameters.Resolve();
-        var expected = ParameterRegistry.Resolve(["Weather"], [], ["snowfall"]);
+        var expected = ParameterSelection.Resolve(["Weather"], [], ["snowfall"]);
 
         Assert.Multiple(
             () => Assert.Equal(expected.Hourly, resolved.Hourly),

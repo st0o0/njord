@@ -3,6 +3,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
+using Njord.Core.Configuration;
 using Njord.Core.Configuration.Indices;
 using Njord.Derived;
 using Njord.Indices;
@@ -110,7 +111,7 @@ public sealed class StatePayloadBuilderSpec
     private static readonly ParameterDef SurfacePressure = ParameterRegistry.GetByApiName("surface_pressure")!;
     private static readonly ParameterDef SunshineDuration = ParameterRegistry.GetByApiName("sunshine_duration")!;
     private static readonly ParameterDef IsDay = ParameterRegistry.GetByApiName("is_day")!;
-    private static readonly ResolvedParameterSet FullParams = ParameterRegistry.Resolve(["Weather", "Solar"], [], []);
+    private static readonly ResolvedParameterSet FullParams = ParameterSelection.Resolve(["Weather", "Solar"], [], []);
 
     private static Forecast MakeForecast(WeatherModel model, params (ParameterDef Param, double Value)[] hourlyValues)
     {

@@ -1,3 +1,4 @@
+using Njord.Mqtt.Mapping;
 using Njord.Weather;
 
 namespace Njord.Mqtt.Topics;
@@ -17,10 +18,10 @@ public static class TopicScheme
         => $"{baseTopic}/status";
 
     public static string HourlyUniqueId(string location, WeatherModel model, ParameterDef parameter, int horizonHours)
-        => $"{DeviceId(location, model)}_{parameter.JsonKey}_h{horizonHours}";
+        => $"{DeviceId(location, model)}_{parameter.ToMqttKey()}_h{horizonHours}";
 
     public static string DailyUniqueId(string location, WeatherModel model, ParameterDef parameter, int dayOffset)
-        => $"{DeviceId(location, model)}_{parameter.JsonKey}_d{dayOffset}";
+        => $"{DeviceId(location, model)}_{parameter.ToMqttKey()}_d{dayOffset}";
 
     public static string EnrichmentDeviceId(string location, string typeName)
         => $"njord_{Slug(location)}_{typeName}";

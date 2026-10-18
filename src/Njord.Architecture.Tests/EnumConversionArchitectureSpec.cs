@@ -4,11 +4,7 @@ namespace Njord.Architecture.Tests;
 
 public sealed partial class EnumConversionArchitectureSpec
 {
-    // User-written configuration text (parameter group names in appsettings), not a wire conversion.
-    private static readonly string[] AllowList =
-    [
-        "Njord.Weather/ParameterRegistry.cs",
-    ];
+    private static readonly string[] AllowList = [];
 
     [GeneratedRegex(@"\bEnum\s*\.\s*(Try)?Parse\b|\.ToString\(\s*\)\s*\.\s*To(Lower|Upper)")]
     private static partial Regex NameBasedConversion();

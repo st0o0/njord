@@ -1,3 +1,4 @@
+using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Actors;
 using System.Text.Json.Nodes;
 using Akka.Actor;
@@ -34,7 +35,7 @@ public sealed class MqttStateSpec : NjordActorSpec
         options ??= DefaultOptions();
         timeProvider ??= TestTimeouts.AtEpoch(Anchor);
         transport ??= new RecordingTransport();
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        var parameters = ParameterSelection.Resolve(["Weather"], [], []);
 
         return Sys.ActorOf(Props.Create(() => new MqttStatePublisher(
             Microsoft.Extensions.Options.Options.Create(options),
@@ -139,8 +140,8 @@ public sealed class MqttStateSpec : NjordActorSpec
         var payload = JsonNode.Parse(sent.Payload);
         Assert.NotNull(payload);
         Assert.Multiple(
-            () => Assert.Equal(21.5, payload[temp.JsonKey]!.GetValue<double>()),
-            () => Assert.Equal(2, payload[$"{temp.JsonKey}_models"]!.GetValue<int>()));
+            () => Assert.Equal(21.5, payload[temp.ToMqttKey()]!.GetValue<double>()),
+            () => Assert.Equal(2, payload[$"{temp.ToMqttKey()}_models"]!.GetValue<int>()));
     }
 
     internal sealed record SentMessage(string Topic, string Payload, bool Retain);

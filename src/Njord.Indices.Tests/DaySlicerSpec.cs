@@ -2,6 +2,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
+using Njord.Core.Configuration;
 using Njord.Weather;
 
 namespace Njord.Indices.Tests;
@@ -12,7 +13,7 @@ public sealed class DaySlicerSpec
     private static readonly ParameterDef Humidity = ParameterRegistry.RelativeHumidity2m;
     private static readonly ParameterDef IsDay = ParameterRegistry.IsDay;
 
-    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(
+    private static readonly ResolvedParameterSet Parameters = ParameterSelection.Resolve(
         ["Weather", "Solar"], [], []);
 
     private static ConsensusSnapshot BuildConsensus(

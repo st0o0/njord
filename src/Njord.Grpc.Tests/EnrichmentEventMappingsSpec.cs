@@ -40,8 +40,7 @@ public sealed class EnrichmentEventMappingsSpec
     [Fact]
     public void ToEnrichmentEvent_should_wrap_consensus_result_in_enrichment_event()
     {
-        var param = new ParameterDef("temperature_2m", "C", "temperature", "temperature_2m",
-            ParameterGroup.Weather, ParameterGranularity.Hourly);
+        var param = new ParameterDef("temperature_2m", "C", ParameterGroup.Weather, ParameterGranularity.Hourly);
         var horizonConsensus = new DomainHorizonConsensus(
             Median: 20.5, TrimmedMean: 20.3, Spread: 2.1, Iqr: 1.5, Agreement: 0.85,
             Outlier: null, ConfidenceInterval: null,

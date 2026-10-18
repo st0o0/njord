@@ -38,7 +38,7 @@ public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
     {
         var client = new FakeOpenMeteoClient();
         var options = Options(1, "A", "B");
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        var parameters = ParameterSelection.Resolve(["Weather"], [], []);
         var cycle = new CycleId(Epoch);
 
         var locA = options.Locations[0];
@@ -72,7 +72,7 @@ public sealed class PollPipelineSpec : Akka.Hosting.TestKit.TestKit
     {
         var client = new FakeOpenMeteoClient { FailingModels = { "BROKEN" } };
         var options = Options(1, "A", "BROKEN");
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        var parameters = ParameterSelection.Resolve(["Weather"], [], []);
         var cycle = new CycleId(Epoch);
 
         var loc = options.Locations[0];

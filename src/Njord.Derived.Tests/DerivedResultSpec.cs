@@ -2,6 +2,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
+using Njord.Core.Configuration;
 using Njord.Weather;
 
 namespace Njord.Derived.Tests;
@@ -19,7 +20,7 @@ public sealed class DerivedResultSpec
     private static readonly ParameterDef SunshineDuration = ParameterRegistry.GetByApiName("sunshine_duration")!;
     private static readonly ParameterDef IsDay = ParameterRegistry.GetByApiName("is_day")!;
 
-    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(
+    private static readonly ResolvedParameterSet Parameters = ParameterSelection.Resolve(
         ["Weather", "Solar"], [], []);
 
     private static Forecast MakeForecast(

@@ -28,7 +28,7 @@ public sealed class MqttStateRewireSpec : NjordActorSpec
             Models = ["icon_d2"],
         };
 
-        var parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+        var parameters = ParameterSelection.Resolve(["Weather"], [], []);
         var timeProvider = TestTimeouts.AtEpoch(Anchor);
 
         Sys.ActorOf(Props.Create(() => new MqttStatePublisher(

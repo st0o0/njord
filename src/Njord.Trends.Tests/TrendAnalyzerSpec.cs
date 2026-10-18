@@ -3,6 +3,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
+using Njord.Core.Configuration;
 using Njord.Core.Configuration.Trends;
 using Njord.Weather;
 using Njord.Tests.Shared;
@@ -13,7 +14,7 @@ public sealed class TrendAnalyzerSpec
 {
     private static readonly DateTimeOffset T0 = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
     private static readonly FakeTimeProvider Time = new(T0);
-    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+    private static readonly ResolvedParameterSet Parameters = ParameterSelection.Resolve(["Weather"], [], []);
 
     [Fact]
     public void Compute_returns_null_when_previous_is_null()

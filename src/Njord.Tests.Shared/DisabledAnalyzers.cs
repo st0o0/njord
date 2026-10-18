@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using Njord.Alerts;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
+using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Derived;
 using Njord.Core.Configuration.Indices;
@@ -16,7 +17,7 @@ namespace Njord.Tests.Shared;
 public static class DisabledAnalyzers
 {
     private static readonly ResolvedParameterSet EmptyParameters =
-        ParameterRegistry.Resolve(["Weather"], [], []);
+        ParameterSelection.Resolve(["Weather"], [], []);
 
     public static AlertAnalyzer Alert() => FeatureServices.Alerts(TimeProvider.System, enabled: false);
 

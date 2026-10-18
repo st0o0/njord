@@ -20,9 +20,9 @@ internal static class OpenMeteoUnitCheck
         {
             var expected = param switch
             {
-                { Unit: "°C", DeviceClass: "temperature" } => "°C",
-                { Unit: "m/s", DeviceClass: "wind_speed" } => "m/s",
-                { Unit: "hPa", DeviceClass: "atmospheric_pressure" } => "hPa",
+                { Unit: "°C" } => "°C",
+                { Unit: "m/s" } => "m/s",
+                { Unit: "hPa" } => "hPa",
                 _ => null,
             };
 

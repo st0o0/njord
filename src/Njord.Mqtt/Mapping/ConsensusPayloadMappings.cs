@@ -26,7 +26,7 @@ internal static class ConsensusPayloadMappings
                 }
 
                 entries.Add(new ConsensusParameterPayload(
-                    parameter.Parameter.JsonKey,
+                    parameter.Parameter.ToMqttKey(),
                     Round(consensus.Median, ValueDigits),
                     consensus.AvailableModels.Count));
             }

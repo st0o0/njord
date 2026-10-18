@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Consensus;
 using Njord.Compute.Settings;
+using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
 using Njord.Weather;
 using Njord.Tests.Shared;
@@ -32,7 +33,7 @@ internal static class AlertRuleFixture
     public static readonly ParameterDef DailySnowfallSum = ParameterRegistry.GetByApiName("snowfall_sum")!;
 
     private static readonly FakeTimeProvider Time = new(T0);
-    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather", "Solar", "Soil"], [], []);
+    private static readonly ResolvedParameterSet Parameters = ParameterSelection.Resolve(["Weather", "Solar", "Soil"], [], []);
 
     public static ConsensusSnapshot ToConsensus(ModelSnapshot snap) =>
         new ConsensusBuilder(Parameters, Time).Create(snap, "lucerne", ConsensusSettings.Default);

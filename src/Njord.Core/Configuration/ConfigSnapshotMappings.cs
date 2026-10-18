@@ -71,7 +71,7 @@ public static class ConfigSnapshotMappings
             [.. scope.Models],
             [.. scope.Horizons],
             scope.ForecastDays,
-            new ParameterSelection([.. scope.Parameters.Groups], [.. scope.Parameters.Extra], [.. scope.Parameters.Exclude]));
+            new Njord.Messages.Config.ParameterSelection([.. scope.Parameters.Groups], [.. scope.Parameters.Extra], [.. scope.Parameters.Exclude]));
 
     private static List<string> ResolveModels(NjordOptions scope, LocationOptions location) =>
         [.. scope.Models.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase)];

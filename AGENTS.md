@@ -180,7 +180,7 @@ src/
 
   # /Foundation/ — shared types, messages, persistence, computation, infrastructure
   Njord.Weather/               # Pure weather records, ModelCoverageRegistry, HorizonProjection,
-                              #   ParameterRegistry (no Njord references)
+                              #   ParameterRegistry (one typed field per parameter, identity only), ResolvedParameterSet (no Njord references)
   Njord.Sensors/               # Pure sensor records (no Njord references)
   Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references): Events/Budget, Events/Polling
   Njord.Messages/             # Commands, queries, results, PipelineEvent; no Akka
@@ -293,8 +293,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1474 tests (Weather 117, Sensors 11, Persistence 14, Compute 176, Core 236,
-Grpc 150, Pipeline 144, Mqtt 151, OpenMeteo 62, Budget 28, SensorHub 32, Architecture 79,
+Current total: 1497 tests (Weather 124, Sensors 11, Persistence 14, Compute 176, Core 247,
+Grpc 150, Pipeline 144, Mqtt 155, OpenMeteo 63, Budget 28, SensorHub 32, Architecture 79,
 Alerts 67, Derived 36, Trends 27, Indices 63, host `Njord.Tests` 81).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
@@ -408,8 +408,8 @@ These checks run locally only; they are deliberately not part of CI.
   `switch` expression, one arm per member and a default that throws
   `ArgumentOutOfRangeException` (`ToWireName()`, `ToTopicSegment()`, `ToProto()`). No casts
   between enum types, `Enum.Parse`/`TryParse` or `ToString().ToLower*()` for wire values;
-  `EnumConversionArchitectureSpec` scans production code, allow-list: `ParameterRegistry`
-  (user-written configuration text). Each conversion has a spec pinning every member.
+  `EnumConversionArchitectureSpec` scans production code, no allow-list entries.
+  Each conversion has a spec pinning every member.
 - Mappings (domain to proto, request to command, options to message) are public extension methods in
   `internal static` classes named `<Domain><Target>Mappings`, one per domain; no state, no options, no
   registry lookups, never inside actors or services. Names follow the direction: `ToProto`, `ToCommand`,
@@ -425,10 +425,16 @@ These checks run locally only; they are deliberately not part of CI.
   strings. Enrichment `PipelineEvent` variants implement `IEnrichmentEvent`.
 - Consensus method is `ConsensusMethod` enum (`Njord.Compute.Settings`),
   not a string.
-- `ParameterRegistry` (`Njord.Weather`): use typed static properties
-  (`ParameterRegistry.Rain`, `.PrecipitationSum`, etc.) in production code.
-  `GetByApiName` is for deserialization only — never call it with a string
-  literal.
+- `ParameterRegistry` (`Njord.Weather`): one `static readonly ParameterDef` field per
+  parameter (declared once, registered into the catalog; daily variants of a shared API name
+  are `DailyWeatherCode`, `DailySunshineDuration`, `DailyEt0FaoEvapotranspiration`). Use the
+  fields (`ParameterRegistry.Rain`, `.PrecipitationSum`, etc.) in production code.
+  `GetByApiName` is for deserialization only — never call it with a string literal.
+  `ParameterDef` is identity only (API name, unit, group, granularity, value type): the MQTT
+  payload key is `ToMqttKey()` (`Njord.Mqtt/Mapping/ParameterMqttKeys`), the configuration
+  parsing is `ParameterSelection` (`Njord.Core/Configuration`, via `ParameterOptions.Resolve()`).
+  A new parameter needs a field, a key in `ParameterMqttKeys` and an updated catalog count in
+  `ParameterCatalogSpec`.
 - Persistence records (`Njord.Persistence`): follow FunkArr conventions
   (`akka-skills:persistence`). Positional records (no `[JsonProperty]`,
   no init-properties). `DateTimeOffset` for timestamps, `TimeSpan` for

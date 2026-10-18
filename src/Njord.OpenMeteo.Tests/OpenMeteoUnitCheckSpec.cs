@@ -1,3 +1,4 @@
+using Njord.Core.Configuration;
 using Njord.OpenMeteo.Mapping;
 using Njord.Weather;
 
@@ -5,7 +6,7 @@ namespace Njord.OpenMeteo.Tests;
 
 public sealed class OpenMeteoUnitCheckSpec
 {
-    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+    private static readonly ResolvedParameterSet Parameters = ParameterSelection.Resolve(["Weather"], [], []);
 
     [Fact]
     public void Missing_units_are_reported()
@@ -43,6 +44,42 @@ public sealed class OpenMeteoUnitCheckSpec
         };
 
         Assert.Null(OpenMeteoUnitCheck.Mismatch(units, Parameters));
+    }
+
+    private static readonly string[] CheckedHourlyParameters =
+    [
+        "temperature_2m",
+        "apparent_temperature",
+        "dew_point_2m",
+        "soil_temperature_0cm",
+        "soil_temperature_6cm",
+        "soil_temperature_18cm",
+        "soil_temperature_54cm",
+        "wind_speed_10m",
+        "wind_speed_80m",
+        "wind_speed_120m",
+        "wind_speed_180m",
+        "wind_gusts_10m",
+        "pressure_msl",
+        "surface_pressure",
+    ];
+
+    [Fact]
+    public void Exactly_the_temperature_wind_speed_and_pressure_parameters_are_checked()
+    {
+        var all = new ResolvedParameterSet(
+            [.. ParameterRegistry.All.Where(p => p.Granularity == ParameterGranularity.Hourly)],
+            []);
+
+        var checkedNames = all.Hourly
+            .Where(p => OpenMeteoUnitCheck.Mismatch(
+                new() { ["time"] = "unixtime", [p.ApiName] = "bogus" },
+                new ResolvedParameterSet([p], [])) is not null)
+            .Select(p => p.ApiName)
+            .Order()
+            .ToList();
+
+        Assert.Equal(CheckedHourlyParameters.Order().ToList(), checkedNames);
     }
 
     [Fact]

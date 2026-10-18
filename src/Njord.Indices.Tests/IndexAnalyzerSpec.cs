@@ -4,6 +4,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
+using Njord.Core.Configuration;
 using Njord.Core.Configuration.Indices;
 using Njord.Sensors;
 using Njord.Tests.Shared;
@@ -15,7 +16,7 @@ public sealed class IndexAnalyzerSpec
 {
     private static readonly DateTimeOffset T0 = new(2026, 7, 14, 6, 0, 0, TimeSpan.Zero);
     private static readonly FakeTimeProvider Time = new(T0);
-    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+    private static readonly ResolvedParameterSet Parameters = ParameterSelection.Resolve(["Weather"], [], []);
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
     private static readonly ParameterDef Humidity = ParameterRegistry.GetByApiName("relative_humidity_2m")!;
     private static readonly ParameterDef WindSpeed = ParameterRegistry.GetByApiName("wind_speed_10m")!;
@@ -224,7 +225,7 @@ public sealed class IndexAnalyzerSpec
 
     private static readonly DateTimeOffset ResultT0 = new(2026, 7, 11, 6, 0, 0, TimeSpan.Zero);
 
-    private static readonly ResolvedParameterSet ResultParameters = ParameterRegistry.Resolve(
+    private static readonly ResolvedParameterSet ResultParameters = ParameterSelection.Resolve(
         ["Weather", "Solar"], [], []);
 
     private static IndexSettings ResultPrefs(string location = "lucerne") =>

@@ -20,13 +20,13 @@ public sealed class ForecastPayloadMappingsSpec
 
         Assert.Equal(3, payload.Entries.Count);
         Assert.Multiple(
-            () => Assert.Equal(ParameterRegistry.Temperature2m.JsonKey, payload.Entries[0].Key),
+            () => Assert.Equal(ParameterRegistry.Temperature2m.ToMqttKey(), payload.Entries[0].Key),
             () => Assert.Equal(21.5, payload.Entries[0].Number),
             () => Assert.Null(payload.Entries[0].Text),
-            () => Assert.Equal(sunrise.JsonKey, payload.Entries[1].Key),
+            () => Assert.Equal(sunrise.ToMqttKey(), payload.Entries[1].Key),
             () => Assert.Null(payload.Entries[1].Number),
             () => Assert.Equal("05:31", payload.Entries[1].Text),
-            () => Assert.Equal(ParameterRegistry.WindSpeed10m.JsonKey, payload.Entries[2].Key),
+            () => Assert.Equal(ParameterRegistry.WindSpeed10m.ToMqttKey(), payload.Entries[2].Key),
             () => Assert.Equal(3.0, payload.Entries[2].Number));
     }
 

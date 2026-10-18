@@ -1,304 +1,128 @@
+using System.Collections.Frozen;
+
 namespace Njord.Weather;
 
 public static class ParameterRegistry
 {
-    private static readonly Dictionary<string, ParameterDef> ByName;
+    // Declared first: static field initializers run in textual order and every parameter registers itself here.
+    private static readonly List<ParameterDef> Catalog = [];
 
-    private static readonly List<ParameterDef> AllList;
+    // === Weather group: Hourly ===
+    public static readonly ParameterDef Temperature2m = Hourly("temperature_2m", "°C", ParameterGroup.Weather);
+    public static readonly ParameterDef ApparentTemperature = Hourly("apparent_temperature", "°C", ParameterGroup.Weather);
+    public static readonly ParameterDef RelativeHumidity2m = Hourly("relative_humidity_2m", "%", ParameterGroup.Weather);
+    public static readonly ParameterDef DewPoint2m = Hourly("dew_point_2m", "°C", ParameterGroup.Weather);
+    public static readonly ParameterDef Precipitation = Hourly("precipitation", "mm", ParameterGroup.Weather);
+    public static readonly ParameterDef Rain = Hourly("rain", "mm", ParameterGroup.Weather);
+    public static readonly ParameterDef Showers = Hourly("showers", "mm", ParameterGroup.Weather);
+    public static readonly ParameterDef Snowfall = Hourly("snowfall", "cm", ParameterGroup.Weather);
+    public static readonly ParameterDef SnowDepth = Hourly("snow_depth", "m", ParameterGroup.Weather);
+    public static readonly ParameterDef WeatherCode = Hourly("weather_code", "wmo code", ParameterGroup.Weather);
+    public static readonly ParameterDef CloudCover = Hourly("cloud_cover", "%", ParameterGroup.Weather);
+    public static readonly ParameterDef CloudCoverLow = Hourly("cloud_cover_low", "%", ParameterGroup.Weather);
+    public static readonly ParameterDef CloudCoverMid = Hourly("cloud_cover_mid", "%", ParameterGroup.Weather);
+    public static readonly ParameterDef CloudCoverHigh = Hourly("cloud_cover_high", "%", ParameterGroup.Weather);
+    public static readonly ParameterDef PressureMsl = Hourly("pressure_msl", "hPa", ParameterGroup.Weather);
+    public static readonly ParameterDef SurfacePressure = Hourly("surface_pressure", "hPa", ParameterGroup.Weather);
+    public static readonly ParameterDef Visibility = Hourly("visibility", "m", ParameterGroup.Weather);
+    public static readonly ParameterDef IsDay = Hourly("is_day", "", ParameterGroup.Weather);
+    public static readonly ParameterDef PrecipitationProbability = Hourly("precipitation_probability", "%", ParameterGroup.Weather);
+    public static readonly ParameterDef WindSpeed10m = Hourly("wind_speed_10m", "m/s", ParameterGroup.Weather);
+    public static readonly ParameterDef WindSpeed80m = Hourly("wind_speed_80m", "m/s", ParameterGroup.Weather);
+    public static readonly ParameterDef WindSpeed120m = Hourly("wind_speed_120m", "m/s", ParameterGroup.Weather);
+    public static readonly ParameterDef WindSpeed180m = Hourly("wind_speed_180m", "m/s", ParameterGroup.Weather);
+    public static readonly ParameterDef WindDirection10m = Hourly("wind_direction_10m", "°", ParameterGroup.Weather);
+    public static readonly ParameterDef WindDirection80m = Hourly("wind_direction_80m", "°", ParameterGroup.Weather);
+    public static readonly ParameterDef WindDirection120m = Hourly("wind_direction_120m", "°", ParameterGroup.Weather);
+    public static readonly ParameterDef WindDirection180m = Hourly("wind_direction_180m", "°", ParameterGroup.Weather);
+    public static readonly ParameterDef WindGusts10m = Hourly("wind_gusts_10m", "m/s", ParameterGroup.Weather);
+    public static readonly ParameterDef Cape = Hourly("cape", "J/kg", ParameterGroup.Weather);
+    public static readonly ParameterDef FreezingLevelHeight = Hourly("freezing_level_height", "m", ParameterGroup.Weather);
+    public static readonly ParameterDef VapourPressureDeficit = Hourly("vapour_pressure_deficit", "kPa", ParameterGroup.Weather);
 
-    static ParameterRegistry()
-    {
-        AllList = BuildAll();
-        ByName = new Dictionary<string, ParameterDef>(StringComparer.Ordinal);
-        foreach (var p in AllList)
-        {
-            ByName.TryAdd(p.ApiName, p);
-        }
+    // === Weather group: Daily ===
+    public static readonly ParameterDef Temperature2mMax = Daily("temperature_2m_max", "°C", ParameterGroup.Weather);
+    public static readonly ParameterDef Temperature2mMin = Daily("temperature_2m_min", "°C", ParameterGroup.Weather);
+    public static readonly ParameterDef ApparentTemperatureMax = Daily("apparent_temperature_max", "°C", ParameterGroup.Weather);
+    public static readonly ParameterDef ApparentTemperatureMin = Daily("apparent_temperature_min", "°C", ParameterGroup.Weather);
+    public static readonly ParameterDef DailyWeatherCode = Daily("weather_code", "wmo code", ParameterGroup.Weather);
+    public static readonly ParameterDef PrecipitationSum = Daily("precipitation_sum", "mm", ParameterGroup.Weather);
+    public static readonly ParameterDef RainSum = Daily("rain_sum", "mm", ParameterGroup.Weather);
+    public static readonly ParameterDef ShowersSum = Daily("showers_sum", "mm", ParameterGroup.Weather);
+    public static readonly ParameterDef SnowfallSum = Daily("snowfall_sum", "cm", ParameterGroup.Weather);
+    public static readonly ParameterDef PrecipitationHours = Daily("precipitation_hours", "h", ParameterGroup.Weather);
+    public static readonly ParameterDef PrecipitationProbabilityMax = Daily("precipitation_probability_max", "%", ParameterGroup.Weather);
+    public static readonly ParameterDef WindSpeed10mMax = Daily("wind_speed_10m_max", "m/s", ParameterGroup.Weather);
+    public static readonly ParameterDef WindGusts10mMax = Daily("wind_gusts_10m_max", "m/s", ParameterGroup.Weather);
+    public static readonly ParameterDef WindDirection10mDominant = Daily("wind_direction_10m_dominant", "°", ParameterGroup.Weather);
+    public static readonly ParameterDef Sunrise = Daily("sunrise", "", ParameterGroup.Weather, ParameterValueType.TimeString);
+    public static readonly ParameterDef Sunset = Daily("sunset", "", ParameterGroup.Weather, ParameterValueType.TimeString);
+    public static readonly ParameterDef DaylightDuration = Daily("daylight_duration", "s", ParameterGroup.Weather);
 
-        Temperature2m = Require("temperature_2m");
-        ApparentTemperature = Require("apparent_temperature");
-        RelativeHumidity2m = Require("relative_humidity_2m");
-        DewPoint2m = Require("dew_point_2m");
-        WindSpeed10m = Require("wind_speed_10m");
-        WindGusts10m = Require("wind_gusts_10m");
-        Precipitation = Require("precipitation");
-        PrecipitationProbability = Require("precipitation_probability");
-        CloudCover = Require("cloud_cover");
-        PressureMsl = Require("pressure_msl");
-        SurfacePressure = Require("surface_pressure");
-        ShortwaveRadiation = Require("shortwave_radiation");
-        SunshineDuration = Require("sunshine_duration");
-        UvIndex = Require("uv_index");
-        IsDay = Require("is_day");
-        Snowfall = Require("snowfall");
-        FreezingLevelHeight = Require("freezing_level_height");
-        Cape = Require("cape");
-        WeatherCode = Require("weather_code");
-        Et0FaoEvapotranspiration = Require("et0_fao_evapotranspiration");
-        Rain = Require("rain");
-        SoilTemperature0cm = Require("soil_temperature_0cm");
-        Visibility = Require("visibility");
-        WindDirection10m = Require("wind_direction_10m");
-        PrecipitationSum = RequireDaily("precipitation_sum");
-        UvIndexMax = RequireDaily("uv_index_max");
-        SnowfallSum = RequireDaily("snowfall_sum");
-        Temperature2mMax = RequireDaily("temperature_2m_max");
-        Temperature2mMin = RequireDaily("temperature_2m_min");
-        WindSpeed10mMax = RequireDaily("wind_speed_10m_max");
-        WindGusts10mMax = RequireDaily("wind_gusts_10m_max");
-        Sunrise = RequireDaily("sunrise");
-        Sunset = RequireDaily("sunset");
-        DailyWeatherCode = RequireDaily("weather_code");
-        return;
+    // === Solar group: Hourly ===
+    public static readonly ParameterDef ShortwaveRadiation = Hourly("shortwave_radiation", "W/m²", ParameterGroup.Solar);
+    public static readonly ParameterDef DirectRadiation = Hourly("direct_radiation", "W/m²", ParameterGroup.Solar);
+    public static readonly ParameterDef DiffuseRadiation = Hourly("diffuse_radiation", "W/m²", ParameterGroup.Solar);
+    public static readonly ParameterDef DirectNormalIrradiance = Hourly("direct_normal_irradiance", "W/m²", ParameterGroup.Solar);
+    public static readonly ParameterDef GlobalTiltedIrradiance = Hourly("global_tilted_irradiance", "W/m²", ParameterGroup.Solar);
+    public static readonly ParameterDef TerrestrialRadiation = Hourly("terrestrial_radiation", "W/m²", ParameterGroup.Solar);
+    public static readonly ParameterDef SunshineDuration = Hourly("sunshine_duration", "s", ParameterGroup.Solar);
+    public static readonly ParameterDef UvIndex = Hourly("uv_index", "", ParameterGroup.Solar);
+    public static readonly ParameterDef UvIndexClearSky = Hourly("uv_index_clear_sky", "", ParameterGroup.Solar);
 
-        static ParameterDef Require(string apiName) =>
-            ByName.GetValueOrDefault(apiName)
-            ?? throw new InvalidOperationException($"Required parameter '{apiName}' not found in registry");
+    // === Solar group: Daily ===
+    public static readonly ParameterDef ShortwaveRadiationSum = Daily("shortwave_radiation_sum", "MJ/m²", ParameterGroup.Solar);
+    public static readonly ParameterDef DailySunshineDuration = Daily("sunshine_duration", "s", ParameterGroup.Solar);
+    public static readonly ParameterDef UvIndexMax = Daily("uv_index_max", "", ParameterGroup.Solar);
+    public static readonly ParameterDef UvIndexClearSkyMax = Daily("uv_index_clear_sky_max", "", ParameterGroup.Solar);
 
-        static ParameterDef RequireDaily(string apiName) =>
-            AllList.FirstOrDefault(p => p.ApiName == apiName && p.Granularity == ParameterGranularity.Daily)
-            ?? throw new InvalidOperationException($"Required daily parameter '{apiName}' not found in registry");
-    }
+    // === Soil group: Hourly ===
+    public static readonly ParameterDef SoilTemperature0cm = Hourly("soil_temperature_0cm", "°C", ParameterGroup.Soil);
+    public static readonly ParameterDef SoilTemperature6cm = Hourly("soil_temperature_6cm", "°C", ParameterGroup.Soil);
+    public static readonly ParameterDef SoilTemperature18cm = Hourly("soil_temperature_18cm", "°C", ParameterGroup.Soil);
+    public static readonly ParameterDef SoilTemperature54cm = Hourly("soil_temperature_54cm", "°C", ParameterGroup.Soil);
+    public static readonly ParameterDef SoilMoisture0To1cm = Hourly("soil_moisture_0_to_1cm", "m³/m³", ParameterGroup.Soil);
+    public static readonly ParameterDef SoilMoisture1To3cm = Hourly("soil_moisture_1_to_3cm", "m³/m³", ParameterGroup.Soil);
+    public static readonly ParameterDef SoilMoisture3To9cm = Hourly("soil_moisture_3_to_9cm", "m³/m³", ParameterGroup.Soil);
+    public static readonly ParameterDef SoilMoisture9To27cm = Hourly("soil_moisture_9_to_27cm", "m³/m³", ParameterGroup.Soil);
+    public static readonly ParameterDef SoilMoisture27To81cm = Hourly("soil_moisture_27_to_81cm", "m³/m³", ParameterGroup.Soil);
+    public static readonly ParameterDef Evapotranspiration = Hourly("evapotranspiration", "mm", ParameterGroup.Soil);
+    public static readonly ParameterDef Et0FaoEvapotranspiration = Hourly("et0_fao_evapotranspiration", "mm", ParameterGroup.Soil);
 
-    public static ParameterDef Temperature2m { get; }
-    public static ParameterDef ApparentTemperature { get; }
-    public static ParameterDef RelativeHumidity2m { get; }
-    public static ParameterDef DewPoint2m { get; }
-    public static ParameterDef WindSpeed10m { get; }
-    public static ParameterDef WindGusts10m { get; }
-    public static ParameterDef Precipitation { get; }
-    public static ParameterDef PrecipitationProbability { get; }
-    public static ParameterDef CloudCover { get; }
-    public static ParameterDef PressureMsl { get; }
-    public static ParameterDef SurfacePressure { get; }
-    public static ParameterDef ShortwaveRadiation { get; }
-    public static ParameterDef SunshineDuration { get; }
-    public static ParameterDef UvIndex { get; }
-    public static ParameterDef IsDay { get; }
-    public static ParameterDef Snowfall { get; }
-    public static ParameterDef FreezingLevelHeight { get; }
-    public static ParameterDef Cape { get; }
-    public static ParameterDef WeatherCode { get; }
-    public static ParameterDef Et0FaoEvapotranspiration { get; }
-    public static ParameterDef Rain { get; }
-    public static ParameterDef SoilTemperature0cm { get; }
-    public static ParameterDef Visibility { get; }
-    public static ParameterDef WindDirection10m { get; }
-    public static ParameterDef PrecipitationSum { get; }
-    public static ParameterDef UvIndexMax { get; }
-    public static ParameterDef SnowfallSum { get; }
-    public static ParameterDef Temperature2mMax { get; }
-    public static ParameterDef Temperature2mMin { get; }
-    public static ParameterDef WindSpeed10mMax { get; }
-    public static ParameterDef WindGusts10mMax { get; }
-    public static ParameterDef Sunrise { get; }
-    public static ParameterDef Sunset { get; }
-    public static ParameterDef DailyWeatherCode { get; }
+    // === Soil group: Daily ===
+    public static readonly ParameterDef DailyEt0FaoEvapotranspiration = Daily("et0_fao_evapotranspiration", "mm", ParameterGroup.Soil);
 
-    public static IReadOnlyCollection<ParameterDef> All => AllList;
+    // Declared after the parameters: the first declaration of an API name (the hourly one) wins.
+    private static readonly FrozenDictionary<string, ParameterDef> ByName = BuildByName();
+
+    public static IReadOnlyCollection<ParameterDef> All => Catalog;
 
     public static IReadOnlyList<ParameterDef> GetByGroup(ParameterGroup group)
-        => [.. AllList.Where(p => p.Group == group)];
+        => [.. Catalog.Where(p => p.Group == group)];
 
     public static ParameterDef? GetByApiName(string name)
         => ByName.GetValueOrDefault(name);
 
-    public static ResolvedParameterSet Resolve(
-        IEnumerable<string> groups,
-        IEnumerable<string> extra,
-        IEnumerable<string> exclude)
+    private static ParameterDef Hourly(string apiName, string unit, ParameterGroup group, ParameterValueType valueType = ParameterValueType.Numeric)
+        => Register(new ParameterDef(apiName, unit, group, ParameterGranularity.Hourly, valueType));
+
+    private static ParameterDef Daily(string apiName, string unit, ParameterGroup group, ParameterValueType valueType = ParameterValueType.Numeric)
+        => Register(new ParameterDef(apiName, unit, group, ParameterGranularity.Daily, valueType));
+
+    private static ParameterDef Register(ParameterDef def)
     {
-        var errors = new List<string>();
-
-        var parsedGroups = new List<ParameterGroup>();
-        foreach (var g in groups)
-        {
-            if (Enum.TryParse<ParameterGroup>(g, ignoreCase: true, out var pg))
-            {
-                parsedGroups.Add(pg);
-            }
-            else
-            {
-                errors.Add($"Unknown parameter group: '{g}'. Valid groups: {string.Join(", ", Enum.GetNames<ParameterGroup>())}");
-            }
-        }
-
-        var extraParams = new List<ParameterDef>();
-        foreach (var name in extra)
-        {
-            if (GetByApiName(name) is { } p)
-            {
-                extraParams.Add(p);
-            }
-            else
-            {
-                errors.Add($"Unknown parameter in Extra: '{name}'");
-            }
-        }
-
-        var excludeSet = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var name in exclude)
-        {
-            if (GetByApiName(name) is not null)
-            {
-                excludeSet.Add(name);
-            }
-            else
-            {
-                errors.Add($"Unknown parameter in Exclude: '{name}'");
-            }
-        }
-
-        if (errors.Count > 0)
-        {
-            throw new ParameterResolutionException(errors);
-        }
-
-        var resolved = parsedGroups
-            .SelectMany(g => AllList.Where(p => p.Group == g))
-            .Concat(extraParams)
-            .Where(p => !excludeSet.Contains(p.ApiName))
-            .Distinct()
-            .ToList();
-
-        if (resolved.Count == 0)
-        {
-            throw new ParameterResolutionException(["The resolved parameter set is empty. Enable at least one group or add parameters via Extra."]);
-        }
-
-        return new ResolvedParameterSet(
-            [.. resolved.Where(p => p.Granularity == ParameterGranularity.Hourly)],
-            [.. resolved.Where(p => p.Granularity == ParameterGranularity.Daily)]);
+        Catalog.Add(def);
+        return def;
     }
 
-    private static List<ParameterDef> BuildAll()
+    private static FrozenDictionary<string, ParameterDef> BuildByName()
     {
-        return
-        [
-            // === Weather group: Hourly ===
-            H("temperature_2m", "°C", "temperature", "temperature", ParameterGroup.Weather),
-            H("apparent_temperature", "°C", "temperature", "apparent_temperature", ParameterGroup.Weather),
-            H("relative_humidity_2m", "%", "humidity", "relative_humidity", ParameterGroup.Weather),
-            H("dew_point_2m", "°C", "temperature", "dewpoint", ParameterGroup.Weather),
-            H("precipitation", "mm", "precipitation", "precipitation", ParameterGroup.Weather),
-            H("rain", "mm", "precipitation", "rain", ParameterGroup.Weather),
-            H("showers", "mm", "precipitation", "showers", ParameterGroup.Weather),
-            H("snowfall", "cm", null, "snowfall", ParameterGroup.Weather),
-            H("snow_depth", "m", null, "snow_depth", ParameterGroup.Weather),
-            H("weather_code", "wmo code", null, "weather_code", ParameterGroup.Weather),
-            H("cloud_cover", "%", null, "cloud_cover", ParameterGroup.Weather),
-            H("cloud_cover_low", "%", null, "cloud_cover_low", ParameterGroup.Weather),
-            H("cloud_cover_mid", "%", null, "cloud_cover_mid", ParameterGroup.Weather),
-            H("cloud_cover_high", "%", null, "cloud_cover_high", ParameterGroup.Weather),
-            H("pressure_msl", "hPa", "atmospheric_pressure", "pressure_msl", ParameterGroup.Weather),
-            H("surface_pressure", "hPa", "atmospheric_pressure", "surface_pressure", ParameterGroup.Weather),
-            H("visibility", "m", "distance", "visibility", ParameterGroup.Weather),
-            H("is_day", "", null, "is_day", ParameterGroup.Weather),
-            H("precipitation_probability", "%", null, "precipitation_probability", ParameterGroup.Weather),
-            H("wind_speed_10m", "m/s", "wind_speed", "wind_speed_10m", ParameterGroup.Weather),
-            H("wind_speed_80m", "m/s", "wind_speed", "wind_speed_80m", ParameterGroup.Weather),
-            H("wind_speed_120m", "m/s", "wind_speed", "wind_speed_120m", ParameterGroup.Weather),
-            H("wind_speed_180m", "m/s", "wind_speed", "wind_speed_180m", ParameterGroup.Weather),
-            H("wind_direction_10m", "°", null, "wind_direction_10m", ParameterGroup.Weather),
-            H("wind_direction_80m", "°", null, "wind_direction_80m", ParameterGroup.Weather),
-            H("wind_direction_120m", "°", null, "wind_direction_120m", ParameterGroup.Weather),
-            H("wind_direction_180m", "°", null, "wind_direction_180m", ParameterGroup.Weather),
-            H("wind_gusts_10m", "m/s", "wind_speed", "wind_gusts_10m", ParameterGroup.Weather),
-            H("cape", "J/kg", null, "cape", ParameterGroup.Weather),
-            H("freezing_level_height", "m", null, "freezing_level_height", ParameterGroup.Weather),
-            H("vapour_pressure_deficit", "kPa", null, "vapour_pressure_deficit", ParameterGroup.Weather),
+        var byName = new Dictionary<string, ParameterDef>(StringComparer.Ordinal);
+        foreach (var p in Catalog)
+        {
+            byName.TryAdd(p.ApiName, p);
+        }
 
-            // === Weather group: Daily ===
-            D("temperature_2m_max", "°C", "temperature", "temperature_max", ParameterGroup.Weather),
-            D("temperature_2m_min", "°C", "temperature", "temperature_min", ParameterGroup.Weather),
-            D("apparent_temperature_max", "°C", "temperature", "apparent_temperature_max", ParameterGroup.Weather),
-            D("apparent_temperature_min", "°C", "temperature", "apparent_temperature_min", ParameterGroup.Weather),
-            D("weather_code", "wmo code", null, "weather_code_daily", ParameterGroup.Weather),
-            D("precipitation_sum", "mm", "precipitation", "precipitation_sum", ParameterGroup.Weather),
-            D("rain_sum", "mm", "precipitation", "rain_sum", ParameterGroup.Weather),
-            D("showers_sum", "mm", "precipitation", "showers_sum", ParameterGroup.Weather),
-            D("snowfall_sum", "cm", null, "snowfall_sum", ParameterGroup.Weather),
-            D("precipitation_hours", "h", null, "precipitation_hours", ParameterGroup.Weather),
-            D("precipitation_probability_max", "%", null, "precipitation_probability_max", ParameterGroup.Weather),
-            D("wind_speed_10m_max", "m/s", "wind_speed", "wind_speed_max", ParameterGroup.Weather),
-            D("wind_gusts_10m_max", "m/s", "wind_speed", "wind_gusts_max", ParameterGroup.Weather),
-            D("wind_direction_10m_dominant", "°", null, "wind_direction_dominant", ParameterGroup.Weather),
-            D("sunrise", "", "timestamp", "sunrise", ParameterGroup.Weather, ParameterValueType.TimeString),
-            D("sunset", "", "timestamp", "sunset", ParameterGroup.Weather, ParameterValueType.TimeString),
-            D("daylight_duration", "s", "duration", "daylight_duration", ParameterGroup.Weather),
-
-            // === Solar group: Hourly ===
-            H("shortwave_radiation", "W/m²", "irradiance", "shortwave_radiation", ParameterGroup.Solar),
-            H("direct_radiation", "W/m²", "irradiance", "direct_radiation", ParameterGroup.Solar),
-            H("diffuse_radiation", "W/m²", "irradiance", "diffuse_radiation", ParameterGroup.Solar),
-            H("direct_normal_irradiance", "W/m²", "irradiance", "direct_normal_irradiance", ParameterGroup.Solar),
-            H("global_tilted_irradiance", "W/m²", "irradiance", "global_tilted_irradiance", ParameterGroup.Solar),
-            H("terrestrial_radiation", "W/m²", "irradiance", "terrestrial_radiation", ParameterGroup.Solar),
-            H("sunshine_duration", "s", null, "sunshine_duration", ParameterGroup.Solar),
-            H("uv_index", "", null, "uv_index", ParameterGroup.Solar),
-            H("uv_index_clear_sky", "", null, "uv_index_clear_sky", ParameterGroup.Solar),
-
-            // === Solar group: Daily ===
-            D("shortwave_radiation_sum", "MJ/m²", null, "shortwave_radiation_sum", ParameterGroup.Solar),
-            D("sunshine_duration", "s", null, "sunshine_duration_daily", ParameterGroup.Solar),
-            D("uv_index_max", "", null, "uv_index_max", ParameterGroup.Solar),
-            D("uv_index_clear_sky_max", "", null, "uv_index_clear_sky_max", ParameterGroup.Solar),
-
-            // === Soil group: Hourly ===
-            H("soil_temperature_0cm", "°C", "temperature", "soil_temperature_0cm", ParameterGroup.Soil),
-            H("soil_temperature_6cm", "°C", "temperature", "soil_temperature_6cm", ParameterGroup.Soil),
-            H("soil_temperature_18cm", "°C", "temperature", "soil_temperature_18cm", ParameterGroup.Soil),
-            H("soil_temperature_54cm", "°C", "temperature", "soil_temperature_54cm", ParameterGroup.Soil),
-            H("soil_moisture_0_to_1cm", "m³/m³", null, "soil_moisture_0_to_1cm", ParameterGroup.Soil),
-            H("soil_moisture_1_to_3cm", "m³/m³", null, "soil_moisture_1_to_3cm", ParameterGroup.Soil),
-            H("soil_moisture_3_to_9cm", "m³/m³", null, "soil_moisture_3_to_9cm", ParameterGroup.Soil),
-            H("soil_moisture_9_to_27cm", "m³/m³", null, "soil_moisture_9_to_27cm", ParameterGroup.Soil),
-            H("soil_moisture_27_to_81cm", "m³/m³", null, "soil_moisture_27_to_81cm", ParameterGroup.Soil),
-            H("evapotranspiration", "mm", null, "evapotranspiration", ParameterGroup.Soil),
-            H("et0_fao_evapotranspiration", "mm", null, "et0_fao_evapotranspiration", ParameterGroup.Soil),
-
-            // === Soil group: Daily ===
-            D("et0_fao_evapotranspiration", "mm", null, "et0_fao_evapotranspiration_daily", ParameterGroup.Soil),
-        ];
-
-        // Shorthand helpers
-        static ParameterDef H(string api, string unit, string? dc, string json, ParameterGroup g, ParameterValueType vt = ParameterValueType.Numeric)
-            => new(api, unit, dc, json, g, ParameterGranularity.Hourly, vt);
-
-        static ParameterDef D(string api, string unit, string? dc, string json, ParameterGroup g, ParameterValueType vt = ParameterValueType.Numeric)
-            => new(api, unit, dc, json, g, ParameterGranularity.Daily, vt);
+        return byName.ToFrozenDictionary(StringComparer.Ordinal);
     }
-}
-
-public sealed class ResolvedParameterSet
-{
-    private readonly HashSet<ParameterDef> _hourlySet;
-    private readonly HashSet<ParameterDef> _dailySet;
-
-    public ResolvedParameterSet(IReadOnlyList<ParameterDef> hourly, IReadOnlyList<ParameterDef> daily)
-    {
-        Hourly = hourly;
-        Daily = daily;
-        _hourlySet = [.. hourly];
-        _dailySet = [.. daily];
-    }
-
-    public IReadOnlyList<ParameterDef> Hourly { get; }
-    public IReadOnlyList<ParameterDef> Daily { get; }
-
-    public int HourlyCount => Hourly.Count;
-    public int ApiCallWeight => (int)Math.Ceiling(HourlyCount / 10.0);
-
-    public ParameterDef? Get(ParameterDef param)
-        => _hourlySet.TryGetValue(param, out var found) ? found
-         : _dailySet.TryGetValue(param, out found) ? found
-         : null;
-
-    public bool Contains(ParameterDef param)
-        => _hourlySet.Contains(param) || _dailySet.Contains(param);
-}
-
-public sealed class ParameterResolutionException(IReadOnlyList<string> errors) : Exception(string.Join("; ", errors))
-{
-    public IReadOnlyList<string> Errors { get; } = errors;
 }

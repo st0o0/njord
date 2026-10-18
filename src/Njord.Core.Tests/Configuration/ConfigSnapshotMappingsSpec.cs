@@ -1,5 +1,6 @@
 using Njord.Compute.Settings;
 using Njord.Core.Configuration;
+using ParameterSelection = Njord.Messages.Config.ParameterSelection;
 using Njord.Core.Configuration.Alerts;
 using Njord.Core.Configuration.Consensus;
 using Njord.Core.Configuration.Derived;

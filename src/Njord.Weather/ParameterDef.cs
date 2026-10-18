@@ -9,8 +9,6 @@ public enum ParameterValueType { Numeric, TimeString }
 public sealed record ParameterDef(
     string ApiName,
     string Unit,
-    string? DeviceClass,
-    string JsonKey,
     ParameterGroup Group,
     ParameterGranularity Granularity,
     ParameterValueType ValueType = ParameterValueType.Numeric)

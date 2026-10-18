@@ -12,7 +12,7 @@ public sealed class OpenMeteoClientSpec
     private static readonly CycleId Cycle = new(Run);
     private static readonly LocationOptions Home = new() { Name = "home", Latitude = 47.05, Longitude = 8.31 };
     private static readonly WeatherModel IconEu = new("icon_eu");
-    private static readonly ResolvedParameterSet DefaultParameters = ParameterRegistry.Resolve(["Weather"], [], []);
+    private static readonly ResolvedParameterSet DefaultParameters = ParameterSelection.Resolve(["Weather"], [], []);
 
     private static readonly DateTimeOffset FixtureStart = DateTimeOffset.FromUnixTimeSeconds(1_783_728_000);
 

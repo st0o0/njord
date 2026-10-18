@@ -4,6 +4,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
+using Njord.Core.Configuration;
 using Njord.Core.Configuration.Alerts;
 using Njord.Tests.Shared;
 using Njord.Weather;
@@ -15,7 +16,7 @@ public sealed class AlertAnalyzerSpec
     private static readonly DateTimeOffset T0 = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
     private static readonly FakeTimeProvider Time = new(T0);
     private static readonly ParameterDef Temperature = ParameterRegistry.GetByApiName("temperature_2m")!;
-    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+    private static readonly ResolvedParameterSet Parameters = ParameterSelection.Resolve(["Weather"], [], []);
     private static readonly AlertSettings DefaultSettings = AppSettingsDefaults.Options<AlertOptions>().ToSettings();
 
     [Fact]

@@ -1,10 +1,11 @@
+using Njord.Core.Configuration;
 using Njord.Tests.Shared;
 
 namespace Njord.Weather.Tests;
 
 public sealed class HorizonProjectionSpec
 {
-    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(["Weather"], [], []);
+    private static readonly ResolvedParameterSet Parameters = ParameterSelection.Resolve(["Weather"], [], []);
     private static readonly DateTimeOffset Anchor = TestTimeConstants.NoonAnchor;
     private static readonly IReadOnlyList<int> Horizons = [3, 6];
     private const int ForecastDays = 2;

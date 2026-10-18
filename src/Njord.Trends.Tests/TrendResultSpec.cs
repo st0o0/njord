@@ -2,6 +2,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Compute.Consensus;
 using Njord.Compute.Contracts;
 using Njord.Compute.Settings;
+using Njord.Core.Configuration;
 using Njord.Weather;
 
 namespace Njord.Trends.Tests;
@@ -16,7 +17,7 @@ public sealed class TrendResultSpec
     private static readonly ParameterDef CloudCover = ParameterRegistry.GetByApiName("cloud_cover")!;
     private static readonly ParameterDef WeatherCode = ParameterRegistry.GetByApiName("weather_code")!;
 
-    private static readonly ResolvedParameterSet Parameters = ParameterRegistry.Resolve(
+    private static readonly ResolvedParameterSet Parameters = ParameterSelection.Resolve(
         ["Weather"], [], []);
 
     private static Forecast MakeForecast(

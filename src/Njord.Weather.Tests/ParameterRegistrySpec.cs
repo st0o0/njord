@@ -1,3 +1,5 @@
+using Njord.Core.Configuration;
+
 namespace Njord.Weather.Tests;
 
 public sealed class ParameterRegistrySpec
@@ -48,63 +50,6 @@ public sealed class ParameterRegistrySpec
     }
 
     [Fact]
-    public void Resolve_with_weather_group_returns_hourly_and_daily()
-    {
-        var resolved = ParameterRegistry.Resolve(["Weather"], [], []);
-
-        Assert.True(resolved.Hourly.Count > 0);
-        Assert.True(resolved.Daily.Count > 0);
-        Assert.All(resolved.Hourly, p => Assert.Equal(ParameterGranularity.Hourly, p.Granularity));
-        Assert.All(resolved.Daily, p => Assert.Equal(ParameterGranularity.Daily, p.Granularity));
-    }
-
-    [Fact]
-    public void Resolve_extra_adds_parameters_from_other_groups()
-    {
-        var resolved = ParameterRegistry.Resolve(["Weather"], ["uv_index"], []);
-
-        Assert.Contains(resolved.Hourly, p => p.ApiName == "uv_index");
-    }
-
-    [Fact]
-    public void Resolve_exclude_removes_parameters()
-    {
-        var resolved = ParameterRegistry.Resolve(["Weather"], [], ["cape"]);
-
-        Assert.DoesNotContain(resolved.Hourly, p => p.ApiName == "cape");
-    }
-
-    [Fact]
-    public void Resolve_unknown_group_throws()
-    {
-        var ex = Assert.Throws<ParameterResolutionException>(
-            () => ParameterRegistry.Resolve(["Bogus"], [], []));
-
-        Assert.Contains("Unknown parameter group", ex.Message);
-    }
-
-    [Fact]
-    public void Resolve_unknown_extra_throws()
-    {
-        var ex = Assert.Throws<ParameterResolutionException>(
-            () => ParameterRegistry.Resolve(["Weather"], ["not_real"], []));
-
-        Assert.Contains("Unknown parameter in Extra", ex.Message);
-    }
-
-    [Fact]
-    public void Resolve_empty_result_throws()
-    {
-        var allWeatherHourly = ParameterRegistry.GetByGroup(ParameterGroup.Weather)
-            .Select(p => p.ApiName).ToList();
-
-        var ex = Assert.Throws<ParameterResolutionException>(
-            () => ParameterRegistry.Resolve(["Weather"], [], allWeatherHourly));
-
-        Assert.Contains("empty", ex.Message);
-    }
-
-    [Fact]
     public void Every_registry_entry_has_a_non_null_unit()
     {
         Assert.All(ParameterRegistry.All, p => Assert.NotNull(p.Unit));
@@ -113,7 +58,7 @@ public sealed class ParameterRegistrySpec
     [Fact]
     public void Api_call_weight_is_ceil_of_hourly_count_over_ten()
     {
-        var resolved = ParameterRegistry.Resolve(["Weather"], [], []);
+        var resolved = ParameterSelection.Resolve(["Weather"], [], []);
 
         Assert.Equal((int)Math.Ceiling(resolved.HourlyCount / 10.0), resolved.ApiCallWeight);
     }
