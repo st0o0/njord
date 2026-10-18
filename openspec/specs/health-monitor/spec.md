@@ -3,26 +3,19 @@
 ## Purpose
 
 Atomic, immutable health state records for ASP.NET Core health checks — each domain publishes its health slice as one atomic reference write.
-
 ## Requirements
+### Requirement: Feature health state is owned by the feature and atomic
+Each feature that exposes health SHALL own an thread-safe health state type in its own project (`PollHealthState` in Pipeline, `MqttConnectionState` in Mqtt, `BudgetUsageState` in Budget). The owning actor SHALL be the only writer and SHALL publish a complete immutable record per write as one atomic reference swap; the feature's health check SHALL be the only reader. `Njord.Core` SHALL NOT declare health state types.
 
-### Requirement: Health monitor uses atomic immutable records
-`NjordHealthMonitor` SHALL expose health state through immutable
-records (`MqttHealth`, `PollHealth`, `BudgetHealth`).
-Each domain SHALL publish its complete health slice as one atomic reference
-write. Readers SHALL receive a consistent record with no torn reads.
+#### Scenario: MQTT state is atomic
+- **WHEN** the MQTT connection transitions from connected to disconnected
+- **THEN** a reader never observes `IsConnected = true` together with a non-null disconnect timestamp
 
-#### Scenario: MQTT health is atomic
-- **GIVEN** the MQTT connection transitions from connected to disconnected
-- **WHEN** a health check reads the MQTT health
-- **THEN** `IsConnected` and `DisconnectedSince` are always consistent (never connected=true with a non-null disconnectedSince)
+#### Scenario: Poll state reflects the last successful poll
+- **WHEN** a poll completes at timestamp T
+- **THEN** the poll health state reports T
 
-#### Scenario: Poll health reflects last successful poll
-- **GIVEN** a successful poll completes at timestamp T
-- **WHEN** a health check reads the poll health
-- **THEN** `LastSuccessfulPollUtc` equals T
+#### Scenario: Core has no health types
+- **WHEN** `Njord.Core` is inspected
+- **THEN** it declares no `NjordHealthMonitor`, `MqttHealth`, `PollHealth` or `BudgetHealth`
 
-#### Scenario: Budget health carries usage and limits
-- **GIVEN** the budget tracker updates daily usage to 50
-- **WHEN** a health check reads the budget health
-- **THEN** `UsedDaily` equals 50 and limits reflect the configured values

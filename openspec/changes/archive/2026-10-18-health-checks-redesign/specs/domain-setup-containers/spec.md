@@ -11,6 +11,17 @@
 - **WHEN** `HealthOptions` is resolved
 - **THEN** it holds the defaults of the `Njord:Health` section in `appsettings.json`
 
+### Requirement: BudgetSetupContainer registers the budget usage state, gauges and check
+`BudgetSetupContainer` SHALL register the `BudgetUsageState`, the observable budget gauges (reading the usage state and the effective budget from `ConfigView`) and the `budget` health check (failure status `Unhealthy`).
+
+#### Scenario: Gauges follow the usage and the configured budget
+- **WHEN** the usage state receives new values and the budget override changes
+- **THEN** the gauges report the new used values and the new effective limits
+
+#### Scenario: Budget check is registered
+- **WHEN** the host's services are built
+- **THEN** a health check named `budget` is registered
+
 ## MODIFIED Requirements
 
 ### Requirement: CoreSetupContainer registers shared services
@@ -28,16 +39,12 @@ The host's `CoreSetupContainer` SHALL register `TimeProvider.System` and the Pro
 - **WHEN** a feature library declares a new `Telemetry` meter name
 - **THEN** it is exported without editing a hard-coded list in the host
 
-### Requirement: BudgetSetupContainer registers the budget gauges
-`BudgetSetupContainer` SHALL register the `BudgetUsageState`, the observable budget gauges (reading the usage state and the effective budget from `ConfigView`) and the `budget` health check.
-
-#### Scenario: Gauge follows the usage and the configured budget
-- **WHEN** the usage state receives new values and the budget override changes
-- **THEN** the gauges report the new used values and the new effective limits
-
-
 ## REMOVED Requirements
 
 ### Requirement: HealthSetupContainer registers the monitor and the health checks
 **Reason**: The shared `NjordHealthMonitor` is removed; the container now registers health options and host-level checks.
 **Migration**: See "HealthSetupContainer registers the health options and the host-level checks".
+
+### Requirement: BudgetSetupContainer registers the budget gauges
+**Reason**: The gauges no longer read the removed health monitor, and the container also registers the budget state and check.
+**Migration**: See "BudgetSetupContainer registers the budget usage state, gauges and check".

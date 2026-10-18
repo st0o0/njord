@@ -20,7 +20,7 @@ The system SHALL define an `IActorRegistration` interface with a method that acc
 - **THEN** they SHALL be invoked in the order they were registered in DI (matching the container chain order in Program.cs)
 
 ### Requirement: CoreSetupContainer registers shared services
-The host's `CoreSetupContainer` SHALL register `TimeProvider.System` and the Prometheus meter adapter limited to the meters declared by the feature libraries' `Telemetry` classes. Options, the config writer and the `ConfigManager` registration SHALL be done by `ConfigSetupContainer`; the health monitor and the health checks by `HealthSetupContainer`.
+The host's `CoreSetupContainer` SHALL register `TimeProvider.System` and the Prometheus meter adapter limited to the meters declared by the feature libraries' `Telemetry` classes. Options, the config writer and the `ConfigManager` registration SHALL be done by `ConfigSetupContainer`; the health options and the host-level health checks by `HealthSetupContainer` (each feature registers its own check).
 
 #### Scenario: TimeProvider is registered exactly once
 - **WHEN** the host's services are built
@@ -117,17 +117,25 @@ The host's `AnalysisSetupContainer` SHALL register `ConsensusBuilder` and call `
 - **WHEN** `ConfigSetupContainer.SetupServices` is called
 - **THEN** `NjordOptions`, `PersistenceOptions` and `StorageOptions` are bound with `ValidateOnStart` enabled
 
-### Requirement: HealthSetupContainer registers the monitor and the health checks
-`HealthSetupContainer` SHALL register the `NjordHealthMonitor` created with the service start time and the initial budget health from `PollingOptions.ToInitialBudgetHealth()`, and the `pipeline` health check. It SHALL NOT register telemetry gauges.
+### Requirement: HealthSetupContainer registers the health options and the host-level checks
+`HealthSetupContainer` SHALL bind and validate `HealthOptions` (`Njord:Health`), add request timeouts, and register the `journal` check (failure status `Unhealthy`) and the `data-directory` check (failure status `Degraded`). It SHALL NOT register a shared health state or telemetry gauges; the `pipeline`, `budget` and `mqtt-connection` checks are registered by their feature containers.
 
-#### Scenario: Monitor starts with the configured budget
-- **WHEN** the monitor is resolved
-- **THEN** its budget limits equal the effective budget of the configured polling options and its used counters are zero
+#### Scenario: Checks are registered with their failure status
+- **WHEN** the host's services are built with MQTT disabled
+- **THEN** the registered checks are `pipeline`, `budget`, `journal` and `data-directory`, with `Unhealthy` as failure status except `data-directory`, which is `Degraded`
 
-### Requirement: BudgetSetupContainer registers the budget gauges
-`BudgetSetupContainer` SHALL register the observable budget gauges, reading their values from the `NjordHealthMonitor` it resolves from DI.
+#### Scenario: Thresholds bind from the shipped defaults
+- **WHEN** `HealthOptions` is resolved
+- **THEN** it holds the defaults of the `Njord:Health` section in `appsettings.json`
 
-#### Scenario: Gauge follows the monitor
-- **WHEN** the monitor receives a new budget health
-- **THEN** the gauges report the health record's daily and monthly used and limit values
+### Requirement: BudgetSetupContainer registers the budget usage state, gauges and check
+`BudgetSetupContainer` SHALL register the `BudgetUsageState`, the observable budget gauges (reading the usage state and the effective budget from `ConfigView`) and the `budget` health check (failure status `Unhealthy`).
+
+#### Scenario: Gauges follow the usage and the configured budget
+- **WHEN** the usage state receives new values and the budget override changes
+- **THEN** the gauges report the new used values and the new effective limits
+
+#### Scenario: Budget check is registered
+- **WHEN** the host's services are built
+- **THEN** a health check named `budget` is registered
 
