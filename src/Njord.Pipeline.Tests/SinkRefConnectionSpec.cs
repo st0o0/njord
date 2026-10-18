@@ -66,7 +66,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
         mergeHubSource
             .SelectAsyncUnordered(2, async x =>
             {
-                await Task.Delay(10);
+                await Task.Yield();
                 return x;
             })
             .Buffer(32, OverflowStrategy.Backpressure)
@@ -130,7 +130,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
         mergeHubSource
             .SelectAsyncUnordered(2, async x =>
             {
-                await Task.Delay(10);
+                await Task.Yield();
                 return x;
             })
             .Buffer(32, OverflowStrategy.Backpressure)
@@ -254,7 +254,7 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
             mergeHubSource
                 .SelectAsyncUnordered(2, async x =>
                 {
-                    await Task.Delay(10);
+                    await Task.Yield();
                     return x;
                 })
                 .Buffer(32, OverflowStrategy.Backpressure)

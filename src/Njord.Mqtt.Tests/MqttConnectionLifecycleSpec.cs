@@ -316,7 +316,7 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
 
         public void HangNextOnline()
         {
-            lock (_lock) { _onlineScript.Enqueue(ct => Task.Delay(Timeout.Infinite, ct)); }
+            lock (_lock) { _onlineScript.Enqueue(ct => new TaskCompletionSource().Task.WaitAsync(ct)); }
         }
 
         public void FailNextOffline(Exception cause)

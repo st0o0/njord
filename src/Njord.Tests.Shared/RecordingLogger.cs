@@ -8,6 +8,8 @@ public sealed class RecordingLogger : ILogger
 {
     private readonly ConcurrentQueue<LogEntry> _entries = new();
 
+    public event Action? EntryLogged;
+
     public IReadOnlyList<LogEntry> Entries => [.. _entries];
 
     public IReadOnlyList<LogEntry> Errors => [.. _entries.Where(e => e.Level == LogLevel.Error)];
@@ -17,8 +19,11 @@ public sealed class RecordingLogger : ILogger
     public bool IsEnabled(LogLevel logLevel) => true;
 
     public void Log<TState>(
-        LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+        LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+    {
         _entries.Enqueue(new LogEntry(logLevel, formatter(state, exception), exception));
+        EntryLogged?.Invoke();
+    }
 }
 
 public sealed record LogEntry(LogLevel Level, string Message, Exception? Exception);

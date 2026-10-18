@@ -1,8 +1,8 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using Njord.Configuration;
 using Njord.Core.Configuration;
 using Njord.Tests.Shared;
@@ -198,11 +198,11 @@ public sealed class ResilientJsonConfigurationSourceSpec : IDisposable
         file.AttachLogger(_logger);
 
         await File.WriteAllTextAsync(OverridePath, """{"Njord": {"ForecastDays": 9""", ct);
-        await WaitUntil(() => _logger.Errors.Count > 0, "the corrupt reload to be logged", ct);
+        await WaitUntil(root, () => _logger.Errors.Count > 0, "the corrupt reload to be logged", ct);
         Assert.Equal("7", root["Njord:ForecastDays"]);
 
         await File.WriteAllTextAsync(OverridePath, """{"Njord": {"ForecastDays": 9}}""", ct);
-        await WaitUntil(() => root["Njord:ForecastDays"] == "9", "the repaired file to be applied", ct);
+        await WaitUntil(root, () => root["Njord:ForecastDays"] == "9", "the repaired file to be applied", ct);
     }
 
     [Fact]
@@ -256,13 +256,32 @@ public sealed class ResilientJsonConfigurationSourceSpec : IDisposable
         return HostConfiguration.Services(builder.Build()).BuildServiceProvider();
     }
 
-    private static async Task WaitUntil(Func<bool> condition, string what, CancellationToken ct)
+    // Re-evaluates the condition each time the logger records an entry or the configuration root reloads.
+    private async Task WaitUntil(IConfigurationRoot root, Func<bool> condition, string what, CancellationToken ct)
     {
-        var elapsed = Stopwatch.StartNew();
-        while (!condition())
+        using var changed = new SemaphoreSlim(0);
+        void Signal() => changed.Release();
+        _logger.EntryLogged += Signal;
+        using var reload = ChangeToken.OnChange(root.GetReloadToken, Signal);
+        try
         {
-            Assert.True(elapsed.Elapsed < TestTimeouts.RealTimeWaitMax, $"Timed out after {TestTimeouts.RealTimeWaitMax} waiting for {what}");
-            await Task.Delay(50, ct);
+            using var bound = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            bound.CancelAfter(TestTimeouts.RealTimeWaitMax);
+            while (!condition())
+            {
+                try
+                {
+                    await changed.WaitAsync(bound.Token);
+                }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                {
+                    Assert.Fail($"Timed out after {TestTimeouts.RealTimeWaitMax} waiting for {what}");
+                }
+            }
+        }
+        finally
+        {
+            _logger.EntryLogged -= Signal;
         }
     }
 }

@@ -219,7 +219,7 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
 
         public void HangNext()
         {
-            lock (_lock) { _script.Enqueue(ct => Task.Delay(Timeout.Infinite, ct)); }
+            lock (_lock) { _script.Enqueue(ct => new TaskCompletionSource().Task.WaitAsync(ct)); }
         }
 
         public Task SendAsync(string topic, string payload, bool retain, CancellationToken cancellationToken)
