@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Njord.Consensus;
 using Njord.Core.Configuration;
 using Njord.Derived.Configuration;
 

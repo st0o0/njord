@@ -1,5 +1,4 @@
 using Njord.Consensus.Settings;
-using Njord.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Model;
 

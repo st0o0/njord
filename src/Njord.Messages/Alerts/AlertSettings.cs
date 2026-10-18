@@ -1,5 +1,3 @@
-using Njord.Consensus;
-
 namespace Njord.Messages.Alerts;
 
 public sealed record AlertSettings(

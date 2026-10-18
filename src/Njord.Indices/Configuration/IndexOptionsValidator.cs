@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using Njord.Consensus;
 using Njord.Messages.Indices;
 
 namespace Njord.Indices.Configuration;

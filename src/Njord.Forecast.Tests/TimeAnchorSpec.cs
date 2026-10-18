@@ -1,4 +1,3 @@
-using Njord.Model;
 namespace Njord.Forecast.Tests;
 
 public sealed class TimeAnchorSpec

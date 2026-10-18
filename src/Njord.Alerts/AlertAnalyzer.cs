@@ -20,7 +20,9 @@ public sealed class AlertAnalyzer
     public AlertResult? Compute(LocationConsensus consensus, AlertSettings settings)
     {
         if (!Enabled)
+        {
             return null;
+        }
 
         var alerts = _rules.Select(rule => rule.Evaluate(consensus, settings)).ToList();
         return new AlertResult(consensus.Location, alerts);

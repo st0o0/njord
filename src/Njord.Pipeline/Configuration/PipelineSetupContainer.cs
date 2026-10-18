@@ -11,7 +11,6 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Derived.Configuration;
 using Njord.Indices.Configuration;
-using Njord.Pipeline.Configuration;
 using Njord.Pipeline.Health;
 using Njord.Trends.Configuration;
 using Servus.Akka;

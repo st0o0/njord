@@ -1,5 +1,3 @@
-using Njord.Consensus;
-
 namespace Njord.Consensus.Settings;
 
 public sealed record ConsensusSettings(ConsensusMethod Method, double TrimPercent, int MinQuorum)

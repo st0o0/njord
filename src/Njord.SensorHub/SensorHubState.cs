@@ -22,11 +22,15 @@ public static class SensorHubStateExtensions
     public static ValidationResult Validate(this SensorHubState _, SensorReading reading)
     {
         if (!SensorKindMetadata.TryGet(reading.Kind, out var metadata) || metadata is null)
+        {
             return new ValidationResult(false, $"Unknown SensorKind: {reading.Kind}");
+        }
 
         if (!metadata.IsPlausible(reading.Value))
+        {
             return new ValidationResult(false,
                 $"Value {reading.Value} outside plausible range [{metadata.Min}, {metadata.Max}] for {reading.Kind}");
+        }
 
         return new ValidationResult(true, null);
     }
@@ -85,7 +89,9 @@ public static class SensorHubStateExtensions
             .ToList();
 
         if (expired.Count == 0)
+        {
             return state;
+        }
 
         return state with { Readings = state.Readings.RemoveRange(expired) };
     }
@@ -96,7 +102,9 @@ public static class SensorHubStateExtensions
     private static AggregatedReading? Aggregate(List<SensorReading> values, AggregationStrategy strategy)
     {
         if (values.Count == 0)
+        {
             return null;
+        }
 
         var newest = values.Max(v => v.MeasuredAt);
         var count = values.Count;

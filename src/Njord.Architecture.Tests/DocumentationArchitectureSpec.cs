@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Njord.Tests.Shared;
 
 namespace Njord.Architecture.Tests;
 

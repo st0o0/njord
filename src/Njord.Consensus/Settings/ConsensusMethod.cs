@@ -1,5 +1,3 @@
-using Njord.Consensus;
-
 namespace Njord.Consensus.Settings;
 
 public enum ConsensusMethod

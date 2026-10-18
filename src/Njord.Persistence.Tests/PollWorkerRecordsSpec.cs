@@ -1,6 +1,5 @@
 using Newtonsoft.Json;
 using Njord.Persistence.Events.Polling;
-using static VerifyXunit.Verifier;
 
 namespace Njord.Persistence.Tests;
 

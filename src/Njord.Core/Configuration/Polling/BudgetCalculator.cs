@@ -1,5 +1,3 @@
-using Njord.Model;
-
 namespace Njord.Core.Configuration.Polling;
 
 public static class BudgetCalculator

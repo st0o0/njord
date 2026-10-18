@@ -6,7 +6,6 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Budget;
 using Njord.Messages.Forecast;
-using Njord.Messages.Pipeline;
 
 namespace Njord.OpenMeteo;
 
@@ -72,7 +71,9 @@ internal sealed class GatewayBudgetGate : IGatewayBudgetGate
         Refill();
 
         if (_tokens < weight)
+        {
             return false;
+        }
 
         _tokens -= weight;
         _trackerActor.Tell(new RecordApiCall(weight));
@@ -83,7 +84,9 @@ internal sealed class GatewayBudgetGate : IGatewayBudgetGate
     {
         var deficit = weight - _tokens;
         if (deficit <= 0)
+        {
             return TimeSpan.Zero;
+        }
 
         var delay = TimeSpan.FromSeconds(deficit / _tokensPerSecond);
         return delay < TimeSpan.FromMilliseconds(10)
@@ -109,7 +112,9 @@ internal sealed class GatewayBudgetGate : IGatewayBudgetGate
     {
         var now = _timeProvider.GetUtcNow();
         if (now - _lastRefresh < RefreshInterval)
+        {
             return;
+        }
 
         _lastRefresh = now;
         ApplyRate(_provider.GetCurrentRate());
@@ -153,15 +158,21 @@ internal sealed class GatewayThrottleStage : GraphStage<FlowShape<OpenMeteoGatew
             SetHandler(stage.In, onPush: () => Decide(Grab(_stage.In)), onUpstreamFinish: () =>
             {
                 if (_pending is null)
+                {
                     CompleteStage();
+                }
                 else
+                {
                     _upstreamFinished = true;
+                }
             });
 
             SetHandler(stage.Out, onPull: () =>
             {
                 if (_pending is null && !_upstreamFinished)
+                {
                     Pull(stage.In);
+                }
             });
         }
 
@@ -195,7 +206,9 @@ internal sealed class GatewayThrottleStage : GraphStage<FlowShape<OpenMeteoGatew
         protected override void OnTimer(object timerKey)
         {
             if (_pending is not { } target)
+            {
                 return;
+            }
 
             if (_stage._gate.TryAcquire(target.Weight))
             {
@@ -225,7 +238,9 @@ internal sealed class GatewayThrottleStage : GraphStage<FlowShape<OpenMeteoGatew
             _pending = null;
             Push(_stage.Out, admission);
             if (_upstreamFinished)
+            {
                 CompleteStage();
+            }
         }
     }
 }

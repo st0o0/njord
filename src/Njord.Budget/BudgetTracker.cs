@@ -72,7 +72,9 @@ public sealed class BudgetTracker : ReceivePersistentActor
     private void MaybeSnapshot()
     {
         if (LastSequenceNr % SnapshotInterval == 0)
+        {
             SaveSnapshot(_state.GetPersistenceState());
+        }
     }
 
     private void OnRecordApiCall(RecordApiCall cmd)

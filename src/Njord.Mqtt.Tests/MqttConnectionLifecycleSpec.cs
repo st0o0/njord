@@ -1,5 +1,4 @@
 using Akka.Actor;
-using Akka.TestKit;
 using MQTTnet.Exceptions;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Configuration.Mqtt;

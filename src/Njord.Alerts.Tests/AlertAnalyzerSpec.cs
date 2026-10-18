@@ -142,7 +142,10 @@ public sealed class AlertAnalyzerSpec
         {
             var values = new Dictionary<ParameterDef, ForecastValue>();
             foreach (var (param, value) in hourlyValues)
+            {
                 values[param] = value;
+            }
+
             points.Add(new ForecastPoint(T0.AddHours(h), values));
         }
 

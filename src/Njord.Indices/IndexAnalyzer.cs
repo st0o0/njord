@@ -24,7 +24,9 @@ public sealed class IndexAnalyzer
     public IndexResult? Compute(LocationConsensus consensus, SensorReadings? sensors, IndexSettings settings)
     {
         if (!Enabled)
+        {
             return null;
+        }
 
         var effective = sensors?.Get(SensorKind.IndoorTemperature) is { } liveTemp
             ? new IndexSettings(OverrideIndoorTemp(settings.Preferences, consensus.Location, liveTemp))

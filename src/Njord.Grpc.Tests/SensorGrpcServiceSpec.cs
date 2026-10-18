@@ -7,7 +7,6 @@ using Njord.Core.Configuration;
 using Njord.Grpc.V2;
 using Njord.Messages.Sensors;
 using Njord.Tests.Shared;
-using Njord.Model;
 using DomainSensorKind = Njord.Sensors.SensorKind;
 
 namespace Njord.Grpc.Tests;

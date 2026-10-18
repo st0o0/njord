@@ -3,14 +3,11 @@ using Njord.Configuration;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Derived.Configuration;
 using Njord.Indices.Configuration;
 using Njord.Messages.Alerts;
 using Njord.Messages.Config;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
-using Njord.Trends.Configuration;
-using Njord.Model;
 
 namespace Njord.Tests.Configuration;
 

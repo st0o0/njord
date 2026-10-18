@@ -8,7 +8,6 @@ using Njord.Grpc.V2;
 using Njord.Messages.Config;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Forecast;
 using Njord.Model;
 using ActorSystem = Akka.Actor.ActorSystem;
 using GrpcStatus = Grpc.Core.Status;

@@ -10,10 +10,7 @@ using DomainAlert = Njord.Messages.Alerts.Alert;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainAlertType = Njord.Messages.Alerts.AlertType;
 using DomainHorizonConsensus = Njord.Consensus.HorizonConsensus;
-using DomainHorizonDerived = Njord.Messages.Derived.HorizonDerived;
 using DomainParameterConsensus = Njord.Consensus.ParameterConsensus;
-using DomainParameterTrend = Njord.Messages.Trends.ParameterTrend;
-using DomainScalarDerived = Njord.Messages.Derived.ScalarDerived;
 
 namespace Njord.Grpc.Tests;
 

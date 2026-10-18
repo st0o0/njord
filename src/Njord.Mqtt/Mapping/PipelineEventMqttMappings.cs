@@ -1,6 +1,5 @@
 using Njord.Messages.Pipeline;
 using Njord.Mqtt.Topics;
-using Njord.Forecast;
 using Njord.Model;
 
 namespace Njord.Mqtt.Mapping;

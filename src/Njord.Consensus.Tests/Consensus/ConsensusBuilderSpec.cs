@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Time.Testing;
-using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Model;
 using Njord.Forecast;

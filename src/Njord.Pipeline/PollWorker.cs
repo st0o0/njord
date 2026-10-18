@@ -7,7 +7,6 @@ using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Polling;
 using Njord.Forecast;
-using Njord.Model;
 using Servus.Akka;
 
 namespace Njord.Pipeline;

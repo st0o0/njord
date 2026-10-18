@@ -1,6 +1,4 @@
 using Akka.Actor;
-using Akka.Streams;
-using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Alerts.Configuration;
 using Njord.Consensus;
@@ -8,12 +6,10 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Derived.Configuration;
 using Njord.Indices.Configuration;
-using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
 using Njord.Trends.Configuration;
-using Njord.Model;
 using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
 using WeatherForecast = Njord.Forecast.Forecast;
 

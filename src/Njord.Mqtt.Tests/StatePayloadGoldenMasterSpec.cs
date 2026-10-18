@@ -1,10 +1,8 @@
 using System.Text;
 using System.Text.Json.Nodes;
-using Njord.Consensus;
 using Njord.Messages.Alerts;
 using Njord.Mqtt.Topics;
 using Njord.Tests.Shared;
-using static VerifyXunit.Verifier;
 
 namespace Njord.Mqtt.Tests;
 

@@ -221,25 +221,37 @@ public sealed class ForecastPipeline : ReceiveActor
                     };
 
                     if (consensusEnabled)
+                    {
                         events.Add(new PipelineEvent.ConsensusComputed(consensus, now));
+                    }
 
                     if (alerts.Compute(consensus, settings.Alerts) is { } a)
+                    {
                         events.Add(new PipelineEvent.AlertComputed(a, now));
+                    }
 
                     if (derived.Compute(consensus, settings.Derived) is { } d)
+                    {
                         events.Add(new PipelineEvent.DerivedComputed(d, now));
+                    }
 
                     if (trends.Compute(consensus, previous, settings.Trends) is { } tr)
+                    {
                         events.Add(new PipelineEvent.TrendComputed(tr, now));
+                    }
 
                     if (indices.Compute(consensus, input.sensors.For(location), settings.Indices) is { } ix)
+                    {
                         events.Add(new PipelineEvent.IndexComputed(ix, now));
+                    }
 
                     previous = consensus;
                     sw.Stop();
                     Telemetry.EnrichmentDuration.Record(sw.Elapsed.TotalSeconds);
                     foreach (var evt in events)
+                    {
                         Telemetry.PipelineEvents.Add(1, new KeyValuePair<string, object?>("event_type", evt.GetType().Name));
+                    }
 
                     log.Debug("Analyzed {0}/{1}: {2} events, live sensors {3}",
                         location, input.forecast.Model.Id, events.Count, input.sensors.For(location) is null ? "absent" : "present");

@@ -2,7 +2,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using Njord.Configuration;
 using Njord.Alerts.Configuration;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Health;
@@ -16,7 +15,6 @@ using Njord.Indices.Configuration;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
 using Njord.Trends.Configuration;
-using static VerifyXunit.Verifier;
 
 namespace Njord.Tests.Configuration;
 

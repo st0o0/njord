@@ -8,7 +8,6 @@ using Njord.Budget.Health;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Budget;
-using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 
 namespace Njord.Budget.Tests;

@@ -1,6 +1,5 @@
 using Akka.Actor;
 using Akka.DependencyInjection;
-using Akka.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -10,7 +9,6 @@ using Njord.Core.Configuration;
 using Njord.Messages.Pipeline;
 using Njord.Pipeline.Health;
 using Njord.Tests.Shared;
-using Njord.Model;
 
 namespace Njord.Pipeline.Tests;
 

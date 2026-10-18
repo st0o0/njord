@@ -1,4 +1,3 @@
-using Njord.Consensus;
 using Njord.Model;
 
 namespace Njord.Messages.Indices;

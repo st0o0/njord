@@ -1,4 +1,3 @@
-using Njord.Consensus;
 using Njord.Indices.Configuration;
 using Njord.Messages.Indices;
 using Njord.Tests.Shared;

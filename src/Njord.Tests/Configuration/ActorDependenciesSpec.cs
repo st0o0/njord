@@ -1,7 +1,6 @@
 using System.Reflection;
 using Akka.Actor;
 using Microsoft.Extensions.DependencyInjection;
-using Njord.Configuration;
 
 namespace Njord.Tests.Configuration;
 

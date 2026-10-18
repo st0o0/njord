@@ -1,4 +1,3 @@
-using Njord.Consensus;
 using Njord.Consensus.Querying;
 using Njord.Model;
 

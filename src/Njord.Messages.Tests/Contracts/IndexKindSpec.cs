@@ -1,4 +1,3 @@
-using Njord.Consensus;
 using Njord.Messages.Indices;
 
 namespace Njord.Messages.Tests.Contracts;

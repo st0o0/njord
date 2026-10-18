@@ -4,7 +4,6 @@ using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
 using Njord.Derived;
-using Njord.Indices;
 using Njord.Indices.Configuration;
 using Njord.Messages.Alerts;
 using Njord.Messages.Derived;

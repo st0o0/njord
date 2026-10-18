@@ -3,7 +3,6 @@ using Njord.Messages.Alerts;
 using Njord.Messages.Derived;
 using Njord.Messages.Indices;
 using Njord.Messages.Trends;
-using Njord.Forecast;
 using Njord.Model;
 using WeatherForecast = Njord.Forecast.Forecast;
 

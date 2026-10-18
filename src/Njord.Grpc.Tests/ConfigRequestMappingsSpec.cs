@@ -1,6 +1,5 @@
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
-using Contracts = Njord.Messages.Config;
 using DomainSection = Njord.Messages.Config.EnrichmentSection;
 
 namespace Njord.Grpc.Tests;

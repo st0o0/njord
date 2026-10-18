@@ -1,5 +1,4 @@
 using Njord.Messages.Budget;
-using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Budget;
 using Njord.Tests.Shared;
 

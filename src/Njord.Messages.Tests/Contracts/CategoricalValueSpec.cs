@@ -1,4 +1,3 @@
-using Njord.Consensus;
 using Njord.Messages.Alerts;
 using Njord.Messages.Derived;
 using Njord.Messages.Trends;

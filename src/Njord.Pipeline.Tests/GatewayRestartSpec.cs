@@ -1,5 +1,4 @@
 using Akka.Actor;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts.Configuration;
 using Njord.Consensus;

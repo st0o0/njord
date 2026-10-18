@@ -9,13 +9,11 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Derived;
 using Njord.Derived.Configuration;
-using Njord.Indices.Configuration;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
 using Njord.Trends.Configuration;
-using Njord.Model;
 using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
 using WeatherForecast = Njord.Forecast.Forecast;
 

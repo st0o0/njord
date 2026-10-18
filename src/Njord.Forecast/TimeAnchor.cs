@@ -1,4 +1,3 @@
-using Njord.Model;
 namespace Njord.Forecast;
 
 public static class TimeAnchor

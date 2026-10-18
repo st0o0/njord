@@ -2,7 +2,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration.Polling;
-using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Polling;
 

@@ -1,13 +1,8 @@
 using Njord.Alerts;
-using Njord.Alerts.Configuration;
 using Njord.Consensus;
-using Njord.Core.Configuration;
 using Njord.Derived;
-using Njord.Derived.Configuration;
 using Njord.Indices;
-using Njord.Indices.Configuration;
 using Njord.Trends;
-using Njord.Trends.Configuration;
 using Servus.Application.Startup;
 
 namespace Njord.Configuration;

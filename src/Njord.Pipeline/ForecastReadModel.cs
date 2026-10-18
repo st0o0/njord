@@ -8,7 +8,6 @@ using Akka.Util;
 using Njord.Core.Actors;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Forecast;
 using Njord.Model;
 using WeatherForecast = Njord.Forecast.Forecast;
 

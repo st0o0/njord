@@ -1,4 +1,3 @@
-using Njord.Forecast;
 using Njord.Model;
 using WeatherForecast = Njord.Forecast.Forecast;
 

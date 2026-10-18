@@ -1,5 +1,4 @@
 using Njord.Forecast;
-using Njord.Model;
 
 namespace Njord.OpenMeteo;
 

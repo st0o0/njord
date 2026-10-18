@@ -1,6 +1,4 @@
-using Njord.Consensus;
 using Njord.Messages.Trends;
-using Njord.Model;
 
 namespace Njord.Trends;
 

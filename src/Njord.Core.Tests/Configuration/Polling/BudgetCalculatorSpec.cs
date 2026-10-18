@@ -1,6 +1,5 @@
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Model;
 using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration.Polling;

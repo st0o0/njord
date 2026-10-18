@@ -5,7 +5,6 @@ using Njord.Grpc.V2;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using Njord.Model;
-using static VerifyXunit.Verifier;
 
 namespace Njord.Grpc.Tests;
 

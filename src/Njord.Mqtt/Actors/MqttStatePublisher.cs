@@ -1,5 +1,4 @@
 using Akka;
-using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
@@ -11,7 +10,6 @@ using Njord.Messages.Pipeline;
 using Njord.Mqtt.Health;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Transport;
-using Njord.Forecast;
 using Njord.Model;
 
 namespace Njord.Mqtt.Actors;

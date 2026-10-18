@@ -2,11 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Njord.Alerts;
 using Njord.Alerts.Configuration;
-using Njord.Core.Configuration;
-using Njord.Derived.Configuration;
 using Njord.Indices;
 using Njord.Indices.Configuration;
-using Njord.Trends.Configuration;
 
 namespace Njord.Tests.Shared;
 

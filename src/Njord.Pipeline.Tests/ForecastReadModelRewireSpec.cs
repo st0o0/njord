@@ -2,7 +2,6 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
-using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using Njord.Model;

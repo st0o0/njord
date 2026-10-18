@@ -3,7 +3,6 @@ using Njord.Core.Configuration;
 using Njord.Derived.Configuration;
 using Njord.Indices.Configuration;
 using Njord.Messages.Config;
-using Njord.Pipeline.Configuration;
 using Njord.Trends.Configuration;
 
 namespace Njord.Pipeline.Configuration;

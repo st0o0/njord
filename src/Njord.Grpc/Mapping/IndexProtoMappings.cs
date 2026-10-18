@@ -53,35 +53,67 @@ internal static class IndexProtoMappings
         {
             case IndexKind.Laundry:
                 proto.Laundry = scored.Value;
-                if (scored.Envelope.ToProto() is { } le) proto.LaundryEnvelope = le;
+                if (scored.Envelope.ToProto() is { } le)
+                {
+                    proto.LaundryEnvelope = le;
+                }
+
                 break;
             case IndexKind.Outdoor:
                 proto.Outdoor = scored.Value;
-                if (scored.Envelope.ToProto() is { } oe) proto.OutdoorEnvelope = oe;
+                if (scored.Envelope.ToProto() is { } oe)
+                {
+                    proto.OutdoorEnvelope = oe;
+                }
+
                 break;
             case IndexKind.Running:
                 proto.Running = scored.Value;
-                if (scored.Envelope.ToProto() is { } re) proto.RunningEnvelope = re;
+                if (scored.Envelope.ToProto() is { } re)
+                {
+                    proto.RunningEnvelope = re;
+                }
+
                 break;
             case IndexKind.Cycling:
                 proto.Cycling = scored.Value;
-                if (scored.Envelope.ToProto() is { } ce) proto.CyclingEnvelope = ce;
+                if (scored.Envelope.ToProto() is { } ce)
+                {
+                    proto.CyclingEnvelope = ce;
+                }
+
                 break;
             case IndexKind.Bbq:
                 proto.Bbq = scored.Value;
-                if (scored.Envelope.ToProto() is { } be) proto.BbqEnvelope = be;
+                if (scored.Envelope.ToProto() is { } be)
+                {
+                    proto.BbqEnvelope = be;
+                }
+
                 break;
             case IndexKind.Irrigation:
                 proto.Irrigation = scored.Value;
-                if (scored.Envelope.ToProto() is { } ie) proto.IrrigationEnvelope = ie;
+                if (scored.Envelope.ToProto() is { } ie)
+                {
+                    proto.IrrigationEnvelope = ie;
+                }
+
                 break;
             case IndexKind.Solar:
                 proto.Solar = scored.Value;
-                if (scored.Envelope.ToProto() is { } se) proto.SolarEnvelope = se;
+                if (scored.Envelope.ToProto() is { } se)
+                {
+                    proto.SolarEnvelope = se;
+                }
+
                 break;
             case IndexKind.NightVentilation:
                 proto.NightVentilation = scored.Value;
-                if (scored.Envelope.ToProto() is { } nve) proto.NightVentilationEnvelope = nve;
+                if (scored.Envelope.ToProto() is { } nve)
+                {
+                    proto.NightVentilationEnvelope = nve;
+                }
+
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(kind), kind, null);

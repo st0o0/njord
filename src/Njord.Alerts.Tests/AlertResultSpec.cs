@@ -1,4 +1,3 @@
-using Njord.Consensus;
 using Njord.Messages.Alerts;
 
 namespace Njord.Alerts.Tests;

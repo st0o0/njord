@@ -3,7 +3,6 @@ using Akka.Hosting;
 using Akka.Persistence;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
@@ -13,7 +12,6 @@ using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using Njord.Model;
 using Servus.Akka;
-using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Pipeline.Tests;
 
