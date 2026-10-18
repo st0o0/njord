@@ -7,6 +7,10 @@ The host's `CoreSetupContainer` SHALL register `TimeProvider.System` and the Pro
 - **WHEN** the host's services are built
 - **THEN** exactly one `TimeProvider` registration exists, `TimeProvider.System`, added by `CoreSetupContainer`
 
+#### Scenario: Options are bound and validated
+- **WHEN** the host's services are built
+- **THEN** `NjordOptions`, `PersistenceOptions` and `StorageOptions` are bound with `ValidateOnStart` enabled, by `ConfigSetupContainer`
+
 #### Scenario: Meter allow-list follows the telemetry classes
 - **WHEN** a feature library declares a new `Telemetry` meter name
 - **THEN** it is exported without editing a hard-coded list in the host

@@ -20,15 +20,19 @@ The system SHALL define an `IActorRegistration` interface with a method that acc
 - **THEN** they SHALL be invoked in the order they were registered in DI (matching the container chain order in Program.cs)
 
 ### Requirement: CoreSetupContainer registers shared services
-The host's `CoreSetupContainer` (src/Njord/Configuration/CoreSetupContainer.cs) SHALL bind and validate (`ValidateOnStart`) `NjordOptions`, `PersistenceOptions` and `StorageOptions` with their validators, and SHALL register the `ResolvedParameterSet`, `TimeProvider.System`, the `NjordHealthMonitor` (including the budget observable gauges), the health checks (`pipeline` always, `mqtt-connection` only when MQTT is enabled), `ConfigView`, the `IConfigWriter` that writes `data/appsettings.Override.json`, the Prometheus meter adapter limited to the `Njord.*` meters, and an `IActorRegistration` that creates the `ConfigManager` actor under the `IConfigManager` marker.
-
-#### Scenario: Options are bound and validated
-- **WHEN** `CoreSetupContainer.SetupServices` is called
-- **THEN** `NjordOptions`, `PersistenceOptions` and `StorageOptions` are bound with `ValidateOnStart` enabled
+The host's `CoreSetupContainer` SHALL register `TimeProvider.System` and the Prometheus meter adapter limited to the meters declared by the feature libraries' `Telemetry` classes. Options, the config writer and the `ConfigManager` registration SHALL be done by `ConfigSetupContainer`; the health monitor and the health checks by `HealthSetupContainer`.
 
 #### Scenario: TimeProvider is registered exactly once
 - **WHEN** the host's services are built
 - **THEN** exactly one `TimeProvider` registration exists, `TimeProvider.System`, added by `CoreSetupContainer`
+
+#### Scenario: Options are bound and validated
+- **WHEN** the host's services are built
+- **THEN** `NjordOptions`, `PersistenceOptions` and `StorageOptions` are bound with `ValidateOnStart` enabled, by `ConfigSetupContainer`
+
+#### Scenario: Meter allow-list follows the telemetry classes
+- **WHEN** a feature library declares a new `Telemetry` meter name
+- **THEN** it is exported without editing a hard-coded list in the host
 
 ### Requirement: MqttSetupContainer registers MQTT services and actors conditionally
 `MqttSetupContainer` SHALL bind and validate `MqttOptions` and, only when `Njord:Mqtt:Enabled` is `true`, register `MqttEgressTuning`, `MqttNetPublisher` (also as `IMqttConnection` and `IMqttTransport`) and an `IActorRegistration` that creates the `MqttConnection` (`IMqttConnectionActor`) and `MqttStatePublisher` (`IMqttStatePublisher`) singletons.
@@ -105,4 +109,25 @@ The host's `AnalysisSetupContainer` SHALL register `ConsensusBuilder` and call `
 #### Scenario: SensorHub is declared via IActorRegistration
 - **WHEN** `SensorSetupContainer.SetupServices` is called
 - **THEN** it registers an `IActorRegistration` that configures `SensorHub`
+
+### Requirement: ConfigSetupContainer registers options, the config writer and the ConfigManager
+`ConfigSetupContainer` SHALL bind and validate (`ValidateOnStart`) `NjordOptions`, `PersistenceOptions` and `StorageOptions` with their validators, register the `ResolvedParameterSet` through `ParametersOptions.Resolve()`, `ConfigView`, the `IConfigWriter` for `data/appsettings.Override.json` and an `IActorRegistration` creating the `ConfigManager` under `IConfigManager`.
+
+#### Scenario: Options are bound and validated
+- **WHEN** `ConfigSetupContainer.SetupServices` is called
+- **THEN** `NjordOptions`, `PersistenceOptions` and `StorageOptions` are bound with `ValidateOnStart` enabled
+
+### Requirement: HealthSetupContainer registers the monitor and the health checks
+`HealthSetupContainer` SHALL register the `NjordHealthMonitor` created with the service start time and the initial budget snapshot from `PollingOptions.ToInitialBudgetSnapshot()`, and the `pipeline` health check. It SHALL NOT register telemetry gauges.
+
+#### Scenario: Monitor starts with the configured budget
+- **WHEN** the monitor is resolved
+- **THEN** its budget limits equal the effective budget of the configured polling options and its used counters are zero
+
+### Requirement: BudgetSetupContainer registers the budget gauges
+`BudgetSetupContainer` SHALL register the observable budget gauges, reading their values from the `NjordHealthMonitor` it resolves from DI.
+
+#### Scenario: Gauge follows the monitor
+- **WHEN** the monitor receives a new budget snapshot
+- **THEN** the gauges report the snapshot's daily and monthly used and limit values
 
