@@ -150,6 +150,6 @@ public static class DerivedFormulas
             return null;
         }
 
-        return (msl - sp) > 3.0 && (t - dp) < 3.0;
+        return msl - sp > 3.0 && t - dp < 3.0;
     }
 }

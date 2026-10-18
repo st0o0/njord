@@ -61,7 +61,7 @@ public sealed class DaySlicerSpec
         var now = new DateTimeOffset(2026, 8, 4, 6, 0, 0, TimeSpan.Zero);
         var consensus = BuildConsensus(now, 72, h =>
         {
-            var absHour = (now.AddHours(h).UtcDateTime.Hour);
+            var absHour = now.AddHours(h).UtcDateTime.Hour;
             var isDay = absHour is >= 6 and < 20 ? 1.0 : 0.0;
             return (20.0, 50.0, isDay);
         });
@@ -81,7 +81,7 @@ public sealed class DaySlicerSpec
         var now = new DateTimeOffset(2026, 8, 4, 0, 0, 0, TimeSpan.Zero);
         var consensus = BuildConsensus(now, 48, h =>
         {
-            var absHour = (now.AddHours(h).UtcDateTime.Hour);
+            var absHour = now.AddHours(h).UtcDateTime.Hour;
             var isDay = absHour is >= 6 and < 20 ? 1.0 : 0.0;
             return (20.0, 50.0, isDay);
         });
@@ -100,7 +100,7 @@ public sealed class DaySlicerSpec
         var now = new DateTimeOffset(2026, 8, 4, 18, 0, 0, TimeSpan.Zero);
         var consensus = BuildConsensus(now, 48, h =>
         {
-            var absHour = (now.AddHours(h).UtcDateTime.Hour);
+            var absHour = now.AddHours(h).UtcDateTime.Hour;
             var isDay = absHour is >= 6 and < 20 ? 1.0 : 0.0;
             return (22.0, 55.0, isDay);
         });
@@ -175,7 +175,7 @@ public sealed class DaySlicerSpec
         var now = new DateTimeOffset(2026, 8, 4, 18, 0, 0, TimeSpan.Zero);
         var consensus = BuildConsensus(now, 30, h =>
         {
-            var absHour = (now.AddHours(h).UtcDateTime.Hour);
+            var absHour = now.AddHours(h).UtcDateTime.Hour;
             var isDay = absHour is >= 6 and < 20 ? 1.0 : 0.0;
             return (20.0, 50.0, isDay);
         });

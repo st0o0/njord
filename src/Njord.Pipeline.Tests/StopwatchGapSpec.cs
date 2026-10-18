@@ -8,7 +8,7 @@ public sealed class StopwatchGapSpec
     public void Timestamps_one_hundredth_of_a_second_apart_are_ten_milliseconds()
     {
         var previous = Stopwatch.GetTimestamp();
-        var next = previous + (Stopwatch.Frequency / 100);
+        var next = previous + Stopwatch.Frequency / 100;
 
         var gapMs = StopwatchGap.Milliseconds(previous, next);
 

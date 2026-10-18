@@ -37,7 +37,7 @@ public sealed class HeavyRainRule : IAlertRule
         var agreements = hourlyHits.Select(hit => hit.Agreement).OfType<double>().ToList();
         var confidence = agreements.Count > 0
             ? Math.Round(agreements.Average(), 3)
-            : (dailyExceeds ? 1.0 : 0.0);
+            : dailyExceeds ? 1.0 : 0.0;
 
         var details = new HeavyRainDetails(
             HourlyExceedModels: hourlyHits.Count,

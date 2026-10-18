@@ -180,7 +180,7 @@ public sealed class IndexAnalyzerSpec
     [Fact]
     public void Reverse_registration_produces_the_same_result()
     {
-        using var provider = FeatureServices.Build(Time, services => services.AddIndices());
+        using var provider = FeatureServices.Build(Time, services => services.AddIndices(AppSettingsDefaults.Configuration()));
         var registered = provider.GetServices<IIndexScore>().ToList();
         var forward = new IndexAnalyzer(registered, EnabledOptions, Time);
         var reverse = new IndexAnalyzer(Enumerable.Reverse(registered), EnabledOptions, Time);
@@ -197,7 +197,7 @@ public sealed class IndexAnalyzerSpec
     [Fact]
     public void Add_indices_registers_the_analyzer_and_one_score_per_index_kind()
     {
-        using var provider = FeatureServices.Build(Time, services => services.AddIndices());
+        using var provider = FeatureServices.Build(Time, services => services.AddIndices(AppSettingsDefaults.Configuration()));
 
         var kinds = provider.GetServices<IIndexScore>().Select(s => s.Kind).Order();
 
@@ -214,7 +214,7 @@ public sealed class IndexAnalyzerSpec
         public ScoredIndex Score(DaySlice slice, ResolvedPreferences preferences) => new(50, null);
     }
 
-    // Ported from Njord.Compute.Tests IndexResultSpec (formerly via IndexComputer).
+    // Ported from Njord.Consensus.Tests IndexResultSpec (formerly via IndexComputer).
 
     private static IndexResult Analyze(FakeTimeProvider time, LocationConsensus consensus)
     {
@@ -266,16 +266,16 @@ public sealed class IndexAnalyzerSpec
     [Fact]
     public void Compute_produces_multiple_day_slices()
     {
-        var snap = ResultSnapshotWith(
+        var snap = ResultForecastsWith(
             MakeResultForecast(new WeatherModel("m1"), 72, h =>
             {
-                var hour = (ResultT0.AddHours(h).UtcDateTime.Hour);
+                var hour = ResultT0.AddHours(h).UtcDateTime.Hour;
                 var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 return (22.0, 50.0, 3.0, 20.0, isDay);
             }),
             MakeResultForecast(new WeatherModel("m2"), 72, h =>
             {
-                var hour = (ResultT0.AddHours(h).UtcDateTime.Hour);
+                var hour = ResultT0.AddHours(h).UtcDateTime.Hour;
                 var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 return (21.0, 52.0, 3.5, 22.0, isDay);
             }));
@@ -293,17 +293,17 @@ public sealed class IndexAnalyzerSpec
     [Fact]
     public void Activity_scores_use_daylight_means_only()
     {
-        var snap = ResultSnapshotWith(
+        var snap = ResultForecastsWith(
             MakeResultForecast(new WeatherModel("m1"), 48, h =>
             {
-                var hour = (ResultT0.AddHours(h).UtcDateTime.Hour);
+                var hour = ResultT0.AddHours(h).UtcDateTime.Hour;
                 var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 var temp = isDay > 0.5 ? 25.0 : 8.0;
                 return (temp, 50.0, 3.0, 20.0, isDay);
             }),
             MakeResultForecast(new WeatherModel("m2"), 48, h =>
             {
-                var hour = (ResultT0.AddHours(h).UtcDateTime.Hour);
+                var hour = ResultT0.AddHours(h).UtcDateTime.Hour;
                 var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 var temp = isDay > 0.5 ? 24.0 : 7.0;
                 return (temp, 52.0, 3.5, 22.0, isDay);
@@ -320,17 +320,17 @@ public sealed class IndexAnalyzerSpec
     [Fact]
     public void NightVentilation_uses_nighttime_means()
     {
-        var snap = ResultSnapshotWith(
+        var snap = ResultForecastsWith(
             MakeResultForecast(new WeatherModel("m1"), 48, h =>
             {
-                var hour = (ResultT0.AddHours(h).UtcDateTime.Hour);
+                var hour = ResultT0.AddHours(h).UtcDateTime.Hour;
                 var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 var temp = isDay > 0.5 ? 30.0 : 16.0;
                 return (temp, 50.0, 3.0, 20.0, isDay);
             }),
             MakeResultForecast(new WeatherModel("m2"), 48, h =>
             {
-                var hour = (ResultT0.AddHours(h).UtcDateTime.Hour);
+                var hour = ResultT0.AddHours(h).UtcDateTime.Hour;
                 var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 var temp = isDay > 0.5 ? 31.0 : 17.0;
                 return (temp, 52.0, 3.5, 22.0, isDay);
@@ -347,7 +347,7 @@ public sealed class IndexAnalyzerSpec
     [Fact]
     public void Frost_protection_computed_once_not_per_day()
     {
-        var snap = ResultSnapshotWith(
+        var snap = ResultForecastsWith(
             MakeResultForecast(new WeatherModel("m1"), 48, h =>
                 (h == 10 ? -2.0 : 15.0, 50.0, 3.0, 20.0, 1.0)),
             MakeResultForecast(new WeatherModel("m2"), 48, h =>
@@ -364,7 +364,7 @@ public sealed class IndexAnalyzerSpec
     [Fact]
     public void Vpd_computed_once()
     {
-        var snap = ResultSnapshotWith(
+        var snap = ResultForecastsWith(
             MakeResultForecast(new WeatherModel("m1"), 48, h => (25.0, 60.0, 3.0, 20.0, 1.0)),
             MakeResultForecast(new WeatherModel("m2"), 48, h => (24.0, 62.0, 3.5, 22.0, 1.0)));
 
@@ -378,7 +378,7 @@ public sealed class IndexAnalyzerSpec
     [Fact]
     public void Multi_model_produces_envelopes_per_day()
     {
-        var snap = ResultSnapshotWith(
+        var snap = ResultForecastsWith(
             MakeResultForecast(new WeatherModel("m1"), 48, h => (22.0, 50.0, 3.0, 20.0, 1.0)),
             MakeResultForecast(new WeatherModel("m2"), 48, h => (10.0, 90.0, 15.0, 95.0, 1.0)),
             MakeResultForecast(new WeatherModel("m3"), 48, h => (20.0, 55.0, 4.0, 30.0, 1.0)));
@@ -395,16 +395,16 @@ public sealed class IndexAnalyzerSpec
     [Fact]
     public void Hours_included_reflects_daylight_or_night_count()
     {
-        var snap = ResultSnapshotWith(
+        var snap = ResultForecastsWith(
             MakeResultForecast(new WeatherModel("m1"), 48, h =>
             {
-                var hour = (ResultT0.AddHours(h).UtcDateTime.Hour);
+                var hour = ResultT0.AddHours(h).UtcDateTime.Hour;
                 var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 return (20.0, 50.0, 3.0, 20.0, isDay);
             }),
             MakeResultForecast(new WeatherModel("m2"), 48, h =>
             {
-                var hour = (ResultT0.AddHours(h).UtcDateTime.Hour);
+                var hour = ResultT0.AddHours(h).UtcDateTime.Hour;
                 var isDay = hour is >= 6 and < 20 ? 1.0 : 0.0;
                 return (21.0, 52.0, 3.5, 22.0, isDay);
             }));

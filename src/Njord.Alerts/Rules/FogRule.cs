@@ -31,7 +31,7 @@ public sealed class FogRule : IAlertRule
             }
 
             if (t.Median is { } tv && d.Median is { } dv && w.Median is { } wv && h.Median is { } hv
-                && (tv - dv) < 2.0 && wv < 3.0 && hv > 90.0)
+                && tv - dv < 2.0 && wv < 3.0 && hv > 90.0)
             {
                 fogHours++;
                 var agreements = new[] { t.Agreement, d.Agreement, w.Agreement, h.Agreement }.OfType<double>().ToList();
