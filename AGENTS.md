@@ -301,9 +301,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1646 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
+Current total: 1649 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
 Core 167, Grpc 157, Pipeline 176, Mqtt 168, OpenMeteo 72, Budget 36, SensorHub 32, Architecture 105,
-Alerts 75, Derived 38, Trends 29, Indices 85, host `Njord.Tests` 179).
+Alerts 75, Derived 38, Trends 29, Indices 85, host `Njord.Tests` 182).
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and

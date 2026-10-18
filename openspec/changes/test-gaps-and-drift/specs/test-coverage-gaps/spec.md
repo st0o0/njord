@@ -28,7 +28,7 @@ Production specs SHALL NOT call `Task.Delay` or `Thread.Sleep` to wait for behav
 
 #### Scenario: Enrichment test data
 - **WHEN** `EnrichmentKindSpec` needs timestamps
-- **THEN** it uses `TestTimeConstants`
+- **THEN** it uses a fixed timestamp, not the wall clock
 
 ### Requirement: Documentation names only things that exist
 `AGENTS.md`, `CLAUDE.md` and the project skills SHALL NOT reference spec files, helper methods or projects that do not exist, and the documented test counts SHALL equal the counts the test projects report.

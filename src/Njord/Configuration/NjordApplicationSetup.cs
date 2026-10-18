@@ -11,7 +11,9 @@ public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplica
 {
     internal static readonly TimeSpan HealthCheckTimeout = TimeSpan.FromSeconds(5);
 
-    protected override void SetupApplication(WebApplication app)
+    protected override void SetupApplication(WebApplication app) => Configure(app);
+
+    internal static void Configure(WebApplication app)
     {
         // Override-file problems found while the configuration was built (before logging existed) are
         // logged now; later ones are logged as they happen.
