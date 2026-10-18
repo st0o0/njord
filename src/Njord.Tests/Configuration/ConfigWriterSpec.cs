@@ -255,7 +255,7 @@ public sealed class ConfigWriterSpec : IDisposable
         var njord = ReadOverride()["Njord"]!;
         var options = provider.GetRequiredService<IOptionsMonitor<NjordOptions>>().CurrentValue;
         Assert.Multiple(
-            () => Assert.Equal([6, 24], njord["Horizons"]!.AsArray().Select(h => h!.GetValue<int>())),
+            () => Assert.Equal([6, 24], njord["Horizons"]!.AsArray().GetValues<int>()),
             () => Assert.Equal(7, njord["ForecastDays"]!.GetValue<int>()),
             () => Assert.Equal([6, 24], options.Horizons),
             () => Assert.Equal(7, options.ForecastDays),

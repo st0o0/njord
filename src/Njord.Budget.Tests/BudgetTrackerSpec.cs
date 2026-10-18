@@ -195,7 +195,7 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
         actor.Tell(new DeleteMessagesFailure(new InvalidOperationException("boom-messages"), 5));
 
         var warning = await warnings.FishForMessageAsync<Warning>(
-            w => w.Message.ToString()!.Contains("Delete messages failed for budget-tracker"),
+            w => w.Message.ToString()?.Contains("Delete messages failed for budget-tracker") == true,
             TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("boom-messages", warning.Cause.Message);
     }
@@ -210,7 +210,7 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
         actor.Tell(new DeleteSnapshotsFailure(new SnapshotSelectionCriteria(4), new InvalidOperationException("boom-snapshots")));
 
         var warning = await warnings.FishForMessageAsync<Warning>(
-            w => w.Message.ToString()!.Contains("Delete snapshots failed for budget-tracker"),
+            w => w.Message.ToString()?.Contains("Delete snapshots failed for budget-tracker") == true,
             TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("boom-snapshots", warning.Cause.Message);
     }

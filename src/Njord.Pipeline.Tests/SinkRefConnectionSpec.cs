@@ -421,7 +421,8 @@ public sealed class SinkRefConnectionSpec : Akka.Hosting.TestKit.TestKit
         {
             Command<DoOffer>(_ =>
             {
-                _queue!.OfferAsync(99).PipeTo(Self,
+                Assert.NotNull(_queue);
+                _queue.OfferAsync(99).PipeTo(Self,
                     success: _ => new ConnectionEstablished(),
                     failure: ex => new OfferFailed(ex));
                 Become(WaitingForConnection);

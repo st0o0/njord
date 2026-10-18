@@ -194,7 +194,7 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
             () => Assert.Equal(FetchRejectionReason.Budget, rejected.Reason),
             () => Assert.Equal(1, _client.Calls));
         var warning = await warnings.FishForMessageAsync<Warning>(
-            w => w.Message.ToString()!.Contains("rejected: Budget"),
+            w => w.Message.ToString()?.Contains("rejected: Budget") == true,
             TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Contains("icon_d2", warning.Message.ToString());
         var recorded = await _apiCalls.ExpectMsgAsync<RecordApiCall>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);

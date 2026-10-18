@@ -103,7 +103,7 @@ public sealed class IndexAnalyzerSpec
 
     private static IndexSettings Settings(double? indoorTemp = null)
     {
-        var options = new IndexOptions();
+        var options = AppSettingsDefaults.Options<IndexOptions>();
         if (indoorTemp.HasValue)
         {
             options.Preferences.IndoorTemp = indoorTemp.Value;

@@ -301,9 +301,11 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1649 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
-Core 167, Grpc 157, Pipeline 176, Mqtt 168, OpenMeteo 72, Budget 36, SensorHub 32, Architecture 105,
+Current total: 1699 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
+Core 167, Grpc 157, Pipeline 176, Mqtt 168, OpenMeteo 72, Budget 36, SensorHub 32, Architecture 155,
 Alerts 75, Derived 38, Trends 29, Indices 85, host `Njord.Tests` 182).
+The count is one test per `[Fact]` and one per data row of a `[Theory]`; `DocumentationArchitectureSpec`
+fails with the discovered numbers when this line is stale.
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
 runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
@@ -605,10 +607,27 @@ Rules apply to production code (`src/Njord/`).
   fixture (e.g. an embedded JSON payload) — a readable failure name beats
   DRY in that case.
 
-Known deviations: 4 remaining `!.` uses on nullable results in the test projects
-(2× `ToString()!.Contains` in `BudgetTrackerSpec.cs` lambdas,
-2× `_queue!.OfferAsync` in `PipelineConnectionSpec.cs`/`SinkRefConnectionSpec.cs`
-test actors), not counting the allowed `JsonNode` indexers; new code follows the rule.
+### Enforcement
+
+Machine-checked by `TestSourceConventionArchitectureSpec` (scans every `*Spec.cs` of the test projects, comments and
+literals ignored; allow-list entries carry a reason and fail when stale):
+
+- an `async` `[Fact]`/`[Theory]` carries an explicit `Timeout`;
+- no `Thread.Sleep`, no `Task.Delay` with a literal duration;
+- no `DateTime.UtcNow`/`Now`, `DateTimeOffset.UtcNow`/`Now` (use `FakeTimeProvider` or a fixed timestamp);
+- no empty `new XOptions()` for an options type with shipped defaults (use `AppSettingsDefaults.Options<T>()`);
+- no single-argument `Assert.True(a == b)` / `Assert.False(a != b)` (xUnit has no message overload for `Assert.Equal`,
+  so a call that passes a message is a deliberate `Assert.True`);
+- no `!.` except on an indexer result or `JsonNode.Parse(...)`; reflection helpers in `Njord.Architecture.Tests` are exempt.
+
+Machine-checked elsewhere: sealed `Spec` classes (`ConventionArchitectureSpec`), no skipped or ignored tests
+(`DisabledTestArchitectureSpec`), the timeout margin of the shared constants (`TestTimeoutsSpec`), CancellationToken
+passing (`xUnit1069` compiler error), and that the files, specs and methods named in this document and in the project skills
+exist and the test count above is current (`DocumentationArchitectureSpec`).
+
+Review-only: no vacuous assertion, assert the exact value, inspect captured exceptions, exact args in mock assertions,
+real behavior in endpoint tests, `Assert.Multiple` for grouped assertions, count before indexing and `Assert.Single`,
+`Assert.IsType(exactMatch: false)`, `Theory` versus separate `Fact`s, and when to reach for NSubstitute.
 
 ## Metrics conventions
 

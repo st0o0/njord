@@ -96,7 +96,7 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
         hub.Emit(Trend("lucerne", 4));
 
         var warning = await warnings.FishForMessageAsync<Warning>(
-            w => w.Message.ToString()!.Contains("MQTT publish to njord/lucerne/trends failed"),
+            w => w.Message.ToString()?.Contains("MQTT publish to njord/lucerne/trends failed") == true,
             TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("broker went away", Assert.IsType<MqttCommunicationException>(warning.Cause).Message);
     }

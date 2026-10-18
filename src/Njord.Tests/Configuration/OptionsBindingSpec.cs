@@ -34,7 +34,9 @@ public sealed class OptionsBindingSpec : IDisposable
         foreach (var type in SectionOptionsTypes())
         {
             var options = provider.GetRequiredService(typeof(IOptions<>).MakeGenericType(type));
-            var value = options.GetType().GetProperty(nameof(IOptions<object>.Value))!.GetValue(options);
+            var property = options.GetType().GetProperty(nameof(IOptions<object>.Value));
+            Assert.NotNull(property);
+            var value = property.GetValue(options);
             Assert.NotNull(value);
         }
     }

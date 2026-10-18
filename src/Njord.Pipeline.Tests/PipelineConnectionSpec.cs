@@ -205,7 +205,8 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         {
             Command<SchedulePoll>(_ =>
             {
-                _queue!.OfferAsync(42).PipeTo(Self,
+                Assert.NotNull(_queue);
+                _queue.OfferAsync(42).PipeTo(Self,
                     success: _ => new ConnectionEstablished(),
                     failure: ex => new OfferFailed(ex));
                 Become(WaitingForConnection);
