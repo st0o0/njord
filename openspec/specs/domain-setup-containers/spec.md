@@ -64,15 +64,15 @@ The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupCont
 - **THEN** `OpenMeteoGateway` runs as a singleton resolvable through `IForecastGateway`
 
 ### Requirement: PipelineSetupContainer registers scheduling, pipeline and read-model actors
-`PipelineSetupContainer` (src/Njord.Pipeline/Configuration) SHALL bind and validate `PollingOptions` and `ConsensusOptions`, register the startup `AnalysisSettings` built by `AnalysisSettingsFactory` from the validated options, register the fetch timeouts unless already registered, and register an `IActorRegistration` that creates the poll shard region `poll-worker` of `PollWorker` entities under `IPollRegion` (shared `ShardMessageExtractor`, no passivation, no remember-entities) before three cluster singletons: `PollManager` under `IPollManager` (singleton name `poll-manager`, inside a backoff-on-failure supervisor, 3 s to 30 s, unlimited retries), `ForecastPipeline` under `IForecastPipeline` (inside a backoff-on-failure supervisor, 3 s to 30 s, unlimited retries) and `ForecastReadModel` under `IForecastReadModel`. It SHALL NOT register a CoordinatedShutdown stream-stop task.
+`PipelineSetupContainer` (src/Njord.Pipeline/Configuration) SHALL bind and validate `PollingOptions` and `ConsensusOptions`, register the fetch timeouts unless already registered, and register an `IActorRegistration` that creates the poll shard region `poll-worker` of `PollWorker` entities under `IPollRegion` (shared `ShardMessageExtractor`, no passivation, no remember-entities) before three cluster singletons: `PollManager` under `IPollManager` (singleton name `poll-manager`, inside a backoff-on-failure supervisor, 3 s to 30 s, unlimited retries), `ForecastPipeline` under `IForecastPipeline` (inside a backoff-on-failure supervisor, 3 s to 30 s, unlimited retries) and `ForecastReadModel` under `IForecastReadModel`. It SHALL NOT register a CoordinatedShutdown stream-stop task and SHALL NOT register a startup `AnalysisSettings`; the analysis settings come from `ConfigManager`.
 
 #### Scenario: Pipeline actors are declared via IActorRegistration
 - **WHEN** `PipelineSetupContainer.SetupServices` is called
 - **THEN** it registers an `IActorRegistration` that configures the poll shard region, `PollManager`, `ForecastPipeline` and `ForecastReadModel`
 
 #### Scenario: Startup analysis settings are registered
-- **WHEN** `ForecastPipeline` is created
-- **THEN** it receives the `AnalysisSettings` built from the validated analysis options
+- **WHEN** `ForecastPipeline` starts
+- **THEN** it asks `ConfigManager` for the current analysis settings and no `AnalysisSettings` singleton is registered
 
 #### Scenario: Pipeline is a supervised singleton
 - **WHEN** the analysis graph of `ForecastPipeline` ends and the pipeline fails
@@ -90,7 +90,7 @@ The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupCont
 - **THEN** `BudgetTracker` runs as a singleton resolvable through `IBudgetTracker`
 
 ### Requirement: AnalysisSetupContainer registers the analysis libraries
-The host's `AnalysisSetupContainer` SHALL register `ConsensusBuilder` and call `AddAlerts()`, `AddDerived()`, `AddTrends()` and `AddIndices()`. It SHALL register no actors.
+The host's `AnalysisSetupContainer` SHALL register `ConsensusBuilder` and call `AddAlerts(configuration)`, `AddDerived(configuration)`, `AddTrends(configuration)` and `AddIndices(configuration)`; each of those registers its feature's options. It SHALL register no actors.
 
 #### Scenario: Analyzers are resolvable
 - **WHEN** the host's services are built

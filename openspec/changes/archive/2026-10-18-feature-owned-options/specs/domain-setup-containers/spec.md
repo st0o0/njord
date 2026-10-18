@@ -7,7 +7,7 @@
 - **WHEN** `PipelineSetupContainer.SetupServices` is called
 - **THEN** it registers an `IActorRegistration` that configures the poll shard region, `PollManager`, `ForecastPipeline` and `ForecastReadModel`
 
-#### Scenario: Analysis settings come from the config manager
+#### Scenario: Startup analysis settings are registered
 - **WHEN** `ForecastPipeline` starts
 - **THEN** it asks `ConfigManager` for the current analysis settings and no `AnalysisSettings` singleton is registered
 
