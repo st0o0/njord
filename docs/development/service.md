@@ -30,7 +30,7 @@ for p in Njord.*Tests; do
 done
 ```
 
-There is one test project per library (`Njord.Weather.Tests`, `Njord.Core.Tests`, `Njord.Pipeline.Tests`, ...) plus the host project `Njord.Tests` and the architecture rules in `Njord.Architecture.Tests`. Each test project is its own executable and runs with `dotnet run --project`; none of them needs Docker. Shared fakes and fixtures live in `Njord.Tests.Shared` (not a test project).
+There is one test project per library (`Njord.Weather.Tests`, `Njord.Core.Tests`, `Njord.Pipeline.Tests`, ...) plus the host project `Njord.Tests` and the architecture rules in `Njord.Architecture.Tests`. Each test project is its own executable and runs with `dotnet run --project`; none of them needs Docker except `Njord.IntegrationTests`. Shared fakes and fixtures live in `Njord.Tests.Shared` (not a test project).
 
 End-to-end checks of the full stack (njord, ha-njord and Home Assistant in Docker Compose) are the `e2e-test` skill (`.claude/skills/e2e-test/SKILL.md`), not a test project.
 
@@ -45,3 +45,15 @@ dotnet run --project Njord/Njord.csproj
 ## Architecture
 
 See [Architecture](/architecture) for the three-zone design, stream pipeline, and project structure. See `AGENTS.md` in the repo root for detailed conventions.
+
+## Integration tests
+
+`Njord.IntegrationTests` starts the whole host in-process (`NjordHost.Create` with `UseTestServer`, a temporary SQLite directory, a fake Open-Meteo client) and talks to it through a real gRPC channel. The MQTT specs run against a Mosquitto container (Testcontainers), so **Docker must be running**; without it those specs fail loudly instead of skipping.
+
+```bash
+dotnet run --project Njord.IntegrationTests/Njord.IntegrationTests.csproj --no-build
+# only the host / gRPC / persistence specs
+dotnet run --project Njord.IntegrationTests/Njord.IntegrationTests.csproj --no-build -- -namespace "Njord.IntegrationTests.Grpc"
+```
+
+Host-based classes share the xUnit collection `host` and run sequentially because the Akka remoting port (2552) is fixed. The whole project takes about one minute.

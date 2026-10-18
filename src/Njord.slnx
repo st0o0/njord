@@ -48,6 +48,7 @@
     <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
     <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />
     <Project Path="Njord.Alerts.Tests/Njord.Alerts.Tests.csproj" />
+    <Project Path="Njord.IntegrationTests/Njord.IntegrationTests.csproj" />
     <Project Path="Njord.Derived.Tests/Njord.Derived.Tests.csproj" />
     <Project Path="Njord.Trends.Tests/Njord.Trends.Tests.csproj" />
     <Project Path="Njord.Indices.Tests/Njord.Indices.Tests.csproj" />

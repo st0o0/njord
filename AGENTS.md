@@ -92,7 +92,7 @@ with optional MQTT state publishing.
   across a re-attach and gives each gRPC streaming client a bounded drop-oldest buffer
   (256 events); the MQTT publisher runs events → `Buffer(256, DropHead)` → payloads →
   `Sink.ForEachAsync(1, dedup + publish)`, so a slow broker drops its own oldest events,
-  and republishes every topic once per new subscription. A started (or restarted)
+  and republishes every topic once per new subscription and after every broker reconnect. A started (or restarted)
   pipeline asks the `ConfigManager` (`QueryAnalysisSettings`) and the `SensorHub`
   (`RequestSensorReadings`) for the current inputs.
 - **The gRPC API is a pure adapter.** `Njord.Grpc` holds no actors and reads no
@@ -269,6 +269,7 @@ src/
   Njord.Trends.Tests/         # TrendAnalyzer, TrendFormulas specs
   Njord.Indices.Tests/        # IndexAnalyzer, DaySlicer specs, Scores/ (one spec per score)
   Njord.Tests/                # Host specs: ConfigManager, options binding
+  Njord.IntegrationTests/     # Whole host via NjordHost + TestServer (gRPC channel, SQLite restart); Mosquitto via Testcontainers (needs Docker)
   Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
 ```
@@ -301,9 +302,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1701 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
-Core 167, Grpc 157, Pipeline 176, Mqtt 168, OpenMeteo 72, Budget 36, SensorHub 32, Architecture 155,
-Alerts 75, Derived 38, Trends 29, Indices 85, host `Njord.Tests` 184).
+Current total: 1726 tests (Weather 124, Sensors 11, Persistence 16, Consensus 50, Messages 126,
+Core 167, Grpc 157, Pipeline 176, Mqtt 171, OpenMeteo 72, Budget 36, SensorHub 32, Architecture 155,
+Alerts 75, Derived 38, Trends 29, Indices 85, host `Njord.Tests` 184, IntegrationTests 22).
 The count is one test per `[Fact]` and one per data row of a `[Theory]`; `DocumentationArchitectureSpec`
 fails with the discovered numbers when this line is stale.
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.

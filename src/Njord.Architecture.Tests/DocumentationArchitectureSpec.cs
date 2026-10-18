@@ -213,7 +213,12 @@ public sealed partial class DocumentationArchitectureSpec
         foreach (Match pair in ProjectCount().Matches(match.Groups["list"].Value.Replace("host `Njord.Tests`", "Host", StringComparison.Ordinal)))
         {
             var name = pair.Groups["name"].Value;
-            documented[name == "Host" ? "Njord.Tests" : $"Njord.{name}.Tests"] = int.Parse(pair.Groups["count"].Value);
+            documented[name switch
+            {
+                "Host" => "Njord.Tests",
+                "IntegrationTests" => "Njord.IntegrationTests",
+                _ => $"Njord.{name}.Tests",
+            }] = int.Parse(pair.Groups["count"].Value);
         }
 
         var differences = Differences(expected, ExpectedLine(documented, int.Parse(match.Groups["total"].Value)));
@@ -228,7 +233,12 @@ public sealed partial class DocumentationArchitectureSpec
         => [$"total {total ?? counts.Values.Sum()}", .. counts.Select(kv => $"{Label(kv.Key)} {kv.Value}")];
 
     private static string Label(string assembly)
-        => assembly == "Njord.Tests" ? "host `Njord.Tests`" : assembly["Njord.".Length..^".Tests".Length];
+        => assembly switch
+        {
+            "Njord.Tests" => "host `Njord.Tests`",
+            "Njord.IntegrationTests" => "IntegrationTests",
+            _ => assembly["Njord.".Length..^".Tests".Length],
+        };
 
     private static async Task<int> CountTests(Assembly assembly, CancellationToken ct)
     {

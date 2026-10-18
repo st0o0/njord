@@ -1,11 +1,11 @@
 ## ADDED Requirements
 
 ### Requirement: The real host is started in integration tests
-`Njord.IntegrationTests` SHALL start the production host (`Program`) through `WebApplicationFactory` with test configuration: a SQLite journal in a unique temporary directory, MQTT disabled unless the test needs it, a fake Open-Meteo client, and fixed locations and models. It SHALL assert the health endpoints and the metrics endpoint of the running host.
+`Njord.IntegrationTests` SHALL start the production composition (`NjordHost`, the same call `Program.cs` makes) on a test server with test configuration: a SQLite journal in a unique temporary directory, MQTT disabled unless the test needs it, a fake Open-Meteo client, and fixed locations and models. It SHALL assert the health endpoints and the metrics endpoint of the running host.
 
 #### Scenario: Host becomes ready
 - **WHEN** the host starts with valid test configuration and one poll cycle has completed through the fake client
-- **THEN** the readiness endpoint returns success and the metrics endpoint exposes the `njord_` meters
+- **THEN** `/healthz` and `/alive` return success and the metrics endpoint exposes the `njord_` meters
 
 #### Scenario: Invalid configuration
 - **WHEN** the host starts with an invalid configuration (for example a missing location)
@@ -45,8 +45,8 @@ Integration tests SHALL run a pinned Mosquitto container through Testcontainers 
 - **THEN** the retained service status becomes `offline`
 
 ### Requirement: Integration tests are isolated and bounded
-Each integration fixture SHALL use unique temporary directories, unique ports or container instances, and explicit timeouts from `TestTimeouts`; fixtures SHALL dispose hosts and containers deterministically.
+Each integration fixture SHALL use unique temporary directories (database and override file), its own broker container, and explicit timeouts from `TestTimeouts`; host-based fixtures SHALL run one after another because the Akka remoting port is fixed, and SHALL dispose hosts and containers deterministically.
 
-#### Scenario: Parallel test classes
-- **WHEN** two integration test classes run in parallel
+#### Scenario: Consecutive test classes
+- **WHEN** two integration test classes run one after another
 - **THEN** they use different databases and brokers and do not observe each other's data
