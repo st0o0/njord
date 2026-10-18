@@ -207,6 +207,7 @@ public sealed class ForecastPipeline : ReceiveActor
 
                 return input =>
                 {
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
                     var now = timeProvider.GetUtcNow();
                     var location = new LocationId(input.forecast.Location);
                     forecasts = forecasts.Update(input.forecast);
@@ -214,7 +215,7 @@ public sealed class ForecastPipeline : ReceiveActor
                     // The forecasts feed every analysis, so it is built even when its own output is switched off.
                     var consensus = consensusBuilder.Create(forecasts, input.forecast.Location, settings.Consensus);
 
-                    var events = new List<PipelineEvent>
+                    var events = new List<PipelineEvent>(6)
                     {
                         new PipelineEvent.ForecastReceived(location, input.forecast.Model, input.forecast),
                     };
@@ -235,6 +236,11 @@ public sealed class ForecastPipeline : ReceiveActor
                         events.Add(new PipelineEvent.IndexComputed(ix, now));
 
                     previous = consensus;
+                    sw.Stop();
+                    Telemetry.EnrichmentDuration.Record(sw.Elapsed.TotalSeconds);
+                    foreach (var evt in events)
+                        Telemetry.PipelineEvents.Add(1, new KeyValuePair<string, object?>("event_type", evt.GetType().Name));
+
                     log.Debug("Analyzed {0}/{1}: {2} events, live sensors {3}",
                         location, input.forecast.Model.Id, events.Count, input.sensors.For(location) is null ? "absent" : "present");
                     return events;

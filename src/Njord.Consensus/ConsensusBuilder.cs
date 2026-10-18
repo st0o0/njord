@@ -39,7 +39,8 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
 
     private static int ComputeCutoffHour(ModelForecasts forecasts, string location, DateTimeOffset now)
     {
-        var maxHours = new List<int>();
+        var modelCount = forecasts.Entries.Count(e => e.Key.Location == location);
+        var maxHours = new List<int>(modelCount);
 
         foreach (var (key, forecast) in forecasts.Entries)
         {
@@ -72,7 +73,8 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
 
     private static int ComputeDailyCutoff(ModelForecasts forecasts, string location)
     {
-        var dayCounts = new List<int>();
+        var modelCount = forecasts.Entries.Count(e => e.Key.Location == location);
+        var dayCounts = new List<int>(modelCount);
 
         foreach (var (key, forecast) in forecasts.Entries)
         {
@@ -106,7 +108,8 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
         double trimPercent,
         double agreementTolerance)
     {
-        var pointIndex = new Dictionary<(string Location, WeatherModel Model), Dictionary<DateTimeOffset, ForecastPoint>>();
+        var modelCount = forecasts.Entries.Count(e => e.Key.Location == location);
+        var pointIndex = new Dictionary<(string Location, WeatherModel Model), Dictionary<DateTimeOffset, ForecastPoint>>(modelCount);
         foreach (var (key, forecast) in forecasts.Entries)
         {
             if (key.Location == location)
@@ -115,18 +118,18 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
             }
         }
 
-        var paramResults = new List<ParameterConsensus>();
+        var paramResults = new List<ParameterConsensus>(hourlyParams.Count);
 
         foreach (var parameter in hourlyParams)
         {
-            var byHorizon = new Dictionary<Horizon, HorizonConsensus>();
+            var byHorizon = new Dictionary<Horizon, HorizonConsensus>(cutoffHour + 1);
 
             for (var hours = 0; hours <= cutoffHour; hours++)
             {
                 var targetTime = TimeAnchor.AtHorizon(now, hours);
                 var horizonKey = Horizon.Hours(hours);
 
-                var modelValues = new List<(WeatherModel Model, double? Value)>();
+                var modelValues = new List<(WeatherModel Model, double? Value)>(modelCount);
                 foreach (var (key, _) in forecasts.Entries)
                 {
                     if (key.Location != location)
@@ -158,18 +161,19 @@ public sealed class ConsensusBuilder(ResolvedParameterSet parameters, TimeProvid
         double trimPercent,
         double agreementTolerance)
     {
-        var paramResults = new List<ParameterConsensus>();
+        var modelCount = forecasts.Entries.Count(e => e.Key.Location == location);
+        var paramResults = new List<ParameterConsensus>(dailyParams.Count);
 
         foreach (var parameter in dailyParams)
         {
-            var byHorizon = new Dictionary<Horizon, HorizonConsensus>();
+            var byHorizon = new Dictionary<Horizon, HorizonConsensus>(maxDays);
 
             for (var day = 0; day < maxDays; day++)
             {
                 var targetDate = today.AddDays(day);
                 var horizonKey = Horizon.Days(day);
 
-                var modelValues = new List<(WeatherModel Model, double? Value)>();
+                var modelValues = new List<(WeatherModel Model, double? Value)>(modelCount);
                 foreach (var (key, forecast) in forecasts.Entries)
                 {
                     if (key.Location != location)
