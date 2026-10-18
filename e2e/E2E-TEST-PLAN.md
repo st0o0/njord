@@ -14,7 +14,7 @@ gRPC path only (no MQTT). Real Open-Meteo API.
 | S4 | WeatherService: GetCatalog + Streaming | 8 | Haiku #1 (gRPC) |
 | S5 | WeatherService: GetForecast | 5 | Haiku #1 (gRPC) |
 | S6 | WeatherService: GetEnrichments | 6 | Haiku #1 (gRPC) |
-| S7 | Entity Attribute Depth + Enrichment Validation | 22 | Haiku #1 (REST) |
+| S7 | Entity Attribute Depth + Enrichment Validation | 21 | Haiku #1 (REST) |
 | S8 | Connectivity Entities | 4 | Haiku #2 (REST) |
 | S9 | Server Entities | 7 | Haiku #2 (REST) |
 | S10 | OpsService: Full Coverage | 8 | Haiku #2 (gRPC) |
@@ -32,7 +32,7 @@ gRPC path only (no MQTT). Real Open-Meteo API.
 | S22 | Config Mutation: Change Horizons | 5 | Opus |
 | S23 | Resilience: Container Restart | 7 | Opus |
 | S24 | Teardown: Integration Removal | 5 | Opus |
-| | **Total** | **~150** | |
+| | **Total** | **~148** | |
 
 ---
 
@@ -52,13 +52,13 @@ gRPC path only (no MQTT). Real Open-Meteo API.
 - **Poll interval:** 3600 s (default)
 - **Forecast days:** 4
 
-### Expected Entities (~47)
+### Expected Entities (~46)
 
 Derived from config: 1 location × 2 models × all enrichments.
 
 **Enabled by default (26):** weather (3), alerts (14), server sensors (4),
 stream binary_sensors (3), event (1), button (1).
-**Disabled by default (21):** indices (11), derived (5), trend (1), history (1),
+**Disabled by default (20):** indices (11), derived (5), trend (1),
 inversion binary_sensor (1), target sensors (2). These exist in the HA entity
 registry but require explicit enabling via `config/entity_registry/update`
 (websocket) or the HA UI before they appear in `/api/states`.
@@ -71,7 +71,6 @@ registry but require explicit enabling via `config/entity_registry/update`
 | sensor (indices) | 3 | `lucerne_vpd`, `lucerne_frost_hours`, `lucerne_frost_confidence` | — | — | kPa, h, % | numeric |
 | sensor (trends) | 1 | `lucerne_weather_trend` | — | — | — | non-empty string |
 | sensor (derived) | 5 | `lucerne_{sunshine,diurnal_amplitude,beaufort,wind_chill,dewpoint_comfort}` | — | — | h, °C, Bft, °C, — | beaufort 0–12, sunshine ≥ 0 |
-| sensor (history) | 1 | `lucerne_model_performance` | — | — | — | not unavailable |
 | sensor (server) | 4 | `server_monthly_usage`, `server_daily_usage`, `server_version`, `server_uptime` | — | — | %, %, —, h | version=semver, usage=numeric |
 | sensor (targets) | 2 | `server_icon_d2_lucerne`, `server_ecmwf_ifs025_lucerne` | timestamp | — | — | ISO timestamp |
 | binary_sensor | 4 | `lucerne_inversion`, `server_forecast_stream`, `server_enrichment_stream`, `server_config_stream` | connectivity (streams) | — | — | on/off |
@@ -189,9 +188,9 @@ Chrome is unavailable. Both paths produce the same long-lived access token.
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
-| 3.6 | Query entity registry via websocket (`config/entity_registry/list`), filter `platform: "njord"` | ~47 total entities (enabled + disabled) |
-| 3.7 | Enable all entities with `disabled_by: "integration"` via websocket `config/entity_registry/update` (set `disabled_by: null`) | All 21 disabled entities enabled |
-| 3.8 | Reload integration via `POST /api/config/config_entries/entry/<entry_id>/reload`, then poll `/api/states` until ~47 njord entities appear (timeout: 30s) | All entities visible |
+| 3.6 | Query entity registry via websocket (`config/entity_registry/list`), filter `platform: "njord"` | ~46 total entities (enabled + disabled) |
+| 3.7 | Enable all entities with `disabled_by: "integration"` via websocket `config/entity_registry/update` (set `disabled_by: null`) | All 20 disabled entities enabled |
+| 3.8 | Reload integration via `POST /api/config/config_entries/entry/<entry_id>/reload`, then poll `/api/states` until ~46 njord entities appear (timeout: 30s) | All entities visible |
 
 ---
 
@@ -212,8 +211,8 @@ Chrome is unavailable. Both paths produce the same long-lived access token.
 | 4.4 | Verify `models` array has entries with `id`, `displayName`, `provider`, `coverageTier` | Fields populated |
 | 4.5 | Verify model `icon_d2` has `coverageTier` = `COVERAGE_TIER_REGIONAL` | Correct tier |
 | 4.6 | Verify model `ecmwf_ifs025` has `coverageTier` = `COVERAGE_TIER_GLOBAL` | Correct tier |
-| 4.7 | `timeout 30 grpcurl -plaintext -import-path protos -proto njord/v2/weather.proto -d '{"location":"lucerne"}' localhost:8081 njord.v2.WeatherService/StreamForecasts` | At least 1 `ForecastUpdate` message received before timeout |
-| 4.8 | Open `StreamEnrichments` in background, then trigger a poll via `grpcurl ... njord.v2.OpsService/TriggerPoll`, wait up to 60s for the stream to deliver at least 1 `EnrichmentEvent` (the stream only pushes events after a poll produces new enrichment data) | At least 1 `EnrichmentEvent` received |
+| 4.7 | Open `StreamForecasts` in background, trigger a poll via `grpcurl ... njord.v2.OpsService/TriggerPoll`, wait up to 60s. Streams push only on data change (hash-based dedup), so no event is expected when Open-Meteo returns identical data. | Connection accepted; at least 1 `ForecastUpdate` if data changed, otherwise PASS on clean timeout (no error) |
+| 4.8 | Open `StreamEnrichments` in background, trigger a poll via `grpcurl ... njord.v2.OpsService/TriggerPoll`, wait up to 60s. Same push-on-change semantics as 4.7. | Connection accepted; at least 1 `EnrichmentEvent` if data changed, otherwise PASS on clean timeout (no error) |
 
 ---
 
@@ -295,7 +294,6 @@ Chrome is unavailable. Both paths produce the same long-lived access token.
 |------|--------|---------------|
 | 7.20 | Verify 5 derived sensors exist; `beaufort` state is numeric 0–12, `sunshine` ≥ 0 | In range |
 | 7.21 | Verify `sensor.lucerne_weather_trend` state is non-empty descriptive string | Not empty |
-| 7.22 | Verify `sensor.lucerne_model_performance` state ≠ "unavailable" | Not unavailable |
 
 ---
 
@@ -605,7 +603,7 @@ Each Haiku subagent receives:
 - Instruction to report PASS/FAIL per step with detail
 
 **Haiku #1 — Weather + Entities (S4–S7):**
-Verify all WeatherService RPCs (GetCatalog, GetForecast, GetEnrichments, StreamForecasts, StreamEnrichments) and deep entity attribute validation. Use grpcurl with `-import-path protos -proto njord/v2/weather.proto` for gRPC calls and HA REST API for entity checks. Report ~42 steps.
+Verify all WeatherService RPCs (GetCatalog, GetForecast, GetEnrichments, StreamForecasts, StreamEnrichments) and deep entity attribute validation. Use grpcurl with `-import-path protos -proto njord/v2/weather.proto` for gRPC calls and HA REST API for entity checks. Report ~41 steps.
 
 **Haiku #2 — Connectivity + Ops + Errors (S8–S11):**
 Verify connectivity/server entities via HA REST API, all OpsService RPCs (GetStatus, GetTargets), and error handling (invalid gRPC requests, HA REST errors). Use `-import-path protos -proto njord/v2/<service>.proto` for all grpcurl calls. Report ~27 steps.
@@ -627,7 +625,7 @@ Applied automatically by Docker config. No grpcurl commands needed.
 - **Models:** icon_d2, ecmwf_ifs025
 - **Horizons:** [3, 6, 12, 24, 48, 72]
 - **Enrichments:** all 6 enabled
-- **Expected entities:** ~47
+- **Expected entities:** ~46
 
 ### Disabled-Alerts Recipe
 

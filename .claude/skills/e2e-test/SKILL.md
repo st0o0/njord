@@ -69,8 +69,8 @@ Poll HA REST API until weather entities appear (5s interval, 120s timeout).
 
 **S3B — Enable all disabled entities (for subsequent tests):**
 - Query entity registry via websocket `config/entity_registry/list`, filter `platform: "njord"`
-- Enable all entities with `disabled_by: "integration"` (21 entities: indices, derived, trend, history, inversion, targets)
-- Reload integration, verify ~47 total entities in `/api/states`
+- Enable all entities with `disabled_by: "integration"` (20 entities: indices, derived, trend, inversion, targets)
+- Reload integration, verify ~46 total entities in `/api/states`
 
 ### Parallel Block A — Spawn 3 Haiku Subagents
 
@@ -84,8 +84,8 @@ Brief it with:
 - S4 steps (GetCatalog + Streaming RPCs)
 - S5 steps (GetForecast)
 - S6 steps (GetEnrichments)
-- S7 steps (entity attribute depth + enrichment validation — 22 steps)
-- Expected entities: 3 weather, 14 alerts, 11 indices, 5 derived, 1 trend, 1 history
+- S7 steps (entity attribute depth + enrichment validation — 21 steps)
+- Expected entities: 3 weather, 14 alerts, 11 indices, 5 derived, 1 trend
 - **Critical:** grpcurl needs `-import-path protos -proto njord/v2/weather.proto` (no reflection)
 - Key attribute names: consensus uses `available_models` (not `models_used`); indices are 0–100 (not 0–10); alert `trigger_value`/`threshold` only present when severity ≠ "none"
 - Use PowerShell for REST API calls (no `jq` in Git Bash)
