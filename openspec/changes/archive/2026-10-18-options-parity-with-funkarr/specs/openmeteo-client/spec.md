@@ -22,3 +22,7 @@
 #### Scenario: Request uses UTC timestamps
 - **WHEN** the client builds the request URI for any location and model
 - **THEN** the query string includes `timezone=UTC` and `timeformat=unixtime`
+
+#### Scenario: Forecast days are capped per model
+- **WHEN** 16 forecast days are configured and the model's `MaxForecastHours` is 60
+- **THEN** the request carries `forecast_days=3`

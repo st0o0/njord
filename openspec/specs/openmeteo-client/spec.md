@@ -3,7 +3,6 @@
 ## Purpose
 
 HTTP client for the Open-Meteo forecast API: fetches hourly and daily forecasts per location and model in UTC with metric units and unixtime, maps responses to `Forecast`, verifies response units, handles dynamic variable sets, reports expected failures as typed outcomes with location and model without retrying, and treats values beyond a model's horizon as missing values.
-
 ## Requirements
 ### Requirement: Expected failures are typed outcomes, not exceptions
 The client SHALL return a typed outcome for every call: `PollOutcome.Success(Forecast)` or `PollOutcome.Failure` with reason `RateLimited`, `ModelUnavailable`, `MalformedPayload`, or `Transport`. Expected failure modes (non-success HTTP status, `HttpRequestException`, request timeout, `JsonException`, missing hourly data, unit mismatch) MUST NOT surface as thrown exceptions to the caller. `PollOutcome.Failure` SHALL carry the `Location`, the `Model`, the `Reason` and a `Detail` text; it SHALL NOT carry a `CycleId`. HTTP 429 SHALL map to `RateLimited`, HTTP 400 to `ModelUnavailable` and every other non-success status to `Transport`.
@@ -71,7 +70,7 @@ cycle.
 - **THEN** the client returns `Failure(Transport)` after exactly one attempt
 
 ### Requirement: Forecast fetch per location and model in UTC
-`OpenMeteoClient.FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken)` SHALL fetch `GET {OpenMeteoBaseUrl}/v1/forecast?latitude={lat}&longitude={lon}&models={id}`, where `OpenMeteoBaseUrl` comes from `OpenMeteoOptions.OpenMeteoBaseUrl` (bound from the `Njord` section, default `https://api.open-meteo.com/`). The request SHALL include the hourly variables from the active parameter set and, when daily parameters are active, the daily variables. The request SHALL always include `wind_speed_unit=ms`, `timeformat=unixtime`, `timezone=UTC`, and `forecast_days` set to `ModelCoverageRegistry.EffectiveForecastDays(model, ForecastDays)` (the configured days, capped by the model's `MaxForecastHours`). No authentication header or API key SHALL be sent. One successful call SHALL yield one `Forecast(Model, Location, Cycle, Hourly, Daily)` carrying the `CycleId` passed by the caller; it SHALL NOT carry a time zone.
+`OpenMeteoClient.FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken)` SHALL fetch `GET {BaseUrl}/v1/forecast?latitude={lat}&longitude={lon}&models={id}`, where `BaseUrl` comes from `OpenMeteoOptions.BaseUrl` (bound from the `Njord:OpenMeteo` section, default `https://api.open-meteo.com/`). The request SHALL include the hourly variables from the active parameter set and, when daily parameters are active, the daily variables. The request SHALL always include `wind_speed_unit=ms`, `timeformat=unixtime`, `timezone=UTC`, and `forecast_days` set to `ModelCoverageRegistry.EffectiveForecastDays(model, ForecastDays)` (the configured days, capped by the model's `MaxForecastHours`). No authentication header or API key SHALL be sent. One successful call SHALL yield one `Forecast(Model, Location, Cycle, Hourly, Daily)` carrying the `CycleId` passed by the caller; it SHALL NOT carry a time zone.
 
 #### Scenario: Successful fetch maps hourly and daily to domain
 - **WHEN** the API returns a valid single-model payload for `icon_eu` with the configured hourly and daily variables
@@ -86,7 +85,7 @@ cycle.
 - **THEN** the gateway computes an API call weight of `ceil(25/10) = 3`
 
 #### Scenario: Custom base URL is used when configured
-- **WHEN** `Njord:OpenMeteoBaseUrl` is set to `http://localhost:8080`
+- **WHEN** `Njord:OpenMeteo:BaseUrl` is set to `http://localhost:8080`
 - **THEN** the client sends requests to `http://localhost:8080/v1/forecast` instead of the default
 
 #### Scenario: Request uses UTC timestamps

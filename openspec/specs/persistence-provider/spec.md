@@ -20,7 +20,7 @@ The system SHALL accept a `Njord:Persistence` options section, bound to `Persist
 - **THEN** options binding fails with a clear error
 
 ### Requirement: SQLite uses PersistencePath as default connection string
-When the provider is `Sqlite` and no `ConnectionString` is configured, the system SHALL construct the connection string as `Data Source={full path of StorageOptions.PersistencePath}` (default `data/njord.db`). When an explicit `ConnectionString` is provided, it SHALL be used instead.
+When the provider is `Sqlite` and no `ConnectionString` is configured, the system SHALL construct the connection string as `Data Source={full path of StorageOptions.PersistencePath}` (default `data/njord.db`, configured at `Njord:Storage:PersistencePath`). When an explicit `ConnectionString` is provided, it SHALL be used instead.
 
 #### Scenario: SQLite without explicit connection string
 - **WHEN** provider is `Sqlite` and no `ConnectionString` is set

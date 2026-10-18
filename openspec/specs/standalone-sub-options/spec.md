@@ -3,18 +3,17 @@
 ## Purpose
 
 Lets every configuration section bind, validate and inject independently: each options type declares its own `SectionName`, has exactly one co-located validator, and is not nested inside `NjordOptions`.
-
 ## Requirements
 ### Requirement: Each sub-option has its own SectionName
-Every options type SHALL be a standalone class with a `public const string SectionName` field and SHALL be bound exactly once, to that section, with startup validation. This SHALL include at least `NjordOptions` (forecast scope), `PollingOptions`, `OpenMeteoOptions`, `StorageOptions`, `MqttOptions`, `SensorOptions`, `PersistenceOptions`, `ConsensusOptions`, `AlertOptions`, `DerivedOptions`, `TrendOptions` and `IndexOptions`. Configuration keys and environment variable names SHALL be unchanged; two options types MAY bind the same section when each reads a disjoint set of keys (e.g. `NjordOptions` and `PollingOptions` both bind `Njord`).
+Every options type SHALL be a standalone class with a `public const string SectionName` field and SHALL be bound exactly once, to that section, with startup validation. This SHALL include at least `NjordOptions` (forecast scope), `PollingOptions`, `OpenMeteoOptions`, `StorageOptions`, `MqttOptions`, `SensorOptions`, `PersistenceOptions`, `ConsensusOptions`, `AlertOptions`, `DerivedOptions`, `TrendOptions` and `IndexOptions`. No two options types SHALL bind the same section: `PollingOptions` binds `Njord:Polling`, `OpenMeteoOptions` binds `Njord:OpenMeteo` and `StorageOptions` binds `Njord:Storage`.
 
 #### Scenario: MqttOptions binds to Njord:Mqtt section
 - **WHEN** configuration contains `Njord:Mqtt:Host = "broker.local"`
 - **THEN** `IOptions<MqttOptions>.Value.Host` SHALL equal `"broker.local"`
 
 #### Scenario: Poll interval keeps its key
-- **WHEN** environment variable `Njord__PollInterval=00:30:00` is set
-- **THEN** `IOptions<PollingOptions>.Value.PollInterval` SHALL equal 30 minutes
+- **WHEN** environment variable `Njord__Polling__PollInterval=00:30:00` is set
+- **THEN** `IOptionsMonitor<PollingOptions>.CurrentValue.PollInterval` SHALL equal 30 minutes
 
 #### Scenario: Consumers inject only what they read
 - **WHEN** any production class outside configuration setup is inspected

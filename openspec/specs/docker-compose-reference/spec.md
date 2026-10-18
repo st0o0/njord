@@ -13,7 +13,7 @@ The repository SHALL contain `docker-compose.example.yml` (renamed from `docker-
 - **AND** `docker-compose.yml` does not exist
 
 ### Requirement: All configurable options documented
-The `docker-compose.example.yml` SHALL contain every configurable environment variable of the bound options types — `NjordOptions` (with `ParameterOptions`), `PollingOptions` (including `BudgetOverride`), `OpenMeteoOptions`, `StorageOptions`, `PersistenceOptions`, `MqttOptions`, `SensorOptions`, `ConsensusOptions`, `AlertOptions`, `DerivedOptions`, `TrendOptions` and `IndexOptions` — as environment variable entries, using the property names those types declare. Required values SHALL be uncommented; optional values SHALL be commented with their default values.
+The `docker-compose.example.yml` SHALL contain every configurable environment variable of the bound options types — `NjordOptions` (with `ParameterOptions`), `PollingOptions` (including `BudgetOverride`), `OpenMeteoOptions`, `StorageOptions`, `PersistenceOptions`, `MqttOptions`, `SensorOptions`, `ConsensusOptions`, `AlertOptions`, `DerivedOptions`, `TrendOptions` and `IndexOptions` — as environment variable entries, using the section path and property names those types declare (for example `Njord__Polling__PollInterval`). Required values SHALL be uncommented; optional values SHALL be commented with their default values, which SHALL equal the values in `appsettings.json`.
 
 #### Scenario: Required MQTT host is uncommented
 - **WHEN** the example compose file is read
@@ -21,7 +21,7 @@ The `docker-compose.example.yml` SHALL contain every configurable environment va
 
 #### Scenario: Optional values show defaults
 - **WHEN** the example compose file is read
-- **THEN** optional variables like `Njord__Mqtt__Port`, `Njord__PollInterval`, `Njord__Enrichment__Consensus__Enabled` are present as commented entries showing their default values
+- **THEN** optional variables like `Njord__Mqtt__Port`, `Njord__Polling__PollInterval`, `Njord__Enrichment__Consensus__Enabled` are present as commented entries showing their default values
 
 #### Scenario: All enrichment toggles are listed
 - **WHEN** the example compose file is read
