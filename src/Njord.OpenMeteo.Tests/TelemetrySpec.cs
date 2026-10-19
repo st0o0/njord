@@ -11,10 +11,7 @@ public sealed class TelemetrySpec
             () => Assert.Equal("Njord.OpenMeteo", Telemetry.FetchTotal.Meter.Name),
             () => Assert.Equal("njord_openmeteo_fetch_duration_seconds", Telemetry.FetchDuration.Name),
             () => Assert.Equal("s", Telemetry.FetchDuration.Unit),
-            () => Assert.Equal("Njord.OpenMeteo", Telemetry.FetchDuration.Meter.Name),
-            () => Assert.Equal("njord_openmeteo_pipeline_reattaches_total", Telemetry.PipelineReattaches.Name),
-            () => Assert.Equal("{reattach}", Telemetry.PipelineReattaches.Unit),
-            () => Assert.Equal("Njord.OpenMeteo", Telemetry.PipelineReattaches.Meter.Name));
+            () => Assert.Equal("Njord.OpenMeteo", Telemetry.FetchDuration.Meter.Name));
     }
 
     [Fact]

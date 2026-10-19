@@ -44,6 +44,7 @@ A minimal setup for Lucerne:
 | `Polling:PollInterval` | `01:00:00` | How often each PollWorker fetches all domains of its location |
 | `Polling:DiscoveryInterval` | `00:20:00` | Poll interval until a worker has learned the update cycle of the data |
 | `ForecastDays` | `4` | Days of weather forecast to request (1 to 16) |
+| `EnabledDomains` | `Weather`, `AirQuality`, `Flood` | Domains polled per location (`Weather` is required); each domain costs one request per location and cycle |
 | `OpenMeteo:BaseUrl` | `https://api.open-meteo.com/` | Open-Meteo endpoint for the weather domain (self-hosted instance or test double) |
 | `Storage:PersistencePath` | `data/njord.db` | SQLite database file |
 

@@ -2,7 +2,8 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Persistence;
 using Njord.Core;
-using Njord.Core.Actors;
+using Microsoft.Extensions.Options;
+using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
@@ -34,15 +35,15 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private PollWorkerState _state = PollWorkerState.Empty;
 
-    // Currently only Weather is enabled. More domains will be added as endpoints are implemented.
-    internal static readonly DomainKind[] EnabledDomains = [DomainKind.Weather, DomainKind.AirQuality, DomainKind.Flood];
+    private readonly DomainKind[] _enabledDomains;
 
     public ITimerScheduler Timers { get; set; } = null!;
 
     public override string PersistenceId { get; }
 
-    public PollWorker(TimeProvider timeProvider, FetchTimeouts fetchTimeouts, string entityId)
+    public PollWorker(TimeProvider timeProvider, FetchTimeouts fetchTimeouts, IOptions<NjordOptions> options, string entityId)
     {
+        _enabledDomains = [.. options.Value.EnabledDomains];
         _timeProvider = timeProvider;
         _fetchTimeouts = fetchTimeouts;
         PersistenceId = $"poll-worker-{entityId}";
@@ -157,7 +158,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
         Timers.Cancel(PollTimerKey);
         var roundId = Guid.NewGuid();
-        _state = _state.StartRound(roundId, EnabledDomains);
+        _state = _state.StartRound(roundId, _enabledDomains);
 
         if (!Context.TryGetActor<IForecastGateway>(out var gateway))
         {
@@ -169,7 +170,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         var location = target.Location;
         var timeout = _fetchTimeouts.Reply;
 
-        foreach (var domain in EnabledDomains)
+        foreach (var domain in _enabledDomains)
         {
             var domainKind = domain;
 

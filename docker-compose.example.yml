@@ -31,6 +31,10 @@ services:
       # ── Polling & Models ──────────────────────────────────────
       #- Njord__Polling__PollInterval=01:00:00
       #- Njord__ForecastDays=4
+      # Domains polled per location (Weather is required):
+      #- Njord__EnabledDomains__0=Weather
+      #- Njord__EnabledDomains__1=AirQuality
+      #- Njord__EnabledDomains__2=Flood
       # Poll interval of a model whose update cycle is not learned yet:
       #- Njord__Polling__DiscoveryInterval=00:20:00
       #- Njord__OpenMeteo__BaseUrl=https://api.open-meteo.com/

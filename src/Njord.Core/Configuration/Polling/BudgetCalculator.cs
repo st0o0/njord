@@ -4,10 +4,6 @@ public static class BudgetCalculator
 {
     public const double MonthlyBudgetGuardFactor = 0.8;
 
-    // Number of domain endpoint calls per location per poll cycle.
-    // Weather, AirQuality and Flood; must equal PollWorker.EnabledDomains.Length (pinned in PollWorkerSpec).
-    public const int DomainCallsPerLocation = 3;
-
     private static readonly TimeSpan Month = TimeSpan.FromDays(30);
 
     public static RequestBudget GetEffectiveBudget(PollingOptions polling) =>
@@ -16,7 +12,7 @@ public static class BudgetCalculator
     public static BudgetValidation Validate(NjordOptions scope, PollingOptions polling)
     {
         var locationCount = scope.Locations.Count;
-        var domainCallsPerCycle = locationCount * DomainCallsPerLocation;
+        var domainCallsPerCycle = locationCount * scope.EnabledDomains.Count;
 
         var resolved = scope.Parameters.Resolve();
 

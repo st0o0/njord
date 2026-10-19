@@ -1,4 +1,5 @@
 using Njord.Core.Configuration;
+using Njord.Model;
 using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration;
@@ -24,6 +25,30 @@ public sealed class NjordOptionsValidatorSpec
         var result = Validator.Validate(null, ValidOptions());
 
         Assert.True(result.Succeeded, result.FailureMessage);
+    }
+
+    [Fact]
+    public void Enabled_domains_without_weather_are_rejected()
+    {
+        var options = ValidOptions();
+        options.EnabledDomains = [DomainKind.Flood];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("EnabledDomains must include Weather", result.FailureMessage);
+    }
+
+    [Fact]
+    public void Duplicate_enabled_domains_are_rejected()
+    {
+        var options = ValidOptions();
+        options.EnabledDomains = [DomainKind.Weather, DomainKind.Weather];
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("duplicates", result.FailureMessage);
     }
 
     [Fact]
