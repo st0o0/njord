@@ -16,7 +16,9 @@ namespace Njord.OpenMeteo.Tests;
 public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
 {
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
-    private readonly FakeOpenMeteoClient _client = new();
+    private readonly FakeWeatherClient _weather = new();
+    private readonly FakeAirQualityClient _airQuality = new();
+    private readonly FakeFloodClient _flood = new();
     private Akka.TestKit.TestProbe _attached = null!;
     private Akka.TestKit.TestProbe _forecasts = null!;
 
@@ -37,7 +39,7 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
             }));
             var parameters = ParameterSelection.Resolve(["Weather"], [], []);
             registry.Register<IForecastGateway>(system.ActorOf(
-                Props.Create(() => new OpenMeteoGateway(_client, _time, options, parameters, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
+                Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _time, options, parameters, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
                 "gateway"));
         });
     }
@@ -54,7 +56,7 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_weather_fetch_uses_the_ensemble_endpoint_and_delivers_weather_points()
+    public async Task A_weather_fetch_uses_the_weather_client_and_delivers_weather_points()
     {
         var (completed, received) = await FetchAsync(DomainKind.Weather, TestContext.Current.CancellationToken);
 
@@ -64,24 +66,24 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
             () => Assert.Equal("lucerne", received.Location.Name),
             () => Assert.Equal(47.05, received.Location.Latitude),
             () => Assert.IsType<DomainForecast<WeatherPoint>>(received.Data),
-            () => Assert.Equal(1, _client.Calls),
-            () => Assert.Equal(0, _client.AirQualityCalls + _client.FloodCalls));
+            () => Assert.Equal(1, _weather.Calls),
+            () => Assert.Equal(0, _airQuality.Calls + _flood.Calls));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task An_air_quality_fetch_uses_the_air_quality_endpoint_and_delivers_air_quality_points()
+    public async Task An_air_quality_fetch_uses_the_air_quality_client_and_delivers_air_quality_points()
     {
         var (completed, received) = await FetchAsync(DomainKind.AirQuality, TestContext.Current.CancellationToken);
 
         Assert.Multiple(
             () => Assert.Equal(DomainKind.AirQuality, completed.Domain),
             () => Assert.Equal(8.0, Assert.Single(Assert.IsType<DomainForecast<AirQualityPoint>>(received.Data).Points).Pm25),
-            () => Assert.Equal(1, _client.AirQualityCalls),
-            () => Assert.Equal(0, _client.Calls + _client.FloodCalls));
+            () => Assert.Equal(1, _airQuality.Calls),
+            () => Assert.Equal(0, _weather.Calls + _flood.Calls));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_flood_fetch_uses_the_flood_endpoint_and_delivers_daily_flood_points()
+    public async Task A_flood_fetch_uses_the_flood_client_and_delivers_daily_flood_points()
     {
         var (completed, received) = await FetchAsync(DomainKind.Flood, TestContext.Current.CancellationToken);
 
@@ -90,24 +92,23 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
             () => Assert.Equal(DomainKind.Flood, completed.Domain),
             () => Assert.Equal(TimeResolution.Daily, forecast.Resolution),
             () => Assert.Equal(120.0, Assert.Single(forecast.Points).Discharge),
-            () => Assert.Equal(1, _client.FloodCalls),
-            () => Assert.Equal(0, _client.Calls + _client.AirQualityCalls));
+            () => Assert.Equal(1, _flood.Calls),
+            () => Assert.Equal(0, _weather.Calls + _airQuality.Calls));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_failed_client_result_is_answered_with_its_reason_and_nothing_reaches_the_pipeline()
+    public async Task A_failed_client_result_is_answered_with_malformed_payload_and_nothing_reaches_the_pipeline()
     {
         var ct = TestContext.Current.CancellationToken;
         await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        _client.FloodFails = true;
+        _flood.Fails = true;
 
         Gateway.Tell(new FetchDomain(new Location("lucerne", 0, 0), DomainKind.Flood));
 
         var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Flood, failed.Domain),
-            () => Assert.Equal(PollFailureReason.Transport, failed.Reason),
-            () => Assert.Equal("simulated flood failure", failed.Detail));
+            () => Assert.Equal(PollFailureReason.MalformedPayload, failed.Reason));
         await _forecasts.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), ct);
     }
 
@@ -122,6 +123,6 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
         var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(
             () => Assert.Equal(PollFailureReason.ModelUnavailable, failed.Reason),
-            () => Assert.Equal(0, _client.Calls));
+            () => Assert.Equal(0, _weather.Calls));
     }
 }

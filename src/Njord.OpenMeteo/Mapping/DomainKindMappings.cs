@@ -2,7 +2,7 @@ using Njord.Model;
 
 namespace Njord.OpenMeteo.Mapping;
 
-internal static class OpenMeteoDomainMappings
+internal static class DomainKindMappings
 {
     public static string ToTelemetryTag(this DomainKind domain) => domain switch
     {

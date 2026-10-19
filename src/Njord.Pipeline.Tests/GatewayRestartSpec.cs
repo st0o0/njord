@@ -20,7 +20,9 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     private const string Location = "lucerne";
 
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
-    private readonly FakeOpenMeteoClient _client = new();
+    private readonly FakeWeatherClient _weather = new();
+    private readonly FakeAirQualityClient _airQuality = new();
+    private readonly FakeFloodClient _flood = new();
     private readonly FaultyOnceBudgetProvider _budget = new();
 
     protected override bool UseTestPersistence => false;
@@ -98,7 +100,7 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     {
         var options = Microsoft.Extensions.Options.Options.Create(Options);
         var parameters = ParameterSelection.Resolve(["Weather"], [], []);
-        return Sys.ActorOf(Props.Create(() => new OpenMeteoGateway(_client, _time, options, parameters, _budget, FetchTimeouts.Default)),
+        return Sys.ActorOf(Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _time, options, parameters, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 

@@ -35,12 +35,13 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
     private sealed record PendingDomainRequest(IActorRef Requester, Location Location, DomainKind Domain, Location Resolved);
 
-    private readonly IOpenMeteoClient _client;
+    private readonly IWeatherClient _weatherClient;
+    private readonly IAirQualityClient _airQualityClient;
+    private readonly IFloodClient _floodClient;
     private readonly TimeProvider _timeProvider;
     private readonly NjordOptions _options;
     private readonly FetchTimeouts _timeouts;
     private readonly int _weatherWeight;
-    private readonly string _hourlyVariables;
     private readonly IGatewayBudgetGate _gate;
     private readonly Dictionary<long, PendingDomainRequest> _pending = new();
     private readonly ILoggingAdapter _log = Context.GetLogger();
@@ -49,18 +50,21 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private long _branchId;
 
     public OpenMeteoGateway(
-        IOpenMeteoClient client,
+        IWeatherClient weatherClient,
+        IAirQualityClient airQualityClient,
+        IFloodClient floodClient,
         TimeProvider timeProvider,
         IOptions<NjordOptions> options,
         ResolvedParameterSet parameters,
         IBudgetProvider budgetProvider,
         FetchTimeouts timeouts)
     {
-        _client = client;
+        _weatherClient = weatherClient;
+        _airQualityClient = airQualityClient;
+        _floodClient = floodClient;
         _timeProvider = timeProvider;
         _options = options.Value;
         _timeouts = timeouts;
-        _hourlyVariables = string.Join(",", parameters.Hourly.Select(p => p.ApiName));
         _weatherWeight = ComputeWeight(parameters.HourlyCount, _options.ForecastDays);
         _gate = new GatewayBudgetGate(budgetProvider, Context.GetActor<IBudgetTracker>(), timeProvider);
 
@@ -121,35 +125,36 @@ public sealed class OpenMeteoGateway : ReceiveActor
             });
     }
 
-    // Request -> client -> map: every outcome becomes a DomainFetchDone or DomainFetchFailed.
     private async Task<object> FetchAsync(long id, DomainKind domain, LocationOptions location)
     {
-        var request = new OpenMeteoRequest(ToUri(domain, location), location.Name, domain);
-        var fetched = await _client.FetchAsync(request, CancellationToken.None);
+        var now = _timeProvider.GetUtcNow();
+        var domainTag = domain.ToTelemetryTag();
+        var locationTag = new KeyValuePair<string, object?>("location", location.Name);
+        var domainTagPair = new KeyValuePair<string, object?>("domain", domainTag);
 
-        if (fetched is OpenMeteoFetchResult.Failure failure)
-        {
-            return new DomainFetchFailed(id, failure.Reason, failure.Detail);
-        }
-
-        var response = ((OpenMeteoFetchResult.Success)fetched).Response;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         IDomainForecast? forecast = domain switch
         {
-            DomainKind.Weather => response.ToWeatherForecast(_timeProvider.GetUtcNow()),
-            DomainKind.AirQuality => response.ToAirQualityForecast(_timeProvider.GetUtcNow()),
-            _ => response.ToFloodForecast(_timeProvider.GetUtcNow()),
+            DomainKind.Weather => (await _weatherClient.FetchAsync(location.Latitude, location.Longitude, _options.ForecastDays, CancellationToken.None))
+                ?.ToDomainForecast(now),
+            DomainKind.AirQuality => (await _airQualityClient.FetchAsync(location.Latitude, location.Longitude, _options.ForecastDays, CancellationToken.None))
+                ?.ToDomainForecast(now),
+            _ => (await _floodClient.FetchAsync(location.Latitude, location.Longitude, CancellationToken.None))
+                ?.ToDomainForecast(now),
         };
+        sw.Stop();
+
+        Telemetry.FetchTotal.Add(1, locationTag, domainTagPair,
+            new KeyValuePair<string, object?>("outcome", forecast is not null ? "success" : "failure"));
+        if (forecast is not null)
+        {
+            Telemetry.FetchDuration.Record(sw.Elapsed.TotalSeconds, locationTag, domainTagPair);
+        }
+
         return forecast is null
-            ? new DomainFetchFailed(id, PollFailureReason.MalformedPayload, "Response contained no usable data")
+            ? new DomainFetchFailed(id, PollFailureReason.MalformedPayload, $"The {domainTag} endpoint returned no usable data")
             : new DomainFetchDone(id, domain, forecast);
     }
-
-    private string ToUri(DomainKind domain, LocationOptions location) => domain switch
-    {
-        DomainKind.Weather => location.ToEnsembleRequestUri(_options.ForecastDays, _hourlyVariables),
-        DomainKind.AirQuality => OpenMeteoRequestMappings.ToAirQualityRequestUri(location.Latitude, location.Longitude, _options.ForecastDays),
-        _ => OpenMeteoRequestMappings.ToFloodRequestUri(location.Latitude, location.Longitude),
-    };
 
     private void OnDomainFetchDone(DomainFetchDone msg)
     {

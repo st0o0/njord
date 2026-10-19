@@ -17,7 +17,9 @@ namespace Njord.OpenMeteo.Tests;
 public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
 {
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
-    private readonly FakeOpenMeteoClient _client = new();
+    private readonly FakeWeatherClient _weather = new();
+    private readonly FakeAirQualityClient _airQuality = new();
+    private readonly FakeFloodClient _flood = new();
     private readonly SwitchableBudgetProvider _budget = new();
     private Akka.TestKit.TestProbe _apiCalls = null!;
 
@@ -38,7 +40,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         }));
         var parameters = ParameterSelection.Resolve(["Weather"], [], []);
         return Sys.ActorOf(
-            Props.Create(() => new OpenMeteoGateway(_client, _time, options, parameters, _budget, FetchTimeouts.Default)),
+            Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _time, options, parameters, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 
@@ -116,7 +118,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         var rejected = await ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(
             () => Assert.Equal(FetchRejectionReason.Budget, rejected.Reason),
-            () => Assert.Equal(0, _client.Calls));
+            () => Assert.Equal(0, _weather.Calls));
         await _apiCalls.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), ct);
     }
 }

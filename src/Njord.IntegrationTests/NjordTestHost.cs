@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Njord.OpenMeteo;
 using Njord.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Njord.IntegrationTests;
 
@@ -16,10 +17,12 @@ public sealed class NjordTestHost : IAsyncDisposable
 {
     private readonly GrpcChannel _channel;
 
-    private NjordTestHost(WebApplication app, FakeOpenMeteoClient openMeteo, string dataDirectory)
+    private NjordTestHost(WebApplication app, FakeWeatherClient weather, FakeAirQualityClient airQuality, FakeFloodClient flood, string dataDirectory)
     {
         App = app;
-        OpenMeteo = openMeteo;
+        Weather = weather;
+        AirQuality = airQuality;
+        Flood = flood;
         DataDirectory = dataDirectory;
         Http = app.GetTestClient();
         _channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions { HttpHandler = app.GetTestServer().CreateHandler() });
@@ -27,7 +30,11 @@ public sealed class NjordTestHost : IAsyncDisposable
 
     public WebApplication App { get; }
 
-    public FakeOpenMeteoClient OpenMeteo { get; }
+    public FakeWeatherClient Weather { get; }
+
+    public FakeAirQualityClient AirQuality { get; }
+
+    public FakeFloodClient Flood { get; }
 
     public string DataDirectory { get; }
 
@@ -65,20 +72,27 @@ public sealed class NjordTestHost : IAsyncDisposable
         builder.Configuration.AddJsonFile(AppSettingsDefaults.ShippedPath, optional: false, reloadOnChange: false);
         builder.Configuration.AddInMemoryCollection(settings);
 
-        var openMeteo = new FakeOpenMeteoClient();
+        var weather = new FakeWeatherClient();
+        var airQuality = new FakeAirQualityClient();
+        var flood = new FakeFloodClient();
         WebApplication? app = null;
         var runner = NjordHost.Create(
             builder,
             b =>
             {
-                b.Services.AddSingleton<IOpenMeteoClient>(openMeteo);
+                b.Services.RemoveAll<IWeatherClient>();
+                b.Services.RemoveAll<IAirQualityClient>();
+                b.Services.RemoveAll<IFloodClient>();
+                b.Services.AddSingleton<IWeatherClient>(weather);
+                b.Services.AddSingleton<IAirQualityClient>(airQuality);
+                b.Services.AddSingleton<IFloodClient>(flood);
                 b.WebHost.UseTestServer();
                 app = b.Build();
                 return app;
             });
 
         await runner.StartAsync(cancellationToken);
-        return new NjordTestHost(app ?? throw new InvalidOperationException("The host was not built."), openMeteo, dataDirectory);
+        return new NjordTestHost(app ?? throw new InvalidOperationException("The host was not built."), weather, airQuality, flood, dataDirectory);
     }
 
     public async ValueTask DisposeAsync()

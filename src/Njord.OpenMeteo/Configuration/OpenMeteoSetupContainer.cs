@@ -24,13 +24,35 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
         services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
         services.TryAddSingleton(FetchTimeouts.Default);
 
-        services.AddHttpClient<IOpenMeteoClient, OpenMeteoClient>((sp, client) =>
-            {
-                // Runs when the typed client is activated, not at registration.
-                var options = sp.GetRequiredService<IOptions<OpenMeteoOptions>>().Value;
-                client.BaseAddress = new Uri(options.BaseUrl);
-                client.Timeout = sp.GetRequiredService<FetchTimeouts>().Http;
-            })
+        AddTypedClient<IWeatherClient, WeatherClient>(services, (sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<OpenMeteoOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = sp.GetRequiredService<FetchTimeouts>().Http;
+        });
+
+        AddTypedClient<IAirQualityClient, AirQualityClient>(services, (_, client) =>
+        {
+            client.BaseAddress = new Uri("https://air-quality-api.open-meteo.com/");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+
+        AddTypedClient<IFloodClient, FloodClient>(services, (_, client) =>
+        {
+            client.BaseAddress = new Uri("https://flood-api.open-meteo.com/");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+
+        services.AddSingleton<IActorRegistration>(new GatewayActorRegistration());
+    }
+
+    private static void AddTypedClient<TInterface, TImplementation>(
+        IServiceCollection services,
+        Action<IServiceProvider, HttpClient> configure)
+        where TInterface : class
+        where TImplementation : class, TInterface
+    {
+        services.AddHttpClient<TInterface, TImplementation>(configure)
             .AddHttpMessageHandler(() => new HttpMetricsHandler())
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
             {
@@ -50,8 +72,6 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
                     }
                 }
             });
-
-        services.AddSingleton<IActorRegistration>(new GatewayActorRegistration());
     }
 
     private sealed class GatewayActorRegistration : IActorRegistration

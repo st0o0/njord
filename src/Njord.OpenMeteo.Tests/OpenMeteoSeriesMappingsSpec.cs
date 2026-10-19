@@ -3,26 +3,31 @@ using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Tests;
 
-public sealed class OpenMeteoSeriesMappingsSpec
+public sealed class OpenMeteoResponseMappingsSpec
 {
     private static readonly DateTimeOffset Run = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
     private const long Hour0 = 1_783_771_200;
 
-    private static OpenMeteoSeries Series(long[] time, params (string Name, double?[] Values)[] variables) =>
-        new(time, variables.ToDictionary(v => v.Name, v => v.Values));
-
     [Fact]
-    public void An_ensemble_response_maps_to_hourly_weather_points_and_trims_trailing_empty_hours()
+    public void A_weather_response_maps_to_hourly_weather_points_and_trims_trailing_empty_hours()
     {
-        var response = new OpenMeteoResponse(
-            Series([Hour0, Hour0 + 3600, Hour0 + 7200],
-                ("temperature_2m", [20.5, 21.0, null]),
-                ("wind_speed_10m", [3.0, 4.0, null]),
-                ("weather_code", [3, 61, null]),
-                ("wind_gusts_10m", [8.0, null, null])),
-            null);
+        var response = new WeatherResponse(47.0, 8.0,
+            new WeatherHourlyData(
+                Time: [Hour0, Hour0 + 3600, Hour0 + 7200],
+                Temperature: [20.5, 21.0, null],
+                ApparentTemperature: [18.0, 19.0, null],
+                WindSpeed: [3.0, 4.0, null],
+                Precipitation: [0.0, 0.0, null],
+                PrecipitationProbability: [10.0, 20.0, null],
+                CloudCover: [50.0, 60.0, null],
+                Pressure: [1013.0, 1012.0, null],
+                WeatherCode: [3, 61, null],
+                Humidity: [65.0, 70.0, null],
+                DewPoint: [12.0, 13.0, null],
+                UvIndex: [3.0, 2.0, null],
+                WindGusts: [8.0, null, null]));
 
-        var forecast = response.ToWeatherForecast(Run);
+        var forecast = response.ToDomainForecast(Run);
 
         Assert.NotNull(forecast);
         Assert.Multiple(
@@ -40,21 +45,21 @@ public sealed class OpenMeteoSeriesMappingsSpec
     [Fact]
     public void A_weather_response_without_hourly_data_maps_to_nothing()
     {
-        Assert.Null(new OpenMeteoResponse(null, null).ToWeatherForecast(Run));
+        Assert.Null(new WeatherResponse(0, 0, null).ToDomainForecast(Run));
     }
 
     [Fact]
     public void An_air_quality_response_maps_to_hourly_points_with_optional_pollen()
     {
-        var response = new OpenMeteoResponse(
-            Series([Hour0, Hour0 + 3600],
-                ("pm2_5", [8.0, null]),
-                ("pm10", [15.0, null]),
-                ("ozone", [60.0, null]),
-                ("birch_pollen", [12.0, null])),
-            null);
+        var response = new AirQualityResponse(47.0, 8.0,
+            new AirQualityHourlyData(
+                Time: [Hour0, Hour0 + 3600],
+                Pm25: [8.0, null],
+                Pm10: [15.0, null],
+                Ozone: [60.0, null],
+                BirchPollen: [12.0, null]));
 
-        var forecast = response.ToAirQualityForecast(Run);
+        var forecast = response.ToDomainForecast(Run);
 
         Assert.NotNull(forecast);
         var point = Assert.Single(forecast.Points);
@@ -70,13 +75,13 @@ public sealed class OpenMeteoSeriesMappingsSpec
     [Fact]
     public void A_flood_response_maps_to_daily_points_and_skips_days_without_discharge()
     {
-        var response = new OpenMeteoResponse(
-            null,
-            Series([Hour0, Hour0 + 86_400],
-                ("river_discharge", [120.0, null]),
-                ("river_discharge_p75", [140.0, null])));
+        var response = new FloodResponse(47.0, 8.0,
+            new FloodDailyData(
+                Time: [Hour0, Hour0 + 86_400],
+                Discharge: [120.0, null],
+                DischargeP75: [140.0, null]));
 
-        var forecast = response.ToFloodForecast(Run);
+        var forecast = response.ToDomainForecast(Run);
 
         Assert.NotNull(forecast);
         var point = Assert.Single(forecast.Points);
