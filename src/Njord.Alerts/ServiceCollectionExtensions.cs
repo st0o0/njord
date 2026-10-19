@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Njord.Alerts.AirQuality;
 using Njord.Alerts.Configuration;
+using Njord.Alerts.Flood;
 using Njord.Alerts.Rules;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
@@ -36,6 +38,30 @@ public static class ServiceCollectionExtensions
                 new WeatherAlertEnrichment(
                     sp.GetRequiredService<AlertAnalyzer>(),
                     sp.GetRequiredService<IOptions<AlertOptions>>().Value.ToSettings()),
+            ]));
+
+        services.AddSingleton<IProjectionGroup>(static sp => new ProjectionGroup<AirQualityAlertInput>(
+            new AirQualityAlertProjector(),
+            [
+                new AirQualityAlertEnrichment(
+                    [new PollenAlertRule(), new Pm25AlertRule()],
+                    sp.GetRequiredService<IOptions<AlertOptions>>().Value.Enabled),
+            ]));
+
+        services.AddSingleton<IProjectionGroup>(static sp => new ProjectionGroup<FloodRiskInput>(
+            new FloodRiskProjector(),
+            [
+                new FloodRiskAlertEnrichment(
+                    new FloodRiskAlertRule(),
+                    sp.GetRequiredService<IOptions<AlertOptions>>().Value.Enabled),
+            ]));
+
+        services.AddSingleton<IProjectionGroup>(static sp => new ProjectionGroup<FloodRainInput>(
+            new FloodRainProjector(),
+            [
+                new FloodRainAlertEnrichment(
+                    new FloodRainAlertRule(),
+                    sp.GetRequiredService<IOptions<AlertOptions>>().Value.Enabled),
             ]));
         return services;
     }

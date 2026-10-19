@@ -50,6 +50,26 @@ public abstract record PipelineEvent
         public AlertDetails Details => Alert.Details;
     }
 
+    public sealed record AirQualityAlertRaised(
+        Location Location,
+        AirQualityAlert Alert,
+        DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
+    {
+        public EnrichmentKind Kind => EnrichmentKind.Alerts;
+
+        Location IEnrichmentEvent.Location => Location;
+    }
+
+    public sealed record FloodAlertRaised(
+        Location Location,
+        FloodAlert Alert,
+        DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
+    {
+        public EnrichmentKind Kind => EnrichmentKind.Alerts;
+
+        Location IEnrichmentEvent.Location => Location;
+    }
+
     public sealed record AlertComputed(
         AlertResult Result,
         DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent

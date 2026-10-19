@@ -8,4 +8,6 @@ public sealed record AirQualityPoint(
     double? BirchPollen = null,
     double? GrassPollen = null,
     double? Alder = null,
-    double? Mugwort = null) : IHasValidTime;
+    double? Mugwort = null,
+    double? EuropeanAqi = null,
+    double? NitrogenDioxide = null): IHasValidTime;

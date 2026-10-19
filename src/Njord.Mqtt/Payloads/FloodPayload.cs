@@ -6,6 +6,9 @@ public sealed record FloodPayload(
     DateTimeOffset ValidFrom,
     DateTimeOffset ModelRun,
     double Discharge,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? DischargeP10 = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? DischargeP90 = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? MedianHistorical = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? DischargeMean = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? DischargeMedian = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? DischargeMax = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? DischargeMin = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? DischargeP25 = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? DischargeP75 = null);

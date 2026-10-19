@@ -40,6 +40,8 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
 
     // Domain fetch done - direct reply without going through the stream pipeline
     private sealed record DomainFetchDone(long RequestId, DomainKind Domain, EnsembleFetchResult Result);
+    private sealed record AirQualityFetchDone(long RequestId, AirQualityFetchResult Result);
+    private sealed record FloodFetchDone(long RequestId, FloodFetchResult Result);
     private sealed record DomainFetchFailed(long RequestId, DomainKind Domain, Exception Cause);
 
     private sealed record PendingDomainRequest(IActorRef Requester, Location Location, DomainKind Domain);
@@ -82,6 +84,8 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
         // Domain-based fetch (new per-location path)
         Receive<FetchDomain>(OnFetchDomain);
         Receive<DomainFetchDone>(OnDomainFetchDone);
+        Receive<AirQualityFetchDone>(OnAirQualityFetchDone);
+        Receive<FloodFetchDone>(OnFloodFetchDone);
         Receive<DomainFetchFailed>(OnDomainFetchFailure);
         Receive<DomainBranchOffered>(OnDomainBranchOffered);
         Receive<DomainBranchOfferFailed>(msg => DomainReply(msg.RequestId,
@@ -121,7 +125,19 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
         var id = NextId();
         _pendingDomainRequests[id] = new PendingDomainRequest(Sender, msg.Location, msg.Domain);
 
-        // For now, only Weather (Ensemble) is supported. Other domains get a stub rejection.
+        if (msg.Domain == DomainKind.AirQuality)
+        {
+            FetchAirQuality(id, location);
+            return;
+        }
+
+        if (msg.Domain == DomainKind.Flood)
+        {
+            FetchFlood(id, location);
+            return;
+        }
+
+        // Weather (Ensemble), AirQuality and Flood are supported. Other domains get a stub rejection.
         if (msg.Domain != DomainKind.Weather)
         {
             DomainReply(id, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.PipelineUnavailable));
@@ -142,6 +158,60 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
             .PipeTo(Self,
                 success: result => new DomainFetchDone(id, domain, result),
                 failure: ex => new DomainFetchFailed(id, domain, ex));
+    }
+
+    private void FetchAirQuality(long id, LocationOptions location)
+    {
+        if (!_gate.TryAcquire(1))
+        {
+            DomainReply(id, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.Budget));
+            return;
+        }
+
+        _client.FetchAirQualityAsync(location.Latitude, location.Longitude, _options.ForecastDays, CancellationToken.None)
+            .PipeTo(Self,
+                success: result => new AirQualityFetchDone(id, result),
+                failure: ex => new DomainFetchFailed(id, DomainKind.AirQuality, ex));
+    }
+
+    private void OnAirQualityFetchDone(AirQualityFetchDone msg)
+    {
+        switch (msg.Result)
+        {
+            case AirQualityFetchResult.Success success:
+                OfferDomainData(msg.RequestId, DomainKind.AirQuality, success.Forecast);
+                break;
+            case AirQualityFetchResult.Failure failure:
+                DomainReply(msg.RequestId, p => new FetchDomainFailed(p.Location, p.Domain, failure.Reason, failure.Detail));
+                break;
+        }
+    }
+
+    private void FetchFlood(long id, LocationOptions location)
+    {
+        if (!_gate.TryAcquire(1))
+        {
+            DomainReply(id, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.Budget));
+            return;
+        }
+
+        _client.FetchFloodAsync(location.Latitude, location.Longitude, Mapping.OpenMeteoRequestMappings.FloodForecastDays, CancellationToken.None)
+            .PipeTo(Self,
+                success: result => new FloodFetchDone(id, result),
+                failure: ex => new DomainFetchFailed(id, DomainKind.Flood, ex));
+    }
+
+    private void OnFloodFetchDone(FloodFetchDone msg)
+    {
+        switch (msg.Result)
+        {
+            case FloodFetchResult.Success success:
+                OfferDomainData(msg.RequestId, DomainKind.Flood, success.Forecast);
+                break;
+            case FloodFetchResult.Failure failure:
+                DomainReply(msg.RequestId, p => new FetchDomainFailed(p.Location, p.Domain, failure.Reason, failure.Detail));
+                break;
+        }
     }
 
     private void OnDomainFetchDone(DomainFetchDone msg)

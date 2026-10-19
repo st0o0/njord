@@ -32,5 +32,5 @@ public static class FeatureServices
                     services.Configure(configure);
                 }
             })
-            .GetRequiredService<IProjectionGroup>();
+            .GetServices<IProjectionGroup>().First();
 }

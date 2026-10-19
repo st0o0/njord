@@ -119,6 +119,105 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_air_quality_fetch_is_routed_to_the_air_quality_endpoint_and_reaches_the_pipeline()
+    {
+        await AttachedAsync();
+        Gateway.Tell(Fetch(domain: DomainKind.AirQuality));
+
+        var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        var received = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        var forecast = Assert.IsType<DomainForecast<AirQualityPoint>>(received.Data);
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.AirQuality, completed.Domain),
+            () => Assert.Equal(received.Data.GetHashCode(), completed.Hash),
+            () => Assert.Equal(DomainKind.AirQuality, received.Domain),
+            () => Assert.Equal("lucerne", received.Location.Name),
+            () => Assert.Equal(8.0, Assert.Single(forecast.Points).Pm25),
+            () => Assert.Equal(1, _client.AirQualityCalls),
+            () => Assert.Equal(0, _client.Calls));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_air_quality_failure_result_is_answered_with_its_reason()
+    {
+        await AttachedAsync();
+        _client.AirQualityFails = true;
+        Gateway.Tell(Fetch(domain: DomainKind.AirQuality));
+
+        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.AirQuality, failed.Domain),
+            () => Assert.Equal(PollFailureReason.Transport, failed.Reason),
+            () => Assert.Equal("simulated air quality failure", failed.Detail));
+        await _forecasts.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_air_quality_fetch_is_routed_to_the_air_quality_endpoint_and_offered_to_the_pipeline()
+    {
+        await AttachedAsync();
+        Gateway.Tell(Fetch(domain: DomainKind.AirQuality));
+
+        var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        var received = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.AirQuality, completed.Domain),
+            () => Assert.Equal(DomainKind.AirQuality, received.Domain),
+            () => Assert.Equal("lucerne", received.Location.Name),
+            () => Assert.IsType<DomainForecast<AirQualityPoint>>(received.Data),
+            () => Assert.Equal(1, _client.AirQualityCalls),
+            () => Assert.Equal(0, _client.Calls));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_air_quality_failure_is_answered_with_its_reason()
+    {
+        await AttachedAsync();
+        _client.AirQualityFails = true;
+        Gateway.Tell(Fetch(domain: DomainKind.AirQuality));
+
+        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.AirQuality, failed.Domain),
+            () => Assert.Equal(PollFailureReason.Transport, failed.Reason),
+            () => Assert.Equal("simulated air quality failure", failed.Detail));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_flood_fetch_is_routed_to_the_flood_endpoint_and_reaches_the_pipeline()
+    {
+        await AttachedAsync();
+        Gateway.Tell(Fetch(domain: DomainKind.Flood));
+
+        var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        var received = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        var forecast = Assert.IsType<DomainForecast<FloodPoint>>(received.Data);
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.Flood, completed.Domain),
+            () => Assert.Equal(received.Data.GetHashCode(), completed.Hash),
+            () => Assert.Equal(DomainKind.Flood, received.Domain),
+            () => Assert.Equal(TimeResolution.Daily, forecast.Resolution),
+            () => Assert.Equal(120.0, Assert.Single(forecast.Points).Discharge),
+            () => Assert.Equal(1, _client.FloodCalls),
+            () => Assert.Equal(0, _client.Calls));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_flood_failure_result_is_answered_with_its_reason()
+    {
+        await AttachedAsync();
+        _client.FloodFails = true;
+        Gateway.Tell(Fetch(domain: DomainKind.Flood));
+
+        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.Flood, failed.Domain),
+            () => Assert.Equal(PollFailureReason.Transport, failed.Reason),
+            () => Assert.Equal("simulated flood failure", failed.Detail));
+        await _forecasts.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task An_exhausted_budget_rejects_the_request_instead_of_fetching()
     {
         await AttachedAsync();
@@ -147,11 +246,11 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     public async Task A_domain_without_a_fetch_path_is_rejected_without_a_fetch()
     {
         await AttachedAsync();
-        Gateway.Tell(Fetch(domain: DomainKind.Flood));
+        Gateway.Tell(Fetch(domain: DomainKind.Marine));
 
         var rejected = await ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Multiple(
-            () => Assert.Equal(DomainKind.Flood, rejected.Domain),
+            () => Assert.Equal(DomainKind.Marine, rejected.Domain),
             () => Assert.Equal(FetchRejectionReason.PipelineUnavailable, rejected.Reason),
             () => Assert.Equal(0, _client.Calls));
     }

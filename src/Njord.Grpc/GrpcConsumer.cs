@@ -11,6 +11,7 @@ using Njord.Messages.Alerts;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
+using Servus.Akka;
 
 namespace Njord.Grpc;
 
@@ -60,7 +61,7 @@ public sealed class GrpcConsumer : ReceiveActor
         _hubInput = hubInput;
         _clientHubSource = hubSource;
 
-        ActorRegistry.For(Context.System).GetAsync<IForecastPipeline>().PipeTo(Self,
+        Context.GetActorAsync<IForecastPipeline>().PipeTo(Self,
             success: pipeline => new PipelineResolved(pipeline),
             failure: ex => new PipelineResolveFailed(ex));
     }

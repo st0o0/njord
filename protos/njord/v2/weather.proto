@@ -114,9 +114,13 @@ message FloodData {
 message FloodSample {
   google.protobuf.Timestamp valid_at = 1;
   double discharge = 2;
-  optional double discharge_p10 = 3;
-  optional double discharge_p90 = 4;
-  optional double median_historical = 5;
+  reserved 3, 4, 5;
+  optional double discharge_mean = 6;
+  optional double discharge_median = 7;
+  optional double discharge_max = 8;
+  optional double discharge_min = 9;
+  optional double discharge_p25 = 10;
+  optional double discharge_p75 = 11;
 }
 
 message SolarData {

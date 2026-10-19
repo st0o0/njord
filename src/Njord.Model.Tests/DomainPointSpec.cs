@@ -53,17 +53,23 @@ public sealed class DomainPointSpec
     public void Flood_point_has_optional_percentiles()
     {
         var point = new FloodPoint(At, 100);
-        var full = new FloodPoint(At, 100, 80, 120, 90);
+        var full = new FloodPoint(At, 100, 90, 85, 150, 40, 80, 120);
 
         Assert.Multiple(
             () => Assert.Equal(At, point.ValidFrom),
             () => Assert.Equal(100, point.Discharge),
-            () => Assert.Null(point.DischargeP10),
-            () => Assert.Null(point.DischargeP90),
-            () => Assert.Null(point.MedianHistorical),
-            () => Assert.Equal(80, full.DischargeP10),
-            () => Assert.Equal(120, full.DischargeP90),
-            () => Assert.Equal(90, full.MedianHistorical));
+            () => Assert.Null(point.DischargeMean),
+            () => Assert.Null(point.DischargeMedian),
+            () => Assert.Null(point.DischargeMax),
+            () => Assert.Null(point.DischargeMin),
+            () => Assert.Null(point.DischargeP25),
+            () => Assert.Null(point.DischargeP75),
+            () => Assert.Equal(90, full.DischargeMean),
+            () => Assert.Equal(85, full.DischargeMedian),
+            () => Assert.Equal(150, full.DischargeMax),
+            () => Assert.Equal(40, full.DischargeMin),
+            () => Assert.Equal(80, full.DischargeP25),
+            () => Assert.Equal(120, full.DischargeP75));
     }
 
     [Fact]

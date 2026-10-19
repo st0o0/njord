@@ -1,0 +1,34 @@
+using Njord.Core.Domain;
+using Njord.Messages.Alerts;
+using Njord.Model;
+
+namespace Njord.Alerts.AirQuality;
+
+public interface IAirQualityAlertRule
+{
+    AirQualityAlertType Type { get; }
+
+    AirQualityAlert Evaluate(DomainForecast<AirQualityPoint> forecast, DateTimeOffset now);
+}
+
+internal static class AirQualityAlertWindow
+{
+    public const int Hours = 24;
+
+    public static IReadOnlyList<AirQualityPoint> Next24Hours(this DomainForecast<AirQualityPoint> forecast, DateTimeOffset now)
+    {
+        var start = AlertWindow.Start(now);
+        return ForecastQueries.Window(forecast, start, start.AddHours(Hours));
+    }
+
+    public static int HoursFrom(this AirQualityPoint point, DateTimeOffset now) =>
+        (int)(point.ValidFrom - AlertWindow.Start(now)).TotalHours;
+
+    public static AlertSeverity SeverityFor(double value, double yellow, double orange, double red) => value switch
+    {
+        _ when value >= red => AlertSeverity.Red,
+        _ when value >= orange => AlertSeverity.Orange,
+        _ when value >= yellow => AlertSeverity.Yellow,
+        _ => AlertSeverity.None,
+    };
+}

@@ -132,9 +132,12 @@ internal static class DomainDataProtoMappings
             ValidAt = p.ValidFrom.ToTimestamp(),
             Discharge = p.Discharge,
         };
-        if (p.DischargeP10 is { } p10) { sample.DischargeP10 = p10; }
-        if (p.DischargeP90 is { } p90) { sample.DischargeP90 = p90; }
-        if (p.MedianHistorical is { } median) { sample.MedianHistorical = median; }
+        if (p.DischargeMean is { } mean) { sample.DischargeMean = mean; }
+        if (p.DischargeMedian is { } median) { sample.DischargeMedian = median; }
+        if (p.DischargeMax is { } max) { sample.DischargeMax = max; }
+        if (p.DischargeMin is { } min) { sample.DischargeMin = min; }
+        if (p.DischargeP25 is { } p25) { sample.DischargeP25 = p25; }
+        if (p.DischargeP75 is { } p75) { sample.DischargeP75 = p75; }
         return sample;
     }
 

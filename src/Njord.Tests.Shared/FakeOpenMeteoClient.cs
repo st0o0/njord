@@ -28,6 +28,62 @@ public sealed class FakeOpenMeteoClient : IOpenMeteoClient
         return release;
     }
 
+    public bool AirQualityFails { get; set; }
+
+    public int AirQualityCalls => Volatile.Read(ref _airQualityCalls);
+
+    private int _airQualityCalls;
+
+    public async Task<AirQualityFetchResult> FetchAirQualityAsync(
+        double latitude, double longitude, int forecastDays, CancellationToken cancellationToken)
+    {
+        Interlocked.Increment(ref _airQualityCalls);
+        await _release.Task.WaitAsync(cancellationToken);
+
+        if (Throws)
+        {
+            throw new InvalidOperationException("simulated fetch fault");
+        }
+
+        if (AirQualityFails)
+        {
+            return new AirQualityFetchResult.Failure(PollFailureReason.Transport, "simulated air quality failure");
+        }
+
+        var start = new DateTimeOffset(2026, 7, 11, 0, 0, 0, TimeSpan.Zero);
+        var points = ImmutableArray.Create(new AirQualityPoint(start.AddHours(3), 8.0, 15.0, 60.0));
+        return new AirQualityFetchResult.Success(
+            new DomainForecast<AirQualityPoint>(DomainKind.AirQuality, start, TimeResolution.Hourly, points));
+    }
+
+    public bool FloodFails { get; set; }
+
+    public int FloodCalls => Volatile.Read(ref _floodCalls);
+
+    private int _floodCalls;
+
+    public async Task<FloodFetchResult> FetchFloodAsync(
+        double latitude, double longitude, int forecastDays, CancellationToken cancellationToken)
+    {
+        Interlocked.Increment(ref _floodCalls);
+        await _release.Task.WaitAsync(cancellationToken);
+
+        if (Throws)
+        {
+            throw new InvalidOperationException("simulated fetch fault");
+        }
+
+        if (FloodFails)
+        {
+            return new FloodFetchResult.Failure(PollFailureReason.Transport, "simulated flood failure");
+        }
+
+        var start = new DateTimeOffset(2026, 7, 11, 0, 0, 0, TimeSpan.Zero);
+        var points = ImmutableArray.Create(new FloodPoint(start, 120.0, DischargeMedian: 100.0, DischargeP75: 140.0));
+        return new FloodFetchResult.Success(
+            new DomainForecast<FloodPoint>(DomainKind.Flood, start, TimeResolution.Daily, points));
+    }
+
     public async Task<EnsembleFetchResult> FetchEnsembleAsync(
         LocationOptions location, int forecastDays, DateTimeOffset modelRun, CancellationToken cancellationToken)
     {

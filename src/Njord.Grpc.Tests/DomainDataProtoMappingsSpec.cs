@@ -61,7 +61,7 @@ public sealed class DomainDataProtoMappingsSpec
     public void Flood_events_map_discharge_and_optional_percentiles()
     {
         var forecast = new DomainForecast<FloodPoint>(DomainKind.Flood, Start, TimeResolution.Daily,
-            [new FloodPoint(Start, 12.5, DischargeP90: 20.0)]);
+            [new FloodPoint(Start, 12.5, DischargeP75: 20.0)]);
 
         var update = new PipelineEvent.FloodDataReceived(DomainData.Lucerne, forecast).ToDomainDataUpdate();
 
@@ -70,9 +70,9 @@ public sealed class DomainDataProtoMappingsSpec
         Assert.Multiple(
             () => Assert.Equal(Domain.Flood, update.Domain),
             () => Assert.Equal(12.5, point.Discharge),
-            () => Assert.False(point.HasDischargeP10),
-            () => Assert.Equal(20.0, point.DischargeP90),
-            () => Assert.False(point.HasMedianHistorical));
+            () => Assert.False(point.HasDischargeMedian),
+            () => Assert.Equal(20.0, point.DischargeP75),
+            () => Assert.False(point.HasDischargeMean));
     }
 
     [Fact]

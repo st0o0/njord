@@ -61,10 +61,12 @@ public sealed class PollingClusterSpec : NjordActorSpec
             });
     }
 
+    private const int DomainsPerTarget = 3;
+
     private async Task<IReadOnlySet<string>> ReceiveRequestsAsync(int count, CancellationToken ct)
     {
         var received = new HashSet<string>();
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < count * DomainsPerTarget; i++)
         {
             var request = await _requests.ExpectMsgAsync<FetchDomain>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
             received.Add(request.Location.Name);

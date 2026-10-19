@@ -1,7 +1,6 @@
 using Akka;
 using Akka.Actor;
 using Akka.Event;
-using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
@@ -13,6 +12,7 @@ using Njord.Model;
 using Njord.Mqtt.Health;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Transport;
+using Servus.Akka;
 
 namespace Njord.Mqtt.Actors;
 
@@ -62,7 +62,7 @@ public sealed class MqttStatePublisher : ReceiveActor
 
     protected override void PreStart()
     {
-        ActorRegistry.For(Context.System).GetAsync<IForecastPipeline>().PipeTo(Self,
+        Context.GetActorAsync<IForecastPipeline>().PipeTo(Self,
             success: pipeline => new PipelineResolved(pipeline),
             failure: ex => new PipelineResolveFailed(ex));
     }

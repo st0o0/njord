@@ -37,7 +37,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
     private readonly HashSet<DomainKind> _pendingDomains = [];
 
     // Currently only Weather is enabled. More domains will be added as endpoints are implemented.
-    private static readonly DomainKind[] EnabledDomains = [DomainKind.Weather];
+    internal static readonly DomainKind[] EnabledDomains = [DomainKind.Weather, DomainKind.AirQuality, DomainKind.Flood];
 
     public ITimerScheduler Timers { get; set; } = null!;
 

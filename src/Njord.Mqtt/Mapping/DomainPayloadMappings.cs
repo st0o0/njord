@@ -23,7 +23,8 @@ internal static class DomainPayloadMappings
             point.BirchPollen, point.GrassPollen, point.Alder, point.Mugwort);
 
     public static FloodPayload ToPayload(this FloodPoint point, DateTimeOffset modelRun)
-        => new(point.ValidFrom, modelRun, point.Discharge, point.DischargeP10, point.DischargeP90, point.MedianHistorical);
+        => new(point.ValidFrom, modelRun, point.Discharge,
+            point.DischargeMean, point.DischargeMedian, point.DischargeMax, point.DischargeMin, point.DischargeP25, point.DischargeP75);
 
     public static SolarPayload ToPayload(this SolarPoint point, DateTimeOffset modelRun)
         => new(point.ValidFrom, modelRun, point.DirectRadiation, point.DiffuseRadiation,
@@ -102,9 +103,12 @@ internal static class DomainPayloadMappings
             point.ToPayload(forecast.ModelRun), MqttPayloadJsonContext.Default.FloodPayload,
             [
                 ("discharge", Num(point.Discharge)),
-                ("discharge_p10", Num(point.DischargeP10)),
-                ("discharge_p90", Num(point.DischargeP90)),
-                ("median_historical", Num(point.MedianHistorical)),
+                ("discharge_mean", Num(point.DischargeMean)),
+                ("discharge_median", Num(point.DischargeMedian)),
+                ("discharge_max", Num(point.DischargeMax)),
+                ("discharge_min", Num(point.DischargeMin)),
+                ("discharge_p25", Num(point.DischargeP25)),
+                ("discharge_p75", Num(point.DischargeP75)),
             ]);
     }
 

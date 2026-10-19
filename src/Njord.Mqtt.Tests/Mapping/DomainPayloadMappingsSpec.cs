@@ -111,19 +111,19 @@ public sealed class DomainPayloadMappingsSpec
     [Fact]
     public void Flood_publishes_the_state_payload_and_its_scalar_topics()
     {
-        var point = new FloodPoint(Valid, 12.5, DischargeP10: 10, DischargeP90: 20, MedianHistorical: 11);
+        var point = new FloodPoint(Valid, 12.5, DischargeMedian: 10, DischargeP25: 8, DischargeP75: 20);
 
         var topics = ByTopic(Forecast(DomainKind.Flood, point).ToMessages(Lucerne, "njord"));
 
         Assert.Multiple(
             () => Assert.Equal(5, topics.Count),
             () => Assert.Equal(
-                "{" + Stamps + ",\"discharge\":12.5,\"discharge_p10\":10,\"discharge_p90\":20,\"median_historical\":11}",
+                "{" + Stamps + ",\"discharge\":12.5,\"discharge_median\":10,\"discharge_p25\":8,\"discharge_p75\":20}",
                 topics["njord/lucerne/flood/state"]),
             () => Assert.Equal("12.5", topics["njord/lucerne/flood/discharge"]),
-            () => Assert.Equal("10", topics["njord/lucerne/flood/discharge_p10"]),
-            () => Assert.Equal("20", topics["njord/lucerne/flood/discharge_p90"]),
-            () => Assert.Equal("11", topics["njord/lucerne/flood/median_historical"]));
+            () => Assert.Equal("10", topics["njord/lucerne/flood/discharge_median"]),
+            () => Assert.Equal("8", topics["njord/lucerne/flood/discharge_p25"]),
+            () => Assert.Equal("20", topics["njord/lucerne/flood/discharge_p75"]));
     }
 
     [Fact]

@@ -57,11 +57,24 @@ public sealed class PollWorkerSpec : NjordActorSpec
     private async Task<FetchDomain> ExpectRequestAsync(CancellationToken ct) =>
         await _gateway.ExpectMsgAsync<FetchDomain>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
+    // A poll round asks every enabled domain; each one is answered with the same reply, retargeted to its domain.
     private async Task AnswerAsync(FetchDomainResponse reply, CancellationToken ct)
     {
-        await ExpectRequestAsync(ct);
-        _gateway.LastSender.Tell(reply);
+        foreach (var _ in PollWorker.EnabledDomains)
+        {
+            var request = await ExpectRequestAsync(ct);
+            _gateway.LastSender.Tell(ForDomain(reply, request.Domain));
+        }
     }
+
+
+    private static FetchDomainResponse ForDomain(FetchDomainResponse reply, DomainKind domain) => reply switch
+    {
+        FetchDomainCompleted completed => completed with { Domain = domain },
+        FetchDomainFailed failed => failed with { Domain = domain },
+        FetchDomainRejected rejected => rejected with { Domain = domain },
+        _ => reply,
+    };
 
     private async Task<PollWorkerReport> ExpectReportAsync(PollWorkerOutcome outcome, CancellationToken ct)
     {
@@ -222,14 +235,22 @@ public sealed class PollWorkerSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await ExpectRequestAsync(ct);
-        var inFlight = _gateway.LastSender;
+        var inFlight = new List<(IActorRef Sender, DomainKind Domain)>();
+        foreach (var _ in PollWorker.EnabledDomains)
+        {
+            var request = await ExpectRequestAsync(ct);
+            inFlight.Add((_gateway.LastSender, request.Domain));
+        }
 
         worker.Tell(new TriggerLocationPoll(TargetId));
         await _gateway.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
 
-        // The request in flight still ends normally and its outcome is reported.
-        inFlight.Tell(Completed(42));
+        // The requests in flight still end normally and their outcome is reported.
+        foreach (var (sender, domain) in inFlight)
+        {
+            sender.Tell(ForDomain(Completed(42), domain));
+        }
+
         await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
     }
 
