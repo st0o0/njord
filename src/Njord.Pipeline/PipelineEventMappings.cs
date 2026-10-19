@@ -1,6 +1,4 @@
 using Njord.Alerts;
-using Njord.Alerts.AirQuality;
-using Njord.Alerts.Flood;
 using Njord.Core.Domain;
 using Njord.Messages.Pipeline;
 using Njord.Model;

@@ -1,4 +1,3 @@
-using Njord.Core.Configuration;
 using Akka;
 using Akka.Actor;
 using Akka.Event;
@@ -7,6 +6,7 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Actors;
+using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Messages.Pipeline;
 using Njord.Model;

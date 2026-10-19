@@ -28,7 +28,9 @@ internal static class HostConfiguration
             new OpenMeteoSetupContainer(),
             new BudgetSetupContainer(),
             new PipelineSetupContainer(),
-            new AnalysisSetupContainer(),
+            new WeatherAlertSetupContainer(),
+            new AirQualitySetupContainer(),
+            new FloodSetupContainer(),
             new MqttSetupContainer(),
             new GrpcSetupContainer(),
         ];

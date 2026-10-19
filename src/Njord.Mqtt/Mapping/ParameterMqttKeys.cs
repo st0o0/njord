@@ -1,5 +1,5 @@
-using Njord.Core.Configuration;
 using System.Collections.Frozen;
+using Njord.Core.Configuration;
 using Njord.Model;
 
 namespace Njord.Mqtt.Mapping;

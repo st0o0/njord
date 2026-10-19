@@ -10,4 +10,4 @@ public sealed record AirQualityPoint(
     double? Alder = null,
     double? Mugwort = null,
     double? EuropeanAqi = null,
-    double? NitrogenDioxide = null): IHasValidTime;
+    double? NitrogenDioxide = null) : IHasValidTime;

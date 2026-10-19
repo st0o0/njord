@@ -122,8 +122,8 @@ public sealed class ProjectionEngineSpec
         engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Flood(Start)));
 
         Assert.Multiple(
-            () => Assert.Equal(1, weatherGroup.Calls.Count),
-            () => Assert.Equal(1, floodGroup.Calls.Count),
+            () => Assert.Single(weatherGroup.Calls),
+            () => Assert.Single(floodGroup.Calls),
             () => Assert.Equal(2, both.Calls.Count));
     }
 

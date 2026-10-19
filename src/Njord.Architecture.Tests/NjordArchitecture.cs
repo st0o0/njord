@@ -33,12 +33,10 @@ internal static class NjordArchitecture
             .Select(n => Assembly.Load(n!))
     ];
 
-    private static readonly string[] FeatureLibraryNames = ["Njord.Grpc", "Njord.OpenMeteo", "Njord.Budget", "Njord.Mqtt", "Njord.Alerts"];
-    private static readonly string[] BaseLibraryNames = ["Njord.Core", "Njord.Messages", "Njord.Model", "Njord.Persistence"];
+    private static readonly string[] FeatureLibraryNames = ["Njord.Grpc", "Njord.OpenMeteo", "Njord.Budget", "Njord.Mqtt", "Njord.Weather.Alerts", "Njord.AirQuality", "Njord.Flood"];
+    private static readonly string[] BaseLibraryNames = ["Njord.Core", "Njord.Messages", "Njord.Model", "Njord.Persistence", "Njord.Alerts"];
 
     internal const string PipelineLibrary = "Njord.Pipeline";
-    private static readonly string[] PipelineAllowedAnalysisLibs = ["Njord.Alerts"];
-
     public static readonly ArchUnitNET.Domain.Architecture Instance =
         new ArchLoader()
             .LoadAssemblies([NjordAssembly, .. LibraryAssemblies, .. TestAssemblies])
@@ -75,23 +73,12 @@ internal static class NjordArchitecture
     {
         get
         {
-            var disallowed = FeatureLibraryNames
-                .Where(n => !PipelineAllowedAnalysisLibs.Contains(n))
-                .ToArray();
             return Types().That().ResideInAssembly(NjordAssembly,
-                    [.. disallowed.Select(AssemblyByName)])
+                    [.. FeatureLibraryNames.Select(AssemblyByName)])
                 .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage")
-                .As("non-analysis feature libraries and the host");
+                .As("feature libraries and the host");
         }
     }
-
-    private static readonly string[] AnalysisLibraryNames = [.. PipelineAllowedAnalysisLibs];
-
-    public static IObjectProvider<IType> AnalysisTypes =>
-        Types().That().ResideInAssembly(AssemblyByName(AnalysisLibraryNames[0]),
-                [.. AnalysisLibraryNames.Skip(1).Select(AssemblyByName)])
-            .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage")
-            .As("the analysis feature libraries");
 
     public static IObjectProvider<IType> ProductionTypes =>
         Types().That().ResideInAssembly(NjordAssembly,

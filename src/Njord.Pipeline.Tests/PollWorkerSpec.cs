@@ -96,7 +96,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
     [Fact]
     public void The_budget_projection_counts_one_call_per_enabled_domain()
     {
-        Assert.Equal(PollWorker.EnabledDomains.Length, BudgetCalculator.DomainCallsPerLocation);
+        Assert.Equal(BudgetCalculator.DomainCallsPerLocation, PollWorker.EnabledDomains.Length);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

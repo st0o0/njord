@@ -207,7 +207,7 @@ src/
                               #   EnrichmentEventMappings, WireEnumMappings: extension methods only
 
   # /Analysis/ — projection-group libraries (each -> Core only), own their computation
-  Njord.Alerts/               # AlertAnalyzer, WeatherAlertProjector/Enrichment (projection group), IAlertRule,
+  Njord.Alerts/               # Alert kernel (IAlertRule<T>, AlertRaisedEvent, AlertOptions); Njord.Weather.Alerts/, Njord.AirQuality/, Njord.Flood/ hold the per-domain alerts. Weather: AlertAnalyzer, WeatherAlertProjector/Enrichment (projection group), IAlertRule,
                               #   Rules/ (one rule per AlertType), AlertWindow,
                               #   AirQuality/ (AirQualityAlertProjector, PollenAlertRule, Pm25AlertRule),
                               #   Flood/ (FloodRiskProjector, FloodRiskAlertRule, FloodRainProjector,

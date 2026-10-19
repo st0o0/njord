@@ -24,7 +24,7 @@ public sealed class ZoneArchitectureSpec
     }
 
     [Fact]
-    public void Pipeline_depends_on_no_non_analysis_feature_library_or_host()
+    public void Pipeline_depends_on_no_feature_library_or_host()
     {
         Types().That().Are(NjordArchitecture.TypesInLibrary(NjordArchitecture.PipelineLibrary))
             .Should().NotDependOnAnyTypesThat().Are(NjordArchitecture.TypesInPipelineDisallowedLibrariesAndHost)

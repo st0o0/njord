@@ -1,6 +1,6 @@
 using ArchUnitNET.Domain;
 using ArchUnitNET.xUnitV3;
-using Njord.Alerts;
+using Njord.Weather.Alerts;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 namespace Njord.Architecture.Tests;
@@ -38,11 +38,11 @@ public sealed class ConventionArchitectureSpec
     }
 
     [Fact]
-    public void Alert_rules_live_in_the_alerts_library()
+    public void Weather_alert_rules_live_in_the_weather_alerts_library()
     {
         Classes().That().Are(NjordArchitecture.ProductionTypes)
             .And().ImplementInterface(typeof(IAlertRule))
-            .Should().Be(NjordArchitecture.TypesInLibrary("Njord.Alerts"))
+            .Should().Be(NjordArchitecture.TypesInLibrary("Njord.Weather.Alerts"))
             .Check(NjordArchitecture.Instance);
     }
 }

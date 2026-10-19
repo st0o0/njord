@@ -49,6 +49,7 @@ public sealed class LayerReferenceSpec
     }
 
     private static readonly string[] CoreAndBelow = ["Njord.Core", "Njord.Model", "Njord.Messages", "Njord.Persistence"];
+    private static readonly string[] CoreAndBelowWithAlertKernel = [.. CoreAndBelow, "Njord.Alerts"];
 
     [Fact]
     public void OpenMeteo_references_only_Core_and_below()
@@ -69,10 +70,10 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Pipeline_references_only_Core_and_the_alerts_library()
+    public void Pipeline_references_only_Core_and_the_alert_kernel()
     {
         Assert.Empty(NjordReferences<Pipeline.ForecastPipeline>()
-            .Except([.. CoreAndBelow, "Njord.Alerts"]));
+            .Except(CoreAndBelowWithAlertKernel));
     }
 
     [Fact]
@@ -82,8 +83,26 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Alerts_references_only_Core_and_below()
+    public void Alert_kernel_references_only_Core_and_below()
     {
-        Assert.Empty(NjordReferences<Alerts.AlertAnalyzer>().Except(CoreAndBelow));
+        Assert.Empty(NjordReferences<Alerts.AlertRaisedEvent>().Except(CoreAndBelow));
+    }
+
+    [Fact]
+    public void Weather_alerts_reference_only_Core_below_and_the_alert_kernel()
+    {
+        Assert.Empty(NjordReferences<Weather.Alerts.AlertAnalyzer>().Except(CoreAndBelowWithAlertKernel));
+    }
+
+    [Fact]
+    public void AirQuality_references_only_Core_below_and_the_alert_kernel()
+    {
+        Assert.Empty(NjordReferences<AirQuality.AirQualityAlertProjector>().Except(CoreAndBelowWithAlertKernel));
+    }
+
+    [Fact]
+    public void Flood_references_only_Core_below_and_the_alert_kernel()
+    {
+        Assert.Empty(NjordReferences<Flood.FloodRiskProjector>().Except(CoreAndBelowWithAlertKernel));
     }
 }

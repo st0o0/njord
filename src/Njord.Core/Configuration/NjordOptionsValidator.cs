@@ -17,7 +17,7 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
 
         if (parametersResolved && options.Locations.Count > 0 && options.Models.Count > 0)
         {
-            }
+        }
 
         return failures.Count > 0
             ? ValidateOptionsResult.Fail(failures)
