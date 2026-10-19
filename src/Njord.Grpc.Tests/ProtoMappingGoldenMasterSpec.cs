@@ -10,7 +10,7 @@ namespace Njord.Grpc.Tests;
 
 public sealed class ProtoMappingGoldenMasterSpec
 {
-    private static readonly AnalysisFixture Fixture = AnalysisFixture.Create();
+    private static readonly AlertScenario Fixture = AlertScenario.Create();
 
     private static readonly JsonFormatter Formatter = new(
         JsonFormatter.Settings.Default.WithFormatDefaultValues(true).WithIndentation());
@@ -21,10 +21,13 @@ public sealed class ProtoMappingGoldenMasterSpec
         var text = new StringBuilder();
         foreach (var analysis in Fixture.Analyses)
         {
-            var mapped = EnrichmentEventMappings.ToEnrichmentEvent(
-                new PipelineEvent.AlertComputed(analysis.Alerts, AnalysisFixture.Now));
-            Assert.NotNull(mapped);
-            text.AppendLine(Formatter.Format(mapped));
+            foreach (var alert in analysis.Alerts.Alerts)
+            {
+                var mapped = EnrichmentEventMappings.ToEnrichmentEvent(
+                    new PipelineEvent.AlertRaised(analysis.Alerts.Location, alert, AlertScenario.Now));
+                Assert.NotNull(mapped);
+                text.AppendLine(Formatter.Format(mapped));
+            }
         }
 
         return Verify(text.ToString());
@@ -33,7 +36,7 @@ public sealed class ProtoMappingGoldenMasterSpec
     [Fact]
     public Task Domain_data_updates_match_golden_master()
     {
-        var start = AnalysisFixture.Now;
+        var start = AlertScenario.Now;
         var location = DomainData.Lucerne;
         PipelineEvent[] events =
         [
@@ -62,7 +65,7 @@ public sealed class ProtoMappingGoldenMasterSpec
     [Fact]
     public void Fixture_maps_every_alert_type_into_the_alert_events()
     {
-        var lucerne = Fixture.For(AnalysisFixture.Lucerne);
+        var lucerne = Fixture.For(AlertScenario.Lucerne);
         var mapped = AlertProtoMappings.ToProto(lucerne.Alerts);
 
         var types = mapped.Alerts.Select(a => a.Type).ToHashSet();

@@ -11,7 +11,7 @@ public sealed class MqttGoldenMasterSpec : IClassFixture<MosquittoFixture>
 {
     private const string BaseTopic = "njord";
 
-    private static readonly AnalysisFixture Fixture = AnalysisFixture.Create();
+    private static readonly AlertScenario Fixture = AlertScenario.Create();
 
     private readonly MosquittoFixture _broker;
 

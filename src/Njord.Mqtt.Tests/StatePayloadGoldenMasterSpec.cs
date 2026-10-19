@@ -8,7 +8,7 @@ public sealed class StatePayloadGoldenMasterSpec
 {
     private const string BaseTopic = "njord";
 
-    private static readonly AnalysisFixture Fixture = AnalysisFixture.Create();
+    private static readonly AlertScenario Fixture = AlertScenario.Create();
 
     [Fact]
     public void Alert_messages_carry_severity_and_confidence()
@@ -36,7 +36,7 @@ public sealed class StatePayloadGoldenMasterSpec
     [Fact]
     public void Fixture_triggers_every_alert_type_in_the_published_messages()
     {
-        var lucerne = Fixture.For(AnalysisFixture.Lucerne);
+        var lucerne = Fixture.For(AlertScenario.Lucerne);
         var messages = StatePayloadBuilder.FromAlerts(lucerne.Alerts, BaseTopic);
 
         foreach (var type in Enum.GetValues<AlertType>())

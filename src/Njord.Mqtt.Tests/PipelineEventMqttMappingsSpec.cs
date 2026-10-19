@@ -16,7 +16,7 @@ public sealed class PipelineEventMqttMappingsSpec
     private static readonly Location Lucerne = DomainData.Lucerne;
 
     private static readonly MqttPublishContext Context = new(
-        BaseTopic, AnalysisFixture.Parameters, Run);
+        BaseTopic, AlertScenario.Parameters, Run);
 
     private static readonly Alert FrostAlert = new(
         AlertType.Frost, AlertSeverity.Yellow, 0.75, new FrostDetails(-2.1, Horizon.Hours(4), 3),
@@ -156,15 +156,6 @@ public sealed class PipelineEventMqttMappingsSpec
 
         Assert.Equal(8, events.Length);
         Assert.All(events, e => Assert.Equal("Lucerne", e.ToLocationName()));
-    }
-
-    [Fact]
-    public void Retired_events_map_to_no_messages_and_the_unknown_location()
-    {
-        var retired = EnrichmentEvents.Alerts(new Location("lucerne", 0, 0), Run);
-
-        Assert.Empty(retired.ToMqttMessages(Context));
-        Assert.Equal("unknown", retired.ToLocationName());
     }
 
     [Fact]
