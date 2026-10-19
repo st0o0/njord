@@ -29,7 +29,7 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
     {
         if (options.Locations.Count == 0)
         {
-            failures.Add("At least one location (Name, Latitude, Longitude) is required.");
+            failures.Add("At least one location (Name; Latitude and Longitude optional, resolved by geocoding) is required.");
         }
         else if (options.Locations.Any(l => string.IsNullOrWhiteSpace(l.Name)))
         {

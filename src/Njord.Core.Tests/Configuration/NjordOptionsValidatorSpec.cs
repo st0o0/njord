@@ -27,7 +27,7 @@ public sealed class NjordOptionsValidatorSpec
 
         var result = _validator.Validate(null, options);
 
-        Assert.Equal("At least one location (Name, Latitude, Longitude) is required.", ValidationAssert.SingleFailure(result));
+        Assert.Equal("At least one location (Name; Latitude and Longitude optional, resolved by geocoding) is required.", ValidationAssert.SingleFailure(result));
     }
 
     [Fact]

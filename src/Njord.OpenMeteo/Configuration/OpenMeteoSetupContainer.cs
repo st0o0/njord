@@ -4,6 +4,7 @@ using Akka.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Actors;
@@ -42,6 +43,14 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
             client.BaseAddress = new Uri("https://flood-api.open-meteo.com/");
             client.Timeout = TimeSpan.FromSeconds(30);
         });
+
+        AddTypedClient<IGeocodingClient, GeocodingClient>(services, (_, client) =>
+        {
+            client.BaseAddress = new Uri("https://geocoding-api.open-meteo.com/");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+
+        services.AddHostedService<LocationResolutionService>();
 
         services.AddSingleton<IActorRegistration>(new GatewayActorRegistration());
     }
