@@ -43,15 +43,14 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
             Models = ["icon_d2"],
         };
-        var config = TestConfigView.Create(options);
-        var analysis = TestAnalysisConfigView.Create(
+        var serviceInfo = TestServiceInfo.Create(
+            options,
             consensus: AppSettingsDefaults.Options<ConsensusOptions>(o => o.Enabled = true),
             alerts: AppSettingsDefaults.Options<AlertOptions>(o => o.Enabled = true),
             derived: AppSettingsDefaults.Options<DerivedOptions>(o => o.Enabled = false),
             trends: AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = false),
             indices: AppSettingsDefaults.Options<IndexOptions>(o => o.Enabled = false));
-        ActorRegistry.Register<IConfigManager>(Sys.ActorOf(Props.Create(() => new FakeConfigManager(config, analysis))), overwrite: true);
-        return new OpsGrpcService(ActorRegistry, _time,
+        return new OpsGrpcService(ActorRegistry, _time, serviceInfo,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<OpsGrpcService>.Instance);
     }
 

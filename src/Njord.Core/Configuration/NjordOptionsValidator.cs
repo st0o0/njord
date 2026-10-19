@@ -1,16 +1,15 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Njord.Model;
 
 namespace Njord.Core.Configuration;
 
-public sealed class NjordOptionsValidator(IConfiguration configuration) : IValidateOptions<NjordOptions>
+public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
 {
     private const int FetchWindowHours = 96;
 
     public ValidateOptionsResult Validate(string? name, NjordOptions options)
     {
-        var failures = new List<string>(LegacyConfigKeys.Failures(configuration));
+        List<string> failures = [];
 
         ValidateLocations(options, failures);
         ValidateModels(options, failures);

@@ -25,8 +25,7 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
         services.AddNjordOptions<PollingOptions>(configuration);
         services.AddNjordOptions<ConsensusOptions>(configuration);
 
-        // The settings the pipeline starts with; it asks ConfigManager for the current ones right after, and later
-        // changes arrive as AnalysisSettingsChanged messages.
+        // The analysis settings are fixed at startup and constructor-injected into the pipeline.
         services.AddSingleton(static sp => AnalysisSettingsFactory.Create(
             sp.GetRequiredService<IOptions<NjordOptions>>().Value,
             sp.GetRequiredService<IOptions<ConsensusOptions>>().Value,

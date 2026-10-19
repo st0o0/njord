@@ -67,12 +67,11 @@ public sealed class ZoneArchitectureSpec
     }
 
     [Fact]
-    public void Grpc_reads_no_options_and_calls_no_configuration_writer_calculator_or_registry()
+    public void Grpc_reads_no_options_and_calls_no_calculator_or_registry()
     {
         Types().That().Are(NjordArchitecture.TypesInLibrary("Njord.Grpc"))
             .Should().NotDependOnAnyTypesThat().HaveFullNameMatching(@"^Microsoft\.Extensions\.Options\.IOptions")
             .AndShould().NotDependOnAny(
-                typeof(IConfigWriter),
                 typeof(ConfigView),
                 typeof(BudgetCalculator),
                 typeof(ModelCoverageRegistry))

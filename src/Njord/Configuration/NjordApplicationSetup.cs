@@ -15,11 +15,6 @@ public sealed class NjordApplicationSetup : ApplicationSetupContainer<WebApplica
 
     internal static void Configure(WebApplication app)
     {
-        // Override-file problems found while the configuration was built (before logging existed) are
-        // logged now; later ones are logged as they happen.
-        app.Services.GetRequiredService<ConfigOverrideFile>()
-            .AttachLogger(app.Services.GetRequiredService<ILogger<ConfigOverrideFile>>());
-
         app.UseRequestTimeouts();
         ExposeHealthEndpoints(app);
         app.UseHttpMetrics();

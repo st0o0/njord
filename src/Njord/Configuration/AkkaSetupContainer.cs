@@ -16,7 +16,7 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
     protected override void BuildSystem(AkkaConfigurationBuilder builder, IServiceProvider serviceProvider)
     {
         // The actor system configuration is built once at startup and needs plain values, so the validated
-        // options are read here; persistence settings are restart-required (ConfigReloadPolicy).
+        // options are read here.
         var persistence = serviceProvider.GetRequiredService<IOptions<PersistenceOptions>>().Value;
         var storage = serviceProvider.GetRequiredService<IOptions<StorageOptions>>().Value;
         ConfigureLogging(builder, serviceProvider.GetRequiredService<IConfiguration>());

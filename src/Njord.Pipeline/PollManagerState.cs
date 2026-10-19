@@ -143,9 +143,6 @@ internal static class PollManagerStateExtensions
     public static PollManagerState ApplyResolveRetry(this PollManagerState state) =>
         state with { ResolveAttempts = state.ResolveAttempts + 1 };
 
-    public static PollManagerState ApplyPollingChanged(this PollManagerState state, TimeSpan discoveryInterval) =>
-        state with { DiscoveryInterval = discoveryInterval };
-
     public static PollStatesResult GetPollStates(this PollManagerState state, PollManagerConfig config) =>
         new([.. config.Targets.Select(t => state.States[t.Id])]);
 

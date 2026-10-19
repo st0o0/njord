@@ -16,19 +16,18 @@ public interface IBudgetProvider
     BudgetRate GetCurrentRate();
 }
 
-// Reads the budget per call so a hot budget change reaches the gate without a subscription (design D5).
 internal sealed class OptionsBudgetProvider : IBudgetProvider
 {
-    private readonly IOptionsMonitor<PollingOptions> _options;
+    private readonly IOptions<PollingOptions> _options;
 
-    public OptionsBudgetProvider(IOptionsMonitor<PollingOptions> options)
+    public OptionsBudgetProvider(IOptions<PollingOptions> options)
     {
         _options = options;
     }
 
     public BudgetRate GetCurrentRate()
     {
-        var budget = BudgetCalculator.GetEffectiveBudget(_options.CurrentValue);
+        var budget = BudgetCalculator.GetEffectiveBudget(_options.Value);
         var costPerMinute = (int)(budget.RequestsPerMinute * 0.8);
         var maxBurst = Math.Max(costPerMinute / 30, 16);
         return new BudgetRate(costPerMinute, maxBurst);

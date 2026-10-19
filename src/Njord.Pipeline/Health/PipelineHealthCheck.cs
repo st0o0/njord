@@ -13,7 +13,7 @@ internal sealed class PipelineHealthCheck(
     ActorRegistry actorRegistry,
     TimeProvider timeProvider,
     ConfigView config,
-    IOptionsMonitor<HealthOptions> options) : IHealthCheck
+    IOptions<HealthOptions> options) : IHealthCheck
 {
     private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
 
@@ -29,7 +29,7 @@ internal sealed class PipelineHealthCheck(
         {
             var result = await pollManager.Ask<PollHealthResult>(
                 new QueryPollHealth(), AskTimeout, cancellationToken);
-            return Evaluate(result, config.Polling.PollInterval, timeProvider.GetUtcNow(), options.CurrentValue);
+            return Evaluate(result, config.Polling.PollInterval, timeProvider.GetUtcNow(), options.Value);
         }
         catch (AskTimeoutException)
         {

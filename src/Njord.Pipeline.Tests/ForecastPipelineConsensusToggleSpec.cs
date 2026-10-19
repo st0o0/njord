@@ -90,29 +90,6 @@ public sealed class ForecastPipelineConsensusToggleSpec : NjordActorSpec
         Assert.All(consensus, c => Assert.Equal(AnalysisFixture.Lucerne, c.Consensus.Location.Name));
     }
 
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_runtime_settings_change_does_not_bring_back_disabled_consensus()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var (forecasts, pipeline, queue, events) = await StartPipelineAsync(consensusEnabled: false, ct);
-
-        await queue.OfferAsync(forecasts[0], ct);
-        var beforeChange = await ReceiveUntilIndicesAsync(events, 1, ct);
-
-        pipeline.Tell(new AnalysisSettingsChanged(Settings(AppSettingsDefaults.Options<AlertOptions>(o => o.FrostThresholds = [-50, -60, -70]))));
-        for (var i = 1; i < forecasts.Count; i++)
-        {
-            await queue.OfferAsync(forecasts[i], ct);
-        }
-
-        var afterChange = await ReceiveUntilIndicesAsync(events, forecasts.Count - 1, ct);
-
-        Assert.Multiple(
-            () => Assert.DoesNotContain(beforeChange, e => e is PipelineEvent.ConsensusComputed),
-            () => Assert.DoesNotContain(afterChange, e => e is PipelineEvent.ConsensusComputed),
-            () => Assert.Equal(forecasts.Count - 1, afterChange.OfType<PipelineEvent.AlertComputed>().Count()));
-    }
-
     private async Task<(IReadOnlyList<WeatherForecast> Forecasts, IActorRef Pipeline,
         ISourceQueueWithComplete<WeatherForecast> Queue, ChannelReader<PipelineEvent> Events)>
         StartPipelineAsync(bool consensusEnabled, CancellationToken ct)

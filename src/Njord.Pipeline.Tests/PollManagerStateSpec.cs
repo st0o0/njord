@@ -176,17 +176,6 @@ public sealed class PollManagerStateSpec
     }
 
     [Fact]
-    public void ApplyPollingChanged_updates_discovery_interval()
-    {
-        var state = InitialState();
-        var newInterval = TimeSpan.FromMinutes(5);
-
-        state = state.ApplyPollingChanged(newInterval);
-
-        Assert.Equal(newInterval, state.DiscoveryInterval);
-    }
-
-    [Fact]
     public void GetPollStates_returns_entries_in_target_order()
     {
         var state = InitialState();

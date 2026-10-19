@@ -11,11 +11,12 @@ namespace Njord.Grpc;
 
 public sealed class SensorGrpcService(
     ActorRegistry actorRegistry,
-    TimeProvider timeProvider) : SensorService.SensorServiceBase
+    TimeProvider timeProvider,
+    ServiceInfo serviceInfo) : SensorService.SensorServiceBase
 {
     public override async Task<PushResponse> Push(SensorReading request, ServerCallContext context)
     {
-        var catalog = await AskCatalogAsync(context);
+        var catalog = serviceInfo.Catalog;
         var (command, rejection) = request.ToCommand(catalog, timeProvider.GetUtcNow());
         if (command is null)
         {
@@ -30,7 +31,7 @@ public sealed class SensorGrpcService(
         IAsyncStreamReader<SensorReading> requestStream,
         ServerCallContext context)
     {
-        var catalog = await AskCatalogAsync(context);
+        var catalog = serviceInfo.Catalog;
         var rejected = 0;
         var total = 0;
 
@@ -55,7 +56,4 @@ public sealed class SensorGrpcService(
             ? new PushResponse { Accepted = true }
             : new PushResponse { Accepted = false, RejectionReason = $"{rejected}/{total} readings rejected" };
     }
-
-    private async Task<CatalogResult> AskCatalogAsync(ServerCallContext context) =>
-        (await actorRegistry.AskAsync<IConfigManager, CatalogResponse>(new QueryCatalog(), context)).ToResult();
 }

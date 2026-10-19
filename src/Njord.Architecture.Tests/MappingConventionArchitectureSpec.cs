@@ -9,8 +9,7 @@ public sealed class MappingConventionArchitectureSpec
     // configuration mapping classes stay public.
     private static readonly string[] PublicMappingClasses =
     [
-        "Njord.Configuration.EffectiveConfigMappings",
-        "Njord.Configuration.ConfigUpdateMappings",
+        "Njord.Configuration.ServiceInfoMappings",
     ];
 
     private const BindingFlags AllDeclared =

@@ -17,17 +17,18 @@ namespace Njord.Grpc;
 public sealed class WeatherGrpcService(
     ActorRegistry actorRegistry,
     ActorSystem actorSystem,
-    TimeProvider timeProvider) : WeatherService.WeatherServiceBase
+    TimeProvider timeProvider,
+    ServiceInfo serviceInfo) : WeatherService.WeatherServiceBase
 {
     public override async Task<GetCatalogResponse> GetCatalog(GetCatalogRequest request, ServerCallContext context)
     {
-        var catalog = await AskCatalogAsync(context);
+        var catalog = serviceInfo.Catalog;
         return catalog.ToProto();
     }
 
     public override async Task<GetForecastResponse> GetForecast(GetForecastRequest request, ServerCallContext context)
     {
-        var location = FindLocation(await AskCatalogAsync(context), request.Location);
+        var location = FindLocation(serviceInfo.Catalog, request.Location);
         var model = FindModel(location, request.Model);
 
         var result = await actorRegistry.AskAsync<IGrpcConsumer, ForecastResponse>(
@@ -43,7 +44,7 @@ public sealed class WeatherGrpcService(
 
     public override async Task<GetEnrichmentsResponse> GetEnrichments(GetEnrichmentsRequest request, ServerCallContext context)
     {
-        var location = FindLocation(await AskCatalogAsync(context), request.Location);
+        var location = FindLocation(serviceInfo.Catalog, request.Location);
 
         var result = await actorRegistry.AskAsync<IGrpcConsumer, LatestAnalysisResponse>(
             new QueryLatestAnalysis(location.Id), context);
@@ -56,7 +57,7 @@ public sealed class WeatherGrpcService(
         IServerStreamWriter<ForecastUpdate> responseStream,
         ServerCallContext context)
     {
-        var location = await ResolveStreamLocationAsync(request.Location, context);
+        var location = ResolveStreamLocation(request.Location);
         var sourceRef = await RequestGrpcStreamAsync(context);
 
         var mat = actorSystem.Materializer();
@@ -81,7 +82,7 @@ public sealed class WeatherGrpcService(
         IServerStreamWriter<EnrichmentEvent> responseStream,
         ServerCallContext context)
     {
-        var location = await ResolveStreamLocationAsync(request.Location, context);
+        var location = ResolveStreamLocation(request.Location);
         var sourceRef = await RequestGrpcStreamAsync(context);
 
         var mat = actorSystem.Materializer();
@@ -104,12 +105,9 @@ public sealed class WeatherGrpcService(
             .RunWith(Sink.Ignore<EnrichmentEvent?>(), mat);
     }
 
-    private async Task<CatalogResult> AskCatalogAsync(ServerCallContext context) =>
-        (await actorRegistry.AskAsync<IConfigManager, CatalogResponse>(new QueryCatalog(), context)).ToResult();
-
     // An empty location streams every location; a non-empty one must be configured.
-    private async Task<LocationId?> ResolveStreamLocationAsync(string location, ServerCallContext context) =>
-        string.IsNullOrEmpty(location) ? null : FindLocation(await AskCatalogAsync(context), location).Id;
+    private LocationId? ResolveStreamLocation(string location) =>
+        string.IsNullOrEmpty(location) ? null : FindLocation(serviceInfo.Catalog, location).Id;
 
     private async Task<ISourceRef<PipelineEvent>> RequestGrpcStreamAsync(ServerCallContext context)
     {

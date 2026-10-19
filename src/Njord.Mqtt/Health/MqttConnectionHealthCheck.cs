@@ -10,7 +10,7 @@ namespace Njord.Mqtt.Health;
 internal sealed class MqttConnectionHealthCheck(
     ActorRegistry actorRegistry,
     TimeProvider timeProvider,
-    IOptionsMonitor<HealthOptions> options) : IHealthCheck
+    IOptions<HealthOptions> options) : IHealthCheck
 {
     private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
 
@@ -26,7 +26,7 @@ internal sealed class MqttConnectionHealthCheck(
         {
             var result = await mqttConnection.Ask<MqttConnectionStatusResult>(
                 new QueryMqttConnectionStatus(), AskTimeout, cancellationToken);
-            return Evaluate(result, timeProvider.GetUtcNow(), options.CurrentValue.MqttUnhealthyAfter);
+            return Evaluate(result, timeProvider.GetUtcNow(), options.Value.MqttUnhealthyAfter);
         }
         catch (AskTimeoutException)
         {

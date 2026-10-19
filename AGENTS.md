@@ -91,16 +91,16 @@ with optional MQTT state publishing.
   (256 events); the MQTT publisher runs events → `Buffer(256, DropHead)` → payloads →
   `Sink.ForEachAsync(1, dedup + publish)`, so a slow broker drops its own oldest events,
   and republishes every topic once per new subscription and after every broker reconnect. A started (or restarted)
-  pipeline asks the `ConfigManager` (`QueryAnalysisSettings`) and the `SensorHub`
-  (`RequestSensorReadings`) for the current inputs.
+  pipeline asks the `SensorHub` (`RequestSensorReadings`) for the current inputs; its analysis
+  settings are constructor-injected from the startup options.
 - **The gRPC API is an adapter.** `Njord.Grpc` holds `GrpcConsumer` (the pipeline's
   streaming output consumer for gRPC clients, marker `IGrpcConsumer`) and reads no
   options: every RPC resolves an actor marker, asks with a message from
   `Njord.Messages` through `ActorAsk` (`Unavailable` when the actor is not resolvable,
   `DeadlineExceeded` on timeout) and maps the result with the per-domain `ToProto()`
-  extensions in `Njord.Grpc/Mapping/`. Configuration is read and written through
-  `ConfigManager` (`QueryConfig`, `QueryCatalog`, `Update*` commands,
-  `RequestConfigStream`), budget status through `BudgetTracker` (`QueryBudgetStatus`).
+  extensions in `Njord.Grpc/Mapping/`. The catalog, the effective request budget and the enabled enrichments are
+  fixed at startup and injected as the `ServiceInfo` contract (built by the host from the options);
+  budget status goes through `BudgetTracker` (`QueryBudgetStatus`).
 - **`Njord.Messages` is the Akka-free contract project.** Every public command, query,
   result and event lives there, one file per command or query, in domain folders
   (`Budget/`, `Config/`, `Forecast/`, `Pipeline/`, `Sensors/`; nothing MQTT-specific, see the MQTT boundary rule).
@@ -252,12 +252,10 @@ src/
 
   # Host
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
-    Configuration/            # Host setup, ConfigManager (config queries, commands, stream),
-                              #   ConfigReloadPolicy, ConfigWriter, AnalysisConfigView (the analysis sections),
-                              #   EffectiveConfigMappings, ConfigUpdateMappings;
+    Configuration/            # Host setup, ServiceInfoMappings (options to the ServiceInfo contract);
                               #   containers in Program.cs order: CoreSetupContainer (TimeProvider, meter
-                              #   allow-list), ConfigSetupContainer (options, writer, ConfigManager),
-                              #   HealthSetupContainer (health options, journal and data-directory checks), then the feature containers
+                              #   allow-list), ConfigSetupContainer (options, ConfigView, ServiceInfo),
+                              #   HealthSetupContainer (health options, journal check), then the feature containers
     Health/
 
   # /Tests/ — one test project per production project
@@ -279,7 +277,7 @@ src/
   Njord.Derived.Tests/        # DerivedAnalyzer, DerivedFormulas specs
   Njord.Trends.Tests/         # TrendAnalyzer, TrendFormulas specs
   Njord.Indices.Tests/        # IndexAnalyzer, DaySlicer specs, Scores/ (one spec per score)
-  Njord.Tests/                # Host specs: ConfigManager, options binding
+  Njord.Tests/                # Host specs: options binding, setup containers
   Njord.IntegrationTests/     # Whole host via NjordHost + TestServer (gRPC channel, SQLite restart); Mosquitto via Testcontainers (needs Docker)
   Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules
   Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
@@ -313,9 +311,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1665 tests (Model 76, Forecast 49, Sensors 11, Persistence 16, Consensus 75, Messages 126,
-Core 137, Grpc 138, Pipeline 174, Mqtt 166, OpenMeteo 72, Budget 34, SensorHub 26, Architecture 122,
-Alerts 120, Derived 32, Trends 24, Indices 85, host `Njord.Tests` 182, IntegrationTests 22).
+Current total: 1506 tests (Model 76, Forecast 49, Sensors 11, Persistence 16, Consensus 75, Messages 126,
+Core 121, Grpc 96, Pipeline 168, Mqtt 166, OpenMeteo 72, Budget 34, SensorHub 26, Architecture 117,
+Alerts 120, Derived 32, Trends 24, Indices 85, host `Njord.Tests` 72, IntegrationTests 20).
 The count is one test per `[Fact]` and one per data row of a `[Theory]`.
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
@@ -339,9 +337,6 @@ Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
   initializer, not in `appsettings.json`.
 - `appsettings.Development.json` — dev overrides (locations, models, MQTT
   disabled). Loaded automatically by `dotnet run` (`ASPNETCORE_ENVIRONMENT=Development`).
-- `data/appsettings.Override.json` — runtime override written by `ConfigWriter` (Docker
-  volume mount), loaded last. "Reset to defaults" removes the override keys, so the value
-  falls back to the property initializer default.
 - Environment variables — Docker-compose / `docker run` (`Njord__Mqtt__Host`, etc.).
 - `appsettings.Example.json` — copy-in template with deployment-specific keys only.
 - `docker-compose.example.yml` — the commented variables show each option's default; a spec
@@ -357,28 +352,10 @@ options type is registered with `AddNjordOptions<T>(configuration)` (`Njord.Core
 the section, lets a configured list replace its default, registers `<T>Validator` from
 `T`'s namespace, `ValidateOnStart`); setup containers do not repeat those steps.
 
-Reading rule (`OptionsAccessArchitectureSpec`, constructor parameters): options that
-`ConfigReloadPolicy` marks `Hot` are read through `IOptionsMonitor<T>` or `ConfigView` (scope and polling;
-`AnalysisConfigView` in the host holds the analysis sections) at the
-moment of use, never `IOptions<T>`; `RestartRequired` options are read through `IOptions<T>`,
-never a monitor. Actors cannot inject a monitor (`ConfigurationArchitectureSpec`), so an
-actor that needs a hot value at (re)start takes `ConfigView` (`PollManager`). The spec holds
-an explicit allow-list with a reason per entry (the analysis features and `ForecastPipeline`
-read only their restart-required `Enabled`; `ConfigView`/`ConfigManager` monitor
-`NjordOptions`); an entry that is no longer needed fails the spec. Setup containers resolve
-options from the service provider and are outside the rule.
-
-0.5.0 key mapping (operator-breaking; startup fails with the old and the new key named when
-an old key is present in configuration or the environment; the override file is migrated by
-`ResilientJsonConfigurationSource`/`ConfigWriter` through `LegacyConfigKeys`, one release only):
-
-| Before 0.5.0 | From 0.5.0 | Environment variable |
-|--------------|------------|----------------------|
-| `Njord:PollInterval` | `Njord:Polling:PollInterval` | `Njord__Polling__PollInterval` |
-| `Njord:DiscoveryInterval` | `Njord:Polling:DiscoveryInterval` | `Njord__Polling__DiscoveryInterval` |
-| `Njord:BudgetOverride` | `Njord:Polling:BudgetOverride` | `Njord__Polling__BudgetOverride__RequestsPerMonth` / `__RequestsPerMinute` |
-| `Njord:OpenMeteoBaseUrl` | `Njord:OpenMeteo:BaseUrl` | `Njord__OpenMeteo__BaseUrl` |
-| `Njord:PersistencePath` | `Njord:Storage:PersistencePath` | `Njord__Storage__PersistencePath` |
+Configuration is static: it is read once at startup and a change needs a restart. Options are read
+through `IOptions<T>` or `ConfigView` (scope and polling), never `IOptionsMonitor<T>`
+(`OptionsAccessArchitectureSpec`, constructor parameters; `ConfigurationArchitectureSpec` for actors and fields).
+Setup containers resolve options from the service provider and are outside the rule.
 
 All option defaults live as property initializers; `new XOptions()` yields correct defaults.
 Tests that need list-default replacement still use `AppSettingsDefaults` (`Njord.Tests.Shared`,
@@ -476,7 +453,7 @@ These checks run locally only; they are deliberately not part of CI.
   `internal static` classes named `<Domain><Target>Mappings`, one per domain; no state, no options, no
   registry lookups, never inside actors or services. Names follow the direction: `ToProto`, `ToCommand`,
   `ToDomain`, `ToMessage`, never `Map*`. `DateTimeOffset` to protobuf uses Google.Protobuf's
-  `ToTimestamp()`. `EffectiveConfigMappings` and `ConfigUpdateMappings` (host) stay `public`
+  `ToTimestamp()`. `ServiceInfoMappings` (host) stays `public`
   because the test projects consume them without `InternalsVisibleTo`. `MappingConventionArchitectureSpec`
   enforces this; each mapping class has a spec pinning every field. Mapping logic
   (event-to-MQTT, Open-Meteo series/URI and log-level conversions) lives in
@@ -486,7 +463,7 @@ These checks run locally only; they are deliberately not part of CI.
   `Snapshot`; the persisted state of a persistent actor is `Persisted<Name>State`, and the Akka
   members (`SaveSnapshot`, `SnapshotOffer`, `SaveSnapshotSuccess`, `SnapshotInterval`) keep their
   names. Contract types are named for what they are: `ModelForecasts`, `LocationConsensus`,
-  `SensorReadings` / `LocationSensorReadings`, `EffectiveConfig`, `MqttConnectionStatus` / `PollHealth` /
+  `SensorReadings` / `LocationSensorReadings`, `ServiceInfo`, `MqttConnectionStatus` / `PollHealth` /
   `BudgetUsage`. `NamingArchitectureSpec` enforces the `Snapshot` reservation.
 - Enrichment types use `EnrichmentKind` enum (`Njord.Messages.Pipeline`), never bare
   strings. Enrichment `PipelineEvent` variants implement `IEnrichmentEvent`.
@@ -527,7 +504,7 @@ These checks run locally only; they are deliberately not part of CI.
   record (`PollHealth`, `MqttConnectionStatus`, `BudgetUsage`), and read only by the feature's own check.
   Each check is a sealed `IHealthCheck` over an `internal static Evaluate(...)` that takes plain values
   and is registered by the owning container with an explicit `failureStatus` (`pipeline`, `budget`,
-  `mqtt-connection`; the host adds `journal` and `data-directory`). Checks never ask actors. Thresholds
+  `mqtt-connection`; the host adds `journal`). Checks never ask actors. Thresholds
   are `Njord:Health` options (`PollOverdueFactor`, `PollStalledFactor`, `MqttUnhealthyAfter`,
   `BudgetDegradedBelowPercent`). `/healthz` answers 200 for Healthy and
   Degraded and 503 for Unhealthy within a 5 s request timeout; `/alive` is unconditional.

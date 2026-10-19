@@ -3,11 +3,9 @@ using Njord.Messages.Derived;
 using Njord.Messages.Trends;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainAlertType = Njord.Messages.Alerts.AlertType;
-using DomainConsensusMethod = Njord.Consensus.Settings.ConsensusMethod;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
 using ProtoAlertType = Njord.Grpc.V2.AlertType;
-using ProtoConsensusMethod = Njord.Grpc.V2.ConsensusMethod;
 using ProtoDewPointComfort = Njord.Grpc.V2.DewPointComfort;
 using ProtoPollPhase = Njord.Grpc.V2.PollPhase;
 using ProtoStability = Njord.Grpc.V2.Stability;
@@ -18,20 +16,6 @@ namespace Njord.Grpc.Tests;
 
 public sealed class WireEnumMappingsSpec
 {
-    [Theory]
-    [InlineData(DomainConsensusMethod.Mean, ProtoConsensusMethod.Mean)]
-    [InlineData(DomainConsensusMethod.Median, ProtoConsensusMethod.Median)]
-    [InlineData(DomainConsensusMethod.TrimmedMean, ProtoConsensusMethod.TrimmedMean)]
-    public void Consensus_method_maps_both_ways(DomainConsensusMethod method, ProtoConsensusMethod expected)
-    {
-        Assert.Equal(expected, method.ToProto());
-        Assert.Equal(method, expected.ToDomain());
-    }
-
-    [Fact]
-    public void Unspecified_consensus_method_means_unchanged() =>
-        Assert.Null(ProtoConsensusMethod.Unspecified.ToDomain());
-
     [Theory]
     [InlineData(DomainAlertSeverity.None, ProtoAlertSeverity.None)]
     [InlineData(DomainAlertSeverity.Yellow, ProtoAlertSeverity.Yellow)]
@@ -62,7 +46,6 @@ public sealed class WireEnumMappingsSpec
         Assert.All(Enum.GetValues<Stability>(), v => Assert.NotEqual(ProtoStability.Unspecified, v.ToProto()));
         Assert.All(Enum.GetValues<DewPointComfort>(), v => Assert.NotEqual(ProtoDewPointComfort.Unspecified, v.ToProto()));
         Assert.All(Enum.GetValues<VpdCategory>(), v => Assert.NotEqual(ProtoVpdCategory.Unspecified, v.ToProto()));
-        Assert.All(Enum.GetValues<DomainConsensusMethod>(), v => Assert.NotEqual(ProtoConsensusMethod.Unspecified, v.ToProto()));
     }
 
     [Fact]
@@ -73,15 +56,6 @@ public sealed class WireEnumMappingsSpec
             () => Assert.Equal("direction", Assert.Throws<ArgumentOutOfRangeException>(() => ((TrendDirection)99).ToProto()).ParamName),
             () => Assert.Equal("stability", Assert.Throws<ArgumentOutOfRangeException>(() => ((Stability)99).ToProto()).ParamName),
             () => Assert.Equal("comfort", Assert.Throws<ArgumentOutOfRangeException>(() => ((DewPointComfort)99).ToProto()).ParamName),
-            () => Assert.Equal("category", Assert.Throws<ArgumentOutOfRangeException>(() => ((VpdCategory)99).ToProto()).ParamName),
-            () => Assert.Equal("method", Assert.Throws<ArgumentOutOfRangeException>(() => ((DomainConsensusMethod)99).ToProto()).ParamName));
-    }
-
-    [Fact]
-    public void Undefined_proto_consensus_method_throws()
-    {
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => ((ProtoConsensusMethod)42).ToDomain());
-
-        Assert.Equal("method", ex.ParamName);
+            () => Assert.Equal("category", Assert.Throws<ArgumentOutOfRangeException>(() => ((VpdCategory)99).ToProto()).ParamName));
     }
 }

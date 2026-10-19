@@ -1,9 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
-using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Persistence;
+using Njord.Messages.Config;
 using Njord.Model;
 
 namespace Njord.Tests.Configuration;
@@ -27,8 +27,7 @@ public sealed class ConfigSetupContainerSpec : IDisposable
             () => Assert.Contains(services, d => d.ServiceType == typeof(IValidateOptions<StorageOptions>)
                 && d.ImplementationType == typeof(StorageOptionsValidator)),
             () => Assert.Contains(services, d => d.ServiceType == typeof(ConfigView)),
-            () => Assert.Contains(services, d => d.ServiceType == typeof(IConfigWriter)),
-            () => Assert.Single(services, d => d.ServiceType == typeof(IActorRegistration)));
+            () => Assert.Contains(services, d => d.ServiceType == typeof(ServiceInfo)));
     }
 
     [Fact]

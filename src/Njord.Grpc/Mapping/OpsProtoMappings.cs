@@ -72,32 +72,4 @@ internal static class OpsProtoMappings
                 ? (double)status.MonthlyUsed / status.MonthlyLimit * 100
                 : 0,
         };
-
-    public static IEnumerable<string> ActiveAnalyses(this AnalysisSections analysis)
-    {
-        if (analysis.Consensus.Enabled)
-        {
-            yield return EnrichmentKind.Consensus.ToWireName();
-        }
-
-        if (analysis.Alerts.Enabled)
-        {
-            yield return EnrichmentKind.Alerts.ToWireName();
-        }
-
-        if (analysis.Derived.Enabled)
-        {
-            yield return EnrichmentKind.Derived.ToWireName();
-        }
-
-        if (analysis.Trends.Enabled)
-        {
-            yield return EnrichmentKind.Trends.ToWireName();
-        }
-
-        if (analysis.Indices.Enabled)
-        {
-            yield return EnrichmentKind.Indices.ToWireName();
-        }
-    }
 }

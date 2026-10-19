@@ -68,7 +68,6 @@ public sealed class NjordTestHost : IAsyncDisposable
         WebApplication? app = null;
         var runner = NjordHost.Create(
             builder,
-            Path.Combine(dataDirectory, "appsettings.Override.json"),
             b =>
             {
                 b.Services.AddSingleton<IOpenMeteoClient>(openMeteo);

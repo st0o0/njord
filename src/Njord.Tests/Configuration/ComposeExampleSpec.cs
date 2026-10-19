@@ -126,13 +126,11 @@ public sealed partial class ComposeExampleSpec
     }
 
     [Fact]
-    public void The_example_declares_variables_and_none_of_the_removed_root_level_keys()
+    public void The_example_declares_variables()
     {
         var variables = Variables();
 
         Assert.NotEmpty(variables);
-        var removed = LegacyConfigKeys.All.Select(m => m.OldFullKey.Replace(":", "__", StringComparison.Ordinal)).ToList();
-        Assert.Empty(variables.Where(v => removed.Contains(v.Name, StringComparer.OrdinalIgnoreCase)).Select(v => v.Name));
     }
 
     [Fact]

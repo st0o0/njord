@@ -32,16 +32,15 @@ Ingest and consumers never reference each other. All data flows through the doma
 
 ## gRPC Services
 
-njord exposes four gRPC service groups on port 8081:
+njord exposes three gRPC service groups on port 8081:
 
 | Service | Methods | Purpose |
 |---------|---------|---------|
 | **WeatherService** | `GetCatalog`, `GetForecast`, `GetEnrichments`, `StreamForecasts`, `StreamEnrichments` | Forecast and enrichment data. `Stream*` methods push updates in real time. |
-| **AdminService** | `GetConfig`, `StreamConfig`, `SetLocations`, `SetSettings`, `SetEnrichment`, `SetBudget` | Read and modify njord configuration at runtime. |
 | **OpsService** | `GetStatus`, `GetTargets`, `TriggerPoll` | Server status, per-target poll state, and manual poll trigger. |
 | **SensorService** | `Push`, `StreamPush` | Receive external sensor readings (indoor temperature, humidity). |
 
-The HA integration uses `StreamForecasts`, `StreamEnrichments`, and `StreamConfig` for real-time updates, `GetCatalog` for initial discovery, and `TriggerPoll` for the poll button.
+The HA integration uses `StreamForecasts` and `StreamEnrichments` for real-time updates, `GetCatalog` for initial discovery, and `TriggerPoll` for the poll button.
 
 ## Streaming Pipeline
 

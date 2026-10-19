@@ -14,7 +14,6 @@ public sealed class HealthSetupContainer : IServiceSetupContainer
         services.AddRequestTimeouts();
 
         services.AddHealthChecks()
-            .AddCheck<JournalHealthCheck>("journal", failureStatus: HealthStatus.Unhealthy)
-            .AddCheck<DataDirectoryHealthCheck>("data-directory", failureStatus: HealthStatus.Degraded);
+            .AddCheck<JournalHealthCheck>("journal", failureStatus: HealthStatus.Unhealthy);
     }
 }

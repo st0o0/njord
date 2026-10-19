@@ -12,13 +12,13 @@ using Njord.Messages.Budget;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
 using Njord.Model;
-using ConfigResponse = Njord.Messages.Config.ConfigResponse;
 
 namespace Njord.Grpc;
 
 public sealed class OpsGrpcService(
     ActorRegistry actorRegistry,
     TimeProvider timeProvider,
+    ServiceInfo serviceInfo,
     ILogger<OpsGrpcService> logger) : OpsService.OpsServiceBase
 {
     private static readonly string Version =
@@ -30,11 +30,10 @@ public sealed class OpsGrpcService(
     public override async Task<StatusResponse> GetStatus(GetStatusRequest request, ServerCallContext context)
     {
         var uptime = timeProvider.GetUtcNow() - ProcessStart;
-        var config = await AskConfigAsync(context);
 
         // Without an answer from the tracker the status reports zero usage against the configured budget.
-        var budget = new BudgetStatusResult(0, 0, config.Polling.EffectiveBudget.RequestsPerMonth,
-            config.Polling.DailyLimit);
+        var budget = new BudgetStatusResult(0, 0, serviceInfo.MonthlyBudgetLimit,
+            serviceInfo.DailyBudgetLimit);
         var budgetPartial = false;
         try
         {
@@ -74,7 +73,7 @@ public sealed class OpsGrpcService(
             status.ModelsPartial = true;
         }
 
-        status.ActiveEnrichments.AddRange(config.Analysis.ActiveAnalyses());
+        status.ActiveEnrichments.AddRange(serviceInfo.ActiveEnrichments.Select(e => e.ToWireName()));
         return status;
     }
 
@@ -105,21 +104,6 @@ public sealed class OpsGrpcService(
             case TriggerImmediatePollCompleted completed:
                 return completed.ToProto();
             case TriggerImmediatePollFailed failed:
-                ExceptionDispatchInfo.Capture(failed.Cause).Throw();
-                break;
-        }
-
-        throw new RpcException(new Status(StatusCode.Internal, $"Unexpected reply: {response.GetType().Name}"));
-    }
-
-    private async Task<EffectiveConfig> AskConfigAsync(ServerCallContext context)
-    {
-        var response = await actorRegistry.AskAsync<IConfigManager, ConfigResponse>(new QueryConfig(), context);
-        switch (response)
-        {
-            case ConfigResult result:
-                return result.Config;
-            case ConfigFailed failed:
                 ExceptionDispatchInfo.Capture(failed.Cause).Throw();
                 break;
         }

@@ -57,7 +57,7 @@ public sealed class DefaultOptionsSpec
 
         var results = new Dictionary<string, ValidateOptionsResult>
         {
-            [nameof(NjordOptions)] = new NjordOptionsValidator(configuration).Validate(null, AppSettingsDefaults.Options<NjordOptions>(configuration)),
+            [nameof(NjordOptions)] = new NjordOptionsValidator().Validate(null, AppSettingsDefaults.Options<NjordOptions>(configuration)),
             [nameof(PollingOptions)] = new PollingOptionsValidator(configuration).Validate(null, AppSettingsDefaults.Options<PollingOptions>(configuration)),
             [nameof(HealthOptions)] = new HealthOptionsValidator().Validate(null, AppSettingsDefaults.Options<HealthOptions>(configuration)),
             [nameof(OpenMeteoOptions)] = new OpenMeteoOptionsValidator().Validate(null, AppSettingsDefaults.Options<OpenMeteoOptions>(configuration)),

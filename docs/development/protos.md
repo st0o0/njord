@@ -10,7 +10,6 @@ Proto definitions live in the **njord** repo at `protos/njord/v2/`:
 protos/njord/v2/
 ├── common.proto      # Shared types (forecasts, enrichments, alerts, ...)
 ├── weather.proto     # WeatherService (GetForecast, StreamForecasts, ...)
-├── admin.proto       # AdminService (GetConfig, StreamConfig, ...)
 ├── ops.proto         # OpsService (TriggerPoll, GetStatus, ...)
 └── sensor.proto      # SensorService (Push, StreamPush)
 ```
@@ -44,26 +43,10 @@ Closed value sets are proto enums, each with a `*_UNSPECIFIED = 0` member. Absen
 | `TrendUpdate.stability_label` | `Stability` | `CONVERGING`, `DIVERGING`, `STABLE` |
 | `HorizonDerived.dewpoint_comfort` | `DewPointComfort` | `DRY`, `COMFORTABLE`, `STICKY`, `OPPRESSIVE`, `DANGEROUS` |
 | `VpdInfo.category` | `VpdCategory` | `LOW`, `OPTIMAL`, `HIGH`, `CRITICAL` |
-| `ConsensusConfig.method` | `ConsensusMethod` | `MEAN`, `MEDIAN`, `TRIMMED_MEAN` |
 
-Member names carry the enum name as prefix (`POLL_PHASE_STEADY`). In `SetEnrichment`, an unspecified or absent `method` leaves the method unchanged and an undefined number is answered with a rejected `ConfigResponse`.
+Member names carry the enum name as prefix (`POLL_PHASE_STEADY`). 
 
 Clients must treat unknown enum numbers as `UNSPECIFIED`: protobuf delivers a member added later as its raw number, so adding members is not a breaking change. When these fields moved from `string` to enums, the old field numbers were `reserved` and the enums got new numbers.
-
-## Configuration mutation results
-
-All `AdminService` mutation RPCs (`SetLocations`, `SetSettings`, `SetEnrichment`, `SetBudget`) answer with a `ConfigResponse`:
-
-| Field | Meaning |
-|-------|---------|
-| `applied` | The change was validated and persisted. |
-| `rejection_reason` | The failure messages, joined with `; ` (empty when nothing failed). |
-| `issues` | `SetEnrichment` only: one `ConfigIssue` per failure, with the `EnrichmentSection` it belongs to (`ENRICHMENT_SECTION_UNSPECIFIED` for the request as a whole). |
-| `restart_required` | Settings that were changed but take effect only after a restart, for example `Enrichment.Trends.Enabled`. They no longer appear in `warnings`. |
-| `warnings` | Budget projection warnings only. |
-| `dry_run` | Echoes `SetEnrichmentRequest.dry_run`. |
-
-`SetEnrichment` validates all touched sections first and persists them in one write, so either every section is applied or none. `reset` lists sections whose override is removed, so the base configuration (appsettings, environment variables) applies again; resets are applied before the updates of the same request, and `ENRICHMENT_SECTION_UNSPECIFIED` in `reset` is an issue. With `dry_run = true` the request is validated and answered without persisting: `applied` is `false`, and the request is valid exactly when `issues` is empty. A request with no section and no `reset` is rejected with one issue.
 
 ## Automated sync (optional)
 

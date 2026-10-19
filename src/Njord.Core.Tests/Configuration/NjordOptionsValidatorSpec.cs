@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Njord.Core.Configuration;
 using Njord.Tests.Shared;
 
@@ -17,7 +16,7 @@ public sealed class NjordOptionsValidatorSpec
         ];
     });
 
-    private static readonly NjordOptionsValidator Validator = new(new ConfigurationBuilder().Build());
+    private static readonly NjordOptionsValidator Validator = new();
 
     [Fact]
     public void Default_configuration_passes()
@@ -122,65 +121,5 @@ public sealed class NjordOptionsValidatorSpec
 
         Assert.True(result.Failed);
         Assert.Contains("icon_d2", result.FailureMessage);
-    }
-
-    [Theory]
-    [InlineData("Njord:PollInterval", "00:30:00", "Njord:Polling:PollInterval")]
-    [InlineData("Njord:DiscoveryInterval", "00:10:00", "Njord:Polling:DiscoveryInterval")]
-    [InlineData("Njord:BudgetOverride:RequestsPerMonth", "100000", "Njord:Polling:BudgetOverride")]
-    [InlineData("Njord:OpenMeteoBaseUrl", "http://localhost:8080", "Njord:OpenMeteo:BaseUrl")]
-    [InlineData("Njord:PersistencePath", "data/other.db", "Njord:Storage:PersistencePath")]
-    public void A_removed_root_level_key_fails_naming_the_old_and_the_new_key(string key, string value, string newKey)
-    {
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { [key] = value })
-            .Build();
-        var validator = new NjordOptionsValidator(configuration);
-
-        var result = validator.Validate(null, ValidOptions());
-
-        var oldKey = string.Join(':', key.Split(':').Take(2));
-        Assert.True(result.Failed);
-        var failure = Assert.Single(result.Failures!);
-        Assert.Equal(
-            $"Configuration key '{oldKey}' was removed in 0.5.0; use '{newKey}' "
-            + $"(environment variable '{newKey.Replace(":", "__")}') instead.",
-            failure);
-    }
-
-    [Fact]
-    public void A_removed_key_from_the_environment_is_reported()
-    {
-        var name = $"NJORD_SPEC_{Guid.NewGuid():N}__";
-        Environment.SetEnvironmentVariable($"{name}Njord__PollInterval", "00:30:00");
-        try
-        {
-            var configuration = new ConfigurationBuilder().AddEnvironmentVariables(name).Build();
-
-            var result = new NjordOptionsValidator(configuration).Validate(null, ValidOptions());
-
-            Assert.Contains("'Njord:PollInterval'", Assert.Single(result.Failures!));
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable($"{name}Njord__PollInterval", null);
-        }
-    }
-
-    [Fact]
-    public void The_new_keys_do_not_trigger_the_legacy_check()
-    {
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Njord:Polling:PollInterval"] = "00:30:00",
-                ["Njord:OpenMeteo:BaseUrl"] = "http://localhost:8080",
-                ["Njord:Storage:PersistencePath"] = "data/other.db",
-            })
-            .Build();
-
-        var result = new NjordOptionsValidator(configuration).Validate(null, ValidOptions());
-
-        Assert.True(result.Succeeded, result.FailureMessage);
     }
 }

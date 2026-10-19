@@ -22,13 +22,11 @@ public sealed class SensorGrpcServiceSpec : NjordActorSpec
 
     private SensorGrpcService CreateService(Func<UpdateReading, PushResult> hub, bool registerHub = true)
     {
-        var config = TestConfigView.Create(new NjordOptions
+        var serviceInfo = TestServiceInfo.Create(new NjordOptions
         {
             Locations = [new LocationOptions { Name = "Luzern", Latitude = 47.05, Longitude = 8.31 }],
             Models = ["icon_d2"],
         });
-        ActorRegistry.Register<IConfigManager>(
-            Sys.ActorOf(Props.Create(() => new FakeConfigManager(config, null))), overwrite: true);
         if (registerHub)
         {
             var received = _received;
@@ -36,7 +34,7 @@ public sealed class SensorGrpcServiceSpec : NjordActorSpec
                 Sys.ActorOf(Props.Create(() => new FakeSensorHub(received, hub))), overwrite: true);
         }
 
-        return new SensorGrpcService(ActorRegistry, _time);
+        return new SensorGrpcService(ActorRegistry, _time, serviceInfo);
     }
 
     private static PushResult Accept(UpdateReading _) => new(true, null);

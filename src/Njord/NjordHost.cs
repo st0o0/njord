@@ -12,11 +12,10 @@ namespace Njord;
 
 public static class NjordHost
 {
-    // The composition of the service. `overridePath` and `build` exist for the integration tests; the service
-    // itself runs with the defaults (the data volume override file and the plain WebApplicationBuilder.Build()).
+    // The composition of the service. `build` exists for the integration tests; the service itself runs
+    // with the default, the plain WebApplicationBuilder.Build().
     public static AppRunner Create(
         WebApplicationBuilder builder,
-        string? overridePath = null,
         Func<WebApplicationBuilder, WebApplication>? build = null)
     {
         builder.Services.AddSerilog(config =>
@@ -35,10 +34,6 @@ public static class NjordHost
         {
             options.Limits.MinResponseDataRate = null;
         });
-
-        // A corrupt or unreadable override file never stops startup; see ResilientJsonConfigurationSource.
-        var overrideFile = builder.Configuration.AddResilientJsonFile(overridePath ?? ConfigSetupContainer.OverridePath, reloadOnChange: true);
-        builder.Services.AddSingleton(overrideFile);
 
         return AppBuilder.Create(builder, build ?? (b => b.Build()))
             .WithSetup<CoreSetupContainer>()

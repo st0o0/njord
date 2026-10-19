@@ -29,7 +29,6 @@ public sealed class HealthSetupContainerSpec : IDisposable
                 ["pipeline"] = HealthStatus.Unhealthy,
                 ["budget"] = HealthStatus.Unhealthy,
                 ["journal"] = HealthStatus.Unhealthy,
-                ["data-directory"] = HealthStatus.Degraded,
             }.OrderBy(p => p.Key),
             registrations.OrderBy(p => p.Key));
     }

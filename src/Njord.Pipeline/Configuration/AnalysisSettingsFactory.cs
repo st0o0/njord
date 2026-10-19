@@ -9,8 +9,6 @@ namespace Njord.Pipeline.Configuration;
 
 public static class AnalysisSettingsFactory
 {
-    // The forecast scope (locations, horizons) is restart-required, so callers pass the scope the
-    // running pipeline was started with, while the analysis sections may be the reloaded ones.
     public static AnalysisSettings Create(
         NjordOptions scope,
         ConsensusOptions consensus,

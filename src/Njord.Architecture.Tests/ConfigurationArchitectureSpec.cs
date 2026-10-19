@@ -1,28 +1,12 @@
 using System.Reflection;
 using Akka.Actor;
 using Microsoft.Extensions.Options;
-using Njord.Configuration;
 using Njord.Core.Configuration;
 
 namespace Njord.Architecture.Tests;
 
 public sealed class ConfigurationArchitectureSpec
 {
-    // Change notifications have one subscriber (ConfigManager). The other entries read CurrentValue per call
-    // and never subscribe: the gateway's budget provider (design D5), the admin/ops/health view of the
-    // persisted configuration, and the section writer that clones the current value before an update.
-    private static readonly string[] OptionsMonitorUsers =
-    [
-        "Njord.Configuration.ConfigManager",
-        "Njord.OpenMeteo.OptionsBudgetProvider",
-        "Njord.Core.Configuration.ConfigView",
-        "Njord.Configuration.AnalysisConfigView",
-        "Njord.Budget.Health.BudgetHealthCheck",
-        "Njord.Mqtt.Health.MqttConnectionHealthCheck",
-        "Njord.Pipeline.Health.PipelineHealthCheck",
-        "Njord.Configuration.ConfigWriter",
-    ];
-
     private static IEnumerable<Type> ProductionTypes() =>
         NjordArchitecture.ProductionAssemblies.SelectMany(a => a.GetTypes())
             .Where(t => !t.FullName!.Contains("Microsoft.CodeCoverage", StringComparison.Ordinal));
@@ -49,10 +33,10 @@ public sealed class ConfigurationArchitectureSpec
     }
 
     [Fact]
-    public void Actors_other_than_the_config_manager_do_not_inject_an_options_monitor()
+    public void Actors_do_not_inject_an_options_monitor()
     {
         var offenders = ProductionTypes()
-            .Where(t => typeof(ActorBase).IsAssignableFrom(t) && t.FullName != "Njord.Configuration.ConfigManager")
+            .Where(t => typeof(ActorBase).IsAssignableFrom(t))
             .Where(InjectsOptionsMonitor)
             .Select(t => t.FullName)
             .ToList();
@@ -61,7 +45,7 @@ public sealed class ConfigurationArchitectureSpec
     }
 
     [Fact]
-    public void Only_the_listed_types_inject_an_options_monitor()
+    public void No_production_type_holds_an_options_monitor()
     {
         var users = ProductionTypes()
             .Where(InjectsOptionsMonitor)
@@ -70,18 +54,7 @@ public sealed class ConfigurationArchitectureSpec
             .Order(StringComparer.Ordinal)
             .ToList();
 
-        Assert.Equal(OptionsMonitorUsers.Order(StringComparer.Ordinal), users);
-    }
-
-    [Fact]
-    public void Every_options_type_has_a_reload_classification()
-    {
-        var unclassified = ProductionTypes()
-            .Where(t => t.GetField("SectionName", BindingFlags.Public | BindingFlags.Static) is { IsLiteral: true })
-            .Where(t => !ConfigReloadPolicy.IsClassified(t))
-            .Select(t => t.FullName);
-
-        Assert.Empty(unclassified);
+        Assert.Empty(users);
     }
 
     [Fact]

@@ -1,4 +1,3 @@
-using System.Runtime.ExceptionServices;
 using Njord.Grpc.V2;
 using Njord.Messages.Config;
 using CoverageTier = Njord.Model.CoverageTier;
@@ -7,20 +6,6 @@ namespace Njord.Grpc.Mapping;
 
 internal static class CatalogProtoMappings
 {
-    public static CatalogResult ToResult(this CatalogResponse response)
-    {
-        switch (response)
-        {
-            case CatalogResult result:
-                return result;
-            case CatalogFailed failed:
-                ExceptionDispatchInfo.Capture(failed.Cause).Throw();
-                break;
-        }
-
-        throw new ArgumentOutOfRangeException(nameof(response), response.GetType().Name, "Unknown catalog response");
-    }
-
     public static GetCatalogResponse ToProto(this CatalogResult catalog)
     {
         var response = new GetCatalogResponse();

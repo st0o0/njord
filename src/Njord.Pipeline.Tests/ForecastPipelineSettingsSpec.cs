@@ -28,68 +28,7 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
             AppSettingsDefaults.Options<ConsensusOptions>(), alerts, AppSettingsDefaults.Options<IndexOptions>(), AppSettingsDefaults.Options<TrendOptions>(), AppSettingsDefaults.Options<DerivedOptions>());
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_settings_change_applies_from_the_next_forecast_on()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var fixture = AnalysisFixture.Create();
-        var forecasts = fixture.Forecasts.Where(f => f.Location == AnalysisFixture.Lucerne).ToList();
-        var pipeline = Sys.ActorOf(Props.Create(() => new ForecastPipeline(
-            fixture.Time,
-            new ConsensusBuilder(AnalysisFixture.Parameters, fixture.Time),
-            Options.Create(AppSettingsDefaults.Options<ConsensusOptions>()),
-            FeatureServices.Alerts(fixture.Time),
-            DisabledAnalyzers.Derived(),
-            DisabledAnalyzers.Trend(),
-            DisabledAnalyzers.Index(),
-            SettingsWith(AppSettingsDefaults.Options<AlertOptions>()))), $"pipeline-{Guid.NewGuid():N}");
-
-        var output = await pipeline.Ask<RequestPipelineOutputResponse>(new RequestPipelineOutput(1), TimeSpan.FromSeconds(9), ct);
-        var completed = Assert.IsType<RequestPipelineOutputCompleted>(output);
-        var probe = CreateTestProbe();
-        completed.SourceRef.Source
-            .Where(e => e is PipelineEvent.AlertComputed)
-            .Select(e => (PipelineEvent.AlertComputed)e)
-            .RunWith(Sink.ActorRef<PipelineEvent.AlertComputed>(probe.Ref, "done", ex => ex), Sys.Materializer());
-        var queue = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
-
-        await queue.OfferAsync(forecasts[0], ct);
-        await queue.OfferAsync(forecasts[1], ct);
-        await probe.ExpectMsgAsync<PipelineEvent.AlertComputed>(cancellationToken: ct);
-        var beforeChange = await probe.ExpectMsgAsync<PipelineEvent.AlertComputed>(cancellationToken: ct);
-        Assert.NotEqual(AlertSeverity.None, FrostSeverity(beforeChange));
-
-        pipeline.Tell(new AnalysisSettingsChanged(SettingsWith(AppSettingsDefaults.Options<AlertOptions>(o => o.FrostThresholds = [-50, -60, -70]))));
-
-        await AwaitAssertAsync(async () =>
-        {
-            await queue.OfferAsync(forecasts[2], ct);
-            var next = await probe.ExpectMsgAsync<PipelineEvent.AlertComputed>(cancellationToken: ct);
-            Assert.Equal(AlertSeverity.None, FrostSeverity(next));
-        }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_started_pipeline_analyzes_with_the_current_settings_of_the_config_manager()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        // Every forecast is far below these thresholds; the startup thresholds (0, -5, -15) never reach red.
-        var current = SettingsWith(AppSettingsDefaults.Options<AlertOptions>(o => o.FrostThresholds = [60, 55, 50]));
-        ActorRegistry.Register<IConfigManager>(
-            Sys.ActorOf(Props.Create(() => new FakeConfigManager(current)), $"config-{Guid.NewGuid():N}"), overwrite: true);
-        var (forecasts, queue, alerts) = await StartAsync(ct);
-
-        // No AnalysisSettingsChanged is sent: only the answer to the pipeline's start query can raise the thresholds.
-        var index = 0;
-        await AwaitAssertAsync(async () =>
-        {
-            await queue.OfferAsync(forecasts[index++ % forecasts.Count], ct);
-            var next = await alerts.ExpectMsgAsync<PipelineEvent.AlertComputed>(cancellationToken: ct);
-            Assert.Equal(AlertSeverity.Red, FrostSeverity(next));
-        }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_pipeline_without_a_config_manager_analyzes_with_the_startup_settings()
+    public async Task A_pipeline_analyzes_with_the_settings_it_was_constructed_with()
     {
         var ct = TestContext.Current.CancellationToken;
         var (forecasts, queue, alerts) = await StartAsync(ct);
@@ -102,8 +41,24 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
         Assert.NotEqual(AlertSeverity.None, FrostSeverity(second));
     }
 
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task Constructor_injected_thresholds_decide_the_alert_severity()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        // Every forecast is far below these thresholds; the default thresholds (0, -5, -15) never reach red.
+        var (forecasts, queue, alerts) = await StartAsync(ct,
+            SettingsWith(AppSettingsDefaults.Options<AlertOptions>(o => o.FrostThresholds = [60, 55, 50])));
+
+        await queue.OfferAsync(forecasts[0], ct);
+        await queue.OfferAsync(forecasts[1], ct);
+
+        await alerts.ExpectMsgAsync<PipelineEvent.AlertComputed>(cancellationToken: ct);
+        var second = await alerts.ExpectMsgAsync<PipelineEvent.AlertComputed>(cancellationToken: ct);
+        Assert.Equal(AlertSeverity.Red, FrostSeverity(second));
+    }
+
     private async Task<(List<WeatherForecast> Forecasts, ISourceQueueWithComplete<WeatherForecast> Queue, Akka.TestKit.TestProbe Alerts)>
-        StartAsync(CancellationToken ct)
+        StartAsync(CancellationToken ct, AnalysisSettings? settings = null)
     {
         var fixture = AnalysisFixture.Create();
         var forecasts = fixture.Forecasts.Where(f => f.Location == AnalysisFixture.Lucerne).ToList();
@@ -115,7 +70,7 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
             DisabledAnalyzers.Derived(),
             DisabledAnalyzers.Trend(),
             DisabledAnalyzers.Index(),
-            SettingsWith(AppSettingsDefaults.Options<AlertOptions>()))), $"pipeline-{Guid.NewGuid():N}");
+            settings ?? SettingsWith(AppSettingsDefaults.Options<AlertOptions>()))), $"pipeline-{Guid.NewGuid():N}");
 
         var output = await pipeline.Ask<RequestPipelineOutputResponse>(new RequestPipelineOutput(1), TimeSpan.FromSeconds(9), ct);
         var completed = Assert.IsType<RequestPipelineOutputCompleted>(output);
@@ -126,14 +81,6 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
             .RunWith(Sink.ActorRef<PipelineEvent.AlertComputed>(probe.Ref, "done", ex => ex), Sys.Materializer());
         var queue = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
         return (forecasts, queue, probe);
-    }
-
-    private sealed class FakeConfigManager : ReceiveActor
-    {
-        public FakeConfigManager(AnalysisSettings current)
-        {
-            Receive<QueryAnalysisSettings>(_ => Sender.Tell(new AnalysisSettingsResult(current)));
-        }
     }
 
     private static AlertSeverity FrostSeverity(PipelineEvent.AlertComputed computed) =>

@@ -54,7 +54,6 @@ public sealed class PollManager : ReceiveActor, IWithTimers
         Receive<QueryPollStates>(_ => Sender.Tell(_state.GetPollStates(_config)));
         Receive<QueryPollHealth>(_ => Sender.Tell(_state.GetPollHealth()));
         Receive<TriggerImmediatePoll>(OnTriggerImmediatePoll);
-        Receive<PollingChanged>(OnPollingChanged);
     }
 
     protected override void PreStart() => Self.Tell(new ResolveRegion());
@@ -180,25 +179,5 @@ public sealed class PollManager : ReceiveActor, IWithTimers
 
         _log.Debug("TriggerImmediatePoll: triggered {Count} polls", targets.Count);
         Sender.Tell(new TriggerImmediatePollCompleted(targets.Count, [.. targets.Select(t => t.ToString())]));
-    }
-
-    private void OnPollingChanged(PollingChanged msg)
-    {
-        var previous = _state.DiscoveryInterval;
-        if (previous == msg.DiscoveryInterval)
-        {
-            return;
-        }
-
-        _state = _state.ApplyPollingChanged(msg.DiscoveryInterval);
-        if (_state.Region is not null)
-        {
-            foreach (var target in _config.Targets)
-            {
-                _state.Region.Tell(new StartPolling(target, _state.DiscoveryInterval));
-            }
-        }
-
-        _log.Info("Discovery interval changed from {Previous} to {Current}", previous, msg.DiscoveryInterval);
     }
 }

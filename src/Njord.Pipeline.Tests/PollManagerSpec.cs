@@ -23,8 +23,6 @@ public sealed class PollManagerSpec : NjordActorSpec
     private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
 
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
-    private readonly TestOptionsMonitor<PollingOptions> _polling =
-        new(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = Discovery));
     private TestProbe _region = null!;
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
@@ -39,7 +37,7 @@ public sealed class PollManagerSpec : NjordActorSpec
             ],
             Models = ["icon_d2", "ICON_D2", "gfs_seamless"],
         }));
-        services.AddSingleton(TestConfigView.Create(pollingMonitor: _polling));
+        services.AddSingleton(TestConfigView.Create(polling: AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = Discovery)));
     }
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider) =>
@@ -219,48 +217,6 @@ public sealed class PollManagerSpec : NjordActorSpec
         Assert.Multiple(
             () => Assert.Equal(0, result.Count),
             () => Assert.Empty(result.Targets));
-        await _region.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_changed_discovery_interval_restarts_every_target_with_it()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var manager = await StartedManagerAsync(ct);
-
-        manager.Tell(new PollingChanged(TimeSpan.FromMinutes(60), TimeSpan.FromMinutes(5)));
-
-        foreach (var target in Targets)
-        {
-            var start = await _region.ExpectMsgAsync<StartPolling>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-            Assert.Equal(new StartPolling(target, TimeSpan.FromMinutes(5)), start);
-        }
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_manager_started_after_a_hot_change_starts_every_target_with_the_current_discovery_interval()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var changed = TimeSpan.FromMinutes(5);
-        _polling.Update(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = changed));
-
-        CreateManager();
-
-        foreach (var target in Targets)
-        {
-            var start = await _region.ExpectMsgAsync<StartPolling>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-            Assert.Equal(new StartPolling(target, changed), start);
-        }
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task An_unchanged_discovery_interval_sends_nothing()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var manager = await StartedManagerAsync(ct);
-
-        manager.Tell(new PollingChanged(TimeSpan.FromMinutes(30), Discovery));
-
         await _region.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
     }
 

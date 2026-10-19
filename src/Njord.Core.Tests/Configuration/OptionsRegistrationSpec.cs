@@ -125,17 +125,4 @@ public sealed class OptionsRegistrationSpec
         var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IValidateOptions<AlertOptions>));
         Assert.Equal(typeof(AlertOptionsValidator), descriptor.ImplementationType);
     }
-
-    [Fact]
-    public void Changes_to_the_configuration_reach_a_monitor()
-    {
-        var configuration = Configuration(("Njord:Sample:Limit", "25"));
-        using var provider = Build(configuration);
-        var monitor = provider.GetRequiredService<IOptionsMonitor<SampleOptions>>();
-
-        configuration["Njord:Sample:Limit"] = "30";
-        configuration.Reload();
-
-        Assert.Equal(30, monitor.CurrentValue.Limit);
-    }
 }

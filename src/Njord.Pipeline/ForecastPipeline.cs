@@ -42,7 +42,7 @@ public sealed class ForecastPipeline : ReceiveActor
     private readonly DerivedAnalyzer _derived;
     private readonly TrendAnalyzer _trends;
     private readonly IndexAnalyzer _indices;
-    private readonly AnalysisSettings _startupSettings;
+    private readonly AnalysisSettings _settings;
 
     private IMaterializer? _mat;
     private long _graphId;
@@ -51,9 +51,7 @@ public sealed class ForecastPipeline : ReceiveActor
     private Sink<PipelineEvent, NotUsed>? _pipelineOutputSink;
     private Source<WeatherForecast, NotUsed>? _forecastSource;
     private IActorRef? _sensorRef;
-    private IActorRef? _settingsRef;
     private Source<LocationSensorReadings, NotUsed>? _sensorSource;
-    private Source<AnalysisSettings, NotUsed>? _settingsSource;
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
@@ -65,7 +63,7 @@ public sealed class ForecastPipeline : ReceiveActor
         DerivedAnalyzer derived,
         TrendAnalyzer trends,
         IndexAnalyzer indices,
-        AnalysisSettings startupSettings)
+        AnalysisSettings settings)
     {
         _timeProvider = timeProvider;
         _consensusBuilder = consensusBuilder;
@@ -74,12 +72,10 @@ public sealed class ForecastPipeline : ReceiveActor
         _derived = derived;
         _trends = trends;
         _indices = indices;
-        _startupSettings = startupSettings;
+        _settings = settings;
 
         Receive<RequestForecastSink>(OnRequestForecastSink);
         Receive<RequestPipelineOutput>(OnRequestPipelineOutput);
-        Receive<AnalysisSettingsChanged>(msg => _settingsRef!.Tell(msg.Settings));
-        Receive<AnalysisSettingsResult>(msg => _settingsRef!.Tell(msg.Settings));
         Receive<LocationSensorReadings>(msg => _sensorRef!.Tell(msg));
         Receive<AnalysisGraphEnded>(OnAnalysisGraphEnded);
     }
@@ -93,19 +89,10 @@ public sealed class ForecastPipeline : ReceiveActor
         RequestCurrentInputs();
     }
 
-    // A restarted pipeline would otherwise analyze with the startup settings and an empty sensor map until the next
-    // settings change or sensor push. Neither answer is awaited: until it arrives, the seeds of the side channels apply.
+    // A restarted pipeline would otherwise analyze with an empty sensor map until the next sensor push. The answer
+    // is not awaited: until it arrives, the seed of the sensor side channel applies.
     private void RequestCurrentInputs()
     {
-        if (Context.TryGetActor<IConfigManager>(out var configManager))
-        {
-            configManager.Tell(new QueryAnalysisSettings());
-        }
-        else
-        {
-            _log.Debug("No config manager registered - analyzing with the startup settings");
-        }
-
         if (Context.TryGetActor<ISensorHub>(out var sensorHub))
         {
             sensorHub.Tell(new RequestSensorReadings());
@@ -171,12 +158,6 @@ public sealed class ForecastPipeline : ReceiveActor
         var (pipelineOutputSource, pipelineOutputSink) = BroadcastHub.Sink<PipelineEvent>(bufferSize: 2)
             .PreMaterialize(_mat);
 
-        var (settingsRef, settingsSourceRaw) = Source.ActorRef<AnalysisSettings>(10, OverflowStrategy.DropHead)
-            .PreMaterialize(_mat);
-        var settingsSource = Source.Single(_startupSettings)
-            .Concat(settingsSourceRaw)
-            .RepeatPrevious();
-
         var (sensorRef, sensorSourceRaw) = Source.ActorRef<LocationSensorReadings>(10, OverflowStrategy.DropHead)
             .PreMaterialize(_mat);
         var sensorSource = Source.Single(LocationSensorReadings.Empty)
@@ -187,10 +168,8 @@ public sealed class ForecastPipeline : ReceiveActor
         _pipelineOutputSource = pipelineOutputSource;
         _pipelineOutputSink = pipelineOutputSink;
         _forecastSource = forecastSource;
-        _settingsRef = settingsRef;
         _sensorRef = sensorRef;
         _sensorSource = sensorSource;
-        _settingsSource = settingsSource;
     }
 
     private void MaterializeAnalysisGraph()
@@ -199,7 +178,7 @@ public sealed class ForecastPipeline : ReceiveActor
         var forecastSource = _forecastSource!;
         var pipelineOutputSink = _pipelineOutputSink!;
         var sensorSource = _sensorSource!;
-        var settingsSource = _settingsSource!;
+        var settings = _settings;
 
         var consensusBuilder = _consensusBuilder;
         var consensusEnabled = _consensusEnabled;
@@ -213,14 +192,13 @@ public sealed class ForecastPipeline : ReceiveActor
         forecastSource
             .Via(Flow.FromGraph(GraphDsl.Create(builder =>
             {
-                var zip = builder.Add(ZipWith.Apply<WeatherForecast, LocationSensorReadings, AnalysisSettings,
-                    (WeatherForecast, LocationSensorReadings, AnalysisSettings)>(
-                    (forecast, sensors, settings) => (forecast, sensors, settings)));
+                var zip = builder.Add(ZipWith.Apply<WeatherForecast, LocationSensorReadings,
+                    (WeatherForecast, LocationSensorReadings)>(
+                    (forecast, sensors) => (forecast, sensors)));
                 builder.From(builder.Add(sensorSource)).To(zip.In1);
-                builder.From(builder.Add(settingsSource)).To(zip.In2);
-                return new FlowShape<WeatherForecast, (WeatherForecast, LocationSensorReadings, AnalysisSettings)>(zip.In0, zip.Out);
+                return new FlowShape<WeatherForecast, (WeatherForecast, LocationSensorReadings)>(zip.In0, zip.Out);
             })))
-            .StatefulSelectMany<(WeatherForecast forecast, LocationSensorReadings sensors, AnalysisSettings settings), PipelineEvent, NotUsed>(() =>
+            .StatefulSelectMany<(WeatherForecast forecast, LocationSensorReadings sensors), PipelineEvent, NotUsed>(() =>
             {
                 var forecasts = ModelForecasts.Empty;
                 LocationConsensus? previous = null;
@@ -231,7 +209,6 @@ public sealed class ForecastPipeline : ReceiveActor
                     var now = timeProvider.GetUtcNow();
                     var location = new LocationId(input.forecast.Location);
                     forecasts = forecasts.Update(input.forecast);
-                    var settings = input.settings;
                     var consensus = consensusBuilder.Create(forecasts, input.forecast.Location, settings.Consensus);
 
                     var events = new List<PipelineEvent>(6)

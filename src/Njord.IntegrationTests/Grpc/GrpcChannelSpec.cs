@@ -91,20 +91,6 @@ public sealed class GrpcChannelSpec : IAsyncLifetime
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_settings_update_through_the_admin_service_is_reported_by_the_next_config_read()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var admin = new AdminService.AdminServiceClient(Host.Channel);
-
-        var response = await admin.SetSettingsAsync(new SetSettingsRequest { PollIntervalSeconds = 1800 }, cancellationToken: ct);
-        var config = await admin.GetConfigAsync(new GetConfigRequest(), cancellationToken: ct);
-
-        Assert.Multiple(
-            () => Assert.True(response.Applied, response.RejectionReason),
-            () => Assert.Equal(1800, config.PollIntervalSeconds));
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_valid_sensor_reading_is_accepted_and_an_unknown_location_is_rejected()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -119,22 +105,6 @@ public sealed class GrpcChannelSpec : IAsyncLifetime
             () => Assert.True(accepted.Accepted, accepted.RejectionReason),
             () => Assert.False(rejected.Accepted),
             () => Assert.Equal("Unknown location: atlantis", rejected.RejectionReason));
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_config_manager_that_never_answers_makes_the_sensor_service_fail_with_deadline_exceeded()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var registry = Host.App.Services.GetRequiredService<ActorRegistry>();
-        var system = Host.App.Services.GetRequiredService<ActorSystem>();
-        var silent = system.ActorOf(Props.Create(() => new SilentActor()), "silent-config-manager");
-        registry.Register<IConfigManager>(silent, overwrite: true);
-        var sensors = new SensorService.SensorServiceClient(Host.Channel);
-
-        var ex = await Assert.ThrowsAsync<RpcException>(async () => await sensors.PushAsync(
-            new SensorReading { Kind = SensorKind.IndoorTemperature, Location = "luzern", Value = 21.5 }, cancellationToken: ct));
-
-        Assert.Equal(StatusCode.DeadlineExceeded, ex.StatusCode);
     }
 
     private sealed class SilentActor : ReceiveActor

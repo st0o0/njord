@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Njord.Core.Configuration.Polling;
 using Njord.Tests.Shared;
 
@@ -8,7 +9,7 @@ public sealed class OptionsBudgetProviderSpec
     [Fact]
     public void The_rate_follows_the_free_tier_without_an_override()
     {
-        var provider = new OptionsBudgetProvider(new TestOptionsMonitor<PollingOptions>(AppSettingsDefaults.Options<PollingOptions>()));
+        var provider = new OptionsBudgetProvider(Options.Create(AppSettingsDefaults.Options<PollingOptions>()));
 
         var rate = provider.GetCurrentRate();
 
@@ -17,13 +18,10 @@ public sealed class OptionsBudgetProviderSpec
     }
 
     [Fact]
-    public void A_changed_budget_is_read_on_the_next_call()
+    public void A_budget_override_sets_the_rate()
     {
-        var monitor = new TestOptionsMonitor<PollingOptions>(AppSettingsDefaults.Options<PollingOptions>());
-        var provider = new OptionsBudgetProvider(monitor);
-        _ = provider.GetCurrentRate();
-
-        monitor.Update(AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(300_000, 100)));
+        var provider = new OptionsBudgetProvider(Options.Create(
+            AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(300_000, 100))));
 
         Assert.Equal(80, provider.GetCurrentRate().CostPerMinute);
     }

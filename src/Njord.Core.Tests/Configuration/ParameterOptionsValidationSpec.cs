@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Njord.Core.Configuration;
 using Njord.Tests.Shared;
 
@@ -6,7 +5,7 @@ namespace Njord.Core.Tests.Configuration;
 
 public sealed class ParameterOptionsValidationSpec
 {
-    private static readonly NjordOptionsValidator Validator = new(new ConfigurationBuilder().Build());
+    private static readonly NjordOptionsValidator Validator = new();
 
     private static NjordOptions ValidOptions() => AppSettingsDefaults.Options<NjordOptions>(o =>
     {

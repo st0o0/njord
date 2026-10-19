@@ -37,25 +37,13 @@ Each concern has its own section. `Njord` itself holds the forecast scope (`Loca
 | `OpenMeteo:BaseUrl` | `https://api.open-meteo.com/` | Open-Meteo endpoint (for a self-hosted instance or a test double) |
 | `Storage:PersistencePath` | `data/njord.db` | Path to the SQLite database file |
 
-## Upgrading to 0.5.0: moved keys
-
-Version 0.5.0 moves five root-level keys into their own sections. njord refuses to start while an old key is present in `appsettings*.json` or the environment, and the error names the new key. The override file (`data/appsettings.Override.json`) written by earlier versions is migrated automatically when it is loaded, and rewritten with the new keys on the next configuration change.
-
-| Before 0.5.0 | From 0.5.0 | Environment variable |
-|--------------|------------|----------------------|
-| `Njord:PollInterval` | `Njord:Polling:PollInterval` | `Njord__Polling__PollInterval` |
-| `Njord:DiscoveryInterval` | `Njord:Polling:DiscoveryInterval` | `Njord__Polling__DiscoveryInterval` |
-| `Njord:BudgetOverride` | `Njord:Polling:BudgetOverride` | `Njord__Polling__BudgetOverride__RequestsPerMonth` |
-| `Njord:OpenMeteoBaseUrl` | `Njord:OpenMeteo:BaseUrl` | `Njord__OpenMeteo__BaseUrl` |
-| `Njord:PersistencePath` | `Njord:Storage:PersistencePath` | `Njord__Storage__PersistencePath` |
-
 ## Defaults
 
 The `appsettings.json` shipped in the image (`src/Njord/appsettings.json`) is the single source of the default values: every scalar, flag, enum and duration setting has its default in its `Njord` section. The defaults in this documentation repeat that file; if they ever differ, the file wins. [`appsettings.Example.json`](https://github.com/st0o0/njord/blob/main/src/Njord/appsettings.Example.json) only holds deployment-specific keys (locations, models, MQTT broker) and does not repeat defaults.
 
 List-valued defaults (`Horizons`, `Parameters.Groups`, the alert threshold arrays) are built into njord instead of the file. A list you configure replaces the built-in list completely; it is never merged by position.
 
-Resetting a setting to its default means removing your override key (from your configuration file, environment, or `data/appsettings.Override.json`); the value then comes from the shipped `appsettings.json` again, or from the built-in list for list settings. A reset through the Home Assistant integration does exactly that.
+Resetting a setting to its default means removing your key (from your configuration file or environment); the value then comes from the shipped `appsettings.json` again, or from the built-in list for list settings.
 
 ## Environment variable overrides
 
@@ -77,17 +65,9 @@ Array items use zero-based indices (`__0__`, `__1__`, etc.).
 Use environment variables for secrets like `Njord__Mqtt__Password` instead of putting them in the config file.
 :::
 
-## Runtime changes (override file)
+## Changing configuration
 
-Settings changed at runtime (for example from the Home Assistant integration through the gRPC AdminService) are stored in `data/appsettings.Override.json`. njord creates the file on the first change, writes it atomically, and loads it last, so its values win over `appsettings.json` and environment variables. Mount `data/` as a volume to keep the changes across container restarts.
-
-If the file cannot be read or parsed (truncated, empty, not a JSON object):
-
-- njord still starts, using `appsettings*.json` and environment variables, and logs an error that names the file and the problem. The file is left as it is, so you can repair it in place; a repaired file is picked up automatically.
-- If the file becomes unreadable while njord runs, the last good values stay in effect and an error is logged.
-- The next configuration change moves the broken file aside to `appsettings.Override.json.corrupt-<UTC timestamp>` and writes a new file with the last good values plus the change. njord never deletes the broken file; remove the `.corrupt-*` copy once you no longer need it.
-
-Comments and trailing commas are accepted when you edit the file by hand, but njord does not keep comments when it rewrites the file. A file that is valid JSON but contains invalid values still fails [startup validation](#startup-validation).
+Configuration is read once at startup. To change a setting, edit your configuration file or environment variables and restart the container; a restart takes seconds.
 
 ## Configuration sections
 

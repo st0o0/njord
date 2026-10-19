@@ -1,5 +1,4 @@
 using Akka.Streams;
-using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
 using WeatherForecast = Njord.Forecast.Forecast;
 
@@ -28,11 +27,3 @@ public sealed record RequestGrpcStreamCompleted(long RequestId, ISourceRef<Pipel
     : RequestGrpcStreamResponse(RequestId);
 public sealed record RequestGrpcStreamFailed(long RequestId, Exception Cause)
     : RequestGrpcStreamResponse(RequestId);
-
-public sealed record RequestConfigStream(long RequestId);
-
-public abstract record RequestConfigStreamResponse(long RequestId);
-public sealed record RequestConfigStreamCompleted(long RequestId, ISourceRef<EffectiveConfig> SourceRef)
-    : RequestConfigStreamResponse(RequestId);
-public sealed record RequestConfigStreamFailed(long RequestId, Exception Cause)
-    : RequestConfigStreamResponse(RequestId);

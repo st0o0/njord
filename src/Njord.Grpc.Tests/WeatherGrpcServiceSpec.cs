@@ -43,15 +43,14 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             Models = ["icon_d2", "ecmwf_ifs025"],
         };
 
-        var config = TestConfigView.Create(options);
-        ActorRegistry.Register<IConfigManager>(
-            Sys.ActorOf(Props.Create(() => new FakeConfigManager(config))), overwrite: true);
+        var serviceInfo = TestServiceInfo.Create(options);
         ActorRegistry.Register<IGrpcConsumer>(
             consumerActor ?? Sys.ActorOf(Props.Create(() => new EmptyConsumerActor())), overwrite: true);
         return new WeatherGrpcService(
             ActorRegistry,
             Sys,
-            timeProvider ?? _time);
+            timeProvider ?? _time,
+            serviceInfo);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -149,13 +148,12 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetForecast_fails_with_unavailable_before_the_read_model_is_resolvable()
     {
-        var config = TestConfigView.Create(new NjordOptions
+        var serviceInfo = TestServiceInfo.Create(new NjordOptions
         {
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
             Models = ["icon_d2"],
         });
-        ActorRegistry.Register<IConfigManager>(Sys.ActorOf(Props.Create(() => new FakeConfigManager(config))));
-        var service = new WeatherGrpcService(ActorRegistry, Sys, _time);
+        var service = new WeatherGrpcService(ActorRegistry, Sys, _time, serviceInfo);
 
         var ex = await Assert.ThrowsAsync<RpcException>(() =>
             service.GetForecast(

@@ -117,22 +117,6 @@ public sealed class OptionsBindingSpec : IDisposable
             () => Assert.Equal("data/other.db", provider.GetRequiredService<IOptions<StorageOptions>>().Value.PersistencePath));
     }
 
-    [Theory]
-    [InlineData("Njord:PollInterval", "00:30:00")]
-    [InlineData("Njord:DiscoveryInterval", "00:10:00")]
-    [InlineData("Njord:BudgetOverride:RequestsPerMonth", "100000")]
-    [InlineData("Njord:OpenMeteoBaseUrl", "http://localhost:8080")]
-    [InlineData("Njord:PersistencePath", "data/other.db")]
-    public void A_removed_root_level_key_fails_startup_validation(string key, string value)
-    {
-        using var provider = BuildHost(new Dictionary<string, string?> { [key] = value });
-
-        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IStartupValidator>().Validate());
-
-        var oldKey = string.Join(':', key.Split(':').Take(2));
-        Assert.Contains($"'{oldKey}' was removed in 0.5.0", ex.Message);
-    }
-
     [Fact]
     public void Configured_threshold_arrays_replace_the_defaults()
     {

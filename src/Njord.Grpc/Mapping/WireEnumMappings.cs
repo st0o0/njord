@@ -2,11 +2,9 @@ using Njord.Messages.Derived;
 using Njord.Messages.Trends;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainAlertType = Njord.Messages.Alerts.AlertType;
-using DomainConsensusMethod = Njord.Consensus.Settings.ConsensusMethod;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
 using ProtoAlertType = Njord.Grpc.V2.AlertType;
-using ProtoConsensusMethod = Njord.Grpc.V2.ConsensusMethod;
 using ProtoDewPointComfort = Njord.Grpc.V2.DewPointComfort;
 using ProtoPollPhase = Njord.Grpc.V2.PollPhase;
 using ProtoStability = Njord.Grpc.V2.Stability;
@@ -59,14 +57,6 @@ internal static class WireEnumMappings
         _ => throw new ArgumentOutOfRangeException(nameof(category), category, null),
     };
 
-    public static ProtoConsensusMethod ToProto(this DomainConsensusMethod method) => method switch
-    {
-        DomainConsensusMethod.Mean => ProtoConsensusMethod.Mean,
-        DomainConsensusMethod.Median => ProtoConsensusMethod.Median,
-        DomainConsensusMethod.TrimmedMean => ProtoConsensusMethod.TrimmedMean,
-        _ => throw new ArgumentOutOfRangeException(nameof(method), method, null),
-    };
-
     public static ProtoAlertType ToProto(this DomainAlertType type) => type switch
     {
         DomainAlertType.Frost => ProtoAlertType.Frost,
@@ -93,14 +83,5 @@ internal static class WireEnumMappings
         DomainAlertSeverity.Orange => ProtoAlertSeverity.Orange,
         DomainAlertSeverity.Red => ProtoAlertSeverity.Red,
         _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null),
-    };
-
-    public static DomainConsensusMethod? ToDomain(this ProtoConsensusMethod method) => method switch
-    {
-        ProtoConsensusMethod.Unspecified => null,
-        ProtoConsensusMethod.Mean => DomainConsensusMethod.Mean,
-        ProtoConsensusMethod.Median => DomainConsensusMethod.Median,
-        ProtoConsensusMethod.TrimmedMean => DomainConsensusMethod.TrimmedMean,
-        _ => throw new ArgumentOutOfRangeException(nameof(method), method, null),
     };
 }
