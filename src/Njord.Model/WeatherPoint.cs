@@ -21,4 +21,9 @@ public sealed record WeatherPoint(
     double? Snowfall = null,
     double? SoilTemperature = null,
     double? FreezingLevelHeight = null,
-    bool? IsDay = null) : IHasValidTime;
+    bool? IsDay = null,
+    double? ShortwaveRadiation = null,
+    double? DirectRadiation = null,
+    double? DiffuseRadiation = null,
+    double? DirectNormalIrradiance = null,
+    double? SunshineDuration = null) : IHasValidTime;

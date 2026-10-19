@@ -95,6 +95,29 @@ public sealed class DomainPointSpec
     }
 
     [Fact]
+    public void Weather_point_carries_optional_solar_fields()
+    {
+        var plain = new WeatherPoint(At, 20, 19, 3, 0.5, 40, 60, 1013, 3, 55, 10, 4);
+        var solar = plain with
+        {
+            ShortwaveRadiation = 500,
+            DirectRadiation = 350,
+            DiffuseRadiation = 150,
+            DirectNormalIrradiance = 700,
+            SunshineDuration = 3000
+        };
+
+        Assert.Multiple(
+            () => Assert.Null(plain.ShortwaveRadiation),
+            () => Assert.Null(plain.SunshineDuration),
+            () => Assert.Equal(500, solar.ShortwaveRadiation),
+            () => Assert.Equal(350, solar.DirectRadiation),
+            () => Assert.Equal(150, solar.DiffuseRadiation),
+            () => Assert.Equal(700, solar.DirectNormalIrradiance),
+            () => Assert.Equal(3000, solar.SunshineDuration));
+    }
+
+    [Fact]
     public void All_point_types_implement_has_valid_time()
     {
         IHasValidTime[] points =

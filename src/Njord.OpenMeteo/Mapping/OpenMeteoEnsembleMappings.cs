@@ -46,7 +46,12 @@ internal static class OpenMeteoEnsembleMappings
                 Snowfall: GetOptionalDouble(series, "snowfall", i),
                 SoilTemperature: GetOptionalDouble(series, "soil_temperature_0cm", i),
                 FreezingLevelHeight: GetOptionalDouble(series, "freezing_level_height", i),
-                IsDay: GetOptionalDouble(series, "is_day", i) is { } isDay ? isDay > 0.5 : null);
+                IsDay: GetOptionalDouble(series, "is_day", i) is { } isDay ? isDay > 0.5 : null,
+                ShortwaveRadiation: GetOptionalDouble(series, "shortwave_radiation", i),
+                DirectRadiation: GetOptionalDouble(series, "direct_radiation", i),
+                DiffuseRadiation: GetOptionalDouble(series, "diffuse_radiation", i),
+                DirectNormalIrradiance: GetOptionalDouble(series, "direct_normal_irradiance", i),
+                SunshineDuration: GetOptionalDouble(series, "sunshine_duration", i));
 
             builder.Add(point);
         }

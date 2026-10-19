@@ -235,6 +235,55 @@ public sealed class OpenMeteoClientSpec
         Assert.StartsWith(customUrl, request.RequestUri.ToString());
     }
 
+    [Fact(Timeout = 5000)]
+    public async Task Solar_parameters_are_requested_and_mapped_into_the_weather_points()
+    {
+        var parameters = ParameterSelection.Resolve(["Weather", "Solar"], [], []);
+        var handler = new RecordingHandler(_ => Json(HttpStatusCode.OK, """
+            {"hourly":{"time":[1783728000,1783731600],"temperature_2m":[15.0,16.0],
+            "shortwave_radiation":[0,420.5],"direct_radiation":[0,300],"diffuse_radiation":[0,120.5],
+            "direct_normal_irradiance":[0,610],"sunshine_duration":[0,3600]}}
+            """));
+        var http = new HttpClient(handler) { BaseAddress = new Uri("https://ensemble-api.open-meteo.com/") };
+        var client = new OpenMeteoClient(http, parameters);
+
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
+
+        var success = Assert.IsType<EnsembleFetchResult.Success>(outcome);
+        var request = Assert.Single(handler.Requests);
+        Assert.NotNull(request.RequestUri);
+        var uri = request.RequestUri.ToString();
+        Assert.Equal(2, success.Forecast.Points.Length);
+        var noon = success.Forecast.Points[1];
+        Assert.Multiple(
+            () => Assert.Contains("shortwave_radiation", uri),
+            () => Assert.Contains("direct_radiation", uri),
+            () => Assert.Contains("diffuse_radiation", uri),
+            () => Assert.Contains("direct_normal_irradiance", uri),
+            () => Assert.Contains("sunshine_duration", uri),
+            () => Assert.Equal(420.5, noon.ShortwaveRadiation),
+            () => Assert.Equal(300, noon.DirectRadiation),
+            () => Assert.Equal(120.5, noon.DiffuseRadiation),
+            () => Assert.Equal(610, noon.DirectNormalIrradiance),
+            () => Assert.Equal(3600, noon.SunshineDuration));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Solar_fields_stay_null_when_the_response_carries_no_solar_columns()
+    {
+        var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, Fixture("openmeteo-icon_eu-96h.json")));
+
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
+
+        var first = Assert.IsType<EnsembleFetchResult.Success>(outcome).Forecast.Points[0];
+        Assert.Multiple(
+            () => Assert.Null(first.ShortwaveRadiation),
+            () => Assert.Null(first.DirectRadiation),
+            () => Assert.Null(first.DiffuseRadiation),
+            () => Assert.Null(first.DirectNormalIrradiance),
+            () => Assert.Null(first.SunshineDuration));
+    }
+
     private sealed class RecordingHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
     {
         public List<HttpRequestMessage> Requests { get; } = [];
