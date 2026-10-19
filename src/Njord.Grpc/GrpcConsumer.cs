@@ -6,11 +6,11 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
+using Njord.Grpc.Mapping;
 using Njord.Messages.Alerts;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
-using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Grpc;
 
@@ -24,15 +24,11 @@ public sealed class GrpcConsumer : ReceiveActor
     private IActorRef _hubInput = ActorRefs.Nobody;
     private Source<PipelineEvent, NotUsed> _clientHubSource = Source.Empty<PipelineEvent>();
 
-    private ImmutableDictionary<LocationId, LatestResults> _state = ImmutableDictionary<LocationId, LatestResults>.Empty;
+    private ImmutableDictionary<(LocationId Location, DomainKind Domain), PipelineEvent> _domainData =
+        ImmutableDictionary<(LocationId, DomainKind), PipelineEvent>.Empty;
 
-    private sealed record LatestResults
-    {
-        public IReadOnlyDictionary<WeatherModel, WeatherForecast> Forecasts { get; init; } =
-            new Dictionary<WeatherModel, WeatherForecast>();
-
-        public LatestAnalysisResult? Analysis { get; init; }
-    }
+    private ImmutableDictionary<LocationId, PipelineEvent.AlertComputed> _alerts =
+        ImmutableDictionary<LocationId, PipelineEvent.AlertComputed>.Empty;
 
     private sealed record PipelineResolved(IActorRef Pipeline);
     private sealed record PipelineResolveFailed(Exception Cause);
@@ -40,7 +36,7 @@ public sealed class GrpcConsumer : ReceiveActor
 
     public GrpcConsumer()
     {
-        Receive<QueryForecast>(HandleQueryForecast);
+        Receive<QueryDomainData>(HandleQueryDomainData);
         Receive<QueryLatestAnalysis>(HandleQueryLatestAnalysis);
         Receive<RequestGrpcStream>(HandleStreamRequest);
         Receive<PipelineEvent>(OnPipelineEvent);
@@ -89,27 +85,17 @@ public sealed class GrpcConsumer : ReceiveActor
         _hubInput.Tell(evt);
     }
 
-    private void HandleQueryForecast(QueryForecast msg)
+    private void HandleQueryDomainData(QueryDomainData msg)
     {
-        if (_state.TryGetValue(msg.Location, out var latest))
-        {
-            foreach (var (model, forecast) in latest.Forecasts)
-            {
-                if (string.Equals(model.Id, msg.ModelId, StringComparison.OrdinalIgnoreCase))
-                {
-                    Sender.Tell(new ForecastResult(forecast));
-                    return;
-                }
-            }
-        }
-
-        Sender.Tell(new ForecastNotAvailable($"{msg.Location.Name}|{msg.ModelId}"));
+        Sender.Tell(_domainData.TryGetValue((msg.Location, msg.Domain), out var latest)
+            ? new DomainDataResult(latest)
+            : new DomainDataNotAvailable(msg.Location, msg.Domain));
     }
 
     private void HandleQueryLatestAnalysis(QueryLatestAnalysis msg)
     {
-        Sender.Tell(_state.TryGetValue(msg.Location, out var latest) && latest.Analysis is { } analysis
-            ? analysis
+        Sender.Tell(_alerts.TryGetValue(msg.Location, out var alerts)
+            ? new LatestAnalysisResult(msg.Location, alerts)
             : new LatestAnalysisNotAvailable(msg.Location));
     }
 
@@ -129,21 +115,20 @@ public sealed class GrpcConsumer : ReceiveActor
 
     private void UpdateState(PipelineEvent evt)
     {
+        if (evt.ToDomainKind() is { } domain && evt.ToDomainLocation() is { } location)
+        {
+            _domainData = _domainData.SetItem((location, domain), evt);
+            return;
+        }
+
         switch (evt)
         {
-            case PipelineEvent.ForecastReceived forecast:
-                var forecastState = _state.GetValueOrDefault(forecast.Location, new LatestResults());
-                var forecasts = new Dictionary<WeatherModel, WeatherForecast>(forecastState.Forecasts)
-                {
-                    [forecast.Model] = forecast.Forecast
-                };
-                _state = _state.SetItem(forecast.Location, forecastState with { Forecasts = forecasts });
+            case PipelineEvent.AlertRaised raised:
+                var raisedLocation = new LocationId(raised.Location.Name);
+                _alerts = _alerts.SetItem(raisedLocation, MergeAlert(_alerts.GetValueOrDefault(raisedLocation), raised));
                 break;
-            case IEnrichmentEvent enrichment:
-                var location = enrichment.Location;
-                var analysisState = _state.GetValueOrDefault(location, new LatestResults());
-                var analysis = analysisState.Analysis ?? new LatestAnalysisResult(location, null, null, null, null, null);
-                _state = _state.SetItem(location, analysisState with { Analysis = WithLatest(analysis, evt) });
+            case PipelineEvent.AlertComputed computed:
+                _alerts = _alerts.SetItem(computed.Result.Location, computed);
                 break;
         }
     }
@@ -158,15 +143,4 @@ public sealed class GrpcConsumer : ReceiveActor
         return new PipelineEvent.AlertComputed(
             new AlertResult(new LocationId(raised.Location.Name), alerts), raised.Timestamp);
     }
-
-    private static LatestAnalysisResult WithLatest(LatestAnalysisResult analysis, PipelineEvent evt) => evt switch
-    {
-        PipelineEvent.ConsensusComputed consensus => analysis with { Consensus = consensus },
-        PipelineEvent.AlertComputed alerts => analysis with { Alerts = alerts },
-        PipelineEvent.AlertRaised raised => analysis with { Alerts = MergeAlert(analysis.Alerts, raised) },
-        PipelineEvent.DerivedComputed derived => analysis with { Derived = derived },
-        PipelineEvent.TrendComputed trends => analysis with { Trends = trends },
-        PipelineEvent.IndexComputed indices => analysis with { Indices = indices },
-        _ => analysis,
-    };
 }

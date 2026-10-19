@@ -17,6 +17,9 @@ public static class TopicScheme
     public static string AvailabilityTopic(string baseTopic)
         => $"{baseTopic}/status";
 
+    public static string DomainTopic(string baseTopic, string location, DomainKind domain, string parameter)
+        => $"{baseTopic}/{Slug(location)}/{domain.ToTopicSegment()}/{parameter}";
+
     public static string HourlyUniqueId(string location, WeatherModel model, ParameterDef parameter, int horizonHours)
         => $"{DeviceId(location, model)}_{parameter.ToMqttKey()}_h{horizonHours}";
 

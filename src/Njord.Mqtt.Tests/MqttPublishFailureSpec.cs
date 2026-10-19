@@ -8,7 +8,7 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Messages.Pipeline;
-using Njord.Messages.Trends;
+using Njord.Messages.Alerts;
 using Njord.Model;
 using Njord.Mqtt.Actors;
 using Njord.Mqtt.Health;
@@ -56,15 +56,9 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
         return hub;
     }
 
-    private static PipelineEvent.TrendComputed Trend(string location, int precipStarts) => new(
-        new TrendResult(
-            new LocationId(location),
-            new Dictionary<string, ParameterTrend?>(),
-            null,
-            new PrecipTimingInfo(precipStarts, precipStarts + 3),
-            new ExtremaTimingInfo(null, null),
-            null,
-            null),
+    private static PipelineEvent.AlertRaised Frost(string location, int peak) => new(
+        new Location(location, 47.05, 8.31),
+        new Alert(AlertType.Frost, AlertSeverity.Yellow, 0.75, new FrostDetails(-2.1, null, 3), PeakValue: peak),
         Anchor);
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -74,16 +68,16 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
         transport.FailNext(new MqttClientNotConnectedException());
         var hub = await StartPublisherAsync(transport);
 
-        hub.Emit(Trend("lucerne", 1));
+        hub.Emit(Frost("lucerne", 1));
         await transport.WaitForAttempts(1).WaitAsync(TestTimeouts.RealTimeWaitMax, TestContext.Current.CancellationToken);
-        hub.Emit(Trend("zurich", 2));
+        hub.Emit(Frost("zurich", 2));
 
-        await transport.WaitForSent(m => m.Topic == "njord/zurich/trends")
+        await transport.WaitForSent(m => m.Topic == "njord/zurich/alerts/frost")
             .WaitAsync(TestTimeouts.RealTimeWaitMax, TestContext.Current.CancellationToken);
         var sent = Assert.Single(transport.Sent);
         var payload = JsonNode.Parse(sent.Payload);
         Assert.NotNull(payload);
-        Assert.Equal(2, payload["precip_starts"]!.GetValue<int>());
+        Assert.Equal(2, payload["peak_value"]!.GetValue<double>());
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -95,10 +89,10 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
         transport.FailNext(new MqttCommunicationException("broker went away"));
         var hub = await StartPublisherAsync(transport);
 
-        hub.Emit(Trend("lucerne", 4));
+        hub.Emit(Frost("lucerne", 4));
 
         var warning = await warnings.FishForMessageAsync<Warning>(
-            w => w.Message.ToString()?.Contains("MQTT publish to njord/lucerne/trends failed") == true,
+            w => w.Message.ToString()?.Contains("MQTT publish to njord/lucerne/alerts/frost failed") == true,
             TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("broker went away", Assert.IsType<MqttCommunicationException>(warning.Cause).Message);
     }
@@ -110,15 +104,15 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
         transport.FailNext(new MqttCommunicationException("broker went away"));
         var hub = await StartPublisherAsync(transport);
 
-        hub.Emit(Trend("lucerne", 4));
+        hub.Emit(Frost("lucerne", 4));
         await transport.WaitForAttempts(1).WaitAsync(TestTimeouts.RealTimeWaitMax, TestContext.Current.CancellationToken);
-        hub.Emit(Trend("lucerne", 4));
+        hub.Emit(Frost("lucerne", 4));
 
-        await transport.WaitForSent(m => m.Topic == "njord/lucerne/trends")
+        await transport.WaitForSent(m => m.Topic == "njord/lucerne/alerts/frost")
             .WaitAsync(TestTimeouts.RealTimeWaitMax, TestContext.Current.CancellationToken);
         Assert.Multiple(
             () => Assert.Equal(2, transport.Attempts),
-            () => Assert.Equal("njord/lucerne/trends", Assert.Single(transport.Sent).Topic));
+            () => Assert.Equal("njord/lucerne/alerts/frost", Assert.Single(transport.Sent).Topic));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -128,10 +122,10 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
         transport.FailNext(new MqttClientNotConnectedException());
         var hub = await StartPublisherAsync(transport);
 
-        hub.Emit(Trend("lucerne", 1));
+        hub.Emit(Frost("lucerne", 1));
         await transport.WaitForAttempts(1).WaitAsync(TestTimeouts.RealTimeWaitMax, TestContext.Current.CancellationToken);
-        hub.Emit(Trend("lucerne", 2));
-        await transport.WaitForSent(m => m.Topic == "njord/lucerne/trends")
+        hub.Emit(Frost("lucerne", 2));
+        await transport.WaitForSent(m => m.Topic == "njord/lucerne/alerts/frost")
             .WaitAsync(TestTimeouts.RealTimeWaitMax, TestContext.Current.CancellationToken);
 
         Assert.False(hub.Completion.IsCompleted, "the pipeline output stream was cancelled by the MQTT consumer");
@@ -144,13 +138,13 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
         transport.HangNext();
         var hub = await StartPublisherAsync(transport);
 
-        hub.Emit(Trend("lucerne", 1));
+        hub.Emit(Frost("lucerne", 1));
         await transport.WaitForAttempts(1).WaitAsync(TestTimeouts.RealTimeWaitMax, TestContext.Current.CancellationToken);
-        hub.Emit(Trend("zurich", 2));
+        hub.Emit(Frost("zurich", 2));
 
-        await transport.WaitForSent(m => m.Topic == "njord/zurich/trends")
+        await transport.WaitForSent(m => m.Topic == "njord/zurich/alerts/frost")
             .WaitAsync(TestTimeouts.RealTimeWaitMax, TestContext.Current.CancellationToken);
-        Assert.Equal("njord/zurich/trends", Assert.Single(transport.Sent).Topic);
+        Assert.Equal("njord/zurich/alerts/frost", Assert.Single(transport.Sent).Topic);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -191,7 +185,7 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
         transport.FailNext(new MqttClientNotConnectedException());
         var hub = await StartPublisherAsync(transport);
 
-        hub.Emit(Trend(location, 1));
+        hub.Emit(Frost(location, 1));
         await transport.WaitForAttempts(1).WaitAsync(TestTimeouts.RealTimeWaitMax, TestContext.Current.CancellationToken);
 
         await AwaitAssertAsync(() =>

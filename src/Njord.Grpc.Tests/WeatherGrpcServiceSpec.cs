@@ -7,19 +7,18 @@ using Grpc.Core;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Forecast;
 using Njord.Grpc.V2;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.Tests.Shared;
-using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Grpc.Tests;
 
 public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 {
     private static readonly DateTimeOffset Anchor = TestTimeConstants.BudgetEpoch;
+    private static readonly Location ZurichLocation = new("Zurich", 47.37, 8.55);
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(Anchor);
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider)
@@ -95,58 +94,84 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task GetForecast_returns_forecast_with_timestamps()
+    public async Task GetDomainData_returns_the_latest_domain_data_with_timestamps()
     {
-        var forecast = CreateForecast();
-        var actor = Sys.ActorOf(Props.Create(() => new FakeConsumerActor(forecast)));
+        var evt = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 3));
+        var actor = Sys.ActorOf(Props.Create(() => new FakeConsumerActor(evt)));
         var service = CreateService(consumerActor: actor);
 
-        var response = await service.GetForecast(
-            new GetForecastRequest { Location = "lucerne", Model = "icon_d2" },
-            TestServerCallContext.Create(TestContext.Current.CancellationToken));
-
-        Assert.Equal("lucerne", response.Location);
-        Assert.Equal("icon_d2", response.Model);
-        Assert.NotNull(response.UpdatedAt);
-        Assert.True(response.UpdatedAt.ToDateTimeOffset() > DateTimeOffset.MinValue);
-
-        var hourly = Assert.Single(response.Hourly);
-        Assert.NotNull(hourly.ValidAt);
-        Assert.Equal(Anchor.AddHours(3), hourly.ValidAt.ToDateTimeOffset());
-        Assert.Equal(28.8, hourly.Temperature);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task GetForecast_queries_the_configured_location_and_model_when_the_request_differs_in_case()
-    {
-        var forecast = CreateForecast();
-        var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new OrdinalGrpcConsumer(forecast))));
-
-        var response = await service.GetForecast(
-            new GetForecastRequest { Location = "LUCERNE", Model = "ICON_D2" },
+        var response = await service.GetDomainData(
+            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Weather },
             TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Multiple(
-            () => Assert.Equal("lucerne", response.Location),
-            () => Assert.Equal("icon_d2", response.Model),
-            () => Assert.Single(response.Hourly));
+            () => Assert.Equal("Lucerne", response.Location),
+            () => Assert.Equal(Domain.Weather, response.Domain),
+            () => Assert.Equal(Anchor, response.ModelRun.ToDateTimeOffset()),
+            () => Assert.Equal(3, response.Weather.Points.Count),
+            () => Assert.Equal(Anchor.AddHours(1), response.Weather.Points[1].ValidAt.ToDateTimeOffset()),
+            () => Assert.Equal(10.0, response.Weather.Points[0].Temperature),
+            () => Assert.Equal(0.5, response.Weather.Points[0].EnsembleStdDev));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task GetForecast_throws_not_found_for_unknown_location()
+    public async Task GetDomainData_queries_the_configured_location_when_the_request_differs_in_case()
+    {
+        var evt = new PipelineEvent.FloodDataReceived(DomainData.Lucerne, DomainData.Flood(Anchor));
+        var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new OrdinalGrpcConsumer(evt))));
+
+        var response = await service.GetDomainData(
+            new GetDomainDataRequest { Location = "LUCERNE", Domain = Domain.Flood },
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.Multiple(
+            () => Assert.Equal(Domain.Flood, response.Domain),
+            () => Assert.Equal(12.5, Assert.Single(response.Flood.Points).Discharge));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetDomainData_throws_not_found_for_unknown_location()
     {
         var service = CreateService();
 
         var ex = await Assert.ThrowsAsync<RpcException>(() =>
-            service.GetForecast(
-                new GetForecastRequest { Location = "unknown", Model = "icon_d2" },
+            service.GetDomainData(
+                new GetDomainDataRequest { Location = "unknown", Domain = Domain.Weather },
                 TestServerCallContext.Create(TestContext.Current.CancellationToken)));
 
         Assert.Equal(StatusCode.NotFound, ex.StatusCode);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task GetForecast_fails_with_unavailable_before_the_read_model_is_resolvable()
+    public async Task GetDomainData_throws_not_found_before_the_first_data_of_the_domain()
+    {
+        var service = CreateService();
+
+        var ex = await Assert.ThrowsAsync<RpcException>(() =>
+            service.GetDomainData(
+                new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Solar },
+                TestServerCallContext.Create(TestContext.Current.CancellationToken)));
+
+        Assert.Equal(StatusCode.NotFound, ex.StatusCode);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetDomainData_rejects_an_unspecified_domain()
+    {
+        var service = CreateService();
+
+        var ex = await Assert.ThrowsAsync<RpcException>(() =>
+            service.GetDomainData(
+                new GetDomainDataRequest { Location = "lucerne" },
+                TestServerCallContext.Create(TestContext.Current.CancellationToken)));
+
+        Assert.Multiple(
+            () => Assert.Equal(StatusCode.InvalidArgument, ex.StatusCode),
+            () => Assert.Equal("Domain must be specified", ex.Status.Detail));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetDomainData_fails_with_unavailable_before_the_read_model_is_resolvable()
     {
         var serviceInfo = TestServiceInfo.Create(new NjordOptions
         {
@@ -156,8 +181,8 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         var service = new WeatherGrpcService(ActorRegistry, Sys, _time, serviceInfo);
 
         var ex = await Assert.ThrowsAsync<RpcException>(() =>
-            service.GetForecast(
-                new GetForecastRequest { Location = "lucerne", Model = "icon_d2" },
+            service.GetDomainData(
+                new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Weather },
                 TestServerCallContext.Create(TestContext.Current.CancellationToken)));
 
         Assert.Equal(StatusCode.Unavailable, ex.StatusCode);
@@ -176,36 +201,24 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task GetEnrichments_returns_every_enrichment_kind_the_read_model_holds()
+    public async Task GetEnrichments_returns_the_alerts_the_read_model_holds()
     {
         var lucerne = new LocationId("lucerne");
-        var analysis = new LatestAnalysisResult(lucerne,
-            EnrichmentEvents.Consensus(lucerne, Anchor),
-            EnrichmentEvents.Alerts(lucerne, Anchor),
-            EnrichmentEvents.Derived(lucerne, Anchor),
-            EnrichmentEvents.Trends(lucerne, Anchor),
-            EnrichmentEvents.Indices(lucerne, Anchor));
+        var analysis = new LatestAnalysisResult(lucerne, EnrichmentEvents.Alerts(lucerne, Anchor));
         var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new FakeGrpcConsumer(analysis, Array.Empty<PipelineEvent>()))));
 
         var response = await service.GetEnrichments(
             new GetEnrichmentsRequest { Location = "lucerne" },
             TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
-        Assert.Multiple(
-            () => Assert.Equal("lucerne", response.Location),
-            () => Assert.NotNull(response.Consensus),
-            () => Assert.Equal(Anchor, response.ConsensusUpdatedAt?.ToDateTimeOffset()),
-            () => Assert.NotNull(response.Alerts),
-            () => Assert.Equal(4.5, response.Derived?.Scalars.DiurnalAmplitude),
-            () => Assert.Equal(3, response.Trends?.PrecipStartsInHours),
-            () => Assert.Equal(14, response.Indices?.Frost.HoursUntilFrost));
+        Assert.Equal(new GetEnrichmentsResponse { Location = "lucerne", Alerts = new AlertUpdate() }, response);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetEnrichments_queries_the_configured_location_when_the_request_differs_in_case()
     {
         var lucerne = new LocationId("lucerne");
-        var analysis = new LatestAnalysisResult(lucerne, null, EnrichmentEvents.Alerts(lucerne, Anchor), null, null, null);
+        var analysis = new LatestAnalysisResult(lucerne, EnrichmentEvents.Alerts(lucerne, Anchor));
         var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new FakeGrpcConsumer(analysis, Array.Empty<PipelineEvent>()))));
 
         var response = await service.GetEnrichments(
@@ -227,7 +240,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal(
-            [("lucerne", "alerts"), ("lucerne", "trends")],
+            [("lucerne", "alerts"), ("lucerne", "alerts")],
             writer.Messages.Select(m => (m.Location, m.TypeName)));
     }
 
@@ -241,7 +254,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal(
-            [("lucerne", "alerts"), ("zurich", "alerts"), ("lucerne", "trends")],
+            [("lucerne", "alerts"), ("zurich", "alerts"), ("lucerne", "alerts")],
             writer.Messages.Select(m => (m.Location, m.TypeName)));
     }
 
@@ -262,26 +275,54 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task StreamForecasts_streams_only_the_forecasts_of_the_requested_location()
+    public async Task StreamDomainData_streams_only_the_events_of_the_requested_location()
     {
         var service = CreateService(consumerActor: CreateStreamingReadModel());
-        var writer = new CollectingStreamWriter<ForecastUpdate>();
+        var writer = new CollectingStreamWriter<DomainDataUpdate>();
 
-        await service.StreamForecasts(new StreamForecastsRequest { Location = "ZURICH" }, writer,
+        await service.StreamDomainData(new StreamDomainDataRequest { Location = "ZURICH" }, writer,
             TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         var update = Assert.Single(writer.Messages);
-        Assert.Equal(("zurich", "icon_d2"), (update.Location, update.Model));
+        Assert.Equal(("Zurich", Domain.Weather), (update.Location, update.Domain));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task StreamForecasts_rejects_an_unknown_location_with_not_found()
+    public async Task StreamDomainData_filters_by_domain()
     {
         var service = CreateService(consumerActor: CreateStreamingReadModel());
-        var writer = new CollectingStreamWriter<ForecastUpdate>();
+        var writer = new CollectingStreamWriter<DomainDataUpdate>();
+        var request = new StreamDomainDataRequest();
+        request.Domains.Add(Domain.Flood);
+
+        await service.StreamDomainData(request, writer, TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        var update = Assert.Single(writer.Messages);
+        Assert.Equal(("Lucerne", Domain.Flood), (update.Location, update.Domain));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task StreamDomainData_without_filters_streams_every_domain_of_every_location()
+    {
+        var service = CreateService(consumerActor: CreateStreamingReadModel());
+        var writer = new CollectingStreamWriter<DomainDataUpdate>();
+
+        await service.StreamDomainData(new StreamDomainDataRequest(), writer,
+            TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            [("Lucerne", Domain.Weather), ("Zurich", Domain.Weather), ("Lucerne", Domain.Flood)],
+            writer.Messages.Select(m => (m.Location, m.Domain)));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task StreamDomainData_rejects_an_unknown_location_with_not_found()
+    {
+        var service = CreateService(consumerActor: CreateStreamingReadModel());
+        var writer = new CollectingStreamWriter<DomainDataUpdate>();
 
         var ex = await Assert.ThrowsAsync<RpcException>(() =>
-            service.StreamForecasts(new StreamForecastsRequest { Location = "atlantis" }, writer,
+            service.StreamDomainData(new StreamDomainDataRequest { Location = "atlantis" }, writer,
                 TestServerCallContext.Create(TestContext.Current.CancellationToken)));
 
         Assert.Multiple(
@@ -298,53 +339,42 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         var zurich = new LocationId("zurich");
         PipelineEvent[] events =
         [
-            new PipelineEvent.ForecastReceived(lucerne, new WeatherModel("icon_d2"), CreateForecast()),
+            new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2)),
             EnrichmentEvents.Alerts(lucerne, Anchor),
-            new PipelineEvent.ForecastReceived(zurich, new WeatherModel("icon_d2"), CreateForecast(location: "zurich")),
+            new PipelineEvent.WeatherDataReceived(ZurichLocation, DomainData.Weather(Anchor, 2)),
             EnrichmentEvents.Alerts(zurich, Anchor),
-            EnrichmentEvents.Trends(lucerne, Anchor),
+            new PipelineEvent.FloodDataReceived(DomainData.Lucerne, DomainData.Flood(Anchor)),
+            EnrichmentEvents.Alerts(lucerne, Anchor.AddHours(1)),
         ];
         return Sys.ActorOf(Props.Create(() => new FakeGrpcConsumer(null, events)));
-    }
-
-    private static WeatherForecast CreateForecast(string model = "icon_d2", string location = "lucerne")
-    {
-        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
-        var points = new List<ForecastPoint>
-        {
-            new(Anchor.AddHours(3), new Dictionary<ParameterDef, ForecastValue> { [temp] = 28.8 }),
-        };
-        return new WeatherForecast(new WeatherModel(model), location, new CycleId(Anchor),
-            new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
     private sealed class EmptyConsumerActor : ReceiveActor
     {
         public EmptyConsumerActor()
         {
-            Receive<QueryForecast>(msg => Sender.Tell(new ForecastNotAvailable(msg.Location.Name + "|" + msg.ModelId), Self));
+            Receive<QueryDomainData>(msg => Sender.Tell(new DomainDataNotAvailable(msg.Location, msg.Domain), Self));
             Receive<QueryLatestAnalysis>(msg => Sender.Tell(new LatestAnalysisNotAvailable(msg.Location), Self));
         }
     }
 
     private sealed class FakeConsumerActor : ReceiveActor
     {
-        public FakeConsumerActor(WeatherForecast forecast)
+        public FakeConsumerActor(PipelineEvent evt)
         {
-            Receive<QueryForecast>(_ => Sender.Tell(new ForecastResult(forecast), Self));
+            Receive<QueryDomainData>(_ => Sender.Tell(new DomainDataResult(evt), Self));
         }
     }
 
     // Answers only the configured spelling (ordinal), so a raw request spelling finds nothing.
     private sealed class OrdinalGrpcConsumer : ReceiveActor
     {
-        public OrdinalGrpcConsumer(WeatherForecast forecast)
+        public OrdinalGrpcConsumer(PipelineEvent.FloodDataReceived evt)
         {
-            Receive<QueryForecast>(msg => Sender.Tell(
-                string.Equals(msg.Location.Name, forecast.Location, StringComparison.Ordinal)
-                && string.Equals(msg.ModelId, forecast.Model.Id, StringComparison.Ordinal)
-                    ? new ForecastResult(forecast)
-                    : new ForecastNotAvailable($"{msg.Location.Name}|{msg.ModelId}"),
+            Receive<QueryDomainData>(msg => Sender.Tell(
+                string.Equals(msg.Location.Name, "lucerne", StringComparison.Ordinal) && msg.Domain == DomainKind.Flood
+                    ? new DomainDataResult(evt)
+                    : new DomainDataNotAvailable(msg.Location, msg.Domain),
                 Self));
         }
     }

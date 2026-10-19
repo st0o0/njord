@@ -50,38 +50,38 @@ public sealed class GrpcChannelSpec : IAsyncLifetime
         await Eventually.AssertAsync(async () =>
         {
             var status = await client.GetStatusAsync(new GetStatusRequest(), cancellationToken: ct);
-            Assert.Equal(["icon_eu", "icon_global"], status.Models.Select(m => m.Model).Order());
+            Assert.Equal(["luzern"], status.Models.Select(m => m.Location).Order());
         }, ct);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_forecast_polled_through_the_fake_client_is_served_by_the_weather_service()
+    public async Task Weather_data_polled_through_the_fake_client_is_served_by_the_weather_service()
     {
         var ct = TestContext.Current.CancellationToken;
         var client = new WeatherService.WeatherServiceClient(Host.Channel);
 
         var forecast = await Eventually.ValueAsync(async () =>
         {
-            var response = await client.GetForecastAsync(new GetForecastRequest { Location = "luzern", Model = "icon_eu" }, cancellationToken: ct);
-            return response.Hourly.Count > 0 ? response : null;
+            var response = await client.GetDomainDataAsync(new GetDomainDataRequest { Location = "luzern", Domain = Domain.Weather }, cancellationToken: ct);
+            return response.Weather?.Points.Count > 0 ? response : null;
         }, ct);
 
         Assert.Multiple(
             () => Assert.Equal("luzern", forecast.Location),
-            () => Assert.Equal("icon_eu", forecast.Model));
+            () => Assert.Equal(Domain.Weather, forecast.Domain));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_triggered_poll_is_streamed_to_a_forecast_subscriber()
+    public async Task A_triggered_poll_is_streamed_to_a_domain_data_subscriber()
     {
         var ct = TestContext.Current.CancellationToken;
         var weather = new WeatherService.WeatherServiceClient(Host.Channel);
         var ops = new OpsService.OpsServiceClient(Host.Channel);
-        using var call = weather.StreamForecasts(new StreamForecastsRequest { Location = "luzern" }, cancellationToken: ct);
+        using var call = weather.StreamDomainData(new StreamDomainDataRequest { Location = "luzern" }, cancellationToken: ct);
 
         await Eventually.AssertAsync(async () =>
         {
-            var triggered = await ops.TriggerPollAsync(new TriggerPollRequest { Location = "luzern", Model = "icon_eu" }, cancellationToken: ct);
+            var triggered = await ops.TriggerPollAsync(new TriggerPollRequest { Location = "luzern" }, cancellationToken: ct);
             Assert.Equal(1, triggered.TriggeredCount);
             using var next = CancellationTokenSource.CreateLinkedTokenSource(ct);
             next.CancelAfter(TimeSpan.FromSeconds(2));

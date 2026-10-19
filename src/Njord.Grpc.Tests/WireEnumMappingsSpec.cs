@@ -1,16 +1,12 @@
 using Njord.Grpc.Mapping;
-using Njord.Messages.Derived;
-using Njord.Messages.Trends;
+using Njord.Model;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainAlertType = Njord.Messages.Alerts.AlertType;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
 using ProtoAlertType = Njord.Grpc.V2.AlertType;
-using ProtoDewPointComfort = Njord.Grpc.V2.DewPointComfort;
+using ProtoDomain = Njord.Grpc.V2.Domain;
 using ProtoPollPhase = Njord.Grpc.V2.PollPhase;
-using ProtoStability = Njord.Grpc.V2.Stability;
-using ProtoTrendDirection = Njord.Grpc.V2.TrendDirection;
-using ProtoVpdCategory = Njord.Grpc.V2.VpdCategory;
 
 namespace Njord.Grpc.Tests;
 
@@ -42,20 +38,39 @@ public sealed class WireEnumMappingsSpec
     public void Every_domain_member_has_a_proto_mapping()
     {
         Assert.All(Enum.GetValues<DomainPollPhase>(), v => Assert.NotEqual(ProtoPollPhase.Unspecified, v.ToProto()));
-        Assert.All(Enum.GetValues<TrendDirection>(), v => Assert.NotEqual(ProtoTrendDirection.Unspecified, v.ToProto()));
-        Assert.All(Enum.GetValues<Stability>(), v => Assert.NotEqual(ProtoStability.Unspecified, v.ToProto()));
-        Assert.All(Enum.GetValues<DewPointComfort>(), v => Assert.NotEqual(ProtoDewPointComfort.Unspecified, v.ToProto()));
-        Assert.All(Enum.GetValues<VpdCategory>(), v => Assert.NotEqual(ProtoVpdCategory.Unspecified, v.ToProto()));
     }
 
     [Fact]
     public void Undefined_domain_values_throw()
     {
         Assert.Multiple(
-            () => Assert.Equal("phase", Assert.Throws<ArgumentOutOfRangeException>(() => ((DomainPollPhase)99).ToProto()).ParamName),
-            () => Assert.Equal("direction", Assert.Throws<ArgumentOutOfRangeException>(() => ((TrendDirection)99).ToProto()).ParamName),
-            () => Assert.Equal("stability", Assert.Throws<ArgumentOutOfRangeException>(() => ((Stability)99).ToProto()).ParamName),
-            () => Assert.Equal("comfort", Assert.Throws<ArgumentOutOfRangeException>(() => ((DewPointComfort)99).ToProto()).ParamName),
-            () => Assert.Equal("category", Assert.Throws<ArgumentOutOfRangeException>(() => ((VpdCategory)99).ToProto()).ParamName));
+            () => Assert.Equal("phase", Assert.Throws<ArgumentOutOfRangeException>(() => ((DomainPollPhase)99).ToProto()).ParamName));
+    }
+
+    [Theory]
+    [InlineData(DomainKind.Weather, ProtoDomain.Weather)]
+    [InlineData(DomainKind.AirQuality, ProtoDomain.AirQuality)]
+    [InlineData(DomainKind.Flood, ProtoDomain.Flood)]
+    [InlineData(DomainKind.Solar, ProtoDomain.Solar)]
+    [InlineData(DomainKind.Marine, ProtoDomain.Marine)]
+    public void Domain_maps_to_its_proto_member_and_back(DomainKind domain, ProtoDomain expected)
+    {
+        Assert.Multiple(
+            () => Assert.Equal(expected, domain.ToProto()),
+            () => Assert.Equal(domain, expected.ToDomain()));
+    }
+
+    [Fact]
+    public void Every_domain_kind_has_a_proto_mapping()
+    {
+        Assert.All(Enum.GetValues<DomainKind>(), v => Assert.NotEqual(ProtoDomain.Unspecified, v.ToProto()));
+    }
+
+    [Fact]
+    public void Undefined_and_unspecified_domains_throw()
+    {
+        Assert.Multiple(
+            () => Assert.Equal("domain", Assert.Throws<ArgumentOutOfRangeException>(() => ((DomainKind)99).ToProto()).ParamName),
+            () => Assert.Equal("domain", Assert.Throws<ArgumentOutOfRangeException>(() => ProtoDomain.Unspecified.ToDomain()).ParamName));
     }
 }

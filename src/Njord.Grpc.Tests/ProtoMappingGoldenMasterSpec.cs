@@ -15,61 +15,45 @@ public sealed class ProtoMappingGoldenMasterSpec
     private static readonly JsonFormatter Formatter = new(
         JsonFormatter.Settings.Default.WithFormatDefaultValues(true).WithIndentation());
 
-    private static readonly JsonFormatter LineFormatter = new(
-        JsonFormatter.Settings.Default.WithFormatDefaultValues(true));
-
     [Fact]
-    public Task Consensus_events_match_golden_master()
+    public Task Alert_events_match_golden_master()
     {
         var text = new StringBuilder();
         foreach (var analysis in Fixture.Analyses)
         {
             var mapped = EnrichmentEventMappings.ToEnrichmentEvent(
-                new PipelineEvent.ConsensusComputed(analysis.Consensus, AnalysisFixture.Now));
+                new PipelineEvent.AlertComputed(analysis.Alerts, AnalysisFixture.Now));
             Assert.NotNull(mapped);
-            text.AppendLine($"## {mapped.Location} {mapped.TypeName} {mapped.UpdatedAt}");
-            AppendParameters("hourly", mapped.Consensus.HourlyParameters, text);
-            AppendParameters("daily", mapped.Consensus.DailyParameters, text);
+            text.AppendLine(Formatter.Format(mapped));
         }
 
         return Verify(text.ToString());
     }
 
     [Fact]
-    public Task Alert_events_match_golden_master() =>
-        VerifyEvents(a => new PipelineEvent.AlertComputed(a.Alerts, AnalysisFixture.Now));
-
-    [Fact]
-    public Task Derived_events_match_golden_master() =>
-        VerifyEvents(a => new PipelineEvent.DerivedComputed(a.Derived, AnalysisFixture.Now));
-
-    [Fact]
-    public Task Trend_events_match_golden_master() =>
-        VerifyEvents(a => new PipelineEvent.TrendComputed(a.Trends, AnalysisFixture.Now));
-
-    [Fact]
-    public Task Index_events_match_golden_master() =>
-        VerifyEvents(a => new PipelineEvent.IndexComputed(a.Indices, AnalysisFixture.Now));
-
-    [Fact]
-    public Task Forecast_updates_match_golden_master()
+    public Task Domain_data_updates_match_golden_master()
     {
-        var text = new StringBuilder();
-        foreach (var forecast in Fixture.Forecasts.Where(f => f.Model == AnalysisFixture.Gfs))
-        {
-            var update = ForecastProtoMappings.ToProto(
-                new PipelineEvent.ForecastReceived(new LocationId(forecast.Location), forecast.Model, forecast),
-                AnalysisFixture.Now);
-            text.AppendLine($"## {update.Location} {update.Model} {update.UpdatedAt}");
-            foreach (var hourly in update.Hourly)
-            {
-                text.AppendLine(LineFormatter.Format(hourly));
-            }
+        var start = AnalysisFixture.Now;
+        var location = DomainData.Lucerne;
+        PipelineEvent[] events =
+        [
+            new PipelineEvent.WeatherDataReceived(location, DomainData.Weather(start, 2)),
+            new PipelineEvent.AirQualityDataReceived(location, new DomainForecast<AirQualityPoint>(
+                DomainKind.AirQuality, start, TimeResolution.Hourly,
+                [new AirQualityPoint(start, 8.5, 12.0, 60.0, BirchPollen: 3.0)])),
+            new PipelineEvent.FloodDataReceived(location, DomainData.Flood(start)),
+            new PipelineEvent.SolarDataReceived(location, new DomainForecast<SolarPoint>(
+                DomainKind.Solar, start, TimeResolution.Hourly, [new SolarPoint(start, 410.0, 90.0, 500.0, 3300.0)])),
+            new PipelineEvent.MarineDataReceived(location, new DomainForecast<MarinePoint>(
+                DomainKind.Marine, start, TimeResolution.Hourly, [new MarinePoint(start, 0.8, 5.5, 220.0, 17.5)])),
+        ];
 
-            foreach (var daily in update.Daily)
-            {
-                text.AppendLine(LineFormatter.Format(daily));
-            }
+        var text = new StringBuilder();
+        foreach (var evt in events)
+        {
+            var mapped = evt.ToDomainDataUpdate();
+            Assert.NotNull(mapped);
+            text.AppendLine(Formatter.Format(mapped));
         }
 
         return Verify(text.ToString());
@@ -85,48 +69,5 @@ public sealed class ProtoMappingGoldenMasterSpec
         var expected = Enum.GetValues<AlertType>().Where(t => t != AlertType.Unspecified);
         Assert.All(expected, t => Assert.Contains(t, types));
         Assert.All(mapped.Alerts, a => Assert.NotEqual(AlertSeverity.None, a.Severity));
-    }
-
-    [Fact]
-    public void Fixture_maps_every_index_kind_with_an_envelope()
-    {
-        var days = Fixture.Analyses.SelectMany(a => IndexProtoMappings.ToProto(a.Indices).Days).ToList();
-
-        Assert.NotEmpty(days);
-        Assert.All(days, d => Assert.Multiple(
-            () => Assert.NotNull(d.LaundryEnvelope),
-            () => Assert.NotNull(d.OutdoorEnvelope),
-            () => Assert.NotNull(d.RunningEnvelope),
-            () => Assert.NotNull(d.CyclingEnvelope),
-            () => Assert.NotNull(d.BbqEnvelope),
-            () => Assert.NotNull(d.IrrigationEnvelope),
-            () => Assert.NotNull(d.SolarEnvelope),
-            () => Assert.NotNull(d.NightVentilationEnvelope)));
-    }
-
-    private static void AppendParameters(
-        string facet, IEnumerable<ParameterConsensus> parameters, StringBuilder text)
-    {
-        foreach (var parameter in parameters)
-        {
-            text.AppendLine($"# {facet} {parameter.Parameter} [{parameter.Unit}]");
-            foreach (var horizon in parameter.ByHorizon)
-            {
-                text.AppendLine(LineFormatter.Format(horizon));
-            }
-        }
-    }
-
-    private static Task VerifyEvents(Func<LocationAnalysis, PipelineEvent> build)
-    {
-        var text = new StringBuilder();
-        foreach (var analysis in Fixture.Analyses)
-        {
-            var mapped = EnrichmentEventMappings.ToEnrichmentEvent(build(analysis));
-            Assert.NotNull(mapped);
-            text.AppendLine(Formatter.Format(mapped));
-        }
-
-        return Verify(text.ToString());
     }
 }

@@ -64,7 +64,6 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(2, status.Models.Count);
 
         var lucerne = status.Models.First(m => m.Location == "lucerne");
-        Assert.Equal(string.Empty, lucerne.Model);
         Assert.Equal(Njord.Grpc.V2.PollPhase.Steady, lucerne.Phase);
         Assert.Equal(_now.AddHours(1), lucerne.NextPoll.ToDateTimeOffset());
         Assert.Equal(_now.AddHours(-2), lucerne.LastChange.ToDateTimeOffset());
@@ -163,7 +162,6 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(2, response.Targets.Count);
 
         var lucerne = response.Targets.First(t => t.Location == "lucerne");
-        Assert.Equal(string.Empty, lucerne.Model);
         Assert.Equal(Njord.Grpc.V2.PollPhase.Steady, lucerne.Phase);
         Assert.Equal(_now.AddHours(1), lucerne.NextPoll.ToDateTimeOffset());
         Assert.Equal(_now.AddHours(-2), lucerne.LastChange.ToDateTimeOffset());
@@ -187,7 +185,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task TriggerPoll_triggers_specific_model()
+    public async Task TriggerPoll_triggers_the_requested_location()
     {
         var service = CreateService();
 

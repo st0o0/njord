@@ -26,19 +26,23 @@ public sealed class WeatherGrpcService(
         return catalog.ToProto();
     }
 
-    public override async Task<GetForecastResponse> GetForecast(GetForecastRequest request, ServerCallContext context)
+    public override async Task<DomainDataUpdate> GetDomainData(GetDomainDataRequest request, ServerCallContext context)
     {
         var location = FindLocation(serviceInfo.Catalog, request.Location);
-        var model = FindModel(location, request.Model);
+        if (request.Domain == Domain.Unspecified)
+        {
+            throw new RpcException(new GrpcStatus(StatusCode.InvalidArgument, "Domain must be specified"));
+        }
 
-        var result = await actorRegistry.AskAsync<IGrpcConsumer, ForecastResponse>(
-            new QueryForecast(location.Id, model), context);
+        var domain = request.Domain.ToDomain();
+        var result = await actorRegistry.AskAsync<IGrpcConsumer, DomainDataResponse>(
+            new QueryDomainData(location.Id, domain), context);
 
         return result switch
         {
-            ForecastResult found => found.ToProto(timeProvider.GetUtcNow()),
+            DomainDataResult found when found.Event.ToDomainDataUpdate() is { } update => update,
             _ => throw new RpcException(new GrpcStatus(StatusCode.NotFound,
-                $"No forecast data available yet for '{location.Id.Name}/{model}'")),
+                $"No {request.Domain} data available yet for '{location.Id.Name}'")),
         };
     }
 
@@ -52,29 +56,38 @@ public sealed class WeatherGrpcService(
         return result.ToProto();
     }
 
-    public override async Task StreamForecasts(
-        StreamForecastsRequest request,
-        IServerStreamWriter<ForecastUpdate> responseStream,
+    public override async Task StreamDomainData(
+        StreamDomainDataRequest request,
+        IServerStreamWriter<DomainDataUpdate> responseStream,
         ServerCallContext context)
     {
         var location = ResolveStreamLocation(request.Location);
+        var domains = request.Domains
+            .Where(d => d != Domain.Unspecified)
+            .Select(d => d.ToDomain())
+            .ToHashSet();
         var sourceRef = await RequestGrpcStreamAsync(context);
 
         var mat = actorSystem.Materializer();
-        var killSwitch = KillSwitches.Shared($"grpc-forecast-{context.Peer}");
+        var killSwitch = KillSwitches.Shared($"grpc-domain-{context.Peer}");
         await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown);
 
         await sourceRef.Source
-            .Collect(e => e is PipelineEvent.ForecastReceived, e => (PipelineEvent.ForecastReceived)e)
-            .Where(u => location is not { } wanted || u.Location == wanted)
-            .Via(killSwitch.Flow<PipelineEvent.ForecastReceived>())
-            .SelectAsync(1, async update =>
+            .Where(e => e.ToDomainKind() is { } kind
+                && (domains.Count == 0 || domains.Contains(kind))
+                && (location is not { } wanted || e.ToDomainLocation() == wanted))
+            .Via(killSwitch.Flow<PipelineEvent>())
+            .SelectAsync(1, async e =>
             {
-                var proto = update.ToProto(timeProvider.GetUtcNow());
-                await responseStream.WriteAsync(proto, context.CancellationToken);
-                return proto;
+                var update = e.ToDomainDataUpdate();
+                if (update is not null)
+                {
+                    await responseStream.WriteAsync(update, context.CancellationToken);
+                }
+
+                return update;
             })
-            .RunWith(Sink.Ignore<ForecastUpdate>(), mat);
+            .RunWith(Sink.Ignore<DomainDataUpdate?>(), mat);
     }
 
     public override async Task StreamEnrichments(
@@ -125,10 +138,4 @@ public sealed class WeatherGrpcService(
     private static CatalogLocation FindLocation(CatalogResult catalog, string name) =>
         catalog.Locations.FirstOrDefault(l => string.Equals(l.Id.Name, name, StringComparison.OrdinalIgnoreCase))
         ?? throw new RpcException(new GrpcStatus(StatusCode.NotFound, $"Location '{name}' not found"));
-
-    // The configured spelling of the model: the consumer and the pipeline only know that one.
-    private static string FindModel(CatalogLocation location, string modelId) =>
-        location.Models.FirstOrDefault(m => string.Equals(m, modelId, StringComparison.OrdinalIgnoreCase))
-        ?? throw new RpcException(new GrpcStatus(StatusCode.NotFound,
-            $"Model '{modelId}' not configured for '{location.Id.Name}'"));
 }

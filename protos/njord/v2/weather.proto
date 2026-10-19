@@ -9,9 +9,9 @@ option csharp_namespace = "Njord.Grpc.V2";
 
 service WeatherService {
   rpc GetCatalog (GetCatalogRequest) returns (GetCatalogResponse);
-  rpc GetForecast (GetForecastRequest) returns (GetForecastResponse);
+  rpc GetDomainData (GetDomainDataRequest) returns (DomainDataUpdate);
   rpc GetEnrichments (GetEnrichmentsRequest) returns (GetEnrichmentsResponse);
-  rpc StreamForecasts (StreamForecastsRequest) returns (stream ForecastUpdate);
+  rpc StreamDomainData (StreamDomainDataRequest) returns (stream DomainDataUpdate);
   rpc StreamEnrichments (StreamEnrichmentsRequest) returns (stream EnrichmentEvent);
 }
 
@@ -27,24 +27,124 @@ message GetCatalogResponse {
 }
 
 // ═══════════════════════════════════════
-// Forecast
+// Domain data
 // ═══════════════════════════════════════
 
-message GetForecastRequest {
-  string location = 1;
-  string model = 2;
+enum Domain {
+  DOMAIN_UNSPECIFIED = 0;
+  DOMAIN_WEATHER = 1;
+  DOMAIN_AIR_QUALITY = 2;
+  DOMAIN_FLOOD = 3;
+  DOMAIN_SOLAR = 4;
+  DOMAIN_MARINE = 5;
 }
 
-message GetForecastResponse {
+message GetDomainDataRequest {
   string location = 1;
-  string model = 2;
-  google.protobuf.Timestamp updated_at = 3;
-  repeated HourlyForecast hourly = 4;
-  repeated DailyForecast daily = 5;
+  Domain domain = 2;
+}
+
+message StreamDomainDataRequest {
+  // Empty streams every location.
+  string location = 1;
+  // Empty streams every domain.
+  repeated Domain domains = 2;
+}
+
+message DomainDataUpdate {
+  string location = 1;
+  Domain domain = 2;
+  google.protobuf.Timestamp model_run = 3;
+  oneof data {
+    WeatherData weather = 10;
+    AirQualityData air_quality = 11;
+    FloodData flood = 12;
+    SolarData solar = 13;
+    MarineData marine = 14;
+  }
+}
+
+message WeatherData {
+  repeated WeatherSample points = 1;
+}
+
+message WeatherSample {
+  google.protobuf.Timestamp valid_at = 1;
+  double temperature = 2;
+  double apparent_temperature = 3;
+  double wind_speed = 4;
+  double precipitation = 5;
+  double precipitation_probability = 6;
+  double cloud_cover = 7;
+  double pressure = 8;
+  int32 weather_code = 9;
+  double humidity = 10;
+  double dew_point = 11;
+  double uv_index = 12;
+  optional double ensemble_std_dev = 13;
+  optional double wind_gusts = 14;
+  optional double visibility = 15;
+  optional double cape = 16;
+  optional double rain = 17;
+  optional double snowfall = 18;
+  optional double soil_temperature = 19;
+  optional double freezing_level_height = 20;
+  optional bool is_day = 21;
+}
+
+message AirQualityData {
+  repeated AirQualitySample points = 1;
+}
+
+message AirQualitySample {
+  google.protobuf.Timestamp valid_at = 1;
+  double pm25 = 2;
+  double pm10 = 3;
+  double ozone = 4;
+  optional double birch_pollen = 5;
+  optional double grass_pollen = 6;
+  optional double alder = 7;
+  optional double mugwort = 8;
+}
+
+message FloodData {
+  repeated FloodSample points = 1;
+}
+
+message FloodSample {
+  google.protobuf.Timestamp valid_at = 1;
+  double discharge = 2;
+  optional double discharge_p10 = 3;
+  optional double discharge_p90 = 4;
+  optional double median_historical = 5;
+}
+
+message SolarData {
+  repeated SolarSample points = 1;
+}
+
+message SolarSample {
+  google.protobuf.Timestamp valid_at = 1;
+  double direct_radiation = 2;
+  double diffuse_radiation = 3;
+  double shortwave_radiation = 4;
+  double sunshine_duration = 5;
+}
+
+message MarineData {
+  repeated MarineSample points = 1;
+}
+
+message MarineSample {
+  google.protobuf.Timestamp valid_at = 1;
+  double wave_height = 2;
+  double wave_period = 3;
+  double wave_direction = 4;
+  optional double water_temperature = 5;
 }
 
 // ═══════════════════════════════════════
-// Enrichments
+// Enrichments (alerts, all domains)
 // ═══════════════════════════════════════
 
 message GetEnrichmentsRequest {
@@ -52,30 +152,9 @@ message GetEnrichmentsRequest {
 }
 
 message GetEnrichmentsResponse {
+  reserved 3 to 8;
   string location = 1;
   AlertUpdate alerts = 2;
-  IndexUpdate indices = 3;
-  TrendUpdate trends = 4;
-  DerivedUpdate derived = 5;
-  reserved 6;
-  ConsensusUpdate consensus = 7;
-  google.protobuf.Timestamp consensus_updated_at = 8;
-}
-
-// ═══════════════════════════════════════
-// Streaming
-// ═══════════════════════════════════════
-
-message StreamForecastsRequest {
-  string location = 1;
-}
-
-message ForecastUpdate {
-  string location = 1;
-  string model = 2;
-  google.protobuf.Timestamp updated_at = 3;
-  repeated HourlyForecast hourly = 4;
-  repeated DailyForecast daily = 5;
 }
 
 message StreamEnrichmentsRequest {
@@ -83,14 +162,11 @@ message StreamEnrichmentsRequest {
 }
 
 message EnrichmentEvent {
+  reserved 11, 12, 13, 15;
   string location = 1;
   string type_name = 2;
   google.protobuf.Timestamp updated_at = 3;
   oneof payload {
     AlertUpdate alerts = 10;
-    IndexUpdate indices = 11;
-    TrendUpdate trends = 12;
-    DerivedUpdate derived = 13;
-    ConsensusUpdate consensus = 15;
   }
 }

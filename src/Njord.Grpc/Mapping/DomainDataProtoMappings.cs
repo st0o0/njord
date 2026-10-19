@@ -1,0 +1,163 @@
+using Google.Protobuf.WellKnownTypes;
+using Njord.Grpc.V2;
+using Njord.Messages.Pipeline;
+using Njord.Model;
+
+namespace Njord.Grpc.Mapping;
+
+internal static class DomainDataProtoMappings
+{
+    public static DomainDataUpdate? ToDomainDataUpdate(this PipelineEvent pipelineEvent) => pipelineEvent switch
+    {
+        PipelineEvent.WeatherDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Weather = e.Forecast.ToWeatherData() }),
+        PipelineEvent.AirQualityDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { AirQuality = e.Forecast.ToAirQualityData() }),
+        PipelineEvent.FloodDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Flood = e.Forecast.ToFloodData() }),
+        PipelineEvent.SolarDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Solar = e.Forecast.ToSolarData() }),
+        PipelineEvent.MarineDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Marine = e.Forecast.ToMarineData() }),
+        _ => null,
+    };
+
+    public static DomainKind? ToDomainKind(this PipelineEvent pipelineEvent) => pipelineEvent switch
+    {
+        PipelineEvent.WeatherDataReceived => DomainKind.Weather,
+        PipelineEvent.AirQualityDataReceived => DomainKind.AirQuality,
+        PipelineEvent.FloodDataReceived => DomainKind.Flood,
+        PipelineEvent.SolarDataReceived => DomainKind.Solar,
+        PipelineEvent.MarineDataReceived => DomainKind.Marine,
+        _ => null,
+    };
+
+    public static LocationId? ToDomainLocation(this PipelineEvent pipelineEvent) => pipelineEvent switch
+    {
+        PipelineEvent.WeatherDataReceived e => new LocationId(e.Location.Name),
+        PipelineEvent.AirQualityDataReceived e => new LocationId(e.Location.Name),
+        PipelineEvent.FloodDataReceived e => new LocationId(e.Location.Name),
+        PipelineEvent.SolarDataReceived e => new LocationId(e.Location.Name),
+        PipelineEvent.MarineDataReceived e => new LocationId(e.Location.Name),
+        _ => null,
+    };
+
+    private static DomainDataUpdate ToUpdate(this Location location, IDomainForecast forecast, DomainDataUpdate update)
+    {
+        update.Location = location.Name;
+        update.Domain = forecast.Domain.ToProto();
+        update.ModelRun = forecast.ModelRun.ToTimestamp();
+        return update;
+    }
+
+    private static WeatherData ToWeatherData(this DomainForecast<WeatherPoint> forecast)
+    {
+        var data = new WeatherData();
+        data.Points.AddRange(forecast.Points.Select(p => p.ToProto()));
+        return data;
+    }
+
+    private static AirQualityData ToAirQualityData(this DomainForecast<AirQualityPoint> forecast)
+    {
+        var data = new AirQualityData();
+        data.Points.AddRange(forecast.Points.Select(p => p.ToProto()));
+        return data;
+    }
+
+    private static FloodData ToFloodData(this DomainForecast<FloodPoint> forecast)
+    {
+        var data = new FloodData();
+        data.Points.AddRange(forecast.Points.Select(p => p.ToProto()));
+        return data;
+    }
+
+    private static SolarData ToSolarData(this DomainForecast<SolarPoint> forecast)
+    {
+        var data = new SolarData();
+        data.Points.AddRange(forecast.Points.Select(p => p.ToProto()));
+        return data;
+    }
+
+    private static MarineData ToMarineData(this DomainForecast<MarinePoint> forecast)
+    {
+        var data = new MarineData();
+        data.Points.AddRange(forecast.Points.Select(p => p.ToProto()));
+        return data;
+    }
+
+    public static WeatherSample ToProto(this WeatherPoint p)
+    {
+        var sample = new WeatherSample
+        {
+            ValidAt = p.ValidFrom.ToTimestamp(),
+            Temperature = p.Temperature,
+            ApparentTemperature = p.ApparentTemperature,
+            WindSpeed = p.WindSpeed,
+            Precipitation = p.Precipitation,
+            PrecipitationProbability = p.PrecipitationProbability,
+            CloudCover = p.CloudCover,
+            Pressure = p.Pressure,
+            WeatherCode = p.WeatherCode,
+            Humidity = p.Humidity,
+            DewPoint = p.DewPoint,
+            UvIndex = p.UvIndex,
+        };
+        if (p.EnsembleStdDev is { } stdDev) { sample.EnsembleStdDev = stdDev; }
+        if (p.WindGusts is { } gusts) { sample.WindGusts = gusts; }
+        if (p.Visibility is { } visibility) { sample.Visibility = visibility; }
+        if (p.Cape is { } cape) { sample.Cape = cape; }
+        if (p.Rain is { } rain) { sample.Rain = rain; }
+        if (p.Snowfall is { } snowfall) { sample.Snowfall = snowfall; }
+        if (p.SoilTemperature is { } soil) { sample.SoilTemperature = soil; }
+        if (p.FreezingLevelHeight is { } freezing) { sample.FreezingLevelHeight = freezing; }
+        if (p.IsDay is { } isDay) { sample.IsDay = isDay; }
+        return sample;
+    }
+
+    public static AirQualitySample ToProto(this AirQualityPoint p)
+    {
+        var sample = new AirQualitySample
+        {
+            ValidAt = p.ValidFrom.ToTimestamp(),
+            Pm25 = p.Pm25,
+            Pm10 = p.Pm10,
+            Ozone = p.Ozone,
+        };
+        if (p.BirchPollen is { } birch) { sample.BirchPollen = birch; }
+        if (p.GrassPollen is { } grass) { sample.GrassPollen = grass; }
+        if (p.Alder is { } alder) { sample.Alder = alder; }
+        if (p.Mugwort is { } mugwort) { sample.Mugwort = mugwort; }
+        return sample;
+    }
+
+    public static FloodSample ToProto(this FloodPoint p)
+    {
+        var sample = new FloodSample
+        {
+            ValidAt = p.ValidFrom.ToTimestamp(),
+            Discharge = p.Discharge,
+        };
+        if (p.DischargeP10 is { } p10) { sample.DischargeP10 = p10; }
+        if (p.DischargeP90 is { } p90) { sample.DischargeP90 = p90; }
+        if (p.MedianHistorical is { } median) { sample.MedianHistorical = median; }
+        return sample;
+    }
+
+    public static SolarSample ToProto(this SolarPoint p) =>
+        new()
+        {
+            ValidAt = p.ValidFrom.ToTimestamp(),
+            DirectRadiation = p.DirectRadiation,
+            DiffuseRadiation = p.DiffuseRadiation,
+            ShortwaveRadiation = p.ShortwaveRadiation,
+            SunshineDuration = p.SunshineDuration,
+        };
+
+    public static MarineSample ToProto(this MarinePoint p)
+    {
+        var sample = new MarineSample
+        {
+            ValidAt = p.ValidFrom.ToTimestamp(),
+            WaveHeight = p.WaveHeight,
+            WavePeriod = p.WavePeriod,
+            WaveDirection = p.WaveDirection,
+        };
+        if (p.WaterTemperature is { } water) { sample.WaterTemperature = water; }
+        return sample;
+    }
+}

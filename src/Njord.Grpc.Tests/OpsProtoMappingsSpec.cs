@@ -19,7 +19,6 @@ public sealed class OpsProtoMappingsSpec
 
         Assert.Multiple(
             () => Assert.Equal("lucerne", status.Location),
-            () => Assert.Equal(string.Empty, status.Model),
             () => Assert.Equal(Njord.Grpc.V2.PollPhase.Steady, status.Phase),
             () => Assert.Equal(Timestamp.FromDateTimeOffset(NextPoll), status.NextPoll),
             () => Assert.Equal(2, status.MissCount),
@@ -49,7 +48,6 @@ public sealed class OpsProtoMappingsSpec
 
         Assert.Multiple(
             () => Assert.Equal("zurich", target.Location),
-            () => Assert.Equal(string.Empty, target.Model),
             () => Assert.Equal(Njord.Grpc.V2.PollPhase.Steady, target.Phase),
             () => Assert.Equal(Timestamp.FromDateTimeOffset(NextPoll), target.NextPoll),
             () => Assert.Equal(1, target.MissCount),

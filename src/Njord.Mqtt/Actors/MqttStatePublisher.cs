@@ -95,13 +95,12 @@ public sealed class MqttStatePublisher : ReceiveActor
             .Buffer(_eventBufferSize, OverflowStrategy.DropHead)
             .Log("mqtt-state-in", e => e switch
             {
-                PipelineEvent.ForecastReceived u => $"model {u.Location}/{u.Model.Id}",
-                PipelineEvent.ConsensusComputed c => $"enrich {c.Consensus.Location}/consensus",
-                PipelineEvent.AlertComputed a => $"enrich {a.Result.Location}/alerts",
+                PipelineEvent.WeatherDataReceived w => $"data {w.Location.Name}/weather",
+                PipelineEvent.AirQualityDataReceived a => $"data {a.Location.Name}/air-quality",
+                PipelineEvent.FloodDataReceived f => $"data {f.Location.Name}/flood",
+                PipelineEvent.SolarDataReceived s => $"data {s.Location.Name}/solar",
+                PipelineEvent.MarineDataReceived m => $"data {m.Location.Name}/marine",
                 PipelineEvent.AlertRaised r => $"enrich {r.Location.Name}/alerts",
-                PipelineEvent.DerivedComputed d => $"enrich {d.Result.Location}/derived",
-                PipelineEvent.TrendComputed t => $"enrich {t.Result.Location}/trends",
-                PipelineEvent.IndexComputed i => $"enrich {i.Result.Location}/indices",
                 _ => "?",
             }, _log)
             .SelectMany(pipelineEvent =>

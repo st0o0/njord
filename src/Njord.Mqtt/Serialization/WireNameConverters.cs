@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Njord.Messages.Alerts;
-using Njord.Messages.Derived;
 
 namespace Njord.Mqtt.Serialization;
 
@@ -31,9 +30,4 @@ internal sealed class ExposureRiskWireConverter : WireNameConverter<ExposureRisk
 internal sealed class HumidityComfortWireConverter : WireNameConverter<HumidityComfort>
 {
     protected override string ToWire(HumidityComfort value) => value.ToWireName();
-}
-
-internal sealed class DewPointComfortWireConverter : WireNameConverter<DewPointComfort>
-{
-    protected override string ToWire(DewPointComfort value) => value.ToWireName();
 }

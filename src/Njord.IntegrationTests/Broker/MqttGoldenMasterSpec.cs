@@ -19,15 +19,11 @@ public sealed class MqttGoldenMasterSpec : IClassFixture<MosquittoFixture>
 
     public MqttGoldenMasterSpec(MosquittoFixture broker) => _broker = broker;
 
-    public static TheoryData<string> Golden() => ["Alert", "Derived", "Trend", "Index", "Consensus"];
+    public static TheoryData<string> Golden() => ["Alert"];
 
     private static IReadOnlyList<MqttMessage> Build(string kind) => [.. Fixture.Analyses.SelectMany(a => kind switch
     {
         "Alert" => StatePayloadBuilder.FromAlerts(a.Alerts, BaseTopic),
-        "Derived" => StatePayloadBuilder.FromDerived(a.Derived, BaseTopic),
-        "Trend" => StatePayloadBuilder.FromTrends(a.Trends, BaseTopic),
-        "Index" => StatePayloadBuilder.FromIndices(a.Indices, BaseTopic),
-        "Consensus" => StatePayloadBuilder.FromConsensus(a.Consensus, BaseTopic),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     })];
 

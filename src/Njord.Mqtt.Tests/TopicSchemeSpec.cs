@@ -37,6 +37,37 @@ public sealed class TopicSchemeSpec
     }
 
 
+    [Theory]
+    [InlineData(DomainKind.Weather, "weather")]
+    [InlineData(DomainKind.AirQuality, "air-quality")]
+    [InlineData(DomainKind.Flood, "flood")]
+    [InlineData(DomainKind.Solar, "solar")]
+    [InlineData(DomainKind.Marine, "marine")]
+    public void Every_domain_has_its_topic_segment(DomainKind domain, string segment)
+    {
+        Assert.Equal(segment, domain.ToTopicSegment());
+    }
+
+    [Fact]
+    public void An_unknown_domain_has_no_topic_segment()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => ((DomainKind)99).ToTopicSegment());
+
+        Assert.Equal("domain", ex.ParamName);
+    }
+
+    [Fact]
+    public void Domain_topic_carries_location_domain_and_parameter()
+    {
+        Assert.Multiple(
+            () => Assert.Equal("njord/lucerne/weather/temperature",
+                TopicScheme.DomainTopic("njord", "Lucerne", DomainKind.Weather, "temperature")),
+            () => Assert.Equal("njord/lucerne/air-quality/pm25",
+                TopicScheme.DomainTopic("njord", "Lucerne", DomainKind.AirQuality, "pm25")),
+            () => Assert.Equal("njord/z_rich/flood/discharge",
+                TopicScheme.DomainTopic("njord", "Zürich", DomainKind.Flood, "discharge")));
+    }
+
     [Fact]
     public void Availability_topic_sits_at_the_base()
     {

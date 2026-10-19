@@ -1,7 +1,6 @@
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Model;
-using Njord.Mqtt.Topics;
 
 namespace Njord.Mqtt.Mapping;
 
@@ -19,43 +18,24 @@ internal static class PipelineEventMqttMappings
     public static IEnumerable<MqttMessage> ToMqttMessages(this PipelineEvent pipelineEvent, MqttPublishContext context)
         => pipelineEvent switch
         {
-            PipelineEvent.ForecastReceived e => e.ToHorizonMessages(context),
-            PipelineEvent.ConsensusComputed c => StatePayloadBuilder.FromConsensus(c.Consensus, context.BaseTopic),
-            PipelineEvent.AlertComputed a => StatePayloadBuilder.FromAlerts(a.Result, context.BaseTopic),
+            PipelineEvent.WeatherDataReceived e => e.Forecast.ToMessages(e.Location, context.BaseTopic),
+            PipelineEvent.AirQualityDataReceived e => e.Forecast.ToMessages(e.Location, context.BaseTopic),
+            PipelineEvent.FloodDataReceived e => e.Forecast.ToMessages(e.Location, context.BaseTopic),
+            PipelineEvent.SolarDataReceived e => e.Forecast.ToMessages(e.Location, context.BaseTopic),
+            PipelineEvent.MarineDataReceived e => e.Forecast.ToMessages(e.Location, context.BaseTopic),
             PipelineEvent.AlertRaised r => StatePayloadBuilder.FromAlerts(
                 new AlertResult(new LocationId(r.Location.Name), [r.Alert]), context.BaseTopic),
-            PipelineEvent.DerivedComputed d => StatePayloadBuilder.FromDerived(d.Result, context.BaseTopic),
-            PipelineEvent.TrendComputed t => StatePayloadBuilder.FromTrends(t.Result, context.BaseTopic),
-            PipelineEvent.IndexComputed i => StatePayloadBuilder.FromIndices(i.Result, context.BaseTopic),
             _ => [],
         };
 
     public static string ToLocationName(this PipelineEvent pipelineEvent) => pipelineEvent switch
     {
-        PipelineEvent.ForecastReceived u => u.Location.Name,
-        PipelineEvent.ConsensusComputed c => c.Consensus.Location.Name,
-        PipelineEvent.AlertComputed a => a.Result.Location.Name,
+        PipelineEvent.WeatherDataReceived e => e.Location.Name,
+        PipelineEvent.AirQualityDataReceived e => e.Location.Name,
+        PipelineEvent.FloodDataReceived e => e.Location.Name,
+        PipelineEvent.SolarDataReceived e => e.Location.Name,
+        PipelineEvent.MarineDataReceived e => e.Location.Name,
         PipelineEvent.AlertRaised r => r.Location.Name,
-        PipelineEvent.WeatherDataReceived w => w.Location.Name,
-        PipelineEvent.DerivedComputed d => d.Result.Location.Name,
-        PipelineEvent.TrendComputed t => t.Result.Location.Name,
-        PipelineEvent.IndexComputed i => i.Result.Location.Name,
         _ => UnknownLocation,
     };
-
-    private static List<MqttMessage> ToHorizonMessages(this PipelineEvent.ForecastReceived e, MqttPublishContext context)
-    {
-        var maxHours = ModelCoverageRegistry.Get(e.Model.Id)?.MaxForecastHours;
-        var perHorizon = StatePayloadBuilder.BuildPerHorizon(
-            e.Forecast, context.Parameters, context.Horizons, context.ForecastDays, context.Now, maxHours);
-
-        var messages = new List<MqttMessage>(perHorizon.Count);
-        foreach (var (horizon, payload) in perHorizon)
-        {
-            var topic = TopicScheme.HorizonTopic(context.BaseTopic, e.Location.Name, e.Model, horizon.ToWireKey());
-            messages.Add(new MqttMessage(topic, payload, true));
-        }
-
-        return messages;
-    }
 }

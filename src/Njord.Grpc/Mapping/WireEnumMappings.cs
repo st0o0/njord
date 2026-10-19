@@ -1,15 +1,11 @@
-using Njord.Messages.Derived;
-using Njord.Messages.Trends;
+using Njord.Model;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainAlertType = Njord.Messages.Alerts.AlertType;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
+using ProtoDomain = Njord.Grpc.V2.Domain;
 using ProtoAlertType = Njord.Grpc.V2.AlertType;
-using ProtoDewPointComfort = Njord.Grpc.V2.DewPointComfort;
 using ProtoPollPhase = Njord.Grpc.V2.PollPhase;
-using ProtoStability = Njord.Grpc.V2.Stability;
-using ProtoTrendDirection = Njord.Grpc.V2.TrendDirection;
-using ProtoVpdCategory = Njord.Grpc.V2.VpdCategory;
 
 namespace Njord.Grpc.Mapping;
 
@@ -22,39 +18,24 @@ internal static class WireEnumMappings
         _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, null),
     };
 
-    public static ProtoTrendDirection ToProto(this TrendDirection direction) => direction switch
+    public static ProtoDomain ToProto(this DomainKind domain) => domain switch
     {
-        TrendDirection.Rising => ProtoTrendDirection.Rising,
-        TrendDirection.Falling => ProtoTrendDirection.Falling,
-        TrendDirection.Stable => ProtoTrendDirection.Stable,
-        _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
+        DomainKind.Weather => ProtoDomain.Weather,
+        DomainKind.AirQuality => ProtoDomain.AirQuality,
+        DomainKind.Flood => ProtoDomain.Flood,
+        DomainKind.Solar => ProtoDomain.Solar,
+        DomainKind.Marine => ProtoDomain.Marine,
+        _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null),
     };
 
-    public static ProtoStability ToProto(this Stability stability) => stability switch
+    public static DomainKind ToDomain(this ProtoDomain domain) => domain switch
     {
-        Stability.Converging => ProtoStability.Converging,
-        Stability.Diverging => ProtoStability.Diverging,
-        Stability.Stable => ProtoStability.Stable,
-        _ => throw new ArgumentOutOfRangeException(nameof(stability), stability, null),
-    };
-
-    public static ProtoDewPointComfort ToProto(this DewPointComfort comfort) => comfort switch
-    {
-        DewPointComfort.Dry => ProtoDewPointComfort.Dry,
-        DewPointComfort.Comfortable => ProtoDewPointComfort.Comfortable,
-        DewPointComfort.Sticky => ProtoDewPointComfort.Sticky,
-        DewPointComfort.Oppressive => ProtoDewPointComfort.Oppressive,
-        DewPointComfort.Dangerous => ProtoDewPointComfort.Dangerous,
-        _ => throw new ArgumentOutOfRangeException(nameof(comfort), comfort, null),
-    };
-
-    public static ProtoVpdCategory ToProto(this VpdCategory category) => category switch
-    {
-        VpdCategory.Low => ProtoVpdCategory.Low,
-        VpdCategory.Optimal => ProtoVpdCategory.Optimal,
-        VpdCategory.High => ProtoVpdCategory.High,
-        VpdCategory.Critical => ProtoVpdCategory.Critical,
-        _ => throw new ArgumentOutOfRangeException(nameof(category), category, null),
+        ProtoDomain.Weather => DomainKind.Weather,
+        ProtoDomain.AirQuality => DomainKind.AirQuality,
+        ProtoDomain.Flood => DomainKind.Flood,
+        ProtoDomain.Solar => DomainKind.Solar,
+        ProtoDomain.Marine => DomainKind.Marine,
+        _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null),
     };
 
     public static ProtoAlertType ToProto(this DomainAlertType type) => type switch

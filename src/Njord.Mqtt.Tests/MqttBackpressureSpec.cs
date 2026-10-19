@@ -6,7 +6,7 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Messages.Pipeline;
-using Njord.Messages.Trends;
+using Njord.Messages.Alerts;
 using Njord.Model;
 using Njord.Mqtt.Actors;
 using Njord.Mqtt.Health;
@@ -42,22 +42,22 @@ public sealed class MqttBackpressureSpec : NjordActorSpec
         // The publisher is attached once its first publish hangs; the other consumer once it saw the warm-up.
         await AwaitAssertAsync(async () =>
         {
-            await queue.OfferAsync(Trend(WarmUpPrecip), ct);
+            await queue.OfferAsync(Frost(WarmUpPrecip), ct);
             await transport.FirstAttempt.WaitAsync(TimeSpan.FromMilliseconds(300), ct);
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        await otherConsumer.FishForMessageAsync<PipelineEvent.TrendComputed>(
-            t => t.Result.PrecipTiming?.StartsInHours == WarmUpPrecip, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await otherConsumer.FishForMessageAsync<PipelineEvent.AlertRaised>(
+            t => t.Alert.PeakValue == WarmUpPrecip, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
         await OfferAllAsync(queue, ct);
 
         var received = new List<int>();
         while (received.Count < EventCount)
         {
-            var trend = await otherConsumer.ExpectMsgAsync<PipelineEvent.TrendComputed>(TestTimeouts.AwaitAssertMax,
+            var frost = await otherConsumer.ExpectMsgAsync<PipelineEvent.AlertRaised>(TestTimeouts.AwaitAssertMax,
                 cancellationToken: ct);
-            if (trend.Result.PrecipTiming?.StartsInHours is { } precip and > 0)
+            if (frost.Alert.PeakValue is { } precip and > 0)
             {
-                received.Add(precip);
+                received.Add((int)precip);
             }
         }
 
@@ -66,7 +66,7 @@ public sealed class MqttBackpressureSpec : NjordActorSpec
         // Released, the publisher catches up with its most recent events only: the oldest were dropped.
         transport.Release();
         await transport.WaitForPrecip(EventCount).WaitAsync(TestTimeouts.RealTimeWaitMax, ct);
-        Assert.InRange(transport.PublishedTrends, 2, EventCount / 4);
+        Assert.InRange(transport.PublishedAlerts, 2, EventCount / 4);
     }
 
     private static async Task OfferAllAsync(ISourceQueueWithComplete<PipelineEvent> queue, CancellationToken ct)
@@ -77,7 +77,7 @@ public sealed class MqttBackpressureSpec : NjordActorSpec
         {
             for (var precip = 1; precip <= EventCount; precip++)
             {
-                Assert.IsType<QueueOfferResult.Enqueued>(await queue.OfferAsync(Trend(precip), ct));
+                Assert.IsType<QueueOfferResult.Enqueued>(await queue.OfferAsync(Frost(precip), ct));
                 offered++;
             }
         }
@@ -114,15 +114,9 @@ public sealed class MqttBackpressureSpec : NjordActorSpec
             new MqttSessionCounter())), $"mqtt-state-{Guid.NewGuid():N}");
     }
 
-    private static PipelineEvent.TrendComputed Trend(int precipStarts) => new(
-        new TrendResult(
-            new LocationId("lucerne"),
-            new Dictionary<string, ParameterTrend?>(),
-            null,
-            new PrecipTimingInfo(precipStarts, precipStarts + 3),
-            new ExtremaTimingInfo(null, null),
-            null,
-            null),
+    private static PipelineEvent.AlertRaised Frost(int peak) => new(
+        new Location("lucerne", 47.05, 8.31),
+        new Alert(AlertType.Frost, AlertSeverity.Yellow, 0.75, new FrostDetails(-2.1, null, 3), PeakValue: peak),
         Anchor);
 
     private sealed class HubPipeline : ReceiveActor
@@ -149,7 +143,7 @@ public sealed class MqttBackpressureSpec : NjordActorSpec
 
         public Task FirstAttempt => _firstAttempt.Task;
 
-        public int PublishedTrends
+        public int PublishedAlerts
         {
             get
             {
@@ -166,15 +160,15 @@ public sealed class MqttBackpressureSpec : NjordActorSpec
         {
             _firstAttempt.TrySetResult();
             await _released.Task.WaitAsync(cancellationToken);
-            if (topic != "njord/lucerne/trends" || JsonNode.Parse(payload)?["precip_starts"]?.GetValue<int>() is not { } precip)
+            if (topic != "njord/lucerne/alerts/frost" || JsonNode.Parse(payload)?["peak_value"]?.GetValue<double>() is not { } peakValue)
             {
                 return;
             }
 
             lock (_gate)
             {
-                _published.Add(precip);
-                foreach (var waiter in _waiters.Where(w => w.Precip == precip))
+                _published.Add((int)peakValue);
+                foreach (var waiter in _waiters.Where(w => w.Precip == (int)peakValue))
                 {
                     waiter.Seen.TrySetResult();
                 }

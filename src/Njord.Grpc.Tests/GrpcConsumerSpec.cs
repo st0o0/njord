@@ -2,13 +2,11 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
-using Njord.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.Tests.Shared;
-using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Grpc.Tests;
 
@@ -40,41 +38,64 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_forecast_query_returns_the_latest_forecast_for_the_location_and_model()
+    public async Task A_domain_data_query_returns_the_latest_event_of_the_location_and_domain()
     {
         var ct = TestContext.Current.CancellationToken;
         var (readModel, pipeline) = await StartAsync();
-        var forecast = CreateForecast("icon_d2");
+        var older = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2));
+        var newer = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor.AddHours(1), 2));
+        var flood = new PipelineEvent.FloodDataReceived(DomainData.Lucerne, DomainData.Flood(Anchor));
 
-        await pipeline.OfferAsync(new PipelineEvent.ForecastReceived(Lucerne, forecast.Model, forecast), ct);
+        await pipeline.OfferAsync(older, ct);
+        await pipeline.OfferAsync(flood, ct);
+        await pipeline.OfferAsync(newer, ct);
 
         await AwaitAssertAsync(async () =>
         {
-            var response = await readModel.Ask<ForecastResponse>(new QueryForecast(Lucerne, "ICON_D2"), AskTimeout, ct);
-            var result = Assert.IsType<ForecastResult>(response);
-            Assert.Same(forecast, result.Forecast);
+            var weather = await readModel.Ask<DomainDataResponse>(new QueryDomainData(Lucerne, DomainKind.Weather), AskTimeout, ct);
+            var floodReply = await readModel.Ask<DomainDataResponse>(new QueryDomainData(Lucerne, DomainKind.Flood), AskTimeout, ct);
+            Assert.Multiple(
+                () => Assert.Equal(new DomainDataResult(newer), weather),
+                () => Assert.Equal(new DomainDataResult(flood), floodReply));
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Queries_match_the_location_regardless_of_case()
+    public async Task Domain_data_is_kept_per_location()
     {
         var ct = TestContext.Current.CancellationToken;
         var (readModel, pipeline) = await StartAsync();
-        var forecast = CreateForecast("icon_d2");
-        var alerts = EnrichmentEvents.Alerts(Lucerne, Anchor);
+        var lucerne = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2));
 
-        await pipeline.OfferAsync(new PipelineEvent.ForecastReceived(Lucerne, forecast.Model, forecast), ct);
-        await pipeline.OfferAsync(alerts, ct);
+        await pipeline.OfferAsync(lucerne, ct);
 
-        var shouted = new LocationId("LUCERNE");
         await AwaitAssertAsync(async () =>
         {
-            var response = await readModel.Ask<ForecastResponse>(new QueryForecast(shouted, "icon_d2"), AskTimeout, ct);
-            Assert.Same(forecast, Assert.IsType<ForecastResult>(response).Forecast);
+            var found = await readModel.Ask<DomainDataResponse>(new QueryDomainData(new LocationId("LUCERNE"), DomainKind.Weather), AskTimeout, ct);
+            var missing = await readModel.Ask<DomainDataResponse>(new QueryDomainData(Zurich, DomainKind.Weather), AskTimeout, ct);
+            Assert.Multiple(
+                () => Assert.Equal(new DomainDataResult(lucerne), found),
+                () => Assert.Equal(new DomainDataNotAvailable(Zurich, DomainKind.Weather), missing));
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        var analysis = await AwaitAnalysisAsync(readModel, shouted, r => Equals(r.Alerts, alerts), ct);
-        Assert.Equal(alerts, analysis.Alerts);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task Raised_alerts_are_merged_per_type_and_location()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (readModel, pipeline) = await StartAsync();
+        var frost = new Alert(AlertType.Frost, AlertSeverity.Yellow, 0.6, NoDetails.Instance);
+        var heat = new Alert(AlertType.Heat, AlertSeverity.Orange, 0.9, NoDetails.Instance);
+        var frostRed = frost with { Severity = AlertSeverity.Red };
+
+        await pipeline.OfferAsync(new PipelineEvent.AlertRaised(DomainData.Lucerne, frost, Anchor), ct);
+        await pipeline.OfferAsync(new PipelineEvent.AlertRaised(DomainData.Lucerne, heat, Anchor.AddMinutes(1)), ct);
+        await pipeline.OfferAsync(new PipelineEvent.AlertRaised(DomainData.Lucerne, frostRed, Anchor.AddMinutes(2)), ct);
+
+        var result = await AwaitAnalysisAsync(readModel, Lucerne, r => r.Alerts?.Timestamp == Anchor.AddMinutes(2), ct);
+        Assert.NotNull(result.Alerts);
+        var alerts = result.Alerts.Result.Alerts;
+        Assert.Equal([frostRed, heat], alerts);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -93,70 +114,21 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_latest_analysis_query_returns_the_latest_event_of_every_kind()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var (readModel, pipeline) = await StartAsync();
-        var consensus = EnrichmentEvents.Consensus(Lucerne, Anchor);
-        var alerts = EnrichmentEvents.Alerts(Lucerne, Anchor);
-        var derived = EnrichmentEvents.Derived(Lucerne, Anchor);
-        var trends = EnrichmentEvents.Trends(Lucerne, Anchor);
-        var indices = EnrichmentEvents.Indices(Lucerne, Anchor);
-
-        foreach (PipelineEvent evt in new PipelineEvent[] { consensus, alerts, derived, trends, indices })
-        {
-            await pipeline.OfferAsync(evt, ct);
-        }
-
-        var result = await AwaitAnalysisAsync(readModel, Lucerne, r => r.Indices is not null, ct);
-        Assert.Multiple(
-            () => Assert.Equal(Lucerne, result.Location),
-            () => Assert.Equal(consensus, result.Consensus),
-            () => Assert.Equal(alerts, result.Alerts),
-            () => Assert.Equal(derived, result.Derived),
-            () => Assert.Equal(trends, result.Trends),
-            () => Assert.Equal(indices, result.Indices));
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_newer_event_replaces_only_the_event_of_its_own_kind()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var (readModel, pipeline) = await StartAsync();
-        var trends = EnrichmentEvents.Trends(Lucerne, Anchor);
-        var newerAlerts = EnrichmentEvents.Alerts(Lucerne, Anchor.AddHours(1));
-
-        await pipeline.OfferAsync(EnrichmentEvents.Alerts(Lucerne, Anchor), ct);
-        await pipeline.OfferAsync(trends, ct);
-        await pipeline.OfferAsync(newerAlerts, ct);
-
-        var result = await AwaitAnalysisAsync(readModel, Lucerne, r => Equals(r.Alerts, newerAlerts), ct);
-        Assert.Multiple(
-            () => Assert.Equal(newerAlerts, result.Alerts),
-            () => Assert.Equal(trends, result.Trends),
-            () => Assert.Null(result.Consensus),
-            () => Assert.Null(result.Derived),
-            () => Assert.Null(result.Indices));
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Analysis_kinds_are_kept_per_location()
+    public async Task Alerts_are_kept_per_location()
     {
         var ct = TestContext.Current.CancellationToken;
         var (readModel, pipeline) = await StartAsync();
         var lucerneAlerts = EnrichmentEvents.Alerts(Lucerne, Anchor);
-        var zurichTrends = EnrichmentEvents.Trends(Zurich, Anchor);
+        var zurichAlerts = EnrichmentEvents.Alerts(Zurich, Anchor.AddHours(1));
 
         await pipeline.OfferAsync(lucerneAlerts, ct);
-        await pipeline.OfferAsync(zurichTrends, ct);
+        await pipeline.OfferAsync(zurichAlerts, ct);
 
-        var zurich = await AwaitAnalysisAsync(readModel, Zurich, r => r.Trends is not null, ct);
+        var zurich = await AwaitAnalysisAsync(readModel, Zurich, r => r.Alerts is not null, ct);
         var lucerne = await AwaitAnalysisAsync(readModel, Lucerne, r => r.Alerts is not null, ct);
         Assert.Multiple(
             () => Assert.Equal(lucerneAlerts, lucerne.Alerts),
-            () => Assert.Null(lucerne.Trends),
-            () => Assert.Equal(zurichTrends, zurich.Trends),
-            () => Assert.Null(zurich.Alerts));
+            () => Assert.Equal(zurichAlerts, zurich.Alerts));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -165,10 +137,10 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
         var ct = TestContext.Current.CancellationToken;
         var (readModel, _) = await StartAsync();
 
-        var forecast = await readModel.Ask<ForecastResponse>(new QueryForecast(Lucerne, "icon_d2"), AskTimeout, ct);
+        var domainData = await readModel.Ask<DomainDataResponse>(new QueryDomainData(Lucerne, DomainKind.Weather), AskTimeout, ct);
         var analysis = await readModel.Ask<LatestAnalysisResponse>(new QueryLatestAnalysis(Lucerne), AskTimeout, ct);
 
-        Assert.Equal(new ForecastNotAvailable("lucerne|icon_d2"), forecast);
+        Assert.Equal(new DomainDataNotAvailable(Lucerne, DomainKind.Weather), domainData);
         Assert.Equal(new LatestAnalysisNotAvailable(Lucerne), analysis);
     }
 
@@ -457,17 +429,6 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
         return Assert.IsType<RequestGrpcStreamCompleted>(completed).SourceRef.Source;
-    }
-
-    private static WeatherForecast CreateForecast(string model)
-    {
-        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
-        var points = new List<ForecastPoint>
-        {
-            new(Anchor.AddHours(3), new Dictionary<ParameterDef, ForecastValue> { [temp] = 28.8 }),
-        };
-        return new WeatherForecast(new WeatherModel(model), "lucerne", new CycleId(Anchor),
-            new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
     private sealed record TestPipeline(

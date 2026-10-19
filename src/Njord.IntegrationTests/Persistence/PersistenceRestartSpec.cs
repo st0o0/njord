@@ -39,7 +39,7 @@ public sealed class PersistenceRestartSpec : IDisposable
 
             var status = await StatusAsync(first, ct);
             usageBeforeRestart = status.Budget.MonthlyUsed;
-            missesBeforeRestart = status.Models.Single(m => m.Model == "icon_eu").MissCount;
+            missesBeforeRestart = status.Models.Single(m => m.Location == "luzern").MissCount;
         }
 
         await using var second = await NjordTestHost.StartAsync(_directory.Path, cancellationToken: ct);
@@ -49,7 +49,7 @@ public sealed class PersistenceRestartSpec : IDisposable
             var status = await StatusAsync(second, ct);
             Assert.Multiple(
                 () => Assert.True(status.Budget.MonthlyUsed >= usageBeforeRestart, $"usage {status.Budget.MonthlyUsed} < {usageBeforeRestart}"),
-                () => Assert.True(status.Models.Single(m => m.Model == "icon_eu").MissCount >= missesBeforeRestart));
+                () => Assert.True(status.Models.Single(m => m.Location == "luzern").MissCount >= missesBeforeRestart));
         }, ct);
         Assert.True(missesBeforeRestart > 0, "The first lifetime never recorded an unchanged poll, so the recovery proves nothing.");
     }

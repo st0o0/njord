@@ -8,10 +8,10 @@ namespace Njord.Mqtt.Serialization;
     DefaultIgnoreCondition = JsonIgnoreCondition.Never,
     WriteIndented = false)]
 [JsonSerializable(typeof(AlertPayload))]
-[JsonSerializable(typeof(DerivedHorizonPayload))]
-[JsonSerializable(typeof(DerivedMetaPayload))]
-[JsonSerializable(typeof(IndexDayPayload))]
-[JsonSerializable(typeof(TrendPayload))]
-[JsonSerializable(typeof(ConsensusHorizonPayload))]
 [JsonSerializable(typeof(ForecastHorizonPayload))]
+[JsonSerializable(typeof(WeatherPayload))]
+[JsonSerializable(typeof(AirQualityPayload))]
+[JsonSerializable(typeof(FloodPayload))]
+[JsonSerializable(typeof(SolarPayload))]
+[JsonSerializable(typeof(MarinePayload))]
 internal sealed partial class MqttPayloadJsonContext : JsonSerializerContext;

@@ -1,5 +1,3 @@
-using Njord.Consensus;
-using Njord.Forecast;
 using Njord.Grpc.Mapping;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
@@ -8,9 +6,6 @@ using Njord.Tests.Shared;
 using DomainAlert = Njord.Messages.Alerts.Alert;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainAlertType = Njord.Messages.Alerts.AlertType;
-using DomainHorizonConsensus = Njord.Consensus.HorizonConsensus;
-using DomainParameterConsensus = Njord.Consensus.ParameterConsensus;
-using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Grpc.Tests;
 
@@ -21,8 +16,7 @@ public sealed class EnrichmentEventMappingsSpec
     {
         var alertResult = new AlertResult(new LocationId("lucerne"),
         [
-            new DomainAlert(DomainAlertType.Heat, DomainAlertSeverity.Yellow, 0.75,
-                NoDetails.Instance),
+            new DomainAlert(DomainAlertType.Heat, DomainAlertSeverity.Yellow, 0.75, NoDetails.Instance),
         ]);
         var updatedAt = TestTimeConstants.BudgetEpoch;
 
@@ -32,95 +26,61 @@ public sealed class EnrichmentEventMappingsSpec
         Assert.Equal("lucerne", evt.Location);
         Assert.Equal("alerts", evt.TypeName);
         Assert.Equal(updatedAt, evt.UpdatedAt.ToDateTimeOffset());
-        Assert.NotNull(evt.Alerts);
-        Assert.Single(evt.Alerts.Alerts);
+        var alert = Assert.Single(evt.Alerts.Alerts);
+        Assert.Equal((V2.AlertType.Heat, V2.AlertSeverity.Yellow, 0.75), (alert.Type, alert.Severity, alert.Confidence));
     }
 
     [Fact]
-    public void ToEnrichmentEvent_should_wrap_consensus_result_in_enrichment_event()
+    public void ToEnrichmentEvent_should_wrap_a_raised_alert_in_enrichment_event()
     {
-        var param = new ParameterDef("temperature_2m", "C", ParameterGroup.Weather, ParameterGranularity.Hourly);
-        var horizonConsensus = new DomainHorizonConsensus(
-            Median: 20.5, TrimmedMean: 20.3, Spread: 2.1, Iqr: 1.5, Agreement: 0.85,
-            Outlier: null, ConfidenceInterval: null,
-            AvailableModels: [new WeatherModel("icon_d2"), new WeatherModel("ecmwf_ifs025")]);
-        var hourlyParam = new DomainParameterConsensus(param,
-            new Dictionary<Horizon, DomainHorizonConsensus> { [Horizon.Hours(3)] = horizonConsensus });
+        var raisedAt = TestTimeConstants.BudgetEpoch;
+        var raised = new PipelineEvent.AlertRaised(DomainData.Lucerne,
+            new DomainAlert(DomainAlertType.Frost, DomainAlertSeverity.Orange, 0.9, NoDetails.Instance, PeakValue: -4.0, HoursUntil: 6),
+            raisedAt);
 
-        var dailyParam = new DomainParameterConsensus(
-            ParameterRegistry.GetByApiName("temperature_2m_max")!,
-            new Dictionary<Horizon, DomainHorizonConsensus> { [Horizon.Days(0)] = horizonConsensus });
-
-        var result = new ConsensusResult([hourlyParam], [dailyParam]);
-        var updatedAt = TestTimeConstants.BudgetEpoch;
-
-        var consensus = new LocationConsensus(new LocationId("lucerne"),
-            new HourlyConsensus([hourlyParam], 72), new DailyConsensus([dailyParam], 4), updatedAt);
-        var evt = EnrichmentEventMappings.ToEnrichmentEvent(new PipelineEvent.ConsensusComputed(consensus, updatedAt));
+        var evt = EnrichmentEventMappings.ToEnrichmentEvent(raised);
 
         Assert.NotNull(evt);
-        Assert.Equal("lucerne", evt.Location);
-        Assert.Equal("consensus", evt.TypeName);
-        Assert.NotNull(evt.Consensus);
-        Assert.Single(evt.Consensus.HourlyParameters);
-        Assert.Single(evt.Consensus.DailyParameters);
+        Assert.Equal(("Lucerne", "alerts", raisedAt), (evt.Location, evt.TypeName, evt.UpdatedAt.ToDateTimeOffset()));
+        var alert = Assert.Single(evt.Alerts.Alerts);
+        Assert.Equal((V2.AlertType.Frost, V2.AlertSeverity.Orange, -4.0, 6), (alert.Type, alert.Severity, alert.PeakValue, alert.HoursUntil));
     }
 
     [Fact]
-    public void ToEnrichmentEvent_should_return_null_for_non_analysis_event()
+    public void ToEnrichmentEvent_should_return_null_for_domain_data_events()
     {
         var evt = EnrichmentEventMappings.ToEnrichmentEvent(
-            new PipelineEvent.ForecastReceived(new LocationId("lucerne"), new WeatherModel("icon_d2"),
-                new WeatherForecast(new WeatherModel("icon_d2"), "lucerne", default,
-                    new ForecastSeries([]), DailyForecastSeries.Empty)));
+            new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(TestTimeConstants.BudgetEpoch, 1)));
 
         Assert.Null(evt);
     }
 
     [Fact]
-    public void LatestAnalysisResult_should_fill_every_available_enrichment_field()
+    public void LatestAnalysisResult_should_fill_the_alerts()
     {
         var lucerne = new LocationId("lucerne");
-        var computedAt = TestTimeConstants.BudgetEpoch;
-        var result = new LatestAnalysisResult(lucerne,
-            Consensus: EnrichmentEvents.Consensus(lucerne, computedAt),
-            Alerts: EnrichmentEvents.Alerts(lucerne, computedAt.AddMinutes(1)),
-            Derived: EnrichmentEvents.Derived(lucerne, computedAt.AddMinutes(2)),
-            Trends: EnrichmentEvents.Trends(lucerne, computedAt.AddMinutes(3)),
-            Indices: EnrichmentEvents.Indices(lucerne, computedAt.AddMinutes(4)));
+        var result = new LatestAnalysisResult(lucerne, EnrichmentEvents.Alerts(lucerne, TestTimeConstants.BudgetEpoch));
 
         var proto = EnrichmentEventMappings.ToProto((LatestAnalysisResponse)result);
 
-        Assert.Multiple(
-            () => Assert.Equal("lucerne", proto.Location),
-            () => Assert.Equal(new V2.ConsensusUpdate(), proto.Consensus),
-            () => Assert.Equal(computedAt, proto.ConsensusUpdatedAt?.ToDateTimeOffset()),
-            () => Assert.Equal(new V2.AlertUpdate(), proto.Alerts),
-            () => Assert.Equal(4.5, proto.Derived?.Scalars.DiurnalAmplitude),
-            () => Assert.Equal(3, proto.Trends?.PrecipStartsInHours),
-            () => Assert.Equal(14, proto.Indices?.Frost.HoursUntilFrost));
+        Assert.Equal(new V2.GetEnrichmentsResponse { Location = "lucerne", Alerts = new V2.AlertUpdate() }, proto);
     }
 
     [Fact]
-    public void LatestAnalysisResult_should_leave_missing_enrichment_fields_unset()
+    public void LatestAnalysisResult_should_leave_missing_alerts_unset()
     {
-        var lucerne = new LocationId("lucerne");
-        var computedAt = TestTimeConstants.BudgetEpoch;
-        var result = new LatestAnalysisResult(lucerne,
-            Consensus: null,
-            Alerts: EnrichmentEvents.Alerts(lucerne, computedAt),
-            Derived: null,
-            Trends: EnrichmentEvents.Trends(lucerne, computedAt),
-            Indices: null);
-
-        var proto = EnrichmentEventMappings.ToProto((LatestAnalysisResponse)result);
+        var proto = EnrichmentEventMappings.ToProto(new LatestAnalysisResult(new LocationId("lucerne"), null));
 
         Assert.Multiple(
-            () => Assert.NotNull(proto.Alerts),
-            () => Assert.Equal(3, proto.Trends?.PrecipStartsInHours),
-            () => Assert.Null(proto.Consensus),
-            () => Assert.Null(proto.ConsensusUpdatedAt),
-            () => Assert.Null(proto.Derived),
-            () => Assert.Null(proto.Indices));
+            () => Assert.Equal("lucerne", proto.Location),
+            () => Assert.Null(proto.Alerts));
+    }
+
+    [Fact]
+    public void LatestAnalysisNotAvailable_should_carry_only_the_location()
+    {
+        var proto = EnrichmentEventMappings.ToProto(new LatestAnalysisNotAvailable(new LocationId("lucerne")));
+
+        Assert.Equal(new V2.GetEnrichmentsResponse { Location = "lucerne" }, proto);
     }
 }

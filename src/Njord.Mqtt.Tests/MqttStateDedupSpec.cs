@@ -4,7 +4,7 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Messages.Pipeline;
-using Njord.Messages.Trends;
+using Njord.Messages.Alerts;
 using Njord.Model;
 using Njord.Mqtt.Actors;
 using Njord.Mqtt.Health;
@@ -45,33 +45,27 @@ public sealed class MqttStateDedupSpec : NjordActorSpec
         return (pipeline, transport);
     }
 
-    private static PipelineEvent.TrendComputed Trend(int precipStarts) => new(
-        new TrendResult(
-            new LocationId("lucerne"),
-            new Dictionary<string, ParameterTrend?>(),
-            null,
-            new PrecipTimingInfo(precipStarts, precipStarts + 3),
-            new ExtremaTimingInfo(null, null),
-            null,
-            null),
+    private static PipelineEvent.AlertRaised Frost(int peak) => new(
+        new Location("lucerne", 47.05, 8.31),
+        new Alert(AlertType.Frost, AlertSeverity.Yellow, 0.75, new FrostDetails(-2.1, null, 3), PeakValue: peak),
         Anchor);
 
-    private static async Task WaitForTrendAsync(RecordingTransport transport, int precipStarts, CancellationToken ct)
+    private static async Task WaitForFrostAsync(RecordingTransport transport, int peak, CancellationToken ct)
     {
         try
         {
-            await transport.WaitForMessage(m => m.Topic == "njord/lucerne/trends" && PrecipStarts(m) == precipStarts)
+            await transport.WaitForMessage(m => m.Topic == "njord/lucerne/alerts/frost" && PeakValue(m) == peak)
                 .WaitAsync(TestTimeouts.RealTimeWaitMax, ct);
         }
         catch (TimeoutException)
         {
-            Assert.Fail($"Timed out after {TestTimeouts.RealTimeWaitMax} waiting for the trend with precip_starts={precipStarts}; " +
+            Assert.Fail($"Timed out after {TestTimeouts.RealTimeWaitMax} waiting for the frost alert with peak_value={peak}; " +
                         $"published: {transport.Sent.Count}");
         }
     }
 
-    private static int? PrecipStarts(SentMessage message) =>
-        JsonNode.Parse(message.Payload)?["precip_starts"]?.GetValue<int>();
+    private static double? PeakValue(SentMessage message) =>
+        JsonNode.Parse(message.Payload)?["peak_value"]?.GetValue<double>();
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task An_unchanged_payload_is_not_published_again_on_the_same_broker_connection()
@@ -80,12 +74,12 @@ public sealed class MqttStateDedupSpec : NjordActorSpec
         var (pipeline, transport) = Start();
         var subscription = await pipeline.NextSubscriptionAsync("the subscription", ct);
 
-        await subscription.OfferAsync(Trend(1), ct);
-        await subscription.OfferAsync(Trend(1), ct);
-        await subscription.OfferAsync(Trend(2), ct);
-        await WaitForTrendAsync(transport, 2, ct);
+        await subscription.OfferAsync(Frost(1), ct);
+        await subscription.OfferAsync(Frost(1), ct);
+        await subscription.OfferAsync(Frost(2), ct);
+        await WaitForFrostAsync(transport, 2, ct);
 
-        Assert.Single(transport.Sent, m => PrecipStarts(m) == 1);
+        Assert.Single(transport.Sent, m => PeakValue(m) == 1);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -94,14 +88,14 @@ public sealed class MqttStateDedupSpec : NjordActorSpec
         var ct = TestContext.Current.CancellationToken;
         var (pipeline, transport) = Start();
         var subscription = await pipeline.NextSubscriptionAsync("the subscription", ct);
-        await subscription.OfferAsync(Trend(1), ct);
-        await WaitForTrendAsync(transport, 1, ct);
+        await subscription.OfferAsync(Frost(1), ct);
+        await WaitForFrostAsync(transport, 1, ct);
 
         _sessionCounter.Increment();
-        await subscription.OfferAsync(Trend(1), ct);
+        await subscription.OfferAsync(Frost(1), ct);
 
         await AwaitAssertAsync(
-            () => Assert.Equal(2, transport.Sent.Count(m => PrecipStarts(m) == 1)),
+            () => Assert.Equal(2, transport.Sent.Count(m => PeakValue(m) == 1)),
             TestTimeouts.AwaitAssertMax, cancellationToken: ct);
     }
 }
