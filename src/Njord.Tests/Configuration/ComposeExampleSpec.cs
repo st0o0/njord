@@ -9,11 +9,8 @@ using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Persistence;
 using Njord.Core.Configuration.Polling;
-using Njord.Derived.Configuration;
-using Njord.Indices.Configuration;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
-using Njord.Trends.Configuration;
 
 namespace Njord.Tests.Configuration;
 
@@ -71,11 +68,7 @@ public sealed partial class ComposeExampleSpec
         Add<StorageOptions>(result);
         Add<PersistenceOptions>(result);
         Add<MqttOptions>(result);
-        Add<ConsensusOptions>(result);
         Add<AlertOptions>(result);
-        Add<DerivedOptions>(result);
-        Add<TrendOptions>(result);
-        Add<IndexOptions>(result);
         return result;
     }
 
@@ -169,7 +162,8 @@ public sealed partial class ComposeExampleSpec
     public void Every_scalar_option_with_a_default_is_listed_in_the_example()
     {
         var listed = Variables().Select(v => v.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var optional = new[] { "Njord:Parameters", "Njord:Enrichment:Indices:Preferences" };
+
+        var optional = new[] { "Njord:Parameters" };
 
         var missing = Defaults()
             .Where(d => d.Value is not null && !char.IsDigit(d.Key[^1]))

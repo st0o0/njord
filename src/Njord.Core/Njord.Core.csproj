@@ -6,9 +6,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Njord.Consensus\Njord.Consensus.csproj" />
         <ProjectReference Include="..\Njord.Model\Njord.Model.csproj" />
-        <ProjectReference Include="..\Njord.Forecast\Njord.Forecast.csproj" />
         <ProjectReference Include="..\Njord.Messages\Njord.Messages.csproj" />
         <ProjectReference Include="..\Njord.Persistence\Njord.Persistence.csproj" />
     </ItemGroup>

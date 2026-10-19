@@ -6,7 +6,7 @@ public sealed partial class MqttPayloadArchitectureSpec
 {
     private const string PayloadNamespace = "Njord.Mqtt.Payloads";
 
-    private static readonly string[] NodeFreeProjects = ["Njord.Model", "Njord.Forecast", "Njord.Messages", "Njord.Pipeline"];
+    private static readonly string[] NodeFreeProjects = ["Njord.Model", "Njord.Messages", "Njord.Pipeline"];
 
     [GeneratedRegex(@"\bJson(Object|Node|Array|Value)\b|System\.Text\.Json\.Nodes")]
     private static partial Regex JsonNodeUsage();

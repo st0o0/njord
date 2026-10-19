@@ -1,10 +1,5 @@
-using Njord.Consensus;
 using Njord.Messages.Alerts;
-using Njord.Messages.Derived;
-using Njord.Messages.Indices;
-using Njord.Messages.Trends;
 using Njord.Model;
-using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Messages.Pipeline;
 
@@ -17,11 +12,6 @@ public interface IEnrichmentEvent
 
 public abstract record PipelineEvent
 {
-    public sealed record ForecastReceived(
-        LocationId Location,
-        WeatherModel Model,
-        WeatherForecast Forecast) : PipelineEvent;
-
     public sealed record WeatherDataReceived(
         Location Location,
         DomainForecast<WeatherPoint> Forecast) : PipelineEvent;
@@ -60,15 +50,6 @@ public abstract record PipelineEvent
         public AlertDetails Details => Alert.Details;
     }
 
-    public sealed record ConsensusComputed(
-        LocationConsensus Consensus,
-        DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
-    {
-        public EnrichmentKind Kind => EnrichmentKind.Consensus;
-
-        public LocationId Location => Consensus.Location;
-    }
-
     public sealed record AlertComputed(
         AlertResult Result,
         DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
@@ -78,30 +59,4 @@ public abstract record PipelineEvent
         public LocationId Location => Result.Location;
     }
 
-    public sealed record DerivedComputed(
-        DerivedResult Result,
-        DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
-    {
-        public EnrichmentKind Kind => EnrichmentKind.Derived;
-
-        public LocationId Location => Result.Location;
-    }
-
-    public sealed record TrendComputed(
-        TrendResult Result,
-        DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
-    {
-        public EnrichmentKind Kind => EnrichmentKind.Trends;
-
-        public LocationId Location => Result.Location;
-    }
-
-    public sealed record IndexComputed(
-        IndexResult Result,
-        DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
-    {
-        public EnrichmentKind Kind => EnrichmentKind.Indices;
-
-        public LocationId Location => Result.Location;
-    }
 }

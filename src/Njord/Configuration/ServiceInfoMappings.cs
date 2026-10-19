@@ -1,13 +1,9 @@
 using Njord.Alerts.Configuration;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Derived.Configuration;
-using Njord.Indices.Configuration;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
 using Njord.Model;
-using Njord.Pipeline.Configuration;
-using Njord.Trends.Configuration;
 
 namespace Njord.Configuration;
 
@@ -16,16 +12,12 @@ public static class ServiceInfoMappings
     public static ServiceInfo ToServiceInfo(
         NjordOptions scope,
         PollingOptions polling,
-        ConsensusOptions consensus,
-        AlertOptions alerts,
-        DerivedOptions derived,
-        TrendOptions trends,
-        IndexOptions indices) =>
+        AlertOptions alerts) =>
         new(
             scope.ToCatalog(),
             BudgetCalculator.GetEffectiveBudget(polling).RequestsPerMonth,
             RequestBudget.OpenMeteoFreeTierDailyLimit,
-            ActiveEnrichments(consensus, alerts, derived, trends, indices));
+            ActiveEnrichments(alerts));
 
     // Locations in configuration order; models deduplicated in first-seen order with their coverage.
     public static CatalogResult ToCatalog(this NjordOptions scope)
@@ -51,39 +43,6 @@ public static class ServiceInfoMappings
     private static List<string> ResolveModels(NjordOptions scope, LocationOptions location) =>
         [.. scope.Models.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase)];
 
-    private static List<EnrichmentKind> ActiveEnrichments(
-        ConsensusOptions consensus,
-        AlertOptions alerts,
-        DerivedOptions derived,
-        TrendOptions trends,
-        IndexOptions indices)
-    {
-        var active = new List<EnrichmentKind>(5);
-        if (consensus.Enabled)
-        {
-            active.Add(EnrichmentKind.Consensus);
-        }
-
-        if (alerts.Enabled)
-        {
-            active.Add(EnrichmentKind.Alerts);
-        }
-
-        if (derived.Enabled)
-        {
-            active.Add(EnrichmentKind.Derived);
-        }
-
-        if (trends.Enabled)
-        {
-            active.Add(EnrichmentKind.Trends);
-        }
-
-        if (indices.Enabled)
-        {
-            active.Add(EnrichmentKind.Indices);
-        }
-
-        return active;
-    }
+    private static List<EnrichmentKind> ActiveEnrichments(AlertOptions alerts) =>
+        alerts.Enabled ? [EnrichmentKind.Alerts] : [];
 }

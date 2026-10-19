@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Njord.Consensus.Querying;
 
 namespace Njord.Messages.Alerts;
 

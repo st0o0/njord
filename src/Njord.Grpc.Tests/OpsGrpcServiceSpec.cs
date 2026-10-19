@@ -4,15 +4,12 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts.Configuration;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Derived.Configuration;
 using Njord.Grpc.V2;
-using Njord.Indices.Configuration;
 using Njord.Messages.Budget;
 using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
-using Njord.Trends.Configuration;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 
 namespace Njord.Grpc.Tests;
@@ -45,11 +42,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         };
         var serviceInfo = TestServiceInfo.Create(
             options,
-            consensus: AppSettingsDefaults.Options<ConsensusOptions>(o => o.Enabled = true),
-            alerts: AppSettingsDefaults.Options<AlertOptions>(o => o.Enabled = true),
-            derived: AppSettingsDefaults.Options<DerivedOptions>(o => o.Enabled = false),
-            trends: AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = false),
-            indices: AppSettingsDefaults.Options<IndexOptions>(o => o.Enabled = false));
+            alerts: AppSettingsDefaults.Options<AlertOptions>(o => o.Enabled = true));
         return new OpsGrpcService(ActorRegistry, _time, serviceInfo,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<OpsGrpcService>.Instance);
     }
@@ -81,9 +74,8 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
 
         var status = await service.GetStatus(new GetStatusRequest(), TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
-        Assert.Contains("consensus", status.ActiveEnrichments);
         Assert.Contains("alerts", status.ActiveEnrichments);
-        Assert.Equal(2, status.ActiveEnrichments.Count);
+        Assert.Single(status.ActiveEnrichments);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

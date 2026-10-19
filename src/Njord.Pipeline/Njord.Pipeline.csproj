@@ -12,9 +12,6 @@
     <ItemGroup>
         <ProjectReference Include="..\Njord.Core\Njord.Core.csproj" />
         <ProjectReference Include="..\Njord.Alerts\Njord.Alerts.csproj" />
-        <ProjectReference Include="..\Njord.Derived\Njord.Derived.csproj" />
-        <ProjectReference Include="..\Njord.Trends\Njord.Trends.csproj" />
-        <ProjectReference Include="..\Njord.Indices\Njord.Indices.csproj" />
     </ItemGroup>
 
     <ItemGroup>

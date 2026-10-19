@@ -7,10 +7,7 @@ using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Persistence;
 using Njord.Core.Configuration.Polling;
-using Njord.Derived.Configuration;
-using Njord.Indices.Configuration;
 using Njord.Pipeline.Configuration;
-using Njord.Trends.Configuration;
 
 namespace Njord.Tests.Configuration;
 
@@ -82,19 +79,11 @@ public sealed class OptionsBindingSpec : IDisposable
             ["Njord:Polling:PollInterval"] = "00:30:00",
             ["Njord:Mqtt:Host"] = "broker.local",
             ["Njord:Enrichment:Alerts:Enabled"] = "false",
-            ["Njord:Enrichment:Indices:Enabled"] = "true",
-            ["Njord:Enrichment:Trends:Enabled"] = "false",
-            ["Njord:Enrichment:Derived:Enabled"] = "true",
-            ["Njord:Enrichment:Consensus:MinQuorum"] = "3",
         });
 
         Assert.Equal(TimeSpan.FromMinutes(30), provider.GetRequiredService<IOptions<PollingOptions>>().Value.PollInterval);
         Assert.Equal("broker.local", provider.GetRequiredService<IOptions<MqttOptions>>().Value.Host);
         Assert.False(provider.GetRequiredService<IOptions<AlertOptions>>().Value.Enabled);
-        Assert.True(provider.GetRequiredService<IOptions<IndexOptions>>().Value.Enabled);
-        Assert.False(provider.GetRequiredService<IOptions<TrendOptions>>().Value.Enabled);
-        Assert.True(provider.GetRequiredService<IOptions<DerivedOptions>>().Value.Enabled);
-        Assert.Equal(3, provider.GetRequiredService<IOptions<ConsensusOptions>>().Value.MinQuorum);
     }
 
     [Fact]
@@ -135,11 +124,13 @@ public sealed class OptionsBindingSpec : IDisposable
     {
         using var provider = BuildHost(new Dictionary<string, string?>
         {
-            ["Njord:Enrichment:Consensus:MinQuorum"] = "0",
+            ["Njord:Enrichment:Alerts:FrostThresholds:0"] = "-9",
+            ["Njord:Enrichment:Alerts:FrostThresholds:1"] = "5",
+            ["Njord:Enrichment:Alerts:FrostThresholds:2"] = "9",
         });
 
         var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IStartupValidator>().Validate());
-        Assert.Contains("MinQuorum", ex.Message);
+        Assert.Contains("FrostThresholds", ex.Message);
     }
 
     public void Dispose()

@@ -1,8 +1,5 @@
 using System.Text.Json;
 using Njord.Messages.Alerts;
-using Njord.Messages.Derived;
-using Njord.Messages.Indices;
-using Njord.Messages.Trends;
 using Njord.Mqtt.Payloads;
 using Njord.Mqtt.Serialization;
 
@@ -77,19 +74,5 @@ public sealed class MqttPayloadJsonContextSpec
         Assert.Multiple(
             () => Assert.EndsWith("\"min_visibility\":150,\"hours_below_1000m\":5}", Json(visibility)),
             () => Assert.EndsWith("\"night_minimum\":21.5,\"hours_above_20\":7}", Json(tropical)));
-    }
-    [Fact]
-    public void Forecast_horizon_writes_numbers_and_text_and_omits_absent_values()
-    {
-        var payload = new ForecastHorizonPayload(
-            [
-                new ForecastHorizonEntryPayload("temperature", 21.5, null),
-                new ForecastHorizonEntryPayload("sunrise", null, "05:31"),
-                new ForecastHorizonEntryPayload("empty", null, null),
-            ]);
-
-        Assert.Equal(
-            "{\"temperature\":21.5,\"sunrise\":\"05:31\"}",
-            JsonSerializer.Serialize(payload, MqttPayloadJsonContext.Default.ForecastHorizonPayload));
     }
 }

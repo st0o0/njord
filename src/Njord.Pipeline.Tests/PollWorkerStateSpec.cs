@@ -1,4 +1,3 @@
-using Njord.Forecast;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
@@ -332,9 +331,9 @@ public sealed class PollWorkerStateSpec
     [Fact]
     public void A_changed_hash_becomes_a_forecast_changed_event()
     {
-        var state = Started().Apply(new ForecastChanged(42, T0));
+        var state = Started().Apply(new ForecastChanged(42, T0)).WithDomainHash(DomainKind.Weather, 42);
 
-        var (evt, outcome) = state.ToEvent(new FetchForecastCompleted(Lucerne, "icon_d2", 99), T0.AddHours(1));
+        var (evt, outcome) = state.ToEvent(new FetchDomainCompleted(Lucerne, DomainKind.Weather, 99), T0.AddHours(1));
 
         Assert.Multiple(
             () => Assert.Equal(new ForecastChanged(99, T0.AddHours(1)), evt),
@@ -344,7 +343,7 @@ public sealed class PollWorkerStateSpec
     [Fact]
     public void The_first_hash_is_a_change()
     {
-        var (evt, outcome) = Started().ToEvent(new FetchForecastCompleted(Lucerne, "icon_d2", 7), T0);
+        var (evt, outcome) = Started().ToEvent(new FetchDomainCompleted(Lucerne, DomainKind.Weather, 7), T0);
 
         Assert.Multiple(
             () => Assert.Equal(new ForecastChanged(7, T0), evt),
@@ -354,9 +353,9 @@ public sealed class PollWorkerStateSpec
     [Fact]
     public void The_same_hash_becomes_a_forecast_unchanged_event()
     {
-        var state = Started().Apply(new ForecastChanged(42, T0));
+        var state = Started().Apply(new ForecastChanged(42, T0)).WithDomainHash(DomainKind.Weather, 42);
 
-        var (evt, outcome) = state.ToEvent(new FetchForecastCompleted(Lucerne, "icon_d2", 42), T0.AddHours(1));
+        var (evt, outcome) = state.ToEvent(new FetchDomainCompleted(Lucerne, DomainKind.Weather, 42), T0.AddHours(1));
 
         Assert.Multiple(
             () => Assert.Equal(new ForecastUnchanged(T0.AddHours(1)), evt),
@@ -370,7 +369,7 @@ public sealed class PollWorkerStateSpec
     [InlineData(PollFailureReason.RateLimited, 5)]
     public void A_failure_becomes_a_poll_failed_event_with_its_minimum_delay(PollFailureReason reason, int minimumMinutes)
     {
-        var (evt, outcome) = Started().ToEvent(new FetchForecastFailed(Lucerne, "icon_d2", reason, "x"), T0);
+        var (evt, outcome) = Started().ToEvent(new FetchDomainFailed(Lucerne, DomainKind.Weather, reason, "x"), T0);
 
         Assert.Multiple(
             () => Assert.Equal(new PollFailed(T0, TimeSpan.FromMinutes(minimumMinutes)), evt),
@@ -383,7 +382,7 @@ public sealed class PollWorkerStateSpec
     [InlineData(FetchRejectionReason.Expired, 0)]
     public void A_rejection_becomes_a_poll_failed_event_with_its_minimum_delay(FetchRejectionReason reason, int minimumMinutes)
     {
-        var (evt, outcome) = Started().ToEvent(new FetchForecastRejected(Lucerne, "icon_d2", reason), T0);
+        var (evt, outcome) = Started().ToEvent(new FetchDomainRejected(Lucerne, DomainKind.Weather, reason), T0);
 
         Assert.Multiple(
             () => Assert.Equal(new PollFailed(T0, TimeSpan.FromMinutes(minimumMinutes)), evt),
@@ -394,7 +393,7 @@ public sealed class PollWorkerStateSpec
     public void A_pipeline_unavailable_rejection_becomes_a_deferral()
     {
         var (evt, outcome) = Started().ToEvent(
-            new FetchForecastRejected(Lucerne, "icon_d2", FetchRejectionReason.PipelineUnavailable), T0);
+            new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.PipelineUnavailable), T0);
 
         Assert.Multiple(
             () => Assert.Equal(new PollDeferred(T0, TimeSpan.FromSeconds(5)), evt),

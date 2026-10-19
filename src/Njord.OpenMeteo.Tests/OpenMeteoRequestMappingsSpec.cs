@@ -1,6 +1,5 @@
 using System.Globalization;
 using Njord.Core.Configuration;
-using Njord.Model;
 using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Tests;
@@ -10,32 +9,22 @@ public sealed class OpenMeteoRequestMappingsSpec
     private static readonly LocationOptions Home = new() { Name = "home", Latitude = 47.05, Longitude = 8.31 };
 
     [Fact]
-    public void The_uri_carries_location_model_variables_and_fixed_query_parameters()
+    public void The_uri_carries_location_variables_and_fixed_query_parameters()
     {
-        var uri = Home.ToRequestUri(new WeatherModel("icon_eu"), 4, "temperature_2m,wind_speed_10m", "sunrise,sunset");
+        var uri = Home.ToEnsembleRequestUri(4, "temperature_2m,wind_speed_10m");
 
         Assert.Equal(
-            "v1/forecast?latitude=47.05&longitude=8.31&models=icon_eu&hourly=temperature_2m,wind_speed_10m" +
-            "&wind_speed_unit=ms&timeformat=unixtime&timezone=UTC&forecast_days=4&daily=sunrise,sunset",
+            "v1/ensemble?latitude=47.05&longitude=8.31&hourly=temperature_2m,wind_speed_10m" +
+            "&wind_speed_unit=ms&timeformat=unixtime&timezone=UTC&forecast_days=4",
             uri);
     }
 
     [Fact]
-    public void The_daily_part_is_omitted_without_daily_variables()
+    public void The_forecast_days_are_passed_through()
     {
-        var uri = Home.ToRequestUri(new WeatherModel("icon_eu"), 4, "temperature_2m", "");
+        var uri = Home.ToEnsembleRequestUri(10, "temperature_2m");
 
-        Assert.DoesNotContain("daily=", uri);
-        Assert.EndsWith("&forecast_days=4", uri);
-    }
-
-    [Fact]
-    public void Forecast_days_are_capped_to_the_model_horizon()
-    {
-        var uri = Home.ToRequestUri(new WeatherModel("icon_d2"), 10, "temperature_2m", "");
-
-        Assert.Contains($"&forecast_days={ModelCoverageRegistry.EffectiveForecastDays("icon_d2", 10)}", uri);
-        Assert.DoesNotContain("forecast_days=10", uri);
+        Assert.EndsWith("&forecast_days=10", uri);
     }
 
     [Fact]
@@ -45,7 +34,7 @@ public sealed class OpenMeteoRequestMappingsSpec
         CultureInfo.CurrentCulture = new CultureInfo("de-DE");
         try
         {
-            var uri = Home.ToRequestUri(new WeatherModel("icon_eu"), 4, "temperature_2m", "");
+            var uri = Home.ToEnsembleRequestUri(4, "temperature_2m");
 
             Assert.Contains("latitude=47.05&longitude=8.31", uri);
         }
@@ -53,13 +42,5 @@ public sealed class OpenMeteoRequestMappingsSpec
         {
             CultureInfo.CurrentCulture = previous;
         }
-    }
-
-    [Fact]
-    public void The_model_id_is_escaped()
-    {
-        var uri = Home.ToRequestUri(new WeatherModel("a b&c"), 4, "temperature_2m", "");
-
-        Assert.Contains("&models=a%20b%26c&", uri);
     }
 }

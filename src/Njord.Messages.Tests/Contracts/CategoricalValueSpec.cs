@@ -1,71 +1,10 @@
 using Njord.Messages.Alerts;
-using Njord.Messages.Derived;
-using Njord.Messages.Trends;
 using Njord.Model;
 
 namespace Njord.Messages.Tests.Contracts;
 
 public sealed class CategoricalValueSpec
 {
-    [Theory]
-    [InlineData(TrendDirection.Rising, "rising")]
-    [InlineData(TrendDirection.Falling, "falling")]
-    [InlineData(TrendDirection.Stable, "stable")]
-    public void Trend_direction_wire_name_is_lowercase(TrendDirection direction, string expected) =>
-        Assert.Equal(expected, direction.ToWireName());
-
-    [Theory]
-    [InlineData(Stability.Converging, "converging")]
-    [InlineData(Stability.Diverging, "diverging")]
-    [InlineData(Stability.Stable, "stable")]
-    public void Stability_wire_name_is_lowercase(Stability stability, string expected) =>
-        Assert.Equal(expected, stability.ToWireName());
-
-    [Theory]
-    [InlineData(WeatherCategory.Clear, "clear")]
-    [InlineData(WeatherCategory.Fog, "fog")]
-    [InlineData(WeatherCategory.Drizzle, "drizzle")]
-    [InlineData(WeatherCategory.Rain, "rain")]
-    [InlineData(WeatherCategory.Snow, "snow")]
-    [InlineData(WeatherCategory.Showers, "showers")]
-    [InlineData(WeatherCategory.Thunderstorm, "thunderstorm")]
-    [InlineData(WeatherCategory.Unknown, "unknown")]
-    public void Weather_category_wire_name_is_lowercase(WeatherCategory category, string expected) =>
-        Assert.Equal(expected, category.ToWireName());
-
-    [Fact]
-    public void Weather_change_description_joins_wire_names_with_an_arrow()
-    {
-        var change = new WeatherChangeResult(WeatherCategory.Clear, WeatherCategory.Rain);
-
-        Assert.Equal("clear → rain", change.ToDescription());
-    }
-
-    [Theory]
-    [InlineData(DewPointComfort.Dry, "dry")]
-    [InlineData(DewPointComfort.Comfortable, "comfortable")]
-    [InlineData(DewPointComfort.Sticky, "sticky")]
-    [InlineData(DewPointComfort.Oppressive, "oppressive")]
-    [InlineData(DewPointComfort.Dangerous, "dangerous")]
-    public void Dew_point_comfort_wire_name_is_lowercase(DewPointComfort comfort, string expected) =>
-        Assert.Equal(expected, comfort.ToWireName());
-
-    [Theory]
-    [InlineData(VpdCategory.Low, "low")]
-    [InlineData(VpdCategory.Optimal, "optimal")]
-    [InlineData(VpdCategory.High, "high")]
-    [InlineData(VpdCategory.Critical, "critical")]
-    public void Vpd_category_wire_name_is_lowercase(VpdCategory category, string expected) =>
-        Assert.Equal(expected, category.ToWireName());
-
-    [Fact]
-    public void Undefined_vpd_category_has_no_wire_name()
-    {
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => ((VpdCategory)99).ToWireName());
-
-        Assert.Equal("category", ex.ParamName);
-    }
-
     [Theory]
     [InlineData(AlertSeverity.None, "none")]
     [InlineData(AlertSeverity.Yellow, "yellow")]

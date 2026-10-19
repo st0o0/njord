@@ -68,10 +68,6 @@ services:
       #- Njord__Polling__BudgetOverride__RequestsPerMinute=600
 
       # ── Enrichment ────────────────────────────────────────────
-      #- Njord__Enrichment__Consensus__Enabled=true
-      #- Njord__Enrichment__Consensus__Method=Median
-      #- Njord__Enrichment__Consensus__TrimPercent=0.1
-      #- Njord__Enrichment__Consensus__MinQuorum=2
       #- Njord__Enrichment__Alerts__Enabled=true
       #- Njord__Enrichment__Alerts__FrostThresholds__0=0
       #- Njord__Enrichment__Alerts__FrostThresholds__1=-5
@@ -103,25 +99,6 @@ services:
       #- Njord__Enrichment__Alerts__HumidityThresholds__0=16
       #- Njord__Enrichment__Alerts__HumidityThresholds__1=21
       #- Njord__Enrichment__Alerts__HumidityThresholds__2=24
-      #- Njord__Enrichment__Derived__Enabled=true
-      #- Njord__Enrichment__Trends__Enabled=false
-      #- Njord__Enrichment__Indices__Enabled=false
-      #- Njord__Enrichment__Indices__Preferences__IdealOutdoorTemp=22
-      #- Njord__Enrichment__Indices__Preferences__RunningIdealTempLow=5
-      #- Njord__Enrichment__Indices__Preferences__RunningIdealTempHigh=20
-      #- Njord__Enrichment__Indices__Preferences__BbqMinTemp=10
-      #- Njord__Enrichment__Indices__Preferences__BbqIdealWindLow=1
-      #- Njord__Enrichment__Indices__Preferences__BbqIdealWindHigh=3
-      #- Njord__Enrichment__Indices__Preferences__IndoorTemp=22
-      #- Njord__Enrichment__Indices__Preferences__HeatSensitivity=1.0
-      #- Njord__Enrichment__Indices__Preferences__HumiditySensitivity=1.0
-      #- Njord__Enrichment__Indices__Preferences__WindSensitivity=1.0
-      #- Njord__Enrichment__Indices__Preferences__RainSensitivity=1.0
-      ## Per-score and per-location overrides (same preference keys):
-      #- Njord__Enrichment__Indices__ScoreOverrides__Running__IdealOutdoorTemp=15
-      #- Njord__Enrichment__Indices__LocationOverrides__0__Location=home
-      #- Njord__Enrichment__Indices__LocationOverrides__0__Preferences__IndoorTemp=21
-      #- Njord__Enrichment__Indices__LocationOverrides__0__ScoreOverrides__Bbq__BbqMinTemp=12
 
 volumes:
   njord-data:

@@ -3,7 +3,6 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Forecast;
 using Njord.Grpc;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
@@ -48,9 +47,8 @@ public sealed class GatewayRestartSpec : NjordActorSpec
         // The budget read fault fails the gateway's private stream; the gateway fails and is restarted.
         _budget.ThrowOnNextRead = true;
         _time.Advance(TimeSpan.FromSeconds(6));
-        var stopped = await gateway.Ask<FetchForecastResponse>(new FetchForecast(new LocationId(Location), "icon_d2"),
-            TestTimeouts.RealTimeWaitMax, ct);
-        Assert.Equal(PollFailureReason.Transport, Assert.IsType<FetchForecastFailed>(stopped).Reason);
+        // The fault is thrown inside the request handler, so the restart drops the request without a reply.
+        gateway.Tell(new FetchDomain(new LocationId(Location), DomainKind.Weather), CreateTestProbe());
 
         await FetchUntilCompletedAsync(gateway, ct);
 
@@ -79,9 +77,8 @@ public sealed class GatewayRestartSpec : NjordActorSpec
 
         _budget.ThrowOnNextRead = true;
         _time.Advance(TimeSpan.FromSeconds(6));
-        var stopped = await gateway.Ask<FetchForecastResponse>(new FetchForecast(new LocationId(Location), "icon_d2"),
-            TestTimeouts.RealTimeWaitMax, ct);
-        Assert.Equal(PollFailureReason.Transport, Assert.IsType<FetchForecastFailed>(stopped).Reason);
+        // The fault is thrown inside the request handler, so the restart drops the request without a reply.
+        gateway.Tell(new FetchDomain(new LocationId(Location), DomainKind.Weather), CreateTestProbe());
         await FetchUntilCompletedAsync(gateway, ct);
 
         Assert.Equal(1, Volatile.Read(ref outputRequests));

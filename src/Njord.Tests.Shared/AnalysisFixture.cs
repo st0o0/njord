@@ -1,29 +1,11 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts.Configuration;
-using Njord.Consensus;
-using Njord.Consensus.Querying;
-using Njord.Consensus.Settings;
-using Njord.Derived;
-using Njord.Forecast;
-using Njord.Indices.Configuration;
 using Njord.Messages.Alerts;
-using Njord.Messages.Derived;
-using Njord.Messages.Indices;
-using Njord.Messages.Trends;
 using Njord.Model;
-using Njord.Trends;
-using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Tests.Shared;
 
-public sealed record LocationAnalysis(
-    string Location,
-    LocationConsensus Consensus,
-    LocationConsensus PreviousConsensus,
-    AlertResult Alerts,
-    DerivedResult Derived,
-    TrendResult Trends,
-    IndexResult Indices);
+public sealed record LocationAnalysis(string Location, AlertResult Alerts);
 
 public sealed class AnalysisFixture
 {
@@ -40,14 +22,11 @@ public sealed class AnalysisFixture
     public static readonly WeatherModel Gfs = new("gfs_seamless");
     public static readonly IReadOnlyList<WeatherModel> Models = [IconD2, Ecmwf, Gfs];
 
-    // Lucerne gets a fourth model: the consensus IQR (and with it trend stability) needs four values.
     public static IReadOnlyList<WeatherModel> ModelsFor(string location) =>
         location == Lucerne ? [IconD2, IconEu, Ecmwf, Gfs] : Models;
     public static readonly IReadOnlyList<int> Horizons = [3, 6, 12, 24, 48, 72];
 
-    private const int LastHour = 72;
     private const int IconD2LastHour = 48;
-    private const int IconD2Days = 2;
 
     public static readonly ResolvedParameterSet Parameters = new(
         [
@@ -86,160 +65,79 @@ public sealed class AnalysisFixture
             ParameterRegistry.Sunset,
         ]);
 
-    private AnalysisFixture(
-        FakeTimeProvider time,
-        IReadOnlyList<WeatherForecast> forecasts,
-        IReadOnlyList<LocationAnalysis> analyses)
-    {
-        Time = time;
-        Forecasts = forecasts;
-        Analyses = analyses;
-    }
-
-    public FakeTimeProvider Time { get; }
-
-    public IReadOnlyList<WeatherForecast> Forecasts { get; }
+    private AnalysisFixture(IReadOnlyList<LocationAnalysis> analyses) => Analyses = analyses;
 
     public IReadOnlyList<LocationAnalysis> Analyses { get; }
-
-    public static IndexOptions IndexOptions => new()
-    {
-        Enabled = true,
-        ScoreOverrides = new Dictionary<string, IndexPreferences>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["running"] = new IndexPreferences { RunningIdealTempLow = 8.0, RunningIdealTempHigh = 18.0 },
-        },
-        LocationOverrides =
-        [
-            new LocationIndexOverride
-            {
-                Location = Bern,
-                Preferences = new IndexPreferences { IndoorTemp = 21.0, WindSensitivity = 2.0 },
-            },
-        ],
-    };
 
     public static AnalysisFixture Create()
     {
         var time = new FakeTimeProvider(Now);
-        var forecasts = new List<WeatherForecast>();
-        var current = ModelForecasts.Empty;
-        var previous = ModelForecasts.Empty;
-
-        foreach (var location in Locations)
-        {
-            foreach (var model in ModelsFor(location))
-            {
-                var forecast = BuildForecast(location, model, isPrevious: false);
-                forecasts.Add(forecast);
-                current = current.Update(forecast);
-                previous = previous.Update(BuildForecast(location, model, isPrevious: true));
-            }
-        }
-
-        var factory = new ConsensusBuilder(Parameters, time);
         var alerts = FeatureServices.Alerts(time);
-        var indexSettings = IndexOptions.ToSettings(Locations);
-        var derivedSettings = new DerivedSettings(Horizons);
         var alertSettings = AppSettingsDefaults.Options<AlertOptions>().ToSettings();
-        var indices = FeatureServices.Indices(time);
 
         var analyses = new List<LocationAnalysis>();
         foreach (var location in Locations)
         {
-            var consensus = factory.Create(current, location, ConsensusSettings.Default);
-            var previousConsensus = factory.Create(previous, location, ConsensusSettings.Default);
-
+            var weather = ConsensusWeather(location);
             analyses.Add(new LocationAnalysis(
                 location,
-                consensus,
-                previousConsensus,
                 new AlertResult(
                     new LocationId(location),
-                    alerts.Compute(ToWeather(consensus), alertSettings, Now) ?? throw new InvalidOperationException("Alerts are disabled.")),
-                DerivedAnalyzer.Analyze(consensus, derivedSettings),
-                TrendAnalyzer.Analyze(consensus, previousConsensus),
-                indices.Compute(consensus, indexSettings) ?? throw new InvalidOperationException("Indices are disabled.")));
+                    alerts.Compute(weather, alertSettings, Now) ?? throw new InvalidOperationException("Alerts are disabled."))));
         }
 
-        return new AnalysisFixture(time, forecasts, analyses);
-    }
-
-    private static DomainForecast<WeatherPoint> ToWeather(LocationConsensus consensus)
-    {
-        double Median(ParameterDef parameter, int hour) =>
-            consensus.Hourly.Find(parameter).MedianAt(Horizon.Hours(hour)) ?? 0.0;
-
-        double? OptionalMedian(ParameterDef parameter, int hour) =>
-            consensus.Hourly.Find(parameter).MedianAt(Horizon.Hours(hour));
-
-        var points = Enumerable.Range(0, IconD2LastHour + 1).Select(hour => new WeatherPoint(
-            Now.AddHours(hour),
-            Median(ParameterRegistry.Temperature2m, hour),
-            Median(ParameterRegistry.ApparentTemperature, hour),
-            Median(ParameterRegistry.WindSpeed10m, hour),
-            Median(ParameterRegistry.Precipitation, hour),
-            Median(ParameterRegistry.PrecipitationProbability, hour),
-            Median(ParameterRegistry.CloudCover, hour),
-            Median(ParameterRegistry.PressureMsl, hour),
-            (int)Median(ParameterRegistry.WeatherCode, hour),
-            Median(ParameterRegistry.RelativeHumidity2m, hour),
-            Median(ParameterRegistry.DewPoint2m, hour),
-            Median(ParameterRegistry.UvIndex, hour),
-            EnsembleStdDev: 0.5,
-            WindGusts: OptionalMedian(ParameterRegistry.WindGusts10m, hour),
-            Visibility: OptionalMedian(ParameterRegistry.Visibility, hour),
-            Cape: OptionalMedian(ParameterRegistry.Cape, hour),
-            Rain: OptionalMedian(ParameterRegistry.Rain, hour),
-            Snowfall: OptionalMedian(ParameterRegistry.Snowfall, hour),
-            SoilTemperature: OptionalMedian(ParameterRegistry.SoilTemperature0cm, hour),
-            FreezingLevelHeight: OptionalMedian(ParameterRegistry.FreezingLevelHeight, hour),
-            IsDay: OptionalMedian(ParameterRegistry.IsDay, hour) is { } isDay ? isDay > 0.5 : null));
-
-        return new DomainForecast<WeatherPoint>(DomainKind.Weather, Now, TimeResolution.Hourly, [.. points]);
+        return new AnalysisFixture(analyses);
     }
 
     public LocationAnalysis For(string location) =>
         Analyses.Single(a => a.Location == location);
 
-    private static WeatherForecast BuildForecast(string location, WeatherModel model, bool isPrevious)
+    private static DomainForecast<WeatherPoint> ConsensusWeather(string location)
     {
-        var lastHour = model == IconD2 ? IconD2LastHour : LastHour;
-        var hourly = new List<ForecastPoint>();
-        for (var h = 0; h <= lastHour; h++)
+        var models = ModelsFor(location);
+
+        double? Median(ParameterDef parameter, int hour)
         {
-            var values = new Dictionary<ParameterDef, ForecastValue>();
-            foreach (var parameter in Parameters.Hourly)
+            var values = models
+                .Select(model => HourlyValue(location, parameter, hour, model, isPrevious: false))
+                .OfType<double>()
+                .Order()
+                .ToArray();
+            if (values.Length == 0)
             {
-                values[parameter] = HourlyValue(location, parameter, h, model, isPrevious);
+                return null;
             }
 
-            hourly.Add(new ForecastPoint(Now.AddHours(h), values));
+            var mid = values.Length / 2;
+            return values.Length % 2 == 1 ? values[mid] : (values[mid - 1] + values[mid]) / 2.0;
         }
 
-        var days = model == IconD2 ? IconD2Days : ForecastDays;
-        var today = DateOnly.FromDateTime(Now.UtcDateTime);
-        var daily = new List<DailyForecastPoint>();
-        for (var d = 0; d < days; d++)
-        {
-            var values = new Dictionary<ParameterDef, ForecastValue>();
-            foreach (var parameter in Parameters.Daily)
-            {
-                if (parameter.ValueType == ParameterValueType.TimeString)
-                {
-                    values[parameter] = new ForecastValue(null, DailyMeta(parameter, today.AddDays(d), location, model));
-                }
-                else
-                {
-                    values[parameter] = DailyValue(location, parameter, d, model);
-                }
-            }
+        double Required(ParameterDef parameter, int hour) => Median(parameter, hour) ?? 0.0;
 
-            daily.Add(new DailyForecastPoint(today.AddDays(d), values));
-        }
+        var points = Enumerable.Range(0, IconD2LastHour + 1).Select(hour => new WeatherPoint(
+            Now.AddHours(hour),
+            Required(ParameterRegistry.Temperature2m, hour),
+            Required(ParameterRegistry.ApparentTemperature, hour),
+            Required(ParameterRegistry.WindSpeed10m, hour),
+            Required(ParameterRegistry.Precipitation, hour),
+            Required(ParameterRegistry.PrecipitationProbability, hour),
+            Required(ParameterRegistry.CloudCover, hour),
+            Required(ParameterRegistry.PressureMsl, hour),
+            (int)Required(ParameterRegistry.WeatherCode, hour),
+            Required(ParameterRegistry.RelativeHumidity2m, hour),
+            Required(ParameterRegistry.DewPoint2m, hour),
+            Required(ParameterRegistry.UvIndex, hour),
+            EnsembleStdDev: 0.5,
+            WindGusts: Median(ParameterRegistry.WindGusts10m, hour),
+            Visibility: Median(ParameterRegistry.Visibility, hour),
+            Cape: Median(ParameterRegistry.Cape, hour),
+            Rain: Median(ParameterRegistry.Rain, hour),
+            Snowfall: Median(ParameterRegistry.Snowfall, hour),
+            SoilTemperature: Median(ParameterRegistry.SoilTemperature0cm, hour),
+            FreezingLevelHeight: Median(ParameterRegistry.FreezingLevelHeight, hour),
+            IsDay: Median(ParameterRegistry.IsDay, hour) is { } isDay ? isDay > 0.5 : null));
 
-        var cycle = new CycleId(isPrevious ? Now.AddHours(-1) : Now);
-        return new WeatherForecast(model, location, cycle, new ForecastSeries(hourly), new DailyForecastSeries(daily));
+        return new DomainForecast<WeatherPoint>(DomainKind.Weather, Now, TimeResolution.Hourly, [.. points]);
     }
 
     private static bool IsDay(int h)
@@ -581,63 +479,6 @@ public sealed class AnalysisFixture
         if (p == ParameterRegistry.Et0FaoEvapotranspiration)
         {
             return day ? 0.25 : 0.05;
-        }
-
-        return null;
-    }
-
-    private static double? DailyValue(string location, ParameterDef p, int d, WeatherModel model)
-    {
-        var sign = ModelSign(location, model);
-        var lucerne = location == Lucerne;
-
-        if (p == ParameterRegistry.PrecipitationSum)
-        {
-            double[] sums = lucerne ? [30.0, 5.0, 0.0, 1.0] : [0.0, 0.0, 0.0, 0.0];
-            return sums[d] == 0 ? 0.0 : sums[d] + sign * 0.5;
-        }
-
-        if (p == ParameterRegistry.UvIndexMax)
-        {
-            double[] uv = lucerne ? [7.0, 5.0, 6.0, 4.0] : [2.0, 2.0, 2.0, 2.0];
-            return uv[d] + sign * 0.2;
-        }
-
-        if (p == ParameterRegistry.SnowfallSum)
-        {
-            return lucerne && d == 0 ? 2.0 : 0.0;
-        }
-
-        if (p == ParameterRegistry.Temperature2mMax)
-        {
-            return (lucerne ? 30.0 : 21.0) - d + sign * 0.5;
-        }
-
-        if (p == ParameterRegistry.Temperature2mMin)
-        {
-            return lucerne && d == 3 ? null : (lucerne ? -6.0 : 12.0) + d + sign * 0.5;
-        }
-
-        if (p == ParameterRegistry.DailyWeatherCode)
-        {
-            double[] codes = lucerne ? [63.0, 3.0, 1.0, 2.0] : [1.0, 2.0, 3.0, 1.0];
-            return codes[d];
-        }
-
-        return null;
-    }
-
-    private static string? DailyMeta(ParameterDef p, DateOnly date, string location, WeatherModel model)
-    {
-        var minuteOffset = (int)Math.Round(ModelSign(location, model) * 2);
-        if (p == ParameterRegistry.Sunrise)
-        {
-            return $"{date:yyyy-MM-dd}T03:{50 + minuteOffset:00}";
-        }
-
-        if (p == ParameterRegistry.Sunset)
-        {
-            return model == Gfs ? null : $"{date:yyyy-MM-dd}T19:{20 + minuteOffset:00}";
         }
 
         return null;

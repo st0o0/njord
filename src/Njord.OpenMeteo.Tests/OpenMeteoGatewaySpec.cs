@@ -1,5 +1,4 @@
 using Akka.Actor;
-using Akka.Event;
 using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
@@ -9,7 +8,6 @@ using Njord.Core.Actors;
 using Njord.Core.Domain;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Forecast;
 using Njord.Messages.Budget;
 using Njord.Messages.Forecast;
 using Njord.Model;
@@ -20,8 +18,8 @@ namespace Njord.OpenMeteo.Tests;
 public sealed class OpenMeteoGatewaySpec : NjordActorSpec
 {
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
-    private readonly FakeOpenMeteoClient _client = new() { ThrowingModels = { "broken" } };
-    // A burst large enough that the frozen fake clock never parks a request in the throttle.
+    private readonly FakeOpenMeteoClient _client = new();
+    // A burst large enough that the frozen fake clock never exhausts the budget.
     private readonly SwitchableBudgetProvider _budget = new() { MaxBurst = 1_000_000 };
     private Akka.TestKit.TestProbe _attached = null!;
     private Akka.TestKit.TestProbe _forecasts = null!;
@@ -42,7 +40,6 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
             var options = Options.Create(AppSettingsDefaults.Options<NjordOptions>(o =>
             {
                 o.Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }];
-                o.Models = ["icon_d2", "broken"];
             }));
             var parameters = ParameterSelection.Resolve(["Weather"], [], []);
             registry.Register<IForecastGateway>(system.ActorOf(
@@ -53,7 +50,8 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
 
     private IActorRef Gateway => GetActor<IForecastGateway>();
 
-    private static FetchForecast Fetch(string model) => new(new LocationId("lucerne"), model);
+    private static FetchDomain Fetch(string location = "lucerne", DomainKind domain = DomainKind.Weather) =>
+        new(new LocationId(location), domain);
 
     private async Task AttachedAsync() =>
         await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
@@ -62,14 +60,29 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     public async Task A_throwing_fetch_is_answered_with_a_transport_failure()
     {
         await AttachedAsync();
-        Gateway.Tell(Fetch("broken"));
+        _client.Throws = true;
+        Gateway.Tell(Fetch());
 
-        var failed = await ExpectMsgAsync<FetchForecastFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Multiple(
             () => Assert.Equal("lucerne", failed.Location.Name),
-            () => Assert.Equal("broken", failed.ModelId),
+            () => Assert.Equal(DomainKind.Weather, failed.Domain),
             () => Assert.Equal(PollFailureReason.Transport, failed.Reason),
             () => Assert.Contains(nameof(InvalidOperationException), failed.Detail));
+        await _forecasts.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_failure_result_from_the_client_is_answered_with_its_reason()
+    {
+        await AttachedAsync();
+        _client.EnsembleFails = true;
+        Gateway.Tell(Fetch());
+
+        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Multiple(
+            () => Assert.Equal(PollFailureReason.Transport, failed.Reason),
+            () => Assert.Equal("simulated ensemble failure", failed.Detail));
         await _forecasts.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
     }
 
@@ -77,20 +90,22 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     public async Task The_next_fetch_completes_after_a_throwing_fetch()
     {
         await AttachedAsync();
-        Gateway.Tell(Fetch("broken"));
-        await ExpectMsgAsync<FetchForecastFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        _client.Throws = true;
+        Gateway.Tell(Fetch());
+        await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
 
-        Gateway.Tell(Fetch("icon_d2"));
+        _client.Throws = false;
+        Gateway.Tell(Fetch());
 
-        var completed = await ExpectMsgAsync<FetchForecastCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("icon_d2", completed.ModelId);
+        var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(DomainKind.Weather, completed.Domain);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_successful_domain_fetch_reaches_the_pipeline_input_and_the_requester()
     {
         await AttachedAsync();
-        Gateway.Tell(new FetchDomain(new LocationId("lucerne"), DomainKind.Weather));
+        Gateway.Tell(Fetch());
 
         var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         var received = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
@@ -104,80 +119,7 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_failed_fetch_stream_answers_its_open_request_and_the_restarted_gateway_fetches_again()
-    {
-        await AttachedAsync();
-        _budget.ThrowOnNextRead = true;
-        _time.Advance(TimeSpan.FromSeconds(6));
-
-        Gateway.Tell(Fetch("icon_d2"));
-
-        var failed = await ExpectMsgAsync<FetchForecastFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Multiple(
-            () => Assert.Equal("icon_d2", failed.ModelId),
-            () => Assert.Equal(PollFailureReason.Transport, failed.Reason),
-            () => Assert.Contains("stream stopped", failed.Detail));
-
-        await AttachedAsync();
-        Gateway.Tell(Fetch("icon_d2"));
-
-        var completed = await ExpectMsgAsync<FetchForecastCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("icon_d2", completed.ModelId);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Requests_arriving_while_the_fetch_stream_fails_are_each_answered_exactly_once()
-    {
-        const int requests = 6;
-        await AttachedAsync();
-        _budget.ThrowOnNextRead = true;
-        _time.Advance(TimeSpan.FromSeconds(6));
-
-        for (var i = 0; i < requests; i++)
-        {
-            Gateway.Tell(Fetch($"m{i:D2}"));
-        }
-
-        var answered = await ReceiveRepliesAsync(requests);
-        Assert.Equal(requests, answered.Select(r => r.ModelId).Distinct().Count());
-        await ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_burst_beyond_the_fetch_queue_is_answered_exactly_once_with_queue_full_for_the_overflow()
-    {
-        const int requests = 100;
-        await AttachedAsync();
-        _client.Hold();
-
-        for (var i = 0; i < requests; i++)
-        {
-            Gateway.Tell(Fetch($"m{i:D3}"));
-        }
-
-        // Offers to the full queue are refused at once, while the held fetches cannot answer yet.
-        var rejected = new List<FetchForecastRejected>();
-        while (await ReceiveOneAsync(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken) is { } early)
-        {
-            rejected.Add(Assert.IsType<FetchForecastRejected>(early));
-        }
-
-        Assert.NotEmpty(rejected);
-        _client.Release();
-
-        var rest = await ReceiveRepliesAsync(requests - rejected.Count);
-        var answered = rest.Concat(rejected.Select(r => (ModelId: r.ModelId, Reply: (FetchForecastResponse)r))).ToList();
-        var completed = answered.Count(r => r.Reply is FetchForecastCompleted);
-        Assert.Multiple(
-            () => Assert.Equal(requests, answered.Select(r => r.ModelId).Distinct().Count()),
-            () => Assert.All(rejected, r => Assert.Equal(FetchRejectionReason.QueueFull, r.Reason)),
-            () => Assert.DoesNotContain(answered, r => r.Reply is FetchForecastFailed),
-            () => Assert.Equal(completed, _client.Calls));
-        await ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task An_exhausted_budget_rejects_the_request_instead_of_holding_it()
+    public async Task An_exhausted_budget_rejects_the_request_instead_of_fetching()
     {
         await AttachedAsync();
         // The bucket holds exactly one request's weight and refills at one cost-unit per minute.
@@ -186,71 +128,44 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
         _budget.MaxBurst = weight;
         _time.Advance(TimeSpan.FromSeconds(6));
 
-        var warnings = CreateTestProbe();
-        Sys.EventStream.Subscribe(warnings, typeof(Warning));
-        Gateway.Tell(Fetch("icon_d2"));
-        await ExpectMsgAsync<FetchForecastCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
-        Gateway.Tell(Fetch("icon_d2"));
+        Gateway.Tell(Fetch());
+        await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Gateway.Tell(Fetch());
 
-        var rejected = await ExpectMsgAsync<FetchForecastRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        var rejected = await ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Multiple(
-            () => Assert.Equal("icon_d2", rejected.ModelId),
+            () => Assert.Equal("lucerne", rejected.Location.Name),
+            () => Assert.Equal(DomainKind.Weather, rejected.Domain),
             () => Assert.Equal(FetchRejectionReason.Budget, rejected.Reason),
             () => Assert.Equal(1, _client.Calls));
-        var warning = await warnings.FishForMessageAsync<Warning>(
-            w => w.Message.ToString()?.Contains("rejected: Budget") == true,
-            TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Contains("icon_d2", warning.Message.ToString());
         var recorded = await _apiCalls.ExpectMsgAsync<RecordApiCall>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(weight, recorded.Weight);
         await _apiCalls.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_request_that_waited_past_its_admission_deadline_is_rejected_as_expired_without_a_fetch()
+    public async Task A_domain_without_a_fetch_path_is_rejected_without_a_fetch()
     {
         await AttachedAsync();
-        _client.Hold();
-        Gateway.Tell(Fetch("m00"));
-        Gateway.Tell(Fetch("m01"));
-        Gateway.Tell(Fetch("m02"));
-        await AwaitConditionAsync(() => Task.FromResult(_client.Calls == 2), TestTimeouts.AwaitAssertMax,
-            cancellationToken: TestContext.Current.CancellationToken);
+        Gateway.Tell(Fetch(domain: DomainKind.Flood));
 
-        // Two fetches hold both slots, the third waits in the queue while its admission window passes.
-        _time.Advance(FetchTimeouts.Default.Admission + TimeSpan.FromSeconds(1));
-        _client.Release();
-
-        var answered = await ReceiveRepliesAsync(3);
-        var expired = Assert.IsType<FetchForecastRejected>(Assert.Single(answered, r => r.ModelId == "m02").Reply);
+        var rejected = await ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Multiple(
-            () => Assert.Equal(FetchRejectionReason.Expired, expired.Reason),
-            () => Assert.Equal(2, answered.Count(r => r.Reply is FetchForecastCompleted)),
-            () => Assert.Equal(2, _client.Calls));
+            () => Assert.Equal(DomainKind.Flood, rejected.Domain),
+            () => Assert.Equal(FetchRejectionReason.PipelineUnavailable, rejected.Reason),
+            () => Assert.Equal(0, _client.Calls));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_request_whose_location_differs_in_case_is_answered_in_the_requested_spelling()
+    public async Task A_request_in_another_spelling_is_answered_in_that_spelling_and_reaches_the_pipeline_under_the_configured_name()
     {
         await AttachedAsync();
-        Gateway.Tell(new FetchForecast(new LocationId("LUCERNE"), "icon_d2"));
-
-        var completed = await ExpectMsgAsync<FetchForecastCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Multiple(
-            () => Assert.Equal("LUCERNE", completed.Location.Name),
-            () => Assert.Equal("icon_d2", completed.ModelId));
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_domain_fetch_requested_in_another_spelling_reaches_the_pipeline_under_the_configured_name()
-    {
-        await AttachedAsync();
-        Gateway.Tell(new FetchDomain(new LocationId("Lucerne"), DomainKind.Weather));
+        Gateway.Tell(Fetch("LUCERNE"));
         var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
 
         var received = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Multiple(
-            () => Assert.Equal("Lucerne", completed.Location.Name),
+            () => Assert.Equal("LUCERNE", completed.Location.Name),
             () => Assert.Equal("lucerne", received.Location.Name));
     }
 
@@ -259,12 +174,17 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     {
         await AttachedAsync();
         _client.Hold();
-        Gateway.Tell(Fetch("icon_d2"));
-        Gateway.Tell(Fetch("icon_d2"));
+        Gateway.Tell(Fetch());
+        Gateway.Tell(Fetch());
+        await AwaitConditionAsync(() => Task.FromResult(_client.Calls == 2), TestTimeouts.AwaitAssertMax,
+            cancellationToken: TestContext.Current.CancellationToken);
         _client.Release();
 
-        var answered = await ReceiveRepliesAsync(2);
-        Assert.All(answered, r => Assert.IsType<FetchForecastCompleted>(r.Reply));
+        var first = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        var second = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.Weather, first.Domain),
+            () => Assert.Equal(DomainKind.Weather, second.Domain));
         await ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
     }
 
@@ -272,51 +192,22 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     public async Task An_unknown_location_fails_fast_without_a_fetch()
     {
         await AttachedAsync();
-        Gateway.Tell(new FetchForecast(new LocationId("atlantis"), "icon_d2"));
+        Gateway.Tell(Fetch("atlantis"));
 
-        var failed = await ExpectMsgAsync<FetchForecastFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Multiple(
+            () => Assert.Equal("atlantis", failed.Location.Name),
             () => Assert.Equal(PollFailureReason.ModelUnavailable, failed.Reason),
             () => Assert.Equal(0, _client.Calls));
     }
 
-    private async Task<List<(string ModelId, FetchForecastResponse Reply)>> ReceiveRepliesAsync(int expected)
-    {
-        var answered = new List<(string ModelId, FetchForecastResponse Reply)>();
-        for (var i = 0; i < expected; i++)
-        {
-            var reply = await ExpectMsgAsync<FetchForecastResponse>(TestTimeouts.AwaitAssertMax,
-                $"only {answered.Count} of {expected} requests were answered", TestContext.Current.CancellationToken);
-            answered.Add(reply switch
-            {
-                FetchForecastCompleted c => (c.ModelId, reply),
-                FetchForecastFailed f => (f.ModelId, reply),
-                FetchForecastRejected r => (r.ModelId, reply),
-                _ => throw new InvalidOperationException($"Unexpected reply {reply}"),
-            });
-        }
-
-        return answered;
-    }
-
     private sealed class SwitchableBudgetProvider : IBudgetProvider
     {
-        public volatile bool ThrowOnNextRead;
-
         public volatile int MaxBurst = 16;
 
         public volatile int CostPerMinute = 480;
 
-        public BudgetRate GetCurrentRate()
-        {
-            if (ThrowOnNextRead)
-            {
-                ThrowOnNextRead = false;
-                throw new InvalidOperationException("simulated budget read fault");
-            }
-
-            return new BudgetRate(CostPerMinute, MaxBurst);
-        }
+        public BudgetRate GetCurrentRate() => new(CostPerMinute, MaxBurst);
     }
 
     private sealed class ForwardingActor : ReceiveActor

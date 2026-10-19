@@ -1,4 +1,3 @@
-using Njord.Consensus.Querying;
 using Njord.Messages.Alerts;
 
 namespace Njord.Messages.Tests.Contracts;

@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using Njord.Forecast;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
@@ -142,22 +141,6 @@ public static class PollWorkerStateExtensions
             FetchDomainRejected { Reason: FetchRejectionReason.Budget } =>
                 (new PollFailed(now, PollWorkerState.RateLimitMinDelay), PollWorkerOutcome.Failed),
             FetchDomainRejected { Reason: FetchRejectionReason.PipelineUnavailable } =>
-                (new PollDeferred(now, PollWorkerState.PipelineUnavailableRetry), PollWorkerOutcome.Failed),
-            _ => (new PollFailed(now, TimeSpan.Zero), PollWorkerOutcome.Failed),
-        };
-
-    // The old overload for backward compat in existing fetch flow (gateway still uses FetchForecastResponse).
-    public static (object Event, PollWorkerOutcome Outcome) ToEvent(
-        this PollWorkerState state, FetchForecastResponse reply, DateTimeOffset now) => reply switch
-        {
-            FetchForecastCompleted completed when completed.Hash != state.LastHash =>
-                (new ForecastChanged(completed.Hash, now), PollWorkerOutcome.Changed),
-            FetchForecastCompleted => (new ForecastUnchanged(now), PollWorkerOutcome.Unchanged),
-            FetchForecastFailed { Reason: PollFailureReason.RateLimited } =>
-                (new PollFailed(now, PollWorkerState.RateLimitMinDelay), PollWorkerOutcome.Failed),
-            FetchForecastRejected { Reason: FetchRejectionReason.Budget } =>
-                (new PollFailed(now, PollWorkerState.RateLimitMinDelay), PollWorkerOutcome.Failed),
-            FetchForecastRejected { Reason: FetchRejectionReason.PipelineUnavailable } =>
                 (new PollDeferred(now, PollWorkerState.PipelineUnavailableRetry), PollWorkerOutcome.Failed),
             _ => (new PollFailed(now, TimeSpan.Zero), PollWorkerOutcome.Failed),
         };

@@ -9,41 +9,27 @@ COPY protos/ /protos/
 COPY src/global.json src/Directory.Build.props src/Directory.Packages.props src/Njord.slnx ./
 COPY src/Njord.Model/Njord.Model.csproj Njord.Model/
 COPY src/Njord.Budget/Njord.Budget.csproj Njord.Budget/
-COPY src/Njord.Forecast/Njord.Forecast.csproj Njord.Forecast/
-COPY src/Njord.Sensors/Njord.Sensors.csproj Njord.Sensors/
 COPY src/Njord.Persistence/Njord.Persistence.csproj Njord.Persistence/
 COPY src/Njord.Messages/Njord.Messages.csproj Njord.Messages/
-COPY src/Njord.Consensus/Njord.Consensus.csproj Njord.Consensus/
 COPY src/Njord.Core/Njord.Core.csproj Njord.Core/
 COPY src/Njord.OpenMeteo/Njord.OpenMeteo.csproj Njord.OpenMeteo/
-COPY src/Njord.SensorHub/Njord.SensorHub.csproj Njord.SensorHub/
 COPY src/Njord.Pipeline/Njord.Pipeline.csproj Njord.Pipeline/
 COPY src/Njord.Grpc/Njord.Grpc.csproj Njord.Grpc/
 COPY src/Njord.Mqtt/Njord.Mqtt.csproj Njord.Mqtt/
 COPY src/Njord.Alerts/Njord.Alerts.csproj Njord.Alerts/
-COPY src/Njord.Derived/Njord.Derived.csproj Njord.Derived/
-COPY src/Njord.Trends/Njord.Trends.csproj Njord.Trends/
-COPY src/Njord.Indices/Njord.Indices.csproj Njord.Indices/
 COPY src/Njord/Njord.csproj Njord/
 RUN dotnet restore Njord/Njord.csproj -a ${TARGETARCH}
 
 COPY src/Njord.Model/ Njord.Model/
-COPY src/Njord.Forecast/ Njord.Forecast/
 COPY src/Njord.Budget/ Njord.Budget/
-COPY src/Njord.Sensors/ Njord.Sensors/
 COPY src/Njord.Persistence/ Njord.Persistence/
 COPY src/Njord.Messages/ Njord.Messages/
-COPY src/Njord.Consensus/ Njord.Consensus/
 COPY src/Njord.Core/ Njord.Core/
 COPY src/Njord.OpenMeteo/ Njord.OpenMeteo/
-COPY src/Njord.SensorHub/ Njord.SensorHub/
 COPY src/Njord.Pipeline/ Njord.Pipeline/
 COPY src/Njord.Grpc/ Njord.Grpc/
 COPY src/Njord.Mqtt/ Njord.Mqtt/
 COPY src/Njord.Alerts/ Njord.Alerts/
-COPY src/Njord.Derived/ Njord.Derived/
-COPY src/Njord.Trends/ Njord.Trends/
-COPY src/Njord.Indices/ Njord.Indices/
 COPY src/Njord/ Njord/
 RUN dotnet publish Njord/Njord.csproj -c Release -a ${TARGETARCH} -o /app /p:Version=${VERSION} /p:ContinuousIntegrationBuild=true
 

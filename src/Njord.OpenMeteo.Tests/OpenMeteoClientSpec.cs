@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text;
 using Njord.Core.Configuration;
-using Njord.Forecast;
 using Njord.Model;
 using Njord.Tests.Shared;
 
@@ -10,49 +9,46 @@ namespace Njord.OpenMeteo.Tests;
 public sealed class OpenMeteoClientSpec
 {
     private static readonly DateTimeOffset Run = TestTimeConstants.ForecastEpoch;
-    private static readonly CycleId Cycle = new(Run);
     private static readonly LocationOptions Home = new() { Name = "home", Latitude = 47.05, Longitude = 8.31 };
-    private static readonly WeatherModel IconEu = new("icon_eu");
     private static readonly ResolvedParameterSet DefaultParameters = ParameterSelection.Resolve(["Weather"], [], []);
 
     private static readonly DateTimeOffset FixtureStart = DateTimeOffset.FromUnixTimeSeconds(1_783_728_000);
 
-    private static string Fixture(string name)
-        => FixtureReader.Read(name);
+    private static string Fixture(string name) => FixtureReader.Read(name);
 
     private static (OpenMeteoClient Client, RecordingHandler Handler) CreateClient(
         Func<HttpRequestMessage, HttpResponseMessage> respond,
-        ResolvedParameterSet? parameters = null,
         string? baseUrl = null)
     {
         var handler = new RecordingHandler(respond);
-        var http = new HttpClient(handler) { BaseAddress = new Uri(baseUrl ?? "https://api.open-meteo.com/") };
-        return (new OpenMeteoClient(http, parameters ?? DefaultParameters,
-            Microsoft.Extensions.Options.Options.Create(AppSettingsDefaults.Options<NjordOptions>())), handler);
+        var http = new HttpClient(handler) { BaseAddress = new Uri(baseUrl ?? "https://ensemble-api.open-meteo.com/") };
+        return (new OpenMeteoClient(http, DefaultParameters), handler);
     }
 
     private static HttpResponseMessage Json(HttpStatusCode status, string body)
         => new(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
 
+    private static Task<EnsembleFetchResult> FetchAsync(OpenMeteoClient client, CancellationToken ct)
+        => client.FetchEnsembleAsync(Home, 4, Run, ct);
+
     [Fact(Timeout = 5000)]
-    public async Task A_successful_fetch_maps_to_a_model_forecast()
+    public async Task A_successful_fetch_maps_to_a_weather_forecast()
     {
         var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, Fixture("openmeteo-icon_eu-96h.json")));
 
-        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
 
-        var success = Assert.IsType<PollOutcome.Success>(outcome);
+        var success = Assert.IsType<EnsembleFetchResult.Success>(outcome);
         var forecast = success.Forecast;
-        Assert.Equal(IconEu, forecast.Model);
-        Assert.Equal("home", forecast.Location);
-        Assert.Equal(Cycle, forecast.Cycle);
-        Assert.Equal(96, forecast.Hourly.Points.Count);
-        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
-        var first = forecast.Hourly.Points[0]; // Count asserted above (96)
-        Assert.Equal(FixtureStart, first.ValidAt);
-        Assert.Equal(20.2, first.Get(temp).Number);
-        var pressureMsl = ParameterRegistry.GetByApiName("pressure_msl")!;
-        Assert.Equal(1014.8, first.Get(pressureMsl).Number);
+        Assert.Equal(96, forecast.Points.Length);
+        var first = forecast.Points[0];
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.Weather, forecast.Domain),
+            () => Assert.Equal(Run, forecast.ModelRun),
+            () => Assert.Equal(TimeResolution.Hourly, forecast.Resolution),
+            () => Assert.Equal(FixtureStart, first.ValidFrom),
+            () => Assert.Equal(20.2, first.Temperature),
+            () => Assert.Equal(1014.8, first.Pressure));
     }
 
     [Fact(Timeout = 5000)]
@@ -60,23 +56,22 @@ public sealed class OpenMeteoClientSpec
     {
         var (client, handler) = CreateClient(_ => Json(HttpStatusCode.OK, Fixture("openmeteo-icon_eu-96h.json")));
 
-        await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+        await FetchAsync(client, TestContext.Current.CancellationToken);
 
         var request = Assert.Single(handler.Requests);
         Assert.NotNull(request.RequestUri);
         var uri = request.RequestUri.ToString();
-        Assert.Contains("/v1/forecast?", uri);
-        Assert.Contains("latitude=47.05", uri);
-        Assert.Contains("longitude=8.31", uri);
-        Assert.Contains("models=icon_eu", uri);
-        Assert.Contains("hourly=", uri);
-        Assert.Contains("temperature_2m", uri);
-        Assert.Contains("wind_speed_unit=ms", uri);
-        Assert.Contains("timeformat=unixtime", uri);
-        Assert.Contains("timezone=UTC", uri);
-        Assert.Contains("forecast_days=4", uri);
-        Assert.Contains("daily=", uri);
-        Assert.Empty(request.Headers);
+        Assert.Multiple(
+            () => Assert.Contains("/v1/ensemble?", uri),
+            () => Assert.Contains("latitude=47.05", uri),
+            () => Assert.Contains("longitude=8.31", uri),
+            () => Assert.Contains("hourly=", uri),
+            () => Assert.Contains("temperature_2m", uri),
+            () => Assert.Contains("wind_speed_unit=ms", uri),
+            () => Assert.Contains("timeformat=unixtime", uri),
+            () => Assert.Contains("timezone=UTC", uri),
+            () => Assert.Contains("forecast_days=4", uri),
+            () => Assert.Empty(request.Headers));
     }
 
     [Fact(Timeout = 5000)]
@@ -84,9 +79,9 @@ public sealed class OpenMeteoClientSpec
     {
         var (client, _) = CreateClient(_ => Json(HttpStatusCode.TooManyRequests, """{"error":true,"reason":"Too many requests"}"""));
 
-        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
 
-        var failure = Assert.IsType<PollOutcome.Failure>(outcome);
+        var failure = Assert.IsType<EnsembleFetchResult.Failure>(outcome);
         Assert.Equal(PollFailureReason.RateLimited, failure.Reason);
     }
 
@@ -97,11 +92,38 @@ public sealed class OpenMeteoClientSpec
             HttpStatusCode.BadRequest,
             """{"reason":"No data is available for this location","error":true}"""));
 
-        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
 
-        var failure = Assert.IsType<PollOutcome.Failure>(outcome);
-        Assert.Equal(PollFailureReason.ModelUnavailable, failure.Reason);
-        Assert.Contains("No data is available for this location", failure.Detail);
+        var failure = Assert.IsType<EnsembleFetchResult.Failure>(outcome);
+        Assert.Multiple(
+            () => Assert.Equal(PollFailureReason.ModelUnavailable, failure.Reason),
+            () => Assert.Equal("HTTP 400: No data is available for this location", failure.Detail));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Http_400_with_an_unreadable_body_maps_to_model_unavailable_without_a_reason()
+    {
+        var (client, _) = CreateClient(_ => Json(HttpStatusCode.BadRequest, "not json"));
+
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
+
+        var failure = Assert.IsType<EnsembleFetchResult.Failure>(outcome);
+        Assert.Multiple(
+            () => Assert.Equal(PollFailureReason.ModelUnavailable, failure.Reason),
+            () => Assert.Equal("HTTP 400 from the forecast endpoint", failure.Detail));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Other_http_errors_map_to_transport()
+    {
+        var (client, _) = CreateClient(_ => Json(HttpStatusCode.InternalServerError, "{}"));
+
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
+
+        var failure = Assert.IsType<EnsembleFetchResult.Failure>(outcome);
+        Assert.Multiple(
+            () => Assert.Equal(PollFailureReason.Transport, failure.Reason),
+            () => Assert.Equal("HTTP 500 from the ensemble endpoint", failure.Detail));
     }
 
     [Fact(Timeout = 5000)]
@@ -109,31 +131,36 @@ public sealed class OpenMeteoClientSpec
     {
         var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, "{ this is not json"));
 
-        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
 
-        var failure = Assert.IsType<PollOutcome.Failure>(outcome);
+        var failure = Assert.IsType<EnsembleFetchResult.Failure>(outcome);
         Assert.Equal(PollFailureReason.MalformedPayload, failure.Reason);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Unit_drift_maps_to_malformed_payload()
+    public async Task A_response_without_hourly_data_maps_to_malformed_payload()
     {
-        var body = """
-            {
-              "hourly_units": {
-                "time": "unixtime", "temperature_2m": "°C", "apparent_temperature": "°C",
-                "wind_speed_10m": "km/h", "wind_gusts_10m": "km/h"
-              },
-              "hourly": { "time": [1783728000], "temperature_2m": [20.2], "wind_speed_10m": [3.4] }
-            }
-            """;
-        var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, body));
+        var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, """{"hourly":{"time":[]}}"""));
 
-        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
 
-        var failure = Assert.IsType<PollOutcome.Failure>(outcome);
-        Assert.Equal(PollFailureReason.MalformedPayload, failure.Reason);
-        Assert.Contains("km/h", failure.Detail);
+        var failure = Assert.IsType<EnsembleFetchResult.Failure>(outcome);
+        Assert.Multiple(
+            () => Assert.Equal(PollFailureReason.MalformedPayload, failure.Reason),
+            () => Assert.Equal("Response contained no hourly data", failure.Detail));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task Timestamps_without_any_values_map_to_malformed_payload()
+    {
+        var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, """{"hourly":{"time":[1783728000,1783731600]}}"""));
+
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
+
+        var failure = Assert.IsType<EnsembleFetchResult.Failure>(outcome);
+        Assert.Multiple(
+            () => Assert.Equal(PollFailureReason.MalformedPayload, failure.Reason),
+            () => Assert.Equal("Response carried hourly timestamps but no values", failure.Detail));
     }
 
     [Fact(Timeout = 5000)]
@@ -141,14 +168,13 @@ public sealed class OpenMeteoClientSpec
     {
         var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, Fixture("openmeteo-icon_d2-96h.json")));
 
-        var outcome = await client.FetchAsync(Home, new WeatherModel("icon_d2"), Cycle, TestContext.Current.CancellationToken);
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
 
-        var success = Assert.IsType<PollOutcome.Success>(outcome);
-        var points = success.Forecast.Hourly.Points;
-        Assert.Equal(64, points.Count);
-        Assert.Equal(FixtureStart.AddHours(63), points[^1].ValidAt);
-        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
-        Assert.Equal(31.6, points[^1].Get(temp).Number);
+        var success = Assert.IsType<EnsembleFetchResult.Success>(outcome);
+        var points = success.Forecast.Points;
+        Assert.Equal(64, points.Length);
+        Assert.Equal(FixtureStart.AddHours(63), points[^1].ValidFrom);
+        Assert.Equal(31.6, points[^1].Temperature);
     }
 
     [Fact(Timeout = 5000)]
@@ -156,127 +182,42 @@ public sealed class OpenMeteoClientSpec
     {
         var (client, handler) = CreateClient(_ => throw new HttpRequestException("connection refused"));
 
-        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
 
-        var failure = Assert.IsType<PollOutcome.Failure>(outcome);
-        Assert.Equal(PollFailureReason.Transport, failure.Reason);
-        Assert.Single(handler.Requests);
+        var failure = Assert.IsType<EnsembleFetchResult.Failure>(outcome);
+        Assert.Multiple(
+            () => Assert.Equal(PollFailureReason.Transport, failure.Reason),
+            () => Assert.Equal("connection refused", failure.Detail),
+            () => Assert.Single(handler.Requests));
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Daily_timestring_unix_timestamps_are_converted_to_iso_8601()
+    public async Task A_timeout_without_caller_cancellation_maps_to_transport()
     {
-        var body = """
-            {
-              "hourly_units": { "time": "unixtime", "temperature_2m": "°C" },
-              "hourly": { "time": [1783728000], "temperature_2m": [20.2] },
-              "daily": { "time": [1783728000], "sunrise": [1783746180], "sunset": [1783799400] }
-            }
-            """;
-        var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, body));
+        var (client, _) = CreateClient(_ => throw new TaskCanceledException("timed out"));
 
-        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
 
-        var success = Assert.IsType<PollOutcome.Success>(outcome);
-        var dailyPoint = Assert.Single(success.Forecast.Daily.Points);
-        var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
-        var sunriseVal = dailyPoint.Get(sunrise).Text;
-        Assert.NotNull(sunriseVal);
-        Assert.Contains("2026-07-11T", sunriseVal);
-        Assert.EndsWith("+00:00", sunriseVal);
+        var failure = Assert.IsType<EnsembleFetchResult.Failure>(outcome);
+        Assert.Multiple(
+            () => Assert.Equal(PollFailureReason.Transport, failure.Reason),
+            () => Assert.Equal("Request timed out", failure.Detail));
     }
 
     [Fact(Timeout = 5000)]
-    public async Task Daily_timestring_string_values_are_passed_through()
+    public async Task Missing_arrays_are_treated_as_zero_values()
     {
-        var body = """
-            {
-              "hourly_units": { "time": "unixtime", "temperature_2m": "°C" },
-              "hourly": { "time": [1783728000], "temperature_2m": [20.2] },
-              "daily": { "time": [1783728000], "sunrise": ["2026-07-11T05:23"] }
-            }
-            """;
+        var body = """{ "hourly": { "time": [1783728000], "temperature_2m": [20.2] } }""";
         var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, body));
 
-        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+        var outcome = await FetchAsync(client, TestContext.Current.CancellationToken);
 
-        var success = Assert.IsType<PollOutcome.Success>(outcome);
-        var dailyPoint = Assert.Single(success.Forecast.Daily.Points);
-        var sunrise = ParameterRegistry.GetByApiName("sunrise")!;
-        Assert.Equal("2026-07-11T05:23", dailyPoint.Get(sunrise).Text);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Daily_all_null_values_are_filtered_out()
-    {
-        var body = """
-            {
-              "hourly_units": { "time": "unixtime", "temperature_2m": "°C" },
-              "hourly": { "time": [1783728000], "temperature_2m": [20.2] },
-              "daily": { "time": [1783728000], "sunrise": [null] }
-            }
-            """;
-        var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, body));
-
-        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
-
-        var success = Assert.IsType<PollOutcome.Success>(outcome);
-        Assert.Empty(success.Forecast.Daily.Points);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Missing_arrays_are_treated_as_null_values()
-    {
-        var body = """
-            {
-              "hourly_units": { "time": "unixtime", "temperature_2m": "°C" },
-              "hourly": { "time": [1783728000], "temperature_2m": [20.2] }
-            }
-            """;
-        var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, body));
-
-        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
-
-        var success = Assert.IsType<PollOutcome.Success>(outcome);
-        Assert.Single(success.Forecast.Hourly.Points);
-        var point = success.Forecast.Hourly.Points[0];
-        var temp = ParameterRegistry.GetByApiName("temperature_2m")!;
-        var windSpeed = ParameterRegistry.GetByApiName("wind_speed_10m")!;
-        Assert.Equal(20.2, point.Get(temp).Number);
-        Assert.False(point.Get(windSpeed).HasValue);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Unrecognized_timezone_in_response_is_ignored()
-    {
-        var body = """
-            {
-              "timezone": "Invalid/Zone",
-              "hourly_units": { "time": "unixtime", "temperature_2m": "°C" },
-              "hourly": { "time": [1783728000], "temperature_2m": [20.2] }
-            }
-            """;
-        var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, body));
-
-        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
-
-        Assert.IsType<PollOutcome.Success>(outcome);
-    }
-
-    [Fact(Timeout = 5000)]
-    public async Task Missing_timezone_in_response_defaults_to_utc()
-    {
-        var body = """
-            {
-              "hourly_units": { "time": "unixtime", "temperature_2m": "°C" },
-              "hourly": { "time": [1783728000], "temperature_2m": [20.2] }
-            }
-            """;
-        var (client, _) = CreateClient(_ => Json(HttpStatusCode.OK, body));
-
-        var outcome = await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
-
-        var success = Assert.IsType<PollOutcome.Success>(outcome);
+        var success = Assert.IsType<EnsembleFetchResult.Success>(outcome);
+        var point = Assert.Single(success.Forecast.Points);
+        Assert.Multiple(
+            () => Assert.Equal(20.2, point.Temperature),
+            () => Assert.Equal(0, point.WindSpeed),
+            () => Assert.Null(point.WindGusts));
     }
 
     [Fact(Timeout = 5000)]
@@ -287,7 +228,7 @@ public sealed class OpenMeteoClientSpec
             _ => Json(HttpStatusCode.OK, Fixture("openmeteo-icon_eu-96h.json")),
             baseUrl: customUrl);
 
-        await client.FetchAsync(Home, IconEu, Cycle, TestContext.Current.CancellationToken);
+        await FetchAsync(client, TestContext.Current.CancellationToken);
 
         var request = Assert.Single(handler.Requests);
         Assert.NotNull(request.RequestUri);

@@ -13,7 +13,7 @@ public sealed partial class DocumentationArchitectureSpec
     // Names of methods that live in a framework or are placeholders in the documents.
     private static readonly string[] ExternalMethods =
     [
-        "AddXxx", "CreateTestProbe", "ToString", "ToTimestamp",
+        "CreateTestProbe", "ToString", "ToTimestamp",
     ];
 
     // Paths that exist at runtime (container volume, operator machine), not in the repository.

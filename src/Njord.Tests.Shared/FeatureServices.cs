@@ -3,8 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Njord.Alerts;
 using Njord.Alerts.Configuration;
 using Njord.Core.Domain;
-using Njord.Indices;
-using Njord.Indices.Configuration;
 
 namespace Njord.Tests.Shared;
 
@@ -35,10 +33,4 @@ public static class FeatureServices
                 }
             })
             .GetRequiredService<IProjectionGroup>();
-
-    public static IndexAnalyzer Indices(TimeProvider time, bool enabled = true) =>
-        Build(time, services => services
-                .AddIndices(AppSettingsDefaults.Configuration())
-                .Configure<IndexOptions>(options => options.Enabled = enabled))
-            .GetRequiredService<IndexAnalyzer>();
 }

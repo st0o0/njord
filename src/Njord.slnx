@@ -15,11 +15,7 @@
   <Folder Name="/Model/">
     <Project Path="Njord.Model/Njord.Model.csproj" />
   </Folder>
-  <Folder Name="/Forecast/">
-    <Project Path="Njord.Forecast/Njord.Forecast.csproj" />
-  </Folder>
   <Folder Name="/Contracts/">
-    <Project Path="Njord.Consensus/Njord.Consensus.csproj" />
     <Project Path="Njord.Messages/Njord.Messages.csproj" />
   </Folder>
   <Folder Name="/Infrastructure/">
@@ -32,9 +28,6 @@
   </Folder>
   <Folder Name="/Analysis/">
     <Project Path="Njord.Alerts/Njord.Alerts.csproj" />
-    <Project Path="Njord.Derived/Njord.Derived.csproj" />
-    <Project Path="Njord.Trends/Njord.Trends.csproj" />
-    <Project Path="Njord.Indices/Njord.Indices.csproj" />
   </Folder>
   <Folder Name="/Processing/">
     <Project Path="Njord.Pipeline/Njord.Pipeline.csproj" />
@@ -46,9 +39,7 @@
   <Folder Name="/Tests/">
     <Project Path="Njord.Tests.Shared/Njord.Tests.Shared.csproj" />
     <Project Path="Njord.Model.Tests/Njord.Model.Tests.csproj" />
-    <Project Path="Njord.Forecast.Tests/Njord.Forecast.Tests.csproj" />
     <Project Path="Njord.Persistence.Tests/Njord.Persistence.Tests.csproj" />
-    <Project Path="Njord.Consensus.Tests/Njord.Consensus.Tests.csproj" />
     <Project Path="Njord.Messages.Tests/Njord.Messages.Tests.csproj" />
     <Project Path="Njord.Core.Tests/Njord.Core.Tests.csproj" />
     <Project Path="Njord.OpenMeteo.Tests/Njord.OpenMeteo.Tests.csproj" />
@@ -57,9 +48,6 @@
     <Project Path="Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj" />
     <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
     <Project Path="Njord.Alerts.Tests/Njord.Alerts.Tests.csproj" />
-    <Project Path="Njord.Derived.Tests/Njord.Derived.Tests.csproj" />
-    <Project Path="Njord.Trends.Tests/Njord.Trends.Tests.csproj" />
-    <Project Path="Njord.Indices.Tests/Njord.Indices.Tests.csproj" />
     <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />
     <Project Path="Njord.IntegrationTests/Njord.IntegrationTests.csproj" />
     <Project Path="Njord.Tests/Njord.Tests.csproj" />

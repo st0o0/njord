@@ -1,6 +1,5 @@
 using System.Text.Json.Nodes;
 using Njord.Messages.Alerts;
-using Njord.Mqtt.Topics;
 using Njord.Tests.Shared;
 
 namespace Njord.Mqtt.Tests;
@@ -32,26 +31,6 @@ public sealed class StatePayloadGoldenMasterSpec
             Assert.True(obj.ContainsKey("hours_until"));
             Assert.True(obj.ContainsKey("duration_hours"));
         });
-    }
-
-    [Fact]
-    public void Per_model_horizon_payloads_are_valid_json_with_topic_structure()
-    {
-        foreach (var forecast in Fixture.Forecasts)
-        {
-            var perHorizon = StatePayloadBuilder.BuildPerHorizon(
-                forecast, AnalysisFixture.Parameters, AnalysisFixture.Horizons,
-                AnalysisFixture.ForecastDays, AnalysisFixture.Now);
-
-            Assert.NotEmpty(perHorizon);
-            foreach (var (horizon, payloadStr) in perHorizon)
-            {
-                var topic = TopicScheme.HorizonTopic(BaseTopic, forecast.Location, forecast.Model, horizon.ToWireKey());
-                Assert.StartsWith("njord/", topic);
-                var payload = JsonNode.Parse(payloadStr);
-                Assert.NotNull(payload);
-            }
-        }
     }
 
     [Fact]

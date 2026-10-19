@@ -18,7 +18,7 @@ Every `Njord.<Project>.Tests` project tests exactly one production project; shar
 | Subject | Base | Example |
 |---|---|---|
 | Actor (incl. persistent) | `NjordActorSpec` (`Njord.Tests.Shared`, derives from `Akka.Hosting.TestKit.TestKit`) | `src/Njord.Budget.Tests/BudgetTrackerSpec.cs`, `src/Njord.Pipeline.Tests/PollWorkerSpec.cs` |
-| Analysis feature / pure logic | plain class, no TestKit | `src/Njord.Alerts.Tests/AlertAnalyzerSpec.cs`, `src/Njord.Derived.Tests/DerivedFormulasSpec.cs` |
+| Analysis feature / pure logic | plain class, no TestKit | `src/Njord.Alerts.Tests/AlertAnalyzerSpec.cs`, `src/Njord.Alerts.Tests/WeatherAlertEnrichmentSpec.cs` |
 | gRPC service (ask and map) | `NjordActorSpec` + a fake actor behind the marker | `src/Njord.Grpc.Tests/WeatherGrpcServiceSpec.cs` |
 | Persistence record wire format | plain class + Verify | `src/Njord.Persistence.Tests/PollWorkerRecordsSpec.cs` |
 | Architecture rule | plain class, ArchUnitNET or reflection | `src/Njord.Architecture.Tests/` |
@@ -59,7 +59,7 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
 - Recovery test: `await actor.GracefulStop(...)`, then recreate the actor under a new unique name (never reuse a name after `GracefulStop`); recovery follows the persistence id, not the actor name. Assert the recovered state (see `BudgetTrackerSpec`).
 - Collaborators: a nested `private sealed class FakeXxx : ReceiveActor` registered under the marker interface in `ActorRegistry`, or `CreateTestProbe()` (examples: `src/Njord.Grpc.Tests/WeatherGrpcServiceSpec.cs`, `src/Njord.Grpc.Tests/OpsGrpcServiceSpec.cs`, `src/Njord.OpenMeteo.Tests/GatewayBudgetGateSpec.cs`).
 - Waiting for eventually-consistent state: `AwaitAssertAsync(..., TestTimeouts.AwaitAssertMax, cancellationToken: ct)`, never `Task.Delay`/`Thread.Sleep`.
-- Time: use the framework `FakeTimeProvider` everywhere; do not write your own. Helpers that need a clock take a `TimeProvider` parameter (`ConfigHarness`, `DisabledAnalyzers`).
+- Time: use the framework `FakeTimeProvider` everywhere; do not write your own. Helpers that need a clock take a `TimeProvider` parameter.
 
 ## Verify wire-format snapshot (from `PollWorkerRecordsSpec`)
 

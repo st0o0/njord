@@ -32,7 +32,6 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         var options = Options.Create(AppSettingsDefaults.Options<NjordOptions>(o =>
         {
             o.Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }];
-            o.Models = ["icon_d2"];
         }));
         var parameters = ParameterSelection.Resolve(["Weather"], [], []);
         return Sys.ActorOf(
@@ -50,10 +49,10 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         return (pipeline, attached, forecasts);
     }
 
-    private static FetchForecast Fetch() => new(new LocationId("lucerne"), "icon_d2");
+    private static FetchDomain Fetch() => new(new LocationId("lucerne"), DomainKind.Weather);
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_request_before_the_pipeline_input_is_attached_is_rejected_without_a_fetch()
+    public async Task A_request_before_the_pipeline_input_is_attached_is_rejected()
     {
         var ct = TestContext.Current.CancellationToken;
         var (_, attached, _) = RegisterPipeline(answers: false);
@@ -62,12 +61,11 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
 
         gateway.Tell(Fetch());
 
-        var rejected = await ExpectMsgAsync<FetchForecastRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var rejected = await ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(
             () => Assert.Equal("lucerne", rejected.Location.Name),
-            () => Assert.Equal("icon_d2", rejected.ModelId),
-            () => Assert.Equal(FetchRejectionReason.PipelineUnavailable, rejected.Reason),
-            () => Assert.Equal(0, _client.Calls));
+            () => Assert.Equal(DomainKind.Weather, rejected.Domain),
+            () => Assert.Equal(FetchRejectionReason.PipelineUnavailable, rejected.Reason));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -118,7 +116,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
 
         gateway.Tell(Fetch());
 
-        var rejected = await ExpectMsgAsync<FetchForecastRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var rejected = await ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Equal(FetchRejectionReason.PipelineUnavailable, rejected.Reason);
     }
 

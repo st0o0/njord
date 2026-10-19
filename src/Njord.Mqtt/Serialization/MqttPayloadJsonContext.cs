@@ -8,7 +8,6 @@ namespace Njord.Mqtt.Serialization;
     DefaultIgnoreCondition = JsonIgnoreCondition.Never,
     WriteIndented = false)]
 [JsonSerializable(typeof(AlertPayload))]
-[JsonSerializable(typeof(ForecastHorizonPayload))]
 [JsonSerializable(typeof(WeatherPayload))]
 [JsonSerializable(typeof(AirQualityPayload))]
 [JsonSerializable(typeof(FloodPayload))]

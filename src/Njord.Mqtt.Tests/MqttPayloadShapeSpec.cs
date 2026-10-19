@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Njord.Messages.Alerts;
-using Njord.Messages.Indices;
 using Njord.Mqtt.Payloads;
 using Njord.Mqtt.Serialization;
 
@@ -85,22 +84,5 @@ public sealed class MqttPayloadShapeSpec
         var json = Alert(new FrostAlertPayload(-3, "+4h", 2) { Severity = AlertSeverity.Yellow });
 
         Assert.Equal("+4h", json.GetProperty("earliest_frost").GetString());
-    }
-    [Fact]
-    public void Forecast_horizon_omits_absent_values_and_keeps_numbers_and_text()
-    {
-        var json = Parse(JsonSerializer.Serialize(
-            new ForecastHorizonPayload(
-                [
-                    new ForecastHorizonEntryPayload("temperature_2m", 21.5, null),
-                    new ForecastHorizonEntryPayload("cloud_cover", null, null),
-                    new ForecastHorizonEntryPayload("sunrise", null, "05:31"),
-                ]),
-            MqttPayloadJsonContext.Default.ForecastHorizonPayload));
-
-        Assert.Multiple(
-            () => Assert.Equal(["temperature_2m", "sunrise"], Names(json)),
-            () => Assert.Equal(JsonValueKind.Number, json.GetProperty("temperature_2m").ValueKind),
-            () => Assert.Equal(JsonValueKind.String, json.GetProperty("sunrise").ValueKind));
     }
 }

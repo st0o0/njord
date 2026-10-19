@@ -7,11 +7,8 @@ using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Persistence;
 using Njord.Core.Configuration.Polling;
-using Njord.Derived.Configuration;
-using Njord.Indices.Configuration;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
-using Njord.Trends.Configuration;
 
 namespace Njord.Tests.Configuration;
 
@@ -63,11 +60,7 @@ public sealed class DefaultOptionsSpec
             [nameof(StorageOptions)] = new StorageOptionsValidator(configuration).Validate(null, AppSettingsDefaults.Options<StorageOptions>(configuration)),
             [nameof(PersistenceOptions)] = new PersistenceOptionsValidator().Validate(null, AppSettingsDefaults.Options<PersistenceOptions>(configuration)),
             [nameof(MqttOptions)] = new MqttOptionsValidator().Validate(null, AppSettingsDefaults.Options<MqttOptions>(configuration)),
-            [nameof(ConsensusOptions)] = new ConsensusOptionsValidator().Validate(null, AppSettingsDefaults.Options<ConsensusOptions>(configuration)),
             [nameof(AlertOptions)] = new AlertOptionsValidator().Validate(null, AppSettingsDefaults.Options<AlertOptions>(configuration)),
-            [nameof(DerivedOptions)] = new DerivedOptionsValidator().Validate(null, AppSettingsDefaults.Options<DerivedOptions>(configuration)),
-            [nameof(TrendOptions)] = new TrendOptionsValidator().Validate(null, AppSettingsDefaults.Options<TrendOptions>(configuration)),
-            [nameof(IndexOptions)] = new IndexOptionsValidator().Validate(null, AppSettingsDefaults.Options<IndexOptions>(configuration)),
         };
 
         Assert.Multiple(results.Select(r => (Action)(() =>

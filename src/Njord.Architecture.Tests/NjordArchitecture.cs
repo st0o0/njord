@@ -33,11 +33,11 @@ internal static class NjordArchitecture
             .Select(n => Assembly.Load(n!))
     ];
 
-    private static readonly string[] FeatureLibraryNames = ["Njord.Grpc", "Njord.OpenMeteo", "Njord.Budget", "Njord.Mqtt", "Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"];
-    private static readonly string[] BaseLibraryNames = ["Njord.Consensus", "Njord.Core", "Njord.Forecast", "Njord.Messages", "Njord.Model", "Njord.Persistence"];
+    private static readonly string[] FeatureLibraryNames = ["Njord.Grpc", "Njord.OpenMeteo", "Njord.Budget", "Njord.Mqtt", "Njord.Alerts"];
+    private static readonly string[] BaseLibraryNames = ["Njord.Core", "Njord.Messages", "Njord.Model", "Njord.Persistence"];
 
     internal const string PipelineLibrary = "Njord.Pipeline";
-    private static readonly string[] PipelineAllowedAnalysisLibs = ["Njord.Alerts", "Njord.Derived", "Njord.Trends", "Njord.Indices"];
+    private static readonly string[] PipelineAllowedAnalysisLibs = ["Njord.Alerts"];
 
     public static readonly ArchUnitNET.Domain.Architecture Instance =
         new ArchLoader()
@@ -85,13 +85,13 @@ internal static class NjordArchitecture
         }
     }
 
-    private static readonly string[] AnalysisLibraryNames = ["Njord.Consensus", .. PipelineAllowedAnalysisLibs];
+    private static readonly string[] AnalysisLibraryNames = [.. PipelineAllowedAnalysisLibs];
 
     public static IObjectProvider<IType> AnalysisTypes =>
         Types().That().ResideInAssembly(AssemblyByName(AnalysisLibraryNames[0]),
                 [.. AnalysisLibraryNames.Skip(1).Select(AssemblyByName)])
             .And().DoNotHaveFullNameContaining("Microsoft.CodeCoverage")
-            .As("Consensus and the analysis feature libraries");
+            .As("the analysis feature libraries");
 
     public static IObjectProvider<IType> ProductionTypes =>
         Types().That().ResideInAssembly(NjordAssembly,
