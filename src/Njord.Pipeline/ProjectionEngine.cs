@@ -7,8 +7,8 @@ namespace Njord.Pipeline;
 internal sealed record LocationSlot(LocationForecast Current, LocationForecast? Previous);
 
 // The analysis state of the pipeline: the latest LocationForecast per location, the previous value of every domain
-// slot, and the projection groups that react to a changed domain. Lives inside the StatefulSelectMany closure.
-internal sealed class ProjectionEngine(IReadOnlyList<IProjectionGroup> groups, TimeProvider time)
+// slot, and the domain handlers that react to a changed domain. Lives inside the StatefulSelectMany closure.
+internal sealed class ProjectionEngine(IReadOnlyList<IDomainHandler> handlers, TimeProvider time)
 {
     public static readonly ImmutableDictionary<string, LocationSlot> EmptyState =
         ImmutableDictionary.Create<string, LocationSlot>(StringComparer.OrdinalIgnoreCase);
@@ -17,30 +17,25 @@ internal sealed class ProjectionEngine(IReadOnlyList<IProjectionGroup> groups, T
 
     public IReadOnlyList<PipelineEvent> Process(DomainDataReceived received)
     {
-        var (next, events) = Evaluate(_locations, groups, received, time);
+        var (next, events) = Evaluate(_locations, handlers, received, time);
         _locations = next;
         return events;
     }
 
     public static (ImmutableDictionary<string, LocationSlot> State, IReadOnlyList<PipelineEvent> Events) Evaluate(
         ImmutableDictionary<string, LocationSlot> state,
-        IReadOnlyList<IProjectionGroup> groups,
+        IReadOnlyList<IDomainHandler> handlers,
         DomainDataReceived received,
         TimeProvider time)
     {
         var slot = Update(state.GetValueOrDefault(received.Location.Name), received);
         var events = new List<PipelineEvent>(4) { received.ToPipelineEvent() };
 
-        foreach (var group in groups)
+        foreach (var handler in handlers)
         {
-            if (!group.AffectedBy(received.Domain))
+            if (handler.Triggers.Contains(received.Domain))
             {
-                continue;
-            }
-
-            foreach (var enrichmentEvent in group.Evaluate(slot.Current, slot.Previous, time))
-            {
-                events.Add(enrichmentEvent.ToPipelineEvent());
+                events.AddRange(handler.Handle(slot.Current, slot.Previous, time));
             }
         }
 

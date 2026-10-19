@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Njord.Alerts.Configuration;
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Weather.Alerts.Rules;
 
@@ -26,13 +26,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAlertRule, HumidityRule>();
 
         services.AddSingleton<AlertAnalyzer>();
-        services.AddSingleton<IProjectionGroup>(static sp => new ProjectionGroup<WeatherAlertInput>(
-            new WeatherAlertProjector(),
-            [
-                new WeatherAlertEnrichment(
-                    sp.GetRequiredService<AlertAnalyzer>(),
-                    sp.GetRequiredService<IOptions<AlertOptions>>().Value.ToSettings()),
-            ]));
+        services.AddSingleton<IDomainHandler>(static sp => new WeatherAlertHandler(
+            sp.GetRequiredService<AlertAnalyzer>(),
+            sp.GetRequiredService<IOptions<AlertOptions>>().Value.ToSettings()));
 
         return services;
     }

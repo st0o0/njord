@@ -47,22 +47,21 @@ with optional MQTT state publishing.
   `StatefulSelectMany(ProjectionEngine.Process)` → `BroadcastHub<PipelineEvent>`.
   The `ProjectionEngine` keeps the latest and previous `LocationForecast` per
   location inside the stage closure, so a gateway restart never loses it, and runs
-  every `IProjectionGroup` that is affected by the changed domain. The pipeline
+  every `IDomainHandler` triggered by the changed domain. The pipeline
   depends on no other actor; an ended analysis graph restarts it (BackoffOnFailure).
   Consumers attach via SourceRef.
 - **The entity set is static, derived from config** (locations × domains ×
   parameters) — never from what the API happens to return. A missing value is
   omitted or `null`, not a missing entity.
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow` directly.
-- **Analysis is a projection group.** A feature library (`Njord.Alerts`)
-  implements `IProjectionGroup` (`Njord.Core/Domain`): it names its required
-  domains and evaluates the current `LocationForecast` against the previous one
-  into `EnrichmentEvent`s. `PipelineEvent` variants are typed records
+- **Analysis is a domain handler.** Each domain project (`Njord.Weather`, `Njord.AirQuality`,
+  `Njord.Flood`) implements `IDomainHandler` (`Njord.Core/Domain`): it names the domains that
+  trigger it and handles the current `LocationForecast` against the previous one, returning
+  `PipelineEvent`s directly (`AlertRaised`). `PipelineEvent` variants are typed records
   (`WeatherDataReceived`, `AirQualityDataReceived`, `FloodDataReceived`,
   `SolarDataReceived`, `MarineDataReceived`, `AlertRaised`) — no
-  `object` wrapping. Feature libraries register their groups in their own DI
-  extension; `Njord.Pipeline` references only the allowed analysis libraries
-  (`Njord.Alerts`), enforced by `LayerReferenceSpec`.
+  `object` wrapping. Domain projects register their handlers in their own DI
+  extension; `AlertOptions`, `AlertSettings` conversion and `AlertClock` live in `Njord.Core`.
 - **Consumers are output adapters via SourceRef.** The MQTT state publisher and
   the API's gRPC consumer (`GrpcConsumer` in `Njord.Grpc`, marker
   `IGrpcConsumer`) request a `SourceRef<PipelineEvent>` from `ForecastPipeline`
@@ -104,8 +103,8 @@ with optional MQTT state publishing.
   `LayerReferenceSpec` for the assembly reference direction: Model and
   Persistence reference no Njord assembly, Messages only Model (and no Akka package,
   no `*Analyzer`/`*Rule`/`*Formulas` type), Core only Model, Messages and Persistence,
-  feature libraries (OpenMeteo, Budget, Grpc, Mqtt, Alerts) only Core and below,
-  Pipeline Core and below plus Alerts; the host references all. Feature libraries
+  feature libraries (OpenMeteo, Budget, Grpc, Mqtt, Pipeline, Weather, AirQuality, Flood) only Core and below;
+  the host references all. Feature libraries
   never reference each other, checked by the lateral rule in `ZoneArchitectureSpec`,
   which also keeps actors, options, the config writer, `BudgetCalculator` and
   out of `Njord.Grpc` and public nested records out of every actor).
@@ -175,8 +174,8 @@ src/
   Njord.Core/                 # Options, actor keys, StreamSupervision (-> Model, Messages, Persistence)
     Actors/                   # Marker interfaces, ShardMessageExtractor, StreamConsumerActor, stream handshakes
                               #   (PipelineStreamMessages, ForecastStreamMessages, GrpcStreamMessages)
-    Domain/                   # LocationForecast, DomainDataReceived, IProjectionGroup, IProjector, IEnrichment,
-                              #   EnrichmentEvent, ForecastQueries
+    Domain/                   # LocationForecast, DomainDataReceived, IDomainHandler, AlertClock,
+                              #   ForecastQueries
     Configuration/            # Cross-cutting options and validators (scope, polling, OpenMeteo, storage,
                               #   persistence, MQTT, LocationOptions), budget calculator,
                               #   ConfigView (scope + polling), AddNjordOptions,
@@ -207,12 +206,11 @@ src/
                               #   EnrichmentEventMappings, WireEnumMappings: extension methods only
 
   # /Analysis/ — projection-group libraries (each -> Core only), own their computation
-  Njord.Alerts/               # Alert kernel (IAlertRule<T>, AlertRaisedEvent, AlertOptions); Njord.Weather.Alerts/, Njord.AirQuality/, Njord.Flood/ hold the per-domain alerts. Weather: AlertAnalyzer, WeatherAlertProjector/Enrichment (projection group), IAlertRule,
-                              #   Rules/ (one rule per AlertType), AlertWindow,
-                              #   AirQuality/ (AirQualityAlertProjector, PollenAlertRule, Pm25AlertRule),
-                              #   Flood/ (FloodRiskProjector, FloodRiskAlertRule, FloodRainProjector,
-                              #     FloodRainAlertRule — cross-domain Weather×Flood),
-                              #   Configuration/ (AlertOptions, validator, conversion)
+  Njord.Weather/              # AlertAnalyzer, WeatherAlertHandler (IDomainHandler), IAlertRule,
+                              #   Rules/ (one rule per AlertType), AlertWindow
+  Njord.AirQuality/           # AirQualityAlertHandler, IAirQualityAlertRule, PollenAlertRule, Pm25AlertRule
+  Njord.Flood/                # FloodRiskHandler, FloodRiskAlertRule, FloodRainHandler,
+                              #   FloodRainAlertRule (cross-domain Weather x Flood)
 
   # Host
   Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
@@ -233,7 +231,7 @@ src/
   Njord.Mqtt.Tests/           # MQTT connection, state payload, consumer specs
   Njord.Grpc.Tests/           # gRPC service, ActorAsk, mapping specs, golden masters,
                               #   GrpcConsumer specs
-  Njord.Alerts.Tests/         # AlertAnalyzer specs, Rules/ (one spec per rule)
+  Njord.Weather.Tests/        # AlertAnalyzer, WeatherAlertHandler specs, Rules/ (one spec per rule)
   Njord.Tests/                # Host specs: options binding, setup containers
   Njord.IntegrationTests/     # Whole host via NjordHost + TestServer (gRPC channel, SQLite restart); Mosquitto via Testcontainers (needs Docker)
   Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules
@@ -241,9 +239,9 @@ src/
 ```
 
 Reference direction: Model <- Messages; Model/Messages/Persistence <- Core <- feature libs
-(OpenMeteo, Budget, Grpc, Pipeline, Mqtt, Alerts) <- host. Feature libs reference only
+(OpenMeteo, Budget, Grpc, Pipeline, Mqtt, Weather, AirQuality, Flood) <- host. Feature libs reference only
 Njord.Core (and below, including Model transitively), never each other and never the host
-(the one exception: `Njord.Pipeline` references `Njord.Alerts`); they reach each other's actors
+they reach each other's actors
 through the marker interfaces in `Njord.Core/ActorKeys.cs`. Registration
 stays central in the host. Enforced by project references plus `Njord.Architecture.Tests/LayerReferenceSpec.cs` and the
 lateral/upward ArchUnit rules in `Njord.Architecture.Tests/ZoneArchitectureSpec.cs`.

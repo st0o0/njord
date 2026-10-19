@@ -1,4 +1,4 @@
-namespace Njord.Alerts;
+namespace Njord.Core.Domain;
 
 public static class AlertClock
 {

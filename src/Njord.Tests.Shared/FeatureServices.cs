@@ -1,8 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Njord.AirQuality;
-using Njord.Alerts;
-using Njord.Alerts.Configuration;
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Flood;
 using Njord.Weather.Alerts;
@@ -27,7 +26,7 @@ public static class FeatureServices
                 .Configure<AlertOptions>(options => options.Enabled = enabled))
             .GetRequiredService<AlertAnalyzer>();
 
-    public static IProjectionGroup AlertGroup(TimeProvider time, Action<AlertOptions>? configure = null) =>
+    public static IDomainHandler AlertHandler(TimeProvider time, Action<AlertOptions>? configure = null) =>
         Build(time, services =>
             {
                 services.AddAlertOptions(AppSettingsDefaults.Configuration());
@@ -39,5 +38,5 @@ public static class FeatureServices
                     services.Configure(configure);
                 }
             })
-            .GetServices<IProjectionGroup>().First();
+            .GetServices<IDomainHandler>().First();
 }

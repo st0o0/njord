@@ -1,4 +1,4 @@
-using Njord.Alerts;
+using Njord.Core.Configuration;
 using Njord.Weather.Alerts;
 using Servus.Application.Startup;
 

@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Njord.Alerts.Configuration;
 using Njord.Core.Configuration;
 
 namespace Njord.Core.Tests.Configuration;

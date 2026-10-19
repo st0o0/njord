@@ -1,7 +1,7 @@
-using Njord.Alerts.Configuration;
+using Njord.Core.Configuration;
 using Njord.Tests.Shared;
 
-namespace Njord.Alerts.Tests.Configuration;
+namespace Njord.Core.Tests.Configuration;
 
 public sealed class AlertOptionsValidatorSpec
 {

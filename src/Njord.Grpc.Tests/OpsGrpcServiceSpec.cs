@@ -1,9 +1,7 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Alerts.Configuration;
 using Njord.Core;
-using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Grpc.V2;
 using Njord.Messages.Budget;

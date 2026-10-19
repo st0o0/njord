@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Domain;
+using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.Tests.Shared;
@@ -13,23 +14,27 @@ public sealed class ProjectionEngineSpec
 
     private sealed record Seen(LocationForecast Current, LocationForecast? Previous);
 
-    private sealed record ProbeEvent(Location Location, int Call) : EnrichmentEvent(Location);
-
-    private sealed class RecordingGroup(params DomainKind[] required) : IProjectionGroup
+    private sealed class RecordingHandler(params DomainKind[] triggers) : IDomainHandler
     {
         public List<Seen> Calls { get; } = [];
 
-        public bool EmitUnmappable { get; init; }
+        public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind>(triggers);
 
-        public IReadOnlySet<DomainKind> RequiredDomains { get; } = new HashSet<DomainKind>(required);
-
-        public bool AffectedBy(DomainKind domain) => RequiredDomains.Contains(domain);
-
-        public IReadOnlyList<EnrichmentEvent> Evaluate(LocationForecast current, LocationForecast? previous, TimeProvider time)
+        public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
         {
             Calls.Add(new Seen(current, previous));
-            return EmitUnmappable ? [new ProbeEvent(current.Location, Calls.Count)] : [];
+            return [];
         }
+    }
+
+    private sealed class EmittingHandler : IDomainHandler
+    {
+        public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather };
+
+        public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time) =>
+        [
+            new PipelineEvent.AlertRaised(current.Location, Alert.None(AlertType.Frost), time.GetUtcNow()),
+        ];
     }
 
     private static double TemperatureOf(DomainForecast<WeatherPoint>? forecast)
@@ -44,7 +49,7 @@ public sealed class ProjectionEngineSpec
     [Fact]
     public void The_first_data_of_a_location_is_published_and_has_no_previous()
     {
-        var group = new RecordingGroup(DomainKind.Weather);
+        var group = new RecordingHandler(DomainKind.Weather);
         var engine = new ProjectionEngine([group], Time);
 
         var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
@@ -60,7 +65,7 @@ public sealed class ProjectionEngineSpec
     [Fact]
     public void A_second_update_of_the_same_domain_moves_the_old_value_to_previous()
     {
-        var group = new RecordingGroup(DomainKind.Weather);
+        var group = new RecordingHandler(DomainKind.Weather);
         var engine = new ProjectionEngine([group], Time);
 
         engine.Process(Weather(DomainData.Lucerne, 10.0));
@@ -78,7 +83,7 @@ public sealed class ProjectionEngineSpec
     [Fact]
     public void An_update_of_another_domain_keeps_the_weather_previous_slot()
     {
-        var group = new RecordingGroup(DomainKind.Weather);
+        var group = new RecordingHandler(DomainKind.Weather);
         var engine = new ProjectionEngine([group], Time);
 
         engine.Process(Weather(DomainData.Lucerne, 10.0));
@@ -98,7 +103,7 @@ public sealed class ProjectionEngineSpec
     [Fact]
     public void Locations_are_tracked_separately_and_case_insensitively()
     {
-        var group = new RecordingGroup(DomainKind.Weather);
+        var group = new RecordingHandler(DomainKind.Weather);
         var engine = new ProjectionEngine([group], Time);
 
         engine.Process(Weather(DomainData.Lucerne, 10.0));
@@ -111,11 +116,11 @@ public sealed class ProjectionEngineSpec
     }
 
     [Fact]
-    public void Only_groups_requiring_the_changed_domain_are_evaluated()
+    public void Only_handlers_triggered_by_the_changed_domain_are_invoked()
     {
-        var weatherGroup = new RecordingGroup(DomainKind.Weather);
-        var floodGroup = new RecordingGroup(DomainKind.Flood);
-        var both = new RecordingGroup(DomainKind.Weather, DomainKind.Flood);
+        var weatherGroup = new RecordingHandler(DomainKind.Weather);
+        var floodGroup = new RecordingHandler(DomainKind.Flood);
+        var both = new RecordingHandler(DomainKind.Weather, DomainKind.Flood);
         var engine = new ProjectionEngine([weatherGroup, floodGroup, both], Time);
 
         engine.Process(Weather(DomainData.Lucerne, 10.0));
@@ -128,20 +133,9 @@ public sealed class ProjectionEngineSpec
     }
 
     [Fact]
-    public void A_group_with_a_null_projection_produces_no_events()
+    public void Alert_events_follow_the_domain_event()
     {
-        var group = ProjectionGroupStub.NeverProjecting(DomainKind.Weather);
-        var engine = new ProjectionEngine([group], Time);
-
-        var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
-
-        Assert.IsType<PipelineEvent.WeatherDataReceived>(Assert.Single(events));
-    }
-
-    [Fact]
-    public void Enrichment_events_follow_the_domain_event()
-    {
-        var engine = new ProjectionEngine([FeatureServices.AlertGroup(Time)], Time);
+        var engine = new ProjectionEngine([FeatureServices.AlertHandler(Time)], Time);
 
         var events = engine.Process(
             DomainData.Received(DomainData.Lucerne, DomainData.Weather(Start, 48, (_, p) => p with { Temperature = -6.0 })));
@@ -154,13 +148,17 @@ public sealed class ProjectionEngineSpec
     }
 
     [Fact]
-    public void An_enrichment_event_without_a_pipeline_mapping_is_rejected()
+    public void Events_of_a_triggered_handler_follow_the_domain_event()
     {
-        var engine = new ProjectionEngine([new RecordingGroup(DomainKind.Weather) { EmitUnmappable = true }], Time);
+        var engine = new ProjectionEngine([new EmittingHandler()], Time);
 
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => engine.Process(Weather(DomainData.Lucerne, 10.0)));
+        var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
 
-        Assert.Equal("enrichmentEvent", ex.ParamName);
+        Assert.Equal(2, events.Count);
+        Assert.Multiple(
+            () => Assert.IsType<PipelineEvent.WeatherDataReceived>(events[0]),
+            () => Assert.Equal(AlertType.Frost, Assert.IsType<PipelineEvent.AlertRaised>(events[1]).Type),
+            () => Assert.Equal(Start, Assert.IsType<PipelineEvent.AlertRaised>(events[1]).Timestamp));
     }
 
     [Fact]
@@ -177,7 +175,7 @@ public sealed class ProjectionEngineSpec
     [Fact]
     public void Evaluate_returns_the_new_state_without_changing_the_given_one()
     {
-        var group = new RecordingGroup(DomainKind.Weather);
+        var group = new RecordingHandler(DomainKind.Weather);
         var initial = ProjectionEngine.EmptyState;
 
         var (state, events) = ProjectionEngine.Evaluate(initial, [group], Weather(DomainData.Lucerne, 10.0), Time);
@@ -193,7 +191,7 @@ public sealed class ProjectionEngineSpec
     [Fact]
     public void Evaluate_keeps_the_replaced_value_as_previous()
     {
-        var group = new RecordingGroup(DomainKind.Weather);
+        var group = new RecordingHandler(DomainKind.Weather);
         var (first, _) = ProjectionEngine.Evaluate(ProjectionEngine.EmptyState, [group], Weather(DomainData.Lucerne, 10.0), Time);
 
         var (second, _) = ProjectionEngine.Evaluate(first, [group], Weather(DomainData.Lucerne, 12.0), Time);
@@ -206,30 +204,15 @@ public sealed class ProjectionEngineSpec
     }
 
     [Fact]
-    public void Evaluate_only_asks_groups_affected_by_the_domain()
+    public void Evaluate_only_invokes_handlers_triggered_by_the_domain()
     {
-        var weather = new RecordingGroup(DomainKind.Weather);
-        var flood = new RecordingGroup(DomainKind.Flood);
+        var weather = new RecordingHandler(DomainKind.Weather);
+        var flood = new RecordingHandler(DomainKind.Flood);
 
         ProjectionEngine.Evaluate(ProjectionEngine.EmptyState, [weather, flood], Weather(DomainData.Lucerne, 10.0), Time);
 
         Assert.Multiple(
             () => Assert.Single(weather.Calls),
             () => Assert.Empty(flood.Calls));
-    }
-
-    private static class ProjectionGroupStub
-    {
-        private sealed record NoInput(Location Location) : IEnrichmentInput;
-
-        private sealed class NullProjector(DomainKind domain) : IProjector<NoInput>
-        {
-            public IReadOnlySet<DomainKind> RequiredDomains { get; } = new HashSet<DomainKind> { domain };
-
-            public NoInput? Project(LocationForecast current, LocationForecast? previous) => null;
-        }
-
-        public static IProjectionGroup NeverProjecting(DomainKind domain) =>
-            new ProjectionGroup<NoInput>(new NullProjector(domain), []);
     }
 }

@@ -1,14 +1,15 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Alerts;
-using Njord.Alerts.Configuration;
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 using Njord.Tests.Shared;
+using Njord.Weather.Alerts;
 using static Njord.Tests.Shared.AlertRuleFixture;
 
-namespace Njord.Weather.Alerts.Tests;
+namespace Njord.Weather.Tests;
 
 public sealed class AlertAnalyzerSpec
 {

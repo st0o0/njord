@@ -1,12 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+    <PropertyGroup>
+      <RootNamespace>Njord.Weather.Alerts</RootNamespace>
+    </PropertyGroup>
+
     <ItemGroup>
-        <InternalsVisibleTo Include="Njord.Weather.Alerts.Tests" />
+        <InternalsVisibleTo Include="Njord.Weather.Tests" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Njord.Core\Njord.Core.csproj" />
-        <ProjectReference Include="..\Njord.Alerts\Njord.Alerts.csproj" />
     </ItemGroup>
 
     <ItemGroup>

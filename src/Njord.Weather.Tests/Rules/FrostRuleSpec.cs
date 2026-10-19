@@ -3,7 +3,7 @@ using Njord.Model;
 using Njord.Weather.Alerts.Rules;
 using static Njord.Tests.Shared.AlertRuleFixture;
 
-namespace Njord.Weather.Alerts.Tests.Rules;
+namespace Njord.Weather.Tests.Rules;
 
 public sealed class FrostRuleSpec
 {

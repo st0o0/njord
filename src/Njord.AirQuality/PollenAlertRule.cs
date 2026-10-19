@@ -1,10 +1,10 @@
-using Njord.Alerts;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.AirQuality;
 
-public sealed class PollenAlertRule : IAlertRule<DomainForecast<AirQualityPoint>>
+public sealed class PollenAlertRule : IAirQualityAlertRule
 {
     public const double YellowThreshold = 20.0;
     public const double OrangeThreshold = 50.0;

@@ -23,7 +23,7 @@ public sealed class ForecastPipeline : ReceiveActor
     private sealed record AnalysisGraphEnded(long GraphId, Exception? Cause) : IDeadLetterSuppression;
 
     private readonly TimeProvider _timeProvider;
-    private readonly IReadOnlyList<IProjectionGroup> _groups;
+    private readonly IReadOnlyList<IDomainHandler> _handlers;
 
     private IMaterializer? _mat;
     private long _graphId;
@@ -34,10 +34,10 @@ public sealed class ForecastPipeline : ReceiveActor
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
-    public ForecastPipeline(TimeProvider timeProvider, IEnumerable<IProjectionGroup> groups)
+    public ForecastPipeline(TimeProvider timeProvider, IEnumerable<IDomainHandler> handlers)
     {
         _timeProvider = timeProvider;
-        _groups = [.. groups];
+        _handlers = [.. handlers];
 
         Receive<RequestForecastSink>(OnRequestForecastSink);
         Receive<RequestPipelineOutput>(OnRequestPipelineOutput);
@@ -109,14 +109,14 @@ public sealed class ForecastPipeline : ReceiveActor
         var graphId = _graphId = Interlocked.Increment(ref LastGraphId);
         var inputSource = _inputSource!;
         var pipelineOutputSink = _pipelineOutputSink!;
-        var groups = _groups;
+        var handlers = _handlers;
         var timeProvider = _timeProvider;
         var log = _log;
 
         inputSource
             .StatefulSelectMany<DomainDataReceived, PipelineEvent, NotUsed>(() =>
             {
-                var engine = new ProjectionEngine(groups, timeProvider);
+                var engine = new ProjectionEngine(handlers, timeProvider);
 
                 return received =>
                 {

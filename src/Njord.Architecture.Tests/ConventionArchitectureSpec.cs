@@ -42,7 +42,7 @@ public sealed class ConventionArchitectureSpec
     {
         Classes().That().Are(NjordArchitecture.ProductionTypes)
             .And().ImplementInterface(typeof(IAlertRule))
-            .Should().Be(NjordArchitecture.TypesInLibrary("Njord.Weather.Alerts"))
+            .Should().Be(NjordArchitecture.TypesInLibrary("Njord.Weather"))
             .Check(NjordArchitecture.Instance);
     }
 }

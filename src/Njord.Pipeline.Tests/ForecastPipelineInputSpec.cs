@@ -18,7 +18,7 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
     private IActorRef CreatePipeline()
     {
         var time = new FakeTimeProvider(Start);
-        var group = FeatureServices.AlertGroup(time);
+        var group = FeatureServices.AlertHandler(time);
         return Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, new[] { group })), $"pipeline-{Guid.NewGuid():N}");
     }
 

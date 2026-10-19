@@ -1,6 +1,6 @@
 using Njord.Messages.Alerts;
 
-namespace Njord.Alerts.Configuration;
+namespace Njord.Core.Configuration;
 
 public static class AlertSettingsConversion
 {

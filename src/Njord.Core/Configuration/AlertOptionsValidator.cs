@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-namespace Njord.Alerts.Configuration;
+namespace Njord.Core.Configuration;
 
 public sealed class AlertOptionsValidator : IValidateOptions<AlertOptions>
 {

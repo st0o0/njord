@@ -25,7 +25,7 @@ The Ensemble Mean API replaces polling individual models: one call per location 
 <likec4-view view-id="internals"></likec4-view>
 
 - **Ingest**: `OpenMeteoGateway` routes each domain request to its endpoint and rate-limits against the budget. `OpenMeteoClient` builds requests and parses responses. It knows nothing about gRPC, MQTT or Home Assistant.
-- **Domain**: `PollManager`, one `PollWorker` per location (cluster sharding), `ForecastPipeline` with the `ProjectionEngine`, `BudgetTracker` and the alert library.
+- **Domain**: `PollManager`, one `PollWorker` per location (cluster sharding), `ForecastPipeline` with the `ProjectionEngine`, `BudgetTracker` and the domain alert handlers.
 - **Consumers**: `GrpcConsumer` behind the gRPC API and the optional `MqttStatePublisher`. They attach to the pipeline via SourceRef and know nothing about Open-Meteo.
 
 Ingest and consumers never reference each other; all data flows through the domain model.
@@ -37,15 +37,15 @@ Ingest and consumers never reference each other; all data flows through the doma
 1. **PollWorker** (one per location, started by `PollManager`) persists its learned update cycle and next poll time. When due, it asks the gateway for each enabled domain (`FetchDomain`); the three fetches run in parallel.
 2. **Gateway** routes each request to Weather (Ensemble Mean), Air Quality or Flood and throttles to stay within the request budget.
 3. **Fetch** parses the response into a `DomainForecast<T>` and offers a `DomainDataReceived` into the pipeline's `MergeHub`.
-4. **ProjectionEngine** keeps a `LocationForecast` per location (current and previous state per domain), replaces the changed domain slot and evaluates only the projection groups that need that domain.
-5. **ProjectionGroups** project the `LocationForecast` into a typed enrichment input and run their enrichments (see below).
+4. **ProjectionEngine** keeps a `LocationForecast` per location (current and previous state per domain), replaces the changed domain slot and invokes only the domain handlers triggered by that domain.
+5. **Domain handlers** (`IDomainHandler`) read the `LocationForecast` and return `PipelineEvent`s such as `AlertRaised` (see below).
 6. **BroadcastHub** emits typed `PipelineEvent`s (domain data received, alert raised) to `GrpcConsumer` and, when enabled, `MqttStatePublisher`.
 
 Actors own lifecycle (polling, stream materialization, SourceRef handshakes, MQTT reconnects); streams carry the data.
 
-## Enrichments and projection groups
+## Domain handlers
 
-A projection group declares the domains it reads and runs reactively when one of them is updated.
+A domain handler declares the domains that trigger it and runs reactively when one of them is updated.
 
 | Group | Domains | Rules |
 |-------|---------|-------|

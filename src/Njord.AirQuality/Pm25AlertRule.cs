@@ -1,10 +1,10 @@
-using Njord.Alerts;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.AirQuality;
 
-public sealed class Pm25AlertRule : IAlertRule<DomainForecast<AirQualityPoint>>
+public sealed class Pm25AlertRule : IAirQualityAlertRule
 {
     public const double WhoGuideline = 15.0;
     public const double OrangeThreshold = 25.0;

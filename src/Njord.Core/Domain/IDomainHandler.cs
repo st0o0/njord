@@ -1,12 +1,11 @@
+using Njord.Messages.Pipeline;
 using Njord.Model;
 
 namespace Njord.Core.Domain;
 
-public interface IProjectionGroup
+public interface IDomainHandler
 {
-    IReadOnlySet<DomainKind> RequiredDomains { get; }
+    IReadOnlySet<DomainKind> Triggers { get; }
 
-    bool AffectedBy(DomainKind domain);
-
-    IReadOnlyList<EnrichmentEvent> Evaluate(LocationForecast current, LocationForecast? previous, TimeProvider time);
+    IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time);
 }

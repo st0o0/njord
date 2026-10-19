@@ -25,10 +25,9 @@
     <Project Path="Njord.Budget/Njord.Budget.csproj" />
   </Folder>
   <Folder Name="/Analysis/">
-    <Project Path="Njord.Alerts/Njord.Alerts.csproj" />
-    <Project Path="Njord.Weather.Alerts/Njord.Weather.Alerts.csproj" />
     <Project Path="Njord.AirQuality/Njord.AirQuality.csproj" />
     <Project Path="Njord.Flood/Njord.Flood.csproj" />
+    <Project Path="Njord.Weather/Njord.Weather.csproj" />
   </Folder>
   <Folder Name="/Processing/">
     <Project Path="Njord.Pipeline/Njord.Pipeline.csproj" />
@@ -48,13 +47,12 @@
     <Project Path="Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj" />
     <Project Path="Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj" />
     <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
-    <Project Path="Njord.Alerts.Tests/Njord.Alerts.Tests.csproj" />
-    <Project Path="Njord.Weather.Alerts.Tests/Njord.Weather.Alerts.Tests.csproj" />
     <Project Path="Njord.AirQuality.Tests/Njord.AirQuality.Tests.csproj" />
     <Project Path="Njord.Flood.Tests/Njord.Flood.Tests.csproj" />
     <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />
     <Project Path="Njord.IntegrationTests/Njord.IntegrationTests.csproj" />
     <Project Path="Njord.Tests/Njord.Tests.csproj" />
+    <Project Path="Njord.Weather.Tests/Njord.Weather.Tests.csproj" />
   </Folder>
   <Project Path="Njord/Njord.csproj" />
 </Solution>

@@ -1,4 +1,3 @@
-using Njord.Alerts;
 using Njord.Core.Domain;
 using Njord.Messages.Pipeline;
 using Njord.Model;
@@ -15,13 +14,6 @@ internal static class PipelineEventMappings
         DomainKind.Solar => new PipelineEvent.SolarDataReceived(received.Location, Typed<SolarPoint>(received)),
         DomainKind.Marine => new PipelineEvent.MarineDataReceived(received.Location, Typed<MarinePoint>(received)),
         _ => throw new ArgumentOutOfRangeException(nameof(received), received.Domain, null),
-    };
-
-    public static PipelineEvent ToPipelineEvent(this EnrichmentEvent enrichmentEvent) => enrichmentEvent switch
-    {
-        AlertRaisedEvent raised => new PipelineEvent.AlertRaised(raised.Location, raised.Alert, raised.Timestamp),
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(enrichmentEvent), enrichmentEvent.GetType().Name, "No pipeline event for this enrichment event"),
     };
 
     private static DomainForecast<T> Typed<T>(DomainDataReceived received)

@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using Njord.Alerts.Configuration;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Persistence;
 using Njord.Core.Configuration.Polling;

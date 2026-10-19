@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using Njord.Alerts.Configuration;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Health;
 using Njord.Core.Configuration.Mqtt;

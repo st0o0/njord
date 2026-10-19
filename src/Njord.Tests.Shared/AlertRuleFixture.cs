@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using Njord.Alerts.Configuration;
+using Njord.Core.Configuration;
 using Njord.Messages.Alerts;
 using Njord.Model;
 

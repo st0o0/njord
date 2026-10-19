@@ -1,6 +1,6 @@
 using Njord.Messages.Alerts;
 
-namespace Njord.Weather.Alerts.Tests;
+namespace Njord.Weather.Tests;
 
 public sealed class AlertResultSpec
 {

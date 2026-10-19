@@ -1,11 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Njord.Alerts.Configuration;
-using Njord.Core.Configuration;
 
-namespace Njord.Alerts;
+namespace Njord.Core.Configuration;
 
-public static class ServiceCollectionExtensions
+public static class AlertOptionsServiceCollectionExtensions
 {
     public static IServiceCollection AddAlertOptions(this IServiceCollection services, IConfiguration configuration)
     {

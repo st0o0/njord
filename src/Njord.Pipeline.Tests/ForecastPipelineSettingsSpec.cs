@@ -2,8 +2,8 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Core.Configuration;
 using Njord.Core.Actors;
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
@@ -50,7 +50,7 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
         CancellationToken ct, Action<AlertOptions>? configure = null)
     {
         var time = new FakeTimeProvider(Start);
-        var group = FeatureServices.AlertGroup(time, configure);
+        var group = FeatureServices.AlertHandler(time, configure);
         var pipeline = Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, new[] { group })), $"pipeline-{Guid.NewGuid():N}");
 
         var output = await pipeline.Ask<RequestPipelineOutputResponse>(new RequestPipelineOutput(1), TimeSpan.FromSeconds(9), ct);

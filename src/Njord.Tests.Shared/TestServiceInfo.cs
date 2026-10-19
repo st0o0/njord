@@ -1,4 +1,3 @@
-using Njord.Alerts.Configuration;
 using Njord.Configuration;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;

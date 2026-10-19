@@ -60,23 +60,4 @@ public sealed class PipelineEventMappingsSpec
 
         Assert.Equal("received", ex.ParamName);
     }
-
-    [Fact]
-    public void An_alert_event_maps_to_alert_raised_with_its_alert_and_timestamp()
-    {
-        var alert = new Alert(AlertType.Frost, AlertSeverity.Orange, 1.0, new FrostDetails(-6.0, null, 0),
-            TriggerValue: -6.0, Threshold: -5.0, Level: ConfidenceLevel.High);
-
-        var mapped = new AlertRaisedEvent(Lucerne, alert, Start).ToPipelineEvent();
-
-        var raised = Assert.IsType<PipelineEvent.AlertRaised>(mapped);
-        Assert.Multiple(
-            () => Assert.Equal(Lucerne, raised.Location),
-            () => Assert.Same(alert, raised.Alert),
-            () => Assert.Equal(Start, raised.Timestamp),
-            () => Assert.Equal(AlertType.Frost, raised.Type),
-            () => Assert.Equal(AlertSeverity.Orange, raised.Severity),
-            () => Assert.Equal(ConfidenceLevel.High, raised.Confidence),
-            () => Assert.Equal(new Location("Lucerne", 0, 0), ((IEnrichmentEvent)raised).Location));
-    }
 }
