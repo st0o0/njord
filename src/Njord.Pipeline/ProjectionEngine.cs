@@ -1,18 +1,34 @@
+using System.Collections.Immutable;
 using Njord.Core.Domain;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Pipeline;
 
+internal sealed record LocationSlot(LocationForecast Current, LocationForecast? Previous);
+
 // The analysis state of the pipeline: the latest LocationForecast per location, the previous value of every domain
 // slot, and the projection groups that react to a changed domain. Lives inside the StatefulSelectMany closure.
 internal sealed class ProjectionEngine(IReadOnlyList<IProjectionGroup> groups, TimeProvider time)
 {
-    private readonly Dictionary<string, (LocationForecast Current, LocationForecast? Previous)> _locations =
-        new(StringComparer.OrdinalIgnoreCase);
+    public static readonly ImmutableDictionary<string, LocationSlot> EmptyState =
+        ImmutableDictionary.Create<string, LocationSlot>(StringComparer.OrdinalIgnoreCase);
+
+    private ImmutableDictionary<string, LocationSlot> _locations = EmptyState;
 
     public IReadOnlyList<PipelineEvent> Process(DomainDataReceived received)
     {
-        var (current, previous) = Update(received);
+        var (next, events) = Evaluate(_locations, groups, received, time);
+        _locations = next;
+        return events;
+    }
+
+    public static (ImmutableDictionary<string, LocationSlot> State, IReadOnlyList<PipelineEvent> Events) Evaluate(
+        ImmutableDictionary<string, LocationSlot> state,
+        IReadOnlyList<IProjectionGroup> groups,
+        DomainDataReceived received,
+        TimeProvider time)
+    {
+        var slot = Update(state.GetValueOrDefault(received.Location.Name), received);
         var events = new List<PipelineEvent>(4) { received.ToPipelineEvent() };
 
         foreach (var group in groups)
@@ -22,28 +38,25 @@ internal sealed class ProjectionEngine(IReadOnlyList<IProjectionGroup> groups, T
                 continue;
             }
 
-            foreach (var enrichmentEvent in group.Evaluate(current, previous, time))
+            foreach (var enrichmentEvent in group.Evaluate(slot.Current, slot.Previous, time))
             {
                 events.Add(enrichmentEvent.ToPipelineEvent());
             }
         }
 
-        return events;
+        return (state.SetItem(received.Location.Name, slot), events);
     }
 
-    private (LocationForecast Current, LocationForecast? Previous) Update(DomainDataReceived received)
+    private static LocationSlot Update(LocationSlot? slot, DomainDataReceived received)
     {
-        _locations.TryGetValue(received.Location.Name, out var state);
-        var current = state.Current ?? new LocationForecast(received.Location);
+        var current = slot?.Current ?? new LocationForecast(received.Location);
 
-        var previous = state.Previous;
+        var previous = slot?.Previous;
         if (current.Get(received.Domain) is { } replaced)
         {
             previous = (previous ?? new LocationForecast(received.Location)).With(received.Domain, replaced);
         }
 
-        current = current.With(received.Domain, received.Data);
-        _locations[received.Location.Name] = (current, previous);
-        return (current, previous);
+        return new LocationSlot(current.With(received.Domain, received.Data), previous);
     }
 }

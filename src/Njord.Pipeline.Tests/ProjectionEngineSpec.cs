@@ -174,6 +174,50 @@ public sealed class ProjectionEngineSpec
         Assert.Equal("forecast", ex.ParamName);
     }
 
+    [Fact]
+    public void Evaluate_returns_the_new_state_without_changing_the_given_one()
+    {
+        var group = new RecordingGroup(DomainKind.Weather);
+        var initial = ProjectionEngine.EmptyState;
+
+        var (state, events) = ProjectionEngine.Evaluate(initial, [group], Weather(DomainData.Lucerne, 10.0), Time);
+
+        var slot = state["lucerne"];
+        Assert.Multiple(
+            () => Assert.Empty(initial),
+            () => Assert.Single(events),
+            () => Assert.Equal(10.0, TemperatureOf(slot.Current.Weather)),
+            () => Assert.Null(slot.Previous));
+    }
+
+    [Fact]
+    public void Evaluate_keeps_the_replaced_value_as_previous()
+    {
+        var group = new RecordingGroup(DomainKind.Weather);
+        var (first, _) = ProjectionEngine.Evaluate(ProjectionEngine.EmptyState, [group], Weather(DomainData.Lucerne, 10.0), Time);
+
+        var (second, _) = ProjectionEngine.Evaluate(first, [group], Weather(DomainData.Lucerne, 12.0), Time);
+
+        var slot = second["Lucerne"];
+        Assert.NotNull(slot.Previous);
+        Assert.Multiple(
+            () => Assert.Equal(12.0, TemperatureOf(slot.Current.Weather)),
+            () => Assert.Equal(10.0, TemperatureOf(slot.Previous.Weather)));
+    }
+
+    [Fact]
+    public void Evaluate_only_asks_groups_affected_by_the_domain()
+    {
+        var weather = new RecordingGroup(DomainKind.Weather);
+        var flood = new RecordingGroup(DomainKind.Flood);
+
+        ProjectionEngine.Evaluate(ProjectionEngine.EmptyState, [weather, flood], Weather(DomainData.Lucerne, 10.0), Time);
+
+        Assert.Multiple(
+            () => Assert.Single(weather.Calls),
+            () => Assert.Empty(flood.Calls));
+    }
+
     private static class ProjectionGroupStub
     {
         private sealed record NoInput(Location Location) : IEnrichmentInput;

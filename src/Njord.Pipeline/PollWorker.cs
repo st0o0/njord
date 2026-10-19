@@ -33,9 +33,6 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
     private readonly FetchTimeouts _fetchTimeouts;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private PollWorkerState _state = PollWorkerState.Empty;
-    private Guid? _roundId;
-    private readonly Dictionary<DomainKind, FetchDomainResponse> _domainResults = new();
-    private readonly HashSet<DomainKind> _pendingDomains = [];
 
     // Currently only Weather is enabled. More domains will be added as endpoints are implemented.
     internal static readonly DomainKind[] EnabledDomains = [DomainKind.Weather, DomainKind.AirQuality, DomainKind.Flood];
@@ -152,7 +149,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             return;
         }
 
-        if (_roundId is not null)
+        if (_state.Round is not null)
         {
             _log.Debug("Skipping {Reason} poll for {Location} - a fetch round is in flight", reason, target.Location);
             return;
@@ -160,9 +157,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
         Timers.Cancel(PollTimerKey);
         var roundId = Guid.NewGuid();
-        _roundId = roundId;
-        _domainResults.Clear();
-        _pendingDomains.Clear();
+        _state = _state.StartRound(roundId, EnabledDomains);
 
         if (!Context.TryGetActor<IForecastGateway>(out var gateway))
         {
@@ -176,7 +171,6 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
         foreach (var domain in EnabledDomains)
         {
-            _pendingDomains.Add(domain);
             var domainKind = domain;
 
             gateway.Ask<FetchDomainResponse>(new FetchDomain(location, domainKind), timeout)
@@ -195,18 +189,17 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     private void OnDomainFetchReplied(DomainFetchReplied msg)
     {
-        if (msg.RequestId != _roundId)
+        if (!_state.IsCurrentRound(msg.RequestId))
         {
             _log.Debug("Ignoring a reply to an earlier fetch round: {Domain} {Reply}", msg.Domain, msg.Reply);
             return;
         }
 
-        _domainResults[msg.Domain] = msg.Reply;
-        _pendingDomains.Remove(msg.Domain);
+        _state = _state.RecordReply(msg.RequestId, msg.Domain, msg.Reply);
 
         LogDomainOutcome(msg.Domain, msg.Reply);
 
-        if (_pendingDomains.Count == 0)
+        if (_state.Round is { Pending.Count: 0 })
         {
             Timers.Cancel(DomainTimeoutKey);
             OnRoundComplete(msg.RequestId);
@@ -215,33 +208,30 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     private void OnDomainFetchTimeout(DomainFetchTimeout msg)
     {
-        if (msg.RoundId != _roundId)
+        if (!_state.IsCurrentRound(msg.RoundId))
         {
             return;
         }
 
-        _log.Warning("Domain fetch round timed out with {Pending} pending domains", _pendingDomains.Count);
-        foreach (var domain in _pendingDomains)
-        {
-            _domainResults[domain] = new FetchDomainFailed(
-                _state.Target!.Location, domain, PollFailureReason.Transport, "Round timed out");
-        }
-
-        _pendingDomains.Clear();
+        var location = _state.Target!.Location;
+        _log.Warning("Domain fetch round timed out with {Pending} pending domains", _state.Round!.Pending.Count);
+        _state = _state.FailPending(domain =>
+            new FetchDomainFailed(location, domain, PollFailureReason.Transport, "Round timed out"));
         OnRoundComplete(msg.RoundId);
     }
 
     // Aggregate domain results into a single location-level outcome.
     private void OnRoundComplete(Guid roundId)
     {
-        if (roundId != _roundId)
+        if (!_state.IsCurrentRound(roundId))
         {
             return;
         }
 
-        _roundId = null;
+        var results = _state.Round!.Results;
+        _state = _state.EndRound();
 
-        if (_domainResults.Count == 0)
+        if (results.IsEmpty)
         {
             // No gateway was registered - treat as a transport failure
             var now = _timeProvider.GetUtcNow();
@@ -255,13 +245,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             return;
         }
 
-        // Aggregate: any changed → Changed; all failed → Failed; otherwise Unchanged
-        var anyChanged = _domainResults.Values.Any(r => r is FetchDomainCompleted c && c.Hash != _state.GetDomainHash(c.Domain));
-        var allFailed = _domainResults.Values.All(r => r is not FetchDomainCompleted);
-
-        // Use the first meaningful response to derive the location-level event.
-        // Priority: rate limit > budget > pipeline unavailable > other failure > unchanged > changed
-        var aggregateReply = ChooseAggregateReply();
+        var aggregateReply = _state.ChooseAggregateReply(results.Values);
         var (evt, outcome) = _state.ToEvent(aggregateReply, _timeProvider.GetUtcNow());
 
         Persist(evt, e =>
@@ -269,7 +253,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             _state = _state.Apply(e);
 
             // Update per-domain hashes after persistence, so the next round's comparison is correct.
-            foreach (var (domain, result) in _domainResults)
+            foreach (var (domain, result) in results)
             {
                 if (result is FetchDomainCompleted completed)
                 {
@@ -281,34 +265,6 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             Report(outcome);
             MaybeSnapshot();
         });
-    }
-
-    private FetchDomainResponse ChooseAggregateReply()
-    {
-        // If any domain changed, report changed (use the first changed result)
-        var changed = _domainResults.Values.OfType<FetchDomainCompleted>()
-            .FirstOrDefault(c => c.Hash != _state.GetDomainHash(c.Domain));
-        if (changed is not null) return changed;
-
-        // If any domain succeeded (unchanged), report unchanged
-        var unchanged = _domainResults.Values.OfType<FetchDomainCompleted>().FirstOrDefault();
-        if (unchanged is not null) return unchanged;
-
-        // All failed: return the most significant failure
-        var rateLimited = _domainResults.Values.OfType<FetchDomainFailed>()
-            .FirstOrDefault(f => f.Reason == PollFailureReason.RateLimited);
-        if (rateLimited is not null) return rateLimited;
-
-        var budgetRejected = _domainResults.Values.OfType<FetchDomainRejected>()
-            .FirstOrDefault(r => r.Reason == FetchRejectionReason.Budget);
-        if (budgetRejected is not null) return budgetRejected;
-
-        var pipelineUnavailable = _domainResults.Values.OfType<FetchDomainRejected>()
-            .FirstOrDefault(r => r.Reason == FetchRejectionReason.PipelineUnavailable);
-        if (pipelineUnavailable is not null) return pipelineUnavailable;
-
-        // Any other failure
-        return _domainResults.Values.First();
     }
 
     private void LogDomainOutcome(DomainKind domain, FetchDomainResponse reply)
@@ -350,7 +306,7 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
     // The outcome of a request round reschedules, so nothing is planned while one is open.
     private void ScheduleNext()
     {
-        if (_state is not { Active: true, Target: { } target } || _roundId is not null)
+        if (_state is not { Active: true, Target: { } target } || _state.Round is not null)
         {
             return;
         }

@@ -20,7 +20,8 @@ public sealed record PollWorkerState(
     PollPhase Phase,
     TimeSpan? Cycle,
     int TransientFailureCount,
-    ImmutableDictionary<DomainKind, DomainPollState> DomainStates)
+    ImmutableDictionary<DomainKind, DomainPollState> DomainStates,
+    PollRoundState? Round = null)
 {
     public static readonly PollWorkerState Empty =
         new(null, false, TimeSpan.Zero, null, null, null, DateTimeOffset.MinValue, 0, PollPhase.Discovery, null, 0,

@@ -31,16 +31,12 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
     private readonly MqttEgressTuning _tuning;
     private readonly MqttSessionCounter _sessionCounter;
     private readonly TimeProvider _timeProvider;
-    private bool _isConnected;
-    private DateTimeOffset? _disconnectedSince;
+    private MqttConnectionState _state = MqttConnectionState.Empty;
 
     private readonly string _availabilityTopic;
     private readonly string _haStatusTopic;
     private readonly List<IActorRef> _inboundListeners = [];
     private readonly ILoggingAdapter _log = Context.GetLogger();
-    private int _connectAttempts;
-    private int _onlineAttempts;
-    private int _session;
 
     public ITimerScheduler Timers { get; set; } = null!;
 
@@ -111,32 +107,31 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
     {
         Receive<Disconnected>(_ =>
         {
-            _isConnected = false;
-            _disconnectedSince = _timeProvider.GetUtcNow();
+            _state = _state.Apply(new ConnectionLost(_timeProvider.GetUtcNow()));
             Telemetry.MqttConnected.Record(0);
             _log.Warning("MQTT connection lost, reconnecting");
             Timers.Cancel(OnlineRetryTimer);
             Become(WaitingToReconnect);
             ScheduleReconnect();
         });
-        Receive<StatusSubscribed>(msg => msg.Session == _session,
+        Receive<StatusSubscribed>(msg => msg.Session == _state.Session,
             _ => _log.Debug("Subscribed to {Topic}", _haStatusTopic));
-        Receive<StatusSubscribeFailed>(msg => msg.Session == _session,
+        Receive<StatusSubscribeFailed>(msg => msg.Session == _state.Session,
             msg => _log.Warning(msg.Cause,
                 "Subscribing to {Topic} failed - it is subscribed again with the next connect", _haStatusTopic));
-        Receive<PublishOnline>(msg => msg.Session == _session, _ => PublishOnlineStatus());
-        Receive<OnlinePublished>(msg => msg.Session == _session, _ =>
+        Receive<PublishOnline>(msg => msg.Session == _state.Session, _ => PublishOnlineStatus());
+        Receive<OnlinePublished>(msg => msg.Session == _state.Session, _ =>
         {
-            _onlineAttempts = 0;
+            _state = _state.Apply(new OnlineAcknowledged());
             _log.Debug("Published online on {Topic}", _availabilityTopic);
         });
-        Receive<OnlinePublishFailed>(msg => msg.Session == _session, msg =>
+        Receive<OnlinePublishFailed>(msg => msg.Session == _state.Session, msg =>
         {
-            _onlineAttempts++;
-            var delay = Backoff(_onlineAttempts);
+            _state = _state.Apply(new OnlineRejected());
+            var delay = Backoff(_state.OnlineAttempts);
             _log.Warning(msg.Cause, "Publishing online on {Topic} failed - retrying in {Delay}",
                 _availabilityTopic, delay);
-            Timers.StartSingleTimer(OnlineRetryTimer, new PublishOnline(_session), delay);
+            Timers.StartSingleTimer(OnlineRetryTimer, new PublishOnline(_state.Session), delay);
         });
         ReceiveCommon();
     }
@@ -144,7 +139,7 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
     private void ReceiveCommon()
     {
         Receive<QueryMqttConnectionStatus>(_ =>
-            Sender.Tell(new MqttConnectionStatusResult(_isConnected, _disconnectedSince)));
+            Sender.Tell(new MqttConnectionStatusResult(_state.IsConnected, _state.DisconnectedSince)));
         Receive<Inbound>(OnInbound);
         Receive<SubscribeInbound>(_ =>
         {
@@ -177,8 +172,8 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
 
     private void ScheduleReconnect()
     {
-        _connectAttempts++;
-        Timers.StartSingleTimer(ReconnectTimer, new Reconnect(), Backoff(_connectAttempts));
+        _state = _state.Apply(new ReconnectScheduled());
+        Timers.StartSingleTimer(ReconnectTimer, new Reconnect(), Backoff(_state.ConnectAttempts));
     }
 
     private TimeSpan Backoff(int attempt)
@@ -189,12 +184,8 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
 
     private void OnConnectionEstablished()
     {
-        _session++;
-        _connectAttempts = 0;
-        _onlineAttempts = 0;
+        _state = _state.Apply(new ConnectionEstablished());
         _log.Info("MQTT connected to {Host}:{Port}", _mqttOptions.Host, _mqttOptions.Port);
-        _isConnected = true;
-        _disconnectedSince = null;
         _sessionCounter.Increment();
         Telemetry.MqttConnected.Record(1);
 
@@ -203,7 +194,7 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
             listener.Tell(new MqttConnected());
         }
 
-        var session = _session;
+        var session = _state.Session;
         WithTimeout(ct => _connection.SubscribeAsync(_haStatusTopic, ct), _tuning.PublishTimeout)
             .PipeTo(Self,
                 success: () => new StatusSubscribed(session),
@@ -213,7 +204,7 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
 
     private void PublishOnlineStatus()
     {
-        var session = _session;
+        var session = _state.Session;
         var transport = _transport;
         var topic = _availabilityTopic;
         WithTimeout(ct => transport.SendAsync(topic, "online", true, ct), _tuning.PublishTimeout)

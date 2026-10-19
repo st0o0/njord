@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Akka;
 using Akka.Actor;
 using Akka.Event;
@@ -25,11 +24,7 @@ public sealed class GrpcConsumer : ReceiveActor
     private IActorRef _hubInput = ActorRefs.Nobody;
     private Source<PipelineEvent, NotUsed> _clientHubSource = Source.Empty<PipelineEvent>();
 
-    private ImmutableDictionary<(Location Location, DomainKind Domain), PipelineEvent> _domainData =
-        ImmutableDictionary<(Location, DomainKind), PipelineEvent>.Empty;
-
-    private ImmutableDictionary<Location, AlertResult> _alerts =
-        ImmutableDictionary<Location, AlertResult>.Empty;
+    private GrpcConsumerState _state = GrpcConsumerState.Empty;
 
     private sealed record PipelineResolved(IActorRef Pipeline);
     private sealed record PipelineResolveFailed(Exception Cause);
@@ -82,20 +77,20 @@ public sealed class GrpcConsumer : ReceiveActor
 
     private void OnPipelineEvent(PipelineEvent evt)
     {
-        UpdateState(evt);
+        _state = _state.Apply(evt);
         _hubInput.Tell(evt);
     }
 
     private void HandleQueryDomainData(QueryDomainData msg)
     {
-        Sender.Tell(_domainData.TryGetValue((msg.Location, msg.Domain), out var latest)
+        Sender.Tell(_state.GetDomainData(msg.Location, msg.Domain) is { } latest
             ? new DomainDataResult(latest)
             : new DomainDataNotAvailable(msg.Location, msg.Domain));
     }
 
     private void HandleQueryLatestAnalysis(QueryLatestAnalysis msg)
     {
-        Sender.Tell(_alerts.TryGetValue(msg.Location, out var alerts)
+        Sender.Tell(_state.GetLatestAlerts(msg.Location) is { } alerts
             ? new LatestAnalysisResult(msg.Location, alerts)
             : new LatestAnalysisNotAvailable(msg.Location));
     }
@@ -112,32 +107,5 @@ public sealed class GrpcConsumer : ReceiveActor
                     _log.Error(ex, "Failed to create gRPC stream SourceRef");
                     return new RequestGrpcStreamFailed(msg.RequestId, ex);
                 });
-    }
-
-    private void UpdateState(PipelineEvent evt)
-    {
-        if (evt.ToDomainKind() is { } domain && evt.ToDomainLocation() is { } location)
-        {
-            _domainData = _domainData.SetItem((location, domain), evt);
-            return;
-        }
-
-        switch (evt)
-        {
-            case PipelineEvent.AlertRaised raised:
-                var raisedLocation = raised.Location;
-                _alerts = _alerts.SetItem(raisedLocation, MergeAlert(_alerts.GetValueOrDefault(raisedLocation), raised));
-                break;
-        }
-    }
-
-    private static AlertResult MergeAlert(AlertResult? latest, PipelineEvent.AlertRaised raised)
-    {
-        var alerts = (latest?.Alerts ?? [])
-            .Where(alert => alert.Type != raised.Type)
-            .Append(raised.Alert)
-            .OrderBy(alert => alert.Type)
-            .ToList();
-        return new AlertResult(raised.Location, alerts);
     }
 }
