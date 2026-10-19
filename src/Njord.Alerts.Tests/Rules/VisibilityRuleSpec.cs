@@ -1,6 +1,5 @@
 using Njord.Alerts.Rules;
 using Njord.Messages.Alerts;
-using Njord.Model;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
 namespace Njord.Alerts.Tests.Rules;
@@ -9,94 +8,49 @@ public sealed class VisibilityRuleSpec
 {
     private static readonly VisibilityRule Rule = new();
 
-    [Fact]
-    public void Visibility_reduced_produces_yellow()
+    [Theory]
+    [InlineData(800.0, AlertSeverity.Yellow, 1000.0)]
+    [InlineData(150.0, AlertSeverity.Orange, 200.0)]
+    [InlineData(40.0, AlertSeverity.Red, 50.0)]
+    [InlineData(1000.0, AlertSeverity.None, 1000.0)]
+    [InlineData(10000.0, AlertSeverity.None, 1000.0)]
+    public void Visibility_classifies_the_minimum_strictly(double metres, AlertSeverity severity, double threshold)
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (VisibilityParam, 800.0)),
-            MakeForecast(new WeatherModel("m2"), (VisibilityParam, 900.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
-    }
-
-    [Fact]
-    public void Visibility_dense_fog_produces_orange()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (VisibilityParam, 150.0)),
-            MakeForecast(new WeatherModel("m2"), (VisibilityParam, 180.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Orange, alert.Severity);
-    }
-
-    [Fact]
-    public void Visibility_near_zero_produces_red()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (VisibilityParam, 30.0)),
-            MakeForecast(new WeatherModel("m2"), (VisibilityParam, 40.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Red, alert.Severity);
-    }
-
-    [Fact]
-    public void Visibility_good_produces_none()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (VisibilityParam, 5000.0)),
-            MakeForecast(new WeatherModel("m2"), (VisibilityParam, 8000.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.None, alert.Severity);
-    }
-
-    [Fact]
-    public void Visibility_classifies_the_24h_minimum_not_the_maximum()
-    {
-        var consensus = Identical(2, h => [(VisibilityParam, h < 12 ? 5000.0 : 150.0)]);
-
-        var alert = Rule.Evaluate(consensus, Defaults);
+        var alert = Rule.Evaluate(Uniform(p => p with { Visibility = metres }), Defaults, Now);
 
         Assert.Multiple(
-            () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
-            () => Assert.Equal(150.0, alert.TriggerValue),
-            () => Assert.Equal(200.0, alert.Threshold),
-            () => Assert.Equal(0.5, alert.Confidence),
-            () => Assert.Equal(new VisibilityDetails(150.0, 12), alert.Details));
+            () => Assert.Equal(severity, alert.Severity),
+            () => Assert.Equal(threshold, alert.Threshold),
+            () => Assert.Equal(metres, alert.TriggerValue));
     }
 
     [Fact]
-    public void Visibility_confidence_is_the_share_of_hours_below_the_advisory_threshold()
+    public void Visibility_counts_hours_below_one_kilometre()
     {
-        var consensus = Identical(2, h => [(VisibilityParam, h < 8 ? 500.0 : 5000.0)]);
-
-        var alert = Rule.Evaluate(consensus, Defaults);
+        var alert = Rule.Evaluate(Day((h, p) => p with { Visibility = h is >= 3 and < 8 ? 500.0 : 9000.0 }), Defaults, Now);
 
         Assert.Multiple(
-            () => Assert.Equal(AlertSeverity.Yellow, alert.Severity),
-            () => Assert.Equal(0.333, alert.Confidence),
-            () => Assert.Equal(new VisibilityDetails(500.0, 8), alert.Details));
+            () => Assert.Equal(3, alert.HoursUntil),
+            () => Assert.Equal(new VisibilityDetails(500.0, 5), alert.Details));
     }
 
     [Fact]
-    public void Visibility_exactly_at_the_advisory_threshold_is_not_reduced()
+    public void Visibility_takes_confidence_from_the_lowest_point()
     {
-        var consensus = Identical(2, _ => [(VisibilityParam, 1000.0)]);
+        var forecast = Day((h, p) => p with { Visibility = h == 6 ? 100.0 : 9000.0, EnsembleStdDev = h == 6 ? 0.4 : 5.0 });
 
-        var alert = Rule.Evaluate(consensus, Defaults);
+        Assert.Equal(ConfidenceLevel.High, Rule.Evaluate(forecast, Defaults, Now).Level);
+    }
 
-        Assert.Multiple(
-            () => Assert.Equal(AlertSeverity.None, alert.Severity),
-            () => Assert.Equal(0.0, alert.Confidence),
-            () => Assert.Equal(1000.0, alert.TriggerValue),
-            () => Assert.Equal(1000.0, alert.Threshold),
-            () => Assert.Equal(new VisibilityDetails(1000.0, 0), alert.Details));
+    [Fact]
+    public void Visibility_without_visibility_data_returns_the_none_alert()
+    {
+        Assert.Equal(Alert.None(AlertType.Visibility), Rule.Evaluate(Day(), Defaults, Now));
+    }
+
+    [Fact]
+    public void Visibility_without_data_returns_the_none_alert()
+    {
+        Assert.Equal(Alert.None(AlertType.Visibility), Rule.Evaluate(Empty(), Defaults, Now));
     }
 }

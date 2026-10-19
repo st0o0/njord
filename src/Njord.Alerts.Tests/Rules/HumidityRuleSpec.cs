@@ -1,6 +1,5 @@
 using Njord.Alerts.Rules;
 using Njord.Messages.Alerts;
-using Njord.Model;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
 namespace Njord.Alerts.Tests.Rules;
@@ -9,78 +8,74 @@ public sealed class HumidityRuleSpec
 {
     private static readonly HumidityRule Rule = new();
 
-    [Fact]
-    public void Humidity_muggy_produces_yellow()
+    [Theory]
+    [InlineData(18.0, AlertSeverity.Yellow, 16.0, HumidityComfort.Muggy)]
+    [InlineData(22.0, AlertSeverity.Orange, 21.0, HumidityComfort.Oppressive)]
+    [InlineData(25.0, AlertSeverity.Red, 24.0, HumidityComfort.Tropical)]
+    public void Humidity_classifies_the_daytime_dew_point(
+        double dewPoint, AlertSeverity severity, double threshold, HumidityComfort comfort)
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (DewpointParam, 18.0), (IsDayParam, 1.0)),
-            MakeForecast(new WeatherModel("m2"), (DewpointParam, 17.0), (IsDayParam, 1.0)));
+        var alert = Rule.Evaluate(Uniform(p => p with { DewPoint = dewPoint, IsDay = true }), Defaults, Now);
 
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
-        Assert.Equal(HumidityComfort.Muggy, Assert.IsType<HumidityDetails>(alert.Details).ComfortLevel);
+        Assert.Multiple(
+            () => Assert.Equal(severity, alert.Severity),
+            () => Assert.Equal(threshold, alert.Threshold),
+            () => Assert.Equal(dewPoint, alert.TriggerValue),
+            () => Assert.Equal(new HumidityDetails(dewPoint, comfort), alert.Details));
     }
 
     [Fact]
-    public void Humidity_oppressive_produces_orange()
+    public void Humidity_comfortable_produces_none_without_comfort_level()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (DewpointParam, 22.0), (IsDayParam, 1.0)),
-            MakeForecast(new WeatherModel("m2"), (DewpointParam, 23.0), (IsDayParam, 1.0)));
+        var alert = Rule.Evaluate(Uniform(p => p with { DewPoint = 10.0, IsDay = true }), Defaults, Now);
 
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Orange, alert.Severity);
-        Assert.Equal(HumidityComfort.Oppressive, Assert.IsType<HumidityDetails>(alert.Details).ComfortLevel);
+        Assert.Multiple(
+            () => Assert.Equal(AlertSeverity.None, alert.Severity),
+            () => Assert.Equal(new HumidityDetails(10.0, null), alert.Details));
     }
 
     [Fact]
-    public void Humidity_tropical_produces_red()
+    public void Humidity_ignores_nighttime_hours()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (DewpointParam, 25.0), (IsDayParam, 1.0)),
-            MakeForecast(new WeatherModel("m2"), (DewpointParam, 26.0), (IsDayParam, 1.0)));
+        var forecast = Day((h, p) => p with { DewPoint = h < 12 ? 26.0 : 12.0, IsDay = h >= 12 });
 
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Red, alert.Severity);
-        Assert.Equal(HumidityComfort.Tropical, Assert.IsType<HumidityDetails>(alert.Details).ComfortLevel);
-    }
-
-    [Fact]
-    public void Humidity_comfortable_produces_none()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (DewpointParam, 12.0), (IsDayParam, 1.0)),
-            MakeForecast(new WeatherModel("m2"), (DewpointParam, 10.0), (IsDayParam, 1.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
+        var alert = Rule.Evaluate(forecast, Defaults, Now);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
+        Assert.Equal(12.0, alert.TriggerValue);
     }
 
     [Fact]
-    public void Humidity_all_nighttime_produces_none()
+    public void Humidity_all_nighttime_returns_the_none_alert()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (DewpointParam, 25.0), (IsDayParam, 0.0)),
-            MakeForecast(new WeatherModel("m2"), (DewpointParam, 26.0), (IsDayParam, 0.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.None, alert.Severity);
-    }
-
-    [Fact]
-    public void Humidity_hours_with_a_day_night_tie_do_not_count_as_daytime()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (DewpointParam, 18.0), (IsDayParam, 1.0)),
-            MakeForecast(new WeatherModel("m2"), (DewpointParam, 18.0), (IsDayParam, 0.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
+        var alert = Rule.Evaluate(Uniform(p => p with { DewPoint = 25.0, IsDay = false }), Defaults, Now);
 
         Assert.Equal(Alert.None(AlertType.Humidity), alert);
+    }
+
+    [Fact]
+    public void Humidity_unknown_daylight_returns_the_none_alert()
+    {
+        var alert = Rule.Evaluate(Uniform(p => p with { DewPoint = 25.0 }), Defaults, Now);
+
+        Assert.Equal(Alert.None(AlertType.Humidity), alert);
+    }
+
+    [Fact]
+    public void Humidity_reports_hours_until_the_muggiest_hour()
+    {
+        var alert = Rule.Evaluate(Day((h, p) => p with { DewPoint = h == 8 ? 19.0 : 10.0, IsDay = true }), Defaults, Now);
+
+        Assert.Equal(8, alert.HoursUntil);
+    }
+
+    [Fact]
+    public void Humidity_takes_confidence_from_the_muggiest_point()
+    {
+        var forecast = Day((h, p) => p with { DewPoint = h == 8 ? 19.0 : 10.0, IsDay = true, EnsembleStdDev = h == 8 ? 2.0 : 0.1 });
+
+        var alert = Rule.Evaluate(forecast, Defaults, Now);
+
+        Assert.Equal(ConfidenceLevel.Medium, alert.Level);
     }
 }

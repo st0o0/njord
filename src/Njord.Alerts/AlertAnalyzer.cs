@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Options;
 using Njord.Alerts.Configuration;
-using Njord.Consensus;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
+using Njord.Model;
 
 namespace Njord.Alerts;
 
@@ -17,15 +18,14 @@ public sealed class AlertAnalyzer
 
     public bool Enabled { get; }
 
-    public AlertResult? Compute(LocationConsensus consensus, AlertSettings settings)
+    public IReadOnlyList<Alert>? Compute(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
     {
         if (!Enabled)
         {
             return null;
         }
 
-        var alerts = _rules.Select(rule => rule.Evaluate(consensus, settings)).ToList();
-        return new AlertResult(consensus.Location, alerts);
+        return _rules.Select(rule => rule.Evaluate(forecast, settings, now)).ToList();
     }
 
     private static IReadOnlyList<IAlertRule> OrderedAndComplete(IEnumerable<IAlertRule> rules)

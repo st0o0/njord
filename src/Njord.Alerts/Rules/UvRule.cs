@@ -1,5 +1,4 @@
-using Njord.Consensus;
-using Njord.Consensus.Querying;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
@@ -9,21 +8,14 @@ public sealed class UvRule : IAlertRule
 {
     public AlertType Type => AlertType.Uv;
 
-    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
     {
-        var maxUv = 0.0;
-        if (consensus.Hourly.Find(ParameterRegistry.UvIndex)?.Next24Hours().Extreme(ScanDirection.Max) is { } high)
-        {
-            maxUv = Math.Max(maxUv, high.Value);
-        }
-
-        maxUv = Math.Max(maxUv, consensus.DailyMax(ParameterRegistry.UvIndexMax) ?? maxUv);
-        if (maxUv <= 0)
+        if (forecast.Next24Hours(now).HighestBy(p => p.UvIndex) is not { } peak || peak.UvIndex <= 0)
         {
             return Alert.None(Type);
         }
 
-        var (level, severity, uvThreshold) = maxUv switch
+        var (level, severity, uvThreshold) = peak.UvIndex switch
         {
             >= 11 => (UvLevel.Extreme, AlertSeverity.Red, 11.0),
             >= 8 => (UvLevel.VeryHigh, AlertSeverity.Red, 8.0),
@@ -32,9 +24,8 @@ public sealed class UvRule : IAlertRule
             _ => (UvLevel.Low, AlertSeverity.None, 0.0),
         };
 
-        var rounded = Math.Round(maxUv, 1);
-        return new Alert(Type, severity, 1.0, new UvDetails(Level: level, UvIndex: rounded),
-            TriggerValue: rounded,
-            Threshold: uvThreshold);
+        var rounded = Math.Round(peak.UvIndex, 1);
+        return settings.Build(Type, severity, peak, new UvDetails(Level: level, UvIndex: rounded),
+            rounded, uvThreshold, hoursUntil: peak.HoursFrom(now));
     }
 }

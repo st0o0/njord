@@ -1,5 +1,4 @@
-using Njord.Consensus;
-using Njord.Consensus.Querying;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
@@ -9,33 +8,16 @@ public sealed class WindChillRule : IAlertRule
 {
     public AlertType Type => AlertType.WindChill;
 
-    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
     {
-        var thresholds = settings.WindChill;
-        if (consensus.Hourly.Find(ParameterRegistry.ApparentTemperature) is not { } apparent)
+        if (forecast.Next24Hours(now).LowestBy(p => p.ApparentTemperature) is not { } coldest)
         {
             return Alert.None(Type);
         }
 
-        var window = apparent.Next24Hours();
-        if (window.Extreme(ScanDirection.Min) is not { } low)
-        {
-            return Alert.None(Type);
-        }
-
-        var windFactor = 0.0;
-        if (consensus.Hourly.Find(ParameterRegistry.Temperature2m).MedianAt(low.Horizon) is { } temperature)
-        {
-            windFactor = Math.Round(temperature - low.Value, 1);
-        }
-
-        var confidence = window.Hits(value => thresholds.CrossesAdvisory(value)).RoundedAverage();
-        var (severity, effectiveThreshold) = thresholds.Classify(low.Value);
-        if (confidence == 0.0)
-        {
-            severity = AlertSeverity.None;
-        }
-
+        var low = coldest.ApparentTemperature;
+        var windFactor = Math.Round(coldest.Temperature - low, 1);
+        var (severity, effectiveThreshold) = settings.WindChill.Classify(low);
         var exposureRisk = severity switch
         {
             AlertSeverity.Red => ExposureRisk.Frostbite10Min,
@@ -43,13 +25,9 @@ public sealed class WindChillRule : IAlertRule
             _ => (ExposureRisk?)null,
         };
 
-        var details = new WindChillDetails(
-            FeltTemperature: Math.Round(low.Value, 1),
-            WindFactor: windFactor,
-            ExposureRisk: exposureRisk);
-
-        return new Alert(Type, severity, confidence, details,
-            TriggerValue: Math.Round(low.Value, 1),
-            Threshold: effectiveThreshold);
+        var rounded = Math.Round(low, 1);
+        var details = new WindChillDetails(FeltTemperature: rounded, WindFactor: windFactor, ExposureRisk: exposureRisk);
+        return settings.Build(Type, severity, coldest, details, rounded, effectiveThreshold,
+            hoursUntil: coldest.HoursFrom(now));
     }
 }

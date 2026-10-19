@@ -1,5 +1,4 @@
-using Njord.Consensus;
-using Njord.Consensus.Querying;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
@@ -9,38 +8,24 @@ public sealed class FrostRule : IAlertRule
 {
     public AlertType Type => AlertType.Frost;
 
-    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
     {
         var thresholds = settings.Frost;
-        if (consensus.Hourly.Find(ParameterRegistry.Temperature2m) is not { } temperature)
+        var window = forecast.Next24Hours(now);
+        if (window.LowestBy(p => p.Temperature) is not { } coldest)
         {
             return Alert.None(Type);
         }
 
-        var window = temperature.Next24Hours();
-        if (window.Extreme(ScanDirection.Min) is not { } low)
-        {
-            return Alert.None(Type);
-        }
-
-        bool Freezing(double value) => thresholds.CrossesAdvisory(value);
-        var earliest = window.Earliest(Freezing);
-        var confidence = window.Hits(Freezing).RoundedAverage();
-
-        var (severity, effectiveThreshold) = thresholds.Classify(low.Value);
-        if (confidence == 0.0)
-        {
-            severity = AlertSeverity.None;
-        }
-
+        var earliest = window.FirstOrDefault(p => thresholds.CrossesAdvisory(p.Temperature));
+        var (severity, effectiveThreshold) = thresholds.Classify(coldest.Temperature);
+        var low = Math.Round(coldest.Temperature, 1);
         var details = new FrostDetails(
-            ExpectedLow: Math.Round(low.Value, 1),
-            EarliestFrost: earliest?.Horizon,
-            ModelsAgreeing: earliest?.ModelCount ?? 0);
+            ExpectedLow: low,
+            EarliestFrost: earliest is null ? null : Horizon.Hours(earliest.HoursFrom(now)),
+            ModelsAgreeing: 0);
 
-        return new Alert(Type, severity, confidence, details,
-            TriggerValue: Math.Round(low.Value, 1),
-            Threshold: effectiveThreshold,
-            HoursUntil: earliest?.Horizon.Offset);
+        return settings.Build(Type, severity, coldest, details, low, effectiveThreshold,
+            hoursUntil: earliest?.HoursFrom(now));
     }
 }

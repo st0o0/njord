@@ -18,7 +18,7 @@
         "confidence": 1,
         "triggerValue": 36,
         "threshold": 35,
-        "peakValue": 36.4
+        "hoursUntil": 4
       },
       {
         "type": "ALERT_TYPE_STORM",
@@ -26,21 +26,23 @@
         "confidence": 1,
         "triggerValue": 26,
         "threshold": 25,
-        "peakValue": 26.2
+        "hoursUntil": 5
       },
       {
         "type": "ALERT_TYPE_HEAVY_RAIN",
-        "severity": "ALERT_SEVERITY_RED",
+        "severity": "ALERT_SEVERITY_YELLOW",
         "confidence": 1,
         "triggerValue": 12,
-        "threshold": 10
+        "threshold": 10,
+        "hoursUntil": 5
       },
       {
         "type": "ALERT_TYPE_UV",
         "severity": "ALERT_SEVERITY_ORANGE",
         "confidence": 1,
         "triggerValue": 7,
-        "threshold": 6
+        "threshold": 6,
+        "hoursUntil": 3
       },
       {
         "type": "ALERT_TYPE_FOG",
@@ -48,6 +50,7 @@
         "confidence": 1,
         "triggerValue": 4,
         "threshold": 1,
+        "hoursUntil": 10,
         "durationHours": 4
       },
       {
@@ -67,44 +70,50 @@
       {
         "type": "ALERT_TYPE_THUNDERSTORM",
         "severity": "ALERT_SEVERITY_YELLOW",
-        "confidence": 0.04,
+        "confidence": 1,
         "triggerValue": 1500,
-        "threshold": 1000
+        "threshold": 1000,
+        "hoursUntil": 5
       },
       {
         "type": "ALERT_TYPE_ICE",
         "severity": "ALERT_SEVERITY_RED",
         "confidence": 1,
         "triggerValue": -6,
-        "threshold": 2
+        "threshold": 2,
+        "hoursUntil": 2
       },
       {
         "type": "ALERT_TYPE_WIND_CHILL",
         "severity": "ALERT_SEVERITY_ORANGE",
         "confidence": 1,
         "triggerValue": -22,
-        "threshold": -20
+        "threshold": -20,
+        "hoursUntil": 2
       },
       {
         "type": "ALERT_TYPE_VISIBILITY",
         "severity": "ALERT_SEVERITY_ORANGE",
-        "confidence": 0.04,
+        "confidence": 1,
         "triggerValue": 150,
-        "threshold": 200
+        "threshold": 200,
+        "hoursUntil": 10
       },
       {
         "type": "ALERT_TYPE_TROPICAL_NIGHT",
         "severity": "ALERT_SEVERITY_ORANGE",
         "confidence": 1,
         "triggerValue": 24,
-        "threshold": 23
+        "threshold": 23,
+        "hoursUntil": 8
       },
       {
         "type": "ALERT_TYPE_HUMIDITY",
         "severity": "ALERT_SEVERITY_ORANGE",
         "confidence": 1,
         "triggerValue": 22,
-        "threshold": 21
+        "threshold": 21,
+        "hoursUntil": 3
       }
     ]
   }
@@ -118,7 +127,7 @@
       {
         "type": "ALERT_TYPE_FROST",
         "severity": "ALERT_SEVERITY_NONE",
-        "confidence": 0,
+        "confidence": 1,
         "triggerValue": 18,
         "threshold": 0
       },
@@ -132,15 +141,15 @@
       {
         "type": "ALERT_TYPE_STORM",
         "severity": "ALERT_SEVERITY_NONE",
-        "confidence": 0,
+        "confidence": 1,
         "triggerValue": 6,
         "threshold": 17,
-        "peakValue": 6.2
+        "hoursUntil": 0
       },
       {
         "type": "ALERT_TYPE_HEAVY_RAIN",
         "severity": "ALERT_SEVERITY_NONE",
-        "confidence": 0,
+        "confidence": 1,
         "triggerValue": 0,
         "threshold": 25
       },
@@ -149,33 +158,34 @@
         "severity": "ALERT_SEVERITY_NONE",
         "confidence": 1,
         "triggerValue": 2,
-        "threshold": 0
+        "threshold": 0,
+        "hoursUntil": 0
       },
       {
         "type": "ALERT_TYPE_FOG",
         "severity": "ALERT_SEVERITY_NONE",
-        "confidence": 0,
+        "confidence": 0.5,
         "triggerValue": 0,
-        "threshold": 0
+        "threshold": 1
       },
       {
         "type": "ALERT_TYPE_SNOW",
         "severity": "ALERT_SEVERITY_NONE",
-        "confidence": 0,
+        "confidence": 1,
         "triggerValue": 0,
         "threshold": 0
       },
       {
         "type": "ALERT_TYPE_PRESSURE_DROP",
         "severity": "ALERT_SEVERITY_NONE",
-        "confidence": 0,
+        "confidence": 0.5,
         "triggerValue": 0,
         "threshold": 5
       },
       {
         "type": "ALERT_TYPE_THUNDERSTORM",
         "severity": "ALERT_SEVERITY_NONE",
-        "confidence": 0,
+        "confidence": 1,
         "triggerValue": 50,
         "threshold": 1000
       },
@@ -189,30 +199,34 @@
       {
         "type": "ALERT_TYPE_WIND_CHILL",
         "severity": "ALERT_SEVERITY_NONE",
-        "confidence": 0,
+        "confidence": 1,
         "triggerValue": 18,
-        "threshold": -10
+        "threshold": -10,
+        "hoursUntil": 8
       },
       {
         "type": "ALERT_TYPE_VISIBILITY",
         "severity": "ALERT_SEVERITY_NONE",
-        "confidence": 0,
+        "confidence": 1,
         "triggerValue": 30000,
-        "threshold": 1000
+        "threshold": 1000,
+        "hoursUntil": 0
       },
       {
         "type": "ALERT_TYPE_TROPICAL_NIGHT",
         "severity": "ALERT_SEVERITY_NONE",
-        "confidence": 0,
+        "confidence": 1,
         "triggerValue": 18,
-        "threshold": 20
+        "threshold": 20,
+        "hoursUntil": 8
       },
       {
         "type": "ALERT_TYPE_HUMIDITY",
         "severity": "ALERT_SEVERITY_NONE",
-        "confidence": 0,
+        "confidence": 1,
         "triggerValue": 0,
-        "threshold": 0
+        "threshold": 16,
+        "hoursUntil": 0
       }
     ]
   }

@@ -1,6 +1,5 @@
 using Njord.Alerts.Rules;
 using Njord.Messages.Alerts;
-using Njord.Model;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
 namespace Njord.Alerts.Tests.Rules;
@@ -8,85 +7,101 @@ namespace Njord.Alerts.Tests.Rules;
 public sealed class IceRuleSpec
 {
     private static readonly IceRule Rule = new();
-    private static readonly AlertSettings Settings = Defaults with { IceThreshold = 2.0 };
 
     [Fact]
-    public void Ice_rain_at_near_freezing_produces_yellow()
+    public void Ice_rain_near_freezing_produces_yellow()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (Temperature, 1.5), (RainParam, 2.0)),
-            MakeForecast(new WeatherModel("m2"), (Temperature, 1.0), (RainParam, 1.5)));
+        var alert = Rule.Evaluate(Uniform(p => p with { Temperature = 1.5, Rain = 2.0 }), Defaults, Now);
 
-        var alert = Rule.Evaluate(consensus, Settings);
-
-        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
-        Assert.True(alert.Confidence > 0);
+        Assert.Multiple(
+            () => Assert.Equal(AlertSeverity.Yellow, alert.Severity),
+            () => Assert.Equal(2.0, alert.Threshold),
+            () => Assert.Equal(new IceDetails(1.5, 24, false), alert.Details));
     }
 
     [Fact]
     public void Ice_freezing_rain_produces_orange()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (Temperature, -1.0), (RainParam, 2.0)),
-            MakeForecast(new WeatherModel("m2"), (Temperature, -0.5), (RainParam, 1.5)));
-
-        var alert = Rule.Evaluate(consensus, Settings);
+        var alert = Rule.Evaluate(Uniform(p => p with { Temperature = -1.0, Rain = 2.0 }), Defaults, Now);
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
+        Assert.Equal(new IceDetails(-1.0, 24, false), alert.Details);
     }
 
     [Fact]
     public void Ice_frozen_ground_produces_red()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (Temperature, -1.0), (RainParam, 2.0), (SoilTemp0cm, -2.0)),
-            MakeForecast(new WeatherModel("m2"), (Temperature, -0.5), (RainParam, 1.5), (SoilTemp0cm, -1.0)));
-
-        var alert = Rule.Evaluate(consensus, Settings);
+        var alert = Rule.Evaluate(
+            Uniform(p => p with { Temperature = -1.0, Rain = 2.0, SoilTemperature = -2.0 }), Defaults, Now);
 
         Assert.Equal(AlertSeverity.Red, alert.Severity);
-        Assert.True(Assert.IsType<IceDetails>(alert.Details).SoilFrozen);
+        Assert.Equal(new IceDetails(-1.0, 24, true), alert.Details);
     }
 
     [Fact]
-    public void Ice_snow_only_no_rain_produces_none()
+    public void Ice_snow_only_without_rain_returns_the_none_alert()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (Temperature, -3.0), (RainParam, 0.0), (Precipitation, 5.0)),
-            MakeForecast(new WeatherModel("m2"), (Temperature, -2.0), (RainParam, 0.0), (Precipitation, 4.0)));
+        var alert = Rule.Evaluate(
+            Uniform(p => p with { Temperature = -3.0, Rain = 0.0, Precipitation = 5.0 }), Defaults, Now);
 
-        var alert = Rule.Evaluate(consensus, Settings);
-
-        Assert.Equal(AlertSeverity.None, alert.Severity);
+        Assert.Equal(Alert.None(AlertType.Ice), alert);
     }
 
     [Fact]
-    public void Ice_without_soil_temp_caps_at_orange()
+    public void Ice_falls_back_to_precipitation_when_rain_is_unknown()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (Temperature, -1.0), (RainParam, 2.0)),
-            MakeForecast(new WeatherModel("m2"), (Temperature, -0.5), (RainParam, 1.5)));
-
-        var alert = Rule.Evaluate(consensus, Settings);
+        var alert = Rule.Evaluate(Uniform(p => p with { Temperature = -1.0, Precipitation = 1.0 }), Defaults, Now);
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
-        Assert.False(Assert.IsType<IceDetails>(alert.Details).SoilFrozen);
+    }
+
+    [Fact]
+    public void Ice_warm_rain_returns_the_none_alert()
+    {
+        var alert = Rule.Evaluate(Uniform(p => p with { Temperature = 8.0, Rain = 3.0 }), Defaults, Now);
+
+        Assert.Equal(Alert.None(AlertType.Ice), alert);
     }
 
     [Fact]
     public void Ice_considers_the_hour_exactly_24_hours_ahead()
     {
-        static (ParameterDef, double)[] Hourly(int h) =>
-            h == 24 ? [(RainParam, 1.0), (Temperature, -1.0)] : [(RainParam, 0.0), (Temperature, 10.0)];
-        var consensus = ConsensusOf(
-            MakeForecastOver(new WeatherModel("m1"), 25, Hourly),
-            MakeForecastOver(new WeatherModel("m2"), 25, Hourly));
+        var forecast = Hourly(25, (h, p) => h == 24 ? p with { Temperature = -1.0, Rain = 1.0 } : p);
 
-        var alert = Rule.Evaluate(consensus, Settings);
+        var alert = Rule.Evaluate(forecast, Defaults, Now);
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
-            () => Assert.Equal(1.0, alert.Confidence),
+            () => Assert.Equal(24, alert.HoursUntil),
             () => Assert.Equal(new IceDetails(-1.0, 1, false), alert.Details));
+    }
+
+    [Fact]
+    public void Ice_ignores_the_hour_after_the_window()
+    {
+        var forecast = Hourly(26, (h, p) => h == 25 ? p with { Temperature = -1.0, Rain = 1.0 } : p);
+
+        Assert.Equal(Alert.None(AlertType.Ice), Rule.Evaluate(forecast, Defaults, Now));
+    }
+
+    [Fact]
+    public void Ice_takes_confidence_from_the_coldest_icy_point()
+    {
+        var forecast = Day((h, p) => p with
+        {
+            Temperature = h == 2 ? -4.0 : -1.0,
+            Rain = 1.0,
+            EnsembleStdDev = h == 2 ? 0.4 : 5.0,
+        });
+
+        var alert = Rule.Evaluate(forecast, Defaults, Now);
+
+        Assert.Equal(ConfidenceLevel.High, alert.Level);
+    }
+
+    [Fact]
+    public void Ice_without_data_returns_the_none_alert()
+    {
+        Assert.Equal(Alert.None(AlertType.Ice), Rule.Evaluate(Empty(), Defaults, Now));
     }
 }

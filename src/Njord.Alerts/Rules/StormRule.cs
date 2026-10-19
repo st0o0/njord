@@ -1,5 +1,4 @@
-using Njord.Consensus;
-using Njord.Consensus.Querying;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
@@ -9,35 +8,16 @@ public sealed class StormRule : IAlertRule
 {
     public AlertType Type => AlertType.Storm;
 
-    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
     {
-        var thresholds = settings.StormGust;
-        if (consensus.Hourly.Find(ParameterRegistry.WindGusts10m) is not { } gusts)
+        if (forecast.Next24Hours(now).HighestBy(p => p.WindGusts) is not { WindGusts: { } gust } peak)
         {
             return Alert.None(Type);
         }
 
-        var window = gusts.Next24Hours();
-        if (window.Extreme(ScanDirection.Max) is not { } high)
-        {
-            return Alert.None(Type);
-        }
-
-        var confidence = window.Hits(value => thresholds.CrossesAdvisory(value)).RoundedAverage();
-        var (severity, effectiveThreshold) = thresholds.Classify(high.Value);
-        if (confidence == 0.0)
-        {
-            severity = AlertSeverity.None;
-        }
-
-        var peak = window.Peak();
-        var medianRounded = Math.Round(high.Value, 1);
-        var peakRounded = peak > double.MinValue ? Math.Round(peak, 1) : medianRounded;
-        var details = new StormDetails(ExpectedMaxGust: medianRounded, ModelsAgreeing: window.MaxModelCount());
-
-        return new Alert(Type, severity, confidence, details,
-            TriggerValue: medianRounded,
-            Threshold: effectiveThreshold,
-            PeakValue: peakRounded != medianRounded ? peakRounded : null);
+        var (severity, effectiveThreshold) = settings.StormGust.Classify(gust);
+        var rounded = Math.Round(gust, 1);
+        return settings.Build(Type, severity, peak, new StormDetails(ExpectedMaxGust: rounded, ModelsAgreeing: 0),
+            rounded, effectiveThreshold, hoursUntil: peak.HoursFrom(now));
     }
 }

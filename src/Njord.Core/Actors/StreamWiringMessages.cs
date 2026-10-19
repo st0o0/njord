@@ -1,6 +1,6 @@
 using Akka.Streams;
 using Njord.Messages.Pipeline;
-using WeatherForecast = Njord.Forecast.Forecast;
+using Njord.Core.Domain;
 
 namespace Njord.Core.Actors;
 
@@ -15,7 +15,7 @@ public sealed record RequestPipelineOutputFailed(long RequestId, Exception Cause
 public sealed record RequestForecastSink(long RequestId);
 
 public abstract record RequestForecastSinkResponse(long RequestId);
-public sealed record RequestForecastSinkCompleted(long RequestId, ISinkRef<WeatherForecast> SinkRef)
+public sealed record RequestForecastSinkCompleted(long RequestId, ISinkRef<DomainDataReceived> SinkRef)
     : RequestForecastSinkResponse(RequestId);
 public sealed record RequestForecastSinkFailed(long RequestId, Exception Cause)
     : RequestForecastSinkResponse(RequestId);

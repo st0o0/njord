@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Njord.Alerts;
 using Njord.Alerts.Configuration;
+using Njord.Core.Domain;
 using Njord.Indices;
 using Njord.Indices.Configuration;
 
@@ -23,6 +24,17 @@ public static class FeatureServices
                 .AddAlerts(AppSettingsDefaults.Configuration())
                 .Configure<AlertOptions>(options => options.Enabled = enabled))
             .GetRequiredService<AlertAnalyzer>();
+
+    public static IProjectionGroup AlertGroup(TimeProvider time, Action<AlertOptions>? configure = null) =>
+        Build(time, services =>
+            {
+                services.AddAlerts(AppSettingsDefaults.Configuration());
+                if (configure is not null)
+                {
+                    services.Configure(configure);
+                }
+            })
+            .GetRequiredService<IProjectionGroup>();
 
     public static IndexAnalyzer Indices(TimeProvider time, bool enabled = true) =>
         Build(time, services => services

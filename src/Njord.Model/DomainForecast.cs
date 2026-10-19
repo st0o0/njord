@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
-using Njord.Model;
 
-namespace Njord.Core.Domain;
+namespace Njord.Model;
 
 public sealed record DomainForecast<T>(
     DomainKind Domain,

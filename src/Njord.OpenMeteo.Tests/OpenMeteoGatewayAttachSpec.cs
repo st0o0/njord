@@ -6,12 +6,12 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
+using Njord.Core.Domain;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Forecast;
 using Njord.Model;
 using Njord.Tests.Shared;
-using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.OpenMeteo.Tests;
 
@@ -95,13 +95,13 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         await first.GracefulStop(TestTimeouts.AwaitAssertMax);
         await secondAttached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-        gateway.Tell(Fetch());
+        gateway.Tell(new FetchDomain(new LocationId("lucerne"), DomainKind.Weather));
 
-        var completed = await ExpectMsgAsync<FetchForecastCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        var forecast = await secondForecasts.ExpectMsgAsync<WeatherForecast>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var received = await secondForecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(
-            () => Assert.Equal("icon_d2", completed.ModelId),
-            () => Assert.Equal("lucerne", forecast.Location));
+            () => Assert.Equal(DomainKind.Weather, completed.Domain),
+            () => Assert.Equal("lucerne", received.Location.Name));
         await AwaitAssertAsync(() => Assert.True(Interlocked.Read(ref reattaches) >= 1,
             $"expected the re-attach to be counted, got {Interlocked.Read(ref reattaches)}"), TestTimeouts.AwaitAssertMax, cancellationToken: ct);
     }
@@ -146,8 +146,8 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
                 if (answers)
                 {
                     var requester = Sender;
-                    var sinkRef = await StreamRefs.SinkRef<WeatherForecast>()
-                        .To(Sink.ActorRef<WeatherForecast>(forecasts, "completed", _ => "failed"))
+                    var sinkRef = await StreamRefs.SinkRef<DomainDataReceived>()
+                        .To(Sink.ActorRef<DomainDataReceived>(forecasts, "completed", _ => "failed"))
                         .Run(mat);
                     requester.Tell(new RequestForecastSinkCompleted(msg.RequestId, sinkRef), Self);
                 }
@@ -166,7 +166,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
             ReceiveAsync<RequestForecastSink>(async msg =>
             {
                 var requester = Sender;
-                var sinkRef = await StreamRefs.SinkRef<WeatherForecast>().To(Sink.Ignore<WeatherForecast>()).Run(mat);
+                var sinkRef = await StreamRefs.SinkRef<DomainDataReceived>().To(Sink.Ignore<DomainDataReceived>()).Run(mat);
                 requester.Tell(new RequestForecastSinkCompleted(msg.RequestId + 1000, sinkRef), Self);
                 attached.Tell("answered");
             });

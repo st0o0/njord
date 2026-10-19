@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts.Configuration;
 using Njord.Consensus;
+using Njord.Consensus.Querying;
 using Njord.Consensus.Settings;
 using Njord.Derived;
 using Njord.Forecast;
@@ -153,13 +154,49 @@ public sealed class AnalysisFixture
                 location,
                 consensus,
                 previousConsensus,
-                alerts.Compute(consensus, alertSettings) ?? throw new InvalidOperationException("Alerts are disabled."),
+                new AlertResult(
+                    new LocationId(location),
+                    alerts.Compute(ToWeather(consensus), alertSettings, Now) ?? throw new InvalidOperationException("Alerts are disabled.")),
                 DerivedAnalyzer.Analyze(consensus, derivedSettings),
                 TrendAnalyzer.Analyze(consensus, previousConsensus),
                 indices.Compute(consensus, indexSettings) ?? throw new InvalidOperationException("Indices are disabled.")));
         }
 
         return new AnalysisFixture(time, forecasts, analyses);
+    }
+
+    private static DomainForecast<WeatherPoint> ToWeather(LocationConsensus consensus)
+    {
+        double Median(ParameterDef parameter, int hour) =>
+            consensus.Hourly.Find(parameter).MedianAt(Horizon.Hours(hour)) ?? 0.0;
+
+        double? OptionalMedian(ParameterDef parameter, int hour) =>
+            consensus.Hourly.Find(parameter).MedianAt(Horizon.Hours(hour));
+
+        var points = Enumerable.Range(0, IconD2LastHour + 1).Select(hour => new WeatherPoint(
+            Now.AddHours(hour),
+            Median(ParameterRegistry.Temperature2m, hour),
+            Median(ParameterRegistry.ApparentTemperature, hour),
+            Median(ParameterRegistry.WindSpeed10m, hour),
+            Median(ParameterRegistry.Precipitation, hour),
+            Median(ParameterRegistry.PrecipitationProbability, hour),
+            Median(ParameterRegistry.CloudCover, hour),
+            Median(ParameterRegistry.PressureMsl, hour),
+            (int)Median(ParameterRegistry.WeatherCode, hour),
+            Median(ParameterRegistry.RelativeHumidity2m, hour),
+            Median(ParameterRegistry.DewPoint2m, hour),
+            Median(ParameterRegistry.UvIndex, hour),
+            EnsembleStdDev: 0.5,
+            WindGusts: OptionalMedian(ParameterRegistry.WindGusts10m, hour),
+            Visibility: OptionalMedian(ParameterRegistry.Visibility, hour),
+            Cape: OptionalMedian(ParameterRegistry.Cape, hour),
+            Rain: OptionalMedian(ParameterRegistry.Rain, hour),
+            Snowfall: OptionalMedian(ParameterRegistry.Snowfall, hour),
+            SoilTemperature: OptionalMedian(ParameterRegistry.SoilTemperature0cm, hour),
+            FreezingLevelHeight: OptionalMedian(ParameterRegistry.FreezingLevelHeight, hour),
+            IsDay: OptionalMedian(ParameterRegistry.IsDay, hour) is { } isDay ? isDay > 0.5 : null));
+
+        return new DomainForecast<WeatherPoint>(DomainKind.Weather, Now, TimeResolution.Hourly, [.. points]);
     }
 
     public LocationAnalysis For(string location) =>

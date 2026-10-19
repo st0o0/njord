@@ -1,6 +1,5 @@
 using Njord.Alerts.Rules;
 using Njord.Messages.Alerts;
-using Njord.Model;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
 namespace Njord.Alerts.Tests.Rules;
@@ -9,107 +8,60 @@ public sealed class HeatRuleSpec
 {
     private static readonly HeatRule Rule = new();
 
-    [Fact]
-    public void Heat_extreme()
+    [Theory]
+    [InlineData(31.0, AlertSeverity.Yellow, 30.0)]
+    [InlineData(36.0, AlertSeverity.Orange, 35.0)]
+    [InlineData(42.0, AlertSeverity.Red, 40.0)]
+    public void Heat_classifies_the_apparent_maximum(double apparent, AlertSeverity severity, double threshold)
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (ApparentTemp, 42.0)),
-            MakeForecast(new WeatherModel("m2"), (ApparentTemp, 41.0)),
-            MakeForecast(new WeatherModel("m3"), (ApparentTemp, 28.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Red, alert.Severity);
-        Assert.True(alert.Confidence > 0.5);
-    }
-
-    [Fact]
-    public void Heat_moderate()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (ApparentTemp, 32.0)),
-            MakeForecast(new WeatherModel("m2"), (ApparentTemp, 31.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
-        Assert.Equal(1.0, alert.Confidence);
-    }
-
-    [Fact]
-    public void Heat_below_threshold_returns_none_alert()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (ApparentTemp, 28.0), (Temperature, 27.0)),
-            MakeForecast(new WeatherModel("m2"), (ApparentTemp, 27.0), (Temperature, 26.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.None, alert.Severity);
-        Assert.Equal(0.0, alert.TriggerValue);
-        Assert.Equal(0.0, alert.Threshold);
-        Assert.Same(NoDetails.Instance, alert.Details);
-    }
-
-    [Fact]
-    public void Heat_fires_when_raw_temp_exceeds_threshold_but_apparent_does_not()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (ApparentTemp, 28.0), (Temperature, 32.0)),
-            MakeForecast(new WeatherModel("m2"), (ApparentTemp, 27.0), (Temperature, 31.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
-        Assert.Equal(31.5, alert.TriggerValue);
-    }
-
-    [Fact]
-    public void Heat_classifies_the_24h_maximum_not_the_minimum()
-    {
-        var consensus = Identical(2, h => [(ApparentTemp, h < 12 ? 20.0 : 33.0)]);
-
-        var alert = Rule.Evaluate(consensus, Defaults);
+        var alert = Rule.Evaluate(Uniform(p => p with { ApparentTemperature = apparent }), Defaults, Now);
 
         Assert.Multiple(
-            () => Assert.Equal(AlertSeverity.Yellow, alert.Severity),
-            () => Assert.Equal(33.0, alert.TriggerValue),
-            () => Assert.Equal(30.0, alert.Threshold),
-            () => Assert.Equal(1.0, alert.Confidence),
-            () => Assert.Null(alert.PeakValue),
-            () => Assert.Equal(33.0, Assert.IsType<HeatDetails>(alert.Details).ExpectedMax));
+            () => Assert.Equal(severity, alert.Severity),
+            () => Assert.Equal(threshold, alert.Threshold),
+            () => Assert.Equal(apparent, alert.TriggerValue),
+            () => Assert.Equal(new HeatDetails(apparent, 0), alert.Details));
     }
 
     [Fact]
-    public void Heat_reports_the_confidence_interval_upper_bound_as_peak_value()
+    public void Heat_uses_the_air_temperature_when_it_exceeds_the_apparent_temperature()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (ApparentTemp, 31.0)),
-            MakeForecast(new WeatherModel("m2"), (ApparentTemp, 32.0)),
-            MakeForecast(new WeatherModel("m3"), (ApparentTemp, 33.0)),
-            MakeForecast(new WeatherModel("m4"), (ApparentTemp, 40.0)));
+        var alert = Rule.Evaluate(Uniform(p => p with { Temperature = 36.0, ApparentTemperature = 30.0 }), Defaults, Now);
 
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        var details = Assert.IsType<HeatDetails>(alert.Details);
-        Assert.Multiple(
-            () => Assert.Equal(AlertSeverity.Yellow, alert.Severity),
-            () => Assert.Equal(32.5, alert.TriggerValue),
-            () => Assert.Equal(37.9, alert.PeakValue),
-            () => Assert.Equal(0.75, alert.Confidence),
-            () => Assert.Equal(4, details.ModelsAgreeing));
+        Assert.Equal(AlertSeverity.Orange, alert.Severity);
+        Assert.Equal(36.0, alert.TriggerValue);
     }
 
     [Fact]
-    public void Heat_uses_raw_temperature_when_apparent_temperature_is_missing()
+    public void Heat_reports_hours_until_the_peak()
     {
-        var consensus = Identical(2, _ => [(Temperature, 32.0)]);
+        var alert = Rule.Evaluate(Day((h, p) => p with { ApparentTemperature = h == 6 ? 41.0 : 20.0 }), Defaults, Now);
 
-        var alert = Rule.Evaluate(consensus, Defaults);
+        Assert.Equal(6, alert.HoursUntil);
+    }
 
-        Assert.Multiple(
-            () => Assert.Equal(AlertSeverity.Yellow, alert.Severity),
-            () => Assert.Equal(32.0, alert.TriggerValue),
-            () => Assert.Equal(1.0, alert.Confidence));
+    [Fact]
+    public void Heat_below_advisory_returns_the_none_alert()
+    {
+        var alert = Rule.Evaluate(Uniform(p => p with { ApparentTemperature = 25.0 }), Defaults, Now);
+
+        Assert.Equal(Alert.None(AlertType.Heat), alert);
+    }
+
+    [Fact]
+    public void Heat_takes_confidence_from_the_peak_point()
+    {
+        var forecast = Day((h, p) => p with { ApparentTemperature = h == 3 ? 38.0 : 20.0, EnsembleStdDev = h == 3 ? 4.5 : 0.1 });
+
+        var alert = Rule.Evaluate(forecast, Defaults, Now);
+
+        Assert.Equal(ConfidenceLevel.Low, alert.Level);
+        Assert.Equal(0.25, alert.Confidence);
+    }
+
+    [Fact]
+    public void Heat_without_data_returns_the_none_alert()
+    {
+        Assert.Equal(Alert.None(AlertType.Heat), Rule.Evaluate(Empty(), Defaults, Now));
     }
 }

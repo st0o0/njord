@@ -1,5 +1,4 @@
-using Njord.Consensus;
-using Njord.Consensus.Querying;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
@@ -12,30 +11,17 @@ public sealed class PressureDropRule : IAlertRule
 
     public AlertType Type => AlertType.PressureDrop;
 
-    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
     {
-        if (consensus.Hourly.Find(ParameterRegistry.PressureMsl) is not { } pressure)
+        var window = forecast.Next24Hours(now);
+        if (window.Count < MinimumHours)
         {
             return Alert.None(Type);
         }
 
-        var window = pressure.Next24Hours();
-        var medianByHour = new SortedDictionary<int, double>();
-        foreach (var hit in window.Values())
-        {
-            medianByHour[hit.Horizon.Offset] = hit.Value;
-        }
-
-        if (medianByHour.Count < MinimumHours)
-        {
-            return Alert.None(Type);
-        }
-
-        var maxDrop = MaxDrop(medianByHour);
+        var (maxDrop, endPoint) = MaxDrop(window, now);
         var dropThreshold = settings.PressureDropThreshold;
         var severeThreshold = settings.PressureDropSevereThreshold;
-        var exceeds = maxDrop >= dropThreshold;
-        var confidence = exceeds ? window.AverageAgreement() : 0.0;
 
         var severity = maxDrop switch
         {
@@ -44,29 +30,33 @@ public sealed class PressureDropRule : IAlertRule
             _ => AlertSeverity.None,
         };
 
-        var medianDrop = Math.Round(maxDrop, 1);
-        var details = new PressureDropDetails(MaxDrop: medianDrop, ModelsAgreeing: window.MaxModelCount());
-
-        return new Alert(Type, severity, Math.Round(confidence, 3), details,
-            TriggerValue: medianDrop,
-            Threshold: exceeds && maxDrop >= severeThreshold ? severeThreshold : dropThreshold);
+        var rounded = Math.Round(maxDrop, 1);
+        return settings.Build(Type, severity, endPoint, new PressureDropDetails(MaxDrop: rounded, ModelsAgreeing: 0),
+            rounded, maxDrop >= severeThreshold ? severeThreshold : dropThreshold);
     }
 
-    private static double MaxDrop(SortedDictionary<int, double> medianByHour)
+    private static (double Drop, WeatherPoint? End) MaxDrop(IReadOnlyList<WeatherPoint> window, DateTimeOffset now)
     {
         var maxDrop = 0.0;
-        var hours = medianByHour.Keys.ToList();
-        for (var i = 0; i < hours.Count; i++)
+        WeatherPoint? end = null;
+        for (var i = 0; i < window.Count; i++)
         {
             for (var j = 0; j < i; j++)
             {
-                if (hours[i] - hours[j] >= DropSpanHours)
+                if (window[i].HoursFrom(now) - window[j].HoursFrom(now) < DropSpanHours)
                 {
-                    maxDrop = Math.Max(maxDrop, medianByHour[hours[j]] - medianByHour[hours[i]]);
+                    continue;
+                }
+
+                var drop = window[j].Pressure - window[i].Pressure;
+                if (drop > maxDrop)
+                {
+                    maxDrop = drop;
+                    end = window[i];
                 }
             }
         }
 
-        return maxDrop;
+        return (maxDrop, end);
     }
 }

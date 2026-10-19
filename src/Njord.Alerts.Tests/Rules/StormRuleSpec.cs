@@ -1,6 +1,5 @@
 using Njord.Alerts.Rules;
 using Njord.Messages.Alerts;
-using Njord.Model;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
 namespace Njord.Alerts.Tests.Rules;
@@ -9,92 +8,47 @@ public sealed class StormRuleSpec
 {
     private static readonly StormRule Rule = new();
 
-    [Fact]
-    public void Storm_detected()
+    [Theory]
+    [InlineData(20.0, AlertSeverity.Yellow, 17.0)]
+    [InlineData(27.0, AlertSeverity.Orange, 25.0)]
+    [InlineData(35.0, AlertSeverity.Red, 33.0)]
+    [InlineData(10.0, AlertSeverity.None, 17.0)]
+    public void Storm_classifies_the_peak_gust(double gust, AlertSeverity severity, double threshold)
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (WindGusts, 20.0)),
-            MakeForecast(new WeatherModel("m2"), (WindGusts, 18.0)),
-            MakeForecast(new WeatherModel("m3"), (WindGusts, 10.0)));
+        var alert = Rule.Evaluate(Uniform(p => p with { WindGusts = gust }), Defaults, Now);
 
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
-        Assert.True(alert.Confidence > 0.6);
-    }
-
-    [Fact]
-    public void Storm_not_detected()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (WindGusts, 10.0)),
-            MakeForecast(new WeatherModel("m2"), (WindGusts, 8.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.None, alert.Severity);
-    }
-
-    [Fact]
-    public void Storm_severe_produces_orange()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (WindGusts, 28.0)),
-            MakeForecast(new WeatherModel("m2"), (WindGusts, 26.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Orange, alert.Severity);
-    }
-
-    [Fact]
-    public void Storm_hurricane_produces_red()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (WindGusts, 36.0)),
-            MakeForecast(new WeatherModel("m2"), (WindGusts, 34.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Red, alert.Severity);
-    }
-
-    [Fact]
-    public void Storm_classifies_the_24h_maximum_not_the_minimum()
-    {
-        var consensus = Identical(2, h => [(WindGusts, h < 12 ? 10.0 : 26.0)]);
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        var details = Assert.IsType<StormDetails>(alert.Details);
         Assert.Multiple(
-            () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
-            () => Assert.Equal(26.0, alert.TriggerValue),
-            () => Assert.Equal(25.0, alert.Threshold),
-            () => Assert.Equal(1.0, alert.Confidence),
-            () => Assert.Null(alert.PeakValue),
-            () => Assert.Equal(26.0, details.ExpectedMaxGust),
-            () => Assert.Equal(2, details.ModelsAgreeing));
+            () => Assert.Equal(severity, alert.Severity),
+            () => Assert.Equal(threshold, alert.Threshold),
+            () => Assert.Equal(gust, alert.TriggerValue),
+            () => Assert.Equal(new StormDetails(gust, 0), alert.Details));
     }
 
     [Fact]
-    public void Storm_reports_the_confidence_interval_upper_bound_as_peak_value()
+    public void Storm_reports_hours_until_the_peak_gust()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (WindGusts, 20.0)),
-            MakeForecast(new WeatherModel("m2"), (WindGusts, 21.0)),
-            MakeForecast(new WeatherModel("m3"), (WindGusts, 22.0)),
-            MakeForecast(new WeatherModel("m4"), (WindGusts, 30.0)));
+        var alert = Rule.Evaluate(Day((h, p) => p with { WindGusts = h == 5 ? 30.0 : 8.0 }), Defaults, Now);
 
-        var alert = Rule.Evaluate(consensus, Defaults);
+        Assert.Equal(5, alert.HoursUntil);
+    }
 
-        var details = Assert.IsType<StormDetails>(alert.Details);
-        Assert.Multiple(
-            () => Assert.Equal(AlertSeverity.Yellow, alert.Severity),
-            () => Assert.Equal(21.5, alert.TriggerValue),
-            () => Assert.Equal(17.0, alert.Threshold),
-            () => Assert.Equal(27.6, alert.PeakValue),
-            () => Assert.Equal(0.75, alert.Confidence),
-            () => Assert.Equal(4, details.ModelsAgreeing));
+    [Fact]
+    public void Storm_takes_confidence_from_the_peak_point()
+    {
+        var forecast = Day((h, p) => p with { WindGusts = h == 5 ? 30.0 : 8.0, EnsembleStdDev = h == 5 ? 3.5 : 0.1 });
+
+        Assert.Equal(ConfidenceLevel.Low, Rule.Evaluate(forecast, Defaults, Now).Level);
+    }
+
+    [Fact]
+    public void Storm_without_gust_data_returns_the_none_alert()
+    {
+        Assert.Equal(Alert.None(AlertType.Storm), Rule.Evaluate(Day(), Defaults, Now));
+    }
+
+    [Fact]
+    public void Storm_without_data_returns_the_none_alert()
+    {
+        Assert.Equal(Alert.None(AlertType.Storm), Rule.Evaluate(Empty(), Defaults, Now));
     }
 }

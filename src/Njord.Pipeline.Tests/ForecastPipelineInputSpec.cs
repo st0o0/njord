@@ -1,45 +1,29 @@
 using Akka.Actor;
-using Microsoft.Extensions.Options;
-using Njord.Alerts.Configuration;
-using Njord.Consensus;
+using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
-using Njord.Core.Configuration;
-using Njord.Derived.Configuration;
-using Njord.Indices.Configuration;
+using Njord.Core.Domain;
+using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using Njord.Pipeline.Configuration;
+using Njord.Model;
 using Njord.Tests.Shared;
-using Njord.Trends.Configuration;
-using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
-using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Pipeline.Tests;
 
 public sealed class ForecastPipelineInputSpec : NjordActorSpec
 {
-    protected override bool UseTestPersistence => false;
+    private static readonly DateTimeOffset Start = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly AnalysisFixture _fixture = AnalysisFixture.Create();
+    protected override bool UseTestPersistence => false;
 
     private IActorRef CreatePipeline()
     {
-        var settings = AnalysisSettingsFactory.Create(
-            new NjordOptions { Locations = [new LocationOptions { Name = AnalysisFixture.Lucerne }, new LocationOptions { Name = AnalysisFixture.Bern }] },
-            AppSettingsDefaults.Options<ConsensusOptions>(), AppSettingsDefaults.Options<AlertOptions>(), AppSettingsDefaults.Options<IndexOptions>(), AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = true), AppSettingsDefaults.Options<DerivedOptions>());
-
-        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(
-            _fixture.Time,
-            new ConsensusBuilder(AnalysisFixture.Parameters, _fixture.Time),
-            Options.Create(AppSettingsDefaults.Options<ConsensusOptions>()),
-            DisabledAnalyzers.Alert(),
-            DisabledAnalyzers.Derived(),
-            new TrendAnalyzer(Options.Create(new TrendOptions { Enabled = true })),
-            DisabledAnalyzers.Index(),
-            settings)), $"pipeline-{Guid.NewGuid():N}");
+        var time = new FakeTimeProvider(Start);
+        var group = FeatureServices.AlertGroup(time);
+        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, new[] { group })), $"pipeline-{Guid.NewGuid():N}");
     }
 
-    private WeatherForecast Forecast(string location, int index = 0) =>
-        _fixture.Forecasts.Where(f => f.Location == location).ElementAt(index);
+    private static DomainDataReceived Weather(Location location, double temperature = 10.0) =>
+        DomainData.Received(location, DomainData.Weather(Start, 48, (_, p) => p with { Temperature = temperature }));
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task The_output_is_available_before_any_producer_attaches()
@@ -68,7 +52,7 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Forecasts_of_two_producers_are_both_analyzed()
+    public async Task Domain_data_of_two_producers_is_published_as_weather_events()
     {
         var ct = TestContext.Current.CancellationToken;
         var pipeline = CreatePipeline();
@@ -77,14 +61,33 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
         var first = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
         var second = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
 
-        await first.OfferAsync(Forecast(AnalysisFixture.Lucerne), ct);
-        var fromFirst = await NextForecastReceivedAsync(consumer, ct);
-        await second.OfferAsync(Forecast(AnalysisFixture.Bern), ct);
-        var fromSecond = await NextForecastReceivedAsync(consumer, ct);
+        await first.OfferAsync(Weather(DomainData.Lucerne), ct);
+        var fromFirst = await NextWeatherAsync(consumer, ct);
+        await second.OfferAsync(Weather(DomainData.Bern), ct);
+        var fromSecond = await NextWeatherAsync(consumer, ct);
 
         Assert.Multiple(
-            () => Assert.Equal(AnalysisFixture.Lucerne, fromFirst.Location.Name),
-            () => Assert.Equal(AnalysisFixture.Bern, fromSecond.Location.Name));
+            () => Assert.Equal("Lucerne", fromFirst.Location.Name),
+            () => Assert.Equal(48, fromFirst.Forecast.Points.Length),
+            () => Assert.Equal("Bern", fromSecond.Location.Name));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task Weather_below_the_frost_threshold_raises_a_frost_alert()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var pipeline = CreatePipeline();
+        var consumer = CreateTestProbe();
+        await PipelineProducer.AttachConsumerAsync(pipeline, Sys, consumer, ct);
+        var producer = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
+
+        await producer.OfferAsync(Weather(DomainData.Lucerne, temperature: -3.0), ct);
+
+        var raised = await NextFrostAlertAsync(consumer, ct);
+        Assert.Multiple(
+            () => Assert.Equal("Lucerne", raised.Location.Name),
+            () => Assert.Equal(AlertSeverity.Yellow, raised.Severity),
+            () => Assert.Equal(ConfidenceLevel.High, raised.Confidence));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -95,16 +98,16 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
         var consumer = CreateTestProbe();
         await PipelineProducer.AttachConsumerAsync(pipeline, Sys, consumer, ct);
         var first = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
-        await first.OfferAsync(Forecast(AnalysisFixture.Lucerne), ct);
-        await NextForecastReceivedAsync(consumer, ct);
+        await first.OfferAsync(Weather(DomainData.Lucerne), ct);
+        await NextWeatherAsync(consumer, ct);
 
         first.Complete();
         await first.WatchCompletionAsync().WaitAsync(TestTimeouts.RealTimeWaitMax, ct);
         var second = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
-        await second.OfferAsync(Forecast(AnalysisFixture.Bern), ct);
+        await second.OfferAsync(Weather(DomainData.Bern), ct);
 
-        var received = await NextForecastReceivedAsync(consumer, ct);
-        Assert.Equal(AnalysisFixture.Bern, received.Location.Name);
+        var received = await NextWeatherAsync(consumer, ct);
+        Assert.Equal("Bern", received.Location.Name);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -115,44 +118,49 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
         var consumer = CreateTestProbe();
         await PipelineProducer.AttachConsumerAsync(pipeline, Sys, consumer, ct);
         var first = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
-        await first.OfferAsync(Forecast(AnalysisFixture.Lucerne), ct);
-        await NextForecastReceivedAsync(consumer, ct);
+        await first.OfferAsync(Weather(DomainData.Lucerne), ct);
+        await NextWeatherAsync(consumer, ct);
 
         first.Fail(new InvalidOperationException("producer failed"));
         var second = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
-        await second.OfferAsync(Forecast(AnalysisFixture.Bern), ct);
+        await second.OfferAsync(Weather(DomainData.Bern), ct);
 
-        var received = await NextForecastReceivedAsync(consumer, ct);
-        Assert.Equal(AnalysisFixture.Bern, received.Location.Name);
+        var received = await NextWeatherAsync(consumer, ct);
+        Assert.Equal("Bern", received.Location.Name);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Trends_receive_the_previous_consensus_across_a_producer_change()
+    public async Task A_producer_change_keeps_the_analysis_running_for_the_same_location()
     {
         var ct = TestContext.Current.CancellationToken;
         var pipeline = CreatePipeline();
         var consumer = CreateTestProbe();
         await PipelineProducer.AttachConsumerAsync(pipeline, Sys, consumer, ct);
         var first = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
-        await first.OfferAsync(Forecast(AnalysisFixture.Lucerne, 0), ct);
-        await consumer.ExpectMsgAsync<PipelineEvent.ForecastReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        await consumer.ExpectMsgAsync<PipelineEvent.ConsensusComputed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await first.OfferAsync(Weather(DomainData.Lucerne, temperature: 10.0), ct);
+        await NextWeatherAsync(consumer, ct);
 
         first.Complete();
         var second = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
-        await second.OfferAsync(Forecast(AnalysisFixture.Lucerne, 1), ct);
+        await second.OfferAsync(Weather(DomainData.Lucerne, temperature: -4.0), ct);
 
-        await consumer.ExpectMsgAsync<PipelineEvent.ForecastReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        await consumer.ExpectMsgAsync<PipelineEvent.ConsensusComputed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        var trend = await consumer.ExpectMsgAsync<PipelineEvent.TrendComputed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        Assert.Equal(AnalysisFixture.Lucerne, trend.Result.Location.Name);
+        var raised = await NextFrostAlertAsync(consumer, ct);
+        Assert.Equal("Lucerne", raised.Location.Name);
     }
 
-    private static async Task<PipelineEvent.ForecastReceived> NextForecastReceivedAsync(Akka.TestKit.TestProbe consumer, CancellationToken ct)
+    private static async Task<PipelineEvent.WeatherDataReceived> NextWeatherAsync(Akka.TestKit.TestProbe consumer, CancellationToken ct)
     {
         var message = await consumer.FishForMessageAsync(
-            m => m is PipelineEvent.ForecastReceived or ConsumerCompleted or ConsumerFailed,
+            m => m is PipelineEvent.WeatherDataReceived or ConsumerCompleted or ConsumerFailed,
             TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        return Assert.IsType<PipelineEvent.ForecastReceived>(message);
+        return Assert.IsType<PipelineEvent.WeatherDataReceived>(message);
+    }
+
+    private static async Task<PipelineEvent.AlertRaised> NextFrostAlertAsync(Akka.TestKit.TestProbe consumer, CancellationToken ct)
+    {
+        var message = await consumer.FishForMessageAsync(
+            m => m is PipelineEvent.AlertRaised { Type: AlertType.Frost } or ConsumerCompleted or ConsumerFailed,
+            TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        return Assert.IsType<PipelineEvent.AlertRaised>(message);
     }
 }

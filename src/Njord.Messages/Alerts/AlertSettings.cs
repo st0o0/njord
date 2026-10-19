@@ -16,4 +16,7 @@ public sealed record AlertSettings(
     SeverityThresholds WindChill,
     SeverityThresholds Visibility,
     SeverityThresholds TropicalNight,
-    SeverityThresholds Humidity);
+    SeverityThresholds Humidity)
+{
+    public ConfidenceThresholds Confidence { get; init; } = ConfidenceThresholds.Default;
+}

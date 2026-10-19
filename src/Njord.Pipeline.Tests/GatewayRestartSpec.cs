@@ -1,22 +1,15 @@
 using Akka.Actor;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Alerts.Configuration;
-using Njord.Consensus;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Derived.Configuration;
 using Njord.Forecast;
 using Njord.Grpc;
-using Njord.Indices.Configuration;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.OpenMeteo;
-using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
-using Njord.Trends.Configuration;
-using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
 
 namespace Njord.Pipeline.Tests;
 
@@ -39,7 +32,7 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     };
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_gateway_restart_keeps_the_consumer_stream_and_the_previous_consensus_for_trends()
+    public async Task A_gateway_restart_keeps_the_consumer_stream_open()
     {
         var ct = TestContext.Current.CancellationToken;
         ActorRegistry.Register<IBudgetTracker>(Sys.ActorOf(Props.Create(() => new SilentActor()), "budget"), overwrite: true);
@@ -50,8 +43,7 @@ public sealed class GatewayRestartSpec : NjordActorSpec
         var gateway = StartGateway();
 
         await FetchUntilCompletedAsync(gateway, ct);
-        await consumer.ExpectMsgAsync<PipelineEvent.ForecastReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        await consumer.ExpectMsgAsync<PipelineEvent.ConsensusComputed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await consumer.ExpectMsgAsync<PipelineEvent.WeatherDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
         // The budget read fault fails the gateway's private stream; the gateway fails and is restarted.
         _budget.ThrowOnNextRead = true;
@@ -63,10 +55,10 @@ public sealed class GatewayRestartSpec : NjordActorSpec
         await FetchUntilCompletedAsync(gateway, ct);
 
         var next = await consumer.FishForMessageAsync(
-            m => m is PipelineEvent.TrendComputed or ConsumerCompleted or ConsumerFailed,
+            m => m is PipelineEvent.WeatherDataReceived or ConsumerCompleted or ConsumerFailed,
             TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        var trend = Assert.IsType<PipelineEvent.TrendComputed>(next);
-        Assert.Equal(Location, trend.Result.Location.Name);
+        var weather = Assert.IsType<PipelineEvent.WeatherDataReceived>(next);
+        Assert.Equal(Location, weather.Location.Name);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -79,32 +71,19 @@ public sealed class GatewayRestartSpec : NjordActorSpec
         var proxy = Sys.ActorOf(Props.Create(() => new CountingProxy(pipeline, () => Interlocked.Increment(ref outputRequests))),
             $"pipeline-proxy-{Guid.NewGuid():N}");
         ActorRegistry.Register<IForecastPipeline>(proxy, overwrite: true);
-        var readModel = Sys.ActorOf(Props.Create(() => new GrpcConsumer()), $"grpc-consumer-{Guid.NewGuid():N}");
+        Sys.ActorOf(Props.Create(() => new GrpcConsumer()), $"grpc-consumer-{Guid.NewGuid():N}");
         var gateway = StartGateway();
-        await AwaitAssertAsync(async () =>
-        {
-            await FetchUntilCompletedAsync(gateway, ct);
-            var response = await readModel.Ask<ForecastResponse>(new QueryForecast(new LocationId(Location), "icon_d2"),
-                TestTimeouts.RealTimeWaitMax, ct);
-            Assert.IsType<ForecastResult>(response);
-        }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(200), cancellationToken: ct);
+        await AwaitAssertAsync(() => Assert.Equal(1, Volatile.Read(ref outputRequests)),
+            TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await FetchUntilCompletedAsync(gateway, ct);
 
         _budget.ThrowOnNextRead = true;
         _time.Advance(TimeSpan.FromSeconds(6));
-        var restartedAt = _time.GetUtcNow();
         var stopped = await gateway.Ask<FetchForecastResponse>(new FetchForecast(new LocationId(Location), "icon_d2"),
             TestTimeouts.RealTimeWaitMax, ct);
         Assert.Equal(PollFailureReason.Transport, Assert.IsType<FetchForecastFailed>(stopped).Reason);
         await FetchUntilCompletedAsync(gateway, ct);
 
-        await AwaitAssertAsync(async () =>
-        {
-            var response = await readModel.Ask<LatestAnalysisResponse>(new QueryLatestAnalysis(new LocationId(Location)),
-                TestTimeouts.RealTimeWaitMax, ct);
-            var trend = Assert.IsType<LatestAnalysisResult>(response).Trends;
-            Assert.NotNull(trend);
-            Assert.True(trend.Timestamp >= restartedAt, $"expected a trend computed after the restart, got {trend.Timestamp}");
-        }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Equal(1, Volatile.Read(ref outputRequests));
     }
 
@@ -112,9 +91,9 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     private async Task FetchUntilCompletedAsync(IActorRef gateway, CancellationToken ct) =>
         await AwaitAssertAsync(async () =>
         {
-            var reply = await gateway.Ask<FetchForecastResponse>(new FetchForecast(new LocationId(Location), "icon_d2"),
+            var reply = await gateway.Ask<FetchDomainResponse>(new FetchDomain(new LocationId(Location), DomainKind.Weather),
                 TestTimeouts.RealTimeWaitMax, ct);
-            Assert.IsType<FetchForecastCompleted>(reply);
+            Assert.IsType<FetchDomainCompleted>(reply);
         }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(200), cancellationToken: ct);
 
     private IActorRef StartGateway()
@@ -127,18 +106,8 @@ public sealed class GatewayRestartSpec : NjordActorSpec
 
     private IActorRef StartPipeline()
     {
-        var parameters = ParameterSelection.Resolve(["Weather"], [], []);
-        var settings = AnalysisSettingsFactory.Create(Options, AppSettingsDefaults.Options<ConsensusOptions>(), AppSettingsDefaults.Options<AlertOptions>(), AppSettingsDefaults.Options<IndexOptions>(),
-            AppSettingsDefaults.Options<TrendOptions>(o => o.Enabled = true), AppSettingsDefaults.Options<DerivedOptions>());
-        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(
-            _time,
-            new ConsensusBuilder(parameters, _time),
-            Microsoft.Extensions.Options.Options.Create(AppSettingsDefaults.Options<ConsensusOptions>()),
-            DisabledAnalyzers.Alert(),
-            DisabledAnalyzers.Derived(),
-            new TrendAnalyzer(Microsoft.Extensions.Options.Options.Create(new TrendOptions { Enabled = true })),
-            DisabledAnalyzers.Index(),
-            settings)), $"pipeline-{Guid.NewGuid():N}");
+        var group = FeatureServices.AlertGroup(_time);
+        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(_time, new[] { group })), $"pipeline-{Guid.NewGuid():N}");
     }
 
     private sealed class FaultyOnceBudgetProvider : IBudgetProvider

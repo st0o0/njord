@@ -1,5 +1,4 @@
-using Njord.Consensus;
-using Njord.Consensus.Querying;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
@@ -9,46 +8,17 @@ public sealed class HumidityRule : IAlertRule
 {
     public AlertType Type => AlertType.Humidity;
 
-    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
     {
         var thresholds = settings.Humidity;
-        var dewPoint = consensus.Hourly.Find(ParameterRegistry.DewPoint2m);
-        var isDay = consensus.Hourly.Find(ParameterRegistry.IsDay);
-        if (dewPoint is null || isDay is null)
+        var day = forecast.Next24Hours(now).Where(p => p.IsDay == true).ToList();
+        if (day.Count == 0)
         {
             return Alert.None(Type);
         }
 
-        var maxDewpoint = double.MinValue;
-        var dayAgreements = new List<double>();
-        var dayHoursCount = 0;
-
-        foreach (var horizon in isDay.DaytimeHours())
-        {
-            dayHoursCount++;
-            if (dewPoint.At(horizon) is not { Median: { } value } day)
-            {
-                continue;
-            }
-
-            if (value > maxDewpoint)
-            {
-                maxDewpoint = value;
-            }
-
-            if (thresholds.CrossesAdvisory(value) && day.Agreement is { } agreement)
-            {
-                dayAgreements.Add(agreement);
-            }
-        }
-
-        if (dayHoursCount == 0 || maxDewpoint <= double.MinValue)
-        {
-            return Alert.None(Type);
-        }
-
-        var confidence = dayAgreements.Count > 0 ? Math.Round(dayAgreements.Average(), 3) : 0.0;
-        var (severity, effectiveThreshold) = thresholds.Classify(maxDewpoint);
+        var muggiest = day.MaxBy(p => p.DewPoint)!;
+        var (severity, effectiveThreshold) = thresholds.Classify(muggiest.DewPoint);
         var comfortLevel = severity switch
         {
             AlertSeverity.Red => HumidityComfort.Tropical,
@@ -57,15 +27,9 @@ public sealed class HumidityRule : IAlertRule
             _ => (HumidityComfort?)null,
         };
 
-        if (confidence == 0.0)
-        {
-            severity = AlertSeverity.None;
-        }
-
-        var details = new HumidityDetails(MaxDewpoint: Math.Round(maxDewpoint, 1), ComfortLevel: comfortLevel);
-
-        return new Alert(Type, severity, confidence, details,
-            TriggerValue: Math.Round(maxDewpoint, 1),
-            Threshold: effectiveThreshold);
+        var rounded = Math.Round(muggiest.DewPoint, 1);
+        var details = new HumidityDetails(MaxDewpoint: rounded, ComfortLevel: comfortLevel);
+        return settings.Build(Type, severity, muggiest, details, rounded, effectiveThreshold,
+            hoursUntil: muggiest.HoursFrom(now));
     }
 }

@@ -1,5 +1,4 @@
-using Njord.Consensus;
-using Njord.Consensus.Querying;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
@@ -9,31 +8,20 @@ public sealed class VisibilityRule : IAlertRule
 {
     public AlertType Type => AlertType.Visibility;
 
-    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
     {
         var thresholds = settings.Visibility;
-        if (consensus.Hourly.Find(ParameterRegistry.Visibility) is not { } visibility)
+        var window = forecast.Next24Hours(now);
+        if (window.LowestBy(p => p.Visibility) is not { Visibility: { } low } lowest)
         {
             return Alert.None(Type);
         }
 
-        var window = visibility.Next24Hours();
-        if (window.Extreme(ScanDirection.Min) is not { } low)
-        {
-            return Alert.None(Type);
-        }
-
-        var hoursBelow = window.Hits(value => thresholds.CrossesAdvisory(value, strict: true)).Count();
-        var totalHorizons = window.Values().Count();
-        var confidence = totalHorizons > 0 && hoursBelow > 0
-            ? Math.Round((double)hoursBelow / totalHorizons, 3)
-            : 0.0;
-
-        var (severity, effectiveThreshold) = thresholds.Classify(low.Value, strict: true);
-        var details = new VisibilityDetails(MinVisibility: Math.Round(low.Value, 0), HoursBelow1000m: hoursBelow);
-
-        return new Alert(Type, severity, confidence, details,
-            TriggerValue: Math.Round(low.Value, 0),
-            Threshold: effectiveThreshold);
+        var hoursBelow = window.Count(p => p.Visibility is { } v && thresholds.CrossesAdvisory(v, strict: true));
+        var (severity, effectiveThreshold) = thresholds.Classify(low, strict: true);
+        var rounded = Math.Round(low, 0);
+        var details = new VisibilityDetails(MinVisibility: rounded, HoursBelow1000m: hoursBelow);
+        return settings.Build(Type, severity, lowest, details, rounded, effectiveThreshold,
+            hoursUntil: lowest.HoursFrom(now));
     }
 }

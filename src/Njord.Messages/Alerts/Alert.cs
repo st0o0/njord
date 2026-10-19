@@ -9,7 +9,8 @@ public sealed record Alert(
     double Threshold = 0.0,
     double? PeakValue = null,
     int? HoursUntil = null,
-    int? DurationHours = null)
+    int? DurationHours = null,
+    ConfidenceLevel Level = ConfidenceLevel.Medium)
 {
     public static Alert None(AlertType type) =>
         new(type, AlertSeverity.None, 0.0, NoDetails.Instance);

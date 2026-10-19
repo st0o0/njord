@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
+using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Messages.Forecast;
 using Njord.Model;
@@ -52,6 +53,8 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
     private sealed record OfferFailed(long RequestId, Exception Cause);
     private sealed record BranchOffered(long RequestId, int Hash, IQueueOfferResult Result);
     private sealed record BranchOfferFailed(long RequestId, Exception Cause);
+    private sealed record DomainBranchOffered(long RequestId, int Hash, IQueueOfferResult Result);
+    private sealed record DomainBranchOfferFailed(long RequestId, Exception Cause);
     private sealed record BranchEnded(long BranchId, Exception? Cause) : IDeadLetterSuppression;
     private sealed record PipelineResolved(IActorRef Pipeline);
     private sealed record PipelineResolveFailed(Exception Cause);
@@ -77,7 +80,7 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
 
     private IMaterializer? _mat;
     private ISourceQueueWithComplete<FetchTarget>? _fetchQueue;
-    private ISourceQueueWithComplete<WeatherForecast>? _forecastQueue;
+    private ISourceQueueWithComplete<DomainDataReceived>? _forecastQueue;
     private IActorRef? _pipeline;
     private long _fetchStreamId;
     private long _attachRequestId;
@@ -108,6 +111,9 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
         Receive<FetchDomain>(OnFetchDomain);
         Receive<DomainFetchDone>(OnDomainFetchDone);
         Receive<DomainFetchFailed>(OnDomainFetchFailure);
+        Receive<DomainBranchOffered>(OnDomainBranchOffered);
+        Receive<DomainBranchOfferFailed>(msg => DomainReply(msg.RequestId,
+            p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.PipelineUnavailable)));
 
         // Legacy per-model fetch (still used by existing pipeline branch)
         Receive<FetchForecast>(OnFetchForecast);
@@ -184,13 +190,56 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
         switch (msg.Result)
         {
             case EnsembleFetchResult.Success success:
-                var hash = success.Forecast.GetHashCode();
-                DomainReply(msg.RequestId, p => new FetchDomainCompleted(p.Location, p.Domain, hash));
+                OfferDomainData(msg.RequestId, msg.Domain, success.Forecast);
                 break;
             case EnsembleFetchResult.Failure failure:
                 DomainReply(msg.RequestId, p => new FetchDomainFailed(p.Location, p.Domain, failure.Reason, failure.Detail));
                 break;
         }
+    }
+
+    private void OfferDomainData(long requestId, DomainKind domain, IDomainForecast forecast)
+    {
+        if (!_pendingDomainRequests.TryGetValue(requestId, out var pending))
+        {
+            return;
+        }
+
+        if (_forecastQueue is not { } branch)
+        {
+            DomainReply(requestId, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.PipelineUnavailable));
+            return;
+        }
+
+        var location = _options.FindLocation(pending.Location.Name);
+        var data = new DomainDataReceived(
+            new Location(location?.Name ?? pending.Location.Name, location?.Latitude ?? 0, location?.Longitude ?? 0), domain, forecast);
+        var hash = forecast.GetHashCode();
+
+        Task<IQueueOfferResult> offer;
+        try
+        {
+            offer = branch.OfferAsync(data);
+        }
+        catch (Exception ex)
+        {
+            offer = Task.FromException<IQueueOfferResult>(ex);
+        }
+
+        offer.PipeTo(Self,
+            success: result => new DomainBranchOffered(requestId, hash, result),
+            failure: ex => new DomainBranchOfferFailed(requestId, ex));
+    }
+
+    private void OnDomainBranchOffered(DomainBranchOffered msg)
+    {
+        if (msg.Result is QueueOfferResult.Enqueued)
+        {
+            DomainReply(msg.RequestId, p => new FetchDomainCompleted(p.Location, p.Domain, msg.Hash));
+            return;
+        }
+
+        DomainReply(msg.RequestId, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.PipelineUnavailable));
     }
 
     private void OnDomainFetchFailure(DomainFetchFailed msg)
@@ -275,27 +324,14 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
         {
             case PollOutcome.Success s:
                 var hash = ForecastDataHash.Compute(s.Forecast, _timeProvider);
-                if (_forecastQueue is not { } branch)
+                if (_forecastQueue is null)
                 {
                     Reject(msg.RequestId, FetchRejectionReason.PipelineUnavailable);
                     return;
                 }
 
-                // The requester learns the hash only once the forecast is on its way to the pipeline, so it never
-                // records data the pipeline did not get.
-                Task<IQueueOfferResult> offer;
-                try
-                {
-                    offer = branch.OfferAsync(s.Forecast);
-                }
-                catch (Exception ex)
-                {
-                    offer = Task.FromException<IQueueOfferResult>(ex);
-                }
-
-                offer.PipeTo(Self,
-                    success: result => new BranchOffered(msg.RequestId, hash, result),
-                    failure: ex => new BranchOfferFailed(msg.RequestId, ex));
+                // The legacy per-model forecast has no place in the domain pipeline: it is acknowledged, not forwarded.
+                Reply(msg.RequestId, p => new FetchForecastCompleted(p.Location, p.ModelId, hash));
                 break;
             case PollOutcome.Failure f:
                 Reply(msg.RequestId, p => new FetchForecastFailed(p.Location, p.ModelId, f.Reason, f.Detail));
@@ -471,10 +507,10 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
         Timers.StartSingleTimer(AttachRetryTimer, new RetryAttach(), delay);
     }
 
-    private void AttachForecastBranch(ISinkRef<WeatherForecast> sinkRef)
+    private void AttachForecastBranch(ISinkRef<DomainDataReceived> sinkRef)
     {
         var branchId = _branchId = NextId();
-        var (queue, done) = Source.Queue<WeatherForecast>(ForecastBranchSize, OverflowStrategy.DropHead)
+        var (queue, done) = Source.Queue<DomainDataReceived>(ForecastBranchSize, OverflowStrategy.DropHead)
             .WatchTermination(Keep.Both)
             .To(sinkRef.Sink)
             .Run(_mat!);

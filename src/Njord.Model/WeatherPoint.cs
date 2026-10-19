@@ -13,4 +13,12 @@ public sealed record WeatherPoint(
     double Humidity,
     double DewPoint,
     double UvIndex,
-    double? EnsembleStdDev = null) : IHasValidTime;
+    double? EnsembleStdDev = null,
+    double? WindGusts = null,
+    double? Visibility = null,
+    double? Cape = null,
+    double? Rain = null,
+    double? Snowfall = null,
+    double? SoilTemperature = null,
+    double? FreezingLevelHeight = null,
+    bool? IsDay = null) : IHasValidTime;

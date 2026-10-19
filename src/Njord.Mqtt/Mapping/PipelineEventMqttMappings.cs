@@ -1,3 +1,4 @@
+using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.Mqtt.Topics;
@@ -21,6 +22,8 @@ internal static class PipelineEventMqttMappings
             PipelineEvent.ForecastReceived e => e.ToHorizonMessages(context),
             PipelineEvent.ConsensusComputed c => StatePayloadBuilder.FromConsensus(c.Consensus, context.BaseTopic),
             PipelineEvent.AlertComputed a => StatePayloadBuilder.FromAlerts(a.Result, context.BaseTopic),
+            PipelineEvent.AlertRaised r => StatePayloadBuilder.FromAlerts(
+                new AlertResult(new LocationId(r.Location.Name), [r.Alert]), context.BaseTopic),
             PipelineEvent.DerivedComputed d => StatePayloadBuilder.FromDerived(d.Result, context.BaseTopic),
             PipelineEvent.TrendComputed t => StatePayloadBuilder.FromTrends(t.Result, context.BaseTopic),
             PipelineEvent.IndexComputed i => StatePayloadBuilder.FromIndices(i.Result, context.BaseTopic),
@@ -32,6 +35,8 @@ internal static class PipelineEventMqttMappings
         PipelineEvent.ForecastReceived u => u.Location.Name,
         PipelineEvent.ConsensusComputed c => c.Consensus.Location.Name,
         PipelineEvent.AlertComputed a => a.Result.Location.Name,
+        PipelineEvent.AlertRaised r => r.Location.Name,
+        PipelineEvent.WeatherDataReceived w => w.Location.Name,
         PipelineEvent.DerivedComputed d => d.Result.Location.Name,
         PipelineEvent.TrendComputed t => t.Result.Location.Name,
         PipelineEvent.IndexComputed i => i.Result.Location.Name,

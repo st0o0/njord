@@ -38,7 +38,15 @@ internal static class OpenMeteoEnsembleMappings
                 Humidity: GetDouble(series, "relative_humidity_2m", i),
                 DewPoint: GetDouble(series, "dew_point_2m", i),
                 UvIndex: GetDouble(series, "uv_index", i),
-                EnsembleStdDev: GetOptionalDouble(series, "temperature_2m_std", i));
+                EnsembleStdDev: GetOptionalDouble(series, "temperature_2m_std", i),
+                WindGusts: GetOptionalDouble(series, "wind_gusts_10m", i),
+                Visibility: GetOptionalDouble(series, "visibility", i),
+                Cape: GetOptionalDouble(series, "cape", i),
+                Rain: GetOptionalDouble(series, "rain", i),
+                Snowfall: GetOptionalDouble(series, "snowfall", i),
+                SoilTemperature: GetOptionalDouble(series, "soil_temperature_0cm", i),
+                FreezingLevelHeight: GetOptionalDouble(series, "freezing_level_height", i),
+                IsDay: GetOptionalDouble(series, "is_day", i) is { } isDay ? isDay > 0.5 : null);
 
             builder.Add(point);
         }

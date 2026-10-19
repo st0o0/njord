@@ -20,6 +20,16 @@ public sealed record LocationForecast(
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null)
     };
 
+    public IDomainForecast? Get(DomainKind domain) => domain switch
+    {
+        DomainKind.Weather => Weather,
+        DomainKind.AirQuality => AirQuality,
+        DomainKind.Flood => Flood,
+        DomainKind.Solar => Solar,
+        DomainKind.Marine => Marine,
+        _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null)
+    };
+
     private static DomainForecast<T> Cast<T>(DomainKind domain, IDomainForecast forecast)
         where T : IHasValidTime =>
         forecast as DomainForecast<T>

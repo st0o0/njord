@@ -1,6 +1,5 @@
 using Njord.Alerts.Rules;
 using Njord.Messages.Alerts;
-using Njord.Model;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;
 
 namespace Njord.Alerts.Tests.Rules;
@@ -9,69 +8,42 @@ public sealed class WindChillRuleSpec
 {
     private static readonly WindChillRule Rule = new();
 
-    [Fact]
-    public void WindChill_moderate_produces_yellow()
+    [Theory]
+    [InlineData(-12.0, AlertSeverity.Yellow, -10.0, null)]
+    [InlineData(-22.0, AlertSeverity.Orange, -20.0, ExposureRisk.Frostbite30Min)]
+    [InlineData(-32.0, AlertSeverity.Red, -30.0, ExposureRisk.Frostbite10Min)]
+    [InlineData(15.0, AlertSeverity.None, -10.0, null)]
+    public void Wind_chill_classifies_the_lowest_felt_temperature(
+        double felt, AlertSeverity severity, double threshold, ExposureRisk? risk)
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (ApparentTemp, -12.0), (Temperature, -5.0)),
-            MakeForecast(new WeatherModel("m2"), (ApparentTemp, -11.0), (Temperature, -4.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
-        Assert.True(Assert.IsType<WindChillDetails>(alert.Details).WindFactor > 5.0);
-    }
-
-    [Fact]
-    public void WindChill_severe_produces_orange_with_frostbite_risk()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (ApparentTemp, -22.0), (Temperature, -10.0)),
-            MakeForecast(new WeatherModel("m2"), (ApparentTemp, -21.0), (Temperature, -9.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Orange, alert.Severity);
-        Assert.Equal(ExposureRisk.Frostbite30Min, Assert.IsType<WindChillDetails>(alert.Details).ExposureRisk);
-    }
-
-    [Fact]
-    public void WindChill_extreme_produces_red()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (ApparentTemp, -35.0), (Temperature, -20.0)),
-            MakeForecast(new WeatherModel("m2"), (ApparentTemp, -33.0), (Temperature, -18.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Red, alert.Severity);
-        Assert.Equal(ExposureRisk.Frostbite10Min, Assert.IsType<WindChillDetails>(alert.Details).ExposureRisk);
-    }
-
-    [Fact]
-    public void WindChill_cold_but_not_extreme_produces_none()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (ApparentTemp, -5.0), (Temperature, -2.0)),
-            MakeForecast(new WeatherModel("m2"), (ApparentTemp, -4.0), (Temperature, -1.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.None, alert.Severity);
-    }
-
-    [Fact]
-    public void WindChill_classifies_the_coldest_apparent_hour_not_the_warmest()
-    {
-        var consensus = Identical(2, h => [(ApparentTemp, h < 12 ? -25.0 : -5.0), (Temperature, -10.0)]);
-
-        var alert = Rule.Evaluate(consensus, Defaults);
+        var alert = Rule.Evaluate(Uniform(p => p with { Temperature = felt + 7.0, ApparentTemperature = felt }), Defaults, Now);
 
         Assert.Multiple(
-            () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
-            () => Assert.Equal(-25.0, alert.TriggerValue),
-            () => Assert.Equal(-20.0, alert.Threshold),
-            () => Assert.Equal(1.0, alert.Confidence),
-            () => Assert.Equal(new WindChillDetails(-25.0, 15.0, ExposureRisk.Frostbite30Min), alert.Details));
+            () => Assert.Equal(severity, alert.Severity),
+            () => Assert.Equal(threshold, alert.Threshold),
+            () => Assert.Equal(felt, alert.TriggerValue),
+            () => Assert.Equal(new WindChillDetails(felt, 7.0, risk), alert.Details));
+    }
+
+    [Fact]
+    public void Wind_chill_reports_hours_until_the_coldest_hour()
+    {
+        var alert = Rule.Evaluate(Day((h, p) => p with { ApparentTemperature = h == 9 ? -15.0 : 0.0 }), Defaults, Now);
+
+        Assert.Equal(9, alert.HoursUntil);
+    }
+
+    [Fact]
+    public void Wind_chill_takes_confidence_from_the_coldest_point()
+    {
+        var forecast = Day((h, p) => p with { ApparentTemperature = h == 9 ? -15.0 : 0.0, EnsembleStdDev = h == 9 ? 3.5 : 0.1 });
+
+        Assert.Equal(ConfidenceLevel.Low, Rule.Evaluate(forecast, Defaults, Now).Level);
+    }
+
+    [Fact]
+    public void Wind_chill_without_data_returns_the_none_alert()
+    {
+        Assert.Equal(Alert.None(AlertType.WindChill), Rule.Evaluate(Empty(), Defaults, Now));
     }
 }

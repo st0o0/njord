@@ -6,6 +6,7 @@ using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
+using Njord.Core.Domain;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Forecast;
@@ -13,7 +14,6 @@ using Njord.Messages.Budget;
 using Njord.Messages.Forecast;
 using Njord.Model;
 using Njord.Tests.Shared;
-using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.OpenMeteo.Tests;
 
@@ -87,17 +87,20 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_successful_fetch_reaches_the_pipeline_input_and_the_requester()
+    public async Task A_successful_domain_fetch_reaches_the_pipeline_input_and_the_requester()
     {
         await AttachedAsync();
-        Gateway.Tell(Fetch("icon_d2"));
+        Gateway.Tell(new FetchDomain(new LocationId("lucerne"), DomainKind.Weather));
 
-        var completed = await ExpectMsgAsync<FetchForecastCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
-        var forecast = await _forecasts.ExpectMsgAsync<WeatherForecast>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        var received = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Multiple(
-            () => Assert.Equal("icon_d2", completed.ModelId),
-            () => Assert.Equal(ForecastDataHash.Compute(forecast, _time), completed.Hash),
-            () => Assert.Equal("icon_d2", forecast.Model.Id));
+            () => Assert.Equal(DomainKind.Weather, completed.Domain),
+            () => Assert.Equal(received.Data.GetHashCode(), completed.Hash),
+            () => Assert.Equal("lucerne", received.Location.Name),
+            () => Assert.Equal(47.05, received.Location.Latitude),
+            () => Assert.Equal(DomainKind.Weather, received.Domain),
+            () => Assert.IsType<DomainForecast<WeatherPoint>>(received.Data));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -239,16 +242,16 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_forecast_requested_in_another_spelling_reaches_the_pipeline_under_the_configured_names()
+    public async Task A_domain_fetch_requested_in_another_spelling_reaches_the_pipeline_under_the_configured_name()
     {
         await AttachedAsync();
-        Gateway.Tell(new FetchForecast(new LocationId("Lucerne"), "ICON_D2"));
-        await ExpectMsgAsync<FetchForecastCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        Gateway.Tell(new FetchDomain(new LocationId("Lucerne"), DomainKind.Weather));
+        var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
 
-        var forecast = await _forecasts.ExpectMsgAsync<WeatherForecast>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
+        var received = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Multiple(
-            () => Assert.Equal("lucerne", forecast.Location),
-            () => Assert.Equal("icon_d2", forecast.Model.Id));
+            () => Assert.Equal("Lucerne", completed.Location.Name),
+            () => Assert.Equal("lucerne", received.Location.Name));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -333,8 +336,8 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
             ReceiveAsync<RequestForecastSink>(async msg =>
             {
                 var requester = Sender;
-                var sinkRef = await StreamRefs.SinkRef<WeatherForecast>()
-                    .To(Sink.ActorRef<WeatherForecast>(forecasts, "completed", _ => "failed"))
+                var sinkRef = await StreamRefs.SinkRef<DomainDataReceived>()
+                    .To(Sink.ActorRef<DomainDataReceived>(forecasts, "completed", _ => "failed"))
                     .Run(mat);
                 requester.Tell(new RequestForecastSinkCompleted(msg.RequestId, sinkRef), Self);
                 attached.Tell("attached");

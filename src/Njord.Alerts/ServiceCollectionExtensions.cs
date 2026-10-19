@@ -2,7 +2,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Njord.Alerts.Configuration;
 using Njord.Alerts.Rules;
+using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 
 namespace Njord.Alerts;
 
@@ -28,6 +30,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAlertRule, HumidityRule>();
 
         services.AddSingleton<AlertAnalyzer>();
+        services.AddSingleton<IProjectionGroup>(static sp => new ProjectionGroup<WeatherAlertInput>(
+            new WeatherAlertProjector(),
+            [
+                new WeatherAlertEnrichment(
+                    sp.GetRequiredService<AlertAnalyzer>(),
+                    sp.GetRequiredService<IOptions<AlertOptions>>().Value.ToSettings()),
+            ]));
         return services;
     }
 }

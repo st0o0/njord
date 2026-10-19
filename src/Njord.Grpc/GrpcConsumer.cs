@@ -6,6 +6,7 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
+using Njord.Messages.Alerts;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
@@ -147,10 +148,22 @@ public sealed class GrpcConsumer : ReceiveActor
         }
     }
 
+    private static PipelineEvent.AlertComputed MergeAlert(PipelineEvent.AlertComputed? latest, PipelineEvent.AlertRaised raised)
+    {
+        var alerts = (latest?.Result.Alerts ?? [])
+            .Where(alert => alert.Type != raised.Type)
+            .Append(raised.Alert)
+            .OrderBy(alert => alert.Type)
+            .ToList();
+        return new PipelineEvent.AlertComputed(
+            new AlertResult(new LocationId(raised.Location.Name), alerts), raised.Timestamp);
+    }
+
     private static LatestAnalysisResult WithLatest(LatestAnalysisResult analysis, PipelineEvent evt) => evt switch
     {
         PipelineEvent.ConsensusComputed consensus => analysis with { Consensus = consensus },
         PipelineEvent.AlertComputed alerts => analysis with { Alerts = alerts },
+        PipelineEvent.AlertRaised raised => analysis with { Alerts = MergeAlert(analysis.Alerts, raised) },
         PipelineEvent.DerivedComputed derived => analysis with { Derived = derived },
         PipelineEvent.TrendComputed trends => analysis with { Trends = trends },
         PipelineEvent.IndexComputed indices => analysis with { Indices = indices },

@@ -1,5 +1,4 @@
-using Njord.Consensus;
-using Njord.Consensus.Querying;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
@@ -9,49 +8,21 @@ public sealed class ThunderstormRule : IAlertRule
 {
     public AlertType Type => AlertType.Thunderstorm;
 
-    public Alert Evaluate(LocationConsensus consensus, AlertSettings settings)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
     {
-        var cape = consensus.Hourly.Find(ParameterRegistry.Cape);
-        var precipitation = consensus.Hourly.Find(ParameterRegistry.Precipitation);
-        var gusts = consensus.Hourly.Find(ParameterRegistry.WindGusts10m);
-        if (cape is null || precipitation is null || gusts is null)
+        var evaluable = forecast.Next24Hours(now).Where(p => p.Cape is not null && p.WindGusts is not null).ToList();
+        if (evaluable.Count == 0)
         {
             return Alert.None(Type);
         }
 
-        var meetAllCount = 0;
-        var totalHorizons = 0;
-        var maxCape = 0.0;
-        foreach (var horizon in AlertWindow.HourlyHorizons)
-        {
-            if (cape.At(horizon) is not { } capeHc || precipitation.At(horizon) is not { } precipHc
-                || gusts.At(horizon) is not { } gustHc)
-            {
-                continue;
-            }
-
-            totalHorizons++;
-            if (capeHc.Median is not { } cv)
-            {
-                continue;
-            }
-
-            maxCape = Math.Max(maxCape, cv);
-            if (precipHc.Median is { } pv && gustHc.Median is { } gv
-                && cv > settings.CapeThreshold && pv > settings.ThunderstormPrecipThreshold
-                && gv > settings.ThunderstormGustThreshold)
-            {
-                meetAllCount++;
-            }
-        }
-
-        if (totalHorizons == 0)
-        {
-            return Alert.None(Type);
-        }
-
-        var confidence = (double)meetAllCount / totalHorizons;
-        var severity = confidence switch
+        var meetAll = evaluable
+            .Where(p => p.Cape > settings.CapeThreshold
+                && p.Precipitation > settings.ThunderstormPrecipThreshold
+                && p.WindGusts > settings.ThunderstormGustThreshold)
+            .ToList();
+        var share = (double)meetAll.Count / evaluable.Count;
+        var severity = share switch
         {
             > 0.75 => AlertSeverity.Red,
             >= 0.5 => AlertSeverity.Orange,
@@ -59,10 +30,10 @@ public sealed class ThunderstormRule : IAlertRule
             _ => AlertSeverity.None,
         };
 
-        var details = new ThunderstormDetails(ModelsAgreeing: cape.Next24Hours().MaxModelCount());
-
-        return new Alert(Type, severity, Math.Round(confidence, 3), details,
-            TriggerValue: Math.Round(maxCape, 0),
-            Threshold: settings.CapeThreshold);
+        var peak = (meetAll.Count > 0 ? meetAll : evaluable).HighestBy(p => p.Cape);
+        var maxCape = evaluable.Max(p => p.Cape) ?? 0.0;
+        return settings.Build(Type, severity, peak, new ThunderstormDetails(ModelsAgreeing: 0),
+            Math.Round(maxCape, 0), settings.CapeThreshold,
+            hoursUntil: meetAll.Count > 0 ? meetAll[0].HoursFrom(now) : null);
     }
 }

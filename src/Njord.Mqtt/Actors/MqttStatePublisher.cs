@@ -98,6 +98,7 @@ public sealed class MqttStatePublisher : ReceiveActor
                 PipelineEvent.ForecastReceived u => $"model {u.Location}/{u.Model.Id}",
                 PipelineEvent.ConsensusComputed c => $"enrich {c.Consensus.Location}/consensus",
                 PipelineEvent.AlertComputed a => $"enrich {a.Result.Location}/alerts",
+                PipelineEvent.AlertRaised r => $"enrich {r.Location.Name}/alerts",
                 PipelineEvent.DerivedComputed d => $"enrich {d.Result.Location}/derived",
                 PipelineEvent.TrendComputed t => $"enrich {t.Result.Location}/trends",
                 PipelineEvent.IndexComputed i => $"enrich {i.Result.Location}/indices",

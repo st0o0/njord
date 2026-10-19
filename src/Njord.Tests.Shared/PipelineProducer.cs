@@ -2,7 +2,7 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
-using WeatherForecast = Njord.Forecast.Forecast;
+using Njord.Core.Domain;
 
 namespace Njord.Tests.Shared;
 
@@ -11,7 +11,7 @@ public static class PipelineProducer
 {
     private static long NextRequestId;
 
-    public static async Task<ISourceQueueWithComplete<WeatherForecast>> AttachAsync(
+    public static async Task<ISourceQueueWithComplete<DomainDataReceived>> AttachAsync(
         IActorRef pipeline, ActorSystem system, CancellationToken ct)
     {
         var requestId = Interlocked.Increment(ref NextRequestId);
@@ -24,7 +24,7 @@ public static class PipelineProducer
             throw new InvalidOperationException($"SinkRef reply carries request id {completed.RequestId}, expected {requestId}");
         }
 
-        return Source.Queue<WeatherForecast>(16, OverflowStrategy.Backpressure)
+        return Source.Queue<DomainDataReceived>(16, OverflowStrategy.Backpressure)
             .To(completed.SinkRef.Sink)
             .Run(system.Materializer());
     }

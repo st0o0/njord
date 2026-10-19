@@ -10,115 +10,123 @@ public sealed class FrostRuleSpec
 {
     private static readonly FrostRule Rule = new();
 
-    [Fact]
-    public void Frost_all_models_agree()
+    [Theory]
+    [InlineData(-2.0, AlertSeverity.Yellow, 0.0)]
+    [InlineData(-8.0, AlertSeverity.Orange, -5.0)]
+    [InlineData(-18.0, AlertSeverity.Red, -15.0)]
+    [InlineData(5.0, AlertSeverity.None, 0.0)]
+    public void Frost_classifies_the_24h_minimum(double temperature, AlertSeverity severity, double threshold)
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (Temperature, -2.0)),
-            MakeForecast(new WeatherModel("m2"), (Temperature, -1.0)),
-            MakeForecast(new WeatherModel("m3"), (Temperature, -3.0)));
+        var alert = Rule.Evaluate(Uniform(p => p with { Temperature = temperature }), Defaults, Now);
 
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
-        Assert.Equal(1.0, alert.Confidence);
+        Assert.Multiple(
+            () => Assert.Equal(severity, alert.Severity),
+            () => Assert.Equal(threshold, alert.Threshold),
+            () => Assert.Equal(temperature, alert.TriggerValue));
     }
 
     [Fact]
-    public void Frost_no_model_agrees()
+    public void Frost_reports_earliest_hour_and_low()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (Temperature, 5.0)),
-            MakeForecast(new WeatherModel("m2"), (Temperature, 3.0)));
+        var forecast = Day((h, p) => p with { Temperature = h switch { 4 => -3.0, 9 => -6.0, _ => 10.0 } });
 
-        var alert = Rule.Evaluate(consensus, Defaults);
+        var alert = Rule.Evaluate(forecast, Defaults, Now);
 
-        Assert.Equal(AlertSeverity.None, alert.Severity);
-        Assert.Equal(0.0, alert.Confidence);
+        Assert.Multiple(
+            () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
+            () => Assert.Equal(4, alert.HoursUntil),
+            () => Assert.Equal(new FrostDetails(-6.0, Horizon.Hours(4), 0), alert.Details));
     }
 
     [Fact]
-    public void Frost_partial_agreement()
+    public void Frost_without_frost_has_no_earliest_hour()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (Temperature, -3.0)),
-            MakeForecast(new WeatherModel("m2"), (Temperature, -1.0)),
-            MakeForecast(new WeatherModel("m3"), (Temperature, 1.0)),
-            MakeForecast(new WeatherModel("m4"), (Temperature, 5.0)));
+        var alert = Rule.Evaluate(Uniform(p => p with { Temperature = 5.0 }), Defaults, Now);
 
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Yellow, alert.Severity);
-        Assert.Equal(0.5, alert.Confidence);
+        Assert.Multiple(
+            () => Assert.Null(alert.HoursUntil),
+            () => Assert.Equal(new FrostDetails(5.0, null, 0), alert.Details));
     }
 
     [Fact]
-    public void Frost_moderate_produces_orange()
+    public void Frost_rule_classifies_against_the_passed_thresholds()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (Temperature, -8.0)),
-            MakeForecast(new WeatherModel("m2"), (Temperature, -7.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Orange, alert.Severity);
-    }
-
-    [Fact]
-    public void Frost_severe_produces_red()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (Temperature, -18.0)),
-            MakeForecast(new WeatherModel("m2"), (Temperature, -16.0)));
-
-        var alert = Rule.Evaluate(consensus, Defaults);
-
-        Assert.Equal(AlertSeverity.Red, alert.Severity);
-    }
-
-    [Fact]
-    public void Frost_rule_classifies_the_24h_minimum_against_the_passed_thresholds()
-    {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (Temperature, -3.0)),
-            MakeForecast(new WeatherModel("m2"), (Temperature, -3.0)));
         var settings = Defaults with { Frost = new SeverityThresholds(0, -2, -5, ScanDirection.Min) };
 
-        var alert = Rule.Evaluate(consensus, settings);
+        var alert = Rule.Evaluate(Uniform(p => p with { Temperature = -3.0 }), settings, Now);
 
         Assert.Equal(AlertSeverity.Orange, alert.Severity);
-        Assert.Equal(1.0, alert.Confidence);
-        Assert.Equal(-3.0, Assert.IsType<FrostDetails>(alert.Details).ExpectedLow);
+        Assert.Equal(-2.0, alert.Threshold);
     }
 
     [Fact]
-    public void Lower_warning_threshold_applies_on_the_next_evaluation()
+    public void Frost_ignores_points_before_the_window_start()
     {
-        var consensus = ConsensusOf(
-            MakeForecast(new WeatherModel("m1"), (Temperature, -3.0)),
-            MakeForecast(new WeatherModel("m2"), (Temperature, -3.0)));
-        var first = Defaults with { Frost = new SeverityThresholds(0, -2, -5, ScanDirection.Min) };
-        var second = Defaults with { Frost = new SeverityThresholds(0, -4, -5, ScanDirection.Min) };
+        var forecast = Hourly(30, (h, p) => p with { ValidFrom = p.ValidFrom.AddHours(-2), Temperature = h < 2 ? -20.0 : 8.0 });
 
-        var before = Rule.Evaluate(consensus, first);
-        var after = Rule.Evaluate(consensus, second);
+        var alert = Rule.Evaluate(forecast, Defaults, Now);
 
-        Assert.Equal(AlertSeverity.Orange, before.Severity);
-        Assert.Equal(AlertSeverity.Yellow, after.Severity);
+        Assert.Equal(AlertSeverity.None, alert.Severity);
+        Assert.Equal(8.0, alert.TriggerValue);
     }
 
     [Fact]
-    public void Frost_reports_earliest_hour_and_agreeing_models()
+    public void Frost_floors_now_to_the_hour()
     {
-        var consensus = Identical(2, _ => [(Temperature, -3.0)]);
+        var alert = Rule.Evaluate(Uniform(p => p with { Temperature = -2.0 }), Defaults, Now.AddMinutes(40));
 
-        var alert = Rule.Evaluate(consensus, Defaults);
+        Assert.Equal(0, alert.HoursUntil);
+    }
 
-        var details = Assert.IsType<FrostDetails>(alert.Details);
+    [Fact]
+    public void Frost_small_ensemble_spread_gives_high_confidence()
+    {
+        var alert = Rule.Evaluate(Uniform(p => p with { Temperature = -2.0, EnsembleStdDev = 0.5 }), Defaults, Now);
+
         Assert.Multiple(
-            () => Assert.Equal(Horizon.Hours(0), details.EarliestFrost),
-            () => Assert.Equal(2, details.ModelsAgreeing),
-            () => Assert.Equal(0, alert.HoursUntil),
-            () => Assert.Equal(0.0, alert.Threshold));
+            () => Assert.Equal(ConfidenceLevel.High, alert.Level),
+            () => Assert.Equal(1.0, alert.Confidence));
+    }
+
+    [Fact]
+    public void Frost_large_ensemble_spread_gives_low_confidence()
+    {
+        var alert = Rule.Evaluate(Uniform(p => p with { Temperature = -2.0, EnsembleStdDev = 4.0 }), Defaults, Now);
+
+        Assert.Multiple(
+            () => Assert.Equal(ConfidenceLevel.Low, alert.Level),
+            () => Assert.Equal(0.25, alert.Confidence));
+    }
+
+    [Fact]
+    public void Frost_without_ensemble_spread_gives_medium_confidence()
+    {
+        var alert = Rule.Evaluate(Uniform(p => p with { Temperature = -2.0 }), Defaults, Now);
+
+        Assert.Multiple(
+            () => Assert.Equal(ConfidenceLevel.Medium, alert.Level),
+            () => Assert.Equal(0.5, alert.Confidence));
+    }
+
+    [Fact]
+    public void Frost_takes_confidence_from_the_coldest_point()
+    {
+        var forecast = Day((h, p) => p with
+        {
+            Temperature = h == 7 ? -9.0 : -1.0,
+            EnsembleStdDev = h == 7 ? 0.2 : 5.0,
+        });
+
+        var alert = Rule.Evaluate(forecast, Defaults, Now);
+
+        Assert.Equal(ConfidenceLevel.High, alert.Level);
+    }
+
+    [Fact]
+    public void Frost_without_data_returns_the_none_alert()
+    {
+        var alert = Rule.Evaluate(Empty(), Defaults, Now);
+
+        Assert.Equal(Alert.None(AlertType.Frost), alert);
     }
 }
