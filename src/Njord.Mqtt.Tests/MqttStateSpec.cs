@@ -40,7 +40,6 @@ public sealed class MqttStateSpec : NjordActorSpec
         var parameters = ParameterSelection.Resolve(["Weather"], [], []);
 
         return Sys.ActorOf(Props.Create(() => new MqttStatePublisher(
-            Microsoft.Extensions.Options.Options.Create(options),
             Microsoft.Extensions.Options.Options.Create(new MqttOptions { BaseTopic = "njord" }),
             parameters,
             timeProvider,

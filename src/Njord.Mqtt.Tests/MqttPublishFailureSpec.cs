@@ -39,7 +39,6 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
         var timeProvider = TestTimeouts.AtEpoch(Anchor);
 
         return Sys.ActorOf(Props.Create(() => new MqttStatePublisher(
-            Microsoft.Extensions.Options.Options.Create(options),
             Microsoft.Extensions.Options.Options.Create(new MqttOptions { BaseTopic = "njord" }),
             parameters,
             timeProvider,

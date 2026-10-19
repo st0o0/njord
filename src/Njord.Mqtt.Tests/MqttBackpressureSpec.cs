@@ -106,7 +106,6 @@ public sealed class MqttBackpressureSpec : NjordActorSpec
         var tuning = MqttEgressTuning.Default with { PublishTimeout = TimeSpan.FromHours(1), EventBufferSize = 4 };
 
         Sys.ActorOf(Props.Create(() => new MqttStatePublisher(
-            Microsoft.Extensions.Options.Options.Create(options),
             Microsoft.Extensions.Options.Options.Create(new MqttOptions { BaseTopic = "njord" }),
             parameters,
             timeProvider,

@@ -36,7 +36,6 @@ public sealed class MqttStateDedupSpec : NjordActorSpec
         var timeProvider = TestTimeouts.AtEpoch(Anchor);
 
         Sys.ActorOf(Props.Create(() => new MqttStatePublisher(
-            Microsoft.Extensions.Options.Options.Create(options),
             Microsoft.Extensions.Options.Options.Create(new MqttOptions { BaseTopic = "njord" }),
             parameters,
             timeProvider,
