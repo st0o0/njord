@@ -80,4 +80,3 @@ services.AddSingleton<IAlertRule, FrostRule>();
 - Consensus is not a feature: `ConsensusBuilder` runs in the pipeline before the analyzers.
 - A feature's entities depend on config (`Enabled`), never on what a poll returned; missing values are `unavailable` states, not missing entities.
 - Feature libraries never reference each other; share only through Core/Messages/Consensus types.
-- Sensor input comes from the `SensorReadings` argument (indices: live indoor temperature overrides the preference); do not call the hub from a feature.

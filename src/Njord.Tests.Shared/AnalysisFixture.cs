@@ -156,7 +156,7 @@ public sealed class AnalysisFixture
                 alerts.Compute(consensus, alertSettings) ?? throw new InvalidOperationException("Alerts are disabled."),
                 DerivedAnalyzer.Analyze(consensus, derivedSettings),
                 TrendAnalyzer.Analyze(consensus, previousConsensus),
-                indices.Compute(consensus, null, indexSettings) ?? throw new InvalidOperationException("Indices are disabled.")));
+                indices.Compute(consensus, indexSettings) ?? throw new InvalidOperationException("Indices are disabled.")));
         }
 
         return new AnalysisFixture(time, forecasts, analyses);

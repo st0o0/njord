@@ -90,23 +90,6 @@ public sealed class GrpcChannelSpec : IAsyncLifetime
         }, ct);
     }
 
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_valid_sensor_reading_is_accepted_and_an_unknown_location_is_rejected()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var sensors = new SensorService.SensorServiceClient(Host.Channel);
-
-        var accepted = await sensors.PushAsync(
-            new SensorReading { Kind = SensorKind.IndoorTemperature, Location = "luzern", Value = 21.5 }, cancellationToken: ct);
-        var rejected = await sensors.PushAsync(
-            new SensorReading { Kind = SensorKind.IndoorTemperature, Location = "atlantis", Value = 21.5 }, cancellationToken: ct);
-
-        Assert.Multiple(
-            () => Assert.True(accepted.Accepted, accepted.RejectionReason),
-            () => Assert.False(rejected.Accepted),
-            () => Assert.Equal("Unknown location: atlantis", rejected.RejectionReason));
-    }
-
     private sealed class SilentActor : ReceiveActor
     {
     }

@@ -28,21 +28,15 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Sensors_references_no_other_Njord_assembly()
-    {
-        Assert.Empty(NjordReferences<Sensors.SensorKind>());
-    }
-
-    [Fact]
     public void Persistence_references_no_other_Njord_assembly()
     {
         Assert.Empty(NjordReferences<Njord.Persistence.Events.Budget.PersistedBudgetTrackerState>());
     }
 
     [Fact]
-    public void Messages_references_only_Model_Forecast_Sensors_and_Consensus()
+    public void Messages_references_only_Model_Forecast_and_Consensus()
     {
-        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.QueryPollStates>().Except(["Njord.Consensus", "Njord.Forecast", "Njord.Model", "Njord.Sensors"]));
+        Assert.Empty(NjordReferences<Njord.Messages.Pipeline.QueryPollStates>().Except(["Njord.Consensus", "Njord.Forecast", "Njord.Model"]));
     }
 
     [Fact]
@@ -62,12 +56,12 @@ public sealed class LayerReferenceSpec
     }
 
     [Fact]
-    public void Core_references_only_Model_Forecast_Sensors_Messages_Persistence_and_Consensus()
+    public void Core_references_only_Model_Forecast_Messages_Persistence_and_Consensus()
     {
-        Assert.Empty(NjordReferences<IPollManager>().Except(["Njord.Consensus", "Njord.Forecast", "Njord.Model", "Njord.Messages", "Njord.Persistence", "Njord.Sensors"]));
+        Assert.Empty(NjordReferences<IPollManager>().Except(["Njord.Consensus", "Njord.Forecast", "Njord.Model", "Njord.Messages", "Njord.Persistence"]));
     }
 
-    private static readonly string[] CoreAndBelow = ["Njord.Consensus", "Njord.Core", "Njord.Forecast", "Njord.Model", "Njord.Sensors", "Njord.Messages", "Njord.Persistence"];
+    private static readonly string[] CoreAndBelow = ["Njord.Consensus", "Njord.Core", "Njord.Forecast", "Njord.Model", "Njord.Messages", "Njord.Persistence"];
 
     [Fact]
     public void OpenMeteo_references_only_Core_and_below()
@@ -79,12 +73,6 @@ public sealed class LayerReferenceSpec
     public void Budget_references_only_Core_and_below()
     {
         Assert.Empty(NjordReferences<Budget.BudgetTracker>().Except(CoreAndBelow));
-    }
-
-    [Fact]
-    public void SensorHub_references_only_Core_and_below()
-    {
-        Assert.Empty(NjordReferences<Njord.SensorHub.SensorHub>().Except(CoreAndBelow));
     }
 
     [Fact]

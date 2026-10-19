@@ -14,7 +14,6 @@
   </Folder>
   <Folder Name="/Model/">
     <Project Path="Njord.Model/Njord.Model.csproj" />
-    <Project Path="Njord.Sensors/Njord.Sensors.csproj" />
   </Folder>
   <Folder Name="/Forecast/">
     <Project Path="Njord.Forecast/Njord.Forecast.csproj" />
@@ -29,7 +28,6 @@
   </Folder>
   <Folder Name="/Ingest/">
     <Project Path="Njord.OpenMeteo/Njord.OpenMeteo.csproj" />
-    <Project Path="Njord.SensorHub/Njord.SensorHub.csproj" />
     <Project Path="Njord.Budget/Njord.Budget.csproj" />
   </Folder>
   <Folder Name="/Analysis/">
@@ -49,13 +47,11 @@
     <Project Path="Njord.Tests.Shared/Njord.Tests.Shared.csproj" />
     <Project Path="Njord.Model.Tests/Njord.Model.Tests.csproj" />
     <Project Path="Njord.Forecast.Tests/Njord.Forecast.Tests.csproj" />
-    <Project Path="Njord.Sensors.Tests/Njord.Sensors.Tests.csproj" />
     <Project Path="Njord.Persistence.Tests/Njord.Persistence.Tests.csproj" />
     <Project Path="Njord.Consensus.Tests/Njord.Consensus.Tests.csproj" />
     <Project Path="Njord.Messages.Tests/Njord.Messages.Tests.csproj" />
     <Project Path="Njord.Core.Tests/Njord.Core.Tests.csproj" />
     <Project Path="Njord.OpenMeteo.Tests/Njord.OpenMeteo.Tests.csproj" />
-    <Project Path="Njord.SensorHub.Tests/Njord.SensorHub.Tests.csproj" />
     <Project Path="Njord.Budget.Tests/Njord.Budget.Tests.csproj" />
     <Project Path="Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj" />
     <Project Path="Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj" />

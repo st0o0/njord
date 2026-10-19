@@ -6,7 +6,6 @@ using Njord.Grpc.Configuration;
 using Njord.Mqtt.Configuration;
 using Njord.OpenMeteo.Configuration;
 using Njord.Pipeline.Configuration;
-using Njord.SensorHub.Configuration;
 using Servus.Application.Startup;
 
 namespace Njord.Tests.Configuration;
@@ -28,7 +27,6 @@ internal static class HostConfiguration
             new HealthSetupContainer(),
             new OpenMeteoSetupContainer(),
             new BudgetSetupContainer(),
-            new SensorSetupContainer(),
             new PipelineSetupContainer(),
             new AnalysisSetupContainer(),
             new MqttSetupContainer(),

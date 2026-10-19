@@ -4,7 +4,6 @@ using Njord.Grpc.Configuration;
 using Njord.Mqtt.Configuration;
 using Njord.OpenMeteo.Configuration;
 using Njord.Pipeline.Configuration;
-using Njord.SensorHub.Configuration;
 using Serilog;
 using Servus.Application.Startup;
 
@@ -41,7 +40,6 @@ public static class NjordHost
             .WithSetup<HealthSetupContainer>()
             .WithSetup<OpenMeteoSetupContainer>()
             .WithSetup<BudgetSetupContainer>()
-            .WithSetup<SensorSetupContainer>()
             .WithSetup<PipelineSetupContainer>()
             .WithSetup<AnalysisSetupContainer>()
             .WithSetup<MqttSetupContainer>()

@@ -30,7 +30,6 @@
 <ItemGroup>
   <ProjectReference Include="..\Njord.Model\Njord.Model.csproj" />
   <ProjectReference Include="..\Njord.Core\Njord.Core.csproj" />
-  <ProjectReference Include="..\Njord.SensorHub\Njord.SensorHub.csproj" />
   <ProjectReference Include="..\Njord.OpenMeteo\Njord.OpenMeteo.csproj" />
   <ProjectReference Include="..\Njord.Budget\Njord.Budget.csproj" />
   <ProjectReference Include="..\Njord.Grpc\Njord.Grpc.csproj" />

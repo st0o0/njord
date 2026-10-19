@@ -9,7 +9,6 @@ using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Persistence;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Configuration.Sensors;
 using Njord.Derived.Configuration;
 using Njord.Indices.Configuration;
 using Njord.Pipeline.Configuration;
@@ -72,7 +71,6 @@ public sealed partial class ComposeExampleSpec
         Add<StorageOptions>(result);
         Add<PersistenceOptions>(result);
         Add<MqttOptions>(result);
-        Add<SensorOptions>(result);
         Add<ConsensusOptions>(result);
         Add<AlertOptions>(result);
         Add<DerivedOptions>(result);

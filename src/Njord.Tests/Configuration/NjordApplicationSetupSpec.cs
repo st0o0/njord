@@ -61,7 +61,6 @@ public sealed class NjordApplicationSetupSpec
 
         Assert.Multiple(
             () => Assert.Contains(routes, r => r.Contains("WeatherService", StringComparison.OrdinalIgnoreCase)),
-            () => Assert.Contains(routes, r => r.Contains("OpsService", StringComparison.OrdinalIgnoreCase)),
-            () => Assert.Contains(routes, r => r.Contains("SensorService", StringComparison.OrdinalIgnoreCase)));
+            () => Assert.Contains(routes, r => r.Contains("OpsService", StringComparison.OrdinalIgnoreCase)));
     }
 }

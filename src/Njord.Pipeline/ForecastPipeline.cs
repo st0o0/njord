@@ -13,7 +13,6 @@ using Njord.Forecast;
 using Njord.Indices;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
-using Njord.Messages.Sensors;
 using Njord.Model;
 using Njord.Pipeline.Configuration;
 using Servus.Akka;
@@ -50,8 +49,6 @@ public sealed class ForecastPipeline : ReceiveActor
     private Source<PipelineEvent, NotUsed>? _pipelineOutputSource;
     private Sink<PipelineEvent, NotUsed>? _pipelineOutputSink;
     private Source<WeatherForecast, NotUsed>? _forecastSource;
-    private IActorRef? _sensorRef;
-    private Source<LocationSensorReadings, NotUsed>? _sensorSource;
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
@@ -76,7 +73,6 @@ public sealed class ForecastPipeline : ReceiveActor
 
         Receive<RequestForecastSink>(OnRequestForecastSink);
         Receive<RequestPipelineOutput>(OnRequestPipelineOutput);
-        Receive<LocationSensorReadings>(msg => _sensorRef!.Tell(msg));
         Receive<AnalysisGraphEnded>(OnAnalysisGraphEnded);
     }
 
@@ -86,21 +82,6 @@ public sealed class ForecastPipeline : ReceiveActor
         MaterializeHubs();
         MaterializeAnalysisGraph();
         _log.Info("Forecast pipeline materialized - waiting for producers and consumers");
-        RequestCurrentInputs();
-    }
-
-    // A restarted pipeline would otherwise analyze with an empty sensor map until the next sensor push. The answer
-    // is not awaited: until it arrives, the seed of the sensor side channel applies.
-    private void RequestCurrentInputs()
-    {
-        if (Context.TryGetActor<ISensorHub>(out var sensorHub))
-        {
-            sensorHub.Tell(new RequestSensorReadings());
-        }
-        else
-        {
-            _log.Debug("No sensor hub registered - analyzing without live sensor readings until one pushes");
-        }
     }
 
     private void OnRequestForecastSink(RequestForecastSink msg)
@@ -148,7 +129,6 @@ public sealed class ForecastPipeline : ReceiveActor
 
         _log.Warning(msg.Cause, "Analysis graph ended — re-materializing (hubs and consumers unaffected)");
         MaterializeAnalysisGraph();
-        RequestCurrentInputs();
     }
 
     private void MaterializeHubs()
@@ -158,18 +138,10 @@ public sealed class ForecastPipeline : ReceiveActor
         var (pipelineOutputSource, pipelineOutputSink) = BroadcastHub.Sink<PipelineEvent>(bufferSize: 2)
             .PreMaterialize(_mat);
 
-        var (sensorRef, sensorSourceRaw) = Source.ActorRef<LocationSensorReadings>(10, OverflowStrategy.DropHead)
-            .PreMaterialize(_mat);
-        var sensorSource = Source.Single(LocationSensorReadings.Empty)
-            .Concat(sensorSourceRaw)
-            .RepeatPrevious();
-
         _mergeSink = mergeSink;
         _pipelineOutputSource = pipelineOutputSource;
         _pipelineOutputSink = pipelineOutputSink;
         _forecastSource = forecastSource;
-        _sensorRef = sensorRef;
-        _sensorSource = sensorSource;
     }
 
     private void MaterializeAnalysisGraph()
@@ -177,7 +149,6 @@ public sealed class ForecastPipeline : ReceiveActor
         var graphId = _graphId = Interlocked.Increment(ref LastGraphId);
         var forecastSource = _forecastSource!;
         var pipelineOutputSink = _pipelineOutputSink!;
-        var sensorSource = _sensorSource!;
         var settings = _settings;
 
         var consensusBuilder = _consensusBuilder;
@@ -190,30 +161,22 @@ public sealed class ForecastPipeline : ReceiveActor
         var log = _log;
 
         forecastSource
-            .Via(Flow.FromGraph(GraphDsl.Create(builder =>
-            {
-                var zip = builder.Add(ZipWith.Apply<WeatherForecast, LocationSensorReadings,
-                    (WeatherForecast, LocationSensorReadings)>(
-                    (forecast, sensors) => (forecast, sensors)));
-                builder.From(builder.Add(sensorSource)).To(zip.In1);
-                return new FlowShape<WeatherForecast, (WeatherForecast, LocationSensorReadings)>(zip.In0, zip.Out);
-            })))
-            .StatefulSelectMany<(WeatherForecast forecast, LocationSensorReadings sensors), PipelineEvent, NotUsed>(() =>
+            .StatefulSelectMany<WeatherForecast, PipelineEvent, NotUsed>(() =>
             {
                 var forecasts = ModelForecasts.Empty;
                 LocationConsensus? previous = null;
 
-                return input =>
+                return forecast =>
                 {
                     var sw = System.Diagnostics.Stopwatch.StartNew();
                     var now = timeProvider.GetUtcNow();
-                    var location = new LocationId(input.forecast.Location);
-                    forecasts = forecasts.Update(input.forecast);
-                    var consensus = consensusBuilder.Create(forecasts, input.forecast.Location, settings.Consensus);
+                    var location = new LocationId(forecast.Location);
+                    forecasts = forecasts.Update(forecast);
+                    var consensus = consensusBuilder.Create(forecasts, forecast.Location, settings.Consensus);
 
                     var events = new List<PipelineEvent>(6)
                     {
-                        new PipelineEvent.ForecastReceived(location, input.forecast.Model, input.forecast),
+                        new PipelineEvent.ForecastReceived(location, forecast.Model, forecast),
                     };
 
                     if (consensusEnabled)
@@ -236,7 +199,7 @@ public sealed class ForecastPipeline : ReceiveActor
                         events.Add(new PipelineEvent.TrendComputed(tr, now));
                     }
 
-                    if (indices.Compute(consensus, input.sensors.For(location), settings.Indices) is { } ix)
+                    if (indices.Compute(consensus, settings.Indices) is { } ix)
                     {
                         events.Add(new PipelineEvent.IndexComputed(ix, now));
                     }
@@ -249,8 +212,8 @@ public sealed class ForecastPipeline : ReceiveActor
                         Telemetry.PipelineEvents.Add(1, new KeyValuePair<string, object?>("event_type", evt.GetType().Name));
                     }
 
-                    log.Debug("Analyzed {0}/{1}: {2} events, live sensors {3}",
-                        location, input.forecast.Model.Id, events.Count, input.sensors.For(location) is null ? "absent" : "present");
+                    log.Debug("Analyzed {0}/{1}: {2} events",
+                        location, forecast.Model.Id, events.Count);
                     return events;
                 };
             })

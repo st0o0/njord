@@ -21,7 +21,7 @@ public sealed class CoreSetupContainerSpec : IDisposable
     public void The_meter_allow_list_holds_the_documented_meter_names()
     {
         Assert.Equal(
-            new[] { "Njord.Budget", "Njord.Core", "Njord.Mqtt", "Njord.OpenMeteo", "Njord.Pipeline", "Njord.SensorHub" },
+            new[] { "Njord.Budget", "Njord.Core", "Njord.Mqtt", "Njord.OpenMeteo", "Njord.Pipeline" },
             CoreSetupContainer.NjordMeters.Order());
     }
 

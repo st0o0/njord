@@ -3,7 +3,6 @@ using Njord.Consensus;
 using Njord.Indices.Configuration;
 using Njord.Messages.Indices;
 using Njord.Model;
-using Njord.Sensors;
 
 namespace Njord.Indices;
 
@@ -21,18 +20,14 @@ public sealed class IndexAnalyzer
 
     public bool Enabled { get; }
 
-    public IndexResult? Compute(LocationConsensus consensus, SensorReadings? sensors, IndexSettings settings)
+    public IndexResult? Compute(LocationConsensus consensus, IndexSettings settings)
     {
         if (!Enabled)
         {
             return null;
         }
 
-        var effective = sensors?.Get(SensorKind.IndoorTemperature) is { } liveTemp
-            ? new IndexSettings(OverrideIndoorTemp(settings.Preferences, consensus.Location, liveTemp))
-            : settings;
-
-        return Analyze(consensus, effective);
+        return Analyze(consensus, settings);
     }
 
     private IndexResult Analyze(LocationConsensus consensus, IndexSettings settings)
@@ -73,19 +68,5 @@ public sealed class IndexAnalyzer
         }
 
         return ordered;
-    }
-
-    private static IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> OverrideIndoorTemp(
-        IReadOnlyDictionary<(LocationId Location, IndexKind Kind), ResolvedPreferences> source,
-        LocationId location,
-        double indoorTemp)
-    {
-        var result = new Dictionary<(LocationId, IndexKind), ResolvedPreferences>(source);
-        foreach (var key in source.Keys.Where(k => k.Location == location))
-        {
-            result[key] = source[key] with { IndoorTemp = indoorTemp };
-        }
-
-        return result;
     }
 }

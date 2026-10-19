@@ -7,7 +7,6 @@ using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Persistence;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Configuration.Sensors;
 using Njord.Derived.Configuration;
 using Njord.Indices.Configuration;
 using Njord.Pipeline.Configuration;
@@ -64,7 +63,6 @@ public sealed class DefaultOptionsSpec
             [nameof(StorageOptions)] = new StorageOptionsValidator(configuration).Validate(null, AppSettingsDefaults.Options<StorageOptions>(configuration)),
             [nameof(PersistenceOptions)] = new PersistenceOptionsValidator().Validate(null, AppSettingsDefaults.Options<PersistenceOptions>(configuration)),
             [nameof(MqttOptions)] = new MqttOptionsValidator().Validate(null, AppSettingsDefaults.Options<MqttOptions>(configuration)),
-            [nameof(SensorOptions)] = new SensorOptionsValidator().Validate(null, AppSettingsDefaults.Options<SensorOptions>(configuration)),
             [nameof(ConsensusOptions)] = new ConsensusOptionsValidator().Validate(null, AppSettingsDefaults.Options<ConsensusOptions>(configuration)),
             [nameof(AlertOptions)] = new AlertOptionsValidator().Validate(null, AppSettingsDefaults.Options<AlertOptions>(configuration)),
             [nameof(DerivedOptions)] = new DerivedOptionsValidator().Validate(null, AppSettingsDefaults.Options<DerivedOptions>(configuration)),

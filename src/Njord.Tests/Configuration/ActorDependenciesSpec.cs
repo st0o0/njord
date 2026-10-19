@@ -12,7 +12,6 @@ public sealed class ActorDependenciesSpec : IDisposable
     private static readonly Dictionary<string, string> ExplicitArguments = new()
     {
         ["PollWorker.entityId"] = "the shard entity id, supplied by the shard region",
-        ["SensorHub.expiryInterval"] = "optional override, the singleton registration passes none",
     };
 
     private readonly string _tempDir = Path.Combine(Path.GetTempPath(), $"njord-actor-deps-{Guid.NewGuid():N}");

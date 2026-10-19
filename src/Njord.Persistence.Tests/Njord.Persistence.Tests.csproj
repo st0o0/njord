@@ -17,7 +17,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Njord.Model\Njord.Model.csproj" />
-        <ProjectReference Include="..\Njord.Sensors\Njord.Sensors.csproj" />
         <ProjectReference Include="..\Njord.Grpc\Njord.Grpc.csproj" />
         <ProjectReference Include="..\Njord.Persistence\Njord.Persistence.csproj" />
         <ProjectReference Include="..\Njord.Tests.Shared\Njord.Tests.Shared.csproj" />

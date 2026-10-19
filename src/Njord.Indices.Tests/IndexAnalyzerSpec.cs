@@ -8,7 +8,6 @@ using Njord.Forecast;
 using Njord.Indices.Configuration;
 using Njord.Messages.Indices;
 using Njord.Model;
-using Njord.Sensors;
 using Njord.Tests.Shared;
 using WeatherForecast = Njord.Forecast.Forecast;
 
@@ -31,7 +30,7 @@ public sealed class IndexAnalyzerSpec
         var analyzer = CreateAnalyzer();
         var settings = Settings();
 
-        var result = analyzer.Compute(BuildConsensus(), null, settings);
+        var result = analyzer.Compute(BuildConsensus(), settings);
 
         Assert.NotNull(result);
         Assert.Equal(new LocationId("lucerne"), result.Location);
@@ -43,56 +42,18 @@ public sealed class IndexAnalyzerSpec
         var analyzer = CreateAnalyzer(enabled: false);
         var settings = Settings();
 
-        var result = analyzer.Compute(BuildConsensus(), null, settings);
+        var result = analyzer.Compute(BuildConsensus(), settings);
 
         Assert.Null(result);
     }
 
-    [Fact]
-    public void Compute_with_sensor_overrides_indoor_temp()
-    {
-        var analyzer = CreateAnalyzer();
-        var settings = Settings(indoorTemp: 28.0);
-        var consensus = BuildConsensusWithWeather("lucerne");
-        var sensors = BuildSensorReadings("lucerne", 18.0);
-
-        var withSensor = analyzer.Compute(consensus, sensors, settings);
-        var withoutSensor = analyzer.Compute(consensus, null, settings);
-
-        Assert.NotNull(withSensor);
-        Assert.NotNull(withoutSensor);
-        Assert.NotEmpty(withSensor.Days);
-        Assert.NotEmpty(withoutSensor.Days);
-        Assert.NotEqual(withoutSensor.Days[0].Scores[IndexKind.NightVentilation].Value, withSensor.Days[0].Scores[IndexKind.NightVentilation].Value);
-    }
-
-    [Fact]
-    public void Sensor_override_does_not_persist_across_calls()
-    {
-        var analyzer = CreateAnalyzer();
-        var settings = Settings(indoorTemp: 28.0);
-        var consensus = BuildConsensusWithWeather("lucerne");
-        var sensors = BuildSensorReadings("lucerne", 18.0);
-
-        _ = analyzer.Compute(consensus, sensors, settings);
-        var afterSensorCall = analyzer.Compute(consensus, null, settings);
-        var fresh = analyzer.Compute(consensus, null, settings);
-
-        Assert.NotNull(afterSensorCall);
-        Assert.NotNull(fresh);
-        Assert.NotEmpty(afterSensorCall.Days);
-        Assert.NotEmpty(fresh.Days);
-        Assert.Equal(fresh.Days[0].Scores[IndexKind.NightVentilation].Value, afterSensorCall.Days[0].Scores[IndexKind.NightVentilation].Value);
-    }
-
-    [Fact]
     public void Compute_uses_the_preferences_passed_with_each_computation()
     {
         var analyzer = CreateAnalyzer();
         var consensus = BuildConsensusWithWeather("lucerne");
 
-        var warm = analyzer.Compute(consensus, null, Settings(indoorTemp: 28.0));
-        var cool = analyzer.Compute(consensus, null, Settings(indoorTemp: 18.0));
+        var warm = analyzer.Compute(consensus, Settings(indoorTemp: 28.0));
+        var cool = analyzer.Compute(consensus, Settings(indoorTemp: 18.0));
 
         Assert.NotNull(warm);
         Assert.NotNull(cool);
@@ -150,15 +111,6 @@ public sealed class IndexAnalyzerSpec
             new ForecastSeries(points), DailyForecastSeries.Empty);
     }
 
-    private static SensorReadings BuildSensorReadings(string location, double indoorTemp)
-    {
-        var readings = new Dictionary<SensorKind, AggregatedReading>
-        {
-            [SensorKind.IndoorTemperature] = new(indoorTemp, 1, T0),
-        };
-        return new SensorReadings(location, readings);
-    }
-
     [Fact]
     public void Missing_score_fails_fast_at_construction()
     {
@@ -188,8 +140,8 @@ public sealed class IndexAnalyzerSpec
         var reverse = new IndexAnalyzer(Enumerable.Reverse(registered), EnabledOptions, Time);
         var consensus = BuildConsensusWithWeather("lucerne");
 
-        var forwardResult = forward.Compute(consensus, null, Settings());
-        var reverseResult = reverse.Compute(consensus, null, Settings());
+        var forwardResult = forward.Compute(consensus, Settings());
+        var reverseResult = reverse.Compute(consensus, Settings());
 
         Assert.NotNull(forwardResult);
         Assert.NotNull(reverseResult);
@@ -232,7 +184,7 @@ public sealed class IndexAnalyzerSpec
 
     private static IndexResult Analyze(FakeTimeProvider time, LocationConsensus consensus)
     {
-        var result = FeatureServices.Indices(time).Compute(consensus, null, ResultPrefs());
+        var result = FeatureServices.Indices(time).Compute(consensus, ResultPrefs());
         Assert.NotNull(result);
         return result;
     }

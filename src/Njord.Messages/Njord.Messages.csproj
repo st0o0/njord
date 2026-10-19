@@ -3,7 +3,6 @@
     <ItemGroup>
         <ProjectReference Include="..\Njord.Model\Njord.Model.csproj" />
         <ProjectReference Include="..\Njord.Forecast\Njord.Forecast.csproj" />
-        <ProjectReference Include="..\Njord.Sensors\Njord.Sensors.csproj" />
         <ProjectReference Include="..\Njord.Consensus\Njord.Consensus.csproj" />
     </ItemGroup>
 
