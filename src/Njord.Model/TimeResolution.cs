@@ -1,0 +1,23 @@
+namespace Njord.Model;
+
+public enum TimeResolution
+{
+    QuarterHourly,
+    Hourly,
+    ThreeHourly,
+    SixHourly,
+    Daily
+}
+
+public static class TimeResolutionExtensions
+{
+    public static TimeSpan ToTimeSpan(this TimeResolution resolution) => resolution switch
+    {
+        TimeResolution.QuarterHourly => TimeSpan.FromMinutes(15),
+        TimeResolution.Hourly => TimeSpan.FromHours(1),
+        TimeResolution.ThreeHourly => TimeSpan.FromHours(3),
+        TimeResolution.SixHourly => TimeSpan.FromHours(6),
+        TimeResolution.Daily => TimeSpan.FromDays(1),
+        _ => throw new ArgumentOutOfRangeException(nameof(resolution), resolution, null)
+    };
+}
