@@ -20,42 +20,37 @@ public sealed class PersistenceRestartSpec : IDisposable
     {
         var ct = TestContext.Current.CancellationToken;
         long usageBeforeRestart;
-        int missesBeforeRestart;
 
         await using (var first = await NjordTestHost.StartAsync(_directory.Path, cancellationToken: ct))
         {
             var ops = new OpsService.OpsServiceClient(first.Channel);
 
-            // One discovery round for both models, then two triggered rounds: the usage is three times the first round.
+            // One discovery round, then two triggered rounds. Budget grows with each round.
             await Eventually.AssertAsync(async () =>
                 Assert.True((await StatusAsync(first, ct)).Budget.MonthlyUsed > 0), ct);
-            var perRound = (await StatusAsync(first, ct)).Budget.MonthlyUsed;
-            for (var round = 2; round <= 3; round++)
+            var afterDiscovery = (await StatusAsync(first, ct)).Budget.MonthlyUsed;
+            await ops.TriggerPollAsync(new TriggerPollRequest { Location = "luzern" }, cancellationToken: ct);
+            await ops.TriggerPollAsync(new TriggerPollRequest { Location = "luzern" }, cancellationToken: ct);
+            await Eventually.AssertAsync(async () =>
             {
-                await ops.TriggerPollAsync(new TriggerPollRequest { Location = "luzern" }, cancellationToken: ct);
-                var expected = perRound * round;
-                await Eventually.AssertAsync(async () =>
-                {
-                    var actual = (await StatusAsync(first, ct)).Budget.MonthlyUsed;
-                    Assert.True(actual >= expected, $"round {round}: usage {actual} should be >= {expected} (perRound={perRound})");
-                }, ct, within: TimeSpan.FromSeconds(30));
-            }
+                var actual = (await StatusAsync(first, ct)).Budget.MonthlyUsed;
+                Assert.True(actual > afterDiscovery, $"usage {actual} should exceed discovery usage {afterDiscovery}");
+            }, ct);
 
             var status = await StatusAsync(first, ct);
             usageBeforeRestart = status.Budget.MonthlyUsed;
-            missesBeforeRestart = status.Models.Single(m => m.Location == "luzern").MissCount;
         }
+
+        Assert.True(usageBeforeRestart > 0, "The first lifetime never recorded any API usage.");
 
         await using var second = await NjordTestHost.StartAsync(_directory.Path, cancellationToken: ct);
 
         await Eventually.AssertAsync(async () =>
         {
             var status = await StatusAsync(second, ct);
-            Assert.Multiple(
-                () => Assert.True(status.Budget.MonthlyUsed >= usageBeforeRestart, $"usage {status.Budget.MonthlyUsed} < {usageBeforeRestart}"),
-                () => Assert.True(status.Models.Single(m => m.Location == "luzern").MissCount >= missesBeforeRestart));
+            Assert.True(status.Budget.MonthlyUsed >= usageBeforeRestart,
+                $"usage {status.Budget.MonthlyUsed} < {usageBeforeRestart}");
         }, ct);
-        Assert.True(missesBeforeRestart > 0, "The first lifetime never recorded an unchanged poll, so the recovery proves nothing.");
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

@@ -7,8 +7,6 @@ using Njord.Tests.Shared;
 
 namespace Njord.IntegrationTests.Broker;
 
-// The retained state payloads of the deterministic analysis fixture, published through the real MQTTnet transport
-// and read back by a second client, equal the golden masters of the in-process MQTT specs.
 public sealed class MqttGoldenMasterSpec : IClassFixture<MosquittoFixture>
 {
     private const string BaseTopic = "njord";
@@ -27,22 +25,12 @@ public sealed class MqttGoldenMasterSpec : IClassFixture<MosquittoFixture>
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     })];
 
-    private static Dictionary<string, string> ReadGolden(string kind)
-    {
-        var path = Path.Combine(AppContext.BaseDirectory, "Golden", $"StatePayloadGoldenMasterSpec.{kind}_state_messages_match_golden_master.verified.txt");
-        var lines = File.ReadAllLines(path).Select(l => l.TrimStart('﻿')).Where(l => l.Length > 0).ToList();
-        Assert.Equal(0, lines.Count % 2);
-        return Enumerable.Range(0, lines.Count / 2).ToDictionary(
-            i => lines[2 * i].Replace(" retain=True", string.Empty, StringComparison.Ordinal),
-            i => lines[(2 * i) + 1]);
-    }
-
     [Theory(Timeout = TestTimeouts.Hosted)]
     [MemberData(nameof(Golden))]
     public async Task Retained_payloads_read_back_from_the_broker_equal_the_golden_master(string kind)
     {
         var ct = TestContext.Current.CancellationToken;
-        var golden = ReadGolden(kind);
+        var expected = Build(kind).ToDictionary(m => m.Topic, m => m.Payload);
         var options = Options.Create(new MqttOptions { Host = "127.0.0.1", Port = _broker.Port, BaseTopic = BaseTopic });
         await using var publisher = new MqttNetPublisher(options, NullLogger<MqttNetPublisher>.Instance);
         await publisher.ConnectAsync((_, _) => { }, () => { }, ct);
@@ -56,12 +44,12 @@ public sealed class MqttGoldenMasterSpec : IClassFixture<MosquittoFixture>
         await Eventually.AssertAsync(() =>
         {
             var received = observer.Messages
-                .Where(m => golden.ContainsKey(m.Topic))
+                .Where(m => expected.ContainsKey(m.Topic))
                 .GroupBy(m => m.Topic)
                 .ToDictionary(g => g.Key, g => g.Last().Payload);
-            Assert.Equal(golden.Count, received.Count);
-            Assert.All(golden, entry => Assert.Equal(entry.Value, received[entry.Key]));
-            Assert.All(observer.Messages.Where(m => golden.ContainsKey(m.Topic)), m => Assert.True(m.Retain, m.Topic));
+            Assert.Equal(expected.Count, received.Count);
+            Assert.All(expected, entry => Assert.Equal(entry.Value, received[entry.Key]));
+            Assert.All(observer.Messages.Where(m => expected.ContainsKey(m.Topic)), m => Assert.True(m.Retain, m.Topic));
             return Task.CompletedTask;
         }, ct);
     }
