@@ -48,7 +48,7 @@ public static class PollWorkerStateExtensions
         {
             return state with
             {
-                Target = new PollTarget(new LocationId(evt.Location)),
+                Target = new PollTarget(new Location(evt.Location, 0, 0)),
                 Active = true,
                 DiscoveryInterval = evt.DiscoveryInterval,
                 NextPollUtc = evt.Utc,

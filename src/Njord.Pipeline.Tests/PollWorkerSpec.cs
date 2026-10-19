@@ -21,7 +21,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
 {
     private const string TargetId = "lucerne";
     private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
-    private static readonly LocationId Lucerne = new("lucerne");
+    private static readonly Location Lucerne = new("lucerne", 0, 0);
     private static readonly PollTarget Target = new(Lucerne);
 
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
@@ -154,7 +154,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
         var ct = TestContext.Current.CancellationToken;
         await StartedWorkerAsync(ct);
 
-        await AnswerAsync(new FetchDomainCompleted(new LocationId("LUCERNE"), DomainKind.Weather, 42), ct);
+        await AnswerAsync(new FetchDomainCompleted(new Location("LUCERNE", 0, 0), DomainKind.Weather, 42), ct);
 
         var report = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
         Assert.Multiple(

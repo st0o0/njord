@@ -22,7 +22,7 @@ internal static class EnrichmentEventMappings
             Location = r.Location.Name,
             TypeName = r.Kind.ToWireName(),
             UpdatedAt = r.Timestamp.ToTimestamp(),
-            Alerts = new AlertResult(new LocationId(r.Location.Name), [r.Alert]).ToProto(),
+            Alerts = new AlertResult(r.Location, [r.Alert]).ToProto(),
         },
         _ => null,
     };

@@ -49,7 +49,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         return (pipeline, attached, forecasts);
     }
 
-    private static FetchDomain Fetch() => new(new LocationId("lucerne"), DomainKind.Weather);
+    private static FetchDomain Fetch() => new(new Location("lucerne", 0, 0), DomainKind.Weather);
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_request_before_the_pipeline_input_is_attached_is_rejected()
@@ -93,7 +93,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         await first.GracefulStop(TestTimeouts.AwaitAssertMax);
         await secondAttached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-        gateway.Tell(new FetchDomain(new LocationId("lucerne"), DomainKind.Weather));
+        gateway.Tell(new FetchDomain(new Location("lucerne", 0, 0), DomainKind.Weather));
 
         var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         var received = await secondForecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);

@@ -48,7 +48,7 @@ public sealed class GatewayRestartSpec : NjordActorSpec
         _budget.ThrowOnNextRead = true;
         _time.Advance(TimeSpan.FromSeconds(6));
         // The fault is thrown inside the request handler, so the restart drops the request without a reply.
-        gateway.Tell(new FetchDomain(new LocationId(Location), DomainKind.Weather), CreateTestProbe());
+        gateway.Tell(new FetchDomain(new Location(Location, 0, 0), DomainKind.Weather), CreateTestProbe());
 
         await FetchUntilCompletedAsync(gateway, ct);
 
@@ -78,7 +78,7 @@ public sealed class GatewayRestartSpec : NjordActorSpec
         _budget.ThrowOnNextRead = true;
         _time.Advance(TimeSpan.FromSeconds(6));
         // The fault is thrown inside the request handler, so the restart drops the request without a reply.
-        gateway.Tell(new FetchDomain(new LocationId(Location), DomainKind.Weather), CreateTestProbe());
+        gateway.Tell(new FetchDomain(new Location(Location, 0, 0), DomainKind.Weather), CreateTestProbe());
         await FetchUntilCompletedAsync(gateway, ct);
 
         Assert.Equal(1, Volatile.Read(ref outputRequests));
@@ -88,7 +88,7 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     private async Task FetchUntilCompletedAsync(IActorRef gateway, CancellationToken ct) =>
         await AwaitAssertAsync(async () =>
         {
-            var reply = await gateway.Ask<FetchDomainResponse>(new FetchDomain(new LocationId(Location), DomainKind.Weather),
+            var reply = await gateway.Ask<FetchDomainResponse>(new FetchDomain(new Location(Location, 0, 0), DomainKind.Weather),
                 TestTimeouts.RealTimeWaitMax, ct);
             Assert.IsType<FetchDomainCompleted>(reply);
         }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(200), cancellationToken: ct);

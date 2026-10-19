@@ -74,7 +74,7 @@ public sealed class PollManagerCycleSpec : NjordActorSpec
 
     private void Report(PollWorkerOutcome outcome)
     {
-        var target = new PollTarget(new LocationId(_location));
+        var target = new PollTarget(new Location(_location, 0, 0));
         _manager.Tell(new PollWorkerReport(target, outcome,
             new PollStateEntry(target.Location, PollPhase.Discovery, _time.GetUtcNow(), null, 0, null)));
     }

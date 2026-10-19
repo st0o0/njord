@@ -6,7 +6,7 @@ namespace Njord.Core.Tests.Actors;
 
 public sealed class ShardMessageExtractorSpec
 {
-    private static readonly PollTarget Lucerne = new(new LocationId("lucerne"));
+    private static readonly PollTarget Lucerne = new(new Location("lucerne", 0, 0));
 
     private readonly ShardMessageExtractor _extractor = new();
 

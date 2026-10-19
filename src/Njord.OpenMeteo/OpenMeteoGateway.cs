@@ -42,7 +42,7 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
     private sealed record DomainFetchDone(long RequestId, DomainKind Domain, EnsembleFetchResult Result);
     private sealed record DomainFetchFailed(long RequestId, DomainKind Domain, Exception Cause);
 
-    private sealed record PendingDomainRequest(IActorRef Requester, LocationId Location, DomainKind Domain);
+    private sealed record PendingDomainRequest(IActorRef Requester, Location Location, DomainKind Domain);
 
     private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;

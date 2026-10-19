@@ -108,7 +108,7 @@ public sealed class DomainDataProtoMappingsSpec
     [Fact]
     public void Events_without_domain_data_map_to_null()
     {
-        var alert = EnrichmentEvents.Alerts(new LocationId("lucerne"), Start);
+        var alert = EnrichmentEvents.Alerts(new Location("lucerne", 0, 0), Start);
 
         Assert.Multiple(
             () => Assert.Null(alert.ToDomainDataUpdate()),
@@ -139,7 +139,7 @@ public sealed class DomainDataProtoMappingsSpec
 
         Assert.Multiple(
             () => Assert.Equal(domain, evt.ToDomainKind()),
-            () => Assert.Equal(new LocationId("Lucerne"), evt.ToDomainLocation()),
+            () => Assert.Equal(new Location("Lucerne", 0, 0), evt.ToDomainLocation()),
             () => Assert.Equal(domain.ToProto(), evt.ToDomainDataUpdate()?.Domain));
     }
 }

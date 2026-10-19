@@ -14,7 +14,7 @@ public sealed class EnrichmentEventMappingsSpec
     [Fact]
     public void ToEnrichmentEvent_should_wrap_alert_result_in_enrichment_event()
     {
-        var alertResult = new AlertResult(new LocationId("lucerne"),
+        var alertResult = new AlertResult(new Location("lucerne", 0, 0),
         [
             new DomainAlert(DomainAlertType.Heat, DomainAlertSeverity.Yellow, 0.75, NoDetails.Instance),
         ]);
@@ -58,7 +58,7 @@ public sealed class EnrichmentEventMappingsSpec
     [Fact]
     public void LatestAnalysisResult_should_fill_the_alerts()
     {
-        var lucerne = new LocationId("lucerne");
+        var lucerne = new Location("lucerne", 0, 0);
         var result = new LatestAnalysisResult(lucerne, EnrichmentEvents.Alerts(lucerne, TestTimeConstants.BudgetEpoch));
 
         var proto = EnrichmentEventMappings.ToProto((LatestAnalysisResponse)result);
@@ -69,7 +69,7 @@ public sealed class EnrichmentEventMappingsSpec
     [Fact]
     public void LatestAnalysisResult_should_leave_missing_alerts_unset()
     {
-        var proto = EnrichmentEventMappings.ToProto(new LatestAnalysisResult(new LocationId("lucerne"), null));
+        var proto = EnrichmentEventMappings.ToProto(new LatestAnalysisResult(new Location("lucerne", 0, 0), null));
 
         Assert.Multiple(
             () => Assert.Equal("lucerne", proto.Location),
@@ -79,7 +79,7 @@ public sealed class EnrichmentEventMappingsSpec
     [Fact]
     public void LatestAnalysisNotAvailable_should_carry_only_the_location()
     {
-        var proto = EnrichmentEventMappings.ToProto(new LatestAnalysisNotAvailable(new LocationId("lucerne")));
+        var proto = EnrichmentEventMappings.ToProto(new LatestAnalysisNotAvailable(new Location("lucerne", 0, 0)));
 
         Assert.Equal(new V2.GetEnrichmentsResponse { Location = "lucerne" }, proto);
     }

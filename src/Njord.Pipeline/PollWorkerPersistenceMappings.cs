@@ -24,7 +24,7 @@ internal static class PollWorkerPersistenceMappings
             : [.. state.DomainStates.Select(kv => new PersistedDomainState((int)kv.Key, kv.Value.LastHash))]);
 
     public static PollWorkerState FromPersistence(this PersistedPollWorkerState dto) => new(
-        dto is { Location: { } location } ? new PollTarget(new LocationId(location)) : null,
+        dto is { Location: { } location } ? new PollTarget(new Location(location, 0, 0)) : null,
         dto.Active,
         dto.DiscoveryInterval,
         dto.LastHash,

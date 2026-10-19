@@ -203,7 +203,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetEnrichments_returns_the_alerts_the_read_model_holds()
     {
-        var lucerne = new LocationId("lucerne");
+        var lucerne = new Location("lucerne", 0, 0);
         var analysis = new LatestAnalysisResult(lucerne, EnrichmentEvents.Alerts(lucerne, Anchor));
         var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new FakeGrpcConsumer(analysis, Array.Empty<PipelineEvent>()))));
 
@@ -217,7 +217,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetEnrichments_queries_the_configured_location_when_the_request_differs_in_case()
     {
-        var lucerne = new LocationId("lucerne");
+        var lucerne = new Location("lucerne", 0, 0);
         var analysis = new LatestAnalysisResult(lucerne, EnrichmentEvents.Alerts(lucerne, Anchor));
         var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new FakeGrpcConsumer(analysis, Array.Empty<PipelineEvent>()))));
 
@@ -335,8 +335,8 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     // the sequence completes, so the specs assert what was written without waiting.
     private IActorRef CreateStreamingReadModel()
     {
-        var lucerne = new LocationId("lucerne");
-        var zurich = new LocationId("zurich");
+        var lucerne = new Location("lucerne", 0, 0);
+        var zurich = new Location("zurich", 0, 0);
         PipelineEvent[] events =
         [
             new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2)),

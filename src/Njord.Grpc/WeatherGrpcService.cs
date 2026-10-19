@@ -119,7 +119,7 @@ public sealed class WeatherGrpcService(
     }
 
     // An empty location streams every location; a non-empty one must be configured.
-    private LocationId? ResolveStreamLocation(string location) =>
+    private Location? ResolveStreamLocation(string location) =>
         string.IsNullOrEmpty(location) ? null : FindLocation(serviceInfo.Catalog, location).Id;
 
     private async Task<ISourceRef<PipelineEvent>> RequestGrpcStreamAsync(ServerCallContext context)

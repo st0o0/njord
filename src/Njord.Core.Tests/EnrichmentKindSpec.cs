@@ -12,7 +12,7 @@ public sealed class EnrichmentKindSpec
     public void AlertComputed_implements_IEnrichmentEvent_with_correct_kind()
     {
         var evt = new PipelineEvent.AlertComputed(
-            new AlertResult(new LocationId("loc"), []), At);
+            new AlertResult(new Location("loc", 0, 0), []), At);
 
         var enrichment = Assert.IsType<IEnrichmentEvent>(evt, exactMatch: false);
         Assert.Equal(EnrichmentKind.Alerts, enrichment.Kind);

@@ -22,7 +22,7 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
     private static readonly FetchTimeouts ShortTimeouts =
         new(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(300));
 
-    private static readonly PollTarget Target = new(new LocationId("lucerne"));
+    private static readonly PollTarget Target = new(new Location("lucerne", 0, 0));
 
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     private TestProbe _manager = null!;

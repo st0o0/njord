@@ -29,7 +29,7 @@ public static class ServiceInfoMappings
         foreach (var location in scope.Locations)
         {
             var resolved = ResolveModels(scope, location);
-            locations.Add(new CatalogLocation(new LocationId(location.Name), location.Latitude, location.Longitude, resolved));
+            locations.Add(new CatalogLocation(new Location(location.Name, 0, 0), location.Latitude, location.Longitude, resolved));
 
             foreach (var modelId in resolved.Where(seen.Add))
             {

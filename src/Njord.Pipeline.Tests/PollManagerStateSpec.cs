@@ -16,8 +16,8 @@ public sealed class PollManagerStateSpec
             new LocationOptions { Name = "zurich", Latitude = 47.37, Longitude = 8.54 },
         ]);
 
-    private static readonly PollTarget Lucerne = new(new LocationId("lucerne"));
-    private static readonly PollTarget Zurich = new(new LocationId("zurich"));
+    private static readonly PollTarget Lucerne = new(new Location("lucerne", 0, 0));
+    private static readonly PollTarget Zurich = new(new Location("zurich", 0, 0));
 
     private static PollManagerState InitialState() =>
         PollManagerState.Create(Config, TimeSpan.FromMinutes(20), T0);
@@ -49,7 +49,7 @@ public sealed class PollManagerStateSpec
     public void ApplyReport_for_unknown_target_returns_unchanged_state()
     {
         var state = InitialState();
-        var unknown = new PollTarget(new LocationId("atlantis"));
+        var unknown = new PollTarget(new Location("atlantis", 0, 0));
         var entry = new PollStateEntry(unknown.Location, PollPhase.Steady, T0, T0, 0, null);
         var report = new PollWorkerReport(unknown, PollWorkerOutcome.Changed, entry);
 

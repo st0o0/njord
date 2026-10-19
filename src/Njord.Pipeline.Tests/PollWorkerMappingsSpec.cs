@@ -9,7 +9,7 @@ namespace Njord.Pipeline.Tests;
 public sealed class PollWorkerMappingsSpec
 {
     private static readonly DateTimeOffset T0 = TestTimeConstants.PipelineEpoch;
-    private static readonly LocationId Lucerne = new("lucerne");
+    private static readonly Location Lucerne = new("lucerne", 0, 0);
 
     private static PollWorkerState Started() =>
         PollWorkerState.Empty.Apply(new PollingStarted("lucerne", TimeSpan.FromMinutes(20), T0));

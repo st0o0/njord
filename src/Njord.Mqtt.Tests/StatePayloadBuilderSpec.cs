@@ -14,7 +14,7 @@ public sealed class StatePayloadBuilderSpec
             new(AlertType.Frost, AlertSeverity.Yellow, 0.75, new FrostDetails(-2.1, Horizon.Hours(4), 3)),
             Alert.None(AlertType.Heat),
         };
-        var result = new AlertResult(new LocationId("lucerne"), alerts);
+        var result = new AlertResult(new Location("lucerne", 0, 0), alerts);
 
         var messages = StatePayloadBuilder.FromAlerts(result, "njord");
 
@@ -33,7 +33,7 @@ public sealed class StatePayloadBuilderSpec
         var alert = new Alert(AlertType.Frost, AlertSeverity.Yellow, 0.75, new FrostDetails(-2.1, Horizon.Hours(4), 3));
 
         var message = Assert.Single(StatePayloadBuilder.FromAlerts(
-            new AlertResult(new LocationId("lucerne"), [alert]), "njord"));
+            new AlertResult(new Location("lucerne", 0, 0), [alert]), "njord"));
 
         Assert.Equal(
             "{\"severity\":\"yellow\",\"confidence\":0.75,\"trigger_value\":0,\"threshold\":0,"

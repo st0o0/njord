@@ -7,7 +7,7 @@ public interface IEnrichmentEvent
 {
     EnrichmentKind Kind { get; }
 
-    LocationId Location { get; }
+    Location Location { get; }
 }
 
 public abstract record PipelineEvent
@@ -39,7 +39,7 @@ public abstract record PipelineEvent
     {
         public EnrichmentKind Kind => EnrichmentKind.Alerts;
 
-        LocationId IEnrichmentEvent.Location => new(Location.Name);
+        Location IEnrichmentEvent.Location => Location;
 
         public AlertType Type => Alert.Type;
 
@@ -56,7 +56,7 @@ public abstract record PipelineEvent
     {
         public EnrichmentKind Kind => EnrichmentKind.Alerts;
 
-        public LocationId Location => Result.Location;
+        public Location Location => Result.Location;
     }
 
 }

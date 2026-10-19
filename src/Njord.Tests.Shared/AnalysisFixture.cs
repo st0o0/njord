@@ -82,7 +82,7 @@ public sealed class AnalysisFixture
             analyses.Add(new LocationAnalysis(
                 location,
                 new AlertResult(
-                    new LocationId(location),
+                    new Location(location, 0, 0),
                     alerts.Compute(weather, alertSettings, Now) ?? throw new InvalidOperationException("Alerts are disabled."))));
         }
 

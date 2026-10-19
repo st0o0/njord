@@ -27,13 +27,13 @@ internal static class DomainDataProtoMappings
         _ => null,
     };
 
-    public static LocationId? ToDomainLocation(this PipelineEvent pipelineEvent) => pipelineEvent switch
+    public static Location? ToDomainLocation(this PipelineEvent pipelineEvent) => pipelineEvent switch
     {
-        PipelineEvent.WeatherDataReceived e => new LocationId(e.Location.Name),
-        PipelineEvent.AirQualityDataReceived e => new LocationId(e.Location.Name),
-        PipelineEvent.FloodDataReceived e => new LocationId(e.Location.Name),
-        PipelineEvent.SolarDataReceived e => new LocationId(e.Location.Name),
-        PipelineEvent.MarineDataReceived e => new LocationId(e.Location.Name),
+        PipelineEvent.WeatherDataReceived e => e.Location,
+        PipelineEvent.AirQualityDataReceived e => e.Location,
+        PipelineEvent.FloodDataReceived e => e.Location,
+        PipelineEvent.SolarDataReceived e => e.Location,
+        PipelineEvent.MarineDataReceived e => e.Location,
         _ => null,
     };
 

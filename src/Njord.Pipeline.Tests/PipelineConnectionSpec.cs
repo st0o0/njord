@@ -57,7 +57,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             Props.Create(() => new FakeGatewayActor(fetchCalled)), "gateway");
         ActorRegistry.Register<IForecastGateway>(fakeGateway, overwrite: true);
 
-        var target = new PollTarget(new LocationId(options.Locations[0].Name));
+        var target = new PollTarget(new Location(options.Locations[0].Name, 0, 0));
         var worker = Sys.ActorOf(
             Props.Create(() => new PollWorker(time, FetchTimeouts.Default, target.Id)),
             "real-worker");

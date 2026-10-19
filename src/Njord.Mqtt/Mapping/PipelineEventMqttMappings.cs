@@ -24,7 +24,7 @@ internal static class PipelineEventMqttMappings
             PipelineEvent.SolarDataReceived e => e.Forecast.ToMessages(e.Location, context.BaseTopic),
             PipelineEvent.MarineDataReceived e => e.Forecast.ToMessages(e.Location, context.BaseTopic),
             PipelineEvent.AlertRaised r => StatePayloadBuilder.FromAlerts(
-                new AlertResult(new LocationId(r.Location.Name), [r.Alert]), context.BaseTopic),
+                new AlertResult(r.Location, [r.Alert]), context.BaseTopic),
             _ => [],
         };
 

@@ -209,8 +209,8 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             {
                 var entries = new List<PollStateEntry>
                 {
-                    new(new LocationId("lucerne"), DomainPollPhase.Steady, now.AddHours(1), now.AddHours(-2), 0, 10800),
-                    new(new LocationId("zurich"), DomainPollPhase.Discovery, now.AddMinutes(20), null, 2, null),
+                    new(new Location("lucerne", 0, 0), DomainPollPhase.Steady, now.AddHours(1), now.AddHours(-2), 0, 10800),
+                    new(new Location("zurich", 0, 0), DomainPollPhase.Discovery, now.AddMinutes(20), null, 2, null),
                 };
                 Sender.Tell(new PollStatesResult(entries));
             });
@@ -223,7 +223,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
                 }
                 else
                 {
-                    Sender.Tell(new TriggerImmediatePollCompleted(1, [$"{msg.Location}"]));
+                    Sender.Tell(new TriggerImmediatePollCompleted(1, [$"{msg.Location.Value.Name}"]));
                 }
             });
         }

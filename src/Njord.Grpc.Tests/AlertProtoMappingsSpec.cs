@@ -12,7 +12,7 @@ public sealed class AlertProtoMappingsSpec
     [Fact]
     public void Alerts_should_map_alert_type_and_severity_enums()
     {
-        var result = new AlertResult(new LocationId("lucerne"),
+        var result = new AlertResult(new Location("lucerne", 0, 0),
         [
             new DomainAlert(DomainAlertType.Frost, DomainAlertSeverity.Orange, 0.85,
                 NoDetails.Instance),

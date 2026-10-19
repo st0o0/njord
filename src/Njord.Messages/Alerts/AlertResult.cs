@@ -3,5 +3,5 @@ using Njord.Model;
 namespace Njord.Messages.Alerts;
 
 public sealed record AlertResult(
-    LocationId Location,
+    Location Location,
     IReadOnlyList<Alert> Alerts);

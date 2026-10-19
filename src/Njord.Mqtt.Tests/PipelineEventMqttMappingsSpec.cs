@@ -121,7 +121,7 @@ public sealed class PipelineEventMqttMappingsSpec
     [Fact]
     public void Retired_events_map_to_no_messages_and_the_unknown_location()
     {
-        var retired = EnrichmentEvents.Alerts(new LocationId("lucerne"), Run);
+        var retired = EnrichmentEvents.Alerts(new Location("lucerne", 0, 0), Run);
 
         Assert.Empty(retired.ToMqttMessages(Context));
         Assert.Equal("unknown", retired.ToLocationName());

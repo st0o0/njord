@@ -51,7 +51,7 @@ public sealed class OpenMeteoGatewaySpec : NjordActorSpec
     private IActorRef Gateway => GetActor<IForecastGateway>();
 
     private static FetchDomain Fetch(string location = "lucerne", DomainKind domain = DomainKind.Weather) =>
-        new(new LocationId(location), domain);
+        new(new Location(location, 0, 0), domain);
 
     private async Task AttachedAsync() =>
         await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);

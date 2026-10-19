@@ -79,6 +79,6 @@ public sealed class PipelineEventMappingsSpec
             () => Assert.Equal(AlertSeverity.Orange, raised.Severity),
             () => Assert.Equal(ConfidenceLevel.High, raised.Confidence),
             () => Assert.Equal(EnrichmentKind.Alerts, raised.Kind),
-            () => Assert.Equal(new LocationId("Lucerne"), ((IEnrichmentEvent)raised).Location));
+            () => Assert.Equal(new Location("Lucerne", 0, 0), ((IEnrichmentEvent)raised).Location));
     }
 }

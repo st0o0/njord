@@ -146,7 +146,7 @@ public sealed class MqttStateSpec : NjordActorSpec
 
         await hub.WaitForQueue();
 
-        hub.Emit(EnrichmentEvents.Alerts(new LocationId("lucerne"), Anchor));
+        hub.Emit(EnrichmentEvents.Alerts(new Location("lucerne", 0, 0), Anchor));
         hub.Emit(new PipelineEvent.FloodDataReceived(Lucerne, DomainData.Flood(Anchor)));
 
         await transport.WaitForMessage(m => m.Topic == "njord/lucerne/flood/discharge").WaitAsync(TestContext.Current.CancellationToken);

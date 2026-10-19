@@ -95,7 +95,7 @@ public sealed class OpsGrpcService(
 
     public override async Task<TriggerPollResponse> TriggerPoll(TriggerPollRequest request, ServerCallContext context)
     {
-        var location = string.IsNullOrEmpty(request.Location) ? (LocationId?)null : new LocationId(request.Location);
+        var location = string.IsNullOrEmpty(request.Location) ? (Location?)null : new Location(request.Location, 0, 0);
         var response = await actorRegistry.AskAsync<IPollManager, TriggerImmediatePollResponse>(
             new TriggerImmediatePoll(location), context);
 

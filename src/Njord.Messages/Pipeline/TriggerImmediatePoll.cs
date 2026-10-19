@@ -3,7 +3,7 @@ using Njord.Model;
 namespace Njord.Messages.Pipeline;
 
 // A null location triggers every configured location.
-public sealed record TriggerImmediatePoll(LocationId? Location);
+public sealed record TriggerImmediatePoll(Location? Location);
 
 public abstract record TriggerImmediatePollResponse;
 public sealed record TriggerImmediatePollCompleted(int Count, IReadOnlyList<string> Targets) : TriggerImmediatePollResponse;

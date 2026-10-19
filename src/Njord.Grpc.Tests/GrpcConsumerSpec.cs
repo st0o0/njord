@@ -14,8 +14,8 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
 {
     private static readonly DateTimeOffset Anchor = TestTimeConstants.NoonAnchor;
     private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
-    private static readonly LocationId Lucerne = new("lucerne");
-    private static readonly LocationId Zurich = new("zurich");
+    private static readonly Location Lucerne = new("lucerne", 0, 0);
+    private static readonly Location Zurich = new("zurich", 0, 0);
 
     protected override bool UseTestPersistence => false;
 
@@ -71,7 +71,7 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
 
         await AwaitAssertAsync(async () =>
         {
-            var found = await readModel.Ask<DomainDataResponse>(new QueryDomainData(new LocationId("LUCERNE"), DomainKind.Weather), AskTimeout, ct);
+            var found = await readModel.Ask<DomainDataResponse>(new QueryDomainData(new Location("LUCERNE", 0, 0), DomainKind.Weather), AskTimeout, ct);
             var missing = await readModel.Ask<DomainDataResponse>(new QueryDomainData(Zurich, DomainKind.Weather), AskTimeout, ct);
             Assert.Multiple(
                 () => Assert.Equal(new DomainDataResult(lucerne), found),
@@ -262,7 +262,7 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
     }
 
     private async Task<LatestAnalysisResult> AwaitAnalysisAsync(
-        IActorRef readModel, LocationId location, Func<LatestAnalysisResult, bool> condition, CancellationToken ct)
+        IActorRef readModel, Location location, Func<LatestAnalysisResult, bool> condition, CancellationToken ct)
     {
         LatestAnalysisResult? matched = null;
         await AwaitAssertAsync(async () =>

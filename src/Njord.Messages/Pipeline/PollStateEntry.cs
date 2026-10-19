@@ -3,7 +3,7 @@ using Njord.Model;
 namespace Njord.Messages.Pipeline;
 
 public sealed record PollStateEntry(
-    LocationId Location,
+    Location Location,
     PollPhase Phase,
     DateTimeOffset NextPollUtc,
     DateTimeOffset? LastChangeUtc,

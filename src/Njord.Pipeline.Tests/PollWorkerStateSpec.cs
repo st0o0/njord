@@ -10,7 +10,7 @@ public sealed class PollWorkerStateSpec
 {
     private static readonly DateTimeOffset T0 = TestTimeConstants.PipelineEpoch;
     private static readonly TimeSpan DiscoveryInterval = TimeSpan.FromMinutes(20);
-    private static readonly LocationId Lucerne = new("lucerne");
+    private static readonly Location Lucerne = new("lucerne", 0, 0);
 
     private static PollWorkerState Started(DateTimeOffset? at = null, TimeSpan? interval = null) =>
         PollWorkerState.Empty.Apply(new PollingStarted("lucerne", interval ?? DiscoveryInterval, at ?? T0));

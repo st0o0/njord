@@ -103,7 +103,7 @@ public sealed class PollingClusterSpec : NjordActorSpec
         }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(100), cancellationToken: ct);
 
         var result = await manager.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll(new LocationId("zurich")), TestTimeouts.RealTimeWaitMax, ct);
+            new TriggerImmediatePoll(new Location("zurich", 0, 0)), TestTimeouts.RealTimeWaitMax, ct);
 
         var request = await _requests.ExpectMsgAsync<FetchDomain>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(

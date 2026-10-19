@@ -49,8 +49,8 @@ public sealed class PollManagerSpec : NjordActorSpec
 
     private static readonly PollTarget[] Targets =
     [
-        new(new LocationId("lucerne")),
-        new(new LocationId("zurich")),
+        new(new Location("lucerne", 0, 0)),
+        new(new Location("zurich", 0, 0)),
     ];
 
     private IActorRef CreateManager() =>
@@ -132,7 +132,7 @@ public sealed class PollManagerSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         var manager = await StartedManagerAsync(ct);
-        var atlantis = new PollTarget(new LocationId("atlantis"));
+        var atlantis = new PollTarget(new Location("atlantis", 0, 0));
 
         manager.Tell(new PollWorkerReport(atlantis, PollWorkerOutcome.Changed, Entry(atlantis, lastChange: _time.GetUtcNow())));
 
@@ -161,7 +161,7 @@ public sealed class PollManagerSpec : NjordActorSpec
         var manager = await StartedManagerAsync(ct);
 
         var result = await manager.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll(new LocationId("Lucerne")), TestTimeouts.RealTimeWaitMax, ct);
+            new TriggerImmediatePoll(new Location("Lucerne", 0, 0)), TestTimeouts.RealTimeWaitMax, ct);
 
         var trigger = await _region.ExpectMsgAsync<TriggerLocationPoll>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(
@@ -196,7 +196,7 @@ public sealed class PollManagerSpec : NjordActorSpec
         var manager = await StartedManagerAsync(ct);
 
         var result = await manager.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll(new LocationId("nonexistent")), TestTimeouts.RealTimeWaitMax, ct);
+            new TriggerImmediatePoll(new Location("nonexistent", 0, 0)), TestTimeouts.RealTimeWaitMax, ct);
 
         Assert.Multiple(
             () => Assert.Equal(0, result.Count),
