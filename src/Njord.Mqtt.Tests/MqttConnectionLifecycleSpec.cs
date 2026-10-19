@@ -1,6 +1,6 @@
 using Akka.Actor;
-using MQTTnet.Exceptions;
 using Microsoft.Extensions.Time.Testing;
+using MQTTnet.Exceptions;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Mqtt.Actors;
 using Njord.Mqtt.Health;

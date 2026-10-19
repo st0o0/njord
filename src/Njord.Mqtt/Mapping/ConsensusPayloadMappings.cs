@@ -1,7 +1,7 @@
 using Njord.Consensus;
 using Njord.Consensus.Querying;
-using Njord.Mqtt.Payloads;
 using Njord.Model;
+using Njord.Mqtt.Payloads;
 
 namespace Njord.Mqtt.Mapping;
 

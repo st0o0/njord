@@ -1,7 +1,7 @@
-using WeatherForecast = Njord.Forecast.Forecast;
-using Njord.Model;
 using Njord.Core.Configuration;
+using Njord.Model;
 using Njord.Tests.Shared;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Forecast.Tests;
 

@@ -1,5 +1,5 @@
-using Njord.Mqtt.Payloads;
 using Njord.Forecast;
+using Njord.Mqtt.Payloads;
 
 namespace Njord.Mqtt.Mapping;
 

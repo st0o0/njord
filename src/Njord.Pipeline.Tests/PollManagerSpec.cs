@@ -12,9 +12,9 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Pipeline;
+using Njord.Model;
 using Njord.Pipeline.Health;
 using Njord.Tests.Shared;
-using Njord.Model;
 
 namespace Njord.Pipeline.Tests;
 

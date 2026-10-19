@@ -2,10 +2,10 @@ using Njord.Alerts.Configuration;
 using Njord.Core.Configuration;
 using Njord.Derived.Configuration;
 using Njord.Indices.Configuration;
+using Njord.Model;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
 using Njord.Trends.Configuration;
-using Njord.Model;
 
 namespace Njord.Pipeline.Tests.Configuration;
 

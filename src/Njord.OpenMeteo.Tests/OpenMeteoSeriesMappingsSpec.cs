@@ -1,5 +1,5 @@
-using Njord.OpenMeteo.Mapping;
 using Njord.Model;
+using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Tests;
 

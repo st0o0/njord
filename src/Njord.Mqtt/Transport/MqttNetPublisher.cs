@@ -1,9 +1,9 @@
-using Njord.Mqtt.Topics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Protocol;
 using Njord.Core.Configuration.Mqtt;
+using Njord.Mqtt.Topics;
 
 namespace Njord.Mqtt.Transport;
 

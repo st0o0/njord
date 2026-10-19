@@ -1,6 +1,6 @@
+using Njord.Forecast;
 using Njord.Grpc.Mapping;
 using Njord.Model;
-using Njord.Forecast;
 
 namespace Njord.Grpc.Tests;
 

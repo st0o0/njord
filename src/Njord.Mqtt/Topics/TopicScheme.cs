@@ -1,5 +1,5 @@
-using Njord.Mqtt.Mapping;
 using Njord.Model;
+using Njord.Mqtt.Mapping;
 
 namespace Njord.Mqtt.Topics;
 

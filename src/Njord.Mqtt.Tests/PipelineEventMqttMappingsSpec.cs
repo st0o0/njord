@@ -1,8 +1,8 @@
 using Njord.Messages.Pipeline;
+using Njord.Model;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Topics;
 using Njord.Tests.Shared;
-using Njord.Model;
 
 namespace Njord.Mqtt.Tests;
 

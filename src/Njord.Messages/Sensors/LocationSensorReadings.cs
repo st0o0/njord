@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
-using Njord.Sensors;
 using Njord.Model;
+using Njord.Sensors;
 
 namespace Njord.Messages.Sensors;
 

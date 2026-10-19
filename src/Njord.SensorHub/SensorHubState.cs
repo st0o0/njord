@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Njord.Messages.Sensors;
-using Njord.Sensors;
 using Njord.Model;
+using Njord.Sensors;
 
 namespace Njord.SensorHub;
 

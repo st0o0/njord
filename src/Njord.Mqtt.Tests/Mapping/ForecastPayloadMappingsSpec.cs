@@ -1,6 +1,6 @@
-using Njord.Mqtt.Mapping;
-using Njord.Model;
 using Njord.Forecast;
+using Njord.Model;
+using Njord.Mqtt.Mapping;
 
 namespace Njord.Mqtt.Tests.Mapping;
 

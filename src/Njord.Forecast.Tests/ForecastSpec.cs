@@ -1,5 +1,5 @@
-using WeatherForecast = Njord.Forecast.Forecast;
 using Njord.Model;
+using WeatherForecast = Njord.Forecast.Forecast;
 namespace Njord.Forecast.Tests;
 
 public sealed class ForecastSpec

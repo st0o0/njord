@@ -5,10 +5,10 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Messages.Pipeline;
 using Njord.Messages.Trends;
+using Njord.Model;
 using Njord.Mqtt.Actors;
 using Njord.Mqtt.Health;
 using Njord.Tests.Shared;
-using Njord.Model;
 
 namespace Njord.Mqtt.Tests;
 

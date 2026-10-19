@@ -2,8 +2,8 @@ using Microsoft.Extensions.Options;
 using Njord.Consensus;
 using Njord.Indices.Configuration;
 using Njord.Messages.Indices;
-using Njord.Sensors;
 using Njord.Model;
+using Njord.Sensors;
 
 namespace Njord.Indices;
 

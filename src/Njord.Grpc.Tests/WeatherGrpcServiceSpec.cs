@@ -7,12 +7,12 @@ using Grpc.Core;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Forecast;
 using Njord.Grpc.V2;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Tests.Shared;
 using Njord.Model;
-using Njord.Forecast;
+using Njord.Tests.Shared;
 using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Grpc.Tests;

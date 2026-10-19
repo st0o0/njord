@@ -9,8 +9,8 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Tests.Shared;
 using Njord.Model;
+using Njord.Tests.Shared;
 using Servus.Akka;
 
 namespace Njord.Pipeline.Tests;

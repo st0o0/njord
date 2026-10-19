@@ -16,11 +16,11 @@ using Njord.Messages.Config;
 using Njord.Messages.Indices;
 using Njord.Messages.Pipeline;
 using Njord.Messages.Sensors;
+using Njord.Model;
 using Njord.Pipeline.Configuration;
 using Njord.Sensors;
 using Njord.Tests.Shared;
 using Njord.Trends.Configuration;
-using Njord.Model;
 using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Pipeline.Tests;

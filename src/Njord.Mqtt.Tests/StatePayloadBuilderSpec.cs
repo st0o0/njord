@@ -4,14 +4,14 @@ using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
 using Njord.Derived;
+using Njord.Forecast;
 using Njord.Indices.Configuration;
 using Njord.Messages.Alerts;
 using Njord.Messages.Derived;
 using Njord.Messages.Indices;
+using Njord.Model;
 using Njord.Tests.Shared;
 using Njord.Trends;
-using Njord.Model;
-using Njord.Forecast;
 using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Mqtt.Tests;

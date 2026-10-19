@@ -13,7 +13,7 @@ namespace Njord.Grpc.Tests;
 
 public sealed class SensorGrpcServiceSpec : NjordActorSpec
 {
-    private static readonly DateTimeOffset Now = new(2026, 7, 28, 12, 0, 0, TimeSpan.Zero);
+    private static new readonly DateTimeOffset Now = new(2026, 7, 28, 12, 0, 0, TimeSpan.Zero);
 
     private readonly FakeTimeProvider _time = new(Now);
     private readonly ConcurrentQueue<UpdateReading> _received = new();

@@ -1,8 +1,8 @@
 using Google.Protobuf.WellKnownTypes;
+using Njord.Forecast;
 using Njord.Grpc.V2;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Forecast;
 using Njord.Model;
 using WeatherForecast = Njord.Forecast.Forecast;
 

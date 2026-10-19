@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Njord.Trends.Configuration;
 using Njord.Tests.Shared;
+using Njord.Trends.Configuration;
 
 namespace Njord.Trends.Tests;
 

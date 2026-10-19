@@ -2,8 +2,8 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
-using Njord.Model;
 using Njord.Forecast;
+using Njord.Model;
 using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Indices.Tests;

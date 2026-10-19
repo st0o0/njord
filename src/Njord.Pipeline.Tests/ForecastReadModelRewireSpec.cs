@@ -3,8 +3,8 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
 using Njord.Messages.Pipeline;
-using Njord.Tests.Shared;
 using Njord.Model;
+using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;
 

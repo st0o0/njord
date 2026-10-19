@@ -1,5 +1,5 @@
-using Njord.Consensus;
 using Njord.Alerts.Rules;
+using Njord.Consensus;
 using Njord.Messages.Alerts;
 using Njord.Model;
 using static Njord.Alerts.Tests.Rules.AlertRuleFixture;

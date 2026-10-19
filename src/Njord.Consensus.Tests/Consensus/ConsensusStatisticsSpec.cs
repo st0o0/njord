@@ -1,5 +1,5 @@
-using Njord.Model;
 using Njord.Forecast;
+using Njord.Model;
 using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Consensus.Tests.Consensus;

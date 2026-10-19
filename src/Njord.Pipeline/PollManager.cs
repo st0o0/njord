@@ -5,8 +5,8 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Messages.Pipeline;
-using Njord.Pipeline.Health;
 using Njord.Model;
+using Njord.Pipeline.Health;
 using Servus.Akka;
 using Servus.Resilience;
 

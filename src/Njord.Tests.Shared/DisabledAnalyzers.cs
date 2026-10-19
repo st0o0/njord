@@ -5,8 +5,8 @@ using Njord.Core.Configuration;
 using Njord.Derived;
 using Njord.Derived.Configuration;
 using Njord.Indices;
-using Njord.Trends.Configuration;
 using Njord.Model;
+using Njord.Trends.Configuration;
 using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
 
 namespace Njord.Tests.Shared;

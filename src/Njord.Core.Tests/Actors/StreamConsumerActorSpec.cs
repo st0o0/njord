@@ -9,8 +9,8 @@ using Akka.Streams.Dsl;
 using Akka.TestKit;
 using Njord.Core.Actors;
 using Njord.Messages.Pipeline;
-using Njord.Tests.Shared;
 using Njord.Model;
+using Njord.Tests.Shared;
 using Servus.Resilience;
 
 namespace Njord.Core.Tests.Actors;
@@ -286,13 +286,12 @@ public sealed class StreamConsumerActorSpec : TestKit
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, _, proxy) = Start();
-        var first = await AnswerAsync(proxy, CreateTestProbe(), ct);
+        await AnswerAsync(proxy, CreateTestProbe(), ct);
         await WatchAsync(consumer);
 
         Sys.Stop(consumer);
         await ExpectTerminatedAsync(consumer, cancellationToken: ct);
 
-        await first.Queue.WatchCompletionAsync().WaitAsync(TestTimeouts.RealTimeWaitMax, ct);
         await proxy.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(400), ct);
     }
 

@@ -1,8 +1,8 @@
 using Newtonsoft.Json;
 using Njord.Messages.Pipeline;
+using Njord.Model;
 using Njord.Persistence.Events.Polling;
 using Njord.Tests.Shared;
-using Njord.Model;
 
 namespace Njord.Pipeline.Tests;
 

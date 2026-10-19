@@ -3,14 +3,14 @@ using Njord.Alerts.Configuration;
 using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Derived;
+using Njord.Forecast;
 using Njord.Indices.Configuration;
 using Njord.Messages.Alerts;
 using Njord.Messages.Derived;
 using Njord.Messages.Indices;
 using Njord.Messages.Trends;
-using Njord.Trends;
 using Njord.Model;
-using Njord.Forecast;
+using Njord.Trends;
 using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Tests.Shared;

@@ -8,11 +8,11 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration.Polling;
+using Njord.Forecast;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Tests.Shared;
 using Njord.Model;
-using Njord.Forecast;
+using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;
 

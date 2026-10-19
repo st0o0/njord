@@ -5,10 +5,10 @@ using Njord.Alerts.Configuration;
 using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
-using Njord.Messages.Alerts;
-using Njord.Tests.Shared;
-using Njord.Model;
 using Njord.Forecast;
+using Njord.Messages.Alerts;
+using Njord.Model;
+using Njord.Tests.Shared;
 using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Alerts.Tests;

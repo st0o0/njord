@@ -1,6 +1,6 @@
-using WeatherForecast = Njord.Forecast.Forecast;
-using Njord.Model;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Model;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Forecast.Tests;
 

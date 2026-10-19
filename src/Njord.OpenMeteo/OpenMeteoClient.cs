@@ -4,9 +4,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
-using Njord.OpenMeteo.Mapping;
 using Njord.Forecast;
 using Njord.Model;
+using Njord.OpenMeteo.Mapping;
 using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.OpenMeteo;

@@ -1,7 +1,7 @@
 using Njord.Indices.Configuration;
 using Njord.Messages.Indices;
-using Njord.Tests.Shared;
 using Njord.Model;
+using Njord.Tests.Shared;
 
 namespace Njord.Indices.Tests.Configuration;
 

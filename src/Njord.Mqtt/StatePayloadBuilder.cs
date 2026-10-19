@@ -1,16 +1,16 @@
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Njord.Consensus;
+using Njord.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Derived;
 using Njord.Messages.Indices;
 using Njord.Messages.Pipeline;
 using Njord.Messages.Trends;
+using Njord.Model;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Serialization;
 using Njord.Mqtt.Topics;
-using Njord.Forecast;
-using Njord.Model;
 using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Mqtt;

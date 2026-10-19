@@ -6,15 +6,15 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Derived.Configuration;
+using Njord.Forecast;
 using Njord.Indices.Configuration;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
+using Njord.Model;
 using Njord.OpenMeteo;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
 using Njord.Trends.Configuration;
-using Njord.Model;
-using Njord.Forecast;
 using TrendAnalyzer = Njord.Trends.TrendAnalyzer;
 
 namespace Njord.Pipeline.Tests;

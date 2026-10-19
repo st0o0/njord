@@ -3,11 +3,11 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
+using Njord.Forecast;
 using Njord.Messages.Trends;
+using Njord.Model;
 using Njord.Tests.Shared;
 using Njord.Trends.Configuration;
-using Njord.Model;
-using Njord.Forecast;
 
 namespace Njord.Trends.Tests;
 

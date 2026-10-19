@@ -1,7 +1,7 @@
-using Njord.Core.Actors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Njord.Configuration;
+using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Persistence;
 using Njord.Model;

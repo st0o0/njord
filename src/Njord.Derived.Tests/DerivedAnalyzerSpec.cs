@@ -4,10 +4,10 @@ using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
 using Njord.Derived.Configuration;
-using Njord.Messages.Derived;
-using Njord.Tests.Shared;
-using Njord.Model;
 using Njord.Forecast;
+using Njord.Messages.Derived;
+using Njord.Model;
+using Njord.Tests.Shared;
 
 namespace Njord.Derived.Tests;
 

@@ -1,16 +1,16 @@
 using Njord.Consensus;
+using Njord.Forecast;
 using Njord.Grpc.Mapping;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using Njord.Tests.Shared;
 using Njord.Model;
-using Njord.Forecast;
-using WeatherForecast = Njord.Forecast.Forecast;
+using Njord.Tests.Shared;
 using DomainAlert = Njord.Messages.Alerts.Alert;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainAlertType = Njord.Messages.Alerts.AlertType;
 using DomainHorizonConsensus = Njord.Consensus.HorizonConsensus;
 using DomainParameterConsensus = Njord.Consensus.ParameterConsensus;
+using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Grpc.Tests;
 

@@ -2,9 +2,9 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Consensus;
 using Njord.Consensus.Settings;
 using Njord.Core.Configuration;
+using Njord.Forecast;
 using Njord.Messages.Derived;
 using Njord.Model;
-using Njord.Forecast;
 using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Derived.Tests;

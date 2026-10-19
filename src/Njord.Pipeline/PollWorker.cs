@@ -3,10 +3,10 @@ using Akka.Event;
 using Akka.Persistence;
 using Njord.Core.Actors;
 using Njord.Core.Configuration.Polling;
+using Njord.Forecast;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Polling;
-using Njord.Forecast;
 using Servus.Akka;
 
 namespace Njord.Pipeline;

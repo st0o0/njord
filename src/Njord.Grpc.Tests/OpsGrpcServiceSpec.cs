@@ -9,10 +9,10 @@ using Njord.Grpc.V2;
 using Njord.Indices.Configuration;
 using Njord.Messages.Budget;
 using Njord.Messages.Pipeline;
+using Njord.Model;
 using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
 using Njord.Trends.Configuration;
-using Njord.Model;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 
 namespace Njord.Grpc.Tests;

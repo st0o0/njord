@@ -6,15 +6,15 @@ using Njord.Consensus;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
+using Njord.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Messages.Trends;
+using Njord.Model;
 using Njord.Mqtt.Actors;
 using Njord.Mqtt.Health;
 using Njord.Mqtt.Mapping;
 using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
-using Njord.Model;
-using Njord.Forecast;
 using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Mqtt.Tests;

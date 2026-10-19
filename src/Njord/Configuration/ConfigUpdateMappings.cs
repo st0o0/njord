@@ -19,31 +19,41 @@ public static class ConfigUpdateMappings
         var reset = cmd.Reset ?? [];
         var updates = new List<AnalysisUpdate>();
         Add(EnrichmentSection.Consensus, cmd.Consensus is not null,
-            s => SectionUpdate.For<ConsensusOptions>(opt => { if (cmd.Consensus is { } c)
+            s => SectionUpdate.For<ConsensusOptions>(opt =>
+            {
+                if (cmd.Consensus is { } c)
                 {
                     c.ApplyTo(opt);
                 }
             }, s));
         Add(EnrichmentSection.Alerts, cmd.Alerts is not null,
-            s => SectionUpdate.For<AlertOptions>(opt => { if (cmd.Alerts is { } a)
+            s => SectionUpdate.For<AlertOptions>(opt =>
+            {
+                if (cmd.Alerts is { } a)
                 {
                     a.ApplyTo(opt);
                 }
             }, s));
         Add(EnrichmentSection.Derived, cmd.DerivedEnabled is not null,
-            s => SectionUpdate.For<DerivedOptions>(opt => { if (cmd.DerivedEnabled is { } d)
+            s => SectionUpdate.For<DerivedOptions>(opt =>
+            {
+                if (cmd.DerivedEnabled is { } d)
                 {
                     opt.Enabled = d;
                 }
             }, s));
         Add(EnrichmentSection.Trends, cmd.TrendsEnabled is not null,
-            s => SectionUpdate.For<TrendOptions>(opt => { if (cmd.TrendsEnabled is { } t)
+            s => SectionUpdate.For<TrendOptions>(opt =>
+            {
+                if (cmd.TrendsEnabled is { } t)
                 {
                     opt.Enabled = t;
                 }
             }, s));
         Add(EnrichmentSection.Indices, cmd.Indices is not null,
-            s => SectionUpdate.For<IndexOptions>(opt => { if (cmd.Indices is { } i)
+            s => SectionUpdate.For<IndexOptions>(opt =>
+            {
+                if (cmd.Indices is { } i)
                 {
                     i.ApplyTo(opt);
                 }

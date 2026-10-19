@@ -8,11 +8,11 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
+using Njord.Forecast;
 using Njord.Messages.Budget;
 using Njord.Messages.Forecast;
-using Njord.Tests.Shared;
 using Njord.Model;
-using Njord.Forecast;
+using Njord.Tests.Shared;
 using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.OpenMeteo.Tests;

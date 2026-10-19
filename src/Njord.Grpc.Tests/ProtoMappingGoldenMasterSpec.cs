@@ -3,8 +3,8 @@ using Google.Protobuf;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Pipeline;
-using Njord.Tests.Shared;
 using Njord.Model;
+using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
 

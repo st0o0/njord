@@ -2,8 +2,8 @@ using Microsoft.Extensions.Options;
 using Njord.Consensus;
 using Njord.Consensus.Querying;
 using Njord.Messages.Trends;
-using Njord.Trends.Configuration;
 using Njord.Model;
+using Njord.Trends.Configuration;
 
 namespace Njord.Trends;
 

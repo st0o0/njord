@@ -2,11 +2,11 @@ using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Configuration;
+using Njord.Forecast;
+using Njord.Model;
 using Njord.Mqtt;
 using Njord.Mqtt.Topics;
 using Njord.Tests.Shared;
-using Njord.Model;
-using Njord.Forecast;
 
 namespace Njord.Pipeline.Tests;
 

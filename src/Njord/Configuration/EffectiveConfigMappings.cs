@@ -4,9 +4,9 @@ using Njord.Core.Configuration.Polling;
 using Njord.Derived.Configuration;
 using Njord.Indices.Configuration;
 using Njord.Messages.Config;
+using Njord.Model;
 using Njord.Pipeline.Configuration;
 using Njord.Trends.Configuration;
-using Njord.Model;
 
 namespace Njord.Configuration;
 
