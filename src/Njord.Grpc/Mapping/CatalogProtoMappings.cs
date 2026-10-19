@@ -1,6 +1,5 @@
 using Njord.Grpc.V2;
 using Njord.Messages.Config;
-using CoverageTier = Njord.Model.CoverageTier;
 
 namespace Njord.Grpc.Mapping;
 
@@ -14,41 +13,8 @@ internal static class CatalogProtoMappings
         return response;
     }
 
-    public static ModelInfo ToProto(this CatalogModel model)
-    {
-        var info = new ModelInfo { Id = model.Id };
-        if (model.Coverage is not { } coverage)
-        {
-            return info;
-        }
-
-        info.DisplayName = coverage.DisplayName ?? model.Id;
-        info.Provider = coverage.Provider ?? "";
-        info.Region = coverage.Region;
-        info.CoverageTier = coverage.Tier switch
-        {
-            CoverageTier.Global => V2.CoverageTier.Global,
-            CoverageTier.Continental => V2.CoverageTier.Continental,
-            CoverageTier.Regional => V2.CoverageTier.Regional,
-            _ => V2.CoverageTier.Unspecified,
-        };
-        if (coverage.MaxForecastHours.HasValue)
-        {
-            info.MaxForecastHours = coverage.MaxForecastHours.Value;
-        }
-
-        if (coverage.ResolutionKm.HasValue)
-        {
-            info.ResolutionKm = coverage.ResolutionKm.Value;
-        }
-
-        if (coverage.Description is not null)
-        {
-            info.Description = coverage.Description;
-        }
-
-        return info;
-    }
+    public static ModelInfo ToProto(this CatalogModel model) =>
+        new() { Id = model.Id };
 
     public static LocationInfo ToProto(this CatalogLocation location) =>
         new()

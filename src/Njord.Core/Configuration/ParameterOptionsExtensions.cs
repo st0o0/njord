@@ -1,4 +1,3 @@
-using Njord.Model;
 
 namespace Njord.Core.Configuration;
 

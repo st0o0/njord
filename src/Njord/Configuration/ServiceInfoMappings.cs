@@ -19,7 +19,7 @@ public static class ServiceInfoMappings
             RequestBudget.OpenMeteoFreeTierDailyLimit,
             ActiveEnrichments(alerts));
 
-    // Locations in configuration order, each served by the configured models; models carry their coverage.
+    // Locations in configuration order, each served by the configured models.
     public static CatalogResult ToCatalog(this NjordOptions scope)
     {
         var modelIds = scope.Models.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -27,7 +27,7 @@ public static class ServiceInfoMappings
             .Select(location => new CatalogLocation(new Location(location.Name, location.Latitude, location.Longitude), modelIds))
             .ToList();
         var models = modelIds
-            .Select(modelId => new CatalogModel(modelId, ModelCoverageRegistry.Get(modelId)))
+            .Select(modelId => new CatalogModel(modelId))
             .ToList();
 
         return new CatalogResult(locations, models);

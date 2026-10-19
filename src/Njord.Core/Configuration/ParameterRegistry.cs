@@ -1,6 +1,6 @@
 using System.Collections.Frozen;
 
-namespace Njord.Model;
+namespace Njord.Core.Configuration;
 
 public static class ParameterRegistry
 {

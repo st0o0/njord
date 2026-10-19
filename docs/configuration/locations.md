@@ -46,10 +46,6 @@ Lucerne is validated against `icon_eu` and `meteoswiss_icon_ch2`, Berlin against
 
 Every location adds three API calls per poll cycle (Weather, Air Quality, Flood). Two locations at the default 60-minute interval project to 4,320 calls per month. See [Budget](./budget).
 
-## Model coverage validation
-
-At startup njord checks each effective model against known geographic bounding boxes and logs a warning when a model does not cover a location. See [Models](./models).
-
 ## Topic naming
 
 The location name is slugified for MQTT topics: lowercased, non-alphanumeric characters replaced with underscores. `"New York"` becomes `new_york`, as in `njord/new_york/weather/state`.

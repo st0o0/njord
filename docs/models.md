@@ -11,11 +11,11 @@ njord fetches weather from the Open-Meteo **Ensemble Mean** API by default. One 
 | Resolution | Ensemble grid | Up to ~1 km for regional models |
 | Used for | All weather data and alerts | Catalog and coverage validation |
 
-The `Njord:Models` list is still required at startup (at least one id). It feeds the gRPC catalog (`GetCatalog`) and the coverage check described in [Models configuration](/configuration/models). It does not add polling calls.
+The `Njord:Models` list is still required at startup (at least one id). It feeds the gRPC catalog (`GetCatalog`). It does not add polling calls.
 
 ## Model catalog
 
-njord knows coverage data for the models below (`ModelCoverageRegistry`): tier, region, maximum forecast horizon and resolution. Models not listed here are accepted; njord just cannot check their coverage.
+The models below are reference data for choosing ids. njord does not check coverage at startup; any model id Open-Meteo accepts can be configured.
 
 ## Global models
 

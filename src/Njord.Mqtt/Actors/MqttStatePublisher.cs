@@ -1,3 +1,4 @@
+using Njord.Core.Configuration;
 using Akka;
 using Akka.Actor;
 using Akka.Event;

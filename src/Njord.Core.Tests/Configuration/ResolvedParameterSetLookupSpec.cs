@@ -1,6 +1,6 @@
 using Njord.Core.Configuration;
 
-namespace Njord.Model.Tests;
+namespace Njord.Core.Tests.Configuration;
 
 public sealed class ResolvedParameterSetLookupSpec
 {

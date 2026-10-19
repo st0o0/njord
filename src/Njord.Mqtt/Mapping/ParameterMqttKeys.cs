@@ -1,3 +1,4 @@
+using Njord.Core.Configuration;
 using System.Collections.Frozen;
 using Njord.Model;
 

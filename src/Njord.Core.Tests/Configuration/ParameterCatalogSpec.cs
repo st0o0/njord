@@ -1,4 +1,5 @@
-namespace Njord.Model.Tests;
+using Njord.Core.Configuration;
+namespace Njord.Core.Tests.Configuration;
 
 public sealed class ParameterCatalogSpec
 {

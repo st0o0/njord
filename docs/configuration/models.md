@@ -51,4 +51,4 @@ Put regional ids (`icon_d2`, `meteoswiss_icon_ch1`) in the per-location `Models`
 
 ## Choosing a model id
 
-Pick one global or continental id that covers all locations (`icon_eu` for Europe, `icon_global` elsewhere). Add regional ids per location only if you want the catalog and coverage check to reflect them. Budget is unaffected: see [Budget](./budget).
+Pick one global or continental id that covers all locations (`icon_eu` for Europe, `icon_global` elsewhere). Add regional ids per location only if you want the catalog to reflect them. Budget is unaffected: see [Budget](./budget).

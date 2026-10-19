@@ -1,3 +1,4 @@
+using Njord.Core.Configuration;
 using Njord.Model;
 using Njord.Mqtt.Mapping;
 

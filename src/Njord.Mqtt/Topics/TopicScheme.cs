@@ -5,26 +5,11 @@ namespace Njord.Mqtt.Topics;
 
 public static class TopicScheme
 {
-    public static string DeviceId(string location, WeatherModel model)
-        => $"njord_{Slug(location)}_{model.Id}";
-
-    public static string ConfigTopic(string discoveryPrefix, string deviceId)
-        => $"{discoveryPrefix}/device/{deviceId}/config";
-
-    public static string HorizonTopic(string baseTopic, string location, WeatherModel model, string horizon)
-        => $"{baseTopic}/{Slug(location)}/{model.Id}/{horizon}";
-
     public static string AvailabilityTopic(string baseTopic)
         => $"{baseTopic}/status";
 
     public static string DomainTopic(string baseTopic, string location, DomainKind domain, string parameter)
         => $"{baseTopic}/{Slug(location)}/{domain.ToTopicSegment()}/{parameter}";
-
-    public static string HourlyUniqueId(string location, WeatherModel model, ParameterDef parameter, int horizonHours)
-        => $"{DeviceId(location, model)}_{parameter.ToMqttKey()}_h{horizonHours}";
-
-    public static string DailyUniqueId(string location, WeatherModel model, ParameterDef parameter, int dayOffset)
-        => $"{DeviceId(location, model)}_{parameter.ToMqttKey()}_d{dayOffset}";
 
     public static string EnrichmentDeviceId(string location, string typeName)
         => $"njord_{Slug(location)}_{typeName}";

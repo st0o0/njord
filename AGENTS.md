@@ -108,7 +108,7 @@ with optional MQTT state publishing.
   Pipeline Core and below plus Alerts; the host references all. Feature libraries
   never reference each other, checked by the lateral rule in `ZoneArchitectureSpec`,
   which also keeps actors, options, the config writer, `BudgetCalculator` and
-  `ModelCoverageRegistry` out of `Njord.Grpc` and public nested records out of every actor).
+  out of `Njord.Grpc` and public nested records out of every actor).
 
 ### Decisions
 
@@ -162,10 +162,8 @@ src/
   Njord.slnx
 
   # /Model/ — vocabulary types (zero Njord dependencies)
-  Njord.Model/                # ParameterDef, ParameterRegistry, WeatherModel, Location,
-                              #   DomainKind, DomainForecast<T>, WeatherPoint, AirQualityPoint, FloodPoint,
-                              #   SolarPoint, MarinePoint, Horizon, WeatherCondition, ResolvedParameterSet,
-                              #   ModelCoverageRegistry (no Njord references)
+  Njord.Model/                # Location, DomainKind, TimeResolution, DomainForecast<T>, WeatherPoint,
+                              #   AirQualityPoint, FloodPoint, SolarPoint, MarinePoint, Horizon (no Njord references)
 
   # /Contracts/ — message contracts
   Njord.Messages/             # Commands, queries, results, PipelineEvent and the alert contracts
@@ -225,7 +223,7 @@ src/
     Health/
 
   # /Tests/ — one test project per production project
-  Njord.Model.Tests/          # Vocabulary type specs (ParameterRegistry, Horizon, WeatherModel, etc.)
+  Njord.Model.Tests/          # Vocabulary type specs (Location, DomainKind, Horizon, etc.)
   Njord.Persistence.Tests/    # Persistence roundtrip and wire-format specs (Verify for the poll worker records)
   Njord.Messages.Tests/       # Alert contract specs (enums, thresholds, details)
   Njord.Core.Tests/           # Configuration, StreamConsumerActor

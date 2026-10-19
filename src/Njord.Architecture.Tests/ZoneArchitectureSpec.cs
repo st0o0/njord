@@ -72,8 +72,7 @@ public sealed class ZoneArchitectureSpec
             .Should().NotDependOnAnyTypesThat().HaveFullNameMatching(@"^Microsoft\.Extensions\.Options\.IOptions")
             .AndShould().NotDependOnAny(
                 typeof(ConfigView),
-                typeof(BudgetCalculator),
-                typeof(ModelCoverageRegistry))
+                typeof(BudgetCalculator))
             .Check(NjordArchitecture.Instance);
     }
 

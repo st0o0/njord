@@ -17,7 +17,7 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Model_references_no_other_Njord_assembly()
     {
-        Assert.Empty(NjordReferences<Model.ParameterDef>());
+        Assert.Empty(NjordReferences<Model.Location>());
     }
 
     [Fact]

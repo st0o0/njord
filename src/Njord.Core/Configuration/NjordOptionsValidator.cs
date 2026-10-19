@@ -17,8 +17,7 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
 
         if (parametersResolved && options.Locations.Count > 0 && options.Models.Count > 0)
         {
-            ValidateModelCoverage(options, failures);
-        }
+            }
 
         return failures.Count > 0
             ? ValidateOptionsResult.Fail(failures)
@@ -64,29 +63,6 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
         {
             failures.AddRange(ex.Errors);
             return false;
-        }
-    }
-
-    private static void ValidateModelCoverage(NjordOptions options, List<string> failures)
-    {
-        foreach (var location in options.Locations)
-        {
-            var effectiveModels = options.Models.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase);
-
-            foreach (var modelId in effectiveModels)
-            {
-                if (!ModelCoverageRegistry.IsPlausible(modelId, location.Latitude, location.Longitude))
-                {
-                    var coverage = ModelCoverageRegistry.Get(modelId);
-                    failures.Add(
-                        $"Model '{modelId}' may not cover location '{location.Name}' " +
-                        $"({location.Latitude:F2}°N, {location.Longitude:F2}°E): " +
-                        $"documented coverage: {coverage!.Region}" +
-                        (coverage.Bounds is { } b ? $" ({b.MinLat}–{b.MaxLat}°N, {b.MinLon}–{b.MaxLon}°E)" : "") +
-                        ". Remove this model from the location or global list if it does not return data.");
-                }
-                // Unknown models are allowed: forward compatible with new Open-Meteo models
-            }
         }
     }
 }

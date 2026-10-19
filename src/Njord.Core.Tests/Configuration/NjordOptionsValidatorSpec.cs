@@ -84,17 +84,4 @@ public sealed class NjordOptionsValidatorSpec
         Assert.True(result.Failed);
         Assert.Contains("ForecastDays", result.FailureMessage);
     }
-
-    [Fact]
-    public void A_model_outside_its_documented_coverage_is_rejected()
-    {
-        var options = ValidOptions();
-        options.Locations = [new LocationOptions { Name = "sydney", Latitude = -33.87, Longitude = 151.21 }];
-        options.Models = ["icon_d2"];
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Failed);
-        Assert.Contains("icon_d2", result.FailureMessage);
-    }
 }

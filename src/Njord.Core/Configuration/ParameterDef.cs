@@ -1,4 +1,4 @@
-namespace Njord.Model;
+namespace Njord.Core.Configuration;
 
 public enum ParameterGroup { Weather, Solar, Soil }
 
