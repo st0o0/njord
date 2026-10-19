@@ -308,7 +308,7 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
     {
         if (msg.RequestId != _attachRequestId)
         {
-            _log.Debug("Ignoring forecast SinkRef of request {0}", msg.RequestId);
+            _log.Debug("Ignoring forecast SinkRef of request {RequestId}", msg.RequestId);
             return;
         }
 
@@ -387,7 +387,7 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
         }
         catch (Exception ex)
         {
-            _log.Debug("Completing the old forecast branch failed: {0}", ex.Message);
+            _log.Debug("Completing the old forecast branch failed: {Message}", ex.Message);
         }
 
         _forecastQueue = null;
@@ -397,7 +397,7 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
     {
         var delay = AttachRetryPolicy.DelayWithJitter(_attachRetries);
         _attachRetries++;
-        _log.Warning(cause, "Not attached to the pipeline input: {0} - retrying in {1}", reason, delay);
+        _log.Warning(cause, "Not attached to the pipeline input: {Reason} - retrying in {Delay}", reason, delay);
         Timers.StartSingleTimer(AttachRetryTimer, new RetryAttach(), delay);
     }
 

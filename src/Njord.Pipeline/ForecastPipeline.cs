@@ -68,11 +68,7 @@ public sealed class ForecastPipeline : ReceiveActor
             .Run(_mat!)
             .PipeTo(Sender, Self,
                 sinkRef => new RequestForecastSinkCompleted(msg.RequestId, sinkRef),
-                ex =>
-                {
-                    _log.Error(ex, "Failed to create forecast input SinkRef");
-                    return new RequestForecastSinkFailed(msg.RequestId, ex);
-                });
+                ex => new RequestForecastSinkFailed(msg.RequestId, ex));
     }
 
     private void OnRequestPipelineOutput(RequestPipelineOutput msg)
@@ -81,11 +77,7 @@ public sealed class ForecastPipeline : ReceiveActor
             .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat!)
             .PipeTo(Sender, Self,
                 sourceRef => new RequestPipelineOutputCompleted(msg.RequestId, sourceRef),
-                ex =>
-                {
-                    _log.Error(ex, "Failed to create pipeline output SourceRef");
-                    return new RequestPipelineOutputFailed(msg.RequestId, ex);
-                });
+                ex => new RequestPipelineOutputFailed(msg.RequestId, ex));
     }
 
     private void OnAnalysisGraphEnded(AnalysisGraphEnded msg)
@@ -137,7 +129,7 @@ public sealed class ForecastPipeline : ReceiveActor
                         Telemetry.PipelineEvents.Add(1, new KeyValuePair<string, object?>("event_type", evt.GetType().Name));
                     }
 
-                    log.Debug("Processed {0}/{1}: {2} events", received.Location.Name, received.Domain, events.Count);
+                    log.Debug("Processed {Location}/{Domain}: {EventCount} events", received.Location.Name, received.Domain, events.Count);
                     return events;
                 };
             })

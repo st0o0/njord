@@ -11,6 +11,7 @@ public sealed class BudgetTracker : ReceivePersistentActor
 {
     private const int SnapshotInterval = 50;
 
+    private const int WarnThresholdPercent = 80;
     public override string PersistenceId => "budget-tracker";
 
     private readonly TimeProvider _timeProvider;
@@ -84,3 +85,42 @@ public sealed class BudgetTracker : ReceivePersistentActor
         });
     }
 }
+            var previous = _state;
+            LogBudgetTransitions(previous, newState);
+
+    private void LogBudgetTransitions(BudgetTrackerState previous, BudgetTrackerState current)
+    {
+        var limits = _config.Polling.ToBudgetAllowance();
+
+        if (current.CurrentMonth != previous.CurrentMonth)
+        {
+            _log.Info("Monthly budget reset, new month {Month}", current.CurrentMonth);
+        }
+        else if (current.CurrentDay != previous.CurrentDay)
+        {
+            _log.Info("Daily budget reset, new day {DayOfYear}", current.CurrentDay);
+        }
+
+        if (CrossedThreshold(previous.MonthlyUsed, current.MonthlyUsed, limits.Monthly))
+        {
+            _log.Warning("Monthly budget {Used}/{Limit} requests is above {ThresholdPercent} percent",
+                current.MonthlyUsed, limits.Monthly, WarnThresholdPercent);
+        }
+
+        if (CrossedThreshold(previous.DailyUsed, current.DailyUsed, limits.Daily))
+        {
+            _log.Warning("Daily budget {Used}/{Limit} requests is above {ThresholdPercent} percent",
+                current.DailyUsed, limits.Daily, WarnThresholdPercent);
+        }
+    }
+
+    private static bool CrossedThreshold(long previousUsed, long currentUsed, long limit)
+    {
+        if (limit <= 0)
+        {
+            return false;
+        }
+
+        var threshold = limit * WarnThresholdPercent / 100;
+        return previousUsed < threshold && currentUsed >= threshold;
+    }

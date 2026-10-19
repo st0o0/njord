@@ -102,10 +102,6 @@ public sealed class GrpcConsumer : ReceiveActor
             .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat)
             .PipeTo(Sender, Self,
                 sr => new RequestGrpcStreamCompleted(msg.RequestId, sr),
-                ex =>
-                {
-                    _log.Error(ex, "Failed to create gRPC stream SourceRef");
-                    return new RequestGrpcStreamFailed(msg.RequestId, ex);
-                });
+                ex => new RequestGrpcStreamFailed(msg.RequestId, ex));
     }
 }
