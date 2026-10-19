@@ -16,7 +16,7 @@ public sealed class PipelineEventMqttMappingsSpec
     private static readonly Location Lucerne = DomainData.Lucerne;
 
     private static readonly MqttPublishContext Context = new(
-        BaseTopic, AnalysisFixture.Parameters, AnalysisFixture.Horizons, AnalysisFixture.ForecastDays, Run);
+        BaseTopic, AnalysisFixture.Parameters, Run);
 
     private static readonly Alert FrostAlert = new(
         AlertType.Frost, AlertSeverity.Yellow, 0.75, new FrostDetails(-2.1, Horizon.Hours(4), 3),
@@ -101,6 +101,40 @@ public sealed class PipelineEventMqttMappingsSpec
     }
 
     [Fact]
+    public void An_air_quality_alert_event_maps_to_the_alert_state_message()
+    {
+        var pipelineEvent = new PipelineEvent.AirQualityAlertRaised(
+            Lucerne, new AirQualityAlert(AirQualityAlertType.Pollen, AlertSeverity.Orange, 85, 50, HoursUntil: 3), Run);
+
+        var message = Assert.Single(pipelineEvent.ToMqttMessages(Context));
+
+        Assert.Multiple(
+            () => Assert.Equal("njord/lucerne/alerts/pollen", message.Topic),
+            () => Assert.True(message.Retain),
+            () => Assert.Equal(
+                "{\"severity\":\"orange\",\"confidence\":1,\"trigger_value\":85,\"threshold\":50,"
+                + "\"peak_value\":null,\"hours_until\":3,\"duration_hours\":null}",
+                message.Payload));
+    }
+
+    [Fact]
+    public void A_flood_alert_event_maps_to_the_alert_state_message()
+    {
+        var pipelineEvent = new PipelineEvent.FloodAlertRaised(
+            Lucerne, new FloodAlert(FloodAlertType.FloodRisk, AlertSeverity.Red, 120, 100), Run);
+
+        var message = Assert.Single(pipelineEvent.ToMqttMessages(Context));
+
+        Assert.Multiple(
+            () => Assert.Equal("njord/lucerne/alerts/flood_risk", message.Topic),
+            () => Assert.True(message.Retain),
+            () => Assert.Equal(
+                "{\"severity\":\"red\",\"confidence\":1,\"trigger_value\":120,\"threshold\":100,"
+                + "\"peak_value\":null,\"hours_until\":null,\"duration_hours\":null}",
+                message.Payload));
+    }
+
+    [Fact]
     public void A_domain_event_without_points_maps_to_no_messages()
     {
         var empty = new PipelineEvent.FloodDataReceived(
@@ -112,9 +146,15 @@ public sealed class PipelineEventMqttMappingsSpec
     [Fact]
     public void Every_produced_event_type_reports_its_location_name()
     {
-        PipelineEvent[] events = [.. DomainEvents, new PipelineEvent.AlertRaised(Lucerne, FrostAlert, Run)];
+        PipelineEvent[] events =
+        [
+            .. DomainEvents,
+            new PipelineEvent.AlertRaised(Lucerne, FrostAlert, Run),
+            new PipelineEvent.AirQualityAlertRaised(Lucerne, AirQualityAlert.None(AirQualityAlertType.Pm25), Run),
+            new PipelineEvent.FloodAlertRaised(Lucerne, FloodAlert.None(FloodAlertType.FloodRain), Run),
+        ];
 
-        Assert.Equal(6, events.Length);
+        Assert.Equal(8, events.Length);
         Assert.All(events, e => Assert.Equal("Lucerne", e.ToLocationName()));
     }
 

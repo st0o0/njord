@@ -39,15 +39,14 @@ public sealed class NjordOptionsValidatorSpec
     }
 
     [Fact]
-    public void Empty_model_list_is_rejected()
+    public void Empty_model_list_is_valid_for_ensemble_only()
     {
         var options = ValidOptions();
         options.Models = [];
 
         var result = Validator.Validate(null, options);
 
-        Assert.True(result.Failed);
-        Assert.Contains("model", result.FailureMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.True(result.Succeeded, result.FailureMessage);
     }
 
     [Fact]
@@ -62,38 +61,14 @@ public sealed class NjordOptionsValidatorSpec
     }
 
     [Fact]
-    public void Empty_horizons_are_rejected()
+    public void Empty_horizons_are_accepted_as_unused()
     {
         var options = ValidOptions();
         options.Horizons = [];
 
         var result = Validator.Validate(null, options);
 
-        Assert.True(result.Failed);
-        Assert.Contains("horizon", result.FailureMessage, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public void Non_positive_horizons_are_rejected()
-    {
-        var options = ValidOptions();
-        options.Horizons = [3, 0];
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Failed);
-    }
-
-    [Fact]
-    public void Horizons_beyond_the_fetch_window_are_rejected()
-    {
-        var options = ValidOptions();
-        options.Horizons = [3, 120];
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Failed);
-        Assert.Contains("96", result.FailureMessage);
+        Assert.True(result.Succeeded, result.FailureMessage);
     }
 
     [Theory]

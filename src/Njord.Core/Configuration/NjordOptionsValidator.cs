@@ -5,15 +5,12 @@ namespace Njord.Core.Configuration;
 
 public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
 {
-    private const int FetchWindowHours = 96;
-
     public ValidateOptionsResult Validate(string? name, NjordOptions options)
     {
         List<string> failures = [];
 
         ValidateLocations(options, failures);
         ValidateModels(options, failures);
-        ValidateHorizons(options, failures);
         ValidateForecastDays(options, failures);
 
         var parametersResolved = TryResolveParameters(options, failures);
@@ -42,25 +39,9 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
 
     private static void ValidateModels(NjordOptions options, List<string> failures)
     {
-        if (options.Models.Count == 0)
-        {
-            failures.Add("At least one model id is required (e.g. icon_d2).");
-        }
-        else if (options.Models.Any(string.IsNullOrWhiteSpace))
+        if (options.Models.Any(string.IsNullOrWhiteSpace))
         {
             failures.Add("Model ids must be non-empty strings.");
-        }
-    }
-
-    private static void ValidateHorizons(NjordOptions options, List<string> failures)
-    {
-        if (options.Horizons.Count == 0)
-        {
-            failures.Add("At least one forecast horizon (hours) is required.");
-        }
-        else if (options.Horizons.Any(h => h <= 0 || h > FetchWindowHours))
-        {
-            failures.Add($"Horizons must be between 1 and {FetchWindowHours} hours (the fetched forecast window).");
         }
     }
 

@@ -20,8 +20,6 @@ public sealed class MqttStatePublisher : ReceiveActor
 {
     private readonly string _baseTopic;
     private readonly ResolvedParameterSet _parameters;
-    private readonly IReadOnlyList<int> _horizons;
-    private readonly int _forecastDays;
     private readonly TimeProvider _timeProvider;
     private readonly IMqttTransport _transport;
     private readonly TimeSpan _publishTimeout;
@@ -35,7 +33,6 @@ public sealed class MqttStatePublisher : ReceiveActor
     private sealed record PipelineResolveFailed(Exception Cause);
 
     public MqttStatePublisher(
-        IOptions<NjordOptions> options,
         IOptions<MqttOptions> mqttOptions,
         ResolvedParameterSet parameters,
         TimeProvider timeProvider,
@@ -43,11 +40,8 @@ public sealed class MqttStatePublisher : ReceiveActor
         MqttEgressTuning tuning,
         MqttSessionCounter sessionCounter)
     {
-        var opts = options.Value;
         _baseTopic = mqttOptions.Value.BaseTopic;
         _parameters = parameters;
-        _horizons = [.. opts.Horizons];
-        _forecastDays = opts.ForecastDays;
         _timeProvider = timeProvider;
         _transport = transport;
         _publishTimeout = tuning.PublishTimeout;
@@ -83,8 +77,6 @@ public sealed class MqttStatePublisher : ReceiveActor
         var mat = Context.Materializer();
         var baseTopic = _baseTopic;
         var parameters = _parameters;
-        var horizons = _horizons;
-        var forecastDays = _forecastDays;
         var timeProvider = _timeProvider;
         var lastPublished = new PublishedPayloads(_sessionCounter);
         var transport = _transport;
@@ -101,11 +93,13 @@ public sealed class MqttStatePublisher : ReceiveActor
                 PipelineEvent.SolarDataReceived s => $"data {s.Location.Name}/solar",
                 PipelineEvent.MarineDataReceived m => $"data {m.Location.Name}/marine",
                 PipelineEvent.AlertRaised r => $"enrich {r.Location.Name}/alerts",
+                PipelineEvent.AirQualityAlertRaised r => $"enrich {r.Location.Name}/alerts",
+                PipelineEvent.FloodAlertRaised r => $"enrich {r.Location.Name}/alerts",
                 _ => "?",
             }, _log)
             .SelectMany(pipelineEvent =>
             {
-                var context = new MqttPublishContext(baseTopic, parameters, horizons, forecastDays, timeProvider.GetUtcNow());
+                var context = new MqttPublishContext(baseTopic, parameters, timeProvider.GetUtcNow());
                 var location = pipelineEvent.ToLocationName();
                 return pipelineEvent.ToMqttMessages(context).Select(message => new OutgoingMessage(message, location));
             })
