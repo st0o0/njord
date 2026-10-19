@@ -66,4 +66,20 @@ public sealed class BudgetHealthCheckSpec
             () => Assert.Equal(HealthStatus.Degraded, before.Status),
             () => Assert.Equal(HealthStatus.Healthy, after.Status));
     }
+
+    [Fact(Timeout = 5000)]
+    public async Task The_check_reports_degraded_until_the_tracker_has_pushed_state()
+    {
+        var holder = new Njord.Core.AtomicStateHolder<BudgetStatusResult>();
+        var check = new BudgetHealthCheck(holder, Microsoft.Extensions.Options.Options.Create(new Njord.Core.Configuration.Health.HealthOptions()));
+        var ct = TestContext.Current.CancellationToken;
+
+        var before = await check.CheckHealthAsync(new HealthCheckContext(), ct);
+        holder.Update(new BudgetStatusResult(1_000, 100, 300_000, 10_000));
+        var after = await check.CheckHealthAsync(new HealthCheckContext(), ct);
+
+        Assert.Multiple(
+            () => Assert.Equal(HealthStatus.Degraded, before.Status),
+            () => Assert.Equal(HealthStatus.Healthy, after.Status));
+    }
 }

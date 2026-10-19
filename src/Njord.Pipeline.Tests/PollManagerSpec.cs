@@ -29,6 +29,7 @@ public sealed class PollManagerSpec : NjordActorSpec
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<TimeProvider>(_time);
+        services.AddSingleton<Njord.Core.AtomicStateHolder<Njord.Messages.Pipeline.PollHealthResult>>();
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations =

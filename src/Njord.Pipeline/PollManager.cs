@@ -31,16 +31,29 @@ public sealed class PollManager : ReceiveActor, IWithTimers
     private readonly TimeProvider _timeProvider;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly PollManagerConfig _config;
-    private PollManagerState _state;
+    private readonly AtomicStateHolder<PollHealthResult> _health;
+    private PollManagerState _stateValue;
+
+    private PollManagerState _state
+    {
+        get => _stateValue;
+        set
+        {
+            _stateValue = value;
+            _health.Update(value.GetPollHealth());
+        }
+    }
 
     public ITimerScheduler Timers { get; set; } = null!;
 
     public PollManager(
         IOptions<NjordOptions> options,
         ConfigView config,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        AtomicStateHolder<PollHealthResult> health)
     {
         _timeProvider = timeProvider;
+        _health = health;
         _config = PollManagerConfig.Create(options.Value.Locations);
         _state = PollManagerState.Create(_config, config.Polling.DiscoveryInterval, timeProvider.GetUtcNow());
 

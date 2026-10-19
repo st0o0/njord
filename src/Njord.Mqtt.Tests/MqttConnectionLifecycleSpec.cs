@@ -30,7 +30,8 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
                 transport,
                 FastTuning,
                 _sessionCounter,
-                _time)),
+                _time,
+                new Njord.Core.AtomicStateHolder<MqttConnectionStatusResult>())),
             $"mqtt-connection-{Guid.NewGuid():N}");
 
     private static Task WaitForOnline(ScriptedTransport transport, CancellationToken cancellationToken, int count = 1)

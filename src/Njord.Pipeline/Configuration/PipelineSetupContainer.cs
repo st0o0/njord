@@ -8,6 +8,7 @@ using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline.Health;
 using Servus.Akka;
 using Servus.Application.Startup;
@@ -22,6 +23,7 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
 
         services.TryAddSingleton(FetchTimeouts.Default);
 
+        services.TryAddSingleton<AtomicStateHolder<PollHealthResult>>();
         services.AddHealthChecks().AddCheck<PipelineHealthCheck>("pipeline", failureStatus: HealthStatus.Unhealthy);
 
         services.AddSingleton<IActorRegistration>(new PipelineActorRegistration());

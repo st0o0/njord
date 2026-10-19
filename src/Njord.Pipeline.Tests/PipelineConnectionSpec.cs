@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Akka.Actor;
 using Akka.Hosting;
 using Akka.Persistence;
@@ -60,7 +61,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
 
         var target = new PollTarget(new Location(options.Locations[0].Name, 0, 0));
         var worker = Sys.ActorOf(
-            Props.Create(() => new PollWorker(time, FetchTimeouts.Default, target.Id)),
+            Props.Create(() => new PollWorker(time, FetchTimeouts.Default, Options.Create(options), target.Id)),
             "real-worker");
         worker.Tell(new StartPolling(target, TimeSpan.FromMinutes(20)));
 

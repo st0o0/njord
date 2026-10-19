@@ -1,6 +1,7 @@
 using Akka.Actor;
 using Akka.Event;
 using Microsoft.Extensions.Options;
+using Njord.Core;
 using Njord.Core.Configuration.Mqtt;
 using Njord.Mqtt.Health;
 using Njord.Mqtt.Topics;
@@ -31,7 +32,18 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
     private readonly MqttEgressTuning _tuning;
     private readonly MqttSessionCounter _sessionCounter;
     private readonly TimeProvider _timeProvider;
-    private MqttConnectionState _state = MqttConnectionState.Empty;
+    private readonly AtomicStateHolder<MqttConnectionStatusResult> _health;
+    private MqttConnectionState _stateValue = MqttConnectionState.Empty;
+
+    private MqttConnectionState _state
+    {
+        get => _stateValue;
+        set
+        {
+            _stateValue = value;
+            _health.Update(new MqttConnectionStatusResult(value.IsConnected, value.DisconnectedSince));
+        }
+    }
 
     private readonly string _availabilityTopic;
     private readonly string _haStatusTopic;
@@ -48,8 +60,11 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
         IMqttTransport transport,
         MqttEgressTuning tuning,
         MqttSessionCounter sessionCounter,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        AtomicStateHolder<MqttConnectionStatusResult> health)
     {
+        _health = health;
+        _state = MqttConnectionState.Empty;
         _mqttOptions = mqttOptions.Value;
         _connection = connection;
         _transport = transport;

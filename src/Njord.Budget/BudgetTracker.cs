@@ -1,5 +1,6 @@
 using Akka.Event;
 using Akka.Persistence;
+using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Budget;
@@ -10,19 +11,21 @@ namespace Njord.Budget;
 public sealed class BudgetTracker : ReceivePersistentActor
 {
     private const int SnapshotInterval = 50;
-
     private const int WarnThresholdPercent = 80;
+
     public override string PersistenceId => "budget-tracker";
 
     private readonly TimeProvider _timeProvider;
     private readonly ConfigView _config;
     private readonly ILoggingAdapter _log = Context.GetLogger();
+    private readonly AtomicStateHolder<BudgetStatusResult> _health;
     private BudgetTrackerState _state;
 
-    public BudgetTracker(TimeProvider timeProvider, ConfigView config)
+    public BudgetTracker(TimeProvider timeProvider, ConfigView config, AtomicStateHolder<BudgetStatusResult> health)
     {
         _timeProvider = timeProvider;
         _config = config;
+        _health = health;
 
         var now = timeProvider.GetUtcNow();
         _state = BudgetTrackerState.Empty with { CurrentMonth = now.Month, CurrentDay = now.DayOfYear };
@@ -39,6 +42,8 @@ public sealed class BudgetTracker : ReceivePersistentActor
                 _state = snapshot.FromPersistence(_timeProvider.GetUtcNow());
             }
         });
+
+        Recover<RecoveryCompleted>(_ => PublishState());
 
         Command<RecordApiCall>(OnRecordApiCall);
         Command<QueryBudgetUsage>(_ => Sender.Tell(_state.ToBudgetUsage(), Self));
@@ -65,6 +70,16 @@ public sealed class BudgetTracker : ReceivePersistentActor
         return new BudgetStatusResult(_state.MonthlyUsed, _state.DailyUsed, limits.Monthly, limits.Daily);
     }
 
+    private void PublishState()
+    {
+        var status = GetStatus();
+        Telemetry.SetDailyUsed(status.DailyUsed);
+        Telemetry.SetMonthlyUsed(status.MonthlyUsed);
+        Telemetry.SetDailyLimit(status.DailyLimit);
+        Telemetry.SetMonthlyLimit(status.MonthlyLimit);
+        _health.Update(status);
+    }
+
     private void MaybeSnapshot()
     {
         if (LastSequenceNr % SnapshotInterval == 0)
@@ -80,13 +95,12 @@ public sealed class BudgetTracker : ReceivePersistentActor
 
         Persist(evt, _ =>
         {
+            var previous = _state;
             _state = newState;
+            LogBudgetTransitions(previous, newState);
             MaybeSnapshot();
         });
     }
-}
-            var previous = _state;
-            LogBudgetTransitions(previous, newState);
 
     private void LogBudgetTransitions(BudgetTrackerState previous, BudgetTrackerState current)
     {
@@ -124,3 +138,4 @@ public sealed class BudgetTracker : ReceivePersistentActor
         var threshold = limit * WarnThresholdPercent / 100;
         return previousUsed < threshold && currentUsed >= threshold;
     }
+}

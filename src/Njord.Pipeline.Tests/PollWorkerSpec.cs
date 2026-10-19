@@ -5,9 +5,11 @@ using Akka.Persistence;
 using Akka.TestKit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Actors;
+using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
@@ -25,6 +27,8 @@ public sealed class PollWorkerSpec : NjordActorSpec
     private static readonly Location Lucerne = new("lucerne", 0, 0);
     private static readonly PollTarget Target = new(Lucerne);
 
+    private static readonly IList<DomainKind> EnabledDomains = new NjordOptions().EnabledDomains;
+
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     private TestProbe _gateway = null!;
     private TestProbe _manager = null!;
@@ -33,6 +37,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
     {
         services.AddSingleton<TimeProvider>(_time);
         services.AddSingleton(FetchTimeouts.Default);
+        services.AddSingleton(Options.Create(new NjordOptions()));
     }
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider) =>
@@ -61,7 +66,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
     // A poll round asks every enabled domain; each one is answered with the same reply, retargeted to its domain.
     private async Task AnswerAsync(FetchDomainResponse reply, CancellationToken ct)
     {
-        foreach (var _ in PollWorker.EnabledDomains)
+        foreach (var _ in EnabledDomains)
         {
             var request = await ExpectRequestAsync(ct);
             _gateway.LastSender.Tell(ForDomain(reply, request.Domain));
@@ -93,10 +98,21 @@ public sealed class PollWorkerSpec : NjordActorSpec
         await ExpectTerminatedAsync(worker, cancellationToken: ct);
     }
 
-    [Fact]
-    public void The_budget_projection_counts_one_call_per_enabled_domain()
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_poll_round_asks_only_the_configured_domains()
     {
-        Assert.Equal(BudgetCalculator.DomainCallsPerLocation, PollWorker.EnabledDomains.Length);
+        var ct = TestContext.Current.CancellationToken;
+        var options = Options.Create(new NjordOptions { EnabledDomains = [DomainKind.Weather, DomainKind.Flood] });
+        var worker = Sys.ActorOf(
+            Props.Create(() => new PollWorker(_time, FetchTimeouts.Default, options, TargetId)),
+            $"worker-{Guid.NewGuid():N}");
+
+        worker.Tell(new StartPolling(Target, Discovery));
+
+        var first = await ExpectRequestAsync(ct);
+        var second = await ExpectRequestAsync(ct);
+        await _gateway.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
+        Assert.Equal([DomainKind.Weather, DomainKind.Flood], new[] { first.Domain, second.Domain }.Order());
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -243,7 +259,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
         var inFlight = new List<(IActorRef Sender, DomainKind Domain)>();
-        foreach (var _ in PollWorker.EnabledDomains)
+        foreach (var _ in EnabledDomains)
         {
             var request = await ExpectRequestAsync(ct);
             inFlight.Add((_gateway.LastSender, request.Domain));

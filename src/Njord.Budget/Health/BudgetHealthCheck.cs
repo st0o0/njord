@@ -1,38 +1,22 @@
-using Akka.Actor;
-using Akka.Hosting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Njord.Core;
-using Njord.Core.Actors;
 using Njord.Core.Configuration.Health;
 using Njord.Messages.Budget;
 
 namespace Njord.Budget.Health;
 
 internal sealed class BudgetHealthCheck(
-    ActorRegistry actorRegistry,
+    AtomicStateHolder<BudgetStatusResult> holder,
     IOptions<HealthOptions> options) : IHealthCheck
 {
-    private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
-
-    public async Task<HealthCheckResult> CheckHealthAsync(
+    public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        if (!actorRegistry.TryGet<IBudgetTracker>(out var budgetTracker))
-        {
-            return HealthCheckResult.Unhealthy("Budget tracker not available");
-        }
-
-        try
-        {
-            var result = await budgetTracker.Ask<BudgetStatusResult>(
-                new QueryBudgetStatus(), AskTimeout, cancellationToken);
-            return Evaluate(result, options.Value.BudgetDegradedBelowPercent);
-        }
-        catch (AskTimeoutException)
-        {
-            return HealthCheckResult.Unhealthy("Budget tracker unresponsive");
-        }
+        var status = holder.Current;
+        return Task.FromResult(status is null
+            ? HealthCheckResult.Degraded("No budget data yet")
+            : Evaluate(status, options.Value.BudgetDegradedBelowPercent));
     }
 
     internal static HealthCheckResult Evaluate(BudgetStatusResult status, double degradedBelowPercent)

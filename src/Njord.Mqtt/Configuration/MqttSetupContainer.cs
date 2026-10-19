@@ -33,6 +33,7 @@ public sealed class MqttSetupContainer : IServiceSetupContainer
             services.TryAddSingleton<IMqttTransport>(static provider => provider.GetRequiredService<MqttNetPublisher>());
 
             services.TryAddSingleton<MqttSessionCounter>();
+            services.TryAddSingleton<AtomicStateHolder<MqttConnectionStatusResult>>();
             services.AddHealthChecks().AddCheck<MqttConnectionHealthCheck>("mqtt-connection", failureStatus: HealthStatus.Degraded);
 
             services.AddSingleton<IActorRegistration>(new MqttActorRegistration());
