@@ -127,7 +127,7 @@ public sealed class AlertAnalyzerSpec
         Assert.True(analyzer.Enabled);
     }
 
-    private static AlertType[] AllTypes() => Enum.GetValues<AlertType>();
+    private static AlertType[] AllTypes() => Enum.GetValues<AlertType>().Where(t => t.IsWeather()).ToArray();
 
     private static AlertAnalyzer CreateAnalyzer(bool enabled = true) => FeatureServices.Alerts(Time, enabled);
 

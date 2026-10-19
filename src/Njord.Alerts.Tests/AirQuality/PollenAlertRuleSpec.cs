@@ -1,3 +1,5 @@
+using Njord.Tests.Shared;
+using Njord.Alerts.Tests.Rules;
 using Njord.Alerts.AirQuality;
 using Njord.Messages.Alerts;
 using Njord.Model;
@@ -17,7 +19,7 @@ public sealed class PollenAlertRuleSpec
     [InlineData(100.0, AlertSeverity.Red, 100.0)]
     public void Severity_boundaries_are_inclusive(double value, AlertSeverity severity, double threshold)
     {
-        var alert = Rule.Evaluate(Day((_, p) => p with { BirchPollen = value }), Now);
+        var alert = Rule.Evaluate(Day((_, p) => p with { BirchPollen = value }), AlertRuleFixture.Defaults, Now);
 
         Assert.Equal(severity, alert.Severity);
         Assert.Equal(threshold, alert.Threshold);
@@ -38,9 +40,9 @@ public sealed class PollenAlertRuleSpec
             _ => p with { Mugwort = 60.0 },
         });
 
-        var alert = Rule.Evaluate(forecast, Now);
+        var alert = Rule.Evaluate(forecast, AlertRuleFixture.Defaults, Now);
 
-        Assert.Equal(new AirQualityAlert(AirQualityAlertType.Pollen, AlertSeverity.Orange, 60.0, 50.0, 6), alert);
+        Assert.Equal(UnifiedAlert.Of(AlertType.Pollen, AlertSeverity.Orange, 60.0, 50.0, 6), alert);
     }
 
     [Fact]
@@ -52,15 +54,15 @@ public sealed class PollenAlertRuleSpec
             GrassPollen = h == 9 ? 120.0 : 2.0,
         });
 
-        var alert = Rule.Evaluate(forecast, Now);
+        var alert = Rule.Evaluate(forecast, AlertRuleFixture.Defaults, Now);
 
-        Assert.Equal(new AirQualityAlert(AirQualityAlertType.Pollen, AlertSeverity.Red, 120.0, 100.0, 9), alert);
+        Assert.Equal(UnifiedAlert.Of(AlertType.Pollen, AlertSeverity.Red, 120.0, 100.0, 9), alert);
     }
 
     [Fact]
     public void Missing_pollen_data_returns_the_none_alert()
     {
-        Assert.Equal(AirQualityAlert.None(AirQualityAlertType.Pollen), Rule.Evaluate(Day(), Now));
+        Assert.Equal(Alert.None(AlertType.Pollen), Rule.Evaluate(Day(), AlertRuleFixture.Defaults, Now));
     }
 
     [Fact]
@@ -70,7 +72,7 @@ public sealed class PollenAlertRuleSpec
         var late = new AirQualityPoint(Now.AddHours(30), 5.0, 10.0, 40.0, BirchPollen: 500.0);
         forecast = forecast with { Points = forecast.Points.Add(late) };
 
-        Assert.Equal(AirQualityAlertType.Pollen, Rule.Evaluate(forecast, Now).Type);
-        Assert.Equal(AlertSeverity.None, Rule.Evaluate(forecast, Now).Severity);
+        Assert.Equal(AlertType.Pollen, Rule.Evaluate(forecast, AlertRuleFixture.Defaults, Now).Type);
+        Assert.Equal(AlertSeverity.None, Rule.Evaluate(forecast, AlertRuleFixture.Defaults, Now).Severity);
     }
 }

@@ -31,7 +31,7 @@ public sealed class AlertAnalyzer
     {
         var ordered = rules.OrderBy(rule => rule.Type).ToList();
         var counts = ordered.CountBy(rule => rule.Type).ToDictionary();
-        var missing = Enum.GetValues<AlertType>().Where(type => !counts.ContainsKey(type)).ToList();
+        var missing = Enum.GetValues<AlertType>().Where(type => type.IsWeather() && !counts.ContainsKey(type)).ToList();
         var duplicated = counts.Where(c => c.Value > 1).Select(c => c.Key).ToList();
 
         if (missing.Count > 0 || duplicated.Count > 0)

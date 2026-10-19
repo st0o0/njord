@@ -20,6 +20,10 @@ public sealed class AlertTypeExtensionsSpec
         { AlertType.Visibility, "visibility" },
         { AlertType.TropicalNight, "tropical-night" },
         { AlertType.Humidity, "humidity" },
+        { AlertType.Pollen, "pollen" },
+        { AlertType.Pm25, "pm2_5" },
+        { AlertType.FloodRisk, "flood_risk" },
+        { AlertType.FloodRain, "flood_rain" },
     };
 
     [Theory]
@@ -44,5 +48,17 @@ public sealed class AlertTypeExtensionsSpec
 
         Assert.Equal("type", ex.ParamName);
         Assert.Equal((AlertType)999, ex.ActualValue);
+    }
+
+    [Theory]
+    [InlineData(AlertType.Frost, true)]
+    [InlineData(AlertType.Humidity, true)]
+    [InlineData(AlertType.Pollen, false)]
+    [InlineData(AlertType.Pm25, false)]
+    [InlineData(AlertType.FloodRisk, false)]
+    [InlineData(AlertType.FloodRain, false)]
+    public void IsWeather_separates_weather_from_air_quality_and_flood(AlertType type, bool expected)
+    {
+        Assert.Equal(expected, type.IsWeather());
     }
 }

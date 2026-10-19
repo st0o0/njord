@@ -1,9 +1,10 @@
 using Njord.Core.Domain;
 using Njord.Messages.Alerts;
+using Njord.Model;
 
 namespace Njord.Alerts.AirQuality;
 
-public sealed class AirQualityAlertEnrichment(IReadOnlyList<IAirQualityAlertRule> rules, bool enabled)
+public sealed class AirQualityAlertEnrichment(IReadOnlyList<IAlertRule<DomainForecast<AirQualityPoint>>> rules, AlertSettings settings, bool enabled)
     : IEnrichment<AirQualityAlertInput>
 {
     public IReadOnlyList<EnrichmentEvent> Evaluate(AirQualityAlertInput input, TimeProvider time)
@@ -17,9 +18,9 @@ public sealed class AirQualityAlertEnrichment(IReadOnlyList<IAirQualityAlertRule
         return
         [
             .. rules
-                .Select(rule => rule.Evaluate(input.AirQuality, now))
+                .Select(rule => rule.Evaluate(input.AirQuality, settings, now))
                 .Where(alert => alert.Severity != AlertSeverity.None)
-                .Select(alert => new AirQualityAlertRaisedEvent(input.Location, alert, now)),
+                .Select(alert => new AlertRaisedEvent(input.Location, alert, now)),
         ];
     }
 }

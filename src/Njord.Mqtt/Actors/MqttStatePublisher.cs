@@ -94,8 +94,6 @@ public sealed class MqttStatePublisher : ReceiveActor
                 PipelineEvent.SolarDataReceived s => $"data {s.Location.Name}/solar",
                 PipelineEvent.MarineDataReceived m => $"data {m.Location.Name}/marine",
                 PipelineEvent.AlertRaised r => $"enrich {r.Location.Name}/alerts",
-                PipelineEvent.AirQualityAlertRaised r => $"enrich {r.Location.Name}/alerts",
-                PipelineEvent.FloodAlertRaised r => $"enrich {r.Location.Name}/alerts",
                 _ => "?",
             }, _log)
             .SelectMany(pipelineEvent =>

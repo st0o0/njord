@@ -1,3 +1,4 @@
+using Njord.Alerts.Tests.Rules;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts.Flood;
 using Njord.Core.Domain;
@@ -49,12 +50,12 @@ public sealed class FloodProjectionSpec
     public void The_registered_risk_group_raises_end_to_end_and_is_affected_by_flood_only()
     {
         var group = new ProjectionGroup<FloodRiskInput>(
-            new FloodRiskProjector(), [new FloodRiskAlertEnrichment(new FloodRiskAlertRule(), true)]);
+            new FloodRiskProjector(), [new FloodRiskAlertEnrichment(new FloodRiskAlertRule(), AlertRuleFixture.Defaults, true)]);
         var current = new LocationForecast(Lucerne, Flood: Flood(Point(0, 500)));
 
         var events = group.Evaluate(current, null, new FakeTimeProvider(Now));
 
-        var raised = Assert.IsType<FloodAlertRaisedEvent>(Assert.Single(events));
+        var raised = Assert.IsType<AlertRaisedEvent>(Assert.Single(events));
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.Red, raised.Alert.Severity),
             () => Assert.True(group.AffectedBy(DomainKind.Flood)),

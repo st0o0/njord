@@ -23,18 +23,6 @@ public static class StatePayloadBuilder
         return messages;
     }
 
-    public static MqttMessage FromAlert(AirQualityAlert alert, Location location, string baseTopic)
-        => AlertMessage(baseTopic, location, alert.Type.ToWireName(), alert.ToPayload());
-
-    public static MqttMessage FromAlert(FloodAlert alert, Location location, string baseTopic)
-        => AlertMessage(baseTopic, location, alert.Type.ToWireName(), alert.ToPayload());
-
-    private static MqttMessage AlertMessage(string baseTopic, Location location, string segment, AlertPayload payload)
-        => new(
-            TopicScheme.EnrichmentSubTopic(baseTopic, location.Name, EnrichmentNames.Alerts, segment),
-            Serialize(payload, MqttPayloadJsonContext.Default.AlertPayload),
-            true);
-
     private static string Serialize<T>(T payload, JsonTypeInfo<T> typeInfo)
         => JsonSerializer.Serialize(payload, typeInfo);
 }

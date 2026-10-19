@@ -38,33 +38,4 @@ internal static class AlertProtoMappings
 
         return update;
     }
-
-    public static AlertUpdate ToProto(this AirQualityAlert alert) => new()
-    {
-        Alerts = { alert.Type.ToProto().ToProtoAlert(alert.Severity, alert.TriggerValue, alert.Threshold, alert.HoursUntil) },
-    };
-
-    public static AlertUpdate ToProto(this FloodAlert alert) => new()
-    {
-        Alerts = { alert.Type.ToProto().ToProtoAlert(alert.Severity, alert.TriggerValue, alert.Threshold, alert.HoursUntil) },
-    };
-
-    private static V2.Alert ToProtoAlert(
-        this V2.AlertType type, Messages.Alerts.AlertSeverity severity, double triggerValue, double threshold, int? hoursUntil)
-    {
-        var protoAlert = new V2.Alert
-        {
-            Type = type,
-            Severity = severity.ToProto(),
-            Confidence = 1.0,
-            TriggerValue = triggerValue,
-            Threshold = threshold,
-        };
-        if (hoursUntil is { } hu)
-        {
-            protoAlert.HoursUntil = hu;
-        }
-
-        return protoAlert;
-    }
 }

@@ -22,8 +22,6 @@ internal static class PipelineEventMappings
     public static PipelineEvent ToPipelineEvent(this EnrichmentEvent enrichmentEvent) => enrichmentEvent switch
     {
         AlertRaisedEvent raised => new PipelineEvent.AlertRaised(raised.Location, raised.Alert, raised.Timestamp),
-        FloodAlertRaisedEvent raised => new PipelineEvent.FloodAlertRaised(raised.Location, raised.Alert, raised.Timestamp),
-        AirQualityAlertRaisedEvent raised => new PipelineEvent.AirQualityAlertRaised(raised.Location, raised.Alert, raised.Timestamp),
         _ => throw new ArgumentOutOfRangeException(
             nameof(enrichmentEvent), enrichmentEvent.GetType().Name, "No pipeline event for this enrichment event"),
     };

@@ -1,3 +1,5 @@
+using Njord.Tests.Shared;
+using Njord.Alerts.Tests.Rules;
 using Njord.Alerts.AirQuality;
 using Njord.Messages.Alerts;
 using static Njord.Alerts.Tests.AirQuality.AirQualityFixture;
@@ -16,7 +18,7 @@ public sealed class Pm25AlertRuleSpec
     [InlineData(50.0, AlertSeverity.Red, 50.0)]
     public void Severity_boundaries_follow_the_who_guideline(double value, AlertSeverity severity, double threshold)
     {
-        var alert = Rule.Evaluate(Day((_, p) => p with { Pm25 = value }), Now);
+        var alert = Rule.Evaluate(Day((_, p) => p with { Pm25 = value }), AlertRuleFixture.Defaults, Now);
 
         Assert.Equal(severity, alert.Severity);
         Assert.Equal(threshold, alert.Threshold);
@@ -25,9 +27,9 @@ public sealed class Pm25AlertRuleSpec
     [Fact]
     public void The_hourly_peak_and_its_offset_are_reported()
     {
-        var alert = Rule.Evaluate(Day((h, p) => p with { Pm25 = h == 5 ? 31.04 : 8.0 }), Now);
+        var alert = Rule.Evaluate(Day((h, p) => p with { Pm25 = h == 5 ? 31.04 : 8.0 }), AlertRuleFixture.Defaults, Now);
 
-        Assert.Equal(new AirQualityAlert(AirQualityAlertType.Pm25, AlertSeverity.Orange, 31.0, 25.0, 5), alert);
+        Assert.Equal(UnifiedAlert.Of(AlertType.Pm25, AlertSeverity.Orange, 31.0, 25.0, 5), alert);
     }
 
     [Fact]
@@ -35,6 +37,6 @@ public sealed class Pm25AlertRuleSpec
     {
         var empty = Day() with { Points = [] };
 
-        Assert.Equal(AirQualityAlert.None(AirQualityAlertType.Pm25), Rule.Evaluate(empty, Now));
+        Assert.Equal(Alert.None(AlertType.Pm25), Rule.Evaluate(empty, AlertRuleFixture.Defaults, Now));
     }
 }

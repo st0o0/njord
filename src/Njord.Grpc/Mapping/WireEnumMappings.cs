@@ -1,8 +1,6 @@
 using Njord.Model;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
-using DomainAirQualityAlertType = Njord.Messages.Alerts.AirQualityAlertType;
 using DomainAlertType = Njord.Messages.Alerts.AlertType;
-using DomainFloodAlertType = Njord.Messages.Alerts.FloodAlertType;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
 using ProtoDomain = Njord.Grpc.V2.Domain;
@@ -56,20 +54,10 @@ internal static class WireEnumMappings
         DomainAlertType.Visibility => ProtoAlertType.Visibility,
         DomainAlertType.TropicalNight => ProtoAlertType.TropicalNight,
         DomainAlertType.Humidity => ProtoAlertType.Humidity,
-        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
-    };
-
-    public static ProtoAlertType ToProto(this DomainAirQualityAlertType type) => type switch
-    {
-        DomainAirQualityAlertType.Pollen => ProtoAlertType.Pollen,
-        DomainAirQualityAlertType.Pm25 => ProtoAlertType.Pm25,
-        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
-    };
-
-    public static ProtoAlertType ToProto(this DomainFloodAlertType type) => type switch
-    {
-        DomainFloodAlertType.FloodRisk => ProtoAlertType.FloodRisk,
-        DomainFloodAlertType.FloodRain => ProtoAlertType.FloodRain,
+        DomainAlertType.Pollen => ProtoAlertType.Pollen,
+        DomainAlertType.Pm25 => ProtoAlertType.Pm25,
+        DomainAlertType.FloodRisk => ProtoAlertType.FloodRisk,
+        DomainAlertType.FloodRain => ProtoAlertType.FloodRain,
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 

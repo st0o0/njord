@@ -18,25 +18,30 @@ public static class FloodAlertWindow
         Math.Max(0, (int)(point.ValidFrom - now).TotalHours);
 }
 
-public sealed class FloodRiskAlertRule
+public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
 {
     public const double MedianFactor = 2.0;
 
-    public FloodAlert Evaluate(DomainForecast<FloodPoint> forecast, DateTimeOffset now)
+    public AlertType Type => AlertType.FloodRisk;
+
+    public Alert Evaluate(DomainForecast<FloodPoint> forecast, AlertSettings settings, DateTimeOffset now)
     {
-        var best = FloodAlert.None(FloodAlertType.FloodRisk);
+        var best = Alert.None(Type);
         foreach (var point in forecast.NextDays(now))
         {
             var (severity, threshold) = Classify(point);
             if (severity > best.Severity
                 || (severity == best.Severity && severity != AlertSeverity.None && point.Discharge > best.TriggerValue))
             {
-                best = new FloodAlert(FloodAlertType.FloodRisk, severity, Math.Round(point.Discharge, 1), Math.Round(threshold, 1), point.HoursFrom(now));
+                best = Build(Type, severity, Math.Round(point.Discharge, 1), Math.Round(threshold, 1), point.HoursFrom(now));
             }
         }
 
         return best;
     }
+
+    internal static Alert Build(AlertType type, AlertSeverity severity, double trigger, double threshold, int hoursUntil) =>
+        new(type, severity, 1.0, NoDetails.Instance, TriggerValue: trigger, Threshold: threshold, HoursUntil: hoursUntil, Level: ConfidenceLevel.High);
 
     public static (AlertSeverity Severity, double Threshold) Classify(FloodPoint point)
     {

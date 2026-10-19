@@ -33,8 +33,8 @@ public sealed class AlertResultSpec
     }
 
     [Fact]
-    public void AlertType_has_14_values()
+    public void AlertType_has_18_values()
     {
-        Assert.Equal(14, Enum.GetValues<AlertType>().Length);
+        Assert.Equal(18, Enum.GetValues<AlertType>().Length);
     }
 }

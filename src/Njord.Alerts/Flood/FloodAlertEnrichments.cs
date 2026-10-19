@@ -3,7 +3,7 @@ using Njord.Messages.Alerts;
 
 namespace Njord.Alerts.Flood;
 
-public sealed class FloodRiskAlertEnrichment(FloodRiskAlertRule rule, bool enabled) : IEnrichment<FloodRiskInput>
+public sealed class FloodRiskAlertEnrichment(FloodRiskAlertRule rule, AlertSettings settings, bool enabled) : IEnrichment<FloodRiskInput>
 {
     public IReadOnlyList<EnrichmentEvent> Evaluate(FloodRiskInput input, TimeProvider time)
     {
@@ -13,12 +13,12 @@ public sealed class FloodRiskAlertEnrichment(FloodRiskAlertRule rule, bool enabl
         }
 
         var now = time.GetUtcNow();
-        var alert = rule.Evaluate(input.Flood, now);
-        return alert.Severity == AlertSeverity.None ? [] : [new FloodAlertRaisedEvent(input.Location, alert, now)];
+        var alert = rule.Evaluate(input.Flood, settings, now);
+        return alert.Severity == AlertSeverity.None ? [] : [new AlertRaisedEvent(input.Location, alert, now)];
     }
 }
 
-public sealed class FloodRainAlertEnrichment(FloodRainAlertRule rule, bool enabled) : IEnrichment<FloodRainInput>
+public sealed class FloodRainAlertEnrichment(FloodRainAlertRule rule, AlertSettings settings, bool enabled) : IEnrichment<FloodRainInput>
 {
     public IReadOnlyList<EnrichmentEvent> Evaluate(FloodRainInput input, TimeProvider time)
     {
@@ -28,7 +28,7 @@ public sealed class FloodRainAlertEnrichment(FloodRainAlertRule rule, bool enabl
         }
 
         var now = time.GetUtcNow();
-        var alert = rule.Evaluate(input.Flood, input.Weather, now);
-        return alert.Severity == AlertSeverity.None ? [] : [new FloodAlertRaisedEvent(input.Location, alert, now)];
+        var alert = rule.Evaluate(input, settings, now);
+        return alert.Severity == AlertSeverity.None ? [] : [new AlertRaisedEvent(input.Location, alert, now)];
     }
 }

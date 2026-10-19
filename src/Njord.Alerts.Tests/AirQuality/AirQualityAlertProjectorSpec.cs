@@ -1,3 +1,4 @@
+using Njord.Alerts.Tests.Rules;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts.AirQuality;
 using Njord.Core.Domain;
@@ -40,12 +41,12 @@ public sealed class AirQualityAlertProjectorSpec
     public void The_registered_group_raises_events_end_to_end_from_a_location_forecast()
     {
         var group = new ProjectionGroup<AirQualityAlertInput>(
-            Projector, [new AirQualityAlertEnrichment([new Pm25AlertRule()], true)]);
+            Projector, [new AirQualityAlertEnrichment([new Pm25AlertRule()], AlertRuleFixture.Defaults, true)]);
         var current = new LocationForecast(Lucerne, AirQuality: Day((_, p) => p with { Pm25 = 60.0 }));
 
         var events = group.Evaluate(current, null, new FakeTimeProvider(Now));
 
-        var raised = Assert.IsType<AirQualityAlertRaisedEvent>(Assert.Single(events));
+        var raised = Assert.IsType<AlertRaisedEvent>(Assert.Single(events));
         Assert.Equal(AlertSeverity.Red, raised.Alert.Severity);
         Assert.True(group.AffectedBy(DomainKind.AirQuality));
         Assert.False(group.AffectedBy(DomainKind.Weather));

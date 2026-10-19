@@ -39,7 +39,7 @@ public sealed class StatePayloadGoldenMasterSpec
         var lucerne = Fixture.For(AlertScenario.Lucerne);
         var messages = StatePayloadBuilder.FromAlerts(lucerne.Alerts, BaseTopic);
 
-        foreach (var type in Enum.GetValues<AlertType>())
+        foreach (var type in Enum.GetValues<AlertType>().Where(t => t.IsWeather()))
         {
             var topic = $"{BaseTopic}/lucerne/alerts/{type.ToTopicSegment()}";
             var message = Assert.Single(messages, m => m.Topic == topic);

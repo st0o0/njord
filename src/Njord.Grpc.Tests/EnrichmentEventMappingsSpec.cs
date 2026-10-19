@@ -31,8 +31,8 @@ public sealed class EnrichmentEventMappingsSpec
     public void ToEnrichmentEvent_should_wrap_a_raised_air_quality_alert_in_enrichment_event()
     {
         var raisedAt = TestTimeConstants.BudgetEpoch;
-        var raised = new PipelineEvent.AirQualityAlertRaised(DomainData.Lucerne,
-            new AirQualityAlert(AirQualityAlertType.Pollen, DomainAlertSeverity.Orange, 85.0, 50.0, HoursUntil: 3),
+        var raised = new PipelineEvent.AlertRaised(DomainData.Lucerne,
+            UnifiedAlert.Of(DomainAlertType.Pollen, DomainAlertSeverity.Orange, 85.0, 50.0, hoursUntil: 3),
             raisedAt);
 
         var evt = raised.ToEnrichmentEvent();
@@ -49,8 +49,8 @@ public sealed class EnrichmentEventMappingsSpec
     public void ToEnrichmentEvent_should_wrap_a_raised_flood_alert_in_enrichment_event()
     {
         var raisedAt = TestTimeConstants.BudgetEpoch;
-        var raised = new PipelineEvent.FloodAlertRaised(DomainData.Lucerne,
-            new FloodAlert(FloodAlertType.FloodRisk, DomainAlertSeverity.Red, 120.0, 100.0),
+        var raised = new PipelineEvent.AlertRaised(DomainData.Lucerne,
+            UnifiedAlert.Of(DomainAlertType.FloodRisk, DomainAlertSeverity.Red, 120.0, 100.0),
             raisedAt);
 
         var evt = raised.ToEnrichmentEvent();

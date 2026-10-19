@@ -45,21 +45,4 @@ public abstract record PipelineEvent
 
         public AlertDetails Details => Alert.Details;
     }
-
-    public sealed record AirQualityAlertRaised(
-        Location Location,
-        AirQualityAlert Alert,
-        DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
-    {
-        Location IEnrichmentEvent.Location => Location;
-    }
-
-    public sealed record FloodAlertRaised(
-        Location Location,
-        FloodAlert Alert,
-        DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
-    {
-        Location IEnrichmentEvent.Location => Location;
-    }
-
 }

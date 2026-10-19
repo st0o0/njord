@@ -1,3 +1,4 @@
+using Njord.Alerts.Tests.Rules;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts.Flood;
 using Njord.Messages.Alerts;
@@ -15,13 +16,13 @@ public sealed class FloodAlertEnrichmentSpec
     {
         var input = new FloodRiskInput(Lucerne, Flood(Point(0, 160)));
 
-        var raised = Assert.IsType<FloodAlertRaisedEvent>(
-            Assert.Single(new FloodRiskAlertEnrichment(new FloodRiskAlertRule(), true).Evaluate(input, Time)));
+        var raised = Assert.IsType<AlertRaisedEvent>(
+            Assert.Single(new FloodRiskAlertEnrichment(new FloodRiskAlertRule(), AlertRuleFixture.Defaults, true).Evaluate(input, Time)));
 
         Assert.Multiple(
             () => Assert.Equal(Lucerne, raised.Location),
             () => Assert.Equal(Now, raised.Timestamp),
-            () => Assert.Equal(FloodAlertType.FloodRisk, raised.Alert.Type),
+            () => Assert.Equal(AlertType.FloodRisk, raised.Alert.Type),
             () => Assert.Equal(AlertSeverity.Orange, raised.Alert.Severity));
     }
 
@@ -32,8 +33,8 @@ public sealed class FloodAlertEnrichmentSpec
         var wild = new FloodRiskInput(Lucerne, Flood(Point(0, 500)));
 
         Assert.Multiple(
-            () => Assert.Empty(new FloodRiskAlertEnrichment(new FloodRiskAlertRule(), true).Evaluate(calm, Time)),
-            () => Assert.Empty(new FloodRiskAlertEnrichment(new FloodRiskAlertRule(), false).Evaluate(wild, Time)));
+            () => Assert.Empty(new FloodRiskAlertEnrichment(new FloodRiskAlertRule(), AlertRuleFixture.Defaults, true).Evaluate(calm, Time)),
+            () => Assert.Empty(new FloodRiskAlertEnrichment(new FloodRiskAlertRule(), AlertRuleFixture.Defaults, false).Evaluate(wild, Time)));
     }
 
     [Fact]
@@ -41,11 +42,11 @@ public sealed class FloodAlertEnrichmentSpec
     {
         var input = new FloodRainInput(Lucerne, Flood(Point(0, 110), Point(1, 130)), Rain(1.5));
 
-        var raised = Assert.IsType<FloodAlertRaisedEvent>(
-            Assert.Single(new FloodRainAlertEnrichment(new FloodRainAlertRule(), true).Evaluate(input, Time)));
+        var raised = Assert.IsType<AlertRaisedEvent>(
+            Assert.Single(new FloodRainAlertEnrichment(new FloodRainAlertRule(), AlertRuleFixture.Defaults, true).Evaluate(input, Time)));
 
         Assert.Multiple(
-            () => Assert.Equal(FloodAlertType.FloodRain, raised.Alert.Type),
-            () => Assert.Empty(new FloodRainAlertEnrichment(new FloodRainAlertRule(), false).Evaluate(input, Time)));
+            () => Assert.Equal(AlertType.FloodRain, raised.Alert.Type),
+            () => Assert.Empty(new FloodRainAlertEnrichment(new FloodRainAlertRule(), AlertRuleFixture.Defaults, false).Evaluate(input, Time)));
     }
 }

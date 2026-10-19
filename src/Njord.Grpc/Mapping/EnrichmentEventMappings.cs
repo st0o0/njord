@@ -16,20 +16,6 @@ internal static class EnrichmentEventMappings
             UpdatedAt = r.Timestamp.ToTimestamp(),
             Alerts = new AlertResult(r.Location, [r.Alert]).ToProto(),
         },
-        PipelineEvent.AirQualityAlertRaised r => new EnrichmentEvent
-        {
-            Location = r.Location.Name,
-            TypeName = EnrichmentNames.Alerts,
-            UpdatedAt = r.Timestamp.ToTimestamp(),
-            Alerts = r.Alert.ToProto(),
-        },
-        PipelineEvent.FloodAlertRaised r => new EnrichmentEvent
-        {
-            Location = r.Location.Name,
-            TypeName = EnrichmentNames.Alerts,
-            UpdatedAt = r.Timestamp.ToTimestamp(),
-            Alerts = r.Alert.ToProto(),
-        },
         _ => null,
     };
 

@@ -4,13 +4,6 @@ using Njord.Model;
 
 namespace Njord.Alerts.AirQuality;
 
-public interface IAirQualityAlertRule
-{
-    AirQualityAlertType Type { get; }
-
-    AirQualityAlert Evaluate(DomainForecast<AirQualityPoint> forecast, DateTimeOffset now);
-}
-
 internal static class AirQualityAlertWindow
 {
     public const int Hours = 24;

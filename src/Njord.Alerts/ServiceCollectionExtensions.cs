@@ -45,6 +45,7 @@ public static class ServiceCollectionExtensions
             [
                 new AirQualityAlertEnrichment(
                     [new PollenAlertRule(), new Pm25AlertRule()],
+                    sp.GetRequiredService<IOptions<AlertOptions>>().Value.ToSettings(),
                     sp.GetRequiredService<IOptions<AlertOptions>>().Value.Enabled),
             ]));
 
@@ -53,6 +54,7 @@ public static class ServiceCollectionExtensions
             [
                 new FloodRiskAlertEnrichment(
                     new FloodRiskAlertRule(),
+                    sp.GetRequiredService<IOptions<AlertOptions>>().Value.ToSettings(),
                     sp.GetRequiredService<IOptions<AlertOptions>>().Value.Enabled),
             ]));
 
@@ -61,6 +63,7 @@ public static class ServiceCollectionExtensions
             [
                 new FloodRainAlertEnrichment(
                     new FloodRainAlertRule(),
+                    sp.GetRequiredService<IOptions<AlertOptions>>().Value.ToSettings(),
                     sp.GetRequiredService<IOptions<AlertOptions>>().Value.Enabled),
             ]));
         return services;

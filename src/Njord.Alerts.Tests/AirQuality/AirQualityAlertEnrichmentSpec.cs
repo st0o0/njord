@@ -1,3 +1,4 @@
+using Njord.Alerts.Tests.Rules;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts.AirQuality;
 using Njord.Messages.Alerts;
@@ -10,19 +11,19 @@ public sealed class AirQualityAlertEnrichmentSpec
     private static readonly FakeTimeProvider Time = new(Now);
 
     private static AirQualityAlertEnrichment Create(bool enabled = true) =>
-        new([new PollenAlertRule(), new Pm25AlertRule()], enabled);
+        new([new PollenAlertRule(), new Pm25AlertRule()], AlertRuleFixture.Defaults, enabled);
 
     [Fact]
     public void Only_alerts_above_none_are_raised_with_the_location_and_time()
     {
         var input = new AirQualityAlertInput(Lucerne, Day((_, p) => p with { Pm25 = 20.0 }));
 
-        var raised = Assert.IsType<AirQualityAlertRaisedEvent>(Assert.Single(Create().Evaluate(input, Time)));
+        var raised = Assert.IsType<AlertRaisedEvent>(Assert.Single(Create().Evaluate(input, Time)));
 
         Assert.Multiple(
             () => Assert.Equal(Lucerne, raised.Location),
             () => Assert.Equal(Now, raised.Timestamp),
-            () => Assert.Equal(AirQualityAlertType.Pm25, raised.Alert.Type),
+            () => Assert.Equal(AlertType.Pm25, raised.Alert.Type),
             () => Assert.Equal(AlertSeverity.Yellow, raised.Alert.Severity));
     }
 
@@ -31,9 +32,9 @@ public sealed class AirQualityAlertEnrichmentSpec
     {
         var input = new AirQualityAlertInput(Lucerne, Day((_, p) => p with { Pm25 = 30.0, GrassPollen = 70.0 }));
 
-        var types = Create().Evaluate(input, Time).Cast<AirQualityAlertRaisedEvent>().Select(e => e.Alert.Type).ToList();
+        var types = Create().Evaluate(input, Time).Cast<AlertRaisedEvent>().Select(e => e.Alert.Type).ToList();
 
-        Assert.Equal([AirQualityAlertType.Pollen, AirQualityAlertType.Pm25], types);
+        Assert.Equal([AlertType.Pollen, AlertType.Pm25], types);
     }
 
     [Fact]

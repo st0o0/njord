@@ -3,9 +3,13 @@ using Njord.Model;
 
 namespace Njord.Alerts;
 
-public interface IAlertRule
+public interface IAlertRule<in TInput>
 {
     AlertType Type { get; }
 
-    Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now);
+    Alert Evaluate(TInput input, AlertSettings settings, DateTimeOffset now);
+}
+
+public interface IAlertRule : IAlertRule<DomainForecast<WeatherPoint>>
+{
 }

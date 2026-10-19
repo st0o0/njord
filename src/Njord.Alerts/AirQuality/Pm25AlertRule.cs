@@ -3,15 +3,15 @@ using Njord.Model;
 
 namespace Njord.Alerts.AirQuality;
 
-public sealed class Pm25AlertRule : IAirQualityAlertRule
+public sealed class Pm25AlertRule : IAlertRule<DomainForecast<AirQualityPoint>>
 {
     public const double WhoGuideline = 15.0;
     public const double OrangeThreshold = 25.0;
     public const double RedThreshold = 50.0;
 
-    public AirQualityAlertType Type => AirQualityAlertType.Pm25;
+    public AlertType Type => AlertType.Pm25;
 
-    public AirQualityAlert Evaluate(DomainForecast<AirQualityPoint> forecast, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<AirQualityPoint> forecast, AlertSettings settings, DateTimeOffset now)
     {
         AirQualityPoint? peakPoint = null;
         foreach (var point in forecast.Next24Hours(now))
@@ -24,13 +24,13 @@ public sealed class Pm25AlertRule : IAirQualityAlertRule
 
         if (peakPoint is null)
         {
-            return AirQualityAlert.None(Type);
+            return Alert.None(Type);
         }
 
         var severity = AirQualityAlertWindow.SeverityFor(peakPoint.Pm25, WhoGuideline, OrangeThreshold, RedThreshold);
         if (severity == AlertSeverity.None)
         {
-            return AirQualityAlert.None(Type);
+            return Alert.None(Type);
         }
 
         var threshold = severity switch
@@ -39,6 +39,6 @@ public sealed class Pm25AlertRule : IAirQualityAlertRule
             AlertSeverity.Orange => OrangeThreshold,
             _ => WhoGuideline,
         };
-        return new AirQualityAlert(Type, severity, Math.Round(peakPoint.Pm25, 1), threshold, peakPoint.HoursFrom(now));
+        return new Alert(Type, severity, 1.0, NoDetails.Instance, TriggerValue: Math.Round(peakPoint.Pm25, 1), Threshold: threshold, HoursUntil: peakPoint.HoursFrom(now), Level: ConfidenceLevel.High);
     }
 }

@@ -103,8 +103,8 @@ public sealed class PipelineEventMqttMappingsSpec
     [Fact]
     public void An_air_quality_alert_event_maps_to_the_alert_state_message()
     {
-        var pipelineEvent = new PipelineEvent.AirQualityAlertRaised(
-            Lucerne, new AirQualityAlert(AirQualityAlertType.Pollen, AlertSeverity.Orange, 85, 50, HoursUntil: 3), Run);
+        var pipelineEvent = new PipelineEvent.AlertRaised(
+            Lucerne, UnifiedAlert.Of(AlertType.Pollen, AlertSeverity.Orange, 85, 50, hoursUntil: 3), Run);
 
         var message = Assert.Single(pipelineEvent.ToMqttMessages(Context));
 
@@ -120,8 +120,8 @@ public sealed class PipelineEventMqttMappingsSpec
     [Fact]
     public void A_flood_alert_event_maps_to_the_alert_state_message()
     {
-        var pipelineEvent = new PipelineEvent.FloodAlertRaised(
-            Lucerne, new FloodAlert(FloodAlertType.FloodRisk, AlertSeverity.Red, 120, 100), Run);
+        var pipelineEvent = new PipelineEvent.AlertRaised(
+            Lucerne, UnifiedAlert.Of(AlertType.FloodRisk, AlertSeverity.Red, 120, 100), Run);
 
         var message = Assert.Single(pipelineEvent.ToMqttMessages(Context));
 
@@ -150,8 +150,8 @@ public sealed class PipelineEventMqttMappingsSpec
         [
             .. DomainEvents,
             new PipelineEvent.AlertRaised(Lucerne, FrostAlert, Run),
-            new PipelineEvent.AirQualityAlertRaised(Lucerne, AirQualityAlert.None(AirQualityAlertType.Pm25), Run),
-            new PipelineEvent.FloodAlertRaised(Lucerne, FloodAlert.None(FloodAlertType.FloodRain), Run),
+            new PipelineEvent.AlertRaised(Lucerne, Alert.None(AlertType.Pm25), Run),
+            new PipelineEvent.AlertRaised(Lucerne, Alert.None(AlertType.FloodRain), Run),
         ];
 
         Assert.Equal(8, events.Length);

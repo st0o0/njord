@@ -24,8 +24,6 @@ internal static class PipelineEventMqttMappings
             PipelineEvent.MarineDataReceived e => e.Forecast.ToMessages(e.Location, context.BaseTopic),
             PipelineEvent.AlertRaised r => StatePayloadBuilder.FromAlerts(
                 new AlertResult(r.Location, [r.Alert]), context.BaseTopic),
-            PipelineEvent.AirQualityAlertRaised r => [StatePayloadBuilder.FromAlert(r.Alert, r.Location, context.BaseTopic)],
-            PipelineEvent.FloodAlertRaised r => [StatePayloadBuilder.FromAlert(r.Alert, r.Location, context.BaseTopic)],
             _ => [],
         };
 
@@ -37,8 +35,6 @@ internal static class PipelineEventMqttMappings
         PipelineEvent.SolarDataReceived e => e.Location.Name,
         PipelineEvent.MarineDataReceived e => e.Location.Name,
         PipelineEvent.AlertRaised r => r.Location.Name,
-        PipelineEvent.AirQualityAlertRaised r => r.Location.Name,
-        PipelineEvent.FloodAlertRaised r => r.Location.Name,
         _ => UnknownLocation,
     };
 }

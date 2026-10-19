@@ -16,4 +16,8 @@ public enum AlertType
     Visibility,
     TropicalNight,
     Humidity,
+    Pollen,
+    Pm25,
+    FloodRisk,
+    FloodRain,
 }
