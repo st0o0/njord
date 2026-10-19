@@ -1,6 +1,4 @@
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Configuration;
-using Njord.Tests.Shared;
 
 namespace Njord.Architecture.Tests;
 
@@ -22,9 +20,6 @@ internal sealed partial class TestSourceRule(string name, Func<SourceFile, IEnum
     [GeneratedRegex(@"\b(?:DateTime|DateTimeOffset)\s*\.\s*(?:UtcNow|Now)\b")]
     private static partial Regex WallClock();
 
-    [GeneratedRegex(@"\bnew\s+(?<type>[A-Z]\w*Options)\b\s*(?:\(\s*\))?\s*(?<init>\{\s*\})?")]
-    private static partial Regex EmptyOptions();
-
     [GeneratedRegex(@"\bAssert\s*\.\s*(?<kind>True|False)\s*\(")]
     private static partial Regex BooleanAssert();
 
@@ -33,23 +28,6 @@ internal sealed partial class TestSourceRule(string name, Func<SourceFile, IEnum
 
     [GeneratedRegex(@"\b(?:JsonNode|JsonObject|JsonArray)\s*\.\s*Parse\s*$")]
     private static partial Regex JsonParseCall();
-
-    // Options types that appsettings.json gives defaults: their section exists in the shipped file.
-    public static IReadOnlySet<string> OptionsWithShippedDefaults { get; } = DiscoverOptionsWithShippedDefaults();
-
-    private static HashSet<string> DiscoverOptionsWithShippedDefaults()
-    {
-        var shipped = AppSettingsDefaults.Configuration();
-        return
-        [
-            .. NjordArchitecture.ProductionAssemblies
-                .SelectMany(a => a.GetExportedTypes())
-                .Where(t => t.Name.EndsWith("Options", StringComparison.Ordinal))
-                .Select(t => (Type: t, Section: t.GetField("SectionName")?.GetRawConstantValue() as string))
-                .Where(x => x.Section is not null && shipped.GetSection(x.Section).Exists())
-                .Select(x => x.Type.Name),
-        ];
-    }
 
     public static IReadOnlyList<TestSourceRule> All { get; } =
     [
@@ -62,11 +40,6 @@ internal sealed partial class TestSourceRule(string name, Func<SourceFile, IEnum
         new("no Task.Delay with a literal duration", file => Matches(file, LiteralTaskDelay(), "Task.Delay with a literal duration")),
 
         new("no wall clock", file => Matches(file, WallClock(), "wall-clock read; use FakeTimeProvider or a fixed timestamp")),
-
-        new("no empty options constructor for options with shipped defaults", file => EmptyOptions().Matches(file.Code)
-            .Where(m => OptionsWithShippedDefaults.Contains(m.Groups["type"].Value)
-                        && (m.Groups["init"].Success || !FollowedByInitializer(file.Code, m)))
-            .Select(m => Hit(file, m.Index, $"new {m.Groups["type"].Value}() relies on code defaults; use AppSettingsDefaults.Options<T>()"))),
 
         new("no boolean assert around an equality", file => BooleanAssert().Matches(file.Code)
             .Where(m =>
@@ -95,17 +68,6 @@ internal sealed partial class TestSourceRule(string name, Func<SourceFile, IEnum
 
     private static SourceHit Hit(SourceFile file, int index, string detail)
         => new(file.Path, TestSourceScanner.LineOf(file.Code, index), detail, file.Path);
-
-    private static bool FollowedByInitializer(string code, Match match)
-    {
-        var i = match.Index + match.Length;
-        while (i < code.Length && char.IsWhiteSpace(code[i]))
-        {
-            i++;
-        }
-
-        return i < code.Length && code[i] == '{';
-    }
 
     // `x["a"]!.Foo()` (an indexer, the JsonNode idiom) and `JsonNode.Parse(...)!.Foo()` are the allowed receivers.
     private static bool IsJsonNodeReceiver(string code, int bangIndex)

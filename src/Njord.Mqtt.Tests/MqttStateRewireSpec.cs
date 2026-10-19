@@ -18,7 +18,7 @@ public sealed class MqttStateRewireSpec : NjordActorSpec
 
     private static readonly DateTimeOffset Anchor = TestTimeConstants.NoonAnchor;
 
-    private readonly MqttConnectionState _connection = new();
+    private readonly MqttSessionCounter _sessionCounter = new();
 
     private (FakePipelineOutput Pipeline, RecordingTransport Transport) Start()
     {
@@ -41,7 +41,7 @@ public sealed class MqttStateRewireSpec : NjordActorSpec
             timeProvider,
             transport,
             MqttEgressTuning.Default,
-            _connection)), $"mqtt-state-{Guid.NewGuid():N}");
+            _sessionCounter)), $"mqtt-state-{Guid.NewGuid():N}");
         return (pipeline, transport);
     }
 
@@ -97,7 +97,7 @@ public sealed class MqttStateRewireSpec : NjordActorSpec
         await subscription.OfferAsync(Trend(1), ct);
         await WaitForTrendAsync(transport, 1, ct);
 
-        _connection.Connected();
+        _sessionCounter.Increment();
         await subscription.OfferAsync(Trend(1), ct);
 
         await AwaitAssertAsync(

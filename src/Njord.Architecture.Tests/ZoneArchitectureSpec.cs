@@ -55,13 +55,15 @@ public sealed class ZoneArchitectureSpec
     }
 
     [Fact]
-    public void Grpc_contains_no_actors()
+    public void Grpc_contains_only_the_GrpcConsumer_actor()
     {
         var actors = typeof(Grpc.WeatherGrpcService).Assembly.GetTypes()
-            .Where(t => typeof(ActorBase).IsAssignableFrom(t))
-            .Select(t => t.FullName);
+            .Where(t => typeof(ActorBase).IsAssignableFrom(t) && !t.IsAbstract)
+            .Select(t => t.FullName)
+            .ToList();
 
-        Assert.Empty(actors);
+        var allowed = Assert.Single(actors);
+        Assert.Equal("Njord.Grpc.GrpcConsumer", allowed);
     }
 
     [Fact]

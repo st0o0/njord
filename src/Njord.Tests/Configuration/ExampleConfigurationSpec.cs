@@ -25,15 +25,11 @@ public sealed class ExampleConfigurationSpec
     }
 
     [Fact]
-    public void The_shipped_file_carries_the_scalar_defaults_under_the_Njord_section()
+    public void The_shipped_file_has_no_Njord_section()
     {
         var shipped = Leaves("appsettings.json");
 
-        Assert.Multiple(
-            () => Assert.Equal("01:00:00", shipped["Njord:Polling:PollInterval"]),
-            () => Assert.Equal("4", shipped["Njord:ForecastDays"]),
-            () => Assert.Equal("1883", shipped["Njord:Mqtt:Port"]),
-            () => Assert.Equal("Median", shipped["Njord:Enrichment:Consensus:Method"]));
+        Assert.DoesNotContain(shipped, kvp => kvp.Key.StartsWith("Njord", StringComparison.OrdinalIgnoreCase));
     }
 
     private static Dictionary<string, string> Leaves(string file)

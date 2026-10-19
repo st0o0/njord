@@ -46,7 +46,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         var config = TestConfigView.Create(options);
         ActorRegistry.Register<IConfigManager>(
             Sys.ActorOf(Props.Create(() => new FakeConfigManager(config))), overwrite: true);
-        ActorRegistry.Register<IForecastReadModel>(
+        ActorRegistry.Register<IGrpcConsumer>(
             consumerActor ?? Sys.ActorOf(Props.Create(() => new EmptyConsumerActor())), overwrite: true);
         return new WeatherGrpcService(
             ActorRegistry,
@@ -121,7 +121,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     public async Task GetForecast_queries_the_configured_location_and_model_when_the_request_differs_in_case()
     {
         var forecast = CreateForecast();
-        var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new OrdinalForecastReadModel(forecast))));
+        var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new OrdinalGrpcConsumer(forecast))));
 
         var response = await service.GetForecast(
             new GetForecastRequest { Location = "LUCERNE", Model = "ICON_D2" },
@@ -187,7 +187,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             EnrichmentEvents.Derived(lucerne, Anchor),
             EnrichmentEvents.Trends(lucerne, Anchor),
             EnrichmentEvents.Indices(lucerne, Anchor));
-        var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new FakeReadModel(analysis, Array.Empty<PipelineEvent>()))));
+        var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new FakeGrpcConsumer(analysis, Array.Empty<PipelineEvent>()))));
 
         var response = await service.GetEnrichments(
             new GetEnrichmentsRequest { Location = "lucerne" },
@@ -208,7 +208,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         var lucerne = new LocationId("lucerne");
         var analysis = new LatestAnalysisResult(lucerne, null, EnrichmentEvents.Alerts(lucerne, Anchor), null, null, null);
-        var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new FakeReadModel(analysis, Array.Empty<PipelineEvent>()))));
+        var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new FakeGrpcConsumer(analysis, Array.Empty<PipelineEvent>()))));
 
         var response = await service.GetEnrichments(
             new GetEnrichmentsRequest { Location = "LUCERNE" },
@@ -306,7 +306,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             EnrichmentEvents.Alerts(zurich, Anchor),
             EnrichmentEvents.Trends(lucerne, Anchor),
         ];
-        return Sys.ActorOf(Props.Create(() => new FakeReadModel(null, events)));
+        return Sys.ActorOf(Props.Create(() => new FakeGrpcConsumer(null, events)));
     }
 
     private static WeatherForecast CreateForecast(string model = "icon_d2", string location = "lucerne")
@@ -338,9 +338,9 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     // Answers only the configured spelling (ordinal), so a raw request spelling finds nothing.
-    private sealed class OrdinalForecastReadModel : ReceiveActor
+    private sealed class OrdinalGrpcConsumer : ReceiveActor
     {
-        public OrdinalForecastReadModel(WeatherForecast forecast)
+        public OrdinalGrpcConsumer(WeatherForecast forecast)
         {
             Receive<QueryForecast>(msg => Sender.Tell(
                 string.Equals(msg.Location.Name, forecast.Location, StringComparison.Ordinal)
@@ -352,21 +352,21 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     // Answers only the configured spelling (ordinal), so a spec proves the service queries with it.
-    private sealed class FakeReadModel : ReceiveActor
+    private sealed class FakeGrpcConsumer : ReceiveActor
     {
-        public FakeReadModel(LatestAnalysisResult? analysis, IReadOnlyList<PipelineEvent> streamEvents)
+        public FakeGrpcConsumer(LatestAnalysisResult? analysis, IReadOnlyList<PipelineEvent> streamEvents)
         {
             Receive<QueryLatestAnalysis>(msg => Sender.Tell(
                 analysis is not null && string.Equals(analysis.Location.Name, msg.Location.Name, StringComparison.Ordinal)
                     ? analysis
                     : new LatestAnalysisNotAvailable(msg.Location),
                 Self));
-            Receive<RequestReadModelStream>(msg =>
+            Receive<RequestGrpcStream>(msg =>
                 Source.From(streamEvents)
                     .RunWith(StreamRefs.SourceRef<PipelineEvent>(), Context.Materializer())
                     .PipeTo(Sender, Self,
-                        sourceRef => new RequestReadModelStreamCompleted(msg.RequestId, sourceRef),
-                        ex => new RequestReadModelStreamFailed(msg.RequestId, ex)));
+                        sourceRef => new RequestGrpcStreamCompleted(msg.RequestId, sourceRef),
+                        ex => new RequestGrpcStreamFailed(msg.RequestId, ex)));
         }
     }
 

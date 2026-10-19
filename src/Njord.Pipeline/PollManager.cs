@@ -6,7 +6,6 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Messages.Pipeline;
 using Njord.Model;
-using Njord.Pipeline.Health;
 using Servus.Akka;
 using Servus.Resilience;
 
@@ -30,7 +29,6 @@ public sealed class PollManager : ReceiveActor, IWithTimers
     private static readonly TimeSpan RegionStateTimeout = TimeSpan.FromSeconds(10);
 
     private readonly TimeProvider _timeProvider;
-    private readonly PollHealthState _health;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private readonly List<PollTarget> _targets = [];
     private readonly Dictionary<string, PollTarget> _targetsById = new(StringComparer.Ordinal);
@@ -39,20 +37,21 @@ public sealed class PollManager : ReceiveActor, IWithTimers
     private readonly Dictionary<IActorRef, string> _watched = [];
     private readonly Dictionary<string, int> _restartAttempts = new(StringComparer.Ordinal);
     private readonly PollCycleTracker _cycles = new();
+    private readonly DateTimeOffset _startedUtc;
     private TimeSpan _discoveryInterval;
     private IActorRef? _region;
     private int _resolveAttempts;
+    private DateTimeOffset? _lastSuccessfulPollUtc;
 
     public ITimerScheduler Timers { get; set; } = null!;
 
     public PollManager(
         IOptions<NjordOptions> options,
         ConfigView config,
-        TimeProvider timeProvider,
-        PollHealthState health)
+        TimeProvider timeProvider)
     {
         _timeProvider = timeProvider;
-        _health = health;
+        _startedUtc = timeProvider.GetUtcNow();
         _discoveryInterval = config.Polling.DiscoveryInterval;
 
         var now = timeProvider.GetUtcNow();
@@ -77,6 +76,7 @@ public sealed class PollManager : ReceiveActor, IWithTimers
         Receive<Terminated>(OnWorkerTerminated);
         Receive<RestartWorker>(OnRestartWorker);
         Receive<QueryPollStates>(_ => Sender.Tell(new PollStatesResult([.. _targets.Select(t => _states[t.Id])])));
+        Receive<QueryPollHealth>(_ => Sender.Tell(new PollHealthResult(_startedUtc, _lastSuccessfulPollUtc)));
         Receive<TriggerImmediatePoll>(OnTriggerImmediatePoll);
         Receive<PollingChanged>(OnPollingChanged);
     }
@@ -143,14 +143,14 @@ public sealed class PollManager : ReceiveActor, IWithTimers
         switch (report.Outcome)
         {
             case PollWorkerOutcome.Changed:
-                _health.RecordSuccessfulPoll(now);
+                _lastSuccessfulPollUtc = now;
                 Telemetry.DataChanged.Add(1,
                     new KeyValuePair<string, object?>("location", target.Location.Name),
                     new KeyValuePair<string, object?>("model", target.ModelId));
                 RecordCycle(target, PollCycleOutcome.Changed, now);
                 break;
             case PollWorkerOutcome.Unchanged:
-                _health.RecordSuccessfulPoll(now);
+                _lastSuccessfulPollUtc = now;
                 RecordCycle(target, PollCycleOutcome.Unchanged, now);
                 break;
             case PollWorkerOutcome.Failed:

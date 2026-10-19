@@ -111,7 +111,7 @@ public sealed class MqttBackpressureSpec : NjordActorSpec
             timeProvider,
             transport,
             tuning,
-            new MqttConnectionState())), $"mqtt-state-{Guid.NewGuid():N}");
+            new MqttSessionCounter())), $"mqtt-state-{Guid.NewGuid():N}");
     }
 
     private static PipelineEvent.TrendComputed Trend(int precipStarts) => new(

@@ -24,7 +24,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
     private readonly IMqttTransport _transport;
     private readonly TimeSpan _publishTimeout;
     private readonly int _eventBufferSize;
-    private readonly MqttConnectionState _connection;
+    private readonly MqttSessionCounter _sessionCounter;
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
     private sealed record OutgoingMessage(MqttMessage Message, string Location);
@@ -36,7 +36,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         TimeProvider timeProvider,
         IMqttTransport transport,
         MqttEgressTuning tuning,
-        MqttConnectionState connection)
+        MqttSessionCounter sessionCounter)
     {
         var opts = options.Value;
         _baseTopic = mqttOptions.Value.BaseTopic;
@@ -47,7 +47,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         _transport = transport;
         _publishTimeout = tuning.PublishTimeout;
         _eventBufferSize = tuning.EventBufferSize;
-        _connection = connection;
+        _sessionCounter = sessionCounter;
     }
 
     protected override Task MaterializeGraph(Source<PipelineEvent, NotUsed> events)
@@ -59,7 +59,7 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         var timeProvider = _timeProvider;
         // Per subscription and per broker connection on purpose: after a re-attach and after a reconnect (a broker
         // restart may have dropped the retained messages) every state topic is published once again.
-        var lastPublished = new PublishedPayloads(_connection);
+        var lastPublished = new PublishedPayloads(_sessionCounter);
         var transport = _transport;
         var publishTimeout = _publishTimeout;
         var log = _log;
@@ -127,14 +127,14 @@ public sealed class MqttStatePublisher : StreamConsumerActor
     }
 
     // The payload hash last accepted by the broker per topic. Used by one sink at a time, so it needs no locking.
-    private sealed class PublishedPayloads(MqttConnectionState connection)
+    private sealed class PublishedPayloads(MqttSessionCounter sessionCounter)
     {
         private readonly Dictionary<string, int> _hashes = [];
-        private int _session = connection.Session;
+        private int _session = sessionCounter.Session;
 
         public bool IsCurrent(string topic, int hash)
         {
-            var session = connection.Session;
+            var session = sessionCounter.Session;
             if (session != _session)
             {
                 _hashes.Clear();

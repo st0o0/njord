@@ -15,7 +15,6 @@ using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.Pipeline.Configuration;
-using Njord.Pipeline.Health;
 using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;
@@ -36,7 +35,6 @@ public sealed class PollingClusterSpec : NjordActorSpec
     {
         services.AddSingleton<TimeProvider>(_time);
         services.AddSingleton(FetchTimeouts.Default);
-        services.AddSingleton(new PollHealthState(TimeProvider.System));
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations =

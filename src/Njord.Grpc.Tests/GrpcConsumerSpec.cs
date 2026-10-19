@@ -10,9 +10,9 @@ using Njord.Model;
 using Njord.Tests.Shared;
 using WeatherForecast = Njord.Forecast.Forecast;
 
-namespace Njord.Pipeline.Tests;
+namespace Njord.Grpc.Tests;
 
-public sealed class ForecastReadModelSpec : NjordActorSpec
+public sealed class GrpcConsumerSpec : NjordActorSpec
 {
     private static readonly DateTimeOffset Anchor = TestTimeConstants.NoonAnchor;
     private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
@@ -34,7 +34,7 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
             $"pipeline-{Guid.NewGuid():N}");
         ActorRegistry.Register<IForecastPipeline>(pipeline, overwrite: true);
 
-        var readModel = Sys.ActorOf(Props.Create(() => new ForecastReadModel()), $"read-model-{Guid.NewGuid():N}");
+        var readModel = Sys.ActorOf(Props.Create(() => new GrpcConsumer()), $"grpc-consumer-{Guid.NewGuid():N}");
         var testPipeline = await ready.Task.WaitAsync(TestTimeouts.RealTimeWaitMax, TestContext.Current.CancellationToken);
         return (readModel, testPipeline);
     }
@@ -196,12 +196,12 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
         var ct = TestContext.Current.CancellationToken;
         var pipeline = CreateTestProbe();
         ActorRegistry.Register<IForecastPipeline>(pipeline, overwrite: true);
-        var readModel = Sys.ActorOf(Props.Create(() => new ForecastReadModel()), $"read-model-{Guid.NewGuid():N}");
+        var readModel = Sys.ActorOf(Props.Create(() => new GrpcConsumer()), $"grpc-consumer-{Guid.NewGuid():N}");
         var request = await pipeline.ExpectMsgAsync<RequestPipelineOutput>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-        var response = await readModel.Ask<RequestReadModelStreamResponse>(new RequestReadModelStream(7), AskTimeout, ct);
+        var response = await readModel.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(7), AskTimeout, ct);
 
-        var completed = Assert.IsType<RequestReadModelStreamCompleted>(response);
+        var completed = Assert.IsType<RequestGrpcStreamCompleted>(response);
         Assert.Equal(7, completed.RequestId);
         var client = new EventCollector();
         _ = completed.SourceRef.Source.RunWith(client.AsSink(), Sys.Materializer());
@@ -448,15 +448,15 @@ public sealed class ForecastReadModelSpec : NjordActorSpec
 
     private async Task<Source<PipelineEvent, Akka.NotUsed>> RequestStreamAsync(IActorRef readModel, CancellationToken ct)
     {
-        RequestReadModelStreamCompleted? completed = null;
+        RequestGrpcStreamCompleted? completed = null;
         var attempt = 0;
         await AwaitAssertAsync(async () =>
         {
-            var response = await readModel.Ask<RequestReadModelStreamResponse>(new RequestReadModelStream(attempt++), AskTimeout, ct);
-            completed = Assert.IsType<RequestReadModelStreamCompleted>(response);
+            var response = await readModel.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(attempt++), AskTimeout, ct);
+            completed = Assert.IsType<RequestGrpcStreamCompleted>(response);
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-        return Assert.IsType<RequestReadModelStreamCompleted>(completed).SourceRef.Source;
+        return Assert.IsType<RequestGrpcStreamCompleted>(completed).SourceRef.Source;
     }
 
     private static WeatherForecast CreateForecast(string model)

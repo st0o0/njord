@@ -1,10 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
-using Njord.Budget.Health;
 using Njord.Core.Configuration.Health;
 using Njord.Mqtt.Health;
-using Njord.Pipeline.Health;
 
 namespace Njord.Tests.Configuration;
 
@@ -51,17 +49,7 @@ public sealed class HealthSetupContainerSpec : IDisposable
     }
 
     [Fact]
-    public void The_feature_health_states_are_singletons()
-    {
-        using var provider = HostConfiguration.Services(HostConfiguration.Sample(_tempDir)).BuildServiceProvider();
-
-        Assert.Multiple(
-            () => Assert.Same(provider.GetRequiredService<PollHealthState>(), provider.GetRequiredService<PollHealthState>()),
-            () => Assert.Same(provider.GetRequiredService<BudgetUsageState>(), provider.GetRequiredService<BudgetUsageState>()));
-    }
-
-    [Fact]
-    public void The_mqtt_state_is_registered_when_mqtt_is_enabled()
+    public void The_mqtt_session_counter_is_registered_when_mqtt_is_enabled()
     {
         using var provider = HostConfiguration.Services(HostConfiguration.Sample(_tempDir, new Dictionary<string, string?>
         {
@@ -69,7 +57,7 @@ public sealed class HealthSetupContainerSpec : IDisposable
             ["Njord:Mqtt:Host"] = "broker",
         })).BuildServiceProvider();
 
-        Assert.Same(provider.GetRequiredService<MqttConnectionState>(), provider.GetRequiredService<MqttConnectionState>());
+        Assert.Same(provider.GetRequiredService<MqttSessionCounter>(), provider.GetRequiredService<MqttSessionCounter>());
     }
 
     [Fact]

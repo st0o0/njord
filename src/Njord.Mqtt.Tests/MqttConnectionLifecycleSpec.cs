@@ -17,7 +17,7 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
 
     private static readonly DateTimeOffset Epoch = TestTimeConstants.PipelineEpoch;
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(Epoch);
-    private readonly MqttConnectionState _health = new();
+    private readonly MqttSessionCounter _sessionCounter = new();
 
     private static readonly MqttEgressTuning FastTuning =
         new MqttEgressTuning(TimeSpan.FromMilliseconds(50)) { PublishTimeout = TimeSpan.FromMilliseconds(200) };
@@ -29,7 +29,7 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
                 connection,
                 transport,
                 FastTuning,
-                _health,
+                _sessionCounter,
                 _time)),
             $"mqtt-connection-{Guid.NewGuid():N}");
 
@@ -44,15 +44,17 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
         var transport = new ScriptedTransport();
         transport.FailNextOnline(new MqttCommunicationException("simulated online publish failure"));
 
-        _ = CreateActor(connection, transport);
+        var actor = CreateActor(connection, transport);
         await WaitForOnline(transport, TestContext.Current.CancellationToken);
 
+        var status = await actor.Ask<MqttConnectionStatusResult>(
+            new QueryMqttConnectionStatus(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Multiple(
             () => Assert.Equal(1, connection.ConnectCalls),
             () => Assert.Equal(0, connection.RejectedWhileConnected),
             () => Assert.Equal(2, transport.OnlineAttempts),
             () => Assert.DoesNotContain(transport.Sent, m => m.Payload == "offline"),
-            () => Assert.True(_health.Current.IsConnected));
+            () => Assert.True(status.IsConnected));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -113,8 +115,7 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
 
         Assert.Multiple(
             () => Assert.Equal(1, connection.ConnectCalls),
-            () => Assert.Equal(1, connection.SubscribeCalls),
-            () => Assert.True(_health.Current.IsConnected));
+            () => Assert.Equal(1, connection.SubscribeCalls));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -143,7 +144,7 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
         var attempts = CreateTestProbe();
         var connection = new ScriptedConnection(attempts.Ref);
         var transport = new ScriptedTransport();
-        _ = CreateActor(connection, transport);
+        var actor = CreateActor(connection, transport);
         attempts.ExpectMsg<ConnectAttempted>(TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         await WaitForOnline(transport, TestContext.Current.CancellationToken);
 
@@ -154,7 +155,8 @@ public sealed class MqttConnectionLifecycleSpec : NjordActorSpec
         attempts.ExpectMsg<ConnectAttempted>(m => m.Attempt == 3, TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
         attempts.ExpectMsg<ConnectAttempted>(m => m.Attempt == 4, TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
 
-        var mqtt = _health.Current;
+        var mqtt = await actor.Ask<MqttConnectionStatusResult>(
+            new QueryMqttConnectionStatus(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Multiple(
             () => Assert.False(mqtt.IsConnected),
             () => Assert.Equal(Epoch, mqtt.DisconnectedSince));

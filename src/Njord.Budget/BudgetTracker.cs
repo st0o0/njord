@@ -1,6 +1,5 @@
 using Akka.Event;
 using Akka.Persistence;
-using Njord.Budget.Health;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Budget;
@@ -15,15 +14,13 @@ public sealed class BudgetTracker : ReceivePersistentActor
     public override string PersistenceId => "budget-tracker";
 
     private readonly TimeProvider _timeProvider;
-    private readonly BudgetUsageState _usage;
     private readonly ConfigView _config;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private BudgetTrackerState _state;
 
-    public BudgetTracker(TimeProvider timeProvider, BudgetUsageState usage, ConfigView config)
+    public BudgetTracker(TimeProvider timeProvider, ConfigView config)
     {
         _timeProvider = timeProvider;
-        _usage = usage;
         _config = config;
 
         var now = timeProvider.GetUtcNow();
@@ -41,8 +38,6 @@ public sealed class BudgetTracker : ReceivePersistentActor
                 _state = snapshot.FromPersistence(_timeProvider.GetUtcNow());
             }
         });
-
-        Recover<RecoveryCompleted>(_ => _usage.Update(_state.DailyUsed, _state.MonthlyUsed));
 
         Command<RecordApiCall>(OnRecordApiCall);
         Command<QueryBudgetUsage>(_ => Sender.Tell(_state.ToBudgetUsage(), Self));
@@ -85,8 +80,6 @@ public sealed class BudgetTracker : ReceivePersistentActor
         Persist(evt, _ =>
         {
             _state = newState;
-            _usage.Update(_state.DailyUsed, _state.MonthlyUsed);
-
             MaybeSnapshot();
         });
     }

@@ -79,23 +79,25 @@ with optional MQTT state publishing.
   orchestrates all feature libraries directly (`Njord.Pipeline` references
   analysis libraries).
 - **Consumers are output adapters via SourceRef.** The MQTT state publisher and
-  the API's read model (`ForecastReadModel` in `Njord.Pipeline`, marker
-  `IForecastReadModel`) request a `SourceRef<PipelineEvent>` from `ForecastPipeline`
+  the API's gRPC consumer (`GrpcConsumer` in `Njord.Grpc`, marker
+  `IGrpcConsumer`) request a `SourceRef<PipelineEvent>` from `ForecastPipeline`
   and run their own sinks. No intermediate relay actors, no presenters, no discovery
   payloads. Their base `StreamConsumerActor` attaches when the consumer starts (request
   id, 10 s reply timeout, capped backoff), watches the pipeline incarnation that
   answered and re-attaches only when that incarnation terminates or the consumer's own
   graph completes or fails (Warning, `njord_stream_consumer_rewires_total`); there is no
   waiting phase or stash, so queries are answered at any time. No consumer slows the
-  pipeline hub: the read model builds its streaming hub (`MergeHub` → `BroadcastHub` with
-  a permanent `Sink.Ignore` drain) once at start, keeps its latest values and its hub
-  across a re-attach and gives each gRPC streaming client a bounded drop-oldest buffer
+  pipeline hub: the gRPC consumer builds its streaming hub (`Source.ActorRef` →
+  `BroadcastHub` with a permanent `Sink.Ignore` drain) once at start, keeps its latest
+  values as actor state and its hub across a re-attach, and gives each gRPC streaming
+  client a bounded drop-oldest buffer
   (256 events); the MQTT publisher runs events → `Buffer(256, DropHead)` → payloads →
   `Sink.ForEachAsync(1, dedup + publish)`, so a slow broker drops its own oldest events,
   and republishes every topic once per new subscription and after every broker reconnect. A started (or restarted)
   pipeline asks the `ConfigManager` (`QueryAnalysisSettings`) and the `SensorHub`
   (`RequestSensorReadings`) for the current inputs.
-- **The gRPC API is a pure adapter.** `Njord.Grpc` holds no actors and reads no
+- **The gRPC API is an adapter.** `Njord.Grpc` holds `GrpcConsumer` (the pipeline's
+  streaming output consumer for gRPC clients, marker `IGrpcConsumer`) and reads no
   options: every RPC resolves an actor marker, asks with a message from
   `Njord.Messages` through `ActorAsk` (`Unavailable` when the actor is not resolvable,
   `DeadlineExceeded` on timeout) and maps the result with the per-domain `ToProto()`
@@ -221,8 +223,7 @@ src/
   Njord.Budget/               # BudgetTracker persistent actor, usage accounting
   Njord.SensorHub/            # SensorHub
   Njord.Pipeline/             # PollManager, PollWorker (+ PollWorkerState), ForecastPipeline,
-                              #   PipelineEvent BroadcastHub,
-                              #   ForecastReadModel (API read model)
+                              #   PipelineEvent BroadcastHub
     Configuration/            # PipelineSetupContainer, ConsensusOptions (+ validator, conversion),
                               #   AnalysisSettingsFactory
   Njord.Mqtt/                 # Everything MQTT-specific (boundary rule below); namespaces follow folders
@@ -234,7 +235,8 @@ src/
     Transport/                # IMqttConnection, IMqttTransport, MQTTnet publisher
     Configuration/            # MqttSetupContainer
                               #   (root: StatePayloadBuilder, MqttMessage, MqttEgressTuning, Telemetry)
-  Njord.Grpc/                 # gRPC services (ask and map only), ActorAsk, protos
+  Njord.Grpc/                 # gRPC services (ask and map), ActorAsk, protos,
+                              #   GrpcConsumer (pipeline output consumer for gRPC clients)
     Mapping/                  # One <Domain>ProtoMappings class per domain (Alert, Index, Trend,
                               #   Derived, Consensus, Forecast, Sensor, Ops, Catalog), EnrichmentEventMappings,
                               #   ConfigRequestMappings (ToCommand), ConfigResponseMappings (ToProto) with the
@@ -272,10 +274,10 @@ src/
   Njord.OpenMeteo.Tests/      # OpenMeteoClient, OptionsBudgetProvider specs
   Njord.Budget.Tests/         # BudgetTracker specs
   Njord.SensorHub.Tests/      # SensorHub specs
-  Njord.Pipeline.Tests/       # PollWorker, PollManager, polling cluster, ForecastPipeline,
-                              #   ForecastReadModel specs
+  Njord.Pipeline.Tests/       # PollWorker, PollManager, polling cluster, ForecastPipeline specs
   Njord.Mqtt.Tests/           # MQTT connection, state payload, consumer specs
-  Njord.Grpc.Tests/           # gRPC service, ActorAsk and mapping specs, golden masters
+  Njord.Grpc.Tests/           # gRPC service, ActorAsk, mapping specs, golden masters,
+                              #   GrpcConsumer specs
   Njord.Alerts.Tests/         # AlertAnalyzer specs, Rules/ (one spec per rule)
   Njord.Derived.Tests/        # DerivedAnalyzer, DerivedFormulas specs
   Njord.Trends.Tests/         # TrendAnalyzer, TrendFormulas specs
@@ -314,9 +316,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1708 tests (Model 76, Forecast 49, Sensors 11, Persistence 16, Consensus 75, Messages 126,
-Core 155, Grpc 125, Pipeline 176, Mqtt 171, OpenMeteo 72, Budget 36, SensorHub 26, Architecture 128,
-Alerts 120, Derived 32, Trends 24, Indices 85, host `Njord.Tests` 183, IntegrationTests 22).
+Current total: 1697 tests (Model 76, Forecast 49, Sensors 11, Persistence 16, Consensus 75, Messages 126,
+Core 155, Grpc 140, Pipeline 160, Mqtt 170, OpenMeteo 72, Budget 34, SensorHub 26, Architecture 122,
+Alerts 120, Derived 32, Trends 24, Indices 85, host `Njord.Tests` 182, IntegrationTests 22).
 The count is one test per `[Fact]` and one per data row of a `[Theory]`.
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
@@ -332,24 +334,22 @@ via Docker Compose + browser automation) is the `e2e-test` skill, not a
 `e2e/E2E-TEST-PLAN.md`.
 
 Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
-- `appsettings.json` — logging and Kestrel plus the `Njord` section with the default of
-  every scalar, flag, enum and duration option (the single source of those defaults;
-  option classes carry no initializer for them). List-valued defaults (`Horizons`,
+- `appsettings.json` — logging and Kestrel only (no `Njord` section; all option defaults
+  live as property initializers on the options classes). List-valued defaults (`Horizons`,
   `Parameters.Groups`, threshold arrays) and structural initializers (dictionaries with a
-  comparer, nested `new()`) stay in code, because configuration merges arrays by index;
-  `ReplaceCollectionDefaults` makes a configured list replace its default. A new scalar
-  option gets its default in this file, not as a property initializer.
+  comparer, nested `new()`) also live on the property; `ReplaceCollectionDefaults` makes a
+  configured list replace its code default. A new option gets its default as a property
+  initializer, not in `appsettings.json`.
 - `appsettings.Development.json` — dev overrides (locations, models, MQTT
   disabled). Loaded automatically by `dotnet run` (`ASPNETCORE_ENVIRONMENT=Development`).
 - `data/appsettings.Override.json` — runtime override written by `ConfigWriter` (Docker
   volume mount), loaded last. "Reset to defaults" removes the override keys, so the value
-  falls back to `appsettings.json` (or the code default of a list).
+  falls back to the property initializer default.
 - Environment variables — Docker-compose / `docker run` (`Njord__Mqtt__Host`, etc.).
-- `appsettings.Example.json` — copy-in template with deployment-specific keys only; a spec
-  fails when it repeats a default of `appsettings.json`.
+- `appsettings.Example.json` — copy-in template with deployment-specific keys only.
 - `docker-compose.example.yml` — the commented variables show each option's default; a spec
-  (`ComposeExampleSpec`) fails when one differs from the value bound from `appsettings.json`
-  (list defaults: the code default). A comment containing "Alternative" starts a block of
+  (`ComposeExampleSpec`) fails when one differs from the bound default (property initializers
+  for scalars, code defaults for lists). A comment containing "Alternative" starts a block of
   values that are not defaults and are skipped until the next blank line.
 
 Sections: one options class per concern, each with its own `SectionName` (no two share one,
@@ -383,9 +383,10 @@ an old key is present in configuration or the environment; the override file is 
 | `Njord:OpenMeteoBaseUrl` | `Njord:OpenMeteo:BaseUrl` | `Njord__OpenMeteo__BaseUrl` |
 | `Njord:PersistencePath` | `Njord:Storage:PersistencePath` | `Njord__Storage__PersistencePath` |
 
-Tests obtain default options through `AppSettingsDefaults` (`Njord.Tests.Shared`, binds the
-shipped `appsettings.json`) instead of `new XOptions()`; `DefaultOptionsSpec` pins the bound
-defaults with a Verify golden master and validates them with every validator.
+All option defaults live as property initializers; `new XOptions()` yields correct defaults.
+Tests that need list-default replacement still use `AppSettingsDefaults` (`Njord.Tests.Shared`,
+binds `appsettings.json` with `ReplaceCollectionDefaults`). `DefaultOptionsSpec` validates
+defaults with every validator.
 
 MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
 `Njord__Mqtt__Enabled=true` + `Njord__Mqtt__Host=...`.
@@ -531,7 +532,7 @@ These checks run locally only; they are deliberately not part of CI.
   and is registered by the owning container with an explicit `failureStatus` (`pipeline`, `budget`,
   `mqtt-connection`; the host adds `journal` and `data-directory`). Checks never ask actors. Thresholds
   are `Njord:Health` options (`PollOverdueFactor`, `PollStalledFactor`, `MqttUnhealthyAfter`,
-  `BudgetDegradedBelowPercent`, defaults in `appsettings.json`). `/healthz` answers 200 for Healthy and
+  `BudgetDegradedBelowPercent`). `/healthz` answers 200 for Healthy and
   Degraded and 503 for Unhealthy within a 5 s request timeout; `/alive` is unconditional.
 
 ## C# conventions
@@ -631,7 +632,6 @@ literals ignored; allow-list entries carry a reason and fail when stale):
 - an `async` `[Fact]`/`[Theory]` carries an explicit `Timeout`;
 - no `Thread.Sleep`, no `Task.Delay` with a literal duration;
 - no `DateTime.UtcNow`/`Now`, `DateTimeOffset.UtcNow`/`Now` (use `FakeTimeProvider` or a fixed timestamp);
-- no empty `new XOptions()` for an options type with shipped defaults (use `AppSettingsDefaults.Options<T>()`);
 - no single-argument `Assert.True(a == b)` / `Assert.False(a != b)` (xUnit has no message overload for `Assert.Equal`,
   so a call that passes a message is a deliberate `Assert.True`);
 - no `!.` except on an indexer result or `JsonNode.Parse(...)`; reflection helpers in `Njord.Architecture.Tests` are exempt.

@@ -7,6 +7,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Derived.Configuration;
 using Njord.Forecast;
+using Njord.Grpc;
 using Njord.Indices.Configuration;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
@@ -78,7 +79,7 @@ public sealed class GatewayRestartSpec : NjordActorSpec
         var proxy = Sys.ActorOf(Props.Create(() => new CountingProxy(pipeline, () => Interlocked.Increment(ref outputRequests))),
             $"pipeline-proxy-{Guid.NewGuid():N}");
         ActorRegistry.Register<IForecastPipeline>(proxy, overwrite: true);
-        var readModel = Sys.ActorOf(Props.Create(() => new ForecastReadModel()), $"read-model-{Guid.NewGuid():N}");
+        var readModel = Sys.ActorOf(Props.Create(() => new GrpcConsumer()), $"grpc-consumer-{Guid.NewGuid():N}");
         var gateway = StartGateway();
         await AwaitAssertAsync(async () =>
         {

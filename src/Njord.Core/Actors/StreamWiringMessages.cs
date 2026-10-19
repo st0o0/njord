@@ -21,13 +21,13 @@ public sealed record RequestForecastSinkCompleted(long RequestId, ISinkRef<Weath
 public sealed record RequestForecastSinkFailed(long RequestId, Exception Cause)
     : RequestForecastSinkResponse(RequestId);
 
-public sealed record RequestReadModelStream(long RequestId);
+public sealed record RequestGrpcStream(long RequestId);
 
-public abstract record RequestReadModelStreamResponse(long RequestId);
-public sealed record RequestReadModelStreamCompleted(long RequestId, ISourceRef<PipelineEvent> SourceRef)
-    : RequestReadModelStreamResponse(RequestId);
-public sealed record RequestReadModelStreamFailed(long RequestId, Exception Cause)
-    : RequestReadModelStreamResponse(RequestId);
+public abstract record RequestGrpcStreamResponse(long RequestId);
+public sealed record RequestGrpcStreamCompleted(long RequestId, ISourceRef<PipelineEvent> SourceRef)
+    : RequestGrpcStreamResponse(RequestId);
+public sealed record RequestGrpcStreamFailed(long RequestId, Exception Cause)
+    : RequestGrpcStreamResponse(RequestId);
 
 public sealed record RequestConfigStream(long RequestId);
 

@@ -29,8 +29,10 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
     private readonly IMqttConnection _connection;
     private readonly IMqttTransport _transport;
     private readonly MqttEgressTuning _tuning;
-    private readonly MqttConnectionState _healthState;
+    private readonly MqttSessionCounter _sessionCounter;
     private readonly TimeProvider _timeProvider;
+    private bool _isConnected;
+    private DateTimeOffset? _disconnectedSince;
 
     private readonly string _availabilityTopic;
     private readonly string _haStatusTopic;
@@ -49,14 +51,14 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
         IMqttConnection connection,
         IMqttTransport transport,
         MqttEgressTuning tuning,
-        MqttConnectionState healthState,
+        MqttSessionCounter sessionCounter,
         TimeProvider timeProvider)
     {
         _mqttOptions = mqttOptions.Value;
         _connection = connection;
         _transport = transport;
         _tuning = tuning;
-        _healthState = healthState;
+        _sessionCounter = sessionCounter;
         _timeProvider = timeProvider;
         _availabilityTopic = TopicScheme.AvailabilityTopic(_mqttOptions.BaseTopic);
         _haStatusTopic = $"{_mqttOptions.DiscoveryPrefix}/status";
@@ -109,7 +111,8 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
     {
         Receive<Disconnected>(_ =>
         {
-            _healthState.Disconnected(_timeProvider.GetUtcNow());
+            _isConnected = false;
+            _disconnectedSince = _timeProvider.GetUtcNow();
             Telemetry.MqttConnected.Record(0);
             _log.Warning("MQTT connection lost, reconnecting");
             Timers.Cancel(OnlineRetryTimer);
@@ -140,6 +143,8 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
 
     private void ReceiveCommon()
     {
+        Receive<QueryMqttConnectionStatus>(_ =>
+            Sender.Tell(new MqttConnectionStatusResult(_isConnected, _disconnectedSince)));
         Receive<Inbound>(OnInbound);
         Receive<SubscribeInbound>(_ =>
         {
@@ -188,7 +193,9 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
         _connectAttempts = 0;
         _onlineAttempts = 0;
         _log.Info("MQTT connected to {Host}:{Port}", _mqttOptions.Host, _mqttOptions.Port);
-        _healthState.Connected();
+        _isConnected = true;
+        _disconnectedSince = null;
+        _sessionCounter.Increment();
         Telemetry.MqttConnected.Record(1);
 
         foreach (var listener in _inboundListeners)

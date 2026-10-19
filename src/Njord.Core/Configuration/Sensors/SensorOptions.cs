@@ -4,6 +4,6 @@ public sealed class SensorOptions
 {
     public const string SectionName = "Njord:Sensors";
 
-    public bool Enabled { get; set; }
-    public int StalenessSeconds { get; set; }
+    public bool Enabled { get; set; } = true;
+    public int StalenessSeconds { get; set; } = 7200;
 }

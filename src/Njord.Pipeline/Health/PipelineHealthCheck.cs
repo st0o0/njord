@@ -1,22 +1,44 @@
+using Akka.Actor;
+using Akka.Hosting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
+using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Health;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Pipeline.Health;
 
 internal sealed class PipelineHealthCheck(
-    PollHealthState state,
+    ActorRegistry actorRegistry,
     TimeProvider timeProvider,
     ConfigView config,
     IOptionsMonitor<HealthOptions> options) : IHealthCheck
 {
-    public Task<HealthCheckResult> CheckHealthAsync(
-        HealthCheckContext context, CancellationToken cancellationToken = default) =>
-        Task.FromResult(Evaluate(state.Current, config.Polling.PollInterval, timeProvider.GetUtcNow(), options.CurrentValue));
+    private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
+
+    public async Task<HealthCheckResult> CheckHealthAsync(
+        HealthCheckContext context, CancellationToken cancellationToken = default)
+    {
+        if (!actorRegistry.TryGet<IPollManager>(out var pollManager))
+        {
+            return HealthCheckResult.Unhealthy("Poll manager not available");
+        }
+
+        try
+        {
+            var result = await pollManager.Ask<PollHealthResult>(
+                new QueryPollHealth(), AskTimeout, cancellationToken);
+            return Evaluate(result, config.Polling.PollInterval, timeProvider.GetUtcNow(), options.CurrentValue);
+        }
+        catch (AskTimeoutException)
+        {
+            return HealthCheckResult.Unhealthy("Poll manager unresponsive");
+        }
+    }
 
     internal static HealthCheckResult Evaluate(
-        PollHealth health, TimeSpan interval, DateTimeOffset now, HealthOptions options)
+        PollHealthResult health, TimeSpan interval, DateTimeOffset now, HealthOptions options)
     {
         var overdue = interval * options.PollOverdueFactor;
         var stalled = interval * options.PollStalledFactor;

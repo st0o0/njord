@@ -37,7 +37,6 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
 
         services.TryAddSingleton(FetchTimeouts.Default);
 
-        services.AddSingleton<PollHealthState>();
         services.AddHealthChecks().AddCheck<PipelineHealthCheck>("pipeline", failureStatus: HealthStatus.Unhealthy);
 
         services.AddSingleton<IActorRegistration>(new PipelineActorRegistration());
@@ -52,9 +51,7 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
                 .WithPolling()
                 .WithSingleton<IForecastPipeline>("pipeline",
                     (_, _, resolver) => resolver.Props<ForecastPipeline>().BackoffOnFailure("pipeline",
-                        PollingRegistration.MinBackoff, PollingRegistration.MaxBackoff, PollingRegistration.RandomFactor, config => config.WithMaxNrOfRetries(-1)))
-                .WithSingleton<IForecastReadModel>("forecast-read-model",
-                    (_, _, resolver) => resolver.Props<ForecastReadModel>());
+                        PollingRegistration.MinBackoff, PollingRegistration.MaxBackoff, PollingRegistration.RandomFactor, config => config.WithMaxNrOfRetries(-1)));
         }
     }
 }

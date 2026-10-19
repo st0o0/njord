@@ -44,7 +44,7 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
             timeProvider,
             transport,
             FastTimeout,
-            new MqttConnectionState())), $"mqtt-state-{Guid.NewGuid():N}");
+            new MqttSessionCounter())), $"mqtt-state-{Guid.NewGuid():N}");
     }
 
     private async Task<MqttStateSpec.FakeSourceHub> StartPublisherAsync(IMqttTransport transport)

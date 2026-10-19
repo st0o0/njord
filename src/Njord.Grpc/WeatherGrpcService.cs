@@ -30,7 +30,7 @@ public sealed class WeatherGrpcService(
         var location = FindLocation(await AskCatalogAsync(context), request.Location);
         var model = FindModel(location, request.Model);
 
-        var result = await actorRegistry.AskAsync<IForecastReadModel, ForecastResponse>(
+        var result = await actorRegistry.AskAsync<IGrpcConsumer, ForecastResponse>(
             new QueryForecast(location.Id, model), context);
 
         return result switch
@@ -45,7 +45,7 @@ public sealed class WeatherGrpcService(
     {
         var location = FindLocation(await AskCatalogAsync(context), request.Location);
 
-        var result = await actorRegistry.AskAsync<IForecastReadModel, LatestAnalysisResponse>(
+        var result = await actorRegistry.AskAsync<IGrpcConsumer, LatestAnalysisResponse>(
             new QueryLatestAnalysis(location.Id), context);
 
         return result.ToProto();
@@ -57,7 +57,7 @@ public sealed class WeatherGrpcService(
         ServerCallContext context)
     {
         var location = await ResolveStreamLocationAsync(request.Location, context);
-        var sourceRef = await RequestReadModelStreamAsync(context);
+        var sourceRef = await RequestGrpcStreamAsync(context);
 
         var mat = actorSystem.Materializer();
         var killSwitch = KillSwitches.Shared($"grpc-forecast-{context.Peer}");
@@ -82,7 +82,7 @@ public sealed class WeatherGrpcService(
         ServerCallContext context)
     {
         var location = await ResolveStreamLocationAsync(request.Location, context);
-        var sourceRef = await RequestReadModelStreamAsync(context);
+        var sourceRef = await RequestGrpcStreamAsync(context);
 
         var mat = actorSystem.Materializer();
         var killSwitch = KillSwitches.Shared($"grpc-enrichment-{context.Peer}");
@@ -111,14 +111,14 @@ public sealed class WeatherGrpcService(
     private async Task<LocationId?> ResolveStreamLocationAsync(string location, ServerCallContext context) =>
         string.IsNullOrEmpty(location) ? null : FindLocation(await AskCatalogAsync(context), location).Id;
 
-    private async Task<ISourceRef<PipelineEvent>> RequestReadModelStreamAsync(ServerCallContext context)
+    private async Task<ISourceRef<PipelineEvent>> RequestGrpcStreamAsync(ServerCallContext context)
     {
-        var reply = await actorRegistry.AskAsync<IForecastReadModel, RequestReadModelStreamResponse>(
-            new RequestReadModelStream(0), context);
+        var reply = await actorRegistry.AskAsync<IGrpcConsumer, RequestGrpcStreamResponse>(
+            new RequestGrpcStream(0), context);
 
         return reply switch
         {
-            RequestReadModelStreamCompleted response => response.SourceRef,
+            RequestGrpcStreamCompleted response => response.SourceRef,
             _ => throw new RpcException(
                 new GrpcStatus(StatusCode.Unavailable, "Pipeline stream is currently unavailable")),
         };
@@ -128,7 +128,7 @@ public sealed class WeatherGrpcService(
         catalog.Locations.FirstOrDefault(l => string.Equals(l.Id.Name, name, StringComparison.OrdinalIgnoreCase))
         ?? throw new RpcException(new GrpcStatus(StatusCode.NotFound, $"Location '{name}' not found"));
 
-    // The configured spelling of the model: the read model and the pipeline only know that one.
+    // The configured spelling of the model: the consumer and the pipeline only know that one.
     private static string FindModel(CatalogLocation location, string modelId) =>
         location.Models.FirstOrDefault(m => string.Equals(m, modelId, StringComparison.OrdinalIgnoreCase))
         ?? throw new RpcException(new GrpcStatus(StatusCode.NotFound,

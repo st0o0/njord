@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Configuration.Health;
+using Njord.Messages.Pipeline;
 using Njord.Pipeline.Health;
 using Njord.Tests.Shared;
 
@@ -12,7 +12,7 @@ public sealed class PipelineHealthCheckSpec
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(60);
     private static readonly HealthOptions Options = AppSettingsDefaults.Options<HealthOptions>();
 
-    private static PollHealth PolledMinutesAgo(int minutes, DateTimeOffset now) =>
+    private static PollHealthResult PolledMinutesAgo(int minutes, DateTimeOffset now) =>
         new(Started, now - TimeSpan.FromMinutes(minutes));
 
     [Fact]
@@ -67,7 +67,7 @@ public sealed class PipelineHealthCheckSpec
     {
         var now = Started.AddMinutes(30);
 
-        var result = PipelineHealthCheck.Evaluate(new PollHealth(Started, null), Interval, now, Options);
+        var result = PipelineHealthCheck.Evaluate(new PollHealthResult(Started, null), Interval, now, Options);
 
         Assert.Multiple(
             () => Assert.Equal(HealthStatus.Healthy, result.Status),
@@ -79,24 +79,10 @@ public sealed class PipelineHealthCheckSpec
     {
         var now = Started.AddHours(2);
 
-        var result = PipelineHealthCheck.Evaluate(new PollHealth(Started, null), Interval, now, Options);
+        var result = PipelineHealthCheck.Evaluate(new PollHealthResult(Started, null), Interval, now, Options);
 
         Assert.Multiple(
             () => Assert.Equal(HealthStatus.Unhealthy, result.Status),
             () => Assert.Equal("No poll completed since startup", result.Description));
-    }
-
-    [Fact]
-    public void The_state_starts_at_the_service_start_and_records_successful_polls()
-    {
-        var time = new FakeTimeProvider(Started);
-        var state = new PollHealthState(time);
-
-        var initial = state.Current;
-        state.RecordSuccessfulPoll(Started.AddMinutes(10));
-
-        Assert.Multiple(
-            () => Assert.Equal(new PollHealth(Started, null), initial),
-            () => Assert.Equal(new PollHealth(Started, Started.AddMinutes(10)), state.Current));
     }
 }

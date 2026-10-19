@@ -11,7 +11,7 @@ public sealed class MqttConnectionHealthCheckSpec
     [Fact]
     public void A_connected_broker_is_healthy()
     {
-        var result = MqttConnectionHealthCheck.Evaluate(new MqttConnectionStatus(true, null), Now, UnhealthyAfter);
+        var result = MqttConnectionHealthCheck.Evaluate(new MqttConnectionStatusResult(true, null), Now, UnhealthyAfter);
 
         Assert.Multiple(
             () => Assert.Equal(HealthStatus.Healthy, result.Status),
@@ -21,7 +21,7 @@ public sealed class MqttConnectionHealthCheckSpec
     [Fact]
     public void A_connection_that_was_never_established_is_degraded()
     {
-        var result = MqttConnectionHealthCheck.Evaluate(new MqttConnectionStatus(false, null), Now, UnhealthyAfter);
+        var result = MqttConnectionHealthCheck.Evaluate(new MqttConnectionStatusResult(false, null), Now, UnhealthyAfter);
 
         Assert.Multiple(
             () => Assert.Equal(HealthStatus.Degraded, result.Status),
@@ -32,7 +32,7 @@ public sealed class MqttConnectionHealthCheckSpec
     public void A_recent_disconnect_is_degraded()
     {
         var result = MqttConnectionHealthCheck.Evaluate(
-            new MqttConnectionStatus(false, Now - TimeSpan.FromSeconds(90)), Now, UnhealthyAfter);
+            new MqttConnectionStatusResult(false, Now - TimeSpan.FromSeconds(90)), Now, UnhealthyAfter);
 
         Assert.Multiple(
             () => Assert.Equal(HealthStatus.Degraded, result.Status),
@@ -43,7 +43,7 @@ public sealed class MqttConnectionHealthCheckSpec
     public void A_disconnect_at_the_threshold_is_unhealthy()
     {
         var result = MqttConnectionHealthCheck.Evaluate(
-            new MqttConnectionStatus(false, Now - UnhealthyAfter), Now, UnhealthyAfter);
+            new MqttConnectionStatusResult(false, Now - UnhealthyAfter), Now, UnhealthyAfter);
 
         Assert.Multiple(
             () => Assert.Equal(HealthStatus.Unhealthy, result.Status),
@@ -53,7 +53,7 @@ public sealed class MqttConnectionHealthCheckSpec
     [Fact]
     public void The_configured_threshold_moves_the_boundary()
     {
-        var status = new MqttConnectionStatus(false, Now - TimeSpan.FromMinutes(3));
+        var status = new MqttConnectionStatusResult(false, Now - TimeSpan.FromMinutes(3));
 
         var strict = MqttConnectionHealthCheck.Evaluate(status, Now, TimeSpan.FromMinutes(2));
         var lenient = MqttConnectionHealthCheck.Evaluate(status, Now, TimeSpan.FromMinutes(5));
@@ -61,20 +61,5 @@ public sealed class MqttConnectionHealthCheckSpec
         Assert.Multiple(
             () => Assert.Equal(HealthStatus.Unhealthy, strict.Status),
             () => Assert.Equal(HealthStatus.Degraded, lenient.Status));
-    }
-
-    [Fact]
-    public void The_state_swaps_between_connected_and_disconnected_atomically()
-    {
-        var state = new MqttConnectionState();
-
-        state.Connected();
-        var connected = state.Current;
-        state.Disconnected(Now);
-        var disconnected = state.Current;
-
-        Assert.Multiple(
-            () => Assert.Equal(new MqttConnectionStatus(true, null), connected),
-            () => Assert.Equal(new MqttConnectionStatus(false, Now), disconnected));
     }
 }

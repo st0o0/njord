@@ -1,19 +1,40 @@
+using Akka.Actor;
+using Akka.Hosting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
+using Njord.Core.Actors;
 using Njord.Core.Configuration.Health;
 
 namespace Njord.Mqtt.Health;
 
 internal sealed class MqttConnectionHealthCheck(
-    MqttConnectionState state,
+    ActorRegistry actorRegistry,
     TimeProvider timeProvider,
     IOptionsMonitor<HealthOptions> options) : IHealthCheck
 {
-    public Task<HealthCheckResult> CheckHealthAsync(
-        HealthCheckContext context, CancellationToken cancellationToken = default) =>
-        Task.FromResult(Evaluate(state.Current, timeProvider.GetUtcNow(), options.CurrentValue.MqttUnhealthyAfter));
+    private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
 
-    internal static HealthCheckResult Evaluate(MqttConnectionStatus status, DateTimeOffset now, TimeSpan unhealthyAfter)
+    public async Task<HealthCheckResult> CheckHealthAsync(
+        HealthCheckContext context, CancellationToken cancellationToken = default)
+    {
+        if (!actorRegistry.TryGet<IMqttConnectionActor>(out var mqttConnection))
+        {
+            return HealthCheckResult.Unhealthy("MQTT connection actor not available");
+        }
+
+        try
+        {
+            var result = await mqttConnection.Ask<MqttConnectionStatusResult>(
+                new QueryMqttConnectionStatus(), AskTimeout, cancellationToken);
+            return Evaluate(result, timeProvider.GetUtcNow(), options.CurrentValue.MqttUnhealthyAfter);
+        }
+        catch (AskTimeoutException)
+        {
+            return HealthCheckResult.Unhealthy("MQTT connection actor unresponsive");
+        }
+    }
+
+    internal static HealthCheckResult Evaluate(MqttConnectionStatusResult status, DateTimeOffset now, TimeSpan unhealthyAfter)
     {
         if (status.IsConnected)
         {

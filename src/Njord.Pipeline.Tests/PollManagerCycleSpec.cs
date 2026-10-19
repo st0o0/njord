@@ -12,7 +12,6 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Pipeline;
 using Njord.Model;
-using Njord.Pipeline.Health;
 using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;
@@ -28,7 +27,6 @@ public sealed class PollManagerCycleSpec : NjordActorSpec
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton(new PollHealthState(TimeProvider.System));
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations = [new LocationOptions { Name = _location, Latitude = 47.05, Longitude = 8.31 }],

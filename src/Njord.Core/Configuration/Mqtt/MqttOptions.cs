@@ -8,13 +8,13 @@ public sealed class MqttOptions
 
     public string Host { get; set; } = string.Empty;
 
-    public int Port { get; set; }
+    public int Port { get; set; } = 1883;
 
     public string? Username { get; set; }
 
     public string? Password { get; set; }
 
-    public string DiscoveryPrefix { get; set; } = string.Empty;
+    public string DiscoveryPrefix { get; set; } = "homeassistant";
 
-    public string BaseTopic { get; set; } = string.Empty;
+    public string BaseTopic { get; set; } = "njord";
 }

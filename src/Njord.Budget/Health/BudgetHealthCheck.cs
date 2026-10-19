@@ -1,34 +1,53 @@
+using Akka.Actor;
+using Akka.Hosting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
-using Njord.Core.Configuration;
+using Njord.Core.Actors;
 using Njord.Core.Configuration.Health;
-using Njord.Core.Configuration.Polling;
+using Njord.Messages.Budget;
 
 namespace Njord.Budget.Health;
 
 internal sealed class BudgetHealthCheck(
-    BudgetUsageState state,
-    ConfigView config,
+    ActorRegistry actorRegistry,
     IOptionsMonitor<HealthOptions> options) : IHealthCheck
 {
-    public Task<HealthCheckResult> CheckHealthAsync(
-        HealthCheckContext context, CancellationToken cancellationToken = default) =>
-        Task.FromResult(Evaluate(state.Current, config.Polling.ToBudgetAllowance(), options.CurrentValue.BudgetDegradedBelowPercent));
+    private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
 
-    internal static HealthCheckResult Evaluate(BudgetUsage usage, BudgetAllowance allowance, double degradedBelowPercent)
+    public async Task<HealthCheckResult> CheckHealthAsync(
+        HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        if (usage.Monthly >= allowance.Monthly)
+        if (!actorRegistry.TryGet<IBudgetTracker>(out var budgetTracker))
         {
-            return HealthCheckResult.Unhealthy($"Monthly request budget exhausted ({usage.Monthly}/{allowance.Monthly})");
+            return HealthCheckResult.Unhealthy("Budget tracker not available");
         }
 
-        if (usage.Daily >= allowance.Daily)
+        try
         {
-            return HealthCheckResult.Unhealthy($"Daily request budget exhausted ({usage.Daily}/{allowance.Daily})");
+            var result = await budgetTracker.Ask<BudgetStatusResult>(
+                new QueryBudgetStatus(), AskTimeout, cancellationToken);
+            return Evaluate(result, options.CurrentValue.BudgetDegradedBelowPercent);
+        }
+        catch (AskTimeoutException)
+        {
+            return HealthCheckResult.Unhealthy("Budget tracker unresponsive");
+        }
+    }
+
+    internal static HealthCheckResult Evaluate(BudgetStatusResult status, double degradedBelowPercent)
+    {
+        if (status.MonthlyUsed >= status.MonthlyLimit)
+        {
+            return HealthCheckResult.Unhealthy($"Monthly request budget exhausted ({status.MonthlyUsed}/{status.MonthlyLimit})");
         }
 
-        var monthlyRemaining = RemainingPercent(usage.Monthly, allowance.Monthly);
-        var dailyRemaining = RemainingPercent(usage.Daily, allowance.Daily);
+        if (status.DailyUsed >= status.DailyLimit)
+        {
+            return HealthCheckResult.Unhealthy($"Daily request budget exhausted ({status.DailyUsed}/{status.DailyLimit})");
+        }
+
+        var monthlyRemaining = RemainingPercent(status.MonthlyUsed, status.MonthlyLimit);
+        var dailyRemaining = RemainingPercent(status.DailyUsed, status.DailyLimit);
 
         if (monthlyRemaining < degradedBelowPercent)
         {

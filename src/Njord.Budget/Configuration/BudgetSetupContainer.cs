@@ -15,7 +15,6 @@ public sealed class BudgetSetupContainer : IServiceSetupContainer
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IActorRegistration>(new BudgetActorRegistration());
-        services.AddSingleton<BudgetUsageState>();
         services.AddHostedService<BudgetGaugeRegistration>();
         services.AddHealthChecks().AddCheck<BudgetHealthCheck>("budget", failureStatus: HealthStatus.Unhealthy);
     }

@@ -33,7 +33,7 @@ public sealed class MqttStateSpec : NjordActorSpec
 
     private IActorRef CreateMqttStateActor(
         NjordOptions? options = null, TimeProvider? timeProvider = null,
-        IMqttTransport? transport = null, MqttConnectionState? connection = null)
+        IMqttTransport? transport = null, MqttSessionCounter? sessionCounter = null)
     {
         options ??= DefaultOptions();
         timeProvider ??= TestTimeouts.AtEpoch(Anchor);
@@ -47,7 +47,7 @@ public sealed class MqttStateSpec : NjordActorSpec
             timeProvider,
             transport,
             MqttEgressTuning.Default,
-            connection ?? new MqttConnectionState())));
+            sessionCounter ?? new MqttSessionCounter())));
     }
 
     private FakeSourceHub RegisterFakePipelineHub()

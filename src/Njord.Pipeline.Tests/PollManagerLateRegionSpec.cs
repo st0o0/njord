@@ -7,7 +7,6 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Messages.Pipeline;
-using Njord.Pipeline.Health;
 using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;
@@ -20,7 +19,6 @@ public sealed class PollManagerLateRegionSpec : NjordActorSpec
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton(new PollHealthState(TimeProvider.System));
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],

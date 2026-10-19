@@ -6,9 +6,9 @@ using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.Tests.Shared;
 
-namespace Njord.Pipeline.Tests;
+namespace Njord.Grpc.Tests;
 
-public sealed class ForecastReadModelRewireSpec : NjordActorSpec
+public sealed class GrpcConsumerRewireSpec : NjordActorSpec
 {
     private static readonly DateTimeOffset Anchor = TestTimeConstants.NoonAnchor;
     private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
@@ -20,7 +20,7 @@ public sealed class ForecastReadModelRewireSpec : NjordActorSpec
     {
         var pipeline = new FakePipelineOutput(Sys);
         ActorRegistry.Register<IForecastPipeline>(pipeline.Actor, overwrite: true);
-        var readModel = Sys.ActorOf(Props.Create(() => new ForecastReadModel()), $"read-model-{Guid.NewGuid():N}");
+        var readModel = Sys.ActorOf(Props.Create(() => new GrpcConsumer()), $"grpc-consumer-{Guid.NewGuid():N}");
         return (readModel, pipeline);
     }
 
@@ -88,14 +88,14 @@ public sealed class ForecastReadModelRewireSpec : NjordActorSpec
 
     private async Task<Source<PipelineEvent, Akka.NotUsed>> RequestStreamAsync(IActorRef readModel, CancellationToken ct)
     {
-        RequestReadModelStreamCompleted? completed = null;
+        RequestGrpcStreamCompleted? completed = null;
         var attempt = 0;
         await AwaitAssertAsync(async () =>
         {
-            var response = await readModel.Ask<RequestReadModelStreamResponse>(new RequestReadModelStream(attempt++), AskTimeout, ct);
-            completed = Assert.IsType<RequestReadModelStreamCompleted>(response);
+            var response = await readModel.Ask<RequestGrpcStreamResponse>(new RequestGrpcStream(attempt++), AskTimeout, ct);
+            completed = Assert.IsType<RequestGrpcStreamCompleted>(response);
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-        return Assert.IsType<RequestReadModelStreamCompleted>(completed).SourceRef.Source;
+        return Assert.IsType<RequestGrpcStreamCompleted>(completed).SourceRef.Source;
     }
 }

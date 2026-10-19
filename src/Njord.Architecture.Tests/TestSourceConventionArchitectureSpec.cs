@@ -81,18 +81,6 @@ public sealed class TestSourceConventionArchitectureSpec
             () => Assert.DoesNotContain(files, f => f.Path.Contains("/obj/") || f.Path.StartsWith("Njord.Tests.Shared/", StringComparison.Ordinal)));
     }
 
-    [Fact]
-    public void Options_with_shipped_defaults_include_the_section_options_and_exclude_nested_types()
-    {
-        var types = TestSourceRule.OptionsWithShippedDefaults;
-
-        Assert.Multiple(
-            () => Assert.Contains("PollingOptions", types),
-            () => Assert.Contains("MqttOptions", types),
-            () => Assert.Contains("IndexOptions", types),
-            () => Assert.DoesNotContain("LocationOptions", types));
-    }
-
     // Negative self-tests: each convention must be detected on a synthetic offending snippet.
     public static TheoryData<string, string> OffendingSnippets() => new()
     {
@@ -103,8 +91,6 @@ public sealed class TestSourceConventionArchitectureSpec
         { "no Task.Delay with a literal duration", "async Task M() { await Task.Delay(TimeSpan.FromSeconds(1)); }" },
         { "no wall clock", "var now = DateTimeOffset.UtcNow;" },
         { "no wall clock", "var now = DateTime.Now;" },
-        { "no empty options constructor for options with shipped defaults", "var o = new PollingOptions();" },
-        { "no empty options constructor for options with shipped defaults", "var o = new MqttOptions { };" },
         { "no boolean assert around an equality", "Assert.True(actual == expected);" },
         { "no boolean assert around an equality", "Assert.False(actual != expected);" },
         { "no null-forgiving member access outside JsonNode", "var x = value.ToString()!.Length;" },
@@ -128,8 +114,6 @@ public sealed class TestSourceConventionArchitectureSpec
         { "no Thread.Sleep", "var s = \"Thread.Sleep(1)\"; // Thread.Sleep(2)" },
         { "no Task.Delay with a literal duration", "await Task.Delay(Timeout.Infinite, ct);" },
         { "no wall clock", "var s = \"DateTime.UtcNow\"; /* DateTime.Now */ var t = time.GetUtcNow();" },
-        { "no empty options constructor for options with shipped defaults", "var o = new PollingOptions { PollInterval = TimeSpan.Zero };" },
-        { "no empty options constructor for options with shipped defaults", "var l = new LocationOptions();" },
         { "no boolean assert around an equality", "Assert.True(list.All(x => x == 1)); Assert.True(a <= b); Assert.False(a == b);" },
         { "no boolean assert around an equality", "Assert.True(items.Count == 0, \"a message has no Assert.Equal overload\");" },
         { "no null-forgiving member access outside JsonNode", "var v = node[\"a\"]!.GetValue<int>(); var r = JsonNode.Parse(text)!.AsObject();" },

@@ -13,7 +13,6 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Pipeline;
 using Njord.Model;
-using Njord.Pipeline.Health;
 using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;
@@ -24,7 +23,6 @@ public sealed class PollManagerSpec : NjordActorSpec
     private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
 
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
-    private readonly PollHealthState _health = new(TimeProvider.System);
     private readonly TestOptionsMonitor<PollingOptions> _polling =
         new(AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = Discovery));
     private TestProbe _region = null!;
@@ -32,7 +30,6 @@ public sealed class PollManagerSpec : NjordActorSpec
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton(_health);
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations =
@@ -302,14 +299,15 @@ public sealed class PollManagerSpec : NjordActorSpec
 
         manager.Tell(new PollWorkerReport(Targets[0], PollWorkerOutcome.Failed, Entry(Targets[0])));
         await QueryAsync(manager, ct);
-        var afterFailure = _health.Current.LastSuccessfulPollUtc;
+        var afterFailure = await manager.Ask<PollHealthResult>(new QueryPollHealth(), TimeSpan.FromSeconds(3), ct);
 
         _time.Advance(TimeSpan.FromMinutes(1));
         manager.Tell(new PollWorkerReport(Targets[0], PollWorkerOutcome.Unchanged, Entry(Targets[0])));
         await QueryAsync(manager, ct);
 
+        var afterSuccess = await manager.Ask<PollHealthResult>(new QueryPollHealth(), TimeSpan.FromSeconds(3), ct);
         Assert.Multiple(
-            () => Assert.Null(afterFailure),
-            () => Assert.Equal(_time.GetUtcNow(), _health.Current.LastSuccessfulPollUtc));
+            () => Assert.Null(afterFailure.LastSuccessfulPollUtc),
+            () => Assert.Equal(_time.GetUtcNow(), afterSuccess.LastSuccessfulPollUtc));
     }
 }
