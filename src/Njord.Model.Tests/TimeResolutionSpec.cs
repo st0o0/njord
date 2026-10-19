@@ -8,13 +8,13 @@ public sealed class TimeResolutionSpec
     [InlineData(TimeResolution.ThreeHourly, 180)]
     [InlineData(TimeResolution.SixHourly, 360)]
     [InlineData(TimeResolution.Daily, 1440)]
-    public void To_time_span_returns_the_step_length(TimeResolution resolution, int minutes)
+    public void Should_convert_resolution_to_time_span(TimeResolution resolution, int minutes)
     {
         Assert.Equal(TimeSpan.FromMinutes(minutes), resolution.ToTimeSpan());
     }
 
     [Fact]
-    public void Unknown_resolution_is_rejected()
+    public void Should_throw_for_undefined_resolution()
     {
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => ((TimeResolution)99).ToTimeSpan());
 

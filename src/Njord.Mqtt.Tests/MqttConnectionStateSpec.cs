@@ -27,6 +27,17 @@ public sealed class MqttConnectionStateSpec
     }
 
     [Fact]
+    public void Reconnecting_after_a_loss_increments_the_session()
+    {
+        var state = MqttConnectionState.Empty
+            .Apply(new ConnectionEstablished())
+            .Apply(new ConnectionLost(Lost))
+            .Apply(new ConnectionEstablished());
+
+        Assert.Equal(2, state.Session);
+    }
+
+    [Fact]
     public void Each_scheduled_reconnect_counts_one_attempt()
     {
         var state = MqttConnectionState.Empty.Apply(new ReconnectScheduled()).Apply(new ReconnectScheduled());
@@ -43,16 +54,5 @@ public sealed class MqttConnectionStateSpec
         Assert.Multiple(
             () => Assert.Equal(2, failed.OnlineAttempts),
             () => Assert.Equal(0, recovered.OnlineAttempts));
-    }
-
-    [Fact]
-    public void Sessions_increase_with_every_established_connection()
-    {
-        var state = MqttConnectionState.Empty
-            .Apply(new ConnectionEstablished())
-            .Apply(new ConnectionLost(Lost))
-            .Apply(new ConnectionEstablished());
-
-        Assert.Equal(2, state.Session);
     }
 }

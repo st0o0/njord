@@ -1,112 +1,89 @@
 using Njord.Core.Configuration;
 using Njord.Model;
-using Njord.Tests.Shared;
 
 namespace Njord.Core.Tests.Configuration;
 
 public sealed class NjordOptionsValidatorSpec
 {
-    private static NjordOptions ValidOptions() => AppSettingsDefaults.Options<NjordOptions>(o =>
-    {
-        o.Locations = [new LocationOptions { Name = "home", Latitude = 47.05, Longitude = 8.31 }];
-        o.Models =
-        [
-            "icon_d2", "icon_eu", "icon_global", "ecmwf_ifs025",
-            "gfs_seamless", "ukmo_global_deterministic_10km",
-            "meteoswiss_icon_ch1", "meteoswiss_icon_ch2",
-        ];
-    });
+    private readonly NjordOptionsValidator _validator = new();
 
-    private static readonly NjordOptionsValidator Validator = new();
+    private static NjordOptions Valid() => new()
+    {
+        Locations = [new LocationOptions { Name = "Lucerne", Latitude = 47.05, Longitude = 8.31 }],
+        Models = ["icon_d2"],
+    };
 
     [Fact]
-    public void Default_configuration_passes()
+    public void Should_accept_a_minimal_valid_scope()
     {
-        var result = Validator.Validate(null, ValidOptions());
-
-        Assert.True(result.Succeeded, result.FailureMessage);
+        Assert.True(_validator.Validate(null, Valid()).Succeeded);
     }
 
     [Fact]
-    public void Enabled_domains_without_weather_are_rejected()
+    public void Should_reject_a_scope_without_locations()
     {
-        var options = ValidOptions();
-        options.EnabledDomains = [DomainKind.Flood];
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Failed);
-        Assert.Contains("EnabledDomains must include Weather", result.FailureMessage);
-    }
-
-    [Fact]
-    public void Duplicate_enabled_domains_are_rejected()
-    {
-        var options = ValidOptions();
-        options.EnabledDomains = [DomainKind.Weather, DomainKind.Weather];
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Failed);
-        Assert.Contains("duplicates", result.FailureMessage);
-    }
-
-    [Fact]
-    public void Empty_location_list_is_rejected()
-    {
-        var options = ValidOptions();
+        var options = Valid();
         options.Locations = [];
 
-        var result = Validator.Validate(null, options);
+        var result = _validator.Validate(null, options);
 
-        Assert.True(result.Failed);
-        Assert.Contains("location", result.FailureMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("At least one location (Name, Latitude, Longitude) is required.", ValidationAssert.SingleFailure(result));
     }
 
     [Fact]
-    public void Empty_model_list_is_valid_for_ensemble_only()
+    public void Should_reject_a_location_with_a_blank_name()
     {
-        var options = ValidOptions();
-        options.Models = [];
+        var options = Valid();
+        options.Locations = [new LocationOptions { Name = " " }];
 
-        var result = Validator.Validate(null, options);
+        var result = _validator.Validate(null, options);
 
-        Assert.True(result.Succeeded, result.FailureMessage);
-    }
-
-    [Fact]
-    public void Blank_model_entries_are_rejected()
-    {
-        var options = ValidOptions();
-        options.Models = ["icon_d2", "  "];
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Failed);
-    }
-
-    [Fact]
-    public void Empty_horizons_are_accepted_as_unused()
-    {
-        var options = ValidOptions();
-        options.Horizons = [];
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Succeeded, result.FailureMessage);
+        Assert.Equal("Every location needs a non-empty Name.", ValidationAssert.SingleFailure(result));
     }
 
     [Theory]
     [InlineData(0)]
     [InlineData(17)]
-    public void Forecast_days_outside_one_to_sixteen_are_rejected(int days)
+    public void Should_reject_forecast_days_outside_one_to_sixteen(int days)
     {
-        var options = ValidOptions();
+        var options = Valid();
         options.ForecastDays = days;
 
-        var result = Validator.Validate(null, options);
+        var result = _validator.Validate(null, options);
 
-        Assert.True(result.Failed);
-        Assert.Contains("ForecastDays", result.FailureMessage);
+        Assert.Equal("ForecastDays must be between 1 and 16.", ValidationAssert.SingleFailure(result));
+    }
+
+    [Fact]
+    public void Should_reject_enabled_domains_without_weather()
+    {
+        var options = Valid();
+        options.EnabledDomains = [DomainKind.Flood];
+
+        var result = _validator.Validate(null, options);
+
+        Assert.Equal("EnabledDomains must include Weather.", ValidationAssert.SingleFailure(result));
+    }
+
+    [Fact]
+    public void Should_reject_duplicate_enabled_domains()
+    {
+        var options = Valid();
+        options.EnabledDomains = [DomainKind.Weather, DomainKind.Weather];
+
+        var result = _validator.Validate(null, options);
+
+        Assert.Equal("EnabledDomains must not contain duplicates.", ValidationAssert.SingleFailure(result));
+    }
+
+    [Fact]
+    public void Should_report_unknown_parameter_groups()
+    {
+        var options = Valid();
+        options.Parameters = new ParameterOptions { Groups = ["Weather", "Lava"] };
+
+        var result = _validator.Validate(null, options);
+
+        Assert.Contains("Unknown parameter group: 'Lava'", ValidationAssert.SingleFailure(result));
     }
 }

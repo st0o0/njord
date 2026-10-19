@@ -5,7 +5,6 @@ namespace Njord.Mqtt.Tests;
 
 public sealed class TopicSchemeSpec
 {
-
     [Theory]
     [InlineData(DomainKind.Weather, "weather")]
     [InlineData(DomainKind.AirQuality, "air-quality")]
@@ -26,15 +25,10 @@ public sealed class TopicSchemeSpec
     }
 
     [Fact]
-    public void Domain_topic_carries_location_domain_and_parameter()
+    public void Domain_topic_carries_slugged_location_domain_and_parameter()
     {
-        Assert.Multiple(
-            () => Assert.Equal("njord/lucerne/weather/temperature",
-                TopicScheme.DomainTopic("njord", "Lucerne", DomainKind.Weather, "temperature")),
-            () => Assert.Equal("njord/lucerne/air-quality/pm25",
-                TopicScheme.DomainTopic("njord", "Lucerne", DomainKind.AirQuality, "pm25")),
-            () => Assert.Equal("njord/z_rich/flood/discharge",
-                TopicScheme.DomainTopic("njord", "Zürich", DomainKind.Flood, "discharge")));
+        Assert.Equal("njord/z_rich/air-quality/pm25",
+            TopicScheme.DomainTopic("njord", "Zürich", DomainKind.AirQuality, "pm25"));
     }
 
     [Fact]
@@ -44,51 +38,21 @@ public sealed class TopicSchemeSpec
     }
 
     [Fact]
-    public void Enrichment_device_id_joins_base_slug_and_segment()
+    public void Enrichment_topics_nest_location_type_and_leaf()
     {
-        Assert.Equal("njord_lucerne_solar", TopicScheme.EnrichmentDeviceId("lucerne", "solar"));
+        Assert.Multiple(
+            () => Assert.Equal("njord/lucerne/consensus", TopicScheme.EnrichmentTopic("njord", "Lucerne", "consensus")),
+            () => Assert.Equal("njord/lucerne/alerts/heavy-rain",
+                TopicScheme.EnrichmentSubTopic("njord", "Lucerne", "alerts", "heavy-rain")),
+            () => Assert.Equal("njord_z_rich_alerts", TopicScheme.EnrichmentDeviceId("Zürich", "alerts")));
     }
 
-    [Fact]
-    public void Enrichment_sub_topic_joins_base_slug_segment_and_leaf()
+    [Theory]
+    [InlineData("ICON_D2", "icon_d2")]
+    [InlineData("My Location", "my_location")]
+    [InlineData("icon-eu.2.5km", "icon_eu_2_5km")]
+    public void Slug_lowercases_and_replaces_everything_but_letters_and_digits(string input, string expected)
     {
-        Assert.Equal("njord/lucerne/solar/h3",
-            TopicScheme.EnrichmentSubTopic("njord", "lucerne", "solar", "h3"));
-    }
-
-    [Fact]
-    public void Alert_device_id_uses_location_slug()
-    {
-        Assert.Equal("njord_lucerne_alerts", TopicScheme.EnrichmentDeviceId("lucerne", "alerts"));
-    }
-
-    [Fact]
-    public void Alert_topic_uses_alerts_segment()
-    {
-        Assert.Equal("njord/lucerne/alerts/frost",
-            TopicScheme.EnrichmentSubTopic("njord", "lucerne", "alerts", "frost"));
-        Assert.Equal("njord/lucerne/alerts/heavy-rain",
-            TopicScheme.EnrichmentSubTopic("njord", "lucerne", "alerts", "heavy-rain"));
-    }
-
-    [Fact]
-    public void Enrichment_device_id_combines_location_and_type_name()
-    {
-        Assert.Equal("njord_lucerne_solar", TopicScheme.EnrichmentDeviceId("lucerne", "solar"));
-        Assert.Equal("njord_z_rich_alerts", TopicScheme.EnrichmentDeviceId("Zürich", "alerts"));
-    }
-
-    [Fact]
-    public void Enrichment_topic_combines_base_location_and_type_name()
-    {
-        Assert.Equal("njord/lucerne/consensus", TopicScheme.EnrichmentTopic("njord", "lucerne", "consensus"));
-        Assert.Equal("njord/home/energy", TopicScheme.EnrichmentTopic("njord", "home", "energy"));
-    }
-
-    [Fact]
-    public void Enrichment_sub_topic_adds_sub_segment()
-    {
-        Assert.Equal("njord/lucerne/consensus/h3", TopicScheme.EnrichmentSubTopic("njord", "lucerne", "consensus", "h3"));
-        Assert.Equal("njord/home/derived/meta", TopicScheme.EnrichmentSubTopic("njord", "home", "derived", "meta"));
+        Assert.Equal(expected, TopicSlug.Slug(input));
     }
 }

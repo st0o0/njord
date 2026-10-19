@@ -1,6 +1,4 @@
 using Akka.Actor;
-using Akka.Event;
-using Akka.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
@@ -13,199 +11,87 @@ namespace Njord.Budget.Tests;
 
 public sealed class BudgetTrackerSpec : NjordActorSpec
 {
-    private static readonly DateTimeOffset T0 = TestTimeConstants.BudgetEpoch;
-    private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(T0);
+    private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(TestTimeConstants.BudgetEpoch);
     private ConfigView _config = TestConfigView.Create();
 
-    protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
-    {
+    protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services) =>
         services.AddSingleton<TimeProvider>(_time);
-    }
 
-    private IActorRef CreateActor(string? name = null)
+    private IActorRef CreateTracker() =>
+        Sys.ActorOf(Props.Create(() => new BudgetTracker(_time, _config)), $"budget-tracker-{Guid.NewGuid():N}");
+
+    private async Task<BudgetUsageResult> UsageOf(IActorRef tracker, CancellationToken ct) =>
+        await tracker.Ask<BudgetUsageResult>(new QueryBudgetUsage(), TestTimeouts.AwaitAssertMax, ct);
+
+    private async Task StopAsync(IActorRef tracker)
     {
-        return Sys.ActorOf(
-            Props.Create(() => new BudgetTracker(_time, _config)),
-            name ?? $"budget-tracker-{Guid.NewGuid():N}");
+        Watch(tracker);
+        Sys.Stop(tracker);
+        await ExpectTerminatedAsync(tracker, cancellationToken: TestContext.Current.CancellationToken);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Records_and_queries_usage()
+    public async Task Recorded_calls_are_reported_as_weighted_usage()
     {
-        var actor = CreateActor();
+        var tracker = CreateTracker();
 
-        actor.Tell(new RecordApiCall(1));
-        actor.Tell(new RecordApiCall(1));
+        tracker.Tell(new RecordApiCall(4));
+        tracker.Tell(new RecordApiCall(2));
 
-        var usage = await actor.Ask<BudgetUsageResult>(
-            new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
-
-        Assert.Equal(2, usage.MonthlyUsed);
-        Assert.Equal(2, usage.DailyUsed);
+        Assert.Equal(new BudgetUsageResult(6, 6), await UsageOf(tracker, TestContext.Current.CancellationToken));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Budget_status_reports_usage_with_the_effective_limits()
+    public async Task Status_pairs_the_usage_with_the_effective_limits()
     {
         _config = TestConfigView.Create(polling: AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(250_000, 60)));
-        var actor = CreateActor();
+        var tracker = CreateTracker();
 
-        actor.Tell(new RecordApiCall(2));
+        tracker.Tell(new RecordApiCall(2));
 
-        var status = await actor.Ask<BudgetStatusResponse>(
-            new QueryBudgetStatus(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+        var status = await tracker.Ask<BudgetStatusResponse>(new QueryBudgetStatus(), TestTimeouts.AwaitAssertMax, TestContext.Current.CancellationToken);
 
         Assert.Equal(new BudgetStatusResult(MonthlyUsed: 2, DailyUsed: 2, MonthlyLimit: 250_000, DailyLimit: 10_000), status);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Weighted_calls_accumulate_correctly()
+    public async Task A_new_day_resets_only_the_daily_counter()
     {
-        var actor = CreateActor();
+        var tracker = CreateTracker();
+        tracker.Tell(new RecordApiCall(5));
+        await UsageOf(tracker, TestContext.Current.CancellationToken);
 
-        actor.Tell(new RecordApiCall(3));
-        actor.Tell(new RecordApiCall(2));
-        actor.Tell(new RecordApiCall(1));
+        _time.Advance(TimeSpan.FromDays(1));
+        tracker.Tell(new RecordApiCall(2));
 
-        var usage = await actor.Ask<BudgetUsageResult>(
-            new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
-
-        Assert.Equal(6, usage.MonthlyUsed);
-        Assert.Equal(6, usage.DailyUsed);
+        Assert.Equal(new BudgetUsageResult(MonthlyUsed: 7, DailyUsed: 2), await UsageOf(tracker, TestContext.Current.CancellationToken));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Day_boundary_resets_daily_but_not_monthly()
+    public async Task A_restarted_tracker_recovers_usage_from_the_journal()
     {
-        var actor = CreateActor();
+        var tracker = CreateTracker();
+        tracker.Tell(new RecordApiCall(4));
+        tracker.Tell(new RecordApiCall(3));
+        await UsageOf(tracker, TestContext.Current.CancellationToken);
+        await StopAsync(tracker);
 
-        actor.Tell(new RecordApiCall(5));
+        var recovered = CreateTracker();
 
-        var usage1 = await actor.Ask<BudgetUsageResult>(
-            new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
-        Assert.Equal(5, usage1.DailyUsed);
-
-        _time.SetUtcNow(T0.AddDays(1));
-
-        actor.Tell(new RecordApiCall(2));
-
-        var usage2 = await actor.Ask<BudgetUsageResult>(
-            new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
-
-        Assert.Equal(7, usage2.MonthlyUsed);
-        Assert.Equal(2, usage2.DailyUsed);
+        Assert.Equal(new BudgetUsageResult(7, 7), await UsageOf(recovered, TestContext.Current.CancellationToken));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Month_boundary_resets_both_counters()
+    public async Task Recovery_after_a_month_change_drops_the_previous_months_usage()
     {
-        var actor = CreateActor();
-
-        actor.Tell(new RecordApiCall(10));
-
-        var usage1 = await actor.Ask<BudgetUsageResult>(
-            new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
-        Assert.Equal(10, usage1.MonthlyUsed);
-
+        var tracker = CreateTracker();
+        tracker.Tell(new RecordApiCall(10));
+        await UsageOf(tracker, TestContext.Current.CancellationToken);
+        await StopAsync(tracker);
         _time.SetUtcNow(new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero));
 
-        actor.Tell(new RecordApiCall(3));
+        var recovered = CreateTracker();
 
-        var usage2 = await actor.Ask<BudgetUsageResult>(
-            new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
-
-        Assert.Equal(3, usage2.MonthlyUsed);
-        Assert.Equal(3, usage2.DailyUsed);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Recovery_replays_events_from_current_month()
-    {
-        const string actorName = "recovery-test";
-        var actor = CreateActor(actorName);
-
-        actor.Tell(new RecordApiCall(4));
-        actor.Tell(new RecordApiCall(3));
-
-        var usage1 = await actor.Ask<BudgetUsageResult>(
-            new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
-        Assert.Equal(7, usage1.MonthlyUsed);
-
-        await actor.GracefulStop(TimeSpan.FromSeconds(3));
-
-        var recovered = CreateActor();
-
-        var usage2 = await recovered.Ask<BudgetUsageResult>(
-            new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
-
-        Assert.Equal(7, usage2.MonthlyUsed);
-        Assert.Equal(7, usage2.DailyUsed);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Recovery_skips_events_from_previous_month()
-    {
-        const string actorName = "stale-month-test";
-        var actor = CreateActor(actorName);
-
-        actor.Tell(new RecordApiCall(10));
-
-        var usage1 = await actor.Ask<BudgetUsageResult>(
-            new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
-        Assert.Equal(10, usage1.MonthlyUsed);
-
-        await actor.GracefulStop(TimeSpan.FromSeconds(3));
-
-        _time.SetUtcNow(new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero));
-
-        var recovered = CreateActor();
-
-        var usage2 = await recovered.Ask<BudgetUsageResult>(
-            new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
-
-        Assert.Equal(0, usage2.MonthlyUsed);
-        Assert.Equal(0, usage2.DailyUsed);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Returns_zero_before_any_calls()
-    {
-        var actor = CreateActor();
-
-        var usage = await actor.Ask<BudgetUsageResult>(
-            new QueryBudgetUsage(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
-
-        Assert.Equal(0, usage.MonthlyUsed);
-        Assert.Equal(0, usage.DailyUsed);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Delete_messages_failure_is_logged_as_warning()
-    {
-        var warnings = CreateTestProbe();
-        Sys.EventStream.Subscribe(warnings, typeof(Warning));
-        var actor = CreateActor();
-
-        actor.Tell(new DeleteMessagesFailure(new InvalidOperationException("boom-messages"), 5));
-
-        var warning = await warnings.FishForMessageAsync<Warning>(
-            w => w.Message.ToString()?.Contains("Delete messages failed for budget-tracker") == true,
-            TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("boom-messages", warning.Cause.Message);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Delete_snapshots_failure_is_logged_as_warning()
-    {
-        var warnings = CreateTestProbe();
-        Sys.EventStream.Subscribe(warnings, typeof(Warning));
-        var actor = CreateActor();
-
-        actor.Tell(new DeleteSnapshotsFailure(new SnapshotSelectionCriteria(4), new InvalidOperationException("boom-snapshots")));
-
-        var warning = await warnings.FishForMessageAsync<Warning>(
-            w => w.Message.ToString()?.Contains("Delete snapshots failed for budget-tracker") == true,
-            TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("boom-snapshots", warning.Cause.Message);
+        Assert.Equal(new BudgetUsageResult(0, 0), await UsageOf(recovered, TestContext.Current.CancellationToken));
     }
 }

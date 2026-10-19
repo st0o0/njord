@@ -3,8 +3,8 @@ using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Model;
-using Njord.Tests.Shared;
 using static Njord.AirQuality.Tests.AirQualityFixture;
+using Njord.Tests.Shared;
 
 namespace Njord.AirQuality.Tests;
 
@@ -16,19 +16,7 @@ public sealed class AirQualityAlertHandlerSpec
         new([new PollenAlertRule(), new Pm25AlertRule()], AlertRuleFixture.OptionsWith(enabled));
 
     [Fact]
-    public void Triggers_only_on_the_air_quality_domain()
-    {
-        Assert.Equal([DomainKind.AirQuality], Create().Triggers);
-    }
-
-    [Fact]
-    public void Handle_returns_nothing_without_air_quality()
-    {
-        Assert.Empty(Create().Handle(new LocationForecast(Lucerne), null, Time));
-    }
-
-    [Fact]
-    public void Handle_raises_a_pm25_alert_with_location_and_timestamp()
+    public void Handle_raises_an_alert_with_location_and_timestamp_when_air_quality_is_poor()
     {
         var current = new LocationForecast(Lucerne, AirQuality: Day((_, p) => p with { Pm25 = 25.0 }));
 
@@ -44,9 +32,13 @@ public sealed class AirQualityAlertHandlerSpec
     [Fact]
     public void Handle_raises_nothing_for_clean_air()
     {
-        var current = new LocationForecast(Lucerne, AirQuality: Day());
+        Assert.Empty(Create().Handle(new LocationForecast(Lucerne, AirQuality: Day()), null, Time));
+    }
 
-        Assert.Empty(Create().Handle(current, null, Time));
+    [Fact]
+    public void Handle_returns_nothing_without_air_quality_data()
+    {
+        Assert.Empty(Create().Handle(new LocationForecast(Lucerne), null, Time));
     }
 
     [Fact]

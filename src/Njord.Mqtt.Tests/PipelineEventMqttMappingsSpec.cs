@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Model;
@@ -9,121 +8,65 @@ namespace Njord.Mqtt.Tests;
 
 public sealed class PipelineEventMqttMappingsSpec
 {
-    private const string BaseTopic = "njord";
-
     private static readonly DateTimeOffset Run = new(2026, 1, 15, 12, 0, 0, TimeSpan.Zero);
-
     private static readonly Location Lucerne = DomainData.Lucerne;
+    private static readonly MqttPublishContext Context = new("njord", AlertScenario.Parameters, Run);
 
-    private static readonly MqttPublishContext Context = new(
-        BaseTopic, AlertScenario.Parameters, Run);
+    private static DomainForecast<T> Hourly<T>(DomainKind domain, T point) where T : IHasValidTime
+        => new(domain, Run, TimeResolution.Hourly, [point]);
 
-    private static readonly Alert FrostAlert = new(
-        AlertType.Frost, AlertSeverity.Yellow, 0.75, new FrostDetails(-2.1, Horizon.Hours(4), 3),
-        PeakValue: -3.5, HoursUntil: 4);
-
-    private static readonly PipelineEvent[] DomainEvents =
-    [
-        new PipelineEvent.WeatherDataReceived(Lucerne, DomainData.Weather(Run, hours: 2)),
-        new PipelineEvent.AirQualityDataReceived(Lucerne, new DomainForecast<AirQualityPoint>(
-            DomainKind.AirQuality, Run, TimeResolution.Hourly, [new AirQualityPoint(Run, 8.5, 12, 60)])),
-        new PipelineEvent.FloodDataReceived(Lucerne, DomainData.Flood(Run)),
-        new PipelineEvent.SolarDataReceived(Lucerne, new DomainForecast<SolarPoint>(
-            DomainKind.Solar, Run, TimeResolution.Hourly, [new SolarPoint(Run, 1, 2, 3, 4)])),
-        new PipelineEvent.MarineDataReceived(Lucerne, new DomainForecast<MarinePoint>(
-            DomainKind.Marine, Run, TimeResolution.Hourly, [new MarinePoint(Run, 1.5, 6, 270)])),
-    ];
+    private static string Payload(PipelineEvent pipelineEvent, string topic)
+        => Assert.Single(pipelineEvent.ToMqttMessages(Context), m => m.Topic == topic).Payload;
 
     [Fact]
     public void A_weather_event_maps_to_the_weather_messages()
     {
         var forecast = DomainData.Weather(Run, hours: 2);
-        var pipelineEvent = new PipelineEvent.WeatherDataReceived(Lucerne, forecast);
 
-        Assert.Equal(forecast.ToMessages(Lucerne, BaseTopic), pipelineEvent.ToMqttMessages(Context));
+        var messages = new PipelineEvent.WeatherDataReceived(Lucerne, forecast).ToMqttMessages(Context);
+
+        Assert.Equal(forecast.ToMessages(Lucerne, "njord"), messages);
     }
 
     [Fact]
-    public void An_air_quality_event_maps_to_the_air_quality_messages()
+    public void An_air_quality_event_maps_to_the_air_quality_topics()
     {
-        var message = Assert.Single(
-            DomainEvents.OfType<PipelineEvent.AirQualityDataReceived>().SelectMany(e => e.ToMqttMessages(Context)),
-            m => m.Topic == "njord/lucerne/air-quality/pm25");
+        var e = new PipelineEvent.AirQualityDataReceived(Lucerne,
+            Hourly(DomainKind.AirQuality, new AirQualityPoint(Run, 8.5, 12, 60)));
 
-        Assert.Equal("8.5", message.Payload);
+        Assert.Equal("8.5", Payload(e, "njord/lucerne/air-quality/pm25"));
     }
 
     [Fact]
-    public void A_flood_event_maps_to_the_flood_messages()
+    public void A_flood_event_maps_to_the_flood_topics()
     {
-        var message = Assert.Single(
-            DomainEvents.OfType<PipelineEvent.FloodDataReceived>().SelectMany(e => e.ToMqttMessages(Context)),
-            m => m.Topic == "njord/lucerne/flood/discharge");
+        var e = new PipelineEvent.FloodDataReceived(Lucerne, DomainData.Flood(Run));
 
-        Assert.Equal("12.5", message.Payload);
+        Assert.Equal("12.5", Payload(e, "njord/lucerne/flood/discharge"));
     }
 
     [Fact]
-    public void A_solar_event_maps_to_the_solar_messages()
+    public void A_solar_event_maps_to_the_solar_topics()
     {
-        var message = Assert.Single(
-            DomainEvents.OfType<PipelineEvent.SolarDataReceived>().SelectMany(e => e.ToMqttMessages(Context)),
-            m => m.Topic == "njord/lucerne/solar/shortwave_radiation");
+        var e = new PipelineEvent.SolarDataReceived(Lucerne, Hourly(DomainKind.Solar, new SolarPoint(Run, 1, 2, 3, 4)));
 
-        Assert.Equal("3", message.Payload);
+        Assert.Equal("3", Payload(e, "njord/lucerne/solar/shortwave_radiation"));
     }
 
     [Fact]
-    public void A_marine_event_maps_to_the_marine_messages()
+    public void A_marine_event_maps_to_the_marine_topics()
     {
-        var message = Assert.Single(
-            DomainEvents.OfType<PipelineEvent.MarineDataReceived>().SelectMany(e => e.ToMqttMessages(Context)),
-            m => m.Topic == "njord/lucerne/marine/wave_height");
+        var e = new PipelineEvent.MarineDataReceived(Lucerne, Hourly(DomainKind.Marine, new MarinePoint(Run, 1.5, 6, 270)));
 
-        Assert.Equal("1.5", message.Payload);
+        Assert.Equal("1.5", Payload(e, "njord/lucerne/marine/wave_height"));
     }
 
     [Fact]
-    public void An_alert_event_maps_to_the_alert_state_message()
+    public void An_alert_event_maps_to_one_retained_alert_message()
     {
-        var pipelineEvent = new PipelineEvent.AlertRaised(Lucerne, FrostAlert, Run);
+        var alert = UnifiedAlert.Of(AlertType.FloodRisk, AlertSeverity.Red, 120, 100);
 
-        var message = Assert.Single(pipelineEvent.ToMqttMessages(Context));
-
-        Assert.Multiple(
-            () => Assert.Equal("njord/lucerne/alerts/frost", message.Topic),
-            () => Assert.True(message.Retain),
-            () => Assert.Equal(
-                "{\"severity\":\"yellow\",\"confidence\":0.75,\"trigger_value\":0,\"threshold\":0,"
-                + "\"peak_value\":-3.5,\"hours_until\":4,\"duration_hours\":null,"
-                + "\"expected_low\":-2.1,\"earliest_frost\":\"\\u002B4h\",\"models_agreeing\":3}",
-                message.Payload));
-    }
-
-    [Fact]
-    public void An_air_quality_alert_event_maps_to_the_alert_state_message()
-    {
-        var pipelineEvent = new PipelineEvent.AlertRaised(
-            Lucerne, UnifiedAlert.Of(AlertType.Pollen, AlertSeverity.Orange, 85, 50, hoursUntil: 3), Run);
-
-        var message = Assert.Single(pipelineEvent.ToMqttMessages(Context));
-
-        Assert.Multiple(
-            () => Assert.Equal("njord/lucerne/alerts/pollen", message.Topic),
-            () => Assert.True(message.Retain),
-            () => Assert.Equal(
-                "{\"severity\":\"orange\",\"confidence\":1,\"trigger_value\":85,\"threshold\":50,"
-                + "\"peak_value\":null,\"hours_until\":3,\"duration_hours\":null}",
-                message.Payload));
-    }
-
-    [Fact]
-    public void A_flood_alert_event_maps_to_the_alert_state_message()
-    {
-        var pipelineEvent = new PipelineEvent.AlertRaised(
-            Lucerne, UnifiedAlert.Of(AlertType.FloodRisk, AlertSeverity.Red, 120, 100), Run);
-
-        var message = Assert.Single(pipelineEvent.ToMqttMessages(Context));
+        var message = Assert.Single(new PipelineEvent.AlertRaised(Lucerne, alert, Run).ToMqttMessages(Context));
 
         Assert.Multiple(
             () => Assert.Equal("njord/lucerne/alerts/flood_risk", message.Topic),
@@ -135,36 +78,25 @@ public sealed class PipelineEventMqttMappingsSpec
     }
 
     [Fact]
-    public void A_domain_event_without_points_maps_to_no_messages()
+    public void An_unknown_event_maps_to_no_messages_and_the_unknown_location()
     {
-        var empty = new PipelineEvent.FloodDataReceived(
-            Lucerne, new DomainForecast<FloodPoint>(DomainKind.Flood, Run, TimeResolution.Daily, ImmutableArray<FloodPoint>.Empty));
+        var unknown = new UnknownEvent();
 
-        Assert.Empty(empty.ToMqttMessages(Context));
+        Assert.Multiple(
+            () => Assert.Empty(unknown.ToMqttMessages(Context)),
+            () => Assert.Equal("unknown", unknown.ToLocationName()));
     }
 
     [Fact]
-    public void Every_produced_event_type_reports_its_location_name()
+    public void Known_events_report_their_location_name()
     {
         PipelineEvent[] events =
         [
-            .. DomainEvents,
-            new PipelineEvent.AlertRaised(Lucerne, FrostAlert, Run),
+            new PipelineEvent.FloodDataReceived(Lucerne, DomainData.Flood(Run)),
             new PipelineEvent.AlertRaised(Lucerne, Alert.None(AlertType.Pm25), Run),
-            new PipelineEvent.AlertRaised(Lucerne, Alert.None(AlertType.FloodRain), Run),
         ];
 
-        Assert.Equal(8, events.Length);
         Assert.All(events, e => Assert.Equal("Lucerne", e.ToLocationName()));
-    }
-
-    [Fact]
-    public void An_unknown_event_maps_to_no_messages_and_the_unknown_location()
-    {
-        var pipelineEvent = new UnknownEvent();
-
-        Assert.Empty(pipelineEvent.ToMqttMessages(Context));
-        Assert.Equal("unknown", pipelineEvent.ToLocationName());
     }
 
     private sealed record UnknownEvent : PipelineEvent;

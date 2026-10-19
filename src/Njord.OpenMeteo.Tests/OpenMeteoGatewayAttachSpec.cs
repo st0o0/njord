@@ -1,14 +1,13 @@
 using Akka.Actor;
 using Akka.Hosting;
-using Akka.Streams;
-using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
+using Njord.Core.Configuration.Polling;
+using Njord.Messages.Budget;
 using Njord.Messages.Forecast;
 using Njord.Model;
 using Njord.Tests.Shared;
@@ -19,13 +18,17 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
 {
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     private readonly FakeOpenMeteoClient _client = new();
-    private readonly BudgetProvider _budget = new();
+    private readonly SwitchableBudgetProvider _budget = new();
+    private Akka.TestKit.TestProbe _apiCalls = null!;
 
     protected override bool UseTestPersistence => false;
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider) =>
         builder.WithActors((system, registry) =>
-            registry.Register<IBudgetTracker>(system.ActorOf(Props.Create(() => new SilentActor()), "budget")));
+        {
+            _apiCalls = CreateTestProbe();
+            registry.Register<IBudgetTracker>(system.ActorOf(Props.Create(() => new ForwardingActor(_apiCalls.Ref)), "budget"));
+        });
 
     private IActorRef StartGateway()
     {
@@ -43,7 +46,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
     {
         var attached = CreateTestProbe();
         var forecasts = CreateTestProbe();
-        var pipeline = Sys.ActorOf(Props.Create(() => new FakePipeline(attached.Ref, forecasts.Ref, answers)),
+        var pipeline = Sys.ActorOf(Props.Create(() => new FakeForecastPipeline(attached.Ref, forecasts.Ref, answers)),
             $"pipeline-{Guid.NewGuid():N}");
         ActorRegistry.Register<IForecastPipeline>(pipeline, overwrite: true);
         return (pipeline, attached, forecasts);
@@ -52,7 +55,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
     private static FetchDomain Fetch() => new(new Location("lucerne", 0, 0), DomainKind.Weather);
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_request_before_the_pipeline_input_is_attached_is_rejected()
+    public async Task A_request_before_the_pipeline_input_is_attached_is_rejected_as_pipeline_unavailable()
     {
         var ct = TestContext.Current.CancellationToken;
         var (_, attached, _) = RegisterPipeline(answers: false);
@@ -62,10 +65,21 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         gateway.Tell(Fetch());
 
         var rejected = await ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        Assert.Multiple(
-            () => Assert.Equal("lucerne", rejected.Location.Name),
-            () => Assert.Equal(DomainKind.Weather, rejected.Domain),
-            () => Assert.Equal(FetchRejectionReason.PipelineUnavailable, rejected.Reason));
+        Assert.Equal(FetchRejectionReason.PipelineUnavailable, rejected.Reason);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task The_gateway_attaches_to_the_pipeline_only_once()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (_, attached, _) = RegisterPipeline();
+        var gateway = StartGateway();
+        await attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+
+        gateway.Tell(Fetch());
+        await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+
+        await attached.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -80,47 +94,29 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         await first.GracefulStop(TestTimeouts.AwaitAssertMax);
         await secondAttached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-        gateway.Tell(new FetchDomain(new Location("lucerne", 0, 0), DomainKind.Weather));
+        gateway.Tell(Fetch());
 
-        var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         var received = await secondForecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        Assert.Equal("lucerne", received.Location.Name);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_exhausted_budget_rejects_the_request_without_fetching_or_recording()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (_, attached, _) = RegisterPipeline();
+        _budget.CostPerMinute = 1;
+        _budget.MaxBurst = 1;
+        var gateway = StartGateway();
+        await attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+
+        gateway.Tell(Fetch());
+
+        var rejected = await ExpectMsgAsync<FetchDomainRejected>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(
-            () => Assert.Equal(DomainKind.Weather, completed.Domain),
-            () => Assert.Equal("lucerne", received.Location.Name));
-    }
-
-    private sealed class BudgetProvider : IBudgetProvider
-    {
-        public BudgetRate GetCurrentRate() => new(480, 1_000_000);
-    }
-
-    private sealed class SilentActor : ReceiveActor
-    {
-        public SilentActor()
-        {
-            ReceiveAny(_ => { });
-        }
-    }
-
-    // Vends a SinkRef per request (or never answers) and reports every request it received.
-    private sealed class FakePipeline : ReceiveActor
-    {
-        public FakePipeline(IActorRef attached, IActorRef forecasts, bool answers)
-        {
-            var mat = Context.Materializer();
-            ReceiveAsync<RequestForecastSink>(async msg =>
-            {
-                if (answers)
-                {
-                    var requester = Sender;
-                    var sinkRef = await StreamRefs.SinkRef<DomainDataReceived>()
-                        .To(Sink.ActorRef<DomainDataReceived>(forecasts, "completed", _ => "failed"))
-                        .Run(mat);
-                    requester.Tell(new RequestForecastSinkCompleted(msg.RequestId, sinkRef), Self);
-                }
-
-                attached.Tell("requested");
-            });
-        }
+            () => Assert.Equal(FetchRejectionReason.Budget, rejected.Reason),
+            () => Assert.Equal(0, _client.Calls));
+        await _apiCalls.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), ct);
     }
 }

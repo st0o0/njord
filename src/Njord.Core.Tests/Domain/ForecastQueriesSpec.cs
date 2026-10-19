@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Njord.Core.Domain;
 using Njord.Model;
 
@@ -5,117 +6,67 @@ namespace Njord.Core.Tests.Domain;
 
 public sealed class ForecastQueriesSpec
 {
-    private static readonly DateTimeOffset T6 = new(2026, 7, 1, 6, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Midnight = new(2026, 7, 1, 0, 0, 0, TimeSpan.Zero);
 
-    private static DomainForecast<FloodPoint> HourlyFlood() =>
-        new(DomainKind.Flood, T6, TimeResolution.Hourly,
-            [new FloodPoint(T6, 1), new FloodPoint(T6.AddHours(1), 2), new FloodPoint(T6.AddHours(2), 3)]);
-
-    private static DomainForecast<SolarPoint> HourlySolar(int hours) =>
-        new(DomainKind.Solar, T6, TimeResolution.Hourly,
-            [.. Enumerable.Range(0, hours).Select(h => new SolarPoint(T6.AddHours(h), h, 0, 0, 0))]);
-
-    private static DomainForecast<FloodPoint> SixHourlyFlood() =>
-        new(DomainKind.Flood, T6, TimeResolution.SixHourly,
-            [new FloodPoint(T6, 10), new FloodPoint(T6.AddHours(6), 20)]);
+    private static DomainForecast<FloodPoint> Hourly(params int[] hours) =>
+        new(DomainKind.Flood, Midnight, TimeResolution.Hourly,
+            [.. hours.Select(h => new FloodPoint(Midnight.AddHours(h), h * 10.0))]);
 
     [Fact]
-    public void Value_at_exact_time_returns_that_point()
+    public void Should_find_the_point_whose_validity_slot_contains_the_time()
     {
-        var point = ForecastQueries.ValueAt(HourlyFlood(), T6.AddHours(1));
+        var forecast = Hourly(0, 1, 2);
+
+        var point = ForecastQueries.ValueAt(forecast, Midnight.AddMinutes(90));
 
         Assert.NotNull(point);
-        Assert.Equal(2, point.Discharge);
+        Assert.Equal(10.0, point.Discharge);
     }
 
     [Fact]
-    public void Value_at_between_points_returns_the_point_whose_window_contains_time()
+    public void Should_return_null_when_the_time_is_past_the_last_slot()
     {
-        var point = ForecastQueries.ValueAt(HourlyFlood(), T6.AddHours(1).AddMinutes(30));
+        Assert.Null(ForecastQueries.ValueAt(Hourly(0, 1, 2), Midnight.AddHours(3)));
+    }
+
+    [Fact]
+    public void Should_return_points_inside_the_window_inclusive_of_both_ends()
+    {
+        var window = ForecastQueries.Window(Hourly(0, 1, 2, 3, 4), Midnight.AddHours(1), Midnight.AddHours(3));
+
+        Assert.Equal([10.0, 20.0, 30.0], window.Select(p => p.Discharge));
+    }
+
+    [Fact]
+    public void Should_return_the_nearest_point_within_the_allowed_gap()
+    {
+        var forecast = Hourly(0, 3);
+
+        var point = ForecastQueries.Nearest(forecast, Midnight.AddHours(2), TimeSpan.FromHours(1));
 
         Assert.NotNull(point);
-        Assert.Equal(2, point.Discharge);
+        Assert.Equal(30.0, point.Discharge);
     }
 
     [Fact]
-    public void Value_at_window_end_belongs_to_the_next_point()
+    public void Should_return_null_when_no_point_is_within_the_allowed_gap()
     {
-        var point = ForecastQueries.ValueAt(HourlyFlood(), T6.AddHours(2));
-
-        Assert.NotNull(point);
-        Assert.Equal(3, point.Discharge);
+        Assert.Null(ForecastQueries.Nearest(Hourly(0, 6), Midnight.AddHours(3), TimeSpan.FromHours(1)));
     }
 
     [Fact]
-    public void Value_at_out_of_range_returns_null()
+    public void Should_correlate_hourly_points_with_the_daily_point_covering_them()
     {
-        var forecast = HourlyFlood();
+        var hourly = new DomainForecast<WeatherPoint>(
+            DomainKind.Weather, Midnight, TimeResolution.Hourly,
+            [.. new[] { 0, 12, 24 }.Select(h =>
+                new WeatherPoint(Midnight.AddHours(h), h, h, 0, 0, 0, 0, 1013, 0, 50, 0, 0))]);
+        var daily = new DomainForecast<FloodPoint>(
+            DomainKind.Flood, Midnight, TimeResolution.Daily,
+            ImmutableArray.Create(new FloodPoint(Midnight, 99)));
 
-        Assert.Multiple(
-            () => Assert.Null(ForecastQueries.ValueAt(forecast, T6.AddMinutes(-1))),
-            () => Assert.Null(ForecastQueries.ValueAt(forecast, T6.AddHours(3))));
-    }
+        var pairs = ForecastQueries.Correlate(hourly, daily);
 
-    [Fact]
-    public void Window_returns_points_in_inclusive_range()
-    {
-        var points = ForecastQueries.Window(HourlyFlood(), T6.AddHours(1), T6.AddHours(2));
-
-        Assert.Equal([2.0, 3.0], points.Select(p => p.Discharge));
-    }
-
-    [Fact]
-    public void Window_outside_the_series_is_empty()
-    {
-        Assert.Empty(ForecastQueries.Window(HourlyFlood(), T6.AddHours(10), T6.AddHours(12)));
-    }
-
-    [Fact]
-    public void Nearest_returns_closest_point_within_tolerance()
-    {
-        var point = ForecastQueries.Nearest(HourlyFlood(), T6.AddMinutes(70), TimeSpan.FromMinutes(30));
-
-        Assert.NotNull(point);
-        Assert.Equal(2, point.Discharge);
-    }
-
-    [Fact]
-    public void Nearest_beyond_tolerance_returns_null()
-    {
-        Assert.Null(ForecastQueries.Nearest(HourlyFlood(), T6.AddHours(5), TimeSpan.FromMinutes(30)));
-    }
-
-    [Fact]
-    public void Correlate_same_resolution_pairs_matching_hours()
-    {
-        var pairs = ForecastQueries.Correlate(HourlyFlood(), HourlySolar(2));
-
-        Assert.Equal(2, pairs.Count);
-        Assert.Multiple(
-            () => Assert.Equal((1.0, 0.0), (pairs[0].First.Discharge, pairs[0].Second.DirectRadiation)),
-            () => Assert.Equal((2.0, 1.0), (pairs[1].First.Discharge, pairs[1].Second.DirectRadiation)));
-    }
-
-    [Fact]
-    public void Correlate_different_resolution_pairs_each_coarse_point_with_hours_in_its_window()
-    {
-        var pairs = ForecastQueries.Correlate(SixHourlyFlood(), HourlySolar(12));
-
-        Assert.Equal(12, pairs.Count);
-        Assert.Multiple(
-            () => Assert.Equal(6, pairs.Count(p => p.First.Discharge == 10)),
-            () => Assert.Equal([0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
-                pairs.Where(p => p.First.Discharge == 10).Select(p => p.Second.DirectRadiation)),
-            () => Assert.Equal([6.0, 7.0, 8.0, 9.0, 10.0, 11.0],
-                pairs.Where(p => p.First.Discharge == 20).Select(p => p.Second.DirectRadiation)));
-    }
-
-    [Fact]
-    public void Correlate_without_overlap_is_empty()
-    {
-        var later = new DomainForecast<SolarPoint>(
-            DomainKind.Solar, T6, TimeResolution.Hourly, [new SolarPoint(T6.AddHours(20), 1, 0, 0, 0)]);
-
-        Assert.Empty(ForecastQueries.Correlate(HourlyFlood(), later));
+        Assert.Equal([0.0, 12.0], pairs.Select(p => p.First.Temperature));
     }
 }

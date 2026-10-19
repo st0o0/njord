@@ -2,6 +2,8 @@ using Njord.Mqtt.Transport;
 
 namespace Njord.Mqtt.Tests;
 
+internal sealed record SentMessage(string Topic, string Payload, bool Retain);
+
 internal sealed class ScriptedAvailabilityTransport : IMqttTransport
 {
     private readonly object _lock = new();

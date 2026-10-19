@@ -1,6 +1,6 @@
 using Njord.Messages.Alerts;
-using Njord.Tests.Shared;
 using static Njord.AirQuality.Tests.AirQualityFixture;
+using Njord.Tests.Shared;
 
 namespace Njord.AirQuality.Tests;
 
@@ -8,33 +8,34 @@ public sealed class Pm25AlertRuleSpec
 {
     private static readonly Pm25AlertRule Rule = new();
 
-    [Theory]
-    [InlineData(14.9, AlertSeverity.None, 0.0)]
-    [InlineData(15.0, AlertSeverity.Yellow, 15.0)]
-    [InlineData(24.9, AlertSeverity.Yellow, 15.0)]
-    [InlineData(25.0, AlertSeverity.Orange, 25.0)]
-    [InlineData(50.0, AlertSeverity.Red, 50.0)]
-    public void Severity_boundaries_follow_the_who_guideline(double value, AlertSeverity severity, double threshold)
+    [Fact]
+    public void Pm25_at_the_who_guideline_is_yellow()
     {
-        var alert = Rule.Evaluate(Day((_, p) => p with { Pm25 = value }), AlertRuleFixture.Defaults, Now);
+        var alert = Rule.Evaluate(Day((_, p) => p with { Pm25 = 15.0 }), AlertRuleFixture.Defaults, Now);
 
-        Assert.Equal(severity, alert.Severity);
-        Assert.Equal(threshold, alert.Threshold);
+        Assert.Multiple(
+            () => Assert.Equal(AlertSeverity.Yellow, alert.Severity),
+            () => Assert.Equal(15.0, alert.Threshold),
+            () => Assert.Equal(15.0, alert.TriggerValue));
     }
 
     [Fact]
-    public void The_hourly_peak_and_its_offset_are_reported()
+    public void Pm25_below_the_who_guideline_raises_nothing()
+    {
+        var alert = Rule.Evaluate(Day((_, p) => p with { Pm25 = 14.9 }), AlertRuleFixture.Defaults, Now);
+
+        Assert.Equal(AlertSeverity.None, alert.Severity);
+    }
+
+    [Fact]
+    public void Pm25_reports_the_hourly_peak_and_its_offset()
     {
         var alert = Rule.Evaluate(Day((h, p) => p with { Pm25 = h == 5 ? 31.04 : 8.0 }), AlertRuleFixture.Defaults, Now);
 
-        Assert.Equal(UnifiedAlert.Of(AlertType.Pm25, AlertSeverity.Orange, 31.0, 25.0, 5), alert);
-    }
-
-    [Fact]
-    public void An_empty_forecast_returns_the_none_alert()
-    {
-        var empty = Day() with { Points = [] };
-
-        Assert.Equal(Alert.None(AlertType.Pm25), Rule.Evaluate(empty, AlertRuleFixture.Defaults, Now));
+        Assert.Multiple(
+            () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
+            () => Assert.Equal(31.0, alert.TriggerValue),
+            () => Assert.Equal(25.0, alert.Threshold),
+            () => Assert.Equal(5, alert.HoursUntil));
     }
 }

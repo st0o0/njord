@@ -6,46 +6,32 @@ namespace Njord.Core.Tests.Actors;
 
 public sealed class ShardMessageExtractorSpec
 {
-    private static readonly PollTarget Lucerne = new(new Location("lucerne", 0, 0));
-
     private readonly ShardMessageExtractor _extractor = new();
 
     [Fact]
-    public void A_poll_target_id_is_the_location_name()
+    public void Should_route_polling_messages_by_the_configured_location_name()
     {
+        var target = new PollTarget(new Location("Lucerne", 0, 0));
+
         Assert.Multiple(
-            () => Assert.Equal("lucerne", Lucerne.Id),
-            () => Assert.Equal("lucerne", Lucerne.ToString()));
+            () => Assert.Equal("Lucerne", _extractor.EntityId(new StartPolling(target, TimeSpan.FromMinutes(20)))),
+            () => Assert.Equal("Lucerne", _extractor.EntityId(new StopPolling("Lucerne"))),
+            () => Assert.Equal("Lucerne", _extractor.EntityId(new TriggerLocationPoll("Lucerne"))));
     }
 
     [Fact]
-    public void Every_polling_message_is_routed_by_its_location_name()
+    public void Should_send_the_same_entity_to_the_same_shard()
     {
-        Assert.Multiple(
-            () => Assert.Equal("lucerne", _extractor.EntityId(new StartPolling(Lucerne, TimeSpan.FromMinutes(20)))),
-            () => Assert.Equal("lucerne", _extractor.EntityId(new StopPolling("lucerne"))),
-            () => Assert.Equal("lucerne", _extractor.EntityId(new TriggerLocationPoll("lucerne"))));
+        Assert.Equal(
+            _extractor.ShardId("Lucerne", new StopPolling("Lucerne")),
+            _extractor.ShardId("Lucerne", new TriggerLocationPoll("Lucerne")));
     }
 
     [Fact]
-    public void Messages_of_the_same_target_land_in_the_same_shard()
+    public void Should_reject_messages_without_a_location_id()
     {
-        var startMessage = new StartPolling(Lucerne, TimeSpan.FromMinutes(20));
-        var triggerMessage = new TriggerLocationPoll(Lucerne.Id);
+        var ex = Assert.Throws<ArgumentException>(() => _extractor.EntityId("not routable"));
 
-        var start = _extractor.ShardId(_extractor.EntityId(startMessage), startMessage);
-        var trigger = _extractor.ShardId(_extractor.EntityId(triggerMessage), triggerMessage);
-
-        Assert.Equal(start, trigger);
-    }
-
-    [Fact]
-    public void An_unknown_message_is_rejected_with_its_type_name()
-    {
-        var ex = Assert.Throws<ArgumentException>(() => _extractor.EntityId("not sharded"));
-
-        Assert.Multiple(
-            () => Assert.Equal("message", ex.ParamName),
-            () => Assert.Contains("String", ex.Message));
+        Assert.Contains("String", ex.Message);
     }
 }

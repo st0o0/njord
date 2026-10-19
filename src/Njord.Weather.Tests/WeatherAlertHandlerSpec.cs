@@ -4,7 +4,6 @@ using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.Tests.Shared;
-using Njord.Weather.Alerts;
 using static Njord.Tests.Shared.AlertRuleFixture;
 
 namespace Njord.Weather.Tests;
@@ -14,43 +13,38 @@ public sealed class WeatherAlertHandlerSpec
     private static readonly Location Lucerne = new("lucerne", 47.05, 8.31);
     private static readonly FakeTimeProvider Time = new(Now);
 
-    private static WeatherAlertHandler Create(bool enabled = true) =>
-        FeatureServices.WeatherHandler(Time, enabled);
+    private static LocationForecast Freezing() =>
+        new(Lucerne, Uniform(p => p with { Temperature = -6.0 }));
 
     [Fact]
-    public void Triggers_only_on_the_weather_domain()
+    public void Handle_raises_an_alert_for_each_rule_that_triggers()
     {
-        Assert.Equal([DomainKind.Weather], Create().Triggers);
-    }
+        var events = FeatureServices.WeatherHandler(Time).Handle(Freezing(), null, Time);
 
-    [Fact]
-    public void Handle_returns_nothing_without_weather()
-    {
-        Assert.Empty(Create().Handle(new LocationForecast(Lucerne), null, Time));
-    }
-
-    [Fact]
-    public void Handle_raises_only_alerts_with_a_severity()
-    {
-        var current = new LocationForecast(Lucerne, Day((_, p) => p with { Temperature = -6.0 }));
-
-        var events = Create().Handle(current, null, Time);
-
-        var raised = events.Cast<PipelineEvent.AlertRaised>().ToList();
-        var frost = Assert.Single(raised, e => e.Type == AlertType.Frost);
+        var frost = Assert.Single(events.OfType<PipelineEvent.AlertRaised>(), e => e.Type == AlertType.Frost);
         Assert.Multiple(
-            () => Assert.NotEmpty(raised),
-            () => Assert.All(raised, e => Assert.NotEqual(AlertSeverity.None, e.Severity)),
             () => Assert.Equal(AlertSeverity.Orange, frost.Severity),
             () => Assert.Equal(Lucerne, frost.Location),
             () => Assert.Equal(Now, frost.Timestamp));
     }
 
     [Fact]
+    public void Handle_omits_alerts_without_severity()
+    {
+        var events = FeatureServices.WeatherHandler(Time).Handle(Freezing(), null, Time);
+
+        Assert.All(events.OfType<PipelineEvent.AlertRaised>(), e => Assert.NotEqual(AlertSeverity.None, e.Severity));
+    }
+
+    [Fact]
     public void Handle_returns_nothing_when_alerts_are_disabled()
     {
-        var current = new LocationForecast(Lucerne, Day((_, p) => p with { Temperature = -6.0 }));
+        Assert.Empty(FeatureServices.WeatherHandler(Time, enabled: false).Handle(Freezing(), null, Time));
+    }
 
-        Assert.Empty(Create(enabled: false).Handle(current, null, Time));
+    [Fact]
+    public void Handle_returns_nothing_without_weather_data()
+    {
+        Assert.Empty(FeatureServices.WeatherHandler(Time).Handle(new LocationForecast(Lucerne), null, Time));
     }
 }

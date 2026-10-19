@@ -1,0 +1,127 @@
+using Akka.Actor;
+using Akka.Hosting;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
+using Njord.Core;
+using Njord.Core.Actors;
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
+using Njord.Core.Configuration.Polling;
+using Njord.Messages.Forecast;
+using Njord.Model;
+using Njord.Tests.Shared;
+
+namespace Njord.OpenMeteo.Tests;
+
+public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
+{
+    private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
+    private readonly FakeOpenMeteoClient _client = new();
+    private Akka.TestKit.TestProbe _attached = null!;
+    private Akka.TestKit.TestProbe _forecasts = null!;
+
+    protected override bool UseTestPersistence => false;
+
+    protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider)
+    {
+        builder.WithActors((system, registry) =>
+        {
+            _attached = CreateTestProbe();
+            _forecasts = CreateTestProbe();
+            registry.Register<IBudgetTracker>(system.ActorOf(Props.Create(() => new ForwardingActor(CreateTestProbe().Ref)), "budget"));
+            registry.Register<IForecastPipeline>(system.ActorOf(
+                Props.Create(() => new FakeForecastPipeline(_attached.Ref, _forecasts.Ref, true)), "pipeline"));
+            var options = Options.Create(AppSettingsDefaults.Options<NjordOptions>(o =>
+            {
+                o.Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }];
+            }));
+            var parameters = ParameterSelection.Resolve(["Weather"], [], []);
+            registry.Register<IForecastGateway>(system.ActorOf(
+                Props.Create(() => new OpenMeteoGateway(_client, _time, options, parameters, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
+                "gateway"));
+        });
+    }
+
+    private IActorRef Gateway => GetActor<IForecastGateway>();
+
+    private async Task<(FetchDomainCompleted Completed, DomainDataReceived Received)> FetchAsync(DomainKind domain, CancellationToken ct)
+    {
+        await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        Gateway.Tell(new FetchDomain(new Location("lucerne", 0, 0), domain));
+        var completed = await ExpectMsgAsync<FetchDomainCompleted>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var received = await _forecasts.ExpectMsgAsync<DomainDataReceived>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        return (completed, received);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_weather_fetch_uses_the_ensemble_endpoint_and_delivers_weather_points()
+    {
+        var (completed, received) = await FetchAsync(DomainKind.Weather, TestContext.Current.CancellationToken);
+
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.Weather, completed.Domain),
+            () => Assert.Equal(received.Data.GetHashCode(), completed.Hash),
+            () => Assert.Equal("lucerne", received.Location.Name),
+            () => Assert.Equal(47.05, received.Location.Latitude),
+            () => Assert.IsType<DomainForecast<WeatherPoint>>(received.Data),
+            () => Assert.Equal(1, _client.Calls),
+            () => Assert.Equal(0, _client.AirQualityCalls + _client.FloodCalls));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_air_quality_fetch_uses_the_air_quality_endpoint_and_delivers_air_quality_points()
+    {
+        var (completed, received) = await FetchAsync(DomainKind.AirQuality, TestContext.Current.CancellationToken);
+
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.AirQuality, completed.Domain),
+            () => Assert.Equal(8.0, Assert.Single(Assert.IsType<DomainForecast<AirQualityPoint>>(received.Data).Points).Pm25),
+            () => Assert.Equal(1, _client.AirQualityCalls),
+            () => Assert.Equal(0, _client.Calls + _client.FloodCalls));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_flood_fetch_uses_the_flood_endpoint_and_delivers_daily_flood_points()
+    {
+        var (completed, received) = await FetchAsync(DomainKind.Flood, TestContext.Current.CancellationToken);
+
+        var forecast = Assert.IsType<DomainForecast<FloodPoint>>(received.Data);
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.Flood, completed.Domain),
+            () => Assert.Equal(TimeResolution.Daily, forecast.Resolution),
+            () => Assert.Equal(120.0, Assert.Single(forecast.Points).Discharge),
+            () => Assert.Equal(1, _client.FloodCalls),
+            () => Assert.Equal(0, _client.Calls + _client.AirQualityCalls));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_failed_client_result_is_answered_with_its_reason_and_nothing_reaches_the_pipeline()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        _client.FloodFails = true;
+
+        Gateway.Tell(new FetchDomain(new Location("lucerne", 0, 0), DomainKind.Flood));
+
+        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.Flood, failed.Domain),
+            () => Assert.Equal(PollFailureReason.Transport, failed.Reason),
+            () => Assert.Equal("simulated flood failure", failed.Detail));
+        await _forecasts.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_unknown_location_fails_without_a_fetch()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+
+        Gateway.Tell(new FetchDomain(new Location("atlantis", 0, 0), DomainKind.Weather));
+
+        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        Assert.Multiple(
+            () => Assert.Equal(PollFailureReason.ModelUnavailable, failed.Reason),
+            () => Assert.Equal(0, _client.Calls));
+    }
+}

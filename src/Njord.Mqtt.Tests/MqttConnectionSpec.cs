@@ -1,160 +1,117 @@
 using Akka.Actor;
-using Microsoft.Extensions.Time.Testing;
-using Njord.Core.Configuration.Mqtt;
+using MQTTnet.Exceptions;
 using Njord.Mqtt.Actors;
 using Njord.Mqtt.Health;
-using Njord.Mqtt.Transport;
 using Njord.Tests.Shared;
 
 namespace Njord.Mqtt.Tests;
 
-public sealed class MqttConnectionSpec : NjordActorSpec
+public sealed class MqttConnectionSpec : MqttConnectionSpecBase
 {
-    protected override bool UseTestPersistence => false;
+    private static Task<MqttConnectionStatusResult> QueryStatus(IActorRef actor, CancellationToken ct)
+        => actor.Ask<MqttConnectionStatusResult>(new QueryMqttConnectionStatus(), TimeSpan.FromSeconds(3), ct);
 
-    private static readonly DateTimeOffset Epoch = TestTimeConstants.PipelineEpoch;
-    private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(Epoch);
-
-    private static MqttOptions DefaultOptions() =>
-        new() { Host = "localhost", BaseTopic = "njord", DiscoveryPrefix = "homeassistant" };
-
-    private IActorRef CreateActor(
-        IMqttConnection connection,
-        IMqttTransport transport,
-        MqttEgressTuning? tuning = null)
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_connected_actor_publishes_online_and_reports_connected()
     {
-        return Sys.ActorOf(Props.Create(() => new MqttConnection(
-            Microsoft.Extensions.Options.Options.Create(DefaultOptions()),
-            connection,
-            transport,
-            tuning ?? new MqttEgressTuning(TimeSpan.FromMilliseconds(50)),
-            new MqttSessionCounter(),
-            _time)));
-    }
+        var connection = new ScriptedMqttConnection();
+        var transport = new ScriptedAvailabilityTransport();
 
-    [Fact(Timeout = 15000)]
-    public async Task Connection_publishes_online_on_availability_topic()
-    {
-        var transport = new RecordingTransport();
-        var connection = new FakeConnection();
-        _ = CreateActor(connection, transport);
-
-        await transport.WaitForMessage(m => m is { Topic: "njord/status", Payload: "online" }).WaitAsync(TestContext.Current.CancellationToken);
-
-        Assert.Contains(transport.Sent, m => m is { Topic: "njord/status", Payload: "online" });
-    }
-
-    [Fact(Timeout = 15000)]
-    public async Task Reconnect_is_attempted_after_connect_failure()
-    {
-        var transport = new RecordingTransport();
-        var connection = new FakeConnection { FailConnectCount = 1 };
-        _ = CreateActor(connection, transport);
-
-        await transport.WaitForMessage(m => m is { Topic: "njord/status", Payload: "online" }).WaitAsync(TestContext.Current.CancellationToken);
-
-        Assert.True(connection.ConnectCallCount >= 2,
-            $"Expected at least 2 connect attempts, got {connection.ConnectCallCount}");
-        Assert.Contains(transport.Sent, m => m is { Topic: "njord/status", Payload: "online" });
-    }
-
-    [Fact(Timeout = 15000)]
-    public async Task Reconnect_is_attempted_after_canceled_connect()
-    {
-        var transport = new RecordingTransport();
-        var connection = new FakeConnection { CancelConnectCount = 1 };
-        _ = CreateActor(connection, transport);
-
-        await transport.WaitForMessage(m => m is { Topic: "njord/status", Payload: "online" }).WaitAsync(TestContext.Current.CancellationToken);
-
-        Assert.True(connection.ConnectCallCount >= 2,
-            $"Expected at least 2 connect attempts, got {connection.ConnectCallCount}");
-    }
-
-    [Fact(Timeout = 15000)]
-    public async Task Reconnect_is_attempted_after_repeated_connect_failures()
-    {
-        var transport = new RecordingTransport();
-        var connection = new FakeConnection { FailConnectCount = 2 };
-        _ = CreateActor(connection, transport);
-
-        await transport.WaitForMessage(m => m is { Topic: "njord/status", Payload: "online" }).WaitAsync(TestContext.Current.CancellationToken);
-
-        Assert.True(connection.ConnectCallCount >= 3,
-            $"Expected at least 3 connect attempts, got {connection.ConnectCallCount}");
-    }
-
-    [Fact(Timeout = 15000)]
-    public async Task Offline_is_enqueued_on_stop()
-    {
-        var transport = new RecordingTransport();
-        var connection = new FakeConnection();
         var actor = CreateActor(connection, transport);
+        await WaitForOnline(transport, TestContext.Current.CancellationToken);
 
-        await transport.WaitForMessage(m => m is { Topic: "njord/status", Payload: "online" }).WaitAsync(TestContext.Current.CancellationToken);
-
-        await actor.GracefulStop(TimeSpan.FromSeconds(3));
+        var status = await QueryStatus(actor, TestContext.Current.CancellationToken);
+        Assert.Multiple(
+            () => Assert.True(status.IsConnected),
+            () => Assert.Null(status.DisconnectedSince),
+            () => Assert.Equal(1, connection.SubscribeCalls));
     }
 
-    [Fact(Timeout = 15000)]
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_failed_connect_is_retried_until_it_succeeds()
+    {
+        var connection = new ScriptedMqttConnection { FailConnectCount = 2 };
+        var transport = new ScriptedAvailabilityTransport();
+
+        _ = CreateActor(connection, transport);
+        await WaitForOnline(transport, TestContext.Current.CancellationToken);
+
+        Assert.Multiple(
+            () => Assert.Equal(3, connection.ConnectCalls),
+            () => Assert.Equal(0, connection.RejectedWhileConnected));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_lost_connection_reconnects_and_publishes_online_again()
+    {
+        var connection = new ScriptedMqttConnection();
+        var transport = new ScriptedAvailabilityTransport();
+        var actor = CreateActor(connection, transport);
+        await WaitForOnline(transport, TestContext.Current.CancellationToken);
+
+        connection.SimulateDisconnect();
+        await WaitForOnline(transport, TestContext.Current.CancellationToken, count: 2);
+
+        var status = await QueryStatus(actor, TestContext.Current.CancellationToken);
+        Assert.Multiple(
+            () => Assert.True(status.IsConnected),
+            () => Assert.Equal(2, connection.ConnectCalls));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task The_disconnect_time_is_reported_while_reconnecting_fails()
+    {
+        var attempts = CreateTestProbe();
+        var connection = new ScriptedMqttConnection(attempts.Ref);
+        var transport = new ScriptedAvailabilityTransport();
+        var actor = CreateActor(connection, transport);
+        await WaitForOnline(transport, TestContext.Current.CancellationToken);
+
+        connection.FailNextConnects(100);
+        connection.SimulateDisconnect();
+        attempts.FishForMessage<ConnectAttempted>(m => m.Attempt >= 3, TestTimeouts.AwaitAssertMax,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var status = await QueryStatus(actor, TestContext.Current.CancellationToken);
+        Assert.Multiple(
+            () => Assert.False(status.IsConnected),
+            () => Assert.Equal(Epoch, status.DisconnectedSince));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_failed_status_subscription_keeps_the_connection()
+    {
+        var connection = new ScriptedMqttConnection();
+        connection.FailNextSubscribe(new MqttCommunicationException("simulated subscribe failure"));
+        var transport = new ScriptedAvailabilityTransport();
+
+        var actor = CreateActor(connection, transport);
+        await WaitForOnline(transport, TestContext.Current.CancellationToken);
+
+        var status = await QueryStatus(actor, TestContext.Current.CancellationToken);
+        Assert.Multiple(
+            () => Assert.True(status.IsConnected),
+            () => Assert.Equal(1, connection.ConnectCalls));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task Inbound_messages_are_forwarded_to_subscribers()
     {
-        var transport = new RecordingTransport();
-        var connection = new FakeConnection();
+        var connection = new ScriptedMqttConnection();
+        var transport = new ScriptedAvailabilityTransport();
         var actor = CreateActor(connection, transport);
+        await WaitForOnline(transport, TestContext.Current.CancellationToken);
+        var listener = CreateTestProbe();
 
-        await transport.WaitForMessage(m => m is { Topic: "njord/status", Payload: "online" }).WaitAsync(TestContext.Current.CancellationToken);
-
-        var inbox = Inbox.Create(Sys);
-        inbox.Send(actor, new SubscribeInbound());
-
+        actor.Tell(new SubscribeInbound(), listener.Ref);
+        await actor.Ask<MqttConnectionStatusResult>(
+            new QueryMqttConnectionStatus(), TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         connection.SimulateInbound("homeassistant/status", "online");
 
-        var received = (MqttInboundMessage)await inbox.ReceiveAsync(TimeSpan.FromSeconds(3));
-        Assert.Equal("homeassistant/status", received.Topic);
-        Assert.Equal("online", received.Payload);
+        var received = listener.ExpectMsg<MqttInboundMessage>(TestTimeouts.AwaitAssertMax,
+            cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Multiple(
+            () => Assert.Equal("homeassistant/status", received.Topic),
+            () => Assert.Equal("online", received.Payload));
     }
-
-    // --- Fakes ----------------------------------------------------------
-
-    private sealed class FakeConnection : IMqttConnection
-    {
-        private Action<string, string>? _onMessage;
-        private int _failConnectCount;
-        private int _cancelConnectCount;
-        private int _connectCalls;
-
-        public int FailConnectCount { get => _failConnectCount; init => _failConnectCount = value; }
-        public int CancelConnectCount { get => _cancelConnectCount; init => _cancelConnectCount = value; }
-        public int ConnectCallCount => Volatile.Read(ref _connectCalls);
-
-        public Task ConnectAsync(
-            Action<string, string> onMessage,
-            Action onDisconnected,
-            CancellationToken cancellationToken)
-        {
-            var attempt = Interlocked.Increment(ref _connectCalls);
-            if (attempt <= _failConnectCount)
-            {
-                return Task.FromException(new InvalidOperationException($"Simulated connect failure #{attempt}"));
-            }
-
-            if (attempt <= _failConnectCount + _cancelConnectCount)
-            {
-                return Task.FromCanceled(new CancellationToken(canceled: true));
-            }
-
-            _onMessage = onMessage;
-            return Task.CompletedTask;
-        }
-
-        public Task SubscribeAsync(string topicFilter, CancellationToken cancellationToken)
-            => Task.CompletedTask;
-
-        public void SimulateInbound(string topic, string payload)
-            => _onMessage?.Invoke(topic, payload);
-
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-    }
-
 }

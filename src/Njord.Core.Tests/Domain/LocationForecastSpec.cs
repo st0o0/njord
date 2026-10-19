@@ -5,77 +5,73 @@ namespace Njord.Core.Tests.Domain;
 
 public sealed class LocationForecastSpec
 {
-    private static readonly DateTimeOffset Run = new(2026, 7, 1, 0, 0, 0, TimeSpan.Zero);
     private static readonly Location Lucerne = new("Lucerne", 47.05, 8.31);
+    private static readonly DateTimeOffset Run = new(2026, 7, 1, 0, 0, 0, TimeSpan.Zero);
 
-    private static DomainForecast<FloodPoint> Flood(double discharge) =>
-        new(DomainKind.Flood, Run, TimeResolution.Hourly, [new FloodPoint(Run, discharge)]);
-
-    private static DomainForecast<WeatherPoint> Weather(double temperature) =>
-        new(DomainKind.Weather, Run, TimeResolution.Hourly,
-            [new WeatherPoint(Run, temperature, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)]);
+    private static DomainForecast<T> Empty<T>(DomainKind kind) where T : IHasValidTime =>
+        new(kind, Run, TimeResolution.Hourly, []);
 
     [Fact]
-    public void New_forecast_has_no_domains()
+    public void Should_start_without_any_domain_data()
     {
         var forecast = new LocationForecast(Lucerne);
 
+        Assert.All(Enum.GetValues<DomainKind>(), kind => Assert.Null(forecast.Get(kind)));
+    }
+
+    [Theory]
+    [InlineData(DomainKind.Weather)]
+    [InlineData(DomainKind.AirQuality)]
+    [InlineData(DomainKind.Flood)]
+    [InlineData(DomainKind.Solar)]
+    [InlineData(DomainKind.Marine)]
+    public void Should_store_data_under_its_domain_and_leave_others_untouched(DomainKind kind)
+    {
+        IDomainForecast data = kind switch
+        {
+            DomainKind.Weather => Empty<WeatherPoint>(kind),
+            DomainKind.AirQuality => Empty<AirQualityPoint>(kind),
+            DomainKind.Flood => Empty<FloodPoint>(kind),
+            DomainKind.Solar => Empty<SolarPoint>(kind),
+            _ => Empty<MarinePoint>(kind),
+        };
+
+        var updated = new LocationForecast(Lucerne).With(kind, data);
+
         Assert.Multiple(
-            () => Assert.Equal(Lucerne, forecast.Location),
-            () => Assert.Null(forecast.Weather),
-            () => Assert.Null(forecast.AirQuality),
-            () => Assert.Null(forecast.Flood),
-            () => Assert.Null(forecast.Solar),
-            () => Assert.Null(forecast.Marine));
+            () => Assert.Same(data, updated.Get(kind)),
+            () => Assert.Single(Enum.GetValues<DomainKind>(), k => updated.Get(k) is not null));
     }
 
     [Fact]
-    public void With_updates_one_domain_and_preserves_others()
+    public void Should_replace_existing_domain_data_without_mutating_the_original()
     {
-        var flood = Flood(5);
-        var original = new LocationForecast(Lucerne, Weather(10), Flood: flood);
-        var newWeather = Weather(20);
+        var first = Empty<WeatherPoint>(DomainKind.Weather);
+        var second = first with { ModelRun = Run.AddHours(1) };
+        var original = new LocationForecast(Lucerne).With(DomainKind.Weather, first);
 
-        var updated = original.With(DomainKind.Weather, newWeather);
-        var originalWeather = original.Weather;
-        Assert.NotNull(originalWeather);
+        var updated = original.With(DomainKind.Weather, second);
 
         Assert.Multiple(
-            () => Assert.Same(newWeather, updated.Weather),
-            () => Assert.Same(flood, updated.Flood),
-            () => Assert.Equal(10, originalWeather.Points[0].Temperature));
+            () => Assert.Same(first, original.Weather),
+            () => Assert.Same(second, updated.Weather));
     }
 
     [Fact]
-    public void With_sets_each_domain()
+    public void Should_reject_data_of_a_different_domain_type()
     {
-        var air = new DomainForecast<AirQualityPoint>(
-            DomainKind.AirQuality, Run, TimeResolution.Hourly, [new AirQualityPoint(Run, 1, 2, 3)]);
-        var solar = new DomainForecast<SolarPoint>(
-            DomainKind.Solar, Run, TimeResolution.Hourly, [new SolarPoint(Run, 1, 2, 3, 4)]);
-        var marine = new DomainForecast<MarinePoint>(
-            DomainKind.Marine, Run, TimeResolution.Hourly, [new MarinePoint(Run, 1, 2, 3)]);
+        var flood = Empty<FloodPoint>(DomainKind.Flood);
 
-        var forecast = new LocationForecast(Lucerne)
-            .With(DomainKind.AirQuality, air)
-            .With(DomainKind.Solar, solar)
-            .With(DomainKind.Marine, marine);
-
-        Assert.Multiple(
-            () => Assert.Same(air, forecast.AirQuality),
-            () => Assert.Same(solar, forecast.Solar),
-            () => Assert.Same(marine, forecast.Marine),
-            () => Assert.Null(forecast.Weather),
-            () => Assert.Null(forecast.Flood));
-    }
-
-    [Fact]
-    public void With_rejects_a_forecast_that_does_not_match_the_domain()
-    {
-        var forecast = new LocationForecast(Lucerne);
-
-        var ex = Assert.Throws<ArgumentException>(() => forecast.With(DomainKind.Weather, Flood(1)));
+        var ex = Assert.Throws<ArgumentException>(() => new LocationForecast(Lucerne).With(DomainKind.Weather, flood));
 
         Assert.Equal("forecast", ex.ParamName);
+    }
+
+    [Fact]
+    public void Should_throw_for_an_undefined_domain()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new LocationForecast(Lucerne).Get((DomainKind)99));
+
+        Assert.Equal("domain", ex.ParamName);
     }
 }

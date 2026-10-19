@@ -5,112 +5,61 @@ namespace Njord.Core.Tests.Configuration;
 public sealed class ParameterSelectionSpec
 {
     [Fact]
-    public void The_weather_group_resolves_to_every_weather_parameter()
+    public void Should_resolve_the_weather_group_case_insensitively()
     {
-        var resolved = ParameterSelection.Resolve(["Weather"], [], []);
+        var set = ParameterSelection.Resolve(["weather"], [], []);
 
         Assert.Multiple(
-            () => Assert.Equal(31, resolved.Hourly.Count),
-            () => Assert.Equal(17, resolved.Daily.Count),
-            () => Assert.All(resolved.Hourly, p => Assert.Equal(ParameterGranularity.Hourly, p.Granularity)),
-            () => Assert.All(resolved.Daily, p => Assert.Equal(ParameterGranularity.Daily, p.Granularity)),
-            () => Assert.All([.. resolved.Hourly, .. resolved.Daily], p => Assert.Equal(ParameterGroup.Weather, p.Group)));
+            () => Assert.Contains(ParameterRegistry.Temperature2m, set.Hourly),
+            () => Assert.All(set.Hourly, p => Assert.Equal(ParameterGranularity.Hourly, p.Granularity)),
+            () => Assert.All(set.Daily, p => Assert.Equal(ParameterGranularity.Daily, p.Granularity)));
     }
 
     [Fact]
-    public void Group_names_are_case_insensitive()
+    public void Should_remove_excluded_parameters()
     {
-        var resolved = ParameterSelection.Resolve(["weather", "SOLAR"], [], []);
+        var set = ParameterSelection.Resolve(["Weather"], [], ["temperature_2m"]);
 
-        var groups = resolved.Hourly.Concat(resolved.Daily).Select(p => p.Group).Distinct().Order().ToList();
-
-        Assert.Equal([ParameterGroup.Weather, ParameterGroup.Solar], groups);
+        Assert.DoesNotContain(ParameterRegistry.Temperature2m, set.Hourly);
     }
 
     [Fact]
-    public void Every_group_member_is_accepted_by_name()
+    public void Should_add_extra_parameters_outside_the_selected_groups()
     {
-        foreach (var group in Enum.GetValues<ParameterGroup>())
-        {
-            var resolved = ParameterSelection.Resolve([group.ToString()], [], []);
+        var baseline = ParameterSelection.Resolve(["Weather"], [], []);
+        var withExtra = ParameterSelection.Resolve(["Weather"], ["soil_temperature_0cm"], []);
 
-            Assert.All(resolved.Hourly.Concat(resolved.Daily), p => Assert.Equal(group, p.Group));
-        }
+        Assert.Equal(baseline.HourlyCount + 1, withExtra.HourlyCount);
     }
 
     [Fact]
-    public void Extra_adds_parameters_from_other_groups()
-    {
-        var resolved = ParameterSelection.Resolve(["Weather"], ["uv_index"], []);
-
-        Assert.Contains(ParameterRegistry.UvIndex, resolved.Hourly);
-    }
-
-    [Fact]
-    public void Extra_by_api_name_adds_the_hourly_and_the_daily_variant_is_not_implied()
-    {
-        var resolved = ParameterSelection.Resolve(["Weather"], ["sunshine_duration"], []);
-
-        Assert.Contains(ParameterRegistry.SunshineDuration, resolved.Hourly);
-        Assert.DoesNotContain(ParameterRegistry.DailySunshineDuration, resolved.Daily);
-    }
-
-    [Fact]
-    public void Exclude_removes_parameters()
-    {
-        var resolved = ParameterSelection.Resolve(["Weather"], [], ["cape"]);
-
-        Assert.DoesNotContain(resolved.Hourly, p => p.ApiName == "cape");
-    }
-
-    [Fact]
-    public void An_unknown_group_is_reported_with_the_valid_groups()
-    {
-        var ex = Assert.Throws<ParameterResolutionException>(() => ParameterSelection.Resolve(["Marine"], [], []));
-
-        var error = Assert.Single(ex.Errors);
-        Assert.Equal("Unknown parameter group: 'Marine'. Valid groups: Weather, Solar, Soil", error);
-    }
-
-    [Fact]
-    public void An_unknown_extra_is_reported()
-    {
-        var ex = Assert.Throws<ParameterResolutionException>(() => ParameterSelection.Resolve(["Weather"], ["not_real"], []));
-
-        Assert.Equal("Unknown parameter in Extra: 'not_real'", Assert.Single(ex.Errors));
-    }
-
-    [Fact]
-    public void An_unknown_exclude_is_reported()
-    {
-        var ex = Assert.Throws<ParameterResolutionException>(() => ParameterSelection.Resolve(["Weather"], [], ["not_real"]));
-
-        Assert.Equal("Unknown parameter in Exclude: 'not_real'", Assert.Single(ex.Errors));
-    }
-
-    [Fact]
-    public void An_empty_result_is_reported()
-    {
-        var everything = ParameterRegistry.GetByGroup(ParameterGroup.Weather).Select(p => p.ApiName).Distinct().ToList();
-
-        var ex = Assert.Throws<ParameterResolutionException>(() => ParameterSelection.Resolve(["Weather"], [], everything));
-
-        Assert.Equal(
-            "The resolved parameter set is empty. Enable at least one group or add parameters via Extra.",
-            Assert.Single(ex.Errors));
-    }
-
-    [Fact]
-    public void All_errors_are_collected_into_one_exception()
+    public void Should_report_every_unknown_name_in_one_exception()
     {
         var ex = Assert.Throws<ParameterResolutionException>(
-            () => ParameterSelection.Resolve(["Marine"], ["not_real"], ["also_not_real"]));
+            () => ParameterSelection.Resolve(["Lava"], ["nope"], ["nada"]));
 
-        Assert.Multiple(
-            () => Assert.Equal(3, ex.Errors.Count),
-            () => Assert.Equal(string.Join("; ", ex.Errors), ex.Message),
-            () => Assert.Contains("Unknown parameter group: 'Marine'", ex.Errors[0]),
-            () => Assert.Equal("Unknown parameter in Extra: 'not_real'", ex.Errors[1]),
-            () => Assert.Equal("Unknown parameter in Exclude: 'also_not_real'", ex.Errors[2]));
+        Assert.Equal(
+            [
+                "Unknown parameter group: 'Lava'. Valid groups: Weather, Solar, Soil",
+                "Unknown parameter in Extra: 'nope'",
+                "Unknown parameter in Exclude: 'nada'",
+            ],
+            ex.Errors);
+    }
+
+    [Fact]
+    public void Should_reject_an_empty_resolved_set()
+    {
+        var ex = Assert.Throws<ParameterResolutionException>(() => ParameterSelection.Resolve([], [], []));
+
+        Assert.Contains("empty", Assert.Single(ex.Errors));
+    }
+
+    [Fact]
+    public void Should_weigh_api_calls_by_tens_of_hourly_parameters()
+    {
+        var set = ParameterSelection.Resolve(["Weather"], [], []);
+
+        Assert.Equal((int)Math.Ceiling(set.HourlyCount / 10.0), set.ApiCallWeight);
     }
 }

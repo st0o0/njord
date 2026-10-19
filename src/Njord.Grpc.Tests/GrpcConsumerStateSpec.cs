@@ -7,66 +7,71 @@ namespace Njord.Grpc.Tests;
 
 public sealed class GrpcConsumerStateSpec
 {
-    private static readonly DateTimeOffset Anchor = TestTimeConstants.NoonAnchor;
-
-    private static PipelineEvent.AlertRaised Raise(AlertType type, AlertSeverity severity) =>
-        new(DomainData.Lucerne, new Alert(type, severity, 0.5, NoDetails.Instance), Anchor);
+    private static readonly DateTimeOffset Anchor = TestTimeConstants.BudgetEpoch;
+    private static readonly Location Lucerne = DomainData.Lucerne;
 
     [Fact]
-    public void A_domain_event_replaces_the_previous_one_of_the_same_location_and_domain()
+    public void Domain_data_is_kept_as_the_latest_event_per_location_and_domain()
     {
-        var older = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 2));
-        var newer = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor.AddHours(1), 2));
+        var older = new PipelineEvent.WeatherDataReceived(Lucerne, DomainData.Weather(Anchor, 2));
+        var newer = new PipelineEvent.WeatherDataReceived(Lucerne, DomainData.Weather(Anchor.AddHours(1), 2));
+        var flood = new PipelineEvent.FloodDataReceived(Lucerne, DomainData.Flood(Anchor));
 
-        var state = GrpcConsumerState.Empty.Apply(older).Apply(newer);
+        var state = GrpcConsumerState.Empty.Apply(older).Apply(flood).Apply(newer);
 
         Assert.Multiple(
-            () => Assert.Equal(newer, state.GetDomainData(DomainData.Lucerne, DomainKind.Weather)),
-            () => Assert.Null(state.GetDomainData(DomainData.Lucerne, DomainKind.Flood)),
-            () => Assert.Empty(state.Alerts));
+            () => Assert.Equal(newer, state.GetDomainData(Lucerne, DomainKind.Weather)),
+            () => Assert.Equal(flood, state.GetDomainData(Lucerne, DomainKind.Flood)));
     }
 
     [Fact]
-    public void An_alert_of_the_same_type_replaces_the_earlier_one_and_alerts_are_ordered_by_type()
+    public void Domain_data_of_another_location_or_domain_is_not_available()
     {
-        var heat = Raise(AlertType.Heat, AlertSeverity.Orange);
-        var frost = Raise(AlertType.Frost, AlertSeverity.Yellow);
-        var frostRed = Raise(AlertType.Frost, AlertSeverity.Red);
-
-        var state = GrpcConsumerState.Empty.Apply(heat).Apply(frost).Apply(frostRed);
-
-        var result = state.GetLatestAlerts(DomainData.Lucerne);
-        Assert.NotNull(result);
-        Assert.Equal([frostRed.Alert, heat.Alert], result.Alerts);
-    }
-
-    [Theory]
-    [InlineData(AlertType.Pm25)]
-    [InlineData(AlertType.Pollen)]
-    [InlineData(AlertType.FloodRisk)]
-    [InlineData(AlertType.FloodRain)]
-    [InlineData(AlertType.Frost)]
-    public void Alerts_of_every_domain_are_cached(AlertType type)
-    {
-        var raised = Raise(type, AlertSeverity.Yellow);
-
-        var state = GrpcConsumerState.Empty.Apply(raised);
-
-        var result = state.GetLatestAlerts(DomainData.Lucerne);
-        Assert.NotNull(result);
-        Assert.Equal([raised.Alert], result.Alerts);
-    }
-
-    [Fact]
-    public void Alerts_are_kept_per_location()
-    {
-        var lucerne = Raise(AlertType.Frost, AlertSeverity.Yellow);
-        var bern = lucerne with { Location = DomainData.Bern };
-
-        var state = GrpcConsumerState.Empty.Apply(lucerne).Apply(bern);
+        var state = GrpcConsumerState.Empty.Apply(
+            new PipelineEvent.WeatherDataReceived(Lucerne, DomainData.Weather(Anchor, 2)));
 
         Assert.Multiple(
-            () => Assert.Equal(2, state.Alerts.Count),
-            () => Assert.Null(state.GetLatestAlerts(new Location("Nowhere", 0, 0))));
+            () => Assert.Null(state.GetDomainData(DomainData.Bern, DomainKind.Weather)),
+            () => Assert.Null(state.GetDomainData(Lucerne, DomainKind.Solar)));
+    }
+
+    [Fact]
+    public void A_raised_alert_replaces_the_alert_of_the_same_type()
+    {
+        var first = new PipelineEvent.AlertRaised(Lucerne,
+            new Alert(AlertType.Heat, AlertSeverity.Yellow, 0.5, NoDetails.Instance), Anchor);
+        var second = new PipelineEvent.AlertRaised(Lucerne,
+            new Alert(AlertType.Heat, AlertSeverity.Red, 0.9, NoDetails.Instance), Anchor.AddHours(1));
+
+        var state = GrpcConsumerState.Empty.Apply(first).Apply(second);
+
+        var alerts = state.GetLatestAlerts(Lucerne);
+        Assert.NotNull(alerts);
+        Assert.Equal([second.Alert], alerts.Alerts);
+    }
+
+    [Fact]
+    public void Alerts_of_different_types_accumulate_ordered_by_type()
+    {
+        var frost = new Alert(AlertType.Frost, AlertSeverity.Orange, 0.8, NoDetails.Instance);
+        var heat = new Alert(AlertType.Heat, AlertSeverity.Yellow, 0.7, NoDetails.Instance);
+
+        var state = GrpcConsumerState.Empty
+            .Apply(new PipelineEvent.AlertRaised(Lucerne, heat, Anchor))
+            .Apply(new PipelineEvent.AlertRaised(Lucerne, frost, Anchor));
+
+        var alerts = state.GetLatestAlerts(Lucerne);
+        Assert.NotNull(alerts);
+        Assert.Equal(new[] { heat, frost }.OrderBy(a => a.Type), alerts.Alerts);
+    }
+
+    [Fact]
+    public void Alerts_are_kept_per_location_and_absent_before_the_first_alert()
+    {
+        var state = GrpcConsumerState.Empty.Apply(EnrichmentEvents.Alerts(Lucerne, Anchor));
+
+        Assert.Multiple(
+            () => Assert.NotNull(state.GetLatestAlerts(Lucerne)),
+            () => Assert.Null(state.GetLatestAlerts(DomainData.Bern)));
     }
 }

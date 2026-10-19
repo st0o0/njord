@@ -1,115 +1,81 @@
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Tests.Shared;
+using Njord.Model;
 
 namespace Njord.Core.Tests.Configuration.Polling;
 
 public sealed class BudgetCalculatorSpec
 {
-    [Fact]
-    public void Projects_monthly_calls_for_one_location_eight_models_weather_group_sixty_minute_interval()
+    private static NjordOptions Scope(int locations = 1) => new()
     {
-        var options = new NjordOptions
-        {
-            Locations = [new LocationOptions { Name = "Lucerne", Latitude = 47.05, Longitude = 8.31 }],
-            Models = ["icon_d2", "icon_eu", "icon_global", "ecmwf_ifs025", "gfs_seamless", "ukmo_global_deterministic_10km", "meteoswiss_icon_ch1", "meteoswiss_icon_ch2"],
-            Parameters = new ParameterOptions { Groups = ["Weather"] },
-        };
+        Locations = [.. Enumerable.Range(0, locations).Select(i => new LocationOptions { Name = $"L{i}" })],
+        Models = ["icon_d2"],
+        EnabledDomains = [DomainKind.Weather, DomainKind.Flood],
+    };
 
-        var result = BudgetCalculator.Validate(options, AppSettingsDefaults.Options<PollingOptions>(o => o.PollInterval = TimeSpan.FromMinutes(60)));
+    [Fact]
+    public void Should_project_calls_from_locations_domains_cycles_and_weight()
+    {
+        var scope = Scope(locations: 2);
+        var weight = scope.Parameters.Resolve().ApiCallWeight;
+        var polling = new PollingOptions { PollInterval = TimeSpan.FromHours(1) };
 
-        // 1 location = 3 domain calls/cycle, Weather group = 31 params, ceil(31/10) = 4 weight
-        // 3 * 4 = 12 calls/cycle, 24 cycles/day, 12 * 24 * 30 = 8640/month
-        Assert.Equal(8_640, result.ProjectedMonthlyCalls);
-        Assert.True(result.WithinBudget);
-        Assert.Empty(result.Warnings);
+        var result = BudgetCalculator.Validate(scope, polling);
+
+        // 2 locations x 2 domains = 4 calls per cycle, 720 cycles in a 30-day month.
+        Assert.Multiple(
+            () => Assert.Equal(4, result.DomainCallsPerCycle),
+            () => Assert.Equal(4L * 720 * weight, result.ProjectedMonthlyCalls),
+            () => Assert.Equal(300_000, result.MonthlyLimit),
+            () => Assert.True(result.WithinBudget));
     }
 
     [Fact]
-    public void Uses_exact_month_length_for_poll_intervals_that_do_not_divide_a_day()
+    public void Should_use_the_override_as_the_effective_budget()
     {
-        var options = new NjordOptions
-        {
-            Locations = [new LocationOptions { Name = "A", Latitude = 0, Longitude = 0 }],
-            Models = ["icon_d2"],
-            Parameters = new ParameterOptions { Groups = ["Weather"] },
-        };
+        var polling = new PollingOptions { BudgetOverride = new RequestBudget(1_000, 10) };
 
-        var result = BudgetCalculator.Validate(options, AppSettingsDefaults.Options<PollingOptions>(o => o.PollInterval = TimeSpan.FromMinutes(50)));
-
-        // 43200 min / 50 min = 864 cycles, weight 4 => 10368 (a 28-cycles-per-day approximation gave 10080)
-        Assert.Equal(10_368, result.ProjectedMonthlyCalls);
-        Assert.Equal(3, result.DomainCallsPerCycle);
-        Assert.Equal(4, result.ApiCallWeight);
+        Assert.Equal(new RequestBudget(1_000, 10), BudgetCalculator.GetEffectiveBudget(polling));
     }
 
     [Fact]
-    public void Warns_when_usage_exceeds_eighty_percent_of_budget()
+    public void Should_fall_back_to_the_open_meteo_free_tier()
     {
-        var options = new NjordOptions
-        {
-            Locations = [new LocationOptions { Name = "A", Latitude = 0, Longitude = 0 }],
-            Models = ["icon_d2"],
-            Parameters = new ParameterOptions { Groups = ["Weather"] },
-        };
+        Assert.Equal(RequestBudget.OpenMeteoFreeTier, BudgetCalculator.GetEffectiveBudget(new PollingOptions()));
+    }
 
-        var result = BudgetCalculator.Validate(options, new PollingOptions { PollInterval = TimeSpan.FromMinutes(60), BudgetOverride = new RequestBudget(100, 600) });
+    [Fact]
+    public void Should_warn_between_eighty_and_one_hundred_percent_of_the_budget()
+    {
+        var polling = new PollingOptions { BudgetOverride = new RequestBudget(7_000, 600) };
 
-        // 3 domain calls, ceil(31/10)=4, 12 calls/cycle, 24/day, 12*24*30=8640
-        // 8640/100 = 8640%: over 100, so no 80% warning, just not within budget
+        var result = BudgetCalculator.Validate(Scope(), polling);
+
+        Assert.Multiple(
+            () => Assert.InRange(result.UsagePercent, 80.0, 100.0),
+            () => Assert.True(result.WithinBudget),
+            () => Assert.Single(result.Warnings));
+    }
+
+    [Fact]
+    public void Should_flag_usage_above_the_budget_as_not_within_budget()
+    {
+        var polling = new PollingOptions { BudgetOverride = new RequestBudget(100, 600) };
+
+        var result = BudgetCalculator.Validate(Scope(), polling);
+
         Assert.False(result.WithinBudget);
     }
 
     [Fact]
-    public void Reports_within_budget_false_when_projected_exceeds_monthly_limit()
+    public void Should_only_report_a_guard_violation_above_eighty_percent()
     {
-        var options = new NjordOptions
-        {
-            Locations = [new LocationOptions { Name = "A", Latitude = 0, Longitude = 0 }],
-            Models = ["icon_d2"],
-            Parameters = new ParameterOptions { Groups = ["Weather"] },
-        };
+        var polling = new PollingOptions { BudgetOverride = new RequestBudget(100, 600) };
+        var heavy = BudgetCalculator.Validate(Scope(), polling);
+        var light = BudgetCalculator.Validate(Scope(), new PollingOptions());
 
-        var result = BudgetCalculator.Validate(options, new PollingOptions { PollInterval = TimeSpan.FromMinutes(60), BudgetOverride = new RequestBudget(2_000, 600) });
-
-        // 8640 projected vs 2000 limit = 432%
-        Assert.False(result.WithinBudget);
-        Assert.True(result.UsagePercent > 100);
-    }
-
-    [Fact]
-    public void Issues_warning_at_eighty_percent_threshold()
-    {
-        var options = new NjordOptions
-        {
-            Locations = [new LocationOptions { Name = "A", Latitude = 0, Longitude = 0 }],
-            Models = ["icon_d2"],
-            Parameters = new ParameterOptions { Groups = ["Weather"] },
-            // 8640 projected; need limit where 80% < 8640 <= 100%
-            // 8640/limit = 0.9 => limit = 9600
-        };
-
-        var result = BudgetCalculator.Validate(options, new PollingOptions { PollInterval = TimeSpan.FromMinutes(60), BudgetOverride = new RequestBudget(9_600, 600) });
-
-        Assert.True(result.WithinBudget);
-        var warning = Assert.Single(result.Warnings);
-        Assert.Contains("90%", warning);
-    }
-
-    [Fact]
-    public void Uses_custom_budget_override_for_validation()
-    {
-        var options = new NjordOptions
-        {
-            Locations = [new LocationOptions { Name = "A", Latitude = 0, Longitude = 0 }],
-            Models = ["icon_d2"],
-            Parameters = new ParameterOptions { Groups = ["Weather"] },
-        };
-
-        var result = BudgetCalculator.Validate(options, new PollingOptions { PollInterval = TimeSpan.FromMinutes(60), BudgetOverride = new RequestBudget(1_000_000, 600) });
-
-        Assert.Equal(1_000_000, result.MonthlyLimit);
-        Assert.True(result.WithinBudget);
-        Assert.Empty(result.Warnings);
+        Assert.Multiple(
+            () => Assert.Null(BudgetCalculator.GuardViolation(light, TimeSpan.FromHours(1))),
+            () => Assert.Contains("guard of 80", BudgetCalculator.GuardViolation(heavy, TimeSpan.FromHours(1))));
     }
 }

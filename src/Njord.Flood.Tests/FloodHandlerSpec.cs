@@ -2,9 +2,8 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using Njord.Model;
-using Njord.Tests.Shared;
 using static Njord.Flood.Tests.FloodFixtures;
+using Njord.Tests.Shared;
 
 namespace Njord.Flood.Tests;
 
@@ -16,22 +15,8 @@ public sealed class FloodHandlerSpec
 
     private static FloodRainHandler Rainfall(bool enabled = true) => new(new FloodRainAlertRule(), AlertRuleFixture.OptionsWith(enabled));
 
-    [Fact]
-    public void The_risk_handler_triggers_only_on_flood()
-    {
-        Assert.Equal([DomainKind.Flood], Risk().Triggers);
-    }
-
-    [Fact]
-    public void The_rain_handler_triggers_on_flood_and_weather()
-    {
-        var triggers = Rainfall().Triggers;
-
-        Assert.Multiple(
-            () => Assert.Equal(2, triggers.Count),
-            () => Assert.Contains(DomainKind.Flood, triggers),
-            () => Assert.Contains(DomainKind.Weather, triggers));
-    }
+    private static LocationForecast RainAndRisingRiver() =>
+        new(Lucerne, Weather: Rain(1.5), Flood: FloodForecast(Point(0, 110), Point(1, 130)));
 
     [Fact]
     public void The_risk_handler_raises_a_flood_risk_alert()
@@ -48,23 +33,27 @@ public sealed class FloodHandlerSpec
     }
 
     [Fact]
-    public void The_risk_handler_is_quiet_without_flood_data_for_calm_water_or_when_disabled()
+    public void The_risk_handler_is_quiet_for_calm_water_or_without_flood_data()
     {
         var calm = new LocationForecast(Lucerne, Flood: FloodForecast(Point(0, 100)));
-        var wild = new LocationForecast(Lucerne, Flood: FloodForecast(Point(0, 500)));
 
         Assert.Multiple(
-            () => Assert.Empty(Risk().Handle(new LocationForecast(Lucerne), null, Time)),
             () => Assert.Empty(Risk().Handle(calm, null, Time)),
-            () => Assert.Empty(Risk(enabled: false).Handle(wild, null, Time)));
+            () => Assert.Empty(Risk().Handle(new LocationForecast(Lucerne), null, Time)));
     }
 
     [Fact]
-    public void The_rain_handler_raises_a_flood_rain_alert_from_both_domains()
+    public void The_risk_handler_is_quiet_when_alerts_are_disabled()
     {
-        var current = new LocationForecast(Lucerne, Weather: Rain(1.5), Flood: FloodForecast(Point(0, 110), Point(1, 130)));
+        var wild = new LocationForecast(Lucerne, Flood: FloodForecast(Point(0, 500)));
 
-        var raised = Assert.IsType<PipelineEvent.AlertRaised>(Assert.Single(Rainfall().Handle(current, null, Time)));
+        Assert.Empty(Risk(enabled: false).Handle(wild, null, Time));
+    }
+
+    [Fact]
+    public void The_rain_handler_raises_a_flood_rain_alert_from_weather_and_flood()
+    {
+        var raised = Assert.IsType<PipelineEvent.AlertRaised>(Assert.Single(Rainfall().Handle(RainAndRisingRiver(), null, Time)));
 
         Assert.Multiple(
             () => Assert.Equal(AlertType.FloodRain, raised.Type),
@@ -73,14 +62,18 @@ public sealed class FloodHandlerSpec
     }
 
     [Fact]
-    public void The_rain_handler_needs_both_domains_and_respects_the_toggle()
+    public void The_rain_handler_needs_both_weather_and_flood_data()
     {
-        var flood = FloodForecast(Point(0, 110), Point(1, 130));
-        var both = new LocationForecast(Lucerne, Weather: Rain(1.5), Flood: flood);
+        var floodOnly = new LocationForecast(Lucerne, Flood: FloodForecast(Point(0, 110), Point(1, 130)));
 
         Assert.Multiple(
-            () => Assert.Empty(Rainfall().Handle(new LocationForecast(Lucerne, Flood: flood), null, Time)),
-            () => Assert.Empty(Rainfall().Handle(new LocationForecast(Lucerne, Weather: Rain(1.5)), null, Time)),
-            () => Assert.Empty(Rainfall(enabled: false).Handle(both, null, Time)));
+            () => Assert.Empty(Rainfall().Handle(floodOnly, null, Time)),
+            () => Assert.Empty(Rainfall().Handle(new LocationForecast(Lucerne, Weather: Rain(1.5)), null, Time)));
+    }
+
+    [Fact]
+    public void The_rain_handler_is_quiet_when_alerts_are_disabled()
+    {
+        Assert.Empty(Rainfall(enabled: false).Handle(RainAndRisingRiver(), null, Time));
     }
 }

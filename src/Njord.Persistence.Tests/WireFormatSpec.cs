@@ -1,46 +1,48 @@
 using Newtonsoft.Json;
-using Njord.Persistence.Events.Budget;
+using Njord.Persistence.Events.Polling;
 
 namespace Njord.Persistence.Tests;
 
 public sealed class WireFormatSpec
 {
-    private static readonly JsonSerializerSettings Settings = new()
-    {
-        Formatting = Formatting.Indented,
-    };
+    private static readonly DateTimeOffset Utc = new(2026, 7, 15, 10, 0, 0, TimeSpan.Zero);
+
+    private static readonly PersistedPollWorkerState State = new(
+        "lucerne", true, TimeSpan.FromMinutes(20), 42, Utc, Utc.AddHours(-3), Utc.AddHours(3).AddMinutes(1),
+        2, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 1, null);
 
     [Fact]
-    public void PersistedBudgetTrackerState_wire_format()
+    public Task Should_keep_the_poll_worker_state_wire_format_stable() =>
+        Verify(JsonConvert.SerializeObject(State, Formatting.Indented));
+
+    [Fact]
+    public Task Should_keep_the_poll_worker_event_wire_format_stable() =>
+        Verify(string.Join("\n", PollWorkerRoundtripSpec.Events()
+            .Select(row => JsonConvert.SerializeObject(row.Data, Formatting.Indented))));
+
+    [Fact]
+    public void Should_deserialize_a_document_written_before_domain_states_existed()
     {
-        var dto = new PersistedBudgetTrackerState(7, 193, 4200, 150);
+        const string oldFormat = """
+            {
+              "Location": "lucerne", "Active": true, "DiscoveryInterval": "00:20:00", "LastHash": 42,
+              "LastChangeUtc": "2026-07-15T10:00:00+00:00", "PrevChangeUtc": "2026-07-15T07:00:00+00:00",
+              "NextPollUtc": "2026-07-15T13:01:00+00:00", "MissCount": 2, "Phase": 1,
+              "Cycle": "03:00:00", "TransientFailureCount": 1
+            }
+            """;
 
-        var json = JsonConvert.SerializeObject(dto, Settings);
+        var recovered = JsonConvert.DeserializeObject<PersistedPollWorkerState>(oldFormat);
 
-        var expected = """
-{
-  "Month": 7,
-  "Day": 193,
-  "MonthlyUsed": 4200,
-  "DailyUsed": 150
-}
-""".TrimEnd();
-        Assert.Equal(expected.ReplaceLineEndings(), json.ReplaceLineEndings());
+        Assert.Equal(State, recovered);
     }
 
     [Fact]
-    public void ApiCallRecorded_wire_format()
+    public void Should_keep_the_stored_numbers_of_persisted_poll_phases()
     {
-        var dto = new ApiCallRecorded(3, new DateTimeOffset(2024, 8, 15, 0, 0, 0, TimeSpan.Zero));
-
-        var json = JsonConvert.SerializeObject(dto, Settings);
-
-        var expected = """
-{
-  "Weight": 3,
-  "Utc": "2024-08-15T00:00:00+00:00"
-}
-""".TrimEnd();
-        Assert.Equal(expected.ReplaceLineEndings(), json.ReplaceLineEndings());
+        Assert.Multiple(
+            () => Assert.Equal(0, (int)PersistedPollPhase.Discovery),
+            () => Assert.Equal(1, (int)PersistedPollPhase.Steady),
+            () => Assert.Equal(2, Enum.GetValues<PersistedPollPhase>().Length));
     }
 }
