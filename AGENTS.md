@@ -4,8 +4,9 @@
 
 njord — Weather intelligence for Home Assistant. A .NET service
 (Docker container) on Akka.NET + Akka.Streams: fetches the Open-Meteo API per
-location and domain (weather ensemble, with air quality, flood, solar and marine
-as further domains), runs the data through projection groups (alerts today),
+location and domain (weather ensemble, air quality, flood; solar via parameter
+group, marine planned), runs the data through projection groups (weather alerts,
+air quality alerts, flood risk and cross-domain flood-rain alerts),
 and serves the results to Home Assistant over gRPC (the ha-njord integration),
 with optional MQTT state publishing.
 
@@ -20,9 +21,9 @@ with optional MQTT state publishing.
   between actors); requests, outcomes and scheduling travel as messages.
   **Polling** is one persistent `PollWorker` per location in the `poll-worker`
   shard region (`IPollRegion`; entity id = location name, messages implement
-  `IWithTargetId`, routed by `ShardMessageExtractor` in Core; no passivation, no
-  remember-entities). On each tick a worker fetches all enabled domains (today:
-  weather) in one round. It owns its poll state (`PollWorkerState`: phase, learned
+  `IWithLocationId`, routed by `ShardMessageExtractor` in Core; no passivation, no
+  remember-entities). On each tick a worker fetches all enabled domains (weather
+  ensemble, air quality, flood) in one round. It owns its poll state (`PollWorkerState`: phase, learned
   cycle, next poll, miss/failure counts, last hash; every transition persisted as
   an event, snapshot every 50), its timer and at most one round in flight, and
   reports every start and outcome (`PollWorkerReport`) to `PollManager`
@@ -53,7 +54,7 @@ with optional MQTT state publishing.
   parameters) — never from what the API happens to return. A missing value is
   omitted or `null`, not a missing entity.
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow` directly.
-- **Analysis is a projection group.** A feature library (today `Njord.Alerts`)
+- **Analysis is a projection group.** A feature library (`Njord.Alerts`)
   implements `IProjectionGroup` (`Njord.Core/Domain`): it names its required
   domains and evaluates the current `LocationForecast` against the previous one
   into `EnrichmentEvent`s. `PipelineEvent` variants are typed records
@@ -128,6 +129,16 @@ with optional MQTT state publishing.
   computation. Derived values (dew point, ...) are API-native too.
 - Weather values come from the Open-Meteo ensemble endpoint: `WeatherPoint` carries
   the ensemble value and `EnsembleStdDev`; there is no own multi-model consensus.
+  Solar radiation variables (shortwave, direct, diffuse, DNI, sunshine duration) are
+  included when the `Solar` parameter group is enabled.
+- Air quality data comes from `air-quality-api.open-meteo.com` (separate endpoint,
+  +1 API call per cycle). Provides PM2.5, PM10, ozone, European AQI, and pollen
+  types (birch, grass, alder, mugwort, ragweed). Enrichments: PollenAlert, Pm25Alert.
+- Flood data comes from `flood-api.open-meteo.com` (separate endpoint, daily
+  resolution, +1 API call per cycle). Provides river discharge forecast with
+  percentiles (p25/p75) and historical statistics. GloFAS model, auto-selects the
+  largest river within 5 km. Enrichments: FloodRiskAlert (discharge vs percentiles),
+  FloodRainAlert (cross-domain: heavy rain from Weather + rising discharge from Flood).
 - MQTT egress (optional, `Mqtt:Enabled`): state only, no MQTT Discovery. One
   retained flat state JSON per location and domain per cycle, values the API does not
   deliver are omitted (no `unavailable`, no `expire_after`); availability only via the
@@ -151,7 +162,7 @@ src/
   Njord.slnx
 
   # /Model/ — vocabulary types (zero Njord dependencies)
-  Njord.Model/                # ParameterDef, ParameterRegistry, WeatherModel, LocationId, Location,
+  Njord.Model/                # ParameterDef, ParameterRegistry, WeatherModel, Location,
                               #   DomainKind, DomainForecast<T>, WeatherPoint, AirQualityPoint, FloodPoint,
                               #   SolarPoint, MarinePoint, Horizon, WeatherCondition, ResolvedParameterSet,
                               #   ForecastValue, ModelCoverageRegistry (no Njord references)
@@ -177,7 +188,8 @@ src/
   # /Ingest/ — data acquisition (each -> Core only)
   Njord.OpenMeteo/            # OpenMeteoGateway, OpenMeteoClient (HTTP, status handling, outcomes), DTOs,
                               #   JSON source generator
-    Mapping/                  # OpenMeteoEnsembleMappings (ToWeatherForecast), OpenMeteoRequestMappings (ToRequestUri)
+    Mapping/                  # OpenMeteoEnsembleMappings (ToWeatherForecast), OpenMeteoAirQualityMappings,
+                              #   OpenMeteoFloodMappings, OpenMeteoRequestMappings (ToRequestUri, ToFloodRequestUri)
   Njord.Budget/               # BudgetTracker persistent actor, usage accounting
   Njord.Pipeline/             # PollManager, PollWorker (+ PollWorkerState), ForecastPipeline, ProjectionEngine,
                               #   PipelineEvent BroadcastHub
@@ -199,6 +211,9 @@ src/
   # /Analysis/ — projection-group libraries (each -> Core only), own their computation
   Njord.Alerts/               # AlertAnalyzer, WeatherAlertProjector/Enrichment (projection group), IAlertRule,
                               #   Rules/ (one rule per AlertType), AlertWindow,
+                              #   AirQuality/ (AirQualityAlertProjector, PollenAlertRule, Pm25AlertRule),
+                              #   Flood/ (FloodRiskProjector, FloodRiskAlertRule, FloodRainProjector,
+                              #     FloodRainAlertRule — cross-domain Weather×Flood),
                               #   Configuration/ (AlertOptions, validator, conversion)
 
   # Host
@@ -255,8 +270,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1130 tests (Model 94, Persistence 16, Messages 82, Core 129, Grpc 90, Pipeline 146,
-Mqtt 137, OpenMeteo 42, Budget 34, Architecture 100, Alerts 173, host `Njord.Tests` 72, IntegrationTests 15).
+Current total: 1279 tests (Model 90, Persistence 16, Messages 87, Core 129, Grpc 90, Pipeline 146,
+Mqtt 137, OpenMeteo 65, Budget 34, Architecture 100, Alerts 218, host `Njord.Tests` 72, IntegrationTests 15).
+Note: Alerts grew from 173 to 218 with air quality (Pollen, PM2.5) and flood (FloodRisk, FloodRain) rules.
 The count is one test per `[Fact]` and one per data row of a `[Theory]`.
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small
@@ -352,6 +368,16 @@ These checks run locally only; they are deliberately not part of CI.
   `ecmwf_ifs025`, `gfs_seamless`, `ukmo_global_deterministic_10km`,
   `meteoswiss_icon_ch1`, `meteoswiss_icon_ch2` (~1 km, Alps coverage — in
   range for the default Lucerne location). No warnings endpoint.
+- Air Quality API: `GET https://air-quality-api.open-meteo.com/v1/air-quality?latitude=&longitude=`
+  — same auth/rate-limit as forecast. Hourly resolution, 5–7 days. Variables:
+  `pm2_5`, `pm10`, `ozone`, `nitrogen_dioxide`, `european_aqi`, `alder_pollen`,
+  `birch_pollen`, `grass_pollen`, `mugwort_pollen`, `ragweed_pollen`. CAMS model
+  (European 11 km / Global 45 km, auto-selected).
+- Flood API: `GET https://flood-api.open-meteo.com/v1/flood?latitude=&longitude=`
+  — **daily** resolution, up to 210 days. Variables: `river_discharge`,
+  `river_discharge_mean`, `river_discharge_median`, `river_discharge_max`,
+  `river_discharge_min`, `river_discharge_p25`, `river_discharge_p75`. GloFAS v4
+  (5 km), returns the largest river within 5 km. Response uses `daily` (not `hourly`).
 
 ## Conventions
 
