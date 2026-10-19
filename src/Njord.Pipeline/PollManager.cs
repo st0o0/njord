@@ -11,9 +11,9 @@ using Servus.Resilience;
 
 namespace Njord.Pipeline;
 
-// Cluster singleton that orchestrates one poll worker per configured target in the poll shard region: it starts,
+// Cluster singleton that orchestrates one poll worker per configured location in the poll shard region: it starts,
 // re-plans, stops and restarts them, forwards triggers, and keeps the views built from their reports (poll states,
-// poll-cycle summaries and metrics, poll health). It persists nothing; the workers own the poll state.
+// poll health). It persists nothing; the workers own the poll state.
 public sealed class PollManager : ReceiveActor, IWithTimers
 {
     private const string ResolveTimerKey = "resolve-region";
@@ -21,7 +21,7 @@ public sealed class PollManager : ReceiveActor, IWithTimers
     private sealed record ResolveRegion;
     private sealed record RegionStateReceived(CurrentShardRegionState State);
     private sealed record RegionStateFailed(Exception Cause);
-    private sealed record RestartWorker(string TargetId);
+    private sealed record RestartWorker(string LocationName);
 
     private static readonly BackoffPolicy RetryPolicy =
         Backoff.Create(TimeSpan.FromSeconds(1), maxDelay: TimeSpan.FromSeconds(30));
@@ -41,7 +41,7 @@ public sealed class PollManager : ReceiveActor, IWithTimers
         TimeProvider timeProvider)
     {
         _timeProvider = timeProvider;
-        _config = PollManagerConfig.Create(options.Value.Locations, options.Value.Models);
+        _config = PollManagerConfig.Create(options.Value.Locations);
         _state = PollManagerState.Create(_config, config.Polling.DiscoveryInterval, timeProvider.GetUtcNow());
 
         Receive<ResolveRegion>(_ => OnResolveRegion());
@@ -70,7 +70,7 @@ public sealed class PollManager : ReceiveActor, IWithTimers
         }
 
         _state = _state.ApplyRegionResolved(region);
-        _log.Info("Starting {Count} poll workers", _config.Targets.Count);
+        _log.Info("Starting {Count} poll workers (one per location)", _config.Targets.Count);
         foreach (var target in _config.Targets)
         {
             region.Tell(new StartPolling(target, _state.DiscoveryInterval));
@@ -85,10 +85,10 @@ public sealed class PollManager : ReceiveActor, IWithTimers
         var removed = msg.State.Shards
             .SelectMany(shard => shard.EntityIds)
             .Where(id => !_config.TargetsById.ContainsKey(id))
-            .Distinct(StringComparer.Ordinal);
+            .Distinct(StringComparer.OrdinalIgnoreCase);
         foreach (var id in removed)
         {
-            _log.Info("Stopping the poll worker {TargetId} - its target is no longer configured", id);
+            _log.Info("Stopping the poll worker {LocationName} - its location is no longer configured", id);
             _state.Region?.Tell(new StopPolling(id));
         }
     }
@@ -96,12 +96,7 @@ public sealed class PollManager : ReceiveActor, IWithTimers
     private void OnReport(PollWorkerReport report)
     {
         var previous = _state;
-        _state = _state.ApplyReport(report, Sender, _config, _timeProvider.GetUtcNow(), out var cycleSummary);
-
-        if (ReferenceEquals(previous.Watched, _state.Watched) && _state.Watched != previous.Watched)
-        {
-            // ApplyReport can't call Context.Watch, so the actor does it when a new watch is added
-        }
+        _state = _state.ApplyReport(report, Sender, _config, _timeProvider.GetUtcNow());
 
         if (!previous.Watched.ContainsKey(Sender) && _state.Watched.ContainsKey(Sender))
         {
@@ -110,27 +105,9 @@ public sealed class PollManager : ReceiveActor, IWithTimers
 
         if (report.Outcome == PollWorkerOutcome.Changed && _config.TargetsById.ContainsKey(report.Target.Id))
         {
-            var target = _config.TargetsById[report.Target.Id];
             Telemetry.DataChanged.Add(1,
-                new KeyValuePair<string, object?>("location", target.Location.Name),
-                new KeyValuePair<string, object?>("model", target.ModelId));
+                new KeyValuePair<string, object?>("location", report.Target.Location.Name));
         }
-
-        if (cycleSummary is not null)
-        {
-            EmitCycleMetrics(cycleSummary);
-        }
-    }
-
-    private void EmitCycleMetrics(PollCycleSummary summary)
-    {
-        var locationTag = new KeyValuePair<string, object?>("location", summary.Location);
-        Telemetry.PollCycleDuration.Record(summary.Duration.TotalSeconds, locationTag);
-        Telemetry.PollCycleModels.Record(summary.Total, locationTag);
-        Telemetry.PollCycleFailedModels.Record(summary.Failed, locationTag);
-        _log.Debug(
-            "Poll complete for {Location}: {Changed}/{Total} models changed, {Failed} failed in {Duration}ms",
-            summary.Location, summary.Changed, summary.Total, summary.Failed, summary.Duration.TotalMilliseconds);
     }
 
     private void OnWorkerTerminated(Terminated msg)
@@ -143,18 +120,18 @@ public sealed class PollManager : ReceiveActor, IWithTimers
 
         if (CoordinatedShutdown.Get(Context.System).ShutdownReason is not null)
         {
-            _log.Debug("Poll worker {TargetId} stopped during shutdown", targetId);
+            _log.Debug("Poll worker {LocationName} stopped during shutdown", targetId);
             return;
         }
 
         var delay = RetryPolicy.DelayWithJitter(previousAttempts);
-        _log.Warning("Poll worker {TargetId} terminated - starting it again in {Delay}", targetId, delay);
+        _log.Warning("Poll worker {LocationName} terminated - starting it again in {Delay}", targetId, delay);
         Timers.StartSingleTimer($"restart-{targetId}", new RestartWorker(targetId), delay);
     }
 
     private void OnRestartWorker(RestartWorker msg)
     {
-        if (_state.Region is not null && _config.TargetsById.TryGetValue(msg.TargetId, out var target))
+        if (_state.Region is not null && _config.TargetsById.TryGetValue(msg.LocationName, out var target))
         {
             _state.Region.Tell(new StartPolling(target, _state.DiscoveryInterval));
         }
@@ -170,11 +147,10 @@ public sealed class PollManager : ReceiveActor, IWithTimers
 
         var targets = _config.Targets
             .Where(t => msg.Location is not { } location || t.Location.Name.Equals(location.Name, StringComparison.OrdinalIgnoreCase))
-            .Where(t => string.IsNullOrEmpty(msg.Model) || t.ModelId.Equals(msg.Model, StringComparison.OrdinalIgnoreCase))
             .ToList();
         foreach (var target in targets)
         {
-            _state.Region.Tell(new TriggerTargetPoll(target.Id));
+            _state.Region.Tell(new TriggerLocationPoll(target.Location.Name));
         }
 
         _log.Debug("TriggerImmediatePoll: triggered {Count} polls", targets.Count);

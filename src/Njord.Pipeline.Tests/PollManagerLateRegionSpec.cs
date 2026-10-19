@@ -35,7 +35,7 @@ public sealed class PollManagerLateRegionSpec : NjordActorSpec
 
         var states = await manager.Ask<PollStatesResult>(new QueryPollStates(), TestTimeouts.RealTimeWaitMax, ct);
         var trigger = await manager.Ask<TriggerImmediatePollResponse>(
-            new TriggerImmediatePoll(null, ""), TestTimeouts.RealTimeWaitMax, ct);
+            new TriggerImmediatePoll(null), TestTimeouts.RealTimeWaitMax, ct);
 
         var region = CreateTestProbe("region");
         ActorRegistry.Register<IPollRegion>(region.Ref);
@@ -44,6 +44,6 @@ public sealed class PollManagerLateRegionSpec : NjordActorSpec
         Assert.Multiple(
             () => Assert.Single(states.Entries),
             () => Assert.IsType<TriggerImmediatePollFailed>(trigger),
-            () => Assert.Equal("lucerne|icon_d2", start.TargetId));
+            () => Assert.Equal("lucerne", start.LocationName));
     }
 }

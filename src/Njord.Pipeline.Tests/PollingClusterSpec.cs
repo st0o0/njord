@@ -23,10 +23,7 @@ namespace Njord.Pipeline.Tests;
 // persistent workers (in-memory journal). The spec only plays the gateway.
 public sealed class PollingClusterSpec : NjordActorSpec
 {
-    private static readonly (string Location, string Model)[] Targets =
-    [
-        ("lucerne", "icon_d2"), ("lucerne", "ecmwf_ifs025"), ("zurich", "icon_d2"), ("zurich", "ecmwf_ifs025"),
-    ];
+    private static readonly string[] Targets = ["lucerne", "zurich"];
 
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     private TestProbe _requests = null!;
@@ -42,7 +39,6 @@ public sealed class PollingClusterSpec : NjordActorSpec
                 new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 },
                 new LocationOptions { Name = "zurich", Latitude = 47.37, Longitude = 8.54 },
             ],
-            Models = ["icon_d2", "ecmwf_ifs025"],
         }));
         services.AddSingleton(TestConfigView.Create());
     }
@@ -65,13 +61,13 @@ public sealed class PollingClusterSpec : NjordActorSpec
             });
     }
 
-    private async Task<IReadOnlySet<(string, string)>> ReceiveRequestsAsync(int count, CancellationToken ct)
+    private async Task<IReadOnlySet<string>> ReceiveRequestsAsync(int count, CancellationToken ct)
     {
-        var received = new HashSet<(string, string)>();
+        var received = new HashSet<string>();
         for (var i = 0; i < count; i++)
         {
-            var request = await _requests.ExpectMsgAsync<FetchForecast>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-            received.Add((request.Location.Name, request.ModelId));
+            var request = await _requests.ExpectMsgAsync<FetchDomain>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+            received.Add(request.Location.Name);
         }
 
         return received;
@@ -89,7 +85,7 @@ public sealed class PollingClusterSpec : NjordActorSpec
         await AwaitAssertAsync(async () =>
         {
             var states = await manager.Ask<PollStatesResult>(new QueryPollStates(), TestTimeouts.RealTimeWaitMax, ct);
-            Assert.Equal(Targets, states.Entries.Select(e => (e.Location.Name, e.ModelId)));
+            Assert.Equal(Targets, states.Entries.Select(e => e.Location.Name));
             Assert.All(states.Entries, e => Assert.Equal(_time.GetUtcNow(), e.LastChangeUtc));
         }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(100), cancellationToken: ct);
     }
@@ -107,22 +103,22 @@ public sealed class PollingClusterSpec : NjordActorSpec
         }, TestTimeouts.AwaitAssertMax, TimeSpan.FromMilliseconds(100), cancellationToken: ct);
 
         var result = await manager.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll(new LocationId("zurich"), "ecmwf_ifs025"), TestTimeouts.RealTimeWaitMax, ct);
+            new TriggerImmediatePoll(new LocationId("zurich")), TestTimeouts.RealTimeWaitMax, ct);
 
-        var request = await _requests.ExpectMsgAsync<FetchForecast>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var request = await _requests.ExpectMsgAsync<FetchDomain>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(
-            () => Assert.Equal(["zurich/ecmwf_ifs025"], result.Targets),
-            () => Assert.Equal(("zurich", "ecmwf_ifs025"), (request.Location.Name, request.ModelId)));
+            () => Assert.Equal(["zurich"], result.Targets),
+            () => Assert.Equal("zurich", request.Location.Name));
     }
 
     private sealed class AnsweringGateway : ReceiveActor
     {
         public AnsweringGateway(IActorRef requests)
         {
-            Receive<FetchForecast>(msg =>
+            Receive<FetchDomain>(msg =>
             {
                 requests.Tell(msg);
-                Sender.Tell(new FetchForecastCompleted(msg.Location, msg.ModelId, HashCode.Combine(msg.Location, msg.ModelId)));
+                Sender.Tell(new FetchDomainCompleted(msg.Location, msg.Domain, HashCode.Combine(msg.Location, msg.Domain)));
             });
         }
     }

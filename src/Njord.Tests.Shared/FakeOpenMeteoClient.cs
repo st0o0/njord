@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Model;
 using Njord.OpenMeteo;
@@ -11,6 +13,8 @@ public sealed class FakeOpenMeteoClient : IOpenMeteoClient
     public HashSet<string> FailingModels { get; } = [];
 
     public HashSet<string> ThrowingModels { get; } = [];
+
+    public bool EnsembleFails { get; set; }
 
     private volatile TaskCompletionSource _release = CompletedRelease();
     private int _calls;
@@ -35,6 +39,24 @@ public sealed class FakeOpenMeteoClient : IOpenMeteoClient
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         release.SetResult();
         return release;
+    }
+
+    public Task<EnsembleFetchResult> FetchEnsembleAsync(
+        LocationOptions location, int forecastDays, CycleId cycle, CancellationToken cancellationToken)
+    {
+        Interlocked.Increment(ref _calls);
+
+        if (EnsembleFails)
+        {
+            return Task.FromResult<EnsembleFetchResult>(
+                new EnsembleFetchResult.Failure(PollFailureReason.Transport, "simulated ensemble failure"));
+        }
+
+        var points = ImmutableArray.Create(new WeatherPoint(
+            cycle.Timestamp.AddHours(3), 20.0, 18.5, 3.2, 0.0, 10.0, 50.0, 1013.0, 0, 65.0, 12.0, 3.0));
+        var forecast = new DomainForecast<WeatherPoint>(
+            DomainKind.Weather, cycle.Timestamp, TimeResolution.Hourly, points);
+        return Task.FromResult<EnsembleFetchResult>(new EnsembleFetchResult.Success(forecast));
     }
 
     private Task<PollOutcome> FetchNowAsync(LocationOptions location, WeatherModel model, CycleId cycle)

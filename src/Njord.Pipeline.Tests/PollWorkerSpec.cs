@@ -20,10 +20,10 @@ namespace Njord.Pipeline.Tests;
 // and another probe plays the poll manager.
 public sealed class PollWorkerSpec : NjordActorSpec
 {
-    private const string TargetId = "lucerne|icon_d2";
+    private const string TargetId = "lucerne";
     private static readonly TimeSpan Discovery = TimeSpan.FromMinutes(20);
     private static readonly LocationId Lucerne = new("lucerne");
-    private static readonly PollTarget Target = new(Lucerne, "icon_d2");
+    private static readonly PollTarget Target = new(Lucerne);
 
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     private TestProbe _gateway = null!;
@@ -55,10 +55,10 @@ public sealed class PollWorkerSpec : NjordActorSpec
         return worker;
     }
 
-    private async Task<FetchForecast> ExpectRequestAsync(CancellationToken ct) =>
-        await _gateway.ExpectMsgAsync<FetchForecast>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+    private async Task<FetchDomain> ExpectRequestAsync(CancellationToken ct) =>
+        await _gateway.ExpectMsgAsync<FetchDomain>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-    private async Task AnswerAsync(FetchForecastResponse reply, CancellationToken ct)
+    private async Task AnswerAsync(FetchDomainResponse reply, CancellationToken ct)
     {
         await ExpectRequestAsync(ct);
         _gateway.LastSender.Tell(reply);
@@ -71,7 +71,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
         return report;
     }
 
-    private static FetchForecastCompleted Completed(int hash) => new(Lucerne, "icon_d2", hash);
+    private static FetchDomainCompleted Completed(int hash) => new(Lucerne, DomainKind.Weather, hash);
 
     private async Task StopAsync(IActorRef worker, CancellationToken ct)
     {
@@ -95,7 +95,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
             () => Assert.Equal(_time.GetUtcNow(), report.State.NextPollUtc),
             () => Assert.Null(report.State.LastChangeUtc),
             () => Assert.Equal(Lucerne, request.Location),
-            () => Assert.Equal("icon_d2", request.ModelId));
+            () => Assert.Equal(DomainKind.Weather, request.Domain));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -121,7 +121,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
         await AnswerAsync(Completed(42), ct);
         await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
 
-        worker.Tell(new TriggerTargetPoll(TargetId));
+        worker.Tell(new TriggerLocationPoll(TargetId));
         await AnswerAsync(Completed(42), ct);
 
         var report = await ExpectReportAsync(PollWorkerOutcome.Unchanged, ct);
@@ -139,7 +139,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
         await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
 
         _time.Advance(TimeSpan.FromHours(3));
-        worker.Tell(new TriggerTargetPoll(TargetId));
+        worker.Tell(new TriggerLocationPoll(TargetId));
         await AnswerAsync(Completed(2), ct);
 
         var report = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
@@ -155,13 +155,12 @@ public sealed class PollWorkerSpec : NjordActorSpec
         var ct = TestContext.Current.CancellationToken;
         await StartedWorkerAsync(ct);
 
-        await AnswerAsync(new FetchForecastCompleted(new LocationId("LUCERNE"), "ICON_D2", 42), ct);
+        await AnswerAsync(new FetchDomainCompleted(new LocationId("LUCERNE"), DomainKind.Weather, 42), ct);
 
         var report = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
         Assert.Multiple(
             () => Assert.Equal(Target, report.Target),
             () => Assert.Equal(Lucerne, report.State.Location),
-            () => Assert.Equal("icon_d2", report.State.ModelId),
             () => Assert.NotNull(report.State.LastChangeUtc));
     }
 
@@ -175,7 +174,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
         var ct = TestContext.Current.CancellationToken;
         await StartedWorkerAsync(ct);
 
-        await AnswerAsync(new FetchForecastFailed(Lucerne, "icon_d2", reason, "simulated"), ct);
+        await AnswerAsync(new FetchDomainFailed(Lucerne, DomainKind.Weather, reason, "simulated"), ct);
 
         var report = await ExpectReportAsync(PollWorkerOutcome.Failed, ct);
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromSeconds(delaySeconds), report.State.NextPollUtc);
@@ -191,7 +190,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
         var ct = TestContext.Current.CancellationToken;
         await StartedWorkerAsync(ct);
 
-        await AnswerAsync(new FetchForecastRejected(Lucerne, "icon_d2", reason), ct);
+        await AnswerAsync(new FetchDomainRejected(Lucerne, DomainKind.Weather, reason), ct);
 
         var report = await ExpectReportAsync(PollWorkerOutcome.Failed, ct);
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromSeconds(delaySeconds), report.State.NextPollUtc);
@@ -202,16 +201,16 @@ public sealed class PollWorkerSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAsync(new FetchForecastFailed(Lucerne, "icon_d2", PollFailureReason.Transport, "simulated"), ct);
+        await AnswerAsync(new FetchDomainFailed(Lucerne, DomainKind.Weather, PollFailureReason.Transport, "simulated"), ct);
         await ExpectReportAsync(PollWorkerOutcome.Failed, ct);
 
-        worker.Tell(new TriggerTargetPoll(TargetId));
-        await AnswerAsync(new FetchForecastRejected(Lucerne, "icon_d2", FetchRejectionReason.PipelineUnavailable), ct);
+        worker.Tell(new TriggerLocationPoll(TargetId));
+        await AnswerAsync(new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.PipelineUnavailable), ct);
         var deferred = await ExpectReportAsync(PollWorkerOutcome.Failed, ct);
 
         // The next transient failure continues the backoff from one failure, not from two.
-        worker.Tell(new TriggerTargetPoll(TargetId));
-        await AnswerAsync(new FetchForecastRejected(Lucerne, "icon_d2", FetchRejectionReason.QueueFull), ct);
+        worker.Tell(new TriggerLocationPoll(TargetId));
+        await AnswerAsync(new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.QueueFull), ct);
         var queueFull = await ExpectReportAsync(PollWorkerOutcome.Failed, ct);
 
         Assert.Multiple(
@@ -227,7 +226,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
         await ExpectRequestAsync(ct);
         var inFlight = _gateway.LastSender;
 
-        worker.Tell(new TriggerTargetPoll(TargetId));
+        worker.Tell(new TriggerLocationPoll(TargetId));
         await _gateway.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
 
         // The request in flight still ends normally and its outcome is reported.
@@ -243,10 +242,10 @@ public sealed class PollWorkerSpec : NjordActorSpec
         await AnswerAsync(Completed(42), ct);
         await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
 
-        worker.Tell(new TriggerTargetPoll(TargetId));
+        worker.Tell(new TriggerLocationPoll(TargetId));
 
         var request = await ExpectRequestAsync(ct);
-        Assert.Equal(Target, new PollTarget(request.Location, request.ModelId));
+        Assert.Equal(Target, new PollTarget(request.Location));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -259,10 +258,10 @@ public sealed class PollWorkerSpec : NjordActorSpec
 
         var replacement = CreateTestProbe("gateway-replacement");
         ActorRegistry.Register<IForecastGateway>(replacement.Ref, overwrite: true);
-        worker.Tell(new TriggerTargetPoll(TargetId));
+        worker.Tell(new TriggerLocationPoll(TargetId));
 
-        var request = await replacement.ExpectMsgAsync<FetchForecast>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        Assert.Equal("icon_d2", request.ModelId);
+        var request = await replacement.ExpectMsgAsync<FetchDomain>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        Assert.Equal(DomainKind.Weather, request.Domain);
         await _gateway.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), ct);
     }
 
@@ -278,7 +277,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
 
         await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         var next = await ExpectRequestAsync(ct);
-        Assert.Equal("icon_d2", next.ModelId);
+        Assert.Equal(DomainKind.Weather, next.Domain);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -318,7 +317,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
         await AnswerAsync(Completed(1), ct);
         await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
         _time.Advance(TimeSpan.FromHours(3));
-        worker.Tell(new TriggerTargetPoll(TargetId));
+        worker.Tell(new TriggerLocationPoll(TargetId));
         await AnswerAsync(Completed(2), ct);
         var before = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
 
@@ -349,7 +348,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
 
         await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         var request = await ExpectRequestAsync(ct);
-        Assert.Equal("icon_d2", request.ModelId);
+        Assert.Equal(DomainKind.Weather, request.Domain);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -364,7 +363,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
             if (i > 0)
             {
                 _time.Advance(TimeSpan.FromHours(1));
-                worker.Tell(new TriggerTargetPoll(TargetId));
+                worker.Tell(new TriggerLocationPoll(TargetId));
             }
 
             await AnswerAsync(Completed(1000 + i), ct);
@@ -421,7 +420,7 @@ public sealed class PollWorkerSpec : NjordActorSpec
         var ct = TestContext.Current.CancellationToken;
         var worker = CreateWorker();
 
-        worker.Tell(new TriggerTargetPoll(TargetId));
+        worker.Tell(new TriggerLocationPoll(TargetId));
 
         await _gateway.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
         await _manager.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(100), ct);

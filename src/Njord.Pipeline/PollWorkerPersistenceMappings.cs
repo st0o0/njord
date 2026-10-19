@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.Persistence.Events.Polling;
@@ -8,7 +9,6 @@ internal static class PollWorkerPersistenceMappings
 {
     public static PersistedPollWorkerState GetPersistenceState(this PollWorkerState state) => new(
         state.Target?.Location.Name,
-        state.Target?.ModelId,
         state.Active,
         state.DiscoveryInterval,
         state.LastHash,
@@ -18,10 +18,13 @@ internal static class PollWorkerPersistenceMappings
         state.MissCount,
         state.Phase.ToPersistence(),
         state.Cycle,
-        state.TransientFailureCount);
+        state.TransientFailureCount,
+        state.DomainStates.IsEmpty
+            ? null
+            : [.. state.DomainStates.Select(kv => new PersistedDomainState((int)kv.Key, kv.Value.LastHash))]);
 
     public static PollWorkerState FromPersistence(this PersistedPollWorkerState dto) => new(
-        dto is { Location: { } location, ModelId: { } model } ? new PollTarget(new LocationId(location), model) : null,
+        dto is { Location: { } location } ? new PollTarget(new LocationId(location)) : null,
         dto.Active,
         dto.DiscoveryInterval,
         dto.LastHash,
@@ -31,7 +34,12 @@ internal static class PollWorkerPersistenceMappings
         dto.MissCount,
         dto.Phase.ToDomain(),
         dto.Cycle,
-        dto.TransientFailureCount);
+        dto.TransientFailureCount,
+        dto.DomainStates is { Count: > 0 }
+            ? dto.DomainStates.ToImmutableDictionary(
+                d => (DomainKind)d.Domain,
+                d => new DomainPollState(d.LastHash))
+            : ImmutableDictionary<DomainKind, DomainPollState>.Empty);
 
     public static PersistedPollPhase ToPersistence(this PollPhase phase) => phase switch
     {

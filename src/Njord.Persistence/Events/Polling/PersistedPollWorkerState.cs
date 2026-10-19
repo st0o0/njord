@@ -2,7 +2,6 @@ namespace Njord.Persistence.Events.Polling;
 
 public sealed record PersistedPollWorkerState(
     string? Location,
-    string? ModelId,
     bool Active,
     TimeSpan DiscoveryInterval,
     int? LastHash,
@@ -12,4 +11,7 @@ public sealed record PersistedPollWorkerState(
     int MissCount,
     PersistedPollPhase Phase,
     TimeSpan? Cycle,
-    int TransientFailureCount);
+    int TransientFailureCount,
+    IReadOnlyList<PersistedDomainState>? DomainStates);
+
+public sealed record PersistedDomainState(int Domain, int? LastHash);

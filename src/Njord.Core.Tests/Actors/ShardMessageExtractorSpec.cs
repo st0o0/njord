@@ -6,32 +6,32 @@ namespace Njord.Core.Tests.Actors;
 
 public sealed class ShardMessageExtractorSpec
 {
-    private static readonly PollTarget Lucerne = new(new LocationId("lucerne"), "icon_d2");
+    private static readonly PollTarget Lucerne = new(new LocationId("lucerne"));
 
     private readonly ShardMessageExtractor _extractor = new();
 
     [Fact]
-    public void A_poll_target_id_joins_location_and_model_with_a_pipe()
+    public void A_poll_target_id_is_the_location_name()
     {
         Assert.Multiple(
-            () => Assert.Equal("lucerne|icon_d2", Lucerne.Id),
-            () => Assert.Equal("lucerne/icon_d2", Lucerne.ToString()));
+            () => Assert.Equal("lucerne", Lucerne.Id),
+            () => Assert.Equal("lucerne", Lucerne.ToString()));
     }
 
     [Fact]
-    public void Every_polling_message_is_routed_by_its_target_id()
+    public void Every_polling_message_is_routed_by_its_location_name()
     {
         Assert.Multiple(
-            () => Assert.Equal("lucerne|icon_d2", _extractor.EntityId(new StartPolling(Lucerne, TimeSpan.FromMinutes(20)))),
-            () => Assert.Equal("lucerne|icon_d2", _extractor.EntityId(new StopPolling("lucerne|icon_d2"))),
-            () => Assert.Equal("lucerne|icon_d2", _extractor.EntityId(new TriggerTargetPoll("lucerne|icon_d2"))));
+            () => Assert.Equal("lucerne", _extractor.EntityId(new StartPolling(Lucerne, TimeSpan.FromMinutes(20)))),
+            () => Assert.Equal("lucerne", _extractor.EntityId(new StopPolling("lucerne"))),
+            () => Assert.Equal("lucerne", _extractor.EntityId(new TriggerLocationPoll("lucerne"))));
     }
 
     [Fact]
     public void Messages_of_the_same_target_land_in_the_same_shard()
     {
         var startMessage = new StartPolling(Lucerne, TimeSpan.FromMinutes(20));
-        var triggerMessage = new TriggerTargetPoll(Lucerne.Id);
+        var triggerMessage = new TriggerLocationPoll(Lucerne.Id);
 
         var start = _extractor.ShardId(_extractor.EntityId(startMessage), startMessage);
         var trigger = _extractor.ShardId(_extractor.EntityId(triggerMessage), triggerMessage);

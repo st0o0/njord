@@ -7,4 +7,6 @@ namespace Njord.OpenMeteo;
 public interface IOpenMeteoClient
 {
     Task<PollOutcome> FetchAsync(LocationOptions location, WeatherModel model, CycleId cycle, CancellationToken cancellationToken);
+
+    Task<EnsembleFetchResult> FetchEnsembleAsync(LocationOptions location, int forecastDays, CycleId cycle, CancellationToken cancellationToken);
 }

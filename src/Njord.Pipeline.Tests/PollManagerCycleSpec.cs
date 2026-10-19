@@ -16,7 +16,7 @@ using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;
 
-// Poll-cycle summaries and the data-change counter come from the workers' reports.
+// The data-change counter comes from the workers' reports.
 public sealed class PollManagerCycleSpec : NjordActorSpec
 {
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
@@ -30,7 +30,6 @@ public sealed class PollManagerCycleSpec : NjordActorSpec
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations = [new LocationOptions { Name = _location, Latitude = 47.05, Longitude = 8.31 }],
-            Models = ["icon_d2", "ecmwf_ifs025", "gfs_seamless"],
         }));
         services.AddSingleton(TestConfigView.Create(polling: AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = TimeSpan.FromHours(1))));
     }
@@ -73,66 +72,28 @@ public sealed class PollManagerCycleSpec : NjordActorSpec
         }
     }
 
-    private void Report(string model, PollWorkerOutcome outcome)
+    private void Report(PollWorkerOutcome outcome)
     {
-        var target = new PollTarget(new LocationId(_location), model);
+        var target = new PollTarget(new LocationId(_location));
         _manager.Tell(new PollWorkerReport(target, outcome,
-            new PollStateEntry(target.Location, model, PollPhase.Discovery, _time.GetUtcNow(), null, 0, null)));
+            new PollStateEntry(target.Location, PollPhase.Discovery, _time.GetUtcNow(), null, 0, null)));
     }
 
     private double[] Values(string instrument) =>
         [.. _measurements.Where(m => m.Instrument == instrument).Select(m => m.Value)];
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_cycle_with_one_failed_model_completes_and_records_the_failure()
+    public async Task Only_changed_reports_count_as_data_changes()
     {
         using var listener = ListenToPipelineMeter();
-        Report("icon_d2", PollWorkerOutcome.Changed);
-        Report("ecmwf_ifs025", PollWorkerOutcome.Changed);
-        Report("gfs_seamless", PollWorkerOutcome.Failed);
+        Report(PollWorkerOutcome.Planned);
+        Report(PollWorkerOutcome.Changed);
+        Report(PollWorkerOutcome.Unchanged);
+        Report(PollWorkerOutcome.Failed);
+        Report(PollWorkerOutcome.Changed);
 
-        await AwaitAssertAsync(() =>
-        {
-            Assert.Equal([3.0], Values("njord_poll_cycle_models"));
-            Assert.Equal([1.0], Values("njord_poll_cycle_failed_models"));
-            Assert.Single(Values("njord_poll_cycle_duration_seconds"));
-            Assert.Equal([1.0, 1.0], Values("njord_pipeline_data_changed_total"));
-        }, TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Consecutive_rounds_with_a_failure_complete_as_separate_cycles()
-    {
-        using var listener = ListenToPipelineMeter();
-        Report("icon_d2", PollWorkerOutcome.Changed);
-        Report("ecmwf_ifs025", PollWorkerOutcome.Unchanged);
-        Report("gfs_seamless", PollWorkerOutcome.Failed);
-        Report("icon_d2", PollWorkerOutcome.Unchanged);
-        Report("ecmwf_ifs025", PollWorkerOutcome.Unchanged);
-        Report("gfs_seamless", PollWorkerOutcome.Changed);
-
-        await AwaitAssertAsync(() =>
-        {
-            Assert.Equal([3.0, 3.0], Values("njord_poll_cycle_models"));
-            Assert.Equal([1.0, 0.0], Values("njord_poll_cycle_failed_models"));
-        }, TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Planned_reports_count_as_no_outcome()
-    {
-        using var listener = ListenToPipelineMeter();
-        Report("icon_d2", PollWorkerOutcome.Planned);
-        Report("ecmwf_ifs025", PollWorkerOutcome.Planned);
-        Report("gfs_seamless", PollWorkerOutcome.Planned);
-        Report("icon_d2", PollWorkerOutcome.Changed);
-        Report("ecmwf_ifs025", PollWorkerOutcome.Changed);
-
-        await _manager.Ask<PollStatesResult>(new QueryPollStates(), TestTimeouts.RealTimeWaitMax, TestContext.Current.CancellationToken);
-        Assert.Empty(Values("njord_poll_cycle_models"));
-
-        Report("gfs_seamless", PollWorkerOutcome.Unchanged);
-        await AwaitAssertAsync(() => Assert.Equal([3.0], Values("njord_poll_cycle_models")),
+        await AwaitAssertAsync(
+            () => Assert.Equal([1.0, 1.0], Values("njord_pipeline_data_changed_total")),
             TestTimeouts.AwaitAssertMax, cancellationToken: TestContext.Current.CancellationToken);
     }
 }

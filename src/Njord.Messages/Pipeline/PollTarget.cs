@@ -2,9 +2,9 @@ using Njord.Model;
 
 namespace Njord.Messages.Pipeline;
 
-public sealed record PollTarget(LocationId Location, string ModelId)
+public sealed record PollTarget(LocationId Location)
 {
-    public string Id => $"{Location.Name}|{ModelId}";
+    public string Id => Location.Name;
 
-    public override string ToString() => $"{Location.Name}/{ModelId}";
+    public override string ToString() => Location.Name;
 }

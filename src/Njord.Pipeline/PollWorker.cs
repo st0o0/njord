@@ -6,30 +6,39 @@ using Njord.Core.Configuration.Polling;
 using Njord.Forecast;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
+using Njord.Model;
 using Njord.Persistence.Events.Polling;
 using Servus.Akka;
 
 namespace Njord.Pipeline;
 
-// One persistent entity per (location, model) target in the poll shard region. It owns the target's poll state,
-// its timer and at most one fetch request in flight, and reports every start and outcome to the poll manager.
+// One persistent entity per location in the poll shard region. It owns the location's poll state,
+// its timer and at most one fetch round in flight, and reports every start and outcome to the poll manager.
+// On each tick it fetches all enabled domains (initially just Weather/Ensemble) in parallel.
 public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 {
     private const int SnapshotInterval = 50;
     private const string PollTimerKey = "poll";
+    private const string DomainTimeoutKey = "domain-timeout";
 
     private sealed record PollDue
     {
         public static readonly PollDue Instance = new();
     }
 
-    private sealed record FetchReplied(Guid RequestId, FetchForecastResponse Reply);
+    private sealed record DomainFetchReplied(Guid RequestId, DomainKind Domain, FetchDomainResponse Reply);
+    private sealed record DomainFetchTimeout(Guid RoundId);
 
     private readonly TimeProvider _timeProvider;
     private readonly FetchTimeouts _fetchTimeouts;
     private readonly ILoggingAdapter _log = Context.GetLogger();
     private PollWorkerState _state = PollWorkerState.Empty;
-    private Guid? _inFlight;
+    private Guid? _roundId;
+    private readonly Dictionary<DomainKind, FetchDomainResponse> _domainResults = new();
+    private readonly HashSet<DomainKind> _pendingDomains = [];
+
+    // Currently only Weather is enabled. More domains will be added as endpoints are implemented.
+    private static readonly DomainKind[] EnabledDomains = [DomainKind.Weather];
 
     public ITimerScheduler Timers { get; set; } = null!;
 
@@ -58,9 +67,10 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
         Command<StartPolling>(OnStartPolling);
         Command<StopPolling>(_ => OnStopPolling());
-        Command<TriggerTargetPoll>(_ => Poll("trigger"));
+        Command<TriggerLocationPoll>(_ => Poll("trigger"));
         Command<PollDue>(_ => Poll("timer"));
-        Command<FetchReplied>(OnFetchReplied);
+        Command<DomainFetchReplied>(OnDomainFetchReplied);
+        Command<DomainFetchTimeout>(OnDomainFetchTimeout);
         Command<SaveSnapshotSuccess>(success =>
         {
             _log.Debug("Snapshot saved at sequence {SequenceNr}, cleaning journal", success.Metadata.SequenceNr);
@@ -99,14 +109,14 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
         var previous = _state.DiscoveryInterval;
         var wasStarted = _state.Target is not null;
-        var evt = new PollingStarted(cmd.Target.Location.Name, cmd.Target.ModelId, cmd.DiscoveryInterval, _timeProvider.GetUtcNow());
+        var evt = new PollingStarted(cmd.Target.Location.Name, cmd.DiscoveryInterval, _timeProvider.GetUtcNow());
         Persist(evt, e =>
         {
             _state = _state.Apply(e);
             if (wasStarted && previous != e.DiscoveryInterval)
             {
-                _log.Debug("Discovery interval of {Location}/{Model} changed from {Previous} to {Current}",
-                    e.Location, e.ModelId, previous, e.DiscoveryInterval);
+                _log.Debug("Discovery interval of {Location} changed from {Previous} to {Current}",
+                    e.Location, previous, e.DiscoveryInterval);
             }
 
             ScheduleNext();
@@ -127,15 +137,13 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
         Persist(new PollingStopped(_timeProvider.GetUtcNow()), e =>
         {
             _state = _state.Apply(e);
-            _log.Info("Polling stopped for {Target}", _state.Target);
+            _log.Info("Polling stopped for {Location}", _state.Target);
             MaybeSnapshot();
             Context.Stop(Self);
         });
     }
 
-    // Every poll ends in exactly one FetchReplied to Self: the gateway's answer, or a transport failure when no
-    // gateway is registered or it does not answer within the reply timeout (which covers its queue, throttle
-    // admission and HTTP timeout).
+    // Fetches all enabled domains in parallel for this location. Collects results with a timeout.
     private void Poll(string reason)
     {
         if (_state is not { Active: true, Target: { } target })
@@ -144,102 +152,210 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
             return;
         }
 
-        if (_inFlight is not null)
+        if (_roundId is not null)
         {
-            _log.Debug("Skipping {Reason} poll for {Location}/{Model} - a request is in flight",
-                reason, target.Location, target.ModelId);
+            _log.Debug("Skipping {Reason} poll for {Location} - a fetch round is in flight", reason, target.Location);
             return;
         }
 
         Timers.Cancel(PollTimerKey);
-        var requestId = Guid.NewGuid();
-        _inFlight = requestId;
-        var location = target.Location;
-        var modelId = target.ModelId;
+        var roundId = Guid.NewGuid();
+        _roundId = roundId;
+        _domainResults.Clear();
+        _pendingDomains.Clear();
 
         if (!Context.TryGetActor<IForecastGateway>(out var gateway))
         {
-            Self.Tell(new FetchReplied(requestId,
-                new FetchForecastFailed(location, modelId, PollFailureReason.Transport, "Gateway is not registered")));
+            // No gateway: fail immediately
+            OnRoundComplete(roundId);
             return;
         }
 
+        var location = target.Location;
         var timeout = _fetchTimeouts.Reply;
-        gateway.Ask<FetchForecastResponse>(new FetchForecast(location, modelId), timeout)
-            .PipeTo(Self,
-                success: reply => new FetchReplied(requestId, reply),
-                failure: ex => new FetchReplied(requestId, new FetchForecastFailed(location, modelId, PollFailureReason.Transport,
-                    ex is AskTimeoutException
-                        ? $"Gateway did not answer within {timeout}"
-                        : $"Gateway request failed ({ex.GetType().Name}: {ex.Message})")));
+
+        foreach (var domain in EnabledDomains)
+        {
+            _pendingDomains.Add(domain);
+            var domainKind = domain;
+
+            gateway.Ask<FetchDomainResponse>(new FetchDomain(location, domainKind), timeout)
+                .PipeTo(Self,
+                    success: reply => new DomainFetchReplied(roundId, domainKind, reply),
+                    failure: ex => new DomainFetchReplied(roundId, domainKind,
+                        new FetchDomainFailed(location, domainKind, PollFailureReason.Transport,
+                            ex is AskTimeoutException
+                                ? $"Gateway did not answer within {timeout}"
+                                : $"Gateway request failed ({ex.GetType().Name}: {ex.Message})")));
+        }
+
+        // Safety timeout for the entire round
+        Timers.StartSingleTimer(DomainTimeoutKey, new DomainFetchTimeout(roundId), timeout + TimeSpan.FromSeconds(5));
     }
 
-    private void OnFetchReplied(FetchReplied msg)
+    private void OnDomainFetchReplied(DomainFetchReplied msg)
     {
-        if (msg.RequestId != _inFlight)
+        if (msg.RequestId != _roundId)
         {
-            _log.Debug("Ignoring a reply to an earlier request: {Reply}", msg.Reply);
+            _log.Debug("Ignoring a reply to an earlier fetch round: {Domain} {Reply}", msg.Domain, msg.Reply);
             return;
         }
 
-        _inFlight = null;
-        var (evt, outcome) = _state.ToEvent(msg.Reply, _timeProvider.GetUtcNow());
+        _domainResults[msg.Domain] = msg.Reply;
+        _pendingDomains.Remove(msg.Domain);
+
+        LogDomainOutcome(msg.Domain, msg.Reply);
+
+        if (_pendingDomains.Count == 0)
+        {
+            Timers.Cancel(DomainTimeoutKey);
+            OnRoundComplete(msg.RequestId);
+        }
+    }
+
+    private void OnDomainFetchTimeout(DomainFetchTimeout msg)
+    {
+        if (msg.RoundId != _roundId)
+        {
+            return;
+        }
+
+        _log.Warning("Domain fetch round timed out with {Pending} pending domains", _pendingDomains.Count);
+        foreach (var domain in _pendingDomains)
+        {
+            _domainResults[domain] = new FetchDomainFailed(
+                _state.Target!.Location, domain, PollFailureReason.Transport, "Round timed out");
+        }
+
+        _pendingDomains.Clear();
+        OnRoundComplete(msg.RoundId);
+    }
+
+    // Aggregate domain results into a single location-level outcome.
+    private void OnRoundComplete(Guid roundId)
+    {
+        if (roundId != _roundId)
+        {
+            return;
+        }
+
+        _roundId = null;
+
+        if (_domainResults.Count == 0)
+        {
+            // No gateway was registered - treat as a transport failure
+            var now = _timeProvider.GetUtcNow();
+            Persist(new PollFailed(now, TimeSpan.Zero), e =>
+            {
+                _state = _state.Apply(e);
+                ScheduleNext();
+                Report(PollWorkerOutcome.Failed);
+                MaybeSnapshot();
+            });
+            return;
+        }
+
+        // Aggregate: any changed → Changed; all failed → Failed; otherwise Unchanged
+        var anyChanged = _domainResults.Values.Any(r => r is FetchDomainCompleted c && c.Hash != _state.GetDomainHash(c.Domain));
+        var allFailed = _domainResults.Values.All(r => r is not FetchDomainCompleted);
+
+        // Use the first meaningful response to derive the location-level event.
+        // Priority: rate limit > budget > pipeline unavailable > other failure > unchanged > changed
+        var aggregateReply = ChooseAggregateReply();
+        var (evt, outcome) = _state.ToEvent(aggregateReply, _timeProvider.GetUtcNow());
+
         Persist(evt, e =>
         {
             _state = _state.Apply(e);
-            LogOutcome(msg.Reply, outcome);
+
+            // Update per-domain hashes after persistence, so the next round's comparison is correct.
+            foreach (var (domain, result) in _domainResults)
+            {
+                if (result is FetchDomainCompleted completed)
+                {
+                    _state = _state.WithDomainHash(domain, completed.Hash);
+                }
+            }
+
             ScheduleNext();
             Report(outcome);
             MaybeSnapshot();
         });
     }
 
-    private void LogOutcome(FetchForecastResponse reply, PollWorkerOutcome outcome)
+    private FetchDomainResponse ChooseAggregateReply()
+    {
+        // If any domain changed, report changed (use the first changed result)
+        var changed = _domainResults.Values.OfType<FetchDomainCompleted>()
+            .FirstOrDefault(c => c.Hash != _state.GetDomainHash(c.Domain));
+        if (changed is not null) return changed;
+
+        // If any domain succeeded (unchanged), report unchanged
+        var unchanged = _domainResults.Values.OfType<FetchDomainCompleted>().FirstOrDefault();
+        if (unchanged is not null) return unchanged;
+
+        // All failed: return the most significant failure
+        var rateLimited = _domainResults.Values.OfType<FetchDomainFailed>()
+            .FirstOrDefault(f => f.Reason == PollFailureReason.RateLimited);
+        if (rateLimited is not null) return rateLimited;
+
+        var budgetRejected = _domainResults.Values.OfType<FetchDomainRejected>()
+            .FirstOrDefault(r => r.Reason == FetchRejectionReason.Budget);
+        if (budgetRejected is not null) return budgetRejected;
+
+        var pipelineUnavailable = _domainResults.Values.OfType<FetchDomainRejected>()
+            .FirstOrDefault(r => r.Reason == FetchRejectionReason.PipelineUnavailable);
+        if (pipelineUnavailable is not null) return pipelineUnavailable;
+
+        // Any other failure
+        return _domainResults.Values.First();
+    }
+
+    private void LogDomainOutcome(DomainKind domain, FetchDomainResponse reply)
     {
         if (_state.Target is not { } target)
         {
             return;
         }
 
-        var (location, model) = (target.Location, target.ModelId);
         switch (reply)
         {
-            case FetchForecastCompleted when outcome == PollWorkerOutcome.Changed:
-                _log.Debug("Data changed for {Location}/{Model} - phase={Phase}, cycle={Cycle}",
-                    location, model, _state.Phase, _state.Cycle);
+            case FetchDomainCompleted completed when completed.Hash != _state.GetDomainHash(domain):
+                _log.Debug("Data changed for {Location}/{Domain} - phase={Phase}, cycle={Cycle}",
+                    target.Location, domain, _state.Phase, _state.Cycle);
                 break;
-            case FetchForecastCompleted:
-                _log.Debug("Hash unchanged for {Location}/{Model} - miss={Miss}, phase={Phase}",
-                    location, model, _state.MissCount, _state.Phase);
+            case FetchDomainCompleted:
+                _log.Debug("Hash unchanged for {Location}/{Domain} - miss={Miss}, phase={Phase}",
+                    target.Location, domain, _state.MissCount, _state.Phase);
                 break;
-            case FetchForecastFailed { Reason: PollFailureReason.Transport } failed:
-                _log.Warning("Fetch failed for {Location}/{Model} (transport) - tfc={Tfc}, details={Details}",
-                    location, model, _state.TransientFailureCount, failed.Detail);
+            case FetchDomainFailed { Reason: PollFailureReason.Transport } failed:
+                _log.Warning("Fetch failed for {Location}/{Domain} (transport) - tfc={Tfc}, details={Details}",
+                    target.Location, domain, _state.TransientFailureCount, failed.Detail);
                 break;
-            case FetchForecastFailed { Reason: PollFailureReason.RateLimited }:
-                _log.Warning("Fetch rate-limited for {Location}/{Model} - next poll at {Next}",
-                    location, model, _state.NextPollUtc);
+            case FetchDomainFailed { Reason: PollFailureReason.RateLimited }:
+                _log.Warning("Fetch rate-limited for {Location}/{Domain} - next poll at {Next}",
+                    target.Location, domain, _state.NextPollUtc);
                 break;
-            case FetchForecastFailed failed:
-                _log.Warning("Fetch failed for {Location}/{Model} ({Reason}: {Detail}) - retry scheduled",
-                    location, model, failed.Reason, failed.Detail);
+            case FetchDomainFailed failed:
+                _log.Warning("Fetch failed for {Location}/{Domain} ({Reason}: {Detail}) - retry scheduled",
+                    target.Location, domain, failed.Reason, failed.Detail);
                 break;
-            case FetchForecastRejected rejected:
-                _log.Warning("Fetch rejected for {Location}/{Model} ({Reason}) - next poll at {Next}",
-                    location, model, rejected.Reason, _state.NextPollUtc);
+            case FetchDomainRejected rejected:
+                _log.Warning("Fetch rejected for {Location}/{Domain} ({Reason}) - next poll at {Next}",
+                    target.Location, domain, rejected.Reason, _state.NextPollUtc);
                 break;
         }
     }
 
-    // The outcome of a request in flight reschedules, so nothing is planned while one is open.
+    // The outcome of a request round reschedules, so nothing is planned while one is open.
     private void ScheduleNext()
     {
-        if (_state is not { Active: true, Target: { } target } || _inFlight is not null)
+        if (_state is not { Active: true, Target: { } target } || _roundId is not null)
         {
             return;
         }
 
-        _log.Debug("Scheduling next poll for {Location}/{Model} at {NextPoll}", target.Location, target.ModelId, _state.NextPollUtc);
+        _log.Debug("Scheduling next poll for {Location} at {NextPoll}", target.Location, _state.NextPollUtc);
         var delay = _state.NextPollUtc - _timeProvider.GetUtcNow();
         if (delay <= TimeSpan.Zero)
         {

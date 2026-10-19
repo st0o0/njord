@@ -9,7 +9,6 @@ internal static class PollWorkerMessageMappings
         var target = state.Target ?? throw new InvalidOperationException("A poll worker without a target has no poll state");
         return new PollStateEntry(
             target.Location,
-            target.ModelId,
             state.Phase,
             state.NextPollUtc,
             state.LastChangeUtc,

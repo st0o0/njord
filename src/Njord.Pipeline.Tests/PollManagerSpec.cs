@@ -49,11 +49,8 @@ public sealed class PollManagerSpec : NjordActorSpec
 
     private static readonly PollTarget[] Targets =
     [
-        new(new LocationId("lucerne"), "icon_d2"),
-        new(new LocationId("lucerne"), "gfs_seamless"),
-        new(new LocationId("lucerne"), "meteoswiss_icon_ch1"),
-        new(new LocationId("zurich"), "icon_d2"),
-        new(new LocationId("zurich"), "gfs_seamless"),
+        new(new LocationId("lucerne")),
+        new(new LocationId("zurich")),
     ];
 
     private IActorRef CreateManager() =>
@@ -78,7 +75,7 @@ public sealed class PollManagerSpec : NjordActorSpec
 
     private PollStateEntry Entry(PollTarget target, PollPhase phase = PollPhase.Discovery, int misses = 0,
         DateTimeOffset? lastChange = null, long? cycle = null) =>
-        new(target.Location, target.ModelId, phase, _time.GetUtcNow() + Discovery, lastChange, misses, cycle);
+        new(target.Location, phase, _time.GetUtcNow() + Discovery, lastChange, misses, cycle);
 
     private static async Task<PollStatesResult> QueryAsync(IActorRef manager, CancellationToken ct) =>
         await manager.Ask<PollStatesResult>(new QueryPollStates(), TestTimeouts.RealTimeWaitMax, ct);
@@ -108,7 +105,7 @@ public sealed class PollManagerSpec : NjordActorSpec
             () => Assert.Null(e.LastChangeUtc),
             () => Assert.Null(e.CycleSeconds),
             () => Assert.Equal(0, e.MissCount)));
-        Assert.Equal(Targets.Select(t => (t.Location, t.ModelId)), states.Entries.Select(e => (e.Location, e.ModelId)));
+        Assert.Equal(Targets.Select(t => t.Location), states.Entries.Select(e => e.Location));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -118,17 +115,16 @@ public sealed class PollManagerSpec : NjordActorSpec
         var manager = await StartedManagerAsync(ct);
         var change = _time.GetUtcNow();
         var steady = Entry(Targets[0], PollPhase.Steady, lastChange: change, cycle: 10800);
-        var missed = Entry(Targets[3], misses: 1, lastChange: change);
+        var missed = Entry(Targets[1], misses: 1, lastChange: change);
 
         manager.Tell(new PollWorkerReport(Targets[0], PollWorkerOutcome.Changed, steady));
-        manager.Tell(new PollWorkerReport(Targets[3], PollWorkerOutcome.Changed, missed with { MissCount = 0 }));
-        manager.Tell(new PollWorkerReport(Targets[3], PollWorkerOutcome.Unchanged, missed));
+        manager.Tell(new PollWorkerReport(Targets[1], PollWorkerOutcome.Changed, missed with { MissCount = 0 }));
+        manager.Tell(new PollWorkerReport(Targets[1], PollWorkerOutcome.Unchanged, missed));
 
         var states = await QueryAsync(manager, ct);
         Assert.Multiple(
             () => Assert.Equal(steady, states.Entries[0]),
-            () => Assert.Equal(missed, states.Entries[3]),
-            () => Assert.Null(states.Entries[1].LastChangeUtc));
+            () => Assert.Equal(missed, states.Entries[1]));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -136,7 +132,7 @@ public sealed class PollManagerSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         var manager = await StartedManagerAsync(ct);
-        var atlantis = new PollTarget(new LocationId("atlantis"), "icon_d2");
+        var atlantis = new PollTarget(new LocationId("atlantis"));
 
         manager.Tell(new PollWorkerReport(atlantis, PollWorkerOutcome.Changed, Entry(atlantis, lastChange: _time.GetUtcNow())));
 
@@ -159,19 +155,19 @@ public sealed class PollManagerSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Trigger_immediate_poll_for_one_pair_reaches_its_worker()
+    public async Task Trigger_immediate_poll_for_one_location_reaches_its_worker()
     {
         var ct = TestContext.Current.CancellationToken;
         var manager = await StartedManagerAsync(ct);
 
         var result = await manager.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll(new LocationId("Lucerne"), "ICON_D2"), TestTimeouts.RealTimeWaitMax, ct);
+            new TriggerImmediatePoll(new LocationId("Lucerne")), TestTimeouts.RealTimeWaitMax, ct);
 
-        var trigger = await _region.ExpectMsgAsync<TriggerTargetPoll>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var trigger = await _region.ExpectMsgAsync<TriggerLocationPoll>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Multiple(
             () => Assert.Equal(1, result.Count),
-            () => Assert.Equal(["lucerne/icon_d2"], result.Targets),
-            () => Assert.Equal("lucerne|icon_d2", trigger.TargetId));
+            () => Assert.Equal(["lucerne"], result.Targets),
+            () => Assert.Equal("lucerne", trigger.LocationName));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -181,28 +177,16 @@ public sealed class PollManagerSpec : NjordActorSpec
         var manager = await StartedManagerAsync(ct);
 
         var result = await manager.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll(null, ""), TestTimeouts.RealTimeWaitMax, ct);
+            new TriggerImmediatePoll(null), TestTimeouts.RealTimeWaitMax, ct);
 
         Assert.Multiple(
             () => Assert.Equal(Targets.Length, result.Count),
             () => Assert.Equal(Targets.Select(t => t.ToString()), result.Targets));
         foreach (var target in Targets)
         {
-            var trigger = await _region.ExpectMsgAsync<TriggerTargetPoll>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-            Assert.Equal(target.Id, trigger.TargetId);
+            var trigger = await _region.ExpectMsgAsync<TriggerLocationPoll>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+            Assert.Equal(target.Id, trigger.LocationName);
         }
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Trigger_immediate_poll_for_a_model_across_locations()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var manager = await StartedManagerAsync(ct);
-
-        var result = await manager.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll(null, "gfs_seamless"), TestTimeouts.RealTimeWaitMax, ct);
-
-        Assert.Equal(["lucerne/gfs_seamless", "zurich/gfs_seamless"], result.Targets);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -212,7 +196,7 @@ public sealed class PollManagerSpec : NjordActorSpec
         var manager = await StartedManagerAsync(ct);
 
         var result = await manager.Ask<TriggerImmediatePollCompleted>(
-            new TriggerImmediatePoll(new LocationId("nonexistent"), ""), TestTimeouts.RealTimeWaitMax, ct);
+            new TriggerImmediatePoll(new LocationId("nonexistent")), TestTimeouts.RealTimeWaitMax, ct);
 
         Assert.Multiple(
             () => Assert.Equal(0, result.Count),
@@ -224,11 +208,11 @@ public sealed class PollManagerSpec : NjordActorSpec
     public async Task A_running_worker_of_a_removed_target_is_stopped()
     {
         var ct = TestContext.Current.CancellationToken;
-        await StartedManagerAsync(ct, "atlantis|icon_d2");
+        await StartedManagerAsync(ct, "atlantis");
 
         var stop = await _region.ExpectMsgAsync<StopPolling>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-        Assert.Equal("atlantis|icon_d2", stop.TargetId);
+        Assert.Equal("atlantis", stop.LocationName);
         await _region.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
     }
 
@@ -238,13 +222,13 @@ public sealed class PollManagerSpec : NjordActorSpec
         var ct = TestContext.Current.CancellationToken;
         var manager = await StartedManagerAsync(ct);
         var worker = CreateTestProbe("worker");
-        manager.Tell(new PollWorkerReport(Targets[2], PollWorkerOutcome.Planned, Entry(Targets[2])), worker.Ref);
+        manager.Tell(new PollWorkerReport(Targets[1], PollWorkerOutcome.Planned, Entry(Targets[1])), worker.Ref);
         await QueryAsync(manager, ct);
 
         await worker.Ref.GracefulStop(TestTimeouts.RealTimeWaitMax);
 
         var start = await _region.ExpectMsgAsync<StartPolling>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        Assert.Equal(new StartPolling(Targets[2], Discovery), start);
+        Assert.Equal(new StartPolling(Targets[1], Discovery), start);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

@@ -13,7 +13,7 @@ internal static class OpsProtoMappings
         var status = new ModelStatus
         {
             Location = entry.Location.Name,
-            Model = entry.ModelId,
+            Model = "", // Per-location polling; no longer per-model
             Phase = entry.Phase.ToProto(),
             NextPoll = entry.NextPollUtc.ToTimestamp(),
             MissCount = entry.MissCount,
@@ -36,7 +36,7 @@ internal static class OpsProtoMappings
         var target = new TriggerTarget
         {
             Location = entry.Location.Name,
-            Model = entry.ModelId,
+            Model = "", // Per-location polling; no longer per-model
             Phase = entry.Phase.ToProto(),
             NextPoll = entry.NextPollUtc.ToTimestamp(),
             MissCount = entry.MissCount,

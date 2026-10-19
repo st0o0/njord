@@ -4,6 +4,10 @@ public static class BudgetCalculator
 {
     public const double MonthlyBudgetGuardFactor = 0.8;
 
+    // Number of domain endpoint calls per location per poll cycle.
+    // Currently only Weather (Ensemble) is active. Will increase as more domains are enabled.
+    public const int DomainCallsPerLocation = 1;
+
     private static readonly TimeSpan Month = TimeSpan.FromDays(30);
 
     public static RequestBudget GetEffectiveBudget(PollingOptions polling) =>
@@ -11,13 +15,13 @@ public static class BudgetCalculator
 
     public static BudgetValidation Validate(NjordOptions scope, PollingOptions polling)
     {
-        var totalModelsPerCycle = scope.Locations
-            .Sum(loc => scope.Models.Union(loc.Models ?? [], StringComparer.OrdinalIgnoreCase).Count());
+        var locationCount = scope.Locations.Count;
+        var domainCallsPerCycle = locationCount * DomainCallsPerLocation;
 
         var resolved = scope.Parameters.Resolve();
 
         var cyclesPerMonth = Month.TotalMinutes / polling.PollInterval.TotalMinutes;
-        var projectedMonthly = (long)Math.Round(totalModelsPerCycle * cyclesPerMonth * resolved.ApiCallWeight);
+        var projectedMonthly = (long)Math.Round(domainCallsPerCycle * cyclesPerMonth * resolved.ApiCallWeight);
 
         var budget = GetEffectiveBudget(polling);
         var usagePercent = budget.RequestsPerMonth > 0
@@ -36,7 +40,7 @@ public static class BudgetCalculator
             UsagePercent: usagePercent,
             WithinBudget: usagePercent <= 100,
             Warnings: warnings,
-            TotalModelsPerCycle: totalModelsPerCycle,
+            DomainCallsPerCycle: domainCallsPerCycle,
             ApiCallWeight: resolved.ApiCallWeight);
     }
 
@@ -49,10 +53,10 @@ public static class BudgetCalculator
 
         var guard = (int)Math.Round(projection.MonthlyLimit * MonthlyBudgetGuardFactor);
         return
-            $"Projected API usage of {projection.ProjectedMonthlyCalls} effective requests/month ({projection.TotalModelsPerCycle} model-location pairs " +
+            $"Projected API usage of {projection.ProjectedMonthlyCalls} effective requests/month ({projection.DomainCallsPerCycle} domain calls per cycle " +
             $"every {pollInterval.TotalMinutes:0} min, weight {projection.ApiCallWeight}) exceeds the " +
             $"guard of {guard} (80% of the {projection.MonthlyLimit}/month budget). " +
-            "Reduce locations/models, increase PollInterval, or exclude parameters.";
+            "Reduce locations, increase PollInterval, or exclude parameters.";
     }
 }
 
@@ -62,5 +66,5 @@ public sealed record BudgetValidation(
     double UsagePercent,
     bool WithinBudget,
     IReadOnlyList<string> Warnings,
-    int TotalModelsPerCycle,
+    int DomainCallsPerCycle,
     int ApiCallWeight);

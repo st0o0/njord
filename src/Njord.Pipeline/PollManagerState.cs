@@ -8,28 +8,21 @@ namespace Njord.Pipeline;
 
 internal sealed record PollManagerConfig(
     IReadOnlyList<PollTarget> Targets,
-    IReadOnlyDictionary<string, PollTarget> TargetsById,
-    IReadOnlyDictionary<string, IReadOnlyList<string>> ModelsByLocation)
+    IReadOnlyDictionary<string, PollTarget> TargetsById)
 {
-    public static PollManagerConfig Create(IList<LocationOptions> locations, IList<string> globalModels)
+    public static PollManagerConfig Create(IList<LocationOptions> locations)
     {
         var targets = new List<PollTarget>();
-        var targetsById = new Dictionary<string, PollTarget>(StringComparer.Ordinal);
-        var modelsByLocation = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+        var targetsById = new Dictionary<string, PollTarget>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var location in locations)
         {
-            var models = globalModels.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase).ToList();
-            modelsByLocation[location.Name] = models;
-            foreach (var model in models)
-            {
-                var target = new PollTarget(new LocationId(location.Name), model);
-                targets.Add(target);
-                targetsById[target.Id] = target;
-            }
+            var target = new PollTarget(new LocationId(location.Name));
+            targets.Add(target);
+            targetsById[target.Id] = target;
         }
 
-        return new PollManagerConfig(targets, targetsById, modelsByLocation);
+        return new PollManagerConfig(targets, targetsById);
     }
 }
 
@@ -37,7 +30,6 @@ internal sealed record PollManagerState(
     ImmutableDictionary<string, PollStateEntry> States,
     ImmutableDictionary<IActorRef, string> Watched,
     ImmutableDictionary<string, int> RestartAttempts,
-    PollCycleTracker Cycles,
     TimeSpan DiscoveryInterval,
     IActorRef? Region,
     int ResolveAttempts,
@@ -49,14 +41,13 @@ internal sealed record PollManagerState(
     {
         var states = config.Targets.ToImmutableDictionary(
             t => t.Id,
-            t => new PollStateEntry(t.Location, t.ModelId, PollPhase.Discovery, now, null, 0, null),
-            StringComparer.Ordinal);
+            t => new PollStateEntry(t.Location, PollPhase.Discovery, now, null, 0, null),
+            StringComparer.OrdinalIgnoreCase);
 
         return new PollManagerState(
             states,
             ImmutableDictionary<IActorRef, string>.Empty,
-            ImmutableDictionary.Create<string, int>(StringComparer.Ordinal),
-            PollCycleTracker.Empty,
+            ImmutableDictionary.Create<string, int>(StringComparer.OrdinalIgnoreCase),
             discoveryInterval,
             null,
             0,
@@ -69,17 +60,16 @@ internal static class PollManagerStateExtensions
 {
     public static PollManagerState ApplyReport(
         this PollManagerState state, PollWorkerReport report, IActorRef sender,
-        PollManagerConfig config, DateTimeOffset now, out PollCycleSummary? cycleSummary)
+        PollManagerConfig config, DateTimeOffset now)
     {
-        cycleSummary = null;
-        if (!config.TargetsById.TryGetValue(report.Target.Id, out var target))
+        if (!config.TargetsById.TryGetValue(report.Target.Id, out _))
         {
             return state;
         }
 
-        var newStates = state.States.SetItem(target.Id, report.State);
+        var newStates = state.States.SetItem(report.Target.Id, report.State);
         var newWatched = !state.Watched.ContainsKey(sender) && !sender.IsNobody()
-            ? state.Watched.SetItem(sender, target.Id)
+            ? state.Watched.SetItem(sender, report.Target.Id)
             : state.Watched;
 
         if (report.Outcome == PollWorkerOutcome.Planned)
@@ -87,9 +77,8 @@ internal static class PollManagerStateExtensions
             return state with { States = newStates, Watched = newWatched };
         }
 
-        var newRestarts = state.RestartAttempts.Remove(target.Id);
+        var newRestarts = state.RestartAttempts.Remove(report.Target.Id);
         var newLastSuccessful = state.LastSuccessfulPollUtc;
-        var newCycles = state.Cycles;
 
         switch (report.Outcome)
         {
@@ -99,24 +88,11 @@ internal static class PollManagerStateExtensions
                 break;
         }
 
-        if (report.Outcome is PollWorkerOutcome.Changed or PollWorkerOutcome.Unchanged or PollWorkerOutcome.Failed)
-        {
-            var cycleOutcome = report.Outcome switch
-            {
-                PollWorkerOutcome.Changed => PollCycleOutcome.Changed,
-                PollWorkerOutcome.Unchanged => PollCycleOutcome.Unchanged,
-                _ => PollCycleOutcome.Failed,
-            };
-            var resolvedModels = config.ModelsByLocation[target.Location.Name];
-            (newCycles, cycleSummary) = newCycles.Record(target.Location.Name, target.ModelId, resolvedModels, cycleOutcome, now);
-        }
-
         return state with
         {
             States = newStates,
             Watched = newWatched,
             RestartAttempts = newRestarts,
-            Cycles = newCycles,
             LastSuccessfulPollUtc = newLastSuccessful,
         };
     }

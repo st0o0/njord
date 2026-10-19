@@ -1,6 +1,6 @@
 namespace Njord.Messages.Pipeline;
 
-// Messages for a poll worker carry the worker's entity id ("{location}|{model}", configured spelling).
+// Kept for backward compatibility during transition. New code should use IWithLocationId.
 public interface IWithTargetId
 {
     string TargetId { get; }

@@ -14,12 +14,10 @@ public sealed class PollManagerStateSpec
         [
             new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 },
             new LocationOptions { Name = "zurich", Latitude = 47.37, Longitude = 8.54 },
-        ],
-        ["icon_d2", "gfs_seamless"]);
+        ]);
 
-    private static readonly PollTarget Lucerne_IconD2 = new(new LocationId("lucerne"), "icon_d2");
-    private static readonly PollTarget Lucerne_Gfs = new(new LocationId("lucerne"), "gfs_seamless");
-    private static readonly PollTarget Zurich_IconD2 = new(new LocationId("zurich"), "icon_d2");
+    private static readonly PollTarget Lucerne = new(new LocationId("lucerne"));
+    private static readonly PollTarget Zurich = new(new LocationId("zurich"));
 
     private static PollManagerState InitialState() =>
         PollManagerState.Create(Config, TimeSpan.FromMinutes(20), T0);
@@ -29,7 +27,7 @@ public sealed class PollManagerStateSpec
     {
         var state = InitialState();
 
-        Assert.Equal(4, state.States.Count);
+        Assert.Equal(2, state.States.Count);
         Assert.All(state.States.Values, e => Assert.Multiple(
             () => Assert.Equal(PollPhase.Discovery, e.Phase),
             () => Assert.Equal(T0, e.NextPollUtc)));
@@ -39,36 +37,35 @@ public sealed class PollManagerStateSpec
     public void ApplyReport_updates_the_target_state()
     {
         var state = InitialState();
-        var entry = new PollStateEntry(Lucerne_IconD2.Location, "icon_d2", PollPhase.Steady, T0.AddHours(1), T0, 0, 3600);
-        var report = new PollWorkerReport(Lucerne_IconD2, PollWorkerOutcome.Changed, entry);
+        var entry = new PollStateEntry(Lucerne.Location, PollPhase.Steady, T0.AddHours(1), T0, 0, 3600);
+        var report = new PollWorkerReport(Lucerne, PollWorkerOutcome.Changed, entry);
 
-        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0, out _);
+        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0);
 
-        Assert.Equal(entry, state.States[Lucerne_IconD2.Id]);
+        Assert.Equal(entry, state.States[Lucerne.Id]);
     }
 
     [Fact]
     public void ApplyReport_for_unknown_target_returns_unchanged_state()
     {
         var state = InitialState();
-        var unknown = new PollTarget(new LocationId("atlantis"), "icon_d2");
-        var entry = new PollStateEntry(unknown.Location, "icon_d2", PollPhase.Steady, T0, T0, 0, null);
+        var unknown = new PollTarget(new LocationId("atlantis"));
+        var entry = new PollStateEntry(unknown.Location, PollPhase.Steady, T0, T0, 0, null);
         var report = new PollWorkerReport(unknown, PollWorkerOutcome.Changed, entry);
 
-        var newState = state.ApplyReport(report, ActorRefs.Nobody, Config, T0, out var summary);
+        var newState = state.ApplyReport(report, ActorRefs.Nobody, Config, T0);
 
         Assert.Same(state.States, newState.States);
-        Assert.Null(summary);
     }
 
     [Fact]
     public void ApplyReport_changed_updates_last_successful_poll()
     {
         var state = InitialState();
-        var entry = new PollStateEntry(Lucerne_IconD2.Location, "icon_d2", PollPhase.Steady, T0.AddHours(1), T0, 0, 3600);
-        var report = new PollWorkerReport(Lucerne_IconD2, PollWorkerOutcome.Changed, entry);
+        var entry = new PollStateEntry(Lucerne.Location, PollPhase.Steady, T0.AddHours(1), T0, 0, 3600);
+        var report = new PollWorkerReport(Lucerne, PollWorkerOutcome.Changed, entry);
 
-        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0, out _);
+        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0);
 
         Assert.Equal(T0, state.LastSuccessfulPollUtc);
     }
@@ -77,10 +74,10 @@ public sealed class PollManagerStateSpec
     public void ApplyReport_unchanged_updates_last_successful_poll()
     {
         var state = InitialState();
-        var entry = new PollStateEntry(Lucerne_IconD2.Location, "icon_d2", PollPhase.Steady, T0.AddHours(1), null, 0, null);
-        var report = new PollWorkerReport(Lucerne_IconD2, PollWorkerOutcome.Unchanged, entry);
+        var entry = new PollStateEntry(Lucerne.Location, PollPhase.Steady, T0.AddHours(1), null, 0, null);
+        var report = new PollWorkerReport(Lucerne, PollWorkerOutcome.Unchanged, entry);
 
-        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0, out _);
+        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0);
 
         Assert.Equal(T0, state.LastSuccessfulPollUtc);
     }
@@ -89,10 +86,10 @@ public sealed class PollManagerStateSpec
     public void ApplyReport_failed_does_not_update_last_successful_poll()
     {
         var state = InitialState();
-        var entry = new PollStateEntry(Lucerne_IconD2.Location, "icon_d2", PollPhase.Discovery, T0.AddHours(1), null, 1, null);
-        var report = new PollWorkerReport(Lucerne_IconD2, PollWorkerOutcome.Failed, entry);
+        var entry = new PollStateEntry(Lucerne.Location, PollPhase.Discovery, T0.AddHours(1), null, 1, null);
+        var report = new PollWorkerReport(Lucerne, PollWorkerOutcome.Failed, entry);
 
-        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0, out _);
+        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0);
 
         Assert.Null(state.LastSuccessfulPollUtc);
     }
@@ -103,14 +100,14 @@ public sealed class PollManagerStateSpec
         var state = InitialState() with
         {
             RestartAttempts = ImmutableDictionary.Create<string, int>(StringComparer.Ordinal)
-                .Add(Lucerne_IconD2.Id, 3),
+                .Add(Lucerne.Id, 3),
         };
-        var entry = new PollStateEntry(Lucerne_IconD2.Location, "icon_d2", PollPhase.Steady, T0.AddHours(1), T0, 0, 3600);
-        var report = new PollWorkerReport(Lucerne_IconD2, PollWorkerOutcome.Changed, entry);
+        var entry = new PollStateEntry(Lucerne.Location, PollPhase.Steady, T0.AddHours(1), T0, 0, 3600);
+        var report = new PollWorkerReport(Lucerne, PollWorkerOutcome.Changed, entry);
 
-        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0, out _);
+        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0);
 
-        Assert.False(state.RestartAttempts.ContainsKey(Lucerne_IconD2.Id));
+        Assert.False(state.RestartAttempts.ContainsKey(Lucerne.Id));
     }
 
     [Fact]
@@ -119,32 +116,14 @@ public sealed class PollManagerStateSpec
         var state = InitialState() with
         {
             RestartAttempts = ImmutableDictionary.Create<string, int>(StringComparer.Ordinal)
-                .Add(Lucerne_IconD2.Id, 2),
+                .Add(Lucerne.Id, 2),
         };
-        var entry = new PollStateEntry(Lucerne_IconD2.Location, "icon_d2", PollPhase.Discovery, T0.AddHours(1), null, 0, null);
-        var report = new PollWorkerReport(Lucerne_IconD2, PollWorkerOutcome.Planned, entry);
+        var entry = new PollStateEntry(Lucerne.Location, PollPhase.Discovery, T0.AddHours(1), null, 0, null);
+        var report = new PollWorkerReport(Lucerne, PollWorkerOutcome.Planned, entry);
 
-        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0, out _);
+        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0);
 
-        Assert.Equal(2, state.RestartAttempts[Lucerne_IconD2.Id]);
-    }
-
-    [Fact]
-    public void ApplyReport_completes_a_cycle_when_all_models_reported()
-    {
-        var state = InitialState();
-        var models = new[] { "icon_d2", "gfs_seamless" };
-        var e1 = new PollStateEntry(Lucerne_IconD2.Location, "icon_d2", PollPhase.Steady, T0.AddHours(1), T0, 0, 3600);
-        var e2 = new PollStateEntry(Lucerne_Gfs.Location, "gfs_seamless", PollPhase.Steady, T0.AddHours(1), T0, 0, 3600);
-
-        state = state.ApplyReport(new PollWorkerReport(Lucerne_IconD2, PollWorkerOutcome.Changed, e1), ActorRefs.Nobody, Config, T0, out var s1);
-        state = state.ApplyReport(new PollWorkerReport(Lucerne_Gfs, PollWorkerOutcome.Unchanged, e2), ActorRefs.Nobody, Config, T0.AddSeconds(5), out var s2);
-
-        Assert.Null(s1);
-        Assert.NotNull(s2);
-        Assert.Equal("lucerne", s2.Location);
-        Assert.Equal(2, s2.Total);
-        Assert.Equal(1, s2.Changed);
+        Assert.Equal(2, state.RestartAttempts[Lucerne.Id]);
     }
 
     [Fact]
@@ -153,15 +132,15 @@ public sealed class PollManagerStateSpec
         var probe = ActorRefs.Nobody;
         var state = InitialState() with
         {
-            Watched = ImmutableDictionary<IActorRef, string>.Empty.Add(probe, Lucerne_IconD2.Id),
+            Watched = ImmutableDictionary<IActorRef, string>.Empty.Add(probe, Lucerne.Id),
         };
 
         state = state.ApplyWorkerTerminated(probe, out var targetId, out var attempts);
 
-        Assert.Equal(Lucerne_IconD2.Id, targetId);
+        Assert.Equal(Lucerne.Id, targetId);
         Assert.Equal(0, attempts);
         Assert.False(state.Watched.ContainsKey(probe));
-        Assert.Equal(1, state.RestartAttempts[Lucerne_IconD2.Id]);
+        Assert.Equal(1, state.RestartAttempts[Lucerne.Id]);
     }
 
     [Fact]
@@ -183,7 +162,7 @@ public sealed class PollManagerStateSpec
         var result = state.GetPollStates(Config);
 
         Assert.Equal(Config.Targets.Count, result.Entries.Count);
-        Assert.Equal(Config.Targets.Select(t => t.Id), result.Entries.Select(e => $"{e.Location.Name}|{e.ModelId}"));
+        Assert.Equal(Config.Targets.Select(t => t.Id), result.Entries.Select(e => e.Location.Name));
     }
 
     [Fact]

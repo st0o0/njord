@@ -44,7 +44,7 @@ public sealed class PollingOptionsValidatorSpec
     {
         var polling = AppSettingsDefaults.Options<PollingOptions>(o => o.BudgetOverride = new RequestBudget(10_000, 600));
 
-        var result = ValidatorFor(2, EightModels).Validate(null, polling);
+        var result = ValidatorFor(3, EightModels).Validate(null, polling);
 
         Assert.True(result.Failed);
         Assert.Contains("8000", result.FailureMessage);
@@ -56,7 +56,7 @@ public sealed class PollingOptionsValidatorSpec
     {
         var polling = AppSettingsDefaults.Options<PollingOptions>(o => o.PollInterval = TimeSpan.FromMinutes(1));
 
-        var result = ValidatorFor(1, EightModels).Validate(null, polling);
+        var result = ValidatorFor(2, EightModels).Validate(null, polling);
 
         Assert.True(result.Failed);
         Assert.Contains("80%", result.FailureMessage);

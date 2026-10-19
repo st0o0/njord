@@ -64,7 +64,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(2, status.Models.Count);
 
         var lucerne = status.Models.First(m => m.Location == "lucerne");
-        Assert.Equal("icon_d2", lucerne.Model);
+        Assert.Equal(string.Empty, lucerne.Model);
         Assert.Equal(Njord.Grpc.V2.PollPhase.Steady, lucerne.Phase);
         Assert.Equal(_now.AddHours(1), lucerne.NextPoll.ToDateTimeOffset());
         Assert.Equal(_now.AddHours(-2), lucerne.LastChange.ToDateTimeOffset());
@@ -163,7 +163,7 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Equal(2, response.Targets.Count);
 
         var lucerne = response.Targets.First(t => t.Location == "lucerne");
-        Assert.Equal("icon_d2", lucerne.Model);
+        Assert.Equal(string.Empty, lucerne.Model);
         Assert.Equal(Njord.Grpc.V2.PollPhase.Steady, lucerne.Phase);
         Assert.Equal(_now.AddHours(1), lucerne.NextPoll.ToDateTimeOffset());
         Assert.Equal(_now.AddHours(-2), lucerne.LastChange.ToDateTimeOffset());
@@ -192,11 +192,11 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         var service = CreateService();
 
         var response = await service.TriggerPoll(
-            new TriggerPollRequest { Location = "lucerne", Model = "icon_d2" },
+            new TriggerPollRequest { Location = "lucerne" },
             TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         Assert.Equal(1, response.TriggeredCount);
-        Assert.Contains("lucerne/icon_d2", response.Targets);
+        Assert.Contains("lucerne", response.Targets);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -219,21 +219,21 @@ public sealed class OpsGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
             {
                 var entries = new List<PollStateEntry>
                 {
-                    new(new LocationId("lucerne"), "icon_d2", DomainPollPhase.Steady, now.AddHours(1), now.AddHours(-2), 0, 10800),
-                    new(new LocationId("zurich"), "gfs_seamless", DomainPollPhase.Discovery, now.AddMinutes(20), null, 2, null),
+                    new(new LocationId("lucerne"), DomainPollPhase.Steady, now.AddHours(1), now.AddHours(-2), 0, 10800),
+                    new(new LocationId("zurich"), DomainPollPhase.Discovery, now.AddMinutes(20), null, 2, null),
                 };
                 Sender.Tell(new PollStatesResult(entries));
             });
 
             Receive<TriggerImmediatePoll>(msg =>
             {
-                if (msg.Location is null && string.IsNullOrEmpty(msg.Model))
+                if (msg.Location is null)
                 {
-                    Sender.Tell(new TriggerImmediatePollCompleted(2, ["lucerne/icon_d2", "zurich/gfs_seamless"]));
+                    Sender.Tell(new TriggerImmediatePollCompleted(2, ["lucerne", "zurich"]));
                 }
                 else
                 {
-                    Sender.Tell(new TriggerImmediatePollCompleted(1, [$"{msg.Location}/{msg.Model}"]));
+                    Sender.Tell(new TriggerImmediatePollCompleted(1, [$"{msg.Location}"]));
                 }
             });
         }

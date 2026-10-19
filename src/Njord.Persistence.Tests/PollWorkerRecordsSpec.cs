@@ -8,12 +8,12 @@ public sealed class PollWorkerRecordsSpec
     private static readonly DateTimeOffset Utc = new(2026, 7, 15, 10, 0, 0, TimeSpan.Zero);
 
     private static readonly PersistedPollWorkerState Snapshot = new(
-        "lucerne", "icon_d2", true, TimeSpan.FromMinutes(20), 42, Utc, Utc.AddHours(-3), Utc.AddHours(3).AddMinutes(1),
-        2, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 1);
+        "lucerne", true, TimeSpan.FromMinutes(20), 42, Utc, Utc.AddHours(-3), Utc.AddHours(3).AddMinutes(1),
+        2, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 1, null);
 
     public static TheoryData<object> Events() =>
     [
-        new PollingStarted("lucerne", "icon_d2", TimeSpan.FromMinutes(20), Utc),
+        new PollingStarted("lucerne",TimeSpan.FromMinutes(20), Utc),
         new PollingStopped(Utc),
         new ForecastChanged(42, Utc),
         new ForecastUnchanged(Utc),
@@ -32,7 +32,7 @@ public sealed class PollWorkerRecordsSpec
     [Fact]
     public void An_unstarted_PersistedPollWorkerState_roundtrip()
     {
-        var empty = new PersistedPollWorkerState(null, null, false, TimeSpan.Zero, null, null, null, DateTimeOffset.MinValue, 0, PersistedPollPhase.Discovery, null, 0);
+        var empty = new PersistedPollWorkerState(null, false, TimeSpan.Zero, null, null, null, DateTimeOffset.MinValue, 0, PersistedPollPhase.Discovery, null, 0, null);
 
         var result = PersistenceRoundtripHelper.Roundtrip(empty);
 
@@ -45,7 +45,6 @@ public sealed class PollWorkerRecordsSpec
         const string oldFormat = """
 {
   "Location": "lucerne",
-  "ModelId": "icon_d2",
   "Active": true,
   "DiscoveryInterval": "00:20:00",
   "LastHash": 42,

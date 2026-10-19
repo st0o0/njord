@@ -97,7 +97,7 @@ public sealed class OpsGrpcService(
     {
         var location = string.IsNullOrEmpty(request.Location) ? (LocationId?)null : new LocationId(request.Location);
         var response = await actorRegistry.AskAsync<IPollManager, TriggerImmediatePollResponse>(
-            new TriggerImmediatePoll(location, request.Model), context);
+            new TriggerImmediatePoll(location), context);
 
         switch (response)
         {

@@ -1,6 +1,5 @@
 ﻿{
   "Location": "lucerne",
-  "ModelId": "icon_d2",
   "Active": true,
   "DiscoveryInterval": "00:20:00",
   "LastHash": 42,
@@ -10,5 +9,6 @@
   "MissCount": 2,
   "Phase": 1,
   "Cycle": "03:00:00",
-  "TransientFailureCount": 1
+  "TransientFailureCount": 1,
+  "DomainStates": null
 }

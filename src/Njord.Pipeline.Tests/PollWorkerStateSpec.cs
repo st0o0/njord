@@ -14,7 +14,7 @@ public sealed class PollWorkerStateSpec
     private static readonly LocationId Lucerne = new("lucerne");
 
     private static PollWorkerState Started(DateTimeOffset? at = null, TimeSpan? interval = null) =>
-        PollWorkerState.Empty.Apply(new PollingStarted("lucerne", "icon_d2", interval ?? DiscoveryInterval, at ?? T0));
+        PollWorkerState.Empty.Apply(new PollingStarted("lucerne", interval ?? DiscoveryInterval, at ?? T0));
 
     // Two changes three hours apart: Steady with a 3 h cycle.
     private static PollWorkerState Steady() =>
@@ -35,7 +35,7 @@ public sealed class PollWorkerStateSpec
         var state = Started();
 
         Assert.Multiple(
-            () => Assert.Equal(new PollTarget(Lucerne, "icon_d2"), state.Target),
+            () => Assert.Equal(new PollTarget(Lucerne), state.Target),
             () => Assert.True(state.Active),
             () => Assert.Equal(DiscoveryInterval, state.DiscoveryInterval),
             () => Assert.Equal(PollPhase.Discovery, state.Phase),
@@ -266,7 +266,7 @@ public sealed class PollWorkerStateSpec
     {
         var state = Started().Apply(new ForecastChanged(42, T0));
 
-        var replanned = state.Apply(new PollingStarted("lucerne", "icon_d2", TimeSpan.FromMinutes(5), T0.AddMinutes(1)));
+        var replanned = state.Apply(new PollingStarted("lucerne", TimeSpan.FromMinutes(5), T0.AddMinutes(1)));
 
         Assert.Multiple(
             () => Assert.Equal(T0.AddMinutes(5), replanned.NextPollUtc),
@@ -278,7 +278,7 @@ public sealed class PollWorkerStateSpec
     {
         var state = Started().Apply(new ForecastChanged(42, T0));
 
-        var replanned = state.Apply(new PollingStarted("lucerne", "icon_d2", TimeSpan.FromMinutes(5), T0.AddMinutes(10)));
+        var replanned = state.Apply(new PollingStarted("lucerne", TimeSpan.FromMinutes(5), T0.AddMinutes(10)));
 
         Assert.Equal(T0.AddMinutes(10), replanned.NextPollUtc);
     }
@@ -288,7 +288,7 @@ public sealed class PollWorkerStateSpec
     {
         var state = Started().Apply(new ForecastChanged(42, T0));
 
-        var replanned = state.Apply(new PollingStarted("lucerne", "icon_d2", TimeSpan.FromHours(1), T0));
+        var replanned = state.Apply(new PollingStarted("lucerne", TimeSpan.FromHours(1), T0));
 
         Assert.Equal(T0.AddHours(1), replanned.NextPollUtc);
     }
@@ -301,9 +301,9 @@ public sealed class PollWorkerStateSpec
 
         Assert.Multiple(
             () => Assert.Equal(steady.NextPollUtc,
-                steady.Apply(new PollingStarted("lucerne", "icon_d2", TimeSpan.FromHours(2), T0.AddHours(3))).NextPollUtc),
+                steady.Apply(new PollingStarted("lucerne", TimeSpan.FromHours(2), T0.AddHours(3))).NextPollUtc),
             () => Assert.Equal(backoff.NextPollUtc,
-                backoff.Apply(new PollingStarted("lucerne", "icon_d2", TimeSpan.FromHours(2), T0)).NextPollUtc));
+                backoff.Apply(new PollingStarted("lucerne", TimeSpan.FromHours(2), T0)).NextPollUtc));
     }
 
     [Fact]
@@ -311,7 +311,7 @@ public sealed class PollWorkerStateSpec
     {
         var state = Steady();
 
-        var restarted = state.Apply(new PollingStarted("lucerne", "icon_d2", DiscoveryInterval, T0.AddHours(4)));
+        var restarted = state.Apply(new PollingStarted("lucerne", DiscoveryInterval, T0.AddHours(4)));
 
         Assert.Equal(state, restarted);
     }
@@ -320,7 +320,7 @@ public sealed class PollWorkerStateSpec
     public void Stopping_deactivates_and_a_new_start_resumes_the_learned_state()
     {
         var stopped = Steady().Apply(new PollingStopped(T0.AddHours(4)));
-        var resumed = stopped.Apply(new PollingStarted("lucerne", "icon_d2", DiscoveryInterval, T0.AddHours(5)));
+        var resumed = stopped.Apply(new PollingStarted("lucerne", DiscoveryInterval, T0.AddHours(5)));
 
         Assert.Multiple(
             () => Assert.False(stopped.Active),

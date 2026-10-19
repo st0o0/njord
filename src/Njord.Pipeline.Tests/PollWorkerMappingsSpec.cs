@@ -12,7 +12,7 @@ public sealed class PollWorkerMappingsSpec
     private static readonly LocationId Lucerne = new("lucerne");
 
     private static PollWorkerState Started() =>
-        PollWorkerState.Empty.Apply(new PollingStarted("lucerne", "icon_d2", TimeSpan.FromMinutes(20), T0));
+        PollWorkerState.Empty.Apply(new PollingStarted("lucerne", TimeSpan.FromMinutes(20), T0));
 
     private static PollWorkerState Steady() =>
         Started().Apply(new ForecastChanged(1, T0)).Apply(new ForecastChanged(2, T0.AddHours(3)));
@@ -24,7 +24,6 @@ public sealed class PollWorkerMappingsSpec
 
         Assert.Multiple(
             () => Assert.Equal(Lucerne, entry.Location),
-            () => Assert.Equal("icon_d2", entry.ModelId),
             () => Assert.Equal(PollPhase.Steady, entry.Phase),
             () => Assert.Equal(T0.AddHours(6).AddMinutes(1), entry.NextPollUtc),
             () => Assert.Equal(T0.AddHours(3), entry.LastChangeUtc),
@@ -70,8 +69,8 @@ public sealed class PollWorkerMappingsSpec
 
         Assert.Equal(
             new PersistedPollWorkerState(
-                "lucerne", "icon_d2", true, TimeSpan.FromMinutes(20), 2, T0.AddHours(3), T0, state.NextPollUtc,
-                1, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 0),
+                "lucerne", true, TimeSpan.FromMinutes(20), 2, T0.AddHours(3), T0, state.NextPollUtc,
+                1, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 0, null),
             dto);
     }
 
@@ -89,7 +88,6 @@ public sealed class PollWorkerMappingsSpec
         const string oldFormat = """
 {
   "Location": "lucerne",
-  "ModelId": "icon_d2",
   "Active": true,
   "DiscoveryInterval": "00:20:00",
   "LastHash": 2,
@@ -109,7 +107,7 @@ public sealed class PollWorkerMappingsSpec
         var state = dto.FromPersistence();
         Assert.Multiple(
             () => Assert.Equal(PollPhase.Steady, state.Phase),
-            () => Assert.Equal(new PollTarget(Lucerne, "icon_d2"), state.Target),
+            () => Assert.Equal(new PollTarget(Lucerne), state.Target),
             () => Assert.Equal(TimeSpan.FromHours(3), state.Cycle));
     }
 

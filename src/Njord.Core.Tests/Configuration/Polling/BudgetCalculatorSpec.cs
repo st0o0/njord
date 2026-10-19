@@ -18,9 +18,9 @@ public sealed class BudgetCalculatorSpec
 
         var result = BudgetCalculator.Validate(options, AppSettingsDefaults.Options<PollingOptions>(o => o.PollInterval = TimeSpan.FromMinutes(60)));
 
-        // 8 models, Weather group = 31 params, ceil(31/10) = 4 weight
-        // 8 * 4 = 32 calls/cycle, 24 cycles/day, 32 * 24 * 30 = 23040/month
-        Assert.Equal(23_040, result.ProjectedMonthlyCalls);
+        // 1 location = 1 domain call/cycle, Weather group = 31 params, ceil(31/10) = 4 weight
+        // 1 * 4 = 4 calls/cycle, 24 cycles/day, 4 * 24 * 30 = 2880/month
+        Assert.Equal(2_880, result.ProjectedMonthlyCalls);
         Assert.True(result.WithinBudget);
         Assert.Empty(result.Warnings);
     }
@@ -39,7 +39,7 @@ public sealed class BudgetCalculatorSpec
 
         // 43200 min / 50 min = 864 cycles, weight 4 => 3456 (a 28-cycles-per-day approximation gave 3360)
         Assert.Equal(3_456, result.ProjectedMonthlyCalls);
-        Assert.Equal(1, result.TotalModelsPerCycle);
+        Assert.Equal(1, result.DomainCallsPerCycle);
         Assert.Equal(4, result.ApiCallWeight);
     }
 

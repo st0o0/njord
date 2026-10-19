@@ -50,7 +50,6 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
         var options = new NjordOptions
         {
             Locations = [new LocationOptions { Name = "test", Latitude = 47.0, Longitude = 8.3 }],
-            Models = ["icon_d2"],
         };
         var time = new FakeTimeProvider(new DateTimeOffset(2026, 7, 20, 12, 0, 0, TimeSpan.Zero));
 
@@ -58,7 +57,7 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
             Props.Create(() => new FakeGatewayActor(fetchCalled)), "gateway");
         ActorRegistry.Register<IForecastGateway>(fakeGateway, overwrite: true);
 
-        var target = new PollTarget(new LocationId(options.Locations[0].Name), options.Models[0]);
+        var target = new PollTarget(new LocationId(options.Locations[0].Name));
         var worker = Sys.ActorOf(
             Props.Create(() => new PollWorker(time, FetchTimeouts.Default, target.Id)),
             "real-worker");
@@ -72,11 +71,11 @@ public sealed class PipelineConnectionSpec : Akka.Hosting.TestKit.TestKit
     {
         public FakeGatewayActor(TaskCompletionSource<string>? fetchCalled = null)
         {
-            Receive<FetchForecast>(msg =>
+            Receive<FetchDomain>(msg =>
             {
                 fetchCalled?.TrySetResult(msg.Location.Name);
-                var hash = msg.Location.GetHashCode() ^ msg.ModelId.GetHashCode();
-                Sender.Tell(new FetchForecastCompleted(msg.Location, msg.ModelId, hash));
+                var hash = msg.Location.GetHashCode() ^ msg.Domain.GetHashCode();
+                Sender.Tell(new FetchDomainCompleted(msg.Location, msg.Domain, hash));
             });
 
         }

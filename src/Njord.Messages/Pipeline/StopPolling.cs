@@ -1,3 +1,3 @@
 namespace Njord.Messages.Pipeline;
 
-public sealed record StopPolling(string TargetId) : IWithTargetId;
+public sealed record StopPolling(string LocationName) : IWithLocationId;

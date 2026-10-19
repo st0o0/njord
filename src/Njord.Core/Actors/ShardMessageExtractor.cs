@@ -7,7 +7,7 @@ public sealed class ShardMessageExtractor(int maxShards = 5) : HashCodeMessageEx
 {
     public override string EntityId(object message) => message switch
     {
-        IWithTargetId m => m.TargetId,
+        IWithLocationId m => m.LocationName,
         _ => throw new ArgumentException($"Unknown sharded message type: {message.GetType().Name}", nameof(message)),
     };
 }

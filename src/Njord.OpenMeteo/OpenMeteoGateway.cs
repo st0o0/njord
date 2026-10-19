@@ -15,7 +15,8 @@ using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.OpenMeteo;
 
-// Request/response gateway: every FetchForecast ends with exactly one Completed, Failed or Rejected reply.
+// Request/response gateway: every FetchDomain ends with exactly one Completed, Failed or Rejected reply.
+// Also handles legacy FetchForecast for backward compatibility during transition.
 // The fetch stream is private to this actor and dies with it; forecasts leave through a small branch into the
 // pipeline's SinkRef, which is the only part re-attached when the pipeline goes away.
 public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
@@ -37,6 +38,9 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
     internal sealed record FetchTarget(
         long RequestId, LocationOptions Location, WeatherModel Model, CycleId Cycle, int Weight, DateTimeOffset Deadline);
 
+    internal sealed record DomainFetchTarget(
+        long RequestId, LocationOptions Location, DomainKind Domain, CycleId Cycle, int Weight, DateTimeOffset Deadline);
+
     internal sealed record Admission(FetchTarget Target, FetchRejectionReason? Rejection);
 
     private abstract record FetchStreamResult(long RequestId);
@@ -54,8 +58,13 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
     private sealed record AttachTimedOut(long RequestId);
     private sealed record RetryAttach;
 
+    // Domain fetch done - direct reply without going through the stream pipeline
+    private sealed record DomainFetchDone(long RequestId, DomainKind Domain, EnsembleFetchResult Result);
+    private sealed record DomainFetchFailed(long RequestId, DomainKind Domain, Exception Cause);
+
     // Location and model as the requester spelled them: replies echo them so the requester can correlate.
     private sealed record PendingRequest(IActorRef Requester, LocationId Location, string ModelId);
+    private sealed record PendingDomainRequest(IActorRef Requester, LocationId Location, DomainKind Domain);
 
     private readonly IOpenMeteoClient _client;
     private readonly TimeProvider _timeProvider;
@@ -64,6 +73,7 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
     private readonly int _weight;
     private readonly IGatewayBudgetGate _gate;
     private readonly Dictionary<long, PendingRequest> _pendingRequests = new();
+    private readonly Dictionary<long, PendingDomainRequest> _pendingDomainRequests = new();
 
     private IMaterializer? _mat;
     private ISourceQueueWithComplete<FetchTarget>? _fetchQueue;
@@ -94,6 +104,12 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
         var budgetTracker = Context.GetActor<IBudgetTracker>();
         _gate = new GatewayBudgetGate(budgetProvider, budgetTracker, timeProvider);
 
+        // Domain-based fetch (new per-location path)
+        Receive<FetchDomain>(OnFetchDomain);
+        Receive<DomainFetchDone>(OnDomainFetchDone);
+        Receive<DomainFetchFailed>(OnDomainFetchFailure);
+
+        // Legacy per-model fetch (still used by existing pipeline branch)
         Receive<FetchForecast>(OnFetchForecast);
         Receive<OfferCompleted>(OnOfferCompleted);
         Receive<OfferFailed>(msg => FailRequest(msg.RequestId,
@@ -123,6 +139,81 @@ public sealed class OpenMeteoGateway : ReceiveActor, IWithTimers
         _log.Info("OpenMeteoGateway fetch stream materialized - attaching to the pipeline input");
         RequestAttach();
     }
+
+    // ---- Domain-based fetch (new path) ----
+
+    private void OnFetchDomain(FetchDomain msg)
+    {
+        var location = _options.FindLocation(msg.Location.Name);
+        if (location is null)
+        {
+            Sender.Tell(new FetchDomainFailed(msg.Location, msg.Domain,
+                PollFailureReason.ModelUnavailable, $"Location '{msg.Location}' not found in config"));
+            return;
+        }
+
+        var id = NextId();
+        _pendingDomainRequests[id] = new PendingDomainRequest(Sender, msg.Location, msg.Domain);
+
+        // For now, only Weather (Ensemble) is supported. Other domains get a stub rejection.
+        if (msg.Domain != DomainKind.Weather)
+        {
+            DomainReply(id, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.PipelineUnavailable));
+            return;
+        }
+
+        // Budget check via the gate
+        if (!_gate.TryAcquire(_weight))
+        {
+            DomainReply(id, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.Budget));
+            return;
+        }
+
+        var now = _timeProvider.GetUtcNow();
+        var cycle = new CycleId(now);
+        var domain = msg.Domain;
+
+        _client.FetchEnsembleAsync(location, _options.ForecastDays, cycle, CancellationToken.None)
+            .PipeTo(Self,
+                success: result => new DomainFetchDone(id, domain, result),
+                failure: ex => new DomainFetchFailed(id, domain, ex));
+    }
+
+    private void OnDomainFetchDone(DomainFetchDone msg)
+    {
+        switch (msg.Result)
+        {
+            case EnsembleFetchResult.Success success:
+                var hash = success.Forecast.GetHashCode();
+                DomainReply(msg.RequestId, p => new FetchDomainCompleted(p.Location, p.Domain, hash));
+                break;
+            case EnsembleFetchResult.Failure failure:
+                DomainReply(msg.RequestId, p => new FetchDomainFailed(p.Location, p.Domain, failure.Reason, failure.Detail));
+                break;
+        }
+    }
+
+    private void OnDomainFetchFailure(DomainFetchFailed msg)
+    {
+        if (_pendingDomainRequests.TryGetValue(msg.RequestId, out var pending))
+        {
+            _log.Warning(msg.Cause, "Domain fetch for {Location}/{Domain} threw {Type}",
+                pending.Location, msg.Domain, msg.Cause.GetType().Name);
+        }
+
+        DomainReply(msg.RequestId, p => new Messages.Forecast.FetchDomainFailed(p.Location, p.Domain,
+            PollFailureReason.Transport, $"Fetch threw {msg.Cause.GetType().Name}: {msg.Cause.Message}"));
+    }
+
+    private void DomainReply(long requestId, Func<PendingDomainRequest, FetchDomainResponse> reply)
+    {
+        if (_pendingDomainRequests.Remove(requestId, out var pending))
+        {
+            pending.Requester.Tell(reply(pending));
+        }
+    }
+
+    // ---- Legacy per-model fetch ----
 
     private void OnFetchForecast(FetchForecast msg)
     {

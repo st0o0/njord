@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
@@ -5,6 +6,8 @@ using Njord.Model;
 using Njord.Persistence.Events.Polling;
 
 namespace Njord.Pipeline;
+
+public sealed record DomainPollState(int? LastHash);
 
 public sealed record PollWorkerState(
     PollTarget? Target,
@@ -17,10 +20,12 @@ public sealed record PollWorkerState(
     int MissCount,
     PollPhase Phase,
     TimeSpan? Cycle,
-    int TransientFailureCount)
+    int TransientFailureCount,
+    ImmutableDictionary<DomainKind, DomainPollState> DomainStates)
 {
     public static readonly PollWorkerState Empty =
-        new(null, false, TimeSpan.Zero, null, null, null, DateTimeOffset.MinValue, 0, PollPhase.Discovery, null, 0);
+        new(null, false, TimeSpan.Zero, null, null, null, DateTimeOffset.MinValue, 0, PollPhase.Discovery, null, 0,
+            ImmutableDictionary<DomainKind, DomainPollState>.Empty);
 
     public static readonly TimeSpan RateLimitMinDelay = TimeSpan.FromMinutes(5);
 
@@ -44,7 +49,7 @@ public static class PollWorkerStateExtensions
         {
             return state with
             {
-                Target = new PollTarget(new LocationId(evt.Location), evt.ModelId),
+                Target = new PollTarget(new LocationId(evt.Location)),
                 Active = true,
                 DiscoveryInterval = evt.DiscoveryInterval,
                 NextPollUtc = evt.Utc,
@@ -115,7 +120,33 @@ public static class PollWorkerStateExtensions
     public static PollWorkerState Apply(this PollWorkerState state, PollDeferred evt) =>
         state with { NextPollUtc = evt.Utc + evt.Delay };
 
-    // The event a fetch reply leads to, and how the outcome counts for the location's poll cycle.
+    // Update per-domain hash when a domain fetch completes.
+    public static PollWorkerState WithDomainHash(this PollWorkerState state, DomainKind domain, int hash)
+    {
+        var domainState = new DomainPollState(hash);
+        return state with { DomainStates = state.DomainStates.SetItem(domain, domainState) };
+    }
+
+    public static int? GetDomainHash(this PollWorkerState state, DomainKind domain) =>
+        state.DomainStates.TryGetValue(domain, out var ds) ? ds.LastHash : null;
+
+    // The aggregate event a set of domain fetch replies leads to, and how the outcome counts for the poll cycle.
+    public static (object Event, PollWorkerOutcome Outcome) ToEvent(
+        this PollWorkerState state, FetchDomainResponse reply, DateTimeOffset now) => reply switch
+        {
+            FetchDomainCompleted completed when completed.Hash != state.GetDomainHash(completed.Domain) =>
+                (new ForecastChanged(completed.Hash, now), PollWorkerOutcome.Changed),
+            FetchDomainCompleted => (new ForecastUnchanged(now), PollWorkerOutcome.Unchanged),
+            FetchDomainFailed { Reason: PollFailureReason.RateLimited } =>
+                (new PollFailed(now, PollWorkerState.RateLimitMinDelay), PollWorkerOutcome.Failed),
+            FetchDomainRejected { Reason: FetchRejectionReason.Budget } =>
+                (new PollFailed(now, PollWorkerState.RateLimitMinDelay), PollWorkerOutcome.Failed),
+            FetchDomainRejected { Reason: FetchRejectionReason.PipelineUnavailable } =>
+                (new PollDeferred(now, PollWorkerState.PipelineUnavailableRetry), PollWorkerOutcome.Failed),
+            _ => (new PollFailed(now, TimeSpan.Zero), PollWorkerOutcome.Failed),
+        };
+
+    // The old overload for backward compat in existing fetch flow (gateway still uses FetchForecastResponse).
     public static (object Event, PollWorkerOutcome Outcome) ToEvent(
         this PollWorkerState state, FetchForecastResponse reply, DateTimeOffset now) => reply switch
         {

@@ -22,7 +22,7 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
     private static readonly FetchTimeouts ShortTimeouts =
         new(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(300));
 
-    private static readonly PollTarget Target = new(new LocationId("lucerne"), "icon_d2");
+    private static readonly PollTarget Target = new(new LocationId("lucerne"));
 
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     private TestProbe _manager = null!;
@@ -62,7 +62,7 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
         ActorRegistry.Register<IForecastGateway>(Sys.ActorOf(Props.Create(() => new SilentGateway(_requests.Ref))));
         Start();
 
-        await _requests.ExpectMsgAsync<FetchForecast>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        await _requests.ExpectMsgAsync<FetchDomain>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         var report = await ExpectFailedReportAsync(ct);
 
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromMinutes(1), report.State.NextPollUtc);
@@ -100,7 +100,7 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
     {
         public SilentGateway(IActorRef requests)
         {
-            Receive<FetchForecast>(requests.Tell);
+            Receive<FetchDomain>(requests.Tell);
         }
     }
 }
