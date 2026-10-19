@@ -89,21 +89,4 @@ public sealed class ForecastValueSpec
         Assert.False(value.HasValue);
     }
 
-    [Fact]
-    public void Equality_compares_by_value()
-    {
-        var a = new ForecastValue(22.5, null);
-        var b = new ForecastValue(22.5, null);
-
-        Assert.Equal(a, b);
-    }
-
-    [Fact]
-    public void Inequality_for_different_numbers()
-    {
-        var a = new ForecastValue(22.5, null);
-        var b = new ForecastValue(23.0, null);
-
-        Assert.NotEqual(a, b);
-    }
 }

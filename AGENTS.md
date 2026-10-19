@@ -314,8 +314,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1753 tests (Model 81, Forecast 50, Sensors 11, Persistence 16, Consensus 75, Messages 126,
-Core 155, Grpc 157, Pipeline 176, Mqtt 171, OpenMeteo 72, Budget 36, SensorHub 32, Architecture 128,
+Current total: 1709 tests (Model 76, Forecast 49, Sensors 11, Persistence 16, Consensus 75, Messages 126,
+Core 155, Grpc 125, Pipeline 176, Mqtt 171, OpenMeteo 72, Budget 36, SensorHub 26, Architecture 128,
 Alerts 120, Derived 32, Trends 24, Indices 85, host `Njord.Tests` 184, IntegrationTests 22).
 The count is one test per `[Fact]` and one per data row of a `[Theory]`.
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.

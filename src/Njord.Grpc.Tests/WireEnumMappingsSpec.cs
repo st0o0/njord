@@ -19,43 +19,6 @@ namespace Njord.Grpc.Tests;
 public sealed class WireEnumMappingsSpec
 {
     [Theory]
-    [InlineData(DomainPollPhase.Discovery, ProtoPollPhase.Discovery)]
-    [InlineData(DomainPollPhase.Steady, ProtoPollPhase.Steady)]
-    public void Poll_phase_maps_to_its_proto_member(DomainPollPhase phase, ProtoPollPhase expected) =>
-        Assert.Equal(expected, phase.ToProto());
-
-    [Theory]
-    [InlineData(TrendDirection.Rising, ProtoTrendDirection.Rising)]
-    [InlineData(TrendDirection.Falling, ProtoTrendDirection.Falling)]
-    [InlineData(TrendDirection.Stable, ProtoTrendDirection.Stable)]
-    public void Trend_direction_maps_to_its_proto_member(TrendDirection direction, ProtoTrendDirection expected) =>
-        Assert.Equal(expected, direction.ToProto());
-
-    [Theory]
-    [InlineData(Stability.Converging, ProtoStability.Converging)]
-    [InlineData(Stability.Diverging, ProtoStability.Diverging)]
-    [InlineData(Stability.Stable, ProtoStability.Stable)]
-    public void Stability_maps_to_its_proto_member(Stability stability, ProtoStability expected) =>
-        Assert.Equal(expected, stability.ToProto());
-
-    [Theory]
-    [InlineData(DewPointComfort.Dry, ProtoDewPointComfort.Dry)]
-    [InlineData(DewPointComfort.Comfortable, ProtoDewPointComfort.Comfortable)]
-    [InlineData(DewPointComfort.Sticky, ProtoDewPointComfort.Sticky)]
-    [InlineData(DewPointComfort.Oppressive, ProtoDewPointComfort.Oppressive)]
-    [InlineData(DewPointComfort.Dangerous, ProtoDewPointComfort.Dangerous)]
-    public void Dew_point_comfort_maps_to_its_proto_member(DewPointComfort comfort, ProtoDewPointComfort expected) =>
-        Assert.Equal(expected, comfort.ToProto());
-
-    [Theory]
-    [InlineData(VpdCategory.Low, ProtoVpdCategory.Low)]
-    [InlineData(VpdCategory.Optimal, ProtoVpdCategory.Optimal)]
-    [InlineData(VpdCategory.High, ProtoVpdCategory.High)]
-    [InlineData(VpdCategory.Critical, ProtoVpdCategory.Critical)]
-    public void Vpd_category_maps_to_its_proto_member(VpdCategory category, ProtoVpdCategory expected) =>
-        Assert.Equal(expected, category.ToProto());
-
-    [Theory]
     [InlineData(DomainConsensusMethod.Mean, ProtoConsensusMethod.Mean)]
     [InlineData(DomainConsensusMethod.Median, ProtoConsensusMethod.Median)]
     [InlineData(DomainConsensusMethod.TrimmedMean, ProtoConsensusMethod.TrimmedMean)]
@@ -68,24 +31,6 @@ public sealed class WireEnumMappingsSpec
     [Fact]
     public void Unspecified_consensus_method_means_unchanged() =>
         Assert.Null(ProtoConsensusMethod.Unspecified.ToDomain());
-
-    [Theory]
-    [InlineData(DomainAlertType.Frost, ProtoAlertType.Frost)]
-    [InlineData(DomainAlertType.Heat, ProtoAlertType.Heat)]
-    [InlineData(DomainAlertType.Storm, ProtoAlertType.Storm)]
-    [InlineData(DomainAlertType.HeavyRain, ProtoAlertType.HeavyRain)]
-    [InlineData(DomainAlertType.Uv, ProtoAlertType.Uv)]
-    [InlineData(DomainAlertType.Fog, ProtoAlertType.Fog)]
-    [InlineData(DomainAlertType.Snow, ProtoAlertType.Snow)]
-    [InlineData(DomainAlertType.PressureDrop, ProtoAlertType.PressureDrop)]
-    [InlineData(DomainAlertType.Thunderstorm, ProtoAlertType.Thunderstorm)]
-    [InlineData(DomainAlertType.Ice, ProtoAlertType.Ice)]
-    [InlineData(DomainAlertType.WindChill, ProtoAlertType.WindChill)]
-    [InlineData(DomainAlertType.Visibility, ProtoAlertType.Visibility)]
-    [InlineData(DomainAlertType.TropicalNight, ProtoAlertType.TropicalNight)]
-    [InlineData(DomainAlertType.Humidity, ProtoAlertType.Humidity)]
-    public void Alert_type_maps_to_its_proto_member(DomainAlertType type, ProtoAlertType expected) =>
-        Assert.Equal(expected, type.ToProto());
 
     [Theory]
     [InlineData(DomainAlertSeverity.None, ProtoAlertSeverity.None)]

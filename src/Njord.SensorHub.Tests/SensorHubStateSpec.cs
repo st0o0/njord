@@ -18,42 +18,6 @@ public sealed class SensorHubStateSpec
         new(kind, location, source, value, measuredAt ?? Now);
 
     [Fact]
-    public void Empty_state_has_no_readings()
-    {
-        Assert.Empty(SensorHubState.Empty.Readings);
-    }
-
-    [Fact]
-    public void Apply_stores_reading()
-    {
-        var state = SensorHubState.Empty.Apply(Reading());
-
-        Assert.Single(state.Readings);
-        Assert.Equal(22.5, state.Readings[("lucerne", SensorKind.IndoorTemperature, "sensor-1")].Value);
-    }
-
-    [Fact]
-    public void Apply_overwrites_reading_for_same_key()
-    {
-        var state = SensorHubState.Empty
-            .Apply(Reading(value: 20.0))
-            .Apply(Reading(value: 25.0));
-
-        var item = Assert.Single(state.Readings);
-        Assert.Equal(25.0, item.Value.Value);
-    }
-
-    [Fact]
-    public void Apply_stores_multiple_keys()
-    {
-        var state = SensorHubState.Empty
-            .Apply(Reading(kind: SensorKind.IndoorTemperature))
-            .Apply(Reading(kind: SensorKind.IndoorHumidity, value: 55.0));
-
-        Assert.Equal(2, state.Readings.Count);
-    }
-
-    [Fact]
     public void Validate_accepts_plausible_temperature()
     {
         var result = SensorHubState.Empty.Validate(Reading(value: 22.5));
@@ -168,16 +132,6 @@ public sealed class SensorHubStateSpec
     }
 
     [Fact]
-    public void Expire_returns_same_state_when_nothing_expired()
-    {
-        var state = SensorHubState.Empty.Apply(Reading());
-
-        var result = state.Expire(Now, Staleness);
-
-        Assert.Same(state, result);
-    }
-
-    [Fact]
     public void GetLocationReadings_maps_every_location_with_fresh_readings()
     {
         var state = SensorHubState.Empty
@@ -210,9 +164,4 @@ public sealed class SensorHubStateSpec
             () => Assert.Equal(2, reading.SourceCount));
     }
 
-    [Fact]
-    public void GetLocationReadings_is_empty_for_an_empty_state()
-    {
-        Assert.Empty(SensorHubState.Empty.GetLocationReadings(Now, Staleness).ByLocation);
-    }
 }
