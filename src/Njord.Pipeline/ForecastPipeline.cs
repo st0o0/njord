@@ -48,8 +48,12 @@ public sealed class ForecastPipeline : ReceiveActor
     private long _graphId;
     private Sink<WeatherForecast, NotUsed>? _mergeSink;
     private Source<PipelineEvent, NotUsed>? _pipelineOutputSource;
+    private Sink<PipelineEvent, NotUsed>? _pipelineOutputSink;
+    private Source<WeatherForecast, NotUsed>? _forecastSource;
     private IActorRef? _sensorRef;
     private IActorRef? _settingsRef;
+    private Source<LocationSensorReadings, NotUsed>? _sensorSource;
+    private Source<AnalysisSettings, NotUsed>? _settingsSource;
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
@@ -83,7 +87,8 @@ public sealed class ForecastPipeline : ReceiveActor
     protected override void PreStart()
     {
         _mat = Context.Materializer();
-        MaterializeAnalysisPipeline();
+        MaterializeHubs();
+        MaterializeAnalysisGraph();
         _log.Info("Forecast pipeline materialized - waiting for producers and consumers");
         RequestCurrentInputs();
     }
@@ -147,8 +152,6 @@ public sealed class ForecastPipeline : ReceiveActor
                 });
     }
 
-    // The hubs are gone with the graph: fail, so the supervisor restarts the pipeline with fresh hubs and every
-    // producer and consumer re-attaches.
     private void OnAnalysisGraphEnded(AnalysisGraphEnded msg)
     {
         if (msg.GraphId != _graphId)
@@ -156,19 +159,18 @@ public sealed class ForecastPipeline : ReceiveActor
             return;
         }
 
-        throw new InvalidOperationException("Forecast analysis graph ended unexpectedly", msg.Cause);
+        _log.Warning(msg.Cause, "Analysis graph ended — re-materializing (hubs and consumers unaffected)");
+        MaterializeAnalysisGraph();
+        RequestCurrentInputs();
     }
 
-    private void MaterializeAnalysisPipeline()
+    private void MaterializeHubs()
     {
-        var graphId = _graphId = Interlocked.Increment(ref LastGraphId);
         var (mergeSink, forecastSource) = MergeHub.Source<WeatherForecast>(PerProducerBufferSize).PreMaterialize(_mat);
 
         var (pipelineOutputSource, pipelineOutputSink) = BroadcastHub.Sink<PipelineEvent>(bufferSize: 2)
             .PreMaterialize(_mat);
 
-        // The latest settings and sensor readings are zipped onto every forecast, so a change applies from the
-        // next forecast on and never in the middle of one computation.
         var (settingsRef, settingsSourceRaw) = Source.ActorRef<AnalysisSettings>(10, OverflowStrategy.DropHead)
             .PreMaterialize(_mat);
         var settingsSource = Source.Single(_startupSettings)
@@ -180,6 +182,24 @@ public sealed class ForecastPipeline : ReceiveActor
         var sensorSource = Source.Single(LocationSensorReadings.Empty)
             .Concat(sensorSourceRaw)
             .RepeatPrevious();
+
+        _mergeSink = mergeSink;
+        _pipelineOutputSource = pipelineOutputSource;
+        _pipelineOutputSink = pipelineOutputSink;
+        _forecastSource = forecastSource;
+        _settingsRef = settingsRef;
+        _sensorRef = sensorRef;
+        _sensorSource = sensorSource;
+        _settingsSource = settingsSource;
+    }
+
+    private void MaterializeAnalysisGraph()
+    {
+        var graphId = _graphId = Interlocked.Increment(ref LastGraphId);
+        var forecastSource = _forecastSource!;
+        var pipelineOutputSink = _pipelineOutputSink!;
+        var sensorSource = _sensorSource!;
+        var settingsSource = _settingsSource!;
 
         var consensusBuilder = _consensusBuilder;
         var consensusEnabled = _consensusEnabled;
@@ -212,7 +232,6 @@ public sealed class ForecastPipeline : ReceiveActor
                     var location = new LocationId(input.forecast.Location);
                     forecasts = forecasts.Update(input.forecast);
                     var settings = input.settings;
-                    // The forecasts feed every analysis, so it is built even when its own output is switched off.
                     var consensus = consensusBuilder.Create(forecasts, input.forecast.Location, settings.Consensus);
 
                     var events = new List<PipelineEvent>(6)
@@ -265,10 +284,5 @@ public sealed class ForecastPipeline : ReceiveActor
             .PipeTo(Self,
                 success: () => new AnalysisGraphEnded(graphId, null),
                 failure: ex => new AnalysisGraphEnded(graphId, ex));
-
-        _mergeSink = mergeSink;
-        _pipelineOutputSource = pipelineOutputSource;
-        _settingsRef = settingsRef;
-        _sensorRef = sensorRef;
     }
 }

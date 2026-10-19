@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Akka;
 using Akka.Actor;
 using Akka.Event;
+using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
@@ -12,11 +13,12 @@ using WeatherForecast = Njord.Forecast.Forecast;
 
 namespace Njord.Grpc;
 
-public sealed class GrpcConsumer : StreamConsumerActor
+public sealed class GrpcConsumer : ReceiveActor
 {
     private const int StreamClientBufferSize = 256;
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
+    private IMaterializer _mat = null!;
 
     private IActorRef _hubInput = ActorRefs.Nobody;
     private Source<PipelineEvent, NotUsed> _clientHubSource = Source.Empty<PipelineEvent>();
@@ -31,6 +33,8 @@ public sealed class GrpcConsumer : StreamConsumerActor
         public LatestAnalysisResult? Analysis { get; init; }
     }
 
+    private sealed record PipelineResolved(IActorRef Pipeline);
+    private sealed record PipelineResolveFailed(Exception Cause);
     private sealed record StreamCompleted;
 
     public GrpcConsumer()
@@ -40,25 +44,43 @@ public sealed class GrpcConsumer : StreamConsumerActor
         Receive<RequestGrpcStream>(HandleStreamRequest);
         Receive<PipelineEvent>(OnPipelineEvent);
         Receive<StreamCompleted>(_ => { });
+        Receive<PipelineResolved>(OnPipelineResolved);
+        Receive<PipelineResolveFailed>(msg => _log.Warning(msg.Cause, "Failed to resolve pipeline — gRPC consumer has no data"));
+        Receive<RequestPipelineOutputCompleted>(OnSourceRef);
+        Receive<RequestPipelineOutputFailed>(msg => _log.Warning(msg.Cause, "Pipeline could not create a SourceRef"));
     }
 
     protected override void PreStart()
     {
+        _mat = Context.Materializer();
+
         var (hubInput, hubSource) = Source.ActorRef<PipelineEvent>(256, OverflowStrategy.DropHead)
             .ToMaterialized(BroadcastHub.Sink<PipelineEvent>(bufferSize: 2), Keep.Both)
-            .Run(Mat);
+            .Run(_mat);
 
-        hubSource.RunWith(Sink.Ignore<PipelineEvent>(), Mat);
+        hubSource.RunWith(Sink.Ignore<PipelineEvent>(), _mat);
 
         _hubInput = hubInput;
         _clientHubSource = hubSource;
+
+        ActorRegistry.For(Context.System).GetAsync<IForecastPipeline>().PipeTo(Self,
+            success: pipeline => new PipelineResolved(pipeline),
+            failure: ex => new PipelineResolveFailed(ex));
     }
 
-    protected override Task MaterializeGraph(Source<PipelineEvent, NotUsed> events) =>
-        events
+    private void OnPipelineResolved(PipelineResolved msg)
+    {
+        msg.Pipeline.Tell(new RequestPipelineOutput(0));
+    }
+
+    private void OnSourceRef(RequestPipelineOutputCompleted msg)
+    {
+        _log.Info("Pipeline SourceRef received — gRPC consumer attached");
+        msg.SourceRef.Source
             .WatchTermination(Keep.Right)
-            .To(Sink.ActorRef<PipelineEvent>(Self, new StreamCompleted(), ex => new StreamCompleted()))
-            .Run(Mat);
+            .To(Sink.ActorRef<PipelineEvent>(Self, new StreamCompleted(), _ => new StreamCompleted()))
+            .Run(_mat);
+    }
 
     private void OnPipelineEvent(PipelineEvent evt)
     {
@@ -94,7 +116,7 @@ public sealed class GrpcConsumer : StreamConsumerActor
     {
         _clientHubSource
             .Buffer(StreamClientBufferSize, OverflowStrategy.DropHead)
-            .RunWith(StreamRefs.SourceRef<PipelineEvent>(), Mat)
+            .RunWith(StreamRefs.SourceRef<PipelineEvent>(), _mat)
             .PipeTo(Sender, Self,
                 sr => new RequestGrpcStreamCompleted(msg.RequestId, sr),
                 ex =>

@@ -11,17 +11,21 @@ public static class StreamSupervision
     public static StreamDecider LoggingDecider(ILoggingAdapter log) => ex =>
     {
         var cause = Unwrap(ex);
-        var directive = Classify(cause);
-        log.Warning(cause, "Stream supervision: {Directive} for {ExceptionType}", directive, cause.GetType().Name);
-        return directive;
+        if (IsTransient(cause))
+            log.Warning(cause, "Stream supervision: Resume for transient {ExceptionType}", cause.GetType().Name);
+        else
+            log.Error(cause, "Stream supervision: Resume for unexpected {ExceptionType} — element dropped, state preserved", cause.GetType().Name);
+        return StreamDirective.Resume;
     };
 
     public static StreamDecider LoggingDecider(ILogger logger) => ex =>
     {
         var cause = Unwrap(ex);
-        var directive = Classify(cause);
-        logger.LogWarning(cause, "Stream supervision: {Directive} for {ExceptionType}", directive, cause.GetType().Name);
-        return directive;
+        if (IsTransient(cause))
+            logger.LogWarning(cause, "Stream supervision: Resume for transient {ExceptionType}", cause.GetType().Name);
+        else
+            logger.LogError(cause, "Stream supervision: Resume for unexpected {ExceptionType} — element dropped, state preserved", cause.GetType().Name);
+        return StreamDirective.Resume;
     };
 
     // SelectAsync/SelectAsyncUnordered hand an already-faulted task's exception over as an AggregateException.
@@ -35,13 +39,10 @@ public static class StreamSupervision
         return ex;
     }
 
-    private static StreamDirective Classify(Exception ex) => ex switch
-    {
-        AskTimeoutException => StreamDirective.Resume,
-        TaskCanceledException => StreamDirective.Resume,
-        OperationCanceledException => StreamDirective.Resume,
-        TimeoutException => StreamDirective.Resume,
-        HttpRequestException => StreamDirective.Resume,
-        _ => StreamDirective.Stop,
-    };
+    private static bool IsTransient(Exception ex) => ex is
+        AskTimeoutException or
+        TaskCanceledException or
+        OperationCanceledException or
+        TimeoutException or
+        HttpRequestException;
 }

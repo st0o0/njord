@@ -82,15 +82,12 @@ with optional MQTT state publishing.
   the API's gRPC consumer (`GrpcConsumer` in `Njord.Grpc`, marker
   `IGrpcConsumer`) request a `SourceRef<PipelineEvent>` from `ForecastPipeline`
   and run their own sinks. No intermediate relay actors, no presenters, no discovery
-  payloads. Their base `StreamConsumerActor` attaches when the consumer starts (request
-  id, 10 s reply timeout, capped backoff), watches the pipeline incarnation that
-  answered and re-attaches only when that incarnation terminates or the consumer's own
-  graph completes or fails (Warning, `njord_stream_consumer_rewires_total`); there is no
-  waiting phase or stash, so queries are answered at any time. No consumer slows the
-  pipeline hub: the gRPC consumer builds its streaming hub (`Source.ActorRef` →
+  payloads. Each consumer attaches once at startup (resolves the pipeline, requests a
+  SourceRef) and never re-attaches: the pipeline's hubs are immortal (PreMaterialized,
+  survive analysis-graph re-materialization). Queries are answered at any time. No consumer
+  slows the pipeline hub: the gRPC consumer builds its streaming hub (`Source.ActorRef` →
   `BroadcastHub` with a permanent `Sink.Ignore` drain) once at start, keeps its latest
-  values as actor state and its hub across a re-attach, and gives each gRPC streaming
-  client a bounded drop-oldest buffer
+  values as actor state, and gives each gRPC streaming client a bounded drop-oldest buffer
   (256 events); the MQTT publisher runs events → `Buffer(256, DropHead)` → payloads →
   `Sink.ForEachAsync(1, dedup + publish)`, so a slow broker drops its own oldest events,
   and republishes every topic once per new subscription and after every broker reconnect. A started (or restarted)
@@ -206,7 +203,7 @@ src/
   Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references): Events/Budget, Events/Polling
   Njord.Core/                 # Options, actor keys, StreamSupervision
                               #   (-> Model, Forecast, Messages, Persistence, Consensus)
-    Actors/                   # Marker interfaces, ShardMessageExtractor, StreamConsumerActor, stream handshakes
+    Actors/                   # Marker interfaces, ShardMessageExtractor, stream handshakes
                               #   (StreamWiringMessages: pipeline output, forecast,
                               #   read-model and config streams)
     Configuration/            # Cross-cutting options and validators (scope, polling, OpenMeteo, storage,
@@ -270,7 +267,7 @@ src/
   Njord.Persistence.Tests/    # Persistence roundtrip and wire-format specs (Verify for the poll worker records)
   Njord.Consensus.Tests/      # Consensus and query vocabulary specs (no Akka)
   Njord.Messages.Tests/       # Analysis contract specs (enums, thresholds, details)
-  Njord.Core.Tests/           # Configuration, StreamConsumerActor
+  Njord.Core.Tests/           # Configuration, StreamSupervision
   Njord.OpenMeteo.Tests/      # OpenMeteoClient, OptionsBudgetProvider specs
   Njord.Budget.Tests/         # BudgetTracker specs
   Njord.SensorHub.Tests/      # SensorHub specs
@@ -316,8 +313,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1711 tests (Model 76, Forecast 49, Sensors 11, Persistence 16, Consensus 75, Messages 126,
-Core 155, Grpc 140, Pipeline 174, Mqtt 170, OpenMeteo 72, Budget 34, SensorHub 26, Architecture 122,
+Current total: 1665 tests (Model 76, Forecast 49, Sensors 11, Persistence 16, Consensus 75, Messages 126,
+Core 137, Grpc 138, Pipeline 174, Mqtt 166, OpenMeteo 72, Budget 34, SensorHub 26, Architecture 122,
 Alerts 120, Derived 32, Trends 24, Indices 85, host `Njord.Tests` 182, IntegrationTests 22).
 The count is one test per `[Fact]` and one per data row of a `[Theory]`.
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.

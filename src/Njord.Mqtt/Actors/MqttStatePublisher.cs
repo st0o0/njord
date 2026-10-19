@@ -1,5 +1,7 @@
 using Akka;
+using Akka.Actor;
 using Akka.Event;
+using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Options;
@@ -14,7 +16,7 @@ using Njord.Mqtt.Transport;
 
 namespace Njord.Mqtt.Actors;
 
-public sealed class MqttStatePublisher : StreamConsumerActor
+public sealed class MqttStatePublisher : ReceiveActor
 {
     private readonly string _baseTopic;
     private readonly ResolvedParameterSet _parameters;
@@ -28,6 +30,9 @@ public sealed class MqttStatePublisher : StreamConsumerActor
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
     private sealed record OutgoingMessage(MqttMessage Message, string Location);
+
+    private sealed record PipelineResolved(IActorRef Pipeline);
+    private sealed record PipelineResolveFailed(Exception Cause);
 
     public MqttStatePublisher(
         IOptions<NjordOptions> options,
@@ -48,25 +53,45 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         _publishTimeout = tuning.PublishTimeout;
         _eventBufferSize = tuning.EventBufferSize;
         _sessionCounter = sessionCounter;
+
+        Receive<PipelineResolved>(OnPipelineResolved);
+        Receive<PipelineResolveFailed>(msg => _log.Warning(msg.Cause, "Failed to resolve pipeline — MQTT publisher has no data"));
+        Receive<RequestPipelineOutputCompleted>(OnSourceRef);
+        Receive<RequestPipelineOutputFailed>(msg => _log.Warning(msg.Cause, "Pipeline could not create a SourceRef"));
     }
 
-    protected override Task MaterializeGraph(Source<PipelineEvent, NotUsed> events)
+    protected override void PreStart()
     {
+        ActorRegistry.For(Context.System).GetAsync<IForecastPipeline>().PipeTo(Self,
+            success: pipeline => new PipelineResolved(pipeline),
+            failure: ex => new PipelineResolveFailed(ex));
+    }
+
+    private void OnPipelineResolved(PipelineResolved msg)
+    {
+        msg.Pipeline.Tell(new RequestPipelineOutput(0));
+    }
+
+    private void OnSourceRef(RequestPipelineOutputCompleted msg)
+    {
+        _log.Info("Pipeline SourceRef received — MQTT publisher attached");
+        MaterializeGraph(msg.SourceRef.Source);
+    }
+
+    private void MaterializeGraph(Source<PipelineEvent, NotUsed> events)
+    {
+        var mat = Context.Materializer();
         var baseTopic = _baseTopic;
         var parameters = _parameters;
         var horizons = _horizons;
         var forecastDays = _forecastDays;
         var timeProvider = _timeProvider;
-        // Per subscription and per broker connection on purpose: after a re-attach and after a reconnect (a broker
-        // restart may have dropped the retained messages) every state topic is published once again.
         var lastPublished = new PublishedPayloads(_sessionCounter);
         var transport = _transport;
         var publishTimeout = _publishTimeout;
         var log = _log;
 
-        // The buffer always pulls from the pipeline and drops its oldest events while the broker lags behind, so a
-        // slow or stuck broker never back-pressures the pipeline output that the other consumers share.
-        return events
+        events
             .Buffer(_eventBufferSize, OverflowStrategy.DropHead)
             .Log("mqtt-state-in", e => e switch
             {
@@ -87,13 +112,9 @@ public sealed class MqttStatePublisher : StreamConsumerActor
             .Log("mqtt-state-out", m => $"{m.Message.Topic} [{m.Message.Payload.Length}B]", _log)
             .WithAttributes(ActorAttributes.CreateSupervisionStrategy(StreamSupervision.LoggingDecider(_log)))
             .RunWith(Sink.ForEachAsync<OutgoingMessage>(1,
-                outgoing => PublishChangedAsync(outgoing, lastPublished, transport, publishTimeout, log)), Mat);
+                outgoing => PublishChangedAsync(outgoing, lastPublished, transport, publishTimeout, log)), mat);
     }
 
-    // Dedup check and publish in one step, strictly sequential (ForEachAsync(1)): the cache needs no locking and a
-    // message is checked only after the previous publish recorded its hash. The hash is recorded only after the
-    // broker accepted the message, so a failed payload is sent again next cycle. Never throws: a failed publish
-    // must not end the subscription.
     private static async Task PublishChangedAsync(
         OutgoingMessage outgoing,
         PublishedPayloads lastPublished,
@@ -126,7 +147,6 @@ public sealed class MqttStatePublisher : StreamConsumerActor
         Telemetry.MqttDedup.Add(1, locationTag, new KeyValuePair<string, object?>("decision", "published"));
     }
 
-    // The payload hash last accepted by the broker per topic. Used by one sink at a time, so it needs no locking.
     private sealed class PublishedPayloads(MqttSessionCounter sessionCounter)
     {
         private readonly Dictionary<string, int> _hashes = [];

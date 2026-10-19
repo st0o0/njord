@@ -12,7 +12,7 @@ using Njord.Tests.Shared;
 
 namespace Njord.Mqtt.Tests;
 
-public sealed class MqttStateRewireSpec : NjordActorSpec
+public sealed class MqttStateDedupSpec : NjordActorSpec
 {
     protected override bool UseTestPersistence => false;
 
@@ -102,72 +102,6 @@ public sealed class MqttStateRewireSpec : NjordActorSpec
 
         await AwaitAssertAsync(
             () => Assert.Equal(2, transport.Sent.Count(m => PrecipStarts(m) == 1)),
-            TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Events_are_published_again_after_the_pipeline_subscription_failed()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var (pipeline, transport) = Start();
-        var first = await pipeline.NextSubscriptionAsync("the first subscription", ct);
-        await first.OfferAsync(Trend(1), ct);
-        await WaitForTrendAsync(transport, 1, ct);
-
-        first.Fail(new InvalidOperationException("pipeline output failed"));
-
-        var second = await pipeline.NextSubscriptionAsync("a new subscription after the failure", ct);
-        await second.OfferAsync(Trend(2), ct);
-        await WaitForTrendAsync(transport, 2, ct);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Events_are_published_again_after_the_pipeline_subscription_completed()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var (pipeline, transport) = Start();
-        var first = await pipeline.NextSubscriptionAsync("the first subscription", ct);
-        await first.OfferAsync(Trend(1), ct);
-        await WaitForTrendAsync(transport, 1, ct);
-
-        first.Complete();
-
-        var second = await pipeline.NextSubscriptionAsync("a new subscription after the completion", ct);
-        await second.OfferAsync(Trend(2), ct);
-        await WaitForTrendAsync(transport, 2, ct);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task Events_are_published_again_after_a_stage_stopped_on_an_unexpected_exception()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var (pipeline, transport) = Start();
-        var first = await pipeline.NextSubscriptionAsync("the first subscription", ct);
-
-        // A forecast event without a forecast makes the mapping stage throw a NullReferenceException,
-        // which the logging decider classifies as Stop.
-        await first.OfferAsync(new PipelineEvent.ForecastReceived(new LocationId("lucerne"), new WeatherModel("icon_d2"), null!), ct);
-
-        var second = await pipeline.NextSubscriptionAsync("a new subscription after the stopped stage", ct);
-        await second.OfferAsync(Trend(3), ct);
-        await WaitForTrendAsync(transport, 3, ct);
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task An_unchanged_payload_is_published_again_after_a_rewire()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var (pipeline, transport) = Start();
-        var first = await pipeline.NextSubscriptionAsync("the first subscription", ct);
-        await first.OfferAsync(Trend(4), ct);
-        await WaitForTrendAsync(transport, 4, ct);
-
-        first.Fail(new InvalidOperationException("pipeline output failed"));
-        var second = await pipeline.NextSubscriptionAsync("a new subscription after the failure", ct);
-        await second.OfferAsync(Trend(4), ct);
-
-        await AwaitAssertAsync(
-            () => Assert.Equal(2, transport.Sent.Count(m => m.Topic == "njord/lucerne/trends")),
             TestTimeouts.AwaitAssertMax, cancellationToken: ct);
     }
 }

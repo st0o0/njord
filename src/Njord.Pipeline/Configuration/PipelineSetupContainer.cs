@@ -50,8 +50,7 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
             builder
                 .WithPolling()
                 .WithSingleton<IForecastPipeline>("pipeline",
-                    (_, _, resolver) => resolver.Props<ForecastPipeline>().BackoffOnFailure("pipeline",
-                        PollingRegistration.MinBackoff, PollingRegistration.MaxBackoff, PollingRegistration.RandomFactor, config => config.WithMaxNrOfRetries(-1)));
+                    (_, _, resolver) => resolver.Props<ForecastPipeline>());
         }
     }
 }
