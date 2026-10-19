@@ -44,12 +44,6 @@ public sealed class GrpcConsumer : StreamConsumerActor
 
     protected override void PreStart()
     {
-        base.PreStart();
-        MaterializeClientHub();
-    }
-
-    private void MaterializeClientHub()
-    {
         var (hubInput, hubSource) = Source.ActorRef<PipelineEvent>(256, OverflowStrategy.DropHead)
             .ToMaterialized(BroadcastHub.Sink<PipelineEvent>(bufferSize: 2), Keep.Both)
             .Run(Mat);

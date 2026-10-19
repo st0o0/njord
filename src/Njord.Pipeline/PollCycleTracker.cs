@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Njord.Pipeline;
 
 internal enum PollCycleOutcome
@@ -9,42 +11,43 @@ internal enum PollCycleOutcome
 
 internal sealed record PollCycleSummary(string Location, int Total, int Changed, int Failed, TimeSpan Duration);
 
-// One open cycle per location: the latest outcome of every resolved model since the cycle opened.
-// A failure is final for the cycle (retries are unbounded); a later outcome of the same model replaces it.
-internal sealed class PollCycleTracker
+internal sealed record OpenCycle(DateTimeOffset Start, ImmutableDictionary<string, PollCycleOutcome> Outcomes)
 {
-    private sealed record OpenCycle(DateTimeOffset Start, Dictionary<string, PollCycleOutcome> Outcomes);
+    public static readonly OpenCycle Empty = new(default, ImmutableDictionary<string, PollCycleOutcome>.Empty);
+}
 
-    private readonly Dictionary<string, OpenCycle> _open = new(StringComparer.OrdinalIgnoreCase);
+internal sealed record PollCycleTracker(ImmutableDictionary<string, OpenCycle> Open)
+{
+    public static readonly PollCycleTracker Empty =
+        new(ImmutableDictionary.Create<string, OpenCycle>(StringComparer.OrdinalIgnoreCase));
 
-    public int OpenCycles => _open.Count;
+    public int OpenCycles => Open.Count;
 
-    public PollCycleSummary? Record(
-        string location, string modelId, IReadOnlyCollection<string> resolvedModels, PollCycleOutcome outcome, DateTimeOffset now)
+    public (PollCycleTracker Tracker, PollCycleSummary? Summary) Record(
+        string location, string modelId, IReadOnlyCollection<string> resolvedModels,
+        PollCycleOutcome outcome, DateTimeOffset now)
     {
         if (!resolvedModels.Contains(modelId, StringComparer.OrdinalIgnoreCase))
         {
-            return null;
+            return (this, null);
         }
 
-        if (!_open.TryGetValue(location, out var cycle))
+        var cycle = Open.TryGetValue(location, out var existing)
+            ? existing
+            : new OpenCycle(now, ImmutableDictionary.Create<string, PollCycleOutcome>(StringComparer.OrdinalIgnoreCase));
+
+        var outcomes = cycle.Outcomes.SetItem(modelId, outcome);
+        if (!resolvedModels.All(outcomes.ContainsKey))
         {
-            cycle = new OpenCycle(now, new Dictionary<string, PollCycleOutcome>(StringComparer.OrdinalIgnoreCase));
-            _open[location] = cycle;
+            return (this with { Open = Open.SetItem(location, cycle with { Outcomes = outcomes }) }, null);
         }
 
-        cycle.Outcomes[modelId] = outcome;
-        if (!resolvedModels.All(cycle.Outcomes.ContainsKey))
-        {
-            return null;
-        }
-
-        _open.Remove(location);
-        return new PollCycleSummary(
+        var summary = new PollCycleSummary(
             location,
-            cycle.Outcomes.Count,
-            cycle.Outcomes.Values.Count(o => o == PollCycleOutcome.Changed),
-            cycle.Outcomes.Values.Count(o => o == PollCycleOutcome.Failed),
+            outcomes.Count,
+            outcomes.Values.Count(o => o == PollCycleOutcome.Changed),
+            outcomes.Values.Count(o => o == PollCycleOutcome.Failed),
             now - cycle.Start);
+        return (this with { Open = Open.Remove(location) }, summary);
     }
 }
