@@ -12,9 +12,14 @@ public static class StreamSupervision
     {
         var cause = Unwrap(ex);
         if (IsTransient(cause))
+        {
             log.Warning(cause, "Stream supervision: Resume for transient {ExceptionType}", cause.GetType().Name);
+        }
         else
+        {
             log.Error(cause, "Stream supervision: Resume for unexpected {ExceptionType} — element dropped, state preserved", cause.GetType().Name);
+        }
+
         return StreamDirective.Resume;
     };
 
@@ -22,13 +27,17 @@ public static class StreamSupervision
     {
         var cause = Unwrap(ex);
         if (IsTransient(cause))
+        {
             logger.LogWarning(cause, "Stream supervision: Resume for transient {ExceptionType}", cause.GetType().Name);
+        }
         else
+        {
             logger.LogError(cause, "Stream supervision: Resume for unexpected {ExceptionType} — element dropped, state preserved", cause.GetType().Name);
+        }
+
         return StreamDirective.Resume;
     };
 
-    // SelectAsync/SelectAsyncUnordered hand an already-faulted task's exception over as an AggregateException.
     private static Exception Unwrap(Exception ex)
     {
         while (ex is AggregateException { InnerExceptions.Count: 1 } aggregate)
