@@ -3,11 +3,6 @@ using Njord.Model;
 
 namespace Njord.Messages.Pipeline;
 
-public interface IEnrichmentEvent
-{
-    Location Location { get; }
-}
-
 public abstract record PipelineEvent
 {
     public sealed record WeatherDataReceived(
@@ -33,10 +28,8 @@ public abstract record PipelineEvent
     public sealed record AlertRaised(
         Location Location,
         Alert Alert,
-        DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
+        DateTimeOffset Timestamp) : PipelineEvent
     {
-        Location IEnrichmentEvent.Location => Location;
-
         public AlertType Type => Alert.Type;
 
         public AlertSeverity Severity => Alert.Severity;

@@ -9,13 +9,13 @@ Rules (static entity set, `TimeProvider`, toggleable features) live in `AGENTS.m
 
 ## Where things live
 
-- **`Njord.Core/Domain`** holds the framework every enrichment plugs into: `IDomainHandler` (`Triggers` plus `Handle(current, previous, time)`, returning `PipelineEvent`s), `AlertOptions` / `AlertSettings` conversion / `AlertClock` and `ForecastQueries` (window and point queries on `DomainForecast<T>`).
-- **`Njord.Messages`** holds each feature's contracts in a domain folder (`Alerts/`): result records (`AlertResult`), enums, `SeverityThresholds` and the immutable `AlertSettings` record. No analyzer, rule or formula (`ZoneArchitectureSpec`).
+- **`Njord.Core/Domain`** holds the framework every enrichment plugs into: `IDomainHandler` (`Triggers` plus `Handle(current, previous, time)`, returning `PipelineEvent`s), `IAlertRule<T>` / `AlertOptions` / `AlertClock` and `ForecastQueries` (window and point queries on `DomainForecast<T>`).
+- **`Njord.Messages`** holds each feature's contracts in a domain folder (`Alerts/`): result records (`AlertResult`), enums, `SeverityThresholds`. No analyzer, rule or formula (`ZoneArchitectureSpec`).
 - **Feature library** (`Njord.Weather`, `Njord.AirQuality`, `Njord.Flood`; each references only `Njord.Core` and below) owns its computation:
 
 | Library | Entry point | Units | Helpers |
 |---|---|---|---|
-| `Njord.Weather` | `AlertAnalyzer` | 14 x `IAlertRule` in `Rules/` (`FrostRule`, ...) | `AlertWindow` (shared 24 h window) |
+| `Njord.Weather` | handler | 14 x `IAlertRule<DomainForecast<WeatherPoint>>` in `Rules/` (`FrostRule`, ...) | `AlertWindow` (shared 24 h window) |
 
 The handler of alerts is `WeatherAlertHandler` (triggered by the weather domain), which turns every non-`None` alert into a `PipelineEvent.AlertRaised`.
 
@@ -30,22 +30,22 @@ Naming: `<Feature>Analyzer`, `<Name>Rule`, `<Domain><Feature>Handler`. Never `Co
 
 ## Checklist
 
-1. **Options + settings** - `AlertOptions` (with `bool Enabled`) and validator in `src/Njord.Core/Configuration/`, a `ToSettings()` conversion there (`AlertSettingsConversion`), registered by the feature's `AddWeatherAlerts()`; the immutable `AlertSettings` record in `src/Njord.Messages/Alerts/`. The analyzer reads only `Enabled` from options.
+1. **Options + settings** - `AlertOptions` (with `bool Enabled`) and validator in `src/Njord.Core/Configuration/`, threshold accessors there (`AlertOptionsThresholds`), registered by the feature's `AddWeatherDomain()`. Rules take `AlertOptions` directly.
 2. **Result type** - record in `src/Njord.Messages/<Feature>/`; new alert types extend `AlertType` (and its wire names).
 3. **Rule** - new class in the feature library (`Rules/`), `public sealed`, parameterless, built on the helpers.
-4. **Register** - in the feature's `AddWeatherAlerts()` (`src/Njord.Weather/ServiceCollectionExtensions.cs`): `services.AddSingleton<IAlertRule, XxxRule>();` next to the analyzer, options and the `IDomainHandler` registration. The host calls `AddWeatherAlerts()` from `src/Njord/Configuration/WeatherAlertSetupContainer.cs`; `src/Njord.Pipeline/ProjectionEngine.cs` invokes every registered `IDomainHandler` whose `Triggers` contain the changed domain.
+4. **Register** - in the feature's `AddWeatherDomain()` (`src/Njord.Weather/ServiceCollectionExtensions.cs`): `services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, XxxRule>();` next to the analyzer, options and the `IDomainHandler` registration. The host calls `AddWeatherDomain()` from `src/Njord/Configuration/DomainSetupContainer.cs`; `src/Njord.Pipeline/ProjectionEngine.cs` invokes every registered `IDomainHandler` whose `Triggers` contain the changed domain.
 5. **Consumers** - MQTT state payloads: a payload record in `src/Njord.Mqtt/Payloads/` plus its `ToPayload()` in `src/Njord.Mqtt/Mapping/AnalysisPayloadMappings.cs`, wired through `src/Njord.Mqtt/StatePayloadBuilder.cs` (`FromAlerts`); gRPC: `ToProto()` in `src/Njord.Grpc/Mapping/AlertProtoMappings.cs` and the event switch in `src/Njord.Grpc/Mapping/EnrichmentEventMappings.cs` (`ToEnrichmentEvent`).
-6. **Tests** - one spec per rule in `src/Njord.Weather.Tests/Rules/<Type>RuleSpec.cs`, plain `[Fact]`s with a hand-built `DomainForecast<WeatherPoint>`. Analyzer specs cover fail-fast, ordering and the `AddWeatherAlerts()` registration (`FeatureServices` in `src/Njord.Tests.Shared` builds the analyzer from the real registrations). Golden masters: `StatePayloadGoldenMasterSpec` (`src/Njord.Mqtt.Tests`) and `ProtoMappingGoldenMasterSpec` (`src/Njord.Grpc.Tests`), inputs in `src/Njord.Tests.Shared/AlertScenario.cs` (built with `WeatherForecastBuilder`). A refactoring must keep them green **without re-approval**; approve new `.verified.txt` files only for intended output changes, never edit existing ones.
+6. **Tests** - one spec per rule in `src/Njord.Weather.Tests/Rules/<Type>RuleSpec.cs`, plain `[Fact]`s with a hand-built `DomainForecast<WeatherPoint>`. Registration specs cover one rule per type and the `AddWeatherDomain()` registration (`FeatureServices` in `src/Njord.Tests.Shared` builds the rules and handlers from the real registrations). Golden masters: `StatePayloadGoldenMasterSpec` (`src/Njord.Mqtt.Tests`) and `ProtoMappingGoldenMasterSpec` (`src/Njord.Grpc.Tests`), inputs in `src/Njord.Tests.Shared/AlertScenario.cs` (built with `WeatherForecastBuilder`). A refactoring must keep them green **without re-approval**; approve new `.verified.txt` files only for intended output changes, never edit existing ones.
 
 ## Worked example - an alert rule (from `FrostRule`)
 
 ```csharp
 // src/Njord.Weather/Rules/FrostRule.cs
-public sealed class FrostRule : IAlertRule
+public sealed class FrostRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Frost;
 
-    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var thresholds = settings.Frost;
         var window = forecast.Next24Hours(now);

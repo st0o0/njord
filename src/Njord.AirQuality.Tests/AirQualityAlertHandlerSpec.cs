@@ -13,7 +13,7 @@ public sealed class AirQualityAlertHandlerSpec
     private static readonly FakeTimeProvider Time = new(Now);
 
     private static AirQualityAlertHandler Create(bool enabled = true) =>
-        new([new PollenAlertRule(), new Pm25AlertRule()], AlertRuleFixture.Defaults, enabled);
+        new([new PollenAlertRule(), new Pm25AlertRule()], AlertRuleFixture.OptionsWith(enabled));
 
     [Fact]
     public void Triggers_only_on_the_air_quality_domain()

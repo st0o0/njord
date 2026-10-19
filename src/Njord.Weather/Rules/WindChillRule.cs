@@ -1,13 +1,15 @@
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.Weather.Alerts.Rules;
 
-public sealed class WindChillRule : IAlertRule
+public sealed class WindChillRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.WindChill;
 
-    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         if (forecast.Next24Hours(now).LowestBy(p => p.ApparentTemperature) is not { } coldest)
         {
@@ -16,7 +18,7 @@ public sealed class WindChillRule : IAlertRule
 
         var low = coldest.ApparentTemperature;
         var windFactor = Math.Round(coldest.Temperature - low, 1);
-        var (severity, effectiveThreshold) = settings.WindChill.Classify(low);
+        var (severity, effectiveThreshold) = options.WindChill().Classify(low);
         var exposureRisk = severity switch
         {
             AlertSeverity.Red => ExposureRisk.Frostbite10Min,
@@ -26,7 +28,7 @@ public sealed class WindChillRule : IAlertRule
 
         var rounded = Math.Round(low, 1);
         var details = new WindChillDetails(FeltTemperature: rounded, WindFactor: windFactor, ExposureRisk: exposureRisk);
-        return settings.Build(Type, severity, coldest, details, rounded, effectiveThreshold,
+        return AlertWindow.Build(Type, severity, coldest, details, rounded, effectiveThreshold,
             hoursUntil: coldest.HoursFrom(now));
     }
 }

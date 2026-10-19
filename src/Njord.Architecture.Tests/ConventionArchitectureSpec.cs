@@ -1,5 +1,7 @@
 using ArchUnitNET.Domain;
 using ArchUnitNET.xUnitV3;
+using Njord.Core.Domain;
+using Njord.Model;
 using Njord.Weather.Alerts;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
@@ -40,9 +42,13 @@ public sealed class ConventionArchitectureSpec
     [Fact]
     public void Weather_alert_rules_live_in_the_weather_alerts_library()
     {
-        Classes().That().Are(NjordArchitecture.ProductionTypes)
-            .And().ImplementInterface(typeof(IAlertRule))
-            .Should().Be(NjordArchitecture.TypesInLibrary("Njord.Weather"))
-            .Check(NjordArchitecture.Instance);
+        var ruleInterface = typeof(IAlertRule<DomainForecast<WeatherPoint>>);
+        var strays = new[] { typeof(AirQuality.AirQualityAlertHandler).Assembly, typeof(Flood.FloodRiskHandler).Assembly }
+            .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => ruleInterface.IsAssignableFrom(type) && type is { IsAbstract: false, IsInterface: false })
+            .Select(type => type.FullName)
+            .ToList();
+
+        Assert.Empty(strays);
     }
 }

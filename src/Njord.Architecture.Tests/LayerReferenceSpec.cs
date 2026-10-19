@@ -83,7 +83,7 @@ public sealed class LayerReferenceSpec
     [Fact]
     public void Weather_alerts_reference_only_Core_and_below()
     {
-        Assert.Empty(NjordReferences<Weather.Alerts.AlertAnalyzer>().Except(CoreAndBelow));
+        Assert.Empty(NjordReferences<Weather.Alerts.WeatherAlertHandler>().Except(CoreAndBelow));
     }
 
     [Fact]

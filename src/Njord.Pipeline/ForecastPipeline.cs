@@ -10,23 +10,18 @@ using Njord.Messages.Pipeline;
 namespace Njord.Pipeline;
 
 // Owns the long-lived hubs: producers attach to the MergeHub input via SinkRef, consumers to the
-// BroadcastHub output via SourceRef. Both live as long as this incarnation; producers and consumers
+// BroadcastHub output via SourceRef. Both live as long as this actor; producers and consumers
 // coming and going never rebuild them, so the analysis state in the stage closure survives them.
 public sealed class ForecastPipeline : ReceiveActor
 {
     private const int PerProducerBufferSize = 16;
 
-    // Unique across incarnations: a restarted pipeline keeps its ActorRef, and the end of the previous
-    // incarnation's graph must not fail the new one.
-    private static long LastGraphId;
-
-    private sealed record AnalysisGraphEnded(long GraphId, Exception? Cause) : IDeadLetterSuppression;
+    private sealed record AnalysisGraphEnded(Exception? Cause) : IDeadLetterSuppression;
 
     private readonly TimeProvider _timeProvider;
     private readonly IReadOnlyList<IDomainHandler> _handlers;
 
     private IMaterializer? _mat;
-    private long _graphId;
     private Sink<DomainDataReceived, NotUsed>? _mergeSink;
     private Source<PipelineEvent, NotUsed>? _pipelineOutputSource;
     private Sink<PipelineEvent, NotUsed>? _pipelineOutputSink;
@@ -82,11 +77,6 @@ public sealed class ForecastPipeline : ReceiveActor
 
     private void OnAnalysisGraphEnded(AnalysisGraphEnded msg)
     {
-        if (msg.GraphId != _graphId)
-        {
-            return;
-        }
-
         _log.Warning(msg.Cause, "Analysis graph ended — re-materializing (hubs and consumers unaffected)");
         MaterializeAnalysisGraph();
     }
@@ -106,7 +96,6 @@ public sealed class ForecastPipeline : ReceiveActor
 
     private void MaterializeAnalysisGraph()
     {
-        var graphId = _graphId = Interlocked.Increment(ref LastGraphId);
         var inputSource = _inputSource!;
         var pipelineOutputSink = _pipelineOutputSink!;
         var handlers = _handlers;
@@ -138,7 +127,7 @@ public sealed class ForecastPipeline : ReceiveActor
             .To(pipelineOutputSink)
             .Run(_mat)
             .PipeTo(Self,
-                success: () => new AnalysisGraphEnded(graphId, null),
-                failure: ex => new AnalysisGraphEnded(graphId, ex));
+                success: () => new AnalysisGraphEnded(null),
+                failure: ex => new AnalysisGraphEnded(ex));
     }
 }

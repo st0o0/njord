@@ -1,15 +1,17 @@
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.Weather.Alerts.Rules;
 
-public sealed class IceRule : IAlertRule
+public sealed class IceRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Ice;
 
-    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        var iceThreshold = settings.IceThreshold;
+        var iceThreshold = options.IceThreshold;
         var icy = forecast.Next24Hours(now)
             .Where(p => (p.Rain ?? p.Precipitation) > 0 && p.Temperature <= iceThreshold)
             .ToList();
@@ -30,7 +32,7 @@ public sealed class IceRule : IAlertRule
 
         var rounded = Math.Round(minTemp, 1);
         var details = new IceDetails(ExpectedLow: rounded, RainHours: icy.Count, SoilFrozen: soilFrozen);
-        return settings.Build(Type, severity, coldest, details, rounded, iceThreshold,
+        return AlertWindow.Build(Type, severity, coldest, details, rounded, iceThreshold,
             hoursUntil: icy[0].HoursFrom(now));
     }
 }

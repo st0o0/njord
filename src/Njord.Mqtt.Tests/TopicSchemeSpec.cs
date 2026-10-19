@@ -44,16 +44,16 @@ public sealed class TopicSchemeSpec
     }
 
     [Fact]
-    public void Consensus_device_id_uses_location_slug()
+    public void Enrichment_device_id_joins_base_slug_and_segment()
     {
-        Assert.Equal("njord_lucerne_consensus", TopicScheme.EnrichmentDeviceId("lucerne", "consensus"));
+        Assert.Equal("njord_lucerne_solar", TopicScheme.EnrichmentDeviceId("lucerne", "solar"));
     }
 
     [Fact]
-    public void Consensus_horizon_topic_uses_consensus_segment()
+    public void Enrichment_sub_topic_joins_base_slug_segment_and_leaf()
     {
-        Assert.Equal("njord/lucerne/consensus/h3",
-            TopicScheme.EnrichmentSubTopic("njord", "lucerne", "consensus", "h3"));
+        Assert.Equal("njord/lucerne/solar/h3",
+            TopicScheme.EnrichmentSubTopic("njord", "lucerne", "solar", "h3"));
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class TopicSchemeSpec
     [Fact]
     public void Enrichment_device_id_combines_location_and_type_name()
     {
-        Assert.Equal("njord_lucerne_consensus", TopicScheme.EnrichmentDeviceId("lucerne", "consensus"));
+        Assert.Equal("njord_lucerne_solar", TopicScheme.EnrichmentDeviceId("lucerne", "solar"));
         Assert.Equal("njord_z_rich_alerts", TopicScheme.EnrichmentDeviceId("Zürich", "alerts"));
     }
 

@@ -1,13 +1,15 @@
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.Weather.Alerts.Rules;
 
-public sealed class UvRule : IAlertRule
+public sealed class UvRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Uv;
 
-    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         if (forecast.Next24Hours(now).HighestBy(p => p.UvIndex) is not { } peak || peak.UvIndex <= 0)
         {
@@ -24,7 +26,7 @@ public sealed class UvRule : IAlertRule
         };
 
         var rounded = Math.Round(peak.UvIndex, 1);
-        return settings.Build(Type, severity, peak, new UvDetails(Level: level, UvIndex: rounded),
+        return AlertWindow.Build(Type, severity, peak, new UvDetails(Level: level, UvIndex: rounded),
             rounded, uvThreshold, hoursUntil: peak.HoursFrom(now));
     }
 }

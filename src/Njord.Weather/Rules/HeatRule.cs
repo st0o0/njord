@@ -1,13 +1,15 @@
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.Weather.Alerts.Rules;
 
-public sealed class HeatRule : IAlertRule
+public sealed class HeatRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Heat;
 
-    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var window = forecast.Next24Hours(now);
         var hottestApparent = window.HighestBy(p => p.ApparentTemperature);
@@ -21,14 +23,14 @@ public sealed class HeatRule : IAlertRule
             ? (hottestApparent, hottestApparent.ApparentTemperature)
             : (hottestAir, hottestAir.Temperature);
 
-        var (severity, effectiveThreshold) = settings.Heat.Classify(max);
+        var (severity, effectiveThreshold) = options.Heat().Classify(max);
         if (severity == AlertSeverity.None)
         {
             return Alert.None(Type);
         }
 
         var rounded = Math.Round(max, 1);
-        return settings.Build(Type, severity, peak, new HeatDetails(ExpectedMax: rounded, ModelsAgreeing: 0),
+        return AlertWindow.Build(Type, severity, peak, new HeatDetails(ExpectedMax: rounded, ModelsAgreeing: 0),
             rounded, effectiveThreshold, hoursUntil: peak.HoursFrom(now));
     }
 }

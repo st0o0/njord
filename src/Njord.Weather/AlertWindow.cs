@@ -23,7 +23,6 @@ internal static class AlertWindow
         (int)(point.ValidFrom - Start(now)).TotalHours;
 
     public static Alert Build(
-        this AlertSettings settings,
         AlertType type,
         AlertSeverity severity,
         WeatherPoint? peak,
@@ -34,7 +33,7 @@ internal static class AlertWindow
         int? hoursUntil = null,
         int? durationHours = null)
     {
-        var level = settings.Confidence.LevelFor(peak?.EnsembleStdDev);
+        var level = ConfidenceThresholds.Default.LevelFor(peak?.EnsembleStdDev);
         return new Alert(type, severity, level.ToConfidence(), details,
             TriggerValue: triggerValue,
             Threshold: threshold,

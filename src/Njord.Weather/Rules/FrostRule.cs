@@ -1,15 +1,17 @@
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.Weather.Alerts.Rules;
 
-public sealed class FrostRule : IAlertRule
+public sealed class FrostRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Frost;
 
-    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        var thresholds = settings.Frost;
+        var thresholds = options.Frost();
         var window = forecast.Next24Hours(now);
         if (window.LowestBy(p => p.Temperature) is not { } coldest)
         {
@@ -24,7 +26,7 @@ public sealed class FrostRule : IAlertRule
             EarliestFrost: earliest is null ? null : Horizon.Hours(earliest.HoursFrom(now)),
             ModelsAgreeing: 0);
 
-        return settings.Build(Type, severity, coldest, details, low, effectiveThreshold,
+        return AlertWindow.Build(Type, severity, coldest, details, low, effectiveThreshold,
             hoursUntil: earliest?.HoursFrom(now));
     }
 }

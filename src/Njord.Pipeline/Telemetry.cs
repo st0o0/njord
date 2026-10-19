@@ -8,9 +8,6 @@ internal static class Telemetry
 
     internal static readonly Meter Meter = new(MeterName);
 
-    internal static readonly Histogram<double> PollCycleDuration =
-        Meter.CreateHistogram<double>("njord_poll_cycle_duration_seconds", "s");
-
     internal static readonly Counter<long> DataChanged =
         Meter.CreateCounter<long>("njord_pipeline_data_changed_total", "{change}");
 

@@ -1,3 +1,5 @@
+using Njord.Core.Configuration;
+using Njord.Tests.Shared;
 using Njord.Messages.Alerts;
 using Njord.Model;
 using Njord.Weather.Alerts.Rules;
@@ -33,7 +35,7 @@ public sealed class FogRuleSpec
     [Fact]
     public void Fog_uses_the_passed_persistence_setting()
     {
-        var alert = Rule.Evaluate(Uniform(Foggy), Defaults with { FogPersistentHours = 25 }, Now);
+        var alert = Rule.Evaluate(Uniform(Foggy), AppSettingsDefaults.Options<AlertOptions>(o => o.FogPersistentHours = 25), Now);
 
         Assert.Equal(AlertSeverity.Yellow, alert.Severity);
     }

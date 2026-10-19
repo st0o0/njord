@@ -4,6 +4,7 @@ using Njord.AirQuality;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Flood;
+using Njord.Model;
 using Njord.Weather.Alerts;
 
 namespace Njord.Tests.Shared;
@@ -19,20 +20,26 @@ public static class FeatureServices
         return services.BuildServiceProvider();
     }
 
-    public static AlertAnalyzer Alerts(TimeProvider time, bool enabled = true) =>
-        Build(time, services => services
+    public static IReadOnlyList<IAlertRule<DomainForecast<WeatherPoint>>> WeatherRules(TimeProvider time) =>
+        [.. Build(time, services => services
                 .AddAlertOptions(AppSettingsDefaults.Configuration())
-                .AddWeatherAlerts()
+                .AddWeatherDomain())
+            .GetServices<IAlertRule<DomainForecast<WeatherPoint>>>()];
+
+    public static WeatherAlertHandler WeatherHandler(TimeProvider time, bool enabled = true) =>
+        (WeatherAlertHandler)Build(time, services => services
+                .AddAlertOptions(AppSettingsDefaults.Configuration())
+                .AddWeatherDomain()
                 .Configure<AlertOptions>(options => options.Enabled = enabled))
-            .GetRequiredService<AlertAnalyzer>();
+            .GetServices<IDomainHandler>().Single();
 
     public static IDomainHandler AlertHandler(TimeProvider time, Action<AlertOptions>? configure = null) =>
         Build(time, services =>
             {
                 services.AddAlertOptions(AppSettingsDefaults.Configuration());
-                services.AddWeatherAlerts();
-                services.AddAirQualityAlerts();
-                services.AddFloodAlerts();
+                services.AddWeatherDomain();
+                services.AddAirQualityDomain();
+                services.AddFloodDomain();
                 if (configure is not null)
                 {
                     services.Configure(configure);

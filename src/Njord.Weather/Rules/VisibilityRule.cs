@@ -1,15 +1,17 @@
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.Weather.Alerts.Rules;
 
-public sealed class VisibilityRule : IAlertRule
+public sealed class VisibilityRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Visibility;
 
-    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        var thresholds = settings.Visibility;
+        var thresholds = options.Visibility();
         var window = forecast.Next24Hours(now);
         if (window.LowestBy(p => p.Visibility) is not { Visibility: { } low } lowest)
         {
@@ -20,7 +22,7 @@ public sealed class VisibilityRule : IAlertRule
         var (severity, effectiveThreshold) = thresholds.Classify(low, strict: true);
         var rounded = Math.Round(low, 0);
         var details = new VisibilityDetails(MinVisibility: rounded, HoursBelow1000m: hoursBelow);
-        return settings.Build(Type, severity, lowest, details, rounded, effectiveThreshold,
+        return AlertWindow.Build(Type, severity, lowest, details, rounded, effectiveThreshold,
             hoursUntil: lowest.HoursFrom(now));
     }
 }

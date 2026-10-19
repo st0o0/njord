@@ -1,10 +1,11 @@
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.AirQuality;
 
-public sealed class PollenAlertRule : IAirQualityAlertRule
+public sealed class PollenAlertRule : IAlertRule<DomainForecast<AirQualityPoint>>
 {
     public const double YellowThreshold = 20.0;
     public const double OrangeThreshold = 50.0;
@@ -12,7 +13,7 @@ public sealed class PollenAlertRule : IAirQualityAlertRule
 
     public AlertType Type => AlertType.Pollen;
 
-    public Alert Evaluate(DomainForecast<AirQualityPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<AirQualityPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         AirQualityPoint? peakPoint = null;
         var peak = 0.0;

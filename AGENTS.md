@@ -61,7 +61,7 @@ with optional MQTT state publishing.
   (`WeatherDataReceived`, `AirQualityDataReceived`, `FloodDataReceived`,
   `SolarDataReceived`, `MarineDataReceived`, `AlertRaised`) — no
   `object` wrapping. Domain projects register their handlers in their own DI
-  extension; `AlertOptions`, `AlertSettings` conversion and `AlertClock` live in `Njord.Core`.
+  extension; each exposes one `Add<Name>Domain` extension (rules as `IAlertRule<T>`, handlers as `IDomainHandler`); `IAlertRule<T>`, `AlertOptions` and `AlertClock` live in `Njord.Core`.
 - **Consumers are output adapters via SourceRef.** The MQTT state publisher and
   the API's gRPC consumer (`GrpcConsumer` in `Njord.Grpc`, marker
   `IGrpcConsumer`) request a `SourceRef<PipelineEvent>` from `ForecastPipeline`
@@ -206,9 +206,9 @@ src/
                               #   EnrichmentEventMappings, WireEnumMappings: extension methods only
 
   # /Analysis/ — projection-group libraries (each -> Core only), own their computation
-  Njord.Weather/              # AlertAnalyzer, WeatherAlertHandler (IDomainHandler), IAlertRule,
+  Njord.Weather/              # WeatherAlertHandler (IDomainHandler),
                               #   Rules/ (one rule per AlertType), AlertWindow
-  Njord.AirQuality/           # AirQualityAlertHandler, IAirQualityAlertRule, PollenAlertRule, Pm25AlertRule
+  Njord.AirQuality/           # AirQualityAlertHandler, PollenAlertRule, Pm25AlertRule
   Njord.Flood/                # FloodRiskHandler, FloodRiskAlertRule, FloodRainHandler,
                               #   FloodRainAlertRule (cross-domain Weather x Flood)
 
@@ -231,7 +231,7 @@ src/
   Njord.Mqtt.Tests/           # MQTT connection, state payload, consumer specs
   Njord.Grpc.Tests/           # gRPC service, ActorAsk, mapping specs, golden masters,
                               #   GrpcConsumer specs
-  Njord.Weather.Tests/        # AlertAnalyzer, WeatherAlertHandler specs, Rules/ (one spec per rule)
+  Njord.Weather.Tests/        # WeatherAlertHandler, domain registration specs, Rules/ (one spec per rule)
   Njord.Tests/                # Host specs: options binding, setup containers
   Njord.IntegrationTests/     # Whole host via NjordHost + TestServer (gRPC channel, SQLite restart); Mosquitto via Testcontainers (needs Docker)
   Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules
@@ -431,7 +431,7 @@ These checks run locally only; they are deliberately not part of CI.
   `ServiceInfo`, `MqttConnectionStatus` / `PollHealth` /
   `BudgetUsage`. `NamingArchitectureSpec` enforces the `Snapshot` reservation.
 - Enrichment wire names come from `EnrichmentNames` (`Njord.Messages.Pipeline`), never bare
-  strings. Enrichment `PipelineEvent` variants implement `IEnrichmentEvent`.
+  strings. `AlertRaised` is the enrichment `PipelineEvent` variant.
 - `ParameterRegistry` (`Njord.Model`): one `static readonly ParameterDef` field per
   parameter (declared once, registered into the catalog; daily variants of a shared API name
   are `DailyWeatherCode`, `DailySunshineDuration`, `DailyEt0FaoEvapotranspiration`). Use the

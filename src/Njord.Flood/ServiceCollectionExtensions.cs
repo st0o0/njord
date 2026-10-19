@@ -1,25 +1,17 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Model;
 
 namespace Njord.Flood;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddFloodAlerts(this IServiceCollection services)
+    public static IServiceCollection AddFloodDomain(this IServiceCollection services)
     {
-        services.AddSingleton<IDomainHandler>(static sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<AlertOptions>>().Value;
-            return new FloodRiskHandler(new FloodRiskAlertRule(), options.ToSettings(), options.Enabled);
-        });
-
-        services.AddSingleton<IDomainHandler>(static sp =>
-        {
-            var options = sp.GetRequiredService<IOptions<AlertOptions>>().Value;
-            return new FloodRainHandler(new FloodRainAlertRule(), options.ToSettings(), options.Enabled);
-        });
+        services.AddSingleton<IAlertRule<DomainForecast<FloodPoint>>, FloodRiskAlertRule>();
+        services.AddSingleton<IAlertRule<FloodRainInput>, FloodRainAlertRule>();
+        services.AddSingleton<IDomainHandler, FloodRiskHandler>();
+        services.AddSingleton<IDomainHandler, FloodRainHandler>();
         return services;
     }
 }

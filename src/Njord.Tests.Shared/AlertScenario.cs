@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
@@ -59,13 +60,13 @@ public sealed class AlertScenario
 
     public static AlertScenario Create()
     {
-        var alerts = FeatureServices.Alerts(new FakeTimeProvider(Now));
-        var settings = AppSettingsDefaults.Options<AlertOptions>().ToSettings();
+        var rules = FeatureServices.WeatherRules(new FakeTimeProvider(Now));
+        var options = AppSettingsDefaults.Options<AlertOptions>();
 
         var analyses = Locations.Select(location =>
         {
             var weather = Weather(location);
-            var result = alerts.Compute(weather, settings, Now) ?? throw new InvalidOperationException("Alerts are disabled.");
+            var result = rules.OrderBy(rule => rule.Type).Select(rule => rule.Evaluate(weather, options, Now)).ToList();
             return new LocationAnalysis(location, new AlertResult(new Location(location, 0, 0), result));
         });
 

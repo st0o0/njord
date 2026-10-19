@@ -104,7 +104,7 @@ public sealed class WeatherGrpcService(
         await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown);
 
         await sourceRef.Source
-            .Where(e => e is IEnrichmentEvent enrichment && (location is not { } wanted || enrichment.Location == wanted))
+            .Where(e => e is PipelineEvent.AlertRaised alert && (location is not { } wanted || alert.Location == wanted))
             .Via(killSwitch.Flow<PipelineEvent>())
             .SelectAsync(1, async update =>
             {

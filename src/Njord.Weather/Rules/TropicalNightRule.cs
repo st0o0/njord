@@ -1,15 +1,17 @@
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.Weather.Alerts.Rules;
 
-public sealed class TropicalNightRule : IAlertRule
+public sealed class TropicalNightRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.TropicalNight;
 
-    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        var thresholds = settings.TropicalNight;
+        var thresholds = options.TropicalNight();
         var night = forecast.Next24Hours(now).Where(p => p.IsDay == false).ToList();
         if (night.Count == 0)
         {
@@ -21,7 +23,7 @@ public sealed class TropicalNightRule : IAlertRule
         var (severity, effectiveThreshold) = thresholds.Classify(coldest.Temperature, strict: true);
         var rounded = Math.Round(coldest.Temperature, 1);
         var details = new TropicalNightDetails(NightMinimum: rounded, HoursAbove20: hoursAbove);
-        return settings.Build(Type, severity, coldest, details, rounded, effectiveThreshold,
+        return AlertWindow.Build(Type, severity, coldest, details, rounded, effectiveThreshold,
             hoursUntil: night[0].HoursFrom(now));
     }
 }

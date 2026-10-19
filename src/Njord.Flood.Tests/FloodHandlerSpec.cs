@@ -12,9 +12,9 @@ public sealed class FloodHandlerSpec
 {
     private static readonly FakeTimeProvider Time = new(Now);
 
-    private static FloodRiskHandler Risk(bool enabled = true) => new(new FloodRiskAlertRule(), AlertRuleFixture.Defaults, enabled);
+    private static FloodRiskHandler Risk(bool enabled = true) => new(new FloodRiskAlertRule(), AlertRuleFixture.OptionsWith(enabled));
 
-    private static FloodRainHandler Rainfall(bool enabled = true) => new(new FloodRainAlertRule(), AlertRuleFixture.Defaults, enabled);
+    private static FloodRainHandler Rainfall(bool enabled = true) => new(new FloodRainAlertRule(), AlertRuleFixture.OptionsWith(enabled));
 
     [Fact]
     public void The_risk_handler_triggers_only_on_flood()

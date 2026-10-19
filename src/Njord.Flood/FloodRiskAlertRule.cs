@@ -1,3 +1,4 @@
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
@@ -24,13 +25,13 @@ public static class FloodAlertWindow
         Math.Max(0, (int)(point.ValidFrom - now).TotalHours);
 }
 
-public sealed class FloodRiskAlertRule
+public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
 {
     public const double MedianFactor = 2.0;
 
     public AlertType Type => AlertType.FloodRisk;
 
-    public Alert Evaluate(DomainForecast<FloodPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<FloodPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var best = Alert.None(Type);
         foreach (var point in forecast.NextDays(now))

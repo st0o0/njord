@@ -15,7 +15,7 @@ public sealed class WeatherAlertHandlerSpec
     private static readonly FakeTimeProvider Time = new(Now);
 
     private static WeatherAlertHandler Create(bool enabled = true) =>
-        new(FeatureServices.Alerts(Time, enabled), Defaults);
+        FeatureServices.WeatherHandler(Time, enabled);
 
     [Fact]
     public void Triggers_only_on_the_weather_domain()

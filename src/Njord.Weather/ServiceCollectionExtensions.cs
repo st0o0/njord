@@ -1,34 +1,30 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Model;
 using Njord.Weather.Alerts.Rules;
 
 namespace Njord.Weather.Alerts;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddWeatherAlerts(this IServiceCollection services)
+    public static IServiceCollection AddWeatherDomain(this IServiceCollection services)
     {
-        services.AddSingleton<IAlertRule, FrostRule>();
-        services.AddSingleton<IAlertRule, HeatRule>();
-        services.AddSingleton<IAlertRule, StormRule>();
-        services.AddSingleton<IAlertRule, HeavyRainRule>();
-        services.AddSingleton<IAlertRule, UvRule>();
-        services.AddSingleton<IAlertRule, FogRule>();
-        services.AddSingleton<IAlertRule, SnowRule>();
-        services.AddSingleton<IAlertRule, PressureDropRule>();
-        services.AddSingleton<IAlertRule, ThunderstormRule>();
-        services.AddSingleton<IAlertRule, IceRule>();
-        services.AddSingleton<IAlertRule, WindChillRule>();
-        services.AddSingleton<IAlertRule, VisibilityRule>();
-        services.AddSingleton<IAlertRule, TropicalNightRule>();
-        services.AddSingleton<IAlertRule, HumidityRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, FrostRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, HeatRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, StormRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, HeavyRainRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, UvRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, FogRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, SnowRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, PressureDropRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, ThunderstormRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, IceRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, WindChillRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, VisibilityRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, TropicalNightRule>();
+        services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, HumidityRule>();
 
-        services.AddSingleton<AlertAnalyzer>();
-        services.AddSingleton<IDomainHandler>(static sp => new WeatherAlertHandler(
-            sp.GetRequiredService<AlertAnalyzer>(),
-            sp.GetRequiredService<IOptions<AlertOptions>>().Value.ToSettings()));
+        services.AddSingleton<IDomainHandler, WeatherAlertHandler>();
 
         return services;
     }

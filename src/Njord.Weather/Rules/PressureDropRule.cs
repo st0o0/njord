@@ -1,16 +1,18 @@
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.Weather.Alerts.Rules;
 
-public sealed class PressureDropRule : IAlertRule
+public sealed class PressureDropRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     private const int DropSpanHours = 3;
     private const int MinimumHours = 4;
 
     public AlertType Type => AlertType.PressureDrop;
 
-    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var window = forecast.Next24Hours(now);
         if (window.Count < MinimumHours)
@@ -19,8 +21,8 @@ public sealed class PressureDropRule : IAlertRule
         }
 
         var (maxDrop, endPoint) = MaxDrop(window, now);
-        var dropThreshold = settings.PressureDropThreshold;
-        var severeThreshold = settings.PressureDropSevereThreshold;
+        var dropThreshold = options.PressureDropThreshold;
+        var severeThreshold = options.PressureDropSevereThreshold;
 
         var severity = maxDrop switch
         {
@@ -30,7 +32,7 @@ public sealed class PressureDropRule : IAlertRule
         };
 
         var rounded = Math.Round(maxDrop, 1);
-        return settings.Build(Type, severity, endPoint, new PressureDropDetails(MaxDrop: rounded, ModelsAgreeing: 0),
+        return AlertWindow.Build(Type, severity, endPoint, new PressureDropDetails(MaxDrop: rounded, ModelsAgreeing: 0),
             rounded, maxDrop >= severeThreshold ? severeThreshold : dropThreshold);
     }
 

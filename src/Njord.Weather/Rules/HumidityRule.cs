@@ -1,15 +1,17 @@
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.Weather.Alerts.Rules;
 
-public sealed class HumidityRule : IAlertRule
+public sealed class HumidityRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Humidity;
 
-    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        var thresholds = settings.Humidity;
+        var thresholds = options.Humidity();
         var day = forecast.Next24Hours(now).Where(p => p.IsDay == true).ToList();
         if (day.Count == 0)
         {
@@ -28,7 +30,7 @@ public sealed class HumidityRule : IAlertRule
 
         var rounded = Math.Round(muggiest.DewPoint, 1);
         var details = new HumidityDetails(MaxDewpoint: rounded, ComfortLevel: comfortLevel);
-        return settings.Build(Type, severity, muggiest, details, rounded, effectiveThreshold,
+        return AlertWindow.Build(Type, severity, muggiest, details, rounded, effectiveThreshold,
             hoursUntil: muggiest.HoursFrom(now));
     }
 }

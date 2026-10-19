@@ -1,10 +1,11 @@
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.AirQuality;
 
-public sealed class Pm25AlertRule : IAirQualityAlertRule
+public sealed class Pm25AlertRule : IAlertRule<DomainForecast<AirQualityPoint>>
 {
     public const double WhoGuideline = 15.0;
     public const double OrangeThreshold = 25.0;
@@ -12,7 +13,7 @@ public sealed class Pm25AlertRule : IAirQualityAlertRule
 
     public AlertType Type => AlertType.Pm25;
 
-    public Alert Evaluate(DomainForecast<AirQualityPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<AirQualityPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         AirQualityPoint? peakPoint = null;
         foreach (var point in forecast.Next24Hours(now))

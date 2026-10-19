@@ -1,17 +1,21 @@
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.Flood;
 
-public sealed class FloodRainAlertRule
+public sealed record FloodRainInput(DomainForecast<FloodPoint> Flood, DomainForecast<WeatherPoint> Weather);
+
+public sealed class FloodRainAlertRule : IAlertRule<FloodRainInput>
 {
     public const double HeavyRain24HourMillimeters = 30.0;
 
     public AlertType Type => AlertType.FloodRain;
 
-    public Alert Evaluate(DomainForecast<FloodPoint> flood, DomainForecast<WeatherPoint> weather, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(FloodRainInput input, AlertOptions options, DateTimeOffset now)
     {
+        var (flood, weather) = input;
         var rain = weather.Next24Hours(now).Sum(p => p.Precipitation);
         if (rain < HeavyRain24HourMillimeters)
         {

@@ -1,3 +1,5 @@
+using Njord.Core.Configuration;
+using Njord.Tests.Shared;
 using Njord.Messages.Alerts;
 using Njord.Model;
 using Njord.Weather.Alerts.Rules;
@@ -50,7 +52,7 @@ public sealed class FrostRuleSpec
     [Fact]
     public void Frost_rule_classifies_against_the_passed_thresholds()
     {
-        var settings = Defaults with { Frost = new SeverityThresholds(0, -2, -5, ScanDirection.Min) };
+        var settings = AppSettingsDefaults.Options<AlertOptions>(o => o.FrostThresholds = [0, -2, -5]);
 
         var alert = Rule.Evaluate(Uniform(p => p with { Temperature = -3.0 }), settings, Now);
 

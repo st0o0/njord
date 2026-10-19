@@ -1,13 +1,15 @@
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
 namespace Njord.Weather.Alerts.Rules;
 
-public sealed class SnowRule : IAlertRule
+public sealed class SnowRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Snow;
 
-    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var window = forecast.Next24Hours(now);
         if (!window.Any(p => p.Snowfall is not null))
@@ -33,7 +35,7 @@ public sealed class SnowRule : IAlertRule
             FreezingLevel: freezingLevels.Count > 0 ? Math.Round(Median(freezingLevels), 0) : null,
             ModelsAgreeing: 0);
 
-        return settings.Build(Type, severity, snowiest, details, roundedSum, snowThreshold);
+        return AlertWindow.Build(Type, severity, snowiest, details, roundedSum, snowThreshold);
     }
 
     private static double Median(List<double> sorted)

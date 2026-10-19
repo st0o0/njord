@@ -1,14 +1,16 @@
+using Njord.AirQuality;
 using Njord.Core.Configuration;
+using Njord.Flood;
 using Njord.Weather.Alerts;
 using Servus.Application.Startup;
 
 namespace Njord.Configuration;
 
-public sealed class WeatherAlertSetupContainer : IServiceSetupContainer
+public sealed class DomainSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddAlertOptions(configuration);
-        services.AddWeatherAlerts();
+        services.AddWeatherDomain().AddAirQualityDomain().AddFloodDomain();
     }
 }
