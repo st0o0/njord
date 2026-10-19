@@ -21,7 +21,6 @@ njord is configured via `appsettings.json` or environment variables. All setting
     "Storage": { "PersistencePath": "data/njord.db" },
     "Persistence": { ... },
     "Mqtt": { ... },
-    "Sensors": { ... },
     "Enrichment": { ... }
   }
 }
@@ -56,7 +55,7 @@ Njord__Locations__0__Name=Home
 Njord__Locations__0__Latitude=47.05
 Njord__Models__0=icon_eu
 Njord__Models__1=ecmwf_ifs025
-Njord__Enrichment__Consensus__Method=TrimmedMean
+Njord__Enrichment__Alerts__Enabled=true
 ```
 
 Array items use zero-based indices (`__0__`, `__1__`, etc.).
@@ -75,7 +74,7 @@ Configuration is read once at startup. To change a setting, edit your configurat
 - [Models](./models): which weather models to poll
 - [Horizons](./horizons): forecast time offsets
 - [Parameters](./parameters): which weather variables to request
-- [Enrichment](./enrichment): consensus, alerts, derived metrics, and more
+- [Enrichment](./enrichment): weather alerts and domain-specific enrichments
 - [MQTT](./mqtt): broker connection and topic settings
 - [Persistence](./persistence): SQLite or PostgreSQL storage
 - [Budget](./budget): Open-Meteo rate limits and usage projection

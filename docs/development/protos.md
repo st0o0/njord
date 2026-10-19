@@ -8,10 +8,9 @@ Proto definitions live in the **njord** repo at `protos/njord/v2/`:
 
 ```
 protos/njord/v2/
-├── common.proto      # Shared types (forecasts, enrichments, alerts, ...)
-├── weather.proto     # WeatherService (GetForecast, StreamForecasts, ...)
-├── ops.proto         # OpsService (TriggerPoll, GetStatus, ...)
-└── sensor.proto      # SensorService (Push, StreamPush)
+├── common.proto      # Shared types (domain data, alerts, enums)
+├── weather.proto     # WeatherService (GetDomainData, StreamDomainData, ...)
+└── ops.proto         # OpsService (TriggerPoll, GetStatus, ...)
 ```
 
 ## How each repo uses them
@@ -39,10 +38,7 @@ Closed value sets are proto enums, each with a `*_UNSPECIFIED = 0` member. Absen
 | Field | Enum | Members |
 |-------|------|---------|
 | `ModelStatus.phase`, `TriggerTarget.phase` | `PollPhase` | `DISCOVERY`, `STEADY` |
-| `ParameterTrend.direction` | `TrendDirection` | `RISING`, `FALLING`, `STABLE` |
-| `TrendUpdate.stability_label` | `Stability` | `CONVERGING`, `DIVERGING`, `STABLE` |
-| `HorizonDerived.dewpoint_comfort` | `DewPointComfort` | `DRY`, `COMFORTABLE`, `STICKY`, `OPPRESSIVE`, `DANGEROUS` |
-| `VpdInfo.category` | `VpdCategory` | `LOW`, `OPTIMAL`, `HIGH`, `CRITICAL` |
+| `DomainDataUpdate.domain` | `Domain` | `WEATHER`, `AIR_QUALITY`, `FLOOD`, `SOLAR`, `MARINE` |
 
 Member names carry the enum name as prefix (`POLL_PHASE_STEADY`). 
 

@@ -12,10 +12,10 @@ ha-njord/
 │   ├── __init__.py              # Setup, config/options flow hooks
 │   ├── grpc_client.py           # gRPC client (unary + streaming)
 │   ├── coordinator.py           # DataUpdateCoordinator with streaming
-│   ├── weather.py               # Weather platform (per-model + consensus)
-│   ├── sensor.py                # Sensor platform (alerts, indices, derived, ...)
+│   ├── weather.py               # Weather platform (domain data)
+│   ├── sensor.py                # Sensor platform (alerts, diagnostics)
 │   ├── event.py                 # Event platform (alert state changes)
-│   ├── binary_sensor.py         # Binary sensor platform (inversion, streams)
+│   ├── binary_sensor.py         # Binary sensor platform (stream connectivity)
 │   ├── button.py                # Button platform (trigger poll)
 │   ├── config_flow.py           # Config + options flow
 │   └── proto/                   # Generated protobuf stubs

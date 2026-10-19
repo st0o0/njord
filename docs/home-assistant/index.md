@@ -29,17 +29,16 @@ Copy the `custom_components/njord` directory from [ha-njord](https://github.com/
 The integration creates two types of devices:
 
 **Location device** (one per configured location, e.g. "njord Home"):
-- Weather entities for each model and the consensus
-- Enrichment sensors (alerts, indices, trends, derived, history)
+- Domain data entities (weather, air quality, flood, solar)
+- Alert sensors
 - Weather alert event entity
-- Inversion binary sensor
 
 **Server device** (one per njord instance, e.g. "njord Server"):
 - Trigger Poll button
-- Stream connectivity sensors (forecast, enrichment, config)
+- Stream connectivity sensors (domain data, enrichment)
 - API usage sensors (monthly, daily)
 - Version and uptime sensors
-- Per-target poll state sensors
+- Per-location poll state sensors
 
 Find all njord devices under **Settings > Devices & Services > njord Weather**.
 

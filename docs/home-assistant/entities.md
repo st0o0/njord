@@ -4,12 +4,11 @@ The integration creates entities across five platforms: `weather`, `sensor`, `bi
 
 ## Weather (`weather.*`)
 
-Each location/model combination creates a weather entity. An additional consensus entity aggregates all models per location.
+Each location creates a weather entity from the ensemble forecast data.
 
-| Entity | Example |
-|--------|---------|
-| Per model | `weather.njord_home_icon_d2` |
-| Consensus | `weather.njord_home_consensus` |
+::: warning ha-njord redesign pending
+The ha-njord integration must be updated for njord's new multi-domain architecture. Per-model weather entities and consensus entities have been replaced by domain-based data. The entity structure below will change when ha-njord is updated.
+:::
 
 **State attributes (current conditions):**
 
@@ -35,17 +34,7 @@ Each location/model combination creates a weather entity. An additional consensu
 | `model_resolution_km` | Grid resolution in km |
 | `model_max_forecast_hours` | Maximum forecast horizon |
 
-**Consensus extra attributes:**
-
-| Attribute | Description |
-|-----------|-------------|
-| `agreement` | Fraction of models agreeing on temperature direction (0 to 1) |
-| `available_models` | Number of models contributing |
-| `spread` | Temperature spread between models in °C |
-| `reliable_hours` | Hours where model agreement stays above 50% |
-| `current_horizon` | Which horizon offset is currently displayed (e.g. `h3`) |
-
-**Forecasts** are available via the `weather.get_forecasts` service with `type: hourly` or `type: daily`. Extra forecast parameters configured in njord (e.g. `cape`, `uv_index`) appear as additional fields in the forecast entries.
+**Forecasts** are available via the `weather.get_forecasts` service with `type: hourly` or `type: daily`.
 
 ---
 
@@ -89,67 +78,9 @@ These attributes come from the gRPC API. On the optional MQTT output the same me
 
 ---
 
-## Activity indices (`sensor.*_index`)
-
-8 activity scores (0 to 100%) indicating weather suitability. **Disabled by default.**
-
-| Entity | Icon | What it measures |
-|--------|------|------------------|
-| `sensor.njord_{loc}_laundry_index` | tshirt | Outdoor laundry drying conditions |
-| `sensor.njord_{loc}_outdoor_index` | pine-tree | General outdoor comfort |
-| `sensor.njord_{loc}_running_index` | run | Running conditions |
-| `sensor.njord_{loc}_cycling_index` | bike | Cycling conditions |
-| `sensor.njord_{loc}_bbq_index` | grill | Barbecue-friendliness |
-| `sensor.njord_{loc}_irrigation_index` | sprinkler | Garden irrigation need |
-| `sensor.njord_{loc}_solar_index` | solar-power | Solar energy production potential |
-| `sensor.njord_{loc}_night_ventilation_index` | air-filter | Night ventilation benefit |
-
-Each index sensor carries a `forecast` attribute with an array of `{day_offset, score}` entries for multi-day outlook.
-
----
-
-## Additional sensors
-
-All **disabled by default**. Enable via the entity registry.
-
-### Frost
-
-| Entity | Unit | Description |
-|--------|------|-------------|
-| `sensor.njord_{loc}_frost_hours` | h | Forecast hours with temperature below 0 °C |
-| `sensor.njord_{loc}_frost_confidence` | % | Confidence (0 to 100%) that frost will occur |
-
-### VPD (Vapour Pressure Deficit)
-
-| Entity | Unit | Description |
-|--------|------|-------------|
-| `sensor.njord_{loc}_vpd` | kPa | Drying power of the air. Attribute: `category` (low, optimal, high, critical) |
-
-### Weather trend
-
-| Entity | Description |
-|--------|-------------|
-| `sensor.njord_{loc}_weather_trend` | Weather change description (e.g. "clearing skies", "rain approaching") |
-
-**Attributes:** `stability_label`, `precip_starts_in_hours`, `precip_ends_in_hours`, `temp_max_in_hours`, `temp_min_in_hours`, `reliable_hours`, `stability_ratio`, `decay_rate`, `parameter_trends`
-
-### Derived metrics
-
-| Entity | Unit | Description |
-|--------|------|-------------|
-| `sensor.njord_{loc}_sunshine` | % | Sunshine percentage based on cloud cover |
-| `sensor.njord_{loc}_diurnal_amplitude` | °C | Daily max/min temperature difference |
-| `sensor.njord_{loc}_beaufort` | 0 to 12 | Wind on the Beaufort scale |
-| `sensor.njord_{loc}_wind_chill` | °C | Perceived temperature factoring wind |
-| `sensor.njord_{loc}_dewpoint_comfort` | string | Comfort category based on dew point (e.g. "Comfortable", "Humid") |
-
-### Model performance (diagnostic)
-
-| Entity | Unit | Description |
-|--------|------|-------------|
-| `sensor.njord_{loc}_model_performance` | °C | Accuracy-weighted ensemble temperature |
-
-**Attributes:** `models` (array of `{model, mae_7d, mae_30d, weight, drift}`), `seasonal_best`, `anomaly`, `anomaly_deviation`
+::: info Removed features
+Activity indices, VPD, weather trends, derived metrics, and model performance sensors were removed in the v2 redesign. These may return as optional projection groups in a future release.
+:::
 
 ---
 
@@ -164,7 +95,7 @@ All **disabled by default**. Enable via the entity registry.
 
 Each usage sensor carries `limit` and `used` attributes.
 
-**Target sensors** (disabled by default): `sensor.njord_{location}_{model}_target` shows the next poll time for each location/model pair, with attributes `phase`, `miss_count`, `last_change`, `cycle_seconds`.
+**Target sensors** (disabled by default): `sensor.njord_{location}_target` shows the next poll time for each location, with attributes `phase`, `miss_count`, `last_change`, `cycle_seconds`.
 
 ---
 
@@ -172,10 +103,8 @@ Each usage sensor carries `limit` and `used` attributes.
 
 | Entity | Default | Description |
 |--------|---------|-------------|
-| `binary_sensor.njord_{loc}_inversion` | disabled | Temperature inversion detection (warm air above cold) |
-| `binary_sensor.njord_forecast_stream` | enabled | gRPC forecast stream connectivity (diagnostic) |
+| `binary_sensor.njord_forecast_stream` | enabled | gRPC domain data stream connectivity (diagnostic) |
 | `binary_sensor.njord_enrichment_stream` | enabled | gRPC enrichment stream connectivity (diagnostic) |
-| `binary_sensor.njord_config_stream` | enabled | gRPC config stream connectivity (diagnostic) |
 
 ---
 
@@ -208,30 +137,6 @@ Attributes after pressing: `triggered_count`, `last_triggered`.
 
 ## Dashboard examples
 
-### Weather forecast card
-
-```yaml
-type: weather-forecast
-entity: weather.njord_home_consensus
-forecast_type: daily
-```
-
-### Multi-model comparison
-
-```yaml
-type: entities
-title: Current Temperature by Model
-entities:
-  - entity: weather.njord_home_icon_d2
-    name: ICON-D2
-  - entity: weather.njord_home_icon_eu
-    name: ICON-EU
-  - entity: weather.njord_home_ecmwf_ifs025
-    name: ECMWF
-  - entity: weather.njord_home_consensus
-    name: Consensus
-```
-
 ### Weather alerts overview
 
 ```yaml
@@ -248,24 +153,6 @@ entities:
     name: UV
   - entity: sensor.njord_home_thunderstorm_alert
     name: Thunderstorm
-```
-
-### Activity indices
-
-```yaml
-type: entities
-title: Activity Scores
-entities:
-  - entity: sensor.njord_home_outdoor_index
-    name: Outdoor
-  - entity: sensor.njord_home_running_index
-    name: Running
-  - entity: sensor.njord_home_cycling_index
-    name: Cycling
-  - entity: sensor.njord_home_bbq_index
-    name: BBQ
-  - entity: sensor.njord_home_solar_index
-    name: Solar
 ```
 
 ## Automation examples

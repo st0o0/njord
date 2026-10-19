@@ -79,7 +79,7 @@ Continental models cover Europe (latitude 34 to 72, longitude -12 to 45).
 
 ## Tips for model selection
 
-1. **Start small.** Two or three models are enough to get useful forecasts and enable consensus. Adding more models increases API usage proportionally.
+1. **Start small.** njord uses the Ensemble Mean API by default, which provides statistically robust forecasts from a single API call per location. Individual models are optional and can be added for comparison.
 
 2. **Mix global and regional.** A global model provides the long-range outlook; a regional model gives higher-resolution short-term detail.
 

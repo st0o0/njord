@@ -52,4 +52,4 @@ Adding a regional model (like `icon_d2` or `meteoswiss_icon_ch1`) to the global 
 
 - Start with 2 to 3 global models (e.g. `ecmwf_ifs025`, `gfs_seamless`, `icon_global`) for broad coverage.
 - Add regional models per location for higher resolution where available.
-- More models improve consensus accuracy but increase API usage. See [budget](./budget).
+- njord uses the Ensemble Mean API by default for robust forecasts. Individual models are optional for comparison. See [budget](./budget).

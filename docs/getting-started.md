@@ -64,9 +64,8 @@ Copy the `custom_components/njord` directory from the [ha-njord repository](http
 
 After adding the integration, entities appear immediately with no polling delay. Check **Settings > Devices & Services > njord Weather**. You should see:
 
-- One `weather` entity per model per location (e.g. `weather.njord_home_icon_eu`)
-- One `weather` entity for the consensus forecast per location
-- Alert, index, trend, and derived sensors per location
+- Domain data entities per location (weather, air quality, flood, solar)
+- Alert sensors per location
 - A "Trigger Poll" button on the server device
 - Stream connectivity sensors (diagnostic)
 
@@ -74,7 +73,7 @@ After adding the integration, entities appear immediately with no polling delay.
 
 <likec4-view view-id="index"></likec4-view>
 
-njord polls the Open-Meteo API on a configurable interval (default: 60 minutes), processes forecasts through an enrichment pipeline, and streams the results to the Home Assistant integration via gRPC. The integration creates native HA entities that update in real-time. See the [Architecture](/architecture) page for a deeper look.
+njord polls the Open-Meteo Ensemble and domain-specific APIs on a configurable interval (default: 60 minutes), enriches the data with alerts via projection groups, and streams the results to the Home Assistant integration via gRPC. The integration creates native HA entities that update in real-time. See the [Architecture](/architecture) page for a deeper look.
 
 ## Using environment variables
 

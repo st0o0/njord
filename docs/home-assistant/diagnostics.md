@@ -17,7 +17,7 @@ The diagnostics file contains:
 | `locations` | Configured location names |
 | `models` | Model list per location |
 | `forecasts` | Current forecast data per location/model (timestamps, update status) |
-| `enrichments` | Current enrichment data per location (alerts, indices, trends, derived, consensus) |
+| `enrichments` | Current enrichment data per location (alerts) |
 | `active_enrichments` | Which enrichment features are currently enabled on the server |
 | `server` | Server status (version, uptime, phase, budget usage), only if the status coordinator is active |
 

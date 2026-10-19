@@ -47,11 +47,7 @@ services:
       - Njord__Locations__0__Longitude=8.31
       - Njord__Models__0=icon_eu
       - Njord__Models__1=ecmwf_ifs025
-      - Njord__Enrichment__Consensus__Enabled=true
       - Njord__Enrichment__Alerts__Enabled=true
-      - Njord__Enrichment__Derived__Enabled=true
-      - Njord__Enrichment__Trends__Enabled=true
-      - Njord__Enrichment__Indices__Enabled=true
 
 volumes:
   ha-config:
