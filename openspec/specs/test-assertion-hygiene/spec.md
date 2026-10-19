@@ -1,6 +1,6 @@
 ## Purpose
 
-Defines assertion and test-method hygiene rules for the test projects: explicit timeouts, captured Assert.Single values, count guards, Assert.NotNull, cancellation tokens and properties on fakes.
+Defines assertion and test-method hygiene rules for the test projects: explicit timeouts, no boolean equality assertions, captured Assert.Single values, count guards, Assert.NotNull over null-forgiving, no vacuous assertions after typed receives, cancellation tokens, and properties on fakes.
 
 ## Requirements
 
@@ -17,6 +17,19 @@ SHALL use `TestTimeouts.Hosted`; plain async tests SHALL use `Timeout = 5000`.
 #### Scenario: Plain async test has timeout
 - **WHEN** a test method is `async Task` but does not use TestKit waits
 - **THEN** the method has `[Fact(Timeout = 5000)]`
+
+### Requirement: No Assert.True for equality checks
+
+Test code SHALL use `Assert.Equal(expected, actual)` or `Assert.Empty()`
+instead of `Assert.True(x == y)` or `Assert.True(collection.Count == 0)`.
+
+#### Scenario: Equality check uses Assert.Equal
+- **WHEN** asserting two values are equal
+- **THEN** the test SHALL use `Assert.Equal(a, b)` instead of `Assert.True(a == b)`
+
+#### Scenario: Empty check uses Assert.Empty
+- **WHEN** asserting a collection is empty
+- **THEN** the test SHALL use `Assert.Empty(collection)` instead of `Assert.True(collection.Count == 0, ...)`
 
 ### Requirement: Assert.Single return value SHALL be captured
 
@@ -44,6 +57,16 @@ It SHALL use `Assert.NotNull(value)` before accessing members.
 #### Scenario: Nullable property access uses Assert.NotNull
 - **WHEN** a test accesses a nullable property (e.g., `request.RequestUri`)
 - **THEN** the code reads `Assert.NotNull(request.RequestUri)` before accessing `.ToString()`
+
+### Requirement: Typed receives are followed by content assertions
+
+A `Assert.NotNull` on a value whose type is already proven by
+`ExpectMsg<T>()` or `Ask<T>()` is vacuous. The assertion following a
+typed receive SHALL inspect actual content (a property value, a count, a reason).
+
+#### Scenario: Typed ask result needs content assertion
+- **WHEN** `Ask<T>` returns a result whose type is already proven
+- **THEN** the test asserts on a meaningful property (a request id, a reason, a value) instead of just `Assert.NotNull`
 
 ### Requirement: Async tests SHALL pass CancellationToken
 
