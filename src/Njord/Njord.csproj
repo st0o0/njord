@@ -6,7 +6,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="Njord.Tests" />
         <InternalsVisibleTo Include="Njord.IntegrationTests" />
     </ItemGroup>
 

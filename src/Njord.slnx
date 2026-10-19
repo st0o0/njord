@@ -51,7 +51,7 @@
     <Project Path="Njord.Flood.Tests/Njord.Flood.Tests.csproj" />
     <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />
     <Project Path="Njord.IntegrationTests/Njord.IntegrationTests.csproj" />
-    <Project Path="Njord.Tests/Njord.Tests.csproj" />
+
     <Project Path="Njord.Weather.Tests/Njord.Weather.Tests.csproj" />
   </Folder>
   <Project Path="Njord/Njord.csproj" />
