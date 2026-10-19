@@ -2,7 +2,7 @@ using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Microsoft.Extensions.Time.Testing;
-using Njord.Alerts.Configuration;
+using Njord.Core.Configuration;
 using Njord.Core.Actors;
 using Njord.Core.Domain;
 using Njord.Messages.Alerts;

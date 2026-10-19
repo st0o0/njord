@@ -31,7 +31,7 @@ public sealed class PollingClusterSpec : NjordActorSpec
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton<Njord.Core.AtomicStateHolder<Njord.Messages.Pipeline.PollHealthResult>>();
+        services.AddSingleton<Njord.Pipeline.Health.PipelineHealth>();
         services.AddSingleton(FetchTimeouts.Default);
         services.AddSingleton(Options.Create(new NjordOptions
         {

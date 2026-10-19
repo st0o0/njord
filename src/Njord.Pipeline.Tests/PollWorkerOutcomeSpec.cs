@@ -1,0 +1,105 @@
+using Akka.Actor;
+using Akka.DependencyInjection;
+using Akka.Hosting;
+using Akka.Persistence;
+using Akka.TestKit;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
+using Njord.Core;
+using Njord.Core.Configuration;
+using Njord.Core.Configuration.Polling;
+using Njord.Messages.Forecast;
+using Njord.Messages.Pipeline;
+using Njord.Model;
+using Njord.Tests.Shared;
+
+namespace Njord.Pipeline.Tests;
+
+public sealed class PollWorkerOutcomeSpec : PollWorkerSpecBase
+{
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_first_start_reports_the_initial_state_and_polls_immediately()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        CreateWorker().Tell(new StartPolling(Target, Discovery));
+
+        var report = await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
+        var request = await ExpectRequestAsync(ct);
+
+        Assert.Multiple(
+            () => Assert.Equal(Target, report.Target),
+            () => Assert.Equal(PollPhase.Discovery, report.State.Phase),
+            () => Assert.Equal(_time.GetUtcNow(), report.State.NextPollUtc),
+            () => Assert.Null(report.State.LastChangeUtc),
+            () => Assert.Equal(Lucerne, request.Location),
+            () => Assert.Equal(DomainKind.Weather, request.Domain));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_changed_hash_is_reported_with_the_next_discovery_poll()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await StartedWorkerAsync(ct);
+
+        await AnswerAsync(Completed(42), ct);
+
+        var report = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        Assert.Multiple(
+            () => Assert.Equal(_time.GetUtcNow(), report.State.LastChangeUtc),
+            () => Assert.Equal(_time.GetUtcNow() + Discovery, report.State.NextPollUtc),
+            () => Assert.Equal(0, report.State.MissCount));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_unchanged_hash_is_reported_as_a_miss()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var worker = await StartedWorkerAsync(ct);
+        await AnswerAsync(Completed(42), ct);
+        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+
+        worker.Tell(new TriggerLocationPoll(TargetId));
+        await AnswerAsync(Completed(42), ct);
+
+        var report = await ExpectReportAsync(PollWorkerOutcome.Unchanged, ct);
+        Assert.Multiple(
+            () => Assert.Equal(1, report.State.MissCount),
+            () => Assert.NotNull(report.State.LastChangeUtc));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_second_change_learns_the_cycle()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var worker = await StartedWorkerAsync(ct);
+        await AnswerAsync(Completed(1), ct);
+        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+
+        _time.Advance(TimeSpan.FromHours(3));
+        worker.Tell(new TriggerLocationPoll(TargetId));
+        await AnswerAsync(Completed(2), ct);
+
+        var report = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        Assert.Multiple(
+            () => Assert.Equal(PollPhase.Steady, report.State.Phase),
+            () => Assert.Equal(10800L, report.State.CycleSeconds),
+            () => Assert.Equal(_time.GetUtcNow() + TimeSpan.FromHours(3) + TimeSpan.FromMinutes(1), report.State.NextPollUtc));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_reply_spelled_differently_updates_the_configured_target()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await StartedWorkerAsync(ct);
+
+        await AnswerAsync(new FetchDomainCompleted(new Location("LUCERNE", 0, 0), DomainKind.Weather, 42), ct);
+
+        var report = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        Assert.Multiple(
+            () => Assert.Equal(Target, report.Target),
+            () => Assert.Equal(Lucerne, report.State.Location),
+            () => Assert.NotNull(report.State.LastChangeUtc));
+    }
+}
