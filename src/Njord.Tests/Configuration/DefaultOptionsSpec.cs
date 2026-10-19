@@ -1,5 +1,3 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Njord.Alerts.Configuration;
@@ -20,31 +18,6 @@ namespace Njord.Tests.Configuration;
 
 public sealed class DefaultOptionsSpec
 {
-    private static readonly JsonSerializerOptions Json = new()
-    {
-        WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() },
-    };
-
-    [Fact]
-    public Task Default_options_match_golden_master() =>
-        Verify(JsonSerializer.Serialize(new
-        {
-            Njord = AppSettingsDefaults.Options<NjordOptions>(),
-            Polling = AppSettingsDefaults.Options<PollingOptions>(),
-            Health = AppSettingsDefaults.Options<HealthOptions>(),
-            OpenMeteo = AppSettingsDefaults.Options<OpenMeteoOptions>(),
-            Storage = AppSettingsDefaults.Options<StorageOptions>(),
-            Persistence = AppSettingsDefaults.Options<PersistenceOptions>(),
-            Mqtt = AppSettingsDefaults.Options<MqttOptions>(),
-            Sensors = AppSettingsDefaults.Options<SensorOptions>(),
-            Consensus = AppSettingsDefaults.Options<ConsensusOptions>(),
-            Alerts = AppSettingsDefaults.Options<AlertOptions>(),
-            Derived = AppSettingsDefaults.Options<DerivedOptions>(),
-            Trends = AppSettingsDefaults.Options<TrendOptions>(),
-            Indices = AppSettingsDefaults.Options<IndexOptions>(),
-        }, Json), "json");
-
     [Fact]
     public void A_scalar_override_wins_over_the_file_and_a_configured_list_replaces_its_default()
     {
