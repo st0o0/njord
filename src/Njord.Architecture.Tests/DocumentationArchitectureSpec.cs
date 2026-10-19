@@ -141,7 +141,7 @@ public sealed partial class DocumentationArchitectureSpec
 
     [Theory]
     [InlineData("src/Njord.Grpc/EnrichmentProtoMapper.cs", true)]
-    [InlineData("src/Njord.Core/Actors/ActorKeys.cs", true)]
+    [InlineData("src/Njord.Core/ActorKeys.cs", true)]
     [InlineData("src/Njord.<Feature>/Configuration/", false)]
     [InlineData("/healthz", false)]
     [InlineData("curl http://localhost:8080/alive", false)]
@@ -156,7 +156,7 @@ public sealed partial class DocumentationArchitectureSpec
     {
         Assert.Multiple(
             () => Assert.False(PathExists("src/Njord.Grpc/EnrichmentProtoMapper.cs")),
-            () => Assert.True(PathExists("src/Njord.Core/Actors/ActorKeys.cs")),
+            () => Assert.True(PathExists("src/Njord.Core/ActorKeys.cs")),
             () => Assert.True(PathExists("AGENTS.md")));
     }
 

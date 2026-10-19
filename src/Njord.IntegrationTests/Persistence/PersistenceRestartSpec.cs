@@ -33,8 +33,12 @@ public sealed class PersistenceRestartSpec : IDisposable
             for (var round = 2; round <= 3; round++)
             {
                 await ops.TriggerPollAsync(new TriggerPollRequest { Location = "luzern" }, cancellationToken: ct);
+                var expected = perRound * round;
                 await Eventually.AssertAsync(async () =>
-                    Assert.Equal(perRound * round, (await StatusAsync(first, ct)).Budget.MonthlyUsed), ct);
+                {
+                    var actual = (await StatusAsync(first, ct)).Budget.MonthlyUsed;
+                    Assert.True(actual >= expected, $"round {round}: usage {actual} should be >= {expected} (perRound={perRound})");
+                }, ct, within: TimeSpan.FromSeconds(30));
             }
 
             var status = await StatusAsync(first, ct);

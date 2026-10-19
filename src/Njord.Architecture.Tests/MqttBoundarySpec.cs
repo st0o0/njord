@@ -8,8 +8,8 @@ public sealed class MqttBoundarySpec
     [
         "Njord.Core.Configuration.Mqtt.MqttOptions",
         "Njord.Core.Configuration.Mqtt.MqttOptionsValidator",
-        "Njord.Core.Actors.IMqttConnectionActor",
-        "Njord.Core.Actors.IMqttStatePublisher",
+        "Njord.Core.IMqttConnectionActor",
+        "Njord.Core.IMqttStatePublisher",
     ];
 
     [Fact]

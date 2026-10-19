@@ -1,3 +1,4 @@
+using Akka.Cluster;
 using Akka.Cluster.Hosting;
 using Akka.Hosting;
 using Akka.Persistence.Sql.Hosting;
@@ -48,5 +49,14 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
             .WithClustering(port == 0
                 ? new ClusterOptions()
                 : new ClusterOptions { SeedNodes = [$"akka.tcp://njord@localhost:{port}"] });
+
+        if (port == 0)
+        {
+            builder.AddStartup((system, _) =>
+            {
+                var cluster = Cluster.Get(system);
+                cluster.Join(cluster.SelfAddress);
+            });
+        }
     }
 }

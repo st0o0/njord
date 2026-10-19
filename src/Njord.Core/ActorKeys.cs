@@ -1,4 +1,4 @@
-namespace Njord.Core.Actors;
+namespace Njord.Core;
 
 public interface IPollManager;
 public interface IPollRegion;

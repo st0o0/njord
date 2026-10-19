@@ -1,4 +1,3 @@
-using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 
@@ -11,7 +10,7 @@ public sealed class FogRule : IAlertRule
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertSettings settings, DateTimeOffset now)
     {
         var fogPoints = forecast.Next24Hours(now)
-            .Where(p => p.Temperature - p.DewPoint < 2.0 && p.WindSpeed < 3.0 && p.Humidity > 90.0)
+            .Where(p => p.Temperature - p.DewPoint < 2.0 && p is { WindSpeed: < 3.0, Humidity: > 90.0 })
             .ToList();
         var fogHours = fogPoints.Count;
         var severity = fogHours switch

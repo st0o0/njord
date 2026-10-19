@@ -246,7 +246,7 @@ Reference direction: Model <- Messages; Model/Messages/Persistence <- Core <- fe
 (OpenMeteo, Budget, Grpc, Pipeline, Mqtt, Alerts) <- host. Feature libs reference only
 Njord.Core (and below, including Model transitively), never each other and never the host
 (the one exception: `Njord.Pipeline` references `Njord.Alerts`); they reach each other's actors
-through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs`. Registration
+through the marker interfaces in `Njord.Core/ActorKeys.cs`. Registration
 stays central in the host. Enforced by project references plus `Njord.Architecture.Tests/LayerReferenceSpec.cs` and the
 lateral/upward ArchUnit rules in `Njord.Architecture.Tests/ZoneArchitectureSpec.cs`.
 
@@ -506,7 +506,7 @@ Rules apply to production code (`src/Njord/`).
   each event with the logging class's full type name as category (`Njord.Pipeline.PollWorker`,
   Akka internals keep `Akka.*`); `akka.loglevel` follows the lowest `Serilog:MinimumLevel` value.
 - **Actors are resolved by marker interfaces** (`IPollManager`, `IPollRegion`,
-  `IMqttConnectionActor`, ... in `Njord.Core/Actors/ActorKeys.cs`), registered
+  `IMqttConnectionActor`, ... in `Njord.Core/ActorKeys.cs`), registered
   in the host (`AkkaSetupContainer`); never key a registry lookup by the actor
   class.
 
