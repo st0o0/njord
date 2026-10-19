@@ -2,7 +2,6 @@ using Google.Protobuf.WellKnownTypes;
 using Njord.Grpc.V2;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Grpc.Mapping;
 
@@ -23,6 +22,20 @@ internal static class EnrichmentEventMappings
             TypeName = r.Kind.ToWireName(),
             UpdatedAt = r.Timestamp.ToTimestamp(),
             Alerts = new AlertResult(r.Location, [r.Alert]).ToProto(),
+        },
+        PipelineEvent.AirQualityAlertRaised r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            TypeName = r.Kind.ToWireName(),
+            UpdatedAt = r.Timestamp.ToTimestamp(),
+            Alerts = r.Alert.ToProto(),
+        },
+        PipelineEvent.FloodAlertRaised r => new EnrichmentEvent
+        {
+            Location = r.Location.Name,
+            TypeName = r.Kind.ToWireName(),
+            UpdatedAt = r.Timestamp.ToTimestamp(),
+            Alerts = r.Alert.ToProto(),
         },
         _ => null,
     };

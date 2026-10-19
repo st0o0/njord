@@ -15,12 +15,11 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
 
     protected override void BuildSystem(AkkaConfigurationBuilder builder, IServiceProvider serviceProvider)
     {
-        // The actor system configuration is built once at startup and needs plain values, so the validated
-        // options are read here.
         var persistence = serviceProvider.GetRequiredService<IOptions<PersistenceOptions>>().Value;
         var storage = serviceProvider.GetRequiredService<IOptions<StorageOptions>>().Value;
-        ConfigureLogging(builder, serviceProvider.GetRequiredService<IConfiguration>());
-        ConfigureInfrastructure(builder, persistence, storage.PersistencePath);
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        ConfigureLogging(builder, configuration);
+        ConfigureInfrastructure(builder, persistence, storage.PersistencePath, configuration);
 
         foreach (var registration in serviceProvider.GetServices<IActorRegistration>())
         {
@@ -37,16 +36,17 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
         });
 
     internal static void ConfigureInfrastructure(
-        AkkaConfigurationBuilder builder, PersistenceOptions persistence, string persistencePath)
+        AkkaConfigurationBuilder builder, PersistenceOptions persistence, string persistencePath,
+        IConfiguration configuration)
     {
         var selection = PersistenceSelection.From(persistence, persistencePath);
+        var port = configuration.GetValue("Akka:RemotingPort", 2552);
 
         builder
             .WithSqlPersistence(selection.ConnectionString, selection.ProviderName, autoInitialize: true)
-            .WithRemoting(new RemoteOptions { HostName = "localhost", Port = 2552 })
-            .WithClustering(new ClusterOptions
-            {
-                SeedNodes = ["akka.tcp://njord@localhost:2552"]
-            });
+            .WithRemoting(new RemoteOptions { HostName = "localhost", Port = port })
+            .WithClustering(port == 0
+                ? new ClusterOptions()
+                : new ClusterOptions { SeedNodes = [$"akka.tcp://njord@localhost:{port}"] });
     }
 }

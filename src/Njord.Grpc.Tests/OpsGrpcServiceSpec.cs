@@ -2,13 +2,13 @@ using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts.Configuration;
+using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Grpc.V2;
 using Njord.Messages.Budget;
 using Njord.Messages.Pipeline;
 using Njord.Model;
-using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 

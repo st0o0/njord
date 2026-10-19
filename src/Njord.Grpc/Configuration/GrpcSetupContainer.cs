@@ -2,8 +2,8 @@ using Akka.Cluster.Hosting;
 using Akka.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Njord.Core;
 using Njord.Core.Actors;
-using Servus.Akka;
 using Servus.Application.Startup;
 
 namespace Njord.Grpc.Configuration;

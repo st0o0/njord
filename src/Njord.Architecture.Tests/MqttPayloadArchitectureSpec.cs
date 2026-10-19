@@ -25,7 +25,7 @@ public sealed partial class MqttPayloadArchitectureSpec
             .ToList();
 
         var offenders = payloadTypes
-            .Where(t => !t.IsSealed && !t.IsAbstract)
+            .Where(t => t is { IsSealed: false, IsAbstract: false })
             .Select(t => t.FullName ?? t.Name)
             .Order(StringComparer.Ordinal)
             .ToList();

@@ -1,4 +1,3 @@
-using Njord.Core.Domain;
 using Njord.Model;
 
 namespace Njord.OpenMeteo;

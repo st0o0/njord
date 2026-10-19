@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;

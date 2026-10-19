@@ -2,6 +2,7 @@ using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
+using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration.Health;
 using Njord.Messages.Budget;

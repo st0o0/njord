@@ -19,7 +19,7 @@ public sealed class FloodRainProjector : IProjector<FloodRainInput>
         new HashSet<DomainKind> { DomainKind.Flood, DomainKind.Weather };
 
     public FloodRainInput? Project(LocationForecast current, LocationForecast? previous) =>
-        current.Flood is { } flood && current.Weather is { } weather
+        current is { Flood: { } flood, Weather: { } weather }
             ? new FloodRainInput(current.Location, flood, weather)
             : null;
 }

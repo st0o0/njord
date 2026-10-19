@@ -1,5 +1,7 @@
 using Njord.Grpc.Mapping;
 using Njord.Model;
+using DomainAirQualityAlertType = Njord.Messages.Alerts.AirQualityAlertType;
+using DomainFloodAlertType = Njord.Messages.Alerts.FloodAlertType;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainAlertType = Njord.Messages.Alerts.AlertType;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
@@ -24,6 +26,26 @@ public sealed class WireEnumMappingsSpec
     public void Every_alert_type_has_a_mapping()
     {
         Assert.All(Enum.GetValues<DomainAlertType>(), v => Assert.NotEqual(ProtoAlertType.Unspecified, v.ToProto()));
+    }
+
+    [Theory]
+    [InlineData(DomainAirQualityAlertType.Pollen, ProtoAlertType.Pollen)]
+    [InlineData(DomainAirQualityAlertType.Pm25, ProtoAlertType.Pm25)]
+    public void Air_quality_alert_type_maps_to_its_proto_member(DomainAirQualityAlertType type, ProtoAlertType expected) =>
+        Assert.Equal(expected, type.ToProto());
+
+    [Theory]
+    [InlineData(DomainFloodAlertType.FloodRisk, ProtoAlertType.FloodRisk)]
+    [InlineData(DomainFloodAlertType.FloodRain, ProtoAlertType.FloodRain)]
+    public void Flood_alert_type_maps_to_its_proto_member(DomainFloodAlertType type, ProtoAlertType expected) =>
+        Assert.Equal(expected, type.ToProto());
+
+    [Fact]
+    public void Undefined_air_quality_and_flood_alert_types_throw()
+    {
+        Assert.Multiple(
+            () => Assert.Equal("type", Assert.Throws<ArgumentOutOfRangeException>(() => ((DomainAirQualityAlertType)99).ToProto()).ParamName),
+            () => Assert.Equal("type", Assert.Throws<ArgumentOutOfRangeException>(() => ((DomainFloodAlertType)99).ToProto()).ParamName));
     }
 
     [Fact]

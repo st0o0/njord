@@ -5,6 +5,7 @@ using Akka.Hosting;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
+using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;

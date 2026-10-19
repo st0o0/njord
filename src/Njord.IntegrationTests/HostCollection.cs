@@ -1,7 +1,6 @@
 namespace Njord.IntegrationTests;
 
-// The host binds the Akka remoting port 2552, so every test class that starts a host runs in this collection,
-// one after another.
+// Each host starts an Akka actor system; tests in this collection run one after another to avoid interference.
 [CollectionDefinition(Name)]
 public sealed class HostCollection
 {

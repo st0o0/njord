@@ -1,6 +1,7 @@
 using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Messages.Alerts;
 using Njord.Messages.Forecast;

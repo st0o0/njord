@@ -1,8 +1,4 @@
 using Akka.Actor;
-using Akka.Hosting;
-using Grpc.Core;
-using Microsoft.Extensions.DependencyInjection;
-using Njord.Core.Actors;
 using Njord.Grpc.V2;
 using Njord.Tests.Shared;
 

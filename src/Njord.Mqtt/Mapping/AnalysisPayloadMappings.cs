@@ -1,11 +1,16 @@
 using Njord.Messages.Alerts;
-using Njord.Model;
 using Njord.Mqtt.Payloads;
 
 namespace Njord.Mqtt.Mapping;
 
 internal static class AnalysisPayloadMappings
 {
+    public static AlertPayload ToPayload(this AirQualityAlert alert)
+        => new NoDetailsAlertPayload().WithThreshold(alert.Severity, alert.TriggerValue, alert.Threshold, alert.HoursUntil);
+
+    public static AlertPayload ToPayload(this FloodAlert alert)
+        => new NoDetailsAlertPayload().WithThreshold(alert.Severity, alert.TriggerValue, alert.Threshold, alert.HoursUntil);
+
     public static AlertPayload ToPayload(this Alert alert)
     {
         AlertPayload payload = alert.Details switch
@@ -42,4 +47,15 @@ internal static class AnalysisPayloadMappings
             DurationHours = alert.DurationHours,
         };
     }
+
+    private static AlertPayload WithThreshold(
+        this AlertPayload payload, AlertSeverity severity, double triggerValue, double threshold, int? hoursUntil)
+        => payload with
+        {
+            Severity = severity,
+            Confidence = 1.0,
+            TriggerValue = triggerValue,
+            Threshold = threshold,
+            HoursUntil = hoursUntil,
+        };
 }

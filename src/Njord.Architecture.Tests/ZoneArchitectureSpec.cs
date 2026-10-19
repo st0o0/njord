@@ -1,7 +1,6 @@
 using System.Reflection;
 using Akka.Actor;
 using ArchUnitNET.xUnitV3;
-using Njord.Configuration;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Model;

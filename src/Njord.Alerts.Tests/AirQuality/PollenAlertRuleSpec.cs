@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts.AirQuality;
-using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 using static Njord.Alerts.Tests.AirQuality.AirQualityFixture;

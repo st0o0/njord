@@ -64,7 +64,7 @@ internal static class DomainPayloadMappings
                 ("snowfall", Num(point.Snowfall)),
                 ("soil_temperature", Num(point.SoilTemperature)),
                 ("freezing_level_height", Num(point.FreezingLevelHeight)),
-                ("is_day", point.IsDay is { } isDay ? (isDay ? "true" : "false") : null),
+                ("is_day", point.IsDay is { } isDay ? isDay ? "true" : "false" : null),
             ]);
     }
 

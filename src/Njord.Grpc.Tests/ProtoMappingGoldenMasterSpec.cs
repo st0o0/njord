@@ -66,7 +66,8 @@ public sealed class ProtoMappingGoldenMasterSpec
         var mapped = AlertProtoMappings.ToProto(lucerne.Alerts);
 
         var types = mapped.Alerts.Select(a => a.Type).ToHashSet();
-        var expected = Enum.GetValues<AlertType>().Where(t => t != AlertType.Unspecified);
+        var expected = Enum.GetValues<AlertType>()
+            .Where(t => t is not (AlertType.Unspecified or AlertType.Pollen or AlertType.Pm25 or AlertType.FloodRisk or AlertType.FloodRain));
         Assert.All(expected, t => Assert.Contains(t, types));
         Assert.All(mapped.Alerts, a => Assert.NotEqual(AlertSeverity.None, a.Severity));
     }

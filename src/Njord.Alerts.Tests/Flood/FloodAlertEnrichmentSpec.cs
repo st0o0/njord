@@ -1,9 +1,6 @@
-using System.Collections.Immutable;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts.Flood;
-using Njord.Core.Domain;
 using Njord.Messages.Alerts;
-using Njord.Model;
 
 namespace Njord.Alerts.Tests.Flood;
 

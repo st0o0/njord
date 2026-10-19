@@ -9,7 +9,6 @@ using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Persistence;
 using Njord.Core.Configuration.Polling;
-using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
 
 namespace Njord.Tests.Configuration;
@@ -154,7 +153,7 @@ public sealed partial class ComposeExampleSpec
 
     private static List<string> Mismatches(IEnumerable<Variable> variables, IReadOnlyDictionary<string, string?> defaults) =>
         [.. variables
-            .Where(v => v is { Commented: true, Alternative: false } && v.Value.Length > 0)
+            .Where(v => v is { Commented: true, Alternative: false, Value.Length: > 0 })
             .Where(v => defaults.TryGetValue(v.Key, out var actual) && actual is not null && !SameValue(actual, v.Value))
             .Select(v => $"{v.Name}: example says '{v.Value}', default is '{defaults[v.Key]}'")];
 

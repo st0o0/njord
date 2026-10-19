@@ -7,7 +7,6 @@ using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Persistence;
 using Njord.Core.Configuration.Polling;
-using Njord.Pipeline.Configuration;
 using Njord.Tests.Shared;
 
 namespace Njord.Tests.Configuration;

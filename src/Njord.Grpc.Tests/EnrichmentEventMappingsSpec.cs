@@ -47,6 +47,42 @@ public sealed class EnrichmentEventMappingsSpec
     }
 
     [Fact]
+    public void ToEnrichmentEvent_should_wrap_a_raised_air_quality_alert_in_enrichment_event()
+    {
+        var raisedAt = TestTimeConstants.BudgetEpoch;
+        var raised = new PipelineEvent.AirQualityAlertRaised(DomainData.Lucerne,
+            new AirQualityAlert(AirQualityAlertType.Pollen, DomainAlertSeverity.Orange, 85.0, 50.0, HoursUntil: 3),
+            raisedAt);
+
+        var evt = EnrichmentEventMappings.ToEnrichmentEvent(raised);
+
+        Assert.NotNull(evt);
+        Assert.Equal(("Lucerne", "alerts", raisedAt), (evt.Location, evt.TypeName, evt.UpdatedAt.ToDateTimeOffset()));
+        var alert = Assert.Single(evt.Alerts.Alerts);
+        Assert.Equal(
+            (V2.AlertType.Pollen, V2.AlertSeverity.Orange, 1.0, 85.0, 50.0, 3),
+            (alert.Type, alert.Severity, alert.Confidence, alert.TriggerValue, alert.Threshold, alert.HoursUntil));
+    }
+
+    [Fact]
+    public void ToEnrichmentEvent_should_wrap_a_raised_flood_alert_in_enrichment_event()
+    {
+        var raisedAt = TestTimeConstants.BudgetEpoch;
+        var raised = new PipelineEvent.FloodAlertRaised(DomainData.Lucerne,
+            new FloodAlert(FloodAlertType.FloodRisk, DomainAlertSeverity.Red, 120.0, 100.0),
+            raisedAt);
+
+        var evt = EnrichmentEventMappings.ToEnrichmentEvent(raised);
+
+        Assert.NotNull(evt);
+        Assert.Equal(("Lucerne", "alerts", raisedAt), (evt.Location, evt.TypeName, evt.UpdatedAt.ToDateTimeOffset()));
+        var alert = Assert.Single(evt.Alerts.Alerts);
+        Assert.Equal(
+            (V2.AlertType.FloodRisk, V2.AlertSeverity.Red, 120.0, 100.0, false),
+            (alert.Type, alert.Severity, alert.TriggerValue, alert.Threshold, alert.HasHoursUntil));
+    }
+
+    [Fact]
     public void ToEnrichmentEvent_should_return_null_for_domain_data_events()
     {
         var evt = EnrichmentEventMappings.ToEnrichmentEvent(

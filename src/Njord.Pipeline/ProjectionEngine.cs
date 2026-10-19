@@ -1,6 +1,5 @@
 using Njord.Core.Domain;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Pipeline;
 

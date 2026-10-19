@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using Njord.Alerts.Configuration;
-using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Model;
 

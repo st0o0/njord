@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using Njord.Core.Domain;
 using Njord.Model;
 
 namespace Njord.Alerts.Tests.AirQuality;

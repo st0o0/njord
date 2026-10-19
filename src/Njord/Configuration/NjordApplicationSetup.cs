@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Njord.Core.Configuration;
 using Njord.Grpc;
 using Prometheus;
 using Servus.Application.Startup;

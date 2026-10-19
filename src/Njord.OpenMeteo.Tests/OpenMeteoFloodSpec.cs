@@ -4,7 +4,6 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Configuration;
 using Njord.Model;
 using Njord.OpenMeteo.Mapping;
-using Njord.Tests.Shared;
 
 namespace Njord.OpenMeteo.Tests;
 

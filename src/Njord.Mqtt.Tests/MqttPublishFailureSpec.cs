@@ -4,6 +4,7 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
 using MQTTnet.Exceptions;
+using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Mqtt;
@@ -174,7 +175,7 @@ public sealed class MqttPublishFailureSpec : NjordActorSpec
                 Interlocked.Add(ref failures, value);
             }
             else if (instrument.Name == "njord_mqtt_dedup_total"
-                     && tagList.Any(t => t.Key == "decision" && Equals(t.Value, "published")))
+                     && tagList.Any(t => t is { Key: "decision", Value: "published" }))
             {
                 Interlocked.Add(ref published, value);
             }

@@ -1,9 +1,7 @@
-using System.Diagnostics.Metrics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Njord.Budget.Configuration;
-using Njord.Tests.Shared;
 
 namespace Njord.Budget.Tests;
 

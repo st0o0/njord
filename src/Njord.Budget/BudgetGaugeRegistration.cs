@@ -1,6 +1,7 @@
 using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Hosting;
+using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;

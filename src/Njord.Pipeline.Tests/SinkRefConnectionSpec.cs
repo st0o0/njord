@@ -3,6 +3,7 @@ using Akka.Hosting;
 using Akka.Persistence;
 using Akka.Streams;
 using Akka.Streams.Dsl;
+using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Tests.Shared;
 using Servus.Akka;

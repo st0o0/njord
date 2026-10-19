@@ -1,5 +1,4 @@
 using Njord.Messages.Alerts;
-using Njord.Messages.Alerts;
 
 namespace Njord.Alerts.Configuration;
 

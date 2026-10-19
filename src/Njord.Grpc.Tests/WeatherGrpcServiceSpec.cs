@@ -5,6 +5,7 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Grpc.Core;
 using Microsoft.Extensions.Time.Testing;
+using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Grpc.V2;

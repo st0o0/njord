@@ -33,7 +33,7 @@ public sealed class MappingConventionArchitectureSpec
     public void Mapping_classes_are_static_and_internal_unless_allow_listed()
     {
         var offenders = MappingClasses()
-            .Where(t => !(t.IsAbstract && t.IsSealed) || (t.IsPublic != PublicMappingClasses.Contains(t.FullName)))
+            .Where(t => !(t is { IsAbstract: true, IsSealed: true }) || (t.IsPublic != PublicMappingClasses.Contains(t.FullName)))
             .Select(t => t.FullName)
             .Order(StringComparer.Ordinal)
             .ToList();

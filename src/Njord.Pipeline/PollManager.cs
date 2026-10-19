@@ -2,10 +2,10 @@ using Akka.Actor;
 using Akka.Cluster.Sharding;
 using Akka.Event;
 using Microsoft.Extensions.Options;
+using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 using Servus.Akka;
 using Servus.Resilience;
 

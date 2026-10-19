@@ -50,7 +50,7 @@ public sealed class FloodRiskAlertRule
             return (AlertSeverity.Orange, p75);
         }
 
-        if (point.DischargeMedian is { } median && median > 0 && point.Discharge > median * MedianFactor)
+        if (point.DischargeMedian is { } median and > 0 && point.Discharge > median * MedianFactor)
         {
             return (AlertSeverity.Yellow, median * MedianFactor);
         }
