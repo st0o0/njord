@@ -31,7 +31,6 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     private WeatherGrpcService CreateService(
         NjordOptions? options = null,
         IActorRef? consumerActor = null,
-        IActorRef? enrichmentActor = null,
         TimeProvider? timeProvider = null)
     {
         options ??= new NjordOptions

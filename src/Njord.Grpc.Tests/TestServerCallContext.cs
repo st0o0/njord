@@ -4,9 +4,10 @@ namespace Njord.Grpc.Tests;
 
 internal sealed class TestServerCallContext : ServerCallContext
 {
-    private readonly CancellationToken _cancellationToken;
-
-    private TestServerCallContext(CancellationToken cancellationToken) => _cancellationToken = cancellationToken;
+    private TestServerCallContext(CancellationToken cancellationToken)
+    {
+        CancellationTokenCore = cancellationToken;
+    }
 
     public static TestServerCallContext Create(CancellationToken cancellationToken = default) => new(cancellationToken);
 
@@ -15,7 +16,8 @@ internal sealed class TestServerCallContext : ServerCallContext
     protected override string PeerCore => "test-peer";
     protected override DateTime DeadlineCore => DateTime.MaxValue;
     protected override Metadata RequestHeadersCore => [];
-    protected override CancellationToken CancellationTokenCore => _cancellationToken;
+    protected override CancellationToken CancellationTokenCore { get; }
+
     protected override Metadata ResponseTrailersCore => [];
     protected override Status StatusCore { get; set; }
     protected override WriteOptions? WriteOptionsCore { get; set; }
