@@ -27,6 +27,7 @@ services:
       #- Njord__Locations__1__Name=office
       #- Njord__Locations__1__Latitude=47.38
       #- Njord__Locations__1__Longitude=8.54
+      # Latitude/Longitude may be omitted: Geocoding resolves the coordinates from the name.
 
       # ── Polling & Models ──────────────────────────────────────
       #- Njord__Polling__PollInterval=01:00:00
@@ -38,22 +39,8 @@ services:
       # Poll interval of a model whose update cycle is not learned yet:
       #- Njord__Polling__DiscoveryInterval=00:20:00
       #- Njord__OpenMeteo__BaseUrl=https://api.open-meteo.com/
-      ## Per-location models (in addition to Njord__Models):
+      ## Per-location models (optional, ensemble by default):
       #- Njord__Locations__0__Models__0=icon_d2
-      #- Njord__Models__0=icon_d2
-      #- Njord__Models__1=icon_eu
-      #- Njord__Models__2=icon_global
-      #- Njord__Models__3=ecmwf_ifs025
-      #- Njord__Models__4=gfs_seamless
-      #- Njord__Models__5=ukmo_global_deterministic_10km
-      #- Njord__Models__6=meteoswiss_icon_ch1
-      #- Njord__Models__7=meteoswiss_icon_ch2
-      #- Njord__Horizons__0=3
-      #- Njord__Horizons__1=6
-      #- Njord__Horizons__2=12
-      #- Njord__Horizons__3=24
-      #- Njord__Horizons__4=48
-      #- Njord__Horizons__5=72
 
       # ── Parameters ────────────────────────────────────────────
       #- Njord__Parameters__Groups__0=Weather

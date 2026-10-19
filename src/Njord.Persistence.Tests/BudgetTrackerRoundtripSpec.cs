@@ -5,7 +5,7 @@ namespace Njord.Persistence.Tests;
 public sealed class BudgetTrackerRoundtripSpec
 {
     [Fact]
-    public void Should_roundtrip_the_tracker_state()
+    public void Tracker_state_roundtrip()
     {
         var state = new PersistedBudgetTrackerState(7, 15, 12_345, 321);
 
@@ -13,7 +13,7 @@ public sealed class BudgetTrackerRoundtripSpec
     }
 
     [Fact]
-    public void Should_roundtrip_a_recorded_api_call()
+    public void Api_call_recorded_roundtrip()
     {
         var evt = new ApiCallRecorded(3, new DateTimeOffset(2026, 7, 15, 10, 0, 0, TimeSpan.Zero));
 

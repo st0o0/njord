@@ -12,11 +12,11 @@ public sealed class WireFormatSpec
         2, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 1, null);
 
     [Fact]
-    public Task Should_keep_the_poll_worker_state_wire_format_stable() =>
+    public Task Poll_worker_state_shape() =>
         Verify(JsonConvert.SerializeObject(State, Formatting.Indented));
 
     [Fact]
-    public Task Should_keep_the_poll_worker_event_wire_format_stable() =>
+    public Task Poll_worker_event_shape() =>
         Verify(string.Join("\n", PollWorkerRoundtripSpec.Events()
             .Select(row => JsonConvert.SerializeObject(row.Data, Formatting.Indented))));
 

@@ -183,10 +183,13 @@ src/
                               #   no analysis feature options
 
   # /Ingest/ — data acquisition (each -> Core only)
-  Njord.OpenMeteo/            # OpenMeteoGateway, OpenMeteoClient (HTTP, status handling, outcomes), DTOs,
+  Njord.OpenMeteo/            # OpenMeteoGateway, typed per-domain clients (IWeatherClient/WeatherClient,
+                              #   IAirQualityClient, IFloodClient: HTTP, status handling, outcomes) with their
+                              #   response models, Geocoding (IGeocodingClient, LocationResolutionService:
+                              #   resolves coordinates from the name when a location omits Latitude/Longitude),
                               #   JSON source generator
-    Mapping/                  # OpenMeteoEnsembleMappings (ToWeatherForecast), OpenMeteoAirQualityMappings,
-                              #   OpenMeteoFloodMappings, OpenMeteoRequestMappings (ToRequestUri, ToFloodRequestUri)
+    Mapping/                  # WeatherResponseMappings, AirQualityResponseMappings, FloodResponseMappings
+                              #   (response to domain forecast), DomainKindMappings
   Njord.Budget/               # BudgetTracker persistent actor, usage accounting
   Njord.Pipeline/             # PollManager, PollWorker (+ PollWorkerState), ForecastPipeline, ProjectionEngine,
                               #   PipelineEvent BroadcastHub
@@ -225,7 +228,7 @@ src/
   Njord.Persistence.Tests/    # Persistence roundtrip and wire-format specs (Verify for the poll worker records)
   Njord.Messages.Tests/       # Alert contract specs (enums, thresholds, details)
   Njord.Core.Tests/           # Configuration, StreamConsumerActor
-  Njord.OpenMeteo.Tests/      # OpenMeteoClient, gateway, OptionsBudgetProvider specs
+  Njord.OpenMeteo.Tests/      # Typed client, geocoding, gateway specs
   Njord.Budget.Tests/         # BudgetTracker specs
   Njord.Pipeline.Tests/       # PollWorker, PollManager, polling cluster, ForecastPipeline, ProjectionEngine specs
   Njord.Mqtt.Tests/           # MQTT connection, state payload, consumer specs
@@ -266,9 +269,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 1279 tests (Model 90, Persistence 16, Messages 87, Core 129, Grpc 90, Pipeline 146,
-Mqtt 137, OpenMeteo 65, Budget 34, Architecture 100, Alerts 218, host `Njord.Tests` 72, IntegrationTests 15).
-Note: Alerts grew from 173 to 218 with air quality (Pollen, PM2.5) and flood (FloodRisk, FloodRain) rules.
+Current total: 531 tests (Model 30, Persistence 14, Messages 40, Core 64, Grpc 32, Pipeline 152,
+Mqtt 57, OpenMeteo 37, Budget 18, Architecture 12, Weather 32, AirQuality 10, Flood 18, IntegrationTests 15).
 The count is one test per `[Fact]` and one per data row of a `[Theory]`.
 CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
 Each project is its own process with its own thread pool: running many at once on a small

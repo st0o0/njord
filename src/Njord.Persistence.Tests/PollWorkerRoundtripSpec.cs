@@ -17,7 +17,7 @@ public sealed class PollWorkerRoundtripSpec
     ];
 
     [Fact]
-    public void Should_roundtrip_a_fully_populated_worker_state()
+    public void Populated_worker_state_roundtrip()
     {
         var state = new PersistedPollWorkerState(
             "lucerne", true, TimeSpan.FromMinutes(20), 42, Utc, Utc.AddHours(-3), Utc.AddHours(3),
@@ -32,7 +32,7 @@ public sealed class PollWorkerRoundtripSpec
     }
 
     [Fact]
-    public void Should_roundtrip_an_unstarted_worker_state()
+    public void Unstarted_worker_state_roundtrip()
     {
         var empty = new PersistedPollWorkerState(
             null, false, TimeSpan.Zero, null, null, null, DateTimeOffset.MinValue, 0,
@@ -43,7 +43,7 @@ public sealed class PollWorkerRoundtripSpec
 
     [Theory]
     [MemberData(nameof(Events))]
-    public void Should_roundtrip_every_poll_worker_event_with_its_type(object evt)
+    public void Poll_worker_events_roundtrip(object evt)
     {
         var recovered = PersistenceRoundtripHelper.Roundtrip(evt);
 
