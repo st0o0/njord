@@ -1,4 +1,3 @@
-using Njord.AirQuality;
 using Njord.Messages.Alerts;
 using Njord.Model;
 using Njord.Tests.Shared;

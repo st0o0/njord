@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Njord.Alerts;
 using Njord.Alerts.Configuration;
 using Njord.Core.Domain;
 

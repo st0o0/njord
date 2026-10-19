@@ -1,5 +1,4 @@
 using Njord.Core;
-using Njord.Core.Actors;
 
 namespace Njord.Architecture.Tests;
 

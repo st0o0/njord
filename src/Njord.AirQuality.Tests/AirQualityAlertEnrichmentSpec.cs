@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Time.Testing;
-using Njord.AirQuality;
 using Njord.Alerts;
 using Njord.Messages.Alerts;
 using Njord.Tests.Shared;

@@ -5,11 +5,8 @@ using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core;
 using Njord.Core.Actors;
-using Njord.Grpc.Mapping;
-using Njord.Messages.Alerts;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 using Servus.Akka;
 
 namespace Njord.Grpc;

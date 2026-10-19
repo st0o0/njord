@@ -1,6 +1,5 @@
 using Njord.Alerts;
 using Njord.Messages.Alerts;
-using Njord.Model;
 
 namespace Njord.Flood;
 

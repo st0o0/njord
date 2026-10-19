@@ -1,5 +1,4 @@
 using Njord.Core.Configuration;
-using Njord.Model;
 using Njord.Mqtt.Mapping;
 
 namespace Njord.Mqtt.Tests.Mapping;

@@ -2,9 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 using Njord.Mqtt.Mapping;
-using Njord.Mqtt.Payloads;
 using Njord.Mqtt.Serialization;
 using Njord.Mqtt.Topics;
 

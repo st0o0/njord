@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Alerts;
-using Njord.Flood;
 using Njord.Messages.Alerts;
 using Njord.Tests.Shared;
 

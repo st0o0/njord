@@ -4,7 +4,6 @@ using Njord.Configuration;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Persistence;
 using Njord.Messages.Config;
-using Njord.Model;
 
 namespace Njord.Tests.Configuration;
 

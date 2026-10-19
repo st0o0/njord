@@ -1,7 +1,6 @@
 using Njord.Core.Configuration;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Mqtt.Mapping;
 

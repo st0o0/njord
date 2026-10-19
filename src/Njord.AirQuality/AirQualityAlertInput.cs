@@ -1,4 +1,3 @@
-using Njord.Alerts;
 using Njord.Core.Domain;
 using Njord.Model;
 

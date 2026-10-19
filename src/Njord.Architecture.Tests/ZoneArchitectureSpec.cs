@@ -3,7 +3,6 @@ using Akka.Actor;
 using ArchUnitNET.xUnitV3;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Model;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 namespace Njord.Architecture.Tests;
