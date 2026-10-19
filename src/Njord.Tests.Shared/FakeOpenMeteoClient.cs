@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Njord.Core.Configuration;
+using Njord.Messages.Forecast;
 using Njord.Model;
 using Njord.OpenMeteo;
 

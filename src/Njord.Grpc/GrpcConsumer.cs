@@ -28,8 +28,8 @@ public sealed class GrpcConsumer : ReceiveActor
     private ImmutableDictionary<(Location Location, DomainKind Domain), PipelineEvent> _domainData =
         ImmutableDictionary<(Location, DomainKind), PipelineEvent>.Empty;
 
-    private ImmutableDictionary<Location, PipelineEvent.AlertComputed> _alerts =
-        ImmutableDictionary<Location, PipelineEvent.AlertComputed>.Empty;
+    private ImmutableDictionary<Location, AlertResult> _alerts =
+        ImmutableDictionary<Location, AlertResult>.Empty;
 
     private sealed record PipelineResolved(IActorRef Pipeline);
     private sealed record PipelineResolveFailed(Exception Cause);
@@ -128,20 +128,16 @@ public sealed class GrpcConsumer : ReceiveActor
                 var raisedLocation = raised.Location;
                 _alerts = _alerts.SetItem(raisedLocation, MergeAlert(_alerts.GetValueOrDefault(raisedLocation), raised));
                 break;
-            case PipelineEvent.AlertComputed computed:
-                _alerts = _alerts.SetItem(computed.Result.Location, computed);
-                break;
         }
     }
 
-    private static PipelineEvent.AlertComputed MergeAlert(PipelineEvent.AlertComputed? latest, PipelineEvent.AlertRaised raised)
+    private static AlertResult MergeAlert(AlertResult? latest, PipelineEvent.AlertRaised raised)
     {
-        var alerts = (latest?.Result.Alerts ?? [])
+        var alerts = (latest?.Alerts ?? [])
             .Where(alert => alert.Type != raised.Type)
             .Append(raised.Alert)
             .OrderBy(alert => alert.Type)
             .ToList();
-        return new PipelineEvent.AlertComputed(
-            new AlertResult(raised.Location, alerts), raised.Timestamp);
+        return new AlertResult(raised.Location, alerts);
     }
 }

@@ -19,30 +19,20 @@ public static class ServiceInfoMappings
             RequestBudget.OpenMeteoFreeTierDailyLimit,
             ActiveEnrichments(alerts));
 
-    // Locations in configuration order; models deduplicated in first-seen order with their coverage.
+    // Locations in configuration order, each served by the configured models; models carry their coverage.
     public static CatalogResult ToCatalog(this NjordOptions scope)
     {
-        var locations = new List<CatalogLocation>();
-        var models = new List<CatalogModel>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var location in scope.Locations)
-        {
-            var resolved = ResolveModels(scope, location);
-            locations.Add(new CatalogLocation(new Location(location.Name, 0, 0), location.Latitude, location.Longitude, resolved));
-
-            foreach (var modelId in resolved.Where(seen.Add))
-            {
-                models.Add(new CatalogModel(modelId, ModelCoverageRegistry.Get(modelId)));
-            }
-        }
+        var modelIds = scope.Models.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var locations = scope.Locations
+            .Select(location => new CatalogLocation(new Location(location.Name, location.Latitude, location.Longitude), modelIds))
+            .ToList();
+        var models = modelIds
+            .Select(modelId => new CatalogModel(modelId, ModelCoverageRegistry.Get(modelId)))
+            .ToList();
 
         return new CatalogResult(locations, models);
     }
 
-    private static List<string> ResolveModels(NjordOptions scope, LocationOptions location) =>
-        [.. scope.Models.Union(location.Models ?? [], StringComparer.OrdinalIgnoreCase)];
-
-    private static List<EnrichmentKind> ActiveEnrichments(AlertOptions alerts) =>
-        alerts.Enabled ? [EnrichmentKind.Alerts] : [];
+    private static List<string> ActiveEnrichments(AlertOptions alerts) =>
+        alerts.Enabled ? [EnrichmentNames.Alerts] : [];
 }

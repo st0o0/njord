@@ -15,7 +15,7 @@ public sealed class OpsProtoMappingsSpec
     {
         var entry = new PollStateEntry(new Location("lucerne", 0, 0), PollPhase.Steady, NextPoll, LastChange, 2, 3600);
 
-        var status = OpsProtoMappings.ToModelStatus(entry);
+        var status = entry.ToModelStatus();
 
         Assert.Multiple(
             () => Assert.Equal("lucerne", status.Location),
@@ -31,7 +31,7 @@ public sealed class OpsProtoMappingsSpec
     {
         var entry = new PollStateEntry(new Location("lucerne", 0, 0), PollPhase.Discovery, NextPoll, null, 0, null);
 
-        var status = OpsProtoMappings.ToModelStatus(entry);
+        var status = entry.ToModelStatus();
 
         Assert.Multiple(
             () => Assert.Equal(Njord.Grpc.V2.PollPhase.Discovery, status.Phase),
@@ -44,7 +44,7 @@ public sealed class OpsProtoMappingsSpec
     {
         var entry = new PollStateEntry(new Location("zurich", 0, 0), PollPhase.Steady, NextPoll, LastChange, 1, 7200);
 
-        var target = OpsProtoMappings.ToTriggerTarget(entry);
+        var target = entry.ToTriggerTarget();
 
         Assert.Multiple(
             () => Assert.Equal("zurich", target.Location),
@@ -60,7 +60,7 @@ public sealed class OpsProtoMappingsSpec
     {
         var entry = new PollStateEntry(new Location("zurich", 0, 0), PollPhase.Discovery, NextPoll, null, 0, null);
 
-        var target = OpsProtoMappings.ToTriggerTarget(entry);
+        var target = entry.ToTriggerTarget();
 
         Assert.Multiple(
             () => Assert.Equal(Njord.Grpc.V2.PollPhase.Discovery, target.Phase),

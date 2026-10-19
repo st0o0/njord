@@ -53,9 +53,9 @@ internal static class CatalogProtoMappings
     public static LocationInfo ToProto(this CatalogLocation location) =>
         new()
         {
-            Name = location.Id.Name,
-            Latitude = location.Latitude,
-            Longitude = location.Longitude,
+            Name = location.Location.Name,
+            Latitude = location.Location.Latitude,
+            Longitude = location.Location.Longitude,
             Models = { location.Models },
         };
 }

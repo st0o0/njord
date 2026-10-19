@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Configuration;
+using Njord.Messages.Forecast;
 using Njord.Model;
 using Njord.OpenMeteo.Mapping;
 

@@ -9,6 +9,7 @@ using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Grpc.V2;
+using Njord.Messages.Alerts;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
@@ -205,7 +206,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     public async Task GetEnrichments_returns_the_alerts_the_read_model_holds()
     {
         var lucerne = new Location("lucerne", 0, 0);
-        var analysis = new LatestAnalysisResult(lucerne, EnrichmentEvents.Alerts(lucerne, Anchor));
+        var analysis = new LatestAnalysisResult(lucerne, new AlertResult(lucerne, []));
         var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new FakeGrpcConsumer(analysis, Array.Empty<PipelineEvent>()))));
 
         var response = await service.GetEnrichments(
@@ -219,7 +220,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     public async Task GetEnrichments_queries_the_configured_location_when_the_request_differs_in_case()
     {
         var lucerne = new Location("lucerne", 0, 0);
-        var analysis = new LatestAnalysisResult(lucerne, EnrichmentEvents.Alerts(lucerne, Anchor));
+        var analysis = new LatestAnalysisResult(lucerne, new AlertResult(lucerne, []));
         var service = CreateService(consumerActor: Sys.ActorOf(Props.Create(() => new FakeGrpcConsumer(analysis, Array.Empty<PipelineEvent>()))));
 
         var response = await service.GetEnrichments(

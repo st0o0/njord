@@ -20,7 +20,7 @@ public sealed class AlertProtoMappingsSpec
                 NoDetails.Instance),
         ]);
 
-        var update = AlertProtoMappings.ToProto(result);
+        var update = result.ToProto();
 
         Assert.Equal(2, update.Alerts.Count);
 

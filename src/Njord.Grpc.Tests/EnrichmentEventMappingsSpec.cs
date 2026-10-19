@@ -12,25 +12,6 @@ namespace Njord.Grpc.Tests;
 public sealed class EnrichmentEventMappingsSpec
 {
     [Fact]
-    public void ToEnrichmentEvent_should_wrap_alert_result_in_enrichment_event()
-    {
-        var alertResult = new AlertResult(new Location("lucerne", 0, 0),
-        [
-            new DomainAlert(DomainAlertType.Heat, DomainAlertSeverity.Yellow, 0.75, NoDetails.Instance),
-        ]);
-        var updatedAt = TestTimeConstants.BudgetEpoch;
-
-        var evt = EnrichmentEventMappings.ToEnrichmentEvent(new PipelineEvent.AlertComputed(alertResult, updatedAt));
-
-        Assert.NotNull(evt);
-        Assert.Equal("lucerne", evt.Location);
-        Assert.Equal("alerts", evt.TypeName);
-        Assert.Equal(updatedAt, evt.UpdatedAt.ToDateTimeOffset());
-        var alert = Assert.Single(evt.Alerts.Alerts);
-        Assert.Equal((V2.AlertType.Heat, V2.AlertSeverity.Yellow, 0.75), (alert.Type, alert.Severity, alert.Confidence));
-    }
-
-    [Fact]
     public void ToEnrichmentEvent_should_wrap_a_raised_alert_in_enrichment_event()
     {
         var raisedAt = TestTimeConstants.BudgetEpoch;
@@ -38,7 +19,7 @@ public sealed class EnrichmentEventMappingsSpec
             new DomainAlert(DomainAlertType.Frost, DomainAlertSeverity.Orange, 0.9, NoDetails.Instance, PeakValue: -4.0, HoursUntil: 6),
             raisedAt);
 
-        var evt = EnrichmentEventMappings.ToEnrichmentEvent(raised);
+        var evt = raised.ToEnrichmentEvent();
 
         Assert.NotNull(evt);
         Assert.Equal(("Lucerne", "alerts", raisedAt), (evt.Location, evt.TypeName, evt.UpdatedAt.ToDateTimeOffset()));
@@ -54,7 +35,7 @@ public sealed class EnrichmentEventMappingsSpec
             new AirQualityAlert(AirQualityAlertType.Pollen, DomainAlertSeverity.Orange, 85.0, 50.0, HoursUntil: 3),
             raisedAt);
 
-        var evt = EnrichmentEventMappings.ToEnrichmentEvent(raised);
+        var evt = raised.ToEnrichmentEvent();
 
         Assert.NotNull(evt);
         Assert.Equal(("Lucerne", "alerts", raisedAt), (evt.Location, evt.TypeName, evt.UpdatedAt.ToDateTimeOffset()));
@@ -72,7 +53,7 @@ public sealed class EnrichmentEventMappingsSpec
             new FloodAlert(FloodAlertType.FloodRisk, DomainAlertSeverity.Red, 120.0, 100.0),
             raisedAt);
 
-        var evt = EnrichmentEventMappings.ToEnrichmentEvent(raised);
+        var evt = raised.ToEnrichmentEvent();
 
         Assert.NotNull(evt);
         Assert.Equal(("Lucerne", "alerts", raisedAt), (evt.Location, evt.TypeName, evt.UpdatedAt.ToDateTimeOffset()));
@@ -85,8 +66,7 @@ public sealed class EnrichmentEventMappingsSpec
     [Fact]
     public void ToEnrichmentEvent_should_return_null_for_domain_data_events()
     {
-        var evt = EnrichmentEventMappings.ToEnrichmentEvent(
-            new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(TestTimeConstants.BudgetEpoch, 1)));
+        var evt = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(TestTimeConstants.BudgetEpoch, 1)).ToEnrichmentEvent();
 
         Assert.Null(evt);
     }
@@ -95,9 +75,9 @@ public sealed class EnrichmentEventMappingsSpec
     public void LatestAnalysisResult_should_fill_the_alerts()
     {
         var lucerne = new Location("lucerne", 0, 0);
-        var result = new LatestAnalysisResult(lucerne, EnrichmentEvents.Alerts(lucerne, TestTimeConstants.BudgetEpoch));
+        var result = new LatestAnalysisResult(lucerne, new AlertResult(lucerne, []));
 
-        var proto = EnrichmentEventMappings.ToProto((LatestAnalysisResponse)result);
+        var proto = result.ToProto();
 
         Assert.Equal(new V2.GetEnrichmentsResponse { Location = "lucerne", Alerts = new V2.AlertUpdate() }, proto);
     }
@@ -105,7 +85,7 @@ public sealed class EnrichmentEventMappingsSpec
     [Fact]
     public void LatestAnalysisResult_should_leave_missing_alerts_unset()
     {
-        var proto = EnrichmentEventMappings.ToProto(new LatestAnalysisResult(new Location("lucerne", 0, 0), null));
+        var proto = new LatestAnalysisResult(new Location("lucerne", 0, 0), null).ToProto();
 
         Assert.Multiple(
             () => Assert.Equal("lucerne", proto.Location),
@@ -115,7 +95,7 @@ public sealed class EnrichmentEventMappingsSpec
     [Fact]
     public void LatestAnalysisNotAvailable_should_carry_only_the_location()
     {
-        var proto = EnrichmentEventMappings.ToProto(new LatestAnalysisNotAvailable(new Location("lucerne", 0, 0)));
+        var proto = new LatestAnalysisNotAvailable(new Location("lucerne", 0, 0)).ToProto();
 
         Assert.Equal(new V2.GetEnrichmentsResponse { Location = "lucerne" }, proto);
     }

@@ -15,7 +15,6 @@
   <Folder Name="/Model/">
     <Project Path="Njord.Model/Njord.Model.csproj" />
   </Folder>
-  <Folder Name="/Contracts/" />
   <Folder Name="/Infrastructure/">
     <Project Path="Njord.Messages/Njord.Messages.csproj" />
     <Project Path="Njord.Persistence/Njord.Persistence.csproj" />

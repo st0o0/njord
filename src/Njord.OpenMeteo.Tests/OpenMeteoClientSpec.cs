@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Njord.Core.Configuration;
+using Njord.Messages.Forecast;
 using Njord.Model;
 using Njord.Tests.Shared;
 

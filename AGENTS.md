@@ -59,7 +59,7 @@ with optional MQTT state publishing.
   domains and evaluates the current `LocationForecast` against the previous one
   into `EnrichmentEvent`s. `PipelineEvent` variants are typed records
   (`WeatherDataReceived`, `AirQualityDataReceived`, `FloodDataReceived`,
-  `SolarDataReceived`, `MarineDataReceived`, `AlertRaised`, `AlertComputed`) — no
+  `SolarDataReceived`, `MarineDataReceived`, `AlertRaised`) — no
   `object` wrapping. Feature libraries register their groups in their own DI
   extension; `Njord.Pipeline` references only the allowed analysis libraries
   (`Njord.Alerts`), enforced by `LayerReferenceSpec`.
@@ -91,7 +91,7 @@ with optional MQTT state publishing.
   result and event lives there, one file per command or query, in domain folders
   (`Alerts/`, `Budget/`, `Config/`, `Forecast/`, `Pipeline/`; nothing MQTT-specific, see the MQTT boundary rule).
   Records that carry Akka types (stream handshakes with `ISourceRef`) live in
-  `Njord.Core/Actors/StreamWiringMessages.cs`; actor-internal records stay private.
+  `Njord.Core/Actors/*StreamMessages.cs`; actor-internal records stay private.
 - **MQTT-specific code lives only in `Njord.Mqtt`.** Any type with `Mqtt` in its name or
   namespace (actors, their messages, transport, topics, health check, telemetry, the payload
   records) is declared there; the egress stays an optional adapter that can change without touching
@@ -165,7 +165,7 @@ src/
   Njord.Model/                # ParameterDef, ParameterRegistry, WeatherModel, Location,
                               #   DomainKind, DomainForecast<T>, WeatherPoint, AirQualityPoint, FloodPoint,
                               #   SolarPoint, MarinePoint, Horizon, WeatherCondition, ResolvedParameterSet,
-                              #   ForecastValue, ModelCoverageRegistry (no Njord references)
+                              #   ModelCoverageRegistry (no Njord references)
 
   # /Contracts/ — message contracts
   Njord.Messages/             # Commands, queries, results, PipelineEvent and the alert contracts
@@ -176,7 +176,7 @@ src/
   Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references): Events/Budget, Events/Polling
   Njord.Core/                 # Options, actor keys, StreamSupervision (-> Model, Messages, Persistence)
     Actors/                   # Marker interfaces, ShardMessageExtractor, StreamConsumerActor, stream handshakes
-                              #   (StreamWiringMessages: pipeline output and forecast streams)
+                              #   (PipelineStreamMessages, ForecastStreamMessages, GrpcStreamMessages)
     Domain/                   # LocationForecast, DomainDataReceived, IProjectionGroup, IProjector, IEnrichment,
                               #   EnrichmentEvent, ForecastQueries
     Configuration/            # Cross-cutting options and validators (scope, polling, OpenMeteo, storage,
@@ -434,7 +434,7 @@ These checks run locally only; they are deliberately not part of CI.
   names. Contract types are named for what they are: `LocationForecast`, `DomainForecast<T>`,
   `ServiceInfo`, `MqttConnectionStatus` / `PollHealth` /
   `BudgetUsage`. `NamingArchitectureSpec` enforces the `Snapshot` reservation.
-- Enrichment types use `EnrichmentKind` enum (`Njord.Messages.Pipeline`), never bare
+- Enrichment wire names come from `EnrichmentNames` (`Njord.Messages.Pipeline`), never bare
   strings. Enrichment `PipelineEvent` variants implement `IEnrichmentEvent`.
 - `ParameterRegistry` (`Njord.Model`): one `static readonly ParameterDef` field per
   parameter (declared once, registered into the catalog; daily variants of a shared API name

@@ -23,8 +23,7 @@ public sealed class ProtoMappingGoldenMasterSpec
         {
             foreach (var alert in analysis.Alerts.Alerts)
             {
-                var mapped = EnrichmentEventMappings.ToEnrichmentEvent(
-                    new PipelineEvent.AlertRaised(analysis.Alerts.Location, alert, AlertScenario.Now));
+                var mapped = new PipelineEvent.AlertRaised(analysis.Alerts.Location, alert, AlertScenario.Now).ToEnrichmentEvent();
                 Assert.NotNull(mapped);
                 text.AppendLine(Formatter.Format(mapped));
             }
@@ -66,7 +65,7 @@ public sealed class ProtoMappingGoldenMasterSpec
     public void Fixture_maps_every_alert_type_into_the_alert_events()
     {
         var lucerne = Fixture.For(AlertScenario.Lucerne);
-        var mapped = AlertProtoMappings.ToProto(lucerne.Alerts);
+        var mapped = lucerne.Alerts.ToProto();
 
         var types = mapped.Alerts.Select(a => a.Type).ToHashSet();
         var expected = Enum.GetValues<AlertType>()

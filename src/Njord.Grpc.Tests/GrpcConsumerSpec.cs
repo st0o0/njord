@@ -93,9 +93,9 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
         await pipeline.OfferAsync(new PipelineEvent.AlertRaised(DomainData.Lucerne, heat, Anchor.AddMinutes(1)), ct);
         await pipeline.OfferAsync(new PipelineEvent.AlertRaised(DomainData.Lucerne, frostRed, Anchor.AddMinutes(2)), ct);
 
-        var result = await AwaitAnalysisAsync(readModel, Lucerne, r => r.Alerts?.Timestamp == Anchor.AddMinutes(2), ct);
+        var result = await AwaitAnalysisAsync(readModel, Lucerne, r => r.Alerts is { } a && a.Alerts.SequenceEqual([frostRed, heat]), ct);
         Assert.NotNull(result.Alerts);
-        var alerts = result.Alerts.Result.Alerts;
+        var alerts = result.Alerts.Alerts;
         Assert.Equal([frostRed, heat], alerts);
     }
 
@@ -105,13 +105,13 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
         var ct = TestContext.Current.CancellationToken;
         var (readModel, pipeline) = await StartAsync();
         var first = EnrichmentEvents.Alerts(Lucerne, Anchor);
-        var last = EnrichmentEvents.Alerts(Lucerne, Anchor.AddHours(1));
+        var last = EnrichmentEvents.Alerts(Lucerne, Anchor.AddHours(1)) with { Alert = first.Alert with { Severity = AlertSeverity.Red } };
 
         await pipeline.OfferAsync(first, ct);
         await pipeline.OfferAsync(last, ct);
 
-        var result = await AwaitAnalysisAsync(readModel, Lucerne, r => Equals(r.Alerts, last), ct);
-        Assert.Equal(last, result.Alerts);
+        var result = await AwaitAnalysisAsync(readModel, Lucerne, r => r.Alerts is { } a && a.Alerts.SequenceEqual([last.Alert]), ct);
+        AssertAlerts(Lucerne, [last.Alert], result.Alerts);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -128,8 +128,8 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
         var zurich = await AwaitAnalysisAsync(readModel, Zurich, r => r.Alerts is not null, ct);
         var lucerne = await AwaitAnalysisAsync(readModel, Lucerne, r => r.Alerts is not null, ct);
         Assert.Multiple(
-            () => Assert.Equal(lucerneAlerts, lucerne.Alerts),
-            () => Assert.Equal(zurichAlerts, zurich.Alerts));
+            () => AssertAlerts(Lucerne, [lucerneAlerts.Alert], lucerne.Alerts),
+            () => AssertAlerts(Zurich, [zurichAlerts.Alert], zurich.Alerts));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -154,12 +154,12 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
 
         var source = await RequestStreamAsync(readModel, ct);
         source.RunWith(Sink.ActorRef<PipelineEvent>(probe.Ref, "done", _ => "failed"), Sys.Materializer());
-        var alert = new PipelineEvent.AlertComputed(new AlertResult(Lucerne, []), Anchor);
+        var alert = EnrichmentEvents.Alerts(Lucerne, Anchor);
 
         await AwaitAssertAsync(async () =>
         {
             await pipeline.OfferAsync(alert, ct);
-            await probe.ExpectMsgAsync<PipelineEvent.AlertComputed>(TimeSpan.FromMilliseconds(500), cancellationToken: ct);
+            await probe.ExpectMsgAsync<PipelineEvent.AlertRaised>(TimeSpan.FromMilliseconds(500), cancellationToken: ct);
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
     }
 
@@ -200,12 +200,12 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
 
         var alive = await RequestStreamAsync(readModel, ct);
         alive.RunWith(Sink.ActorRef<PipelineEvent>(probe.Ref, "done", _ => "failed"), mat);
-        var alert = new PipelineEvent.AlertComputed(new AlertResult(Lucerne, []), Anchor);
+        var alert = EnrichmentEvents.Alerts(Lucerne, Anchor);
 
         await AwaitAssertAsync(async () =>
         {
             await pipeline.OfferAsync(alert, ct);
-            await probe.ExpectMsgAsync<PipelineEvent.AlertComputed>(TimeSpan.FromMilliseconds(500), cancellationToken: ct);
+            await probe.ExpectMsgAsync<PipelineEvent.AlertRaised>(TimeSpan.FromMilliseconds(500), cancellationToken: ct);
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
     }
 
@@ -277,12 +277,22 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
         return Assert.IsType<LatestAnalysisResult>(matched);
     }
 
-    private static readonly PipelineEvent WarmUp =
-        new PipelineEvent.AlertComputed(new AlertResult(Lucerne, []), Anchor.AddDays(-1));
+    private static readonly PipelineEvent.AlertRaised WarmUp =
+        EnrichmentEvents.Alerts(Lucerne, Anchor.AddDays(-1));
+
+    private static void AssertAlerts(Location location, Alert[] expected, AlertResult? actual)
+    {
+        Assert.NotNull(actual);
+        Assert.Multiple(
+            () => Assert.Equal(location, actual.Location),
+            () => Assert.Equal(expected, actual.Alerts));
+    }
+
+    private static readonly Alert HeatAlert = new(AlertType.Heat, AlertSeverity.Yellow, 0.75, NoDetails.Instance);
 
     private static List<PipelineEvent> CreateAlerts(int count) =>
         Enumerable.Range(1, count)
-            .Select(i => (PipelineEvent)new PipelineEvent.AlertComputed(new AlertResult(Lucerne, []), Anchor.AddMinutes(i)))
+            .Select(i => (PipelineEvent)(EnrichmentEvents.Alerts(Lucerne, Anchor.AddMinutes(i)) with { Alert = HeatAlert with { Confidence = i } }))
             .ToList();
 
     // Attaches a second consumer to the test pipeline hub next to the read model, and proves with a warm-up
@@ -297,7 +307,7 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
         {
             var response = await readModel.Ask<LatestAnalysisResponse>(new QueryLatestAnalysis(Lucerne), AskTimeout, ct);
             var result = Assert.IsType<LatestAnalysisResult>(response);
-            Assert.Equal(WarmUp, result.Alerts);
+            AssertAlerts(Lucerne, [WarmUp.Alert], result.Alerts);
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         return collector;
     }
@@ -318,16 +328,6 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
     {
         var offered = 0;
 
-        async Task OfferInOrder()
-        {
-            foreach (var evt in events)
-            {
-                var result = await queue.OfferAsync(evt, ct);
-                Assert.IsType<QueueOfferResult.Enqueued>(result);
-                Interlocked.Increment(ref offered);
-            }
-        }
-
         // A stalled pipeline backpressures the queue; fail with a bounded wait instead of hanging.
         try
         {
@@ -337,6 +337,18 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
         {
             Assert.Fail($"The pipeline stalled: only {Volatile.Read(ref offered)} of {events.Count} events " +
                         $"were accepted within {TestTimeouts.RealTimeWaitMax}");
+        }
+
+        return;
+
+        async Task OfferInOrder()
+        {
+            foreach (var evt in events)
+            {
+                var result = await queue.OfferAsync(evt, ct);
+                Assert.IsType<QueueOfferResult.Enqueued>(result);
+                Interlocked.Increment(ref offered);
+            }
         }
     }
 
@@ -349,7 +361,8 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
 
         var response = await readModel.Ask<LatestAnalysisResponse>(new QueryLatestAnalysis(Lucerne), AskTimeout, ct);
         var result = Assert.IsType<LatestAnalysisResult>(response);
-        Assert.Equal(events[^1], result.Alerts);
+        var last = Assert.IsType<PipelineEvent.AlertRaised>(events[^1]);
+        AssertAlerts(Lucerne, [last.Alert], result.Alerts);
     }
 
     // Records every non-warm-up event a stream delivers and lets a spec wait, bounded, for a condition on them.

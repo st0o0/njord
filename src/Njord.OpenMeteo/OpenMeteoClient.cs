@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Njord.Core.Configuration;
+using Njord.Messages.Forecast;
 using Njord.Model;
 using Njord.OpenMeteo.Mapping;
 

@@ -1,11 +1,12 @@
 using Akka.Actor;
 using Akka.Hosting;
+using Akka.Hosting.TestKit;
 using Grpc.Core;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
 
-public sealed class ActorAskSpec : Akka.Hosting.TestKit.TestKit
+public sealed class ActorAskSpec : TestKit
 {
     private interface IEchoTarget;
 

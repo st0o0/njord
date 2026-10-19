@@ -1,4 +1,4 @@
-namespace Njord.Model;
+namespace Njord.Messages.Forecast;
 
 public enum PollFailureReason
 {

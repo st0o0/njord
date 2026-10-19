@@ -17,7 +17,7 @@ public static class StatePayloadBuilder
         var messages = new List<MqttMessage>(result.Alerts.Count);
         foreach (var alert in result.Alerts)
         {
-            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location.Name, EnrichmentKind.Alerts.ToWireName(), alert.Type.ToTopicSegment());
+            var topic = TopicScheme.EnrichmentSubTopic(baseTopic, result.Location.Name, EnrichmentNames.Alerts, alert.Type.ToTopicSegment());
             messages.Add(new MqttMessage(topic, Serialize(alert.ToPayload(), MqttPayloadJsonContext.Default.AlertPayload), true));
         }
         return messages;
@@ -31,7 +31,7 @@ public static class StatePayloadBuilder
 
     private static MqttMessage AlertMessage(string baseTopic, Location location, string segment, AlertPayload payload)
         => new(
-            TopicScheme.EnrichmentSubTopic(baseTopic, location.Name, EnrichmentKind.Alerts.ToWireName(), segment),
+            TopicScheme.EnrichmentSubTopic(baseTopic, location.Name, EnrichmentNames.Alerts, segment),
             Serialize(payload, MqttPayloadJsonContext.Default.AlertPayload),
             true);
 

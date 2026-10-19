@@ -37,13 +37,13 @@ public sealed class WeatherGrpcService(
 
         var domain = request.Domain.ToDomain();
         var result = await actorRegistry.AskAsync<IGrpcConsumer, DomainDataResponse>(
-            new QueryDomainData(location.Id, domain), context);
+            new QueryDomainData(location.Location, domain), context);
 
         return result switch
         {
             DomainDataResult found when found.Event.ToDomainDataUpdate() is { } update => update,
             _ => throw new RpcException(new GrpcStatus(StatusCode.NotFound,
-                $"No {request.Domain} data available yet for '{location.Id.Name}'")),
+                $"No {request.Domain} data available yet for '{location.Location.Name}'")),
         };
     }
 
@@ -52,7 +52,7 @@ public sealed class WeatherGrpcService(
         var location = FindLocation(serviceInfo.Catalog, request.Location);
 
         var result = await actorRegistry.AskAsync<IGrpcConsumer, LatestAnalysisResponse>(
-            new QueryLatestAnalysis(location.Id), context);
+            new QueryLatestAnalysis(location.Location), context);
 
         return result.ToProto();
     }
@@ -121,7 +121,7 @@ public sealed class WeatherGrpcService(
 
     // An empty location streams every location; a non-empty one must be configured.
     private Location? ResolveStreamLocation(string location) =>
-        string.IsNullOrEmpty(location) ? null : FindLocation(serviceInfo.Catalog, location).Id;
+        string.IsNullOrEmpty(location) ? null : FindLocation(serviceInfo.Catalog, location).Location;
 
     private async Task<ISourceRef<PipelineEvent>> RequestGrpcStreamAsync(ServerCallContext context)
     {
@@ -137,6 +137,6 @@ public sealed class WeatherGrpcService(
     }
 
     private static CatalogLocation FindLocation(CatalogResult catalog, string name) =>
-        catalog.Locations.FirstOrDefault(l => string.Equals(l.Id.Name, name, StringComparison.OrdinalIgnoreCase))
+        catalog.Locations.FirstOrDefault(l => string.Equals(l.Location.Name, name, StringComparison.OrdinalIgnoreCase))
         ?? throw new RpcException(new GrpcStatus(StatusCode.NotFound, $"Location '{name}' not found"));
 }

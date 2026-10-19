@@ -137,7 +137,7 @@ public sealed class MqttStateSpec : NjordActorSpec
     }
 
     [Fact(Timeout = 15000)]
-    public async Task Should_ignore_retired_events()
+    public async Task Should_publish_only_topics_of_flood_events()
     {
         var hub = RegisterFakePipelineHub();
         var transport = new RecordingTransport();
@@ -146,7 +146,6 @@ public sealed class MqttStateSpec : NjordActorSpec
 
         await hub.WaitForQueue();
 
-        hub.Emit(EnrichmentEvents.Alerts(new Location("lucerne", 0, 0), Anchor));
         hub.Emit(new PipelineEvent.FloodDataReceived(Lucerne, DomainData.Flood(Anchor)));
 
         await transport.WaitForMessage(m => m.Topic == "njord/lucerne/flood/discharge").WaitAsync(TestContext.Current.CancellationToken);

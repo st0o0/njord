@@ -9,31 +9,24 @@ internal static class EnrichmentEventMappings
 {
     public static EnrichmentEvent? ToEnrichmentEvent(this PipelineEvent pipelineEvent) => pipelineEvent switch
     {
-        PipelineEvent.AlertComputed a => new EnrichmentEvent
-        {
-            Location = a.Result.Location.Name,
-            TypeName = a.Kind.ToWireName(),
-            UpdatedAt = a.Timestamp.ToTimestamp(),
-            Alerts = a.Result.ToProto(),
-        },
         PipelineEvent.AlertRaised r => new EnrichmentEvent
         {
             Location = r.Location.Name,
-            TypeName = r.Kind.ToWireName(),
+            TypeName = EnrichmentNames.Alerts,
             UpdatedAt = r.Timestamp.ToTimestamp(),
             Alerts = new AlertResult(r.Location, [r.Alert]).ToProto(),
         },
         PipelineEvent.AirQualityAlertRaised r => new EnrichmentEvent
         {
             Location = r.Location.Name,
-            TypeName = r.Kind.ToWireName(),
+            TypeName = EnrichmentNames.Alerts,
             UpdatedAt = r.Timestamp.ToTimestamp(),
             Alerts = r.Alert.ToProto(),
         },
         PipelineEvent.FloodAlertRaised r => new EnrichmentEvent
         {
             Location = r.Location.Name,
-            TypeName = r.Kind.ToWireName(),
+            TypeName = EnrichmentNames.Alerts,
             UpdatedAt = r.Timestamp.ToTimestamp(),
             Alerts = r.Alert.ToProto(),
         },
@@ -50,7 +43,7 @@ internal static class EnrichmentEventMappings
                 var proto = new GetEnrichmentsResponse { Location = found.Location.Name };
                 if (found.Alerts is { } alerts)
                 {
-                    proto.Alerts = alerts.Result.ToProto();
+                    proto.Alerts = alerts.ToProto();
                 }
 
                 return proto;

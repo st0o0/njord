@@ -5,8 +5,6 @@ namespace Njord.Messages.Pipeline;
 
 public interface IEnrichmentEvent
 {
-    EnrichmentKind Kind { get; }
-
     Location Location { get; }
 }
 
@@ -37,8 +35,6 @@ public abstract record PipelineEvent
         Alert Alert,
         DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
     {
-        public EnrichmentKind Kind => EnrichmentKind.Alerts;
-
         Location IEnrichmentEvent.Location => Location;
 
         public AlertType Type => Alert.Type;
@@ -55,8 +51,6 @@ public abstract record PipelineEvent
         AirQualityAlert Alert,
         DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
     {
-        public EnrichmentKind Kind => EnrichmentKind.Alerts;
-
         Location IEnrichmentEvent.Location => Location;
     }
 
@@ -65,18 +59,7 @@ public abstract record PipelineEvent
         FloodAlert Alert,
         DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
     {
-        public EnrichmentKind Kind => EnrichmentKind.Alerts;
-
         Location IEnrichmentEvent.Location => Location;
-    }
-
-    public sealed record AlertComputed(
-        AlertResult Result,
-        DateTimeOffset Timestamp) : PipelineEvent, IEnrichmentEvent
-    {
-        public EnrichmentKind Kind => EnrichmentKind.Alerts;
-
-        public Location Location => Result.Location;
     }
 
 }

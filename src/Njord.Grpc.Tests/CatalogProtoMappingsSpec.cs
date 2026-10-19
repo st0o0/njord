@@ -58,7 +58,7 @@ public sealed class CatalogProtoMappingsSpec
     [Fact]
     public void Catalog_location_ToProto_should_map_name_coordinates_and_models()
     {
-        var location = new CatalogLocation(new Location("lucerne", 0, 0), 47.05, 8.31, ["icon_d2", "ecmwf_ifs025"]);
+        var location = new CatalogLocation(new Location("lucerne", 47.05, 8.31), ["icon_d2", "ecmwf_ifs025"]);
 
         var info = location.ToProto();
 

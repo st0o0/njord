@@ -74,7 +74,7 @@ public sealed class OpsGrpcService(
             status.ModelsPartial = true;
         }
 
-        status.ActiveEnrichments.AddRange(serviceInfo.ActiveEnrichments.Select(e => e.ToWireName()));
+        status.ActiveEnrichments.AddRange(serviceInfo.ActiveEnrichments);
         return status;
     }
 
