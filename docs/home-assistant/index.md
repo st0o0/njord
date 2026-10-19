@@ -22,13 +22,13 @@ Copy the `custom_components/njord` directory from [ha-njord](https://github.com/
 1. Go to **Settings > Devices & Services > Add Integration**
 2. Search for **njord Weather**
 3. Enter the host and gRPC port of your njord instance (default port: 8081)
-4. The integration auto-discovers all configured locations and models
+4. The integration auto-discovers all configured locations
 
 ## Device structure
 
 The integration creates two types of devices:
 
-**Location device** (one per configured location, e.g. "njord Home"):
+**Location device** (one per configured location, e.g. "njord Lucerne"):
 - Domain data entities (weather, air quality, flood, solar)
 - Alert sensors
 - Weather alert event entity
@@ -44,7 +44,7 @@ Find all njord devices under **Settings > Devices & Services > njord Weather**.
 
 ## Enabling disabled entities
 
-Many enrichment sensors are disabled by default to keep the entity list manageable. To enable them:
+The alert sensors are disabled by default to keep the entity list manageable. To enable them:
 
 1. Go to **Settings > Devices & Services > njord Weather**
 2. Click the location device
@@ -55,7 +55,7 @@ Alternatively, use **Settings > Entities**, filter by "njord", and bulk-enable t
 
 ## Recorder exclude
 
-The integration can create many entities per location (40+ with all enrichments enabled). To prevent your Home Assistant database from growing rapidly, add a recorder exclude:
+The integration can create many entities per location (many more with all alerts enabled). To prevent your Home Assistant database from growing rapidly, add a recorder exclude:
 
 ```yaml
 # configuration.yaml
@@ -75,7 +75,7 @@ This excludes njord sensors from the long-term history database while keeping th
 Entities become unavailable when:
 
 - The gRPC connection to njord is lost (the stream connectivity binary sensors turn off)
-- njord has no data for a location or model
-- An enrichment feature is disabled in the njord configuration
+- njord has no data for a location or domain
+- Alerts are disabled in the njord configuration
 
-The three stream connectivity sensors (`binary_sensor.njord_*_stream`) show the real-time connection state. If all three are off, the integration cannot reach the njord server.
+The two stream connectivity sensors (`binary_sensor.njord_*_stream`) show the real-time connection state. If both are off, the integration cannot reach the njord server.

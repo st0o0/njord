@@ -1,8 +1,21 @@
-# Model Catalog
+# Models
 
-njord can poll any weather model available through the [Open-Meteo API](https://open-meteo.com/en/docs). This page lists the models njord knows coverage data for (`ModelCoverageRegistry`): their tier, region, maximum forecast horizon and resolution. Models not listed here still work; njord just cannot cap their horizon or check their coverage.
+njord fetches weather from the Open-Meteo **Ensemble Mean** API by default. One call per location returns a combined forecast from the ensemble, including `ensemble_std_dev`, the spread that drives alert confidence. You do not choose models for this; the Ensemble API handles that.
 
-Choose models based on your location and how far ahead you need forecasts. Regional models offer higher resolution for shorter horizons; global models cover everywhere but at coarser resolution.
+## Ensemble vs individual models
+
+| | Ensemble Mean (default) | Individual models |
+|---|---|---|
+| API calls per location and cycle | 1 (Weather) | 1 per model |
+| Uncertainty information | `ensemble_std_dev` per point | none |
+| Resolution | Ensemble grid | Up to ~1 km for regional models |
+| Used for | All weather data and alerts | Catalog and coverage validation |
+
+The `Njord:Models` list is still required at startup (at least one id). It feeds the gRPC catalog (`GetCatalog`) and the coverage check described in [Models configuration](/configuration/models). It does not add polling calls.
+
+## Model catalog
+
+njord knows coverage data for the models below (`ModelCoverageRegistry`): tier, region, maximum forecast horizon and resolution. Models not listed here are accepted; njord just cannot check their coverage.
 
 ## Global models
 
@@ -77,14 +90,8 @@ Continental models cover Europe (latitude 34 to 72, longitude -12 to 45).
 | `gem_hrdps_continental` | GEM HRDPS Continental | ECCC | Canada, Northern US | 54h | ~2.5 km |
 | `gem_hrdps_west` | GEM HRDPS West | ECCC | Western Canada | 48h | ~2.5 km |
 
-## Tips for model selection
+## Tips
 
-1. **Start small.** njord uses the Ensemble Mean API by default, which provides statistically robust forecasts from a single API call per location. Individual models are optional and can be added for comparison.
-
-2. **Mix global and regional.** A global model provides the long-range outlook; a regional model gives higher-resolution short-term detail.
-
-3. **Use per-location models for regional coverage.** Add regional models only to the locations they cover. See [per-location model configuration](/configuration/locations).
-
-4. **Check horizon vs. your needs.** If you only display +24h forecasts, a regional model with a 48h horizon is plenty. Long-range planning needs global models.
-
-5. **Consider the budget.** Each model-location pair is one API request per poll cycle. See [budget calculation](/configuration/budget) for details.
+1. **Keep the list short.** One model that covers your location is enough to pass validation (for Lucerne, `icon_eu` or `meteoswiss_icon_ch2`).
+2. **Match models to the location.** Regional ids only validate for locations they cover. Use [per-location models](/configuration/locations) for those.
+3. **The budget does not depend on the list.** API calls per cycle are set by locations and domains. See [Budget](/configuration/budget).

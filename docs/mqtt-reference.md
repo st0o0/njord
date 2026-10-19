@@ -1,83 +1,94 @@
 # MQTT Reference
 
 ::: info
-MQTT is an **optional** egress path, disabled by default. The primary way to connect njord to Home Assistant is the [included custom integration](/home-assistant/), which uses gRPC streaming for real-time updates. Enable MQTT only if you need to consume njord data from non-HA systems such as Node-RED, Grafana, or custom dashboards. See [MQTT configuration](/configuration/mqtt) to enable it.
+MQTT is an **optional** output, disabled by default. The primary way to connect njord to Home Assistant is the [custom integration](/home-assistant/) over gRPC. Enable MQTT only for non-HA consumers such as Node-RED, Grafana or custom dashboards. See [MQTT configuration](/configuration/mqtt).
 :::
 
-This page documents the MQTT state topics, payload format, and availability mechanism used by njord. njord publishes state only; it does not publish MQTT Discovery payloads, so Home Assistant does not create entities from these topics.
+njord publishes retained state only. It does not publish MQTT Discovery payloads, so Home Assistant creates no entities from these topics.
 
 ## Topic scheme
 
-All topics use the configured `BaseTopic` (default: `njord`). Locations appear as a slug of the configured name.
+All topics start with the configured `BaseTopic` (default `njord`). The location is the slug of its configured name (`Lucerne` becomes `lucerne`).
 
-### Status (LWT)
+### Status
 
 ```
 {baseTopic}/status
 ```
 
-Payload: `online` or `offline` (Last Will and Testament). Published as retained.
+`online` or `offline` (retained, Last Will and Testament).
 
-### Domain data (per domain)
+### Domain data
 
 ```
-{baseTopic}/{location}/{domain}/{parameter}
+{baseTopic}/{location}/{domain}/state            # full JSON payload of the first forecast point
+{baseTopic}/{location}/{domain}/{parameter}      # one scalar value
 ```
+
+| Domain segment | Source |
+|----------------|--------|
+| `weather` | Ensemble Mean |
+| `air-quality` | Air Quality |
+| `flood` | Flood |
+| `solar` | Solar variables of the Weather fetch (published when the `Solar` parameter group is enabled) |
+| `marine` | Marine (payload defined; not fetched by default) |
 
 Examples:
+
 ```
 njord/lucerne/weather/state
-njord/lucerne/weather/temperature_2m
+njord/lucerne/weather/temperature
 njord/lucerne/air-quality/pm25
 njord/lucerne/flood/discharge
 njord/lucerne/solar/direct_radiation
 ```
 
-Each domain publishes retained JSON payloads with the latest forecast values for that location and domain.
+Scalar topics are only published for values the source delivered. All payloads are retained and re-published only when their content changed.
 
 ### Alert topics
 
 ```
-{baseTopic}/{location}/alerts/{alertType}
+{baseTopic}/{location}/alerts/{type}
 ```
 
-Examples:
-```
-njord/lucerne/alerts/frost
-njord/lucerne/alerts/heat
-njord/lucerne/alerts/storm
-```
+Types: `frost`, `heat`, `storm`, `heavy-rain`, `uv`, `fog`, `snow`, `pressure-drop`, `thunderstorm`, `ice`, `wind-chill`, `visibility`, `tropical-night`, `humidity`.
 
-One retained payload per active alert type.
+Example: `njord/lucerne/alerts/frost`. Air quality and flood alerts are not published over MQTT yet.
 
-## Payload format
+## Payloads
 
-### Weather domain payload
+JSON keys are snake_case. Every domain payload starts with `valid_from` and `model_run` (ISO 8601). Optional members that a source does not deliver are omitted.
 
-The weather state topic contains the first hourly forecast point from the ensemble:
+### Weather
 
 ```json
 {
-  "temperature_2m": 18.5,
-  "apparent_temperature": 16.2,
-  "relative_humidity_2m": 72,
-  "dew_point_2m": 13.1,
+  "valid_from": "2026-10-19T12:00:00+00:00",
+  "model_run": "2026-10-19T06:00:00+00:00",
+  "temperature": 14.2,
+  "apparent_temperature": 12.8,
+  "wind_speed": 3.1,
   "precipitation": 0.0,
-  "weather_code": 3,
-  "cloud_cover": 85,
-  "pressure_msl": 1013.2,
-  "wind_speed_10m": 4.2,
   "precipitation_probability": 15,
-  "ensemble_std_dev": 1.2
+  "cloud_cover": 85,
+  "pressure": 1013.2,
+  "weather_code": 3,
+  "humidity": 72,
+  "dew_point": 9.1,
+  "uv_index": 2.4,
+  "ensemble_std_dev": 1.2,
+  "wind_gusts": 7.8
 }
 ```
 
-The `ensemble_std_dev` field indicates forecast uncertainty from the ensemble spread.
+Optional members: `ensemble_std_dev`, `wind_gusts`, `visibility`, `cape`, `rain`, `snowfall`, `soil_temperature`, `freezing_level_height`, `is_day`. `ensemble_std_dev` is the forecast spread of the ensemble.
 
-### Air quality domain payload
+### Air quality
 
 ```json
 {
+  "valid_from": "2026-10-19T12:00:00+00:00",
+  "model_run": "2026-10-19T06:00:00+00:00",
   "pm25": 12.3,
   "pm10": 24.5,
   "ozone": 85.0,
@@ -86,21 +97,32 @@ The `ensemble_std_dev` field indicates forecast uncertainty from the ensemble sp
 }
 ```
 
-### Flood domain payload
+Optional members: `birch_pollen`, `grass_pollen`, `alder`, `mugwort` (pollen is only delivered in season and region).
+
+### Flood
 
 ```json
 {
+  "valid_from": "2026-10-19T00:00:00+00:00",
+  "model_run": "2026-10-19T00:00:00+00:00",
   "discharge": 145.2,
-  "discharge_p10": 120.0,
-  "discharge_p90": 180.0,
-  "median_historical": 130.0
+  "discharge_mean": 140.0,
+  "discharge_median": 130.0,
+  "discharge_max": 210.0,
+  "discharge_min": 95.0,
+  "discharge_p25": 118.0,
+  "discharge_p75": 165.0
 }
 ```
 
-### Solar domain payload
+`discharge` is river discharge in m3/s; the other members are optional ensemble and historical statistics.
+
+### Solar
 
 ```json
 {
+  "valid_from": "2026-10-19T12:00:00+00:00",
+  "model_run": "2026-10-19T06:00:00+00:00",
   "direct_radiation": 450.0,
   "diffuse_radiation": 120.0,
   "shortwave_radiation": 570.0,
@@ -108,34 +130,33 @@ The `ensemble_std_dev` field indicates forecast uncertainty from the ensemble sp
 }
 ```
 
-### Alert payload
+### Alert
 
-One retained payload per active alert type (here `njord/lucerne/alerts/frost`):
+One retained payload per alert type, for example `njord/lucerne/alerts/frost`:
 
 ```json
 {
   "severity": "yellow",
-  "confidence": "high",
+  "confidence": 0.85,
+  "trigger_value": -1.2,
+  "threshold": 0.0,
   "peak_value": -1.2,
   "hours_until": 9,
-  "duration_hours": 4
+  "duration_hours": 4,
+  "expected_low": -1.2,
+  "earliest_frost": "+9h",
+  "models_agreeing": 5
 }
 ```
 
-Alert fields: `severity` (none/yellow/orange/red), `confidence` (high/medium/low, derived from ensemble standard deviation), plus type-specific details.
+Common members: `severity` (`none`, `yellow`, `orange`, `red`), `confidence` (0 to 1, derived from the ensemble standard deviation), `trigger_value`, `threshold`, and `peak_value`, `hours_until`, `duration_hours` (explicit `null` when not set). Each alert type adds its own members after these (for example `expected_low` for frost). The ice alert's `soil_frozen` is a JSON boolean.
 
 ## Availability
 
-njord publishes its availability on `{baseTopic}/status` (retained):
-
-- `online`: published after every successful connect
-- `offline`: registered as Last Will and Testament, so the broker publishes it if njord disconnects unexpectedly; njord also publishes it when the connection actor stops
-
-State topics carry no expiry. Consumers should combine the status topic with the age of the last state message.
+`{baseTopic}/status` carries `online` after every successful connect and `offline` as Last Will when the connection drops. State topics carry no expiry; combine the status topic with the age of the last state message.
 
 ## Retained messages
 
-All state payloads are published as **retained**. This means:
-- New MQTT subscribers immediately receive the last known state
-- A payload is only re-published when its content changed since the last publish
+- New subscribers immediately receive the last known state
+- A payload is re-published only when its content changed, and again after every broker reconnect
 - Retained topics of removed locations stay on the broker until cleared manually

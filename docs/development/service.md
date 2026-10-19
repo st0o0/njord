@@ -30,7 +30,7 @@ for p in Njord.*Tests; do
 done
 ```
 
-There is one test project per library (`Njord.Weather.Tests`, `Njord.Core.Tests`, `Njord.Pipeline.Tests`, ...) plus the host project `Njord.Tests` and the architecture rules in `Njord.Architecture.Tests`. Each test project is its own executable and runs with `dotnet run --project`; none of them needs Docker except `Njord.IntegrationTests`. Shared fakes and fixtures live in `Njord.Tests.Shared` (not a test project).
+There is one test project per library (`Njord.Alerts.Tests`, `Njord.Core.Tests`, `Njord.Pipeline.Tests`, ...) plus the host project `Njord.Tests` and the architecture rules in `Njord.Architecture.Tests`. Each test project is its own executable and runs with `dotnet run --project`; none of them needs Docker except `Njord.IntegrationTests`. Shared fakes and fixtures live in `Njord.Tests.Shared` (not a test project).
 
 End-to-end checks of the full stack (njord, ha-njord and Home Assistant in Docker Compose) are the `e2e-test` skill (`.claude/skills/e2e-test/SKILL.md`), not a test project.
 
@@ -44,7 +44,7 @@ dotnet run --project Njord/Njord.csproj
 
 ## Architecture
 
-See [Architecture](/architecture) for the three-zone design, stream pipeline, and project structure. See `AGENTS.md` in the repo root for detailed conventions.
+See [Architecture](/architecture) for the three-zone design, domains, projection groups and stream pipeline. See `AGENTS.md` in the repo root for detailed conventions.
 
 ## Integration tests
 

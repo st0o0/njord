@@ -1,6 +1,8 @@
 # Configuration
 
-njord is configured via `appsettings.json` or environment variables. All settings live under the `Njord` section.
+njord is configured through `appsettings.json` and environment variables. All settings live under the `Njord` section.
+
+Configuration is **static**: it is read once at startup. There is no runtime configuration API and no override file. To change a setting, edit your configuration or environment and restart the container; a restart takes seconds.
 
 ## Structure overview
 
@@ -21,67 +23,70 @@ njord is configured via `appsettings.json` or environment variables. All setting
     "Storage": { "PersistencePath": "data/njord.db" },
     "Persistence": { ... },
     "Mqtt": { ... },
-    "Enrichment": { ... }
+    "Enrichment": { "Alerts": { ... } }
   }
 }
 ```
 
-Each concern has its own section. `Njord` itself holds the forecast scope (`Locations`, `Models`, `Horizons`, `ForecastDays`, `Parameters`).
+A minimal setup for Lucerne:
+
+```json
+{
+  "Njord": {
+    "Locations": [{ "Name": "Lucerne", "Latitude": 47.05, "Longitude": 8.31 }],
+    "Models": ["icon_eu"]
+  }
+}
+```
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `Polling:PollInterval` | `01:00:00` (60 min) | How often njord polls Open-Meteo for new forecasts |
-| `ForecastDays` | `4` | Number of days to request from the API (1 to 16) |
-| `Polling:DiscoveryInterval` | `00:20:00` (20 min) | Poll interval for a model whose update cycle is not learned yet (discovery phase); once the cycle is known, polls follow it |
-| `OpenMeteo:BaseUrl` | `https://api.open-meteo.com/` | Open-Meteo endpoint (for a self-hosted instance or a test double) |
-| `Storage:PersistencePath` | `data/njord.db` | Path to the SQLite database file |
+| `Polling:PollInterval` | `01:00:00` | How often each PollWorker fetches all domains of its location |
+| `Polling:DiscoveryInterval` | `00:20:00` | Poll interval until a worker has learned the update cycle of the data |
+| `ForecastDays` | `4` | Days of weather forecast to request (1 to 16) |
+| `OpenMeteo:BaseUrl` | `https://api.open-meteo.com/` | Open-Meteo endpoint for the weather domain (self-hosted instance or test double) |
+| `Storage:PersistencePath` | `data/njord.db` | SQLite database file |
 
 ## Defaults
 
-The `appsettings.json` shipped in the image (`src/Njord/appsettings.json`) is the single source of the default values: every scalar, flag, enum and duration setting has its default in its `Njord` section. The defaults in this documentation repeat that file; if they ever differ, the file wins. [`appsettings.Example.json`](https://github.com/st0o0/njord/blob/main/src/Njord/appsettings.Example.json) only holds deployment-specific keys (locations, models, MQTT broker) and does not repeat defaults.
+All defaults are property initializers on the options classes. `appsettings.json` in the image only holds logging and Kestrel settings. [`appsettings.Example.json`](https://github.com/st0o0/njord/blob/main/src/Njord/appsettings.Example.json) is a template with deployment-specific keys only.
 
-List-valued defaults (`Horizons`, `Parameters.Groups`, the alert threshold arrays) are built into njord instead of the file. A list you configure replaces the built-in list completely; it is never merged by position.
-
-Resetting a setting to its default means removing your key (from your configuration file or environment); the value then comes from the shipped `appsettings.json` again, or from the built-in list for list settings.
+List-valued defaults (`Horizons`, `Parameters.Groups`, the alert threshold arrays) are built in: a list you configure replaces the built-in list completely, it is never merged by position. To go back to a default, remove your key.
 
 ## Environment variable overrides
 
-Every setting can be overridden via environment variables using double-underscore notation:
+Use double-underscore notation; array items use zero-based indices:
 
 ```
 Njord__Polling__PollInterval=00:30:00
-Njord__Mqtt__Host=192.168.1.100
-Njord__Locations__0__Name=Home
+Njord__Locations__0__Name=Lucerne
 Njord__Locations__0__Latitude=47.05
+Njord__Locations__0__Longitude=8.31
 Njord__Models__0=icon_eu
-Njord__Models__1=ecmwf_ifs025
+Njord__Parameters__Groups__0=Weather
+Njord__Parameters__Groups__1=Solar
 Njord__Enrichment__Alerts__Enabled=true
+Njord__Mqtt__Host=192.168.1.100
 ```
 
-Array items use zero-based indices (`__0__`, `__1__`, etc.).
-
 ::: tip
-Use environment variables for secrets like `Njord__Mqtt__Password` instead of putting them in the config file.
+Use environment variables for secrets like `Njord__Mqtt__Password`.
 :::
-
-## Changing configuration
-
-Configuration is read once at startup. To change a setting, edit your configuration file or environment variables and restart the container; a restart takes seconds.
 
 ## Configuration sections
 
 - [Locations](./locations): where to fetch forecasts for
-- [Models](./models): which weather models to poll
+- [Models](./models): the model list and the Ensemble default
 - [Horizons](./horizons): forecast time offsets
-- [Parameters](./parameters): which weather variables to request
-- [Enrichment](./enrichment): weather alerts and domain-specific enrichments
-- [MQTT](./mqtt): broker connection and topic settings
+- [Parameters](./parameters): parameter groups (Weather, Solar, Soil)
+- [Enrichment](./enrichment): weather, air quality and flood alerts
+- [MQTT](./mqtt): broker connection and topics
 - [Persistence](./persistence): SQLite or PostgreSQL storage
-- [Budget](./budget): Open-Meteo rate limits and usage projection
+- [Budget](./budget): Open-Meteo limits and usage projection
 
 ## Logging
 
-Log levels live in the `Serilog` section, outside `Njord`. Every log line shows its category, the full type name of the class that wrote it: njord's actors and services log as their class (`[Njord.Pipeline.PollWorker]`), Akka.NET's internals as `Akka.*` types. The shipped `"Akka": "Warning"` override therefore only quiets Akka itself. An override key matches its category and every category below it:
+Log levels live in the `Serilog` section, outside `Njord`. Every log line shows the full type name of the class that wrote it (`[Njord.Pipeline.PollWorker]`); Akka.NET internals log as `Akka.*`. An override key matches its category and everything below it:
 
 ```json
 {
@@ -98,17 +103,16 @@ Log levels live in the `Serilog` section, outside `Njord`. Every log line shows 
 }
 ```
 
-`Njord.Pipeline` shows the Debug logs of the poll manager, the poll workers and the analysis pipeline; `Njord.Mqtt.MqttStatePublisher` adds element-level tracing of the MQTT state stream (its `mqtt-state-in` and `mqtt-state-out` stages). Environment variables work as well: `Serilog__MinimumLevel__Override__Njord.Pipeline=Debug`.
-
-The actor system creates log events only down to the lowest level configured in `MinimumLevel` (`Default` and every override), read once at startup; `Information` is the floor when nothing lower is set. Serilog level switches (`LevelSwitches`, `ControlledBy`) are not taken into account for that floor. Changing log levels needs a restart.
+`Njord.Pipeline` shows the Debug logs of the poll manager, the poll workers and the analysis pipeline; `Njord.Mqtt.MqttStatePublisher` adds element-level tracing of the MQTT state stream. As environment variable: `Serilog__MinimumLevel__Override__Njord.Pipeline=Debug`. Log levels are read at startup.
 
 ## Startup validation
 
-njord validates the entire configuration at startup and refuses to start if:
+njord validates the configuration at startup and refuses to start if:
 
-- No locations or models are defined
-- The MQTT host is empty
-- Horizons are outside the valid range (1 to 96)
+- No locations or no model ids are defined
+- A location has an empty name
+- Horizons are outside 1 to 96, or `ForecastDays` outside 1 to 16
+- Parameter groups, extras or excludes reference unknown parameters
+- The MQTT host is empty while MQTT is enabled
 - PostgreSQL is selected without a connection string
 - Projected API usage exceeds 80% of the monthly budget
-- Parameter groups, extras, or excludes reference unknown parameters

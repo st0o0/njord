@@ -1,6 +1,6 @@
 model {
   openMeteo = externalSystem 'Open-Meteo API' {
-    description 'Free weather forecast API, ICON, ECMWF, GFS, UKMO, and 50+ models'
+    description 'Free weather API: Ensemble Mean (weather, solar), Air Quality and Flood endpoints'
   }
 
   njord = system 'njord' {
@@ -12,41 +12,37 @@ model {
 
       openMeteoGateway = component 'OpenMeteoGateway' {
         #ingest
-        description 'Fetch stream, budget throttle, two parallel fetches, forecast broadcast hub'
+        description 'Routes FetchDomain requests to Weather, Air Quality and Flood, budget throttle, parallel fetches'
       }
       openMeteoClient = component 'OpenMeteoClient' {
         #ingest
-        description 'HTTP client, builds requests, parses JSON into Forecast records'
+        description 'HTTP client, builds requests, parses JSON into DomainForecast records'
       }
     }
 
     domain = container 'Domain' {
       #domain
-      description 'Poll scheduling, forecast pipeline, analysis libraries'
+      description 'Poll scheduling, projection engine, alert libraries'
 
       pollManager = component 'PollManager' {
         #domain
-        description 'Cluster singleton: starts one poll worker per configured target, answers poll-state queries'
+        description 'Cluster singleton: starts one poll worker per configured location, answers poll-state queries'
       }
       pollWorker = component 'PollWorker' {
         #domain
-        description 'Persistent shard entity per location/model target: decides when it is fetched'
+        description 'Persistent shard entity per location: decides when it is fetched, fetches all three domains'
       }
       forecastPipeline = component 'ForecastPipeline' {
         #domain
-        description 'Analysis stream, consensus per forecast, then all enabled features'
+        description 'ProjectionEngine keeps a LocationForecast per location and runs the affected projection groups'
       }
-      analysis = component 'Analysis libraries' {
+      analysis = component 'Alert libraries' {
         #domain
-        description 'Consensus, alerts, derived values, trends, indices'
+        description 'Weather, air quality and flood alerts, including cross-domain FloodRain'
       }
       budgetTracker = component 'BudgetTracker' {
         #domain
         description 'Persistent request budget usage per minute, day and month'
-      }
-      sensorHub = component 'SensorHub' {
-        #domain
-        description 'Latest indoor sensor readings pushed over gRPC'
       }
     }
 
@@ -54,17 +50,13 @@ model {
       #egress
       description 'Output adapters attached to the pipeline via SourceRef'
 
-      readModel = component 'ForecastReadModel' {
-        #egress
-        description 'Latest forecasts and analysis results per location'
-      }
       grpcApi = component 'gRPC API' {
         #egress
-        description 'Weather, Admin, Ops and Sensor services on port 8081'
+        description 'GrpcConsumer plus Weather and Ops services on port 8081'
       }
       mqttStatePublisher = component 'MqttStatePublisher' {
         #egress
-        description 'Optional, retained state JSON per model, horizon and feature'
+        description 'Optional, retained state JSON per domain, parameter and alert'
       }
     }
 
@@ -74,7 +66,7 @@ model {
 
       fetchQueue = component 'Fetch queue' {
         #pipeline
-        description 'FetchForecast requests from the poll workers'
+        description 'FetchDomain requests from the poll workers'
       }
       throttle = component 'GatewayThrottleStage' {
         #pipeline
@@ -82,15 +74,15 @@ model {
       }
       httpStage = component 'Fetch' {
         #pipeline
-        description 'SelectAsyncUnordered(2) calls to OpenMeteoClient'
+        description 'SelectAsyncUnordered calls to OpenMeteoClient'
       }
-      forecastHub = component 'Forecast hub' {
+      domainHub = component 'MergeHub' {
         #pipeline
-        description 'BroadcastHub of successful forecasts, handed out as SourceRef'
+        description 'MergeHub of DomainDataReceived from the fetch branch'
       }
-      analyze = component 'Analyze' {
+      projection = component 'ProjectionEngine' {
         #pipeline
-        description 'ZipWith sensor readings, StatefulSelectMany over all analysis features'
+        description 'Updates the LocationForecast and evaluates projection groups by domain'
       }
       eventHub = component 'PipelineEvent hub' {
         #pipeline
@@ -99,7 +91,7 @@ model {
     }
 
     persistence = dataStore 'SQLite' {
-      description 'Journal and snapshots for budget usage and the poll workers' state'
+      description 'Journal and snapshots for budget usage and the poll workers state'
     }
   }
 
@@ -112,36 +104,33 @@ model {
   }
 
   // System-level relationships
-  openMeteo -> njord 'forecast data'
+  openMeteo -> njord 'weather, air quality, flood data'
   njord -> homeAssistant 'gRPC streams (ha-njord)'
   njord -> mqttBroker 'optional state JSON'
 
   // Internal relationships
-  pollManager -> pollWorker 'StartPolling / TriggerTargetPoll'
+  pollManager -> pollWorker 'StartPolling / TriggerImmediatePoll'
   pollWorker -> pollManager 'PollWorkerReport'
-  pollWorker -> openMeteoGateway 'FetchForecast'
+  pollWorker -> openMeteoGateway 'FetchDomain'
   openMeteoGateway -> openMeteoClient 'fetch'
-  openMeteoClient -> openMeteo 'HTTP GET /v1/forecast'
-  openMeteoGateway -> forecastPipeline 'SourceRef<Forecast>'
-  sensorHub -> forecastPipeline 'sensor readings'
-  forecastPipeline -> analysis 'LocationConsensus'
-  forecastPipeline -> readModel 'SourceRef<PipelineEvent>'
+  openMeteoClient -> openMeteo 'HTTP GET'
+  openMeteoGateway -> forecastPipeline 'SinkRef<DomainDataReceived>'
+  forecastPipeline -> analysis 'projection groups'
+  forecastPipeline -> grpcApi 'SourceRef<PipelineEvent>'
   forecastPipeline -> mqttStatePublisher 'SourceRef<PipelineEvent>'
-  grpcApi -> readModel 'queries + streams'
-  grpcApi -> sensorHub 'sensor readings'
   grpcApi -> homeAssistant 'gRPC streams'
   mqttStatePublisher -> mqttBroker 'state JSON'
-  pollWorker -> persistence 'poll state per target'
+  pollWorker -> persistence 'poll state per location'
   openMeteoGateway -> budgetTracker 'recorded calls'
   budgetTracker -> persistence 'budget usage'
 
   // Pipeline flow
-  fetchQueue -> throttle 'targets'
-  throttle -> httpStage 'throttled targets'
+  fetchQueue -> throttle 'domain requests'
+  throttle -> httpStage 'throttled requests'
   httpStage -> openMeteo 'HTTP GET'
-  httpStage -> forecastHub 'Forecast'
-  forecastHub -> analyze 'SourceRef<Forecast>'
-  analyze -> eventHub 'PipelineEvent'
-  eventHub -> homeAssistant 'gRPC via ForecastReadModel'
+  httpStage -> domainHub 'DomainDataReceived'
+  domainHub -> projection 'DomainDataReceived'
+  projection -> eventHub 'PipelineEvent'
+  eventHub -> homeAssistant 'gRPC via GrpcConsumer'
   eventHub -> mqttBroker 'via MqttStatePublisher'
 }

@@ -1,8 +1,6 @@
 # Horizons
 
-Horizons define the forecast time offsets that njord publishes as separate sensor values. Each horizon produces a sensor per parameter per model.
-
-## Configuration
+`Horizons` is a list of forecast offsets in hours.
 
 ```json
 {
@@ -12,58 +10,26 @@ Horizons define the forecast time offsets that njord publishes as separate senso
 }
 ```
 
-The default is `[3, 6, 12, 24, 48, 72]`, covering forecasts for 3, 6, 12, 24, 48, and 72 hours ahead.
+The default is `[3, 6, 12, 24, 48, 72]`.
 
-## What each horizon means
+## Current behavior
 
-Each value represents how many hours into the future the forecast applies:
-
-| Horizon | Topic segment | Meaning |
-|---------|---------------|---------|
-| `3` | `h3` | 3 hours from now |
-| `6` | `h6` | 6 hours from now |
-| `12` | `h12` | 12 hours from now |
-| `24` | `h24` | Tomorrow, same time |
-| `48` | `h48` | 2 days from now |
-| `72` | `h72` | 3 days from now |
-| `96` | `h96` | 4 days from now |
+In the multi-domain architecture njord publishes the forecast series of each domain as a whole: gRPC streams the full series of points, and MQTT publishes the first point per domain (`njord/lucerne/weather/state`). The setting is still bound and validated, but it does not create per-horizon topics or entities.
 
 ## Valid range
 
-Each horizon must be between **1** and **96** (hours). At least one horizon is required.
+Each horizon must be between **1** and **96** hours, and at least one is required. Startup fails otherwise.
 
-## Model horizon limits
+## Forecast length
 
-Not every model provides data out to every horizon. For example, `icon_d2` only forecasts ~48 hours ahead. When a model has no data at a configured horizon:
-
-- njord does not publish a value for that model at that horizon
-- No null payloads are sent; the sensor simply does not update
-- The `expire_after` mechanism (2x poll interval) marks the sensor as unavailable in Home Assistant
-
-This is expected behavior: short-range regional models naturally cover fewer horizons than global models.
-
-## Fine-grained presets
-
-For high-resolution monitoring of the next 24 hours, use closely spaced horizons:
+How far ahead the data reaches is set by `ForecastDays` (default `4`, range 1 to 16) for the Weather domain. The Flood domain always requests a longer window (92 days), and Air Quality uses its own forecast range.
 
 ```json
 {
   "Njord": {
-    "Horizons": [1, 2, 3, 4, 6, 8, 12, 18, 24, 36, 48, 72]
+    "ForecastDays": 7
   }
 }
 ```
 
-::: warning
-More horizons means more sensors per model device. With the default Weather parameter group and 12 horizons, each model device has over 100 sensors. Consider using [parameter excludes](./parameters) to reduce the sensor count, and see [budget](./budget) for API usage impact.
-:::
-
-## Sensor count formula
-
-The number of sensors per model device is:
-
-```
-(hourly parameters x horizons) + (daily parameters x forecast days)
-```
-
-With defaults (31 hourly + 17 daily parameters, 6 horizons, 4 forecast days): `31 x 6 + 17 x 4 = 254` sensors per model device.
+A longer `ForecastDays` raises the API call weight only when the request grows past Open-Meteo's fractional-weight thresholds. See [Budget](./budget).

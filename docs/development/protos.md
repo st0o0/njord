@@ -8,9 +8,9 @@ Proto definitions live in the **njord** repo at `protos/njord/v2/`:
 
 ```
 protos/njord/v2/
-├── common.proto      # Shared types (domain data, alerts, enums)
-├── weather.proto     # WeatherService (GetDomainData, StreamDomainData, ...)
-└── ops.proto         # OpsService (TriggerPoll, GetStatus, ...)
+├── common.proto      # Shared types (locations, models, alerts, enums)
+├── weather.proto     # WeatherService (GetCatalog, GetDomainData, StreamDomainData, GetEnrichments, StreamEnrichments)
+└── ops.proto         # OpsService (GetStatus, GetTargets, TriggerPoll)
 ```
 
 ## How each repo uses them
@@ -37,7 +37,9 @@ Closed value sets are proto enums, each with a `*_UNSPECIFIED = 0` member. Absen
 
 | Field | Enum | Members |
 |-------|------|---------|
-| `ModelStatus.phase`, `TriggerTarget.phase` | `PollPhase` | `DISCOVERY`, `STEADY` |
+| `ModelStatus.phase`, `TriggerTarget.phase` | `PollPhase` | `DISCOVERY`, `STEADY` (one entry per location) |
+| `Alert.type` | `AlertType` | the 14 weather alert types |
+| `Alert.severity` | `AlertSeverity` | `NONE`, `YELLOW`, `ORANGE`, `RED` |
 | `DomainDataUpdate.domain` | `Domain` | `WEATHER`, `AIR_QUALITY`, `FLOOD`, `SOLAR`, `MARINE` |
 
 Member names carry the enum name as prefix (`POLL_PHASE_STEADY`). 

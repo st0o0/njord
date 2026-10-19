@@ -4,10 +4,10 @@ The integration creates entities across five platforms: `weather`, `sensor`, `bi
 
 ## Weather (`weather.*`)
 
-Each location creates a weather entity from the ensemble forecast data.
+Each location creates one weather entity from the Ensemble Mean forecast of the Weather domain.
 
-::: warning ha-njord redesign pending
-The ha-njord integration must be updated for njord's new multi-domain architecture. Per-model weather entities and consensus entities have been replaced by domain-based data. The entity structure below will change when ha-njord is updated.
+::: warning ha-njord update pending
+The server side is multi-domain (Weather, Air Quality, Flood, Solar), served by `GetDomainData` and `StreamDomainData`. The ha-njord integration is being updated to match, so the entity set below may change. Air quality and flood values are available over gRPC and MQTT.
 :::
 
 **State attributes (current conditions):**
@@ -23,18 +23,19 @@ The ha-njord integration must be updated for njord's new multi-domain architectu
 | `wind_bearing` | ° | Wind direction (0=N, 90=E, 180=S, 270=W) |
 | `cloud_cover` | % | Total cloud cover |
 
-**Model info attributes** (on per-model entities):
-
-| Attribute | Description |
-|-----------|-------------|
-| `model_display_name` | Human-readable model name |
-| `model_provider` | Weather service provider |
-| `model_region` | Geographic coverage area |
-| `model_coverage_tier` | Coverage classification |
-| `model_resolution_km` | Grid resolution in km |
-| `model_max_forecast_hours` | Maximum forecast horizon |
-
 **Forecasts** are available via the `weather.get_forecasts` service with `type: hourly` or `type: daily`.
+
+## Air quality, flood and solar data
+
+The server delivers these domains per location alongside the weather forecast:
+
+| Domain | Values |
+|--------|--------|
+| Air Quality | `pm25`, `pm10`, `ozone`, `birch_pollen`, `grass_pollen`, `alder`, `mugwort` |
+| Flood | `discharge` with mean, median, min, max, P25 and P75 |
+| Solar | `direct_radiation`, `diffuse_radiation`, `shortwave_radiation`, `sunshine_duration` (needs the `Solar` parameter group on the server) |
+
+Air quality and flood alerts are computed on the server and become available to Home Assistant once they are exposed over gRPC.
 
 ---
 
@@ -75,12 +76,6 @@ State is `None` when no alert data is available. The trigger value (e.g. -2.1 °
 | `duration_hours` | int | Expected duration in hours (only when set) |
 
 These attributes come from the gRPC API. On the optional MQTT output the same members are always present in the alert payload and are `null` when not set; the ice alert's `soil_frozen` is a JSON boolean (see the [MQTT reference](../mqtt-reference.md)).
-
----
-
-::: info Removed features
-Activity indices, VPD, weather trends, derived metrics, and model performance sensors were removed in the v2 redesign. These may return as optional projection groups in a future release.
-:::
 
 ---
 

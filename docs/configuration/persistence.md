@@ -1,6 +1,6 @@
 # Persistence
 
-njord uses Akka.Persistence to store each poll target's learned schedule and the request budget usage. Two storage providers are supported.
+njord uses Akka.Persistence to store each location's learned poll schedule and the request budget usage. Two storage providers are supported.
 
 ## Configuration
 
@@ -61,5 +61,5 @@ When using PostgreSQL, the `ConnectionString` is required. njord will refuse to 
 ## When is persistence needed?
 
 Persistence is required for:
-- **Poll worker state**: each target remembers its learned update cycle and next poll across restarts
+- **Poll worker state**: each location's PollWorker remembers its learned update cycle and next poll across restarts
 - **Budget usage**: keeping the recorded API calls (and the usage counted from them) across restarts

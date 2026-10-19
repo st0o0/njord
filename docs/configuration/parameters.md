@@ -1,6 +1,6 @@
 # Parameters
 
-Parameters control which weather variables njord requests from the Open-Meteo API. Variables are organized into three groups that can be enabled independently.
+Parameters control which weather variables njord requests in the Weather domain. They are organized into three groups that can be enabled independently. Air Quality and Flood use fixed variable sets.
 
 ## Configuration
 
@@ -8,7 +8,7 @@ Parameters control which weather variables njord requests from the Open-Meteo AP
 {
   "Njord": {
     "Parameters": {
-      "Groups": ["Weather"],
+      "Groups": ["Weather", "Solar"],
       "Extra": [],
       "Exclude": []
     }
@@ -16,7 +16,9 @@ Parameters control which weather variables njord requests from the Open-Meteo AP
 }
 ```
 
-The default is the `Weather` group only. Add `"Solar"` and/or `"Soil"` for additional variables.
+The default is the `Weather` group only. Add `Solar` for radiation data and `Soil` for soil and evapotranspiration variables.
+
+As environment variables: `Njord__Parameters__Groups__0=Weather`, `Njord__Parameters__Groups__1=Solar`.
 
 ## Parameter groups
 
@@ -31,6 +33,8 @@ The default is the `Weather` group only. Add `"Solar"` and/or `"Soil"` for addit
 `temperature_2m_max`, `temperature_2m_min`, `apparent_temperature_max`, `apparent_temperature_min`, `weather_code`, `precipitation_sum`, `rain_sum`, `showers_sum`, `snowfall_sum`, `precipitation_hours`, `precipitation_probability_max`, `wind_speed_10m_max`, `wind_gusts_10m_max`, `wind_direction_10m_dominant`, `sunrise`, `sunset`, `daylight_duration`
 
 ### Solar
+
+Solar radiation is fetched together with the Weather domain in the same Ensemble call, so enabling the group adds variables, not API calls. The data is published as the `solar` domain (direct, diffuse and shortwave radiation, sunshine duration).
 
 **9 hourly variables:**
 
@@ -50,9 +54,9 @@ The default is the `Weather` group only. Add `"Solar"` and/or `"Soil"` for addit
 
 `et0_fao_evapotranspiration`
 
-## Extra and Exclude lists
+## Extra and Exclude
 
-Use `Extra` to add individual variables without enabling an entire group, or `Exclude` to remove specific variables from enabled groups:
+`Extra` adds individual variables without enabling a group; `Exclude` removes variables from enabled groups:
 
 ```json
 {
@@ -69,11 +73,11 @@ Use `Extra` to add individual variables without enabling an entire group, or `Ex
 }
 ```
 
-This adds UV index from the Solar group while removing high-altitude wind variables you may not need.
+Unknown names fail startup validation.
 
 ## API call weight
 
-Open-Meteo weights API requests based on the number of hourly variables:
+Open-Meteo weights a request by its number of hourly variables:
 
 ```
 weight = ceil(hourlyVariableCount / 10)
@@ -84,6 +88,6 @@ weight = ceil(hourlyVariableCount / 10)
 | Weather only | 31 | 4 |
 | Weather + Solar | 40 | 4 |
 | Weather + Solar + Soil | 51 | 6 |
-| Weather with excludes (example above) | 25 | 3 |
+| Weather with the excludes above | 25 | 3 |
 
-Higher weights count more against the [API budget](./budget). Use `Exclude` to reduce weight if you are approaching budget limits.
+A higher weight counts more against the [budget](./budget). Use `Exclude` to reduce it when you approach the limit.

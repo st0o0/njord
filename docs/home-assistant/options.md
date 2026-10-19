@@ -4,20 +4,25 @@ The integration options flow lets you configure the status polling interval with
 
 Go to **Settings > Devices & Services > njord Weather > Configure**.
 
-::: warning ha-njord redesign pending
-The options UI must be updated for njord's new architecture. Runtime configuration (enrichment toggles, sensor push) has been removed from njord — configuration is now static via environment variables or appsettings.json.
-:::
-
-## Enrichment toggles
-
-| Group | What it controls |
-|-------|-----------------|
-| Alerts | Alert sensor entities and the alert event entity |
-
-Other enrichment features (consensus, indices, trends, derived) were removed in the v2 redesign. Alerts are the only enrichment group currently available.
-
 ## Status poll interval
 
-Controls how often the integration polls the njord server status endpoint (version, uptime, API usage, targets). Default: 30 seconds. Range: 10 to 300 seconds.
+Controls how often the integration polls the njord status endpoint (version, uptime, API usage, per-location poll state). Default: 30 seconds. Range: 10 to 300 seconds.
 
-Changing only the poll interval does not trigger a reload of the integration.
+Changing only the poll interval does not reload the integration.
+
+## Server-side settings
+
+What njord fetches and computes is configured on the server, not in Home Assistant. The server configuration is static (`appsettings.json` and environment variables) and applied at startup; restart the njord container after a change.
+
+| Setting | Effect in Home Assistant |
+|---------|--------------------------|
+| `Njord:Locations` | One set of devices and entities per location |
+| `Njord:Parameters:Groups` | Add `Solar` to receive solar radiation data |
+| `Njord:Enrichment:Alerts:Enabled` | Alert sensors and the alert event entity |
+| `Njord:Polling:PollInterval` | How often new data arrives |
+
+See [Configuration](/configuration/).
+
+::: warning ha-njord update pending
+The options flow is being aligned with the multi-domain server. The status poll interval is the only option that applies today.
+:::

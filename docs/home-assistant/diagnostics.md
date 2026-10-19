@@ -10,15 +10,20 @@ The integration supports Home Assistant's built-in diagnostics download for trou
 
 ## What's included
 
-The diagnostics file contains:
-
 | Section | Content |
 |---------|---------|
 | `locations` | Configured location names |
-| `models` | Model list per location |
-| `forecasts` | Current forecast data per location/model (timestamps, update status) |
-| `enrichments` | Current enrichment data per location (alerts) |
-| `active_enrichments` | Which enrichment features are currently enabled on the server |
-| `server` | Server status (version, uptime, phase, budget usage), only if the status coordinator is active |
+| `forecasts` | Current domain data per location (Weather, Air Quality, Flood, Solar): timestamps and update status |
+| `enrichments` | Current alerts per location |
+| `active_enrichments` | Which enrichment features are enabled on the server |
+| `server` | Server status (version, uptime, budget usage, per-location poll state), only if the status coordinator is active |
 
-**Sensitive data**: The njord server host address is redacted automatically. No API keys or credentials are included (njord doesn't use any).
+**Sensitive data:** the njord server host address is redacted automatically. No API keys or credentials are included (njord uses none).
+
+## Server-side checks
+
+If entities are unavailable, check the server too:
+
+- `/healthz` on port 8080 reports `pipeline`, `budget`, `journal` and `data-directory` (plus `mqtt-connection` when MQTT is enabled)
+- The `binary_sensor.njord_*_stream` entities show the gRPC stream state
+- `sensor.njord_{location}_target` shows each location's next poll time and phase

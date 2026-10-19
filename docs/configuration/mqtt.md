@@ -1,6 +1,6 @@
 # MQTT
 
-MQTT settings control how njord connects to the broker and publishes state payloads. njord does not publish MQTT Discovery payloads; Home Assistant connects through the [custom integration](/home-assistant/) over gRPC.
+MQTT is an optional output for consumers other than Home Assistant (Node-RED, Grafana, custom dashboards). It is disabled by default. njord publishes retained state only, no MQTT Discovery; Home Assistant uses the [custom integration](/home-assistant/) over gRPC.
 
 ## Configuration
 
@@ -8,11 +8,11 @@ MQTT settings control how njord connects to the broker and publishes state paylo
 {
   "Njord": {
     "Mqtt": {
+      "Enabled": true,
       "Host": "192.168.1.100",
       "Port": 1883,
       "Username": "mqtt-user",
       "Password": "mqtt-pass",
-      "DiscoveryPrefix": "homeassistant",
       "BaseTopic": "njord"
     }
   }
@@ -23,17 +23,33 @@ MQTT settings control how njord connects to the broker and publishes state paylo
 
 | Option | Default | Required | Description |
 |--------|---------|----------|-------------|
-| `Host` | `""` | yes | Hostname or IP of the MQTT broker |
-| `Port` | `1883` | no | MQTT broker port |
-| `Username` | `null` | no | Broker username for authentication |
-| `Password` | `null` | no | Broker password for authentication |
+| `Enabled` | `false` | no | Switches the MQTT publisher on |
+| `Host` | `""` | when enabled | Hostname or IP of the broker |
+| `Port` | `1883` | no | Broker port |
+| `Username` | `null` | no | Broker username |
+| `Password` | `null` | no | Broker password |
 | `DiscoveryPrefix` | `"homeassistant"` | no | Prefix of the Home Assistant status topic njord subscribes to (`{DiscoveryPrefix}/status`); no discovery payloads are published |
-| `BaseTopic` | `"njord"` | no | Root topic for all njord state messages |
+| `BaseTopic` | `"njord"` | no | Root topic for all state messages |
+
+## Topics
+
+State is published per domain and parameter, and per alert type:
+
+```
+njord/lucerne/weather/state
+njord/lucerne/weather/temperature
+njord/lucerne/air-quality/pm25
+njord/lucerne/flood/discharge
+njord/lucerne/solar/direct_radiation
+njord/lucerne/alerts/frost
+```
+
+The full scheme and payloads are in the [MQTT reference](/mqtt-reference).
 
 ## Authentication
 
 ::: warning
-Avoid putting passwords directly in `appsettings.json`. Use an environment variable instead:
+Do not put passwords in `appsettings.json`. Use an environment variable:
 
 ```bash
 -e Njord__Mqtt__Password=your-secret-password
@@ -42,10 +58,7 @@ Avoid putting passwords directly in `appsettings.json`. Use an environment varia
 
 ## Availability
 
-njord uses a Last Will and Testament (LWT) message on `{BaseTopic}/status`:
-- `online`: published on connect
+njord uses a Last Will and Testament on `{BaseTopic}/status`:
+
+- `online`: published after every connect
 - `offline`: published by the broker if njord disconnects unexpectedly
-
-## Topic reference
-
-See the [MQTT reference](/mqtt-reference) for the complete topic scheme and payload format.

@@ -4,7 +4,7 @@ import { withLikeC4 } from '@leberkas-org/vitepress-likec4'
 export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, defineConfig({
   base: '/',
   title: 'njord',
-  description: 'Multi-model weather intelligence for Home Assistant',
+  description: 'Multi-domain weather intelligence for Home Assistant',
   head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }]],
 
   themeConfig: {
