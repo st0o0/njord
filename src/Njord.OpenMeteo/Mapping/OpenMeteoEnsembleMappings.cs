@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Text.Json;
 using Njord.Model;
 
 namespace Njord.OpenMeteo.Mapping;
@@ -10,17 +9,17 @@ internal static class OpenMeteoEnsembleMappings
     // The ensemble endpoint returns hourly data with the regular parameter names for mean values.
     // Standard deviation may be available as "{param}_std" if the API returns it.
     public static DomainForecast<WeatherPoint>? ToWeatherForecast(
-        this OpenMeteoTimeSeries series, DateTimeOffset modelRun, int forecastDays)
+        this OpenMeteoResponse response, DateTimeOffset modelRun)
     {
-        var times = series.Time;
-        if (times.Count == 0)
+        if (response.Hourly is not { } series || series.Time.Length == 0)
         {
             return null;
         }
 
-        var builder = ImmutableArray.CreateBuilder<WeatherPoint>(times.Count);
+        var times = series.Time;
+        var builder = ImmutableArray.CreateBuilder<WeatherPoint>(times.Length);
 
-        for (var i = 0; i < times.Count; i++)
+        for (var i = 0; i < times.Length; i++)
         {
             var validFrom = DateTimeOffset.FromUnixTimeSeconds(times[i]);
 
@@ -73,37 +72,11 @@ internal static class OpenMeteoEnsembleMappings
             points);
     }
 
-    private static double GetDouble(OpenMeteoTimeSeries series, string paramName, int index)
-    {
-        if (!series.Variables.TryGetValue(paramName, out var element))
-        {
-            return 0;
-        }
+    private static double GetDouble(OpenMeteoSeries series, string name, int index) =>
+        series.ValueAt(name, index) ?? 0;
 
-        var array = element.EnumerateArray().ToList();
-        if (index >= array.Count)
-        {
-            return 0;
-        }
-
-        return array[index].ValueKind == JsonValueKind.Null ? 0 : array[index].GetDouble();
-    }
-
-    private static double? GetOptionalDouble(OpenMeteoTimeSeries series, string paramName, int index)
-    {
-        if (!series.Variables.TryGetValue(paramName, out var element))
-        {
-            return null;
-        }
-
-        var array = element.EnumerateArray().ToList();
-        if (index >= array.Count)
-        {
-            return null;
-        }
-
-        return array[index].ValueKind == JsonValueKind.Null ? null : array[index].GetDouble();
-    }
+    private static double? GetOptionalDouble(OpenMeteoSeries series, string name, int index) =>
+        series.ValueAt(name, index);
 
     private static int FindLastValuedIndex(ImmutableArray<WeatherPoint>.Builder points)
     {

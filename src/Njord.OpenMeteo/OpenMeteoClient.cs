@@ -1,128 +1,68 @@
 using System.Diagnostics;
-using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Njord.Core.Configuration;
 using Njord.Messages.Forecast;
 using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo;
 
-public sealed class OpenMeteoClient(
-    HttpClient httpClient,
-    ResolvedParameterSet parameters,
-    TimeProvider? timeProvider = null) : IOpenMeteoClient
+public sealed class OpenMeteoClient(HttpClient httpClient) : IOpenMeteoClient
 {
-    private readonly TimeProvider _time = timeProvider ?? TimeProvider.System;
-    private readonly string _ensembleHourlyVariables = string.Join(",", parameters.Hourly.Select(p => p.ApiName));
-
-    public Task<EnsembleFetchResult> FetchEnsembleAsync(LocationOptions location, int forecastDays, DateTimeOffset modelRun, CancellationToken cancellationToken) =>
-        GetAsync<EnsembleFetchResult>(
-            location.ToEnsembleRequestUri(forecastDays, _ensembleHourlyVariables),
-            new FetchTag(location.Name, "weather", "ensemble"),
-            dto => dto.Hourly is null || dto.Hourly.Time.Count == 0
-                ? new EnsembleFetchResult.Failure(PollFailureReason.MalformedPayload, "Response contained no hourly data")
-                : dto.Hourly.ToWeatherForecast(modelRun, forecastDays) is { } forecast
-                    ? new EnsembleFetchResult.Success(forecast)
-                    : new EnsembleFetchResult.Failure(PollFailureReason.MalformedPayload, "Response carried hourly timestamps but no values"),
-            (reason, detail) => new EnsembleFetchResult.Failure(reason, detail),
-            static r => r is EnsembleFetchResult.Success,
-            cancellationToken);
-
-    public Task<AirQualityFetchResult> FetchAirQualityAsync(double latitude, double longitude, int forecastDays, CancellationToken cancellationToken) =>
-        GetAsync<AirQualityFetchResult>(
-            OpenMeteoRequestMappings.ToAirQualityRequestUri(latitude, longitude, forecastDays),
-            new FetchTag(Coordinates(latitude, longitude), "air-quality", "air quality"),
-            dto => dto.Hourly is null || dto.Hourly.Time.Count == 0
-                ? new AirQualityFetchResult.Failure(PollFailureReason.MalformedPayload, "Response contained no hourly data")
-                : dto.Hourly.ToAirQualityForecast(_time.GetUtcNow()) is { } forecast
-                    ? new AirQualityFetchResult.Success(forecast)
-                    : new AirQualityFetchResult.Failure(PollFailureReason.MalformedPayload, "Response carried hourly timestamps but no values"),
-            (reason, detail) => new AirQualityFetchResult.Failure(reason, detail),
-            static r => r is AirQualityFetchResult.Success,
-            cancellationToken);
-
-    public Task<FloodFetchResult> FetchFloodAsync(double latitude, double longitude, int forecastDays, CancellationToken cancellationToken) =>
-        GetAsync<FloodFetchResult>(
-            OpenMeteoRequestMappings.ToFloodRequestUri(latitude, longitude),
-            new FetchTag(Coordinates(latitude, longitude), "flood", "flood"),
-            dto => dto.Daily is null || dto.Daily.Time.Count == 0
-                ? new FloodFetchResult.Failure(PollFailureReason.MalformedPayload, "Response contained no daily data")
-                : dto.Daily.ToFloodForecast(_time.GetUtcNow()) is { } forecast
-                    ? new FloodFetchResult.Success(forecast)
-                    : new FloodFetchResult.Failure(PollFailureReason.MalformedPayload, "Response carried daily timestamps but no discharge values"),
-            (reason, detail) => new FloodFetchResult.Failure(reason, detail),
-            static r => r is FloodFetchResult.Success,
-            cancellationToken);
-
-    private static string Coordinates(double latitude, double longitude) =>
-        string.Create(CultureInfo.InvariantCulture, $"{latitude},{longitude}");
-
-    // Shared HTTP GET + JSON parse + metrics; each endpoint supplies its URL, its payload mapping and its failure type.
-    private async Task<TResult> GetAsync<TResult>(
-        string uri,
-        FetchTag tag,
-        Func<OpenMeteoForecastResponse, TResult> map,
-        Func<PollFailureReason, string?, TResult> fail,
-        Func<TResult, bool> isSuccess,
-        CancellationToken cancellationToken)
-        where TResult : class
+    public async Task<OpenMeteoFetchResult> FetchAsync(OpenMeteoRequest request, CancellationToken cancellationToken)
     {
         var sw = Stopwatch.StartNew();
-        TResult? outcome = null;
+        var outcome = await GetAsync(request, cancellationToken);
+        sw.Stop();
 
+        var succeeded = outcome is OpenMeteoFetchResult.Success;
+        var location = new KeyValuePair<string, object?>("location", request.Location);
+        var domain = new KeyValuePair<string, object?>("domain", request.Domain.ToTelemetryTag());
+        Telemetry.FetchTotal.Add(1, location, domain, new KeyValuePair<string, object?>("outcome", succeeded ? "success" : "failure"));
+        if (succeeded)
+        {
+            Telemetry.FetchDuration.Record(sw.Elapsed.TotalSeconds, location, domain);
+        }
+
+        return outcome;
+    }
+
+    private async Task<OpenMeteoFetchResult> GetAsync(OpenMeteoRequest request, CancellationToken cancellationToken)
+    {
         try
         {
-            using var response = await httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await httpClient.GetAsync(request.Uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
-                outcome = response.StatusCode switch
+                return response.StatusCode switch
                 {
-                    HttpStatusCode.TooManyRequests => fail(PollFailureReason.RateLimited, $"HTTP 429 from the {tag.Endpoint} endpoint"),
-                    HttpStatusCode.BadRequest => fail(PollFailureReason.ModelUnavailable, await ReadErrorReasonAsync(response, cancellationToken)),
-                    _ => fail(PollFailureReason.Transport, $"HTTP {(int)response.StatusCode} from the {tag.Endpoint} endpoint"),
+                    HttpStatusCode.TooManyRequests => Fail(PollFailureReason.RateLimited, $"HTTP 429 from the {request.Domain.ToTelemetryTag()} endpoint"),
+                    HttpStatusCode.BadRequest => Fail(PollFailureReason.ModelUnavailable, await ReadErrorReasonAsync(response, cancellationToken)),
+                    _ => Fail(PollFailureReason.Transport, $"HTTP {(int)response.StatusCode} from the {request.Domain.ToTelemetryTag()} endpoint"),
                 };
-                return outcome;
             }
 
-            var dto = await response.Content.ReadFromJsonAsync(OpenMeteoJsonContext.Default.OpenMeteoForecastResponse, cancellationToken);
-            outcome = dto is null
-                ? fail(PollFailureReason.MalformedPayload, "Response contained no data")
-                : map(dto);
-            return outcome;
+            var body = await response.Content.ReadFromJsonAsync(OpenMeteoJsonContext.Default.OpenMeteoResponse, cancellationToken);
+            return body is null
+                ? Fail(PollFailureReason.MalformedPayload, "Response contained no data")
+                : new OpenMeteoFetchResult.Success(body);
         }
         catch (HttpRequestException ex)
         {
-            return outcome = fail(PollFailureReason.Transport, ex.Message);
+            return Fail(PollFailureReason.Transport, ex.Message);
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            return outcome = fail(PollFailureReason.Transport, "Request timed out");
+            return Fail(PollFailureReason.Transport, "Request timed out");
         }
         catch (JsonException)
         {
-            return outcome = fail(PollFailureReason.MalformedPayload, "Response JSON did not match the expected schema");
-        }
-        finally
-        {
-            if (outcome is not null)
-            {
-                sw.Stop();
-                var succeeded = isSuccess(outcome);
-                var locationTag = new KeyValuePair<string, object?>("location", tag.Location);
-                var domainTag = new KeyValuePair<string, object?>("domain", tag.Domain);
-                Telemetry.FetchTotal.Add(1, locationTag, domainTag, new KeyValuePair<string, object?>("outcome", succeeded ? "success" : "failure"));
-                if (succeeded)
-                {
-                    Telemetry.FetchDuration.Record(sw.Elapsed.TotalSeconds, locationTag, domainTag);
-                }
-            }
+            return Fail(PollFailureReason.MalformedPayload, "Response JSON did not match the expected schema");
         }
     }
 
-    private sealed record FetchTag(string Location, string Domain, string Endpoint);
+    private static OpenMeteoFetchResult.Failure Fail(PollFailureReason reason, string? detail) => new(reason, detail);
 
     private static async Task<string> ReadErrorReasonAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {

@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Text.Json;
 using Njord.Model;
 
 namespace Njord.OpenMeteo.Mapping;
@@ -7,22 +6,23 @@ namespace Njord.OpenMeteo.Mapping;
 internal static class OpenMeteoAirQualityMappings
 {
     public static DomainForecast<AirQualityPoint>? ToAirQualityForecast(
-        this OpenMeteoTimeSeries series, DateTimeOffset modelRun)
+        this OpenMeteoResponse response, DateTimeOffset modelRun)
     {
-        var times = series.Time;
-        if (times.Count == 0)
+        if (response.Hourly is not { } series || series.Time.Length == 0)
         {
             return null;
         }
 
-        var builder = ImmutableArray.CreateBuilder<AirQualityPoint>(times.Count);
+        var times = series.Time;
+
+        var builder = ImmutableArray.CreateBuilder<AirQualityPoint>(times.Length);
         var lastValued = -1;
 
-        for (var i = 0; i < times.Count; i++)
+        for (var i = 0; i < times.Length; i++)
         {
-            var pm25 = GetOptionalDouble(series, "pm2_5", i);
-            var pm10 = GetOptionalDouble(series, "pm10", i);
-            var ozone = GetOptionalDouble(series, "ozone", i);
+            var pm25 = series.ValueAt( "pm2_5", i);
+            var pm10 = series.ValueAt( "pm10", i);
+            var ozone = series.ValueAt( "ozone", i);
 
             if (pm25 is not null || pm10 is not null || ozone is not null)
             {
@@ -34,12 +34,12 @@ internal static class OpenMeteoAirQualityMappings
                 pm25 ?? 0,
                 pm10 ?? 0,
                 ozone ?? 0,
-                BirchPollen: GetOptionalDouble(series, "birch_pollen", i),
-                GrassPollen: GetOptionalDouble(series, "grass_pollen", i),
-                Alder: GetOptionalDouble(series, "alder_pollen", i),
-                Mugwort: GetOptionalDouble(series, "mugwort_pollen", i),
-                EuropeanAqi: GetOptionalDouble(series, "european_aqi", i),
-                NitrogenDioxide: GetOptionalDouble(series, "nitrogen_dioxide", i)));
+                BirchPollen: series.ValueAt( "birch_pollen", i),
+                GrassPollen: series.ValueAt( "grass_pollen", i),
+                Alder: series.ValueAt( "alder_pollen", i),
+                Mugwort: series.ValueAt( "mugwort_pollen", i),
+                EuropeanAqi: series.ValueAt( "european_aqi", i),
+                NitrogenDioxide: series.ValueAt( "nitrogen_dioxide", i)));
         }
 
         if (lastValued < 0)
@@ -52,18 +52,5 @@ internal static class OpenMeteoAirQualityMappings
             modelRun,
             TimeResolution.Hourly,
             builder.Take(lastValued + 1).ToImmutableArray());
-    }
-
-    private static double? GetOptionalDouble(OpenMeteoTimeSeries series, string paramName, int index)
-    {
-        if (!series.Variables.TryGetValue(paramName, out var element)
-            || element.ValueKind != JsonValueKind.Array
-            || index >= element.GetArrayLength())
-        {
-            return null;
-        }
-
-        var value = element[index];
-        return value.ValueKind == JsonValueKind.Number ? value.GetDouble() : null;
     }
 }

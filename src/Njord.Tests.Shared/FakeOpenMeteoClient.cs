@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-using Njord.Core.Configuration;
 using Njord.Messages.Forecast;
 using Njord.Model;
 using Njord.OpenMeteo;
@@ -8,14 +6,26 @@ namespace Njord.Tests.Shared;
 
 public sealed class FakeOpenMeteoClient : IOpenMeteoClient
 {
+    private static readonly DateTimeOffset Start = new(2026, 7, 11, 0, 0, 0, TimeSpan.Zero);
+
     public bool EnsembleFails { get; set; }
+
+    public bool AirQualityFails { get; set; }
+
+    public bool FloodFails { get; set; }
 
     public bool Throws { get; set; }
 
     private volatile TaskCompletionSource _release = CompletedRelease();
     private int _calls;
+    private int _airQualityCalls;
+    private int _floodCalls;
 
     public int Calls => Volatile.Read(ref _calls);
+
+    public int AirQualityCalls => Volatile.Read(ref _airQualityCalls);
+
+    public int FloodCalls => Volatile.Read(ref _floodCalls);
 
     // Holds every fetch that starts from now on until Release is called.
     public void Hold() => _release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -29,16 +39,21 @@ public sealed class FakeOpenMeteoClient : IOpenMeteoClient
         return release;
     }
 
-    public bool AirQualityFails { get; set; }
-
-    public int AirQualityCalls => Volatile.Read(ref _airQualityCalls);
-
-    private int _airQualityCalls;
-
-    public async Task<AirQualityFetchResult> FetchAirQualityAsync(
-        double latitude, double longitude, int forecastDays, CancellationToken cancellationToken)
+    public async Task<OpenMeteoFetchResult> FetchAsync(OpenMeteoRequest request, CancellationToken cancellationToken)
     {
-        Interlocked.Increment(ref _airQualityCalls);
+        switch (request.Domain)
+        {
+            case DomainKind.Weather:
+                Interlocked.Increment(ref _calls);
+                break;
+            case DomainKind.AirQuality:
+                Interlocked.Increment(ref _airQualityCalls);
+                break;
+            case DomainKind.Flood:
+                Interlocked.Increment(ref _floodCalls);
+                break;
+        }
+
         await _release.Task.WaitAsync(cancellationToken);
 
         if (Throws)
@@ -46,65 +61,30 @@ public sealed class FakeOpenMeteoClient : IOpenMeteoClient
             throw new InvalidOperationException("simulated fetch fault");
         }
 
-        if (AirQualityFails)
+        return request.Domain switch
         {
-            return new AirQualityFetchResult.Failure(PollFailureReason.Transport, "simulated air quality failure");
-        }
-
-        var start = new DateTimeOffset(2026, 7, 11, 0, 0, 0, TimeSpan.Zero);
-        var points = ImmutableArray.Create(new AirQualityPoint(start.AddHours(3), 8.0, 15.0, 60.0));
-        return new AirQualityFetchResult.Success(
-            new DomainForecast<AirQualityPoint>(DomainKind.AirQuality, start, TimeResolution.Hourly, points));
+            DomainKind.Weather when EnsembleFails => Failed("ensemble"),
+            DomainKind.AirQuality when AirQualityFails => Failed("air quality"),
+            DomainKind.Flood when FloodFails => Failed("flood"),
+            DomainKind.Weather => Hourly(
+                ("temperature_2m", 20.0), ("apparent_temperature", 18.5), ("wind_speed_10m", 3.2), ("precipitation", 0.0),
+                ("precipitation_probability", 10.0), ("cloud_cover", 50.0), ("pressure_msl", 1013.0), ("weather_code", 0.0),
+                ("relative_humidity_2m", 65.0), ("dew_point_2m", 12.0), ("uv_index", 3.0)),
+            DomainKind.AirQuality => Hourly(("pm2_5", 8.0), ("pm10", 15.0), ("ozone", 60.0)),
+            _ => Daily(
+                ("river_discharge", 120.0), ("river_discharge_median", 100.0), ("river_discharge_p75", 140.0)),
+        };
     }
 
-    public bool FloodFails { get; set; }
+    private static OpenMeteoFetchResult Failed(string what) =>
+        new OpenMeteoFetchResult.Failure(PollFailureReason.Transport, $"simulated {what} failure");
 
-    public int FloodCalls => Volatile.Read(ref _floodCalls);
+    private static OpenMeteoFetchResult Hourly(params (string Name, double Value)[] values) =>
+        new OpenMeteoFetchResult.Success(new OpenMeteoResponse(Series(Start.AddHours(3), values), null));
 
-    private int _floodCalls;
+    private static OpenMeteoFetchResult Daily(params (string Name, double Value)[] values) =>
+        new OpenMeteoFetchResult.Success(new OpenMeteoResponse(null, Series(Start, values)));
 
-    public async Task<FloodFetchResult> FetchFloodAsync(
-        double latitude, double longitude, int forecastDays, CancellationToken cancellationToken)
-    {
-        Interlocked.Increment(ref _floodCalls);
-        await _release.Task.WaitAsync(cancellationToken);
-
-        if (Throws)
-        {
-            throw new InvalidOperationException("simulated fetch fault");
-        }
-
-        if (FloodFails)
-        {
-            return new FloodFetchResult.Failure(PollFailureReason.Transport, "simulated flood failure");
-        }
-
-        var start = new DateTimeOffset(2026, 7, 11, 0, 0, 0, TimeSpan.Zero);
-        var points = ImmutableArray.Create(new FloodPoint(start, 120.0, DischargeMedian: 100.0, DischargeP75: 140.0));
-        return new FloodFetchResult.Success(
-            new DomainForecast<FloodPoint>(DomainKind.Flood, start, TimeResolution.Daily, points));
-    }
-
-    public async Task<EnsembleFetchResult> FetchEnsembleAsync(
-        LocationOptions location, int forecastDays, DateTimeOffset modelRun, CancellationToken cancellationToken)
-    {
-        Interlocked.Increment(ref _calls);
-        await _release.Task.WaitAsync(cancellationToken);
-
-        if (Throws)
-        {
-            throw new InvalidOperationException("simulated fetch fault");
-        }
-
-        if (EnsembleFails)
-        {
-            return new EnsembleFetchResult.Failure(PollFailureReason.Transport, "simulated ensemble failure");
-        }
-
-        var points = ImmutableArray.Create(new WeatherPoint(
-            modelRun.AddHours(3), 20.0, 18.5, 3.2, 0.0, 10.0, 50.0, 1013.0, 0, 65.0, 12.0, 3.0));
-        var forecast = new DomainForecast<WeatherPoint>(
-            DomainKind.Weather, modelRun, TimeResolution.Hourly, points);
-        return new EnsembleFetchResult.Success(forecast);
-    }
+    private static OpenMeteoSeries Series(DateTimeOffset time, (string Name, double Value)[] values) =>
+        new([time.ToUnixTimeSeconds()], values.ToDictionary(v => v.Name, v => new double?[] { v.Value }));
 }
