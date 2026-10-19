@@ -5,8 +5,8 @@ public static class BudgetCalculator
     public const double MonthlyBudgetGuardFactor = 0.8;
 
     // Number of domain endpoint calls per location per poll cycle.
-    // Currently only Weather (Ensemble) is active. Will increase as more domains are enabled.
-    public const int DomainCallsPerLocation = 1;
+    // Weather, AirQuality and Flood; must equal PollWorker.EnabledDomains.Length (pinned in PollWorkerSpec).
+    public const int DomainCallsPerLocation = 3;
 
     private static readonly TimeSpan Month = TimeSpan.FromDays(30);
 

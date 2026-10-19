@@ -18,9 +18,9 @@ public sealed class BudgetCalculatorSpec
 
         var result = BudgetCalculator.Validate(options, AppSettingsDefaults.Options<PollingOptions>(o => o.PollInterval = TimeSpan.FromMinutes(60)));
 
-        // 1 location = 1 domain call/cycle, Weather group = 31 params, ceil(31/10) = 4 weight
-        // 1 * 4 = 4 calls/cycle, 24 cycles/day, 4 * 24 * 30 = 2880/month
-        Assert.Equal(2_880, result.ProjectedMonthlyCalls);
+        // 1 location = 3 domain calls/cycle, Weather group = 31 params, ceil(31/10) = 4 weight
+        // 3 * 4 = 12 calls/cycle, 24 cycles/day, 12 * 24 * 30 = 8640/month
+        Assert.Equal(8_640, result.ProjectedMonthlyCalls);
         Assert.True(result.WithinBudget);
         Assert.Empty(result.Warnings);
     }
@@ -37,9 +37,9 @@ public sealed class BudgetCalculatorSpec
 
         var result = BudgetCalculator.Validate(options, AppSettingsDefaults.Options<PollingOptions>(o => o.PollInterval = TimeSpan.FromMinutes(50)));
 
-        // 43200 min / 50 min = 864 cycles, weight 4 => 3456 (a 28-cycles-per-day approximation gave 3360)
-        Assert.Equal(3_456, result.ProjectedMonthlyCalls);
-        Assert.Equal(1, result.DomainCallsPerCycle);
+        // 43200 min / 50 min = 864 cycles, weight 4 => 10368 (a 28-cycles-per-day approximation gave 10080)
+        Assert.Equal(10_368, result.ProjectedMonthlyCalls);
+        Assert.Equal(3, result.DomainCallsPerCycle);
         Assert.Equal(4, result.ApiCallWeight);
     }
 
@@ -55,8 +55,8 @@ public sealed class BudgetCalculatorSpec
 
         var result = BudgetCalculator.Validate(options, new PollingOptions { PollInterval = TimeSpan.FromMinutes(60), BudgetOverride = new RequestBudget(100, 600) });
 
-        // 1 model, ceil(31/10)=4, 4 calls/cycle, 24/day, 4*24*30=2880
-        // 2880/100 = 2880%: over 100, so no 80% warning, just not within budget
+        // 3 domain calls, ceil(31/10)=4, 12 calls/cycle, 24/day, 12*24*30=8640
+        // 8640/100 = 8640%: over 100, so no 80% warning, just not within budget
         Assert.False(result.WithinBudget);
     }
 
@@ -72,7 +72,7 @@ public sealed class BudgetCalculatorSpec
 
         var result = BudgetCalculator.Validate(options, new PollingOptions { PollInterval = TimeSpan.FromMinutes(60), BudgetOverride = new RequestBudget(2_000, 600) });
 
-        // 2880 projected vs 2000 limit = 144%
+        // 8640 projected vs 2000 limit = 432%
         Assert.False(result.WithinBudget);
         Assert.True(result.UsagePercent > 100);
     }
@@ -85,11 +85,11 @@ public sealed class BudgetCalculatorSpec
             Locations = [new LocationOptions { Name = "A", Latitude = 0, Longitude = 0 }],
             Models = ["icon_d2"],
             Parameters = new ParameterOptions { Groups = ["Weather"] },
-            // 2880 projected; need limit where 80% < 2880 <= 100%
-            // 2880/limit = 0.9 => limit = 3200
+            // 8640 projected; need limit where 80% < 8640 <= 100%
+            // 8640/limit = 0.9 => limit = 9600
         };
 
-        var result = BudgetCalculator.Validate(options, new PollingOptions { PollInterval = TimeSpan.FromMinutes(60), BudgetOverride = new RequestBudget(3_200, 600) });
+        var result = BudgetCalculator.Validate(options, new PollingOptions { PollInterval = TimeSpan.FromMinutes(60), BudgetOverride = new RequestBudget(9_600, 600) });
 
         Assert.True(result.WithinBudget);
         var warning = Assert.Single(result.Warnings);

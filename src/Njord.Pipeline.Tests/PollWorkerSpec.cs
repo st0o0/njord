@@ -92,6 +92,12 @@ public sealed class PollWorkerSpec : NjordActorSpec
         await ExpectTerminatedAsync(worker, cancellationToken: ct);
     }
 
+    [Fact]
+    public void The_budget_projection_counts_one_call_per_enabled_domain()
+    {
+        Assert.Equal(PollWorker.EnabledDomains.Length, BudgetCalculator.DomainCallsPerLocation);
+    }
+
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_first_start_reports_the_initial_state_and_polls_immediately()
     {
