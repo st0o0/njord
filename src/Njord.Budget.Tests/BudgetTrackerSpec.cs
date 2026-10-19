@@ -15,7 +15,6 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
 {
     private static readonly DateTimeOffset T0 = TestTimeConstants.BudgetEpoch;
     private readonly FakeTimeProvider _time = TestTimeouts.AtEpoch(T0);
-    private Njord.Core.AtomicStateHolder<BudgetStatusResult> Health { get; } = new();
     private ConfigView _config = TestConfigView.Create();
 
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
@@ -26,7 +25,7 @@ public sealed class BudgetTrackerSpec : NjordActorSpec
     private IActorRef CreateActor(string? name = null)
     {
         return Sys.ActorOf(
-            Props.Create(() => new BudgetTracker(_time, _config, Health)),
+            Props.Create(() => new BudgetTracker(_time, _config)),
             name ?? $"budget-tracker-{Guid.NewGuid():N}");
     }
 

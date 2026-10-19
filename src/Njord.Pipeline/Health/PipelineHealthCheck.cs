@@ -1,3 +1,5 @@
+using Akka.Actor;
+using Akka.Hosting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Njord.Core;
@@ -8,18 +10,30 @@ using Njord.Messages.Pipeline;
 namespace Njord.Pipeline.Health;
 
 internal sealed class PipelineHealthCheck(
-    AtomicStateHolder<PollHealthResult> holder,
+    ActorRegistry registry,
     TimeProvider timeProvider,
     ConfigView config,
     IOptions<HealthOptions> options) : IHealthCheck
 {
-    public Task<HealthCheckResult> CheckHealthAsync(
+    private static readonly TimeSpan AskTimeout = TimeSpan.FromSeconds(3);
+
+    public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        var health = holder.Current;
-        return Task.FromResult(health is null
-            ? HealthCheckResult.Degraded("No poll data yet")
-            : Evaluate(health, config.Polling.PollInterval, timeProvider.GetUtcNow(), options.Value));
+        if (!registry.TryGet<IPollManager>(out var manager))
+        {
+            return HealthCheckResult.Degraded("Poll manager not available");
+        }
+
+        try
+        {
+            var health = await manager.Ask<PollHealthResult>(new QueryPollHealth(), AskTimeout, cancellationToken);
+            return Evaluate(health, config.Polling.PollInterval, timeProvider.GetUtcNow(), options.Value);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            return HealthCheckResult.Degraded("Poll manager not responding");
+        }
     }
 
     internal static HealthCheckResult Evaluate(

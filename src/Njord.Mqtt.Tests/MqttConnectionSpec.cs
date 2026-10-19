@@ -29,8 +29,7 @@ public sealed class MqttConnectionSpec : NjordActorSpec
             transport,
             tuning ?? new MqttEgressTuning(TimeSpan.FromMilliseconds(50)),
             new MqttSessionCounter(),
-            _time,
-            new Njord.Mqtt.Health.MqttConnectionHealth())));
+            _time)));
     }
 
     [Fact(Timeout = 15000)]

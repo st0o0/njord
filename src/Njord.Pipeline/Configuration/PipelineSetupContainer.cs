@@ -23,7 +23,6 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
 
         services.TryAddSingleton(FetchTimeouts.Default);
 
-        services.TryAddSingleton<AtomicStateHolder<PollHealthResult>>();
         services.AddHealthChecks().AddCheck<PipelineHealthCheck>("pipeline", failureStatus: HealthStatus.Unhealthy);
 
         services.AddSingleton<IActorRegistration>(new PipelineActorRegistration());

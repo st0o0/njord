@@ -30,8 +30,7 @@ public abstract class MqttConnectionSpecBase : NjordActorSpec
                 transport,
                 FastTuning,
                 _sessionCounter,
-                Time,
-                new Njord.Mqtt.Health.MqttConnectionHealth())),
+                Time)),
             $"mqtt-connection-{Guid.NewGuid():N}");
 
     internal static Task WaitForOnline(ScriptedAvailabilityTransport transport, CancellationToken cancellationToken, int count = 1)

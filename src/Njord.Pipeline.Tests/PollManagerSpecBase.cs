@@ -27,7 +27,6 @@ public abstract class PollManagerSpecBase : NjordActorSpec
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<TimeProvider>(_time);
-        services.AddSingleton<Njord.Pipeline.Health.PipelineHealth>();
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations =

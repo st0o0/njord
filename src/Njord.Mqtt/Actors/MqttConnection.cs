@@ -32,18 +32,7 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
     private readonly MqttEgressTuning _tuning;
     private readonly MqttSessionCounter _sessionCounter;
     private readonly TimeProvider _timeProvider;
-    private readonly AtomicStateHolder<MqttConnectionStatusResult> _health;
-    private MqttConnectionState _stateValue = MqttConnectionState.Empty;
-
-    private MqttConnectionState _state
-    {
-        get => _stateValue;
-        set
-        {
-            _stateValue = value;
-            _health.Update(new MqttConnectionStatusResult(value.IsConnected, value.DisconnectedSince));
-        }
-    }
+    private MqttConnectionState _state = MqttConnectionState.Empty;
 
     private readonly string _availabilityTopic;
     private readonly string _haStatusTopic;
@@ -60,10 +49,8 @@ public sealed class MqttConnection : ReceiveActor, IWithTimers, IWithUnboundedSt
         IMqttTransport transport,
         MqttEgressTuning tuning,
         MqttSessionCounter sessionCounter,
-        TimeProvider timeProvider,
-        AtomicStateHolder<MqttConnectionStatusResult> health)
+        TimeProvider timeProvider)
     {
-        _health = health;
         _state = MqttConnectionState.Empty;
         _mqttOptions = mqttOptions.Value;
         _connection = connection;

@@ -18,14 +18,12 @@ public sealed class BudgetTracker : ReceivePersistentActor
     private readonly TimeProvider _timeProvider;
     private readonly ConfigView _config;
     private readonly ILoggingAdapter _log = Context.GetLogger();
-    private readonly AtomicStateHolder<BudgetStatusResult> _health;
     private BudgetTrackerState _state;
 
-    public BudgetTracker(TimeProvider timeProvider, ConfigView config, AtomicStateHolder<BudgetStatusResult> health)
+    public BudgetTracker(TimeProvider timeProvider, ConfigView config)
     {
         _timeProvider = timeProvider;
         _config = config;
-        _health = health;
 
         var now = timeProvider.GetUtcNow();
         _state = BudgetTrackerState.Empty with { CurrentMonth = now.Month, CurrentDay = now.DayOfYear };
@@ -77,7 +75,6 @@ public sealed class BudgetTracker : ReceivePersistentActor
         Telemetry.SetMonthlyUsed(status.MonthlyUsed);
         Telemetry.SetDailyLimit(status.DailyLimit);
         Telemetry.SetMonthlyLimit(status.MonthlyLimit);
-        _health.Update(status);
     }
 
     private void MaybeSnapshot()
