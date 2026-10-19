@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Usage: scripts/run-mutation.sh <Weather|Consensus|Alerts|Derived|Trends|Indices|Core> [--local]
+# Usage: scripts/run-mutation.sh <Model|Alerts|Core> [--local]
 # Runs Stryker.NET (MTP runner) on one project. Default: in the .NET SDK container (needs Docker, works on
 # Windows too); --local runs the tool directly (CI, Linux/macOS). Reports land in src/Njord.<P>.Tests/StrykerOutput.
 set -euo pipefail
 
-project="${1:?project name required, e.g. Derived}"
+project="${1:?project name required, e.g. Alerts}"
 mode="${2:-docker}"
 root="$(cd "$(dirname "$0")/.." && pwd)"
 tests="Njord.${project}.Tests"
