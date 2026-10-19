@@ -4,6 +4,14 @@
 
 The `OpenMeteoGateway` request/response gateway: each asked `FetchForecast` enters a private source queue, is throttled to the per-minute budget within its admission window, fetched with bounded parallelism and answered exactly once (`Completed`, `Failed` or `Rejected`, including fetches that throw, a full queue, an exhausted budget and a stopped stream, which restarts the gateway); successful forecasts flow through a re-attachable branch into the `ForecastPipeline`'s SinkRef.
 ## Requirements
+
+### Requirement: PollManager target set is locations only
+PollManager SHALL derive its target set from the configured locations list (not locations × models). StartPolling SHALL be sent to one PollWorker per location.
+
+#### Scenario: Two locations configured
+- **WHEN** the configuration has locations "Lucerne" and "Zurich"
+- **THEN** PollManager SHALL start exactly 2 PollWorkers
+
 ### Requirement: Fetch requests arrive at the gateway as FetchForecast
 `OpenMeteoGateway` (src/Njord.OpenMeteo/OpenMeteoGateway.cs, marker `IForecastGateway`) SHALL accept `FetchForecast(LocationId Location, string ModelId)` from a requester that asks it. On receipt it SHALL remember the sender for this individual request (two requests for the same location and model are remembered separately), resolve the location from `NjordOptions` case-insensitively, resolve the model against the location's configured models case-insensitively (a model that is not configured keeps the requested spelling), create an internal `FetchTarget` carrying the configured location, the resolved model, a `CycleId` stamped with the gateway's `TimeProvider` at receipt, an admission deadline (receipt time plus the admission timeout, 60 s by default) and the pre-computed API weight, and offer it into a private `Source.Queue<FetchTarget>` (buffer 64, `DropNew`). There SHALL be no tick source; all poll timing is owned by the requester. A request for a location that is not configured SHALL be answered immediately with `FetchForecastFailed(..., ModelUnavailable, ...)`; a request that arrives while no pipeline input is attached SHALL be answered immediately with `FetchForecastRejected(..., PipelineUnavailable)`. Neither is queued nor fetched.
 

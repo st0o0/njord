@@ -17,14 +17,22 @@ resolved budget.
 
 ### Requirement: Budget override supersedes the preset
 The system SHALL accept an optional budget override (requests/month,
-requests/minute) that replaces the default free-tier values entirely, so users
-can self-throttle below the soft limits.
+requests/minute) via environment variables or appsettings.json that replaces the default free-tier values entirely. Runtime budget changes via gRPC are no longer supported.
 
 #### Scenario: Override wins over default
-- **WHEN** an override of 50,000 requests/month and 60 requests/minute is
-  configured
-- **THEN** the resolved budget is 50,000 requests/month and
-  60 requests/minute
+- **WHEN** an override of 50,000 requests/month and 60 requests/minute is configured via environment variables
+- **THEN** the resolved budget is 50,000 requests/month and 60 requests/minute
+
+### Requirement: All options are read via IOptions at startup
+All options classes SHALL be read via `IOptions<T>` (not `IOptionsMonitor<T>`) since there is no runtime config change mechanism. The `ConfigReloadPolicy` distinction between Hot and RestartRequired no longer applies. `ConfigView` SHALL continue to provide read-only access to `NjordOptions` and `PollingOptions` for components that need scope and polling data.
+
+#### Scenario: Options are fixed for process lifetime
+- **WHEN** njord starts with a configured poll interval of 30 minutes
+- **THEN** the poll interval remains 30 minutes until the process is restarted
+
+#### Scenario: ConfigView provides scope and polling
+- **WHEN** PollManager reads ConfigView at startup
+- **THEN** it receives the current NjordOptions and PollingOptions values
 
 ### Requirement: Parameter groups are configured
 The system SHALL accept a `Parameters` options section with `Groups` (list of group names, default `["Weather"]`), `Extra` (list of individual variable API names to add, default empty), and `Exclude` (list of individual variable API names to remove, default empty). The resolved parameter set SHALL be computed at startup and remain fixed for the process lifetime.
@@ -223,7 +231,7 @@ The service SHALL use `WebApplication.CreateBuilder` as its host builder, provid
 
 #### Scenario: Actors are registered through setup containers
 - **WHEN** the service starts
-- **THEN** `PollManager`, the poll shard region of `PollWorker`s, `ForecastPipeline`, `ForecastReadModel`, `OpenMeteoGateway`, `BudgetTracker`, `SensorHub` and `ConfigManager` are created through the setup containers' `IActorRegistration`s, plus the MQTT actors when `Njord:Mqtt:Enabled` is true
+- **THEN** `PollManager`, the poll shard region of `PollWorker`s, `ForecastPipeline`, `ForecastReadModel`, `OpenMeteoGateway` and `BudgetTracker` are created through the setup containers' `IActorRegistration`s, plus the MQTT actors when `Njord:Mqtt:Enabled` is true
 
 #### Scenario: Serilog is configured without ServiceDefaults
 - **WHEN** the service starts

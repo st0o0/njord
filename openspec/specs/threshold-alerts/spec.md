@@ -2,10 +2,10 @@
 
 ## Purpose
 
-Pure evaluation functions that assess multi-model forecast data against configurable thresholds and produce typed alerts with confidence scores, severity levels, and diagnostic attributes. Published as binary/enum sensors per alert type per location.
+Pure evaluation functions that assess ensemble weather forecast data against configurable thresholds and produce typed alerts with confidence levels derived from Ensemble standard deviation, severity levels, and diagnostic attributes. Published as binary/enum sensors per alert type per location.
 ## Requirements
 ### Requirement: Alert is a typed record with confidence and severity
-An `Alert` SHALL be a record carrying `AlertType` (enum), `Severity` (enum: None/Yellow/Orange/Red), `Confidence` (0.0-1.0, fraction of models agreeing the threshold is crossed), and typed diagnostic details specific to its alert type (e.g. a frost alert carries expected low, earliest frost horizon and models agreeing). Diagnostics SHALL NOT be a string-keyed dictionary. The snake_case attribute keys published via MQTT (the gRPC `Alert` message carries no attributes) (e.g. `expected_low`, `earliest_frost`, `models_agreeing`) SHALL be produced from the typed details by the output mappers and SHALL be identical to the keys and values published before this change. `AlertType` SHALL enumerate: Frost, Heat, Storm, HeavyRain, Uv, Fog, Snow, PressureDrop, Thunderstorm, Ice, WindChill, Visibility, TropicalNight, Humidity.
+An `Alert` SHALL be a record carrying `AlertType` (enum), `Severity` (enum: None/Yellow/Orange/Red), `Confidence` (High/Medium/Low, derived from Ensemble standard deviation at the alert's peak time: StdDev < 1.0 → High, StdDev > 3.0 → Low, otherwise Medium), and typed diagnostic details specific to its alert type (e.g. a frost alert carries expected low and earliest frost horizon). Diagnostics SHALL NOT be a string-keyed dictionary. The snake_case attribute keys published via MQTT (the gRPC `Alert` message carries no attributes) (e.g. `expected_low`, `earliest_frost`, `models_agreeing`) SHALL be produced from the typed details by the output mappers and SHALL be identical to the keys and values published before this change. `AlertType` SHALL enumerate: Frost, Heat, Storm, HeavyRain, Uv, Fog, Snow, PressureDrop, Thunderstorm, Ice, WindChill, Visibility, TropicalNight, Humidity.
 
 #### Scenario: Alert carries all fields
 - **WHEN** a frost alert is created with severity Yellow, confidence 0.75, expected low -2.1 and earliest frost at +4 h

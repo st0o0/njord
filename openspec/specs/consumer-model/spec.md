@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Consumers of the analysis pipeline: output adapters (the `ForecastReadModel` behind the gRPC API and the state-only `MqttStatePublisher`) attach to the `ForecastPipeline` BroadcastHub via SourceRef, consume typed `PipelineEvent` variants, and are registered through their setup containers.
+Consumers of the analysis pipeline: output adapters (the gRPC consumer and the state-only `MqttStatePublisher`) attach to the `ForecastPipeline` BroadcastHub via SourceRef, consume typed `PipelineEvent` variants (domain-received events: WeatherDataReceived, AirQualityDataReceived, FloodDataReceived, SolarDataReceived, MarineDataReceived; enrichment events: AlertRaised), and are registered through their setup containers.
 ## Requirements
 ### Requirement: Consumers attach via SourceRef to pipeline BroadcastHub
 

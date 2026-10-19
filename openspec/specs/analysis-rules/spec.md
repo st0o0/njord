@@ -6,19 +6,17 @@ can be tested and changed on its own, while the combined analysis output keeps a
 predictable order.
 ## Requirements
 ### Requirement: Each alert type is evaluated by its own rule
-Each alert type SHALL be evaluated by exactly one stateless rule that takes the consensus
-location consensus and the current alert settings and returns one alert of that type. A rule SHALL NOT
-depend on another rule's output.
+Each alert type SHALL be evaluated by exactly one stateless rule that takes a DomainForecast<WeatherPoint> and the current alert settings and returns one alert of that type. Rules SHALL use ForecastQueries.Window to scan the alert time window and ForecastQueries.ValueAt for point-in-time checks. A rule SHALL NOT depend on another rule's output.
 
 #### Scenario: One rule per alert type
 - **WHEN** the registered alert rules are listed
 - **THEN** there is exactly one rule for each of the 14 alert types
 
 #### Scenario: Rule tested in isolation
-- **WHEN** the frost rule is called with a location consensus whose minimum temperature in
-  the next 24 h is -3 °C, with full model agreement, and frost thresholds (0, -2, -5)
+- **WHEN** the frost rule is called with a DomainForecast<WeatherPoint> whose minimum temperature in
+  the next 24 h is -3 °C, with EnsembleStdDev < 1.0, and frost thresholds (0, -2, -5)
 - **THEN** it returns a frost alert with the severity that the thresholds classify -3 °C
-  into and expected low -3 °C, without any other rule running
+  into, confidence High (from low StdDev), and expected low -3 °C, without any other rule running
 
 ### Requirement: Each index kind is scored by its own score
 Each index kind SHALL be computed by exactly one stateless score that takes the day-slice

@@ -2,8 +2,16 @@
 
 ## Purpose
 
-Adaptive per-target poll scheduling: a `PollManager` cluster singleton starts one persistent `PollWorker` shard entity per (location, model) target; each worker learns its model's update cycle from data hash changes, schedules its polls with a timer, keeps at most one fetch in flight, persists its full poll state across restarts via Akka.Persistence and reports every outcome to the manager.
+Adaptive per-location poll scheduling: a `PollManager` cluster singleton starts one persistent `PollWorker` shard entity per location; each worker fetches all enabled domains, learns its update cycle from data hash changes, schedules its polls with a timer, keeps at most one fetch in flight per domain, persists its full poll state across restarts via Akka.Persistence and reports every outcome to the manager.
 ## Requirements
+
+### Requirement: PollWorker entity is per location
+The PollWorker shard region SHALL use location name as entity-id (not "location|model"). Messages SHALL implement IWithLocationId. One PollWorker per configured location.
+
+#### Scenario: Single worker per location
+- **WHEN** location "Lucerne" is configured with Weather and AirQuality domains enabled
+- **THEN** exactly one PollWorker entity SHALL exist for "Lucerne"
+
 ### Requirement: Discovery phase polls at a fixed interval until the cycle is learned
 When no cycle is known for a (location, model) target (phase = Discovery), the target's poll worker SHALL poll at the discovery interval it was started with (`PollingOptions.DiscoveryInterval`, default 20 minutes). After two consecutive data changes are detected (two different `lastChangeUtc` values), the worker SHALL compute `cycle = lastChangeUtc - prevChangeUtc` and transition to Steady phase.
 

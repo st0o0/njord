@@ -2,37 +2,36 @@
 
 ## Purpose
 
-The `ForecastPipeline` analysis stream: it owns a MergeHub input that producers attach to via SinkRef, materialized once per incarnation, combines each forecast with the settings side channel and the pushed sensor readings of its location, computes consensus and all enabled analysis features in one stateful stage (including trends against the previous consensus), supervises the stream, and vends typed `PipelineEvent` output via SourceRef.
+The `ForecastPipeline` analysis stream: it owns a MergeHub input that producers attach to via SinkRef, materialized once per incarnation, maintains per-location LocationForecast state, evaluates registered ProjectionGroups for domain-specific enrichment, supervises the stream, and vends typed `PipelineEvent` output via SourceRef.
 ## Requirements
-### Requirement: One stateful stage computes all analysis per forecast
-For every forecast the `StatefulSelectMany` stage SHALL update a `ModelForecasts` held in the stage closure, build a `LocationConsensus` with `ConsensusBuilder.Create(forecasts, location, settings.Consensus)`, and emit, in this order: `PipelineEvent.ForecastReceived`, `PipelineEvent.ConsensusComputed` (only while `ConsensusOptions.Enabled` is true; the `ModelForecasts` is built either way), then `AlertComputed`, `DerivedComputed`, `TrendComputed` and `IndexComputed` for each analyzer that returns a result. Each analyzer SHALL take the `LocationConsensus` directly plus its own extras and the current settings record: `AlertAnalyzer.Compute(consensus, settings.Alerts)`, `DerivedAnalyzer.Compute(consensus, settings.Derived)`, `TrendAnalyzer.Compute(consensus, previous, settings.Trends)`, `IndexAnalyzer.Compute(consensus, sensors, settings.Indices)`. There SHALL be no `PollContext` record and no per-feature input interfaces. An analyzer whose feature is disabled SHALL return `null`, and no event SHALL be emitted for it. All analysis state SHALL live in the stage closure, not in actor fields.
+### Requirement: Pipeline input is DomainDataReceived
+The pipeline's MergeHub SHALL accept DomainDataReceived(Location, DomainKind, IDomainForecast) messages instead of Forecast messages. Each successful domain fetch from any PollWorker produces one DomainDataReceived.
 
-#### Scenario: Events per forecast
-- **WHEN** a forecast arrives and consensus, alerts, derived, trends and indices are enabled and a previous consensus exists
-- **THEN** the stage emits `ForecastReceived`, `ConsensusComputed`, `AlertComputed`, `DerivedComputed`, `TrendComputed` and `IndexComputed`
+#### Scenario: Multiple domains arrive independently
+- **WHEN** Weather data arrives at t=0 and AirQuality data arrives at t=200ms for the same location
+- **THEN** the pipeline SHALL process each as a separate DomainDataReceived, updating the LocationForecast incrementally
 
-#### Scenario: Disabled feature emits nothing
-- **WHEN** the alerts feature is disabled
-- **THEN** `AlertAnalyzer.Compute` returns `null` and no `AlertComputed` event is emitted
+### Requirement: One stateful stage evaluates ProjectionGroups per domain update
+For every DomainDataReceived the `StatefulSelectMany` stage SHALL update the LocationForecast for that location (shifting previous, updating the domain slot), emit a domain-received event, then iterate registered ProjectionGroups. Only groups whose RequiredDomains include the changed domain SHALL be evaluated. For each affected group, the Projector projects the LocationForecast; if non-null, all enrichments in the group evaluate the projection. Analysis settings SHALL be read from `IOptions<T>` at pipeline construction and SHALL remain fixed for the pipeline incarnation. All state (LocationForecast per location, previous snapshots) SHALL live in the stage closure, not in actor fields.
 
-#### Scenario: Analyzer signatures
-- **WHEN** an analyzer is invoked by the pipeline
-- **THEN** it receives a `LocationConsensus` (plus `previous` for trends and an optional `SensorReadings` for indices) and its settings record, never a context object
+#### Scenario: Weather update triggers weather alert group
+- **WHEN** Weather data arrives for a location
+- **THEN** the stage emits WeatherDataReceived and evaluates the WeatherAlertProjectionGroup
 
-### Requirement: Trends compare against the previous consensus held in the stage
-The previous `LocationConsensus` for trend analysis SHALL be kept in the `StatefulSelectMany` closure and replaced by the current consensus after each forecast. `TrendAnalyzer` itself SHALL be stateless and SHALL return `null` when no previous consensus exists. Because the analysis graph lives as long as the pipeline incarnation, the previous consensus SHALL survive producers detaching and re-attaching.
+#### Scenario: Unaffected groups are skipped
+- **WHEN** AirQuality data arrives and a group requires only Weather
+- **THEN** that group SHALL NOT be evaluated
 
-#### Scenario: First poll cycle
-- **WHEN** the first forecast after the pipeline started is processed
-- **THEN** the previous consensus is `null`, `TrendAnalyzer.Compute` returns `null` and no `TrendComputed` event is emitted
+#### Scenario: Previous state preserved across updates
+- **WHEN** Weather data arrives twice for the same location
+- **THEN** the second evaluation has access to the first Weather data as Previous
 
-#### Scenario: Subsequent poll cycles
-- **WHEN** a later forecast is processed
-- **THEN** `TrendAnalyzer.Compute` receives the consensus computed for the preceding forecast as `previous`
+### Requirement: No settings or sensor side-channels
+The pipeline SHALL have no ZipWith side-channels. Analysis settings are constructor-injected from IOptions<T>. No sensor readings input exists.
 
-#### Scenario: Previous consensus survives a producer change
-- **WHEN** a forecast arrives through one producer, that producer ends, and the next forecast arrives through a new producer
-- **THEN** `TrendAnalyzer.Compute` receives the consensus of the first forecast as `previous` and a `TrendComputed` event is emitted
+#### Scenario: Direct flow from MergeHub to StatefulSelectMany
+- **WHEN** the pipeline is materialized
+- **THEN** the graph SHALL be MergeHub → StatefulSelectMany → BroadcastHub with no ZipWith stages
 
 ### Requirement: ForecastPipeline vends its output via SourceRef
 The analysis graph SHALL end in a `BroadcastHub.Sink<PipelineEvent>` with `bufferSize: 2`, materialized once per pipeline incarnation. On `RequestPipelineOutput(RequestId)` the actor SHALL run the hub source into `StreamRefs.SourceRef<PipelineEvent>()` and reply `RequestPipelineOutputCompleted(RequestId, SourceRef)`, or `RequestPipelineOutputFailed(RequestId, Cause)` when materializing the SourceRef fails. These handshake records SHALL live in `Njord.Core/Actors/StreamWiringMessages.cs`. The hub SHALL NOT use KeepAlive, Buffer or IdleTimeout stages. A consumer's SourceRef SHALL stay alive while producers detach and re-attach.
@@ -56,62 +55,12 @@ The analysis stage SHALL use `StreamSupervision.LoggingDecider` with the actor's
 - **WHEN** an analyzer throws while processing one forecast
 - **THEN** the exception is logged through the actor's logger and handled by the shared decider
 
-### Requirement: Settings side channel
-`ForecastPipeline` SHALL feed analysis settings into the graph through a `Source.ActorRef` side channel (buffer 10, `DropHead`), started with the startup settings and repeated with `RepeatPrevious`, so every forecast is analyzed with the latest `AnalysisSettings`. When it starts, after materializing its graph, the pipeline SHALL send `QueryAnalysisSettings` to the config manager (`IConfigManager`) if one is registered, and SHALL forward the settings of the `AnalysisSettingsResult` reply into the side channel, so a restarted pipeline analyzes with the current settings instead of the startup settings. It SHALL NOT wait for that reply: until it arrives, or when no config manager is registered (logged at Debug), the startup settings apply. On `AnalysisSettingsChanged` the actor SHALL forward the settings to the side channel, so a change applies from the next forecast on and never in the middle of one computation.
-
-#### Scenario: Settings change applies to the next forecast
-- **WHEN** `ConfigManager` sends `AnalysisSettingsChanged` with new alert thresholds
-- **THEN** the next forecast is analyzed with the new thresholds and a computation already running is not affected
-
-#### Scenario: A started pipeline uses the current settings
-- **WHEN** the config manager holds settings that differ from the startup settings and the pipeline starts (or restarts)
-- **THEN** the pipeline analyzes forecasts with the config manager's current settings from the next forecast on, as after an `AnalysisSettingsChanged`, although no change was sent
-
-#### Scenario: No config manager registered
-- **WHEN** the pipeline starts and no config manager is registered
-- **THEN** the pipeline starts normally and analyzes forecasts with the startup settings
-
-### Requirement: Live sensor readings per forecast
-`ForecastPipeline` SHALL accept `LocationSensorReadings` messages (an immutable map from `LocationId` to `SensorReadings`, pushed by the SensorHub) and feed each into a sensor side channel (`Source.ActorRef`, buffer 10, `DropHead`, started with an empty map and repeated with `RepeatPrevious`) that is zipped onto every forecast, so every forecast is analyzed with the latest pushed map and a new map never applies in the middle of one computation. When it starts, after materializing its graph, the pipeline SHALL send `RequestSensorReadings` to the SensorHub if one is registered; the SensorHub SHALL answer the sender with its current `LocationSensorReadings` (staleness window applied), so a restarted pipeline has the current map before the next accepted reading or expiry tick. For each forecast the stage SHALL pass the map's entry for the forecast's location (matched case-insensitively) to `IndexAnalyzer`, or `null` when the map has no entry for it. The pipeline SHALL NOT ask the SensorHub per forecast and SHALL NOT wait for the start reply, and a missing or late push SHALL NOT drop, delay or fail the analysis of a forecast.
-
-#### Scenario: Live indoor temperature reaches the indices
-- **WHEN** the latest pushed map holds `IndoorTemperature = 24.5` for location "Luzern" and a forecast for "Luzern" is analyzed
-- **THEN** `IndexAnalyzer.Compute` receives readings with `IndoorTemperature = 24.5` and the index result reflects it instead of the configured indoor temperature
-
-#### Scenario: Readings are matched to the forecast's location
-- **WHEN** the latest pushed map holds readings for "Bern" only and a forecast for "Lucerne" is analyzed
-- **THEN** `IndexAnalyzer.Compute` receives `null` for "Lucerne"
-
-#### Scenario: No sensor data yet
-- **WHEN** no map has been pushed yet, or the map has no entry for the forecast's location
-- **THEN** `IndexAnalyzer.Compute` receives `null` for the sensors and uses configured or default indoor values
-
-#### Scenario: SensorHub unavailable
-- **WHEN** no SensorHub is registered and nothing is pushed
-- **THEN** the forecast is analyzed with `null` sensors and all its pipeline events are emitted
-
-#### Scenario: Stale readings are not used
-- **WHEN** the only reading for the location is older than the configured staleness window when the SensorHub pushes its map
-- **THEN** the pushed map has no entry for that location and `IndexAnalyzer.Compute` receives `null` for it
-
-#### Scenario: Location keys match case-insensitively
-- **WHEN** the latest pushed map holds readings keyed "LUCERNE" and a forecast for "lucerne" is analyzed
-- **THEN** `IndexAnalyzer.Compute` receives those readings
-
-#### Scenario: A started pipeline asks for the current sensor map
-- **WHEN** the SensorHub holds a fresh `IndoorTemperature` reading for "Luzern" and the pipeline starts (or restarts)
-- **THEN** the pipeline's forecasts for "Luzern" receive that reading from the next forecast on, as after a push, without a new reading or an expiry tick in between
-
-#### Scenario: SensorHub answers a readings request
-- **WHEN** the SensorHub receives `RequestSensorReadings`
-- **THEN** it replies to the sender with a `LocationSensorReadings` map of every location with fresh readings
-
 ### Requirement: ForecastPipeline owns a stable analysis stream
-`ForecastPipeline` (src/Njord.Pipeline/ForecastPipeline.cs, marker `IForecastPipeline`) SHALL materialize, once per actor incarnation when it starts and with `Context.Materializer()`, exactly one analysis graph: `MergeHub<Forecast>` (per-producer buffer 16) → `ZipWith(sensor readings side channel, settings side channel)` → `StatefulSelectMany(compute all)` → `BroadcastHub<PipelineEvent>`. The graph SHALL contain no fetch, throttle or hashing logic, no intermediate relay actor and no other hub. The pipeline SHALL NOT resolve, watch or message the gateway, and SHALL NOT stash messages: its hubs exist from the start, so `RequestForecastSink` and `RequestPipelineOutput` are answered at any time. Producers and consumers coming and going SHALL NOT rebuild the graph. When the analysis graph completes or fails, the pipeline SHALL log an Error and fail, so its backoff-on-failure supervisor restarts it with fresh hubs; producers and consumers re-attach on their own.
+`ForecastPipeline` (src/Njord.Pipeline/ForecastPipeline.cs, marker `IForecastPipeline`) SHALL materialize, once per actor incarnation when it starts and with `Context.Materializer()`, exactly one analysis graph: `MergeHub<DomainDataReceived>` (per-producer buffer 16) → `StatefulSelectMany(ProjectionEngine)` → `BroadcastHub<PipelineEvent>`. Analysis settings SHALL be read from `IOptions<T>` at pipeline construction and remain fixed for the pipeline incarnation. The graph SHALL contain no fetch, throttle or hashing logic, no intermediate relay actor and no other hub. The pipeline SHALL NOT resolve, watch or message the gateway, and SHALL NOT stash messages: its hubs exist from the start, so `RequestForecastSink` and `RequestPipelineOutput` are answered at any time. Producers and consumers coming and going SHALL NOT rebuild the graph. When the analysis graph completes or fails, the pipeline SHALL log an Error and fail, so its backoff-on-failure supervisor restarts it with fresh hubs; producers and consumers re-attach on their own.
 
 #### Scenario: Pipeline graph structure
 - **WHEN** `ForecastPipeline` starts
-- **THEN** it materializes `MergeHub<Forecast> → ZipWith(sensors, settings) → StatefulSelectMany → BroadcastHub<PipelineEvent>` before any producer or consumer attaches
+- **THEN** it materializes `MergeHub<DomainDataReceived> → StatefulSelectMany → BroadcastHub<PipelineEvent>` before any producer or consumer attaches
 
 #### Scenario: No fetch logic in the pipeline
 - **WHEN** `ForecastPipeline` is inspected

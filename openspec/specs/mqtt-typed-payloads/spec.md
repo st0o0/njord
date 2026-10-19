@@ -1,7 +1,7 @@
 # mqtt-typed-payloads Specification
 
 ## Purpose
-TBD - created by archiving change typed-mqtt-payloads. Update Purpose after archive.
+Typed MQTT payload records for multi-domain weather data. Each domain (Weather, AirQuality, Flood, Solar, Marine) and alert type has its own payload record, serialized by a shared source-generated JSON context. Old consensus, derived, trend, and index payload types are removed.
 ## Requirements
 ### Requirement: Payloads are produced from typed records
 Every MQTT state payload SHALL be produced by mapping a domain result to a sealed payload record and serializing it with the single shared serializer configuration. No MQTT payload SHALL be assembled with `JsonObject`, `JsonNode`, string concatenation or anonymous types.
@@ -10,20 +10,30 @@ Every MQTT state payload SHALL be produced by mapping a domain result to a seale
 - **WHEN** an alert result is published
 - **THEN** it is mapped to an alert payload record whose members are exactly the published keys
 
-#### Scenario: Forecast horizon payload
-- **WHEN** a forecast is projected for a horizon
-- **THEN** the projection carries typed parameter values and the MQTT layer serializes it; `Njord.Weather` produces no JSON
+#### Scenario: Domain data payload
+- **WHEN** weather domain data is published
+- **THEN** the data is mapped to a WeatherPayload record with ensemble mean values and optional std dev
+
+### Requirement: Domain-specific payload records
+MQTT payloads SHALL be typed records per domain: WeatherPayload, AirQualityPayload, FloodPayload, SolarPayload. Old consensus and derived payload types are removed.
+
+#### Scenario: Weather payload contains ensemble data
+- **WHEN** a weather payload is published
+- **THEN** it SHALL contain mean values and optional std dev for each parameter
+
+### Requirement: Alert payload records
+Alert payloads SHALL carry AlertType, Severity, Confidence, and domain-specific details. Old AlertComputed payload format is replaced.
+
+#### Scenario: Alert payload with confidence
+- **WHEN** a frost alert is published to MQTT
+- **THEN** the payload SHALL include severity, confidence level, peak value, and hours until onset
 
 ### Requirement: Wire output is deterministic
 The serialized key order and number formatting of every payload SHALL be fixed and covered by snapshot specs. Registry-driven keys (consensus parameters, trend parameters, forecast parameters) SHALL be derived through typed registry access in one place each.
 
-#### Scenario: Unchanged output in the restructuring step
-- **WHEN** the typed payload layer replaces the hand-built JSON
-- **THEN** all existing golden masters for alerts, derived, trends, indices, consensus and per-model horizons are byte-identical
-
-#### Scenario: Consensus key order
-- **WHEN** a consensus horizon with several parameters is serialized
-- **THEN** each parameter value is followed by its `_models` count and `_spread` and `_agreement` come last
+#### Scenario: Domain data key order is stable
+- **WHEN** a weather domain payload is serialized
+- **THEN** the key order SHALL be fixed and covered by snapshot specs
 
 ### Requirement: Each mapper is specified field by field
 Every payload mapper SHALL have a spec that asserts every payload member against an exact expected value, including rounding and absent values.

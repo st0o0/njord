@@ -2,8 +2,16 @@
 
 ## Purpose
 
-HTTP client for the Open-Meteo forecast API: fetches hourly and daily forecasts per location and model in UTC with metric units and unixtime, maps responses to `Forecast`, verifies response units, handles dynamic variable sets, reports expected failures as typed outcomes with location and model without retrying, and treats values beyond a model's horizon as missing values.
+HTTP client for the Open-Meteo API: fetches hourly and daily forecasts per location and model in UTC with metric units and unixtime, maps responses to `Forecast` and `DomainForecast<WeatherPoint>`, verifies response units, handles dynamic variable sets, supports multiple endpoints (forecast, ensemble, air-quality, flood), reports expected failures as typed outcomes without retrying, and treats values beyond a model's horizon as missing values.
 ## Requirements
+
+### Requirement: OpenMeteoClient supports multiple endpoints
+OpenMeteoClient SHALL support building request URLs and parsing responses for: forecast (existing), ensemble (new), air-quality (new), flood (new). Solar and marine endpoints are future additions.
+
+#### Scenario: Ensemble endpoint URL
+- **WHEN** an Ensemble fetch for Lucerne (47.05, 8.31) is requested
+- **THEN** the URL SHALL target /v1/ensemble with latitude=47.05&longitude=8.31 and the configured parameters
+
 ### Requirement: Expected failures are typed outcomes, not exceptions
 The client SHALL return a typed outcome for every call: `PollOutcome.Success(Forecast)` or `PollOutcome.Failure` with reason `RateLimited`, `ModelUnavailable`, `MalformedPayload`, or `Transport`. Expected failure modes (non-success HTTP status, `HttpRequestException`, request timeout, `JsonException`, missing hourly data, unit mismatch) MUST NOT surface as thrown exceptions to the caller. `PollOutcome.Failure` SHALL carry the `Location`, the `Model`, the `Reason` and a `Detail` text; it SHALL NOT carry a `CycleId`. HTTP 429 SHALL map to `RateLimited`, HTTP 400 to `ModelUnavailable` and every other non-success status to `Transport`.
 
