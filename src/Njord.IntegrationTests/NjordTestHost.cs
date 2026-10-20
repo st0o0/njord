@@ -4,7 +4,8 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Njord.OpenMeteo;
+using Njord.Core.Domain;
+using Njord.Forecast;
 using Njord.Tests.Shared;
 
 namespace Njord.IntegrationTests;
@@ -84,14 +85,16 @@ public sealed class NjordTestHost : IAsyncDisposable
             builder,
             b =>
             {
-                b.Services.RemoveAll<IWeatherClient>();
-                b.Services.RemoveAll<IAirQualityClient>();
-                b.Services.RemoveAll<IFloodClient>();
-                b.Services.RemoveAll<IMarineClient>();
-                b.Services.AddSingleton<IWeatherClient>(weather);
-                b.Services.AddSingleton<IAirQualityClient>(airQuality);
-                b.Services.AddSingleton<IFloodClient>(flood);
-                b.Services.AddSingleton<IMarineClient>(marine);
+                b.Services.RemoveAll<IReadOnlyDictionary<DomainKind, IDomainClient>>();
+                b.Services.AddSingleton<IReadOnlyDictionary<DomainKind, IDomainClient>>(new Dictionary<DomainKind, IDomainClient>
+                {
+                    [DomainKind.Weather] = weather,
+                    [DomainKind.AirQuality] = airQuality,
+                    [DomainKind.Flood] = flood,
+                    [DomainKind.Marine] = marine,
+                    [DomainKind.Seasonal] = new FakeSeasonalClient(),
+                    [DomainKind.Satellite] = new FakeSatelliteRadiationClient(),
+                });
                 b.WebHost.UseTestServer();
                 app = b.Build();
                 return app;

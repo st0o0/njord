@@ -14,8 +14,6 @@ using Njord.Forecast.Seasonal;
 using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 using Njord.Messages.Forecast;
-using Njord.OpenMeteo.Configuration;
-using Njord.OpenMeteo.Mapping;
 using Njord.Tests.Shared;
 
 namespace Njord.OpenMeteo.Tests;
@@ -47,9 +45,10 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
             {
                 o.Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }];
             }));
-            var weatherOptions = Options.Create(new WeatherOptions());
+            IReadOnlyDictionary<DomainKind, IDomainClient> clients = new IDomainClient[] { _weather, _airQuality, _flood, _marine, _seasonal, _satellite }
+                .ToDictionary(c => c.Domain);
             registry.Register<IForecastGateway>(system.ActorOf(
-                Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _seasonal, _satellite, _time, options, weatherOptions, Options.Create(new AirQualityOptions()), Options.Create(new MarineOptions()), Options.Create(new FloodOptions()), Options.Create(new SeasonalOptions()), Options.Create(new SatelliteOptions()), TestRequirements.Resolved, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
+                Props.Create(() => new OpenMeteoGateway(clients, _time, options, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
                 "gateway"));
         });
     }
@@ -121,7 +120,7 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_seasonal_fetch_uses_the_seasonal_client_and_delivers_monthly_points_within_the_configured_months()
+    public async Task A_seasonal_fetch_uses_the_seasonal_client_and_delivers_monthly_points()
     {
         var (completed, received) = await FetchAsync(DomainKind.Seasonal, TestContext.Current.CancellationToken);
 
@@ -129,15 +128,13 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Seasonal, completed.Domain),
             () => Assert.Equal(TimeResolution.Monthly, forecast.Resolution),
-            () => Assert.Equal(4, forecast.Points.Length),
             () => Assert.Equal(1.0, forecast.Points[0].TemperatureAnomaly),
-            () => Assert.Equal(TestRequirements.All.Seasonal.ToApiNames(), _seasonal.LastVariables),
             () => Assert.Equal(1, _seasonal.Calls),
             () => Assert.Equal(0, _weather.Calls + _airQuality.Calls + _flood.Calls + _marine.Calls));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_satellite_fetch_uses_the_satellite_client_and_delivers_hourly_points_for_the_configured_past_hours()
+    public async Task A_satellite_fetch_uses_the_satellite_client_and_delivers_hourly_points()
     {
         var (completed, received) = await FetchAsync(DomainKind.Satellite, TestContext.Current.CancellationToken);
 
@@ -145,58 +142,13 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Satellite, completed.Domain),
             () => Assert.Equal(TimeResolution.Hourly, forecast.Resolution),
-            () => Assert.Equal(3, forecast.Points.Length),
             () => Assert.Equal(350.0, forecast.Points[0].GTI),
-            () => Assert.Equal(TestRequirements.All.Satellite.ToApiNames(), _satellite.LastVariables),
-            () => Assert.Equal(new SatelliteOptions().PastHours, _satellite.LastPastHours),
             () => Assert.Equal(1, _satellite.Calls),
             () => Assert.Equal(0, _weather.Calls + _airQuality.Calls + _flood.Calls + _marine.Calls + _seasonal.Calls));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_weather_fetch_requests_the_resolved_variables_and_the_configured_days()
-    {
-        await FetchAsync(DomainKind.Weather, TestContext.Current.CancellationToken);
-
-        Assert.Multiple(
-            () => Assert.Equal(TestRequirements.All.Weather.ToApiNames(), _weather.LastVariables),
-            () => Assert.Contains("temperature_2m_spread", _weather.LastVariables),
-            () => Assert.Equal(4, _weather.LastForecastDays));
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task An_air_quality_fetch_requests_the_resolved_variables_and_the_configured_days()
-    {
-        await FetchAsync(DomainKind.AirQuality, TestContext.Current.CancellationToken);
-
-        Assert.Multiple(
-            () => Assert.Equal(TestRequirements.All.AllAirQuality.ApplyRegionFilter(AirQualityRegion.Global).ToApiNames(), _airQuality.LastVariables),
-            () => Assert.Equal(5, _airQuality.LastForecastDays));
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_flood_fetch_requests_the_resolved_variables_and_the_configured_days()
-    {
-        await FetchAsync(DomainKind.Flood, TestContext.Current.CancellationToken);
-
-        Assert.Multiple(
-            () => Assert.Equal(TestRequirements.All.Flood.ToApiNames(), _flood.LastVariables),
-            () => Assert.False(_flood.LastEnsemble),
-            () => Assert.Equal(92, _flood.LastForecastDays));
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_marine_fetch_requests_the_resolved_variables_and_the_configured_days()
-    {
-        await FetchAsync(DomainKind.Marine, TestContext.Current.CancellationToken);
-
-        Assert.Multiple(
-            () => Assert.Equal(TestRequirements.All.Marine.ToApiNames(), _marine.LastVariables),
-            () => Assert.Equal(8, _marine.LastForecastDays));
-    }
-
-    [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_failed_client_result_is_answered_with_malformed_payload_and_nothing_reaches_the_pipeline()
+    public async Task A_client_without_data_is_answered_with_malformed_payload_and_nothing_reaches_the_pipeline()
     {
         var ct = TestContext.Current.CancellationToken;
         await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
@@ -208,6 +160,22 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Flood, failed.Domain),
             () => Assert.Equal(PollFailureReason.MalformedPayload, failed.Reason));
+        await _forecasts.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_throwing_client_is_answered_with_a_transport_failure()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await _attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        _weather.Throws = true;
+
+        Gateway.Tell(new FetchDomain(new Location("lucerne", 0, 0), DomainKind.Weather));
+
+        var failed = await ExpectMsgAsync<FetchDomainFailed>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.Weather, failed.Domain),
+            () => Assert.Equal(PollFailureReason.Transport, failed.Reason));
         await _forecasts.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(200), ct);
     }
 

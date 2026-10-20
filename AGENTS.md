@@ -31,7 +31,7 @@ src/
     Configuration/      #   IConfigSection, NjordOptions (with FindLocation), LocationOptions, WeatherOptions, FloodOptions,
                         #   PollingOptions, Health/HealthOptions, AddNjordOptions (+ validators)
     Polling/            #   CallWeight, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
-  Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, 6 typed clients (Weather, AirQuality, Flood, Marine, Seasonal, SatelliteRadiation), OpenMeteoRequestBuilder,
+  Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, 6 thick clients implementing `IDomainClient` (Weather, AirQuality, Flood, Marine, Seasonal, SatelliteRadiation), `ClientRequest` (URLs),
                         #   response DTOs, Mapping/, Configuration/ (AirQuality/Marine/Seasonal/Satellite/SolarYield options)
   Njord.Budget/         # BudgetTracker (persistent), usage accounting, health check
   Njord.Polling/        # PollManager, PollWorker (+ state, mappings), polling Telemetry, Configuration/ (BudgetGuard, PollingOptionsValidator)
@@ -178,7 +178,7 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 914 tests (Forecast 58, Messages 21, Persistence 14, Core 74, OpenMeteo 169, Budget 18,
+Current total: 909 tests (Forecast 58, Messages 21, Persistence 14, Core 74, OpenMeteo 164, Budget 18,
 Polling 116, Pipeline 48, Features 222, Grpc 133, Architecture 14, IntegrationTests 27). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
@@ -299,6 +299,6 @@ The Config Builder (`docs/.vitepress/theme/builder`: `types.ts`, `budget.ts`, `s
 - Open-Meteo API: https://open-meteo.com/en/docs
 - Weather ensemble: `https://api.open-meteo.com/v1/ensemble`; air quality, flood and
   marine each use their own host (`air-quality-api`, `flood-api`, `marine-api` `.open-meteo.com`). No API key. Free tier non-commercial: 600/min, 5k/h, 10k/day, 300k/month.
-- Every URL is built with `OpenMeteoRequestBuilder`: invariant-culture coordinates, `timeformat=unixtime`,
+- Every URL is built by `ClientRequest` (`QueryHelpers`): invariant-culture coordinates, `timeformat=unixtime`,
   `timezone=UTC`. Wind in m/s. Values beyond a horizon are `null`; HTTP 400 carries
   `{"error":true,"reason":...}`.

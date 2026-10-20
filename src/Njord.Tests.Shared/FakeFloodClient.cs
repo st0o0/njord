@@ -1,16 +1,14 @@
-using Njord.OpenMeteo;
+using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.Forecast.Flood;
 
 namespace Njord.Tests.Shared;
 
-public sealed class FakeFloodClient : IFloodClient
+public sealed class FakeFloodClient : IDomainClient
 {
-    private static readonly long StartUnix = new DateTimeOffset(2026, 7, 11, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
+    public DomainKind Domain => DomainKind.Flood;
 
-    public IReadOnlyList<string> LastVariables { get; private set; } = [];
-
-    public int LastForecastDays { get; private set; }
-
-    public bool LastEnsemble { get; private set; }
+    public int CallWeight => 1;
 
     public bool Fails { get; set; }
 
@@ -18,23 +16,22 @@ public sealed class FakeFloodClient : IFloodClient
 
     public int Calls => Volatile.Read(ref _calls);
 
-    public Task<FloodResponse?> FetchAsync(double latitude, double longitude, IReadOnlyList<string> variables, int forecastDays, bool ensemble, CancellationToken cancellationToken)
+    public Task<FetchResult> FetchAsync(double latitude, double longitude, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        LastVariables = variables;
-        LastForecastDays = forecastDays;
-        LastEnsemble = ensemble;
         Interlocked.Increment(ref _calls);
 
         if (Fails)
         {
-            return Task.FromResult<FloodResponse?>(null);
+            return Task.FromResult<FetchResult>(new FetchEmpty());
         }
 
-        return Task.FromResult<FloodResponse?>(new FloodResponse(latitude, longitude,
-            new FloodDailyData(
-                Time: [StartUnix],
-                Discharge: [120.0],
-                DischargeMedian: [100.0],
-                DischargeP75: [140.0])));
+        var point = new FloodPoint(
+            new DateTimeOffset(2026, 7, 11, 0, 0, 0, TimeSpan.Zero),
+            Discharge: 120.0,
+            DischargeMedian: 100.0,
+            DischargeP75: 140.0);
+
+        return Task.FromResult<FetchResult>(new FetchSuccess(
+            new DomainForecast<FloodPoint>(DomainKind.Flood, now, TimeResolution.Daily, [point])));
     }
 }

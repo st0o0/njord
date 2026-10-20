@@ -1,5 +1,7 @@
 using System.Net;
+using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Solar;
 using Njord.OpenMeteo.Configuration;
@@ -15,44 +17,43 @@ public sealed class SatelliteRadiationSpec
     private const string Body =
         """{"latitude":47.0,"longitude":8.0,"hourly":{"time":[1792483200,1792486800,1792490400],"shortwave_radiation":[140.0,259.0,340.0],"direct_radiation":[90.0,180.0,250.0],"diffuse_radiation":[50.0,79.0,90.0],"direct_normal_irradiance":[300.0,400.0,null],"global_tilted_irradiance":[211.4,382.0,null]}}""";
 
-    private static SatelliteRadiationClient ClientFor(HttpClient http, SolarYieldOptions? solar = null) =>
-        new(http, Microsoft.Extensions.Options.Options.Create(solar ?? new SolarYieldOptions()));
+    private static SatelliteRadiationClient ClientFor(HttpClient http, SatelliteParams flags, SolarYieldOptions? solar = null) =>
+        new(http, Options.Create(new SatelliteOptions()), Options.Create(solar ?? new SolarYieldOptions()),
+            new ResolvedRequirements(new DomainRequirements(Satellite: flags)));
 
     [Fact(Timeout = 5000)]
-    public async Task The_client_requests_the_hourly_variables_with_the_panel_orientation_and_parses_the_response()
+    public async Task The_client_requests_the_hourly_variables_with_the_panel_orientation()
     {
         string? requested = null;
-        var http = StubOpenMeteoHandler.ClientFor("satellite-api", HttpStatusCode.OK, Body, request => requested = request.RequestUri?.PathAndQuery);
+        var http = StubOpenMeteoHandler.ClientFor("satellite-api", HttpStatusCode.OK, Body, request => requested = StubOpenMeteoHandler.RawPathAndQuery(request));
 
-        var response = await ClientFor(http, new SolarYieldOptions { Tilt = 25, Azimuth = 135 }).FetchAsync(
-            47.05, 8.31, ["shortwave_radiation", "global_tilted_irradiance"], 6, TestContext.Current.CancellationToken);
+        await ClientFor(http, SatelliteParams.GlobalHorizontal | SatelliteParams.GlobalTilted, new SolarYieldOptions { Tilt = 25, Azimuth = 135 })
+            .FetchAsync(47.05, 8.31, ModelRun, TestContext.Current.CancellationToken);
 
-        Assert.Multiple(
-            () => Assert.Equal(
-                "/v1/archive?latitude=47.05&longitude=8.31&hourly=shortwave_radiation,global_tilted_irradiance&tilt=25&azimuth=-45&past_hours=6&forecast_hours=1&timeformat=unixtime&timezone=UTC",
-                requested),
-            () => Assert.Equal(211.4, response?.Hourly?.GlobalTiltedIrradiance?[0]),
-            () => Assert.Null(response?.Hourly?.GlobalTiltedIrradiance?[2]));
+        Assert.Equal(
+            "/v1/archive?latitude=47.05&longitude=8.31&hourly=shortwave_radiation,global_tilted_irradiance&tilt=25&azimuth=-45&past_hours=6&forecast_hours=1&timeformat=unixtime&timezone=UTC",
+            requested);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task The_client_returns_nothing_for_a_bad_request()
+    public async Task The_client_returns_empty_for_a_bad_request()
     {
         var http = StubOpenMeteoHandler.ClientFor("satellite-api", HttpStatusCode.BadRequest, OpenMeteoFixtures.NoDataReason);
 
-        Assert.Null(await ClientFor(http).FetchAsync(47, 8, ["global_tilted_irradiance"], 6, TestContext.Current.CancellationToken));
+        var result = await ClientFor(http, SatelliteParams.GlobalTilted).FetchAsync(47, 8, ModelRun, TestContext.Current.CancellationToken);
+
+        Assert.IsType<FetchEmpty>(result);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task The_response_maps_to_hourly_points_and_keeps_missing_values_null()
+    public async Task The_client_maps_to_hourly_points_and_keeps_missing_values_null()
     {
         var http = StubOpenMeteoHandler.ClientFor("satellite-api", HttpStatusCode.OK, Body);
-        var response = await ClientFor(http).FetchAsync(47, 8, ["global_tilted_irradiance"], 6, TestContext.Current.CancellationToken);
 
-        Assert.NotNull(response);
-        var forecast = response.ToDomainForecast(ModelRun);
+        var result = await ClientFor(http, SatelliteParams.GlobalTilted).FetchAsync(47, 8, ModelRun, TestContext.Current.CancellationToken);
 
-        Assert.NotNull(forecast);
+        var success = Assert.IsType<FetchSuccess>(result);
+        var forecast = Assert.IsType<DomainForecast<SatelliteRadiationPoint>>(success.Forecast);
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Satellite, forecast.Domain),
             () => Assert.Equal(TimeResolution.Hourly, forecast.Resolution),
@@ -60,10 +61,7 @@ public sealed class SatelliteRadiationSpec
             () => Assert.Equal(3, forecast.Points.Length),
             () => Assert.Equal(
                 new SatelliteRadiationPoint(new DateTimeOffset(2026, 10, 20, 9, 0, 0, TimeSpan.Zero), 259.0, 180.0, 79.0, 400.0, 382.0),
-                forecast.Points[1]),
-            () => Assert.Equal(
-                new SatelliteRadiationPoint(new DateTimeOffset(2026, 10, 20, 10, 0, 0, TimeSpan.Zero), 340.0, 250.0, 90.0, null, null),
-                forecast.Points[2]));
+                forecast.Points[1]));
     }
 
     [Fact]

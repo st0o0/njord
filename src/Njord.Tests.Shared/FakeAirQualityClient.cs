@@ -1,14 +1,14 @@
-using Njord.OpenMeteo;
+using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.Forecast.AirQuality;
 
 namespace Njord.Tests.Shared;
 
-public sealed class FakeAirQualityClient : IAirQualityClient
+public sealed class FakeAirQualityClient : IDomainClient
 {
-    private static readonly long StartUnix = new DateTimeOffset(2026, 7, 11, 3, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
+    public DomainKind Domain => DomainKind.AirQuality;
 
-    public IReadOnlyList<string> LastVariables { get; private set; } = [];
-
-    public int LastForecastDays { get; private set; }
+    public int CallWeight => 1;
 
     public bool Fails { get; set; }
 
@@ -16,22 +16,22 @@ public sealed class FakeAirQualityClient : IAirQualityClient
 
     public int Calls => Volatile.Read(ref _calls);
 
-    public Task<AirQualityResponse?> FetchAsync(double latitude, double longitude, IReadOnlyList<string> variables, int forecastDays, CancellationToken cancellationToken)
+    public Task<FetchResult> FetchAsync(double latitude, double longitude, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        LastVariables = variables;
-        LastForecastDays = forecastDays;
         Interlocked.Increment(ref _calls);
 
         if (Fails)
         {
-            return Task.FromResult<AirQualityResponse?>(null);
+            return Task.FromResult<FetchResult>(new FetchEmpty());
         }
 
-        return Task.FromResult<AirQualityResponse?>(new AirQualityResponse(latitude, longitude,
-            new AirQualityHourlyData(
-                Time: [StartUnix],
-                Pm25: [8.0],
-                Pm10: [15.0],
-                Ozone: [60.0])));
+        var point = new AirQualityPoint(
+            new DateTimeOffset(2026, 7, 11, 3, 0, 0, TimeSpan.Zero),
+            Pm25: 8.0,
+            Pm10: 15.0,
+            Ozone: 60.0);
+
+        return Task.FromResult<FetchResult>(new FetchSuccess(
+            new DomainForecast<AirQualityPoint>(DomainKind.AirQuality, now, TimeResolution.Hourly, [point])));
     }
 }

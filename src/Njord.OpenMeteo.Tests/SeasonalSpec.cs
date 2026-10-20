@@ -1,6 +1,10 @@
 using System.Net;
+using Microsoft.Extensions.Options;
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Seasonal;
+using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Tests;
@@ -13,41 +17,44 @@ public sealed class SeasonalSpec
     private const string Body =
         """{"latitude":47.0,"longitude":8.0,"monthly":{"time":[1790812800,1793491200,1796083200,1798761600,1801440000,1803859200],"temperature_2m_anomaly":[1.7,1.0,1.9,1.4,1.8,1.2],"precipitation_anomaly":[2.4,-20.0,3.5,9.1,23.5,14.3],"precipitation_mean":[99.5,80.0,100.0,98.7,100.0,106.5]}}""";
 
+    private static SeasonalClient ClientFor(HttpClient http, SeasonalParams flags) =>
+        new(http, Options.Create(new SeasonalOptions()), new ResolvedRequirements(new DomainRequirements(Seasonal: flags)));
+
+    private const SeasonalParams All = SeasonalParams.TemperatureAnomaly | SeasonalParams.PrecipitationAnomaly | SeasonalParams.PrecipitationMean;
+
     [Fact(Timeout = 5000)]
-    public async Task The_client_requests_the_monthly_variables_and_parses_the_response()
+    public async Task The_client_requests_the_monthly_variables()
     {
         string? requested = null;
-        var http = StubOpenMeteoHandler.ClientFor("seasonal-api", HttpStatusCode.OK, Body, request => requested = request.RequestUri?.PathAndQuery);
+        var http = StubOpenMeteoHandler.ClientFor("seasonal-api", HttpStatusCode.OK, Body, request => requested = StubOpenMeteoHandler.RawPathAndQuery(request));
 
-        var response = await new SeasonalClient(http).FetchAsync(
-            47.05, 8.31, ["temperature_2m_anomaly", "precipitation_anomaly"], TestContext.Current.CancellationToken);
+        await ClientFor(http, SeasonalParams.TemperatureAnomaly | SeasonalParams.PrecipitationAnomaly)
+            .FetchAsync(47.05, 8.31, ModelRun, TestContext.Current.CancellationToken);
 
-        Assert.Multiple(
-            () => Assert.Equal(
-                "/v1/seasonal?latitude=47.05&longitude=8.31&monthly=temperature_2m_anomaly,precipitation_anomaly&timeformat=unixtime&timezone=UTC",
-                requested),
-            () => Assert.Equal(1.7, response?.Monthly?.TemperatureAnomaly?[0]),
-            () => Assert.Equal(-20.0, response?.Monthly?.PrecipitationAnomaly?[1]));
+        Assert.Equal(
+            "/v1/seasonal?latitude=47.05&longitude=8.31&monthly=temperature_2m_anomaly,precipitation_anomaly&timeformat=unixtime&timezone=UTC",
+            requested);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task The_client_returns_nothing_for_a_bad_request()
+    public async Task The_client_returns_empty_for_a_bad_request()
     {
         var http = StubOpenMeteoHandler.ClientFor("seasonal-api", HttpStatusCode.BadRequest, OpenMeteoFixtures.NoDataReason);
 
-        Assert.Null(await new SeasonalClient(http).FetchAsync(47, 8, ["temperature_2m_anomaly"], TestContext.Current.CancellationToken));
+        var result = await ClientFor(http, SeasonalParams.TemperatureAnomaly).FetchAsync(47, 8, ModelRun, TestContext.Current.CancellationToken);
+
+        Assert.IsType<FetchEmpty>(result);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task The_response_maps_to_monthly_points_limited_to_the_current_month_plus_the_forecast_months()
+    public async Task The_client_maps_to_monthly_points_limited_to_the_current_month_plus_the_forecast_months()
     {
         var http = StubOpenMeteoHandler.ClientFor("seasonal-api", HttpStatusCode.OK, Body);
-        var response = await new SeasonalClient(http).FetchAsync(47, 8, ["temperature_2m_anomaly"], TestContext.Current.CancellationToken);
 
-        Assert.NotNull(response);
-        var forecast = response.ToDomainForecast(ModelRun, forecastMonths: 3);
+        var result = await ClientFor(http, All).FetchAsync(47, 8, ModelRun, TestContext.Current.CancellationToken);
 
-        Assert.NotNull(forecast);
+        var success = Assert.IsType<FetchSuccess>(result);
+        var forecast = Assert.IsType<DomainForecast<SeasonalPoint>>(success.Forecast);
         Assert.Multiple(
             () => Assert.Equal(DomainKind.Seasonal, forecast.Domain),
             () => Assert.Equal(TimeResolution.Monthly, forecast.Resolution),

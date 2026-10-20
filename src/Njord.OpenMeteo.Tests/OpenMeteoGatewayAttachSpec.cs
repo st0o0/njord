@@ -40,9 +40,10 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         {
             o.Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }];
         }));
-        var weatherOptions = Options.Create(new WeatherOptions());
+        IReadOnlyDictionary<DomainKind, IDomainClient> clients = new IDomainClient[] { _weather, _airQuality, _flood, _marine, _seasonal, _satellite }
+            .ToDictionary(c => c.Domain);
         return Sys.ActorOf(
-            Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _seasonal, _satellite, _time, options, weatherOptions, Options.Create(new AirQualityOptions()), Options.Create(new MarineOptions()), Options.Create(new FloodOptions()), Options.Create(new SeasonalOptions()), Options.Create(new SatelliteOptions()), TestRequirements.Resolved, _budget, FetchTimeouts.Default)),
+            Props.Create(() => new OpenMeteoGateway(clients, _time, options, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 
@@ -112,6 +113,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         var (_, attached, _) = RegisterPipeline();
         _budget.CostPerMinute = 1;
         _budget.MaxBurst = 1;
+        _weather.CallWeight = 2;
         var gateway = StartGateway();
         await attached.ExpectMsgAsync<string>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 

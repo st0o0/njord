@@ -9,12 +9,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Forecast;
-using Njord.Forecast.AirQuality;
-using Njord.Forecast.Marine;
-using Njord.Forecast.Solar;
-using Njord.Forecast.Weather;
 using Njord.Messages.Forecast;
-using Njord.OpenMeteo.Configuration;
 using Njord.OpenMeteo.Mapping;
 using Servus.Akka;
 
@@ -26,8 +21,6 @@ namespace Njord.OpenMeteo;
 public sealed class OpenMeteoGateway : ReceiveActor
 {
     private const int ForecastBranchSize = 16;
-    private const int MaxWeatherForecastDays = 35;
-    private const int MaxAirQualityForecastDays = 7;
 
     // Ids are unique across incarnations: a restarted gateway keeps its ActorRef, so late results of the
     // previous incarnation must never match anything of the current one.
@@ -42,28 +35,10 @@ public sealed class OpenMeteoGateway : ReceiveActor
 
     private sealed record PendingDomainRequest(IActorRef Requester, Location Location, DomainKind Domain, Location Resolved);
 
-    private readonly IWeatherClient _weatherClient;
-    private readonly IAirQualityClient _airQualityClient;
-    private readonly IFloodClient _floodClient;
-    private readonly IMarineClient _marineClient;
-    private readonly ISeasonalClient _seasonalClient;
-    private readonly ISatelliteRadiationClient _satelliteClient;
+    private readonly IReadOnlyDictionary<DomainKind, IDomainClient> _clients;
     private readonly TimeProvider _timeProvider;
     private readonly NjordOptions _options;
-    private readonly WeatherOptions _weather;
-    private readonly AirQualityOptions _airQuality;
-    private readonly MarineOptions _marine;
-    private readonly FloodOptions _flood;
-    private readonly SeasonalOptions _seasonal;
-    private readonly SatelliteOptions _satellite;
-    private readonly IReadOnlyList<string> _weatherVariables;
-    private readonly IReadOnlyList<string> _airQualityVariables;
-    private readonly IReadOnlyList<string> _floodVariables;
-    private readonly IReadOnlyList<string> _marineVariables;
-    private readonly IReadOnlyList<string> _seasonalVariables;
-    private readonly IReadOnlyList<string> _satelliteVariables;
     private readonly FetchTimeouts _timeouts;
-    private readonly int _weatherWeight;
     private readonly IGatewayBudgetGate _gate;
     private readonly Dictionary<long, PendingDomainRequest> _pending = new();
     private readonly ILoggingAdapter _log = Context.GetLogger();
@@ -72,47 +47,16 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private long _branchId;
 
     public OpenMeteoGateway(
-        IWeatherClient weatherClient,
-        IAirQualityClient airQualityClient,
-        IFloodClient floodClient,
-        IMarineClient marineClient,
-        ISeasonalClient seasonalClient,
-        ISatelliteRadiationClient satelliteClient,
+        IReadOnlyDictionary<DomainKind, IDomainClient> clients,
         TimeProvider timeProvider,
         IOptions<NjordOptions> options,
-        IOptions<WeatherOptions> weather,
-        IOptions<AirQualityOptions> airQuality,
-        IOptions<MarineOptions> marine,
-        IOptions<FloodOptions> flood,
-        IOptions<SeasonalOptions> seasonal,
-        IOptions<SatelliteOptions> satellite,
-        ResolvedRequirements resolved,
         IBudgetProvider budgetProvider,
         FetchTimeouts timeouts)
     {
-        _weatherClient = weatherClient;
-        _airQualityClient = airQualityClient;
-        _floodClient = floodClient;
-        _marineClient = marineClient;
-        _seasonalClient = seasonalClient;
-        _satelliteClient = satelliteClient;
+        _clients = clients;
         _timeProvider = timeProvider;
         _options = options.Value;
-        _weather = weather.Value;
         _timeouts = timeouts;
-        var requirements = resolved.Value;
-        _airQuality = airQuality.Value;
-        _marine = marine.Value;
-        _flood = flood.Value;
-        _seasonal = seasonal.Value;
-        _satellite = satellite.Value;
-        _weatherVariables = requirements.AllWeather.ToApiNames();
-        _airQualityVariables = requirements.AllAirQuality.ApplyRegionFilter(airQuality.Value.Region).ToApiNames();
-        _floodVariables = requirements.AllFlood.ToApiNames();
-        _marineVariables = requirements.AllMarine.ToApiNames();
-        _seasonalVariables = requirements.AllSeasonal.ToApiNames();
-        _satelliteVariables = requirements.AllSatellite.ToApiNames();
-        _weatherWeight = CallWeight.Of(_weatherVariables.Count, WeatherForecastDays);
         _gate = new GatewayBudgetGate(budgetProvider, Context.GetActor<IBudgetTracker>(), timeProvider);
 
         Receive<FetchDomain>(OnFetchDomain);
@@ -151,19 +95,19 @@ public sealed class OpenMeteoGateway : ReceiveActor
         var id = NextId();
         _pending[id] = new PendingDomainRequest(Sender, msg.Location, msg.Domain, new Location(location.Name, location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault()));
 
-        if (msg.Domain is not (DomainKind.Weather or DomainKind.AirQuality or DomainKind.Flood or DomainKind.Marine or DomainKind.Seasonal or DomainKind.Satellite))
+        if (!_clients.TryGetValue(msg.Domain, out var client))
         {
             Reply(id, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.PipelineUnavailable));
             return;
         }
 
-        if (!_gate.TryAcquire(msg.Domain == DomainKind.Weather ? _weatherWeight : 1))
+        if (!_gate.TryAcquire(client.CallWeight))
         {
             Reply(id, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.Budget));
             return;
         }
 
-        FetchAsync(id, msg.Domain, location).PipeTo(Self,
+        FetchAsync(id, client, location).PipeTo(Self,
             success: result => result,
             failure: ex =>
             {
@@ -172,64 +116,44 @@ public sealed class OpenMeteoGateway : ReceiveActor
             });
     }
 
-    private async Task<object> FetchAsync(long id, DomainKind domain, LocationOptions location)
+    private async Task<object> FetchAsync(long id, IDomainClient client, LocationOptions location)
     {
-        var now = _timeProvider.GetUtcNow();
+        var domain = client.Domain;
         var domainTag = domain.ToTelemetryTag();
-        var locationTag = new KeyValuePair<string, object?>("location", location.Name);
-        var domainTagPair = new KeyValuePair<string, object?>("domain", domainTag);
+        var tags = new[]
+        {
+            new KeyValuePair<string, object?>("location", location.Name),
+            new KeyValuePair<string, object?>("domain", domainTag),
+        };
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        IDomainForecast? forecast;
+        FetchResult result;
         try
         {
-            forecast = await FetchForecastAsync(domain, location, now);
+            result = await client.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
+                _timeProvider.GetUtcNow(), CancellationToken.None);
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+        catch
         {
-            sw.Stop();
-            Telemetry.FetchTotal.Add(1, locationTag, domainTagPair, new KeyValuePair<string, object?>("outcome", "failure"));
-            return new DomainFetchFailed(id, PollFailureReason.Transport, $"Fetch failed with {ex.GetType().Name}: {ex.Message}");
+            Telemetry.FetchTotal.Add(1, tags[0], tags[1], new KeyValuePair<string, object?>("outcome", "failure"));
+            throw;
         }
 
         sw.Stop();
-
-        Telemetry.FetchTotal.Add(1, locationTag, domainTagPair,
-            new KeyValuePair<string, object?>("outcome", forecast is not null ? "success" : "failure"));
-        if (forecast is not null)
+        var success = result is FetchSuccess;
+        Telemetry.FetchTotal.Add(1, tags[0], tags[1], new KeyValuePair<string, object?>("outcome", success ? "success" : "failure"));
+        if (success)
         {
-            Telemetry.FetchDuration.Record(sw.Elapsed.TotalSeconds, locationTag, domainTagPair);
+            Telemetry.FetchDuration.Record(sw.Elapsed.TotalSeconds, tags[0], tags[1]);
         }
 
-        return forecast is null
-            ? new DomainFetchFailed(id, PollFailureReason.MalformedPayload, $"The {domainTag} endpoint returned no usable data")
-            : new DomainFetchDone(id, domain, forecast);
-    }
-
-    private int WeatherForecastDays => Math.Min(_weather.ForecastDays, MaxWeatherForecastDays);
-
-    private async Task<IDomainForecast?> FetchForecastAsync(DomainKind domain, LocationOptions location, DateTimeOffset now) =>
-        domain switch
+        return result switch
         {
-            DomainKind.Weather => (await _weatherClient.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
-                    _weatherVariables, WeatherForecastDays, CancellationToken.None))
-                ?.ToDomainForecast(now)?.TrimTrailing((WeatherPoint p, WeatherParams f) => p.HasFields(f)),
-            DomainKind.AirQuality => (await _airQualityClient.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
-                    _airQualityVariables, Math.Min(_airQuality.ForecastDays, MaxAirQualityForecastDays), CancellationToken.None))
-                ?.ToDomainForecast(now)?.TrimTrailing((AirQualityPoint p, AirQualityParams f) => p.HasFields(f)),
-            DomainKind.Marine => (await _marineClient.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
-                    _marineVariables, _marine.ForecastDays, CancellationToken.None))
-                ?.ToDomainForecast(now)?.TrimTrailing((MarinePoint p, MarineParams f) => p.HasFields(f)),
-            DomainKind.Seasonal => (await _seasonalClient.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
-                    _seasonalVariables, CancellationToken.None))
-                ?.ToDomainForecast(now, _seasonal.ForecastMonths),
-            DomainKind.Satellite => (await _satelliteClient.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
-                    _satelliteVariables, _satellite.PastHours, CancellationToken.None))
-                ?.ToDomainForecast(now)?.TrimTrailing((SatelliteRadiationPoint p, SatelliteParams f) => p.HasFields(f)),
-            _ => (await _floodClient.FetchAsync(location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault(),
-                    _floodVariables, _flood.ForecastDays, _flood.IncludeEnsemble, CancellationToken.None))
-                ?.ToDomainForecast(now),
+            FetchSuccess ok => new DomainFetchDone(id, domain, ok.Forecast),
+            FetchError error => new DomainFetchFailed(id, error.Reason, error.Message),
+            _ => new DomainFetchFailed(id, PollFailureReason.MalformedPayload, $"The {domainTag} endpoint returned no usable data"),
         };
+    }
 
     private void OnDomainFetchDone(DomainFetchDone msg)
     {

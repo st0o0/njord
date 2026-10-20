@@ -4,6 +4,7 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Core.Polling;
 using Njord.Forecast;
 using Njord.Grpc;
@@ -102,15 +103,18 @@ public sealed class GatewayRestartSpec : NjordActorSpec
 
     private IActorRef StartGateway()
     {
+        IReadOnlyDictionary<DomainKind, IDomainClient> clients = new Dictionary<DomainKind, IDomainClient>
+        {
+            [DomainKind.Weather] = _weather,
+            [DomainKind.AirQuality] = _airQuality,
+            [DomainKind.Flood] = _flood,
+            [DomainKind.Marine] = _marine,
+            [DomainKind.Seasonal] = _seasonal,
+            [DomainKind.Satellite] = _satellite,
+        };
         var options = Wrap(Options);
-        var weather = Wrap(new WeatherOptions());
-        var airQuality = Wrap(new AirQualityOptions());
-        var marine = Wrap(new MarineOptions());
-        var flood = Wrap(new FloodOptions());
         return Sys.ActorOf(
-            Props.Create(() => new OpenMeteoGateway(
-                _weather, _airQuality, _flood, _marine, _seasonal, _satellite, _time, options, weather, airQuality, marine, flood, Wrap(new SeasonalOptions()), Wrap(new SatelliteOptions()),
-                TestRequirements.Resolved, _budget, FetchTimeouts.Default)),
+            Props.Create(() => new OpenMeteoGateway(clients, _time, options, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 

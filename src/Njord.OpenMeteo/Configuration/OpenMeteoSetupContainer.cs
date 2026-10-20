@@ -7,7 +7,9 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Core.Polling;
+using Njord.Forecast;
 using Servus.Akka;
 using Servus.Application.Startup;
 
@@ -28,46 +30,23 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
         services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
         services.TryAddSingleton(FetchTimeouts.Default);
 
-        AddTypedClient<IWeatherClient, WeatherClient>(services, (_, client) =>
-        {
-            client.BaseAddress = new Uri("https://ensemble-api.open-meteo.com/");
-        });
+        AddDomainClient<WeatherClient>(services, "https://ensemble-api.open-meteo.com/");
+        AddDomainClient<AirQualityClient>(services, "https://air-quality-api.open-meteo.com/");
+        AddDomainClient<FloodClient>(services, "https://flood-api.open-meteo.com/");
+        AddDomainClient<MarineClient>(services, "https://marine-api.open-meteo.com/");
+        AddDomainClient<SeasonalClient>(services, "https://seasonal-api.open-meteo.com/");
+        AddDomainClient<SatelliteRadiationClient>(services, "https://satellite-api.open-meteo.com/");
 
-        AddTypedClient<IAirQualityClient, AirQualityClient>(services, (_, client) =>
-        {
-            client.BaseAddress = new Uri("https://air-quality-api.open-meteo.com/");
-        });
-
-        AddTypedClient<IFloodClient, FloodClient>(services, (_, client) =>
-        {
-            client.BaseAddress = new Uri("https://flood-api.open-meteo.com/");
-        });
-
-        AddTypedClient<IMarineClient, MarineClient>(services, (_, client) =>
-        {
-            client.BaseAddress = new Uri("https://marine-api.open-meteo.com/");
-        });
-
-        AddTypedClient<ISeasonalClient, SeasonalClient>(services, (_, client) =>
-        {
-            client.BaseAddress = new Uri("https://seasonal-api.open-meteo.com/");
-        });
-
-        AddTypedClient<ISatelliteRadiationClient, SatelliteRadiationClient>(services, (_, client) =>
-        {
-            client.BaseAddress = new Uri("https://satellite-api.open-meteo.com/");
-        });
+        services.AddSingleton<IReadOnlyDictionary<DomainKind, IDomainClient>>(provider =>
+            provider.GetServices<IDomainClient>().ToDictionary(c => c.Domain));
 
         services.AddSingleton<IActorRegistration>(new GatewayActorRegistration());
     }
 
-    private static void AddTypedClient<TInterface, TImplementation>(
-        IServiceCollection services,
-        Action<IServiceProvider, HttpClient> configure)
-        where TInterface : class
-        where TImplementation : class, TInterface
+    private static void AddDomainClient<TClient>(IServiceCollection services, string baseAddress)
+        where TClient : class, IDomainClient
     {
-        var builder = services.AddHttpClient<TInterface, TImplementation>(configure)
+        var builder = services.AddHttpClient<TClient>(client => client.BaseAddress = new Uri(baseAddress))
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
             {
                 ConnectCallback = async (context, ct) =>
@@ -89,6 +68,7 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
 
         builder.AddHttpMessageHandler(() => new HttpMetricsHandler());
         builder.AddStandardResilienceHandler();
+        services.AddTransient<IDomainClient>(provider => provider.GetRequiredService<TClient>());
     }
 
     private sealed class GatewayActorRegistration : IActorRegistration

@@ -1,14 +1,14 @@
-using Njord.OpenMeteo;
+using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.Forecast.Marine;
 
 namespace Njord.Tests.Shared;
 
-public sealed class FakeMarineClient : IMarineClient
+public sealed class FakeMarineClient : IDomainClient
 {
-    private static readonly long StartUnix = new DateTimeOffset(2026, 7, 11, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
+    public DomainKind Domain => DomainKind.Marine;
 
-    public IReadOnlyList<string> LastVariables { get; private set; } = [];
-
-    public int LastForecastDays { get; private set; }
+    public int CallWeight => 1;
 
     public bool Fails { get; set; }
 
@@ -16,23 +16,23 @@ public sealed class FakeMarineClient : IMarineClient
 
     public int Calls => Volatile.Read(ref _calls);
 
-    public Task<MarineResponse?> FetchAsync(double latitude, double longitude, IReadOnlyList<string> variables, int forecastDays, CancellationToken cancellationToken)
+    public Task<FetchResult> FetchAsync(double latitude, double longitude, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        LastVariables = variables;
-        LastForecastDays = forecastDays;
         Interlocked.Increment(ref _calls);
 
         if (Fails)
         {
-            return Task.FromResult<MarineResponse?>(null);
+            return Task.FromResult<FetchResult>(new FetchEmpty());
         }
 
-        return Task.FromResult<MarineResponse?>(new MarineResponse(latitude, longitude,
-            new MarineHourlyData(
-                Time: [StartUnix],
-                WaveHeight: [0.4],
-                WavePeriod: [4.0],
-                WaveDirection: [270.0],
-                SeaSurfaceTemperature: [19.0])));
+        var point = new MarinePoint(
+            new DateTimeOffset(2026, 7, 11, 0, 0, 0, TimeSpan.Zero),
+            WaveHeight: 0.4,
+            WavePeriod: 4.0,
+            WaveDirection: 270.0,
+            WaterTemperature: 19.0);
+
+        return Task.FromResult<FetchResult>(new FetchSuccess(
+            new DomainForecast<MarinePoint>(DomainKind.Marine, now, TimeResolution.Hourly, [point])));
     }
 }

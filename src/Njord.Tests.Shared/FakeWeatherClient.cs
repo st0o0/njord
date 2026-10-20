@@ -1,14 +1,15 @@
-using Njord.OpenMeteo;
+using System.Collections.Immutable;
+using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.Forecast.Weather;
 
 namespace Njord.Tests.Shared;
 
-public sealed class FakeWeatherClient : IWeatherClient
+public sealed class FakeWeatherClient : IDomainClient
 {
-    private static readonly long StartUnix = new DateTimeOffset(2026, 7, 11, 3, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
+    public DomainKind Domain => DomainKind.Weather;
 
-    public IReadOnlyList<string> LastVariables { get; private set; } = [];
-
-    public int LastForecastDays { get; private set; }
+    public int CallWeight { get; set; } = 1;
 
     public bool Fails { get; set; }
 
@@ -23,10 +24,8 @@ public sealed class FakeWeatherClient : IWeatherClient
 
     public void Release() => _release.TrySetResult();
 
-    public async Task<WeatherResponse?> FetchAsync(double latitude, double longitude, IReadOnlyList<string> variables, int forecastDays, CancellationToken cancellationToken)
+    public async Task<FetchResult> FetchAsync(double latitude, double longitude, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        LastVariables = variables;
-        LastForecastDays = forecastDays;
         Interlocked.Increment(ref _calls);
         await _release.Task.WaitAsync(cancellationToken);
 
@@ -37,23 +36,24 @@ public sealed class FakeWeatherClient : IWeatherClient
 
         if (Fails)
         {
-            return null;
+            return new FetchEmpty();
         }
 
-        return new WeatherResponse(latitude, longitude,
-            new WeatherHourlyData(
-                Time: [StartUnix],
-                Temperature: [20.0],
-                ApparentTemperature: [18.5],
-                WindSpeed: [3.2],
-                Precipitation: [0.0],
-                PrecipitationProbability: [10.0],
-                CloudCover: [50.0],
-                Pressure: [1013.0],
-                WeatherCode: [0.0],
-                Humidity: [65.0],
-                DewPoint: [12.0],
-                UvIndex: [3.0]));
+        var point = new WeatherPoint(
+            new DateTimeOffset(2026, 7, 11, 3, 0, 0, TimeSpan.Zero),
+            Temperature: 20.0,
+            ApparentTemperature: 18.5,
+            WindSpeed: 3.2,
+            Precipitation: 0.0,
+            PrecipitationProbability: 10.0,
+            CloudCover: 50.0,
+            Pressure: 1013.0,
+            WeatherCode: 0.0,
+            Humidity: 65.0,
+            DewPoint: 12.0,
+            UvIndex: 3.0);
+
+        return new FetchSuccess(new DomainForecast<WeatherPoint>(DomainKind.Weather, now, TimeResolution.Hourly, [point]));
     }
 
     private static TaskCompletionSource CompletedRelease()

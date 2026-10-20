@@ -1,25 +1,45 @@
-using System.Net;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Options;
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo;
 
-public sealed class FloodClient(HttpClient httpClient) : IFloodClient
+public sealed class FloodClient : IDomainClient
 {
-    public async Task<FloodResponse?> FetchAsync(double latitude, double longitude, IReadOnlyList<string> variables, int forecastDays, bool ensemble, CancellationToken cancellationToken)
+    private readonly HttpClient _httpClient;
+    private readonly FloodOptions _options;
+    private readonly IReadOnlyList<string> _variables;
+
+    public FloodClient(HttpClient httpClient, IOptions<FloodOptions> options, ResolvedRequirements requirements)
     {
-        var uri = OpenMeteoRequestBuilder.To("v1/flood")
-            .WithLocation(latitude, longitude)
-            .WithDaily(variables)
-            .WithForecastDays(forecastDays)
-            .WithEnsemble(ensemble)
-            .Build();
-        try
+        _httpClient = httpClient;
+        _options = options.Value;
+        _variables = requirements.Value.AllFlood.ToApiNames();
+    }
+
+    public DomainKind Domain => DomainKind.Flood;
+
+    public int CallWeight => 1;
+
+    public Task<FetchResult> FetchAsync(double latitude, double longitude, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var query = new List<(string, string)>
         {
-            return await httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.FloodResponse, cancellationToken);
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
+            ("daily", ClientRequest.List(_variables)),
+            ("forecast_days", ClientRequest.Number(_options.ForecastDays)),
+        };
+        if (_options.IncludeEnsemble)
         {
-            return null;
+            query.Add(("ensemble", "true"));
         }
+
+        var uri = ClientRequest.Uri("v1/flood", latitude, longitude, [.. query]);
+        return ClientRequest.ExecuteAsync(
+            () => _httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.FloodResponse, cancellationToken),
+            response => response.ToDomainForecast(now),
+            cancellationToken);
     }
 }
