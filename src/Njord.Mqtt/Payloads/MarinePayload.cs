@@ -5,7 +5,7 @@ namespace Njord.Mqtt.Payloads;
 public sealed record MarinePayload(
     DateTimeOffset ValidFrom,
     DateTimeOffset ModelRun,
-    double WaveHeight,
-    double WavePeriod,
-    double WaveDirection,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? WaveHeight = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? WavePeriod = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? WaveDirection = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? WaterTemperature = null);

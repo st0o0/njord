@@ -38,11 +38,16 @@ public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
         var best = Alert.None(Type);
         foreach (var point in forecast.NextDays(now))
         {
+            if (point.Discharge is not { } discharge)
+            {
+                continue;
+            }
+
             var (severity, threshold) = Classify(point);
             if (severity > best.Severity
-                || (severity == best.Severity && severity != AlertSeverity.None && point.Discharge > best.TriggerValue))
+                || (severity == best.Severity && severity != AlertSeverity.None && discharge > best.TriggerValue))
             {
-                best = Build(Type, severity, Math.Round(point.Discharge, 1), Math.Round(threshold, 1), point.HoursFrom(now));
+                best = Build(Type, severity, Math.Round(discharge, 1), Math.Round(threshold, 1), point.HoursFrom(now));
             }
         }
 

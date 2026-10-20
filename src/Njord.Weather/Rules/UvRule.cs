@@ -12,12 +12,12 @@ public sealed class UvRule : IAlertRule<DomainForecast<WeatherPoint>>
 
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        if (forecast.Next24Hours(now).HighestBy(p => p.UvIndex) is not { } peak || peak.UvIndex <= 0)
+        if (forecast.Next24Hours(now).HighestBy(p => p.UvIndex) is not { UvIndex: { } uvIndex } peak || uvIndex <= 0)
         {
             return Alert.None(Type);
         }
 
-        var (level, severity, uvThreshold) = peak.UvIndex switch
+        var (level, severity, uvThreshold) = uvIndex switch
         {
             >= 11 => (UvLevel.Extreme, AlertSeverity.Red, 11.0),
             >= 8 => (UvLevel.VeryHigh, AlertSeverity.Red, 8.0),
@@ -26,7 +26,7 @@ public sealed class UvRule : IAlertRule<DomainForecast<WeatherPoint>>
             _ => (UvLevel.Low, AlertSeverity.None, 0.0),
         };
 
-        var rounded = Math.Round(peak.UvIndex, 1);
+        var rounded = Math.Round(uvIndex, 1);
         return AlertWindow.Build(Type, severity, peak, new UvDetails(Level: level, UvIndex: rounded),
             rounded, uvThreshold, hoursUntil: peak.HoursFrom(now));
     }

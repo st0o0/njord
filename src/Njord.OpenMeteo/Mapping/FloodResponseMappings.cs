@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.Flood;
+using static Njord.OpenMeteo.Mapping.SeriesAccess;
 
 namespace Njord.OpenMeteo.Mapping;
 
@@ -19,31 +20,25 @@ internal static class FloodResponseMappings
 
         for (var i = 0; i < times.Length; i++)
         {
-            var discharge = At(d.Discharge, i);
-            if (discharge is null)
+            if (!AnyAt(i, d.Discharge, d.DischargeMean, d.DischargeMedian, d.DischargeMax,
+                    d.DischargeMin, d.DischargeP25, d.DischargeP75))
             {
                 continue;
             }
 
             builder.Add(new FloodPoint(
                 DateTimeOffset.FromUnixTimeSeconds(times[i]),
-                discharge.Value,
-                DischargeMean: OptAt(d.DischargeMean, i),
-                DischargeMedian: OptAt(d.DischargeMedian, i),
-                DischargeMax: OptAt(d.DischargeMax, i),
-                DischargeMin: OptAt(d.DischargeMin, i),
-                DischargeP25: OptAt(d.DischargeP25, i),
-                DischargeP75: OptAt(d.DischargeP75, i)));
+                Discharge: At(d.Discharge, i),
+                DischargeMean: At(d.DischargeMean, i),
+                DischargeMedian: At(d.DischargeMedian, i),
+                DischargeMax: At(d.DischargeMax, i),
+                DischargeMin: At(d.DischargeMin, i),
+                DischargeP25: At(d.DischargeP25, i),
+                DischargeP75: At(d.DischargeP75, i)));
         }
 
         return builder.Count == 0
             ? null
             : new DomainForecast<FloodPoint>(DomainKind.Flood, modelRun, TimeResolution.Daily, builder.ToImmutable());
     }
-
-    private static double? At(double?[] array, int index) =>
-        index < array.Length ? array[index] : null;
-
-    private static double? OptAt(double?[]? array, int index) =>
-        array is not null && index < array.Length ? array[index] : null;
 }

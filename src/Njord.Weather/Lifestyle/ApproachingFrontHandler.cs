@@ -27,7 +27,7 @@ public sealed class ApproachingFrontHandler : IDomainHandler
         var windows = hours
             .Select(start => (Start: start, End: hours.FirstOrDefault(p => p.ValidFrom == start.ValidFrom.AddHours(WindowHours))))
             .Where(pair => pair.End is not null)
-            .Select(pair => (pair.Start, End: pair.End!, Drop: pair.Start.Pressure - pair.End!.Pressure))
+            .Select(pair => (pair.Start, End: pair.End!, Drop: (pair.Start.Pressure - pair.End!.Pressure) ?? 0.0))
             .Where(window => window.Drop > PressureDropThreshold && WindShifted(window.Start, window.End))
             .ToList();
         if (windows.Count == 0)
@@ -43,7 +43,7 @@ public sealed class ApproachingFrontHandler : IDomainHandler
                 current.Location,
                 estimatedIn < TimeSpan.Zero ? TimeSpan.Zero : estimatedIn,
                 Math.Round(best.Drop, 1),
-                Math.Round(best.Start.Temperature - best.End.Temperature, 1)),
+                Math.Round((best.Start.Temperature - best.End.Temperature) ?? 0.0, 1)),
         ];
     }
 

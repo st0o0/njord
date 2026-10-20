@@ -1,0 +1,48 @@
+using Njord.Forecast.Flood;
+
+namespace Njord.Forecast.Tests.Flood;
+
+public sealed class FloodPointSpec
+{
+    private static readonly DateTimeOffset At = new(2026, 7, 1, 6, 0, 0, TimeSpan.Zero);
+
+    [Fact]
+    public void Should_report_true_when_every_requested_field_has_a_value()
+    {
+        var point = new FloodPoint(At, Discharge: 1, DischargeMean: 2);
+
+        Assert.True(point.HasFields(FloodParam.Discharge | FloodParam.DischargeMean));
+    }
+
+    [Fact]
+    public void Should_report_false_when_one_requested_field_is_null()
+    {
+        var point = new FloodPoint(At, Discharge: 1);
+
+        Assert.False(point.HasFields(FloodParam.Discharge | FloodParam.DischargeMean));
+    }
+
+    [Fact]
+    public void Should_report_true_when_nothing_is_requested()
+    {
+        Assert.True(new FloodPoint(At).HasFields(FloodParam.None));
+    }
+
+    [Fact]
+    public void Should_ignore_fields_that_are_not_requested()
+    {
+        var point = new FloodPoint(At, Discharge: 1);
+
+        Assert.True(point.HasFields(FloodParam.Discharge));
+    }
+
+    [Fact]
+    public void Should_report_false_for_every_single_flag_on_an_empty_point()
+    {
+        var point = new FloodPoint(At);
+
+        Assert.All(
+            Enum.GetValues<FloodParam>().Where(p => p != FloodParam.None),
+            flag => Assert.False(point.HasFields(flag)));
+    }
+}

@@ -31,8 +31,7 @@ public sealed class NightVentilationHandler : IDomainHandler
             return [];
         }
 
-        var peak = tomorrowPoints.Max(p => p.Temperature);
-        if (peak <= HotDayPeak)
+        if (tomorrowPoints.Max(p => p.Temperature) is not { } peak || peak <= HotDayPeak)
         {
             return [];
         }
@@ -47,7 +46,12 @@ public sealed class NightVentilationHandler : IDomainHandler
         }
 
         var window = night.Skip(start).Take(length).ToList();
+        if (window.Min(p => p.Temperature) is not { } coolest)
+        {
+            return [];
+        }
+
         var closeAt = window[^1].ValidFrom + weather.Resolution.ToTimeSpan();
-        return [new PipelineEvent.NightVentilationAdvised(current.Location, window[0].ValidFrom, closeAt, window.Min(p => p.Temperature), peak)];
+        return [new PipelineEvent.NightVentilationAdvised(current.Location, window[0].ValidFrom, closeAt, coolest, peak)];
     }
 }

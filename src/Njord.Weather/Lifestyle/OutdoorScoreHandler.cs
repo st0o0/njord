@@ -36,13 +36,19 @@ public sealed class OutdoorScoreHandler : IDomainHandler
 
     private static double ScoreHour(WeatherPoint weather, AirQualityPoint air)
     {
-        var temperature = Scoring.Band(weather.Temperature, 0.0, 15.0, 26.0, 36.0);
-        var rain = weather.Precipitation > 0.1 ? 0.0 : 1.0 - Scoring.Ramp(weather.PrecipitationProbability, 0.0, 100.0);
-        var wind = Scoring.Band(weather.WindSpeed, -1.0, 0.0, 8.0, 16.0);
-        var cloud = 1.0 - 0.5 * Scoring.Ramp(weather.CloudCover, 50.0, 100.0);
-        var uv = 1.0 - Scoring.Ramp(weather.UvIndex, 5.0, 11.0);
+        if (weather is not { Temperature: { } airTemperature, PrecipitationProbability: { } probability, WindSpeed: { } windSpeed, CloudCover: { } cloudCover, UvIndex: { } uvIndex }
+            || air.Pm25 is not { } pm25)
+        {
+            return 0.0;
+        }
+
+        var temperature = Scoring.Band(airTemperature, 0.0, 15.0, 26.0, 36.0);
+        var rain = weather.Precipitation > 0.1 ? 0.0 : 1.0 - Scoring.Ramp(probability, 0.0, 100.0);
+        var wind = Scoring.Band(windSpeed, -1.0, 0.0, 8.0, 16.0);
+        var cloud = 1.0 - 0.5 * Scoring.Ramp(cloudCover, 50.0, 100.0);
+        var uv = 1.0 - Scoring.Ramp(uvIndex, 5.0, 11.0);
         var pollen = new[] { air.BirchPollen, air.GrassPollen, air.Alder, air.Mugwort }.Max() ?? 0.0;
-        var airScore = Math.Min(1.0 - Scoring.Ramp(air.Pm25, 15.0, 55.0), 1.0 - Scoring.Ramp(pollen, 20.0, 100.0));
+        var airScore = Math.Min(1.0 - Scoring.Ramp(pm25, 15.0, 55.0), 1.0 - Scoring.Ramp(pollen, 20.0, 100.0));
         return 100.0 * (0.3 * temperature + 0.2 * rain + 0.1 * wind + 0.1 * cloud + 0.1 * uv + 0.2 * airScore);
     }
 }

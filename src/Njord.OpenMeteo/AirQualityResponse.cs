@@ -4,9 +4,9 @@ namespace Njord.OpenMeteo;
 
 public sealed record AirQualityHourlyData(
     [property: JsonPropertyName("time")] long[] Time,
-    [property: JsonPropertyName("pm2_5")] double?[] Pm25,
-    [property: JsonPropertyName("pm10")] double?[] Pm10,
-    [property: JsonPropertyName("ozone")] double?[] Ozone,
+    [property: JsonPropertyName("pm2_5")] double?[]? Pm25 = null,
+    [property: JsonPropertyName("pm10")] double?[]? Pm10 = null,
+    [property: JsonPropertyName("ozone")] double?[]? Ozone = null,
     [property: JsonPropertyName("nitrogen_dioxide")] double?[]? NitrogenDioxide = null,
     [property: JsonPropertyName("european_aqi")] double?[]? EuropeanAqi = null,
     [property: JsonPropertyName("birch_pollen")] double?[]? BirchPollen = null,

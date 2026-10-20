@@ -13,16 +13,15 @@ public sealed class HeatRule : IAlertRule<DomainForecast<WeatherPoint>>
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var window = forecast.Next24Hours(now);
-        var hottestApparent = window.HighestBy(p => p.ApparentTemperature);
-        var hottestAir = window.HighestBy(p => p.Temperature);
-        if (hottestApparent is null || hottestAir is null)
+        if (window.HighestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } apparent } hottestApparent
+            || window.HighestBy(p => p.Temperature) is not { Temperature: { } air } hottestAir)
         {
             return Alert.None(Type);
         }
 
-        var (peak, max) = hottestApparent.ApparentTemperature >= hottestAir.Temperature
-            ? (hottestApparent, hottestApparent.ApparentTemperature)
-            : (hottestAir, hottestAir.Temperature);
+        var (peak, max) = apparent >= air
+            ? (hottestApparent, apparent)
+            : (hottestAir, air);
 
         var (severity, effectiveThreshold) = options.Heat().Classify(max);
         if (severity == AlertSeverity.None)

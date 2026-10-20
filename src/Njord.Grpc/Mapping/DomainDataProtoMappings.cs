@@ -90,18 +90,18 @@ internal static class DomainDataProtoMappings
         var sample = new WeatherSample
         {
             ValidAt = p.ValidFrom.ToTimestamp(),
-            Temperature = p.Temperature,
-            ApparentTemperature = p.ApparentTemperature,
-            WindSpeed = p.WindSpeed,
-            Precipitation = p.Precipitation,
-            PrecipitationProbability = p.PrecipitationProbability,
-            CloudCover = p.CloudCover,
-            Pressure = p.Pressure,
-            WeatherCode = p.WeatherCode,
-            Humidity = p.Humidity,
-            DewPoint = p.DewPoint,
-            UvIndex = p.UvIndex,
         };
+        if (p.Temperature is { } temperature) { sample.Temperature = temperature; }
+        if (p.ApparentTemperature is { } apparent) { sample.ApparentTemperature = apparent; }
+        if (p.WindSpeed is { } windSpeed) { sample.WindSpeed = windSpeed; }
+        if (p.Precipitation is { } precipitation) { sample.Precipitation = precipitation; }
+        if (p.PrecipitationProbability is { } probability) { sample.PrecipitationProbability = probability; }
+        if (p.CloudCover is { } cloudCover) { sample.CloudCover = cloudCover; }
+        if (p.Pressure is { } pressure) { sample.Pressure = pressure; }
+        if (p.WeatherCode is { } weatherCode) { sample.WeatherCode = weatherCode; }
+        if (p.Humidity is { } humidity) { sample.Humidity = humidity; }
+        if (p.DewPoint is { } dewPoint) { sample.DewPoint = dewPoint; }
+        if (p.UvIndex is { } uvIndex) { sample.UvIndex = uvIndex; }
         if (p.EnsembleStdDev is { } stdDev) { sample.EnsembleStdDev = stdDev; }
         if (p.WindGusts is { } gusts) { sample.WindGusts = gusts; }
         if (p.Visibility is { } visibility) { sample.Visibility = visibility; }
@@ -119,10 +119,10 @@ internal static class DomainDataProtoMappings
         var sample = new AirQualitySample
         {
             ValidAt = p.ValidFrom.ToTimestamp(),
-            Pm25 = p.Pm25,
-            Pm10 = p.Pm10,
-            Ozone = p.Ozone,
         };
+        if (p.Pm25 is { } pm25) { sample.Pm25 = pm25; }
+        if (p.Pm10 is { } pm10) { sample.Pm10 = pm10; }
+        if (p.Ozone is { } ozone) { sample.Ozone = ozone; }
         if (p.BirchPollen is { } birch) { sample.BirchPollen = birch; }
         if (p.GrassPollen is { } grass) { sample.GrassPollen = grass; }
         if (p.Alder is { } alder) { sample.Alder = alder; }
@@ -135,8 +135,8 @@ internal static class DomainDataProtoMappings
         var sample = new FloodSample
         {
             ValidAt = p.ValidFrom.ToTimestamp(),
-            Discharge = p.Discharge,
         };
+        if (p.Discharge is { } discharge) { sample.Discharge = discharge; }
         if (p.DischargeMean is { } mean) { sample.DischargeMean = mean; }
         if (p.DischargeMedian is { } median) { sample.DischargeMedian = median; }
         if (p.DischargeMax is { } max) { sample.DischargeMax = max; }
@@ -161,10 +161,10 @@ internal static class DomainDataProtoMappings
         var sample = new MarineSample
         {
             ValidAt = p.ValidFrom.ToTimestamp(),
-            WaveHeight = p.WaveHeight,
-            WavePeriod = p.WavePeriod,
-            WaveDirection = p.WaveDirection,
         };
+        if (p.WaveHeight is { } height) { sample.WaveHeight = height; }
+        if (p.WavePeriod is { } period) { sample.WavePeriod = period; }
+        if (p.WaveDirection is { } direction) { sample.WaveDirection = direction; }
         if (p.WaterTemperature is { } water) { sample.WaterTemperature = water; }
         return sample;
     }

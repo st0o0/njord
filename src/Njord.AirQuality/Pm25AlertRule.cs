@@ -19,18 +19,18 @@ public sealed class Pm25AlertRule : IAlertRule<DomainForecast<AirQualityPoint>>
         AirQualityPoint? peakPoint = null;
         foreach (var point in forecast.Next24Hours(now))
         {
-            if (peakPoint is null || point.Pm25 > peakPoint.Pm25)
+            if (point.Pm25 is { } pm25 && (peakPoint?.Pm25 is not { } best || pm25 > best))
             {
                 peakPoint = point;
             }
         }
 
-        if (peakPoint is null)
+        if (peakPoint?.Pm25 is not { } peakPm25)
         {
             return Alert.None(Type);
         }
 
-        var severity = AirQualityAlertWindow.SeverityFor(peakPoint.Pm25, WhoGuideline, OrangeThreshold, RedThreshold);
+        var severity = AirQualityAlertWindow.SeverityFor(peakPm25, WhoGuideline, OrangeThreshold, RedThreshold);
         if (severity == AlertSeverity.None)
         {
             return Alert.None(Type);
@@ -42,6 +42,6 @@ public sealed class Pm25AlertRule : IAlertRule<DomainForecast<AirQualityPoint>>
             AlertSeverity.Orange => OrangeThreshold,
             _ => WhoGuideline,
         };
-        return new Alert(Type, severity, 1.0, NoDetails.Instance, TriggerValue: Math.Round(peakPoint.Pm25, 1), Threshold: threshold, HoursUntil: peakPoint.HoursFrom(now), Level: ConfidenceLevel.High);
+        return new Alert(Type, severity, 1.0, NoDetails.Instance, TriggerValue: Math.Round(peakPm25, 1), Threshold: threshold, HoursUntil: peakPoint.HoursFrom(now), Level: ConfidenceLevel.High);
     }
 }

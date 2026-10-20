@@ -24,24 +24,23 @@ public sealed class FloodRainAlertRule : IAlertRule<FloodRainInput>
             return Alert.None(Type);
         }
 
-        var points = flood.NextDays(now);
-        if (points.Count == 0)
+        var points = flood.NextDays(now).Where(p => p.Discharge is not null).ToList();
+        if (points.MaxBy(p => p.Discharge) is not { Discharge: { } peakDischarge } peak)
         {
             return Alert.None(Type);
         }
 
-        var peak = points.MaxBy(p => p.Discharge)!;
-        var rising = peak.Discharge > points[0].Discharge;
-        if (!rising || peak.DischargeMedian is not { } median || peak.Discharge <= median)
+        var rising = peakDischarge > points[0].Discharge;
+        if (!rising || peak.DischargeMedian is not { } median || peakDischarge <= median)
         {
             return Alert.None(Type);
         }
 
-        var aboveP75 = peak.DischargeP75 is { } p75 && peak.Discharge > p75;
+        var aboveP75 = peak.DischargeP75 is { } p75 && peakDischarge > p75;
         return FloodRiskAlertRule.Build(
             Type,
             aboveP75 ? AlertSeverity.Red : AlertSeverity.Orange,
-            Math.Round(peak.Discharge, 1),
+            Math.Round(peakDischarge, 1),
             Math.Round(aboveP75 ? peak.DischargeP75!.Value : median, 1),
             peak.HoursFrom(now));
     }

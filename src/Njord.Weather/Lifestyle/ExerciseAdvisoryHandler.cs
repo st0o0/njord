@@ -32,6 +32,7 @@ public sealed class ExerciseAdvisoryHandler : IDomainHandler
             .Select(point => (Point: point, Air: ForecastQueries.ValueAt(airQuality, point.ValidFrom)))
             .Where(pair => pair.Air is not null)
             .Select(pair => Components(pair.Point, pair.Air!))
+            .OfType<Hour>()
             .ToList();
         if (hours.Count == 0)
         {
@@ -65,13 +66,19 @@ public sealed class ExerciseAdvisoryHandler : IDomainHandler
         }
     }
 
-    private static Hour Components(WeatherPoint weather, AirQualityPoint air)
+    private static Hour? Components(WeatherPoint weather, AirQualityPoint air)
     {
-        var pm25 = 1.0 - Scoring.Ramp(air.Pm25, 15.0, 55.0);
-        var ozone = 1.0 - Scoring.Ramp(air.Ozone, 100.0, 180.0);
-        var temperature = Scoring.Band(weather.Temperature, -5.0, 8.0, 22.0, 35.0);
-        var humidity = 1.0 - Scoring.Ramp(weather.Humidity, 70.0, 100.0);
-        var uv = 1.0 - Scoring.Ramp(weather.UvIndex, 5.0, 11.0);
+        if (air is not { Pm25: { } airPm25, Ozone: { } airOzone }
+            || weather is not { Temperature: { } airTemperature, Humidity: { } relativeHumidity, UvIndex: { } uvIndex })
+        {
+            return null;
+        }
+
+        var pm25 = 1.0 - Scoring.Ramp(airPm25, 15.0, 55.0);
+        var ozone = 1.0 - Scoring.Ramp(airOzone, 100.0, 180.0);
+        var temperature = Scoring.Band(airTemperature, -5.0, 8.0, 22.0, 35.0);
+        var humidity = 1.0 - Scoring.Ramp(relativeHumidity, 70.0, 100.0);
+        var uv = 1.0 - Scoring.Ramp(uvIndex, 5.0, 11.0);
         var total = 100.0 * (Pm25Weight * pm25 + OzoneWeight * ozone + TemperatureWeight * temperature
             + HumidityWeight * humidity + UvWeight * uv);
         return new Hour(weather.ValidFrom, total, pm25, ozone, temperature, humidity, uv);

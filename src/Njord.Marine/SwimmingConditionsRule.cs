@@ -23,13 +23,18 @@ public sealed class SwimmingConditionsRule : IAlertRule<DomainForecast<MarinePoi
 
         foreach (var point in ForecastQueries.Window(forecast, start, start.AddHours(WindowHours)))
         {
+            if (point.WaveHeight is not { } height)
+            {
+                continue;
+            }
+
             var (severity, threshold) = Classify(point);
             if (severity > best.Severity
-                || (severity == best.Severity && severity != AlertSeverity.None && point.WaveHeight > best.TriggerValue))
+                || (severity == best.Severity && severity != AlertSeverity.None && height > best.TriggerValue))
             {
                 best = new Alert(
                     Type, severity, 1.0, NoDetails.Instance,
-                    TriggerValue: Math.Round(point.WaveHeight, 1),
+                    TriggerValue: Math.Round(height, 1),
                     Threshold: threshold,
                     HoursUntil: Math.Max(0, (int)(point.ValidFrom - start).TotalHours),
                     Level: ConfidenceLevel.High);

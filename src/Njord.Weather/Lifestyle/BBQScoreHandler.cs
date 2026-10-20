@@ -37,10 +37,15 @@ public sealed class BBQScoreHandler : IDomainHandler
             return 0.0;
         }
 
-        var temperature = Scoring.Band(point.Temperature, 10.0, 18.0, 28.0, 36.0);
-        var wind = 1.0 - Scoring.Ramp(point.WindSpeed, 5.0, 10.0);
-        var rain = 1.0 - Scoring.Ramp(point.PrecipitationProbability, 0.0, 60.0);
-        var cloud = 1.0 - Scoring.Ramp(point.CloudCover, 40.0, 100.0);
+        if (point is not { Temperature: { } air, WindSpeed: { } windSpeed, PrecipitationProbability: { } probability, CloudCover: { } cloudCover })
+        {
+            return 0.0;
+        }
+
+        var temperature = Scoring.Band(air, 10.0, 18.0, 28.0, 36.0);
+        var wind = 1.0 - Scoring.Ramp(windSpeed, 5.0, 10.0);
+        var rain = 1.0 - Scoring.Ramp(probability, 0.0, 60.0);
+        var cloud = 1.0 - Scoring.Ramp(cloudCover, 40.0, 100.0);
         return 100.0 * (0.35 * temperature + 0.2 * wind + 0.3 * rain + 0.15 * cloud);
     }
 }

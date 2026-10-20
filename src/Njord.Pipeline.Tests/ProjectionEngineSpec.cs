@@ -13,7 +13,7 @@ public sealed class ProjectionEngineSpec
     private static readonly DateTimeOffset Start = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
     private static readonly FakeTimeProvider Time = new(Start);
 
-    private static double TemperatureOf(DomainForecast<WeatherPoint>? forecast)
+    private static double? TemperatureOf(DomainForecast<WeatherPoint>? forecast)
     {
         Assert.NotNull(forecast);
         return forecast.Points[0].Temperature;

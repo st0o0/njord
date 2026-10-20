@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.Marine;
+using static Njord.OpenMeteo.Mapping.SeriesAccess;
 
 namespace Njord.OpenMeteo.Mapping;
 
@@ -20,21 +21,17 @@ internal static class MarineResponseMappings
 
         for (var i = 0; i < times.Length; i++)
         {
-            var height = At(h.WaveHeight, i);
-            var period = At(h.WavePeriod, i);
-            var direction = At(h.WaveDirection, i);
-
-            if (height is not null || period is not null || direction is not null)
+            if (AnyAt(i, h.WaveHeight, h.WavePeriod, h.WaveDirection, h.SeaSurfaceTemperature))
             {
                 lastValued = i;
             }
 
             builder.Add(new MarinePoint(
                 DateTimeOffset.FromUnixTimeSeconds(times[i]),
-                height ?? 0,
-                period ?? 0,
-                direction ?? 0,
-                WaterTemperature: OptAt(h.SeaSurfaceTemperature, i)));
+                WaveHeight: At(h.WaveHeight, i),
+                WavePeriod: At(h.WavePeriod, i),
+                WaveDirection: At(h.WaveDirection, i),
+                WaterTemperature: At(h.SeaSurfaceTemperature, i)));
         }
 
         if (lastValued < 0)
@@ -46,10 +43,4 @@ internal static class MarineResponseMappings
             DomainKind.Marine, modelRun, TimeResolution.Hourly,
             builder.Take(lastValued + 1).ToImmutableArray());
     }
-
-    private static double? At(double?[] array, int index) =>
-        index < array.Length ? array[index] : null;
-
-    private static double? OptAt(double?[]? array, int index) =>
-        array is not null && index < array.Length ? array[index] : null;
 }

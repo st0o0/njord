@@ -5,7 +5,7 @@ namespace Njord.Mqtt.Payloads;
 public sealed record FloodPayload(
     DateTimeOffset ValidFrom,
     DateTimeOffset ModelRun,
-    double Discharge,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? Discharge = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? DischargeMean = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? DischargeMedian = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? DischargeMax = null,

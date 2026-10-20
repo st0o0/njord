@@ -13,16 +13,20 @@ public sealed class TropicalNightRule : IAlertRule<DomainForecast<WeatherPoint>>
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var thresholds = options.TropicalNight();
-        var night = forecast.Next24Hours(now).Where(p => p.IsDay == false).ToList();
+        var night = forecast.Next24Hours(now).Where(p => p.IsDay == false && p.Temperature is not null).ToList();
         if (night.Count == 0)
         {
             return Alert.None(Type);
         }
 
-        var coldest = night.MinBy(p => p.Temperature)!;
-        var hoursAbove = night.Count(p => thresholds.CrossesAdvisory(p.Temperature, strict: true));
-        var (severity, effectiveThreshold) = thresholds.Classify(coldest.Temperature, strict: true);
-        var rounded = Math.Round(coldest.Temperature, 1);
+        if (night.MinBy(p => p.Temperature) is not { Temperature: { } nightLow } coldest)
+        {
+            return Alert.None(Type);
+        }
+
+        var hoursAbove = night.Count(p => p.Temperature is { } t && thresholds.CrossesAdvisory(t, strict: true));
+        var (severity, effectiveThreshold) = thresholds.Classify(nightLow, strict: true);
+        var rounded = Math.Round(nightLow, 1);
         var details = new TropicalNightDetails(NightMinimum: rounded, HoursAbove20: hoursAbove);
         return AlertWindow.Build(Type, severity, coldest, details, rounded, effectiveThreshold,
             hoursUntil: night[0].HoursFrom(now));

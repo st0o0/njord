@@ -13,7 +13,7 @@ public sealed class HeavyRainRule : IAlertRule<DomainForecast<WeatherPoint>>
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var window = forecast.Next24Hours(now);
-        if (window.HighestBy(p => p.Precipitation) is not { } wettest)
+        if (window.HighestBy(p => p.Precipitation) is not { Precipitation: { } peakPrecipitation } wettest)
         {
             return Alert.None(Type);
         }
@@ -21,8 +21,8 @@ public sealed class HeavyRainRule : IAlertRule<DomainForecast<WeatherPoint>>
         var hourlyThreshold = options.HeavyRainHourlyThreshold;
         var dailyThreshold = options.HeavyRainDailyThreshold;
         var hourlyHits = window.Count(p => p.Precipitation >= hourlyThreshold);
-        var dailySum = window.Sum(p => p.Precipitation);
-        var maxHourly = Math.Max(0.0, wettest.Precipitation);
+        var dailySum = window.Sum(p => p.Precipitation ?? 0.0);
+        var maxHourly = Math.Max(0.0, peakPrecipitation);
 
         var dailyExceeds = dailySum >= dailyThreshold;
         var hourlyExceeds = hourlyHits > 0;

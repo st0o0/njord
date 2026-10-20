@@ -50,7 +50,12 @@ public sealed class PressureDropRule : IAlertRule<DomainForecast<WeatherPoint>>
                     continue;
                 }
 
-                var drop = window[j].Pressure - window[i].Pressure;
+                if (window[j].Pressure is not { } before || window[i].Pressure is not { } after)
+                {
+                    continue;
+                }
+
+                var drop = before - after;
                 if (drop > maxDrop)
                 {
                     maxDrop = drop;

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
+using static Njord.OpenMeteo.Mapping.SeriesAccess;
 
 namespace Njord.OpenMeteo.Mapping;
 
@@ -16,69 +17,57 @@ internal static class WeatherResponseMappings
 
         var times = h.Time;
         var builder = ImmutableArray.CreateBuilder<WeatherPoint>(times.Length);
+        var lastValued = -1;
 
         for (var i = 0; i < times.Length; i++)
         {
+            if (AnyAt(i, h.Temperature, h.ApparentTemperature, h.WindSpeed, h.Precipitation,
+                    h.PrecipitationProbability, h.CloudCover, h.Pressure, h.WeatherCode, h.Humidity,
+                    h.DewPoint, h.UvIndex, h.EnsembleStdDev, h.WindGusts, h.Visibility, h.Cape, h.Rain,
+                    h.Snowfall, h.SoilTemperature, h.FreezingLevelHeight, h.IsDay, h.ShortwaveRadiation,
+                    h.DirectRadiation, h.DiffuseRadiation, h.DirectNormalIrradiance, h.SunshineDuration,
+                    h.WindDirection))
+            {
+                lastValued = i;
+            }
+
             builder.Add(new WeatherPoint(
                 ValidFrom: DateTimeOffset.FromUnixTimeSeconds(times[i]),
-                Temperature: At(h.Temperature, i) ?? 0,
-                ApparentTemperature: At(h.ApparentTemperature, i) ?? 0,
-                WindSpeed: At(h.WindSpeed, i) ?? 0,
-                Precipitation: At(h.Precipitation, i) ?? 0,
-                PrecipitationProbability: At(h.PrecipitationProbability, i) ?? 0,
-                CloudCover: At(h.CloudCover, i) ?? 0,
-                Pressure: At(h.Pressure, i) ?? 0,
-                WeatherCode: (int)(At(h.WeatherCode, i) ?? 0),
-                Humidity: At(h.Humidity, i) ?? 0,
-                DewPoint: At(h.DewPoint, i) ?? 0,
-                UvIndex: At(h.UvIndex, i) ?? 0,
-                EnsembleStdDev: OptAt(h.EnsembleStdDev, i),
-                WindGusts: OptAt(h.WindGusts, i),
-                Visibility: OptAt(h.Visibility, i),
-                Cape: OptAt(h.Cape, i),
-                Rain: OptAt(h.Rain, i),
-                Snowfall: OptAt(h.Snowfall, i),
-                SoilTemperature: OptAt(h.SoilTemperature, i),
-                FreezingLevelHeight: OptAt(h.FreezingLevelHeight, i),
-                IsDay: OptAt(h.IsDay, i) is { } isDay ? isDay > 0.5 : null,
-                ShortwaveRadiation: OptAt(h.ShortwaveRadiation, i),
-                DirectRadiation: OptAt(h.DirectRadiation, i),
-                DiffuseRadiation: OptAt(h.DiffuseRadiation, i),
-                DirectNormalIrradiance: OptAt(h.DirectNormalIrradiance, i),
-                SunshineDuration: OptAt(h.SunshineDuration, i),
-                WindDirection: OptAt(h.WindDirection, i)));
+                Temperature: At(h.Temperature, i),
+                ApparentTemperature: At(h.ApparentTemperature, i),
+                WindSpeed: At(h.WindSpeed, i),
+                Precipitation: At(h.Precipitation, i),
+                PrecipitationProbability: At(h.PrecipitationProbability, i),
+                CloudCover: At(h.CloudCover, i),
+                Pressure: At(h.Pressure, i),
+                WeatherCode: At(h.WeatherCode, i) is { } code ? (int)code : null,
+                Humidity: At(h.Humidity, i),
+                DewPoint: At(h.DewPoint, i),
+                UvIndex: At(h.UvIndex, i),
+                EnsembleStdDev: At(h.EnsembleStdDev, i),
+                WindGusts: At(h.WindGusts, i),
+                Visibility: At(h.Visibility, i),
+                Cape: At(h.Cape, i),
+                Rain: At(h.Rain, i),
+                Snowfall: At(h.Snowfall, i),
+                SoilTemperature: At(h.SoilTemperature, i),
+                FreezingLevelHeight: At(h.FreezingLevelHeight, i),
+                IsDay: At(h.IsDay, i) is { } isDay ? isDay > 0.5 : null,
+                ShortwaveRadiation: At(h.ShortwaveRadiation, i),
+                DirectRadiation: At(h.DirectRadiation, i),
+                DiffuseRadiation: At(h.DiffuseRadiation, i),
+                DirectNormalIrradiance: At(h.DirectNormalIrradiance, i),
+                SunshineDuration: At(h.SunshineDuration, i),
+                WindDirection: At(h.WindDirection, i)));
         }
 
-        var lastValued = FindLastValuedIndex(builder);
         if (lastValued < 0)
         {
             return null;
         }
 
-        var points = lastValued < builder.Count - 1
-            ? builder.Take(lastValued + 1).ToImmutableArray()
-            : builder.ToImmutable();
-
-        return new DomainForecast<WeatherPoint>(DomainKind.Weather, modelRun, TimeResolution.Hourly, points);
-    }
-
-    private static double? At(double?[] array, int index) =>
-        index < array.Length ? array[index] : null;
-
-    private static double? OptAt(double?[]? array, int index) =>
-        array is not null && index < array.Length ? array[index] : null;
-
-    private static int FindLastValuedIndex(ImmutableArray<WeatherPoint>.Builder points)
-    {
-        for (var i = points.Count - 1; i >= 0; i--)
-        {
-            var p = points[i];
-            if (p.Temperature != 0 || p.WindSpeed != 0 || p.Precipitation != 0)
-            {
-                return i;
-            }
-        }
-
-        return -1;
+        return new DomainForecast<WeatherPoint>(
+            DomainKind.Weather, modelRun, TimeResolution.Hourly,
+            builder.Take(lastValued + 1).ToImmutableArray());
     }
 }

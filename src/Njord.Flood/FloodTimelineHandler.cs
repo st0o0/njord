@@ -17,8 +17,12 @@ public sealed class FloodTimelineHandler : IDomainHandler
             return [];
         }
 
-        var peak = flood.Points.MaxBy(point => point.Discharge)!;
+        if (flood.Points.MaxBy(point => point.Discharge) is not { Discharge: { } peakDischarge } peak)
+        {
+            return [];
+        }
+
         var daysAbove = flood.Points.Count(point => point.DischargeP75 is { } warning && point.Discharge > warning);
-        return [new PipelineEvent.FloodTimelineComputed(current.Location, peak.ValidFrom, peak.Discharge, daysAbove)];
+        return [new PipelineEvent.FloodTimelineComputed(current.Location, peak.ValidFrom, peakDischarge, daysAbove)];
     }
 }
