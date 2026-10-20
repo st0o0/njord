@@ -16,22 +16,8 @@ services:
       - Njord__Locations__0__Latitude=47.05
       - Njord__Locations__0__Longitude=8.31
 
-      # ── Models (2 models for multi-model + consensus testing) ─
-      - Njord__Models__0=icon_d2
-      - Njord__Models__1=ecmwf_ifs025
-
-      # ── Forecast ──────────────────────────────────────────────
-      - Njord__ForecastDays=4
-      - Njord__Horizons__0=3
-      - Njord__Horizons__1=6
-      - Njord__Horizons__2=12
-      - Njord__Horizons__3=24
-      - Njord__Horizons__4=48
-      - Njord__Horizons__5=72
-
-      # ── Parameters ────────────────────────────────────────────
-      - Njord__Parameters__Groups__0=Weather
-
+      # ── Weather ───────────────────────────────────────────────
+      - Njord__Weather__ForecastDays=4
 
       # ── Enrichment (all features enabled) ─────────────────────
       - Njord__Enrichment__Consensus__Enabled=true

@@ -19,15 +19,13 @@ export interface BudgetResult {
 }
 
 // Mirrors BudgetCalculator.Validate: one call per (required domain, location) and poll cycle,
-// multiplied by the parameter weight of the resolved parameter set.
+// multiplied by the API call weight (ceil(variable count / 10)).
 export function computeBudget(config: NjordConfig): BudgetResult {
   const pollMinutes = parseTimeSpan(config.pollInterval)
   const cyclesPerDay = pollMinutes > 0 ? MINUTES_PER_DAY / pollMinutes : 0
   const cyclesPerMonth = cyclesPerDay * DAYS_PER_MONTH
 
-  const hourlyCount = computeHourlyCount(config.parameters.groups)
-  const daysWeight = Math.ceil(config.forecastDays / 14)
-  const apiCallWeight = Math.max(1, Math.ceil(hourlyCount / 10) * daysWeight)
+  const apiCallWeight = Math.max(1, Math.ceil(variableCount(config.weather.includeSolar) / 10))
 
   const domainCallsPerCycle = requiredDomains(config.enrichments).length * config.locations.length
 
@@ -51,9 +49,8 @@ export function computeBudget(config: NjordConfig): BudgetResult {
   }
 }
 
-function computeHourlyCount(groups: string[]): number {
-  const counts: Record<string, number> = { Weather: 31, Solar: 9, Soil: 11 }
-  return groups.reduce((sum, g) => sum + (counts[g] ?? 0), 0)
+export function variableCount(includeSolar: boolean): number {
+  return includeSolar ? 36 : 31
 }
 
 function parseTimeSpan(ts: string): number {

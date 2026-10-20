@@ -14,7 +14,7 @@ Each poll cycle fetches the domains that the enabled [enrichments](/configuratio
 
 | Domain | Open-Meteo API | Content |
 |--------|----------------|---------|
-| **Weather** | Ensemble Mean | Hourly and daily weather values plus `ensemble_std_dev`; solar radiation variables when the `Solar` parameter group is enabled |
+| **Weather** | Ensemble Mean | Hourly and daily weather values plus `ensemble_std_dev`; solar radiation variables when `Weather:IncludeSolar` is enabled |
 | **Air Quality** | Air Quality | PM2.5, PM10, ozone, pollen (birch, grass, alder, mugwort) |
 | **Flood** | Flood | River discharge with mean, median, min, max, P25 and P75 |
 

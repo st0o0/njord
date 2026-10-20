@@ -26,9 +26,11 @@ export function exportAsJson(config: NjordConfig): string {
   if (config.discoveryInterval !== defaults.discoveryInterval) polling.DiscoveryInterval = config.discoveryInterval
   if (config.budgetOverride) polling.BudgetOverride = config.budgetOverride
   n.Polling = polling
-  n.ForecastDays = config.forecastDays
+  const weather: Record<string, unknown> = {}
+  if (config.weather.includeSolar) weather.IncludeSolar = true
+  if (config.weather.forecastDays !== defaults.weather.forecastDays) weather.ForecastDays = config.weather.forecastDays
+  if (Object.keys(weather).length) n.Weather = weather
   if (config.openMeteoBaseUrl !== defaults.openMeteoBaseUrl) n.OpenMeteo = { BaseUrl: config.openMeteoBaseUrl }
-  if (config.persistencePath !== defaults.persistencePath) n.Storage = { PersistencePath: config.persistencePath }
   const changed = changedEnrichments(config.enrichments)
   if (changed.length) n.Enrichments = Object.fromEntries(changed)
   if (config.locations.length) {
@@ -38,11 +40,6 @@ export function exportAsJson(config: NjordConfig): string {
       if (l.longitude !== undefined) loc.Longitude = l.longitude
       return loc
     })
-  }
-  if (JSON.stringify(config.parameters) !== JSON.stringify(defaults.parameters)) {
-    n.Parameters = { Groups: config.parameters.groups }
-    if (config.parameters.extra.length) (n.Parameters as Record<string, unknown>).Extra = config.parameters.extra
-    if (config.parameters.exclude.length) (n.Parameters as Record<string, unknown>).Exclude = config.parameters.exclude
   }
   if (!config.sensors.enabled || config.sensors.stalenessSeconds !== 7200) {
     const sensors: Record<string, unknown> = { Enabled: config.sensors.enabled }
@@ -77,9 +74,13 @@ export function exportAsJson(config: NjordConfig): string {
     }
     n.Enrichment = enrichment
   }
+  const persistence: Record<string, unknown> = {}
   if (config.persistence.provider !== 'Sqlite') {
-    n.Persistence ={ Provider: config.persistence.provider, ConnectionString: config.persistence.connectionString }
+    persistence.Provider = config.persistence.provider
+    persistence.ConnectionString = config.persistence.connectionString
   }
+  if (config.dataPath !== defaults.dataPath) persistence.DataPath = config.dataPath
+  if (Object.keys(persistence).length) n.Persistence = persistence
 
   return JSON.stringify(out, null, 2)
 }
@@ -90,7 +91,8 @@ export function exportAsEnvVars(config: NjordConfig): string {
 
   const defaults = defaultConfig()
   add('Njord__Polling__PollInterval', config.pollInterval)
-  add('Njord__ForecastDays', String(config.forecastDays))
+  if (config.weather.includeSolar) add('Njord__Weather__IncludeSolar', 'true')
+  if (config.weather.forecastDays !== defaults.weather.forecastDays) add('Njord__Weather__ForecastDays', String(config.weather.forecastDays))
   for (const [key, enabled] of changedEnrichments(config.enrichments)) {
     add(`Njord__Enrichments__${key}`, String(enabled))
   }
@@ -100,8 +102,6 @@ export function exportAsEnvVars(config: NjordConfig): string {
     if (loc.latitude !== undefined) add(`Njord__Locations__${i}__Latitude`, String(loc.latitude))
     if (loc.longitude !== undefined) add(`Njord__Locations__${i}__Longitude`, String(loc.longitude))
   })
-
-  config.parameters.groups.forEach((g, i) => add(`Njord__Parameters__Groups__${i}`, g))
 
   if (!config.sensors.enabled) add('Njord__Sensors__Enabled', 'false')
   if (config.sensors.stalenessSeconds !== 7200) add('Njord__Sensors__StalenessSeconds', String(config.sensors.stalenessSeconds))
@@ -135,7 +135,7 @@ export function exportAsEnvVars(config: NjordConfig): string {
     add('Njord__Polling__DiscoveryInterval', config.discoveryInterval)
   }
   if (config.openMeteoBaseUrl !== defaults.openMeteoBaseUrl) add('Njord__OpenMeteo__BaseUrl', config.openMeteoBaseUrl)
-  if (config.persistencePath !== defaults.persistencePath) add('Njord__Storage__PersistencePath', config.persistencePath)
+  if (config.dataPath !== defaults.dataPath) add('Njord__Persistence__DataPath', config.dataPath)
 
   return lines.join('\n')
 }
@@ -178,12 +178,15 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   const discoveryInterval = n.Polling?.DiscoveryInterval ?? n.DiscoveryInterval
   const budgetOverride = n.Polling?.BudgetOverride ?? n.BudgetOverride
   const baseUrl = n.OpenMeteo?.BaseUrl ?? n.OpenMeteoBaseUrl
-  const persistencePath = n.Storage?.PersistencePath ?? n.PersistencePath
   if (pollInterval) config.pollInterval = pollInterval
-  if (n.ForecastDays) config.forecastDays = n.ForecastDays
+  if (n.Weather) {
+    config.weather = {
+      includeSolar: n.Weather.IncludeSolar === true || parseBool(n.Weather.IncludeSolar),
+      forecastDays: Number(n.Weather.ForecastDays) || 4,
+    }
+  }
   if (discoveryInterval) config.discoveryInterval = discoveryInterval
   if (baseUrl) config.openMeteoBaseUrl = baseUrl
-  if (persistencePath) config.persistencePath = persistencePath
   if (n.Enrichments && typeof n.Enrichments === 'object') {
     for (const [name, value] of Object.entries(n.Enrichments as Record<string, unknown>)) {
       const key = parseEnrichmentKey(name)
@@ -196,13 +199,6 @@ export function importFromJson(json: string): Partial<NjordConfig> {
       ...(typeof l.Latitude === 'number' && l.Latitude !== 0 ? { latitude: l.Latitude } : {}),
       ...(typeof l.Longitude === 'number' && l.Longitude !== 0 ? { longitude: l.Longitude } : {}),
     }))
-  }
-  if (n.Parameters) {
-    config.parameters = {
-      groups: (n.Parameters.Groups as string[]) ?? ['Weather'],
-      extra: (n.Parameters.Extra as string[]) ?? [],
-      exclude: (n.Parameters.Exclude as string[]) ?? [],
-    }
   }
   if (n.Sensors) {
     config.sensors = {
@@ -223,7 +219,10 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   }
   if (n.Enrichment) config.enrichment = n.Enrichment
   if (budgetOverride) config.budgetOverride = budgetOverride
-  if (n.Persistence) config.persistence = { provider: n.Persistence.Provider ?? 'Sqlite', connectionString: n.Persistence.ConnectionString ?? '' }
+  if (n.Persistence) {
+    config.persistence = { provider: n.Persistence.Provider ?? 'Sqlite', connectionString: n.Persistence.ConnectionString ?? '' }
+    if (n.Persistence.DataPath) config.dataPath = n.Persistence.DataPath
+  }
 
   return config
 }
@@ -250,8 +249,10 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
       config.budgetOverride = budget
     }
     else if (parts[0] === 'OpenMeteo' && parts[1] === 'BaseUrl' || parts[0] === 'OpenMeteoBaseUrl') config.openMeteoBaseUrl = value
-    else if (parts[0] === 'Storage' && parts[1] === 'PersistencePath' || parts[0] === 'PersistencePath') config.persistencePath = value
-    else if (parts[0] === 'ForecastDays') config.forecastDays = parseInt(value) || 4
+    else if (parts[0] === 'Weather') {
+      if (parts[1] === 'IncludeSolar') config.weather.includeSolar = parseBool(value)
+      else if (parts[1] === 'ForecastDays') config.weather.forecastDays = parseInt(value) || 4
+    }
     else if (parts[0] === 'Enrichments' && parts.length === 2) {
       const key = parseEnrichmentKey(parts[1])
       if (key) config.enrichments[key] = parseBool(value)
@@ -267,11 +268,6 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
       if (parts[1] === 'Host') config.mqtt.host = value
       else if (parts[1] === 'Port') config.mqtt.port = parseInt(value) || 1883
       else if (parts[1] === 'Username') config.mqtt.username = value
-    }
-    else if (parts[0] === 'Parameters' && parts[1] === 'Groups') {
-      const idx = parseInt(parts[2])
-      while (config.parameters.groups.length <= idx) config.parameters.groups.push('')
-      config.parameters.groups[idx] = value
     }
     else if (parts[0] === 'Enrichment' && parts.length >= 3) {
       const feature = parts[1]
@@ -290,10 +286,9 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     else if (parts[0] === 'Persistence') {
       if (parts[1] === 'Provider') config.persistence.provider = value
       else if (parts[1] === 'ConnectionString') config.persistence.connectionString = value
+      else if (parts[1] === 'DataPath') config.dataPath = value
     }
   }
-
-  config.parameters.groups = config.parameters.groups.filter(Boolean)
 
   return config
 }
@@ -325,7 +320,7 @@ const OUTDATED_KEYS: { old: string; current: string }[] = [
   { old: 'DiscoveryInterval', current: 'Polling__DiscoveryInterval' },
   { old: 'BudgetOverride', current: 'Polling__BudgetOverride' },
   { old: 'OpenMeteoBaseUrl', current: 'OpenMeteo__BaseUrl' },
-  { old: 'PersistencePath', current: 'Storage__PersistencePath' },
+  { old: 'PersistencePath', current: 'Persistence__DataPath' },
 ]
 
 // EnabledDomains was replaced by enrichment toggles: the fetched domains are derived from the enabled enrichments.

@@ -32,7 +32,6 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     private static NjordOptions Options => new()
     {
         Locations = [new LocationOptions { Name = Location, Latitude = 47.05, Longitude = 8.31 }],
-        Models = ["icon_d2"],
     };
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -101,8 +100,8 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     private IActorRef StartGateway()
     {
         var options = Microsoft.Extensions.Options.Options.Create(Options);
-        var parameters = ParameterSelection.Resolve(["Weather"], [], []);
-        return Sys.ActorOf(Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _time, options, parameters, _budget, FetchTimeouts.Default)),
+        var weatherOptions = Microsoft.Extensions.Options.Options.Create(new WeatherOptions());
+        return Sys.ActorOf(Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _time, options, weatherOptions, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 

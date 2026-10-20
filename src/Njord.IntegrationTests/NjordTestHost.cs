@@ -51,7 +51,7 @@ public sealed class NjordTestHost : IAsyncDisposable
         ["Serilog:MinimumLevel:Override:Akka"] = "Error",
         ["Serilog:MinimumLevel:Override:Microsoft.AspNetCore"] = "Error",
         ["Akka:RemotingPort"] = "0",
-        ["Njord:Storage:PersistencePath"] = Path.Combine(dataDirectory, "njord.db"),
+        ["Njord:Persistence:DataPath"] = Path.Combine(dataDirectory, "njord.db"),
         ["Njord:Models:0"] = "icon_eu",
         ["Njord:Models:1"] = "icon_global",
         ["Njord:Locations:0:Name"] = "luzern",

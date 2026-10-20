@@ -31,10 +31,9 @@ public abstract class PollManagerSpecBase : NjordActorSpec
         {
             Locations =
             [
-                new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31, Models = ["meteoswiss_icon_ch1"] },
+                new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 },
                 new LocationOptions { Name = "zurich", Latitude = 47.37, Longitude = 8.54 },
             ],
-            Models = ["icon_d2", "ICON_D2", "gfs_seamless"],
         }));
         services.AddSingleton(TestConfigView.Create(polling: AppSettingsDefaults.Options<PollingOptions>(o => o.DiscoveryInterval = Discovery)));
     }

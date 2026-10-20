@@ -24,7 +24,6 @@ services:
       - Njord__Locations__0__Name=Lucerne
       - Njord__Locations__0__Latitude=47.05
       - Njord__Locations__0__Longitude=8.31
-      - Njord__Models__0=icon_eu
 
 volumes:
   njord-data:
@@ -34,14 +33,14 @@ volumes:
 docker compose up -d
 ```
 
-Weather data comes from the Open-Meteo Ensemble Mean API. `Models` must contain at least one id (startup validation); it feeds the catalog and the coverage check. See [Models](/configuration/models).
+Weather data comes from the Open-Meteo Ensemble Mean API; there is no model to configure. See [Weather](/configuration/weather) for the solar and forecast-days options.
 
 The `/app/data` volume stores the SQLite journal (each PollWorker's learned schedule and API usage). Keep it mounted so state survives restarts.
 
 Each poll cycle fetches the domains the default enrichments need per location (Weather, Air Quality), about 1,440 API calls per month at the default 60-minute interval. See [Budget](/configuration/budget).
 
 ::: tip
-For several locations or custom parameters, use the [Config Builder](/builder).
+For several locations or solar data, use the [Config Builder](/builder).
 :::
 
 ## 2. Install the Home Assistant integration
@@ -94,7 +93,6 @@ docker run -d \
   -e Njord__Locations__0__Name=Lucerne \
   -e Njord__Locations__0__Latitude=47.05 \
   -e Njord__Locations__0__Longitude=8.31 \
-  -e Njord__Models__0=icon_eu \
   ghcr.io/st0o0/njord:latest
 ```
 
@@ -115,6 +113,6 @@ See the [MQTT reference](/mqtt-reference).
 ## Next steps
 
 - [Configuration overview](/configuration/)
-- [Model catalog](/models)
+- [Models](/models)
 - [Home Assistant integration](/home-assistant/)
 - [Config Builder](/builder)

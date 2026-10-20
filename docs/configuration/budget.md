@@ -24,7 +24,7 @@ Each PollWorker fetches the domains required by the enabled [enrichments](./#enr
 | Flood | Flood API | `FloodRisk` or `FloodRain` is enabled |
 | Marine | Marine API | `SwimmingConditions` is enabled |
 
-Solar variables are part of the Weather call when the `Solar` parameter group is enabled, so they add no call.
+Solar variables (`Weather:IncludeSolar`) are part of the Weather call, so they add no call.
 
 ```
 calls per cycle  = locations x required domains
@@ -50,7 +50,7 @@ guard            = 300,000 x 0.8 = 240,000
 
 1,440 calls is about 0.5% of the free-tier month. Even ten locations (14,400) stay far below the guard.
 
-Open-Meteo counts requests with many hourly variables as more than one call (more than 10 variables count fractionally). That weight is applied on top; see [Parameters](./parameters#api-call-weight).
+Open-Meteo counts requests with many hourly variables as more than one call (more than 10 variables count fractionally). That weight is applied on top: 3 for the 31 standard variables, 4 with solar; see [Weather](./weather#api-call-weight).
 
 ## Startup guard
 
@@ -59,7 +59,7 @@ At startup njord refuses to start when the projection exceeds 80% of the monthly
 - Increase `Polling:PollInterval` (every 2 hours halves the calls)
 - Reduce the number of locations
 - Disable enrichments that need an extra domain
-- Exclude parameters to lower the API call weight
+- Leave `Weather:IncludeSolar` off to keep the API call weight at 3
 
 ## Polling:BudgetOverride
 

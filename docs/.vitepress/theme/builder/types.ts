@@ -40,14 +40,6 @@ export function requiredDomains(enrichments: Record<string, boolean>): DomainNam
   return DOMAINS.filter(d => result.has(d))
 }
 
-export interface ParameterGroup {
-  group: string
-  hourlyCount: number
-  dailyCount: number
-  hourlyVariables: string[]
-  dailyVariables: string[]
-}
-
 export interface EnrichmentFeature {
   name: string
   enabledByDefault: boolean
@@ -67,17 +59,16 @@ export interface DeployLimits {
 
 export interface NjordConfig {
   pollInterval: string
-  forecastDays: number
+  weather: { includeSolar: boolean; forecastDays: number }
   discoveryInterval: string
   enrichments: Record<string, boolean>
   locations: LocationConfig[]
-  parameters: { groups: string[]; extra: string[]; exclude: string[] }
   sensors: { enabled: boolean; stalenessSeconds: number }
   mqtt: { enabled: boolean; host: string; port: number; username: string; password: string; discoveryPrefix: string; baseTopic: string }
   enrichment: Record<string, Record<string, unknown>>
   budgetOverride: { requestsPerMonth: number; requestsPerMinute: number } | null
   persistence: { provider: string; connectionString: string }
-  persistencePath: string
+  dataPath: string
   openMeteoBaseUrl: string
   deploy: { limits: DeployLimits }
 }
@@ -87,17 +78,16 @@ export interface NjordConfig {
 export function defaultConfig(): NjordConfig {
   return {
     pollInterval: '01:00:00',
-    forecastDays: 4,
+    weather: { includeSolar: false, forecastDays: 4 },
     discoveryInterval: '00:20:00',
     enrichments: defaultEnrichments(),
     locations: [],
-    parameters: { groups: ['Weather'], extra: [], exclude: [] },
     sensors: { enabled: true, stalenessSeconds: 7200 },
     mqtt: { enabled: false, host: '', port: 1883, username: '', password: '', discoveryPrefix: 'homeassistant', baseTopic: 'njord' },
     enrichment: {},
     budgetOverride: null,
     persistence: { provider: 'Sqlite', connectionString: '' },
-    persistencePath: 'data/njord.db',
+    dataPath: 'data/njord.db',
     openMeteoBaseUrl: 'https://api.open-meteo.com/',
     deploy: { limits: { cpus: '', memory: '' } },
   }

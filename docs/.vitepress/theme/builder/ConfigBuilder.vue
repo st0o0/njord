@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed, watch, onMounted } from 'vue'
 import { defaultConfig, ENRICHMENT_TOGGLES, requiredDomains, type NjordConfig, type EnrichmentFeature } from './types'
-import { computeBudget } from './budget'
+import { computeBudget, variableCount } from './budget'
 import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, findOutdatedKeys, encodeHash, decodeHash } from './serializer'
 import enrichmentData from '../../../data/enrichment.json'
 
@@ -77,12 +77,6 @@ function addLocation() {
 
 function removeLocation(i: number) {
   config.locations.splice(i, 1)
-}
-
-function toggleGroup(g: string) {
-  const idx = config.parameters.groups.indexOf(g)
-  if (idx >= 0) config.parameters.groups.splice(idx, 1)
-  else config.parameters.groups.push(g)
 }
 
 function copyExport() {
@@ -164,17 +158,19 @@ onMounted(() => {
       <p class="section-hint">The domains that are fetched follow from the enabled enrichments: {{ requiredDomains(config.enrichments).join(', ') || 'none' }}. Each domain costs one request per location and poll cycle.</p>
     </div>
 
-    <!-- Parameters -->
+    <!-- Weather -->
     <div class="section">
-      <h3>Parameters</h3>
-      <div class="param-row">
-        <label v-for="g in ['Weather', 'Solar', 'Soil']" :key="g" class="param-card" :class="{ selected: config.parameters.groups.includes(g) }">
-          <input type="checkbox" :checked="config.parameters.groups.includes(g)" @change="toggleGroup(g)" />
-          {{ g }}
-          <span class="param-count">{{ { Weather: 31, Solar: 9, Soil: 11 }[g] }} hourly vars</span>
-        </label>
+      <h3>Weather</h3>
+      <label class="mqtt-enabled">
+        <input type="checkbox" v-model="config.weather.includeSolar" />
+        <strong>Include solar variables</strong>
+        <span class="enrichment-badge">disabled by default</span>
+      </label>
+      <div class="general-row">
+        <label>Forecast Days <input v-model.number="config.weather.forecastDays" type="number" min="1" max="16" /></label>
       </div>
-      <div class="weight-display">{{ config.parameters.groups.reduce((s, g) => s + ({ Weather: 31, Solar: 9, Soil: 11 }[g] ?? 0), 0) }} hourly vars → API call weight: <strong>{{ Math.ceil(config.parameters.groups.reduce((s, g) => s + ({ Weather: 31, Solar: 9, Soil: 11 }[g] ?? 0), 0) / 10) * Math.ceil(config.forecastDays / 14) }}</strong></div>
+      <div class="weight-display">{{ variableCount(config.weather.includeSolar) }} hourly vars → API call weight: <strong>{{ budget.apiCallWeight }}</strong></div>
+      <p class="section-hint">Solar adds shortwave, direct, diffuse and direct normal radiation plus sunshine duration.</p>
     </div>
 
     <!-- Sensors -->
@@ -265,7 +261,6 @@ onMounted(() => {
       <h3>General</h3>
       <div class="general-row">
         <label>Poll Interval <input v-model="config.pollInterval" placeholder="01:00:00" /></label>
-        <label>Forecast Days <input v-model.number="config.forecastDays" type="number" min="1" max="16" /></label>
         <label title="Poll interval for a model whose update cycle is not learned yet">Discovery Poll Interval <input v-model="config.discoveryInterval" placeholder="00:20:00" /></label>
       </div>
     </div>
@@ -294,7 +289,7 @@ onMounted(() => {
       <div class="budget-detail">
         {{ requiredDomains(config.enrichments).length }} domains ({{ requiredDomains(config.enrichments).join(', ') }}) × {{ config.locations.length }} locations = {{ budget.domainCallsPerCycle }} calls/cycle · {{ budget.cyclesPerDay }} cycles/day · weight {{ budget.apiCallWeight }} = {{ budget.callsPerDay.toLocaleString() }} req/day · {{ budget.cyclesPerMonth }} cycles/month
       </div>
-      <p v-if="budget.overBudget" class="error">Exceeds 80% budget guard ({{ budget.guard.toLocaleString() }}). Disable enrichments, reduce locations, increase poll interval, or exclude parameters.</p>
+      <p v-if="budget.overBudget" class="error">Exceeds 80% budget guard ({{ budget.guard.toLocaleString() }}). Disable enrichments, reduce locations, increase poll interval, or enable fewer enrichments.</p>
     </div>
 
     <!-- Export -->
@@ -353,10 +348,6 @@ button.active { background: var(--vp-c-brand-1); color: white; border-color: var
 .option-description { width: 100%; font-size: 10px; color: var(--vp-c-text-3); margin-top: -2px; }
 
 
-.param-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.param-card { padding: 8px 12px; border: 1px solid var(--vp-c-divider); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-.param-card.selected { border-color: var(--vp-c-brand-1); background: var(--vp-c-brand-soft); }
-.param-count { font-size: 11px; color: var(--vp-c-text-3); }
 .weight-display { margin-top: 8px; font-size: 13px; color: var(--vp-c-text-2); }
 
 .general-row { display: flex; gap: 12px; flex-wrap: wrap; }

@@ -62,7 +62,7 @@ public sealed class PersistenceRestartSpec : IDisposable
 
         var ex = await Assert.ThrowsAsync<OptionsValidationException>(() => NjordTestHost.StartAsync(
             _directory.Path,
-            settings => settings["Njord:Storage:PersistencePath"] = Path.Combine(blocker, "njord.db"),
+            settings => settings["Njord:Persistence:DataPath"] = Path.Combine(blocker, "njord.db"),
             ct));
 
         Assert.Contains("is not writable", ex.Message);

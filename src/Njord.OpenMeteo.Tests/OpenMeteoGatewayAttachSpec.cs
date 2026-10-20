@@ -39,9 +39,9 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         {
             o.Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }];
         }));
-        var parameters = ParameterSelection.Resolve(["Weather"], [], []);
+        var weatherOptions = Options.Create(new WeatherOptions());
         return Sys.ActorOf(
-            Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _time, options, parameters, _budget, FetchTimeouts.Default)),
+            Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _time, options, weatherOptions, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 

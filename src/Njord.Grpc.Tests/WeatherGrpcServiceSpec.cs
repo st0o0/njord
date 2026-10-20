@@ -18,14 +18,13 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     private static readonly NjordOptions Options = new()
     {
         Locations = [new LocationOptions { Name = "Lucerne", Latitude = 47.05, Longitude = 8.31 }],
-        Models = ["icon_d2", "ecmwf_ifs025"],
     };
 
     protected override void ConfigureAkka(AkkaConfigurationBuilder builder, IServiceProvider provider) =>
         builder.AddTestTimefactor();
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task GetCatalog_returns_the_configured_locations_with_their_models()
+    public async Task GetCatalog_returns_the_configured_locations_with_the_ensemble_model()
     {
         var service = CreateService();
 
@@ -35,7 +34,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         Assert.Multiple(
             () => Assert.Equal("Lucerne", location.Name),
             () => Assert.Equal(47.05, location.Latitude),
-            () => Assert.Equal(["icon_d2", "ecmwf_ifs025"], location.Models));
+            () => Assert.Equal(["ensemble_mean"], location.Models));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -119,7 +118,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         ActorRegistry.Register<IGrpcConsumer>(
             Sys.ActorOf(Props.Create(() => new FakeConsumer(domainEvent, analysis))), overwrite: true);
-        return new WeatherGrpcService(ActorRegistry, Sys, TimeProvider.System, TestServiceInfo.Create(Options));
+        return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Create(Options));
     }
 
     private sealed class FakeConsumer : ReceiveActor

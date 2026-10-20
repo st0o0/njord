@@ -39,9 +39,7 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
         items: [
           { text: 'Overview', link: '/configuration/' },
           { text: 'Locations', link: '/configuration/locations' },
-          { text: 'Models', link: '/configuration/models' },
-          { text: 'Horizons', link: '/configuration/horizons' },
-          { text: 'Parameters', link: '/configuration/parameters' },
+          { text: 'Weather', link: '/configuration/weather' },
           { text: 'Enrichment', link: '/configuration/enrichment' },
           { text: 'MQTT', link: '/configuration/mqtt' },
           { text: 'Persistence', link: '/configuration/persistence' },

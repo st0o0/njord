@@ -1,23 +1,22 @@
 # Models
 
-njord fetches weather from the Open-Meteo **Ensemble Mean** API by default. One call per location returns a combined forecast from the ensemble, including `ensemble_std_dev`, the spread that drives alert confidence. You do not choose models for this; the Ensemble API handles that.
+njord uses the Open-Meteo **Ensemble Mean** API. One call per location returns a combined forecast from the ensemble, including `ensemble_std_dev`, the spread that drives alert confidence. You do not choose models: there are no model, horizon or parameter options, and the catalog shows a single model, `ensemble_mean`.
 
 ## Ensemble vs individual models
 
-| | Ensemble Mean (default) | Individual models |
+| | Ensemble Mean (used) | Individual models |
 |---|---|---|
 | API calls per location and cycle | 1 (Weather) | 1 per model |
 | Uncertainty information | `ensemble_std_dev` per point | none |
 | Resolution | Ensemble grid | Up to ~1 km for regional models |
-| Used for | All weather data and alerts | Catalog and coverage validation |
 
-The `Njord:Models` list is still required at startup (at least one id). It feeds the gRPC catalog (`GetCatalog`). It does not add polling calls.
+What the Weather request contains is set by [Weather](/configuration/weather) (`IncludeSolar`, `ForecastDays`).
 
-## Model catalog
+## Open-Meteo model reference
 
-The models below are reference data for choosing ids. njord does not check coverage at startup; any model id Open-Meteo accepts can be configured.
+The tables below list the models Open-Meteo offers. They are background reference only; njord does not take a model id and does not use them.
 
-## Global models
+### Global models
 
 | Model ID | Name | Provider | Max Horizon | Resolution |
 |----------|------|----------|-------------|------------|
@@ -42,7 +41,7 @@ The models below are reference data for choosing ids. njord does not check cover
 | `bom_access_global` | BOM ACCESS Global | BOM | 240h | ~25 km |
 | `cma_grapes_global` | CMA GRAPES Global | CMA | 128h | ~25 km |
 
-## Continental models
+### Continental models
 
 Continental models cover Europe (latitude 34 to 72, longitude -12 to 45).
 
@@ -58,7 +57,7 @@ Continental models cover Europe (latitude 34 to 72, longitude -12 to 45).
 | `dmi_seamless` | DMI Seamless | DMI | Central & Northern Europe | 68h | ~5.5 km |
 | `knmi_seamless` | KNMI Seamless | KNMI | Europe & Netherlands | 70h | ~5.5 km |
 
-## Regional models
+### Regional models
 
 | Model ID | Name | Provider | Region | Max Horizon | Resolution |
 |----------|------|----------|--------|-------------|------------|
@@ -89,9 +88,3 @@ Continental models cover Europe (latitude 34 to 72, longitude -12 to 45).
 | `gem_regional` | GEM Regional | ECCC | North America | 90h | ~10 km |
 | `gem_hrdps_continental` | GEM HRDPS Continental | ECCC | Canada, Northern US | 54h | ~2.5 km |
 | `gem_hrdps_west` | GEM HRDPS West | ECCC | Western Canada | 48h | ~2.5 km |
-
-## Tips
-
-1. **Keep the list short.** One model that covers your location is enough to pass validation (for Lucerne, `icon_eu` or `meteoswiss_icon_ch2`).
-2. **Match models to the location.** Regional ids only validate for locations they cover. Use [per-location models](/configuration/locations) for those.
-3. **The budget does not depend on the list.** API calls per cycle are set by locations and domains. See [Budget](/configuration/budget).

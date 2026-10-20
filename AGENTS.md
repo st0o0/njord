@@ -180,10 +180,10 @@ src/
                               #   (PipelineStreamMessages, ForecastStreamMessages, GrpcStreamMessages)
     Domain/                   # LocationForecast, DomainDataReceived, IDomainHandler, AlertClock,
                               #   ForecastQueries
-    Configuration/            # Cross-cutting options and validators (scope, polling, OpenMeteo, storage,
+    Configuration/            # Cross-cutting options and validators (scope, polling, OpenMeteo, weather,
                               #   persistence, MQTT, LocationOptions), budget calculator,
                               #   ConfigView (scope + polling), AddNjordOptions,
-                              #   ParameterOptions.Resolve(), PollingOptions.ToBudgetAllowance();
+                              #   WeatherVariables, PollingOptions.ToBudgetAllowance();
                               #   no analysis feature options
 
   # /Ingest/ — data acquisition (each -> Core only)
@@ -291,8 +291,7 @@ via Docker Compose + browser automation) is the `e2e-test` skill, not a
 
 Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
 - `appsettings.json` — logging and Kestrel only (no `Njord` section; all option defaults
-  live as property initializers on the options classes). List-valued defaults (`Horizons`,
-  `Parameters.Groups`, threshold arrays) and structural initializers (dictionaries with a
+  live as property initializers on the options classes). List-valued defaults (threshold arrays) and structural initializers (dictionaries with a
   comparer, nested `new()`) also live on the property; `ReplaceCollectionDefaults` makes a
   configured list replace its code default. A new option gets its default as a property
   initializer, not in `appsettings.json`.
@@ -306,9 +305,8 @@ Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
   values that are not defaults and are skipped until the next blank line.
 
 Sections: one options class per concern, each with its own `SectionName` (no two share one,
-`OptionsAccessArchitectureSpec`): `Njord` (forecast scope: `Locations`, `Models`, `Horizons`,
-`ForecastDays`, `Parameters`), `Njord:Polling`, `Njord:OpenMeteo`, `Njord:Storage`,
-`Njord:Persistence`, `Njord:Health`, `Njord:Mqtt`, `Njord:Enrichment:Alerts`. Every
+`OptionsAccessArchitectureSpec`): `Njord` (forecast scope: `Locations` only), `Njord:Weather` (`IncludeSolar`, `ForecastDays`),
+`Njord:Polling`, `Njord:OpenMeteo`, `Njord:Persistence` (incl. `DataPath`), `Njord:Health`, `Njord:Mqtt`, `Njord:Enrichment:Alerts`. Every
 options type is registered with `AddNjordOptions<T>(configuration)` (`Njord.Core`: binds
 the section, lets a configured list replace its default, registers `<T>Validator` from
 `T`'s namespace, `ValidateOnStart`); setup containers do not repeat those steps.
@@ -438,16 +436,10 @@ These checks run locally only; they are deliberately not part of CI.
   `BudgetUsage`. `NamingArchitectureSpec` enforces the `Snapshot` reservation.
 - Enrichment wire names come from `EnrichmentNames` (`Njord.Messages.Pipeline`), never bare
   strings. `AlertRaised` is the enrichment `PipelineEvent` variant.
-- `ParameterRegistry` (`Njord.Model`): one `static readonly ParameterDef` field per
-  parameter (declared once, registered into the catalog; daily variants of a shared API name
-  are `DailyWeatherCode`, `DailySunshineDuration`, `DailyEt0FaoEvapotranspiration`). Use the
-  fields (`ParameterRegistry.Rain`, `.PrecipitationSum`, etc.) in production code.
-  `GetByApiName` is for deserialization only — never call it with a string literal.
-  `ParameterDef` is identity only (API name, unit, group, granularity, value type): the MQTT
-  payload key is `ToMqttKey()` (`Njord.Mqtt/Mapping/ParameterMqttKeys`), the configuration
-  parsing is `ParameterSelection` (`Njord.Core/Configuration`, via `ParameterOptions.Resolve()`).
-  A new parameter needs a field, a key in `ParameterMqttKeys` and an updated catalog count in
-  `ParameterCatalogSpec`.
+- Weather variables are internal: `WeatherVariables` (`Njord.Core/Configuration`) holds the hardcoded
+  hourly list (standard plus the solar set when `Njord:Weather:IncludeSolar`); `IWeatherClient.HourlyVariables`
+  publishes what the client requests. The API call weight is `ceil(variableCount / 10)`
+  (`WeatherVariables.ApiCallWeight`); MQTT topics come from the forecast payloads, not from configuration.
 - Persistence records (`Njord.Persistence`): follow FunkArr conventions
   (`akka-skills:persistence`). Positional records (no `[JsonProperty]`,
   no init-properties). `DateTimeOffset` for timestamps, `TimeSpan` for

@@ -45,9 +45,7 @@ services:
       - Njord__Locations__0__Name=Lucerne
       - Njord__Locations__0__Latitude=47.05
       - Njord__Locations__0__Longitude=8.31
-      - Njord__Models__0=icon_eu
-      - Njord__Parameters__Groups__0=Weather
-      - Njord__Parameters__Groups__1=Solar
+      - Njord__Weather__IncludeSolar=true
       - Njord__Enrichment__Alerts__Enabled=true
 
 volumes:

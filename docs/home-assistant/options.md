@@ -17,7 +17,7 @@ What njord fetches and computes is configured on the server, not in Home Assista
 | Setting | Effect in Home Assistant |
 |---------|--------------------------|
 | `Njord:Locations` | One set of devices and entities per location |
-| `Njord:Parameters:Groups` | Add `Solar` to receive solar radiation data |
+| `Njord:Weather:IncludeSolar` | Receive solar radiation data |
 | `Njord:Enrichment:Alerts:Enabled` | Alert sensors and the alert event entity |
 | `Njord:Polling:PollInterval` | How often new data arrives |
 

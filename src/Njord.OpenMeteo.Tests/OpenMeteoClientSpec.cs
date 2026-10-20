@@ -11,7 +11,7 @@ public sealed class OpenMeteoClientSpec
         new(new StubHandler(status, body, inspect)) { BaseAddress = new Uri("https://api.open-meteo.com/") };
 
     private static WeatherClient Weather(HttpStatusCode status, string body, Action<HttpRequestMessage>? inspect = null) =>
-        new(StubHttp(status, body, inspect), ParameterSelection.Resolve(["Weather"], [], []));
+        new(StubHttp(status, body, inspect), Microsoft.Extensions.Options.Options.Create(new WeatherOptions()));
 
     [Fact(Timeout = 5000)]
     public async Task A_weather_response_is_deserialized_into_typed_hourly_data()
@@ -27,6 +27,29 @@ public sealed class OpenMeteoClientSpec
             () => Assert.Equal([1000L, 1003600L], result.Hourly.Time),
             () => Assert.Equal(20.5, result.Hourly.Temperature[0]),
             () => Assert.Null(result.Hourly.Temperature[1]));
+    }
+
+    [Theory(Timeout = 5000)]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task The_weather_url_contains_solar_variables_only_when_included(bool includeSolar)
+    {
+        Uri? sent = null;
+        var client = new WeatherClient(
+            StubHttp(HttpStatusCode.OK, """{"latitude":47.0,"longitude":8.0,"hourly":null}""", r => sent = r.RequestUri),
+            Microsoft.Extensions.Options.Options.Create(new WeatherOptions { IncludeSolar = includeSolar }));
+
+        await client.FetchAsync(47.0, 8.0, 7, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(sent);
+        var query = sent.Query;
+        Assert.Multiple(
+            () => Assert.Equal(includeSolar, query.Contains("shortwave_radiation")),
+            () => Assert.Equal(includeSolar, query.Contains("direct_normal_irradiance")),
+            () => Assert.Equal(includeSolar, query.Contains("sunshine_duration")),
+            () => Assert.Contains("temperature_2m", query),
+            () => Assert.Contains("forecast_days=7", query),
+            () => Assert.Equal(WeatherVariables.For(includeSolar), client.HourlyVariables));
     }
 
     [Fact(Timeout = 5000)]

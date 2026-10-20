@@ -22,7 +22,6 @@ public sealed class PollManagerLateRegionSpec : NjordActorSpec
         services.AddSingleton(Options.Create(new NjordOptions
         {
             Locations = [new LocationOptions { Name = "lucerne", Latitude = 47.05, Longitude = 8.31 }],
-            Models = ["icon_d2"],
         }));
         services.AddSingleton(TestConfigView.Create());
     }

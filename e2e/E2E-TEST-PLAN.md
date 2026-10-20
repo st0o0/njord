@@ -46,9 +46,8 @@ gRPC path only (no MQTT). Real Open-Meteo API.
 ### Configuration
 
 - **Location:** lucerne (47.05, 8.31)
-- **Models:** icon_d2, ecmwf_ifs025
+- **Model:** ensemble_mean (single, not configurable)
 - **Enrichments:** consensus, alerts, derived, trends, indices (all enabled)
-- **Horizons:** +3, +6, +12, +24, +48, +72 h
 - **Poll interval:** 3600 s (default)
 - **Forecast days:** 4
 
@@ -622,8 +621,7 @@ The main agent re-checks any FAIL before accepting it (Haiku may misinterpret AP
 Applied automatically by Docker config. No grpcurl commands needed.
 
 - **Location:** lucerne (47.05, 8.31)
-- **Models:** icon_d2, ecmwf_ifs025
-- **Horizons:** [3, 6, 12, 24, 48, 72]
+- **Model:** ensemble_mean (single, not configurable)
 - **Enrichments:** all 6 enabled
 - **Expected entities:** ~46
 

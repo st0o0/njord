@@ -30,7 +30,7 @@ All topics start with the configured `BaseTopic` (default `njord`). The location
 | `weather` | Ensemble Mean |
 | `air-quality` | Air Quality |
 | `flood` | Flood |
-| `solar` | Solar variables of the Weather fetch (published when the `Solar` parameter group is enabled) |
+| `solar` | Solar variables of the Weather fetch (published when `Weather:IncludeSolar` is enabled) |
 | `marine` | Marine (payload defined; not fetched by default) |
 
 Examples:
