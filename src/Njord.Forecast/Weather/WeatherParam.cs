@@ -1,0 +1,33 @@
+namespace Njord.Forecast.Weather;
+
+[Flags]
+public enum WeatherParam : long
+{
+    None = 0,
+    Temperature = 1L << 0,
+    ApparentTemperature = 1L << 1,
+    WindSpeed = 1L << 2,
+    Precipitation = 1L << 3,
+    PrecipitationProbability = 1L << 4,
+    CloudCover = 1L << 5,
+    Pressure = 1L << 6,
+    WeatherCode = 1L << 7,
+    Humidity = 1L << 8,
+    DewPoint = 1L << 9,
+    UvIndex = 1L << 10,
+    EnsembleStdDev = 1L << 11,
+    WindGusts = 1L << 12,
+    Visibility = 1L << 13,
+    Cape = 1L << 14,
+    Rain = 1L << 15,
+    Snowfall = 1L << 16,
+    SoilTemperature = 1L << 17,
+    FreezingLevelHeight = 1L << 18,
+    IsDay = 1L << 19,
+    ShortwaveRadiation = 1L << 20,
+    DirectRadiation = 1L << 21,
+    DiffuseRadiation = 1L << 22,
+    DirectNormalIrradiance = 1L << 23,
+    SunshineDuration = 1L << 24,
+    WindDirection = 1L << 25,
+}
