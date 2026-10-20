@@ -2,157 +2,117 @@
 
 ## Project
 
-njord — Weather intelligence for Home Assistant. A .NET service
-(Docker container) on Akka.NET + Akka.Streams: fetches the Open-Meteo API per
-location and domain (weather ensemble, air quality, flood; solar via parameter
-group, marine planned), runs the data through projection groups (weather alerts,
-air quality alerts, flood risk and cross-domain flood-rain alerts),
-and serves the results to Home Assistant over gRPC (the ha-njord integration),
-with optional MQTT state publishing.
+njord — Multi-model weather intelligence for Home Assistant. A .NET service
+(Docker container) on Akka.NET + Akka.Streams: polls the Open-Meteo APIs (weather ensemble,
+air quality, flood, marine) per location, runs the data through enrichment handlers (alerts,
+lifestyle advisories, trends), and serves the results to Home Assistant over gRPC (the ha-njord
+integration), with optional MQTT state publishing.
 
 ### Architecture guardrails
 
-- **Three zones that only meet in the domain model:** Ingest (Open-Meteo client,
-  DTOs, parsing) → Domain (`DomainForecast<T>`, `LocationForecast`, projection
-  groups) → Consumers (MQTT state payloads, gRPC streaming). Ingest and consumers
-  never reference each other.
+- **Enrichment-driven configuration.** The operator configures locations and enrichment
+  toggles (`Njord:Enrichments`, `EnrichmentOptions`); everything else is derived. Every
+  enrichment is an `IDomainHandler` (`Njord.Core/Domain`): `ConfigKey` (the toggle name),
+  `Triggers` (the `DomainKind`s it reacts to) and
+  `Handle(current, previous, time)` returning `PipelineEvent`s. The domains that are fetched
+  are the union of the `Triggers` of the enabled handlers (`EnrichmentResolution.RequiredDomains`,
+  registered as `IReadOnlySet<DomainKind>` by `DomainSetupContainer`). The 13 toggles are
+  `WeatherAlerts`, `CommuteSafety`, `PollenAlert`, `Pm25Alert` (on by default) and `FloodRisk`,
+  `FloodRain`, `SwimmingConditions`, `VentilationWindow`, `ExerciseAdvisory`, `LaundryScore`,
+  `PollenTrend`, `NightVentilation`, `ConfidenceTrend` (off by default).
+  `EnrichmentConfigKeySpec` fails when a registered handler's `ConfigKey` matches no option.
+  There are no model, horizon or parameter settings: the weather variables are internal
+  (`WeatherVariables`, 31 standard, 36 with `Weather:IncludeSolar`), the weather request goes to
+  the Open-Meteo ensemble endpoint, and the entity set follows locations x enabled handlers.
+- **Domains and typed clients.** `DomainKind`: `Weather`, `AirQuality`, `Flood`, `Solar`,
+  `Marine` (`Njord.Model`). `Njord.OpenMeteo` holds one typed HTTP client per API
+  (`IWeatherClient`, `IAirQualityClient`, `IFloodClient`, `IMarineClient`, `IGeocodingClient`),
+  each with its own base address (`Njord:OpenMeteo:BaseUrl` overrides the weather one only).
+  `IncludeSolar` adds the solar radiation variables to the weather request (the gateway fetches
+  only Weather, AirQuality, Flood and Marine; `Solar` exists in the model and event vocabulary).
+- **Geocoding resolves locations.** A location is `Name` only; `LocationResolutionService`
+  (hosted service registered ahead of Akka) fills in latitude/longitude through
+  `IGeocodingClient` for every location without coordinates and fails startup when there is
+  no match. Explicit `Latitude`/`Longitude` skip the lookup.
+- **Domain projects are plugins.** `Njord.Weather` (alerts, lifestyle handlers),
+  `Njord.AirQuality`, `Njord.Flood`, `Njord.Marine` each register their `IDomainHandler`s via
+  an `Add<Domain>Domain()` extension, reference only `Njord.Core`, never each other and never
+  the adapters (`Njord.Grpc`, `Njord.Mqtt`); enforced in `ArchitectureSpec`.
 - **Streams for data flow, actors for lifecycle; the stable side owns the hubs.**
-  Domain data and pipeline events travel through Akka.Streams (stream refs
-  between actors); requests, outcomes and scheduling travel as messages.
-  **Polling** is one persistent `PollWorker` per location in the `poll-worker`
-  shard region (`IPollRegion`; entity id = location name, messages implement
-  `IWithLocationId`, routed by `ShardMessageExtractor` in Core; no passivation, no
-  remember-entities). On each tick a worker fetches all enabled domains (weather
-  ensemble, air quality, flood) in one round. It owns its poll state (`PollWorkerState`: phase, learned
-  cycle, next poll, miss/failure counts, last hash; every transition persisted as
-  an event, snapshot every 50), its timer and at most one round in flight, and
-  reports every start and outcome (`PollWorkerReport`) to `PollManager`
-  (`IPollManager`, a non-persistent cluster singleton with BackoffOnFailure). The
-  manager derives the target set from the startup config, sends `StartPolling` on
-  start and on a changed discovery interval, `StopPolling` to running workers of
-  removed targets, restarts terminated workers, forwards `TriggerImmediatePoll`,
-  and answers `QueryPollStates`, the poll-cycle summaries/metrics and the poll
-  health from the reports.
-  **Gateway** (`OpenMeteoGateway`) is request/response: each `PollWorker` asks
-  `FetchDomain` (named reply timeout, `FetchTimeouts`) and gets exactly one
-  `FetchDomainCompleted` (hash only, no data), `FetchDomainFailed` or
-  `FetchDomainRejected` (`QueueFull`, `Budget`, `PipelineUnavailable`,
-  `Expired`). Successful data goes into a small branch
-  (`Source.Queue<DomainDataReceived>` → the pipeline's `SinkRef<DomainDataReceived>`,
-  `RequestForecastSink` handshake); only this branch is re-attached (with backoff)
-  when the pipeline terminates or the branch ends.
-  **Pipeline** (`ForecastPipeline`) owns both hubs, materialized once per
-  incarnation in `PreStart`: `MergeHub<DomainDataReceived>` (one SinkRef per
-  producer; a producer ending never ends the hub) →
-  `StatefulSelectMany(ProjectionEngine.Process)` → `BroadcastHub<PipelineEvent>`.
-  The `ProjectionEngine` keeps the latest and previous `LocationForecast` per
-  location inside the stage closure, so a gateway restart never loses it, and runs
-  every `IDomainHandler` triggered by the changed domain. The pipeline
-  depends on no other actor; an ended analysis graph restarts it (BackoffOnFailure).
-  Consumers attach via SourceRef.
-- **The entity set is static, derived from config** (locations × domains ×
-  parameters) — never from what the API happens to return. A missing value is
-  omitted or `null`, not a missing entity.
+  Domain data and pipeline events travel through Akka.Streams (stream refs between actors);
+  requests, outcomes and scheduling travel as messages.
+  **Polling** is one persistent `PollWorker` per location in the `poll-worker` shard region
+  (`IPollRegion`; entity id is the location name, messages implement `IWithLocationId`, routed by
+  `ShardMessageExtractor` in Core). A worker owns `PollWorkerState` (target, phase, per-domain
+  `DomainPollState` with learned cycle, next poll, miss count and last hash; every transition
+  is persisted as an event, snapshot every 50), its timer, and the current poll round
+  (`PollRoundState`: one `FetchDomain` per due domain, replies collected per round id). It reports
+  every start and outcome (`PollWorkerReport`) to `PollManager` (`IPollManager`, a non-persistent
+  cluster singleton with BackoffOnFailure). The manager derives one target per configured location,
+  sends `StartPolling`, `StopPolling` to running workers of removed targets, restarts terminated
+  workers, forwards `TriggerImmediatePoll`/`TriggerTargetPoll`, and answers `QueryPollStates` and
+  `QueryPollHealth` from the reports.
+  **Per-domain discovery:** each domain of a location learns its own update cycle (phases
+  `Discovery` -> learned cycle with miss tolerance) and is scheduled independently; a round only
+  fetches the domains that are due.
+  **Gateway** (`OpenMeteoGateway`, `IForecastGateway`) is request/response: each `PollWorker` asks
+  `FetchDomain` (named reply timeout, `FetchTimeouts`) and gets exactly one `FetchDomainCompleted`
+  (hash only, no data), `FetchDomainFailed` or `FetchDomainRejected` (`FetchRejectionReason`).
+  The gateway checks the request budget (`GatewayBudgetGate`, token bucket from the effective
+  budget), calls the typed client for the domain and offers the resulting `DomainDataReceived` to a
+  small queue branch into the pipeline's `SinkRef` (`RequestForecastSink` handshake); only this
+  branch is re-attached (with backoff) when the pipeline terminates or the branch ends.
+  **Pipeline** (`ForecastPipeline`) owns both hubs, materialized once per incarnation:
+  `MergeHub<DomainDataReceived>` (one SinkRef per producer; a producer ending never ends the hub)
+  -> `StatefulSelectMany(ProjectionEngine)` -> `BroadcastHub<PipelineEvent>`. The `ProjectionEngine`
+  keeps the latest `LocationForecast` and the previous value of every domain slot per location and
+  runs every enabled `IDomainHandler` whose `Triggers` contain the received domain; each received
+  domain also yields its `*DataReceived` event. All analysis state lives inside the closure, so a
+  gateway restart never loses it. Consumers attach via SourceRef.
+- **Never `Zip` domain sub-streams.** Domains arrive independently; handlers get whatever
+  `LocationForecast` currently holds (`Previous` for trend handlers).
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow` directly.
-- **Analysis is a domain handler.** Each domain project (`Njord.Weather`, `Njord.AirQuality`,
-  `Njord.Flood`) implements `IDomainHandler` (`Njord.Core/Domain`): it names the domains that
-  trigger it and handles the current `LocationForecast` against the previous one, returning
-  `PipelineEvent`s directly (`AlertRaised`). `PipelineEvent` variants are typed records
-  (`WeatherDataReceived`, `AirQualityDataReceived`, `FloodDataReceived`,
-  `SolarDataReceived`, `MarineDataReceived`, `AlertRaised`) — no
-  `object` wrapping. Domain projects register their handlers in their own DI
-  extension; each handler declares a `ConfigKey` matching a bool on `EnrichmentOptions` (`Njord:Enrichments`,
-  `Njord.Core`); `ForecastPipeline` only runs handlers whose key is enabled, and the domains the `PollWorker`
-  fetches (and `BudgetCalculator` counts) are the union of the enabled handlers' `Triggers`
-  (`EnrichmentResolution.RequiredDomains`, registered as `IReadOnlySet<DomainKind>`); there is no `EnabledDomains`
-  option. Each domain project exposes one `Add<Name>Domain` extension (rules as `IAlertRule<T>`, handlers as `IDomainHandler`); `IAlertRule<T>`, `AlertOptions` and `AlertClock` live in `Njord.Core`.
-- **Consumers are output adapters via SourceRef.** The MQTT state publisher and
-  the API's gRPC consumer (`GrpcConsumer` in `Njord.Grpc`, marker
-  `IGrpcConsumer`) request a `SourceRef<PipelineEvent>` from `ForecastPipeline`
-  and run their own sinks. No intermediate relay actors, no presenters, no discovery
-  payloads. Their base `StreamConsumerActor` attaches when the consumer starts (request
-  id, 10 s reply timeout, capped backoff), watches the pipeline incarnation that
-  answered and re-attaches only when that incarnation terminates or the consumer's own
-  graph completes or fails (Warning, `njord_stream_consumer_rewires_total`); there is no
-  waiting phase or stash, so queries are answered at any time. No consumer slows the
-  pipeline hub: the gRPC consumer builds its streaming hub (`Source.ActorRef` →
-  `BroadcastHub` with a permanent `Sink.Ignore` drain) once at start, keeps its latest
-  values as actor state and its hub across a re-attach, and gives each gRPC streaming
-  client a bounded drop-oldest buffer (256 events); the MQTT publisher runs events →
-  `Buffer(256, DropHead)` → payloads → `Sink.ForEachAsync(1, dedup + publish)`, so a slow
-  broker drops its own oldest events, and republishes every topic once per new
-  subscription and after every broker reconnect.
-- **The gRPC API is an adapter.** `Njord.Grpc` holds `GrpcConsumer` (the pipeline's
-  streaming output consumer for gRPC clients, marker `IGrpcConsumer`) and reads no
-  options: every RPC resolves an actor marker, asks with a message from
-  `Njord.Messages` through `ActorAsk` (`Unavailable` when the actor is not resolvable,
-  `DeadlineExceeded` on timeout) and maps the result with the per-domain `ToProto()`
-  extensions in `Njord.Grpc/Mapping/`. The catalog, the effective request budget and the enabled enrichments are
-  fixed at startup and injected as the `ServiceInfo` contract (built by the host from the options);
-  budget status goes through `BudgetTracker` (`QueryBudgetStatus`).
-- **`Njord.Messages` is the Akka-free contract project.** Every public command, query,
-  result and event lives there, one file per command or query, in domain folders
-  (`Alerts/`, `Budget/`, `Config/`, `Forecast/`, `Pipeline/`; nothing MQTT-specific, see the MQTT boundary rule).
-  Records that carry Akka types (stream handshakes with `ISourceRef`) live in
-  `Njord.Core/Actors/*StreamMessages.cs`; actor-internal records stay private.
-- **MQTT-specific code lives only in `Njord.Mqtt`.** Any type with `Mqtt` in its name or
-  namespace (actors, their messages, transport, topics, health check, telemetry, the payload
-  records) is declared there; the egress stays an optional adapter that can change without touching
-  domain projects. Allow-list in `Njord.Core`, because the host options and the actor registry
-  must name MQTT: `MqttOptions`, `MqttOptionsValidator`, `IMqttConnectionActor`, `IMqttStatePublisher`.
-  Enforced by `MqttBoundarySpec`.
-- **Zone rules are enforced by tests** in `src/Njord.Architecture.Tests/` (lateral
-  independence of the feature libraries, Domain independence,
-  sealed/`Spec` conventions,
-  `LayerReferenceSpec` for the assembly reference direction: Model and
-  Persistence reference no Njord assembly, Messages only Model (and no Akka package,
-  no `*Analyzer`/`*Rule`/`*Formulas` type), Core only Model, Messages and Persistence,
-  feature libraries (OpenMeteo, Budget, Grpc, Mqtt, Pipeline, Weather, AirQuality, Flood) only Core and below;
-  the host references all. Feature libraries
-  never reference each other, checked by the lateral rule in `ZoneArchitectureSpec`,
-  which also keeps actors, options, the config writer, `BudgetCalculator` and
-  out of `Njord.Grpc` and public nested records out of every actor).
+- **Consumers are output adapters via SourceRef.** The MQTT state publisher and the API's gRPC
+  consumer (`GrpcConsumer` in `Njord.Grpc`, marker `IGrpcConsumer`) request a
+  `SourceRef<PipelineEvent>` from `ForecastPipeline` and run their own sinks. No relay actors, no
+  presenters. No consumer slows the pipeline hub: the gRPC consumer builds its streaming hub once
+  at start and gives each client a bounded drop-oldest buffer; the MQTT publisher buffers with
+  `DropHead`, dedups, and republishes every topic after a broker (re)connect.
+- **The gRPC API is an adapter.** `Njord.Grpc` (`WeatherGrpcService`: `GetCatalog`,
+  `GetDomainData`, `GetEnrichments`, `StreamDomainData`, `StreamEnrichments`; `OpsGrpcService`:
+  `GetStatus`, `GetTargets`, `TriggerPoll`; protos in `protos/njord/v2`) resolves an actor marker,
+  asks with a message from `Njord.Messages` through `ActorAsk` (`Unavailable` when the actor is
+  not resolvable, `DeadlineExceeded` on timeout) and maps the result with `ToProto()` extensions
+  in `Njord.Grpc/Mapping/`. Options are read-only startup config exposed through `ConfigView`
+  (locations + polling) and `ServiceInfo`; there is no runtime config writer.
+- **`Njord.Messages` is the Akka-free contract project.** Commands, queries, results, events and
+  `PipelineEvent` live there in domain folders (`Alerts/`, `Budget/`, `Config/`, `Forecast/`,
+  `Pipeline/`), referencing only `Njord.Model`. Records that carry Akka types (stream handshakes)
+  live in `Njord.Core/Actors/*StreamMessages.cs`; actor-internal records stay private.
+- **MQTT-specific code lives only in `Njord.Mqtt`** (actors, topics, transport, payload records,
+  mappers, health check, telemetry). The egress is an optional adapter: state only, no MQTT
+  Discovery, one retained JSON payload per domain/enrichment, availability via the retained
+  `online`/`offline` status topic (LWT). MQTTnet sits behind `IMqttTransport`. Payloads are typed
+  records (`Njord.Mqtt/Payloads`) written by a source-generated serializer context.
+- **Zone rules are enforced by tests** in `src/Njord.Architecture.Tests/ArchitectureSpec.cs`:
+  Model, Messages and Persistence reference no other Njord project (Messages only Model);
+  Messages and Persistence have no Akka dependency; the domain projects do not depend on each
+  other or on the adapters; all concrete classes are sealed.
 
 ### Decisions
 
-- Open-Meteo free tier (non-commercial) is the assumed plan: the request budget
-  defaults to its soft limits (300k/month, 600/min) with an optional
-  `Polling:BudgetOverride` for self-throttling. Startup validates projected usage
-  against 80 % of the resolved monthly budget. Commercial use would need the
-  paid tier (out of scope).
-- Poll interval and request budget are config values (default 60 min). Any change
-  that adds or alters polling needs a budget estimate against the free-tier soft
-  limits (300k/month, 10k/day) — and politeness toward a free service.
-- gRPC closed sets are proto enums with `*_UNSPECIFIED = 0` (poll phase, alert
-  type and severity), mapped by exhaustive switches with a throwing default
-  (`WireEnumMappings`). Clients treat unknown enum numbers as `UNSPECIFIED`, so
-  adding a member is not a breaking change. MQTT and metric text comes from
-  `ToWireName()`, never from `ToString()`.
-- Feels-like comes from the API (`apparent_temperature`) — no own Steadman
-  computation. Derived values (dew point, ...) are API-native too.
-- Weather values come from the Open-Meteo ensemble endpoint: `WeatherPoint` carries
-  the ensemble value and `EnsembleStdDev`; there is no own multi-model consensus.
-  Solar radiation variables (shortwave, direct, diffuse, DNI, sunshine duration) are
-  included when the `Solar` parameter group is enabled.
-- Air quality data comes from `air-quality-api.open-meteo.com` (separate endpoint,
-  +1 API call per cycle). Provides PM2.5, PM10, ozone, European AQI, and pollen
-  types (birch, grass, alder, mugwort, ragweed). Enrichments: PollenAlert, Pm25Alert.
-- Flood data comes from `flood-api.open-meteo.com` (separate endpoint, daily
-  resolution, +1 API call per cycle). Provides river discharge forecast with
-  percentiles (p25/p75) and historical statistics. GloFAS model, auto-selects the
-  largest river within 5 km. Enrichments: FloodRiskAlert (discharge vs percentiles),
-  FloodRainAlert (cross-domain: heavy rain from Weather + rising discharge from Flood).
-- MQTT egress (optional, `Mqtt:Enabled`): state only, no MQTT Discovery. One
-  retained flat state JSON per location and domain per cycle, values the API does not
-  deliver are omitted (no `unavailable`, no `expire_after`); availability only via the
-  retained `online`/`offline` service status topic (LWT). MQTTnet sits behind the
-  `IMqttTransport` seam; the connection actor owns the connection lifecycle.
-- MQTT payloads are typed records (`Njord.Mqtt/Payloads`), built by mappers in
-  `Mapping/` and written by one source-generated serializer context
-  (`MqttPayloadJsonContext`, converters in `Serialization/`); no `JsonObject`.
-  Null rule: domain data payloads omit absent values; alert payloads write a known
-  member without a value as explicit `null` (alerts always carry `peak_value`,
-  `hours_until`, `duration_hours`). `soil_frozen` (ice alert) is a JSON boolean.
+- Open-Meteo free tier (non-commercial) is the assumed plan: the request budget defaults to its
+  soft limits (300k/month, 600/min) with an optional `Polling:BudgetOverride`. Startup validates
+  projected usage (`BudgetCalculator.Validate`: locations x required domains x poll cycles x API
+  call weight) against 80 % of the monthly budget. Commercial use would need the paid tier.
+- Any change that adds or alters polling needs a budget estimate against the free-tier soft limits
+  (300k/month, 10k/day) and politeness toward a free service. The weather request weighs
+  `ceil(variables / 10)` calls (4 standard, 4 with solar); other domains weigh 1.
+- Poll interval and discovery interval are config values (defaults 60 min and 20 min).
+- gRPC and MQTT wire text for closed sets comes from explicit mappings, never from `ToString()`.
+- Feels-like comes from the API (`apparent_temperature`), no own computation.
+- Alert thresholds are `Njord:Enrichment:Alerts:*` (`AlertOptions`, three-step severity arrays
+  such as `FrostThresholds`, validated by `AlertOptionsValidator`).
 
 ## Language
 
@@ -164,94 +124,50 @@ All code, specs, docs, and communication in English.
 src/
   Njord.slnx
 
-  # /Model/ — vocabulary types (zero Njord dependencies)
-  Njord.Model/                # Location, DomainKind, TimeResolution, DomainForecast<T>, WeatherPoint,
-                              #   AirQualityPoint, FloodPoint, SolarPoint, MarinePoint, Horizon (no Njord references)
+  Njord.Model/          # Vocabulary, no Njord references: DomainKind, Location, DomainForecast<T>,
+                        #   WeatherPoint, AirQualityPoint, FloodPoint, SolarPoint, MarinePoint, Horizon
+  Njord.Messages/       # Akka-free contracts (-> Model): PipelineEvent, Fetch*/Poll*/Query* messages,
+                        #   Alerts/ (Alert, AlertType, AlertSeverity, thresholds), Budget/, Config/, Forecast/, Pipeline/
+  Njord.Persistence/    # Persistence records (extend-only, no Njord references): Events/Budget, Events/Polling
+  Njord.Core/           # (-> Model, Messages, Persistence)
+    ActorKeys.cs        #   marker interfaces (IPollManager, IPollRegion, IBudgetTracker, IForecastPipeline,
+                        #   IGrpcConsumer, IMqttConnectionActor, IMqttStatePublisher, IForecastGateway)
+    Actors/             #   ShardMessageExtractor, StreamSupervision, stream handshake messages
+    Domain/             #   IDomainHandler, IAlertRule, EnrichmentResolution, LocationForecast, DomainDataReceived
+    Configuration/      #   NjordOptions (Locations only), LocationOptions, WeatherOptions, EnrichmentOptions,
+                        #   AlertOptions, WeatherVariables, ConfigView, AddNjordOptions + validators
+      Polling/ OpenMeteo/ Persistence/ Mqtt/ Health/   # PollingOptions, BudgetCalculator, FetchTimeouts,
+                        #   OpenMeteoOptions, PersistenceOptions, MqttOptions, HealthOptions
+  Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, typed clients (Weather, AirQuality,
+                        #   Flood, Marine, Geocoding), LocationResolutionService, response DTOs, Mapping/
+  Njord.Budget/         # BudgetTracker persistent actor, usage accounting, health check
+  Njord.Pipeline/       # PollManager, PollWorker (+ state), ForecastPipeline, ProjectionEngine, pipeline health
+  Njord.Weather/        # WeatherAlertHandler + Rules/ (one rule per alert type), Lifestyle/ handlers
+                        #   (CommuteSafety, VentilationWindow, ExerciseAdvisory, LaundryScore,
+                        #   NightVentilation, ConfidenceTrend)
+  Njord.AirQuality/     # AirQualityAlertHandler (pollen, PM2.5), PollenTrendHandler
+  Njord.Flood/          # FloodRiskHandler, FloodRainHandler
+  Njord.Marine/         # SwimmingConditionsHandler
+  Njord.Mqtt/           # Actors/, Topics/, Mapping/, Payloads/, Serialization/, Transport/, Health/
+  Njord.Grpc/           # WeatherGrpcService, OpsGrpcService, ActorAsk, GrpcConsumer, Mapping/
+  Njord/                # Host: Program.cs, NjordHost, Configuration/ (setup containers, service info mappings), Health/
 
-  # /Contracts/ — message contracts
-  Njord.Messages/             # Commands, queries, results, PipelineEvent and the alert contracts
-                              #   (result records, enums, settings); no Akka (-> Model)
-    Alerts/ Budget/ Config/ Forecast/ Pipeline/
-
-  # /Infrastructure/ — persistence and framework plumbing
-  Njord.Persistence/          # Persistence DTOs (extend-only; no Njord references): Events/Budget, Events/Polling
-  Njord.Core/                 # Options, actor keys, StreamSupervision (-> Model, Messages, Persistence)
-    Actors/                   # Marker interfaces, ShardMessageExtractor, StreamConsumerActor, stream handshakes
-                              #   (PipelineStreamMessages, ForecastStreamMessages, GrpcStreamMessages)
-    Domain/                   # LocationForecast, DomainDataReceived, IDomainHandler, AlertClock,
-                              #   ForecastQueries
-    Configuration/            # Cross-cutting options and validators (scope, polling, OpenMeteo, weather,
-                              #   persistence, MQTT, LocationOptions), budget calculator,
-                              #   ConfigView (scope + polling), AddNjordOptions,
-                              #   WeatherVariables, PollingOptions.ToBudgetAllowance();
-                              #   no analysis feature options
-
-  # /Ingest/ — data acquisition (each -> Core only)
-  Njord.OpenMeteo/            # OpenMeteoGateway, typed per-domain clients (IWeatherClient/WeatherClient,
-                              #   IAirQualityClient, IFloodClient: HTTP, status handling, outcomes) with their
-                              #   response models, Geocoding (IGeocodingClient, LocationResolutionService:
-                              #   resolves coordinates from the name when a location omits Latitude/Longitude),
-                              #   JSON source generator
-    Mapping/                  # WeatherResponseMappings, AirQualityResponseMappings, FloodResponseMappings
-                              #   (response to domain forecast), DomainKindMappings
-  Njord.Budget/               # BudgetTracker persistent actor, usage accounting
-  Njord.Pipeline/             # PollManager, PollWorker (+ PollWorkerState), ForecastPipeline, ProjectionEngine,
-                              #   PipelineEvent BroadcastHub
-    Configuration/            # PipelineSetupContainer
-  Njord.Mqtt/                 # Everything MQTT-specific (boundary rule below); namespaces follow folders
-    Actors/                   # MqttConnection, MqttStatePublisher, internal actor messages
-    Topics/                   # TopicScheme, TopicSlug
-    Mapping/                  # PipelineEventMqttMappings (ToMqttMessages with MqttPublishContext,
-                              #   ToLocationName), payload mappings (Domain, Analysis)
-    Health/                   # MqttConnectionHealthCheck (registered by MqttSetupContainer)
-    Transport/                # IMqttConnection, IMqttTransport, MQTTnet publisher
-    Configuration/            # MqttSetupContainer
-                              #   (root: StatePayloadBuilder, MqttMessage, MqttEgressTuning, Telemetry)
-  Njord.Grpc/                 # gRPC services (ask and map), ActorAsk, protos,
-                              #   GrpcConsumer (pipeline output consumer for gRPC clients)
-    Mapping/                  # One <Domain>ProtoMappings class per domain (Alert, DomainData, Ops, Catalog),
-                              #   EnrichmentEventMappings, WireEnumMappings: extension methods only
-
-  # /Analysis/ — projection-group libraries (each -> Core only), own their computation
-  Njord.Weather/              # WeatherAlertHandler (IDomainHandler),
-                              #   Rules/ (one rule per AlertType), AlertWindow
-  Njord.AirQuality/           # AirQualityAlertHandler, PollenAlertRule, Pm25AlertRule
-  Njord.Flood/                # FloodRiskHandler, FloodRiskAlertRule, FloodRainHandler,
-                              #   FloodRainAlertRule (cross-domain Weather x Flood)
-
-  # Host
-  Njord/                      # Service host: Program.cs, DI, actors, streams (-> all above)
-    Configuration/            # Host setup, ServiceInfoMappings (options to the ServiceInfo contract);
-                              #   containers in Program.cs order: CoreSetupContainer (TimeProvider, meter
-                              #   allow-list), ConfigSetupContainer (options, ConfigView, ServiceInfo),
-                              #   HealthSetupContainer (health options, journal check), then the feature containers
-    Health/
-
-  # /Tests/ — one test project per production project
-  Njord.Model.Tests/          # Vocabulary type specs (Location, DomainKind, Horizon, etc.)
-  Njord.Persistence.Tests/    # Persistence roundtrip and wire-format specs (Verify for the poll worker records)
-  Njord.Messages.Tests/       # Alert contract specs (enums, thresholds, details)
-  Njord.Core.Tests/           # Configuration, StreamConsumerActor
-  Njord.OpenMeteo.Tests/      # Typed client, geocoding, gateway specs
-  Njord.Budget.Tests/         # BudgetTracker specs
-  Njord.Pipeline.Tests/       # PollWorker, PollManager, polling cluster, ForecastPipeline, ProjectionEngine specs
-  Njord.Mqtt.Tests/           # MQTT connection, state payload, consumer specs
-  Njord.Grpc.Tests/           # gRPC service, ActorAsk, mapping specs, golden masters,
-                              #   GrpcConsumer specs
-  Njord.Weather.Tests/        # WeatherAlertHandler, domain registration specs, Rules/ (one spec per rule)
-  Njord.Tests/                # Host specs: options binding, setup containers
-  Njord.IntegrationTests/     # Whole host via NjordHost + TestServer (gRPC channel, SQLite restart); Mosquitto via Testcontainers (needs Docker)
-  Njord.Architecture.Tests/   # ArchUnit zone/layer/convention rules
-  Njord.Tests.Shared/         # Shared fakes, fixtures, helpers (not a test project)
+  # Tests, one project per production project (xUnit v3, Microsoft.Testing.Platform)
+  Njord.Model.Tests/ Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
+  Njord.OpenMeteo.Tests/ Njord.Budget.Tests/ Njord.Pipeline.Tests/ Njord.Weather.Tests/
+  Njord.AirQuality.Tests/ Njord.Flood.Tests/ Njord.Marine.Tests/ Njord.Mqtt.Tests/ Njord.Grpc.Tests/
+  Njord.IntegrationTests/        # whole host via NjordHost + TestServer
+  Njord.Architecture.Tests/      # ArchUnitNET rules + EnrichmentConfigKeySpec
+  Njord.Tests.Shared/            # fakes, builders, fixtures, NjordActorSpec (not a test project)
+protos/njord/v2/                 # gRPC contracts (weather.proto, ops.proto, ...)
+docs/                            # VitePress site incl. the Config Builder (docs/.vitepress/theme/builder)
 ```
 
-Reference direction: Model <- Messages; Model/Messages/Persistence <- Core <- feature libs
-(OpenMeteo, Budget, Grpc, Pipeline, Mqtt, Weather, AirQuality, Flood) <- host. Feature libs reference only
-Njord.Core (and below, including Model transitively), never each other and never the host
-they reach each other's actors
-through the marker interfaces in `Njord.Core/ActorKeys.cs`. Registration
-stays central in the host. Enforced by project references plus `Njord.Architecture.Tests/LayerReferenceSpec.cs` and the
-lateral/upward ArchUnit rules in `Njord.Architecture.Tests/ZoneArchitectureSpec.cs`.
+Reference direction: Model <- Messages; Model/Messages/Persistence <- Core <- feature libraries
+(OpenMeteo, Budget, Pipeline, Weather, AirQuality, Flood, Marine, Mqtt, Grpc) <- host. Feature
+libraries reference only `Njord.Core` (and below), never each other and never the host; they reach
+each other's actors through the marker interfaces in `Njord.Core/ActorKeys.cs`. Registration stays
+central in the host (`AkkaSetupContainer`, `DomainSetupContainer`, ...).
 
 ## Build & test
 
@@ -273,325 +189,180 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 531 tests (Model 30, Persistence 14, Messages 40, Core 64, Grpc 32, Pipeline 152,
-Mqtt 57, OpenMeteo 37, Budget 18, Architecture 12, Weather 32, AirQuality 10, Flood 18, IntegrationTests 15).
-The count is one test per `[Fact]` and one per data row of a `[Theory]`.
-CI's `dotnet test --solution Njord.slnx` runs every test project of the solution.
-Each project is its own process with its own thread pool: running many at once on a small
-runner can slow the load-sensitive actor specs, so prefer the sequential loop above and
-limit parallel test modules (`--max-parallel-test-modules`) if flakes appear.
+Current total: 627 tests (Model 30, Messages 41, Persistence 18, Core 85, OpenMeteo 46, Budget 18,
+Pipeline 168, Weather 55, AirQuality 17, Flood 18, Marine 15, Mqtt 53, Grpc 32, Architecture 16,
+IntegrationTests 15). The count is one test per `[Fact]` and one per data row of a `[Theory]`.
+CI's `dotnet test --solution Njord.slnx` runs every test project. Each project is its own process
+with its own thread pool: running many at once on a small runner can slow the load-sensitive actor
+specs, so prefer the sequential loop above.
 
 Tests are xUnit v3 on Microsoft.Testing.Platform — `dotnet run`, **not** `dotnet test`.
-Shared test infrastructure (fixtures, fakes, helpers) lives in `Njord.Tests.Shared`.
+Shared test infrastructure lives in `Njord.Tests.Shared`.
 
-End-to-end verification of the full stack (njord + ha-njord + Home Assistant,
-via Docker Compose + browser automation) is the `e2e-test` skill, not a
-`dotnet test` project — see `.claude/skills/e2e-test/SKILL.md` and
-`e2e/E2E-TEST-PLAN.md`.
+End-to-end verification of the full stack (njord + ha-njord + Home Assistant, via Docker Compose +
+browser automation) is the `e2e-test` skill, not a `dotnet test` project — see
+`.claude/skills/e2e-test/SKILL.md` and `e2e/E2E-TEST-PLAN.md`.
 
 Run the service itself from `src/Njord/` (`dotnet run`). Configuration layers:
-- `appsettings.json` — logging and Kestrel only (no `Njord` section; all option defaults
-  live as property initializers on the options classes). List-valued defaults (threshold arrays) and structural initializers (dictionaries with a
-  comparer, nested `new()`) also live on the property; `ReplaceCollectionDefaults` makes a
-  configured list replace its code default. A new option gets its default as a property
-  initializer, not in `appsettings.json`.
-- `appsettings.Development.json` — dev overrides (locations, models, MQTT
-  disabled). Loaded automatically by `dotnet run` (`ASPNETCORE_ENVIRONMENT=Development`).
+- `appsettings.json` — logging and Kestrel only (no `Njord` section; all option defaults live as
+  property initializers on the options classes). `ReplaceCollectionDefaults` makes a configured list
+  replace its code default. A new option gets its default as a property initializer.
+- `appsettings.Development.json` — dev overrides, loaded by `dotnet run`.
 - Environment variables — Docker-compose / `docker run` (`Njord__Mqtt__Host`, etc.).
 - `appsettings.Example.json` — copy-in template with deployment-specific keys only.
-- `docker-compose.example.yml` — the commented variables show each option's default; a spec
-  (`ComposeExampleSpec`) fails when one differs from the bound default (property initializers
-  for scalars, code defaults for lists). A comment containing "Alternative" starts a block of
-  values that are not defaults and are skipped until the next blank line.
+- `docker-compose.example.yml` (repo root) — the commented variables show each option's default.
 
-Sections: one options class per concern, each with its own `SectionName` (no two share one,
-`OptionsAccessArchitectureSpec`): `Njord` (forecast scope: `Locations` only), `Njord:Weather` (`IncludeSolar`, `ForecastDays`),
-`Njord:Polling`, `Njord:OpenMeteo`, `Njord:Persistence` (incl. `DataPath`), `Njord:Health`, `Njord:Mqtt`, `Njord:Enrichment:Alerts`. Every
-options type is registered with `AddNjordOptions<T>(configuration)` (`Njord.Core`: binds
-the section, lets a configured list replace its default, registers `<T>Validator` from
-`T`'s namespace, `ValidateOnStart`); setup containers do not repeat those steps.
+Option sections (one options class per concern, each with its own `SectionName`, registered with
+`AddNjordOptions<T>(configuration)`: binds the section, lets a configured list replace its default,
+registers `<T>Validator`, `ValidateOnStart`):
 
-Configuration is static: it is read once at startup and a change needs a restart. Options are read
-through `IOptions<T>` or `ConfigView` (scope and polling), never `IOptionsMonitor<T>`
-(`OptionsAccessArchitectureSpec`, constructor parameters; `ConfigurationArchitectureSpec` for actors and fields).
-Setup containers resolve options from the service provider and are outside the rule.
+| Section | Class | Content |
+|---------|-------|---------|
+| `Njord` | `NjordOptions` | `Locations` only (`Name`, optional `Latitude`/`Longitude`) |
+| `Njord:Weather` | `WeatherOptions` | `IncludeSolar` (false), `ForecastDays` (4) |
+| `Njord:Enrichments` | `EnrichmentOptions` | the 13 enrichment toggles |
+| `Njord:Enrichment:Alerts` | `AlertOptions` | alert thresholds |
+| `Njord:Polling` | `PollingOptions` | `PollInterval`, `DiscoveryInterval`, `BudgetOverride` |
+| `Njord:OpenMeteo` | `OpenMeteoOptions` | `BaseUrl` |
+| `Njord:Persistence` | `PersistenceOptions` | `Provider` (Sqlite/PostgreSql), `ConnectionString`, `DataPath` |
+| `Njord:Health` | `HealthOptions` | health thresholds |
+| `Njord:Mqtt` | `MqttOptions` | `Enabled`, `Host`, `Port`, `Username`, `Password`, `DiscoveryPrefix`, `BaseTopic` |
 
-All option defaults live as property initializers; `new XOptions()` yields correct defaults.
-Tests that need list-default replacement still use `AppSettingsDefaults` (`Njord.Tests.Shared`,
-binds `appsettings.json` with `ReplaceCollectionDefaults`). `DefaultOptionsSpec` validates
-defaults with every validator.
+All options are read at startup (`IOptions<T>`); there is no hot reload and no runtime config
+writer. MQTT is disabled by default; enable with `Njord__Mqtt__Enabled=true` + `Njord__Mqtt__Host=...`.
 
-MQTT is disabled by default (`Mqtt:Enabled = false`). Enable explicitly with
-`Njord__Mqtt__Enabled=true` + `Njord__Mqtt__Host=...`.
+The Config Builder (`docs/.vitepress/theme/builder`: `types.ts`, `budget.ts`, `serializer.ts`,
+`ConfigBuilder.vue`, data in `docs/data/enrichment.json`) mirrors these options: the enrichment
+toggles and their `Triggers` in `types.ts`, the budget formula of `BudgetCalculator` in `budget.ts`.
+Change them together with the options.
 
-`DisabledTestArchitectureSpec` (`src/Njord.Architecture.Tests`) guards against
-skipped or ignored tests (`[Fact(Skip = ...)]`, `[Theory(Skip = ...)]`, `[Ignore]`)
-across all `*Spec.cs` test files.
+Mutation testing (Stryker.NET, pure-logic projects): `bash scripts/run-mutation.sh <Project>` from the
+repo root; config in `src/stryker-config.json`, notes in `docs/development/mutation-testing.md`.
 
-Mutation testing (Stryker.NET 5, MTP runner, per-test coverage; pure-logic projects only: Model,
-Alerts and parts of Core): `bash scripts/run-mutation.sh <Project>`
-from the repo root (runs in the .NET SDK container; `--local` where the SDK's MSBuild resolves, as in CI).
-Config in `src/stryker-config.json`, tool pinned in `.config/dotnet-tools.json`, weekly and manual run in
-`.github/workflows/mutation.yml` (report only, never a required check). Scores and exclusions:
-`docs/development/mutation-testing.md`.
-
-OpenSpec checks (run from the repo root):
+OpenSpec checks (run from the repo root, local only, not part of CI):
 
 ```bash
 openspec validate --all --no-interactive
 bash scripts/check-openspec-root.sh    # fails if an openspec/ root exists outside <repo root>/openspec
 ```
 
-These checks run locally only; they are deliberately not part of CI.
+## Open-Meteo API
 
-## Open-Meteo API (verified 2026-07-11 via live probes)
-
-- Endpoint `GET https://api.open-meteo.com/v1/forecast?latitude=&longitude=` —
-  **no API key, no auth header**. Free tier is non-commercial; soft limits
-  600/min, 5k/h, 10k/day, 300k/month. Calls are weighted: >10 hourly variables
-  or >2 weeks of data count fractionally as multiple calls (njord requests
-  exactly 9 variables × 4 days = weight 1.0).
-- Single-model requests (`&models=icon_d2`) return flat arrays under `hourly`
-  with **unsuffixed** variable names + an `hourly_units` object; multi-model
-  requests suffix every variable with the model id.
-- Wind defaults to km/h — always send `wind_speed_unit=ms`. Times default to
-  naive ISO strings — always send `timeformat=unixtime` (epoch seconds). Always
-  send `timezone=UTC` so all timestamps (hourly, daily, sunrise/sunset) align to
-  midnight UTC; the `timezone` field in the response is ignored. Using
-  `timezone=auto` would shift timestamps to midnight local time even with
-  `timeformat=unixtime`, causing off-by-one day errors for UTC+ timezones.
-- Values beyond a model's horizon are `null` entries (e.g. `icon_d2` ends
-  ~+48–64 h). A single requested model outside its geographic coverage →
-  HTTP 400 `{"error":true,"reason":"No data is available for this location"}`;
-  invalid model ids → HTTP 400 with an "invalid String value" reason.
-- Model ids verified working: `icon_d2`, `icon_eu`, `icon_global`,
-  `ecmwf_ifs025`, `gfs_seamless`, `ukmo_global_deterministic_10km`,
-  `meteoswiss_icon_ch1`, `meteoswiss_icon_ch2` (~1 km, Alps coverage — in
-  range for the default Lucerne location). No warnings endpoint.
-- Air Quality API: `GET https://air-quality-api.open-meteo.com/v1/air-quality?latitude=&longitude=`
-  — same auth/rate-limit as forecast. Hourly resolution, 5–7 days. Variables:
-  `pm2_5`, `pm10`, `ozone`, `nitrogen_dioxide`, `european_aqi`, `alder_pollen`,
-  `birch_pollen`, `grass_pollen`, `mugwort_pollen`, `ragweed_pollen`. CAMS model
-  (European 11 km / Global 45 km, auto-selected).
-- Flood API: `GET https://flood-api.open-meteo.com/v1/flood?latitude=&longitude=`
-  — **daily** resolution, up to 210 days. Variables: `river_discharge`,
-  `river_discharge_mean`, `river_discharge_median`, `river_discharge_max`,
-  `river_discharge_min`, `river_discharge_p25`, `river_discharge_p75`. GloFAS v4
-  (5 km), returns the largest river within 5 km. Response uses `daily` (not `hourly`).
+- Weather: `GET {BaseUrl}v1/ensemble?latitude=&longitude=` (default `https://api.open-meteo.com/`);
+  air quality, flood, marine and geocoding each use their own host (`air-quality-api`, `flood-api`,
+  `marine-api`, `geocoding-api` `.open-meteo.com`). **No API key.** Free tier is non-commercial; soft
+  limits 600/min, 5k/h, 10k/day, 300k/month. Calls are weighted: >10 hourly variables count
+  fractionally as multiple calls.
+- Wind in m/s, times as unix timestamps, timezone UTC (so hourly and daily timestamps align to
+  midnight UTC). Values beyond a horizon are `null` entries. HTTP 400 carries
+  `{"error":true,"reason":...}`.
 
 ## Conventions
 
-- OpenSpec lives only in `<repo root>/openspec`. Never delete `openspec/changes/archive`
-  (it is tracked, no longer gitignored).
-- **Git: NEVER `git push`** — the user pushes. Commit messages are Conventional
-  Commits (commitlint-enforced).
-- Versioning is release-please. Never edit `<Version>` in
-  `src/Directory.Build.props` by hand.
-- Central package management with transitive pinning: versions live only in
-  `src/Directory.Packages.props`; add packages via `dotnet add package`, never
-  edit csproj XML for versions.
-- Tests: `Spec` suffix, `sealed` classes, BDD-style method names. Async and
-  actor tests carry an explicit `[Fact(Timeout = ...)]` and pass
-  `TestContext.Current.CancellationToken` to awaited calls (xUnit1069 is an
-  error). The xUnit timeout is an outer safety net and must exceed every Akka
-  wait it wraps: TestKit waits dilate by `akka.test.timefactor = 3`
-  (`TestTimeouts.TimeFactor`), and the dilation applies to explicit durations
-  too, not just the defaults (3 s default becomes 9 s, an explicit 5 s becomes
-  15 s). Specs that start a hosted actor system or host use
-  `TestTimeouts.Hosted` (`Njord.Tests.Shared`, 30 s) and bound `AwaitAssert` /
-  `AwaitCondition` / `ExpectMsg` explicitly with `TestTimeouts.AwaitAssertMax`,
-  an un-dilated 5 s that TestKit stretches to 15 s; waits TestKit does not
-  dilate (`Task.WaitAsync`, manual deadlines) use `TestTimeouts.RealTimeWaitMax`
-  (15 s). Never pass a raw `TimeSpan` whose dilated value comes within 10 s of
-  the xUnit timeout. `TestTimeoutsSpec` (`Njord.Core.Tests`) enforces this
-  margin for the shared constants. Plain
-  `Timeout = 5000` is only for specs that make no dilated Akka wait. Never
-  reuse an actor name after `GracefulStop` (name release lags `Terminated`):
-  use a unique name. Retry-backoff specs pass a short `BackoffPolicy` (`Backoff.Create(50 ms, maxDelay: 400 ms)`) instead of
-  waiting real seconds. Pure synchronous specs use a plain `[Fact]`, a timeout
-  cannot be enforced there.
-- C#: records for messages/DTOs, value objects in the domain, `sealed` by
-  default, nullable enabled.
-- Enum to wire text or to another enum is an extension method with an explicit
-  `switch` expression, one arm per member and a default that throws
-  `ArgumentOutOfRangeException` (`ToWireName()`, `ToTopicSegment()`, `ToProto()`). No casts
-  between enum types, `Enum.Parse`/`TryParse` or `ToString().ToLower*()` for wire values;
-  `EnumConversionArchitectureSpec` scans production code, no allow-list entries.
-  Each conversion has a spec pinning every member.
-- Mappings (domain to proto, request to command, options to message) are public extension methods in
-  `internal static` classes named `<Domain><Target>Mappings`, one per domain; no state, no options, no
-  registry lookups, never inside actors or services. Names follow the direction: `ToProto`, `ToCommand`,
-  `ToDomain`, `ToMessage`, never `Map*`. `DateTimeOffset` to protobuf uses Google.Protobuf's
-  `ToTimestamp()`. `ServiceInfoMappings` (host) stays `public`
-  because the test projects consume them without `InternalsVisibleTo`. `MappingConventionArchitectureSpec`
-  enforces this; each mapping class has a spec pinning every field. Mapping logic
-  (event-to-MQTT, Open-Meteo series/URI and log-level conversions) lives in
-  `Mapping/` extensions that take settings as arguments or a small context record
-  (`MqttPublishContext`).
-- **"Snapshot" is reserved for persisted actor state.** No production type name contains
-  `Snapshot`; the persisted state of a persistent actor is `Persisted<Name>State`, and the Akka
-  members (`SaveSnapshot`, `SnapshotOffer`, `SaveSnapshotSuccess`, `SnapshotInterval`) keep their
-  names. Contract types are named for what they are: `LocationForecast`, `DomainForecast<T>`,
-  `ServiceInfo`, `MqttConnectionStatus` / `PollHealth` /
-  `BudgetUsage`. `NamingArchitectureSpec` enforces the `Snapshot` reservation.
-- Enrichment wire names come from `EnrichmentNames` (`Njord.Messages.Pipeline`), never bare
-  strings. `AlertRaised` is the enrichment `PipelineEvent` variant.
-- Weather variables are internal: `WeatherVariables` (`Njord.Core/Configuration`) holds the hardcoded
-  hourly list (standard plus the solar set when `Njord:Weather:IncludeSolar`); `IWeatherClient.HourlyVariables`
-  publishes what the client requests. The API call weight is `ceil(variableCount / 10)`
-  (`WeatherVariables.ApiCallWeight`); MQTT topics come from the forecast payloads, not from configuration.
-- Persistence records (`Njord.Persistence`): follow FunkArr conventions
-  (`akka-skills:persistence`). Positional records (no `[JsonProperty]`,
-  no init-properties). `DateTimeOffset` for timestamps, `TimeSpan` for
-  durations — never `long` ticks. No `Dto`/`Event` suffix — use past-tense
-  for events (`SomethingHappened`), `Persisted<Name>State` for snapshots.
-  New properties must be nullable or have a default. While the project is 0.x,
-  breaking persistence changes are allowed (`refactor!:`).
-  Closed sets in a persisted record are `Persisted*` enums with explicit numeric
-  values (`PersistedPollPhase`); `Njord.Persistence` types reference only `System`
-  and `Njord.Persistence` types (`PersistenceBoundarySpec`). Mapping between state
-  and persisted records lives in `<Owner>PersistenceMappings` (`GetPersistenceState`,
-  `FromPersistence`, `FromPersistedEvent`, `ToPersistence()`/`ToDomain()` for
-  enums) in the owning project, never in the state file; state to message contract
-  (`ToPollStateEntry()`, `ToBudgetUsage()`) lives in `<Owner>MessageMappings`.
-- Persistent actors use `LastSequenceNr % SnapshotInterval == 0` for snapshot
-  scheduling (FunkArr pattern). No counters on domain state records.
-- Journal cleanup after snapshot: `DeleteMessages(seqNr)` +
-  `DeleteSnapshots(seqNr - 1)` in `SaveSnapshotSuccess` handler.
-- `Apply` methods on state take the event record directly (e.g.
-  `Apply(ApiCallRecorded evt, ...)`), not decomposed primitive values.
-- Health is feature-owned (FunkArr shape): `PollHealthState` (Pipeline), `MqttConnectionState` (Mqtt)
-  and `BudgetUsageState` (Budget) are written only by their actor, as one atomic swap of an immutable
-  record (`PollHealth`, `MqttConnectionStatus`, `BudgetUsage`), and read only by the feature's own check.
-  Each check is a sealed `IHealthCheck` over an `internal static Evaluate(...)` that takes plain values
-  and is registered by the owning container with an explicit `failureStatus` (`pipeline`, `budget`,
-  `mqtt-connection`; the host adds `journal`). Checks never ask actors. Thresholds
-  are `Njord:Health` options (`PollOverdueFactor`, `PollStalledFactor`, `MqttUnhealthyAfter`,
-  `BudgetDegradedBelowPercent`). `/healthz` answers 200 for Healthy and
-  Degraded and 503 for Unhealthy within a 5 s request timeout; `/alive` is unconditional.
+- OpenSpec lives only in `<repo root>/openspec`. Never delete `openspec/changes/archive`.
+- **Git: NEVER `git push`** — the user pushes. Commit messages are Conventional Commits
+  (commitlint-enforced).
+- Versioning is release-please. Never edit `<Version>` in `src/Directory.Build.props` by hand.
+- Central package management: versions live only in `src/Directory.Packages.props`; add packages via
+  `dotnet add package`, never edit csproj XML for versions.
+- Tests: `Spec` suffix, `sealed` classes, BDD-style method names. Async and actor tests carry an
+  explicit `[Fact(Timeout = ...)]` and pass `TestContext.Current.CancellationToken` to awaited calls
+  (xUnit1069 is an error). The xUnit timeout is an outer safety net and must exceed every Akka wait
+  it wraps: TestKit waits dilate by `akka.test.timefactor = 3`, and the dilation applies to explicit
+  durations too. Specs that start a hosted actor system or host use `TestTimeouts.Hosted`
+  (`Njord.Tests.Shared`) and bound `AwaitAssert`/`AwaitCondition`/`ExpectMsg` with
+  `TestTimeouts.AwaitAssertMax`; waits TestKit does not dilate use `TestTimeouts.RealTimeWaitMax`.
+  Never reuse an actor name after `GracefulStop`: use a unique name. Actor specs derive from
+  `NjordActorSpec` (Akka.Hosting TestKit, in-memory persistence); never create an `ActorSystem` by hand.
+  Retry-backoff specs pass a short `BackoffPolicy` instead of waiting real seconds. Pure synchronous
+  specs use a plain `[Fact]`.
+- C#: records for messages/DTOs, value objects in the domain, `sealed` by default, nullable enabled.
+- Enum to wire text or to another enum is an extension method with an explicit `switch` expression,
+  one arm per member and a default that throws `ArgumentOutOfRangeException` (`ToProto()`,
+  `ToWireName()`). No casts between enum types, `Enum.Parse`/`TryParse` or `ToString().ToLower*()`
+  for wire values. Each conversion has a spec pinning every member.
+- Mappings (domain to proto, event to MQTT, response to domain) are extension methods in static
+  classes named `<Domain><Target>Mappings`; no state, never inside actors. Names follow the direction:
+  `ToProto`, `ToDomain`, `ToMessage`, never `Map*`. `DateTimeOffset` to protobuf uses
+  `ToTimestamp()`.
+- **"Snapshot" is reserved for persisted actor state**: the persisted state of a persistent actor is
+  `Persisted<Name>State`; the Akka members (`SaveSnapshot`, `SnapshotOffer`, ...) keep their names.
+- Persistence records (`Njord.Persistence`): follow FunkArr conventions (`akka-skills:persistence`).
+  Positional records, `DateTimeOffset` for timestamps, `TimeSpan` for durations, past-tense event
+  names (`ForecastChanged`), `Persisted<Name>State` for snapshots. New properties must be nullable or
+  have a default. Closed sets are `Persisted*` enums with explicit numeric values. Mapping between
+  state and persisted records lives in `<Owner>PersistenceMappings` in the owning project; state to
+  message contract in `<Owner>MessageMappings`. While the project is 0.x, breaking persistence
+  changes are allowed (`refactor!:`).
+- Persistent actors use `LastSequenceNr % SnapshotInterval == 0` for snapshot scheduling. Journal
+  cleanup after snapshot: `DeleteMessages(seqNr)` + `DeleteSnapshots(seqNr - 1)` in
+  `SaveSnapshotSuccess`. `Apply` methods on state take the event record directly.
+- Health is feature-owned: `PollHealthState` (Pipeline), `MqttConnectionState` (Mqtt) and
+  `BudgetUsageState` (Budget) are written only by their actor as one atomic swap of an immutable
+  record and read only by the feature's own `IHealthCheck` (`pipeline`, `budget`, `mqtt-connection`;
+  the host adds `journal` and `data-directory`). Checks never ask actors. `/healthz` answers 200 for
+  Healthy and Degraded and 503 for Unhealthy; `/alive` is unconditional.
+- Adding an enrichment: implement `IDomainHandler` in the owning domain project, register it in that
+  project's `Add<Domain>Domain()`, add the toggle to `EnrichmentOptions`, the contract/event to
+  `Njord.Messages`, and update the Config Builder (`types.ts`) and `docker-compose.example.yml`
+  (skill `njord-enrichment-feature`).
 
 ## C# conventions
 
-- Style (namespaces, `using` order, `_camelCase` fields, braces, `var`) is
-  enforced by `src/.editorconfig` — do not restate it here.
+- Style (namespaces, `using` order, `_camelCase` fields, braces, `var`) is enforced by `.editorconfig`.
 - No XML docs. Code speaks through naming.
 - Never use `async void`, `.Result`, or `.Wait()`.
 - Always pass `CancellationToken` through async call chains.
 
 ## Akka conventions
 
-Rules apply to production code (`src/Njord/`).
+Rules apply to production code.
 
-- **No `ContinueWith`** in actor code. Use `PipeTo` with `success:` and
-  `failure:` mappers.
-- **No `Status.Failure`/`Status.Success`.** Use project-owned
-  `XxxFailed(Exception Cause)` records (plus the `RequestId` when answering a
-  correlated request); in `PipeTo` always provide
-  `failure: ex => new XxxFailed(ex)`. A failure message must be handled by its
+- **No `ContinueWith`** in actor code. Use `PipeTo` with `success:` and `failure:` mappers.
+- **No `Status.Failure`/`Status.Success`.** Use project-owned `XxxFailed(Exception Cause)` records
+  (plus the request id when answering a correlated request); a failure message must be handled by its
   requester, never left to the stash or dead letters.
-- **No `EventStream`** in production code. Use explicit actor references.
-  TestKit probes may subscribe to `DeadLetter`/`Warning` in tests.
+- **No `EventStream`** in production code. Use explicit actor references. TestKit probes may
+  subscribe to `DeadLetter`/`Warning` in tests.
 - **No `IActorRef` constructor parameters** in production actors.
-- **Actor naming:** domain-role names (e.g. `PollManager`, `PollWorker`, `ForecastPipeline`), sealed.
+- **Actor naming:** domain-role names (`PollManager`, `PollWorker`, `ForecastPipeline`), sealed.
   `*State` suffix is reserved for immutable state records, never for actors.
-- **Actor logging:** `private readonly ILoggingAdapter _log = Context.GetLogger();`
-  — inline field init, `readonly`, named `_log`. Never `null!` + PreStart.
-  The host's `ActorCategoryLogger` (registered in `AkkaSetupContainer.ConfigureLogging`) writes
-  each event with the logging class's full type name as category (`Njord.Pipeline.PollWorker`,
-  Akka internals keep `Akka.*`); `akka.loglevel` follows the lowest `Serilog:MinimumLevel` value.
-- **Actors are resolved by marker interfaces** (`IPollManager`, `IPollRegion`,
-  `IMqttConnectionActor`, ... in `Njord.Core/ActorKeys.cs`), registered
-  in the host (`AkkaSetupContainer`); never key a registry lookup by the actor
-  class.
+- **Actor logging:** `private readonly ILoggingAdapter _log = Context.GetLogger();` — inline field
+  init, `readonly`, named `_log`. The host's `ActorCategoryLogger` writes each event with the logging
+  class's full type name as category; `akka.loglevel` follows the lowest `Serilog:MinimumLevel`.
+- **Actors are resolved by marker interfaces** (`ActorKeys.cs`), registered in the host
+  (`AkkaSetupContainer`); never key a registry lookup by the actor class.
 
 ## Test assertion conventions
 
-- Prefer `Assert.NotNull(value)` before accessing nullable members over the
-  null-forgiving operator (`!.`). Exception: `JsonNode` indexers
-  (`payload["x"]!.GetValue<int>()`).
-- `var item = Assert.Single(collection)` instead of `collection[0]`.
-- Assert the count (`Assert.Equal(2, list.Count)`) before indexing several
-  elements.
-- **No vacuous assertion after an already-proven value**: once a value's
-  type/non-null state is already proven (e.g. by `ExpectMsg<T>()`), the
-  following assertion must inspect actual content (property values, message
-  text, counts), not just `Assert.NotNull(result)` again. A `Assert.NotNull`
-  used as a genuine null guard before further property assertions is not
-  vacuous.
-- **Endpoint-registration tests assert real behavior**: a test for a mapped
-  Minimal API group must send a request to at least one mapped route and
-  assert on the response (status code and/or body), not only that
-  `IEndpointRouteBuilder.DataSources` is non-empty.
-- **Assert the exact computed value, not just existence.** When behavior
-  produces a concrete value (a string, a count, a computed field), assert on
-  that value directly instead of settling for "it's not null" or "it's not
-  empty."
-- **Exceptions: capture and inspect, not just the type.**
-  `var ex = Assert.Throws<T>(...)` / `await Assert.ThrowsAsync<T>(...)`, then
-  assert on `ex`'s actual fields (`ex.ParamName`, `ex.Message`, custom
-  properties) — not just the exception type.
-- **Mock-call assertions specify exact args and count** —
-  `mock.Received(1).Method(Arg.Is<T>(x => ...))`, not just "was called" /
-  "didn't throw."
-- **NSubstitute for plain-interface mocking, when actually needed.** Not
-  currently a dependency here - no project collaborator has needed a
-  hand-rolled stub class yet (actor collaborators go through
-  `TestProbe`/real actors, never mocked). Reach for
-  `Substitute.For<T>()` + `sub.Member(...).Returns(...)` the first time a
-  non-actor interface needs faking, instead of writing a new stub class by
-  hand (see FunkArr's `IDataFiles`/`IHttpClientFactory` tests for the
-  pattern). A stateful shared fake with its own small, purpose-built API
-  (like `Njord.Tests.Shared.FakeOpenMeteoClient`) is still the better choice
-  over NSubstitute when many test files need the same simple toggle
-  behavior.
-- **`Assert.IsType<T>(obj, exactMatch: false)`** to prove interface/base-type
-  conformance instead of an unchecked cast.
-- **No `Thread.Sleep`/arbitrary delay for async or eventually-consistent
-  state.** Use a bounded wait with a descriptive timeout failure instead.
-  Akka actor tests already get this for free via `TestProbe.ExpectMsg`/
-  `AwaitAssert`.
-- **`Assert.Multiple`** for grouped assertions on the same object/outcome, so
-  one run reports every failing assertion instead of stopping at the first.
-- **`Assert.Equal(expected, actual)` over `Assert.True(actual == expected)`**
-  — better failure messages.
-- Prefer `Theory`/`InlineData`/`MemberData` for small input/output sweeps;
-  prefer separate named `[Fact]`s when each case needs a large distinct
-  fixture (e.g. an embedded JSON payload) — a readable failure name beats
-  DRY in that case.
-
-### Enforcement
-
-Machine-checked by `TestSourceConventionArchitectureSpec` (scans every `*Spec.cs` of the test projects, comments and
-literals ignored; allow-list entries carry a reason and fail when stale):
-
-- an `async` `[Fact]`/`[Theory]` carries an explicit `Timeout`;
-- no `Thread.Sleep`, no `Task.Delay` with a literal duration;
-- no `DateTime.UtcNow`/`Now`, `DateTimeOffset.UtcNow`/`Now` (use `FakeTimeProvider` or a fixed timestamp);
-- no single-argument `Assert.True(a == b)` / `Assert.False(a != b)` (xUnit has no message overload for `Assert.Equal`,
-  so a call that passes a message is a deliberate `Assert.True`);
-- no `!.` except on an indexer result or `JsonNode.Parse(...)`; reflection helpers in `Njord.Architecture.Tests` are exempt.
-
-Machine-checked elsewhere: sealed `Spec` classes (`ConventionArchitectureSpec`), no skipped or ignored tests
-(`DisabledTestArchitectureSpec`), the timeout margin of the shared constants (`TestTimeoutsSpec`), CancellationToken
-passing (`xUnit1069` compiler error), and that the files, specs and methods named in this document and in the project skills
-exist (`DocumentationArchitectureSpec`).
-
-Review-only: no vacuous assertion, assert the exact value, inspect captured exceptions, exact args in mock assertions,
-real behavior in endpoint tests, `Assert.Multiple` for grouped assertions, count before indexing and `Assert.Single`,
-`Assert.IsType(exactMatch: false)`, `Theory` versus separate `Fact`s, and when to reach for NSubstitute.
+- Prefer `Assert.NotNull(value)` before accessing nullable members over the null-forgiving operator
+  (`!.`). Exception: `JsonNode` indexers.
+- `var item = Assert.Single(collection)` instead of `collection[0]`; assert the count before indexing
+  several elements.
+- No vacuous assertion after an already-proven value; assert the exact computed value, not just
+  existence.
+- Exceptions: `var ex = Assert.Throws<T>(...)` / `await Assert.ThrowsAsync<T>(...)`, then assert on
+  `ex`'s fields (`ParamName`, `Message`), not just the type.
+- `Assert.IsType<T>(obj, exactMatch: false)` to prove interface/base-type conformance.
+- No `Thread.Sleep`/arbitrary delay for async state: use `TestProbe.ExpectMsg`/`AwaitAssert` or a
+  bounded wait with a descriptive timeout.
+- `Assert.Multiple` for grouped assertions on the same object; `Assert.Equal(expected, actual)` over
+  `Assert.True(actual == expected)`.
+- Use `FakeTimeProvider` or a fixed timestamp, never `DateTime.UtcNow`/`DateTimeOffset.UtcNow`.
+- Prefer `Theory`/`InlineData`/`MemberData` for small input/output sweeps; separate named `[Fact]`s
+  when each case needs a large distinct fixture.
+- Endpoint tests send a request to a mapped route and assert status and/or body.
 
 ## Metrics conventions
 
-- One `Meter("Njord.<Domain>")` per feature library (OpenMeteo, Budget, Pipeline,
-  Mqtt; plus `Njord.Core` for its shared base classes), owned by an `internal static class Telemetry` in that project with
-  `internal static readonly` instrument fields (`Telemetry.MqttDedup.Add(...)`).
-  Each `Telemetry` exposes `MeterName`; `CoreSetupContainer.NjordMeters` is built from these constants
-  (hence `InternalsVisibleTo Njord` on those libraries), so a new meter is added to that list.
-  `BudgetSetupContainer` registers the budget gauges (hosted service over `BudgetUsageState` and the effective budget from `ConfigView`).
-- Names are `njord_<area>_<name>` in snake_case; counters end in `_total`,
-  time histograms in `_seconds`. Keep tag cardinality bounded.
-- Metrics are exported via prometheus-net.
+- One `Meter("Njord.<Domain>")` per feature library (`Njord.Core`, `Njord.OpenMeteo`, `Njord.Budget`,
+  `Njord.Pipeline`, `Njord.Mqtt`), owned by an `internal static class Telemetry` with
+  `internal static readonly` instruments and a `MeterName` constant; `CoreSetupContainer` builds the
+  meter allow-list from these constants (hence `InternalsVisibleTo Njord`), so a new meter is added
+  there.
+- Names are `njord_<area>_<name>` in snake_case; counters end in `_total`, time histograms in
+  `_seconds`. Keep tag cardinality bounded. Metrics are exported via prometheus-net.
 
 ## References
 
-- Open-Meteo API: https://open-meteo.com/en/docs (endpoint: `https://api.open-meteo.com/v1/forecast`)
+- Open-Meteo API: https://open-meteo.com/en/docs

@@ -41,11 +41,6 @@ export function exportAsJson(config: NjordConfig): string {
       return loc
     })
   }
-  if (!config.sensors.enabled || config.sensors.stalenessSeconds !== 7200) {
-    const sensors: Record<string, unknown> = { Enabled: config.sensors.enabled }
-    if (config.sensors.stalenessSeconds !== 7200) sensors.StalenessSeconds = config.sensors.stalenessSeconds
-    n.Sensors = sensors
-  }
 
   const mqtt: Record<string, unknown> = { Enabled: config.mqtt.enabled }
   if (config.mqtt.enabled) {
@@ -102,9 +97,6 @@ export function exportAsEnvVars(config: NjordConfig): string {
     if (loc.latitude !== undefined) add(`Njord__Locations__${i}__Latitude`, String(loc.latitude))
     if (loc.longitude !== undefined) add(`Njord__Locations__${i}__Longitude`, String(loc.longitude))
   })
-
-  if (!config.sensors.enabled) add('Njord__Sensors__Enabled', 'false')
-  if (config.sensors.stalenessSeconds !== 7200) add('Njord__Sensors__StalenessSeconds', String(config.sensors.stalenessSeconds))
 
   if (config.mqtt.enabled) {
     add('Njord__Mqtt__Enabled', 'true')
@@ -200,12 +192,6 @@ export function importFromJson(json: string): Partial<NjordConfig> {
       ...(typeof l.Longitude === 'number' && l.Longitude !== 0 ? { longitude: l.Longitude } : {}),
     }))
   }
-  if (n.Sensors) {
-    config.sensors = {
-      enabled: n.Sensors.Enabled ?? true,
-      stalenessSeconds: n.Sensors.StalenessSeconds ?? 7200,
-    }
-  }
   if (n.Mqtt) {
     config.mqtt = {
       enabled: n.Mqtt.Enabled ?? false,
@@ -275,10 +261,6 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
       if (!config.enrichment[feature]) config.enrichment[feature] = {}
       const asNum = Number(value)
       config.enrichment[feature][setting] = value === 'true' ? true : value === 'false' ? false : !isNaN(asNum) ? asNum : value
-    }
-    else if (parts[0] === 'Sensors') {
-      if (parts[1] === 'Enabled') config.sensors.enabled = value === 'true'
-      else if (parts[1] === 'StalenessSeconds') config.sensors.stalenessSeconds = parseInt(value) || 7200
     }
     else if (parts[0] === 'Mqtt' && parts[1] === 'Enabled') {
       config.mqtt.enabled = value === 'true'

@@ -63,7 +63,6 @@ export interface NjordConfig {
   discoveryInterval: string
   enrichments: Record<string, boolean>
   locations: LocationConfig[]
-  sensors: { enabled: boolean; stalenessSeconds: number }
   mqtt: { enabled: boolean; host: string; port: number; username: string; password: string; discoveryPrefix: string; baseTopic: string }
   enrichment: Record<string, Record<string, unknown>>
   budgetOverride: { requestsPerMonth: number; requestsPerMinute: number } | null
@@ -82,7 +81,6 @@ export function defaultConfig(): NjordConfig {
     discoveryInterval: '00:20:00',
     enrichments: defaultEnrichments(),
     locations: [],
-    sensors: { enabled: true, stalenessSeconds: 7200 },
     mqtt: { enabled: false, host: '', port: 1883, username: '', password: '', discoveryPrefix: 'homeassistant', baseTopic: 'njord' },
     enrichment: {},
     budgetOverride: null,
