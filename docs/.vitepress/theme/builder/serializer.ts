@@ -13,6 +13,28 @@ function parseEnrichmentKey(value: string): string | null {
   return ENRICHMENT_TOGGLES.find(t => t.key.toLowerCase() === value.toLowerCase())?.key ?? null
 }
 
+// Fills everything an import or a shared URL does not mention with defaults, nested objects included.
+export function mergeWithDefaults(partial: Partial<NjordConfig>): NjordConfig {
+  const d = defaultConfig()
+  return {
+    ...d,
+    ...partial,
+    enrichments: { ...defaultEnrichments(), ...partial.enrichments },
+    weather: { ...d.weather, ...partial.weather },
+    airQuality: { ...d.airQuality, ...partial.airQuality },
+    marine: { ...d.marine, ...partial.marine },
+    flood: { ...d.flood, ...partial.flood },
+    mqtt: { ...d.mqtt, ...partial.mqtt },
+    solarYield: { ...d.solarYield, ...partial.solarYield },
+    persistence: { ...d.persistence, ...partial.persistence },
+    deploy: { limits: { ...d.deploy.limits, ...partial.deploy?.limits } },
+  }
+}
+
+function solarYieldEnabled(config: NjordConfig): boolean {
+  return !!config.enrichments.SolarYield
+}
+
 function parseBool(value: unknown): boolean {
   return String(value).trim().toLowerCase() === 'true'
 }
@@ -28,11 +50,18 @@ export function exportAsJson(config: NjordConfig): string {
   n.Polling = polling
   const weather: Record<string, unknown> = {}
   if (config.weather.forecastDays !== defaults.weather.forecastDays) weather.ForecastDays = config.weather.forecastDays
+  if (config.weather.model !== defaults.weather.model) weather.Model = config.weather.model
   if (Object.keys(weather).length) n.Weather = weather
   if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) n.AirQuality = { ForecastDays: config.airQuality.forecastDays }
   if (config.marine.forecastDays !== defaults.marine.forecastDays) n.Marine = { ForecastDays: config.marine.forecastDays }
   if (config.flood.forecastDays !== defaults.flood.forecastDays) n.Flood = { ForecastDays: config.flood.forecastDays }
-  if (config.openMeteoBaseUrl !== defaults.openMeteoBaseUrl) n.OpenMeteo = { BaseUrl: config.openMeteoBaseUrl }
+  if (solarYieldEnabled(config)) {
+    const solar: Record<string, unknown> = {}
+    if (config.solarYield.peakKw !== defaults.solarYield.peakKw) solar.PeakKw = config.solarYield.peakKw
+    if (config.solarYield.azimuth !== defaults.solarYield.azimuth) solar.Azimuth = config.solarYield.azimuth
+    if (config.solarYield.tilt !== defaults.solarYield.tilt) solar.Tilt = config.solarYield.tilt
+    if (Object.keys(solar).length) n.SolarYield = solar
+  }
   const changed = changedEnrichments(config.enrichments)
   if (changed.length) n.Enrichments = Object.fromEntries(changed)
   if (config.locations.length) {
@@ -57,6 +86,7 @@ export function exportAsJson(config: NjordConfig): string {
     for (const [feature, settings] of Object.entries(config.enrichment)) {
       const featureObj: Record<string, unknown> = {}
       for (const [key, value] of Object.entries(settings as Record<string, unknown>)) {
+        if (key === 'Enabled' && value === true) continue
         if (key.includes(':')) {
           const [section, prop] = key.split(':')
           if (!featureObj[section]) featureObj[section] = {}
@@ -65,9 +95,9 @@ export function exportAsJson(config: NjordConfig): string {
           featureObj[key] = value
         }
       }
-      enrichment[feature] = featureObj
+      if (Object.keys(featureObj).length) enrichment[feature] = featureObj
     }
-    n.Enrichment = enrichment
+    if (Object.keys(enrichment).length) n.Enrichment = enrichment
   }
   const persistence: Record<string, unknown> = {}
   if (config.persistence.provider !== 'Sqlite') {
@@ -87,6 +117,7 @@ export function exportAsEnvVars(config: NjordConfig): string {
   const defaults = defaultConfig()
   add('Njord__Polling__PollInterval', config.pollInterval)
   if (config.weather.forecastDays !== defaults.weather.forecastDays) add('Njord__Weather__ForecastDays', String(config.weather.forecastDays))
+  if (config.weather.model !== defaults.weather.model) add('Njord__Weather__Model', config.weather.model)
   if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) add('Njord__AirQuality__ForecastDays', String(config.airQuality.forecastDays))
   if (config.marine.forecastDays !== defaults.marine.forecastDays) add('Njord__Marine__ForecastDays', String(config.marine.forecastDays))
   if (config.flood.forecastDays !== defaults.flood.forecastDays) add('Njord__Flood__ForecastDays', String(config.flood.forecastDays))
@@ -110,9 +141,17 @@ export function exportAsEnvVars(config: NjordConfig): string {
 
   for (const [feature, settings] of Object.entries(config.enrichment)) {
     for (const [key, value] of Object.entries(settings as Record<string, unknown>)) {
+      if (key === 'Enabled' && value === true) continue
       const envKey = key.includes(':') ? key.replace(':', '__') : key
-      add(`Njord__Enrichment__${feature}__${envKey}`, String(value))
+      if (Array.isArray(value)) value.forEach((v, i) => add(`Njord__Enrichment__${feature}__${envKey}__${i}`, String(v)))
+      else add(`Njord__Enrichment__${feature}__${envKey}`, String(value))
     }
+  }
+
+  if (solarYieldEnabled(config)) {
+    if (config.solarYield.peakKw !== defaults.solarYield.peakKw) add('Njord__SolarYield__PeakKw', String(config.solarYield.peakKw))
+    if (config.solarYield.azimuth !== defaults.solarYield.azimuth) add('Njord__SolarYield__Azimuth', String(config.solarYield.azimuth))
+    if (config.solarYield.tilt !== defaults.solarYield.tilt) add('Njord__SolarYield__Tilt', String(config.solarYield.tilt))
   }
 
   if (config.budgetOverride) {
@@ -128,7 +167,6 @@ export function exportAsEnvVars(config: NjordConfig): string {
   if (config.discoveryInterval !== defaults.discoveryInterval) {
     add('Njord__Polling__DiscoveryInterval', config.discoveryInterval)
   }
-  if (config.openMeteoBaseUrl !== defaults.openMeteoBaseUrl) add('Njord__OpenMeteo__BaseUrl', config.openMeteoBaseUrl)
   if (config.dataPath !== defaults.dataPath) add('Njord__Persistence__DataPath', config.dataPath)
 
   return lines.join('\n')
@@ -151,6 +189,9 @@ ${config.deploy.limits.cpus ? `          cpus: "${config.deploy.limits.cpus}"\n`
   njord:
     image: ghcr.io/st0o0/njord:latest
     restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "8081:8081"
 ${deployBlock}    volumes:
       - njord-data:/app/data
     environment:
@@ -165,24 +206,32 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   const parsed = JSON.parse(json)
   const n = parsed.Njord ?? parsed
   const config: Partial<NjordConfig> = {}
+  config.enrichments = config.enrichments ?? defaultEnrichments()
 
   // Root-level keys of versions before 0.5.0 are still read (the export writes the new keys); the
   // import reports them through findOutdatedKeys.
   const pollInterval = n.Polling?.PollInterval ?? n.PollInterval
   const discoveryInterval = n.Polling?.DiscoveryInterval ?? n.DiscoveryInterval
   const budgetOverride = n.Polling?.BudgetOverride ?? n.BudgetOverride
-  const baseUrl = n.OpenMeteo?.BaseUrl ?? n.OpenMeteoBaseUrl
   if (pollInterval) config.pollInterval = pollInterval
   if (n.Weather) {
     config.weather = {
       forecastDays: Number(n.Weather.ForecastDays) || 4,
+      model: n.Weather.Model ?? defaultConfig().weather.model,
+    }
+  }
+  if (n.SolarYield) {
+    const d = defaultConfig().solarYield
+    config.solarYield = {
+      peakKw: Number(n.SolarYield.PeakKw) || d.peakKw,
+      azimuth: n.SolarYield.Azimuth !== undefined ? Number(n.SolarYield.Azimuth) : d.azimuth,
+      tilt: n.SolarYield.Tilt !== undefined ? Number(n.SolarYield.Tilt) : d.tilt,
     }
   }
   if (n.AirQuality) config.airQuality = { forecastDays: Number(n.AirQuality.ForecastDays) || 5 }
   if (n.Marine) config.marine = { forecastDays: Number(n.Marine.ForecastDays) || 8 }
   if (n.Flood) config.flood = { forecastDays: Number(n.Flood.ForecastDays) || 92 }
   if (discoveryInterval) config.discoveryInterval = discoveryInterval
-  if (baseUrl) config.openMeteoBaseUrl = baseUrl
   if (n.Enrichments && typeof n.Enrichments === 'object') {
     for (const [name, value] of Object.entries(n.Enrichments as Record<string, unknown>)) {
       const key = parseEnrichmentKey(name)
@@ -238,9 +287,17 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
       else if (budgetParts[0] === 'RequestsPerMinute') budget.requestsPerMinute = parseInt(value) || 0
       config.budgetOverride = budget
     }
-    else if (parts[0] === 'OpenMeteo' && parts[1] === 'BaseUrl' || parts[0] === 'OpenMeteoBaseUrl') config.openMeteoBaseUrl = value
     else if (parts[0] === 'Weather') {
       if (parts[1] === 'ForecastDays') config.weather.forecastDays = parseInt(value) || 4
+      else if (parts[1] === 'Model' && value) config.weather.model = value
+    }
+    else if (parts[0] === 'SolarYield') {
+      const num = parseFloat(value)
+      if (!Number.isNaN(num)) {
+        if (parts[1] === 'PeakKw') config.solarYield.peakKw = num
+        else if (parts[1] === 'Azimuth') config.solarYield.azimuth = num
+        else if (parts[1] === 'Tilt') config.solarYield.tilt = num
+      }
     }
     else if (parts[0] === 'AirQuality' && parts[1] === 'ForecastDays') config.airQuality.forecastDays = parseInt(value) || 5
     else if (parts[0] === 'Marine' && parts[1] === 'ForecastDays') config.marine.forecastDays = parseInt(value) || 8
@@ -253,23 +310,36 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
       const idx = parseInt(parts[1])
       while (config.locations.length <= idx) config.locations.push({ name: '' })
       if (parts[2] === 'Name') config.locations[idx].name = value
-      else if (parts[2] === 'Latitude') config.locations[idx].latitude = parseFloat(value) || undefined
-      else if (parts[2] === 'Longitude') config.locations[idx].longitude = parseFloat(value) || undefined
+      else if (parts[2] === 'Latitude') {
+        const parsed = parseFloat(value)
+        config.locations[idx].latitude = Number.isNaN(parsed) ? undefined : parsed
+      }
+      else if (parts[2] === 'Longitude') {
+        const parsed = parseFloat(value)
+        config.locations[idx].longitude = Number.isNaN(parsed) ? undefined : parsed
+      }
     }
     else if (parts[0] === 'Mqtt') {
-      if (parts[1] === 'Host') config.mqtt.host = value
+      if (parts[1] === 'Enabled') config.mqtt.enabled = value.toLowerCase() === 'true'
+      else if (parts[1] === 'Host') config.mqtt.host = value
       else if (parts[1] === 'Port') config.mqtt.port = parseInt(value) || 1883
       else if (parts[1] === 'Username') config.mqtt.username = value
+      else if (parts[1] === 'Password') config.mqtt.password = value
+      else if (parts[1] === 'DiscoveryPrefix') config.mqtt.discoveryPrefix = value
+      else if (parts[1] === 'BaseTopic') config.mqtt.baseTopic = value
     }
     else if (parts[0] === 'Enrichment' && parts.length >= 3) {
       const feature = parts[1]
       const setting = parts[2]
       if (!config.enrichment[feature]) config.enrichment[feature] = {}
       const asNum = Number(value)
+      if (parts.length === 4 && /^\d+$/.test(parts[3])) {
+        const arr = Array.isArray(config.enrichment[feature][setting]) ? config.enrichment[feature][setting] as unknown[] : []
+        arr[Number(parts[3])] = asNum
+        config.enrichment[feature][setting] = arr
+        continue
+      }
       config.enrichment[feature][setting] = value === 'true' ? true : value === 'false' ? false : !isNaN(asNum) ? asNum : value
-    }
-    else if (parts[0] === 'Mqtt' && parts[1] === 'Enabled') {
-      config.mqtt.enabled = value === 'true'
     }
     else if (parts[0] === 'Persistence') {
       if (parts[1] === 'Provider') config.persistence.provider = value
@@ -307,7 +377,6 @@ const OUTDATED_KEYS: { old: string; current: string }[] = [
   { old: 'PollInterval', current: 'Polling__PollInterval' },
   { old: 'DiscoveryInterval', current: 'Polling__DiscoveryInterval' },
   { old: 'BudgetOverride', current: 'Polling__BudgetOverride' },
-  { old: 'OpenMeteoBaseUrl', current: 'OpenMeteo__BaseUrl' },
   { old: 'PersistencePath', current: 'Persistence__DataPath' },
 ]
 
@@ -360,9 +429,9 @@ export function encodeHash(config: NjordConfig): string {
   return btoa(JSON.stringify(config))
 }
 
-export function decodeHash(hash: string): Partial<NjordConfig> | null {
+export function decodeHash(hash: string): NjordConfig | null {
   try {
-    return JSON.parse(atob(hash))
+    return mergeWithDefaults(JSON.parse(atob(hash)))
   } catch {
     return null
   }

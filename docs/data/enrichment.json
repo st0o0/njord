@@ -11,7 +11,14 @@
       { "name": "CapeThreshold", "type": "number", "default": 1000.0 },
       { "name": "ThunderstormPrecipThreshold", "type": "number", "default": 5.0 },
       { "name": "ThunderstormGustThreshold", "type": "number", "default": 15.0 },
-      { "name": "IceThreshold", "type": "number", "default": 2.0 }
+      { "name": "IceThreshold", "type": "number", "default": 2.0 },
+      { "name": "FrostThresholds", "type": "numberArray", "default": [0, -5, -15] },
+      { "name": "HeatThresholds", "type": "numberArray", "default": [30, 35, 40] },
+      { "name": "StormGustThresholds", "type": "numberArray", "default": [17, 25, 33] },
+      { "name": "WindChillThresholds", "type": "numberArray", "default": [-10, -20, -30] },
+      { "name": "VisibilityThresholds", "type": "numberArray", "default": [1000, 200, 50] },
+      { "name": "TropicalNightThresholds", "type": "numberArray", "default": [20, 23, 25] },
+      { "name": "HumidityThresholds", "type": "numberArray", "default": [16, 21, 24] }
     ]
   }
 ]

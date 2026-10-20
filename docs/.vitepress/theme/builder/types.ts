@@ -8,6 +8,8 @@ export interface EnrichmentToggle {
   description: string
   domains: DomainName[]
   weatherParams?: string[]
+  optionalWeatherParams?: string[]
+  airQualityParams?: string[]
   enabledByDefault: boolean
 }
 
@@ -27,6 +29,12 @@ export const ENRICHMENT_TOGGLES: EnrichmentToggle[] = [
   { key: 'PollenTrend', label: 'Pollen trend', description: 'Pollen trend between forecasts', domains: ['AirQuality'], enabledByDefault: false },
   { key: 'NightVentilation', label: 'Night ventilation', description: 'Night cooling ventilation', domains: ['Weather'], weatherParams: ['Temperature'], enabledByDefault: false },
   { key: 'ConfidenceTrend', label: 'Confidence trend', description: 'Forecast confidence trend', domains: ['Weather'], weatherParams: ['EnsembleStdDev'], enabledByDefault: false },
+  { key: 'SolarYield', label: 'Solar yield', description: 'Expected PV yield from tilted irradiance', domains: ['Weather'], weatherParams: ['GlobalTiltedIrradiance'], enabledByDefault: false },
+  { key: 'GardeningAdvisory', label: 'Gardening advisory', description: 'Gardening conditions advisory', domains: ['Weather'], weatherParams: ['Temperature', 'WindSpeed', 'Precipitation'], enabledByDefault: false },
+  { key: 'OutdoorScore', label: 'Outdoor score', description: 'Overall outdoor activity score', domains: ['Weather', 'AirQuality'], weatherParams: ['Temperature', 'Precipitation', 'PrecipitationProbability', 'WindSpeed', 'CloudCover'], optionalWeatherParams: ['UvIndex'], airQualityParams: ['BirchPollen', 'GrassPollen', 'AlderPollen', 'MugwortPollen'], enabledByDefault: false },
+  { key: 'BBQScore', label: 'BBQ score', description: 'Barbecue conditions score', domains: ['Weather'], weatherParams: ['Precipitation', 'Temperature', 'WindSpeed', 'PrecipitationProbability', 'CloudCover'], enabledByDefault: false },
+  { key: 'FloodTimeline', label: 'Flood timeline', description: 'River discharge timeline', domains: ['Flood'], enabledByDefault: false },
+  { key: 'ApproachingFront', label: 'Approaching front', description: 'Weather front approaching detection', domains: ['Weather'], weatherParams: ['Pressure', 'Temperature', 'WindDirection'], enabledByDefault: false },
 ]
 
 export function defaultEnrichments(): Record<string, boolean> {
@@ -52,7 +60,7 @@ export function weatherVariableCount(enrichments: Record<string, boolean>): numb
 export interface EnrichmentFeature {
   name: string
   enabledByDefault: boolean
-  options: { name: string; type: string; default: unknown }[]
+  options: { name: string; type: string; default: unknown; description?: string }[]
 }
 
 export interface LocationConfig {
@@ -68,7 +76,7 @@ export interface DeployLimits {
 
 export interface NjordConfig {
   pollInterval: string
-  weather: { forecastDays: number }
+  weather: { forecastDays: number; model: string }
   airQuality: { forecastDays: number }
   marine: { forecastDays: number }
   flood: { forecastDays: number }
@@ -80,7 +88,7 @@ export interface NjordConfig {
   budgetOverride: { requestsPerMonth: number; requestsPerMinute: number } | null
   persistence: { provider: string; connectionString: string }
   dataPath: string
-  openMeteoBaseUrl: string
+  solarYield: { peakKw: number; azimuth: number; tilt: number }
   deploy: { limits: DeployLimits }
 }
 
@@ -89,7 +97,7 @@ export interface NjordConfig {
 export function defaultConfig(): NjordConfig {
   return {
     pollInterval: '01:00:00',
-    weather: { forecastDays: 4 },
+    weather: { forecastDays: 4, model: 'ecmwf_ifs025_ensemble_mean' },
     airQuality: { forecastDays: 5 },
     marine: { forecastDays: 8 },
     flood: { forecastDays: 92 },
@@ -101,7 +109,7 @@ export function defaultConfig(): NjordConfig {
     budgetOverride: null,
     persistence: { provider: 'Sqlite', connectionString: '' },
     dataPath: 'data/njord.db',
-    openMeteoBaseUrl: 'https://api.open-meteo.com/',
+    solarYield: { peakKw: 5.0, azimuth: 180, tilt: 30 },
     deploy: { limits: { cpus: '', memory: '' } },
   }
 }

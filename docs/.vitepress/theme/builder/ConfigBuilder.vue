@@ -2,7 +2,7 @@
 import { reactive, ref, computed, watch, onMounted } from 'vue'
 import { defaultConfig, ENRICHMENT_TOGGLES, requiredDomains, type NjordConfig, type EnrichmentFeature } from './types'
 import { computeBudget } from './budget'
-import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, findOutdatedKeys, encodeHash, decodeHash } from './serializer'
+import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, findOutdatedKeys, encodeHash, decodeHash, mergeWithDefaults } from './serializer'
 import enrichmentData from '../../../data/enrichment.json'
 
 const enrichmentFeatures = enrichmentData as EnrichmentFeature[]
@@ -16,27 +16,18 @@ function toggleEnrichmentKey(key: string) {
   config.enrichments[key] = !config.enrichments[key]
 }
 
-function initEnrichment(): Record<string, Record<string, unknown>> {
-  const result: Record<string, Record<string, unknown>> = {}
-  for (const f of enrichmentFeatures) {
-    if (f.enabledByDefault) {
-      result[f.name] = { Enabled: true }
-    }
-  }
-  return result
-}
-config.enrichment = initEnrichment()
-
+// Only an explicit Enabled flag is stored; a missing flag means the feature default.
 function isEnrichmentEnabled(name: string): boolean {
-  return !!config.enrichment[name]?.Enabled
+  const feature = enrichmentFeatures.find(f => f.name === name)
+  return (config.enrichment[name]?.Enabled as boolean | undefined) ?? feature?.enabledByDefault ?? false
 }
 
 function toggleEnrichment(name: string) {
-  if (isEnrichmentEnabled(name)) {
-    delete config.enrichment[name]
-  } else {
-    config.enrichment[name] = { Enabled: true }
-  }
+  const feature = enrichmentFeatures.find(f => f.name === name)
+  const next = !isEnrichmentEnabled(name)
+  if (!config.enrichment[name]) config.enrichment[name] = {}
+  if (next === (feature?.enabledByDefault ?? false)) delete config.enrichment[name].Enabled
+  else config.enrichment[name].Enabled = next
 }
 
 function getEnrichmentOption(feature: string, option: string, defaultVal: unknown): unknown {
@@ -44,12 +35,27 @@ function getEnrichmentOption(feature: string, option: string, defaultVal: unknow
 }
 
 function setEnrichmentOption(feature: string, option: string, value: unknown, defaultVal: unknown) {
-  if (!config.enrichment[feature]) return
+  if (!config.enrichment[feature]) config.enrichment[feature] = {}
   if (value === defaultVal || value === '' || value === undefined) {
     delete config.enrichment[feature][option]
   } else {
     config.enrichment[feature][option] = value
   }
+}
+
+function getArrayOption(feature: string, option: string, defaultVal: unknown): number[] {
+  const value = config.enrichment[feature]?.[option]
+  return [...((Array.isArray(value) ? value : defaultVal) as number[])]
+}
+
+function setArrayOption(feature: string, option: string, index: number, raw: string, defaultVal: unknown) {
+  const current = getArrayOption(feature, option, defaultVal)
+  const parsed = Number(raw)
+  if (raw.trim() === '' || Number.isNaN(parsed)) return
+  current[index] = parsed
+  const def = defaultVal as number[]
+  const same = current.length === def.length && current.every((v, i) => v === def[i])
+  setEnrichmentOption(feature, option, same ? undefined : current, defaultVal)
 }
 
 const exportMode = reactive({ format: 'json' as 'json' | 'env' | 'compose' })
@@ -102,7 +108,7 @@ function doImport() {
   try {
     importText.outdated = findOutdatedKeys(importText.value)
     const partial = autoImport(importText.value)
-    Object.assign(config, { ...defaultConfig(), ...partial })
+    Object.assign(config, mergeWithDefaults(partial))
     importText.value = ''
   } catch (e) {
     importText.error = e instanceof Error ? e.message : 'Invalid input'
@@ -118,7 +124,7 @@ onMounted(() => {
   const hash = window.location.hash.replace('#config=', '')
   if (hash) {
     const restored = decodeHash(hash)
-    if (restored) Object.assign(config, { ...defaultConfig(), ...restored })
+    if (restored) Object.assign(config, restored)
   }
 })
 </script>
@@ -178,8 +184,26 @@ onMounted(() => {
       <div class="general-row">
         <label>Forecast Days <input v-model.number="config.weather.forecastDays" type="number" min="1" max="16" /></label>
       </div>
+      <details class="advanced">
+        <summary>Advanced</summary>
+        <div class="general-row">
+          <label>Model <input v-model="config.weather.model" placeholder="ecmwf_ifs025_ensemble_mean" class="input-wide-model" /></label>
+        </div>
+        <p class="section-hint">Ensemble model for the weather request. Only written to the config when it differs from the default.</p>
+      </details>
       <div class="weight-display">Weather API call weight: <strong>{{ budget.apiCallWeight }}</strong></div>
       <p class="section-hint">The hourly variables follow from the enabled enrichments; Open-Meteo counts ceil(variables / 10) calls, doubled beyond 14 forecast days.</p>
+    </div>
+
+    <!-- Solar yield -->
+    <div v-if="config.enrichments.SolarYield" class="section">
+      <h3>Solar yield</h3>
+      <div class="general-row">
+        <label>Peak kW <input v-model.number="config.solarYield.peakKw" type="number" step="any" min="0.1" /></label>
+        <label>Azimuth <input v-model.number="config.solarYield.azimuth" type="number" min="0" max="360" /></label>
+        <label>Tilt <input v-model.number="config.solarYield.tilt" type="number" min="0" max="90" /></label>
+      </div>
+      <p class="section-hint">Defaults: 5.0 kW, azimuth 180 (south), tilt 30. Peak power must be above 0, azimuth 0..360, tilt 0..90.</p>
     </div>
 
     <!-- Per-domain forecast days -->
@@ -206,8 +230,19 @@ onMounted(() => {
           <div v-if="isEnrichmentEnabled(f.name) && f.options.length" class="enrichment-options">
             <label v-for="opt in f.options" :key="opt.name" class="enrichment-option" :title="opt.description || ''">
               <span class="option-name">{{ opt.name.includes(':') ? opt.name.split(':')[1] : opt.name }}</span>
+              <span v-if="opt.type === 'numberArray'" class="array-inputs">
+                <input
+                  v-for="(v, idx) in getArrayOption(f.name, opt.name, opt.default)"
+                  :key="idx"
+                  type="number"
+                  step="any"
+                  :value="v"
+                  @input="setArrayOption(f.name, opt.name, idx, ($event.target as HTMLInputElement).value, opt.default)"
+                  class="option-input option-input-small"
+                />
+              </span>
               <input
-                v-if="opt.type === 'number'"
+                v-else-if="opt.type === 'number'"
                 type="number"
                 step="any"
                 :placeholder="String(opt.default)"
@@ -351,6 +386,10 @@ button.active { background: var(--vp-c-brand-1); color: white; border-color: var
 .enrichment-option { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; font-size: 12px; color: var(--vp-c-text-2); gap: 2px; }
 .option-name { min-width: 100px; }
 .option-input { width: 100px; font-size: 12px; }
+.option-input-small { width: 64px; }
+.array-inputs { display: flex; gap: 4px; }
+.input-wide-model { width: 260px; }
+.advanced { margin-top: 8px; }
 .option-description { width: 100%; font-size: 10px; color: var(--vp-c-text-3); margin-top: -2px; }
 
 
