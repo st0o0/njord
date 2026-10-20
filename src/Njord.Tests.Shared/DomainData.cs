@@ -23,7 +23,14 @@ public static class DomainData
         Humidity: 60.0,
         DewPoint: 5.0,
         UvIndex: 0.0,
-        EnsembleStdDev: 0.5);
+        EnsembleStdDev: 0.5,
+        WindGusts: 4.0,
+        Visibility: 20000.0,
+        Cape: 0.0,
+        Rain: 0.0,
+        Snowfall: 0.0,
+        FreezingLevelHeight: 2500.0,
+        IsDay: true);
 
     public static DomainForecast<WeatherPoint> Weather(
         DateTimeOffset start, int hours = 48, Func<int, WeatherPoint, WeatherPoint>? shape = null)

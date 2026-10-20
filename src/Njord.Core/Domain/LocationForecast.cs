@@ -35,6 +35,18 @@ public sealed record LocationForecast(
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null)
     };
 
+    public bool HasFields(DomainRequirements required) =>
+        HasFields(Weather, required.Weather, static (point, param) => point.HasFields(param))
+        && HasFields(AirQuality, required.AirQuality, static (point, param) => point.HasFields(param))
+        && HasFields(Flood, required.Flood, static (point, param) => point.HasFields(param))
+        && HasFields(Marine, required.Marine, static (point, param) => point.HasFields(param));
+
+    private static bool HasFields<TPoint, TParam>(DomainForecast<TPoint>? forecast, TParam required, Func<TPoint, TParam, bool> check)
+        where TPoint : IHasValidTime
+        where TParam : struct, Enum =>
+        EqualityComparer<TParam>.Default.Equals(required, default)
+        || forecast is { Points.IsDefaultOrEmpty: false } && check(forecast.Points[0], required);
+
     private static DomainForecast<T> Cast<T>(DomainKind domain, IDomainForecast forecast)
         where T : IHasValidTime =>
         forecast as DomainForecast<T>

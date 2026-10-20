@@ -107,7 +107,7 @@ public sealed class ForecastPipeline : ReceiveActor
         inputSource
             .StatefulSelectMany<DomainDataReceived, PipelineEvent, NotUsed>(() =>
             {
-                var engine = new ProjectionEngine(handlers, timeProvider);
+                var engine = new ProjectionEngine(handlers, timeProvider, log);
 
                 return received =>
                 {

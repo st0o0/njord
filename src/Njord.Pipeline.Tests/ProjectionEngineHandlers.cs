@@ -26,6 +26,21 @@ internal sealed class RecordingHandler(params DomainKind[] triggers) : IDomainHa
     }
 }
 
+internal sealed class RequiringHandler(DomainRequirements requirements) : IDomainHandler
+{
+    public string ConfigKey => "WeatherAlerts";
+
+    public List<Seen> Calls { get; } = [];
+
+    public DomainRequirements Requirements { get; } = requirements;
+
+    public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
+    {
+        Calls.Add(new Seen(current, previous));
+        return [new PipelineEvent.AlertRaised(current.Location, Alert.None(AlertType.Frost), time.GetUtcNow())];
+    }
+}
+
 internal sealed class EmittingHandler : IDomainHandler
 {
     public string ConfigKey => "WeatherAlerts";

@@ -105,7 +105,63 @@ public sealed class ProjectionEngineSpec
         Assert.Multiple(
             () => Assert.Single(weatherGroup.Calls),
             () => Assert.Single(floodGroup.Calls),
-            () => Assert.Equal(2, both.Calls.Count));
+            () => Assert.Single(both.Calls));
+    }
+
+    [Fact]
+    public void A_handler_whose_required_fields_are_present_runs_normally()
+    {
+        var handler = new RequiringHandler(new DomainRequirements(Weather: WeatherParam.Temperature | WeatherParam.WindSpeed));
+        var engine = new ProjectionEngine([handler], Time);
+
+        var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
+
+        Assert.Multiple(
+            () => Assert.Single(handler.Calls),
+            () => Assert.Equal(2, events.Count));
+    }
+
+    [Fact]
+    public void A_handler_whose_required_field_is_missing_is_skipped_and_emits_no_event()
+    {
+        var handler = new RequiringHandler(new DomainRequirements(Weather: WeatherParam.Temperature | WeatherParam.SoilTemperature));
+        var engine = new ProjectionEngine([handler], Time);
+
+        var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
+
+        Assert.Multiple(
+            () => Assert.Empty(handler.Calls),
+            () => Assert.IsType<PipelineEvent.WeatherDataReceived>(Assert.Single(events)));
+    }
+
+    [Fact]
+    public void Other_handlers_still_run_when_one_is_skipped()
+    {
+        var skipped = new RequiringHandler(new DomainRequirements(Weather: WeatherParam.SoilTemperature));
+        var running = new RequiringHandler(new DomainRequirements(Weather: WeatherParam.Temperature));
+        var engine = new ProjectionEngine([skipped, running], Time);
+
+        var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
+
+        Assert.Multiple(
+            () => Assert.Empty(skipped.Calls),
+            () => Assert.Single(running.Calls),
+            () => Assert.Equal(2, events.Count),
+            () => Assert.IsType<PipelineEvent.AlertRaised>(events[1]));
+    }
+
+    [Fact]
+    public void A_handler_requiring_a_domain_that_was_not_fetched_is_skipped()
+    {
+        var handler = new RequiringHandler(new DomainRequirements(
+            Weather: WeatherParam.Temperature, Flood: Njord.Forecast.Flood.FloodParam.Discharge));
+        var engine = new ProjectionEngine([handler], Time);
+
+        engine.Process(Weather(DomainData.Lucerne, 10.0));
+        Assert.Empty(handler.Calls);
+
+        engine.Process(DomainData.Received(DomainData.Lucerne, DomainData.Flood(Start)));
+        Assert.Single(handler.Calls);
     }
 
     [Fact]
