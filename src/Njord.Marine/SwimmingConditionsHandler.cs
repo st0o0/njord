@@ -12,11 +12,7 @@ public sealed class SwimmingConditionsHandler(
     IAlertRule<DomainForecast<MarinePoint>> rule,
     IOptions<AlertOptions> options) : IDomainHandler
 {
-    public string ConfigKey => "SwimmingConditions";
-
-    public DomainRequirements Requirements { get; } = new(
-        Marine: MarineParams.WaveHeight,
-        OptionalMarine: MarineParams.WaterTemperature);
+    public FeatureDescriptor Feature => rule.Feature;
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

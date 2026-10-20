@@ -8,9 +8,12 @@ public sealed class SolarYieldHandler : IDomainHandler
 {
     public const double SystemEfficiency = 0.8;
 
-    public string ConfigKey => "SolarYield";
-
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.GlobalTiltedIrradiance);
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.SolarYield,
+        FeatureCategory.Energy,
+        "Expected solar yield from tilted irradiance",
+        DefaultEnabled: false,
+        new DomainRequirements(Weather: WeatherParams.GlobalTiltedIrradiance));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

@@ -52,6 +52,6 @@ public sealed class SwimmingConditionsHandlerSpec
     {
         Assert.Equal(
             new DomainRequirements(Marine: MarineParams.WaveHeight, OptionalMarine: MarineParams.WaterTemperature),
-            Handler().Requirements);
+            Handler().Feature.Requirements);
     }
 }

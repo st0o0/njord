@@ -10,11 +10,7 @@ namespace Njord.Flood;
 
 public sealed class FloodRainHandler(IAlertRule<FloodRainInput> rule, IOptions<AlertOptions> options) : IDomainHandler
 {
-    public string ConfigKey => "FloodRain";
-
-    public DomainRequirements Requirements { get; } = new(
-        Weather: WeatherParams.Precipitation,
-        Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75);
+    public FeatureDescriptor Feature => rule.Feature;
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

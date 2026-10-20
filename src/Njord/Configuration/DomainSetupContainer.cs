@@ -17,12 +17,12 @@ public sealed class DomainSetupContainer : IServiceSetupContainer
         services.AddAlertOptions(configuration);
         services.AddWeatherDomain().AddAirQualityDomain().AddFloodDomain().AddMarineDomain();
 
-        services.AddSingleton<IReadOnlySet<DomainKind>>(static sp => EnrichmentResolution.RequiredDomains(
-            sp.GetRequiredService<IOptions<EnrichmentOptions>>().Value,
+        services.AddSingleton<IReadOnlySet<DomainKind>>(static sp => FeatureResolution.RequiredDomains(
+            sp.GetRequiredService<IOptions<FeatureOptions>>().Value,
             sp.GetServices<IDomainHandler>()));
 
-        services.AddSingleton(static sp => new ResolvedRequirements(EnrichmentResolution.RequiredParams(
-            sp.GetRequiredService<IOptions<EnrichmentOptions>>().Value,
+        services.AddSingleton(static sp => new ResolvedRequirements(FeatureResolution.RequiredParams(
+            sp.GetRequiredService<IOptions<FeatureOptions>>().Value,
             sp.GetServices<IDomainHandler>())));
     }
 }

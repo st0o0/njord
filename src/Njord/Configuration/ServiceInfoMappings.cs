@@ -1,5 +1,6 @@
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
+using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
@@ -12,12 +13,12 @@ public static class ServiceInfoMappings
         NjordOptions scope,
         PollingOptions polling,
         AlertOptions alerts,
-        EnrichmentOptions enrichments) =>
+        IEnumerable<FeatureDescriptor> enabledFeatures) =>
         new(
             scope.ToCatalog(),
             BudgetCalculator.GetEffectiveBudget(polling).RequestsPerMonth,
             RequestBudget.OpenMeteoFreeTierDailyLimit,
-            ActiveEnrichments(alerts, enrichments));
+            ActiveEnrichments(alerts, enabledFeatures));
 
     public const string EnsembleModelId = "ensemble_mean";
 
@@ -31,7 +32,7 @@ public static class ServiceInfoMappings
         return new CatalogResult(locations, [new CatalogModel(EnsembleModelId)]);
     }
 
-    private static List<string> ActiveEnrichments(AlertOptions alerts, EnrichmentOptions enrichments)
+    private static List<string> ActiveEnrichments(AlertOptions alerts, IEnumerable<FeatureDescriptor> enabledFeatures)
     {
         var active = new List<string>();
         if (alerts.Enabled)
@@ -39,7 +40,7 @@ public static class ServiceInfoMappings
             active.Add(EnrichmentNames.Alerts);
         }
 
-        active.AddRange(enrichments.EnabledKeys().Order(StringComparer.Ordinal));
+        active.AddRange(enabledFeatures.Select(feature => feature.Kind.ToConfigKey()).Order(StringComparer.Ordinal));
         return active;
     }
 }

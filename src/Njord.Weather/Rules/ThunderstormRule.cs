@@ -10,6 +10,13 @@ public sealed class ThunderstormRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Thunderstorm;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.ThunderstormAlert,
+        FeatureCategory.WeatherAlerts,
+        "Thunderstorm warning from CAPE, precipitation and gusts",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.Cape | WeatherParams.Precipitation | WeatherParams.WindGusts | WeatherParams.EnsembleStdDev));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var evaluable = forecast.NextHoursInclusive(now).Where(p => p.Cape is not null && p.WindGusts is not null).ToList();

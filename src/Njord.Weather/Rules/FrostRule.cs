@@ -10,6 +10,13 @@ public sealed class FrostRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Frost;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.FrostAlert,
+        FeatureCategory.WeatherAlerts,
+        "Frost warning from the forecast low",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.EnsembleStdDev));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var thresholds = options.Frost();

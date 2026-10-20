@@ -11,9 +11,12 @@ public sealed class NightVentilationHandler : IDomainHandler
     public const double HotDayPeak = 28.0;
     public const double CoolNightLimit = 20.0;
 
-    public string ConfigKey => "NightVentilation";
-
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.Temperature);
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.NightVentilation,
+        FeatureCategory.Lifestyle,
+        "Night cooling ventilation advice",
+        DefaultEnabled: false,
+        new DomainRequirements(Weather: WeatherParams.Temperature));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

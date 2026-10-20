@@ -56,7 +56,7 @@ public sealed class SurfConditionsHandlerSpec
     [Fact]
     public void The_handler_is_keyed_to_the_surf_toggle()
     {
-        Assert.Equal("SurfConditions", Handler.ConfigKey);
+        Assert.Equal(FeatureKind.SurfConditions, Handler.Feature.Kind);
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public sealed class SurfConditionsHandlerSpec
                 Marine: MarineParams.SwellWaveHeight | MarineParams.SwellWavePeriod,
                 OptionalMarine: MarineParams.SwellWaveDirection | MarineParams.WindWaveHeight,
                 OptionalWeather: WeatherParams.WindDirection),
-            Handler.Requirements);
+            Handler.Feature.Requirements);
     }
 
     [Fact]
@@ -75,6 +75,6 @@ public sealed class SurfConditionsHandlerSpec
     {
         Assert.Equal(
             new DomainRequirements(Marine: MarineParams.WaveHeight, OptionalMarine: MarineParams.WaterTemperature),
-            new SwimmingConditionsHandler(new SwimmingConditionsRule(), Njord.Tests.Shared.AlertRuleFixture.OptionsWith(true)).Requirements);
+            new SwimmingConditionsHandler(new SwimmingConditionsRule(), Njord.Tests.Shared.AlertRuleFixture.OptionsWith(true)).Feature.Requirements);
     }
 }

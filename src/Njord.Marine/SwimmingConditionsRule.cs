@@ -16,6 +16,14 @@ public sealed class SwimmingConditionsRule : IAlertRule<DomainForecast<MarinePoi
 
     public AlertType Type => AlertType.SwimmingConditions;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.SwimmingConditions,
+        FeatureCategory.Marine,
+        "Swimming conditions from wave height and water temperature",
+        DefaultEnabled: false,
+        new DomainRequirements(Marine: MarineParams.WaveHeight,
+            OptionalMarine: MarineParams.WaterTemperature));
+
     public Alert Evaluate(DomainForecast<MarinePoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var best = Alert.None(Type);

@@ -10,6 +10,13 @@ public sealed class FogRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Fog;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.FogAlert,
+        FeatureCategory.WeatherAlerts,
+        "Fog warning from dew point spread, wind and humidity",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.DewPoint | WeatherParams.WindSpeed | WeatherParams.Humidity | WeatherParams.EnsembleStdDev));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var fogPoints = forecast.NextHoursInclusive(now)

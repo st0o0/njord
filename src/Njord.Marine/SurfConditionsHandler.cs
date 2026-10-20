@@ -7,12 +7,15 @@ namespace Njord.Marine;
 
 public sealed class SurfConditionsHandler : IDomainHandler
 {
-    public string ConfigKey => "SurfConditions";
-
-    public DomainRequirements Requirements { get; } = new(
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.SurfConditions,
+        FeatureCategory.Marine,
+        "Surf conditions from swell height and period",
+        DefaultEnabled: false,
+        new DomainRequirements(
         Marine: MarineParams.SwellWaveHeight | MarineParams.SwellWavePeriod,
         OptionalMarine: MarineParams.SwellWaveDirection | MarineParams.WindWaveHeight,
-        OptionalWeather: WeatherParams.WindDirection);
+        OptionalWeather: WeatherParams.WindDirection));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

@@ -33,15 +33,15 @@ internal sealed class ProjectionEngine(IReadOnlyList<IDomainHandler> handlers, T
 
         foreach (var handler in handlers)
         {
-            if (!handler.Requirements.Requires(received.Domain))
+            if (!handler.Feature.Requirements.Requires(received.Domain))
             {
                 continue;
             }
 
-            if (!slot.Current.HasFields(handler.Requirements))
+            if (!slot.Current.HasFields(handler.Feature.Requirements))
             {
                 Telemetry.HandlerSkipped.Add(1,
-                    new KeyValuePair<string, object?>("handler", handler.ConfigKey),
+                    new KeyValuePair<string, object?>("handler", handler.Feature.Kind.ToConfigKey()),
                     new KeyValuePair<string, object?>("reason", "missing_data"));
                 continue;
             }

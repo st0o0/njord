@@ -1,5 +1,7 @@
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Forecast.Flood;
+using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
 
 namespace Njord.Flood;
@@ -10,6 +12,14 @@ public sealed class FloodRainAlertRule : IAlertRule<FloodRainInput>
     public const double HeavyRain24HourMillimeters = 30.0;
 
     public AlertType Type => AlertType.FloodRain;
+
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.FloodRain,
+        FeatureCategory.Flood,
+        "Flood warning combining heavy rain and rising discharge",
+        DefaultEnabled: false,
+        new DomainRequirements(Weather: WeatherParams.Precipitation,
+            Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75));
 
     public Alert Evaluate(FloodRainInput input, AlertOptions options, DateTimeOffset now)
     {

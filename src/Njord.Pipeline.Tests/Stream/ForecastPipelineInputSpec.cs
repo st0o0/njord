@@ -17,12 +17,23 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
 
     protected override bool UseTestPersistence => false;
 
-    private IActorRef CreatePipeline(EnrichmentOptions? enrichments = null)
+    private IActorRef CreatePipeline(FeatureOptions? features = null)
     {
         var time = new FakeTimeProvider(Start);
         var group = FeatureServices.AlertHandler(time);
-        var options = Options.Create(enrichments ?? new EnrichmentOptions());
+        var options = Options.Create(features ?? new FeatureOptions());
         return Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, new[] { group }, options)), $"pipeline-{Guid.NewGuid():N}");
+    }
+
+    private static FeatureOptions AllFeaturesOff()
+    {
+        var options = new FeatureOptions();
+        foreach (var kind in Enum.GetValues<FeatureKind>())
+        {
+            options[kind] = false;
+        }
+
+        return options;
     }
 
     private static DomainDataReceived Weather(Location location, double temperature = 10.0) =>
@@ -97,7 +108,7 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
     public async Task A_disabled_enrichment_raises_nothing_even_when_its_domain_data_is_present()
     {
         var ct = TestContext.Current.CancellationToken;
-        var pipeline = CreatePipeline(new EnrichmentOptions { WeatherAlerts = false });
+        var pipeline = CreatePipeline(AllFeaturesOff());
         var consumer = CreateTestProbe();
         await PipelineProducer.AttachConsumerAsync(pipeline, Sys, consumer, ct);
         var producer = await PipelineProducer.AttachAsync(pipeline, Sys, ct);

@@ -10,6 +10,13 @@ public sealed class WindChillRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.WindChill;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.WindChillAlert,
+        FeatureCategory.WeatherAlerts,
+        "Wind chill warning from apparent temperature",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.ApparentTemperature | WeatherParams.EnsembleStdDev));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         if (forecast.NextHoursInclusive(now).LowestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } low } coldest)

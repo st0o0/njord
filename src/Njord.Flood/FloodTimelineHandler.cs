@@ -6,9 +6,12 @@ namespace Njord.Flood;
 
 public sealed class FloodTimelineHandler : IDomainHandler
 {
-    public string ConfigKey => "FloodTimeline";
-
-    public DomainRequirements Requirements { get; } = new(Flood: FloodParams.Discharge | FloodParams.DischargeP75);
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.FloodTimeline,
+        FeatureCategory.Flood,
+        "Discharge timeline for the coming days",
+        DefaultEnabled: false,
+        new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeP75));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

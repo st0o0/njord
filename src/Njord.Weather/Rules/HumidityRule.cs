@@ -10,6 +10,13 @@ public sealed class HumidityRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Humidity;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.HumidityAlert,
+        FeatureCategory.WeatherAlerts,
+        "Muggy air warning from the daytime dew point",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.DewPoint | WeatherParams.IsDay | WeatherParams.EnsembleStdDev));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var thresholds = options.Humidity();

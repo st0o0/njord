@@ -9,15 +9,18 @@ public sealed class OutdoorScoreHandler : IDomainHandler
 {
     public const double GoodHourScore = 85.0;
 
-    public string ConfigKey => "OutdoorScore";
-
-    public DomainRequirements Requirements { get; } = new(
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.OutdoorScore,
+        FeatureCategory.Lifestyle,
+        "Overall outdoor activity score",
+        DefaultEnabled: false,
+        new DomainRequirements(
         Weather: WeatherParams.Temperature | WeatherParams.Precipitation | WeatherParams.PrecipitationProbability
             | WeatherParams.WindSpeed | WeatherParams.CloudCover,
         AirQuality: AirQualityParams.Pm25,
         OptionalWeather: WeatherParams.UvIndex,
         OptionalAirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
-            | AirQualityParams.Alder | AirQualityParams.Mugwort);
+            | AirQualityParams.Alder | AirQualityParams.Mugwort));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

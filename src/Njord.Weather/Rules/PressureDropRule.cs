@@ -13,6 +13,13 @@ public sealed class PressureDropRule : IAlertRule<DomainForecast<WeatherPoint>>
 
     public AlertType Type => AlertType.PressureDrop;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.PressureDropAlert,
+        FeatureCategory.WeatherAlerts,
+        "Warning for a rapid surface pressure drop",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.Pressure | WeatherParams.EnsembleStdDev));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var window = forecast.NextHoursInclusive(now);

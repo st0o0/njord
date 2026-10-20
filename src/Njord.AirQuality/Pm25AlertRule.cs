@@ -14,6 +14,13 @@ public sealed class Pm25AlertRule : IAlertRule<DomainForecast<AirQualityPoint>>
 
     public AlertType Type => AlertType.Pm25;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.Pm25Alert,
+        FeatureCategory.AirQuality,
+        "Fine particulate warning against the WHO guideline",
+        DefaultEnabled: true,
+        new DomainRequirements(AirQuality: AirQualityParams.Pm25));
+
     public Alert Evaluate(DomainForecast<AirQualityPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         AirQualityPoint? peakPoint = null;

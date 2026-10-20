@@ -16,12 +16,15 @@ public sealed class ExerciseAdvisoryHandler : IDomainHandler
     private const double HumidityWeight = 0.1;
     private const double UvWeight = 0.1;
 
-    public string ConfigKey => "ExerciseAdvisory";
-
-    public DomainRequirements Requirements { get; } = new(
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.ExerciseAdvisory,
+        FeatureCategory.Lifestyle,
+        "Exercise advisory from heat, humidity and air quality",
+        DefaultEnabled: false,
+        new DomainRequirements(
         Weather: WeatherParams.Temperature | WeatherParams.Humidity,
         AirQuality: AirQualityParams.Pm25 | AirQualityParams.Ozone,
-        OptionalWeather: WeatherParams.UvIndex);
+        OptionalWeather: WeatherParams.UvIndex));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

@@ -10,6 +10,13 @@ public sealed class HeatRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Heat;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.HeatAlert,
+        FeatureCategory.WeatherAlerts,
+        "Heat warning from air and apparent temperature",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.ApparentTemperature | WeatherParams.EnsembleStdDev));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var window = forecast.NextHoursInclusive(now);

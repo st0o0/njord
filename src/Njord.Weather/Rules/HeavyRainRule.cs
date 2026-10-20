@@ -10,6 +10,13 @@ public sealed class HeavyRainRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.HeavyRain;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.RainAlert,
+        FeatureCategory.WeatherAlerts,
+        "Heavy rain warning from hourly precipitation",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.Precipitation | WeatherParams.EnsembleStdDev));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var window = forecast.NextHoursInclusive(now);

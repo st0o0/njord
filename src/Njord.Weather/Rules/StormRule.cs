@@ -10,6 +10,13 @@ public sealed class StormRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Storm;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.StormAlert,
+        FeatureCategory.WeatherAlerts,
+        "Storm warning from wind gusts",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.WindGusts | WeatherParams.EnsembleStdDev));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         if (forecast.NextHoursInclusive(now).HighestBy(p => p.WindGusts) is not { WindGusts: { } gust } peak)

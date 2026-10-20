@@ -9,9 +9,12 @@ public sealed class ConfidenceTrendHandler : IDomainHandler
 {
     public const double ChangeThreshold = 0.20;
 
-    public string ConfigKey => "ConfidenceTrend";
-
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.EnsembleStdDev);
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.ConfidenceTrend,
+        FeatureCategory.Insight,
+        "Trend of the ensemble forecast confidence",
+        DefaultEnabled: false,
+        new DomainRequirements(Weather: WeatherParams.EnsembleStdDev));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

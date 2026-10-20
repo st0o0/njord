@@ -14,13 +14,16 @@ public sealed class VentilationWindowHandler : IDomainHandler
     public const double MaxTemperature = 28.0;
     public const double MaxPrecipitation = 0.1;
 
-    public string ConfigKey => "VentilationWindow";
-
-    public DomainRequirements Requirements { get; } = new(
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.VentilationWindow,
+        FeatureCategory.Lifestyle,
+        "Best window for airing rooms",
+        DefaultEnabled: false,
+        new DomainRequirements(
         Weather: WeatherParams.Temperature | WeatherParams.Precipitation,
         AirQuality: AirQualityParams.Pm25,
         OptionalAirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
-            | AirQualityParams.Alder | AirQualityParams.Mugwort);
+            | AirQualityParams.Alder | AirQualityParams.Mugwort));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

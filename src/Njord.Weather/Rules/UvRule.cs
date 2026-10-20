@@ -10,6 +10,14 @@ public sealed class UvRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Uv;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.UvAlert,
+        FeatureCategory.WeatherAlerts,
+        "UV warning from the peak UV index",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.EnsembleStdDev,
+            OptionalWeather: WeatherParams.UvIndex));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         if (forecast.NextHoursInclusive(now).HighestBy(p => p.UvIndex) is not { UvIndex: { } uvIndex } peak || uvIndex <= 0)

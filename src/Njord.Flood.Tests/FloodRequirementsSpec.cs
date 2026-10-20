@@ -15,7 +15,7 @@ public sealed class FloodRequirementsSpec
         Assert.Equal(
             new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeMedian
                 | FloodParams.DischargeP75 | FloodParams.DischargeMax),
-            handler.Requirements);
+            handler.Feature.Requirements);
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public sealed class FloodRequirementsSpec
             new DomainRequirements(
                 Weather: WeatherParams.Precipitation,
                 Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75),
-            handler.Requirements);
+            handler.Feature.Requirements);
     }
 
     [Fact]
@@ -35,6 +35,6 @@ public sealed class FloodRequirementsSpec
     {
         Assert.Equal(
             new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeP75),
-            new FloodTimelineHandler().Requirements);
+            new FloodTimelineHandler().Feature.Requirements);
     }
 }

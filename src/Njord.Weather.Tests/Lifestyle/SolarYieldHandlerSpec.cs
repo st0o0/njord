@@ -36,7 +36,7 @@ public sealed class SolarYieldHandlerSpec
     [Fact]
     public void Requirements_ask_for_global_tilted_irradiance()
     {
-        Assert.Equal(WeatherParams.GlobalTiltedIrradiance, new SolarYieldHandler().Requirements.Weather);
+        Assert.Equal(WeatherParams.GlobalTiltedIrradiance, new SolarYieldHandler().Feature.Requirements.Weather);
     }
 
     [Fact]

@@ -10,6 +10,14 @@ public sealed class IceRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Ice;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.IceAlert,
+        FeatureCategory.WeatherAlerts,
+        "Black ice warning from freezing temperatures with rain",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.Precipitation | WeatherParams.EnsembleStdDev,
+            OptionalWeather: WeatherParams.Rain | WeatherParams.SoilTemperature));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var iceThreshold = options.IceThreshold;

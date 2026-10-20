@@ -12,10 +12,13 @@ public sealed class CommuteSafetyHandler : IDomainHandler
     public const double HeavyRain = 5.0;
     public const double StrongWind = 60.0 / 3.6;
 
-    public string ConfigKey => "CommuteSafety";
-
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.Temperature | WeatherParams.DewPoint | WeatherParams.Humidity
-            | WeatherParams.Precipitation | WeatherParams.WindSpeed);
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.CommuteSafety,
+        FeatureCategory.Lifestyle,
+        "Commute safety rating from rain, wind and ice risk",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.DewPoint | WeatherParams.Humidity
+            | WeatherParams.Precipitation | WeatherParams.WindSpeed));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

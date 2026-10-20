@@ -10,6 +10,13 @@ public sealed class VisibilityRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Visibility;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.VisibilityAlert,
+        FeatureCategory.WeatherAlerts,
+        "Low visibility warning",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.Visibility | WeatherParams.EnsembleStdDev));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var thresholds = options.Visibility();

@@ -10,9 +10,12 @@ public sealed class GardeningHandler : IDomainHandler
     public const double RainThreshold = 2.0;
     public const double WindLimit = 10.0;
 
-    public string ConfigKey => "GardeningAdvisory";
-
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.Temperature | WeatherParams.WindSpeed | WeatherParams.Precipitation);
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.GardeningAdvisory,
+        FeatureCategory.Lifestyle,
+        "Gardening advisory from temperature, wind and rain",
+        DefaultEnabled: false,
+        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.WindSpeed | WeatherParams.Precipitation));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

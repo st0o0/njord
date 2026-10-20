@@ -15,20 +15,7 @@ public sealed class AirQualityAlertHandler(
 {
     private readonly IReadOnlyList<IAlertRule<DomainForecast<AirQualityPoint>>> _rules = [.. rules.Where(rule => rule.Type == alertType)];
 
-    public string ConfigKey { get; } = alertType switch
-    {
-        AlertType.Pollen => "PollenAlert",
-        AlertType.Pm25 => "Pm25Alert",
-        _ => throw new ArgumentOutOfRangeException(nameof(alertType), alertType, "Not an air quality alert type."),
-    };
-
-    public DomainRequirements Requirements { get; } = alertType switch
-    {
-        AlertType.Pollen => new(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
-            | AirQualityParams.Alder | AirQualityParams.Mugwort),
-        AlertType.Pm25 => new(AirQuality: AirQualityParams.Pm25),
-        _ => throw new ArgumentOutOfRangeException(nameof(alertType), alertType, "Not an air quality alert type."),
-    };
+    public FeatureDescriptor Feature { get; } = rules.Single(rule => rule.Type == alertType).Feature;
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

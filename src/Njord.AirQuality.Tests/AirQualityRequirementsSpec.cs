@@ -13,7 +13,7 @@ public sealed class AirQualityRequirementsSpec
     [Fact]
     public void The_pm25_alert_requires_pm25_only()
     {
-        Assert.Equal(new DomainRequirements(AirQuality: AirQualityParams.Pm25), Create(AlertType.Pm25).Requirements);
+        Assert.Equal(new DomainRequirements(AirQuality: AirQualityParams.Pm25), Create(AlertType.Pm25).Feature.Requirements);
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public sealed class AirQualityRequirementsSpec
         Assert.Equal(
             new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
                 | AirQualityParams.Alder | AirQualityParams.Mugwort),
-            Create(AlertType.Pollen).Requirements);
+            Create(AlertType.Pollen).Feature.Requirements);
     }
 
     [Fact]
@@ -31,6 +31,6 @@ public sealed class AirQualityRequirementsSpec
         Assert.Equal(
             new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
                 | AirQualityParams.Alder | AirQualityParams.Mugwort),
-            new PollenTrendHandler().Requirements);
+            new PollenTrendHandler().Feature.Requirements);
     }
 }

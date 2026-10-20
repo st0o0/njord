@@ -17,10 +17,13 @@ public sealed class PollenTrendHandler : IDomainHandler
         ("mugwort", p => p.Mugwort),
     ];
 
-    public string ConfigKey => "PollenTrend";
-
-    public DomainRequirements Requirements { get; } = new(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
-        | AirQualityParams.Alder | AirQualityParams.Mugwort);
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.PollenTrend,
+        FeatureCategory.AirQuality,
+        "Trend of the pollen load",
+        DefaultEnabled: false,
+        new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
+        | AirQualityParams.Alder | AirQualityParams.Mugwort));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

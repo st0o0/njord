@@ -10,10 +10,7 @@ namespace Njord.Flood;
 
 public sealed class FloodRiskHandler(IAlertRule<DomainForecast<FloodPoint>> rule, IOptions<AlertOptions> options) : IDomainHandler
 {
-    public string ConfigKey => "FloodRisk";
-
-    public DomainRequirements Requirements { get; } = new(Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75
-        | FloodParams.DischargeMax);
+    public FeatureDescriptor Feature => rule.Feature;
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

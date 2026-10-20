@@ -10,6 +10,13 @@ public sealed class TropicalNightRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.TropicalNight;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.TropicalNightAlert,
+        FeatureCategory.WeatherAlerts,
+        "Tropical night warning from the night time low",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.IsDay | WeatherParams.EnsembleStdDev));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var thresholds = options.TropicalNight();

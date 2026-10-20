@@ -49,11 +49,11 @@ public sealed class AirQualityAlertHandlerSpec
     }
 
     [Theory]
-    [InlineData(AlertType.Pollen, "PollenAlert")]
-    [InlineData(AlertType.Pm25, "Pm25Alert")]
-    public void ConfigKey_names_the_enrichment_of_the_handled_alert_type(AlertType type, string expected)
+    [InlineData(AlertType.Pollen, FeatureKind.PollenAlert)]
+    [InlineData(AlertType.Pm25, FeatureKind.Pm25Alert)]
+    public void Feature_names_the_feature_of_the_handled_alert_type(AlertType type, FeatureKind expected)
     {
-        Assert.Equal(expected, Create(type: type).ConfigKey);
+        Assert.Equal(expected, Create(type: type).Feature.Kind);
     }
 
     [Fact]

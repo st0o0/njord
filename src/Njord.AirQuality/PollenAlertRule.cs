@@ -14,6 +14,14 @@ public sealed class PollenAlertRule : IAlertRule<DomainForecast<AirQualityPoint>
 
     public AlertType Type => AlertType.Pollen;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.PollenAlert,
+        FeatureCategory.AirQuality,
+        "Pollen warning from the highest pollen concentration",
+        DefaultEnabled: true,
+        new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
+            | AirQualityParams.Alder | AirQualityParams.Mugwort));
+
     public Alert Evaluate(DomainForecast<AirQualityPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         AirQualityPoint? peakPoint = null;

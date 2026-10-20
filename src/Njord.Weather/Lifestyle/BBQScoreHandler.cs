@@ -8,10 +8,13 @@ public sealed class BBQScoreHandler : IDomainHandler
 {
     public const double GoodHourScore = 70.0;
 
-    public string ConfigKey => "BBQScore";
-
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.Precipitation | WeatherParams.Temperature | WeatherParams.WindSpeed
-            | WeatherParams.PrecipitationProbability | WeatherParams.CloudCover);
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.BBQScore,
+        FeatureCategory.Lifestyle,
+        "Barbecue suitability score",
+        DefaultEnabled: false,
+        new DomainRequirements(Weather: WeatherParams.Precipitation | WeatherParams.Temperature | WeatherParams.WindSpeed
+            | WeatherParams.PrecipitationProbability | WeatherParams.CloudCover));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

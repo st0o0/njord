@@ -15,6 +15,14 @@ public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
 
     public AlertType Type => AlertType.FloodRisk;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.FloodRisk,
+        FeatureCategory.Flood,
+        "River discharge flood risk warning",
+        DefaultEnabled: false,
+        new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75
+            | FloodParams.DischargeMax));
+
     public Alert Evaluate(DomainForecast<FloodPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var best = Alert.None(Type);

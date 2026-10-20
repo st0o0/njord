@@ -13,11 +13,9 @@ internal sealed record Seen(LocationForecast Current, LocationForecast? Previous
 
 internal sealed class RecordingHandler(params DomainKind[] triggers) : IDomainHandler
 {
-    public string ConfigKey => "WeatherAlerts";
-
     public List<Seen> Calls { get; } = [];
 
-    public DomainRequirements Requirements { get; } = HandlerRequirements.For(triggers);
+    public FeatureDescriptor Feature { get; } = HandlerRequirements.Describe(HandlerRequirements.For(triggers));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {
@@ -28,11 +26,9 @@ internal sealed class RecordingHandler(params DomainKind[] triggers) : IDomainHa
 
 internal sealed class RequiringHandler(DomainRequirements requirements) : IDomainHandler
 {
-    public string ConfigKey => "WeatherAlerts";
-
     public List<Seen> Calls { get; } = [];
 
-    public DomainRequirements Requirements { get; } = requirements;
+    public FeatureDescriptor Feature { get; } = HandlerRequirements.Describe(requirements);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {
@@ -43,9 +39,7 @@ internal sealed class RequiringHandler(DomainRequirements requirements) : IDomai
 
 internal sealed class EmittingHandler : IDomainHandler
 {
-    public string ConfigKey => "WeatherAlerts";
-
-    public DomainRequirements Requirements { get; } = HandlerRequirements.For(DomainKind.Weather);
+    public FeatureDescriptor Feature { get; } = HandlerRequirements.Describe(HandlerRequirements.For(DomainKind.Weather));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time) =>
     [
@@ -55,6 +49,9 @@ internal sealed class EmittingHandler : IDomainHandler
 
 internal static class HandlerRequirements
 {
+    public static FeatureDescriptor Describe(DomainRequirements requirements) =>
+        new(FeatureKind.FrostAlert, FeatureCategory.WeatherAlerts, "Test handler", DefaultEnabled: true, requirements);
+
     public static DomainRequirements For(params DomainKind[] domains) =>
         domains.Aggregate(default(DomainRequirements), (all, domain) => all | domain switch
         {

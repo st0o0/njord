@@ -10,6 +10,13 @@ public sealed class SnowRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
     public AlertType Type => AlertType.Snow;
 
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.SnowAlert,
+        FeatureCategory.WeatherAlerts,
+        "Snow warning from snowfall and freezing level",
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.Snowfall | WeatherParams.FreezingLevelHeight | WeatherParams.EnsembleStdDev));
+
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var window = forecast.NextHoursInclusive(now);

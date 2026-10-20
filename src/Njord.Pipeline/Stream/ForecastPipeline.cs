@@ -31,10 +31,10 @@ public sealed class ForecastPipeline : ReceiveActor
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
-    public ForecastPipeline(TimeProvider timeProvider, IEnumerable<IDomainHandler> handlers, IOptions<EnrichmentOptions> enrichments)
+    public ForecastPipeline(TimeProvider timeProvider, IEnumerable<IDomainHandler> handlers, IOptions<FeatureOptions> features)
     {
         _timeProvider = timeProvider;
-        _handlers = EnrichmentResolution.EnabledHandlers(enrichments.Value, handlers);
+        _handlers = FeatureResolution.EnabledHandlers(features.Value, handlers);
 
         Receive<RequestForecastSink>(OnRequestForecastSink);
         Receive<RequestPipelineOutput>(OnRequestPipelineOutput);

@@ -10,9 +10,12 @@ public sealed class ApproachingFrontHandler : IDomainHandler
     public const double WindShiftThreshold = 45.0;
     public const int WindowHours = 6;
 
-    public string ConfigKey => "ApproachingFront";
-
-    public DomainRequirements Requirements { get; } = new(Weather: WeatherParams.Pressure | WeatherParams.Temperature | WeatherParams.WindDirection);
+    public FeatureDescriptor Feature { get; } = new(
+        FeatureKind.ApproachingFront,
+        FeatureCategory.Insight,
+        "Early warning when a pressure front approaches",
+        DefaultEnabled: false,
+        new DomainRequirements(Weather: WeatherParams.Pressure | WeatherParams.Temperature | WeatherParams.WindDirection));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {
