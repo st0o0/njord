@@ -55,7 +55,7 @@ public sealed class OpenMeteoClientSpec
     {
         var client = Flood(HttpStatusCode.OK, OpenMeteoFixtures.FloodDaily);
 
-        var result = await client.FetchAsync(47.0, 8.0, ["river_discharge"], 92, TestContext.Current.CancellationToken);
+        var result = await client.FetchAsync(47.0, 8.0, ["river_discharge"], 92, false, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Daily);
@@ -127,6 +127,6 @@ public sealed class OpenMeteoClientSpec
         await cts.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            client.FetchAsync(47.0, 8.0, ["river_discharge"], 92, cts.Token));
+            client.FetchAsync(47.0, 8.0, ["river_discharge"], 92, false, cts.Token));
     }
 }

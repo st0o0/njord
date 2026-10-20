@@ -45,4 +45,12 @@ public sealed class FloodPointSpec
             Enum.GetValues<FloodParams>().Where(p => p != FloodParams.None),
             flag => Assert.False(point.HasFields(flag)));
     }
+
+    [Fact]
+    public void Should_require_ensemble_members_for_the_ensemble_flag()
+    {
+        Assert.Multiple(
+            () => Assert.False(new FloodPoint(At).HasFields(FloodParams.Ensemble)),
+            () => Assert.True(new FloodPoint(At, EnsembleMembers: [1.0, 2.0]).HasFields(FloodParams.Ensemble)));
+    }
 }

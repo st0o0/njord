@@ -200,7 +200,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
                     _marineVariables, _marine.ForecastDays, CancellationToken.None))
                 ?.ToDomainForecast(now),
             _ => (await _floodClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
-                    _floodVariables, _flood.ForecastDays, CancellationToken.None))
+                    _floodVariables, _flood.ForecastDays, _flood.IncludeEnsemble, CancellationToken.None))
                 ?.ToDomainForecast(now),
         };
 

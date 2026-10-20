@@ -213,6 +213,7 @@ onMounted(() => {
         <label>Air quality <input v-model.number="config.airQuality.forecastDays" type="number" min="1" max="7" /></label>
         <label>Marine <input v-model.number="config.marine.forecastDays" type="number" min="1" max="8" /></label>
         <label>Flood <input v-model.number="config.flood.forecastDays" type="number" min="1" max="210" /></label>
+        <label><input v-model="config.flood.includeEnsemble" type="checkbox" /> Flood ensemble (50 members, raises API cost)</label>
       </div>
       <p class="section-hint">Used only for domains an enabled enrichment requires. Defaults: air quality 5, marine 8, flood 92.</p>
     </div>

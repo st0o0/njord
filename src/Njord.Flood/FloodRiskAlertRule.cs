@@ -11,6 +11,8 @@ public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
 {
     public const int ForecastDays = 7;
     public const double MedianFactor = 2.0;
+    public const double HighConfidenceShare = 0.7;
+    public const double LowConfidenceShare = 0.3;
 
     public AlertType Type => AlertType.FloodRisk;
 
@@ -25,10 +27,13 @@ public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
             }
 
             var (severity, threshold) = Classify(point);
+            var (share, level) = Confidence(point, threshold);
             if (severity > best.Severity
                 || (severity == best.Severity && severity != AlertSeverity.None && discharge > best.TriggerValue))
             {
-                best = Build(Type, severity, Math.Round(discharge, 1), Math.Round(threshold, 1), point.HoursFrom(now));
+                best = Build(Type, severity, Math.Round(discharge, 1), Math.Round(threshold, 1), point.HoursFrom(now))
+                    with
+                { Confidence = share, Level = level };
             }
         }
 
@@ -37,6 +42,23 @@ public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
 
     internal static Alert Build(AlertType type, AlertSeverity severity, double trigger, double threshold, int hoursUntil) =>
         new(type, severity, 1.0, NoDetails.Instance, TriggerValue: trigger, Threshold: threshold, HoursUntil: hoursUntil, Level: ConfidenceLevel.High);
+
+    internal static (double Share, ConfidenceLevel Level) Confidence(FloodPoint point, double threshold)
+    {
+        if (point.EnsembleMembers is not { Count: > 0 } members)
+        {
+            return (1.0, ConfidenceLevel.High);
+        }
+
+        var share = (double)members.Count(m => m > threshold) / members.Count;
+        var level = share switch
+        {
+            >= HighConfidenceShare => ConfidenceLevel.High,
+            < LowConfidenceShare => ConfidenceLevel.Low,
+            _ => ConfidenceLevel.Medium,
+        };
+        return (share, level);
+    }
 
     public static (AlertSeverity Severity, double Threshold) Classify(FloodPoint point)
     {

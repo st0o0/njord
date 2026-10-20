@@ -80,6 +80,12 @@ Evaluated on the Flood forecast for the next seven days.
 
 FloodRain is the cross-domain example: it re-evaluates when either the Weather or the Flood domain is updated.
 
+### Flood ensemble
+
+`Njord:Flood:IncludeEnsemble` (default `false`) requests all 50 GloFAS ensemble members (`ensemble=true`). FloodRisk then reports its confidence as the share of members above the alert threshold: High from 70 %, Low below 30 %, Medium in between. Severity is unchanged, and without the option the confidence stays at its fixed default.
+
+Cost: an ensemble flood request is budgeted with a call weight of 5 (50 members / 10 variables per call) instead of 1, which the startup budget guard and the Config Builder include. A shorter `Njord:Flood:ForecastDays` (default 92, maximum 210) reduces the response size; GloFAS skill also drops with lead time.
+
 ## Wire exposure
 
 Weather alerts are delivered over gRPC (`GetEnrichments`, `StreamEnrichments`) and MQTT (`njord/{location}/alerts/{type}`). Air quality and flood alerts are produced by the pipeline as their own events; their gRPC and MQTT representation is not exposed yet.

@@ -39,3 +39,10 @@ The effective weight of an ensemble flood call is not known until task 1.1 verif
 - Weight may be high -> opt-in, startup guard, documented; fallback horizon in D5.
 - 50 series per response increases memory in the gateway -> members are reduced to per-day lists immediately and never forwarded as stream payloads beyond the point.
 - Member naming drift -> task 1.1.
+
+## Implementation notes
+
+- Weight (D5): `BudgetCalculator.FloodEnsembleWeight = 5` (50 members / 10 variables per call). Open-Meteo's flood docs state no explicit weight, so this follows the documented variables/10 rule; `ForecastDays` is not modeled in the flood weight. No horizon fallback was needed.
+- Member names are read generically (`river_discharge_member*` via JSON extension data), not as 50 DTO properties.
+- Confidence (D4) reuses the existing `Alert.Confidence` (share) and `Alert.Level` (High from 0.7, Low below 0.3), so no wire change was required.
+- `FloodParams.Ensemble` is a request flag, excluded from `ToApiNames`; the gateway sends `ensemble=true` from `FloodOptions.IncludeEnsemble`, the handler requirements are unchanged.

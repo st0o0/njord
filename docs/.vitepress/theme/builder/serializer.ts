@@ -54,7 +54,10 @@ export function exportAsJson(config: NjordConfig): string {
   if (Object.keys(weather).length) n.Weather = weather
   if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) n.AirQuality = { ForecastDays: config.airQuality.forecastDays }
   if (config.marine.forecastDays !== defaults.marine.forecastDays) n.Marine = { ForecastDays: config.marine.forecastDays }
-  if (config.flood.forecastDays !== defaults.flood.forecastDays) n.Flood = { ForecastDays: config.flood.forecastDays }
+  const flood: Record<string, unknown> = {}
+  if (config.flood.forecastDays !== defaults.flood.forecastDays) flood.ForecastDays = config.flood.forecastDays
+  if (config.flood.includeEnsemble) flood.IncludeEnsemble = true
+  if (Object.keys(flood).length) n.Flood = flood
   if (solarYieldEnabled(config)) {
     const solar: Record<string, unknown> = {}
     if (config.solarYield.peakKw !== defaults.solarYield.peakKw) solar.PeakKw = config.solarYield.peakKw
@@ -121,6 +124,7 @@ export function exportAsEnvVars(config: NjordConfig): string {
   if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) add('Njord__AirQuality__ForecastDays', String(config.airQuality.forecastDays))
   if (config.marine.forecastDays !== defaults.marine.forecastDays) add('Njord__Marine__ForecastDays', String(config.marine.forecastDays))
   if (config.flood.forecastDays !== defaults.flood.forecastDays) add('Njord__Flood__ForecastDays', String(config.flood.forecastDays))
+  if (config.flood.includeEnsemble) add('Njord__Flood__IncludeEnsemble', 'true')
   for (const [key, enabled] of changedEnrichments(config.enrichments)) {
     add(`Njord__Enrichments__${key}`, String(enabled))
   }
@@ -220,6 +224,7 @@ export function importFromJson(json: string): Partial<NjordConfig> {
       model: n.Weather.Model ?? defaultConfig().weather.model,
     }
   }
+  if (n.Flood?.IncludeEnsemble !== undefined) config.flood.includeEnsemble = n.Flood.IncludeEnsemble === true
   if (n.SolarYield) {
     const d = defaultConfig().solarYield
     config.solarYield = {
@@ -290,6 +295,9 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     else if (parts[0] === 'Weather') {
       if (parts[1] === 'ForecastDays') config.weather.forecastDays = parseInt(value) || 4
       else if (parts[1] === 'Model' && value) config.weather.model = value
+    }
+    else if (parts[0] === 'Flood' && parts[1] === 'IncludeEnsemble') {
+      config.flood.includeEnsemble = value.toLowerCase() === 'true'
     }
     else if (parts[0] === 'SolarYield') {
       const num = parseFloat(value)

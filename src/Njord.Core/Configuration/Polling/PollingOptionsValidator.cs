@@ -28,7 +28,7 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, Resolv
         if (failures.Count == 0
             && ReadScope() is { } scope
             && BudgetCalculator.GuardViolation(
-                BudgetCalculator.Validate(scope, ReadWeather(), options, requirements), options.PollInterval) is { } violation)
+                BudgetCalculator.Validate(scope, ReadWeather(), options, requirements, ReadFlood()), options.PollInterval) is { } violation)
         {
             failures.Add(violation);
         }
@@ -45,6 +45,9 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, Resolv
         var scope = configuration.GetSection(NjordOptions.SectionName).Get<NjordOptions>();
         return scope is null || scope.Locations.Count == 0 ? null : scope;
     }
+
+    private FloodOptions ReadFlood() =>
+        configuration.GetSection(FloodOptions.SectionName).Get<FloodOptions>() ?? new FloodOptions();
 
     private WeatherOptions ReadWeather() =>
         configuration.GetSection(WeatherOptions.SectionName).Get<WeatherOptions>() ?? new WeatherOptions();

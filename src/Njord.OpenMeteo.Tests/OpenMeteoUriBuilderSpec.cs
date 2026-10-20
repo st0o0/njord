@@ -20,10 +20,20 @@ public sealed class OpenMeteoUriBuilderSpec
     [Fact(Timeout = 5000)]
     public async Task The_flood_uri_carries_location_variables_and_days()
     {
-        var uri = await Capture(client => new FloodClient(client).FetchAsync(47.05, 8.31, ["river_discharge", "river_discharge_max"], 92, TestContext.Current.CancellationToken));
+        var uri = await Capture(client => new FloodClient(client).FetchAsync(47.05, 8.31, ["river_discharge", "river_discharge_max"], 92, false, TestContext.Current.CancellationToken));
 
         Assert.Equal(
             $"/v1/flood?latitude=47.05&longitude=8.31&daily=river_discharge,river_discharge_max&forecast_days=92&timeformat=unixtime&timezone=UTC",
+            uri);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task The_flood_uri_carries_the_ensemble_parameter_when_requested()
+    {
+        var uri = await Capture(client => new FloodClient(client).FetchAsync(47.05, 8.31, ["river_discharge"], 92, true, TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            "/v1/flood?latitude=47.05&longitude=8.31&daily=river_discharge&forecast_days=92&ensemble=true&timeformat=unixtime&timezone=UTC",
             uri);
     }
 

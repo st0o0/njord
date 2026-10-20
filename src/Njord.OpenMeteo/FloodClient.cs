@@ -5,12 +5,13 @@ namespace Njord.OpenMeteo;
 
 public sealed class FloodClient(HttpClient httpClient) : IFloodClient
 {
-    public async Task<FloodResponse?> FetchAsync(double latitude, double longitude, IReadOnlyList<string> variables, int forecastDays, CancellationToken cancellationToken)
+    public async Task<FloodResponse?> FetchAsync(double latitude, double longitude, IReadOnlyList<string> variables, int forecastDays, bool ensemble, CancellationToken cancellationToken)
     {
         var uri = OpenMeteoRequestBuilder.To("v1/flood")
             .WithLocation(latitude, longitude)
             .WithDaily(variables)
             .WithForecastDays(forecastDays)
+            .WithEnsemble(ensemble)
             .Build();
         try
         {

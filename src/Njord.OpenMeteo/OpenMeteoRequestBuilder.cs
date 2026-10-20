@@ -36,6 +36,16 @@ internal sealed class OpenMeteoRequestBuilder
         return this;
     }
 
+    public OpenMeteoRequestBuilder WithEnsemble(bool ensemble)
+    {
+        if (ensemble)
+        {
+            _params.Add("ensemble=true");
+        }
+
+        return this;
+    }
+
     public OpenMeteoRequestBuilder With(string key, string value)
     {
         _params.Add($"{key}={value}");

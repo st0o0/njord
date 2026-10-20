@@ -144,6 +144,7 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
 
         Assert.Multiple(
             () => Assert.Equal(TestRequirements.All.Flood.ToApiNames(), _flood.LastVariables),
+            () => Assert.False(_flood.LastEnsemble),
             () => Assert.Equal(92, _flood.LastForecastDays));
     }
 

@@ -8,7 +8,8 @@ public sealed record FloodPoint(
     double? DischargeMax = null,
     double? DischargeMin = null,
     double? DischargeP25 = null,
-    double? DischargeP75 = null) : IHasValidTime
+    double? DischargeP75 = null,
+    IReadOnlyList<double>? EnsembleMembers = null) : IHasValidTime
 {
     private static readonly FloodParams[] Flags =
         [.. Enum.GetValues<FloodParams>().Where(p => p != FloodParams.None)];
@@ -25,6 +26,7 @@ public sealed record FloodPoint(
         FloodParams.DischargeMin => DischargeMin is not null,
         FloodParams.DischargeP25 => DischargeP25 is not null,
         FloodParams.DischargeP75 => DischargeP75 is not null,
+        FloodParams.Ensemble => EnsembleMembers is not null,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

@@ -7,6 +7,8 @@ public static class BudgetCalculator
 {
     public const double MonthlyBudgetGuardFactor = 0.8;
 
+    public const int FloodEnsembleWeight = 5;
+
     private static readonly TimeSpan Month = TimeSpan.FromDays(30);
 
     public static RequestBudget GetEffectiveBudget(PollingOptions polling) =>
@@ -15,7 +17,7 @@ public static class BudgetCalculator
     public static int ComputeWeight(int hourlyVariableCount, int forecastDays) =>
         (int)Math.Ceiling(hourlyVariableCount / 10.0) * (int)Math.Ceiling(forecastDays / 14.0);
 
-    public static BudgetValidation Validate(NjordOptions scope, WeatherOptions weather, PollingOptions polling, ResolvedRequirements resolved)
+    public static BudgetValidation Validate(NjordOptions scope, WeatherOptions weather, PollingOptions polling, ResolvedRequirements resolved, FloodOptions? flood = null)
     {
         var requirements = resolved.Value;
         var locationCount = scope.Locations.Count;
@@ -25,7 +27,8 @@ public static class BudgetCalculator
         var apiCallWeight = weatherRequired ? ComputeWeight(requirements.AllWeather.FlagCount(), weather.ForecastDays) : 0;
 
         var domainCallsPerCycle = locationCount * ((weatherRequired ? 1 : 0) + otherDomains);
-        var callsPerCycle = locationCount * (apiCallWeight + otherDomains);
+        var floodExtraWeight = requirements.Requires(DomainKind.Flood) && flood is { IncludeEnsemble: true } ? FloodEnsembleWeight - 1 : 0;
+        var callsPerCycle = locationCount * (apiCallWeight + otherDomains + floodExtraWeight);
 
         var cyclesPerMonth = Month.TotalMinutes / polling.PollInterval.TotalMinutes;
         var projectedMonthly = (long)Math.Round(callsPerCycle * cyclesPerMonth);

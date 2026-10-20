@@ -141,4 +141,20 @@ public sealed class BudgetCalculatorSpec
             () => Assert.Null(BudgetCalculator.GuardViolation(light, TimeSpan.FromHours(1))),
             () => Assert.Contains("guard of 80", BudgetCalculator.GuardViolation(heavy, TimeSpan.FromHours(1))));
     }
+
+    [Fact]
+    public void Should_weigh_the_flood_ensemble_into_the_projection()
+    {
+        var resolved = new ResolvedRequirements(new DomainRequirements(
+            Weather: WeatherParams.Temperature, Flood: Njord.Forecast.Flood.FloodParams.Discharge));
+
+        var plain = BudgetCalculator.Validate(Scope(), new WeatherOptions(), new PollingOptions(), resolved, new FloodOptions());
+        var ensemble = BudgetCalculator.Validate(Scope(), new WeatherOptions(), new PollingOptions(), resolved, new FloodOptions { IncludeEnsemble = true });
+        var noFlood = BudgetCalculator.Validate(Scope(), new WeatherOptions(), new PollingOptions(), Resolved(), new FloodOptions { IncludeEnsemble = true });
+
+        Assert.Multiple(
+            () => Assert.Equal(2L * 720, plain.ProjectedMonthlyCalls),
+            () => Assert.Equal((1L + BudgetCalculator.FloodEnsembleWeight) * 720, ensemble.ProjectedMonthlyCalls),
+            () => Assert.Equal(2L * 720, noFlood.ProjectedMonthlyCalls));
+    }
 }

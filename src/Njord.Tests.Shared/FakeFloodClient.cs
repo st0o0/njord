@@ -10,16 +10,19 @@ public sealed class FakeFloodClient : IFloodClient
 
     public int LastForecastDays { get; private set; }
 
+    public bool LastEnsemble { get; private set; }
+
     public bool Fails { get; set; }
 
     private int _calls;
 
     public int Calls => Volatile.Read(ref _calls);
 
-    public Task<FloodResponse?> FetchAsync(double latitude, double longitude, IReadOnlyList<string> variables, int forecastDays, CancellationToken cancellationToken)
+    public Task<FloodResponse?> FetchAsync(double latitude, double longitude, IReadOnlyList<string> variables, int forecastDays, bool ensemble, CancellationToken cancellationToken)
     {
         LastVariables = variables;
         LastForecastDays = forecastDays;
+        LastEnsemble = ensemble;
         Interlocked.Increment(ref _calls);
 
         if (Fails)

@@ -36,6 +36,7 @@ services:
       #- Njord__AirQuality__ForecastDays=5   # 1-7
       #- Njord__Marine__ForecastDays=8       # 1-8
       #- Njord__Flood__ForecastDays=92       # 1-210
+      #- Njord__Flood__IncludeEnsemble=false # 50 GloFAS members, adds confidence to FloodRisk, costs 5 calls per flood request
       # Enrichments decide which domains are polled (the union of what the enabled ones read).
       # On by default: WeatherAlerts, CommuteSafety, PollenAlert, Pm25Alert (Weather + AirQuality).
       # Alternative: switch enrichments on (adds their domain) or off

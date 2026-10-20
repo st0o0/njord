@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Njord.OpenMeteo;
@@ -10,7 +11,11 @@ public sealed record FloodDailyData(
     [property: JsonPropertyName("river_discharge_max")] double?[]? DischargeMax = null,
     [property: JsonPropertyName("river_discharge_min")] double?[]? DischargeMin = null,
     [property: JsonPropertyName("river_discharge_p25")] double?[]? DischargeP25 = null,
-    [property: JsonPropertyName("river_discharge_p75")] double?[]? DischargeP75 = null);
+    [property: JsonPropertyName("river_discharge_p75")] double?[]? DischargeP75 = null)
+{
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? Extra { get; set; }
+}
 
 public sealed record FloodResponse(
     [property: JsonPropertyName("latitude")] double Latitude,

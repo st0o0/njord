@@ -11,4 +11,5 @@ public enum FloodParams
     DischargeMin = 1 << 4,
     DischargeP25 = 1 << 5,
     DischargeP75 = 1 << 6,
+    Ensemble = 1 << 7,
 }

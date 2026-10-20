@@ -22,6 +22,7 @@ public sealed class EnrichmentOptionsSpec
     [InlineData("FloodRisk", false)]
     [InlineData("FloodRain", false)]
     [InlineData("SwimmingConditions", false)]
+    [InlineData("SurfConditions", false)]
     [InlineData("VentilationWindow", false)]
     [InlineData("ExerciseAdvisory", false)]
     [InlineData("LaundryScore", false)]

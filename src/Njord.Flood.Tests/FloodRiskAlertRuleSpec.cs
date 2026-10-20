@@ -1,3 +1,4 @@
+using Njord.Forecast.Flood;
 using Njord.Messages.Alerts;
 using Njord.Tests.Shared;
 using static Njord.Flood.Tests.FloodFixtures;
@@ -62,5 +63,53 @@ public sealed class FloodRiskAlertRuleSpec
         var alert = Rule.Evaluate(FloodForecast(Point(10, 900)), AlertRuleFixture.Defaults, Now);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
+    }
+
+    private static FloodPoint WithMembers(int exceeding, int total = 50) =>
+        Point(0, 160, median: 100, p75: 150) with
+        {
+            EnsembleMembers = [.. Enumerable.Range(0, total).Select(i => i < exceeding ? 200.0 : 100.0)],
+        };
+
+    [Fact]
+    public void Most_members_above_the_threshold_give_high_confidence()
+    {
+        var alert = Rule.Evaluate(FloodForecast(WithMembers(45)), AlertRuleFixture.Defaults, Now);
+
+        Assert.Multiple(
+            () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
+            () => Assert.Equal(0.9, alert.Confidence),
+            () => Assert.Equal(ConfidenceLevel.High, alert.Level));
+    }
+
+    [Fact]
+    public void A_single_outlier_member_gives_low_confidence()
+    {
+        var alert = Rule.Evaluate(FloodForecast(WithMembers(1)), AlertRuleFixture.Defaults, Now);
+
+        Assert.Multiple(
+            () => Assert.Equal(AlertSeverity.Orange, alert.Severity),
+            () => Assert.Equal(0.02, alert.Confidence),
+            () => Assert.Equal(ConfidenceLevel.Low, alert.Level));
+    }
+
+    [Fact]
+    public void Half_of_the_members_above_the_threshold_give_medium_confidence()
+    {
+        var alert = Rule.Evaluate(FloodForecast(WithMembers(25)), AlertRuleFixture.Defaults, Now);
+
+        Assert.Multiple(
+            () => Assert.Equal(0.5, alert.Confidence),
+            () => Assert.Equal(ConfidenceLevel.Medium, alert.Level));
+    }
+
+    [Fact]
+    public void Without_members_the_alert_keeps_full_confidence()
+    {
+        var alert = Rule.Evaluate(FloodForecast(Point(0, 160, median: 100, p75: 150)), AlertRuleFixture.Defaults, Now);
+
+        Assert.Multiple(
+            () => Assert.Equal(1.0, alert.Confidence),
+            () => Assert.Equal(ConfidenceLevel.High, alert.Level));
     }
 }

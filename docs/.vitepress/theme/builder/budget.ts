@@ -4,6 +4,7 @@ const MINUTES_PER_DAY = 24 * 60
 const DAYS_PER_MONTH = 30
 const GUARD_FACTOR = 0.8
 const FREE_TIER_MONTHLY = 300_000
+const FLOOD_ENSEMBLE_WEIGHT = 5
 
 export interface BudgetResult {
   domainCallsPerCycle: number
@@ -34,7 +35,8 @@ export function computeBudget(config: NjordConfig): BudgetResult {
   const otherDomains = domains.filter(d => d !== 'Weather').length
 
   const domainCallsPerCycle = domains.length * config.locations.length
-  const callsPerCycle = config.locations.length * (apiCallWeight + otherDomains)
+  const floodExtraWeight = domains.includes('Flood') && config.flood.includeEnsemble ? FLOOD_ENSEMBLE_WEIGHT - 1 : 0
+  const callsPerCycle = config.locations.length * (apiCallWeight + otherDomains + floodExtraWeight)
 
   const limit = config.budgetOverride?.requestsPerMonth ?? FREE_TIER_MONTHLY
   const guard = Math.round(limit * GUARD_FACTOR)

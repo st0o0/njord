@@ -11,6 +11,7 @@ public sealed class FloodOptionsSpec
 
         Assert.Multiple(
             () => Assert.Equal(92, options.ForecastDays),
+            () => Assert.False(options.IncludeEnsemble),
             () => Assert.True(new FloodOptionsValidator().Validate(null, options).Succeeded));
     }
 

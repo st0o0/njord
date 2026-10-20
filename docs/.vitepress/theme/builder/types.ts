@@ -79,7 +79,7 @@ export interface NjordConfig {
   weather: { forecastDays: number; model: string }
   airQuality: { forecastDays: number }
   marine: { forecastDays: number }
-  flood: { forecastDays: number }
+  flood: { forecastDays: number; includeEnsemble: boolean }
   discoveryInterval: string
   enrichments: Record<string, boolean>
   locations: LocationConfig[]
@@ -100,7 +100,7 @@ export function defaultConfig(): NjordConfig {
     weather: { forecastDays: 4, model: 'ecmwf_ifs025_ensemble_mean' },
     airQuality: { forecastDays: 5 },
     marine: { forecastDays: 8 },
-    flood: { forecastDays: 92 },
+    flood: { forecastDays: 92, includeEnsemble: false },
     discoveryInterval: '00:20:00',
     enrichments: defaultEnrichments(),
     locations: [],
