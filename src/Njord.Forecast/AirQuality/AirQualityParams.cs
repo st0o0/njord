@@ -13,4 +13,12 @@ public enum AirQualityParams
     GrassPollen = 1 << 6,
     Alder = 1 << 7,
     Mugwort = 1 << 8,
+    CarbonMonoxide = 1 << 9,
+    SulphurDioxide = 1 << 10,
+    Dust = 1 << 11,
+    Ammonia = 1 << 12,
+    OlivePollen = 1 << 13,
+    UsAqi = 1 << 14,
+    UvIndex = 1 << 15,
+    UvIndexClearSky = 1 << 16,
 }

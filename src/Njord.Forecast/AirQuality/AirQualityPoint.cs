@@ -10,7 +10,15 @@ public sealed record AirQualityPoint(
     double? Alder = null,
     double? Mugwort = null,
     double? EuropeanAqi = null,
-    double? NitrogenDioxide = null) : IHasValidTime
+    double? NitrogenDioxide = null,
+    double? CarbonMonoxide = null,
+    double? SulphurDioxide = null,
+    double? Dust = null,
+    double? Ammonia = null,
+    double? OlivePollen = null,
+    double? UsAqi = null,
+    double? UvIndex = null,
+    double? UvIndexClearSky = null) : IHasValidTime
 {
     private static readonly AirQualityParams[] Flags =
         [.. Enum.GetValues<AirQualityParams>().Where(p => p != AirQualityParams.None)];
@@ -29,6 +37,14 @@ public sealed record AirQualityPoint(
         AirQualityParams.GrassPollen => GrassPollen is not null,
         AirQualityParams.Alder => Alder is not null,
         AirQualityParams.Mugwort => Mugwort is not null,
+        AirQualityParams.CarbonMonoxide => CarbonMonoxide is not null,
+        AirQualityParams.SulphurDioxide => SulphurDioxide is not null,
+        AirQualityParams.Dust => Dust is not null,
+        AirQualityParams.Ammonia => Ammonia is not null,
+        AirQualityParams.OlivePollen => OlivePollen is not null,
+        AirQualityParams.UsAqi => UsAqi is not null,
+        AirQualityParams.UvIndex => UvIndex is not null,
+        AirQualityParams.UvIndexClearSky => UvIndexClearSky is not null,
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

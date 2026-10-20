@@ -22,7 +22,8 @@ internal static class AirQualityResponseMappings
         for (var i = 0; i < times.Length; i++)
         {
             if (AnyAt(i, h.Pm25, h.Pm10, h.Ozone, h.NitrogenDioxide, h.EuropeanAqi, h.BirchPollen,
-                    h.GrassPollen, h.AlderPollen, h.MugwortPollen))
+                    h.GrassPollen, h.AlderPollen, h.MugwortPollen, h.CarbonMonoxide, h.SulphurDioxide, h.Dust,
+                    h.Ammonia, h.OlivePollen, h.UsAqi, h.UvIndex, h.UvIndexClearSky))
             {
                 lastValued = i;
             }
@@ -37,7 +38,15 @@ internal static class AirQualityResponseMappings
                 Alder: At(h.AlderPollen, i),
                 Mugwort: At(h.MugwortPollen, i),
                 EuropeanAqi: At(h.EuropeanAqi, i),
-                NitrogenDioxide: At(h.NitrogenDioxide, i)));
+                NitrogenDioxide: At(h.NitrogenDioxide, i),
+                CarbonMonoxide: At(h.CarbonMonoxide, i),
+                SulphurDioxide: At(h.SulphurDioxide, i),
+                Dust: At(h.Dust, i),
+                Ammonia: At(h.Ammonia, i),
+                OlivePollen: At(h.OlivePollen, i),
+                UsAqi: At(h.UsAqi, i),
+                UvIndex: At(h.UvIndex, i),
+                UvIndexClearSky: At(h.UvIndexClearSky, i)));
         }
 
         if (lastValued < 0)

@@ -21,6 +21,14 @@ public static class AirQualityParamsMappings
         AirQualityParams.GrassPollen => "grass_pollen",
         AirQualityParams.Alder => "alder_pollen",
         AirQualityParams.Mugwort => "mugwort_pollen",
+        AirQualityParams.CarbonMonoxide => "carbon_monoxide",
+        AirQualityParams.SulphurDioxide => "sulphur_dioxide",
+        AirQualityParams.Dust => "dust",
+        AirQualityParams.Ammonia => "ammonia",
+        AirQualityParams.OlivePollen => "olive_pollen",
+        AirQualityParams.UsAqi => "us_aqi",
+        AirQualityParams.UvIndex => "uv_index",
+        AirQualityParams.UvIndexClearSky => "uv_index_clear_sky",
         _ => throw new ArgumentOutOfRangeException(nameof(param), param, null),
     };
 }

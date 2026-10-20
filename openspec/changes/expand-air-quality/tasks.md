@@ -3,17 +3,17 @@ All test projects run sequentially from `src/`: `dotnet run --project <Project>.
 ## 1. Flags and DTOs
 
 - [ ] 1.1 Verify against https://open-meteo.com/en/docs/air-quality-api the exact names, units and regional coverage of `carbon_monoxide`, `sulphur_dioxide`, `dust`, `ammonia`, `olive_pollen`, `us_aqi`, `uv_index`, `uv_index_clear_sky`, and that call weight does not depend on variable count; record in design D1/D2
-- [ ] 1.2 Add the flags to `src/Njord.Forecast/AirQuality/AirQualityParams.cs`
-- [ ] 1.3 Add the response properties to `AirQualityHourlyData` in `src/Njord.OpenMeteo/AirQualityResponse.cs`
-- [ ] 1.4 Specs: distinct combinable flag values in `src/Njord.Forecast.Tests/`, DTO deserialization of the new names in `src/Njord.OpenMeteo.Tests/`
-- [ ] 1.5 Validate: `dotnet run --project Njord.Forecast.Tests/Njord.Forecast.Tests.csproj`, `dotnet run --project Njord.OpenMeteo.Tests/Njord.OpenMeteo.Tests.csproj`
+- [x] 1.2 Add the flags to `src/Njord.Forecast/AirQuality/AirQualityParams.cs`
+- [x] 1.3 Add the response properties to `AirQualityHourlyData` in `src/Njord.OpenMeteo/AirQualityResponse.cs`
+- [x] 1.4 Specs: distinct combinable flag values in `src/Njord.Forecast.Tests/`, DTO deserialization of the new names in `src/Njord.OpenMeteo.Tests/`
+- [x] 1.5 Validate: `dotnet run --project Njord.Forecast.Tests/Njord.Forecast.Tests.csproj`, `dotnet run --project Njord.OpenMeteo.Tests/Njord.OpenMeteo.Tests.csproj`
 
 ## 2. Mappings and Point
 
-- [ ] 2.1 Add nullable members and `HasFields` arms to `src/Njord.Forecast/AirQuality/AirQualityPoint.cs`
-- [ ] 2.2 Add one arm per flag to `src/Njord.OpenMeteo/Mapping/AirQualityParamsMappings.cs` and map values in `src/Njord.OpenMeteo/Mapping/AirQualityResponseMappings.cs`
-- [ ] 2.3 Specs per member in `src/Njord.OpenMeteo.Tests/Mapping/` (params mapping, response mapping incl. nulls) and `src/Njord.Forecast.Tests/AirQuality/`; update `OpenMeteoUriBuilderSpec` if it pins the AQ request
-- [ ] 2.4 Validate: `dotnet run --project Njord.Forecast.Tests/Njord.Forecast.Tests.csproj`, `dotnet run --project Njord.OpenMeteo.Tests/Njord.OpenMeteo.Tests.csproj`
+- [x] 2.1 Add nullable members and `HasFields` arms to `src/Njord.Forecast/AirQuality/AirQualityPoint.cs`
+- [x] 2.2 Add one arm per flag to `src/Njord.OpenMeteo/Mapping/AirQualityParamsMappings.cs` and map values in `src/Njord.OpenMeteo/Mapping/AirQualityResponseMappings.cs`
+- [x] 2.3 Specs per member in `src/Njord.OpenMeteo.Tests/Mapping/` (params mapping, response mapping incl. nulls) and `src/Njord.Forecast.Tests/AirQuality/`; update `OpenMeteoUriBuilderSpec` if it pins the AQ request
+- [x] 2.4 Validate: `dotnet run --project Njord.Forecast.Tests/Njord.Forecast.Tests.csproj`, `dotnet run --project Njord.OpenMeteo.Tests/Njord.OpenMeteo.Tests.csproj`
 
 ## 3. Region and Dust Handler
 

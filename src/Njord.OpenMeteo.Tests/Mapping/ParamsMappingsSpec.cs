@@ -54,6 +54,14 @@ public sealed class ParamsMappingsSpec
     [InlineData(AirQualityParams.GrassPollen, "grass_pollen")]
     [InlineData(AirQualityParams.Alder, "alder_pollen")]
     [InlineData(AirQualityParams.Mugwort, "mugwort_pollen")]
+    [InlineData(AirQualityParams.CarbonMonoxide, "carbon_monoxide")]
+    [InlineData(AirQualityParams.SulphurDioxide, "sulphur_dioxide")]
+    [InlineData(AirQualityParams.Dust, "dust")]
+    [InlineData(AirQualityParams.Ammonia, "ammonia")]
+    [InlineData(AirQualityParams.OlivePollen, "olive_pollen")]
+    [InlineData(AirQualityParams.UsAqi, "us_aqi")]
+    [InlineData(AirQualityParams.UvIndex, "uv_index")]
+    [InlineData(AirQualityParams.UvIndexClearSky, "uv_index_clear_sky")]
     public void Should_map_each_air_quality_flag_to_its_api_name(AirQualityParams param, string expected) =>
         Assert.Equal([expected], param.ToApiNames());
 

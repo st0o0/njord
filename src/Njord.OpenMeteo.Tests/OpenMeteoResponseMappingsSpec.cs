@@ -104,6 +104,34 @@ public sealed class OpenMeteoResponseMappingsSpec
     }
 
     [Fact]
+    public void An_air_quality_response_maps_the_expanded_variables_and_keeps_missing_ones_null()
+    {
+        var json = """
+            {"latitude":47.0,"longitude":8.0,"hourly":{"time":[1000,4600],
+            "carbon_monoxide":[200.0,null],"sulphur_dioxide":[3.0,null],"dust":[25.0,null],
+            "ammonia":[1.5,null],"olive_pollen":[4.0,null],"us_aqi":[42.0,null],
+            "uv_index":[5.5,null],"uv_index_clear_sky":[6.5,null]}}
+            """;
+        var response = System.Text.Json.JsonSerializer.Deserialize<AirQualityResponse>(json);
+        Assert.NotNull(response);
+
+        var forecast = response.ToDomainForecast(Run);
+
+        Assert.NotNull(forecast);
+        var point = Assert.Single(forecast.Points);
+        Assert.Multiple(
+            () => Assert.Equal(200.0, point.CarbonMonoxide),
+            () => Assert.Equal(3.0, point.SulphurDioxide),
+            () => Assert.Equal(25.0, point.Dust),
+            () => Assert.Equal(1.5, point.Ammonia),
+            () => Assert.Equal(4.0, point.OlivePollen),
+            () => Assert.Equal(42.0, point.UsAqi),
+            () => Assert.Equal(5.5, point.UvIndex),
+            () => Assert.Equal(6.5, point.UvIndexClearSky),
+            () => Assert.Null(point.Pm25));
+    }
+
+    [Fact]
     public void A_flood_response_maps_to_daily_points_and_skips_days_without_discharge()
     {
         var response = new FloodResponse(47.0, 8.0,

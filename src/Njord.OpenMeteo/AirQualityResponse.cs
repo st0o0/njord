@@ -13,7 +13,15 @@ public sealed record AirQualityHourlyData(
     [property: JsonPropertyName("grass_pollen")] double?[]? GrassPollen = null,
     [property: JsonPropertyName("alder_pollen")] double?[]? AlderPollen = null,
     [property: JsonPropertyName("mugwort_pollen")] double?[]? MugwortPollen = null,
-    [property: JsonPropertyName("ragweed_pollen")] double?[]? RagweedPollen = null);
+    [property: JsonPropertyName("ragweed_pollen")] double?[]? RagweedPollen = null,
+    [property: JsonPropertyName("carbon_monoxide")] double?[]? CarbonMonoxide = null,
+    [property: JsonPropertyName("sulphur_dioxide")] double?[]? SulphurDioxide = null,
+    [property: JsonPropertyName("dust")] double?[]? Dust = null,
+    [property: JsonPropertyName("ammonia")] double?[]? Ammonia = null,
+    [property: JsonPropertyName("olive_pollen")] double?[]? OlivePollen = null,
+    [property: JsonPropertyName("us_aqi")] double?[]? UsAqi = null,
+    [property: JsonPropertyName("uv_index")] double?[]? UvIndex = null,
+    [property: JsonPropertyName("uv_index_clear_sky")] double?[]? UvIndexClearSky = null);
 
 public sealed record AirQualityResponse(
     [property: JsonPropertyName("latitude")] double Latitude,
