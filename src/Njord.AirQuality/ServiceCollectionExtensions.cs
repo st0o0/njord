@@ -11,6 +11,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAlertRule<DomainForecast<AirQualityPoint>>, PollenAlertRule>();
         services.AddSingleton<IAlertRule<DomainForecast<AirQualityPoint>>, Pm25AlertRule>();
         services.AddSingleton<IDomainHandler, AirQualityAlertHandler>();
+        services.AddSingleton<IDomainHandler, PollenTrendHandler>();
         return services;
     }
 }

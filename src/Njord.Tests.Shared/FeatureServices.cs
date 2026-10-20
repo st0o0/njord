@@ -31,7 +31,7 @@ public static class FeatureServices
                 .AddAlertOptions(AppSettingsDefaults.Configuration())
                 .AddWeatherDomain()
                 .Configure<AlertOptions>(options => options.Enabled = enabled))
-            .GetServices<IDomainHandler>().Single();
+            .GetServices<IDomainHandler>().OfType<WeatherAlertHandler>().Single();
 
     public static IDomainHandler AlertHandler(TimeProvider time, Action<AlertOptions>? configure = null) =>
         Build(time, services =>

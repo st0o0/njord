@@ -1,0 +1,84 @@
+using Njord.Core.Domain;
+using Njord.Messages.Pipeline;
+using Njord.Model;
+
+namespace Njord.Weather.Lifestyle;
+
+public sealed class ExerciseAdvisoryHandler : IDomainHandler
+{
+    public const double SafeScore = 70.0;
+    public const double CautionScore = 45.0;
+
+    private const double Pm25Weight = 0.4;
+    private const double OzoneWeight = 0.2;
+    private const double TemperatureWeight = 0.2;
+    private const double HumidityWeight = 0.1;
+    private const double UvWeight = 0.1;
+
+    public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality };
+
+    public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
+    {
+        if (current.Weather is not { } weather || current.AirQuality is not { } airQuality)
+        {
+            return [];
+        }
+
+        var hours = ForecastQueries.Upcoming(weather, time.GetUtcNow(), 12)
+            .Select(point => (Point: point, Air: ForecastQueries.ValueAt(airQuality, point.ValidFrom)))
+            .Where(pair => pair.Air is not null)
+            .Select(pair => Components(pair.Point, pair.Air!))
+            .ToList();
+        if (hours.Count == 0)
+        {
+            return [];
+        }
+
+        var average = hours.Average(h => h.Total);
+        var best = hours.MaxBy(h => h.Total)!;
+        var level = average switch
+        {
+            >= SafeScore => "Safe",
+            >= CautionScore => "Caution",
+            _ => "Avoid",
+        };
+
+        var reasons = new List<string>();
+        AddReason(reasons, hours.Average(h => h.Pm25), "High particulate matter (PM2.5)");
+        AddReason(reasons, hours.Average(h => h.Ozone), "High ozone");
+        AddReason(reasons, hours.Average(h => h.Temperature), "Uncomfortable temperature");
+        AddReason(reasons, hours.Average(h => h.Humidity), "High humidity");
+        AddReason(reasons, hours.Average(h => h.Uv), "Strong UV radiation");
+
+        return [new PipelineEvent.ExerciseAdvised(current.Location, level, [.. reasons], best.ValidFrom)];
+    }
+
+    private static void AddReason(List<string> reasons, double componentScore, string text)
+    {
+        if (componentScore < 0.5)
+        {
+            reasons.Add(text);
+        }
+    }
+
+    private static Hour Components(WeatherPoint weather, AirQualityPoint air)
+    {
+        var pm25 = 1.0 - Scoring.Ramp(air.Pm25, 15.0, 55.0);
+        var ozone = 1.0 - Scoring.Ramp(air.Ozone, 100.0, 180.0);
+        var temperature = Scoring.Band(weather.Temperature, -5.0, 8.0, 22.0, 35.0);
+        var humidity = 1.0 - Scoring.Ramp(weather.Humidity, 70.0, 100.0);
+        var uv = 1.0 - Scoring.Ramp(weather.UvIndex, 5.0, 11.0);
+        var total = 100.0 * (Pm25Weight * pm25 + OzoneWeight * ozone + TemperatureWeight * temperature
+            + HumidityWeight * humidity + UvWeight * uv);
+        return new Hour(weather.ValidFrom, total, pm25, ozone, temperature, humidity, uv);
+    }
+
+    private sealed record Hour(
+        DateTimeOffset ValidFrom,
+        double Total,
+        double Pm25,
+        double Ozone,
+        double Temperature,
+        double Humidity,
+        double Uv);
+}

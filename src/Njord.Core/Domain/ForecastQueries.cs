@@ -34,6 +34,14 @@ public static class ForecastQueries
         return result;
     }
 
+    public static IReadOnlyList<T> Upcoming<T>(DomainForecast<T> forecast, DateTimeOffset now, int hours)
+        where T : IHasValidTime
+    {
+        var start = AlertClock.HourStart(now);
+        var end = start.AddHours(hours);
+        return [.. forecast.Points.Where(point => point.ValidFrom >= start && point.ValidFrom < end)];
+    }
+
     public static T? Nearest<T>(DomainForecast<T> forecast, DateTimeOffset time, TimeSpan maxGap)
         where T : class, IHasValidTime
     {

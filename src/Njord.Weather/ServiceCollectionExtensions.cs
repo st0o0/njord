@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Njord.Core.Domain;
 using Njord.Model;
 using Njord.Weather.Alerts.Rules;
+using Njord.Weather.Lifestyle;
 
 namespace Njord.Weather.Alerts;
 
@@ -25,6 +26,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, HumidityRule>();
 
         services.AddSingleton<IDomainHandler, WeatherAlertHandler>();
+        services.AddSingleton<IDomainHandler, VentilationWindowHandler>();
+        services.AddSingleton<IDomainHandler, ExerciseAdvisoryHandler>();
+        services.AddSingleton<IDomainHandler, LaundryScoreHandler>();
+        services.AddSingleton<IDomainHandler, CommuteSafetyHandler>();
+        services.AddSingleton<IDomainHandler, NightVentilationHandler>();
+        services.AddSingleton<IDomainHandler, ConfidenceTrendHandler>();
 
         return services;
     }
