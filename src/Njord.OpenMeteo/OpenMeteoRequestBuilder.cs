@@ -23,19 +23,19 @@ internal sealed class OpenMeteoRequestBuilder
 
     public OpenMeteoRequestBuilder WithHourly(IEnumerable<string> variables)
     {
-        _params.Add($"hourly={string.Join(",", variables)}");
+        _params.Add($"hourly={JoinList(variables)}");
         return this;
     }
 
     public OpenMeteoRequestBuilder WithDaily(IEnumerable<string> variables)
     {
-        _params.Add($"daily={string.Join(",", variables)}");
+        _params.Add($"daily={JoinList(variables)}");
         return this;
     }
 
     public OpenMeteoRequestBuilder WithMonthly(IEnumerable<string> variables)
     {
-        _params.Add($"monthly={string.Join(",", variables)}");
+        _params.Add($"monthly={JoinList(variables)}");
         return this;
     }
 
@@ -57,15 +57,15 @@ internal sealed class OpenMeteoRequestBuilder
 
     public OpenMeteoRequestBuilder With(string key, string value)
     {
-        _params.Add($"{key}={value}");
+        _params.Add($"{Uri.EscapeDataString(key)}={Uri.EscapeDataString(value)}");
         return this;
     }
 
     public string Build()
     {
-        _params.Add("timeformat=unixtime");
-        _params.Add("timezone=UTC");
-
-        return $"{_endpoint}?{string.Join("&", _params)}";
+        return $"{_endpoint}?{string.Join("&", [.. _params, "timeformat=unixtime", "timezone=UTC"])}";
     }
+
+    private static string JoinList(IEnumerable<string> values) =>
+        string.Join(",", values.Select(Uri.EscapeDataString));
 }

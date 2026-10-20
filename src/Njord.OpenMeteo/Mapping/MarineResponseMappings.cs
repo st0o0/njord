@@ -1,6 +1,6 @@
-using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.Marine;
+using static Njord.OpenMeteo.Mapping.ForecastBuilding;
 using static Njord.OpenMeteo.Mapping.SeriesAccess;
 
 namespace Njord.OpenMeteo.Mapping;
@@ -15,21 +15,13 @@ internal static class MarineResponseMappings
             return null;
         }
 
-        var times = h.Time;
-        var builder = ImmutableArray.CreateBuilder<MarinePoint>(times.Length);
-        var lastValued = -1;
-
-        for (var i = 0; i < times.Length; i++)
-        {
-            if (AnyAt(i, h.WaveHeight, h.WavePeriod, h.WaveDirection, h.SeaSurfaceTemperature,
+        return BuildForecast(
+            DomainKind.Marine, TimeResolution.Hourly, modelRun, h.Time.Length,
+            i => AnyAt(i, h.WaveHeight, h.WavePeriod, h.WaveDirection, h.SeaSurfaceTemperature,
                 h.WindWaveHeight, h.WindWavePeriod, h.WindWaveDirection, h.WindWavePeakPeriod,
-                h.SwellWaveHeight, h.SwellWavePeriod, h.SwellWaveDirection, h.SwellWavePeakPeriod, h.SeaLevelHeight))
-            {
-                lastValued = i;
-            }
-
-            builder.Add(new MarinePoint(
-                DateTimeOffset.FromUnixTimeSeconds(times[i]),
+                h.SwellWaveHeight, h.SwellWavePeriod, h.SwellWaveDirection, h.SwellWavePeakPeriod, h.SeaLevelHeight),
+            i => new MarinePoint(
+                DateTimeOffset.FromUnixTimeSeconds(h.Time[i]),
                 WaveHeight: At(h.WaveHeight, i),
                 WavePeriod: At(h.WavePeriod, i),
                 WaveDirection: At(h.WaveDirection, i),
@@ -43,15 +35,5 @@ internal static class MarineResponseMappings
                 SwellWaveDirection: At(h.SwellWaveDirection, i),
                 SwellWavePeakPeriod: At(h.SwellWavePeakPeriod, i),
                 SeaLevelHeight: At(h.SeaLevelHeight, i)));
-        }
-
-        if (lastValued < 0)
-        {
-            return null;
-        }
-
-        return new DomainForecast<MarinePoint>(
-            DomainKind.Marine, modelRun, TimeResolution.Hourly,
-            builder.Take(lastValued + 1).ToImmutableArray());
     }
 }

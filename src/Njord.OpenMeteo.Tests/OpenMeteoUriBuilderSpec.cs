@@ -95,6 +95,30 @@ public sealed class OpenMeteoUriBuilderSpec
         Assert.Equal("v1/x?latitude=1.5&longitude=2.5&timeformat=unixtime&timezone=UTC", forecast);
     }
 
+    [Fact]
+    public void Reserved_characters_in_values_are_percent_encoded_without_altering_other_parameters()
+    {
+        var uri = OpenMeteoRequestBuilder.To("v1/x").With("models", "a&b=c dä").Build();
+
+        Assert.Equal("v1/x?models=a%26b%3Dc%20d%C3%A4&timeformat=unixtime&timezone=UTC", uri);
+    }
+
+    [Fact]
+    public void Variable_lists_keep_literal_commas()
+    {
+        var uri = OpenMeteoRequestBuilder.To("v1/x").WithHourly(["temperature_2m", "rain"]).Build();
+
+        Assert.Equal("v1/x?hourly=temperature_2m,rain&timeformat=unixtime&timezone=UTC", uri);
+    }
+
+    [Fact]
+    public void Building_twice_yields_the_same_uri()
+    {
+        var builder = OpenMeteoRequestBuilder.To("v1/x").WithLocation(1.5, 2.5);
+
+        Assert.Equal(builder.Build(), builder.Build());
+    }
+
     private static async Task<string> Capture(Func<HttpClient, Task> call)
     {
         string? captured = null;
