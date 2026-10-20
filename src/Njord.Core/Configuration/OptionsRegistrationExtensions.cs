@@ -12,10 +12,12 @@ public static class OptionsRegistrationExtensions
         where T : class =>
         services.AddNjordOptions<T>(configuration, ConventionalValidator<T>());
 
-    public static OptionsBuilder<T> AddNjordOptions<T, TValidator>(this IServiceCollection services, IConfiguration configuration)
-        where T : class
-        where TValidator : class, IValidateOptions<T> =>
-        services.AddNjordOptions<T>(configuration, typeof(TValidator));
+    public static OptionsBuilder<T> AddNjordFeatureOptions<T>(this IServiceCollection services)
+        where T : class =>
+        services
+            .AddOptions<T>().BindConfiguration(ConfigSections.PathOf<T>())
+            .ReplaceCollectionDefaults()
+            .ValidateOnStart();
 
     private static OptionsBuilder<T> AddNjordOptions<T>(
         this IServiceCollection services, IConfiguration configuration, Type validator)

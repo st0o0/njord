@@ -9,7 +9,7 @@ over gRPC (the ha-njord integration).
 
 ## Solution structure
 
-15 production projects, one test project each (except Host), plus `Njord.Tests.Shared`.
+12 production projects, one test project each (except Host), plus `Njord.Tests.Shared`.
 
 ```
 src/
@@ -33,20 +33,15 @@ src/
   Njord.Budget/         # BudgetTracker (persistent), usage accounting, health check
   Njord.Polling/        # PollManager, PollWorker (+ state, mappings), polling Telemetry, PollingSetupContainer
   Njord.Pipeline/       # Stream/ (ForecastPipeline, ProjectionEngine), Health/ (PipelineHealthCheck), Telemetry
-  Njord.Alerts/         # WeatherAlertHandler + Rules/ (14 weather, 3 AQ, 2 flood, 1 marine),
-                        #   AirQualityAlertHandler, FloodRiskHandler, FloodRainHandler, SwimmingConditionsHandler
-  Njord.Scores/         # BBQScoreHandler, LaundryScoreHandler, OutdoorScoreHandler, SurfConditionsHandler, Scoring
-  Njord.Insights/       # SeasonalOutlookHandler, SolarYieldHandler, SolarIrradianceBlend, SatelliteRadiationHandler,
-                        #   ConfidenceTrendHandler, ApproachingFrontHandler, PollenTrendHandler
-  Njord.Advisories/     # CommuteSafetyHandler, VentilationWindowHandler, NightVentilationHandler,
-                        #   ExerciseAdvisoryHandler, GardeningHandler, FloodTimelineHandler
+  Njord.Features/       # (-> Core) every feature: <OutputKind>/<Feature>/ with rule + config side by side
+                        #   (Alerts/ Scores/ Conditions/ Trends/ Forecasts/), <Kind>/Shared/ and top-level Shared/
+                        #   (Scoring), ServiceCollectionExtensions.AddFeatures; typed inputs stay in Core
   Njord.Grpc/           # WeatherGrpcService, OpsGrpcService, ActorAsk, GrpcConsumer, Mapping/
   Njord/                # Host: Program.cs, NjordHost, Configuration/ (setup containers), Health/
 
   Njord.Forecast.Tests/ Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
   Njord.OpenMeteo.Tests/ Njord.Budget.Tests/ Njord.Pipeline.Tests/ Njord.Polling.Tests/
-  Njord.Alerts.Tests/ Njord.Scores.Tests/ Njord.Insights.Tests/ Njord.Advisories.Tests/
-  Njord.Grpc.Tests/
+  Njord.Features.Tests/ Njord.Grpc.Tests/
   Njord.IntegrationTests/       # whole host via NjordHost + TestServer
   Njord.Architecture.Tests/     # ArchUnitNET rules (ArchitectureSpec) + FeatureConfigKeySpec
   Njord.Tests.Shared/           # fakes, builders, fixtures, NjordActorSpec (not a test project)
@@ -55,7 +50,7 @@ docs/                           # VitePress site incl. the Config Builder (docs/
 ```
 
 Reference direction: Forecast <- Messages; Forecast/Messages/Persistence <- Core <- feature libraries
-(OpenMeteo, Budget, Polling, Pipeline, Alerts, Scores, Insights, Advisories, Grpc) <- Host. Feature
+(OpenMeteo, Budget, Polling, Pipeline, Features, Grpc) <- Host. Feature
 libraries reference only `Njord.Core` (and below), never each other, never the Host; they reach each
 other's actors through the markers in `ActorKeys.cs`. Registration stays central in the Host.
 
@@ -177,8 +172,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 919 tests (Forecast 68, Messages 69, Persistence 14, Core 155, OpenMeteo 134, Budget 18,
-Polling 103, Pipeline 51, Weather 122, AirQuality 20, Flood 28, Marine 63, Grpc 41, Architecture 16,
+Current total: 900 tests (Forecast 68, Messages 69, Persistence 14, Core 155, OpenMeteo 134, Budget 18,
+Polling 103, Pipeline 51, Features 214, Grpc 41, Architecture 16,
 IntegrationTests 17). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),

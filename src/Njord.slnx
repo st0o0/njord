@@ -25,10 +25,7 @@
     <Project Path="Njord.Budget/Njord.Budget.csproj" />
   </Folder>
   <Folder Name="/Analysis/">
-    <Project Path="Njord.Alerts/Njord.Alerts.csproj" />
-    <Project Path="Njord.Scores/Njord.Scores.csproj" />
-    <Project Path="Njord.Insights/Njord.Insights.csproj" />
-    <Project Path="Njord.Advisories/Njord.Advisories.csproj" />
+    <Project Path="Njord.Features/Njord.Features.csproj" />
   </Folder>
   <Folder Name="/Processing/">
     <Project Path="Njord.Pipeline/Njord.Pipeline.csproj" />
@@ -50,10 +47,7 @@
     <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
     <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />
     <Project Path="Njord.IntegrationTests/Njord.IntegrationTests.csproj" />
-    <Project Path="Njord.Alerts.Tests/Njord.Alerts.Tests.csproj" />
-    <Project Path="Njord.Scores.Tests/Njord.Scores.Tests.csproj" />
-    <Project Path="Njord.Insights.Tests/Njord.Insights.Tests.csproj" />
-    <Project Path="Njord.Advisories.Tests/Njord.Advisories.Tests.csproj" />
+    <Project Path="Njord.Features.Tests/Njord.Features.Tests.csproj" />
   </Folder>
   <Project Path="Njord/Njord.csproj" />
 </Solution>

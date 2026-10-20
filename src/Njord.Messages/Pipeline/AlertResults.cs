@@ -1,0 +1,268 @@
+using Njord.Forecast;
+using Njord.Messages.Alerts;
+
+namespace Njord.Messages.Pipeline;
+
+public sealed record FrostAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double ExpectedLow,
+    Horizon? EarliestFrost) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record HeatAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double ExpectedMax) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record StormAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double ExpectedMaxGust) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record HeavyRainAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    int HourlyExceedModels,
+    int DailyExceedModels) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record UvAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    string UvLevel,
+    double UvIndex) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue, HoursUntil,
+    DurationHours, Level);
+
+public sealed record FogAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    int FogHours) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue, HoursUntil,
+    DurationHours, Level);
+
+public sealed record SnowAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double ExpectedAccumulation,
+    double? FreezingLevel) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record PressureDropAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double MaxDrop) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue, HoursUntil,
+    DurationHours, Level);
+
+public sealed record ThunderstormAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record IceAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double ExpectedLow,
+    int RainHours,
+    bool SoilFrozen) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record WindChillAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double FeltTemperature,
+    double WindFactor,
+    string? ExposureRisk) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record VisibilityAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double MinVisibility,
+    int HoursBelow1000m) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record TropicalNightAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double NightMinimum,
+    int HoursAbove20) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record HumidityAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level,
+    double MaxDewpoint,
+    string? ComfortLevel) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record PollenAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record Pm25AlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record DustAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record FloodRiskAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record FloodRainAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);
+
+public sealed record SwimmingConditionsAlertResult(
+    Location Location,
+    AlertSeverity Severity,
+    double Confidence,
+    double TriggerValue,
+    double Threshold,
+    double? PeakValue,
+    int? HoursUntil,
+    int? DurationHours,
+    ConfidenceLevel Level) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    HoursUntil, DurationHours, Level);

@@ -7,4 +7,5 @@ public sealed record FeatureDescriptor(
     OutputKind Output,
     FeatureCategory Category,
     bool DefaultEnabled,
-    DomainRequirements Requirements);
+    DomainRequirements Requirements,
+    int PollDepth = 0);

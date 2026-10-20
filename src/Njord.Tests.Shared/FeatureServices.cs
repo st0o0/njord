@@ -1,61 +1,34 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Njord.Advisories;
-using Njord.Alerts;
-using Njord.Core.Configuration;
 using Njord.Core.Domain;
-using Njord.Forecast;
-using Njord.Forecast.Weather;
-using Njord.Insights;
-using Njord.Scores;
+using Njord.Features;
 
 namespace Njord.Tests.Shared;
 
 public static class FeatureServices
 {
-    public static ServiceProvider Build(TimeProvider time, Action<IServiceCollection> configure)
+    public static ServiceProvider Build(Action<IServiceCollection> configure)
     {
         var services = new ServiceCollection();
-        services.AddSingleton<IConfiguration>(AppSettingsDefaults.Configuration());
-        services.AddSingleton(time);
+        var configuration = AppSettingsDefaults.Configuration();
+        services.AddSingleton<IConfiguration>(configuration);
         configure(services);
         return services.BuildServiceProvider();
     }
 
-    public static IReadOnlyList<IAlertRule<DomainForecast<WeatherPoint>>> WeatherRules(TimeProvider time) =>
-        [.. Build(time, services => services
-                .AddAlertOptions(AppSettingsDefaults.Configuration())
-                .AddAlertHandlers())
-            .GetServices<IAlertRule<DomainForecast<WeatherPoint>>>()];
+    public static ServiceProvider BuildAllFeatures(Action<IServiceCollection>? configure = null)
+    {
+        var services = new ServiceCollection();
+        var configuration = AppSettingsDefaults.Configuration();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddFeatures(configuration);
+        configure?.Invoke(services);
+        return services.BuildServiceProvider();
+    }
 
-    public static WeatherAlertHandler WeatherHandler(TimeProvider time, bool enabled = true, Action<FeatureOptions>? features = null) =>
-        (WeatherAlertHandler)Build(time, services => services
-                .AddAlertOptions(AppSettingsDefaults.Configuration())
-                .AddAlertHandlers()
-                .Configure<AlertOptions>(options => options.Enabled = enabled)
-                .Configure<FeatureOptions>(options => features?.Invoke(options)))
-            .GetServices<IDomainHandler>().OfType<WeatherAlertHandler>().Single();
+    public static IReadOnlyList<IFeatureRule> AllFeatureRules(Action<IServiceCollection>? configure = null) =>
+        [.. BuildAllFeatures(configure).GetServices<IFeatureRule>()];
 
-    public static AirQualityAlertHandler AirQualityHandler(TimeProvider time, bool enabled = true, Action<FeatureOptions>? features = null) =>
-        (AirQualityAlertHandler)Build(time, services => services
-                .AddAlertOptions(AppSettingsDefaults.Configuration())
-                .AddAlertHandlers()
-                .Configure<AlertOptions>(options => options.Enabled = enabled)
-                .Configure<FeatureOptions>(options => features?.Invoke(options)))
-            .GetServices<IDomainHandler>().OfType<AirQualityAlertHandler>().Single();
-
-    public static IDomainHandler AlertHandler(TimeProvider time, Action<AlertOptions>? configure = null) =>
-        Build(time, services =>
-            {
-                services.AddAlertOptions(AppSettingsDefaults.Configuration());
-                services.AddAlertHandlers();
-                services.AddScoreHandlers();
-                services.AddInsightHandlers();
-                services.AddAdvisoryHandlers();
-                if (configure is not null)
-                {
-                    services.Configure(configure);
-                }
-            })
-            .GetServices<IDomainHandler>().First();
+    public static T GetFeature<T>(Action<IServiceCollection>? configure = null) where T : IFeatureRule =>
+        BuildAllFeatures(configure).GetServices<IFeatureRule>().OfType<T>().Single();
 }

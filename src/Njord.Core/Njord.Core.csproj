@@ -3,6 +3,7 @@
     <ItemGroup>
         <InternalsVisibleTo Include="Njord" />
         <InternalsVisibleTo Include="Njord.Core.Tests" />
+        <InternalsVisibleTo Include="Njord.Tests.Shared" />
     </ItemGroup>
 
     <ItemGroup>

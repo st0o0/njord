@@ -2,8 +2,8 @@ using Akka.Actor;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
-using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Features.Alerts.Frost;
 using Njord.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
@@ -17,25 +17,15 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
 
     protected override bool UseTestPersistence => false;
 
-    private IActorRef CreatePipeline(FeatureOptions? features = null)
+    private IActorRef CreatePipeline(IReadOnlyList<IFeatureRule>? features = null)
     {
         var time = new FakeTimeProvider(Start);
-        var group = FeatureServices.AlertHandler(time);
-        var options = Options.Create(features ?? new FeatureOptions());
-        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, new[] { group }, options)), $"pipeline-{Guid.NewGuid():N}");
+        var rules = features ?? FeatureServices.AllFeatureRules();
+        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, rules)), $"pipeline-{Guid.NewGuid():N}");
     }
 
-    private static FeatureOptions AllFeaturesOff()
-    {
-        var options = new FeatureOptions();
-        var handler = Assert.IsType<IMultiFeatureHandler>(FeatureServices.AlertHandler(new FakeTimeProvider(Start)), exactMatch: false);
-        foreach (var feature in handler.Features)
-        {
-            options.Set(feature.Feature.Category.ToString(), feature.Name, false);
-        }
-
-        return options;
-    }
+    private static IReadOnlyList<IFeatureRule> AllFeaturesOff() =>
+        [new FrostAlert(Options.Create(new FrostConfig { Enabled = false }))];
 
     private static DomainDataReceived Weather(Location location, double temperature = 10.0) =>
         DomainData.Received(location, DomainData.Weather(Start, 48, (_, p) => p with { Temperature = temperature }));
@@ -101,8 +91,8 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
         var raised = await NextFrostAlertAsync(consumer, ct);
         Assert.Multiple(
             () => Assert.Equal("Lucerne", raised.Location.Name),
-            () => Assert.Equal(AlertSeverity.Yellow, raised.Alert.Severity),
-            () => Assert.Equal(ConfidenceLevel.High, raised.Alert.Level));
+            () => Assert.Equal(AlertSeverity.Yellow, raised.Severity),
+            () => Assert.Equal(ConfidenceLevel.High, raised.Level));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -186,11 +176,11 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
         return Assert.IsType<PipelineEvent.WeatherDataReceived>(message);
     }
 
-    private static async Task<AlertResult> NextFrostAlertAsync(Akka.TestKit.TestProbe consumer, CancellationToken ct)
+    private static async Task<FrostAlertResult> NextFrostAlertAsync(Akka.TestKit.TestProbe consumer, CancellationToken ct)
     {
         var message = await consumer.FishForMessageAsync(
-            m => m is AlertResult { WireKey: "frost" } or ConsumerCompleted or ConsumerFailed,
+            m => m is FrostAlertResult or ConsumerCompleted or ConsumerFailed,
             TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        return Assert.IsType<AlertResult>(message);
+        return Assert.IsType<FrostAlertResult>(message);
     }
 }

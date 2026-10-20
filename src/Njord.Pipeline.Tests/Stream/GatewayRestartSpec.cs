@@ -115,9 +115,8 @@ public sealed class GatewayRestartSpec : NjordActorSpec
 
     private IActorRef StartPipeline()
     {
-        var group = FeatureServices.AlertHandler(_time);
-        var enrichments = Wrap(new FeatureOptions());
-        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(_time, new[] { group }, enrichments)), $"pipeline-{Guid.NewGuid():N}");
+        var rules = FeatureServices.AllFeatureRules();
+        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(_time, rules)), $"pipeline-{Guid.NewGuid():N}");
     }
 
     private static IOptions<T> Wrap<T>(T value)

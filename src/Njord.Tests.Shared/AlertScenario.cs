@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Time.Testing;
-using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
@@ -7,7 +5,7 @@ using Njord.Messages.Pipeline;
 
 namespace Njord.Tests.Shared;
 
-public sealed record LocationAnalysis(string Location, IReadOnlyList<AlertResult> Alerts);
+public sealed record LocationAnalysis(string Location, IReadOnlyList<AlertFeatureResult> Alerts);
 
 public sealed class AlertScenario
 {
@@ -24,14 +22,18 @@ public sealed class AlertScenario
 
     public static AlertScenario Create()
     {
-        var rules = FeatureServices.WeatherRules(new FakeTimeProvider(Now));
-        var options = AppSettingsDefaults.Options<AlertOptions>();
+        var rules = FeatureServices.AllFeatureRules()
+            .OfType<FeatureRule<WeatherInput>>()
+            .Where(rule => rule.Descriptor is { Output: OutputKind.Alert, Category: FeatureCategory.Weather })
+            .ToList();
 
         var analyses = Locations.Select(location =>
         {
-            var weather = Weather(location);
-            var result = rules.OrderBy(rule => rule.Name, StringComparer.Ordinal)
-                .Select(rule => new AlertResult(new Location(location, 0, 0), rule.WireKey(), rule.Evaluate(weather, options, Now), Now))
+            var forecast = new LocationForecast(new Location(location, 0, 0), Weather(location));
+            var result = rules
+                .SelectMany(rule => FeatureRunner.Run(rule, Now, forecast))
+                .OfType<AlertFeatureResult>()
+                .OrderBy(alert => alert.GetType().Name, StringComparer.Ordinal)
                 .ToList();
             return new LocationAnalysis(location, result);
         });

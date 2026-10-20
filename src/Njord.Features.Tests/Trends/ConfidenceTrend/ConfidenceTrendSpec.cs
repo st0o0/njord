@@ -1,0 +1,45 @@
+using Microsoft.Extensions.Options;
+using Njord.Core.Domain;
+using Njord.Features.Trends.ConfidenceTrend;
+using Njord.Messages.Pipeline;
+using static Njord.Tests.Shared.AlertRuleFixture;
+using static Njord.Tests.Shared.FeatureRunner;
+using static Njord.Tests.Shared.LifestyleFixture;
+
+namespace Njord.Features.Tests.Trends;
+
+public sealed class ConfidenceTrendSpec
+{
+    private static ConfidenceTrend Feature() => new(Options.Create(new ConfidenceTrendConfig { Enabled = true }));
+
+    private static LocationForecast WithStdDev(double value) =>
+        WeatherOnly(Uniform(p => p with { EnsembleStdDev = value }));
+
+    [Theory]
+    [InlineData(1.0, 2.0, "Converging")]
+    [InlineData(2.5, 2.0, "Diverging")]
+    [InlineData(2.1, 2.0, "Stable")]
+    public void The_change_in_ensemble_spread_is_classified(double current, double previous, string direction)
+    {
+        var trend = Assert.IsType<ConfidenceTrendResult>(
+            Assert.Single(Run(Feature(), Now, WithStdDev(previous), WithStdDev(current))));
+
+        Assert.Multiple(
+            () => Assert.Equal(direction, trend.Direction),
+            () => Assert.Equal(Math.Round(current - previous, 2), trend.Magnitude),
+            () => Assert.Equal(FeatureData.Number(current), trend.Data["current_avg_std_dev"]),
+            () => Assert.Equal(FeatureData.Number(previous), trend.Data["previous_avg_std_dev"]));
+    }
+
+    [Fact]
+    public void Nothing_is_reported_without_a_previous_cycle()
+    {
+        Assert.Empty(Run(Feature(), Now, WithStdDev(1.0)));
+    }
+
+    [Fact]
+    public void Nothing_is_reported_without_ensemble_data()
+    {
+        Assert.Empty(Run(Feature(), Now, WeatherOnly(Day()), WeatherOnly(Day())));
+    }
+}

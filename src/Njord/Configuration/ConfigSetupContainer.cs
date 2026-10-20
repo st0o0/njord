@@ -20,8 +20,16 @@ public sealed class ConfigSetupContainer : IServiceSetupContainer
             sp.GetRequiredService<IOptions<NjordOptions>>().Value,
             sp.GetRequiredService<IOptions<PollingOptions>>().Value,
             sp.GetRequiredService<IOptions<AlertOptions>>().Value,
-            FeatureResolution.EnabledFeatures(
-                sp.GetRequiredService<IOptions<FeatureOptions>>().Value,
-                sp.GetServices<IDomainHandler>())));
+            sp.GetServices<IFeatureRule>()
+                .Where(static rule => rule.Enabled)
+                .Select(static rule => (IFeature)new RuleFeature(rule))
+                .ToList()));
+    }
+
+    private sealed class RuleFeature(IFeatureRule rule) : IFeature
+    {
+        public string Name { get; } = rule.GetType().Name;
+
+        public FeatureDescriptor Feature { get; } = rule.Descriptor;
     }
 }

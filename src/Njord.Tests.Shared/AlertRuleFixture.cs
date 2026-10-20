@@ -1,6 +1,4 @@
 using System.Collections.Immutable;
-using Microsoft.Extensions.Options;
-using Njord.Core.Configuration;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 
@@ -9,10 +7,6 @@ namespace Njord.Tests.Shared;
 public static class AlertRuleFixture
 {
     public static readonly DateTimeOffset Now = new(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
-    public static readonly AlertOptions Defaults = AppSettingsDefaults.Options<AlertOptions>();
-
-    public static IOptions<AlertOptions> OptionsWith(bool enabled) =>
-        Options.Create(AppSettingsDefaults.Options<AlertOptions>(o => o.Enabled = enabled));
 
     public static WeatherPoint Benign(DateTimeOffset validFrom) => new(
         ValidFrom: validFrom,

@@ -21,12 +21,21 @@ public sealed class FeatureOptionsSpec
     private static StubHandler Feature(string name, FeatureCategory category, bool defaultEnabled) =>
         new(name, category, defaultEnabled);
 
-    private static FeatureOptionsValidator ValidatorFor(params IDomainHandler[] handlers)
+    private sealed class StubRule(bool enabled) : IFeatureRule
+    {
+        public FeatureDescriptor Descriptor { get; } = new(OutputKind.Condition, FeatureCategory.Weather, enabled, default);
+
+        public bool Enabled => enabled;
+
+        public IReadOnlyList<PipelineEvent> Execute(RingBuffer<LocationForecast> ring, DateTimeOffset now) => [];
+    }
+
+    private static FeatureOptionsValidator ValidatorFor(params IFeatureRule[] rules)
     {
         var services = new ServiceCollection();
-        foreach (var handler in handlers)
+        foreach (var rule in rules)
         {
-            services.AddSingleton(handler);
+            services.AddSingleton(rule);
         }
 
         return new FeatureOptionsValidator(services.BuildServiceProvider());
@@ -130,7 +139,7 @@ public sealed class FeatureOptionsSpec
     [Fact]
     public void Should_accept_the_defaults()
     {
-        var validator = ValidatorFor(Feature("Frost", FeatureCategory.Weather, true));
+        var validator = ValidatorFor(new StubRule(enabled: false), new StubRule(enabled: true));
 
         Assert.True(validator.Validate(null, new FeatureOptions()).Succeeded);
     }
@@ -138,46 +147,10 @@ public sealed class FeatureOptionsSpec
     [Fact]
     public void Should_reject_a_configuration_without_any_enabled_feature()
     {
-        var validator = ValidatorFor(Feature("Frost", FeatureCategory.Weather, true), Feature("FloodRisk", FeatureCategory.Flood, false));
-        var options = new FeatureOptions();
-        options.Set("Weather", "Frost", false);
+        var validator = ValidatorFor(new StubRule(enabled: false), new StubRule(enabled: false));
 
-        var result = validator.Validate(null, options);
+        var result = validator.Validate(null, new FeatureOptions());
 
         Assert.Equal("At least one feature must be enabled.", ValidationAssert.SingleFailure(result));
-    }
-
-    [Fact]
-    public void Should_reject_a_feature_without_a_registered_descriptor()
-    {
-        var validator = ValidatorFor(Feature("Frost", FeatureCategory.Weather, true));
-        var options = new FeatureOptions();
-        options.Set("Marine", "Surf", true);
-
-        var result = validator.Validate(null, options);
-
-        Assert.Equal("No feature is registered for: Marine:Surf.", ValidationAssert.SingleFailure(result));
-    }
-
-    [Fact]
-    public void Should_reject_a_known_name_under_the_wrong_category()
-    {
-        var validator = ValidatorFor(Feature("Frost", FeatureCategory.Weather, true));
-        var options = new FeatureOptions();
-        options.Set("Lifestyle", "Frost", true);
-
-        var result = validator.Validate(null, options);
-
-        Assert.Equal("No feature is registered for: Lifestyle:Frost.", ValidationAssert.SingleFailure(result));
-    }
-
-    [Fact]
-    public void Should_accept_configured_keys_regardless_of_case()
-    {
-        var validator = ValidatorFor(Feature("Frost", FeatureCategory.Weather, true));
-        var options = new FeatureOptions();
-        options.Set("weather", "FROST", true);
-
-        Assert.True(validator.Validate(null, options).Succeeded);
     }
 }

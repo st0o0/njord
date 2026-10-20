@@ -19,7 +19,7 @@ public sealed class ForecastWindowSpec
     [Fact]
     public void Should_return_exactly_the_requested_number_of_hours()
     {
-        var points = ForecastWindow.NextHours(Hourly(48), Midnight.AddMinutes(30), 6);
+        var points = Hourly(48).NextHours(Midnight.AddMinutes(30), 6);
 
         Assert.Equal(6, points.Count);
         Assert.Equal(Midnight, points[0].ValidFrom);
@@ -28,19 +28,19 @@ public sealed class ForecastWindowSpec
     [Fact]
     public void Should_default_to_24_hours_half_open()
     {
-        Assert.Equal(24, ForecastWindow.NextHours(Hourly(48), Midnight).Count);
+        Assert.Equal(24, Hourly(48).NextHours(Midnight).Count);
     }
 
     [Fact]
     public void Should_include_the_end_boundary_when_inclusive()
     {
-        Assert.Equal(25, ForecastWindow.NextHoursInclusive(Hourly(48), Midnight).Count);
+        Assert.Equal(25, Hourly(48).NextHoursInclusive(Midnight).Count);
     }
 
     [Fact]
     public void Should_anchor_days_to_utc_midnight()
     {
-        var points = ForecastWindow.NextDays(Daily(10), Midnight.AddHours(15), 3);
+        var points = Daily(10).NextDays(Midnight.AddHours(15), 3);
 
         Assert.Equal(4, points.Count);
         Assert.Equal(Midnight, points[0].ValidFrom);

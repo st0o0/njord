@@ -1,0 +1,48 @@
+using Microsoft.Extensions.Options;
+using Njord.Features.Conditions.Gardening;
+using Njord.Messages.Pipeline;
+using static Njord.Tests.Shared.AlertRuleFixture;
+using static Njord.Tests.Shared.FeatureRunner;
+using static Njord.Tests.Shared.LifestyleFixture;
+
+namespace Njord.Features.Tests.Conditions;
+
+public sealed class GardeningSpec
+{
+    private static Gardening Feature() => new(Options.Create(new GardeningConfig { Enabled = true }));
+
+    [Fact]
+    public void Frost_is_flagged_and_blocks_planting()
+    {
+        var forecast = WeatherOnly(Day((hour, point) => hour == 5 ? point with { Temperature = -1.0 } : point));
+
+        var advice = Assert.IsType<GardeningResult>(Assert.Single(Run(Feature(), Now, forecast)));
+
+        Assert.Multiple(
+            () => Assert.Equal("true", advice.Data["frost_risk"]),
+            () => Assert.Equal("false", advice.Data["planting_safe"]),
+            () => Assert.Equal("hold", advice.State));
+    }
+
+    [Fact]
+    public void A_mild_dry_day_calls_for_planting_and_watering()
+    {
+        var advice = Assert.IsType<GardeningResult>(Assert.Single(Run(Feature(), Now, WeatherOnly(Day()))));
+
+        Assert.Multiple(
+            () => Assert.Equal("false", advice.Data["frost_risk"]),
+            () => Assert.Equal("true", advice.Data["planting_safe"]),
+            () => Assert.Equal("true", advice.Data["watering_needed"]),
+            () => Assert.Equal("plant", advice.State));
+    }
+
+    [Fact]
+    public void Expected_rain_skips_watering()
+    {
+        var forecast = WeatherOnly(Day((hour, point) => hour == 2 ? point with { Precipitation = 5.0 } : point));
+
+        var advice = Assert.IsType<GardeningResult>(Assert.Single(Run(Feature(), Now, forecast)));
+
+        Assert.Equal("false", advice.Data["watering_needed"]);
+    }
+}

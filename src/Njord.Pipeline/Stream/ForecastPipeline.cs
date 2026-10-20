@@ -3,7 +3,6 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Microsoft.Extensions.Options;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
@@ -21,7 +20,7 @@ public sealed class ForecastPipeline : ReceiveActor
     private sealed record AnalysisGraphEnded(Exception? Cause) : IDeadLetterSuppression;
 
     private readonly TimeProvider _timeProvider;
-    private readonly IReadOnlyList<IDomainHandler> _handlers;
+    private readonly IReadOnlyList<IFeatureRule> _features;
 
     private IMaterializer? _mat;
     private Sink<DomainDataReceived, NotUsed>? _mergeSink;
@@ -31,10 +30,10 @@ public sealed class ForecastPipeline : ReceiveActor
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
-    public ForecastPipeline(TimeProvider timeProvider, IEnumerable<IDomainHandler> handlers, IOptions<FeatureOptions> features)
+    public ForecastPipeline(TimeProvider timeProvider, IEnumerable<IFeatureRule> features)
     {
         _timeProvider = timeProvider;
-        _handlers = FeatureResolution.EnabledHandlers(features.Value, handlers);
+        _features = [.. features];
 
         Receive<RequestForecastSink>(OnRequestForecastSink);
         Receive<RequestPipelineOutput>(OnRequestPipelineOutput);
@@ -99,13 +98,13 @@ public sealed class ForecastPipeline : ReceiveActor
     {
         var inputSource = _inputSource!;
         var pipelineOutputSink = _pipelineOutputSink!;
-        var handlers = _handlers;
+        var features = _features;
         var timeProvider = _timeProvider;
 
         inputSource
             .StatefulSelectMany<DomainDataReceived, PipelineEvent, NotUsed>(() =>
             {
-                var engine = new ProjectionEngine(handlers, timeProvider);
+                var engine = new FeatureEngine(features, timeProvider);
 
                 return received =>
                 {

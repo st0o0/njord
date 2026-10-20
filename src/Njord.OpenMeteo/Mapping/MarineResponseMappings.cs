@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.Marine;
 using static Njord.OpenMeteo.Mapping.SeriesAccess;
