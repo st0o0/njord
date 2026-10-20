@@ -1,0 +1,93 @@
+using System.Collections.Immutable;
+using Microsoft.Extensions.Time.Testing;
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.Forecast.Seasonal;
+using Njord.Insights;
+using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
+using static Njord.Tests.Shared.LifestyleFixture;
+
+namespace Njord.Insights.Tests;
+
+public sealed class SeasonalOutlookHandlerSpec
+{
+    private static readonly FakeTimeProvider October = new(new DateTimeOffset(2026, 10, 20, 12, 0, 0, TimeSpan.Zero));
+    private static readonly SeasonalOutlookHandler Handler = new();
+
+    private static SeasonalPoint Month(int year, int month, double temp = 1.0, double? precip = null, double? mean = null) =>
+        new(new DateTimeOffset(year, month, 1, 0, 0, 0, TimeSpan.Zero), temp, precip, mean);
+
+    private static LocationForecast With(params SeasonalPoint[] points) =>
+        new(Lucerne, Seasonal: new DomainForecast<SeasonalPoint>(
+            DomainKind.Seasonal, October.GetUtcNow(), TimeResolution.Monthly, [.. points]));
+
+    [Fact]
+    public void Handle_emits_the_months_after_the_current_one_with_rounded_anomalies()
+    {
+        var events = Handler.Handle(
+            With(Month(2026, 10), Month(2026, 11, 1.74, 2.4, 99.5), Month(2026, 12, -0.5, -20, 80)), null, October);
+
+        var outlook = Assert.IsType<ForecastResult>(Assert.Single(events));
+        Assert.Multiple(
+            () => Assert.Equal("seasonaloutlook", outlook.WireKey),
+            () => Assert.Equal(["2026-11", "2026-12"], outlook.Entries.Select(e => e.Label)),
+            () => Assert.Equal(
+                new Dictionary<string, string> { ["temp_anomaly"] = "1.7", ["precip_anomaly"] = "2.5", ["confidence"] = "high" },
+                outlook.Entries[0].Values),
+            () => Assert.Equal(
+                new Dictionary<string, string> { ["temp_anomaly"] = "-0.5", ["precip_anomaly"] = "-20", ["confidence"] = "medium" },
+                outlook.Entries[1].Values));
+    }
+
+    [Theory]
+    [InlineData(1, ConfidenceLevel.High)]
+    [InlineData(2, ConfidenceLevel.Medium)]
+    [InlineData(3, ConfidenceLevel.Low)]
+    public void Handle_lowers_the_confidence_with_the_lead_time(int lead, ConfidenceLevel expected)
+    {
+        var month = new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero).AddMonths(lead);
+        var point = Month(month.Year, month.Month);
+
+        var events = Handler.Handle(With(point), null, October);
+
+        var outlook = Assert.IsType<ForecastResult>(Assert.Single(events));
+        Assert.Equal(expected.ToWireName(), Assert.Single(outlook.Entries).Values["confidence"]);
+    }
+
+    [Fact]
+    public void Handle_reports_zero_precipitation_anomaly_when_the_precipitation_series_is_missing()
+    {
+        var events = Handler.Handle(With(Month(2026, 11)), null, October);
+
+        var outlook = Assert.IsType<ForecastResult>(Assert.Single(events));
+        Assert.Equal("0", Assert.Single(outlook.Entries).Values["precip_anomaly"]);
+    }
+
+    [Fact]
+    public void Handle_returns_nothing_without_seasonal_data()
+    {
+        Assert.Empty(Handler.Handle(new LocationForecast(Lucerne), null, October));
+    }
+
+    [Fact]
+    public void Handle_returns_nothing_when_only_the_current_month_is_known()
+    {
+        Assert.Empty(Handler.Handle(With(Month(2026, 10)), null, October));
+    }
+
+    [Fact]
+    public void The_feature_is_off_unless_configured_and_reads_the_seasonal_domain()
+    {
+        var on = new FeatureOptions();
+        on.Set("Insight", "SeasonalOutlook", true);
+
+        Assert.Multiple(
+            () => Assert.Empty(FeatureResolution.EnabledHandlers(new FeatureOptions(), [Handler])),
+            () => Assert.Single(FeatureResolution.EnabledHandlers(on, [Handler])),
+            () => Assert.Equal(
+                [DomainKind.Seasonal],
+                FeatureResolution.RequiredDomains(on, [Handler])));
+    }
+}

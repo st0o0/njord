@@ -1,0 +1,55 @@
+using Njord.Core.Configuration;
+using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.Forecast.Weather;
+using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
+
+namespace Njord.Alerts.Rules;
+
+public sealed class SnowRule : IAlertRule<DomainForecast<WeatherPoint>>
+{
+
+    public string Name => "Snow";
+
+    public FeatureDescriptor Feature { get; } = new(
+        OutputKind.Alert,
+        FeatureCategory.Weather,
+        DefaultEnabled: true,
+        new DomainRequirements(Weather: WeatherParams.Snowfall | WeatherParams.FreezingLevelHeight | WeatherParams.EnsembleStdDev));
+
+    public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
+    {
+        var window = forecast.NextHoursInclusive(now);
+        if (!window.Any(p => p.Snowfall is not null))
+        {
+            return Alert.None();
+        }
+
+        var totalSum = window.Sum(p => p.Snowfall ?? 0.0);
+        var snowiest = window.HighestBy(p => p.Snowfall);
+        var freezingLevels = window.Select(p => p.FreezingLevelHeight).OfType<double>().Order().ToList();
+
+        var (severity, snowThreshold) = totalSum switch
+        {
+            > 20 => (AlertSeverity.Red, 20.0),
+            > 5 => (AlertSeverity.Orange, 5.0),
+            > 0 => (AlertSeverity.Yellow, 0.0),
+            _ => (AlertSeverity.None, 0.0),
+        };
+
+        var roundedSum = Math.Round(totalSum, 1);
+        var details = new SnowDetails(
+            ExpectedAccumulation: roundedSum,
+            FreezingLevel: freezingLevels.Count > 0 ? Math.Round(Median(freezingLevels), 0) : null,
+            ModelsAgreeing: 0);
+
+        return AlertWindow.Build(severity, snowiest, details, roundedSum, snowThreshold);
+    }
+
+    private static double Median(List<double> sorted)
+    {
+        var mid = sorted.Count / 2;
+        return sorted.Count % 2 == 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2.0;
+    }
+}

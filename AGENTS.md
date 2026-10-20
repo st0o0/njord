@@ -33,17 +33,20 @@ src/
   Njord.Budget/         # BudgetTracker (persistent), usage accounting, health check
   Njord.Polling/        # PollManager, PollWorker (+ state, mappings), polling Telemetry, PollingSetupContainer
   Njord.Pipeline/       # Stream/ (ForecastPipeline, ProjectionEngine), Health/ (PipelineHealthCheck), Telemetry
-  Njord.Weather/        # WeatherAlertHandler + Rules/ (one per alert type), Lifestyle/ handlers
-  Njord.AirQuality/     # AirQualityAlertHandler (pollen, PM2.5), PollenTrendHandler
-  Njord.Flood/          # FloodRiskHandler, FloodRainHandler, FloodTimelineHandler
-  Njord.Marine/         # SwimmingConditionsHandler
+  Njord.Alerts/         # WeatherAlertHandler + Rules/ (14 weather, 3 AQ, 2 flood, 1 marine),
+                        #   AirQualityAlertHandler, FloodRiskHandler, FloodRainHandler, SwimmingConditionsHandler
+  Njord.Scores/         # BBQScoreHandler, LaundryScoreHandler, OutdoorScoreHandler, SurfConditionsHandler, Scoring
+  Njord.Insights/       # SeasonalOutlookHandler, SolarYieldHandler, SolarIrradianceBlend, SatelliteRadiationHandler,
+                        #   ConfidenceTrendHandler, ApproachingFrontHandler, PollenTrendHandler
+  Njord.Advisories/     # CommuteSafetyHandler, VentilationWindowHandler, NightVentilationHandler,
+                        #   ExerciseAdvisoryHandler, GardeningHandler, FloodTimelineHandler
   Njord.Grpc/           # WeatherGrpcService, OpsGrpcService, ActorAsk, GrpcConsumer, Mapping/
   Njord/                # Host: Program.cs, NjordHost, Configuration/ (setup containers), Health/
 
   Njord.Forecast.Tests/ Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
   Njord.OpenMeteo.Tests/ Njord.Budget.Tests/ Njord.Pipeline.Tests/ Njord.Polling.Tests/
-  Njord.Weather.Tests/
-  Njord.AirQuality.Tests/ Njord.Flood.Tests/ Njord.Marine.Tests/ Njord.Grpc.Tests/
+  Njord.Alerts.Tests/ Njord.Scores.Tests/ Njord.Insights.Tests/ Njord.Advisories.Tests/
+  Njord.Grpc.Tests/
   Njord.IntegrationTests/       # whole host via NjordHost + TestServer
   Njord.Architecture.Tests/     # ArchUnitNET rules (ArchitectureSpec) + FeatureConfigKeySpec
   Njord.Tests.Shared/           # fakes, builders, fixtures, NjordActorSpec (not a test project)
@@ -52,7 +55,7 @@ docs/                           # VitePress site incl. the Config Builder (docs/
 ```
 
 Reference direction: Forecast <- Messages; Forecast/Messages/Persistence <- Core <- feature libraries
-(OpenMeteo, Budget, Polling, Pipeline, Weather, AirQuality, Flood, Marine, Grpc) <- Host. Feature
+(OpenMeteo, Budget, Polling, Pipeline, Alerts, Scores, Insights, Advisories, Grpc) <- Host. Feature
 libraries reference only `Njord.Core` (and below), never each other, never the Host; they reach each
 other's actors through the markers in `ActorKeys.cs`. Registration stays central in the Host.
 

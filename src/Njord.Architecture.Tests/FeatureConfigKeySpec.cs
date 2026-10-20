@@ -1,12 +1,12 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
-using Njord.AirQuality;
+using Njord.Advisories;
+using Njord.Alerts;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
-using Njord.Flood;
-using Njord.Marine;
+using Njord.Insights;
+using Njord.Scores;
 using Njord.Tests.Shared;
-using Njord.Weather.Alerts;
 
 namespace Njord.Architecture.Tests;
 
@@ -20,7 +20,7 @@ public sealed partial class FeatureConfigKeySpec
         using var provider = FeatureServices.Build(TimeProvider.System, services =>
         {
             services.AddAlertOptions(AppSettingsDefaults.Configuration());
-            services.AddWeatherDomain().AddAirQualityDomain().AddFloodDomain().AddMarineDomain();
+            services.AddAlertHandlers().AddScoreHandlers().AddInsightHandlers().AddAdvisoryHandlers();
         });
         return FeatureResolution.AllFeatures(provider.GetServices<IDomainHandler>());
     }

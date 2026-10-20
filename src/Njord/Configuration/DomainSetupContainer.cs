@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Options;
-using Njord.AirQuality;
+using Njord.Advisories;
+using Njord.Alerts;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
-using Njord.Flood;
 using Njord.Forecast;
-using Njord.Marine;
-using Njord.Weather.Alerts;
+using Njord.Insights;
+using Njord.Scores;
 using Servus.Application.Startup;
 
 namespace Njord.Configuration;
@@ -15,7 +15,7 @@ public sealed class DomainSetupContainer : IServiceSetupContainer
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddAlertOptions(configuration);
-        services.AddWeatherDomain().AddAirQualityDomain().AddFloodDomain().AddMarineDomain();
+        services.AddAlertHandlers().AddScoreHandlers().AddInsightHandlers().AddAdvisoryHandlers();
 
         services.AddSingleton<IReadOnlySet<DomainKind>>(static sp => FeatureResolution.RequiredDomains(
             sp.GetRequiredService<IOptions<FeatureOptions>>().Value,

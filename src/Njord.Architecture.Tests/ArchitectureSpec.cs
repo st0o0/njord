@@ -11,7 +11,7 @@ public sealed class ArchitectureSpec
     private static readonly string[] ProjectNames =
     [
         "Njord.Forecast", "Njord.Messages", "Njord.Persistence", "Njord.Core",
-        "Njord.Weather", "Njord.AirQuality", "Njord.Flood", "Njord.Marine", "Njord.Grpc",
+        "Njord.Alerts", "Njord.Scores", "Njord.Insights", "Njord.Advisories", "Njord.Grpc",
         "Njord.OpenMeteo", "Njord.Budget", "Njord.Pipeline", "Njord.Polling",
     ];
 
@@ -69,23 +69,23 @@ public sealed class ArchitectureSpec
     }
 
     [Theory]
-    [InlineData("Njord.Weather", "Njord.AirQuality", "Njord.Flood", "Njord.Marine")]
-    [InlineData("Njord.AirQuality", "Njord.Weather", "Njord.Flood", "Njord.Marine")]
-    [InlineData("Njord.Flood", "Njord.Weather", "Njord.AirQuality", "Njord.Marine")]
-    [InlineData("Njord.Marine", "Njord.Weather", "Njord.AirQuality", "Njord.Flood")]
-    public void Domain_projects_do_not_depend_on_each_other(string domain, params string[] others)
+    [InlineData("Njord.Alerts", "Njord.Scores", "Njord.Insights", "Njord.Advisories")]
+    [InlineData("Njord.Scores", "Njord.Alerts", "Njord.Insights", "Njord.Advisories")]
+    [InlineData("Njord.Insights", "Njord.Alerts", "Njord.Scores", "Njord.Advisories")]
+    [InlineData("Njord.Advisories", "Njord.Alerts", "Njord.Scores", "Njord.Insights")]
+    public void Handler_projects_do_not_depend_on_each_other(string handler, params string[] others)
     {
-        Types().That().Are(In(domain)).Should().NotDependOnAny(In(others)).Check(Architecture);
+        Types().That().Are(In(handler)).Should().NotDependOnAny(In(others)).Check(Architecture);
     }
 
     [Theory]
-    [InlineData("Njord.Weather")]
-    [InlineData("Njord.AirQuality")]
-    [InlineData("Njord.Flood")]
-    [InlineData("Njord.Marine")]
-    public void Domain_projects_do_not_depend_on_adapters(string domain)
+    [InlineData("Njord.Alerts")]
+    [InlineData("Njord.Scores")]
+    [InlineData("Njord.Insights")]
+    [InlineData("Njord.Advisories")]
+    public void Handler_projects_do_not_depend_on_adapters(string handler)
     {
-        Types().That().Are(In(domain)).Should().NotDependOnAny(In("Njord.Grpc")).Check(Architecture);
+        Types().That().Are(In(handler)).Should().NotDependOnAny(In("Njord.Grpc")).Check(Architecture);
     }
 
     [Fact]

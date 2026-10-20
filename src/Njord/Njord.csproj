@@ -34,10 +34,10 @@
   <ProjectReference Include="..\Njord.Grpc\Njord.Grpc.csproj" />
   <ProjectReference Include="..\Njord.Pipeline\Njord.Pipeline.csproj" />
   <ProjectReference Include="..\Njord.Polling\Njord.Polling.csproj" />
-  <ProjectReference Include="..\Njord.Weather\Njord.Weather.csproj" />
-  <ProjectReference Include="..\Njord.AirQuality\Njord.AirQuality.csproj" />
-  <ProjectReference Include="..\Njord.Flood\Njord.Flood.csproj" />
-  <ProjectReference Include="..\Njord.Marine\Njord.Marine.csproj" />
+  <ProjectReference Include="..\Njord.Alerts\Njord.Alerts.csproj" />
+  <ProjectReference Include="..\Njord.Scores\Njord.Scores.csproj" />
+  <ProjectReference Include="..\Njord.Insights\Njord.Insights.csproj" />
+  <ProjectReference Include="..\Njord.Advisories\Njord.Advisories.csproj" />
 </ItemGroup>
 
 <ItemGroup>
