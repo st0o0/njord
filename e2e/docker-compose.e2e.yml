@@ -11,8 +11,10 @@ services:
     volumes:
       - njord-data:/app/data
     environment:
-      # ── Location (name only — Geocoding resolves coordinates) ──
+      # ── Location (explicit coordinates; geocoding is not guaranteed in every environment) ──
       - Njord__Locations__0__Name=Lucerne
+      - Njord__Locations__0__Latitude=47.0502
+      - Njord__Locations__0__Longitude=8.3093
 
       # ── Weather ────────────────────────────────────────────────
       - Njord__Weather__ForecastDays=4
@@ -23,8 +25,8 @@ services:
       - Njord__Enrichments__CommuteSafety=true
       - Njord__Enrichments__PollenAlert=true
       - Njord__Enrichments__Pm25Alert=true
-      - Njord__Enrichments__Ventilation=true
-      - Njord__Enrichments__Exercise=true
+      - Njord__Enrichments__VentilationWindow=true
+      - Njord__Enrichments__ExerciseAdvisory=true
       - Njord__Enrichments__LaundryScore=true
       - Njord__Enrichments__NightVentilation=true
       - Njord__Enrichments__ConfidenceTrend=true

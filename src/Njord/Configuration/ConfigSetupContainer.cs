@@ -18,6 +18,7 @@ public sealed class ConfigSetupContainer : IServiceSetupContainer
         services.AddSingleton(static sp => ServiceInfoMappings.ToServiceInfo(
             sp.GetRequiredService<IOptions<NjordOptions>>().Value,
             sp.GetRequiredService<IOptions<PollingOptions>>().Value,
-            sp.GetRequiredService<IOptions<AlertOptions>>().Value));
+            sp.GetRequiredService<IOptions<AlertOptions>>().Value,
+            sp.GetRequiredService<IOptions<EnrichmentOptions>>().Value));
     }
 }

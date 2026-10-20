@@ -10,9 +10,11 @@ public static class TestServiceInfo
     public static ServiceInfo Create(
         NjordOptions? scope = null,
         PollingOptions? polling = null,
-        AlertOptions? alerts = null) =>
+        AlertOptions? alerts = null,
+        EnrichmentOptions? enrichments = null) =>
         ServiceInfoMappings.ToServiceInfo(
             scope ?? AppSettingsDefaults.Options<NjordOptions>(),
             polling ?? AppSettingsDefaults.Options<PollingOptions>(),
-            alerts ?? AppSettingsDefaults.Options<AlertOptions>());
+            alerts ?? AppSettingsDefaults.Options<AlertOptions>(),
+            enrichments ?? AppSettingsDefaults.Options<EnrichmentOptions>());
 }

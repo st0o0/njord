@@ -36,7 +36,7 @@ gRPC + REST. Real Open-Meteo API. 4 domains, 19 alert types, lifestyle enrichmen
 
 ### Configuration
 
-- **Location:** Lucerne (Geocoding resolves coordinates at startup)
+- **Location:** Lucerne (explicit coordinates 47.0502 / 8.3093 in the compose file)
 - **Weather:** Ensemble Mean, ForecastDays=4, IncludeSolar=true
 - **Enrichments:** ALL enabled (19 enrichment toggles + ClimateAnomaly)
 - **Resolved domains:** Weather, AirQuality, Flood, Marine (4 calls/cycle)
@@ -49,11 +49,11 @@ Derived from config: 1 location, all enrichments enabled.
 |----------|-------|---------|-------|
 | weather | 1 | `weather.lucerne` | HA weather entity |
 | sensor (AQ) | 7 | `lucerne_pm2_5`, `lucerne_pm10`, `lucerne_ozone`, `lucerne_birch_pollen`, `lucerne_grass_pollen`, `lucerne_alder_pollen`, `lucerne_mugwort_pollen` | Air quality |
-| sensor (flood) | 1 | `lucerne_discharge` | River discharge m³/s |
+| sensor (flood) | 1 | `lucerne_river_discharge` | River discharge m³/s |
 | sensor (server) | 4 | `server_monthly_usage`, `server_daily_usage`, `server_version`, `server_uptime` | Diagnostics |
 | sensor (target) | 1 | `server_lucerne_target` | Poll target timestamp |
 | binary_sensor (alerts) | 19 | `lucerne_{frost,heat,...,swimming_conditions}_alert` | on when severity > none |
-| binary_sensor (streams) | 2 | `server_domain_stream`, `server_enrichment_stream` | Connectivity |
+| binary_sensor (streams) | 2 | `server_domain_data_stream`, `server_enrichment_stream` | Connectivity |
 | event | 1 | `lucerne_weather_alert` | Alert event entity |
 | button | 1 | `server_trigger_poll` | Manual poll trigger |
 | **Total** | **~37** | | |
@@ -128,8 +128,8 @@ After S3 completes, spawn three subagents in a single message.
 
 ## S6 — Domain Data: Flood (Haiku #1)
 
-1. `sensor.lucerne_discharge` has numeric state ≥ 0
-2. `sensor.lucerne_discharge` has `unit_of_measurement` attribute
+1. `sensor.lucerne_river_discharge` has numeric state ≥ 0
+2. `sensor.lucerne_river_discharge` has `unit_of_measurement` attribute
 3. Discharge value is plausible (0–10000 m³/s)
 
 ---
@@ -148,7 +148,7 @@ After S3 completes, spawn three subagents in a single message.
 
 Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
-1. `GetDomainData` with location "Lucerne" → response has `weather_data` non-empty
+1. `GetDomainData` with location "Lucerne" and domain `DOMAIN_WEATHER` (domain is required) → response has `weather_data` non-empty
 2. `GetDomainData` with domain filter `DOMAIN_AIR_QUALITY` → response has `air_quality_data`
 3. `StreamDomainData` → receives at least 1 update within 120s
 4. Domain data update contains `location` field matching "Lucerne"
@@ -169,8 +169,8 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 1. `GetCatalog` → has at least 1 location named "Lucerne"
 2. `GetStatus` → `budget` has `monthly_used` ≥ 0 and `monthly_limit` > 0
-3. `GetStatus` → `locations` has 1 entry with poll phase
-4. `TriggerPoll` with location "Lucerne" → `accepted = true`
+3. `GetStatus` → `activeEnrichments` lists every enabled enrichment; poll state has 1 target with a phase
+4. `TriggerPoll` with location "Lucerne" → `triggeredCount` ≥ 1
 5. After trigger: `GetStatus` shows incremented usage
 
 ---
@@ -178,7 +178,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 ## S11 — Server + Diagnostics Entities (Haiku #3)
 
 1. `sensor.server_monthly_usage` has numeric state
-2. `sensor.server_version` state matches semver pattern
+2. `sensor.server_version` state has a non-empty state (`0.0.0-dev` in local builds)
 3. `sensor.server_uptime` has numeric state (hours)
 4. `button.server_trigger_poll` exists
 
@@ -188,14 +188,14 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 1. `GET /healthz` → 200 with healthy or degraded status
 2. `GET /alive` → 200
-3. Stream binary sensors (`server_domain_stream`, `server_enrichment_stream`) are "on"
+3. Stream binary sensors (`server_domain_data_stream`, `server_enrichment_stream`) are "on"
 
 ---
 
 ## S13 — Multi-Cycle: TriggerPoll × 2 (Opus)
 
 1. Record initial `monthly_used` from `GetStatus`
-2. `TriggerPoll` location "Lucerne" → accepted
+2. `TriggerPoll` location "Lucerne" → `triggeredCount` ≥ 1
 3. Wait 30s for poll round to complete
 4. Verify `monthly_used` increased (expect increment = resolved domain count)
 
