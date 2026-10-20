@@ -22,7 +22,7 @@ public sealed class LaundryScoreHandler : IDomainHandler
             return [];
         }
 
-        var hours = ForecastQueries.Upcoming(weather, time.GetUtcNow(), 24);
+        var hours = ForecastWindow.NextHours(weather, time.GetUtcNow());
         if (hours.Count == 0)
         {
             return [];

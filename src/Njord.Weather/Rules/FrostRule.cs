@@ -13,7 +13,7 @@ public sealed class FrostRule : IAlertRule<DomainForecast<WeatherPoint>>
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var thresholds = options.Frost();
-        var window = forecast.Next24Hours(now);
+        var window = forecast.NextHoursInclusive(now);
         if (window.LowestBy(p => p.Temperature) is not { Temperature: { } lowest } coldest)
         {
             return Alert.None(Type);

@@ -27,7 +27,7 @@ public sealed class OutdoorScoreHandler : IDomainHandler
             return [];
         }
 
-        var hours = ForecastQueries.Upcoming(weather, time.GetUtcNow(), 24)
+        var hours = ForecastWindow.NextHours(weather, time.GetUtcNow())
             .Select(point => (Point: point, Air: ForecastQueries.ValueAt(airQuality, point.ValidFrom)))
             .Where(pair => pair.Air is not null)
             .ToList();

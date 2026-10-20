@@ -12,7 +12,7 @@ public sealed class WindChillRule : IAlertRule<DomainForecast<WeatherPoint>>
 
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        if (forecast.Next24Hours(now).LowestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } low } coldest)
+        if (forecast.NextHoursInclusive(now).LowestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } low } coldest)
         {
             return Alert.None(Type);
         }

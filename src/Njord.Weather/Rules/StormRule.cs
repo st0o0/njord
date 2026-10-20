@@ -12,7 +12,7 @@ public sealed class StormRule : IAlertRule<DomainForecast<WeatherPoint>>
 
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        if (forecast.Next24Hours(now).HighestBy(p => p.WindGusts) is not { WindGusts: { } gust } peak)
+        if (forecast.NextHoursInclusive(now).HighestBy(p => p.WindGusts) is not { WindGusts: { } gust } peak)
         {
             return Alert.None(Type);
         }

@@ -13,7 +13,7 @@ public sealed class IceRule : IAlertRule<DomainForecast<WeatherPoint>>
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var iceThreshold = options.IceThreshold;
-        var icy = forecast.Next24Hours(now)
+        var icy = forecast.NextHoursInclusive(now)
             .Where(p => (p.Rain ?? p.Precipitation) > 0 && p.Temperature <= iceThreshold)
             .ToList();
         if (icy.MinBy(p => p.Temperature) is not { Temperature: { } minTemp } coldest)

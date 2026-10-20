@@ -38,7 +38,7 @@ public sealed class ConfidenceTrendHandler : IDomainHandler
 
     private static double? AverageStdDev(DomainForecast<WeatherPoint> forecast, DateTimeOffset now)
     {
-        var values = ForecastQueries.Upcoming(forecast, now, 24)
+        var values = ForecastWindow.NextHours(forecast, now)
             .Where(p => p.EnsembleStdDev.HasValue)
             .Select(p => p.EnsembleStdDev!.Value)
             .ToList();

@@ -31,8 +31,8 @@ public sealed class PollenTrendHandler : IDomainHandler
         }
 
         var now = time.GetUtcNow();
-        var currentPoints = ForecastQueries.Upcoming(airQuality, now, 24);
-        var previousPoints = ForecastQueries.Upcoming(before, now, 24);
+        var currentPoints = ForecastWindow.NextHours(airQuality, now);
+        var previousPoints = ForecastWindow.NextHours(before, now);
 
         var trends = new Dictionary<string, string>();
         string? peakType = null;

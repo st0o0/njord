@@ -15,7 +15,7 @@ public sealed class PressureDropRule : IAlertRule<DomainForecast<WeatherPoint>>
 
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        var window = forecast.Next24Hours(now);
+        var window = forecast.NextHoursInclusive(now);
         if (window.Count < MinimumHours)
         {
             return Alert.None(Type);

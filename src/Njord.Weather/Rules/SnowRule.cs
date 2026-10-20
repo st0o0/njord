@@ -12,7 +12,7 @@ public sealed class SnowRule : IAlertRule<DomainForecast<WeatherPoint>>
 
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        var window = forecast.Next24Hours(now);
+        var window = forecast.NextHoursInclusive(now);
         if (!window.Any(p => p.Snowfall is not null))
         {
             return Alert.None(Type);

@@ -17,7 +17,7 @@ public sealed class Pm25AlertRule : IAlertRule<DomainForecast<AirQualityPoint>>
     public Alert Evaluate(DomainForecast<AirQualityPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         AirQualityPoint? peakPoint = null;
-        foreach (var point in forecast.Next24Hours(now))
+        foreach (var point in forecast.NextHoursInclusive(now))
         {
             if (point.Pm25 is { } pm25 && (peakPoint?.Pm25 is not { } best || pm25 > best))
             {

@@ -18,10 +18,9 @@ public sealed class SwimmingConditionsRule : IAlertRule<DomainForecast<MarinePoi
 
     public Alert Evaluate(DomainForecast<MarinePoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        var start = AlertClock.HourStart(now);
         var best = Alert.None(Type);
 
-        foreach (var point in ForecastQueries.Window(forecast, start, start.AddHours(WindowHours)))
+        foreach (var point in forecast.NextHoursInclusive(now, WindowHours))
         {
             if (point.WaveHeight is not { } height)
             {
@@ -36,7 +35,7 @@ public sealed class SwimmingConditionsRule : IAlertRule<DomainForecast<MarinePoi
                     Type, severity, 1.0, NoDetails.Instance,
                     TriggerValue: Math.Round(height, 1),
                     Threshold: threshold,
-                    HoursUntil: Math.Max(0, (int)(point.ValidFrom - start).TotalHours),
+                    HoursUntil: point.HoursFrom(now),
                     Level: ConfidenceLevel.High);
             }
         }

@@ -7,17 +7,6 @@ namespace Njord.Weather.Alerts;
 
 internal static class AlertWindow
 {
-    public const int Hours = 24;
-
-    public static IReadOnlyList<WeatherPoint> Next24Hours(this DomainForecast<WeatherPoint> forecast, DateTimeOffset now)
-    {
-        var start = AlertClock.HourStart(now);
-        return ForecastQueries.Window(forecast, start, start.AddHours(Hours));
-    }
-
-    public static int HoursFrom(this WeatherPoint point, DateTimeOffset now) =>
-        (int)(point.ValidFrom - AlertClock.HourStart(now)).TotalHours;
-
     public static Alert Build(
         AlertType type,
         AlertSeverity severity,

@@ -12,7 +12,7 @@ public sealed class ThunderstormRule : IAlertRule<DomainForecast<WeatherPoint>>
 
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        var evaluable = forecast.Next24Hours(now).Where(p => p.Cape is not null && p.WindGusts is not null).ToList();
+        var evaluable = forecast.NextHoursInclusive(now).Where(p => p.Cape is not null && p.WindGusts is not null).ToList();
         if (evaluable.Count == 0)
         {
             return Alert.None(Type);

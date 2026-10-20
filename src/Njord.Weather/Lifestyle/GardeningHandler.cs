@@ -23,8 +23,8 @@ public sealed class GardeningHandler : IDomainHandler
         }
 
         var now = time.GetUtcNow();
-        var day = ForecastQueries.Upcoming(weather, now, 24);
-        var twoDays = ForecastQueries.Upcoming(weather, now, 48);
+        var day = ForecastWindow.NextHours(weather, now);
+        var twoDays = ForecastWindow.NextHours(weather, now, 48);
         if (day.Count == 0)
         {
             return [];

@@ -9,6 +9,7 @@ namespace Njord.Flood;
 
 public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
 {
+    public const int ForecastDays = 7;
     public const double MedianFactor = 2.0;
 
     public AlertType Type => AlertType.FloodRisk;
@@ -16,7 +17,7 @@ public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
     public Alert Evaluate(DomainForecast<FloodPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
         var best = Alert.None(Type);
-        foreach (var point in forecast.NextDays(now))
+        foreach (var point in forecast.NextDays(now, ForecastDays))
         {
             if (point.Discharge is not { } discharge)
             {

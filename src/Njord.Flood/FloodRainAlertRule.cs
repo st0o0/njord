@@ -9,6 +9,7 @@ namespace Njord.Flood;
 
 public sealed class FloodRainAlertRule : IAlertRule<FloodRainInput>
 {
+    public const int ForecastDays = 7;
     public const double HeavyRain24HourMillimeters = 30.0;
 
     public AlertType Type => AlertType.FloodRain;
@@ -16,13 +17,13 @@ public sealed class FloodRainAlertRule : IAlertRule<FloodRainInput>
     public Alert Evaluate(FloodRainInput input, AlertOptions options, DateTimeOffset now)
     {
         var (flood, weather) = input;
-        var rain = weather.Next24Hours(now).Sum(p => p.Precipitation);
+        var rain = weather.NextHoursInclusive(now).Sum(p => p.Precipitation);
         if (rain < HeavyRain24HourMillimeters)
         {
             return Alert.None(Type);
         }
 
-        var points = flood.NextDays(now).Where(p => p.Discharge is not null).ToList();
+        var points = flood.NextDays(now, ForecastDays).Where(p => p.Discharge is not null).ToList();
         if (points.MaxBy(p => p.Discharge) is not { Discharge: { } peakDischarge } peak)
         {
             return Alert.None(Type);

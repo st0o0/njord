@@ -23,7 +23,7 @@ public sealed class ApproachingFrontHandler : IDomainHandler
         }
 
         var now = time.GetUtcNow();
-        var hours = ForecastQueries.Upcoming(weather, now, 24 + WindowHours);
+        var hours = ForecastWindow.NextHours(weather, now, 24 + WindowHours);
         var windows = hours
             .Select(start => (Start: start, End: hours.FirstOrDefault(p => p.ValidFrom == start.ValidFrom.AddHours(WindowHours))))
             .Where(pair => pair.End is not null)

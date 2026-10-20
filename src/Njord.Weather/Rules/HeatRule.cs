@@ -12,7 +12,7 @@ public sealed class HeatRule : IAlertRule<DomainForecast<WeatherPoint>>
 
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        var window = forecast.Next24Hours(now);
+        var window = forecast.NextHoursInclusive(now);
         if (window.HighestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } apparent } hottestApparent
             || window.HighestBy(p => p.Temperature) is not { Temperature: { } air } hottestAir)
         {

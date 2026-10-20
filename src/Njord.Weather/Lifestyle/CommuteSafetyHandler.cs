@@ -25,7 +25,7 @@ public sealed class CommuteSafetyHandler : IDomainHandler
             return [];
         }
 
-        var hours = ForecastQueries.Upcoming(weather, time.GetUtcNow(), 2);
+        var hours = ForecastWindow.NextHours(weather, time.GetUtcNow(), 2);
         if (hours.Count == 0)
         {
             return [];

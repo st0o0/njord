@@ -31,7 +31,7 @@ public sealed class ExerciseAdvisoryHandler : IDomainHandler
             return [];
         }
 
-        var hours = ForecastQueries.Upcoming(weather, time.GetUtcNow(), 12)
+        var hours = ForecastWindow.NextHours(weather, time.GetUtcNow(), 12)
             .Select(point => (Point: point, Air: ForecastQueries.ValueAt(airQuality, point.ValidFrom)))
             .Where(pair => pair.Air is not null)
             .Select(pair => Components(pair.Point, pair.Air!))

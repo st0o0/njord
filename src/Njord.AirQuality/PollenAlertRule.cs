@@ -18,7 +18,7 @@ public sealed class PollenAlertRule : IAlertRule<DomainForecast<AirQualityPoint>
     {
         AirQualityPoint? peakPoint = null;
         var peak = 0.0;
-        foreach (var point in forecast.Next24Hours(now))
+        foreach (var point in forecast.NextHoursInclusive(now))
         {
             var value = HighestPollen(point);
             if (value > peak)

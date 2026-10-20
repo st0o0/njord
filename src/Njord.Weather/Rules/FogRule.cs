@@ -12,7 +12,7 @@ public sealed class FogRule : IAlertRule<DomainForecast<WeatherPoint>>
 
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        var fogPoints = forecast.Next24Hours(now)
+        var fogPoints = forecast.NextHoursInclusive(now)
             .Where(p => p.Temperature - p.DewPoint < 2.0 && p is { WindSpeed: < 3.0, Humidity: > 90.0 })
             .ToList();
         var fogHours = fogPoints.Count;
