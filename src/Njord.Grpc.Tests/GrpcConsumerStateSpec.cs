@@ -74,4 +74,22 @@ public sealed class GrpcConsumerStateSpec
             () => Assert.NotNull(state.GetLatestAlerts(Lucerne)),
             () => Assert.Null(state.GetLatestAlerts(DomainData.Bern)));
     }
+
+    [Fact]
+    public void Lifestyle_events_keep_the_latest_per_location_and_kind_ordered_by_kind()
+    {
+        var older = new PipelineEvent.LaundryScoreComputed(Lucerne, 40, Anchor, 2);
+        var newer = new PipelineEvent.LaundryScoreComputed(Lucerne, 85, Anchor.AddHours(1), 5);
+        var commute = new PipelineEvent.CommuteSafety(Lucerne, "caution", ["ice"]);
+
+        var state = GrpcConsumerState.Empty.Apply(older).Apply(commute).Apply(newer);
+
+        var lifestyle = state.GetLatestLifestyle(Lucerne);
+        Assert.Equal(2, lifestyle.Count);
+        Assert.Multiple(
+            () => Assert.Equal(LifestyleKind.LaundryScore, lifestyle[0].Kind),
+            () => Assert.Equal("85", lifestyle[0].Data["score"]),
+            () => Assert.Equal(LifestyleKind.CommuteSafety, lifestyle[1].Kind),
+            () => Assert.Empty(state.GetLatestLifestyle(DomainData.Bern)));
+    }
 }

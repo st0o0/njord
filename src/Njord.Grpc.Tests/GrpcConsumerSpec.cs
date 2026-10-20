@@ -58,6 +58,26 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task Lifestyle_events_are_answered_by_later_analysis_queries()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (consumer, pipeline) = await StartAsync();
+        var laundry = new PipelineEvent.LaundryScoreComputed(DomainData.Lucerne, 80, Anchor, 4);
+
+        await pipeline.OfferAsync(laundry, ct);
+
+        await AwaitAssertAsync(async () =>
+        {
+            var analysis = await consumer.Ask<LatestAnalysisResponse>(
+                new QueryLatestAnalysis(DomainData.Lucerne), AskTimeout, ct);
+            var result = Assert.IsType<LatestAnalysisResult>(analysis);
+            var update = Assert.Single(result.Lifestyle ?? []);
+            Assert.Null(result.Alerts);
+            Assert.Equal(LifestyleKind.LaundryScore, update.Kind);
+        }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task A_stream_request_hands_out_a_source_that_delivers_later_events()
     {
         var ct = TestContext.Current.CancellationToken;

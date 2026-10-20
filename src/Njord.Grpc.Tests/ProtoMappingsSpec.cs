@@ -92,7 +92,7 @@ public sealed class ProtoMappingsSpec
     [Fact]
     public void A_raised_alert_maps_to_an_alerts_enrichment_event()
     {
-        var evt = EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor).ToEnrichmentEvent();
+        var evt = EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor).ToEnrichmentEvent(Anchor);
 
         Assert.NotNull(evt);
         Assert.Multiple(
@@ -102,11 +102,37 @@ public sealed class ProtoMappingsSpec
     }
 
     [Fact]
+    public void A_lifestyle_event_maps_to_a_lifestyle_enrichment_event_stamped_with_the_given_time()
+    {
+        var evt = new PipelineEvent.LaundryScoreComputed(DomainData.Lucerne, 80, Anchor, 4).ToEnrichmentEvent(Anchor.AddHours(1));
+
+        Assert.NotNull(evt);
+        Assert.Multiple(
+            () => Assert.Equal("Lucerne", evt.Location),
+            () => Assert.Equal("lifestyle", evt.TypeName),
+            () => Assert.Equal(Anchor.AddHours(1).ToTimestamp(), evt.UpdatedAt),
+            () => Assert.Equal("laundry_score", evt.Lifestyle.Type),
+            () => Assert.Equal("80", evt.Lifestyle.Data["score"]),
+            () => Assert.Equal("4", evt.Lifestyle.Data["best_hours"]));
+    }
+
+    [Fact]
+    public void Enrichment_locations_cover_alerts_and_lifestyle_but_not_domain_data()
+    {
+        var weather = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 1));
+
+        Assert.Multiple(
+            () => Assert.Equal(DomainData.Lucerne, EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor).ToEnrichmentLocation()),
+            () => Assert.Equal(DomainData.Bern, new PipelineEvent.CommuteSafety(DomainData.Bern, "ok", []).ToEnrichmentLocation()),
+            () => Assert.Null(weather.ToEnrichmentLocation()));
+    }
+
+    [Fact]
     public void Events_without_an_enrichment_have_no_enrichment_event()
     {
         var weather = new PipelineEvent.WeatherDataReceived(DomainData.Lucerne, DomainData.Weather(Anchor, 1));
 
-        Assert.Null(weather.ToEnrichmentEvent());
+        Assert.Null(weather.ToEnrichmentEvent(Anchor));
     }
 
     [Theory]

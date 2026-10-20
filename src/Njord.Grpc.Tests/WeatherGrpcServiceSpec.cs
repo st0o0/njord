@@ -105,6 +105,22 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task GetEnrichments_returns_the_lifestyle_updates_the_consumer_holds()
+    {
+        var lifestyle = new PipelineEvent.CommuteSafety(DomainData.Lucerne, "caution", ["ice"]).ToLifestyleUpdate();
+        Assert.NotNull(lifestyle);
+        var service = CreateService(analysis: new LatestAnalysisResult(DomainData.Lucerne, null, [lifestyle]));
+
+        var response = await service.GetEnrichments(new GetEnrichmentsRequest { Location = "lucerne" }, TestServerCallContext.Create(TestContext.Current.CancellationToken));
+
+        var update = Assert.Single(response.Lifestyle);
+        Assert.Multiple(
+            () => Assert.Equal("commute_safety", update.Type),
+            () => Assert.Equal("caution", update.Data["level"]),
+            () => Assert.Equal("ice", update.Data["risks"]));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetEnrichments_returns_only_the_location_before_the_first_analysis()
     {
         var service = CreateService();
@@ -118,7 +134,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     {
         ActorRegistry.Register<IGrpcConsumer>(
             Sys.ActorOf(Props.Create(() => new FakeConsumer(domainEvent, analysis))), overwrite: true);
-        return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Create(Options));
+        return new WeatherGrpcService(ActorRegistry, Sys, TestServiceInfo.Create(Options), TimeProvider.System);
     }
 
     private sealed class FakeConsumer : ReceiveActor

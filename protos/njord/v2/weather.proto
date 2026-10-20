@@ -148,7 +148,7 @@ message MarineSample {
 }
 
 // ═══════════════════════════════════════
-// Enrichments (alerts, all domains)
+// Enrichments (alerts and lifestyle, all domains)
 // ═══════════════════════════════════════
 
 message GetEnrichmentsRequest {
@@ -159,6 +159,7 @@ message GetEnrichmentsResponse {
   reserved 3 to 8;
   string location = 1;
   AlertUpdate alerts = 2;
+  repeated LifestyleUpdate lifestyle = 9;
 }
 
 message StreamEnrichmentsRequest {
@@ -172,5 +173,14 @@ message EnrichmentEvent {
   google.protobuf.Timestamp updated_at = 3;
   oneof payload {
     AlertUpdate alerts = 10;
+    LifestyleUpdate lifestyle = 14;
   }
+}
+
+// One lifestyle advisory; the keys of data depend on type (ventilation, exercise, laundry_score,
+// commute_safety, pollen_trend, night_ventilation, confidence_trend, solar_yield, gardening,
+// outdoor_score, bbq_score, flood_timeline, front_approaching, climate_anomaly).
+message LifestyleUpdate {
+  string type = 1;
+  map<string, string> data = 2;
 }

@@ -18,7 +18,8 @@ namespace Njord.Grpc;
 public sealed class WeatherGrpcService(
     ActorRegistry actorRegistry,
     ActorSystem actorSystem,
-    ServiceInfo serviceInfo) : WeatherService.WeatherServiceBase
+    ServiceInfo serviceInfo,
+    TimeProvider timeProvider) : WeatherService.WeatherServiceBase
 {
     public override async Task<GetCatalogResponse> GetCatalog(GetCatalogRequest request, ServerCallContext context)
     {
@@ -103,11 +104,11 @@ public sealed class WeatherGrpcService(
         await using var ctr = context.CancellationToken.Register(killSwitch.Shutdown);
 
         await sourceRef.Source
-            .Where(e => e is PipelineEvent.AlertRaised alert && (location is not { } wanted || alert.Location == wanted))
+            .Where(e => e.ToEnrichmentLocation() is { } eventLocation && (location is not { } wanted || eventLocation == wanted))
             .Via(killSwitch.Flow<PipelineEvent>())
             .SelectAsync(1, async update =>
             {
-                var evt = update.ToEnrichmentEvent();
+                var evt = update.ToEnrichmentEvent(timeProvider.GetUtcNow());
                 if (evt is not null)
                 {
                     await responseStream.WriteAsync(evt, context.CancellationToken);

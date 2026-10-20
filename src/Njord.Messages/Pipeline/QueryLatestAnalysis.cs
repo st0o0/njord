@@ -7,9 +7,11 @@ public sealed record QueryLatestAnalysis(Location Location);
 
 public abstract record LatestAnalysisResponse;
 
-// The latest alerts of the location across all domains; null until the first alert arrived.
+// The latest alerts of the location across all domains (null until the first alert arrived) and
+// the latest lifestyle advisory per kind.
 public sealed record LatestAnalysisResult(
     Location Location,
-    AlertResult? Alerts) : LatestAnalysisResponse;
+    AlertResult? Alerts,
+    IReadOnlyList<LifestyleUpdate>? Lifestyle = null) : LatestAnalysisResponse;
 
 public sealed record LatestAnalysisNotAvailable(Location Location) : LatestAnalysisResponse;

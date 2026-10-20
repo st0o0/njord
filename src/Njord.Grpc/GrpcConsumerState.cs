@@ -8,11 +8,13 @@ namespace Njord.Grpc;
 
 internal sealed record GrpcConsumerState(
     ImmutableDictionary<(Location Location, DomainKind Domain), PipelineEvent> DomainData,
-    ImmutableDictionary<Location, AlertResult> Alerts)
+    ImmutableDictionary<Location, AlertResult> Alerts,
+    ImmutableDictionary<(Location Location, LifestyleKind Kind), LifestyleUpdate> Lifestyle)
 {
     public static readonly GrpcConsumerState Empty = new(
         ImmutableDictionary<(Location, DomainKind), PipelineEvent>.Empty,
-        ImmutableDictionary<Location, AlertResult>.Empty);
+        ImmutableDictionary<Location, AlertResult>.Empty,
+        ImmutableDictionary<(Location, LifestyleKind), LifestyleUpdate>.Empty);
 }
 
 internal static class GrpcConsumerStateExtensions
@@ -24,7 +26,14 @@ internal static class GrpcConsumerStateExtensions
             return state with { DomainData = state.DomainData.SetItem((location, domain), evt) };
         }
 
-        return evt is PipelineEvent.AlertRaised raised ? state.Apply(raised) : state;
+        if (evt is PipelineEvent.AlertRaised raised)
+        {
+            return state.Apply(raised);
+        }
+
+        return evt.ToLifestyleUpdate() is { } lifestyle
+            ? state with { Lifestyle = state.Lifestyle.SetItem((lifestyle.Location, lifestyle.Kind), lifestyle) }
+            : state;
     }
 
     public static GrpcConsumerState Apply(this GrpcConsumerState state, PipelineEvent.AlertRaised raised)
@@ -39,6 +48,13 @@ internal static class GrpcConsumerStateExtensions
 
     public static PipelineEvent? GetDomainData(this GrpcConsumerState state, Location location, DomainKind domain) =>
         state.DomainData.GetValueOrDefault((location, domain));
+
+    public static IReadOnlyList<LifestyleUpdate> GetLatestLifestyle(this GrpcConsumerState state, Location location) =>
+        state.Lifestyle
+            .Where(entry => entry.Key.Location == location)
+            .OrderBy(entry => entry.Key.Kind)
+            .Select(entry => entry.Value)
+            .ToList();
 
     public static AlertResult? GetLatestAlerts(this GrpcConsumerState state, Location location) =>
         state.Alerts.GetValueOrDefault(location);

@@ -78,6 +78,19 @@ public sealed class PipelineEventMqttMappingsSpec
     }
 
     [Fact]
+    public void A_lifestyle_event_maps_to_one_retained_lifestyle_message()
+    {
+        var message = Assert.Single(new PipelineEvent.LaundryScoreComputed(Lucerne, 80, Run, 4).ToMqttMessages(Context));
+
+        Assert.Multiple(
+            () => Assert.Equal("njord/lucerne/lifestyle/laundry_score", message.Topic),
+            () => Assert.True(message.Retain),
+            () => Assert.Equal(
+                "{\"score\":\"80\",\"best_start\":\"2026-01-15T12:00:00Z\",\"best_hours\":\"4\"}",
+                message.Payload));
+    }
+
+    [Fact]
     public void An_unknown_event_maps_to_no_messages_and_the_unknown_location()
     {
         var unknown = new UnknownEvent();
@@ -94,6 +107,7 @@ public sealed class PipelineEventMqttMappingsSpec
         [
             new PipelineEvent.FloodDataReceived(Lucerne, DomainData.Flood(Run)),
             new PipelineEvent.AlertRaised(Lucerne, Alert.None(AlertType.Pm25), Run),
+            new PipelineEvent.CommuteSafety(Lucerne, "ok", []),
         ];
 
         Assert.All(events, e => Assert.Equal("Lucerne", e.ToLocationName()));

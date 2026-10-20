@@ -21,6 +21,13 @@ public static class StatePayloadBuilder
         return messages;
     }
 
+    public static MqttMessage FromLifestyle(LifestyleUpdate update, string baseTopic)
+    {
+        var topic = TopicScheme.EnrichmentSubTopic(baseTopic, update.Location.Name, EnrichmentNames.Lifestyle, update.Kind.ToWireName());
+        var payload = new Dictionary<string, string>(update.Data);
+        return new MqttMessage(topic, Serialize(payload, MqttPayloadJsonContext.Default.DictionaryStringString), true);
+    }
+
     private static string Serialize<T>(T payload, JsonTypeInfo<T> typeInfo)
         => JsonSerializer.Serialize(payload, typeInfo);
 }
