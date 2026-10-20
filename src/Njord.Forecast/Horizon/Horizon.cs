@@ -2,12 +2,6 @@ using System.Globalization;
 
 namespace Njord.Forecast;
 
-public enum HorizonKind
-{
-    Hourly,
-    Daily,
-}
-
 public readonly record struct Horizon
 {
     private const char HourlyPrefix = 'h';

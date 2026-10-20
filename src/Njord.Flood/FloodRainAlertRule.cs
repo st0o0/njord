@@ -7,8 +7,6 @@ using Njord.Messages.Alerts;
 
 namespace Njord.Flood;
 
-public sealed record FloodRainInput(DomainForecast<FloodPoint> Flood, DomainForecast<WeatherPoint> Weather);
-
 public sealed class FloodRainAlertRule : IAlertRule<FloodRainInput>
 {
     public const double HeavyRain24HourMillimeters = 30.0;

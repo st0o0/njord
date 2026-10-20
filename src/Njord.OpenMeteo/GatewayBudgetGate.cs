@@ -5,37 +5,6 @@ using Njord.Messages.Budget;
 
 namespace Njord.OpenMeteo;
 
-public sealed record BudgetRate(int CostPerMinute, int MaxBurst);
-
-public interface IBudgetProvider
-{
-    BudgetRate GetCurrentRate();
-}
-
-internal sealed class OptionsBudgetProvider : IBudgetProvider
-{
-    private readonly IOptions<PollingOptions> _options;
-
-    public OptionsBudgetProvider(IOptions<PollingOptions> options)
-    {
-        _options = options;
-    }
-
-    public BudgetRate GetCurrentRate()
-    {
-        var budget = BudgetCalculator.GetEffectiveBudget(_options.Value);
-        var costPerMinute = (int)(budget.RequestsPerMinute * 0.8);
-        var maxBurst = Math.Max(costPerMinute / 30, 16);
-        return new BudgetRate(costPerMinute, maxBurst);
-    }
-}
-
-internal interface IGatewayBudgetGate
-{
-    bool TryAcquire(int weight);
-    TimeSpan EstimateDelay(int weight);
-}
-
 internal sealed class GatewayBudgetGate : IGatewayBudgetGate
 {
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(5);

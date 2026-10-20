@@ -6,7 +6,7 @@ using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Tests.Mapping;
 
-public sealed class ParamMappingsSpec
+public sealed class ParamsMappingsSpec
 {
     [Theory]
     [InlineData(WeatherParams.Temperature, "temperature_2m")]
