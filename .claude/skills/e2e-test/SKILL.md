@@ -8,6 +8,8 @@ description: Run the agent-orchestrated E2E test against a real Docker stack (nj
 Run the full end-to-end test suite against the real Docker stack.
 ~150 steps across 25 sections (S0–S24), 3 parallel Haiku subagents.
 
+> **Stale sections:** S15 (SensorService), S18-S22 (AdminService) and the consensus, index, derived and trend checks target removed features; only `OpsService` and `WeatherService` remain in `protos/njord/v2`. Skip them.
+
 ## Prerequisites
 
 - Docker running
@@ -122,7 +124,7 @@ When subagents return, check each FAIL:
 - Distinguish Haiku misinterpretation from real bug
 - Mark as PASS if the re-check succeeds, keep as FAIL if confirmed
 
-### S15 — SensorService (Sequential)
+### S15 — SensorService (Sequential) (REMOVED)
 
 Push sensor readings via grpcurl (all commands need `-import-path protos -proto njord/v2/sensor.proto`):
 
@@ -144,7 +146,7 @@ unreliable — only advances when the state string actually changes).
 5. Read `sensor.server_daily_usage` before and after — verify HA sensor tracks it
 6. Verify gRPC `dailyUsed` is consistent with HA sensor (HA shows % of daily budget)
 
-### S18 — AdminService: GetConfig
+### S18 — AdminService: GetConfig (REMOVED)
 
 ```bash
 grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto localhost:8081 njord.v2.AdminService/GetConfig
@@ -153,7 +155,7 @@ grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto localhost:808
 Verify config matches Docker environment (locations, models, horizons, enrichments).
 Note: horizons may be duplicated due to env + default merge.
 
-### S19–S21 — Config Mutation: Alerts Cycle
+### S19–S21 — Config Mutation: Alerts Cycle (REMOVED)
 
 **Disable alerts (S19):**
 ```bash
@@ -173,7 +175,7 @@ grpcurl -plaintext -import-path protos -proto njord/v2/ops.proto -d '{}' localho
 
 Poll until all 14 alert sensors reappear (timeout 120s). Verify count restored.
 
-### S22 — Config Mutation: Horizons
+### S22 — Config Mutation: Horizons (REMOVED)
 
 ```bash
 grpcurl -plaintext -import-path protos -proto njord/v2/admin.proto -d '{"horizons":[6,24]}' localhost:8081 njord.v2.AdminService/SetSettings

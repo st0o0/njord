@@ -12,35 +12,6 @@ public sealed class ProjectionEngineSpec
     private static readonly DateTimeOffset Start = new(2026, 7, 14, 12, 0, 0, TimeSpan.Zero);
     private static readonly FakeTimeProvider Time = new(Start);
 
-    private sealed record Seen(LocationForecast Current, LocationForecast? Previous);
-
-    private sealed class RecordingHandler(params DomainKind[] triggers) : IDomainHandler
-    {
-        public string ConfigKey => "WeatherAlerts";
-
-        public List<Seen> Calls { get; } = [];
-
-        public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind>(triggers);
-
-        public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
-        {
-            Calls.Add(new Seen(current, previous));
-            return [];
-        }
-    }
-
-    private sealed class EmittingHandler : IDomainHandler
-    {
-        public string ConfigKey => "WeatherAlerts";
-
-        public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather };
-
-        public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time) =>
-        [
-            new PipelineEvent.AlertRaised(current.Location, Alert.None(AlertType.Frost), time.GetUtcNow()),
-        ];
-    }
-
     private static double TemperatureOf(DomainForecast<WeatherPoint>? forecast)
     {
         Assert.NotNull(forecast);

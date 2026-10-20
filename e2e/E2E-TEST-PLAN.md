@@ -3,6 +3,8 @@
 Agent-orchestrated end-to-end test against a real Docker stack.
 gRPC path only (no MQTT). Real Open-Meteo API.
 
+> **Stale sections:** SensorService (S15), AdminService (S18-S22), and the consensus, index, derived and trend checks (S7, S12) cover features that were removed (only `OpsService` and `WeatherService` remain in `protos/njord/v2`). Skip them until the plan is rewritten for the domain/enrichment model.
+
 ## Section Index
 
 | Section | Name | Steps | Agent |
@@ -259,7 +261,7 @@ Chrome is unavailable. Both paths produce the same long-lived access token.
 | 7.5 | `POST /api/services/weather/get_forecasts` with `entity_id: weather.lucerne_icon_d2, type: hourly` | Forecast entries returned |
 | 7.6 | Verify forecast entries have `temperature`, `humidity`, `wind_speed` keys | All keys present |
 
-### Consensus Validation
+### Consensus Validation (REMOVED)
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
@@ -278,7 +280,7 @@ Chrome is unavailable. Both paths produce the same long-lived access token.
 | 7.14 | For each alert sensor: verify attribute `confidence` is numeric 0–100 (note: `trigger_value` and `threshold` are present only when severity ≠ "none") | In range |
 | 7.15 | Verify at least 1 alert sensor has `severity` ≠ "none" (plausibility: some alert should fire for any weather) | At least one active alert |
 
-### Index Sensors
+### Index Sensors (REMOVED)
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
@@ -287,7 +289,7 @@ Chrome is unavailable. Both paths produce the same long-lived access token.
 | 7.18 | Verify `sensor.lucerne_vpd` state is numeric (kPa) | Numeric |
 | 7.19 | Verify `sensor.lucerne_frost_hours` state is numeric or "unavailable" (requires history data from multiple cycles) | Numeric or unavailable |
 
-### Derived, Trend, History Sensors
+### Derived, Trend, History Sensors (REMOVED)
 
 | Step | Action | Pass Criteria |
 |------|--------|---------------|
@@ -403,7 +405,7 @@ Browser: Developer Tools → States. API fallback: `GET /api/states/<entity_id>`
 
 ---
 
-## S15 — SensorService: Push + StreamPush
+## S15 — SensorService: Push + StreamPush (REMOVED)
 
 **Agent:** Opus (main)
 
@@ -449,7 +451,7 @@ actually changes, which may not happen when Open-Meteo returns identical data.
 
 ---
 
-## S18 — AdminService: GetConfig + StreamConfig
+## S18 — AdminService: GetConfig + StreamConfig (REMOVED)
 
 **Agent:** Opus (main)
 
@@ -463,7 +465,7 @@ actually changes, which may not happen when Open-Meteo returns identical data.
 
 ---
 
-## S19 — Config Mutation: Disable Alerts
+## S19 — Config Mutation: Disable Alerts (REMOVED)
 
 **Agent:** Opus (main)
 
@@ -475,7 +477,7 @@ actually changes, which may not happen when Open-Meteo returns identical data.
 
 ---
 
-## S20 — Config Mutation: Verify Entity Removal
+## S20 — Config Mutation: Verify Entity Removal (REMOVED)
 
 **Agent:** Opus (main)
 
@@ -487,7 +489,7 @@ actually changes, which may not happen when Open-Meteo returns identical data.
 
 ---
 
-## S21 — Config Mutation: Re-enable Alerts
+## S21 — Config Mutation: Re-enable Alerts (REMOVED)
 
 **Agent:** Opus (main)
 
@@ -500,7 +502,7 @@ actually changes, which may not happen when Open-Meteo returns identical data.
 
 ---
 
-## S22 — Config Mutation: Change Horizons
+## S22 — Config Mutation: Change Horizons (REMOVED)
 
 **Agent:** Opus (main)
 
