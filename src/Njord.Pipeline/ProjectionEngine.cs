@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Akka.Event;
+using Microsoft.Extensions.Logging;
 using Njord.Core.Domain;
 using Njord.Messages.Pipeline;
 
@@ -9,7 +10,7 @@ internal sealed record LocationSlot(LocationForecast Current, LocationForecast? 
 
 // The analysis state of the pipeline: the latest LocationForecast per location, the previous value of every domain
 // slot, and the domain handlers that react to a changed domain. Lives inside the StatefulSelectMany closure.
-internal sealed class ProjectionEngine(IReadOnlyList<IDomainHandler> handlers, TimeProvider time, ILoggingAdapter? log = null)
+internal sealed class ProjectionEngine(IReadOnlyList<IDomainHandler> handlers, TimeProvider time, ILogger? log = null)
 {
     public static readonly ImmutableDictionary<string, LocationSlot> EmptyState =
         ImmutableDictionary.Create<string, LocationSlot>(StringComparer.OrdinalIgnoreCase);
@@ -28,7 +29,7 @@ internal sealed class ProjectionEngine(IReadOnlyList<IDomainHandler> handlers, T
         IReadOnlyList<IDomainHandler> handlers,
         DomainDataReceived received,
         TimeProvider time,
-        ILoggingAdapter? log = null)
+        ILogger? log = null)
     {
         var slot = Update(state.GetValueOrDefault(received.Location.Name), received);
         var events = new List<PipelineEvent>(4) { received.ToPipelineEvent() };
@@ -42,7 +43,7 @@ internal sealed class ProjectionEngine(IReadOnlyList<IDomainHandler> handlers, T
 
             if (!slot.Current.HasFields(handler.Requirements))
             {
-                log?.Warning("Skipping {Handler} for {Location}: missing required data", handler.ConfigKey, received.Location.Name);
+                log?.LogWarning("Skipping {Handler} for {Location}: missing required data", handler.ConfigKey, received.Location.Name);
                 continue;
             }
 

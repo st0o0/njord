@@ -2,32 +2,12 @@ using Newtonsoft.Json;
 using Njord.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Polling;
-using Njord.Tests.Shared;
+using static Njord.Pipeline.Tests.PollStateFixture;
 
 namespace Njord.Pipeline.Tests;
 
 public sealed class PollWorkerMappingsSpec
 {
-    private static readonly DateTimeOffset T0 = TestTimeConstants.PipelineEpoch;
-    private static readonly Location Lucerne = new("lucerne", 0, 0);
-    private static readonly int[] WeatherDomain = [(int)DomainKind.Weather];
-
-    private static PollWorkerState Started() =>
-        PollWorkerState.Empty.Apply(new PollingStarted("lucerne", WeatherDomain, TimeSpan.FromMinutes(20), T0));
-
-    private static DomainPolled Changed(int hash, DateTimeOffset at) =>
-        new((int)DomainKind.Weather, PersistedDomainPollOutcome.Changed, hash, at, null);
-
-    private static DomainPolled Unchanged(DateTimeOffset at) =>
-        new((int)DomainKind.Weather, PersistedDomainPollOutcome.Unchanged, null, at, null);
-
-    // Three changes at 3 h intervals: two consistent intervals -> Steady.
-    private static PollWorkerState Steady() =>
-        Started()
-            .Apply(Changed(1, T0))
-            .Apply(Changed(2, T0.AddHours(3)))
-            .Apply(Changed(3, T0.AddHours(6)));
-
     [Fact]
     public void ToPollStateEntry_describes_the_target_and_its_poll_state()
     {
@@ -63,7 +43,7 @@ public sealed class PollWorkerMappingsSpec
     [Fact]
     public void GetPersistenceState_and_FromPersistence_roundtrip()
     {
-        var state = Steady().Apply(Unchanged(T0.AddHours(9)));
+        var state = Steady().Apply(Unchanged(DomainKind.Weather, T0.AddHours(9)));
 
         var restored = state.GetPersistenceState().FromPersistence();
 
@@ -82,14 +62,14 @@ public sealed class PollWorkerMappingsSpec
 
         var dto = state.GetPersistenceState();
 
+        Assert.NotNull(dto.DomainStates);
         Assert.Multiple(
             () => Assert.Equal("lucerne", dto.Location),
             () => Assert.True(dto.Active),
             () => Assert.Equal(TimeSpan.FromMinutes(20), dto.DiscoveryInterval),
-            () => Assert.NotNull(dto.DomainStates),
-            () => Assert.Single(dto.DomainStates!));
+            () => Assert.Single(dto.DomainStates));
 
-        var domainDto = dto.DomainStates![0];
+        var domainDto = dto.DomainStates[0];
         Assert.Multiple(
             () => Assert.Equal((int)DomainKind.Weather, domainDto.Domain),
             () => Assert.Equal(3, domainDto.LastHash),

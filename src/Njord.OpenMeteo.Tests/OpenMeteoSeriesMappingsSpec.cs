@@ -9,23 +9,23 @@ public sealed class OpenMeteoResponseMappingsSpec
     private const long Hour0 = 1_783_771_200;
 
     [Fact]
-    public void A_weather_response_maps_to_hourly_weather_points_and_trims_trailing_empty_hours()
+    public void A_weather_response_maps_to_hourly_weather_points()
     {
         var response = new WeatherResponse(47.0, 8.0,
             new WeatherHourlyData(
-                Time: [Hour0, Hour0 + 3600, Hour0 + 7200],
-                Temperature: [20.5, 21.0, null],
-                ApparentTemperature: [18.0, 19.0, null],
-                WindSpeed: [3.0, 4.0, null],
-                Precipitation: [0.0, 0.0, null],
-                PrecipitationProbability: [10.0, 20.0, null],
-                CloudCover: [50.0, 60.0, null],
-                Pressure: [1013.0, 1012.0, null],
-                WeatherCode: [3, 61, null],
-                Humidity: [65.0, 70.0, null],
-                DewPoint: [12.0, 13.0, null],
-                UvIndex: [3.0, 2.0, null],
-                WindGusts: [8.0, null, null]));
+                Time: [Hour0, Hour0 + 3600],
+                Temperature: [20.5, 21.0],
+                ApparentTemperature: [18.0, 19.0],
+                WindSpeed: [3.0, 4.0],
+                Precipitation: [0.0, 0.0],
+                PrecipitationProbability: [10.0, 20.0],
+                CloudCover: [50.0, 60.0],
+                Pressure: [1013.0, 1012.0],
+                WeatherCode: [3, 61],
+                Humidity: [65.0, 70.0],
+                DewPoint: [12.0, 13.0],
+                UvIndex: [3.0, 2.0],
+                WindGusts: [8.0, null]));
 
         var forecast = response.ToDomainForecast(Run);
 
@@ -40,6 +40,37 @@ public sealed class OpenMeteoResponseMappingsSpec
             () => Assert.Equal(61, forecast.Points[1].WeatherCode),
             () => Assert.Equal(8.0, forecast.Points[0].WindGusts),
             () => Assert.Null(forecast.Points[1].WindGusts));
+    }
+
+    [Fact]
+    public void A_weather_response_trims_trailing_hours_without_any_value()
+    {
+        var response = new WeatherResponse(47.0, 8.0,
+            new WeatherHourlyData(
+                Time: [Hour0, Hour0 + 3600, Hour0 + 7200],
+                Temperature: [20.5, 21.0, null],
+                WindGusts: [8.0, null, null]));
+
+        var forecast = response.ToDomainForecast(Run);
+
+        Assert.NotNull(forecast);
+        Assert.Equal(
+            [DateTimeOffset.FromUnixTimeSeconds(Hour0), DateTimeOffset.FromUnixTimeSeconds(Hour0 + 3600)],
+            forecast.Points.Select(p => p.ValidFrom));
+    }
+
+    [Fact]
+    public void A_weather_time_axis_longer_than_its_data_arrays_trims_the_hours_without_data()
+    {
+        var response = new WeatherResponse(47.0, 8.0,
+            new WeatherHourlyData(
+                Time: [Hour0, Hour0 + 3600, Hour0 + 7200, Hour0 + 10_800],
+                Temperature: [20.5, 21.0]));
+
+        var forecast = response.ToDomainForecast(Run);
+
+        Assert.NotNull(forecast);
+        Assert.Equal([20.5, 21.0], forecast.Points.Select(p => p.Temperature));
     }
 
     [Fact]
@@ -94,15 +125,15 @@ public sealed class OpenMeteoResponseMappingsSpec
     }
 
     [Fact]
-    public void A_marine_response_maps_to_hourly_points_and_trims_trailing_empty_hours()
+    public void A_marine_response_maps_to_hourly_points()
     {
         var response = new MarineResponse(47.0, 8.0,
             new MarineHourlyData(
-                Time: [Hour0, Hour0 + 3600, Hour0 + 7200],
-                WaveHeight: [0.4, 1.2, null],
-                WavePeriod: [4.0, 5.0, null],
-                WaveDirection: [270.0, 280.0, null],
-                SeaSurfaceTemperature: [19.0, null, null]));
+                Time: [Hour0, Hour0 + 3600],
+                WaveHeight: [0.4, 1.2],
+                WavePeriod: [4.0, 5.0],
+                WaveDirection: [270.0, 280.0],
+                SeaSurfaceTemperature: [19.0, null]));
 
         var forecast = response.ToDomainForecast(Run);
 
@@ -117,6 +148,22 @@ public sealed class OpenMeteoResponseMappingsSpec
             () => Assert.Equal(19.0, forecast.Points[0].WaterTemperature),
             () => Assert.Equal(1.2, forecast.Points[1].WaveHeight),
             () => Assert.Null(forecast.Points[1].WaterTemperature));
+    }
+
+    [Fact]
+    public void A_marine_response_trims_trailing_hours_without_any_value()
+    {
+        var response = new MarineResponse(47.0, 8.0,
+            new MarineHourlyData(
+                Time: [Hour0, Hour0 + 3600, Hour0 + 7200],
+                WaveHeight: [0.4, 1.2, null],
+                WavePeriod: [4.0, 5.0, null],
+                WaveDirection: [270.0, 280.0, null]));
+
+        var forecast = response.ToDomainForecast(Run);
+
+        Assert.NotNull(forecast);
+        Assert.Equal([0.4, 1.2], forecast.Points.Select(p => p.WaveHeight));
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using Akka.Actor;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
@@ -99,17 +100,27 @@ public sealed class GatewayRestartSpec : NjordActorSpec
 
     private IActorRef StartGateway()
     {
-        var options = Microsoft.Extensions.Options.Options.Create(Options);
-        var weatherOptions = Microsoft.Extensions.Options.Options.Create(new WeatherOptions());
-        return Sys.ActorOf(Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _time, options, weatherOptions, Microsoft.Extensions.Options.Options.Create(new AirQualityOptions()), Microsoft.Extensions.Options.Options.Create(new MarineOptions()), Microsoft.Extensions.Options.Options.Create(new FloodOptions()), TestRequirements.Resolved, _budget, FetchTimeouts.Default)),
+        var options = Wrap(Options);
+        var weather = Wrap(new WeatherOptions());
+        var airQuality = Wrap(new AirQualityOptions());
+        var marine = Wrap(new MarineOptions());
+        var flood = Wrap(new FloodOptions());
+        return Sys.ActorOf(
+            Props.Create(() => new OpenMeteoGateway(
+                _weather, _airQuality, _flood, _marine, _time, options, weather, airQuality, marine, flood,
+                TestRequirements.Resolved, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 
     private IActorRef StartPipeline()
     {
         var group = FeatureServices.AlertHandler(_time);
-        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(_time, new[] { group }, Microsoft.Extensions.Options.Options.Create(new EnrichmentOptions()))), $"pipeline-{Guid.NewGuid():N}");
+        var enrichments = Wrap(new EnrichmentOptions());
+        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(_time, new[] { group }, enrichments, NullLogger<ForecastPipeline>.Instance)), $"pipeline-{Guid.NewGuid():N}");
     }
+
+    private static IOptions<T> Wrap<T>(T value)
+        where T : class => Microsoft.Extensions.Options.Options.Create(value);
 
     private sealed class FaultyOnceBudgetProvider : IBudgetProvider
     {

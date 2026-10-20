@@ -1,6 +1,5 @@
 using System.Globalization;
-using System.Net;
-using System.Text;
+using Njord.Core.Configuration;
 
 namespace Njord.OpenMeteo.Tests;
 
@@ -39,6 +38,17 @@ public sealed class OpenMeteoUriBuilderSpec
     }
 
     [Fact(Timeout = 5000)]
+    public async Task The_weather_uri_carries_the_ensemble_model_and_the_given_variables_and_days()
+    {
+        var uri = await Capture(client => new WeatherClient(client, Microsoft.Extensions.Options.Options.Create(new WeatherOptions()))
+            .FetchAsync(47.05, 8.31, ["shortwave_radiation", "rain"], 7, TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            "/v1/ensemble?latitude=47.05&longitude=8.31&hourly=shortwave_radiation,rain&models=ecmwf_ifs025_ensemble_mean&wind_speed_unit=ms&forecast_days=7&timeformat=unixtime&timezone=UTC",
+            uri);
+    }
+
+    [Fact(Timeout = 5000)]
     public async Task Coordinates_use_the_invariant_culture()
     {
         var previous = CultureInfo.CurrentCulture;
@@ -66,23 +76,11 @@ public sealed class OpenMeteoUriBuilderSpec
     private static async Task<string> Capture(Func<HttpClient, Task> call)
     {
         string? captured = null;
-        var handler = new CapturingHandler(request => captured = request.RequestUri?.PathAndQuery);
+        var handler = StubOpenMeteoHandler.Json(System.Net.HttpStatusCode.OK, EmptyBody, request => captured = request.RequestUri?.PathAndQuery);
         using var client = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/") };
 
         await call(client);
 
         return Assert.IsType<string>(captured);
-    }
-
-    private sealed class CapturingHandler(Action<HttpRequestMessage> inspect) : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            inspect(request);
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(EmptyBody, Encoding.UTF8, "application/json"),
-            });
-        }
     }
 }

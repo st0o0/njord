@@ -58,40 +58,20 @@ public sealed class PollManagerStateSpec
         Assert.Same(state.States, newState.States);
     }
 
-    [Fact]
-    public void ApplyReport_changed_updates_last_successful_poll()
-    {
-        var state = InitialState();
-        var entry = new PollStateEntry(Lucerne.Location, PollPhase.Steady, T0.AddHours(1), T0, 0, 3600);
-        var report = new PollWorkerReport(Lucerne, PollWorkerOutcome.Changed, entry);
-
-        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0);
-
-        Assert.Equal(T0, state.LastSuccessfulPollUtc);
-    }
-
-    [Fact]
-    public void ApplyReport_unchanged_updates_last_successful_poll()
+    [Theory]
+    [InlineData(PollWorkerOutcome.Changed, true)]
+    [InlineData(PollWorkerOutcome.Unchanged, true)]
+    [InlineData(PollWorkerOutcome.Failed, false)]
+    public void A_report_updates_the_last_successful_poll_time_only_for_successful_outcomes(
+        PollWorkerOutcome outcome, bool succeeds)
     {
         var state = InitialState();
         var entry = new PollStateEntry(Lucerne.Location, PollPhase.Steady, T0.AddHours(1), null, 0, null);
-        var report = new PollWorkerReport(Lucerne, PollWorkerOutcome.Unchanged, entry);
+        var report = new PollWorkerReport(Lucerne, outcome, entry);
 
         state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0);
 
-        Assert.Equal(T0, state.LastSuccessfulPollUtc);
-    }
-
-    [Fact]
-    public void ApplyReport_failed_does_not_update_last_successful_poll()
-    {
-        var state = InitialState();
-        var entry = new PollStateEntry(Lucerne.Location, PollPhase.Discovery, T0.AddHours(1), null, 1, null);
-        var report = new PollWorkerReport(Lucerne, PollWorkerOutcome.Failed, entry);
-
-        state = state.ApplyReport(report, ActorRefs.Nobody, Config, T0);
-
-        Assert.Null(state.LastSuccessfulPollUtc);
+        Assert.Equal(succeeds ? T0 : null, state.LastSuccessfulPollUtc);
     }
 
     [Fact]

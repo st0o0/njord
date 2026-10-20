@@ -2,8 +2,9 @@ using Njord.Configuration;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Config;
+using Njord.Tests.Shared;
 
-namespace Njord.Tests.Shared;
+namespace Njord.Grpc.Tests;
 
 public static class TestServiceInfo
 {

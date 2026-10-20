@@ -1,6 +1,6 @@
 using Njord.Messages.Alerts;
 
-namespace Njord.Tests.Shared;
+namespace Njord.Mqtt.Tests;
 
 public static class UnifiedAlert
 {
