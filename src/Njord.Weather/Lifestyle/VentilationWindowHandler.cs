@@ -18,7 +18,8 @@ public sealed class VentilationWindowHandler : IDomainHandler
 
     public DomainRequirements Requirements { get; } = new(
         Weather: WeatherParam.Temperature | WeatherParam.Precipitation,
-        AirQuality: AirQualityParam.Pm25 | AirQualityParam.BirchPollen | AirQualityParam.GrassPollen
+        AirQuality: AirQualityParam.Pm25,
+        OptionalAirQuality: AirQualityParam.BirchPollen | AirQualityParam.GrassPollen
             | AirQualityParam.Alder | AirQualityParam.Mugwort);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)

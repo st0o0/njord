@@ -22,7 +22,7 @@ public static class BudgetCalculator
 
         var weatherRequired = requirements.Requires(DomainKind.Weather);
         var otherDomains = new[] { DomainKind.AirQuality, DomainKind.Flood, DomainKind.Marine }.Count(requirements.Requires);
-        var apiCallWeight = weatherRequired ? ComputeWeight(requirements.Weather.FlagCount(), weather.ForecastDays) : 0;
+        var apiCallWeight = weatherRequired ? ComputeWeight(requirements.AllWeather.FlagCount(), weather.ForecastDays) : 0;
 
         var domainCallsPerCycle = locationCount * ((weatherRequired ? 1 : 0) + otherDomains);
         var callsPerCycle = locationCount * (apiCallWeight + otherDomains);

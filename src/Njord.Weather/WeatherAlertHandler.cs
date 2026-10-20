@@ -23,9 +23,10 @@ public sealed class WeatherAlertHandler : IDomainHandler
 
     public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.Temperature | WeatherParam.ApparentTemperature | WeatherParam.WindSpeed
             | WeatherParam.Precipitation | WeatherParam.Humidity | WeatherParam.DewPoint | WeatherParam.Pressure
-            | WeatherParam.WindGusts | WeatherParam.Visibility | WeatherParam.Cape | WeatherParam.Rain
+            | WeatherParam.WindGusts | WeatherParam.Visibility | WeatherParam.Cape
             | WeatherParam.Snowfall | WeatherParam.FreezingLevelHeight | WeatherParam.IsDay
-            | WeatherParam.EnsembleStdDev | WeatherParam.UvIndex | WeatherParam.SoilTemperature);
+            | WeatherParam.EnsembleStdDev,
+        OptionalWeather: WeatherParam.Rain | WeatherParam.UvIndex | WeatherParam.SoilTemperature);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

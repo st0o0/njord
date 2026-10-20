@@ -28,6 +28,57 @@ public sealed class DomainRequirementsSpec
     }
 
     [Fact]
+    public void Should_union_the_optional_params_separately_from_the_required_ones()
+    {
+        var left = new DomainRequirements(Weather: WeatherParam.Temperature, OptionalWeather: WeatherParam.UvIndex);
+        var right = new DomainRequirements(
+            Weather: WeatherParam.WindSpeed,
+            OptionalWeather: WeatherParam.SoilTemperature,
+            OptionalAirQuality: AirQualityParam.BirchPollen,
+            OptionalFlood: FloodParam.DischargeMax,
+            OptionalMarine: MarineParam.WaterTemperature);
+
+        var union = left | right;
+
+        Assert.Multiple(
+            () => Assert.Equal(WeatherParam.Temperature | WeatherParam.WindSpeed, union.Weather),
+            () => Assert.Equal(WeatherParam.UvIndex | WeatherParam.SoilTemperature, union.OptionalWeather),
+            () => Assert.Equal(AirQualityParam.BirchPollen, union.OptionalAirQuality),
+            () => Assert.Equal(FloodParam.DischargeMax, union.OptionalFlood),
+            () => Assert.Equal(MarineParam.WaterTemperature, union.OptionalMarine));
+    }
+
+    [Fact]
+    public void Should_expose_required_and_optional_params_together_as_all()
+    {
+        var requirements = new DomainRequirements(
+            Weather: WeatherParam.Temperature,
+            AirQuality: AirQualityParam.Pm25,
+            Flood: FloodParam.Discharge,
+            Marine: MarineParam.WaveHeight,
+            OptionalWeather: WeatherParam.UvIndex,
+            OptionalAirQuality: AirQualityParam.BirchPollen,
+            OptionalFlood: FloodParam.DischargeMax,
+            OptionalMarine: MarineParam.WaterTemperature);
+
+        Assert.Multiple(
+            () => Assert.Equal(WeatherParam.Temperature | WeatherParam.UvIndex, requirements.AllWeather),
+            () => Assert.Equal(AirQualityParam.Pm25 | AirQualityParam.BirchPollen, requirements.AllAirQuality),
+            () => Assert.Equal(FloodParam.Discharge | FloodParam.DischargeMax, requirements.AllFlood),
+            () => Assert.Equal(MarineParam.WaveHeight | MarineParam.WaterTemperature, requirements.AllMarine));
+    }
+
+    [Fact]
+    public void Should_require_a_domain_that_only_has_optional_params()
+    {
+        var requirements = new DomainRequirements(OptionalMarine: MarineParam.WaterTemperature);
+
+        Assert.Multiple(
+            () => Assert.True(requirements.Requires(DomainKind.Marine)),
+            () => Assert.False(requirements.Requires(DomainKind.Weather)));
+    }
+
+    [Fact]
     public void Should_require_nothing_by_default()
     {
         var none = default(DomainRequirements);

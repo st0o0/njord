@@ -12,7 +12,8 @@ public sealed class LaundryScoreHandler : IDomainHandler
     public string ConfigKey => "LaundryScore";
 
     public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.Precipitation | WeatherParam.Temperature | WeatherParam.Humidity
-            | WeatherParam.WindSpeed | WeatherParam.PrecipitationProbability | WeatherParam.CloudCover | WeatherParam.SunshineDuration);
+            | WeatherParam.WindSpeed | WeatherParam.PrecipitationProbability | WeatherParam.CloudCover,
+        OptionalWeather: WeatherParam.SunshineDuration);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

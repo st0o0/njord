@@ -87,10 +87,10 @@ public sealed class OpenMeteoGateway : ReceiveActor
         _airQuality = airQuality.Value;
         _marine = marine.Value;
         _flood = flood.Value;
-        _weatherVariables = requirements.Weather.ToApiNames();
-        _airQualityVariables = requirements.AirQuality.ToApiNames();
-        _floodVariables = requirements.Flood.ToApiNames();
-        _marineVariables = requirements.Marine.ToApiNames();
+        _weatherVariables = requirements.AllWeather.ToApiNames();
+        _airQualityVariables = requirements.AllAirQuality.ToApiNames();
+        _floodVariables = requirements.AllFlood.ToApiNames();
+        _marineVariables = requirements.AllMarine.ToApiNames();
         _weatherWeight = BudgetCalculator.ComputeWeight(_weatherVariables.Count, WeatherForecastDays);
         _gate = new GatewayBudgetGate(budgetProvider, Context.GetActor<IBudgetTracker>(), timeProvider);
 

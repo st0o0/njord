@@ -14,8 +14,10 @@ public sealed class OutdoorScoreHandler : IDomainHandler
 
     public DomainRequirements Requirements { get; } = new(
         Weather: WeatherParam.Temperature | WeatherParam.Precipitation | WeatherParam.PrecipitationProbability
-            | WeatherParam.WindSpeed | WeatherParam.CloudCover | WeatherParam.UvIndex,
-        AirQuality: AirQualityParam.Pm25 | AirQualityParam.BirchPollen | AirQualityParam.GrassPollen
+            | WeatherParam.WindSpeed | WeatherParam.CloudCover,
+        AirQuality: AirQualityParam.Pm25,
+        OptionalWeather: WeatherParam.UvIndex,
+        OptionalAirQuality: AirQualityParam.BirchPollen | AirQualityParam.GrassPollen
             | AirQualityParam.Alder | AirQualityParam.Mugwort);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)

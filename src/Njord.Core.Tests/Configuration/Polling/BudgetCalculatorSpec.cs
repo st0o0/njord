@@ -51,6 +51,17 @@ public sealed class BudgetCalculatorSpec
     }
 
     [Fact]
+    public void Should_count_optional_weather_variables_toward_the_weight()
+    {
+        var optionalOnly = new ResolvedRequirements(new DomainRequirements(
+            Weather: WeatherParam.Temperature, OptionalWeather: Eleven));
+
+        var result = BudgetCalculator.Validate(Scope(), new WeatherOptions(), new PollingOptions(), optionalOnly);
+
+        Assert.Equal(2, result.ApiCallWeight);
+    }
+
+    [Fact]
     public void Should_charge_the_weather_weight_to_the_weather_domain_only()
     {
         var polling = new PollingOptions { PollInterval = TimeSpan.FromHours(1) };

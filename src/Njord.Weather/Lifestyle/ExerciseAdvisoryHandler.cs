@@ -20,8 +20,9 @@ public sealed class ExerciseAdvisoryHandler : IDomainHandler
     public string ConfigKey => "ExerciseAdvisory";
 
     public DomainRequirements Requirements { get; } = new(
-        Weather: WeatherParam.Temperature | WeatherParam.Humidity | WeatherParam.UvIndex,
-        AirQuality: AirQualityParam.Pm25 | AirQualityParam.Ozone);
+        Weather: WeatherParam.Temperature | WeatherParam.Humidity,
+        AirQuality: AirQualityParam.Pm25 | AirQualityParam.Ozone,
+        OptionalWeather: WeatherParam.UvIndex);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {

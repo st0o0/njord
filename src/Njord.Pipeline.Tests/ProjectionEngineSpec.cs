@@ -122,6 +122,20 @@ public sealed class ProjectionEngineSpec
     }
 
     [Fact]
+    public void A_handler_whose_optional_field_is_missing_still_runs()
+    {
+        var handler = new RequiringHandler(new DomainRequirements(
+            Weather: WeatherParam.Temperature, OptionalWeather: WeatherParam.ShortwaveRadiation));
+        var engine = new ProjectionEngine([handler], Time);
+
+        var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
+
+        Assert.Multiple(
+            () => Assert.Single(handler.Calls),
+            () => Assert.Equal(2, events.Count));
+    }
+
+    [Fact]
     public void A_handler_whose_required_field_is_missing_is_skipped_and_emits_no_event()
     {
         var handler = new RequiringHandler(new DomainRequirements(Weather: WeatherParam.Temperature | WeatherParam.ShortwaveRadiation));
