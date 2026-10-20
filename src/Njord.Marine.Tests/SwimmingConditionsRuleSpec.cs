@@ -19,7 +19,7 @@ public sealed class SwimmingConditionsRuleSpec
     [InlineData(1.2, 9.0, AlertSeverity.Red)]
     public void Wave_height_and_water_temperature_decide_the_severity(double waveHeight, double temperature, AlertSeverity expected)
     {
-        var alert = Rule.Evaluate(Forecast(Point(0, waveHeight, temperature)), AlertRuleFixture.Defaults, Now);
+        var alert = Rule.Evaluate(MarineForecast(Point(0, waveHeight, temperature)), AlertRuleFixture.Defaults, Now);
 
         Assert.Equal(expected, alert.Severity);
     }
@@ -27,8 +27,8 @@ public sealed class SwimmingConditionsRuleSpec
     [Fact]
     public void Missing_water_temperature_is_judged_by_wave_height_alone()
     {
-        var calm = Rule.Evaluate(Forecast(Point(0, 0.3, null)), AlertRuleFixture.Defaults, Now);
-        var rough = Rule.Evaluate(Forecast(Point(0, 1.5, null)), AlertRuleFixture.Defaults, Now);
+        var calm = Rule.Evaluate(MarineForecast(Point(0, 0.3, null)), AlertRuleFixture.Defaults, Now);
+        var rough = Rule.Evaluate(MarineForecast(Point(0, 1.5, null)), AlertRuleFixture.Defaults, Now);
 
         Assert.Multiple(
             () => Assert.Equal(AlertSeverity.None, calm.Severity),
@@ -38,7 +38,7 @@ public sealed class SwimmingConditionsRuleSpec
     [Fact]
     public void The_worst_hour_of_the_next_day_is_reported_with_its_lead_time()
     {
-        var forecast = Forecast(Point(0, 0.4), Point(3, 1.4), Point(6, 2.6), Point(9, 2.2));
+        var forecast = MarineForecast(Point(0, 0.4), Point(3, 1.4), Point(6, 2.6), Point(9, 2.2));
 
         var alert = Rule.Evaluate(forecast, AlertRuleFixture.Defaults, Now);
 
@@ -53,7 +53,7 @@ public sealed class SwimmingConditionsRuleSpec
     [Fact]
     public void Hours_beyond_the_24_hour_window_are_ignored()
     {
-        var alert = Rule.Evaluate(Forecast(Point(0, 0.4), Point(30, 3.0)), AlertRuleFixture.Defaults, Now);
+        var alert = Rule.Evaluate(MarineForecast(Point(0, 0.4), Point(30, 3.0)), AlertRuleFixture.Defaults, Now);
 
         Assert.Equal(AlertSeverity.None, alert.Severity);
     }

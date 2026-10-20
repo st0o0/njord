@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text;
 using Njord.Core.Configuration;
-using Njord.Model;
+using Njord.Forecast;
 using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Tests;

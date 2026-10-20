@@ -1,4 +1,5 @@
-using Njord.Model;
+using Njord.Forecast;
+using Njord.Forecast.Weather;
 
 namespace Njord.Tests.Shared;
 

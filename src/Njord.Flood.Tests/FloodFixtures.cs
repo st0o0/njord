@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
-using Njord.Model;
+using Njord.Forecast;
+using Njord.Forecast.Flood;
+using Njord.Forecast.Weather;
 
 namespace Njord.Flood.Tests;
 

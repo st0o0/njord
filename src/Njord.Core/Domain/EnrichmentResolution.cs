@@ -1,5 +1,5 @@
 using Njord.Core.Configuration;
-using Njord.Model;
+using Njord.Forecast;
 
 namespace Njord.Core.Domain;
 

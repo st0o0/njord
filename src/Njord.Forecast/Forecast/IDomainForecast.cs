@@ -1,5 +1,5 @@
 
-namespace Njord.Model;
+namespace Njord.Forecast;
 
 public interface IDomainForecast
 {

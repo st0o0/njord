@@ -3,11 +3,11 @@ using Akka.Hosting;
 using Grpc.Core;
 using Njord.Core;
 using Njord.Core.Configuration;
+using Njord.Forecast;
 using Njord.Grpc.V2;
 using Njord.Messages.Alerts;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;

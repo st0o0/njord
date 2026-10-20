@@ -1,6 +1,8 @@
 using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Weather;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Weather.Lifestyle;
 

@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Weather.Lifestyle;
 

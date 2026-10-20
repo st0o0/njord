@@ -1,4 +1,10 @@
-namespace Njord.Model.Tests;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Flood;
+using Njord.Forecast.Marine;
+using Njord.Forecast.Solar;
+using Njord.Forecast.Weather;
+
+namespace Njord.Forecast.Tests;
 
 public sealed class DomainPointSpec
 {

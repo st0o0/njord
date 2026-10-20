@@ -4,9 +4,9 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;

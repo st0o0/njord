@@ -1,4 +1,4 @@
-namespace Njord.Model.Tests;
+namespace Njord.Forecast.Tests;
 
 public sealed class DomainKindSpec
 {

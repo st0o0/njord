@@ -1,7 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Njord.Core.Domain;
-using Njord.Model;
+using Njord.Forecast;
+using Njord.Forecast.Weather;
 using Njord.Weather.Alerts.Rules;
 using Njord.Weather.Lifestyle;
 

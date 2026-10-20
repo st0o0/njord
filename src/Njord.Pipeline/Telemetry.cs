@@ -1,5 +1,5 @@
 using System.Diagnostics.Metrics;
-using Njord.Model;
+using Njord.Forecast;
 using Njord.Persistence.Events.Polling;
 
 namespace Njord.Pipeline;

@@ -1,4 +1,4 @@
-namespace Njord.Model;
+namespace Njord.Forecast.Flood;
 
 public sealed record FloodPoint(
     DateTimeOffset ValidFrom,

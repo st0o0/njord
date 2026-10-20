@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Njord.Core.Domain;
-using Njord.Model;
+using Njord.Forecast;
+using Njord.Forecast.Marine;
 
 namespace Njord.Marine;
 

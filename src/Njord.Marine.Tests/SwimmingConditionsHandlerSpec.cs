@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Domain;
+using Njord.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 using Njord.Tests.Shared;
 using static Njord.Marine.Tests.MarineFixtures;
 
@@ -18,7 +18,7 @@ public sealed class SwimmingConditionsHandlerSpec
     [Fact]
     public void Dangerous_conditions_raise_a_swimming_alert()
     {
-        var current = new LocationForecast(Lucerne, Marine: Forecast(Point(0, 2.4)));
+        var current = new LocationForecast(Lucerne, Marine: MarineForecast(Point(0, 2.4)));
 
         var raised = Assert.IsType<PipelineEvent.AlertRaised>(Assert.Single(Handler().Handle(current, null, Time)));
 
@@ -32,7 +32,7 @@ public sealed class SwimmingConditionsHandlerSpec
     [Fact]
     public void Safe_conditions_or_missing_marine_data_raise_nothing()
     {
-        var calm = new LocationForecast(Lucerne, Marine: Forecast(Point(0)));
+        var calm = new LocationForecast(Lucerne, Marine: MarineForecast(Point(0)));
 
         Assert.Multiple(
             () => Assert.Empty(Handler().Handle(calm, null, Time)),
@@ -42,7 +42,7 @@ public sealed class SwimmingConditionsHandlerSpec
     [Fact]
     public void Disabled_alerts_raise_nothing()
     {
-        var rough = new LocationForecast(Lucerne, Marine: Forecast(Point(0, 2.4)));
+        var rough = new LocationForecast(Lucerne, Marine: MarineForecast(Point(0, 2.4)));
 
         Assert.Empty(Handler(enabled: false).Handle(rough, null, Time));
     }

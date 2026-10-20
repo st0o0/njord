@@ -1,8 +1,8 @@
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
+using Njord.Forecast;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Configuration;
 

@@ -1,5 +1,6 @@
+using Njord.Forecast;
+using Njord.Forecast.Flood;
 using Njord.Messages.Alerts;
-using Njord.Model;
 using Njord.Tests.Shared;
 using static Njord.Flood.Tests.FloodFixtures;
 

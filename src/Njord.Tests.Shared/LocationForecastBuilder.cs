@@ -1,5 +1,8 @@
 using Njord.Core.Domain;
-using Njord.Model;
+using Njord.Forecast;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Flood;
+using Njord.Forecast.Weather;
 
 namespace Njord.Tests.Shared;
 

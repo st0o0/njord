@@ -1,6 +1,9 @@
+using Njord.Forecast;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Marine;
+using Njord.Forecast.Solar;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 using Njord.Mqtt.Mapping;
 using Njord.Tests.Shared;
 

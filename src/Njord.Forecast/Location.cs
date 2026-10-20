@@ -1,4 +1,4 @@
-namespace Njord.Model;
+namespace Njord.Forecast;
 
 public readonly record struct Location(string Name, double Latitude, double Longitude)
 {

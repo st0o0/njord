@@ -1,11 +1,11 @@
 using Google.Protobuf.WellKnownTypes;
+using Njord.Forecast;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Alerts;
 using Njord.Messages.Budget;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 using Njord.Tests.Shared;
 using DomainAlert = Njord.Messages.Alerts.Alert;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;

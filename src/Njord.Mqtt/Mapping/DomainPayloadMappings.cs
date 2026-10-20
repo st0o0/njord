@@ -1,7 +1,12 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
-using Njord.Model;
+using Njord.Forecast;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Flood;
+using Njord.Forecast.Marine;
+using Njord.Forecast.Solar;
+using Njord.Forecast.Weather;
 using Njord.Mqtt.Payloads;
 using Njord.Mqtt.Serialization;
 using Njord.Mqtt.Topics;

@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
+using Njord.Forecast;
+using Njord.Forecast.Flood;
+using Njord.Forecast.Weather;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Messages.Tests;
 

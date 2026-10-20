@@ -1,9 +1,10 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.Forecast.Marine;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Marine;
 

@@ -1,5 +1,5 @@
+using Njord.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Messages.Forecast;
 

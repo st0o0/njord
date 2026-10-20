@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Domain;
-using Njord.Model;
+using Njord.Forecast;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Weather;
 using static Njord.Tests.Shared.AlertRuleFixture;
 
 namespace Njord.Weather.Tests.Lifestyle;

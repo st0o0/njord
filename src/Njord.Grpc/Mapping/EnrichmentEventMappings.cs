@@ -1,8 +1,8 @@
 using Google.Protobuf.WellKnownTypes;
+using Njord.Forecast;
 using Njord.Grpc.V2;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Grpc.Mapping;
 

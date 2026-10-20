@@ -4,12 +4,12 @@ using Akka.Streams.Dsl;
 using Grpc.Core;
 using Njord.Core;
 using Njord.Core.Actors;
+using Njord.Forecast;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Config;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 using ActorSystem = Akka.Actor.ActorSystem;
 using GrpcStatus = Grpc.Core.Status;
 

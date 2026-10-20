@@ -1,4 +1,4 @@
-namespace Njord.Model;
+namespace Njord.Forecast.Marine;
 
 public sealed record MarinePoint(
     DateTimeOffset ValidFrom,

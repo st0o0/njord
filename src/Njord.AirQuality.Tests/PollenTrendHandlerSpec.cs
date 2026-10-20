@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.Forecast.AirQuality;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 using static Njord.AirQuality.Tests.AirQualityFixture;
 
 namespace Njord.AirQuality.Tests;

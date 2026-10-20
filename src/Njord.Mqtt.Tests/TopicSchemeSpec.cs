@@ -1,4 +1,4 @@
-using Njord.Model;
+using Njord.Forecast;
 using Njord.Mqtt.Topics;
 
 namespace Njord.Mqtt.Tests;

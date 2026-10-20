@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-        <ProjectReference Include="..\Njord.Model\Njord.Model.csproj" />
+        <ProjectReference Include="..\Njord.Forecast\Njord.Forecast.csproj" />
     </ItemGroup>
 
 </Project>

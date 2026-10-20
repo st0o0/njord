@@ -7,8 +7,12 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Flood;
+using Njord.Forecast.Marine;
+using Njord.Forecast.Weather;
 using Njord.Messages.Forecast;
-using Njord.Model;
 using Njord.Tests.Shared;
 
 namespace Njord.OpenMeteo.Tests;

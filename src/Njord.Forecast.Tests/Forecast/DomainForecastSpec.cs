@@ -1,6 +1,10 @@
 using System.Collections.Immutable;
+using Njord.Forecast.Flood;
+using Njord.Forecast.Marine;
+using Njord.Forecast.Solar;
+using Njord.Forecast.Weather;
 
-namespace Njord.Model.Tests;
+namespace Njord.Forecast.Tests;
 
 public sealed class DomainForecastSpec
 {

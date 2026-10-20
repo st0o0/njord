@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
+using Njord.Forecast;
 using Njord.Grpc.Mapping;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Grpc;
 

@@ -6,12 +6,12 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Njord.Core;
+using Njord.Forecast;
 using Njord.Grpc.Mapping;
 using Njord.Grpc.V2;
 using Njord.Messages.Budget;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Grpc;
 

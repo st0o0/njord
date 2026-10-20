@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 using Akka.Actor;
 using Njord.Core.Configuration;
+using Njord.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Pipeline.Tests;
 

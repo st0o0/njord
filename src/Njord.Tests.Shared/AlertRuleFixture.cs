@@ -1,8 +1,9 @@
 using System.Collections.Immutable;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
+using Njord.Forecast;
+using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
-using Njord.Model;
 
 namespace Njord.Tests.Shared;
 

@@ -2,10 +2,10 @@ using Akka.Actor;
 using Akka.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Njord.Core;
+using Njord.Forecast;
 using Njord.Grpc.V2;
 using Njord.Messages.Budget;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;

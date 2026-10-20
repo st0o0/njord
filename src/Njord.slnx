@@ -13,7 +13,7 @@
     <File Path="global.json" />
   </Folder>
   <Folder Name="/Model/">
-    <Project Path="Njord.Model/Njord.Model.csproj" />
+    <Project Path="Njord.Forecast/Njord.Forecast.csproj" />
   </Folder>
   <Folder Name="/Infrastructure/">
     <Project Path="Njord.Messages/Njord.Messages.csproj" />
@@ -39,7 +39,7 @@
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="Njord.Tests.Shared/Njord.Tests.Shared.csproj" />
-    <Project Path="Njord.Model.Tests/Njord.Model.Tests.csproj" />
+    <Project Path="Njord.Forecast.Tests/Njord.Forecast.Tests.csproj" />
     <Project Path="Njord.Persistence.Tests/Njord.Persistence.Tests.csproj" />
     <Project Path="Njord.Messages.Tests/Njord.Messages.Tests.csproj" />
     <Project Path="Njord.Core.Tests/Njord.Core.Tests.csproj" />

@@ -1,4 +1,4 @@
-namespace Njord.Model;
+namespace Njord.Forecast.Weather;
 
 public sealed record WeatherPoint(
     DateTimeOffset ValidFrom,

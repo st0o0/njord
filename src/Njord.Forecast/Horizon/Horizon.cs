@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Njord.Model;
+namespace Njord.Forecast;
 
 public enum HorizonKind
 {

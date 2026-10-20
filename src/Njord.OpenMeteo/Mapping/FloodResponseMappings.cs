@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
-using Njord.Model;
+using Njord.Forecast;
+using Njord.Forecast.Flood;
 
 namespace Njord.OpenMeteo.Mapping;
 

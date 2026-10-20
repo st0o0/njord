@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using Njord.Model;
+using Njord.Forecast;
 
 namespace Njord.Core.Configuration.Polling;
 

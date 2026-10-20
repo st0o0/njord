@@ -1,4 +1,5 @@
-using Njord.Model;
+using Njord.Forecast;
+using Njord.Forecast.Marine;
 
 namespace Njord.Marine.Tests;
 
@@ -10,6 +11,6 @@ internal static class MarineFixtures
     public static MarinePoint Point(int hour, double waveHeight = 0.3, double? waterTemperature = 20.0) =>
         new(Now.AddHours(hour), waveHeight, 4.0, 270.0, waterTemperature);
 
-    public static DomainForecast<MarinePoint> Forecast(params MarinePoint[] points) =>
+    public static DomainForecast<MarinePoint> MarineForecast(params MarinePoint[] points) =>
         new(DomainKind.Marine, Now, TimeResolution.Hourly, [.. points]);
 }

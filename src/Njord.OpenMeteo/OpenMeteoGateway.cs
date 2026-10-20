@@ -8,8 +8,8 @@ using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
+using Njord.Forecast;
 using Njord.Messages.Forecast;
-using Njord.Model;
 using Njord.OpenMeteo.Mapping;
 using Servus.Akka;
 

@@ -2,8 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
+using Njord.Forecast;
+using Njord.Forecast.AirQuality;
 using Njord.Messages.Alerts;
-using Njord.Model;
 
 namespace Njord.AirQuality;
 

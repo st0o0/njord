@@ -1,4 +1,4 @@
-namespace Njord.Model;
+namespace Njord.Forecast.Solar;
 
 public sealed record SolarPoint(
     DateTimeOffset ValidFrom,

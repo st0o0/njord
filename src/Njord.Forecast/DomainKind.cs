@@ -1,4 +1,4 @@
-namespace Njord.Model;
+namespace Njord.Forecast;
 
 public enum DomainKind
 {

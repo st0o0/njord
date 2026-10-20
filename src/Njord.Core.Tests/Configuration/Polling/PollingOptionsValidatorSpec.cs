@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Model;
+using Njord.Forecast;
 
 namespace Njord.Core.Tests.Configuration.Polling;
 

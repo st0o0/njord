@@ -1,4 +1,9 @@
-using Njord.Model;
+using Njord.Forecast;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Flood;
+using Njord.Forecast.Marine;
+using Njord.Forecast.Solar;
+using Njord.Forecast.Weather;
 
 namespace Njord.Core.Domain;
 

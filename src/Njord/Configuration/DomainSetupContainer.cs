@@ -3,8 +3,8 @@ using Njord.AirQuality;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Flood;
+using Njord.Forecast;
 using Njord.Marine;
-using Njord.Model;
 using Njord.Weather.Alerts;
 using Servus.Application.Startup;
 

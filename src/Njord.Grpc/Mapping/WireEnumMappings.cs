@@ -1,4 +1,4 @@
-using Njord.Model;
+using Njord.Forecast;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainAlertType = Njord.Messages.Alerts.AlertType;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;

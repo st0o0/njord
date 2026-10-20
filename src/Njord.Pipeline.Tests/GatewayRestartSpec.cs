@@ -5,10 +5,10 @@ using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
+using Njord.Forecast;
 using Njord.Grpc;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 using Njord.OpenMeteo;
 using Njord.Tests.Shared;
 

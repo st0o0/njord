@@ -5,9 +5,9 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
+using Njord.Forecast;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Pipeline.Tests;
 

@@ -1,6 +1,6 @@
+using Njord.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using Njord.Model;
 
 namespace Njord.Messages.Tests.Alerts;
 

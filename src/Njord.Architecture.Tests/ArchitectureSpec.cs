@@ -10,7 +10,7 @@ public sealed class ArchitectureSpec
 {
     private static readonly string[] ProjectNames =
     [
-        "Njord.Model", "Njord.Messages", "Njord.Persistence", "Njord.Core",
+        "Njord.Forecast", "Njord.Messages", "Njord.Persistence", "Njord.Core",
         "Njord.Weather", "Njord.AirQuality", "Njord.Flood", "Njord.Marine", "Njord.Grpc", "Njord.Mqtt",
         "Njord.OpenMeteo", "Njord.Budget", "Njord.Pipeline",
     ];
@@ -36,17 +36,17 @@ public sealed class ArchitectureSpec
             .As("other Njord projects");
 
     [Fact]
-    public void Model_depends_on_no_other_Njord_project()
+    public void Forecast_depends_on_no_other_Njord_project()
     {
-        Types().That().Are(In("Njord.Model")).Should()
-            .NotDependOnAny(AllExcept("Njord.Model")).Check(Architecture);
+        Types().That().Are(In("Njord.Forecast")).Should()
+            .NotDependOnAny(AllExcept("Njord.Forecast")).Check(Architecture);
     }
 
     [Fact]
     public void Messages_depend_on_nothing_but_Model()
     {
         Types().That().Are(In("Njord.Messages")).Should()
-            .NotDependOnAny(AllExcept("Njord.Messages", "Njord.Model")).Check(Architecture);
+            .NotDependOnAny(AllExcept("Njord.Messages", "Njord.Forecast")).Check(Architecture);
     }
 
     [Fact]
