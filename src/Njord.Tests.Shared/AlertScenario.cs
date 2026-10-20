@@ -17,43 +17,6 @@ public sealed class AlertScenario
 
     public static readonly IReadOnlyList<string> Locations = [Lucerne, Bern];
 
-    public static readonly ResolvedParameterSet Parameters = new(
-        [
-            ParameterRegistry.Temperature2m,
-            ParameterRegistry.ApparentTemperature,
-            ParameterRegistry.RelativeHumidity2m,
-            ParameterRegistry.DewPoint2m,
-            ParameterRegistry.WindSpeed10m,
-            ParameterRegistry.WindGusts10m,
-            ParameterRegistry.Precipitation,
-            ParameterRegistry.PrecipitationProbability,
-            ParameterRegistry.Rain,
-            ParameterRegistry.Snowfall,
-            ParameterRegistry.FreezingLevelHeight,
-            ParameterRegistry.PressureMsl,
-            ParameterRegistry.SurfacePressure,
-            ParameterRegistry.CloudCover,
-            ParameterRegistry.ShortwaveRadiation,
-            ParameterRegistry.SunshineDuration,
-            ParameterRegistry.UvIndex,
-            ParameterRegistry.Cape,
-            ParameterRegistry.WeatherCode,
-            ParameterRegistry.IsDay,
-            ParameterRegistry.SoilTemperature0cm,
-            ParameterRegistry.Visibility,
-            ParameterRegistry.Et0FaoEvapotranspiration,
-        ],
-        [
-            ParameterRegistry.PrecipitationSum,
-            ParameterRegistry.UvIndexMax,
-            ParameterRegistry.SnowfallSum,
-            ParameterRegistry.Temperature2mMax,
-            ParameterRegistry.Temperature2mMin,
-            ParameterRegistry.DailyWeatherCode,
-            ParameterRegistry.Sunrise,
-            ParameterRegistry.Sunset,
-        ]);
-
     private AlertScenario(IReadOnlyList<LocationAnalysis> analyses) => Analyses = analyses;
 
     public IReadOnlyList<LocationAnalysis> Analyses { get; }

@@ -17,10 +17,9 @@ public sealed class AkkaSetupContainer : ActorSystemSetupContainer
     protected override void BuildSystem(AkkaConfigurationBuilder builder, IServiceProvider serviceProvider)
     {
         var persistence = serviceProvider.GetRequiredService<IOptions<PersistenceOptions>>().Value;
-        var storage = serviceProvider.GetRequiredService<IOptions<StorageOptions>>().Value;
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         ConfigureLogging(builder, configuration);
-        ConfigureInfrastructure(builder, persistence, storage.PersistencePath, configuration);
+        ConfigureInfrastructure(builder, persistence, persistence.DataPath, configuration);
 
         foreach (var registration in serviceProvider.GetServices<IActorRegistration>())
         {

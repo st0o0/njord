@@ -8,17 +8,16 @@ public sealed class BudgetCalculatorSpec
     private static NjordOptions Scope(int locations = 1) => new()
     {
         Locations = [.. Enumerable.Range(0, locations).Select(i => new LocationOptions { Name = $"L{i}" })],
-        Models = ["icon_d2"],
     };
 
     [Fact]
     public void Should_project_calls_from_locations_domains_cycles_and_weight()
     {
         var scope = Scope(locations: 2);
-        var weight = scope.Parameters.Resolve().ApiCallWeight;
+        var weight = WeatherVariables.ApiCallWeight(WeatherVariables.For(false).Count);
         var polling = new PollingOptions { PollInterval = TimeSpan.FromHours(1) };
 
-        var result = BudgetCalculator.Validate(scope, polling, 2);
+        var result = BudgetCalculator.Validate(scope, new WeatherOptions(), polling, 2);
 
         // 2 locations x 2 domains = 4 calls per cycle, 720 cycles in a 30-day month.
         Assert.Multiple(
@@ -26,6 +25,17 @@ public sealed class BudgetCalculatorSpec
             () => Assert.Equal(4L * 720 * weight, result.ProjectedMonthlyCalls),
             () => Assert.Equal(300_000, result.MonthlyLimit),
             () => Assert.True(result.WithinBudget));
+    }
+
+    [Fact]
+    public void Should_weigh_solar_variables_into_the_projection()
+    {
+        var plain = BudgetCalculator.Validate(Scope(), new WeatherOptions(), new PollingOptions(), 2);
+        var solar = BudgetCalculator.Validate(Scope(), new WeatherOptions { IncludeSolar = true }, new PollingOptions(), 2);
+
+        Assert.Multiple(
+            () => Assert.Equal(WeatherVariables.ApiCallWeight(WeatherVariables.For(false).Count), plain.ApiCallWeight),
+            () => Assert.Equal(WeatherVariables.ApiCallWeight(WeatherVariables.For(true).Count), solar.ApiCallWeight));
     }
 
     [Fact]
@@ -47,7 +57,7 @@ public sealed class BudgetCalculatorSpec
     {
         var polling = new PollingOptions { BudgetOverride = new RequestBudget(7_000, 600) };
 
-        var result = BudgetCalculator.Validate(Scope(), polling, 2);
+        var result = BudgetCalculator.Validate(Scope(), new WeatherOptions(), polling, 2);
 
         Assert.Multiple(
             () => Assert.InRange(result.UsagePercent, 80.0, 100.0),
@@ -60,7 +70,7 @@ public sealed class BudgetCalculatorSpec
     {
         var polling = new PollingOptions { BudgetOverride = new RequestBudget(100, 600) };
 
-        var result = BudgetCalculator.Validate(Scope(), polling, 2);
+        var result = BudgetCalculator.Validate(Scope(), new WeatherOptions(), polling, 2);
 
         Assert.False(result.WithinBudget);
     }
@@ -69,8 +79,8 @@ public sealed class BudgetCalculatorSpec
     public void Should_only_report_a_guard_violation_above_eighty_percent()
     {
         var polling = new PollingOptions { BudgetOverride = new RequestBudget(100, 600) };
-        var heavy = BudgetCalculator.Validate(Scope(), polling, 2);
-        var light = BudgetCalculator.Validate(Scope(), new PollingOptions(), 2);
+        var heavy = BudgetCalculator.Validate(Scope(), new WeatherOptions(), polling, 2);
+        var light = BudgetCalculator.Validate(Scope(), new WeatherOptions(), new PollingOptions(), 2);
 
         Assert.Multiple(
             () => Assert.Null(BudgetCalculator.GuardViolation(light, TimeSpan.FromHours(1))),

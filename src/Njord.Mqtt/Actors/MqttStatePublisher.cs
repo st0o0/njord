@@ -19,7 +19,6 @@ namespace Njord.Mqtt.Actors;
 public sealed class MqttStatePublisher : ReceiveActor
 {
     private readonly string _baseTopic;
-    private readonly ResolvedParameterSet _parameters;
     private readonly TimeProvider _timeProvider;
     private readonly IMqttTransport _transport;
     private readonly TimeSpan _publishTimeout;
@@ -34,14 +33,12 @@ public sealed class MqttStatePublisher : ReceiveActor
 
     public MqttStatePublisher(
         IOptions<MqttOptions> mqttOptions,
-        ResolvedParameterSet parameters,
         TimeProvider timeProvider,
         IMqttTransport transport,
         MqttEgressTuning tuning,
         MqttSessionCounter sessionCounter)
     {
         _baseTopic = mqttOptions.Value.BaseTopic;
-        _parameters = parameters;
         _timeProvider = timeProvider;
         _transport = transport;
         _publishTimeout = tuning.PublishTimeout;
@@ -76,7 +73,6 @@ public sealed class MqttStatePublisher : ReceiveActor
     {
         var mat = Context.Materializer();
         var baseTopic = _baseTopic;
-        var parameters = _parameters;
         var timeProvider = _timeProvider;
         var lastPublished = new PublishedPayloads(_sessionCounter);
         var transport = _transport;
@@ -97,7 +93,7 @@ public sealed class MqttStatePublisher : ReceiveActor
             }, _log)
             .SelectMany(pipelineEvent =>
             {
-                var context = new MqttPublishContext(baseTopic, parameters, timeProvider.GetUtcNow());
+                var context = new MqttPublishContext(baseTopic, timeProvider.GetUtcNow());
                 var location = pipelineEvent.ToLocationName();
                 return pipelineEvent.ToMqttMessages(context).Select(message => new OutgoingMessage(message, location));
             })

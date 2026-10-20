@@ -81,4 +81,28 @@ public sealed class OptionsValidatorsSpec
 
         Assert.Contains("requires a connection string", ValidationAssert.SingleFailure(result));
     }
+
+    [Fact]
+    public void Should_default_the_persistence_data_path()
+    {
+        Assert.Equal("data/njord.db", new PersistenceOptions().DataPath);
+    }
+
+    [Fact]
+    public void Should_reject_an_unwritable_sqlite_data_directory()
+    {
+        var blocker = Path.GetTempFileName();
+        try
+        {
+            var options = new PersistenceOptions { DataPath = Path.Combine(blocker, "njord.db") };
+
+            var result = new PersistenceOptionsValidator().Validate(null, options);
+
+            Assert.Contains("is not writable", ValidationAssert.SingleFailure(result));
+        }
+        finally
+        {
+            File.Delete(blocker);
+        }
+    }
 }

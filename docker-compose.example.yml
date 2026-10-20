@@ -29,9 +29,10 @@ services:
       #- Njord__Locations__1__Longitude=8.54
       # Latitude/Longitude may be omitted: Geocoding resolves the coordinates from the name.
 
-      # ── Polling & Models ──────────────────────────────────────
+      # ── Polling & Weather ─────────────────────────────────────
       #- Njord__Polling__PollInterval=01:00:00
-      #- Njord__ForecastDays=4
+      #- Njord__Weather__ForecastDays=4
+      #- Njord__Weather__IncludeSolar=false
       # Enrichments decide which domains are polled (the union of what the enabled ones read).
       # On by default: WeatherAlerts, CommuteSafety, PollenAlert, Pm25Alert (Weather + AirQuality).
       # Alternative: switch enrichments on (adds their domain) or off
@@ -48,17 +49,10 @@ services:
       # Poll interval of a model whose update cycle is not learned yet:
       #- Njord__Polling__DiscoveryInterval=00:20:00
       #- Njord__OpenMeteo__BaseUrl=https://api.open-meteo.com/
-      ## Per-location models (optional, ensemble by default):
-      #- Njord__Locations__0__Models__0=icon_d2
-
-      # ── Parameters ────────────────────────────────────────────
-      #- Njord__Parameters__Groups__0=Weather
-      #- Njord__Parameters__Extra__0=
-      #- Njord__Parameters__Exclude__0=
 
       # ── Persistence ───────────────────────────────────────────
       #- Njord__Persistence__Provider=Sqlite
-      #- Njord__Storage__PersistencePath=data/njord.db
+      #- Njord__Persistence__DataPath=data/njord.db
       ## Alternative for PostgreSQL (not defaults):
       #- Njord__Persistence__Provider=PostgreSql
       #- Njord__Persistence__ConnectionString=Host=db;Database=njord;Username=njord;Password=secret

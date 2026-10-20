@@ -41,6 +41,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private readonly IMarineClient _marineClient;
     private readonly TimeProvider _timeProvider;
     private readonly NjordOptions _options;
+    private readonly WeatherOptions _weather;
     private readonly FetchTimeouts _timeouts;
     private readonly int _weatherWeight;
     private readonly IGatewayBudgetGate _gate;
@@ -57,7 +58,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         IMarineClient marineClient,
         TimeProvider timeProvider,
         IOptions<NjordOptions> options,
-        ResolvedParameterSet parameters,
+        IOptions<WeatherOptions> weather,
         IBudgetProvider budgetProvider,
         FetchTimeouts timeouts)
     {
@@ -67,8 +68,9 @@ public sealed class OpenMeteoGateway : ReceiveActor
         _marineClient = marineClient;
         _timeProvider = timeProvider;
         _options = options.Value;
+        _weather = weather.Value;
         _timeouts = timeouts;
-        _weatherWeight = ComputeWeight(parameters.HourlyCount, _options.ForecastDays);
+        _weatherWeight = ComputeWeight(weatherClient.HourlyVariables.Count, _weather.ForecastDays);
         _gate = new GatewayBudgetGate(budgetProvider, Context.GetActor<IBudgetTracker>(), timeProvider);
 
         Receive<FetchDomain>(OnFetchDomain);
@@ -165,9 +167,9 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private async Task<IDomainForecast?> FetchForecastAsync(DomainKind domain, LocationOptions location, DateTimeOffset now) =>
         domain switch
         {
-            DomainKind.Weather => (await _weatherClient.FetchAsync(location.Latitude, location.Longitude, _options.ForecastDays, CancellationToken.None))
+            DomainKind.Weather => (await _weatherClient.FetchAsync(location.Latitude, location.Longitude, _weather.ForecastDays, CancellationToken.None))
                 ?.ToDomainForecast(now),
-            DomainKind.AirQuality => (await _airQualityClient.FetchAsync(location.Latitude, location.Longitude, _options.ForecastDays, CancellationToken.None))
+            DomainKind.AirQuality => (await _airQualityClient.FetchAsync(location.Latitude, location.Longitude, _weather.ForecastDays, CancellationToken.None))
                 ?.ToDomainForecast(now),
             DomainKind.Marine => (await _marineClient.FetchAsync(location.Latitude, location.Longitude, CancellationToken.None))
                 ?.ToDomainForecast(now),

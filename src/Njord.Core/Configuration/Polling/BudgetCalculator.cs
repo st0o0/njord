@@ -9,15 +9,15 @@ public static class BudgetCalculator
     public static RequestBudget GetEffectiveBudget(PollingOptions polling) =>
         polling.BudgetOverride ?? RequestBudget.OpenMeteoFreeTier;
 
-    public static BudgetValidation Validate(NjordOptions scope, PollingOptions polling, int domainCount)
+    public static BudgetValidation Validate(NjordOptions scope, WeatherOptions weather, PollingOptions polling, int domainCount)
     {
         var locationCount = scope.Locations.Count;
         var domainCallsPerCycle = locationCount * domainCount;
 
-        var resolved = scope.Parameters.Resolve();
+        var apiCallWeight = WeatherVariables.ApiCallWeight(WeatherVariables.For(weather.IncludeSolar).Count);
 
         var cyclesPerMonth = Month.TotalMinutes / polling.PollInterval.TotalMinutes;
-        var projectedMonthly = (long)Math.Round(domainCallsPerCycle * cyclesPerMonth * resolved.ApiCallWeight);
+        var projectedMonthly = (long)Math.Round(domainCallsPerCycle * cyclesPerMonth * apiCallWeight);
 
         var budget = GetEffectiveBudget(polling);
         var usagePercent = budget.RequestsPerMonth > 0
@@ -37,7 +37,7 @@ public static class BudgetCalculator
             WithinBudget: usagePercent <= 100,
             Warnings: warnings,
             DomainCallsPerCycle: domainCallsPerCycle,
-            ApiCallWeight: resolved.ApiCallWeight);
+            ApiCallWeight: apiCallWeight);
     }
 
     public static string? GuardViolation(BudgetValidation projection, TimeSpan pollInterval)
@@ -52,7 +52,7 @@ public static class BudgetCalculator
             $"Projected API usage of {projection.ProjectedMonthlyCalls} effective requests/month ({projection.DomainCallsPerCycle} domain calls per cycle " +
             $"every {pollInterval.TotalMinutes:0} min, weight {projection.ApiCallWeight}) exceeds the " +
             $"guard of {guard} (80% of the {projection.MonthlyLimit}/month budget). " +
-            "Reduce locations, increase PollInterval, or exclude parameters.";
+            "Reduce locations or increase PollInterval.";
     }
 }
 

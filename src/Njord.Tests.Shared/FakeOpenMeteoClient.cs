@@ -6,6 +6,8 @@ public sealed class FakeWeatherClient : IWeatherClient
 {
     private static readonly long StartUnix = new DateTimeOffset(2026, 7, 11, 3, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
 
+    public IReadOnlyList<string> HourlyVariables { get; set; } = Njord.Core.Configuration.WeatherVariables.For(false);
+
     public bool Fails { get; set; }
 
     public bool Throws { get; set; }

@@ -1,4 +1,3 @@
-using Njord.Core.Configuration;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
@@ -6,7 +5,6 @@ namespace Njord.Mqtt.Mapping;
 
 internal sealed record MqttPublishContext(
     string BaseTopic,
-    ResolvedParameterSet Parameters,
     DateTimeOffset Now);
 
 internal static class PipelineEventMqttMappings

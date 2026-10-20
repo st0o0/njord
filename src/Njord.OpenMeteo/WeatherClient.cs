@@ -1,13 +1,16 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 
 namespace Njord.OpenMeteo;
 
-public sealed class WeatherClient(HttpClient httpClient, ResolvedParameterSet parameters) : IWeatherClient
+public sealed class WeatherClient(HttpClient httpClient, IOptions<WeatherOptions> options) : IWeatherClient
 {
-    private readonly string _hourlyVariables = string.Join(",", parameters.Hourly.Select(p => p.ApiName));
+    private readonly string _hourlyVariables = string.Join(",", WeatherVariables.For(options.Value.IncludeSolar));
+
+    public IReadOnlyList<string> HourlyVariables { get; } = WeatherVariables.For(options.Value.IncludeSolar);
 
     public async Task<WeatherResponse?> FetchAsync(double latitude, double longitude, int forecastDays, CancellationToken cancellationToken)
     {

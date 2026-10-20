@@ -18,7 +18,6 @@ namespace Njord.Grpc;
 public sealed class WeatherGrpcService(
     ActorRegistry actorRegistry,
     ActorSystem actorSystem,
-    TimeProvider timeProvider,
     ServiceInfo serviceInfo) : WeatherService.WeatherServiceBase
 {
     public override async Task<GetCatalogResponse> GetCatalog(GetCatalogRequest request, ServerCallContext context)

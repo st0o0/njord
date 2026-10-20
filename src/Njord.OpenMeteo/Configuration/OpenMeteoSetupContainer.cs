@@ -21,6 +21,7 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddNjordOptions<OpenMeteoOptions>(configuration);
+        services.AddNjordOptions<WeatherOptions>(configuration);
 
         services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
         services.TryAddSingleton(FetchTimeouts.Default);

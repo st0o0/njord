@@ -18,18 +18,16 @@ public static class ServiceInfoMappings
             RequestBudget.OpenMeteoFreeTierDailyLimit,
             ActiveEnrichments(alerts));
 
-    // Locations in configuration order, each served by the configured models.
+    public const string EnsembleModelId = "ensemble_mean";
+
     public static CatalogResult ToCatalog(this NjordOptions scope)
     {
-        var modelIds = scope.Models.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        IReadOnlyList<string> models = [EnsembleModelId];
         var locations = scope.Locations
-            .Select(location => new CatalogLocation(new Location(location.Name, location.Latitude, location.Longitude), modelIds))
-            .ToList();
-        var models = modelIds
-            .Select(modelId => new CatalogModel(modelId))
+            .Select(location => new CatalogLocation(new Location(location.Name, location.Latitude, location.Longitude), models))
             .ToList();
 
-        return new CatalogResult(locations, models);
+        return new CatalogResult(locations, [new CatalogModel(EnsembleModelId)]);
     }
 
     private static List<string> ActiveEnrichments(AlertOptions alerts) =>

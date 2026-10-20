@@ -6,9 +6,7 @@ using Npgsql;
 
 namespace Njord.Health;
 
-internal sealed class JournalHealthCheck(
-    IOptions<PersistenceOptions> persistence,
-    IOptions<StorageOptions> storage) : IHealthCheck
+internal sealed class JournalHealthCheck(IOptions<PersistenceOptions> persistence) : IHealthCheck
 {
     internal static readonly TimeSpan PostgreSqlTimeout = TimeSpan.FromSeconds(3);
 
@@ -22,14 +20,14 @@ internal sealed class JournalHealthCheck(
             return await EvaluatePostgreSql(options.ConnectionString, cancellationToken);
         }
 
-        return EvaluateSqlite(SqliteDirectory(options, storage.Value), DirectoryProbe.CanWrite);
+        return EvaluateSqlite(SqliteDirectory(options), DirectoryProbe.CanWrite);
     }
 
-    internal static string SqliteDirectory(PersistenceOptions options, StorageOptions storage)
+    internal static string SqliteDirectory(PersistenceOptions options)
     {
         var path = options.ConnectionString is { Length: > 0 } connectionString
             ? new SqliteConnectionStringBuilder(connectionString).DataSource
-            : storage.PersistencePath;
+            : options.DataPath;
 
         return Path.GetDirectoryName(Path.GetFullPath(path)) ?? string.Empty;
     }

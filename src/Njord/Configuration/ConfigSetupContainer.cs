@@ -13,9 +13,6 @@ public sealed class ConfigSetupContainer : IServiceSetupContainer
         services.AddNjordOptions<NjordOptions>(configuration);
         services.AddNjordOptions<EnrichmentOptions>(configuration);
         services.AddNjordOptions<PersistenceOptions>(configuration);
-        services.AddNjordOptions<StorageOptions>(configuration);
-
-        services.AddSingleton(static sp => sp.GetRequiredService<IOptions<NjordOptions>>().Value.Parameters.Resolve());
 
         services.AddSingleton<ConfigView>();
         services.AddSingleton(static sp => ServiceInfoMappings.ToServiceInfo(

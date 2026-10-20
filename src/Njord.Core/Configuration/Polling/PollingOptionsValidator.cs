@@ -27,7 +27,8 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, IReadO
 
         if (failures.Count == 0
             && ReadScope() is { } scope
-            && BudgetCalculator.GuardViolation(BudgetCalculator.Validate(scope, options, requiredDomains.Count), options.PollInterval) is { } violation)
+            && BudgetCalculator.GuardViolation(
+                BudgetCalculator.Validate(scope, ReadWeather(), options, requiredDomains.Count), options.PollInterval) is { } violation)
         {
             failures.Add(violation);
         }
@@ -42,19 +43,9 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, IReadO
     private NjordOptions? ReadScope()
     {
         var scope = configuration.GetSection(NjordOptions.SectionName).Get<NjordOptions>();
-        if (scope is null || scope.Locations.Count == 0 || scope.Models.Count == 0)
-        {
-            return null;
-        }
-
-        try
-        {
-            scope.Parameters.Resolve();
-            return scope;
-        }
-        catch (ParameterResolutionException)
-        {
-            return null;
-        }
+        return scope is null || scope.Locations.Count == 0 ? null : scope;
     }
+
+    private WeatherOptions ReadWeather() =>
+        configuration.GetSection(WeatherOptions.SectionName).Get<WeatherOptions>() ?? new WeatherOptions();
 }

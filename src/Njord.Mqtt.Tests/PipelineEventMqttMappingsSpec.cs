@@ -10,7 +10,7 @@ public sealed class PipelineEventMqttMappingsSpec
 {
     private static readonly DateTimeOffset Run = new(2026, 1, 15, 12, 0, 0, TimeSpan.Zero);
     private static readonly Location Lucerne = DomainData.Lucerne;
-    private static readonly MqttPublishContext Context = new("njord", AlertScenario.Parameters, Run);
+    private static readonly MqttPublishContext Context = new("njord", Run);
 
     private static DomainForecast<T> Hourly<T>(DomainKind domain, T point) where T : IHasValidTime
         => new(domain, Run, TimeResolution.Hourly, [point]);
