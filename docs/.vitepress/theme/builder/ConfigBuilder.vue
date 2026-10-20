@@ -187,6 +187,17 @@ onMounted(() => {
       <p class="section-hint">Solar adds shortwave, direct, diffuse and direct normal radiation plus sunshine duration.</p>
     </div>
 
+    <!-- Per-domain forecast days -->
+    <div class="section">
+      <h3>Forecast days per domain</h3>
+      <div class="general-row">
+        <label>Air quality <input v-model.number="config.airQuality.forecastDays" type="number" min="1" max="7" /></label>
+        <label>Marine <input v-model.number="config.marine.forecastDays" type="number" min="1" max="8" /></label>
+        <label>Flood <input v-model.number="config.flood.forecastDays" type="number" min="1" max="210" /></label>
+      </div>
+      <p class="section-hint">Used only for domains an enabled enrichment requires. Defaults: air quality 5, marine 8, flood 92.</p>
+    </div>
+
     <!-- Enrichment -->
     <div class="section">
       <h3>Enrichment</h3>

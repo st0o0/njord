@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [Model, Weather.Alerts, Core]
+        project: [Forecast, Weather.Alerts, Core]
     steps:
       - uses: actions/checkout@v4
 

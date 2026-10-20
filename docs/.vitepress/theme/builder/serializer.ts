@@ -30,6 +30,9 @@ export function exportAsJson(config: NjordConfig): string {
   if (config.weather.includeSolar) weather.IncludeSolar = true
   if (config.weather.forecastDays !== defaults.weather.forecastDays) weather.ForecastDays = config.weather.forecastDays
   if (Object.keys(weather).length) n.Weather = weather
+  if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) n.AirQuality = { ForecastDays: config.airQuality.forecastDays }
+  if (config.marine.forecastDays !== defaults.marine.forecastDays) n.Marine = { ForecastDays: config.marine.forecastDays }
+  if (config.flood.forecastDays !== defaults.flood.forecastDays) n.Flood = { ForecastDays: config.flood.forecastDays }
   if (config.openMeteoBaseUrl !== defaults.openMeteoBaseUrl) n.OpenMeteo = { BaseUrl: config.openMeteoBaseUrl }
   const changed = changedEnrichments(config.enrichments)
   if (changed.length) n.Enrichments = Object.fromEntries(changed)
@@ -86,6 +89,9 @@ export function exportAsEnvVars(config: NjordConfig): string {
   add('Njord__Polling__PollInterval', config.pollInterval)
   if (config.weather.includeSolar) add('Njord__Weather__IncludeSolar', 'true')
   if (config.weather.forecastDays !== defaults.weather.forecastDays) add('Njord__Weather__ForecastDays', String(config.weather.forecastDays))
+  if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) add('Njord__AirQuality__ForecastDays', String(config.airQuality.forecastDays))
+  if (config.marine.forecastDays !== defaults.marine.forecastDays) add('Njord__Marine__ForecastDays', String(config.marine.forecastDays))
+  if (config.flood.forecastDays !== defaults.flood.forecastDays) add('Njord__Flood__ForecastDays', String(config.flood.forecastDays))
   for (const [key, enabled] of changedEnrichments(config.enrichments)) {
     add(`Njord__Enrichments__${key}`, String(enabled))
   }
@@ -175,6 +181,9 @@ export function importFromJson(json: string): Partial<NjordConfig> {
       forecastDays: Number(n.Weather.ForecastDays) || 4,
     }
   }
+  if (n.AirQuality) config.airQuality = { forecastDays: Number(n.AirQuality.ForecastDays) || 5 }
+  if (n.Marine) config.marine = { forecastDays: Number(n.Marine.ForecastDays) || 8 }
+  if (n.Flood) config.flood = { forecastDays: Number(n.Flood.ForecastDays) || 92 }
   if (discoveryInterval) config.discoveryInterval = discoveryInterval
   if (baseUrl) config.openMeteoBaseUrl = baseUrl
   if (n.Enrichments && typeof n.Enrichments === 'object') {
@@ -237,6 +246,9 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
       if (parts[1] === 'IncludeSolar') config.weather.includeSolar = parseBool(value)
       else if (parts[1] === 'ForecastDays') config.weather.forecastDays = parseInt(value) || 4
     }
+    else if (parts[0] === 'AirQuality' && parts[1] === 'ForecastDays') config.airQuality.forecastDays = parseInt(value) || 5
+    else if (parts[0] === 'Marine' && parts[1] === 'ForecastDays') config.marine.forecastDays = parseInt(value) || 8
+    else if (parts[0] === 'Flood' && parts[1] === 'ForecastDays') config.flood.forecastDays = parseInt(value) || 92
     else if (parts[0] === 'Enrichments' && parts.length === 2) {
       const key = parseEnrichmentKey(parts[1])
       if (key) config.enrichments[key] = parseBool(value)

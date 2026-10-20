@@ -39,6 +39,9 @@ A minimal setup for Lucerne:
 | `Polling:PollInterval` | `01:00:00` | How often each PollWorker fetches all domains of its location |
 | `Polling:DiscoveryInterval` | `00:20:00` | Poll interval until a worker has learned the update cycle of the data |
 | `Weather:ForecastDays` | `4` | Days of weather forecast to request (1 to 16) |
+| `AirQuality:ForecastDays` | `5` | Days of air quality forecast to request (1 to 7) |
+| `Marine:ForecastDays` | `8` | Days of marine forecast to request (1 to 8) |
+| `Flood:ForecastDays` | `92` | Days of river discharge forecast to request (1 to 210) |
 | `Weather:IncludeSolar` | `false` | Adds solar radiation variables to the weather request (see [Weather](./weather)) |
 | `Enrichments:<Name>` | `WeatherAlerts`, `CommuteSafety`, `PollenAlert`, `Pm25Alert` on; all others off | Switches one enrichment on or off. The domains that are polled are derived from the enabled enrichments (see below) |
 | `Persistence:DataPath` | `data/njord.db` | SQLite database file |
@@ -132,6 +135,7 @@ njord validates the configuration at startup and refuses to start if:
 - No locations are defined
 - A location has an empty name
 - `Weather:ForecastDays` is outside 1 to 16
+- `AirQuality:ForecastDays` is outside 1 to 7, `Marine:ForecastDays` outside 1 to 8, or `Flood:ForecastDays` outside 1 to 210
 - The MQTT host is empty while MQTT is enabled
 - PostgreSQL is selected without a connection string
 - Projected API usage exceeds 80% of the monthly budget

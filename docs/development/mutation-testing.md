@@ -3,7 +3,7 @@
 Line coverage says a line ran, not that a test would notice if it were wrong. [Stryker.NET](https://stryker-mutator.io/docs/stryker-net/introduction/) changes the production code (`>` to `>=`, `+` to `-`, a removed statement) and re-runs the tests that cover the changed line; a mutant that no test kills **survived**, and points at an assertion that is too weak.
 
 It is used on the pure-logic projects only, where tests are fast and assert exact values:
-`Njord.Model`, `Njord.Weather`, and `ParameterSelection`, `BudgetCalculator`, `NjordOptionsValidator` in `Njord.Core`. Actor, gRPC and MQTT code is not a good target (timing, I/O).
+`Njord.Forecast`, `Njord.Weather`, and `ParameterSelection`, `BudgetCalculator`, `NjordOptionsValidator` in `Njord.Core`. Actor, gRPC and MQTT code is not a good target (timing, I/O).
 
 ## Run
 

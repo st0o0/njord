@@ -14,12 +14,13 @@ over gRPC (the ha-njord integration) with optional MQTT state publishing.
 ```
 src/
   Njord.slnx
-  Njord.Model/          # Vocabulary, no Njord refs: DomainKind, Location, DomainForecast<T>,
-                        #   WeatherPoint, AirQualityPoint, FloodPoint, SolarPoint, MarinePoint, Horizon
-  Njord.Messages/       # Akka-free contracts (-> Model): PipelineEvent, Fetch*/Poll*/Query* messages,
+  Njord.Forecast/       # Vocabulary, no Njord refs; folders Forecast/ (DomainKind, Location, DomainForecast<T>),
+                        #   Weather/ AirQuality/ Flood/ Marine/ Solar/ (XxxPoint + [Flags] XxxParam enums,
+                        #   Point.HasFields(param)), Horizon/
+  Njord.Messages/       # Akka-free contracts (-> Forecast): PipelineEvent, Fetch*/Poll*/Query* messages,
                         #   Alerts/, Budget/, Config/, Forecast/, Pipeline/ (LifestyleMappings)
   Njord.Persistence/    # Extend-only records, no Njord refs: Events/Budget, Events/Polling
-  Njord.Core/           # (-> Model, Messages, Persistence)
+  Njord.Core/           # (-> Forecast, Messages, Persistence)
     ActorKeys.cs        #   marker interfaces for every resolvable actor
     Actors/             #   ShardMessageExtractor, StreamSupervision, stream handshake messages
     Domain/             #   IDomainHandler, IAlertRule, EnrichmentResolution, LocationForecast,
@@ -39,7 +40,7 @@ src/
   Njord.Grpc/           # WeatherGrpcService, OpsGrpcService, ActorAsk, GrpcConsumer, Mapping/
   Njord/                # Host: Program.cs, NjordHost, Configuration/ (setup containers), Health/
 
-  Njord.Model.Tests/ Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
+  Njord.Forecast.Tests/ Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
   Njord.OpenMeteo.Tests/ Njord.Budget.Tests/ Njord.Pipeline.Tests/ Njord.Weather.Tests/
   Njord.AirQuality.Tests/ Njord.Flood.Tests/ Njord.Marine.Tests/ Njord.Mqtt.Tests/ Njord.Grpc.Tests/
   Njord.IntegrationTests/       # whole host via NjordHost + TestServer
@@ -49,7 +50,7 @@ protos/njord/v2/                # gRPC contracts: weather.proto, ops.proto, comm
 docs/                           # VitePress site incl. the Config Builder (docs/.vitepress/theme/builder)
 ```
 
-Reference direction: Model <- Messages; Model/Messages/Persistence <- Core <- feature libraries
+Reference direction: Forecast <- Messages; Forecast/Messages/Persistence <- Core <- feature libraries
 (OpenMeteo, Budget, Pipeline, Weather, AirQuality, Flood, Marine, Mqtt, Grpc) <- Host. Feature
 libraries reference only `Njord.Core` (and below), never each other, never the Host; they reach each
 other's actors through the markers in `ActorKeys.cs`. Registration stays central in the Host.
@@ -57,8 +58,8 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 ## Architecture guardrails
 
 - **Enrichment-driven config.** The operator sets locations and enrichment toggles; the rest is
-  derived. Fetched domains = union of `Triggers` of the enabled handlers (`EnrichmentResolution`).
-- **Every enrichment is an `IDomainHandler`** (`ConfigKey`, `Triggers`, `Handle(current, previous, time)`);
+  derived. Fetched domains = union of the `Requirements` of the enabled handlers (`EnrichmentResolution`).
+- **Every enrichment is an `IDomainHandler`** (`ConfigKey`, `Requirements` (a `DomainRequirements` of per-domain `XxxParam` flags), `Handle(current, previous, time)`);
   `ConfigKey` must match an `EnrichmentOptions` toggle (`EnrichmentConfigKeySpec`).
 - **Domain projects are plugins.** Weather/AirQuality/Flood/Marine register handlers via
   `Add<Domain>Domain()`; they never reference each other or the adapters (Grpc, Mqtt).
@@ -75,14 +76,14 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 - **Consumers are output adapters via SourceRef** (`GrpcConsumer`, `MqttStatePublisher`); no relay
   actors. No consumer slows the hub: bounded drop-oldest buffers, MQTT dedups and republishes on reconnect.
 - **gRPC is an adapter.** Resolve a marker, `ActorAsk` with a `Njord.Messages` message, map with `ToProto()`.
-- **`Njord.Messages` is Akka-free** (refs Model only); stream handshakes live in `Njord.Core/Actors`.
+- **`Njord.Messages` is Akka-free** (refs Forecast only); stream handshakes live in `Njord.Core/Actors`.
 - **MQTT code lives only in `Njord.Mqtt`.** State only, no Discovery, retained JSON per domain/enrichment,
   availability via the `online`/`offline` LWT topic; MQTTnet behind `IMqttTransport`.
 - **Lifestyle events share one wire shape**: `ToLifestyleUpdate()` flattens them to `LifestyleUpdate`
   (`LifestyleKind` + string map) for gRPC (`type_name = "lifestyle"`) and MQTT (`{base}/{location}/lifestyle/{type}`).
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow`.
-- **Zone rules are tests** (`ArchitectureSpec`): Model/Messages/Persistence reference no other Njord
-  project (Messages only Model), no Akka in Messages/Persistence, domain projects independent, all classes sealed.
+- **Zone rules are tests** (`ArchitectureSpec`): Forecast/Messages/Persistence reference no other Njord
+  project (Messages only Forecast), no Akka in Messages/Persistence, domain projects independent, all classes sealed.
 
 ## Actor topology
 
@@ -107,7 +108,13 @@ SHARD REGIONS (Sharded Entity)
 ## Decisions
 
 - **Ensemble default.** The weather request goes to `v1/ensemble`; there are no model, horizon or
-  parameter settings. Variables are internal (`WeatherVariables`: 31 standard, 36 with `IncludeSolar`).
+  parameter settings. The requested variables follow the enabled handlers: the `Requirements` of all
+  enabled handlers are OR-ed (`EnrichmentResolution.RequiredParams`) and mapped to API names by
+  `ParamMappings.ToApiNames()`; the clients only build the URL. `ProjectionEngine` skips a handler whose
+  required fields are missing from the stream (`LocationForecast.HasFields`). `WeatherVariables` only feeds
+  the conservative `BudgetCalculator` estimate (31 standard, 36 with `IncludeSolar`).
+- **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
+  max 210) next to `Njord:Weather`.
 - **Enrichment-driven configuration.** 19 toggles in `Njord:Enrichments`: on by default `WeatherAlerts`,
   `CommuteSafety`, `PollenAlert`, `Pm25Alert`; off by default `FloodRisk`, `FloodRain`, `FloodTimeline`,
   `SwimmingConditions`, `VentilationWindow`, `ExerciseAdvisory`, `LaundryScore`, `PollenTrend`,
@@ -153,8 +160,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 647 tests (Model 30, Messages 60, Persistence 14, Core 88, OpenMeteo 39, Budget 18,
-Pipeline 151, Weather 70, AirQuality 17, Flood 21, Marine 15, Mqtt 54, Grpc 39, Architecture 16,
+Current total: 787 tests (Forecast 63, Messages 60, Persistence 14, Core 114, OpenMeteo 95, Budget 18,
+Pipeline 155, Weather 85, AirQuality 20, Flood 24, Marine 15, Mqtt 54, Grpc 39, Architecture 16,
 IntegrationTests 15). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
@@ -249,6 +256,9 @@ Defaults are property initializers.
 |---------|-------|---------|
 | `Njord` | `NjordOptions` | `Locations` (`Name`, optional `Latitude`/`Longitude`) |
 | `Njord:Weather` | `WeatherOptions` | `IncludeSolar` (false), `ForecastDays` (4) |
+| `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7) |
+| `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
+| `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210) |
 | `Njord:Enrichments` | `EnrichmentOptions` | the 19 enrichment toggles |
 | `Njord:Enrichment:Alerts` | `AlertOptions` | alert thresholds |
 | `Njord:SolarYield` | `SolarYieldOptions` | `PeakKw` (5.0), `Azimuth` (180), `Tilt` (30) |
@@ -258,7 +268,7 @@ Defaults are property initializers.
 | `Njord:Mqtt` | `MqttOptions` | `Enabled` (false), `Host`, `Port`, `Username`, `Password`, `DiscoveryPrefix`, `BaseTopic` |
 
 The Config Builder (`docs/.vitepress/theme/builder`: `types.ts`, `budget.ts`, `serializer.ts`,
-`ConfigBuilder.vue`, data in `docs/data/enrichment.json`) mirrors the toggles, their `Triggers` and the
+`ConfigBuilder.vue`, data in `docs/data/enrichment.json`) mirrors the toggles, their required domains and the
 `BudgetCalculator` formula; change them together with the options and `docker-compose.example.yml`.
 
 ## References

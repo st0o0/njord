@@ -10,8 +10,8 @@ export interface EnrichmentToggle {
   enabledByDefault: boolean
 }
 
-// Mirrors EnrichmentOptions (Njord:Enrichments) and the Triggers of each IDomainHandler; the domains
-// that are fetched are the union of the Triggers of the enabled toggles.
+// Mirrors EnrichmentOptions (Njord:Enrichments) and the Requirements of each IDomainHandler; the domains
+// that are fetched are the union of the domains the enabled handlers require.
 export const ENRICHMENT_TOGGLES: EnrichmentToggle[] = [
   { key: 'WeatherAlerts', label: 'Weather alerts', description: 'Frost, heat, storm, rain and other weather alerts', domains: ['Weather'], enabledByDefault: true },
   { key: 'CommuteSafety', label: 'Commute safety', description: 'Commute safety score', domains: ['Weather'], enabledByDefault: true },
@@ -60,6 +60,9 @@ export interface DeployLimits {
 export interface NjordConfig {
   pollInterval: string
   weather: { includeSolar: boolean; forecastDays: number }
+  airQuality: { forecastDays: number }
+  marine: { forecastDays: number }
+  flood: { forecastDays: number }
   discoveryInterval: string
   enrichments: Record<string, boolean>
   locations: LocationConfig[]
@@ -78,6 +81,9 @@ export function defaultConfig(): NjordConfig {
   return {
     pollInterval: '01:00:00',
     weather: { includeSolar: false, forecastDays: 4 },
+    airQuality: { forecastDays: 5 },
+    marine: { forecastDays: 8 },
+    flood: { forecastDays: 92 },
     discoveryInterval: '00:20:00',
     enrichments: defaultEnrichments(),
     locations: [],
