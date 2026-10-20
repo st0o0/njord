@@ -17,7 +17,7 @@ Configuration is **static**: it is read once at startup. There is no runtime con
       "BudgetOverride": null
     },
     "Persistence": { "DataPath": "data/njord.db" },
-    "Enrichments": { "FloodRisk": true },
+    "Features": { "FloodRisk": true },
     "Enrichment": { "Alerts": { ... } }
   }
 }
@@ -41,7 +41,7 @@ A minimal setup for Lucerne:
 | `AirQuality:ForecastDays` | `5` | Days of air quality forecast to request (1 to 7) |
 | `Marine:ForecastDays` | `8` | Days of marine forecast to request (1 to 8) |
 | `Flood:ForecastDays` | `92` | Days of river discharge forecast to request (1 to 210) |
-| `Enrichments:<Name>` | `WeatherAlerts`, `CommuteSafety`, `PollenAlert`, `Pm25Alert` on; all others off | Switches one enrichment on or off. The domains that are polled are derived from the enabled enrichments (see below) |
+| `Features:<Name>` | 14 weather alerts, `CommuteSafety`, `PollenAlert`, `Pm25Alert` on; all others off | Switches one feature on or off. The domains that are polled are derived from the enabled features (see below) |
 | `Persistence:DataPath` | `data/njord.db` | SQLite database file |
 
 ## Defaults
@@ -50,31 +50,50 @@ All defaults are property initializers on the options classes. `appsettings.json
 
 List-valued defaults (the alert threshold arrays) are built in: a list you configure replaces the built-in list completely, it is never merged by position. To go back to a default, remove your key.
 
-## Enrichments and domains
+## Features and domains
 
-You switch features on, njord derives which API domains to poll. Each enrichment has a toggle under `Njord:Enrichments`; the polled domains are the union of the domains the enabled enrichments read. `Njord:EnabledDomains` no longer exists and is ignored if still configured.
+You switch features on, njord derives which API domains to poll. Each feature has a toggle under `Njord:Features`; the polled domains are the union of the domains the enabled features read. A feature that is not listed keeps its default. The [Config Builder](/builder) shows the extra API calls per day each feature costs.
 
-| Enrichment | Default | Domains |
-|------------|---------|---------|
-| `WeatherAlerts` | on | Weather |
-| `CommuteSafety` | on | Weather |
-| `PollenAlert` | on | Air Quality |
-| `Pm25Alert` | on | Air Quality |
-| `FloodRisk` | off | Flood |
-| `FloodRain` | off | Flood, Weather |
-| `SwimmingConditions` | off | Marine |
-| `SurfConditions` | off | Marine, Weather (wind direction, optional) |
-| `VentilationWindow` | off | Weather, Air Quality |
-| `ExerciseAdvisory` | off | Weather, Air Quality |
-| `LaundryScore` | off | Weather |
-| `PollenTrend` | off | Air Quality |
-| `NightVentilation` | off | Weather |
-| `ConfidenceTrend` | off | Weather |
+| Feature | Category | Default | Domains |
+|---------|----------|---------|---------|
+| `FrostAlert` | Weather alerts | on | Weather |
+| `HeatAlert` | Weather alerts | on | Weather |
+| `StormAlert` | Weather alerts | on | Weather |
+| `RainAlert` | Weather alerts | on | Weather |
+| `UvAlert` | Weather alerts | on | Weather |
+| `FogAlert` | Weather alerts | on | Weather |
+| `SnowAlert` | Weather alerts | on | Weather |
+| `PressureDropAlert` | Weather alerts | on | Weather |
+| `ThunderstormAlert` | Weather alerts | on | Weather |
+| `IceAlert` | Weather alerts | on | Weather |
+| `WindChillAlert` | Weather alerts | on | Weather |
+| `VisibilityAlert` | Weather alerts | on | Weather |
+| `TropicalNightAlert` | Weather alerts | on | Weather |
+| `HumidityAlert` | Weather alerts | on | Weather |
+| `PollenAlert` | Air quality | on | Air Quality |
+| `Pm25Alert` | Air quality | on | Air Quality |
+| `PollenTrend` | Air quality | off | Air Quality |
+| `CommuteSafety` | Lifestyle | on | Weather |
+| `ExerciseAdvisory` | Lifestyle | off | Weather, Air Quality |
+| `LaundryScore` | Lifestyle | off | Weather |
+| `OutdoorScore` | Lifestyle | off | Weather, Air Quality |
+| `BBQScore` | Lifestyle | off | Weather |
+| `NightVentilation` | Lifestyle | off | Weather |
+| `VentilationWindow` | Lifestyle | off | Weather, Air Quality |
+| `GardeningAdvisory` | Lifestyle | off | Weather |
+| `ConfidenceTrend` | Insight | off | Weather |
+| `ApproachingFront` | Insight | off | Weather |
+| `SolarYield` | Solar | off | Weather |
+| `FloodRisk` | Flood | off | Flood |
+| `FloodRain` | Flood | off | Weather, Flood |
+| `FloodTimeline` | Flood | off | Flood |
+| `SwimmingConditions` | Marine | off | Marine |
+| `SurfConditions` | Marine | off | Weather, Marine |
 
-The defaults poll Weather and Air Quality (two calls per location and cycle). Enabling `FloodRisk` adds Flood; disabling `PollenAlert` and `Pm25Alert` drops Air Quality. A disabled enrichment is not evaluated even when its domain data is present because another enrichment needs it. At least one enrichment must be enabled.
+The defaults poll Weather and Air Quality (two calls per location and cycle). Enabling `FloodRisk` adds Flood; disabling `PollenAlert` and `Pm25Alert` drops Air Quality. A disabled feature is not evaluated even when its domain data is present because another feature needs it, so each weather alert can be switched off on its own. At least one feature must be enabled. The former `Njord:Enrichments` section is no longer read.
 
 ```json
-{ "Njord": { "Enrichments": { "FloodRisk": true, "PollenAlert": false } } }
+{ "Njord": { "Features": { "FloodRisk": true, "PollenAlert": false, "HeatAlert": false } } }
 ```
 
 ## Environment variable overrides
@@ -88,7 +107,7 @@ Njord__Locations__0__Latitude=47.05
 Njord__Locations__0__Longitude=8.31
 Njord__Weather__ForecastDays=4
 Njord__Enrichment__Alerts__Enabled=true
-Njord__Enrichments__FloodRisk=true
+Njord__Features__FloodRisk=true
 ```
 
 ::: tip

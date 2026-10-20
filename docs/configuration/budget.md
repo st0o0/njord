@@ -15,12 +15,12 @@ Open-Meteo's free tier (non-commercial use) has these soft limits:
 
 ## Calls per cycle
 
-Each PollWorker fetches the domains required by the enabled [enrichments](./#enrichments-and-domains), one API call each. The defaults need two:
+Each PollWorker fetches the domains required by the enabled [features](./#features-and-domains), one API call each. The defaults need two:
 
 | Call | Endpoint | Fetched when |
 |------|----------|--------------|
-| Weather | Ensemble Mean | a Weather enrichment is enabled (default) |
-| Air Quality | Air Quality API | `PollenAlert`, `Pm25Alert` or another Air Quality enrichment is enabled (default) |
+| Weather | Ensemble Mean | a Weather feature is enabled (default) |
+| Air Quality | Air Quality API | `PollenAlert`, `Pm25Alert` or another Air Quality feature is enabled (default) |
 | Flood | Flood API | `FloodRisk` or `FloodRain` is enabled |
 | Marine | Marine API | `SwimmingConditions` or `SurfConditions` is enabled |
 
@@ -37,7 +37,7 @@ guard            = monthly budget x 0.8
 | Setting | Value |
 |---------|-------|
 | Locations | 1 |
-| Domains | Weather, Air Quality (default enrichments) |
+| Domains | Weather, Air Quality (default features) |
 | Poll interval | 60 minutes |
 
 ```
@@ -57,8 +57,8 @@ At startup njord refuses to start when the projection exceeds 80% of the monthly
 
 - Increase `Polling:PollInterval` (every 2 hours halves the calls)
 - Reduce the number of locations
-- Disable enrichments that need an extra domain
-- Enable fewer weather enrichments to keep the weather variable count, and so the API call weight, low
+- Disable features that need an extra domain
+- Enable fewer weather features to keep the weather variable count, and so the API call weight, low
 
 ## Polling:BudgetOverride
 

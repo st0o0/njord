@@ -10,11 +10,11 @@ njord runs as one Docker container without an external database (SQLite by defau
 
 ## Domains
 
-Each poll cycle fetches the domains that the enabled [enrichments](/configuration/#enrichments-and-domains) need (Weather and Air Quality by default):
+Each poll cycle fetches the domains that the enabled [features](/configuration/#features-and-domains) need (Weather and Air Quality by default):
 
 | Domain | Open-Meteo API | Content |
 |--------|----------------|---------|
-| **Weather** | Ensemble Mean | Hourly and daily weather values plus `ensemble_std_dev`; solar radiation variables when an enrichment needs them |
+| **Weather** | Ensemble Mean | Hourly and daily weather values plus `ensemble_std_dev`; solar radiation variables when a feature needs them |
 | **Air Quality** | Air Quality | PM2.5, PM10, ozone, pollen (birch, grass, alder, mugwort) |
 | **Flood** | Flood | River discharge with mean, median, min, max, P25 and P75 |
 

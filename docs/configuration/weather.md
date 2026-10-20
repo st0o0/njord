@@ -20,7 +20,7 @@ As environment variables: `Njord__Weather__IncludeSolar=true`, `Njord__Weather__
 
 ## API call weight
 
-The weather request asks only for the hourly variables the enabled enrichments need (the union of their requirements). Open-Meteo counts a request as `ceil(variables / 10)` calls, doubled for every 14 forecast days started:
+The weather request asks only for the hourly variables the enabled features need (the union of their requirements). Open-Meteo counts a request as `ceil(variables / 10)` calls, doubled for every 14 forecast days started:
 
 ```
 weather weight = ceil(variables / 10) x ceil(ForecastDays / 14)

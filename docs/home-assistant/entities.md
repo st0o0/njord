@@ -33,7 +33,7 @@ The server delivers these domains per location alongside the weather forecast:
 |--------|--------|
 | Air Quality | `pm25`, `pm10`, `ozone`, `birch_pollen`, `grass_pollen`, `alder`, `mugwort` |
 | Flood | `discharge` with mean, median, min, max, P25 and P75 |
-| Solar | `direct_radiation`, `diffuse_radiation`, `shortwave_radiation`, `sunshine_duration` (needs an enrichment that requests solar variables on the server) |
+| Solar | `direct_radiation`, `diffuse_radiation`, `shortwave_radiation`, `sunshine_duration` (needs a feature that requests solar variables on the server) |
 
 Air quality and flood alerts are computed on the server and become available to Home Assistant once they are exposed over gRPC.
 
