@@ -21,7 +21,7 @@ Rejected: one request per model. Same data, N times the requests and rate-limit 
 `WeatherModelCatalog` is a static table (id, display name, provider, region, resolution km, forecast hours) of the supported ensemble-mean ids. It starts with ECMWF IFS 0.25, ICON seamless, GFS seamless, GEM global and UKMO global, and is extended for MeteoSwiss, MET Norway, KMA, JMA and BOM after checking each id against the API. Unknown ids fail validation rather than producing an HTTP 400 at runtime. The same data is mirrored in `docs/data/` for the builder; a spec compares both.
 
 ### 5. Feature gating
-`FeatureKind.ModelComparison` (category Weather, default off, required domain Weather, marginal cost = (modelCount - 1) x weather weight per model x polls). Effective models = `Models` when ModelComparison is enabled, else `Models[0]`. A config with several models but the feature off logs one startup warning.
+`ModelComparison` feature (`OutputKind.Forecast`, category Weather, default off, required domain Weather, marginal cost = (modelCount - 1) x weather weight per model x polls). Effective models = `Models` when ModelComparison is enabled, else `Models[0]`. A config with several models but the feature off logs one startup warning.
 
 ### 6. gRPC
 Additive proto fields: `GetDomainDataRequest.model`, `DomainDataUpdate.model`, `ModelInfo.enabled`. Empty request model = primary; unknown or disabled model = `NOT_FOUND`. Only weather updates carry a model. Older ha-njord clients ignore the fields and see the primary model, so the change is wire compatible.
@@ -34,3 +34,7 @@ Entities: `weather.njord_<location>` for the primary model, `weather.njord_<mode
 - Call weighting of multi-model requests is unverified (see proposal); mitigated by the conservative multiplier and task 1.1.
 - Memory and stream volume scale with the model count; bounded by the drop-oldest buffers and the catalog size.
 - Models with shorter horizons return null tails; the existing "trim to last valued point" logic applies per model.
+
+## Open point after `rewrite-gateway`
+
+`FetchSuccess` carries one `IDomainForecast`, but a multi-model fetch yields several. Options: `FetchSuccess(IReadOnlyList<ModelForecast>)` for all clients, or a dedicated `FetchModelsSuccess : FetchResult`. To be decided with the gateway architecture discussion; the gateway then offers one `DomainDataReceived` per forecast.

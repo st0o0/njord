@@ -8,7 +8,7 @@ Model comparison is something no other Home Assistant weather integration offers
 - Add a model catalog in `Njord.Core` (`Domain/WeatherModelCatalog.cs`): id, display name, provider, region, resolution km, forecast length. It feeds validation, the gRPC `GetCatalog` `ModelInfo` entries and the Config Builder.
 - `WeatherClient` (`src/Njord.OpenMeteo/WeatherClient.cs`) sends all enabled models in one `models=a,b,c` request. `WeatherResponse` keeps one hourly block per model (Open-Meteo suffixes every variable with the model id in multi-model responses); `WeatherResponseMappings` yields one `DomainForecast<WeatherPoint>` per model.
 - `DomainDataReceived` and the pipeline carry a model id. `LocationForecast.Weather` stays the primary model's forecast (all handlers and alert rules keep working unchanged); a new `LocationForecast.ModelWeather` holds the forecasts of the additional models keyed by model id.
-- `FeatureKind.ModelComparison` (off by default) gates fetching more than the primary model. Without it only the primary model is requested even if `Models` lists more.
+- The `ModelComparison` feature (`OutputKind.Forecast`, category Weather, off by default) gates fetching more than the primary model. Without it only the primary model is requested even if `Models` lists more.
 - gRPC (`protos/njord/v2/weather.proto`): `model` field on `GetDomainDataRequest` (empty = primary) and on `DomainDataUpdate`; `StreamDomainData` emits one update per model. `GetCatalog` marks which models are enabled.
 - Config Builder lists models with resolution and forecast length, toggles them, and shows the budget impact per model.
 - ha-njord co-design (separate repo `D:\Git\ha_njord`, noted only): one weather entity per model per location.
@@ -41,10 +41,10 @@ Responses grow with the model count (N x variables of ensemble means); the free 
 
 ## Impact
 
-- `src/Njord.Core`: `Configuration/WeatherOptions.cs`, `WeatherOptionsValidator.cs`, `Configuration/Polling/BudgetCalculator.cs`, `Domain/LocationForecast.cs`, `DomainDataReceived`, new `Domain/WeatherModelCatalog.cs`, `FeatureKind` (from `feature-centric-config`).
-- `src/Njord.OpenMeteo`: `WeatherClient.cs`, `WeatherResponse.cs`, `Mapping/WeatherResponseMappings.cs`, `OpenMeteoGateway.cs`, `IWeatherClient.cs`.
+- `src/Njord.Core`: `Configuration/WeatherOptions.cs`, `WeatherOptionsValidator.cs`, `Configuration/Polling/BudgetCalculator.cs`, `Domain/LocationForecast.cs`, `DomainDataReceived`, new `Domain/WeatherModelCatalog.cs`, `FeatureKind` (feature catalog).
+- `src/Njord.OpenMeteo`: `WeatherClient.cs`, `WeatherResponse.cs`, `Mapping/WeatherResponseMappings.cs`, the gateway only if `FetchSuccess` must carry several forecasts (design, open point).
 - `src/Njord.Messages/Forecast`: model id on `QueryDomainData` / `DomainDataNotAvailable`.
 - `src/Njord.Pipeline`: `ForecastPipeline` / `ProjectionEngine` keep per-model state in the closure.
 - `src/Njord.Grpc` and `protos/njord/v2/weather.proto`: new fields (additive, wire compatible).
 - `docs/.vitepress/theme/builder/*`, `docs/data/*`, `docker-compose.example.yml`, `src/Njord/appsettings.Example.json`, AGENTS.md.
-- Sequencing: build after `feature-centric-config` (provides `FeatureKind`); if it is not applied first, `ModelComparison` is delivered as an `EnrichmentOptions` toggle and migrated there.
+- Sequencing: build after `rewrite-gateway`. The thick `WeatherClient` (`IDomainClient`) builds the `models=` request, maps the response and returns one forecast per model; the thin gateway only forwards them. `FeatureKind` no longer exists, so `ModelComparison` is declared like the other features (`FeatureDescriptor` with `OutputKind.Forecast`, toggle, `docs/data/features.json`).
