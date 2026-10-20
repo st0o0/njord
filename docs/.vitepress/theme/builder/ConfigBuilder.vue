@@ -1,14 +1,30 @@
 <script setup lang="ts">
 import { reactive, ref, computed, watch, onMounted } from 'vue'
-import { defaultConfig, type NjordConfig, type LocationConfig, type ModelInfo, type EnrichmentFeature } from './types'
-import { computeBudget, checkCoverage } from './budget'
+import { defaultConfig, type NjordConfig, type DomainName, type EnrichmentFeature } from './types'
+import { computeBudget } from './budget'
 import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, findOutdatedKeys, encodeHash, decodeHash } from './serializer'
-import modelsData from '../../../data/models.json'
 import enrichmentData from '../../../data/enrichment.json'
 
-const models = modelsData as ModelInfo[]
 const enrichmentFeatures = enrichmentData as EnrichmentFeature[]
 const config = reactive<NjordConfig>(defaultConfig())
+
+const DOMAIN_INFO: { name: DomainName; description: string; required: boolean; enabledByDefault: boolean }[] = [
+  { name: 'Weather', description: 'Multi-model hourly forecast', required: true, enabledByDefault: true },
+  { name: 'AirQuality', description: 'Air quality and pollen, hourly', required: false, enabledByDefault: true },
+  { name: 'Flood', description: 'River discharge, daily', required: false, enabledByDefault: true },
+  { name: 'Marine', description: 'Waves, sea temperature and swimming conditions, hourly for 8 days', required: false, enabledByDefault: false },
+]
+
+function isDomainEnabled(name: DomainName): boolean {
+  return config.enabledDomains.includes(name)
+}
+
+function toggleDomain(name: DomainName) {
+  if (DOMAIN_INFO.find(d => d.name === name)?.required) return
+  const idx = config.enabledDomains.indexOf(name)
+  if (idx >= 0) config.enabledDomains.splice(idx, 1)
+  else config.enabledDomains.push(name)
+}
 
 function initEnrichment(): Record<string, Record<string, unknown>> {
   const result: Record<string, Record<string, unknown>> = {}
@@ -46,20 +62,14 @@ function setEnrichmentOption(feature: string, option: string, value: unknown, de
   }
 }
 
-const HORIZON_PRESETS: Record<string, number[]> = {
-  standard: [3, 6, 12, 24, 48, 72],
-  fine: [1, 2, 3, 6, 8, 12, 18, 24, 36, 48, 72, 96],
-}
-
-const horizonPreset = reactive({ active: 'standard', custom: '' })
 const exportMode = reactive({ format: 'json' as 'json' | 'env' | 'compose' })
 const importText = reactive({ value: '', error: '', outdated: [] as string[] })
 const copied = reactive({ show: false })
+const newLocation = ref('')
 
-const budget = computed(() => computeBudget(config, models))
+const budget = computed(() => computeBudget(config))
 const memoryTip = computed(() => {
-  const models = config.models.length + config.locations.reduce((s, l) => s + l.models.length, 0)
-  if (models > 8) return 'With many models, consider 256M.'
+  if (config.enabledDomains.length * config.locations.length > 12) return 'With many domain calls per cycle, consider 256M.'
   return ''
 })
 const exportOutput = computed(() => {
@@ -68,77 +78,15 @@ const exportOutput = computed(() => {
   return exportAsEnvVars(config)
 })
 
-const commonModels = computed(() =>
-  models.filter(m => ['icon_d2', 'icon_eu', 'icon_global', 'ecmwf_ifs025', 'gfs_seamless',
-    'ukmo_seamless', 'arpege_europe', 'knmi_harmonie_arome_europe',
-    'knmi_harmonie_arome_netherlands', 'dmi_harmonie_arome_europe',
-    'meteoswiss_icon_ch1', 'meteoswiss_icon_ch2', 'metno_nordic'].includes(m.id))
-)
-
-function toggleModel(id: string) {
-  const idx = config.models.indexOf(id)
-  if (idx >= 0) config.models.splice(idx, 1)
-  else config.models.push(id)
-}
-
-interface GeoResult {
-  name: string
-  country: string
-  admin1?: string
-  latitude: number
-  longitude: number
-}
-
-const geoSearch = reactive({ query: '', results: [] as GeoResult[], loading: false })
-let geoDebounce: ReturnType<typeof setTimeout> | null = null
-
-function onGeoInput() {
-  if (geoDebounce) clearTimeout(geoDebounce)
-  if (geoSearch.query.length < 2) { geoSearch.results = []; return }
-  geoSearch.loading = true
-  geoDebounce = setTimeout(async () => {
-    try {
-      const res = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(geoSearch.query)}&count=5&language=en`)
-      const data = await res.json()
-      geoSearch.results = (data.results ?? []).map((r: any) => ({
-        name: r.name, country: r.country, admin1: r.admin1,
-        latitude: Math.round(r.latitude * 10000) / 10000,
-        longitude: Math.round(r.longitude * 10000) / 10000,
-      }))
-    } catch { geoSearch.results = [] }
-    geoSearch.loading = false
-  }, 300)
-}
-
-function selectGeoResult(r: GeoResult) {
-  config.locations.push({ name: r.name.toLowerCase(), latitude: r.latitude, longitude: r.longitude, models: [] })
-  geoSearch.query = ''
-  geoSearch.results = []
-}
-
-function addLocationManual() {
-  config.locations.push({ name: '', latitude: 0, longitude: 0, models: [] })
+function addLocation() {
+  const name = newLocation.value.trim()
+  if (!name) return
+  config.locations.push({ name })
+  newLocation.value = ''
 }
 
 function removeLocation(i: number) {
   config.locations.splice(i, 1)
-}
-
-function toggleLocationModel(loc: LocationConfig, id: string) {
-  const idx = loc.models.indexOf(id)
-  if (idx >= 0) loc.models.splice(idx, 1)
-  else loc.models.push(id)
-}
-
-function setHorizonPreset(name: string) {
-  horizonPreset.active = name
-  if (HORIZON_PRESETS[name]) config.horizons = [...HORIZON_PRESETS[name]]
-}
-
-function applyCustomHorizons() {
-  const vals = horizonPreset.custom.split(/[,\s]+/).map(Number).filter(n => n >= 1 && n <= 96)
-  if (vals.length) { config.horizons = vals; horizonPreset.active = 'custom' }
 }
 
 function toggleGroup(g: string) {
@@ -164,17 +112,6 @@ function doImport() {
   } catch (e) {
     importText.error = e instanceof Error ? e.message : 'Invalid input'
   }
-}
-
-function modelCovers(modelId: string, loc: LocationConfig): boolean {
-  return checkCoverage(modelId, loc.latitude, loc.longitude, models)
-}
-
-function modelMaxDays(modelId: string): string {
-  const m = models.find(x => x.id === modelId)
-  if (!m?.maxForecastHours) return ''
-  const days = Math.ceil(m.maxForecastHours / 24)
-  return days < config.forecastDays ? `→ capped to ${days}d` : ''
 }
 
 watch(config, () => {
@@ -210,63 +147,32 @@ onMounted(() => {
       <h3>Locations</h3>
       <div v-for="(loc, i) in config.locations" :key="i" class="location-card">
         <div class="location-row">
-          <input v-model="loc.name" placeholder="Name" class="input-name" />
-          <input v-model.number="loc.latitude" type="number" step="0.001" placeholder="Lat" class="input-coord" />
-          <input v-model.number="loc.longitude" type="number" step="0.001" placeholder="Lon" class="input-coord" />
+          <input v-model="loc.name" placeholder="Name" class="location-name" />
+          <span class="location-hint">coordinates resolved by geocoding</span>
           <button @click="removeLocation(i)" class="btn-remove">Remove</button>
         </div>
-        <div class="location-models">
-          <span class="label">Per-location models:</span>
-          <label v-for="m in commonModels" :key="m.id" class="model-chip" :class="{ warn: !modelCovers(m.id, loc) }">
-            <input type="checkbox" :checked="loc.models.includes(m.id)" @change="toggleLocationModel(loc, m.id)" />
-            {{ m.id }}
-            <span v-if="!modelCovers(m.id, loc)" class="warn-icon" title="May not cover this location">⚠</span>
-          </label>
-        </div>
       </div>
-      <div class="geo-search">
-        <div class="geo-input-row">
-          <input v-model="geoSearch.query" @input="onGeoInput" placeholder="Search for a city..." class="geo-input" />
-          <button @click="addLocationManual" class="btn-add" title="Add manually">+ Manual</button>
-        </div>
-        <div v-if="geoSearch.results.length" class="geo-results">
-          <div v-for="r in geoSearch.results" :key="`${r.latitude}-${r.longitude}`" class="geo-result" @click="selectGeoResult(r)">
-            <span class="geo-name">{{ r.name }}</span>
-            <span class="geo-detail">{{ [r.admin1, r.country].filter(Boolean).join(', ') }}</span>
-            <span class="geo-coords">{{ r.latitude }}°, {{ r.longitude }}°</span>
-          </div>
-        </div>
-        <div v-if="geoSearch.loading" class="geo-loading">Searching...</div>
+      <div class="add-location">
+        <input v-model="newLocation" placeholder="City name, e.g. Lucerne" @keyup.enter="addLocation" />
+        <button @click="addLocation" :disabled="!newLocation.trim()" class="btn-add">Add</button>
       </div>
     </div>
 
-    <!-- Models (global) -->
+    <!-- Domains -->
     <div class="section">
-      <h3>Global Models</h3>
-      <div class="model-grid">
-        <label v-for="m in commonModels" :key="m.id" class="model-card" :class="{ selected: config.models.includes(m.id) }">
-          <input type="checkbox" :checked="config.models.includes(m.id)" @change="toggleModel(m.id)" />
+      <h3>Domains</h3>
+      <div class="domain-grid">
+        <label v-for="d in DOMAIN_INFO" :key="d.name" class="domain-card" :class="{ selected: isDomainEnabled(d.name), locked: d.required }">
+          <input type="checkbox" :checked="isDomainEnabled(d.name)" :disabled="d.required" @change="toggleDomain(d.name)" />
           <div>
-            <strong>{{ m.id }}</strong>
-            <span class="model-meta">{{ m.tier }} · {{ m.region }} · {{ m.maxForecastHours }}h</span>
-            <span v-if="modelMaxDays(m.id)" class="model-cap">{{ modelMaxDays(m.id) }}</span>
+            <strong>{{ d.name }}</strong>
+            <span v-if="d.required" class="enrichment-badge">required</span>
+            <span v-else-if="d.enabledByDefault" class="enrichment-badge">default on</span>
+            <span class="domain-meta">{{ d.description }}</span>
           </div>
         </label>
       </div>
-    </div>
-
-    <!-- Horizons -->
-    <div class="section">
-      <h3>Horizons</h3>
-      <div class="preset-row">
-        <button v-for="(_, name) in HORIZON_PRESETS" :key="name" :class="{ active: horizonPreset.active === name }" @click="setHorizonPreset(name)">{{ name }}</button>
-        <button :class="{ active: horizonPreset.active === 'custom' }" @click="horizonPreset.active = 'custom'">custom</button>
-      </div>
-      <div v-if="horizonPreset.active === 'custom'" class="custom-horizons">
-        <input v-model="horizonPreset.custom" placeholder="e.g. 1, 3, 6, 12, 24, 48" @keyup.enter="applyCustomHorizons" />
-        <button @click="applyCustomHorizons">Apply</button>
-      </div>
-      <code class="horizons-display">{{ config.horizons.join(', ') }}</code>
+      <p class="section-hint">Each enabled domain costs one request per location and poll cycle.</p>
     </div>
 
     <!-- Parameters -->
@@ -397,9 +303,9 @@ onMounted(() => {
         <span :class="{ over: budget.overBudget }">{{ budget.percentUsed.toFixed(1) }}%</span>
       </div>
       <div class="budget-detail">
-        {{ budget.totalModelsPerCycle }} model-location pairs · {{ budget.cyclesPerMonth }} cycles/month · weight {{ budget.apiCallWeight }}
+        {{ config.enabledDomains.length }} domains × {{ config.locations.length }} locations = {{ budget.domainCallsPerCycle }} calls/cycle · {{ budget.cyclesPerDay }} cycles/day · weight {{ budget.apiCallWeight }} = {{ budget.callsPerDay.toLocaleString() }} req/day · {{ budget.cyclesPerMonth }} cycles/month
       </div>
-      <p v-if="budget.overBudget" class="error">Exceeds 80% budget guard ({{ budget.guard.toLocaleString() }}). Reduce models, increase poll interval, or exclude parameters.</p>
+      <p v-if="budget.overBudget" class="error">Exceeds 80% budget guard ({{ budget.guard.toLocaleString() }}). Reduce domains or locations, increase poll interval, or exclude parameters.</p>
     </div>
 
     <!-- Export -->
@@ -426,26 +332,25 @@ onMounted(() => {
 .location-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .input-name { width: 140px; }
 .input-coord { width: 90px; }
-.location-models { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-.location-models .label { font-size: 12px; color: var(--vp-c-text-2); margin-right: 4px; }
+.location-name { flex: 1; min-width: 160px; }
+.location-hint { font-size: 11px; color: var(--vp-c-text-3); margin-left: auto; }
+.add-location { display: flex; gap: 8px; align-items: stretch; margin-top: 8px; }
+.add-location input { flex: 1; }
+
+.domain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+.domain-card { display: flex; gap: 8px; padding: 8px; border: 1px solid var(--vp-c-divider); border-radius: 6px; cursor: pointer; font-size: 13px; }
+.domain-card.selected { border-color: var(--vp-c-brand-1); background: var(--vp-c-brand-soft); }
+.domain-card.locked { cursor: default; }
+.domain-meta { display: block; font-size: 11px; color: var(--vp-c-text-3); }
 
 input, textarea { padding: 4px 8px; border: 1px solid var(--vp-c-divider); border-radius: 4px; background: var(--vp-c-bg); color: var(--vp-c-text-1); font-size: 13px; }
 textarea { width: 100%; font-family: var(--vp-font-family-mono); }
 button { padding: 4px 12px; border: 1px solid var(--vp-c-divider); border-radius: 4px; background: var(--vp-c-bg-soft); color: var(--vp-c-text-1); cursor: pointer; font-size: 13px; }
 button:hover { background: var(--vp-c-bg-mute); }
 button.active { background: var(--vp-c-brand-1); color: white; border-color: var(--vp-c-brand-1); }
-.geo-input-row .btn-add { margin-top: 0; }
 .btn-remove { color: var(--vp-c-danger-1); border-color: var(--vp-c-danger-1); }
 .btn-copy { margin-left: auto; }
 
-.model-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
-.model-card { display: flex; gap: 8px; padding: 8px; border: 1px solid var(--vp-c-divider); border-radius: 6px; cursor: pointer; font-size: 13px; }
-.model-card.selected { border-color: var(--vp-c-brand-1); background: var(--vp-c-brand-soft); }
-.model-meta { display: block; font-size: 11px; color: var(--vp-c-text-3); }
-.model-cap { display: block; font-size: 11px; color: var(--vp-c-warning-1); }
-.model-chip { font-size: 12px; padding: 2px 6px; border: 1px solid var(--vp-c-divider); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; }
-.model-chip.warn { border-color: var(--vp-c-warning-1); }
-.warn-icon { color: var(--vp-c-warning-1); }
 
 .enrichment-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
 .enrichment-card { padding: 10px; border: 1px solid var(--vp-c-divider); border-radius: 6px; }
@@ -458,10 +363,6 @@ button.active { background: var(--vp-c-brand-1); color: white; border-color: var
 .option-input { width: 100px; font-size: 12px; }
 .option-description { width: 100%; font-size: 10px; color: var(--vp-c-text-3); margin-top: -2px; }
 
-.preset-row { display: flex; gap: 4px; margin-bottom: 8px; }
-.custom-horizons { display: flex; gap: 8px; margin-bottom: 8px; }
-.custom-horizons input { flex: 1; }
-.horizons-display { display: block; font-size: 13px; color: var(--vp-c-text-2); }
 
 .param-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .param-card { padding: 8px 12px; border: 1px solid var(--vp-c-divider); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
@@ -500,15 +401,4 @@ button.active { background: var(--vp-c-brand-1); color: white; border-color: var
 
 details summary { cursor: pointer; color: var(--vp-c-text-2); font-size: 14px; }
 
-.geo-search { margin-top: 8px; position: relative; }
-.geo-input-row { display: flex; gap: 8px; align-items: stretch; }
-.geo-input { flex: 1; }
-.geo-results { position: absolute; z-index: 10; top: 100%; left: 0; right: 0; margin-top: 4px; border: 1px solid var(--vp-c-divider); border-radius: 6px; background: var(--vp-c-bg); box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 240px; overflow-y: auto; }
-.geo-result { padding: 8px 12px; cursor: pointer; display: flex; align-items: baseline; gap: 8px; border-bottom: 1px solid var(--vp-c-divider); }
-.geo-result:last-child { border-bottom: none; }
-.geo-result:hover { background: var(--vp-c-bg-soft); }
-.geo-name { font-weight: 600; font-size: 13px; }
-.geo-detail { font-size: 12px; color: var(--vp-c-text-2); }
-.geo-coords { font-size: 11px; color: var(--vp-c-text-3); font-family: var(--vp-font-family-mono); margin-left: auto; }
-.geo-loading { font-size: 12px; color: var(--vp-c-text-3); margin-top: 4px; }
 </style>

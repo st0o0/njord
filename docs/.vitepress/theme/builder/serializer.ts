@@ -1,5 +1,14 @@
-import type { NjordConfig } from './types'
-import { defaultConfig } from './types'
+import type { DomainName, NjordConfig } from './types'
+import { DEFAULT_DOMAINS, DOMAINS, defaultConfig } from './types'
+
+function isDefaultDomains(domains: DomainName[]): boolean {
+  return domains.length === DEFAULT_DOMAINS.length && DEFAULT_DOMAINS.every(d => domains.includes(d))
+}
+
+function parseDomain(value: unknown): DomainName | null {
+  const match = DOMAINS.find(d => d.toLowerCase() === String(value).trim().toLowerCase())
+  return match ?? null
+}
 
 export function exportAsJson(config: NjordConfig): string {
   const out: Record<string, unknown> = { Njord: {} }
@@ -13,12 +22,12 @@ export function exportAsJson(config: NjordConfig): string {
   n.ForecastDays = config.forecastDays
   if (config.openMeteoBaseUrl !== defaults.openMeteoBaseUrl) n.OpenMeteo = { BaseUrl: config.openMeteoBaseUrl }
   if (config.persistencePath !== defaults.persistencePath) n.Storage = { PersistencePath: config.persistencePath }
-  n.Horizons = config.horizons
-  if (config.models.length) n.Models = config.models
+  if (!isDefaultDomains(config.enabledDomains)) n.EnabledDomains = config.enabledDomains
   if (config.locations.length) {
     n.Locations = config.locations.map(l => {
-      const loc: Record<string, unknown> = { Name: l.name, Latitude: l.latitude, Longitude: l.longitude }
-      if (l.models.length) loc.Models = l.models
+      const loc: Record<string, unknown> = { Name: l.name }
+      if (l.latitude !== undefined) loc.Latitude = l.latitude
+      if (l.longitude !== undefined) loc.Longitude = l.longitude
       return loc
     })
   }
@@ -74,14 +83,14 @@ export function exportAsEnvVars(config: NjordConfig): string {
   const defaults = defaultConfig()
   add('Njord__Polling__PollInterval', config.pollInterval)
   add('Njord__ForecastDays', String(config.forecastDays))
-  config.horizons.forEach((h, i) => add(`Njord__Horizons__${i}`, String(h)))
-  config.models.forEach((m, i) => add(`Njord__Models__${i}`, m))
+  if (!isDefaultDomains(config.enabledDomains)) {
+    config.enabledDomains.forEach((d, i) => add(`Njord__EnabledDomains__${i}`, d))
+  }
 
   config.locations.forEach((loc, i) => {
     add(`Njord__Locations__${i}__Name`, loc.name)
-    add(`Njord__Locations__${i}__Latitude`, String(loc.latitude))
-    add(`Njord__Locations__${i}__Longitude`, String(loc.longitude))
-    loc.models.forEach((m, j) => add(`Njord__Locations__${i}__Models__${j}`, m))
+    if (loc.latitude !== undefined) add(`Njord__Locations__${i}__Latitude`, String(loc.latitude))
+    if (loc.longitude !== undefined) add(`Njord__Locations__${i}__Longitude`, String(loc.longitude))
   })
 
   config.parameters.groups.forEach((g, i) => add(`Njord__Parameters__Groups__${i}`, g))
@@ -167,14 +176,14 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   if (discoveryInterval) config.discoveryInterval = discoveryInterval
   if (baseUrl) config.openMeteoBaseUrl = baseUrl
   if (persistencePath) config.persistencePath = persistencePath
-  if (n.Horizons) config.horizons = n.Horizons
-  if (n.Models) config.models = n.Models
+  if (Array.isArray(n.EnabledDomains)) {
+    config.enabledDomains = n.EnabledDomains.map(parseDomain).filter((d: DomainName | null): d is DomainName => d !== null)
+  }
   if (n.Locations) {
     config.locations = n.Locations.map((l: Record<string, unknown>) => ({
       name: l.Name as string ?? '',
-      latitude: l.Latitude as number ?? 0,
-      longitude: l.Longitude as number ?? 0,
-      models: (l.Models as string[]) ?? [],
+      ...(typeof l.Latitude === 'number' && l.Latitude !== 0 ? { latitude: l.Latitude } : {}),
+      ...(typeof l.Longitude === 'number' && l.Longitude !== 0 ? { longitude: l.Longitude } : {}),
     }))
   }
   if (n.Parameters) {
@@ -211,6 +220,8 @@ export function importFromJson(json: string): Partial<NjordConfig> {
 export function importFromEnvVars(text: string): Partial<NjordConfig> {
   const config = defaultConfig()
   const lines = text.split('\n').filter(l => l.startsWith('Njord__'))
+  const enabledDomains: DomainName[] = [...DEFAULT_DOMAINS]
+  let domainsFromEnv = false
 
   for (const line of lines) {
     const eq = line.indexOf('=')
@@ -232,23 +243,17 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     else if (parts[0] === 'OpenMeteo' && parts[1] === 'BaseUrl' || parts[0] === 'OpenMeteoBaseUrl') config.openMeteoBaseUrl = value
     else if (parts[0] === 'Storage' && parts[1] === 'PersistencePath' || parts[0] === 'PersistencePath') config.persistencePath = value
     else if (parts[0] === 'ForecastDays') config.forecastDays = parseInt(value) || 4
-    else if (parts[0] === 'Horizons') config.horizons[parseInt(parts[1]) || 0] = parseInt(value)
-    else if (parts[0] === 'Models' && parts.length === 2) {
-      const idx = parseInt(parts[1])
-      while (config.models.length <= idx) config.models.push('')
-      config.models[idx] = value
+    else if (parts[0] === 'EnabledDomains' && parts.length === 2) {
+      if (!domainsFromEnv) { enabledDomains.length = 0; domainsFromEnv = true }
+      const domain = parseDomain(value)
+      if (domain && !enabledDomains.includes(domain)) enabledDomains.push(domain)
     }
     else if (parts[0] === 'Locations') {
       const idx = parseInt(parts[1])
-      while (config.locations.length <= idx) config.locations.push({ name: '', latitude: 0, longitude: 0, models: [] })
+      while (config.locations.length <= idx) config.locations.push({ name: '' })
       if (parts[2] === 'Name') config.locations[idx].name = value
-      else if (parts[2] === 'Latitude') config.locations[idx].latitude = parseFloat(value) || 0
-      else if (parts[2] === 'Longitude') config.locations[idx].longitude = parseFloat(value) || 0
-      else if (parts[2] === 'Models') {
-        const mIdx = parseInt(parts[3])
-        while (config.locations[idx].models.length <= mIdx) config.locations[idx].models.push('')
-        config.locations[idx].models[mIdx] = value
-      }
+      else if (parts[2] === 'Latitude') config.locations[idx].latitude = parseFloat(value) || undefined
+      else if (parts[2] === 'Longitude') config.locations[idx].longitude = parseFloat(value) || undefined
     }
     else if (parts[0] === 'Mqtt') {
       if (parts[1] === 'Host') config.mqtt.host = value
@@ -280,7 +285,7 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     }
   }
 
-  config.models = config.models.filter(Boolean)
+  config.enabledDomains = enabledDomains
   config.parameters.groups = config.parameters.groups.filter(Boolean)
 
   return config

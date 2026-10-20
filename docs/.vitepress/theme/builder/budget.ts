@@ -1,89 +1,54 @@
-import type { ModelInfo, NjordConfig } from './types'
+import type { NjordConfig } from './types'
 
-const MONTH_MINUTES = 30 * 24 * 60
+const MINUTES_PER_DAY = 24 * 60
+const DAYS_PER_MONTH = 30
 const GUARD_FACTOR = 0.8
 const FREE_TIER_MONTHLY = 300_000
 
 export interface BudgetResult {
-  totalModelsPerCycle: number
+  domainCallsPerCycle: number
+  cyclesPerDay: number
   cyclesPerMonth: number
   apiCallWeight: number
+  callsPerDay: number
   projected: number
   limit: number
   guard: number
   percentUsed: number
   overBudget: boolean
-  perModelDays: { modelId: string; effectiveDays: number; maxHours: number | null }[]
 }
 
-export function computeBudget(config: NjordConfig, models: ModelInfo[]): BudgetResult {
+// Mirrors BudgetCalculator.Validate: one call per (enabled domain, location) and poll cycle,
+// multiplied by the parameter weight of the resolved parameter set.
+export function computeBudget(config: NjordConfig): BudgetResult {
   const pollMinutes = parseTimeSpan(config.pollInterval)
-  const cyclesPerMonth = pollMinutes > 0 ? MONTH_MINUTES / pollMinutes : 0
+  const cyclesPerDay = pollMinutes > 0 ? MINUTES_PER_DAY / pollMinutes : 0
+  const cyclesPerMonth = cyclesPerDay * DAYS_PER_MONTH
 
   const hourlyCount = computeHourlyCount(config.parameters.groups)
   const daysWeight = Math.ceil(config.forecastDays / 14)
-  const apiCallWeight = Math.ceil(hourlyCount / 10) * daysWeight
+  const apiCallWeight = Math.max(1, Math.ceil(hourlyCount / 10) * daysWeight)
 
-  const modelMap = new Map(models.map(m => [m.id.toLowerCase(), m]))
-
-  let totalModelsPerCycle = 0
-  const perModelDays: BudgetResult['perModelDays'] = []
-
-  for (const location of config.locations) {
-    const effectiveModels = resolveModels(config.models, location.models)
-    totalModelsPerCycle += effectiveModels.length
-
-    for (const modelId of effectiveModels) {
-      const info = modelMap.get(modelId.toLowerCase())
-      const maxHours = info?.maxForecastHours ?? null
-      const effectiveDays = maxHours != null
-        ? Math.min(config.forecastDays, Math.ceil(maxHours / 24))
-        : config.forecastDays
-      perModelDays.push({ modelId, effectiveDays, maxHours })
-    }
-  }
+  const domainCallsPerCycle = config.enabledDomains.length * config.locations.length
 
   const limit = config.budgetOverride?.requestsPerMonth ?? FREE_TIER_MONTHLY
   const guard = Math.round(limit * GUARD_FACTOR)
-  const projected = Math.round(totalModelsPerCycle * cyclesPerMonth * apiCallWeight)
+  const callsPerDay = Math.round(domainCallsPerCycle * cyclesPerDay * apiCallWeight)
+  const projected = Math.round(domainCallsPerCycle * cyclesPerMonth * apiCallWeight)
   const percentUsed = limit > 0 ? (projected / limit) * 100 : 0
 
   return {
-    totalModelsPerCycle,
+    domainCallsPerCycle,
+    cyclesPerDay: Math.round(cyclesPerDay * 10) / 10,
     cyclesPerMonth: Math.round(cyclesPerMonth),
     apiCallWeight,
+    callsPerDay,
     projected,
     limit,
     guard,
     percentUsed,
     overBudget: projected > guard,
-    perModelDays,
   }
-}
-
-export function checkCoverage(
-  modelId: string,
-  lat: number,
-  lon: number,
-  models: ModelInfo[],
-): boolean {
-  const info = models.find(m => m.id.toLowerCase() === modelId.toLowerCase())
-  if (!info || !info.bounds) return true
-  const b = info.bounds
-  return lat >= b.minLat && lat <= b.maxLat && lon >= b.minLon && lon <= b.maxLon
-}
-
-function resolveModels(global: string[], perLocation: string[]): string[] {
-  const seen = new Set<string>()
-  const result: string[] = []
-  for (const m of [...global, ...perLocation]) {
-    const lower = m.toLowerCase()
-    if (!seen.has(lower)) {
-      seen.add(lower)
-      result.push(m)
-    }
-  }
-  return result
 }
 
 function computeHourlyCount(groups: string[]): number {

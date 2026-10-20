@@ -1,10 +1,8 @@
-export interface ModelInfo {
-  id: string
-  tier: string
-  region: string
-  bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number } | null
-  maxForecastHours: number | null
-}
+export const DOMAINS = ['Weather', 'AirQuality', 'Flood', 'Marine'] as const
+
+export type DomainName = (typeof DOMAINS)[number]
+
+export const DEFAULT_DOMAINS: DomainName[] = ['Weather', 'AirQuality', 'Flood']
 
 export interface ParameterGroup {
   group: string
@@ -22,9 +20,8 @@ export interface EnrichmentFeature {
 
 export interface LocationConfig {
   name: string
-  latitude: number
-  longitude: number
-  models: string[]
+  latitude?: number
+  longitude?: number
 }
 
 export interface DeployLimits {
@@ -36,8 +33,7 @@ export interface NjordConfig {
   pollInterval: string
   forecastDays: number
   discoveryInterval: string
-  horizons: number[]
-  models: string[]
+  enabledDomains: DomainName[]
   locations: LocationConfig[]
   parameters: { groups: string[]; extra: string[]; exclude: string[] }
   sensors: { enabled: boolean; stalenessSeconds: number }
@@ -57,8 +53,7 @@ export function defaultConfig(): NjordConfig {
     pollInterval: '01:00:00',
     forecastDays: 4,
     discoveryInterval: '00:20:00',
-    horizons: [3, 6, 12, 24, 48, 72],
-    models: [],
+    enabledDomains: [...DEFAULT_DOMAINS],
     locations: [],
     parameters: { groups: ['Weather'], extra: [], exclude: [] },
     sensors: { enabled: true, stalenessSeconds: 7200 },
