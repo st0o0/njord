@@ -5,14 +5,11 @@ namespace Njord.OpenMeteo;
 
 public sealed class AirQualityClient(HttpClient httpClient) : IAirQualityClient
 {
-    internal const string HourlyVariables =
-        "pm2_5,pm10,ozone,nitrogen_dioxide,european_aqi,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen";
-
-    public async Task<AirQualityResponse?> FetchAsync(double latitude, double longitude, int forecastDays, CancellationToken cancellationToken)
+    public async Task<AirQualityResponse?> FetchAsync(double latitude, double longitude, IReadOnlyList<string> variables, int forecastDays, CancellationToken cancellationToken)
     {
         var uri = OpenMeteoRequestBuilder.To("v1/air-quality")
             .WithLocation(latitude, longitude)
-            .WithHourly(HourlyVariables.Split(','))
+            .WithHourly(variables)
             .WithForecastDays(forecastDays)
             .Build();
         try

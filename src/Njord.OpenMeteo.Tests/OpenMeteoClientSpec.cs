@@ -8,6 +8,8 @@ namespace Njord.OpenMeteo.Tests;
 
 public sealed class OpenMeteoClientSpec
 {
+    private static readonly string[] Vars = ["temperature_2m", "temperature_2m_spread"];
+
     private static HttpClient StubHttp(HttpStatusCode status, string body, Action<HttpRequestMessage>? inspect = null) =>
         new(new StubHandler(status, body, inspect)) { BaseAddress = new Uri("https://ensemble-api.open-meteo.com/") };
 
@@ -20,7 +22,7 @@ public sealed class OpenMeteoClientSpec
         var client = Weather(HttpStatusCode.OK,
             """{"latitude":47.0,"longitude":8.0,"hourly":{"time":[1000,1003600],"temperature_2m":[20.5,null],"apparent_temperature":[18.0,null],"wind_speed_10m":[3.0,null],"precipitation":[0.0,null],"precipitation_probability":[10.0,null],"cloud_cover":[50.0,null],"pressure_msl":[1013.0,null],"weather_code":[3,null],"relative_humidity_2m":[65.0,null],"dew_point_2m":[12.0,null],"uv_index":[3.0,null]}}""");
 
-        var result = await client.FetchAsync(47.0, 8.0, 4, TestContext.Current.CancellationToken);
+        var result = await client.FetchAsync(47.0, 8.0, Vars, 4, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Hourly);
@@ -30,27 +32,19 @@ public sealed class OpenMeteoClientSpec
             () => Assert.Null(result.Hourly.Temperature[1]));
     }
 
-    [Theory(Timeout = 5000)]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task The_weather_url_contains_solar_variables_only_when_included(bool includeSolar)
+    [Fact(Timeout = 5000)]
+    public async Task The_weather_url_carries_exactly_the_given_variables_and_days()
     {
         Uri? sent = null;
-        var client = new WeatherClient(
-            StubHttp(HttpStatusCode.OK, """{"latitude":47.0,"longitude":8.0,"hourly":null}""", r => sent = r.RequestUri),
-            Microsoft.Extensions.Options.Options.Create(new WeatherOptions { IncludeSolar = includeSolar }));
+        var client = Weather(HttpStatusCode.OK, """{"latitude":47.0,"longitude":8.0,"hourly":null}""", r => sent = r.RequestUri);
 
-        await client.FetchAsync(47.0, 8.0, 7, TestContext.Current.CancellationToken);
+        await client.FetchAsync(47.0, 8.0, ["shortwave_radiation", "rain"], 7, TestContext.Current.CancellationToken);
 
         Assert.NotNull(sent);
-        var query = sent.Query;
         Assert.Multiple(
-            () => Assert.Equal(includeSolar, query.Contains("shortwave_radiation")),
-            () => Assert.Equal(includeSolar, query.Contains("direct_normal_irradiance")),
-            () => Assert.Equal(includeSolar, query.Contains("sunshine_duration")),
-            () => Assert.Contains("temperature_2m", query),
-            () => Assert.Contains("forecast_days=7", query),
-            () => Assert.Equal(WeatherVariables.For(includeSolar), client.HourlyVariables));
+            () => Assert.Contains("hourly=shortwave_radiation,rain&", sent.Query),
+            () => Assert.DoesNotContain("temperature_2m", sent.Query),
+            () => Assert.Contains("forecast_days=7", sent.Query));
     }
 
     [Fact(Timeout = 5000)]
@@ -60,7 +54,7 @@ public sealed class OpenMeteoClientSpec
             """{"latitude":47.0,"longitude":8.0,"daily":{"time":[86400],"river_discharge":[120.0]}}""", null))
         { BaseAddress = new Uri("https://flood-api.open-meteo.com/") });
 
-        var result = await client.FetchAsync(47.0, 8.0, TestContext.Current.CancellationToken);
+        var result = await client.FetchAsync(47.0, 8.0, ["river_discharge"], 92, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Daily);
@@ -73,7 +67,7 @@ public sealed class OpenMeteoClientSpec
         var client = Weather(HttpStatusCode.BadRequest,
             """{"error":true,"reason":"No data is available for this location"}""");
 
-        var result = await client.FetchAsync(47.0, 8.0, 4, TestContext.Current.CancellationToken);
+        var result = await client.FetchAsync(47.0, 8.0, Vars, 4, TestContext.Current.CancellationToken);
 
         Assert.Null(result);
     }
@@ -84,7 +78,7 @@ public sealed class OpenMeteoClientSpec
         var client = Weather(HttpStatusCode.TooManyRequests, "");
 
         var ex = await Assert.ThrowsAsync<HttpRequestException>(() =>
-            client.FetchAsync(47.0, 8.0, 4, TestContext.Current.CancellationToken));
+            client.FetchAsync(47.0, 8.0, Vars, 4, TestContext.Current.CancellationToken));
 
         Assert.Equal(HttpStatusCode.TooManyRequests, ex.StatusCode);
     }
@@ -97,7 +91,7 @@ public sealed class OpenMeteoClientSpec
             """{"latitude":47.0,"longitude":8.0,"hourly":{"time":[],"temperature_2m":[],"apparent_temperature":[],"wind_speed_10m":[],"precipitation":[],"precipitation_probability":[],"cloud_cover":[],"pressure_msl":[],"weather_code":[],"relative_humidity_2m":[],"dew_point_2m":[],"uv_index":[]}}""",
             r => sent = r.RequestUri);
 
-        await client.FetchAsync(47.05, 8.31, 4, TestContext.Current.CancellationToken);
+        await client.FetchAsync(47.05, 8.31, Vars, 4, TestContext.Current.CancellationToken);
 
         Assert.NotNull(sent);
         Assert.Contains("v1/ensemble?", sent.ToString());
@@ -108,7 +102,7 @@ public sealed class OpenMeteoClientSpec
         Assert.Contains("timezone=UTC", sent.ToString());
         Assert.Contains("forecast_days=4", sent.ToString());
         Assert.Contains("models=ecmwf_ifs025_ensemble_mean", sent.ToString());
-        Assert.Contains("temperature_2m_spread", sent.ToString());
+        Assert.Contains("hourly=temperature_2m,temperature_2m_spread&", sent.ToString());
     }
 
     [Fact(Timeout = 5000)]
@@ -117,7 +111,7 @@ public sealed class OpenMeteoClientSpec
         var client = Weather(HttpStatusCode.OK,
             """{"latitude":47.0,"longitude":8.0,"hourly":{"time":[1000],"temperature_2m":[20.5],"apparent_temperature":[18.0],"wind_speed_10m":[3.0],"precipitation":[0.0],"precipitation_probability":[10.0],"cloud_cover":[50.0],"pressure_msl":[1013.0],"weather_code":[3],"relative_humidity_2m":[65.0],"dew_point_2m":[12.0],"uv_index":[3.0],"temperature_2m_spread":[1.7]}}""");
 
-        var result = await client.FetchAsync(47.0, 8.0, 4, TestContext.Current.CancellationToken);
+        var result = await client.FetchAsync(47.0, 8.0, Vars, 4, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result?.Hourly?.EnsembleStdDev);
         Assert.Equal(1.7, result.Hourly.EnsembleStdDev[0]);
@@ -135,7 +129,7 @@ public sealed class OpenMeteoClientSpec
             r => sent = r.RequestUri))
         { BaseAddress = new Uri("https://air-quality-api.open-meteo.com/") });
 
-        await client.FetchAsync(47.05, 8.31, 4, TestContext.Current.CancellationToken);
+        await client.FetchAsync(47.05, 8.31, Vars, 4, TestContext.Current.CancellationToken);
 
         Assert.NotNull(sent);
         Assert.Contains("v1/air-quality?", sent.ToString());
@@ -143,7 +137,7 @@ public sealed class OpenMeteoClientSpec
     }
 
     [Fact(Timeout = 5000)]
-    public async Task The_flood_request_uri_carries_the_flood_path_with_the_fixed_horizon()
+    public async Task The_flood_request_uri_carries_the_flood_path_with_the_given_horizon()
     {
         Uri? sent = null;
         var client = new FloodClient(new HttpClient(new StubHandler(HttpStatusCode.OK,
@@ -151,7 +145,7 @@ public sealed class OpenMeteoClientSpec
             r => sent = r.RequestUri))
         { BaseAddress = new Uri("https://flood-api.open-meteo.com/") });
 
-        await client.FetchAsync(47.05, 8.31, TestContext.Current.CancellationToken);
+        await client.FetchAsync(47.05, 8.31, ["river_discharge"], 92, TestContext.Current.CancellationToken);
 
         Assert.NotNull(sent);
         Assert.Contains("v1/flood?", sent.ToString());
@@ -165,7 +159,7 @@ public sealed class OpenMeteoClientSpec
             """{"latitude":47.0,"longitude":8.0,"hourly":{"time":[3600,7200],"wave_height":[0.4,null],"wave_period":[4.0,null],"wave_direction":[270.0,null],"ocean_current_velocity":[0.2,null],"ocean_current_direction":[90.0,null],"sea_surface_temperature":[19.5,null]}}""", null))
         { BaseAddress = new Uri("https://marine-api.open-meteo.com/") });
 
-        var result = await client.FetchAsync(47.0, 8.0, TestContext.Current.CancellationToken);
+        var result = await client.FetchAsync(47.0, 8.0, ["river_discharge"], 92, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.NotNull(result.Hourly);
@@ -178,7 +172,7 @@ public sealed class OpenMeteoClientSpec
     }
 
     [Fact(Timeout = 5000)]
-    public async Task The_marine_request_uri_carries_the_marine_path_with_eight_days()
+    public async Task The_marine_request_uri_carries_the_marine_path_with_the_given_days()
     {
         Uri? sent = null;
         var client = new MarineClient(new HttpClient(new StubHandler(HttpStatusCode.OK,
@@ -186,7 +180,7 @@ public sealed class OpenMeteoClientSpec
             r => sent = r.RequestUri))
         { BaseAddress = new Uri("https://marine-api.open-meteo.com/") });
 
-        await client.FetchAsync(47.05, 8.31, TestContext.Current.CancellationToken);
+        await client.FetchAsync(47.05, 8.31, ["wave_height"], 8, TestContext.Current.CancellationToken);
 
         Assert.NotNull(sent);
         Assert.Contains("v1/marine?", sent.ToString());

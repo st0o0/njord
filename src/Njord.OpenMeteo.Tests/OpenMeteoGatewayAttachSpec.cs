@@ -41,7 +41,7 @@ public sealed class OpenMeteoGatewayAttachSpec : NjordActorSpec
         }));
         var weatherOptions = Options.Create(new WeatherOptions());
         return Sys.ActorOf(
-            Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _time, options, weatherOptions, _budget, FetchTimeouts.Default)),
+            Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _time, options, weatherOptions, Options.Create(new AirQualityOptions()), Options.Create(new MarineOptions()), Options.Create(new FloodOptions()), TestRequirements.Resolved, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 

@@ -101,7 +101,7 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     {
         var options = Microsoft.Extensions.Options.Options.Create(Options);
         var weatherOptions = Microsoft.Extensions.Options.Options.Create(new WeatherOptions());
-        return Sys.ActorOf(Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _time, options, weatherOptions, _budget, FetchTimeouts.Default)),
+        return Sys.ActorOf(Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _time, options, weatherOptions, Microsoft.Extensions.Options.Options.Create(new AirQualityOptions()), Microsoft.Extensions.Options.Options.Create(new MarineOptions()), Microsoft.Extensions.Options.Options.Create(new FloodOptions()), TestRequirements.Resolved, _budget, FetchTimeouts.Default)),
             $"gateway-{Guid.NewGuid():N}");
     }
 

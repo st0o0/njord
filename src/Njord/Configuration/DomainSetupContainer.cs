@@ -20,5 +20,9 @@ public sealed class DomainSetupContainer : IServiceSetupContainer
         services.AddSingleton<IReadOnlySet<DomainKind>>(static sp => EnrichmentResolution.RequiredDomains(
             sp.GetRequiredService<IOptions<EnrichmentOptions>>().Value,
             sp.GetServices<IDomainHandler>()));
+
+        services.AddSingleton(static sp => new ResolvedRequirements(EnrichmentResolution.RequiredParams(
+            sp.GetRequiredService<IOptions<EnrichmentOptions>>().Value,
+            sp.GetServices<IDomainHandler>())));
     }
 }

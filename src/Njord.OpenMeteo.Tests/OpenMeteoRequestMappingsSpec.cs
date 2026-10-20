@@ -9,32 +9,32 @@ public sealed class OpenMeteoUriBuilderSpec
     private const string EmptyBody = "{}";
 
     [Fact(Timeout = 5000)]
-    public async Task The_air_quality_uri_carries_location_and_fixed_query_parameters()
+    public async Task The_air_quality_uri_carries_location_variables_and_days()
     {
-        var uri = await Capture(client => new AirQualityClient(client).FetchAsync(47.05, 8.31, 4, TestContext.Current.CancellationToken));
+        var uri = await Capture(client => new AirQualityClient(client).FetchAsync(47.05, 8.31, ["pm2_5", "ozone"], 4, TestContext.Current.CancellationToken));
 
         Assert.Equal(
-            $"/v1/air-quality?latitude=47.05&longitude=8.31&hourly={AirQualityClient.HourlyVariables}&forecast_days=4&timeformat=unixtime&timezone=UTC",
+            $"/v1/air-quality?latitude=47.05&longitude=8.31&hourly=pm2_5,ozone&forecast_days=4&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task The_flood_uri_carries_location_and_the_fixed_horizon()
+    public async Task The_flood_uri_carries_location_variables_and_days()
     {
-        var uri = await Capture(client => new FloodClient(client).FetchAsync(47.05, 8.31, TestContext.Current.CancellationToken));
+        var uri = await Capture(client => new FloodClient(client).FetchAsync(47.05, 8.31, ["river_discharge", "river_discharge_max"], 92, TestContext.Current.CancellationToken));
 
         Assert.Equal(
-            $"/v1/flood?latitude=47.05&longitude=8.31&daily={FloodClient.DailyVariables}&forecast_days=92&timeformat=unixtime&timezone=UTC",
+            $"/v1/flood?latitude=47.05&longitude=8.31&daily=river_discharge,river_discharge_max&forecast_days=92&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
     [Fact(Timeout = 5000)]
-    public async Task The_marine_uri_carries_location_and_the_fixed_horizon()
+    public async Task The_marine_uri_carries_location_variables_and_days()
     {
-        var uri = await Capture(client => new MarineClient(client).FetchAsync(47.05, 8.31, TestContext.Current.CancellationToken));
+        var uri = await Capture(client => new MarineClient(client).FetchAsync(47.05, 8.31, ["wave_height"], 8, TestContext.Current.CancellationToken));
 
         Assert.Equal(
-            $"/v1/marine?latitude=47.05&longitude=8.31&hourly={MarineClient.HourlyVariables}&forecast_days=8&timeformat=unixtime&timezone=UTC",
+            $"/v1/marine?latitude=47.05&longitude=8.31&hourly=wave_height&forecast_days=8&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
@@ -45,7 +45,7 @@ public sealed class OpenMeteoUriBuilderSpec
         CultureInfo.CurrentCulture = new CultureInfo("de-DE");
         try
         {
-            var uri = await Capture(client => new AirQualityClient(client).FetchAsync(47.05, 8.31, 4, TestContext.Current.CancellationToken));
+            var uri = await Capture(client => new AirQualityClient(client).FetchAsync(47.05, 8.31, ["pm2_5", "ozone"], 4, TestContext.Current.CancellationToken));
 
             Assert.Contains("latitude=47.05&longitude=8.31", uri);
         }

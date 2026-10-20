@@ -13,6 +13,7 @@ using Njord.Forecast.Flood;
 using Njord.Forecast.Marine;
 using Njord.Forecast.Weather;
 using Njord.Messages.Forecast;
+using Njord.OpenMeteo.Mapping;
 using Njord.Tests.Shared;
 
 namespace Njord.OpenMeteo.Tests;
@@ -44,7 +45,7 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
             }));
             var weatherOptions = Options.Create(new WeatherOptions());
             registry.Register<IForecastGateway>(system.ActorOf(
-                Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _time, options, weatherOptions, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
+                Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _time, options, weatherOptions, Options.Create(new AirQualityOptions()), Options.Create(new MarineOptions()), Options.Create(new FloodOptions()), TestRequirements.Resolved, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
                 "gateway"));
         });
     }
@@ -113,6 +114,47 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
             () => Assert.Equal(0.4, Assert.Single(forecast.Points).WaveHeight),
             () => Assert.Equal(1, _marine.Calls),
             () => Assert.Equal(0, _weather.Calls + _airQuality.Calls + _flood.Calls));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_weather_fetch_requests_the_resolved_variables_and_the_configured_days()
+    {
+        await FetchAsync(DomainKind.Weather, TestContext.Current.CancellationToken);
+
+        Assert.Multiple(
+            () => Assert.Equal(TestRequirements.All.Weather.ToApiNames(), _weather.LastVariables),
+            () => Assert.Contains("temperature_2m_spread", _weather.LastVariables),
+            () => Assert.Equal(4, _weather.LastForecastDays));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task An_air_quality_fetch_requests_the_resolved_variables_and_the_configured_days()
+    {
+        await FetchAsync(DomainKind.AirQuality, TestContext.Current.CancellationToken);
+
+        Assert.Multiple(
+            () => Assert.Equal(TestRequirements.All.AirQuality.ToApiNames(), _airQuality.LastVariables),
+            () => Assert.Equal(5, _airQuality.LastForecastDays));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_flood_fetch_requests_the_resolved_variables_and_the_configured_days()
+    {
+        await FetchAsync(DomainKind.Flood, TestContext.Current.CancellationToken);
+
+        Assert.Multiple(
+            () => Assert.Equal(TestRequirements.All.Flood.ToApiNames(), _flood.LastVariables),
+            () => Assert.Equal(92, _flood.LastForecastDays));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_marine_fetch_requests_the_resolved_variables_and_the_configured_days()
+    {
+        await FetchAsync(DomainKind.Marine, TestContext.Current.CancellationToken);
+
+        Assert.Multiple(
+            () => Assert.Equal(TestRequirements.All.Marine.ToApiNames(), _marine.LastVariables),
+            () => Assert.Equal(8, _marine.LastForecastDays));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
