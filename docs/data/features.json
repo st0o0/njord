@@ -257,6 +257,20 @@
     ]
   },
   {
+    "key": "AirQuality:Dust",
+    "name": "Dust",
+    "category": "AirQuality",
+    "output": "Alert",
+    "description": "Saharan dust concentration warning",
+    "enabledByDefault": false,
+    "domains": [
+      "AirQuality"
+    ],
+    "airQualityParams": [
+      "Dust"
+    ]
+  },
+  {
     "key": "AirQuality:PollenTrend",
     "name": "PollenTrend",
     "category": "AirQuality",

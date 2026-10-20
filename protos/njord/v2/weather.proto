@@ -108,6 +108,14 @@ message AirQualitySample {
   optional double grass_pollen = 6;
   optional double alder = 7;
   optional double mugwort = 8;
+  optional double carbon_monoxide = 9;
+  optional double sulphur_dioxide = 10;
+  optional double dust = 11;
+  optional double ammonia = 12;
+  optional double olive_pollen = 13;
+  optional double us_aqi = 14;
+  optional double uv_index = 15;
+  optional double uv_index_clear_sky = 16;
 }
 
 message FloodData {

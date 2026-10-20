@@ -22,6 +22,7 @@ services:
       #- Njord__Weather__ForecastDays=4
       # Forecast days per domain (only used when an enabled feature needs the domain)
       #- Njord__AirQuality__ForecastDays=5   # 1-7
+      #- Njord__AirQuality__Region=Global   # Global, Europe (adds ammonia, olive pollen), UnitedStates (adds US AQI)
       #- Njord__Marine__ForecastDays=8       # 1-8
       #- Njord__Flood__ForecastDays=92       # 1-210
       #- Njord__Flood__IncludeEnsemble=false # 50 GloFAS members, adds confidence to FloodRisk, costs 5 calls per flood request
@@ -37,6 +38,7 @@ services:
       #- Njord__Features__Lifestyle__Exercise=true
       #- Njord__Features__Lifestyle__Laundry=true
       #- Njord__Features__AirQuality__PollenTrend=true
+      #- Njord__Features__AirQuality__Dust=true       # Saharan dust concentration alert (off by default)
       #- Njord__Features__Lifestyle__NightVentilation=true
       #- Njord__Features__Insight__ConfidenceTrend=true
       #- Njord__Features__Insight__SeasonalOutlook=true # 3-month outlook, one extra call per day and location

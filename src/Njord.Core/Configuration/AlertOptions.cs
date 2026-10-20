@@ -21,4 +21,5 @@ public sealed class AlertOptions
     public double[] VisibilityThresholds { get; set; } = [1000, 200, 50];
     public double[] TropicalNightThresholds { get; set; } = [20, 23, 25];
     public double[] HumidityThresholds { get; set; } = [16, 21, 24];
+    public double[] DustThresholds { get; set; } = [50, 150, 500];
 }

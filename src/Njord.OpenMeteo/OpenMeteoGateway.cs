@@ -106,7 +106,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         _seasonal = seasonal.Value;
         _satellite = satellite.Value;
         _weatherVariables = requirements.AllWeather.ToApiNames();
-        _airQualityVariables = requirements.AllAirQuality.ToApiNames();
+        _airQualityVariables = requirements.AllAirQuality.ApplyRegionFilter(airQuality.Value.Region).ToApiNames();
         _floodVariables = requirements.AllFlood.ToApiNames();
         _marineVariables = requirements.AllMarine.ToApiNames();
         _seasonalVariables = requirements.AllSeasonal.ToApiNames();

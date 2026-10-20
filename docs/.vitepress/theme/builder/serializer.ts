@@ -51,7 +51,10 @@ export function exportAsJson(config: NjordConfig): string {
   if (config.weather.forecastDays !== defaults.weather.forecastDays) weather.ForecastDays = config.weather.forecastDays
   if (config.weather.model !== defaults.weather.model) weather.Model = config.weather.model
   if (Object.keys(weather).length) n.Weather = weather
-  if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) n.AirQuality = { ForecastDays: config.airQuality.forecastDays }
+  const aq: Record<string, unknown> = {}
+  if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) aq.ForecastDays = config.airQuality.forecastDays
+  if (config.airQuality.region !== defaults.airQuality.region) aq.Region = config.airQuality.region
+  if (Object.keys(aq).length) n.AirQuality = aq
   if (config.marine.forecastDays !== defaults.marine.forecastDays) n.Marine = { ForecastDays: config.marine.forecastDays }
   const flood: Record<string, unknown> = {}
   if (config.flood.forecastDays !== defaults.flood.forecastDays) flood.ForecastDays = config.flood.forecastDays
@@ -118,6 +121,7 @@ export function exportAsEnvVars(config: NjordConfig): string {
   if (config.weather.forecastDays !== defaults.weather.forecastDays) add('Njord__Weather__ForecastDays', String(config.weather.forecastDays))
   if (config.weather.model !== defaults.weather.model) add('Njord__Weather__Model', config.weather.model)
   if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) add('Njord__AirQuality__ForecastDays', String(config.airQuality.forecastDays))
+  if (config.airQuality.region !== defaults.airQuality.region) add('Njord__AirQuality__Region', config.airQuality.region)
   if (config.marine.forecastDays !== defaults.marine.forecastDays) add('Njord__Marine__ForecastDays', String(config.marine.forecastDays))
   if (config.flood.forecastDays !== defaults.flood.forecastDays) add('Njord__Flood__ForecastDays', String(config.flood.forecastDays))
   if (config.flood.includeEnsemble) add('Njord__Flood__IncludeEnsemble', 'true')
@@ -219,7 +223,7 @@ export function importFromJson(json: string): Partial<NjordConfig> {
       tilt: n.SolarYield.Tilt !== undefined ? Number(n.SolarYield.Tilt) : d.tilt,
     }
   }
-  if (n.AirQuality) config.airQuality = { forecastDays: Number(n.AirQuality.ForecastDays) || 5 }
+  if (n.AirQuality) config.airQuality = { forecastDays: Number(n.AirQuality.ForecastDays) || 5, region: n.AirQuality.Region ?? 'Global' }
   if (n.Marine) config.marine = { forecastDays: Number(n.Marine.ForecastDays) || 8 }
   if (n.Flood) config.flood = { forecastDays: Number(n.Flood.ForecastDays) || 92 }
   if (discoveryInterval) config.discoveryInterval = discoveryInterval
@@ -285,6 +289,7 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
       }
     }
     else if (parts[0] === 'AirQuality' && parts[1] === 'ForecastDays') config.airQuality.forecastDays = parseInt(value) || 5
+    else if (parts[0] === 'AirQuality' && parts[1] === 'Region') config.airQuality.region = value
     else if (parts[0] === 'Marine' && parts[1] === 'ForecastDays') config.marine.forecastDays = parseInt(value) || 8
     else if (parts[0] === 'Flood' && parts[1] === 'ForecastDays') config.flood.forecastDays = parseInt(value) || 92
     else if (parts[0] === 'Features' && parts.length === 3) {

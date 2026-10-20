@@ -14,9 +14,13 @@
 
 One flag, one nullable `AirQualityPoint` member, one `HasFields` arm, one DTO property and one mapping arm per variable (`carbon_monoxide`, `sulphur_dioxide`, `dust`, `ammonia`, `olive_pollen`, `us_aqi`, `uv_index`, `uv_index_clear_sky`). All switches throw `ArgumentOutOfRangeException` by default and each is pinned by a spec per member (AGENTS.md enum rules). The flag enum reaches 17 members, still within `int`.
 
+**Verified (task 1.1):** All names match the Open-Meteo air-quality API exactly. Units: `carbon_monoxide` μg/m³, `sulphur_dioxide` μg/m³, `dust` μg/m³, `ammonia` μg/m³ (Europe only via CAMS European), `olive_pollen` grains/m³ (Europe only, pollen season, 4-day forecast), `us_aqi` dimensionless index, `uv_index` dimensionless index, `uv_index_clear_sky` dimensionless index. The `domains` parameter defaults to `auto` which combines CAMS Global and CAMS European models.
+
 ### D2: Region decides what is requested
 
-`ammonia` and `olive_pollen` have CAMS Europe coverage only and `us_aqi` is meaningful only for US users. Requesting them elsewhere returns nulls and wastes payload. `AirQualityOptions.Region` (enum `AirQualityRegion { Global, Europe, UnitedStates }`, default `Global`, validated) filters the region-bound optional flags when the request is composed. The filter lives in one place (request composition for AirQuality, not in each handler) so handlers keep declaring what they need. A null value for a region-bound field is never an error. The enum has explicit wire text through an extension switch, not `ToString()`.
+`ammonia` and `olive_pollen` have CAMS Europe coverage only and `us_aqi` is meaningful only for US users. Requesting them elsewhere returns nulls and wastes payload. `AirQualityOptions.Region` (enum `AirQualityRegion { Global, Europe, UnitedStates }`, default `Global`, validated) filters the region-bound optional flags when the request is composed.
+
+**Verified (task 1.1):** The Open-Meteo pricing FAQ weights requests by `ceil(variables/10)`, but uses the term "weather variables" and `BudgetCalculator` applies the formula only to Weather. AirQuality is a separate API endpoint counted as weight 1; even at 17 flags the budget impact is unchanged. The filter lives in one place (request composition for AirQuality, not in each handler) so handlers keep declaring what they need. A null value for a region-bound field is never an error. The enum has explicit wire text through an extension switch, not `ToString()`.
 
 Rejected alternative: infer the region from coordinates. It is implicit and hard to test; an explicit option is simpler and operators know where they live.
 

@@ -127,6 +127,14 @@ internal static class DomainDataProtoMappings
         if (p.GrassPollen is { } grass) { sample.GrassPollen = grass; }
         if (p.Alder is { } alder) { sample.Alder = alder; }
         if (p.Mugwort is { } mugwort) { sample.Mugwort = mugwort; }
+        if (p.CarbonMonoxide is { } co) { sample.CarbonMonoxide = co; }
+        if (p.SulphurDioxide is { } so2) { sample.SulphurDioxide = so2; }
+        if (p.Dust is { } dust) { sample.Dust = dust; }
+        if (p.Ammonia is { } ammonia) { sample.Ammonia = ammonia; }
+        if (p.OlivePollen is { } olive) { sample.OlivePollen = olive; }
+        if (p.UsAqi is { } usAqi) { sample.UsAqi = usAqi; }
+        if (p.UvIndex is { } uvIndex) { sample.UvIndex = uvIndex; }
+        if (p.UvIndexClearSky is { } uvClearSky) { sample.UvIndexClearSky = uvClearSky; }
         return sample;
     }
 

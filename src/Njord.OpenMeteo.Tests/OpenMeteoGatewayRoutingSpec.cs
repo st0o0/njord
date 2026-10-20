@@ -169,7 +169,7 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
         await FetchAsync(DomainKind.AirQuality, TestContext.Current.CancellationToken);
 
         Assert.Multiple(
-            () => Assert.Equal(TestRequirements.All.AirQuality.ToApiNames(), _airQuality.LastVariables),
+            () => Assert.Equal(TestRequirements.All.AllAirQuality.ApplyRegionFilter(AirQualityRegion.Global).ToApiNames(), _airQuality.LastVariables),
             () => Assert.Equal(5, _airQuality.LastForecastDays));
     }
 

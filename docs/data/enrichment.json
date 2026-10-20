@@ -18,7 +18,8 @@
       { "name": "WindChillThresholds", "type": "numberArray", "default": [-10, -20, -30] },
       { "name": "VisibilityThresholds", "type": "numberArray", "default": [1000, 200, 50] },
       { "name": "TropicalNightThresholds", "type": "numberArray", "default": [20, 23, 25] },
-      { "name": "HumidityThresholds", "type": "numberArray", "default": [16, 21, 24] }
+      { "name": "HumidityThresholds", "type": "numberArray", "default": [16, 21, 24] },
+      { "name": "DustThresholds", "type": "numberArray", "default": [50, 150, 500] }
     ]
   }
 ]

@@ -15,6 +15,7 @@ public sealed class AlertOptionsValidator : IValidateOptions<AlertOptions>
         Descending(options.VisibilityThresholds, nameof(AlertOptions.VisibilityThresholds), errors);
         Ascending(options.TropicalNightThresholds, nameof(AlertOptions.TropicalNightThresholds), errors);
         Ascending(options.HumidityThresholds, nameof(AlertOptions.HumidityThresholds), errors);
+        Ascending(options.DustThresholds, nameof(AlertOptions.DustThresholds), errors);
 
         return errors.Count > 0
             ? ValidateOptionsResult.Fail(errors)
