@@ -81,6 +81,15 @@ public sealed class ParamsMappingsSpec
     [InlineData(MarineParams.WavePeriod, "wave_period")]
     [InlineData(MarineParams.WaveDirection, "wave_direction")]
     [InlineData(MarineParams.WaterTemperature, "sea_surface_temperature")]
+    [InlineData(MarineParams.WindWaveHeight, "wind_wave_height")]
+    [InlineData(MarineParams.WindWavePeriod, "wind_wave_period")]
+    [InlineData(MarineParams.WindWaveDirection, "wind_wave_direction")]
+    [InlineData(MarineParams.WindWavePeakPeriod, "wind_wave_peak_period")]
+    [InlineData(MarineParams.SwellWaveHeight, "swell_wave_height")]
+    [InlineData(MarineParams.SwellWavePeriod, "swell_wave_period")]
+    [InlineData(MarineParams.SwellWaveDirection, "swell_wave_direction")]
+    [InlineData(MarineParams.SwellWavePeakPeriod, "swell_wave_peak_period")]
+    [InlineData(MarineParams.SeaLevelHeight, "sea_level_height_msl")]
     public void Should_map_each_marine_flag_to_its_api_name(MarineParams param, string expected) =>
         Assert.Equal([expected], param.ToApiNames());
 
@@ -99,6 +108,7 @@ public sealed class ParamsMappingsSpec
             () => Assert.Empty(WeatherParams.None.ToApiNames()),
             () => Assert.Empty(AirQualityParams.None.ToApiNames()),
             () => Assert.Empty(FloodParams.None.ToApiNames()),
+            () => Assert.Empty(FloodParams.Ensemble.ToApiNames()),
             () => Assert.Empty(MarineParams.None.ToApiNames()));
     }
 }

@@ -166,6 +166,15 @@ internal static class DomainDataProtoMappings
         if (p.WavePeriod is { } period) { sample.WavePeriod = period; }
         if (p.WaveDirection is { } direction) { sample.WaveDirection = direction; }
         if (p.WaterTemperature is { } water) { sample.WaterTemperature = water; }
+        if (p.WindWaveHeight is { } windWaveHeight) { sample.WindWaveHeight = windWaveHeight; }
+        if (p.WindWavePeriod is { } windWavePeriod) { sample.WindWavePeriod = windWavePeriod; }
+        if (p.WindWaveDirection is { } windWaveDirection) { sample.WindWaveDirection = windWaveDirection; }
+        if (p.WindWavePeakPeriod is { } windWavePeakPeriod) { sample.WindWavePeakPeriod = windWavePeakPeriod; }
+        if (p.SwellWaveHeight is { } swellWaveHeight) { sample.SwellWaveHeight = swellWaveHeight; }
+        if (p.SwellWavePeriod is { } swellWavePeriod) { sample.SwellWavePeriod = swellWavePeriod; }
+        if (p.SwellWaveDirection is { } swellWaveDirection) { sample.SwellWaveDirection = swellWaveDirection; }
+        if (p.SwellWavePeakPeriod is { } swellWavePeakPeriod) { sample.SwellWavePeakPeriod = swellWavePeakPeriod; }
+        if (p.SeaLevelHeight is { } seaLevelHeight) { sample.SeaLevelHeightMsl = seaLevelHeight; }
         return sample;
     }
 }

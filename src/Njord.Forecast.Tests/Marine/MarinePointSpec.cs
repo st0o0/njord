@@ -37,6 +37,35 @@ public sealed class MarinePointSpec
     }
 
     [Fact]
+    public void Should_report_each_new_flag_true_only_when_its_own_member_has_a_value()
+    {
+        var point = new MarinePoint(At, WindWaveHeight: 1, WindWavePeriod: 2, WindWaveDirection: 3, WindWavePeakPeriod: 4,
+            SwellWaveHeight: 5, SwellWavePeriod: 6, SwellWaveDirection: 7, SwellWavePeakPeriod: 8, SeaLevelHeight: 9);
+
+        Assert.Multiple(
+            () => Assert.True(point.HasFields(MarineParams.WindWaveHeight)),
+            () => Assert.True(point.HasFields(MarineParams.WindWavePeriod)),
+            () => Assert.True(point.HasFields(MarineParams.WindWaveDirection)),
+            () => Assert.True(point.HasFields(MarineParams.WindWavePeakPeriod)),
+            () => Assert.True(point.HasFields(MarineParams.SwellWaveHeight)),
+            () => Assert.True(point.HasFields(MarineParams.SwellWavePeriod)),
+            () => Assert.True(point.HasFields(MarineParams.SwellWaveDirection)),
+            () => Assert.True(point.HasFields(MarineParams.SwellWavePeakPeriod)),
+            () => Assert.True(point.HasFields(MarineParams.SeaLevelHeight)),
+            () => Assert.False(point.HasFields(MarineParams.WaveHeight)));
+    }
+
+    [Fact]
+    public void Should_report_swell_false_when_only_wind_wave_values_exist()
+    {
+        var point = new MarinePoint(At, WindWaveHeight: 1);
+
+        Assert.Multiple(
+            () => Assert.True(point.HasFields(MarineParams.WindWaveHeight)),
+            () => Assert.False(point.HasFields(MarineParams.SwellWaveHeight)));
+    }
+
+    [Fact]
     public void Should_report_false_for_every_single_flag_on_an_empty_point()
     {
         var point = new MarinePoint(At);

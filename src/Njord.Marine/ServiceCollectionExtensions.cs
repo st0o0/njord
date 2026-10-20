@@ -11,6 +11,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<IAlertRule<DomainForecast<MarinePoint>>, SwimmingConditionsRule>();
         services.AddSingleton<IDomainHandler, SwimmingConditionsHandler>();
+        services.AddSingleton<IDomainHandler, SurfConditionsHandler>();
         return services;
     }
 }

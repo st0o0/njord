@@ -145,6 +145,15 @@ message MarineSample {
   double wave_period = 3;
   double wave_direction = 4;
   optional double water_temperature = 5;
+  optional double wind_wave_height = 6;
+  optional double wind_wave_period = 7;
+  optional double wind_wave_direction = 8;
+  optional double wind_wave_peak_period = 9;
+  optional double swell_wave_height = 10;
+  optional double swell_wave_period = 11;
+  optional double swell_wave_direction = 12;
+  optional double swell_wave_peak_period = 13;
+  optional double sea_level_height_msl = 14;
 }
 
 // ═══════════════════════════════════════

@@ -19,6 +19,7 @@ public static class LifestyleMappings
         LifestyleKind.BbqScore => "bbq_score",
         LifestyleKind.FloodTimeline => "flood_timeline",
         LifestyleKind.FrontApproaching => "front_approaching",
+        LifestyleKind.SurfConditions => "surf_conditions",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
@@ -66,8 +67,29 @@ public static class LifestyleMappings
             ("estimated_in_hours", Number(e.EstimatedIn.TotalHours)),
             ("pressure_drop", Number(e.PressureDrop)),
             ("temp_drop", Number(e.TempDrop)))),
+        PipelineEvent.SurfConditionsComputed e => new LifestyleUpdate(e.Location, LifestyleKind.SurfConditions, SurfFields(e)),
         _ => null,
     };
+
+    private static IReadOnlyDictionary<string, string> SurfFields(PipelineEvent.SurfConditionsComputed e)
+    {
+        var fields = new Dictionary<string, string>
+        {
+            ["score"] = Number(e.Score),
+            ["rating"] = e.Rating,
+            ["swell_height"] = Number(e.SwellHeight),
+            ["swell_period"] = Number(e.SwellPeriod),
+            ["wind_considered"] = Flag(e.WindRelation is not null),
+            ["best_start"] = Time(e.BestStart),
+        };
+
+        if (e.WindRelation is { } relation)
+        {
+            fields["wind"] = relation;
+        }
+
+        return fields;
+    }
 
     private static IReadOnlyDictionary<string, string> ScoreFields(int score, DateTimeOffset bestStart, int bestHours) => Fields(
         ("score", Number(score)),

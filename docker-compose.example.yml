@@ -43,6 +43,7 @@ services:
       #- Njord__Enrichments__FloodRisk=true
       #- Njord__Enrichments__FloodRain=true
       #- Njord__Enrichments__SwimmingConditions=true
+      #- Njord__Enrichments__SurfConditions=true # swell vs wind waves, scored from swell period/height and wind direction
       #- Njord__Enrichments__VentilationWindow=true
       #- Njord__Enrichments__ExerciseAdvisory=true
       #- Njord__Enrichments__LaundryScore=true

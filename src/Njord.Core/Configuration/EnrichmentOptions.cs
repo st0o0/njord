@@ -22,6 +22,7 @@ public sealed class EnrichmentOptions
     public bool FloodRisk { get; set; }
     public bool FloodRain { get; set; }
     public bool SwimmingConditions { get; set; }
+    public bool SurfConditions { get; set; }
     public bool VentilationWindow { get; set; }
     public bool ExerciseAdvisory { get; set; }
     public bool LaundryScore { get; set; }

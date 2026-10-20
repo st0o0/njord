@@ -22,7 +22,7 @@ Each PollWorker fetches the domains required by the enabled [enrichments](./#enr
 | Weather | Ensemble Mean | a Weather enrichment is enabled (default) |
 | Air Quality | Air Quality API | `PollenAlert`, `Pm25Alert` or another Air Quality enrichment is enabled (default) |
 | Flood | Flood API | `FloodRisk` or `FloodRain` is enabled |
-| Marine | Marine API | `SwimmingConditions` is enabled |
+| Marine | Marine API | `SwimmingConditions` or `SurfConditions` is enabled |
 
 
 ```

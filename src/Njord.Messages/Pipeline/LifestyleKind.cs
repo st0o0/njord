@@ -15,4 +15,5 @@ public enum LifestyleKind
     BbqScore,
     FloodTimeline,
     FrontApproaching,
+    SurfConditions,
 }

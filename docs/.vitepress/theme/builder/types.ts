@@ -23,6 +23,7 @@ export const ENRICHMENT_TOGGLES: EnrichmentToggle[] = [
   { key: 'FloodRisk', label: 'Flood risk', description: 'River discharge based flood risk', domains: ['Flood'], enabledByDefault: false },
   { key: 'FloodRain', label: 'Flood rain', description: 'Flood risk from rain and river discharge', domains: ['Flood', 'Weather'], weatherParams: ['Precipitation'], enabledByDefault: false },
   { key: 'SwimmingConditions', label: 'Swimming conditions', description: 'Waves and sea temperature', domains: ['Marine'], enabledByDefault: false },
+  { key: 'SurfConditions', label: 'Surf conditions', description: 'Swell quality score from swell period, height and wind', domains: ['Marine', 'Weather'], optionalWeatherParams: ['WindDirection'], enabledByDefault: false },
   { key: 'VentilationWindow', label: 'Ventilation window', description: 'Best time to ventilate', domains: ['Weather', 'AirQuality'], weatherParams: ['Temperature', 'Precipitation'], enabledByDefault: false },
   { key: 'ExerciseAdvisory', label: 'Exercise advisory', description: 'Outdoor exercise advisory', domains: ['Weather', 'AirQuality'], weatherParams: ['Temperature', 'Humidity', 'UvIndex'], enabledByDefault: false },
   { key: 'LaundryScore', label: 'Laundry score', description: 'Drying conditions for laundry', domains: ['Weather'], weatherParams: ['Precipitation', 'Temperature', 'Humidity', 'WindSpeed', 'PrecipitationProbability', 'CloudCover', 'SunshineDuration'], enabledByDefault: false },
@@ -53,6 +54,7 @@ export function weatherVariableCount(enrichments: Record<string, boolean>): numb
   const params = new Set<string>()
   for (const toggle of ENRICHMENT_TOGGLES) {
     if (enrichments[toggle.key]) toggle.weatherParams?.forEach(p => params.add(p))
+    if (enrichments[toggle.key]) toggle.optionalWeatherParams?.forEach(p => params.add(p))
   }
   return params.size
 }

@@ -64,6 +64,7 @@ You switch features on, njord derives which API domains to poll. Each enrichment
 | `FloodRisk` | off | Flood |
 | `FloodRain` | off | Flood, Weather |
 | `SwimmingConditions` | off | Marine |
+| `SurfConditions` | off | Marine, Weather (wind direction, optional) |
 | `VentilationWindow` | off | Weather, Air Quality |
 | `ExerciseAdvisory` | off | Weather, Air Quality |
 | `LaundryScore` | off | Weather |

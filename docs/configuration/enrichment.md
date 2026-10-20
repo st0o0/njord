@@ -88,6 +88,12 @@ Cost: an ensemble flood request is budgeted with a call weight of 5 (50 members 
 
 ## Wire exposure
 
-Weather alerts are delivered over gRPC (`GetEnrichments`, `StreamEnrichments`) and MQTT (`njord/{location}/alerts/{type}`). Air quality and flood alerts are produced by the pipeline as their own events; their gRPC and MQTT representation is not exposed yet.
+Weather alerts are delivered over gRPC (`GetEnrichments`, `StreamEnrichments`). Air quality and flood alerts are produced by the pipeline as their own events; their gRPC representation is not exposed yet.
 
 Values such as apparent temperature, dew point and UV index come directly from the Open-Meteo API; njord computes no further derived values.
+
+## Surf conditions
+
+`SurfConditions` (off by default) separates swell from wind waves. Swell is distant, organised, long-period energy; wind waves are local chop, so a 1.5 m sea of 5 s wind waves and a 1.5 m swell of 12 s are very different days. The enrichment scores the best hour of the next 24 hours from swell period (below 8 s poor, 8 to 12 s good, above 12 s excellent), swell height (1.0 to 2.5 m is the ideal band) and, when Weather wind direction is available, wind relative to swell direction (offshore, cross, onshore). A high wind-wave share lowers the score and a swell period below 8 s caps the rating at poor. Without wind data the result is swell-only (`wind_considered` is `false`). The score is indicative, the thresholds are constants and not options.
+
+The result travels as a lifestyle update (`surf_conditions`) over gRPC. The Marine API call count is unchanged (one call per location and cycle); the extra Marine variables are only requested when the toggle is on.

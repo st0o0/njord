@@ -120,4 +120,13 @@ public abstract record PipelineEvent
         TimeSpan EstimatedIn,
         double PressureDrop,
         double TempDrop) : PipelineEvent;
+
+    public sealed record SurfConditionsComputed(
+        Location Location,
+        int Score,
+        string Rating,
+        double SwellHeight,
+        double SwellPeriod,
+        string? WindRelation,
+        DateTimeOffset BestStart) : PipelineEvent;
 }

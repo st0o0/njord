@@ -24,6 +24,7 @@ public sealed class LifestyleMappingsSpec
         { new PipelineEvent.BBQScoreComputed(Lucerne, 90, At, 3), LifestyleKind.BbqScore, "bbq_score" },
         { new PipelineEvent.FloodTimelineComputed(Lucerne, At, 120.5, 2), LifestyleKind.FloodTimeline, "flood_timeline" },
         { new PipelineEvent.FrontApproaching(Lucerne, TimeSpan.FromHours(6), 4, 5), LifestyleKind.FrontApproaching, "front_approaching" },
+        { new PipelineEvent.SurfConditionsComputed(Lucerne, 85, "excellent", 1.8, 14, "offshore", At), LifestyleKind.SurfConditions, "surf_conditions" },
     };
 
     [Theory]
@@ -53,6 +54,37 @@ public sealed class LifestyleMappingsSpec
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => ((LifestyleKind)999).ToWireName());
 
         Assert.Equal("kind", ex.ParamName);
+    }
+
+    [Fact]
+    public void Surf_fields_include_the_wind_relation_when_wind_was_considered()
+    {
+        var update = new PipelineEvent.SurfConditionsComputed(Lucerne, 85, "excellent", 1.8, 14, "offshore", At).ToLifestyleUpdate();
+
+        Assert.NotNull(update);
+        Assert.Equal(
+            new Dictionary<string, string>
+            {
+                ["score"] = "85",
+                ["rating"] = "excellent",
+                ["swell_height"] = "1.8",
+                ["swell_period"] = "14",
+                ["wind_considered"] = "true",
+                ["best_start"] = "2026-07-01T06:00:00Z",
+                ["wind"] = "offshore",
+            },
+            update.Data);
+    }
+
+    [Fact]
+    public void Surf_fields_omit_the_wind_relation_and_flag_swell_only_results()
+    {
+        var update = new PipelineEvent.SurfConditionsComputed(Lucerne, 60, "good", 1.8, 14, null, At).ToLifestyleUpdate();
+
+        Assert.NotNull(update);
+        Assert.Multiple(
+            () => Assert.Equal("false", update.Data["wind_considered"]),
+            () => Assert.False(update.Data.ContainsKey("wind")));
     }
 
     [Fact]

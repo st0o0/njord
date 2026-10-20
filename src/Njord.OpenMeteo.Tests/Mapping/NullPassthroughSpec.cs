@@ -82,6 +82,10 @@ public sealed class NullPassthroughSpec
             () => Assert.Equal(1.2, point.WaveHeight),
             () => Assert.Null(point.WavePeriod),
             () => Assert.Null(point.WaveDirection),
-            () => Assert.Null(point.WaterTemperature));
+            () => Assert.Null(point.WaterTemperature),
+            () => Assert.Null(point.WindWaveHeight),
+            () => Assert.Null(point.SwellWaveHeight),
+            () => Assert.Null(point.SwellWavePeriod),
+            () => Assert.Null(point.SeaLevelHeight));
     }
 }

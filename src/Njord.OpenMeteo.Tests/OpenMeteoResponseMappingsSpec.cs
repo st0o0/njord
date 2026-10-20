@@ -179,6 +179,54 @@ public sealed class OpenMeteoResponseMappingsSpec
     }
 
     [Fact]
+    public void A_marine_response_maps_swell_wind_wave_and_sea_level_separately_from_combined_waves()
+    {
+        var response = new MarineResponse(47.0, 8.0,
+            new MarineHourlyData(
+                Time: [Hour0, Hour0 + 3600],
+                WaveHeight: [1.5, 1.6],
+                WindWaveHeight: [0.5, null],
+                WindWavePeriod: [4.0, null],
+                WindWaveDirection: [90.0, null],
+                WindWavePeakPeriod: [5.0, null],
+                SwellWaveHeight: [1.4, 1.5],
+                SwellWavePeriod: [12.0, 13.0],
+                SwellWaveDirection: [270.0, 275.0],
+                SwellWavePeakPeriod: [14.0, 15.0],
+                SeaLevelHeight: [0.3, 0.4]));
+
+        var forecast = response.ToDomainForecast(Run);
+
+        Assert.NotNull(forecast);
+        var first = forecast.Points[0];
+        Assert.Multiple(
+            () => Assert.Equal(1.5, first.WaveHeight),
+            () => Assert.Equal(0.5, first.WindWaveHeight),
+            () => Assert.Equal(4.0, first.WindWavePeriod),
+            () => Assert.Equal(90.0, first.WindWaveDirection),
+            () => Assert.Equal(5.0, first.WindWavePeakPeriod),
+            () => Assert.Equal(1.4, first.SwellWaveHeight),
+            () => Assert.Equal(12.0, first.SwellWavePeriod),
+            () => Assert.Equal(270.0, first.SwellWaveDirection),
+            () => Assert.Equal(14.0, first.SwellWavePeakPeriod),
+            () => Assert.Equal(0.3, first.SeaLevelHeight),
+            () => Assert.Null(forecast.Points[1].WindWaveHeight),
+            () => Assert.Equal(1.5, forecast.Points[1].SwellWaveHeight));
+    }
+
+    [Fact]
+    public void A_marine_response_with_only_sea_level_values_still_maps()
+    {
+        var response = new MarineResponse(47.0, 8.0,
+            new MarineHourlyData(Time: [Hour0], SeaLevelHeight: [0.7]));
+
+        var forecast = response.ToDomainForecast(Run);
+
+        Assert.NotNull(forecast);
+        Assert.Equal(0.7, Assert.Single(forecast.Points).SeaLevelHeight);
+    }
+
+    [Fact]
     public void A_marine_response_trims_trailing_hours_without_any_value()
     {
         var response = new MarineResponse(47.0, 8.0,
@@ -201,5 +249,34 @@ public sealed class OpenMeteoResponseMappingsSpec
             new MarineHourlyData(Time: [Hour0], WaveHeight: [null], WavePeriod: [null], WaveDirection: [null]));
 
         Assert.Null(response.ToDomainForecast(Run));
+    }
+
+    [Fact]
+    public void A_flood_ensemble_response_maps_members_per_day_and_drops_nulls()
+    {
+        const string json = """
+            {"latitude":47.0,"longitude":8.0,"daily":{"time":[86400,172800],"river_discharge":[120.0,130.0],
+            "river_discharge_member01":[100.0,null],"river_discharge_member02":[110.0,150.0],"other":[1,2]}}
+            """;
+        var response = System.Text.Json.JsonSerializer.Deserialize(json, OpenMeteoJsonContext.Default.FloodResponse);
+
+        var forecast = response!.ToDomainForecast(Run);
+
+        Assert.NotNull(forecast);
+        Assert.Equal(2, forecast.Points.Length);
+        Assert.Multiple(
+            () => Assert.Equal([100.0, 110.0], forecast.Points[0].EnsembleMembers),
+            () => Assert.Equal([150.0], forecast.Points[1].EnsembleMembers));
+    }
+
+    [Fact]
+    public void A_flood_response_without_member_series_has_no_ensemble_members()
+    {
+        var response = new FloodResponse(47.0, 8.0, new FloodDailyData(Time: [Hour0], Discharge: [120.0]));
+
+        var forecast = response.ToDomainForecast(Run);
+
+        Assert.NotNull(forecast);
+        Assert.Null(Assert.Single(forecast.Points).EnsembleMembers);
     }
 }

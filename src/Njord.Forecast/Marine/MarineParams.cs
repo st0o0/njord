@@ -8,4 +8,13 @@ public enum MarineParams
     WavePeriod = 1 << 1,
     WaveDirection = 1 << 2,
     WaterTemperature = 1 << 3,
+    WindWaveHeight = 1 << 4,
+    WindWavePeriod = 1 << 5,
+    WindWaveDirection = 1 << 6,
+    WindWavePeakPeriod = 1 << 7,
+    SwellWaveHeight = 1 << 8,
+    SwellWavePeriod = 1 << 9,
+    SwellWaveDirection = 1 << 10,
+    SwellWavePeakPeriod = 1 << 11,
+    SeaLevelHeight = 1 << 12,
 }
