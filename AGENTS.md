@@ -48,16 +48,17 @@ integration), with optional MQTT state publishing.
   (`IPollRegion`; entity id is the location name, messages implement `IWithLocationId`, routed by
   `ShardMessageExtractor` in Core). A worker owns `PollWorkerState` (target, phase, per-domain
   `DomainPollState` with learned cycle, next poll, miss count and last hash; every transition
-  is persisted as an event, snapshot every 50), its timer, and the current poll round
-  (`PollRoundState`: one `FetchDomain` per due domain, replies collected per round id). It reports
+  is persisted as an event (`DomainPolled`), snapshot every 50), and per-domain independent timers.
+  Each domain has its own timer and fetch cycle: no rounds, no collecting, no waiting for all.
+  A domain timer fires, the worker fetches that domain, persists the outcome and reschedules
+  that domain. Concurrent fetches from different domains are tracked in `_inFlight`. It reports
   every start and outcome (`PollWorkerReport`) to `PollManager` (`IPollManager`, a non-persistent
   cluster singleton with BackoffOnFailure). The manager derives one target per configured location,
   sends `StartPolling`, `StopPolling` to running workers of removed targets, restarts terminated
   workers, forwards `TriggerImmediatePoll`/`TriggerTargetPoll`, and answers `QueryPollStates` and
   `QueryPollHealth` from the reports.
   **Per-domain discovery:** each domain of a location learns its own update cycle (phases
-  `Discovery` -> learned cycle with miss tolerance) and is scheduled independently; a round only
-  fetches the domains that are due.
+  `Discovery` -> learned cycle with miss tolerance) and is scheduled independently.
   **Gateway** (`OpenMeteoGateway`, `IForecastGateway`) is request/response: each `PollWorker` asks
   `FetchDomain` (named reply timeout, `FetchTimeouts`) and gets exactly one `FetchDomainCompleted`
   (hash only, no data), `FetchDomainFailed` or `FetchDomainRejected` (`FetchRejectionReason`).
