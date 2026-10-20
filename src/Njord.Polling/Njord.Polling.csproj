@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Njord" />
+        <InternalsVisibleTo Include="Njord.Polling.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Njord.Core\Njord.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Akka.Cluster.Hosting" />
+      <PackageReference Include="Akka.Persistence.Hosting" />
+      <PackageReference Include="Servus.Akka" />
+    </ItemGroup>
+
+</Project>

@@ -33,6 +33,7 @@
   <ProjectReference Include="..\Njord.Budget\Njord.Budget.csproj" />
   <ProjectReference Include="..\Njord.Grpc\Njord.Grpc.csproj" />
   <ProjectReference Include="..\Njord.Pipeline\Njord.Pipeline.csproj" />
+  <ProjectReference Include="..\Njord.Polling\Njord.Polling.csproj" />
   <ProjectReference Include="..\Njord.Mqtt\Njord.Mqtt.csproj" />
   <ProjectReference Include="..\Njord.Weather\Njord.Weather.csproj" />
   <ProjectReference Include="..\Njord.AirQuality\Njord.AirQuality.csproj" />

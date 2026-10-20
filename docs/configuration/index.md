@@ -107,7 +107,7 @@ Use environment variables for secrets like `Njord__Mqtt__Password`.
 
 ## Logging
 
-Log levels live in the `Serilog` section, outside `Njord`. Every log line shows the full type name of the class that wrote it (`[Njord.Pipeline.PollWorker]`); Akka.NET internals log as `Akka.*`. An override key matches its category and everything below it:
+Log levels live in the `Serilog` section, outside `Njord`. Every log line shows the full type name of the class that wrote it (`[Njord.Polling.PollWorker]`); Akka.NET internals log as `Akka.*`. An override key matches its category and everything below it:
 
 ```json
 {
@@ -116,6 +116,7 @@ Log levels live in the `Serilog` section, outside `Njord`. Every log line shows 
       "Default": "Information",
       "Override": {
         "Akka": "Warning",
+        "Njord.Polling": "Debug",
         "Njord.Pipeline": "Debug",
         "Njord.Mqtt.MqttStatePublisher": "Debug"
       }
@@ -124,7 +125,7 @@ Log levels live in the `Serilog` section, outside `Njord`. Every log line shows 
 }
 ```
 
-`Njord.Pipeline` shows the Debug logs of the poll manager, the poll workers and the analysis pipeline; `Njord.Mqtt.MqttStatePublisher` adds element-level tracing of the MQTT state stream. As environment variable: `Serilog__MinimumLevel__Override__Njord.Pipeline=Debug`. Log levels are read at startup.
+`Njord.Polling` shows the Debug logs of the poll manager and the poll workers, `Njord.Pipeline` those of the analysis pipeline; `Njord.Mqtt.MqttStatePublisher` adds element-level tracing of the MQTT state stream. As environment variable: `Serilog__MinimumLevel__Override__Njord.Pipeline=Debug`. Log levels are read at startup.
 
 ## Startup validation
 

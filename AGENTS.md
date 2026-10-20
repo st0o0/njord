@@ -9,7 +9,7 @@ over gRPC (the ha-njord integration) with optional MQTT state publishing.
 
 ## Solution structure
 
-14 production projects, one test project each (except Host), plus `Njord.Tests.Shared`.
+15 production projects, one test project each (except Host), plus `Njord.Tests.Shared`.
 
 ```
 src/
@@ -31,7 +31,8 @@ src/
   Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, 4 typed clients, OpenMeteoRequestBuilder,
                         #   response DTOs, Mapping/
   Njord.Budget/         # BudgetTracker (persistent), usage accounting, health check
-  Njord.Pipeline/       # PollManager, PollWorker (+ state), ForecastPipeline, ProjectionEngine, health check
+  Njord.Polling/        # PollManager, PollWorker (+ state, mappings), polling Telemetry, PollingSetupContainer
+  Njord.Pipeline/       # Stream/ (ForecastPipeline, ProjectionEngine), Health/ (PipelineHealthCheck), Telemetry
   Njord.Weather/        # WeatherAlertHandler + Rules/ (one per alert type), Lifestyle/ handlers
   Njord.AirQuality/     # AirQualityAlertHandler (pollen, PM2.5), PollenTrendHandler
   Njord.Flood/          # FloodRiskHandler, FloodRainHandler, FloodTimelineHandler
@@ -41,7 +42,8 @@ src/
   Njord/                # Host: Program.cs, NjordHost, Configuration/ (setup containers), Health/
 
   Njord.Forecast.Tests/ Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
-  Njord.OpenMeteo.Tests/ Njord.Budget.Tests/ Njord.Pipeline.Tests/ Njord.Weather.Tests/
+  Njord.OpenMeteo.Tests/ Njord.Budget.Tests/ Njord.Pipeline.Tests/ Njord.Polling.Tests/
+  Njord.Weather.Tests/
   Njord.AirQuality.Tests/ Njord.Flood.Tests/ Njord.Marine.Tests/ Njord.Mqtt.Tests/ Njord.Grpc.Tests/
   Njord.IntegrationTests/       # whole host via NjordHost + TestServer
   Njord.Architecture.Tests/     # ArchUnitNET rules (ArchitectureSpec) + EnrichmentConfigKeySpec
@@ -51,7 +53,7 @@ docs/                           # VitePress site incl. the Config Builder (docs/
 ```
 
 Reference direction: Forecast <- Messages; Forecast/Messages/Persistence <- Core <- feature libraries
-(OpenMeteo, Budget, Pipeline, Weather, AirQuality, Flood, Marine, Mqtt, Grpc) <- Host. Feature
+(OpenMeteo, Budget, Polling, Pipeline, Weather, AirQuality, Flood, Marine, Mqtt, Grpc) <- Host. Feature
 libraries reference only `Njord.Core` (and below), never each other, never the Host; they reach each
 other's actors through the markers in `ActorKeys.cs`. Registration stays central in the Host.
 
@@ -59,7 +61,7 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 
 - **Enrichment-driven config.** The operator sets locations and enrichment toggles; the rest is
   derived. Fetched domains = union of the `Requirements` of the enabled handlers (`EnrichmentResolution`).
-- **Every enrichment is an `IDomainHandler`** (`ConfigKey`, `Requirements` (a `DomainRequirements` of per-domain `XxxParam` flags), `Handle(current, previous, time)`);
+- **Every enrichment is an `IDomainHandler`** (`ConfigKey`, `Requirements` (a `DomainRequirements` of per-domain `XxxParam` flags), `Handle(current, previous, time)`); required flags gate dispatch (missing data skips the handler), `Optional*` flags are requested from the API but never gate;
   `ConfigKey` must match an `EnrichmentOptions` toggle (`EnrichmentConfigKeySpec`).
 - **Domain projects are plugins.** Weather/AirQuality/Flood/Marine register handlers via
   `Add<Domain>Domain()`; they never reference each other or the adapters (Grpc, Mqtt).
@@ -89,7 +91,7 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 
 ```
 SINGLETONS (Cluster Singleton)
-├─ PollManager (non-persistent, BackoffOnFailure, IWithTimers)    [Pipeline]
+├─ PollManager (non-persistent, BackoffOnFailure, IWithTimers)    [Polling]
 │  └─ one target per location; StartPolling/StopPolling, poll states + health from reports
 ├─ OpenMeteoGateway (non-persistent)                              [OpenMeteo]
 │  └─ GatewayBudgetGate -> typed clients: Weather, AirQuality, Flood, Marine
@@ -101,7 +103,7 @@ SINGLETONS (Cluster Singleton)
 └─ MqttConnection (optional, owns the broker connection)          [Mqtt]
 
 SHARD REGIONS (Sharded Entity)
-└─ PollWorker (persistent, entity = location, "poll-worker", no passivation)  [Pipeline]
+└─ PollWorker (persistent, entity = location, "poll-worker", no passivation)  [Polling]
    └─ per-domain timers -> FetchDomain -> OpenMeteoGateway; persists DomainPolled; reports to PollManager
 ```
 
@@ -161,8 +163,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 787 tests (Forecast 63, Messages 60, Persistence 14, Core 114, OpenMeteo 95, Budget 18,
-Pipeline 155, Weather 85, AirQuality 20, Flood 24, Marine 15, Mqtt 54, Grpc 39, Architecture 16,
+Current total: 823 tests (Forecast 63, Messages 60, Persistence 14, Core 124, OpenMeteo 98, Budget 18,
+Polling 103, Pipeline 51, Weather 109, AirQuality 20, Flood 24, Marine 15, Mqtt 54, Grpc 39, Architecture 16,
 IntegrationTests 15). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
@@ -241,7 +243,7 @@ Rules apply to production code.
 
 ### Metrics
 
-- One `Meter("Njord.<Domain>")` per library (`Core`, `OpenMeteo`, `Budget`, `Pipeline`, `Mqtt`) in an
+- One `Meter("Njord.<Domain>")` per library (`Core`, `OpenMeteo`, `Budget`, `Polling`, `Pipeline`, `Mqtt`) in an
   `internal static class Telemetry` with `MeterName` and `internal static readonly` instruments;
   `CoreSetupContainer.NjordMeters` is built from the constants, so a new meter is added there.
 - Names `njord_<area>_<name>` in snake_case; counters end `_total`, time histograms `_seconds`. Bounded tag

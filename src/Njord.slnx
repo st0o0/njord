@@ -32,6 +32,7 @@
   </Folder>
   <Folder Name="/Processing/">
     <Project Path="Njord.Pipeline/Njord.Pipeline.csproj" />
+    <Project Path="Njord.Polling/Njord.Polling.csproj" />
   </Folder>
   <Folder Name="/Egress/">
     <Project Path="Njord.Mqtt/Njord.Mqtt.csproj" />
@@ -46,6 +47,7 @@
     <Project Path="Njord.OpenMeteo.Tests/Njord.OpenMeteo.Tests.csproj" />
     <Project Path="Njord.Budget.Tests/Njord.Budget.Tests.csproj" />
     <Project Path="Njord.Pipeline.Tests/Njord.Pipeline.Tests.csproj" />
+    <Project Path="Njord.Polling.Tests/Njord.Polling.Tests.csproj" />
     <Project Path="Njord.Mqtt.Tests/Njord.Mqtt.Tests.csproj" />
     <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
     <Project Path="Njord.AirQuality.Tests/Njord.AirQuality.Tests.csproj" />

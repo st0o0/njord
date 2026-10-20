@@ -6,10 +6,11 @@ public sealed class TelemetrySpec
     public void Pipeline_instruments_have_expected_names_units_and_meter()
     {
         Assert.Multiple(
-            () => Assert.Equal("njord_pipeline_data_changed_total", Telemetry.DataChanged.Name),
-            () => Assert.Equal("{change}", Telemetry.DataChanged.Unit),
-            () => Assert.Equal("njord_pipeline_domain_polls_total", Telemetry.DomainPolls.Name),
-            () => Assert.Equal("njord_pipeline_cycle_learned_total", Telemetry.CycleLearned.Name),
+            () => Assert.Equal("njord_pipeline_events_total", Telemetry.PipelineEvents.Name),
+            () => Assert.Equal("{event}", Telemetry.PipelineEvents.Unit),
+            () => Assert.Equal("njord_pipeline_handler_skipped_total", Telemetry.HandlerSkipped.Name),
+            () => Assert.Equal("njord_pipeline_producer_failed_total", Telemetry.ProducerFailed.Name),
+            () => Assert.Equal("njord_pipeline_enrichment_duration_seconds", Telemetry.EnrichmentDuration.Name),
             () => Assert.Equal("Njord.Pipeline", Telemetry.Meter.Name));
     }
 

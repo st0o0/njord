@@ -5,6 +5,7 @@ using CoreTelemetry = Njord.Core.Telemetry;
 using MqttTelemetry = Njord.Mqtt.Telemetry;
 using OpenMeteoTelemetry = Njord.OpenMeteo.Telemetry;
 using PipelineTelemetry = Njord.Pipeline.Telemetry;
+using PollingTelemetry = Njord.Polling.Telemetry;
 
 namespace Njord.Configuration;
 
@@ -16,6 +17,7 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
         OpenMeteoTelemetry.MeterName,
         BudgetTelemetry.MeterName,
         PipelineTelemetry.MeterName,
+        PollingTelemetry.MeterName,
         MqttTelemetry.MeterName,
     };
 

@@ -2,12 +2,9 @@ using Akka.Cluster.Hosting;
 using Akka.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Njord.Core;
 using Njord.Core.Actors;
-using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
 using Njord.Messages.Pipeline;
 using Njord.Pipeline.Health;
 using Servus.Akka;
@@ -19,10 +16,6 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddNjordOptions<PollingOptions>(configuration);
-
-        services.TryAddSingleton(FetchTimeouts.Default);
-
         services.AddHealthChecks().AddCheck<PipelineHealthCheck>("pipeline", failureStatus: HealthStatus.Unhealthy);
 
         services.AddSingleton<IActorRegistration>(new PipelineActorRegistration());
@@ -30,31 +23,10 @@ public sealed class PipelineSetupContainer : IServiceSetupContainer
 
     private sealed class PipelineActorRegistration : IActorRegistration
     {
-
         public void Configure(AkkaConfigurationBuilder builder, IServiceProvider provider)
         {
-            builder
-                .WithPolling()
-                .WithSingleton<IForecastPipeline>("pipeline",
-                    (_, _, resolver) => resolver.Props<ForecastPipeline>());
+            builder.WithSingleton<IForecastPipeline>("pipeline",
+                (_, _, resolver) => resolver.Props<ForecastPipeline>());
         }
     }
-}
-
-// The poll shard region (one persistent worker per target, never passivated, not remembered: the manager starts
-// the configured set) and the manager singleton that orchestrates it. The region is registered first.
-internal static class PollingRegistration
-{
-    internal static readonly TimeSpan MinBackoff = TimeSpan.FromSeconds(3);
-    internal static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(30);
-    internal const double RandomFactor = 0.2;
-
-    internal static AkkaConfigurationBuilder WithPolling(this AkkaConfigurationBuilder builder) => builder
-        .WithShardRegion<IPollRegion>("poll-worker",
-            (_, _, resolver) => entityId => resolver.Props<PollWorker>(entityId),
-            new ShardMessageExtractor(),
-            new ShardOptions { ShouldPassivateIdleEntities = false, RememberEntities = false })
-        .WithSingleton<IPollManager>("poll-manager",
-            (_, _, resolver) => resolver.Props<PollManager>().BackoffOnFailure("poll-manager",
-                MinBackoff, MaxBackoff, RandomFactor, config => config.WithMaxNrOfRetries(-1)));
 }

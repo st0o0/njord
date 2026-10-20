@@ -12,7 +12,7 @@ public sealed class ArchitectureSpec
     [
         "Njord.Forecast", "Njord.Messages", "Njord.Persistence", "Njord.Core",
         "Njord.Weather", "Njord.AirQuality", "Njord.Flood", "Njord.Marine", "Njord.Grpc", "Njord.Mqtt",
-        "Njord.OpenMeteo", "Njord.Budget", "Njord.Pipeline",
+        "Njord.OpenMeteo", "Njord.Budget", "Njord.Pipeline", "Njord.Polling",
     ];
 
     private static readonly Assembly[] Assemblies = [.. ProjectNames.Select(Assembly.Load)];
