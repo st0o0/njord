@@ -1,4 +1,3 @@
-using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
@@ -11,58 +10,32 @@ namespace Njord.Core.Tests.Domain;
 
 public sealed class FeatureResolutionSpec
 {
-    private sealed class StubFeature(string name, FeatureDescriptor feature) : IFeature
+    private sealed class StubRule(string name, FeatureCategory category, bool enabled, DomainRequirements requirements) : IFeatureRule
     {
         public string Name { get; } = name;
 
-        public FeatureDescriptor Feature { get; } = feature;
+        public FeatureDescriptor Descriptor { get; } = new(OutputKind.Condition, category, enabled, requirements);
+
+        public bool Enabled { get; } = enabled;
+
+        public IReadOnlyList<PipelineEvent> Execute(RingBuffer<LocationForecast> ring, DateTimeOffset now) => [];
     }
 
-    private sealed class StubHandler(string name, FeatureCategory category, bool defaultEnabled, DomainRequirements requirements) : IDomainHandler
-    {
-        public string Name { get; } = name;
+    private static readonly StubRule Frost = new("Frost", FeatureCategory.Weather, true, new(Weather: WeatherParams.Temperature | WeatherParams.WindGusts));
+    private static readonly StubRule Commute = new("Commute", FeatureCategory.Lifestyle, true, new(Weather: WeatherParams.Temperature | WeatherParams.Precipitation));
+    private static readonly StubRule Pollen = new("Pollen", FeatureCategory.AirQuality, true, new(AirQuality: AirQualityParams.BirchPollen));
+    private static readonly StubRule Pm25 = new("Pm25", FeatureCategory.AirQuality, true, new(AirQuality: AirQualityParams.Pm25));
 
-        public FeatureDescriptor Feature { get; } = new(OutputKind.Condition, category, defaultEnabled, requirements);
+    private static StubRule FloodRisk(bool enabled) => new("FloodRisk", FeatureCategory.Flood, enabled, new(Flood: FloodParams.Discharge));
 
-        public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time) => [];
-    }
+    private static StubRule Swimming(bool enabled) => new("Swimming", FeatureCategory.Marine, enabled, new(Marine: MarineParams.WaveHeight));
 
-    private sealed class StubMultiHandler(params IFeature[] features) : IMultiFeatureHandler
-    {
-        public IReadOnlyList<IFeature> Features { get; } = features;
-
-        public string Name => Features[0].Name;
-
-        public FeatureDescriptor Feature => Features[0].Feature;
-
-        public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time) => [];
-    }
-
-    private static FeatureOptions Options(params (string Category, string Name, bool Enabled)[] entries)
-    {
-        var options = new FeatureOptions();
-        foreach (var (category, name, enabled) in entries)
-        {
-            options.Set(category, name, enabled);
-        }
-
-        return options;
-    }
-
-    private static readonly IDomainHandler[] All =
-    [
-        new StubHandler("Frost", FeatureCategory.Weather, true, new(Weather: WeatherParams.Temperature | WeatherParams.WindGusts)),
-        new StubHandler("Commute", FeatureCategory.Lifestyle, true, new(Weather: WeatherParams.Temperature | WeatherParams.Precipitation)),
-        new StubHandler("Pollen", FeatureCategory.AirQuality, true, new(AirQuality: AirQualityParams.BirchPollen)),
-        new StubHandler("Pm25", FeatureCategory.AirQuality, true, new(AirQuality: AirQualityParams.Pm25)),
-        new StubHandler("FloodRisk", FeatureCategory.Flood, false, new(Flood: FloodParams.Discharge)),
-        new StubHandler("Swimming", FeatureCategory.Marine, false, new(Marine: MarineParams.WaveHeight)),
-    ];
+    private static StubRule Off(StubRule rule) => new(rule.Name, rule.Descriptor.Category, false, rule.Descriptor.Requirements);
 
     [Fact]
     public void Should_require_weather_and_air_quality_for_the_default_features()
     {
-        var domains = FeatureResolution.RequiredDomains(new FeatureOptions(), All);
+        var domains = FeatureResolution.RequiredDomains([Frost, Commute, Pollen, Pm25, FloodRisk(false), Swimming(false)]);
 
         Assert.Equal(new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality }, domains.ToHashSet());
     }
@@ -70,7 +43,7 @@ public sealed class FeatureResolutionSpec
     [Fact]
     public void Should_add_the_flood_domain_when_flood_risk_is_enabled()
     {
-        var domains = FeatureResolution.RequiredDomains(Options(("Flood", "FloodRisk", true)), All);
+        var domains = FeatureResolution.RequiredDomains([Frost, Pollen, FloodRisk(true)]);
 
         Assert.Equal(
             new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality, DomainKind.Flood },
@@ -80,37 +53,25 @@ public sealed class FeatureResolutionSpec
     [Fact]
     public void Should_drop_air_quality_when_no_air_quality_feature_is_enabled()
     {
-        var options = Options(("AirQuality", "Pollen", false), ("AirQuality", "Pm25", false));
-
-        var domains = FeatureResolution.RequiredDomains(options, All);
+        var domains = FeatureResolution.RequiredDomains([Frost, Off(Pollen), Off(Pm25)]);
 
         Assert.Equal(new HashSet<DomainKind> { DomainKind.Weather }, domains.ToHashSet());
     }
 
     [Fact]
-    public void Should_keep_only_enabled_handlers()
+    public void Should_list_only_the_enabled_features()
     {
-        var options = Options(("Lifestyle", "Commute", false), ("Marine", "Swimming", true));
+        var names = FeatureResolution.EnabledFeatures([Frost, Off(Commute), Pollen, Swimming(true), FloodRisk(false)])
+            .Cast<StubRule>()
+            .Select(f => f.Name);
 
-        var names = FeatureResolution.EnabledHandlers(options, All).Select(h => h.Name);
-
-        Assert.Equal(["Frost", "Pollen", "Pm25", "Swimming"], names);
-    }
-
-    [Fact]
-    public void Should_list_the_enabled_features()
-    {
-        var names = FeatureResolution.EnabledFeatures(Options(("Flood", "FloodRisk", true)), All).Select(f => f.Name);
-
-        Assert.Equal(
-            ["Frost", "Commute", "Pollen", "Pm25", "FloodRisk"],
-            names);
+        Assert.Equal(["Frost", "Pollen", "Swimming"], names);
     }
 
     [Fact]
     public void Should_union_the_params_of_all_enabled_features()
     {
-        var requirements = FeatureResolution.RequiredParams(new FeatureOptions(), All);
+        var requirements = FeatureResolution.RequiredParams([Frost, Commute, Pollen, Pm25, FloodRisk(false)]);
 
         Assert.Multiple(
             () => Assert.Equal(
@@ -124,29 +85,14 @@ public sealed class FeatureResolutionSpec
     [Fact]
     public void Should_include_the_params_of_a_newly_enabled_feature()
     {
-        var requirements = FeatureResolution.RequiredParams(Options(("Marine", "Swimming", true)), All);
+        var requirements = FeatureResolution.RequiredParams([Frost, Swimming(true)]);
 
         Assert.Equal(MarineParams.WaveHeight, requirements.Marine);
     }
 
     [Fact]
-    public void Should_require_nothing_when_no_handler_is_registered()
+    public void Should_require_nothing_when_no_feature_is_registered()
     {
-        Assert.Equal(default, FeatureResolution.RequiredParams(new FeatureOptions(), []));
-    }
-
-    [Fact]
-    public void Should_resolve_each_feature_of_a_multi_feature_handler_on_its_own()
-    {
-        var frost = new StubFeature("Frost", new(OutputKind.Alert, FeatureCategory.Weather, true, new(Weather: WeatherParams.Temperature)));
-        var storm = new StubFeature("Storm", new(OutputKind.Alert, FeatureCategory.Weather, true, new(Weather: WeatherParams.WindGusts)));
-        IDomainHandler[] handlers = [new StubMultiHandler(frost, storm)];
-        var frostOff = Options(("Weather", "Frost", false));
-        var bothOff = Options(("Weather", "Frost", false), ("Weather", "Storm", false));
-
-        Assert.Multiple(
-            () => Assert.Equal(WeatherParams.WindGusts, FeatureResolution.RequiredParams(frostOff, handlers).Weather),
-            () => Assert.Single(FeatureResolution.EnabledHandlers(frostOff, handlers)),
-            () => Assert.Empty(FeatureResolution.EnabledHandlers(bothOff, handlers)));
+        Assert.Equal(default, FeatureResolution.RequiredParams([]));
     }
 }

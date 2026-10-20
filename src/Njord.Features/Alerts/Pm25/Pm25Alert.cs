@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Features.Alerts.Shared;
 using Njord.Forecast.AirQuality;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
@@ -12,6 +11,8 @@ public sealed class Pm25Alert(IOptions<Pm25Config> config) : FeatureRule<AqInput
     public const double WhoGuideline = 15.0;
     public const double OrangeThreshold = 25.0;
     public const double RedThreshold = 50.0;
+
+    private static readonly SeverityThresholds Thresholds = new(WhoGuideline, OrangeThreshold, RedThreshold, ScanDirection.Max);
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
@@ -40,18 +41,12 @@ public sealed class Pm25Alert(IOptions<Pm25Config> config) : FeatureRule<AqInput
             return null;
         }
 
-        var severity = AirQualityAlertWindow.SeverityFor(peakPm25, WhoGuideline, OrangeThreshold, RedThreshold);
+        var (severity, threshold) = Thresholds.Classify(peakPm25);
         if (severity == AlertSeverity.None)
         {
             return null;
         }
 
-        var threshold = severity switch
-        {
-            AlertSeverity.Red => RedThreshold,
-            AlertSeverity.Orange => OrangeThreshold,
-            _ => WhoGuideline,
-        };
         return new Pm25AlertResult(
             ctx.Location, severity, 1.0, Math.Round(peakPm25, 1), threshold,
             PeakValue: null, HoursUntil: peakPoint.HoursFrom(ctx.Now), DurationHours: null, Level: ConfidenceLevel.High);

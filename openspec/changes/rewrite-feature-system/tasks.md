@@ -31,7 +31,7 @@ All test projects run sequentially from `src/`: `dotnet run --project <Project>.
 - [x] 4.2 Convert AQ alerts to `FeatureRule<AqInput>`: `PollenAlert`, `Pm25Alert`, `DustAlert`
 - [x] 4.3 Convert flood alerts: `FloodRiskAlert` as `FeatureRule<FloodWeatherInput>`, `FloodRainAlert` as `FeatureRule<FloodWeatherInput>`
 - [x] 4.4 Convert marine alert: `SwimmingConditionsAlert` as `FeatureRule<MarineWeatherInput>`
-- [ ] 4.5 Delete `WeatherAlertHandler`, `AirQualityAlertHandler`, `FloodRiskHandler`, `FloodRainHandler`, `SwimmingConditionsHandler`, `AlertWindow`, `AirQualityAlertWindow`, all old rule classes
+- [x] 4.5 Delete `WeatherAlertHandler`, `AirQualityAlertHandler`, `FloodRiskHandler`, `FloodRainHandler`, `SwimmingConditionsHandler`, `AlertWindow`, `AirQualityAlertWindow`, all old rule classes
 - [x] 4.6 Update `Njord.Alerts/ServiceCollectionExtensions.cs`: register per-feature configs + `IFeatureRule` singletons
 - [x] 4.7 Rewrite alert specs in `Njord.Alerts.Tests`: test each feature's `Evaluate` directly with constructed input and config, verify result type and fields; preserve test coverage count
 - [x] 4.8 Validate: `dotnet run --project Njord.Alerts.Tests/Njord.Alerts.Tests.csproj`
@@ -77,11 +77,11 @@ All test projects run sequentially from `src/`: `dotnet run --project <Project>.
 
 ## 8. Delete Old Abstractions
 
-- [ ] 8.1 Delete `IDomainHandler.cs`, `IMultiFeatureHandler.cs`, `IAlertRule.cs`, `IFeature.cs`, `FeatureKeys` from `Njord.Core/Domain`
-- [ ] 8.2 Delete `AlertOptions.cs`, `AlertOptionsValidator.cs`, `FeatureOptions.cs` from `Njord.Core/Configuration`
-- [ ] 8.3 Delete old `FeatureResult.cs` (with `WireKey`) from `Njord.Messages/Pipeline`
-- [ ] 8.4 Delete `LifestyleUpdate` proto message and old `AlertUpdate` mapping code
-- [ ] 8.5 Update `Njord/Configuration/DomainSetupContainer.cs`: remove old handler registration calls, add per-feature registration
+- [x] 8.1 Delete `IDomainHandler.cs`, `IMultiFeatureHandler.cs`, `IAlertRule.cs`, `IFeature.cs`, `FeatureKeys` from `Njord.Core/Domain`
+- [x] 8.2 Delete `AlertOptions.cs`, `AlertOptionsValidator.cs`, `FeatureOptions.cs` from `Njord.Core/Configuration`
+- [x] 8.3 Delete old `FeatureResult.cs` (with `WireKey`) from `Njord.Messages/Pipeline`
+- [x] 8.4 Delete `LifestyleUpdate` proto message and old `AlertUpdate` mapping code
+- [x] 8.5 Update `Njord/Configuration/DomainSetupContainer.cs`: remove old handler registration calls, add per-feature registration
 - [x] 8.6 Update `Njord.Tests.Shared/FeatureServices.cs` for new registration pattern
 - [ ] 8.7 Delete `ConfigView` and `Njord.Tests.Shared/TestConfigView.cs`: `BudgetTracker`, `PollManager` and `PipelineHealthCheck` inject the `IOptions<NjordOptions>` / `IOptions<PollingOptions>` they read; drop the registration in `ConfigSetupContainer`; update the Budget/Polling specs, `openspec/specs/domain-setup-containers`, `openspec/specs/prometheus-metrics`, AGENTS.md and the `njord-actor-spec` skill
 - [ ] 8.8 Delete `ConfigSections` (reflection on a `SectionName` constant): options types implement an interface with `static abstract string SectionName`, and `AddNjordOptions<T>`, `CollectionDefaults` and `AppSettingsDefaults` read `T.SectionName`

@@ -7,7 +7,6 @@ using Njord.Messages.Budget;
 using Njord.Messages.Config;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
-using DomainAlert = Njord.Messages.Alerts.Alert;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 

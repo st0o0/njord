@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
-using Njord.Features.Alerts.Shared;
 using Njord.Forecast.AirQuality;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
@@ -12,6 +11,8 @@ public sealed class PollenAlert(IOptions<PollenConfig> config) : FeatureRule<AqI
     public const double YellowThreshold = 20.0;
     public const double OrangeThreshold = 50.0;
     public const double RedThreshold = 100.0;
+
+    private static readonly SeverityThresholds Thresholds = new(YellowThreshold, OrangeThreshold, RedThreshold, ScanDirection.Max);
 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
@@ -44,18 +45,12 @@ public sealed class PollenAlert(IOptions<PollenConfig> config) : FeatureRule<AqI
             return null;
         }
 
-        var severity = AirQualityAlertWindow.SeverityFor(peak, YellowThreshold, OrangeThreshold, RedThreshold);
+        var (severity, threshold) = Thresholds.Classify(peak);
         if (severity == AlertSeverity.None)
         {
             return null;
         }
 
-        var threshold = severity switch
-        {
-            AlertSeverity.Red => RedThreshold,
-            AlertSeverity.Orange => OrangeThreshold,
-            _ => YellowThreshold,
-        };
         return new PollenAlertResult(
             ctx.Location, severity, 1.0, Math.Round(peak, 1), threshold,
             PeakValue: null, HoursUntil: peakPoint.HoursFrom(ctx.Now), DurationHours: null, Level: ConfidenceLevel.High);

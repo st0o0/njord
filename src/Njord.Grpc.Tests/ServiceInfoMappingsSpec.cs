@@ -1,30 +1,25 @@
-using Njord.Core.Configuration;
-using Njord.Core.Domain;
-
 namespace Njord.Grpc.Tests;
 
 public sealed class ServiceInfoMappingsSpec
 {
     [Fact]
-    public void Active_enrichments_list_alerts_and_every_enabled_toggle()
+    public void Active_enrichments_list_every_enabled_rule_sorted()
     {
-        var info = TestServiceInfo.Create(enabledFeatures:
+        var info = TestServiceInfo.Create(rules:
         [
-            TestServiceInfo.Feature(FeatureCategory.Flood, "FloodRisk"),
-            TestServiceInfo.Feature(FeatureCategory.Energy, "SolarYield"),
-            TestServiceInfo.Feature(FeatureCategory.Lifestyle, "Bbq"),
+            new TestServiceInfo.FloodRisk(),
+            new TestServiceInfo.SolarYield(),
+            new TestServiceInfo.Bbq(),
         ]);
 
-        Assert.Equal(["alerts", "Energy:SolarYield", "Flood:FloodRisk", "Lifestyle:Bbq"], info.ActiveEnrichments);
+        Assert.Equal(["Energy:SolarYield", "Flood:FloodRisk", "Lifestyle:Bbq"], info.ActiveEnrichments);
     }
 
     [Fact]
-    public void Active_enrichments_omit_alerts_when_disabled()
+    public void Active_enrichments_omit_disabled_rules()
     {
-        var info = TestServiceInfo.Create(
-            alerts: new AlertOptions { Enabled = false },
-            enabledFeatures: [TestServiceInfo.Feature(FeatureCategory.Flood, "FloodRain")]);
+        var info = TestServiceInfo.Create(rules: [new TestServiceInfo.FloodRisk(), new TestServiceInfo.FloodRain(enabled: false)]);
 
-        Assert.Equal(["Flood:FloodRain"], info.ActiveEnrichments);
+        Assert.Equal(["Flood:FloodRisk"], info.ActiveEnrichments);
     }
 }

@@ -1,30 +1,9 @@
 using Njord.Forecast.Weather;
-using Njord.Messages.Alerts;
 
 namespace Njord.Features.Alerts.Shared;
 
-internal static class AlertWindow
+internal static class WeatherPointExtensions
 {
-    public static Alert Build(
-        AlertSeverity severity,
-        WeatherPoint? peak,
-        AlertDetails details,
-        double triggerValue,
-        double threshold,
-        double? peakValue = null,
-        int? hoursUntil = null,
-        int? durationHours = null)
-    {
-        var level = ConfidenceThresholds.Default.LevelFor(peak?.EnsembleStdDev);
-        return new Alert(severity, level.ToConfidence(), details,
-            TriggerValue: triggerValue,
-            Threshold: threshold,
-            PeakValue: peakValue,
-            HoursUntil: hoursUntil,
-            DurationHours: durationHours,
-            Level: level);
-    }
-
     public static WeatherPoint? LowestBy(this IEnumerable<WeatherPoint> points, Func<WeatherPoint, double?> selector)
     {
         WeatherPoint? best = null;

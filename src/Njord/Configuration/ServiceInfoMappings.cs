@@ -12,13 +12,12 @@ public static class ServiceInfoMappings
     public static ServiceInfo ToServiceInfo(
         NjordOptions scope,
         PollingOptions polling,
-        AlertOptions alerts,
-        IEnumerable<IFeature> enabledFeatures) =>
+        IEnumerable<IFeatureRule> features) =>
         new(
             scope.ToCatalog(),
             BudgetCalculator.GetEffectiveBudget(polling).RequestsPerMonth,
             RequestBudget.OpenMeteoFreeTierDailyLimit,
-            ActiveEnrichments(alerts, enabledFeatures));
+            ActiveEnrichments(features));
 
     public const string EnsembleModelId = "ensemble_mean";
 
@@ -32,15 +31,9 @@ public static class ServiceInfoMappings
         return new CatalogResult(locations, [new CatalogModel(EnsembleModelId)]);
     }
 
-    private static List<string> ActiveEnrichments(AlertOptions alerts, IEnumerable<IFeature> enabledFeatures)
-    {
-        var active = new List<string>();
-        if (alerts.Enabled)
-        {
-            active.Add("alerts");
-        }
-
-        active.AddRange(enabledFeatures.Select(feature => feature.SectionKey()).Order(StringComparer.Ordinal));
-        return active;
-    }
+    private static List<string> ActiveEnrichments(IEnumerable<IFeatureRule> features) =>
+        [.. features
+            .Where(static rule => rule.Enabled)
+            .Select(static rule => $"{rule.Descriptor.Category}:{rule.GetType().Name}")
+            .Order(StringComparer.Ordinal)];
 }
