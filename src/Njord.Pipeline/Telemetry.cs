@@ -1,5 +1,6 @@
 using System.Diagnostics.Metrics;
 using Njord.Model;
+using Njord.Persistence.Events.Polling;
 
 namespace Njord.Pipeline;
 
@@ -24,11 +25,11 @@ internal static class Telemetry
     internal static readonly Histogram<double> EnrichmentDuration =
         Meter.CreateHistogram<double>("njord_pipeline_enrichment_duration_seconds", "s");
 
-    internal static void RecordDomainPoll(DomainKind domain, int outcome) =>
+    internal static void RecordDomainPoll(DomainKind domain, PersistedDomainPollOutcome outcome) =>
         DomainPolls.Add(1, DomainTag(domain), new KeyValuePair<string, object?>("outcome", outcome switch
         {
-            0 => "changed",
-            1 => "unchanged",
+            PersistedDomainPollOutcome.Changed => "changed",
+            PersistedDomainPollOutcome.Unchanged => "unchanged",
             _ => "failed",
         }));
 

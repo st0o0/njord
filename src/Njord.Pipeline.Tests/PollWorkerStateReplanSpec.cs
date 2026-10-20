@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.Persistence.Events.Polling;
@@ -14,7 +15,8 @@ public sealed class PollWorkerStateReplanSpec
     private static PollWorkerState Started(DateTimeOffset? at = null, TimeSpan? interval = null) =>
         PollWorkerState.Empty.Apply(new PollingStarted("lucerne", WeatherDomain, interval ?? DiscoveryInterval, at ?? T0));
 
-    private static DomainPolled Changed(int hash, DateTimeOffset at) => new((int)DomainKind.Weather, 0, hash, at, null);
+    private static RoundCompleted Changed(int hash, DateTimeOffset at) =>
+        new([new DomainPollResult((int)DomainKind.Weather, PersistedDomainPollOutcome.Changed, hash, null)], at);
 
     // Three changes at 3 h intervals: two consistent intervals -> Steady.
     private static PollWorkerState Steady() =>

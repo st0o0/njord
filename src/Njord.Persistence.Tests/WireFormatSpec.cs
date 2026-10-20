@@ -36,4 +36,14 @@ public sealed class WireFormatSpec
             () => Assert.Equal(1, (int)PersistedPollPhase.Steady),
             () => Assert.Equal(2, Enum.GetValues<PersistedPollPhase>().Length));
     }
+
+    [Fact]
+    public void Should_keep_the_stored_numbers_of_persisted_domain_poll_outcomes()
+    {
+        Assert.Multiple(
+            () => Assert.Equal(0, (int)PersistedDomainPollOutcome.Changed),
+            () => Assert.Equal(1, (int)PersistedDomainPollOutcome.Unchanged),
+            () => Assert.Equal(2, (int)PersistedDomainPollOutcome.Failed),
+            () => Assert.Equal(3, Enum.GetValues<PersistedDomainPollOutcome>().Length));
+    }
 }

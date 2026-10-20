@@ -1,4 +1,4 @@
-{
+﻿{
   "Location": "lucerne",
   "Domains": [
     0,
@@ -11,23 +11,25 @@
   "Utc": "2026-07-15T10:00:00+00:00"
 }
 {
-  "Domain": 0,
-  "Outcome": 0,
-  "Hash": 42,
-  "Utc": "2026-07-15T10:00:00+00:00",
-  "Delay": null
-}
-{
-  "Domain": 1,
-  "Outcome": 1,
-  "Hash": null,
-  "Utc": "2026-07-15T10:00:00+00:00",
-  "Delay": null
-}
-{
-  "Domain": 2,
-  "Outcome": 2,
-  "Hash": null,
-  "Utc": "2026-07-15T10:00:00+00:00",
-  "Delay": "00:01:00"
+  "Results": [
+    {
+      "Domain": 0,
+      "Outcome": 0,
+      "Hash": 42,
+      "Delay": null
+    },
+    {
+      "Domain": 1,
+      "Outcome": 1,
+      "Hash": null,
+      "Delay": null
+    },
+    {
+      "Domain": 2,
+      "Outcome": 2,
+      "Hash": null,
+      "Delay": "00:01:00"
+    }
+  ],
+  "Utc": "2026-07-15T10:00:00+00:00"
 }

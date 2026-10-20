@@ -45,9 +45,7 @@ public sealed record PollWorkerState(
 public static class PollWorkerStateExtensions
 {
     private static readonly TimeSpan MaxRetryBackoff = TimeSpan.FromMinutes(15);
-    private static readonly TimeSpan SteadyBuffer = TimeSpan.FromMinutes(1);
     internal const int MaxMissesBeforeFallback = 5;
-    private const int MaxTransientBeforeThrottle = 5;
 
     public static PollWorkerState Apply(this PollWorkerState state, PollingStarted evt)
     {
@@ -95,20 +93,15 @@ public static class PollWorkerStateExtensions
     public static PollWorkerState Apply(this PollWorkerState state, PollingStopped _) =>
         state with { Active = false };
 
-    public static PollWorkerState Apply(this PollWorkerState state, DomainPolled evt)
+    public static PollWorkerState Apply(this PollWorkerState state, RoundCompleted evt)
     {
-        var domain = (DomainKind)evt.Domain;
-        var ds = state.GetDomain(domain);
-
-        ds = evt.Outcome switch
+        var result = state;
+        foreach (var r in evt.Results)
         {
-            0 => ds.RecordHashChange(evt.Hash!.Value, evt.Utc, state.DiscoveryInterval), // Changed
-            1 => ds.RecordHashUnchanged(evt.Utc, state.DiscoveryInterval), // Unchanged
-            2 => ds with { NextPollAt = evt.Utc + (evt.Delay ?? TimeSpan.FromMinutes(1)) }, // Failed
-            _ => throw new ArgumentOutOfRangeException(nameof(evt), $"Unknown outcome: {evt.Outcome}"),
-        };
+            result = result.ApplyDomainResult(r, evt.Utc);
+        }
 
-        return state.WithDomain(domain, ds);
+        return result;
     }
 
     public static DomainPollState GetDomain(this PollWorkerState state, DomainKind domain) =>
@@ -121,20 +114,25 @@ public static class PollWorkerStateExtensions
     public static int? GetDomainHash(this PollWorkerState state, DomainKind domain) =>
         state.Domains.TryGetValue(domain, out var ds) ? ds.LastHash : null;
 
-    public static PollWorkerState Apply(this PollWorkerState state, object evt) => evt switch
-    {
-        PollingStarted e => state.Apply(e),
-        PollingStopped e => state.Apply(e),
-        DomainPolled e => state.Apply(e),
-        _ => throw new ArgumentException($"Unknown poll worker event: {evt.GetType().Name}", nameof(evt)),
-    };
-
     internal static TimeSpan RetryBackoff(int count)
     {
         var delay = TimeSpan.FromMinutes(Math.Pow(2, count - 1));
         return delay > MaxRetryBackoff ? MaxRetryBackoff : delay;
     }
 
-    private static PollWorkerState WithDomain(this PollWorkerState state, DomainKind domain, DomainPollState next) =>
-        state with { Domains = state.Domains.SetItem(domain, next) };
+    internal static PollWorkerState ApplyDomainResult(this PollWorkerState state, DomainPollResult r, DateTimeOffset utc)
+    {
+        var domain = (DomainKind)r.Domain;
+        var ds = state.GetDomain(domain);
+
+        ds = r.Outcome switch
+        {
+            PersistedDomainPollOutcome.Changed => ds.RecordHashChange(r.Hash!.Value, utc, state.DiscoveryInterval),
+            PersistedDomainPollOutcome.Unchanged => ds.RecordHashUnchanged(utc, state.DiscoveryInterval),
+            PersistedDomainPollOutcome.Failed => ds with { NextPollAt = utc + (r.Delay ?? TimeSpan.FromMinutes(1)) },
+            _ => throw new ArgumentOutOfRangeException(nameof(r), $"Unknown outcome: {r.Outcome}"),
+        };
+
+        return state with { Domains = state.Domains.SetItem(domain, ds) };
+    }
 }

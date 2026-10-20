@@ -11,9 +11,12 @@ public sealed class PollWorkerRoundtripSpec
     [
         new PollingStarted("lucerne", [(int)0, (int)1], TimeSpan.FromMinutes(20), Utc),
         new PollingStopped(Utc),
-        new DomainPolled(0, 0, 42, Utc, null),
-        new DomainPolled(1, 1, null, Utc, null),
-        new DomainPolled(2, 2, null, Utc, TimeSpan.FromMinutes(1)),
+        new RoundCompleted(
+        [
+            new DomainPollResult(0, PersistedDomainPollOutcome.Changed, 42, null),
+            new DomainPollResult(1, PersistedDomainPollOutcome.Unchanged, null, null),
+            new DomainPollResult(2, PersistedDomainPollOutcome.Failed, null, TimeSpan.FromMinutes(1)),
+        ], Utc),
     ];
 
     [Fact]
@@ -52,6 +55,7 @@ public sealed class PollWorkerRoundtripSpec
         Assert.IsType(evt.GetType(), recovered);
 
         // PollingStarted contains int[] which uses reference equality; compare structurally.
+        // RoundCompleted contains ImmutableArray which needs special handling too.
         if (evt is PollingStarted original && recovered is PollingStarted restored)
         {
             Assert.Multiple(
@@ -59,6 +63,16 @@ public sealed class PollWorkerRoundtripSpec
                 () => Assert.Equal(original.Domains, restored.Domains),
                 () => Assert.Equal(original.DiscoveryInterval, restored.DiscoveryInterval),
                 () => Assert.Equal(original.Utc, restored.Utc));
+        }
+        else if (evt is RoundCompleted round && recovered is RoundCompleted restoredRound)
+        {
+            Assert.Multiple(
+                () => Assert.Equal(round.Utc, restoredRound.Utc),
+                () => Assert.Equal(round.Results.Length, restoredRound.Results.Length));
+            for (var i = 0; i < round.Results.Length; i++)
+            {
+                Assert.Equal(round.Results[i], restoredRound.Results[i]);
+            }
         }
         else
         {

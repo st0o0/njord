@@ -75,9 +75,9 @@ public sealed class PollWorkerRecoverySpec : PollWorkerSpecBase
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
 
-        // The start is event 1; every round persists 2 events (one DomainPolled per enabled domain),
-        // so round 25 crosses sequence number 50 at 51.
-        for (var i = 0; i < 26; i++)
+        // The start is event 1; every round persists 1 RoundCompleted event,
+        // so round 49 crosses sequence number 50 at 50.
+        for (var i = 0; i < 50; i++)
         {
             if (i > 0)
             {

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Newtonsoft.Json;
 using Njord.Messages.Pipeline;
 using Njord.Model;
@@ -15,12 +16,18 @@ public sealed class PollWorkerMappingsSpec
     private static PollWorkerState Started() =>
         PollWorkerState.Empty.Apply(new PollingStarted("lucerne", WeatherDomain, TimeSpan.FromMinutes(20), T0));
 
+    private static RoundCompleted Changed(int hash, DateTimeOffset at) =>
+        new([new DomainPollResult((int)DomainKind.Weather, PersistedDomainPollOutcome.Changed, hash, null)], at);
+
+    private static RoundCompleted Unchanged(DateTimeOffset at) =>
+        new([new DomainPollResult((int)DomainKind.Weather, PersistedDomainPollOutcome.Unchanged, null, null)], at);
+
     // Three changes at 3 h intervals: two consistent intervals -> Steady.
     private static PollWorkerState Steady() =>
         Started()
-            .Apply(new DomainPolled((int)DomainKind.Weather, 0, 1, T0, null))
-            .Apply(new DomainPolled((int)DomainKind.Weather, 0, 2, T0.AddHours(3), null))
-            .Apply(new DomainPolled((int)DomainKind.Weather, 0, 3, T0.AddHours(6), null));
+            .Apply(Changed(1, T0))
+            .Apply(Changed(2, T0.AddHours(3)))
+            .Apply(Changed(3, T0.AddHours(6)));
 
     [Fact]
     public void ToPollStateEntry_describes_the_target_and_its_poll_state()
@@ -57,7 +64,7 @@ public sealed class PollWorkerMappingsSpec
     [Fact]
     public void GetPersistenceState_and_FromPersistence_roundtrip()
     {
-        var state = Steady().Apply(new DomainPolled((int)DomainKind.Weather, 1, null, T0.AddHours(9), null));
+        var state = Steady().Apply(Unchanged(T0.AddHours(9)));
 
         var restored = state.GetPersistenceState().FromPersistence();
 

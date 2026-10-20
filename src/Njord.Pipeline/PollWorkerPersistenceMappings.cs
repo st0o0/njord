@@ -71,4 +71,5 @@ internal static class PollWorkerPersistenceMappings
         PersistedPollPhase.Steady => PollPhase.Steady,
         _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, "Unknown persisted poll phase"),
     };
+
 }
