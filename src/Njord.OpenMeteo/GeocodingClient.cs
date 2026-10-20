@@ -9,8 +9,13 @@ public sealed class GeocodingClient(HttpClient httpClient) : IGeocodingClient
     {
         try
         {
-            var response = await httpClient.GetFromJsonAsync(
-                BuildUri(name), OpenMeteoJsonContext.Default.GeocodingResponse, cancellationToken);
+            var uri = OpenMeteoRequestBuilder.To("v1/search")
+                .WithName(name)
+                .With("count", "1")
+                .With("language", "en")
+                .With("format", "json")
+                .Build();
+            var response = await httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.GeocodingResponse, cancellationToken);
             return response?.Results is { Length: > 0 } results ? results[0] : null;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
@@ -18,7 +23,4 @@ public sealed class GeocodingClient(HttpClient httpClient) : IGeocodingClient
             return null;
         }
     }
-
-    internal static string BuildUri(string name) =>
-        $"v1/search?name={Uri.EscapeDataString(name)}&count=1&language=en&format=json";
 }

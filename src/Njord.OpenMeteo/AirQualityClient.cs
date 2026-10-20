@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -11,7 +10,11 @@ public sealed class AirQualityClient(HttpClient httpClient) : IAirQualityClient
 
     public async Task<AirQualityResponse?> FetchAsync(double latitude, double longitude, int forecastDays, CancellationToken cancellationToken)
     {
-        var uri = BuildUri(latitude, longitude, forecastDays);
+        var uri = OpenMeteoRequestBuilder.To("v1/air-quality")
+            .WithLocation(latitude, longitude)
+            .WithHourly(HourlyVariables.Split(','))
+            .WithForecastDays(forecastDays)
+            .Build();
         try
         {
             return await httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.AirQualityResponse, cancellationToken);
@@ -21,11 +24,4 @@ public sealed class AirQualityClient(HttpClient httpClient) : IAirQualityClient
             return null;
         }
     }
-
-    internal static string BuildUri(double latitude, double longitude, int forecastDays) =>
-        string.Create(
-            CultureInfo.InvariantCulture,
-            $"v1/air-quality?latitude={latitude}&longitude={longitude}" +
-            $"&hourly={HourlyVariables}" +
-            $"&forecast_days={forecastDays}&timeformat=unixtime&timezone=UTC");
 }

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -13,7 +12,13 @@ public sealed class ClimateClient(HttpClient httpClient) : IClimateClient
 
     public async Task<ClimateResponse?> FetchAsync(double latitude, double longitude, CancellationToken cancellationToken)
     {
-        var uri = BuildUri(latitude, longitude);
+        var uri = OpenMeteoRequestBuilder.To("v1/climate")
+            .WithLocation(latitude, longitude)
+            .With("start_date", $"{BaselineStartYear}-01-01")
+            .With("end_date", $"{BaselineEndYear}-12-31")
+            .With("models", Model)
+            .WithDaily(DailyVariables.Split(','))
+            .Build();
         try
         {
             return await httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.ClimateResponse, cancellationToken);
@@ -23,11 +28,4 @@ public sealed class ClimateClient(HttpClient httpClient) : IClimateClient
             return null;
         }
     }
-
-    internal static string BuildUri(double latitude, double longitude) =>
-        string.Create(
-            CultureInfo.InvariantCulture,
-            $"v1/climate?latitude={latitude}&longitude={longitude}" +
-            $"&start_date={BaselineStartYear}-01-01&end_date={BaselineEndYear}-12-31" +
-            $"&models={Model}&daily={DailyVariables}&timeformat=unixtime&timezone=UTC");
 }

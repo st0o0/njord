@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
@@ -8,13 +7,16 @@ namespace Njord.OpenMeteo;
 
 public sealed class WeatherClient(HttpClient httpClient, IOptions<WeatherOptions> options) : IWeatherClient
 {
-    private readonly string _hourlyVariables = string.Join(",", WeatherVariables.For(options.Value.IncludeSolar));
-
     public IReadOnlyList<string> HourlyVariables { get; } = WeatherVariables.For(options.Value.IncludeSolar);
 
     public async Task<WeatherResponse?> FetchAsync(double latitude, double longitude, int forecastDays, CancellationToken cancellationToken)
     {
-        var uri = BuildUri(latitude, longitude, forecastDays);
+        var uri = OpenMeteoRequestBuilder.To("v1/ensemble")
+            .WithLocation(latitude, longitude)
+            .WithHourly(HourlyVariables)
+            .With("wind_speed_unit", "ms")
+            .WithForecastDays(forecastDays)
+            .Build();
         try
         {
             return await httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.WeatherResponse, cancellationToken);
@@ -24,11 +26,4 @@ public sealed class WeatherClient(HttpClient httpClient, IOptions<WeatherOptions
             return null;
         }
     }
-
-    private string BuildUri(double latitude, double longitude, int forecastDays) =>
-        string.Create(
-            CultureInfo.InvariantCulture,
-            $"v1/ensemble?latitude={latitude}&longitude={longitude}" +
-            $"&hourly={_hourlyVariables}" +
-            $"&wind_speed_unit=ms&timeformat=unixtime&timezone=UTC&forecast_days={forecastDays}");
 }

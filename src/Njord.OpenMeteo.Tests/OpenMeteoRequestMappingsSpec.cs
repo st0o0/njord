@@ -1,57 +1,91 @@
 using System.Globalization;
-using Njord.Model;
+using System.Net;
+using System.Text;
 
 namespace Njord.OpenMeteo.Tests;
 
 public sealed class OpenMeteoUriBuilderSpec
 {
-    [Fact]
-    public void The_air_quality_uri_carries_location_and_fixed_query_parameters()
+    private const string EmptyBody = "{}";
+
+    [Fact(Timeout = 5000)]
+    public async Task The_air_quality_uri_carries_location_and_fixed_query_parameters()
     {
-        var uri = AirQualityClient.BuildUri(47.05, 8.31, 4);
+        var uri = await Capture(client => new AirQualityClient(client).FetchAsync(47.05, 8.31, 4, TestContext.Current.CancellationToken));
 
         Assert.Equal(
-            "v1/air-quality?latitude=47.05&longitude=8.31" +
-            $"&hourly={AirQualityClient.HourlyVariables}&forecast_days=4&timeformat=unixtime&timezone=UTC",
+            $"/v1/air-quality?latitude=47.05&longitude=8.31&hourly={AirQualityClient.HourlyVariables}&forecast_days=4&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
-    [Fact]
-    public void The_flood_uri_carries_location_and_the_fixed_horizon()
+    [Fact(Timeout = 5000)]
+    public async Task The_flood_uri_carries_location_and_the_fixed_horizon()
     {
-        var uri = FloodClient.BuildUri(47.05, 8.31);
+        var uri = await Capture(client => new FloodClient(client).FetchAsync(47.05, 8.31, TestContext.Current.CancellationToken));
 
         Assert.Equal(
-            "v1/flood?latitude=47.05&longitude=8.31" +
-            $"&daily={FloodClient.DailyVariables}&forecast_days=92&timeformat=unixtime&timezone=UTC",
+            $"/v1/flood?latitude=47.05&longitude=8.31&daily={FloodClient.DailyVariables}&forecast_days=92&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
-    [Fact]
-    public void The_marine_uri_carries_location_and_the_fixed_horizon()
+    [Fact(Timeout = 5000)]
+    public async Task The_marine_uri_carries_location_and_the_fixed_horizon()
     {
-        var uri = MarineClient.BuildUri(47.05, 8.31);
+        var uri = await Capture(client => new MarineClient(client).FetchAsync(47.05, 8.31, TestContext.Current.CancellationToken));
 
         Assert.Equal(
-            "v1/marine?latitude=47.05&longitude=8.31" +
-            $"&hourly={MarineClient.HourlyVariables}&forecast_days=8&timeformat=unixtime&timezone=UTC",
+            $"/v1/marine?latitude=47.05&longitude=8.31&hourly={MarineClient.HourlyVariables}&forecast_days=8&timeformat=unixtime&timezone=UTC",
             uri);
     }
 
-    [Fact]
-    public void Coordinates_use_the_invariant_culture()
+    [Fact(Timeout = 5000)]
+    public async Task Coordinates_use_the_invariant_culture()
     {
         var previous = CultureInfo.CurrentCulture;
         CultureInfo.CurrentCulture = new CultureInfo("de-DE");
         try
         {
-            var uri = AirQualityClient.BuildUri(47.05, 8.31, 4);
+            var uri = await Capture(client => new AirQualityClient(client).FetchAsync(47.05, 8.31, 4, TestContext.Current.CancellationToken));
 
             Assert.Contains("latitude=47.05&longitude=8.31", uri);
         }
         finally
         {
             CultureInfo.CurrentCulture = previous;
+        }
+    }
+
+    [Fact]
+    public void The_builder_appends_time_parameters_to_every_endpoint_except_search()
+    {
+        var forecast = OpenMeteoRequestBuilder.To("v1/x").WithLocation(1.5, 2.5).Build();
+        var search = OpenMeteoRequestBuilder.To("v1/search").WithName("Bad Ragaz").Build();
+
+        Assert.Multiple(
+            () => Assert.Equal("v1/x?latitude=1.5&longitude=2.5&timeformat=unixtime&timezone=UTC", forecast),
+            () => Assert.Equal("v1/search?name=Bad%20Ragaz", search));
+    }
+
+    private static async Task<string> Capture(Func<HttpClient, Task> call)
+    {
+        string? captured = null;
+        var handler = new CapturingHandler(request => captured = request.RequestUri?.PathAndQuery);
+        using var client = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/") };
+
+        await call(client);
+
+        return Assert.IsType<string>(captured);
+    }
+
+    private sealed class CapturingHandler(Action<HttpRequestMessage> inspect) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            inspect(request);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(EmptyBody, Encoding.UTF8, "application/json"),
+            });
         }
     }
 }

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -13,7 +12,11 @@ public sealed class MarineClient(HttpClient httpClient) : IMarineClient
 
     public async Task<MarineResponse?> FetchAsync(double latitude, double longitude, CancellationToken cancellationToken)
     {
-        var uri = BuildUri(latitude, longitude);
+        var uri = OpenMeteoRequestBuilder.To("v1/marine")
+            .WithLocation(latitude, longitude)
+            .WithHourly(HourlyVariables.Split(','))
+            .WithForecastDays(ForecastDays)
+            .Build();
         try
         {
             return await httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.MarineResponse, cancellationToken);
@@ -23,11 +26,4 @@ public sealed class MarineClient(HttpClient httpClient) : IMarineClient
             return null;
         }
     }
-
-    internal static string BuildUri(double latitude, double longitude) =>
-        string.Create(
-            CultureInfo.InvariantCulture,
-            $"v1/marine?latitude={latitude}&longitude={longitude}" +
-            $"&hourly={HourlyVariables}" +
-            $"&forecast_days={ForecastDays}&timeformat=unixtime&timezone=UTC");
 }

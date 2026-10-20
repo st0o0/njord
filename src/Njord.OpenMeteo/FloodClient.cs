@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -13,7 +12,11 @@ public sealed class FloodClient(HttpClient httpClient) : IFloodClient
 
     public async Task<FloodResponse?> FetchAsync(double latitude, double longitude, CancellationToken cancellationToken)
     {
-        var uri = BuildUri(latitude, longitude);
+        var uri = OpenMeteoRequestBuilder.To("v1/flood")
+            .WithLocation(latitude, longitude)
+            .WithDaily(DailyVariables.Split(','))
+            .WithForecastDays(ForecastDays)
+            .Build();
         try
         {
             return await httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.FloodResponse, cancellationToken);
@@ -23,11 +26,4 @@ public sealed class FloodClient(HttpClient httpClient) : IFloodClient
             return null;
         }
     }
-
-    internal static string BuildUri(double latitude, double longitude) =>
-        string.Create(
-            CultureInfo.InvariantCulture,
-            $"v1/flood?latitude={latitude}&longitude={longitude}" +
-            $"&daily={DailyVariables}" +
-            $"&forecast_days={ForecastDays}&timeformat=unixtime&timezone=UTC");
 }

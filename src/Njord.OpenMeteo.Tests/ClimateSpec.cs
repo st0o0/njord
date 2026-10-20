@@ -14,13 +14,18 @@ public sealed class ClimateSpec
     private static long Day(int year, int month, int day) =>
         new DateTimeOffset(year, month, day, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
 
-    [Fact]
-    public void The_uri_requests_the_thirty_year_baseline_in_utc()
+    [Fact(Timeout = 5000)]
+    public async Task The_uri_requests_the_thirty_year_baseline_in_utc()
     {
+        string? sent = null;
+        var client = new ClimateClient(new HttpClient(new CapturingHandler(r => sent = r.RequestUri?.PathAndQuery)) { BaseAddress = new Uri("https://climate-api.open-meteo.com/") });
+
+        await client.FetchAsync(47.05, 8.31, TestContext.Current.CancellationToken);
+
         Assert.Equal(
-            "v1/climate?latitude=47.05&longitude=8.31&start_date=1991-01-01&end_date=2020-12-31" +
+            "/v1/climate?latitude=47.05&longitude=8.31&start_date=1991-01-01&end_date=2020-12-31" +
             "&models=EC_Earth3P_HR&daily=temperature_2m_mean,precipitation_sum,sunshine_duration&timeformat=unixtime&timezone=UTC",
-            ClimateClient.BuildUri(47.05, 8.31));
+            sent);
     }
 
     [Fact(Timeout = 5000)]
@@ -118,6 +123,15 @@ public sealed class ClimateSpec
     {
         public Task<ClimateResponse?> FetchAsync(double latitude, double longitude, CancellationToken cancellationToken) =>
             Task.FromResult(response);
+    }
+
+    private sealed class CapturingHandler(Action<HttpRequestMessage> inspect) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            inspect(request);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{}", Encoding.UTF8, "application/json") });
+        }
     }
 
     private sealed class StubHandler(HttpStatusCode status, string body) : HttpMessageHandler
