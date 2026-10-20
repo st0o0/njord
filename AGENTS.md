@@ -164,9 +164,9 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 862 tests (Forecast 68, Messages 63, Persistence 14, Core 128, OpenMeteo 128, Budget 18,
-Polling 103, Pipeline 51, Weather 110, AirQuality 20, Flood 28, Marine 63, Grpc 41, Architecture 16,
-IntegrationTests 11). One test per `[Fact]` and per `[Theory]` data row.
+Current total: 897 tests (Forecast 68, Messages 63, Persistence 14, Core 153, OpenMeteo 128, Budget 18,
+Polling 103, Pipeline 51, Weather 114, AirQuality 20, Flood 28, Marine 63, Grpc 41, Architecture 16,
+IntegrationTests 17). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
 `appsettings.Development.json`, environment variables (`Njord__Persistence__DataPath`), `appsettings.Example.json`
