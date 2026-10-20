@@ -136,17 +136,18 @@ public sealed class OpenMeteoGateway : ReceiveActor
         var domainTagPair = new KeyValuePair<string, object?>("domain", domainTag);
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        IDomainForecast? forecast = domain switch
+        IDomainForecast? forecast;
+        try
         {
-            DomainKind.Weather => (await _weatherClient.FetchAsync(location.Latitude, location.Longitude, _options.ForecastDays, CancellationToken.None))
-                ?.ToDomainForecast(now),
-            DomainKind.AirQuality => (await _airQualityClient.FetchAsync(location.Latitude, location.Longitude, _options.ForecastDays, CancellationToken.None))
-                ?.ToDomainForecast(now),
-            DomainKind.Marine => (await _marineClient.FetchAsync(location.Latitude, location.Longitude, CancellationToken.None))
-                ?.ToDomainForecast(now),
-            _ => (await _floodClient.FetchAsync(location.Latitude, location.Longitude, CancellationToken.None))
-                ?.ToDomainForecast(now),
-        };
+            forecast = await FetchForecastAsync(domain, location, now);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+        {
+            sw.Stop();
+            Telemetry.FetchTotal.Add(1, locationTag, domainTagPair, new KeyValuePair<string, object?>("outcome", "failure"));
+            return new DomainFetchFailed(id, PollFailureReason.Transport, $"Fetch failed with {ex.GetType().Name}: {ex.Message}");
+        }
+
         sw.Stop();
 
         Telemetry.FetchTotal.Add(1, locationTag, domainTagPair,
@@ -160,6 +161,19 @@ public sealed class OpenMeteoGateway : ReceiveActor
             ? new DomainFetchFailed(id, PollFailureReason.MalformedPayload, $"The {domainTag} endpoint returned no usable data")
             : new DomainFetchDone(id, domain, forecast);
     }
+
+    private async Task<IDomainForecast?> FetchForecastAsync(DomainKind domain, LocationOptions location, DateTimeOffset now) =>
+        domain switch
+        {
+            DomainKind.Weather => (await _weatherClient.FetchAsync(location.Latitude, location.Longitude, _options.ForecastDays, CancellationToken.None))
+                ?.ToDomainForecast(now),
+            DomainKind.AirQuality => (await _airQualityClient.FetchAsync(location.Latitude, location.Longitude, _options.ForecastDays, CancellationToken.None))
+                ?.ToDomainForecast(now),
+            DomainKind.Marine => (await _marineClient.FetchAsync(location.Latitude, location.Longitude, CancellationToken.None))
+                ?.ToDomainForecast(now),
+            _ => (await _floodClient.FetchAsync(location.Latitude, location.Longitude, CancellationToken.None))
+                ?.ToDomainForecast(now),
+        };
 
     private void OnDomainFetchDone(DomainFetchDone msg)
     {

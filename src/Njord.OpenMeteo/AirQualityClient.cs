@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace Njord.OpenMeteo;
 
@@ -10,7 +12,14 @@ public sealed class AirQualityClient(HttpClient httpClient) : IAirQualityClient
     public async Task<AirQualityResponse?> FetchAsync(double latitude, double longitude, int forecastDays, CancellationToken cancellationToken)
     {
         var uri = BuildUri(latitude, longitude, forecastDays);
-        return await WeatherClient.FetchCoreAsync(httpClient, uri, OpenMeteoJsonContext.Default.AirQualityResponse, cancellationToken);
+        try
+        {
+            return await httpClient.GetFromJsonAsync(uri, OpenMeteoJsonContext.Default.AirQualityResponse, cancellationToken);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
+        {
+            return null;
+        }
     }
 
     internal static string BuildUri(double latitude, double longitude, int forecastDays) =>

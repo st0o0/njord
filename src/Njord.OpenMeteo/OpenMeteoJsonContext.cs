@@ -7,5 +7,4 @@ namespace Njord.OpenMeteo;
 [JsonSerializable(typeof(FloodResponse))]
 [JsonSerializable(typeof(MarineResponse))]
 [JsonSerializable(typeof(GeocodingResponse))]
-[JsonSerializable(typeof(OpenMeteoErrorResponse))]
 internal sealed partial class OpenMeteoJsonContext : JsonSerializerContext;

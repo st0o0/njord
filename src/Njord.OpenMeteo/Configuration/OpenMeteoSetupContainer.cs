@@ -29,31 +29,26 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
         {
             var options = sp.GetRequiredService<IOptions<OpenMeteoOptions>>().Value;
             client.BaseAddress = new Uri(options.BaseUrl);
-            client.Timeout = sp.GetRequiredService<FetchTimeouts>().Http;
         });
 
         AddTypedClient<IAirQualityClient, AirQualityClient>(services, (_, client) =>
         {
             client.BaseAddress = new Uri("https://air-quality-api.open-meteo.com/");
-            client.Timeout = TimeSpan.FromSeconds(30);
         });
 
         AddTypedClient<IFloodClient, FloodClient>(services, (_, client) =>
         {
             client.BaseAddress = new Uri("https://flood-api.open-meteo.com/");
-            client.Timeout = TimeSpan.FromSeconds(30);
         });
 
         AddTypedClient<IMarineClient, MarineClient>(services, (_, client) =>
         {
             client.BaseAddress = new Uri("https://marine-api.open-meteo.com/");
-            client.Timeout = TimeSpan.FromSeconds(30);
         });
 
         AddTypedClient<IGeocodingClient, GeocodingClient>(services, (_, client) =>
         {
             client.BaseAddress = new Uri("https://geocoding-api.open-meteo.com/");
-            client.Timeout = TimeSpan.FromSeconds(30);
         });
 
         services.AddHostedService<LocationResolutionService>();
@@ -67,8 +62,7 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
         where TInterface : class
         where TImplementation : class, TInterface
     {
-        services.AddHttpClient<TInterface, TImplementation>(configure)
-            .AddHttpMessageHandler(() => new HttpMetricsHandler())
+        var builder = services.AddHttpClient<TInterface, TImplementation>(configure)
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
             {
                 ConnectCallback = async (context, ct) =>
@@ -87,6 +81,9 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
                     }
                 }
             });
+
+        builder.AddHttpMessageHandler(() => new HttpMetricsHandler());
+        builder.AddStandardResilienceHandler();
     }
 
     private sealed class GatewayActorRegistration : IActorRegistration

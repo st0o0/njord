@@ -44,11 +44,20 @@ public sealed class GeocodingSpec
     }
 
     [Fact(Timeout = 5000)]
-    public async Task A_failed_request_resolves_to_null()
+    public async Task A_bad_request_resolves_to_null()
     {
-        var result = await Client(HttpStatusCode.TooManyRequests, "").ResolveAsync("Lucerne", TestContext.Current.CancellationToken);
+        var result = await Client(HttpStatusCode.BadRequest, "").ResolveAsync("Lucerne", TestContext.Current.CancellationToken);
 
         Assert.Null(result);
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task A_rate_limited_request_throws_for_the_resilience_pipeline_to_handle()
+    {
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            Client(HttpStatusCode.TooManyRequests, "").ResolveAsync("Lucerne", TestContext.Current.CancellationToken));
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, ex.StatusCode);
     }
 
     [Fact(Timeout = 5000)]

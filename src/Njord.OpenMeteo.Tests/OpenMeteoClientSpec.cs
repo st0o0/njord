@@ -55,13 +55,14 @@ public sealed class OpenMeteoClientSpec
     }
 
     [Fact(Timeout = 5000)]
-    public async Task A_rate_limited_response_returns_null()
+    public async Task A_rate_limited_response_throws_for_the_resilience_pipeline_to_handle()
     {
         var client = Weather(HttpStatusCode.TooManyRequests, "");
 
-        var result = await client.FetchAsync(47.0, 8.0, 4, TestContext.Current.CancellationToken);
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            client.FetchAsync(47.0, 8.0, 4, TestContext.Current.CancellationToken));
 
-        Assert.Null(result);
+        Assert.Equal(HttpStatusCode.TooManyRequests, ex.StatusCode);
     }
 
     [Fact(Timeout = 5000)]
