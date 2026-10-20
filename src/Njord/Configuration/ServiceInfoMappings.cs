@@ -25,7 +25,7 @@ public static class ServiceInfoMappings
     {
         IReadOnlyList<string> models = [EnsembleModelId];
         var locations = scope.Locations
-            .Select(location => new CatalogLocation(new Location(location.Name, location.Latitude, location.Longitude), models))
+            .Select(location => new CatalogLocation(new Location(location.Name, location.Latitude.GetValueOrDefault(), location.Longitude.GetValueOrDefault()), models))
             .ToList();
 
         return new CatalogResult(locations, [new CatalogModel(EnsembleModelId)]);

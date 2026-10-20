@@ -19,7 +19,6 @@ public static class LifestyleMappings
         LifestyleKind.BbqScore => "bbq_score",
         LifestyleKind.FloodTimeline => "flood_timeline",
         LifestyleKind.FrontApproaching => "front_approaching",
-        LifestyleKind.ClimateAnomaly => "climate_anomaly",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
@@ -67,10 +66,6 @@ public static class LifestyleMappings
             ("estimated_in_hours", Number(e.EstimatedIn.TotalHours)),
             ("pressure_drop", Number(e.PressureDrop)),
             ("temp_drop", Number(e.TempDrop)))),
-        PipelineEvent.ClimateAnomalyComputed e => new LifestyleUpdate(e.Location, LifestyleKind.ClimateAnomaly, Fields(
-            ("temp_anomaly", Number(e.TempAnomaly)),
-            ("precip_anomaly", Number(e.PrecipAnomaly)),
-            ("baseline_period", e.BaselinePeriod))),
         _ => null,
     };
 

@@ -56,14 +56,11 @@ public sealed class OpenMeteoUriBuilderSpec
     }
 
     [Fact]
-    public void The_builder_appends_time_parameters_to_every_endpoint_except_search()
+    public void The_builder_appends_time_parameters_to_the_endpoint()
     {
         var forecast = OpenMeteoRequestBuilder.To("v1/x").WithLocation(1.5, 2.5).Build();
-        var search = OpenMeteoRequestBuilder.To("v1/search").WithName("Bad Ragaz").Build();
 
-        Assert.Multiple(
-            () => Assert.Equal("v1/x?latitude=1.5&longitude=2.5&timeformat=unixtime&timezone=UTC", forecast),
-            () => Assert.Equal("v1/search?name=Bad%20Ragaz", search));
+        Assert.Equal("v1/x?latitude=1.5&longitude=2.5&timeformat=unixtime&timezone=UTC", forecast);
     }
 
     private static async Task<string> Capture(Func<HttpClient, Task> call)

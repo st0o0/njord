@@ -4,7 +4,6 @@ using Akka.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
@@ -43,21 +42,6 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
         {
             client.BaseAddress = new Uri("https://marine-api.open-meteo.com/");
         });
-
-        AddTypedClient<IClimateClient, ClimateClient>(services, (_, client) =>
-        {
-            client.BaseAddress = new Uri("https://climate-api.open-meteo.com/");
-        });
-
-        AddTypedClient<IGeocodingClient, GeocodingClient>(services, (_, client) =>
-        {
-            client.BaseAddress = new Uri("https://geocoding-api.open-meteo.com/");
-        });
-
-        services.AddHostedService<LocationResolutionService>();
-
-        services.TryAddSingleton<IClimateBaselineStore, ClimateBaselineStore>();
-        services.AddHostedService<ClimateBaselineService>();
 
         services.AddSingleton<IActorRegistration>(new GatewayActorRegistration());
     }

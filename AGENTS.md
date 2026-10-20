@@ -23,12 +23,12 @@ src/
     ActorKeys.cs        #   marker interfaces for every resolvable actor
     Actors/             #   ShardMessageExtractor, StreamSupervision, stream handshake messages
     Domain/             #   IDomainHandler, IAlertRule, EnrichmentResolution, LocationForecast,
-                        #   DomainDataReceived, IClimateBaselineStore
+                        #   DomainDataReceived
     Configuration/      #   NjordOptions, LocationOptions, WeatherOptions, EnrichmentOptions, AlertOptions,
                         #   SolarYieldOptions, WeatherVariables, ConfigView, AddNjordOptions + validators
       Polling/ Persistence/ Mqtt/ Health/   # PollingOptions, BudgetCalculator, FetchTimeouts, ...
-  Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, 6 typed clients, OpenMeteoRequestBuilder,
-                        #   LocationResolutionService, ClimateBaselineService, response DTOs, Mapping/
+  Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, 4 typed clients, OpenMeteoRequestBuilder,
+                        #   response DTOs, Mapping/
   Njord.Budget/         # BudgetTracker (persistent), usage accounting, health check
   Njord.Pipeline/       # PollManager, PollWorker (+ state), ForecastPipeline, ProjectionEngine, health check
   Njord.Weather/        # WeatherAlertHandler + Rules/ (one per alert type), Lifestyle/ handlers
@@ -91,7 +91,7 @@ SINGLETONS (Cluster Singleton)
 ├─ PollManager (non-persistent, BackoffOnFailure, IWithTimers)    [Pipeline]
 │  └─ one target per location; StartPolling/StopPolling, poll states + health from reports
 ├─ OpenMeteoGateway (non-persistent)                              [OpenMeteo]
-│  └─ GatewayBudgetGate -> typed clients: Weather, AirQuality, Flood, Marine, Climate, Geocoding
+│  └─ GatewayBudgetGate -> typed clients: Weather, AirQuality, Flood, Marine
 ├─ ForecastPipeline (non-persistent)                              [Pipeline]
 │  └─ MergeHub<DomainDataReceived> -> ProjectionEngine -> IDomainHandler[] -> BroadcastHub<PipelineEvent>
 ├─ BudgetTracker (persistent)                                     [Budget]
@@ -102,25 +102,21 @@ SINGLETONS (Cluster Singleton)
 SHARD REGIONS (Sharded Entity)
 └─ PollWorker (persistent, entity = location, "poll-worker", no passivation)  [Pipeline]
    └─ per-domain timers -> FetchDomain -> OpenMeteoGateway; persists DomainPolled; reports to PollManager
-
-HOSTED SERVICES (before the actor system)
-├─ LocationResolutionService  (geocodes locations without coordinates, fails startup on no match)
-└─ ClimateBaselineService     (30-year baseline for ClimateAnomaly)
 ```
 
 ## Decisions
 
 - **Ensemble default.** The weather request goes to `v1/ensemble`; there are no model, horizon or
   parameter settings. Variables are internal (`WeatherVariables`: 31 standard, 36 with `IncludeSolar`).
-- **Enrichment-driven configuration.** 20 toggles in `Njord:Enrichments`: on by default `WeatherAlerts`,
+- **Enrichment-driven configuration.** 19 toggles in `Njord:Enrichments`: on by default `WeatherAlerts`,
   `CommuteSafety`, `PollenAlert`, `Pm25Alert`; off by default `FloodRisk`, `FloodRain`, `FloodTimeline`,
   `SwimmingConditions`, `VentilationWindow`, `ExerciseAdvisory`, `LaundryScore`, `PollenTrend`,
   `NightVentilation`, `ConfidenceTrend`, `SolarYield`, `GardeningAdvisory`, `OutdoorScore`, `BBQScore`,
-  `ApproachingFront`, `ClimateAnomaly`. The entity set follows locations x enabled handlers.
+  `ApproachingFront`. The entity set follows locations x enabled handlers.
 - **Per-domain discovery.** Every domain of a location learns its own cycle and polls independently.
 - **Domains:** `Weather`, `AirQuality`, `Flood`, `Solar`, `Marine` (`DomainKind`). The gateway fetches
   Weather, AirQuality, Flood, Marine; `Solar` exists in the model and event vocabulary only.
-- **Geocoding resolves locations.** A location is `Name`; coordinates are optional and skip the lookup.
+- **Explicit coordinates.** A location is `Name`, `Latitude` and `Longitude`, all required (`NjordOptionsValidator`).
 - **Free tier assumed** (non-commercial): budget defaults to 300k/month, 600/min, optional
   `Polling:BudgetOverride`. Startup validates projected usage (`BudgetCalculator`: locations x required
   domains x poll cycles x call weight) against 80 % of the monthly budget.
@@ -157,8 +153,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 657 tests (Model 30, Messages 61, Persistence 14, Core 82, OpenMeteo 53, Budget 18,
-Pipeline 151, Weather 73, AirQuality 17, Flood 21, Marine 15, Mqtt 54, Grpc 37, Architecture 16,
+Current total: 647 tests (Model 30, Messages 60, Persistence 14, Core 88, OpenMeteo 39, Budget 18,
+Pipeline 151, Weather 70, AirQuality 17, Flood 21, Marine 15, Mqtt 54, Grpc 39, Architecture 16,
 IntegrationTests 15). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
@@ -253,7 +249,7 @@ Defaults are property initializers.
 |---------|-------|---------|
 | `Njord` | `NjordOptions` | `Locations` (`Name`, optional `Latitude`/`Longitude`) |
 | `Njord:Weather` | `WeatherOptions` | `IncludeSolar` (false), `ForecastDays` (4) |
-| `Njord:Enrichments` | `EnrichmentOptions` | the 20 enrichment toggles |
+| `Njord:Enrichments` | `EnrichmentOptions` | the 19 enrichment toggles |
 | `Njord:Enrichment:Alerts` | `AlertOptions` | alert thresholds |
 | `Njord:SolarYield` | `SolarYieldOptions` | `PeakKw` (5.0), `Azimuth` (180), `Tilt` (30) |
 | `Njord:Polling` | `PollingOptions` | `PollInterval` (60 min), `DiscoveryInterval` (20 min), `BudgetOverride` |
@@ -268,9 +264,8 @@ The Config Builder (`docs/.vitepress/theme/builder`: `types.ts`, `budget.ts`, `s
 ## References
 
 - Open-Meteo API: https://open-meteo.com/en/docs
-- Weather ensemble: `https://api.open-meteo.com/v1/ensemble`; air quality, flood, marine, climate and
-  geocoding each use their own host (`air-quality-api`, `flood-api`, `marine-api`, `climate-api`,
-  `geocoding-api` `.open-meteo.com`). No API key. Free tier non-commercial: 600/min, 5k/h, 10k/day, 300k/month.
+- Weather ensemble: `https://api.open-meteo.com/v1/ensemble`; air quality, flood and
+  marine each use their own host (`air-quality-api`, `flood-api`, `marine-api` `.open-meteo.com`). No API key. Free tier non-commercial: 600/min, 5k/h, 10k/day, 300k/month.
 - Every URL is built with `OpenMeteoRequestBuilder`: invariant-culture coordinates, `timeformat=unixtime`,
-  `timezone=UTC` (except geocoding). Wind in m/s. Values beyond a horizon are `null`; HTTP 400 carries
+  `timezone=UTC`. Wind in m/s. Values beyond a horizon are `null`; HTTP 400 carries
   `{"error":true,"reason":...}`.

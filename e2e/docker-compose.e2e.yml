@@ -11,7 +11,7 @@ services:
     volumes:
       - njord-data:/app/data
     environment:
-      # ── Location (explicit coordinates; geocoding is not guaranteed in every environment) ──
+      # ── Location (coordinates are required) ──
       - Njord__Locations__0__Name=Lucerne
       - Njord__Locations__0__Latitude=47.0502
       - Njord__Locations__0__Longitude=8.3093
@@ -40,7 +40,6 @@ services:
       - Njord__Enrichments__BBQScore=true
       - Njord__Enrichments__ApproachingFront=true
       - Njord__Enrichments__FloodTimeline=true
-      - Njord__Enrichments__ClimateAnomaly=true
 
       # ── MQTT (optional, enable for MQTT sections) ──────────────
       # - Njord__Mqtt__Enabled=true

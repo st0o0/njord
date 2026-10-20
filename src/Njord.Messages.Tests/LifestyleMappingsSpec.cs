@@ -1,5 +1,5 @@
-using Njord.Messages.Pipeline;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 using Njord.Model;
 
 namespace Njord.Messages.Tests;
@@ -24,7 +24,6 @@ public sealed class LifestyleMappingsSpec
         { new PipelineEvent.BBQScoreComputed(Lucerne, 90, At, 3), LifestyleKind.BbqScore, "bbq_score" },
         { new PipelineEvent.FloodTimelineComputed(Lucerne, At, 120.5, 2), LifestyleKind.FloodTimeline, "flood_timeline" },
         { new PipelineEvent.FrontApproaching(Lucerne, TimeSpan.FromHours(6), 4, 5), LifestyleKind.FrontApproaching, "front_approaching" },
-        { new PipelineEvent.ClimateAnomalyComputed(Lucerne, 1.5, -0.5, "1991-2020"), LifestyleKind.ClimateAnomaly, "climate_anomaly" },
     };
 
     [Theory]

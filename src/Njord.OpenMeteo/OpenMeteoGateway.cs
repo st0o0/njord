@@ -107,7 +107,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         }
 
         var id = NextId();
-        _pending[id] = new PendingDomainRequest(Sender, msg.Location, msg.Domain, new Location(location.Name, location.Latitude, location.Longitude));
+        _pending[id] = new PendingDomainRequest(Sender, msg.Location, msg.Domain, new Location(location.Name, location.Latitude.Value, location.Longitude.Value));
 
         if (msg.Domain is not (DomainKind.Weather or DomainKind.AirQuality or DomainKind.Flood or DomainKind.Marine))
         {
@@ -167,13 +167,13 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private async Task<IDomainForecast?> FetchForecastAsync(DomainKind domain, LocationOptions location, DateTimeOffset now) =>
         domain switch
         {
-            DomainKind.Weather => (await _weatherClient.FetchAsync(location.Latitude, location.Longitude, _weather.ForecastDays, CancellationToken.None))
+            DomainKind.Weather => (await _weatherClient.FetchAsync(location.Latitude.Value, location.Longitude.Value, _weather.ForecastDays, CancellationToken.None))
                 ?.ToDomainForecast(now),
-            DomainKind.AirQuality => (await _airQualityClient.FetchAsync(location.Latitude, location.Longitude, _weather.ForecastDays, CancellationToken.None))
+            DomainKind.AirQuality => (await _airQualityClient.FetchAsync(location.Latitude.Value, location.Longitude.Value, _weather.ForecastDays, CancellationToken.None))
                 ?.ToDomainForecast(now),
-            DomainKind.Marine => (await _marineClient.FetchAsync(location.Latitude, location.Longitude, CancellationToken.None))
+            DomainKind.Marine => (await _marineClient.FetchAsync(location.Latitude.Value, location.Longitude.Value, CancellationToken.None))
                 ?.ToDomainForecast(now),
-            _ => (await _floodClient.FetchAsync(location.Latitude, location.Longitude, CancellationToken.None))
+            _ => (await _floodClient.FetchAsync(location.Latitude.Value, location.Longitude.Value, CancellationToken.None))
                 ?.ToDomainForecast(now),
         };
 

@@ -38,7 +38,7 @@ gRPC + REST. Real Open-Meteo API. 4 domains, 19 alert types, lifestyle enrichmen
 
 - **Location:** Lucerne (explicit coordinates 47.0502 / 8.3093 in the compose file)
 - **Weather:** Ensemble Mean, ForecastDays=4, IncludeSolar=true
-- **Enrichments:** ALL enabled (19 enrichment toggles + ClimateAnomaly)
+- **Enrichments:** ALL enabled (19 enrichment toggles)
 - **Resolved domains:** Weather, AirQuality, Flood, Marine (4 calls/cycle)
 
 ### Expected Entities

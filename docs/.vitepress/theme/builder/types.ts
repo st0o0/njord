@@ -48,8 +48,8 @@ export interface EnrichmentFeature {
 
 export interface LocationConfig {
   name: string
-  latitude?: number
-  longitude?: number
+  latitude: number
+  longitude: number
 }
 
 export interface DeployLimits {

@@ -36,12 +36,6 @@ internal sealed class OpenMeteoRequestBuilder
         return this;
     }
 
-    public OpenMeteoRequestBuilder WithName(string name)
-    {
-        _params.Add($"name={Uri.EscapeDataString(name)}");
-        return this;
-    }
-
     public OpenMeteoRequestBuilder With(string key, string value)
     {
         _params.Add($"{key}={value}");
@@ -50,11 +44,8 @@ internal sealed class OpenMeteoRequestBuilder
 
     public string Build()
     {
-        if (!_endpoint.Contains("search", StringComparison.Ordinal))
-        {
-            _params.Add("timeformat=unixtime");
-            _params.Add("timezone=UTC");
-        }
+        _params.Add("timeformat=unixtime");
+        _params.Add("timezone=UTC");
 
         return $"{_endpoint}?{string.Join("&", _params)}";
     }

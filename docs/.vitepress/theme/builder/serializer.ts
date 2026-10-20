@@ -35,9 +35,7 @@ export function exportAsJson(config: NjordConfig): string {
   if (changed.length) n.Enrichments = Object.fromEntries(changed)
   if (config.locations.length) {
     n.Locations = config.locations.map(l => {
-      const loc: Record<string, unknown> = { Name: l.name }
-      if (l.latitude !== undefined) loc.Latitude = l.latitude
-      if (l.longitude !== undefined) loc.Longitude = l.longitude
+      const loc: Record<string, unknown> = { Name: l.name, Latitude: l.latitude, Longitude: l.longitude }
       return loc
     })
   }
@@ -188,8 +186,8 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   if (n.Locations) {
     config.locations = n.Locations.map((l: Record<string, unknown>) => ({
       name: l.Name as string ?? '',
-      ...(typeof l.Latitude === 'number' && l.Latitude !== 0 ? { latitude: l.Latitude } : {}),
-      ...(typeof l.Longitude === 'number' && l.Longitude !== 0 ? { longitude: l.Longitude } : {}),
+      latitude: typeof l.Latitude === 'number' ? l.Latitude : 0,
+      longitude: typeof l.Longitude === 'number' ? l.Longitude : 0,
     }))
   }
   if (n.Mqtt) {

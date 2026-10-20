@@ -89,5 +89,5 @@ Write results to `e2e/results/<timestamp>-e2e.md` with:
 - **4 domains** (Weather, AQ, Flood, Marine) instead of per-model forecast
 - **19 alert types** instead of 14
 - **Enrichment-driven config** — enrichment toggles derive polled domains
-- **Geocoding** — location name resolves to coordinates at startup
+- **Explicit coordinates** — every location carries latitude and longitude
 - **~67 steps** instead of ~148 (simpler, more focused)

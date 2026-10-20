@@ -56,6 +56,12 @@ const exportMode = reactive({ format: 'json' as 'json' | 'env' | 'compose' })
 const importText = reactive({ value: '', error: '', outdated: [] as string[] })
 const copied = reactive({ show: false })
 const newLocation = ref('')
+const newLatitude = ref<number | ''>('')
+const newLongitude = ref<number | ''>('')
+const canAddLocation = computed(() =>
+  newLocation.value.trim() !== ''
+  && typeof newLatitude.value === 'number' && newLatitude.value >= -90 && newLatitude.value <= 90
+  && typeof newLongitude.value === 'number' && newLongitude.value >= -180 && newLongitude.value <= 180)
 
 const budget = computed(() => computeBudget(config))
 const memoryTip = computed(() => {
@@ -69,10 +75,15 @@ const exportOutput = computed(() => {
 })
 
 function addLocation() {
-  const name = newLocation.value.trim()
-  if (!name) return
-  config.locations.push({ name })
+  if (!canAddLocation.value) return
+  config.locations.push({
+    name: newLocation.value.trim(),
+    latitude: newLatitude.value as number,
+    longitude: newLongitude.value as number,
+  })
   newLocation.value = ''
+  newLatitude.value = ''
+  newLongitude.value = ''
 }
 
 function removeLocation(i: number) {
@@ -132,13 +143,16 @@ onMounted(() => {
       <div v-for="(loc, i) in config.locations" :key="i" class="location-card">
         <div class="location-row">
           <input v-model="loc.name" placeholder="Name" class="location-name" />
-          <span class="location-hint">coordinates resolved by geocoding</span>
+          <input v-model.number="loc.latitude" type="number" step="any" min="-90" max="90" placeholder="Latitude" class="location-coord" />
+          <input v-model.number="loc.longitude" type="number" step="any" min="-180" max="180" placeholder="Longitude" class="location-coord" />
           <button @click="removeLocation(i)" class="btn-remove">Remove</button>
         </div>
       </div>
       <div class="add-location">
-        <input v-model="newLocation" placeholder="City name, e.g. Lucerne" @keyup.enter="addLocation" />
-        <button @click="addLocation" :disabled="!newLocation.trim()" class="btn-add">Add</button>
+        <input v-model="newLocation" placeholder="Name, e.g. Lucerne" @keyup.enter="addLocation" />
+        <input v-model.number="newLatitude" type="number" step="any" min="-90" max="90" placeholder="Latitude" class="location-coord" @keyup.enter="addLocation" />
+        <input v-model.number="newLongitude" type="number" step="any" min="-180" max="180" placeholder="Longitude" class="location-coord" @keyup.enter="addLocation" />
+        <button @click="addLocation" :disabled="!canAddLocation" class="btn-add">Add</button>
       </div>
     </div>
 
@@ -303,7 +317,7 @@ onMounted(() => {
 .input-name { width: 140px; }
 .input-coord { width: 90px; }
 .location-name { flex: 1; min-width: 160px; }
-.location-hint { font-size: 11px; color: var(--vp-c-text-3); margin-left: auto; }
+.location-coord { width: 110px; }
 .add-location { display: flex; gap: 8px; align-items: stretch; margin-top: 8px; }
 .add-location input { flex: 1; }
 

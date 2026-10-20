@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
-using Njord.Core.Domain;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Messages.Pipeline;
 using Njord.Weather.Lifestyle;
 using static Njord.Tests.Shared.AlertRuleFixture;

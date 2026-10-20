@@ -27,7 +27,7 @@ services:
       #- Njord__Locations__1__Name=office
       #- Njord__Locations__1__Latitude=47.38
       #- Njord__Locations__1__Longitude=8.54
-      # Latitude/Longitude may be omitted: Geocoding resolves the coordinates from the name.
+      # Latitude and Longitude are required for every location.
 
       # ── Polling & Weather ─────────────────────────────────────
       #- Njord__Polling__PollInterval=01:00:00
