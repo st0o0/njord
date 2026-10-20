@@ -1,3 +1,7 @@
+## Purpose
+Air quality exposes additional API variables for the features that need them.
+
+## Requirements
 ### Requirement: Air quality exposes additional variables
 `AirQualityParams` and `AirQualityPoint` SHALL cover `carbon_monoxide`, `sulphur_dioxide`, `dust`, `ammonia`, `olive_pollen`, `us_aqi`, `uv_index` and `uv_index_clear_sky`, each as a flag and a nullable point member. Every API-name mapping, response mapping and `HasFields` switch SHALL have one arm per member and throw `ArgumentOutOfRangeException` for unknown values.
 
@@ -40,4 +44,4 @@ Adding variables SHALL NOT change the number of air-quality calls per location p
 
 #### Scenario: Budget projection unchanged
 - **WHEN** all new flags are requested
-- **THEN** the `BudgetCalculator` projection SHALL equal the projection without them
+- **THEN** the `BudgetGuard` projection SHALL equal the projection without them

@@ -40,7 +40,7 @@ public sealed class NightVentilation(IOptions<NightVentilationConfig> config) : 
             return null;
         }
 
-        var night = ForecastQueries.Window(weather, AlertClock.HourStart(ctx.Now), tomorrowStart.AddHours(9))
+        var night = ForecastQueries.Window(weather, ctx.Now.HourStart(), tomorrowStart.AddHours(9))
             .Where(p => p.ValidFrom.UtcDateTime.Hour is >= 18 or < 9)
             .ToList();
         var (start, length) = Scoring.LongestRun([.. night.Select(p => p.Temperature < CoolNightLimit)]);

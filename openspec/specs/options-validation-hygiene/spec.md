@@ -2,18 +2,18 @@
 
 ## Purpose
 
-Keeps options validators lean: they reuse authoritative calculations (such as `BudgetCalculator`) instead of recomputing them, and share a helper for repeated range checks.
+Keeps options validators lean: they reuse authoritative calculations (such as `BudgetGuard`) instead of recomputing them, and share a helper for repeated range checks.
 
 ## Requirements
 ### Requirement: Validators reuse authoritative calculations instead of recomputing them
 When an `IValidateOptions<T>` implementation needs a projected value that another
 component in the codebase already computes authoritatively (e.g. projected monthly API
-usage, computed by `BudgetCalculator`), the validator SHALL call that component rather than
+usage, computed by `BudgetGuard`), the validator SHALL call that component rather than
 recomputing the value with a separate formula.
 
 #### Scenario: Budget validation uses one formula
 - **WHEN** `NjordOptionsValidator` checks projected API usage against the monthly budget
-- **THEN** it uses `BudgetCalculator.Validate(options)`'s result rather than an independent
+- **THEN** it uses `BudgetGuard`'s result rather than an independent
   inline calculation
 
 ### Requirement: Repeated range checks are factored into a shared helper

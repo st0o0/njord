@@ -19,7 +19,7 @@ The system SHALL provide `DomainKind.Seasonal` with monthly `SeasonalPoint`s (`T
 - **THEN** it SHALL call only the seasonal client and deliver a `DomainForecast<SeasonalPoint>` with `TimeResolution.Monthly`
 
 ### Requirement: Seasonal is polled only when needed
-The Seasonal domain SHALL be required only when the `SeasonalOutlook` feature is enabled, and the PollWorker SHALL learn its update cycle like every other domain. `BudgetCalculator` SHALL count it as 30 calls per month and location instead of once per poll cycle.
+The Seasonal domain SHALL be required only when the `SeasonalOutlook` feature is enabled, and the PollWorker SHALL learn its update cycle like every other domain. `BudgetGuard` SHALL count it as 30 calls per month and location instead of once per poll cycle.
 
 #### Scenario: Budget projection
 - **WHEN** two locations require only the Seasonal domain

@@ -49,5 +49,5 @@ Adding marine variables SHALL NOT change the number of marine calls per location
 
 #### Scenario: Budget projection unchanged
 - **WHEN** all new flags are requested
-- **THEN** the `BudgetCalculator` projection for the Marine domain SHALL equal the projection without them
+- **THEN** the `BudgetGuard` projection for the Marine domain SHALL equal the projection without them
 

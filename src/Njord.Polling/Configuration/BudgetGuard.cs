@@ -23,7 +23,7 @@ internal static class BudgetGuard
 
         var weatherRequired = requirements.Requires(DomainKind.Weather);
         var otherDomains = new[] { DomainKind.AirQuality, DomainKind.Flood, DomainKind.Marine, DomainKind.Satellite }.Count(requirements.Requires);
-        var apiCallWeight = weatherRequired ? CallWeight.Of(requirements.AllWeather.FlagCount(), weather.ForecastDays) : 0;
+        var apiCallWeight = weatherRequired ? CallWeight.Of(System.Numerics.BitOperations.PopCount((ulong)requirements.AllWeather), weather.ForecastDays) : 0;
 
         var domainCallsPerCycle = locationCount * ((weatherRequired ? 1 : 0) + otherDomains);
         var floodExtraWeight = requirements.Requires(DomainKind.Flood) && flood is { IncludeEnsemble: true } ? FloodEnsembleWeight - 1 : 0;

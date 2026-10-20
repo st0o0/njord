@@ -23,7 +23,4 @@ internal static class ThresholdValidation
             ? null
             : $"{path} must be {(direction == ScanDirection.Max ? "strictly ascending" : "strictly descending")} (advisory, warning, severe), got [{string.Join(", ", values)}].";
     }
-
-    internal static SeverityThresholds ToSeverity(this double[] values, ScanDirection direction) =>
-        new(values[0], values[1], values[2], direction);
 }

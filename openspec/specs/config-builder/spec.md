@@ -38,7 +38,7 @@ The builder SHALL offer horizon presets: Standard `[3, 6, 12, 24, 48, 72]`, Fine
 - **THEN** a validation error is shown
 
 ### Requirement: Live budget calculator validates configuration
-The builder SHALL compute and display projected monthly API usage using the same formula as `BudgetCalculator` (applied at startup by `PollingOptionsValidator`): `totalModelsPerCycle × cyclesPerMonth × apiCallWeight`. It SHALL show the projection against the budget (default 300k or override), display a percentage bar, and warn when exceeding the 80% guard.
+The builder SHALL compute and display projected monthly API usage using the same formula as `BudgetGuard` (applied at startup by `PollingOptionsValidator`): `totalModelsPerCycle × cyclesPerMonth × apiCallWeight`. It SHALL show the projection against the budget (default 300k or override), display a percentage bar, and warn when exceeding the 80% guard.
 
 #### Scenario: Budget bar updates on model change
 - **WHEN** a user adds a new model to all locations

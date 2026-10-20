@@ -37,7 +37,7 @@ public static class ForecastQueries
     public static IReadOnlyList<T> Upcoming<T>(DomainForecast<T> forecast, DateTimeOffset now, int hours)
         where T : IHasValidTime
     {
-        var start = AlertClock.HourStart(now);
+        var start = now.HourStart();
         var end = start.AddHours(hours);
         return [.. forecast.Points.Where(point => point.ValidFrom >= start && point.ValidFrom < end)];
     }

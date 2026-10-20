@@ -4,7 +4,7 @@
 TBD - created by archiving change options-parity-with-funkarr. Update Purpose after archive.
 ## Requirements
 ### Requirement: Options are registered through one helper
-`Njord.Core` SHALL provide `AddNjordOptions<T>(configuration)` that binds `Bind(configuration.GetSection(T.SectionName))`, replaces collection defaults, registers the type's `IValidateOptions<T>` and enables `ValidateOnStart`. Setup containers SHALL NOT repeat these steps by hand.
+`Njord.Core` SHALL provide `AddNjordOptions<T>()` and `AddNjordOptions<T, TValidator>()` for types implementing `IConfigSection` (static abstract `SectionName`); they bind the section, register the explicit `IValidateOptions<T>` and enable `ValidateOnStart`. Setup containers SHALL NOT repeat these steps by hand.
 
 #### Scenario: Helper registers validation
 - **WHEN** an options type is added with `AddNjordOptions<T>` and its value is invalid

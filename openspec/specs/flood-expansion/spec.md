@@ -41,7 +41,7 @@ When ensemble members are present, `FloodRisk` alerts SHALL carry a confidence d
 - **THEN** the alert SHALL have no confidence value and its severity SHALL equal the pre-change severity
 
 ### Requirement: Budget reflects ensemble weight
-`BudgetCalculator` SHALL account for the verified flood call weight when `IncludeEnsemble` is true, and the startup guard SHALL use that weight.
+`BudgetGuard` SHALL account for the verified flood call weight when `IncludeEnsemble` is true, and the startup guard SHALL use that weight.
 
 #### Scenario: Ensemble raises the projection
 - **WHEN** `IncludeEnsemble` is true and the flood weight is above 1

@@ -78,5 +78,5 @@ Feature resolution SHALL expose all registered features, the enabled features, t
 
 #### Scenario: Cost matches startup validation
 - **WHEN** the total of enabled features is computed
-- **THEN** it equals the projected usage `BudgetCalculator` validates at startup
+- **THEN** it equals the projected usage `BudgetGuard` validates at startup
 

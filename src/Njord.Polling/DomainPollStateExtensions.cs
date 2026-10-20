@@ -6,6 +6,9 @@ namespace Njord.Polling;
 // changes; two consistent intervals make the cycle Steady, five misses in Steady send it back to Discovery.
 public static class DomainPollStateExtensions
 {
+    private static readonly TimeSpan MaxRetryBackoff = TimeSpan.FromMinutes(15);
+    private const int MaxMissesBeforeFallback = 5;
+
     internal static readonly TimeSpan SteadyBuffer = TimeSpan.FromSeconds(30);
     private const double CycleTolerance = 0.2;
 
@@ -34,9 +37,9 @@ public static class DomainPollStateExtensions
             return domain with { MissCount = misses, NextPollAt = now + discoveryInterval };
         }
 
-        return misses >= PollWorkerStateExtensions.MaxMissesBeforeFallback
+        return misses >= MaxMissesBeforeFallback
             ? domain.FallBackToDiscovery(now, discoveryInterval)
-            : domain with { MissCount = misses, NextPollAt = now + PollWorkerStateExtensions.RetryBackoff(misses) };
+            : domain with { MissCount = misses, NextPollAt = now + RetryBackoff(misses) };
     }
 
     // The next poll is planned from the moment the last change was seen.
@@ -67,4 +70,10 @@ public static class DomainPollStateExtensions
 
     private static bool IsConsistent(TimeSpan interval, TimeSpan reference) =>
         Math.Abs((interval - reference).TotalSeconds) <= reference.TotalSeconds * CycleTolerance;
+
+    private static TimeSpan RetryBackoff(int count)
+    {
+        var delay = TimeSpan.FromMinutes(Math.Pow(2, count - 1));
+        return delay > MaxRetryBackoff ? MaxRetryBackoff : delay;
+    }
 }

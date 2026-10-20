@@ -22,10 +22,12 @@ src/
   Njord.Persistence/    # Extend-only records, no Njord refs: Events/Budget, Events/Polling
   Njord.Core/           # (-> Forecast, Messages, Persistence)
     ActorKeys.cs        #   marker interfaces for every resolvable actor
-    Actors/             #   ShardMessageExtractor, StreamSupervision, stream handshake messages
+    Actors/             #   IActorRegistration, Forecast/Pipeline stream handshakes shared across libraries
+                        #   (actor plumbing used by one library lives there: ShardMessageExtractor in Polling,
+                        #   StreamSupervision in Pipeline, GrpcStreamMessages in Grpc)
     Domain/             #   IDomainHandler, IAlertRule, IFeature, FeatureCategory,
                         #   FeatureDescriptor, FeatureResolution, LocationForecast, DomainDataReceived
-    Configuration/      #   IConfigSection, NjordOptions, LocationOptions, WeatherOptions, FloodOptions, PollingOptions,
+    Configuration/      #   IConfigSection, NjordOptions (with FindLocation), LocationOptions, WeatherOptions, FloodOptions, PollingOptions,
                         #   HealthOptions, FeatureOptions, WeatherVariables, AddNjordOptions + validators
     Polling/            #   CallWeight, RequestBudget (free-tier constants, DailyLimit), FetchTimeouts
   Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, 6 typed clients (Weather, AirQuality, Flood, Marine, Seasonal, SatelliteRadiation), OpenMeteoRequestBuilder,
@@ -172,8 +174,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 927 tests (Forecast 64, Messages 21, Persistence 14, Core 80, OpenMeteo 169, Budget 18,
-Polling 115, Pipeline 50, Features 222, Grpc 133, Architecture 14, IntegrationTests 27). One test per `[Fact]` and per `[Theory]` data row.
+Current total: 924 tests (Forecast 64, Messages 21, Persistence 14, Core 74, OpenMeteo 169, Budget 18,
+Polling 118, Pipeline 50, Features 222, Grpc 133, Architecture 14, IntegrationTests 27). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
 `appsettings.Development.json`, environment variables (`Njord__Persistence__DataPath`), `appsettings.Example.json`
@@ -199,7 +201,10 @@ Full-stack verification is the `e2e-test` skill (`.claude/skills/e2e-test/SKILL.
 - Enum to wire text or to another enum: extension method with an explicit `switch`, one arm per member,
   default throws `ArgumentOutOfRangeException` (`ToProto()`, `ToWireName()`). No casts between enums,
   no `Enum.Parse`/`ToString().ToLower()`. Each conversion has a spec pinning every member.
-- Mappings are extension methods in static classes named `<Domain><Target>Mappings`: no state, never in
+- Every static class with `this` methods ends in `Extensions` and lives in a file of the same name; state
+  extensions live next to, not inside, the state record. This is a review convention, not an ArchUnit rule.
+- Mappings are extension methods in static classes named `<Domain><Target>MappingExtensions` (file name = class
+  name): no state, never in
   actors; names `ToProto`, `ToDomain`, `ToMessage`, never `Map*`. Protobuf timestamps via `ToTimestamp()`.
 
 ### Akka
@@ -223,7 +228,7 @@ Rules apply to production code.
 - **Persistence:** records in `Njord.Persistence` are positional, `DateTimeOffset`/`TimeSpan` (never ticks),
   past-tense events (`DomainPolled`), `Persisted<Name>State` snapshots, new members nullable or defaulted,
   closed sets as `Persisted*` enums with explicit values. State <-> record mapping in
-  `<Owner>PersistenceMappings`, state -> contract in `<Owner>MessageMappings`. "Snapshot" is reserved for
+  `<Owner>PersistenceMappingExtensions`, state -> contract in `<Owner>MessageMappingExtensions`. "Snapshot" is reserved for
   persisted state. `Apply` takes the event record. Snapshot on `LastSequenceNr` interval; after
   `SaveSnapshotSuccess`: `DeleteMessages(seqNr)` + `DeleteSnapshots(seqNr - 1)`.
 - **Health checks ask the actors** (`PipelineHealthCheck` -> `PollManager`, `BudgetHealthCheck` ->
@@ -251,7 +256,7 @@ Rules apply to production code.
 
 ### Metrics
 
-- One `Meter("Njord.<Domain>")` per library (`Core`, `OpenMeteo`, `Budget`, `Polling`, `Pipeline`) in an
+- One `Meter("Njord.<Domain>")` per library (`OpenMeteo`, `Budget`, `Polling`, `Pipeline`) in an
   `internal static class Telemetry` with `MeterName` and `internal static readonly` instruments;
   `CoreSetupContainer.NjordMeters` is built from the constants, so a new meter is added there.
 - Names `njord_<area>_<name>` in snake_case; counters end `_total`, time histograms `_seconds`. Bounded tag

@@ -26,7 +26,7 @@ The system SHALL provide `DomainKind.Satellite` with hourly `SatelliteRadiationP
 - **THEN** N points SHALL result with `ValidFrom` taken from the timestamps and each component from the matching variable
 
 ### Requirement: Satellite is polled only when needed
-The Satellite domain SHALL be required only when the `SatelliteRadiation` feature is enabled (default off) and the PollWorker SHALL learn its update cycle like every other domain. `BudgetCalculator` SHALL count it once per poll cycle like the other hourly domains.
+The Satellite domain SHALL be required only when the `SatelliteRadiation` feature is enabled (default off) and the PollWorker SHALL learn its update cycle like every other domain. `BudgetGuard` SHALL count it once per poll cycle like the other hourly domains.
 
 #### Scenario: Default off
 - **WHEN** no configuration is supplied

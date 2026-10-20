@@ -61,4 +61,24 @@ public sealed class ForecastWindowSpec
 
         Assert.Equal(3, point.HoursFrom(Midnight.AddMinutes(45)));
     }
+
+    [Fact]
+    public void Should_truncate_to_the_start_of_the_hour()
+    {
+        var now = new DateTimeOffset(2026, 7, 1, 14, 37, 12, TimeSpan.Zero);
+
+        Assert.Equal(new DateTimeOffset(2026, 7, 1, 14, 0, 0, TimeSpan.Zero), now.HourStart());
+    }
+
+    [Fact]
+    public void Should_normalize_other_offsets_to_utc_for_the_hour_start()
+    {
+        var now = new DateTimeOffset(2026, 7, 1, 16, 37, 0, TimeSpan.FromHours(2));
+
+        var start = now.HourStart();
+
+        Assert.Multiple(
+            () => Assert.Equal(new DateTimeOffset(2026, 7, 1, 14, 0, 0, TimeSpan.Zero), start),
+            () => Assert.Equal(TimeSpan.Zero, start.Offset));
+    }
 }

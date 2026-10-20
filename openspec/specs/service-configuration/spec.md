@@ -179,12 +179,12 @@ fetched forecast window (96 h).
 
 ### Requirement: Options types are pure POCOs with no business logic
 
-Options types SHALL contain only properties with defaults. Computed properties (`EffectiveBudget`) and methods (`ResolveModels`) SHALL NOT exist on options types. Budget resolution SHALL be a method on `BudgetCalculator`. Model resolution SHALL be inlined at the call-site.
+Options types SHALL contain only properties with defaults and the resolved budget (`PollingOptions.EffectiveBudget`). Model resolution SHALL be inlined at the call-site.
 
 #### Scenario: NjordOptions has no EffectiveBudget property
 
 - **WHEN** `NjordOptions` is inspected
-- **THEN** it SHALL NOT have an `EffectiveBudget` property or any methods
+- **THEN** it SHALL NOT have an `EffectiveBudget` property; its only method is `FindLocation`
 
 ### Requirement: AlertThresholdOptions renamed to AlertOptions
 The alert options type SHALL be named `AlertOptions` (not `AlertThresholdOptions`) and SHALL bind the `Njord:Enrichment:Alerts` section.
@@ -194,13 +194,13 @@ The alert options type SHALL be named `AlertOptions` (not `AlertThresholdOptions
 - **WHEN** alert configuration is accessed
 - **THEN** the type SHALL be `AlertOptions`, not `AlertThresholdOptions`
 
-### Requirement: BudgetValidator renamed to BudgetCalculator
-The static class that projects and resolves the request budget SHALL be named `BudgetCalculator` (not `BudgetValidator`). It SHALL expose `GetEffectiveBudget(PollingOptions)` returning the resolved `RequestBudget` (`BudgetOverride` ?? free-tier default).
+### Requirement: Budget projection lives in BudgetGuard
+The startup projection SHALL be done by `BudgetGuard` (in `Njord.Polling`). The resolved `RequestBudget` (`BudgetOverride` ?? free-tier default) SHALL be exposed as `PollingOptions.EffectiveBudget`.
 
-#### Scenario: BudgetCalculator provides effective budget
+#### Scenario: EffectiveBudget provides the budget
 
 - **WHEN** the system needs the effective request budget
-- **THEN** it SHALL call `BudgetCalculator.GetEffectiveBudget(pollingOptions)`; no options type exposes an `EffectiveBudget` property
+- **THEN** it SHALL read `pollingOptions.EffectiveBudget`
 
 ### Requirement: PersistenceOptions is a class
 

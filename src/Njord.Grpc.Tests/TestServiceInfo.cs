@@ -15,8 +15,7 @@ public static class TestServiceInfo
         NjordOptions? scope = null,
         PollingOptions? polling = null,
         IEnumerable<IFeatureRule>? rules = null) =>
-        ServiceInfoMappings.ToServiceInfo(
-            scope ?? AppSettingsDefaults.Options<NjordOptions>(),
+        (scope ?? AppSettingsDefaults.Options<NjordOptions>()).ToServiceInfo(
             polling ?? AppSettingsDefaults.Options<PollingOptions>(),
             rules ?? [new Commute(), new Pollen(), new Pm25()]);
 

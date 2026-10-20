@@ -12,8 +12,7 @@ public sealed class ConfigSetupContainer : IServiceSetupContainer
         services.AddNjordOptions<NjordOptions, NjordOptionsValidator>();
         services.AddNjordOptions<PersistenceOptions, PersistenceOptionsValidator>();
 
-        services.AddSingleton(static sp => ServiceInfoMappings.ToServiceInfo(
-            sp.GetRequiredService<IOptions<NjordOptions>>().Value,
+        services.AddSingleton(static sp => sp.GetRequiredService<IOptions<NjordOptions>>().Value.ToServiceInfo(
             sp.GetRequiredService<IOptions<PollingOptions>>().Value,
             sp.GetServices<IFeatureRule>()));
     }
