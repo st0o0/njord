@@ -30,7 +30,7 @@ public static class DomainData
         Rain: 0.0,
         Snowfall: 0.0,
         FreezingLevelHeight: 2500.0,
-        IsDay: true,
+        IsDay: 1,
         SoilTemperature: 10.0);
 
     public static DomainForecast<WeatherPoint> Weather(

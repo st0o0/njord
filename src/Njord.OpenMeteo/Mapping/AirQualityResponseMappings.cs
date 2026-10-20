@@ -1,6 +1,6 @@
+using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
-using static Njord.OpenMeteo.Mapping.ForecastBuilding;
 using static Njord.OpenMeteo.Mapping.SeriesAccess;
 
 namespace Njord.OpenMeteo.Mapping;
@@ -15,13 +15,11 @@ internal static class AirQualityResponseMappings
             return null;
         }
 
-        return BuildForecast(
-            DomainKind.AirQuality, TimeResolution.Hourly, modelRun, h.Time.Length,
-            i => AnyAt(i, h.Pm25, h.Pm10, h.Ozone, h.NitrogenDioxide, h.EuropeanAqi, h.BirchPollen,
-                h.GrassPollen, h.AlderPollen, h.MugwortPollen, h.CarbonMonoxide, h.SulphurDioxide, h.Dust,
-                h.Ammonia, h.OlivePollen, h.UsAqi, h.UvIndex, h.UvIndexClearSky),
-            i => new AirQualityPoint(
-                DateTimeOffset.FromUnixTimeSeconds(h.Time[i]),
+        var points = new AirQualityPoint[h.Time.Length];
+        for (var i = 0; i < h.Time.Length; i++)
+        {
+            points[i] = new AirQualityPoint(
+                ValidFrom: DateTimeOffset.FromUnixTimeSeconds(h.Time[i]),
                 Pm25: At(h.Pm25, i),
                 Pm10: At(h.Pm10, i),
                 Ozone: At(h.Ozone, i),
@@ -38,6 +36,10 @@ internal static class AirQualityResponseMappings
                 OlivePollen: At(h.OlivePollen, i),
                 UsAqi: At(h.UsAqi, i),
                 UvIndex: At(h.UvIndex, i),
-                UvIndexClearSky: At(h.UvIndexClearSky, i)));
+                UvIndexClearSky: At(h.UvIndexClearSky, i));
+        }
+
+        return new DomainForecast<AirQualityPoint>(
+            DomainKind.AirQuality, modelRun, TimeResolution.Hourly, [.. points]);
     }
 }

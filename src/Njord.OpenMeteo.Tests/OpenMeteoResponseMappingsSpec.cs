@@ -1,4 +1,7 @@
 using Njord.Forecast;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Marine;
+using Njord.Forecast.Weather;
 using Njord.OpenMeteo.Mapping;
 
 namespace Njord.OpenMeteo.Tests;
@@ -37,7 +40,7 @@ public sealed class OpenMeteoResponseMappingsSpec
             () => Assert.Equal(2, forecast.Points.Length),
             () => Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(Hour0), forecast.Points[0].ValidFrom),
             () => Assert.Equal(20.5, forecast.Points[0].Temperature),
-            () => Assert.Equal(61, forecast.Points[1].WeatherCode),
+            () => Assert.Equal(61.0, forecast.Points[1].WeatherCode),
             () => Assert.Equal(8.0, forecast.Points[0].WindGusts),
             () => Assert.Null(forecast.Points[1].WindGusts));
     }
@@ -51,7 +54,7 @@ public sealed class OpenMeteoResponseMappingsSpec
                 Temperature: [20.5, 21.0, null],
                 WindGusts: [8.0, null, null]));
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecast = response.ToDomainForecast(Run)?.TrimTrailing((WeatherPoint p, WeatherParams f) => p.HasFields(f));
 
         Assert.NotNull(forecast);
         Assert.Equal(
@@ -67,10 +70,37 @@ public sealed class OpenMeteoResponseMappingsSpec
                 Time: [Hour0, Hour0 + 3600, Hour0 + 7200, Hour0 + 10_800],
                 Temperature: [20.5, 21.0]));
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecast = response.ToDomainForecast(Run)?.TrimTrailing((WeatherPoint p, WeatherParams f) => p.HasFields(f));
 
         Assert.NotNull(forecast);
         Assert.Equal([20.5, 21.0], forecast.Points.Select(p => p.Temperature));
+    }
+
+    [Fact]
+    public void Mapping_alone_keeps_trailing_hours_without_any_value()
+    {
+        var response = new WeatherResponse(47.0, 8.0,
+            new WeatherHourlyData(Time: [Hour0, Hour0 + 3600], Temperature: [20.5, null]));
+
+        var forecast = response.ToDomainForecast(Run);
+
+        Assert.NotNull(forecast);
+        Assert.Equal(2, forecast.Points.Length);
+    }
+
+    [Fact]
+    public void Raw_day_flag_and_weather_code_are_passed_through_unconverted()
+    {
+        var response = new WeatherResponse(47.0, 8.0,
+            new WeatherHourlyData(Time: [Hour0], WeatherCode: [61.0], IsDay: [1.0]));
+
+        var forecast = response.ToDomainForecast(Run);
+
+        Assert.NotNull(forecast);
+        var point = Assert.Single(forecast.Points);
+        Assert.Multiple(
+            () => Assert.Equal(61.0, point.WeatherCode),
+            () => Assert.Equal(1.0, point.IsDay));
     }
 
     [Fact]
@@ -90,7 +120,7 @@ public sealed class OpenMeteoResponseMappingsSpec
                 Ozone: [60.0, null],
                 BirchPollen: [12.0, null]));
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecast = response.ToDomainForecast(Run)?.TrimTrailing((AirQualityPoint p, AirQualityParams f) => p.HasFields(f));
 
         Assert.NotNull(forecast);
         var point = Assert.Single(forecast.Points);
@@ -115,7 +145,7 @@ public sealed class OpenMeteoResponseMappingsSpec
         var response = System.Text.Json.JsonSerializer.Deserialize<AirQualityResponse>(json);
         Assert.NotNull(response);
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecast = response.ToDomainForecast(Run)?.TrimTrailing((AirQualityPoint p, AirQualityParams f) => p.HasFields(f));
 
         Assert.NotNull(forecast);
         var point = Assert.Single(forecast.Points);
@@ -236,7 +266,7 @@ public sealed class OpenMeteoResponseMappingsSpec
                 WavePeriod: [4.0, 5.0, null],
                 WaveDirection: [270.0, 280.0, null]));
 
-        var forecast = response.ToDomainForecast(Run);
+        var forecast = response.ToDomainForecast(Run)?.TrimTrailing((MarinePoint p, MarineParams f) => p.HasFields(f));
 
         Assert.NotNull(forecast);
         Assert.Equal([0.4, 1.2], forecast.Points.Select(p => p.WaveHeight));
@@ -248,7 +278,7 @@ public sealed class OpenMeteoResponseMappingsSpec
         var response = new MarineResponse(47.0, 8.0,
             new MarineHourlyData(Time: [Hour0], WaveHeight: [null], WavePeriod: [null], WaveDirection: [null]));
 
-        Assert.Null(response.ToDomainForecast(Run));
+        Assert.Null(response.ToDomainForecast(Run)?.TrimTrailing((MarinePoint p, MarineParams f) => p.HasFields(f)));
     }
 
     [Fact]

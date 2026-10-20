@@ -1,6 +1,6 @@
+using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
-using static Njord.OpenMeteo.Mapping.ForecastBuilding;
 using static Njord.OpenMeteo.Mapping.SeriesAccess;
 
 namespace Njord.OpenMeteo.Mapping;
@@ -15,16 +15,10 @@ internal static class WeatherResponseMappings
             return null;
         }
 
-        return BuildForecast(
-            DomainKind.Weather, TimeResolution.Hourly, modelRun, h.Time.Length,
-            i => AnyAt(i, h.Temperature, h.ApparentTemperature, h.WindSpeed, h.Precipitation,
-                h.PrecipitationProbability, h.CloudCover, h.Pressure, h.WeatherCode, h.Humidity,
-                h.DewPoint, h.UvIndex, h.EnsembleStdDev, h.WindGusts, h.Visibility, h.Cape, h.Rain,
-                h.Snowfall, h.SoilTemperature, h.FreezingLevelHeight, h.IsDay, h.ShortwaveRadiation,
-                h.DirectRadiation, h.DiffuseRadiation, h.DirectNormalIrradiance, h.SunshineDuration,
-                h.WindDirection, h.GlobalTiltedIrradiance, h.SnowDepth, h.WetBulbTemperature,
-                h.SnowfallHeight, h.PrecipitationSpread, h.WindSpeedSpread),
-            i => new WeatherPoint(
+        var points = new WeatherPoint[h.Time.Length];
+        for (var i = 0; i < h.Time.Length; i++)
+        {
+            points[i] = new WeatherPoint(
                 ValidFrom: DateTimeOffset.FromUnixTimeSeconds(h.Time[i]),
                 Temperature: At(h.Temperature, i),
                 ApparentTemperature: At(h.ApparentTemperature, i),
@@ -33,7 +27,7 @@ internal static class WeatherResponseMappings
                 PrecipitationProbability: At(h.PrecipitationProbability, i),
                 CloudCover: At(h.CloudCover, i),
                 Pressure: At(h.Pressure, i),
-                WeatherCode: At(h.WeatherCode, i) is { } code ? (int)code : null,
+                WeatherCode: At(h.WeatherCode, i),
                 Humidity: At(h.Humidity, i),
                 DewPoint: At(h.DewPoint, i),
                 UvIndex: At(h.UvIndex, i),
@@ -45,7 +39,7 @@ internal static class WeatherResponseMappings
                 Snowfall: At(h.Snowfall, i),
                 SoilTemperature: At(h.SoilTemperature, i),
                 FreezingLevelHeight: At(h.FreezingLevelHeight, i),
-                IsDay: At(h.IsDay, i) is { } isDay ? isDay > 0.5 : null,
+                IsDay: At(h.IsDay, i),
                 ShortwaveRadiation: At(h.ShortwaveRadiation, i),
                 DirectRadiation: At(h.DirectRadiation, i),
                 DiffuseRadiation: At(h.DiffuseRadiation, i),
@@ -57,6 +51,10 @@ internal static class WeatherResponseMappings
                 WetBulbTemperature: At(h.WetBulbTemperature, i),
                 SnowfallHeight: At(h.SnowfallHeight, i),
                 PrecipitationSpread: At(h.PrecipitationSpread, i),
-                WindSpeedSpread: At(h.WindSpeedSpread, i)));
+                WindSpeedSpread: At(h.WindSpeedSpread, i));
+        }
+
+        return new DomainForecast<WeatherPoint>(
+            DomainKind.Weather, modelRun, TimeResolution.Hourly, [.. points]);
     }
 }

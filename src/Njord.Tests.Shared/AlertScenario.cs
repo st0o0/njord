@@ -82,7 +82,7 @@ public sealed class AlertScenario
             Snowfall = h == 2 ? 2.0 : 0.0,
             SoilTemperature = h == 2 ? -1.0 : 15.0,
             FreezingLevelHeight = 2500.0,
-            IsDay = day,
+            IsDay = day ? 1 : 0,
         };
     }
 
@@ -111,7 +111,7 @@ public sealed class AlertScenario
             Snowfall = 0.0,
             SoilTemperature = 15.0,
             FreezingLevelHeight = null,
-            IsDay = day,
+            IsDay = day ? 1 : 0,
         };
     }
 }

@@ -1,6 +1,6 @@
+using System.Collections.Immutable;
 using Njord.Forecast;
 using Njord.Forecast.Marine;
-using static Njord.OpenMeteo.Mapping.ForecastBuilding;
 using static Njord.OpenMeteo.Mapping.SeriesAccess;
 
 namespace Njord.OpenMeteo.Mapping;
@@ -15,13 +15,11 @@ internal static class MarineResponseMappings
             return null;
         }
 
-        return BuildForecast(
-            DomainKind.Marine, TimeResolution.Hourly, modelRun, h.Time.Length,
-            i => AnyAt(i, h.WaveHeight, h.WavePeriod, h.WaveDirection, h.SeaSurfaceTemperature,
-                h.WindWaveHeight, h.WindWavePeriod, h.WindWaveDirection, h.WindWavePeakPeriod,
-                h.SwellWaveHeight, h.SwellWavePeriod, h.SwellWaveDirection, h.SwellWavePeakPeriod, h.SeaLevelHeight),
-            i => new MarinePoint(
-                DateTimeOffset.FromUnixTimeSeconds(h.Time[i]),
+        var points = new MarinePoint[h.Time.Length];
+        for (var i = 0; i < h.Time.Length; i++)
+        {
+            points[i] = new MarinePoint(
+                ValidFrom: DateTimeOffset.FromUnixTimeSeconds(h.Time[i]),
                 WaveHeight: At(h.WaveHeight, i),
                 WavePeriod: At(h.WavePeriod, i),
                 WaveDirection: At(h.WaveDirection, i),
@@ -34,6 +32,10 @@ internal static class MarineResponseMappings
                 SwellWavePeriod: At(h.SwellWavePeriod, i),
                 SwellWaveDirection: At(h.SwellWaveDirection, i),
                 SwellWavePeakPeriod: At(h.SwellWavePeakPeriod, i),
-                SeaLevelHeight: At(h.SeaLevelHeight, i)));
+                SeaLevelHeight: At(h.SeaLevelHeight, i));
+        }
+
+        return new DomainForecast<MarinePoint>(
+            DomainKind.Marine, modelRun, TimeResolution.Hourly, [.. points]);
     }
 }

@@ -9,6 +9,9 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
 using Njord.Forecast;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Marine;
+using Njord.Forecast.Weather;
 using Njord.Messages.Forecast;
 using Njord.OpenMeteo.Mapping;
 using Servus.Akka;
@@ -200,13 +203,13 @@ public sealed class OpenMeteoGateway : ReceiveActor
         {
             DomainKind.Weather => (await _weatherClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
                     _weatherVariables, WeatherForecastDays, CancellationToken.None))
-                ?.ToDomainForecast(now),
+                ?.ToDomainForecast(now)?.TrimTrailing((WeatherPoint p, WeatherParams f) => p.HasFields(f)),
             DomainKind.AirQuality => (await _airQualityClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
                     _airQualityVariables, Math.Min(_airQuality.ForecastDays, MaxAirQualityForecastDays), CancellationToken.None))
-                ?.ToDomainForecast(now),
+                ?.ToDomainForecast(now)?.TrimTrailing((AirQualityPoint p, AirQualityParams f) => p.HasFields(f)),
             DomainKind.Marine => (await _marineClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
                     _marineVariables, _marine.ForecastDays, CancellationToken.None))
-                ?.ToDomainForecast(now),
+                ?.ToDomainForecast(now)?.TrimTrailing((MarinePoint p, MarineParams f) => p.HasFields(f)),
             DomainKind.Seasonal => (await _seasonalClient.FetchAsync(location.Latitude.Value, location.Longitude.Value,
                     _seasonalVariables, CancellationToken.None))
                 ?.ToDomainForecast(now, _seasonal.ForecastMonths),

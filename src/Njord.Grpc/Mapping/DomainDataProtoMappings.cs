@@ -98,7 +98,7 @@ internal static class DomainDataProtoMappings
         if (p.PrecipitationProbability is { } probability) { sample.PrecipitationProbability = probability; }
         if (p.CloudCover is { } cloudCover) { sample.CloudCover = cloudCover; }
         if (p.Pressure is { } pressure) { sample.Pressure = pressure; }
-        if (p.WeatherCode is { } weatherCode) { sample.WeatherCode = weatherCode; }
+        if (p.WeatherCode is { } weatherCode) { sample.WeatherCode = (int)weatherCode; }
         if (p.Humidity is { } humidity) { sample.Humidity = humidity; }
         if (p.DewPoint is { } dewPoint) { sample.DewPoint = dewPoint; }
         if (p.UvIndex is { } uvIndex) { sample.UvIndex = uvIndex; }
@@ -110,7 +110,7 @@ internal static class DomainDataProtoMappings
         if (p.Snowfall is { } snowfall) { sample.Snowfall = snowfall; }
         if (p.SoilTemperature is { } soil) { sample.SoilTemperature = soil; }
         if (p.FreezingLevelHeight is { } freezing) { sample.FreezingLevelHeight = freezing; }
-        if (p.IsDay is { } isDay) { sample.IsDay = isDay; }
+        if (p.IsDay is { } isDay) { sample.IsDay = isDay > 0.5; }
         return sample;
     }
 
