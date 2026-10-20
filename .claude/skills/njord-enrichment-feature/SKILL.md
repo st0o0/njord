@@ -1,6 +1,6 @@
 ---
 name: njord-enrichment-feature
-description: Use when adding or changing an enrichment (alerts today) - its domain handler, analyzer and alert rules in the domain project (src/Njord.Weather), the result/settings contracts in Njord.Messages, the options/settings toggle, DI registration as an IDomainHandler and golden-master snapshots.
+description: Use when adding or changing an enrichment (alerts today) - its domain handler, analyzer and alert rules in the domain project (src/Njord.Weather), the result/settings contracts in Njord.Messages, the `FeatureKind` + `FeatureDescriptor` (toggle `Njord:Features:<Name>`; add the `ToConfigKey()` arm and add the entry to `docs/data/features.json`), DI registration as an IDomainHandler and golden-master snapshots.
 ---
 
 # njord enrichment feature
@@ -9,7 +9,7 @@ Rules (static entity set, `TimeProvider`, toggleable features) live in `AGENTS.m
 
 ## Where things live
 
-- **`Njord.Core/Domain`** holds the framework every enrichment plugs into: `IDomainHandler` (`Requirements` plus `Handle(current, previous, time)`, returning `PipelineEvent`s), `IAlertRule<T>` / `AlertOptions` / `AlertClock` and `ForecastQueries` (window and point queries on `DomainForecast<T>`).
+- **`Njord.Core/Domain`** holds the framework every enrichment plugs into: `IDomainHandler` (`Feature` descriptor plus `Handle(current, previous, time)`, returning `PipelineEvent`s), `IAlertRule<T>` / `AlertOptions` / `AlertClock` and `ForecastQueries` (window and point queries on `DomainForecast<T>`).
 - **`Njord.Messages`** holds each feature's contracts in a domain folder (`Alerts/`): result records (`AlertResult`), enums, `SeverityThresholds`. No analyzer, rule or formula (`ZoneArchitectureSpec`).
 - **Feature library** (`Njord.Weather`, `Njord.AirQuality`, `Njord.Flood`; each references only `Njord.Core` and below) owns its computation:
 
@@ -33,7 +33,7 @@ Naming: `<Feature>Analyzer`, `<Name>Rule`, `<Domain><Feature>Handler`. Never `Co
 1. **Options + settings** - `AlertOptions` (with `bool Enabled`) and validator in `src/Njord.Core/Configuration/`, threshold accessors there (`AlertOptionsThresholds`), registered by the feature's `AddWeatherDomain()`. Rules take `AlertOptions` directly.
 2. **Result type** - record in `src/Njord.Messages/<Feature>/`; new alert types extend `AlertType` (and its wire names).
 3. **Rule** - new class in the feature library (`Rules/`), `public sealed`, parameterless, built on the helpers.
-4. **Register** - in the feature's `AddWeatherDomain()` (`src/Njord.Weather/ServiceCollectionExtensions.cs`): `services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, XxxRule>();` next to the analyzer, options and the `IDomainHandler` registration. The host calls `AddWeatherDomain()` from `src/Njord/Configuration/DomainSetupContainer.cs`; `src/Njord.Pipeline/Stream/ProjectionEngine.cs` invokes every registered `IDomainHandler` whose `Requirements` cover the changed domain and whose required fields are present.
+4. **Register** - in the feature's `AddWeatherDomain()` (`src/Njord.Weather/ServiceCollectionExtensions.cs`): `services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, XxxRule>();` next to the analyzer, options and the `IDomainHandler` registration. The host calls `AddWeatherDomain()` from `src/Njord/Configuration/DomainSetupContainer.cs`; `src/Njord.Pipeline/Stream/ProjectionEngine.cs` invokes every registered `IDomainHandler` whose `Feature.Requirements` cover the changed domain and whose required fields are present.
 5. **Consumers** - gRPC: `ToProto()` in `src/Njord.Grpc/Mapping/AlertProtoMappings.cs` and the event switch in `src/Njord.Grpc/Mapping/EnrichmentEventMappings.cs` (`ToEnrichmentEvent`).
 6. **Tests** - one spec per rule in `src/Njord.Weather.Tests/Rules/<Type>RuleSpec.cs`, plain `[Fact]`s with a hand-built `DomainForecast<WeatherPoint>`. Registration specs cover one rule per type and the `AddWeatherDomain()` registration (`FeatureServices` in `src/Njord.Tests.Shared` builds the rules and handlers from the real registrations). Golden masters: `ProtoMappingGoldenMasterSpec` (`src/Njord.Grpc.Tests`), inputs in `src/Njord.Tests.Shared/AlertScenario.cs` (built with `WeatherForecastBuilder`). A refactoring must keep them green **without re-approval**; approve new `.verified.txt` files only for intended output changes, never edit existing ones.
 

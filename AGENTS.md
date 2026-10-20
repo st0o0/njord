@@ -23,9 +23,9 @@ src/
   Njord.Core/           # (-> Forecast, Messages, Persistence)
     ActorKeys.cs        #   marker interfaces for every resolvable actor
     Actors/             #   ShardMessageExtractor, StreamSupervision, stream handshake messages
-    Domain/             #   IDomainHandler, IAlertRule, EnrichmentResolution, LocationForecast,
-                        #   DomainDataReceived
-    Configuration/      #   NjordOptions, LocationOptions, WeatherOptions, EnrichmentOptions, AlertOptions,
+    Domain/             #   IDomainHandler, IAlertRule, FeatureKind, FeatureCategory,
+                        #   FeatureDescriptor, FeatureResolution, LocationForecast, DomainDataReceived
+    Configuration/      #   NjordOptions, LocationOptions, WeatherOptions, FeatureOptions, AlertOptions,
                         #   SolarYieldOptions, WeatherVariables, ConfigView, AddNjordOptions + validators
       Polling/ Persistence/ Health/   # PollingOptions, BudgetCalculator, FetchTimeouts, ...
   Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, 4 typed clients, OpenMeteoRequestBuilder,
@@ -45,7 +45,7 @@ src/
   Njord.Weather.Tests/
   Njord.AirQuality.Tests/ Njord.Flood.Tests/ Njord.Marine.Tests/ Njord.Grpc.Tests/
   Njord.IntegrationTests/       # whole host via NjordHost + TestServer
-  Njord.Architecture.Tests/     # ArchUnitNET rules (ArchitectureSpec) + EnrichmentConfigKeySpec
+  Njord.Architecture.Tests/     # ArchUnitNET rules (ArchitectureSpec) + FeatureConfigKeySpec
   Njord.Tests.Shared/           # fakes, builders, fixtures, NjordActorSpec (not a test project)
 protos/njord/v2/                # gRPC contracts: weather.proto, ops.proto, common.proto
 docs/                           # VitePress site incl. the Config Builder (docs/.vitepress/theme/builder)
@@ -58,10 +58,15 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 
 ## Architecture guardrails
 
-- **Enrichment-driven config.** The operator sets locations and enrichment toggles; the rest is
-  derived. Fetched domains = union of the `Requirements` of the enabled handlers (`EnrichmentResolution`).
-- **Every enrichment is an `IDomainHandler`** (`ConfigKey`, `Requirements` (a `DomainRequirements` of per-domain `XxxParam` flags), `Handle(current, previous, time)`); required flags gate dispatch (missing data skips the handler), `Optional*` flags are requested from the API but never gate;
-  `ConfigKey` must match an `EnrichmentOptions` toggle (`EnrichmentConfigKeySpec`).
+- **Feature-driven config.** The operator sets locations and feature toggles; the rest is derived.
+  Fetched domains = union of the `Requirements` of the enabled features (`FeatureResolution`).
+- **Every feature is a `FeatureKind`** with a `FeatureDescriptor` (`Kind`, `Category`, `Description`,
+  `DefaultEnabled`, `Requirements`: a `DomainRequirements` of per-domain `XxxParam` flags). An `IDomainHandler`
+  exposes its `Feature` and handles `Handle(current, previous, time)`; required flags gate dispatch (missing
+  data skips the handler), `Optional*` flags are requested from the API but never gate. Each `IAlertRule`
+  declares its own feature; `WeatherAlertHandler` (an `IMultiFeatureHandler`) runs only the enabled rules.
+  The config key is `FeatureKind.ToConfigKey()` (explicit switch); `FeatureConfigKeySpec` pins one
+  descriptor per kind.
 - **Domain projects are plugins.** Weather/AirQuality/Flood/Marine register handlers via
   `Add<Domain>Domain()`; they never reference each other or the adapters (Grpc).
 - **One `PollWorker` per location, per-domain independent timers.** No rounds, no waiting for all
@@ -106,18 +111,19 @@ SHARD REGIONS (Sharded Entity)
 
 - **Ensemble default.** The weather request goes to `v1/ensemble`; there are no model, horizon or
   parameter settings. The requested variables follow the enabled handlers: the `Requirements` of all
-  enabled handlers are OR-ed (`EnrichmentResolution.RequiredParams`) and mapped to API names by
+  enabled handlers are OR-ed (`FeatureResolution.RequiredParams`) and mapped to API names by
   `ParamMappings.ToApiNames()`; the clients only build the URL. `ProjectionEngine` skips a handler whose
   required fields are missing from the stream (`LocationForecast.HasFields`). `BudgetCalculator` uses the same
   resolved requirements: Weather costs `ceil(variables / 10) * ceil(forecastDays / 14)` calls per cycle,
   every other required domain 1.
 - **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
   max 210) next to `Njord:Weather`.
-- **Enrichment-driven configuration.** 19 toggles in `Njord:Enrichments`: on by default `WeatherAlerts`,
-  `CommuteSafety`, `PollenAlert`, `Pm25Alert`; off by default `FloodRisk`, `FloodRain`, `FloodTimeline`,
-  `SwimmingConditions`, `VentilationWindow`, `ExerciseAdvisory`, `LaundryScore`, `PollenTrend`,
-  `NightVentilation`, `ConfidenceTrend`, `SolarYield`, `GardeningAdvisory`, `OutdoorScore`, `BBQScore`,
-  `ApproachingFront`. The entity set follows locations x enabled handlers.
+- **Feature-driven configuration.** One toggle per `FeatureKind` in `Njord:Features:<Name>` (33 features in the
+  categories WeatherAlerts, AirQuality, Lifestyle, Insight, Energy, Flood, Marine). On by default: the 14 weather
+  alerts (`FrostAlert`, `HeatAlert`, `StormAlert`, `RainAlert`, `UvAlert`, `FogAlert`, `SnowAlert`,
+  `PressureDropAlert`, `ThunderstormAlert`, `IceAlert`, `WindChillAlert`, `VisibilityAlert`,
+  `TropicalNightAlert`, `HumidityAlert`), `CommuteSafety`, `PollenAlert`, `Pm25Alert`; everything else is off.
+  The old `Njord:Enrichments` section is not read. The entity set follows locations x enabled features.
 - **Per-domain discovery.** Every domain of a location learns its own cycle and polls independently.
 - **Domains:** `Weather`, `AirQuality`, `Flood`, `Solar`, `Marine` (`DomainKind`). The gateway fetches
   Weather, AirQuality, Flood, Marine; `Solar` exists in the model and event vocabulary only.
@@ -257,7 +263,7 @@ Defaults are property initializers.
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
 | `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210) |
-| `Njord:Enrichments` | `EnrichmentOptions` | the 19 enrichment toggles |
+| `Njord:Features` | `FeatureOptions` | one toggle per `FeatureKind`, default from its descriptor |
 | `Njord:Enrichment:Alerts` | `AlertOptions` | alert thresholds |
 | `Njord:SolarYield` | `SolarYieldOptions` | `PeakKw` (5.0), `Azimuth` (180), `Tilt` (30) |
 | `Njord:Polling` | `PollingOptions` | `PollInterval` (60 min), `DiscoveryInterval` (20 min), `BudgetOverride` |
@@ -265,7 +271,8 @@ Defaults are property initializers.
 | `Njord:Health` | `HealthOptions` | poll overdue/stalled factors, budget degraded % |
 
 The Config Builder (`docs/.vitepress/theme/builder`: `types.ts`, `budget.ts`, `serializer.ts`,
-`ConfigBuilder.vue`, data in `docs/data/enrichment.json`) mirrors the toggles, their required domains and the
+`ConfigBuilder.vue`, data in `docs/data/features.json` (generated from the descriptors) and `docs/data/enrichment.json`
+(alert thresholds)) mirrors the toggles, their required domains, per-feature marginal cost and the
 `BudgetCalculator` formula; change them together with the options and `docker-compose.example.yml`.
 
 ## References
