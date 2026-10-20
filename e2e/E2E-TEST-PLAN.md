@@ -1,7 +1,7 @@
 # E2E Test Plan — njord + ha-njord
 
 Agent-orchestrated end-to-end test against a real Docker stack.
-gRPC + REST. Real Open-Meteo API. 4 domains, 19 alert types, lifestyle enrichments.
+gRPC + REST. Real Open-Meteo API. 4 domains, 19 alert types, lifestyle features.
 
 ## Section Index
 
@@ -38,12 +38,12 @@ gRPC + REST. Real Open-Meteo API. 4 domains, 19 alert types, lifestyle enrichmen
 
 - **Location:** Lucerne (explicit coordinates 47.0502 / 8.3093 in the compose file)
 - **Weather:** Ensemble Mean, ForecastDays=4
-- **Enrichments:** ALL enabled (19 enrichment toggles)
+- **Enrichments:** ALL enabled (33 feature toggles, `Njord__Features__*`)
 - **Resolved domains:** Weather, AirQuality, Flood, Marine (4 calls/cycle)
 
 ### Expected Entities
 
-Derived from config: 1 location, all enrichments enabled.
+Derived from config: 1 location, all features enabled.
 
 | Platform | Count | Pattern | Notes |
 |----------|-------|---------|-------|
@@ -169,7 +169,7 @@ Using `grpcurl` with `-import-path protos -proto njord/v2/weather.proto`:
 
 1. `GetCatalog` → has at least 1 location named "Lucerne"
 2. `GetStatus` → `budget` has `monthly_used` ≥ 0 and `monthly_limit` > 0
-3. `GetStatus` → `activeEnrichments` lists every enabled enrichment; poll state has 1 target with a phase
+3. `GetStatus` → `activeEnrichments` lists every enabled feature; poll state has 1 target with a phase
 4. `TriggerPoll` with location "Lucerne" → `triggeredCount` ≥ 1
 5. After trigger: `GetStatus` shows incremented usage
 

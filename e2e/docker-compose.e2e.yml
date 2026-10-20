@@ -20,25 +20,39 @@ services:
       - Njord__Weather__ForecastDays=4
 
       # ── Enrichments (all enabled for E2E) ──────────────────────
-      - Njord__Enrichments__WeatherAlerts=true
-      - Njord__Enrichments__CommuteSafety=true
-      - Njord__Enrichments__PollenAlert=true
-      - Njord__Enrichments__Pm25Alert=true
-      - Njord__Enrichments__VentilationWindow=true
-      - Njord__Enrichments__ExerciseAdvisory=true
-      - Njord__Enrichments__LaundryScore=true
-      - Njord__Enrichments__NightVentilation=true
-      - Njord__Enrichments__ConfidenceTrend=true
-      - Njord__Enrichments__PollenTrend=true
-      - Njord__Enrichments__FloodRisk=true
-      - Njord__Enrichments__FloodRain=true
-      - Njord__Enrichments__SwimmingConditions=true
-      - Njord__Enrichments__SolarYield=true
-      - Njord__Enrichments__GardeningAdvisory=true
-      - Njord__Enrichments__OutdoorScore=true
-      - Njord__Enrichments__BBQScore=true
-      - Njord__Enrichments__ApproachingFront=true
-      - Njord__Enrichments__FloodTimeline=true
+      - Njord__Features__FrostAlert=true
+      - Njord__Features__HeatAlert=true
+      - Njord__Features__StormAlert=true
+      - Njord__Features__RainAlert=true
+      - Njord__Features__UvAlert=true
+      - Njord__Features__FogAlert=true
+      - Njord__Features__SnowAlert=true
+      - Njord__Features__PressureDropAlert=true
+      - Njord__Features__ThunderstormAlert=true
+      - Njord__Features__IceAlert=true
+      - Njord__Features__WindChillAlert=true
+      - Njord__Features__VisibilityAlert=true
+      - Njord__Features__TropicalNightAlert=true
+      - Njord__Features__HumidityAlert=true
+      - Njord__Features__PollenAlert=true
+      - Njord__Features__Pm25Alert=true
+      - Njord__Features__CommuteSafety=true
+      - Njord__Features__ExerciseAdvisory=true
+      - Njord__Features__LaundryScore=true
+      - Njord__Features__OutdoorScore=true
+      - Njord__Features__BBQScore=true
+      - Njord__Features__NightVentilation=true
+      - Njord__Features__VentilationWindow=true
+      - Njord__Features__GardeningAdvisory=true
+      - Njord__Features__ConfidenceTrend=true
+      - Njord__Features__ApproachingFront=true
+      - Njord__Features__SolarYield=true
+      - Njord__Features__PollenTrend=true
+      - Njord__Features__FloodRisk=true
+      - Njord__Features__FloodRain=true
+      - Njord__Features__FloodTimeline=true
+      - Njord__Features__SwimmingConditions=true
+      - Njord__Features__SurfConditions=true
 
 
   homeassistant:
