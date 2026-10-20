@@ -3,7 +3,6 @@ using Akka.Hosting;
 using Grpc.Core;
 using Njord.Core;
 using Njord.Core.Configuration;
-using Njord.Forecast;
 using Njord.Grpc.V2;
 using Njord.Messages.Alerts;
 using Njord.Messages.Forecast;

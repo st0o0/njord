@@ -6,7 +6,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Njord.Budget.Health;
 using Njord.Core;
 using Njord.Core.Actors;
-using Njord.Messages.Budget;
 using Servus.Akka;
 using Servus.Application.Startup;
 

@@ -5,9 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Njord.Core;
 using Njord.Core.Actors;
-using Njord.Messages.Pipeline;
 using Njord.Pipeline.Health;
-using Servus.Akka;
 using Servus.Application.Startup;
 
 namespace Njord.Pipeline.Configuration;

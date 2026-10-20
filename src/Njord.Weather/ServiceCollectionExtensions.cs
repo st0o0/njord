@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;

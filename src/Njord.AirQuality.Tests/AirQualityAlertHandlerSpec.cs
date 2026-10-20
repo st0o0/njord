@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Domain;
-using Njord.Forecast;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;

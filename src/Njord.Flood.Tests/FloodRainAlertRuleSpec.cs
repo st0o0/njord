@@ -1,4 +1,3 @@
-using Njord.Forecast;
 using Njord.Forecast.Flood;
 using Njord.Messages.Alerts;
 using Njord.Tests.Shared;

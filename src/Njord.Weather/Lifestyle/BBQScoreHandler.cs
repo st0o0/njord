@@ -1,5 +1,4 @@
 using Njord.Core.Domain;
-using Njord.Forecast;
 using Njord.Forecast.Weather;
 using Njord.Messages.Pipeline;
 

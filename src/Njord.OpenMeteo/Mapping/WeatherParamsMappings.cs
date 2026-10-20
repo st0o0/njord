@@ -1,6 +1,3 @@
-using Njord.Forecast.AirQuality;
-using Njord.Forecast.Flood;
-using Njord.Forecast.Marine;
 using Njord.Forecast.Weather;
 
 namespace Njord.OpenMeteo.Mapping;

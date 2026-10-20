@@ -3,7 +3,6 @@ using Microsoft.Extensions.Options;
 using Njord.Core.Configuration;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
-using Njord.Messages.Alerts;
 
 namespace Njord.Tests.Shared;
 

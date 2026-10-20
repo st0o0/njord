@@ -1,6 +1,3 @@
-using Njord.Core.Domain;
-using Njord.Forecast;
-using Njord.Forecast.AirQuality;
 using Njord.Messages.Alerts;
 
 namespace Njord.AirQuality;

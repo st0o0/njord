@@ -1,5 +1,4 @@
 using Njord.Core.Configuration;
-using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
 

@@ -3,12 +3,10 @@ using Akka.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
-using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
 using Njord.Forecast;
-using Njord.Messages.Budget;
 using Njord.Messages.Forecast;
 using Njord.Tests.Shared;
 

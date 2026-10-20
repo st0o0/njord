@@ -8,7 +8,6 @@ using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Core.Domain;
 using Servus.Akka;
 using Servus.Application.Startup;
 

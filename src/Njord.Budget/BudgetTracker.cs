@@ -1,6 +1,5 @@
 using Akka.Event;
 using Akka.Persistence;
-using Njord.Core;
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Budget;

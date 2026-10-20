@@ -7,7 +7,6 @@ using Njord.Forecast.AirQuality;
 using Njord.Forecast.Weather;
 using Njord.Tests.Shared;
 using Njord.Weather.Alerts;
-using Njord.Weather.Lifestyle;
 
 namespace Njord.Weather.Tests;
 
