@@ -20,7 +20,7 @@ features:
   - title: Native Home Assistant integration
     details: The ha-njord custom integration streams domain data and alerts over gRPC, so entities update as soon as a poll cycle is processed.
   - title: Three domains per location
-    details: Weather (Ensemble Mean, with solar radiation when Weather:IncludeSolar is enabled), Air Quality (PM2.5, PM10, ozone, pollen) and Flood (river discharge). One PollWorker per location fetches all three each cycle.
+    details: Weather (Ensemble Mean, with solar radiation when an enrichment needs it), Air Quality (PM2.5, PM10, ozone, pollen) and Flood (river discharge). One PollWorker per location fetches all three each cycle.
   - title: Alerts across domains
     details: 14 weather alerts with confidence from ensemble spread, pollen and PM2.5 alerts for air quality, and flood risk alerts. FloodRain combines heavy forecast rain with rising river discharge.
   - title: Domain handler pipeline

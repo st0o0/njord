@@ -1,4 +1,4 @@
-import { requiredDomains, type NjordConfig } from './types'
+import { requiredDomains, weatherVariableCount, type NjordConfig } from './types'
 
 const MINUTES_PER_DAY = 24 * 60
 const DAYS_PER_MONTH = 30
@@ -18,21 +18,28 @@ export interface BudgetResult {
   overBudget: boolean
 }
 
-// Mirrors BudgetCalculator.Validate: one call per (required domain, location) and poll cycle,
-// multiplied by the API call weight (ceil(variable count / 10)).
+// Mirrors BudgetCalculator.Validate: per location and poll cycle the Weather domain costs
+// ceil(variables / 10) * ceil(forecastDays / 14) calls (variables = union of the enabled handlers' weather
+// requirements), every other required domain costs one call.
 export function computeBudget(config: NjordConfig): BudgetResult {
   const pollMinutes = parseTimeSpan(config.pollInterval)
   const cyclesPerDay = pollMinutes > 0 ? MINUTES_PER_DAY / pollMinutes : 0
   const cyclesPerMonth = cyclesPerDay * DAYS_PER_MONTH
 
-  const apiCallWeight = Math.max(1, Math.ceil(variableCount(config.weather.includeSolar) / 10))
+  const domains = requiredDomains(config.enrichments)
+  const weatherRequired = domains.includes('Weather')
+  const apiCallWeight = weatherRequired
+    ? Math.ceil(weatherVariableCount(config.enrichments) / 10) * Math.ceil(config.weather.forecastDays / 14)
+    : 0
+  const otherDomains = domains.filter(d => d !== 'Weather').length
 
-  const domainCallsPerCycle = requiredDomains(config.enrichments).length * config.locations.length
+  const domainCallsPerCycle = domains.length * config.locations.length
+  const callsPerCycle = config.locations.length * (apiCallWeight + otherDomains)
 
   const limit = config.budgetOverride?.requestsPerMonth ?? FREE_TIER_MONTHLY
   const guard = Math.round(limit * GUARD_FACTOR)
-  const callsPerDay = Math.round(domainCallsPerCycle * cyclesPerDay * apiCallWeight)
-  const projected = Math.round(domainCallsPerCycle * cyclesPerMonth * apiCallWeight)
+  const callsPerDay = Math.round(callsPerCycle * cyclesPerDay)
+  const projected = Math.round(callsPerCycle * cyclesPerMonth)
   const percentUsed = limit > 0 ? (projected / limit) * 100 : 0
 
   return {
@@ -47,10 +54,6 @@ export function computeBudget(config: NjordConfig): BudgetResult {
     percentUsed,
     overBudget: projected > guard,
   }
-}
-
-export function variableCount(includeSolar: boolean): number {
-  return includeSolar ? 36 : 31
 }
 
 function parseTimeSpan(ts: string): number {

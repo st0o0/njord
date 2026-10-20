@@ -14,7 +14,7 @@ public sealed class OutdoorScoreHandler : IDomainHandler
 
     public DomainRequirements Requirements { get; } = new(
         Weather: WeatherParam.Temperature | WeatherParam.Precipitation | WeatherParam.PrecipitationProbability
-            | WeatherParam.WindSpeed | WeatherParam.CloudCover,
+            | WeatherParam.WindSpeed | WeatherParam.CloudCover | WeatherParam.UvIndex,
         AirQuality: AirQualityParam.Pm25 | AirQualityParam.BirchPollen | AirQualityParam.GrassPollen
             | AirQualityParam.Alder | AirQualityParam.Mugwort);
 

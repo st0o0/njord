@@ -32,7 +32,6 @@ services:
       # ── Polling & Weather ─────────────────────────────────────
       #- Njord__Polling__PollInterval=01:00:00
       #- Njord__Weather__ForecastDays=4
-      #- Njord__Weather__IncludeSolar=false
       # Forecast days per domain (only used when an enabled enrichment needs the domain)
       #- Njord__AirQuality__ForecastDays=5   # 1-7
       #- Njord__Marine__ForecastDays=8       # 1-8

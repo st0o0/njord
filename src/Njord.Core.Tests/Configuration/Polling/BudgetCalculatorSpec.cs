@@ -1,5 +1,8 @@
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
+using Njord.Core.Domain;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Weather;
 
 namespace Njord.Core.Tests.Configuration.Polling;
 
@@ -10,32 +13,73 @@ public sealed class BudgetCalculatorSpec
         Locations = [.. Enumerable.Range(0, locations).Select(i => new LocationOptions { Name = $"L{i}" })],
     };
 
+    private static readonly WeatherParam Eleven =
+        WeatherParam.Temperature | WeatherParam.ApparentTemperature | WeatherParam.WindSpeed | WeatherParam.Precipitation
+        | WeatherParam.PrecipitationProbability | WeatherParam.CloudCover | WeatherParam.Pressure | WeatherParam.WeatherCode
+        | WeatherParam.Humidity | WeatherParam.DewPoint | WeatherParam.UvIndex;
+
+    private static ResolvedRequirements Resolved(WeatherParam weather = WeatherParam.Temperature) =>
+        new(new DomainRequirements(Weather: weather, AirQuality: AirQualityParam.Pm25));
+
     [Fact]
     public void Should_project_calls_from_locations_domains_cycles_and_weight()
     {
         var scope = Scope(locations: 2);
-        var weight = WeatherVariables.ApiCallWeight(WeatherVariables.For(false).Count);
         var polling = new PollingOptions { PollInterval = TimeSpan.FromHours(1) };
 
-        var result = BudgetCalculator.Validate(scope, new WeatherOptions(), polling, 2);
+        var result = BudgetCalculator.Validate(scope, new WeatherOptions(), polling, Resolved());
 
-        // 2 locations x 2 domains = 4 calls per cycle, 720 cycles in a 30-day month.
+        // 2 locations x (weather weight 1 + 1 other domain) = 4 calls per cycle, 720 cycles in a 30-day month.
         Assert.Multiple(
             () => Assert.Equal(4, result.DomainCallsPerCycle),
-            () => Assert.Equal(4L * 720 * weight, result.ProjectedMonthlyCalls),
+            () => Assert.Equal(4L * 720, result.ProjectedMonthlyCalls),
             () => Assert.Equal(300_000, result.MonthlyLimit),
             () => Assert.True(result.WithinBudget));
     }
 
     [Fact]
-    public void Should_weigh_solar_variables_into_the_projection()
+    public void Should_weigh_the_resolved_weather_variables_and_forecast_days_into_the_projection()
     {
-        var plain = BudgetCalculator.Validate(Scope(), new WeatherOptions(), new PollingOptions(), 2);
-        var solar = BudgetCalculator.Validate(Scope(), new WeatherOptions { IncludeSolar = true }, new PollingOptions(), 2);
+        var small = BudgetCalculator.Validate(Scope(), new WeatherOptions(), new PollingOptions(), Resolved());
+        var large = BudgetCalculator.Validate(Scope(), new WeatherOptions(), new PollingOptions(), Resolved(Eleven));
+        var longRange = BudgetCalculator.Validate(Scope(), new WeatherOptions { ForecastDays = 15 }, new PollingOptions(), Resolved());
 
         Assert.Multiple(
-            () => Assert.Equal(WeatherVariables.ApiCallWeight(WeatherVariables.For(false).Count), plain.ApiCallWeight),
-            () => Assert.Equal(WeatherVariables.ApiCallWeight(WeatherVariables.For(true).Count), solar.ApiCallWeight));
+            () => Assert.Equal(1, small.ApiCallWeight),
+            () => Assert.Equal(2, large.ApiCallWeight),
+            () => Assert.Equal(2, longRange.ApiCallWeight));
+    }
+
+    [Fact]
+    public void Should_charge_the_weather_weight_to_the_weather_domain_only()
+    {
+        var polling = new PollingOptions { PollInterval = TimeSpan.FromHours(1) };
+
+        var result = BudgetCalculator.Validate(Scope(), new WeatherOptions(), polling, Resolved(Eleven));
+
+        // weather weight 2 + 1 air quality call per cycle, 720 cycles.
+        Assert.Equal(3L * 720, result.ProjectedMonthlyCalls);
+    }
+
+    [Fact]
+    public void Should_charge_nothing_for_weather_when_it_is_not_required()
+    {
+        var polling = new PollingOptions { PollInterval = TimeSpan.FromHours(1) };
+
+        var result = BudgetCalculator.Validate(Scope(), new WeatherOptions(), polling, Resolved(WeatherParam.None));
+
+        Assert.Equal(720L, result.ProjectedMonthlyCalls);
+    }
+
+    [Theory]
+    [InlineData(10, 4, 1)]
+    [InlineData(11, 4, 2)]
+    [InlineData(31, 4, 4)]
+    [InlineData(10, 15, 2)]
+    [InlineData(11, 30, 6)]
+    public void Should_weigh_one_call_per_ten_variables_and_fourteen_days(int variables, int days, int weight)
+    {
+        Assert.Equal(weight, BudgetCalculator.ComputeWeight(variables, days));
     }
 
     [Fact]
@@ -55,9 +99,9 @@ public sealed class BudgetCalculatorSpec
     [Fact]
     public void Should_warn_between_eighty_and_one_hundred_percent_of_the_budget()
     {
-        var polling = new PollingOptions { BudgetOverride = new RequestBudget(7_000, 600) };
+        var polling = new PollingOptions { BudgetOverride = new RequestBudget(1_700, 600) };
 
-        var result = BudgetCalculator.Validate(Scope(), new WeatherOptions(), polling, 2);
+        var result = BudgetCalculator.Validate(Scope(), new WeatherOptions(), polling, Resolved());
 
         Assert.Multiple(
             () => Assert.InRange(result.UsagePercent, 80.0, 100.0),
@@ -70,7 +114,7 @@ public sealed class BudgetCalculatorSpec
     {
         var polling = new PollingOptions { BudgetOverride = new RequestBudget(100, 600) };
 
-        var result = BudgetCalculator.Validate(Scope(), new WeatherOptions(), polling, 2);
+        var result = BudgetCalculator.Validate(Scope(), new WeatherOptions(), polling, Resolved());
 
         Assert.False(result.WithinBudget);
     }
@@ -79,8 +123,8 @@ public sealed class BudgetCalculatorSpec
     public void Should_only_report_a_guard_violation_above_eighty_percent()
     {
         var polling = new PollingOptions { BudgetOverride = new RequestBudget(100, 600) };
-        var heavy = BudgetCalculator.Validate(Scope(), new WeatherOptions(), polling, 2);
-        var light = BudgetCalculator.Validate(Scope(), new WeatherOptions(), new PollingOptions(), 2);
+        var heavy = BudgetCalculator.Validate(Scope(), new WeatherOptions(), polling, Resolved());
+        var light = BudgetCalculator.Validate(Scope(), new WeatherOptions(), new PollingOptions(), Resolved());
 
         Assert.Multiple(
             () => Assert.Null(BudgetCalculator.GuardViolation(light, TimeSpan.FromHours(1))),

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed, watch, onMounted } from 'vue'
 import { defaultConfig, ENRICHMENT_TOGGLES, requiredDomains, type NjordConfig, type EnrichmentFeature } from './types'
-import { computeBudget, variableCount } from './budget'
+import { computeBudget } from './budget'
 import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, findOutdatedKeys, encodeHash, decodeHash } from './serializer'
 import enrichmentData from '../../../data/enrichment.json'
 
@@ -175,16 +175,11 @@ onMounted(() => {
     <!-- Weather -->
     <div class="section">
       <h3>Weather</h3>
-      <label class="mqtt-enabled">
-        <input type="checkbox" v-model="config.weather.includeSolar" />
-        <strong>Include solar variables</strong>
-        <span class="enrichment-badge">disabled by default</span>
-      </label>
       <div class="general-row">
         <label>Forecast Days <input v-model.number="config.weather.forecastDays" type="number" min="1" max="16" /></label>
       </div>
-      <div class="weight-display">{{ variableCount(config.weather.includeSolar) }} hourly vars → API call weight: <strong>{{ budget.apiCallWeight }}</strong></div>
-      <p class="section-hint">Solar adds shortwave, direct, diffuse and direct normal radiation plus sunshine duration.</p>
+      <div class="weight-display">Weather API call weight: <strong>{{ budget.apiCallWeight }}</strong></div>
+      <p class="section-hint">The hourly variables follow from the enabled enrichments; Open-Meteo counts ceil(variables / 10) calls, doubled beyond 14 forecast days.</p>
     </div>
 
     <!-- Per-domain forecast days -->

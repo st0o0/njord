@@ -29,7 +29,7 @@ public static class WeatherParamMappings
         WeatherParam.Cape => "cape",
         WeatherParam.Rain => "rain",
         WeatherParam.Snowfall => "snowfall",
-        WeatherParam.SoilTemperature => "soil_temperature_0cm",
+        WeatherParam.SoilTemperature => "soil_temperature_0_to_10cm",
         WeatherParam.FreezingLevelHeight => "freezing_level_height",
         WeatherParam.IsDay => "is_day",
         WeatherParam.ShortwaveRadiation => "shortwave_radiation",

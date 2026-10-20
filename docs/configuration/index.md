@@ -10,7 +10,7 @@ Configuration is **static**: it is read once at startup. There is no runtime con
 {
   "Njord": {
     "Locations": [ ... ],
-    "Weather": { "IncludeSolar": false, "ForecastDays": 4 },
+    "Weather": { "ForecastDays": 4 },
     "Polling": {
       "PollInterval": "01:00:00",
       "DiscoveryInterval": "00:20:00",
@@ -42,7 +42,6 @@ A minimal setup for Lucerne:
 | `AirQuality:ForecastDays` | `5` | Days of air quality forecast to request (1 to 7) |
 | `Marine:ForecastDays` | `8` | Days of marine forecast to request (1 to 8) |
 | `Flood:ForecastDays` | `92` | Days of river discharge forecast to request (1 to 210) |
-| `Weather:IncludeSolar` | `false` | Adds solar radiation variables to the weather request (see [Weather](./weather)) |
 | `Enrichments:<Name>` | `WeatherAlerts`, `CommuteSafety`, `PollenAlert`, `Pm25Alert` on; all others off | Switches one enrichment on or off. The domains that are polled are derived from the enabled enrichments (see below) |
 | `Persistence:DataPath` | `data/njord.db` | SQLite database file |
 
@@ -87,7 +86,6 @@ Njord__Polling__PollInterval=00:30:00
 Njord__Locations__0__Name=Lucerne
 Njord__Locations__0__Latitude=47.05
 Njord__Locations__0__Longitude=8.31
-Njord__Weather__IncludeSolar=true
 Njord__Weather__ForecastDays=4
 Njord__Enrichment__Alerts__Enabled=true
 Njord__Enrichments__FloodRisk=true

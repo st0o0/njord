@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Forecast;
+using Njord.Core.Domain;
+using Njord.Forecast.AirQuality;
+using Njord.Forecast.Weather;
 
 namespace Njord.Core.Tests.Configuration.Polling;
 
@@ -10,7 +12,7 @@ public sealed class PollingOptionsValidatorSpec
         new(new ConfigurationBuilder()
             .AddInMemoryCollection(scope.ToDictionary(s => s.Key, s => (string?)s.Value))
             .Build(),
-            new HashSet<DomainKind> { DomainKind.Weather, DomainKind.Flood });
+            new ResolvedRequirements(new DomainRequirements(Weather: WeatherParam.Temperature, AirQuality: AirQualityParam.Pm25)));
 
     [Theory]
     [InlineData("00:00:00")]

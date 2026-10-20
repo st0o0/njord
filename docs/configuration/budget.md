@@ -24,10 +24,9 @@ Each PollWorker fetches the domains required by the enabled [enrichments](./#enr
 | Flood | Flood API | `FloodRisk` or `FloodRain` is enabled |
 | Marine | Marine API | `SwimmingConditions` is enabled |
 
-Solar variables (`Weather:IncludeSolar`) are part of the Weather call, so they add no call.
 
 ```
-calls per cycle  = locations x required domains
+calls per cycle  = locations x (weather weight + other required domains)
 cycles per month = 30 days / poll interval
 projected        = calls per cycle x cycles per month
 guard            = monthly budget x 0.8
@@ -42,15 +41,15 @@ guard            = monthly budget x 0.8
 | Poll interval | 60 minutes |
 
 ```
-calls per cycle  = 1 x 2 = 2
+calls per cycle  = 1 x (2 + 1) = 3   (17 weather variables = weight 2, plus Air Quality)
 cycles per month = 30 x 24 = 720
-projected        = 2 x 720 = 1,440 per month
+projected        = 3 x 720 = 2,160 per month
 guard            = 300,000 x 0.8 = 240,000
 ```
 
-1,440 calls is about 0.5% of the free-tier month. Even ten locations (14,400) stay far below the guard.
+2,160 calls is about 0.7% of the free-tier month. Even ten locations (21,600) stay far below the guard.
 
-Open-Meteo counts requests with many hourly variables as more than one call (more than 10 variables count fractionally). That weight is applied on top: 3 for the 31 standard variables, 4 with solar; see [Weather](./weather#api-call-weight).
+Open-Meteo counts requests with many hourly variables or long forecasts as more than one call. That weight applies to the Weather domain only; see [Weather](./weather#api-call-weight).
 
 ## Startup guard
 
@@ -59,7 +58,7 @@ At startup njord refuses to start when the projection exceeds 80% of the monthly
 - Increase `Polling:PollInterval` (every 2 hours halves the calls)
 - Reduce the number of locations
 - Disable enrichments that need an extra domain
-- Leave `Weather:IncludeSolar` off to keep the API call weight at 3
+- Enable fewer weather enrichments to keep the weather variable count, and so the API call weight, low
 
 ## Polling:BudgetOverride
 

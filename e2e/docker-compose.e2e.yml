@@ -18,7 +18,6 @@ services:
 
       # ── Weather ────────────────────────────────────────────────
       - Njord__Weather__ForecastDays=4
-      - Njord__Weather__IncludeSolar=true
 
       # ── Enrichments (all enabled for E2E) ──────────────────────
       - Njord__Enrichments__WeatherAlerts=true

@@ -21,7 +21,7 @@ public sealed record WeatherHourlyData(
     [property: JsonPropertyName("cape")] double?[]? Cape = null,
     [property: JsonPropertyName("rain")] double?[]? Rain = null,
     [property: JsonPropertyName("snowfall")] double?[]? Snowfall = null,
-    [property: JsonPropertyName("soil_temperature_0cm")] double?[]? SoilTemperature = null,
+    [property: JsonPropertyName("soil_temperature_0_to_10cm")] double?[]? SoilTemperature = null,
     [property: JsonPropertyName("freezing_level_height")] double?[]? FreezingLevelHeight = null,
     [property: JsonPropertyName("is_day")] double?[]? IsDay = null,
     [property: JsonPropertyName("shortwave_radiation")] double?[]? ShortwaveRadiation = null,

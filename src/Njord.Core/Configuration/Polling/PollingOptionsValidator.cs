@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using Njord.Forecast;
+using Njord.Core.Domain;
 
 namespace Njord.Core.Configuration.Polling;
 
-public sealed class PollingOptionsValidator(IConfiguration configuration, IReadOnlySet<DomainKind> requiredDomains) : IValidateOptions<PollingOptions>
+public sealed class PollingOptionsValidator(IConfiguration configuration, ResolvedRequirements requirements) : IValidateOptions<PollingOptions>
 {
     public ValidateOptionsResult Validate(string? name, PollingOptions options)
     {
@@ -28,7 +28,7 @@ public sealed class PollingOptionsValidator(IConfiguration configuration, IReadO
         if (failures.Count == 0
             && ReadScope() is { } scope
             && BudgetCalculator.GuardViolation(
-                BudgetCalculator.Validate(scope, ReadWeather(), options, requiredDomains.Count), options.PollInterval) is { } violation)
+                BudgetCalculator.Validate(scope, ReadWeather(), options, requirements), options.PollInterval) is { } violation)
         {
             failures.Add(violation);
         }

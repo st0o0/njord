@@ -111,8 +111,9 @@ SHARD REGIONS (Sharded Entity)
   parameter settings. The requested variables follow the enabled handlers: the `Requirements` of all
   enabled handlers are OR-ed (`EnrichmentResolution.RequiredParams`) and mapped to API names by
   `ParamMappings.ToApiNames()`; the clients only build the URL. `ProjectionEngine` skips a handler whose
-  required fields are missing from the stream (`LocationForecast.HasFields`). `WeatherVariables` only feeds
-  the conservative `BudgetCalculator` estimate (31 standard, 36 with `IncludeSolar`).
+  required fields are missing from the stream (`LocationForecast.HasFields`). `BudgetCalculator` uses the same
+  resolved requirements: Weather costs `ceil(variables / 10) * ceil(forecastDays / 14)` calls per cycle,
+  every other required domain 1.
 - **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
   max 210) next to `Njord:Weather`.
 - **Enrichment-driven configuration.** 19 toggles in `Njord:Enrichments`: on by default `WeatherAlerts`,
@@ -255,7 +256,7 @@ Defaults are property initializers.
 | Section | Class | Content |
 |---------|-------|---------|
 | `Njord` | `NjordOptions` | `Locations` (`Name`, optional `Latitude`/`Longitude`) |
-| `Njord:Weather` | `WeatherOptions` | `IncludeSolar` (false), `ForecastDays` (4) |
+| `Njord:Weather` | `WeatherOptions` | `ForecastDays` (4) |
 | `Njord:AirQuality` | `AirQualityOptions` | `ForecastDays` (5, 1..7) |
 | `Njord:Marine` | `MarineOptions` | `ForecastDays` (8, 1..8) |
 | `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210) |

@@ -91,7 +91,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         _airQualityVariables = requirements.AirQuality.ToApiNames();
         _floodVariables = requirements.Flood.ToApiNames();
         _marineVariables = requirements.Marine.ToApiNames();
-        _weatherWeight = ComputeWeight(_weatherVariables.Count, WeatherForecastDays);
+        _weatherWeight = BudgetCalculator.ComputeWeight(_weatherVariables.Count, WeatherForecastDays);
         _gate = new GatewayBudgetGate(budgetProvider, Context.GetActor<IBudgetTracker>(), timeProvider);
 
         Receive<FetchDomain>(OnFetchDomain);
@@ -261,7 +261,4 @@ public sealed class OpenMeteoGateway : ReceiveActor
     }
 
     private static long NextId() => Interlocked.Increment(ref LastId);
-
-    internal static int ComputeWeight(int hourlyVariableCount, int forecastDays) =>
-        (int)Math.Ceiling(hourlyVariableCount / 10.0) * (int)Math.Ceiling(forecastDays / 14.0);
 }

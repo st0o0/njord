@@ -27,7 +27,6 @@ export function exportAsJson(config: NjordConfig): string {
   if (config.budgetOverride) polling.BudgetOverride = config.budgetOverride
   n.Polling = polling
   const weather: Record<string, unknown> = {}
-  if (config.weather.includeSolar) weather.IncludeSolar = true
   if (config.weather.forecastDays !== defaults.weather.forecastDays) weather.ForecastDays = config.weather.forecastDays
   if (Object.keys(weather).length) n.Weather = weather
   if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) n.AirQuality = { ForecastDays: config.airQuality.forecastDays }
@@ -87,7 +86,6 @@ export function exportAsEnvVars(config: NjordConfig): string {
 
   const defaults = defaultConfig()
   add('Njord__Polling__PollInterval', config.pollInterval)
-  if (config.weather.includeSolar) add('Njord__Weather__IncludeSolar', 'true')
   if (config.weather.forecastDays !== defaults.weather.forecastDays) add('Njord__Weather__ForecastDays', String(config.weather.forecastDays))
   if (config.airQuality.forecastDays !== defaults.airQuality.forecastDays) add('Njord__AirQuality__ForecastDays', String(config.airQuality.forecastDays))
   if (config.marine.forecastDays !== defaults.marine.forecastDays) add('Njord__Marine__ForecastDays', String(config.marine.forecastDays))
@@ -177,7 +175,6 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   if (pollInterval) config.pollInterval = pollInterval
   if (n.Weather) {
     config.weather = {
-      includeSolar: n.Weather.IncludeSolar === true || parseBool(n.Weather.IncludeSolar),
       forecastDays: Number(n.Weather.ForecastDays) || 4,
     }
   }
@@ -243,8 +240,7 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     }
     else if (parts[0] === 'OpenMeteo' && parts[1] === 'BaseUrl' || parts[0] === 'OpenMeteoBaseUrl') config.openMeteoBaseUrl = value
     else if (parts[0] === 'Weather') {
-      if (parts[1] === 'IncludeSolar') config.weather.includeSolar = parseBool(value)
-      else if (parts[1] === 'ForecastDays') config.weather.forecastDays = parseInt(value) || 4
+      if (parts[1] === 'ForecastDays') config.weather.forecastDays = parseInt(value) || 4
     }
     else if (parts[0] === 'AirQuality' && parts[1] === 'ForecastDays') config.airQuality.forecastDays = parseInt(value) || 5
     else if (parts[0] === 'Marine' && parts[1] === 'ForecastDays') config.marine.forecastDays = parseInt(value) || 8

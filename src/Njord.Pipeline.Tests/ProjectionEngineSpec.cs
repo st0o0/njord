@@ -124,7 +124,7 @@ public sealed class ProjectionEngineSpec
     [Fact]
     public void A_handler_whose_required_field_is_missing_is_skipped_and_emits_no_event()
     {
-        var handler = new RequiringHandler(new DomainRequirements(Weather: WeatherParam.Temperature | WeatherParam.SoilTemperature));
+        var handler = new RequiringHandler(new DomainRequirements(Weather: WeatherParam.Temperature | WeatherParam.ShortwaveRadiation));
         var engine = new ProjectionEngine([handler], Time);
 
         var events = engine.Process(Weather(DomainData.Lucerne, 10.0));
@@ -137,7 +137,7 @@ public sealed class ProjectionEngineSpec
     [Fact]
     public void Other_handlers_still_run_when_one_is_skipped()
     {
-        var skipped = new RequiringHandler(new DomainRequirements(Weather: WeatherParam.SoilTemperature));
+        var skipped = new RequiringHandler(new DomainRequirements(Weather: WeatherParam.ShortwaveRadiation));
         var running = new RequiringHandler(new DomainRequirements(Weather: WeatherParam.Temperature));
         var engine = new ProjectionEngine([skipped, running], Time);
 

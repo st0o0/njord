@@ -10,7 +10,7 @@ njord uses the Open-Meteo **Ensemble Mean** API. One call per location returns a
 | Uncertainty information | `ensemble_std_dev` per point | none |
 | Resolution | Ensemble grid | Up to ~1 km for regional models |
 
-What the Weather request contains is set by [Weather](/configuration/weather) (`IncludeSolar`, `ForecastDays`).
+What the Weather request contains is set by [Weather](/configuration/weather) (`ForecastDays`).
 
 ## Open-Meteo model reference
 

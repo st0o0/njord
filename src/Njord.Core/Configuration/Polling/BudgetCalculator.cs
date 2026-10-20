@@ -1,3 +1,6 @@
+using Njord.Core.Domain;
+using Njord.Forecast;
+
 namespace Njord.Core.Configuration.Polling;
 
 public static class BudgetCalculator
@@ -9,15 +12,23 @@ public static class BudgetCalculator
     public static RequestBudget GetEffectiveBudget(PollingOptions polling) =>
         polling.BudgetOverride ?? RequestBudget.OpenMeteoFreeTier;
 
-    public static BudgetValidation Validate(NjordOptions scope, WeatherOptions weather, PollingOptions polling, int domainCount)
-    {
-        var locationCount = scope.Locations.Count;
-        var domainCallsPerCycle = locationCount * domainCount;
+    public static int ComputeWeight(int hourlyVariableCount, int forecastDays) =>
+        (int)Math.Ceiling(hourlyVariableCount / 10.0) * (int)Math.Ceiling(forecastDays / 14.0);
 
-        var apiCallWeight = WeatherVariables.ApiCallWeight(WeatherVariables.For(weather.IncludeSolar).Count);
+    public static BudgetValidation Validate(NjordOptions scope, WeatherOptions weather, PollingOptions polling, ResolvedRequirements resolved)
+    {
+        var requirements = resolved.Value;
+        var locationCount = scope.Locations.Count;
+
+        var weatherRequired = requirements.Requires(DomainKind.Weather);
+        var otherDomains = new[] { DomainKind.AirQuality, DomainKind.Flood, DomainKind.Marine }.Count(requirements.Requires);
+        var apiCallWeight = weatherRequired ? ComputeWeight(requirements.Weather.FlagCount(), weather.ForecastDays) : 0;
+
+        var domainCallsPerCycle = locationCount * ((weatherRequired ? 1 : 0) + otherDomains);
+        var callsPerCycle = locationCount * (apiCallWeight + otherDomains);
 
         var cyclesPerMonth = Month.TotalMinutes / polling.PollInterval.TotalMinutes;
-        var projectedMonthly = (long)Math.Round(domainCallsPerCycle * cyclesPerMonth * apiCallWeight);
+        var projectedMonthly = (long)Math.Round(callsPerCycle * cyclesPerMonth);
 
         var budget = GetEffectiveBudget(polling);
         var usagePercent = budget.RequestsPerMonth > 0

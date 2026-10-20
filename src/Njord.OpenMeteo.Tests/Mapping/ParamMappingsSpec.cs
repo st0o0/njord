@@ -26,7 +26,7 @@ public sealed class ParamMappingsSpec
     [InlineData(WeatherParam.Cape, "cape")]
     [InlineData(WeatherParam.Rain, "rain")]
     [InlineData(WeatherParam.Snowfall, "snowfall")]
-    [InlineData(WeatherParam.SoilTemperature, "soil_temperature_0cm")]
+    [InlineData(WeatherParam.SoilTemperature, "soil_temperature_0_to_10cm")]
     [InlineData(WeatherParam.FreezingLevelHeight, "freezing_level_height")]
     [InlineData(WeatherParam.IsDay, "is_day")]
     [InlineData(WeatherParam.ShortwaveRadiation, "shortwave_radiation")]
