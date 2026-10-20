@@ -5,9 +5,9 @@ namespace Njord.Messages.Tests.Alerts;
 public sealed class AlertTypeSpec
 {
     [Fact]
-    public void Should_define_eighteen_alert_types()
+    public void Should_define_nineteen_alert_types()
     {
-        Assert.Equal(18, Enum.GetValues<AlertType>().Length);
+        Assert.Equal(19, Enum.GetValues<AlertType>().Length);
     }
 
     [Theory]
@@ -19,6 +19,7 @@ public sealed class AlertTypeSpec
     [InlineData(AlertType.Pm25, "pm2_5")]
     [InlineData(AlertType.FloodRisk, "flood_risk")]
     [InlineData(AlertType.FloodRain, "flood_rain")]
+    [InlineData(AlertType.SwimmingConditions, "swimming_conditions")]
     public void Should_map_alert_type_to_topic_segment(AlertType type, string expected)
     {
         Assert.Equal(expected, type.ToTopicSegment());
@@ -35,12 +36,12 @@ public sealed class AlertTypeSpec
     }
 
     [Fact]
-    public void Should_classify_only_air_quality_and_flood_types_as_non_weather()
+    public void Should_classify_only_air_quality_flood_and_marine_types_as_non_weather()
     {
         var nonWeather = Enum.GetValues<AlertType>().Where(t => !t.IsWeather());
 
         Assert.Equal(
-            [AlertType.Pollen, AlertType.Pm25, AlertType.FloodRisk, AlertType.FloodRain],
+            [AlertType.Pollen, AlertType.Pm25, AlertType.FloodRisk, AlertType.FloodRain, AlertType.SwimmingConditions],
             nonWeather.Order());
     }
 

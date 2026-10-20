@@ -59,6 +59,7 @@ enum AlertType {
   ALERT_TYPE_PM25 = 16;
   ALERT_TYPE_FLOOD_RISK = 17;
   ALERT_TYPE_FLOOD_RAIN = 18;
+  ALERT_TYPE_SWIMMING_CONDITIONS = 19;
 }
 
 enum AlertSeverity {

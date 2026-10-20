@@ -58,6 +58,7 @@ internal static class WireEnumMappings
         DomainAlertType.Pm25 => ProtoAlertType.Pm25,
         DomainAlertType.FloodRisk => ProtoAlertType.FloodRisk,
         DomainAlertType.FloodRain => ProtoAlertType.FloodRain,
+        DomainAlertType.SwimmingConditions => ProtoAlertType.SwimmingConditions,
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 

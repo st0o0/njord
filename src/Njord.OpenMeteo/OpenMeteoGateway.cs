@@ -38,6 +38,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
     private readonly IWeatherClient _weatherClient;
     private readonly IAirQualityClient _airQualityClient;
     private readonly IFloodClient _floodClient;
+    private readonly IMarineClient _marineClient;
     private readonly TimeProvider _timeProvider;
     private readonly NjordOptions _options;
     private readonly FetchTimeouts _timeouts;
@@ -53,6 +54,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         IWeatherClient weatherClient,
         IAirQualityClient airQualityClient,
         IFloodClient floodClient,
+        IMarineClient marineClient,
         TimeProvider timeProvider,
         IOptions<NjordOptions> options,
         ResolvedParameterSet parameters,
@@ -62,6 +64,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         _weatherClient = weatherClient;
         _airQualityClient = airQualityClient;
         _floodClient = floodClient;
+        _marineClient = marineClient;
         _timeProvider = timeProvider;
         _options = options.Value;
         _timeouts = timeouts;
@@ -104,7 +107,7 @@ public sealed class OpenMeteoGateway : ReceiveActor
         var id = NextId();
         _pending[id] = new PendingDomainRequest(Sender, msg.Location, msg.Domain, new Location(location.Name, location.Latitude, location.Longitude));
 
-        if (msg.Domain is not (DomainKind.Weather or DomainKind.AirQuality or DomainKind.Flood))
+        if (msg.Domain is not (DomainKind.Weather or DomainKind.AirQuality or DomainKind.Flood or DomainKind.Marine))
         {
             Reply(id, p => new FetchDomainRejected(p.Location, p.Domain, FetchRejectionReason.PipelineUnavailable));
             return;
@@ -138,6 +141,8 @@ public sealed class OpenMeteoGateway : ReceiveActor
             DomainKind.Weather => (await _weatherClient.FetchAsync(location.Latitude, location.Longitude, _options.ForecastDays, CancellationToken.None))
                 ?.ToDomainForecast(now),
             DomainKind.AirQuality => (await _airQualityClient.FetchAsync(location.Latitude, location.Longitude, _options.ForecastDays, CancellationToken.None))
+                ?.ToDomainForecast(now),
+            DomainKind.Marine => (await _marineClient.FetchAsync(location.Latitude, location.Longitude, CancellationToken.None))
                 ?.ToDomainForecast(now),
             _ => (await _floodClient.FetchAsync(location.Latitude, location.Longitude, CancellationToken.None))
                 ?.ToDomainForecast(now),

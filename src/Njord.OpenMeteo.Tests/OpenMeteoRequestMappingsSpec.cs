@@ -28,6 +28,17 @@ public sealed class OpenMeteoUriBuilderSpec
     }
 
     [Fact]
+    public void The_marine_uri_carries_location_and_the_fixed_horizon()
+    {
+        var uri = MarineClient.BuildUri(47.05, 8.31);
+
+        Assert.Equal(
+            "v1/marine?latitude=47.05&longitude=8.31" +
+            $"&hourly={MarineClient.HourlyVariables}&forecast_days=8&timeformat=unixtime&timezone=UTC",
+            uri);
+    }
+
+    [Fact]
     public void Coordinates_use_the_invariant_culture()
     {
         var previous = CultureInfo.CurrentCulture;

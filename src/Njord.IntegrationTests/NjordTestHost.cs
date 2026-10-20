@@ -17,12 +17,13 @@ public sealed class NjordTestHost : IAsyncDisposable
 {
     private readonly GrpcChannel _channel;
 
-    private NjordTestHost(WebApplication app, FakeWeatherClient weather, FakeAirQualityClient airQuality, FakeFloodClient flood, string dataDirectory)
+    private NjordTestHost(WebApplication app, FakeWeatherClient weather, FakeAirQualityClient airQuality, FakeFloodClient flood, FakeMarineClient marine, string dataDirectory)
     {
         App = app;
         Weather = weather;
         AirQuality = airQuality;
         Flood = flood;
+        Marine = marine;
         DataDirectory = dataDirectory;
         Http = app.GetTestClient();
         _channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions { HttpHandler = app.GetTestServer().CreateHandler() });
@@ -35,6 +36,8 @@ public sealed class NjordTestHost : IAsyncDisposable
     public FakeAirQualityClient AirQuality { get; }
 
     public FakeFloodClient Flood { get; }
+
+    public FakeMarineClient Marine { get; }
 
     public string DataDirectory { get; }
 
@@ -75,6 +78,7 @@ public sealed class NjordTestHost : IAsyncDisposable
         var weather = new FakeWeatherClient();
         var airQuality = new FakeAirQualityClient();
         var flood = new FakeFloodClient();
+        var marine = new FakeMarineClient();
         WebApplication? app = null;
         var runner = NjordHost.Create(
             builder,
@@ -83,16 +87,18 @@ public sealed class NjordTestHost : IAsyncDisposable
                 b.Services.RemoveAll<IWeatherClient>();
                 b.Services.RemoveAll<IAirQualityClient>();
                 b.Services.RemoveAll<IFloodClient>();
+                b.Services.RemoveAll<IMarineClient>();
                 b.Services.AddSingleton<IWeatherClient>(weather);
                 b.Services.AddSingleton<IAirQualityClient>(airQuality);
                 b.Services.AddSingleton<IFloodClient>(flood);
+                b.Services.AddSingleton<IMarineClient>(marine);
                 b.WebHost.UseTestServer();
                 app = b.Build();
                 return app;
             });
 
         await runner.StartAsync(cancellationToken);
-        return new NjordTestHost(app ?? throw new InvalidOperationException("The host was not built."), weather, airQuality, flood, dataDirectory);
+        return new NjordTestHost(app ?? throw new InvalidOperationException("The host was not built."), weather, airQuality, flood, marine, dataDirectory);
     }
 
     public async ValueTask DisposeAsync()

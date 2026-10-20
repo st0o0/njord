@@ -19,6 +19,7 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
     private readonly FakeWeatherClient _weather = new();
     private readonly FakeAirQualityClient _airQuality = new();
     private readonly FakeFloodClient _flood = new();
+    private readonly FakeMarineClient _marine = new();
     private Akka.TestKit.TestProbe _attached = null!;
     private Akka.TestKit.TestProbe _forecasts = null!;
 
@@ -39,7 +40,7 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
             }));
             var parameters = ParameterSelection.Resolve(["Weather"], [], []);
             registry.Register<IForecastGateway>(system.ActorOf(
-                Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _time, options, parameters, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
+                Props.Create(() => new OpenMeteoGateway(_weather, _airQuality, _flood, _marine, _time, options, parameters, new SwitchableBudgetProvider(), FetchTimeouts.Default)),
                 "gateway"));
         });
     }
@@ -67,7 +68,7 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
             () => Assert.Equal(47.05, received.Location.Latitude),
             () => Assert.IsType<DomainForecast<WeatherPoint>>(received.Data),
             () => Assert.Equal(1, _weather.Calls),
-            () => Assert.Equal(0, _airQuality.Calls + _flood.Calls));
+            () => Assert.Equal(0, _airQuality.Calls + _flood.Calls + _marine.Calls));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -79,7 +80,7 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
             () => Assert.Equal(DomainKind.AirQuality, completed.Domain),
             () => Assert.Equal(8.0, Assert.Single(Assert.IsType<DomainForecast<AirQualityPoint>>(received.Data).Points).Pm25),
             () => Assert.Equal(1, _airQuality.Calls),
-            () => Assert.Equal(0, _weather.Calls + _flood.Calls));
+            () => Assert.Equal(0, _weather.Calls + _flood.Calls + _marine.Calls));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -93,7 +94,21 @@ public sealed class OpenMeteoGatewayRoutingSpec : NjordActorSpec
             () => Assert.Equal(TimeResolution.Daily, forecast.Resolution),
             () => Assert.Equal(120.0, Assert.Single(forecast.Points).Discharge),
             () => Assert.Equal(1, _flood.Calls),
-            () => Assert.Equal(0, _weather.Calls + _airQuality.Calls));
+            () => Assert.Equal(0, _weather.Calls + _airQuality.Calls + _marine.Calls));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_marine_fetch_uses_the_marine_client_and_delivers_hourly_marine_points()
+    {
+        var (completed, received) = await FetchAsync(DomainKind.Marine, TestContext.Current.CancellationToken);
+
+        var forecast = Assert.IsType<DomainForecast<MarinePoint>>(received.Data);
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.Marine, completed.Domain),
+            () => Assert.Equal(TimeResolution.Hourly, forecast.Resolution),
+            () => Assert.Equal(0.4, Assert.Single(forecast.Points).WaveHeight),
+            () => Assert.Equal(1, _marine.Calls),
+            () => Assert.Equal(0, _weather.Calls + _airQuality.Calls + _flood.Calls));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

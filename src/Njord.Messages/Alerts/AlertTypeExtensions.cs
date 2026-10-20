@@ -22,12 +22,13 @@ public static class AlertTypeExtensions
         AlertType.Pm25 => "pm2_5",
         AlertType.FloodRisk => "flood_risk",
         AlertType.FloodRain => "flood_rain",
+        AlertType.SwimmingConditions => "swimming_conditions",
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 
     public static bool IsWeather(this AlertType type) => type switch
     {
-        AlertType.Pollen or AlertType.Pm25 or AlertType.FloodRisk or AlertType.FloodRain => false,
+        AlertType.Pollen or AlertType.Pm25 or AlertType.FloodRisk or AlertType.FloodRain or AlertType.SwimmingConditions => false,
         _ => true,
     };
 }

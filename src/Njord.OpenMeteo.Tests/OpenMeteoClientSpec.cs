@@ -116,6 +116,41 @@ public sealed class OpenMeteoClientSpec
         Assert.Contains("forecast_days=92", sent.ToString());
     }
 
+    [Fact(Timeout = 5000)]
+    public async Task A_marine_response_is_deserialized_into_typed_hourly_data()
+    {
+        var client = new MarineClient(new HttpClient(new StubHandler(HttpStatusCode.OK,
+            """{"latitude":47.0,"longitude":8.0,"hourly":{"time":[3600,7200],"wave_height":[0.4,null],"wave_period":[4.0,null],"wave_direction":[270.0,null],"ocean_current_velocity":[0.2,null],"ocean_current_direction":[90.0,null],"sea_surface_temperature":[19.5,null]}}""", null))
+        { BaseAddress = new Uri("https://marine-api.open-meteo.com/") });
+
+        var result = await client.FetchAsync(47.0, 8.0, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.NotNull(result.Hourly);
+        Assert.Multiple(
+            () => Assert.Equal([3600L, 7200L], result.Hourly.Time),
+            () => Assert.Equal(0.4, result.Hourly.WaveHeight[0]),
+            () => Assert.Null(result.Hourly.WaveHeight[1]),
+            () => Assert.Equal(19.5, result.Hourly.SeaSurfaceTemperature![0]),
+            () => Assert.Equal(0.2, result.Hourly.OceanCurrentVelocity![0]));
+    }
+
+    [Fact(Timeout = 5000)]
+    public async Task The_marine_request_uri_carries_the_marine_path_with_eight_days()
+    {
+        Uri? sent = null;
+        var client = new MarineClient(new HttpClient(new StubHandler(HttpStatusCode.OK,
+            """{"latitude":47.0,"longitude":8.0,"hourly":{"time":[],"wave_height":[],"wave_period":[],"wave_direction":[]}}""",
+            r => sent = r.RequestUri))
+        { BaseAddress = new Uri("https://marine-api.open-meteo.com/") });
+
+        await client.FetchAsync(47.05, 8.31, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(sent);
+        Assert.Contains("v1/marine?", sent.ToString());
+        Assert.Contains("forecast_days=8", sent.ToString());
+    }
+
     private sealed class StubHandler(HttpStatusCode status, string body, Action<HttpRequestMessage>? inspect) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

@@ -11,7 +11,7 @@ public sealed class ArchitectureSpec
     private static readonly string[] ProjectNames =
     [
         "Njord.Model", "Njord.Messages", "Njord.Persistence", "Njord.Core",
-        "Njord.Weather", "Njord.AirQuality", "Njord.Flood", "Njord.Grpc", "Njord.Mqtt",
+        "Njord.Weather", "Njord.AirQuality", "Njord.Flood", "Njord.Marine", "Njord.Grpc", "Njord.Mqtt",
         "Njord.OpenMeteo", "Njord.Budget", "Njord.Pipeline",
     ];
 
@@ -69,18 +69,20 @@ public sealed class ArchitectureSpec
     }
 
     [Theory]
-    [InlineData("Njord.Weather", "Njord.AirQuality", "Njord.Flood")]
-    [InlineData("Njord.AirQuality", "Njord.Weather", "Njord.Flood")]
-    [InlineData("Njord.Flood", "Njord.Weather", "Njord.AirQuality")]
-    public void Domain_projects_do_not_depend_on_each_other(string domain, string otherA, string otherB)
+    [InlineData("Njord.Weather", "Njord.AirQuality", "Njord.Flood", "Njord.Marine")]
+    [InlineData("Njord.AirQuality", "Njord.Weather", "Njord.Flood", "Njord.Marine")]
+    [InlineData("Njord.Flood", "Njord.Weather", "Njord.AirQuality", "Njord.Marine")]
+    [InlineData("Njord.Marine", "Njord.Weather", "Njord.AirQuality", "Njord.Flood")]
+    public void Domain_projects_do_not_depend_on_each_other(string domain, params string[] others)
     {
-        Types().That().Are(In(domain)).Should().NotDependOnAny(In(otherA, otherB)).Check(Architecture);
+        Types().That().Are(In(domain)).Should().NotDependOnAny(In(others)).Check(Architecture);
     }
 
     [Theory]
     [InlineData("Njord.Weather")]
     [InlineData("Njord.AirQuality")]
     [InlineData("Njord.Flood")]
+    [InlineData("Njord.Marine")]
     public void Domain_projects_do_not_depend_on_adapters(string domain)
     {
         Types().That().Are(In(domain)).Should().NotDependOnAny(In("Njord.Grpc", "Njord.Mqtt")).Check(Architecture);

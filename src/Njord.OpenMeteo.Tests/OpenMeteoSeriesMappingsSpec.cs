@@ -92,4 +92,39 @@ public sealed class OpenMeteoResponseMappingsSpec
             () => Assert.Equal(140.0, point.DischargeP75),
             () => Assert.Null(point.DischargeMedian));
     }
+
+    [Fact]
+    public void A_marine_response_maps_to_hourly_points_and_trims_trailing_empty_hours()
+    {
+        var response = new MarineResponse(47.0, 8.0,
+            new MarineHourlyData(
+                Time: [Hour0, Hour0 + 3600, Hour0 + 7200],
+                WaveHeight: [0.4, 1.2, null],
+                WavePeriod: [4.0, 5.0, null],
+                WaveDirection: [270.0, 280.0, null],
+                SeaSurfaceTemperature: [19.0, null, null]));
+
+        var forecast = response.ToDomainForecast(Run);
+
+        Assert.NotNull(forecast);
+        Assert.Equal(2, forecast.Points.Length);
+        Assert.Multiple(
+            () => Assert.Equal(DomainKind.Marine, forecast.Domain),
+            () => Assert.Equal(TimeResolution.Hourly, forecast.Resolution),
+            () => Assert.Equal(0.4, forecast.Points[0].WaveHeight),
+            () => Assert.Equal(4.0, forecast.Points[0].WavePeriod),
+            () => Assert.Equal(270.0, forecast.Points[0].WaveDirection),
+            () => Assert.Equal(19.0, forecast.Points[0].WaterTemperature),
+            () => Assert.Equal(1.2, forecast.Points[1].WaveHeight),
+            () => Assert.Null(forecast.Points[1].WaterTemperature));
+    }
+
+    [Fact]
+    public void A_marine_response_without_any_wave_value_maps_to_nothing()
+    {
+        var response = new MarineResponse(47.0, 8.0,
+            new MarineHourlyData(Time: [Hour0], WaveHeight: [null], WavePeriod: [null], WaveDirection: [null]));
+
+        Assert.Null(response.ToDomainForecast(Run));
+    }
 }

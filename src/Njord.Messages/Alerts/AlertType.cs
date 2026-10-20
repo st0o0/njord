@@ -20,4 +20,5 @@ public enum AlertType
     Pm25,
     FloodRisk,
     FloodRain,
+    SwimmingConditions,
 }

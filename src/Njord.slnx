@@ -27,6 +27,7 @@
   <Folder Name="/Analysis/">
     <Project Path="Njord.AirQuality/Njord.AirQuality.csproj" />
     <Project Path="Njord.Flood/Njord.Flood.csproj" />
+    <Project Path="Njord.Marine/Njord.Marine.csproj" />
     <Project Path="Njord.Weather/Njord.Weather.csproj" />
   </Folder>
   <Folder Name="/Processing/">
@@ -49,6 +50,7 @@
     <Project Path="Njord.Grpc.Tests/Njord.Grpc.Tests.csproj" />
     <Project Path="Njord.AirQuality.Tests/Njord.AirQuality.Tests.csproj" />
     <Project Path="Njord.Flood.Tests/Njord.Flood.Tests.csproj" />
+    <Project Path="Njord.Marine.Tests/Njord.Marine.Tests.csproj" />
     <Project Path="Njord.Architecture.Tests/Njord.Architecture.Tests.csproj" />
     <Project Path="Njord.IntegrationTests/Njord.IntegrationTests.csproj" />
 

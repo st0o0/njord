@@ -44,6 +44,12 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
             client.Timeout = TimeSpan.FromSeconds(30);
         });
 
+        AddTypedClient<IMarineClient, MarineClient>(services, (_, client) =>
+        {
+            client.BaseAddress = new Uri("https://marine-api.open-meteo.com/");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+
         AddTypedClient<IGeocodingClient, GeocodingClient>(services, (_, client) =>
         {
             client.BaseAddress = new Uri("https://geocoding-api.open-meteo.com/");

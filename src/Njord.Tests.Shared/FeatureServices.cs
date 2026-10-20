@@ -4,6 +4,7 @@ using Njord.AirQuality;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Flood;
+using Njord.Marine;
 using Njord.Model;
 using Njord.Weather.Alerts;
 
@@ -40,6 +41,7 @@ public static class FeatureServices
                 services.AddWeatherDomain();
                 services.AddAirQualityDomain();
                 services.AddFloodDomain();
+                services.AddMarineDomain();
                 if (configure is not null)
                 {
                     services.Configure(configure);
