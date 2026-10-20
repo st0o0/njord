@@ -4,11 +4,15 @@
 TBD - created by archiving change restructure-forecast-and-clients. Update Purpose after archive.
 ## Requirements
 ### Requirement: Handlers declare required parameters
-Every enrichment handler SHALL declare exactly the API parameters it needs, per domain, instead of only naming domains.
+Every handler SHALL declare, through its feature descriptor, exactly the API parameters it requires per domain, and separately the parameters it can use when present.
 
 #### Scenario: Handler requirement per domain
 - **WHEN** a handler needs temperature and wind speed from Weather
-- **THEN** its requirements SHALL contain those two weather parameters and no parameters of any other domain
+- **THEN** its feature's required parameters SHALL contain those two weather parameters and no parameters of any other domain
+
+#### Scenario: Optional parameters separate
+- **WHEN** a handler lists soil temperature as optional
+- **THEN** the parameter appears in the optional set and not in the required set
 
 ### Requirement: Requirements can be combined
 Requirements SHALL support a union operator that combines the parameters of each domain.

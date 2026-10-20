@@ -37,13 +37,6 @@ The builder SHALL offer horizon presets: Standard `[3, 6, 12, 24, 48, 72]`, Fine
 - **WHEN** a user enters "0" or "100" in custom horizons
 - **THEN** a validation error is shown
 
-### Requirement: Parameter group selector shows API weight impact
-The builder SHALL allow selecting parameter groups (Weather, Solar, Soil) and show the resulting hourly variable count and API call weight (`ceil(count/10)`).
-
-#### Scenario: Adding Solar group shows weight change
-- **WHEN** a user enables the Solar group alongside Weather
-- **THEN** the variable count changes from 30 to 39 and weight from 3 to 4
-
 ### Requirement: Live budget calculator validates configuration
 The builder SHALL compute and display projected monthly API usage using the same formula as `BudgetCalculator` (applied at startup by `PollingOptionsValidator`): `totalModelsPerCycle × cyclesPerMonth × apiCallWeight`. It SHALL show the projection against the budget (default 300k or override), display a percentage bar, and warn when exceeding the 80% guard.
 
@@ -112,4 +105,33 @@ The builder SHALL encode its current state in the URL fragment (hash) so that co
 #### Scenario: Shareable link
 - **WHEN** a user configures 2 locations and 3 models
 - **THEN** the URL hash updates and sharing that URL restores the same configuration
+
+### Requirement: Features are grouped by category with per-feature cost
+The builder SHALL list all features grouped by feature category. Each feature SHALL show its name, description, required domains and its marginal cost as "+N calls/month", or "+0" when its domains are already active.
+
+#### Scenario: Cost of a feature that enables a new domain
+- **WHEN** no enabled feature needs AirQuality and a user views PollenAlert for one location
+- **THEN** it shows the full monthly AirQuality cost
+
+#### Scenario: Cost when domain already active
+- **WHEN** Weather is already required and a user views FrostAlert
+- **THEN** it shows "+0"
+
+### Requirement: Budget meter reflects the free tier
+The builder SHALL show a live meter of projected monthly usage against 300,000 calls, colored green below 50 %, yellow from 50 % to 80 % and red above 80 %.
+
+#### Scenario: Enabling a costly feature
+- **WHEN** a user enables a feature that pushes usage past 80 %
+- **THEN** the meter turns red and shows used and total calls
+
+#### Scenario: Disabling the last user of a domain
+- **WHEN** a user disables the last enabled feature requiring Flood
+- **THEN** the usage drops by the Flood cost
+
+### Requirement: Builder exports and imports the feature section
+The builder SHALL export `Njord:Features` (JSON and environment variables) and SHALL import both `Njord:Features` and legacy `Njord:Enrichments` input, expanding `WeatherAlerts` to the individual alert features.
+
+#### Scenario: Import legacy config
+- **WHEN** a user imports a config with `Enrichments.WeatherAlerts: true`
+- **THEN** all individual alert features are enabled and the export uses `Features`
 
