@@ -1,5 +1,4 @@
 using Njord.Forecast;
-using Njord.Messages.Pipeline;
 using Njord.Persistence.Events.Polling;
 using Njord.Tests.Shared;
 

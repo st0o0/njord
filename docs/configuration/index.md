@@ -17,7 +17,6 @@ Configuration is **static**: it is read once at startup. There is no runtime con
       "BudgetOverride": null
     },
     "Persistence": { "DataPath": "data/njord.db" },
-    "Mqtt": { ... },
     "Enrichments": { "FloodRisk": true },
     "Enrichment": { "Alerts": { ... } }
   }
@@ -90,11 +89,10 @@ Njord__Locations__0__Longitude=8.31
 Njord__Weather__ForecastDays=4
 Njord__Enrichment__Alerts__Enabled=true
 Njord__Enrichments__FloodRisk=true
-Njord__Mqtt__Host=192.168.1.100
 ```
 
 ::: tip
-Use environment variables for secrets like `Njord__Mqtt__Password`.
+Use environment variables for secrets like `Njord__Persistence__ConnectionString`.
 :::
 
 ## Configuration sections
@@ -102,7 +100,6 @@ Use environment variables for secrets like `Njord__Mqtt__Password`.
 - [Locations](./locations): where to fetch forecasts for
 - [Weather](./weather): solar variables and forecast days
 - [Enrichment](./enrichment): weather, air quality and flood alerts
-- [MQTT](./mqtt): broker connection and topics
 - [Persistence](./persistence): SQLite or PostgreSQL storage
 - [Budget](./budget): Open-Meteo limits and usage projection
 
@@ -118,15 +115,14 @@ Log levels live in the `Serilog` section, outside `Njord`. Every log line shows 
       "Override": {
         "Akka": "Warning",
         "Njord.Polling": "Debug",
-        "Njord.Pipeline": "Debug",
-        "Njord.Mqtt.MqttStatePublisher": "Debug"
+        "Njord.Pipeline": "Debug"
       }
     }
   }
 }
 ```
 
-`Njord.Polling` shows the Debug logs of the poll manager and the poll workers, `Njord.Pipeline` those of the analysis pipeline; `Njord.Mqtt.MqttStatePublisher` adds element-level tracing of the MQTT state stream. As environment variable: `Serilog__MinimumLevel__Override__Njord.Pipeline=Debug`. Log levels are read at startup.
+`Njord.Polling` shows the Debug logs of the poll manager and the poll workers, `Njord.Pipeline` those of the analysis pipeline. As environment variable: `Serilog__MinimumLevel__Override__Njord.Pipeline=Debug`. Log levels are read at startup.
 
 ## Startup validation
 
@@ -136,6 +132,5 @@ njord validates the configuration at startup and refuses to start if:
 - A location has an empty name
 - `Weather:ForecastDays` is outside 1 to 16
 - `AirQuality:ForecastDays` is outside 1 to 7, `Marine:ForecastDays` outside 1 to 8, or `Flood:ForecastDays` outside 1 to 210
-- The MQTT host is empty while MQTT is enabled
 - PostgreSQL is selected without a connection string
 - Projected API usage exceeds 80% of the monthly budget

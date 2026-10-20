@@ -11,7 +11,7 @@ public sealed class ArchitectureSpec
     private static readonly string[] ProjectNames =
     [
         "Njord.Forecast", "Njord.Messages", "Njord.Persistence", "Njord.Core",
-        "Njord.Weather", "Njord.AirQuality", "Njord.Flood", "Njord.Marine", "Njord.Grpc", "Njord.Mqtt",
+        "Njord.Weather", "Njord.AirQuality", "Njord.Flood", "Njord.Marine", "Njord.Grpc",
         "Njord.OpenMeteo", "Njord.Budget", "Njord.Pipeline", "Njord.Polling",
     ];
 
@@ -85,7 +85,7 @@ public sealed class ArchitectureSpec
     [InlineData("Njord.Marine")]
     public void Domain_projects_do_not_depend_on_adapters(string domain)
     {
-        Types().That().Are(In(domain)).Should().NotDependOnAny(In("Njord.Grpc", "Njord.Mqtt")).Check(Architecture);
+        Types().That().Are(In(domain)).Should().NotDependOnAny(In("Njord.Grpc")).Check(Architecture);
     }
 
     [Fact]

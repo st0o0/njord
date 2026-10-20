@@ -54,10 +54,6 @@ model {
         #egress
         description 'GrpcConsumer plus Weather and Ops services on port 8081'
       }
-      mqttStatePublisher = component 'MqttStatePublisher' {
-        #egress
-        description 'Optional, retained state JSON per domain, parameter and alert'
-      }
     }
 
     pipeline = container 'Pipeline' {
@@ -95,10 +91,6 @@ model {
     }
   }
 
-  mqttBroker = dataStore 'MQTT Broker' {
-    description 'Optional, retained state and availability topics'
-  }
-
   homeAssistant = externalSystem 'Home Assistant' {
     description 'ha-njord custom integration, connected over gRPC'
   }
@@ -106,7 +98,6 @@ model {
   // System-level relationships
   openMeteo -> njord 'weather, air quality, flood data'
   njord -> homeAssistant 'gRPC streams (ha-njord)'
-  njord -> mqttBroker 'optional state JSON'
 
   // Internal relationships
   pollManager -> pollWorker 'StartPolling / TriggerImmediatePoll'
@@ -117,9 +108,7 @@ model {
   openMeteoGateway -> forecastPipeline 'SinkRef<DomainDataReceived>'
   forecastPipeline -> analysis 'projection groups'
   forecastPipeline -> grpcApi 'SourceRef<PipelineEvent>'
-  forecastPipeline -> mqttStatePublisher 'SourceRef<PipelineEvent>'
   grpcApi -> homeAssistant 'gRPC streams'
-  mqttStatePublisher -> mqttBroker 'state JSON'
   pollWorker -> persistence 'poll state per location'
   openMeteoGateway -> budgetTracker 'recorded calls'
   budgetTracker -> persistence 'budget usage'
@@ -132,5 +121,4 @@ model {
   domainHub -> projection 'DomainDataReceived'
   projection -> eventHub 'PipelineEvent'
   eventHub -> homeAssistant 'gRPC via GrpcConsumer'
-  eventHub -> mqttBroker 'via MqttStatePublisher'
 }

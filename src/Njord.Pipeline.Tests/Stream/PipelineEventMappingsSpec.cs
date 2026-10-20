@@ -3,7 +3,6 @@ using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Marine;
 using Njord.Forecast.Solar;
-using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 

@@ -40,7 +40,7 @@ End-to-end checks of the full stack (njord, ha-njord and Home Assistant in Docke
 dotnet run --project Njord/Njord.csproj
 ```
 
-`dotnet run` picks the `Development` environment from `Njord/Properties/launchSettings.json` (`ASPNETCORE_ENVIRONMENT=Development`), so `appsettings.Development.json` is loaded. The Kestrel endpoints (8080 HTTP, 8081 gRPC) come from `appsettings.json`. MQTT is disabled by default.
+`dotnet run` picks the `Development` environment from `Njord/Properties/launchSettings.json` (`ASPNETCORE_ENVIRONMENT=Development`), so `appsettings.Development.json` is loaded. The Kestrel endpoints (8080 HTTP, 8081 gRPC) come from `appsettings.json`.
 
 ## Architecture
 
@@ -48,7 +48,7 @@ See [Architecture](/architecture) for the three-zone design, domains, projection
 
 ## Integration tests
 
-`Njord.IntegrationTests` starts the whole host in-process (`NjordHost.Create` with `UseTestServer`, a temporary SQLite directory, a fake Open-Meteo client) and talks to it through a real gRPC channel. The MQTT specs run against a Mosquitto container (Testcontainers), so **Docker must be running**; without it those specs fail loudly instead of skipping.
+`Njord.IntegrationTests` starts the whole host in-process (`NjordHost.Create` with `UseTestServer`, a temporary SQLite directory, a fake Open-Meteo client) and talks to it through a real gRPC channel.
 
 ```bash
 dotnet run --project Njord.IntegrationTests/Njord.IntegrationTests.csproj --no-build

@@ -5,7 +5,7 @@
 njord - Multi-domain weather intelligence for Home Assistant. A .NET service (Docker container)
 on Akka.NET + Akka.Streams: polls the Open-Meteo APIs (weather ensemble, air quality, flood,
 marine) per location, enriches the data via `IDomainHandler`s, and serves it to Home Assistant
-over gRPC (the ha-njord integration) with optional MQTT state publishing.
+over gRPC (the ha-njord integration).
 
 ## Solution structure
 
@@ -27,7 +27,7 @@ src/
                         #   DomainDataReceived
     Configuration/      #   NjordOptions, LocationOptions, WeatherOptions, EnrichmentOptions, AlertOptions,
                         #   SolarYieldOptions, WeatherVariables, ConfigView, AddNjordOptions + validators
-      Polling/ Persistence/ Mqtt/ Health/   # PollingOptions, BudgetCalculator, FetchTimeouts, ...
+      Polling/ Persistence/ Health/   # PollingOptions, BudgetCalculator, FetchTimeouts, ...
   Njord.OpenMeteo/      # (-> Core) OpenMeteoGateway, GatewayBudgetGate, 4 typed clients, OpenMeteoRequestBuilder,
                         #   response DTOs, Mapping/
   Njord.Budget/         # BudgetTracker (persistent), usage accounting, health check
@@ -37,14 +37,13 @@ src/
   Njord.AirQuality/     # AirQualityAlertHandler (pollen, PM2.5), PollenTrendHandler
   Njord.Flood/          # FloodRiskHandler, FloodRainHandler, FloodTimelineHandler
   Njord.Marine/         # SwimmingConditionsHandler
-  Njord.Mqtt/           # Actors/, Topics/, Mapping/, Payloads/, Serialization/, Transport/, Health/
   Njord.Grpc/           # WeatherGrpcService, OpsGrpcService, ActorAsk, GrpcConsumer, Mapping/
   Njord/                # Host: Program.cs, NjordHost, Configuration/ (setup containers), Health/
 
   Njord.Forecast.Tests/ Njord.Messages.Tests/ Njord.Persistence.Tests/ Njord.Core.Tests/
   Njord.OpenMeteo.Tests/ Njord.Budget.Tests/ Njord.Pipeline.Tests/ Njord.Polling.Tests/
   Njord.Weather.Tests/
-  Njord.AirQuality.Tests/ Njord.Flood.Tests/ Njord.Marine.Tests/ Njord.Mqtt.Tests/ Njord.Grpc.Tests/
+  Njord.AirQuality.Tests/ Njord.Flood.Tests/ Njord.Marine.Tests/ Njord.Grpc.Tests/
   Njord.IntegrationTests/       # whole host via NjordHost + TestServer
   Njord.Architecture.Tests/     # ArchUnitNET rules (ArchitectureSpec) + EnrichmentConfigKeySpec
   Njord.Tests.Shared/           # fakes, builders, fixtures, NjordActorSpec (not a test project)
@@ -53,7 +52,7 @@ docs/                           # VitePress site incl. the Config Builder (docs/
 ```
 
 Reference direction: Forecast <- Messages; Forecast/Messages/Persistence <- Core <- feature libraries
-(OpenMeteo, Budget, Polling, Pipeline, Weather, AirQuality, Flood, Marine, Mqtt, Grpc) <- Host. Feature
+(OpenMeteo, Budget, Polling, Pipeline, Weather, AirQuality, Flood, Marine, Grpc) <- Host. Feature
 libraries reference only `Njord.Core` (and below), never each other, never the Host; they reach each
 other's actors through the markers in `ActorKeys.cs`. Registration stays central in the Host.
 
@@ -64,7 +63,7 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 - **Every enrichment is an `IDomainHandler`** (`ConfigKey`, `Requirements` (a `DomainRequirements` of per-domain `XxxParam` flags), `Handle(current, previous, time)`); required flags gate dispatch (missing data skips the handler), `Optional*` flags are requested from the API but never gate;
   `ConfigKey` must match an `EnrichmentOptions` toggle (`EnrichmentConfigKeySpec`).
 - **Domain projects are plugins.** Weather/AirQuality/Flood/Marine register handlers via
-  `Add<Domain>Domain()`; they never reference each other or the adapters (Grpc, Mqtt).
+  `Add<Domain>Domain()`; they never reference each other or the adapters (Grpc).
 - **One `PollWorker` per location, per-domain independent timers.** No rounds, no waiting for all
   domains; each domain learns its own update cycle (Discovery -> learned cycle with miss tolerance).
 - **Streams for data flow, actors for lifecycle; the stable side owns the hubs.** Domain data and
@@ -75,14 +74,12 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
   `ProjectionEngine` closure, so a gateway restart loses nothing.
 - **Never `Zip` domain sub-streams.** Domains arrive independently; handlers see the current
   `LocationForecast` and `Previous` for trends.
-- **Consumers are output adapters via SourceRef** (`GrpcConsumer`, `MqttStatePublisher`); no relay
-  actors. No consumer slows the hub: bounded drop-oldest buffers, MQTT dedups and republishes on reconnect.
+- **Consumers are output adapters via SourceRef** (`GrpcConsumer`); no relay
+  actors. No consumer slows the hub: bounded drop-oldest buffers.
 - **gRPC is an adapter.** Resolve a marker, `ActorAsk` with a `Njord.Messages` message, map with `ToProto()`.
 - **`Njord.Messages` is Akka-free** (refs Forecast only); stream handshakes live in `Njord.Core/Actors`.
-- **MQTT code lives only in `Njord.Mqtt`.** State only, no Discovery, retained JSON per domain/enrichment,
-  availability via the `online`/`offline` LWT topic; MQTTnet behind `IMqttTransport`.
 - **Lifestyle events share one wire shape**: `ToLifestyleUpdate()` flattens them to `LifestyleUpdate`
-  (`LifestyleKind` + string map) for gRPC (`type_name = "lifestyle"`) and MQTT (`{base}/{location}/lifestyle/{type}`).
+  (`LifestyleKind` + string map) for gRPC (`type_name = "lifestyle"`).
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow`.
 - **Zone rules are tests** (`ArchitectureSpec`): Forecast/Messages/Persistence reference no other Njord
   project (Messages only Forecast), no Akka in Messages/Persistence, domain projects independent, all classes sealed.
@@ -98,9 +95,7 @@ SINGLETONS (Cluster Singleton)
 ├─ ForecastPipeline (non-persistent)                              [Pipeline]
 │  └─ MergeHub<DomainDataReceived> -> ProjectionEngine -> IDomainHandler[] -> BroadcastHub<PipelineEvent>
 ├─ BudgetTracker (persistent)                                     [Budget]
-├─ GrpcConsumer (SourceRef consumer of the pipeline)              [Grpc]
-├─ MqttStatePublisher (SourceRef consumer, optional)              [Mqtt]
-└─ MqttConnection (optional, owns the broker connection)          [Mqtt]
+└─ GrpcConsumer (SourceRef consumer of the pipeline)              [Grpc]
 
 SHARD REGIONS (Sharded Entity)
 └─ PollWorker (persistent, entity = location, "poll-worker", no passivation)  [Polling]
@@ -163,13 +158,13 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 823 tests (Forecast 63, Messages 60, Persistence 14, Core 124, OpenMeteo 98, Budget 18,
-Polling 103, Pipeline 51, Weather 109, AirQuality 20, Flood 24, Marine 15, Mqtt 54, Grpc 39, Architecture 16,
-IntegrationTests 15). One test per `[Fact]` and per `[Theory]` data row.
+Current total: 862 tests (Forecast 68, Messages 63, Persistence 14, Core 128, OpenMeteo 128, Budget 18,
+Polling 103, Pipeline 51, Weather 110, AirQuality 20, Flood 28, Marine 63, Grpc 41, Architecture 16,
+IntegrationTests 11). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
-`appsettings.Development.json`, environment variables (`Njord__Mqtt__Host`), `appsettings.Example.json`
-(template), `docker-compose.example.yml` (repo root). MQTT is off by default.
+`appsettings.Development.json`, environment variables (`Njord__Persistence__DataPath`), `appsettings.Example.json`
+(template), `docker-compose.example.yml` (repo root).
 
 Other checks (repo root, local only): `openspec validate --all --no-interactive`,
 `bash scripts/check-openspec-root.sh`, mutation testing `bash scripts/run-mutation.sh <Project>`.
@@ -219,7 +214,7 @@ Rules apply to production code.
   persisted state. `Apply` takes the event record. Snapshot on `LastSequenceNr` interval; after
   `SaveSnapshotSuccess`: `DeleteMessages(seqNr)` + `DeleteSnapshots(seqNr - 1)`.
 - **Health checks ask the actors** (`PipelineHealthCheck` -> `PollManager`, `BudgetHealthCheck` ->
-  `BudgetTracker`, `MqttConnectionHealthCheck` -> `MqttConnection`) with a 3 s timeout, degrade when the
+  `BudgetTracker`) with a 3 s timeout, degrade when the
   actor is missing or silent, and keep the rule in an `internal static Evaluate(...)`. The host adds
   `journal`. `/healthz`: 200 Healthy/Degraded, 503 Unhealthy; `/alive` is unconditional.
 
@@ -243,7 +238,7 @@ Rules apply to production code.
 
 ### Metrics
 
-- One `Meter("Njord.<Domain>")` per library (`Core`, `OpenMeteo`, `Budget`, `Polling`, `Pipeline`, `Mqtt`) in an
+- One `Meter("Njord.<Domain>")` per library (`Core`, `OpenMeteo`, `Budget`, `Polling`, `Pipeline`) in an
   `internal static class Telemetry` with `MeterName` and `internal static readonly` instruments;
   `CoreSetupContainer.NjordMeters` is built from the constants, so a new meter is added there.
 - Names `njord_<area>_<name>` in snake_case; counters end `_total`, time histograms `_seconds`. Bounded tag
@@ -267,8 +262,7 @@ Defaults are property initializers.
 | `Njord:SolarYield` | `SolarYieldOptions` | `PeakKw` (5.0), `Azimuth` (180), `Tilt` (30) |
 | `Njord:Polling` | `PollingOptions` | `PollInterval` (60 min), `DiscoveryInterval` (20 min), `BudgetOverride` |
 | `Njord:Persistence` | `PersistenceOptions` | `Provider` (Sqlite/PostgreSql), `ConnectionString`, `DataPath` |
-| `Njord:Health` | `HealthOptions` | poll overdue/stalled factors, MQTT unhealthy-after, budget degraded % |
-| `Njord:Mqtt` | `MqttOptions` | `Enabled` (false), `Host`, `Port`, `Username`, `Password`, `DiscoveryPrefix`, `BaseTopic` |
+| `Njord:Health` | `HealthOptions` | poll overdue/stalled factors, budget degraded % |
 
 The Config Builder (`docs/.vitepress/theme/builder`: `types.ts`, `budget.ts`, `serializer.ts`,
 `ConfigBuilder.vue`, data in `docs/data/enrichment.json`) mirrors the toggles, their required domains and the

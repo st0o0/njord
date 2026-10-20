@@ -1,7 +1,7 @@
 views {
   view index {
     title 'Open-Meteo → njord → Home Assistant'
-    include openMeteo, njord, mqttBroker, homeAssistant
+    include openMeteo, njord, homeAssistant
     autoLayout LeftRight
   }
 
@@ -14,7 +14,6 @@ views {
       njord.consumers,
       njord.persistence,
       openMeteo,
-      mqttBroker,
       homeAssistant
     autoLayout LeftRight
   }
@@ -25,7 +24,6 @@ views {
       njord.pipeline,
       njord.pipeline.*,
       openMeteo,
-      mqttBroker,
       homeAssistant
     autoLayout LeftRight
   }

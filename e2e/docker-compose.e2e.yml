@@ -40,9 +40,6 @@ services:
       - Njord__Enrichments__ApproachingFront=true
       - Njord__Enrichments__FloodTimeline=true
 
-      # ── MQTT (optional, enable for MQTT sections) ──────────────
-      # - Njord__Mqtt__Enabled=true
-      # - Njord__Mqtt__Host=mosquitto
 
   homeassistant:
     image: ghcr.io/home-assistant/home-assistant:stable

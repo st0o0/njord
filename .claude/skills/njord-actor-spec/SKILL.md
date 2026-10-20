@@ -72,7 +72,7 @@ public Task PersistedPollWorkerState_wire_format() =>
 ```
 
 - Baselines sit next to the spec as `<Class>.<Method>.verified.txt`; a change in them is a wire-format change — review it against the persistence record rules in `AGENTS.md`.
-- `ModuleInitializer.cs` (in `Njord.Budget.Tests`, `Njord.Core.Tests`, `Njord.Grpc.Tests`, `Njord.Mqtt.Tests`, `Njord.Persistence.Tests`, `Njord.Pipeline.Tests`) disables the diff tool (`DiffRunner.Disabled = true`): failures print the diff, nothing launches.
+- `ModuleInitializer.cs` (in `Njord.Budget.Tests`, `Njord.Core.Tests`, `Njord.Grpc.Tests`, `Njord.Persistence.Tests`, `Njord.Pipeline.Tests`) disables the diff tool (`DiffRunner.Disabled = true`): failures print the diff, nothing launches.
 
 ## Checklist
 

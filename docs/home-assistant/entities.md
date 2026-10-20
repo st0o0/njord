@@ -7,7 +7,7 @@ The integration creates entities across five platforms: `weather`, `sensor`, `bi
 Each location creates one weather entity from the Ensemble Mean forecast of the Weather domain.
 
 ::: warning ha-njord update pending
-The server side is multi-domain (Weather, Air Quality, Flood, Solar), served by `GetDomainData` and `StreamDomainData`. The ha-njord integration is being updated to match, so the entity set below may change. Air quality and flood values are available over gRPC and MQTT.
+The server side is multi-domain (Weather, Air Quality, Flood, Solar), served by `GetDomainData` and `StreamDomainData`. The ha-njord integration is being updated to match, so the entity set below may change. Air quality and flood values are available over gRPC.
 :::
 
 **State attributes (current conditions):**
@@ -75,7 +75,7 @@ State is `None` when no alert data is available. The trigger value (e.g. -2.1 °
 | `hours_until` | int | Hours until the condition occurs (only when set) |
 | `duration_hours` | int | Expected duration in hours (only when set) |
 
-These attributes come from the gRPC API. On the optional MQTT output the same members are always present in the alert payload and are `null` when not set; the ice alert's `soil_frozen` is a JSON boolean (see the [MQTT reference](../mqtt-reference.md)).
+These attributes come from the gRPC API.
 
 ---
 

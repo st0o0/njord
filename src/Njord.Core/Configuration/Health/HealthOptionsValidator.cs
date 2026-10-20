@@ -19,11 +19,6 @@ public sealed class HealthOptionsValidator : IValidateOptions<HealthOptions>
                 $"Health.PollStalledFactor must be greater than PollOverdueFactor ({options.PollOverdueFactor}), got {options.PollStalledFactor}");
         }
 
-        if (options.MqttUnhealthyAfter <= TimeSpan.Zero)
-        {
-            failures.Add($"Health.MqttUnhealthyAfter must be positive, got {options.MqttUnhealthyAfter}");
-        }
-
         if (options.BudgetDegradedBelowPercent is <= 0 or >= 100)
         {
             failures.Add(

@@ -2,7 +2,6 @@ using Prometheus;
 using Servus.Application.Startup;
 using BudgetTelemetry = Njord.Budget.Telemetry;
 using CoreTelemetry = Njord.Core.Telemetry;
-using MqttTelemetry = Njord.Mqtt.Telemetry;
 using OpenMeteoTelemetry = Njord.OpenMeteo.Telemetry;
 using PipelineTelemetry = Njord.Pipeline.Telemetry;
 using PollingTelemetry = Njord.Polling.Telemetry;
@@ -18,7 +17,6 @@ public sealed class CoreSetupContainer : IServiceSetupContainer
         BudgetTelemetry.MeterName,
         PipelineTelemetry.MeterName,
         PollingTelemetry.MeterName,
-        MqttTelemetry.MeterName,
     };
 
     public void SetupServices(IServiceCollection services, IConfiguration configuration)

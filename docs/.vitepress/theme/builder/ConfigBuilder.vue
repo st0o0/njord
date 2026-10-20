@@ -266,22 +266,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- MQTT -->
-    <div class="section">
-      <h3>MQTT</h3>
-      <label class="mqtt-enabled">
-        <input type="checkbox" v-model="config.mqtt.enabled" />
-        <strong>Enabled</strong>
-        <span class="enrichment-badge">disabled by default</span>
-      </label>
-      <div v-if="config.mqtt.enabled" class="general-row mqtt-fields">
-        <label>Host <input v-model="config.mqtt.host" placeholder="192.168.1.x" /></label>
-        <label>Port <input v-model.number="config.mqtt.port" type="number" /></label>
-        <label>Username <input v-model="config.mqtt.username" placeholder="optional" /></label>
-        <label>Password <input v-model="config.mqtt.password" type="password" placeholder="optional" /></label>
-      </div>
-    </div>
-
     <!-- Persistence -->
     <div class="section">
       <h3>Persistence</h3>
@@ -400,8 +384,6 @@ button.active { background: var(--vp-c-brand-1); color: white; border-color: var
 .general-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--vp-c-text-2); }
 .general-row input { width: 150px; }
 
-.mqtt-enabled { display: flex; gap: 6px; align-items: center; cursor: pointer; font-size: 13px; margin-bottom: 8px; }
-.mqtt-fields { margin-top: 4px; }
 .persistence-row { display: flex; gap: 8px; margin-bottom: 8px; }
 .persistence-option { display: flex; gap: 6px; align-items: center; padding: 6px 12px; border: 1px solid var(--vp-c-divider); border-radius: 6px; cursor: pointer; font-size: 13px; }
 .persistence-option.selected { border-color: var(--vp-c-brand-1); background: var(--vp-c-brand-soft); }

@@ -85,7 +85,6 @@ export interface NjordConfig {
   discoveryInterval: string
   enrichments: Record<string, boolean>
   locations: LocationConfig[]
-  mqtt: { enabled: boolean; host: string; port: number; username: string; password: string; discoveryPrefix: string; baseTopic: string }
   enrichment: Record<string, Record<string, unknown>>
   budgetOverride: { requestsPerMonth: number; requestsPerMinute: number } | null
   persistence: { provider: string; connectionString: string }
@@ -106,7 +105,6 @@ export function defaultConfig(): NjordConfig {
     discoveryInterval: '00:20:00',
     enrichments: defaultEnrichments(),
     locations: [],
-    mqtt: { enabled: false, host: '', port: 1883, username: '', password: '', discoveryPrefix: 'homeassistant', baseTopic: 'njord' },
     enrichment: {},
     budgetOverride: null,
     persistence: { provider: 'Sqlite', connectionString: '' },

@@ -8,18 +8,6 @@ services:
     volumes:
       - njord-data:/app/data
     environment:
-      # ── MQTT (optional state publishing, disabled by default) ─
-      # Home Assistant connects over gRPC (ha-njord), not MQTT.
-      # Enabled=true and Host publish retained state topics to a broker;
-      # omit both to run in gRPC-only mode.
-      - Njord__Mqtt__Enabled=true
-      - Njord__Mqtt__Host=192.168.1.x
-      #- Njord__Mqtt__Port=1883
-      #- Njord__Mqtt__Username=
-      #- Njord__Mqtt__Password=
-      #- Njord__Mqtt__DiscoveryPrefix=homeassistant
-      #- Njord__Mqtt__BaseTopic=njord
-
       # ── Locations ─────────────────────────────────────────────
       - Njord__Locations__0__Name=home
       - Njord__Locations__0__Latitude=47.05

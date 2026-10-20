@@ -1,8 +1,6 @@
 using Akka.Actor;
-using Akka.Hosting;
 using Akka.Streams;
 using Akka.Streams.Dsl;
-using Njord.Core;
 
 namespace Njord.Pipeline.Tests;
 

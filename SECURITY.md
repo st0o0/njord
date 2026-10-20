@@ -29,13 +29,13 @@ This project employs the following automated security practices:
 - **Dependency scanning**: Weekly Trivy scans on dependencies and Docker image (see `.github/workflows/security.yml`)
 - **Dependabot**: Automated dependency updates for NuGet and GitHub Actions
 - **Container hardening**: Non-root runtime user, minimal base image (`mcr.microsoft.com/dotnet/aspnet`)
-- **No secrets in code**: Configuration via environment variables; MQTT credentials are never committed
+- **No secrets in code**: Configuration via environment variables; credentials are never committed
 
 ## Scope
 
 njord is a self-hosted service running on the user's own infrastructure. The security scope covers:
 
-- **In scope**: code vulnerabilities, dependency issues, container security, MQTT credential handling, gRPC endpoint exposure
+- **In scope**: code vulnerabilities, dependency issues, container security, gRPC endpoint exposure
 - **Out of scope**: Home Assistant configuration, Mosquitto broker hardening, host OS security, network-level concerns
 
 ## Disclosure Policy

@@ -24,7 +24,6 @@ export function mergeWithDefaults(partial: Partial<NjordConfig>): NjordConfig {
     airQuality: { ...d.airQuality, ...partial.airQuality },
     marine: { ...d.marine, ...partial.marine },
     flood: { ...d.flood, ...partial.flood },
-    mqtt: { ...d.mqtt, ...partial.mqtt },
     solarYield: { ...d.solarYield, ...partial.solarYield },
     persistence: { ...d.persistence, ...partial.persistence },
     deploy: { limits: { ...d.deploy.limits, ...partial.deploy?.limits } },
@@ -73,16 +72,6 @@ export function exportAsJson(config: NjordConfig): string {
       return loc
     })
   }
-
-  const mqtt: Record<string, unknown> = { Enabled: config.mqtt.enabled }
-  if (config.mqtt.enabled) {
-    mqtt.Host = config.mqtt.host || '<your-mqtt-host>'
-    mqtt.Port = config.mqtt.port
-    if (config.mqtt.username) mqtt.Username = config.mqtt.username
-  }
-  n.Mqtt = mqtt
-  if (config.mqtt.discoveryPrefix !== 'homeassistant') (n.Mqtt as Record<string, unknown>).DiscoveryPrefix = config.mqtt.discoveryPrefix
-  if (config.mqtt.baseTopic !== 'njord') (n.Mqtt as Record<string, unknown>).BaseTopic = config.mqtt.baseTopic
 
   if (Object.keys(config.enrichment).length) {
     const enrichment: Record<string, unknown> = {}
@@ -134,14 +123,6 @@ export function exportAsEnvVars(config: NjordConfig): string {
     if (loc.latitude !== undefined) add(`Njord__Locations__${i}__Latitude`, String(loc.latitude))
     if (loc.longitude !== undefined) add(`Njord__Locations__${i}__Longitude`, String(loc.longitude))
   })
-
-  if (config.mqtt.enabled) {
-    add('Njord__Mqtt__Enabled', 'true')
-    add('Njord__Mqtt__Host', config.mqtt.host || '<your-mqtt-host>')
-    add('Njord__Mqtt__Port', String(config.mqtt.port))
-    if (config.mqtt.username) add('Njord__Mqtt__Username', config.mqtt.username)
-    if (config.mqtt.password) add('Njord__Mqtt__Password', config.mqtt.password)
-  }
 
   for (const [feature, settings] of Object.entries(config.enrichment)) {
     for (const [key, value] of Object.entries(settings as Record<string, unknown>)) {
@@ -250,17 +231,6 @@ export function importFromJson(json: string): Partial<NjordConfig> {
       longitude: typeof l.Longitude === 'number' ? l.Longitude : 0,
     }))
   }
-  if (n.Mqtt) {
-    config.mqtt = {
-      enabled: n.Mqtt.Enabled ?? false,
-      host: n.Mqtt.Host ?? '',
-      port: n.Mqtt.Port ?? 1883,
-      username: n.Mqtt.Username ?? '',
-      password: '',
-      discoveryPrefix: n.Mqtt.DiscoveryPrefix ?? 'homeassistant',
-      baseTopic: n.Mqtt.BaseTopic ?? 'njord',
-    }
-  }
   if (n.Enrichment) config.enrichment = n.Enrichment
   if (budgetOverride) config.budgetOverride = budgetOverride
   if (n.Persistence) {
@@ -326,15 +296,6 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
         const parsed = parseFloat(value)
         config.locations[idx].longitude = Number.isNaN(parsed) ? undefined : parsed
       }
-    }
-    else if (parts[0] === 'Mqtt') {
-      if (parts[1] === 'Enabled') config.mqtt.enabled = value.toLowerCase() === 'true'
-      else if (parts[1] === 'Host') config.mqtt.host = value
-      else if (parts[1] === 'Port') config.mqtt.port = parseInt(value) || 1883
-      else if (parts[1] === 'Username') config.mqtt.username = value
-      else if (parts[1] === 'Password') config.mqtt.password = value
-      else if (parts[1] === 'DiscoveryPrefix') config.mqtt.discoveryPrefix = value
-      else if (parts[1] === 'BaseTopic') config.mqtt.baseTopic = value
     }
     else if (parts[0] === 'Enrichment' && parts.length >= 3) {
       const feature = parts[1]

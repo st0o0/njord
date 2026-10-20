@@ -1,6 +1,5 @@
 using Njord.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Persistence.Events.Polling;
 using static Njord.Polling.Tests.PollStateFixture;
 
 namespace Njord.Polling.Tests;

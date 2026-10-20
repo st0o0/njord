@@ -1,4 +1,3 @@
-using Njord.Forecast;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Core.Domain;

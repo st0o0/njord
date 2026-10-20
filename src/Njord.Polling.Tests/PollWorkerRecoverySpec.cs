@@ -1,9 +1,7 @@
 using Akka.Actor;
 using Akka.Persistence;
 using Njord.Forecast;
-using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
-using Njord.Persistence.Events.Polling;
 using Njord.Tests.Shared;
 
 namespace Njord.Polling.Tests;

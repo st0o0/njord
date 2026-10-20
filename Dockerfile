@@ -15,7 +15,6 @@ COPY src/Njord.Core/Njord.Core.csproj Njord.Core/
 COPY src/Njord.OpenMeteo/Njord.OpenMeteo.csproj Njord.OpenMeteo/
 COPY src/Njord.Pipeline/Njord.Pipeline.csproj Njord.Pipeline/
 COPY src/Njord.Grpc/Njord.Grpc.csproj Njord.Grpc/
-COPY src/Njord.Mqtt/Njord.Mqtt.csproj Njord.Mqtt/
 COPY src/Njord.Weather/Njord.Weather.csproj Njord.Weather/
 COPY src/Njord.AirQuality/Njord.AirQuality.csproj Njord.AirQuality/
 COPY src/Njord.Flood/Njord.Flood.csproj Njord.Flood/
@@ -31,7 +30,6 @@ COPY src/Njord.Core/ Njord.Core/
 COPY src/Njord.OpenMeteo/ Njord.OpenMeteo/
 COPY src/Njord.Pipeline/ Njord.Pipeline/
 COPY src/Njord.Grpc/ Njord.Grpc/
-COPY src/Njord.Mqtt/ Njord.Mqtt/
 COPY src/Njord.Weather/ Njord.Weather/
 COPY src/Njord.AirQuality/ Njord.AirQuality/
 COPY src/Njord.Flood/ Njord.Flood/

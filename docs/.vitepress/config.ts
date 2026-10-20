@@ -41,7 +41,6 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
           { text: 'Locations', link: '/configuration/locations' },
           { text: 'Weather', link: '/configuration/weather' },
           { text: 'Enrichment', link: '/configuration/enrichment' },
-          { text: 'MQTT', link: '/configuration/mqtt' },
           { text: 'Persistence', link: '/configuration/persistence' },
           { text: 'Budget', link: '/configuration/budget' },
         ],
@@ -50,7 +49,6 @@ export default withLikeC4({ likec4: { source: './likec4', height: '460px' } }, d
         text: 'Reference',
         items: [
           { text: 'Model Catalog', link: '/models' },
-          { text: 'MQTT Topics', link: '/mqtt-reference' },
           { text: 'Config Builder', link: '/builder' },
         ],
       },

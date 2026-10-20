@@ -4,7 +4,7 @@ layout: home
 hero:
   name: njord
   text: Multi-domain weather intelligence for Home Assistant
-  tagline: A .NET proxy for Open-Meteo. It polls the Ensemble Mean, Air Quality and Flood APIs per location, enriches the data with alerts (including cross-domain ones) and serves the results to Home Assistant over gRPC. MQTT is an optional alternative for other consumers.
+  tagline: A .NET proxy for Open-Meteo. It polls the Ensemble Mean, Air Quality and Flood APIs per location, enriches the data with alerts (including cross-domain ones) and serves the results to Home Assistant over gRPC.
   image:
     src: /logo.svg
     alt: njord
@@ -27,6 +27,4 @@ features:
     details: A ProjectionEngine keeps one LocationForecast per location. Each domain handler declares the domains that trigger it and re-runs only when one of them changes.
   - title: Static configuration, low footprint
     details: One .NET container, SQLite by default, configured through appsettings.json or environment variables. A default setup with one location stays far below the free-tier limits.
-  - title: MQTT alternative
-    details: Optional retained state topics per domain (njord/{location}/{domain}/{parameter}) and alert topics for Node-RED or custom dashboards. Disabled by default.
 ---

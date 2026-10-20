@@ -96,20 +96,6 @@ docker run -d \
   ghcr.io/st0o0/njord:latest
 ```
 
-## Alternative: MQTT
-
-Without Home Assistant (Node-RED, custom dashboards), enable MQTT:
-
-```yaml
-environment:
-  - Njord__Mqtt__Enabled=true
-  - Njord__Mqtt__Host=<your-mosquitto-host>
-  - Njord__Mqtt__Username=mqtt-user
-  - Njord__Mqtt__Password=mqtt-pass
-```
-
-See the [MQTT reference](/mqtt-reference).
-
 ## Next steps
 
 - [Configuration overview](/configuration/)

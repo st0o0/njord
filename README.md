@@ -22,7 +22,7 @@ The **njord weather service** is a .NET container built on
 [Akka.NET](https://getakka.net/) + Akka.Streams that polls the
 [Open-Meteo API](https://open-meteo.com/en/docs) for multiple weather models per
 location and enriches forecasts through a configurable pipeline. It serves
-consumers via gRPC (primary) and MQTT (optional).
+consumers via gRPC.
 
 The **[Home Assistant custom integration](https://github.com/st0o0/ha-njord)**
 connects via gRPC streaming for real-time updates, creating native weather

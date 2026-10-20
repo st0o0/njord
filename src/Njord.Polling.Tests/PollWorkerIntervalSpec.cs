@@ -1,6 +1,5 @@
 using Akka.Actor;
 using Njord.Forecast;
-using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 

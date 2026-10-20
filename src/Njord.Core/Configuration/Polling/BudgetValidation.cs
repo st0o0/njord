@@ -1,6 +1,3 @@
-using Njord.Core.Domain;
-using Njord.Forecast;
-
 namespace Njord.Core.Configuration.Polling;
 
 public sealed record BudgetValidation(

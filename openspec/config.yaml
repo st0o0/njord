@@ -4,8 +4,7 @@ schema: spec-driven
 context: |
   njord — Multi-model weather intelligence for Home Assistant. A .NET service
   on Akka.NET + Akka.Streams that polls Open-Meteo, runs an analysis pipeline
-  and serves Home Assistant over gRPC (the ha-njord integration), with optional
-  MQTT state publishing.
+  and serves Home Assistant over gRPC (the ha-njord integration).
 
   Stack, structure, build/test commands, API facts and conventions live in
   `AGENTS.md` at the repo root — read it before writing artifacts.

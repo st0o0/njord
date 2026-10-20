@@ -1,7 +1,6 @@
 using Njord.Budget.Configuration;
 using Njord.Configuration;
 using Njord.Grpc.Configuration;
-using Njord.Mqtt.Configuration;
 using Njord.OpenMeteo.Configuration;
 using Njord.Pipeline.Configuration;
 using Njord.Polling.Configuration;
@@ -44,7 +43,6 @@ public static class NjordHost
             .WithSetup<PollingSetupContainer>()
             .WithSetup<PipelineSetupContainer>()
             .WithSetup<DomainSetupContainer>()
-            .WithSetup<MqttSetupContainer>()
             .WithSetup<GrpcSetupContainer>()
             .WithSetup<AkkaSetupContainer>()
             .WithSetup<NjordApplicationSetup>()

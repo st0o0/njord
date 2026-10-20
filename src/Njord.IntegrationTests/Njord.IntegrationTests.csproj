@@ -10,8 +10,6 @@
         <PackageReference Include="Microsoft.AspNetCore.TestHost" />
         <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
         <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
-        <PackageReference Include="MQTTnet" />
-        <PackageReference Include="Testcontainers" />
         <PackageReference Include="xunit.v3.mtp-v2" />
     </ItemGroup>
 
@@ -26,9 +24,6 @@
 
     <ItemGroup>
         <Content Include="..\xunit.runner.json" Link="xunit.runner.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <Content Include="..\Njord.Mqtt.Tests\StatePayloadGoldenMasterSpec.*.verified.txt" Link="Golden\%(Filename)%(Extension)">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

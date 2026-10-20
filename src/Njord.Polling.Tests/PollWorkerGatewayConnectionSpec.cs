@@ -1,6 +1,4 @@
 using Akka.Actor;
-using Akka.Hosting;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Configuration;

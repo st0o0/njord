@@ -6,7 +6,7 @@ Each location is a geographic point for which njord fetches Weather, Air Quality
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `Name` | string | yes | Name used in MQTT topics, gRPC requests and HA device names |
+| `Name` | string | yes | Name used in gRPC requests and HA device names |
 | `Latitude` | double | yes | Decimal latitude (e.g. `47.05`) |
 | `Longitude` | double | yes | Decimal longitude (e.g. `8.31`) |
 
@@ -41,9 +41,6 @@ Each location is a geographic point for which njord fetches Weather, Air Quality
 
 Every location adds three API calls per poll cycle (Weather, Air Quality, Flood). Two locations at the default 60-minute interval project to 4,320 calls per month. See [Budget](./budget).
 
-## Topic naming
-
-The location name is slugified for MQTT topics: lowercased, non-alphanumeric characters replaced with underscores. `"New York"` becomes `new_york`, as in `njord/new_york/weather/state`.
 
 ::: tip
 The [Config Builder](/builder) generates a complete configuration.

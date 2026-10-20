@@ -1,5 +1,4 @@
 using Njord.Core.Configuration;
-using Njord.Forecast;
 
 namespace Njord.Core.Tests.Configuration;
 

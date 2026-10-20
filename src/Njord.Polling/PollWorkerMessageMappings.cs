@@ -5,7 +5,7 @@ namespace Njord.Polling;
 
 internal static class PollWorkerMessageMappings
 {
-    // Derives the PollStateEntry from the Weather domain's state for backward compatibility with gRPC/MQTT.
+    // Derives the PollStateEntry from the Weather domain's state for backward compatibility with gRPC.
     public static PollStateEntry ToPollStateEntry(this PollWorkerState state)
     {
         var target = state.Target ?? throw new InvalidOperationException("A poll worker without a target has no poll state");

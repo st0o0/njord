@@ -24,6 +24,6 @@ The integration supports Home Assistant's built-in diagnostics download for trou
 
 If entities are unavailable, check the server too:
 
-- `/healthz` on port 8080 reports `pipeline`, `budget`, `journal` and `data-directory` (plus `mqtt-connection` when MQTT is enabled)
+- `/healthz` on port 8080 reports `pipeline`, `budget`, `journal` and `data-directory`
 - The `binary_sensor.njord_*_stream` entities show the gRPC stream state
 - `sensor.njord_{location}_target` shows each location's next poll time and phase

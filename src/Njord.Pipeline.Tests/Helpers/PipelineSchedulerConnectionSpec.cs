@@ -1,5 +1,4 @@
 using Akka.Actor;
-using Akka.Hosting;
 using Njord.Core;
 
 namespace Njord.Pipeline.Tests;

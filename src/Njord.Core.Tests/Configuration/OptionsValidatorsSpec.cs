@@ -1,5 +1,4 @@
 using Njord.Core.Configuration.Health;
-using Njord.Core.Configuration.Mqtt;
 using Njord.Core.Configuration.Persistence;
 
 namespace Njord.Core.Tests.Configuration;
@@ -32,30 +31,6 @@ public sealed class OptionsValidatorsSpec
         var result = new HealthOptionsValidator().Validate(null, new HealthOptions { BudgetDegradedBelowPercent = percent });
 
         Assert.Contains("BudgetDegradedBelowPercent", ValidationAssert.SingleFailure(result));
-    }
-
-    [Fact]
-    public void Should_reject_enabled_mqtt_without_a_host()
-    {
-        var result = new MqttOptionsValidator().Validate(null, new MqttOptions { Enabled = true });
-
-        Assert.Equal("The MQTT broker host is missing: set Njord:Mqtt:Host.", ValidationAssert.SingleFailure(result));
-    }
-
-    [Fact]
-    public void Should_accept_disabled_mqtt_without_a_host()
-    {
-        Assert.True(new MqttOptionsValidator().Validate(null, new MqttOptions()).Succeeded);
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(70000)]
-    public void Should_reject_an_mqtt_port_outside_the_valid_range(int port)
-    {
-        var result = new MqttOptionsValidator().Validate(null, new MqttOptions { Port = port });
-
-        Assert.Contains($"got {port}", ValidationAssert.SingleFailure(result));
     }
 
     [Fact]

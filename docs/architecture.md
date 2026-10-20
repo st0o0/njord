@@ -1,12 +1,12 @@
 # Architecture
 
-njord has two parts: a .NET service that polls Open-Meteo and enriches the data with alerts, and a [Home Assistant custom integration](https://github.com/st0o0/ha-njord) that presents the results as native entities. The service exposes data over gRPC (primary) and MQTT (optional).
+njord has two parts: a .NET service that polls Open-Meteo and enriches the data with alerts, and a [Home Assistant custom integration](https://github.com/st0o0/ha-njord) that presents the results as native entities. The service exposes data over gRPC (primary) .
 
 ## System overview
 
 <likec4-view view-id="index"></likec4-view>
 
-njord runs as one Docker container without an external database (SQLite by default). It fetches forecasts from Open-Meteo and serves them to consumers over gRPC on port 8081 or, when enabled, MQTT.
+njord runs as one Docker container without an external database (SQLite by default). It fetches forecasts from Open-Meteo and serves them to consumers over gRPC on port 8081.
 
 ## Domains
 
@@ -24,9 +24,9 @@ The Ensemble Mean API replaces polling individual models: one call per location 
 
 <likec4-view view-id="internals"></likec4-view>
 
-- **Ingest**: `OpenMeteoGateway` routes each domain request to its endpoint and rate-limits against the budget. `OpenMeteoClient` builds requests and parses responses. It knows nothing about gRPC, MQTT or Home Assistant.
+- **Ingest**: `OpenMeteoGateway` routes each domain request to its endpoint and rate-limits against the budget. `OpenMeteoClient` builds requests and parses responses. It knows nothing about gRPC or Home Assistant.
 - **Domain**: `PollManager`, one `PollWorker` per location (cluster sharding), `ForecastPipeline` with the `ProjectionEngine`, `BudgetTracker` and the domain alert handlers.
-- **Consumers**: `GrpcConsumer` behind the gRPC API and the optional `MqttStatePublisher`. They attach to the pipeline via SourceRef and know nothing about Open-Meteo.
+- **Consumers**: `GrpcConsumer` behind the gRPC API. They attach to the pipeline via SourceRef and know nothing about Open-Meteo.
 
 Ingest and consumers never reference each other; all data flows through the domain model.
 
@@ -39,9 +39,9 @@ Ingest and consumers never reference each other; all data flows through the doma
 3. **Fetch** parses the response into a `DomainForecast<T>` and offers a `DomainDataReceived` into the pipeline's `MergeHub`.
 4. **ProjectionEngine** keeps a `LocationForecast` per location (current and previous state per domain), replaces the changed domain slot and invokes only the domain handlers triggered by that domain.
 5. **Domain handlers** (`IDomainHandler`) read the `LocationForecast` and return `PipelineEvent`s such as `AlertRaised` (see below).
-6. **BroadcastHub** emits typed `PipelineEvent`s (domain data received, alert raised) to `GrpcConsumer` and, when enabled, `MqttStatePublisher`.
+6. **BroadcastHub** emits typed `PipelineEvent`s (domain data received, alert raised) to `GrpcConsumer`.
 
-Actors own lifecycle (polling, stream materialization, SourceRef handshakes, MQTT reconnects); streams carry the data.
+Actors own lifecycle (polling, stream materialization, SourceRef handshakes); streams carry the data.
 
 ## Domain handlers
 
@@ -54,7 +54,7 @@ A domain handler declares the domains that trigger it and runs reactively when o
 | Flood risk | Flood | FloodRisk: discharge against historical median, P75 and max |
 | Flood rain (cross-domain) | Flood + Weather | FloodRain: at least 30 mm forecast rain in 24 h with rising discharge above the median |
 
-Alerts are the only enrichment. Weather alerts reach gRPC and MQTT consumers today. Air quality and flood alerts are computed by the pipeline as their own `PipelineEvent`s; their wire representation follows the weather alerts.
+Alerts are the only enrichment. Weather alerts reach gRPC consumers today. Air quality and flood alerts are computed by the pipeline as their own `PipelineEvent`s; their wire representation follows the weather alerts.
 
 ## gRPC services
 
@@ -66,7 +66,6 @@ Alerts are the only enrichment. Weather alerts reach gRPC and MQTT consumers tod
 ## Integration paths
 
 - **Home Assistant (primary):** ha-njord connects to port 8081 and streams updates. See [Home Assistant](/home-assistant/).
-- **MQTT (optional):** retained state per domain and alert, no MQTT Discovery. See the [MQTT reference](/mqtt-reference).
 
 ## Configuration
 
