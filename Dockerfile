@@ -16,10 +16,10 @@ COPY src/Njord.OpenMeteo/Njord.OpenMeteo.csproj Njord.OpenMeteo/
 COPY src/Njord.Pipeline/Njord.Pipeline.csproj Njord.Pipeline/
 COPY src/Njord.Grpc/Njord.Grpc.csproj Njord.Grpc/
 COPY src/Njord.Mqtt/Njord.Mqtt.csproj Njord.Mqtt/
-COPY src/Njord.Alerts/Njord.Alerts.csproj Njord.Alerts/
-COPY src/Njord.Weather.Alerts/Njord.Weather.Alerts.csproj Njord.Weather.Alerts/
+COPY src/Njord.Weather/Njord.Weather.csproj Njord.Weather/
 COPY src/Njord.AirQuality/Njord.AirQuality.csproj Njord.AirQuality/
 COPY src/Njord.Flood/Njord.Flood.csproj Njord.Flood/
+COPY src/Njord.Marine/Njord.Marine.csproj Njord.Marine/
 COPY src/Njord/Njord.csproj Njord/
 RUN dotnet restore Njord/Njord.csproj -a ${TARGETARCH}
 
@@ -32,10 +32,10 @@ COPY src/Njord.OpenMeteo/ Njord.OpenMeteo/
 COPY src/Njord.Pipeline/ Njord.Pipeline/
 COPY src/Njord.Grpc/ Njord.Grpc/
 COPY src/Njord.Mqtt/ Njord.Mqtt/
-COPY src/Njord.Alerts/ Njord.Alerts/
-COPY src/Njord.Weather.Alerts/ Njord.Weather.Alerts/
+COPY src/Njord.Weather/ Njord.Weather/
 COPY src/Njord.AirQuality/ Njord.AirQuality/
 COPY src/Njord.Flood/ Njord.Flood/
+COPY src/Njord.Marine/ Njord.Marine/
 COPY src/Njord/ Njord/
 RUN dotnet publish Njord/Njord.csproj -c Release -a ${TARGETARCH} -o /app /p:Version=${VERSION} /p:ContinuousIntegrationBuild=true
 
@@ -45,7 +45,7 @@ RUN mkdir -p /data && chown 1654:1654 /data
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:3ed6558056b54d5c9dfefb7ff473728e022ff2bf1d976cbf8ee07b05ec594374
 ARG VERSION=0.0.0-dev
 LABEL org.opencontainers.image.title="njord" \
-      org.opencontainers.image.description="Multi-model weather intelligence for Home Assistant" \
+      org.opencontainers.image.description="Multi-domain weather intelligence for Home Assistant" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.source="https://github.com/st0o0/njord" \
       org.opencontainers.image.documentation="https://github.com/st0o0/njord#readme"
