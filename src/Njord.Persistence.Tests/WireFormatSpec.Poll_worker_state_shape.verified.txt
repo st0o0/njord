@@ -1,14 +1,17 @@
-﻿{
+{
   "Location": "lucerne",
   "Active": true,
   "DiscoveryInterval": "00:20:00",
-  "LastHash": 42,
-  "LastChangeUtc": "2026-07-15T10:00:00+00:00",
-  "PrevChangeUtc": "2026-07-15T07:00:00+00:00",
-  "NextPollUtc": "2026-07-15T13:01:00+00:00",
-  "MissCount": 2,
-  "Phase": 1,
-  "Cycle": "03:00:00",
-  "TransientFailureCount": 1,
-  "DomainStates": null
+  "DomainStates": [
+    {
+      "Domain": 0,
+      "LastHash": 42,
+      "Phase": 1,
+      "LearnedCycle": "03:00:00",
+      "MissCount": 2,
+      "LastChanged": "2026-07-15T10:00:00+00:00",
+      "CandidateCycle": "03:00:00",
+      "NextPollAt": "2026-07-15T13:00:00+00:00"
+    }
+  ]
 }

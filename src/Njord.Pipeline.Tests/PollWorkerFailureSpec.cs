@@ -52,7 +52,7 @@ public sealed class PollWorkerFailureSpec : PollWorkerSpecBase
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_pipeline_unavailable_rejection_retries_soon_without_growing_the_backoff()
+    public async Task A_pipeline_unavailable_rejection_retries_soon()
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
@@ -63,13 +63,13 @@ public sealed class PollWorkerFailureSpec : PollWorkerSpecBase
         await AnswerAsync(new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.PipelineUnavailable), ct);
         var deferred = await ExpectReportAsync(PollWorkerOutcome.Failed, ct);
 
-        // The next transient failure continues the backoff from one failure, not from two.
+        // A subsequent failure gets a flat delay (no aggregate backoff counter in the per-domain model).
         worker.Tell(new TriggerLocationPoll(TargetId));
         await AnswerAsync(new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.QueueFull), ct);
         var queueFull = await ExpectReportAsync(PollWorkerOutcome.Failed, ct);
 
         Assert.Multiple(
             () => Assert.Equal(_time.GetUtcNow() + PollWorkerState.PipelineUnavailableRetry, deferred.State.NextPollUtc),
-            () => Assert.Equal(_time.GetUtcNow() + TimeSpan.FromMinutes(2), queueFull.State.NextPollUtc));
+            () => Assert.Equal(_time.GetUtcNow() + TimeSpan.FromMinutes(1), queueFull.State.NextPollUtc));
     }
 }

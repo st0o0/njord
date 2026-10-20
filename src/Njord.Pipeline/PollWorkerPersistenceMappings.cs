@@ -11,17 +11,9 @@ internal static class PollWorkerPersistenceMappings
         state.Target?.Location.Name,
         state.Active,
         state.DiscoveryInterval,
-        state.LastHash,
-        state.LastChangeUtc,
-        state.PrevChangeUtc,
-        state.NextPollUtc,
-        state.MissCount,
-        state.Phase.ToPersistence(),
-        state.Cycle,
-        state.TransientFailureCount,
-        state.DomainStates.IsEmpty
+        state.Domains.IsEmpty
             ? null
-            : [.. state.DomainStates.Select(kv => new PersistedDomainState(
+            : [.. state.Domains.Select(kv => new PersistedDomainState(
                 (int)kv.Key,
                 kv.Value.LastHash,
                 kv.Value.Phase.ToPersistence(),
@@ -31,30 +23,40 @@ internal static class PollWorkerPersistenceMappings
                 kv.Value.CandidateCycle,
                 kv.Value.NextPollAt))]);
 
-    public static PollWorkerState FromPersistence(this PersistedPollWorkerState dto) => new(
-        dto is { Location: { } location } ? new PollTarget(new Location(location, 0, 0)) : null,
-        dto.Active,
-        dto.DiscoveryInterval,
-        dto.LastHash,
-        dto.LastChangeUtc,
-        dto.PrevChangeUtc,
-        dto.NextPollUtc,
-        dto.MissCount,
-        dto.Phase.ToDomain(),
-        dto.Cycle,
-        dto.TransientFailureCount,
-        dto.DomainStates is { Count: > 0 }
+    public static PollWorkerState FromPersistence(this PersistedPollWorkerState dto, IReadOnlyList<DomainKind>? enabledDomains = null)
+    {
+        var domains = dto.DomainStates is { Count: > 0 }
             ? dto.DomainStates.ToImmutableDictionary(
                 d => (DomainKind)d.Domain,
                 d => new DomainPollState(
+                    (DomainKind)d.Domain,
+                    d.Phase.ToDomain(),
                     d.LastHash,
                     d.LastChanged,
                     d.CandidateCycle,
                     d.LearnedCycle,
-                    d.Phase.ToDomain(),
                     d.MissCount,
-                    d.NextPollAt ?? DateTimeOffset.MinValue))
-            : ImmutableDictionary<DomainKind, DomainPollState>.Empty);
+                    d.NextPollAt))
+            : ImmutableDictionary<DomainKind, DomainPollState>.Empty;
+
+        // Ensure enabled domains have entries
+        if (enabledDomains is { Count: > 0 })
+        {
+            foreach (var dk in enabledDomains)
+            {
+                if (!domains.ContainsKey(dk))
+                {
+                    domains = domains.SetItem(dk, DomainPollState.Empty(dk));
+                }
+            }
+        }
+
+        return new PollWorkerState(
+            dto is { Location: { } location } ? new PollTarget(new Location(location, 0, 0)) : null,
+            dto.Active,
+            dto.DiscoveryInterval,
+            domains);
+    }
 
     public static PersistedPollPhase ToPersistence(this PollPhase phase) => phase switch
     {

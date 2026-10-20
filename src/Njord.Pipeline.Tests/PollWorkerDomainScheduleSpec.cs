@@ -40,6 +40,8 @@ public sealed class PollWorkerDomainScheduleSpec : PollWorkerSpecBase
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
+
+        // Three changes at 1 h intervals to reach Steady (domain needs two consistent intervals).
         await AnswerAsync(Completed(0), ct);
         await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
         for (var hash = 1; hash <= 2; hash++)
@@ -50,7 +52,7 @@ public sealed class PollWorkerDomainScheduleSpec : PollWorkerSpecBase
             await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
         }
 
-        var expectedNext = _time.GetUtcNow() + TimeSpan.FromHours(1) - TimeSpan.FromSeconds(30);
+        var expectedNext = _time.GetUtcNow() + TimeSpan.FromHours(1) - DomainPollStateExtensions.SteadyBuffer;
         await StopAsync(worker, ct);
         CreateWorker();
 

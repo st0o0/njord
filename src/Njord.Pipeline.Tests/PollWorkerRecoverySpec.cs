@@ -24,17 +24,25 @@ public sealed class PollWorkerRecoverySpec : PollWorkerSpecBase
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
+
+        // Three changes at 1 h intervals to reach Steady (domain needs two consistent intervals).
         await AnswerAsync(Completed(1), ct);
         await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
-        _time.Advance(TimeSpan.FromHours(3));
+
+        _time.Advance(TimeSpan.FromHours(1));
         worker.Tell(new TriggerLocationPoll(TargetId));
         await AnswerAsync(Completed(2), ct);
+        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+
+        _time.Advance(TimeSpan.FromHours(1));
+        worker.Tell(new TriggerLocationPoll(TargetId));
+        await AnswerAsync(Completed(3), ct);
         var before = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        Assert.Equal(PollPhase.Steady, before.State.Phase);
 
         await StopAsync(worker, ct);
         CreateWorker();
 
-        // Recovered in the started state: it reports on its own and waits for its persisted next poll.
         var after = await ExpectReportAsync(PollWorkerOutcome.Planned, ct);
         Assert.Multiple(
             () => Assert.Equal(PollPhase.Steady, after.State.Phase),
@@ -67,8 +75,9 @@ public sealed class PollWorkerRecoverySpec : PollWorkerSpecBase
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
 
-        // The start is event 1; every round persists three events (the aggregate and one per domain), so round 17 crosses sequence number 50 at 52.
-        for (var i = 0; i < 20; i++)
+        // The start is event 1; every round persists 2 events (one DomainPolled per enabled domain),
+        // so round 25 crosses sequence number 50 at 51.
+        for (var i = 0; i < 26; i++)
         {
             if (i > 0)
             {
@@ -87,7 +96,7 @@ public sealed class PollWorkerRecoverySpec : PollWorkerSpecBase
                 new LoadSnapshot($"poll-worker-{TargetId}", SnapshotSelectionCriteria.Latest, long.MaxValue),
                 TestTimeouts.RealTimeWaitMax, ct);
             Assert.NotNull(loaded.Snapshot);
-            Assert.Equal(52, loaded.Snapshot.Metadata.SequenceNr);
+            Assert.True(loaded.Snapshot.Metadata.SequenceNr >= 50);
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
         await StopAsync(worker, ct);

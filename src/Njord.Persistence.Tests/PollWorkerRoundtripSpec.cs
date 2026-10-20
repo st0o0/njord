@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Njord.Persistence.Events.Polling;
 
 namespace Njord.Persistence.Tests;
@@ -8,23 +9,18 @@ public sealed class PollWorkerRoundtripSpec
 
     public static TheoryData<object> Events() =>
     [
-        new PollingStarted("lucerne", TimeSpan.FromMinutes(20), Utc),
+        new PollingStarted("lucerne", [(int)0, (int)1], TimeSpan.FromMinutes(20), Utc),
         new PollingStopped(Utc),
-        new ForecastChanged(42, Utc),
-        new ForecastUnchanged(Utc),
-        new PollFailed(Utc, TimeSpan.FromMinutes(5)),
-        new PollDeferred(Utc, TimeSpan.FromSeconds(5)),
-        new DomainChanged(1, 42, Utc),
-        new DomainUnchanged(1, Utc),
-        new DomainFailed(1, Utc, TimeSpan.FromMinutes(1)),
+        new DomainPolled(0, 0, 42, Utc, null),
+        new DomainPolled(1, 1, null, Utc, null),
+        new DomainPolled(2, 2, null, Utc, TimeSpan.FromMinutes(1)),
     ];
 
     [Fact]
     public void Populated_worker_state_roundtrip()
     {
         var state = new PersistedPollWorkerState(
-            "lucerne", true, TimeSpan.FromMinutes(20), 42, Utc, Utc.AddHours(-3), Utc.AddHours(3),
-            2, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 1,
+            "lucerne", true, TimeSpan.FromMinutes(20),
             new List<PersistedDomainState>
             {
                 new(0, 7, PersistedPollPhase.Steady, TimeSpan.FromHours(6), 2, Utc.AddHours(-6), TimeSpan.FromHours(6), Utc.AddHours(6)),
@@ -42,8 +38,7 @@ public sealed class PollWorkerRoundtripSpec
     public void Unstarted_worker_state_roundtrip()
     {
         var empty = new PersistedPollWorkerState(
-            null, false, TimeSpan.Zero, null, null, null, DateTimeOffset.MinValue, 0,
-            PersistedPollPhase.Discovery, null, 0, null);
+            null, false, TimeSpan.Zero, null);
 
         Assert.Equal(empty, PersistenceRoundtripHelper.Roundtrip(empty));
     }
@@ -54,8 +49,20 @@ public sealed class PollWorkerRoundtripSpec
     {
         var recovered = PersistenceRoundtripHelper.Roundtrip(evt);
 
-        Assert.Multiple(
-            () => Assert.IsType(evt.GetType(), recovered),
-            () => Assert.Equal(evt, recovered));
+        Assert.IsType(evt.GetType(), recovered);
+
+        // PollingStarted contains int[] which uses reference equality; compare structurally.
+        if (evt is PollingStarted original && recovered is PollingStarted restored)
+        {
+            Assert.Multiple(
+                () => Assert.Equal(original.Location, restored.Location),
+                () => Assert.Equal(original.Domains, restored.Domains),
+                () => Assert.Equal(original.DiscoveryInterval, restored.DiscoveryInterval),
+                () => Assert.Equal(original.Utc, restored.Utc));
+        }
+        else
+        {
+            Assert.Equal(evt, recovered);
+        }
     }
 }

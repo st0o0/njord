@@ -10,12 +10,17 @@ public sealed class PollWorkerMappingsSpec
 {
     private static readonly DateTimeOffset T0 = TestTimeConstants.PipelineEpoch;
     private static readonly Location Lucerne = new("lucerne", 0, 0);
+    private static readonly int[] WeatherDomain = [(int)DomainKind.Weather];
 
     private static PollWorkerState Started() =>
-        PollWorkerState.Empty.Apply(new PollingStarted("lucerne", TimeSpan.FromMinutes(20), T0));
+        PollWorkerState.Empty.Apply(new PollingStarted("lucerne", WeatherDomain, TimeSpan.FromMinutes(20), T0));
 
+    // Three changes at 3 h intervals: two consistent intervals -> Steady.
     private static PollWorkerState Steady() =>
-        Started().Apply(new ForecastChanged(1, T0)).Apply(new ForecastChanged(2, T0.AddHours(3)));
+        Started()
+            .Apply(new DomainPolled((int)DomainKind.Weather, 0, 1, T0, null))
+            .Apply(new DomainPolled((int)DomainKind.Weather, 0, 2, T0.AddHours(3), null))
+            .Apply(new DomainPolled((int)DomainKind.Weather, 0, 3, T0.AddHours(6), null));
 
     [Fact]
     public void ToPollStateEntry_describes_the_target_and_its_poll_state()
@@ -25,8 +30,7 @@ public sealed class PollWorkerMappingsSpec
         Assert.Multiple(
             () => Assert.Equal(Lucerne, entry.Location),
             () => Assert.Equal(PollPhase.Steady, entry.Phase),
-            () => Assert.Equal(T0.AddHours(6).AddMinutes(1), entry.NextPollUtc),
-            () => Assert.Equal(T0.AddHours(3), entry.LastChangeUtc),
+            () => Assert.Equal(T0.AddHours(6), entry.LastChangeUtc),
             () => Assert.Equal(0, entry.MissCount),
             () => Assert.Equal(10800L, entry.CycleSeconds));
     }
@@ -53,25 +57,38 @@ public sealed class PollWorkerMappingsSpec
     [Fact]
     public void GetPersistenceState_and_FromPersistence_roundtrip()
     {
-        var state = Steady().Apply(new ForecastUnchanged(T0.AddHours(6))).Apply(new PollFailed(T0.AddHours(7), TimeSpan.Zero));
+        var state = Steady().Apply(new DomainPolled((int)DomainKind.Weather, 1, null, T0.AddHours(9), null));
 
         var restored = state.GetPersistenceState().FromPersistence();
 
-        Assert.Equal(state, restored);
+        Assert.Multiple(
+            () => Assert.Equal(state.Target, restored.Target),
+            () => Assert.Equal(state.Active, restored.Active),
+            () => Assert.Equal(state.DiscoveryInterval, restored.DiscoveryInterval),
+            () => Assert.Equal(state.Domains.Count, restored.Domains.Count),
+            () => Assert.Equal(state.GetDomain(DomainKind.Weather), restored.GetDomain(DomainKind.Weather)));
     }
 
     [Fact]
-    public void GetPersistenceState_writes_every_field_and_the_persisted_phase()
+    public void GetPersistenceState_writes_the_domain_states()
     {
-        var state = Steady().Apply(new ForecastUnchanged(T0.AddHours(6)));
+        var state = Steady();
 
         var dto = state.GetPersistenceState();
 
-        Assert.Equal(
-            new PersistedPollWorkerState(
-                "lucerne", true, TimeSpan.FromMinutes(20), 2, T0.AddHours(3), T0, state.NextPollUtc,
-                1, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 0, null),
-            dto);
+        Assert.Multiple(
+            () => Assert.Equal("lucerne", dto.Location),
+            () => Assert.True(dto.Active),
+            () => Assert.Equal(TimeSpan.FromMinutes(20), dto.DiscoveryInterval),
+            () => Assert.NotNull(dto.DomainStates),
+            () => Assert.Single(dto.DomainStates!));
+
+        var domainDto = dto.DomainStates![0];
+        Assert.Multiple(
+            () => Assert.Equal((int)DomainKind.Weather, domainDto.Domain),
+            () => Assert.Equal(3, domainDto.LastHash),
+            () => Assert.Equal(PersistedPollPhase.Steady, domainDto.Phase),
+            () => Assert.Equal(TimeSpan.FromHours(3), domainDto.LearnedCycle));
     }
 
     [Fact]
@@ -79,25 +96,32 @@ public sealed class PollWorkerMappingsSpec
     {
         var restored = PollWorkerState.Empty.GetPersistenceState().FromPersistence();
 
-        Assert.Equal(PollWorkerState.Empty, restored);
+        Assert.Multiple(
+            () => Assert.Null(restored.Target),
+            () => Assert.False(restored.Active),
+            () => Assert.Equal(TimeSpan.Zero, restored.DiscoveryInterval),
+            () => Assert.Empty(restored.Domains));
     }
 
     [Fact]
-    public void An_old_format_snapshot_with_a_numeric_phase_restores_a_steady_state()
+    public void An_old_format_snapshot_with_a_numeric_phase_restores_a_steady_domain()
     {
         const string oldFormat = """
 {
   "Location": "lucerne",
   "Active": true,
   "DiscoveryInterval": "00:20:00",
-  "LastHash": 2,
-  "LastChangeUtc": "2026-07-15T10:00:00+00:00",
-  "PrevChangeUtc": "2026-07-15T07:00:00+00:00",
-  "NextPollUtc": "2026-07-15T13:01:00+00:00",
-  "MissCount": 0,
-  "Phase": 1,
-  "Cycle": "03:00:00",
-  "TransientFailureCount": 0
+  "DomainStates": [
+    {
+      "Domain": 0,
+      "LastHash": 2,
+      "Phase": 1,
+      "LearnedCycle": "03:00:00",
+      "MissCount": 0,
+      "LastChanged": "2026-07-15T10:00:00+00:00",
+      "NextPollAt": "2026-07-15T13:00:00+00:00"
+    }
+  ]
 }
 """;
 
@@ -105,10 +129,11 @@ public sealed class PollWorkerMappingsSpec
 
         Assert.NotNull(dto);
         var state = dto.FromPersistence();
+        var weather = state.GetDomain(DomainKind.Weather);
         Assert.Multiple(
-            () => Assert.Equal(PollPhase.Steady, state.Phase),
+            () => Assert.Equal(PollPhase.Steady, weather.Phase),
             () => Assert.Equal(new PollTarget(Lucerne), state.Target),
-            () => Assert.Equal(TimeSpan.FromHours(3), state.Cycle));
+            () => Assert.Equal(TimeSpan.FromHours(3), weather.LearnedCycle));
     }
 
     [Theory]

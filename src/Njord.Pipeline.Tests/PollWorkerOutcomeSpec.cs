@@ -69,24 +69,35 @@ public sealed class PollWorkerOutcomeSpec : PollWorkerSpecBase
             () => Assert.NotNull(report.State.LastChangeUtc));
     }
 
-    // The aggregate learns from two changes; each domain needs two consistent intervals, so the next poll still follows the discovery interval.
+    // Per-domain cycle learning needs three consistent changes (two consistent intervals).
+    // After the second change the domain stays in Discovery with a candidate cycle.
+    // After the third consistent change it transitions to Steady.
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_second_change_learns_the_cycle()
+    public async Task Three_consistent_changes_learn_the_cycle()
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
+
+        // First change
         await AnswerAsync(Completed(1), ct);
         await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
 
+        // Second change at +3h - records a candidate but stays Discovery
         _time.Advance(TimeSpan.FromHours(3));
         worker.Tell(new TriggerLocationPoll(TargetId));
         await AnswerAsync(Completed(2), ct);
+        var second = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        Assert.Equal(PollPhase.Discovery, second.State.Phase);
 
-        var report = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        // Third consistent change at +6h - transitions to Steady
+        _time.Advance(TimeSpan.FromHours(3));
+        worker.Tell(new TriggerLocationPoll(TargetId));
+        await AnswerAsync(Completed(3), ct);
+        var third = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+
         Assert.Multiple(
-            () => Assert.Equal(PollPhase.Steady, report.State.Phase),
-            () => Assert.Equal(10800L, report.State.CycleSeconds),
-            () => Assert.Equal(_time.GetUtcNow() + Discovery, report.State.NextPollUtc));
+            () => Assert.Equal(PollPhase.Steady, third.State.Phase),
+            () => Assert.Equal(10800L, third.State.CycleSeconds));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

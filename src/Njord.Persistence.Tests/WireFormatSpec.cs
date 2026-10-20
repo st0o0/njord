@@ -8,8 +8,8 @@ public sealed class WireFormatSpec
     private static readonly DateTimeOffset Utc = new(2026, 7, 15, 10, 0, 0, TimeSpan.Zero);
 
     private static readonly PersistedPollWorkerState State = new(
-        "lucerne", true, TimeSpan.FromMinutes(20), 42, Utc, Utc.AddHours(-3), Utc.AddHours(3).AddMinutes(1),
-        2, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 1, null);
+        "lucerne", true, TimeSpan.FromMinutes(20),
+        [new PersistedDomainState(0, 42, PersistedPollPhase.Steady, TimeSpan.FromHours(3), 2, Utc, TimeSpan.FromHours(3), Utc.AddHours(3))]);
 
     [Fact]
     public Task Poll_worker_state_shape() =>
@@ -21,22 +21,12 @@ public sealed class WireFormatSpec
             .Select(row => JsonConvert.SerializeObject(row.Data, Formatting.Indented))));
 
     [Fact]
-    public void Should_deserialize_a_document_written_before_domain_states_existed()
+    public void Should_deserialize_a_domain_state_written_before_cycle_learning()
     {
-        const string oldFormat = """
-            {
-              "Location": "lucerne", "Active": true, "DiscoveryInterval": "00:20:00", "LastHash": 42,
-              "LastChangeUtc": "2026-07-15T10:00:00+00:00", "PrevChangeUtc": "2026-07-15T07:00:00+00:00",
-              "NextPollUtc": "2026-07-15T13:01:00+00:00", "MissCount": 2, "Phase": 1,
-              "Cycle": "03:00:00", "TransientFailureCount": 1
-            }
-            """;
-
-        var recovered = JsonConvert.DeserializeObject<PersistedPollWorkerState>(oldFormat);
-
-        Assert.Equal(State, recovered);
+        const string oldFormat = """{ "Domain": 1, "LastHash": 7 }""";
+        var recovered = JsonConvert.DeserializeObject<PersistedDomainState>(oldFormat);
+        Assert.Equal(new PersistedDomainState(1, 7), recovered);
     }
-    [Fact] public void Should_deserialize_a_domain_state_written_before_cycle_learning() { const string oldFormat = """{ "Domain": 1, "LastHash": 7 }"""; var recovered = JsonConvert.DeserializeObject<PersistedDomainState>(oldFormat); Assert.Equal(new PersistedDomainState(1, 7), recovered); }
 
     [Fact]
     public void Should_keep_the_stored_numbers_of_persisted_poll_phases()

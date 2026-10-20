@@ -42,7 +42,7 @@ public static class DomainPollStateExtensions
     // The next poll is planned from the moment the last change was seen.
     public static DomainPollState TransitionToSteady(this DomainPollState domain, TimeSpan cycle)
     {
-        var anchor = domain.LastChanged ?? domain.NextPollAt;
+        var anchor = domain.LastChanged ?? domain.NextPollAt ?? DateTimeOffset.MinValue;
         var delay = cycle - SteadyBuffer;
         return domain with
         {

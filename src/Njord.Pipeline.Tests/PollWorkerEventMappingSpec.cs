@@ -1,4 +1,3 @@
-using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.Persistence.Events.Polling;
@@ -10,84 +9,73 @@ public sealed class PollWorkerEventMappingSpec
 {
     private static readonly DateTimeOffset T0 = TestTimeConstants.PipelineEpoch;
     private static readonly TimeSpan DiscoveryInterval = TimeSpan.FromMinutes(20);
-    private static readonly Location Lucerne = new("lucerne", 0, 0);
+    private static readonly int[] WeatherDomain = [(int)DomainKind.Weather];
 
     private static PollWorkerState Started(DateTimeOffset? at = null, TimeSpan? interval = null) =>
-        PollWorkerState.Empty.Apply(new PollingStarted("lucerne", interval ?? DiscoveryInterval, at ?? T0));
+        PollWorkerState.Empty.Apply(new PollingStarted("lucerne", WeatherDomain, interval ?? DiscoveryInterval, at ?? T0));
 
-    // Two changes three hours apart: Steady with a 3 h cycle.
-    private static PollWorkerState Steady() =>
-        Started().Apply(new ForecastChanged(1, T0)).Apply(new ForecastChanged(2, T0.AddHours(3)));
-
-    [Fact]
-    public void A_changed_hash_becomes_a_forecast_changed_event()
-    {
-        var state = Started().Apply(new ForecastChanged(42, T0)).WithDomainHash(DomainKind.Weather, 42);
-
-        var (evt, outcome) = state.ToEvent(new FetchDomainCompleted(Lucerne, DomainKind.Weather, 99), T0.AddHours(1));
-
-        Assert.Multiple(
-            () => Assert.Equal(new ForecastChanged(99, T0.AddHours(1)), evt),
-            () => Assert.Equal(PollWorkerOutcome.Changed, outcome));
-    }
+    private static DomainPolled Changed(int hash, DateTimeOffset at) => new((int)DomainKind.Weather, 0, hash, at, null);
+    private static DomainPolled Unchanged(DateTimeOffset at) => new((int)DomainKind.Weather, 1, null, at, null);
+    private static DomainPolled Failed(DateTimeOffset at, TimeSpan delay) => new((int)DomainKind.Weather, 2, null, at, delay);
 
     [Fact]
-    public void The_first_hash_is_a_change()
+    public void A_changed_event_updates_the_hash_and_last_changed()
     {
-        var (evt, outcome) = Started().ToEvent(new FetchDomainCompleted(Lucerne, DomainKind.Weather, 7), T0);
+        var state = Started().Apply(Changed(42, T0.AddMinutes(20)));
+        var weather = state.GetDomain(DomainKind.Weather);
 
         Assert.Multiple(
-            () => Assert.Equal(new ForecastChanged(7, T0), evt),
-            () => Assert.Equal(PollWorkerOutcome.Changed, outcome));
+            () => Assert.Equal(42, weather.LastHash),
+            () => Assert.Equal(T0.AddMinutes(20), weather.LastChanged));
     }
 
     [Fact]
-    public void The_same_hash_becomes_a_forecast_unchanged_event()
+    public void An_unchanged_event_increments_the_miss_count()
     {
-        var state = Started().Apply(new ForecastChanged(42, T0)).WithDomainHash(DomainKind.Weather, 42);
-
-        var (evt, outcome) = state.ToEvent(new FetchDomainCompleted(Lucerne, DomainKind.Weather, 42), T0.AddHours(1));
+        var state = Started().Apply(Changed(42, T0)).Apply(Unchanged(T0.AddMinutes(20)));
+        var weather = state.GetDomain(DomainKind.Weather);
 
         Assert.Multiple(
-            () => Assert.Equal(new ForecastUnchanged(T0.AddHours(1)), evt),
-            () => Assert.Equal(PollWorkerOutcome.Unchanged, outcome));
-    }
-
-    [Theory]
-    [InlineData(PollFailureReason.Transport, 0)]
-    [InlineData(PollFailureReason.ModelUnavailable, 0)]
-    [InlineData(PollFailureReason.MalformedPayload, 0)]
-    [InlineData(PollFailureReason.RateLimited, 5)]
-    public void A_failure_becomes_a_poll_failed_event_with_its_minimum_delay(PollFailureReason reason, int minimumMinutes)
-    {
-        var (evt, outcome) = Started().ToEvent(new FetchDomainFailed(Lucerne, DomainKind.Weather, reason, "x"), T0);
-
-        Assert.Multiple(
-            () => Assert.Equal(new PollFailed(T0, TimeSpan.FromMinutes(minimumMinutes)), evt),
-            () => Assert.Equal(PollWorkerOutcome.Failed, outcome));
-    }
-
-    [Theory]
-    [InlineData(FetchRejectionReason.Budget, 5)]
-    [InlineData(FetchRejectionReason.QueueFull, 0)]
-    [InlineData(FetchRejectionReason.Expired, 0)]
-    public void A_rejection_becomes_a_poll_failed_event_with_its_minimum_delay(FetchRejectionReason reason, int minimumMinutes)
-    {
-        var (evt, outcome) = Started().ToEvent(new FetchDomainRejected(Lucerne, DomainKind.Weather, reason), T0);
-
-        Assert.Multiple(
-            () => Assert.Equal(new PollFailed(T0, TimeSpan.FromMinutes(minimumMinutes)), evt),
-            () => Assert.Equal(PollWorkerOutcome.Failed, outcome));
+            () => Assert.Equal(1, weather.MissCount),
+            () => Assert.Equal(T0.AddMinutes(40), weather.NextPollAt));
     }
 
     [Fact]
-    public void A_pipeline_unavailable_rejection_becomes_a_deferral()
+    public void A_failed_event_schedules_a_retry_at_the_given_delay()
     {
-        var (evt, outcome) = Started().ToEvent(
-            new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.PipelineUnavailable), T0);
+        var state = Started().Apply(Failed(T0, TimeSpan.FromMinutes(5)));
+        var weather = state.GetDomain(DomainKind.Weather);
 
-        Assert.Multiple(
-            () => Assert.Equal(new PollDeferred(T0, TimeSpan.FromSeconds(5)), evt),
-            () => Assert.Equal(PollWorkerOutcome.Failed, outcome));
+        Assert.Equal(T0.AddMinutes(5), weather.NextPollAt);
+    }
+
+    [Fact]
+    public void A_rate_limit_delay_sets_the_retry()
+    {
+        var state = Started().Apply(Failed(T0, PollWorkerState.RateLimitMinDelay));
+
+        Assert.Equal(T0 + TimeSpan.FromMinutes(5), state.GetDomain(DomainKind.Weather).NextPollAt);
+    }
+
+    [Fact]
+    public void A_pipeline_unavailable_delay_retries_soon()
+    {
+        var state = Started().Apply(Failed(T0, PollWorkerState.PipelineUnavailableRetry));
+
+        Assert.Equal(T0 + TimeSpan.FromSeconds(5), state.GetDomain(DomainKind.Weather).NextPollAt);
+    }
+
+    [Fact]
+    public void An_unknown_outcome_throws()
+    {
+        var evt = new DomainPolled((int)DomainKind.Weather, 99, null, T0, null);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => Started().Apply(evt));
+    }
+
+    [Fact]
+    public void An_unknown_event_type_throws()
+    {
+        Assert.Throws<ArgumentException>(() => Started().Apply("not an event"));
     }
 }
