@@ -14,22 +14,24 @@ public sealed class GardeningHandlerSpec
     {
         var forecast = WeatherOnly(Day((hour, point) => hour == 5 ? point with { Temperature = -1.0 } : point));
 
-        var advice = Assert.IsType<PipelineEvent.GardeningAdvised>(Assert.Single(Handler.Handle(forecast, null, Time)));
+        var advice = Assert.IsType<ConditionResult>(Assert.Single(Handler.Handle(forecast, null, Time)));
 
         Assert.Multiple(
-            () => Assert.True(advice.FrostRisk),
-            () => Assert.False(advice.PlantingSafe));
+            () => Assert.Equal("true", advice.Data["frost_risk"]),
+            () => Assert.Equal("false", advice.Data["planting_safe"]),
+            () => Assert.Equal("hold", advice.State));
     }
 
     [Fact]
     public void Handle_advises_planting_and_watering_on_a_mild_dry_day()
     {
-        var advice = Assert.IsType<PipelineEvent.GardeningAdvised>(Assert.Single(Handler.Handle(WeatherOnly(Day()), null, Time)));
+        var advice = Assert.IsType<ConditionResult>(Assert.Single(Handler.Handle(WeatherOnly(Day()), null, Time)));
 
         Assert.Multiple(
-            () => Assert.False(advice.FrostRisk),
-            () => Assert.True(advice.PlantingSafe),
-            () => Assert.True(advice.WateringNeeded));
+            () => Assert.Equal("false", advice.Data["frost_risk"]),
+            () => Assert.Equal("true", advice.Data["planting_safe"]),
+            () => Assert.Equal("true", advice.Data["watering_needed"]),
+            () => Assert.Equal("plant", advice.State));
     }
 
     [Fact]
@@ -37,8 +39,8 @@ public sealed class GardeningHandlerSpec
     {
         var forecast = WeatherOnly(Day((hour, point) => hour == 2 ? point with { Precipitation = 5.0 } : point));
 
-        var advice = Assert.IsType<PipelineEvent.GardeningAdvised>(Assert.Single(Handler.Handle(forecast, null, Time)));
+        var advice = Assert.IsType<ConditionResult>(Assert.Single(Handler.Handle(forecast, null, Time)));
 
-        Assert.False(advice.WateringNeeded);
+        Assert.Equal("false", advice.Data["watering_needed"]);
     }
 }

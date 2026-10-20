@@ -9,28 +9,27 @@ public sealed class AlertSpec
     [Fact]
     public void Should_create_a_none_alert_without_details_or_confidence()
     {
-        var alert = Alert.None(AlertType.Frost);
+        var alert = Alert.None();
 
         Assert.Multiple(
-            () => Assert.Equal(AlertType.Frost, alert.Type),
             () => Assert.Equal(AlertSeverity.None, alert.Severity),
             () => Assert.Equal(0.0, alert.Confidence),
             () => Assert.Same(NoDetails.Instance, alert.Details));
     }
 
     [Fact]
-    public void Should_expose_alert_fields_on_the_raised_pipeline_event()
+    public void Should_expose_the_alert_on_the_alert_result()
     {
         var details = new FrostDetails(-4, Horizon.Hours(6), 3);
-        var alert = new Alert(AlertType.Frost, AlertSeverity.Orange, 0.9, details, Level: ConfidenceLevel.High);
-        var raised = new PipelineEvent.AlertRaised(
-            new Location("Lucerne", 47, 8), alert, new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        var alert = new Alert(AlertSeverity.Orange, 0.9, details, Level: ConfidenceLevel.High);
+        var timestamp = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var result = new AlertResult(new Location("Lucerne", 47, 8), "frost", alert, timestamp);
 
         Assert.Multiple(
-            () => Assert.Equal(AlertType.Frost, raised.Type),
-            () => Assert.Equal(AlertSeverity.Orange, raised.Severity),
-            () => Assert.Equal(ConfidenceLevel.High, raised.Confidence),
-            () => Assert.Same(details, raised.Details));
+            () => Assert.Equal("frost", result.WireKey),
+            () => Assert.Equal(OutputKind.Alert, result.Output),
+            () => Assert.Same(alert, result.Alert),
+            () => Assert.Equal(timestamp, result.Timestamp));
     }
 
     [Theory]

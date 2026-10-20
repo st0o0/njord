@@ -23,16 +23,18 @@ public sealed class SurfConditionsHandlerSpec
             [new WeatherPoint(Now, WindDirection: 90.0)]);
         var current = new LocationForecast(Lucerne, Weather: weather, Marine: MarineForecast(Swell()));
 
-        var surf = Assert.IsType<PipelineEvent.SurfConditionsComputed>(Assert.Single(Handler.Handle(current, null, Time)));
+        var surf = Assert.IsType<ConditionResult>(Assert.Single(Handler.Handle(current, null, Time)));
 
         Assert.Multiple(
             () => Assert.Equal(Lucerne, surf.Location),
-            () => Assert.Equal(100, surf.Score),
-            () => Assert.Equal("excellent", surf.Rating),
-            () => Assert.Equal(1.8, surf.SwellHeight),
-            () => Assert.Equal(14.0, surf.SwellPeriod),
-            () => Assert.Equal("offshore", surf.WindRelation),
-            () => Assert.Equal(Now, surf.BestStart));
+            () => Assert.Equal("surf", surf.WireKey),
+            () => Assert.Equal("100", surf.Data["score"]),
+            () => Assert.Equal("excellent", surf.State),
+            () => Assert.Equal("1.8", surf.Data["swell_height"]),
+            () => Assert.Equal("14", surf.Data["swell_period"]),
+            () => Assert.Equal("true", surf.Data["wind_considered"]),
+            () => Assert.Equal("offshore", surf.Data["wind"]),
+            () => Assert.Equal(FeatureData.Time(Now), surf.Data["best_start"]));
     }
 
     [Fact]
@@ -40,9 +42,11 @@ public sealed class SurfConditionsHandlerSpec
     {
         var current = new LocationForecast(Lucerne, Marine: MarineForecast(Swell()));
 
-        var surf = Assert.IsType<PipelineEvent.SurfConditionsComputed>(Assert.Single(Handler.Handle(current, null, Time)));
+        var surf = Assert.IsType<ConditionResult>(Assert.Single(Handler.Handle(current, null, Time)));
 
-        Assert.Null(surf.WindRelation);
+        Assert.Multiple(
+            () => Assert.Equal("false", surf.Data["wind_considered"]),
+            () => Assert.False(surf.Data.ContainsKey("wind")));
     }
 
     [Fact]
@@ -56,7 +60,9 @@ public sealed class SurfConditionsHandlerSpec
     [Fact]
     public void The_handler_is_keyed_to_the_surf_toggle()
     {
-        Assert.Equal(FeatureKind.SurfConditions, Handler.Feature.Kind);
+        Assert.Multiple(
+            () => Assert.Equal("Marine:Surf", Handler.SectionKey()),
+            () => Assert.Equal("surf", Handler.WireKey()));
     }
 
     [Fact]

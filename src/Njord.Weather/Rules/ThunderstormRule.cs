@@ -3,17 +3,18 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Alerts.Rules;
 
 public sealed class ThunderstormRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
-    public AlertType Type => AlertType.Thunderstorm;
+
+    public string Name => "Thunderstorm";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.ThunderstormAlert,
-        FeatureCategory.WeatherAlerts,
-        "Thunderstorm warning from CAPE, precipitation and gusts",
+        OutputKind.Alert,
+        FeatureCategory.Weather,
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Cape | WeatherParams.Precipitation | WeatherParams.WindGusts | WeatherParams.EnsembleStdDev));
 
@@ -22,7 +23,7 @@ public sealed class ThunderstormRule : IAlertRule<DomainForecast<WeatherPoint>>
         var evaluable = forecast.NextHoursInclusive(now).Where(p => p.Cape is not null && p.WindGusts is not null).ToList();
         if (evaluable.Count == 0)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var meetAll = evaluable
@@ -41,7 +42,7 @@ public sealed class ThunderstormRule : IAlertRule<DomainForecast<WeatherPoint>>
 
         var peak = (meetAll.Count > 0 ? meetAll : evaluable).HighestBy(p => p.Cape);
         var maxCape = evaluable.Max(p => p.Cape) ?? 0.0;
-        return AlertWindow.Build(Type, severity, peak, new ThunderstormDetails(ModelsAgreeing: 0),
+        return AlertWindow.Build(severity, peak, new ThunderstormDetails(ModelsAgreeing: 0),
             Math.Round(maxCape, 0), options.CapeThreshold,
             hoursUntil: meetAll.Count > 0 ? meetAll[0].HoursFrom(now) : null);
     }

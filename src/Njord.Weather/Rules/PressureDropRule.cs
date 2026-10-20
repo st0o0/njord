@@ -3,6 +3,7 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Alerts.Rules;
 
@@ -11,12 +12,12 @@ public sealed class PressureDropRule : IAlertRule<DomainForecast<WeatherPoint>>
     private const int DropSpanHours = 3;
     private const int MinimumHours = 4;
 
-    public AlertType Type => AlertType.PressureDrop;
+
+    public string Name => "PressureDrop";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.PressureDropAlert,
-        FeatureCategory.WeatherAlerts,
-        "Warning for a rapid surface pressure drop",
+        OutputKind.Alert,
+        FeatureCategory.Weather,
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Pressure | WeatherParams.EnsembleStdDev));
 
@@ -25,7 +26,7 @@ public sealed class PressureDropRule : IAlertRule<DomainForecast<WeatherPoint>>
         var window = forecast.NextHoursInclusive(now);
         if (window.Count < MinimumHours)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var (maxDrop, endPoint) = MaxDrop(window, now);
@@ -40,7 +41,7 @@ public sealed class PressureDropRule : IAlertRule<DomainForecast<WeatherPoint>>
         };
 
         var rounded = Math.Round(maxDrop, 1);
-        return AlertWindow.Build(Type, severity, endPoint, new PressureDropDetails(MaxDrop: rounded, ModelsAgreeing: 0),
+        return AlertWindow.Build(severity, endPoint, new PressureDropDetails(MaxDrop: rounded, ModelsAgreeing: 0),
             rounded, maxDrop >= severeThreshold ? severeThreshold : dropThreshold);
     }
 

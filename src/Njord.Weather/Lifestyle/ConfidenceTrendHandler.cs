@@ -9,10 +9,11 @@ public sealed class ConfidenceTrendHandler : IDomainHandler
 {
     public const double ChangeThreshold = 0.20;
 
+    public string Name => "ConfidenceTrend";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.ConfidenceTrend,
+        OutputKind.Trend,
         FeatureCategory.Insight,
-        "Trend of the ensemble forecast confidence",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.EnsembleStdDev));
 
@@ -36,7 +37,9 @@ public sealed class ConfidenceTrendHandler : IDomainHandler
             >= ChangeThreshold => "Diverging",
             _ => "Stable",
         };
-        return [new PipelineEvent.ConfidenceTrend(current.Location, direction, Math.Round(currentAverage, 2), Math.Round(previousAverage, 2))];
+        return [new TrendResult(current.Location, this.WireKey(), direction, Math.Round(currentAverage - previousAverage, 2), FeatureData.Of(
+            ("current_avg_std_dev", FeatureData.Number(Math.Round(currentAverage, 2))),
+            ("previous_avg_std_dev", FeatureData.Number(Math.Round(previousAverage, 2)))))];
     }
 
     private static double? AverageStdDev(DomainForecast<WeatherPoint> forecast, DateTimeOffset now)

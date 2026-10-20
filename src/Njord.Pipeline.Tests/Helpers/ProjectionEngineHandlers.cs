@@ -15,6 +15,8 @@ internal sealed class RecordingHandler(params DomainKind[] triggers) : IDomainHa
 {
     public List<Seen> Calls { get; } = [];
 
+    public string Name => "Frost";
+
     public FeatureDescriptor Feature { get; } = HandlerRequirements.Describe(HandlerRequirements.For(triggers));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
@@ -28,29 +30,33 @@ internal sealed class RequiringHandler(DomainRequirements requirements) : IDomai
 {
     public List<Seen> Calls { get; } = [];
 
+    public string Name => "Frost";
+
     public FeatureDescriptor Feature { get; } = HandlerRequirements.Describe(requirements);
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {
         Calls.Add(new Seen(current, previous));
-        return [new PipelineEvent.AlertRaised(current.Location, Alert.None(AlertType.Frost), time.GetUtcNow())];
+        return [new AlertResult(current.Location, "frost", Alert.None(), time.GetUtcNow())];
     }
 }
 
 internal sealed class EmittingHandler : IDomainHandler
 {
+    public string Name => "Frost";
+
     public FeatureDescriptor Feature { get; } = HandlerRequirements.Describe(HandlerRequirements.For(DomainKind.Weather));
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time) =>
     [
-        new PipelineEvent.AlertRaised(current.Location, Alert.None(AlertType.Frost), time.GetUtcNow()),
+        new AlertResult(current.Location, "frost", Alert.None(), time.GetUtcNow()),
     ];
 }
 
 internal static class HandlerRequirements
 {
     public static FeatureDescriptor Describe(DomainRequirements requirements) =>
-        new(FeatureKind.FrostAlert, FeatureCategory.WeatherAlerts, "Test handler", DefaultEnabled: true, requirements);
+        new(OutputKind.Alert, FeatureCategory.Weather, DefaultEnabled: true, requirements);
 
     public static DomainRequirements For(params DomainKind[] domains) =>
         domains.Aggregate(default(DomainRequirements), (all, domain) => all | domain switch

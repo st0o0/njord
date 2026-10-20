@@ -43,7 +43,6 @@ public sealed class SwimmingConditionsRuleSpec
         var alert = Rule.Evaluate(forecast, AlertRuleFixture.Defaults, Now);
 
         Assert.Multiple(
-            () => Assert.Equal(AlertType.SwimmingConditions, alert.Type),
             () => Assert.Equal(AlertSeverity.Red, alert.Severity),
             () => Assert.Equal(2.6, alert.TriggerValue),
             () => Assert.Equal(2.0, alert.Threshold),

@@ -17,7 +17,7 @@ All code, specs, docs, and communication in English.
 ### Project skills (njord-specific)
 
 - `njord-enrichment-feature` -- **Load before adding/changing an enrichment.**
-  `IDomainHandler`, `FeatureKind`/`FeatureDescriptor`, registration, event/contract, Config Builder.
+  `IDomainHandler`, `IFeature` name/`FeatureDescriptor`, registration, event/contract, Config Builder.
 - `njord-actor-spec` -- **Load before writing actor, handler or persistence-record
   tests.** `NjordActorSpec`, in-memory persistence, `FakeTimeProvider`, Verify.
 - `e2e-test` -- Full-stack check (njord + ha-njord + Home Assistant) via Docker Compose.

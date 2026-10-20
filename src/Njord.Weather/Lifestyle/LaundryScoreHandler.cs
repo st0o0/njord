@@ -8,10 +8,11 @@ public sealed class LaundryScoreHandler : IDomainHandler
 {
     public const double GoodHourScore = 60.0;
 
+    public string Name => "Laundry";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.LaundryScore,
+        OutputKind.Score,
         FeatureCategory.Lifestyle,
-        "Laundry drying score",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.Precipitation | WeatherParams.Temperature | WeatherParams.Humidity
             | WeatherParams.WindSpeed | WeatherParams.PrecipitationProbability | WeatherParams.CloudCover,
@@ -35,11 +36,11 @@ public sealed class LaundryScoreHandler : IDomainHandler
         if (length == 0)
         {
             var bestIndex = scores.IndexOf(scores.Max());
-            return [new PipelineEvent.LaundryScoreComputed(current.Location, (int)Math.Round(scores[bestIndex]), hours[bestIndex].ValidFrom, 0)];
+            return [new ScoreResult(current.Location, this.WireKey(), (int)Math.Round(scores[bestIndex]), hours[bestIndex].ValidFrom, 0)];
         }
 
         var windowScore = scores.Skip(start).Take(length).Average();
-        return [new PipelineEvent.LaundryScoreComputed(current.Location, (int)Math.Round(windowScore), hours[start].ValidFrom, length)];
+        return [new ScoreResult(current.Location, this.WireKey(), (int)Math.Round(windowScore), hours[start].ValidFrom, length)];
     }
 
     private static double ScoreHour(WeatherPoint point)

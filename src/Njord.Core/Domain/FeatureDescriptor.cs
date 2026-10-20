@@ -1,9 +1,10 @@
+using Njord.Messages.Pipeline;
+
 namespace Njord.Core.Domain;
 
 // Requirements carries both the required and the optional parameters (DomainRequirements.Optional*).
 public sealed record FeatureDescriptor(
-    FeatureKind Kind,
+    OutputKind Output,
     FeatureCategory Category,
-    string Description,
     bool DefaultEnabled,
     DomainRequirements Requirements);

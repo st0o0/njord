@@ -21,13 +21,15 @@ public sealed class ApproachingFrontHandlerSpec
     [Fact]
     public void Handle_reports_a_pressure_drop_with_a_wind_shift()
     {
-        var front = Assert.IsType<PipelineEvent.FrontApproaching>(
+        var front = Assert.IsType<ConditionResult>(
             Assert.Single(Handler.Handle(Falling(315.0), WeatherOnly(Day()), Time)));
 
         Assert.Multiple(
-            () => Assert.Equal(6.0, front.PressureDrop),
-            () => Assert.Equal(3.0, front.TempDrop),
-            () => Assert.Equal(TimeSpan.FromHours(2), front.EstimatedIn));
+            () => Assert.Equal("frontapproaching", front.WireKey),
+            () => Assert.Equal("approaching", front.State),
+            () => Assert.Equal("6", front.Data["pressure_drop"]),
+            () => Assert.Equal("3", front.Data["temp_drop"]),
+            () => Assert.Equal("2", front.Data["estimated_in_hours"]));
     }
 
     [Fact]

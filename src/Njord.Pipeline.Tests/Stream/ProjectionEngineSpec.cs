@@ -161,7 +161,7 @@ public sealed class ProjectionEngineSpec
             () => Assert.Empty(skipped.Calls),
             () => Assert.Single(running.Calls),
             () => Assert.Equal(2, events.Count),
-            () => Assert.IsType<PipelineEvent.AlertRaised>(events[1]));
+            () => Assert.IsType<AlertResult>(events[1]));
     }
 
     [Fact]
@@ -187,9 +187,9 @@ public sealed class ProjectionEngineSpec
             DomainData.Received(DomainData.Lucerne, DomainData.Weather(Start, 48, (_, p) => p with { Temperature = -6.0 })));
 
         Assert.IsType<PipelineEvent.WeatherDataReceived>(events[0]);
-        var frost = Assert.Single(events.OfType<PipelineEvent.AlertRaised>(), e => e.Type == Messages.Alerts.AlertType.Frost);
+        var frost = Assert.Single(events.OfType<AlertResult>(), e => e.WireKey == "frost");
         Assert.Multiple(
-            () => Assert.Equal(Messages.Alerts.AlertSeverity.Orange, frost.Severity),
+            () => Assert.Equal(Messages.Alerts.AlertSeverity.Orange, frost.Alert.Severity),
             () => Assert.Equal(Start, frost.Timestamp));
     }
 
@@ -203,8 +203,8 @@ public sealed class ProjectionEngineSpec
         Assert.Equal(2, events.Count);
         Assert.Multiple(
             () => Assert.IsType<PipelineEvent.WeatherDataReceived>(events[0]),
-            () => Assert.Equal(AlertType.Frost, Assert.IsType<PipelineEvent.AlertRaised>(events[1]).Type),
-            () => Assert.Equal(Start, Assert.IsType<PipelineEvent.AlertRaised>(events[1]).Timestamp));
+            () => Assert.Equal("frost", Assert.IsType<AlertResult>(events[1]).WireKey),
+            () => Assert.Equal(Start, Assert.IsType<AlertResult>(events[1]).Timestamp));
     }
 
     [Fact]

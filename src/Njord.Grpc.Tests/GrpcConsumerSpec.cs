@@ -52,8 +52,7 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
                 new QueryLatestAnalysis(DomainData.Lucerne), AskTimeout, ct);
             Assert.Equal(new DomainDataResult(weather), domainData);
             var result = Assert.IsType<LatestAnalysisResult>(analysis);
-            Assert.NotNull(result.Alerts);
-            Assert.Equal([alert.Alert], result.Alerts.Alerts);
+            Assert.Equal<FeatureResult>([alert], result.Results);
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
     }
 
@@ -62,7 +61,7 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
-        var laundry = new PipelineEvent.LaundryScoreComputed(DomainData.Lucerne, 80, Anchor, 4);
+        var laundry = new ScoreResult(DomainData.Lucerne, "laundry", 80, Anchor, 4);
 
         await pipeline.OfferAsync(laundry, ct);
 
@@ -71,9 +70,7 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
             var analysis = await consumer.Ask<LatestAnalysisResponse>(
                 new QueryLatestAnalysis(DomainData.Lucerne), AskTimeout, ct);
             var result = Assert.IsType<LatestAnalysisResult>(analysis);
-            var update = Assert.Single(result.Lifestyle ?? []);
-            Assert.Null(result.Alerts);
-            Assert.Equal(LifestyleKind.LaundryScore, update.Kind);
+            Assert.Equal<FeatureResult>([laundry], result.Results);
         }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
     }
 

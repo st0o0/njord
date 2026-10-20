@@ -14,10 +14,11 @@ public sealed class VentilationWindowHandler : IDomainHandler
     public const double MaxTemperature = 28.0;
     public const double MaxPrecipitation = 0.1;
 
+    public string Name => "Ventilation";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.VentilationWindow,
+        OutputKind.Condition,
         FeatureCategory.Lifestyle,
-        "Best window for airing rooms",
         DefaultEnabled: false,
         new DomainRequirements(
         Weather: WeatherParams.Temperature | WeatherParams.Precipitation,
@@ -51,7 +52,10 @@ public sealed class VentilationWindowHandler : IDomainHandler
         var first = hours[start].Point.ValidFrom;
         var end = hours[start + length - 1].Point.ValidFrom + weather.Resolution.ToTimeSpan();
         var reason = $"Clean air and mild dry weather for {length} h";
-        return [new PipelineEvent.VentilationAdvised(current.Location, first, end, reason)];
+        return [new ConditionResult(current.Location, this.WireKey(), "open", FeatureData.Of(
+            ("best_start", FeatureData.Time(first)),
+            ("best_end", FeatureData.Time(end)),
+            ("reason", reason)))];
     }
 
     private static bool IsOpenWindowHour(WeatherPoint weather, AirQualityPoint air)

@@ -1,10 +1,10 @@
 using Njord.Forecast;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
-using DomainAlertType = Njord.Messages.Alerts.AlertType;
+using DomainOutputKind = Njord.Messages.Pipeline.OutputKind;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
-using ProtoAlertType = Njord.Grpc.V2.AlertType;
 using ProtoDomain = Njord.Grpc.V2.Domain;
+using ProtoOutputKind = Njord.Grpc.V2.OutputKind;
 using ProtoPollPhase = Njord.Grpc.V2.PollPhase;
 
 namespace Njord.Grpc.Mapping;
@@ -18,12 +18,21 @@ internal static class WireEnumMappings
         _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, null),
     };
 
+    public static ProtoOutputKind ToProto(this DomainOutputKind output) => output switch
+    {
+        DomainOutputKind.Alert => ProtoOutputKind.Alert,
+        DomainOutputKind.Score => ProtoOutputKind.Score,
+        DomainOutputKind.Condition => ProtoOutputKind.Condition,
+        DomainOutputKind.Trend => ProtoOutputKind.Trend,
+        DomainOutputKind.Forecast => ProtoOutputKind.Forecast,
+        _ => throw new ArgumentOutOfRangeException(nameof(output), output, null),
+    };
+
     public static ProtoDomain ToProto(this DomainKind domain) => domain switch
     {
         DomainKind.Weather => ProtoDomain.Weather,
         DomainKind.AirQuality => ProtoDomain.AirQuality,
         DomainKind.Flood => ProtoDomain.Flood,
-        DomainKind.Solar => ProtoDomain.Solar,
         DomainKind.Marine => ProtoDomain.Marine,
         DomainKind.Seasonal => ProtoDomain.Seasonal,
         DomainKind.Satellite => ProtoDomain.Satellite,
@@ -35,35 +44,10 @@ internal static class WireEnumMappings
         ProtoDomain.Weather => DomainKind.Weather,
         ProtoDomain.AirQuality => DomainKind.AirQuality,
         ProtoDomain.Flood => DomainKind.Flood,
-        ProtoDomain.Solar => DomainKind.Solar,
         ProtoDomain.Marine => DomainKind.Marine,
         ProtoDomain.Seasonal => DomainKind.Seasonal,
         ProtoDomain.Satellite => DomainKind.Satellite,
         _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, null),
-    };
-
-    public static ProtoAlertType ToProto(this DomainAlertType type) => type switch
-    {
-        DomainAlertType.Frost => ProtoAlertType.Frost,
-        DomainAlertType.Heat => ProtoAlertType.Heat,
-        DomainAlertType.Storm => ProtoAlertType.Storm,
-        DomainAlertType.HeavyRain => ProtoAlertType.HeavyRain,
-        DomainAlertType.Uv => ProtoAlertType.Uv,
-        DomainAlertType.Fog => ProtoAlertType.Fog,
-        DomainAlertType.Snow => ProtoAlertType.Snow,
-        DomainAlertType.PressureDrop => ProtoAlertType.PressureDrop,
-        DomainAlertType.Thunderstorm => ProtoAlertType.Thunderstorm,
-        DomainAlertType.Ice => ProtoAlertType.Ice,
-        DomainAlertType.WindChill => ProtoAlertType.WindChill,
-        DomainAlertType.Visibility => ProtoAlertType.Visibility,
-        DomainAlertType.TropicalNight => ProtoAlertType.TropicalNight,
-        DomainAlertType.Humidity => ProtoAlertType.Humidity,
-        DomainAlertType.Pollen => ProtoAlertType.Pollen,
-        DomainAlertType.Pm25 => ProtoAlertType.Pm25,
-        DomainAlertType.FloodRisk => ProtoAlertType.FloodRisk,
-        DomainAlertType.FloodRain => ProtoAlertType.FloodRain,
-        DomainAlertType.SwimmingConditions => ProtoAlertType.SwimmingConditions,
-        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 
     public static ProtoAlertSeverity ToProto(this DomainAlertSeverity severity) => severity switch

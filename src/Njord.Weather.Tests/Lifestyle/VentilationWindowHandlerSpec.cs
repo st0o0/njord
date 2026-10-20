@@ -14,11 +14,12 @@ public sealed class VentilationWindowHandlerSpec
     {
         var events = Handler.Handle(Combined(Day(), CleanAir()), null, Time);
 
-        var advice = Assert.IsType<PipelineEvent.VentilationAdvised>(Assert.Single(events));
+        var advice = Assert.IsType<ConditionResult>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal(Now, advice.BestStart),
-            () => Assert.Equal(Now.AddHours(24), advice.BestEnd),
-            () => Assert.Equal("Clean air and mild dry weather for 24 h", advice.Reason));
+            () => Assert.Equal("open", advice.State),
+            () => Assert.Equal(FeatureData.Time(Now), advice.Data["best_start"]),
+            () => Assert.Equal(FeatureData.Time(Now.AddHours(24)), advice.Data["best_end"]),
+            () => Assert.Equal("Clean air and mild dry weather for 24 h", advice.Data["reason"]));
     }
 
     [Fact]
@@ -28,10 +29,10 @@ public sealed class VentilationWindowHandlerSpec
 
         var events = Handler.Handle(Combined(Day(), air), null, Time);
 
-        var advice = Assert.IsType<PipelineEvent.VentilationAdvised>(Assert.Single(events));
+        var advice = Assert.IsType<ConditionResult>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal(Now.AddHours(5), advice.BestStart),
-            () => Assert.Equal(Now.AddHours(24), advice.BestEnd));
+            () => Assert.Equal(FeatureData.Time(Now.AddHours(5)), advice.Data["best_start"]),
+            () => Assert.Equal(FeatureData.Time(Now.AddHours(24)), advice.Data["best_end"]));
     }
 
     [Fact]

@@ -1,7 +1,6 @@
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 
 namespace Njord.Forecast.Tests;
@@ -15,7 +14,6 @@ public sealed class DomainPointSpec
         new WeatherPoint(At, 20, 19, 3, 0.5, 40, 60, 1013, 3, 55, 10, 4),
         new AirQualityPoint(At, 8, 12, 60),
         new FloodPoint(At, 120.5),
-        new SolarPoint(At, 300, 100, 400, 3000),
         new MarinePoint(At, 1.5, 6, 200),
     };
 

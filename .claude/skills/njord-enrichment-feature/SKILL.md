@@ -1,6 +1,6 @@
 ---
 name: njord-enrichment-feature
-description: Use when adding or changing an enrichment (alerts today) - its domain handler, analyzer and alert rules in the domain project (src/Njord.Weather), the result/settings contracts in Njord.Messages, the `FeatureKind` + `FeatureDescriptor` (toggle `Njord:Features:<Name>`; add the `ToConfigKey()` arm and add the entry to `docs/data/features.json`), DI registration as an IDomainHandler and golden-master snapshots.
+description: Use when adding or changing an enrichment (alerts today) - its domain handler, analyzer and alert rules in the domain project (src/Njord.Weather), the result/settings contracts in Njord.Messages, the handler/rule `Name` + `FeatureDescriptor` (toggle `Njord:Features:<Category>:<Name>`; add the entry to `docs/data/features.json`), DI registration as an IDomainHandler and golden-master snapshots.
 ---
 
 # njord enrichment feature
@@ -17,21 +17,21 @@ Rules (static entity set, `TimeProvider`, toggleable features) live in `AGENTS.m
 |---|---|---|---|
 | `Njord.Weather` | handler | 14 x `IAlertRule<DomainForecast<WeatherPoint>>` in `Rules/` (`FrostRule`, ...) | `AlertWindow` (shared 24 h window) |
 
-The handler of alerts is `WeatherAlertHandler` (triggered by the weather domain), which turns every non-`None` alert into a `PipelineEvent.AlertRaised`.
+The handler of alerts is `WeatherAlertHandler` (triggered by the weather domain), which turns every non-`None` alert into an `AlertResult` (`WireKey` = lowercase rule `Name`).
 
 Naming: `<Feature>Analyzer`, `<Name>Rule`, `<Domain><Feature>Handler`. Never `Computer`, `Calculator`, `Scorer`, `Evaluator` or `Factory` in Messages or a feature library (`ConventionArchitectureSpec` enforces it).
 
 ## Rules
 
-- **Stateless.** `IAlertRule.Evaluate(DomainForecast<WeatherPoint>, AlertSettings, DateTimeOffset)` returns one `Alert` of its `Type`. Thresholds come only from the arguments, so hot reload applies on the next call. A rule never reads another rule's output.
+- **Stateless.** `IAlertRule.Evaluate(DomainForecast<WeatherPoint>, AlertSettings, DateTimeOffset)` returns one `Alert` (the rule's `Name` identifies it). Thresholds come only from the arguments, so hot reload applies on the next call. A rule never reads another rule's output.
 - **Use the helpers**, never a private window loop: `forecast.Next24Hours(now)`, `SeverityThresholds.Classify`, `settings.Build(...)`. Shared constants (24 h window) live once (`AlertWindow`), not per rule.
-- **Analyzer** takes `IEnumerable<IAlertRule>`, fails fast at construction unless every `AlertType` has exactly one, and orders the output by enum declaration order (registration order must not leak).
+- **Analyzer** takes `IEnumerable<IAlertRule>`, fails fast at construction unless every rule `Name` is unique, and orders the output by `Name` (registration order must not leak).
 - Target size ~120 lines per rule file.
 
 ## Checklist
 
 1. **Options + settings** - `AlertOptions` (with `bool Enabled`) and validator in `src/Njord.Core/Configuration/`, threshold accessors there (`AlertOptionsThresholds`), registered by the feature's `AddWeatherDomain()`. Rules take `AlertOptions` directly.
-2. **Result type** - record in `src/Njord.Messages/<Feature>/`; new alert types extend `AlertType` (and its wire names).
+2. **Result type** - record in `src/Njord.Messages/<Feature>/`; non-alert features return one of `ScoreResult`, `ConditionResult`, `TrendResult`, `ForecastResult` (`src/Njord.Messages/Pipeline/FeatureResult.cs`); there is no per-feature enum, the lowercase `Name` is the wire key.
 3. **Rule** - new class in the feature library (`Rules/`), `public sealed`, parameterless, built on the helpers.
 4. **Register** - in the feature's `AddWeatherDomain()` (`src/Njord.Weather/ServiceCollectionExtensions.cs`): `services.AddSingleton<IAlertRule<DomainForecast<WeatherPoint>>, XxxRule>();` next to the analyzer, options and the `IDomainHandler` registration. The host calls `AddWeatherDomain()` from `src/Njord/Configuration/DomainSetupContainer.cs`; `src/Njord.Pipeline/Stream/ProjectionEngine.cs` invokes every registered `IDomainHandler` whose `Feature.Requirements` cover the changed domain and whose required fields are present.
 5. **Consumers** - gRPC: `ToProto()` in `src/Njord.Grpc/Mapping/AlertProtoMappings.cs` and the event switch in `src/Njord.Grpc/Mapping/EnrichmentEventMappings.cs` (`ToEnrichmentEvent`).
@@ -43,7 +43,7 @@ Naming: `<Feature>Analyzer`, `<Name>Rule`, `<Domain><Feature>Handler`. Never `Co
 // src/Njord.Weather/Rules/FrostRule.cs
 public sealed class FrostRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
-    public AlertType Type => AlertType.Frost;
+    public string Name => "Frost";
 
     public Alert Evaluate(DomainForecast<WeatherPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
@@ -51,7 +51,7 @@ public sealed class FrostRule : IAlertRule<DomainForecast<WeatherPoint>>
         var window = forecast.Next24Hours(now);
         if (window.LowestBy(p => p.Temperature) is not { } coldest)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var (severity, effectiveThreshold) = thresholds.Classify(coldest.Temperature);

@@ -9,7 +9,6 @@ internal static class DomainKindMappings
         DomainKind.Weather => "weather",
         DomainKind.AirQuality => "air-quality",
         DomainKind.Flood => "flood",
-        DomainKind.Solar => "solar",
         DomainKind.Marine => "marine",
         DomainKind.Seasonal => "seasonal",
         DomainKind.Satellite => "satellite",

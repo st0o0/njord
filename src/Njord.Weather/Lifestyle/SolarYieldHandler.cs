@@ -8,10 +8,11 @@ public sealed class SolarYieldHandler : IDomainHandler
 {
     public const double SystemEfficiency = 0.8;
 
+    public string Name => "SolarYield";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.SolarYield,
+        OutputKind.Condition,
         FeatureCategory.Energy,
-        "Expected solar yield from tilted irradiance",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.GlobalTiltedIrradiance));
 
@@ -27,6 +28,8 @@ public sealed class SolarYieldHandler : IDomainHandler
         var kwhPerSquareMeter = hours.Sum(hour => hour.Radiation) / 1000.0;
         var yield = kwhPerSquareMeter * SystemEfficiency;
         var peak = hours.MaxBy(hour => hour.Radiation);
-        return [new PipelineEvent.SolarYieldComputed(current.Location, Math.Round(yield, 2), peak.ValidFrom.Hour)];
+        return [new ConditionResult(current.Location, this.WireKey(), FeatureData.Number(Math.Round(yield, 2)), FeatureData.Of(
+            ("kwh_per_kwp", FeatureData.Number(Math.Round(yield, 2))),
+            ("peak_hour", FeatureData.Number(peak.ValidFrom.Hour))))];
     }
 }

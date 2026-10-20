@@ -3,7 +3,6 @@ using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Forecast.Flood;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 
 namespace Njord.Core.Tests.Domain;
@@ -28,7 +27,6 @@ public sealed class LocationForecastSpec
     [InlineData(DomainKind.Weather)]
     [InlineData(DomainKind.AirQuality)]
     [InlineData(DomainKind.Flood)]
-    [InlineData(DomainKind.Solar)]
     [InlineData(DomainKind.Marine)]
     public void Should_store_data_under_its_domain_and_leave_others_untouched(DomainKind kind)
     {
@@ -37,7 +35,6 @@ public sealed class LocationForecastSpec
             DomainKind.Weather => Empty<WeatherPoint>(kind),
             DomainKind.AirQuality => Empty<AirQualityPoint>(kind),
             DomainKind.Flood => Empty<FloodPoint>(kind),
-            DomainKind.Solar => Empty<SolarPoint>(kind),
             _ => Empty<MarinePoint>(kind),
         };
 

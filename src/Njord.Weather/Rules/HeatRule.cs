@@ -3,17 +3,18 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Alerts.Rules;
 
 public sealed class HeatRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
-    public AlertType Type => AlertType.Heat;
+
+    public string Name => "Heat";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.HeatAlert,
-        FeatureCategory.WeatherAlerts,
-        "Heat warning from air and apparent temperature",
+        OutputKind.Alert,
+        FeatureCategory.Weather,
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.ApparentTemperature | WeatherParams.EnsembleStdDev));
 
@@ -23,7 +24,7 @@ public sealed class HeatRule : IAlertRule<DomainForecast<WeatherPoint>>
         if (window.HighestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } apparent } hottestApparent
             || window.HighestBy(p => p.Temperature) is not { Temperature: { } air } hottestAir)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var (peak, max) = apparent >= air
@@ -33,11 +34,11 @@ public sealed class HeatRule : IAlertRule<DomainForecast<WeatherPoint>>
         var (severity, effectiveThreshold) = options.Heat().Classify(max);
         if (severity == AlertSeverity.None)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var rounded = Math.Round(max, 1);
-        return AlertWindow.Build(Type, severity, peak, new HeatDetails(ExpectedMax: rounded, ModelsAgreeing: 0),
+        return AlertWindow.Build(severity, peak, new HeatDetails(ExpectedMax: rounded, ModelsAgreeing: 0),
             rounded, effectiveThreshold, hoursUntil: peak.HoursFrom(now));
     }
 }

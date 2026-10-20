@@ -17,7 +17,6 @@ internal static class DomainDataProtoMappings
         PipelineEvent.WeatherDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Weather = e.Forecast.ToWeatherData() }),
         PipelineEvent.AirQualityDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { AirQuality = e.Forecast.ToAirQualityData() }),
         PipelineEvent.FloodDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Flood = e.Forecast.ToFloodData() }),
-        PipelineEvent.SolarDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Solar = e.Forecast.ToSolarData() }),
         PipelineEvent.MarineDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Marine = e.Forecast.ToMarineData() }),
         PipelineEvent.SatelliteDataReceived e => e.Location.ToUpdate(e.Forecast, new DomainDataUpdate { Satellite = e.Forecast.ToSatelliteData() }),
         _ => null,
@@ -28,7 +27,6 @@ internal static class DomainDataProtoMappings
         PipelineEvent.WeatherDataReceived => DomainKind.Weather,
         PipelineEvent.AirQualityDataReceived => DomainKind.AirQuality,
         PipelineEvent.FloodDataReceived => DomainKind.Flood,
-        PipelineEvent.SolarDataReceived => DomainKind.Solar,
         PipelineEvent.MarineDataReceived => DomainKind.Marine,
         PipelineEvent.SatelliteDataReceived => DomainKind.Satellite,
         _ => null,
@@ -39,7 +37,6 @@ internal static class DomainDataProtoMappings
         PipelineEvent.WeatherDataReceived e => e.Location,
         PipelineEvent.AirQualityDataReceived e => e.Location,
         PipelineEvent.FloodDataReceived e => e.Location,
-        PipelineEvent.SolarDataReceived e => e.Location,
         PipelineEvent.MarineDataReceived e => e.Location,
         PipelineEvent.SatelliteDataReceived e => e.Location,
         _ => null,
@@ -70,13 +67,6 @@ internal static class DomainDataProtoMappings
     private static FloodData ToFloodData(this DomainForecast<FloodPoint> forecast)
     {
         var data = new FloodData();
-        data.Points.AddRange(forecast.Points.Select(p => p.ToProto()));
-        return data;
-    }
-
-    private static SolarData ToSolarData(this DomainForecast<SolarPoint> forecast)
-    {
-        var data = new SolarData();
         data.Points.AddRange(forecast.Points.Select(p => p.ToProto()));
         return data;
     }
@@ -155,16 +145,6 @@ internal static class DomainDataProtoMappings
         if (p.DischargeP75 is { } p75) { sample.DischargeP75 = p75; }
         return sample;
     }
-
-    public static SolarSample ToProto(this SolarPoint p) =>
-        new()
-        {
-            ValidAt = p.ValidFrom.ToTimestamp(),
-            DirectRadiation = p.DirectRadiation,
-            DiffuseRadiation = p.DiffuseRadiation,
-            ShortwaveRadiation = p.ShortwaveRadiation,
-            SunshineDuration = p.SunshineDuration,
-        };
 
     public static SatelliteSample ToProto(this SatelliteRadiationPoint p)
     {

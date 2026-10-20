@@ -205,7 +205,7 @@ onMounted(() => {
     </div>
 
     <!-- Solar yield -->
-    <div v-if="config.features.SolarYield" class="section">
+    <div v-if="config.features['Energy:SolarYield']" class="section">
       <h3>Solar yield</h3>
       <div class="general-row">
         <label>Peak kW <input v-model.number="config.solarYield.peakKw" type="number" step="any" min="0.1" /></label>

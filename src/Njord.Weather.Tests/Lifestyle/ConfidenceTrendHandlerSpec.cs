@@ -21,11 +21,12 @@ public sealed class ConfidenceTrendHandlerSpec
     {
         var events = Handler.Handle(WithStdDev(current), WithStdDev(previous), Time);
 
-        var trend = Assert.IsType<PipelineEvent.ConfidenceTrend>(Assert.Single(events));
+        var trend = Assert.IsType<TrendResult>(Assert.Single(events));
         Assert.Multiple(
             () => Assert.Equal(direction, trend.Direction),
-            () => Assert.Equal(current, trend.CurrentAvgStdDev),
-            () => Assert.Equal(previous, trend.PreviousAvgStdDev));
+            () => Assert.Equal(Math.Round(current - previous, 2), trend.Magnitude),
+            () => Assert.Equal(FeatureData.Number(current), trend.Data["current_avg_std_dev"]),
+            () => Assert.Equal(FeatureData.Number(previous), trend.Data["previous_avg_std_dev"]));
     }
 
     [Fact]

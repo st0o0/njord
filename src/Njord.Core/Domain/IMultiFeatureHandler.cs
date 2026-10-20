@@ -4,5 +4,5 @@ namespace Njord.Core.Domain;
 // Its Feature is the composite of the enabled features; Features lists every feature it can serve.
 public interface IMultiFeatureHandler : IDomainHandler
 {
-    IReadOnlyList<FeatureDescriptor> Features { get; }
+    IReadOnlyList<IFeature> Features { get; }
 }

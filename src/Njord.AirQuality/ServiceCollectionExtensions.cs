@@ -4,7 +4,6 @@ using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
-using Njord.Messages.Alerts;
 
 namespace Njord.AirQuality;
 
@@ -15,9 +14,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAlertRule<DomainForecast<AirQualityPoint>>, PollenAlertRule>();
         services.AddSingleton<IAlertRule<DomainForecast<AirQualityPoint>>, Pm25AlertRule>();
         services.AddSingleton<IDomainHandler>(static sp => new AirQualityAlertHandler(
-            sp.GetServices<IAlertRule<DomainForecast<AirQualityPoint>>>(), sp.GetRequiredService<IOptions<AlertOptions>>(), AlertType.Pollen));
+            sp.GetServices<IAlertRule<DomainForecast<AirQualityPoint>>>(), sp.GetRequiredService<IOptions<AlertOptions>>(), "Pollen"));
         services.AddSingleton<IDomainHandler>(static sp => new AirQualityAlertHandler(
-            sp.GetServices<IAlertRule<DomainForecast<AirQualityPoint>>>(), sp.GetRequiredService<IOptions<AlertOptions>>(), AlertType.Pm25));
+            sp.GetServices<IAlertRule<DomainForecast<AirQualityPoint>>>(), sp.GetRequiredService<IOptions<AlertOptions>>(), "Pm25"));
         services.AddSingleton<IDomainHandler, PollenTrendHandler>();
         return services;
     }

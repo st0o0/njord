@@ -24,12 +24,13 @@ public sealed class SatelliteRadiationHandlerSpec
 
         var events = Handler.Handle(forecast, null, Time);
 
-        var computed = Assert.IsType<PipelineEvent.SatelliteRadiationComputed>(Assert.Single(events));
+        var computed = Assert.IsType<ConditionResult>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal(Now, computed.ObservedAt),
-            () => Assert.Equal(500, computed.GlobalTilted),
-            () => Assert.Equal(410, computed.GlobalHorizontal),
-            () => Assert.Null(computed.BlendedKwhPerM2));
+            () => Assert.Equal("500", computed.State),
+            () => Assert.Equal(FeatureData.Time(Now), computed.Data["observed_at"]),
+            () => Assert.Equal("500", computed.Data["gti"]),
+            () => Assert.Equal("410", computed.Data["ghi"]),
+            () => Assert.False(computed.Data.ContainsKey("blended_kwh_per_m2")));
     }
 
     [Fact]
@@ -40,8 +41,8 @@ public sealed class SatelliteRadiationHandlerSpec
 
         var events = Handler.Handle(forecast, null, Time);
 
-        var computed = Assert.IsType<PipelineEvent.SatelliteRadiationComputed>(Assert.Single(events));
-        Assert.Equal(Math.Round((600.0 + 23 * 100.0) / 1000.0, 2), computed.BlendedKwhPerM2);
+        var computed = Assert.IsType<ConditionResult>(Assert.Single(events));
+        Assert.Equal(FeatureData.Number(Math.Round((600.0 + 23 * 100.0) / 1000.0, 2)), computed.Data["blended_kwh_per_m2"]);
     }
 
     [Fact]
@@ -69,7 +70,8 @@ public sealed class SatelliteRadiationHandlerSpec
     [Fact]
     public void The_feature_is_off_unless_configured_and_reads_the_satellite_domain()
     {
-        var on = new FeatureOptions { [FeatureKind.SatelliteRadiation] = true };
+        var on = new FeatureOptions();
+        on.Set("Energy", "SatelliteRadiation", true);
 
         Assert.Multiple(
             () => Assert.Empty(FeatureResolution.EnabledHandlers(new FeatureOptions(), [Handler])),

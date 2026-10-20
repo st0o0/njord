@@ -11,10 +11,11 @@ public sealed class NightVentilationHandler : IDomainHandler
     public const double HotDayPeak = 28.0;
     public const double CoolNightLimit = 20.0;
 
+    public string Name => "NightVentilation";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.NightVentilation,
+        OutputKind.Condition,
         FeatureCategory.Lifestyle,
-        "Night cooling ventilation advice",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.Temperature));
 
@@ -56,6 +57,10 @@ public sealed class NightVentilationHandler : IDomainHandler
         }
 
         var closeAt = window[^1].ValidFrom + weather.Resolution.ToTimeSpan();
-        return [new PipelineEvent.NightVentilationAdvised(current.Location, window[0].ValidFrom, closeAt, coolest, peak)];
+        return [new ConditionResult(current.Location, this.WireKey(), "open", FeatureData.Of(
+            ("open_at", FeatureData.Time(window[0].ValidFrom)),
+            ("close_at", FeatureData.Time(closeAt)),
+            ("low_temp", FeatureData.Number(coolest)),
+            ("tomorrow_peak", FeatureData.Number(peak))))];
     }
 }

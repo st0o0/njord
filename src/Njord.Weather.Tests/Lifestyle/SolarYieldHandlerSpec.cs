@@ -21,10 +21,11 @@ public sealed class SolarYieldHandlerSpec
     {
         var events = new SolarYieldHandler().Handle(Sunny(), null, Time);
 
-        var yield = Assert.IsType<PipelineEvent.SolarYieldComputed>(Assert.Single(events));
+        var yield = Assert.IsType<ConditionResult>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal(Math.Round((23 * 100.0 + 800.0) / 1000.0 * SolarYieldHandler.SystemEfficiency, 2), yield.KwhPerKwp),
-            () => Assert.Equal(Now.AddHours(3).Hour, yield.PeakHour));
+            () => Assert.Equal(FeatureData.Number(Math.Round((23 * 100.0 + 800.0) / 1000.0 * SolarYieldHandler.SystemEfficiency, 2)), yield.Data["kwh_per_kwp"]),
+            () => Assert.Equal(yield.Data["kwh_per_kwp"], yield.State),
+            () => Assert.Equal(FeatureData.Number(Now.AddHours(3).Hour), yield.Data["peak_hour"]));
     }
 
     [Fact]
@@ -47,10 +48,10 @@ public sealed class SolarYieldHandlerSpec
     {
         var events = new SolarYieldHandler().Handle(WithSatellite((1, 50.0), (0, 400.0)), null, Time);
 
-        var yield = Assert.IsType<PipelineEvent.SolarYieldComputed>(Assert.Single(events));
+        var yield = Assert.IsType<ConditionResult>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal(Math.Round((400.0 + 800.0 + 22 * 100.0) / 1000.0 * SolarYieldHandler.SystemEfficiency, 2), yield.KwhPerKwp),
-            () => Assert.Equal(Now.AddHours(3).Hour, yield.PeakHour));
+            () => Assert.Equal(FeatureData.Number(Math.Round((400.0 + 800.0 + 22 * 100.0) / 1000.0 * SolarYieldHandler.SystemEfficiency, 2)), yield.Data["kwh_per_kwp"]),
+            () => Assert.Equal(FeatureData.Number(Now.AddHours(3).Hour), yield.Data["peak_hour"]));
     }
 
     [Fact]
@@ -58,17 +59,19 @@ public sealed class SolarYieldHandlerSpec
     {
         var events = new SolarYieldHandler().Handle(WithSatellite((0, 1000.0)), null, Time);
 
-        var yield = Assert.IsType<PipelineEvent.SolarYieldComputed>(Assert.Single(events));
-        Assert.Equal(Now.Hour, yield.PeakHour);
+        var yield = Assert.IsType<ConditionResult>(Assert.Single(events));
+        Assert.Equal(FeatureData.Number(Now.Hour), yield.Data["peak_hour"]);
     }
 
     [Fact]
     public void Handle_ignores_satellite_data_older_than_three_hours()
     {
-        var withStale = new SolarYieldHandler().Handle(WithSatellite((4, 900.0)), null, Time);
-        var ensembleOnly = new SolarYieldHandler().Handle(Sunny(), null, Time);
+        var withStale = Assert.IsType<ConditionResult>(Assert.Single(new SolarYieldHandler().Handle(WithSatellite((4, 900.0)), null, Time)));
+        var ensembleOnly = Assert.IsType<ConditionResult>(Assert.Single(new SolarYieldHandler().Handle(Sunny(), null, Time)));
 
-        Assert.Equal(ensembleOnly, withStale);
+        Assert.Multiple(
+            () => Assert.Equal(ensembleOnly.State, withStale.State),
+            () => Assert.Equal(ensembleOnly.Data, withStale.Data));
     }
 
     [Fact]

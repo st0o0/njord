@@ -3,11 +3,7 @@ using Njord.Messages.Alerts;
 
 namespace Njord.Core.Domain;
 
-public interface IAlertRule<in T>
+public interface IAlertRule<in T> : IFeature
 {
-    AlertType Type { get; }
-
-    FeatureDescriptor Feature { get; }
-
     Alert Evaluate(T input, AlertOptions options, DateTimeOffset now);
 }

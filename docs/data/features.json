@@ -1,7 +1,9 @@
 [
   {
-    "key": "FrostAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:Frost",
+    "name": "Frost",
+    "category": "Weather",
+    "output": "Alert",
     "description": "Frost warning from the forecast low",
     "enabledByDefault": true,
     "domains": [
@@ -13,8 +15,10 @@
     ]
   },
   {
-    "key": "HeatAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:Heat",
+    "name": "Heat",
+    "category": "Weather",
+    "output": "Alert",
     "description": "Heat warning from air and apparent temperature",
     "enabledByDefault": true,
     "domains": [
@@ -27,8 +31,10 @@
     ]
   },
   {
-    "key": "StormAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:Storm",
+    "name": "Storm",
+    "category": "Weather",
+    "output": "Alert",
     "description": "Storm warning from wind gusts",
     "enabledByDefault": true,
     "domains": [
@@ -40,8 +46,10 @@
     ]
   },
   {
-    "key": "RainAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:HeavyRain",
+    "name": "HeavyRain",
+    "category": "Weather",
+    "output": "Alert",
     "description": "Heavy rain warning from hourly precipitation",
     "enabledByDefault": true,
     "domains": [
@@ -53,8 +61,10 @@
     ]
   },
   {
-    "key": "UvAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:Uv",
+    "name": "Uv",
+    "category": "Weather",
+    "output": "Alert",
     "description": "UV warning from the peak UV index",
     "enabledByDefault": true,
     "domains": [
@@ -68,8 +78,10 @@
     ]
   },
   {
-    "key": "FogAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:Fog",
+    "name": "Fog",
+    "category": "Weather",
+    "output": "Alert",
     "description": "Fog warning from dew point spread, wind and humidity",
     "enabledByDefault": true,
     "domains": [
@@ -84,8 +96,10 @@
     ]
   },
   {
-    "key": "SnowAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:Snow",
+    "name": "Snow",
+    "category": "Weather",
+    "output": "Alert",
     "description": "Snow warning from snowfall and freezing level",
     "enabledByDefault": true,
     "domains": [
@@ -98,8 +112,10 @@
     ]
   },
   {
-    "key": "PressureDropAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:PressureDrop",
+    "name": "PressureDrop",
+    "category": "Weather",
+    "output": "Alert",
     "description": "Warning for a rapid surface pressure drop",
     "enabledByDefault": true,
     "domains": [
@@ -111,8 +127,10 @@
     ]
   },
   {
-    "key": "ThunderstormAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:Thunderstorm",
+    "name": "Thunderstorm",
+    "category": "Weather",
+    "output": "Alert",
     "description": "Thunderstorm warning from CAPE, precipitation and gusts",
     "enabledByDefault": true,
     "domains": [
@@ -126,8 +144,10 @@
     ]
   },
   {
-    "key": "IceAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:Ice",
+    "name": "Ice",
+    "category": "Weather",
+    "output": "Alert",
     "description": "Black ice warning from freezing temperatures with rain",
     "enabledByDefault": true,
     "domains": [
@@ -144,8 +164,10 @@
     ]
   },
   {
-    "key": "WindChillAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:WindChill",
+    "name": "WindChill",
+    "category": "Weather",
+    "output": "Alert",
     "description": "Wind chill warning from apparent temperature",
     "enabledByDefault": true,
     "domains": [
@@ -157,8 +179,10 @@
     ]
   },
   {
-    "key": "VisibilityAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:Visibility",
+    "name": "Visibility",
+    "category": "Weather",
+    "output": "Alert",
     "description": "Low visibility warning",
     "enabledByDefault": true,
     "domains": [
@@ -170,8 +194,10 @@
     ]
   },
   {
-    "key": "TropicalNightAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:TropicalNight",
+    "name": "TropicalNight",
+    "category": "Weather",
+    "output": "Alert",
     "description": "Tropical night warning from the night time low",
     "enabledByDefault": true,
     "domains": [
@@ -184,8 +210,10 @@
     ]
   },
   {
-    "key": "HumidityAlert",
-    "category": "WeatherAlerts",
+    "key": "Weather:Humidity",
+    "name": "Humidity",
+    "category": "Weather",
+    "output": "Alert",
     "description": "Muggy air warning from the daytime dew point",
     "enabledByDefault": true,
     "domains": [
@@ -198,8 +226,10 @@
     ]
   },
   {
-    "key": "PollenAlert",
+    "key": "AirQuality:Pollen",
+    "name": "Pollen",
     "category": "AirQuality",
+    "output": "Alert",
     "description": "Pollen warning from the highest pollen concentration",
     "enabledByDefault": true,
     "domains": [
@@ -213,8 +243,10 @@
     ]
   },
   {
-    "key": "Pm25Alert",
+    "key": "AirQuality:Pm25",
+    "name": "Pm25",
     "category": "AirQuality",
+    "output": "Alert",
     "description": "Fine particulate warning against the WHO guideline",
     "enabledByDefault": true,
     "domains": [
@@ -225,8 +257,10 @@
     ]
   },
   {
-    "key": "PollenTrend",
+    "key": "AirQuality:PollenTrend",
+    "name": "PollenTrend",
     "category": "AirQuality",
+    "output": "Condition",
     "description": "Trend of the pollen load",
     "enabledByDefault": false,
     "domains": [
@@ -240,8 +274,10 @@
     ]
   },
   {
-    "key": "CommuteSafety",
+    "key": "Lifestyle:Commute",
+    "name": "Commute",
     "category": "Lifestyle",
+    "output": "Condition",
     "description": "Commute safety rating from rain, wind and ice risk",
     "enabledByDefault": true,
     "domains": [
@@ -256,8 +292,10 @@
     ]
   },
   {
-    "key": "ExerciseAdvisory",
+    "key": "Lifestyle:Exercise",
+    "name": "Exercise",
     "category": "Lifestyle",
+    "output": "Condition",
     "description": "Exercise advisory from heat, humidity and air quality",
     "enabledByDefault": false,
     "domains": [
@@ -277,8 +315,10 @@
     ]
   },
   {
-    "key": "LaundryScore",
+    "key": "Lifestyle:Laundry",
+    "name": "Laundry",
     "category": "Lifestyle",
+    "output": "Score",
     "description": "Laundry drying score",
     "enabledByDefault": false,
     "domains": [
@@ -297,8 +337,10 @@
     ]
   },
   {
-    "key": "OutdoorScore",
+    "key": "Lifestyle:Outdoor",
+    "name": "Outdoor",
     "category": "Lifestyle",
+    "output": "Score",
     "description": "Overall outdoor activity score",
     "enabledByDefault": false,
     "domains": [
@@ -324,8 +366,10 @@
     ]
   },
   {
-    "key": "BBQScore",
+    "key": "Lifestyle:Bbq",
+    "name": "Bbq",
     "category": "Lifestyle",
+    "output": "Score",
     "description": "Barbecue suitability score",
     "enabledByDefault": false,
     "domains": [
@@ -340,8 +384,10 @@
     ]
   },
   {
-    "key": "NightVentilation",
+    "key": "Lifestyle:NightVentilation",
+    "name": "NightVentilation",
     "category": "Lifestyle",
+    "output": "Condition",
     "description": "Night cooling ventilation advice",
     "enabledByDefault": false,
     "domains": [
@@ -352,8 +398,10 @@
     ]
   },
   {
-    "key": "VentilationWindow",
+    "key": "Lifestyle:Ventilation",
+    "name": "Ventilation",
     "category": "Lifestyle",
+    "output": "Condition",
     "description": "Best window for airing rooms",
     "enabledByDefault": false,
     "domains": [
@@ -373,8 +421,10 @@
     ]
   },
   {
-    "key": "GardeningAdvisory",
+    "key": "Lifestyle:Gardening",
+    "name": "Gardening",
     "category": "Lifestyle",
+    "output": "Condition",
     "description": "Gardening advisory from temperature, wind and rain",
     "enabledByDefault": false,
     "domains": [
@@ -387,8 +437,10 @@
     ]
   },
   {
-    "key": "ConfidenceTrend",
+    "key": "Insight:ConfidenceTrend",
+    "name": "ConfidenceTrend",
     "category": "Insight",
+    "output": "Trend",
     "description": "Trend of the ensemble forecast confidence",
     "enabledByDefault": false,
     "domains": [
@@ -399,8 +451,10 @@
     ]
   },
   {
-    "key": "ApproachingFront",
+    "key": "Insight:FrontApproaching",
+    "name": "FrontApproaching",
     "category": "Insight",
+    "output": "Condition",
     "description": "Early warning when a pressure front approaches",
     "enabledByDefault": false,
     "domains": [
@@ -413,8 +467,10 @@
     ]
   },
   {
-    "key": "SeasonalOutlook",
+    "key": "Insight:SeasonalOutlook",
+    "name": "SeasonalOutlook",
     "category": "Insight",
+    "output": "Forecast",
     "description": "Monthly temperature and precipitation outlook for the next three months",
     "enabledByDefault": false,
     "domains": [
@@ -422,8 +478,10 @@
     ]
   },
   {
-    "key": "SolarYield",
+    "key": "Energy:SolarYield",
+    "name": "SolarYield",
     "category": "Energy",
+    "output": "Condition",
     "description": "Expected solar yield from tilted irradiance",
     "enabledByDefault": false,
     "domains": [
@@ -434,8 +492,10 @@
     ]
   },
   {
-    "key": "SatelliteRadiation",
+    "key": "Energy:SatelliteRadiation",
+    "name": "SatelliteRadiation",
     "category": "Energy",
+    "output": "Condition",
     "description": "Satellite-observed solar irradiance blended with the ensemble forecast",
     "enabledByDefault": false,
     "domains": [
@@ -443,8 +503,10 @@
     ]
   },
   {
-    "key": "FloodRisk",
+    "key": "Flood:FloodRisk",
+    "name": "FloodRisk",
     "category": "Flood",
+    "output": "Alert",
     "description": "River discharge flood risk warning",
     "enabledByDefault": false,
     "domains": [
@@ -452,8 +514,10 @@
     ]
   },
   {
-    "key": "FloodRain",
+    "key": "Flood:FloodRain",
+    "name": "FloodRain",
     "category": "Flood",
+    "output": "Alert",
     "description": "Flood warning combining heavy rain and rising discharge",
     "enabledByDefault": false,
     "domains": [
@@ -465,8 +529,10 @@
     ]
   },
   {
-    "key": "FloodTimeline",
+    "key": "Flood:FloodTimeline",
+    "name": "FloodTimeline",
     "category": "Flood",
+    "output": "Condition",
     "description": "Discharge timeline for the coming days",
     "enabledByDefault": false,
     "domains": [
@@ -474,8 +540,10 @@
     ]
   },
   {
-    "key": "SwimmingConditions",
+    "key": "Marine:Swimming",
+    "name": "Swimming",
     "category": "Marine",
+    "output": "Alert",
     "description": "Swimming conditions from wave height and water temperature",
     "enabledByDefault": false,
     "domains": [
@@ -483,8 +551,10 @@
     ]
   },
   {
-    "key": "SurfConditions",
+    "key": "Marine:Surf",
+    "name": "Surf",
     "category": "Marine",
+    "output": "Condition",
     "description": "Surf conditions from swell height and period",
     "enabledByDefault": false,
     "domains": [

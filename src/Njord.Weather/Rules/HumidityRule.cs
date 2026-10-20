@@ -3,17 +3,18 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Alerts.Rules;
 
 public sealed class HumidityRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
-    public AlertType Type => AlertType.Humidity;
+
+    public string Name => "Humidity";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.HumidityAlert,
-        FeatureCategory.WeatherAlerts,
-        "Muggy air warning from the daytime dew point",
+        OutputKind.Alert,
+        FeatureCategory.Weather,
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.DewPoint | WeatherParams.IsDay | WeatherParams.EnsembleStdDev));
 
@@ -23,21 +24,21 @@ public sealed class HumidityRule : IAlertRule<DomainForecast<WeatherPoint>>
         var day = forecast.NextHoursInclusive(now).Where(p => p is { IsDay: > 0.5, DewPoint: not null }).ToList();
         if (day.MaxBy(p => p.DewPoint) is not { DewPoint: { } dewPoint } muggiest)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var (severity, effectiveThreshold) = thresholds.Classify(dewPoint);
         var comfortLevel = severity switch
         {
-            AlertSeverity.Red => HumidityComfort.Tropical,
-            AlertSeverity.Orange => HumidityComfort.Oppressive,
-            AlertSeverity.Yellow => HumidityComfort.Muggy,
-            _ => (HumidityComfort?)null,
+            AlertSeverity.Red => "tropical",
+            AlertSeverity.Orange => "oppressive",
+            AlertSeverity.Yellow => "muggy",
+            _ => (string?)null,
         };
 
         var rounded = Math.Round(dewPoint, 1);
         var details = new HumidityDetails(MaxDewpoint: rounded, ComfortLevel: comfortLevel);
-        return AlertWindow.Build(Type, severity, muggiest, details, rounded, effectiveThreshold,
+        return AlertWindow.Build(severity, muggiest, details, rounded, effectiveThreshold,
             hoursUntil: muggiest.HoursFrom(now));
     }
 }

@@ -3,17 +3,18 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Alerts.Rules;
 
 public sealed class FrostRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
-    public AlertType Type => AlertType.Frost;
+
+    public string Name => "Frost";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.FrostAlert,
-        FeatureCategory.WeatherAlerts,
-        "Frost warning from the forecast low",
+        OutputKind.Alert,
+        FeatureCategory.Weather,
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.EnsembleStdDev));
 
@@ -23,7 +24,7 @@ public sealed class FrostRule : IAlertRule<DomainForecast<WeatherPoint>>
         var window = forecast.NextHoursInclusive(now);
         if (window.LowestBy(p => p.Temperature) is not { Temperature: { } lowest } coldest)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var earliest = window.FirstOrDefault(p => p.Temperature is { } t && thresholds.CrossesAdvisory(t));
@@ -34,7 +35,7 @@ public sealed class FrostRule : IAlertRule<DomainForecast<WeatherPoint>>
             EarliestFrost: earliest is null ? null : Horizon.Hours(earliest.HoursFrom(now)),
             ModelsAgreeing: 0);
 
-        return AlertWindow.Build(Type, severity, coldest, details, low, effectiveThreshold,
+        return AlertWindow.Build(severity, coldest, details, low, effectiveThreshold,
             hoursUntil: earliest?.HoursFrom(now));
     }
 }

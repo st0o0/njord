@@ -12,6 +12,8 @@ public sealed class SwimmingConditionsHandler(
     IAlertRule<DomainForecast<MarinePoint>> rule,
     IOptions<AlertOptions> options) : IDomainHandler
 {
+    public string Name => rule.Name;
+
     public FeatureDescriptor Feature => rule.Feature;
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
@@ -23,6 +25,6 @@ public sealed class SwimmingConditionsHandler(
 
         var now = time.GetUtcNow();
         var alert = rule.Evaluate(marine, options.Value, now);
-        return alert.Severity == AlertSeverity.None ? [] : [new PipelineEvent.AlertRaised(current.Location, alert, now)];
+        return alert.Severity == AlertSeverity.None ? [] : [new AlertResult(current.Location, rule.WireKey(), alert, now)];
     }
 }

@@ -3,17 +3,18 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Alerts.Rules;
 
 public sealed class VisibilityRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
-    public AlertType Type => AlertType.Visibility;
+
+    public string Name => "Visibility";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.VisibilityAlert,
-        FeatureCategory.WeatherAlerts,
-        "Low visibility warning",
+        OutputKind.Alert,
+        FeatureCategory.Weather,
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Visibility | WeatherParams.EnsembleStdDev));
 
@@ -23,14 +24,14 @@ public sealed class VisibilityRule : IAlertRule<DomainForecast<WeatherPoint>>
         var window = forecast.NextHoursInclusive(now);
         if (window.LowestBy(p => p.Visibility) is not { Visibility: { } low } lowest)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var hoursBelow = window.Count(p => p.Visibility is { } v && thresholds.CrossesAdvisory(v, strict: true));
         var (severity, effectiveThreshold) = thresholds.Classify(low, strict: true);
         var rounded = Math.Round(low, 0);
         var details = new VisibilityDetails(MinVisibility: rounded, HoursBelow1000m: hoursBelow);
-        return AlertWindow.Build(Type, severity, lowest, details, rounded, effectiveThreshold,
+        return AlertWindow.Build(severity, lowest, details, rounded, effectiveThreshold,
             hoursUntil: lowest.HoursFrom(now));
     }
 }

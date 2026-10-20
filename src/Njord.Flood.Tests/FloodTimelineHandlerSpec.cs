@@ -14,12 +14,14 @@ public sealed class FloodTimelineHandlerSpec
         var forecast = new LocationForecast(Lucerne, Flood: FloodForecast(
             Point(0, 100), Point(1, 140), Point(2, 180), Point(3, 300), Point(4, 200), Point(5, 120)));
 
-        var timeline = Assert.IsType<PipelineEvent.FloodTimelineComputed>(Assert.Single(Handler.Handle(forecast, null, TimeProvider.System)));
+        var timeline = Assert.IsType<ConditionResult>(Assert.Single(Handler.Handle(forecast, null, TimeProvider.System)));
 
         Assert.Multiple(
-            () => Assert.Equal(Today.AddDays(3), timeline.PeakTime),
-            () => Assert.Equal(300.0, timeline.PeakDischarge),
-            () => Assert.Equal(3, timeline.DaysAboveWarning));
+            () => Assert.Equal("floodtimeline", timeline.WireKey),
+            () => Assert.Equal("above_warning", timeline.State),
+            () => Assert.Equal(FeatureData.Time(Today.AddDays(3)), timeline.Data["peak_time"]),
+            () => Assert.Equal("300", timeline.Data["peak_discharge"]),
+            () => Assert.Equal("3", timeline.Data["days_above_warning"]));
     }
 
     [Fact]
@@ -27,9 +29,11 @@ public sealed class FloodTimelineHandlerSpec
     {
         var forecast = new LocationForecast(Lucerne, Flood: FloodForecast(Point(0, 80), Point(1, 90)));
 
-        var timeline = Assert.IsType<PipelineEvent.FloodTimelineComputed>(Assert.Single(Handler.Handle(forecast, null, TimeProvider.System)));
+        var timeline = Assert.IsType<ConditionResult>(Assert.Single(Handler.Handle(forecast, null, TimeProvider.System)));
 
-        Assert.Equal(0, timeline.DaysAboveWarning);
+        Assert.Multiple(
+            () => Assert.Equal("normal", timeline.State),
+            () => Assert.Equal("0", timeline.Data["days_above_warning"]));
     }
 
     [Fact]

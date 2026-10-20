@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Njord.AirQuality;
 using Njord.Core.Configuration;
@@ -9,9 +10,12 @@ using Njord.Weather.Alerts;
 
 namespace Njord.Architecture.Tests;
 
-public sealed class FeatureConfigKeySpec
+public sealed partial class FeatureConfigKeySpec
 {
-    private static IReadOnlyList<FeatureDescriptor> RegisteredFeatures()
+    [GeneratedRegex("^[A-Z][A-Za-z0-9]*$")]
+    private static partial Regex PascalCase();
+
+    private static IReadOnlyList<IFeature> RegisteredFeatures()
     {
         using var provider = FeatureServices.Build(TimeProvider.System, services =>
         {
@@ -22,21 +26,36 @@ public sealed class FeatureConfigKeySpec
     }
 
     [Fact]
-    public void Every_feature_kind_is_declared_by_exactly_one_registered_feature()
+    public void Every_registered_feature_has_a_distinct_name()
     {
-        var kinds = RegisteredFeatures().Select(feature => feature.Kind).ToList();
+        var names = RegisteredFeatures().Select(feature => feature.Name).ToList();
 
         Assert.Multiple(
-            () => Assert.NotEmpty(kinds),
-            () => Assert.Equal(kinds.Count, kinds.Distinct().Count()),
-            () => Assert.Equal(Enum.GetValues<FeatureKind>().Order(), kinds.Order()));
+            () => Assert.NotEmpty(names),
+            () => Assert.Equal(names.Count, names.Distinct(StringComparer.OrdinalIgnoreCase).Count()));
     }
 
     [Fact]
-    public void Every_registered_feature_has_a_distinct_config_key()
+    public void Every_registered_feature_has_a_distinct_wire_key()
     {
-        var keys = RegisteredFeatures().Select(feature => feature.Kind.ToConfigKey()).ToList();
+        var keys = RegisteredFeatures().Select(feature => feature.WireKey()).ToList();
 
         Assert.Equal(keys.Count, keys.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void Every_registered_feature_has_a_distinct_section_key()
+    {
+        var keys = RegisteredFeatures().Select(feature => feature.SectionKey()).ToList();
+
+        Assert.Equal(keys.Count, keys.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
+    public void Every_registered_feature_name_is_pascal_case_alphanumeric()
+    {
+        var invalid = RegisteredFeatures().Select(feature => feature.Name).Where(name => !PascalCase().IsMatch(name)).ToList();
+
+        Assert.Empty(invalid);
     }
 }

@@ -5,7 +5,7 @@ export const DOMAINS = ['Weather', 'AirQuality', 'Flood', 'Marine', 'Seasonal', 
 export type DomainName = (typeof DOMAINS)[number]
 
 export const CATEGORIES = [
-  { key: 'WeatherAlerts', label: 'Weather alerts' },
+  { key: 'Weather', label: 'Weather alerts' },
   { key: 'AirQuality', label: 'Air quality' },
   { key: 'Lifestyle', label: 'Lifestyle' },
   { key: 'Insight', label: 'Insight' },
@@ -15,8 +15,11 @@ export const CATEGORIES = [
 ] as const
 
 export interface FeatureEntry {
+  // Config key Category:Name; the wire key is the lowercase name.
   key: string
+  name: string
   category: string
+  output: 'Alert' | 'Score' | 'Condition' | 'Trend' | 'Forecast'
   description: string
   enabledByDefault: boolean
   domains: DomainName[]
@@ -26,11 +29,11 @@ export interface FeatureEntry {
 }
 
 // Generated from the registered FeatureDescriptors (docs/data/features.json, kept in sync by FeaturesDataSpec),
-// so the builder cannot drift from the service. Config keys are Njord:Features:<key>.
+// so the builder cannot drift from the service. Config keys are Njord:Features:<category>:<name>.
 export const FEATURES: FeatureEntry[] = featureData as FeatureEntry[]
 
 export function featureLabel(key: string): string {
-  return key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace('Pm25', 'PM2.5')
+  return key.slice(key.indexOf(':') + 1).replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace('Pm25', 'PM2.5')
 }
 
 export function defaultFeatures(): Record<string, boolean> {

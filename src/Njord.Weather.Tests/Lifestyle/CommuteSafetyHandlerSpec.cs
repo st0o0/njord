@@ -14,10 +14,10 @@ public sealed class CommuteSafetyHandlerSpec
     {
         var events = Handler.Handle(WeatherOnly(Day()), null, Time);
 
-        var safety = Assert.IsType<PipelineEvent.CommuteSafety>(Assert.Single(events));
+        var safety = Assert.IsType<ConditionResult>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal("Safe", safety.Level),
-            () => Assert.Empty(safety.Risks));
+            () => Assert.Equal("Safe", safety.State),
+            () => Assert.Equal("", safety.Data["risks"]));
     }
 
     [Fact]
@@ -27,10 +27,10 @@ public sealed class CommuteSafetyHandlerSpec
 
         var events = Handler.Handle(WeatherOnly(weather), null, Time);
 
-        var safety = Assert.IsType<PipelineEvent.CommuteSafety>(Assert.Single(events));
+        var safety = Assert.IsType<ConditionResult>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal("Dangerous", safety.Level),
-            () => Assert.Equal(["Ice"], safety.Risks));
+            () => Assert.Equal("Dangerous", safety.State),
+            () => Assert.Equal("Ice", safety.Data["risks"]));
     }
 
     [Fact]
@@ -40,10 +40,10 @@ public sealed class CommuteSafetyHandlerSpec
 
         var events = Handler.Handle(WeatherOnly(weather), null, Time);
 
-        var safety = Assert.IsType<PipelineEvent.CommuteSafety>(Assert.Single(events));
+        var safety = Assert.IsType<ConditionResult>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal("Caution", safety.Level),
-            () => Assert.Equal(["Strong wind"], safety.Risks));
+            () => Assert.Equal("Caution", safety.State),
+            () => Assert.Equal("Strong wind", safety.Data["risks"]));
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class CommuteSafetyHandlerSpec
 
         var events = Handler.Handle(WeatherOnly(weather), null, Time);
 
-        var safety = Assert.IsType<PipelineEvent.CommuteSafety>(Assert.Single(events));
-        Assert.Equal("Safe", safety.Level);
+        var safety = Assert.IsType<ConditionResult>(Assert.Single(events));
+        Assert.Equal("Safe", safety.State);
     }
 }

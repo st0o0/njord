@@ -3,6 +3,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
 using Njord.Messages.Config;
+using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 
 namespace Njord.Grpc.Tests;
@@ -13,13 +14,15 @@ public static class TestServiceInfo
         NjordOptions? scope = null,
         PollingOptions? polling = null,
         AlertOptions? alerts = null,
-        IEnumerable<FeatureDescriptor>? enabledFeatures = null) =>
+        IEnumerable<IFeature>? enabledFeatures = null) =>
         ServiceInfoMappings.ToServiceInfo(
             scope ?? AppSettingsDefaults.Options<NjordOptions>(),
             polling ?? AppSettingsDefaults.Options<PollingOptions>(),
             alerts ?? AppSettingsDefaults.Options<AlertOptions>(),
-            enabledFeatures ?? [Feature(FeatureKind.CommuteSafety), Feature(FeatureKind.PollenAlert), Feature(FeatureKind.Pm25Alert)]);
+            enabledFeatures ?? [Feature(FeatureCategory.Lifestyle, "Commute"), Feature(FeatureCategory.AirQuality, "Pollen"), Feature(FeatureCategory.AirQuality, "Pm25")]);
 
-    public static FeatureDescriptor Feature(FeatureKind kind) =>
-        new(kind, FeatureCategory.Lifestyle, kind.ToConfigKey(), DefaultEnabled: false, default);
+    public static IFeature Feature(FeatureCategory category, string name) =>
+        new TestFeature(name, new FeatureDescriptor(OutputKind.Score, category, DefaultEnabled: false, default));
+
+    private sealed record TestFeature(string Name, FeatureDescriptor Feature) : IFeature;
 }

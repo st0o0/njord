@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Globalization;
 using Njord.Core.Domain;
 using Njord.Forecast.Seasonal;
+using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Lifestyle;
@@ -12,20 +13,21 @@ public sealed class SeasonalOutlookHandler : IDomainHandler
 
     public const int MediumConfidenceMaxLead = 2;
 
+    public string Name => "SeasonalOutlook";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.SeasonalOutlook,
+        OutputKind.Forecast,
         FeatureCategory.Insight,
-        "Monthly temperature and precipitation outlook for the coming months",
         DefaultEnabled: false,
         new DomainRequirements(Seasonal: SeasonalParams.TemperatureAnomaly | SeasonalParams.PrecipitationAnomaly | SeasonalParams.PrecipitationMean));
 
     // The seasonal forecast is an ensemble mean without member spread, so confidence follows the lead time:
     // seasonal skill falls with every month ahead.
-    public static OutlookConfidence ConfidenceForLead(int leadMonths) => leadMonths switch
+    public static ConfidenceLevel ConfidenceForLead(int leadMonths) => leadMonths switch
     {
-        <= HighConfidenceMaxLead => OutlookConfidence.High,
-        <= MediumConfidenceMaxLead => OutlookConfidence.Medium,
-        _ => OutlookConfidence.Low,
+        <= HighConfidenceMaxLead => ConfidenceLevel.High,
+        <= MediumConfidenceMaxLead => ConfidenceLevel.Medium,
+        _ => ConfidenceLevel.Low,
     };
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
@@ -46,8 +48,13 @@ public sealed class SeasonalOutlookHandler : IDomainHandler
                 PrecipitationPercent(m.Point),
                 ConfidenceForLead(m.Lead)))
             .ToImmutableArray();
-        return months.IsEmpty ? [] : [new PipelineEvent.SeasonalOutlookComputed(current.Location, months)];
+        return months.IsEmpty ? [] : [new ForecastResult(current.Location, this.WireKey(), [.. months.Select(Entry)])];
     }
+
+    private static ForecastEntry Entry(MonthlyOutlook month) => new(month.Month, FeatureData.Of(
+        ("temp_anomaly", FeatureData.Number(month.TempAnomaly)),
+        ("precip_anomaly", FeatureData.Number(month.PrecipAnomaly)),
+        ("confidence", month.Confidence.ToWireName())));
 
     private static double PrecipitationPercent(SeasonalPoint point)
     {

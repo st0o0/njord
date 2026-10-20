@@ -3,17 +3,18 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Alerts.Rules;
 
 public sealed class IceRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
-    public AlertType Type => AlertType.Ice;
+
+    public string Name => "Ice";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.IceAlert,
-        FeatureCategory.WeatherAlerts,
-        "Black ice warning from freezing temperatures with rain",
+        OutputKind.Alert,
+        FeatureCategory.Weather,
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.Precipitation | WeatherParams.EnsembleStdDev,
             OptionalWeather: WeatherParams.Rain | WeatherParams.SoilTemperature));
@@ -26,7 +27,7 @@ public sealed class IceRule : IAlertRule<DomainForecast<WeatherPoint>>
             .ToList();
         if (icy.MinBy(p => p.Temperature) is not { Temperature: { } minTemp } coldest)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var soilFrozen = icy.Any(p => p.SoilTemperature is <= 0);
@@ -39,7 +40,7 @@ public sealed class IceRule : IAlertRule<DomainForecast<WeatherPoint>>
 
         var rounded = Math.Round(minTemp, 1);
         var details = new IceDetails(ExpectedLow: rounded, RainHours: icy.Count, SoilFrozen: soilFrozen);
-        return AlertWindow.Build(Type, severity, coldest, details, rounded, iceThreshold,
+        return AlertWindow.Build(severity, coldest, details, rounded, iceThreshold,
             hoursUntil: icy[0].HoursFrom(now));
     }
 }

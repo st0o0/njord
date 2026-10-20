@@ -2,9 +2,7 @@ using Njord.Messages.Pipeline;
 
 namespace Njord.Core.Domain;
 
-public interface IDomainHandler
+public interface IDomainHandler : IFeature
 {
-    FeatureDescriptor Feature { get; }
-
     IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time);
 }

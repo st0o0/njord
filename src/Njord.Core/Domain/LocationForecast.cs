@@ -13,7 +13,6 @@ public sealed record LocationForecast(
     DomainForecast<WeatherPoint>? Weather = null,
     DomainForecast<AirQualityPoint>? AirQuality = null,
     DomainForecast<FloodPoint>? Flood = null,
-    DomainForecast<SolarPoint>? Solar = null,
     DomainForecast<MarinePoint>? Marine = null,
     DomainForecast<SeasonalPoint>? Seasonal = null,
     DomainForecast<SatelliteRadiationPoint>? Satellite = null)
@@ -23,7 +22,6 @@ public sealed record LocationForecast(
         DomainKind.Weather => this with { Weather = Cast<WeatherPoint>(domain, forecast) },
         DomainKind.AirQuality => this with { AirQuality = Cast<AirQualityPoint>(domain, forecast) },
         DomainKind.Flood => this with { Flood = Cast<FloodPoint>(domain, forecast) },
-        DomainKind.Solar => this with { Solar = Cast<SolarPoint>(domain, forecast) },
         DomainKind.Marine => this with { Marine = Cast<MarinePoint>(domain, forecast) },
         DomainKind.Seasonal => this with { Seasonal = Cast<SeasonalPoint>(domain, forecast) },
         DomainKind.Satellite => this with { Satellite = Cast<SatelliteRadiationPoint>(domain, forecast) },
@@ -35,7 +33,6 @@ public sealed record LocationForecast(
         DomainKind.Weather => Weather,
         DomainKind.AirQuality => AirQuality,
         DomainKind.Flood => Flood,
-        DomainKind.Solar => Solar,
         DomainKind.Marine => Marine,
         DomainKind.Seasonal => Seasonal,
         DomainKind.Satellite => Satellite,

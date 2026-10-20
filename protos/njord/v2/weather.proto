@@ -31,11 +31,11 @@ message GetCatalogResponse {
 // ═══════════════════════════════════════
 
 enum Domain {
+  reserved 4;
   DOMAIN_UNSPECIFIED = 0;
   DOMAIN_WEATHER = 1;
   DOMAIN_AIR_QUALITY = 2;
   DOMAIN_FLOOD = 3;
-  DOMAIN_SOLAR = 4;
   DOMAIN_MARINE = 5;
   DOMAIN_SEASONAL = 6;
   DOMAIN_SATELLITE = 7;
@@ -54,6 +54,7 @@ message StreamDomainDataRequest {
 }
 
 message DomainDataUpdate {
+  reserved 13;
   string location = 1;
   Domain domain = 2;
   google.protobuf.Timestamp model_run = 3;
@@ -61,7 +62,6 @@ message DomainDataUpdate {
     WeatherData weather = 10;
     AirQualityData air_quality = 11;
     FloodData flood = 12;
-    SolarData solar = 13;
     MarineData marine = 14;
     SatelliteData satellite = 15;
   }
@@ -126,18 +126,6 @@ message FloodSample {
   optional double discharge_p75 = 11;
 }
 
-message SolarData {
-  repeated SolarSample points = 1;
-}
-
-message SolarSample {
-  google.protobuf.Timestamp valid_at = 1;
-  double direct_radiation = 2;
-  double diffuse_radiation = 3;
-  double shortwave_radiation = 4;
-  double sunshine_duration = 5;
-}
-
 message SatelliteData {
   repeated SatelliteSample points = 1;
 }
@@ -174,7 +162,7 @@ message MarineSample {
 }
 
 // ═══════════════════════════════════════
-// Enrichments (alerts and lifestyle, all domains)
+// Enrichments (alerts and other feature results, all domains)
 // ═══════════════════════════════════════
 
 message GetEnrichmentsRequest {
@@ -203,10 +191,11 @@ message EnrichmentEvent {
   }
 }
 
-// One lifestyle advisory; the keys of data depend on type (ventilation, exercise, laundry_score,
-// commute_safety, pollen_trend, night_ventilation, confidence_trend, solar_yield, gardening,
-// outdoor_score, bbq_score, flood_timeline, front_approaching, climate_anomaly).
+// One non-alert feature result. type is the lowercase feature name (laundry, outdoor, surf, ...). The keys of data
+// follow output: score (score, best_start, best_hours), condition (state plus feature fields), trend (direction,
+// magnitude plus feature fields) and forecast (entry_N, entry_N_<field>).
 message LifestyleUpdate {
   string type = 1;
   map<string, string> data = 2;
+  OutputKind output = 3;
 }

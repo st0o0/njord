@@ -22,10 +22,11 @@ public sealed class PollenTrendHandlerSpec
 
         var events = Handler.Handle(currentForecast, previousForecast, Time);
 
-        var trend = Assert.IsType<PipelineEvent.PollenTrendComputed>(Assert.Single(events));
-        Assert.Equal(
-            new Dictionary<string, string> { ["birch"] = "rising", ["grass"] = "stable", ["alder"] = "falling" },
-            trend.Trends);
+        var trend = Assert.IsType<ConditionResult>(Assert.Single(events));
+        Assert.Multiple(
+            () => Assert.Equal("rising", trend.Data["trend_birch"]),
+            () => Assert.Equal("stable", trend.Data["trend_grass"]),
+            () => Assert.Equal("falling", trend.Data["trend_alder"]));
     }
 
     [Fact]
@@ -36,10 +37,11 @@ public sealed class PollenTrendHandlerSpec
 
         var events = Handler.Handle(currentForecast, previousForecast, Time);
 
-        var trend = Assert.IsType<PipelineEvent.PollenTrendComputed>(Assert.Single(events));
+        var trend = Assert.IsType<ConditionResult>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal("grass", trend.PeakType),
-            () => Assert.Equal(Now.AddHours(7), trend.PeakTime));
+            () => Assert.Equal("pollentrend", trend.WireKey),
+            () => Assert.Equal("grass", trend.State),
+            () => Assert.Equal(FeatureData.Time(Now.AddHours(7)), trend.Data["peak_time"]));
     }
 
     [Fact]

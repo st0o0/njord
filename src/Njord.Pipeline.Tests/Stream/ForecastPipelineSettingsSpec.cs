@@ -39,10 +39,10 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
         await queue.OfferAsync(DomainData.Received(DomainData.Lucerne, DomainData.Weather(Start)), ct);
 
         var frost = await alerts.FishForMessageAsync(
-            m => m is PipelineEvent.AlertRaised { Type: AlertType.Frost }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        var raised = Assert.IsType<PipelineEvent.AlertRaised>(frost);
+            m => m is AlertResult { WireKey: "frost" }, TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        var raised = Assert.IsType<AlertResult>(frost);
         Assert.Multiple(
-            () => Assert.Equal(AlertSeverity.Red, raised.Severity),
+            () => Assert.Equal(AlertSeverity.Red, raised.Alert.Severity),
             () => Assert.Equal(10.0, raised.Alert.TriggerValue),
             () => Assert.Equal(50.0, raised.Alert.Threshold));
     }
@@ -58,7 +58,7 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
         var completed = Assert.IsType<RequestPipelineOutputCompleted>(output);
         var probe = CreateTestProbe();
         completed.SourceRef.Source
-            .Where(e => e is PipelineEvent.AlertRaised)
+            .Where(e => e is AlertResult)
             .RunWith(Sink.ActorRef<PipelineEvent>(probe.Ref, "done", ex => ex), Sys.Materializer());
         var queue = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
         return (queue, probe);

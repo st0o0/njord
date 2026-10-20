@@ -17,10 +17,11 @@ public sealed class PollenTrendHandler : IDomainHandler
         ("mugwort", p => p.Mugwort),
     ];
 
+    public string Name => "PollenTrend";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.PollenTrend,
+        OutputKind.Condition,
         FeatureCategory.AirQuality,
-        "Trend of the pollen load",
         DefaultEnabled: false,
         new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
         | AirQualityParams.Alder | AirQualityParams.Mugwort));
@@ -69,7 +70,23 @@ public sealed class PollenTrendHandler : IDomainHandler
 
         return trends.Count == 0
             ? []
-            : [new PipelineEvent.PollenTrendComputed(current.Location, trends, peakType, peakTime)];
+            : [new ConditionResult(current.Location, this.WireKey(), peakType ?? "none", Fields(trends, peakTime))];
+    }
+
+    private static IReadOnlyDictionary<string, string> Fields(Dictionary<string, string> trends, DateTimeOffset? peakTime)
+    {
+        var fields = new Dictionary<string, string>();
+        foreach (var (pollen, trend) in trends.OrderBy(t => t.Key, StringComparer.Ordinal))
+        {
+            fields[$"trend_{pollen}"] = trend;
+        }
+
+        if (peakTime is { } time)
+        {
+            fields["peak_time"] = FeatureData.Time(time);
+        }
+
+        return fields;
     }
 
     private static string Classify(double currentAverage, double previousAverage)

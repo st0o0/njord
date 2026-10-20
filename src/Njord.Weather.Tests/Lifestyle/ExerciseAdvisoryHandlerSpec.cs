@@ -14,11 +14,11 @@ public sealed class ExerciseAdvisoryHandlerSpec
     {
         var events = Handler.Handle(Combined(Day(), CleanAir()), null, Time);
 
-        var advice = Assert.IsType<PipelineEvent.ExerciseAdvised>(Assert.Single(events));
+        var advice = Assert.IsType<ConditionResult>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal("Safe", advice.Level),
-            () => Assert.Empty(advice.Reasons),
-            () => Assert.Equal(Now, advice.BestWindow));
+            () => Assert.Equal("Safe", advice.State),
+            () => Assert.Equal("", advice.Data["reasons"]),
+            () => Assert.Equal(FeatureData.Time(Now), advice.Data["best_window"]));
     }
 
     [Fact]
@@ -28,10 +28,10 @@ public sealed class ExerciseAdvisoryHandlerSpec
 
         var events = Handler.Handle(Combined(Day(), air), null, Time);
 
-        var advice = Assert.IsType<PipelineEvent.ExerciseAdvised>(Assert.Single(events));
+        var advice = Assert.IsType<ConditionResult>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal("Avoid", advice.Level),
-            () => Assert.Equal(["High particulate matter (PM2.5)", "High ozone"], advice.Reasons));
+            () => Assert.Equal("Avoid", advice.State),
+            () => Assert.Equal("High particulate matter (PM2.5),High ozone", advice.Data["reasons"]));
     }
 
     [Fact]
@@ -41,8 +41,8 @@ public sealed class ExerciseAdvisoryHandlerSpec
 
         var events = Handler.Handle(Combined(Day(), air), null, Time);
 
-        var advice = Assert.IsType<PipelineEvent.ExerciseAdvised>(Assert.Single(events));
-        Assert.Equal(Now.AddHours(4), advice.BestWindow);
+        var advice = Assert.IsType<ConditionResult>(Assert.Single(events));
+        Assert.Equal(FeatureData.Time(Now.AddHours(4)), advice.Data["best_window"]);
     }
 
     [Fact]

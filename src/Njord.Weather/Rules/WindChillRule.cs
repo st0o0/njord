@@ -3,17 +3,18 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Alerts.Rules;
 
 public sealed class WindChillRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
-    public AlertType Type => AlertType.WindChill;
+
+    public string Name => "WindChill";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.WindChillAlert,
-        FeatureCategory.WeatherAlerts,
-        "Wind chill warning from apparent temperature",
+        OutputKind.Alert,
+        FeatureCategory.Weather,
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.ApparentTemperature | WeatherParams.EnsembleStdDev));
 
@@ -21,21 +22,21 @@ public sealed class WindChillRule : IAlertRule<DomainForecast<WeatherPoint>>
     {
         if (forecast.NextHoursInclusive(now).LowestBy(p => p.ApparentTemperature) is not { ApparentTemperature: { } low } coldest)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var windFactor = Math.Round((coldest.Temperature ?? low) - low, 1);
         var (severity, effectiveThreshold) = options.WindChill().Classify(low);
         var exposureRisk = severity switch
         {
-            AlertSeverity.Red => ExposureRisk.Frostbite10Min,
-            AlertSeverity.Orange => ExposureRisk.Frostbite30Min,
-            _ => (ExposureRisk?)null,
+            AlertSeverity.Red => "frostbite_10min",
+            AlertSeverity.Orange => "frostbite_30min",
+            _ => (string?)null,
         };
 
         var rounded = Math.Round(low, 1);
         var details = new WindChillDetails(FeltTemperature: rounded, WindFactor: windFactor, ExposureRisk: exposureRisk);
-        return AlertWindow.Build(Type, severity, coldest, details, rounded, effectiveThreshold,
+        return AlertWindow.Build(severity, coldest, details, rounded, effectiveThreshold,
             hoursUntil: coldest.HoursFrom(now));
     }
 }

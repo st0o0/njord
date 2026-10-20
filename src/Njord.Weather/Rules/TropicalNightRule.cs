@@ -3,17 +3,18 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Alerts.Rules;
 
 public sealed class TropicalNightRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
-    public AlertType Type => AlertType.TropicalNight;
+
+    public string Name => "TropicalNight";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.TropicalNightAlert,
-        FeatureCategory.WeatherAlerts,
-        "Tropical night warning from the night time low",
+        OutputKind.Alert,
+        FeatureCategory.Weather,
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.IsDay | WeatherParams.EnsembleStdDev));
 
@@ -23,19 +24,19 @@ public sealed class TropicalNightRule : IAlertRule<DomainForecast<WeatherPoint>>
         var night = forecast.NextHoursInclusive(now).Where(p => p is { IsDay: <= 0.5, Temperature: not null }).ToList();
         if (night.Count == 0)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         if (night.MinBy(p => p.Temperature) is not { Temperature: { } nightLow } coldest)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var hoursAbove = night.Count(p => p.Temperature is { } t && thresholds.CrossesAdvisory(t, strict: true));
         var (severity, effectiveThreshold) = thresholds.Classify(nightLow, strict: true);
         var rounded = Math.Round(nightLow, 1);
         var details = new TropicalNightDetails(NightMinimum: rounded, HoursAbove20: hoursAbove);
-        return AlertWindow.Build(Type, severity, coldest, details, rounded, effectiveThreshold,
+        return AlertWindow.Build(severity, coldest, details, rounded, effectiveThreshold,
             hoursUntil: night[0].HoursFrom(now));
     }
 }

@@ -13,7 +13,7 @@ public static class ServiceInfoMappings
         NjordOptions scope,
         PollingOptions polling,
         AlertOptions alerts,
-        IEnumerable<FeatureDescriptor> enabledFeatures) =>
+        IEnumerable<IFeature> enabledFeatures) =>
         new(
             scope.ToCatalog(),
             BudgetCalculator.GetEffectiveBudget(polling).RequestsPerMonth,
@@ -32,7 +32,7 @@ public static class ServiceInfoMappings
         return new CatalogResult(locations, [new CatalogModel(EnsembleModelId)]);
     }
 
-    private static List<string> ActiveEnrichments(AlertOptions alerts, IEnumerable<FeatureDescriptor> enabledFeatures)
+    private static List<string> ActiveEnrichments(AlertOptions alerts, IEnumerable<IFeature> enabledFeatures)
     {
         var active = new List<string>();
         if (alerts.Enabled)
@@ -40,7 +40,7 @@ public static class ServiceInfoMappings
             active.Add(EnrichmentNames.Alerts);
         }
 
-        active.AddRange(enabledFeatures.Select(feature => feature.Kind.ToConfigKey()).Order(StringComparer.Ordinal));
+        active.AddRange(enabledFeatures.Select(feature => feature.SectionKey()).Order(StringComparer.Ordinal));
         return active;
     }
 }

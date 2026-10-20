@@ -9,7 +9,6 @@ using Njord.Messages.Pipeline;
 using Njord.Tests.Shared;
 using DomainAlert = Njord.Messages.Alerts.Alert;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
-using DomainAlertType = Njord.Messages.Alerts.AlertType;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 
 namespace Njord.Grpc.Tests;
@@ -19,15 +18,15 @@ public sealed class ProtoMappingsSpec
     private static readonly DateTimeOffset Anchor = TestTimeConstants.BudgetEpoch;
 
     [Fact]
-    public void Alert_results_map_type_severity_and_optional_values()
+    public void Alert_results_map_key_severity_and_optional_values()
     {
-        var result = new AlertResult(DomainData.Lucerne,
-            [new DomainAlert(DomainAlertType.Frost, DomainAlertSeverity.Orange, 0.85, NoDetails.Instance, PeakValue: -4.0)]);
+        var result = new AlertResult(DomainData.Lucerne, "frost",
+            new DomainAlert(DomainAlertSeverity.Orange, 0.85, NoDetails.Instance, PeakValue: -4.0), Anchor);
 
-        var alert = Assert.Single(result.ToProto().Alerts);
+        var alert = Assert.Single(new[] { result }.ToProto().Alerts);
 
         Assert.Multiple(
-            () => Assert.Equal(V2.AlertType.Frost, alert.Type),
+            () => Assert.Equal("frost", alert.Key),
             () => Assert.Equal(V2.AlertSeverity.Orange, alert.Severity),
             () => Assert.Equal(-4.0, alert.PeakValue),
             () => Assert.False(alert.HasHoursUntil));
@@ -98,20 +97,20 @@ public sealed class ProtoMappingsSpec
         Assert.Multiple(
             () => Assert.Equal("Lucerne", evt.Location),
             () => Assert.Equal(Anchor.ToTimestamp(), evt.UpdatedAt),
-            () => Assert.Equal(V2.AlertType.Heat, Assert.Single(evt.Alerts.Alerts).Type));
+            () => Assert.Equal("heat", Assert.Single(evt.Alerts.Alerts).Key));
     }
 
     [Fact]
     public void A_lifestyle_event_maps_to_a_lifestyle_enrichment_event_stamped_with_the_given_time()
     {
-        var evt = new PipelineEvent.LaundryScoreComputed(DomainData.Lucerne, 80, Anchor, 4).ToEnrichmentEvent(Anchor.AddHours(1));
+        var evt = new ScoreResult(DomainData.Lucerne, "laundry", 80, Anchor, 4).ToEnrichmentEvent(Anchor.AddHours(1));
 
         Assert.NotNull(evt);
         Assert.Multiple(
             () => Assert.Equal("Lucerne", evt.Location),
             () => Assert.Equal("lifestyle", evt.TypeName),
             () => Assert.Equal(Anchor.AddHours(1).ToTimestamp(), evt.UpdatedAt),
-            () => Assert.Equal("laundry_score", evt.Lifestyle.Type),
+            () => Assert.Equal("laundry", evt.Lifestyle.Type),
             () => Assert.Equal("80", evt.Lifestyle.Data["score"]),
             () => Assert.Equal("4", evt.Lifestyle.Data["best_hours"]));
     }
@@ -123,7 +122,7 @@ public sealed class ProtoMappingsSpec
 
         Assert.Multiple(
             () => Assert.Equal(DomainData.Lucerne, EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor).ToEnrichmentLocation()),
-            () => Assert.Equal(DomainData.Bern, new PipelineEvent.CommuteSafety(DomainData.Bern, "ok", []).ToEnrichmentLocation()),
+            () => Assert.Equal(DomainData.Bern, new ConditionResult(DomainData.Bern, "commute", "ok", FeatureData.Of()).ToEnrichmentLocation()),
             () => Assert.Null(weather.ToEnrichmentLocation()));
     }
 
@@ -139,7 +138,6 @@ public sealed class ProtoMappingsSpec
     [InlineData(DomainKind.Weather, Domain.Weather)]
     [InlineData(DomainKind.AirQuality, Domain.AirQuality)]
     [InlineData(DomainKind.Flood, Domain.Flood)]
-    [InlineData(DomainKind.Solar, Domain.Solar)]
     [InlineData(DomainKind.Marine, Domain.Marine)]
     [InlineData(DomainKind.Satellite, Domain.Satellite)]
     public void Domain_kinds_map_to_their_proto_domain_and_back(DomainKind kind, Domain expected)

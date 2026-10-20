@@ -38,7 +38,7 @@ gRPC + REST. Real Open-Meteo API. 4 domains, 19 alert types, lifestyle features.
 
 - **Location:** Lucerne (explicit coordinates 47.0502 / 8.3093 in the compose file)
 - **Weather:** Ensemble Mean, ForecastDays=4
-- **Enrichments:** ALL enabled (34 feature toggles, `Njord__Features__*`)
+- **Enrichments:** ALL enabled (35 feature toggles, `Njord__Features__*`)
 - **Resolved domains:** Weather, AirQuality, Flood, Marine (4 calls/cycle)
 
 ### Expected Entities

@@ -26,22 +26,22 @@ services:
       #- Njord__Flood__ForecastDays=92       # 1-210
       #- Njord__Flood__IncludeEnsemble=false # 50 GloFAS members, adds confidence to FloodRisk, costs 5 calls per flood request
       # Features decide which domains are polled (the union of what the enabled ones read).
-      # On by default: the 14 weather alerts (FrostAlert, HeatAlert, ...), CommuteSafety, PollenAlert, Pm25Alert.
+      # On by default: the 14 weather alerts (Weather:Frost, Weather:Heat, ...), Lifestyle:Commute, AirQuality:Pollen, AirQuality:Pm25.
       # Switch single features on (adds their domain) or off:
-      #- Njord__Features__FrostAlert=false
-      #- Njord__Features__FloodRisk=true
-      #- Njord__Features__FloodRain=true
-      #- Njord__Features__SwimmingConditions=true
-      #- Njord__Features__SurfConditions=true # swell vs wind waves, scored from swell period/height and wind direction
-      #- Njord__Features__VentilationWindow=true
-      #- Njord__Features__ExerciseAdvisory=true
-      #- Njord__Features__LaundryScore=true
-      #- Njord__Features__PollenTrend=true
-      #- Njord__Features__NightVentilation=true
-      #- Njord__Features__ConfidenceTrend=true
-      #- Njord__Features__SeasonalOutlook=true # 3-month outlook, one extra call per day and location
-      #- Njord__Features__SatelliteRadiation=true # observed solar irradiance, about 720 extra calls per month and location
-      #- Njord__Features__PollenAlert=false
+      #- Njord__Features__Weather__Frost=false
+      #- Njord__Features__Flood__FloodRisk=true
+      #- Njord__Features__Flood__FloodRain=true
+      #- Njord__Features__Marine__Swimming=true
+      #- Njord__Features__Marine__Surf=true # swell vs wind waves, scored from swell period/height and wind direction
+      #- Njord__Features__Lifestyle__Ventilation=true
+      #- Njord__Features__Lifestyle__Exercise=true
+      #- Njord__Features__Lifestyle__Laundry=true
+      #- Njord__Features__AirQuality__PollenTrend=true
+      #- Njord__Features__Lifestyle__NightVentilation=true
+      #- Njord__Features__Insight__ConfidenceTrend=true
+      #- Njord__Features__Insight__SeasonalOutlook=true # 3-month outlook, one extra call per day and location
+      #- Njord__Features__Energy__SatelliteRadiation=true # observed solar irradiance, about 720 extra calls per month and location
+      #- Njord__Features__AirQuality__Pollen=false
       # Poll interval of a model whose update cycle is not learned yet:
       #- Njord__Polling__DiscoveryInterval=00:20:00
 

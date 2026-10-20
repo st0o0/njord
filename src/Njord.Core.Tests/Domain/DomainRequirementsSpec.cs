@@ -124,7 +124,7 @@ public sealed class DomainRequirementsSpec
         var everything = new DomainRequirements(
             WeatherParams.Temperature, AirQualityParams.Pm25, FloodParams.Discharge, MarineParams.WaveHeight);
 
-        Assert.False(everything.Requires(DomainKind.Solar));
+        Assert.False(everything.Requires(DomainKind.Seasonal));
     }
 
     [Fact]

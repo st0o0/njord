@@ -10,10 +10,11 @@ public sealed class ApproachingFrontHandler : IDomainHandler
     public const double WindShiftThreshold = 45.0;
     public const int WindowHours = 6;
 
+    public string Name => "FrontApproaching";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.ApproachingFront,
+        OutputKind.Condition,
         FeatureCategory.Insight,
-        "Early warning when a pressure front approaches",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.Pressure | WeatherParams.Temperature | WeatherParams.WindDirection));
 
@@ -41,11 +42,10 @@ public sealed class ApproachingFrontHandler : IDomainHandler
         var estimatedIn = best.Start.ValidFrom - now;
         return
         [
-            new PipelineEvent.FrontApproaching(
-                current.Location,
-                estimatedIn < TimeSpan.Zero ? TimeSpan.Zero : estimatedIn,
-                Math.Round(best.Drop, 1),
-                Math.Round((best.Start.Temperature - best.End.Temperature) ?? 0.0, 1)),
+            new ConditionResult(current.Location, this.WireKey(), "approaching", FeatureData.Of(
+                ("estimated_in_hours", FeatureData.Number((estimatedIn < TimeSpan.Zero ? TimeSpan.Zero : estimatedIn).TotalHours)),
+                ("pressure_drop", FeatureData.Number(Math.Round(best.Drop, 1))),
+                ("temp_drop", FeatureData.Number(Math.Round((best.Start.Temperature - best.End.Temperature) ?? 0.0, 1))))),
         ];
     }
 

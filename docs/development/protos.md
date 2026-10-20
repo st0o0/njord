@@ -38,9 +38,9 @@ Closed value sets are proto enums, each with a `*_UNSPECIFIED = 0` member. Absen
 | Field | Enum | Members |
 |-------|------|---------|
 | `ModelStatus.phase`, `TriggerTarget.phase` | `PollPhase` | `DISCOVERY`, `STEADY` (one entry per location) |
-| `Alert.type` | `AlertType` | the 14 weather alert types |
+| `LifestyleUpdate.output` | `OutputKind` | `ALERT`, `SCORE`, `CONDITION`, `TREND`, `FORECAST` |
 | `Alert.severity` | `AlertSeverity` | `NONE`, `YELLOW`, `ORANGE`, `RED` |
-| `DomainDataUpdate.domain` | `Domain` | `WEATHER`, `AIR_QUALITY`, `FLOOD`, `SOLAR`, `MARINE` |
+| `DomainDataUpdate.domain` | `Domain` | `WEATHER`, `AIR_QUALITY`, `FLOOD`, `MARINE`, `SEASONAL`, `SATELLITE` |
 
 Member names carry the enum name as prefix (`POLL_PHASE_STEADY`). 
 

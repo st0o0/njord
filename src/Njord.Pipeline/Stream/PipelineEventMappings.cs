@@ -17,7 +17,6 @@ internal static class PipelineEventMappings
         DomainKind.Weather => new PipelineEvent.WeatherDataReceived(received.Location, Typed<WeatherPoint>(received)),
         DomainKind.AirQuality => new PipelineEvent.AirQualityDataReceived(received.Location, Typed<AirQualityPoint>(received)),
         DomainKind.Flood => new PipelineEvent.FloodDataReceived(received.Location, Typed<FloodPoint>(received)),
-        DomainKind.Solar => new PipelineEvent.SolarDataReceived(received.Location, Typed<SolarPoint>(received)),
         DomainKind.Marine => new PipelineEvent.MarineDataReceived(received.Location, Typed<MarinePoint>(received)),
         DomainKind.Seasonal => new PipelineEvent.SeasonalDataReceived(received.Location, Typed<SeasonalPoint>(received)),
         DomainKind.Satellite => new PipelineEvent.SatelliteDataReceived(received.Location, Typed<SatelliteRadiationPoint>(received)),

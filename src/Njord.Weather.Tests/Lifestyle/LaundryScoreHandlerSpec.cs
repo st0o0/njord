@@ -16,7 +16,7 @@ public sealed class LaundryScoreHandlerSpec
 
         var events = Handler.Handle(WeatherOnly(weather), null, Time);
 
-        var score = Assert.IsType<PipelineEvent.LaundryScoreComputed>(Assert.Single(events));
+        var score = Assert.IsType<ScoreResult>(Assert.Single(events));
         Assert.Multiple(
             () => Assert.Equal(100, score.Score),
             () => Assert.Equal(Now, score.BestStart),
@@ -36,7 +36,7 @@ public sealed class LaundryScoreHandlerSpec
 
         var events = Handler.Handle(WeatherOnly(weather), null, Time);
 
-        var score = Assert.IsType<PipelineEvent.LaundryScoreComputed>(Assert.Single(events));
+        var score = Assert.IsType<ScoreResult>(Assert.Single(events));
         Assert.Multiple(
             () => Assert.Equal(Now.AddHours(6), score.BestStart),
             () => Assert.Equal(18, score.BestHours));
@@ -49,7 +49,7 @@ public sealed class LaundryScoreHandlerSpec
 
         var events = Handler.Handle(WeatherOnly(weather), null, Time);
 
-        var score = Assert.IsType<PipelineEvent.LaundryScoreComputed>(Assert.Single(events));
+        var score = Assert.IsType<ScoreResult>(Assert.Single(events));
         Assert.Multiple(
             () => Assert.Equal(0, score.Score),
             () => Assert.Equal(0, score.BestHours));

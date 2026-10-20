@@ -28,9 +28,10 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
     private static FeatureOptions AllFeaturesOff()
     {
         var options = new FeatureOptions();
-        foreach (var kind in Enum.GetValues<FeatureKind>())
+        var handler = Assert.IsType<IMultiFeatureHandler>(FeatureServices.AlertHandler(new FakeTimeProvider(Start)), exactMatch: false);
+        foreach (var feature in handler.Features)
         {
-            options[kind] = false;
+            options.Set(feature.Feature.Category.ToString(), feature.Name, false);
         }
 
         return options;
@@ -100,8 +101,8 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
         var raised = await NextFrostAlertAsync(consumer, ct);
         Assert.Multiple(
             () => Assert.Equal("Lucerne", raised.Location.Name),
-            () => Assert.Equal(AlertSeverity.Yellow, raised.Severity),
-            () => Assert.Equal(ConfidenceLevel.High, raised.Confidence));
+            () => Assert.Equal(AlertSeverity.Yellow, raised.Alert.Severity),
+            () => Assert.Equal(ConfidenceLevel.High, raised.Alert.Level));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -185,11 +186,11 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
         return Assert.IsType<PipelineEvent.WeatherDataReceived>(message);
     }
 
-    private static async Task<PipelineEvent.AlertRaised> NextFrostAlertAsync(Akka.TestKit.TestProbe consumer, CancellationToken ct)
+    private static async Task<AlertResult> NextFrostAlertAsync(Akka.TestKit.TestProbe consumer, CancellationToken ct)
     {
         var message = await consumer.FishForMessageAsync(
-            m => m is PipelineEvent.AlertRaised { Type: AlertType.Frost } or ConsumerCompleted or ConsumerFailed,
+            m => m is AlertResult { WireKey: "frost" } or ConsumerCompleted or ConsumerFailed,
             TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        return Assert.IsType<PipelineEvent.AlertRaised>(message);
+        return Assert.IsType<AlertResult>(message);
     }
 }

@@ -3,6 +3,7 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Flood;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Flood;
 
@@ -13,19 +14,19 @@ public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
     public const double HighConfidenceShare = 0.7;
     public const double LowConfidenceShare = 0.3;
 
-    public AlertType Type => AlertType.FloodRisk;
+
+    public string Name => "FloodRisk";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.FloodRisk,
+        OutputKind.Alert,
         FeatureCategory.Flood,
-        "River discharge flood risk warning",
         DefaultEnabled: false,
         new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75
             | FloodParams.DischargeMax));
 
     public Alert Evaluate(DomainForecast<FloodPoint> forecast, AlertOptions options, DateTimeOffset now)
     {
-        var best = Alert.None(Type);
+        var best = Alert.None();
         foreach (var point in forecast.NextDays(now, ForecastDays))
         {
             if (point.Discharge is not { } discharge)
@@ -38,7 +39,7 @@ public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
             if (severity > best.Severity
                 || (severity == best.Severity && severity != AlertSeverity.None && discharge > best.TriggerValue))
             {
-                best = Build(Type, severity, Math.Round(discharge, 1), Math.Round(threshold, 1), point.HoursFrom(now))
+                best = Build(severity, Math.Round(discharge, 1), Math.Round(threshold, 1), point.HoursFrom(now))
                     with
                 { Confidence = share, Level = level };
             }
@@ -47,8 +48,8 @@ public sealed class FloodRiskAlertRule : IAlertRule<DomainForecast<FloodPoint>>
         return best;
     }
 
-    internal static Alert Build(AlertType type, AlertSeverity severity, double trigger, double threshold, int hoursUntil) =>
-        new(type, severity, 1.0, NoDetails.Instance, TriggerValue: trigger, Threshold: threshold, HoursUntil: hoursUntil, Level: ConfidenceLevel.High);
+    internal static Alert Build(AlertSeverity severity, double trigger, double threshold, int hoursUntil) =>
+        new(severity, 1.0, NoDetails.Instance, TriggerValue: trigger, Threshold: threshold, HoursUntil: hoursUntil, Level: ConfidenceLevel.High);
 
     private static (double Share, ConfidenceLevel Level) Confidence(FloodPoint point, double threshold)
     {

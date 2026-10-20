@@ -12,28 +12,28 @@ namespace Njord.Weather.Tests;
 
 public sealed class HandlerRequirementsSpec
 {
-    private static readonly Dictionary<FeatureKind, IDomainHandler> Handlers = Build();
+    private static readonly Dictionary<string, IDomainHandler> Handlers = Build();
 
-    private static Dictionary<FeatureKind, IDomainHandler> Build()
+    private static Dictionary<string, IDomainHandler> Build()
     {
         using var provider = FeatureServices.Build(new FakeTimeProvider(), services => services
             .AddAlertOptions(AppSettingsDefaults.Configuration())
             .AddWeatherDomain());
-        return provider.GetServices<IDomainHandler>().Where(h => h is not WeatherAlertHandler).ToDictionary(h => h.Feature.Kind);
+        return provider.GetServices<IDomainHandler>().Where(h => h is not WeatherAlertHandler).ToDictionary(h => h.Name, StringComparer.Ordinal);
     }
 
     [Theory]
-    [InlineData(FeatureKind.CommuteSafety)]
-    [InlineData(FeatureKind.ApproachingFront)]
-    [InlineData(FeatureKind.BBQScore)]
-    [InlineData(FeatureKind.ConfidenceTrend)]
-    [InlineData(FeatureKind.GardeningAdvisory)]
-    [InlineData(FeatureKind.LaundryScore)]
-    [InlineData(FeatureKind.NightVentilation)]
-    [InlineData(FeatureKind.SolarYield)]
-    public void Should_require_only_the_weather_domain(FeatureKind kind)
+    [InlineData("Commute")]
+    [InlineData("FrontApproaching")]
+    [InlineData("Bbq")]
+    [InlineData("ConfidenceTrend")]
+    [InlineData("Gardening")]
+    [InlineData("Laundry")]
+    [InlineData("NightVentilation")]
+    [InlineData("SolarYield")]
+    public void Should_require_only_the_weather_domain(string name)
     {
-        var requirements = Handlers[kind].Feature.Requirements;
+        var requirements = Handlers[name].Feature.Requirements;
 
         Assert.Multiple(
             () => Assert.NotEqual(WeatherParams.None, requirements.Weather),
@@ -44,12 +44,12 @@ public sealed class HandlerRequirementsSpec
     }
 
     [Theory]
-    [InlineData(FeatureKind.ExerciseAdvisory)]
-    [InlineData(FeatureKind.OutdoorScore)]
-    [InlineData(FeatureKind.VentilationWindow)]
-    public void Should_require_weather_and_air_quality(FeatureKind kind)
+    [InlineData("Exercise")]
+    [InlineData("Outdoor")]
+    [InlineData("Ventilation")]
+    public void Should_require_weather_and_air_quality(string name)
     {
-        var requirements = Handlers[kind].Feature.Requirements;
+        var requirements = Handlers[name].Feature.Requirements;
 
         Assert.Multiple(
             () => Assert.True(requirements.Requires(DomainKind.Weather)),
@@ -62,7 +62,7 @@ public sealed class HandlerRequirementsSpec
     {
         Assert.Equal(
             new DomainRequirements(Weather: WeatherParams.EnsembleStdDev),
-            Handlers[FeatureKind.ConfidenceTrend].Feature.Requirements);
+            Handlers["ConfidenceTrend"].Feature.Requirements);
     }
 
     [Fact]
@@ -70,13 +70,13 @@ public sealed class HandlerRequirementsSpec
     {
         Assert.Equal(
             new DomainRequirements(Weather: WeatherParams.GlobalTiltedIrradiance),
-            Handlers[FeatureKind.SolarYield].Feature.Requirements);
+            Handlers["SolarYield"].Feature.Requirements);
     }
 
     [Fact]
     public void Should_declare_the_pm25_param_for_the_exercise_advisory()
     {
-        var requirements = Handlers[FeatureKind.ExerciseAdvisory].Feature.Requirements;
+        var requirements = Handlers["Exercise"].Feature.Requirements;
 
         Assert.Equal(AirQualityParams.Pm25 | AirQualityParams.Ozone, requirements.AirQuality);
     }

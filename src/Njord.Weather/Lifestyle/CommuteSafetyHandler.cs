@@ -12,10 +12,11 @@ public sealed class CommuteSafetyHandler : IDomainHandler
     public const double HeavyRain = 5.0;
     public const double StrongWind = 60.0 / 3.6;
 
+    public string Name => "Commute";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.CommuteSafety,
+        OutputKind.Condition,
         FeatureCategory.Lifestyle,
-        "Commute safety rating from rain, wind and ice risk",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.DewPoint | WeatherParams.Humidity
             | WeatherParams.Precipitation | WeatherParams.WindSpeed));
@@ -65,6 +66,6 @@ public sealed class CommuteSafetyHandler : IDomainHandler
             1 when !ice => "Caution",
             _ => "Dangerous",
         };
-        return [new PipelineEvent.CommuteSafety(current.Location, level, [.. risks])];
+        return [new ConditionResult(current.Location, this.WireKey(), level, FeatureData.Of(("risks", string.Join(",", risks))))];
     }
 }

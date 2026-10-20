@@ -6,10 +6,11 @@ namespace Njord.Flood;
 
 public sealed class FloodTimelineHandler : IDomainHandler
 {
+    public string Name => "FloodTimeline";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.FloodTimeline,
+        OutputKind.Condition,
         FeatureCategory.Flood,
-        "Discharge timeline for the coming days",
         DefaultEnabled: false,
         new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeP75));
 
@@ -26,6 +27,9 @@ public sealed class FloodTimelineHandler : IDomainHandler
         }
 
         var daysAbove = flood.Points.Count(point => point.DischargeP75 is { } warning && point.Discharge > warning);
-        return [new PipelineEvent.FloodTimelineComputed(current.Location, peak.ValidFrom, peakDischarge, daysAbove)];
+        return [new ConditionResult(current.Location, this.WireKey(), daysAbove > 0 ? "above_warning" : "normal", FeatureData.Of(
+            ("peak_time", FeatureData.Time(peak.ValidFrom)),
+            ("peak_discharge", FeatureData.Number(peakDischarge)),
+            ("days_above_warning", FeatureData.Number(daysAbove))))];
     }
 }

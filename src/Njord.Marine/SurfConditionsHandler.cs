@@ -7,10 +7,11 @@ namespace Njord.Marine;
 
 public sealed class SurfConditionsHandler : IDomainHandler
 {
+    public string Name => "Surf";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.SurfConditions,
+        OutputKind.Condition,
         FeatureCategory.Marine,
-        "Surf conditions from swell height and period",
         DefaultEnabled: false,
         new DomainRequirements(
         Marine: MarineParams.SwellWaveHeight | MarineParams.SwellWavePeriod,
@@ -25,8 +26,26 @@ public sealed class SurfConditionsHandler : IDomainHandler
         }
 
         return SurfConditionsRule.Evaluate(marine, current.Weather, time.GetUtcNow()) is { } surf
-            ? [new PipelineEvent.SurfConditionsComputed(
-                current.Location, surf.Score, surf.Rating, surf.SwellHeight, surf.SwellPeriod, surf.WindRelation, surf.ValidFrom)]
+            ? [new ConditionResult(current.Location, this.WireKey(), surf.Rating, Fields(surf))]
             : [];
+    }
+
+    private static IReadOnlyDictionary<string, string> Fields(SurfAssessment surf)
+    {
+        var fields = new Dictionary<string, string>
+        {
+            ["score"] = FeatureData.Number(surf.Score),
+            ["swell_height"] = FeatureData.Number(surf.SwellHeight),
+            ["swell_period"] = FeatureData.Number(surf.SwellPeriod),
+            ["wind_considered"] = FeatureData.Flag(surf.WindRelation is not null),
+            ["best_start"] = FeatureData.Time(surf.ValidFrom),
+        };
+
+        if (surf.WindRelation is { } relation)
+        {
+            fields["wind"] = relation;
+        }
+
+        return fields;
     }
 }

@@ -11,30 +11,52 @@ namespace Njord.Core.Tests.Domain;
 
 public sealed class FeatureResolutionSpec
 {
-    private sealed class StubHandler(FeatureKind kind, bool defaultEnabled, DomainRequirements requirements) : IDomainHandler
+    private sealed class StubFeature(string name, FeatureDescriptor feature) : IFeature
     {
-        public FeatureDescriptor Feature { get; } = new(kind, FeatureCategory.Lifestyle, "stub", defaultEnabled, requirements);
+        public string Name { get; } = name;
+
+        public FeatureDescriptor Feature { get; } = feature;
+    }
+
+    private sealed class StubHandler(string name, FeatureCategory category, bool defaultEnabled, DomainRequirements requirements) : IDomainHandler
+    {
+        public string Name { get; } = name;
+
+        public FeatureDescriptor Feature { get; } = new(OutputKind.Condition, category, defaultEnabled, requirements);
 
         public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time) => [];
     }
 
-    private sealed class StubMultiHandler(params FeatureDescriptor[] features) : IMultiFeatureHandler
+    private sealed class StubMultiHandler(params IFeature[] features) : IMultiFeatureHandler
     {
-        public IReadOnlyList<FeatureDescriptor> Features { get; } = features;
+        public IReadOnlyList<IFeature> Features { get; } = features;
 
-        public FeatureDescriptor Feature => Features[0];
+        public string Name => Features[0].Name;
+
+        public FeatureDescriptor Feature => Features[0].Feature;
 
         public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time) => [];
+    }
+
+    private static FeatureOptions Options(params (string Category, string Name, bool Enabled)[] entries)
+    {
+        var options = new FeatureOptions();
+        foreach (var (category, name, enabled) in entries)
+        {
+            options.Set(category, name, enabled);
+        }
+
+        return options;
     }
 
     private static readonly IDomainHandler[] All =
     [
-        new StubHandler(FeatureKind.FrostAlert, true, new(Weather: WeatherParams.Temperature | WeatherParams.WindGusts)),
-        new StubHandler(FeatureKind.CommuteSafety, true, new(Weather: WeatherParams.Temperature | WeatherParams.Precipitation)),
-        new StubHandler(FeatureKind.PollenAlert, true, new(AirQuality: AirQualityParams.BirchPollen)),
-        new StubHandler(FeatureKind.Pm25Alert, true, new(AirQuality: AirQualityParams.Pm25)),
-        new StubHandler(FeatureKind.FloodRisk, false, new(Flood: FloodParams.Discharge)),
-        new StubHandler(FeatureKind.SwimmingConditions, false, new(Marine: MarineParams.WaveHeight)),
+        new StubHandler("Frost", FeatureCategory.Weather, true, new(Weather: WeatherParams.Temperature | WeatherParams.WindGusts)),
+        new StubHandler("Commute", FeatureCategory.Lifestyle, true, new(Weather: WeatherParams.Temperature | WeatherParams.Precipitation)),
+        new StubHandler("Pollen", FeatureCategory.AirQuality, true, new(AirQuality: AirQualityParams.BirchPollen)),
+        new StubHandler("Pm25", FeatureCategory.AirQuality, true, new(AirQuality: AirQualityParams.Pm25)),
+        new StubHandler("FloodRisk", FeatureCategory.Flood, false, new(Flood: FloodParams.Discharge)),
+        new StubHandler("Swimming", FeatureCategory.Marine, false, new(Marine: MarineParams.WaveHeight)),
     ];
 
     [Fact]
@@ -48,7 +70,7 @@ public sealed class FeatureResolutionSpec
     [Fact]
     public void Should_add_the_flood_domain_when_flood_risk_is_enabled()
     {
-        var domains = FeatureResolution.RequiredDomains(new FeatureOptions { [FeatureKind.FloodRisk] = true }, All);
+        var domains = FeatureResolution.RequiredDomains(Options(("Flood", "FloodRisk", true)), All);
 
         Assert.Equal(
             new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality, DomainKind.Flood },
@@ -58,7 +80,7 @@ public sealed class FeatureResolutionSpec
     [Fact]
     public void Should_drop_air_quality_when_no_air_quality_feature_is_enabled()
     {
-        var options = new FeatureOptions { [FeatureKind.PollenAlert] = false, [FeatureKind.Pm25Alert] = false };
+        var options = Options(("AirQuality", "Pollen", false), ("AirQuality", "Pm25", false));
 
         var domains = FeatureResolution.RequiredDomains(options, All);
 
@@ -68,21 +90,21 @@ public sealed class FeatureResolutionSpec
     [Fact]
     public void Should_keep_only_enabled_handlers()
     {
-        var options = new FeatureOptions { [FeatureKind.CommuteSafety] = false, [FeatureKind.SwimmingConditions] = true };
+        var options = Options(("Lifestyle", "Commute", false), ("Marine", "Swimming", true));
 
-        var kinds = FeatureResolution.EnabledHandlers(options, All).Select(h => h.Feature.Kind);
+        var names = FeatureResolution.EnabledHandlers(options, All).Select(h => h.Name);
 
-        Assert.Equal([FeatureKind.FrostAlert, FeatureKind.PollenAlert, FeatureKind.Pm25Alert, FeatureKind.SwimmingConditions], kinds);
+        Assert.Equal(["Frost", "Pollen", "Pm25", "Swimming"], names);
     }
 
     [Fact]
     public void Should_list_the_enabled_features()
     {
-        var kinds = FeatureResolution.EnabledFeatures(new FeatureOptions { [FeatureKind.FloodRisk] = true }, All).Select(f => f.Kind);
+        var names = FeatureResolution.EnabledFeatures(Options(("Flood", "FloodRisk", true)), All).Select(f => f.Name);
 
         Assert.Equal(
-            [FeatureKind.FrostAlert, FeatureKind.CommuteSafety, FeatureKind.PollenAlert, FeatureKind.Pm25Alert, FeatureKind.FloodRisk],
-            kinds);
+            ["Frost", "Commute", "Pollen", "Pm25", "FloodRisk"],
+            names);
     }
 
     [Fact]
@@ -102,7 +124,7 @@ public sealed class FeatureResolutionSpec
     [Fact]
     public void Should_include_the_params_of_a_newly_enabled_feature()
     {
-        var requirements = FeatureResolution.RequiredParams(new FeatureOptions { [FeatureKind.SwimmingConditions] = true }, All);
+        var requirements = FeatureResolution.RequiredParams(Options(("Marine", "Swimming", true)), All);
 
         Assert.Equal(MarineParams.WaveHeight, requirements.Marine);
     }
@@ -116,11 +138,11 @@ public sealed class FeatureResolutionSpec
     [Fact]
     public void Should_resolve_each_feature_of_a_multi_feature_handler_on_its_own()
     {
-        var frost = new FeatureDescriptor(FeatureKind.FrostAlert, FeatureCategory.WeatherAlerts, "frost", true, new(Weather: WeatherParams.Temperature));
-        var storm = new FeatureDescriptor(FeatureKind.StormAlert, FeatureCategory.WeatherAlerts, "storm", true, new(Weather: WeatherParams.WindGusts));
+        var frost = new StubFeature("Frost", new(OutputKind.Alert, FeatureCategory.Weather, true, new(Weather: WeatherParams.Temperature)));
+        var storm = new StubFeature("Storm", new(OutputKind.Alert, FeatureCategory.Weather, true, new(Weather: WeatherParams.WindGusts)));
         IDomainHandler[] handlers = [new StubMultiHandler(frost, storm)];
-        var frostOff = new FeatureOptions { [FeatureKind.FrostAlert] = false };
-        var bothOff = new FeatureOptions { [FeatureKind.FrostAlert] = false, [FeatureKind.StormAlert] = false };
+        var frostOff = Options(("Weather", "Frost", false));
+        var bothOff = Options(("Weather", "Frost", false), ("Weather", "Storm", false));
 
         Assert.Multiple(
             () => Assert.Equal(WeatherParams.WindGusts, FeatureResolution.RequiredParams(frostOff, handlers).Weather),

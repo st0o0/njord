@@ -1,12 +1,13 @@
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Configuration;
+using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
-using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Tests.Shared;
 
-public sealed record LocationAnalysis(string Location, AlertResult Alerts);
+public sealed record LocationAnalysis(string Location, IReadOnlyList<AlertResult> Alerts);
 
 public sealed class AlertScenario
 {
@@ -29,8 +30,10 @@ public sealed class AlertScenario
         var analyses = Locations.Select(location =>
         {
             var weather = Weather(location);
-            var result = rules.OrderBy(rule => rule.Type).Select(rule => rule.Evaluate(weather, options, Now)).ToList();
-            return new LocationAnalysis(location, new AlertResult(new Location(location, 0, 0), result));
+            var result = rules.OrderBy(rule => rule.Name, StringComparer.Ordinal)
+                .Select(rule => new AlertResult(new Location(location, 0, 0), rule.WireKey(), rule.Evaluate(weather, options, Now), Now))
+                .ToList();
+            return new LocationAnalysis(location, result);
         });
 
         return new AlertScenario([.. analyses]);

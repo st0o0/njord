@@ -9,10 +9,11 @@ public sealed class OutdoorScoreHandler : IDomainHandler
 {
     public const double GoodHourScore = 85.0;
 
+    public string Name => "Outdoor";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.OutdoorScore,
+        OutputKind.Score,
         FeatureCategory.Lifestyle,
-        "Overall outdoor activity score",
         DefaultEnabled: false,
         new DomainRequirements(
         Weather: WeatherParams.Temperature | WeatherParams.Precipitation | WeatherParams.PrecipitationProbability
@@ -39,7 +40,7 @@ public sealed class OutdoorScoreHandler : IDomainHandler
         }
 
         var (score, start, length) = Scoring.BestWindow([.. hours.Select(pair => ScoreHour(pair.Point, pair.Air!))], GoodHourScore);
-        return [new PipelineEvent.OutdoorScoreComputed(current.Location, score, hours[start].Point.ValidFrom, length)];
+        return [new ScoreResult(current.Location, this.WireKey(), score, hours[start].Point.ValidFrom, length)];
     }
 
     private static double ScoreHour(WeatherPoint weather, AirQualityPoint air)

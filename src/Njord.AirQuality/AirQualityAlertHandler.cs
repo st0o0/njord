@@ -11,11 +11,13 @@ namespace Njord.AirQuality;
 public sealed class AirQualityAlertHandler(
     IEnumerable<IAlertRule<DomainForecast<AirQualityPoint>>> rules,
     IOptions<AlertOptions> options,
-    AlertType alertType) : IDomainHandler
+    string name) : IDomainHandler
 {
-    private readonly IReadOnlyList<IAlertRule<DomainForecast<AirQualityPoint>>> _rules = [.. rules.Where(rule => rule.Type == alertType)];
+    private readonly IReadOnlyList<IAlertRule<DomainForecast<AirQualityPoint>>> _rules = [.. rules.Where(rule => rule.Name == name)];
 
-    public FeatureDescriptor Feature { get; } = rules.Single(rule => rule.Type == alertType).Feature;
+    public string Name => name;
+
+    public FeatureDescriptor Feature { get; } = rules.Single(rule => rule.Name == name).Feature;
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
     {
@@ -28,9 +30,9 @@ public sealed class AirQualityAlertHandler(
         return
         [
             .. _rules
-                .Select(rule => rule.Evaluate(airQuality, options.Value, now))
-                .Where(alert => alert.Severity != AlertSeverity.None)
-                .Select(alert => new PipelineEvent.AlertRaised(current.Location, alert, now)),
+                .Select(rule => (Rule: rule, Alert: rule.Evaluate(airQuality, options.Value, now)))
+                .Where(pair => pair.Alert.Severity != AlertSeverity.None)
+                .Select(pair => new AlertResult(current.Location, pair.Rule.WireKey(), pair.Alert, now)),
         ];
     }
 }

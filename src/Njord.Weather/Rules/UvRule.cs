@@ -3,17 +3,18 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Alerts.Rules;
 
 public sealed class UvRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
-    public AlertType Type => AlertType.Uv;
+
+    public string Name => "Uv";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.UvAlert,
-        FeatureCategory.WeatherAlerts,
-        "UV warning from the peak UV index",
+        OutputKind.Alert,
+        FeatureCategory.Weather,
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.EnsembleStdDev,
             OptionalWeather: WeatherParams.UvIndex));
@@ -22,20 +23,20 @@ public sealed class UvRule : IAlertRule<DomainForecast<WeatherPoint>>
     {
         if (forecast.NextHoursInclusive(now).HighestBy(p => p.UvIndex) is not { UvIndex: { } uvIndex } peak || uvIndex <= 0)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var (level, severity, uvThreshold) = uvIndex switch
         {
-            >= 11 => (UvLevel.Extreme, AlertSeverity.Red, 11.0),
-            >= 8 => (UvLevel.VeryHigh, AlertSeverity.Red, 8.0),
-            >= 6 => (UvLevel.High, AlertSeverity.Orange, 6.0),
-            >= 3 => (UvLevel.Moderate, AlertSeverity.Yellow, 3.0),
-            _ => (UvLevel.Low, AlertSeverity.None, 0.0),
+            >= 11 => ("extreme", AlertSeverity.Red, 11.0),
+            >= 8 => ("very_high", AlertSeverity.Red, 8.0),
+            >= 6 => ("high", AlertSeverity.Orange, 6.0),
+            >= 3 => ("moderate", AlertSeverity.Yellow, 3.0),
+            _ => ("low", AlertSeverity.None, 0.0),
         };
 
         var rounded = Math.Round(uvIndex, 1);
-        return AlertWindow.Build(Type, severity, peak, new UvDetails(Level: level, UvIndex: rounded),
+        return AlertWindow.Build(severity, peak, new UvDetails(Level: level, UvIndex: rounded),
             rounded, uvThreshold, hoursUntil: peak.HoursFrom(now));
     }
 }

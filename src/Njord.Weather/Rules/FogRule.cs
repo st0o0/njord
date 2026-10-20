@@ -3,17 +3,18 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Alerts.Rules;
 
 public sealed class FogRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
-    public AlertType Type => AlertType.Fog;
+
+    public string Name => "Fog";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.FogAlert,
-        FeatureCategory.WeatherAlerts,
-        "Fog warning from dew point spread, wind and humidity",
+        OutputKind.Alert,
+        FeatureCategory.Weather,
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.DewPoint | WeatherParams.WindSpeed | WeatherParams.Humidity | WeatherParams.EnsembleStdDev));
 
@@ -31,7 +32,7 @@ public sealed class FogRule : IAlertRule<DomainForecast<WeatherPoint>>
         };
 
         var first = fogPoints.FirstOrDefault();
-        return AlertWindow.Build(Type, severity, first, new FogDetails(FogHours: fogHours, ModelsAgreeing: 0),
+        return AlertWindow.Build(severity, first, new FogDetails(FogHours: fogHours, ModelsAgreeing: 0),
             fogHours, 1,
             hoursUntil: first?.HoursFrom(now),
             durationHours: fogHours > 0 ? fogHours : null);

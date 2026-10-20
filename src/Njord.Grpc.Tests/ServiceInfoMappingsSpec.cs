@@ -10,12 +10,12 @@ public sealed class ServiceInfoMappingsSpec
     {
         var info = TestServiceInfo.Create(enabledFeatures:
         [
-            TestServiceInfo.Feature(FeatureKind.FloodRisk),
-            TestServiceInfo.Feature(FeatureKind.SolarYield),
-            TestServiceInfo.Feature(FeatureKind.BBQScore),
+            TestServiceInfo.Feature(FeatureCategory.Flood, "FloodRisk"),
+            TestServiceInfo.Feature(FeatureCategory.Energy, "SolarYield"),
+            TestServiceInfo.Feature(FeatureCategory.Lifestyle, "Bbq"),
         ]);
 
-        Assert.Equal(["alerts", "BBQScore", "FloodRisk", "SolarYield"], info.ActiveEnrichments);
+        Assert.Equal(["alerts", "Energy:SolarYield", "Flood:FloodRisk", "Lifestyle:Bbq"], info.ActiveEnrichments);
     }
 
     [Fact]
@@ -23,8 +23,8 @@ public sealed class ServiceInfoMappingsSpec
     {
         var info = TestServiceInfo.Create(
             alerts: new AlertOptions { Enabled = false },
-            enabledFeatures: [TestServiceInfo.Feature(FeatureKind.FloodRain)]);
+            enabledFeatures: [TestServiceInfo.Feature(FeatureCategory.Flood, "FloodRain")]);
 
-        Assert.Equal(["FloodRain"], info.ActiveEnrichments);
+        Assert.Equal(["Flood:FloodRain"], info.ActiveEnrichments);
     }
 }

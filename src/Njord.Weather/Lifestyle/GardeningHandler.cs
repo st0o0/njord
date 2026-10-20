@@ -10,10 +10,11 @@ public sealed class GardeningHandler : IDomainHandler
     public const double RainThreshold = 2.0;
     public const double WindLimit = 10.0;
 
+    public string Name => "Gardening";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.GardeningAdvisory,
+        OutputKind.Condition,
         FeatureCategory.Lifestyle,
-        "Gardening advisory from temperature, wind and rain",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.WindSpeed | WeatherParams.Precipitation));
 
@@ -36,6 +37,9 @@ public sealed class GardeningHandler : IDomainHandler
         var frostWithinTwoDays = twoDays.Min(p => p.Temperature) < FrostTemperature;
         var windy = day.Max(p => p.WindSpeed) >= WindLimit;
         var wateringNeeded = day.Sum(p => p.Precipitation) < RainThreshold;
-        return [new PipelineEvent.GardeningAdvised(current.Location, !frostWithinTwoDays && !windy, wateringNeeded, frostRisk)];
+        return [new ConditionResult(current.Location, this.WireKey(), !frostWithinTwoDays && !windy ? "plant" : "hold", FeatureData.Of(
+            ("planting_safe", FeatureData.Flag(!frostWithinTwoDays && !windy)),
+            ("watering_needed", FeatureData.Flag(wateringNeeded)),
+            ("frost_risk", FeatureData.Flag(frostRisk))))];
     }
 }

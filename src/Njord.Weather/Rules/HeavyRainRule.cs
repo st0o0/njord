@@ -3,17 +3,18 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Weather;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.Weather.Alerts.Rules;
 
 public sealed class HeavyRainRule : IAlertRule<DomainForecast<WeatherPoint>>
 {
-    public AlertType Type => AlertType.HeavyRain;
+
+    public string Name => "HeavyRain";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.RainAlert,
-        FeatureCategory.WeatherAlerts,
-        "Heavy rain warning from hourly precipitation",
+        OutputKind.Alert,
+        FeatureCategory.Weather,
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Precipitation | WeatherParams.EnsembleStdDev));
 
@@ -22,7 +23,7 @@ public sealed class HeavyRainRule : IAlertRule<DomainForecast<WeatherPoint>>
         var window = forecast.NextHoursInclusive(now);
         if (window.HighestBy(p => p.Precipitation) is not { Precipitation: { } peakPrecipitation } wettest)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var hourlyThreshold = options.HeavyRainHourlyThreshold;
@@ -42,7 +43,7 @@ public sealed class HeavyRainRule : IAlertRule<DomainForecast<WeatherPoint>>
         };
 
         var details = new HeavyRainDetails(HourlyExceedModels: hourlyHits, DailyExceedModels: dailyExceeds ? 1 : 0);
-        return AlertWindow.Build(Type, severity, wettest, details,
+        return AlertWindow.Build(severity, wettest, details,
             hourlyExceeds ? Math.Round(maxHourly, 1) : Math.Round(dailySum, 1),
             hourlyExceeds ? hourlyThreshold : dailyThreshold,
             hoursUntil: hourlyExceeds ? wettest.HoursFrom(now) : null);

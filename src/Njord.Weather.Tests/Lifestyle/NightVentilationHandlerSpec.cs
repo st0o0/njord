@@ -16,12 +16,13 @@ public sealed class NightVentilationHandlerSpec
 
         var events = Handler.Handle(WeatherOnly(weather), null, Time);
 
-        var advice = Assert.IsType<PipelineEvent.NightVentilationAdvised>(Assert.Single(events));
+        var advice = Assert.IsType<ConditionResult>(Assert.Single(events));
         Assert.Multiple(
-            () => Assert.Equal(Now.AddHours(6), advice.OpenAt),
-            () => Assert.Equal(Now.AddHours(21), advice.CloseAt),
-            () => Assert.Equal(15.0, advice.LowTemp),
-            () => Assert.Equal(31.0, advice.TomorrowPeak));
+            () => Assert.Equal("open", advice.State),
+            () => Assert.Equal(FeatureData.Time(Now.AddHours(6)), advice.Data["open_at"]),
+            () => Assert.Equal(FeatureData.Time(Now.AddHours(21)), advice.Data["close_at"]),
+            () => Assert.Equal("15", advice.Data["low_temp"]),
+            () => Assert.Equal("31", advice.Data["tomorrow_peak"]));
     }
 
     [Fact]

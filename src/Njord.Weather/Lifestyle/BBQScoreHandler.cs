@@ -8,10 +8,11 @@ public sealed class BBQScoreHandler : IDomainHandler
 {
     public const double GoodHourScore = 70.0;
 
+    public string Name => "Bbq";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.BBQScore,
+        OutputKind.Score,
         FeatureCategory.Lifestyle,
-        "Barbecue suitability score",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.Precipitation | WeatherParams.Temperature | WeatherParams.WindSpeed
             | WeatherParams.PrecipitationProbability | WeatherParams.CloudCover));
@@ -30,7 +31,7 @@ public sealed class BBQScoreHandler : IDomainHandler
         }
 
         var (score, start, length) = Scoring.BestWindow([.. hours.Select(ScoreHour)], GoodHourScore);
-        return [new PipelineEvent.BBQScoreComputed(current.Location, score, hours[start].ValidFrom, length)];
+        return [new ScoreResult(current.Location, this.WireKey(), score, hours[start].ValidFrom, length)];
     }
 
     private static double ScoreHour(WeatherPoint point)

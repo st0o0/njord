@@ -41,7 +41,7 @@ internal sealed class ProjectionEngine(IReadOnlyList<IDomainHandler> handlers, T
             if (!slot.Current.HasFields(handler.Feature.Requirements))
             {
                 Telemetry.HandlerSkipped.Add(1,
-                    new KeyValuePair<string, object?>("handler", handler.Feature.Kind.ToConfigKey()),
+                    new KeyValuePair<string, object?>("handler", handler.SectionKey()),
                     new KeyValuePair<string, object?>("reason", "missing_data"));
                 continue;
             }

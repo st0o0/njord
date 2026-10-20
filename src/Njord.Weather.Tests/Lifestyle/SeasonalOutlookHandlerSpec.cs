@@ -4,6 +4,7 @@ using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.Seasonal;
+using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Weather.Lifestyle;
 using static Njord.Weather.Tests.Lifestyle.LifestyleFixture;
@@ -28,28 +29,31 @@ public sealed class SeasonalOutlookHandlerSpec
         var events = Handler.Handle(
             With(Month(2026, 10), Month(2026, 11, 1.74, 2.4, 99.5), Month(2026, 12, -0.5, -20, 80)), null, October);
 
-        var outlook = Assert.IsType<PipelineEvent.SeasonalOutlookComputed>(Assert.Single(events));
-        Assert.Equal(
-            [
-                new MonthlyOutlook("2026-11", 1.7, 2.5, OutlookConfidence.High),
-                new MonthlyOutlook("2026-12", -0.5, -20, OutlookConfidence.Medium),
-            ],
-            outlook.Months);
+        var outlook = Assert.IsType<ForecastResult>(Assert.Single(events));
+        Assert.Multiple(
+            () => Assert.Equal("seasonaloutlook", outlook.WireKey),
+            () => Assert.Equal(["2026-11", "2026-12"], outlook.Entries.Select(e => e.Label)),
+            () => Assert.Equal(
+                new Dictionary<string, string> { ["temp_anomaly"] = "1.7", ["precip_anomaly"] = "2.5", ["confidence"] = "high" },
+                outlook.Entries[0].Values),
+            () => Assert.Equal(
+                new Dictionary<string, string> { ["temp_anomaly"] = "-0.5", ["precip_anomaly"] = "-20", ["confidence"] = "medium" },
+                outlook.Entries[1].Values));
     }
 
     [Theory]
-    [InlineData(1, OutlookConfidence.High)]
-    [InlineData(2, OutlookConfidence.Medium)]
-    [InlineData(3, OutlookConfidence.Low)]
-    public void Handle_lowers_the_confidence_with_the_lead_time(int lead, OutlookConfidence expected)
+    [InlineData(1, ConfidenceLevel.High)]
+    [InlineData(2, ConfidenceLevel.Medium)]
+    [InlineData(3, ConfidenceLevel.Low)]
+    public void Handle_lowers_the_confidence_with_the_lead_time(int lead, ConfidenceLevel expected)
     {
         var month = new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero).AddMonths(lead);
         var point = Month(month.Year, month.Month);
 
         var events = Handler.Handle(With(point), null, October);
 
-        var outlook = Assert.IsType<PipelineEvent.SeasonalOutlookComputed>(Assert.Single(events));
-        Assert.Equal(expected, Assert.Single(outlook.Months).Confidence);
+        var outlook = Assert.IsType<ForecastResult>(Assert.Single(events));
+        Assert.Equal(expected.ToWireName(), Assert.Single(outlook.Entries).Values["confidence"]);
     }
 
     [Fact]
@@ -57,8 +61,8 @@ public sealed class SeasonalOutlookHandlerSpec
     {
         var events = Handler.Handle(With(Month(2026, 11)), null, October);
 
-        var outlook = Assert.IsType<PipelineEvent.SeasonalOutlookComputed>(Assert.Single(events));
-        Assert.Equal(0, Assert.Single(outlook.Months).PrecipAnomaly);
+        var outlook = Assert.IsType<ForecastResult>(Assert.Single(events));
+        Assert.Equal("0", Assert.Single(outlook.Entries).Values["precip_anomaly"]);
     }
 
     [Fact]
@@ -76,11 +80,14 @@ public sealed class SeasonalOutlookHandlerSpec
     [Fact]
     public void The_feature_is_off_unless_configured_and_reads_the_seasonal_domain()
     {
+        var on = new FeatureOptions();
+        on.Set("Insight", "SeasonalOutlook", true);
+
         Assert.Multiple(
             () => Assert.Empty(FeatureResolution.EnabledHandlers(new FeatureOptions(), [Handler])),
-            () => Assert.Single(FeatureResolution.EnabledHandlers(new FeatureOptions { [FeatureKind.SeasonalOutlook] = true }, [Handler])),
+            () => Assert.Single(FeatureResolution.EnabledHandlers(on, [Handler])),
             () => Assert.Equal(
                 [DomainKind.Seasonal],
-                FeatureResolution.RequiredDomains(new FeatureOptions { [FeatureKind.SeasonalOutlook] = true }, [Handler])));
+                FeatureResolution.RequiredDomains(on, [Handler])));
     }
 }

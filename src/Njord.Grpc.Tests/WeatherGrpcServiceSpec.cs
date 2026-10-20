@@ -58,7 +58,7 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
         var service = CreateService();
 
         var ex = await Assert.ThrowsAsync<RpcException>(() => service.GetDomainData(
-            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Solar }, TestServerCallContext.Create(TestContext.Current.CancellationToken)));
+            new GetDomainDataRequest { Location = "lucerne", Domain = Domain.Flood }, TestServerCallContext.Create(TestContext.Current.CancellationToken)));
 
         Assert.Equal(StatusCode.NotFound, ex.StatusCode);
     }
@@ -90,32 +90,32 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetEnrichments_returns_the_alerts_the_consumer_holds()
     {
-        var alerts = new AlertResult(DomainData.Lucerne,
-            [new Messages.Alerts.Alert(Messages.Alerts.AlertType.Frost, Messages.Alerts.AlertSeverity.Orange, 0.9, NoDetails.Instance)]);
-        var service = CreateService(analysis: new LatestAnalysisResult(DomainData.Lucerne, alerts));
+        var frost = new AlertResult(DomainData.Lucerne, "frost",
+            new Messages.Alerts.Alert(Messages.Alerts.AlertSeverity.Orange, 0.9, NoDetails.Instance), Anchor);
+        var service = CreateService(analysis: new LatestAnalysisResult(DomainData.Lucerne, [frost]));
 
         var response = await service.GetEnrichments(new GetEnrichmentsRequest { Location = "lucerne" }, TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         var alert = Assert.Single(response.Alerts.Alerts);
         Assert.Multiple(
             () => Assert.Equal("Lucerne", response.Location),
-            () => Assert.Equal(V2.AlertType.Frost, alert.Type),
+            () => Assert.Equal("frost", alert.Key),
             () => Assert.Equal(V2.AlertSeverity.Orange, alert.Severity));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetEnrichments_returns_the_lifestyle_updates_the_consumer_holds()
     {
-        var lifestyle = new PipelineEvent.CommuteSafety(DomainData.Lucerne, "caution", ["ice"]).ToLifestyleUpdate();
-        Assert.NotNull(lifestyle);
-        var service = CreateService(analysis: new LatestAnalysisResult(DomainData.Lucerne, null, [lifestyle]));
+        var commute = new ConditionResult(DomainData.Lucerne, "commute", "caution", FeatureData.Of(("risks", "ice")));
+        var service = CreateService(analysis: new LatestAnalysisResult(DomainData.Lucerne, [commute]));
 
         var response = await service.GetEnrichments(new GetEnrichmentsRequest { Location = "lucerne" }, TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
         var update = Assert.Single(response.Lifestyle);
         Assert.Multiple(
-            () => Assert.Equal("commute_safety", update.Type),
-            () => Assert.Equal("caution", update.Data["level"]),
+            () => Assert.Equal("commute", update.Type),
+            () => Assert.Equal("caution", update.Data["state"]),
+            () => Assert.Equal(V2.OutputKind.Condition, update.Output),
             () => Assert.Equal("ice", update.Data["risks"]));
     }
 

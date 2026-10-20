@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using Njord.Forecast.Flood;
 using Njord.Forecast.Marine;
-using Njord.Forecast.Solar;
 using Njord.Forecast.Weather;
 
 namespace Njord.Forecast.Tests;
@@ -37,7 +36,7 @@ public sealed class DomainForecastSpec
     [Fact]
     public void Should_return_default_valid_times_when_points_array_is_uninitialized()
     {
-        var forecast = new DomainForecast<SolarPoint>(DomainKind.Solar, Run, TimeResolution.Hourly, default);
+        var forecast = new DomainForecast<MarinePoint>(DomainKind.Marine, Run, TimeResolution.Hourly, default);
 
         Assert.Equal(default, forecast.FirstValid);
     }

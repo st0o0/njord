@@ -6,6 +6,6 @@ namespace Njord.Tests.Shared;
 
 public static class EnrichmentEvents
 {
-    public static PipelineEvent.AlertRaised Alerts(Location location, DateTimeOffset at) =>
-        new(location, new Alert(AlertType.Heat, AlertSeverity.Yellow, 0.75, NoDetails.Instance), at);
+    public static AlertResult Alerts(Location location, DateTimeOffset at) =>
+        new(location, "heat", new Alert(AlertSeverity.Yellow, 0.75, NoDetails.Instance), at);
 }

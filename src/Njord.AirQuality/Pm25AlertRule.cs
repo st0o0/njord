@@ -3,6 +3,7 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.AirQuality;
 
@@ -12,12 +13,12 @@ public sealed class Pm25AlertRule : IAlertRule<DomainForecast<AirQualityPoint>>
     public const double OrangeThreshold = 25.0;
     public const double RedThreshold = 50.0;
 
-    public AlertType Type => AlertType.Pm25;
+
+    public string Name => "Pm25";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.Pm25Alert,
+        OutputKind.Alert,
         FeatureCategory.AirQuality,
-        "Fine particulate warning against the WHO guideline",
         DefaultEnabled: true,
         new DomainRequirements(AirQuality: AirQualityParams.Pm25));
 
@@ -34,13 +35,13 @@ public sealed class Pm25AlertRule : IAlertRule<DomainForecast<AirQualityPoint>>
 
         if (peakPoint?.Pm25 is not { } peakPm25)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var severity = AirQualityAlertWindow.SeverityFor(peakPm25, WhoGuideline, OrangeThreshold, RedThreshold);
         if (severity == AlertSeverity.None)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var threshold = severity switch
@@ -49,6 +50,6 @@ public sealed class Pm25AlertRule : IAlertRule<DomainForecast<AirQualityPoint>>
             AlertSeverity.Orange => OrangeThreshold,
             _ => WhoGuideline,
         };
-        return new Alert(Type, severity, 1.0, NoDetails.Instance, TriggerValue: Math.Round(peakPm25, 1), Threshold: threshold, HoursUntil: peakPoint.HoursFrom(now), Level: ConfidenceLevel.High);
+        return new Alert(severity, 1.0, NoDetails.Instance, TriggerValue: Math.Round(peakPm25, 1), Threshold: threshold, HoursUntil: peakPoint.HoursFrom(now), Level: ConfidenceLevel.High);
     }
 }

@@ -26,15 +26,6 @@ public sealed class AlertWireNamesSpec
     }
 
     [Fact]
-    public void Should_map_detail_enums_to_wire_names()
-    {
-        Assert.Multiple(
-            () => Assert.Equal("very_high", UvLevel.VeryHigh.ToWireName()),
-            () => Assert.Equal("frostbite_10min", ExposureRisk.Frostbite10Min.ToWireName()),
-            () => Assert.Equal("oppressive", HumidityComfort.Oppressive.ToWireName()));
-    }
-
-    [Fact]
     public void Should_throw_for_undefined_severity()
     {
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() => ((AlertSeverity)42).ToWireName());

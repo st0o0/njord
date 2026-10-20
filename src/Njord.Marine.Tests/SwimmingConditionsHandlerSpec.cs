@@ -20,11 +20,11 @@ public sealed class SwimmingConditionsHandlerSpec
     {
         var current = new LocationForecast(Lucerne, Marine: MarineForecast(Point(0, 2.4)));
 
-        var raised = Assert.IsType<PipelineEvent.AlertRaised>(Assert.Single(Handler().Handle(current, null, Time)));
+        var raised = Assert.IsType<AlertResult>(Assert.Single(Handler().Handle(current, null, Time)));
 
         Assert.Multiple(
-            () => Assert.Equal(AlertType.SwimmingConditions, raised.Type),
-            () => Assert.Equal(AlertSeverity.Red, raised.Severity),
+            () => Assert.Equal("swimming", raised.WireKey),
+            () => Assert.Equal(AlertSeverity.Red, raised.Alert.Severity),
             () => Assert.Equal(Lucerne, raised.Location),
             () => Assert.Equal(Now, raised.Timestamp));
     }

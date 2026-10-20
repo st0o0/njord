@@ -6,7 +6,6 @@ namespace Njord.Weather.Alerts;
 internal static class AlertWindow
 {
     public static Alert Build(
-        AlertType type,
         AlertSeverity severity,
         WeatherPoint? peak,
         AlertDetails details,
@@ -17,7 +16,7 @@ internal static class AlertWindow
         int? durationHours = null)
     {
         var level = ConfidenceThresholds.Default.LevelFor(peak?.EnsembleStdDev);
-        return new Alert(type, severity, level.ToConfidence(), details,
+        return new Alert(severity, level.ToConfidence(), details,
             TriggerValue: triggerValue,
             Threshold: threshold,
             PeakValue: peakValue,

@@ -1,3 +1,3 @@
 namespace Njord.Messages.Alerts;
 
-public sealed record HumidityDetails(double MaxDewpoint, HumidityComfort? ComfortLevel) : AlertDetails;
+public sealed record HumidityDetails(double MaxDewpoint, string? ComfortLevel) : AlertDetails;

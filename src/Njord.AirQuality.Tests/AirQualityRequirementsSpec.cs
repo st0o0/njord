@@ -7,13 +7,13 @@ namespace Njord.AirQuality.Tests;
 
 public sealed class AirQualityRequirementsSpec
 {
-    private static AirQualityAlertHandler Create(AlertType type) =>
-        new([new PollenAlertRule(), new Pm25AlertRule()], AlertRuleFixture.OptionsWith(true), type);
+    private static AirQualityAlertHandler Create(string name) =>
+        new([new PollenAlertRule(), new Pm25AlertRule()], AlertRuleFixture.OptionsWith(true), name);
 
     [Fact]
     public void The_pm25_alert_requires_pm25_only()
     {
-        Assert.Equal(new DomainRequirements(AirQuality: AirQualityParams.Pm25), Create(AlertType.Pm25).Feature.Requirements);
+        Assert.Equal(new DomainRequirements(AirQuality: AirQualityParams.Pm25), Create("Pm25").Feature.Requirements);
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public sealed class AirQualityRequirementsSpec
         Assert.Equal(
             new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
                 | AirQualityParams.Alder | AirQualityParams.Mugwort),
-            Create(AlertType.Pollen).Feature.Requirements);
+            Create("Pollen").Feature.Requirements);
     }
 
     [Fact]

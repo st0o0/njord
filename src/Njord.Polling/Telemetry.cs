@@ -34,7 +34,6 @@ internal static class Telemetry
         DomainKind.Weather => "weather",
         DomainKind.AirQuality => "air_quality",
         DomainKind.Flood => "flood",
-        DomainKind.Solar => "solar",
         DomainKind.Marine => "marine",
         DomainKind.Seasonal => "seasonal",
         DomainKind.Satellite => "satellite",

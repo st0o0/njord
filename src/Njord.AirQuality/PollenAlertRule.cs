@@ -3,6 +3,7 @@ using Njord.Core.Domain;
 using Njord.Forecast;
 using Njord.Forecast.AirQuality;
 using Njord.Messages.Alerts;
+using Njord.Messages.Pipeline;
 
 namespace Njord.AirQuality;
 
@@ -12,12 +13,12 @@ public sealed class PollenAlertRule : IAlertRule<DomainForecast<AirQualityPoint>
     public const double OrangeThreshold = 50.0;
     public const double RedThreshold = 100.0;
 
-    public AlertType Type => AlertType.Pollen;
+
+    public string Name => "Pollen";
 
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.PollenAlert,
+        OutputKind.Alert,
         FeatureCategory.AirQuality,
-        "Pollen warning from the highest pollen concentration",
         DefaultEnabled: true,
         new DomainRequirements(AirQuality: AirQualityParams.BirchPollen | AirQualityParams.GrassPollen
             | AirQualityParams.Alder | AirQualityParams.Mugwort));
@@ -38,13 +39,13 @@ public sealed class PollenAlertRule : IAlertRule<DomainForecast<AirQualityPoint>
 
         if (peakPoint is null)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var severity = AirQualityAlertWindow.SeverityFor(peak, YellowThreshold, OrangeThreshold, RedThreshold);
         if (severity == AlertSeverity.None)
         {
-            return Alert.None(Type);
+            return Alert.None();
         }
 
         var threshold = severity switch
@@ -53,7 +54,7 @@ public sealed class PollenAlertRule : IAlertRule<DomainForecast<AirQualityPoint>
             AlertSeverity.Orange => OrangeThreshold,
             _ => YellowThreshold,
         };
-        return new Alert(Type, severity, 1.0, NoDetails.Instance, TriggerValue: Math.Round(peak, 1), Threshold: threshold, HoursUntil: peakPoint.HoursFrom(now), Level: ConfidenceLevel.High);
+        return new Alert(severity, 1.0, NoDetails.Instance, TriggerValue: Math.Round(peak, 1), Threshold: threshold, HoursUntil: peakPoint.HoursFrom(now), Level: ConfidenceLevel.High);
     }
 
     private static double HighestPollen(AirQualityPoint point) =>

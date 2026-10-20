@@ -2,7 +2,7 @@ namespace Njord.Core.Domain;
 
 public enum FeatureCategory
 {
-    WeatherAlerts,
+    Weather,
     AirQuality,
     Lifestyle,
     Insight,

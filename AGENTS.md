@@ -18,12 +18,12 @@ src/
                         #   Weather/ AirQuality/ Flood/ Marine/ Solar/ (XxxPoint + [Flags] XxxParam enums,
                         #   Point.HasFields(param)), Horizon/
   Njord.Messages/       # Akka-free contracts (-> Forecast): PipelineEvent, Fetch*/Poll*/Query* messages,
-                        #   Alerts/, Budget/, Config/, Forecast/, Pipeline/ (LifestyleMappings)
+                        #   Alerts/, Budget/, Config/, Forecast/, Pipeline/ (FeatureResult, OutputKind)
   Njord.Persistence/    # Extend-only records, no Njord refs: Events/Budget, Events/Polling
   Njord.Core/           # (-> Forecast, Messages, Persistence)
     ActorKeys.cs        #   marker interfaces for every resolvable actor
     Actors/             #   ShardMessageExtractor, StreamSupervision, stream handshake messages
-    Domain/             #   IDomainHandler, IAlertRule, FeatureKind, FeatureCategory,
+    Domain/             #   IDomainHandler, IAlertRule, IFeature, FeatureCategory,
                         #   FeatureDescriptor, FeatureResolution, LocationForecast, DomainDataReceived
     Configuration/      #   NjordOptions, LocationOptions, WeatherOptions, FeatureOptions, AlertOptions,
                         #   SolarYieldOptions, WeatherVariables, ConfigView, AddNjordOptions + validators
@@ -60,13 +60,13 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 
 - **Feature-driven config.** The operator sets locations and feature toggles; the rest is derived.
   Fetched domains = union of the `Requirements` of the enabled features (`FeatureResolution`).
-- **Every feature is a `FeatureKind`** with a `FeatureDescriptor` (`Kind`, `Category`, `Description`,
+- **Every feature is an `IFeature`**: a unique `Name` plus a `FeatureDescriptor` (`Output` (`OutputKind`), `Category`,
   `DefaultEnabled`, `Requirements`: a `DomainRequirements` of per-domain `XxxParam` flags). An `IDomainHandler`
   exposes its `Feature` and handles `Handle(current, previous, time)`; required flags gate dispatch (missing
   data skips the handler), `Optional*` flags are requested from the API but never gate. Each `IAlertRule`
   declares its own feature; `WeatherAlertHandler` (an `IMultiFeatureHandler`) runs only the enabled rules.
-  The config key is `FeatureKind.ToConfigKey()` (explicit switch); `FeatureConfigKeySpec` pins one
-  descriptor per kind.
+  The config key is `Category:Name` (`SectionKey()`), the wire key the lowercase name (`WireKey()`);
+  `FeatureConfigKeySpec` pins unique names; the description lives only in `docs/data/features.json`.
 - **Domain projects are plugins.** Weather/AirQuality/Flood/Marine register handlers via
   `Add<Domain>Domain()`; they never reference each other or the adapters (Grpc).
 - **One `PollWorker` per location, per-domain independent timers.** No rounds, no waiting for all
@@ -83,8 +83,9 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
   actors. No consumer slows the hub: bounded drop-oldest buffers.
 - **gRPC is an adapter.** Resolve a marker, `ActorAsk` with a `Njord.Messages` message, map with `ToProto()`.
 - **`Njord.Messages` is Akka-free** (refs Forecast only); stream handshakes live in `Njord.Core/Actors`.
-- **Lifestyle events share one wire shape**: `ToLifestyleUpdate()` flattens them to `LifestyleUpdate`
-  (`LifestyleKind` + string map) for gRPC (`type_name = "lifestyle"`).
+- **Handlers emit `FeatureResult`s** (`AlertResult`, `ScoreResult`, `ConditionResult`, `TrendResult`,
+  `ForecastResult`); non-alert results flatten to `LifestyleUpdate` (wire key + `OutputKind` + string map) for gRPC
+  (`type_name = "lifestyle"`).
 - **`TimeProvider` everywhere**, never `DateTime.Now`/`UtcNow`.
 - **Zone rules are tests** (`ArchitectureSpec`): Forecast/Messages/Persistence reference no other Njord
   project (Messages only Forecast), no Akka in Messages/Persistence, domain projects independent, all classes sealed.
@@ -118,15 +119,14 @@ SHARD REGIONS (Sharded Entity)
   every other required domain 1.
 - **Per-domain forecast days.** `Njord:AirQuality` (5, max 7), `Njord:Marine` (8, max 8), `Njord:Flood` (92,
   max 210) next to `Njord:Weather`.
-- **Feature-driven configuration.** One toggle per `FeatureKind` in `Njord:Features:<Name>` (35 features in the
-  categories WeatherAlerts, AirQuality, Lifestyle, Insight, Energy, Flood, Marine). On by default: the 14 weather
-  alerts (`FrostAlert`, `HeatAlert`, `StormAlert`, `RainAlert`, `UvAlert`, `FogAlert`, `SnowAlert`,
-  `PressureDropAlert`, `ThunderstormAlert`, `IceAlert`, `WindChillAlert`, `VisibilityAlert`,
-  `TropicalNightAlert`, `HumidityAlert`), `CommuteSafety`, `PollenAlert`, `Pm25Alert`; everything else is off.
+- **Feature-driven configuration.** One toggle per feature in `Njord:Features:<Category>:<Name>` (35 features in the
+  categories Weather, AirQuality, Lifestyle, Insight, Energy, Flood, Marine). On by default: the 14 weather
+  alerts (`Weather:Frost`, `Heat`, `Storm`, `HeavyRain`, `Uv`, `Fog`, `Snow`,
+  `PressureDrop`, `Thunderstorm`, `Ice`, `WindChill`, `Visibility`,
+  `TropicalNight`, `Humidity`), `Lifestyle:Commute`, `AirQuality:Pollen`, `AirQuality:Pm25`; everything else is off.
   The old `Njord:Enrichments` section is not read. The entity set follows locations x enabled features.
 - **Per-domain discovery.** Every domain of a location learns its own cycle and polls independently.
-- **Domains:** `Weather`, `AirQuality`, `Flood`, `Solar`, `Marine` (`DomainKind`). The gateway fetches
-  Weather, AirQuality, Flood, Marine, Seasonal, Satellite; `Solar` exists in the model and event vocabulary only.
+- **Domains:** `Weather`, `AirQuality`, `Flood`, `Marine`, `Seasonal`, `Satellite` (`DomainKind`); the gateway fetches all of them.
 - **Explicit coordinates.** A location is `Name`, `Latitude` and `Longitude`, all required (`NjordOptionsValidator`).
 - **Free tier assumed** (non-commercial): budget defaults to 300k/month, 600/min, optional
   `Polling:BudgetOverride`. Startup validates projected usage (`BudgetCalculator`: locations x required
@@ -275,7 +275,7 @@ Defaults are property initializers.
 | `Njord:Seasonal` | `SeasonalOptions` | `ForecastMonths` (3, 1..6) |
 | `Njord:Satellite` | `SatelliteOptions` | `PastHours` (6, 1..48) |
 | `Njord:Flood` | `FloodOptions` | `ForecastDays` (92, 1..210) |
-| `Njord:Features` | `FeatureOptions` | one toggle per `FeatureKind`, default from its descriptor |
+| `Njord:Features` | `FeatureOptions` | one toggle per feature (`Category:Name`), default from its descriptor |
 | `Njord:Enrichment:Alerts` | `AlertOptions` | alert thresholds |
 | `Njord:SolarYield` | `SolarYieldOptions` | `PeakKw` (5.0), `Azimuth` (180), `Tilt` (30) |
 | `Njord:Polling` | `PollingOptions` | `PollInterval` (60 min), `DiscoveryInterval` (20 min), `BudgetOverride` |

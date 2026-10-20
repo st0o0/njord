@@ -32,64 +32,52 @@ public sealed class GrpcConsumerStateSpec
 
         Assert.Multiple(
             () => Assert.Null(state.GetDomainData(DomainData.Bern, DomainKind.Weather)),
-            () => Assert.Null(state.GetDomainData(Lucerne, DomainKind.Solar)));
+            () => Assert.Null(state.GetDomainData(Lucerne, DomainKind.Marine)));
     }
 
     [Fact]
-    public void A_raised_alert_replaces_the_alert_of_the_same_type()
+    public void A_result_replaces_the_result_of_the_same_feature()
     {
-        var first = new PipelineEvent.AlertRaised(Lucerne,
-            new Alert(AlertType.Heat, AlertSeverity.Yellow, 0.5, NoDetails.Instance), Anchor);
-        var second = new PipelineEvent.AlertRaised(Lucerne,
-            new Alert(AlertType.Heat, AlertSeverity.Red, 0.9, NoDetails.Instance), Anchor.AddHours(1));
+        var first = Heat(AlertSeverity.Yellow, 0.5, Anchor);
+        var second = Heat(AlertSeverity.Red, 0.9, Anchor.AddHours(1));
 
         var state = GrpcConsumerState.Empty.Apply(first).Apply(second);
 
-        var alerts = state.GetLatestAlerts(Lucerne);
-        Assert.NotNull(alerts);
-        Assert.Equal([second.Alert], alerts.Alerts);
+        Assert.Equal<FeatureResult>([second], state.GetLatestResults(Lucerne));
     }
 
     [Fact]
-    public void Alerts_of_different_types_accumulate_ordered_by_type()
+    public void Results_of_different_features_accumulate_ordered_by_wire_key()
     {
-        var frost = new Alert(AlertType.Frost, AlertSeverity.Orange, 0.8, NoDetails.Instance);
-        var heat = new Alert(AlertType.Heat, AlertSeverity.Yellow, 0.7, NoDetails.Instance);
+        var frost = new AlertResult(Lucerne, "frost", new Alert(AlertSeverity.Orange, 0.8, NoDetails.Instance), Anchor);
+        var heat = Heat(AlertSeverity.Yellow, 0.7, Anchor);
+        var laundry = new ScoreResult(Lucerne, "laundry", 85, Anchor, 5);
 
-        var state = GrpcConsumerState.Empty
-            .Apply(new PipelineEvent.AlertRaised(Lucerne, heat, Anchor))
-            .Apply(new PipelineEvent.AlertRaised(Lucerne, frost, Anchor));
+        var state = GrpcConsumerState.Empty.Apply(laundry).Apply(heat).Apply(frost);
 
-        var alerts = state.GetLatestAlerts(Lucerne);
-        Assert.NotNull(alerts);
-        Assert.Equal(new[] { heat, frost }.OrderBy(a => a.Type), alerts.Alerts);
+        Assert.Equal<FeatureResult>([frost, heat, laundry], state.GetLatestResults(Lucerne));
     }
 
     [Fact]
-    public void Alerts_are_kept_per_location_and_absent_before_the_first_alert()
+    public void Results_are_kept_per_location_and_absent_before_the_first_result()
     {
-        var state = GrpcConsumerState.Empty.Apply(EnrichmentEvents.Alerts(Lucerne, Anchor));
+        var state = GrpcConsumerState.Empty.Apply(Heat(AlertSeverity.Yellow, 0.7, Anchor));
 
         Assert.Multiple(
-            () => Assert.NotNull(state.GetLatestAlerts(Lucerne)),
-            () => Assert.Null(state.GetLatestAlerts(DomainData.Bern)));
+            () => Assert.Single(state.GetLatestResults(Lucerne)),
+            () => Assert.Empty(state.GetLatestResults(DomainData.Bern)));
     }
 
     [Fact]
-    public void Lifestyle_events_keep_the_latest_per_location_and_kind_ordered_by_kind()
+    public void Condition_results_are_kept_like_any_other_result()
     {
-        var older = new PipelineEvent.LaundryScoreComputed(Lucerne, 40, Anchor, 2);
-        var newer = new PipelineEvent.LaundryScoreComputed(Lucerne, 85, Anchor.AddHours(1), 5);
-        var commute = new PipelineEvent.CommuteSafety(Lucerne, "caution", ["ice"]);
+        var commute = new ConditionResult(Lucerne, "commute", "caution", FeatureData.Of(("risks", "ice")));
 
-        var state = GrpcConsumerState.Empty.Apply(older).Apply(commute).Apply(newer);
+        var state = GrpcConsumerState.Empty.Apply(commute);
 
-        var lifestyle = state.GetLatestLifestyle(Lucerne);
-        Assert.Equal(2, lifestyle.Count);
-        Assert.Multiple(
-            () => Assert.Equal(LifestyleKind.LaundryScore, lifestyle[0].Kind),
-            () => Assert.Equal("85", lifestyle[0].Data["score"]),
-            () => Assert.Equal(LifestyleKind.CommuteSafety, lifestyle[1].Kind),
-            () => Assert.Empty(state.GetLatestLifestyle(DomainData.Bern)));
+        Assert.Equal<FeatureResult>([commute], state.GetLatestResults(Lucerne));
     }
+
+    private static AlertResult Heat(AlertSeverity severity, double confidence, DateTimeOffset at) =>
+        new(Lucerne, "heat", new Alert(severity, confidence, NoDetails.Instance), at);
 }

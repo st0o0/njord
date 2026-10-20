@@ -1,7 +1,6 @@
 namespace Njord.Messages.Alerts;
 
 public sealed record Alert(
-    AlertType Type,
     AlertSeverity Severity,
     double Confidence,
     AlertDetails Details,
@@ -12,6 +11,5 @@ public sealed record Alert(
     int? DurationHours = null,
     ConfidenceLevel Level = ConfidenceLevel.Medium)
 {
-    public static Alert None(AlertType type) =>
-        new(type, AlertSeverity.None, 0.0, NoDetails.Instance);
+    public static Alert None() => new(AlertSeverity.None, 0.0, NoDetails.Instance);
 }

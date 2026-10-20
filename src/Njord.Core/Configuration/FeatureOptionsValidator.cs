@@ -10,13 +10,12 @@ public sealed class FeatureOptionsValidator(IServiceProvider services) : IValida
     public ValidateOptionsResult Validate(string? name, FeatureOptions options)
     {
         var features = FeatureResolution.AllFeatures(services.GetServices<IDomainHandler>());
-        var known = features.Select(feature => feature.Kind).ToHashSet();
+        var known = features.Select(feature => feature.SectionKey()).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var unregistered = options.Keys.Where(kind => !known.Contains(kind)).Order().ToList();
+        var unregistered = options.ConfiguredKeys().Where(key => !known.Contains(key)).Order().ToList();
         if (unregistered.Count > 0)
         {
-            return ValidateOptionsResult.Fail(
-                $"No feature is registered for: {string.Join(", ", unregistered.Select(kind => kind.ToConfigKey()))}.");
+            return ValidateOptionsResult.Fail($"No feature is registered for: {string.Join(", ", unregistered)}.");
         }
 
         return features.Any(options.IsEnabled)

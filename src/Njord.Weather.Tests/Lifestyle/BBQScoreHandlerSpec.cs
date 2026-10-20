@@ -14,7 +14,7 @@ public sealed class BBQScoreHandlerSpec
     {
         var forecast = WeatherOnly(Uniform(point => point with { Temperature = 24.0, WindSpeed = 2.0, CloudCover = 20.0 }));
 
-        var score = Assert.IsType<PipelineEvent.BBQScoreComputed>(Assert.Single(Handler.Handle(forecast, null, Time)));
+        var score = Assert.IsType<ScoreResult>(Assert.Single(Handler.Handle(forecast, null, Time)));
 
         Assert.Multiple(
             () => Assert.True(score.Score >= 90, $"score was {score.Score}"),
@@ -32,7 +32,7 @@ public sealed class BBQScoreHandlerSpec
             Precipitation = hour is < 4 or >= 10 ? 2.0 : 0.0,
         }));
 
-        var score = Assert.IsType<PipelineEvent.BBQScoreComputed>(Assert.Single(Handler.Handle(forecast, null, Time)));
+        var score = Assert.IsType<ScoreResult>(Assert.Single(Handler.Handle(forecast, null, Time)));
 
         Assert.Multiple(
             () => Assert.Equal(Now.AddHours(4), score.BestStart),
@@ -44,7 +44,7 @@ public sealed class BBQScoreHandlerSpec
     {
         var forecast = WeatherOnly(Uniform(point => point with { Precipitation = 3.0 }));
 
-        var score = Assert.IsType<PipelineEvent.BBQScoreComputed>(Assert.Single(Handler.Handle(forecast, null, Time)));
+        var score = Assert.IsType<ScoreResult>(Assert.Single(Handler.Handle(forecast, null, Time)));
 
         Assert.Multiple(
             () => Assert.Equal(0, score.Score),

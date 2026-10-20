@@ -11,30 +11,29 @@ public sealed class AlertRuleThresholdSpec
 {
     private sealed record Scenario(
         IAlertRule<DomainForecast<WeatherPoint>> Rule,
-        AlertType Type,
         Func<double, DomainForecast<WeatherPoint>> Forecast);
 
     // Each scenario shapes the forecast from one driving value; the rows below pin it around every default threshold.
     private static readonly Dictionary<string, Scenario> Scenarios = new(StringComparer.Ordinal)
     {
-        ["Frost"] = new(new FrostRule(), AlertType.Frost, v => Uniform(p => p with { Temperature = v })),
-        ["Heat"] = new(new HeatRule(), AlertType.Heat, v => Uniform(p => p with { Temperature = v })),
-        ["Storm"] = new(new StormRule(), AlertType.Storm, v => Uniform(p => p with { WindGusts = v })),
-        ["WindChill"] = new(new WindChillRule(), AlertType.WindChill, v => Uniform(p => p with { ApparentTemperature = v })),
-        ["Visibility"] = new(new VisibilityRule(), AlertType.Visibility, v => Uniform(p => p with { Visibility = v })),
-        ["TropicalNight"] = new(new TropicalNightRule(), AlertType.TropicalNight,
+        ["Frost"] = new(new FrostRule(), v => Uniform(p => p with { Temperature = v })),
+        ["Heat"] = new(new HeatRule(), v => Uniform(p => p with { Temperature = v })),
+        ["Storm"] = new(new StormRule(), v => Uniform(p => p with { WindGusts = v })),
+        ["WindChill"] = new(new WindChillRule(), v => Uniform(p => p with { ApparentTemperature = v })),
+        ["Visibility"] = new(new VisibilityRule(), v => Uniform(p => p with { Visibility = v })),
+        ["TropicalNight"] = new(new TropicalNightRule(),
             v => Uniform(p => p with { IsDay = 0, Temperature = v })),
-        ["Humidity"] = new(new HumidityRule(), AlertType.Humidity, v => Uniform(p => p with { IsDay = 1, DewPoint = v })),
-        ["Uv"] = new(new UvRule(), AlertType.Uv, v => Uniform(p => p with { UvIndex = v })),
-        ["HeavyRain"] = new(new HeavyRainRule(), AlertType.HeavyRain,
+        ["Humidity"] = new(new HumidityRule(), v => Uniform(p => p with { IsDay = 1, DewPoint = v })),
+        ["Uv"] = new(new UvRule(), v => Uniform(p => p with { UvIndex = v })),
+        ["HeavyRain"] = new(new HeavyRainRule(),
             v => Day((h, p) => h == 0 ? p with { Precipitation = v } : p)),
-        ["Ice"] = new(new IceRule(), AlertType.Ice, v => Uniform(p => p with { Precipitation = 1.0, Temperature = v })),
-        ["PressureDrop"] = new(new PressureDropRule(), AlertType.PressureDrop,
+        ["Ice"] = new(new IceRule(), v => Uniform(p => p with { Precipitation = 1.0, Temperature = v })),
+        ["PressureDrop"] = new(new PressureDropRule(),
             v => Day((h, p) => p with { Pressure = h < 3 ? 1013.0 : 1013.0 - v })),
-        ["Snow"] = new(new SnowRule(), AlertType.Snow, v => Day((h, p) => p with { Snowfall = h == 0 ? v : 0.0 })),
-        ["Thunderstorm"] = new(new ThunderstormRule(), AlertType.Thunderstorm,
+        ["Snow"] = new(new SnowRule(), v => Day((h, p) => p with { Snowfall = h == 0 ? v : 0.0 })),
+        ["Thunderstorm"] = new(new ThunderstormRule(),
             v => Uniform(p => p with { Cape = v, Precipitation = 5.1, WindGusts = 15.1 })),
-        ["Fog"] = new(new FogRule(), AlertType.Fog,
+        ["Fog"] = new(new FogRule(),
             v => Day((h, p) => h < v
                 ? p with { Temperature = 5.0, DewPoint = 4.5, WindSpeed = 1.0, Humidity = 95.0 }
                 : p)),
@@ -114,7 +113,7 @@ public sealed class AlertRuleThresholdSpec
         var alert = scenario.Rule.Evaluate(scenario.Forecast(value), Defaults, Now);
 
         Assert.Multiple(
-            () => Assert.Equal(scenario.Type, alert.Type),
+            () => Assert.Equal(rule, scenario.Rule.Name),
             () => Assert.Equal(expected, alert.Severity));
     }
 

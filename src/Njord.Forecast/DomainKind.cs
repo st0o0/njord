@@ -5,7 +5,6 @@ public enum DomainKind
     Weather,
     AirQuality,
     Flood,
-    Solar,
     Marine,
     Seasonal,
     Satellite,

@@ -14,7 +14,7 @@ public sealed class OutdoorScoreHandlerSpec
     {
         var weather = Uniform(point => point with { Temperature = 22.0, WindSpeed = 2.0, CloudCover = 10.0 });
 
-        var score = Assert.IsType<PipelineEvent.OutdoorScoreComputed>(Assert.Single(Handler.Handle(Combined(weather, CleanAir()), null, Time)));
+        var score = Assert.IsType<ScoreResult>(Assert.Single(Handler.Handle(Combined(weather, CleanAir()), null, Time)));
 
         Assert.Multiple(
             () => Assert.True(score.Score >= 85, $"score was {score.Score}"),
@@ -28,7 +28,7 @@ public sealed class OutdoorScoreHandlerSpec
         var weather = Uniform(point => point with { Temperature = 22.0, WindSpeed = 2.0, CloudCover = 10.0 });
         var air = CleanAir(shape: (hour, point) => hour < 6 ? point with { Pm25 = 80.0 } : point);
 
-        var score = Assert.IsType<PipelineEvent.OutdoorScoreComputed>(Assert.Single(Handler.Handle(Combined(weather, air), null, Time)));
+        var score = Assert.IsType<ScoreResult>(Assert.Single(Handler.Handle(Combined(weather, air), null, Time)));
 
         Assert.Equal(Now.AddHours(6), score.BestStart);
     }

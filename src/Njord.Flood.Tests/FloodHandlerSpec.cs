@@ -23,11 +23,11 @@ public sealed class FloodHandlerSpec
     {
         var current = new LocationForecast(Lucerne, Flood: FloodForecast(Point(0, 500)));
 
-        var raised = Assert.IsType<PipelineEvent.AlertRaised>(Assert.Single(Risk().Handle(current, null, Time)));
+        var raised = Assert.IsType<AlertResult>(Assert.Single(Risk().Handle(current, null, Time)));
 
         Assert.Multiple(
-            () => Assert.Equal(AlertType.FloodRisk, raised.Type),
-            () => Assert.Equal(AlertSeverity.Red, raised.Severity),
+            () => Assert.Equal("floodrisk", raised.WireKey),
+            () => Assert.Equal(AlertSeverity.Red, raised.Alert.Severity),
             () => Assert.Equal(Lucerne, raised.Location),
             () => Assert.Equal(Now, raised.Timestamp));
     }
@@ -53,11 +53,11 @@ public sealed class FloodHandlerSpec
     [Fact]
     public void The_rain_handler_raises_a_flood_rain_alert_from_weather_and_flood()
     {
-        var raised = Assert.IsType<PipelineEvent.AlertRaised>(Assert.Single(Rainfall().Handle(RainAndRisingRiver(), null, Time)));
+        var raised = Assert.IsType<AlertResult>(Assert.Single(Rainfall().Handle(RainAndRisingRiver(), null, Time)));
 
         Assert.Multiple(
-            () => Assert.Equal(AlertType.FloodRain, raised.Type),
-            () => Assert.Equal(AlertSeverity.Orange, raised.Severity),
+            () => Assert.Equal("floodrain", raised.WireKey),
+            () => Assert.Equal(AlertSeverity.Orange, raised.Alert.Severity),
             () => Assert.Equal(Now, raised.Timestamp));
     }
 

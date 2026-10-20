@@ -87,11 +87,10 @@ public sealed class GrpcConsumer : ReceiveActor
 
     private void HandleQueryLatestAnalysis(QueryLatestAnalysis msg)
     {
-        var alerts = _state.GetLatestAlerts(msg.Location);
-        var lifestyle = _state.GetLatestLifestyle(msg.Location);
-        Sender.Tell(alerts is null && lifestyle.Count == 0
+        var results = _state.GetLatestResults(msg.Location);
+        Sender.Tell(results.Count == 0
             ? new LatestAnalysisNotAvailable(msg.Location)
-            : new LatestAnalysisResult(msg.Location, alerts, lifestyle));
+            : new LatestAnalysisResult(msg.Location, results));
     }
 
     private void HandleStreamRequest(RequestGrpcStream msg)

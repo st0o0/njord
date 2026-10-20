@@ -22,13 +22,15 @@ public sealed class WeatherAlertHandler : IMultiFeatureHandler
         IOptions<AlertOptions> options,
         IOptions<FeatureOptions> features)
     {
-        _rules = [.. rules.OrderBy(rule => rule.Type)];
+        _rules = [.. rules.OrderBy(rule => rule.Name, StringComparer.Ordinal)];
         _options = options;
-        Features = [.. _rules.Select(rule => rule.Feature)];
+        Features = [.. _rules];
         _enabled = new Lazy<Enabled>(() => Resolve(features.Value));
     }
 
-    public IReadOnlyList<FeatureDescriptor> Features { get; }
+    public string Name => "WeatherAlerts";
+
+    public IReadOnlyList<IFeature> Features { get; }
 
     public FeatureDescriptor Feature => _enabled.Value.Composite;
 
@@ -44,15 +46,15 @@ public sealed class WeatherAlertHandler : IMultiFeatureHandler
         return
         [
             .. _enabled.Value.Rules
-                .Select(rule => rule.Evaluate(weather, options, now))
-                .Where(alert => alert.Severity != AlertSeverity.None)
-                .Select(alert => new PipelineEvent.AlertRaised(current.Location, alert, now)),
+                .Select(rule => (Rule: rule, Alert: rule.Evaluate(weather, options, now)))
+                .Where(pair => pair.Alert.Severity != AlertSeverity.None)
+                .Select(pair => new AlertResult(current.Location, pair.Rule.WireKey(), pair.Alert, now)),
         ];
     }
 
     private Enabled Resolve(FeatureOptions features)
     {
-        var rules = _rules.Where(rule => features.IsEnabled(rule.Feature)).ToList();
+        var rules = _rules.Where(rule => features.IsEnabled(rule)).ToList();
         var requirements = rules.Aggregate(default(DomainRequirements), (all, rule) => all | rule.Feature.Requirements);
         var representative = (rules.Count > 0 ? rules : _rules)[0].Feature;
         return new Enabled(rules, representative with { DefaultEnabled = rules.Count > 0, Requirements = requirements });

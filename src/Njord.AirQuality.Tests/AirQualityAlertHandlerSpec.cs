@@ -11,19 +11,19 @@ public sealed class AirQualityAlertHandlerSpec
 {
     private static readonly FakeTimeProvider Time = new(Now);
 
-    private static AirQualityAlertHandler Create(bool enabled = true, AlertType type = AlertType.Pm25) =>
-        new([new PollenAlertRule(), new Pm25AlertRule()], AlertRuleFixture.OptionsWith(enabled), type);
+    private static AirQualityAlertHandler Create(bool enabled = true, string name = "Pm25") =>
+        new([new PollenAlertRule(), new Pm25AlertRule()], AlertRuleFixture.OptionsWith(enabled), name);
 
     [Fact]
     public void Handle_raises_an_alert_with_location_and_timestamp_when_air_quality_is_poor()
     {
         var current = new LocationForecast(Lucerne, AirQuality: Day((_, p) => p with { Pm25 = 25.0 }));
 
-        var raised = Assert.IsType<PipelineEvent.AlertRaised>(Assert.Single(Create().Handle(current, null, Time)));
+        var raised = Assert.IsType<AlertResult>(Assert.Single(Create().Handle(current, null, Time)));
 
         Assert.Multiple(
-            () => Assert.Equal(AlertType.Pm25, raised.Type),
-            () => Assert.Equal(AlertSeverity.Orange, raised.Severity),
+            () => Assert.Equal("pm25", raised.WireKey),
+            () => Assert.Equal(AlertSeverity.Orange, raised.Alert.Severity),
             () => Assert.Equal(Lucerne, raised.Location),
             () => Assert.Equal(Now, raised.Timestamp));
     }
@@ -49,11 +49,17 @@ public sealed class AirQualityAlertHandlerSpec
     }
 
     [Theory]
-    [InlineData(AlertType.Pollen, FeatureKind.PollenAlert)]
-    [InlineData(AlertType.Pm25, FeatureKind.Pm25Alert)]
-    public void Feature_names_the_feature_of_the_handled_alert_type(AlertType type, FeatureKind expected)
+    [InlineData("Pollen", "AirQuality:Pollen", "pollen")]
+    [InlineData("Pm25", "AirQuality:Pm25", "pm25")]
+    public void Feature_names_the_feature_of_the_handled_alert_rule(string name, string sectionKey, string wireKey)
     {
-        Assert.Equal(expected, Create(type: type).Feature.Kind);
+        var handler = Create(name: name);
+
+        Assert.Multiple(
+            () => Assert.Equal(name, handler.Name),
+            () => Assert.Equal(sectionKey, handler.SectionKey()),
+            () => Assert.Equal(wireKey, handler.WireKey()),
+            () => Assert.Equal(OutputKind.Alert, handler.Feature.Output));
     }
 
     [Fact]
@@ -61,6 +67,6 @@ public sealed class AirQualityAlertHandlerSpec
     {
         var current = new LocationForecast(Lucerne, AirQuality: Day((_, p) => p with { Pm25 = 25.0 }));
 
-        Assert.Empty(Create(type: AlertType.Pollen).Handle(current, null, Time));
+        Assert.Empty(Create(name: "Pollen").Handle(current, null, Time));
     }
 }

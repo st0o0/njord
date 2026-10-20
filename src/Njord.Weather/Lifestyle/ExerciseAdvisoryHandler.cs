@@ -16,10 +16,11 @@ public sealed class ExerciseAdvisoryHandler : IDomainHandler
     private const double HumidityWeight = 0.1;
     private const double UvWeight = 0.1;
 
+    public string Name => "Exercise";
+
     public FeatureDescriptor Feature { get; } = new(
-        FeatureKind.ExerciseAdvisory,
+        OutputKind.Condition,
         FeatureCategory.Lifestyle,
-        "Exercise advisory from heat, humidity and air quality",
         DefaultEnabled: false,
         new DomainRequirements(
         Weather: WeatherParams.Temperature | WeatherParams.Humidity,
@@ -60,7 +61,9 @@ public sealed class ExerciseAdvisoryHandler : IDomainHandler
         AddReason(reasons, hours.Average(h => h.Humidity), "High humidity");
         AddReason(reasons, hours.Average(h => h.Uv), "Strong UV radiation");
 
-        return [new PipelineEvent.ExerciseAdvised(current.Location, level, [.. reasons], best.ValidFrom)];
+        return [new ConditionResult(current.Location, this.WireKey(), level, FeatureData.Of(
+            ("reasons", string.Join(",", reasons)),
+            ("best_window", FeatureData.Time(best.ValidFrom))))];
     }
 
     private static void AddReason(List<string> reasons, double componentScore, string text)

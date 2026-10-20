@@ -38,17 +38,14 @@ public sealed class PipelineEventMappingsSpec
     }
 
     [Fact]
-    public void Air_quality_solar_and_marine_data_map_to_their_events()
+    public void Air_quality_and_marine_data_map_to_their_events()
     {
         var airQuality = new DomainForecast<AirQualityPoint>(DomainKind.AirQuality, Start, TimeResolution.Hourly, [new AirQualityPoint(Start, 1, 2, 3)]);
-        var solar = new DomainForecast<SolarPoint>(DomainKind.Solar, Start, TimeResolution.Hourly, [new SolarPoint(Start, 1, 2, 3, 4)]);
         var marine = new DomainForecast<MarinePoint>(DomainKind.Marine, Start, TimeResolution.Hourly, [new MarinePoint(Start, 1, 2, 3)]);
 
         Assert.Multiple(
             () => Assert.Same(airQuality, Assert.IsType<PipelineEvent.AirQualityDataReceived>(
                 new DomainDataReceived(Lucerne, DomainKind.AirQuality, airQuality).ToPipelineEvent()).Forecast),
-            () => Assert.Same(solar, Assert.IsType<PipelineEvent.SolarDataReceived>(
-                new DomainDataReceived(Lucerne, DomainKind.Solar, solar).ToPipelineEvent()).Forecast),
             () => Assert.Same(marine, Assert.IsType<PipelineEvent.MarineDataReceived>(
                 new DomainDataReceived(Lucerne, DomainKind.Marine, marine).ToPipelineEvent()).Forecast));
     }
