@@ -4,7 +4,7 @@
 TBD - created by archiving change seasonal-outlook. Update Purpose after archive.
 ## Requirements
 ### Requirement: Seasonal is a fetched domain
-The system SHALL provide `DomainKind.Seasonal` with monthly `SeasonalPoint`s (`TimeResolution.Monthly`) and an `ISeasonalClient` in `Njord.OpenMeteo` that fetches `seasonal-api.open-meteo.com/v1/seasonal` using `OpenMeteoRequestBuilder`. The gateway SHALL dispatch `FetchDomain` for `Seasonal` to the client with the variables of the resolved requirements and answer with exactly one `FetchDomainCompleted`, `FetchDomainFailed` or `FetchDomainRejected`.
+The system SHALL provide `DomainKind.Seasonal` with monthly `SeasonalPoint`s (`TimeResolution.Monthly`) and a `SeasonalClient` (`IDomainClient`) in `Njord.OpenMeteo` that fetches `seasonal-api.open-meteo.com/v1/seasonal` with the variables of the resolved requirements. The gateway SHALL dispatch `FetchDomain` for `Seasonal` to the client and answer with exactly one `FetchDomainCompleted`, `FetchDomainFailed` or `FetchDomainRejected`.
 
 #### Scenario: Request URL
 - **WHEN** `FetchAsync` is called with coordinates and the variables `temperature_2m_anomaly` and `precipitation_anomaly`

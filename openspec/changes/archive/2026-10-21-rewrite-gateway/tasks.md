@@ -15,4 +15,4 @@
 
 ## 4. Verify
 - [x] 4.1 `dotnet build`, `dotnet format Njord.slnx`, run all test projects sequentially
-- [ ] 4.2 `openspec validate --all --no-interactive`; commit `refactor!: rewrite gateway with thick clients (FunkArr pattern)`; archive
+- [x] 4.2 `openspec validate --all --no-interactive`; commit `refactor!: rewrite gateway with thick clients (FunkArr pattern)`; archive

@@ -4,7 +4,7 @@
 TBD - created by archiving change add-satellite-radiation. Update Purpose after archive.
 ## Requirements
 ### Requirement: Satellite is a fetched domain
-The system SHALL provide `DomainKind.Satellite` with hourly `SatelliteRadiationPoint`s and an `ISatelliteRadiationClient` in `Njord.OpenMeteo` that fetches `satellite-api.open-meteo.com/v1/archive` using `OpenMeteoRequestBuilder`. The gateway SHALL dispatch `FetchDomain` for `Satellite` to the client with the variables of the resolved requirements and answer with exactly one `FetchDomainCompleted`, `FetchDomainFailed` or `FetchDomainRejected`.
+The system SHALL provide `DomainKind.Satellite` with hourly `SatelliteRadiationPoint`s and a `SatelliteRadiationClient` (`IDomainClient`) in `Njord.OpenMeteo` that fetches `satellite-api.open-meteo.com/v1/archive` with the variables of the resolved requirements. The gateway SHALL dispatch `FetchDomain` for `Satellite` to the client and answer with exactly one `FetchDomainCompleted`, `FetchDomainFailed` or `FetchDomainRejected`.
 
 #### Scenario: Request contains orientation
 - **WHEN** `FetchAsync` is called with coordinates, the variables, tilt 25 and azimuth 135 (compass degrees) in `SolarYieldOptions` and 6 past hours

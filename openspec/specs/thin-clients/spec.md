@@ -3,13 +3,6 @@
 ## Purpose
 TBD - created by archiving change restructure-forecast-and-clients. Update Purpose after archive.
 ## Requirements
-### Requirement: Variables supplied by the caller
-Open-Meteo clients SHALL request exactly the variables and forecast days passed by the gateway, with no built-in variable lists.
-
-#### Scenario: Requested variables in URL
-- **WHEN** the gateway fetches AirQuality with two variables and 5 forecast days
-- **THEN** the request URL SHALL list exactly those two hourly variables and 5 forecast days
-
 ### Requirement: Parameter flags map to API names
 Each parameter flag SHALL map to one exact API variable name through an explicit mapping, and an undefined value SHALL be rejected.
 
@@ -21,13 +14,6 @@ Each parameter flag SHALL map to one exact API variable name through an explicit
 - **WHEN** a value that is not a defined member is mapped
 - **THEN** mapping SHALL fail with an out-of-range error
 
-### Requirement: Gateway derives request from resolution and options
-The gateway SHALL take variables from the resolved enrichment requirements and forecast days from the domain's own options.
-
-#### Scenario: Per-domain forecast days
-- **WHEN** Weather, AirQuality and Flood are fetched
-- **THEN** each request SHALL use its own domain's configured forecast days
-
 ### Requirement: Missing response values stay missing
 Response mapping SHALL pass absent values through as null.
 
@@ -35,3 +21,9 @@ Response mapping SHALL pass absent values through as null.
 - **WHEN** a response array contains null at an hour
 - **THEN** the mapped point field for that hour SHALL be null
 
+### Requirement: Clients derive request from resolution and options
+Each client SHALL take its variables from the resolved feature requirements and its forecast days from its own domain options, clamped to the API maximum.
+
+#### Scenario: Requested variables in URL
+- **WHEN** AirQuality is resolved with two variables and 5 forecast days
+- **THEN** the request URL SHALL list exactly those two hourly variables and 5 forecast days
