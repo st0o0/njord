@@ -27,7 +27,10 @@ integration), with optional MQTT state publishing.
 - **Domains and typed clients.** `DomainKind`: `Weather`, `AirQuality`, `Flood`, `Solar`,
   `Marine` (`Njord.Model`). `Njord.OpenMeteo` holds one typed HTTP client per API
   (`IWeatherClient`, `IAirQualityClient`, `IFloodClient`, `IMarineClient`, `IGeocodingClient`),
-  each with its own fixed base address.
+  each with its own fixed base address. Every request URL is built with the fluent
+  `OpenMeteoRequestBuilder` (`To(endpoint).WithLocation().WithHourly()/WithDaily().WithForecastDays()
+  .With(key, value).Build()`): invariant-culture coordinates, `timeformat=unixtime&timezone=UTC`
+  appended to every endpoint except geocoding search; no client interpolates URL strings.
   `IncludeSolar` adds the solar radiation variables to the weather request (the gateway fetches
   only Weather, AirQuality, Flood and Marine; `Solar` exists in the model and event vocabulary).
 - **Geocoding resolves locations.** A location is `Name` only; `LocationResolutionService`
@@ -78,6 +81,17 @@ integration), with optional MQTT state publishing.
   presenters. No consumer slows the pipeline hub: the gRPC consumer builds its streaming hub once
   at start and gives each client a bounded drop-oldest buffer; the MQTT publisher buffers with
   `DropHead`, dedups, and republishes every topic after a broker (re)connect.
+- **Lifestyle events travel on the wire.** The lifestyle `PipelineEvent` variants (ventilation,
+  exercise, laundry, commute, pollen trend, night ventilation, confidence trend, solar yield,
+  gardening, outdoor, BBQ, flood timeline, front, climate anomaly) are flattened by one shared
+  `ToLifestyleUpdate()` (`Njord.Messages/Pipeline/LifestyleMappings`) into a `LifestyleUpdate`
+  (location, `LifestyleKind`, string key/value `Data` with invariant numbers, lowercase
+  booleans, UTC `...Z` timestamps). gRPC: `GrpcConsumerState` keeps the latest per
+  (location, kind), `GetEnrichments` returns them in `GetEnrichmentsResponse.lifestyle`,
+  `StreamEnrichments` emits an `EnrichmentEvent` with `type_name = "lifestyle"` and the
+  `LifestyleUpdate` payload (`type` wire name, `map<string,string> data`), stamped by the
+  service's `TimeProvider`. MQTT: one retained flat JSON object of strings per event on
+  `{base}/{location}/lifestyle/{type}` (`StatePayloadBuilder.FromLifestyle`).
 - **The gRPC API is an adapter.** `Njord.Grpc` (`WeatherGrpcService`: `GetCatalog`,
   `GetDomainData`, `GetEnrichments`, `StreamDomainData`, `StreamEnrichments`; `OpsGrpcService`:
   `GetStatus`, `GetTargets`, `TriggerPoll`; protos in `protos/njord/v2`) resolves an actor marker,
