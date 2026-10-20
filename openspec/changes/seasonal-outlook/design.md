@@ -1,37 +1,56 @@
 ## Context
 
-njord already has the "slow domain" pattern from the Climate Anomaly feature: `ClimateBaselineService` fetches once daily, stores in `IClimateBaselineStore`, and the `ClimateAnomalyHandler` reads it on Weather updates. Seasonal Outlook follows the same pattern but fetches from the Seasonal Forecast API and produces a forward-looking 3-month anomaly comparison.
+The earlier "slow domain" pattern (climate baseline service + store + Climate Anomaly handler) no longer exists; the Climate Change API, `IClimateBaselineStore`, `ClimateBaselineService`, `MonthlyBaseline`, `ClimateAnomalyHandler` and `ClimateResponseMappings` were deleted. `Njord.OpenMeteo` currently has no hosted service; its gateway path (`OpenMeteoGateway` -> thin typed clients) fetches only `DomainKind` domains (Weather, AirQuality, Flood, Marine) with variables and forecast days supplied from outside.
+
+Current handler model: `IDomainHandler` has `ConfigKey`, `DomainRequirements Requirements` (record struct of `[Flags]` params per domain, combined with `|`) and `Handle(current, previous, time)`. `EnrichmentResolution` aggregates the Requirements of enabled handlers (`ResolvedRequirements` is a DI singleton) and derives the fetched domains from non-default flags. Per-domain options exist (`WeatherOptions`, `AirQualityOptions`, `MarineOptions`, `FloodOptions`), registered in `OpenMeteoSetupContainer`.
+
+Seasonal outlook is a new standalone feature: a daily background fetch, an in-memory store, and a handler that surfaces the stored result on weather updates.
 
 ## Goals / Non-Goals
 
-**Goals:** 3-month outlook comparing seasonal ensemble forecast with 30-year climate baseline. Daily fetch, enrichment-driven toggle, gRPC + MQTT wire.
+**Goals:** 3-month outlook of monthly temperature and precipitation anomalies with a confidence level. Daily fetch, enrichment-driven toggle, gRPC + MQTT wire.
 
-**Non-Goals:** Weekly resolution, EFI interpretation, seasonal data as a fast-poll domain.
+**Non-Goals:** weekly resolution, EFI, seasonal as a `DomainKind`/PollWorker domain, any shared climate baseline store.
 
 ## Decisions
 
-### D1: Same architecture as Climate Anomaly
+### D1: Standalone service, store, handler
 
-`SeasonalOutlookService` (hosted service, daily fetch) → `ISeasonalOutlookStore` (cache in Core) → `SeasonalOutlookHandler` (IDomainHandler, triggers on Weather). This mirrors `ClimateBaselineService` → `IClimateBaselineStore` → `ClimateAnomalyHandler` exactly. One proven pattern, two instances.
+`SeasonalOutlookService` (`BackgroundService` in `Njord.OpenMeteo`, daily fetch) writes to `ISeasonalOutlookStore` (interface and in-memory implementation in `Njord.Core/Domain`), and `SeasonalOutlookHandler` (`Njord.Weather/Lifestyle`) reads it. The service owns its loop (`TimeProvider`-driven timer, jittered first run, 24 h interval, 15 min retry, previous outlook kept on failure) and fetches only when `EnrichmentOptions.SeasonalOutlook` is enabled. It is not routed through the Gateway or PollWorker because Seasonal is not a `DomainKind`; this keeps the "one PollWorker per location, per-domain timers" guardrail intact. Feature libraries stay independent: the store interface lives in Core, so Weather and OpenMeteo meet only through it.
 
-### D2: 6-hourly → monthly aggregation
+### D2: Baseline is self-contained
 
-The Seasonal API returns 6-hourly data for 7 months. Aggregation: group by year-month, compute mean temperature and total precipitation per month. This is the same aggregation `ClimateResponseMappings` does for the 30-year baseline, so the code shape is identical.
+Preferred source: anomalies returned by the Seasonal API itself, so njord holds no baseline mechanism at all (task 1.1 confirms variable names and units). Fallback: a private monthly-normal cache inside `SeasonalOutlookService` fed by the Archive API; no shared store, no new public interface. This decision is the first gate of the task list.
 
-### D3: 3-month window, not 7
+### D3: Own 6-hourly to monthly aggregation
 
-The ensemble spread widens significantly past 3 months — confidence drops to "Low" for most variables. Showing 7 months of "we don't know" is worse than showing 3 months of actionable outlook. The handler emits the next 3 calendar months only.
+`SeasonalResponseMappings` (`src/Njord.OpenMeteo/Mapping/`, extension methods named `ToDomain`/`ToMessage`, stateless) groups the 6-hourly values by UTC year-month: mean for the temperature anomaly, relative percentage for the precipitation anomaly, and the standard deviation across the month for confidence. Months with fewer than half of the expected samples are dropped.
 
-### D4: Confidence from temperature spread
+### D4: 3-month window
 
-The Seasonal API returns ensemble members (51 for ECMWF). The client requests the ensemble mean model (`ecmwf_seasonal_mean`). The spread (std dev) across the 6-hourly values within each month serves as the confidence proxy. This is the same approach as Climate Anomaly uses `EnsembleStdDev` for alert confidence.
+The handler emits the next 3 calendar months after `time.GetUtcNow()`. Spread widens beyond 3 months and seven months of "unknown" is worse than three actionable ones.
 
-### D5: Wire via LifestyleUpdate
+### D5: Confidence from spread
 
-Rather than adding another proto message type, the seasonal outlook flows through the existing `LifestyleUpdate` oneof with `type = "seasonal_outlook"`. The `data` map carries `month_1`, `month_1_temp_anomaly`, `month_1_precip_anomaly`, `month_1_confidence`, etc. This is consistent with how all lifestyle events are wired today.
+Per month, standard deviation of the temperature values: below 1.5°C High, below 3.0°C Medium, otherwise Low. Thresholds are constants pinned by specs; wire text comes from an explicit `ToWireName()` switch (no `ToString()`).
+
+### D6: Handler wiring via Requirements
+
+```csharp
+public string ConfigKey => "SeasonalOutlook";
+public DomainRequirements Requirements { get; } = new(Weather: WeatherParam.Temperature);
+```
+
+Registered with `services.AddSingleton<IDomainHandler, SeasonalOutlookHandler>()` in `AddWeatherDomain` (`src/Njord.Weather/ServiceCollectionExtensions.cs`); takes `ISeasonalOutlookStore` by constructor. `ConfigKey` must match the new `EnrichmentOptions` toggle (`EnrichmentConfigKeySpec`). Requiring one already-common Weather param does not meaningfully change the fetched variable set. The hosted service is registered in `OpenMeteoSetupContainer` and gated by the toggle through `EnrichmentOptions`, not through `ResolvedRequirements` (which only describes polled domains).
+
+### D7: Wire via LifestyleUpdate
+
+The event flattens through `LifestyleMappings.ToLifestyleUpdate()` into a new `LifestyleKind` value with a string map (`month_1`, `month_1_temp_anomaly`, `month_1_precip_anomaly`, `month_1_confidence`, ...). gRPC (`type_name = "lifestyle"`) and MQTT (`{base}/{location}/lifestyle/{type}`) need no new proto message. Enum-to-wire conversions use explicit switches.
 
 ## Risks / Trade-offs
 
-- **[Seasonal API data quality]** — At 7 months, skill is very low. We mitigate by showing only 3 months and confidence levels.
-- **[Baseline dependency]** — Requires Climate Anomaly's baseline store. If climate fetch fails, seasonal outlook has nothing to compare against. The handler returns empty in this case.
-- **[API budget]** — +1 call/day/location. Negligible vs the hourly poll cycle cost.
+- **[API shape unverified]** Seasonal anomaly variables may not exist. Mitigated by the D2 gate in task 1.1 and the Archive fallback.
+- **[Seasonal skill]** Low past 3 months; mitigated by the 3-month window and confidence levels.
+- **[Store is in memory]** After a restart the outlook is empty until the first fetch; the service fetches shortly after startup (jittered) and the handler emits nothing meanwhile.
+- **[Budget]** +1 call/day/location, outside `BudgetCalculator`; documented in the proposal.
+- **[Location coordinates]** The service needs coordinates per location. `LocationOptions.Latitude/Longitude` are optional and no resolver service remains in the tree; task 2.4 confirms where resolved coordinates come from and skips locations without them with a warning.
