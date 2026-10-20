@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref, computed, watch, onMounted } from 'vue'
-import { defaultConfig, type NjordConfig, type DomainName, type EnrichmentFeature } from './types'
+import { defaultConfig, ENRICHMENT_TOGGLES, requiredDomains, type NjordConfig, type EnrichmentFeature } from './types'
 import { computeBudget } from './budget'
 import { exportAsJson, exportAsEnvVars, exportAsCompose, autoImport, findOutdatedKeys, encodeHash, decodeHash } from './serializer'
 import enrichmentData from '../../../data/enrichment.json'
@@ -8,22 +8,12 @@ import enrichmentData from '../../../data/enrichment.json'
 const enrichmentFeatures = enrichmentData as EnrichmentFeature[]
 const config = reactive<NjordConfig>(defaultConfig())
 
-const DOMAIN_INFO: { name: DomainName; description: string; required: boolean; enabledByDefault: boolean }[] = [
-  { name: 'Weather', description: 'Multi-model hourly forecast', required: true, enabledByDefault: true },
-  { name: 'AirQuality', description: 'Air quality and pollen, hourly', required: false, enabledByDefault: true },
-  { name: 'Flood', description: 'River discharge, daily', required: false, enabledByDefault: true },
-  { name: 'Marine', description: 'Waves, sea temperature and swimming conditions, hourly for 8 days', required: false, enabledByDefault: false },
-]
-
-function isDomainEnabled(name: DomainName): boolean {
-  return config.enabledDomains.includes(name)
+function isEnrichmentToggled(key: string): boolean {
+  return !!config.enrichments[key]
 }
 
-function toggleDomain(name: DomainName) {
-  if (DOMAIN_INFO.find(d => d.name === name)?.required) return
-  const idx = config.enabledDomains.indexOf(name)
-  if (idx >= 0) config.enabledDomains.splice(idx, 1)
-  else config.enabledDomains.push(name)
+function toggleEnrichmentKey(key: string) {
+  config.enrichments[key] = !config.enrichments[key]
 }
 
 function initEnrichment(): Record<string, Record<string, unknown>> {
@@ -69,7 +59,7 @@ const newLocation = ref('')
 
 const budget = computed(() => computeBudget(config))
 const memoryTip = computed(() => {
-  if (config.enabledDomains.length * config.locations.length > 12) return 'With many domain calls per cycle, consider 256M.'
+  if (requiredDomains(config.enrichments).length * config.locations.length > 12) return 'With many domain calls per cycle, consider 256M.'
   return ''
 })
 const exportOutput = computed(() => {
@@ -158,21 +148,20 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Domains -->
+    <!-- Enrichment toggles -->
     <div class="section">
-      <h3>Domains</h3>
+      <h3>Enrichments</h3>
       <div class="domain-grid">
-        <label v-for="d in DOMAIN_INFO" :key="d.name" class="domain-card" :class="{ selected: isDomainEnabled(d.name), locked: d.required }">
-          <input type="checkbox" :checked="isDomainEnabled(d.name)" :disabled="d.required" @change="toggleDomain(d.name)" />
+        <label v-for="t in ENRICHMENT_TOGGLES" :key="t.key" class="domain-card" :class="{ selected: isEnrichmentToggled(t.key) }">
+          <input type="checkbox" :checked="isEnrichmentToggled(t.key)" @change="toggleEnrichmentKey(t.key)" />
           <div>
-            <strong>{{ d.name }}</strong>
-            <span v-if="d.required" class="enrichment-badge">required</span>
-            <span v-else-if="d.enabledByDefault" class="enrichment-badge">default on</span>
-            <span class="domain-meta">{{ d.description }}</span>
+            <strong>{{ t.label }}</strong>
+            <span v-if="t.enabledByDefault" class="enrichment-badge">default on</span>
+            <span class="domain-meta">{{ t.description }} (fetches {{ t.domains.join(', ') }})</span>
           </div>
         </label>
       </div>
-      <p class="section-hint">Each enabled domain costs one request per location and poll cycle.</p>
+      <p class="section-hint">The domains that are fetched follow from the enabled enrichments: {{ requiredDomains(config.enrichments).join(', ') || 'none' }}. Each domain costs one request per location and poll cycle.</p>
     </div>
 
     <!-- Parameters -->
@@ -303,9 +292,9 @@ onMounted(() => {
         <span :class="{ over: budget.overBudget }">{{ budget.percentUsed.toFixed(1) }}%</span>
       </div>
       <div class="budget-detail">
-        {{ config.enabledDomains.length }} domains × {{ config.locations.length }} locations = {{ budget.domainCallsPerCycle }} calls/cycle · {{ budget.cyclesPerDay }} cycles/day · weight {{ budget.apiCallWeight }} = {{ budget.callsPerDay.toLocaleString() }} req/day · {{ budget.cyclesPerMonth }} cycles/month
+        {{ requiredDomains(config.enrichments).length }} domains ({{ requiredDomains(config.enrichments).join(', ') }}) × {{ config.locations.length }} locations = {{ budget.domainCallsPerCycle }} calls/cycle · {{ budget.cyclesPerDay }} cycles/day · weight {{ budget.apiCallWeight }} = {{ budget.callsPerDay.toLocaleString() }} req/day · {{ budget.cyclesPerMonth }} cycles/month
       </div>
-      <p v-if="budget.overBudget" class="error">Exceeds 80% budget guard ({{ budget.guard.toLocaleString() }}). Reduce domains or locations, increase poll interval, or exclude parameters.</p>
+      <p v-if="budget.overBudget" class="error">Exceeds 80% budget guard ({{ budget.guard.toLocaleString() }}). Disable enrichments, reduce locations, increase poll interval, or exclude parameters.</p>
     </div>
 
     <!-- Export -->

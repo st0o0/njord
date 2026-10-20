@@ -61,7 +61,11 @@ with optional MQTT state publishing.
   (`WeatherDataReceived`, `AirQualityDataReceived`, `FloodDataReceived`,
   `SolarDataReceived`, `MarineDataReceived`, `AlertRaised`) — no
   `object` wrapping. Domain projects register their handlers in their own DI
-  extension; each exposes one `Add<Name>Domain` extension (rules as `IAlertRule<T>`, handlers as `IDomainHandler`); `IAlertRule<T>`, `AlertOptions` and `AlertClock` live in `Njord.Core`.
+  extension; each handler declares a `ConfigKey` matching a bool on `EnrichmentOptions` (`Njord:Enrichments`,
+  `Njord.Core`); `ForecastPipeline` only runs handlers whose key is enabled, and the domains the `PollWorker`
+  fetches (and `BudgetCalculator` counts) are the union of the enabled handlers' `Triggers`
+  (`EnrichmentResolution.RequiredDomains`, registered as `IReadOnlySet<DomainKind>`); there is no `EnabledDomains`
+  option. Each domain project exposes one `Add<Name>Domain` extension (rules as `IAlertRule<T>`, handlers as `IDomainHandler`); `IAlertRule<T>`, `AlertOptions` and `AlertClock` live in `Njord.Core`.
 - **Consumers are output adapters via SourceRef.** The MQTT state publisher and
   the API's gRPC consumer (`GrpcConsumer` in `Njord.Grpc`, marker
   `IGrpcConsumer`) request a `SourceRef<PipelineEvent>` from `ForecastPipeline`

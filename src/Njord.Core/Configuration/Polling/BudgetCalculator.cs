@@ -9,10 +9,10 @@ public static class BudgetCalculator
     public static RequestBudget GetEffectiveBudget(PollingOptions polling) =>
         polling.BudgetOverride ?? RequestBudget.OpenMeteoFreeTier;
 
-    public static BudgetValidation Validate(NjordOptions scope, PollingOptions polling)
+    public static BudgetValidation Validate(NjordOptions scope, PollingOptions polling, int domainCount)
     {
         var locationCount = scope.Locations.Count;
-        var domainCallsPerCycle = locationCount * scope.EnabledDomains.Count;
+        var domainCallsPerCycle = locationCount * domainCount;
 
         var resolved = scope.Parameters.Resolve();
 

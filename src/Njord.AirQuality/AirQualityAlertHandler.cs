@@ -9,9 +9,17 @@ namespace Njord.AirQuality;
 
 public sealed class AirQualityAlertHandler(
     IEnumerable<IAlertRule<DomainForecast<AirQualityPoint>>> rules,
-    IOptions<AlertOptions> options) : IDomainHandler
+    IOptions<AlertOptions> options,
+    AlertType alertType) : IDomainHandler
 {
-    private readonly IReadOnlyList<IAlertRule<DomainForecast<AirQualityPoint>>> _rules = [.. rules];
+    private readonly IReadOnlyList<IAlertRule<DomainForecast<AirQualityPoint>>> _rules = [.. rules.Where(rule => rule.Type == alertType)];
+
+    public string ConfigKey { get; } = alertType switch
+    {
+        AlertType.Pollen => "PollenAlert",
+        AlertType.Pm25 => "Pm25Alert",
+        _ => throw new ArgumentOutOfRangeException(nameof(alertType), alertType, "Not an air quality alert type."),
+    };
 
     public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.AirQuality };
 

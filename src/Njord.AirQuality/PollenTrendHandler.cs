@@ -17,6 +17,8 @@ public sealed class PollenTrendHandler : IDomainHandler
         ("mugwort", p => p.Mugwort),
     ];
 
+    public string ConfigKey => "PollenTrend";
+
     public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.AirQuality };
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)

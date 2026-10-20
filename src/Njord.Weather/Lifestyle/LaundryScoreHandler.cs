@@ -8,6 +8,8 @@ public sealed class LaundryScoreHandler : IDomainHandler
 {
     public const double GoodHourScore = 60.0;
 
+    public string ConfigKey => "LaundryScore";
+
     public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather };
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)

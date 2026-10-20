@@ -1,4 +1,4 @@
-import type { NjordConfig } from './types'
+import { requiredDomains, type NjordConfig } from './types'
 
 const MINUTES_PER_DAY = 24 * 60
 const DAYS_PER_MONTH = 30
@@ -18,7 +18,7 @@ export interface BudgetResult {
   overBudget: boolean
 }
 
-// Mirrors BudgetCalculator.Validate: one call per (enabled domain, location) and poll cycle,
+// Mirrors BudgetCalculator.Validate: one call per (required domain, location) and poll cycle,
 // multiplied by the parameter weight of the resolved parameter set.
 export function computeBudget(config: NjordConfig): BudgetResult {
   const pollMinutes = parseTimeSpan(config.pollInterval)
@@ -29,7 +29,7 @@ export function computeBudget(config: NjordConfig): BudgetResult {
   const daysWeight = Math.ceil(config.forecastDays / 14)
   const apiCallWeight = Math.max(1, Math.ceil(hourlyCount / 10) * daysWeight)
 
-  const domainCallsPerCycle = config.enabledDomains.length * config.locations.length
+  const domainCallsPerCycle = requiredDomains(config.enrichments).length * config.locations.length
 
   const limit = config.budgetOverride?.requestsPerMonth ?? FREE_TIER_MONTHLY
   const guard = Math.round(limit * GUARD_FACTOR)

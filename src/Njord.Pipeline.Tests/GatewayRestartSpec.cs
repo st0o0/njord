@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Akka.Actor;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
@@ -108,7 +109,7 @@ public sealed class GatewayRestartSpec : NjordActorSpec
     private IActorRef StartPipeline()
     {
         var group = FeatureServices.AlertHandler(_time);
-        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(_time, new[] { group })), $"pipeline-{Guid.NewGuid():N}");
+        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(_time, new[] { group }, Microsoft.Extensions.Options.Options.Create(new EnrichmentOptions()))), $"pipeline-{Guid.NewGuid():N}");
     }
 
     private sealed class FaultyOnceBudgetProvider : IBudgetProvider

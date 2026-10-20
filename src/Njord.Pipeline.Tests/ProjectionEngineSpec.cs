@@ -16,6 +16,8 @@ public sealed class ProjectionEngineSpec
 
     private sealed class RecordingHandler(params DomainKind[] triggers) : IDomainHandler
     {
+        public string ConfigKey => "WeatherAlerts";
+
         public List<Seen> Calls { get; } = [];
 
         public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind>(triggers);
@@ -29,6 +31,8 @@ public sealed class ProjectionEngineSpec
 
     private sealed class EmittingHandler : IDomainHandler
     {
+        public string ConfigKey => "WeatherAlerts";
+
         public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather };
 
         public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time) =>

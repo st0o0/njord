@@ -2,8 +2,6 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.Persistence;
 using Njord.Core;
-using Microsoft.Extensions.Options;
-using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
@@ -41,9 +39,9 @@ public sealed class PollWorker : ReceivePersistentActor, IWithTimers
 
     public override string PersistenceId { get; }
 
-    public PollWorker(TimeProvider timeProvider, FetchTimeouts fetchTimeouts, IOptions<NjordOptions> options, string entityId)
+    public PollWorker(TimeProvider timeProvider, FetchTimeouts fetchTimeouts, IReadOnlySet<DomainKind> requiredDomains, string entityId)
     {
-        _enabledDomains = [.. options.Value.EnabledDomains];
+        _enabledDomains = [.. requiredDomains.Order()];
         _timeProvider = timeProvider;
         _fetchTimeouts = fetchTimeouts;
         PersistenceId = $"poll-worker-{entityId}";

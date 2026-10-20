@@ -38,7 +38,7 @@ Weather data comes from the Open-Meteo Ensemble Mean API. `Models` must contain 
 
 The `/app/data` volume stores the SQLite journal (each PollWorker's learned schedule and API usage). Keep it mounted so state survives restarts.
 
-Each poll cycle fetches three domains per location (Weather, Air Quality, Flood), about 2,160 API calls per month at the default 60-minute interval. See [Budget](/configuration/budget).
+Each poll cycle fetches the domains the default enrichments need per location (Weather, Air Quality), about 1,440 API calls per month at the default 60-minute interval. See [Budget](/configuration/budget).
 
 ::: tip
 For several locations or custom parameters, use the [Config Builder](/builder).

@@ -9,6 +9,8 @@ namespace Njord.Flood;
 
 public sealed class FloodRainHandler(IAlertRule<FloodRainInput> rule, IOptions<AlertOptions> options) : IDomainHandler
 {
+    public string ConfigKey => "FloodRain";
+
     public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Flood, DomainKind.Weather };
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)

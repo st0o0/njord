@@ -12,6 +12,8 @@ public sealed class CommuteSafetyHandler : IDomainHandler
     public const double HeavyRain = 5.0;
     public const double StrongWind = 60.0 / 3.6;
 
+    public string ConfigKey => "CommuteSafety";
+
     public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather };
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)

@@ -1,9 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Njord.Model;
 
 namespace Njord.Core.Configuration.Polling;
 
-public sealed class PollingOptionsValidator(IConfiguration configuration) : IValidateOptions<PollingOptions>
+public sealed class PollingOptionsValidator(IConfiguration configuration, IReadOnlySet<DomainKind> requiredDomains) : IValidateOptions<PollingOptions>
 {
     public ValidateOptionsResult Validate(string? name, PollingOptions options)
     {
@@ -26,7 +27,7 @@ public sealed class PollingOptionsValidator(IConfiguration configuration) : IVal
 
         if (failures.Count == 0
             && ReadScope() is { } scope
-            && BudgetCalculator.GuardViolation(BudgetCalculator.Validate(scope, options), options.PollInterval) is { } violation)
+            && BudgetCalculator.GuardViolation(BudgetCalculator.Validate(scope, options, requiredDomains.Count), options.PollInterval) is { } violation)
         {
             failures.Add(violation);
         }

@@ -23,9 +23,9 @@ public sealed class PollWorkerTriggerSpec : PollWorkerSpecBase
     public async Task A_poll_round_asks_only_the_configured_domains()
     {
         var ct = TestContext.Current.CancellationToken;
-        var options = Options.Create(new NjordOptions { EnabledDomains = [DomainKind.Weather, DomainKind.Flood] });
+        IReadOnlySet<DomainKind> domains = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.Flood };
         var worker = Sys.ActorOf(
-            Props.Create(() => new PollWorker(_time, FetchTimeouts.Default, options, TargetId)),
+            Props.Create(() => new PollWorker(_time, FetchTimeouts.Default, domains, TargetId)),
             $"worker-{Guid.NewGuid():N}");
 
         worker.Tell(new StartPolling(Target, Discovery));

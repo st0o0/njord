@@ -26,7 +26,7 @@ public abstract class PollWorkerSpecBase : NjordActorSpec
     protected static readonly Location Lucerne = new("lucerne", 0, 0);
     protected static readonly PollTarget Target = new(Lucerne);
 
-    protected static readonly IList<DomainKind> EnabledDomains = new NjordOptions().EnabledDomains;
+    protected static readonly IReadOnlySet<DomainKind> EnabledDomains = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality };
 
     protected readonly FakeTimeProvider _time = TestTimeouts.AtEpoch();
     protected TestProbe _gateway = null!;
@@ -36,7 +36,7 @@ public abstract class PollWorkerSpecBase : NjordActorSpec
     {
         services.AddSingleton<TimeProvider>(_time);
         services.AddSingleton(FetchTimeouts.Default);
-        services.AddSingleton(Options.Create(new NjordOptions()));
+        services.AddSingleton(EnabledDomains);
     }
 
     protected override void ConfigureActors(AkkaConfigurationBuilder builder, IServiceProvider provider) =>

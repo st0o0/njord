@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using Njord.Model;
 
 namespace Njord.Core.Configuration;
 
@@ -12,7 +11,6 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
         ValidateLocations(options, failures);
         ValidateModels(options, failures);
         ValidateForecastDays(options, failures);
-        ValidateEnabledDomains(options, failures);
 
         var parametersResolved = TryResolveParameters(options, failures);
 
@@ -50,22 +48,6 @@ public sealed class NjordOptionsValidator : IValidateOptions<NjordOptions>
         if (options.ForecastDays is < 1 or > 16)
         {
             failures.Add("ForecastDays must be between 1 and 16.");
-        }
-    }
-
-    private static void ValidateEnabledDomains(NjordOptions options, List<string> failures)
-    {
-        if (!options.EnabledDomains.Contains(DomainKind.Weather))
-        {
-            failures.Add("EnabledDomains must include Weather.");
-        }
-        else if (options.EnabledDomains.Distinct().Count() != options.EnabledDomains.Count)
-        {
-            failures.Add("EnabledDomains must not contain duplicates.");
-        }
-        else if (options.EnabledDomains.Any(d => !Enum.IsDefined(d)))
-        {
-            failures.Add("EnabledDomains contains an unknown domain.");
         }
     }
 

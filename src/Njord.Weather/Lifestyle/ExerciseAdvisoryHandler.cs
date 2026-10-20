@@ -15,6 +15,8 @@ public sealed class ExerciseAdvisoryHandler : IDomainHandler
     private const double HumidityWeight = 0.1;
     private const double UvWeight = 0.1;
 
+    public string ConfigKey => "ExerciseAdvisory";
+
     public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality };
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)

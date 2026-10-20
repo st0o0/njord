@@ -4,6 +4,8 @@ using Akka.Event;
 using Akka.Streams;
 using Akka.Streams.Dsl;
 using Njord.Core.Actors;
+using Microsoft.Extensions.Options;
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Messages.Pipeline;
 
@@ -29,10 +31,10 @@ public sealed class ForecastPipeline : ReceiveActor
 
     private readonly ILoggingAdapter _log = Context.GetLogger();
 
-    public ForecastPipeline(TimeProvider timeProvider, IEnumerable<IDomainHandler> handlers)
+    public ForecastPipeline(TimeProvider timeProvider, IEnumerable<IDomainHandler> handlers, IOptions<EnrichmentOptions> enrichments)
     {
         _timeProvider = timeProvider;
-        _handlers = [.. handlers];
+        _handlers = EnrichmentResolution.EnabledHandlers(enrichments.Value, handlers);
 
         Receive<RequestForecastSink>(OnRequestForecastSink);
         Receive<RequestPipelineOutput>(OnRequestPipelineOutput);

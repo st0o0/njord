@@ -31,6 +31,7 @@ public sealed class PollingClusterSpec : NjordActorSpec
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<TimeProvider>(_time);
+        services.AddSingleton<IReadOnlySet<DomainKind>>(new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality });
         services.AddSingleton(FetchTimeouts.Default);
         services.AddSingleton(Options.Create(new NjordOptions
         {
@@ -61,7 +62,7 @@ public sealed class PollingClusterSpec : NjordActorSpec
             });
     }
 
-    private const int DomainsPerTarget = 3;
+    private const int DomainsPerTarget = 2;
 
     private async Task<IReadOnlySet<string>> ReceiveRequestsAsync(int count, CancellationToken ct)
     {

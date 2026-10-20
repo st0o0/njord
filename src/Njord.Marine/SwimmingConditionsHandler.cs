@@ -11,6 +11,8 @@ public sealed class SwimmingConditionsHandler(
     IAlertRule<DomainForecast<MarinePoint>> rule,
     IOptions<AlertOptions> options) : IDomainHandler
 {
+    public string ConfigKey => "SwimmingConditions";
+
     public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Marine };
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)

@@ -31,6 +31,7 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
     protected override void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         services.AddSingleton<TimeProvider>(_time);
+        services.AddSingleton<IReadOnlySet<DomainKind>>(new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality });
         services.AddSingleton(ShortTimeouts);
     }
 

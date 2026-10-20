@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Akka.Actor;
 using Akka.Streams;
 using Akka.Streams.Dsl;
@@ -51,7 +52,7 @@ public sealed class ForecastPipelineSettingsSpec : NjordActorSpec
     {
         var time = new FakeTimeProvider(Start);
         var group = FeatureServices.AlertHandler(time, configure);
-        var pipeline = Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, new[] { group })), $"pipeline-{Guid.NewGuid():N}");
+        var pipeline = Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, new[] { group }, Options.Create(new EnrichmentOptions()))), $"pipeline-{Guid.NewGuid():N}");
 
         var output = await pipeline.Ask<RequestPipelineOutputResponse>(new RequestPipelineOutput(1), TimeSpan.FromSeconds(9), ct);
         var completed = Assert.IsType<RequestPipelineOutputCompleted>(output);

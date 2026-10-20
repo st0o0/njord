@@ -1,6 +1,5 @@
 using Njord.Core.Configuration;
 using Njord.Core.Configuration.Polling;
-using Njord.Model;
 
 namespace Njord.Core.Tests.Configuration.Polling;
 
@@ -10,7 +9,6 @@ public sealed class BudgetCalculatorSpec
     {
         Locations = [.. Enumerable.Range(0, locations).Select(i => new LocationOptions { Name = $"L{i}" })],
         Models = ["icon_d2"],
-        EnabledDomains = [DomainKind.Weather, DomainKind.Flood],
     };
 
     [Fact]
@@ -20,7 +18,7 @@ public sealed class BudgetCalculatorSpec
         var weight = scope.Parameters.Resolve().ApiCallWeight;
         var polling = new PollingOptions { PollInterval = TimeSpan.FromHours(1) };
 
-        var result = BudgetCalculator.Validate(scope, polling);
+        var result = BudgetCalculator.Validate(scope, polling, 2);
 
         // 2 locations x 2 domains = 4 calls per cycle, 720 cycles in a 30-day month.
         Assert.Multiple(
@@ -49,7 +47,7 @@ public sealed class BudgetCalculatorSpec
     {
         var polling = new PollingOptions { BudgetOverride = new RequestBudget(7_000, 600) };
 
-        var result = BudgetCalculator.Validate(Scope(), polling);
+        var result = BudgetCalculator.Validate(Scope(), polling, 2);
 
         Assert.Multiple(
             () => Assert.InRange(result.UsagePercent, 80.0, 100.0),
@@ -62,7 +60,7 @@ public sealed class BudgetCalculatorSpec
     {
         var polling = new PollingOptions { BudgetOverride = new RequestBudget(100, 600) };
 
-        var result = BudgetCalculator.Validate(Scope(), polling);
+        var result = BudgetCalculator.Validate(Scope(), polling, 2);
 
         Assert.False(result.WithinBudget);
     }
@@ -71,8 +69,8 @@ public sealed class BudgetCalculatorSpec
     public void Should_only_report_a_guard_violation_above_eighty_percent()
     {
         var polling = new PollingOptions { BudgetOverride = new RequestBudget(100, 600) };
-        var heavy = BudgetCalculator.Validate(Scope(), polling);
-        var light = BudgetCalculator.Validate(Scope(), new PollingOptions());
+        var heavy = BudgetCalculator.Validate(Scope(), polling, 2);
+        var light = BudgetCalculator.Validate(Scope(), new PollingOptions(), 2);
 
         Assert.Multiple(
             () => Assert.Null(BudgetCalculator.GuardViolation(light, TimeSpan.FromHours(1))),

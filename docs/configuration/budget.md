@@ -15,18 +15,19 @@ Open-Meteo's free tier (non-commercial use) has these soft limits:
 
 ## Calls per cycle
 
-Each PollWorker fetches three domains per cycle, one API call each:
+Each PollWorker fetches the domains required by the enabled [enrichments](./#enrichments-and-domains), one API call each. The defaults need two:
 
-| Call | Endpoint |
-|------|----------|
-| Weather | Ensemble Mean |
-| Air Quality | Air Quality API |
-| Flood | Flood API |
+| Call | Endpoint | Fetched when |
+|------|----------|--------------|
+| Weather | Ensemble Mean | a Weather enrichment is enabled (default) |
+| Air Quality | Air Quality API | `PollenAlert`, `Pm25Alert` or another Air Quality enrichment is enabled (default) |
+| Flood | Flood API | `FloodRisk` or `FloodRain` is enabled |
+| Marine | Marine API | `SwimmingConditions` is enabled |
 
 Solar variables are part of the Weather call when the `Solar` parameter group is enabled, so they add no call.
 
 ```
-calls per cycle  = locations x 3
+calls per cycle  = locations x required domains
 cycles per month = 30 days / poll interval
 projected        = calls per cycle x cycles per month
 guard            = monthly budget x 0.8
@@ -37,17 +38,17 @@ guard            = monthly budget x 0.8
 | Setting | Value |
 |---------|-------|
 | Locations | 1 |
-| Domains | Weather, Air Quality, Flood |
+| Domains | Weather, Air Quality (default enrichments) |
 | Poll interval | 60 minutes |
 
 ```
-calls per cycle  = 1 x 3 = 3
+calls per cycle  = 1 x 2 = 2
 cycles per month = 30 x 24 = 720
-projected        = 3 x 720 = 2,160 per month
+projected        = 2 x 720 = 1,440 per month
 guard            = 300,000 x 0.8 = 240,000
 ```
 
-2,160 calls is about 0.7% of the free-tier month. Even ten locations (21,600) stay far below the guard.
+1,440 calls is about 0.5% of the free-tier month. Even ten locations (14,400) stay far below the guard.
 
 Open-Meteo counts requests with many hourly variables as more than one call (more than 10 variables count fractionally). That weight is applied on top; see [Parameters](./parameters#api-call-weight).
 
@@ -57,6 +58,7 @@ At startup njord refuses to start when the projection exceeds 80% of the monthly
 
 - Increase `Polling:PollInterval` (every 2 hours halves the calls)
 - Reduce the number of locations
+- Disable enrichments that need an extra domain
 - Exclude parameters to lower the API call weight
 
 ## Polling:BudgetOverride

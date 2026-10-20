@@ -12,6 +12,8 @@ public sealed class VentilationWindowHandler : IDomainHandler
     public const double MaxTemperature = 28.0;
     public const double MaxPrecipitation = 0.1;
 
+    public string ConfigKey => "VentilationWindow";
+
     public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.AirQuality };
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)

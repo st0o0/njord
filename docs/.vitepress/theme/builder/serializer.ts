@@ -1,13 +1,20 @@
-import type { DomainName, NjordConfig } from './types'
-import { DEFAULT_DOMAINS, DOMAINS, defaultConfig } from './types'
+import type { NjordConfig } from './types'
+import { ENRICHMENT_TOGGLES, defaultConfig, defaultEnrichments } from './types'
 
-function isDefaultDomains(domains: DomainName[]): boolean {
-  return domains.length === DEFAULT_DOMAINS.length && DEFAULT_DOMAINS.every(d => domains.includes(d))
+// Only toggles that differ from their default are exported.
+function changedEnrichments(enrichments: Record<string, boolean>): [string, boolean][] {
+  const defaults = defaultEnrichments()
+  return ENRICHMENT_TOGGLES
+    .filter(t => (enrichments[t.key] ?? defaults[t.key]) !== defaults[t.key])
+    .map(t => [t.key, enrichments[t.key]])
 }
 
-function parseDomain(value: unknown): DomainName | null {
-  const match = DOMAINS.find(d => d.toLowerCase() === String(value).trim().toLowerCase())
-  return match ?? null
+function parseEnrichmentKey(value: string): string | null {
+  return ENRICHMENT_TOGGLES.find(t => t.key.toLowerCase() === value.toLowerCase())?.key ?? null
+}
+
+function parseBool(value: unknown): boolean {
+  return String(value).trim().toLowerCase() === 'true'
 }
 
 export function exportAsJson(config: NjordConfig): string {
@@ -22,7 +29,8 @@ export function exportAsJson(config: NjordConfig): string {
   n.ForecastDays = config.forecastDays
   if (config.openMeteoBaseUrl !== defaults.openMeteoBaseUrl) n.OpenMeteo = { BaseUrl: config.openMeteoBaseUrl }
   if (config.persistencePath !== defaults.persistencePath) n.Storage = { PersistencePath: config.persistencePath }
-  if (!isDefaultDomains(config.enabledDomains)) n.EnabledDomains = config.enabledDomains
+  const changed = changedEnrichments(config.enrichments)
+  if (changed.length) n.Enrichments = Object.fromEntries(changed)
   if (config.locations.length) {
     n.Locations = config.locations.map(l => {
       const loc: Record<string, unknown> = { Name: l.name }
@@ -83,8 +91,8 @@ export function exportAsEnvVars(config: NjordConfig): string {
   const defaults = defaultConfig()
   add('Njord__Polling__PollInterval', config.pollInterval)
   add('Njord__ForecastDays', String(config.forecastDays))
-  if (!isDefaultDomains(config.enabledDomains)) {
-    config.enabledDomains.forEach((d, i) => add(`Njord__EnabledDomains__${i}`, d))
+  for (const [key, enabled] of changedEnrichments(config.enrichments)) {
+    add(`Njord__Enrichments__${key}`, String(enabled))
   }
 
   config.locations.forEach((loc, i) => {
@@ -176,8 +184,11 @@ export function importFromJson(json: string): Partial<NjordConfig> {
   if (discoveryInterval) config.discoveryInterval = discoveryInterval
   if (baseUrl) config.openMeteoBaseUrl = baseUrl
   if (persistencePath) config.persistencePath = persistencePath
-  if (Array.isArray(n.EnabledDomains)) {
-    config.enabledDomains = n.EnabledDomains.map(parseDomain).filter((d: DomainName | null): d is DomainName => d !== null)
+  if (n.Enrichments && typeof n.Enrichments === 'object') {
+    for (const [name, value] of Object.entries(n.Enrichments as Record<string, unknown>)) {
+      const key = parseEnrichmentKey(name)
+      if (key) config.enrichments[key] = typeof value === 'boolean' ? value : parseBool(value)
+    }
   }
   if (n.Locations) {
     config.locations = n.Locations.map((l: Record<string, unknown>) => ({
@@ -220,8 +231,6 @@ export function importFromJson(json: string): Partial<NjordConfig> {
 export function importFromEnvVars(text: string): Partial<NjordConfig> {
   const config = defaultConfig()
   const lines = text.split('\n').filter(l => l.startsWith('Njord__'))
-  const enabledDomains: DomainName[] = [...DEFAULT_DOMAINS]
-  let domainsFromEnv = false
 
   for (const line of lines) {
     const eq = line.indexOf('=')
@@ -243,10 +252,9 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     else if (parts[0] === 'OpenMeteo' && parts[1] === 'BaseUrl' || parts[0] === 'OpenMeteoBaseUrl') config.openMeteoBaseUrl = value
     else if (parts[0] === 'Storage' && parts[1] === 'PersistencePath' || parts[0] === 'PersistencePath') config.persistencePath = value
     else if (parts[0] === 'ForecastDays') config.forecastDays = parseInt(value) || 4
-    else if (parts[0] === 'EnabledDomains' && parts.length === 2) {
-      if (!domainsFromEnv) { enabledDomains.length = 0; domainsFromEnv = true }
-      const domain = parseDomain(value)
-      if (domain && !enabledDomains.includes(domain)) enabledDomains.push(domain)
+    else if (parts[0] === 'Enrichments' && parts.length === 2) {
+      const key = parseEnrichmentKey(parts[1])
+      if (key) config.enrichments[key] = parseBool(value)
     }
     else if (parts[0] === 'Locations') {
       const idx = parseInt(parts[1])
@@ -285,7 +293,6 @@ export function importFromEnvVars(text: string): Partial<NjordConfig> {
     }
   }
 
-  config.enabledDomains = enabledDomains
   config.parameters.groups = config.parameters.groups.filter(Boolean)
 
   return config
@@ -321,9 +328,13 @@ const OUTDATED_KEYS: { old: string; current: string }[] = [
   { old: 'PersistencePath', current: 'Storage__PersistencePath' },
 ]
 
+// EnabledDomains was replaced by enrichment toggles: the fetched domains are derived from the enabled enrichments.
+const REMOVED_KEYS = ['EnabledDomains']
+
 export function findOutdatedKeys(text: string): string[] {
   const trimmed = text.trim()
   const present = new Set<string>()
+  const removed = new Set<string>()
   if (trimmed.startsWith('{')) {
     let parsed: Record<string, Record<string, unknown>> | null = null
     try {
@@ -333,17 +344,26 @@ export function findOutdatedKeys(text: string): string[] {
     }
     const n = (parsed?.Njord ?? parsed) as Record<string, unknown>
     for (const key of OUTDATED_KEYS) if (n && key.old in n) present.add(key.old)
+    for (const key of REMOVED_KEYS) if (n && key in n) removed.add(key)
   } else {
     for (const line of trimmed.split('\n')) {
       const name = line.replace(/^\s*-\s+/, '').split('=')[0].trim()
       for (const key of OUTDATED_KEYS) {
         if (name === `Njord__${key.old}` || name.startsWith(`Njord__${key.old}__`)) present.add(key.old)
       }
+      for (const key of REMOVED_KEYS) {
+        if (name === `Njord__${key}` || name.startsWith(`Njord__${key}__`)) removed.add(key)
+      }
     }
   }
-  return OUTDATED_KEYS
-    .filter(key => present.has(key.old))
-    .map(key => `Njord__${key.old} is outdated since 0.5.0, use Njord__${key.current} (JSON: Njord:${key.current.replace('__', ':')})`)
+  return [
+    ...OUTDATED_KEYS
+      .filter(key => present.has(key.old))
+      .map(key => `Njord__${key.old} is outdated since 0.5.0, use Njord__${key.current} (JSON: Njord:${key.current.replace('__', ':')})`),
+    ...REMOVED_KEYS
+      .filter(key => removed.has(key))
+      .map(key => `Njord__${key} was removed, the fetched domains follow the enabled enrichments: use Njord__Enrichments__<Name> (JSON: Njord:Enrichments)`),
+  ]
 }
 
 export function autoImport(text: string): Partial<NjordConfig> {

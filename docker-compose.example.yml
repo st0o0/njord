@@ -32,10 +32,19 @@ services:
       # ── Polling & Models ──────────────────────────────────────
       #- Njord__Polling__PollInterval=01:00:00
       #- Njord__ForecastDays=4
-      # Domains polled per location (Weather is required):
-      #- Njord__EnabledDomains__0=Weather
-      #- Njord__EnabledDomains__1=AirQuality
-      #- Njord__EnabledDomains__2=Flood
+      # Enrichments decide which domains are polled (the union of what the enabled ones read).
+      # On by default: WeatherAlerts, CommuteSafety, PollenAlert, Pm25Alert (Weather + AirQuality).
+      # Alternative: switch enrichments on (adds their domain) or off
+      #- Njord__Enrichments__FloodRisk=true
+      #- Njord__Enrichments__FloodRain=true
+      #- Njord__Enrichments__SwimmingConditions=true
+      #- Njord__Enrichments__VentilationWindow=true
+      #- Njord__Enrichments__ExerciseAdvisory=true
+      #- Njord__Enrichments__LaundryScore=true
+      #- Njord__Enrichments__PollenTrend=true
+      #- Njord__Enrichments__NightVentilation=true
+      #- Njord__Enrichments__ConfidenceTrend=true
+      #- Njord__Enrichments__PollenAlert=false
       # Poll interval of a model whose update cycle is not learned yet:
       #- Njord__Polling__DiscoveryInterval=00:20:00
       #- Njord__OpenMeteo__BaseUrl=https://api.open-meteo.com/

@@ -55,28 +55,6 @@ public sealed class NjordOptionsValidatorSpec
     }
 
     [Fact]
-    public void Should_reject_enabled_domains_without_weather()
-    {
-        var options = Valid();
-        options.EnabledDomains = [DomainKind.Flood];
-
-        var result = _validator.Validate(null, options);
-
-        Assert.Equal("EnabledDomains must include Weather.", ValidationAssert.SingleFailure(result));
-    }
-
-    [Fact]
-    public void Should_reject_duplicate_enabled_domains()
-    {
-        var options = Valid();
-        options.EnabledDomains = [DomainKind.Weather, DomainKind.Weather];
-
-        var result = _validator.Validate(null, options);
-
-        Assert.Equal("EnabledDomains must not contain duplicates.", ValidationAssert.SingleFailure(result));
-    }
-
-    [Fact]
     public void Should_report_unknown_parameter_groups()
     {
         var options = Valid();

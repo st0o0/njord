@@ -9,6 +9,8 @@ public sealed class NightVentilationHandler : IDomainHandler
     public const double HotDayPeak = 28.0;
     public const double CoolNightLimit = 20.0;
 
+    public string ConfigKey => "NightVentilation";
+
     public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather };
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)

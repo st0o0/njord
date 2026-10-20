@@ -10,7 +10,7 @@ njord runs as one Docker container without an external database (SQLite by defau
 
 ## Domains
 
-Each poll cycle fetches three domains per location:
+Each poll cycle fetches the domains that the enabled [enrichments](/configuration/#enrichments-and-domains) need (Weather and Air Quality by default):
 
 | Domain | Open-Meteo API | Content |
 |--------|----------------|---------|

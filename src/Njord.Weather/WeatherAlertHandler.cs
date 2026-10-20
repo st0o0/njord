@@ -18,6 +18,8 @@ public sealed class WeatherAlertHandler : IDomainHandler
         _options = options;
     }
 
+    public string ConfigKey => "WeatherAlerts";
+
     public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather };
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)

@@ -1,3 +1,5 @@
+using Njord.Core.Configuration;
+using Microsoft.Extensions.Options;
 using Akka.Actor;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
@@ -15,11 +17,12 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
 
     protected override bool UseTestPersistence => false;
 
-    private IActorRef CreatePipeline()
+    private IActorRef CreatePipeline(EnrichmentOptions? enrichments = null)
     {
         var time = new FakeTimeProvider(Start);
         var group = FeatureServices.AlertHandler(time);
-        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, new[] { group })), $"pipeline-{Guid.NewGuid():N}");
+        var options = Options.Create(enrichments ?? new EnrichmentOptions());
+        return Sys.ActorOf(Props.Create(() => new ForecastPipeline(time, new[] { group }, options)), $"pipeline-{Guid.NewGuid():N}");
     }
 
     private static DomainDataReceived Weather(Location location, double temperature = 10.0) =>
@@ -88,6 +91,21 @@ public sealed class ForecastPipelineInputSpec : NjordActorSpec
             () => Assert.Equal("Lucerne", raised.Location.Name),
             () => Assert.Equal(AlertSeverity.Yellow, raised.Severity),
             () => Assert.Equal(ConfidenceLevel.High, raised.Confidence));
+    }
+
+    [Fact(Timeout = TestTimeouts.Hosted)]
+    public async Task A_disabled_enrichment_raises_nothing_even_when_its_domain_data_is_present()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var pipeline = CreatePipeline(new EnrichmentOptions { WeatherAlerts = false });
+        var consumer = CreateTestProbe();
+        await PipelineProducer.AttachConsumerAsync(pipeline, Sys, consumer, ct);
+        var producer = await PipelineProducer.AttachAsync(pipeline, Sys, ct);
+
+        await producer.OfferAsync(Weather(DomainData.Lucerne, temperature: -3.0), ct);
+
+        await NextWeatherAsync(consumer, ct);
+        await consumer.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(500), ct);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

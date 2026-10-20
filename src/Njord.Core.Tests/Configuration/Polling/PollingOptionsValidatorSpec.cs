@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Njord.Core.Configuration.Polling;
+using Njord.Model;
 
 namespace Njord.Core.Tests.Configuration.Polling;
 
@@ -8,7 +9,8 @@ public sealed class PollingOptionsValidatorSpec
     private static PollingOptionsValidator ValidatorFor(params (string Key, string Value)[] scope) =>
         new(new ConfigurationBuilder()
             .AddInMemoryCollection(scope.ToDictionary(s => s.Key, s => (string?)s.Value))
-            .Build());
+            .Build(),
+            new HashSet<DomainKind> { DomainKind.Weather, DomainKind.Flood });
 
     [Theory]
     [InlineData("00:00:00")]

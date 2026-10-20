@@ -8,6 +8,8 @@ public sealed class ConfidenceTrendHandler : IDomainHandler
 {
     public const double ChangeThreshold = 0.20;
 
+    public string ConfigKey => "ConfidenceTrend";
+
     public IReadOnlySet<DomainKind> Triggers { get; } = new HashSet<DomainKind> { DomainKind.Weather };
 
     public IReadOnlyList<PipelineEvent> Handle(LocationForecast current, LocationForecast? previous, TimeProvider time)
