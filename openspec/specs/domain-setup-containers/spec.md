@@ -63,25 +63,6 @@ The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupCont
 - **WHEN** the actor system starts
 - **THEN** `OpenMeteoGateway` runs as a singleton resolvable through `IForecastGateway`
 
-### Requirement: PipelineSetupContainer registers scheduling, pipeline and read-model actors
-`PipelineSetupContainer` (src/Njord.Pipeline/Configuration) SHALL bind and validate `PollingOptions` and `ConsensusOptions`, register the `AnalysisSettings` the pipeline starts with (built by `AnalysisSettingsFactory` from the bound options), register the fetch timeouts unless already registered, and register an `IActorRegistration` that creates the poll shard region `poll-worker` of `PollWorker` entities under `IPollRegion` (shared `ShardMessageExtractor`, no passivation, no remember-entities) before three cluster singletons: `PollManager` under `IPollManager` (singleton name `poll-manager`, inside a backoff-on-failure supervisor, 3 s to 30 s, unlimited retries), `ForecastPipeline` under `IForecastPipeline` (inside a backoff-on-failure supervisor, 3 s to 30 s, unlimited retries) and `ForecastReadModel` under `IForecastReadModel`. It SHALL NOT register a CoordinatedShutdown stream-stop task.
-
-#### Scenario: Pipeline actors are declared via IActorRegistration
-- **WHEN** `PipelineSetupContainer.SetupServices` is called
-- **THEN** it registers an `IActorRegistration` that configures the poll shard region, `PollManager`, `ForecastPipeline` and `ForecastReadModel`
-
-#### Scenario: Startup analysis settings are registered
-- **WHEN** `ForecastPipeline` starts
-- **THEN** it analyzes with the registered startup `AnalysisSettings` until its request to `ConfigManager` for the current analysis settings is answered, and every constructor dependency of the actor is resolvable from the host's registrations
-
-#### Scenario: Pipeline is a supervised singleton
-- **WHEN** the analysis graph of `ForecastPipeline` ends and the pipeline fails
-- **THEN** its supervisor restarts it after the backoff delay and it stays resolvable through `IForecastPipeline`
-
-#### Scenario: Polling runs in a single-node cluster
-- **WHEN** the polling registration runs in an actor system that forms a single-node cluster with persistence
-- **THEN** the manager starts a worker for every configured target in the shard region, each target is fetched, and the manager's `QueryPollStates` reports its last change
-
 ### Requirement: BudgetSetupContainer registers the budget tracker
 `BudgetSetupContainer` (src/Njord.Budget/Configuration) SHALL register an `IActorRegistration` that creates `BudgetTracker` as a cluster singleton under `IBudgetTracker`, wrapped in a backoff-on-failure supervisor (3 s to 30 s, unlimited retries).
 
@@ -89,33 +70,12 @@ The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupCont
 - **WHEN** the actor system starts
 - **THEN** `BudgetTracker` runs as a singleton resolvable through `IBudgetTracker`
 
-### Requirement: AnalysisSetupContainer registers the analysis libraries
-The host's `AnalysisSetupContainer` SHALL register `ConsensusBuilder` and call `AddAlerts(configuration)`, `AddDerived(configuration)`, `AddTrends(configuration)` and `AddIndices(configuration)`; each of those registers its feature's options. It SHALL register no actors.
-
-#### Scenario: Analyzers are resolvable
-- **WHEN** the host's services are built
-- **THEN** `AlertAnalyzer`, `DerivedAnalyzer`, `TrendAnalyzer`, `IndexAnalyzer` and `ConsensusBuilder` are resolvable for `ForecastPipeline`
-
 ### Requirement: GrpcSetupContainer registers only gRPC framework services
 `GrpcSetupContainer` (src/Njord.Grpc/Configuration) SHALL call `AddGrpc()` and SHALL register no actors; the gRPC services resolve actors through the `ActorRegistry` markers.
 
 #### Scenario: No actor registration in the gRPC library
 - **WHEN** `GrpcSetupContainer.SetupServices` is called
 - **THEN** it registers no `IActorRegistration`
-
-### Requirement: SensorSetupContainer registers sensor options and the SensorHub actor
-`SensorSetupContainer` (src/Njord.SensorHub/Configuration) SHALL bind and validate `SensorOptions` and register an `IActorRegistration` that creates `SensorHub` as a cluster singleton under `ISensorHub`.
-
-#### Scenario: SensorHub is declared via IActorRegistration
-- **WHEN** `SensorSetupContainer.SetupServices` is called
-- **THEN** it registers an `IActorRegistration` that configures `SensorHub`
-
-### Requirement: ConfigSetupContainer registers options, the config writer and the ConfigManager
-`ConfigSetupContainer` SHALL bind and validate (`ValidateOnStart`) `NjordOptions`, `PersistenceOptions` and `StorageOptions` with their validators, register the `ResolvedParameterSet` through `ParametersOptions.Resolve()`, `ConfigView`, the `IConfigWriter` for `data/appsettings.Override.json` and an `IActorRegistration` creating the `ConfigManager` under `IConfigManager`.
-
-#### Scenario: Options are bound and validated
-- **WHEN** `ConfigSetupContainer.SetupServices` is called
-- **THEN** `NjordOptions`, `PersistenceOptions` and `StorageOptions` are bound with `ValidateOnStart` enabled
 
 ### Requirement: HealthSetupContainer registers the health options and the host-level checks
 `HealthSetupContainer` SHALL bind and validate `HealthOptions` (`Njord:Health`), add request timeouts, and register the `journal` check (failure status `Unhealthy`) and the `data-directory` check (failure status `Degraded`). It SHALL NOT register a shared health state or telemetry gauges; the `pipeline`, `budget` and `mqtt-connection` checks are registered by their feature containers.

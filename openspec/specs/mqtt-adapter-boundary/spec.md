@@ -18,13 +18,6 @@ Every type that is MQTT-specific (name or namespace contains `Mqtt`, or that exi
 - **WHEN** a type with `Mqtt` in its name is added to a project other than `Njord.Mqtt` and is not on the allow-list
 - **THEN** an architecture spec fails
 
-### Requirement: Domain projects contain no wire models
-`Njord.Weather`, `Njord.Consensus`, `Njord.Messages`, `Njord.Pipeline` and the analysis libraries SHALL NOT build JSON for MQTT or reference `System.Text.Json.Nodes` for payload assembly. Wire records and their mappers live in the adapter project (`Njord.Mqtt` for MQTT, `Njord.Grpc` for gRPC).
-
-#### Scenario: Forecast projection is wire-neutral
-- **WHEN** `HorizonProjection` selects the values of a horizon
-- **THEN** it returns typed entries and no JSON string
-
 ### Requirement: Njord.Mqtt has a fixed internal layout
 `Njord.Mqtt` SHALL organise its types in the folders `Payloads`, `Mapping`, `Serialization`, `Topics`, `Actors`, `Health`, `Transport` and `Configuration`, with namespaces following the folders.
 

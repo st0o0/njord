@@ -34,14 +34,3 @@ The E2E test plan SHALL verify that budget tracking reflects actual API usage.
 - **WHEN** the budget values are read before and after a `TriggerPoll`
 - **THEN** both daily and monthly usage values increase
 
-### Requirement: Forecast data evolution
-
-The E2E test plan SHALL verify that forecast data changes over successive cycles when the API returns updated data.
-
-#### Scenario: Forecast entries may change between cycles
-- **WHEN** hourly forecast entries are retrieved via HA `weather/get_forecasts` after two poll cycles
-- **THEN** the forecast data is present and correctly structured in both cycles (values may or may not differ depending on API updates)
-
-#### Scenario: Consensus recalculation on new data
-- **WHEN** a new poll cycle completes with updated model forecasts
-- **THEN** the consensus entity's temperature, agreement, and spread attributes reflect the latest poll data (timestamps update)

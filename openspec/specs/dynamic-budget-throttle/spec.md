@@ -4,17 +4,6 @@
 
 Budget-aware throttling of the `OpenMeteoGateway` fetch stream: an `IBudgetProvider` supplies the current request rate, `GatewayBudgetGate` encapsulates the token bucket and usage tracking, and `GatewayThrottleStage` shapes fetch targets by delegating to the gate.
 ## Requirements
-### Requirement: IBudgetProvider supplies the current rate to the throttle stage
-An `IBudgetProvider` interface (src/Njord.OpenMeteo/GatewayBudgetGate.cs) SHALL expose `GetCurrentRate()` returning a `BudgetRate(int CostPerMinute, int MaxBurst)`. The default implementation `OptionsBudgetProvider` SHALL read `PollingOptions` on every call through `IOptionsMonitor<PollingOptions>.CurrentValue`, resolve the effective budget with `BudgetCalculator.GetEffectiveBudget`, and return `CostPerMinute = RequestsPerMinute * 0.8` (truncated) and `MaxBurst = max(CostPerMinute / 30, 16)`. When the budget override is changed via gRPC, the next call to `GetCurrentRate()` SHALL reflect the new rate.
-
-#### Scenario: Default rate from free-tier budget
-- **WHEN** no budget override is set and the free-tier budget is 600 req/min
-- **THEN** `GetCurrentRate()` SHALL return `BudgetRate(480, 16)`
-
-#### Scenario: Override changes rate immediately
-- **WHEN** the budget override is set to 60 req/min via gRPC
-- **THEN** the next call to `GetCurrentRate()` SHALL return `BudgetRate(48, 16)`
-
 ### Requirement: GatewayThrottleStage shapes fetch targets according to the current budget rate
 `GatewayThrottleStage` SHALL be an internal `GraphStage` built on `TimerGraphStageLogic` that takes fetch targets and emits, per target, either an admitted target or a budget rejection. Its dependencies SHALL be `IGatewayBudgetGate` and the gateway's `TimeProvider`. For each target it SHALL call `TryAcquire(weight)` and emit the target as admitted when it succeeds. Otherwise, when the target's admission deadline is already past it SHALL emit an `Expired` rejection; when `now + EstimateDelay(weight)` lies beyond the deadline it SHALL emit a rejection at once — `Budget` when the token wait alone would not fit the window counted from the target's receipt, `Expired` when the window was used up while the target queued; else it SHALL park the target and schedule a timer for `EstimateDelay(weight)`, retrying on each timer tick until acquisition succeeds or the deadline can no longer be met, and SHALL record the wait of an admitted target in the throttle-wait histogram. A rejection SHALL NOT consume tokens. The stage SHALL NOT contain token-bucket logic, budget-provider polling or usage tracking.
 

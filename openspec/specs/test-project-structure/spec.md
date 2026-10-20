@@ -51,13 +51,6 @@ use custom collector classes when TestProbe provides equivalent functionality.
 - **WHEN** all tests run on a shared GitHub Actions runner
 - **THEN** zero tests fail due to timing or thread starvation
 
-### Requirement: All test projects in the solution
-The `Njord.slnx` solution file SHALL include all test projects (`Njord.Weather.Tests`, `Njord.Sensors.Tests`, `Njord.Persistence.Tests`, `Njord.Consensus.Tests`, `Njord.Messages.Tests`, `Njord.Core.Tests`, `Njord.OpenMeteo.Tests`, `Njord.Budget.Tests`, `Njord.SensorHub.Tests`, `Njord.Pipeline.Tests`, `Njord.Mqtt.Tests`, `Njord.Grpc.Tests`, `Njord.Alerts.Tests`, `Njord.Derived.Tests`, `Njord.Trends.Tests`, `Njord.Indices.Tests`, the host project `Njord.Tests` and `Njord.Architecture.Tests`) and `Njord.Tests.Shared`, so `dotnet build Njord.slnx` compiles everything. There is no `Njord.Domain.Tests`, `Njord.IntegrationTests` or `Njord.E2E.Tests` project.
-
-#### Scenario: Solution builds all test projects
-- **WHEN** `dotnet build Njord.slnx` is executed
-- **THEN** every `Njord.*Tests` project and `Njord.Tests.Shared` SHALL compile successfully
-
 ### Requirement: Unit and actor tests in per-library test projects
 Tests SHALL live in per-library test projects named `Njord.<Name>.Tests`, next to the library they test, plus the host project `Njord.Tests` for host-level specs (`ConfigManager`, options binding). Each test project is its own executable and SHALL contain only unit tests and actor lifecycle tests that require no Docker containers and no network I/O. No test project SHALL declare a package reference to `Testcontainers`, `WireMock.Net.Testcontainers`, or `MQTTnet`.
 

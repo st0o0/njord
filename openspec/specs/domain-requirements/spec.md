@@ -24,14 +24,3 @@ A requirement SHALL report whether it needs a given domain, true exactly when th
 - **WHEN** a requirement contains only Weather parameters
 - **THEN** it SHALL report Weather as required and AirQuality, Flood and Marine as not required
 
-### Requirement: Resolution aggregates enabled handlers
-Enrichment resolution SHALL union the requirements of all enabled handlers and derive the fetched domains and parameters from that union.
-
-#### Scenario: Only enabled handlers contribute
-- **WHEN** only weather-based enrichments are enabled
-- **THEN** no AirQuality, Flood or Marine domain SHALL be fetched
-
-#### Scenario: Triggers are gone
-- **WHEN** a handler is registered
-- **THEN** its domain triggers SHALL be derived from its requirements, with no separate trigger declaration
-

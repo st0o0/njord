@@ -14,14 +14,6 @@ The actor-key marker interface for the MQTT connection actor SHALL be named
 - **WHEN** it resolves the MQTT actor key
 - **THEN** it uses `IMqttConnectionActor` without disambiguation
 
-### Requirement: Trend math class name does not collide with the analyzer
-The static class holding pure trend math SHALL be named `TrendFormulas` (following the `<Feature>Formulas` scheme) and live next to the DI-registered `TrendAnalyzer` in `Njord.Trends`, so no two public types share the name `TrendAnalyzer`.
-
-#### Scenario: Pipeline references the analyzer without ambiguity
-- **GIVEN** `Njord.Pipeline` references `Njord.Consensus` and `Njord.Trends`
-- **WHEN** it references `TrendAnalyzer`
-- **THEN** exactly one public type named `TrendAnalyzer` exists, `Njord.Trends.TrendAnalyzer`
-
 ### Requirement: Poll worker persistence records have unique names
 The poll worker's persistence records (`PollingStarted`, `PollingStopped`, `ForecastChanged`, `ForecastUnchanged`,
 `PollFailed`, `PollDeferred`, `PersistedPollWorkerState`) SHALL have names that no public type in `Njord.Messages`,

@@ -4,24 +4,6 @@
 
 Structured startup using Servus setup containers: service DI registrations and Akka.NET actor system configuration are encapsulated in domain-specific container classes, keeping Program.cs minimal.
 ## Requirements
-### Requirement: Service setup container registers all non-actor DI services
-The system SHALL distribute DI registrations across domain-specific `IServiceSetupContainer` implementations instead of a single `NjordServiceSetup`. Each container SHALL own its options binding and service registrations. The monolithic `NjordServiceSetup` SHALL be removed.
-
-#### Scenario: Options are bound through domain containers
-- **WHEN** the application starts
-- **THEN** `NjordOptions` is bound by `CoreSetupContainer`, `PollingOptions` and `ConsensusOptions` by `PipelineSetupContainer`, `SensorOptions` by `SensorSetupContainer`, and the alert, derived, trend and index options by the feature libraries' `Add*()` extensions, each with `ValidateOnStart` enabled
-
-#### Scenario: Ingest and egress registrations are present
-- **WHEN** the application starts
-- **THEN** `IOpenMeteoClient` is resolvable (via `OpenMeteoSetupContainer`), and `IMqttConnection`/`IMqttTransport` are resolvable when MQTT is enabled (via `MqttSetupContainer`)
-
-### Requirement: Program.cs delegates to setup containers
-The `Program.cs` entry point SHALL chain domain-specific setup containers via `AppBuilder.WithSetup<T>()`. It SHALL NOT contain a monolithic `NjordServiceSetup`.
-
-#### Scenario: Domain containers in Program.cs
-- **WHEN** the application is started
-- **THEN** `Program.cs` chains `CoreSetupContainer`, `OpenMeteoSetupContainer`, `BudgetSetupContainer`, `SensorSetupContainer`, `PipelineSetupContainer`, `AnalysisSetupContainer`, `MqttSetupContainer`, `GrpcSetupContainer`, `AkkaSetupContainer`, and `NjordApplicationSetup`, in this order
-
 ### Requirement: AkkaSetupContainer configures the actor system infrastructure
 The system SHALL provide an `AkkaSetupContainer` extending `ActorSystemSetupContainer` that names the actor system `njord` and configures logging, SQL persistence, remoting and cluster formation. Domain actors SHALL be registered via `IActorRegistration` instances resolved from DI, not directly in this container.
 

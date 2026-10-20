@@ -23,17 +23,6 @@ requests/minute) via environment variables or appsettings.json that replaces the
 - **WHEN** an override of 50,000 requests/month and 60 requests/minute is configured via environment variables
 - **THEN** the resolved budget is 50,000 requests/month and 60 requests/minute
 
-### Requirement: All options are read via IOptions at startup
-All options classes SHALL be read via `IOptions<T>` (not `IOptionsMonitor<T>`) since there is no runtime config change mechanism. The `ConfigReloadPolicy` distinction between Hot and RestartRequired no longer applies. `ConfigView` SHALL continue to provide read-only access to `NjordOptions` and `PollingOptions` for components that need scope and polling data.
-
-#### Scenario: Options are fixed for process lifetime
-- **WHEN** njord starts with a configured poll interval of 30 minutes
-- **THEN** the poll interval remains 30 minutes until the process is restarted
-
-#### Scenario: ConfigView provides scope and polling
-- **WHEN** PollManager reads ConfigView at startup
-- **THEN** it receives the current NjordOptions and PollingOptions values
-
 ### Requirement: Parameter groups are configured
 The system SHALL accept a `Parameters` options section with `Groups` (list of group names, default `["Weather"]`), `Extra` (list of individual variable API names to add, default empty), and `Exclude` (list of individual variable API names to remove, default empty). The resolved parameter set SHALL be computed at startup and remain fixed for the process lifetime.
 
@@ -222,21 +211,6 @@ The static class that projects and resolves the request budget SHALL be named `B
 - **WHEN** `PersistenceOptions` is inspected
 - **THEN** it SHALL be declared as `sealed class`, not `sealed record`
 
-### Requirement: The host is a WebApplication composed of setup containers
-The service SHALL use `WebApplication.CreateBuilder` as its host builder, providing Kestrel and the ASP.NET middleware pipeline. DI registrations and Akka.NET actor system configuration SHALL be delegated to Servus setup containers chained in `Program.cs`. The health-check endpoint at `/healthz`, the liveness endpoint at `/alive`, the Prometheus metrics endpoint and the gRPC services SHALL be mapped in `NjordApplicationSetup`. Serilog SHALL be configured directly in `Program.cs`. There SHALL be no dependency on a separate `ServiceDefaults` project.
-
-#### Scenario: Health middleware is registered
-- **WHEN** the service starts
-- **THEN** the middleware pipeline includes the health-check endpoint at `/healthz` and the liveness endpoint at `/alive`
-
-#### Scenario: Actors are registered through setup containers
-- **WHEN** the service starts
-- **THEN** `PollManager`, the poll shard region of `PollWorker`s, `ForecastPipeline`, `ForecastReadModel`, `OpenMeteoGateway` and `BudgetTracker` are created through the setup containers' `IActorRegistration`s, plus the MQTT actors when `Njord:Mqtt:Enabled` is true
-
-#### Scenario: Serilog is configured without ServiceDefaults
-- **WHEN** the service starts
-- **THEN** Serilog is configured directly in `Program.cs` without referencing a `ServiceDefaults` project
-
 ### Requirement: Persistence options are their own configuration sections
 Persistence settings SHALL NOT be part of `NjordOptions`. `PersistenceOptions` SHALL bind the `Njord:Persistence` section (`Provider` default `Sqlite`, `ConnectionString` default null) and `StorageOptions` SHALL bind `PersistencePath` (default `data/njord.db`) from the `Njord:Storage` section; both are registered by `ConfigSetupContainer`.
 
@@ -248,42 +222,12 @@ Persistence settings SHALL NOT be part of `NjordOptions`. `PersistenceOptions` S
 - **WHEN** both `Njord:Storage:PersistencePath` and `Njord:Persistence:Provider` are configured
 - **THEN** both values are available; `PersistencePath` is used only when the provider is `Sqlite` and no explicit `ConnectionString` is set
 
-### Requirement: Each options type has its own validator
-Every options type SHALL have exactly one validator implementing `IValidateOptions<T>` for that type, in the same folder: `NjordOptionsValidator` (forecast scope), `PollingOptionsValidator`, `PersistenceOptionsValidator`, `StorageOptionsValidator`, `OpenMeteoOptionsValidator`, `MqttOptionsValidator`, `SensorOptionsValidator`, `ConsensusOptionsValidator`, `AlertOptionsValidator`, `DerivedOptionsValidator`, `TrendOptionsValidator` and `IndexOptionsValidator`. No validator SHALL validate another type's options through `NjordOptions`.
-
-#### Scenario: IndexOptionsValidator validates IndexOptions
-- **WHEN** `IndexOptionsValidator` validates index preferences
-- **THEN** it implements `IValidateOptions<IndexOptions>` and receives `IndexOptions` directly
-
-#### Scenario: SensorOptionsValidator validates through SensorOptions
-- **WHEN** `SensorOptionsValidator` validates sensor configuration
-- **THEN** it receives `SensorOptions` directly, not `NjordOptions`
-
 ### Requirement: Each options type and its validator live in their own file
 Each `*Options` type and each `*OptionsValidator` in `Njord.Core/Configuration/` SHALL live in its own file named after the type.
 
 #### Scenario: AlertOptions in own file
 - **WHEN** `Alerts/AlertOptions.cs` is inspected
 - **THEN** it contains only the `AlertOptions` class, and `AlertOptionsValidator` lives in `Alerts/AlertOptionsValidator.cs`
-
-### Requirement: Actors resolve peers through marker interfaces
-Actors that need references to other actors SHALL resolve them through the Servus.Akka extensions keyed by the marker interfaces in `Njord.Core/Actors/ActorKeys.cs` — `Context.GetActor<TMarker>()` or `Context.TryGetActor<TMarker>(out ...)` synchronously, or `Context.GetActorAsync<TMarker>()` piped to `Self` — instead of injecting `ActorRegistry` or `IActorRef` constructor parameters. A registry lookup SHALL never be keyed by an actor class. `ForecastPipeline` SHALL resolve no peer: producers and consumers come to it.
-
-#### Scenario: Poll workers resolve the gateway per poll
-- **WHEN** a `PollWorker` polls its target
-- **THEN** it calls `Context.TryGetActor<IForecastGateway>(out ...)` for that poll, and the `PollManager` resolves the poll shard region with `Context.TryGetActor<IPollRegion>(out ...)`
-
-#### Scenario: MqttStatePublisher resolves the pipeline
-- **WHEN** `MqttStatePublisher` starts
-- **THEN** it calls `Context.GetActor<IForecastPipeline>()`
-
-#### Scenario: The gateway resolves the pipeline asynchronously
-- **WHEN** `OpenMeteoGateway` starts or loses its pipeline attachment
-- **THEN** it calls `Context.GetActorAsync<IForecastPipeline>()` and pipes the result to itself
-
-#### Scenario: The SensorHub pushes to the pipeline marker
-- **WHEN** the SensorHub pushes a readings map
-- **THEN** it resolves the pipeline through `IForecastPipeline` and skips the push while none is registered
 
 ### Requirement: Locations require coordinates
 Every configured location SHALL have a name, a latitude between -90 and 90 and a longitude between -180 and 180. The service SHALL NOT call any geocoding API.
@@ -299,11 +243,4 @@ Every configured location SHALL have a name, a latitude between -90 and 90 and a
 #### Scenario: Out-of-range coordinates rejected
 - **WHEN** a location has latitude 91
 - **THEN** startup SHALL fail with a validation error naming the location
-
-### Requirement: Enrichment toggles exclude ClimateAnomaly
-The enrichment configuration SHALL expose 19 toggles; there SHALL be no ClimateAnomaly toggle, and no climate data SHALL be fetched.
-
-#### Scenario: Obsolete toggle ignored
-- **WHEN** the configuration still contains `Njord:Enrichments:ClimateAnomaly`
-- **THEN** startup SHALL succeed and the setting SHALL have no effect
 

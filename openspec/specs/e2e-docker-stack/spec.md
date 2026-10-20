@@ -30,15 +30,3 @@ Each E2E run SHALL start from a clean state with no persisted data from previous
 - **WHEN** the E2E test starts
 - **THEN** `docker compose down -v` removes all named volumes before `docker compose up -d --build`
 
-### Requirement: Minimal but fully instrumented config
-
-The njord configuration in the E2E stack SHALL be minimal (1 location, 2 models) but enable all enrichment features.
-
-#### Scenario: Enrichment features
-- **WHEN** njord starts in the E2E stack
-- **THEN** consensus, alerts, derived, trends and indices are all enabled (njord has no history feature)
-
-#### Scenario: Real Open-Meteo
-- **WHEN** njord polls for forecast data
-- **THEN** it hits the real Open-Meteo API (no mock server), consuming approximately 2 API requests per poll cycle
-

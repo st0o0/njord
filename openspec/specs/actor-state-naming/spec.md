@@ -20,15 +20,3 @@ SHALL use domain-role names.
 - **WHEN** the MQTT state publishing actor is referenced
 - **THEN** it SHALL be named `MqttStatePublisher` (not `MqttState`) and its marker interface `IMqttStatePublisher`
 
-### Requirement: One message file per command or query
-
-Each command or query SHALL have its own file in `Njord.Messages/<Domain>/`.
-
-#### Scenario: MQTT messages
-- **WHEN** inspecting MQTT message files
-- **THEN** `MqttConnected`, `SubscribeInbound`, and `MqttInboundMessage` SHALL each be in separate files
-
-#### Scenario: SensorHub messages
-- **WHEN** inspecting sensor hub message files
-- **THEN** `UpdateReading` and `QuerySensorReadings` (with its response hierarchy) SHALL each be in separate files
-

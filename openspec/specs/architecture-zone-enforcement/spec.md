@@ -1,13 +1,13 @@
 # architecture-zone-enforcement Specification
 
 ## Purpose
-Fail the test run when code violates njord's zone architecture (Ingest, Domain, Egress meet only in the domain model) or its sealed/Spec conventions, so the guardrails are enforced rather than remembered.
+Fail the test run when code violates njord's zone architecture (base libraries never depend on feature libraries) or its sealed/Spec conventions, so the guardrails are enforced rather than remembered.
 ## Requirements
 ### Requirement: Domain is independent of the zones
-Types in the base libraries (`Njord.Model`, `Njord.Core`, `Njord.Messages`, `Njord.Persistence`) SHALL NOT depend on any feature library (`Njord.OpenMeteo`, `Njord.Budget`, `Njord.Grpc`, `Njord.Pipeline`, `Njord.Mqtt`, `Njord.Alerts`) or on the `Njord` host; `ZoneArchitectureSpec` checks every base library.
+Types in the base libraries (`Njord.Forecast`, `Njord.Core`, `Njord.Messages`, `Njord.Persistence`) SHALL NOT depend on any feature library (`Njord.OpenMeteo`, `Njord.Budget`, `Njord.Grpc`, `Njord.Pipeline`, `Njord.Mqtt`) or on the `Njord` host; `ZoneArchitectureSpec` checks every base library.
 
 #### Scenario: Domain references a transport type
-- **WHEN** a type in `Njord.Model` gains a dependency on a type in `Njord.OpenMeteo`, `Njord.Mqtt` or `Njord.Grpc`
+- **WHEN** a type in `Njord.Forecast` gains a dependency on a type in `Njord.OpenMeteo`, `Njord.Mqtt` or `Njord.Grpc`
 - **THEN** the architecture test run fails and names the offending type and dependency
 
 ### Requirement: Production classes are sealed
@@ -51,10 +51,10 @@ Test methods in every test assembly (all `Njord.*Tests` projects, including `Njo
 - **THEN** they pass
 
 ### Requirement: Foundation layers have no framework dependency
-Types in the foundation layers (`Njord.Model`, `Njord.Messages`, `Njord.Persistence`) SHALL NOT depend on any `Akka.*` namespace or package. `LayerReferenceSpec.Messages_has_no_Akka_dependency` SHALL enforce this for `Njord.Messages`.
+Types in the foundation layers (`Njord.Forecast`, `Njord.Messages`, `Njord.Persistence`) SHALL NOT depend on any `Akka.*` namespace or package. `LayerReferenceSpec.Messages_has_no_Akka_dependency` SHALL enforce this for `Njord.Messages`.
 
 #### Scenario: Foundation layer gains an Akka dependency
-- **WHEN** `Njord.Messages` or `Njord.Model` gains a reference to an `Akka*` assembly
+- **WHEN** `Njord.Messages` or `Njord.Forecast` gains a reference to an `Akka*` assembly
 - **THEN** the architecture test run fails
 
 #### Scenario: Foundation layers currently pass
@@ -62,7 +62,7 @@ Types in the foundation layers (`Njord.Model`, `Njord.Messages`, `Njord.Persiste
 - **THEN** they pass, with none of the foundation projects referencing any `Akka.*` package or namespace
 
 ### Requirement: Feature libraries do not reference each other or the host
-The feature libraries `Njord.OpenMeteo`, `Njord.Budget`, `Njord.Grpc`, `Njord.Mqtt`, `Njord.Alerts` SHALL NOT depend on each other, on `Njord.Pipeline` or on the `Njord` host. `Njord.Pipeline` SHALL depend on no feature library other than `Njord.Alerts`, and never on the host. Feature libraries reach each other's actors only through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs` and the messages in `Njord.Messages`.
+The feature libraries `Njord.OpenMeteo`, `Njord.Budget`, `Njord.Grpc`, `Njord.Mqtt` SHALL NOT depend on each other, on `Njord.Pipeline` or on the `Njord` host. `Njord.Pipeline` SHALL depend on no feature library other than `Njord.Alerts`, and never on the host. Feature libraries reach each other's actors only through the marker interfaces in `Njord.Core/Actors/ActorKeys.cs` and the messages in `Njord.Messages`.
 
 #### Scenario: Lateral reference between feature libraries
 - **WHEN** a type in one feature library gains a dependency on a type in another feature library
@@ -73,7 +73,7 @@ The feature libraries `Njord.OpenMeteo`, `Njord.Budget`, `Njord.Grpc`, `Njord.Mq
 - **THEN** the architecture test run fails; access to those actors goes through their markers and `Njord.Messages`
 
 #### Scenario: Upward reference
-- **WHEN** a type in `Njord.Model`, `Njord.Core`, `Njord.Messages` or `Njord.Persistence` gains a dependency on a feature library or the host
+- **WHEN** a type in `Njord.Forecast`, `Njord.Core`, `Njord.Messages` or `Njord.Persistence` gains a dependency on a feature library or the host
 - **THEN** the build or the architecture test run fails
 
 ### Requirement: AkkaSetupContainer configures persistence before applying actor registrations
@@ -82,28 +82,6 @@ The feature libraries `Njord.OpenMeteo`, `Njord.Budget`, `Njord.Grpc`, `Njord.Mq
 #### Scenario: Registrations run after the infrastructure
 - **WHEN** `AkkaSetupContainer.BuildSystem` runs
 - **THEN** `ConfigureInfrastructure` (persistence, remoting, clustering) completes before the first `IActorRegistration.Configure` call
-
-### Requirement: Layer reference direction across consensus and messages
-Foundation libraries SHALL follow this reference direction: `Njord.Model` and `Njord.Persistence` reference no Njord assembly; `Njord.Messages` references only `Njord.Model`; `Njord.Core` references only `Njord.Model`, `Njord.Messages` and `Njord.Persistence`. Feature libraries reference only `Core` and below, except `Njord.Pipeline`, which may also reference `Njord.Alerts`. The host references all. `LayerReferenceSpec` SHALL check every assembly.
-
-#### Scenario: Messages references only Model
-- **WHEN** `LayerReferenceSpec` checks `Njord.Messages` assembly references
-- **THEN** the only Njord reference SHALL be `Njord.Model`
-
-#### Scenario: Core references
-- **WHEN** `LayerReferenceSpec` checks `Njord.Core` assembly references
-- **THEN** the allowed Njord references SHALL be `Njord.Model`, `Njord.Messages` and `Njord.Persistence`
-
-#### Scenario: Feature libraries reference only Core and below
-- **WHEN** `LayerReferenceSpec` checks a feature library's assembly references
-- **THEN** the allowed set SHALL be Core and below, and no other feature library
-
-### Requirement: Base library registration of consensus
-The architecture test infrastructure SHALL list `Njord.Model`, `Njord.Core`, `Njord.Messages` and `Njord.Persistence` as base libraries. It SHALL NOT list `Njord.Consensus`, `Njord.Weather`, `Njord.Sensors`, `Njord.Domain` or `Njord.Compute` — those assemblies no longer exist.
-
-#### Scenario: BaseLibraryNames reflects new structure
-- **WHEN** `NjordArchitecture.BaseLibraryNames` is inspected
-- **THEN** it SHALL contain `"Njord.Model"`, `"Njord.Core"`, `"Njord.Messages"` and `"Njord.Persistence"`, and SHALL NOT contain `"Njord.Consensus"`, `"Njord.Weather"`, `"Njord.Sensors"` or `"Njord.Domain"`
 
 ### Requirement: Messages declares no compute logic
 Types in `Njord.Messages` SHALL NOT have names ending in `Analyzer`, `Rule` or `Formulas`; `ZoneArchitectureSpec` SHALL enforce this so analysis logic stays in the feature libraries.

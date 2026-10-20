@@ -17,17 +17,6 @@ The TopicScheme SHALL produce topics in the format `njord/{location}/{domain}/{p
 - **WHEN** a frost alert is raised for location "Lucerne"
 - **THEN** the topic SHALL be `njord/lucerne/alerts/frost`
 
-### Requirement: MqttStatePublisher handles new event types
-The publisher SHALL map WeatherDataReceived, AirQualityDataReceived, FloodDataReceived, SolarDataReceived, and AlertRaised events to their respective MQTT topics and payloads. Old event types (ConsensusComputed, DerivedComputed, TrendComputed, IndexComputed) produce no messages.
-
-#### Scenario: Publisher handles AlertRaised
-- **WHEN** an AlertRaised event arrives for a frost alert
-- **THEN** the publisher SHALL publish an alert payload to `njord/{location}/alerts/frost`
-
-#### Scenario: Publisher handles WeatherDataReceived
-- **WHEN** a WeatherDataReceived event arrives
-- **THEN** the publisher SHALL publish weather parameter values to domain-based topics
-
 ### Requirement: Missing values are omitted from state payloads
 Domain data payloads SHALL omit parameters whose value is null. Alert payloads SHALL write an explicit `null` for a known member whose value is absent. njord SHALL NOT publish `unavailable` states or `expire_after` settings. Availability SHALL be signalled only through the retained `online`/`offline` service status topic.
 

@@ -17,5 +17,5 @@ When `Njord:Mqtt:Enabled` is `false`, `MqttSetupContainer` SHALL NOT register th
 
 #### Scenario: Pipeline operates without MQTT consumer
 - **WHEN** MQTT is disabled
-- **THEN** `ForecastPipeline` materializes its BroadcastHub, emits `PipelineEvent`s, and `ForecastReadModel` receives them — no error or backpressure from the absent MQTT consumer
+- **THEN** `ForecastPipeline` materializes its BroadcastHub, emits `PipelineEvent`s, and `GrpcConsumer` receives them — no error or backpressure from the absent MQTT consumer
 

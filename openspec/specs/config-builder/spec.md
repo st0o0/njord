@@ -106,13 +106,6 @@ The builder SHALL accept pasted docker-compose YAML containing an `environment:`
 - **WHEN** a user pastes `- Njord__PollInterval=01:00:00`
 - **THEN** the builder reports the key as outdated and names `Njord__Polling__PollInterval`
 
-### Requirement: Enrichment toggles with per-feature settings
-The builder SHALL show toggles for each enrichment feature (consensus, alerts, derived, trends, indices). When expanded, each feature SHALL show its configurable settings with defaults pre-filled.
-
-#### Scenario: Enrichment feature toggles
-- **WHEN** a user opens the enrichment section and expands a feature
-- **THEN** toggles exist for consensus, alerts, derived, trends and indices (no history toggle), and the expanded feature shows its configurable settings pre-filled with defaults
-
 ### Requirement: Builder state persists in URL hash
 The builder SHALL encode its current state in the URL fragment (hash) so that configurations can be shared via link. Loading a URL with a hash SHALL restore the builder state.
 

@@ -47,10 +47,3 @@ The skill SHALL record every step's result (never SKIP) with PASS/FAIL, timing b
 - **WHEN** all phases complete
 - **THEN** a results file SHALL exist with a summary table, timing baselines, and entity list, and `docker compose -f e2e/docker-compose.e2e.yml down -v` SHALL have run
 
-### Requirement: MQTT payload regression detection is an acknowledged gap
-This skill SHALL NOT provide byte-exact MQTT discovery/state payload regression detection via Verify snapshots, SHALL NOT separately verify multi-model consensus payload detail, and SHALL NOT verify HA birth/re-discovery behavior on `homeassistant/status`. A future, narrower proposal would be needed to close this gap; it is not blocking.
-
-#### Scenario: No MQTT payload snapshot regression detection
-- **WHEN** a code change alters an MQTT discovery or state payload's exact shape
-- **THEN** the `e2e-test` skill does not fail on this — only real HA entity-state behavior is checked
-

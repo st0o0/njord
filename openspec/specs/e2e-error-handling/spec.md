@@ -6,26 +6,6 @@ Defines the E2E checks for gRPC error responses, Home Assistant REST API errors 
 
 ## Requirements
 
-### Requirement: gRPC error responses for invalid requests
-
-The E2E test plan SHALL verify that njord returns appropriate gRPC error codes for invalid requests.
-
-#### Scenario: GetForecast with unknown location returns NOT_FOUND
-- **WHEN** `WeatherService/GetForecast` is called with location "nonexistent_city"
-- **THEN** the gRPC response is a NOT_FOUND or INVALID_ARGUMENT error status (not a crash or empty success)
-
-#### Scenario: GetForecast with invalid model returns error
-- **WHEN** `WeatherService/GetForecast` is called with model "fake_model_xyz"
-- **THEN** the gRPC response is a NOT_FOUND or INVALID_ARGUMENT error status
-
-#### Scenario: Push with invalid sensor kind returns error
-- **WHEN** `SensorService/Push` is called with an unrecognized sensor kind
-- **THEN** the gRPC response is an INVALID_ARGUMENT error status
-
-#### Scenario: SetLocations with empty list returns error
-- **WHEN** `AdminService/SetLocations` is called with an empty location list
-- **THEN** the gRPC response is an INVALID_ARGUMENT error status (the system requires at least one location)
-
 ### Requirement: HA REST API error handling
 
 The E2E test plan SHALL verify that HA REST API returns correct errors for njord-specific edge cases.

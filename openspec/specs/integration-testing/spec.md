@@ -36,17 +36,6 @@ Integration tests SHALL run two host lifetimes over the same SQLite file and ass
 - **WHEN** a poll worker has learned its cycle in the first lifetime
 - **THEN** the second lifetime reports the worker in the steady phase with the same cycle
 
-### Requirement: MQTT publishing is verified against a broker
-Integration tests SHALL run a pinned Mosquitto container through Testcontainers and assert retained state payloads, the retained service status, the last will on abrupt disconnect, and republish after a broker restart, using a second MQTT client as the observer. They SHALL fail with a clear message when Docker is unavailable and SHALL NOT use dynamic skips.
-
-#### Scenario: Retained payload matches the golden master
-- **WHEN** the consensus state of the analysis fixture is published
-- **THEN** a new subscriber receives a retained message whose payload equals the golden-master payload
-
-#### Scenario: Last will
-- **WHEN** the publisher connection is dropped without a clean disconnect
-- **THEN** the retained service status becomes `offline`
-
 ### Requirement: Integration tests are isolated and bounded
 Each integration fixture SHALL use unique temporary directories (database and override file), its own broker container, and explicit timeouts from `TestTimeouts`; host-based fixtures SHALL run one after another because the Akka remoting port is fixed, and SHALL dispose hosts and containers deterministically.
 

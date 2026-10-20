@@ -4,18 +4,6 @@
 
 LikeC4 architecture diagrams embedded in the documentation site, providing interactive C4-model views of njord's system context, internal zones, and streaming pipeline.
 ## Requirements
-### Requirement: LikeC4 model defines njord architecture
-A LikeC4 C4 model SHALL exist at `docs/likec4/` containing at minimum:
-- `specification.c4` defining element kinds and visual styles
-- `model.c4` defining architectural elements (Open-Meteo API; the njord service with its ingest zone (`OpenMeteoGateway`, `OpenMeteoClient`), domain zone (`PollManager`, `PollWorker`, `ForecastPipeline` with the analysis libraries) and consumer zone (`MqttStatePublisher`, `ForecastReadModel` with the gRPC API); Home Assistant with ha-njord; the optional MQTT broker)
-- `views.c4` defining diagram views
-
-Element names SHALL refer to types and projects that exist in `src/`.
-
-#### Scenario: Model compiles without errors
-- **WHEN** `npx likec4 validate` is run from `docs/`
-- **THEN** the model compiles successfully with no errors
-
 ### Requirement: System context view shows end-to-end data flow
 The LikeC4 model SHALL include an `index` view showing the high-level data flow: Open-Meteo API -> njord -> Home Assistant (gRPC via ha-njord), and njord -> MQTT broker as the optional second output.
 
@@ -29,13 +17,6 @@ The LikeC4 model SHALL include an `internals` view showing njord's three zones â
 #### Scenario: Internals view shows zone separation
 - **WHEN** the `internals` view is rendered
 - **THEN** Ingest (gateway and client), Domain (scheduler, pipeline, analysis) and Consumers (MQTT state publisher, read model and gRPC API) appear as separate containers within njord
-
-### Requirement: Pipeline view shows Akka.Streams flow
-The LikeC4 model SHALL include a `pipeline` view showing the Akka.Streams processing stages from a poll worker's timer to the consumers.
-
-#### Scenario: Pipeline view shows sequential stages
-- **WHEN** the `pipeline` view is rendered
-- **THEN** the stages appear in order: poll timer -> gateway queue -> throttle -> fetch -> forecast hub -> analysis (consensus and features) -> pipeline hub -> MQTT state publisher and read model
 
 ### Requirement: VitePress integrates LikeC4 via plugin
 The VitePress config SHALL use `@leberkas-org/vitepress-likec4` to integrate

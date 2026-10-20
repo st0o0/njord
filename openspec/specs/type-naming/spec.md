@@ -14,13 +14,6 @@ No production type SHALL have `Snapshot` in its name. The persisted state of a p
 - **WHEN** the persistence project is inspected
 - **THEN** `PersistedPollWorkerState` and `PersistedBudgetTrackerState` are unchanged
 
-### Requirement: Contract types are named for what they are
-The types formerly named with `Snapshot` SHALL use these names: `ModelForecasts` (latest forecast per location and model), `LocationConsensus` (one location's consensus), `SensorReadings` and `LocationSensorReadings` with `QuerySensorReadings`, `SensorReadingsResponse`, `SensorReadingsResult`, `SensorReadingsNotAvailable` and `RequestSensorReadings`, `EffectiveConfig` and `EffectiveConfigMappings`, and `MqttHealth`, `PollHealth`, `BudgetHealth`. State-to-message conversions SHALL be `ToPollStateEntry()` and `ToBudgetUsage()`.
-
-#### Scenario: Behaviour is unchanged by the rename
-- **WHEN** the gRPC golden masters, the MQTT payload snapshots and the persistence wire-format specs are verified after the rename
-- **THEN** their content is byte-identical (only file names that embed type names change)
-
 ### Requirement: Type names are unique across namespaces for contract types
 A type name used in `Njord.Messages` SHALL NOT be reused by another production type in a different namespace. The configuration DTO formerly named `ParameterSelection` SHALL be named `ParameterScope`, so `ParameterSelection` names only the resolver in `Njord.Core.Configuration`.
 

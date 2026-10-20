@@ -16,14 +16,3 @@ Each `.cs` file in the host project (`src/Njord`) SHALL contain exactly one publ
 - **WHEN** `ConfigManager.cs` contains private message records used only by that actor
 - **THEN** this SHALL NOT be flagged as a violation
 
-### Requirement: Result records carry no computation logic
-Analysis result records (`IndexResult`, `LocationConsensus`, `TrendResult`, `DerivedResult`, `AlertResult`) SHALL be pure data carriers with no static `Compute` factory methods. Computation SHALL live in the analyzers (`AlertAnalyzer`, `DerivedAnalyzer`, `TrendAnalyzer`, `IndexAnalyzer`) and `ConsensusBuilder`, which are registered in DI.
-
-#### Scenario: IndexResult has no Compute method
-- **WHEN** `IndexResult` is inspected
-- **THEN** it SHALL have no static methods
-
-#### Scenario: Analyzer is injectable
-- **WHEN** `ForecastPipeline` needs to compute index scores
-- **THEN** it receives an `IndexAnalyzer` via constructor injection
-
