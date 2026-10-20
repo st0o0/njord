@@ -2,8 +2,8 @@ using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
-using static Njord.Flood.Tests.FloodFixtures;
 using Njord.Tests.Shared;
+using static Njord.Flood.Tests.FloodFixtures;
 
 namespace Njord.Flood.Tests;
 

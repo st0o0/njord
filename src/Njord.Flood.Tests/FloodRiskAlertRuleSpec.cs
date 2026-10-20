@@ -1,6 +1,6 @@
 using Njord.Messages.Alerts;
-using static Njord.Flood.Tests.FloodFixtures;
 using Njord.Tests.Shared;
+using static Njord.Flood.Tests.FloodFixtures;
 
 namespace Njord.Flood.Tests;
 

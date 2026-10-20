@@ -1,10 +1,10 @@
-using Njord.AirQuality;
 using Microsoft.Extensions.Options;
+using Njord.AirQuality;
 using Njord.Core.Configuration;
 using Njord.Core.Domain;
-using Njord.Model;
 using Njord.Flood;
 using Njord.Marine;
+using Njord.Model;
 using Njord.Weather.Alerts;
 using Servus.Application.Startup;
 

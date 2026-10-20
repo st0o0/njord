@@ -1,6 +1,6 @@
 using Njord.Messages.Alerts;
-using static Njord.AirQuality.Tests.AirQualityFixture;
 using Njord.Tests.Shared;
+using static Njord.AirQuality.Tests.AirQualityFixture;
 
 namespace Njord.AirQuality.Tests;
 

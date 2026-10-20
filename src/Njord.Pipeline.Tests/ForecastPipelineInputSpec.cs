@@ -1,8 +1,8 @@
-using Njord.Core.Configuration;
-using Microsoft.Extensions.Options;
 using Akka.Actor;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core.Actors;
+using Njord.Core.Configuration;
 using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;

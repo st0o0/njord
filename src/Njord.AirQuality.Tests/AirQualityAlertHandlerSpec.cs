@@ -3,8 +3,8 @@ using Njord.Core.Domain;
 using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using Njord.Model;
-using static Njord.AirQuality.Tests.AirQualityFixture;
 using Njord.Tests.Shared;
+using static Njord.AirQuality.Tests.AirQualityFixture;
 
 namespace Njord.AirQuality.Tests;
 

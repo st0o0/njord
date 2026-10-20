@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Njord.OpenMeteo;
 using Njord.Tests.Shared;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Njord.IntegrationTests;
 

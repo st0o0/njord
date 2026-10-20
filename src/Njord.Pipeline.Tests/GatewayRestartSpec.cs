@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Options;
 using Akka.Actor;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Njord.Core;
 using Njord.Core.Actors;
