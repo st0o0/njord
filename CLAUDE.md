@@ -4,55 +4,57 @@
 
 ## Workflow
 
-Changes go through OpenSpec: `/opsx:explore` to think → `/opsx:propose` to create
-a change (proposal/design/specs/tasks) → `/opsx:apply` to implement → `/opsx:archive`.
+Changes go through OpenSpec: `/opsx:explore` to think - `/opsx:propose` to create
+a change (proposal/design/specs/tasks) - `/opsx:apply` to implement - `/opsx:archive`.
 Implementation is TDD.
 
-## Skill routing (invoke by name)
+## Language
 
-Prefer retrieval-led reasoning: consult these before implementing.
+All code, specs, docs, and communication in English.
+
+## Skill routing
 
 ### Project skills (njord-specific)
 
-- `njord-enrichment-feature` -- **Load before adding/changing an enrichment
-  feature.** Interface choice, options toggle, registration, discovery + state
-  payloads.
-- `njord-actor-spec` -- **Load before writing actor, feature or persistence-DTO
-  tests.** TestKit, in-memory persistence, `FakeTimeProvider`, Verify.
+- `njord-enrichment-feature` -- **Load before adding/changing an enrichment.**
+  `IDomainHandler`, `EnrichmentOptions` toggle, registration, event/contract, Config Builder.
+- `njord-actor-spec` -- **Load before writing actor, handler or persistence-record
+  tests.** `NjordActorSpec`, in-memory persistence, `FakeTimeProvider`, Verify.
+- `e2e-test` -- Full-stack check (njord + ha-njord + Home Assistant) via Docker Compose.
 
-Requires the `akka-skills` plugin, which is not installed on every machine; routes below do not resolve without it.
+### Akka.NET skills -- when to load
 
-### Akka.NET skills (akka-skills plugin)
+**Always load the relevant skill before writing Akka code.** Requires the `akka-skills`
+plugin, which is not installed on every machine; the routes do not resolve without it.
 
-- Actor state pattern: `akka-skills:actor-state` (state records, Apply/GetSnapshot, persistence)
-- Persistence separation: `akka-skills:persistence` (three-tier state model, SaveSnapshot, extend-only DTOs)
-- Project structure: `akka-skills:project-structure` (solution layout, domain isolation, ArchUnitNET)
-- Message conventions: `akka-skills:messages` (VerbNoun commands, QueryNoun queries) — this project uses Pattern A (dedicated Njord.Messages project)
-- Actor testing: `akka-skills:testing` (Classic + Hosting TestKit, async assertions, persistence testing)
-- Logging: `akka-skills:logging` (ILoggingAdapter in actors, ILogger in services, Serilog setup)
-- Setup containers: `akka-skills:setup-container` (Servus AppBuilder, DI/Actor/App composition)
-- Cluster hosting: `akka-skills:cluster-hosting` (Singletons, ShardRegions, MessageExtractor)
-- Actor pools: `akka-skills:actor-pools` (Router-Pools, DI-Pools, Stash-Capacity)
-- Persistence setup: `akka-skills:persistence-setup` (WithSqlPersistence, Provider, Clustering)
-- Become state machines: `akka-skills:become-state-machines` (multi-phase workflows, stash-during-init, connection lifecycle)
-- Advanced patterns: `akka-skills:advanced-patterns` (IWithTimers, ReceiveAsync, PipeTo, DeathWatch, Passivation, PersistAll)
-- Streams: `akka-skills:streams` (Source/Flow/Sink, MergeHub/BroadcastHub, StreamRefs, custom GraphStage, supervision)
-- Supervision: `akka-skills:supervision` (BackoffSupervisor, custom SupervisorStrategy, escalation)
+| Task | Load these skills |
+|------|-------------------|
+| New actor (any type) | `akka-skills:actor-state` |
+| Actor with persistence | + `akka-skills:persistence` |
+| Sharded entity / Singleton | + `akka-skills:cluster-hosting` |
+| Actor with timers, PipeTo, DeathWatch | + `akka-skills:advanced-patterns` |
+| Become/Unbecome state machine | + `akka-skills:become-state-machines` |
+| Akka.Streams pipeline, hubs, StreamRefs | + `akka-skills:streams` |
+| Supervision / BackoffOnFailure | + `akka-skills:supervision` |
+| Actor pools / routing | + `akka-skills:actor-pools` |
+| New message / command / query | `akka-skills:messages` (Pattern A: `Njord.Messages`) |
+| Persistence records / events | `akka-skills:persistence` |
+| Persistence infrastructure setup | `akka-skills:persistence-setup` |
+| Actor tests | `njord-actor-spec` + `akka-skills:testing` |
+| Servus setup containers | `akka-skills:setup-container` |
+| Logging in actors | `akka-skills:logging` |
+| Solution structure questions | `akka-skills:project-structure` |
 
 ### Plugin skills
 
-- Actors & supervision: `dotnet-skills:akka-best-practices`,
-  `dotnet-skills:akka-hosting-actor-patterns`
-- Messages & pipeline design: `dotnet-skills:csharp-concurrency-patterns`
-- Domain modeling: `dotnet-skills:csharp-coding-standards`,
-  `dotnet-skills:csharp-type-design-performance`
-- Config & DI: `dotnet-skills:microsoft-extensions-configuration`,
-  `dotnet-skills:microsoft-extensions-dependency-injection`
-- Serialization (discovery/state payloads): `dotnet-skills:serialization`
-- Testing: `dotnet-skills:akka-testing-patterns`,
-  `dotnet-skills:testcontainers` (Mosquitto integration tests),
-  `dotnet-skills:snapshot-testing` (discovery payloads via Verify)
-- Packages & structure: `dotnet-skills:package-management`,
-  `dotnet-skills:project-structure`
-- Specialist agents: `dotnet-skills:akka-net-specialist`,
-  `dotnet-skills:dotnet-concurrency-specialist`
+- Akka.NET: `dotnet-skills:akka-best-practices`, `dotnet-skills:akka-hosting-actor-patterns`,
+  `dotnet-skills:akka-testing-patterns`, `dotnet-skills:akka-net-specialist` (agent)
+- Actor patterns: `dotnet-skills:csharp-concurrency-patterns`,
+  `dotnet-skills:dotnet-concurrency-specialist` (agent)
+- C# coding: `dotnet-skills:csharp-coding-standards`, `dotnet-skills:csharp-type-design-performance`
+- Testing: `dotnet-skills:testcontainers` (Mosquitto), `dotnet-skills:snapshot-testing` (Verify)
+- Project structure: `dotnet-skills:project-structure`, `dotnet-skills:package-management`
+- DI / Config: `dotnet-skills:microsoft-extensions-dependency-injection`,
+  `dotnet-skills:microsoft-extensions-configuration`
+- Serialization: `dotnet-skills:serialization`
+- OpenTelemetry: `dotnet-skills:opentelementry-dotnet-instrumentation`
