@@ -7,9 +7,12 @@ namespace Njord.OpenMeteo;
 // Fills in coordinates of name-only locations before the actor system starts (registered ahead of Akka).
 public sealed class LocationResolutionService(
     IOptions<NjordOptions> options,
-    IGeocodingClient geocodingClient) : IHostedService
+    IGeocodingClient geocodingClient) : IHostedLifecycleService
 {
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    // StartingAsync of every hosted service runs before any StartAsync, so the actor system starts with resolved coordinates.
+    public async Task StartingAsync(CancellationToken cancellationToken)
     {
         foreach (var location in options.Value.Locations.Where(l => !l.HasCoordinates))
         {
@@ -22,5 +25,11 @@ public sealed class LocationResolutionService(
         }
     }
 
+    public Task StartedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task StoppingAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task StoppedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

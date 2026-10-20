@@ -66,7 +66,7 @@ public sealed class GeocodingSpec
         var geocoding = new FakeGeocoding(new GeocodingResult("Lucerne", 47.05, 8.31));
         var options = Options([new LocationOptions { Name = "Lucerne" }]);
 
-        await new LocationResolutionService(options, geocoding).StartAsync(TestContext.Current.CancellationToken);
+        await new LocationResolutionService(options, geocoding).StartingAsync(TestContext.Current.CancellationToken);
 
         var location = Assert.Single(options.Value.Locations);
         Assert.Multiple(
@@ -81,7 +81,7 @@ public sealed class GeocodingSpec
         var geocoding = new FakeGeocoding(new GeocodingResult("Zurich", 1, 2));
         var options = Options([new LocationOptions { Name = "Zurich", Latitude = 47.38, Longitude = 8.54 }]);
 
-        await new LocationResolutionService(options, geocoding).StartAsync(TestContext.Current.CancellationToken);
+        await new LocationResolutionService(options, geocoding).StartingAsync(TestContext.Current.CancellationToken);
 
         var location = Assert.Single(options.Value.Locations);
         Assert.Multiple(
@@ -96,7 +96,7 @@ public sealed class GeocodingSpec
         var options = Options([new LocationOptions { Name = "Atlantis" }]);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            new LocationResolutionService(options, new FakeGeocoding(null)).StartAsync(TestContext.Current.CancellationToken));
+            new LocationResolutionService(options, new FakeGeocoding(null)).StartingAsync(TestContext.Current.CancellationToken));
 
         Assert.Equal("Location 'Atlantis' has no Latitude/Longitude and geocoding found no match.", ex.Message);
     }
