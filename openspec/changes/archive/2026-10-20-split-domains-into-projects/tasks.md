@@ -10,8 +10,8 @@
 
 - [x] 2.1 Create `src/Njord.AirQuality/` project
 - [x] 2.2 Move AQ alert rules, projector, enrichment from Njord.Alerts/AirQuality/
-- [ ] 2.3 Move `OpenMeteoAirQualityMappings` from Njord.OpenMeteo/Mapping/ (deferred: moving it would make OpenMeteo or Mqtt reference a domain project, violating the lateral rule)
-- [ ] 2.4 Move `AirQualityPayload` from Njord.Mqtt/Payloads/ (deferred: moving it would make OpenMeteo or Mqtt reference a domain project, violating the lateral rule)
+- [x] 2.3 ~~Move OpenMeteoAirQualityMappings~~ Closed: correct layering — OpenMeteo owns response-to-domain mappings
+- [x] 2.4 ~~Move AirQualityPayload~~ Closed: correct layering — Mqtt owns payload format
 - [x] 2.5 Add DI extension `AddAirQuality()`
 - [x] 2.6 Create `src/Njord.AirQuality.Tests/` with moved AQ specs
 
@@ -19,8 +19,8 @@
 
 - [x] 3.1 Create `src/Njord.Flood/` project
 - [x] 3.2 Move Flood alert rules, projectors, enrichments from Njord.Alerts/Flood/
-- [ ] 3.3 Move `OpenMeteoFloodMappings` from Njord.OpenMeteo/Mapping/ (deferred: moving it would make OpenMeteo or Mqtt reference a domain project, violating the lateral rule)
-- [ ] 3.4 Move `FloodPayload` from Njord.Mqtt/Payloads/ (deferred: moving it would make OpenMeteo or Mqtt reference a domain project, violating the lateral rule)
+- [x] 3.3 ~~Move OpenMeteoFloodMappings~~ Closed: correct layering — OpenMeteo owns response-to-domain mappings
+- [x] 3.4 ~~Move FloodPayload~~ Closed: correct layering — Mqtt owns payload format
 - [x] 3.5 Add DI extension `AddFlood()`
 - [x] 3.6 Create `src/Njord.Flood.Tests/` with moved Flood specs
 
