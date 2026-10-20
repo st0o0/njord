@@ -19,26 +19,28 @@ public static class TestServiceInfo
             polling ?? AppSettingsDefaults.Options<PollingOptions>(),
             rules ?? [new Commute(), new Pollen(), new Pm25()]);
 
-    public abstract class StubRule(FeatureCategory category, bool enabled = true) : IFeatureRule
+    public abstract class StubRule(FeatureCategory category, string name, bool enabled = true) : IFeatureRule
     {
-        public FeatureDescriptor Descriptor { get; } = new(OutputKind.Score, category, DefaultEnabled: false, default);
+        public FeatureDescriptor Descriptor { get; } = new(OutputKind.Score, category, name, DefaultEnabled: false, default);
 
         public bool Enabled { get; } = enabled;
 
         public IReadOnlyList<PipelineEvent> Execute(RingBuffer<LocationForecast> ring, DateTimeOffset now) => [];
     }
 
-    public sealed class Commute() : StubRule(FeatureCategory.Lifestyle);
+    public sealed class Commute() : StubRule(FeatureCategory.Lifestyle, "Commute");
 
-    public sealed class Pollen() : StubRule(FeatureCategory.AirQuality);
+    public sealed class Pollen() : StubRule(FeatureCategory.AirQuality, "Pollen");
 
-    public sealed class Pm25() : StubRule(FeatureCategory.AirQuality);
+    public sealed class Pm25() : StubRule(FeatureCategory.AirQuality, "Pm25");
 
-    public sealed class Bbq() : StubRule(FeatureCategory.Lifestyle);
+    public sealed class Bbq() : StubRule(FeatureCategory.Lifestyle, "Bbq");
 
-    public sealed class SolarYield() : StubRule(FeatureCategory.Energy);
+    public sealed class SolarYield() : StubRule(FeatureCategory.Energy, "SolarYield");
 
-    public sealed class FloodRisk() : StubRule(FeatureCategory.Flood);
+    public sealed class FloodRisk() : StubRule(FeatureCategory.Flood, "FloodRisk");
 
-    public sealed class FloodRain(bool enabled = true) : StubRule(FeatureCategory.Flood, enabled);
+    public sealed class FloodRain(bool enabled = true) : StubRule(FeatureCategory.Flood, "FloodRain", enabled);
+
+    public sealed class FrostAlert() : StubRule(FeatureCategory.Weather, "Frost");
 }

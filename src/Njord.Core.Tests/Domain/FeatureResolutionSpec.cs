@@ -14,7 +14,7 @@ public sealed class FeatureResolutionSpec
     {
         public string Name { get; } = name;
 
-        public FeatureDescriptor Descriptor { get; } = new(OutputKind.Condition, category, enabled, requirements);
+        public FeatureDescriptor Descriptor { get; } = new(OutputKind.Condition, category, name, enabled, requirements);
 
         public bool Enabled { get; } = enabled;
 

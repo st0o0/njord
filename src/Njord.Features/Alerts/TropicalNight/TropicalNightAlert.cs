@@ -12,6 +12,7 @@ public sealed class TropicalNightAlert(IOptions<TropicalNightConfig> config) : F
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
+        Name: "TropicalNight",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.IsDay | WeatherParams.EnsembleStdDev));
 

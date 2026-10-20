@@ -12,6 +12,7 @@ public sealed class VisibilityAlert(IOptions<VisibilityConfig> config) : Feature
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
+        Name: "Visibility",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Visibility | WeatherParams.EnsembleStdDev));
 

@@ -12,6 +12,7 @@ public sealed class FrostAlert(IOptions<FrostConfig> config) : FeatureRule<Weath
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
+        Name: "Frost",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.EnsembleStdDev));
 

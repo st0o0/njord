@@ -11,6 +11,7 @@ public sealed class IceAlert(IOptions<IceConfig> config) : FeatureRule<WeatherIn
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
+        Name: "Ice",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.Precipitation | WeatherParams.EnsembleStdDev,
             OptionalWeather: WeatherParams.Rain | WeatherParams.SoilTemperature));

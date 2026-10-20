@@ -10,6 +10,7 @@ public sealed class FloodTimeline(IOptions<FloodTimelineConfig> config) : Featur
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Flood,
+        Name: "FloodTimeline",
         DefaultEnabled: false,
         new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeP75));
 

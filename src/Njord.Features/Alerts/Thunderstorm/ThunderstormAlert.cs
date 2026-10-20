@@ -12,6 +12,7 @@ public sealed class ThunderstormAlert(IOptions<ThunderstormConfig> config) : Fea
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
+        Name: "Thunderstorm",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Cape | WeatherParams.Precipitation | WeatherParams.WindGusts | WeatherParams.EnsembleStdDev));
 

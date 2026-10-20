@@ -15,6 +15,7 @@ public sealed class FloodRainAlert(IOptions<FloodRainConfig> config) : FeatureRu
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Flood,
+        Name: "FloodRain",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.Precipitation,
             Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75));

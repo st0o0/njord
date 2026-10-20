@@ -13,6 +13,7 @@ public sealed class LaundryScore(IOptions<LaundryConfig> config) : FeatureRule<W
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
         FeatureCategory.Lifestyle,
+        Name: "Laundry",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.Precipitation | WeatherParams.Temperature | WeatherParams.Humidity
             | WeatherParams.WindSpeed | WeatherParams.PrecipitationProbability | WeatherParams.CloudCover,

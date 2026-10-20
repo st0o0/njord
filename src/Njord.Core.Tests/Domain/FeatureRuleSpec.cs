@@ -86,7 +86,7 @@ public sealed class FeatureRuleSpec
 
     private sealed class SkippingRule : FeatureRule<WeatherInput>
     {
-        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Weather, true, default);
+        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Weather, "Test", true, default);
         public override bool Enabled => true;
         protected override WeatherInput? Project(LocationForecast f) => null;
         protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx) => throw new InvalidOperationException("Should not be called");
@@ -94,7 +94,7 @@ public sealed class FeatureRuleSpec
 
     private sealed class NullEvalRule : FeatureRule<WeatherInput>
     {
-        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Weather, true, default);
+        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Weather, "Test", true, default);
         public override bool Enabled => true;
         protected override WeatherInput? Project(LocationForecast f) => f.Weather is { } w ? new(w) : null;
         protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx) => null;
@@ -102,7 +102,7 @@ public sealed class FeatureRuleSpec
 
     private sealed class ProducingRule : FeatureRule<WeatherInput>
     {
-        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Weather, true, default);
+        public override FeatureDescriptor Descriptor => new(OutputKind.Alert, FeatureCategory.Weather, "Test", true, default);
         public override bool Enabled => true;
         protected override WeatherInput? Project(LocationForecast f) => f.Weather is { } w ? new(w) : null;
         protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx) => new TestFeatureResult(TestLocation);
@@ -111,7 +111,7 @@ public sealed class FeatureRuleSpec
     private sealed class HistoryCapturingRule(int pollDepth) : FeatureRule<WeatherInput>
     {
         public IReadOnlyList<WeatherInput>? CapturedHistory { get; private set; }
-        public override FeatureDescriptor Descriptor => new(OutputKind.Trend, FeatureCategory.Insight, true, default, PollDepth: pollDepth);
+        public override FeatureDescriptor Descriptor => new(OutputKind.Trend, FeatureCategory.Insight, "Test", true, default, PollDepth: pollDepth);
         public override bool Enabled => true;
         protected override WeatherInput? Project(LocationForecast f) => f.Weather is { } w ? new(w) : null;
         protected override PipelineEvent? Evaluate(FeatureContext<WeatherInput> ctx)

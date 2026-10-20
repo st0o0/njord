@@ -12,6 +12,7 @@ public sealed class StormAlert(IOptions<StormConfig> config) : FeatureRule<Weath
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
+        Name: "Storm",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.WindGusts | WeatherParams.EnsembleStdDev));
 

@@ -12,6 +12,7 @@ public sealed class UvAlert(IOptions<UvConfig> config) : FeatureRule<WeatherInpu
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
+        Name: "Uv",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.EnsembleStdDev,
             OptionalWeather: WeatherParams.UvIndex));

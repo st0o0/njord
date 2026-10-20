@@ -17,6 +17,7 @@ public sealed class Pm25Alert(IOptions<Pm25Config> config) : FeatureRule<AqInput
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.AirQuality,
+        Name: "Pm25",
         DefaultEnabled: true,
         new DomainRequirements(AirQuality: AirQualityParams.Pm25));
 

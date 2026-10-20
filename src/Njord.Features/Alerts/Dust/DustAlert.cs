@@ -12,6 +12,7 @@ public sealed class DustAlert(IOptions<DustConfig> config) : FeatureRule<AqInput
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.AirQuality,
+        Name: "Dust",
         DefaultEnabled: false,
         new DomainRequirements(AirQuality: AirQualityParams.Dust));
 

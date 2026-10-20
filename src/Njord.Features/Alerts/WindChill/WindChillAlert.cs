@@ -12,6 +12,7 @@ public sealed class WindChillAlert(IOptions<WindChillConfig> config) : FeatureRu
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
+        Name: "WindChill",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.ApparentTemperature | WeatherParams.EnsembleStdDev));
 

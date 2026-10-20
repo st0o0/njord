@@ -13,6 +13,7 @@ public sealed class BbqScore(IOptions<BbqConfig> config) : FeatureRule<WeatherIn
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
         FeatureCategory.Lifestyle,
+        Name: "Bbq",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.Precipitation | WeatherParams.Temperature | WeatherParams.WindSpeed
             | WeatherParams.PrecipitationProbability | WeatherParams.CloudCover));

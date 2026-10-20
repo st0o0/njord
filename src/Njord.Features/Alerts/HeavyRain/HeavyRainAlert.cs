@@ -12,6 +12,7 @@ public sealed class HeavyRainAlert(IOptions<HeavyRainConfig> config) : FeatureRu
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
+        Name: "HeavyRain",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Precipitation | WeatherParams.EnsembleStdDev));
 

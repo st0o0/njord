@@ -11,6 +11,7 @@ public sealed class FogAlert(IOptions<FogConfig> config) : FeatureRule<WeatherIn
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
+        Name: "Fog",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.DewPoint | WeatherParams.WindSpeed | WeatherParams.Humidity | WeatherParams.EnsembleStdDev));
 

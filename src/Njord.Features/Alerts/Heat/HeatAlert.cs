@@ -12,6 +12,7 @@ public sealed class HeatAlert(IOptions<HeatConfig> config) : FeatureRule<Weather
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
+        Name: "Heat",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.ApparentTemperature | WeatherParams.EnsembleStdDev));
 

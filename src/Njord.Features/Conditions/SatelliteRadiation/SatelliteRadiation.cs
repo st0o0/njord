@@ -11,6 +11,7 @@ public sealed class SatelliteRadiation(IOptions<SatelliteRadiationConfig> config
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Energy,
+        Name: "SatelliteRadiation",
         DefaultEnabled: false,
         new DomainRequirements(
             Satellite: SatelliteParams.GlobalTilted,

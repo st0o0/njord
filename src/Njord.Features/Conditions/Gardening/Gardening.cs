@@ -14,6 +14,7 @@ public sealed class Gardening(IOptions<GardeningConfig> config) : FeatureRule<We
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
+        Name: "Gardening",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.WindSpeed | WeatherParams.Precipitation));
 

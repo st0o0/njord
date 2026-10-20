@@ -14,6 +14,7 @@ public sealed class ApproachingFront(IOptions<ApproachingFrontConfig> config) : 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Insight,
+        Name: "FrontApproaching",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.Pressure | WeatherParams.Temperature | WeatherParams.WindDirection),
         PollDepth: 1);

@@ -12,6 +12,7 @@ public sealed class HumidityAlert(IOptions<HumidityConfig> config) : FeatureRule
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
+        Name: "Humidity",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.DewPoint | WeatherParams.IsDay | WeatherParams.EnsembleStdDev));
 

@@ -33,6 +33,6 @@ public static class ServiceInfoMappingExtensions
     private static List<string> ActiveEnrichments(IEnumerable<IFeatureRule> features) =>
         [.. features
             .Where(static rule => rule.Enabled)
-            .Select(static rule => $"{rule.Descriptor.Category}:{rule.GetType().Name}")
+            .Select(static rule => $"{rule.Descriptor.Category}:{rule.Descriptor.Name}")
             .Order(StringComparer.Ordinal)];
 }

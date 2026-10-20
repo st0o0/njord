@@ -16,6 +16,7 @@ public sealed class FloodRiskAlert(IOptions<FloodRiskConfig> config) : FeatureRu
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Flood,
+        Name: "FloodRisk",
         DefaultEnabled: false,
         new DomainRequirements(Flood: FloodParams.Discharge | FloodParams.DischargeMedian | FloodParams.DischargeP75
             | FloodParams.DischargeMax));

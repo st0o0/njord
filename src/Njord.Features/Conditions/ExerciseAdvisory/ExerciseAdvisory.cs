@@ -21,6 +21,7 @@ public sealed class ExerciseAdvisory(IOptions<ExerciseAdvisoryConfig> config) : 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
+        Name: "Exercise",
         DefaultEnabled: false,
         new DomainRequirements(
         Weather: WeatherParams.Temperature | WeatherParams.Humidity,

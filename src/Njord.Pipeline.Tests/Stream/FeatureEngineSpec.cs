@@ -25,7 +25,7 @@ public sealed class FeatureEngineSpec
         public List<Seen> Calls { get; } = [];
 
         public override FeatureDescriptor Descriptor { get; } =
-            new(OutputKind.Alert, FeatureCategory.Weather, true, requirements, PollDepth: pollDepth);
+            new(OutputKind.Alert, FeatureCategory.Weather, "Test", true, requirements, PollDepth: pollDepth);
 
         public override bool Enabled => enabled;
 

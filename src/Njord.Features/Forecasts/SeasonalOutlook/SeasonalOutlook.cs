@@ -15,6 +15,7 @@ public sealed class SeasonalOutlook(IOptions<SeasonalOutlookConfig> config) : Fe
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Forecast,
         FeatureCategory.Insight,
+        Name: "SeasonalOutlook",
         DefaultEnabled: false,
         new DomainRequirements(Seasonal: SeasonalParams.TemperatureAnomaly | SeasonalParams.PrecipitationAnomaly | SeasonalParams.PrecipitationMean));
 

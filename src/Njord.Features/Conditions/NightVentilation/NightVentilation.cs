@@ -15,6 +15,7 @@ public sealed class NightVentilation(IOptions<NightVentilationConfig> config) : 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
+        Name: "NightVentilation",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.Temperature));
 

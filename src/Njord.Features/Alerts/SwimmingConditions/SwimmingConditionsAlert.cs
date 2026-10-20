@@ -17,6 +17,7 @@ public sealed class SwimmingConditionsAlert(IOptions<SwimmingConditionsConfig> c
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Marine,
+        Name: "Swimming",
         DefaultEnabled: false,
         new DomainRequirements(Marine: MarineParams.WaveHeight,
             OptionalMarine: MarineParams.WaterTemperature));

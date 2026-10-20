@@ -14,6 +14,7 @@ public sealed class PressureDropAlert(IOptions<PressureDropConfig> config) : Fea
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Alert,
         FeatureCategory.Weather,
+        Name: "PressureDrop",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Pressure | WeatherParams.EnsembleStdDev));
 

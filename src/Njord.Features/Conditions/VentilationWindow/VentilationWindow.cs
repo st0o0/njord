@@ -19,6 +19,7 @@ public sealed class VentilationWindow(IOptions<VentilationWindowConfig> config) 
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
+        Name: "Ventilation",
         DefaultEnabled: false,
         new DomainRequirements(
         Weather: WeatherParams.Temperature | WeatherParams.Precipitation,

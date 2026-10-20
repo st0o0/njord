@@ -62,7 +62,7 @@ other's actors through the markers in `ActorKeys.cs`. Registration stays central
 - **Feature-driven config.** The operator sets locations and feature toggles; the rest is derived.
   Fetched domains = union of the `Requirements` of the enabled features (`FeatureResolution`).
 - **Every feature is a `FeatureRule<TInput>`** (an `IFeatureRule`) in `Njord.Features/<OutputKind>/<Feature>/`: a
-  `FeatureDescriptor` (`Output` (`OutputKind`), `Category`, `DefaultEnabled`, `Requirements`: a `DomainRequirements` of
+  `FeatureDescriptor` (`Output` (`OutputKind`), `Category`, `Name` (the config section name), `DefaultEnabled`, `Requirements`: a `DomainRequirements` of
   per-domain `XxxParams` flags, `PollDepth`), `Enabled` from its own config, `Project(LocationForecast)` to a typed
   input (null skips the rule) and `Evaluate(FeatureContext<TInput>)` returning one result event or null. Required
   flags gate dispatch (missing data skips the rule), `Optional*` flags are requested from the API but never gate.
@@ -178,8 +178,8 @@ for p in Njord.*Tests; do
 done
 ```
 
-Current total: 909 tests (Forecast 58, Messages 21, Persistence 14, Core 74, OpenMeteo 164, Budget 18,
-Polling 116, Pipeline 48, Features 222, Grpc 133, Architecture 14, IntegrationTests 27). One test per `[Fact]` and per `[Theory]` data row.
+Current total: 912 tests (Forecast 58, Messages 21, Persistence 14, Core 74, OpenMeteo 164, Budget 18,
+Polling 116, Pipeline 48, Features 224, Grpc 134, Architecture 14, IntegrationTests 27). One test per `[Fact]` and per `[Theory]` data row.
 
 Run the service from `src/Njord/` (`dotnet run`). Layers: `appsettings.json` (logging, Kestrel only),
 `appsettings.Development.json`, environment variables (`Njord__Persistence__DataPath`), `appsettings.Example.json`

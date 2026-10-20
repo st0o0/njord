@@ -14,6 +14,7 @@ public sealed class OutdoorScore(IOptions<OutdoorConfig> config) : FeatureRule<W
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Score,
         FeatureCategory.Lifestyle,
+        Name: "Outdoor",
         DefaultEnabled: false,
         new DomainRequirements(
         Weather: WeatherParams.Temperature | WeatherParams.Precipitation | WeatherParams.PrecipitationProbability

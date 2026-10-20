@@ -16,6 +16,7 @@ public sealed class CommuteSafety(IOptions<CommuteSafetyConfig> config) : Featur
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Lifestyle,
+        Name: "Commute",
         DefaultEnabled: true,
         new DomainRequirements(Weather: WeatherParams.Temperature | WeatherParams.DewPoint | WeatherParams.Humidity
             | WeatherParams.Precipitation | WeatherParams.WindSpeed));

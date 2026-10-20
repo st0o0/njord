@@ -13,6 +13,7 @@ public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<
     public override FeatureDescriptor Descriptor { get; } = new(
         OutputKind.Condition,
         FeatureCategory.Energy,
+        Name: "SolarYield",
         DefaultEnabled: false,
         new DomainRequirements(Weather: WeatherParams.GlobalTiltedIrradiance));
 
