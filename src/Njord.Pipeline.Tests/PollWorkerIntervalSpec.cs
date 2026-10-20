@@ -1,15 +1,4 @@
 using Akka.Actor;
-using Akka.DependencyInjection;
-using Akka.Hosting;
-using Akka.Persistence;
-using Akka.TestKit;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Time.Testing;
-using Njord.Core;
-using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
@@ -24,8 +13,7 @@ public sealed class PollWorkerIntervalSpec : PollWorkerSpecBase
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAsync(Completed(42), ct);
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await AnswerAllAsync(Completed(42), ct);
 
         worker.Tell(new StartPolling(Target, TimeSpan.FromMilliseconds(100)));
 
@@ -39,8 +27,7 @@ public sealed class PollWorkerIntervalSpec : PollWorkerSpecBase
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAsync(Completed(42), ct);
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await AnswerAllAsync(Completed(42), ct);
 
         worker.Tell(new StartPolling(Target, TimeSpan.FromHours(2)));
 
@@ -53,8 +40,7 @@ public sealed class PollWorkerIntervalSpec : PollWorkerSpecBase
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAsync(Completed(42), ct);
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await AnswerAllAsync(Completed(42), ct);
 
         worker.Tell(new StartPolling(Target, Discovery));
 

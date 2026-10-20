@@ -62,16 +62,41 @@ public abstract class PollWorkerSpecBase : NjordActorSpec
     protected async Task<FetchDomain> ExpectRequestAsync(CancellationToken ct) =>
         await _gateway.ExpectMsgAsync<FetchDomain>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
 
-    // A poll round asks every enabled domain; each one is answered with the same reply, retargeted to its domain.
-    protected async Task AnswerAsync(FetchDomainResponse reply, CancellationToken ct)
+    // A poll asks every enabled domain independently; each one is answered with the same reply, retargeted to its domain.
+    // Each domain produces its own report, so we drain all requests and all reports.
+    protected async Task AnswerAllAsync(FetchDomainResponse reply, CancellationToken ct)
     {
         foreach (var _ in EnabledDomains)
         {
             var request = await ExpectRequestAsync(ct);
             _gateway.LastSender.Tell(ForDomain(reply, request.Domain));
         }
+
+        await DrainReportsAsync(EnabledDomains.Count, ct);
     }
 
+    // Answer all domain requests and return the last report (for backward-compatible assertions).
+    protected async Task<PollWorkerReport> AnswerAllAndLastReportAsync(FetchDomainResponse reply, CancellationToken ct)
+    {
+        foreach (var _ in EnabledDomains)
+        {
+            var request = await ExpectRequestAsync(ct);
+            _gateway.LastSender.Tell(ForDomain(reply, request.Domain));
+        }
+
+        return await DrainReportsAsync(EnabledDomains.Count, ct);
+    }
+
+    protected async Task<PollWorkerReport> DrainReportsAsync(int count, CancellationToken ct)
+    {
+        PollWorkerReport? last = null;
+        for (var i = 0; i < count; i++)
+        {
+            last = await _manager.ExpectMsgAsync<PollWorkerReport>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+        }
+
+        return last!;
+    }
 
     protected static FetchDomainResponse ForDomain(FetchDomainResponse reply, DomainKind domain) => reply switch
     {

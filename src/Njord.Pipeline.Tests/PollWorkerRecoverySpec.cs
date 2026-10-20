@@ -1,18 +1,9 @@
 using Akka.Actor;
-using Akka.DependencyInjection;
-using Akka.Hosting;
 using Akka.Persistence;
-using Akka.TestKit;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Time.Testing;
-using Njord.Core;
-using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
+using Njord.Persistence.Events.Polling;
 using Njord.Tests.Shared;
 
 namespace Njord.Pipeline.Tests;
@@ -26,18 +17,15 @@ public sealed class PollWorkerRecoverySpec : PollWorkerSpecBase
         var worker = await StartedWorkerAsync(ct);
 
         // Three changes at 1 h intervals to reach Steady (domain needs two consistent intervals).
-        await AnswerAsync(Completed(1), ct);
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await AnswerAllAsync(Completed(1), ct);
 
         _time.Advance(TimeSpan.FromHours(1));
         worker.Tell(new TriggerLocationPoll(TargetId));
-        await AnswerAsync(Completed(2), ct);
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await AnswerAllAsync(Completed(2), ct);
 
         _time.Advance(TimeSpan.FromHours(1));
         worker.Tell(new TriggerLocationPoll(TargetId));
-        await AnswerAsync(Completed(3), ct);
-        var before = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        var before = await AnswerAllAndLastReportAsync(Completed(3), ct);
         Assert.Equal(PollPhase.Steady, before.State.Phase);
 
         await StopAsync(worker, ct);
@@ -57,8 +45,7 @@ public sealed class PollWorkerRecoverySpec : PollWorkerSpecBase
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAsync(Completed(1), ct);
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await AnswerAllAsync(Completed(1), ct);
         await StopAsync(worker, ct);
 
         _time.Advance(TimeSpan.FromHours(1));
@@ -75,9 +62,12 @@ public sealed class PollWorkerRecoverySpec : PollWorkerSpecBase
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
 
-        // The start is event 1; every round persists 1 RoundCompleted event,
-        // so round 49 crosses sequence number 50 at 50.
-        for (var i = 0; i < 50; i++)
+        // The start is event 1; every domain fetch persists 1 DomainPolled event per domain,
+        // so with 2 enabled domains each trigger produces 2 events.
+        // After event 1 (PollingStarted), we need 49 more DomainPolled events to cross 50.
+        // With 2 domains per trigger, that's ~25 triggers to get 50 domain events.
+        // 25 triggers * 2 domains = 50 events; total = 1 + 50 = 51 -> snapshot at 50.
+        for (var i = 0; i < 25; i++)
         {
             if (i > 0)
             {
@@ -85,8 +75,7 @@ public sealed class PollWorkerRecoverySpec : PollWorkerSpecBase
                 worker.Tell(new TriggerLocationPoll(TargetId));
             }
 
-            await AnswerAsync(Completed(1000 + i), ct);
-            await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+            await AnswerAllAsync(Completed(1000 + i), ct);
         }
 
         var store = Akka.Persistence.Persistence.Instance.Apply(Sys).SnapshotStoreFor(null);
@@ -114,8 +103,7 @@ public sealed class PollWorkerRecoverySpec : PollWorkerSpecBase
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAsync(Completed(42), ct);
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await AnswerAllAsync(Completed(42), ct);
 
         await WatchAsync(worker);
         worker.Tell(new StopPolling(TargetId));

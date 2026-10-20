@@ -1,15 +1,4 @@
 using Akka.Actor;
-using Akka.DependencyInjection;
-using Akka.Hosting;
-using Akka.Persistence;
-using Akka.TestKit;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Time.Testing;
-using Njord.Core;
-using Njord.Core.Configuration;
-using Njord.Core.Configuration.Polling;
 using Njord.Messages.Forecast;
 using Njord.Messages.Pipeline;
 using Njord.Model;
@@ -29,9 +18,9 @@ public sealed class PollWorkerFailureSpec : PollWorkerSpecBase
         var ct = TestContext.Current.CancellationToken;
         await StartedWorkerAsync(ct);
 
-        await AnswerAsync(new FetchDomainFailed(Lucerne, DomainKind.Weather, reason, "simulated"), ct);
+        var report = await AnswerAllAndLastReportAsync(
+            new FetchDomainFailed(Lucerne, DomainKind.Weather, reason, "simulated"), ct);
 
-        var report = await ExpectReportAsync(PollWorkerOutcome.Failed, ct);
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromSeconds(delaySeconds), report.State.NextPollUtc);
     }
 
@@ -45,9 +34,9 @@ public sealed class PollWorkerFailureSpec : PollWorkerSpecBase
         var ct = TestContext.Current.CancellationToken;
         await StartedWorkerAsync(ct);
 
-        await AnswerAsync(new FetchDomainRejected(Lucerne, DomainKind.Weather, reason), ct);
+        var report = await AnswerAllAndLastReportAsync(
+            new FetchDomainRejected(Lucerne, DomainKind.Weather, reason), ct);
 
-        var report = await ExpectReportAsync(PollWorkerOutcome.Failed, ct);
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromSeconds(delaySeconds), report.State.NextPollUtc);
     }
 
@@ -56,17 +45,16 @@ public sealed class PollWorkerFailureSpec : PollWorkerSpecBase
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAsync(new FetchDomainFailed(Lucerne, DomainKind.Weather, PollFailureReason.Transport, "simulated"), ct);
-        await ExpectReportAsync(PollWorkerOutcome.Failed, ct);
+        await AnswerAllAsync(new FetchDomainFailed(Lucerne, DomainKind.Weather, PollFailureReason.Transport, "simulated"), ct);
 
         worker.Tell(new TriggerLocationPoll(TargetId));
-        await AnswerAsync(new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.PipelineUnavailable), ct);
-        var deferred = await ExpectReportAsync(PollWorkerOutcome.Failed, ct);
+        var deferred = await AnswerAllAndLastReportAsync(
+            new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.PipelineUnavailable), ct);
 
         // A subsequent failure gets a flat delay (no aggregate backoff counter in the per-domain model).
         worker.Tell(new TriggerLocationPoll(TargetId));
-        await AnswerAsync(new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.QueueFull), ct);
-        var queueFull = await ExpectReportAsync(PollWorkerOutcome.Failed, ct);
+        var queueFull = await AnswerAllAndLastReportAsync(
+            new FetchDomainRejected(Lucerne, DomainKind.Weather, FetchRejectionReason.QueueFull), ct);
 
         Assert.Multiple(
             () => Assert.Equal(_time.GetUtcNow() + PollWorkerState.PipelineUnavailableRetry, deferred.State.NextPollUtc),

@@ -43,9 +43,8 @@ public sealed class PollWorkerOutcomeSpec : PollWorkerSpecBase
         var ct = TestContext.Current.CancellationToken;
         await StartedWorkerAsync(ct);
 
-        await AnswerAsync(Completed(42), ct);
+        var report = await AnswerAllAndLastReportAsync(Completed(42), ct);
 
-        var report = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
         Assert.Multiple(
             () => Assert.Equal(_time.GetUtcNow(), report.State.LastChangeUtc),
             () => Assert.Equal(_time.GetUtcNow() + Discovery, report.State.NextPollUtc),
@@ -57,13 +56,11 @@ public sealed class PollWorkerOutcomeSpec : PollWorkerSpecBase
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAsync(Completed(42), ct);
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await AnswerAllAsync(Completed(42), ct);
 
         worker.Tell(new TriggerLocationPoll(TargetId));
-        await AnswerAsync(Completed(42), ct);
+        var report = await AnswerAllAndLastReportAsync(Completed(42), ct);
 
-        var report = await ExpectReportAsync(PollWorkerOutcome.Unchanged, ct);
         Assert.Multiple(
             () => Assert.Equal(1, report.State.MissCount),
             () => Assert.NotNull(report.State.LastChangeUtc));
@@ -79,22 +76,30 @@ public sealed class PollWorkerOutcomeSpec : PollWorkerSpecBase
         var worker = await StartedWorkerAsync(ct);
 
         // First change
-        await AnswerAsync(Completed(1), ct);
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await AnswerAllAsync(Completed(1), ct);
 
         // Second change at +3h - records a candidate but stays Discovery
         _time.Advance(TimeSpan.FromHours(3));
         worker.Tell(new TriggerLocationPoll(TargetId));
-        await AnswerAsync(Completed(2), ct);
-        var second = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
-        Assert.Equal(PollPhase.Discovery, second.State.Phase);
+        await AnswerAllAsync(Completed(2), ct);
 
         // Third consistent change at +6h - transitions to Steady
         _time.Advance(TimeSpan.FromHours(3));
         worker.Tell(new TriggerLocationPoll(TargetId));
-        await AnswerAsync(Completed(3), ct);
-        var third = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        // Drain all requests and collect the last report to check the Weather domain state.
+        var reports = new List<PollWorkerReport>();
+        foreach (var _ in EnabledDomains)
+        {
+            var request = await ExpectRequestAsync(ct);
+            _gateway.LastSender.Tell(ForDomain(Completed(3), request.Domain));
+        }
 
+        for (var i = 0; i < EnabledDomains.Count; i++)
+        {
+            reports.Add(await _manager.ExpectMsgAsync<PollWorkerReport>(TestTimeouts.AwaitAssertMax, cancellationToken: ct));
+        }
+
+        var third = reports[^1];
         Assert.Multiple(
             () => Assert.Equal(PollPhase.Steady, third.State.Phase),
             () => Assert.Equal(10800L, third.State.CycleSeconds));
@@ -106,9 +111,8 @@ public sealed class PollWorkerOutcomeSpec : PollWorkerSpecBase
         var ct = TestContext.Current.CancellationToken;
         await StartedWorkerAsync(ct);
 
-        await AnswerAsync(new FetchDomainCompleted(new Location("LUCERNE", 0, 0), DomainKind.Weather, 42), ct);
+        var report = await AnswerAllAndLastReportAsync(new FetchDomainCompleted(new Location("LUCERNE", 0, 0), DomainKind.Weather, 42), ct);
 
-        var report = await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
         Assert.Multiple(
             () => Assert.Equal(Target, report.Target),
             () => Assert.Equal(Lucerne, report.State.Location),

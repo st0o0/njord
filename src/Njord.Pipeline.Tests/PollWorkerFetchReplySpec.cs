@@ -47,13 +47,19 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
         Sys.ActorOf(DependencyResolver.For(Sys).Props<PollWorker>(Target.Id), $"worker-{Guid.NewGuid():N}")
             .Tell(new StartPolling(Target, TimeSpan.FromHours(1)));
 
-    private async Task<PollWorkerReport> ExpectFailedReportAsync(CancellationToken ct)
+    private async Task<PollWorkerReport> ExpectFailedReportsAsync(CancellationToken ct)
     {
         var planned = await _manager.ExpectMsgAsync<PollWorkerReport>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
         Assert.Equal(PollWorkerOutcome.Planned, planned.Outcome);
-        var failed = await _manager.ExpectMsgAsync<PollWorkerReport>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        Assert.Equal(PollWorkerOutcome.Failed, failed.Outcome);
-        return failed;
+        // Each domain produces its own Failed report; drain all of them and return the last.
+        PollWorkerReport? last = null;
+        for (var i = 0; i < 2; i++)
+        {
+            last = await _manager.ExpectMsgAsync<PollWorkerReport>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
+            Assert.Equal(PollWorkerOutcome.Failed, last.Outcome);
+        }
+
+        return last!;
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -64,7 +70,7 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
         Start();
 
         await _requests.ExpectMsgAsync<FetchDomain>(TestTimeouts.AwaitAssertMax, cancellationToken: ct);
-        var report = await ExpectFailedReportAsync(ct);
+        var report = await ExpectFailedReportsAsync(ct);
 
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromMinutes(1), report.State.NextPollUtc);
     }
@@ -75,7 +81,7 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
         var ct = TestContext.Current.CancellationToken;
         Start();
 
-        var report = await ExpectFailedReportAsync(ct);
+        var report = await ExpectFailedReportsAsync(ct);
 
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromMinutes(1), report.State.NextPollUtc);
     }
@@ -92,7 +98,7 @@ public sealed class PollWorkerFetchReplySpec : NjordActorSpec
 
         Start();
 
-        var report = await ExpectFailedReportAsync(ct);
+        var report = await ExpectFailedReportsAsync(ct);
         Assert.Equal(_time.GetUtcNow() + TimeSpan.FromMinutes(1), report.State.NextPollUtc);
         await _manager.ExpectNoMsgAsync(TimeSpan.FromSeconds(1), ct);
     }

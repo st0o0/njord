@@ -20,7 +20,7 @@ namespace Njord.Pipeline.Tests;
 public sealed class PollWorkerTriggerSpec : PollWorkerSpecBase
 {
     [Fact(Timeout = TestTimeouts.Hosted)]
-    public async Task A_poll_round_asks_only_the_configured_domains()
+    public async Task A_poll_asks_only_the_configured_domains()
     {
         var ct = TestContext.Current.CancellationToken;
         IReadOnlySet<DomainKind> domains = new HashSet<DomainKind> { DomainKind.Weather, DomainKind.Flood };
@@ -51,13 +51,13 @@ public sealed class PollWorkerTriggerSpec : PollWorkerSpecBase
         worker.Tell(new TriggerLocationPoll(TargetId));
         await _gateway.ExpectNoMsgAsync(TimeSpan.FromMilliseconds(300), ct);
 
-        // The requests in flight still end normally and their outcome is reported.
+        // The requests in flight still end normally and their outcome is reported per domain.
         foreach (var (sender, domain) in inFlight)
         {
             sender.Tell(ForDomain(Completed(42), domain));
         }
 
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await DrainReportsAsync(EnabledDomains.Count, ct);
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
@@ -65,8 +65,7 @@ public sealed class PollWorkerTriggerSpec : PollWorkerSpecBase
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAsync(Completed(42), ct);
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await AnswerAllAsync(Completed(42), ct);
 
         worker.Tell(new TriggerLocationPoll(TargetId));
 
@@ -79,8 +78,7 @@ public sealed class PollWorkerTriggerSpec : PollWorkerSpecBase
     {
         var ct = TestContext.Current.CancellationToken;
         var worker = await StartedWorkerAsync(ct);
-        await AnswerAsync(Completed(42), ct);
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await AnswerAllAsync(Completed(42), ct);
 
         var replacement = CreateTestProbe("gateway-replacement");
         ActorRegistry.Register<IForecastGateway>(replacement.Ref, overwrite: true);

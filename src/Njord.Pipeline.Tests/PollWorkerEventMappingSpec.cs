@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.Persistence.Events.Polling;
@@ -15,14 +14,14 @@ public sealed class PollWorkerEventMappingSpec
     private static PollWorkerState Started(DateTimeOffset? at = null, TimeSpan? interval = null) =>
         PollWorkerState.Empty.Apply(new PollingStarted("lucerne", WeatherDomain, interval ?? DiscoveryInterval, at ?? T0));
 
-    private static RoundCompleted Changed(int hash, DateTimeOffset at) =>
-        new([new DomainPollResult((int)DomainKind.Weather, PersistedDomainPollOutcome.Changed, hash, null)], at);
+    private static DomainPolled Changed(int hash, DateTimeOffset at) =>
+        new((int)DomainKind.Weather, PersistedDomainPollOutcome.Changed, hash, at, null);
 
-    private static RoundCompleted Unchanged(DateTimeOffset at) =>
-        new([new DomainPollResult((int)DomainKind.Weather, PersistedDomainPollOutcome.Unchanged, null, null)], at);
+    private static DomainPolled Unchanged(DateTimeOffset at) =>
+        new((int)DomainKind.Weather, PersistedDomainPollOutcome.Unchanged, null, at, null);
 
-    private static RoundCompleted Failed(DateTimeOffset at, TimeSpan delay) =>
-        new([new DomainPollResult((int)DomainKind.Weather, PersistedDomainPollOutcome.Failed, null, delay)], at);
+    private static DomainPolled Failed(DateTimeOffset at, TimeSpan delay) =>
+        new((int)DomainKind.Weather, PersistedDomainPollOutcome.Failed, null, at, delay);
 
     [Fact]
     public void A_changed_event_updates_the_hash_and_last_changed()
@@ -74,8 +73,7 @@ public sealed class PollWorkerEventMappingSpec
     [Fact]
     public void An_unknown_outcome_throws()
     {
-        var evt = new RoundCompleted(
-            [new DomainPollResult((int)DomainKind.Weather, (PersistedDomainPollOutcome)99, null, null)], T0);
+        var evt = new DomainPolled((int)DomainKind.Weather, (PersistedDomainPollOutcome)99, null, T0, null);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => Started().Apply(evt));
     }

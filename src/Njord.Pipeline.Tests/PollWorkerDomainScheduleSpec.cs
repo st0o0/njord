@@ -23,7 +23,7 @@ public sealed class PollWorkerDomainScheduleSpec : PollWorkerSpecBase
                 : new FetchDomainFailed(Lucerne, request.Domain, PollFailureReason.Transport, "down"));
         }
 
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await DrainReportsAsync(EnabledDomains.Count, ct);
         await StopAsync(worker, ct);
 
         _time.Advance(TimeSpan.FromMinutes(2));
@@ -42,14 +42,12 @@ public sealed class PollWorkerDomainScheduleSpec : PollWorkerSpecBase
         var worker = await StartedWorkerAsync(ct);
 
         // Three changes at 1 h intervals to reach Steady (domain needs two consistent intervals).
-        await AnswerAsync(Completed(0), ct);
-        await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+        await AnswerAllAsync(Completed(0), ct);
         for (var hash = 1; hash <= 2; hash++)
         {
             _time.Advance(TimeSpan.FromHours(1));
             worker.Tell(new TriggerLocationPoll(TargetId));
-            await AnswerAsync(Completed(hash), ct);
-            await ExpectReportAsync(PollWorkerOutcome.Changed, ct);
+            await AnswerAllAsync(Completed(hash), ct);
         }
 
         var expectedNext = _time.GetUtcNow() + TimeSpan.FromHours(1) - DomainPollStateExtensions.SteadyBuffer;

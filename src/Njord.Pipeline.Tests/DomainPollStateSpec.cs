@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Njord.Messages.Pipeline;
 using Njord.Model;
 using Njord.Persistence.Events.Polling;
@@ -16,14 +15,14 @@ public sealed class DomainPollStateSpec
     private static PollWorkerState Started() =>
         PollWorkerState.Empty.Apply(new PollingStarted("lucerne", AllDomains, Discovery, T0));
 
-    private static RoundCompleted Changed(DomainKind domain, int hash, DateTimeOffset at) =>
-        new([new DomainPollResult((int)domain, PersistedDomainPollOutcome.Changed, hash, null)], at);
+    private static DomainPolled Changed(DomainKind domain, int hash, DateTimeOffset at) =>
+        new((int)domain, PersistedDomainPollOutcome.Changed, hash, at, null);
 
-    private static RoundCompleted Unchanged(DomainKind domain, DateTimeOffset at) =>
-        new([new DomainPollResult((int)domain, PersistedDomainPollOutcome.Unchanged, null, null)], at);
+    private static DomainPolled Unchanged(DomainKind domain, DateTimeOffset at) =>
+        new((int)domain, PersistedDomainPollOutcome.Unchanged, null, at, null);
 
-    private static RoundCompleted Failed(DomainKind domain, DateTimeOffset at, TimeSpan delay) =>
-        new([new DomainPollResult((int)domain, PersistedDomainPollOutcome.Failed, null, delay)], at);
+    private static DomainPolled Failed(DomainKind domain, DateTimeOffset at, TimeSpan delay) =>
+        new((int)domain, PersistedDomainPollOutcome.Failed, null, at, delay);
 
     private static PollWorkerState SteadyAirQuality() =>
         new[] { 0, 1, 2 }.Aggregate(Started(), (s, i) => s.Apply(Changed(DomainKind.AirQuality, i, T0.AddHours(i))));

@@ -93,15 +93,20 @@ public static class PollWorkerStateExtensions
     public static PollWorkerState Apply(this PollWorkerState state, PollingStopped _) =>
         state with { Active = false };
 
-    public static PollWorkerState Apply(this PollWorkerState state, RoundCompleted evt)
+    public static PollWorkerState Apply(this PollWorkerState state, DomainPolled evt)
     {
-        var result = state;
-        foreach (var r in evt.Results)
-        {
-            result = result.ApplyDomainResult(r, evt.Utc);
-        }
+        var domain = (DomainKind)evt.Domain;
+        var ds = state.GetDomain(domain);
 
-        return result;
+        ds = evt.Outcome switch
+        {
+            PersistedDomainPollOutcome.Changed => ds.RecordHashChange(evt.Hash!.Value, evt.Utc, state.DiscoveryInterval),
+            PersistedDomainPollOutcome.Unchanged => ds.RecordHashUnchanged(evt.Utc, state.DiscoveryInterval),
+            PersistedDomainPollOutcome.Failed => ds with { NextPollAt = evt.Utc + (evt.Delay ?? TimeSpan.FromMinutes(1)) },
+            _ => throw new ArgumentOutOfRangeException(nameof(evt), $"Unknown outcome: {evt.Outcome}"),
+        };
+
+        return state with { Domains = state.Domains.SetItem(domain, ds) };
     }
 
     public static DomainPollState GetDomain(this PollWorkerState state, DomainKind domain) =>
@@ -118,21 +123,5 @@ public static class PollWorkerStateExtensions
     {
         var delay = TimeSpan.FromMinutes(Math.Pow(2, count - 1));
         return delay > MaxRetryBackoff ? MaxRetryBackoff : delay;
-    }
-
-    internal static PollWorkerState ApplyDomainResult(this PollWorkerState state, DomainPollResult r, DateTimeOffset utc)
-    {
-        var domain = (DomainKind)r.Domain;
-        var ds = state.GetDomain(domain);
-
-        ds = r.Outcome switch
-        {
-            PersistedDomainPollOutcome.Changed => ds.RecordHashChange(r.Hash!.Value, utc, state.DiscoveryInterval),
-            PersistedDomainPollOutcome.Unchanged => ds.RecordHashUnchanged(utc, state.DiscoveryInterval),
-            PersistedDomainPollOutcome.Failed => ds with { NextPollAt = utc + (r.Delay ?? TimeSpan.FromMinutes(1)) },
-            _ => throw new ArgumentOutOfRangeException(nameof(r), $"Unknown outcome: {r.Outcome}"),
-        };
-
-        return state with { Domains = state.Domains.SetItem(domain, ds) };
     }
 }

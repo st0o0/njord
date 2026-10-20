@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Newtonsoft.Json;
 using Njord.Messages.Pipeline;
 using Njord.Model;
@@ -16,11 +15,11 @@ public sealed class PollWorkerMappingsSpec
     private static PollWorkerState Started() =>
         PollWorkerState.Empty.Apply(new PollingStarted("lucerne", WeatherDomain, TimeSpan.FromMinutes(20), T0));
 
-    private static RoundCompleted Changed(int hash, DateTimeOffset at) =>
-        new([new DomainPollResult((int)DomainKind.Weather, PersistedDomainPollOutcome.Changed, hash, null)], at);
+    private static DomainPolled Changed(int hash, DateTimeOffset at) =>
+        new((int)DomainKind.Weather, PersistedDomainPollOutcome.Changed, hash, at, null);
 
-    private static RoundCompleted Unchanged(DateTimeOffset at) =>
-        new([new DomainPollResult((int)DomainKind.Weather, PersistedDomainPollOutcome.Unchanged, null, null)], at);
+    private static DomainPolled Unchanged(DateTimeOffset at) =>
+        new((int)DomainKind.Weather, PersistedDomainPollOutcome.Unchanged, null, at, null);
 
     // Three changes at 3 h intervals: two consistent intervals -> Steady.
     private static PollWorkerState Steady() =>
