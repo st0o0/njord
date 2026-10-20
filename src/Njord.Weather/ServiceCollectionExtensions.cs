@@ -35,7 +35,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDomainHandler, ConfidenceTrendHandler>();
         services.AddSingleton<IDomainHandler, SolarYieldHandler>();
         services.AddSingleton<IDomainHandler, GardeningHandler>();
-        services.AddSingleton<IDomainHandler, EnergyDemandHandler>();
         services.AddSingleton<IDomainHandler, OutdoorScoreHandler>();
         services.AddSingleton<IDomainHandler, BBQScoreHandler>();
         services.AddSingleton<IDomainHandler, ApproachingFrontHandler>();

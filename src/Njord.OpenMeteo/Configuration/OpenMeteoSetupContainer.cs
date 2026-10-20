@@ -5,11 +5,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using Njord.Core;
 using Njord.Core.Actors;
 using Njord.Core.Configuration;
-using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Polling;
 using Njord.Core.Domain;
 using Servus.Akka;
@@ -21,16 +19,14 @@ public sealed class OpenMeteoSetupContainer : IServiceSetupContainer
 {
     public void SetupServices(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddNjordOptions<OpenMeteoOptions>(configuration);
         services.AddNjordOptions<WeatherOptions>(configuration);
 
         services.AddSingleton<IBudgetProvider, OptionsBudgetProvider>();
         services.TryAddSingleton(FetchTimeouts.Default);
 
-        AddTypedClient<IWeatherClient, WeatherClient>(services, (sp, client) =>
+        AddTypedClient<IWeatherClient, WeatherClient>(services, (_, client) =>
         {
-            var options = sp.GetRequiredService<IOptions<OpenMeteoOptions>>().Value;
-            client.BaseAddress = new Uri(options.BaseUrl);
+            client.BaseAddress = new Uri("https://api.open-meteo.com/");
         });
 
         AddTypedClient<IAirQualityClient, AirQualityClient>(services, (_, client) =>

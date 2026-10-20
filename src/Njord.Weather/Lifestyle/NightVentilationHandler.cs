@@ -4,6 +4,7 @@ using Njord.Model;
 
 namespace Njord.Weather.Lifestyle;
 
+// Hint-only: does not know indoor temperature. Best used as a notification trigger, not an automation input.
 public sealed class NightVentilationHandler : IDomainHandler
 {
     public const double HotDayPeak = 28.0;

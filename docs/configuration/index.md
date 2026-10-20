@@ -16,7 +16,6 @@ Configuration is **static**: it is read once at startup. There is no runtime con
       "DiscoveryInterval": "00:20:00",
       "BudgetOverride": null
     },
-    "OpenMeteo": { "BaseUrl": "https://api.open-meteo.com/" },
     "Persistence": { "DataPath": "data/njord.db" },
     "Mqtt": { ... },
     "Enrichments": { "FloodRisk": true },
@@ -42,7 +41,6 @@ A minimal setup for Lucerne:
 | `Weather:ForecastDays` | `4` | Days of weather forecast to request (1 to 16) |
 | `Weather:IncludeSolar` | `false` | Adds solar radiation variables to the weather request (see [Weather](./weather)) |
 | `Enrichments:<Name>` | `WeatherAlerts`, `CommuteSafety`, `PollenAlert`, `Pm25Alert` on; all others off | Switches one enrichment on or off. The domains that are polled are derived from the enabled enrichments (see below) |
-| `OpenMeteo:BaseUrl` | `https://api.open-meteo.com/` | Open-Meteo endpoint for the weather domain (self-hosted instance or test double) |
 | `Persistence:DataPath` | `data/njord.db` | SQLite database file |
 
 ## Defaults

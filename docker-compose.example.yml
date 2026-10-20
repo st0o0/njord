@@ -48,7 +48,6 @@ services:
       #- Njord__Enrichments__PollenAlert=false
       # Poll interval of a model whose update cycle is not learned yet:
       #- Njord__Polling__DiscoveryInterval=00:20:00
-      #- Njord__OpenMeteo__BaseUrl=https://api.open-meteo.com/
 
       # ── Persistence ───────────────────────────────────────────
       #- Njord__Persistence__Provider=Sqlite

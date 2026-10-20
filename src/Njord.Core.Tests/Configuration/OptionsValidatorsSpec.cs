@@ -1,6 +1,5 @@
 using Njord.Core.Configuration.Health;
 using Njord.Core.Configuration.Mqtt;
-using Njord.Core.Configuration.OpenMeteo;
 using Njord.Core.Configuration.Persistence;
 
 namespace Njord.Core.Tests.Configuration;
@@ -57,19 +56,6 @@ public sealed class OptionsValidatorsSpec
         var result = new MqttOptionsValidator().Validate(null, new MqttOptions { Port = port });
 
         Assert.Contains($"got {port}", ValidationAssert.SingleFailure(result));
-    }
-
-    [Theory]
-    [InlineData("not a url")]
-    [InlineData("ftp://api.open-meteo.com/")]
-    [InlineData("/relative/path")]
-    public void Should_reject_an_open_meteo_base_url_that_is_not_absolute_http(string url)
-    {
-        var result = new OpenMeteoOptionsValidator().Validate(null, new OpenMeteoOptions { BaseUrl = url });
-
-        Assert.Equal(
-            $"Njord:OpenMeteo:BaseUrl must be an absolute http(s) URL, got '{url}'.",
-            ValidationAssert.SingleFailure(result));
     }
 
     [Fact]

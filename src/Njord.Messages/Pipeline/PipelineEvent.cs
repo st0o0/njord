@@ -92,12 +92,6 @@ public abstract record PipelineEvent
         bool WateringNeeded,
         bool FrostRisk) : PipelineEvent;
 
-    public sealed record EnergyDemandComputed(
-        Location Location,
-        double HeatingDegreeHours,
-        double CoolingDegreeHours,
-        int PeakDemandHour) : PipelineEvent;
-
     public sealed record OutdoorScoreComputed(
         Location Location,
         int Score,

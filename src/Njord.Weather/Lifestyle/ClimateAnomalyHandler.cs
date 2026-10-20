@@ -28,6 +28,7 @@ public sealed class ClimateAnomalyHandler(IClimateBaselineStore baselines) : IDo
         }
 
         var tempAnomaly = hours.Average(point => point.Temperature) - baseline.MeanTemp;
+        // Units match: baseline is mean daily precipitation sum (mm/day), compared with the next 24 h sum (mm).
         var precipAnomaly = baseline.MeanPrecip > 0.0
             ? (hours.Sum(point => point.Precipitation) - baseline.MeanPrecip) / baseline.MeanPrecip * 100.0
             : 0.0;

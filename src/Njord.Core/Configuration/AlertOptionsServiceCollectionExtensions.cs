@@ -9,7 +9,6 @@ public static class AlertOptionsServiceCollectionExtensions
     {
         services.AddNjordOptions<AlertOptions>(configuration);
         services.AddNjordOptions<SolarYieldOptions>(configuration);
-        services.AddNjordOptions<EnergyDemandOptions>(configuration);
         return services;
     }
 }

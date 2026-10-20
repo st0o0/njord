@@ -1,4 +1,5 @@
 using System.Diagnostics.Metrics;
+using Njord.Model;
 
 namespace Njord.Pipeline;
 
@@ -22,4 +23,24 @@ internal static class Telemetry
 
     internal static readonly Histogram<double> EnrichmentDuration =
         Meter.CreateHistogram<double>("njord_pipeline_enrichment_duration_seconds", "s");
+
+    internal static void RecordDomainPoll(DomainKind domain, int outcome) =>
+        DomainPolls.Add(1, DomainTag(domain), new KeyValuePair<string, object?>("outcome", outcome switch
+        {
+            0 => "changed",
+            1 => "unchanged",
+            _ => "failed",
+        }));
+
+    internal static void RecordCycleLearned(DomainKind domain) => CycleLearned.Add(1, DomainTag(domain));
+
+    private static KeyValuePair<string, object?> DomainTag(DomainKind domain) => new("domain", domain switch
+    {
+        DomainKind.Weather => "weather",
+        DomainKind.AirQuality => "air_quality",
+        DomainKind.Flood => "flood",
+        DomainKind.Solar => "solar",
+        DomainKind.Marine => "marine",
+        _ => throw new ArgumentOutOfRangeException(nameof(domain), domain, "Unknown domain kind"),
+    });
 }

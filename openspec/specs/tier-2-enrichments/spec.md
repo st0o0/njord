@@ -21,12 +21,6 @@ GardeningHandler SHALL report planting safety (no frost in 48h), watering need (
 - **WHEN** minimum temperature in the next 24h is -1°C
 - **THEN** FrostRisk SHALL be true and PlantingSafe SHALL be false
 
-### Requirement: EnergyDemandForecast computes heating and cooling degree-hours
-EnergyDemandHandler SHALL compute heating degree-hours (temp below HeatingSetpoint) and cooling degree-hours (temp above CoolingSetpoint) over 48h.
-
-#### Scenario: Cold day heating demand
-- **WHEN** apparent temperature averages 5°C for 24 hours and HeatingSetpoint is 20°C
-- **THEN** HeatingDegreeHours SHALL be approximately 360 (15° × 24h)
 
 ### Requirement: OutdoorActivityScore composites Weather and AQ
 OutdoorScoreHandler SHALL produce a 0-100 score from temperature comfort, rain probability, wind, cloud cover, UV index, PM2.5 and pollen, with a best time window.

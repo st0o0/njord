@@ -30,7 +30,6 @@ public sealed class EnrichmentOptions
     public bool ConfidenceTrend { get; set; }
     public bool SolarYield { get; set; }
     public bool GardeningAdvisory { get; set; }
-    public bool EnergyDemand { get; set; }
     public bool OutdoorScore { get; set; }
     public bool BBQScore { get; set; }
     public bool FloodTimeline { get; set; }

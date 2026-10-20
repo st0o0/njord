@@ -27,7 +27,7 @@ integration), with optional MQTT state publishing.
 - **Domains and typed clients.** `DomainKind`: `Weather`, `AirQuality`, `Flood`, `Solar`,
   `Marine` (`Njord.Model`). `Njord.OpenMeteo` holds one typed HTTP client per API
   (`IWeatherClient`, `IAirQualityClient`, `IFloodClient`, `IMarineClient`, `IGeocodingClient`),
-  each with its own base address (`Njord:OpenMeteo:BaseUrl` overrides the weather one only).
+  each with its own fixed base address.
   `IncludeSolar` adds the solar radiation variables to the weather request (the gateway fetches
   only Weather, AirQuality, Flood and Marine; `Solar` exists in the model and event vocabulary).
 - **Geocoding resolves locations.** A location is `Name` only; `LocationResolutionService`
@@ -223,7 +223,6 @@ registers `<T>Validator`, `ValidateOnStart`):
 | `Njord:Enrichments` | `EnrichmentOptions` | the 13 enrichment toggles |
 | `Njord:Enrichment:Alerts` | `AlertOptions` | alert thresholds |
 | `Njord:Polling` | `PollingOptions` | `PollInterval`, `DiscoveryInterval`, `BudgetOverride` |
-| `Njord:OpenMeteo` | `OpenMeteoOptions` | `BaseUrl` |
 | `Njord:Persistence` | `PersistenceOptions` | `Provider` (Sqlite/PostgreSql), `ConnectionString`, `DataPath` |
 | `Njord:Health` | `HealthOptions` | health thresholds |
 | `Njord:Mqtt` | `MqttOptions` | `Enabled`, `Host`, `Port`, `Username`, `Password`, `DiscoveryPrefix`, `BaseTopic` |
