@@ -54,7 +54,7 @@ public sealed class WeatherGrpcService(
         var result = await actorRegistry.AskAsync<IGrpcConsumer, LatestAnalysisResponse>(
             new QueryLatestAnalysis(location.Location), context);
 
-        return result.ToProto();
+        return result.ToProto(timeProvider.GetUtcNow());
     }
 
     public override async Task StreamDomainData(

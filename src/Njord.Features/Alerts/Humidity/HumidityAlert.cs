@@ -38,10 +38,10 @@ public sealed class HumidityAlert(IOptions<HumidityConfig> config) : FeatureRule
 
         var comfortLevel = severity switch
         {
-            AlertSeverity.Red => "tropical",
-            AlertSeverity.Orange => "oppressive",
-            AlertSeverity.Yellow => "muggy",
-            _ => null,
+            AlertSeverity.Red => ComfortLevel.Tropical,
+            AlertSeverity.Orange => ComfortLevel.Oppressive,
+            AlertSeverity.Yellow => ComfortLevel.Muggy,
+            _ => (ComfortLevel?)null,
         };
 
         var rounded = Math.Round(dewPoint, 1);

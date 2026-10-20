@@ -24,9 +24,9 @@ public sealed class PollenTrendSpec
         var trend = Assert.IsType<PollenTrendResult>(Assert.Single(Run(Feature(), Now, previous, current)));
 
         Assert.Multiple(
-            () => Assert.Equal("rising", trend.Data["trend_birch"]),
-            () => Assert.Equal("stable", trend.Data["trend_grass"]),
-            () => Assert.Equal("falling", trend.Data["trend_alder"]));
+            () => Assert.Equal(PollenTrendDirection.Rising, trend.Birch),
+            () => Assert.Equal(PollenTrendDirection.Stable, trend.Grass),
+            () => Assert.Equal(PollenTrendDirection.Falling, trend.Alder));
     }
 
     [Fact]
@@ -38,8 +38,8 @@ public sealed class PollenTrendSpec
         var trend = Assert.IsType<PollenTrendResult>(Assert.Single(Run(Feature(), Now, previous, current)));
 
         Assert.Multiple(
-            () => Assert.Equal("grass", trend.Direction),
-            () => Assert.Equal(FeatureData.Time(Now.AddHours(7)), trend.Data["peak_time"]));
+            () => Assert.Equal(PollenType.Grass, trend.PeakType),
+            () => Assert.Equal(Now.AddHours(7), trend.PeakTime));
     }
 
     [Fact]

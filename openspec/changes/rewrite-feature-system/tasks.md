@@ -67,13 +67,13 @@ All test projects run sequentially from `src/`: `dotnet run --project <Project>.
 
 ## 7. Proto Contract and gRPC Mapping
 
-- [ ] 7.1 Add base proto messages (`AlertData`, `ScoreData`, `ConditionData`, `TrendData`, `ForecastData`) and per-feature messages (`FrostAlert`, `HeatAlert`, ..., `BbqScore`, ...) to `protos/njord/v2/weather.proto`
-- [ ] 7.2 Replace `EnrichmentEvent` payload: remove `type_name`, `AlertUpdate`, `LifestyleUpdate`; add `oneof feature` with all typed messages; reserve old field numbers
-- [ ] 7.3 Update `GetEnrichmentsResponse` to use typed feature messages
-- [ ] 7.4 Rewrite `Njord.Grpc` mapping: pattern match `FeatureResult` subtypes to proto messages; delete old `LifestyleUpdate` and `AlertUpdate` mapping
-- [ ] 7.5 Update `GrpcConsumer` and `WeatherGrpcService` for the new event/response types
-- [ ] 7.6 Specs: verify each feature result maps to its proto message correctly; golden-master serialization; in `Njord.Grpc.Tests`
-- [ ] 7.7 Validate: `dotnet run --project Njord.Grpc.Tests/Njord.Grpc.Tests.csproj`
+- [x] 7.1 Add base proto messages (`AlertData`, `ScoreData`, `ConditionData`, `TrendData`, `ForecastData`) and per-feature messages (`FrostAlert`, `HeatAlert`, ..., `BbqScore`, ...) to `protos/njord/v2/weather.proto`
+- [x] 7.2 Replace `EnrichmentEvent` payload: remove `type_name`, `AlertUpdate`, `LifestyleUpdate`; add `oneof feature` with all typed messages; reserve old field numbers
+- [x] 7.3 Update `GetEnrichmentsResponse` to use typed feature messages
+- [x] 7.4 Rewrite `Njord.Grpc` mapping: pattern match `FeatureResult` subtypes to proto messages; delete old `LifestyleUpdate` and `AlertUpdate` mapping
+- [x] 7.5 Update `GrpcConsumer` and `WeatherGrpcService` for the new event/response types
+- [x] 7.6 Specs: verify each feature result maps to its proto message correctly; golden-master serialization; in `Njord.Grpc.Tests`
+- [x] 7.7 Validate: `dotnet run --project Njord.Grpc.Tests/Njord.Grpc.Tests.csproj`
 
 ## 8. Delete Old Abstractions
 
@@ -94,7 +94,7 @@ All test projects run sequentially from `src/`: `dotnet run --project <Project>.
 - [ ] 8b.4 Dissolve `Njord.Core/Configuration/Polling`: `BudgetCalculator.ComputeWeight`/`GetEffectiveBudget` to Budget/OpenMeteo, `Validate`/guard constants next to the polling validator; delete `BudgetValidation` (fields only read in tests); fold `BudgetAllowance` + `PollingOptionsExtensions` into `Njord.Budget` as `BudgetAllowance.From(PollingOptions)`; `RequestBudget` gets a `DailyLimit` and the free-tier constants move to OpenMeteo; `FetchTimeouts` leaves the Configuration namespace
 - [ ] 8b.5 Move actor plumbing to its owner: `ShardMessageExtractor` to Polling, `StreamSupervision` to Pipeline, `GrpcStreamMessages` to Grpc
 - [ ] 8b.6 Small cleanups: `FindLocation` becomes an instance method on `NjordOptions`; inline `WeatherParamExtensions.FlagCount`; fold `AlertClock` into `ForecastWindow`; delete the Core `Telemetry` meter if it stays without instruments (and its entry in `CoreSetupContainer.NjordMeters`)
-- [ ] 8b.7 Typed feature output instead of magic strings: replace `FeatureData` string maps and keys with typed result properties; closed-set labels (commute hazards/levels, exercise level, humidity, wind chill, UV, confidence/pollen trend, ventilation, gardening, flood timeline) become enums with explicit `ToProto()` switches, a spec per conversion and proto enums; human-readable sentences leave the service (ha-njord translates); `SeasonalOutlook` months as typed dates, not `"yyyy-MM"` strings
+- [x] 8b.7 Typed feature output instead of magic strings: replace `FeatureData` string maps and keys with typed result properties; closed-set labels (commute hazards/levels, exercise level, humidity, wind chill, UV, confidence/pollen trend, ventilation, gardening, flood timeline) become enums with explicit `ToProto()` switches, a spec per conversion and proto enums; human-readable sentences leave the service (ha-njord translates); `SeasonalOutlook` months as typed dates, not `"yyyy-MM"` strings
 - [ ] 8b.8 Extension naming: every static class with `this` methods ends in `Extensions` and lives in a file of the same name; mapping classes become `<Domain><Target>MappingExtensions` (FunkArr style, e.g. `BudgetPersistenceMappings` -> `BudgetPersistenceMappingExtensions`); state extensions move out of the state files (`BudgetTrackerState.cs`, `GrpcConsumerState.cs`, `PollManagerState.cs`, `PollWorkerState.cs`, `AlertSeverity.cs`, `ConfidenceLevel.cs`); helpers without receiver (`ServiceInfoMappings.ToServiceInfo`, `PollWorkerStateExtensions.RetryBackoff`, `PollingRegistration`, `TestAkkaConfig`) become extensions on a real receiver or move to a non-extension helper; all call sites use extension syntax
 - [ ] 8b.9 Update the AGENTS.md conventions (mappings, options, Core description); the `Extensions` naming is a convention enforced in review, not an ArchUnit rule
 

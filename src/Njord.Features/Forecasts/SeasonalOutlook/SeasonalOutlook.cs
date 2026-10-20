@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Globalization;
 using Microsoft.Extensions.Options;
 using Njord.Core.Domain;
 using Njord.Forecast.Seasonal;
@@ -30,13 +29,13 @@ public sealed class SeasonalOutlook(IOptions<SeasonalOutlookConfig> config) : Fe
             .Select(point => (Point: point, Lead: (point.ValidFrom.Year - ctx.Now.Year) * 12 + point.ValidFrom.Month - ctx.Now.Month))
             .Where(m => m.Lead > 0 && m.Point.TemperatureAnomaly is not null)
             .OrderBy(m => m.Point.ValidFrom)
-            .Select(m => new MonthlyOutlook(
-                m.Point.ValidFrom.ToString("yyyy-MM", CultureInfo.InvariantCulture),
+            .Select(m => new SeasonalMonth(
+                new DateOnly(m.Point.ValidFrom.Year, m.Point.ValidFrom.Month, 1),
                 Math.Round(m.Point.TemperatureAnomaly!.Value, 1),
                 PrecipitationPercent(m.Point),
                 ConfidenceForLead(m.Lead)))
             .ToImmutableArray();
-        return months.IsEmpty ? null : new SeasonalOutlookResult(ctx.Location, [.. months.Select(Entry)]);
+        return months.IsEmpty ? null : new SeasonalOutlookResult(ctx.Location, months);
     }
 
     public static ConfidenceLevel ConfidenceForLead(int leadMonths) => leadMonths switch
@@ -45,11 +44,6 @@ public sealed class SeasonalOutlook(IOptions<SeasonalOutlookConfig> config) : Fe
         <= MediumConfidenceMaxLead => ConfidenceLevel.Medium,
         _ => ConfidenceLevel.Low,
     };
-
-    private static ForecastEntry Entry(MonthlyOutlook month) => new(month.Month, FeatureData.Of(
-        ("temp_anomaly", FeatureData.Number(month.TempAnomaly)),
-        ("precip_anomaly", FeatureData.Number(month.PrecipAnomaly)),
-        ("confidence", month.Confidence.ToWireName())));
 
     private static double PrecipitationPercent(SeasonalPoint point)
     {
@@ -62,5 +56,3 @@ public sealed class SeasonalOutlook(IOptions<SeasonalOutlookConfig> config) : Fe
         return normal > 0 ? Math.Round(anomaly / normal * 100, 1) : 0;
     }
 }
-
-internal sealed record MonthlyOutlook(string Month, double TempAnomaly, double PrecipAnomaly, ConfidenceLevel Confidence);

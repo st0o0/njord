@@ -1,58 +1,216 @@
+using Google.Protobuf.WellKnownTypes;
 using Njord.Messages.Pipeline;
 
 namespace Njord.Grpc.Mapping;
 
 internal static class FeatureResultMappings
 {
-    public static V2.LifestyleUpdate ToProto(this FeatureResult result)
+    public static V2.ScoreData ToData(this ScoreFeatureResult r) => new()
     {
-        var proto = new V2.LifestyleUpdate { Type = result.WireKey, Output = result.Output.ToProto() };
-        foreach (var (key, value) in result.ToFields())
-        {
-            proto.Data[key] = value;
-        }
+        Score = r.Score,
+        BestStart = r.BestStart.ToTimestamp(),
+        BestHours = r.BestHours,
+    };
 
+    public static V2.Bbq ToProto(this BbqScoreResult r)
+    {
+        return new V2.Bbq
+        {
+            Score = r.ToData(),
+        };
+    }
+
+    public static V2.Laundry ToProto(this LaundryScoreResult r)
+    {
+        return new V2.Laundry
+        {
+            Score = r.ToData(),
+        };
+    }
+
+    public static V2.Outdoor ToProto(this OutdoorScoreResult r)
+    {
+        return new V2.Outdoor
+        {
+            Score = r.ToData(),
+        };
+    }
+
+    public static V2.SurfConditions ToProto(this SurfConditionsResult r)
+    {
+        return new V2.SurfConditions
+        {
+            Score = r.ToData(),
+        };
+    }
+
+    public static V2.CommuteSafety ToProto(this CommuteSafetyResult r)
+    {
+        var proto = new V2.CommuteSafety
+        {
+            Condition = new V2.ConditionData(),
+            Level = r.Level.ToProto(),
+        };
+        proto.Hazards.AddRange(r.Hazards.Select(item => item.ToProto()));
         return proto;
     }
 
-    public static IReadOnlyDictionary<string, string> ToFields(this FeatureResult result) => result switch
+    public static V2.VentilationWindow ToProto(this VentilationWindowResult r)
     {
-        ScoreResult score => FeatureData.Of(
-            ("score", FeatureData.Number(score.Score)),
-            ("best_start", FeatureData.Time(score.BestStart)),
-            ("best_hours", FeatureData.Number(score.BestHours))),
-        ConditionResult condition => With(condition.Data, ("state", condition.State)),
-        TrendResult trend => With(trend.Data,
-            ("direction", trend.Direction),
-            ("magnitude", FeatureData.Number(trend.Magnitude))),
-        ForecastResult forecast => ForecastFields(forecast),
-        _ => throw new ArgumentOutOfRangeException(nameof(result), result.GetType().Name, "No field mapping for this result."),
-    };
-
-    private static Dictionary<string, string> With(IReadOnlyDictionary<string, string> data, params (string Key, string Value)[] extra)
-    {
-        var fields = new Dictionary<string, string>(data);
-        foreach (var (key, value) in extra)
+        return new V2.VentilationWindow
         {
-            fields[key] = value;
-        }
-
-        return fields;
+            Condition = new V2.ConditionData(),
+            BestStart = r.BestStart.ToTimestamp(),
+            BestEnd = r.BestEnd.ToTimestamp(),
+        };
     }
 
-    private static Dictionary<string, string> ForecastFields(ForecastResult forecast)
+    public static V2.NightVentilation ToProto(this NightVentilationResult r)
     {
-        var fields = new Dictionary<string, string>();
-        for (var i = 0; i < forecast.Entries.Length; i++)
+        return new V2.NightVentilation
         {
-            var prefix = $"entry_{i + 1}";
-            fields[prefix] = forecast.Entries[i].Label;
-            foreach (var (key, value) in forecast.Entries[i].Values)
-            {
-                fields[$"{prefix}_{key}"] = value;
-            }
-        }
+            Condition = new V2.ConditionData(),
+            OpenAt = r.OpenAt.ToTimestamp(),
+            CloseAt = r.CloseAt.ToTimestamp(),
+            LowTemperature = r.LowTemperature,
+            TomorrowPeak = r.TomorrowPeak,
+        };
+    }
 
-        return fields;
+    public static V2.ExerciseAdvisory ToProto(this ExerciseAdvisoryResult r)
+    {
+        var proto = new V2.ExerciseAdvisory
+        {
+            Condition = new V2.ConditionData(),
+            Level = r.Level.ToProto(),
+            BestWindow = r.BestWindow.ToTimestamp(),
+        };
+        proto.Reasons.AddRange(r.Reasons.Select(item => item.ToProto()));
+        return proto;
+    }
+
+    public static V2.Gardening ToProto(this GardeningResult r)
+    {
+        return new V2.Gardening
+        {
+            Condition = new V2.ConditionData(),
+            Advice = r.Advice.ToProto(),
+            PlantingSafe = r.PlantingSafe,
+            WateringNeeded = r.WateringNeeded,
+            FrostRisk = r.FrostRisk,
+        };
+    }
+
+    public static V2.FloodTimeline ToProto(this FloodTimelineResult r)
+    {
+        return new V2.FloodTimeline
+        {
+            Condition = new V2.ConditionData(),
+            Status = r.Status.ToProto(),
+            PeakTime = r.PeakTime.ToTimestamp(),
+            PeakDischarge = r.PeakDischarge,
+            DaysAboveWarning = r.DaysAboveWarning,
+        };
+    }
+
+    public static V2.SolarYield ToProto(this SolarYieldResult r)
+    {
+        return new V2.SolarYield
+        {
+            Condition = new V2.ConditionData(),
+            KwhPerKwp = r.KwhPerKwp,
+            PeakHour = r.PeakHour,
+        };
+    }
+
+    public static V2.SatelliteRadiation ToProto(this SatelliteRadiationResult r)
+    {
+        var proto = new V2.SatelliteRadiation
+        {
+            Condition = new V2.ConditionData(),
+            ObservedAt = r.ObservedAt.ToTimestamp(),
+            Gti = r.Gti,
+        };
+        if (r.Ghi is { } ghi)
+        {
+            proto.Ghi = ghi;
+        }
+        if (r.BlendedKwhPerSquareMeter is { } blendedKwhPerSquareMeter)
+        {
+            proto.BlendedKwhPerSquareMeter = blendedKwhPerSquareMeter;
+        }
+        return proto;
+    }
+
+    public static V2.ApproachingFront ToProto(this ApproachingFrontResult r)
+    {
+        return new V2.ApproachingFront
+        {
+            Condition = new V2.ConditionData(),
+            EstimatedInHours = r.EstimatedInHours,
+            PressureDrop = r.PressureDrop,
+            TemperatureDrop = r.TemperatureDrop,
+        };
+    }
+
+    public static V2.ConfidenceTrend ToProto(this ConfidenceTrendResult r)
+    {
+        return new V2.ConfidenceTrend
+        {
+            Trend = new V2.TrendData(),
+            Direction = r.Direction.ToProto(),
+            Magnitude = r.Magnitude,
+            CurrentAvgStdDev = r.CurrentAvgStdDev,
+            PreviousAvgStdDev = r.PreviousAvgStdDev,
+        };
+    }
+
+    public static V2.PollenTrend ToProto(this PollenTrendResult r)
+    {
+        var proto = new V2.PollenTrend
+        {
+            Trend = new V2.TrendData(),
+        };
+        if (r.PeakType is { } peakType)
+        {
+            proto.PeakType = peakType.ToProto();
+        }
+        if (r.PeakTime is { } peakTime)
+        {
+            proto.PeakTime = peakTime.ToTimestamp();
+        }
+        if (r.Birch is { } birch)
+        {
+            proto.Birch = birch.ToProto();
+        }
+        if (r.Grass is { } grass)
+        {
+            proto.Grass = grass.ToProto();
+        }
+        if (r.Alder is { } alder)
+        {
+            proto.Alder = alder.ToProto();
+        }
+        if (r.Mugwort is { } mugwort)
+        {
+            proto.Mugwort = mugwort.ToProto();
+        }
+        return proto;
+    }
+
+    public static V2.SeasonalMonthEntry ToProto(this SeasonalMonth month) => new()
+    {
+        Year = month.Month.Year,
+        Month = month.Month.Month,
+        TemperatureAnomaly = month.TemperatureAnomaly,
+        PrecipitationAnomalyPercent = month.PrecipitationAnomalyPercent,
+        Confidence = month.Confidence.ToProto(),
+    };
+
+    public static V2.SeasonalOutlook ToProto(this SeasonalOutlookResult r)
+    {
+        var proto = new V2.SeasonalOutlook { Forecast = new V2.ForecastData() };
+        proto.Months.AddRange(r.Months.Select(month => month.ToProto()));
+        return proto;
     }
 }

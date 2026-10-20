@@ -19,11 +19,10 @@ public sealed class NightVentilationSpec
         var advice = Assert.IsType<NightVentilationResult>(Assert.Single(Run(Feature(), Now, WeatherOnly(weather))));
 
         Assert.Multiple(
-            () => Assert.Equal("open", advice.State),
-            () => Assert.Equal(FeatureData.Time(Now.AddHours(6)), advice.Data["open_at"]),
-            () => Assert.Equal(FeatureData.Time(Now.AddHours(21)), advice.Data["close_at"]),
-            () => Assert.Equal("15", advice.Data["low_temp"]),
-            () => Assert.Equal("31", advice.Data["tomorrow_peak"]));
+            () => Assert.Equal(Now.AddHours(6), advice.OpenAt),
+            () => Assert.Equal(Now.AddHours(21), advice.CloseAt),
+            () => Assert.Equal(15.0, advice.LowTemperature),
+            () => Assert.Equal(31.0, advice.TomorrowPeak));
     }
 
     [Fact]

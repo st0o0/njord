@@ -40,13 +40,11 @@ public sealed class ConfidenceTrend(IOptions<ConfidenceTrendConfig> config) : Fe
         var change = previousAverage > 0 ? (currentAverage - previousAverage) / previousAverage : 0.0;
         var direction = change switch
         {
-            <= -ChangeThreshold => "Converging",
-            >= ChangeThreshold => "Diverging",
-            _ => "Stable",
+            <= -ChangeThreshold => ConfidenceTrendDirection.Converging,
+            >= ChangeThreshold => ConfidenceTrendDirection.Diverging,
+            _ => ConfidenceTrendDirection.Stable,
         };
-        return new ConfidenceTrendResult(ctx.Location, direction, Math.Round(currentAverage - previousAverage, 2), FeatureData.Of(
-            ("current_avg_std_dev", FeatureData.Number(Math.Round(currentAverage, 2))),
-            ("previous_avg_std_dev", FeatureData.Number(Math.Round(previousAverage, 2)))));
+        return new ConfidenceTrendResult(ctx.Location, direction, Math.Round(currentAverage - previousAverage, 2), Math.Round(currentAverage, 2), Math.Round(previousAverage, 2));
     }
 
     private static double? AverageStdDev(DomainForecast<WeatherPoint> forecast, DateTimeOffset now)

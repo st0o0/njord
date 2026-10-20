@@ -31,27 +31,6 @@ public sealed class SatelliteRadiation(IOptions<SatelliteRadiationConfig> config
         var locationForecast = new LocationForecast(ctx.Location, Weather: ctx.Current.Weather, Satellite: ctx.Current.Satellite);
         var hours = SolarIrradianceBlend.Hours(locationForecast, ctx.Now, 24);
         double? blended = hours.Count == 0 ? null : Math.Round(hours.Sum(hour => hour.Radiation) / 1000.0, 2);
-        return new SatelliteRadiationResult(ctx.Location, FeatureData.Number(gti), Fields(latest.ValidFrom, gti, latest.GHI, blended));
-    }
-
-    private static IReadOnlyDictionary<string, string> Fields(DateTimeOffset observedAt, double gti, double? ghi, double? blended)
-    {
-        var fields = new Dictionary<string, string>
-        {
-            ["observed_at"] = FeatureData.Time(observedAt),
-            ["gti"] = FeatureData.Number(gti),
-        };
-
-        if (ghi is { } horizontal)
-        {
-            fields["ghi"] = FeatureData.Number(horizontal);
-        }
-
-        if (blended is { } kwh)
-        {
-            fields["blended_kwh_per_m2"] = FeatureData.Number(kwh);
-        }
-
-        return fields;
+        return new SatelliteRadiationResult(ctx.Location, latest.ValidFrom, gti, latest.GHI, blended);
     }
 }

@@ -32,9 +32,6 @@ public sealed class FloodTimeline(IOptions<FloodTimelineConfig> config) : Featur
         }
 
         var daysAbove = flood.Points.Count(point => point.DischargeP75 is { } warning && point.Discharge > warning);
-        return new FloodTimelineResult(ctx.Location, daysAbove > 0 ? "above_warning" : "normal", FeatureData.Of(
-            ("peak_time", FeatureData.Time(peak.ValidFrom)),
-            ("peak_discharge", FeatureData.Number(peakDischarge)),
-            ("days_above_warning", FeatureData.Number(daysAbove))));
+        return new FloodTimelineResult(ctx.Location, daysAbove > 0 ? FloodStatus.AboveWarning : FloodStatus.Normal, peak.ValidFrom, peakDischarge, daysAbove);
     }
 }

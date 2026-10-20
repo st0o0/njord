@@ -10,12 +10,12 @@ public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRul
     public const double ChangeThreshold = 0.10;
     public const double MinimumChange = 1.0;
 
-    private static readonly (string Name, Func<AirQualityPoint, double?> Read)[] PollenTypes =
+    private static readonly (PollenType Type, Func<AirQualityPoint, double?> Read)[] PollenTypes =
     [
-        ("birch", p => p.BirchPollen),
-        ("grass", p => p.GrassPollen),
-        ("alder", p => p.Alder),
-        ("mugwort", p => p.Mugwort),
+        (PollenType.Birch, p => p.BirchPollen),
+        (PollenType.Grass, p => p.GrassPollen),
+        (PollenType.Alder, p => p.Alder),
+        (PollenType.Mugwort, p => p.Mugwort),
     ];
 
     public override FeatureDescriptor Descriptor { get; } = new(
@@ -41,11 +41,11 @@ public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRul
         var currentPoints = ctx.Current.AirQuality.NextHours(ctx.Now);
         var previousPoints = ctx.History[1].AirQuality.NextHours(ctx.Now);
 
-        var trends = new Dictionary<string, string>();
-        string? peakType = null;
+        var trends = new Dictionary<PollenType, PollenTrendDirection>();
+        PollenType? peakType = null;
         DateTimeOffset? peakTime = null;
         var peakValue = 0.0;
-        foreach (var (name, read) in PollenTypes)
+        foreach (var (type, read) in PollenTypes)
         {
             var currentValues = currentPoints
                 .Select(p => (p.ValidFrom, Value: read(p)))
@@ -60,14 +60,14 @@ public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRul
             var previousValues = previousPoints.Select(read).Where(v => v.HasValue).Select(v => v!.Value).ToList();
             if (previousValues.Count > 0)
             {
-                trends[name] = Classify(currentValues.Average(v => v.Value), previousValues.Average());
+                trends[type] = Classify(currentValues.Average(v => v.Value), previousValues.Average());
             }
 
             var top = currentValues.MaxBy(v => v.Value);
             if (top.Value > peakValue)
             {
                 peakValue = top.Value;
-                peakType = name;
+                peakType = type;
                 peakTime = top.ValidFrom;
             }
         }
@@ -77,33 +77,24 @@ public sealed class PollenTrend(IOptions<PollenTrendConfig> config) : FeatureRul
             return null;
         }
 
-        return new PollenTrendResult(ctx.Location, peakType ?? "none", 0.0, Fields(trends, peakTime));
+        return new PollenTrendResult(
+            ctx.Location,
+            peakType,
+            peakTime,
+            trends.GetValueOrDefault(PollenType.Birch),
+            trends.GetValueOrDefault(PollenType.Grass),
+            trends.GetValueOrDefault(PollenType.Alder),
+            trends.GetValueOrDefault(PollenType.Mugwort));
     }
 
-    private static IReadOnlyDictionary<string, string> Fields(Dictionary<string, string> trends, DateTimeOffset? peakTime)
-    {
-        var fields = new Dictionary<string, string>();
-        foreach (var (pollen, trend) in trends.OrderBy(t => t.Key, StringComparer.Ordinal))
-        {
-            fields[$"trend_{pollen}"] = trend;
-        }
-
-        if (peakTime is { } time)
-        {
-            fields["peak_time"] = FeatureData.Time(time);
-        }
-
-        return fields;
-    }
-
-    private static string Classify(double currentAverage, double previousAverage)
+    private static PollenTrendDirection Classify(double currentAverage, double previousAverage)
     {
         var delta = currentAverage - previousAverage;
         if (Math.Abs(delta) < MinimumChange || Math.Abs(delta) < ChangeThreshold * previousAverage)
         {
-            return "stable";
+            return PollenTrendDirection.Stable;
         }
 
-        return delta > 0 ? "rising" : "falling";
+        return delta > 0 ? PollenTrendDirection.Rising : PollenTrendDirection.Falling;
     }
 }

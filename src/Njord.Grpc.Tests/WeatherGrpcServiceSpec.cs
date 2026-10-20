@@ -90,33 +90,32 @@ public sealed class WeatherGrpcServiceSpec : Akka.Hosting.TestKit.TestKit
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetEnrichments_returns_the_alerts_the_consumer_holds()
     {
-        var frost = new AlertResult(DomainData.Lucerne, "frost",
-            new Messages.Alerts.Alert(Messages.Alerts.AlertSeverity.Orange, 0.9, NoDetails.Instance), Anchor);
+        var frost = new FrostAlertResult(DomainData.Lucerne, Messages.Alerts.AlertSeverity.Orange, 0.9, -3.0, 0.0, null, null, null,
+            Messages.Alerts.ConfidenceLevel.High, -4.0, null);
         var service = CreateService(analysis: new LatestAnalysisResult(DomainData.Lucerne, [frost]));
 
         var response = await service.GetEnrichments(new GetEnrichmentsRequest { Location = "lucerne" }, TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
-        var alert = Assert.Single(response.Alerts.Alerts);
+        var evt = Assert.Single(response.Events);
         Assert.Multiple(
             () => Assert.Equal("Lucerne", response.Location),
-            () => Assert.Equal("frost", alert.Key),
-            () => Assert.Equal(V2.AlertSeverity.Orange, alert.Severity));
+            () => Assert.Equal(EnrichmentEvent.FeatureOneofCase.Frost, evt.FeatureCase),
+            () => Assert.Equal(V2.AlertSeverity.Orange, evt.Frost.Alert.Severity));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]
     public async Task GetEnrichments_returns_the_lifestyle_updates_the_consumer_holds()
     {
-        var commute = new ConditionResult(DomainData.Lucerne, "commute", "caution", FeatureData.Of(("risks", "ice")));
+        var commute = new CommuteSafetyResult(DomainData.Lucerne, Messages.Pipeline.CommuteLevel.Caution, [Messages.Pipeline.CommuteHazard.Ice]);
         var service = CreateService(analysis: new LatestAnalysisResult(DomainData.Lucerne, [commute]));
 
         var response = await service.GetEnrichments(new GetEnrichmentsRequest { Location = "lucerne" }, TestServerCallContext.Create(TestContext.Current.CancellationToken));
 
-        var update = Assert.Single(response.Lifestyle);
+        var evt = Assert.Single(response.Events);
         Assert.Multiple(
-            () => Assert.Equal("commute", update.Type),
-            () => Assert.Equal("caution", update.Data["state"]),
-            () => Assert.Equal(V2.OutputKind.Condition, update.Output),
-            () => Assert.Equal("ice", update.Data["risks"]));
+            () => Assert.Equal(EnrichmentEvent.FeatureOneofCase.CommuteSafety, evt.FeatureCase),
+            () => Assert.Equal(V2.CommuteLevel.Caution, evt.CommuteSafety.Level),
+            () => Assert.Equal([V2.CommuteHazard.Ice], evt.CommuteSafety.Hazards));
     }
 
     [Fact(Timeout = TestTimeouts.Hosted)]

@@ -1,0 +1,1 @@
+﻿{ "location": "Lucerne", "updatedAt": "2026-07-15T12:00:00Z", "frost": { "alert": { "severity": "ALERT_SEVERITY_ORANGE", "confidence": 0.85, "triggerValue": -3.5, "threshold": -2, "peakValue": -4, "hoursUntil": 6, "durationHours": 5, "confidenceLevel": "CONFIDENCE_LEVEL_HIGH" }, "expectedLow": -4, "earliestFrostHours": 6 } }

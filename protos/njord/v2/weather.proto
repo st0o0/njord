@@ -170,7 +170,7 @@ message MarineSample {
 }
 
 // ═══════════════════════════════════════
-// Enrichments (alerts and other feature results, all domains)
+// Enrichments (one typed message per feature result, all domains)
 // ═══════════════════════════════════════
 
 message GetEnrichmentsRequest {
@@ -178,32 +178,395 @@ message GetEnrichmentsRequest {
 }
 
 message GetEnrichmentsResponse {
-  reserved 3 to 8;
+  reserved 2 to 9;
+  reserved "alerts", "lifestyle";
   string location = 1;
-  AlertUpdate alerts = 2;
-  repeated LifestyleUpdate lifestyle = 9;
+  repeated EnrichmentEvent events = 10;
 }
 
 message StreamEnrichmentsRequest {
   string location = 1;
 }
 
+// One feature result. The oneof case identifies the feature. Field number ranges per output kind:
+// alerts 20-49, scores 50-59, conditions 60-79, trends 80-89, forecasts 90-99.
 message EnrichmentEvent {
-  reserved 11, 12, 13, 15;
+  reserved 2, 10, 11, 12, 13, 14, 15;
+  reserved "type_name", "alerts", "lifestyle", "payload";
   string location = 1;
-  string type_name = 2;
   google.protobuf.Timestamp updated_at = 3;
-  oneof payload {
-    AlertUpdate alerts = 10;
-    LifestyleUpdate lifestyle = 14;
+  oneof feature {
+    FrostAlert frost = 20;
+    HeatAlert heat = 21;
+    StormAlert storm = 22;
+    HeavyRainAlert heavy_rain = 23;
+    UvAlert uv = 24;
+    FogAlert fog = 25;
+    SnowAlert snow = 26;
+    PressureDropAlert pressure_drop = 27;
+    ThunderstormAlert thunderstorm = 28;
+    IceAlert ice = 29;
+    WindChillAlert wind_chill = 30;
+    VisibilityAlert visibility = 31;
+    TropicalNightAlert tropical_night = 32;
+    HumidityAlert humidity = 33;
+    PollenAlert pollen = 34;
+    Pm25Alert pm25 = 35;
+    DustAlert dust = 36;
+    FloodRiskAlert flood_risk = 37;
+    FloodRainAlert flood_rain = 38;
+    SwimmingConditionsAlert swimming_conditions = 39;
+    Bbq bbq = 50;
+    Laundry laundry = 51;
+    Outdoor outdoor = 52;
+    SurfConditions surf_conditions = 53;
+    CommuteSafety commute_safety = 60;
+    VentilationWindow ventilation_window = 61;
+    NightVentilation night_ventilation = 62;
+    ExerciseAdvisory exercise_advisory = 63;
+    Gardening gardening = 64;
+    FloodTimeline flood_timeline = 65;
+    SolarYield solar_yield = 66;
+    SatelliteRadiation satellite_radiation = 67;
+    ApproachingFront approaching_front = 68;
+    ConfidenceTrend confidence_trend = 80;
+    PollenTrend pollen_trend = 81;
+    SeasonalOutlook seasonal_outlook = 90;
   }
 }
 
-// One non-alert feature result. type is the lowercase feature name (laundry, outdoor, surf, ...). The keys of data
-// follow output: score (score, best_start, best_hours), condition (state plus feature fields), trend (direction,
-// magnitude plus feature fields) and forecast (entry_N, entry_N_<field>).
-message LifestyleUpdate {
-  string type = 1;
-  map<string, string> data = 2;
-  OutputKind output = 3;
+// ═══════════════════════════════════════
+// Base data per output kind
+// ═══════════════════════════════════════
+
+message AlertData {
+  AlertSeverity severity = 1;
+  double confidence = 2;
+  double trigger_value = 3;
+  double threshold = 4;
+  optional double peak_value = 5;
+  optional int32 hours_until = 6;
+  optional int32 duration_hours = 7;
+  ConfidenceLevel confidence_level = 8;
+}
+
+message ScoreData {
+  int32 score = 1;
+  google.protobuf.Timestamp best_start = 2;
+  int32 best_hours = 3;
+}
+
+message ConditionData {}
+
+message TrendData {}
+
+message ForecastData {}
+
+// ═══════════════════════════════════════
+// Feature closed sets
+// ═══════════════════════════════════════
+
+enum UvLevel {
+  UV_LEVEL_UNSPECIFIED = 0;
+  UV_LEVEL_MODERATE = 1;
+  UV_LEVEL_HIGH = 2;
+  UV_LEVEL_VERY_HIGH = 3;
+  UV_LEVEL_EXTREME = 4;
+}
+
+enum ExposureRisk {
+  EXPOSURE_RISK_UNSPECIFIED = 0;
+  EXPOSURE_RISK_FROSTBITE_30_MINUTES = 1;
+  EXPOSURE_RISK_FROSTBITE_10_MINUTES = 2;
+}
+
+enum ComfortLevel {
+  COMFORT_LEVEL_UNSPECIFIED = 0;
+  COMFORT_LEVEL_MUGGY = 1;
+  COMFORT_LEVEL_OPPRESSIVE = 2;
+  COMFORT_LEVEL_TROPICAL = 3;
+}
+
+enum CommuteLevel {
+  COMMUTE_LEVEL_UNSPECIFIED = 0;
+  COMMUTE_LEVEL_SAFE = 1;
+  COMMUTE_LEVEL_CAUTION = 2;
+  COMMUTE_LEVEL_DANGEROUS = 3;
+}
+
+enum CommuteHazard {
+  COMMUTE_HAZARD_UNSPECIFIED = 0;
+  COMMUTE_HAZARD_ICE = 1;
+  COMMUTE_HAZARD_FOG = 2;
+  COMMUTE_HAZARD_HEAVY_RAIN = 3;
+  COMMUTE_HAZARD_STRONG_WIND = 4;
+}
+
+enum ExerciseLevel {
+  EXERCISE_LEVEL_UNSPECIFIED = 0;
+  EXERCISE_LEVEL_SAFE = 1;
+  EXERCISE_LEVEL_CAUTION = 2;
+  EXERCISE_LEVEL_AVOID = 3;
+}
+
+enum ExerciseFactor {
+  EXERCISE_FACTOR_UNSPECIFIED = 0;
+  EXERCISE_FACTOR_PM25 = 1;
+  EXERCISE_FACTOR_OZONE = 2;
+  EXERCISE_FACTOR_TEMPERATURE = 3;
+  EXERCISE_FACTOR_HUMIDITY = 4;
+  EXERCISE_FACTOR_UV = 5;
+}
+
+enum GardeningAdvice {
+  GARDENING_ADVICE_UNSPECIFIED = 0;
+  GARDENING_ADVICE_PLANT = 1;
+  GARDENING_ADVICE_HOLD = 2;
+}
+
+enum FloodStatus {
+  FLOOD_STATUS_UNSPECIFIED = 0;
+  FLOOD_STATUS_NORMAL = 1;
+  FLOOD_STATUS_ABOVE_WARNING = 2;
+}
+
+enum ConfidenceTrendDirection {
+  CONFIDENCE_TREND_DIRECTION_UNSPECIFIED = 0;
+  CONFIDENCE_TREND_DIRECTION_CONVERGING = 1;
+  CONFIDENCE_TREND_DIRECTION_STABLE = 2;
+  CONFIDENCE_TREND_DIRECTION_DIVERGING = 3;
+}
+
+enum PollenType {
+  POLLEN_TYPE_UNSPECIFIED = 0;
+  POLLEN_TYPE_BIRCH = 1;
+  POLLEN_TYPE_GRASS = 2;
+  POLLEN_TYPE_ALDER = 3;
+  POLLEN_TYPE_MUGWORT = 4;
+}
+
+enum PollenTrendDirection {
+  POLLEN_TREND_DIRECTION_UNSPECIFIED = 0;
+  POLLEN_TREND_DIRECTION_STABLE = 1;
+  POLLEN_TREND_DIRECTION_RISING = 2;
+  POLLEN_TREND_DIRECTION_FALLING = 3;
+}
+
+// ═══════════════════════════════════════
+// Feature results
+// ═══════════════════════════════════════
+
+message FrostAlert {
+  AlertData alert = 1;
+  double expected_low = 2;
+  optional int32 earliest_frost_hours = 3;
+}
+
+message HeatAlert {
+  AlertData alert = 1;
+  double expected_max = 2;
+}
+
+message StormAlert {
+  AlertData alert = 1;
+  double expected_max_gust = 2;
+}
+
+message HeavyRainAlert {
+  AlertData alert = 1;
+  int32 hourly_exceed_models = 2;
+  int32 daily_exceed_models = 3;
+}
+
+message UvAlert {
+  AlertData alert = 1;
+  UvLevel uv_level = 2;
+  double uv_index = 3;
+}
+
+message FogAlert {
+  AlertData alert = 1;
+  int32 fog_hours = 2;
+}
+
+message SnowAlert {
+  AlertData alert = 1;
+  double expected_accumulation = 2;
+  optional double freezing_level = 3;
+}
+
+message PressureDropAlert {
+  AlertData alert = 1;
+  double max_drop = 2;
+}
+
+message ThunderstormAlert {
+  AlertData alert = 1;
+}
+
+message IceAlert {
+  AlertData alert = 1;
+  double expected_low = 2;
+  int32 rain_hours = 3;
+  bool soil_frozen = 4;
+}
+
+message WindChillAlert {
+  AlertData alert = 1;
+  double felt_temperature = 2;
+  double wind_factor = 3;
+  optional ExposureRisk exposure_risk = 4;
+}
+
+message VisibilityAlert {
+  AlertData alert = 1;
+  double min_visibility = 2;
+  int32 hours_below_1000m = 3;
+}
+
+message TropicalNightAlert {
+  AlertData alert = 1;
+  double night_minimum = 2;
+  int32 hours_above_20 = 3;
+}
+
+message HumidityAlert {
+  AlertData alert = 1;
+  double max_dewpoint = 2;
+  optional ComfortLevel comfort_level = 3;
+}
+
+message PollenAlert {
+  AlertData alert = 1;
+}
+
+message Pm25Alert {
+  AlertData alert = 1;
+}
+
+message DustAlert {
+  AlertData alert = 1;
+}
+
+message FloodRiskAlert {
+  AlertData alert = 1;
+}
+
+message FloodRainAlert {
+  AlertData alert = 1;
+}
+
+message SwimmingConditionsAlert {
+  AlertData alert = 1;
+}
+
+message Bbq {
+  ScoreData score = 1;
+}
+
+message Laundry {
+  ScoreData score = 1;
+}
+
+message Outdoor {
+  ScoreData score = 1;
+}
+
+message SurfConditions {
+  ScoreData score = 1;
+}
+
+message CommuteSafety {
+  ConditionData condition = 1;
+  CommuteLevel level = 2;
+  repeated CommuteHazard hazards = 3;
+}
+
+message VentilationWindow {
+  ConditionData condition = 1;
+  google.protobuf.Timestamp best_start = 2;
+  google.protobuf.Timestamp best_end = 3;
+}
+
+message NightVentilation {
+  ConditionData condition = 1;
+  google.protobuf.Timestamp open_at = 2;
+  google.protobuf.Timestamp close_at = 3;
+  double low_temperature = 4;
+  double tomorrow_peak = 5;
+}
+
+message ExerciseAdvisory {
+  ConditionData condition = 1;
+  ExerciseLevel level = 2;
+  repeated ExerciseFactor reasons = 3;
+  google.protobuf.Timestamp best_window = 4;
+}
+
+message Gardening {
+  ConditionData condition = 1;
+  GardeningAdvice advice = 2;
+  bool planting_safe = 3;
+  bool watering_needed = 4;
+  bool frost_risk = 5;
+}
+
+message FloodTimeline {
+  ConditionData condition = 1;
+  FloodStatus status = 2;
+  google.protobuf.Timestamp peak_time = 3;
+  double peak_discharge = 4;
+  int32 days_above_warning = 5;
+}
+
+message SolarYield {
+  ConditionData condition = 1;
+  double kwh_per_kwp = 2;
+  int32 peak_hour = 3;
+}
+
+message SatelliteRadiation {
+  ConditionData condition = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  double gti = 3;
+  optional double ghi = 4;
+  optional double blended_kwh_per_square_meter = 5;
+}
+
+message ApproachingFront {
+  ConditionData condition = 1;
+  double estimated_in_hours = 2;
+  double pressure_drop = 3;
+  double temperature_drop = 4;
+}
+
+message ConfidenceTrend {
+  TrendData trend = 1;
+  ConfidenceTrendDirection direction = 2;
+  double magnitude = 3;
+  double current_avg_std_dev = 4;
+  double previous_avg_std_dev = 5;
+}
+
+message PollenTrend {
+  TrendData trend = 1;
+  optional PollenType peak_type = 2;
+  optional google.protobuf.Timestamp peak_time = 3;
+  optional PollenTrendDirection birch = 4;
+  optional PollenTrendDirection grass = 5;
+  optional PollenTrendDirection alder = 6;
+  optional PollenTrendDirection mugwort = 7;
+}
+
+message SeasonalMonthEntry {
+  int32 year = 1;
+  int32 month = 2;
+  double temperature_anomaly = 3;
+  double precipitation_anomaly_percent = 4;
+  ConfidenceLevel confidence = 5;
+}
+
+message SeasonalOutlook {
+  ForecastData forecast = 1;
+  repeated SeasonalMonthEntry months = 2;
 }

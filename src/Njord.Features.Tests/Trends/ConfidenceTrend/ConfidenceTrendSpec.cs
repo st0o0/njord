@@ -16,10 +16,10 @@ public sealed class ConfidenceTrendSpec
         WeatherOnly(Uniform(p => p with { EnsembleStdDev = value }));
 
     [Theory]
-    [InlineData(1.0, 2.0, "Converging")]
-    [InlineData(2.5, 2.0, "Diverging")]
-    [InlineData(2.1, 2.0, "Stable")]
-    public void The_change_in_ensemble_spread_is_classified(double current, double previous, string direction)
+    [InlineData(1.0, 2.0, ConfidenceTrendDirection.Converging)]
+    [InlineData(2.5, 2.0, ConfidenceTrendDirection.Diverging)]
+    [InlineData(2.1, 2.0, ConfidenceTrendDirection.Stable)]
+    public void The_change_in_ensemble_spread_is_classified(double current, double previous, ConfidenceTrendDirection direction)
     {
         var trend = Assert.IsType<ConfidenceTrendResult>(
             Assert.Single(Run(Feature(), Now, WithStdDev(previous), WithStdDev(current))));
@@ -27,8 +27,8 @@ public sealed class ConfidenceTrendSpec
         Assert.Multiple(
             () => Assert.Equal(direction, trend.Direction),
             () => Assert.Equal(Math.Round(current - previous, 2), trend.Magnitude),
-            () => Assert.Equal(FeatureData.Number(current), trend.Data["current_avg_std_dev"]),
-            () => Assert.Equal(FeatureData.Number(previous), trend.Data["previous_avg_std_dev"]));
+            () => Assert.Equal(current, trend.CurrentAvgStdDev),
+            () => Assert.Equal(previous, trend.PreviousAvgStdDev));
     }
 
     [Fact]

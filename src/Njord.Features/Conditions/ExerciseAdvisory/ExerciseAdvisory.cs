@@ -49,28 +49,26 @@ public sealed class ExerciseAdvisory(IOptions<ExerciseAdvisoryConfig> config) : 
         var best = hours.MaxBy(h => h.Total)!;
         var level = average switch
         {
-            >= SafeScore => "Safe",
-            >= CautionScore => "Caution",
-            _ => "Avoid",
+            >= SafeScore => ExerciseLevel.Safe,
+            >= CautionScore => ExerciseLevel.Caution,
+            _ => ExerciseLevel.Avoid,
         };
 
-        var reasons = new List<string>();
-        AddReason(reasons, hours.Average(h => h.Pm25), "High particulate matter (PM2.5)");
-        AddReason(reasons, hours.Average(h => h.Ozone), "High ozone");
-        AddReason(reasons, hours.Average(h => h.Temperature), "Uncomfortable temperature");
-        AddReason(reasons, hours.Average(h => h.Humidity), "High humidity");
-        AddReason(reasons, hours.Average(h => h.Uv), "Strong UV radiation");
+        var reasons = new List<ExerciseFactor>();
+        AddReason(reasons, hours.Average(h => h.Pm25), ExerciseFactor.Pm25);
+        AddReason(reasons, hours.Average(h => h.Ozone), ExerciseFactor.Ozone);
+        AddReason(reasons, hours.Average(h => h.Temperature), ExerciseFactor.Temperature);
+        AddReason(reasons, hours.Average(h => h.Humidity), ExerciseFactor.Humidity);
+        AddReason(reasons, hours.Average(h => h.Uv), ExerciseFactor.Uv);
 
-        return new ExerciseAdvisoryResult(ctx.Location, level, FeatureData.Of(
-            ("reasons", string.Join(",", reasons)),
-            ("best_window", FeatureData.Time(best.ValidFrom))));
+        return new ExerciseAdvisoryResult(ctx.Location, level, [.. reasons], best.ValidFrom);
     }
 
-    private static void AddReason(List<string> reasons, double componentScore, string text)
+    private static void AddReason(List<ExerciseFactor> reasons, double componentScore, ExerciseFactor factor)
     {
         if (componentScore < 0.5)
         {
-            reasons.Add(text);
+            reasons.Add(factor);
         }
     }
 

@@ -17,7 +17,7 @@ public sealed class FeatureEngineSpec
 
     private sealed record Seen(WeatherInput Current, IReadOnlyList<WeatherInput> History);
 
-    private sealed record ProbeResult(Location Location) : FeatureResult(Location, "probe", OutputKind.Alert);
+    private sealed record ProbeResult(Location Location) : FeatureResult(Location);
 
     private sealed class RecordingRule(DomainRequirements requirements, int pollDepth = 0, bool enabled = true)
         : FeatureRule<WeatherInput>

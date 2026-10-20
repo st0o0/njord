@@ -17,9 +17,9 @@ public sealed class ExerciseAdvisorySpec
         var advice = Assert.IsType<ExerciseAdvisoryResult>(Assert.Single(Run(Feature(), Now, Combined(Day(), CleanAir()))));
 
         Assert.Multiple(
-            () => Assert.Equal("Safe", advice.State),
-            () => Assert.Equal("", advice.Data["reasons"]),
-            () => Assert.Equal(FeatureData.Time(Now), advice.Data["best_window"]));
+            () => Assert.Equal(ExerciseLevel.Safe, advice.Level),
+            () => Assert.Empty(advice.Reasons),
+            () => Assert.Equal(Now, advice.BestWindow));
     }
 
     [Fact]
@@ -30,8 +30,8 @@ public sealed class ExerciseAdvisorySpec
         var advice = Assert.IsType<ExerciseAdvisoryResult>(Assert.Single(Run(Feature(), Now, Combined(Day(), air))));
 
         Assert.Multiple(
-            () => Assert.Equal("Avoid", advice.State),
-            () => Assert.Equal("High particulate matter (PM2.5),High ozone", advice.Data["reasons"]));
+            () => Assert.Equal(ExerciseLevel.Avoid, advice.Level),
+            () => Assert.Equal([ExerciseFactor.Pm25, ExerciseFactor.Ozone], advice.Reasons));
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public sealed class ExerciseAdvisorySpec
 
         var advice = Assert.IsType<ExerciseAdvisoryResult>(Assert.Single(Run(Feature(), Now, Combined(Day(), air))));
 
-        Assert.Equal(FeatureData.Time(Now.AddHours(4)), advice.Data["best_window"]);
+        Assert.Equal(Now.AddHours(4), advice.BestWindow);
     }
 
     [Fact]

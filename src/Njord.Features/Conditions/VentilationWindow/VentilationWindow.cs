@@ -51,11 +51,7 @@ public sealed class VentilationWindow(IOptions<VentilationWindowConfig> config) 
 
         var first = hours[start].Point.ValidFrom;
         var end = hours[start + length - 1].Point.ValidFrom + ctx.Current.Weather.Resolution.ToTimeSpan();
-        var reason = $"Clean air and mild dry weather for {length} h";
-        return new VentilationWindowResult(ctx.Location, "open", FeatureData.Of(
-            ("best_start", FeatureData.Time(first)),
-            ("best_end", FeatureData.Time(end)),
-            ("reason", reason)));
+        return new VentilationWindowResult(ctx.Location, first, end);
     }
 
     private static bool IsOpenWindowHour(WeatherPoint weather, AirQualityPoint air)

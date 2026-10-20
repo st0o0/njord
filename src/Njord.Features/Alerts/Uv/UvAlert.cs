@@ -30,11 +30,11 @@ public sealed class UvAlert(IOptions<UvConfig> config) : FeatureRule<WeatherInpu
 
         var (level, severity, uvThreshold) = uvIndex switch
         {
-            >= 11 => ("extreme", AlertSeverity.Red, 11.0),
-            >= 8 => ("very_high", AlertSeverity.Red, 8.0),
-            >= 6 => ("high", AlertSeverity.Orange, 6.0),
-            >= 3 => ("moderate", AlertSeverity.Yellow, 3.0),
-            _ => ("low", AlertSeverity.None, 0.0),
+            >= 11 => (UvLevel.Extreme, AlertSeverity.Red, 11.0),
+            >= 8 => (UvLevel.VeryHigh, AlertSeverity.Red, 8.0),
+            >= 6 => (UvLevel.High, AlertSeverity.Orange, 6.0),
+            >= 3 => (UvLevel.Moderate, AlertSeverity.Yellow, 3.0),
+            _ => (UvLevel.Moderate, AlertSeverity.None, 0.0),
         };
 
         if (severity == AlertSeverity.None)

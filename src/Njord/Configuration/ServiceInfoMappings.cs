@@ -37,7 +37,7 @@ public static class ServiceInfoMappings
         var active = new List<string>();
         if (alerts.Enabled)
         {
-            active.Add(EnrichmentNames.Alerts);
+            active.Add("alerts");
         }
 
         active.AddRange(enabledFeatures.Select(feature => feature.SectionKey()).Order(StringComparer.Ordinal));

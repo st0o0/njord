@@ -14,7 +14,7 @@ public sealed record FrostAlertResult(
     int? DurationHours,
     ConfidenceLevel Level,
     double ExpectedLow,
-    Horizon? EarliestFrost) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    int? EarliestFrostHours) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
     HoursUntil, DurationHours, Level);
 
 public sealed record HeatAlertResult(
@@ -67,7 +67,7 @@ public sealed record UvAlertResult(
     int? HoursUntil,
     int? DurationHours,
     ConfidenceLevel Level,
-    string UvLevel,
+    UvLevel UvLevel,
     double UvIndex) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue, HoursUntil,
     DurationHours, Level);
 
@@ -150,7 +150,7 @@ public sealed record WindChillAlertResult(
     ConfidenceLevel Level,
     double FeltTemperature,
     double WindFactor,
-    string? ExposureRisk) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    ExposureRisk? ExposureRisk) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
     HoursUntil, DurationHours, Level);
 
 public sealed record VisibilityAlertResult(
@@ -192,7 +192,7 @@ public sealed record HumidityAlertResult(
     int? DurationHours,
     ConfidenceLevel Level,
     double MaxDewpoint,
-    string? ComfortLevel) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
+    ComfortLevel? ComfortLevel) : AlertFeatureResult(Location, Severity, Confidence, TriggerValue, Threshold, PeakValue,
     HoursUntil, DurationHours, Level);
 
 public sealed record PollenAlertResult(

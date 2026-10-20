@@ -17,10 +17,8 @@ public sealed class VentilationWindowSpec
         var advice = Assert.IsType<VentilationWindowResult>(Assert.Single(Run(Feature(), Now, Combined(Day(), CleanAir()))));
 
         Assert.Multiple(
-            () => Assert.Equal("open", advice.State),
-            () => Assert.Equal(FeatureData.Time(Now), advice.Data["best_start"]),
-            () => Assert.Equal(FeatureData.Time(Now.AddHours(24)), advice.Data["best_end"]),
-            () => Assert.Equal("Clean air and mild dry weather for 24 h", advice.Data["reason"]));
+            () => Assert.Equal(Now, advice.BestStart),
+            () => Assert.Equal(Now.AddHours(24), advice.BestEnd));
     }
 
     [Fact]
@@ -31,8 +29,8 @@ public sealed class VentilationWindowSpec
         var advice = Assert.IsType<VentilationWindowResult>(Assert.Single(Run(Feature(), Now, Combined(Day(), air))));
 
         Assert.Multiple(
-            () => Assert.Equal(FeatureData.Time(Now.AddHours(5)), advice.Data["best_start"]),
-            () => Assert.Equal(FeatureData.Time(Now.AddHours(24)), advice.Data["best_end"]));
+            () => Assert.Equal(Now.AddHours(5), advice.BestStart),
+            () => Assert.Equal(Now.AddHours(24), advice.BestEnd));
     }
 
     [Fact]

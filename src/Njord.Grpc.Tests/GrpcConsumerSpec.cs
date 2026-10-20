@@ -61,7 +61,7 @@ public sealed class GrpcConsumerSpec : NjordActorSpec
     {
         var ct = TestContext.Current.CancellationToken;
         var (consumer, pipeline) = await StartAsync();
-        var laundry = new ScoreResult(DomainData.Lucerne, "laundry", 80, Anchor, 4);
+        var laundry = new LaundryScoreResult(DomainData.Lucerne, 80, Anchor, 4);
 
         await pipeline.OfferAsync(laundry, ct);
 

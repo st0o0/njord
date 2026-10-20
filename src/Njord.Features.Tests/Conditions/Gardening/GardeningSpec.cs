@@ -19,9 +19,9 @@ public sealed class GardeningSpec
         var advice = Assert.IsType<GardeningResult>(Assert.Single(Run(Feature(), Now, forecast)));
 
         Assert.Multiple(
-            () => Assert.Equal("true", advice.Data["frost_risk"]),
-            () => Assert.Equal("false", advice.Data["planting_safe"]),
-            () => Assert.Equal("hold", advice.State));
+            () => Assert.True(advice.FrostRisk),
+            () => Assert.False(advice.PlantingSafe),
+            () => Assert.Equal(GardeningAdvice.Hold, advice.Advice));
     }
 
     [Fact]
@@ -30,10 +30,10 @@ public sealed class GardeningSpec
         var advice = Assert.IsType<GardeningResult>(Assert.Single(Run(Feature(), Now, WeatherOnly(Day()))));
 
         Assert.Multiple(
-            () => Assert.Equal("false", advice.Data["frost_risk"]),
-            () => Assert.Equal("true", advice.Data["planting_safe"]),
-            () => Assert.Equal("true", advice.Data["watering_needed"]),
-            () => Assert.Equal("plant", advice.State));
+            () => Assert.False(advice.FrostRisk),
+            () => Assert.True(advice.PlantingSafe),
+            () => Assert.True(advice.WateringNeeded),
+            () => Assert.Equal(GardeningAdvice.Plant, advice.Advice));
     }
 
     [Fact]
@@ -43,6 +43,6 @@ public sealed class GardeningSpec
 
         var advice = Assert.IsType<GardeningResult>(Assert.Single(Run(Feature(), Now, forecast)));
 
-        Assert.Equal("false", advice.Data["watering_needed"]);
+        Assert.False(advice.WateringNeeded);
     }
 }

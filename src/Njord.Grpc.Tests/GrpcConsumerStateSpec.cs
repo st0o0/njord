@@ -49,9 +49,9 @@ public sealed class GrpcConsumerStateSpec
     [Fact]
     public void Results_of_different_features_accumulate_ordered_by_wire_key()
     {
-        var frost = new AlertResult(Lucerne, "frost", new Alert(AlertSeverity.Orange, 0.8, NoDetails.Instance), Anchor);
+        var frost = new FrostAlertResult(Lucerne, AlertSeverity.Orange, 0.8, -3.0, -2.0, null, null, null, ConfidenceLevel.High, -3.0, null);
         var heat = Heat(AlertSeverity.Yellow, 0.7, Anchor);
-        var laundry = new ScoreResult(Lucerne, "laundry", 85, Anchor, 5);
+        var laundry = new LaundryScoreResult(Lucerne, 85, Anchor, 5);
 
         var state = GrpcConsumerState.Empty.Apply(laundry).Apply(heat).Apply(frost);
 
@@ -71,13 +71,13 @@ public sealed class GrpcConsumerStateSpec
     [Fact]
     public void Condition_results_are_kept_like_any_other_result()
     {
-        var commute = new ConditionResult(Lucerne, "commute", "caution", FeatureData.Of(("risks", "ice")));
+        var commute = new CommuteSafetyResult(Lucerne, CommuteLevel.Caution, [CommuteHazard.Ice]);
 
         var state = GrpcConsumerState.Empty.Apply(commute);
 
         Assert.Equal<FeatureResult>([commute], state.GetLatestResults(Lucerne));
     }
 
-    private static AlertResult Heat(AlertSeverity severity, double confidence, DateTimeOffset at) =>
-        new(Lucerne, "heat", new Alert(severity, confidence, NoDetails.Instance), at);
+    private static HeatAlertResult Heat(AlertSeverity severity, double confidence, DateTimeOffset at) =>
+        new(Lucerne, severity, confidence, 32.0, 30.0, null, null, null, ConfidenceLevel.Medium, 33.0);
 }

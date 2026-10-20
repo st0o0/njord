@@ -12,22 +12,16 @@ public abstract record AlertFeatureResult(
     double? PeakValue,
     int? HoursUntil,
     int? DurationHours,
-    ConfidenceLevel Level) : PipelineEvent;
+    ConfidenceLevel Level) : FeatureResult(Location);
 
 public abstract record ScoreFeatureResult(
     Location Location,
     int Score,
     DateTimeOffset BestStart,
-    int BestHours) : PipelineEvent;
+    int BestHours) : FeatureResult(Location);
 
-public abstract record ConditionFeatureResult(
-    Location Location,
-    string State) : PipelineEvent;
+public abstract record ConditionFeatureResult(Location Location) : FeatureResult(Location);
 
-public abstract record TrendFeatureResult(
-    Location Location,
-    string Direction,
-    double Magnitude) : PipelineEvent;
+public abstract record TrendFeatureResult(Location Location) : FeatureResult(Location);
 
-public abstract record ForecastFeatureResult(
-    Location Location) : PipelineEvent;
+public abstract record ForecastFeatureResult(Location Location) : FeatureResult(Location);

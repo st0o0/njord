@@ -7,11 +7,11 @@ namespace Njord.Grpc;
 
 internal sealed record GrpcConsumerState(
     ImmutableDictionary<(Location Location, DomainKind Domain), PipelineEvent> DomainData,
-    ImmutableDictionary<(Location Location, string WireKey), FeatureResult> Results)
+    ImmutableDictionary<(Location Location, Type Type), FeatureResult> Results)
 {
     public static readonly GrpcConsumerState Empty = new(
         ImmutableDictionary<(Location, DomainKind), PipelineEvent>.Empty,
-        ImmutableDictionary<(Location, string), FeatureResult>.Empty);
+        ImmutableDictionary<(Location, Type), FeatureResult>.Empty);
 }
 
 internal static class GrpcConsumerStateExtensions
@@ -24,7 +24,7 @@ internal static class GrpcConsumerStateExtensions
         }
 
         return evt is FeatureResult result
-            ? state with { Results = state.Results.SetItem((result.Location, result.WireKey), result) }
+            ? state with { Results = state.Results.SetItem((result.Location, result.GetType()), result) }
             : state;
     }
 
@@ -34,7 +34,7 @@ internal static class GrpcConsumerStateExtensions
     public static IReadOnlyList<FeatureResult> GetLatestResults(this GrpcConsumerState state, Location location) =>
         state.Results
             .Where(entry => entry.Key.Location == location)
-            .OrderBy(entry => entry.Key.WireKey, StringComparer.Ordinal)
+            .OrderBy(entry => entry.Key.Type.Name, StringComparer.Ordinal)
             .Select(entry => entry.Value)
             .ToList();
 }

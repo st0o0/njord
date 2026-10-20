@@ -3,6 +3,7 @@ using Njord.Core.Domain;
 using Njord.Features.Forecasts.SeasonalOutlook;
 using Njord.Forecast;
 using Njord.Forecast.Seasonal;
+using Njord.Messages.Alerts;
 using Njord.Messages.Pipeline;
 using static Njord.Tests.Shared.AlertRuleFixture;
 using static Njord.Tests.Shared.FeatureRunner;
@@ -31,28 +32,26 @@ public sealed class SeasonalOutlookSpec
         var outlook = Assert.IsType<SeasonalOutlookResult>(Assert.Single(Run(
             Feature(), October, With(Month(2026, 10), Month(2026, 11, 1.74, 2.4, 99.5), Month(2026, 12, -0.5, -20, 80)))));
 
-        Assert.Multiple(
-            () => Assert.Equal(["2026-11", "2026-12"], outlook.Entries.Select(e => e.Label)),
-            () => Assert.Equal(
-                new Dictionary<string, string> { ["temp_anomaly"] = "1.7", ["precip_anomaly"] = "2.5", ["confidence"] = "high" },
-                outlook.Entries[0].Values),
-            () => Assert.Equal(
-                new Dictionary<string, string> { ["temp_anomaly"] = "-0.5", ["precip_anomaly"] = "-20", ["confidence"] = "medium" },
-                outlook.Entries[1].Values));
+        Assert.Equal(
+            [
+                new SeasonalMonth(new DateOnly(2026, 11, 1), 1.7, 2.5, ConfidenceLevel.High),
+                new SeasonalMonth(new DateOnly(2026, 12, 1), -0.5, -20.0, ConfidenceLevel.Medium),
+            ],
+            outlook.Months);
     }
 
     [Theory]
-    [InlineData(1, "high")]
-    [InlineData(2, "medium")]
-    [InlineData(3, "low")]
-    public void The_confidence_drops_with_the_lead_time(int lead, string expected)
+    [InlineData(1, ConfidenceLevel.High)]
+    [InlineData(2, ConfidenceLevel.Medium)]
+    [InlineData(3, ConfidenceLevel.Low)]
+    public void The_confidence_drops_with_the_lead_time(int lead, ConfidenceLevel expected)
     {
         var month = new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero).AddMonths(lead);
 
         var outlook = Assert.IsType<SeasonalOutlookResult>(
             Assert.Single(Run(Feature(), October, With(Month(month.Year, month.Month)))));
 
-        Assert.Equal(expected, Assert.Single(outlook.Entries).Values["confidence"]);
+        Assert.Equal(expected, Assert.Single(outlook.Months).Confidence);
     }
 
     [Fact]
@@ -60,7 +59,7 @@ public sealed class SeasonalOutlookSpec
     {
         var outlook = Assert.IsType<SeasonalOutlookResult>(Assert.Single(Run(Feature(), October, With(Month(2026, 11)))));
 
-        Assert.Equal("0", Assert.Single(outlook.Entries).Values["precip_anomaly"]);
+        Assert.Equal(0.0, Assert.Single(outlook.Months).PrecipitationAnomalyPercent);
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Njord.Forecast;
+using Njord.Messages.Alerts;
 
 namespace Njord.Messages.Pipeline;
 
@@ -8,16 +9,35 @@ public sealed record LaundryScoreResult(Location Location, int Score, DateTimeOf
 public sealed record OutdoorScoreResult(Location Location, int Score, DateTimeOffset BestStart, int BestHours) : ScoreFeatureResult(Location, Score, BestStart, BestHours);
 public sealed record SurfConditionsResult(Location Location, int Score, DateTimeOffset BestStart, int BestHours) : ScoreFeatureResult(Location, Score, BestStart, BestHours);
 
-public sealed record CommuteSafetyResult(Location Location, string State, IReadOnlyList<string> Risks) : ConditionFeatureResult(Location, State);
-public sealed record VentilationWindowResult(Location Location, string State, IReadOnlyDictionary<string, string> Data) : ConditionFeatureResult(Location, State);
-public sealed record NightVentilationResult(Location Location, string State, IReadOnlyDictionary<string, string> Data) : ConditionFeatureResult(Location, State);
-public sealed record ExerciseAdvisoryResult(Location Location, string State, IReadOnlyDictionary<string, string> Data) : ConditionFeatureResult(Location, State);
-public sealed record GardeningResult(Location Location, string State, IReadOnlyDictionary<string, string> Data) : ConditionFeatureResult(Location, State);
-public sealed record FloodTimelineResult(Location Location, string State, IReadOnlyDictionary<string, string> Data) : ConditionFeatureResult(Location, State);
+public sealed record CommuteSafetyResult(Location Location, CommuteLevel Level, ImmutableArray<CommuteHazard> Hazards) : ConditionFeatureResult(Location);
 
-public sealed record SeasonalOutlookResult(Location Location, ImmutableArray<ForecastEntry> Entries) : ForecastFeatureResult(Location);
-public sealed record SolarYieldResult(Location Location, string State, IReadOnlyDictionary<string, string> Data) : ConditionFeatureResult(Location, State);
-public sealed record SatelliteRadiationResult(Location Location, string State, IReadOnlyDictionary<string, string> Data) : ConditionFeatureResult(Location, State);
-public sealed record ConfidenceTrendResult(Location Location, string Direction, double Magnitude, IReadOnlyDictionary<string, string> Data) : TrendFeatureResult(Location, Direction, Magnitude);
-public sealed record ApproachingFrontResult(Location Location, string State, IReadOnlyDictionary<string, string> Data) : ConditionFeatureResult(Location, State);
-public sealed record PollenTrendResult(Location Location, string Direction, double Magnitude, IReadOnlyDictionary<string, string> Data) : TrendFeatureResult(Location, Direction, Magnitude);
+public sealed record VentilationWindowResult(Location Location, DateTimeOffset BestStart, DateTimeOffset BestEnd) : ConditionFeatureResult(Location);
+
+public sealed record NightVentilationResult(Location Location, DateTimeOffset OpenAt, DateTimeOffset CloseAt, double LowTemperature, double TomorrowPeak) : ConditionFeatureResult(Location);
+
+public sealed record ExerciseAdvisoryResult(Location Location, ExerciseLevel Level, ImmutableArray<ExerciseFactor> Reasons, DateTimeOffset BestWindow) : ConditionFeatureResult(Location);
+
+public sealed record GardeningResult(Location Location, GardeningAdvice Advice, bool PlantingSafe, bool WateringNeeded, bool FrostRisk) : ConditionFeatureResult(Location);
+
+public sealed record FloodTimelineResult(Location Location, FloodStatus Status, DateTimeOffset PeakTime, double PeakDischarge, int DaysAboveWarning) : ConditionFeatureResult(Location);
+
+public sealed record SolarYieldResult(Location Location, double KwhPerKwp, int PeakHour) : ConditionFeatureResult(Location);
+
+public sealed record SatelliteRadiationResult(Location Location, DateTimeOffset ObservedAt, double Gti, double? Ghi, double? BlendedKwhPerSquareMeter) : ConditionFeatureResult(Location);
+
+public sealed record ApproachingFrontResult(Location Location, double EstimatedInHours, double PressureDrop, double TemperatureDrop) : ConditionFeatureResult(Location);
+
+public sealed record ConfidenceTrendResult(Location Location, ConfidenceTrendDirection Direction, double Magnitude, double CurrentAvgStdDev, double PreviousAvgStdDev) : TrendFeatureResult(Location);
+
+public sealed record PollenTrendResult(
+    Location Location,
+    PollenType? PeakType,
+    DateTimeOffset? PeakTime,
+    PollenTrendDirection? Birch,
+    PollenTrendDirection? Grass,
+    PollenTrendDirection? Alder,
+    PollenTrendDirection? Mugwort) : TrendFeatureResult(Location);
+
+public sealed record SeasonalMonth(DateOnly Month, double TemperatureAnomaly, double PrecipitationAnomalyPercent, ConfidenceLevel Confidence);
+
+public sealed record SeasonalOutlookResult(Location Location, ImmutableArray<SeasonalMonth> Months) : ForecastFeatureResult(Location);

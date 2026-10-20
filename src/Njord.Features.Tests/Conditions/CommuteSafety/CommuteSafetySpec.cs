@@ -17,8 +17,8 @@ public sealed class CommuteSafetySpec
         var safety = Assert.IsType<CommuteSafetyResult>(Assert.Single(Run(Feature(), Now, WeatherOnly(Day()))));
 
         Assert.Multiple(
-            () => Assert.Equal("Safe", safety.State),
-            () => Assert.Empty(safety.Risks));
+            () => Assert.Equal(CommuteLevel.Safe, safety.Level),
+            () => Assert.Empty(safety.Hazards));
     }
 
     [Fact]
@@ -29,8 +29,8 @@ public sealed class CommuteSafetySpec
         var safety = Assert.IsType<CommuteSafetyResult>(Assert.Single(Run(Feature(), Now, WeatherOnly(weather))));
 
         Assert.Multiple(
-            () => Assert.Equal("Dangerous", safety.State),
-            () => Assert.Equal(["Ice"], safety.Risks));
+            () => Assert.Equal(CommuteLevel.Dangerous, safety.Level),
+            () => Assert.Equal([CommuteHazard.Ice], safety.Hazards));
     }
 
     [Fact]
@@ -41,8 +41,8 @@ public sealed class CommuteSafetySpec
         var safety = Assert.IsType<CommuteSafetyResult>(Assert.Single(Run(Feature(), Now, WeatherOnly(weather))));
 
         Assert.Multiple(
-            () => Assert.Equal("Caution", safety.State),
-            () => Assert.Equal(["Strong wind"], safety.Risks));
+            () => Assert.Equal(CommuteLevel.Caution, safety.Level),
+            () => Assert.Equal([CommuteHazard.StrongWind], safety.Hazards));
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class CommuteSafetySpec
 
         var safety = Assert.IsType<CommuteSafetyResult>(Assert.Single(Run(Feature(), Now, WeatherOnly(weather))));
 
-        Assert.Equal("Safe", safety.State);
+        Assert.Equal(CommuteLevel.Safe, safety.Level);
     }
 
     [Fact]

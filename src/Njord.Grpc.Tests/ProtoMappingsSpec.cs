@@ -20,16 +20,19 @@ public sealed class ProtoMappingsSpec
     [Fact]
     public void Alert_results_map_key_severity_and_optional_values()
     {
-        var result = new AlertResult(DomainData.Lucerne, "frost",
-            new DomainAlert(DomainAlertSeverity.Orange, 0.85, NoDetails.Instance, PeakValue: -4.0), Anchor);
+        var result = new HeatAlertResult(DomainData.Lucerne, DomainAlertSeverity.Orange, 0.85, 33.0, 30.0, -4.0, null, null,
+            Messages.Alerts.ConfidenceLevel.High, 34.0);
 
-        var alert = Assert.Single(new[] { result }.ToProto().Alerts);
+        var evt = result.ToEnrichmentEvent(Anchor);
 
+        Assert.NotNull(evt);
+        var alert = evt.Heat.Alert;
         Assert.Multiple(
-            () => Assert.Equal("frost", alert.Key),
+            () => Assert.Equal(EnrichmentEvent.FeatureOneofCase.Heat, evt.FeatureCase),
             () => Assert.Equal(V2.AlertSeverity.Orange, alert.Severity),
             () => Assert.Equal(-4.0, alert.PeakValue),
-            () => Assert.False(alert.HasHoursUntil));
+            () => Assert.False(alert.HasHoursUntil),
+            () => Assert.Equal(34.0, evt.Heat.ExpectedMax));
     }
 
     [Fact]
@@ -97,22 +100,21 @@ public sealed class ProtoMappingsSpec
         Assert.Multiple(
             () => Assert.Equal("Lucerne", evt.Location),
             () => Assert.Equal(Anchor.ToTimestamp(), evt.UpdatedAt),
-            () => Assert.Equal("heat", Assert.Single(evt.Alerts.Alerts).Key));
+            () => Assert.Equal(EnrichmentEvent.FeatureOneofCase.Heat, evt.FeatureCase));
     }
 
     [Fact]
     public void A_lifestyle_event_maps_to_a_lifestyle_enrichment_event_stamped_with_the_given_time()
     {
-        var evt = new ScoreResult(DomainData.Lucerne, "laundry", 80, Anchor, 4).ToEnrichmentEvent(Anchor.AddHours(1));
+        var evt = new LaundryScoreResult(DomainData.Lucerne, 80, Anchor, 4).ToEnrichmentEvent(Anchor.AddHours(1));
 
         Assert.NotNull(evt);
         Assert.Multiple(
             () => Assert.Equal("Lucerne", evt.Location),
-            () => Assert.Equal("lifestyle", evt.TypeName),
             () => Assert.Equal(Anchor.AddHours(1).ToTimestamp(), evt.UpdatedAt),
-            () => Assert.Equal("laundry", evt.Lifestyle.Type),
-            () => Assert.Equal("80", evt.Lifestyle.Data["score"]),
-            () => Assert.Equal("4", evt.Lifestyle.Data["best_hours"]));
+            () => Assert.Equal(EnrichmentEvent.FeatureOneofCase.Laundry, evt.FeatureCase),
+            () => Assert.Equal(80, evt.Laundry.Score.Score),
+            () => Assert.Equal(4, evt.Laundry.Score.BestHours));
     }
 
     [Fact]
@@ -122,7 +124,7 @@ public sealed class ProtoMappingsSpec
 
         Assert.Multiple(
             () => Assert.Equal(DomainData.Lucerne, EnrichmentEvents.Alerts(DomainData.Lucerne, Anchor).ToEnrichmentLocation()),
-            () => Assert.Equal(DomainData.Bern, new ConditionResult(DomainData.Bern, "commute", "ok", FeatureData.Of()).ToEnrichmentLocation()),
+            () => Assert.Equal(DomainData.Bern, new CommuteSafetyResult(DomainData.Bern, Messages.Pipeline.CommuteLevel.Safe, []).ToEnrichmentLocation()),
             () => Assert.Null(weather.ToEnrichmentLocation()));
     }
 

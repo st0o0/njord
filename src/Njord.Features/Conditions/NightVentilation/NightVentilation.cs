@@ -56,10 +56,6 @@ public sealed class NightVentilation(IOptions<NightVentilationConfig> config) : 
         }
 
         var closeAt = window[^1].ValidFrom + weather.Resolution.ToTimeSpan();
-        return new NightVentilationResult(ctx.Location, "open", FeatureData.Of(
-            ("open_at", FeatureData.Time(window[0].ValidFrom)),
-            ("close_at", FeatureData.Time(closeAt)),
-            ("low_temp", FeatureData.Number(coolest)),
-            ("tomorrow_peak", FeatureData.Number(peak))));
+        return new NightVentilationResult(ctx.Location, window[0].ValidFrom, closeAt, coolest, peak);
     }
 }

@@ -43,6 +43,6 @@ public sealed class FrostAlert(IOptions<FrostConfig> config) : FeatureRule<Weath
         return new FrostAlertResult(
             ctx.Location, severity, level.ToConfidence(), low, effectiveThreshold,
             PeakValue: null, HoursUntil: earliest?.HoursFrom(ctx.Now), DurationHours: null, Level: level,
-            ExpectedLow: low, EarliestFrost: earliest is null ? null : Forecast.Horizon.Hours(earliest.HoursFrom(ctx.Now)));
+            ExpectedLow: low, EarliestFrostHours: earliest is null ? null : earliest.HoursFrom(ctx.Now));
     }
 }

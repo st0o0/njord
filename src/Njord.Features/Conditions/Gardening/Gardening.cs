@@ -34,10 +34,8 @@ public sealed class Gardening(IOptions<GardeningConfig> config) : FeatureRule<We
         var frostRisk = day.Min(p => p.Temperature) < FrostTemperature;
         var frostWithinTwoDays = twoDays.Min(p => p.Temperature) < FrostTemperature;
         var windy = day.Max(p => p.WindSpeed) >= WindLimit;
+        var plantingSafe = !frostWithinTwoDays && !windy;
         var wateringNeeded = day.Sum(p => p.Precipitation) < RainThreshold;
-        return new GardeningResult(ctx.Location, !frostWithinTwoDays && !windy ? "plant" : "hold", FeatureData.Of(
-            ("planting_safe", FeatureData.Flag(!frostWithinTwoDays && !windy)),
-            ("watering_needed", FeatureData.Flag(wateringNeeded)),
-            ("frost_risk", FeatureData.Flag(frostRisk))));
+        return new GardeningResult(ctx.Location, plantingSafe ? GardeningAdvice.Plant : GardeningAdvice.Hold, plantingSafe, wateringNeeded, frostRisk);
     }
 }

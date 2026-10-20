@@ -33,9 +33,8 @@ public sealed class SolarYieldSpec
         var yield = Assert.IsType<SolarYieldResult>(Assert.Single(Run(Feature(), Now, Sunny())));
 
         Assert.Multiple(
-            () => Assert.Equal(FeatureData.Number(Math.Round((23 * 100.0 + 800.0) / 1000.0 * SolarYield.SystemEfficiency, 2)), yield.Data["kwh_per_kwp"]),
-            () => Assert.Equal(yield.Data["kwh_per_kwp"], yield.State),
-            () => Assert.Equal(FeatureData.Number(Now.AddHours(3).Hour), yield.Data["peak_hour"]));
+            () => Assert.Equal(Math.Round((23 * 100.0 + 800.0) / 1000.0 * SolarYield.SystemEfficiency, 2), yield.KwhPerKwp),
+            () => Assert.Equal(Now.AddHours(3).Hour, yield.PeakHour));
     }
 
     [Fact]
@@ -52,8 +51,8 @@ public sealed class SolarYieldSpec
         var yield = Assert.IsType<SolarYieldResult>(Assert.Single(Run(Feature(), Now, WithSatellite((1, 50.0), (0, 400.0)))));
 
         Assert.Multiple(
-            () => Assert.Equal(FeatureData.Number(Math.Round((400.0 + 800.0 + 22 * 100.0) / 1000.0 * SolarYield.SystemEfficiency, 2)), yield.Data["kwh_per_kwp"]),
-            () => Assert.Equal(FeatureData.Number(Now.AddHours(3).Hour), yield.Data["peak_hour"]));
+            () => Assert.Equal(Math.Round((400.0 + 800.0 + 22 * 100.0) / 1000.0 * SolarYield.SystemEfficiency, 2), yield.KwhPerKwp),
+            () => Assert.Equal(Now.AddHours(3).Hour, yield.PeakHour));
     }
 
     [Fact]
@@ -61,7 +60,7 @@ public sealed class SolarYieldSpec
     {
         var yield = Assert.IsType<SolarYieldResult>(Assert.Single(Run(Feature(), Now, WithSatellite((0, 1000.0)))));
 
-        Assert.Equal(FeatureData.Number(Now.Hour), yield.Data["peak_hour"]);
+        Assert.Equal(Now.Hour, yield.PeakHour);
     }
 
     [Fact]
@@ -70,9 +69,7 @@ public sealed class SolarYieldSpec
         var withStale = Assert.IsType<SolarYieldResult>(Assert.Single(Run(Feature(), Now, WithSatellite((4, 900.0)))));
         var ensembleOnly = Assert.IsType<SolarYieldResult>(Assert.Single(Run(Feature(), Now, Sunny())));
 
-        Assert.Multiple(
-            () => Assert.Equal(ensembleOnly.State, withStale.State),
-            () => Assert.Equal(ensembleOnly.Data, withStale.Data));
+        Assert.Equal(ensembleOnly, withStale);
     }
 
     [Fact]

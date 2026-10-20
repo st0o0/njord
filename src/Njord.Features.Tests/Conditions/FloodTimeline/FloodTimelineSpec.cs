@@ -25,10 +25,10 @@ public sealed class FloodTimelineSpec
         var timeline = Assert.IsType<FloodTimelineResult>(Assert.Single(Run(Feature(), Now, forecast)));
 
         Assert.Multiple(
-            () => Assert.Equal("above_warning", timeline.State),
-            () => Assert.Equal(FeatureData.Time(F.Today.AddDays(3)), timeline.Data["peak_time"]),
-            () => Assert.Equal("300", timeline.Data["peak_discharge"]),
-            () => Assert.Equal("3", timeline.Data["days_above_warning"]));
+            () => Assert.Equal(FloodStatus.AboveWarning, timeline.Status),
+            () => Assert.Equal(F.Today.AddDays(3), timeline.PeakTime),
+            () => Assert.Equal(300.0, timeline.PeakDischarge),
+            () => Assert.Equal(3, timeline.DaysAboveWarning));
     }
 
     [Fact]
@@ -37,8 +37,8 @@ public sealed class FloodTimelineSpec
         var timeline = Assert.IsType<FloodTimelineResult>(Assert.Single(Run(Feature(), Now, With(F.Point(0, 80), F.Point(1, 90)))));
 
         Assert.Multiple(
-            () => Assert.Equal("normal", timeline.State),
-            () => Assert.Equal("0", timeline.Data["days_above_warning"]));
+            () => Assert.Equal(FloodStatus.Normal, timeline.Status),
+            () => Assert.Equal(0, timeline.DaysAboveWarning));
     }
 
     [Fact]

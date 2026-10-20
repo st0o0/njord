@@ -6,6 +6,6 @@ namespace Njord.Tests.Shared;
 
 public static class EnrichmentEvents
 {
-    public static AlertResult Alerts(Location location, DateTimeOffset at) =>
-        new(location, "heat", new Alert(AlertSeverity.Yellow, 0.75, NoDetails.Instance), at);
+    public static HeatAlertResult Alerts(Location location, DateTimeOffset at) =>
+        new(location, AlertSeverity.Yellow, 0.75, 32.0, 30.0, null, null, null, ConfidenceLevel.Medium, 33.0);
 }

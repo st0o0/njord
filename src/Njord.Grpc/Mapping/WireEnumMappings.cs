@@ -1,10 +1,8 @@
 using Njord.Forecast;
 using DomainAlertSeverity = Njord.Messages.Alerts.AlertSeverity;
-using DomainOutputKind = Njord.Messages.Pipeline.OutputKind;
 using DomainPollPhase = Njord.Messages.Pipeline.PollPhase;
 using ProtoAlertSeverity = Njord.Grpc.V2.AlertSeverity;
 using ProtoDomain = Njord.Grpc.V2.Domain;
-using ProtoOutputKind = Njord.Grpc.V2.OutputKind;
 using ProtoPollPhase = Njord.Grpc.V2.PollPhase;
 
 namespace Njord.Grpc.Mapping;
@@ -16,16 +14,6 @@ internal static class WireEnumMappings
         DomainPollPhase.Discovery => ProtoPollPhase.Discovery,
         DomainPollPhase.Steady => ProtoPollPhase.Steady,
         _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, null),
-    };
-
-    public static ProtoOutputKind ToProto(this DomainOutputKind output) => output switch
-    {
-        DomainOutputKind.Alert => ProtoOutputKind.Alert,
-        DomainOutputKind.Score => ProtoOutputKind.Score,
-        DomainOutputKind.Condition => ProtoOutputKind.Condition,
-        DomainOutputKind.Trend => ProtoOutputKind.Trend,
-        DomainOutputKind.Forecast => ProtoOutputKind.Forecast,
-        _ => throw new ArgumentOutOfRangeException(nameof(output), output, null),
     };
 
     public static ProtoDomain ToProto(this DomainKind domain) => domain switch

@@ -26,10 +26,9 @@ public sealed class SatelliteRadiationSpec
         var computed = Assert.IsType<SatelliteRadiationResult>(Assert.Single(Run(Feature(), Now, forecast)));
 
         Assert.Multiple(
-            () => Assert.Equal("500", computed.State),
-            () => Assert.Equal(FeatureData.Time(Now), computed.Data["observed_at"]),
-            () => Assert.Equal("500", computed.Data["gti"]),
-            () => Assert.Equal("410", computed.Data["ghi"]));
+            () => Assert.Equal(Now, computed.ObservedAt),
+            () => Assert.Equal(500.0, computed.Gti),
+            () => Assert.Equal(410.0, computed.Ghi));
     }
 
     [Fact]
@@ -41,7 +40,7 @@ public sealed class SatelliteRadiationSpec
 
         var computed = Assert.IsType<SatelliteRadiationResult>(Assert.Single(Run(Feature(), Now, forecast)));
 
-        Assert.Equal(FeatureData.Number(Math.Round((600.0 + 23 * 100.0) / 1000.0, 2)), computed.Data["blended_kwh_per_m2"]);
+        Assert.Equal(Math.Round((600.0 + 23 * 100.0) / 1000.0, 2), computed.BlendedKwhPerSquareMeter);
     }
 
     [Fact]

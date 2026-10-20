@@ -121,5 +121,5 @@ public sealed class FeatureRuleSpec
         }
     }
 
-    private sealed record TestFeatureResult(Location Location) : FeatureResult(Location, "test", OutputKind.Alert);
+    private sealed record TestFeatureResult(Location Location) : FeatureResult(Location);
 }

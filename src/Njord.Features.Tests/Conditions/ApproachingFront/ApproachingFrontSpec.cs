@@ -27,10 +27,9 @@ public sealed class ApproachingFrontSpec
             Assert.Single(Run(Feature(), Now, WeatherOnly(Day()), Falling(315.0))));
 
         Assert.Multiple(
-            () => Assert.Equal("approaching", front.State),
-            () => Assert.Equal("6", front.Data["pressure_drop"]),
-            () => Assert.Equal("3", front.Data["temp_drop"]),
-            () => Assert.Equal("2", front.Data["estimated_in_hours"]));
+            () => Assert.Equal(6.0, front.PressureDrop),
+            () => Assert.Equal(3.0, front.TemperatureDrop),
+            () => Assert.Equal(2.0, front.EstimatedInHours));
     }
 
     [Fact]

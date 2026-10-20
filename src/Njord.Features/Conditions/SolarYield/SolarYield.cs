@@ -33,8 +33,6 @@ public sealed class SolarYield(IOptions<SolarYieldConfig> config) : FeatureRule<
         var kwhPerSquareMeter = hours.Sum(hour => hour.Radiation) / 1000.0;
         var yield = kwhPerSquareMeter * SystemEfficiency;
         var peak = hours.MaxBy(hour => hour.Radiation);
-        return new SolarYieldResult(ctx.Location, FeatureData.Number(Math.Round(yield, 2)), FeatureData.Of(
-            ("kwh_per_kwp", FeatureData.Number(Math.Round(yield, 2))),
-            ("peak_hour", FeatureData.Number(peak.ValidFrom.Hour))));
+        return new SolarYieldResult(ctx.Location, Math.Round(yield, 2), peak.ValidFrom.Hour);
     }
 }

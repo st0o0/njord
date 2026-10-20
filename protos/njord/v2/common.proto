@@ -36,18 +36,8 @@ enum CoverageTier {
 }
 
 // ═══════════════════════════════════════
-// Enrichment: Alerts
+// Enrichment: shared enums
 // ═══════════════════════════════════════
-
-// What kind of sensor a feature result maps to; the feature itself is identified by its lowercase key.
-enum OutputKind {
-  OUTPUT_KIND_UNSPECIFIED = 0;
-  OUTPUT_KIND_ALERT = 1;
-  OUTPUT_KIND_SCORE = 2;
-  OUTPUT_KIND_CONDITION = 3;
-  OUTPUT_KIND_TREND = 4;
-  OUTPUT_KIND_FORECAST = 5;
-}
 
 enum AlertSeverity {
   ALERT_SEVERITY_NONE = 0;
@@ -56,19 +46,9 @@ enum AlertSeverity {
   ALERT_SEVERITY_RED = 3;
 }
 
-message Alert {
-  reserved 1;
-  AlertSeverity severity = 2;
-  double confidence = 3;
-  double trigger_value = 4;
-  double threshold = 5;
-  optional double peak_value = 6;
-  optional int32 hours_until = 7;
-  optional int32 duration_hours = 8;
-  // Lowercase feature name (frost, heavyrain, pm25, floodrisk, ...).
-  string key = 9;
-}
-
-message AlertUpdate {
-  repeated Alert alerts = 1;
+enum ConfidenceLevel {
+  CONFIDENCE_LEVEL_UNSPECIFIED = 0;
+  CONFIDENCE_LEVEL_LOW = 1;
+  CONFIDENCE_LEVEL_MEDIUM = 2;
+  CONFIDENCE_LEVEL_HIGH = 3;
 }

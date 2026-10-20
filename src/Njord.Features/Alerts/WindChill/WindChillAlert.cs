@@ -39,9 +39,9 @@ public sealed class WindChillAlert(IOptions<WindChillConfig> config) : FeatureRu
 
         var exposureRisk = severity switch
         {
-            AlertSeverity.Red => "frostbite_10min",
-            AlertSeverity.Orange => "frostbite_30min",
-            _ => (string?)null,
+            AlertSeverity.Red => ExposureRisk.Frostbite10Minutes,
+            AlertSeverity.Orange => ExposureRisk.Frostbite30Minutes,
+            _ => (ExposureRisk?)null,
         };
 
         var rounded = Math.Round(low, 1);
